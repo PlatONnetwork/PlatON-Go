@@ -9,11 +9,7 @@
 .PHONY: geth-windows geth-windows-386 geth-windows-amd64
 
 GOBIN = $(shell pwd)/build/bin
-#GOBIN = /C/sunzone/MyDocument/liteide/src/Platon-go/build/bin
 GO ?= latest
-
-mytest:
-	@echo "$(GOBIN)"
 
 geth:
 	build/env.sh go run build/ci.go install ./cmd/geth

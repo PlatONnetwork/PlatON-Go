@@ -2,32 +2,19 @@
 
 set -e
 
-echo "into env.sh..."
-
 if [ ! -f "build/env.sh" ]; then
     echo "$0 must be run from the root of the repository."
     exit 2
 fi
 
-echo "into env.sh - 02..."
-
 # Create fake Go workspace if it doesn't exist yet.
 workspace="$PWD/build/_workspace"
-
-#for test
-echo "into env.sh - 03..."
-echo "$workspace"
-
 root="$PWD"
-atpdir="$workspace/src"
-
-echo "$atpdir ||| $root"
-
-if [ ! -L "$atpdir/Platon-go" ]; then
-    mkdir -p "$atpdir"
-    cd "$atpdir"
-    # /cygdrive/c/sunzone/MyDocument/liteide/src/Platon-go/build/_workspace/src
-    ln -s ../../../. Platon-go
+ethdir="$workspace/src/github.com/ethereum"
+if [ ! -L "$ethdir/go-ethereum" ]; then
+    mkdir -p "$ethdir"
+    cd "$ethdir"
+    ln -s ../../../../../. go-ethereum
     cd "$root"
 fi
 
@@ -35,16 +22,9 @@ fi
 GOPATH="$workspace"
 export GOPATH
 
-# fot test
-echo "into env.sh - 04..."
-echo "GOPATH: $GOPATH"
-echo "$@"
-
 # Run the command inside the workspace.
-cd "$atpdir/Platon-go"
-PWD="$atpdir/Platon-go"
-
-go version
+cd "$ethdir/go-ethereum"
+PWD="$ethdir/go-ethereum"
 
 # Launch the arguments with the configured environment.
 exec "$@"
