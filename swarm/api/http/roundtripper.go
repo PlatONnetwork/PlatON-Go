@@ -29,8 +29,8 @@ see https://github.com/ethereum/go-ethereum/issues/2040
 Usage:
 
 import (
- "github.com/ethereum/go-ethereum/common/httpclient"
- "github.com/ethereum/go-ethereum/swarm/api/http"
+ "Platon-go/common/httpclient"
+ "Platon-go/swarm/api/http"
 )
 client := httpclient.New()
 // for (private) swarm proxy running locally

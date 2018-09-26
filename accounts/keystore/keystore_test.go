@@ -379,10 +379,9 @@ func tmpKeyStore(t *testing.T, encrypted bool) (string, *KeyStore) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	//todo: 此处异常，待观察
-	//new := NewPlaintextKeyStore
+	new := NewPlaintextKeyStore
 	if encrypted {
 		new = func(kd string) *KeyStore { return NewKeyStore(kd, veryLightScryptN, veryLightScryptP) }
 	}
-	return d, nil
+	return d, new(d)
 }

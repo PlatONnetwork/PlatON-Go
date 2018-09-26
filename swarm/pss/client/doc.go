@@ -28,11 +28,11 @@
 //  	"context"
 //  	"fmt"
 //  	"os"
-//  	pss "github.com/ethereum/go-ethereum/swarm/pss/client"
-//  	"github.com/ethereum/go-ethereum/p2p/protocols"
-//  	"github.com/ethereum/go-ethereum/p2p"
-//  	"github.com/ethereum/go-ethereum/swarm/pot"
-//  	"github.com/ethereum/go-ethereum/swarm/log"
+//  	pss "Platon-go/swarm/pss/client"
+//  	"Platon-go/p2p/protocols"
+//  	"Platon-go/p2p"
+//  	"Platon-go/swarm/pot"
+//  	"Platon-go/swarm/log"
 //  )
 //
 //  type FooMsg struct {

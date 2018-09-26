@@ -19,7 +19,8 @@ package accounts
 
 import (
 	"math/big"
-	platon "Platon-go"
+
+	ethereum "Platon-go"
 	"Platon-go/common"
 	"Platon-go/core/types"
 	"Platon-go/event"
@@ -84,7 +85,7 @@ type Wallet interface {
 	//
 	// You can disable automatic account discovery by calling SelfDerive with a nil
 	// chain state reader.
-	SelfDerive(base DerivationPath, chain platon.ChainStateReader)
+	SelfDerive(base DerivationPath, chain ethereum.ChainStateReader)
 
 	// SignHash requests the wallet to sign the given hash.
 	//
