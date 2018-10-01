@@ -1,8 +1,7 @@
-package bft
+package cbft
 
 import (
 	"Platon-go/common"
-	"sync"
 )
 
 type dpos struct {
@@ -10,15 +9,13 @@ type dpos struct {
 	lastCycleBlockNum uint64
 }
 
-var (
-	once sync.Once
-	configPrimary []common.Address
-)
-//func init() {
-//	// 读取共识节点配置文件
-//	// 初始化共识节点列表
-//	configPrimary = []common.Address{}
-//}
+var configPrimary []common.Address
+
+func init() {
+	// 读取共识节点配置文件
+	// 初始化共识节点列表
+	configPrimary = []common.Address{}
+}
 
 func newDpos() *dpos {
 	dpos := &dpos {

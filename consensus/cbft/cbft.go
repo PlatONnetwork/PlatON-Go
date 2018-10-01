@@ -15,7 +15,7 @@
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package bft implements the BFT consensus engine.
-package bft
+package cbft
 
 import (
 	"errors"
@@ -92,16 +92,16 @@ var (
 	errWaitTransactions = errors.New("waiting for transactions")
 )
 
-type Bft struct {
+type Cbft struct {
 	dpos *dpos
 	rotating *rotating
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
 // signers set to the ones provided by the user.
-func New() *Bft {
+func New() *Cbft {
 	_dpos := newDpos()
-	return &Bft {
+	return &Cbft {
 		dpos:   _dpos,
 		rotating : newRotating(_dpos, 10000),
 	}
@@ -109,46 +109,46 @@ func New() *Bft {
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
-func (b *Bft) Author(header *types.Header) (common.Address, error) {
+func (b *Cbft) Author(header *types.Header) (common.Address, error) {
 	// 返回出块节点对应的矿工钱包地址
 	return header.Coinbase, nil
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules.
-func (b *Bft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	return b.verifyHeader(chain, header, nil)
+func (b *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
+	return nil
 }
 
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers. The
 // method returns a quit channel to abort the operations and a results channel to
 // retrieve the async verifications (the order is that of the input slice).
-func (b *Bft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
-
+func (b *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
+	return nil, nil
 }
 
 // VerifyUncles implements consensus.Engine, always returning an error for any
 // uncles as this consensus mechanism doesn't permit uncles.
-func (b *Bft) VerifyUncles(chain consensus.ChainReader, block *types.Block) error {
-
+func (b *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) error {
+	return nil
 }
 
 // VerifySeal implements consensus.Engine, checking whether the signature contained
 // in the header satisfies the consensus protocol requirements.
-func (b *Bft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
+func (b *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
 	// VerifySeal()函数基于跟Seal()完全一样的算法原理，通过验证区块的某些属性(Header.Nonce，Header.MixDigest等)是否正确，来确定该区块是否已经经过Seal操作
 	return nil
 }
 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
-func (b *Bft) Prepare(chain consensus.ChainReader, header *types.Header) error {
+func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
 	// 完成Header对象的准备
 	return nil
 }
 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
-func (b *Bft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+func (b *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	// 生成具体的区块信息
 	// 填充上Header.Root, TxHash, ReceiptHash, UncleHash等几个属性
 	return nil, nil
@@ -156,7 +156,7 @@ func (b *Bft) Finalize(chain consensus.ChainReader, header *types.Header, state 
 
 // Seal implements consensus.Engine, attempting to create a sealed block using
 // the local signing credentials.
-func (b *Bft) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
+func (b *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
 	// 打包区块
 	// 对传入的Block进行最终的授权
 	// Seal()函数可对一个调用过Finalize()的区块进行授权或封印，并将封印过程产生的一些值赋予区块中剩余尚未赋值的成员(Header.Nonce, Header.MixDigest)。
@@ -168,22 +168,26 @@ func (b *Bft) Seal(chain consensus.ChainReader, block *types.Block, results chan
 // CalcDifficulty is the difficulty adjustment algorithm. It returns the difficulty
 // that a new block should have based on the previous blocks in the chain and the
 // current signer.
-func (b *Bft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
-
+func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
+	return nil
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
-func (b *Bft) SealHash(header *types.Header) common.Hash {
-
+func (b *Cbft) SealHash(header *types.Header) common.Hash {
+	return header.ReceiptHash
 }
 
 // Close implements consensus.Engine. It's a noop for clique as there is are no background threads.
-func (b *Bft) Close() error {
+func (b *Cbft) Close() error {
 	return nil
 }
 
 // APIs implements consensus.Engine, returning the user facing RPC API to allow
 // controlling the signer voting.
-func (b *Bft) APIs(chain consensus.ChainReader) []rpc.API {
+func (b *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
+	return nil
+}
 
+func (b *Cbft) ShouldSeal() (bool, error) {
+	return false,nil
 }

@@ -105,6 +105,18 @@ type Engine interface {
 
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
+
+	// modify by platon
+	// 返回当前节点是否轮值出块
+	ShouldSeal() (bool, error)
+
+	// modify by platon
+	// Process the BFT signatures
+	OnBlockSignature(chain ChainReader, sig *types.BlockSignature) error
+
+	// modify by platon
+	// Process the BFT signatures
+	OnNewBlock(chain ChainReader, block *types.Block) error
 }
 
 // PoW is a consensus engine based on proof-of-work.

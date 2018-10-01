@@ -56,6 +56,9 @@ const (
 	GetBlockBodiesMsg  = 0x05
 	BlockBodiesMsg     = 0x06
 	NewBlockMsg        = 0x07
+	// modify by platon
+	PrepareBlockMsg        = 0x08
+	SignPrepareBlockMsg        = 0x09
 
 	// Protocol messages belonging to eth/63
 	GetNodeDataMsg = 0x0d
@@ -169,6 +172,12 @@ func (hn *hashOrNumber) DecodeRLP(s *rlp.Stream) error {
 
 // newBlockData is the network packet for the block propagation message.
 type newBlockData struct {
+	Block *types.Block
+	TD    *big.Int
+}
+
+// modify by platon
+type prepareBlockData struct {
 	Block *types.Block
 	TD    *big.Int
 }

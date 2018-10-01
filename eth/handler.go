@@ -682,6 +682,39 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		pm.txpool.AddRemotes(txs)
 
+	// modify by platon
+	case msg.Code == PrepareBlockMsg:
+		// Retrieve and decode the propagated block
+		var request prepareBlockData
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+
+		request.Block.ReceivedAt = msg.ReceivedAt
+		request.Block.ReceivedFrom = p
+
+		// Mark the peer as owning the block and schedule it for import
+		p.MarkPrepareBlock(request.Block.Hash())
+
+		pm.fetcher.Enqueue(p.id, request.Block)
+
+
+
+
+		// Transactions can be processed, parse all of them and deliver to the pool
+		var txs []*types.Transaction
+		if err := msg.Decode(&txs); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		for i, tx := range txs {
+			// Validate and mark the remote transaction
+			if tx == nil {
+				return errResp(ErrDecode, "transaction %d is nil", i)
+			}
+			p.MarkTransaction(tx.Hash())
+		}
+		pm.txpool.AddRemotes(txs)
+
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}

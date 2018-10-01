@@ -711,3 +711,8 @@ func (c *Clique) APIs(chain consensus.ChainReader) []rpc.API {
 		Public:    false,
 	}}
 }
+
+// modify by platon
+func (c *Clique) ShouldSeal() (bool, error) {
+	return false,nil
+}

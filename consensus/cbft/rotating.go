@@ -1,4 +1,4 @@
-package bft
+package cbft
 
 import (
 	"Platon-go/common"

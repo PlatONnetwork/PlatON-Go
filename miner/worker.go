@@ -355,14 +355,31 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
-			if w.isRunning() && (w.config.Clique == nil || w.config.Clique.Period > 0) {
+			// modify by platon
+			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
+			if w.isRunning() {
+				if w.config.Clique == nil || w.config.Clique.Period > 0 {
+					// Short circuit if no new transaction arrives.
+					if atomic.LoadInt32(&w.newTxs) == 0 {
+						timer.Reset(recommit)
+						continue
+					}
+					commit(true, commitInterruptResubmit)
+				} else if w.config.Cbft != nil {
+					if shouldSeal,error := w.engine.ShouldSeal(); shouldSeal && error == nil {
+						timer.Reset(recommit)
+						commit(false, commitInterruptResubmit)
+					}
+				}
+			}
+			/*if w.isRunning() && (w.config.Clique == nil || w.config.Clique.Period > 0) {
 				// Short circuit if no new transaction arrives.
 				if atomic.LoadInt32(&w.newTxs) == 0 {
 					timer.Reset(recommit)
 					continue
 				}
 				commit(true, commitInterruptResubmit)
-			}
+			}*/
 
 		case interval := <-w.resubmitIntervalCh:
 			// Adjust resubmit interval explicitly by user.
