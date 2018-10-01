@@ -144,6 +144,7 @@ type worker struct {
 	newWorkCh          chan *newWorkReq
 	taskCh             chan *task
 	resultCh           chan *types.Block
+	cbftResultCh       chan *types.Block
 	startCh            chan struct{}
 	exitCh             chan struct{}
 	resubmitIntervalCh chan time.Duration
@@ -199,6 +200,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		newWorkCh:          make(chan *newWorkReq),
 		taskCh:             make(chan *task),
 		resultCh:           make(chan *types.Block, resultQueueSize),
+		cbftResultCh:		make(chan *types.Block, resultQueueSize),
 		exitCh:             make(chan struct{}),
 		startCh:            make(chan struct{}, 1),
 		resubmitIntervalCh: make(chan time.Duration),
@@ -358,18 +360,18 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// modify by platon
 			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
-				if w.config.Clique == nil || w.config.Clique.Period > 0 {
+				if w.config.Cbft != nil {
+					if shouldSeal,error := w.engine.ShouldSeal(); shouldSeal && error == nil {
+						//timer.Reset(recommit)
+						commit(false, commitInterruptResubmit)
+					}
+				} else if w.config.Clique == nil || w.config.Clique.Period > 0 {
 					// Short circuit if no new transaction arrives.
 					if atomic.LoadInt32(&w.newTxs) == 0 {
 						timer.Reset(recommit)
 						continue
 					}
 					commit(true, commitInterruptResubmit)
-				} else if w.config.Cbft != nil {
-					if shouldSeal,error := w.engine.ShouldSeal(); shouldSeal && error == nil {
-						timer.Reset(recommit)
-						commit(false, commitInterruptResubmit)
-					}
 				}
 			}
 			/*if w.isRunning() && (w.config.Clique == nil || w.config.Clique.Period > 0) {
@@ -543,6 +545,14 @@ func (w *worker) taskLoop() {
 			w.pendingTasks[w.engine.SealHash(task.block.Header())] = task
 			w.pendingMu.Unlock()
 
+			// modify by platon
+			if w.config.Cbft != nil {
+				if err := w.engine.Seal(w.chain, task.block, w.cbftResultCh, stopCh); err != nil {
+					log.Warn("【Cbft engine】Block sealing failed", "err", err)
+				}
+				return
+			}
+
 			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
 				log.Warn("Block sealing failed", "err", err)
 			}
@@ -559,6 +569,68 @@ func (w *worker) resultLoop() {
 	for {
 		select {
 		case block := <-w.resultCh:
+			// Short circuit when receiving empty result.
+			if block == nil {
+				continue
+			}
+			// Short circuit when receiving duplicate result caused by resubmitting.
+			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
+				continue
+			}
+			var (
+				sealhash = w.engine.SealHash(block.Header())
+				hash     = block.Hash()
+			)
+			w.pendingMu.RLock()
+			task, exist := w.pendingTasks[sealhash]
+			w.pendingMu.RUnlock()
+			if !exist {
+				log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
+				continue
+			}
+			// Different block could share same sealhash, deep copy here to prevent write-write conflict.
+			var (
+				receipts = make([]*types.Receipt, len(task.receipts))
+				logs     []*types.Log
+			)
+			for i, receipt := range task.receipts {
+				receipts[i] = new(types.Receipt)
+				*receipts[i] = *receipt
+				// Update the block hash in all logs since it is now available and not when the
+				// receipt/log of individual transactions were created.
+				for _, log := range receipt.Logs {
+					log.BlockHash = hash
+				}
+				logs = append(logs, receipt.Logs...)
+			}
+			// Commit block and state to database.
+			stat, err := w.chain.WriteBlockWithState(block, receipts, task.state)
+			if err != nil {
+				log.Error("Failed writing block to chain", "err", err)
+				continue
+			}
+			log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
+				"elapsed", common.PrettyDuration(time.Since(task.createdAt)))
+
+			// Broadcast the block and announce chain insertion event
+			w.mux.Post(core.NewMinedBlockEvent{Block: block})
+
+			var events []interface{}
+			switch stat {
+			case core.CanonStatTy:
+				events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
+				events = append(events, core.ChainHeadEvent{Block: block})
+			case core.SideStatTy:
+				events = append(events, core.ChainSideEvent{Block: block})
+			}
+			w.chain.PostChainEvents(events, logs)
+
+			// Insert the block into the set of pending ones to resultLoop for confirmations
+			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
+
+		// modify by platon
+		case block := <-w.cbftResultCh:
+			// TODO
 			// Short circuit when receiving empty result.
 			if block == nil {
 				continue

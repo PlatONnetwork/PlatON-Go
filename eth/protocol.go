@@ -176,12 +176,6 @@ type newBlockData struct {
 	TD    *big.Int
 }
 
-// modify by platon
-type prepareBlockData struct {
-	Block *types.Block
-	TD    *big.Int
-}
-
 // blockBody represents the data content of a single block.
 type blockBody struct {
 	Transactions []*types.Transaction // Transactions contained within a block

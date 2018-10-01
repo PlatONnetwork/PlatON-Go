@@ -39,8 +39,6 @@ var (
 const (
 	maxKnownTxs    = 32768 // Maximum transactions hashes to keep in the known list (prevent DOS)
 	maxKnownBlocks = 1024  // Maximum block hashes to keep in the known list (prevent DOS)
-	// modify by platon
-	maxKnownPrepareBlocks = 1024  // Maximum block hashes to keep in the known list (prevent DOS)
 
 	// maxQueuedTxs is the maximum number of transaction lists to queue up before
 	// dropping broadcasts. This is a sensitive number as a transaction list might
@@ -195,14 +193,6 @@ func (p *peer) MarkTransaction(hash common.Hash) {
 		p.knownTxs.Pop()
 	}
 	p.knownTxs.Add(hash)
-}
-
-// modify by platon
-func (p *peer) MarkPrepareBlock(hash common.Hash) {
-	for p.knownPrepareBlocks.Cardinality() >= maxKnownPrepareBlocks {
-		p.knownPrepareBlocks.Pop()
-	}
-	p.knownPrepareBlocks.Add(hash)
 }
 
 // SendTransactions sends transactions to the peer and includes the hashes
