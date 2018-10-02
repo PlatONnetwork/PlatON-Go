@@ -715,8 +715,3 @@ func (ethash *Ethash) APIs(chain consensus.ChainReader) []rpc.API {
 func SeedHash(block uint64) []byte {
 	return seedHash(block)
 }
-
-// modify by platon
-func (ethash *Ethash) ShouldSeal() (bool, error) {
-	return false,nil
-}
