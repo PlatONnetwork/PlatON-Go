@@ -105,8 +105,24 @@ type Engine interface {
 
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
+}
+
+// PoW is a consensus engine based on proof-of-work.
+type PoW interface {
+	Engine
+
+	// Hashrate returns the current mining hashrate of a PoW consensus engine.
+	Hashrate() float64
+}
+
+type Bft interface {
+
+	Engine
 
 	// modify by platon
+	// 返回当前共识节点地址列表
+	ConsensusNodes() ([]string, error)
+
 	// 返回当前节点是否轮值出块
 	ShouldSeal() (bool, error)
 
@@ -117,12 +133,4 @@ type Engine interface {
 	// modify by platon
 	// Process the BFT signatures
 	OnNewBlock(chain ChainReader, block *types.Block) error
-}
-
-// PoW is a consensus engine based on proof-of-work.
-type PoW interface {
-	Engine
-
-	// Hashrate returns the current mining hashrate of a PoW consensus engine.
-	Hashrate() float64
 }

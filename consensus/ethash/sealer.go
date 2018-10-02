@@ -366,8 +366,3 @@ func (ethash *Ethash) remote(notify []string, noverify bool) {
 		}
 	}
 }
-
-// modify by platon
-func (ethash *Ethash) ShouldSeal() (bool, error) {
-	return false,nil
-}

@@ -19,13 +19,11 @@ package miner
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"Platon-go/common"
 	"Platon-go/consensus"
 	"Platon-go/consensus/misc"
@@ -36,6 +34,7 @@ import (
 	"Platon-go/event"
 	"Platon-go/log"
 	"Platon-go/params"
+	"github.com/deckarep/golang-set"
 )
 
 const (
@@ -366,8 +365,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// modify by platon
 			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
-				if w.config.Cbft != nil {
-					if shouldSeal,error := w.engine.ShouldSeal(); shouldSeal && error == nil {
+				if bftEngine,ok := w.engine.(consensus.Bft); ok {
+					if shouldSeal,error := bftEngine.ShouldSeal(); shouldSeal && error == nil {
 						//timer.Reset(recommit)
 						commit(false, commitInterruptResubmit)
 					}
@@ -510,6 +509,35 @@ func (w *worker) mainLoop() {
 			return
 		case <-w.chainSideSub.Err():
 			return
+
+		case block := <-w.prepareResultCh:
+			// Short circuit when receiving empty result.
+			if block == nil {
+				continue
+			}
+			// Short circuit when receiving duplicate result caused by resubmitting.
+			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
+				continue
+			}
+			var (
+				sealhash = w.engine.SealHash(block.Header())
+				hash     = block.Hash()
+			)
+			w.pendingMu.RLock()
+			_, exist := w.pendingTasks[sealhash]
+			w.pendingMu.RUnlock()
+			if !exist {
+				log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
+				continue
+			}
+
+			// Broadcast the block and announce chain insertion event
+			w.mux.Post(core.PrepareMinedBlockEvent{Block: block})
+
+			// modify by platon
+		case blockSignature := <-w.blockSignatureCh:
+			// send blockSignatureMsg to consensus node peer
+			w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature})
 		}
 	}
 }
@@ -572,9 +600,11 @@ func (w *worker) taskLoop() {
 // resultLoop is a standalone goroutine to handle sealing result submitting
 // and flush relative data to the database.
 func (w *worker) resultLoop() {
+	var block *types.Block
 	for {
 		select {
-		case block := <-w.resultCh:
+		case block = <-w.resultCh:
+		case block = <-w.cbftResultCh:
 			// Short circuit when receiving empty result.
 			if block == nil {
 				continue
@@ -633,42 +663,7 @@ func (w *worker) resultLoop() {
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
-
 		// modify by platon
-		case block := <-w.prepareResultCh:
-			// Short circuit when receiving empty result.
-			if block == nil {
-				continue
-			}
-			// Short circuit when receiving duplicate result caused by resubmitting.
-			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				continue
-			}
-			var (
-				sealhash = w.engine.SealHash(block.Header())
-				hash     = block.Hash()
-			)
-			w.pendingMu.RLock()
-			_, exist := w.pendingTasks[sealhash]
-			w.pendingMu.RUnlock()
-			if !exist {
-				log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
-				continue
-			}
-
-			// Broadcast the block and announce chain insertion event
-			w.mux.Post(core.PrepareMinedBlockEvent{Block: block})
-
-		// modify by platon
-		case blockSignature := <-w.blockSignatureCh:
-			// send blockSignatureMsg to consensus node peer
-			w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature})
-
-		// modify by platon
-		case block := <-w.cbftResultCh:
-			// TODO
-			fmt.Println(block)
-
 		case <-w.exitCh:
 			return
 		}
