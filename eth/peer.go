@@ -93,6 +93,9 @@ type peer struct {
 	queuedProps chan *propEvent           // Queue of blocks to broadcast to the peer
 	queuedAnns  chan *types.Block         // Queue of blocks to announce to the peer
 	term        chan struct{}             // Termination channel to stop the broadcaster
+	// modify by platon
+	queuedPreBlock chan *preBlockEvent
+	queuedSignature chan *signatureEvent
 }
 
 func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
@@ -133,6 +136,20 @@ func (p *peer) broadcast() {
 				return
 			}
 			p.Log().Trace("Announced block", "number", block.Number(), "hash", block.Hash())
+
+		// modify by platon
+		case prop := <-p.queuedPreBlock:
+			if err := p.SendPrepareBlock(prop.block); err != nil {
+				return
+			}
+			p.Log().Trace("Propagated prepare block", "number", prop.block.Number(), "hash", prop.block.Hash())
+
+		case prop := <-p.queuedSignature:
+			signature := &types.BlockSignature{prop.Hash,prop.Signature}
+			if err := p.SendSignature(signature); err != nil {
+				return
+			}
+			p.Log().Trace("Propagated block signature", "hash", signature.Hash)
 
 		case <-p.term:
 			return
@@ -521,4 +538,48 @@ func (ps *peerSet) Close() {
 		p.Disconnect(p2p.DiscQuitting)
 	}
 	ps.closed = true
+}
+
+// modify by platon
+func (ps *peerSet) PeersWithConsensus() []*peer {
+	// TODO
+	return nil
+}
+
+// modify by platon
+type preBlockEvent struct {
+	block *types.Block
+}
+
+type signatureEvent struct {
+	Hash        common.Hash
+	Signature   []byte
+}
+
+// modify by platon
+// SendPrepareBlock propagates an entire block to a remote peer.
+func (p *peer) SendPrepareBlock(block *types.Block) error {
+	return p2p.Send(p.rw, PrepareBlockMsg, []interface{}{block})
+}
+
+// modify by platon
+func (p *peer) AsyncSendPrepareBlock(block *types.Block) {
+	select {
+	case p.queuedPreBlock <- &preBlockEvent{block: block}:
+	default:
+		p.Log().Debug("Dropping prepare block propagation", "number", block.NumberU64(), "hash", block.Hash())
+	}
+}
+
+func (p *peer) SendSignature(signature *types.BlockSignature) error {
+	return p2p.Send(p.rw, BlockSignatureMsg, []interface{}{signature})
+}
+
+// modify by platon
+func (p *peer) AsyncSendSignature(signature *types.BlockSignature) {
+	select {
+	case p.queuedSignature <- &signatureEvent{Hash: signature.Hash, Signature: signature.Signature}:
+	default:
+		p.Log().Debug("Dropping block Signature", "Hash", signature.Hash)
+	}
 }

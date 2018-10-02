@@ -32,6 +32,10 @@ type PendingLogsEvent struct {
 // NewMinedBlockEvent is posted when a block has been imported.
 type NewMinedBlockEvent struct{ Block *types.Block }
 
+// modify by platon
+type PrepareMinedBlockEvent struct{ Block *types.Block }
+type BlockSignatureEvent struct{ BlockSignature *types.BlockSignature }
+
 // RemovedLogsEvent is posted when a reorg happens
 type RemovedLogsEvent struct{ Logs []*types.Log }
 

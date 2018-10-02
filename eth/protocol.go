@@ -58,7 +58,7 @@ const (
 	NewBlockMsg        = 0x07
 	// modify by platon
 	PrepareBlockMsg        = 0x08
-	SignPrepareBlockMsg        = 0x09
+	BlockSignatureMsg        = 0x09
 
 	// Protocol messages belonging to eth/63
 	GetNodeDataMsg = 0x0d
@@ -174,6 +174,17 @@ func (hn *hashOrNumber) DecodeRLP(s *rlp.Stream) error {
 type newBlockData struct {
 	Block *types.Block
 	TD    *big.Int
+}
+
+// modify by platon
+type prepareBlockData struct {
+	Block *types.Block
+}
+
+// modify by platon
+type blockSignature struct {
+	Hash        common.Hash
+	Signature   []byte
 }
 
 // blockBody represents the data content of a single block.

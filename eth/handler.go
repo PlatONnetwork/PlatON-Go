@@ -84,6 +84,9 @@ type ProtocolManager struct {
 	txsCh         chan core.NewTxsEvent
 	txsSub        event.Subscription
 	minedBlockSub *event.TypeMuxSubscription
+	// modify by platon
+	prepareMinedBlockSub *event.TypeMuxSubscription
+	blockSignatureSub *event.TypeMuxSubscription
 
 	// channels for fetcher, syncer, txsyncLoop
 	newPeerCh   chan *peer
@@ -216,6 +219,10 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 
 	// broadcast mined blocks
 	pm.minedBlockSub = pm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	// modify by platon
+	// broadcast prepare mined blocks
+	pm.prepareMinedBlockSub = pm.eventMux.Subscribe(core.PrepareMinedBlockEvent{})
+	pm.blockSignatureSub = pm.eventMux.Subscribe(core.BlockSignatureEvent{})
 	go pm.minedBroadcastLoop()
 
 	// start sync handlers
@@ -691,7 +698,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	// modify by platon
 	case msg.Code == PrepareBlockMsg:
 		// Retrieve and decode the propagated block
-		var request newBlockData
+		var request prepareBlockData
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
@@ -701,8 +708,30 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		// 初步校验block
 		// TODO
-		if err := pm.engine.VerifyHeader(pm.blockchain, request.Block.Header(), true); err == nil {
-			pm.engine.OnNewBlock(pm.blockchain, request.Block)
+		if err := pm.engine.VerifyHeader(pm.blockchain, request.Block.Header(), true); err != nil {
+			log.Error("Failed to VerifyHeader in PrepareBlockMsg,abandon this msg", "err", err)
+			return nil
+		}
+		if err := pm.engine.OnNewBlock(pm.blockchain, request.Block); err != nil {
+			log.Error("Failed to deliver PrepareBlockMsg data", "err", err)
+			return nil
+		}
+
+	// modify by platon
+	case msg.Code == BlockSignatureMsg:
+		// Retrieve and decode the propagated block
+		var request blockSignature
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+
+		engineBlockSignature := &types.BlockSignature{
+			Hash:      request.Hash,
+			Signature:      request.Signature,
+		}
+
+		if err := pm.engine.OnBlockSignature(pm.blockchain, engineBlockSignature); err != nil {
+			log.Error("Failed to deliver BlockSignatureMsg data", "blockHash", request.Hash, "err", err)
 		}
 
 	default:
@@ -744,6 +773,25 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	}
 }
 
+// modify by platon
+func (pm *ProtocolManager) MulticastBlock(a interface{}) {
+	// 共识节点peer
+	peers := pm.peers.PeersWithConsensus()
+	if peers == nil || len(peers) <= 0 {
+		log.Error("consensus peers is empty")
+	}
+
+	if block, ok := a.(*types.Block); ok {
+		for _, peer := range peers {
+			peer.AsyncSendPrepareBlock(block)
+		}
+	} else if signature, ok := a.(*types.BlockSignature); ok {
+		for _, peer := range peers {
+			peer.AsyncSendSignature(signature)
+		}
+	}
+}
+
 // BroadcastTxs will propagate a batch of transactions to all peers which are not known to
 // already have the given transaction.
 func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
@@ -766,10 +814,28 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 // Mined broadcast loop
 func (pm *ProtocolManager) minedBroadcastLoop() {
 	// automatically stops if unsubscribe
-	for obj := range pm.minedBlockSub.Chan() {
+	/*for obj := range pm.minedBlockSub.Chan() {
 		if ev, ok := obj.Data.(core.NewMinedBlockEvent); ok {
 			pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
 			pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
+		}
+	}*/
+	// modify by platon
+	for {
+		select {
+		case event :=  <- pm.minedBlockSub.Chan():
+			if ev, ok := event.Data.(core.NewMinedBlockEvent); ok {
+				pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
+				pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
+			}
+		case event :=  <- pm.prepareMinedBlockSub.Chan():
+			if ev, ok := event.Data.(core.PrepareMinedBlockEvent); ok {
+				pm.MulticastBlock(ev.Block)  // First propagate block to peers
+			}
+		case event :=  <- pm.blockSignatureSub.Chan():
+			if ev, ok := event.Data.(core.BlockSignatureEvent); ok {
+				pm.MulticastBlock(ev.BlockSignature)  // First propagate block to peers
+			}
 		}
 	}
 }

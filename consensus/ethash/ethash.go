@@ -720,3 +720,13 @@ func SeedHash(block uint64) []byte {
 func (ethash *Ethash) ShouldSeal() (bool, error) {
 	return false,nil
 }
+
+// modify by platon
+func (ethash *Ethash) OnBlockSignature(chain consensus.ChainReader, sig *types.BlockSignature) error {
+	return nil
+}
+
+// modify by platon
+func (ethash *Ethash) OnNewBlock(chain consensus.ChainReader, block *types.Block) error {
+	return nil
+}

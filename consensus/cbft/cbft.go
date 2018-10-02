@@ -18,13 +18,13 @@
 package cbft
 
 import (
-	"errors"
-	"math/big"
 	"Platon-go/common"
 	"Platon-go/consensus"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/rpc"
+	"errors"
+	"math/big"
 )
 
 const (
@@ -92,18 +92,41 @@ var (
 	errWaitTransactions = errors.New("waiting for transactions")
 )
 
+/*func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
+	// Set any missing consensus parameters to their defaults
+	conf := *config
+	if conf.Epoch == 0 {
+		conf.Epoch = epochLength
+	}
+	// Allocate the snapshot caches and create the engine
+	recents, _ := lru.NewARC(inmemorySnapshots)
+	signatures, _ := lru.NewARC(inmemorySignatures)
+
+	return &Clique{
+		config:     &conf,
+		db:         db,
+		recents:    recents,
+		signatures: signatures,
+		proposals:  make(map[common.Address]bool),
+	}
+}*/
+
 type Cbft struct {
 	dpos *dpos
 	rotating *rotating
+	blockSignatureCh chan *types.BlockSignature
+	cbftResultCh chan *types.Block
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
 // signers set to the ones provided by the user.
-func New() *Cbft {
+func New(blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.Block) *Cbft {
 	_dpos := newDpos()
 	return &Cbft {
-		dpos:   _dpos,
+		dpos :   _dpos,
 		rotating : newRotating(_dpos, 10000),
+		blockSignatureCh : blockSignatureCh,
+		cbftResultCh : cbftResultCh,
 	}
 }
 
@@ -190,4 +213,12 @@ func (b *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 
 func (b *Cbft) ShouldSeal() (bool, error) {
 	return false,nil
+}
+
+func (b *Cbft) OnBlockSignature(chain consensus.ChainReader, sig *types.BlockSignature) error {
+	return nil
+}
+
+func (b *Cbft) OnNewBlock(chain consensus.ChainReader, block *types.Block) error {
+	return nil
 }
