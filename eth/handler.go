@@ -712,8 +712,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Error("Failed to VerifyHeader in PrepareBlockMsg,abandon this msg", "err", err)
 			return nil
 		}
-		if err := pm.engine.OnNewBlock(pm.blockchain, request.Block); err != nil {
-			log.Error("Failed to deliver PrepareBlockMsg data", "err", err)
+		if realEngine,ok := pm.engine.(consensus.Bft); ok {
+			if err := realEngine.OnNewBlock(pm.blockchain, request.Block); err != nill {
+				log.Error("Failed to deliver PrepareBlockMsg data", "err", err)
+			}
 			return nil
 		}
 
@@ -730,10 +732,12 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			Signature:      request.Signature,
 		}
 
-		if err := pm.engine.OnBlockSignature(pm.blockchain, engineBlockSignature); err != nil {
-			log.Error("Failed to deliver BlockSignatureMsg data", "blockHash", request.Hash, "err", err)
+		if realEngine,ok := pm.engine.(consensus.Bft); ok {
+			if err := realEngine.OnBlockSignature(pm.blockchain, engineBlockSignature); err != nil {
+				log.Error("Failed to deliver BlockSignatureMsg data", "blockHash", request.Hash, "err", err)
+			}
+			return nil
 		}
-
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}

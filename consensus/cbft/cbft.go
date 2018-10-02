@@ -112,10 +112,10 @@ var (
 }*/
 
 type Cbft struct {
-	dpos *dpos
-	rotating *rotating
+	dpos             *dpos
+	rotating         *rotating
 	blockSignatureCh chan *types.BlockSignature
-	cbftResultCh chan *types.Block
+	cbftResultCh     chan *types.Block
 }
 
 // New creates a Clique proof-of-authority consensus engine with the initial
@@ -123,10 +123,10 @@ type Cbft struct {
 func New(blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.Block) *Cbft {
 	_dpos := newDpos()
 	return &Cbft {
-		dpos :   _dpos,
-		rotating : newRotating(_dpos, 10000),
+		dpos:              _dpos,
+		rotating :         newRotating(_dpos, 10000),
 		blockSignatureCh : blockSignatureCh,
-		cbftResultCh : cbftResultCh,
+		cbftResultCh :     cbftResultCh,
 	}
 }
 
@@ -209,10 +209,6 @@ func (b *Cbft) Close() error {
 // controlling the signer voting.
 func (b *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 	return nil
-}
-
-func (b *Cbft) ShouldSeal() (bool, error) {
-	return false,nil
 }
 
 func (b *Cbft) OnBlockSignature(chain consensus.ChainReader, sig *types.BlockSignature) error {

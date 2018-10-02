@@ -629,10 +629,3 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	}
 	state.AddBalance(header.Coinbase, reward)
 }
-
-func (ethash *Ethash) OnBlockSignature(chain consensus.ChainReader, sig *types.BlockSignature) error {
-	return nil
-}
-func (ethash *Ethash) OnNewBlock(chain consensus.ChainReader, block *types.Block) error {
-	return nil
-}

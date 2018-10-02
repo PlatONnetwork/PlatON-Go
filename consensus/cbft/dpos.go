@@ -45,6 +45,15 @@ func (d *dpos) setLastCycleBlockNum(blockNumber uint64) {
 	d.lastCycleBlockNum = blockNumber
 }
 
+// modify by platon
+// 返回当前共识节点地址列表
+func (b *Cbft) ConsensusNodes() ([]string, error) {
+	return nil,nil
+}
+
+func (b *Cbft) ShouldSeal() (bool, error) {
+	return false,nil
+}
 
 
 
