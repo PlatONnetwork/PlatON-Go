@@ -168,7 +168,6 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	// Construct the different synchronisation mechanisms
 	manager.downloader = downloader.New(mode, chaindb, manager.eventMux, blockchain, nil, manager.removePeer)
 
-	// modify by platon
 	validator := func(header *types.Header) error {
 		return engine.VerifyHeader(blockchain, header, true)
 	}
@@ -707,14 +706,13 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		request.Block.ReceivedFrom = p
 
 		// 初步校验block
-		// TODO
 		if err := pm.engine.VerifyHeader(pm.blockchain, request.Block.Header(), true); err != nil {
-			log.Error("Failed to VerifyHeader in PrepareBlockMsg,abandon this msg", "err", err)
+			log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
 			return nil
 		}
-		if realEngine,ok := pm.engine.(consensus.Bft); ok {
-			if err := realEngine.OnNewBlock(pm.blockchain, request.Block); err != nill {
-				log.Error("Failed to deliver PrepareBlockMsg data", "err", err)
+		if cbftEngine,ok := pm.engine.(consensus.Bft); ok {
+			if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
+				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
 			}
 			return nil
 		}
@@ -727,17 +725,15 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 
-		engineBlockSignature := &types.BlockSignature{
-			Hash:      request.Hash,
-			Signature:      request.Signature,
-		}
+		engineBlockSignature := &types.BlockSignature{request.Hash, request.Signature}
 
-		if realEngine,ok := pm.engine.(consensus.Bft); ok {
-			if err := realEngine.OnBlockSignature(pm.blockchain, engineBlockSignature); err != nil {
-				log.Error("Failed to deliver BlockSignatureMsg data", "blockHash", request.Hash, "err", err)
+		if cbftEngine,ok := pm.engine.(consensus.Bft); ok {
+			if err := cbftEngine.OnBlockSignature(pm.blockchain, engineBlockSignature); err != nil {
+				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
 			}
 			return nil
 		}
+
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}
@@ -748,7 +744,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 // will only announce it's availability (depending what's requested).
 func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	hash := block.Hash()
-	peers := pm.peers.PeersWithoutBlock(hash)
+	// modify by platon
+	//peers := pm.peers.PeersWithoutBlock(hash)
+	var peers []*peer
+	if _,ok := pm.engine.(consensus.Bft); ok {
+		peers = pm.peers.PeersWithoutConsensus(pm.engine)
+	} else {
+		peers = pm.peers.PeersWithoutBlock(hash)
+	}
 
 	// If propagation is requested, send to a subset of the peer
 	if propagate {
@@ -778,9 +781,10 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 }
 
 // modify by platon
+// 组播消息，发送给当前本轮所有共识节点
 func (pm *ProtocolManager) MulticastBlock(a interface{}) {
 	// 共识节点peer
-	peers := pm.peers.PeersWithConsensus()
+	peers := pm.peers.PeersWithConsensus(pm.engine)
 	if peers == nil || len(peers) <= 0 {
 		log.Error("consensus peers is empty")
 	}
