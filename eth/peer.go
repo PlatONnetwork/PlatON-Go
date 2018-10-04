@@ -145,6 +145,7 @@ func (p *peer) broadcast() {
 			}
 			p.Log().Trace("Propagated prepare block", "number", prop.block.Number(), "hash", prop.block.Hash())
 
+		// modify by platon
 		case prop := <-p.queuedSignature:
 			signature := &types.BlockSignature{prop.Hash,prop.Signature}
 			if err := p.SendSignature(signature); err != nil {
