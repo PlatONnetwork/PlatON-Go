@@ -133,7 +133,7 @@ func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
-	return header.ReceiptHash
+	return consensus.SigHash(header)
 }
 
 // Close implements consensus.Engine. It's a noop for clique as there is are no background threads.
