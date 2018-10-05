@@ -114,3 +114,13 @@ type PoW interface {
 	// Hashrate returns the current mining hashrate of a PoW consensus engine.
 	Hashrate() float64
 }
+
+type CBFT interface {
+	Engine
+
+	// Start starts the engine
+	Start(chain ChainReader, currentBlock func() *types.Block, hasBadBlock func(hash common.Hash) bool) error
+
+	// Stop stops the engine
+	Stop() error
+}
