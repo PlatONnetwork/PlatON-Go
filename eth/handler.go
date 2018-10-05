@@ -713,7 +713,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return nil
 		}
 		if realEngine,ok := pm.engine.(consensus.Bft); ok {
-			if err := realEngine.OnNewBlock(pm.blockchain, request.Block); err != nill {
+			if err := realEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
 				log.Error("Failed to deliver PrepareBlockMsg data", "err", err)
 			}
 			return nil
