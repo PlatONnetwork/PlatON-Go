@@ -365,8 +365,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// modify by platon
 			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
-				if bftEngine,ok := w.engine.(consensus.Bft); ok {
-					if shouldSeal,error := bftEngine.ShouldSeal(); shouldSeal && error == nil {
+				if cbftEngine,ok := w.engine.(consensus.Bft); ok {
+					if shouldSeal,error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
 						//timer.Reset(recommit)
 						commit(false, commitInterruptResubmit)
 					}
@@ -580,8 +580,9 @@ func (w *worker) taskLoop() {
 			w.pendingMu.Unlock()
 
 			// modify by platon
-			if w.config.Cbft != nil {
-				if err := w.engine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
+			//if w.config.Cbft != nil {
+			if cbftEngine,ok := w.engine.(consensus.Bft); ok {
+				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Cbft engine】Block sealing failed", "err", err)
 				}
 				return
@@ -604,6 +605,7 @@ func (w *worker) resultLoop() {
 	for {
 		select {
 		case block = <-w.resultCh:
+		// modify by platon
 		case block = <-w.cbftResultCh:
 			// Short circuit when receiving empty result.
 			if block == nil {
@@ -663,7 +665,7 @@ func (w *worker) resultLoop() {
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
-		// modify by platon
+
 		case <-w.exitCh:
 			return
 		}

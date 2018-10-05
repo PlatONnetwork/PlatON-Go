@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"Platon-go/consensus"
 	"errors"
 	"fmt"
 	"math/big"
@@ -144,6 +145,7 @@ func (p *peer) broadcast() {
 			}
 			p.Log().Trace("Propagated prepare block", "number", prop.block.Number(), "hash", prop.block.Hash())
 
+		// modify by platon
 		case prop := <-p.queuedSignature:
 			signature := &types.BlockSignature{prop.Hash,prop.Signature}
 			if err := p.SendSignature(signature); err != nil {
@@ -541,9 +543,46 @@ func (ps *peerSet) Close() {
 }
 
 // modify by platon
-func (ps *peerSet) PeersWithConsensus() []*peer {
-	// TODO
+func (ps *peerSet) PeersWithConsensus(engine consensus.Engine) []*peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	if cbftEngine,ok := engine.(consensus.Bft); ok {
+		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
+			list := make([]*peer, 0, len(consensusNodes))
+			for _,nodeId := range consensusNodes {
+				if peer,ok := ps.peers[nodeId]; ok {
+					list = append(list, peer)
+				}
+			}
+			return list
+		}
+	}
 	return nil
+}
+
+// modify by platon
+func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	consensusNodeMap := make(map[string]string)
+	if cbftEngine,ok := engine.(consensus.Bft); ok {
+		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
+			for _,nodeId := range consensusNodes {
+				consensusNodeMap[nodeId] = nodeId
+			}
+		}
+	}
+
+	list := make([]*peer, 0, len(ps.peers))
+	for nodeId,peer := range ps.peers {
+		if _,ok := consensusNodeMap[nodeId]; !ok {
+			list = append(list, peer)
+		}
+	}
+
+	return list
 }
 
 // modify by platon
