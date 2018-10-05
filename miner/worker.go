@@ -24,7 +24,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"Platon-go/common"
 	"Platon-go/consensus"
 	"Platon-go/consensus/misc"
@@ -35,6 +34,7 @@ import (
 	"Platon-go/event"
 	"Platon-go/log"
 	"Platon-go/params"
+	"github.com/deckarep/golang-set"
 )
 
 const (
@@ -144,6 +144,9 @@ type worker struct {
 	newWorkCh          chan *newWorkReq
 	taskCh             chan *task
 	resultCh           chan *types.Block
+	prepareResultCh    chan *types.Block
+	blockSignatureCh   chan *types.BlockSignature
+	cbftResultCh	   chan *types.Block
 	startCh            chan struct{}
 	exitCh             chan struct{}
 	resubmitIntervalCh chan time.Duration
@@ -179,7 +182,8 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool) *worker {
+func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64,
+	isLocalBlock func(*types.Block) bool, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.Block) *worker {
 	worker := &worker{
 		config:             config,
 		engine:             engine,
@@ -199,10 +203,13 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		newWorkCh:          make(chan *newWorkReq),
 		taskCh:             make(chan *task),
 		resultCh:           make(chan *types.Block, resultQueueSize),
+		prepareResultCh:	make(chan *types.Block, resultQueueSize),
 		exitCh:             make(chan struct{}),
 		startCh:            make(chan struct{}, 1),
 		resubmitIntervalCh: make(chan time.Duration),
 		resubmitAdjustCh:   make(chan *intervalAdjust, resubmitAdjustChanSize),
+		blockSignatureCh: blockSignatureCh,
+		cbftResultCh: cbftResultCh,
 	}
 	// Subscribe NewTxsEvent for tx pool
 	worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
@@ -355,14 +362,31 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
-			if w.isRunning() && (w.config.Clique == nil || w.config.Clique.Period > 0) {
+			// modify by platon
+			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
+			if w.isRunning() {
+				if cbftEngine,ok := w.engine.(consensus.Bft); ok {
+					if shouldSeal,error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
+						//timer.Reset(recommit)
+						commit(false, commitInterruptResubmit)
+					}
+				} else if w.config.Clique == nil || w.config.Clique.Period > 0 {
+					// Short circuit if no new transaction arrives.
+					if atomic.LoadInt32(&w.newTxs) == 0 {
+						timer.Reset(recommit)
+						continue
+					}
+					commit(true, commitInterruptResubmit)
+				}
+			}
+			/*if w.isRunning() && (w.config.Clique == nil || w.config.Clique.Period > 0) {
 				// Short circuit if no new transaction arrives.
 				if atomic.LoadInt32(&w.newTxs) == 0 {
 					timer.Reset(recommit)
 					continue
 				}
 				commit(true, commitInterruptResubmit)
-			}
+			}*/
 
 		case interval := <-w.resubmitIntervalCh:
 			// Adjust resubmit interval explicitly by user.
@@ -485,6 +509,35 @@ func (w *worker) mainLoop() {
 			return
 		case <-w.chainSideSub.Err():
 			return
+
+		case block := <-w.prepareResultCh:
+			// Short circuit when receiving empty result.
+			if block == nil {
+				continue
+			}
+			// Short circuit when receiving duplicate result caused by resubmitting.
+			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
+				continue
+			}
+			var (
+				sealhash = w.engine.SealHash(block.Header())
+				hash     = block.Hash()
+			)
+			w.pendingMu.RLock()
+			_, exist := w.pendingTasks[sealhash]
+			w.pendingMu.RUnlock()
+			if !exist {
+				log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
+				continue
+			}
+
+			// Broadcast the block and announce chain insertion event
+			w.mux.Post(core.PrepareMinedBlockEvent{Block: block})
+
+			// modify by platon
+		case blockSignature := <-w.blockSignatureCh:
+			// send blockSignatureMsg to consensus node peer
+			w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature})
 		}
 	}
 }
@@ -526,6 +579,15 @@ func (w *worker) taskLoop() {
 			w.pendingTasks[w.engine.SealHash(task.block.Header())] = task
 			w.pendingMu.Unlock()
 
+			// modify by platon
+			//if w.config.Cbft != nil {
+			if cbftEngine,ok := w.engine.(consensus.Bft); ok {
+				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
+					log.Warn("【Cbft engine】Block sealing failed", "err", err)
+				}
+				return
+			}
+
 			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
 				log.Warn("Block sealing failed", "err", err)
 			}
@@ -539,9 +601,12 @@ func (w *worker) taskLoop() {
 // resultLoop is a standalone goroutine to handle sealing result submitting
 // and flush relative data to the database.
 func (w *worker) resultLoop() {
+	var block *types.Block
 	for {
 		select {
-		case block := <-w.resultCh:
+		case block = <-w.resultCh:
+		// modify by platon
+		case block = <-w.cbftResultCh:
 			// Short circuit when receiving empty result.
 			if block == nil {
 				continue

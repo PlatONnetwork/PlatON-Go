@@ -115,12 +115,22 @@ type PoW interface {
 	Hashrate() float64
 }
 
-type CBFT interface {
+type Bft interface {
+
 	Engine
 
-	// Start starts the engine
-	Start(chain ChainReader, currentBlock func() *types.Block, hasBadBlock func(hash common.Hash) bool) error
+	// modify by platon
+	// 返回当前共识节点地址列表
+	ConsensusNodes() ([]string, error)
 
-	// Stop stops the engine
-	Stop() error
+	// 返回当前节点是否轮值出块
+	ShouldSeal() (bool, error)
+
+	// modify by platon
+	// Process the BFT signatures
+	OnBlockSignature(chain ChainReader, sig *types.BlockSignature) error
+
+	// modify by platon
+	// Process the BFT signatures
+	OnNewBlock(chain ChainReader, block *types.Block) error
 }

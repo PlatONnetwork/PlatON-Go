@@ -84,6 +84,9 @@ type ProtocolManager struct {
 	txsCh         chan core.NewTxsEvent
 	txsSub        event.Subscription
 	minedBlockSub *event.TypeMuxSubscription
+	// modify by platon
+	prepareMinedBlockSub *event.TypeMuxSubscription
+	blockSignatureSub *event.TypeMuxSubscription
 
 	// channels for fetcher, syncer, txsyncLoop
 	newPeerCh   chan *peer
@@ -94,6 +97,9 @@ type ProtocolManager struct {
 	// wait group is used for graceful shutdowns during downloading
 	// and processing
 	wg sync.WaitGroup
+
+	// modify by platon
+	engine consensus.Engine
 }
 
 // NewProtocolManager returns a new Ethereum sub protocol manager. The Ethereum sub protocol manages peers capable
@@ -111,6 +117,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		noMorePeers: make(chan struct{}),
 		txsyncCh:    make(chan *txsync),
 		quitSync:    make(chan struct{}),
+		engine: engine,
 	}
 	// Figure out whether to allow fast sync or not
 	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() > 0 {
@@ -176,6 +183,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		atomic.StoreUint32(&manager.acceptTxs, 1) // Mark initial sync done on any fetcher import
 		return manager.blockchain.InsertChain(blocks)
 	}
+
 	manager.fetcher = fetcher.New(blockchain.GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
 
 	return manager, nil
@@ -210,6 +218,10 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 
 	// broadcast mined blocks
 	pm.minedBlockSub = pm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	// modify by platon
+	// broadcast prepare mined blocks
+	pm.prepareMinedBlockSub = pm.eventMux.Subscribe(core.PrepareMinedBlockEvent{})
+	pm.blockSignatureSub = pm.eventMux.Subscribe(core.BlockSignatureEvent{})
 	go pm.minedBroadcastLoop()
 
 	// start sync handlers
@@ -682,6 +694,46 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		pm.txpool.AddRemotes(txs)
 
+	// modify by platon
+	case msg.Code == PrepareBlockMsg:
+		// Retrieve and decode the propagated block
+		var request prepareBlockData
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+
+		request.Block.ReceivedAt = msg.ReceivedAt
+		request.Block.ReceivedFrom = p
+
+		// 初步校验block
+		if err := pm.engine.VerifyHeader(pm.blockchain, request.Block.Header(), true); err != nil {
+			log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
+			return nil
+		}
+		if cbftEngine,ok := pm.engine.(consensus.Bft); ok {
+			if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
+				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
+			}
+			return nil
+		}
+
+	// modify by platon
+	case msg.Code == BlockSignatureMsg:
+		// Retrieve and decode the propagated block
+		var request blockSignature
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+
+		engineBlockSignature := &types.BlockSignature{request.Hash, request.Signature}
+
+		if cbftEngine,ok := pm.engine.(consensus.Bft); ok {
+			if err := cbftEngine.OnBlockSignature(pm.blockchain, engineBlockSignature); err != nil {
+				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
+			}
+			return nil
+		}
+
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}
@@ -692,7 +744,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 // will only announce it's availability (depending what's requested).
 func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	hash := block.Hash()
-	peers := pm.peers.PeersWithoutBlock(hash)
+	// modify by platon
+	//peers := pm.peers.PeersWithoutBlock(hash)
+	var peers []*peer
+	if _,ok := pm.engine.(consensus.Bft); ok {
+		peers = pm.peers.PeersWithoutConsensus(pm.engine)
+	} else {
+		peers = pm.peers.PeersWithoutBlock(hash)
+	}
 
 	// If propagation is requested, send to a subset of the peer
 	if propagate {
@@ -721,6 +780,26 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	}
 }
 
+// modify by platon
+// 组播消息，发送给当前本轮所有共识节点
+func (pm *ProtocolManager) MulticastBlock(a interface{}) {
+	// 共识节点peer
+	peers := pm.peers.PeersWithConsensus(pm.engine)
+	if peers == nil || len(peers) <= 0 {
+		log.Error("consensus peers is empty")
+	}
+
+	if block, ok := a.(*types.Block); ok {
+		for _, peer := range peers {
+			peer.AsyncSendPrepareBlock(block)
+		}
+	} else if signature, ok := a.(*types.BlockSignature); ok {
+		for _, peer := range peers {
+			peer.AsyncSendSignature(signature)
+		}
+	}
+}
+
 // BroadcastTxs will propagate a batch of transactions to all peers which are not known to
 // already have the given transaction.
 func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
@@ -743,10 +822,28 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 // Mined broadcast loop
 func (pm *ProtocolManager) minedBroadcastLoop() {
 	// automatically stops if unsubscribe
-	for obj := range pm.minedBlockSub.Chan() {
+	/*for obj := range pm.minedBlockSub.Chan() {
 		if ev, ok := obj.Data.(core.NewMinedBlockEvent); ok {
 			pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
 			pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
+		}
+	}*/
+	// modify by platon
+	for {
+		select {
+		case event :=  <- pm.minedBlockSub.Chan():
+			if ev, ok := event.Data.(core.NewMinedBlockEvent); ok {
+				pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
+				pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
+			}
+		case event :=  <- pm.prepareMinedBlockSub.Chan():
+			if ev, ok := event.Data.(core.PrepareMinedBlockEvent); ok {
+				pm.MulticastBlock(ev.Block)  // First propagate block to peers
+			}
+		case event :=  <- pm.blockSignatureSub.Chan():
+			if ev, ok := event.Data.(core.BlockSignatureEvent); ok {
+				pm.MulticastBlock(ev.BlockSignature)  // First propagate block to peers
+			}
 		}
 	}
 }

@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"Platon-go/consensus"
 	"errors"
 	"fmt"
 	"math/big"
@@ -87,10 +88,15 @@ type peer struct {
 
 	knownTxs    mapset.Set                // Set of transaction hashes known to be known by this peer
 	knownBlocks mapset.Set                // Set of block hashes known to be known by this peer
+	// modify by platon
+	knownPrepareBlocks mapset.Set          // Set of prepareblock hashes known to be known by this peer
 	queuedTxs   chan []*types.Transaction // Queue of transactions to broadcast to the peer
 	queuedProps chan *propEvent           // Queue of blocks to broadcast to the peer
 	queuedAnns  chan *types.Block         // Queue of blocks to announce to the peer
 	term        chan struct{}             // Termination channel to stop the broadcaster
+	// modify by platon
+	queuedPreBlock chan *preBlockEvent
+	queuedSignature chan *signatureEvent
 }
 
 func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
@@ -131,6 +137,21 @@ func (p *peer) broadcast() {
 				return
 			}
 			p.Log().Trace("Announced block", "number", block.Number(), "hash", block.Hash())
+
+		// modify by platon
+		case prop := <-p.queuedPreBlock:
+			if err := p.SendPrepareBlock(prop.block); err != nil {
+				return
+			}
+			p.Log().Trace("Propagated prepare block", "number", prop.block.Number(), "hash", prop.block.Hash())
+
+		// modify by platon
+		case prop := <-p.queuedSignature:
+			signature := &types.BlockSignature{prop.Hash,prop.Signature}
+			if err := p.SendSignature(signature); err != nil {
+				return
+			}
+			p.Log().Trace("Propagated block signature", "hash", signature.Hash)
 
 		case <-p.term:
 			return
@@ -519,4 +540,85 @@ func (ps *peerSet) Close() {
 		p.Disconnect(p2p.DiscQuitting)
 	}
 	ps.closed = true
+}
+
+// modify by platon
+func (ps *peerSet) PeersWithConsensus(engine consensus.Engine) []*peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	if cbftEngine,ok := engine.(consensus.Bft); ok {
+		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
+			list := make([]*peer, 0, len(consensusNodes))
+			for _,nodeId := range consensusNodes {
+				if peer,ok := ps.peers[nodeId]; ok {
+					list = append(list, peer)
+				}
+			}
+			return list
+		}
+	}
+	return nil
+}
+
+// modify by platon
+func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	consensusNodeMap := make(map[string]string)
+	if cbftEngine,ok := engine.(consensus.Bft); ok {
+		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
+			for _,nodeId := range consensusNodes {
+				consensusNodeMap[nodeId] = nodeId
+			}
+		}
+	}
+
+	list := make([]*peer, 0, len(ps.peers))
+	for nodeId,peer := range ps.peers {
+		if _,ok := consensusNodeMap[nodeId]; !ok {
+			list = append(list, peer)
+		}
+	}
+
+	return list
+}
+
+// modify by platon
+type preBlockEvent struct {
+	block *types.Block
+}
+
+type signatureEvent struct {
+	Hash        common.Hash
+	Signature   []byte
+}
+
+// modify by platon
+// SendPrepareBlock propagates an entire block to a remote peer.
+func (p *peer) SendPrepareBlock(block *types.Block) error {
+	return p2p.Send(p.rw, PrepareBlockMsg, []interface{}{block})
+}
+
+// modify by platon
+func (p *peer) AsyncSendPrepareBlock(block *types.Block) {
+	select {
+	case p.queuedPreBlock <- &preBlockEvent{block: block}:
+	default:
+		p.Log().Debug("Dropping prepare block propagation", "number", block.NumberU64(), "hash", block.Hash())
+	}
+}
+
+func (p *peer) SendSignature(signature *types.BlockSignature) error {
+	return p2p.Send(p.rw, BlockSignatureMsg, []interface{}{signature})
+}
+
+// modify by platon
+func (p *peer) AsyncSendSignature(signature *types.BlockSignature) {
+	select {
+	case p.queuedSignature <- &signatureEvent{Hash: signature.Hash, Signature: signature.Signature}:
+	default:
+		p.Log().Debug("Dropping block Signature", "Hash", signature.Hash)
+	}
 }

@@ -1044,6 +1044,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	defer bc.wg.Done()
 
 	bc.chainmu.Lock()
+
 	defer bc.chainmu.Unlock()
 
 	// A queued approach to delivering events. This is generally
