@@ -160,6 +160,7 @@ func (pm *ProtocolManager) syncer() {
 	}
 }
 
+// 几种同步synchronise, 之前发现对方的节点比自己节点要更新的时候会调用这个方法synchronise
 // synchronise tries to sync up our local block chain with a remote peer.
 func (pm *ProtocolManager) synchronise(peer *peer) {
 	// Short circuit if no peers are available

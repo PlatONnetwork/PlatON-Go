@@ -26,6 +26,8 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
+// 主要提供trie树的抽象，提供trie树的缓存和合约代码长度的缓存。
+
 // Trie cache generation limit after which to evict trie nodes from memory.
 var MaxTrieCacheGen = uint16(120)
 
@@ -38,6 +40,8 @@ const (
 	codeSizeCacheSize = 100000
 )
 
+// 数据库的抽象，定义接口
+
 // Database wraps access to tries and contract code.
 type Database interface {
 	// OpenTrie opens the main account trie.
@@ -46,9 +50,11 @@ type Database interface {
 	// OpenStorageTrie opens the storage trie of an account.
 	OpenStorageTrie(addrHash, root common.Hash) (Trie, error)
 
+	// independent adj.独立的；自主的；
 	// CopyTrie returns an independent copy of the given trie.
 	CopyTrie(Trie) Trie
 
+	// particular adj.特别的；具体的；
 	// ContractCode retrieves a particular contract's code.
 	ContractCode(addrHash, codeHash common.Hash) ([]byte, error)
 
@@ -76,6 +82,7 @@ type Trie interface {
 // intermediate trie-node memory pool between the low level storage layer and the
 // high level trie abstraction.
 func NewDatabase(db ethdb.Database) Database {
+	//LRU
 	csc, _ := lru.New(codeSizeCacheSize)
 	return &cachingDB{
 		db:            trie.NewDatabase(db),
@@ -86,7 +93,7 @@ func NewDatabase(db ethdb.Database) Database {
 type cachingDB struct {
 	db            *trie.Database
 	mu            sync.Mutex
-	pastTries     []*trie.SecureTrie
+	pastTries     []*trie.SecureTrie	// trie树的缓存
 	codeSizeCache *lru.Cache
 }
 
@@ -95,11 +102,13 @@ func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
+	// 缓存中读取trie，从尾部开始搜索
 	for i := len(db.pastTries) - 1; i >= 0; i-- {
 		if db.pastTries[i].Hash() == root {
 			return cachedTrie{db.pastTries[i].Copy(), db}, nil
 		}
 	}
+	// 缓存中没有则根据root新创建trie
 	tr, err := trie.NewSecure(root, db.db, MaxTrieCacheGen)
 	if err != nil {
 		return nil, err
@@ -112,6 +121,7 @@ func (db *cachingDB) pushTrie(t *trie.SecureTrie) {
 	defer db.mu.Unlock()
 
 	if len(db.pastTries) >= maxPastTries {
+		// 如果超标，缓存最早的数据移除掉,然后在最新位置放入新元素。
 		copy(db.pastTries, db.pastTries[1:])
 		db.pastTries[len(db.pastTries)-1] = t
 	} else {
@@ -168,6 +178,7 @@ type cachedTrie struct {
 func (m cachedTrie) Commit(onleaf trie.LeafCallback) (common.Hash, error) {
 	root, err := m.SecureTrie.Commit(onleaf)
 	if err == nil {
+		// commit的时候会调用pushTrie方法把之前的Trie树缓存起来
 		m.db.pushTrie(m.SecureTrie)
 	}
 	return root, err

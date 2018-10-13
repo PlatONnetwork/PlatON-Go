@@ -71,6 +71,8 @@ func (ctx *ServiceContext) Service(service interface{}) error {
 // registered for service instantiation.
 type ServiceConstructor func(ctx *ServiceContext) (Service, error)
 
+
+// node 中服务的定义，eth其实就是实现了一个服务.
 // Service is an individual protocol that can be registered into a node.
 //
 // Notes:
@@ -82,9 +84,12 @@ type ServiceConstructor func(ctx *ServiceContext) (Service, error)
 // • Restart logic is not required as the node will create a fresh instance
 // every time a service is started.
 type Service interface {
+
+	// 基本所有网络功能都基于此提供
 	// Protocols retrieves the P2P protocols the service wishes to start.
 	Protocols() []p2p.Protocol
 
+	// 对外提供的API
 	// APIs retrieves the list of RPC descriptors the service provides
 	APIs() []rpc.API
 

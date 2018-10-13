@@ -56,6 +56,11 @@ type Contract struct {
 	CodeAddr *common.Address
 	Input    []byte
 
+	// todo: 更改Contract, 新增字段
+	ABI		 []byte
+	ABIHash  common.Hash
+	ABIAddr  *common.Address
+
 	Gas   uint64
 	value *big.Int
 

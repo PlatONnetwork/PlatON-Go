@@ -67,12 +67,15 @@ func StartNode(stack *node.Node) {
 	if err := stack.Start(); err != nil {
 		Fatalf("Error starting protocol stack: %v", err)
 	}
+	// 启动了一个协程
 	go func() {
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 		defer signal.Stop(sigc)
+		// 没有值会阻塞，会阻塞，有值就过了。就是这么叼这么叼
 		<-sigc
 		log.Info("Got interrupt, shutting down...")
+		// 收到退出信号则节点进行停止
 		go stack.Stop()
 		for i := 10; i > 0; i-- {
 			<-sigc

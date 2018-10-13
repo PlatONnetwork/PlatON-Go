@@ -121,6 +121,7 @@ func New(conf *Config) (*Node, error) {
 	}, nil
 }
 
+// 的eth目录是以太坊服务的实现。 以太坊协议是通过node的Register方法注入的
 // Register injects a new service into the node's stack. The service created by
 // the passed constructor must be unique in its type with regard to sibling ones.
 func (n *Node) Register(constructor ServiceConstructor) error {
@@ -162,11 +163,14 @@ func (n *Node) Start() error {
 	if n.serverConfig.NodeDatabase == "" {
 		n.serverConfig.NodeDatabase = n.config.NodeDB()
 	}
+
+	// 构建p2p server服务对象
 	running := &p2p.Server{Config: n.serverConfig}
 	n.log.Info("Starting peer-to-peer node", "instance", n.serverConfig.Name)
 
 	// Otherwise copy and specialize the P2P configuration
 	services := make(map[reflect.Type]Service)
+	// serviceFuncs 为一个切片
 	for _, constructor := range n.serviceFuncs {
 		// Create a new context for the particular service
 		ctx := &ServiceContext{
@@ -178,6 +182,7 @@ func (n *Node) Start() error {
 		for kind, s := range services { // copy needed for threaded access
 			ctx.services[kind] = s
 		}
+		// 调用构造函数，进行了一系列函数的调用，构建了多种Servie的派生类，并进行了存储.
 		// Construct and save the service
 		service, err := constructor(ctx)
 		if err != nil {
@@ -231,11 +236,12 @@ func (n *Node) openDataDir() error {
 	if n.config.DataDir == "" {
 		return nil // ephemeral
 	}
-
+	// 拼接路径，并创建路径
 	instdir := filepath.Join(n.config.DataDir, n.config.name())
 	if err := os.MkdirAll(instdir, 0700); err != nil {
 		return err
 	}
+	// prevent vt.预防；防止；阻止；阻碍；
 	// Lock the instance directory to prevent concurrent use by another instance as well as
 	// accidental use of the instance directory as a database.
 	release, _, err := flock.New(filepath.Join(instdir, "LOCK"))
@@ -460,7 +466,7 @@ func (n *Node) Wait() {
 	}
 	stop := n.stop
 	n.lock.RUnlock()
-
+	// 获取数据，如果chan中没有数据则阻塞，从而实现了等待的操作。
 	<-stop
 }
 

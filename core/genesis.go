@@ -62,16 +62,19 @@ type Genesis struct {
 	ParentHash common.Hash `json:"parentHash"`
 }
 
+// 指定了最开始的区块的初始状态.
 // GenesisAlloc specifies the initial state that is part of the genesis block.
 type GenesisAlloc map[common.Address]GenesisAccount
 
 func (ga *GenesisAlloc) UnmarshalJSON(data []byte) error {
+	// 将data反序列化为map，k-v对，存储起来
 	m := make(map[common.UnprefixedAddress]GenesisAccount)
 	if err := json.Unmarshal(data, &m); err != nil {
 		return err
 	}
 	*ga = make(GenesisAlloc)
 	for addr, a := range m {
+		// 类型转换, UnprefixedAddress -> Address
 		(*ga)[common.Address(addr)] = a
 	}
 	return nil
