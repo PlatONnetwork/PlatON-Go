@@ -47,6 +47,7 @@ func (h *nonceHeap) Pop() interface{} {
 	return x
 }
 
+// txSortedMap,存储的是同一个账号下面的所有的交易
 // txSortedMap is a nonce->transaction hash map with a heap based index to allow
 // iterating over the contents in a nonce-incrementing way.
 type txSortedMap struct {
@@ -63,6 +64,8 @@ func newTxSortedMap() *txSortedMap {
 	}
 }
 
+// Put 和 Get, Get用于获取指定nonce的交易， Put用来把交易插入到map中。
+
 // Get retrieves the current transactions associated with the given nonce.
 func (m *txSortedMap) Get(nonce uint64) *types.Transaction {
 	return m.items[nonce]
@@ -77,6 +80,8 @@ func (m *txSortedMap) Put(tx *types.Transaction) {
 	}
 	m.items[nonce], m.cache = tx, nil
 }
+
+// Forward用于删除所有nonce小于threshold的交易。 然后返回所有被移除的交易
 
 // Forward removes all transactions from the map with a nonce lower than the
 // provided threshold. Every removed transaction is returned for any post-removal
@@ -97,6 +102,7 @@ func (m *txSortedMap) Forward(threshold uint64) types.Transactions {
 	return removed
 }
 
+// Filter, 删除所有令filter函数调用返回true的交易，并返回那些交易。
 // Filter iterates over the list of transactions and removes all of them for which
 // the specified function evaluates to true.
 func (m *txSortedMap) Filter(filter func(*types.Transaction) bool) types.Transactions {
@@ -109,6 +115,7 @@ func (m *txSortedMap) Filter(filter func(*types.Transaction) bool) types.Transac
 			delete(m.items, nonce)
 		}
 	}
+	// 如果事务被删除，堆和缓存被毁坏
 	// If transactions were removed, the heap and cache are ruined
 	if len(removed) > 0 {
 		*m.index = make([]uint64, 0, len(m.items))
@@ -122,6 +129,7 @@ func (m *txSortedMap) Filter(filter func(*types.Transaction) bool) types.Transac
 	return removed
 }
 
+// Cap 对items里面的数量有限制，返回超过限制的所有交易
 // Cap places a hard limit on the number of items, returning all transactions
 // exceeding that limit.
 func (m *txSortedMap) Cap(threshold int) types.Transactions {

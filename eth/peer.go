@@ -432,6 +432,7 @@ func newPeerSet() *peerSet {
 	}
 }
 
+// Register 简单的把peer加入到自己的peers的map
 // Register injects a new peer into the working set, or returns an error if the
 // peer is already known. If a new peer it registered, its broadcast loop is also
 // started.

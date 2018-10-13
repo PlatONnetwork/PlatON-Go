@@ -85,6 +85,8 @@ const (
 	bloomThrottling = 100 * time.Millisecond
 )
 
+// BllomIndexer 实现了接口 ChainIndexerBackend
+
 // BloomIndexer implements a core.ChainIndexer, building up a rotated bloom bits index
 // for the Ethereum header bloom filters, permitting blazing fast filtering.
 type BloomIndexer struct {

@@ -30,6 +30,7 @@ import (
 // deployed contract addresses (relevant after the account abstraction).
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
+// 定义了一堆的函数类型（高阶函数）
 type (
 	// CanTransferFunc is the signature of a transfer guard function
 	CanTransferFunc func(StateDB, common.Address, *big.Int) bool
@@ -42,6 +43,7 @@ type (
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
+	// todo: 执行预编译合约
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsHomestead
 		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {
@@ -51,6 +53,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}
+	// todo: 使用解释器（interpreters）执行合约
 	for _, interpreter := range evm.interpreters {
 		if interpreter.CanRun(contract.Code) {
 			if evm.interpreter != interpreter {
@@ -61,6 +64,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 				}(evm.interpreter)
 				evm.interpreter = interpreter
 			}
+			// todo: 解释器执行入口，调用run, input
 			return interpreter.Run(contract, input, readOnly)
 		}
 	}
@@ -193,8 +197,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 
 	var (
-		to       = AccountRef(addr)
-		snapshot = evm.StateDB.Snapshot()
+		to       = AccountRef(addr)       // - 类型转换
+		snapshot = evm.StateDB.Snapshot() // - snapshot.
 	)
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsHomestead
@@ -376,8 +380,10 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	if evm.ChainConfig().IsEIP158(evm.BlockNumber) {
 		evm.StateDB.SetNonce(address, 1)
 	}
+	// todo: transfer 转账点
 	evm.Transfer(evm.StateDB, caller.Address(), address, value)
 
+	// todo: 创建合约对象，并赋值code到此对象上
 	// initialise a new contract and set the code that is to be used by the
 	// EVM. The contract is a scoped environment for this execution context
 	// only.
@@ -393,6 +399,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	}
 	start := time.Now()
 
+	// todo: 运行合约
 	ret, err := run(evm, contract, nil, false)
 
 	// check whether the max code size has been exceeded

@@ -16,6 +16,22 @@
 
 package trie
 
+// encoding.go 主要处理trie树中的三种编码格式的相互转换的工作
+// - KEYBYTES encoding这种编码格式就是原生的key字节数组，大部分的Trie的API都是使用这边编码格式
+// - HEX encoding 这种编码格式每一个字节包含了Key的一个半字节，尾部接上一个可选的'终结符','终结符'代表这个节点到底是叶子节点还是扩展节点。
+// 当节点被加载到内存里面的时候使用的是这种节点，因为它的方便访问。
+// - COMPACT encoding 这种编码格式就是上面黄皮书里面说到的Hex-Prefix Encoding，
+// 这种编码格式可以看成是*HEX encoding**这种编码格式的另外一种版本，可以在存储到数据库的时候节约磁盘空间
+
+/*
+	简单的理解为：将普通的字节序列keybytes编码为带有t标志与奇数个半字节nibble标志位的keybytes
+
+	* keybytes为按完整字节（8bit）存储的正常信息
+	* hex为按照半字节nibble（4bit）储存信息的格式。供compact使用
+	* 为了便于作黄皮书中Modified Merkle Patricia Tree的节点的key，编码为偶数字节长度的hex格式。其第一个半字节nibble会在低的2个bit位中，由高到低分别存放t标志与奇数标志。
+	  经compact编码的keybytes，在增加了hex的t标志与半字节nibble为偶数个（即完整的字节）的情况下，便于存储
+*/
+
 // Trie keys are dealt with in three distinct encodings:
 //
 // KEYBYTES encoding contains the actual key and nothing else. This encoding is the
@@ -35,7 +51,7 @@ package trie
 // into the remaining bytes. Compact encoding is used for nodes stored on disk.
 
 func hexToCompact(hex []byte) []byte {
-	terminator := byte(0)
+	terminator := byte(0)	// 分隔符
 	if hasTerm(hex) {
 		terminator = 1
 		hex = hex[:len(hex)-1]

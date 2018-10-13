@@ -31,6 +31,9 @@ import (
 	"Platon-go/trie"
 )
 
+// 主要是提供了state trie的部分功能
+// 用来存储以太坊中关于merkle trie 的所有内容，StateDB负责缓存和存储嵌套状态。这是检索合约和账户的一般查询界面.
+
 type revision struct {
 	id           int
 	journalIndex int
@@ -50,12 +53,12 @@ var (
 // * Contracts
 // * Accounts
 type StateDB struct {
-	db   Database
-	trie Trie
+	db   Database			// 后端的数据库
+	trie Trie				// 树
 
 	// This map holds 'live' objects, which will get modified while processing a state transition.
-	stateObjects      map[common.Address]*stateObject
-	stateObjectsDirty map[common.Address]struct{}
+	stateObjects      map[common.Address]*stateObject	// stateObjects 用来缓存对象
+	stateObjectsDirty map[common.Address]struct{}			// stateObjectsDirty用来缓存被修改过的对象
 
 	// DB error.
 	// State objects are used by the consensus core and VM which are
@@ -72,11 +75,11 @@ type StateDB struct {
 	logs         map[common.Hash][]*types.Log
 	logSize      uint
 
-	preimages map[common.Hash][]byte
+	preimages map[common.Hash][]byte	// EVM计算的 SHA3->byte[]的映射关系
 
 	// Journal of state modifications. This is the backbone of
 	// Snapshot and RevertToSnapshot.
-	journal        *journal
+	journal        *journal			// 状态修改日志。 这是Snapshot和RevertToSnapshot的支柱。
 	validRevisions []revision
 	nextRevisionId int
 
