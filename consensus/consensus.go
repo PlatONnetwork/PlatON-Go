@@ -18,6 +18,7 @@
 package consensus
 
 import (
+	"Platon-go/p2p/discover"
 	"math/big"
 
 	"Platon-go/common"
@@ -121,7 +122,7 @@ type Bft interface {
 
 	// modify by platon
 	// 返回当前共识节点地址列表
-	ConsensusNodes() ([]string, error)
+	ConsensusNodes() ([]discover.Node, error)
 
 	// 返回当前节点是否轮值出块
 	ShouldSeal() (bool, error)
@@ -133,4 +134,8 @@ type Bft interface {
 	// modify by platon
 	// Process the BFT signatures
 	OnNewBlock(chain ChainReader, block *types.Block) error
+
+	CheckConsensusNode(discover.NodeID) (bool, error)
+	IsConsensusNode() (bool, error)
+
 }

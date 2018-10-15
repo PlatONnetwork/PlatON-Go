@@ -40,8 +40,8 @@ type Cbft struct {
 }
 
 // New creates a concurrent BFT consensus engine
-func New(blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.Block) *Cbft {
-	_dpos := newDpos()
+func New(config *params.CbftConfig, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.Block) *Cbft {
+	_dpos := newDpos(config.InitialNodes)
 	return &Cbft {
 		dpos:              _dpos,
 		rotating :         newRotating(_dpos, 10000),

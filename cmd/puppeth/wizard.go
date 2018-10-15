@@ -17,6 +17,7 @@
 package main
 
 import (
+	"Platon-go/p2p/discover"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -284,6 +285,41 @@ func (w *wizard) readDefaultAddress(def common.Address) common.Address {
 		}
 		bigaddr, _ := new(big.Int).SetString(text, 16)
 		return common.BigToAddress(bigaddr)
+	}
+}
+
+// readNodeURL reads a single line from stdin, parse and convert
+// it to an Ethereum Node.
+func (w *wizard) readNodeURL() *discover.Node {
+	for {
+		// Read the url from the user
+		fmt.Printf("> enode://")
+		text, err := w.in.ReadString('\n')
+		if err != nil {
+			log.Crit("Failed to read user input", "err", err)
+		}
+		if text = strings.TrimSpace(text); text == "" {
+			return nil
+		}
+
+		// Make sure it looks ok and return it if so
+		if len(text) < 140 {
+			log.Error("Invalid url length, please retry")
+			continue
+		}
+		if !strings.Contains(text, "@")||
+			!strings.Contains(text, ":")||
+		    3 != strings.Count(text, "."){
+			log.Error("Invalid url format, please retry")
+			continue
+		}
+		text = "enode://" + text
+		node, err := discover.ParseNode(text)
+		if err != nil {
+			log.Error("Bootstrap URL invalid", "enode", text, "err", err)
+		}
+
+		return node
 	}
 }
 
