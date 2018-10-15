@@ -18,6 +18,7 @@
 package consensus
 
 import (
+	"Platon-go/p2p/discover"
 	"math/big"
 
 	"Platon-go/common"
@@ -136,6 +137,6 @@ type Bft interface {
 	OnNewBlock(chain ChainReader, block *types.Block) error
 
 	CheckConsensusNode(discover.NodeID) (bool, error)
-
 	IsConsensusNode() (bool, error)
+
 }

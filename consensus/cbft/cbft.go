@@ -40,8 +40,8 @@ type Cbft struct {
 }
 
 // New creates a concurrent BFT consensus engine
-func New(blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.Block) *Cbft {
-	_dpos := newDpos()
+func New(config *params.CbftConfig, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.Block) *Cbft {
+	_dpos := newDpos(config.InitialNodes)
 	return &Cbft {
 		dpos:              _dpos,
 		rotating :         newRotating(_dpos, 10000),
@@ -133,7 +133,7 @@ func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
-	return header.ReceiptHash
+	return consensus.SigHash(header)
 }
 
 // Close implements consensus.Engine. It's a noop for clique as there is are no background threads.
