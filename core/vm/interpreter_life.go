@@ -1,11 +1,12 @@
 package vm
 
 import (
-	"Platon-go/life/exec"
-	"Platon-go/life/resolver"
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	"Platon-go/life/exec"
+	"Platon-go/life/resolver"
 )
 
 // WASM解释器，用于负责解析WASM指令集，具体执行将委托至Life虚拟机完成
@@ -24,9 +25,8 @@ type WASMInterpreter struct {
 // NewWASMInterpreter returns a new instance of the Interpreter
 func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 
+	// 初始化WASM解释器，保存WASM虚拟机需要的配置及上下文信息
 	return &WASMInterpreter{
-		evm : evm,
-		cfg : cfg,
 		vmContext: &exec.VMContext{
 			Config: exec.VMConfig{
 				EnableJIT: false,
@@ -36,6 +36,8 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 			Addr: [20]byte{},
 			GasUsed : 0,
 			GasLimit: evm.Context.GasLimit,
+			Evm : evm,
+			Cfg : cfg,
 		},
 		resolver : resolver.NewResolver(0x01),
 	}
@@ -62,6 +64,8 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	if len(contract.ABI) == 0 {
 		return nil,nil
 	}
+
+	//in.vmContext.Contract = contract
 
 	// 获取执行器对象
 	in.lvm, err = exec.NewVirtualMachine(contract.Code, *in.vmContext, in.resolver,nil)

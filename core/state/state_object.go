@@ -38,6 +38,7 @@ func (self Code) String() string {
 	return string(self) //strings.Join(Disassemble(self), " ")
 }
 
+// 该结构：用于缓存智能合约中所有变量的值
 // Storage -> hash : hash , common.Hash ([32]byte)
 type Storage map[common.Hash]common.Hash
 

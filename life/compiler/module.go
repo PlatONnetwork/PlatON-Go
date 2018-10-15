@@ -8,8 +8,8 @@ import (
 	"github.com/go-interpreter/wagon/wasm"
 	//"github.com/go-interpreter/wagon/validate"
 	"github.com/go-interpreter/wagon/wasm/leb128"
-	"Platon-go/core/vm/life/compiler/opcodes"
-	"Platon-go/core/vm/life/utils"
+	"Platon-go/life/compiler/opcodes"
+	"Platon-go/life/utils"
 )
 
 type Module struct {

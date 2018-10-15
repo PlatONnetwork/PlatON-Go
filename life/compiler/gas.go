@@ -1,5 +1,14 @@
 package compiler
 
+// Gas costs
+const (
+	GasQuickStep	uint64 = 2
+	GasFastestSetp	uint64 = 3
+
+	// ...
+)
+
+
 func (c *SSAFunctionCompiler) InsertGasCounters(gp GasPolicy) {
 	cfg := c.NewCFGraph()
 
