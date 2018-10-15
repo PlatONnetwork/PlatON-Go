@@ -34,11 +34,11 @@ type node interface {
 }
 
 type (
-	fullNode struct {
+	fullNode struct {			// 分支节点
 		Children [17]node // Actual trie node data to encode/decode (needs custom encoder)
 		flags    nodeFlag
 	}
-	shortNode struct {
+	shortNode struct {			// 扩展节点|叶子节点，通过Val类型判断.
 		Key   []byte
 		Val   node
 		flags nodeFlag

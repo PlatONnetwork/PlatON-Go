@@ -65,8 +65,8 @@ type LeafCallback func(leaf []byte, parent common.Hash) error
 //
 // Trie is not safe for concurrent use.
 type Trie struct {
-	db           *Database
-	root         node
+	db           *Database			// 后端的KV存储
+	root         node				// 当前的root节点
 	originalRoot common.Hash
 
 	// Cache generation values.
@@ -101,6 +101,7 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 		db:           db,
 		originalRoot: root,
 	}
+	// 如果root不为空，则从DB中恢复出节点（整颗树）
 	if root != (common.Hash{}) && root != emptyRoot {
 		rootnode, err := trie.resolveHash(root[:], nil)
 		if err != nil {
@@ -215,6 +216,13 @@ func (t *Trie) TryUpdate(key, value []byte) error {
 	return nil
 }
 
+// 一个递归操作
+// Trie树的插入，这是一个递归调用的方法，从根节点开始，一直往下找，直到找到可以插入的点，进行插入操作
+// 参数node是当前插入的节点， prefix是当前已经处理完的部分key， key是还没有处理玩的部分key, 完整的key = prefix + key
+// value是需要插入的值
+// 返回值bool是操作是否改变了Trie树(dirty)
+// 返回值node是插入完成后的子树的根节点
+// 返回值error是错误信息
 func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error) {
 	if len(key) == 0 {
 		if v, ok := n.(valueNode); ok {
@@ -222,11 +230,13 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 		}
 		return true, value, nil
 	}
+	// 节点类型判断
 	switch n := n.(type) {
-	case *shortNode:
+	case *shortNode:		// 叶子节点
 		matchlen := prefixLen(key, n.Key)
 		// If the whole key matches, keep this short node as is
 		// and only update the value.
+		// 如果公共前缀就等于key，那么说明这两个key是一样的
 		if matchlen == len(n.Key) {
 			dirty, nn, err := t.insert(n.Val, append(prefix, key[:matchlen]...), key[matchlen:], value)
 			if !dirty || err != nil {
@@ -252,7 +262,8 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 		// Otherwise, replace it with a short node leading up to the branch.
 		return true, &shortNode{key[:matchlen], branch, t.newFlag()}, nil
 
-	case *fullNode:
+	case *fullNode:		// 分支节点
+		// 那么直接往对应的孩子节点调用insert方法,然后把对应的孩子节点指向新生成的节点。
 		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, key[0]), key[1:], value)
 		if !dirty || err != nil {
 			return false, n, err
@@ -266,6 +277,8 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 		return true, &shortNode{key, value, t.newFlag()}, nil
 
 	case hashNode:
+		// HashNode的意思是当前节点还没有加载到内存里面来，还是存放在数据库里面
+		// 那么首先调用 t.resolveHash(n, prefix)来加载到内存，然后对加载出来的节点调用insert方法来进行插入
 		// We've hit a part of the trie that isn't loaded yet. Load
 		// the node and insert into it. This leaves all child nodes on
 		// the path to the value in the trie.
@@ -429,6 +442,7 @@ func (t *Trie) resolve(n node, prefix []byte) (node, error) {
 	return n, nil
 }
 
+// 加载整颗Trie树
 func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
 	cacheMissCounter.Inc(1)
 

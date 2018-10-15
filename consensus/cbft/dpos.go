@@ -71,4 +71,3 @@ func (b *Cbft) ShouldSeal() (bool, error) {
 }
 
 
-

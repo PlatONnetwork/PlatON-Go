@@ -432,6 +432,7 @@ func newPeerSet() *peerSet {
 	}
 }
 
+// Register 简单的把peer加入到自己的peers的map
 // Register injects a new peer into the working set, or returns an error if the
 // peer is already known. If a new peer it registered, its broadcast loop is also
 // started.
@@ -550,8 +551,9 @@ func (ps *peerSet) PeersWithConsensus(engine consensus.Engine) []*peer {
 	if cbftEngine,ok := engine.(consensus.Bft); ok {
 		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
 			list := make([]*peer, 0, len(consensusNodes))
-			for _,nodeId := range consensusNodes {
-				if peer,ok := ps.peers[nodeId]; ok {
+			for _,node := range consensusNodes {
+				nodeID := fmt.Sprintf("%x", node.ID.Bytes()[:8])
+				if peer,ok := ps.peers[nodeID]; ok {
 					list = append(list, peer)
 				}
 			}
@@ -569,8 +571,9 @@ func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
 	consensusNodeMap := make(map[string]string)
 	if cbftEngine,ok := engine.(consensus.Bft); ok {
 		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
-			for _,nodeId := range consensusNodes {
-				consensusNodeMap[nodeId] = nodeId
+			for _,node := range consensusNodes {
+				nodeID := fmt.Sprintf("%x", node.ID.Bytes()[:8])
+				consensusNodeMap[nodeID] = nodeID
 			}
 		}
 	}

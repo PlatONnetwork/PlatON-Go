@@ -26,6 +26,7 @@ import (
 	"Platon-go/core/types"
 	"Platon-go/params"
 	"Platon-go/rpc"
+	"Platon-go/p2p/discover"
 )
 
 // ChainReader defines a small collection of methods needed to access the local

@@ -27,6 +27,9 @@ import (
 	"Platon-go/rlp"
 )
 
+// account对象的抽象，提供了账户的一些功能。
+// 表示正在修改的以太坊账户
+
 var emptyCodeHash = crypto.Keccak256(nil)
 
 type Code []byte
@@ -35,16 +38,19 @@ func (self Code) String() string {
 	return string(self) //strings.Join(Disassemble(self), " ")
 }
 
+// Storage -> hash : hash , common.Hash ([32]byte)
 type Storage map[common.Hash]common.Hash
 
 func (self Storage) String() (str string) {
 	for key, value := range self {
+		// %X -> 提供16进制
 		str += fmt.Sprintf("%X : %X\n", key, value)
 	}
 
 	return
 }
 
+// 复制一份Storage
 func (self Storage) Copy() Storage {
 	cpy := make(Storage)
 	for key, value := range self {
@@ -71,6 +77,7 @@ type stateObject struct {
 	// unable to deal with database-level errors. Any error that occurs
 	// during a database read is memoized here and will eventually be returned
 	// by StateDB.Commit.
+	// 当一个对象被标记为自杀时，它将在状态转换的“更新”阶段期间从树中删除。
 	dbErr error
 
 	// Write caches.
@@ -95,6 +102,7 @@ func (s *stateObject) empty() bool {
 
 // Account is the Ethereum consensus representation of accounts.
 // These objects are stored in the main account trie.
+// 帐户是以太坊共识表示的帐户。 这些对象存储在main account trie。
 type Account struct {
 	Nonce    uint64
 	Balance  *big.Int

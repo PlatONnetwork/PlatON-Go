@@ -32,11 +32,12 @@ var (
 )
 
 /*
-The State Transitioning Model
+The State Transitioning Model(状态转换模型)
 
 A state transition is a change made when a transaction is applied to the current world state
+(状态转换 是指用当前的world state来执行交易，并改变当前的world state)
 The state transitioning model does all the necessary work to work out a valid new state root.
-
+(状态转换做了所有所需的工作来产生一个新的有效的state root)
 1) Nonce handling
 2) Pre pay gas
 3) Create a new state object if the recipient is \0*32
@@ -189,6 +190,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
 	contractCreation := msg.To() == nil
 
+	// todo: gas 计算点
 	// Pay intrinsic gas
 	gas, err := IntrinsicGas(st.data, contractCreation, homestead)
 	if err != nil {
@@ -205,6 +207,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		// error.
 		vmerr error
 	)
+	// todo: evm执行点
 	if contractCreation {
 		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
 	} else {

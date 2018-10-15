@@ -148,6 +148,8 @@ type Downloader struct {
 	bodyFetchHook    func([]*types.Header) // Method to call upon starting a block body fetch
 	receiptFetchHook func([]*types.Header) // Method to call upon starting a receipt fetch
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
+	// modify by platon
+	running int32 	// running record Downloader whether worker is running or not.
 }
 
 // LightChain encapsulates functions required to synchronise a light chain.
@@ -403,11 +405,17 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode 
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.Int) (err error) {
 	d.mux.Post(StartEvent{})
+	// modify by platon
+	d.start()
 	defer func() {
 		// reset on error
 		if err != nil {
+			// modify by platon
+			d.stop()
 			d.mux.Post(FailedEvent{err})
 		} else {
+			// modify by platon
+			d.stop()
 			d.mux.Post(DoneEvent{})
 		}
 	}()
@@ -1639,4 +1647,19 @@ func (d *Downloader) requestTTL() time.Duration {
 		ttl = ttlLimit
 	}
 	return ttl
+}
+
+// modify by platon
+func (d *Downloader) start() {
+	atomic.StoreInt32(&d.running, 1)
+}
+
+// modify by platon
+func (d *Downloader) stop() {
+	atomic.StoreInt32(&d.running, 0)
+}
+
+// modify by platon
+func (d *Downloader) IsRunning() bool {
+	return atomic.LoadInt32(&d.running) == 1
 }

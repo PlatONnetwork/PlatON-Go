@@ -60,6 +60,7 @@ func (u URL) String() string {
 	return u.Path
 }
 
+// 截取长度
 // TerminalString implements the log.TerminalStringer interface.
 func (u URL) TerminalString() string {
 	url := u.String()

@@ -325,6 +325,8 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	}
 }
 
+// 经过一系列的检查和握手之后， 循环的调用了handleMsg方法来处理事件循环。
+// 这个方法很长，主要是处理接收到各种消息之后的应对措施。
 // handleMsg is invoked whenever an inbound message is received from a remote
 // peer. The remote connection is torn down upon returning any error.
 func (pm *ProtocolManager) handleMsg(p *peer) error {
@@ -711,6 +713,15 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return nil
 		}
 		if cbftEngine,ok := pm.engine.(consensus.Bft); ok {
+			if pm.downloader.IsRunning() {
+				log.Warn("downloader is running,discard this msg")
+			}
+			if flag,err := cbftEngine.IsConsensusNode(); !flag || err != nil {
+				log.Warn("local node is not consensus node,discard this msg")
+			}
+			if flag,err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
+				log.Warn("remote node is not consensus node,discard this msg")
+			}
 			if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
 				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
 			}
@@ -728,6 +739,15 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		engineBlockSignature := &types.BlockSignature{request.Hash, request.Signature}
 
 		if cbftEngine,ok := pm.engine.(consensus.Bft); ok {
+			if pm.downloader.IsRunning() {
+				log.Warn("downloader is running,discard this msg")
+			}
+			if flag,err := cbftEngine.IsConsensusNode(); !flag || err != nil {
+				log.Warn("local node is not consensus node,discard this msg")
+			}
+			if flag,err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
+				log.Warn("remote node is not consensus node,discard this msg")
+			}
 			if err := cbftEngine.OnBlockSignature(pm.blockchain, engineBlockSignature); err != nil {
 				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
 			}
@@ -819,6 +839,7 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 	}
 }
 
+// 挖矿广播。当收到订阅的事件的时候把新挖到的矿广播出去
 // Mined broadcast loop
 func (pm *ProtocolManager) minedBroadcastLoop() {
 	// automatically stops if unsubscribe
@@ -848,6 +869,8 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 	}
 }
 
+// txBroadcastLoop 在start的时候启动的goroutine。
+// txCh在txpool接收到一条合法的交易的时候会往这个上面写入事件。 然后把交易广播给所有的peers
 func (pm *ProtocolManager) txBroadcastLoop() {
 	for {
 		select {

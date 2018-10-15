@@ -108,6 +108,7 @@ func defaultNodeConfig() node.Config {
 }
 
 func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
+
 	// Load defaults.
 	cfg := gethConfig{
 		Eth:       eth.DefaultConfig,
@@ -119,16 +120,20 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
 		if err := loadConfig(file, &cfg); err != nil {
-			utils.Fatalf("%v", err)
+				utils.Fatalf("%v", err)
 		}
 	}
 
 	// Apply flags.
 	utils.SetNodeConfig(ctx, &cfg.Node)
+
+	// %%% 根据节点配置创建新的节点. %%%
 	stack, err := node.New(&cfg.Node)
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
+
+	//
 	utils.SetEthConfig(ctx, stack, &cfg.Eth)
 	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
 		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
@@ -150,9 +155,13 @@ func enableWhisper(ctx *cli.Context) bool {
 	return false
 }
 
+// 构建full节点，节点就代表了当前进程
 func makeFullNode(ctx *cli.Context) *node.Node {
+
+	// 根据配置创建节点,并进行了相关命令解析对应配置的处理
 	stack, cfg := makeConfigNode(ctx)
 
+	// 注册eth服务，后面是根据配置调用stack.Register(), 自实现构造函数
 	utils.RegisterEthService(stack, &cfg.Eth)
 
 	if ctx.GlobalBool(utils.DashboardEnabledFlag.Name) {
