@@ -1,15 +1,14 @@
 package exec
 
 import (
-	"Platon-go/core/vm"
 	"encoding/binary"
 	"fmt"
 	"math"
 	"math/bits"
 
-	"Platon-go/core/vm/life/compiler"
-	"Platon-go/core/vm/life/compiler/opcodes"
-	"Platon-go/core/vm/life/utils"
+	"Platon-go/life/compiler"
+	"Platon-go/life/compiler/opcodes"
+	"Platon-go/life/utils"
 
 	"github.com/go-interpreter/wagon/wasm"
 )
@@ -81,10 +80,7 @@ type VMContext struct {
 	GasLimit uint64
 
 	// new field
-	Contract *vm.Contract
-	Evm		 *vm.EVM
-	Cfg 	 vm.Config		// 此字段待商榷
-
+	Interface env.Interface
 }
 
 type VMMemory struct {

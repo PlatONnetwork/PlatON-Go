@@ -510,3 +510,15 @@ func parseRlpData(rlpData []byte) (int, []byte, []byte, error) {
 	}
 	return txType, abi, code, nil
 }
+
+func (evm *EVM) GetStateDB() StateDB {
+	return evm.StateDB
+}
+
+func (evm *EVM) GetEvm() *EVM {
+	return evm
+}
+
+func (evm *EVM) GetConfig() Config {
+	return evm.vmConfig
+}

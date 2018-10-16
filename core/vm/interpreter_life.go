@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"Platon-go/core/vm/life/utils"
+	"Platon-go/life/utils"
 	"Platon-go/rlp"
 	"bytes"
 	"encoding/binary"
@@ -9,8 +9,8 @@ import (
 	"reflect"
 	"strings"
 
-	"Platon-go/core/vm/life/exec"
-	"Platon-go/core/vm/life/resolver"
+	"Platon-go/life/exec"
+	"Platon-go/life/resolver"
 )
 
 // WASM解释器，用于负责解析WASM指令集，具体执行将委托至Life虚拟机完成
@@ -38,8 +38,8 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 			Addr: [20]byte{},
 			GasUsed : 0,
 			GasLimit: evm.Context.GasLimit,
-			Evm : evm,
-			Cfg : cfg,
+			//Evm : evm,
+			//Cfg : cfg,
 		},
 		resolver : resolver.NewResolver(0x01),
 	}
@@ -53,8 +53,8 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 // errExecutionReverted which means revert-and-keep-gas-lfet.
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 
-	in.vmContext.Evm.depth++
-	defer func(){ in.vmContext.Evm.depth-- }()
+	//in.vmContext.Evm.depth++
+	//defer func(){ in.vmContext.Evm.depth-- }()
 
 	if len(contract.Code) == 0 {
 		return nil, nil
@@ -64,9 +64,9 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		return nil,nil
 	}
 
-	in.vmContext.Addr = contract.self.Address()
+	in.vmContext.Addr = contract.Address()
 	in.vmContext.GasLimit = contract.Gas		// 可使用的即为受限制的
-	in.vmContext.Contract = contract
+	//in.vmContext.Contract = contract
 
 	// 获取执行器对象
 	in.lvm, err = exec.NewVirtualMachine(contract.Code, *in.vmContext, in.resolver,nil)
@@ -135,7 +135,7 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 	if input == nil || len(input) <= 1 {
 		return -1,"",nil, fmt.Errorf("invalid input.")
 	}
-
+	// [txType][msg.to][funcName][args1][args2]
 	// rlp decode
 	ptr := new(interface{})
 	err = rlp.Decode(bytes.NewReader(input), &ptr)

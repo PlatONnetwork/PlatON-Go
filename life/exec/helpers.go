@@ -3,7 +3,7 @@ package exec
 import (
 	"errors"
 
-	"Platon-go/core/vm/life/vm/life/utils"
+	"Platon-go/life/utils"
 )
 
 var _ ImportResolver = (*NopResolver)(nil)

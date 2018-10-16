@@ -1,8 +1,8 @@
 package main
 
 import (
-	"Platon-go/core/vm/life/exec"
-	"Platon-go/core/vm/life/resolver"
+	"Platon-go/life/exec"
+	"Platon-go/lifer"
 	"fmt"
 	"io/ioutil"
 	"time"

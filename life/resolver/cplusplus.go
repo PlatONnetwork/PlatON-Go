@@ -1,13 +1,13 @@
 package resolver
 
 import (
-	"Platon-go/core/vm/life/compiler"
+	"Platon-go/life/compiler"
 	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
 
-	"Platon-go/core/vm/life/exec"
+	"Platon-go/life/exec"
 )
 
 var (

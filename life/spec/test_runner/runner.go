@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"Platon-go/core/vm/life/compiler"
-	"Platon-go/core/vm/life/exec"
+	"Platon-go/lifer"
+	"Platon-go/life/exec"
 	"io/ioutil"
 	"os"
 	"path"

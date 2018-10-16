@@ -1,7 +1,7 @@
 package contract
 
 import (
-	"Platon-go/core/vm/life/utils"
+	"Platon-go/life/utils"
 	"encoding/json"
 	"fmt"
 	"testing"
