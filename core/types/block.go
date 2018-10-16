@@ -70,6 +70,7 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 // Block's Signature info
 type BlockSignature struct {
 	Hash        common.Hash
+	Number      *big.Int
 	Signature   []byte
 }
 

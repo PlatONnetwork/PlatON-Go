@@ -217,11 +217,13 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 	worker.chainHeadSub = eth.BlockChain().SubscribeChainHeadEvent(worker.chainHeadCh)
 	worker.chainSideSub = eth.BlockChain().SubscribeChainSideEvent(worker.chainSideCh)
 
-	// Sanitize recommit interval if the user-specified one is too short.
-	if recommit < minRecommitInterval {
-		log.Warn("Sanitizing miner recommit interval", "provided", recommit, "updated", minRecommitInterval)
-		recommit = minRecommitInterval
-	}
+	// modify by platon
+	recommit = minRecommitInterval
+	//// Sanitize recommit interval if the user-specified one is too short.
+	//if recommit < minRecommitInterval {
+	//	log.Warn("Sanitizing miner recommit interval", "provided", recommit, "updated", minRecommitInterval)
+	//	recommit = minRecommitInterval
+	//}
 
 	go worker.mainLoop()
 	go worker.newWorkLoop(recommit)
@@ -536,8 +538,10 @@ func (w *worker) mainLoop() {
 
 			// modify by platon
 		case blockSignature := <-w.blockSignatureCh:
-			// send blockSignatureMsg to consensus node peer
-			w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature})
+			if blockSignature != nil {
+				// send blockSignatureMsg to consensus node peer
+				w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature})
+			}
 		}
 	}
 }
