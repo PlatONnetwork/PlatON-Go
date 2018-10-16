@@ -17,6 +17,7 @@
 package clique
 
 import (
+	"Platon-go/consensus"
 	"bytes"
 	"encoding/json"
 	"sort"
@@ -209,7 +210,7 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 			delete(snap.Recents, number-limit)
 		}
 		// Resolve the authorization key and check against signers
-		signer, err := ecrecover(header, s.sigcache)
+		signer, err := consensus.Ecrecover(header, s.sigcache)
 		if err != nil {
 			return nil, err
 		}

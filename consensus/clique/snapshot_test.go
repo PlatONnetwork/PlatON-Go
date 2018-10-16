@@ -17,6 +17,7 @@
 package clique
 
 import (
+	"Platon-go/consensus"
 	"bytes"
 	"crypto/ecdsa"
 	"sort"
@@ -80,8 +81,8 @@ func (ap *testerAccountPool) sign(header *types.Header, signer string) {
 		ap.accounts[signer], _ = crypto.GenerateKey()
 	}
 	// Sign the header and embed the signature in extra data
-	sig, _ := crypto.Sign(sigHash(header).Bytes(), ap.accounts[signer])
-	copy(header.Extra[len(header.Extra)-extraSeal:], sig)
+	sig, _ := crypto.Sign(consensus.SigHash(header).Bytes(), ap.accounts[signer])
+	copy(header.Extra[len(header.Extra)-consensus.ExtraSeal:], sig)
 }
 
 // testerVote represents a single block signed by a parcitular account, where
@@ -394,7 +395,7 @@ func TestClique(t *testing.T) {
 		}
 		// Create the genesis block with the initial set of signers
 		genesis := &core.Genesis{
-			ExtraData: make([]byte, extraVanity+common.AddressLength*len(signers)+extraSeal),
+			ExtraData: make([]byte, extraVanity+common.AddressLength*len(signers)+consensus.ExtraSeal),
 		}
 		for j, signer := range signers {
 			copy(genesis.ExtraData[extraVanity+j*common.AddressLength:], signer[:])
@@ -428,9 +429,9 @@ func TestClique(t *testing.T) {
 			if j > 0 {
 				header.ParentHash = blocks[j-1].Hash()
 			}
-			header.Extra = make([]byte, extraVanity+extraSeal)
+			header.Extra = make([]byte, extraVanity+consensus.ExtraSeal)
 			if auths := tt.votes[j].checkpoint; auths != nil {
-				header.Extra = make([]byte, extraVanity+len(auths)*common.AddressLength+extraSeal)
+				header.Extra = make([]byte, extraVanity+len(auths)*common.AddressLength+consensus.ExtraSeal)
 				accounts.checkpoint(header, auths)
 			}
 			header.Difficulty = diffInTurn // Ignored, we just need a valid number

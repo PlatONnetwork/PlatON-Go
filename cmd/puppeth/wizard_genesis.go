@@ -17,6 +17,7 @@
 package main
 
 import (
+	"Platon-go/p2p/discover"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -52,7 +53,7 @@ func (w *wizard) makeGenesis() {
 	fmt.Println("Which consensus engine to use? (default = CBFT)")
 	fmt.Println(" 1. Ethash - proof-of-work")
 	fmt.Println(" 2. Clique - proof-of-authority")
-	fmt.Println(" 3. CBFT -  Concurrent Byzantine Fault Tolerance")
+	fmt.Println(" 3. CBFT -   Concurrent Byzantine Fault Tolerance")
 
 	choice := w.read()
 	switch {
@@ -100,7 +101,7 @@ func (w *wizard) makeGenesis() {
 		}
 
 	case choice == "" || choice == "3":
-		// In the case of clique, configure the consensus parameters
+		// In the case of cbft, configure the consensus parameters
 		genesis.Difficulty = big.NewInt(1)
 		genesis.Config.Cbft = &params.CbftConfig{
 			Period: 1,
@@ -112,30 +113,20 @@ func (w *wizard) makeGenesis() {
 
 		// We also need the initial list of signers
 		fmt.Println()
-		fmt.Println("Which accounts are allowed to seal? (mandatory at least one)")
+		fmt.Println("Which nodes are allowed to seal? (mandatory at least four)")
 
-		var signers []common.Address
+		var nodes []discover.Node
 		for {
-			if address := w.readAddress(); address != nil {
-				signers = append(signers, *address)
+			if node := w.readNodeURL(); node != nil {
+				nodes = append(nodes, *node)
 				continue
 			}
-			if len(signers) > 0 {
+			if len(nodes) >= 4 {
 				break
 			}
 		}
-		// Sort the signers and embed into the extra-data section
-		for i := 0; i < len(signers); i++ {
-			for j := i + 1; j < len(signers); j++ {
-				if bytes.Compare(signers[i][:], signers[j][:]) > 0 {
-					signers[i], signers[j] = signers[j], signers[i]
-				}
-			}
-		}
-		genesis.ExtraData = make([]byte, 32+len(signers)*common.AddressLength+65)
-		for i, signer := range signers {
-			copy(genesis.ExtraData[32+i*common.AddressLength:], signer[:])
-		}
+		genesis.Config.Cbft.InitialNodes = nodes
+
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}

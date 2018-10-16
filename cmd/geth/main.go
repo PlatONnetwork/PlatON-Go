@@ -167,6 +167,9 @@ var (
 )
 
 func init() {
+
+	// 初始化时候会启动
+
 	// Initialize the CLI app and start Geth
 	app.Action = geth
 	app.HideVersion = true // we have a command to print the version
@@ -264,8 +267,11 @@ func geth(ctx *cli.Context) error {
 	if args := ctx.Args(); len(args) > 0 {
 		return fmt.Errorf("invalid command: %q", args[0])
 	}
+	// 构建节点，这个就是所有入口了
 	node := makeFullNode(ctx)
+	// 启动节点
 	startNode(ctx, node)
+	// 后台静默运行.
 	node.Wait()
 	return nil
 }
@@ -289,6 +295,11 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 			unlockAccount(ctx, ks, trimmed, i, passwords)
 		}
 	}
+	// 节点上的账户管理，进行事件的订阅
+
+	// 订阅逻辑：创建一个单向（仅接收）的chan，传递下去，然后启动另外一个chan进行读取.
+	// 此种为比较巧妙的事件通知方式
+
 	// Register wallet event handlers to open and auto-derive wallets
 	events := make(chan accounts.WalletEvent, 16)
 	stack.AccountManager().Subscribe(events)

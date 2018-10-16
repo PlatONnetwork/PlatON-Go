@@ -22,6 +22,9 @@ import (
 	"Platon-go/common"
 )
 
+// journal.go -> journal代表了操作日志， 并针对各种操作的日志提供了对应的回滚功能。
+// 可以基于这个日志来做一些事务类型的操作。
+
 // journalEntry is a modification entry in the state change journal that can be
 // reverted on demand.
 type journalEntry interface {
@@ -85,13 +88,16 @@ func (j *journal) length() int {
 }
 
 type (
+	// 创建对象的日志。 undo方法就是从StateDB中删除创建的对象
 	// Changes to the account trie.
 	createObjectChange struct {
 		account *common.Address
 	}
+	// 对于stateObject的修改， undo方法就是把值改为原来的对象。
 	resetObjectChange struct {
 		prev *stateObject
 	}
+	// 自杀的更改。自杀应该是删除账号，但是如果没有commit的化，对象还没有从stateDB删除。
 	suicideChange struct {
 		account     *common.Address
 		prev        bool // whether account had already suicided
@@ -116,13 +122,16 @@ type (
 		prevcode, prevhash []byte
 	}
 
+	// 我理解是DAO事件的退款处理
 	// Changes to other state values.
 	refundChange struct {
 		prev uint64
 	}
+	// 增加了日志的修改
 	addLogChange struct {
 		txhash common.Hash
 	}
+	//  这个是增加 VM看到的 SHA3的 原始byte[], 增加SHA3 hash -> byte[] 的对应关系
 	addPreimageChange struct {
 		hash common.Hash
 	}

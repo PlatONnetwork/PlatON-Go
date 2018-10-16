@@ -70,6 +70,7 @@ func NewLDBDatabase(file string, cache int, handles int) (*LDBDatabase, error) {
 	}
 	logger.Info("Allocated cache and file handles", "cache", cache, "handles", handles)
 
+	// 构建DB对象
 	// Open the db and recover any potential corruptions
 	db, err := leveldb.OpenFile(file, &opt.Options{
 		OpenFilesCacheCapacity: handles,
@@ -77,6 +78,7 @@ func NewLDBDatabase(file string, cache int, handles int) (*LDBDatabase, error) {
 		WriteBuffer:            cache / 4 * opt.MiB, // Two of these are used internally
 		Filter:                 filter.NewBloomFilter(10),
 	})
+	// 类型断言
 	if _, corrupted := err.(*errors.ErrCorrupted); corrupted {
 		db, err = leveldb.RecoverFile(file, nil)
 	}
@@ -90,6 +92,8 @@ func NewLDBDatabase(file string, cache int, handles int) (*LDBDatabase, error) {
 		log: logger,
 	}, nil
 }
+
+// github.com/syndtr/goleveldb/leveldb封装之后的代码是支持多线程同时访问
 
 // Path returns the path to the database directory.
 func (db *LDBDatabase) Path() string {
@@ -169,12 +173,16 @@ func (db *LDBDatabase) Meter(prefix string) {
 	db.quitChan = make(chan chan error)
 	db.quitLock.Unlock()
 
+	// 这是一个无限循环的，方法，每3s获取一次内部计数器, 直到quitChan收到一个退出信号
 	go db.meter(3 * time.Second)
 }
 
 // meter periodically retrieves internal leveldb counters and reports them to
 // the metrics subsystem.
 //
+
+// 下面的注释就是我们调用 db.db.GetProperty("leveldb.stats")返回的字符串，后续的代码需要解析这个字符串并把信息写入到Meter中。
+
 // This is how a stats table look like (currently):
 //   Compactions
 //    Level |   Tables   |    Size(MB)   |    Time(sec)  |    Read(MB)   |   Write(MB)
@@ -190,11 +198,14 @@ func (db *LDBDatabase) Meter(prefix string) {
 // This is how the iostats look like (currently):
 // Read(MB):3895.04860 Write(MB):3654.64712
 func (db *LDBDatabase) meter(refresh time.Duration) {
+	// 一个计数器，用于存当前和前一个
 	// Create the counters to store current and previous compaction values
+	// index 0 -> current , index 1 -> previous
 	compactions := make([][]float64, 2)
 	for i := 0; i < 2; i++ {
 		compactions[i] = make([]float64, 3)
 	}
+	// 数组存储
 	// Create storage for iostats.
 	var iostats [2]float64
 
@@ -209,6 +220,7 @@ func (db *LDBDatabase) meter(refresh time.Duration) {
 		merr error
 	)
 
+	// infinitum adv.永远
 	// Iterate ad infinitum and collect the stats
 	for i := 1; errc == nil && merr == nil; i++ {
 		// Retrieve the database stats
