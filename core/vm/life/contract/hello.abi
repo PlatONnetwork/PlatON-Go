@@ -1,0 +1,25 @@
+{
+    "version": "0.01",
+    "abi": [
+        {
+            "method": "transfer",
+            "args": [
+                {
+                    "name": "from",
+                    "typeName": "address",
+                    "realTypeName": "char *"
+                },
+                {
+                    "name": "to",
+                    "typeName": "address",
+                    "realTypeName": "char *"
+                },
+                {
+                    "name": "asset",
+                    "typeName": "",
+                    "realTypeName": "int"
+                }
+            ]
+        }
+    ]
+}

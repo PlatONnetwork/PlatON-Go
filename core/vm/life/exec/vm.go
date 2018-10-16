@@ -7,9 +7,9 @@ import (
 	"math"
 	"math/bits"
 
-	"Platon-go/life/compiler"
-	"Platon-go/life/compiler/opcodes"
-	"Platon-go/life/utils"
+	"Platon-go/core/vm/life/compiler"
+	"Platon-go/core/vm/life/compiler/opcodes"
+	"Platon-go/core/vm/life/utils"
 
 	"github.com/go-interpreter/wagon/wasm"
 )
@@ -81,7 +81,7 @@ type VMContext struct {
 	GasLimit uint64
 
 	// new field
-	//Contract *vm.Contract
+	Contract *vm.Contract
 	Evm		 *vm.EVM
 	Cfg 	 vm.Config		// 此字段待商榷
 

@@ -1,13 +1,13 @@
 package resolver
 
 import (
-	"Platon-go/life/compiler"
+	"Platon-go/core/vm/life/compiler"
 	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
 
-	"Platon-go/life/exec"
+	"Platon-go/core/vm/life/exec"
 )
 
 var (
@@ -92,6 +92,7 @@ func newCfcSet() map[string]map[string]*exec.FunctionImport {
 			"caller" 	:  	&exec.FunctionImport{Execute: envCaller, GasCost: constGasFunc(compiler.GasQuickStep)},
 			"callValue" :  	&exec.FunctionImport{Execute: envCallValue, GasCost: constGasFunc(compiler.GasQuickStep)},
 			"address" 	:  	&exec.FunctionImport{Execute: envAddress, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"sha3"		: 	&exec.FunctionImport{Execute: envSha3, GasCost: envSha3GasCost},
 		},
 	}
 }
@@ -481,6 +482,10 @@ func envAddress(vm *exec.VirtualMachine) (int64) {
 func envSha3(vm *exec.VirtualMachine) (int64) {
 	// opSha3(), 提供指针地址填充
 	return 0
+}
+
+func envSha3GasCost(vm *exec.VirtualMachine) (uint64, error) {
+	return 1, nil
 }
 
 func constGasFunc(gas uint64) exec.GasCost {

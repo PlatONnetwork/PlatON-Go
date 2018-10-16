@@ -1,7 +1,7 @@
 package exec
 
 import (
-	"Platon-go/life/compiler/opcodes"
+	"Platon-go/core/vm/life/compiler/opcodes"
 )
 
 type (

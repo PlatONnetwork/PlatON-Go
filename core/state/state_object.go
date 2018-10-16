@@ -33,6 +33,7 @@ import (
 var emptyCodeHash = crypto.Keccak256(nil)
 
 type Code []byte
+type Abi []byte
 
 func (self Code) String() string {
 	return string(self) //strings.Join(Disassemble(self), " ")
@@ -85,6 +86,9 @@ type stateObject struct {
 	trie Trie // storage trie, which becomes non-nil on first access
 	code Code // contract bytecode, which gets set when code is loaded
 
+	// todo: 新增，此字段尚不明确是否需要进行使用
+	abi Abi
+
 	originStorage Storage // Storage cache of original entries to dedup rewrites
 	dirtyStorage  Storage // Storage entries that need to be flushed to disk
 
@@ -109,6 +113,8 @@ type Account struct {
 	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
+	// todo: 新增AbiHash字段
+	AbiHash  []byte
 }
 
 // newObject creates a state object.
@@ -389,4 +395,46 @@ func (self *stateObject) Nonce() uint64 {
 // interface. Interfaces are awesome.
 func (self *stateObject) Value() *big.Int {
 	panic("Value on stateObject should never be called")
+}
+
+// todo: 新增方法
+// ======================================= 新增方法 ===============================
+
+// todo: new method -> AbiHash
+func (self *stateObject) AbiHash() []byte {
+	return self.data.AbiHash
+}
+
+// ABI returns the contract abi associated with this object, if any.
+func (self *stateObject) Abi(db Database) []byte {
+	if self.Abi != nil {
+		return self.abi
+	}
+	if bytes.Equal(self.AbiHash(), emptyCodeHash) {
+		return nil
+	}
+	// 从树中提取code，入参：地址及hash, 此处需要深入发现获取规则
+	abi, err := db.ContractAbi(self.addrHash, common.BytesToHash(self.AbiHash()))
+	if err != nil {
+		self.setError(fmt.Errorf("can't load abi hash %x: %v", self.AbiHash(), err))
+	}
+	self.abi = abi
+	return abi
+}
+
+// todo: new method -> SetAbi.
+func (self *stateObject) SetAbi(abiHash common.Hash, abi []byte) {
+	prevabi := self.Abi(self.db.db)
+	self.db.journal.append(abiChange{
+		account: &self.address,
+		prevhash: self.AbiHash(),
+		prevabi: prevabi,
+	})
+	self.setAbi(abiHash, abi)
+}
+
+// todo: new method -> setAbi
+func (self *stateObject) setAbi(abiHash common.Hash, abi []byte) {
+	self.abi = abi
+	self.data.AbiHash = abiHash[:]
 }

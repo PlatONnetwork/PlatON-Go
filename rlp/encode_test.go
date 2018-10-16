@@ -18,11 +18,13 @@ package rlp
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math/big"
+	"reflect"
 	"sync"
 	"testing"
 )
@@ -268,6 +270,68 @@ func runEncTests(t *testing.T, f func(val interface{}) ([]byte, error)) {
 		}
 	}
 }
+
+func uint64ToBytes(val uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, val)
+	return buf[:]
+}
+
+func boolToBytes(val bool) []byte {
+	buf := bytes.NewBuffer([]byte{})
+	binary.Write(buf, binary.BigEndian, true)
+	return buf.Bytes()
+}
+
+func TestEncodeF03(t *testing.T) {
+
+	//val :=  []interface{}{"transfer", uint(0xFFFFFF), []interface{}{[]uint{4, 5, 5}}, "abc"}
+	var source [][]byte
+	source = make([][]byte,0)
+	source = append(source, []byte("人才是你吗"))
+	source = append(source, uint64ToBytes(1000))
+	source = append(source, uint64ToBytes(2000))
+	source = append(source, boolToBytes(false))
+	source = append(source, []byte("hello world"))
+
+	buffer := new(bytes.Buffer)
+	err := Encode(buffer, source)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("fail")
+	}
+	// 编码后字节数组
+	encodedBytes := buffer.Bytes()
+
+	ptr := new(interface{})
+	Decode(bytes.NewReader(encodedBytes), &ptr)
+
+	deref := reflect.ValueOf(ptr).Elem().Interface()
+	fmt.Println(deref)
+	for i, v := range deref.([]interface{}){
+		// fmt.Println(i,"    ",hex.EncodeToString(v.([]byte)))
+		// 类型判断，然后转换
+		switch i {
+		case 0:
+			fmt.Println(string(v.([]byte)))
+		case 1:
+			fmt.Println(binary.BigEndian.Uint64(v.([]byte)))
+		case 2:
+			fmt.Println(binary.BigEndian.Uint64(v.([]byte)))
+		case 3:
+			byt := v.([]byte)[0]
+			if byt == 1 {
+				fmt.Println("false")
+			}else {
+				fmt.Println("true")
+			}
+		case 4:
+			fmt.Println(string(v.([]byte)))
+		}
+	}
+
+}
+
 
 func TestEncode(t *testing.T) {
 	runEncTests(t, func(val interface{}) ([]byte, error) {
