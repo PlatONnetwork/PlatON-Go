@@ -147,7 +147,7 @@ func (p *peer) broadcast() {
 
 		// modify by platon
 		case prop := <-p.queuedSignature:
-			signature := &types.BlockSignature{prop.Hash,prop.Signature}
+			signature := &types.BlockSignature{prop.Hash, prop.Number,prop.Signature}
 			if err := p.SendSignature(signature); err != nil {
 				return
 			}
@@ -594,6 +594,7 @@ type preBlockEvent struct {
 
 type signatureEvent struct {
 	Hash        common.Hash
+	Number      *big.Int
 	Signature   []byte
 }
 
@@ -619,7 +620,7 @@ func (p *peer) SendSignature(signature *types.BlockSignature) error {
 // modify by platon
 func (p *peer) AsyncSendSignature(signature *types.BlockSignature) {
 	select {
-	case p.queuedSignature <- &signatureEvent{Hash: signature.Hash, Signature: signature.Signature}:
+	case p.queuedSignature <- &signatureEvent{Hash: signature.Hash, Number: signature.Number, Signature: signature.Signature}:
 	default:
 		p.Log().Debug("Dropping block Signature", "Hash", signature.Hash)
 	}

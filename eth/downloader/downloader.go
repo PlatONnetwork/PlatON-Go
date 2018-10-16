@@ -149,7 +149,7 @@ type Downloader struct {
 	receiptFetchHook func([]*types.Header) // Method to call upon starting a receipt fetch
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
 	// modify by platon
-	running int32 	// running record Downloader whether worker is running or not.
+	running int32 	// The indicator whether the Downloader is running or not.
 }
 
 // LightChain encapsulates functions required to synchronise a light chain.
