@@ -6,10 +6,16 @@ import (
 	"Platon-go/consensus"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
+	"Platon-go/crypto"
+	"Platon-go/crypto/sha3"
+	"Platon-go/log"
+	"Platon-go/p2p/discover"
 	"Platon-go/params"
+	"Platon-go/rlp"
 	"Platon-go/rpc"
 	"errors"
 	"math/big"
+	"sync"
 	"time"
 )
 
@@ -24,33 +30,15 @@ var (
 	// errUnknownBlock is returned when the list of signers is requested for a block
 	// that is not part of the local blockchain.
 	errUnknownBlock = errors.New("unknown block")
-	// errInvalidCheckpointBeneficiary is returned if a checkpoint/epoch transition
-	// block has a beneficiary set to non-zeroes.
-	errInvalidCheckpointBeneficiary = errors.New("beneficiary in checkpoint block non-zero")
 	// errMissingSignature is returned if a block's extra-data section doesn't seem
 	// to contain a 65 byte secp256k1 signature.
 	errMissingSignature = errors.New("extra-data 65 byte signature suffix missing")
 	// errInvalidUncleHash is returned if a block contains an non-empty uncle list.
 	errInvalidUncleHash = errors.New("non empty uncle hash")
-
-	errLargeBlockTime    = errors.New("timestamp too big")
-	errZeroBlockTime     = errors.New("timestamp equals parent's")
-	errTooManyUncles     = errors.New("too many uncles")
-	errDuplicateUncle    = errors.New("duplicate uncle")
-	errUncleIsAncestor   = errors.New("uncle is ancestor")
-	errDanglingUncle     = errors.New("uncle's parent is not ancestor")
-	errInvalidDifficulty = errors.New("non-positive difficulty")
-	errInvalidMixDigest  = errors.New("invalid mix digest")
-	errInvalidPoW        = errors.New("invalid proof-of-work")
 )
 var (
 	epochLength = uint64(210000)
-
-	extraSeal = 65                       // Fixed number of extra-data suffix bytes reserved for signer seal
-	uncleHash = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
-
-	maxUncles              = 2                // Maximum number of uncles allowed in a single block
-	allowedFutureBlockTime = 15 * time.Second // Max time from current time allowed for blocks, before they're considered future blocks
+	extraSeal   = 65 // Fixed number of extra-data suffix bytes reserved for signer seal
 )
 
 type Cbft struct {
@@ -62,12 +50,12 @@ type Cbft struct {
 	closeOnce        sync.Once       // Ensures exit channel will not be closed twice.
 	exitCh           chan chan error // Notification channel to exiting backend threads
 
-	signFn            SignerFn //签名函数
-	blockNumGenerator uint64   //块高生成器
-	masterTree        *Tree
-	slaveTree         *Tree
-	signCounterMap    map[common.Hash]*SignCounter //签名计数器Map
-	lock              sync.RWMutex                 //保护LogicalChainTree
+	//blockNumGenerator uint64   		//块高生成器
+	highestLogicalBlock *types.Block //区块块号最高的合理块
+	masterTree          *Tree
+	slaveTree           *Tree
+	signCounterMap      map[common.Hash]*SignCounter //签名计数器Map
+	lock                sync.RWMutex                 //保护LogicalChainTree
 }
 
 type Tree struct {
@@ -87,8 +75,6 @@ const (
 	RcvBlock CauseType = 1 << iota //收到新区块
 	RcvSign                        //收到新签名
 )
-
-type SignerFn func(accounts.Account, []byte) ([]byte, error)
 
 //签名计数器
 type SignCounter struct {
@@ -128,7 +114,6 @@ func New(config *params.CbftConfig, blockSignatureCh chan *types.BlockSignature,
 		root:    _slaveRoot,
 	}
 
-
 	return &Cbft{
 		config:           &conf,
 		dpos:             _dpos,
@@ -142,9 +127,25 @@ func New(config *params.CbftConfig, blockSignatureCh chan *types.BlockSignature,
 	}
 }
 
+func (cbft *Cbft) ShouldSeal() (bool, error) {
+	return cbft.inTurn(), nil
+}
+
+func (cbft *Cbft) ConsensusNodes() ([]discover.Node, error) {
+	return cbft.dpos.primaryNodeList, nil
+}
+
+func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
+	return cbft.dpos.NodeIndex(nodeID) >= 0, nil
+}
+
+func (cbft *Cbft) IsConsensusNode() (bool, error) {
+	return cbft.dpos.NodeIndex(cbft.config.NodeID) >= 0, nil
+}
+
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
-func (b *Cbft) Author(header *types.Header) (common.Address, error) {
+func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 	// 返回出块节点对应的矿工钱包地址
 	return header.Coinbase, nil
 }
@@ -166,11 +167,6 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 	if len(header.Extra) < extraSeal {
 		return errMissingSignature
 	}
-	// Ensure that the block doesn't contain any uncles which are meaningless in PoA
-	if header.UncleHash != uncleHash {
-		return errInvalidUncleHash
-	}
-
 	return nil
 }
 
@@ -197,7 +193,7 @@ func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.He
 
 // VerifyUncles implements consensus.Engine, always returning an error for any
 // uncles as this consensus mechanism doesn't permit uncles.
-func (b *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) error {
+func (cbft *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) error {
 	return nil
 }
 
@@ -224,7 +220,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
-func (b *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	// 生成具体的区块信息
 	// 填充上Header.Root, TxHash, ReceiptHash, UncleHash等几个属性
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
@@ -234,10 +230,8 @@ func (b *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state
 	return types.NewBlock(header, txs, nil, receipts), nil
 }
 
-// Seal implements consensus.Engine, attempting to create a sealed block using
-// the local signing credentials.
-//func (b *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
-func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, cbftResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
+// 完成对区块的签名成功，并设置到header.Extra中，然后把区块发送到sealResultCh通道中（然后会被组播到其它共识节点）
+func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
 	header := block.Header()
 	number := header.Number.Uint64()
 
@@ -253,7 +247,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, cbftResu
 	}
 
 	//不是合法共识节点
-	if cbft.dpos.getPrimaryIndex(cbft.config.Signer) < 0 {
+	if ok, _ := cbft.dpos.IsConsensusNode(); !ok {
 		return errUnauthorizedSigner
 	}
 
@@ -263,14 +257,11 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, cbftResu
 		return nil
 	}
 
-	//设置区块高度
-	header.Number = new(big.Int).SetUint64(cbft.nextBlockNum())
-
 	//todo:
 	//检验区块难度
 
 	// 核心工作：开始签名。注意，delay的不是签名，而是结果的返回
-	sighash, err := cbft.signFn(accounts.Account{Address: cbft.config.Signer}, sigHash(header).Bytes())
+	sighash, err := cbft.signFn(sigHash(header).Bytes())
 	if err != nil {
 		return err
 	}
@@ -281,17 +272,11 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, cbftResu
 		select {
 		case <-stopCh: //如果先收到stop（客户端RPC发出)，则直接返回
 			return
-		case cbftResultCh <- block.WithSeal(header): //有接受才能发送数据，去执行区块
+		case sealResultCh <- block.WithSeal(header): //有接受才能发送数据，去执行区块
 		default: //如果没有接收数据，则走default
 			log.Warn("Sealing result is not read by miner", "sealhash", cbft.SealHash(header))
 		}
 	}()
-
-	// 打包区块
-	// 对传入的Block进行最终的授权
-	// Seal()函数可对一个调用过Finalize()的区块进行授权或封印，并将封印过程产生的一些值赋予区块中剩余尚未赋值的成员(Header.Nonce, Header.MixDigest)。
-	// Seal()成功时返回的区块全部成员齐整，可视为一个正常区块，可被广播到整个网络中，也可以被插入区块链等。
-	// 所以，对于挖掘一个新区块来说，所有相关代码里Engine.Seal()是其中最重要，也是最复杂的一步
 	return nil
 }
 
@@ -336,10 +321,10 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 }
 
 //收到新的区块签名
-func (b *Cbft) OnBlockSignature(chain consensus.ChainReader, sig *types.BlockSignature) {
-	signCounter := b.addSignCounter(sig.Hash, sig.Number, sig.Signature, false)
+func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, sig *types.BlockSignature) {
+	signCounter := cbft.addSignCounter(sig.Hash, sig.Number.Uint64(), sig.Signature, false)
 	if signCounter >= 15 {
-		node, exists := b.masterTree.nodeMap[sig.Hash]
+		node, exists := cbft.masterTree.nodeMap[sig.Hash]
 		if exists {
 			//如果这个hash对应的区块，已经在masterTree中，
 			//这个区块所在的节点，将成为masterTree的新的根节点
@@ -347,22 +332,22 @@ func (b *Cbft) OnBlockSignature(chain consensus.ChainReader, sig *types.BlockSig
 
 			if !node.isLogical {
 				tempNode = nil
-				b.findHighestNode(node)
+				cbft.findHighestNode(node)
 				highestNode := copyPointer(tempNode)
 
-				//设置本节点出块块高
-				b.blockNumGenerator = highestNode.block.Number().Uint64()
+				//设置最高合理区块
+				cbft.highestLogicalBlock = highestNode.block
 
 				//重新设定合理节点路径（重新设定的合理节点，如果没有签名过，则需要补签名,广播签名）
 				for highestNode.parent.block.Hash() != node.block.Hash() {
 					//设定合理节点
 					highestNode.isLogical = true
 
-					signCounter, exists := b.signCounterMap[highestNode.block.Hash()]
+					signCounter, exists := cbft.signCounterMap[highestNode.block.Hash()]
 					if exists {
 						if !signCounter.signedByMe {
 							//如果没有签名过，则需要补签名,广播签名
-							b.signNode(highestNode)
+							cbft.signNode(highestNode)
 						}
 					} else {
 						log.Warn("cannot find SignCounter for block:", highestNode)
@@ -371,7 +356,7 @@ func (b *Cbft) OnBlockSignature(chain consensus.ChainReader, sig *types.BlockSig
 				}
 			}
 			//那么这个区块所在节点到根的所有区块，都可以写入链了
-			b.storeConfirmed(node, RcvSign)
+			cbft.storeConfirmed(node, RcvSign)
 		}
 	}
 }
@@ -385,7 +370,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 	}
 
 	//从签名恢复出出块人地址
-	rcvSigner, rcvSign, err := ecrecover(rcvHeader)
+	nodeID, rcvSign, err := ecrecover(rcvHeader)
 	if err != nil {
 		return err
 	}
@@ -394,7 +379,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 
 	//检查块是否在出块人的时间窗口内生成的
 	//时间合法性计算，不合法返回error
-	if cbft.isOverdue(rcvHeader.Time.Int64(), rcvSigner) {
+	if cbft.isOverdue(rcvHeader.Time.Int64(), nodeID) {
 		return errOverdueBlock
 	}
 	masterParent, hasMasterParent, err := queryParent(cbft.masterTree.root, rcvHeader)
@@ -434,8 +419,11 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 			cbft.findHighestNode(node)
 			highestNode := copyPointer(tempNode)
 
+			//设置最高合理区块
+			cbft.highestLogicalBlock = highestNode.block
+
 			//设置本节点出块块高
-			cbft.blockNumGenerator = highestNode.block.Number().Uint64()
+			//cbft.blockNumGenerator = highestNode.block.Number().Uint64()
 
 			//设置一条合理节点路径
 			for highestNode.parent != nil {
@@ -481,14 +469,15 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 
 func (cbft *Cbft) signNode(node *Node) {
 	//签名
-	sign, err := cbft.signFn(accounts.Account{Address: cbft.config.Signer}, sigHash(node.block.Header()).Bytes())
+
+	sign, err := cbft.signFn(sigHash(node.block.Header()).Bytes())
 	if err == nil {
 		//块签名计数器+1
 		cbft.addSignCounter(node.block.Hash(), node.block.Number().Uint64(), sign, true)
 		//广播签名
 		blockSign := &types.BlockSignature{
 			Hash:      node.block.Hash(),
-			Number:    node.block.Number().Uint64(),
+			Number:    node.block.Number(),
 			Signature: sign,
 		}
 		cbft.blockSignatureCh <- blockSign
@@ -500,9 +489,10 @@ func (cbft *Cbft) signNode(node *Node) {
 
 //E:Execute
 //S:Sign
-// 执行这棵子树的所有节点，如果节点是isLogici=true，还需要签名并广播签名
+// 执行这棵子树的所有节点，如果节点是isLogical=true，还需要签名并广播签名
 func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
 	//todo:执行
+
 	if node.isLogical {
 		//签名
 		cbft.signNode(node)
@@ -539,7 +529,11 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 		}
 	}
 
-	saveBlocks(confirmedBlocks)
+	//todo:考虑cbftResultCh改成[]types.Block
+	for _, block := range confirmedBlocks {
+		cbft.cbftResultCh <- block
+	}
+	//saveBlocks(confirmedBlocks)
 
 	//把node作为新的root
 	newRoot.parent.children = nil
@@ -555,24 +549,7 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 
 	//清理signCounter
 	cbft.cleanSignCounter()
-
 	cbft.lock.Unlock()
-}
-
-//重置块高数字生成器
-//当有新的确认区块产生后，有可能需要重置块高数字生成器，以重新指向最高区块号
-func (cbft *Cbft) resetBlockNumGenerator() {
-	for _, node := range cbft.masterTree.root.children {
-		//找到一个更高的块
-		if node.block.Number().Uint64() > cbft.blockNumGenerator {
-			cbft.blockNumGenerator = node.block.Number().Uint64()
-		}
-	}
-}
-
-func (cbft *Cbft) nextBlockNum() uint64 {
-	cbft.blockNumGenerator++
-	return cbft.blockNumGenerator
 }
 
 //查询树中块高最高节点; 相同块高，取签名数多的节点
@@ -646,7 +623,7 @@ func (cbft *Cbft) cleanSlaveTree() {
 	root := cbft.masterTree.root
 	if root != nil && len(root.children) > 0 {
 		for idx, sonChild := range root.children {
-			if sonChild.block.Number().Uint64() <= cbft.blockNumGenerator {
+			if sonChild.block.Number().Uint64() <= cbft.highestLogicalBlock.Number().Uint64() {
 				//从root删除儿子
 				root.children = append(root.children[:idx], root.children[idx:]...)
 				//在root里加入孙子(提升孙子作为儿子）
@@ -759,14 +736,13 @@ func hasSameBlockNumInMaster(root *Node, header *types.Header) bool {
 
 //出块时间窗口期与出块节点匹配
 func (cbft *Cbft) inTurn() bool {
-
-	singerIdx := cbft.dpos.getPrimaryIndex(cbft.config.Signer)
+	singerIdx := cbft.dpos.NodeIndex(cbft.config.NodeID)
 	if singerIdx >= 0 {
-		value1 := int64(singerIdx*10*1000 - int(cbft.config.MaxNetworkLatency/3))
+		value1 := int64(singerIdx*10*1000 - int(cbft.config.MaxLatency/3))
 
-		value2 := (time.Now().Unix() - cbft.dpos.getLastBlockTimeOfPreEpoch()) * 1000 % int64(epochLength)
+		value2 := (time.Now().Unix() - cbft.dpos.StartTimeOfEpoch()) * 1000 % int64(epochLength)
 
-		value3 := int64((singerIdx+1)*10*1000 - int(cbft.config.MaxNetworkLatency*2/3))
+		value3 := int64((singerIdx+1)*10*1000 - int(cbft.config.MaxLatency*2/3))
 
 		if value2 > value1 && value3 > value2 {
 			return true
@@ -776,14 +752,14 @@ func (cbft *Cbft) inTurn() bool {
 }
 
 //收到新的区块后，检查新区块的时间合法性
-func (cbft *Cbft) isOverdue(blockTimeInSecond int64, singer common.Address) bool {
-	singerIdx := cbft.dpos.getPrimaryIndex(singer)
+func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) bool {
+	singerIdx := cbft.dpos.NodeIndex(nodeID)
 
-	round := time.Now().Unix() - cbft.dpos.getLastBlockTimeOfPreEpoch() - int64(10*(singerIdx+1))/210
+	round := time.Now().Unix() - cbft.dpos.StartTimeOfEpoch() - int64(10*(singerIdx+1))/210
 
-	deadline := cbft.dpos.getLastBlockTimeOfPreEpoch() + 210*round + int64(10*(singerIdx+1))
+	deadline := cbft.dpos.StartTimeOfEpoch() + 210*round + int64(10*(singerIdx+1))
 
-	deadline = deadline + int64(cbft.config.MaxNetworkLatency*cbft.config.CoefficientOfLegalityCheck)
+	deadline = deadline + int64(cbft.config.MaxLatency*cbft.config.LegalCoefficient)
 
 	if deadline < time.Now().Unix() {
 		return true
@@ -791,22 +767,27 @@ func (cbft *Cbft) isOverdue(blockTimeInSecond int64, singer common.Address) bool
 	return false
 }
 
-func ecrecover(header *types.Header) (common.Address, []byte, error) {
+func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	// Retrieve the signature from the header extra-data
+
+	var nodeID discover.NodeID
 	if len(header.Extra) < extraSeal {
-		return common.Address{}, []byte{}, errMissingSignature
+		return nodeID, []byte{}, errMissingSignature
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
 
 	// Recover the public key and the Ethereum address
 	pubkey, err := crypto.Ecrecover(sigHash(header).Bytes(), signature)
 	if err != nil {
-		return common.Address{}, []byte{}, err
+		return nodeID, []byte{}, err
 	}
-	var signer common.Address
-	copy(signer[:], crypto.Keccak256(pubkey[1:])[12:])
 
-	return signer, signature, nil
+	//转成discover.NodeID
+	nodeID, err = discover.BytesID(pubkey)
+	if err != nil {
+		return nodeID, []byte{}, err
+	}
+	return nodeID, signature, nil
 }
 
 func sigHash(header *types.Header) (hash common.Hash) {
@@ -847,4 +828,8 @@ func (cbft *Cbft) verifySeal(chain consensus.ChainReader, header *types.Header, 
 //返回当前时间UTC时区的毫秒数
 func nowMillisecond() int64 {
 	return time.Now().UnixNano() % 1e6 / 1e3
+}
+
+func (cbft *Cbft) signFn(headerHash []byte) (signature []byte, err error) {
+	return crypto.Sign(headerHash, cbft.config.PrivateKey)
 }

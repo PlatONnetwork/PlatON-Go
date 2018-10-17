@@ -107,7 +107,9 @@ func (w *wizard) makeGenesis() {
 			Period: 1,
 			Epoch:  210,
 			// joey.lyu
-			MaxNetworkLatency: 1000,
+			MaxLatency:       1000, //最大网络延迟。毫秒
+			LegalCoefficient: 2,    //系数
+
 		}
 		fmt.Println()
 		fmt.Println("How many seconds should blocks take? (default = 1)")
