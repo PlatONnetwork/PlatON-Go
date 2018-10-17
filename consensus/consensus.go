@@ -36,6 +36,9 @@ type ChainReader interface {
 	// CurrentHeader retrieves the current header from the local chain.
 	CurrentHeader() *types.Header
 
+	// joey.lyu
+	// CurrentHeader 和 GetHeader，有什么区别？
+	// the local chain和database有什么区别？
 	// GetHeader retrieves a block header from the database by hash and number.
 	GetHeader(hash common.Hash, number uint64) *types.Header
 
@@ -115,22 +118,24 @@ type PoW interface {
 	Hashrate() float64
 }
 
-type Bft interface {
-
+//type Bft interface {
+type Cbft interface {
 	Engine
 
 	// modify by platon
 	// 返回当前共识节点地址列表
-	ConsensusNodes() ([]string, error)
+	ConsensusNodes() ([]common.Address, error)
 
 	// 返回当前节点是否轮值出块
 	ShouldSeal() (bool, error)
 
 	// modify by platon
 	// Process the BFT signatures
+	//收到其它节点广播的新区块签名
 	OnBlockSignature(chain ChainReader, sig *types.BlockSignature) error
 
 	// modify by platon
 	// Process the BFT signatures
+	//收到其它节点广播的新区块
 	OnNewBlock(chain ChainReader, block *types.Block) error
 }

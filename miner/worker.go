@@ -145,8 +145,8 @@ type worker struct {
 	taskCh             chan *task
 	resultCh           chan *types.Block
 	prepareResultCh    chan *types.Block
-	blockSignatureCh   chan *types.BlockSignature
-	cbftResultCh	   chan *types.Block
+	blockSignatureCh   chan *types.BlockSignature //签名
+	cbftResultCh       chan *types.Block          //Seal出块后输出的channel
 	startCh            chan struct{}
 	exitCh             chan struct{}
 	resubmitIntervalCh chan time.Duration
@@ -203,13 +203,13 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		newWorkCh:          make(chan *newWorkReq),
 		taskCh:             make(chan *task),
 		resultCh:           make(chan *types.Block, resultQueueSize),
-		prepareResultCh:	make(chan *types.Block, resultQueueSize),
+		prepareResultCh:    make(chan *types.Block, resultQueueSize),
 		exitCh:             make(chan struct{}),
 		startCh:            make(chan struct{}, 1),
 		resubmitIntervalCh: make(chan time.Duration),
 		resubmitAdjustCh:   make(chan *intervalAdjust, resubmitAdjustChanSize),
-		blockSignatureCh: blockSignatureCh,
-		cbftResultCh: cbftResultCh,
+		blockSignatureCh:   blockSignatureCh,
+		cbftResultCh:       cbftResultCh,
 	}
 	// Subscribe NewTxsEvent for tx pool
 	worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
@@ -365,8 +365,9 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// modify by platon
 			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
-				if cbftEngine,ok := w.engine.(consensus.Bft); ok {
-					if shouldSeal,error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
+				//if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+				if cbftEngine, ok := w.engine.(consensus.Cbft); ok {
+					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
 						//timer.Reset(recommit)
 						commit(false, commitInterruptResubmit)
 					}
@@ -581,8 +582,10 @@ func (w *worker) taskLoop() {
 
 			// modify by platon
 			//if w.config.Cbft != nil {
-			if cbftEngine,ok := w.engine.(consensus.Bft); ok {
-				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
+			//if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+			if cbftEngine, ok := w.engine.(consensus.Cbft); ok {
+				//if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
+				if err := cbftEngine.Seal(w.chain, task.block, w.cbftResultCh, stopCh); err != nil {
 					log.Warn("【Cbft engine】Block sealing failed", "err", err)
 				}
 				return

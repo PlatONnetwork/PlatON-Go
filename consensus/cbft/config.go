@@ -14,14 +14,11 @@ func SetConfigFile(confFile string) {
 }
 
 type cbftConfig struct {
-	sealers []sealer
-}
-
-type sealer struct {
-	Host      string
-	Ip        int
-	Address   string
-	PublicKey string
+	Period            uint64 `json:"period"` // Number of seconds between blocks to enforce
+	Epoch             uint64 `json:"epoch"`  // Epoch length to reset votes and checkpoint
+	MaxNetworkLatency uint32 `json:"maxNetworkLatency"`
+	//Sealers []common.Address `json:"sealers"`
+	Sealers []string `json:"sealers"`
 }
 
 var (

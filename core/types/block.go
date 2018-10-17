@@ -69,8 +69,8 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 // modify by platon
 // Block's Signature info
 type BlockSignature struct {
-	Hash        common.Hash
-	Signature   []byte
+	Hash      common.Hash
+	Signature []byte
 }
 
 // Header represents a block header in the Ethereum blockchain.

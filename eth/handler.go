@@ -86,7 +86,7 @@ type ProtocolManager struct {
 	minedBlockSub *event.TypeMuxSubscription
 	// modify by platon
 	prepareMinedBlockSub *event.TypeMuxSubscription
-	blockSignatureSub *event.TypeMuxSubscription
+	blockSignatureSub    *event.TypeMuxSubscription
 
 	// channels for fetcher, syncer, txsyncLoop
 	newPeerCh   chan *peer
@@ -117,7 +117,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		noMorePeers: make(chan struct{}),
 		txsyncCh:    make(chan *txsync),
 		quitSync:    make(chan struct{}),
-		engine: engine,
+		engine:      engine,
 	}
 	// Figure out whether to allow fast sync or not
 	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() > 0 {
@@ -710,7 +710,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
 			return nil
 		}
-		if cbftEngine,ok := pm.engine.(consensus.Bft); ok {
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
 			if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
 				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
 			}
@@ -727,7 +727,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		engineBlockSignature := &types.BlockSignature{request.Hash, request.Signature}
 
-		if cbftEngine,ok := pm.engine.(consensus.Bft); ok {
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
 			if err := cbftEngine.OnBlockSignature(pm.blockchain, engineBlockSignature); err != nil {
 				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
 			}
@@ -747,7 +747,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	// modify by platon
 	//peers := pm.peers.PeersWithoutBlock(hash)
 	var peers []*peer
-	if _,ok := pm.engine.(consensus.Bft); ok {
+	if _, ok := pm.engine.(consensus.Bft); ok {
 		peers = pm.peers.PeersWithoutConsensus(pm.engine)
 	} else {
 		peers = pm.peers.PeersWithoutBlock(hash)
@@ -831,18 +831,18 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 	// modify by platon
 	for {
 		select {
-		case event :=  <- pm.minedBlockSub.Chan():
+		case event := <-pm.minedBlockSub.Chan():
 			if ev, ok := event.Data.(core.NewMinedBlockEvent); ok {
 				pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
 				pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
 			}
-		case event :=  <- pm.prepareMinedBlockSub.Chan():
+		case event := <-pm.prepareMinedBlockSub.Chan():
 			if ev, ok := event.Data.(core.PrepareMinedBlockEvent); ok {
-				pm.MulticastBlock(ev.Block)  // First propagate block to peers
+				pm.MulticastBlock(ev.Block) // First propagate block to peers
 			}
-		case event :=  <- pm.blockSignatureSub.Chan():
+		case event := <-pm.blockSignatureSub.Chan():
 			if ev, ok := event.Data.(core.BlockSignatureEvent); ok {
-				pm.MulticastBlock(ev.BlockSignature)  // First propagate block to peers
+				pm.MulticastBlock(ev.BlockSignature) // First propagate block to peers
 			}
 		}
 	}

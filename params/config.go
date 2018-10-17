@@ -127,7 +127,7 @@ var (
 
 	// modify by platon
 	AllCbftProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, new(CbftConfig)}
-	TestRules       = TestChainConfig.Rules(new(big.Int))
+	TestRules              = TestChainConfig.Rules(new(big.Int))
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -185,6 +185,17 @@ func (c *EthashConfig) String() string {
 type CbftConfig struct {
 	Period uint64 `json:"period"` // Number of seconds between blocks to enforce
 	Epoch  uint64 `json:"epoch"`  // Epoch length to reset votes and checkpoint
+	// joey.lyu
+	MaxNetworkLatency          uint32           `json:"maxNetworkLatency"`          //共识节点间最大网络延迟时间，单位：毫秒
+	CoefficientOfLegalityCheck uint32           `json:"coefficientOfLegalityCheck"` //块合法性检查时的系数，单位：毫秒
+	Signer                     common.Address   `json:"signer"`                     //当前共识节点地址
+	Signers                    []common.Address `json:"signer"`                     //其余20个共识节点地址
+}
+
+// joey.lyu
+// String implements the stringer interface, returning the consensus engine details.
+func (c *CbftConfig) String() string {
+	return "cbft"
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
@@ -206,6 +217,9 @@ func (c *ChainConfig) String() string {
 		engine = c.Ethash
 	case c.Clique != nil:
 		engine = c.Clique
+	// joey.lyu
+	case c.Cbft != nil:
+		engine = c.Cbft
 	default:
 		engine = "unknown"
 	}

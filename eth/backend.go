@@ -234,7 +234,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 	// If proof-of-authority is requested, set it up
 	// modify by platon
 	if chainConfig.Cbft != nil {
-		return cbft.New(blockSignatureCh, cbftResultCh)
+		return cbft.New(chainConfig.Cbft, blockSignatureCh, cbftResultCh)
 	}
 
 	if chainConfig.Clique != nil {

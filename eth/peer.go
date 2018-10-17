@@ -24,11 +24,11 @@ import (
 	"sync"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"Platon-go/common"
 	"Platon-go/core/types"
 	"Platon-go/p2p"
 	"Platon-go/rlp"
+	mapset "github.com/deckarep/golang-set"
 )
 
 var (
@@ -86,16 +86,16 @@ type peer struct {
 	td   *big.Int
 	lock sync.RWMutex
 
-	knownTxs    mapset.Set                // Set of transaction hashes known to be known by this peer
-	knownBlocks mapset.Set                // Set of block hashes known to be known by this peer
+	knownTxs    mapset.Set // Set of transaction hashes known to be known by this peer
+	knownBlocks mapset.Set // Set of block hashes known to be known by this peer
 	// modify by platon
-	knownPrepareBlocks mapset.Set          // Set of prepareblock hashes known to be known by this peer
-	queuedTxs   chan []*types.Transaction // Queue of transactions to broadcast to the peer
-	queuedProps chan *propEvent           // Queue of blocks to broadcast to the peer
-	queuedAnns  chan *types.Block         // Queue of blocks to announce to the peer
-	term        chan struct{}             // Termination channel to stop the broadcaster
+	knownPrepareBlocks mapset.Set                // Set of prepareblock hashes known to be known by this peer
+	queuedTxs          chan []*types.Transaction // Queue of transactions to broadcast to the peer
+	queuedProps        chan *propEvent           // Queue of blocks to broadcast to the peer
+	queuedAnns         chan *types.Block         // Queue of blocks to announce to the peer
+	term               chan struct{}             // Termination channel to stop the broadcaster
 	// modify by platon
-	queuedPreBlock chan *preBlockEvent
+	queuedPreBlock  chan *preBlockEvent
 	queuedSignature chan *signatureEvent
 }
 
@@ -147,7 +147,7 @@ func (p *peer) broadcast() {
 
 		// modify by platon
 		case prop := <-p.queuedSignature:
-			signature := &types.BlockSignature{prop.Hash,prop.Signature}
+			signature := &types.BlockSignature{prop.Hash, prop.Signature}
 			if err := p.SendSignature(signature); err != nil {
 				return
 			}
@@ -547,11 +547,11 @@ func (ps *peerSet) PeersWithConsensus(engine consensus.Engine) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
-	if cbftEngine,ok := engine.(consensus.Bft); ok {
-		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
+	if cbftEngine, ok := engine.(consensus.Bft); ok {
+		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
 			list := make([]*peer, 0, len(consensusNodes))
-			for _,nodeId := range consensusNodes {
-				if peer,ok := ps.peers[nodeId]; ok {
+			for _, nodeId := range consensusNodes {
+				if peer, ok := ps.peers[nodeId]; ok {
 					list = append(list, peer)
 				}
 			}
@@ -567,17 +567,17 @@ func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
 	defer ps.lock.RUnlock()
 
 	consensusNodeMap := make(map[string]string)
-	if cbftEngine,ok := engine.(consensus.Bft); ok {
-		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
-			for _,nodeId := range consensusNodes {
+	if cbftEngine, ok := engine.(consensus.Bft); ok {
+		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
+			for _, nodeId := range consensusNodes {
 				consensusNodeMap[nodeId] = nodeId
 			}
 		}
 	}
 
 	list := make([]*peer, 0, len(ps.peers))
-	for nodeId,peer := range ps.peers {
-		if _,ok := consensusNodeMap[nodeId]; !ok {
+	for nodeId, peer := range ps.peers {
+		if _, ok := consensusNodeMap[nodeId]; !ok {
 			list = append(list, peer)
 		}
 	}
@@ -591,8 +591,8 @@ type preBlockEvent struct {
 }
 
 type signatureEvent struct {
-	Hash        common.Hash
-	Signature   []byte
+	Hash      common.Hash
+	Signature []byte
 }
 
 // modify by platon

@@ -100,11 +100,13 @@ func (w *wizard) makeGenesis() {
 		}
 
 	case choice == "" || choice == "3":
-		// In the case of clique, configure the consensus parameters
+		// In the case of cbft, configure the consensus parameters
 		genesis.Difficulty = big.NewInt(1)
 		genesis.Config.Cbft = &params.CbftConfig{
 			Period: 1,
 			Epoch:  210,
+			// joey.lyu
+			MaxNetworkLatency: 1000,
 		}
 		fmt.Println()
 		fmt.Println("How many seconds should blocks take? (default = 1)")
@@ -124,6 +126,9 @@ func (w *wizard) makeGenesis() {
 				break
 			}
 		}
+		// joey.lyu 这是把21个共识节点写入创始区块的extra-data吗？那以后如果共识节点变更了怎么办？
+		genesis.Config.Cbft.Sealers = signers
+
 		// Sort the signers and embed into the extra-data section
 		for i := 0; i < len(signers); i++ {
 			for j := i + 1; j < len(signers); j++ {
@@ -132,6 +137,7 @@ func (w *wizard) makeGenesis() {
 				}
 			}
 		}
+
 		genesis.ExtraData = make([]byte, 32+len(signers)*common.AddressLength+65)
 		for i, signer := range signers {
 			copy(genesis.ExtraData[32+i*common.AddressLength:], signer[:])
