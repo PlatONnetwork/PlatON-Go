@@ -432,7 +432,6 @@ func newPeerSet() *peerSet {
 	}
 }
 
-// Register 简单的把peer加入到自己的peers的map
 // Register injects a new peer into the working set, or returns an error if the
 // peer is already known. If a new peer it registered, its broadcast loop is also
 // started.
@@ -551,9 +550,8 @@ func (ps *peerSet) PeersWithConsensus(engine consensus.Engine) []*peer {
 	if cbftEngine,ok := engine.(consensus.Bft); ok {
 		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
 			list := make([]*peer, 0, len(consensusNodes))
-			for _,node := range consensusNodes {
-				nodeID := fmt.Sprintf("%x", node.ID.Bytes()[:8])
-				if peer,ok := ps.peers[nodeID]; ok {
+			for _,nodeId := range consensusNodes {
+				if peer,ok := ps.peers[nodeId]; ok {
 					list = append(list, peer)
 				}
 			}
@@ -571,9 +569,8 @@ func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
 	consensusNodeMap := make(map[string]string)
 	if cbftEngine,ok := engine.(consensus.Bft); ok {
 		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
-			for _,node := range consensusNodes {
-				nodeID := fmt.Sprintf("%x", node.ID.Bytes()[:8])
-				consensusNodeMap[nodeID] = nodeID
+			for _,nodeId := range consensusNodes {
+				consensusNodeMap[nodeId] = nodeId
 			}
 		}
 	}
@@ -595,7 +592,6 @@ type preBlockEvent struct {
 
 type signatureEvent struct {
 	Hash        common.Hash
-	Number      *big.Int
 	Signature   []byte
 }
 
@@ -621,7 +617,7 @@ func (p *peer) SendSignature(signature *types.BlockSignature) error {
 // modify by platon
 func (p *peer) AsyncSendSignature(signature *types.BlockSignature) {
 	select {
-	case p.queuedSignature <- &signatureEvent{Hash: signature.Hash, Number: signature.Number, Signature: signature.Signature}:
+	case p.queuedSignature <- &signatureEvent{Hash: signature.Hash, Signature: signature.Signature}:
 	default:
 		p.Log().Debug("Dropping block Signature", "Hash", signature.Hash)
 	}

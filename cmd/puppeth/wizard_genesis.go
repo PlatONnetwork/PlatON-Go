@@ -106,6 +106,8 @@ func (w *wizard) makeGenesis() {
 		genesis.Config.Cbft = &params.CbftConfig{
 			Period: 1,
 			Epoch:  210,
+			// joey.lyu
+			MaxNetworkLatency: 1000,
 		}
 		fmt.Println()
 		fmt.Println("How many seconds should blocks take? (default = 1)")

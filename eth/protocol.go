@@ -57,8 +57,8 @@ const (
 	BlockBodiesMsg     = 0x06
 	NewBlockMsg        = 0x07
 	// modify by platon
-	PrepareBlockMsg        = 0x08
-	BlockSignatureMsg        = 0x09
+	PrepareBlockMsg   = 0x08
+	BlockSignatureMsg = 0x09
 
 	// Protocol messages belonging to eth/63
 	GetNodeDataMsg = 0x0d
@@ -183,8 +183,8 @@ type prepareBlockData struct {
 
 // modify by platon
 type blockSignature struct {
-	Hash        common.Hash
-	Signature   []byte
+	Hash      common.Hash
+	Signature []byte
 }
 
 // blockBody represents the data content of a single block.
