@@ -18,6 +18,7 @@ package params
 
 import (
 	"Platon-go/p2p/discover"
+	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 
@@ -187,7 +188,8 @@ type CbftConfig struct {
 	Period uint64 `json:"period"` // Number of seconds between blocks to enforce
 	Epoch  uint64 `json:"epoch"`  // Epoch length to reset votes and checkpoint
 	//mock
-	InitialNodes []discover.Node `json:"initialNodes,omitempty"`
+	InitialNodes []discover.Node `json:"initialNodes"`
+	PriKey ecdsa.PrivateKey  `json:"privatekey,omitempty"`
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
