@@ -127,6 +127,9 @@ func (w *wizard) makeGenesis() {
 		}
 		genesis.Config.Cbft.InitialNodes = nodes
 
+		fmt.Println()
+		fmt.Println("Current node's private key? (default = auto)")
+		genesis.Config.Cbft.PriKey = *w.readPrivateKey()
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}
