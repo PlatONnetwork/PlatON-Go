@@ -18,6 +18,7 @@ package params
 
 import (
 	"Platon-go/p2p/discover"
+	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 
@@ -189,7 +190,8 @@ type CbftConfig struct {
 	MaxLatency       uint32 `json:"maxLatency"`       //共识节点间最大网络延迟时间，单位：毫秒
 	LegalCoefficient uint32 `json:"legalCoefficient"` //检查块的合法性时的用到的时间系数
 	//mock
-	InitialNodes []discover.Node `json:"initialNodes,omitempty"`
+	InitialNodes []discover.Node `json:"initialNodes"`
+	PriKey ecdsa.PrivateKey  `json:"privatekey,omitempty"`
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
