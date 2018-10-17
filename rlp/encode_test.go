@@ -17,6 +17,7 @@
 package rlp
 
 import (
+	"Platon-go/common/hexutil"
 	"bytes"
 	"encoding/binary"
 	"errors"
@@ -285,7 +286,12 @@ func boolToBytes(val bool) []byte {
 
 func TestEncodeF03(t *testing.T) {
 
+	str := "e4babae6898de698afe4bda0e59097"
+	res, _ := hexutil.Decode(str)
+	fmt.Println(string(res))
+
 	//val :=  []interface{}{"transfer", uint(0xFFFFFF), []interface{}{[]uint{4, 5, 5}}, "abc"}
+	fmt.Println([]byte("人才是你吗"))
 	var source [][]byte
 	source = make([][]byte,0)
 	source = append(source, []byte("人才是你吗"))
@@ -302,6 +308,7 @@ func TestEncodeF03(t *testing.T) {
 	}
 	// 编码后字节数组
 	encodedBytes := buffer.Bytes()
+	fmt.Println(encodedBytes)
 
 	ptr := new(interface{})
 	Decode(bytes.NewReader(encodedBytes), &ptr)

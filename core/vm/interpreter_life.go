@@ -38,8 +38,8 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 			Addr: [20]byte{},
 			GasUsed : 0,
 			GasLimit: evm.Context.GasLimit,
-			//Evm : evm,
-			//Cfg : cfg,
+			// 验证此处是否可行
+			StateDB: evm.StateDB,
 		},
 		resolver : resolver.NewResolver(0x01),
 	}

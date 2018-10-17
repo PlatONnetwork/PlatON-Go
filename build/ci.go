@@ -169,6 +169,7 @@ func executablePath(name string) string {
 }
 
 func main() {
+	// go run build/ci.go install ./cmd/geth
 	log.SetFlags(log.Lshortfile)
 
 	if _, err := os.Stat(filepath.Join("build", "ci.go")); os.IsNotExist(err) {
@@ -206,6 +207,7 @@ func main() {
 // Compiling
 
 func doInstall(cmdline []string) {
+	// ./cmd/geth
 	var (
 		arch = flag.String("arch", "", "Architecture to cross build for")
 		cc   = flag.String("cc", "", "C compiler to cross build with")

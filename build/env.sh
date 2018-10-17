@@ -10,21 +10,26 @@ fi
 # Create fake Go workspace if it doesn't exist yet.
 workspace="$PWD/build/_workspace"
 root="$PWD"
-ethdir="$workspace/src/github.com/ethereum"
-if [ ! -L "$ethdir/go-ethereum" ]; then
+
+echo "$root" "$workspace"
+
+ethdir="$workspace/src"
+if [ ! -L "$ethdir/Platon-go" ]; then
     mkdir -p "$ethdir"
     cd "$ethdir"
-    ln -s ../../../../../. go-ethereum
+    ln -s ../../../. Platon-go
     cd "$root"
 fi
+
+echo "ln -s success."
 
 # Set up the environment to use the workspace.
 GOPATH="$workspace"
 export GOPATH
 
 # Run the command inside the workspace.
-cd "$ethdir/go-ethereum"
-PWD="$ethdir/go-ethereum"
+cd "$ethdir/Platon-go"
+PWD="$ethdir/Platon-go"
 
 # Launch the arguments with the configured environment.
 exec "$@"

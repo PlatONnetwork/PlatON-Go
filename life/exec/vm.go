@@ -80,7 +80,7 @@ type VMContext struct {
 	GasLimit uint64
 
 	// new field
-	Interface env.Interface
+	StateDB StateDB
 }
 
 type VMMemory struct {
