@@ -185,7 +185,7 @@ type prepareBlockData struct {
 type blockSignature struct {
 	Hash        common.Hash
 	Number      *big.Int
-	Signature   []byte
+	Signature   *common.BlockConfirmSign
 }
 
 // blockBody represents the data content of a single block.
