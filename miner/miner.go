@@ -55,10 +55,10 @@ type Miner struct {
 func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor,
 	gasCeil uint64, isLocalBlock func(block *types.Block) bool, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.CbftResult) *Miner {
 	miner := &Miner{
-		eth:      eth,
-		mux:      mux,
-		engine:   engine,
-		exitCh:   make(chan struct{}),
+		eth:    eth,
+		mux:    mux,
+		engine: engine,
+		exitCh: make(chan struct{}),
 		// modify by platon
 		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil, isLocalBlock, blockSignatureCh, cbftResultCh),
 		canStart: 1,

@@ -17,6 +17,7 @@
 package main
 
 import (
+	"Platon-go/crypto"
 	"Platon-go/p2p/discover"
 	"bytes"
 	"encoding/json"
@@ -106,6 +107,10 @@ func (w *wizard) makeGenesis() {
 		genesis.Config.Cbft = &params.CbftConfig{
 			Period: 1,
 			Epoch:  210,
+			// joey.lyu
+			MaxLatency:       1000, //最大网络延迟。毫秒
+			LegalCoefficient: 2,    //系数
+
 		}
 		fmt.Println()
 		fmt.Println("How many seconds should blocks take? (default = 1)")
@@ -125,8 +130,20 @@ func (w *wizard) makeGenesis() {
 				break
 			}
 		}
-		genesis.Config.Cbft.InitialNodes = nodes
 
+		// Sort the signers and embed into the extra-data section
+		for i := 0; i < len(nodes); i++ {
+			for j := i + 1; j < len(nodes); j++ {
+				if bytes.Compare(nodes[i].ID[:], nodes[j].ID[:]) > 0 {
+					nodes[i], nodes[j] = nodes[j], nodes[i]
+				}
+			}
+		}
+		genesis.ExtraData = make([]byte, 32+len(nodes)*common.AddressLength+65)
+		for i, node := range nodes {
+			copy(genesis.ExtraData[32+i*common.AddressLength:], crypto.Keccak256(node.ID[:])[12:])
+		}
+		genesis.Config.Cbft.InitialNodes = nodes
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}

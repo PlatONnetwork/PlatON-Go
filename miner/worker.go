@@ -145,8 +145,8 @@ type worker struct {
 	taskCh             chan *task
 	resultCh           chan *types.Block
 	prepareResultCh    chan *types.Block
-	blockSignatureCh   chan *types.BlockSignature
-	cbftResultCh	   chan *types.CbftResult
+	blockSignatureCh   chan *types.BlockSignature	//签名
+	cbftResultCh	   chan *types.CbftResult		//Seal出块后输出的channel
 	startCh            chan struct{}
 	exitCh             chan struct{}
 	resubmitIntervalCh chan time.Duration
@@ -203,7 +203,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		newWorkCh:          make(chan *newWorkReq),
 		taskCh:             make(chan *task),
 		resultCh:           make(chan *types.Block, resultQueueSize),
-		prepareResultCh:	make(chan *types.Block, resultQueueSize),
+		prepareResultCh:    make(chan *types.Block, resultQueueSize),
 		exitCh:             make(chan struct{}),
 		startCh:            make(chan struct{}, 1),
 		resubmitIntervalCh: make(chan time.Duration),

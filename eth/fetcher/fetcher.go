@@ -118,11 +118,16 @@ type Fetcher struct {
 	quit chan struct{}
 
 	// Announce states
-	announces  map[string]int              // Per peer announce counts to prevent memory exhaustion
-	announced  map[common.Hash][]*announce // Announced blocks, scheduled for fetching
-	fetching   map[common.Hash]*announce   // Announced blocks, currently fetching
-	fetched    map[common.Hash][]*announce // Blocks with headers fetched, scheduled for body retrieval
-	completing map[common.Hash]*announce   // Blocks with headers, currently body-completing
+	//joey.lyu,记录peer获取区块信息请求的数量
+	announces map[string]int // Per peer announce counts to prevent memory exhaustion
+	//joey.lyu,记录peer同一个获取区块信息的请求
+	announced map[common.Hash][]*announce // Announced blocks, scheduled for fetching
+	//joey.lyu,获取区块信息的请求已经发出，正等待响应的
+	fetching map[common.Hash]*announce // Announced blocks, currently fetching
+	//joey.lyu,完成获取区块信息
+	fetched map[common.Hash][]*announce // Blocks with headers fetched, scheduled for body retrieval
+	//joey.lyu,完成获取区块头，正在下载body
+	completing map[common.Hash]*announce // Blocks with headers, currently body-completing
 
 	// Block cache
 	queue  *prque.Prque            // Queue containing the import operations (block number sorted)

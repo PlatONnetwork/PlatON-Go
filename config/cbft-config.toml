@@ -1,0 +1,13 @@
+# This is a TOML document for CBFT configuration
+
+#Number of seconds between blocks to enforce
+period=1
+
+#Epoch length to reset votes and checkpoint
+epoch=210
+
+#共识节点间最大网络延迟时间，单位：毫秒
+maxNetworkLatency=12
+
+#21个共识节点地址
+sealers= [ "0x0cfa5fcf00b1f552c070c398bcfc002c8798208a", "0x9f6d816d91405c36d3c408f2bcdae97f5e5df182" ]

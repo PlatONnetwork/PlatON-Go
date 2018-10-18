@@ -57,8 +57,8 @@ const (
 	BlockBodiesMsg     = 0x06
 	NewBlockMsg        = 0x07
 	// modify by platon
-	PrepareBlockMsg        = 0x08
-	BlockSignatureMsg        = 0x09
+	PrepareBlockMsg   = 0x08
+	BlockSignatureMsg = 0x09
 
 	// Protocol messages belonging to eth/63
 	GetNodeDataMsg = 0x0d

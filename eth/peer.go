@@ -432,7 +432,6 @@ func newPeerSet() *peerSet {
 	}
 }
 
-// Register 简单的把peer加入到自己的peers的map
 // Register injects a new peer into the working set, or returns an error if the
 // peer is already known. If a new peer it registered, its broadcast loop is also
 // started.
@@ -621,7 +620,7 @@ func (p *peer) SendSignature(signature *types.BlockSignature) error {
 // modify by platon
 func (p *peer) AsyncSendSignature(signature *types.BlockSignature) {
 	select {
-	case p.queuedSignature <- &signatureEvent{Hash: signature.Hash, Number: signature.Number, Signature: signature.Signature}:
+	case p.queuedSignature <- &signatureEvent{Hash: signature.Hash, Signature: signature.Signature}:
 	default:
 		p.Log().Debug("Dropping block Signature", "Hash", signature.Hash)
 	}

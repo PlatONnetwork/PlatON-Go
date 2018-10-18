@@ -18,6 +18,7 @@ package params
 
 import (
 	"Platon-go/p2p/discover"
+	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 
@@ -128,7 +129,7 @@ var (
 
 	// modify by platon
 	AllCbftProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, new(CbftConfig)}
-	TestRules       = TestChainConfig.Rules(new(big.Int))
+	TestRules              = TestChainConfig.Rules(new(big.Int))
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -184,12 +185,14 @@ func (c *EthashConfig) String() string {
 
 // modify by platon
 type CbftConfig struct {
-	Period uint64 `json:"period"` // Number of seconds between blocks to enforce
-	Epoch  uint64 `json:"epoch"`  // Epoch length to reset votes and checkpoint
+	Period           uint64 `json:"period"`           // Number of seconds between blocks to enforce
+	Epoch            uint64 `json:"epoch"`            // Epoch length to reset votes and checkpoint
+	MaxLatency       uint32 `json:"maxLatency"`       //共识节点间最大网络延迟时间，单位：毫秒
+	LegalCoefficient uint32 `json:"legalCoefficient"` //检查块的合法性时的用到的时间系数
 	//mock
-	InitialNodes []discover.Node `json:"initialNodes,omitempty"`
-	//NodeID discover.NodeID `json:"nodeID,omitempty"`
-	//PrivateKey *ecdsa.PrivateKey `json:"privateKey,omitempty"`
+	InitialNodes []discover.Node `json:"initialNodes"`
+	NodeID discover.NodeID `json:"nodeID,omitempty"`
+	PrivateKey *ecdsa.PrivateKey  `json:"privatekey,omitempty"`
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
@@ -211,6 +214,9 @@ func (c *ChainConfig) String() string {
 		engine = c.Ethash
 	case c.Clique != nil:
 		engine = c.Clique
+	// joey.lyu
+	case c.Cbft != nil:
+		engine = c.Cbft
 	default:
 		engine = "unknown"
 	}
