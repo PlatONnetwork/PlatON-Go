@@ -337,18 +337,16 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 
 //收到新的区块签名
 //需要验证签名是否时nodeID签名的
-func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *types.BlockSignature) {
+func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *types.BlockSignature) error {
 
 	ok, err := verifySign(nodeID, sig.Hash, sig.Signature[:])
-
 	if err != nil {
-		log.Error("verify signature error", err)
-		return
+		return err
 	}
 
 	if !ok {
 		log.Error("unauthorized signer", sig)
-		return
+		return errUnauthorizedSigner
 	}
 
 	signCounter := cbft.addSign(sig.Hash, sig.Number.Uint64(), sig.Signature, false)
@@ -389,6 +387,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 			cbft.storeConfirmed(node, RcvSign)
 		}
 	}
+	return nil
 }
 
 //收到新的区块
