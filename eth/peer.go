@@ -595,7 +595,7 @@ type preBlockEvent struct {
 type signatureEvent struct {
 	Hash        common.Hash
 	Number      *big.Int
-	Signature   []byte
+	Signature   *common.BlockConfirmSign
 }
 
 // modify by platon

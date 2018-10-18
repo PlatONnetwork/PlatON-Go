@@ -145,8 +145,8 @@ type worker struct {
 	taskCh             chan *task
 	resultCh           chan *types.Block
 	prepareResultCh    chan *types.Block
-	blockSignatureCh   chan *types.BlockSignature	//签名
-	cbftResultCh	   chan *types.CbftResult		//Seal出块后输出的channel
+	blockSignatureCh   chan *types.BlockSignature	// 签名
+	cbftResultCh	   chan *types.CbftResult		// Seal出块后输出的channel
 	startCh            chan struct{}
 	exitCh             chan struct{}
 	resubmitIntervalCh chan time.Duration
@@ -677,16 +677,14 @@ func (w *worker) resultLoop() {
 			if block == nil || blockConfirmSigns == nil || len(blockConfirmSigns) <= 0 {
 				continue
 			}
+			var hash = block.Hash()
 			// Short circuit when receiving duplicate result caused by resubmitting.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
 				continue
 			}
 
 			if _receipts == nil || len(_receipts) <= 0 || _state == nil {
-				var (
-					sealhash = w.engine.SealHash(block.Header())
-					hash     = block.Hash()
-				)
+				var sealhash = w.engine.SealHash(block.Header())
 				w.pendingMu.RLock()
 				task, exist := w.pendingTasks[sealhash]
 				w.pendingMu.RUnlock()
@@ -694,83 +692,48 @@ func (w *worker) resultLoop() {
 					log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
 					continue
 				}
-				// Different block could share same sealhash, deep copy here to prevent write-write conflict.
-				var (
-					receipts = make([]*types.Receipt, len(task.receipts))
-					logs     []*types.Log
-				)
-				for i, receipt := range task.receipts {
-					receipts[i] = new(types.Receipt)
-					*receipts[i] = *receipt
-					// Update the block hash in all logs since it is now available and not when the
-					// receipt/log of individual transactions were created.
-					for _, log := range receipt.Logs {
-						log.BlockHash = hash
-					}
-					logs = append(logs, receipt.Logs...)
-				}
-				// Commit block and state to database.
-				stat, err := w.chain.WriteBlockWithState(block, receipts, task.state)
-				if err != nil {
-					log.Error("Failed writing block to chain", "err", err)
-					continue
-				}
-				log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
-					"elapsed", common.PrettyDuration(time.Since(task.createdAt)))
-
-				// Broadcast the block and announce chain insertion event
-				w.mux.Post(core.NewMinedBlockEvent{Block: block})
-
-				var events []interface{}
-				switch stat {
-				case core.CanonStatTy:
-					events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
-					events = append(events, core.ChainHeadEvent{Block: block})
-				case core.SideStatTy:
-					events = append(events, core.ChainSideEvent{Block: block})
-				}
-				w.chain.PostChainEvents(events, logs)
-
-				// Insert the block into the set of pending ones to resultLoop for confirmations
-				w.unconfirmed.Insert(block.NumberU64(), block.Hash())
-			} else {
-				var hash = block.Hash()
-				// Different block could share same sealhash, deep copy here to prevent write-write conflict.
-				var (
-					receipts = make([]*types.Receipt, len(_receipts))
-					logs     []*types.Log
-				)
-				for i, receipt := range _receipts {
-					receipts[i] = new(types.Receipt)
-					*receipts[i] = *receipt
-					// Update the block hash in all logs since it is now available and not when the
-					// receipt/log of individual transactions were created.
-					for _, log := range receipt.Logs {
-						log.BlockHash = hash
-					}
-					logs = append(logs, receipt.Logs...)
-				}
-				// Commit block and state to database.
-				stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
-				if err != nil {
-					log.Error("Failed writing block to chain", "err", err)
-					continue
-				}
-				log.Info("Successfully sealed new cbft block", "number", block.Number(), "hash", hash)
-
-				// Broadcast the block and announce chain insertion event
-				w.mux.Post(core.NewMinedBlockEvent{Block: block})
-
-				var events []interface{}
-				switch stat {
-				case core.CanonStatTy:
-					events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
-					events = append(events, core.ChainHeadEvent{Block: block})
-				case core.SideStatTy:
-					events = append(events, core.ChainSideEvent{Block: block})
-				}
-				w.chain.PostChainEvents(events, logs)
+				_receipts = task.receipts
+				_state = task.state
 			}
+			// Different block could share same sealhash, deep copy here to prevent write-write conflict.
+			var (
+				receipts = make([]*types.Receipt, len(_receipts))
+				logs     []*types.Log
+			)
+			for i, receipt := range _receipts {
+				receipts[i] = new(types.Receipt)
+				*receipts[i] = *receipt
+				// Update the block hash in all logs since it is now available and not when the
+				// receipt/log of individual transactions were created.
+				for _, log := range receipt.Logs {
+					log.BlockHash = hash
+				}
+				logs = append(logs, receipt.Logs...)
+			}
+			// Commit block and state to database.
+			// platon TODO
+			// 保存区块确认签名
+			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
+			if err != nil {
+				log.Error("Failed writing block to chain", "err", err)
+				continue
+			}
+			log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", hash)
+
+			// Broadcast the block and announce chain insertion event
+			// platon TODO
+			// 广播区块带上区块确认签名
+			w.mux.Post(core.NewMinedBlockEvent{Block: block})
+
+			var events []interface{}
+			switch stat {
+			case core.CanonStatTy:
+				events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
+				events = append(events, core.ChainHeadEvent{Block: block})
+			case core.SideStatTy:
+				events = append(events, core.ChainSideEvent{Block: block})
+			}
+			w.chain.PostChainEvents(events, logs)
 
 		case <-w.exitCh:
 			return
@@ -993,7 +956,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	defer w.mu.RUnlock()
 
 	tstart := time.Now()
-	parent := w.chain.CurrentBlock()
+	// modify by platon
+	var parent *types.Block
+	if cbftEngine,ok := w.engine.(consensus.Cbft); ok {
+		parent = cbftEngine.ParentBlock()
+	} else {
+		parent = w.chain.CurrentBlock()
+	}
 
 	if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
 		timestamp = parent.Time().Int64() + 1

@@ -136,5 +136,8 @@ type Cbft interface {
 	OnNewBlock(chain ChainReader, block *types.Block) error
 
 	CheckConsensusNode(discover.NodeID) (bool, error)
+
 	IsConsensusNode() (bool, error)
+
+	ParentBlock() (*types.Block)
 }
