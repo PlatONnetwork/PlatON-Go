@@ -18,7 +18,6 @@
 package consensus
 
 import (
-	"Platon-go/p2p/discover"
 	"math/big"
 
 	"Platon-go/common"
@@ -117,7 +116,7 @@ type PoW interface {
 	Hashrate() float64
 }
 
-type Bft interface {
+type Cbft interface {
 
 	Engine
 
@@ -130,7 +129,7 @@ type Bft interface {
 
 	// modify by platon
 	// Process the BFT signatures
-	OnBlockSignature(chain ChainReader, sig *types.BlockSignature) error
+	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *types.BlockSignature) error
 
 	// modify by platon
 	// Process the BFT signatures
@@ -138,5 +137,4 @@ type Bft interface {
 
 	CheckConsensusNode(discover.NodeID) (bool, error)
 	IsConsensusNode() (bool, error)
-
 }

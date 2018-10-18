@@ -11,6 +11,7 @@ import (
 	"errors"
 	"math/big"
 	"time"
+	"Platon-go/p2p/discover"
 )
 
 var (
@@ -36,11 +37,11 @@ type Cbft struct {
 	dpos             *dpos
 	rotating         *rotating
 	blockSignatureCh chan *types.BlockSignature
-	cbftResultCh     chan *types.Block
+	cbftResultCh     chan *types.CbftResult
 }
 
 // New creates a concurrent BFT consensus engine
-func New(config *params.CbftConfig, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.Block) *Cbft {
+func New(config *params.CbftConfig, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.CbftResult) *Cbft {
 	_dpos := newDpos(config.InitialNodes)
 	return &Cbft {
 		dpos:              _dpos,
@@ -147,7 +148,7 @@ func (b *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 	return nil
 }
 
-func (b *Cbft) OnBlockSignature(chain consensus.ChainReader, sig *types.BlockSignature) error {
+func (b *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *types.BlockSignature) error {
 	return nil
 }
 

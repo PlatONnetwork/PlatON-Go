@@ -548,7 +548,7 @@ func (ps *peerSet) PeersWithConsensus(engine consensus.Engine) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
-	if cbftEngine,ok := engine.(consensus.Bft); ok {
+	if cbftEngine,ok := engine.(consensus.Cbft); ok {
 		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
 			list := make([]*peer, 0, len(consensusNodes))
 			for _,node := range consensusNodes {
@@ -569,7 +569,7 @@ func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
 	defer ps.lock.RUnlock()
 
 	consensusNodeMap := make(map[string]string)
-	if cbftEngine,ok := engine.(consensus.Bft); ok {
+	if cbftEngine,ok := engine.(consensus.Cbft); ok {
 		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
 			for _,node := range consensusNodes {
 				nodeID := fmt.Sprintf("%x", node.ID.Bytes()[:8])

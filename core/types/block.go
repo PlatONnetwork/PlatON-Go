@@ -28,6 +28,7 @@ import (
 
 	"Platon-go/common"
 	"Platon-go/common/hexutil"
+	"Platon-go/core/state"
 	"Platon-go/crypto/sha3"
 	"Platon-go/rlp"
 )
@@ -72,6 +73,14 @@ type BlockSignature struct {
 	Hash        common.Hash
 	Number      *big.Int
 	Signature   []byte
+}
+
+// modify by platon
+type CbftResult struct {
+	Block       		*Block
+	Receipts    		[]*Receipt
+	State       		*state.StateDB
+	BlockConfirmSigns 	[]*common.BlockConfirmSign
 }
 
 // Header represents a block header in the Ethereum blockchain.

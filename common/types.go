@@ -36,6 +36,8 @@ const (
 	HashLength = 32
 	// AddressLength is the expected length of the address
 	AddressLength = 20
+	// modify by platon
+	BlockConfirmSignLength = 65
 )
 
 var (
@@ -340,3 +342,5 @@ func (ma *MixedcaseAddress) ValidChecksum() bool {
 func (ma *MixedcaseAddress) Original() string {
 	return ma.original
 }
+
+type BlockConfirmSign [BlockConfirmSignLength]byte

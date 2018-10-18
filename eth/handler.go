@@ -712,7 +712,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
 			return nil
 		}
-		if cbftEngine,ok := pm.engine.(consensus.Bft); ok {
+		if cbftEngine,ok := pm.engine.(consensus.Cbft); ok {
 			if pm.downloader.IsRunning() {
 				log.Warn("downloader is running,discard this msg")
 			}
@@ -736,9 +736,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 
-		engineBlockSignature := &types.BlockSignature{request.Hash, request.Signature}
+		engineBlockSignature := &types.BlockSignature{request.Hash, request.Number,request.Signature}
 
-		if cbftEngine,ok := pm.engine.(consensus.Bft); ok {
+		if cbftEngine,ok := pm.engine.(consensus.Cbft); ok {
 			if pm.downloader.IsRunning() {
 				log.Warn("downloader is running,discard this msg")
 			}
@@ -748,7 +748,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if flag,err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
 				log.Warn("remote node is not consensus node,discard this msg")
 			}
-			if err := cbftEngine.OnBlockSignature(pm.blockchain, engineBlockSignature); err != nil {
+			if err := cbftEngine.OnBlockSignature(pm.blockchain, p.Peer.ID(), engineBlockSignature); err != nil {
 				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
 			}
 			return nil
@@ -767,7 +767,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	// modify by platon
 	//peers := pm.peers.PeersWithoutBlock(hash)
 	var peers []*peer
-	if _,ok := pm.engine.(consensus.Bft); ok {
+	if _,ok := pm.engine.(consensus.Cbft); ok {
 		peers = pm.peers.PeersWithoutConsensus(pm.engine)
 	} else {
 		peers = pm.peers.PeersWithoutBlock(hash)
@@ -801,8 +801,8 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 }
 
 // modify by platon
-// 组播消息，发送给当前本轮所有共识节点
-func (pm *ProtocolManager) MulticastBlock(a interface{}) {
+// 组播区块/区块签名消息，发送给当前本轮所有共识节点
+func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 	// 共识节点peer
 	peers := pm.peers.PeersWithConsensus(pm.engine)
 	if peers == nil || len(peers) <= 0 {
@@ -859,11 +859,11 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 			}
 		case event :=  <- pm.prepareMinedBlockSub.Chan():
 			if ev, ok := event.Data.(core.PrepareMinedBlockEvent); ok {
-				pm.MulticastBlock(ev.Block)  // First propagate block to peers
+				pm.MulticastConsensus(ev.Block)  // propagate block to consensus peers
 			}
 		case event :=  <- pm.blockSignatureSub.Chan():
 			if ev, ok := event.Data.(core.BlockSignatureEvent); ok {
-				pm.MulticastBlock(ev.BlockSignature)  // First propagate block to peers
+				pm.MulticastConsensus(ev.BlockSignature)  // propagate blockSignature to consensus peers
 			}
 		}
 	}

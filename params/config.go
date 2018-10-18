@@ -188,6 +188,8 @@ type CbftConfig struct {
 	Epoch  uint64 `json:"epoch"`  // Epoch length to reset votes and checkpoint
 	//mock
 	InitialNodes []discover.Node `json:"initialNodes,omitempty"`
+	//NodeID discover.NodeID `json:"nodeID,omitempty"`
+	//PrivateKey *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
