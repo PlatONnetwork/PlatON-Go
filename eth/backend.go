@@ -130,7 +130,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	// modify by platon
 	blockSignatureCh := make(chan *types.BlockSignature)
-	cbftResultCh := make(chan *types.Block)
+	cbftResultCh := make(chan *types.CbftResult)
 
 	eth := &Ethereum{
 		config:         config,
@@ -234,7 +234,7 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 // modify by platon
 // 默认创建Cbft engine，同时CreateConsensusEngine方法增加blockSignatureCh、cbftResultCh入参
 func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool,
-	db ethdb.Database, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.Block) consensus.Engine {
+	db ethdb.Database, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.CbftResult) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	// modify by platon
 	if chainConfig.Cbft != nil {

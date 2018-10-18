@@ -155,9 +155,7 @@ func (e *GenesisMismatchError) Error() string {
 // The returned chain configuration is never nil.
 func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
 	if genesis != nil && genesis.Config == nil {
-		// modify by platon
-		return params.AllCbftProtocolChanges, common.Hash{}, errGenesisNoConfig
-		//return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
+		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
 
 	// Just commit the new block if there is no stored genesis block.

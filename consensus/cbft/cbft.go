@@ -47,7 +47,7 @@ type Cbft struct {
 	dpos             *dpos
 	rotating         *rotating
 	blockSignatureCh chan *types.BlockSignature
-	cbftResultCh     chan *types.Block
+	cbftResultCh     chan *types.CbftResult
 	closeOnce        sync.Once       // Ensures exit channel will not be closed twice.
 	exitCh           chan chan error // Notification channel to exiting backend threads
 
@@ -90,7 +90,7 @@ type SignCounter struct {
 }
 
 // New creates a concurrent BFT consensus engine
-func New(config *params.CbftConfig, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.Block) *Cbft {
+func New(config *params.CbftConfig, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.CbftResult) *Cbft {
 	_dpos := newDpos(config.InitialNodes)
 
 	conf := *config

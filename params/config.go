@@ -191,7 +191,8 @@ type CbftConfig struct {
 	LegalCoefficient uint32 `json:"legalCoefficient"` //检查块的合法性时的用到的时间系数
 	//mock
 	InitialNodes []discover.Node `json:"initialNodes"`
-	PriKey ecdsa.PrivateKey  `json:"privatekey,omitempty"`
+	NodeID discover.NodeID `json:"nodeID,omitempty"`
+	PrivateKey *ecdsa.PrivateKey  `json:"privatekey,omitempty"`
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.

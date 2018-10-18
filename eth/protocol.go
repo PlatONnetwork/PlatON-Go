@@ -183,8 +183,9 @@ type prepareBlockData struct {
 
 // modify by platon
 type blockSignature struct {
-	Hash      common.Hash
-	Signature []byte
+	Hash        common.Hash
+	Number      *big.Int
+	Signature   []byte
 }
 
 // blockBody represents the data content of a single block.
