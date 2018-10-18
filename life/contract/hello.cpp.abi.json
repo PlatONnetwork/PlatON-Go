@@ -7,19 +7,20 @@
                 {
                     "name": "from",
                     "typeName": "address",
-                    "realTypeName": "char *"
+                    "realTypeName": "string"
                 },
                 {
                     "name": "to",
-                    "typeName": "address",
-                    "realTypeName": "char *"
+                    "typeName": "",
+                    "realTypeName": "string"
                 },
                 {
                     "name": "asset",
                     "typeName": "",
-                    "realTypeName": "int"
+                    "realTypeName": "int32"
                 }
-            ]
+            ],
+            "return": "void"
         }
     ]
 }

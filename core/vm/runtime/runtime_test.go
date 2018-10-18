@@ -76,7 +76,7 @@ func TestEVM(t *testing.T) {
 
 func TestExecute(t *testing.T) {
 	ret, _, err := Execute([]byte{
-		byte(vm.PUSH1), 10,
+		byte(vm.PUSH1), 8,
 		byte(vm.PUSH1), 0,
 		byte(vm.MSTORE),
 		byte(vm.PUSH1), 32,
