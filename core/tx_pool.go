@@ -184,7 +184,7 @@ func (config *TxPoolConfig) sanitize() TxPoolConfig {
 // two states over time as they are received and processed.
 type TxPool struct {
 	config       TxPoolConfig
-	chainconfig  *params.ChainConfig
+	Run  *params.ChainConfig
 	chain        blockChain
 	gasPrice     *big.Int
 	txFeed       event.Feed
