@@ -1215,6 +1215,26 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	return 0, events, coalescedLogs, nil
 }
 
+//joey.lyu
+func (bc *BlockChain) ProcessDirectly(block *types.Block, parent *types.Block) (types.Receipts, *state.StateDB, error) {
+	state, err := state.New(parent.Root(), bc.stateCache)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Process block using the parent state as reference point.
+	receipts, logs, _, err := bc.processor.Process(block, state, bc.vmConfig)
+	if err != nil {
+		bc.reportBlock(block, receipts, err)
+		return nil, nil, err
+	}
+	//logs
+	if logs != nil {
+		bc.logsFeed.Send(logs)
+	}
+
+	return receipts, state, nil
+}
+
 // insertStats tracks and reports on block insertion.
 type insertStats struct {
 	queued, processed, ignored int
