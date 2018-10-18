@@ -14,6 +14,7 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"Platon-go/rpc"
+	"bytes"
 	"errors"
 	"math/big"
 	"sync"
@@ -51,15 +52,14 @@ type Cbft struct {
 	closeOnce        sync.Once       // Ensures exit channel will not be closed twice.
 	exitCh           chan chan error // Notification channel to exiting backend threads
 
-	blockChain *core.BlockChain //区块链指针
-	//blockNumGenerator uint64   						//块高生成器
-	highestLogicalBlock *types.Block                   //区块块号最高的合理块
-	masterTree          *Tree                          //主树，根节点含有最近的不可逆区块
-	slaveTree           *Tree                          //副树，根节点没有实际意义，不包含区块信息
-	signCounterMap      map[common.Hash]*SignCounter   //签名计数器Map
-	receiptMap          map[common.Hash]types.Receipts //块执行后的回执Map
-	stateMap            map[common.Hash]*state.StateDB //块执行后的状态Map
-	lock                sync.RWMutex                   //保护LogicalChainTree
+	blockChain          *core.BlockChain              //区块链指针
+	highestLogicalBlock *types.Block                  //区块块号最高的合理块
+	masterTree          *Tree                         //主树，根节点含有最近的不可逆区块
+	slaveTree           *Tree                         //副树，根节点没有实际意义，不包含区块信息
+	signCacheMap        map[common.Hash]*SignCache    //签名Map
+	receiptCacheMap     map[common.Hash]*ReceiptCache //块执行后的回执Map
+	stateCacheMap       map[common.Hash]*StateCache   //块执行后的状态Map
+	lock                sync.RWMutex                  //保护LogicalChainTree
 }
 
 type Tree struct {
@@ -80,13 +80,25 @@ const (
 	RcvSign                        //收到新签名
 )
 
-//签名计数器
-type SignCounter struct {
-	blockNum   uint64                //区块高度
-	counter    uint                  //区块签名计数器
-	updateTime time.Time             //签名计数器最新更新时间
-	signs      map[[65]byte]struct{} //签名map，key=签名
-	signedByMe bool                  //本节点是否签名过
+//签名缓存
+type SignCache struct {
+	blockNum   uint64                     //区块高度
+	counter    uint                       //区块签名计数器
+	updateTime time.Time                  //签名计数器最新更新时间
+	signs      []*common.BlockConfirmSign //签名map，key=签名
+	signedByMe bool                       //本节点是否签名过
+}
+
+//收据缓存
+type ReceiptCache struct {
+	blockNum uint64         //区块高度
+	receipts types.Receipts //执行区块后的收据
+}
+
+//state缓存
+type StateCache struct {
+	blockNum uint64         //区块高度
+	state    *state.StateDB //执行区块后的收据
 }
 
 // New creates a concurrent BFT consensus engine
@@ -125,9 +137,9 @@ func New(config *params.CbftConfig, blockSignatureCh chan *types.BlockSignature,
 		blockSignatureCh: blockSignatureCh,
 		cbftResultCh:     cbftResultCh,
 
-		masterTree:     _masterTree,
-		slaveTree:      _slaveTree,
-		signCounterMap: make(map[common.Hash]*SignCounter),
+		masterTree:   _masterTree,
+		slaveTree:    _slaveTree,
+		signCacheMap: make(map[common.Hash]*SignCache),
 	}
 }
 
@@ -162,7 +174,6 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 // seal:	是否要验证封印（出块签名）
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
 	//todo:每秒一个交易，校验块高/父区块
-
 	if header.Number == nil {
 		return errUnknownBlock
 	}
@@ -231,8 +242,6 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 	// 填充上Header.Root, TxHash, ReceiptHash, UncleHash等几个属性
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
-
-	// Assemble and return the final block for sealing
 	return types.NewBlock(header, txs, nil, receipts), nil
 }
 
@@ -267,12 +276,12 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	//检验区块难度
 
 	// 核心工作：开始签名。注意，delay的不是签名，而是结果的返回
-	sighash, err := cbft.signFn(sigHash(header).Bytes())
+	sign, err := cbft.signFn(sigHash(header).Bytes())
 	if err != nil {
 		return err
 	}
 	//将签名结果替换区块头的Extra字段（专门支持记录额外信息的）
-	copy(header.Extra[len(header.Extra)-extraSeal:], sighash)
+	copy(header.Extra[len(header.Extra)-extraSeal:], sign[:])
 
 	go func() {
 		select {
@@ -327,9 +336,24 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 }
 
 //收到新的区块签名
-func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, sig *types.BlockSignature) {
-	signCounter := cbft.addSignCounter(sig.Hash, sig.Number.Uint64(), sig.Signature, false)
+//需要验证签名是否时nodeID签名的
+func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *types.BlockSignature) {
+
+	ok, err := verifySign(nodeID, sig.Hash, sig.Signature[:])
+
+	if err != nil {
+		log.Error("verify signature error", err)
+		return
+	}
+
+	if !ok {
+		log.Error("unauthorized signer", sig)
+		return
+	}
+
+	signCounter := cbft.addSign(sig.Hash, sig.Number.Uint64(), sig.Signature, false)
 	if signCounter >= 15 {
+		//区块收到的签名数量>=15，可以入链了
 		node, exists := cbft.masterTree.nodeMap[sig.Hash]
 		if exists {
 			//如果这个hash对应的区块，已经在masterTree中，
@@ -349,7 +373,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, sig *types.Block
 					//设定合理节点
 					highestNode.isLogical = true
 
-					signCounter, exists := cbft.signCounterMap[highestNode.block.Hash()]
+					signCounter, exists := cbft.signCacheMap[highestNode.block.Hash()]
 					if exists {
 						if !signCounter.signedByMe {
 							//如果没有签名过，则需要补签名,广播签名
@@ -381,7 +405,8 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 		return err
 	}
 	//收到的新块中，包含着出块人的一个签名，所以签名数量+1,
-	cbft.addSignCounter(rcvBlock.Hash(), rcvNumber, rcvSign, false)
+	sign := common.NewBlockConfirmSign(rcvSign)
+	cbft.addSign(rcvBlock.Hash(), rcvNumber, sign, false)
 
 	//检查块是否在出块人的时间窗口内生成的
 	//时间合法性计算，不合法返回error
@@ -474,12 +499,26 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 	return nil
 }
 
+func (cbft *Cbft) HighestLogicalBlock() *types.Block {
+	return cbft.highestLogicalBlock
+}
+
 func (cbft *Cbft) processNode(node *Node) {
 	//执行
 	receipts, state, err := cbft.blockChain.ProcessDirectly(node.block, node.parent.block)
 	if err == nil {
-		cbft.receiptMap[node.block.Hash()] = receipts
-		cbft.stateMap[node.block.Hash()] = state
+		receiptsCache := &ReceiptCache{
+			blockNum: node.block.NumberU64(),
+			receipts: receipts,
+		}
+		cbft.receiptCacheMap[node.block.Hash()] = receiptsCache
+
+		stateCache := &StateCache{
+			blockNum: node.block.NumberU64(),
+			state:    state,
+		}
+		cbft.stateCacheMap[node.block.Hash()] = stateCache
+
 	} else {
 		log.Warn("process block error", err)
 	}
@@ -487,10 +526,11 @@ func (cbft *Cbft) processNode(node *Node) {
 
 func (cbft *Cbft) signNode(node *Node) {
 	//签名
-	sign, err := cbft.signFn(sigHash(node.block.Header()).Bytes())
+	signature, err := cbft.signFn(sigHash(node.block.Header()).Bytes())
 	if err == nil {
 		//块签名计数器+1
-		cbft.addSignCounter(node.block.Hash(), node.block.Number().Uint64(), sign, true)
+		sign := common.NewBlockConfirmSign(signature)
+		cbft.addSign(node.block.Hash(), node.block.Number().Uint64(), sign, true)
 		//广播签名
 		blockSign := &types.BlockSignature{
 			Hash:      node.block.Hash(),
@@ -548,12 +588,18 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 		}
 	}
 
-	//todo:考虑cbftResultCh改成[]types.Block
+	//todo:考虑cbftResultCh改成[]types.CbftResult
 	for _, block := range confirmedBlocks {
-		cbftResult := &CbftResult{}
-		cbft.cbftResultCh <- block
+		cbftResult := &types.CbftResult{
+			Block:             block,
+			Receipts:          cbft.receiptCacheMap[block.Hash()].receipts,
+			State:             cbft.stateCacheMap[block.Hash()].state,
+			BlockConfirmSigns: cbft.signCacheMap[block.Hash()].signs,
+		}
+
+		//把需要保存的数据，发往通道：cbftResultCh
+		cbft.cbftResultCh <- cbftResult
 	}
-	//saveBlocks(confirmedBlocks)
 
 	//把node作为新的root
 	newRoot.parent.children = nil
@@ -567,8 +613,15 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 	//清理slaveTree
 	cbft.cleanSlaveTree()
 
-	//清理signCounter
-	cbft.cleanSignCounter()
+	//清理signCacheMap
+	cbft.cleanSignCacheMap()
+
+	//清理receiptCacheMap
+	cbft.cleanReceiptCacheMap()
+
+	//清理stateCacheMap
+	cbft.cleanStateCacheMap()
+
 	cbft.lock.Unlock()
 }
 
@@ -638,71 +691,109 @@ func (cbft *Cbft) resetNodeMap(node *Node) {
 	}
 }
 
-//清除cbft.slaveTree,把块高 <= cbft.blockNumGenerator的节点清除掉；如果清除掉的节点还有子树，则把子树接到cbft.slaveTree根节点上
+// 清除cbft.slaveTree,把块高 <= cbft.masterTree.root的节点清除掉
+// 处理时，是从cbft.slaveTree.root的儿子层开始的，每次循环只处理儿子节点。
+// 当儿子节点<=highLimiting时，把此儿子从cbft.slaveTree.root根上删除，把此儿子的儿子（即cbft.slaveTree.root的孙子）提升为cbft.slaveTree.root的儿子
+// 当cbft.slaveTree.root根的所有儿子都不满足<= highLimiting 时，则退出循环
 func (cbft *Cbft) cleanSlaveTree() {
-	root := cbft.masterTree.root
+	//masterTree根节点区块的块高
+	highLimiting := cbft.masterTree.root.block.NumberU64()
+	root := cbft.slaveTree.root
 	if root != nil && len(root.children) > 0 {
-		for idx, sonChild := range root.children {
-			if sonChild.block.Number().Uint64() <= cbft.highestLogicalBlock.Number().Uint64() {
-				//从root删除儿子
-				root.children = append(root.children[:idx], root.children[idx:]...)
-				//在root里加入孙子(提升孙子作为儿子）
-				root.children = append(root.children, sonChild.children...)
-				for _, grandChild := range sonChild.children {
-					//孙子节点指向root
-					grandChild.parent = root
+		//退出循环处理标识
+		exit := false
+		for !exit {
+			exit = true
+			for idx, sonChild := range root.children {
+				if sonChild.block.NumberU64() <= highLimiting {
+					exit = false
+					//从root删除儿子
+					root.children = append(root.children[:idx], root.children[idx+1:]...)
+					//在root里加入孙子(提升所有孙子作为儿子）
+					root.children = append(root.children, sonChild.children...)
+					for _, grandChild := range sonChild.children {
+						//孙子节点指向root
+						grandChild.parent = root
+					}
+					//删除儿子节点
+					sonChild = nil
 				}
-				//删除儿子节点
-				sonChild = nil
 			}
 		}
 	}
 }
 
-//清理signCounter，清理块高低于masterTree.root块高的签名计数器数据
-func (cbft *Cbft) cleanSignCounter() {
+//清理signCacheMap，清理块高低于masterTree.root块高的签名计数器数据
+func (cbft *Cbft) cleanSignCacheMap() {
 	root := cbft.masterTree.root
 	rootBlockNum := root.block.Number().Uint64()
 
 	keysDeleted := make([]common.Hash, 0)
-	for hash, signCounter := range cbft.signCounterMap {
-		if signCounter.blockNum <= rootBlockNum {
+	for hash, signCache := range cbft.signCacheMap {
+		if signCache.blockNum <= rootBlockNum {
 			keysDeleted = append(keysDeleted, hash)
 		}
 	}
 	for _, key := range keysDeleted {
-		delete(cbft.signCounterMap, key)
+		delete(cbft.signCacheMap, key)
 	}
 }
 
-//签名计数器，保存块收到的签名以及总数；自己出的块也需要增加签名计数器
-func (cbft *Cbft) addSignCounter(blockHash common.Hash, blockNum uint64, sign []byte, signedByMe bool) uint {
-	signCounter, exists := cbft.signCounterMap[blockHash]
+//清理receiptCacheMap，清理块高低于masterTree.root块高的签名计数器数据
+func (cbft *Cbft) cleanReceiptCacheMap() {
+	root := cbft.masterTree.root
+	rootBlockNum := root.block.Number().Uint64()
 
-	var signArray [65]byte
-	copy(signArray[:], sign[:])
+	keysDeleted := make([]common.Hash, 0)
+	for hash, receiptCache := range cbft.receiptCacheMap {
+		if receiptCache.blockNum <= rootBlockNum {
+			keysDeleted = append(keysDeleted, hash)
+		}
+	}
+	for _, key := range keysDeleted {
+		delete(cbft.receiptCacheMap, key)
+	}
+}
 
-	if exists {
-		signCounter.counter = signCounter.counter + 1
-		cbft.signCounterMap[blockHash].signs[signArray] = struct{}{}
-		signCounter.updateTime = time.Now()
-		return signCounter.counter
-	} else {
-		cbft.signCounterMap[blockHash] = &SignCounter{
+//清理stateCacheMap，清理块高低于masterTree.root块高的签名计数器数据
+func (cbft *Cbft) cleanStateCacheMap() {
+	root := cbft.masterTree.root
+	rootBlockNum := root.block.Number().Uint64()
+
+	keysDeleted := make([]common.Hash, 0)
+	for hash, stateCache := range cbft.stateCacheMap {
+		if stateCache.blockNum <= rootBlockNum {
+			keysDeleted = append(keysDeleted, hash)
+		}
+	}
+	for _, key := range keysDeleted {
+		delete(cbft.stateCacheMap, key)
+	}
+}
+
+// 保存区块的签名（自己出的块也需要保存签名）
+// 返回区块的签名总数
+func (cbft *Cbft) addSign(blockHash common.Hash, blockNum uint64, sign *common.BlockConfirmSign, signedByMe bool) uint {
+	signCache, exists := cbft.signCacheMap[blockHash]
+
+	if !exists {
+		signCache = &SignCache{
 			blockNum:   blockNum,
-			counter:    1,
-			updateTime: time.Now(),
-			signs:      make(map[[65]byte]struct{}),
+			counter:    0,
+			signs:      make([]*common.BlockConfirmSign, 0),
 			signedByMe: signedByMe,
 		}
-		cbft.signCounterMap[blockHash].signs[signArray] = struct{}{}
-		return 1
 	}
+	signCache.counter = signCache.counter + 1
+	signCache.signs = append(signCache.signs, sign)
+
+	signCache.updateTime = time.Now()
+	return signCache.counter
 }
 
-//查询签名计数器
+//查询区块的签名总数
 func (cbft *Cbft) getSignCounter(blockHash common.Hash) uint {
-	signCounter, exists := cbft.signCounterMap[blockHash]
+	signCounter, exists := cbft.signCacheMap[blockHash]
 	if exists {
 		return signCounter.counter
 	} else {
@@ -711,8 +802,8 @@ func (cbft *Cbft) getSignCounter(blockHash common.Hash) uint {
 }
 
 //获取区块的所有签名
-func (cbft *Cbft) getSigns(blockHash common.Hash) map[[65]byte]struct{} {
-	signCounter, exists := cbft.signCounterMap[blockHash]
+func (cbft *Cbft) getSigns(blockHash common.Hash) []*common.BlockConfirmSign {
+	signCounter, exists := cbft.signCacheMap[blockHash]
 	if exists {
 		return signCounter.signs
 	} else {
@@ -779,7 +870,6 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 		return nodeID, []byte{}, errMissingSignature
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
-
 	// Recover the public key and the Ethereum address
 	pubkey, err := crypto.Ecrecover(sigHash(header).Bytes(), signature)
 	if err != nil {
@@ -792,6 +882,18 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 		return nodeID, []byte{}, err
 	}
 	return nodeID, signature, nil
+}
+
+func verifySign(expectedNodeID discover.NodeID, hash common.Hash, signature []byte) (bool, error) {
+	pubkey, err := crypto.Ecrecover(hash.Bytes(), signature)
+	if err != nil {
+		return false, err
+	}
+	//比较两个[]byte
+	if bytes.Equal(pubkey, expectedNodeID.Bytes()) {
+		return true, nil
+	}
+	return false, nil
 }
 
 func sigHash(header *types.Header) (hash common.Hash) {
@@ -834,8 +936,8 @@ func nowMillisecond() int64 {
 	return time.Now().UnixNano() % 1e6 / 1e3
 }
 
-func (cbft *Cbft) signFn(headerHash []byte) (signature []byte, err error) {
-	return crypto.Sign(headerHash, cbft.config.PriKey)
+func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
+	return crypto.Sign(headerHash, cbft.config.PrivateKey)
 }
 
 func (cbft *Cbft) getHighestLogicalBlock() *types.Block {
