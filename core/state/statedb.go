@@ -648,3 +648,29 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 	log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
 }
+
+// todo: new method -> GetAbiHash
+func(s *StateDB) GetAbiHash(addr common.Address) common.Hash {
+	stateObject := s.getStateObject(addr)
+	if stateObject == nil {
+		return common.Hash{}
+	}
+	return common.BytesToHash(stateObject.AbiHash())
+}
+
+// todo: new method -> GetAbi
+func(s *StateDB) GetAbi(addr common.Address) []byte {
+	stateObject := s.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.Abi(s.db)
+	}
+	return nil
+}
+
+// todo: new method -> SetAbi
+func(s *StateDB) SetAbi(addr common.Address, abi []byte) {
+	stateObject := s.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SetAbi(crypto.Keccak256Hash(abi), abi)
+	}
+}

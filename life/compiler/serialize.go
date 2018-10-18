@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"Platon-go/core/vm/life/compiler/opcodes"
+	"Platon-go/life/compiler/opcodes"
 )
 
 // Serialize serializes a set of SSA-form instructions into a byte array

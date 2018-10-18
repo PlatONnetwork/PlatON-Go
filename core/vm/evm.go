@@ -17,7 +17,11 @@
 package vm
 
 import (
+	"Platon-go/rlp"
+	"bytes"
+	"fmt"
 	"math/big"
+	"reflect"
 	"sync/atomic"
 	"time"
 
@@ -161,7 +165,9 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 
 	// vmConfig.EVMInterpreter will be used by EVM-C, it won't be checked here
 	// as we always want to have the built-in EVM as the failover option.
-	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
+	// todo: replace the evm to wasm for the interpreter.
+	//evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
+	evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
 	evm.interpreter = evm.interpreters[0]
 
 	return evm
@@ -220,8 +226,10 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
 	contract := NewContract(caller, to, value, gas)
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
+	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	// todo: 新逻辑，读取并设置abi
+	contract.SetCallAbi(&addr, evm.StateDB.GetAbiHash(addr), evm.StateDB.GetAbi(addr))
 	start := time.Now()
 
 	// Capture the tracer start/end events in debug mode
@@ -276,6 +284,8 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	// only.
 	contract := NewContract(caller, to, value, gas)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	// todo: 新增abi的提取
+	contract.SetCallAbi(&addr, evm.StateDB.GetAbiHash(addr), evm.StateDB.GetAbi(addr))
 
 	ret, err = run(evm, contract, input, false)
 	if err != nil {
@@ -309,6 +319,8 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	// Initialise a new contract and make initialise the delegate values
 	contract := NewContract(caller, to, nil, gas).AsDelegate()
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	// todo: 新增abi的提取
+	contract.SetCallAbi(&addr, evm.StateDB.GetAbiHash(addr), evm.StateDB.GetAbi(addr))
 
 	ret, err = run(evm, contract, input, false)
 	if err != nil {
@@ -342,6 +354,8 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	// only.
 	contract := NewContract(caller, to, new(big.Int), gas)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	// todo: 新增abi的提取
+	contract.SetCallAbi(&addr, evm.StateDB.GetAbiHash(addr), evm.StateDB.GetAbi(addr))
 
 	// When an error was returned by the EVM or when setting the creation code
 	// above we revert to the snapshot and consume any gas remaining. Additionally
@@ -388,7 +402,15 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	// EVM. The contract is a scoped environment for this execution context
 	// only.
 	contract := NewContract(caller, AccountRef(address), value, gas)
-	contract.SetCallCode(&address, crypto.Keccak256Hash(code), code)
+
+	// todo: code 为规则编码后的数据，需要进行转换RLP([txType][abi][code]),
+	// todo: txType 暂未使用
+	_, abi, co, er := parseRlpData(code)
+	if er != nil {
+		return nil, address, gas, nil
+	}
+	contract.SetCallAbi(&address, crypto.Keccak256Hash(abi), abi)
+	contract.SetCallCode(&address, crypto.Keccak256Hash(co), co)
 
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, address, gas, nil
@@ -454,3 +476,49 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
+
+// rlpData=RLP([txType][abi][code])
+func parseRlpData(rlpData []byte) (int, []byte, []byte, error) {
+	ptr := new(interface{})
+	err := rlp.Decode(bytes.NewReader(rlpData), &ptr)
+	if err != nil {
+		return -1, nil, nil, err
+	}
+	rlpList := reflect.ValueOf(ptr).Elem().Interface();
+
+	if _, ok := rlpList.([]interface{}); !ok {
+		return -1, nil, nil, fmt.Errorf("invalid rlp format.")
+	}
+
+	iRlpList := rlpList.([]interface{})
+	if len(iRlpList) <= 2 {
+		return -1, nil, nil, fmt.Errorf("invalid input. ele must greater than 2")
+	}
+	var (
+		txType 	int
+		code	[]byte
+		abi		[]byte
+	)
+	if v, ok := iRlpList[0].([]byte); ok {
+		txType = int(v[0])
+	}
+	if v, ok := iRlpList[1].([]byte); ok {
+		code = v
+	}
+	if v, ok := iRlpList[2].([]byte); ok {
+		abi = v
+	}
+	return txType, abi, code, nil
+}
+
+func (evm *EVM) GetStateDB() StateDB {
+	return evm.StateDB
+}
+
+func (evm *EVM) GetEvm() *EVM {
+	return evm
+}
+
+func (evm *EVM) GetConfig() Config {
+	return evm.vmConfig
+}

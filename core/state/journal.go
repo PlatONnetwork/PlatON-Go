@@ -121,6 +121,11 @@ type (
 		account            *common.Address
 		prevcode, prevhash []byte
 	}
+	abiChange struct {
+		account 	*common.Address
+		prevabi		[]byte
+		prevhash	[]byte
+	}
 
 	// 我理解是DAO事件的退款处理
 	// Changes to other state values.
@@ -201,6 +206,16 @@ func (ch codeChange) revert(s *StateDB) {
 }
 
 func (ch codeChange) dirtied() *common.Address {
+	return ch.account
+}
+
+// todo: new method -> revert.
+func (ch abiChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).SetAbi(common.BytesToHash(ch.prevhash), ch.prevabi)
+}
+
+// todo: new method -> dirtied.
+func (ch abiChange) dirtied() *common.Address {
 	return ch.account
 }
 

@@ -1,7 +1,7 @@
 package resolver
 
 import (
-	"Platon-go/core/vm/life/exec"
+	"Platon-go/life/exec"
 	"fmt"
 )
 

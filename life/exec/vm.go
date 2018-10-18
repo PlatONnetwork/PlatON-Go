@@ -6,17 +6,22 @@ import (
 	"math"
 	"math/bits"
 
-	"Platon-go/core/vm/life/compiler"
-	"Platon-go/core/vm/life/compiler/opcodes"
-	"Platon-go/core/vm/life/utils"
+	"Platon-go/life/compiler"
+	"Platon-go/life/compiler/opcodes"
+	"Platon-go/life/utils"
 
 	"github.com/go-interpreter/wagon/wasm"
 )
 
-// FunctionImport represents the function import type. If len(sig.ReturnTypes) == 0, the return value will be ignored.
-type FunctionImport struct {
+type (
 	Execute func(vm *VirtualMachine) int64
 	GasCost func(vm *VirtualMachine) (uint64, error)
+)
+
+// FunctionImport represents the function import type. If len(sig.ReturnTypes) == 0, the return value will be ignored.
+type FunctionImport struct {
+	Execute Execute
+	GasCost GasCost
 }
 
 const (
@@ -73,6 +78,9 @@ type VMContext struct {
 	Addr     [20]byte
 	GasUsed  uint64
 	GasLimit uint64
+
+	// new field
+	StateDB StateDB
 }
 
 type VMMemory struct {
