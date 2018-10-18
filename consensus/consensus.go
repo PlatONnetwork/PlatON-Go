@@ -23,9 +23,9 @@ import (
 	"Platon-go/common"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
+	"Platon-go/p2p/discover"
 	"Platon-go/params"
 	"Platon-go/rpc"
-	"Platon-go/p2p/discover"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -117,7 +117,6 @@ type PoW interface {
 }
 
 type Cbft interface {
-
 	Engine
 
 	// modify by platon
@@ -128,16 +127,18 @@ type Cbft interface {
 	ShouldSeal() (bool, error)
 
 	// modify by platon
-	// Process the BFT signatures
+	//收到新的区块签名
+	//需要验证签名是否时nodeID签名的
 	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *types.BlockSignature) error
 
 	// modify by platon
 	// Process the BFT signatures
 	OnNewBlock(chain ChainReader, block *types.Block) error
 
-	CheckConsensusNode(discover.NodeID) (bool, error)
+	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
 
 	IsConsensusNode() (bool, error)
 
-	ParentBlock() (*types.Block)
+	//目前最高的合理块，本节点出块时，需要基于最高合理块来生成区块。
+	HighestLogicalBlock() *types.Block
 }
