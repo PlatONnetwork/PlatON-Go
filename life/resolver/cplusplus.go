@@ -415,7 +415,8 @@ func envAbortGasCost(vm *exec.VirtualMachine) (uint64, error) {
 // op: gasPrice()
 func envGasPrice(vm *exec.VirtualMachine) (int64) {
 	// vm.Context.Evm.GasPrice(#533-instructions.go)
-	return 0
+	gasPrice := vm.Context.StateDB.GasPrice();
+	return gasPrice
 }
 
 // op: blockhash()

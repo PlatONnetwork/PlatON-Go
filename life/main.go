@@ -2,6 +2,7 @@ package main
 
 import (
 	"Platon-go/life/exec"
+	"Platon-go/life/resolver"
 	"Platon-go/lifer"
 	"fmt"
 	"io/ioutil"

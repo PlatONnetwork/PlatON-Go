@@ -17,8 +17,11 @@ import (
 // 实现Interpreter的接口 run/canRun.
 // WASMInterpreter represents an WASM interpreter
 type WASMInterpreter struct {
+	evm 		*EVM
+	cfg 		Config
 	vmContext 	*exec.VMContext
 	lvm 		*exec.VirtualMachine
+	wasmStateDB	*WasmStateDB
 
 	resolver 	exec.ImportResolver
 	returnData	[]byte
@@ -27,8 +30,16 @@ type WASMInterpreter struct {
 // NewWASMInterpreter returns a new instance of the Interpreter
 func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 
+	wasmStateDB := &WasmStateDB{
+		StateDB: evm.StateDB,
+		evm: evm,
+		cfg: &cfg,
+	}
+
 	// 初始化WASM解释器，保存WASM虚拟机需要的配置及上下文信息
 	return &WASMInterpreter{
+		evm : evm,
+		cfg : cfg,
 		vmContext: &exec.VMContext{
 			Config: exec.VMConfig{
 				EnableJIT: false,
@@ -39,8 +50,9 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 			GasUsed : 0,
 			GasLimit: evm.Context.GasLimit,
 			// 验证此处是否可行
-			StateDB: evm.StateDB,
+			StateDB: wasmStateDB,
 		},
+		wasmStateDB: wasmStateDB,
 		resolver : resolver.NewResolver(0x01),
 	}
 }
@@ -53,20 +65,20 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 // errExecutionReverted which means revert-and-keep-gas-lfet.
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 
-	//in.vmContext.Evm.depth++
-	//defer func(){ in.vmContext.Evm.depth-- }()
+	in.wasmStateDB.contract = contract
+
+	in.evm.depth++
+	defer func(){ in.evm.depth-- }()
 
 	if len(contract.Code) == 0 {
 		return nil, nil
 	}
-
 	if len(contract.ABI) == 0 {
 		return nil,nil
 	}
 
 	in.vmContext.Addr = contract.Address()
 	in.vmContext.GasLimit = contract.Gas		// 可使用的即为受限制的
-	//in.vmContext.Contract = contract
 
 	// 获取执行器对象
 	in.lvm, err = exec.NewVirtualMachine(contract.Code, *in.vmContext, in.resolver,nil)
@@ -135,7 +147,7 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 	if input == nil || len(input) <= 1 {
 		return -1,"",nil, fmt.Errorf("invalid input.")
 	}
-	// [txType][msg.to][funcName][args1][args2]
+	// [txType][funcName][args1][args2]
 	// rlp decode
 	ptr := new(interface{})
 	err = rlp.Decode(bytes.NewReader(input), &ptr)
@@ -161,7 +173,7 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 
 	params = make([]int64, 0)
 	if v, ok := iRlpList[0].([]byte); ok {
-		txType = int(v[0])
+		txType = int(bytes2int64(v))
 	}
 	if v, ok := iRlpList[1].([]byte); ok {
 		funcName = string(v)
@@ -196,13 +208,13 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 			params = append(params, int64(bts[0]))
 		case "int16":
 			params = append(params, int64(binary.BigEndian.Uint16(bts)))
-		case "int32":
+		case "int32","int":
 			params = append(params, int64(binary.BigEndian.Uint32(bts)))
 		case "int64":
 			params = append(params, int64(binary.BigEndian.Uint64(bts)))
 		case "uint8":
 			params = append(params, int64(bts[0]))
-		case "uint32":
+		case "uint32","uint":
 			params = append(params, int64(binary.BigEndian.Uint32(bts)))
 		case "uint64":
 			params = append(params, int64(binary.BigEndian.Uint64(bts)))
