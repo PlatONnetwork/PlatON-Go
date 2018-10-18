@@ -156,3 +156,10 @@ func (c *Contract) SetCallCode(addr *common.Address, hash common.Hash, code []by
 	c.CodeHash = hash
 	c.CodeAddr = addr
 }
+
+// todo: 新增点，设置合约的abi,从db中获取
+func (c *Contract) SetCallAbi(addr *common.Address, hash common.Hash, abi []byte) {
+	c.ABI = abi
+	c.ABIHash = hash
+	c.ABIAddr = addr
+}

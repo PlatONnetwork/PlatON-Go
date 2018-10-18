@@ -1,12 +1,13 @@
 package resolver
 
 import (
+	"Platon-go/life/compiler"
 	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
 
-	"Platon-go/core/vm/life/exec"
+	"Platon-go/life/exec"
 )
 
 var (
@@ -78,6 +79,20 @@ func newCfcSet() map[string]map[string]*exec.FunctionImport {
 			"printhex":   &exec.FunctionImport{Execute: envPrinthex, GasCost: envPrinthexGasCost},
 
 			"abort": &exec.FunctionImport{Execute: envAbort, GasCost: envAbortGasCost},
+
+			// for blockchain function
+			"gasPrice" 	:	&exec.FunctionImport{Execute: envGasPrice, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"blockHash" :  	&exec.FunctionImport{Execute: envBlockHash, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"number" 	:  	&exec.FunctionImport{Execute: envNumber, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"gasLimit" 	:  	&exec.FunctionImport{Execute: envGasLimit, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"timestamp" :  	&exec.FunctionImport{Execute: envTimestamp, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"coinbase" 	:  	&exec.FunctionImport{Execute: envCoinbase, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"balance" 	:  	&exec.FunctionImport{Execute: envBalance, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"origin" 	:  	&exec.FunctionImport{Execute: envOrigin, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"caller" 	:  	&exec.FunctionImport{Execute: envCaller, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"callValue" :  	&exec.FunctionImport{Execute: envCallValue, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"address" 	:  	&exec.FunctionImport{Execute: envAddress, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"sha3"		: 	&exec.FunctionImport{Execute: envSha3, GasCost: envSha3GasCost},
 		},
 	}
 }
@@ -394,3 +409,94 @@ func envAbort(vm *exec.VirtualMachine) int64 {
 func envAbortGasCost(vm *exec.VirtualMachine) (uint64, error) {
 	return 0, nil
 }
+
+
+// upp by j
+// op: gasPrice()
+func envGasPrice(vm *exec.VirtualMachine) (int64) {
+	// vm.Context.Evm.GasPrice(#533-instructions.go)
+	gasPrice := vm.Context.StateDB.GasPrice();
+	return gasPrice
+}
+
+// op: blockhash()
+func envBlockHash(vm *exec.VirtualMachine) (int64) {
+	// interpreter.evm.GetHash(num.Uint64()).Big()(#542-instructions.go)
+	return 0
+}
+
+// op: number()
+func envNumber(vm *exec.VirtualMachine) (int64) {
+	// interpreter.evm.BlockNumber (opNumber)
+	return 0
+}
+
+// op: gasLimit()
+func envGasLimit(vm *exec.VirtualMachine) (int64) {
+	// interpreter.evm.GasLimit(opGasLimit)
+	return 0
+}
+
+// op: timestamp()
+func envTimestamp(vm *exec.VirtualMachine) (int64) {
+	// interpreter.evm.Time(opTimestamp)
+	return 0
+}
+
+// op: coinbase()
+func envCoinbase(vm *exec.VirtualMachine) (int64) {
+	// interpreter.evm.Coinbase.Big(opCoinbase)
+	return 0
+}
+
+// op: balance()
+func envBalance(vm *exec.VirtualMachine) (int64) {
+	// interpreter.evm.StateDB.GetBalance(common.BigToAddress(slot))(opBalance)
+	return 0
+}
+
+// op: origin()
+func envOrigin(vm *exec.VirtualMachine) (int64) {
+	// interpreter.evm.Origin.Big()(opOrigin)
+	return 0
+}
+
+// op: caller()
+func envCaller(vm *exec.VirtualMachine) (int64) {
+	// contract.Caller().Big()(opCaller)
+	return 0
+}
+
+// op: callValue()
+func envCallValue(vm *exec.VirtualMachine) (int64) {
+	// interpreter.intPool.get().Set(contract.value)(opCallValue)
+	return 0
+}
+
+// op: address()
+func envAddress(vm *exec.VirtualMachine) (int64) {
+	// contract.Address().Big() (opAddress)
+	return 0
+}
+
+// op: sha3(data)
+func envSha3(vm *exec.VirtualMachine) (int64) {
+	// opSha3(), 提供指针地址填充
+	return 0
+}
+
+func envSha3GasCost(vm *exec.VirtualMachine) (uint64, error) {
+	return 1, nil
+}
+
+func constGasFunc(gas uint64) exec.GasCost {
+	return func(vm *exec.VirtualMachine) (uint64, error) {
+		return gas, nil
+	}
+}
+
+
+
+
+
+
