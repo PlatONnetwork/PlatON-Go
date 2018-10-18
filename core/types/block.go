@@ -72,13 +72,13 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 type BlockSignature struct {
 	Hash        common.Hash
 	Number      *big.Int
-	Signature   []byte
+	Signature   *common.BlockConfirmSign
 }
 
 // modify by platon
 type CbftResult struct {
 	Block       		*Block
-	Receipts    		[]*Receipt
+	Receipts    		Receipts
 	State       		*state.StateDB
 	BlockConfirmSigns 	[]*common.BlockConfirmSign
 }
