@@ -959,7 +959,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	// modify by platon
 	var parent *types.Block
 	if cbftEngine,ok := w.engine.(consensus.Cbft); ok {
-		parent = cbftEngine.ParentBlock()
+		parent = cbftEngine.HighestLogicalBlock()
 	} else {
 		parent = w.chain.CurrentBlock()
 	}

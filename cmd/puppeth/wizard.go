@@ -19,6 +19,7 @@ package main
 import (
 	"Platon-go/p2p/discover"
 	"bufio"
+	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -34,6 +35,7 @@ import (
 	"Platon-go/common"
 	"Platon-go/core"
 	"Platon-go/log"
+	"Platon-go/crypto"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -320,6 +322,67 @@ func (w *wizard) readNodeURL() *discover.Node {
 		}
 
 		return node
+	}
+}
+
+func (w *wizard) readNodeID() *discover.NodeID {
+	for {
+		// Read the url from the user
+		fmt.Printf("> enode://")
+		text, err := w.in.ReadString('\n')
+		if err != nil {
+			log.Crit("Failed to read user input", "err", err)
+		}
+		if text = strings.TrimSpace(text); text == "" {
+			return nil
+		}
+
+		// Make sure it looks ok and return it if so
+		if len(text) < 140 {
+			log.Error("Invalid url length, please retry")
+			continue
+		}
+		if !strings.Contains(text, "@")||
+			!strings.Contains(text, ":")||
+			3 != strings.Count(text, "."){
+			log.Error("Invalid url format, please retry")
+			continue
+		}
+		text = "enode://" + text
+		node, err := discover.ParseNode(text)
+		if err != nil {
+			log.Error("Bootstrap URL invalid", "enode", text, "err", err)
+		}
+
+		return &node.ID
+	}
+}
+
+// readPrivate reads a single line from stdin, parse and convert
+// it to an Ethereum ecdsa private key.
+func (w *wizard) readPrivateKey() *ecdsa.PrivateKey {
+	for {
+		// Read the url from the user
+		fmt.Printf("> 0x")
+		text, err := w.in.ReadString('\n')
+		if err != nil {
+			log.Crit("Failed to read user input", "err", err)
+		}
+		if text = strings.TrimSpace(text); text == "" {
+			return nil
+		}
+
+		// Make sure it looks ok and return it if so
+		if len(text) != 64 {
+			log.Error("Invalid private key length, please retry")
+			continue
+		}
+		prikey, err := crypto.ToECDSA(common.Hex2Bytes(text))
+		if err != nil {
+			log.Error("Invalid private key", "private key", text, "err", err)
+		}
+
+		return prikey
 	}
 }
 
