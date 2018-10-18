@@ -30,6 +30,7 @@ import (
 	"Platon-go/core"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
+	"Platon-go/core/cbfttypes"
 	"Platon-go/core/vm"
 	"Platon-go/event"
 	"Platon-go/log"
@@ -145,8 +146,8 @@ type worker struct {
 	taskCh             chan *task
 	resultCh           chan *types.Block
 	prepareResultCh    chan *types.Block
-	blockSignatureCh   chan *types.BlockSignature	// 签名
-	cbftResultCh	   chan *types.CbftResult		// Seal出块后输出的channel
+	blockSignatureCh   chan *cbfttypes.BlockSignature	// 签名
+	cbftResultCh	   chan *cbfttypes.CbftResult		// Seal出块后输出的channel
 	startCh            chan struct{}
 	exitCh             chan struct{}
 	resubmitIntervalCh chan time.Duration
@@ -183,7 +184,7 @@ type worker struct {
 }
 
 func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64,
-	isLocalBlock func(*types.Block) bool, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.CbftResult) *worker {
+	isLocalBlock func(*types.Block) bool, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *worker {
 	worker := &worker{
 		config:             config,
 		engine:             engine,
@@ -959,7 +960,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	// modify by platon
 	var parent *types.Block
 	if cbftEngine,ok := w.engine.(consensus.Cbft); ok {
-		parent = cbftEngine.ParentBlock()
+		parent = cbftEngine.HighestLogicalBlock()
 	} else {
 		parent = w.chain.CurrentBlock()
 	}

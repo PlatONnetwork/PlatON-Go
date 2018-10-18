@@ -144,6 +144,15 @@ func (w *wizard) makeGenesis() {
 			copy(genesis.ExtraData[32+i*common.AddressLength:], crypto.Keccak256(node.ID[:])[12:])
 		}
 		genesis.Config.Cbft.InitialNodes = nodes
+
+		fmt.Println()
+		fmt.Println("print current NodeID")
+		genesis.Config.Cbft.NodeID = w.readNodeID()
+
+		fmt.Println()
+		fmt.Println("print current PrivateKey")
+		genesis.Config.Cbft.PrivateKey = w.readPrivateKey()
+
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}

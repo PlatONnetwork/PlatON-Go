@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"Platon-go/core/cbfttypes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -736,7 +737,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 
-		engineBlockSignature := &types.BlockSignature{request.Hash, request.Number,request.Signature}
+		engineBlockSignature := &cbfttypes.BlockSignature{request.Hash, request.Number,request.Signature}
 
 		if cbftEngine,ok := pm.engine.(consensus.Cbft); ok {
 			if pm.downloader.IsRunning() {
@@ -813,7 +814,7 @@ func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 		for _, peer := range peers {
 			peer.AsyncSendPrepareBlock(block)
 		}
-	} else if signature, ok := a.(*types.BlockSignature); ok {
+	} else if signature, ok := a.(*cbfttypes.BlockSignature); ok {
 		for _, peer := range peers {
 			peer.AsyncSendSignature(signature)
 		}
