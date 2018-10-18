@@ -4,6 +4,7 @@ package cbft
 import (
 	"Platon-go/common"
 	"Platon-go/consensus"
+	"Platon-go/core"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/crypto"
@@ -50,12 +51,15 @@ type Cbft struct {
 	closeOnce        sync.Once       // Ensures exit channel will not be closed twice.
 	exitCh           chan chan error // Notification channel to exiting backend threads
 
-	//blockNumGenerator uint64   		//块高生成器
-	highestLogicalBlock *types.Block //区块块号最高的合理块
-	masterTree          *Tree
-	slaveTree           *Tree
-	signCounterMap      map[common.Hash]*SignCounter //签名计数器Map
-	lock                sync.RWMutex                 //保护LogicalChainTree
+	blockChain *core.BlockChain //区块链指针
+	//blockNumGenerator uint64   						//块高生成器
+	highestLogicalBlock *types.Block                   //区块块号最高的合理块
+	masterTree          *Tree                          //主树，根节点含有最近的不可逆区块
+	slaveTree           *Tree                          //副树，根节点没有实际意义，不包含区块信息
+	signCounterMap      map[common.Hash]*SignCounter   //签名计数器Map
+	receiptMap          map[common.Hash]types.Receipts //块执行后的回执Map
+	stateMap            map[common.Hash]*state.StateDB //块执行后的状态Map
+	lock                sync.RWMutex                   //保护LogicalChainTree
 }
 
 type Tree struct {
@@ -157,6 +161,8 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 // header: 	需要验证的区块头
 // seal:	是否要验证封印（出块签名）
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
+	//todo:每秒一个交易，校验块高/父区块
+
 	if header.Number == nil {
 		return errUnknownBlock
 	}
@@ -289,8 +295,8 @@ func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
-	return consensus.SigHash(header)
-	//return sigHash(header)
+	//return consensus.SigHash(header)
+	return sigHash(header)
 }
 
 // Close implements consensus.Engine. It's a noop for clique as there is are no background threads.
@@ -425,17 +431,18 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 			//设置本节点出块块高
 			//cbft.blockNumGenerator = highestNode.block.Number().Uint64()
 
-			//设置一条合理节点路径
+			//设置一条合理节点路径 （注意退出循环的条件，这也是创建node时，设置paretn=nil的原因）
 			for highestNode.parent != nil {
 				highestNode.isLogical = true
 				highestNode = highestNode.parent
 			}
 		}
+		//正式接入masterTree
+		//需要先接入masterTree，这样，子树的root才能找到parent（执行的时候需要）
+		node.parent = masterParent
+
 		//执行子树中的区块，如果区块是合理的，还需要签名并广播
 		cbft.recursionESOnNewBlock(node)
-
-		//正式接入masterTree
-		node.parent = masterParent
 
 		//查找子树node是否有可以写入链的块
 		tempNode = nil
@@ -467,9 +474,19 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 	return nil
 }
 
+func (cbft *Cbft) processNode(node *Node) {
+	//执行
+	receipts, state, err := cbft.blockChain.ProcessDirectly(node.block, node.parent.block)
+	if err == nil {
+		cbft.receiptMap[node.block.Hash()] = receipts
+		cbft.stateMap[node.block.Hash()] = state
+	} else {
+		log.Warn("process block error", err)
+	}
+}
+
 func (cbft *Cbft) signNode(node *Node) {
 	//签名
-
 	sign, err := cbft.signFn(sigHash(node.block.Header()).Bytes())
 	if err == nil {
 		//块签名计数器+1
@@ -483,7 +500,7 @@ func (cbft *Cbft) signNode(node *Node) {
 		cbft.blockSignatureCh <- blockSign
 
 	} else {
-		log.Warn("sign the received block error", err)
+		log.Warn("sign block error", err)
 	}
 }
 
@@ -491,7 +508,9 @@ func (cbft *Cbft) signNode(node *Node) {
 //S:Sign
 // 执行这棵子树的所有节点，如果节点是isLogical=true，还需要签名并广播签名
 func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
-	//todo:执行
+
+	//执行
+	cbft.processNode(node)
 
 	if node.isLogical {
 		//签名
@@ -531,6 +550,7 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 
 	//todo:考虑cbftResultCh改成[]types.Block
 	for _, block := range confirmedBlocks {
+		cbftResult := &CbftResult{}
 		cbft.cbftResultCh <- block
 	}
 	//saveBlocks(confirmedBlocks)
@@ -718,22 +738,6 @@ func queryParent(root *Node, rcvHeader *types.Header) (*Node, bool, error) {
 	return nil, false, nil
 }
 
-//是否签过当前块高的其他区块
-func hasSameBlockNumInMaster(root *Node, header *types.Header) bool {
-	if root.children != nil && len(root.children) > 0 {
-		for _, node := range root.children {
-			if node.isLogical {
-				if node.block.Number().Uint64() == header.Number.Uint64() {
-					return true
-				} else {
-					return hasSameBlockNumInMaster(node, header)
-				}
-			}
-		}
-	}
-	return false
-}
-
 //出块时间窗口期与出块节点匹配
 func (cbft *Cbft) inTurn() bool {
 	singerIdx := cbft.dpos.NodeIndex(cbft.config.NodeID)
@@ -831,5 +835,9 @@ func nowMillisecond() int64 {
 }
 
 func (cbft *Cbft) signFn(headerHash []byte) (signature []byte, err error) {
-	return crypto.Sign(headerHash, cbft.config.PrivateKey)
+	return crypto.Sign(headerHash, cbft.config.PriKey)
+}
+
+func (cbft *Cbft) getHighestLogicalBlock() *types.Block {
+	return cbft.highestLogicalBlock
 }
