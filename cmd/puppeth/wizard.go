@@ -325,7 +325,7 @@ func (w *wizard) readNodeURL() *discover.Node {
 	}
 }
 
-func (w *wizard) readNodeID() *discover.NodeID {
+func (w *wizard) readNodeID() discover.NodeID {
 	for {
 		// Read the url from the user
 		fmt.Printf("> enode://")
@@ -334,7 +334,7 @@ func (w *wizard) readNodeID() *discover.NodeID {
 			log.Crit("Failed to read user input", "err", err)
 		}
 		if text = strings.TrimSpace(text); text == "" {
-			return nil
+			continue
 		}
 
 		// Make sure it looks ok and return it if so
@@ -354,7 +354,7 @@ func (w *wizard) readNodeID() *discover.NodeID {
 			log.Error("Bootstrap URL invalid", "enode", text, "err", err)
 		}
 
-		return &node.ID
+		return node.ID
 	}
 }
 

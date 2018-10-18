@@ -5,6 +5,7 @@ import (
 	"Platon-go/common"
 	"Platon-go/consensus"
 	"Platon-go/core"
+	"Platon-go/core/cbfttypes"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/crypto"
@@ -47,8 +48,8 @@ type Cbft struct {
 	config           *params.CbftConfig // Consensus engine configuration parameters
 	dpos             *dpos
 	rotating         *rotating
-	blockSignatureCh chan *types.BlockSignature
-	cbftResultCh     chan *types.CbftResult
+	blockSignatureCh chan *cbfttypes.BlockSignature
+	cbftResultCh     chan *cbfttypes.CbftResult
 	closeOnce        sync.Once       // Ensures exit channel will not be closed twice.
 	exitCh           chan chan error // Notification channel to exiting backend threads
 
@@ -102,7 +103,7 @@ type StateCache struct {
 }
 
 // New creates a concurrent BFT consensus engine
-func New(config *params.CbftConfig, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.CbftResult) *Cbft {
+func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *Cbft {
 	_dpos := newDpos(config.InitialNodes)
 
 	conf := *config
@@ -337,7 +338,7 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 
 //收到新的区块签名
 //需要验证签名是否时nodeID签名的
-func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *types.BlockSignature) error {
+func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error {
 
 	ok, err := verifySign(nodeID, sig.Hash, sig.Signature[:])
 	if err != nil {
@@ -531,7 +532,7 @@ func (cbft *Cbft) signNode(node *Node) {
 		sign := common.NewBlockConfirmSign(signature)
 		cbft.addSign(node.block.Hash(), node.block.Number().Uint64(), sign, true)
 		//广播签名
-		blockSign := &types.BlockSignature{
+		blockSign := &cbfttypes.BlockSignature{
 			Hash:      node.block.Hash(),
 			Number:    node.block.Number(),
 			Signature: sign,
@@ -589,7 +590,7 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 
 	//todo:考虑cbftResultCh改成[]types.CbftResult
 	for _, block := range confirmedBlocks {
-		cbftResult := &types.CbftResult{
+		cbftResult := &cbfttypes.CbftResult{
 			Block:             block,
 			Receipts:          cbft.receiptCacheMap[block.Hash()].receipts,
 			State:             cbft.stateCacheMap[block.Hash()].state,

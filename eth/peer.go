@@ -18,6 +18,7 @@ package eth
 
 import (
 	"Platon-go/consensus"
+	"Platon-go/core/cbfttypes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -147,7 +148,7 @@ func (p *peer) broadcast() {
 
 		// modify by platon
 		case prop := <-p.queuedSignature:
-			signature := &types.BlockSignature{prop.Hash, prop.Number,prop.Signature}
+			signature := &cbfttypes.BlockSignature{prop.Hash, prop.Number,prop.Signature}
 			if err := p.SendSignature(signature); err != nil {
 				return
 			}
@@ -613,12 +614,12 @@ func (p *peer) AsyncSendPrepareBlock(block *types.Block) {
 	}
 }
 
-func (p *peer) SendSignature(signature *types.BlockSignature) error {
+func (p *peer) SendSignature(signature *cbfttypes.BlockSignature) error {
 	return p2p.Send(p.rw, BlockSignatureMsg, []interface{}{signature})
 }
 
 // modify by platon
-func (p *peer) AsyncSendSignature(signature *types.BlockSignature) {
+func (p *peer) AsyncSendSignature(signature *cbfttypes.BlockSignature) {
 	select {
 	case p.queuedSignature <- &signatureEvent{Hash: signature.Hash, Signature: signature.Signature}:
 	default:

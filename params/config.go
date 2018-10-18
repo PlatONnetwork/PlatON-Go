@@ -191,7 +191,7 @@ type CbftConfig struct {
 	LegalCoefficient uint32 `json:"legalCoefficient"` //检查块的合法性时的用到的时间系数
 	//mock
 	InitialNodes []discover.Node `json:"initialNodes"`
-	NodeID       *discover.NodeID `json:"nodeID,omitempty"`
+	NodeID       discover.NodeID `json:"nodeID,omitempty"`
 	PrivateKey   *ecdsa.PrivateKey
 }
 

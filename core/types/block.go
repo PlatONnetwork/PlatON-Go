@@ -28,7 +28,6 @@ import (
 
 	"Platon-go/common"
 	"Platon-go/common/hexutil"
-	"Platon-go/core/state"
 	"Platon-go/crypto/sha3"
 	"Platon-go/rlp"
 )
@@ -66,22 +65,6 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 }
 
 //go:generate gencodec -type Header -field-override headerMarshaling -out gen_header_json.go
-
-// modify by platon
-// Block's Signature info
-type BlockSignature struct {
-	Hash        common.Hash
-	Number      *big.Int
-	Signature   *common.BlockConfirmSign
-}
-
-// modify by platon
-type CbftResult struct {
-	Block       		*Block
-	Receipts    		Receipts
-	State       		*state.StateDB
-	BlockConfirmSigns 	[]*common.BlockConfirmSign
-}
 
 // Header represents a block header in the Ethereum blockchain.
 type Header struct {

@@ -18,6 +18,7 @@
 package miner
 
 import (
+	"Platon-go/core/cbfttypes"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -53,7 +54,7 @@ type Miner struct {
 }
 
 func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor,
-	gasCeil uint64, isLocalBlock func(block *types.Block) bool, blockSignatureCh chan *types.BlockSignature, cbftResultCh chan *types.CbftResult) *Miner {
+	gasCeil uint64, isLocalBlock func(block *types.Block) bool, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *Miner {
 	miner := &Miner{
 		eth:    eth,
 		mux:    mux,

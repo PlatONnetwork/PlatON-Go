@@ -18,6 +18,7 @@
 package consensus
 
 import (
+	"Platon-go/core/cbfttypes"
 	"math/big"
 
 	"Platon-go/common"
@@ -129,7 +130,7 @@ type Cbft interface {
 	// modify by platon
 	//收到新的区块签名
 	//需要验证签名是否时nodeID签名的
-	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *types.BlockSignature) error
+	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error
 
 	// modify by platon
 	// Process the BFT signatures
