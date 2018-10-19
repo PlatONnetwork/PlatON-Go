@@ -103,8 +103,10 @@ type StateCache struct {
 }
 
 // New creates a concurrent BFT consensus engine
-func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *Cbft {
+func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, blockChain *core.BlockChain) *Cbft {
 	_dpos := newDpos(config.InitialNodes)
+
+	currentBlock := blockChain.CurrentBlock()
 
 	conf := *config
 	if conf.Epoch == 0 {
@@ -116,6 +118,8 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		children:  make([]*Node, 0),
 		parent:    nil,
 	}
+	_masterRoot.block = currentBlock
+
 	_masterTree := &Tree{
 		nodeMap: make(map[common.Hash]*Node),
 		root:    _masterRoot,
@@ -137,10 +141,14 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		rotating:         newRotating(_dpos, 10000),
 		blockSignatureCh: blockSignatureCh,
 		cbftResultCh:     cbftResultCh,
+		blockChain:       blockChain,
 
-		masterTree:   _masterTree,
-		slaveTree:    _slaveTree,
-		signCacheMap: make(map[common.Hash]*SignCache),
+		highestLogicalBlock: currentBlock,
+		masterTree:          _masterTree,
+		slaveTree:           _slaveTree,
+		signCacheMap:        make(map[common.Hash]*SignCache),
+		receiptCacheMap:     make(map[common.Hash]*ReceiptCache),
+		stateCacheMap:       make(map[common.Hash]*StateCache),
 	}
 }
 
@@ -944,6 +952,7 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 	return crypto.Sign(headerHash, cbft.config.PrivateKey)
 }
 
+//取最高区块
 func (cbft *Cbft) getHighestLogicalBlock() *types.Block {
 	return cbft.highestLogicalBlock
 }
