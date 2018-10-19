@@ -221,7 +221,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 	// Create the transaction pool with its initial settings
 	pool := &TxPool{
 		config:      config,
-		chainconfig: chainconfig,
+		Run: chainconfig,
 		chain:       chain,
 		signer:      types.NewEIP155Signer(chainconfig.ChainID),
 		pending:     make(map[common.Address]*txList),
@@ -288,7 +288,7 @@ func (pool *TxPool) loop() {
 		case ev := <-pool.chainHeadCh:
 			if ev.Block != nil {
 				pool.mu.Lock()
-				if pool.chainconfig.IsHomestead(ev.Block.Number()) {
+				if pool.Run.IsHomestead(ev.Block.Number()) {
 					pool.homestead = true
 				}
 				pool.reset(head.Header(), ev.Block.Header())
