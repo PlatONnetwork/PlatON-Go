@@ -290,7 +290,7 @@ var (
 	CacheFlag = cli.IntFlag{
 		Name:  "cache",
 		Usage: "Megabytes of memory allocated to internal caching",
-		Value: 1024,
+		Value: 512,
 	}
 	CacheDatabaseFlag = cli.IntFlag{
 		Name:  "cache.database",
