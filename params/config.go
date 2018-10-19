@@ -192,7 +192,7 @@ type CbftConfig struct {
 	//mock
 	InitialNodes []discover.Node `json:"initialNodes"`
 	NodeID       discover.NodeID `json:"nodeID,omitempty"`
-	PrivateKey   *ecdsa.PrivateKey
+	PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
