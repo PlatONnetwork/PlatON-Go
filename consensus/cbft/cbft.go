@@ -40,8 +40,8 @@ var (
 	errInvalidUncleHash = errors.New("non empty uncle hash")
 )
 var (
-	epochLength = uint64(210000)
-	extraSeal   = 65 // Fixed number of extra-data suffix bytes reserved for signer seal
+	epochLength = uint64(210000) //所有共识节点完成一轮出块的时间，21个节点，每个节点10秒出块时间，共2100000毫秒的时间。
+	extraSeal   = 65             // Fixed number of extra-data suffix bytes reserved for signer seal
 )
 
 type Cbft struct {
@@ -103,8 +103,10 @@ type StateCache struct {
 }
 
 // New creates a concurrent BFT consensus engine
-func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *Cbft {
+func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, blockChain *core.BlockChain) *Cbft {
 	_dpos := newDpos(config.InitialNodes)
+
+	currentBlock := blockChain.CurrentBlock()
 
 	conf := *config
 	if conf.Epoch == 0 {
@@ -116,6 +118,8 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		children:  make([]*Node, 0),
 		parent:    nil,
 	}
+	_masterRoot.block = currentBlock
+
 	_masterTree := &Tree{
 		nodeMap: make(map[common.Hash]*Node),
 		root:    _masterRoot,
@@ -137,10 +141,14 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		rotating:         newRotating(_dpos, 10000),
 		blockSignatureCh: blockSignatureCh,
 		cbftResultCh:     cbftResultCh,
+		blockChain:       blockChain,
 
-		masterTree:   _masterTree,
-		slaveTree:    _slaveTree,
-		signCacheMap: make(map[common.Hash]*SignCache),
+		highestLogicalBlock: currentBlock,
+		masterTree:          _masterTree,
+		slaveTree:           _slaveTree,
+		signCacheMap:        make(map[common.Hash]*SignCache),
+		receiptCacheMap:     make(map[common.Hash]*ReceiptCache),
+		stateCacheMap:       make(map[common.Hash]*StateCache),
 	}
 }
 
@@ -833,11 +841,11 @@ func queryParent(root *Node, rcvHeader *types.Header) (*Node, bool, error) {
 func (cbft *Cbft) inTurn() bool {
 	singerIdx := cbft.dpos.NodeIndex(cbft.config.NodeID)
 	if singerIdx >= 0 {
-		value1 := int64(singerIdx*10*1000 - int(cbft.config.MaxLatency/3))
+		value1 := int64(singerIdx*10*1000) - int64(cbft.config.MaxLatency/3)
 
-		value2 := (time.Now().Unix() - cbft.dpos.StartTimeOfEpoch()) * 1000 % int64(epochLength)
+		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % int64(epochLength)
 
-		value3 := int64((singerIdx+1)*10*1000 - int(cbft.config.MaxLatency*2/3))
+		value3 := int64((singerIdx+1)*10*1000) - int64(cbft.config.MaxLatency*2/3)
 
 		if value2 > value1 && value3 > value2 {
 			return true
@@ -850,13 +858,17 @@ func (cbft *Cbft) inTurn() bool {
 func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) bool {
 	singerIdx := cbft.dpos.NodeIndex(nodeID)
 
-	round := time.Now().Unix() - cbft.dpos.StartTimeOfEpoch() - int64(10*(singerIdx+1))/210
+	//从StartTimeOfEpoch开始到now的完整轮数
+	rounds := (time.Now().Unix() - cbft.dpos.StartTimeOfEpoch()) / 210000
 
-	deadline := cbft.dpos.StartTimeOfEpoch() + 210*round + int64(10*(singerIdx+1))
+	//nodeID的最晚出块时间
+	deadline := cbft.dpos.StartTimeOfEpoch() + 210000*rounds + int64(10000*(singerIdx+1))
 
+	//nodeID加上合适的延迟后的最晚出块时间
 	deadline = deadline + int64(cbft.config.MaxLatency*cbft.config.LegalCoefficient)
 
 	if deadline < time.Now().Unix() {
+		//出块时间+延迟后，仍然小于当前时间（即收到区块的时间），则认为是超时的废区块，直接丢弃
 		return true
 	}
 	return false
@@ -940,6 +952,7 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 	return crypto.Sign(headerHash, cbft.config.PrivateKey)
 }
 
+//取最高区块
 func (cbft *Cbft) getHighestLogicalBlock() *types.Block {
 	return cbft.highestLogicalBlock
 }
