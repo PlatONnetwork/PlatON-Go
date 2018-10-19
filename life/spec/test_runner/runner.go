@@ -1,9 +1,9 @@
 package main
 
 import (
+	"Platon-go/life/compiler"
 	"encoding/json"
 	"fmt"
-	"Platon-go/lifer"
 	"Platon-go/life/exec"
 	"io/ioutil"
 	"os"
@@ -19,7 +19,8 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 	}
 	switch field {
 	case "print_i32":
-		return func(vm *exec.VirtualMachine) int64 { return 0 }
+		//return func(vm *exec.VirtualMachine) int64 { return 0 }
+		return exec.FunctionImport{}
 	default:
 		panic(fmt.Errorf("func %s not found", field))
 	}
@@ -92,11 +93,7 @@ func (c *Config) Run(cfgPath string) error {
 			if err != nil {
 				panic(err)
 			}
-			localVM, err := exec.NewVirtualMachine(input, exec.VMConfig{
-				//EnableJIT:      true,
-				MaxMemoryPages: 1024, // for memory trap tests
-				GasLimit:       0,    // unlimited
-			}, &Resolver{}, &compiler.SimpleGasPolicy{
+			localVM, err := exec.NewVirtualMachine(input, exec.VMContext{}, nil, &compiler.SimpleGasPolicy{
 				GasPerInstruction: 1,
 			})
 			if err != nil {
