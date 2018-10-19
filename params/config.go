@@ -187,8 +187,8 @@ func (c *EthashConfig) String() string {
 type CbftConfig struct {
 	Period           uint64 `json:"period"`           // Number of seconds between blocks to enforce
 	Epoch            uint64 `json:"epoch"`            // Epoch length to reset votes and checkpoint
-	MaxLatency       uint32 `json:"maxLatency"`       //共识节点间最大网络延迟时间，单位：毫秒
-	LegalCoefficient uint32 `json:"legalCoefficient"` //检查块的合法性时的用到的时间系数
+	MaxLatency       uint64 `json:"maxLatency"`       //共识节点间最大网络延迟时间，单位：毫秒
+	LegalCoefficient uint64 `json:"legalCoefficient"` //检查块的合法性时的用到的时间系数
 	//mock
 	InitialNodes []discover.Node `json:"initialNodes"`
 	NodeID       discover.NodeID `json:"nodeID,omitempty"`
