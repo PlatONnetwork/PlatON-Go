@@ -240,7 +240,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 	if parent == nil {
 		return consensus.ErrUnknownAncestor
 	}
-	header.Difficulty = nil
+	header.Difficulty = big.NewInt(2)
 	return nil
 }
 
@@ -336,12 +336,13 @@ func (cbft *Cbft) Close() error {
 // APIs implements consensus.Engine, returning the user facing RPC API to allow
 // controlling the signer voting.
 func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
-	return []rpc.API{{
+	/*return []rpc.API{{
 		Namespace: "cbft",
 		Version:   "1.0",
 		Service:   &API{chain: chain, cbft: cbft},
 		Public:    false,
-	}}
+	}}*/
+	return nil
 }
 
 //收到新的区块签名
@@ -924,7 +925,7 @@ func sigHash(header *types.Header) (hash common.Hash) {
 		header.GasLimit,
 		header.GasUsed,
 		header.Time,
-		header.Extra[:len(header.Extra)-65], // Yes, this will panic if extra is too short
+		header.Extra[:len(header.Extra)-65],
 		header.MixDigest,
 		header.Nonce,
 	})
