@@ -119,7 +119,7 @@ func dialRPC(ctx *cli.Context) (*rpc.Client, error) {
 	if endpoint == "" {
 		endpoint = node.DefaultIPCEndpoint(clientIdentifier)
 	} else if strings.HasPrefix(endpoint, "rpc:") || strings.HasPrefix(endpoint, "ipc:") {
-		// Backwards compatibility with geth < 1.5 which required
+		// Backwards compatibility with platon < 1.5 which required
 		// these prefixes.
 		endpoint = endpoint[4:]
 	}

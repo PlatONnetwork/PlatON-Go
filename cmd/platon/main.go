@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
 
-// geth is the official command-line client for Ethereum.
+// platon is the official command-line client for Ethereum.
 package main
 
 import (
@@ -43,7 +43,7 @@ import (
 )
 
 const (
-	clientIdentifier = "geth" // Client identifier to advertise over the network
+	clientIdentifier = "platon" // Client identifier to advertise over the network
 )
 
 var (
@@ -224,7 +224,7 @@ func init() {
 		// Cap the cache allowance and tune the garbage collector
 		var mem gosigar.Mem
 		if err := mem.Get(); err == nil {
-			allowance := int(mem.Total / 1024 / 1024 / 30)
+			allowance := int(mem.Total / 1024 / 1024 / 3)
 			if cache := ctx.GlobalInt(utils.CacheFlag.Name); cache > allowance {
 				log.Warn("Sanitizing cache to Go's GC limits", "provided", cache, "updated", allowance)
 				ctx.GlobalSet(utils.CacheFlag.Name, strconv.Itoa(allowance))
@@ -260,7 +260,7 @@ func main() {
 	}
 }
 
-// geth is the main entry point into the system if no special subcommand is ran.
+// platon is the main entry point into the system if no special subcommand is ran.
 // It creates a default node based on the command line arguments and runs it in
 // blocking mode, waiting for it to be shut down.
 func geth(ctx *cli.Context) error {

@@ -182,7 +182,7 @@ func makeSealer(genesis *core.Genesis, nodes []string) (*node.Node, error) {
 	datadir, _ := ioutil.TempDir("", "")
 
 	config := &node.Config{
-		Name:    "geth",
+		Name:    "platon",
 		Version: params.Version,
 		DataDir: datadir,
 		P2P: p2p.Config{

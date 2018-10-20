@@ -49,7 +49,7 @@ const (
 // all registered services.
 type Config struct {
 	// Name sets the instance name of the node. It must not contain the / character and is
-	// used in the devp2p node identifier. The instance name of geth is "geth". If no
+	// used in the devp2p node identifier. The instance name of platon is "platon". If no
 	// value is specified, the basename of the current executable is used.
 	Name string `toml:"-"`
 
@@ -233,7 +233,7 @@ func DefaultWSEndpoint() string {
 func (c *Config) NodeName() string {
 	name := c.name()
 	// Backwards compatibility: previous versions used title-cased "Geth", keep that.
-	if name == "geth" || name == "geth-testnet" {
+	if name == "platon" || name == "platon-testnet" {
 		name = "Geth"
 	}
 	if c.UserIdent != "" {
@@ -258,7 +258,7 @@ func (c *Config) name() string {
 	return c.Name
 }
 
-// These resources are resolved differently for "geth" instances.
+// These resources are resolved differently for "platon" instances.
 var isOldGethResource = map[string]bool{
 	"chaindata":          true,
 	"nodes":              true,
@@ -276,10 +276,10 @@ func (c *Config) ResolvePath(path string) string {
 		return ""
 	}
 	// Backwards-compatibility: ensure that data directory files created
-	// by geth 1.4 are used if they exist.
-	if c.name() == "geth" && isOldGethResource[path] {
+	// by platon 1.4 are used if they exist.
+	if c.name() == "platon" && isOldGethResource[path] {
 		oldpath := ""
-		if c.Name == "geth" {
+		if c.Name == "platon" {
 			oldpath = filepath.Join(c.DataDir, path)
 		}
 		if oldpath != "" && common.FileExist(oldpath) {

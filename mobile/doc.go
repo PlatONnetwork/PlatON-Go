@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package geth contains the simplified mobile APIs to go-ethereum.
+// Package platon contains the simplified mobile APIs to go-ethereum.
 //
 // The scope of this package is *not* to allow writing a custom Ethereum client
 // with pieces plucked from go-ethereum, rather to allow writing native dapps on
