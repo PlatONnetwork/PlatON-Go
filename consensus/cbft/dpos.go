@@ -3,7 +3,10 @@ package cbft
 import (
 	"Platon-go/common"
 	"Platon-go/core"
+	"Platon-go/crypto"
+	"Platon-go/log"
 	"Platon-go/p2p/discover"
+	"bytes"
 )
 
 type dpos struct {
@@ -22,8 +25,16 @@ func newDpos(initialNodes []discover.Node) *dpos {
 	return dpos
 }
 
-func (d *dpos) IsPrimary(address common.Address) bool {
+func (d *dpos) IsPrimary(addr common.Address) bool {
 	// 判断当前节点是否是共识节点
+	for _,node := range d.primaryNodeList {
+		pub,err := node.ID.Pubkey()
+		if(err != nil || pub == nil) {
+			log.Error("nodeID.ID.Pubkey error!")
+		}
+		address := crypto.PubkeyToAddress(*pub)
+		return bytes.Equal(address[:], addr[:])
+	}
 	return false
 }
 
