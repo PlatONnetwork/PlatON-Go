@@ -920,6 +920,7 @@ func sigHash(header *types.Header) (hash common.Hash) {
 		header.Nonce,
 	})
 	hasher.Sum(hash[:0])
+
 	return hash
 }
 
