@@ -23,10 +23,6 @@ import (
 	"time"
 )
 
-const (
-	inmemorySignatures = 4096
-)
-
 var (
 	errUnauthorizedSigner = errors.New("unauthorized signer")
 	errOverdueBlock       = errors.New("overdue block")
@@ -354,7 +350,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 	}
 
 	signCounter := cbft.addSign(sig.Hash, sig.Number.Uint64(), sig.Signature, false)
-	if signCounter >= 15 {
+	if signCounter >= cbft.getThreshold() {
 		//区块收到的签名数量>=15，可以入链了
 		node, exists := cbft.masterTree.nodeMap[sig.Hash]
 		if exists {
@@ -650,7 +646,7 @@ var tempNode *Node = nil
 func (cbft *Cbft) findConfirmedAndHighestNode(subTree *Node) {
 	for _, node := range subTree.children {
 		signCounter := cbft.getSignCounter(node.block.Hash())
-		if signCounter >= 15 {
+		if signCounter >= cbft.getThreshold() {
 			//找到一个更高的确认块
 			if tempNode == nil || node.block.Number().Uint64() > tempNode.block.Number().Uint64() {
 				tempNode = node
@@ -950,4 +946,15 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 //取最高区块
 func (cbft *Cbft) getHighestLogicalBlock() *types.Block {
 	return cbft.highestLogicalBlock
+}
+
+func (cbft *Cbft) getThreshold() uint {
+	trunc := len(cbft.dpos.primaryNodeList) * 2 / 3
+	remainder := len(cbft.dpos.primaryNodeList) * 2 % 3
+
+	if remainder == 0 {
+		return uint(trunc)
+	} else {
+		return uint(trunc + 1)
+	}
 }
