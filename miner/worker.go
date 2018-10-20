@@ -590,7 +590,7 @@ func (w *worker) taskLoop() {
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Cbft engine】Block sealing failed", "err", err)
 				}
-				return
+				continue
 			}
 
 			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
