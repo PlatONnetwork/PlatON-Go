@@ -247,6 +247,14 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 		return consensus.ErrUnknownAncestor
 	}
 	header.Difficulty = big.NewInt(2)
+
+	if len(header.Extra) < 32 {
+		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
+	}
+	header.Extra = header.Extra[:32]
+
+	header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
+
 	return nil
 }
 
@@ -343,12 +351,12 @@ func (cbft *Cbft) Close() error {
 // controlling the signer voting.
 func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 	return nil
-	/*return []rpc.API{{
+	return []rpc.API{{
 		Namespace: "cbft",
 		Version:   "1.0",
 		Service:   &API{chain: chain, cbft: cbft},
 		Public:    false,
-	}}*/
+	}}
 }
 
 //收到新的区块签名
