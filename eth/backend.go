@@ -522,6 +522,12 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	}
 	// Start the networking layer and the light server if requested
 	s.protocolManager.Start(maxPeers)
+
+	// modify by platon
+	if cbftEngine,ok := s.engine.(consensus.Cbft); ok {
+		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
+	}
+
 	if s.lesServer != nil {
 		s.lesServer.Start(srvr)
 	}
