@@ -28,7 +28,7 @@ func TestDpos(t *testing.T) {
 	}
 
 	nodeID := dpos.primaryNodeList[0]
-	if !dpos.CheckConsensusNode(nodeID.ID) {
+	if dpos.NodeIndex(nodeID.ID) <= 0 {
 		t.Errorf("dpos.CheckConsensusNode failed!")
 	}
 
