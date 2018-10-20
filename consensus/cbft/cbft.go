@@ -189,7 +189,7 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 // header: 	需要验证的区块头
 // seal:	是否要验证封印（出块签名）
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	log.Info("call VerifyHeader(), parameter: ", chain, header, seal)
+	log.Info("call VerifyHeader(), parameter: ", header, seal)
 
 	//todo:每秒一个交易，校验块高/父区块
 	if header.Number == nil {
@@ -209,7 +209,7 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 // method returns a quit channel to abort the operations and a results channel to
 // retrieve the async verifications (the order is that of the input slice).
 func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
-	log.Info("call VerifyHeaders(), parameter: ", chain, headers, seals)
+	log.Info("call VerifyHeaders(), parameter: ", headers, seals)
 
 	abort := make(chan struct{})
 	results := make(chan error, len(headers))
@@ -239,7 +239,7 @@ func (cbft *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) 
 // 校验(别的结点广播过来的)区块信息
 // 主要是对区块的出块节点，以及区块难度值的确认
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	log.Info("call VerifySeal(), parameter: ", chain, header)
+	log.Info("call VerifySeal(), parameter: ", header)
 	return cbft.verifySeal(chain, header, nil)
 	//return nil
 }
@@ -247,7 +247,7 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
-	log.Info("call Prepare(), parameter: ", chain, header)
+	log.Info("call Prepare(), parameter: ", header)
 
 	// 完成Header对象的准备
 	parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
@@ -269,7 +269,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Info("call Finalize(), parameter: ", chain, header, state, txs, uncles, receipts)
+	log.Info("call Finalize(), parameter: ", header, state, txs, uncles, receipts)
 
 	// 生成具体的区块信息
 	// 填充上Header.Root, TxHash, ReceiptHash, UncleHash等几个属性
@@ -280,7 +280,7 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 // 完成对区块的签名成功，并设置到header.Extra中，然后把区块发送到sealResultCh通道中（然后会被组播到其它共识节点）
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
-	log.Info("call Seal(), parameter: ", chain, block)
+	log.Info("call Seal(), parameter: ", block)
 
 	header := block.Header()
 	number := header.Number.Uint64()
@@ -347,7 +347,7 @@ func (cbft *Cbft) Close() error {
 // APIs implements consensus.Engine, returning the user facing RPC API to allow
 // controlling the signer voting.
 func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
-	log.Info("call APIs(), parameter: ", chain)
+	log.Info("call APIs() ... ")
 
 	return []rpc.API{{
 		Namespace: "cbft",
@@ -360,7 +360,7 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 //收到新的区块签名
 //需要验证签名是否时nodeID签名的
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error {
-	log.Info("call OnBlockSignature(), parameter: ", chain, nodeID, sig)
+	log.Info("call OnBlockSignature(), parameter: ", nodeID, sig)
 
 	ok, err := verifySign(nodeID, sig.Hash, sig.Signature[:])
 	if err != nil {
@@ -415,7 +415,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 //收到新的区块
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Info("call OnNewBlock(), parameter: ", chain, rcvBlock)
+	log.Info("call OnNewBlock(), parameter: ", rcvBlock)
 
 	rcvHeader := rcvBlock.Header()
 	rcvNumber := rcvHeader.Number.Uint64()
