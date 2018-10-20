@@ -219,12 +219,12 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 	worker.chainSideSub = eth.BlockChain().SubscribeChainSideEvent(worker.chainSideCh)
 
 	// modify by platon
-	recommit = minRecommitInterval
-	//// Sanitize recommit interval if the user-specified one is too short.
-	//if recommit < minRecommitInterval {
-	//	log.Warn("Sanitizing miner recommit interval", "provided", recommit, "updated", minRecommitInterval)
-	//	recommit = minRecommitInterval
-	//}
+	//recommit = minRecommitInterval
+	// Sanitize recommit interval if the user-specified one is too short.
+	if recommit < minRecommitInterval {
+		log.Warn("Sanitizing miner recommit interval", "provided", recommit, "updated", minRecommitInterval)
+		recommit = minRecommitInterval
+	}
 
 	go worker.mainLoop()
 	go worker.newWorkLoop(recommit)
