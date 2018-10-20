@@ -246,7 +246,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 	if parent == nil {
 		return consensus.ErrUnknownAncestor
 	}
-	header.Difficulty = nil
+	header.Difficulty = big.NewInt(2)
 	return nil
 }
 
@@ -931,7 +931,7 @@ func sigHash(header *types.Header) (hash common.Hash) {
 		header.GasLimit,
 		header.GasUsed,
 		header.Time,
-		header.Extra[:len(header.Extra)-65], // Yes, this will panic if extra is too short
+		header.Extra[:len(header.Extra)-65],
 		header.MixDigest,
 		header.Nonce,
 	})
