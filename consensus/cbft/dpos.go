@@ -48,12 +48,12 @@ func (d *dpos) SetLastCycleBlockNum(blockNumber uint64) {
 
 // modify by platon
 // 返回当前共识节点地址列表
-func (b *dpos) ConsensusNodes() []discover.Node {
+/*func (b *dpos) ConsensusNodes() []discover.Node {
 	return b.primaryNodeList
 }
-
+*/
 // 判断某个节点是否本轮或上一轮选举共识节点
-func (b *dpos) CheckConsensusNode(id discover.NodeID) bool {
+/*func (b *dpos) CheckConsensusNode(id discover.NodeID) bool {
 	nodes := b.ConsensusNodes()
 	for _, node := range nodes {
 		if node.ID == id {
@@ -61,18 +61,13 @@ func (b *dpos) CheckConsensusNode(id discover.NodeID) bool {
 		}
 	}
 	return false
-}
+}*/
 
 // 判断当前节点是否本轮或上一轮选举共识节点
-func (b *dpos) IsConsensusNode() (bool, error) {
-	return false, nil
-}
-
-// 判断是否轮到当前节点打包交易出块
-func (b *dpos) ShouldSeal() (bool, error) {
+/*func (b *dpos) IsConsensusNode() (bool, error) {
 	return true, nil
 }
-
+*/
 func (d *dpos) StartTimeOfEpoch() int64 {
 
 	return d.startTimeOfEpoch

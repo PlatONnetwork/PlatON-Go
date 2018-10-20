@@ -278,26 +278,6 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		return errUnknownBlock
 	}
 
-	if cbft.config.Period == 0 && len(block.Transactions()) == 0 {
-		// 不支持0-period的链，不支持空块密封
-		log.Info("Sealing paused, waiting for transactions")
-		return nil
-	}
-
-	//不是合法共识节点
-	if ok, _ := cbft.dpos.IsConsensusNode(); !ok {
-		return errUnauthorizedSigner
-	}
-
-	//不在出块的时间窗口内
-	if !cbft.inTurn() {
-		log.Info("Not my turn")
-		return nil
-	}
-
-	//todo:
-	//检验区块难度
-
 	// 核心工作：开始签名。注意，delay的不是签名，而是结果的返回
 	sign, err := cbft.signFn(sigHash(header).Bytes())
 	if err != nil {
