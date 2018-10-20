@@ -19,6 +19,7 @@ package consensus
 
 import (
 	"Platon-go/core/cbfttypes"
+	"crypto/ecdsa"
 	"math/big"
 
 	"Platon-go/common"
@@ -142,4 +143,6 @@ type Cbft interface {
 
 	//目前最高的合理块，本节点出块时，需要基于最高合理块来生成区块。
 	HighestLogicalBlock() *types.Block
+
+	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 }

@@ -224,6 +224,8 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	pm.prepareMinedBlockSub = pm.eventMux.Subscribe(core.PrepareMinedBlockEvent{})
 	pm.blockSignatureSub = pm.eventMux.Subscribe(core.BlockSignatureEvent{})
 	go pm.minedBroadcastLoop()
+	go pm.prepareMinedBlockcastLoop()
+	go pm.blockSignaturecastLoop()
 
 	// start sync handlers
 	go pm.syncer()
@@ -844,13 +846,14 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 // Mined broadcast loop
 func (pm *ProtocolManager) minedBroadcastLoop() {
 	// automatically stops if unsubscribe
-	/*for obj := range pm.minedBlockSub.Chan() {
+	for obj := range pm.minedBlockSub.Chan() {
 		if ev, ok := obj.Data.(core.NewMinedBlockEvent); ok {
 			pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
 			pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
 		}
-	}*/
+	}
 	// modify by platon
+	/*
 	for {
 		select {
 		case event :=  <- pm.minedBlockSub.Chan():
@@ -866,6 +869,25 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 			if ev, ok := event.Data.(core.BlockSignatureEvent); ok {
 				pm.MulticastConsensus(ev.BlockSignature)  // propagate blockSignature to consensus peers
 			}
+		}
+	}
+	*/
+}
+
+func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
+	// automatically stops if unsubscribe
+	for obj := range pm.prepareMinedBlockSub.Chan() {
+		if ev, ok := obj.Data.(core.PrepareMinedBlockEvent); ok {
+			pm.MulticastConsensus(ev.Block)  // propagate block to consensus peers
+		}
+	}
+}
+
+func (pm *ProtocolManager) blockSignaturecastLoop() {
+	// automatically stops if unsubscribe
+	for obj := range pm.blockSignatureSub.Chan() {
+		if ev, ok := obj.Data.(core.BlockSignatureEvent); ok {
+			pm.MulticastConsensus(ev.BlockSignature)  // propagate blockSignature to consensus peers
 		}
 	}
 }

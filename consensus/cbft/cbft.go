@@ -16,6 +16,7 @@ import (
 	"Platon-go/rlp"
 	"Platon-go/rpc"
 	"bytes"
+	"crypto/ecdsa"
 	"errors"
 	"math/big"
 	"sync"
@@ -100,6 +101,11 @@ type ReceiptCache struct {
 type StateCache struct {
 	blockNum uint64         //区块高度
 	state    *state.StateDB //执行区块后的收据
+}
+
+func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
+	cbft.config.PrivateKey = privateKey
+	cbft.config.NodeID = discover.PubkeyID(&privateKey.PublicKey)
 }
 
 // New creates a concurrent BFT consensus engine
@@ -336,12 +342,13 @@ func (cbft *Cbft) Close() error {
 // APIs implements consensus.Engine, returning the user facing RPC API to allow
 // controlling the signer voting.
 func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
-	return []rpc.API{{
+	return nil
+	/*return []rpc.API{{
 		Namespace: "cbft",
 		Version:   "1.0",
 		Service:   &API{chain: chain, cbft: cbft},
 		Public:    false,
-	}}
+	}}*/
 }
 
 //收到新的区块签名
