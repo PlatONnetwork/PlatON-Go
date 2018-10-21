@@ -7,12 +7,12 @@ import (
 type rotating struct {
 	dpos         *dpos
 	rotaList     []common.Address // 本轮循环出块节点顺序列表
-	startTime    uint64           // 本轮循环开始时间戳，单位毫秒
-	endTime      uint64           // 本轮循环结束时间戳，单位毫秒
-	timeInterval uint64           // 每个节点出块时间，单位毫秒
+	startTime    int64            // 本轮循环开始时间戳，单位毫秒
+	endTime      int64            // 本轮循环结束时间戳，单位毫秒
+	timeInterval int64            // 每个节点出块时间，单位毫秒
 }
 
-func newRotating(dpos *dpos, timeInterval uint64) *rotating {
+func newRotating(dpos *dpos, timeInterval int64) *rotating {
 	rotating := &rotating{
 		dpos:         dpos,
 		timeInterval: timeInterval,
