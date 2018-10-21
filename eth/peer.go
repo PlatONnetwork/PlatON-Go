@@ -25,11 +25,11 @@ import (
 	"sync"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"Platon-go/common"
 	"Platon-go/core/types"
 	"Platon-go/p2p"
 	"Platon-go/rlp"
+	"github.com/deckarep/golang-set"
 )
 
 var (
@@ -51,6 +51,10 @@ const (
 	// dropping broadcasts. There's not much point in queueing stale blocks, so a few
 	// that might cover uncles should be enough.
 	maxQueuedProps = 4
+
+	// modify by platon
+	maxQueuedPreBlock = 4
+	maxQueuedSignature = 4
 
 	// maxQueuedAnns is the maximum number of block announcements to queue up before
 	// dropping broadcasts. Similarly to block propagations, there's no point to queue
@@ -102,16 +106,18 @@ type peer struct {
 
 func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
-		Peer:        p,
-		rw:          rw,
-		version:     version,
-		id:          fmt.Sprintf("%x", p.ID().Bytes()[:8]),
-		knownTxs:    mapset.NewSet(),
-		knownBlocks: mapset.NewSet(),
-		queuedTxs:   make(chan []*types.Transaction, maxQueuedTxs),
-		queuedProps: make(chan *propEvent, maxQueuedProps),
-		queuedAnns:  make(chan *types.Block, maxQueuedAnns),
-		term:        make(chan struct{}),
+		Peer:        	 p,
+		rw:          	 rw,
+		version:     	 version,
+		id:          	 fmt.Sprintf("%x", p.ID().Bytes()[:8]),
+		knownTxs:    	 mapset.NewSet(),
+		knownBlocks: 	 mapset.NewSet(),
+		queuedTxs:   	 make(chan []*types.Transaction, maxQueuedTxs),
+		queuedProps: 	 make(chan *propEvent, maxQueuedProps),
+		queuedAnns:  	 make(chan *types.Block, maxQueuedAnns),
+		term:        	 make(chan struct{}),
+		queuedPreBlock:  make(chan *preBlockEvent, maxQueuedPreBlock),
+		queuedSignature: make(chan *signatureEvent, maxQueuedSignature),
 	}
 }
 
@@ -609,6 +615,7 @@ func (p *peer) SendPrepareBlock(block *types.Block) error {
 func (p *peer) AsyncSendPrepareBlock(block *types.Block) {
 	select {
 	case p.queuedPreBlock <- &preBlockEvent{block: block}:
+		p.Log().Debug("Send prepare block propagation", "number", block.NumberU64(), "hash", block.Hash())
 	default:
 		p.Log().Debug("Dropping prepare block propagation", "number", block.NumberU64(), "hash", block.Hash())
 	}
