@@ -185,13 +185,16 @@ func (c *EthashConfig) String() string {
 
 // modify by platon
 type CbftConfig struct {
-	Period           uint64 `json:"period"`           // Number of seconds between blocks to enforce
-	Epoch            uint64 `json:"epoch"`            // Epoch length to reset votes and checkpoint
-	MaxLatency       uint64 `json:"maxLatency"`       //共识节点间最大网络延迟时间，单位：毫秒
-	LegalCoefficient uint64 `json:"legalCoefficient"` //检查块的合法性时的用到的时间系数
+	Period           uint64  `json:"period"`           // Number of seconds between blocks to enforce
+	Epoch            uint64  `json:"epoch"`            // Epoch length to reset votes and checkpoint
+	MaxLatency       int64   `json:"maxLatency"`       //共识节点间最大网络延迟时间，单位：毫秒
+	LegalCoefficient float64 `json:"legalCoefficient"` //检查块的合法性时的用到的时间系数
+	Duration         int64   `json:"duration"`         //每个出块节点的出块时长，单位：秒
+	StartTimeOfEpoch int64   // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：毫秒
+
 	//mock
-	InitialNodes []discover.Node `json:"initialNodes"`
-	NodeID       discover.NodeID `json:"nodeID,omitempty"`
+	InitialNodes []discover.Node   `json:"initialNodes"`
+	NodeID       discover.NodeID   `json:"nodeID,omitempty"`
 	PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
 }
 
