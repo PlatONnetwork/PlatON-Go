@@ -14,6 +14,7 @@ type dpos struct {
 	chain             *core.BlockChain
 	lastCycleBlockNum uint64
 	startTimeOfEpoch  int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。精确到毫秒
+	period            int64 //每个出块节点的出块时长
 
 }
 
@@ -27,9 +28,9 @@ func newDpos(initialNodes []discover.Node) *dpos {
 
 func (d *dpos) IsPrimary(addr common.Address) bool {
 	// 判断当前节点是否是共识节点
-	for _,node := range d.primaryNodeList {
-		pub,err := node.ID.Pubkey()
-		if(err != nil || pub == nil) {
+	for _, node := range d.primaryNodeList {
+		pub, err := node.ID.Pubkey()
+		if err != nil || pub == nil {
 			log.Error("nodeID.ID.Pubkey error!")
 		}
 		address := crypto.PubkeyToAddress(*pub)
