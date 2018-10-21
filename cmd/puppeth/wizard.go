@@ -19,7 +19,6 @@ package main
 import (
 	"Platon-go/p2p/discover"
 	"bufio"
-	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -35,7 +34,6 @@ import (
 	"Platon-go/common"
 	"Platon-go/core"
 	"Platon-go/log"
-	"Platon-go/crypto"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -325,7 +323,7 @@ func (w *wizard) readNodeURL() *discover.Node {
 	}
 }
 
-func (w *wizard) readNodeID() discover.NodeID {
+/*func (w *wizard) readNodeID() discover.NodeID {
 	for {
 		// Read the url from the user
 		fmt.Printf("> enode://")
@@ -384,7 +382,7 @@ func (w *wizard) readPrivateKey() *ecdsa.PrivateKey {
 
 		return prikey
 	}
-}
+}*/
 
 // readJSON reads a raw JSON message and returns it.
 func (w *wizard) readJSON() string {
