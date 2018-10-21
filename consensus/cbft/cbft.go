@@ -193,9 +193,10 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 		return errUnknownBlock
 	}
 	// Don't waste time checking blocks from the future
-	if header.Time.Cmp(big.NewInt(time.Now().Unix())) > 0 {
-		return consensus.ErrFutureBlock
-	}
+	//if header.Time.Cmp(big.NewInt(time.Now().Unix())) > 0 {
+	//return consensus.ErrFutureBlock
+	//}
+
 	if len(header.Extra) < extraSeal {
 		return errMissingSignature
 	}
