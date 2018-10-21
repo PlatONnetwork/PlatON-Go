@@ -193,9 +193,10 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 		return errUnknownBlock
 	}
 	// Don't waste time checking blocks from the future
-	if header.Time.Cmp(big.NewInt(time.Now().Unix())) > 0 {
-		return consensus.ErrFutureBlock
-	}
+	//if header.Time.Cmp(big.NewInt(time.Now().Unix())) > 0 {
+	//return consensus.ErrFutureBlock
+	//}
+
 	if len(header.Extra) < extraSeal {
 		return errMissingSignature
 	}
@@ -858,11 +859,13 @@ func (cbft *Cbft) inTurn() bool {
 	singerIdx := cbft.dpos.NodeIndex(cbft.config.NodeID)
 	if singerIdx >= 0 {
 		durationMilliseconds := cbft.config.Duration * 1000
+		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
+
 		value1 := singerIdx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
 
-		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
+		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % totalDuration
 
-		value3 := int64((singerIdx+1)*int64(cbft.config.Duration)*1000) - int64(cbft.config.MaxLatency*2/3)
+		value3 := (singerIdx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
 
 		if value2 > value1 && value3 > value2 {
 			return true
@@ -876,6 +879,7 @@ func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) boo
 	singerIdx := cbft.dpos.NodeIndex(nodeID)
 
 	durationMilliseconds := cbft.config.Duration * 1000
+
 	totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
 	//从StartTimeOfEpoch开始到now的完整轮数
@@ -944,7 +948,8 @@ func sigHash(header *types.Header) (hash common.Hash) {
 		header.GasLimit,
 		header.GasUsed,
 		header.Time,
-		header.Extra[:len(header.Extra)-65],
+		//header.Extra[0:len(header.Extra)-65],
+		header.Extra[0:32],
 		header.MixDigest,
 		header.Nonce,
 	})
