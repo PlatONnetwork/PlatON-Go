@@ -21,7 +21,7 @@ import (
 	"Platon-go/core/cbfttypes"
 	"crypto/ecdsa"
 	"math/big"
-
+	"Platon-go/core"
 	"Platon-go/common"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
@@ -145,4 +145,6 @@ type Cbft interface {
 	HighestLogicalBlock() *types.Block
 
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
+
+	SetBlockChain(blockChain *core.BlockChain)
 }

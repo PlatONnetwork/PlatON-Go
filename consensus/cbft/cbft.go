@@ -104,8 +104,12 @@ func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	cbft.config.NodeID = discover.PubkeyID(&privateKey.PublicKey)
 }
 
+func (cbft *Cbft) SetBlockChain(blockChain *core.BlockChain) {
+	cbft.blockChain = blockChain
+}
+
 // New creates a concurrent BFT consensus engine
-func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, blockChain *core.BlockChain) *Cbft {
+func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *Cbft {
 	_dpos := newDpos(config.InitialNodes)
 
 	_dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
