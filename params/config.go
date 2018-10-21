@@ -190,8 +190,6 @@ type CbftConfig struct {
 	MaxLatency       int64   `json:"maxLatency"`       //共识节点间最大网络延迟时间，单位：毫秒
 	LegalCoefficient float64 `json:"legalCoefficient"` //检查块的合法性时的用到的时间系数
 	Duration         int64   `json:"duration"`         //每个出块节点的出块时长，单位：秒
-	StartTimeOfEpoch int64   // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：毫秒
-
 	//mock
 	InitialNodes []discover.Node   `json:"initialNodes"`
 	NodeID       discover.NodeID   `json:"nodeID,omitempty"`
