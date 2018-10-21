@@ -37,8 +37,8 @@ var (
 	errInvalidUncleHash = errors.New("non empty uncle hash")
 )
 var (
-	epochLength = uint64(210000) //所有共识节点完成一轮出块的时间，21个节点，每个节点10秒出块时间，共2100000毫秒的时间。
-	extraSeal   = 65             // Fixed number of extra-data suffix bytes reserved for signer seal
+	//epochLength = uint64(210000) //所有共识节点完成一轮出块的时间，21个节点，每个节点10秒出块时间，共2100000毫秒的时间。
+	extraSeal = 65 // Fixed number of extra-data suffix bytes reserved for signer seal
 )
 
 type Cbft struct {
@@ -111,9 +111,9 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 	currentBlock := blockChain.CurrentBlock()
 
 	conf := *config
-	if conf.Epoch == 0 {
+	/*if conf.Epoch == 0 {
 		conf.Epoch = epochLength
-	}
+	}*/
 
 	_masterRoot := &Node{
 		isLogical: true,
@@ -269,7 +269,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Info("call Finalize(), parameter: ","header", header, "state", state, "txs", txs, "uncles", uncles, "receipts", receipts)
+	log.Info("call Finalize(), parameter: ", "header", header, "state", state, "txs", txs, "uncles", uncles, "receipts", receipts)
 
 	// 生成具体的区块信息
 	// 填充上Header.Root, TxHash, ReceiptHash, UncleHash等几个属性
@@ -280,7 +280,7 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 // 完成对区块的签名成功，并设置到header.Extra中，然后把区块发送到sealResultCh通道中（然后会被组播到其它共识节点）
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
-	log.Info("call Seal(), parameter","block", block)
+	log.Info("call Seal(), parameter", "block", block)
 
 	header := block.Header()
 	number := header.Number.Uint64()
@@ -314,7 +314,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 // that a new block should have based on the previous blocks in the chain and the
 // current signer.
 func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
-	log.Info("call CalcDifficulty(), parameter", "time", time, "parent",parent)
+	log.Info("call CalcDifficulty(), parameter", "time", time, "parent", parent)
 
 	return big.NewInt(2)
 }
@@ -368,7 +368,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 	}
 
 	if !ok {
-		log.Error("unauthorized signer","sig", sig)
+		log.Error("unauthorized signer", "sig", sig)
 		return errUnauthorizedSigner
 	}
 
@@ -860,11 +860,12 @@ func queryParent(root *Node, rcvHeader *types.Header) (*Node, bool, error) {
 func (cbft *Cbft) inTurn() bool {
 	singerIdx := cbft.dpos.NodeIndex(cbft.config.NodeID)
 	if singerIdx >= 0 {
-		value1 := int64(singerIdx*10*1000) - int64(cbft.config.MaxLatency/3)
+		durationMilliseconds := cbft.config.Duration * 1000
+		value1 := singerIdx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
 
-		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % int64(epochLength)
+		value2 := (time.Now().Unix()*1000 - cbft.config.StartTimeOfEpoch) % durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
-		value3 := int64((singerIdx+1)*10*1000) - int64(cbft.config.MaxLatency*2/3)
+		value3 := int64((singerIdx+1)*int64(cbft.config.Duration)*1000) - int64(cbft.config.MaxLatency*2/3)
 
 		if value2 > value1 && value3 > value2 {
 			return true
@@ -877,14 +878,17 @@ func (cbft *Cbft) inTurn() bool {
 func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) bool {
 	singerIdx := cbft.dpos.NodeIndex(nodeID)
 
+	durationMilliseconds := cbft.config.Duration * 1000
+	totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
+
 	//从StartTimeOfEpoch开始到now的完整轮数
-	rounds := (time.Now().Unix() - cbft.dpos.StartTimeOfEpoch()) / 210000
+	rounds := (time.Now().Unix() - cbft.config.StartTimeOfEpoch) / totalDuration
 
 	//nodeID的最晚出块时间
-	deadline := cbft.dpos.StartTimeOfEpoch() + 210000*rounds + int64(10000*(singerIdx+1))
+	deadline := cbft.config.StartTimeOfEpoch + totalDuration*rounds + durationMilliseconds*(singerIdx+1)
 
 	//nodeID加上合适的延迟后的最晚出块时间
-	deadline = deadline + int64(cbft.config.MaxLatency*cbft.config.LegalCoefficient)
+	deadline = deadline + int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
 
 	if deadline < time.Now().Unix() {
 		//出块时间+延迟后，仍然小于当前时间（即收到区块的时间），则认为是超时的废区块，直接丢弃
