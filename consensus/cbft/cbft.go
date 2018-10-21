@@ -862,7 +862,7 @@ func (cbft *Cbft) inTurn() bool {
 
 		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
-		value3 := int64((singerIdx+1)*int64(cbft.config.Duration)*1000) - int64(cbft.config.MaxLatency*2/3)
+		value3 := (singerIdx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
 
 		if value2 > value1 && value3 > value2 {
 			return true
