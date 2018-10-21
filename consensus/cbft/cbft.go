@@ -106,15 +106,11 @@ func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 
 func (cbft *Cbft) SetBlockChain(blockChain *core.BlockChain) {
 	cbft.blockChain = blockChain
-}
-
-// New creates a concurrent BFT consensus engine
-func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *Cbft {
-	_dpos := newDpos(config.InitialNodes)
-
-	_dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
+	cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
 
 	currentBlock := blockChain.CurrentBlock()
+
+	cbft.highestLogicalBlock = currentBlock
 
 	_masterRoot := &Node{
 		isLogical: true,
@@ -127,6 +123,14 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		nodeMap: make(map[common.Hash]*Node),
 		root:    _masterRoot,
 	}
+
+	cbft.masterTree = _masterTree
+
+}
+
+// New creates a concurrent BFT consensus engine
+func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *Cbft {
+	_dpos := newDpos(config.InitialNodes)
 
 	_slaveRoot := &Node{
 		isLogical: false,
@@ -144,14 +148,11 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		rotating:         newRotating(_dpos, config.Duration),
 		blockSignatureCh: blockSignatureCh,
 		cbftResultCh:     cbftResultCh,
-		blockChain:       blockChain,
 
-		highestLogicalBlock: currentBlock,
-		masterTree:          _masterTree,
-		slaveTree:           _slaveTree,
-		signCacheMap:        make(map[common.Hash]*SignCache),
-		receiptCacheMap:     make(map[common.Hash]*ReceiptCache),
-		stateCacheMap:       make(map[common.Hash]*StateCache),
+		slaveTree:       _slaveTree,
+		signCacheMap:    make(map[common.Hash]*SignCache),
+		receiptCacheMap: make(map[common.Hash]*ReceiptCache),
+		stateCacheMap:   make(map[common.Hash]*StateCache),
 	}
 }
 
