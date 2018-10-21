@@ -858,9 +858,11 @@ func (cbft *Cbft) inTurn() bool {
 	singerIdx := cbft.dpos.NodeIndex(cbft.config.NodeID)
 	if singerIdx >= 0 {
 		durationMilliseconds := cbft.config.Duration * 1000
+		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
+
 		value1 := singerIdx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
 
-		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
+		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % totalDuration
 
 		value3 := (singerIdx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
 
@@ -876,6 +878,7 @@ func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) boo
 	singerIdx := cbft.dpos.NodeIndex(nodeID)
 
 	durationMilliseconds := cbft.config.Duration * 1000
+
 	totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
 	//从StartTimeOfEpoch开始到now的完整轮数
