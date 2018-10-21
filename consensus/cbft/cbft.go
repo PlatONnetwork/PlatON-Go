@@ -422,6 +422,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 	}
 
 	//从签名恢复出出块人地址
+	log.Info("从签名恢复出出块人地址")
 	nodeID, rcvSign, err := ecrecover(rcvHeader)
 	if err != nil {
 		return err
@@ -432,9 +433,12 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 
 	//检查块是否在出块人的时间窗口内生成的
 	//时间合法性计算，不合法返回error
+	log.Info("检查块是否在出块人的时间窗口内生成的")
 	if cbft.isOverdue(rcvHeader.Time.Int64(), nodeID) {
 		return errOverdueBlock
 	}
+
+	log.Info("查询新块是否能接上cbft.masterTree")
 	masterParent, hasMasterParent, err := queryParent(cbft.masterTree.root, rcvHeader)
 	if err != nil {
 		return err
@@ -444,15 +448,19 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 	if hasMasterParent {
 		//新块缺省被认为：不是合理块
 		//合理时间窗口内出的块，则此时暂时可认为新块：是合理块
+		log.Info("新块可以加入masterTree")
 		isLogical := true
 		if masterParent.isLogical {
+			log.Info("父块是合理块")
 			for _, child := range masterParent.children {
 				if child.isLogical {
 					//如果父块是合理块，而且父块已经有合理子块，则新块被认为：不是合理块
+					log.Info("如果父块是合理块，而且父块已经有合理子块，则新块被认为：不是合理块")
 					isLogical = false
 					break
 				}
 			}
+			log.Info("新块是否是合理块", "isLogical", isLogical)
 		}
 
 		//用新块构建masterTree节点,暂时此节点的父节点=nil
@@ -468,11 +476,15 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 
 		if node.isLogical {
 			//如果这棵树的根是合理的，则从slave里嫁接过来的树，有一条支也是合理的，需要补签名
+			log.Info("新块是合理块")
 			tempNode = nil
 			cbft.findHighestNode(node)
 			highestNode := copyPointer(tempNode)
 
+			log.Info("新块开始的临时树中，最高节点是：", "highestNode", highestNode)
+
 			//设置最高合理区块
+			log.Info("设置最高合理区块：", "highestNode.block", highestNode.block)
 			cbft.highestLogicalBlock = highestNode.block
 
 			//设置本节点出块块高
@@ -486,20 +498,29 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 		}
 		//正式接入masterTree
 		//需要先接入masterTree，这样，子树的root才能找到parent（执行的时候需要）
+		log.Info("新块开始的临时树，正式接入masterTree：")
 		node.parent = masterParent
 
 		//执行子树中的区块，如果区块是合理的，还需要签名并广播
 		cbft.recursionESOnNewBlock(node)
 
-		//查找子树node是否有可以写入链的块
+		//查找新接入的子树，是否有可以写入链的块
+		log.Info("查找新接入的子树，是否有可以写入链的块")
 		tempNode = nil
 		cbft.findConfirmedAndHighestNode(node)
 		if tempNode != nil {
+
 			newRoot := copyPointer(tempNode)
+
+			log.Info("新接入的子树，有可以写入链的块", "blockHash", newRoot.block.Hash())
+
 			cbft.storeConfirmed(newRoot, RcvBlock)
 		}
 
 	} else {
+
+		log.Info("新块只能加入slaveTree")
+
 		//其它情况，把块放入slave树中，不需要执行，也不需要签名
 		slaveParent, hasSlaveParent, err := queryParent(cbft.slaveTree.root, rcvHeader)
 		if err != nil {
@@ -575,12 +596,16 @@ func (cbft *Cbft) signNode(node *Node) {
 func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
 
 	//执行
+	log.Info("区块执行", "blockHash", node.block.Hash())
 	cbft.processNode(node)
 
 	if node.isLogical {
 		//签名
+		log.Info("区块签名", "blockHash", node.block.Hash())
 		cbft.signNode(node)
 	}
+
+	log.Info("子块数量：", "lenChildren", len(node.children))
 	for _, child := range node.children {
 		cbft.recursionESOnNewBlock(child)
 	}
