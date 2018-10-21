@@ -948,7 +948,8 @@ func sigHash(header *types.Header) (hash common.Hash) {
 		header.GasLimit,
 		header.GasUsed,
 		header.Time,
-		header.Extra[:len(header.Extra)-65],
+		//header.Extra[0:len(header.Extra)-65],
+		header.Extra[0:32],
 		header.MixDigest,
 		header.Nonce,
 	})
