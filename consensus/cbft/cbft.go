@@ -908,7 +908,7 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	}
 
 	//转成discover.NodeID
-	nodeID, err = discover.BytesID(pubkey)
+	nodeID, err = discover.BytesID(pubkey[1:])
 	if err != nil {
 		return nodeID, []byte{}, err
 	}
