@@ -106,9 +106,9 @@ func (w *wizard) makeGenesis() {
 		genesis.Difficulty = big.NewInt(1)
 		genesis.Config.Cbft = &params.CbftConfig{
 			Period: 1,
-			Epoch:  210,
+			Epoch:  250,
 			// joey.lyu
-			MaxLatency:       1000, //最大网络延迟。毫秒
+			MaxLatency:       300, //最大网络延迟。毫秒
 			LegalCoefficient: 2,    //系数
 
 		}
@@ -145,14 +145,13 @@ func (w *wizard) makeGenesis() {
 		}
 		genesis.Config.Cbft.InitialNodes = nodes
 
-		/*fmt.Println()
-		fmt.Println("print current NodeID")
-		genesis.Config.Cbft.NodeID = w.readNodeID()
+		fmt.Println()
+		fmt.Println("How many milliseconds do you think of the max network delay? (default = 300)")
+		genesis.Config.Cbft.MaxLatency = uint64(w.readDefaultInt(300))
 
 		fmt.Println()
-		fmt.Println("print current PrivateKey")
-		genesis.Config.Cbft.PrivateKey = w.readPrivateKey()*/
-
+		fmt.Println("What is the coefficient of consensus in the network? (default = 0.33)")
+		genesis.Config.Cbft.MaxLatency = uint64(w.readDefaultFloat(0.33))
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}
