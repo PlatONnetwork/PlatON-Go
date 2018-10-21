@@ -146,8 +146,8 @@ type worker struct {
 	taskCh             chan *task
 	resultCh           chan *types.Block
 	prepareResultCh    chan *types.Block
-	blockSignatureCh   chan *cbfttypes.BlockSignature	// 签名
-	cbftResultCh	   chan *cbfttypes.CbftResult		// Seal出块后输出的channel
+	blockSignatureCh   chan *cbfttypes.BlockSignature // 签名
+	cbftResultCh       chan *cbfttypes.CbftResult     // Seal出块后输出的channel
 	startCh            chan struct{}
 	exitCh             chan struct{}
 	resubmitIntervalCh chan time.Duration
@@ -369,8 +369,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
 				log.Warn("----------间隔10s开始打包任务----------")
-				if cbftEngine,ok := w.engine.(consensus.Cbft); ok {
-					if shouldSeal,error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
+				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
 						log.Warn("--------------cbftEngine.ShouldSeal()返回true--------------")
 						commit(false, commitInterruptResubmit)
 						continue
@@ -588,10 +588,10 @@ func (w *worker) taskLoop() {
 			w.pendingMu.Unlock()
 
 			// modify by platon
-			//if w.config.Cbft != nil {
-			if cbftEngine,ok := w.engine.(consensus.Cbft); ok {
+			//if w.config.Bft != nil {
+			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
-					log.Warn("【Cbft engine】Block sealing failed", "err", err)
+					log.Warn("【Bft engine】Block sealing failed", "err", err)
 				}
 				continue
 			}
@@ -962,7 +962,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	tstart := time.Now()
 	// modify by platon
 	var parent *types.Block
-	if cbftEngine,ok := w.engine.(consensus.Cbft); ok {
+	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		parent = cbftEngine.HighestLogicalBlock()
 		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "parent", parent)
 	} else {
@@ -987,7 +987,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		Extra:      w.extra,
 		//Time:       big.NewInt(timestamp),
 		// platon TODO
-		Time:       big.NewInt(time.Now().Unix()),
+		Time: big.NewInt(time.Now().Unix()),
 	}
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {

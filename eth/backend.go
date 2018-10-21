@@ -171,8 +171,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, err
 	}
 	// modify by platon
-	if cbftEngine,ok := eth.engine.(consensus.Cbft); ok {
-		cbftEngine.SetBlockChain(eth.blockchain)
+	if _, ok := eth.engine.(consensus.Bft); ok {
+		cbft.SetBlockChain(eth.blockchain)
 	}
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
@@ -526,7 +526,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	s.protocolManager.Start(maxPeers)
 
 	// modify by platon
-	if cbftEngine,ok := s.engine.(consensus.Cbft); ok {
+	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
 	}
 

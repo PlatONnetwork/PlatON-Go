@@ -53,7 +53,7 @@ const (
 	maxQueuedProps = 4
 
 	// modify by platon
-	maxQueuedPreBlock = 4
+	maxQueuedPreBlock  = 4
 	maxQueuedSignature = 4
 
 	// maxQueuedAnns is the maximum number of block announcements to queue up before
@@ -91,31 +91,31 @@ type peer struct {
 	td   *big.Int
 	lock sync.RWMutex
 
-	knownTxs    mapset.Set                // Set of transaction hashes known to be known by this peer
-	knownBlocks mapset.Set                // Set of block hashes known to be known by this peer
+	knownTxs    mapset.Set // Set of transaction hashes known to be known by this peer
+	knownBlocks mapset.Set // Set of block hashes known to be known by this peer
 	// modify by platon
-	knownPrepareBlocks mapset.Set          // Set of prepareblock hashes known to be known by this peer
-	queuedTxs   chan []*types.Transaction // Queue of transactions to broadcast to the peer
-	queuedProps chan *propEvent           // Queue of blocks to broadcast to the peer
-	queuedAnns  chan *types.Block         // Queue of blocks to announce to the peer
-	term        chan struct{}             // Termination channel to stop the broadcaster
+	knownPrepareBlocks mapset.Set                // Set of prepareblock hashes known to be known by this peer
+	queuedTxs          chan []*types.Transaction // Queue of transactions to broadcast to the peer
+	queuedProps        chan *propEvent           // Queue of blocks to broadcast to the peer
+	queuedAnns         chan *types.Block         // Queue of blocks to announce to the peer
+	term               chan struct{}             // Termination channel to stop the broadcaster
 	// modify by platon
-	queuedPreBlock chan *preBlockEvent
+	queuedPreBlock  chan *preBlockEvent
 	queuedSignature chan *signatureEvent
 }
 
 func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
-		Peer:        	 p,
-		rw:          	 rw,
-		version:     	 version,
-		id:          	 fmt.Sprintf("%x", p.ID().Bytes()[:8]),
-		knownTxs:    	 mapset.NewSet(),
-		knownBlocks: 	 mapset.NewSet(),
-		queuedTxs:   	 make(chan []*types.Transaction, maxQueuedTxs),
-		queuedProps: 	 make(chan *propEvent, maxQueuedProps),
-		queuedAnns:  	 make(chan *types.Block, maxQueuedAnns),
-		term:        	 make(chan struct{}),
+		Peer:            p,
+		rw:              rw,
+		version:         version,
+		id:              fmt.Sprintf("%x", p.ID().Bytes()[:8]),
+		knownTxs:        mapset.NewSet(),
+		knownBlocks:     mapset.NewSet(),
+		queuedTxs:       make(chan []*types.Transaction, maxQueuedTxs),
+		queuedProps:     make(chan *propEvent, maxQueuedProps),
+		queuedAnns:      make(chan *types.Block, maxQueuedAnns),
+		term:            make(chan struct{}),
 		queuedPreBlock:  make(chan *preBlockEvent, maxQueuedPreBlock),
 		queuedSignature: make(chan *signatureEvent, maxQueuedSignature),
 	}
@@ -154,7 +154,7 @@ func (p *peer) broadcast() {
 
 		// modify by platon
 		case prop := <-p.queuedSignature:
-			signature := &cbfttypes.BlockSignature{prop.Hash, prop.Number,prop.Signature}
+			signature := &cbfttypes.BlockSignature{prop.Hash, prop.Number, prop.Signature}
 			if err := p.SendSignature(signature); err != nil {
 				return
 			}
@@ -554,12 +554,12 @@ func (ps *peerSet) PeersWithConsensus(engine consensus.Engine) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
-	if cbftEngine,ok := engine.(consensus.Cbft); ok {
-		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
+	if cbftEngine, ok := engine.(consensus.Bft); ok {
+		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
 			list := make([]*peer, 0, len(consensusNodes))
-			for _,node := range consensusNodes {
+			for _, node := range consensusNodes {
 				nodeID := fmt.Sprintf("%x", node.ID.Bytes()[:8])
-				if peer,ok := ps.peers[nodeID]; ok {
+				if peer, ok := ps.peers[nodeID]; ok {
 					list = append(list, peer)
 				}
 			}
@@ -575,9 +575,9 @@ func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
 	defer ps.lock.RUnlock()
 
 	consensusNodeMap := make(map[string]string)
-	if cbftEngine,ok := engine.(consensus.Cbft); ok {
-		if consensusNodes,err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
-			for _,node := range consensusNodes {
+	if cbftEngine, ok := engine.(consensus.Bft); ok {
+		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
+			for _, node := range consensusNodes {
 				nodeID := fmt.Sprintf("%x", node.ID.Bytes()[:8])
 				consensusNodeMap[nodeID] = nodeID
 			}
@@ -585,8 +585,8 @@ func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
 	}
 
 	list := make([]*peer, 0, len(ps.peers))
-	for nodeId,peer := range ps.peers {
-		if _,ok := consensusNodeMap[nodeId]; !ok {
+	for nodeId, peer := range ps.peers {
+		if _, ok := consensusNodeMap[nodeId]; !ok {
 			list = append(list, peer)
 		}
 	}
@@ -600,9 +600,9 @@ type preBlockEvent struct {
 }
 
 type signatureEvent struct {
-	Hash        common.Hash
-	Number      *big.Int
-	Signature   *common.BlockConfirmSign
+	Hash      common.Hash
+	Number    *big.Int
+	Signature *common.BlockConfirmSign
 }
 
 // modify by platon

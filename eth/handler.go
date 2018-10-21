@@ -87,7 +87,7 @@ type ProtocolManager struct {
 	minedBlockSub *event.TypeMuxSubscription
 	// modify by platon
 	prepareMinedBlockSub *event.TypeMuxSubscription
-	blockSignatureSub *event.TypeMuxSubscription
+	blockSignatureSub    *event.TypeMuxSubscription
 
 	// channels for fetcher, syncer, txsyncLoop
 	newPeerCh   chan *peer
@@ -118,7 +118,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		noMorePeers: make(chan struct{}),
 		txsyncCh:    make(chan *txsync),
 		quitSync:    make(chan struct{}),
-		engine: engine,
+		engine:      engine,
 	}
 	// Figure out whether to allow fast sync or not
 	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() > 0 {
@@ -716,14 +716,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
 			return nil
 		}
-		if cbftEngine,ok := pm.engine.(consensus.Cbft); ok {
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
 			if pm.downloader.IsRunning() {
 				log.Warn("downloader is running,discard this msg")
 			}
-			if flag,err := cbftEngine.IsConsensusNode(); !flag || err != nil {
+			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
 				log.Warn("local node is not consensus node,discard this msg")
 			}
-			if flag,err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
+			if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
 				log.Warn("remote node is not consensus node,discard this msg")
 			}
 			if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
@@ -741,16 +741,16 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 
 		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", "request", request)
-		engineBlockSignature := &cbfttypes.BlockSignature{request.Hash, request.Number,request.Signature}
+		engineBlockSignature := &cbfttypes.BlockSignature{request.Hash, request.Number, request.Signature}
 
-		if cbftEngine,ok := pm.engine.(consensus.Cbft); ok {
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
 			if pm.downloader.IsRunning() {
 				log.Warn("downloader is running,discard this msg")
 			}
-			if flag,err := cbftEngine.IsConsensusNode(); !flag || err != nil {
+			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
 				log.Warn("local node is not consensus node,discard this msg")
 			}
-			if flag,err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
+			if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
 				log.Warn("remote node is not consensus node,discard this msg")
 			}
 			if err := cbftEngine.OnBlockSignature(pm.blockchain, p.Peer.ID(), engineBlockSignature); err != nil {
@@ -772,7 +772,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	// modify by platon
 	//peers := pm.peers.PeersWithoutBlock(hash)
 	var peers []*peer
-	if _,ok := pm.engine.(consensus.Cbft); ok {
+	if _, ok := pm.engine.(consensus.Bft); ok {
 		peers = pm.peers.PeersWithoutConsensus(pm.engine)
 	} else {
 		peers = pm.peers.PeersWithoutBlock(hash)
@@ -856,23 +856,23 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 	}
 	// modify by platon
 	/*
-	for {
-		select {
-		case event :=  <- pm.minedBlockSub.Chan():
-			if ev, ok := event.Data.(core.NewMinedBlockEvent); ok {
-				pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
-				pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
-			}
-		case event :=  <- pm.prepareMinedBlockSub.Chan():
-			if ev, ok := event.Data.(core.PrepareMinedBlockEvent); ok {
-				pm.MulticastConsensus(ev.Block)  // propagate block to consensus peers
-			}
-		case event :=  <- pm.blockSignatureSub.Chan():
-			if ev, ok := event.Data.(core.BlockSignatureEvent); ok {
-				pm.MulticastConsensus(ev.BlockSignature)  // propagate blockSignature to consensus peers
+		for {
+			select {
+			case event :=  <- pm.minedBlockSub.Chan():
+				if ev, ok := event.Data.(core.NewMinedBlockEvent); ok {
+					pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
+					pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
+				}
+			case event :=  <- pm.prepareMinedBlockSub.Chan():
+				if ev, ok := event.Data.(core.PrepareMinedBlockEvent); ok {
+					pm.MulticastConsensus(ev.Block)  // propagate block to consensus peers
+				}
+			case event :=  <- pm.blockSignatureSub.Chan():
+				if ev, ok := event.Data.(core.BlockSignatureEvent); ok {
+					pm.MulticastConsensus(ev.BlockSignature)  // propagate blockSignature to consensus peers
+				}
 			}
 		}
-	}
 	*/
 }
 
@@ -881,7 +881,7 @@ func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
 	for obj := range pm.prepareMinedBlockSub.Chan() {
 		if ev, ok := obj.Data.(core.PrepareMinedBlockEvent); ok {
 			log.Warn("------prepareMinedBlockcastLoop------", "ev", ev)
-			pm.MulticastConsensus(ev.Block)  // propagate block to consensus peers
+			pm.MulticastConsensus(ev.Block) // propagate block to consensus peers
 		}
 	}
 }
@@ -891,7 +891,7 @@ func (pm *ProtocolManager) blockSignaturecastLoop() {
 	for obj := range pm.blockSignatureSub.Chan() {
 		if ev, ok := obj.Data.(core.BlockSignatureEvent); ok {
 			log.Warn("------blockSignaturecastLoop------", "ev", ev)
-			pm.MulticastConsensus(ev.BlockSignature)  // propagate blockSignature to consensus peers
+			pm.MulticastConsensus(ev.BlockSignature) // propagate blockSignature to consensus peers
 		}
 	}
 }

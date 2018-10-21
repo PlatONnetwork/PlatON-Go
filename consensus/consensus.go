@@ -18,16 +18,15 @@
 package consensus
 
 import (
-	"Platon-go/core/cbfttypes"
-	"crypto/ecdsa"
-	"math/big"
-	"Platon-go/core"
 	"Platon-go/common"
+	"Platon-go/core/cbfttypes"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/p2p/discover"
 	"Platon-go/params"
 	"Platon-go/rpc"
+	"crypto/ecdsa"
+	"math/big"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -118,7 +117,7 @@ type PoW interface {
 	Hashrate() float64
 }
 
-type Cbft interface {
+type Bft interface {
 	Engine
 
 	// modify by platon
@@ -146,5 +145,5 @@ type Cbft interface {
 
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
-	SetBlockChain(blockChain *core.BlockChain)
+	//SetBlockChain(blockChain *core.BlockChain)
 }

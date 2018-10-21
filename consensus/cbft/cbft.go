@@ -104,7 +104,9 @@ func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	cbft.config.NodeID = discover.PubkeyID(&privateKey.PublicKey)
 }
 
-func (cbft *Cbft) SetBlockChain(blockChain *core.BlockChain) {
+var cbft *Cbft
+
+func SetBlockChain(blockChain *core.BlockChain) {
 	cbft.blockChain = blockChain
 	cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
 
@@ -125,7 +127,6 @@ func (cbft *Cbft) SetBlockChain(blockChain *core.BlockChain) {
 	}
 
 	cbft.masterTree = _masterTree
-
 }
 
 // New creates a concurrent BFT consensus engine
@@ -142,7 +143,7 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		root:    _slaveRoot,
 	}
 
-	return &Cbft{
+	cbft = &Cbft{
 		config:           config,
 		dpos:             _dpos,
 		rotating:         newRotating(_dpos, config.Duration),
@@ -154,6 +155,7 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		receiptCacheMap: make(map[common.Hash]*ReceiptCache),
 		stateCacheMap:   make(map[common.Hash]*StateCache),
 	}
+	return cbft
 }
 
 func (cbft *Cbft) ShouldSeal() (bool, error) {
