@@ -145,13 +145,13 @@ func (w *wizard) makeGenesis() {
 		}
 		genesis.Config.Cbft.InitialNodes = nodes
 
-		fmt.Println()
+		/*fmt.Println()
 		fmt.Println("print current NodeID")
 		genesis.Config.Cbft.NodeID = w.readNodeID()
 
 		fmt.Println()
 		fmt.Println("print current PrivateKey")
-		genesis.Config.Cbft.PrivateKey = w.readPrivateKey()
+		genesis.Config.Cbft.PrivateKey = w.readPrivateKey()*/
 
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)

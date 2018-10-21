@@ -368,11 +368,14 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// modify by platon
 			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
+				log.Warn("----------间隔1s开始打包任务----------")
 				if cbftEngine,ok := w.engine.(consensus.Cbft); ok {
 					if shouldSeal,error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
-						//timer.Reset(recommit)
+						log.Warn("--------------cbftEngine.ShouldSeal()返回true--------------")
 						commit(false, commitInterruptResubmit)
+						continue
 					}
+					timer.Reset(recommit)
 				} else if w.config.Clique == nil || w.config.Clique.Period > 0 {
 					// Short circuit if no new transaction arrives.
 					if atomic.LoadInt32(&w.newTxs) == 0 {
@@ -961,6 +964,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	var parent *types.Block
 	if cbftEngine,ok := w.engine.(consensus.Cbft); ok {
 		parent = cbftEngine.HighestLogicalBlock()
+		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "parent", parent)
 	} else {
 		parent = w.chain.CurrentBlock()
 	}

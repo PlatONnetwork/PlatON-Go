@@ -706,6 +706,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
+		log.Warn("------------接收到广播消息[PrepareBlockMsg]------------", request)
 
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
@@ -739,6 +740,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 
+		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", request)
 		engineBlockSignature := &cbfttypes.BlockSignature{request.Hash, request.Number,request.Signature}
 
 		if cbftEngine,ok := pm.engine.(consensus.Cbft); ok {
@@ -878,6 +880,7 @@ func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
 	// automatically stops if unsubscribe
 	for obj := range pm.prepareMinedBlockSub.Chan() {
 		if ev, ok := obj.Data.(core.PrepareMinedBlockEvent); ok {
+			log.Warn("------prepareMinedBlockcastLoop------", "ev", ev)
 			pm.MulticastConsensus(ev.Block)  // propagate block to consensus peers
 		}
 	}
@@ -887,6 +890,7 @@ func (pm *ProtocolManager) blockSignaturecastLoop() {
 	// automatically stops if unsubscribe
 	for obj := range pm.blockSignatureSub.Chan() {
 		if ev, ok := obj.Data.(core.BlockSignatureEvent); ok {
+			log.Warn("------blockSignaturecastLoop------", "ev", ev)
 			pm.MulticastConsensus(ev.BlockSignature)  // propagate blockSignature to consensus peers
 		}
 	}
