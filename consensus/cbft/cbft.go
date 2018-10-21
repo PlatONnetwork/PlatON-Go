@@ -110,10 +110,7 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 
 	currentBlock := blockChain.CurrentBlock()
 
-	conf := *config
-	/*if conf.Epoch == 0 {
-		conf.Epoch = epochLength
-	}*/
+	config.StartTimeOfEpoch = blockChain.Genesis().Time().Int64()
 
 	_masterRoot := &Node{
 		isLogical: true,
@@ -138,9 +135,9 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 	}
 
 	return &Cbft{
-		config:           &conf,
+		config:           config,
 		dpos:             _dpos,
-		rotating:         newRotating(_dpos, 10000),
+		rotating:         newRotating(_dpos, config.Duration),
 		blockSignatureCh: blockSignatureCh,
 		cbftResultCh:     cbftResultCh,
 		blockChain:       blockChain,
