@@ -108,9 +108,9 @@ func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, blockChain *core.BlockChain) *Cbft {
 	_dpos := newDpos(config.InitialNodes)
 
-	currentBlock := blockChain.CurrentBlock()
+	_dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
 
-	config.StartTimeOfEpoch = blockChain.Genesis().Time().Int64()
+	currentBlock := blockChain.CurrentBlock()
 
 	_masterRoot := &Node{
 		isLogical: true,
@@ -860,7 +860,7 @@ func (cbft *Cbft) inTurn() bool {
 		durationMilliseconds := cbft.config.Duration * 1000
 		value1 := singerIdx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
 
-		value2 := (time.Now().Unix()*1000 - cbft.config.StartTimeOfEpoch) % durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
+		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
 		value3 := int64((singerIdx+1)*int64(cbft.config.Duration)*1000) - int64(cbft.config.MaxLatency*2/3)
 
@@ -879,10 +879,10 @@ func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) boo
 	totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
 	//从StartTimeOfEpoch开始到now的完整轮数
-	rounds := (time.Now().Unix() - cbft.config.StartTimeOfEpoch) / totalDuration
+	rounds := (time.Now().Unix() - cbft.dpos.StartTimeOfEpoch()) / totalDuration
 
 	//nodeID的最晚出块时间
-	deadline := cbft.config.StartTimeOfEpoch + totalDuration*rounds + durationMilliseconds*(singerIdx+1)
+	deadline := cbft.dpos.StartTimeOfEpoch() + totalDuration*rounds + durationMilliseconds*(singerIdx+1)
 
 	//nodeID加上合适的延迟后的最晚出块时间
 	deadline = deadline + int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)

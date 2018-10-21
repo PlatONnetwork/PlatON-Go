@@ -13,6 +13,8 @@ type dpos struct {
 	primaryNodeList   []discover.Node
 	chain             *core.BlockChain
 	lastCycleBlockNum uint64
+	startTimeOfEpoch  int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：毫秒
+
 }
 
 func newDpos(initialNodes []discover.Node) *dpos {
@@ -77,7 +79,7 @@ func (d *dpos) SetLastCycleBlockNum(blockNumber uint64) {
 	return true, nil
 }
 */
-/*
+
 func (d *dpos) StartTimeOfEpoch() int64 {
 	return d.startTimeOfEpoch
 }
@@ -86,4 +88,3 @@ func (d *dpos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 	// 设置最后一轮共识结束时的区块高度
 	d.startTimeOfEpoch = startTimeOfEpoch
 }
-*/
