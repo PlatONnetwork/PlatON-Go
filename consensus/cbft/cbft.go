@@ -439,6 +439,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 	}
 
 	log.Info("查询新块是否能接上cbft.masterTree")
+
 	masterParent, hasMasterParent, err := queryParent(cbft.masterTree.root, rcvHeader)
 	if err != nil {
 		return err
@@ -861,22 +862,33 @@ func (cbft *Cbft) getSigns(blockHash common.Hash) []*common.BlockConfirmSign {
 	}
 }
 
-//查询root开始的数中，
+//查询root开始的树中，是否有父节点
 func queryParent(root *Node, rcvHeader *types.Header) (*Node, bool, error) {
-	if root.children != nil && len(root.children) > 0 {
-		for _, node := range root.children {
-			if node.block.Hash() == rcvHeader.ParentHash {
-				if node.block.Number().Uint64()+1 == rcvHeader.Number.Uint64() {
-					return node, true, nil
-				} else {
-					return nil, false, errBlockNumber
-				}
-			} else {
-				return queryParent(node, rcvHeader)
+
+	log.Info("查询root开始的树中，是否有父节点", "rootHash", root.block.Hash(), "rootNumber", root.block.Number().Uint64(), "newHash", rcvHeader.Hash(), "newNumber", rcvHeader.Number)
+
+	if root.block.Hash() == rcvHeader.ParentHash && root.block.Number().Uint64()+1 == rcvHeader.Number.Uint64() {
+		return root, true, nil
+	} else {
+		if root.children != nil && len(root.children) > 0 {
+			for _, child := range root.children {
+				return queryParent(child, rcvHeader)
+
+				/*				log.Info("查询root开始的树中，是否有父节点", "childHash", child.block.Hash(), "childNumber", child.block.Number().Uint64(), "newHash", rcvHeader.Hash(), "newNumber", rcvHeader.Number)
+
+								if child.block.Hash() == rcvHeader.ParentHash {
+									if child.block.Number().Uint64()+1 == rcvHeader.Number.Uint64() {
+										return child, true, nil
+									} else {
+										return nil, false, errBlockNumber
+									}
+								} else {
+									return queryParent(child, rcvHeader)
+								}*/
 			}
 		}
+		return nil, false, nil
 	}
-	return nil, false, nil
 }
 
 //出块时间窗口期与出块节点匹配
