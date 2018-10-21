@@ -147,11 +147,11 @@ func (w *wizard) makeGenesis() {
 
 		fmt.Println()
 		fmt.Println("How many milliseconds do you think of the max network delay? (default = 300)")
-		genesis.Config.Cbft.MaxLatency = uint64(w.readDefaultInt(300))
+		genesis.Config.Cbft.MaxLatency = int64(w.readDefaultInt(300))
 
 		fmt.Println()
 		fmt.Println("What is the coefficient of consensus in the network? (default = 0.33)")
-		genesis.Config.Cbft.MaxLatency = uint64(w.readDefaultFloat(0.33))
+		genesis.Config.Cbft.LegalCoefficient = w.readDefaultFloat(0.33)
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}
