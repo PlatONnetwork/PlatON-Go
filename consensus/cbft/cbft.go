@@ -382,7 +382,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 			if !node.isLogical {
 				tempNode = nil
 				cbft.findHighestNode(node)
-				highestNode := copyPointer(tempNode)
+				highestNode := tempNode
 
 				//设置最高合理区块
 				cbft.highestLogicalBlock = highestNode.block
@@ -480,7 +480,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 			log.Info("新块是合理块")
 			tempNode = nil
 			cbft.findHighestNode(node)
-			highestNode := copyPointer(tempNode)
+			highestNode := tempNode
 
 			log.Info("新块开始的临时树中，最高节点是：", "highestNode", highestNode)
 
@@ -511,7 +511,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 		cbft.findConfirmedAndHighestNode(node)
 		if tempNode != nil {
 
-			newRoot := copyPointer(tempNode)
+			newRoot := tempNode
 
 			log.Info("新接入的子树，有可以写入链的块", "blockHash", newRoot.block.Hash())
 
@@ -612,11 +612,6 @@ func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
 	}
 }
 
-func copyPointer(node *Node) *Node {
-	address := *node
-	return &address
-}
-
 //保存确认块
 func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 
@@ -678,6 +673,9 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 
 //查询树中块高最高节点; 相同块高，取签名数多的节点
 func (cbft *Cbft) findHighestNode(subTree *Node) {
+	if subTree.children == nil || len(subTree.children) == 0 {
+		tempNode = subTree
+	}
 	for _, node := range subTree.children {
 		signCounter := cbft.getSignCounter(node.block.Hash())
 		//找到一个更高的块
