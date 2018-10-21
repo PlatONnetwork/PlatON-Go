@@ -28,9 +28,9 @@ import (
 	"Platon-go/consensus"
 	"Platon-go/consensus/misc"
 	"Platon-go/core"
+	"Platon-go/core/cbfttypes"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
-	"Platon-go/core/cbfttypes"
 	"Platon-go/core/vm"
 	"Platon-go/event"
 	"Platon-go/log"
@@ -219,8 +219,8 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 	worker.chainSideSub = eth.BlockChain().SubscribeChainSideEvent(worker.chainSideCh)
 
 	// modify by platon
-	//recommit = minRecommitInterval
 	// Sanitize recommit interval if the user-specified one is too short.
+	recommit = time.Duration(config.Cbft.Period) * time.Second
 	if recommit < minRecommitInterval {
 		log.Warn("Sanitizing miner recommit interval", "provided", recommit, "updated", minRecommitInterval)
 		recommit = minRecommitInterval
@@ -368,7 +368,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// modify by platon
 			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
-				log.Warn("----------间隔1s开始打包任务----------")
+				log.Warn("----------间隔10s开始打包任务----------")
 				if cbftEngine,ok := w.engine.(consensus.Cbft); ok {
 					if shouldSeal,error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
 						log.Warn("--------------cbftEngine.ShouldSeal()返回true--------------")
