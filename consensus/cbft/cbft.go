@@ -159,20 +159,25 @@ func (cbft *Cbft) ShouldSeal() (bool, error) {
 }
 
 func (cbft *Cbft) ConsensusNodes() ([]discover.Node, error) {
+	log.Info("call ConsensusNodes() ...")
 	return cbft.dpos.primaryNodeList, nil
 }
 
 func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
+	log.Info("call CheckConsensusNode(), parameter: ", nodeID)
 	return cbft.dpos.NodeIndex(nodeID) >= 0, nil
 }
 
 func (cbft *Cbft) IsConsensusNode() (bool, error) {
+	log.Info("call IsConsensusNode() ...")
 	return cbft.dpos.NodeIndex(cbft.config.NodeID) >= 0, nil
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
+	log.Info("call Author(), parameter: ", header)
+
 	// 返回出块节点对应的矿工钱包地址
 	return header.Coinbase, nil
 }
@@ -184,6 +189,8 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 // header: 	需要验证的区块头
 // seal:	是否要验证封印（出块签名）
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
+	log.Info("call VerifyHeader(), parameter: ", header, seal)
+
 	//todo:每秒一个交易，校验块高/父区块
 	if header.Number == nil {
 		return errUnknownBlock
@@ -202,6 +209,8 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 // method returns a quit channel to abort the operations and a results channel to
 // retrieve the async verifications (the order is that of the input slice).
 func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
+	log.Info("call VerifyHeaders(), parameter: ", headers, seals)
+
 	abort := make(chan struct{})
 	results := make(chan error, len(headers))
 
@@ -230,6 +239,7 @@ func (cbft *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) 
 // 校验(别的结点广播过来的)区块信息
 // 主要是对区块的出块节点，以及区块难度值的确认
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
+	log.Info("call VerifySeal(), parameter: ", header)
 	return cbft.verifySeal(chain, header, nil)
 	//return nil
 }
@@ -237,6 +247,8 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
+	log.Info("call Prepare(), parameter: ", header)
+
 	// 完成Header对象的准备
 	parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
 	if parent == nil {
@@ -257,6 +269,8 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+	log.Info("call Finalize(), parameter: ", header, state, txs, uncles, receipts)
+
 	// 生成具体的区块信息
 	// 填充上Header.Root, TxHash, ReceiptHash, UncleHash等几个属性
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
@@ -266,6 +280,8 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 // 完成对区块的签名成功，并设置到header.Extra中，然后把区块发送到sealResultCh通道中（然后会被组播到其它共识节点）
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
+	log.Info("call Seal(), parameter: ", block)
+
 	header := block.Header()
 	number := header.Number.Uint64()
 
@@ -298,17 +314,22 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 // that a new block should have based on the previous blocks in the chain and the
 // current signer.
 func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
-	return nil
+	log.Info("call CalcDifficulty(), parameter: ", time, parent)
+
+	return big.NewInt(2)
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
+	log.Info("call SealHash(), parameter: ", header)
 	//return consensus.SigHash(header)
 	return sigHash(header)
 }
 
 // Close implements consensus.Engine. It's a noop for clique as there is are no background threads.
 func (cbft *Cbft) Close() error {
+	log.Info("call Close() ...")
+
 	var err error
 	cbft.closeOnce.Do(func() {
 		// Short circuit if the exit channel is not allocated.
@@ -326,7 +347,8 @@ func (cbft *Cbft) Close() error {
 // APIs implements consensus.Engine, returning the user facing RPC API to allow
 // controlling the signer voting.
 func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
-	return nil
+	log.Info("call APIs() ... ")
+
 	return []rpc.API{{
 		Namespace: "cbft",
 		Version:   "1.0",
@@ -338,6 +360,7 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 //收到新的区块签名
 //需要验证签名是否时nodeID签名的
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error {
+	log.Info("call OnBlockSignature(), parameter: ", nodeID, sig)
 
 	ok, err := verifySign(nodeID, sig.Hash, sig.Signature[:])
 	if err != nil {
@@ -392,6 +415,8 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 //收到新的区块
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
+	log.Info("call OnNewBlock(), parameter: ", rcvBlock)
+
 	rcvHeader := rcvBlock.Header()
 	rcvNumber := rcvHeader.Number.Uint64()
 	if rcvNumber <= 0 {
@@ -499,6 +524,9 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 }
 
 func (cbft *Cbft) HighestLogicalBlock() *types.Block {
+
+	log.Info("call HighestLogicalBlock() ...")
+
 	return cbft.highestLogicalBlock
 }
 
