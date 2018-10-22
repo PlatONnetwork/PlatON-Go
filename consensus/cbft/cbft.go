@@ -309,7 +309,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	}
 
 	// 核心工作：开始签名。注意，delay的不是签名，而是结果的返回
-	sign, err := cbft.signFn(sigHash(header).Bytes())
+	sign, err := cbft.signFn(signHash(header).Bytes())
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,7 @@ func (b *Cbft) SealHash(header *types.Header) common.Hash {
 	log.Info("call SealHash(), parameter", "headerHash", header.Hash().String(), "headerNumber", header.Number.String())
 
 	//return consensus.SigHash(header)
-	return sigHash(header)
+	return signHash(header)
 }
 
 // Close implements consensus.Engine. It's a noop for clique as there is are no background threads.
@@ -379,9 +379,9 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 //收到新的区块签名
 //需要验证签名是否时nodeID签名的
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error {
-	log.Info("call OnBlockSignature(), parameter", "nodeID", nodeID.String(), "sigHash", sig.Hash, "sigNUmber", sig.Number, "sig", sig.Signature.String())
+	log.Info("call OnBlockSignature(), parameter", "nodeID", nodeID.String(), "signHash", sig.Hash, "sigNUmber", sig.Number, "sig", sig.Signature.String())
 
-	ok, err := verifySign(nodeID, sig.Hash, sig.Signature[:])
+	ok, err := verifySign(nodeID, sig.SignHash, sig.Signature[:])
 	if err != nil {
 		return err
 	}
@@ -595,16 +595,21 @@ func (cbft *Cbft) processNode(node *Node) {
 
 func (cbft *Cbft) signNode(node *Node) {
 	//签名
-	signature, err := cbft.signFn(sigHash(node.block.Header()).Bytes())
+	signHash := signHash(node.block.Header())
+	signature, err := cbft.signFn(signHash.Bytes())
 	if err == nil {
-		log.Info("区块签名值", "blockHash", node.block.Hash().String(), "sign", hexutil.Encode(signature))
+		log.Info("区块签名值", "signHash", signHash.String(), "sign", hexutil.Encode(signature))
+
+		blockHash := node.block.Hash()
 
 		//块签名计数器+1
 		sign := common.NewBlockConfirmSign(signature)
-		cbft.addSign(node.block.Hash(), node.block.Number().Uint64(), sign, true)
+		//addSign()的key必须是blok.hash()
+		cbft.addSign(blockHash, node.block.Number().Uint64(), sign, true)
 		//广播签名
 		blockSign := &cbfttypes.BlockSignature{
-			Hash:      node.block.Hash(),
+			SignHash:  signHash,
+			Hash:      blockHash,
 			Number:    node.block.Number(),
 			Signature: sign,
 		}
@@ -973,12 +978,10 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
 	log.Info("收到新块", "sign", hexutil.Encode(signature))
-	log.Info("收到新块", "sign", signature)
-	newHash := sigHash(header)
-	log.Info("收到新块", "newHash", newHash.String())
-	log.Info("收到新块", "newHash", newHash)
-	// Recover the public key and the Ethereum address
-	pubkey, err := crypto.Ecrecover(sigHash(header).Bytes(), signature)
+	signHash := signHash(header)
+	log.Info("收到新块", "signHash", signHash.String())
+
+	pubkey, err := crypto.Ecrecover(signHash.Bytes(), signature)
 	if err != nil {
 		return nodeID, []byte{}, err
 	}
@@ -991,11 +994,11 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	return nodeID, signature, nil
 }
 
-func verifySign(expectedNodeID discover.NodeID, hash common.Hash, signature []byte) (bool, error) {
+func verifySign(expectedNodeID discover.NodeID, signHash common.Hash, signature []byte) (bool, error) {
 
-	log.Info("验证签名", "hash", hash.String(), "signature", hexutil.Encode(signature), "expectedNodeID", hexutil.Encode(expectedNodeID.Bytes()))
+	log.Info("验证签名", "signHash", signHash.String(), "signature", hexutil.Encode(signature), "expectedNodeID", hexutil.Encode(expectedNodeID.Bytes()))
 
-	pubkey, err := crypto.SigToPub(hash.Bytes(), signature)
+	pubkey, err := crypto.SigToPub(signHash.Bytes(), signature)
 
 	if err != nil {
 		return false, err
@@ -1010,7 +1013,7 @@ func verifySign(expectedNodeID discover.NodeID, hash common.Hash, signature []by
 	return false, nil
 }
 
-func sigHash(header *types.Header) (hash common.Hash) {
+func signHash(header *types.Header) (hash common.Hash) {
 	hasher := sha3.NewKeccak256()
 
 	rlp.Encode(hasher, []interface{}{
