@@ -154,7 +154,7 @@ func (p *peer) broadcast() {
 
 		// modify by platon
 		case prop := <-p.queuedSignature:
-			signature := &cbfttypes.BlockSignature{prop.Hash, prop.Number, prop.Signature}
+			signature := &cbfttypes.BlockSignature{prop.SignHash, prop.Hash, prop.Number, prop.Signature}
 			if err := p.SendSignature(signature); err != nil {
 				return
 			}
@@ -600,7 +600,8 @@ type preBlockEvent struct {
 }
 
 type signatureEvent struct {
-	Hash      common.Hash
+	SignHash  common.Hash //签名hash，header[0:32]
+	Hash      common.Hash //块hash，header[:]
 	Number    *big.Int
 	Signature *common.BlockConfirmSign
 }
@@ -622,13 +623,13 @@ func (p *peer) AsyncSendPrepareBlock(block *types.Block) {
 }
 
 func (p *peer) SendSignature(signature *cbfttypes.BlockSignature) error {
-	return p2p.Send(p.rw, BlockSignatureMsg, []interface{}{signature.Hash, signature.Number, signature.Signature})
+	return p2p.Send(p.rw, BlockSignatureMsg, []interface{}{signature.SignHash, signature.Hash, signature.Number, signature.Signature})
 }
 
 // modify by platon
 func (p *peer) AsyncSendSignature(signature *cbfttypes.BlockSignature) {
 	select {
-	case p.queuedSignature <- &signatureEvent{Hash: signature.Hash, Signature: signature.Signature}:
+	case p.queuedSignature <- &signatureEvent{SignHash: signature.SignHash, Hash: signature.Hash, Number: signature.Number, Signature: signature.Signature}:
 	default:
 		p.Log().Debug("Dropping block Signature", "Hash", signature.Hash)
 	}
