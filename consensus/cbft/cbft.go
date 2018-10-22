@@ -116,7 +116,8 @@ func SetBlockChain(blockChain *core.BlockChain) {
 
 	genesisParentHash := bytes.Repeat([]byte{0x00}, 32)
 	if bytes.Equal(currentBlock.ParentHash().Bytes(), genesisParentHash) && currentBlock.Number() == nil {
-		currentBlock.Number() = big.NewInt(0)
+		currentBlock.Header().Number = big.NewInt(0)
+		currentBlock.Number()
 	}
 
 	log.Info("初始化cbft.highestLogicalBlock", "hash", currentBlock.Hash().String(), "number", currentBlock.NumberU64())
