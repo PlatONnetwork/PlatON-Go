@@ -316,11 +316,22 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	//将签名结果替换区块头的Extra字段（专门支持记录额外信息的）
 	copy(header.Extra[len(header.Extra)-extraSeal:], sign[:])
 
+	newBlock := block.WithSeal(header)
+
+	//把新节点加入masterTree
+	err = cbft.addMasterTreeNode(newBlock)
+	if err != nil {
+		return err
+	}
+
+	//把当前新块作为最高区块
+	cbft.highestLogicalBlock = newBlock
+
 	go func() {
 		select {
 		case <-stopCh: //如果先收到stop（客户端RPC发出)，则直接返回
 			return
-		case sealResultCh <- block.WithSeal(header): //有接受才能发送数据，去执行区块
+		case sealResultCh <- newBlock: //发送给p2p，把区块广播到其它节点
 		default: //如果没有接收数据，则走default
 			log.Warn("Sealing result is not read by miner", "sealhash", cbft.SealHash(header).String())
 		}
@@ -379,7 +390,7 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 //收到新的区块签名
 //需要验证签名是否时nodeID签名的
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error {
-	log.Info("call OnBlockSignature(), parameter", "nodeID", nodeID.String(), "signHash", sig.Hash, "sigNUmber", sig.Number, "sig", sig.Signature.String())
+	log.Info("收到新的区块签名==>>, parameter", "nodeID", nodeID.String(), "blockHash", sig.Hash, "signHash", sig.SignHash, "sigNUmber", sig.Number, "sig", sig.Signature.String())
 
 	ok, err := verifySign(nodeID, sig.SignHash, sig.Signature[:])
 	if err != nil {
@@ -394,13 +405,16 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 	signCounter := cbft.addSign(sig.Hash, sig.Number.Uint64(), sig.Signature, false)
 	if signCounter >= cbft.getThreshold() {
 		//区块收到的签名数量>=15，可以入链了
+		log.Info("收到的签名数量>2f+1", "signCounter", signCounter)
 		node, exists := cbft.masterTree.nodeMap[sig.Hash]
 		if exists {
 			//如果这个hash对应的区块，已经在masterTree中，
 			//这个区块所在的节点，将成为masterTree的新的根节点
 			//当这个节点是isLogical==false时，需要重新设定合理节点路径（重新设定的合理节点，需要补签名码？）
-
+			log.Info("签名对应的区块已经在masterTree中")
 			if !node.isLogical {
+				log.Info("签名对应的区块不是合理节点，需要先转成合理节点")
+
 				tempNode = nil
 				cbft.findHighestNode(node)
 				highestNode := tempNode
@@ -434,7 +448,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 //收到新的区块
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Info("call OnNewBlock(), parameter", "rcvBlockHash", rcvBlock.Hash().String(), "rcvBlockNumber", rcvBlock.Header().Number, "rcvBlockExtra", hexutil.Encode(rcvBlock.Header().Extra))
+	log.Info("收到新的区块==>>, parameter", "rcvBlockHash", rcvBlock.Hash().String(), "rcvBlockNumber", rcvBlock.Header().Number, "rcvBlockExtra", hexutil.Encode(rcvBlock.Header().Extra))
 
 	rcvHeader := rcvBlock.Header()
 	rcvNumber := rcvHeader.Number.Uint64()
@@ -625,6 +639,10 @@ func (cbft *Cbft) signNode(node *Node) {
 // 执行这棵子树的所有节点，如果节点是isLogical=true，还需要签名并广播签名
 func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
 
+	//保存node到tree.nodeMap中
+	log.Info("保存node到tree.nodeMap中", "blockHash", node.block.Hash().String())
+	cbft.masterTree.nodeMap[node.block.Hash()] = node
+
 	//执行
 	log.Info("区块执行", "blockHash", node.block.Hash().String())
 	cbft.processNode(node)
@@ -643,6 +661,8 @@ func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
 
 //保存确认块
 func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
+
+	log.Info("把masterTree中，从root到node的节点都入链，并重构masterTree")
 
 	cbft.lock.Lock()
 
@@ -887,6 +907,26 @@ func (cbft *Cbft) getSigns(blockHash common.Hash) []*common.BlockConfirmSign {
 	} else {
 		return nil
 	}
+}
+
+//本节点出的区块，都是本节点认为的合理区块
+func (cbft *Cbft) addMasterTreeNode(newBlock *types.Block) error {
+	parentNode := cbft.masterTree.nodeMap[newBlock.ParentHash()]
+	if parentNode == nil {
+		log.Error("找不到父节点", "blockHash", newBlock.Hash().String(), "parentHash", newBlock.ParentHash().String())
+		return errUnknownBlock
+	}
+	newNode := &Node{
+		block:     newBlock,
+		isLogical: true, //合理区块
+		children:  make([]*Node, 0),
+		parent:    parentNode,
+	}
+
+	parentNode.children = append(parentNode.children, newNode)
+
+	cbft.masterTree.nodeMap[newBlock.Hash()] = newNode
+	return nil
 }
 
 //查询root开始的树中，是否有父节点
