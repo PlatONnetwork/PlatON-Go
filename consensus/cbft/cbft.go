@@ -107,10 +107,14 @@ func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 var cbft *Cbft
 
 func SetBlockChain(blockChain *core.BlockChain) {
+	log.Info("初始化cbft.blockChain")
+
 	cbft.blockChain = blockChain
 	cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
 
 	currentBlock := blockChain.CurrentBlock()
+
+	log.Info("初始化cbft.highestLogicalBlock", "hash", currentBlock.Hash().String(), "number", currentBlock.NumberU64())
 
 	cbft.highestLogicalBlock = currentBlock
 
@@ -310,7 +314,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 			return
 		case sealResultCh <- block.WithSeal(header): //有接受才能发送数据，去执行区块
 		default: //如果没有接收数据，则走default
-			log.Warn("Sealing result is not read by miner", "sealhash", cbft.SealHash(header))
+			log.Warn("Sealing result is not read by miner", "sealhash", cbft.SealHash(header).String())
 		}
 	}()
 	return nil
@@ -521,7 +525,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 
 			newRoot := tempNode
 
-			log.Info("新接入的子树，有可以写入链的块", "blockHash", newRoot.block.Hash())
+			log.Info("新接入的子树，有可以写入链的块", "blockHash", newRoot.block.Hash().String())
 
 			cbft.storeConfirmed(newRoot, RcvBlock)
 		}
@@ -605,12 +609,12 @@ func (cbft *Cbft) signNode(node *Node) {
 func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
 
 	//执行
-	log.Info("区块执行", "blockHash", node.block.Hash())
+	log.Info("区块执行", "blockHash", node.block.Hash().String())
 	cbft.processNode(node)
 
 	if node.isLogical {
 		//签名
-		log.Info("区块签名", "blockHash", node.block.Hash())
+		log.Info("区块签名", "blockHash", node.block.Hash().String())
 		cbft.signNode(node)
 	}
 
@@ -876,7 +880,7 @@ func queryParent(root *Node, rcvHeader *types.Header) (*Node, bool, error) {
 		return nil, false, nil
 	}
 
-	log.Info("查询root开始的树中，是否有父节点", "rootHash", root.block.Hash(), "rootNumber", root.block.Number().Uint64(), "newHash", rcvHeader.Hash(), "newNumber", rcvHeader.Number)
+	log.Info("查询root开始的树中，是否有父节点", "rootHash", root.block.Hash().String(), "rootNumber", root.block.Number().Uint64(), "newHash", rcvHeader.Hash().String(), "newNumber", rcvHeader.Number)
 
 	if root.block.Hash() == rcvHeader.ParentHash && root.block.Number().Uint64()+1 == rcvHeader.Number.Uint64() {
 		return root, true, nil
