@@ -179,7 +179,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.Node, error) {
 }
 
 func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Info("call CheckConsensusNode(), parameter: ", nodeID)
+	log.Info("call CheckConsensusNode(), parameter: ", "nodeID", nodeID.String())
 	return cbft.dpos.NodeIndex(nodeID) >= 0, nil
 }
 
@@ -191,7 +191,7 @@ func (cbft *Cbft) IsConsensusNode() (bool, error) {
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
-	log.Info("call Author(), parameter: ", header)
+	log.Info("call Author(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number)
 
 	// 返回出块节点对应的矿工钱包地址
 	return header.Coinbase, nil
@@ -204,7 +204,7 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 // header: 	需要验证的区块头
 // seal:	是否要验证封印（出块签名）
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	log.Info("call VerifyHeader(), parameter: ", header, seal)
+	log.Info("call VerifyHeader(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number, "seal", seal)
 
 	//todo:每秒一个交易，校验块高/父区块
 	if header.Number == nil {
@@ -225,7 +225,7 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 // method returns a quit channel to abort the operations and a results channel to
 // retrieve the async verifications (the order is that of the input slice).
 func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
-	log.Info("call VerifyHeaders(), parameter: ", headers, seals)
+	log.Info("call VerifyHeaders(), parameter: ", "lenHeaders", len(headers))
 
 	abort := make(chan struct{})
 	results := make(chan error, len(headers))
@@ -255,7 +255,8 @@ func (cbft *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) 
 // 校验(别的结点广播过来的)区块信息
 // 主要是对区块的出块节点，以及区块难度值的确认
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	log.Info("call VerifySeal(), parameter: ", header)
+	log.Info("call VerifySeal(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number.String())
+
 	return cbft.verifySeal(chain, header, nil)
 	//return nil
 }
@@ -263,7 +264,7 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
-	log.Info("call Prepare(), parameter", "header", header)
+	log.Info("call Prepare(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number.String())
 
 	//检查父区块
 	if header.ParentHash != cbft.highestLogicalBlock.Hash() || header.Number.Uint64()-1 != cbft.highestLogicalBlock.NumberU64() {
@@ -286,7 +287,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Info("call Finalize(), parameter: ", "header", header, "state", state, "txs", txs, "uncles", uncles, "receipts", receipts)
+	log.Info("call Finalize(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number.String(), "state", state, "txs", txs, "uncles", uncles, "receipts", receipts)
 
 	// 生成具体的区块信息
 	// 填充上Header.Root, TxHash, ReceiptHash, UncleHash等几个属性
@@ -331,14 +332,15 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 // that a new block should have based on the previous blocks in the chain and the
 // current signer.
 func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
-	log.Info("call CalcDifficulty(), parameter", "time", time, "parent", parent)
+	log.Info("call CalcDifficulty(), parameter", "time", time, "parentHash", parent.Hash().String(), "parentNumber", parent.Number.String())
 
 	return big.NewInt(2)
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
-	log.Info("call SealHash(), parameter: ", "header", header)
+	log.Info("call SealHash(), parameter", "headerHash", header.Hash().String(), "headerNumber", header.Number.String())
+
 	//return consensus.SigHash(header)
 	return sigHash(header)
 }
@@ -377,7 +379,7 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 //收到新的区块签名
 //需要验证签名是否时nodeID签名的
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error {
-	log.Info("call OnBlockSignature(), parameter", "nodeID", nodeID, "sig", sig)
+	log.Info("call OnBlockSignature(), parameter", "nodeID", nodeID.String(), "sigHash", sig.Hash.String(), "sigNUmber", sig.Number, "sig", sig.Signature.String())
 
 	ok, err := verifySign(nodeID, sig.Hash, sig.Signature[:])
 	if err != nil {
@@ -385,7 +387,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 	}
 
 	if !ok {
-		log.Error("unauthorized signer", "sig", sig)
+		log.Error("unauthorized signer")
 		return errUnauthorizedSigner
 	}
 
@@ -432,7 +434,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 //收到新的区块
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Info("call OnNewBlock(), parameter", "rcvBlock", rcvBlock)
+	log.Info("call OnNewBlock(), parameter", "rcvBlockHash", rcvBlock.Hash().String(), "rcvBlockNumber", rcvBlock.Header().Number, "rcvBlockSign", hexutil.Encode(rcvBlock.Header().Extra))
 
 	rcvHeader := rcvBlock.Header()
 	rcvNumber := rcvHeader.Number.Uint64()
