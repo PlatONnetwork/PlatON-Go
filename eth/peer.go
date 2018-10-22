@@ -622,7 +622,7 @@ func (p *peer) AsyncSendPrepareBlock(block *types.Block) {
 }
 
 func (p *peer) SendSignature(signature *cbfttypes.BlockSignature) error {
-	return p2p.Send(p.rw, BlockSignatureMsg, []interface{}{signature})
+	return p2p.Send(p.rw, BlockSignatureMsg, []interface{}{signature.Hash, signature.Number, signature.Signature})
 }
 
 // modify by platon
