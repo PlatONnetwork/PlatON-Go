@@ -3,6 +3,7 @@ package cbft
 
 import (
 	"Platon-go/common"
+	"Platon-go/common/hexutil"
 	"Platon-go/consensus"
 	"Platon-go/core"
 	"Platon-go/core/cbfttypes"
@@ -593,6 +594,8 @@ func (cbft *Cbft) signNode(node *Node) {
 	//签名
 	signature, err := cbft.signFn(sigHash(node.block.Header()).Bytes())
 	if err == nil {
+		log.Info("区块签名值", "blockHash", node.block.Hash().String(), "sign", hexutil.Encode(signature))
+
 		//块签名计数器+1
 		sign := common.NewBlockConfirmSign(signature)
 		cbft.addSign(node.block.Hash(), node.block.Number().Uint64(), sign, true)
@@ -620,7 +623,7 @@ func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
 
 	if node.isLogical {
 		//签名
-		log.Info("区块签名", "blockHash", node.block.Hash().String())
+		log.Info("区块是合理块，需要签名")
 		cbft.signNode(node)
 	}
 
