@@ -871,6 +871,11 @@ func (cbft *Cbft) getSigns(blockHash common.Hash) []*common.BlockConfirmSign {
 //查询root开始的树中，是否有父节点
 func queryParent(root *Node, rcvHeader *types.Header) (*Node, bool, error) {
 
+	//slaveTree树的root，直接返回false
+	if root.block == nil && root.parent == nil {
+		return nil, false, nil
+	}
+
 	log.Info("查询root开始的树中，是否有父节点", "rootHash", root.block.Hash(), "rootNumber", root.block.Number().Uint64(), "newHash", rcvHeader.Hash(), "newNumber", rcvHeader.Number)
 
 	if root.block.Hash() == rcvHeader.ParentHash && root.block.Number().Uint64()+1 == rcvHeader.Number.Uint64() {
