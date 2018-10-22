@@ -706,7 +706,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		log.Warn("------------接收到广播消息[PrepareBlockMsg]------------", "request", request)
+		log.Warn("------------接收到广播消息[PrepareBlockMsg]------------", "Block", request.Block)
 
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
@@ -816,13 +816,13 @@ func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 
 	if block, ok := a.(*types.Block); ok {
 		for _, peer := range peers {
-			log.Warn("------------发送广播消息[BlockSignatureMsg]------------",
+			log.Warn("------------发送广播消息[PrepareBlockMsg]------------",
 				"peerId", peer.id, "Block", block)
 			peer.AsyncSendPrepareBlock(block)
 		}
 	} else if signature, ok := a.(*cbfttypes.BlockSignature); ok {
 		for _, peer := range peers {
-			log.Warn("------------发送广播消息[PrepareBlockMsg]------------",
+			log.Warn("------------发送广播消息[BlockSignatureMsg]------------",
 				"peerId", peer.id, "SignHash", signature.SignHash, "Hash", signature.Hash, "Number", signature.Number, "SignHash", signature.SignHash)
 			peer.AsyncSendSignature(signature)
 		}
