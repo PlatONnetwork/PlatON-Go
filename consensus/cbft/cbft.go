@@ -254,13 +254,14 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
 	log.Info("call Prepare(), parameter", "header", header)
 
-	// 完成Header对象的准备
-	parent := chain.GetHeader(header.ParentHash, header.Number.Uint64()-1)
-	if parent == nil {
+	//检查父区块
+	if header.ParentHash != cbft.highestLogicalBlock.Hash() || header.Number.Uint64()-1 != cbft.highestLogicalBlock.NumberU64() {
 		return consensus.ErrUnknownAncestor
 	}
+
 	header.Difficulty = big.NewInt(2)
 
+	//Extra中，有32个字节存放版本等信息，占用27个字节（后补0到32个字节），后65个字节存放出块人的签名）
 	if len(header.Extra) < 32 {
 		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
 	}
