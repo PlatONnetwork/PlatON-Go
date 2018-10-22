@@ -355,7 +355,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-w.startCh:
 			clearPending(w.chain.CurrentBlock().NumberU64())
 			timestamp = time.Now().Unix()
-			// modify by platon 
+			// modify by platon
+			timer.Reset(recommit)
 			//commit(false, commitInterruptNewHead)
 
 		case head := <-w.chainHeadCh:
