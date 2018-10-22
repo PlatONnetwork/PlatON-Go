@@ -987,7 +987,7 @@ func verifySign(expectedNodeID discover.NodeID, hash common.Hash, signature []by
 		return false, err
 	}
 	//比较两个[]byte
-	if bytes.Equal(pubkey, expectedNodeID.Bytes()) {
+	if bytes.Equal(pubkey[1:], expectedNodeID.Bytes()) {
 		return true, nil
 	}
 	return false, nil
