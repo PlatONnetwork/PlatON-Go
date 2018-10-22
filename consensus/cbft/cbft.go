@@ -127,6 +127,7 @@ func SetBlockChain(blockChain *core.BlockChain) {
 
 	_masterRoot := &Node{
 		isLogical: true,
+		block:     currentBlock,
 		children:  make([]*Node, 0),
 		parent:    nil,
 	}
@@ -136,6 +137,8 @@ func SetBlockChain(blockChain *core.BlockChain) {
 		nodeMap: make(map[common.Hash]*Node),
 		root:    _masterRoot,
 	}
+
+	_masterTree.nodeMap[currentBlock.Hash()] = _masterRoot
 
 	cbft.masterTree = _masterTree
 }
