@@ -379,7 +379,7 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 //收到新的区块签名
 //需要验证签名是否时nodeID签名的
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error {
-	log.Info("call OnBlockSignature(), parameter", "nodeID", nodeID.String(), "sigHash", sig.Hash.String(), "sigNUmber", sig.Number, "sig", sig.Signature.String())
+	log.Info("call OnBlockSignature(), parameter", "nodeID", nodeID.String(), "sigHash", sig.Hash, "sigNUmber", sig.Number, "sig", sig.Signature.String())
 
 	ok, err := verifySign(nodeID, sig.Hash, sig.Signature[:])
 	if err != nil {
@@ -973,13 +973,12 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
 	log.Info("收到新块", "sign", hexutil.Encode(signature))
-
+	log.Info("收到新块", "sign", signature)
 	newHash := sigHash(header)
 	log.Info("收到新块", "newHash", newHash.String())
-
+	log.Info("收到新块", "newHash", newHash)
 	// Recover the public key and the Ethereum address
-	//pubkey, err := crypto.Ecrecover(sigHash(header).Bytes(), signature)
-	pubkey, err := crypto.Ecrecover(header.Hash().Bytes(), signature)
+	pubkey, err := crypto.Ecrecover(sigHash(header).Bytes(), signature)
 	if err != nil {
 		return nodeID, []byte{}, err
 	}
