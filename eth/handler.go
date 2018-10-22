@@ -740,7 +740,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 
-		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
+		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
 		engineBlockSignature := &cbfttypes.BlockSignature{request.SignHash, request.Hash, request.Number, request.Signature}
 
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
@@ -816,10 +816,14 @@ func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 
 	if block, ok := a.(*types.Block); ok {
 		for _, peer := range peers {
+			log.Warn("------------发送广播消息[BlockSignatureMsg]------------",
+				"peerId", peer.id, "Block", block)
 			peer.AsyncSendPrepareBlock(block)
 		}
 	} else if signature, ok := a.(*cbfttypes.BlockSignature); ok {
 		for _, peer := range peers {
+			log.Warn("------------发送广播消息[PrepareBlockMsg]------------",
+				"peerId", peer.id, "SignHash", signature.SignHash, "Hash", signature.Hash, "Number", signature.Number, "SignHash", signature.SignHash)
 			peer.AsyncSendSignature(signature)
 		}
 	}
@@ -877,20 +881,16 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 }
 
 func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
-	// automatically stops if unsubscribe
 	for obj := range pm.prepareMinedBlockSub.Chan() {
 		if ev, ok := obj.Data.(core.PrepareMinedBlockEvent); ok {
-			log.Warn("------------发送广播消息[PrepareBlockMsg]------------", "ev", ev)
 			pm.MulticastConsensus(ev.Block) // propagate block to consensus peers
 		}
 	}
 }
 
 func (pm *ProtocolManager) blockSignaturecastLoop() {
-	// automatically stops if unsubscribe
 	for obj := range pm.blockSignatureSub.Chan() {
 		if ev, ok := obj.Data.(core.BlockSignatureEvent); ok {
-			log.Warn("------------发送广播消息[BlockSignatureMsg]------------", "ev", ev)
 			pm.MulticastConsensus(ev.BlockSignature) // propagate blockSignature to consensus peers
 		}
 	}
