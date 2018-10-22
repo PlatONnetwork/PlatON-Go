@@ -434,7 +434,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 //收到新的区块
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Info("call OnNewBlock(), parameter", "rcvBlockHash", rcvBlock.Hash().String(), "rcvBlockNumber", rcvBlock.Header().Number, "rcvBlockSign", hexutil.Encode(rcvBlock.Header().Extra))
+	log.Info("call OnNewBlock(), parameter", "rcvBlockHash", rcvBlock.Hash().String(), "rcvBlockNumber", rcvBlock.Header().Number, "rcvBlockExtra", hexutil.Encode(rcvBlock.Header().Extra))
 
 	rcvHeader := rcvBlock.Header()
 	rcvNumber := rcvHeader.Number.Uint64()
@@ -442,12 +442,13 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 		return nil
 	}
 
-	//从签名恢复出出块人地址
-	log.Info("从签名恢复出出块人地址")
+	//从签名恢复出出块人地址·
 	nodeID, rcvSign, err := ecrecover(rcvHeader)
 	if err != nil {
 		return err
 	}
+	log.Info("收到的新块，出块方：", "nodeID", nodeID.String())
+
 	//收到的新块中，包含着出块人的一个签名，所以签名数量+1,
 	sign := common.NewBlockConfirmSign(rcvSign)
 	cbft.addSign(rcvBlock.Hash(), rcvNumber, sign, false)
@@ -971,8 +972,14 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 		return nodeID, []byte{}, errMissingSignature
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
+	log.Info("收到新块", "sign", hexutil.Encode(signature))
+
+	newHash := sigHash(header)
+	log.Info("收到新块", "newHash", newHash.String())
+
 	// Recover the public key and the Ethereum address
-	pubkey, err := crypto.Ecrecover(sigHash(header).Bytes(), signature)
+	//pubkey, err := crypto.Ecrecover(sigHash(header).Bytes(), signature)
+	pubkey, err := crypto.Ecrecover(header.Hash().Bytes(), signature)
 	if err != nil {
 		return nodeID, []byte{}, err
 	}
