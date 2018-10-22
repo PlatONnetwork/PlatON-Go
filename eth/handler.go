@@ -740,7 +740,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 
-		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", "request", request)
+		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
 		engineBlockSignature := &cbfttypes.BlockSignature{request.Hash, request.Number, request.Signature}
 
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
