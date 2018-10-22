@@ -451,7 +451,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 //收到新的区块
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Info("收到新的区块==>>, parameter", "rcvBlockHash", rcvBlock.Hash().String(), "rcvBlockNumber", rcvBlock.Header().Number, "rcvBlockExtra", hexutil.Encode(rcvBlock.Header().Extra))
+	log.Info("收到新的区块==>>, parameter", "rcvBlockHash", rcvBlock.Hash().String(), "rcvBlockNumber", rcvBlock.Header().Number, "ParentHash", rcvBlock.ParentHash().String(), "rcvBlockExtra", hexutil.Encode(rcvBlock.Header().Extra))
 
 	rcvHeader := rcvBlock.Header()
 	rcvNumber := rcvHeader.Number.Uint64()
