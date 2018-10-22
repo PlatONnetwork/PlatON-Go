@@ -959,9 +959,11 @@ func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) boo
 	return false
 }
 
+//NodeID是64字节，而publicKey是65字节，publicKey后64字节才是NodeID
 func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	// Retrieve the signature from the header extra-data
 
+	//NodeID是64字节，而publicKey是65字节，publicKey后64字节才是NodeID
 	var nodeID discover.NodeID
 	if len(header.Extra) < extraSeal {
 		return nodeID, []byte{}, errMissingSignature
@@ -982,11 +984,16 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 }
 
 func verifySign(expectedNodeID discover.NodeID, hash common.Hash, signature []byte) (bool, error) {
+
+	log.Info("验证签名", "hash", hash.String(), "signature", hexutil.Encode(signature), "expectedNodeID", hexutil.Encode(expectedNodeID.Bytes()))
+
 	pubkey, err := crypto.Ecrecover(hash.Bytes(), signature)
+
 	if err != nil {
 		return false, err
 	}
 	//比较两个[]byte
+	log.Info("从签名恢复出的公钥", "pubkey", hexutil.Encode(pubkey))
 	if bytes.Equal(pubkey[1:], expectedNodeID.Bytes()) {
 		return true, nil
 	}
