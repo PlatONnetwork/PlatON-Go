@@ -897,6 +897,7 @@ func (cbft *Cbft) addSign(blockHash common.Hash, blockNum uint64, sign *common.B
 			signs:      make([]*common.BlockConfirmSign, 0),
 			signedByMe: signedByMe,
 		}
+		cbft.signCacheMap[blockHash] = signCache
 	}
 
 	signCache.counter = signCache.counter + 1
