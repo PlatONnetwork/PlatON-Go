@@ -345,6 +345,10 @@ func (ma *MixedcaseAddress) Original() string {
 
 type BlockConfirmSign [BlockConfirmSignLength]byte
 
+func (sig *BlockConfirmSign) String() string {
+	return fmt.Sprintf("%x", sig[:])
+}
+
 func NewBlockConfirmSign(signSlice []byte) *BlockConfirmSign {
 	var sign BlockConfirmSign
 	copy(sign[:], signSlice[:])
