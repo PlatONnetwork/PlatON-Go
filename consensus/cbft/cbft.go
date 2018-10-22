@@ -321,11 +321,14 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	newBlock := block.WithSeal(header)
 
-	//把新节点加入masterTree
-	err = cbft.addMasterTreeNode(newBlock)
-	if err != nil {
-		return err
+	parentNode := cbft.masterTree.nodeMap[newBlock.ParentHash()]
+	if parentNode == nil {
+		log.Error("找不到父节点", "blockHash", newBlock.Hash().String(), "parentHash", newBlock.ParentHash().String())
+		return errUnknownBlock
 	}
+
+	//把新节点加入masterTree
+	cbft.addBlockToMasterTree(parentNode, newBlock)
 
 	//把当前新块作为最高区块
 	cbft.highestLogicalBlock = newBlock
@@ -406,6 +409,8 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 	}
 
 	signCounter := cbft.addSign(sig.Hash, sig.Number.Uint64(), sig.Signature, false)
+	log.Info("区块签名数量", "hash", sig.Hash, "signCounter", signCounter, "共识成功阈值", cbft.getThreshold())
+
 	if signCounter >= cbft.getThreshold() {
 		//区块收到的签名数量>=15，可以入链了
 		log.Info("收到的签名数量>2f+1", "signCounter", signCounter)
@@ -539,7 +544,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 		//正式接入masterTree
 		//需要先接入masterTree，这样，子树的root才能找到parent（执行的时候需要）
 		log.Info("新块开始的临时树，正式接入masterTree：")
-		node.parent = masterParent
+		cbft.addNodeToMasterTree(masterParent, node)
 
 		//执行子树中的区块，如果区块是合理的，还需要签名并广播
 		cbft.recursionESOnNewBlock(node)
@@ -577,6 +582,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 			parent:    slaveParent,
 		}
 		slaveParent.children = append(slaveParent.children, node)
+		cbft.masterTree.nodeMap[node.block.Hash()] = node
 	}
 
 	return nil
@@ -641,10 +647,6 @@ func (cbft *Cbft) signNode(node *Node) {
 //S:Sign
 // 执行这棵子树的所有节点，如果节点是isLogical=true，还需要签名并广播签名
 func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
-
-	//保存node到tree.nodeMap中
-	log.Info("保存node到tree.nodeMap中", "blockHash", node.block.Hash().String())
-	cbft.masterTree.nodeMap[node.block.Hash()] = node
 
 	//执行
 	log.Info("区块执行", "blockHash", node.block.Hash().String())
@@ -746,6 +748,17 @@ func (cbft *Cbft) findHighestNode(subTree *Node) {
 var tempNode *Node = nil
 
 func (cbft *Cbft) findConfirmedAndHighestNode(subTree *Node) {
+	signCounter := cbft.getSignCounter(subTree.block.Hash())
+	if signCounter >= cbft.getThreshold() {
+		//找到一个更高的确认块
+		if tempNode == nil || subTree.block.Number().Uint64() > tempNode.block.Number().Uint64() {
+			tempNode = subTree
+		} else if subTree.block.Number().Uint64() == tempNode.block.Number().Uint64() {
+			if signCounter > cbft.getSignCounter(tempNode.block.Hash()) {
+				tempNode = subTree
+			}
+		}
+	}
 	for _, node := range subTree.children {
 		signCounter := cbft.getSignCounter(node.block.Hash())
 		if signCounter >= cbft.getThreshold() {
@@ -913,7 +926,7 @@ func (cbft *Cbft) getSigns(blockHash common.Hash) []*common.BlockConfirmSign {
 }
 
 //本节点出的区块，都是本节点认为的合理区块
-func (cbft *Cbft) addMasterTreeNode(newBlock *types.Block) error {
+/*func (cbft *Cbft) addMasterTreeNode(newBlock *types.Block) error {
 	parentNode := cbft.masterTree.nodeMap[newBlock.ParentHash()]
 	if parentNode == nil {
 		log.Error("找不到父节点", "blockHash", newBlock.Hash().String(), "parentHash", newBlock.ParentHash().String())
@@ -930,6 +943,24 @@ func (cbft *Cbft) addMasterTreeNode(newBlock *types.Block) error {
 
 	cbft.masterTree.nodeMap[newBlock.Hash()] = newNode
 	return nil
+}
+*/
+
+func (cbft *Cbft) addBlockToMasterTree(parent *Node, newBlock *types.Block) {
+	newNode := &Node{
+		block:     newBlock,
+		isLogical: true, //合理区块
+		children:  make([]*Node, 0),
+		parent:    parent,
+	}
+	parent.children = append(parent.children, newNode)
+	cbft.masterTree.nodeMap[newBlock.Hash()] = newNode
+}
+
+func (cbft *Cbft) addNodeToMasterTree(parent *Node, child *Node) {
+	child.parent = parent
+	parent.children = append(parent.children, child)
+	cbft.masterTree.nodeMap[child.block.Hash()] = child
 }
 
 //查询root开始的树中，是否有父节点
