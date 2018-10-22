@@ -987,14 +987,16 @@ func verifySign(expectedNodeID discover.NodeID, hash common.Hash, signature []by
 
 	log.Info("验证签名", "hash", hash.String(), "signature", hexutil.Encode(signature), "expectedNodeID", hexutil.Encode(expectedNodeID.Bytes()))
 
-	pubkey, err := crypto.Ecrecover(hash.Bytes(), signature)
+	pubkey, err := crypto.SigToPub(hash.Bytes(), signature)
 
 	if err != nil {
 		return false, err
 	}
+
+	nodeID := discover.PubkeyID(pubkey)
 	//比较两个[]byte
-	log.Info("从签名恢复出的公钥", "pubkey", hexutil.Encode(pubkey))
-	if bytes.Equal(pubkey[1:], expectedNodeID.Bytes()) {
+	log.Info("从签名恢复出的NodeID", "nodeID", nodeID.String())
+	if bytes.Equal(nodeID.Bytes(), expectedNodeID.Bytes()) {
 		return true, nil
 	}
 	return false, nil
