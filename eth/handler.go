@@ -880,7 +880,7 @@ func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
 	// automatically stops if unsubscribe
 	for obj := range pm.prepareMinedBlockSub.Chan() {
 		if ev, ok := obj.Data.(core.PrepareMinedBlockEvent); ok {
-			log.Warn("------prepareMinedBlockcastLoop------", "ev", ev)
+			log.Warn("------------发送广播消息[PrepareBlockMsg]------------", "ev", ev)
 			pm.MulticastConsensus(ev.Block) // propagate block to consensus peers
 		}
 	}
@@ -890,7 +890,7 @@ func (pm *ProtocolManager) blockSignaturecastLoop() {
 	// automatically stops if unsubscribe
 	for obj := range pm.blockSignatureSub.Chan() {
 		if ev, ok := obj.Data.(core.BlockSignatureEvent); ok {
-			log.Warn("------blockSignaturecastLoop------", "ev", ev)
+			log.Warn("------------发送广播消息[BlockSignatureMsg]------------", "ev", ev)
 			pm.MulticastConsensus(ev.BlockSignature) // propagate blockSignature to consensus peers
 		}
 	}

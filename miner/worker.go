@@ -356,8 +356,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			clearPending(w.chain.CurrentBlock().NumberU64())
 			timestamp = time.Now().Unix()
 			// modify by platon
-			timer.Reset(recommit)
 			//commit(false, commitInterruptNewHead)
+			timer.Reset(0)
 
 		case head := <-w.chainHeadCh:
 			clearPending(head.Block.NumberU64())
@@ -370,10 +370,10 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// modify by platon
 			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
-				log.Warn("----------间隔10s开始打包任务----------")
+				log.Warn("----------间隔" + recommit.String() + "开始打包任务----------")
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
-						log.Warn("--------------cbftEngine.ShouldSeal()返回true--------------")
+						log.Warn("--------------节点当前时间窗口出块，执行打包出块逻辑--------------")
 						commit(false, commitInterruptResubmit)
 						continue
 					}
