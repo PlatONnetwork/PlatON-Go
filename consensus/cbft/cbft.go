@@ -898,7 +898,10 @@ func (cbft *Cbft) addSign(blockHash common.Hash, blockNum uint64, sign *common.B
 			signedByMe: signedByMe,
 		}
 	}
+
 	signCache.counter = signCache.counter + 1
+	log.Info("增加签名的计数器", "hash", blockHash, "counter", signCache.counter)
+
 	signCache.signs = append(signCache.signs, sign)
 
 	signCache.updateTime = time.Now()
