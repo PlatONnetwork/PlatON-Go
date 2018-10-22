@@ -1047,6 +1047,12 @@ func nowMillisecond() int64 {
 }
 
 func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
+	log.Info("signFN", "headerHash", hexutil.Encode(headerHash))
+
+	nodeID := discover.PubkeyID(&cbft.config.PrivateKey.PublicKey)
+
+	log.Info("signFN", "nodeIDFromPubKey", nodeID.String())
+
 	return crypto.Sign(headerHash, cbft.config.PrivateKey)
 }
 
