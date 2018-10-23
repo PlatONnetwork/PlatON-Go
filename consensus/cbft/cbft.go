@@ -606,6 +606,9 @@ func (cbft *Cbft) processNode(node *Node) {
 	//执行
 	receipts, state, err := cbft.blockChain.ProcessDirectly(node.block, node.parent.block)
 	if err == nil {
+		if receipts == nil {
+			receipts = types.Receipts{}
+		}
 		receiptsCache := &ReceiptCache{
 			blockNum: node.block.NumberU64(),
 			receipts: receipts,
