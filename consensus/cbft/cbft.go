@@ -821,9 +821,10 @@ func (cbft *Cbft) graftingFromSlaveTree(parent *Node) {
 //重置cbft.masterTree.nodeMap
 //当有新的确认区块产生后，有可能需要重置cbft.masterTree.nodeMap
 func (cbft *Cbft) resetNodeMap(node *Node) {
+	cbft.masterTree.nodeMap[node.block.Hash()] = node
 	if node != nil && len(node.children) > 0 {
 		for _, child := range cbft.masterTree.root.children {
-			cbft.masterTree.nodeMap[child.block.Hash()] = child
+			//cbft.masterTree.nodeMap[child.block.Hash()] = child
 			cbft.resetNodeMap(child)
 		}
 	}
