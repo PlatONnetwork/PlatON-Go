@@ -684,14 +684,14 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 	defer cbft.lock.Unlock()
 
 	//保存最初的输入节点（新树的根节点）
-	origNode := newRoot
+	tempNode := newRoot
 
 	confirmedBlocks := make([]*types.Block, 1)
 	confirmedBlocks[0] = newRoot.block
 
-	for newRoot.parent != nil {
-		newRoot = newRoot.parent
-		confirmedBlocks = append(confirmedBlocks, newRoot.block)
+	for tempNode.parent != nil {
+		tempNode = tempNode.parent
+		confirmedBlocks = append(confirmedBlocks, tempNode.block)
 	}
 	//去掉原来的root
 	confirmedBlocks = confirmedBlocks[:len(confirmedBlocks)-1]
@@ -728,9 +728,9 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 	}
 
 	//把node作为新的root
-	origNode.parent.children = nil
-	origNode.parent = nil
-	cbft.masterTree.root = origNode
+	newRoot.parent.children = nil
+	newRoot.parent = nil
+	cbft.masterTree.root = newRoot
 
 	//重置cbft.masterTree.nodeMap
 	cbft.masterTree.nodeMap = map[common.Hash]*Node{}
