@@ -359,7 +359,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			//commit(false, commitInterruptNewHead)
 			timer.Reset(0)
 
-		case head := <-w.chainHeadCh:
+			case head := <-w.chainHeadCh:
 			clearPending(head.Block.NumberU64())
 			timestamp = time.Now().Unix()
 			commit(false, commitInterruptNewHead)
@@ -1069,7 +1069,11 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
-		w.updateSnapshot()
+		if _,ok := w.engine.(consensus.Bft); ok {
+			w.commit(uncles, nil, false, tstart)
+		} else {
+			w.updateSnapshot()
+		}
 		return
 	}
 	// Split the pending transactions into locals and remotes
