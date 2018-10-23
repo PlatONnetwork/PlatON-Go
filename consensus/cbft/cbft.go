@@ -681,6 +681,7 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 	log.Info("把masterTree中，从root到node的节点都入链，并重构masterTree")
 
 	cbft.lock.Lock()
+	defer cbft.lock.Unlock()
 
 	//保存最初的输入节点（新树的根节点）
 	origNode := newRoot
@@ -735,8 +736,6 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 
 	//清理stateCacheMap
 	cbft.cleanStateCacheMap()
-
-	cbft.lock.Unlock()
 }
 
 //查询树中块高最高节点; 相同块高，取签名数多的节点
