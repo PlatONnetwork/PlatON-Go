@@ -705,11 +705,22 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 
 	//todo:考虑cbftResultCh改成[]types.CbftResult
 	for _, block := range confirmedBlocks {
+
 		cbftResult := &cbfttypes.CbftResult{
-			Block:             block,
-			Receipts:          cbft.receiptCacheMap[block.Hash()].receipts,
-			State:             cbft.stateCacheMap[block.Hash()].state,
+			Block: block,
+			//Receipts:          cbft.receiptCacheMap[block.Hash()].receipts,
+			//State:             cbft.stateCacheMap[block.Hash()].state,
 			BlockConfirmSigns: cbft.signCacheMap[block.Hash()].signs,
+		}
+
+		receiptCache := cbft.receiptCacheMap[block.Hash()]
+		if receiptCache != nil {
+			cbftResult.Receipts = receiptCache.receipts
+		}
+
+		stateCache := cbft.stateCacheMap[block.Hash()]
+		if stateCache != nil {
+			cbftResult.State = stateCache.state
 		}
 
 		//把需要保存的数据，发往通道：cbftResultCh
