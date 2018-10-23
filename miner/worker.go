@@ -689,7 +689,7 @@ func (w *worker) resultLoop() {
 				continue
 			}
 
-			if _receipts == nil || len(_receipts) <= 0 || _state == nil {
+			if _receipts == nil || _state == nil {	// 如果是空块，_receipts!=nil但length=0
 				var sealhash = w.engine.SealHash(block.Header())
 				w.pendingMu.RLock()
 				task, exist := w.pendingTasks[sealhash]
@@ -1055,7 +1055,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	if !noempty {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
-		w.commit(uncles, nil, false, tstart)
+		// modify by platon
+		if _,ok := w.engine.(consensus.Bft); !ok {
+			w.commit(uncles, nil, false, tstart)
+		}
 	}
 
 	// Fill the block with all available pending transactions.
