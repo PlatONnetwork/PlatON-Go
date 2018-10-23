@@ -672,7 +672,7 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 	cbft.lock.Lock()
 
 	confirmedBlocks := make([]*types.Block, 1)
-	confirmedBlocks = append(confirmedBlocks, newRoot.block)
+	confirmedBlocks[0] = newRoot.block
 
 	for newRoot.parent != nil {
 		newRoot = newRoot.parent
