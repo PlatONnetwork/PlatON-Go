@@ -66,6 +66,7 @@ type Tree struct {
 	root    *Node
 }
 type Node struct {
+	number    int
 	block     *types.Block
 	isLogical bool
 	children  []*Node
@@ -671,6 +672,9 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 
 	cbft.lock.Lock()
 
+	//保存最初的输入节点（新树的根节点）
+	origNode := newRoot
+
 	confirmedBlocks := make([]*types.Block, 1)
 	confirmedBlocks[0] = newRoot.block
 
@@ -702,9 +706,9 @@ func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 	}
 
 	//把node作为新的root
-	newRoot.parent.children = nil
-	newRoot.parent = nil
-	cbft.masterTree.root = newRoot
+	origNode.parent.children = nil
+	origNode.parent = nil
+	cbft.masterTree.root = origNode
 
 	//重置cbft.masterTree.nodeMap
 	cbft.masterTree.nodeMap = map[common.Hash]*Node{}
