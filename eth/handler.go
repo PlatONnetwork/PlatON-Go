@@ -716,17 +716,18 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
 			return nil
 		}
+		if pm.blockchain.HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
+			log.Warn("Block already in blockchain,discard this msg", "err", err)
+			return nil
+		}
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
 			if pm.downloader.IsRunning() {
 				log.Warn("downloader is running,discard this msg")
-			}
-			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
+			} else if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
 				log.Warn("local node is not consensus node,discard this msg")
-			}
-			if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
+			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
 				log.Warn("remote node is not consensus node,discard this msg")
-			}
-			if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
+			} else if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
 				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
 			}
 			return nil
@@ -746,14 +747,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
 			if pm.downloader.IsRunning() {
 				log.Warn("downloader is running,discard this msg")
-			}
-			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
+			} else if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
 				log.Warn("local node is not consensus node,discard this msg")
-			}
-			if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
+			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
 				log.Warn("remote node is not consensus node,discard this msg")
-			}
-			if err := cbftEngine.OnBlockSignature(pm.blockchain, p.Peer.ID(), engineBlockSignature); err != nil {
+			} else if err := cbftEngine.OnBlockSignature(pm.blockchain, p.Peer.ID(), engineBlockSignature); err != nil {
 				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
 			}
 			return nil
