@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	errSign               = errors.New("sign error")
 	errUnauthorizedSigner = errors.New("unauthorized signer")
 	errOverdueBlock       = errors.New("overdue block")
 	errBlockNumber        = errors.New("error block number")
@@ -66,7 +67,6 @@ type Tree struct {
 	root    *Node
 }
 type Node struct {
-	number    int
 	block     *types.Block
 	isLogical bool
 	children  []*Node
@@ -98,7 +98,7 @@ type ReceiptCache struct {
 //state缓存
 type StateCache struct {
 	blockNum uint64         //区块高度
-	state    *state.StateDB //执行区块后的收据
+	state    *state.StateDB //执行区块后的状态
 }
 
 func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
@@ -425,14 +425,18 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 				log.Info("签名对应的区块不是合理节点，需要先转成合理节点")
 
 				tempNode = nil
+
 				cbft.findHighestNode(node)
+
+				//tempNode至少是node
 				highestNode := tempNode
 
 				//设置最高合理区块
 				cbft.highestLogicalBlock = highestNode.block
 
 				//重新设定合理节点路径（重新设定的合理节点，如果没有签名过，则需要补签名,广播签名）
-				for highestNode.parent.block.Hash() != node.block.Hash() {
+				// highestNode.parent != nil 可以保证 highestNode.parent.block != nil。有节点，就有block
+				for highestNode.parent != nil && highestNode.parent.block.Hash() != node.block.Hash() {
 					//设定合理节点
 					highestNode.isLogical = true
 
@@ -525,6 +529,8 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 			log.Info("新块是合理块")
 			tempNode = nil
 			cbft.findHighestNode(node)
+
+			//tempNode至少是node
 			highestNode := tempNode
 
 			log.Info("新块开始的临时树中，最高节点是：", "highestNode", highestNode)
@@ -617,7 +623,7 @@ func (cbft *Cbft) processNode(node *Node) {
 	}
 }
 
-func (cbft *Cbft) signNode(node *Node) {
+func (cbft *Cbft) signNode(node *Node) uint {
 	//签名
 	signHash := signHash(node.block.Header())
 	signature, err := cbft.signFn(signHash.Bytes())
@@ -629,7 +635,7 @@ func (cbft *Cbft) signNode(node *Node) {
 		//块签名计数器+1
 		sign := common.NewBlockConfirmSign(signature)
 		//addSign()的key必须是blok.hash()
-		cbft.addSign(blockHash, node.block.Number().Uint64(), sign, true)
+		signCounter := cbft.addSign(blockHash, node.block.Number().Uint64(), sign, true)
 		//广播签名
 		blockSign := &cbfttypes.BlockSignature{
 			SignHash:  signHash,
@@ -639,8 +645,9 @@ func (cbft *Cbft) signNode(node *Node) {
 		}
 		cbft.blockSignatureCh <- blockSign
 
+		return signCounter
 	} else {
-		log.Warn("sign block error", err)
+		panic("can't sign for block")
 	}
 }
 
@@ -656,7 +663,11 @@ func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
 	if node.isLogical {
 		//签名
 		log.Info("区块是合理块，需要签名")
-		cbft.signNode(node)
+		signCounter := cbft.signNode(node)
+
+		if signCounter > cbft.getThreshold() {
+			cbft.storeConfirmed(node, RcvBlock)
+		}
 	}
 
 	log.Info("子块数量：", "lenChildren", len(node.children))
@@ -665,7 +676,6 @@ func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
 	}
 }
 
-//保存确认块
 func (cbft *Cbft) storeConfirmed(newRoot *Node, cause CauseType) {
 
 	log.Info("把masterTree中，从root到node的节点都入链，并重构masterTree")
