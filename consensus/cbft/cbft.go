@@ -302,7 +302,7 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 // 完成对区块的签名成功，并设置到header.Extra中，然后把区块发送到sealResultCh通道中（然后会被组播到其它共识节点）
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
-	log.Info("call Seal(), parameter", "block", block)
+	log.Info("call Seal(), parameter", "inBlockHash", block.Hash().String())
 
 	header := block.Header()
 	number := header.Number.Uint64()
@@ -337,6 +337,9 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	//把当前新块作为最高区块
 	cbft.highestLogicalBlock = newBlock
+
+	log.Info("in block hash", "hash", header.Hash().String())
+	log.Info("out block hash", "hash", newBlock.Hash().String())
 
 	go func() {
 		select {
