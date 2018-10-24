@@ -317,6 +317,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	if err != nil {
 		return err
 	}
+
 	//将签名结果替换区块头的Extra字段（专门支持记录额外信息的）
 	copy(header.Extra[len(header.Extra)-extraSeal:], sign[:])
 
@@ -327,6 +328,9 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		log.Error("找不到父节点", "blockHash", newBlock.Hash().String(), "parentHash", newBlock.ParentHash().String())
 		return errUnknownBlock
 	}
+
+	//增加签名数量
+	cbft.addSign(newBlock.Hash(), newBlock.NumberU64(), common.NewBlockConfirmSign(sign), true)
 
 	//把新节点加入masterTree
 	cbft.addBlockToMasterTree(parentNode, newBlock)
