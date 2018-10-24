@@ -99,6 +99,13 @@ func (self *Miner) update() {
 				if shouldStart {
 					self.Start(self.coinbase)
 				}
+
+				// modify by platon
+				go func() {
+					if cbftEngine, ok := self.engine.(consensus.Bft); ok {
+						cbftEngine.BlockSynchronisation()
+					}
+				}()
 				// stop immediately and ignore all further pending events
 				return
 			}
