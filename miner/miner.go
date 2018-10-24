@@ -18,6 +18,7 @@
 package miner
 
 import (
+	"Platon-go/consensus/cbft"
 	"Platon-go/core/cbfttypes"
 	"fmt"
 	"sync/atomic"
@@ -102,8 +103,8 @@ func (self *Miner) update() {
 
 				// modify by platon
 				go func() {
-					if cbftEngine, ok := self.engine.(consensus.Bft); ok {
-						cbftEngine.BlockSynchronisation()
+					if _, ok := self.engine.(consensus.Bft); ok {
+						cbft.BlockSynchronisation()
 					}
 				}()
 				// stop immediately and ignore all further pending events
