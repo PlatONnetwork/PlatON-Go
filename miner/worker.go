@@ -17,6 +17,7 @@
 package miner
 
 import (
+	"Platon-go/consensus/cbft"
 	"bytes"
 	"errors"
 	"math/big"
@@ -528,14 +529,15 @@ func (w *worker) mainLoop() {
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
 				continue
 			}
-			var hash = block.Hash()
-			log.Info("hash", "hash", hash.String())
-
+			var (
+				sealhash = w.engine.SealHash(block.Header())
+				hash     = block.Hash()
+			)
 			w.pendingMu.RLock()
-			_, exist := w.pendingTasks[hash]
+			_, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
 			if !exist {
-				log.Error("Block found but no relative pending task", "number", block.Number(), "hash", hash)
+				log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
 				continue
 			}
 
@@ -585,25 +587,22 @@ func (w *worker) taskLoop() {
 			if w.skipSealHook != nil && w.skipSealHook(task) {
 				continue
 			}
+			w.pendingMu.Lock()
+			w.pendingTasks[w.engine.SealHash(task.block.Header())] = task
+			w.pendingMu.Unlock()
 
 			// modify by platon
-			var taskID common.Hash
+			//if w.config.Bft != nil {
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
-					continue
 				}
-				taskID = task.block.Hash()
-				log.Info("taskID", "taskID", taskID.String())
-			} else {
-				taskID = w.engine.SealHash(task.block.Header())
-				if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
-					log.Warn("Block sealing failed", "err", err)
-				}
+				continue
 			}
-			w.pendingMu.Lock()
-			w.pendingTasks[taskID] = task
-			w.pendingMu.Unlock()
+
+			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
+				log.Warn("Block sealing failed", "err", err)
+			}
 
 		case <-w.exitCh:
 			interrupt()
@@ -687,17 +686,20 @@ func (w *worker) resultLoop() {
 			if block == nil || blockConfirmSigns == nil || len(blockConfirmSigns) <= 0 {
 				continue
 			}
-			var hash = block.Hash()
+			var (
+				hash = block.Hash()
+				sealhash = w.engine.SealHash(block.Header())
+			)
 			// Short circuit when receiving duplicate result caused by resubmitting.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
 				continue
 			}
 
 			w.pendingMu.RLock()
-			task, exist := w.pendingTasks[hash]
+			task, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
 
-			if exist {
+			if exist && cbft.IsSignedBySelf(sealhash, block.Extra()[32:]) {
 				_receipts = task.receipts
 				_state = task.state
 			}
