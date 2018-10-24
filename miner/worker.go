@@ -528,15 +528,12 @@ func (w *worker) mainLoop() {
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
 				continue
 			}
-			var (
-				sealhash = w.engine.SealHash(block.Header())
-				hash     = block.Hash()
-			)
+			var hash = block.Hash()
 			w.pendingMu.RLock()
-			_, exist := w.pendingTasks[sealhash]
+			_, exist := w.pendingTasks[hash]
 			w.pendingMu.RUnlock()
 			if !exist {
-				log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
+				log.Error("Block found but no relative pending task", "number", block.Number(), "hash", hash)
 				continue
 			}
 
@@ -586,22 +583,25 @@ func (w *worker) taskLoop() {
 			if w.skipSealHook != nil && w.skipSealHook(task) {
 				continue
 			}
-			w.pendingMu.Lock()
-			w.pendingTasks[w.engine.SealHash(task.block.Header())] = task
-			w.pendingMu.Unlock()
 
 			// modify by platon
-			//if w.config.Bft != nil {
-			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+			var taskID common.Hash
+			if cbftEngine,ok := w.engine.(consensus.Bft); ok {
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
+					continue
 				}
-				continue
+				taskID = task.block.Hash()
+			} else {
+				taskID = w.engine.SealHash(task.block.Header())
+				if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
+					log.Warn("Block sealing failed", "err", err)
+				}
 			}
+			w.pendingMu.Lock()
+			w.pendingTasks[taskID] = task
+			w.pendingMu.Unlock()
 
-			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
-				log.Warn("Block sealing failed", "err", err)
-			}
 		case <-w.exitCh:
 			interrupt()
 			return
@@ -690,15 +690,11 @@ func (w *worker) resultLoop() {
 				continue
 			}
 
-			if _receipts == nil || _state == nil {	// 如果是空块，_receipts!=nil但length=0
-				var sealhash = w.engine.SealHash(block.Header())
-				w.pendingMu.RLock()
-				task, exist := w.pendingTasks[sealhash]
-				w.pendingMu.RUnlock()
-				if !exist {
-					log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
-					continue
-				}
+			w.pendingMu.RLock()
+			task, exist := w.pendingTasks[hash]
+			w.pendingMu.RUnlock()
+
+			if exist {
 				_receipts = task.receipts
 				_state = task.state
 			}
@@ -725,7 +721,7 @@ func (w *worker) resultLoop() {
 				log.Error("Failed writing block to chain", "err", err)
 				continue
 			}
-			log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", hash)
+			log.Info("Successfully sealed new block", "number", block.Number(), "hash", hash)
 
 			// Broadcast the block and announce chain insertion event
 			// platon TODO
