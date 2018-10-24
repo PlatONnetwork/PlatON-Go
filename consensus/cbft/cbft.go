@@ -59,7 +59,7 @@ type Cbft struct {
 	signCacheMap        map[common.Hash]*SignCache    //签名Map
 	receiptCacheMap     map[common.Hash]*ReceiptCache //块执行后的回执Map
 	stateCacheMap       map[common.Hash]*StateCache   //块执行后的状态Map
-	lock                sync.RWMutex                  //保护LogicalChainTree
+	lock                sync.Mutex                    //保护LogicalChainTree
 	treeLock            sync.Mutex                    //保护LogicalChainTree
 }
 
@@ -472,6 +472,9 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error {
 	log.Info("收到新的区块签名==>>, parameter", "nodeID", nodeID.String(), "blockHash", sig.Hash, "signHash", sig.SignHash, "sigNUmber", sig.Number, "sig", sig.Signature.String())
 
+	cbft.lock.Lock()
+	defer cbft.lock.Unlock()
+
 	ok, err := verifySign(nodeID, sig.SignHash, sig.Signature[:])
 	if err != nil {
 		return err
@@ -531,6 +534,9 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 //收到新的区块
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
 	log.Info("收到新的区块==>>, parameter", "rcvBlockHash", rcvBlock.Hash().String(), "rcvBlockNumber", rcvBlock.Header().Number, "ParentHash", rcvBlock.ParentHash().String(), "rcvBlockExtra", hexutil.Encode(rcvBlock.Header().Extra))
+
+	cbft.lock.Lock()
+	defer cbft.lock.Unlock()
 
 	rcvHeader := rcvBlock.Header()
 	rcvNumber := rcvHeader.Number.Uint64()
@@ -762,9 +768,6 @@ func (cbft *Cbft) recursionESOnNewBlock(node *Node) {
 func (cbft *Cbft) storeConfirmed(confirmedNode *Node, cause CauseType) {
 
 	log.Info("把masterTree中，从root到node的节点都入链，并重构masterTree")
-
-	cbft.lock.Lock()
-	defer cbft.lock.Unlock()
 
 	//保存最初的输入节点（新树的根节点）
 	tempNode := confirmedNode
