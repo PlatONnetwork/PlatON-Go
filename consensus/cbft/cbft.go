@@ -677,25 +677,27 @@ func (cbft *Cbft) HighestLogicalBlock() *types.Block {
 
 func (cbft *Cbft) processNode(node *Node) {
 	//执行
-	receipts, state, err := cbft.blockChain.ProcessDirectly(node.block, node.parent.block)
-	if err == nil {
+	if node.parent != nil {
+		receipts, state, err := cbft.blockChain.ProcessDirectly(node.block, node.parent.block)
+		if err == nil {
 
-		node.isExecuted = true
+			node.isExecuted = true
 
-		receiptsCache := &ReceiptCache{
-			blockNum: node.block.NumberU64(),
-			receipts: receipts,
+			receiptsCache := &ReceiptCache{
+				blockNum: node.block.NumberU64(),
+				receipts: receipts,
+			}
+			cbft.receiptCacheMap[node.block.Hash()] = receiptsCache
+
+			stateCache := &StateCache{
+				blockNum: node.block.NumberU64(),
+				state:    state,
+			}
+			cbft.stateCacheMap[node.block.Hash()] = stateCache
+
+		} else {
+			log.Warn("process block error", err)
 		}
-		cbft.receiptCacheMap[node.block.Hash()] = receiptsCache
-
-		stateCache := &StateCache{
-			blockNum: node.block.NumberU64(),
-			state:    state,
-		}
-		cbft.stateCacheMap[node.block.Hash()] = stateCache
-
-	} else {
-		log.Warn("process block error", err)
 	}
 }
 
