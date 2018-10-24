@@ -1104,13 +1104,13 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	return nodeID, signature, nil
 }
 
-func (cbft *Cbft) IsSignedBySelf(sealHash common.Hash, signature []byte) (bool, error) {
+func IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
 	log.Info("验证是否是本节点的签名", "sealHash", sealHash.String(), "signature", hexutil.Encode(signature))
 	ok, err := verifySign(cbft.config.NodeID, sealHash, signature)
 	if err != nil {
-		return false, err
+		return false
 	}
-	return ok, nil
+	return ok
 }
 
 func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature []byte) (bool, error) {
