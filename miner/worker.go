@@ -359,7 +359,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			//commit(false, commitInterruptNewHead)
 			timer.Reset(0)
 
-			case head := <-w.chainHeadCh:
+		case head := <-w.chainHeadCh:
 			clearPending(head.Block.NumberU64())
 			timestamp = time.Now().Unix()
 			// modify by platon
@@ -529,6 +529,8 @@ func (w *worker) mainLoop() {
 				continue
 			}
 			var hash = block.Hash()
+			log.Info("hash", "hash", hash.String())
+
 			w.pendingMu.RLock()
 			_, exist := w.pendingTasks[hash]
 			w.pendingMu.RUnlock()
@@ -586,12 +588,13 @@ func (w *worker) taskLoop() {
 
 			// modify by platon
 			var taskID common.Hash
-			if cbftEngine,ok := w.engine.(consensus.Bft); ok {
+			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
 					continue
 				}
 				taskID = task.block.Hash()
+				log.Info("taskID", "taskID", taskID.String())
 			} else {
 				taskID = w.engine.SealHash(task.block.Header())
 				if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
@@ -1053,7 +1056,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
 		// modify by platon
-		if _,ok := w.engine.(consensus.Bft); !ok {
+		if _, ok := w.engine.(consensus.Bft); !ok {
 			w.commit(uncles, nil, false, tstart)
 		}
 	}
@@ -1066,7 +1069,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
-		if _,ok := w.engine.(consensus.Bft); ok {
+		if _, ok := w.engine.(consensus.Bft); ok {
 			w.commit(uncles, nil, false, tstart)
 		} else {
 			w.updateSnapshot()
