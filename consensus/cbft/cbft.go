@@ -758,11 +758,12 @@ func (cbft *Cbft) storeConfirmed(confirmedNode *Node, cause CauseType) {
 	confirmedBlocks[0] = confirmedNode.block
 
 	for tempNode.parent != nil {
+		//root不会被加入
 		tempNode = tempNode.parent
 		confirmedBlocks = append(confirmedBlocks, tempNode.block)
 	}
 	//去掉原来的root
-	confirmedBlocks = confirmedBlocks[:len(confirmedBlocks)-1]
+	//confirmedBlocks = confirmedBlocks[:len(confirmedBlocks)-1]
 
 	//反转slice，按顺序把区块写入链
 	if len(confirmedBlocks) > 1 {
