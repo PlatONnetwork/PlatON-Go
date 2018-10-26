@@ -173,10 +173,7 @@ func BlockSynchronisation() {
 			cbft.addNodeMap(newRoot)
 		}
 
-		tempNode = nil
-		cbft.findHighestNode(newRoot)
-
-		highestNode := tempNode
+		highestNode := cbft.findHighestNode(newRoot)
 
 		//设置最高合理区块
 		cbft.highestLogicalBlock = highestNode.block
@@ -198,14 +195,10 @@ func BlockSynchronisation() {
 
 		//查找新接入的子树，是否有可以写入链的块
 		log.Info("查找新接入的子树，是否有可以写入链的块")
-		tempNode = nil
-		cbft.findConfirmedAndHighestNode(newRoot)
-		if tempNode != nil {
-
-			confirmedNode := tempNode
+		maxSigns := cbft.findMaxSigns(newRoot)
+		if cbft.getSignCounter(maxSigns.block.Hash()) >= cbft.getThreshold() {
 			log.Info("新接入的子树，有可以写入链的块", "blockHash", newRoot.block.Hash().String())
-
-			cbft.storeConfirmed(confirmedNode, RcvBlock)
+			cbft.storeConfirmed(maxSigns, RcvBlock)
 		}
 	}
 }
@@ -500,12 +493,8 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 			if !node.isLogical {
 				log.Info("签名对应的区块不是合理节点，需要先转成合理节点")
 
-				tempNode = nil
-
-				cbft.findHighestNode(node)
-
 				//tempNode至少是node
-				highestNode := tempNode
+				highestNode := cbft.findHighestNode(node)
 
 				//设置最高合理区块
 				cbft.highestLogicalBlock = highestNode.block
@@ -551,16 +540,16 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 	}
 	log.Info("收到的新块，出块方：", "nodeID", nodeID.String())
 
-	//收到的新块中，包含着出块人的一个签名，所以签名数量+1,
-	sign := common.NewBlockConfirmSign(rcvSign)
-	cbft.addSign(rcvBlock.Hash(), rcvNumber, sign)
-
 	//检查块是否在出块人的时间窗口内生成的
 	//时间合法性计算，不合法返回error
 	log.Info("检查块是否在出块人的时间窗口内生成的")
 	if cbft.isOverdue(rcvHeader.Time.Int64(), nodeID) {
 		return errOverdueBlock
 	}
+
+	//收到的新块中，包含着出块人的一个签名，所以签名数量+1,
+	sign := common.NewBlockConfirmSign(rcvSign)
+	cbft.addSign(rcvBlock.Hash(), rcvNumber, sign)
 
 	log.Info("查询新块是否能接上cbft.masterTree")
 
@@ -571,8 +560,6 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 
 	//可以加入masterTree
 	if hasMasterParent {
-		//新块缺省被认为：不是合理块
-		//合理时间窗口内出的块，则此时暂时可认为新块：是合理块
 		log.Info("新块可以加入masterTree")
 		isLogical := true
 		if masterParent.isLogical {
@@ -605,11 +592,8 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 		if node.isLogical {
 			//如果这棵树的根是合理的，则从slave里嫁接过来的树，有一条支也是合理的，需要补签名
 			log.Info("新块是合理块")
-			tempNode = nil
-			cbft.findHighestNode(node)
 
-			//tempNode至少是node
-			highestNode := tempNode
+			highestNode := cbft.findHighestNode(node)
 
 			log.Info("新块开始的临时树中，最高节点是：", "highestNode", highestNode)
 
@@ -637,15 +621,13 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 
 		//查找新接入的子树，是否有可以写入链的块
 		log.Info("查找新接入的子树，是否有可以写入链的块")
-		tempNode = nil
-		cbft.findConfirmedAndHighestNode(node)
-		if tempNode != nil {
+		maxSigns := cbft.findMaxSigns(node)
 
-			newRoot := tempNode
+		if cbft.getSignCounter(maxSigns.block.Hash()) >= cbft.getThreshold() {
 
-			log.Info("新接入的子树，有可以写入链的块", "blockHash", newRoot.block.Hash().String())
+			log.Info("新接入的子树，有可以写入链的块", "blockHash", maxSigns.block.Hash().String())
 
-			cbft.storeConfirmed(newRoot, RcvBlock)
+			cbft.storeConfirmed(maxSigns, RcvBlock)
 		}
 
 	} else {
@@ -836,53 +818,34 @@ func (cbft *Cbft) storeConfirmed(confirmedNode *Node, cause CauseType) {
 }
 
 //查询树中块高最高节点; 相同块高，取签名数多的节点
-func (cbft *Cbft) findHighestNode(subTree *Node) {
-	if subTree.children == nil || len(subTree.children) == 0 {
-		tempNode = subTree
-	}
-	for _, node := range subTree.children {
-		signCounter := cbft.getSignCounter(node.block.Hash())
-		//找到一个更高的块
-		if tempNode == nil || node.block.Number().Uint64() > tempNode.block.Number().Uint64() {
-			tempNode = node
-		} else if node.block.Number().Uint64() == tempNode.block.Number().Uint64() {
-			if signCounter > cbft.getSignCounter(tempNode.block.Hash()) {
-				tempNode = node
-			}
+
+func (cbft *Cbft) findHighestNode(root *Node) *Node {
+	max := root
+	for _, node := range root.children {
+		now := cbft.findHighestNode(node)
+		nowSigns := cbft.getSignCounter(now.block.Hash())
+		maxSigns := cbft.getSignCounter(max.block.Hash())
+
+		if node.block.NumberU64() > max.block.NumberU64() || (node.block.NumberU64() == max.block.NumberU64() && nowSigns > maxSigns) {
+			max = now
 		}
-		cbft.findHighestNode(node)
 	}
+	return max
 }
 
-//查询树中，签名数>=15并且块高最高的节点; 相同块高，则取签名数多的节点
-var tempNode *Node = nil
+//查询树中，签名数最多的节点; 签名数相同，，则取块高的节点
+func (cbft *Cbft) findMaxSigns(root *Node) *Node {
+	max := root
+	for _, node := range root.children {
+		now := cbft.findHighestNode(node)
+		nowSigns := cbft.getSignCounter(now.block.Hash())
+		maxSigns := cbft.getSignCounter(max.block.Hash())
 
-func (cbft *Cbft) findConfirmedAndHighestNode(subTree *Node) {
-	signCounter := cbft.getSignCounter(subTree.block.Hash())
-	if signCounter >= cbft.getThreshold() {
-		//找到一个更高的确认块
-		if tempNode == nil || subTree.block.Number().Uint64() > tempNode.block.Number().Uint64() {
-			tempNode = subTree
-		} else if subTree.block.Number().Uint64() == tempNode.block.Number().Uint64() {
-			if signCounter > cbft.getSignCounter(tempNode.block.Hash()) {
-				tempNode = subTree
-			}
+		if nowSigns > maxSigns || (nowSigns == maxSigns && node.block.Number().Uint64() > max.block.Number().Uint64()) {
+			max = now
 		}
 	}
-	for _, node := range subTree.children {
-		signCounter := cbft.getSignCounter(node.block.Hash())
-		if signCounter >= cbft.getThreshold() {
-			//找到一个更高的确认块
-			if tempNode == nil || node.block.Number().Uint64() > tempNode.block.Number().Uint64() {
-				tempNode = node
-			} else if node.block.Number().Uint64() == tempNode.block.Number().Uint64() {
-				if signCounter > cbft.getSignCounter(tempNode.block.Hash()) {
-					tempNode = node
-				}
-			}
-		}
-		cbft.findConfirmedAndHighestNode(node)
-	}
+	return max
 }
 
 //在masterTree中查找能接上parent的节点，并把查到的节点作为parent的子节点
