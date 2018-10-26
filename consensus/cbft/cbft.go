@@ -60,7 +60,7 @@ type Cbft struct {
 	receiptCacheMap     map[common.Hash]*ReceiptCache //块执行后的回执Map
 	stateCacheMap       map[common.Hash]*StateCache   //块执行后的状态Map
 	lock                sync.Mutex                    //保护LogicalChainTree
-	treeLock            sync.Mutex                    //保护LogicalChainTree
+	//treeLock            sync.Mutex                    //保护LogicalChainTree
 }
 
 type Tree struct {
@@ -150,12 +150,12 @@ func SetBlockChain(blockChain *core.BlockChain) {
 }
 
 func BlockSynchronisation() {
+	cbft.lock.Lock()
+	defer cbft.lock.Unlock()
+
 	currentBlock := cbft.blockChain.CurrentBlock()
 	//如果链上块高>内存中不可逆块高
 	if currentBlock.NumberU64() > cbft.masterTree.root.block.NumberU64() {
-		cbft.treeLock.Lock()
-		defer cbft.treeLock.Unlock()
-
 		//准备新的根节点
 		newRoot := &Node{
 			isLogical: true,
