@@ -119,7 +119,7 @@ func (cbft *Cbft) findBlockExt(hash common.Hash) *BlockExt {
 }
 
 //增加ext的签名（todo:增加判断重复签名）
-func (ext *BlockExt) gatherSign(sign *common.BlockConfirmSign) int {
+func (ext *BlockExt) collectSign(sign *common.BlockConfirmSign) int {
 	if sign != nil {
 		ext.signs = append(ext.signs, sign)
 		return len(ext.signs)
@@ -285,7 +285,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 		log.Info("区块签名值", "signHash", signHash.String(), "sign", hexutil.Encode(signature))
 
 		sign := common.NewBlockConfirmSign(signature)
-		ext.gatherSign(sign)
+		ext.collectSign(sign)
 		//ext.level = Logical
 
 		//保存签名过的块高
@@ -353,14 +353,32 @@ func (cbft *Cbft) findChildren(hash common.Hash) []*BlockExt {
 }
 
 //收集从ext到不可逆块路径上的块，不包括原来的不可逆块，并按块高排好序
-func (cbft *Cbft) collectIrreversibles(ext *BlockExt) []*BlockExt {
+func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
 	exts := make([]*BlockExt, 1)
-	exts[0] = ext
+	exts[0] = newIrr
 
-	for parent := ext.findParent(); parent != nil && !parent.isIrreversible; {
+	findRootIrr := false
+	for {
+		parent := newIrr.findParent()
+		if parent == nil {
+			break
+		}
+		if parent.isIrreversible {
+			findRootIrr = true
+			break
+		} else {
+			exts = append(exts, parent)
+		}
+	}
+
+	if !findRootIrr {
+		panic("cannot link to root irreversible block")
+	}
+
+	/*for parent := newIrr.findParent(); parent != nil && !parent.isIrreversible; {
 		//不包括原来的不可逆块
 		exts = append(exts, parent)
-	}
+	}*/
 
 	//按块高排好序
 	if len(exts) > 1 {
@@ -394,7 +412,7 @@ func (cbft *Cbft) collectLogicals(start *BlockExt, end *BlockExt) []*BlockExt {
 	}
 
 	if !findStart {
-		panic("cannot find linked logical blocks")
+		panic("cannot link to logical block")
 	}
 
 	//按块高排好序
@@ -462,7 +480,8 @@ func BlockSynchronisation() {
 
 		//重置从ext开始的合理链路径（如果链路上节点需要签名则签名，并设置最高合理节点）
 		cbft.resetLogicalPath(newIrr)
-		//todo:清理map（删除不要的区块）
+		//清理blockExtMap/signedSet
+		cbft.cleanCtx()
 
 	}
 }
@@ -476,9 +495,29 @@ func (cbft *Cbft) signReceiverGoroutine() {
 	}
 }
 
+func (cbft *Cbft) cleanCtx() {
+	f1 := func(k, v interface{}) bool {
+		ext, _ := v.(*BlockExt)
+		if ext.block.NumberU64() < cbft.irreversibleBlockExt.block.NumberU64() {
+			cbft.blockExtMap.Delete(ext.block.Hash())
+		}
+		return true
+	}
+	cbft.blockExtMap.Range(f1)
+
+	f2 := func(k, v interface{}) bool {
+		number, _ := k.(uint64)
+		if number < cbft.irreversibleBlockExt.block.NumberU64() {
+			cbft.blockExtMap.Delete(number)
+		}
+		return true
+	}
+
+	cbft.signedSet.Range(f2)
+}
+
 func (cbft *Cbft) blockReceiverGoroutine() {
 	for {
-
 		select {
 		case block := <-cbft.blockReceiveCh:
 			cbft.blockReceiver(block)
@@ -493,11 +532,12 @@ func (cbft *Cbft) blockReceiverGoroutine() {
 func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) {
 
 	//收集可入链的块，不包括原来的不可逆块，并按块高排好序
-	irrs := cbft.collectIrreversibles(newIrr)
+	irrs := cbft.listIrreversibles(newIrr)
 
 	cbft.writeChain(irrs)
 
-	//todo:清理map（删除不要的区块）
+	//清理blockExtMap/signedSet
+	cbft.cleanCtx()
 
 	//设置新节点为不可逆块
 	newIrr.isIrreversible = true
@@ -521,7 +561,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 	}
 
 	//收集签名
-	signCount := ext.gatherSign(sig.Signature)
+	signCount := ext.collectSign(sig.Signature)
 
 	log.Info("区块签名数量", "signCount", signCount)
 
@@ -578,7 +618,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	}
 
 	//收集出块人的签名
-	ext.gatherSign(common.NewBlockConfirmSign(sign))
+	ext.collectSign(common.NewBlockConfirmSign(sign))
 
 	if ext.isNextHighest() { //是下一个最高合理节点
 		//执行新块和所有后代块
@@ -766,18 +806,26 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	// 这样，本地节点出的块，就不会在共识引擎中执行，这样，相应的BlockExt中就没有此区块的执行回执receipts和状态state
 	ext.level = Logical
 	//收集新区块的签名
-	ext.gatherSign(common.NewBlockConfirmSign(sign))
-
-	cbft.lock.Lock()
-	defer cbft.lock.Unlock()
-
-	//把新块作为最高区块
-	cbft.highestLogicalBlockExt = ext
+	ext.collectSign(common.NewBlockConfirmSign(sign))
 
 	//将签名结果替换区块头的Extra字段（专门支持记录额外信息的）
 	copy(header.Extra[len(header.Extra)-extraSeal:], sign[:])
 
 	sealedBlock := block.WithSeal(header)
+
+	if len(cbft.dpos.primaryNodeList) == 1 {
+		//单个节点，直接出块
+		cbft.handleNewIrreversible(ext)
+
+		cbft.highestLogicalBlockExt = ext
+
+		return nil
+	}
+
+	cbft.lock.Lock()
+	//把新块作为最高区块
+	cbft.highestLogicalBlockExt = ext
+	cbft.lock.Unlock()
 
 	go func() {
 		select {
