@@ -765,7 +765,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Info("call Finalize(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number.String(), "state", state, "txs", txs, "uncles", uncles, "receipts", receipts)
+	log.Info("call Finalize(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number.String(), "txs", len(txs), "receipts", len(receipts))
 
 	// 生成具体的区块信息
 	// 填充上Header.Root, TxHash, ReceiptHash, UncleHash等几个属性
@@ -805,6 +805,10 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	// 标识为合理块，并且执行（在挖矿过程中执行）/签名过。
 	// 这样，本地节点出的块，就不会在共识引擎中执行，这样，相应的BlockExt中就没有此区块的执行回执receipts和状态state
 	ext.level = Logical
+
+	//保存
+	cbft.saveBlock(ext)
+
 	//收集新区块的签名
 	ext.collectSign(common.NewBlockConfirmSign(sign))
 
