@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"errors"
-	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -161,7 +160,7 @@ func (ext *BlockExt) findChildren() []*BlockExt {
 	if ext.block == nil {
 		return nil
 	}
-	return cbft.findChildren(ext.block.ParentHash())
+	return cbft.findChildren(ext.block.Hash())
 }
 
 //查找节点
@@ -339,7 +338,6 @@ func (cbft *Cbft) findChildren(hash common.Hash) []*BlockExt {
 		if ext.block.ParentHash() == hash {
 			exts = append(exts, ext)
 		}
-		fmt.Println(k, v)
 		return true
 	}
 
