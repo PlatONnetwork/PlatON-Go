@@ -114,6 +114,9 @@ var cbft *Cbft
 func SetBlockChain(blockChain *core.BlockChain) {
 	log.Info("初始化cbft.blockChain")
 
+	cbft.lock.Lock()
+	defer cbft.lock.Unlock()
+
 	cbft.blockChain = blockChain
 	cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
 
