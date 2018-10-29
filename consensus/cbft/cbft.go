@@ -922,6 +922,15 @@ func (cbft *Cbft) HighestLogicalBlock() *types.Block {
 	return cbft.highestLogicalBlockExt.block
 }
 
+func IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
+	log.Info("验证是否是本节点的签名", "sealHash", sealHash.String(), "signature", hexutil.Encode(signature))
+	ok, err := verifySign(cbft.config.NodeID, sealHash, signature)
+	if err != nil {
+		return false
+	}
+	return ok
+}
+
 //把区块写入出块channel
 func (cbft *Cbft) writeChain(exts []*BlockExt) {
 
