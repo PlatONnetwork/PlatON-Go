@@ -342,8 +342,8 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 		//ext.state = state
 		ext.level = Legal
 
-		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts)
-		cbft.consensusCache.WriteStateDB(ext.block.Root(), state)
+		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
+		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
 
 	} else {
 		log.Warn("process block error", err)
