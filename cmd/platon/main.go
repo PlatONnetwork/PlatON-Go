@@ -167,9 +167,7 @@ var (
 )
 
 func init() {
-
 	// 初始化时候会启动
-
 	// Initialize the CLI app and start Geth
 	app.Action = geth
 	app.HideVersion = true // we have a command to print the version

@@ -54,15 +54,15 @@ type Miner struct {
 	shouldStart int32 // should start indicates whether we should start after sync
 }
 
-func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor,
-	gasCeil uint64, isLocalBlock func(block *types.Block) bool, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *Miner {
+func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor, gasCeil uint64,
+	isLocalBlock func(block *types.Block) bool, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, consensusCache *cbft.Cache) *Miner {
 	miner := &Miner{
 		eth:    eth,
 		mux:    mux,
 		engine: engine,
 		exitCh: make(chan struct{}),
 		// modify by platon
-		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil, isLocalBlock, blockSignatureCh, cbftResultCh),
+		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil, isLocalBlock, blockSignatureCh, cbftResultCh, consensusCache),
 		canStart: 1,
 	}
 	go miner.update()

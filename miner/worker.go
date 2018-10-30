@@ -177,6 +177,8 @@ type worker struct {
 	// External functions
 	isLocalBlock func(block *types.Block) bool // Function used to determine whether the specified block is mined by local miner.
 
+	consensusCache *cbft.Cache
+
 	// Test hooks
 	newTaskHook  func(*task)                        // Method to call upon receiving a new sealing task.
 	skipSealHook func(*task) bool                   // Method to decide whether skipping the sealing.
@@ -185,7 +187,7 @@ type worker struct {
 }
 
 func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64,
-	isLocalBlock func(*types.Block) bool, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *worker {
+	isLocalBlock func(*types.Block) bool, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, consensusCache *cbft.Cache) *worker {
 	worker := &worker{
 		config:             config,
 		engine:             engine,
@@ -212,6 +214,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		resubmitAdjustCh:   make(chan *intervalAdjust, resubmitAdjustChanSize),
 		blockSignatureCh:   blockSignatureCh,
 		cbftResultCh:       cbftResultCh,
+		consensusCache:     consensusCache,
 	}
 	// Subscribe NewTxsEvent for tx pool
 	worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
@@ -365,6 +368,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			timestamp = time.Now().Unix()
 			// modify by platon
 			//commit(false, commitInterruptNewHead)
+			// clear consensus cache
+			w.consensusCache.ClearCache(head.Block)
 
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
@@ -751,7 +756,9 @@ func (w *worker) resultLoop() {
 
 // makeCurrent creates a new environment for the current cycle.
 func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
-	state, err := w.chain.StateAt(parent.Root())
+	// modify by platon
+	//state, err := w.chain.StateAt(parent.Root())
+	state, err := w.consensusCache.MakeStateDB(parent)
 	if err != nil {
 		return err
 	}
@@ -1121,6 +1128,11 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		}
 		select {
 		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now()}:
+			// modify by platon
+			// 保存receipts、stateDB至缓存
+			w.consensusCache.WriteReceipts(block.Hash(), receipts)
+			w.consensusCache.WriteStateDB(block.Root(), s)
+
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
 			feesWei := new(big.Int)

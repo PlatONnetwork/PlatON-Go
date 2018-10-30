@@ -54,6 +54,7 @@ type Cbft struct {
 	irreversibleBlockExt   *BlockExt                      //不可逆块
 	signedSet              sync.Map                       //签名过的块高
 	lock                   sync.Mutex                     //保护LogicalChainTree
+	consensusCache		   *Cache
 }
 
 var cbft *Cbft
@@ -425,6 +426,10 @@ func (cbft *Cbft) collectLogicals(start *BlockExt, end *BlockExt) []*BlockExt {
 func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	cbft.config.PrivateKey = privateKey
 	cbft.config.NodeID = discover.PubkeyID(&privateKey.PublicKey)
+}
+
+func SetConsensusCache(cache *Cache) {
+	cbft.consensusCache = cache
 }
 
 func SetBlockChain(blockChain *core.BlockChain) {

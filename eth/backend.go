@@ -171,7 +171,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, err
 	}
 	// modify by platon
+	var consensusCache *cbft.Cache
 	if _, ok := eth.engine.(consensus.Bft); ok {
+		consensusCache = cbft.NewCache(eth.blockchain)
+		cbft.SetConsensusCache(consensusCache)
 		cbft.SetBlockChain(eth.blockchain)
 	}
 	// Rewind the chain in case of an incompatible config upgrade.
@@ -193,7 +196,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	// modify by platon
 	// 方法增加blockSignatureCh、cbftResultCh入参
-	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh)
+	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, consensusCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	eth.APIBackend = &EthAPIBackend{eth, nil}
