@@ -2,7 +2,6 @@ package cbfttypes
 
 import (
 	"Platon-go/common"
-	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"math/big"
 )
@@ -18,8 +17,8 @@ type BlockSignature struct {
 
 // modify by platon
 type CbftResult struct {
-	Block             *types.Block
-	Receipts          types.Receipts
-	State             *state.StateDB
+	Block *types.Block
+	//Receipts          types.Receipts
+	//State             *state.StateDB
 	BlockConfirmSigns []*common.BlockConfirmSign
 }

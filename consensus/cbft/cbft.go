@@ -54,6 +54,7 @@ type Cbft struct {
 	irreversibleBlockExt   *BlockExt                      //不可逆块
 	signedSet              sync.Map                       //签名过的块高
 	lock                   sync.Mutex                     //保护
+	consensusCache         *Cache
 }
 
 var cbft *Cbft
@@ -96,8 +97,8 @@ type BlockExt struct {
 	isIrreversible bool
 	lastSignTime   time.Time                  //签名计数器最新更新时间
 	signs          []*common.BlockConfirmSign //签名map，key=签名
-	receipts       types.Receipts             //执行区块后的收据
-	state          *state.StateDB             //执行区块后的状态
+	//receipts       types.Receipts             //执行区块后的收据
+	//state          *state.StateDB             //执行区块后的状态
 }
 
 //创建BlockExt对象
@@ -314,13 +315,22 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 //执行区块
 //执行成功，修改level=Legal，并保存回执和状态
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
+	state, err := cbft.consensusCache.MakeStateDB(ext.block)
+	if err != nil {
+		return
+	}
+
 	//执行
-	receipts, states, err := cbft.blockChain.ProcessDirectly(ext.block, parent.block)
+	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state)
 	if err == nil {
 		//执行成功，保存回执和状态
-		ext.receipts = receipts
-		ext.state = states
+		//ext.receipts = receipts
+		//ext.state = state
 		ext.level = Legal
+
+		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts)
+		cbft.consensusCache.WriteStateDB(ext.block.Root(), state)
+
 	} else {
 		log.Warn("process block error", err)
 	}
@@ -422,6 +432,10 @@ func (cbft *Cbft) collectLogicals(start *BlockExt, end *BlockExt) []*BlockExt {
 func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	cbft.config.PrivateKey = privateKey
 	cbft.config.NodeID = discover.PubkeyID(&privateKey.PublicKey)
+}
+
+func SetConsensusCache(cache *Cache) {
+	cbft.consensusCache = cache
 }
 
 func SetBlockChain(blockChain *core.BlockChain) {
@@ -952,9 +966,9 @@ func (cbft *Cbft) writeChain(exts []*BlockExt) {
 		log.Info("区块准备入链", "blockHash", ext.block.Hash())
 
 		cbftResult := &cbfttypes.CbftResult{
-			Block:             ext.block,
-			Receipts:          ext.receipts,
-			State:             ext.state,
+			Block: ext.block,
+			/*Receipts:          ext.receipts,
+			State:             ext.state,*/
 			BlockConfirmSigns: ext.signs,
 		}
 
