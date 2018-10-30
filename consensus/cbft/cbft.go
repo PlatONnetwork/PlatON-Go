@@ -85,9 +85,9 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 type Level int
 
 const (
-	Discrete Level = 0 << iota //不连续的，间断的，不要被执行，也不要签名
-	Legal                      //合法的，需要被执行
-	Logical                    //合理的，需要被执行，并签名
+	Discrete Level = iota //不连续的，间断的，不要被执行，也不要签名
+	Legal                 //合法的，需要被执行
+	Logical               //合理的，需要被执行，并签名
 )
 
 type BlockExt struct {
