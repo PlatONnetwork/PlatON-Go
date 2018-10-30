@@ -33,13 +33,13 @@ import (
 	"time"
 	"unsafe"
 
-	mmap "github.com/edsrzf/mmap-go"
 	"Platon-go/common"
 	"Platon-go/consensus"
 	"Platon-go/core/types"
 	"Platon-go/log"
 	"Platon-go/metrics"
 	"Platon-go/rpc"
+	mmap "github.com/edsrzf/mmap-go"
 	"github.com/hashicorp/golang-lru/simplelru"
 )
 

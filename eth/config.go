@@ -126,6 +126,9 @@ type Config struct {
 	EWASMInterpreter string
 	// Type of the EVM interpreter ("" for default)
 	EVMInterpreter string
+
+	// output wasm contract log into the file
+	WASMLogFile string `toml:",omitempty"`
 }
 
 type configMarshaling struct {

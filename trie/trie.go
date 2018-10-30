@@ -65,8 +65,8 @@ type LeafCallback func(leaf []byte, parent common.Hash) error
 //
 // Trie is not safe for concurrent use.
 type Trie struct {
-	db           *Database			// 后端的KV存储
-	root         node				// 当前的root节点
+	db           *Database // 后端的KV存储
+	root         node      // 当前的root节点
 	originalRoot common.Hash
 
 	// Cache generation values.

@@ -17,11 +17,7 @@
 package vm
 
 import (
-	"Platon-go/rlp"
-	"bytes"
-	"fmt"
 	"math/big"
-	"reflect"
 	"sync/atomic"
 	"time"
 
@@ -34,7 +30,6 @@ import (
 // deployed contract addresses (relevant after the account abstraction).
 var emptyCodeHash = crypto.Keccak256Hash(nil)
 
-// 定义了一堆的函数类型（高阶函数）
 type (
 	// CanTransferFunc is the signature of a transfer guard function
 	CanTransferFunc func(StateDB, common.Address, *big.Int) bool
@@ -47,7 +42,6 @@ type (
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
-	// todo: 执行预编译合约
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsHomestead
 		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {
@@ -57,7 +51,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}
-	// todo: 使用解释器（interpreters）执行合约
+
 	for _, interpreter := range evm.interpreters {
 		if interpreter.CanRun(contract.Code) {
 			if evm.interpreter != interpreter {
@@ -68,7 +62,6 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 				}(evm.interpreter)
 				evm.interpreter = interpreter
 			}
-			// todo: 解释器执行入口，调用run, input
 			return interpreter.Run(contract, input, readOnly)
 		}
 	}
@@ -229,7 +222,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 	// todo: 新逻辑，读取并设置abi
-	contract.SetCallAbi(&addr, evm.StateDB.GetAbiHash(addr), evm.StateDB.GetAbi(addr))
+	//contract.SetCallAbi(&addr, evm.StateDB.GetAbiHash(addr), evm.StateDB.GetAbi(addr))
 	start := time.Now()
 
 	// Capture the tracer start/end events in debug mode
@@ -405,12 +398,9 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 
 	// todo: code 为规则编码后的数据，需要进行转换RLP([txType][abi][code]),
 	// todo: txType 暂未使用
-	_, abi, co, er := parseRlpData(code)
-	if er != nil {
-		return nil, address, gas, nil
-	}
-	contract.SetCallAbi(&address, crypto.Keccak256Hash(abi), abi)
-	contract.SetCallCode(&address, crypto.Keccak256Hash(co), co)
+
+	//contract.SetCallAbi(&address, crypto.Keccak256Hash(abi), abi)
+	contract.SetCallCode(&address, crypto.Keccak256Hash(code), code)
 
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, address, gas, nil
@@ -432,6 +422,7 @@ func (evm *EVM) create(caller ContractRef, code []byte, gas uint64, value *big.I
 	// by the error checking condition below.
 	if err == nil && !maxCodeSizeExceeded {
 		createDataGas := uint64(len(ret)) * params.CreateDataGas
+		// todo: abi 的存储计费
 		if contract.UseGas(createDataGas) {
 			evm.StateDB.SetCode(address, ret)
 		} else {
@@ -476,40 +467,6 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
-
-// rlpData=RLP([txType][abi][code])
-func parseRlpData(rlpData []byte) (int, []byte, []byte, error) {
-	ptr := new(interface{})
-	err := rlp.Decode(bytes.NewReader(rlpData), &ptr)
-	if err != nil {
-		return -1, nil, nil, err
-	}
-	rlpList := reflect.ValueOf(ptr).Elem().Interface();
-
-	if _, ok := rlpList.([]interface{}); !ok {
-		return -1, nil, nil, fmt.Errorf("invalid rlp format.")
-	}
-
-	iRlpList := rlpList.([]interface{})
-	if len(iRlpList) <= 2 {
-		return -1, nil, nil, fmt.Errorf("invalid input. ele must greater than 2")
-	}
-	var (
-		txType 	int
-		code	[]byte
-		abi		[]byte
-	)
-	if v, ok := iRlpList[0].([]byte); ok {
-		txType = int(v[0])
-	}
-	if v, ok := iRlpList[1].([]byte); ok {
-		code = v
-	}
-	if v, ok := iRlpList[2].([]byte); ok {
-		abi = v
-	}
-	return txType, abi, code, nil
-}
 
 func (evm *EVM) GetStateDB() StateDB {
 	return evm.StateDB

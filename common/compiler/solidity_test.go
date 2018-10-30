@@ -77,11 +77,11 @@ func TestCompileError(t *testing.T) {
 }
 
 func TestSolidityVersion(t *testing.T) {
-	solidity, err := SolidityVersion("solc");
+	solidity, err := SolidityVersion("solc")
 	t.Log("哈哈哈哈，这是单元测试")
 	if err != nil {
 		t.Log("error throws.", err)
-	}else {
+	} else {
 		t.Log(solidity.Version)
 	}
 }

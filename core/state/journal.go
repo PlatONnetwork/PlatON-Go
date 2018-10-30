@@ -114,17 +114,19 @@ type (
 		prev    uint64
 	}
 	storageChange struct {
-		account       *common.Address
-		key, prevalue common.Hash
+		account  *common.Address
+		key      string
+		valueKey common.Hash
+		preValue []byte
 	}
 	codeChange struct {
 		account            *common.Address
 		prevcode, prevhash []byte
 	}
 	abiChange struct {
-		account 	*common.Address
-		prevabi		[]byte
-		prevhash	[]byte
+		account  *common.Address
+		prevabi  []byte
+		prevhash []byte
 	}
 
 	// 我理解是DAO事件的退款处理
@@ -220,7 +222,7 @@ func (ch abiChange) dirtied() *common.Address {
 }
 
 func (ch storageChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).setState(ch.key, ch.prevalue)
+	s.getStateObject(*ch.account).setState(ch.key, ch.valueKey, ch.preValue)
 }
 
 func (ch storageChange) dirtied() *common.Address {

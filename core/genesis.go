@@ -233,7 +233,8 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
 		for key, value := range account.Storage {
-			statedb.SetState(addr, key, value)
+			// todo: hash -> bytes
+			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 	}
 	root := statedb.IntermediateRoot(false)

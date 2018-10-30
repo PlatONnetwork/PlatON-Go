@@ -290,7 +290,7 @@ var (
 	CacheFlag = cli.IntFlag{
 		Name:  "cache",
 		Usage: "Megabytes of memory allocated to internal caching",
-		Value: 512,
+		Value: 1024,
 	}
 	CacheDatabaseFlag = cli.IntFlag{
 		Name:  "cache.database",
@@ -387,6 +387,12 @@ var (
 	PasswordFileFlag = cli.StringFlag{
 		Name:  "password",
 		Usage: "Password file to use for non-interactive password input",
+		Value: "",
+	}
+
+	WASMLogFileFlag = cli.StringFlag{
+		Name:  "wasmlog",
+		Usage: "output wasm contract log to file",
 		Value: "",
 	}
 
@@ -880,6 +886,10 @@ func setEtherbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *eth.Config) {
 	}
 }
 
+//setWasmLog
+func setWasmLogFile(ctx *cli.Context, cfg *eth.Config) {
+	cfg.WASMLogFile = ctx.GlobalString(WASMLogFileFlag.Name)
+}
 // MakePasswordList reads password lines from the file specified by the global --password flag.
 func MakePasswordList(ctx *cli.Context) []string {
 	path := ctx.GlobalString(PasswordFileFlag.Name)
@@ -1127,6 +1137,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	setEtherbase(ctx, ks, cfg)
+	setWasmLogFile(ctx, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	setEthash(ctx, cfg)

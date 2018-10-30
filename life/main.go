@@ -49,7 +49,6 @@ func main() {
 		panic(err)
 	}
 
-
 	*entryFunctionFlag = "transfer"
 	// Get the function ID of the entry function to be executed.
 	entryID, ok := vm.GetFunctionExport(*entryFunctionFlag)

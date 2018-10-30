@@ -72,6 +72,7 @@ type Database interface {
 type Trie interface {
 	TryGet(key []byte) ([]byte, error)
 	TryUpdate(key, value []byte) error
+	TryUpdateValue(key, value []byte) error
 	TryDelete(key []byte) error
 	Commit(onleaf trie.LeafCallback) (common.Hash, error)
 	Hash() common.Hash
@@ -96,7 +97,7 @@ func NewDatabase(db ethdb.Database) Database {
 type cachingDB struct {
 	db            *trie.Database
 	mu            sync.Mutex
-	pastTries     []*trie.SecureTrie	// trie树的缓存
+	pastTries     []*trie.SecureTrie // trie树的缓存
 	codeSizeCache *lru.Cache
 }
 
