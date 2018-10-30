@@ -1,0 +1,6 @@
+{
+  "url":"http://localhost:8545",
+  "gas": "0x166799",
+  "gasPrice": "0x8250de00",
+  "from":"0x60ceca9c1290ee56b98d4e160ef0453f7c40d219"
+}

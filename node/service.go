@@ -71,7 +71,6 @@ func (ctx *ServiceContext) Service(service interface{}) error {
 // registered for service instantiation.
 type ServiceConstructor func(ctx *ServiceContext) (Service, error)
 
-
 // node 中服务的定义，eth其实就是实现了一个服务.
 // Service is an individual protocol that can be registered into a node.
 //

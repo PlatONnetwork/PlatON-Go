@@ -217,6 +217,27 @@ func (a Address) Hex() string {
 	return "0x" + string(result)
 }
 
+func (a Address) HexWithNoPrefix() string {
+	unchecksummed := hex.EncodeToString(a[:])
+	sha := sha3.NewKeccak256()
+	sha.Write([]byte(unchecksummed))
+	hash := sha.Sum(nil)
+
+	result := []byte(unchecksummed)
+	for i := 0; i < len(result); i++ {
+		hashByte := hash[i/2]
+		if i%2 == 0 {
+			hashByte = hashByte >> 4
+		} else {
+			hashByte &= 0xf
+		}
+		if result[i] > '9' && hashByte > 7 {
+			result[i] -= 32
+		}
+	}
+	return string(result)
+}
+
 // String implements fmt.Stringer.
 func (a Address) String() string {
 	return a.Hex()

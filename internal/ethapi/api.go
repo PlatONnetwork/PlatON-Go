@@ -25,7 +25,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"Platon-go/accounts"
 	"Platon-go/accounts/keystore"
 	"Platon-go/common"
@@ -42,6 +41,7 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"Platon-go/rpc"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
@@ -597,7 +597,7 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 	if state == nil || err != nil {
 		return nil, err
 	}
-	res := state.GetState(address, common.HexToHash(key))
+	res := state.GetState(address, common.HexToHash(key).Bytes())
 	return res[:], state.Error()
 }
 

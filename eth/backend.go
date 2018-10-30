@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -165,6 +166,28 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
+
+	//创建wasm合约日志文件
+	if config.WASMLogFile == "" {
+		l :=log.New("wasm.stdout")
+
+		l.SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(os.Stdout, log.FormatFunc(func(r *log.Record) []byte {
+			return []byte{}
+		}))))
+
+		vmConfig.WasmLogger = l
+	} else {
+		l :=log.New("wasm.file")
+		handler, err := log.FileHandler(config.WASMLogFile, log.FormatFunc(func(r *log.Record) []byte {
+			return []byte(r.Msg)
+		}))
+		if err != nil {
+			return nil, err
+		}
+		l.SetHandler(handler)
+		vmConfig.WasmLogger = l
+	}
+
 	// 使用数据库创建了区块链
 	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, eth.chainConfig, eth.engine, vmConfig, eth.shouldPreserve)
 	if err != nil {

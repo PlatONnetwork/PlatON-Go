@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	clang		int = 0x01
-	golang		int = 0x02
+	clang  int = 0x01
+	golang int = 0x02
 )
 
 // new import resolver

@@ -36,7 +36,7 @@ import (
 	"Platon-go/event"
 	"Platon-go/log"
 	"Platon-go/params"
-	"github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 )
 
 const (

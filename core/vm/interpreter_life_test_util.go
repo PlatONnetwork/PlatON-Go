@@ -1,8 +1,8 @@
-
 package vm
 
 import (
 	"Platon-go/common"
+	"Platon-go/life/utils"
 	"Platon-go/rlp"
 	"bytes"
 	"encoding/binary"
@@ -11,7 +11,6 @@ import (
 )
 
 type ContractRefSelf struct {
-
 }
 
 func (c ContractRefSelf) Address() common.Address {
@@ -19,7 +18,6 @@ func (c ContractRefSelf) Address() common.Address {
 }
 
 type ContractRefCaller struct {
-
 }
 
 func (c ContractRefCaller) Address() common.Address {
@@ -29,11 +27,11 @@ func (c ContractRefCaller) Address() common.Address {
 func genInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, Int64ToBytes(1))
+	input = append(input, utils.Int64ToBytes(1))
 	input = append(input, []byte("transfer"))
 	input = append(input, []byte("0x0000000000000000000000000000000000000001"))
 	input = append(input, []byte("0x0000000000000000000000000000000000000002"))
-	input = append(input, Int64ToBytes(100))
+	input = append(input, utils.Int64ToBytes(100))
 
 	buffer := new(bytes.Buffer)
 	err := rlp.Encode(buffer, input)
@@ -44,7 +42,6 @@ func genInput() []byte {
 }
 
 type StateDBTest struct {
-
 }
 
 func bytes2int64(byt []byte) int64 {
@@ -53,9 +50,3 @@ func bytes2int64(byt []byte) int64 {
 	binary.Read(bytesBuf, binary.BigEndian, &tmp)
 	return tmp
 }
-
-
-
-
-
-

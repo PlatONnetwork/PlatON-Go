@@ -8,9 +8,9 @@ import (
 
 func ExampleExecute() {
 	// code, abi, input, cfg
-	abi := []byte{}
+	//abi := []byte{}
 	code := []byte{}
-	ret, _, err := runtime.Execute(code, abi, nil, nil)
+	ret, _, err := runtime.Execute(code, nil, nil)
 	if err != nil {
 		fmt.Println(err)
 	}

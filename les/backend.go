@@ -42,7 +42,7 @@ import (
 	"Platon-go/p2p"
 	"Platon-go/p2p/discv5"
 	"Platon-go/params"
-	"Platon-go/rpc"
+	rpc "Platon-go/rpc"
 )
 
 type LightEthereum struct {

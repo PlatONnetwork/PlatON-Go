@@ -7,9 +7,9 @@ import (
 	"github.com/go-interpreter/wagon/disasm"
 	"github.com/go-interpreter/wagon/wasm"
 	//"github.com/go-interpreter/wagon/validate"
-	"github.com/go-interpreter/wagon/wasm/leb128"
 	"Platon-go/life/compiler/opcodes"
 	"Platon-go/life/utils"
+	"github.com/go-interpreter/wagon/wasm/leb128"
 )
 
 type Module struct {

@@ -54,7 +54,6 @@ type Cbft struct {
 	irreversibleBlockExt   *BlockExt                      //不可逆块
 	signedSet              sync.Map                       //签名过的块高
 	lock                   sync.Mutex                     //保护LogicalChainTree
-	consensusCache		   *Cache
 }
 
 var cbft *Cbft
@@ -86,9 +85,9 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 type Level int
 
 const (
-	Discrete Level = 0 << iota //不连续的，间断的，不要被执行，也不要签名
-	Legal                      //合法的，需要被执行
-	Logical                    //合理的，需要被执行，并签名
+	Discrete Level = iota //不连续的，间断的，不要被执行，也不要签名
+	Legal                 //合法的，需要被执行
+	Logical               //合理的，需要被执行，并签名
 )
 
 type BlockExt struct {
@@ -164,9 +163,12 @@ func (ext *BlockExt) findChildren() []*BlockExt {
 	return cbft.findChildren(ext.block.Hash())
 }
 
-//查找节点
 func (cbft *Cbft) saveBlock(ext *BlockExt) {
 	cbft.blockExtMap.Store(ext.block.Hash(), ext)
+}
+
+func (cbft *Cbft) saveEmptyBlock(hash common.Hash, ext *BlockExt) {
+	cbft.blockExtMap.Store(hash, ext)
 }
 
 //从Ext开始，重新设置合理块路径。
@@ -196,8 +198,9 @@ func (ext *BlockExt) isSame(other *BlockExt) bool {
 //重置最高合理区块。从合理块ext为根的子树中查询，区块最高的节点为新的最高合理块。从ext到查询出的节点间的路径上的节点，都是合理块
 func (cbft *Cbft) resetHighest(highest *BlockExt) {
 	//highest := cbft.findHighest(ext)
-	highest.level = Logical
+	//highest.level = Logical
 	cbft.highestLogicalBlockExt = highest
+	log.Info("设置最高合理区块", "hash", cbft.highestLogicalBlockExt.block.Hash(), "number", cbft.highestLogicalBlockExt.block.NumberU64())
 }
 
 //查询ext为根的树中块高最高节点; 相同块高，取签名数多的节点
@@ -249,6 +252,7 @@ func (cbft *Cbft) findMaxSigns(ext *BlockExt) *BlockExt {
 }
 
 func (cbft *Cbft) execDescendant(ext *BlockExt, parent *BlockExt) {
+	log.Info("执行区块", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 	if ext.level == Discrete {
 		cbft.execute(ext, parent)
 	}
@@ -269,6 +273,7 @@ func (cbft *Cbft) signLogicals(exts []*BlockExt) {
 		}
 		//if _, signed := cbft.signedSet.Load(ext.block.NumberU64()); !signed && ext.level == Legal { //是合法节点 {
 		if _, signed := cbft.signedSet.Load(ext.block.NumberU64()); !signed { //相同块高未签名的
+			log.Info("签名区块", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 			cbft.sign(ext)
 		}
 		//设置合理块标识（不一定要被签名）
@@ -279,10 +284,10 @@ func (cbft *Cbft) signLogicals(exts []*BlockExt) {
 //签名块
 func (cbft *Cbft) sign(ext *BlockExt) {
 	//签名
-	signHash := signHash(ext.block.Header())
-	signature, err := cbft.signFn(signHash.Bytes())
+	sealHash := sealHash(ext.block.Header())
+	signature, err := cbft.signFn(sealHash.Bytes())
 	if err == nil {
-		log.Info("区块签名值", "signHash", signHash.String(), "sign", hexutil.Encode(signature))
+		log.Info("签名区块结果", "blockHash", ext.block.Hash(), "sealHash", sealHash, "sign", hexutil.Encode(signature))
 
 		sign := common.NewBlockConfirmSign(signature)
 		ext.collectSign(sign)
@@ -295,7 +300,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 
 		//广播签名
 		blockSign := &cbfttypes.BlockSignature{
-			SignHash:  signHash,
+			SignHash:  sealHash,
 			Hash:      blockHash,
 			Number:    ext.block.Number(),
 			Signature: sign,
@@ -319,15 +324,6 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	} else {
 		log.Warn("process block error", err)
 	}
-}
-
-//查找父节点
-func (cbft *Cbft) findParent(parentHash common.Hash) *BlockExt {
-	v, ok := cbft.blockExtMap.Load(parentHash)
-	if ok {
-		return v.(*BlockExt)
-	}
-	return nil
 }
 
 //查找孩子节点（可以有多个）
@@ -428,10 +424,6 @@ func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	cbft.config.NodeID = discover.PubkeyID(&privateKey.PublicKey)
 }
 
-func SetConsensusCache(cache *Cache) {
-	cbft.consensusCache = cache
-}
-
 func SetBlockChain(blockChain *core.BlockChain) {
 	log.Info("初始化cbft.blockChain")
 
@@ -449,14 +441,14 @@ func SetBlockChain(blockChain *core.BlockChain) {
 		currentBlock.Number()
 	}
 
-	log.Info("初始化cbft.highestLogicalBlock", "hash", currentBlock.Hash().String(), "number", currentBlock.NumberU64())
+	log.Info("初始化cbft.highestLogicalBlock", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 
 	blockExt := NewBlockExt(currentBlock)
 	blockExt.level = Logical
 	blockExt.isIrreversible = true
 
 	//最高合理块
-	cbft.highestLogicalBlockExt = blockExt
+	cbft.resetHighest(blockExt)
 
 	//当前不可逆块
 	cbft.irreversibleBlockExt = blockExt
@@ -468,9 +460,11 @@ func BlockSynchronisation() {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
+	log.Info("区块同步处理")
 	currentBlock := cbft.blockChain.CurrentBlock()
 	//如果链上块高>内存中不可逆块高
 	if currentBlock.NumberU64() > cbft.irreversibleBlockExt.block.NumberU64() {
+		log.Info("区块同步处理， 发现更高的不可逆区块")
 		//准备新的不可逆块
 		newIrr := NewBlockExt(currentBlock)
 		newIrr.level = Logical
@@ -533,9 +527,11 @@ func (cbft *Cbft) blockReceiverGoroutine() {
 //此新不可逆块，已经被处理（执行/签名），所有后代也已经处理（执行），并且新的合理链路已经设置好，新合理链上的块也已经处理（执行/签名）
 //从ext开始查看是否有可入链块
 func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) {
-
+	log.Info("处理新的不可逆块")
 	//收集可入链的块，不包括原来的不可逆块，并按块高排好序
 	irrs := cbft.listIrreversibles(newIrr)
+
+	log.Info("处理新的不可逆块", "可以入链的区块数量", len(irrs))
 
 	cbft.writeChain(irrs)
 
@@ -552,7 +548,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Info("收到新签名", "blockHash", sig.Hash)
+	log.Info("收到新签名==>>", "blockHash", sig.Hash)
 	var ext *BlockExt
 
 	if ext = cbft.findBlockExt(sig.Hash); ext == nil {
@@ -560,7 +556,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 		//没有的话，new一个BlockExt
 		ext = NewBlockExt(nil)
 		ext.level = Discrete
-		cbft.saveBlock(ext)
+		cbft.saveEmptyBlock(sig.Hash, ext)
 	}
 
 	//收集签名
@@ -595,7 +591,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	if err != nil {
 		return err
 	}
-	log.Info("收到的新块，出块方：", "producerNodeID", producerNodeID.String())
+	log.Info("收到新块==>>", "producerNodeID", producerNodeID.String())
 
 	//检查块是否在出块人的时间窗口内生成的
 	//时间合法性计算，不合法返回error
@@ -625,6 +621,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	if ext.isNextHighest() { //是下一个最高合理节点
 		//执行新块和所有后代块
+		log.Info("是下一个最高合理节点")
 		cbft.execDescendant(ext, cbft.highestLogicalBlockExt)
 
 		//重置从ext开始的合理链路径（如果链路上节点需要签名则签名，并设置最高合理节点）
@@ -638,16 +635,21 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 				// 执行所有后代
 				cbft.execDescendant(ext, parent)
 			}
+		} else {
+			log.Info("收到的新块是孤区块，暂时不处理")
 		}
 	}
 
 	//新块已经处理（执行/签名），后代也已经处理（执行），并且可能的新合理路径也设置好（未签名的也已经签名）
 	//从ext开始查看是否有可入链块
-	newIrr := cbft.findHighestNewIrreversible(ext)
+	if ext.level != Discrete {
+		log.Info("从新块开始，查看是否有可入链区块")
+		newIrr := cbft.findHighestNewIrreversible(ext)
 
-	if newIrr != nil {
-		//处理新不可逆块
-		cbft.handleNewIrreversible(newIrr)
+		if newIrr != nil {
+			//处理新不可逆块
+			cbft.handleNewIrreversible(newIrr)
+		}
 	}
 	return nil
 }
@@ -674,7 +676,7 @@ func (cbft *Cbft) IsConsensusNode() (bool, error) {
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
-	log.Info("call Author(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number)
+	log.Info("call Author(), parameter: ", "headerHash", header.Hash(), "headerNumber", header.Number)
 
 	// 返回出块节点对应的矿工钱包地址
 	return header.Coinbase, nil
@@ -687,7 +689,7 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 // header: 	需要验证的区块头
 // seal:	是否要验证封印（出块签名）
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	log.Info("call VerifyHeader(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number, "seal", seal)
+	log.Info("call VerifyHeader(), parameter: ", "headerHash", header.Hash(), "headerNumber", header.Number, "seal", seal)
 
 	//todo:每秒一个交易，校验块高/父区块
 	if header.Number == nil {
@@ -738,7 +740,7 @@ func (cbft *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) 
 // 校验(别的结点广播过来的)区块信息
 // 主要是对区块的出块节点，以及区块难度值的确认
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	log.Info("call VerifySeal(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number.String())
+	log.Info("call VerifySeal(), parameter: ", "headerHash", header.Hash(), "headerNumber", header.Number.String())
 
 	return cbft.verifySeal(chain, header, nil)
 }
@@ -746,7 +748,7 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
-	log.Info("call Prepare(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number.String())
+	log.Info("call Prepare(), parameter: ", "headerHash", header.Hash(), "headerNumber", header.Number.String())
 
 	//检查父区块
 	if header.ParentHash != cbft.highestLogicalBlockExt.block.Hash() || header.Number.Uint64()-1 != cbft.highestLogicalBlockExt.block.NumberU64() {
@@ -768,7 +770,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Info("call Finalize(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number.String(), "txs", len(txs), "receipts", len(receipts))
+	log.Info("call Finalize(), parameter: ", "headerHash", header.Hash(), "headerNumber", header.Number.String(), "txs", len(txs), "receipts", len(receipts))
 
 	// 生成具体的区块信息
 	// 填充上Header.Root, TxHash, ReceiptHash, UncleHash等几个属性
@@ -779,7 +781,7 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 // 完成对区块的签名成功，并设置到header.Extra中，然后把区块发送到sealResultCh通道中（然后会被组播到其它共识节点）
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
-	log.Info("call Seal(), parameter", "block", block)
+	log.Info("call Seal(), parameter", "number", block.NumberU64(), "parentHash", block.ParentHash())
 
 	header := block.Header()
 	number := block.NumberU64()
@@ -789,36 +791,40 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		return errUnknownBlock
 	}
 
-	parent := cbft.findParent(header.ParentHash)
+	parent := cbft.findBlockExt(header.ParentHash)
 	if parent == nil {
-		log.Error("找不到父节点", "parentHash", header.ParentHash.String())
+		log.Error("找不到父节点", "parentHash", header.ParentHash)
 		return errUnknownBlock
 	}
 
 	//todo:检查ext.block 和 入参 block
 
 	// 开始签名
-	sign, err := cbft.signFn(signHash(header).Bytes())
+	sign, err := cbft.signFn(sealHash(header).Bytes())
 	if err != nil {
 		return err
 	}
 
-	ext := NewBlockExt(block)
+	//将签名结果替换区块头的Extra字段（专门支持记录额外信息的）
+	copy(header.Extra[len(header.Extra)-extraSeal:], sign[:])
+
+	//得到完成签名后的区块
+	sealedBlock := block.WithSeal(header)
+
+	//ext中保存的是完成签名后的block。header.extra中必须有签名
+	ext := NewBlockExt(sealedBlock)
 
 	// 标识为合理块，并且执行（在挖矿过程中执行）/签名过。
 	// 这样，本地节点出的块，就不会在共识引擎中执行，这样，相应的BlockExt中就没有此区块的执行回执receipts和状态state
 	ext.level = Logical
 
-	//保存
-	cbft.saveBlock(ext)
-
 	//收集新区块的签名
 	ext.collectSign(common.NewBlockConfirmSign(sign))
 
-	//将签名结果替换区块头的Extra字段（专门支持记录额外信息的）
-	copy(header.Extra[len(header.Extra)-extraSeal:], sign[:])
+	//保存(blockExtMap.key必须是块经过Seal后的hash)
+	cbft.saveBlock(ext)
 
-	sealedBlock := block.WithSeal(header)
+	log.Info("签名完成", "number", block.NumberU64(), "blockHash", sealedBlock.Hash(), "parentHash", block.ParentHash())
 
 	if len(cbft.dpos.primaryNodeList) == 1 {
 		//单个节点，直接出块
@@ -840,7 +846,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 			return
 		case sealResultCh <- sealedBlock: //发送给p2p，把区块广播到其它节点
 		default: //如果没有接收数据，则走default
-			log.Warn("Sealing result is not read by miner", "sealhash", cbft.SealHash(header).String())
+			log.Warn("Sealing result is not read by miner", "sealHash", cbft.SealHash(header))
 		}
 	}()
 	return nil
@@ -850,17 +856,17 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 // that a new block should have based on the previous blocks in the chain and the
 // current signer.
 func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
-	log.Info("call CalcDifficulty(), parameter", "time", time, "parentHash", parent.Hash().String(), "parentNumber", parent.Number.String())
+	log.Info("call CalcDifficulty(), parameter", "time", time, "parentHash", parent.Hash(), "parentNumber", parent.Number.String())
 
 	return big.NewInt(2)
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
-	log.Info("call SealHash(), parameter", "headerHash", header.Hash().String(), "headerNumber", header.Number.String())
+	log.Info("call SealHash(), parameter", "headerHash", header.Hash(), "headerNumber", header.Number.String())
 
 	//return consensus.SigHash(header)
-	return signHash(header)
+	return sealHash(header)
 }
 
 // Close implements consensus.Engine. It's a noop for clique as there is are no background threads.
@@ -916,7 +922,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 //收到新的区块
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Info("收到新的区块==>>, parameter", "blockHash", rcvBlock.Hash().String(), "Number", rcvBlock.Header().Number, "ParentHash", rcvBlock.ParentHash().String(), "headerExtra", hexutil.Encode(rcvBlock.Header().Extra))
+	log.Info("收到新的区块==>>, parameter", "blockHash", rcvBlock.Hash(), "Number", rcvBlock.Header().Number, "ParentHash", rcvBlock.ParentHash(), "headerExtra", hexutil.Encode(rcvBlock.Header().Extra))
 
 	cbft.blockReceiveCh <- rcvBlock
 	return nil
@@ -930,7 +936,7 @@ func (cbft *Cbft) HighestLogicalBlock() *types.Block {
 }
 
 func IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
-	log.Info("验证是否是本节点的签名", "sealHash", sealHash.String(), "signature", hexutil.Encode(signature))
+	log.Info("验证是否是本节点的签名", "sealHash", sealHash, "signature", hexutil.Encode(signature))
 	ok, err := verifySign(cbft.config.NodeID, sealHash, signature)
 	if err != nil {
 		return false
@@ -1012,10 +1018,10 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
 	log.Info("收到新块", "sign", hexutil.Encode(signature))
-	signHash := signHash(header)
-	log.Info("收到新块", "signHash", signHash.String())
+	sealHash := sealHash(header)
+	log.Info("收到新块", "sealHash", sealHash)
 
-	pubkey, err := crypto.Ecrecover(signHash.Bytes(), signature)
+	pubkey, err := crypto.Ecrecover(sealHash.Bytes(), signature)
 	if err != nil {
 		return nodeID, []byte{}, err
 	}
@@ -1030,7 +1036,7 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 
 func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature []byte) (bool, error) {
 
-	log.Info("验证签名", "sealHash", sealHash.String(), "signature", hexutil.Encode(signature), "expectedNodeID", hexutil.Encode(expectedNodeID.Bytes()))
+	log.Info("验证签名", "sealHash", sealHash, "signature", hexutil.Encode(signature), "expectedNodeID", hexutil.Encode(expectedNodeID.Bytes()))
 
 	pubkey, err := crypto.SigToPub(sealHash.Bytes(), signature)
 
@@ -1047,7 +1053,7 @@ func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature 
 	return false, nil
 }
 
-func signHash(header *types.Header) (hash common.Hash) {
+func sealHash(header *types.Header) (hash common.Hash) {
 	hasher := sha3.NewKeccak256()
 
 	rlp.Encode(hasher, []interface{}{
@@ -1101,6 +1107,7 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 
 //取最高区块
 func (cbft *Cbft) getHighestLogicalBlock() *types.Block {
+	log.Info("获取最高合理区块", "hash", cbft.highestLogicalBlockExt.block.Hash(), "number", cbft.highestLogicalBlockExt.block.NumberU64())
 	return cbft.highestLogicalBlockExt.block
 }
 

@@ -110,6 +110,11 @@ func (t *SecureTrie) TryUpdate(key, value []byte) error {
 	return nil
 }
 
+func (t *SecureTrie) TryUpdateValue(key, value []byte) error {
+	t.getSecKeyCache()[string(key)] = common.CopyBytes(value)
+	return nil
+}
+
 // Delete removes any existing value for key from the trie.
 func (t *SecureTrie) Delete(key []byte) {
 	if err := t.TryDelete(key); err != nil {
@@ -122,6 +127,7 @@ func (t *SecureTrie) Delete(key []byte) {
 func (t *SecureTrie) TryDelete(key []byte) error {
 	hk := t.hashKey(key)
 	delete(t.getSecKeyCache(), string(hk))
+
 	return t.trie.TryDelete(hk)
 }
 

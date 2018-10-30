@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"Platon-go/log"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -81,6 +82,7 @@ type VMContext struct {
 
 	// new field
 	StateDB StateDB
+	Log log.Logger
 }
 
 type VMMemory struct {
