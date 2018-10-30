@@ -153,18 +153,15 @@ func (ext *BlockExt) findParent() *BlockExt {
 		return nil
 	}
 
-	/*todo:应该用这个
 	parent := cbft.findBlockExt(ext.block.ParentHash())
 	if parent != nil {
-		if parent.block.NumberU64() + 1 == ext.block.NumberU64() {
+		if parent.block.NumberU64()+1 == ext.block.NumberU64() {
 			return parent
-		}else{
+		} else {
 			log.Warn("数据错误，父区块hash能对应上，但是块高对应不上")
 		}
 	}
-	return nil*/
-
-	return cbft.findBlockExt(ext.block.ParentHash())
+	return nil
 }
 
 //查找ext的孩子节点（可以有多个）
@@ -172,7 +169,28 @@ func (ext *BlockExt) findChildren() []*BlockExt {
 	if ext.block == nil {
 		return nil
 	}
-	return cbft.findChildren(ext.block.Hash())
+
+	children := make([]*BlockExt, 0)
+
+	f := func(k, v interface{}) bool {
+		child, _ := v.(*BlockExt)
+		if child.block.ParentHash() == ext.block.Hash() {
+			if child.block.NumberU64()-1 == ext.block.NumberU64() {
+				children = append(children, child)
+			} else {
+				log.Warn("数据错误，子区块hash能对应上，但是块高对应不上")
+			}
+		}
+		return true
+	}
+
+	cbft.blockExtMap.Range(f)
+
+	if len(children) == 0 {
+		return nil
+	} else {
+		return children
+	}
 }
 
 func (cbft *Cbft) saveBlock(ext *BlockExt) {
@@ -349,49 +367,6 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 		log.Warn("process block error", err)
 	}
 }
-
-//查找孩子节点（可以有多个）
-func (cbft *Cbft) findChildren(hash common.Hash) []*BlockExt {
-	exts := make([]*BlockExt, 0)
-
-	f := func(k, v interface{}) bool {
-		ext, _ := v.(*BlockExt)
-		if ext.block.ParentHash() == hash {
-			exts = append(exts, ext)
-		}
-		return true
-	}
-
-	cbft.blockExtMap.Range(f)
-
-	if len(exts) == 0 {
-		return nil
-	} else {
-		return exts
-	}
-}
-
-/* todo:应该用这个
-func (cbft *Cbft) findChildren(hash common.Hash, number uint64) []*BlockExt {
-	children := make([]*BlockExt, 0)
-
-	f := func(k, v interface{}) bool {
-		child, _ := v.(*BlockExt)
-		if child.block.ParentHash() == hash && child.block.NumberU64() -1 == number{
-			children = append(children, child)
-		}
-		return true
-	}
-
-	cbft.blockExtMap.Range(f)
-
-	if len(children) == 0 {
-		return nil
-	} else {
-		return children
-	}
-}
-*/
 
 //收集从ext到不可逆块路径上的块，不包括原来的不可逆块，并按块高排好序
 func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
