@@ -163,9 +163,12 @@ func (ext *BlockExt) findChildren() []*BlockExt {
 	return cbft.findChildren(ext.block.Hash())
 }
 
-//查找节点
 func (cbft *Cbft) saveBlock(ext *BlockExt) {
 	cbft.blockExtMap.Store(ext.block.Hash(), ext)
+}
+
+func (cbft *Cbft) saveEmptyBlock(hash common.Hash, ext *BlockExt) {
+	cbft.blockExtMap.Store(hash, ext)
 }
 
 //从Ext开始，重新设置合理块路径。
@@ -320,15 +323,6 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	} else {
 		log.Warn("process block error", err)
 	}
-}
-
-//查找父节点
-func (cbft *Cbft) findParent(parentHash common.Hash) *BlockExt {
-	v, ok := cbft.blockExtMap.Load(parentHash)
-	if ok {
-		return v.(*BlockExt)
-	}
-	return nil
 }
 
 //查找孩子节点（可以有多个）
@@ -561,7 +555,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 		//没有的话，new一个BlockExt
 		ext = NewBlockExt(nil)
 		ext.level = Discrete
-		cbft.saveBlock(ext)
+		cbft.saveEmptyBlock(sig.Hash, ext)
 	}
 
 	//收集签名
@@ -786,7 +780,7 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 // 完成对区块的签名成功，并设置到header.Extra中，然后把区块发送到sealResultCh通道中（然后会被组播到其它共识节点）
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
-	log.Info("call Seal(), parameter", "block", block)
+	log.Info("call Seal(), parameter", "number", block.NumberU64(), "parentHash", block.ParentHash())
 
 	header := block.Header()
 	number := block.NumberU64()
@@ -796,9 +790,9 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		return errUnknownBlock
 	}
 
-	parent := cbft.findParent(header.ParentHash)
+	parent := cbft.findBlockExt(header.ParentHash)
 	if parent == nil {
-		log.Error("找不到父节点", "parentHash", header.ParentHash.String())
+		log.Error("找不到父节点", "parentHash", header.ParentHash)
 		return errUnknownBlock
 	}
 
