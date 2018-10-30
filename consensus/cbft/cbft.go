@@ -111,8 +111,7 @@ func NewBlockExt(block *types.Block) *BlockExt {
 
 //查找节点
 func (cbft *Cbft) findBlockExt(hash common.Hash) *BlockExt {
-	v, ok := cbft.blockExtMap.Load(hash)
-	if ok {
+	if v, ok := cbft.blockExtMap.Load(hash); ok {
 		return v.(*BlockExt)
 	}
 	return nil
@@ -153,6 +152,17 @@ func (ext *BlockExt) findParent() *BlockExt {
 	if ext.block == nil {
 		return nil
 	}
+
+	/*parent := cbft.findBlockExt(ext.block.ParentHash())
+	if parent != nil {
+		if parent.block.NumberU64() + 1 == ext.block.NumberU64() {
+			return parent
+		}else{
+			log.Warn("数据错误，父区块hash能对应上，但是块高对应不上")
+		}
+	}
+	return nil*/
+
 	return cbft.findBlockExt(ext.block.ParentHash())
 }
 
@@ -206,6 +216,7 @@ func (cbft *Cbft) resetHighest(highest *BlockExt) {
 
 //查询ext为根的树中块高最高节点; 相同块高，取签名数多的节点
 func (cbft *Cbft) findHighest(ext *BlockExt) *BlockExt {
+	log.Debug("findHighest() 递归")
 	highest := ext
 	children := ext.findChildren()
 	if children != nil {
@@ -221,6 +232,7 @@ func (cbft *Cbft) findHighest(ext *BlockExt) *BlockExt {
 
 //查询ext为根的树中新的不可逆的最高节点（返回第一个满足条件的块）
 func (cbft *Cbft) findHighestNewIrreversible(ext *BlockExt) *BlockExt {
+	log.Debug("findHighestNewIrreversible() 递归")
 	irr := ext
 	if len(irr.signs) < cbft.getThreshold() {
 		irr = nil
@@ -239,6 +251,7 @@ func (cbft *Cbft) findHighestNewIrreversible(ext *BlockExt) *BlockExt {
 
 //查询树中，签名数最多的节点; 签名数相同，，则取块高的节点
 func (cbft *Cbft) findMaxSigns(ext *BlockExt) *BlockExt {
+	log.Debug("findMaxSigns() 递归")
 	max := ext
 	children := ext.findChildren()
 	if children != nil {
@@ -253,7 +266,7 @@ func (cbft *Cbft) findMaxSigns(ext *BlockExt) *BlockExt {
 }
 
 func (cbft *Cbft) execDescendant(ext *BlockExt, parent *BlockExt) {
-	log.Info("执行区块", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
+	log.Info("递归执行区块", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 	if ext.level == Discrete {
 		cbft.execute(ext, parent)
 	}
@@ -359,6 +372,8 @@ func (cbft *Cbft) findChildren(hash common.Hash) []*BlockExt {
 
 //收集从ext到不可逆块路径上的块，不包括原来的不可逆块，并按块高排好序
 func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
+	log.Debug("收集到新不可逆区块", "Hash", newIrr.block.Hash(), "Number", newIrr.block.NumberU64())
+
 	exts := make([]*BlockExt, 1)
 	exts[0] = newIrr
 
@@ -372,6 +387,7 @@ func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
 			findRootIrr = true
 			break
 		} else {
+			log.Debug("收集到新不可逆区块", "Hash", parent.block.Hash(), "Number", parent.block.NumberU64())
 			exts = append(exts, parent)
 		}
 	}
