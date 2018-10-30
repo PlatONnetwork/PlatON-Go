@@ -53,7 +53,7 @@ type Cbft struct {
 	highestLogicalBlockExt *BlockExt                      //区块块号最高的合理块
 	irreversibleBlockExt   *BlockExt                      //不可逆块
 	signedSet              sync.Map                       //签名过的块高
-	lock                   sync.Mutex                     //保护LogicalChainTree
+	lock                   sync.Mutex                     //保护
 }
 
 var cbft *Cbft
