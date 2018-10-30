@@ -153,7 +153,8 @@ func (ext *BlockExt) findParent() *BlockExt {
 		return nil
 	}
 
-	/*parent := cbft.findBlockExt(ext.block.ParentHash())
+	/*todo:应该用这个
+	parent := cbft.findBlockExt(ext.block.ParentHash())
 	if parent != nil {
 		if parent.block.NumberU64() + 1 == ext.block.NumberU64() {
 			return parent
@@ -369,6 +370,28 @@ func (cbft *Cbft) findChildren(hash common.Hash) []*BlockExt {
 		return exts
 	}
 }
+
+/* todo:应该用这个
+func (cbft *Cbft) findChildren(hash common.Hash, number uint64) []*BlockExt {
+	children := make([]*BlockExt, 0)
+
+	f := func(k, v interface{}) bool {
+		child, _ := v.(*BlockExt)
+		if child.block.ParentHash() == hash && child.block.NumberU64() -1 == number{
+			children = append(children, child)
+		}
+		return true
+	}
+
+	cbft.blockExtMap.Range(f)
+
+	if len(children) == 0 {
+		return nil
+	} else {
+		return children
+	}
+}
+*/
 
 //收集从ext到不可逆块路径上的块，不包括原来的不可逆块，并按块高排好序
 func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
