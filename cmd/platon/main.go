@@ -28,7 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elastic/gosigar"
 	"Platon-go/accounts"
 	"Platon-go/accounts/keystore"
 	"Platon-go/cmd/utils"
@@ -39,6 +38,7 @@ import (
 	"Platon-go/log"
 	"Platon-go/metrics"
 	"Platon-go/node"
+	"github.com/elastic/gosigar"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -132,6 +132,7 @@ var (
 		utils.GpoPercentileFlag,
 		utils.EWASMInterpreterFlag,
 		utils.EVMInterpreterFlag,
+		utils.WASMLogFileFlag,
 		configFileFlag,
 	}
 

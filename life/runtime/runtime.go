@@ -76,7 +76,7 @@ func setDefaults(cfg *Config) {
 //
 // Executes sets up a in memory, temporarily, environment for the execution of
 // the given code. It makes sure that it's restored to it's original state afterwards.
-func Execute(code, abi, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
+func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	if cfg == nil {
 		cfg = new(Config)
 	}
@@ -95,7 +95,7 @@ func Execute(code, abi, input []byte, cfg *Config) ([]byte, *state.StateDB, erro
 	// set the receiver's (the executing contract) code for execution.
 	cfg.State.SetCode(address, code)
 	// set the receiver's abi for execution
-	cfg.State.SetAbi(address, abi)
+	//cfg.State.SetAbi(address, abi)
 	// Call the code with the given configuration.
 	ret, _, err := vmenv.Call(
 		sender,

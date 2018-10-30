@@ -1,22 +1,25 @@
 package vm
 
+import "Platon-go/log"
+
 // Config are the configuration options for the interpreter
 type Config struct {
+	WasmLogger log.Logger
 	// Debug enable debugging Interpreter options
-	Debug 					bool
+	Debug bool
 	// Tracer is the op code logger
-	Tracer 					Tracer
+	Tracer Tracer
 	// NoRecursion disabled interpreter call, callcode,
 	// delegate call and create
-	NoRecursion 			bool
+	NoRecursion bool
 	// Enable recording of SHA3/keccak preimages
 	EnablePreimageRecording bool
 	// JumpTable contains the EVM instruction table. This
 	// may be left uninitialised and will be set to the default table.
-	JumpTable				[256]operation
+	JumpTable [256]operation
 
 	// Type of the EWASM interpreter
-	EWASMInterpreter		string
+	EWASMInterpreter string
 	// Type of the EVM interpreter
-	EVMInterpreter			string
+	EVMInterpreter string
 }

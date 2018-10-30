@@ -2,13 +2,14 @@ package vm
 
 import (
 	"Platon-go/common"
+	"Platon-go/core/types"
 	"math/big"
 )
 
 type WasmStateDB struct {
-	StateDB StateDB
-	evm     *EVM
-	cfg     *Config
+	StateDB  StateDB
+	evm      *EVM
+	cfg      *Config
 	contract *Contract
 }
 
@@ -17,8 +18,7 @@ func (self *WasmStateDB) GasPrice() int64 {
 }
 
 func (self *WasmStateDB) BlockHash(num uint64) common.Hash {
-	// todo: 待细看
-	return common.Hash{}
+	return self.evm.GetHash(num)
 }
 
 func (self *WasmStateDB) BlockNumber() *big.Int {
@@ -52,3 +52,21 @@ func (self *WasmStateDB) Caller() common.Address {
 func (self *WasmStateDB) Address() common.Address {
 	return self.contract.Address()
 }
+
+func (self *WasmStateDB) CallValue() int64 {
+	return self.contract.Value().Int64()
+}
+
+func (self *WasmStateDB) AddLog(log *types.Log)  {
+	self.evm.StateDB.AddLog(log)
+}
+
+func (self *WasmStateDB) SetState(key []byte, value []byte)  {
+	self.evm.StateDB.SetState(self.Address(), key, value)
+}
+
+func (self *WasmStateDB) GetState(key []byte) []byte {
+	return self.evm.StateDB.GetState(self.Address(), key)
+}
+
+

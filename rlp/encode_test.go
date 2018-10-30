@@ -293,7 +293,7 @@ func TestEncodeF03(t *testing.T) {
 	//val :=  []interface{}{"transfer", uint(0xFFFFFF), []interface{}{[]uint{4, 5, 5}}, "abc"}
 	fmt.Println([]byte("人才是你吗"))
 	var source [][]byte
-	source = make([][]byte,0)
+	source = make([][]byte, 0)
 	source = append(source, []byte("人才是你吗"))
 	source = append(source, uint64ToBytes(1000))
 	source = append(source, uint64ToBytes(2000))
@@ -315,7 +315,7 @@ func TestEncodeF03(t *testing.T) {
 
 	deref := reflect.ValueOf(ptr).Elem().Interface()
 	fmt.Println(deref)
-	for i, v := range deref.([]interface{}){
+	for i, v := range deref.([]interface{}) {
 		// fmt.Println(i,"    ",hex.EncodeToString(v.([]byte)))
 		// 类型判断，然后转换
 		switch i {
@@ -329,7 +329,7 @@ func TestEncodeF03(t *testing.T) {
 			byt := v.([]byte)[0]
 			if byt == 1 {
 				fmt.Println("false")
-			}else {
+			} else {
 				fmt.Println("true")
 			}
 		case 4:
@@ -338,7 +338,6 @@ func TestEncodeF03(t *testing.T) {
 	}
 
 }
-
 
 func TestEncode(t *testing.T) {
 	runEncTests(t, func(val interface{}) ([]byte, error) {

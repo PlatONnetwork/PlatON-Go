@@ -176,7 +176,7 @@ func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB 
 		statedb.SetNonce(addr, a.Nonce)
 		statedb.SetBalance(addr, a.Balance)
 		for k, v := range a.Storage {
-			statedb.SetState(addr, k, v)
+			statedb.SetState(addr, k.Bytes(), v.Bytes())
 		}
 	}
 	// Commit and re-open to start with a clean state.

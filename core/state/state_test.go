@@ -95,15 +95,17 @@ func (s *StateSuite) TestNull(c *checker.C) {
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
 	s.state.CreateAccount(address)
 	//value := common.FromHex("0x823140710bf13990e4500136726d8b55")
-	var value common.Hash
+	value := []byte{}
+	key := []byte{}
 
-	s.state.SetState(address, common.Hash{}, value)
+	//s.state.SetState(address, common.Hash{}, value)
+	s.state.SetState(address, key, value)
 	s.state.Commit(false)
 
-	if value := s.state.GetState(address, common.Hash{}); value != (common.Hash{}) {
+	if value := s.state.GetState(address, common.Hash{}.Bytes()); bytes.Compare(value, common.Hash{}.Bytes()) != 0 {
 		c.Errorf("expected empty current value, got %x", value)
 	}
-	if value := s.state.GetCommittedState(address, common.Hash{}); value != (common.Hash{}) {
+	if value := s.state.GetCommittedState(address, key); !bytes.Equal(value, []byte{}) {
 		c.Errorf("expected empty committed value, got %x", value)
 	}
 }
@@ -118,20 +120,20 @@ func (s *StateSuite) TestSnapshot(c *checker.C) {
 	genesis := s.state.Snapshot()
 
 	// set initial state object value
-	s.state.SetState(stateobjaddr, storageaddr, data1)
+	s.state.SetState(stateobjaddr, storageaddr.Bytes(), data1.Bytes())
 	snapshot := s.state.Snapshot()
 
 	// set a new state object value, revert it and ensure correct content
-	s.state.SetState(stateobjaddr, storageaddr, data2)
+	s.state.SetState(stateobjaddr, storageaddr.Bytes(), data2.Bytes())
 	s.state.RevertToSnapshot(snapshot)
 
-	c.Assert(s.state.GetState(stateobjaddr, storageaddr), checker.DeepEquals, data1)
-	c.Assert(s.state.GetCommittedState(stateobjaddr, storageaddr), checker.DeepEquals, common.Hash{})
+	c.Assert(s.state.GetState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, data1)
+	c.Assert(s.state.GetCommittedState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, common.Hash{})
 
 	// revert up to the genesis state and ensure correct content
 	s.state.RevertToSnapshot(genesis)
-	c.Assert(s.state.GetState(stateobjaddr, storageaddr), checker.DeepEquals, common.Hash{})
-	c.Assert(s.state.GetCommittedState(stateobjaddr, storageaddr), checker.DeepEquals, common.Hash{})
+	c.Assert(s.state.GetState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, common.Hash{})
+	c.Assert(s.state.GetCommittedState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, common.Hash{})
 }
 
 func (s *StateSuite) TestSnapshotEmpty(c *checker.C) {
@@ -145,13 +147,13 @@ func TestSnapshot2(t *testing.T) {
 
 	stateobjaddr0 := toAddr([]byte("so0"))
 	stateobjaddr1 := toAddr([]byte("so1"))
-	var storageaddr common.Hash
+	var storageaddr common.Address
 
 	data0 := common.BytesToHash([]byte{17})
 	data1 := common.BytesToHash([]byte{18})
 
-	state.SetState(stateobjaddr0, storageaddr, data0)
-	state.SetState(stateobjaddr1, storageaddr, data1)
+	state.SetState(stateobjaddr0, storageaddr.Bytes(), data0.Bytes())
+	state.SetState(stateobjaddr1, storageaddr.Bytes(), data1.Bytes())
 
 	// db, trie are already non-empty values
 	so0 := state.getStateObject(stateobjaddr0)
@@ -184,7 +186,8 @@ func TestSnapshot2(t *testing.T) {
 
 	so0Restored := state.getStateObject(stateobjaddr0)
 	// Update lazily-loaded values before comparing.
-	so0Restored.GetState(state.db, storageaddr)
+	key, _, _ := getKeyValue(stateobjaddr0, storageaddr.Bytes(), nil)
+	so0Restored.GetState(state.db, key)
 	so0Restored.Code(state.db)
 	// non-deleted is equal (restored)
 	compareStateObjects(so0Restored, so0, t)

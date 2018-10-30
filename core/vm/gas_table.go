@@ -118,7 +118,9 @@ func gasReturnDataCopy(gt params.GasTable, evm *EVM, contract *Contract, stack *
 func gasSStore(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, mem *Memory, memorySize uint64) (uint64, error) {
 	var (
 		y, x    = stack.Back(1), stack.Back(0)
-		current = evm.StateDB.GetState(contract.Address(), common.BigToHash(x))
+		// todo: hash -> bytes
+		currentBytes = evm.StateDB.GetState(contract.Address(), common.BigToHash(x).Bytes())
+		current = common.BytesToHash(currentBytes)
 	)
 	// The legacy gas metering only takes into consideration the current state
 	if !evm.chainRules.IsConstantinople {
@@ -155,7 +157,9 @@ func gasSStore(gt params.GasTable, evm *EVM, contract *Contract, stack *Stack, m
 	if current == value { // noop (1)
 		return params.NetSstoreNoopGas, nil
 	}
-	original := evm.StateDB.GetCommittedState(contract.Address(), common.BigToHash(x))
+	// todo: hash -> bytes
+	originalByt := evm.StateDB.GetCommittedState(contract.Address(), common.BigToHash(x).Bytes())
+	var original = common.BytesToHash(originalByt)
 	if original == current {
 		if original == (common.Hash{}) { // create slot (2.1.1)
 			return params.NetSstoreInitGas, nil

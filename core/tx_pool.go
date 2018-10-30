@@ -184,7 +184,7 @@ func (config *TxPoolConfig) sanitize() TxPoolConfig {
 // two states over time as they are received and processed.
 type TxPool struct {
 	config       TxPoolConfig
-	Run  *params.ChainConfig
+	chainconfig  *params.ChainConfig
 	chain        blockChain
 	gasPrice     *big.Int
 	txFeed       event.Feed
@@ -221,7 +221,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 	// Create the transaction pool with its initial settings
 	pool := &TxPool{
 		config:      config,
-		Run: chainconfig,
+		chainconfig: chainconfig,
 		chain:       chain,
 		signer:      types.NewEIP155Signer(chainconfig.ChainID),
 		pending:     make(map[common.Address]*txList),
@@ -288,7 +288,7 @@ func (pool *TxPool) loop() {
 		case ev := <-pool.chainHeadCh:
 			if ev.Block != nil {
 				pool.mu.Lock()
-				if pool.Run.IsHomestead(ev.Block.Number()) {
+				if pool.chainconfig.IsHomestead(ev.Block.Number()) {
 					pool.homestead = true
 				}
 				pool.reset(head.Header(), ev.Block.Header())
@@ -567,7 +567,8 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
-	if tx.Size() > 32*1024 {
+	// 32kb -> 1m
+	if tx.Size() > 1024*128 {
 		return ErrOversizedData
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded

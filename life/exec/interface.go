@@ -2,6 +2,7 @@ package exec
 
 import (
 	"Platon-go/common"
+	"Platon-go/core/types"
 	"math/big"
 )
 
@@ -18,4 +19,8 @@ type StateDB interface {
 	Origin() common.Address
 	Caller() common.Address
 	Address() common.Address
+	CallValue() int64
+	AddLog(*types.Log)
+	SetState(key []byte, value []byte)
+	GetState(key []byte) []byte
 }
