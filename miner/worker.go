@@ -711,7 +711,7 @@ func (w *worker) resultLoop() {
 				_receipts = w.consensusCache.ReadReceipts(block.Hash())
 				_state = w.consensusCache.ReadStateDB(block.Root())
 			}
-			if _receipts == nil || _state == nil {
+			if _receipts == nil && len(block.Transactions()) >0 || _state == nil {
 				continue
 			}
 
