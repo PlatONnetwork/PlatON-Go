@@ -284,10 +284,10 @@ func (cbft *Cbft) signLogicals(exts []*BlockExt) {
 //签名块
 func (cbft *Cbft) sign(ext *BlockExt) {
 	//签名
-	signHash := signHash(ext.block.Header())
-	signature, err := cbft.signFn(signHash.Bytes())
+	sealHash := sealHash(ext.block.Header())
+	signature, err := cbft.signFn(sealHash.Bytes())
 	if err == nil {
-		log.Info("签名区块结果", "hash", ext.block.Hash(), "signHash", signHash, "sign", hexutil.Encode(signature))
+		log.Info("签名区块结果", "blockHash", ext.block.Hash(), "sealHash", sealHash, "sign", hexutil.Encode(signature))
 
 		sign := common.NewBlockConfirmSign(signature)
 		ext.collectSign(sign)
@@ -300,7 +300,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 
 		//广播签名
 		blockSign := &cbfttypes.BlockSignature{
-			SignHash:  signHash,
+			SignHash:  sealHash,
 			Hash:      blockHash,
 			Number:    ext.block.Number(),
 			Signature: sign,
@@ -441,7 +441,7 @@ func SetBlockChain(blockChain *core.BlockChain) {
 		currentBlock.Number()
 	}
 
-	log.Info("初始化cbft.highestLogicalBlock", "hash", currentBlock.Hash().String(), "number", currentBlock.NumberU64())
+	log.Info("初始化cbft.highestLogicalBlock", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 
 	blockExt := NewBlockExt(currentBlock)
 	blockExt.level = Logical
@@ -676,7 +676,7 @@ func (cbft *Cbft) IsConsensusNode() (bool, error) {
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
-	log.Info("call Author(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number)
+	log.Info("call Author(), parameter: ", "headerHash", header.Hash(), "headerNumber", header.Number)
 
 	// 返回出块节点对应的矿工钱包地址
 	return header.Coinbase, nil
@@ -689,7 +689,7 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 // header: 	需要验证的区块头
 // seal:	是否要验证封印（出块签名）
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	log.Info("call VerifyHeader(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number, "seal", seal)
+	log.Info("call VerifyHeader(), parameter: ", "headerHash", header.Hash(), "headerNumber", header.Number, "seal", seal)
 
 	//todo:每秒一个交易，校验块高/父区块
 	if header.Number == nil {
@@ -740,7 +740,7 @@ func (cbft *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) 
 // 校验(别的结点广播过来的)区块信息
 // 主要是对区块的出块节点，以及区块难度值的确认
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	log.Info("call VerifySeal(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number.String())
+	log.Info("call VerifySeal(), parameter: ", "headerHash", header.Hash(), "headerNumber", header.Number.String())
 
 	return cbft.verifySeal(chain, header, nil)
 }
@@ -748,7 +748,7 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
-	log.Info("call Prepare(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number.String())
+	log.Info("call Prepare(), parameter: ", "headerHash", header.Hash(), "headerNumber", header.Number.String())
 
 	//检查父区块
 	if header.ParentHash != cbft.highestLogicalBlockExt.block.Hash() || header.Number.Uint64()-1 != cbft.highestLogicalBlockExt.block.NumberU64() {
@@ -770,7 +770,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Info("call Finalize(), parameter: ", "headerHash", header.Hash().String(), "headerNumber", header.Number.String(), "txs", len(txs), "receipts", len(receipts))
+	log.Info("call Finalize(), parameter: ", "headerHash", header.Hash(), "headerNumber", header.Number.String(), "txs", len(txs), "receipts", len(receipts))
 
 	// 生成具体的区块信息
 	// 填充上Header.Root, TxHash, ReceiptHash, UncleHash等几个属性
@@ -800,12 +800,19 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	//todo:检查ext.block 和 入参 block
 
 	// 开始签名
-	sign, err := cbft.signFn(signHash(header).Bytes())
+	sign, err := cbft.signFn(sealHash(header).Bytes())
 	if err != nil {
 		return err
 	}
 
-	ext := NewBlockExt(block)
+	//将签名结果替换区块头的Extra字段（专门支持记录额外信息的）
+	copy(header.Extra[len(header.Extra)-extraSeal:], sign[:])
+
+	//得到完成签名后的区块
+	sealedBlock := block.WithSeal(header)
+
+	//ext中保存的是完成签名后的block。header.extra中必须有签名
+	ext := NewBlockExt(sealedBlock)
 
 	// 标识为合理块，并且执行（在挖矿过程中执行）/签名过。
 	// 这样，本地节点出的块，就不会在共识引擎中执行，这样，相应的BlockExt中就没有此区块的执行回执receipts和状态state
@@ -814,13 +821,10 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	//收集新区块的签名
 	ext.collectSign(common.NewBlockConfirmSign(sign))
 
-	//将签名结果替换区块头的Extra字段（专门支持记录额外信息的）
-	copy(header.Extra[len(header.Extra)-extraSeal:], sign[:])
-
-	sealedBlock := block.WithSeal(header)
-
 	//保存(blockExtMap.key必须是块经过Seal后的hash)
 	cbft.saveBlock(ext)
+
+	log.Info("签名完成", "number", block.NumberU64(), "blockHash", sealedBlock.Hash(), "parentHash", block.ParentHash())
 
 	if len(cbft.dpos.primaryNodeList) == 1 {
 		//单个节点，直接出块
@@ -842,7 +846,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 			return
 		case sealResultCh <- sealedBlock: //发送给p2p，把区块广播到其它节点
 		default: //如果没有接收数据，则走default
-			log.Warn("Sealing result is not read by miner", "sealhash", cbft.SealHash(header).String())
+			log.Warn("Sealing result is not read by miner", "sealHash", cbft.SealHash(header))
 		}
 	}()
 	return nil
@@ -852,17 +856,17 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 // that a new block should have based on the previous blocks in the chain and the
 // current signer.
 func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
-	log.Info("call CalcDifficulty(), parameter", "time", time, "parentHash", parent.Hash().String(), "parentNumber", parent.Number.String())
+	log.Info("call CalcDifficulty(), parameter", "time", time, "parentHash", parent.Hash(), "parentNumber", parent.Number.String())
 
 	return big.NewInt(2)
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
-	log.Info("call SealHash(), parameter", "headerHash", header.Hash().String(), "headerNumber", header.Number.String())
+	log.Info("call SealHash(), parameter", "headerHash", header.Hash(), "headerNumber", header.Number.String())
 
 	//return consensus.SigHash(header)
-	return signHash(header)
+	return sealHash(header)
 }
 
 // Close implements consensus.Engine. It's a noop for clique as there is are no background threads.
@@ -918,7 +922,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 //收到新的区块
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Info("收到新的区块==>>, parameter", "blockHash", rcvBlock.Hash().String(), "Number", rcvBlock.Header().Number, "ParentHash", rcvBlock.ParentHash().String(), "headerExtra", hexutil.Encode(rcvBlock.Header().Extra))
+	log.Info("收到新的区块==>>, parameter", "blockHash", rcvBlock.Hash(), "Number", rcvBlock.Header().Number, "ParentHash", rcvBlock.ParentHash(), "headerExtra", hexutil.Encode(rcvBlock.Header().Extra))
 
 	cbft.blockReceiveCh <- rcvBlock
 	return nil
@@ -932,7 +936,7 @@ func (cbft *Cbft) HighestLogicalBlock() *types.Block {
 }
 
 func IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
-	log.Info("验证是否是本节点的签名", "sealHash", sealHash.String(), "signature", hexutil.Encode(signature))
+	log.Info("验证是否是本节点的签名", "sealHash", sealHash, "signature", hexutil.Encode(signature))
 	ok, err := verifySign(cbft.config.NodeID, sealHash, signature)
 	if err != nil {
 		return false
@@ -1014,10 +1018,10 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
 	log.Info("收到新块", "sign", hexutil.Encode(signature))
-	signHash := signHash(header)
-	log.Info("收到新块", "signHash", signHash.String())
+	sealHash := sealHash(header)
+	log.Info("收到新块", "sealHash", sealHash)
 
-	pubkey, err := crypto.Ecrecover(signHash.Bytes(), signature)
+	pubkey, err := crypto.Ecrecover(sealHash.Bytes(), signature)
 	if err != nil {
 		return nodeID, []byte{}, err
 	}
@@ -1032,7 +1036,7 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 
 func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature []byte) (bool, error) {
 
-	log.Info("验证签名", "sealHash", sealHash.String(), "signature", hexutil.Encode(signature), "expectedNodeID", hexutil.Encode(expectedNodeID.Bytes()))
+	log.Info("验证签名", "sealHash", sealHash, "signature", hexutil.Encode(signature), "expectedNodeID", hexutil.Encode(expectedNodeID.Bytes()))
 
 	pubkey, err := crypto.SigToPub(sealHash.Bytes(), signature)
 
@@ -1049,7 +1053,7 @@ func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature 
 	return false, nil
 }
 
-func signHash(header *types.Header) (hash common.Hash) {
+func sealHash(header *types.Header) (hash common.Hash) {
 	hasher := sha3.NewKeccak256()
 
 	rlp.Encode(hasher, []interface{}{
