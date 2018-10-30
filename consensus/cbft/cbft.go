@@ -497,6 +497,10 @@ func BlockSynchronisation() {
 		newIrr := NewBlockExt(currentBlock)
 		newIrr.level = Logical
 		newIrr.isIrreversible = true
+
+		//保存
+		cbft.saveBlock(newIrr)
+
 		//当前不可逆块
 		cbft.irreversibleBlockExt = newIrr
 
