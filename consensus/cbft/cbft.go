@@ -195,7 +195,7 @@ func (ext *BlockExt) isSame(other *BlockExt) bool {
 //重置最高合理区块。从合理块ext为根的子树中查询，区块最高的节点为新的最高合理块。从ext到查询出的节点间的路径上的节点，都是合理块
 func (cbft *Cbft) resetHighest(highest *BlockExt) {
 	//highest := cbft.findHighest(ext)
-	highest.level = Logical
+	//highest.level = Logical
 	cbft.highestLogicalBlockExt = highest
 }
 
