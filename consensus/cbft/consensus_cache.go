@@ -31,10 +31,10 @@ func NewCache(blockChain *core.BlockChain) *Cache {
 }
 
 // 从缓存map中读取Receipt集合
-func (c *Cache) ReadReceipts(sealhash common.Hash) []*types.Receipt {
+func (c *Cache) ReadReceipts(blockHash common.Hash) []*types.Receipt {
 	c.receiptsMu.RLock()
 	defer c.receiptsMu.RUnlock()
-	if receipts, exist := c.receiptsCache[sealhash]; exist {
+	if receipts, exist := c.receiptsCache[blockHash]; exist {
 		return receipts
 	}
 	return nil

@@ -684,8 +684,6 @@ func (w *worker) resultLoop() {
 		// modify by platon
 		case cbftResult := <-w.cbftResultCh:
 			block := cbftResult.Block
-			_receipts := cbftResult.Receipts
-			_state := cbftResult.State
 			blockConfirmSigns := cbftResult.BlockConfirmSigns
 			// Short circuit when receiving empty result.
 			if block == nil || blockConfirmSigns == nil || len(blockConfirmSigns) <= 0 {
@@ -704,10 +702,19 @@ func (w *worker) resultLoop() {
 			task, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
 
+			var _receipts []*types.Receipt
+			var _state     *state.StateDB
 			if exist && cbft.IsSignedBySelf(sealhash, block.Extra()[32:]) {
 				_receipts = task.receipts
 				_state = task.state
+			} else {
+				_receipts = w.consensusCache.ReadReceipts(block.Hash())
+				_state = w.consensusCache.ReadStateDB(block.Root())
 			}
+			if _receipts == nil || _state == nil {
+				continue
+			}
+
 			// Different block could share same sealhash, deep copy here to prevent write-write conflict.
 			var (
 				receipts = make([]*types.Receipt, len(_receipts))
