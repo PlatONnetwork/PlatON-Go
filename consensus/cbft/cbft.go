@@ -370,7 +370,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 
 //收集从ext到不可逆块路径上的块，不包括原来的不可逆块，并按块高排好序
 func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
-	log.Info("收集到新不可逆区块", "Hash", newIrr.block.Hash(), "Number", newIrr.block.NumberU64())
+	log.Info("收集到新不可逆区块", "Hash", newIrr.block.Hash(), "ParentHash", newIrr.block.ParentHash(), "Number", newIrr.block.NumberU64())
 
 	exts := make([]*BlockExt, 1)
 	exts[0] = newIrr
@@ -385,7 +385,7 @@ func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
 			findRootIrr = true
 			break
 		} else {
-			log.Info("收集到新不可逆区块", "Hash", parent.block.Hash(), "Number", parent.block.NumberU64())
+			log.Info("收集到新不可逆区块", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "Number", parent.block.NumberU64())
 			exts = append(exts, parent)
 		}
 	}
