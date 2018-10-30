@@ -841,7 +841,7 @@ func (cbft *Cbft) findHighestNode(root *Node) *Node {
 func (cbft *Cbft) findMaxSigns(root *Node) *Node {
 	max := root
 	for _, node := range root.children {
-		now := cbft.findHighestNode(node)
+		now := cbft.findMaxSigns(node)
 		nowSigns := cbft.getSignCounter(now.block.Hash())
 		maxSigns := cbft.getSignCounter(max.block.Hash())
 
