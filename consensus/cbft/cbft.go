@@ -810,9 +810,6 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	// 这样，本地节点出的块，就不会在共识引擎中执行，这样，相应的BlockExt中就没有此区块的执行回执receipts和状态state
 	ext.level = Logical
 
-	//保存
-	cbft.saveBlock(ext)
-
 	//收集新区块的签名
 	ext.collectSign(common.NewBlockConfirmSign(sign))
 
@@ -820,6 +817,9 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	copy(header.Extra[len(header.Extra)-extraSeal:], sign[:])
 
 	sealedBlock := block.WithSeal(header)
+
+	//保存(blockExtMap.key必须是块经过Seal后的hash)
+	cbft.saveBlock(ext)
 
 	if len(cbft.dpos.primaryNodeList) == 1 {
 		//单个节点，直接出块
