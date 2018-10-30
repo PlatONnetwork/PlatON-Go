@@ -1,8 +1,8 @@
 package resolver
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestCfcSet(t *testing.T) {

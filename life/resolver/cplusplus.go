@@ -1,8 +1,11 @@
 package resolver
 
 import (
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/crypto"
 	"Platon-go/life/compiler"
-	"encoding/binary"
+	"bytes"
 	"fmt"
 	"math"
 	"math/big"
@@ -11,8 +14,8 @@ import (
 )
 
 var (
-	cfc  				= newCfcSet()
-	cgbl 				= newGlobalSet()
+	cfc  = newCfcSet()
+	cgbl = newGlobalSet()
 )
 
 type CResolver struct{}
@@ -81,18 +84,22 @@ func newCfcSet() map[string]map[string]*exec.FunctionImport {
 			"abort": &exec.FunctionImport{Execute: envAbort, GasCost: envAbortGasCost},
 
 			// for blockchain function
-			"gasPrice" 	:	&exec.FunctionImport{Execute: envGasPrice, GasCost: constGasFunc(compiler.GasQuickStep)},
-			"blockHash" :  	&exec.FunctionImport{Execute: envBlockHash, GasCost: constGasFunc(compiler.GasQuickStep)},
-			"number" 	:  	&exec.FunctionImport{Execute: envNumber, GasCost: constGasFunc(compiler.GasQuickStep)},
-			"gasLimit" 	:  	&exec.FunctionImport{Execute: envGasLimit, GasCost: constGasFunc(compiler.GasQuickStep)},
-			"timestamp" :  	&exec.FunctionImport{Execute: envTimestamp, GasCost: constGasFunc(compiler.GasQuickStep)},
-			"coinbase" 	:  	&exec.FunctionImport{Execute: envCoinbase, GasCost: constGasFunc(compiler.GasQuickStep)},
-			"balance" 	:  	&exec.FunctionImport{Execute: envBalance, GasCost: constGasFunc(compiler.GasQuickStep)},
-			"origin" 	:  	&exec.FunctionImport{Execute: envOrigin, GasCost: constGasFunc(compiler.GasQuickStep)},
-			"caller" 	:  	&exec.FunctionImport{Execute: envCaller, GasCost: constGasFunc(compiler.GasQuickStep)},
-			"callValue" :  	&exec.FunctionImport{Execute: envCallValue, GasCost: constGasFunc(compiler.GasQuickStep)},
-			"address" 	:  	&exec.FunctionImport{Execute: envAddress, GasCost: constGasFunc(compiler.GasQuickStep)},
-			"sha3"		: 	&exec.FunctionImport{Execute: envSha3, GasCost: envSha3GasCost},
+			"gasPrice":  &exec.FunctionImport{Execute: envGasPrice, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"blockHash": &exec.FunctionImport{Execute: envBlockHash, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"number":    &exec.FunctionImport{Execute: envNumber, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"gasLimit":  &exec.FunctionImport{Execute: envGasLimit, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"timestamp": &exec.FunctionImport{Execute: envTimestamp, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"coinbase":  &exec.FunctionImport{Execute: envCoinbase, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"balance":   &exec.FunctionImport{Execute: envBalance, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"origin":    &exec.FunctionImport{Execute: envOrigin, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"caller":    &exec.FunctionImport{Execute: envCaller, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"callValue": &exec.FunctionImport{Execute: envCallValue, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"address":   &exec.FunctionImport{Execute: envAddress, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"sha3":      &exec.FunctionImport{Execute: envSha3, GasCost: envSha3GasCost},
+			"emitEvent" : &exec.FunctionImport{Execute: envEmitEvent, GasCost: envEmitEventGasCost},
+			"setState" : &exec.FunctionImport{Execute: envSetState, GasCost: envSetStateGasCost},
+			"getState" : &exec.FunctionImport{Execute: envGetState, GasCost: envGetStateGasCost},
+			"getStateSize" : &exec.FunctionImport{Execute: envGetStateSize, GasCost: envGetStateSizeGasCost},
 		},
 	}
 }
@@ -141,19 +148,9 @@ func envMemmoveGasCost(vm *exec.VirtualMachine) (uint64, error) {
 func envMemcmp(vm *exec.VirtualMachine) int64 {
 	ptr1 := int(uint32(vm.GetCurrentFrame().Locals[0]))
 	ptr2 := int(uint32(vm.GetCurrentFrame().Locals[1]))
-	len := int(uint32(vm.GetCurrentFrame().Locals[2]))
+	num := int(uint32(vm.GetCurrentFrame().Locals[2]))
 
-	pos := 0
-	for pos < len {
-		if vm.Memory.Memory[ptr1+pos] == vm.Memory.Memory[ptr2+pos] {
-			pos += 1
-		} else if vm.Memory.Memory[ptr1+pos] <= vm.Memory.Memory[ptr2+pos] {
-			return -1
-		} else {
-			return 1
-		}
-	}
-	return 0
+	return int64(bytes.Compare(vm.Memory.Memory[ptr1:ptr1+num], vm.Memory.Memory[ptr2:ptr2+num]))
 }
 
 func envMemcmpGasCost(vm *exec.VirtualMachine) (uint64, error) {
@@ -170,6 +167,7 @@ func envMemset(vm *exec.VirtualMachine) int64 {
 	pos := 0
 	for pos < num {
 		vm.Memory.Memory[ptr+pos] = byte(value)
+		pos++
 	}
 	return int64(ptr)
 }
@@ -188,7 +186,9 @@ func envPrints(vm *exec.VirtualMachine) int64 {
 			break
 		}
 	}
-	fmt.Printf("%s", string(vm.Memory.Memory[start:end]))
+	vm.Context.Log.Debug(string(vm.Memory.Memory[start:end]))
+
+	//fmt.Printf("%s", string(vm.Memory.Memory[start:end]))
 	return 0
 }
 
@@ -208,7 +208,7 @@ func envPrintsl(vm *exec.VirtualMachine) int64 {
 	ptr := int(uint32(vm.GetCurrentFrame().Locals[0]))
 	msgLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
 	msg := vm.Memory.Memory[ptr : ptr+msgLen]
-	fmt.Printf("%s", string(msg))
+	vm.Context.Log.Debug(string(msg))
 	return 0
 }
 
@@ -219,7 +219,7 @@ func envPrintslGasCost(vm *exec.VirtualMachine) (uint64, error) {
 
 //libc printi()
 func envPrinti(vm *exec.VirtualMachine) int64 {
-	fmt.Printf("%d", int(uint32(vm.GetCurrentFrame().Locals[0])))
+	vm.Context.Log.Debug(fmt.Sprintf("%d", int(uint32(vm.GetCurrentFrame().Locals[0]))))
 	return 0
 }
 
@@ -228,7 +228,7 @@ func envPrintiGasCost(vm *exec.VirtualMachine) (uint64, error) {
 }
 
 func envPrintui(vm *exec.VirtualMachine) int64 {
-	fmt.Printf("%d", vm.GetCurrentFrame().Locals[0])
+	vm.Context.Log.Debug(fmt.Sprintf("%d", vm.GetCurrentFrame().Locals[0]))
 	return 0
 }
 
@@ -240,8 +240,7 @@ func envPrinti128(vm *exec.VirtualMachine) int64 {
 	pos := vm.GetCurrentFrame().Locals[0]
 	num := new(big.Int)
 	num.SetBytes(vm.Memory.Memory[pos : pos+16])
-
-	fmt.Printf("%s", num.String())
+	vm.Context.Log.Debug(fmt.Sprintf("%s", num.String()))
 	return 0
 }
 
@@ -253,7 +252,7 @@ func envPrintui128(vm *exec.VirtualMachine) int64 {
 	pos := vm.GetCurrentFrame().Locals[0]
 	num := new(big.Int)
 	num.SetBytes(vm.Memory.Memory[pos : pos+16])
-	fmt.Printf("%s", num.String())
+	vm.Context.Log.Debug(fmt.Sprintf("%s", num.String()))
 	return 0
 }
 
@@ -263,9 +262,8 @@ func envPrintui128GasCost(vm *exec.VirtualMachine) (uint64, error) {
 
 func envPrintsf(vm *exec.VirtualMachine) int64 {
 	pos := vm.GetCurrentFrame().Locals[0]
-	bits := binary.LittleEndian.Uint32(vm.Memory.Memory[pos : pos+4])
-	float := math.Float32frombits(bits)
-	fmt.Printf("%f", float)
+	float := math.Float32frombits(uint32(pos))
+	vm.Context.Log.Debug(fmt.Sprintf("%f", float))
 	return 0
 }
 
@@ -275,9 +273,8 @@ func envPrintsfGasCost(vm *exec.VirtualMachine) (uint64, error) {
 
 func envPrintdf(vm *exec.VirtualMachine) int64 {
 	pos := vm.GetCurrentFrame().Locals[0]
-	bits := binary.LittleEndian.Uint64(vm.Memory.Memory[pos : pos+8])
-	float := math.Float64frombits(bits)
-	fmt.Printf("%f", float)
+	double := math.Float64frombits(uint64(pos))
+	vm.Context.Log.Debug(fmt.Sprintf("%f", double))
 	return 0
 }
 
@@ -291,7 +288,7 @@ func envPrintqf(vm *exec.VirtualMachine) int64 {
 	num.SetBytes(vm.Memory.Memory[pos : pos+16])
 	float := new(big.Float)
 	float.SetInt(num)
-	fmt.Printf("%s", float.String())
+	vm.Context.Log.Debug(fmt.Sprintf("%s", float.String()))
 	return 0
 }
 
@@ -300,7 +297,7 @@ func envPrintqfGasCost(vm *exec.VirtualMachine) (uint64, error) {
 }
 
 func envPrintn(vm *exec.VirtualMachine) int64 {
-	fmt.Printf("%d", int(uint32(vm.GetCurrentFrame().Locals[0])))
+	vm.Context.Log.Debug(fmt.Sprintf("%d", int(uint32(vm.GetCurrentFrame().Locals[0]))))
 	return 0
 }
 
@@ -311,7 +308,7 @@ func envPrintnGasCost(vm *exec.VirtualMachine) (uint64, error) {
 func envPrinthex(vm *exec.VirtualMachine) int64 {
 	data := int(uint32(vm.GetCurrentFrame().Locals[0]))
 	dataLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
-	fmt.Printf("%x", vm.Memory.Memory[data:dataLen])
+	vm.Context.Log.Debug(fmt.Sprintf("%x", vm.Memory.Memory[data:dataLen]))
 	return 0
 }
 
@@ -410,78 +407,98 @@ func envAbortGasCost(vm *exec.VirtualMachine) (uint64, error) {
 	return 0, nil
 }
 
-
-// upp by j
-// op: gasPrice()
-func envGasPrice(vm *exec.VirtualMachine) (int64) {
-	// vm.Context.Evm.GasPrice(#533-instructions.go)
-	gasPrice := vm.Context.StateDB.GasPrice();
+// define: int64_t gasPrice();
+func envGasPrice(vm *exec.VirtualMachine) int64 {
+	gasPrice := vm.Context.StateDB.GasPrice()
 	return gasPrice
 }
 
-// op: blockhash()
-func envBlockHash(vm *exec.VirtualMachine) (int64) {
-	// interpreter.evm.GetHash(num.Uint64()).Big()(#542-instructions.go)
+// define: void blockHash(int num, char hash[20]);
+func envBlockHash(vm *exec.VirtualMachine) int64 {
+	num := int(int32(vm.GetCurrentFrame().Locals[0]))
+	offset := int(int32(vm.GetCurrentFrame().Locals[1]))
+	blockHash := vm.Context.StateDB.BlockHash(uint64(num))
+	//fmt.Printf("Number:%v ,Num:%v ,0:%v, 1:%v, (-2):%v, (-1):%v. \n", num, blockHash.Hex(), " -> ", blockHash[0], blockHash[1], blockHash[len(blockHash)-2], blockHash[len(blockHash)-1])
+	copy(vm.Memory.Memory[offset:], blockHash.Bytes())
 	return 0
 }
 
-// op: number()
-func envNumber(vm *exec.VirtualMachine) (int64) {
-	// interpreter.evm.BlockNumber (opNumber)
+// define: int64_t number();
+func envNumber(vm *exec.VirtualMachine) int64 {
+	return vm.Context.StateDB.BlockNumber().Int64()
+}
+
+// define: int64_t gasLimit();
+func envGasLimit(vm *exec.VirtualMachine) int64 {
+	return int64(vm.Context.StateDB.GasLimimt())
+}
+
+// define: int64_t timestamp();
+func envTimestamp(vm *exec.VirtualMachine) int64 {
+	return vm.Context.StateDB.Time().Int64()
+}
+
+// define: void coinbase(char addr[20]);
+func envCoinbase(vm *exec.VirtualMachine) int64 {
+	offset := int(int32(vm.GetCurrentFrame().Locals[0]))
+	coinBase := vm.Context.StateDB.Coinbase()
+	//fmt.Println("CoinBase:", coinBase.Hex(), " -> ", coinBase[0], coinBase[1], coinBase[len(coinBase)-2], coinBase[len(coinBase)-1])
+	copy(vm.Memory.Memory[offset:], coinBase.Bytes())
 	return 0
 }
 
-// op: gasLimit()
-func envGasLimit(vm *exec.VirtualMachine) (int64) {
-	// interpreter.evm.GasLimit(opGasLimit)
+// define: int64_t balance();
+func envBalance(vm *exec.VirtualMachine) int64 {
+	balance := vm.Context.StateDB.GetBalance(vm.Context.StateDB.Address())
+	return balance.Int64()
+}
+
+// define: void origin(char addr[20]);
+func envOrigin(vm *exec.VirtualMachine) int64 {
+	offset := int(int32(vm.GetCurrentFrame().Locals[0]))
+	address := vm.Context.StateDB.Origin()
+	//fmt.Println("Origin:", address.Hex(), " -> ", address[0], address[1], address[len(address)-2], address[len(address)-1])
+	copy(vm.Memory.Memory[offset:], address.Bytes())
 	return 0
 }
 
-// op: timestamp()
-func envTimestamp(vm *exec.VirtualMachine) (int64) {
-	// interpreter.evm.Time(opTimestamp)
+// define: void caller(char addr[20]);
+func envCaller(vm *exec.VirtualMachine) int64 {
+	offset := int(int32(vm.GetCurrentFrame().Locals[0]))
+	caller := vm.Context.StateDB.Caller()
+	//fmt.Println("Caller:", caller.Hex(), " -> ", caller[0], caller[1], caller[len(caller)-2], caller[len(caller)-1])
+	copy(vm.Memory.Memory[offset:], caller.Bytes())
 	return 0
 }
 
-// op: coinbase()
-func envCoinbase(vm *exec.VirtualMachine) (int64) {
-	// interpreter.evm.Coinbase.Big(opCoinbase)
+// define: int64_t callValue();
+func envCallValue(vm *exec.VirtualMachine) int64 {
+	return vm.Context.StateDB.CallValue()
+}
+
+// define: void address(char hash[20]);
+func envAddress(vm *exec.VirtualMachine) int64 {
+	offset := int(int32(vm.GetCurrentFrame().Locals[0]))
+	address := vm.Context.StateDB.Address()
+	//fmt.Println("Address:", address.Hex(), " -> ", address[0], address[1], address[len(address)-2], address[len(address)-1])
+	copy(vm.Memory.Memory[offset:], address.Bytes())
 	return 0
 }
 
-// op: balance()
-func envBalance(vm *exec.VirtualMachine) (int64) {
-	// interpreter.evm.StateDB.GetBalance(common.BigToAddress(slot))(opBalance)
-	return 0
-}
-
-// op: origin()
-func envOrigin(vm *exec.VirtualMachine) (int64) {
-	// interpreter.evm.Origin.Big()(opOrigin)
-	return 0
-}
-
-// op: caller()
-func envCaller(vm *exec.VirtualMachine) (int64) {
-	// contract.Caller().Big()(opCaller)
-	return 0
-}
-
-// op: callValue()
-func envCallValue(vm *exec.VirtualMachine) (int64) {
-	// interpreter.intPool.get().Set(contract.value)(opCallValue)
-	return 0
-}
-
-// op: address()
-func envAddress(vm *exec.VirtualMachine) (int64) {
-	// contract.Address().Big() (opAddress)
-	return 0
-}
-
-// op: sha3(data)
-func envSha3(vm *exec.VirtualMachine) (int64) {
-	// opSha3(), 提供指针地址填充
+// define: void sha3(char *src, size_t srcLen, char *dest, size_t destLen);
+func envSha3(vm *exec.VirtualMachine) int64 {
+	offset := int(int32(vm.GetCurrentFrame().Locals[0]))
+	size := int(int32(vm.GetCurrentFrame().Locals[1]))
+	destOffset := int(int32(vm.GetCurrentFrame().Locals[2]))
+	destSize := int(int32(vm.GetCurrentFrame().Locals[3]))
+	data := vm.Memory.Memory[offset : offset+size]
+	hash := crypto.Keccak256(data)
+	//fmt.Println(common.Bytes2Hex(hash))
+	if destSize < len(hash) {
+		return 0
+	}
+	//fmt.Printf("Sha3:%v, 0:%v, 1:%v, (-2):%v, (-1):%v. \n", common.Bytes2Hex(hash), hash[0], fmt.Sprintf("%b", hash[1]), hash[len(hash)-2], hash[len(hash)-1])
+	copy(vm.Memory.Memory[destOffset:], hash)
 	return 0
 }
 
@@ -495,8 +512,68 @@ func constGasFunc(gas uint64) exec.GasCost {
 	}
 }
 
+//void emitEvent(const char *topic, size_t topicLen, const uint8_t *data, size_t dataLen);
+func envEmitEvent(vm *exec.VirtualMachine) (int64)  {
+	topic := int(int32(vm.GetCurrentFrame().Locals[0]))
+	topicLen := int(int32(vm.GetCurrentFrame().Locals[1]))
+	data := int(int32(vm.GetCurrentFrame().Locals[2]))
+	dataLen := int(int32(vm.GetCurrentFrame().Locals[3]))
 
+	vm.Context.StateDB.AddLog(&types.Log{
+		Address:vm.Context.StateDB.Address(),
+		Topics: []common.Hash{common.BytesToHash(crypto.Keccak256(vm.Memory.Memory[topic : topic+topicLen]))},
+		Data: vm.Memory.Memory[data:data+dataLen],
+		BlockNumber: vm.Context.StateDB.BlockNumber().Uint64(),
+	})
+	return 0
+}
 
+func envEmitEventGasCost(vm *exec.VirtualMachine) (uint64, error) {
+	return 1, nil
+}
 
+func envSetState(vm *exec.VirtualMachine) (int64)  {
+	key := int(int32(vm.GetCurrentFrame().Locals[0]))
+	keyLen := int(int32(vm.GetCurrentFrame().Locals[1]))
+	value := int(int32(vm.GetCurrentFrame().Locals[2]))
+	valueLen := int(int32(vm.GetCurrentFrame().Locals[3]))
 
+	vm.Context.StateDB.SetState(vm.Memory.Memory[key:key+keyLen], vm.Memory.Memory[value:value+valueLen])
+	return 0
+}
 
+func envSetStateGasCost(vm *exec.VirtualMachine) (uint64, error) {
+	return 1, nil
+}
+
+func envGetState(vm *exec.VirtualMachine) (int64)  {
+	key := int(int32(vm.GetCurrentFrame().Locals[0]))
+	keyLen := int(int32(vm.GetCurrentFrame().Locals[1]))
+	value := int(int32(vm.GetCurrentFrame().Locals[2]))
+	valueLen := int(int32(vm.GetCurrentFrame().Locals[3]))
+
+	val := vm.Context.StateDB.GetState(vm.Memory.Memory[key:key+keyLen])
+
+	if len(val) > valueLen {
+		return 0
+	}
+
+	copy(vm.Memory.Memory[value:value+valueLen], val)
+	return 0
+}
+
+func envGetStateGasCost(vm *exec.VirtualMachine) (uint64, error) {
+	return 1, nil
+}
+
+func envGetStateSize(vm *exec.VirtualMachine) (int64)  {
+	key := int(int32(vm.GetCurrentFrame().Locals[0]))
+	keyLen := int(int32(vm.GetCurrentFrame().Locals[1]))
+	val := vm.Context.StateDB.GetState(vm.Memory.Memory[key:key+keyLen])
+
+	return int64(len(val))
+}
+
+func envGetStateSizeGasCost(vm *exec.VirtualMachine) (uint64, error) {
+	return 1, nil
+}

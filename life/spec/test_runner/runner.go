@@ -1,10 +1,9 @@
 package main
 
 import (
-	"Platon-go/life/compiler"
+	"Platon-go/life/exec"
 	"encoding/json"
 	"fmt"
-	"Platon-go/life/exec"
 	"io/ioutil"
 	"os"
 	"path"
@@ -89,11 +88,15 @@ func (c *Config) Run(cfgPath string) error {
 	for _, cmd := range c.Commands {
 		switch cmd.Type {
 		case "module":
-			input, err := ioutil.ReadFile(path.Join(dir, cmd.Filename))
+			_, err := ioutil.ReadFile(path.Join(dir, cmd.Filename))
 			if err != nil {
 				panic(err)
 			}
-			localVM, err := exec.NewVirtualMachine(input, exec.VMContext{}, nil, &compiler.SimpleGasPolicy{
+			/*localVM, err := exec.NewVirtualMachine(input, exec.VMConfig{
+				EnableJIT:      true,
+				MaxMemoryPages: 1024, // for memory trap tests
+				GasLimit:       0,    // unlimited
+			}, &Resolver{}, &compiler.SimpleGasPolicy{
 				GasPerInstruction: 1,
 			})
 			if err != nil {
@@ -102,7 +105,7 @@ func (c *Config) Run(cfgPath string) error {
 			vm = localVM
 			if cmd.Name != "" {
 				namedVMs[cmd.Name] = localVM
-			}
+			}*/
 		case "assert_return", "action":
 			localVM := vm
 			if cmd.Action.Module != "" {

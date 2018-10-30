@@ -2,10 +2,12 @@ package vm
 
 import (
 	"Platon-go/life/utils"
+	"Platon-go/log"
 	"Platon-go/rlp"
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 
@@ -17,14 +19,14 @@ import (
 // 实现Interpreter的接口 run/canRun.
 // WASMInterpreter represents an WASM interpreter
 type WASMInterpreter struct {
-	evm 		*EVM
-	cfg 		Config
-	vmContext 	*exec.VMContext
-	lvm 		*exec.VirtualMachine
-	wasmStateDB	*WasmStateDB
+	evm         *EVM
+	cfg         Config
+	vmContext   *exec.VMContext
+	lvm         *exec.VirtualMachine
+	wasmStateDB *WasmStateDB
 
-	resolver 	exec.ImportResolver
-	returnData	[]byte
+	resolver   exec.ImportResolver
+	returnData []byte
 }
 
 // NewWASMInterpreter returns a new instance of the Interpreter
@@ -32,28 +34,37 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 
 	wasmStateDB := &WasmStateDB{
 		StateDB: evm.StateDB,
-		evm: evm,
-		cfg: &cfg,
+		evm:     evm,
+		cfg:     &cfg,
 	}
 
+	wasmLog := cfg.WasmLogger
+	if wasmLog == nil {
+		wasmLog =log.New("wasm.stderr")
+		wasmLog.SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(os.Stderr, log.FormatFunc(func(r *log.Record) []byte {
+			return []byte(r.Msg)
+		}))))
+
+	}
 	// 初始化WASM解释器，保存WASM虚拟机需要的配置及上下文信息
 	return &WASMInterpreter{
-		evm : evm,
-		cfg : cfg,
+		evm: evm,
+		cfg: cfg,
 		vmContext: &exec.VMContext{
 			Config: exec.VMConfig{
-				EnableJIT: false,
+				EnableJIT:          false,
 				DefaultMemoryPages: 128,
 				DynamicMemoryPages: 1,
 			},
-			Addr: [20]byte{},
-			GasUsed : 0,
+			Addr:     [20]byte{},
+			GasUsed:  0,
 			GasLimit: evm.Context.GasLimit,
 			// 验证此处是否可行
 			StateDB: wasmStateDB,
+			Log: wasmLog,
 		},
 		wasmStateDB: wasmStateDB,
-		resolver : resolver.NewResolver(0x01),
+		resolver:    resolver.NewResolver(0x01),
 	}
 }
 
@@ -68,20 +79,21 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	in.wasmStateDB.contract = contract
 
 	in.evm.depth++
-	defer func(){ in.evm.depth-- }()
+	defer func() { in.evm.depth-- }()
 
 	if len(contract.Code) == 0 {
-		return nil, nil
+		return nil, fmt.Errorf("Code not found.")
 	}
-	if len(contract.ABI) == 0 {
-		return nil,nil
+	_, abi, code, er := parseRlpData(contract.Code)
+	if er != nil {
+		return nil, er
 	}
 
 	in.vmContext.Addr = contract.Address()
-	in.vmContext.GasLimit = contract.Gas		// 可使用的即为受限制的
+	in.vmContext.GasLimit = contract.Gas // 可使用的即为受限制的
 
 	// 获取执行器对象
-	in.lvm, err = exec.NewVirtualMachine(contract.Code, *in.vmContext, in.resolver,nil)
+	in.lvm, err = exec.NewVirtualMachine(code, *in.vmContext, in.resolver, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -91,14 +103,15 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	var (
 		funcName string
 		//txType	int		// 交易类型：合约创建、交易、投票等类型
-		params 	[]int64
+		params []int64
+		returnType string 
 	)
-
+	
 	if input == nil {
-		funcName = "init"	// init function.
+		funcName = "init" // init function.
 	} else {
 		// parse input.
-		_, funcName, params, err = parseInputFromAbi(in.lvm, input, contract.ABI)
+		_, funcName, params, returnType, err = parseInputFromAbi(in.lvm, input, abi)
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +120,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	if !ok {
 		return nil, fmt.Errorf("entryId not found.")
 	}
-	res, err := in.lvm.RunWithGasLimit(entryID,int(in.vmContext.GasLimit), params...)
+	res, err := in.lvm.RunWithGasLimit(entryID, int(in.vmContext.GasLimit), params...)
 	if err != nil {
 		in.lvm.PrintStackTrace()
 		return nil, err
@@ -118,9 +131,26 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		return nil, fmt.Errorf("out of gas.")
 	}
 
-	//todo: 问题点，需解决
-	in.returnData = Int64ToBytes(res)
-	return Int64ToBytes(res),nil
+	if input == nil {
+		return contract.Code, nil
+	}
+	// todo: 类型缺失，待继续补充
+	switch returnType {
+	case "void", "int8", "int", "int32", "int64" :
+		return utils.Int64ToBytes(res), nil
+	case "string":
+		returnBytes := make([]byte, 0)
+		copyData := in.lvm.Memory.Memory[res:]
+		for _, v := range copyData {
+			if v == 0 {
+				break
+			}
+			returnBytes = append(returnBytes, v)
+		}
+		fmt.Println("CallReturn:", string(returnBytes))
+		return returnBytes,nil
+	}
+	return nil, nil
 }
 
 // CanRun tells if the contract, passed as an argument, can be run
@@ -129,46 +159,39 @@ func (in *WASMInterpreter) CanRun(code []byte) bool {
 	return true
 }
 
-func Int64ToBytes(i int64) []byte {
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf,uint64(i))
-	return buf
-}
-
-func BytesToInt64(bys []byte) int64 {
-	buf := bytes.NewBuffer(bys)
-	var res int64
-	binary.Read(buf, binary.BigEndian, &res)
-	return res
-}
-
 // parse input(payload)
-func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txType int, funcName string, params []int64, err error) {
+func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txType int, funcName string, params []int64, returnType string, err error) {
+	defer func() {
+		if er := recover(); er != nil {
+			txType, funcName, params, returnType, err = -1, "", nil, "", er.(error)
+			vm.Context.Log.Error("Parse input data fail.", "errMsg",err.Error())
+		}
+	}()
 	if input == nil || len(input) <= 1 {
-		return -1,"",nil, fmt.Errorf("invalid input.")
+		return -1, "", nil, "", fmt.Errorf("invalid input.")
 	}
 	// [txType][funcName][args1][args2]
 	// rlp decode
 	ptr := new(interface{})
 	err = rlp.Decode(bytes.NewReader(input), &ptr)
 	if err != nil {
-		return -1, "", nil, err
+		return -1, "", nil, "", err
 	}
-	rlpList := reflect.ValueOf(ptr).Elem().Interface();
+	rlpList := reflect.ValueOf(ptr).Elem().Interface()
 
 	if _, ok := rlpList.([]interface{}); !ok {
-		return -1, "", nil, fmt.Errorf("invalid rlp format.")
+		return -1, "", nil, "", fmt.Errorf("invalid rlp format.")
 	}
 
 	iRlpList := rlpList.([]interface{})
-	if len(iRlpList) <= 2 {
-		return -1, "", nil, fmt.Errorf("invalid input. ele must greater than 2")
+	if len(iRlpList) < 2 {
+		return -1, "", nil, "", fmt.Errorf("invalid input. ele must greater than 2")
 	}
 
 	wasmabi := new(utils.WasmAbi)
 	err = wasmabi.FromJson(abi)
 	if err != nil {
-		return -1, "", nil, fmt.Errorf("invalid abi, encoded fail.")
+		return -1, "", nil, "", fmt.Errorf("invalid abi, encoded fail.")
 	}
 
 	params = make([]int64, 0)
@@ -184,16 +207,13 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 	for _, v := range wasmabi.Abi {
 		if strings.EqualFold(funcName, v.Method) {
 			args = v.Args
+			returnType = v.Return
 			break
 		}
 	}
-	if len(args) == 0 {
-		return -1, "", nil, fmt.Errorf("no match abi args by funcName.")
-	}
-
 	argsRlp := iRlpList[2:]
 	if len(args) != len(argsRlp) {
-		return -1, "", nil, fmt.Errorf("invalid input or invalid abi.")
+		return -1, "", nil, returnType, fmt.Errorf("invalid input or invalid abi.")
 	}
 	// todo: abi类型解析，需要继续添加
 	// uint64 uint32  uint16 uint8 int64 int32  int16 int8 float32 float64 string void
@@ -208,13 +228,13 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 			params = append(params, int64(bts[0]))
 		case "int16":
 			params = append(params, int64(binary.BigEndian.Uint16(bts)))
-		case "int32","int":
+		case "int32", "int":
 			params = append(params, int64(binary.BigEndian.Uint32(bts)))
 		case "int64":
 			params = append(params, int64(binary.BigEndian.Uint64(bts)))
 		case "uint8":
 			params = append(params, int64(bts[0]))
-		case "uint32","uint":
+		case "uint32", "uint":
 			params = append(params, int64(binary.BigEndian.Uint32(bts)))
 		case "uint64":
 			params = append(params, int64(binary.BigEndian.Uint64(bts)))
@@ -223,20 +243,41 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 		}
 	}
 
-	return txType, funcName, params, nil
+	return txType, funcName, params, returnType,nil
 }
 
+// rlpData=RLP([txType][code][abi])
+func parseRlpData(rlpData []byte) (int64, []byte, []byte, error) {
+	ptr := new(interface{})
+	err := rlp.Decode(bytes.NewReader(rlpData), &ptr)
+	if err != nil {
+		return -1, nil, nil, err
+	}
+	rlpList := reflect.ValueOf(ptr).Elem().Interface()
 
+	if _, ok := rlpList.([]interface{}); !ok {
+		return -1, nil, nil, fmt.Errorf("invalid rlp format.")
+	}
 
-
-
-
-
-
-
-
-
-
-
-
-
+	iRlpList := rlpList.([]interface{})
+	if len(iRlpList) <= 2 {
+		return -1, nil, nil, fmt.Errorf("invalid input. ele must greater than 2")
+	}
+	var (
+		txType int64
+		code   []byte
+		abi    []byte
+	)
+	if v, ok := iRlpList[0].([]byte); ok {
+		txType = utils.BytesToInt64(v)
+	}
+	if v, ok := iRlpList[1].([]byte); ok {
+		code = v
+		//fmt.Println("dstCode: ", common.Bytes2Hex(code))
+	}
+	if v, ok := iRlpList[2].([]byte); ok {
+		abi = v
+		//fmt.Println("dstAbi:", common.Bytes2Hex(abi))
+	}
+	return txType, abi, code, nil
+}

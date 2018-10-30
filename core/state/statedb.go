@@ -18,6 +18,8 @@
 package state
 
 import (
+	"Platon-go/crypto/sha3"
+	"bytes"
 	"fmt"
 	"math/big"
 	"sort"
@@ -53,12 +55,12 @@ var (
 // * Contracts
 // * Accounts
 type StateDB struct {
-	db   Database			// 后端的数据库
-	trie Trie				// 树
+	db   Database // 后端的数据库
+	trie Trie     // 树
 
 	// This map holds 'live' objects, which will get modified while processing a state transition.
-	stateObjects      map[common.Address]*stateObject	// stateObjects 用来缓存对象
-	stateObjectsDirty map[common.Address]struct{}			// stateObjectsDirty用来缓存被修改过的对象
+	stateObjects      map[common.Address]*stateObject // stateObjects 用来缓存对象
+	stateObjectsDirty map[common.Address]struct{}     // stateObjectsDirty用来缓存被修改过的对象
 
 	// DB error.
 	// State objects are used by the consensus core and VM which are
@@ -75,11 +77,11 @@ type StateDB struct {
 	logs         map[common.Hash][]*types.Log
 	logSize      uint
 
-	preimages map[common.Hash][]byte	// EVM计算的 SHA3->byte[]的映射关系
+	preimages map[common.Hash][]byte // EVM计算的 SHA3->byte[]的映射关系
 
 	// Journal of state modifications. This is the backbone of
 	// Snapshot and RevertToSnapshot.
-	journal        *journal			// 状态修改日志。 这是Snapshot和RevertToSnapshot的支柱。
+	journal        *journal // 状态修改日志。 这是Snapshot和RevertToSnapshot的支柱。
 	validRevisions []revision
 	nextRevisionId int
 
@@ -251,21 +253,27 @@ func (self *StateDB) GetCodeHash(addr common.Address) common.Hash {
 }
 
 // GetState retrieves a value from the given account's storage trie.
-func (self *StateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
+func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
 	stateObject := self.getStateObject(addr)
+	keyTrie, _, _ := getKeyValue(addr, key, nil)
 	if stateObject != nil {
-		return stateObject.GetState(self.db, hash)
+		return stateObject.GetState(self.db, keyTrie)
 	}
-	return common.Hash{}
+	return []byte{}
 }
 
 // GetCommittedState retrieves a value from the given account's committed storage trie.
-func (self *StateDB) GetCommittedState(addr common.Address, hash common.Hash) common.Hash {
+func (self *StateDB) GetCommittedState(addr common.Address, key []byte) []byte {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.GetCommittedState(self.db, hash)
+		var buffer bytes.Buffer
+		buffer.WriteString(addr.String())
+		buffer.WriteString(string(key))
+		key := buffer.String()
+		value := stateObject.GetCommittedState(self.db, key)
+		return value
 	}
-	return common.Hash{}
+	return []byte{}
 }
 
 // Database retrieves the low level database supporting the lower level trie ops.
@@ -333,11 +341,25 @@ func (self *StateDB) SetCode(addr common.Address, code []byte) {
 	}
 }
 
-func (self *StateDB) SetState(addr common.Address, key, value common.Hash) {
-	stateObject := self.GetOrNewStateObject(addr)
+func (self *StateDB) SetState(address common.Address, key, value []byte) {
+	stateObject := self.GetOrNewStateObject(address)
+	keyTrie, valueKey, value := getKeyValue(address, key, value)
 	if stateObject != nil {
-		stateObject.SetState(self.db, key, value)
+		stateObject.SetState(self.db, keyTrie, valueKey, value)
 	}
+}
+
+func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
+	var buffer bytes.Buffer
+	buffer.WriteString(address.String())
+	buffer.WriteString(string(key))
+	keyTrie := buffer.String()
+
+	buffer.Reset()
+	buffer.WriteString(string(key))
+	buffer.WriteString(string(value))
+	valueKey := sha3.Sum256(buffer.Bytes())
+	return keyTrie, valueKey, value
 }
 
 // Suicide marks the given account as suicided.
@@ -415,7 +437,7 @@ func (self *StateDB) setStateObject(object *stateObject) {
 
 // Retrieve a state object or create a new state object if nil.
 func (self *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
-	stateObject := self.getStateObject(addr)
+	stateObject := self.getStateObject(addr) //根据地址获取账户信息
 	if stateObject == nil || stateObject.deleted {
 		stateObject, _ = self.createObject(addr)
 	}
@@ -462,8 +484,8 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 	it := trie.NewIterator(so.getTrie(db.db).NodeIterator(nil))
 	for it.Next() {
 		key := common.BytesToHash(db.trie.GetKey(it.Key))
-		if value, dirty := so.dirtyStorage[key]; dirty {
-			cb(key, value)
+		if value, dirty := so.dirtyValueStorage[key]; dirty {
+			cb(key, common.BytesToHash(value))
 			continue
 		}
 		cb(key, common.BytesToHash(it.Value))
@@ -645,12 +667,55 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		}
 		return nil
 	})
+
 	log.Debug("Trie cache stats after commit", "misses", trie.CacheMisses(), "unloads", trie.CacheUnloads())
 	return root, err
 }
 
+func (self *StateDB) SetInt32(addr common.Address, key []byte, value int32) {
+	self.SetState(addr, key, common.Int32ToBytes(value))
+}
+func (self *StateDB) SetInt64(addr common.Address, key []byte, value int64) {
+	self.SetState(addr, key, common.Int64ToBytes(value))
+}
+func (self *StateDB) SetFloat32(addr common.Address, key []byte, value float32) {
+	self.SetState(addr, key, common.Float32ToBytes(value))
+}
+func (self *StateDB) SetFloat64(addr common.Address, key []byte, value float64) {
+	self.SetState(addr, key, common.Float64ToBytes(value))
+}
+func (self *StateDB) SetString(addr common.Address, key []byte, value string) {
+	self.SetState(addr, key, []byte(value))
+}
+func (self *StateDB) SetByte(addr common.Address, key []byte, value byte) {
+	self.SetState(addr, key, []byte{value})
+}
+
+func (self *StateDB) GetInt32(addr common.Address, key []byte) int32 {
+	return common.BytesToInt32(self.GetState(addr, key))
+}
+func (self *StateDB) GetInt64(addr common.Address, key []byte) int64 {
+	return common.BytesToInt64(self.GetState(addr, key))
+}
+func (self *StateDB) GetFloat32(addr common.Address, key []byte) float32 {
+	return common.BytesToFloat32(self.GetState(addr, key))
+}
+func (self *StateDB) GetFloat64(addr common.Address, key []byte) float64 {
+	return common.BytesToFloat64(self.GetState(addr, key))
+}
+func (self *StateDB) GetString(addr common.Address, key []byte) string {
+	return string(self.GetState(addr, key))
+}
+func (self *StateDB) GetByte(addr common.Address, key []byte) byte {
+	ret := self.GetState(addr, key)
+	//if len(ret) != 1{
+	//	return byte('')
+	//}
+	return ret[0]
+}
+
 // todo: new method -> GetAbiHash
-func(s *StateDB) GetAbiHash(addr common.Address) common.Hash {
+func (s *StateDB) GetAbiHash(addr common.Address) common.Hash {
 	stateObject := s.getStateObject(addr)
 	if stateObject == nil {
 		return common.Hash{}
@@ -659,7 +724,7 @@ func(s *StateDB) GetAbiHash(addr common.Address) common.Hash {
 }
 
 // todo: new method -> GetAbi
-func(s *StateDB) GetAbi(addr common.Address) []byte {
+func (s *StateDB) GetAbi(addr common.Address) []byte {
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
 		return stateObject.Abi(s.db)
@@ -668,7 +733,7 @@ func(s *StateDB) GetAbi(addr common.Address) []byte {
 }
 
 // todo: new method -> SetAbi
-func(s *StateDB) SetAbi(addr common.Address, abi []byte) {
+func (s *StateDB) SetAbi(addr common.Address, abi []byte) {
 	stateObject := s.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetAbi(crypto.Keccak256Hash(abi), abi)

@@ -99,7 +99,6 @@ func (db *odrDatabase) ContractAbi(addrHash, abiHash common.Hash) ([]byte, error
 	return req.Data, err
 }
 
-
 func (db *odrDatabase) TrieDB() *trie.Database {
 	return nil
 }
@@ -125,6 +124,11 @@ func (t *odrTrie) TryUpdate(key, value []byte) error {
 	return t.do(key, func() error {
 		return t.trie.TryDelete(key)
 	})
+}
+
+//todo
+func (t *odrTrie) TryUpdateValue(key, value []byte) error {
+	return nil
 }
 
 func (t *odrTrie) TryDelete(key []byte) error {
