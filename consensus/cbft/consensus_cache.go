@@ -14,17 +14,27 @@ var (
 )
 
 type Cache struct {
-	stateDBCache	map[common.Hash]*state.StateDB		// key is header stateRoot
-	receiptsCache	map[common.Hash][]*types.Receipt	// key is header hash
-	chain  			*core.BlockChain
-	stateDBMu       sync.RWMutex
-	receiptsMu		sync.RWMutex
+	stateDBCache		map[common.Hash]*stateDBCache		// key is header stateRoot
+	receiptsCache		map[common.Hash]*receiptsCache		// key is header hash
+	chain  				*core.BlockChain
+	stateDBMu       	sync.RWMutex
+	receiptsMu			sync.RWMutex
+}
+
+type stateDBCache struct {
+	stateDB *state.StateDB
+	blockNum uint64
+}
+
+type receiptsCache struct {
+	receipts []*types.Receipt
+	blockNum uint64
 }
 
 func NewCache(blockChain *core.BlockChain) *Cache {
 	cache := &Cache{
-		stateDBCache:        make(map[common.Hash]*state.StateDB),
-		receiptsCache:       make(map[common.Hash][]*types.Receipt),
+		stateDBCache:        make(map[common.Hash]*stateDBCache),
+		receiptsCache:       make(map[common.Hash]*receiptsCache),
 		chain: blockChain,
 	}
 	return cache
@@ -34,8 +44,8 @@ func NewCache(blockChain *core.BlockChain) *Cache {
 func (c *Cache) ReadReceipts(blockHash common.Hash) []*types.Receipt {
 	c.receiptsMu.RLock()
 	defer c.receiptsMu.RUnlock()
-	if receipts, exist := c.receiptsCache[blockHash]; exist {
-		return receipts
+	if obj, exist := c.receiptsCache[blockHash]; exist {
+		return obj.receipts
 	}
 	return nil
 }
@@ -44,43 +54,65 @@ func (c *Cache) ReadReceipts(blockHash common.Hash) []*types.Receipt {
 func (c *Cache) ReadStateDB(stateRoot common.Hash) *state.StateDB {
 	c.stateDBMu.RLock()
 	defer c.stateDBMu.RUnlock()
-	if stateDB, exist := c.stateDBCache[stateRoot]; exist {
-		return stateDB
+	if obj, exist := c.stateDBCache[stateRoot]; exist {
+		return obj.stateDB
 	}
 	return nil
 }
 
 // 将Receipt写入缓存
-func (c *Cache) WriteReceipts(blockHash common.Hash, receipts []*types.Receipt) {
+func (c *Cache) WriteReceipts(blockHash common.Hash, receipts []*types.Receipt, blockNum uint64) {
 	c.receiptsMu.Lock()
 	defer c.receiptsMu.Unlock()
-	if _receipts, exist := c.receiptsCache[blockHash]; exist {
-		_receipts := append(_receipts, receipts...)
-		c.receiptsCache[blockHash] = _receipts
-	} else {
-		c.receiptsCache[blockHash] = receipts
+	obj, exist := c.receiptsCache[blockHash]
+	if exist && obj.blockNum == blockNum {
+		obj.receipts = append(obj.receipts, receipts...)
+	} else if !exist {
+		c.receiptsCache[blockHash] = &receiptsCache{receipts: receipts, blockNum: blockNum}
 	}
 }
 
 // 将StateDB实例写入缓存
-func (c *Cache) WriteStateDB(stateRoot common.Hash, stateDB *state.StateDB) {
+func (c *Cache) WriteStateDB(stateRoot common.Hash, stateDB *state.StateDB, blockNum uint64) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
-	c.stateDBCache[stateRoot] = stateDB
+	if _, exist := c.stateDBCache[stateRoot]; !exist {
+		c.stateDBCache[stateRoot] = &stateDBCache{stateDB: stateDB, blockNum: blockNum}
+	}
 }
 
 // 从缓存map中读取Receipt集合
 func (c *Cache) clearReceipts(blockHash common.Hash) {
 	c.receiptsMu.Lock()
 	defer c.receiptsMu.Unlock()
-	delete(c.receiptsCache, blockHash)
+
+	var blockNum uint64
+	if obj, exist := c.receiptsCache[blockHash]; exist {
+		blockNum = obj.blockNum
+		//delete(c.receiptsCache, blockHash)
+	}
+	for hash, obj := range c.receiptsCache {
+		if obj.blockNum <= blockNum {
+			delete(c.receiptsCache, hash)
+		}
+	}
 }
 
 // 从缓存map中读取StateDB实例
 func (c *Cache) clearStateDB(stateRoot common.Hash) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
-	delete(c.stateDBCache, stateRoot)
+
+	var blockNum uint64
+	if obj, exist := c.stateDBCache[stateRoot]; exist {
+		blockNum = obj.blockNum
+		//delete(c.stateDBCache, stateRoot)
+	}
+	for hash, obj := range c.stateDBCache {
+		if obj.blockNum <= blockNum {
+			delete(c.stateDBCache, hash)
+		}
+	}
 }
 
 // 获取相应block的StateDB实例

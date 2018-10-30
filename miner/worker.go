@@ -1137,8 +1137,8 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now()}:
 			// modify by platon
 			// 保存receipts、stateDB至缓存
-			w.consensusCache.WriteReceipts(block.Hash(), receipts)
-			w.consensusCache.WriteStateDB(block.Root(), s)
+			w.consensusCache.WriteReceipts(block.Hash(), receipts, block.NumberU64())
+			w.consensusCache.WriteStateDB(block.Root(), s, block.NumberU64())
 
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
