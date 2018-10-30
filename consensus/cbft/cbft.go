@@ -200,6 +200,7 @@ func (cbft *Cbft) resetHighest(highest *BlockExt) {
 	//highest := cbft.findHighest(ext)
 	//highest.level = Logical
 	cbft.highestLogicalBlockExt = highest
+	log.Info("设置最高合理区块", "hash", cbft.highestLogicalBlockExt.block.Hash(), "number", cbft.highestLogicalBlockExt.block.NumberU64())
 }
 
 //查询ext为根的树中块高最高节点; 相同块高，取签名数多的节点
@@ -447,7 +448,7 @@ func SetBlockChain(blockChain *core.BlockChain) {
 	blockExt.isIrreversible = true
 
 	//最高合理块
-	cbft.highestLogicalBlockExt = blockExt
+	cbft.resetHighest(blockExt)
 
 	//当前不可逆块
 	cbft.irreversibleBlockExt = blockExt
@@ -1102,6 +1103,7 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 
 //取最高区块
 func (cbft *Cbft) getHighestLogicalBlock() *types.Block {
+	log.Info("获取最高合理区块", "hash", cbft.highestLogicalBlockExt.block.Hash(), "number", cbft.highestLogicalBlockExt.block.NumberU64())
 	return cbft.highestLogicalBlockExt.block
 }
 
