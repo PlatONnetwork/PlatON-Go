@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"Platon-go/common"
 	"Platon-go/life/utils"
 	"Platon-go/log"
 	"Platon-go/rlp"
@@ -137,7 +138,8 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	// todo: 类型缺失，待继续补充
 	switch returnType {
 	case "void", "int8", "int", "int32", "int64" :
-		return utils.Int64ToBytes(res), nil
+		hashRes := common.BytesToHash(utils.Int64ToBytes(res))
+		return hashRes.Bytes(), nil
 	case "string":
 		returnBytes := make([]byte, 0)
 		copyData := in.lvm.Memory.Memory[res:]
@@ -147,8 +149,25 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 			}
 			returnBytes = append(returnBytes, v)
 		}
+		// 0x0000000000000000000000000000000000000020
+		// 00000000000000000000000000000000000000000d
+		// 00000000000000000000000000000000000000000
+		strHash := common.BytesToHash(common.Int32ToBytes(32))
+		sizeHash := common.BytesToHash(common.Int64ToBytes(int64((len(returnBytes)))))
+		var dataRealSize = len(returnBytes)
+		if (dataRealSize % 32) != 0 {
+			dataRealSize = dataRealSize + (32 - (dataRealSize % 32))
+		}
+		dataByt := make([]byte, dataRealSize)
+		copy(dataByt[0:], returnBytes)
+
+		finalData := make([]byte, 0)
+		finalData = append(finalData, strHash.Bytes()...)
+		finalData = append(finalData, sizeHash.Bytes()...)
+		finalData = append(finalData, dataByt...)
+
 		fmt.Println("CallReturn:", string(returnBytes))
-		return returnBytes,nil
+		return finalData,nil
 	}
 	return nil, nil
 }
