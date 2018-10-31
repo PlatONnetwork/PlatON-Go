@@ -353,6 +353,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	state, err := cbft.consensusCache.MakeStateDB(ext.block)
 	if err != nil {
+		log.Error("执行区块出错，cbft.consensusCache.MakeStateDB()错误")
 		return
 	}
 
@@ -990,7 +991,7 @@ func (cbft *Cbft) writeChain(exts []*BlockExt) {
 
 	for _, ext := range exts {
 
-		log.Info("区块准备入链", "blockHash", ext.block.Hash())
+		log.Info("区块准备入链", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "signCount", len(ext.signs))
 
 		cbftResult := &cbfttypes.CbftResult{
 			Block: ext.block,
