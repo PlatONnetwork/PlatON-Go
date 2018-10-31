@@ -147,7 +147,7 @@ func (ext *BlockExt) hasLogicalChild() bool {
 	return false
 }
 
-//查找ext的父亲节点
+//查找ext的父亲节点（父节点必须满足ext.Block!=nil)
 func (ext *BlockExt) findParent() *BlockExt {
 	if ext.block == nil {
 		return nil
@@ -155,26 +155,26 @@ func (ext *BlockExt) findParent() *BlockExt {
 
 	parent := cbft.findBlockExt(ext.block.ParentHash())
 	if parent != nil {
-		if parent.block.NumberU64()+1 == ext.block.NumberU64() {
+		if parent.block != nil && parent.block.NumberU64()+1 == ext.block.NumberU64() {
 			return parent
 		} else {
-			log.Warn("数据错误，父区块hash能对应上，但是块高对应不上")
+			log.Warn("数据错误，父区块hash能对应上，但是只有父区块签名/或者父区块块高对应不上")
 		}
 	}
 	return nil
 }
 
-//查找ext的孩子节点（可以有多个）
+//查找ext的孩子节点（可以有多个,孩子节点必须满足ext.Block!=nil)
+//由于可以先收签名再收区块，此时ext.block==nil，查找孩子节点时，需要排除这样的节点。
 func (ext *BlockExt) findChildren() []*BlockExt {
 	if ext.block == nil {
 		return nil
 	}
-
 	children := make([]*BlockExt, 0)
 
 	f := func(k, v interface{}) bool {
 		child, _ := v.(*BlockExt)
-		if child.block.ParentHash() == ext.block.Hash() {
+		if child != nil && child.block != nil && child.block.ParentHash() == ext.block.Hash() {
 			if child.block.NumberU64()-1 == ext.block.NumberU64() {
 				children = append(children, child)
 			} else {
@@ -237,6 +237,7 @@ func (cbft *Cbft) resetHighest(highest *BlockExt) {
 func (cbft *Cbft) findHighest(ext *BlockExt) *BlockExt {
 	log.Info("findHighest() 递归")
 	highest := ext
+	//children不包含ext.block==nil的节点
 	children := ext.findChildren()
 	if children != nil {
 		for _, child := range children {
@@ -256,6 +257,7 @@ func (cbft *Cbft) findHighestNewIrreversible(ext *BlockExt) *BlockExt {
 	if len(irr.signs) < cbft.getThreshold() {
 		irr = nil
 	}
+	//children不包含ext.block==nil的节点
 	children := ext.findChildren()
 	if children != nil {
 		for _, child := range children {
@@ -268,10 +270,11 @@ func (cbft *Cbft) findHighestNewIrreversible(ext *BlockExt) *BlockExt {
 	return irr
 }
 
-//查询树中，签名数最多的节点; 签名数相同，，则取块高的节点
+//查询ext为根的所有子树中，签名数最多的节点; 签名数相同，则取块高的节点
 func (cbft *Cbft) findMaxSigns(ext *BlockExt) *BlockExt {
 	log.Info("findMaxSigns() 递归")
 	max := ext
+	//children不包含ext.block==nil的节点
 	children := ext.findChildren()
 	if children != nil {
 		for _, child := range children {
@@ -289,6 +292,7 @@ func (cbft *Cbft) execDescendant(ext *BlockExt, parent *BlockExt) {
 	if ext.level == Discrete {
 		cbft.execute(ext, parent)
 	}
+	//children不包含ext.block==nil的节点
 	children := ext.findChildren()
 	if children != nil {
 		for _, child := range children {
@@ -419,6 +423,7 @@ func (cbft *Cbft) collectLogicals(start *BlockExt, end *BlockExt) []*BlockExt {
 
 	findStart := false
 	for {
+		//父节点满足ext.Block!=nil
 		parent := end.findParent()
 		if parent == nil {
 			break
@@ -581,14 +586,17 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 	defer cbft.lock.Unlock()
 
 	log.Info("收到新签名==>>", "blockHash", sig.Hash)
-	var ext *BlockExt
 
-	if ext = cbft.findBlockExt(sig.Hash); ext == nil {
+	ext := cbft.findBlockExt(sig.Hash)
+	if ext == nil {
 		log.Info("新签名对应的区块还没收到")
 		//没有的话，new一个BlockExt
 		ext = NewBlockExt(nil)
 		ext.level = Discrete
 		cbft.saveEmptyBlock(sig.Hash, ext)
+	} else if ext.isIrreversible {
+		log.Info("新签名对应的区块已经是不可逆块，直接丢弃此签名")
+		return
 	}
 
 	//收集签名
@@ -662,8 +670,9 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	} else {
 		parent := ext.findParent()
 		if parent != nil {
-			//执行新块（能接
-			if parent.level == Legal || (parent.level == Logical && parent.hasLogicalChild()) {
+			if parent.level == Discrete {
+				log.Info("收到的新块的父区块是孤区块，暂时不处理")
+			} else if parent.level == Legal || (parent.level == Logical && parent.hasLogicalChild()) {
 				// 执行所有后代
 				cbft.execDescendant(ext, parent)
 			}
