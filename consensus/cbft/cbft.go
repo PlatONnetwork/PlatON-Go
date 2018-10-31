@@ -351,7 +351,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 //执行区块
 //执行成功，修改level=Legal，并保存回执和状态
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
-	state, err := cbft.consensusCache.MakeStateDB(ext.block)
+	state, err := cbft.consensusCache.MakeStateDB(parent.block)
 	if err != nil {
 		log.Error("执行区块出错，cbft.consensusCache.MakeStateDB()错误")
 		return
