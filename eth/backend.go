@@ -140,7 +140,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
 		accountManager: ctx.AccountManager,
-		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb, blockSignatureCh, cbftResultCh),
+		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb, blockSignatureCh, cbftResultCh, &config.CbftConfig),
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
 		gasPrice:       config.MinerGasPrice,
@@ -265,10 +265,15 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 // modify by platon
 // 默认创建Cbft engine，同时CreateConsensusEngine方法增加blockSignatureCh、cbftResultCh入参
 func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool,
-	db ethdb.Database, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) consensus.Engine {
+	db ethdb.Database, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, cbftConfig *CbftConfig) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	// modify by platon
 	if chainConfig.Cbft != nil {
+		chainConfig.Cbft.Period = cbftConfig.Period
+		chainConfig.Cbft.Epoch = cbftConfig.Epoch
+		chainConfig.Cbft.MaxLatency = cbftConfig.MaxLatency
+		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
+		chainConfig.Cbft.Duration = cbftConfig.Duration
 		return cbft.New(chainConfig.Cbft, blockSignatureCh, cbftResultCh)
 	}
 

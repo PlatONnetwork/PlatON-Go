@@ -17,7 +17,8 @@
 package eth
 
 import (
-	"Platon-go/consensus/cbft"
+	"Platon-go/node"
+	"fmt"
 	"math/big"
 	"os"
 	"os/user"
@@ -31,13 +32,18 @@ import (
 	"Platon-go/core"
 	"Platon-go/eth/downloader"
 	"Platon-go/eth/gasprice"
+	"Platon-go/log"
 	"Platon-go/params"
+)
+
+const (
+	datadirCbftConfig     = "cbft.json"  // Path within the datadir to the cbft config
 )
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FastSync,
-	CbftConfig: cbft.CbftConfig{
+	CbftConfig: CbftConfig{
 		Period:	30,
 		Epoch:	210000,
 		MaxLatency:	60000,
@@ -90,7 +96,7 @@ type Config struct {
 	Genesis *core.Genesis `toml:",omitempty"`
 
 	// modify by platon
-	CbftConfig	cbft.CbftConfig `toml:",omitempty"`
+	CbftConfig	CbftConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
@@ -142,6 +148,38 @@ type Config struct {
 	WASMLogFile string `toml:",omitempty"`
 }
 
+type CbftConfig struct {
+	Period           uint64  `json:"period"`           // Number of seconds between blocks to enforce
+	Epoch            uint64  `json:"epoch"`            // Epoch length to reset votes and checkpoint
+	MaxLatency       int64   `json:"maxLatency"`       //共识节点间最大网络延迟时间，单位：毫秒
+	LegalCoefficient float64 `json:"legalCoefficient"` //检查块的合法性时的用到的时间系数
+	Duration         int64   `json:"duration"`         //每个出块节点的出块时长，单位：秒
+	//mock
+	//InitialNodes []discover.Node   `json:"initialNodes"`
+	//NodeID       discover.NodeID   `json:"nodeID,omitempty"`
+	//PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
+}
+
 type configMarshaling struct {
 	MinerExtraData hexutil.Bytes
+}
+
+// StaticNodes returns a list of node enode URLs configured as static nodes.
+func (c *Config) LoadCbftConfig(nodeConfig node.Config) *CbftConfig {
+	return c.parsePersistentCbftConfig(filepath.Join(nodeConfig.DataDir, nodeConfig.Name, datadirCbftConfig))
+}
+
+// parsePersistentNodes parses a list of discovery node URLs loaded from a .json
+// file from within the data directory.
+func (c *Config) parsePersistentCbftConfig(path string) *CbftConfig {
+	if _, err := os.Stat(path); err != nil {
+		return nil
+	}
+	// Load the nodes from the config file.
+	config := CbftConfig{}
+	if err := common.LoadJSON(path, &config); err != nil {
+		log.Error(fmt.Sprintf("Can't load cbft config file %s: %v", path, err))
+		return nil
+	}
+	return &config
 }

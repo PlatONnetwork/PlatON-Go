@@ -133,8 +133,12 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
 
-	//
 	utils.SetEthConfig(ctx, stack, &cfg.Eth)
+	// load cbft config file.
+	if cbftConfig := cfg.Eth.LoadCbftConfig(cfg.Node); cbftConfig != nil {
+		cfg.Eth.CbftConfig = *cbftConfig
+	}
+
 	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
 		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
 	}
