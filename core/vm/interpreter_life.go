@@ -83,7 +83,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	defer func() { in.evm.depth-- }()
 
 	if len(contract.Code) == 0 {
-		return nil, fmt.Errorf("Code not found.")
+		return nil, nil
 	}
 	_, abi, code, er := parseRlpData(contract.Code)
 	if er != nil {
