@@ -708,6 +708,7 @@ func (w *worker) resultLoop() {
 				_receipts = task.receipts
 				_state = task.state
 			} else {
+				log.Info("从consensusCache中读取receipts、state", "blockHash", block.Hash(), "stateRoot", block.Root())
 				_receipts = w.consensusCache.ReadReceipts(block.Hash())
 				_state = w.consensusCache.ReadStateDB(block.Root())
 			}

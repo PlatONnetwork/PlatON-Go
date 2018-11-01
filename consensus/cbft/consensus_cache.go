@@ -5,6 +5,7 @@ import (
 	"Platon-go/core"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
+	"Platon-go/log"
 	"sync"
 	"errors"
 )
@@ -122,6 +123,7 @@ func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 		return state, nil
 	}
 	// 读取并拷贝缓存中StateDB实例
+	log.Info("读取并拷贝缓存中StateDB实例", "stateRoot", block.Root())
 	if state := c.ReadStateDB(block.Root()); state != nil {
 		return state.Copy(), nil
 	} else {
