@@ -644,6 +644,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	//时间合法性计算，不合法返回error
 	log.Info("检查块是否在出块人的时间窗口内生成的")
 	if cbft.isOverdue(block.Time().Int64(), producerNodeID) {
+		log.Error("迟到的区块，直接丢弃")
 		return errOverdueBlock
 	}
 
@@ -1014,7 +1015,7 @@ func (cbft *Cbft) writeChain(exts []*BlockExt) {
 //出块时间窗口期与出块节点匹配
 func (cbft *Cbft) inTurn() bool {
 	singerIdx := cbft.dpos.NodeIndex(cbft.config.NodeID)
-	if singerIdx >= 0 {
+	/*if singerIdx >= 0 {
 		durationMilliseconds := cbft.config.Duration * 1000
 		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
@@ -1023,6 +1024,36 @@ func (cbft *Cbft) inTurn() bool {
 		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % totalDuration
 
 		value3 := (singerIdx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
+
+		if value2 > value1 && value3 > value2 {
+			return true
+		}
+	}
+	return false*/
+
+	idxInturn := -1
+	for idx := 0; idx < len(cbft.dpos.primaryNodeList); idx++ {
+		inturn := calTurn(int64(idx))
+		log.Info("节点出块轮值情况", "inturn", inturn, "nodeID", hexutil.Encode(cbft.dpos.primaryNodeList[idx].ID[:]))
+
+		if inturn {
+			idxInturn = idx
+		}
+	}
+
+	return singerIdx == int64(idxInturn)
+}
+
+func calTurn(idx int64) bool {
+	if idx >= 0 {
+		durationMilliseconds := cbft.config.Duration * 1000
+		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
+
+		value1 := idx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
+
+		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % totalDuration
+
+		value3 := (idx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
 
 		if value2 > value1 && value3 > value2 {
 			return true
