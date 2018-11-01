@@ -1028,7 +1028,7 @@ func (cbft *Cbft) inTurn() bool {
 	idxInturn := -1
 	for idx := 0; idx < len(cbft.dpos.primaryNodeList); idx++ {
 		inturn := calTurn(int64(idx))
-		log.Info("节点出块轮值情况", "inturn", inturn, "nodeID", hexutil.Encode(cbft.dpos.primaryNodeList[idx].ID[:]))
+		log.Info("节点出块轮值情况", "inturn", inturn, "nodeID", hexutil.Encode(cbft.dpos.primaryNodeList[idx][:]))
 
 		if inturn {
 			idxInturn = idx
