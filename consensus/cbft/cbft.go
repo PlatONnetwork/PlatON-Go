@@ -1051,9 +1051,12 @@ func calTurn(idx int64) bool {
 
 		value1 := idx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
 
-		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % totalDuration
+		now := time.Now().Unix()
+		value2 := (now*1000 - cbft.dpos.StartTimeOfEpoch()) % totalDuration
 
 		value3 := (idx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
+
+		log.Info("计算参数", "now", now, "idx", idx, "durationMilliseconds", durationMilliseconds, "totalDuration", totalDuration, "MaxLatency", cbft.config.MaxLatency, "StartTimeOfEpoch", cbft.dpos.StartTimeOfEpoch())
 
 		if value2 > value1 && value3 > value2 {
 			return true
