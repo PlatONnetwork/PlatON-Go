@@ -983,7 +983,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	var parent *types.Block
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		parent = cbftEngine.HighestLogicalBlock()
-		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "parent", parent)
+		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "hash", parent.Hash(), "number", parent.NumberU64(), "stateRoot", parent.Root())
 	} else {
 		parent = w.chain.CurrentBlock()
 	}

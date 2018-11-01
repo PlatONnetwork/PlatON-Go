@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"Platon-go/consensus/cbft"
 	"math/big"
 	"os"
 	"os/user"
@@ -36,6 +37,13 @@ import (
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FastSync,
+	CbftConfig: cbft.CbftConfig{
+		Period:	30,
+		Epoch:	210000,
+		MaxLatency:	60000,
+		LegalCoefficient: 1.0,
+		Duration: 3600,
+	},
 	Ethash: ethash.Config{
 		CacheDir:       "ethash",
 		CachesInMem:    2,
@@ -80,6 +88,9 @@ type Config struct {
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
+
+	// modify by platon
+	CbftConfig	cbft.CbftConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
