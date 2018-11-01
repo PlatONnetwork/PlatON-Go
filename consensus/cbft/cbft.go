@@ -373,7 +373,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	}
 }
 
-//收集从ext到不可逆块路径上的块，不包括原来的不可逆块，并按块高排好序
+//收集从newIrr到不可逆块路径上的块，不包括原来的不可逆块，并按块高排好序
 func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
 	log.Info("收集到新不可逆区块", "Hash", newIrr.block.Hash(), "ParentHash", newIrr.block.ParentHash(), "Number", newIrr.block.NumberU64())
 
@@ -393,6 +393,8 @@ func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
 			log.Info("收集到新不可逆区块", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "Number", parent.block.NumberU64())
 			exts = append(exts, parent)
 		}
+		//继续往原不可逆区块方向寻找
+		newIrr = parent
 	}
 
 	if !findRootIrr {
@@ -415,6 +417,8 @@ func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
 
 //收集从end到start（start已经是合理块）的合理块列表，按块高排序
 func (cbft *Cbft) collectLogicals(start *BlockExt, end *BlockExt) []*BlockExt {
+	log.Info("收集合理区块", "startHash", start.block.Hash(), "startNumber", start.block.NumberU64(), "end", end.block.Hash(), "endNumber", end.block.NumberU64())
+
 	exts := make([]*BlockExt, 1)
 	exts[0] = end
 
@@ -434,6 +438,8 @@ func (cbft *Cbft) collectLogicals(start *BlockExt, end *BlockExt) []*BlockExt {
 			findStart = true
 			break
 		}
+		//继续往start方向收集
+		end = parent
 	}
 
 	if !findStart {
