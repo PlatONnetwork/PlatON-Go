@@ -988,6 +988,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	var parent *types.Block
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		parent = cbftEngine.HighestLogicalBlock()
+		timestamp = time.Now().Unix()
 		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "hash", parent.Hash(), "number", parent.NumberU64(), "stateRoot", parent.Root())
 	} else {
 		parent = w.chain.CurrentBlock()
@@ -1008,9 +1009,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		Number:     num.Add(num, common.Big1),
 		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
 		Extra:      w.extra,
-		//Time:       big.NewInt(timestamp),
-		// platon TODO
-		Time: big.NewInt(time.Now().Unix()),
+		Time:       big.NewInt(timestamp),
 	}
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {
