@@ -391,6 +391,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						timer.Reset(recommit)
 						continue
 					}
+					log.Info("execute worker line 395", "Clique", w.config.Clique)
 					commit(true, commitInterruptResubmit)
 				}
 			}
@@ -510,6 +511,7 @@ func (w *worker) mainLoop() {
 			} else {
 				// If we're mining, but nothing is being processed, wake on new transactions
 				if w.config.Clique != nil && w.config.Clique.Period == 0 {
+					log.Info("execute worker line 514", "Clique", w.config.Clique)
 					w.commitNewWork(nil, false, time.Now().Unix())
 				}
 			}
