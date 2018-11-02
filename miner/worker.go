@@ -369,6 +369,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// modify by platon
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
+			log.Info("【chainHeadCh】", "block number", head.Block.NumberU64())
 			w.consensusCache.ClearCache(head.Block)
 
 		case <-timer.C:
@@ -689,6 +690,7 @@ func (w *worker) resultLoop() {
 			blockConfirmSigns := cbftResult.BlockConfirmSigns
 			// Short circuit when receiving empty result.
 			if block == nil || blockConfirmSigns == nil || len(blockConfirmSigns) <= 0 {
+				log.Error("execute worker line 693", "block", block, "blockConfirmSigns", blockConfirmSigns)
 				continue
 			}
 			var (
@@ -697,6 +699,7 @@ func (w *worker) resultLoop() {
 			)
 			// Short circuit when receiving duplicate result caused by resubmitting.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
+				log.Error("execute worker line 702", "hash", block.Hash(), "number", block.NumberU64())
 				continue
 			}
 
@@ -988,16 +991,15 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "hash", parent.Hash(), "number", parent.NumberU64(), "stateRoot", parent.Root())
 	} else {
 		parent = w.chain.CurrentBlock()
-	}
-
-	if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
-		timestamp = parent.Time().Int64() + 1
-	}
-	// this will ensure we're not going off too far in the future
-	if now := time.Now().Unix(); timestamp > now+1 {
-		wait := time.Duration(timestamp-now) * time.Second
-		log.Info("Mining too far in the future", "wait", common.PrettyDuration(wait))
-		time.Sleep(wait)
+		if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
+			timestamp = parent.Time().Int64() + 1
+		}
+		// this will ensure we're not going off too far in the future
+		if now := time.Now().Unix(); timestamp > now+1 {
+			wait := time.Duration(timestamp-now) * time.Second
+			log.Info("Mining too far in the future", "wait", common.PrettyDuration(wait))
+			time.Sleep(wait)
+		}
 	}
 
 	num := parent.Number()
