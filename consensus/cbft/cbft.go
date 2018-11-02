@@ -40,21 +40,21 @@ type Cbft struct {
 	config          *params.CbftConfig
 	dpos            *dpos
 	rotating        *rotating
-	blockSignOutCh  chan *cbfttypes.BlockSignature //本节点对块的确认签名后，把签名发往此通道处理（通常是广播出去）
-	cbftResultOutCh chan *cbfttypes.CbftResult     //本节点确认块可以入链后，收集此块数据并发往此通道处理（写入链）
+	blockSignOutCh  chan *cbfttypes.BlockSignature //a channel to send block signature
+	cbftResultOutCh chan *cbfttypes.CbftResult     //a channel to send consensus result
 	closeOnce       sync.Once
 	exitCh          chan chan error
 
-	blockExtMap sync.Map
+	blockExtMap sync.Map //store all received blocks and signs
 
-	signReceiveCh          chan *cbfttypes.BlockSignature //本节点收到其它节点广播的签名后，发往此通道继续串行处理
-	blockReceiveCh         chan *types.Block              //本节点收到其它节点广播的块后，发往此通道继续串行处理
-	blockChain             *core.BlockChain               //区块链指针
-	highestLogicalBlockExt *BlockExt                      //区块块号最高的合理块
-	irreversibleBlockExt   *BlockExt                      //不可逆块
-	signedSet              sync.Map                       //签名过的块高
-	lock                   sync.Mutex                     //保护
-	consensusCache         *Cache
+	signReceiveCh          chan *cbfttypes.BlockSignature //a channel to receive block signature
+	blockReceiveCh         chan *types.Block              //a channel to receive block
+	blockChain             *core.BlockChain               //the block chain
+	highestLogicalBlockExt *BlockExt                      //highest logical block
+	irreversibleBlockExt   *BlockExt                      //highest irreversible block
+	signedSet              sync.Map                       //all block numbers signed by local node
+	lock                   sync.Mutex
+	consensusCache         *Cache //cache for cbft
 }
 
 var cbft *Cbft
@@ -67,11 +67,11 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		config:          config,
 		dpos:            _dpos,
 		rotating:        newRotating(_dpos, config.Duration),
-		blockSignOutCh:  blockSignatureCh, //本节点对块的确认签名后，把签名发往此通道处理（通常是广播出去）
-		cbftResultOutCh: cbftResultCh,     //本节点确认块可以入链后，收集此块数据并发往此通道处理（写入链）
+		blockSignOutCh:  blockSignatureCh,
+		cbftResultOutCh: cbftResultCh,
 
-		signReceiveCh:  make(chan *cbfttypes.BlockSignature), //本节点收到其它节点广播的签名后，发往此通道继续串行处理
-		blockReceiveCh: make(chan *types.Block),              //本节点收到其它节点广播的块后，发往此通道继续串行处理
+		signReceiveCh:  make(chan *cbfttypes.BlockSignature),
+		blockReceiveCh: make(chan *types.Block),
 	}
 
 	//启动协程处理新收到的签名
@@ -83,25 +83,25 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 	return cbft
 }
 
+//each block has differ level in it's lifecycle
 type Level int
 
 const (
-	Discrete Level = iota //不连续的，间断的，不要被执行，也不要签名
-	Legal                 //合法的，需要被执行
-	Logical               //合理的，需要被执行，并签名
+	Discrete Level = iota //neither should execute nor be signed
+	Legal                 //should execute
+	Logical               //should be singed
 )
 
+//the extension for Block
 type BlockExt struct {
-	block          *types.Block
-	level          Level
-	isIrreversible bool
-	lastSignTime   time.Time                  //签名计数器最新更新时间
-	signs          []*common.BlockConfirmSign //签名map，key=签名
-	//receipts       types.Receipts             //执行区块后的收据
-	//state          *state.StateDB             //执行区块后的状态
+	block           *types.Block
+	level           Level
+	isIrreversible  bool
+	signsUpdateTime time.Time
+	signs           []*common.BlockConfirmSign //all signs for block
 }
 
-//创建BlockExt对象
+// New creates a BlockExt object
 func NewBlockExt(block *types.Block) *BlockExt {
 	return &BlockExt{
 		block: block,
@@ -109,7 +109,7 @@ func NewBlockExt(block *types.Block) *BlockExt {
 	}
 }
 
-//查找节点
+//find BlockExt in cbft.blockExtMap
 func (cbft *Cbft) findBlockExt(hash common.Hash) *BlockExt {
 	if v, ok := cbft.blockExtMap.Load(hash); ok {
 		return v.(*BlockExt)
@@ -117,7 +117,8 @@ func (cbft *Cbft) findBlockExt(hash common.Hash) *BlockExt {
 	return nil
 }
 
-//增加ext的签名（todo:增加判断重复签名）
+//collect all signs for block
+// todo: to filter the duplicated sign
 func (ext *BlockExt) collectSign(sign *common.BlockConfirmSign) int {
 	if sign != nil {
 		ext.signs = append(ext.signs, sign)
@@ -126,15 +127,15 @@ func (ext *BlockExt) collectSign(sign *common.BlockConfirmSign) int {
 	return 0
 }
 
-//判断ext是下一个最高合理块
-func (ext *BlockExt) isNextHighest() bool {
+//to check if current blockExt is the next logical block
+func (ext *BlockExt) isNextLogical() bool {
 	if ext.block != nil && ext.block.ParentHash() == cbft.highestLogicalBlockExt.block.Hash() && ext.block.NumberU64() == cbft.highestLogicalBlockExt.block.NumberU64()+1 {
 		return true
 	}
 	return false
 }
 
-//判断ext是否有合理的孩子节点
+//to check if current blockExt has a logical child
 func (ext *BlockExt) hasLogicalChild() bool {
 	children := ext.findChildren()
 	if children != nil {
@@ -147,7 +148,7 @@ func (ext *BlockExt) hasLogicalChild() bool {
 	return false
 }
 
-//查找ext的父亲节点（父节点必须满足ext.Block!=nil)
+//to find current blockExt's parent with non-nil block
 func (ext *BlockExt) findParent() *BlockExt {
 	if ext.block == nil {
 		return nil
@@ -158,14 +159,13 @@ func (ext *BlockExt) findParent() *BlockExt {
 		if parent.block != nil && parent.block.NumberU64()+1 == ext.block.NumberU64() {
 			return parent
 		} else {
-			log.Warn("数据错误，父区块hash能对应上，但是只有父区块签名/或者父区块块高对应不上")
+			log.Warn("data error, parent block hash is not mapping to number")
 		}
 	}
 	return nil
 }
 
-//查找ext的孩子节点（可以有多个,孩子节点必须满足ext.Block!=nil)
-//由于可以先收签名再收区块，此时ext.block==nil，查找孩子节点时，需要排除这样的节点。
+//to find current blockExt's children with non-nil block
 func (ext *BlockExt) findChildren() []*BlockExt {
 	if ext.block == nil {
 		return nil
@@ -178,7 +178,7 @@ func (ext *BlockExt) findChildren() []*BlockExt {
 			if child.block.NumberU64()-1 == ext.block.NumberU64() {
 				children = append(children, child)
 			} else {
-				log.Warn("数据错误，子区块hash能对应上，但是块高对应不上")
+				log.Warn("data error, child block hash is not mapping to number")
 			}
 		}
 		return true
@@ -201,8 +201,8 @@ func (cbft *Cbft) saveEmptyBlock(hash common.Hash, ext *BlockExt) {
 	cbft.blockExtMap.Store(hash, ext)
 }
 
-//从Ext开始，重新设置合理块路径。
-//签名路径上未签名的块，设置最高合理块
+//reset logical path from start
+//sign the on-path block and set the last blockExt as the highest logical blockExt
 func (cbft *Cbft) resetLogicalPath(start *BlockExt) {
 	log.Info("重新设置合理块路径", "start blockHash", start.block.Hash())
 
@@ -233,11 +233,11 @@ func (cbft *Cbft) resetHighest(highest *BlockExt) {
 	log.Info("设置最高合理区块", "hash", cbft.highestLogicalBlockExt.block.Hash(), "number", cbft.highestLogicalBlockExt.block.NumberU64())
 }
 
-//查询ext为根的树中块高最高节点; 相同块高，取签名数多的节点
+//to find the highest block from ext; If there are multiple highest blockExts, return the one that has most signs
 func (cbft *Cbft) findHighest(ext *BlockExt) *BlockExt {
-	log.Info("findHighest() 递归")
+	log.Debug("recursion in findHighest()")
 	highest := ext
-	//children不包含ext.block==nil的节点
+	//each child has non-nil block
 	children := ext.findChildren()
 	if children != nil {
 		for _, child := range children {
@@ -250,14 +250,14 @@ func (cbft *Cbft) findHighest(ext *BlockExt) *BlockExt {
 	return highest
 }
 
-//查询ext为根的树中新的不可逆的最高节点（返回第一个满足条件的块）
+//to find a new irreversible blockExt from ext; If there are multiple irreversible blockExts, return the first.
 func (cbft *Cbft) findHighestNewIrreversible(ext *BlockExt) *BlockExt {
-	log.Info("findHighestNewIrreversible() 递归")
+	log.Debug("recursion in findHighestNewIrreversible()")
 	irr := ext
 	if len(irr.signs) < cbft.getThreshold() {
 		irr = nil
 	}
-	//children不包含ext.block==nil的节点
+	//each child has non-nil block
 	children := ext.findChildren()
 	if children != nil {
 		for _, child := range children {
@@ -270,11 +270,11 @@ func (cbft *Cbft) findHighestNewIrreversible(ext *BlockExt) *BlockExt {
 	return irr
 }
 
-//查询ext为根的所有子树中，签名数最多的节点; 签名数相同，则取块高的节点
+//to find the blockExt that has most signs; If there are multiple blockExts, return the highest and first one.
 func (cbft *Cbft) findMaxSigns(ext *BlockExt) *BlockExt {
-	log.Info("findMaxSigns() 递归")
+	log.Debug("recursion in findMaxSigns()")
 	max := ext
-	//children不包含ext.block==nil的节点
+	//each child has non-nil block
 	children := ext.findChildren()
 	if children != nil {
 		for _, child := range children {
@@ -288,11 +288,13 @@ func (cbft *Cbft) findMaxSigns(ext *BlockExt) *BlockExt {
 }
 
 func (cbft *Cbft) execDescendant(ext *BlockExt, parent *BlockExt) {
-	log.Info("递归执行区块", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
+	log.Debug("recursion in findMaxSigns()")
+
+	log.Debug("execute the block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 	if ext.level == Discrete {
 		cbft.execute(ext, parent)
 	}
-	//children不包含ext.block==nil的节点
+	//each child has non-nil block
 	children := ext.findChildren()
 	if children != nil {
 		for _, child := range children {
@@ -302,18 +304,17 @@ func (cbft *Cbft) execDescendant(ext *BlockExt, parent *BlockExt) {
 }
 
 //签名被认为是合理的块（排除：已经是合理的块，以及签过相同块高的其它块）
+//to sign the blocks excluding those are already logical and whose block numbers are signed.
 func (cbft *Cbft) signLogicals(exts []*BlockExt) {
 	for _, ext := range exts {
-		//本地没有签名过相同的块高，且是合法节点，则签名
-		if ext.level == Logical { //已经是合理块
+		if ext.level == Logical {
 			continue
 		}
-		//if _, signed := cbft.signedSet.Load(ext.block.NumberU64()); !signed && ext.level == Legal { //是合法节点 {
-		if _, signed := cbft.signedSet.Load(ext.block.NumberU64()); !signed { //相同块高未签名的
-			log.Info("签名区块", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
+
+		if _, signed := cbft.signedSet.Load(ext.block.NumberU64()); !signed {
+			log.Debug("Sign block", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 			cbft.sign(ext)
 		}
-		//设置合理块标识（不一定要被签名）
 		ext.level = Logical
 	}
 }
@@ -644,7 +645,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	//时间合法性计算，不合法返回error
 	log.Info("检查块是否在出块人的时间窗口内生成的")
 	if cbft.isOverdue(block.Time().Int64(), producerNodeID) {
-		log.Error("迟到的区块，直接丢弃")
+		log.Error("迟到的不合法区块，直接丢弃")
 		return errOverdueBlock
 	}
 
@@ -667,7 +668,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	//收集出块人的签名
 	ext.collectSign(common.NewBlockConfirmSign(sign))
 
-	if ext.isNextHighest() { //是下一个最高合理节点
+	if ext.isNextLogical() { //是下一个最高合理节点
 		//执行新块和所有后代块
 		log.Info("是下一个最高合理节点")
 		cbft.execDescendant(ext, cbft.highestLogicalBlockExt)
@@ -1051,12 +1052,11 @@ func calTurn(idx int64) bool {
 
 		value1 := idx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
 
-		now := time.Now().Unix()
-		value2 := (now*1000 - cbft.dpos.StartTimeOfEpoch()) % totalDuration
+		value2 := (time.Now().Unix() - cbft.dpos.StartTimeOfEpoch()) * 1000 % totalDuration
 
 		value3 := (idx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
 
-		log.Info("计算参数", "now", now, "idx", idx, "durationMilliseconds", durationMilliseconds, "totalDuration", totalDuration, "MaxLatency", cbft.config.MaxLatency, "StartTimeOfEpoch", cbft.dpos.StartTimeOfEpoch())
+		//log.Info("计算参数", "now", now, "idx", idx, "durationMilliseconds", durationMilliseconds, "totalDuration", totalDuration, "MaxLatency", cbft.config.MaxLatency, "StartTimeOfEpoch", cbft.dpos.StartTimeOfEpoch())
 
 		if value2 > value1 && value3 > value2 {
 			return true
@@ -1074,10 +1074,10 @@ func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) boo
 	totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
 	//从StartTimeOfEpoch开始到now的完整轮数
-	rounds := (time.Now().Unix() - cbft.dpos.StartTimeOfEpoch()) / totalDuration
+	rounds := (time.Now().Unix() - cbft.dpos.StartTimeOfEpoch()) * 1000 / totalDuration
 
 	//nodeID的最晚出块时间
-	deadline := cbft.dpos.StartTimeOfEpoch() + totalDuration*rounds + durationMilliseconds*(singerIdx+1)
+	deadline := cbft.dpos.StartTimeOfEpoch()*1000 + totalDuration*rounds + durationMilliseconds*(singerIdx+1)
 
 	//nodeID加上合适的延迟后的最晚出块时间
 	deadline = deadline + int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
