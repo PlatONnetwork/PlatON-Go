@@ -166,7 +166,7 @@ type configMarshaling struct {
 
 // StaticNodes returns a list of node enode URLs configured as static nodes.
 func (c *Config) LoadCbftConfig(nodeConfig node.Config) *CbftConfig {
-	return c.parsePersistentCbftConfig(filepath.Join(nodeConfig.DataDir, nodeConfig.Name, datadirCbftConfig))
+	return c.parsePersistentCbftConfig(filepath.Join(nodeConfig.DataDir, datadirCbftConfig))
 }
 
 // parsePersistentNodes parses a list of discovery node URLs loaded from a .json
