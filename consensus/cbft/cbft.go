@@ -54,7 +54,7 @@ type Cbft struct {
 	irreversibleBlockExt   *BlockExt                      //highest irreversible block
 	signedSet              sync.Map                       //all block numbers signed by local node
 	lock                   sync.Mutex
-	consensusCache         *Cache //cache for cbft
+	consensusCache         *Cache //cache for cbft consensus
 }
 
 var cbft *Cbft
@@ -70,8 +70,8 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		blockSignOutCh:  blockSignatureCh,
 		cbftResultOutCh: cbftResultCh,
 
-		signReceiveCh:  make(chan *cbfttypes.BlockSignature),
-		blockReceiveCh: make(chan *types.Block),
+		signReceiveCh:  make(chan *cbfttypes.BlockSignature, 240),
+		blockReceiveCh: make(chan *types.Block, 24),
 	}
 
 	//启动协程处理新收到的签名
@@ -201,23 +201,21 @@ func (cbft *Cbft) saveEmptyBlock(hash common.Hash, ext *BlockExt) {
 	cbft.blockExtMap.Store(hash, ext)
 }
 
-//reset logical path from start
+//reset logical path from start (the starter is a logical block already)
 //sign the on-path block and set the last blockExt as the highest logical blockExt
 func (cbft *Cbft) resetLogicalPath(start *BlockExt) {
-	log.Info("重新设置合理块路径", "start blockHash", start.block.Hash())
+	log.Info("reset the path of logical blocks", "start blockHash", start.block.Hash())
 
-	//查询最高块作为最高合理块
 	highest := cbft.findHighest(start)
-	//查找出当前块到最高块之间的被认为是合理块的列表（按块高排序）
+
 	logicals := cbft.collectLogicals(start, highest)
 
-	//设置最高合理块
-	cbft.resetHighest(highest)
+	cbft.resetHighestLogical(highest)
 
-	//签名被认为是合理的块（排除：已经是合理的块，以及签过相同块高的其它块）
 	cbft.signLogicals(logicals)
 }
 
+//to check two blocks are the same or not
 func (ext *BlockExt) isSame(other *BlockExt) bool {
 	if ext.block.Hash() == other.block.Hash() {
 		return true
@@ -225,12 +223,11 @@ func (ext *BlockExt) isSame(other *BlockExt) bool {
 	return false
 }
 
-//重置最高合理区块。从合理块ext为根的子树中查询，区块最高的节点为新的最高合理块。从ext到查询出的节点间的路径上的节点，都是合理块
-func (cbft *Cbft) resetHighest(highest *BlockExt) {
-	//highest := cbft.findHighest(ext)
-	//highest.level = Logical
+//reset the highest logical block
+func (cbft *Cbft) resetHighestLogical(highest *BlockExt) {
+	log.Info("reset the highest logical block", "hash", highest.block.Hash(), "number", highest.block.NumberU64())
 	cbft.highestLogicalBlockExt = highest
-	log.Info("设置最高合理区块", "hash", cbft.highestLogicalBlockExt.block.Hash(), "number", cbft.highestLogicalBlockExt.block.NumberU64())
+
 }
 
 //to find the highest block from ext; If there are multiple highest blockExts, return the one that has most signs
@@ -484,7 +481,7 @@ func SetBlockChain(blockChain *core.BlockChain) {
 	blockExt.isIrreversible = true
 
 	//最高合理块
-	cbft.resetHighest(blockExt)
+	cbft.resetHighestLogical(blockExt)
 
 	//当前不可逆块
 	cbft.irreversibleBlockExt = blockExt
@@ -1135,6 +1132,7 @@ func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature 
 	return false, nil
 }
 
+// seal hash, only include from byte[0] to byte[32] of header.Extra
 func sealHash(header *types.Header) (hash common.Hash) {
 	hasher := sha3.NewKeccak256()
 
