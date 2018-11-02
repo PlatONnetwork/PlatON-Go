@@ -150,11 +150,19 @@ func (ext *BlockExt) hasLogicalChild() bool {
 	return false
 }
 
+func printExtMap() {
+	for k, _ := range cbft.blockExtMap {
+		log.Info("keys", "Hash", k)
+	}
+}
+
 //to find current blockExt's parent with non-nil block
 func (ext *BlockExt) findParent() *BlockExt {
 	if ext.block == nil {
 		return nil
 	}
+
+	printExtMap()
 
 	parent := cbft.findBlockExt(ext.block.ParentHash())
 	if parent != nil {
@@ -318,7 +326,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 	sealHash := sealHash(ext.block.Header())
 	signature, err := cbft.signFn(sealHash.Bytes())
 	if err == nil {
-		log.Info("Sign block ", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature))
+		log.Info("Sign block ", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature))
 
 		sign := common.NewBlockConfirmSign(signature)
 		ext.collectSign(sign)
@@ -522,6 +530,7 @@ func (cbft *Cbft) signReceiverGoroutine() {
 }
 
 func (cbft *Cbft) cleanCtx() {
+	printExtMap()
 
 	for hash, ext := range cbft.blockExtMap {
 		if ext.block != nil && ext.block.NumberU64() <= cbft.irreversibleBlockExt.block.NumberU64() && ext.block.Hash() != cbft.irreversibleBlockExt.block.Hash() {
@@ -614,7 +623,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Info("=== begin to handler new block ===", "Hash", block.Hash, "Number", block.Number().Uint64())
+	log.Info("=== begin to handle new block ===", "Hash", block.Hash(), "Number", block.Number().Uint64())
 
 	if block.NumberU64() <= 0 {
 		return nil
@@ -626,7 +635,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	}
 
 	overdue := cbft.isOverdue(block.Time().Int64(), producerNodeID)
-	log.Info("check if block is overdue", "result", "Overdue", "producerNodeID", producerNodeID.String())
+	log.Info("check if block is overdue", "result", overdue, "producerNodeID", producerNodeID.String())
 	if overdue {
 		return errOverdueBlock
 	}
