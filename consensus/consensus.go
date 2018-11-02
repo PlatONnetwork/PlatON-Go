@@ -122,7 +122,7 @@ type Bft interface {
 
 	// modify by platon
 	// 返回当前共识节点地址列表
-	ConsensusNodes() ([]discover.Node, error)
+	ConsensusNodes() ([]discover.NodeID, error)
 
 	// 返回当前节点是否轮值出块
 	ShouldSeal() (bool, error)

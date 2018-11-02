@@ -17,12 +17,11 @@
 package params
 
 import (
+	"Platon-go/common"
 	"Platon-go/p2p/discover"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
-
-	"Platon-go/common"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -33,6 +32,13 @@ var (
 )
 
 var (
+	initialNodes = []string {
+		//"1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429",
+		"751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c",
+		"b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6",
+		//"97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0",
+	}
+
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(1),
@@ -46,6 +52,9 @@ var (
 		ByzantiumBlock:      big.NewInt(4370000),
 		ConstantinopleBlock: nil,
 		Ethash:              new(EthashConfig),
+		Cbft:				 &CbftConfig{
+			InitialNodes: convert(initialNodes),
+		},
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -191,7 +200,7 @@ type CbftConfig struct {
 	LegalCoefficient float64 `json:"legalCoefficient"` //检查块的合法性时的用到的时间系数
 	Duration         int64   `json:"duration"`         //每个出块节点的出块时长，单位：秒
 	//mock
-	InitialNodes []discover.Node   `json:"initialNodes"`
+	InitialNodes []discover.NodeID   `json:"initialNodes"`
 	NodeID       discover.NodeID   `json:"nodeID,omitempty"`
 	PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
 }
@@ -427,4 +436,14 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsByzantium:      c.IsByzantium(num),
 		IsConstantinople: c.IsConstantinople(num),
 	}
+}
+
+func convert(initialNodes []string) []discover.NodeID {
+	NodeIDList := make([]discover.NodeID, 0, len(initialNodes))
+	for _, value := range initialNodes {
+		if nodeID, error := discover.HexID(value); error == nil {
+			NodeIDList = append(NodeIDList, nodeID)
+		}
+	}
+	return NodeIDList
 }
