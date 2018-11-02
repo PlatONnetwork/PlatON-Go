@@ -721,9 +721,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return nil
 		}
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-			if pm.downloader.IsRunning() {
-				log.Warn("downloader is running,discard this msg")
-			} else if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
+			//if pm.downloader.IsRunning() {
+			//	log.Warn("downloader is running,discard this msg")
+			//}
+			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
 				log.Warn("local node is not consensus node,discard this msg")
 			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
 				log.Warn("remote node is not consensus node,discard this msg")
@@ -745,9 +746,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		engineBlockSignature := &cbfttypes.BlockSignature{request.SignHash, request.Hash, request.Number, request.Signature}
 
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-			if pm.downloader.IsRunning() {
-				log.Warn("downloader is running,discard this msg")
-			} else if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
+			//if pm.downloader.IsRunning() {
+			//	log.Warn("downloader is running,discard this msg")
+			//}
+			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
 				log.Warn("local node is not consensus node,discard this msg")
 			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
 				log.Warn("remote node is not consensus node,discard this msg")
