@@ -374,7 +374,6 @@ func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
 	existMap := make(map[common.Hash]struct{})
 
 	exts := make([]*BlockExt, 1)
-	exts := make([]*BlockExt, 1)
 	exts[0] = newIrr
 
 	existMap[newIrr.block.Hash()] = struct{}{}
