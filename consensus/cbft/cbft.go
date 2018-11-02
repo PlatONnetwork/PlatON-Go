@@ -941,7 +941,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 }
 
 func (cbft *Cbft) HighestLogicalBlock() *types.Block {
-	cbft.lock.RUnlock()
+	cbft.lock.RLock()
 	defer cbft.lock.RUnlock()
 
 	log.Info("call HighestLogicalBlock() ...")
