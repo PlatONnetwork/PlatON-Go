@@ -702,6 +702,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 }
 
 func (cbft *Cbft) ShouldSeal() (bool, error) {
+	printTurn()
 	return cbft.inTurn(), nil
 }
 
@@ -950,10 +951,11 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 //收到新的区块签名
 //需要验证签名是否时nodeID签名的
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, rcvSign *cbfttypes.BlockSignature) error {
-	log.Info("收到新的区块签名==>>, parameter", "nodeID", nodeID.String(), "blockHash", rcvSign.Hash, "Number", rcvSign.Number, "signHash", rcvSign.SignHash, "sign", rcvSign.Signature.String())
+	log.Info("Received a new signature", "Hash", rcvSign.Hash, "Number", "nodeID", nodeID.String(), rcvSign.Number, "signHash", rcvSign.SignHash, "sign", rcvSign.Signature.String())
 
 	ok, err := verifySign(nodeID, rcvSign.SignHash, rcvSign.Signature[:])
 	if err != nil {
+		log.Error("verify sign error", "errors", err)
 		return err
 	}
 
@@ -985,6 +987,7 @@ func (cbft *Cbft) HighestLogicalBlock() *types.Block {
 func IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
 	ok, err := verifySign(cbft.config.NodeID, sealHash, signature)
 	if err != nil {
+		log.Error("verify sign error", "errors", err)
 		return false
 	}
 	return ok
@@ -1012,7 +1015,7 @@ func (cbft *Cbft) writeChain(exts []*BlockExt) {
 //出块时间窗口期与出块节点匹配
 func (cbft *Cbft) inTurn() bool {
 	singerIdx := cbft.dpos.NodeIndex(cbft.config.NodeID)
-	/*if singerIdx >= 0 {
+	if singerIdx >= 0 {
 		durationMilliseconds := cbft.config.Duration * 1000
 		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
@@ -1026,23 +1029,15 @@ func (cbft *Cbft) inTurn() bool {
 			return true
 		}
 	}
-	return false*/
+	return false
 
-	idxInturn := -1
-	for idx := 0; idx < len(cbft.dpos.primaryNodeList); idx++ {
-		inturn := calTurn(int64(idx))
-		log.Info("节点出块轮值情况", "inturn", inturn, "nodeID", hexutil.Encode(cbft.dpos.primaryNodeList[idx][:]))
-
-		if inturn {
-			idxInturn = idx
-		}
-	}
-
-	return singerIdx == int64(idxInturn)
 }
 
-func calTurn(idx int64) bool {
-	if idx >= 0 {
+// all variables are in milliseconds
+func printTurn() {
+	inturn := false
+	for i := 0; i < len(cbft.dpos.primaryNodeList); i++ {
+		idx := int64(i)
 		durationMilliseconds := cbft.config.Duration * 1000
 		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
@@ -1052,16 +1047,18 @@ func calTurn(idx int64) bool {
 
 		value3 := (idx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
 
-		//log.Info("计算参数", "now", now, "idx", idx, "durationMilliseconds", durationMilliseconds, "totalDuration", totalDuration, "MaxLatency", cbft.config.MaxLatency, "StartTimeOfEpoch", cbft.dpos.StartTimeOfEpoch())
-
 		if value2 > value1 && value3 > value2 {
-			return true
+			inturn = true
+
+		} else {
+			inturn = false
 		}
+		log.Info("prinitTurn", "inturn", inturn, "nodeID", hexutil.Encode(cbft.dpos.primaryNodeList[idx][:]))
 	}
-	return false
 }
 
-//收到新的区块后，检查新区块的时间合法性
+// to check if the block is overdue,
+// all variables are in milliseconds
 func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) bool {
 	singerIdx := cbft.dpos.NodeIndex(nodeID)
 
@@ -1069,42 +1066,33 @@ func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) boo
 
 	totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
-	//从StartTimeOfEpoch开始到now的完整轮数
 	rounds := (time.Now().Unix() - cbft.dpos.StartTimeOfEpoch()) * 1000 / totalDuration
 
-	//nodeID的最晚出块时间
 	deadline := cbft.dpos.StartTimeOfEpoch()*1000 + totalDuration*rounds + durationMilliseconds*(singerIdx+1)
 
-	//nodeID加上合适的延迟后的最晚出块时间
 	deadline = deadline + int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
 
-	if deadline < time.Now().Unix() {
-		//出块时间+延迟后，仍然小于当前时间（即收到区块的时间），则认为是超时的废区块，直接丢弃
+	if deadline < time.Now().Unix()*1000 {
 		return true
 	}
 	return false
 }
 
-//NodeID是64字节，而publicKey是65字节，publicKey后64字节才是NodeID
+// publicKey len=65, nodeID len=64, nodeID = publicKey[1:]
+// signature is saved in header.Extra[32:]
 func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
-	// Retrieve the signature from the header extra-data
-
-	//NodeID是64字节，而publicKey是65字节，publicKey后64字节才是NodeID
 	var nodeID discover.NodeID
 	if len(header.Extra) < extraSeal {
 		return nodeID, []byte{}, errMissingSignature
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
-	log.Info("收到新块", "sign", hexutil.Encode(signature))
 	sealHash := sealHash(header)
-	log.Info("收到新块", "sealHash", sealHash)
 
 	pubkey, err := crypto.Ecrecover(sealHash.Bytes(), signature)
 	if err != nil {
 		return nodeID, []byte{}, err
 	}
 
-	//转成discover.NodeID
 	nodeID, err = discover.BytesID(pubkey[1:])
 	if err != nil {
 		return nodeID, []byte{}, err
@@ -1114,20 +1102,14 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 
 // verify sign, check the sign is from the right node.
 func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature []byte) (bool, error) {
-	log.Info("verify sign", "sealHash", sealHash, "signature", hexutil.Encode(signature), "expectedNodeID", hexutil.Encode(expectedNodeID.Bytes()))
-
 	pubkey, err := crypto.SigToPub(sealHash.Bytes(), signature)
 
 	if err != nil {
-		log.Error("verify sign error", "errors", err)
 		return false, err
 	}
 
 	nodeID := discover.PubkeyID(pubkey)
-	//比较两个[]byte
-	log.Info("从签名恢复出的NodeID", "nodeID", nodeID.String())
 	if bytes.Equal(nodeID.Bytes(), expectedNodeID.Bytes()) {
-		log.Warn("the node id discover from signature is different from the node id from which the sign is received.")
 		return true, nil
 	}
 	return false, nil
@@ -1160,8 +1142,6 @@ func sealHash(header *types.Header) (hash common.Hash) {
 	return hash
 }
 
-// VerifySeal()函数基于跟Seal()完全一样的算法原理
-// 通过验证区块的某些属性(Header.Nonce，Header.MixDigest等)是否正确，来确定该区块是否已经经过Seal操作
 func (cbft *Cbft) verifySeal(chain consensus.ChainReader, header *types.Header, parents []*types.Header) error {
 	// Verifying the genesis block is not supported
 	number := header.Number.Uint64()
@@ -1171,24 +1151,11 @@ func (cbft *Cbft) verifySeal(chain consensus.ChainReader, header *types.Header, 
 	return nil
 }
 
-//返回当前时间UTC时区的毫秒数
-func nowMillisecond() int64 {
-	return time.Now().UnixNano() % 1e6 / 1e3
-}
-
 func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
-	log.Info("signFN", "headerHash", hexutil.Encode(headerHash))
-
-	nodeID := discover.PubkeyID(&cbft.config.PrivateKey.PublicKey)
-
-	log.Info("signFN", "nodeIDFromPubKey", nodeID.String())
-
 	return crypto.Sign(headerHash, cbft.config.PrivateKey)
 }
 
-//取最高区块
 func (cbft *Cbft) getHighestLogicalBlock() *types.Block {
-	log.Info("获取最高合理区块", "hash", cbft.highestLogicalBlockExt.block.Hash(), "number", cbft.highestLogicalBlockExt.block.NumberU64())
 	return cbft.highestLogicalBlockExt.block
 }
 
