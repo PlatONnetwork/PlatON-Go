@@ -636,7 +636,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	if err != nil {
 		return err
 	}
-	log.Info("收到新块==>>", "producerNodeID", producerNodeID.String())
+	log.Info("处理收到的新块", "producerNodeID", producerNodeID.String())
 
 	//检查块是否在出块人的时间窗口内生成的
 	//时间合法性计算，不合法返回error
@@ -969,7 +969,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 //收到新的区块
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Info("收到新的区块==>>, parameter", "blockHash", rcvBlock.Hash(), "Number", rcvBlock.Header().Number, "ParentHash", rcvBlock.ParentHash(), "headerExtra", hexutil.Encode(rcvBlock.Header().Extra))
+	log.Info("Received a new block, put into chanel", "Hash", rcvBlock.Hash(), "Number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash(), "headerExtra", hexutil.Encode(rcvBlock.Header().Extra))
 
 	cbft.blockReceiveCh <- rcvBlock
 	return nil
@@ -983,7 +983,6 @@ func (cbft *Cbft) HighestLogicalBlock() *types.Block {
 }
 
 func IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
-	log.Info("验证是否是本节点的签名", "sealHash", sealHash, "signature", hexutil.Encode(signature))
 	ok, err := verifySign(cbft.config.NodeID, sealHash, signature)
 	if err != nil {
 		return false
@@ -1113,13 +1112,14 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	return nodeID, signature, nil
 }
 
+// verify sign, check the sign is from the right node.
 func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature []byte) (bool, error) {
-
-	log.Info("验证签名", "sealHash", sealHash, "signature", hexutil.Encode(signature), "expectedNodeID", hexutil.Encode(expectedNodeID.Bytes()))
+	log.Info("verify sign", "sealHash", sealHash, "signature", hexutil.Encode(signature), "expectedNodeID", hexutil.Encode(expectedNodeID.Bytes()))
 
 	pubkey, err := crypto.SigToPub(sealHash.Bytes(), signature)
 
 	if err != nil {
+		log.Error("verify sign error", "errors", err)
 		return false, err
 	}
 
@@ -1127,6 +1127,7 @@ func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature 
 	//比较两个[]byte
 	log.Info("从签名恢复出的NodeID", "nodeID", nodeID.String())
 	if bytes.Equal(nodeID.Bytes(), expectedNodeID.Bytes()) {
+		log.Warn("the node id discover from signature is different from the node id from which the sign is received.")
 		return true, nil
 	}
 	return false, nil
