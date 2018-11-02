@@ -151,8 +151,12 @@ func (ext *BlockExt) hasLogicalChild() bool {
 }
 
 func printExtMap() {
-	for k, _ := range cbft.blockExtMap {
-		log.Info("keys", "Hash", k)
+	log.Info("printExtMap", "irrHash", cbft.irreversibleBlockExt.block.Hash(), "irrNumber", cbft.irreversibleBlockExt.block.Number().Uint64())
+	for k, v := range cbft.blockExtMap {
+		if v != nil && v.block != nil {
+			log.Info("printExtMap", "Hash", k, "Number", v.block.Number().Uint64())
+		}
+
 	}
 }
 
@@ -403,6 +407,7 @@ func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
 			}
 			exts = append(exts, parent)
 		}
+		newIrr = parent
 	}
 
 	if !findRootIrr {
@@ -419,7 +424,7 @@ func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
 	return exts
 }
 
-//collect logical blocks form end to start (start is already a logical block), the result is sorted by block number
+//collect logical blocks from end to start (start is already a logical block), the result is sorted by block number
 func (cbft *Cbft) collectLogicals(start *BlockExt, end *BlockExt) []*BlockExt {
 	exts := make([]*BlockExt, 1)
 	exts[0] = end
@@ -439,6 +444,8 @@ func (cbft *Cbft) collectLogicals(start *BlockExt, end *BlockExt) []*BlockExt {
 			findStart = true
 			break
 		}
+
+		end = parent
 	}
 
 	if !findStart {
@@ -587,7 +594,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Info("=== begin to handler new signature ===", "Hash", sig.Hash, "Number", sig.Number.Uint64())
+	log.Info("=== begin to handle new signature ===", "Hash", sig.Hash, "Number", sig.Number.Uint64())
 
 	ext := cbft.findBlockExt(sig.Hash)
 	if ext == nil {
@@ -987,11 +994,15 @@ func (cbft *Cbft) inTurn() bool {
 
 		value1 := singerIdx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
 
-		value2 := (time.Now().Unix()*1000 - cbft.dpos.StartTimeOfEpoch()) % totalDuration
+		now := time.Now().Unix()
+		value2 := (now*1000 - cbft.dpos.StartTimeOfEpoch()) % totalDuration
 
 		value3 := (singerIdx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
 
+		log.Info("inTurn", "idx", singerIdx, "value1", value1, "value2", value2, "value3", value3, "now", now)
+
 		if value2 > value1 && value3 > value2 {
+
 			return true
 		}
 	}
@@ -1009,7 +1020,9 @@ func printTurn() {
 
 		value1 := idx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
 
-		value2 := (time.Now().Unix() - cbft.dpos.StartTimeOfEpoch()) * 1000 % totalDuration
+		now := time.Now().Unix()
+
+		value2 := (now - cbft.dpos.StartTimeOfEpoch()) * 1000 % totalDuration
 
 		value3 := (idx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
 
@@ -1019,7 +1032,8 @@ func printTurn() {
 		} else {
 			inturn = false
 		}
-		log.Info("prinitTurn", "inturn", inturn, "nodeID", hexutil.Encode(cbft.dpos.primaryNodeList[idx][:]))
+
+		log.Info("printTurn", "inturn", inturn, "idx", idx, "value1", value1, "value2", value2, "value3", value3, "now", now)
 	}
 }
 
@@ -1037,6 +1051,9 @@ func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) boo
 	deadline := cbft.dpos.StartTimeOfEpoch()*1000 + totalDuration*rounds + durationMilliseconds*(singerIdx+1)
 
 	deadline = deadline + int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
+
+	now := time.Now().Unix()
+	log.Info("isOverdue", "deadline", deadline, "now", now)
 
 	if deadline < time.Now().Unix()*1000 {
 		return true
