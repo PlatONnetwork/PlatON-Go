@@ -235,7 +235,7 @@ func (cbft *Cbft) resetHighest(highest *BlockExt) {
 
 //to find the highest block from ext; If there are multiple highest blockExts, return the one that has most signs
 func (cbft *Cbft) findHighest(ext *BlockExt) *BlockExt {
-	log.Debug("recursion in findHighest()")
+	log.Info("recursion in findHighest()")
 	highest := ext
 	//each child has non-nil block
 	children := ext.findChildren()
@@ -252,7 +252,7 @@ func (cbft *Cbft) findHighest(ext *BlockExt) *BlockExt {
 
 //to find a new irreversible blockExt from ext; If there are multiple irreversible blockExts, return the first.
 func (cbft *Cbft) findHighestNewIrreversible(ext *BlockExt) *BlockExt {
-	log.Debug("recursion in findHighestNewIrreversible()")
+	log.Info("recursion in findHighestNewIrreversible()")
 	irr := ext
 	if len(irr.signs) < cbft.getThreshold() {
 		irr = nil
@@ -272,7 +272,7 @@ func (cbft *Cbft) findHighestNewIrreversible(ext *BlockExt) *BlockExt {
 
 //to find the blockExt that has most signs; If there are multiple blockExts, return the highest and first one.
 func (cbft *Cbft) findMaxSigns(ext *BlockExt) *BlockExt {
-	log.Debug("recursion in findMaxSigns()")
+	log.Info("recursion in findMaxSigns()")
 	max := ext
 	//each child has non-nil block
 	children := ext.findChildren()
@@ -288,9 +288,9 @@ func (cbft *Cbft) findMaxSigns(ext *BlockExt) *BlockExt {
 }
 
 func (cbft *Cbft) execDescendant(ext *BlockExt, parent *BlockExt) {
-	log.Debug("recursion in findMaxSigns()")
+	log.Info("recursion in findMaxSigns()")
 
-	log.Debug("execute the block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
+	log.Info("execute the block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 	if ext.level == Discrete {
 		cbft.execute(ext, parent)
 	}
@@ -303,40 +303,36 @@ func (cbft *Cbft) execDescendant(ext *BlockExt, parent *BlockExt) {
 	}
 }
 
-//签名被认为是合理的块（排除：已经是合理的块，以及签过相同块高的其它块）
 //to sign the blocks excluding those are already logical and whose block numbers are signed.
 func (cbft *Cbft) signLogicals(exts []*BlockExt) {
 	for _, ext := range exts {
 		if ext.level == Logical {
 			continue
 		}
-
 		if _, signed := cbft.signedSet.Load(ext.block.NumberU64()); !signed {
-			log.Debug("Sign block", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 			cbft.sign(ext)
 		}
 		ext.level = Logical
 	}
 }
 
-//签名块
+//to sign a block
 func (cbft *Cbft) sign(ext *BlockExt) {
 	//签名
 	sealHash := sealHash(ext.block.Header())
 	signature, err := cbft.signFn(sealHash.Bytes())
 	if err == nil {
-		log.Info("签名区块结果", "blockHash", ext.block.Hash(), "sealHash", sealHash, "sign", hexutil.Encode(signature))
+		log.Info("Sign block ", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature))
 
 		sign := common.NewBlockConfirmSign(signature)
 		ext.collectSign(sign)
-		//ext.level = Logical
 
-		//保存签名过的块高
+		//save this block number
 		cbft.signedSet.Store(ext.block.NumberU64(), struct{}{})
 
 		blockHash := ext.block.Hash()
 
-		//广播签名
+		//send the BlockSignature to channel
 		blockSign := &cbfttypes.BlockSignature{
 			SignHash:  sealHash,
 			Hash:      blockHash,
@@ -345,41 +341,46 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 		}
 		cbft.blockSignOutCh <- blockSign
 	} else {
-		panic("can't sign for block")
+		panic("can't sign a block")
 	}
 }
 
-//执行区块
-//执行成功，修改level=Legal，并保存回执和状态
+//execute the block based on its parent
+// if success then set this block's level with Ledge, and save the receipts and state to consensusCache
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	state, err := cbft.consensusCache.MakeStateDB(parent.block)
 	if err != nil {
-		log.Error("执行区块出错，cbft.consensusCache.MakeStateDB()错误")
+		log.Error("execute block error, cannot make state based on parent")
 		return
 	}
 
-	//执行
+	//to execute
 	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state)
 	if err == nil {
-		//执行成功，保存回执和状态
-		//ext.receipts = receipts
-		//ext.state = state
+		//set this block's level with Ledge
 		ext.level = Legal
 
+		//save the receipts and state to consensusCache
 		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
 		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
 
 	} else {
-		log.Warn("process block error", err)
+		log.Error("execute a block error", err)
 	}
 }
 
-//收集从ext到不可逆块路径上的块，不包括原来的不可逆块，并按块高排好序
+//gather all irreversible blocks from the root one (excluded) to the highest one
+//the result is sorted by block number from lower to higher
 func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
-	log.Info("收集到新不可逆区块", "Hash", newIrr.block.Hash(), "ParentHash", newIrr.block.ParentHash(), "Number", newIrr.block.NumberU64())
+
+	log.Info("Found new irreversible block", "Hash", newIrr.block.Hash(), "ParentHash", newIrr.block.ParentHash(), "Number", newIrr.block.NumberU64())
+
+	existMap := make(map[common.Hash]struct{})
 
 	exts := make([]*BlockExt, 1)
 	exts[0] = newIrr
+
+	existMap[newIrr.block.Hash()] = struct{}{}
 
 	findRootIrr := false
 	for {
@@ -391,21 +392,21 @@ func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
 			findRootIrr = true
 			break
 		} else {
-			log.Info("收集到新不可逆区块", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "Number", parent.block.NumberU64())
+			log.Info("Found new irreversible block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "Number", parent.block.NumberU64())
+			if _, exist := existMap[newIrr.block.Hash()]; exist {
+				log.Error("Irreversible blocks get into a loop")
+				return nil
+			}
 			exts = append(exts, parent)
 		}
 	}
 
 	if !findRootIrr {
-		panic("cannot link to root irreversible block")
+		log.Error("cannot lead to root irreversible block")
+		return nil
 	}
 
-	/*for parent := newIrr.findParent(); parent != nil && !parent.isIrreversible; {
-		//不包括原来的不可逆块
-		exts = append(exts, parent)
-	}*/
-
-	//按块高排好序
+	//sorted by block number from lower to higher
 	if len(exts) > 1 {
 		for i, j := 0, len(exts)-1; i < j; i, j = i+1, j-1 {
 			exts[i], exts[j] = exts[j], exts[i]
@@ -569,6 +570,11 @@ func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) {
 	log.Info("处理新的不可逆块")
 	//收集可入链的块，不包括原来的不可逆块，并按块高排好序
 	irrs := cbft.listIrreversibles(newIrr)
+
+	if irrs == nil {
+		log.Error("gather all irreversible blocks error")
+		return
+	}
 
 	log.Info("处理新的不可逆块", "可以入链的区块数量", len(irrs))
 
