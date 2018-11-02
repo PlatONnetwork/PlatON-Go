@@ -374,6 +374,7 @@ func (cbft *Cbft) listIrreversibles(newIrr *BlockExt) []*BlockExt {
 	existMap := make(map[common.Hash]struct{})
 
 	exts := make([]*BlockExt, 1)
+	exts := make([]*BlockExt, 1)
 	exts[0] = newIrr
 
 	existMap[newIrr.block.Hash()] = struct{}{}
@@ -578,7 +579,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Info("=== begin to handler new signature ===", "Hash", sig.Hash, "Number", sig.Number)
+	log.Info("=== begin to handler new signature ===", "Hash", sig.Hash, "Number", sig.Number.Uint64())
 
 	ext := cbft.findBlockExt(sig.Hash)
 	if ext == nil {
@@ -613,6 +614,8 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
+
+	log.Info("=== begin to handler new block ===", "Hash", block.Hash, "Number", block.Number().Uint64())
 
 	if block.NumberU64() <= 0 {
 		return nil
