@@ -44,11 +44,11 @@ const (
 var DefaultConfig = Config{
 	SyncMode: downloader.FastSync,
 	CbftConfig: CbftConfig{
-		Period:	30,
-		Epoch:	210000,
-		MaxLatency:	60000,
+		Period:	1,
+		Epoch:	250000,
+		MaxLatency:	600,
 		LegalCoefficient: 1.0,
-		Duration: 3600,
+		Duration: 10,
 	},
 	Ethash: ethash.Config{
 		CacheDir:       "ethash",
