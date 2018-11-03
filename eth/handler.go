@@ -770,13 +770,13 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	hash := block.Hash()
 	// modify by platon
-	//peers := pm.peers.PeersWithoutBlock(hash)
-	var peers []*peer
-	if _, ok := pm.engine.(consensus.Bft); ok {
-		peers = pm.peers.PeersWithoutConsensus(pm.engine)
-	} else {
-		peers = pm.peers.PeersWithoutBlock(hash)
-	}
+	peers := pm.peers.PeersWithoutBlock(hash)
+	//var peers []*peer
+	//if _, ok := pm.engine.(consensus.Bft); ok {
+	//	peers = pm.peers.PeersWithoutConsensus(pm.engine)
+	//} else {
+	//	peers = pm.peers.PeersWithoutBlock(hash)
+	//}
 
 	// If propagation is requested, send to a subset of the peer
 	if propagate {
