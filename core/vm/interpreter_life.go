@@ -222,11 +222,15 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 	}
 
 	// 查找方法名对应的args
-	var args []utils.Args
-	for _, v := range wasmabi.Abi {
-		if strings.EqualFold(funcName, v.Method) {
-			args = v.Args
-			returnType = v.Return
+	var args []utils.InputParam
+	for _, v := range wasmabi.AbiArr {
+		if strings.EqualFold(funcName, v.Name) {
+			args = v.Inputs
+			if len(v.Outputs) != 0 {
+				returnType = v.Outputs[0].Type
+			} else {
+				returnType = "void"
+			}
 			break
 		}
 	}
@@ -239,7 +243,7 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 	// 此处参数是否替换为uint64
 	for i, v := range args {
 		bts := argsRlp[i].([]byte)
-		switch v.RealTypeName {
+		switch v.Type {
 		case "string":
 			pos := resolver.MallocString(vm, string(bts))
 			params = append(params, pos)
