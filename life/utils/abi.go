@@ -6,26 +6,31 @@ import (
 )
 
 type WasmAbi struct {
-	Version string `json:"version"`
-	Abi     []Func `json:"abi"`
+	AbiArr []AbiStruct	`json:"abiArr"`
 }
 
-type Func struct {
-	Method string `json:"method"`
-	Args   []Args `json:"args"`
-	Return string `json:"return"`
+type AbiStruct struct {
+	Name string				`json:"name"`
+	Inputs []InputParam 	`json:"inputs"`
+	Outputs []OutputsParam 	`json:"outputs"`
+	Constant string 		`json:"constant"`
+	Type 	string 			`json:"type"`
 }
 
-type Args struct {
-	Name         string `json:"name"`
-	TypeName     string `json:"typeName"`
-	RealTypeName string `json:"realTypeName"`
+type InputParam struct {
+	Name string		`json:"name"`
+	Type string		`json:"type"`
+}
+
+type OutputsParam struct {
+	Name string 	`json:"name"`
+	Type string 	`json:"type"`
 }
 
 func (abi *WasmAbi) FromJson(body []byte) error {
 	if body == nil {
 		return fmt.Errorf("invalid param. %v", body)
 	}
-	err := json.Unmarshal(body, abi)
+	err := json.Unmarshal(body, &abi.AbiArr)
 	return err
 }
