@@ -214,7 +214,7 @@ func (cbft *Cbft) saveBlock(hash common.Hash, ext *BlockExt) {
 //reset logical path from start (the starter is a logical block already)
 //sign the on-path block and set the last blockExt as the highest logical blockExt
 func (cbft *Cbft) resetLogicalPath(start *BlockExt) {
-	log.Info("reset the path of logical blocks", "start blockHash", start.block.Hash())
+	log.Info("reset the logical path", "start blockHash", start.block.Hash())
 
 	highest := cbft.findHighest(start)
 
@@ -598,11 +598,13 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 
 	ext := cbft.findBlockExt(sig.Hash)
 	if ext == nil {
-		log.Info("received block's signature first")
+		log.Info("have not received the corresponding block")
 
 		//the block is nil
 		ext = NewBlockExt(nil)
 		ext.level = Discrete
+		ext.signsUpdateTime = time.Now().UTC()
+
 		cbft.saveBlock(sig.Hash, ext)
 	} else if ext.isIrreversible {
 		log.Info("received a irreversible block's signature, just discard it")
@@ -614,12 +616,14 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 	log.Info("count signatures", "Count", signCount)
 
 	if signCount >= cbft.getThreshold() && ext.level != Discrete {
-		log.Info("consensus success, the corresponding block is irreversible")
+		log.Info("consensus success, the corresponding block change to irreversible")
 
 		if ext.level == Legal {
+			//if it's a legal block, then reset the logical path firstly
 			cbft.resetLogicalPath(ext)
 		}
 
+		//at last, handle the new irreversible
 		cbft.handleNewIrreversible(ext)
 	}
 }
@@ -1061,8 +1065,9 @@ func (cbft *Cbft) isOverdue(blockTimeInSecond int64, nodeID discover.NodeID) boo
 	return false
 }
 
-// publicKey len=65, nodeID len=64, nodeID = publicKey[1:]
-// signature is saved in header.Extra[32:]
+// producer's signature = header.Extra[32:]
+// public key can be recovered from signature, the length of public key is 65,
+// the length of NodeID is 64, nodeID = publicKey[1:]
 func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	var nodeID discover.NodeID
 	if len(header.Extra) < extraSeal {
