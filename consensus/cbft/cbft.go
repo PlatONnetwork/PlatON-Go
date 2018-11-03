@@ -515,6 +515,8 @@ func BlockSynchronisation() {
 		newIrr.level = Logical
 		newIrr.isIrreversible = true
 
+		cbft.cleanLowerBlocks(newIrr)
+
 		cbft.saveBlock(currentBlock.Hash(), newIrr)
 
 		cbft.irreversibleBlockExt = newIrr
@@ -522,8 +524,6 @@ func BlockSynchronisation() {
 		cbft.execDescendant(newIrr, cbft.highestLogicalBlockExt)
 
 		cbft.resetLogicalPath(newIrr)
-
-		cbft.cleanCtx()
 	}
 }
 
@@ -536,9 +536,8 @@ func (cbft *Cbft) signReceiverGoroutine() {
 	}
 }
 
-func (cbft *Cbft) cleanCtx() {
+func (cbft *Cbft) cleanLowerBlocks(newIrr *BlockExt) {
 	printExtMap()
-
 	for hash, ext := range cbft.blockExtMap {
 		if ext.block != nil && ext.block.NumberU64() <= cbft.irreversibleBlockExt.block.NumberU64() && ext.block.Hash() != cbft.irreversibleBlockExt.block.Hash() {
 			log.Info("to delete hash from blockExtMap", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64())
@@ -580,13 +579,12 @@ func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) {
 
 	cbft.writeChain(irrs)
 
-	//clean cbft.blockExtMap/cbft.signedSet
-	cbft.cleanCtx()
-
 	newIrr.isIrreversible = true
 	newIrr.level = Logical
-
 	cbft.irreversibleBlockExt = newIrr
+
+	//clean cbft.blockExtMap/cbft.signedSet
+	cbft.cleanLowerBlocks(newIrr)
 }
 
 //handle the received block signature
