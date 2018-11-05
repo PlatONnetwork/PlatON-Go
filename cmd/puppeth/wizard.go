@@ -323,42 +323,35 @@ func (w *wizard) readNodeURL() *discover.Node {
 	}
 }
 
-/*func (w *wizard) readNodeID() discover.NodeID {
+func (w *wizard) readNodeID() discover.NodeID {
 	for {
 		// Read the url from the user
-		fmt.Printf("> enode://")
+		fmt.Printf("> 0x")
 		text, err := w.in.ReadString('\n')
 		if err != nil {
 			log.Crit("Failed to read user input", "err", err)
 		}
 		if text = strings.TrimSpace(text); text == "" {
-			continue
+			return discover.NodeID{0}
 		}
 
 		// Make sure it looks ok and return it if so
-		if len(text) < 140 {
+		if len(text) < 128 {
 			log.Error("Invalid url length, please retry")
 			continue
 		}
-		if !strings.Contains(text, "@")||
-			!strings.Contains(text, ":")||
-			3 != strings.Count(text, "."){
-			log.Error("Invalid url format, please retry")
-			continue
-		}
-		text = "enode://" + text
-		node, err := discover.ParseNode(text)
+		node,err := discover.BytesID(common.Hex2Bytes(text))
 		if err != nil {
-			log.Error("Bootstrap URL invalid", "enode", text, "err", err)
+			log.Error("Node ID invalid", "NodeID", text, "err", err)
 		}
 
-		return node.ID
+		return node
 	}
 }
 
 // readPrivate reads a single line from stdin, parse and convert
 // it to an Ethereum ecdsa private key.
-func (w *wizard) readPrivateKey() *ecdsa.PrivateKey {
+/*func (w *wizard) readPrivateKey() *ecdsa.PrivateKey {
 	for {
 		// Read the url from the user
 		fmt.Printf("> 0x")
