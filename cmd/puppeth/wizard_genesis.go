@@ -142,8 +142,8 @@ func (w *wizard) makeGenesis() {
 		genesis.ExtraData = make([]byte, 32+len(nodes)*common.AddressLength+65)
 		for i, node := range nodes {
 			copy(genesis.ExtraData[32+i*common.AddressLength:], crypto.Keccak256(node.ID[:])[12:])
+			genesis.Config.Cbft.InitialNodes[i] = node.ID
 		}
-		genesis.Config.Cbft.InitialNodes = nodes
 
 		fmt.Println()
 		fmt.Println("How many milliseconds do you think of the max network delay? (default = 300)")
