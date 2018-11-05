@@ -104,54 +104,36 @@ func (w *wizard) makeGenesis() {
 	case choice == "" || choice == "3":
 		// In the case of cbft, configure the consensus parameters
 		genesis.Difficulty = big.NewInt(1)
-		genesis.Config.Cbft = &params.CbftConfig{
-			Period: 1,
-			Epoch:  250,
-			// joey.lyu
-			MaxLatency:       300, //最大网络延迟。毫秒
-			LegalCoefficient: 2,    //系数
-
-		}
-		fmt.Println()
-		fmt.Println("How many seconds should blocks take? (default = 1)")
-		genesis.Config.Cbft.Period = uint64(w.readDefaultInt(1))
-
+		genesis.Config.Cbft = &params.CbftConfig{}
 		// We also need the initial list of signers
 		fmt.Println()
 		fmt.Println("Which nodes are allowed to seal? (mandatory at least four)")
 
-		var nodes []discover.Node
+		var nodes []discover.NodeID
+		emptyNodeID := discover.NodeID{0}
 		for {
-			if node := w.readNodeURL(); node != nil {
-				nodes = append(nodes, *node)
-				continue
-			}
-			if len(nodes) >= 4 {
-				break
-			}
+				node := w.readNodeID()
+				if !bytes.Equal(node[:], emptyNodeID[:]) {
+					nodes = append(nodes, node)
+				}
+				if len(nodes) > 0 {
+					break
+				}
 		}
 
 		// Sort the signers and embed into the extra-data section
 		for i := 0; i < len(nodes); i++ {
 			for j := i + 1; j < len(nodes); j++ {
-				if bytes.Compare(nodes[i].ID[:], nodes[j].ID[:]) > 0 {
+				if bytes.Compare(nodes[i][:], nodes[j][:]) > 0 {
 					nodes[i], nodes[j] = nodes[j], nodes[i]
 				}
 			}
 		}
 		genesis.ExtraData = make([]byte, 32+len(nodes)*common.AddressLength+65)
 		for i, node := range nodes {
-			copy(genesis.ExtraData[32+i*common.AddressLength:], crypto.Keccak256(node.ID[:])[12:])
-			genesis.Config.Cbft.InitialNodes[i] = node.ID
+			copy(genesis.ExtraData[32+i*common.AddressLength:], crypto.Keccak256(node[:])[12:])
+			genesis.Config.Cbft.InitialNodes[i] = node
 		}
-
-		fmt.Println()
-		fmt.Println("How many milliseconds do you think of the max network delay? (default = 300)")
-		genesis.Config.Cbft.MaxLatency = int64(w.readDefaultInt(300))
-
-		fmt.Println()
-		fmt.Println("What is the coefficient of consensus in the network? (default = 0.33)")
-		genesis.Config.Cbft.LegalCoefficient = w.readDefaultFloat(0.33)
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}
