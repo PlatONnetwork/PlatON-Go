@@ -347,25 +347,20 @@ func (cbft *Cbft) backTrackIrreversibles(newIrr *BlockExt) []*BlockExt {
 	for {
 		parent := newIrr.findParent()
 		if parent == nil {
-			if newIrr.block.ParentHash() == cbft.irreversible.block.Hash() && newIrr.block.NumberU64() == cbft.irreversible.block.NumberU64()+1 {
-				findRootIrr = true
-				break
-			} else {
-				break
-			}
-		} else {
-			if parent.isStored {
-				findRootIrr = true
-				break
-			} else {
-				log.Info("Found new irreversible block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "Number", parent.block.NumberU64())
-				if _, exist := existMap[newIrr.block.Hash()]; exist {
-					log.Error("Irreversible blocks get into a loop")
-					return nil
-				}
-				exts = append(exts, parent)
-			}
+			break
 		}
+		if parent.isStored {
+			findRootIrr = true
+			break
+		} else {
+			log.Info("Found new irreversible block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "Number", parent.block.NumberU64())
+			if _, exist := existMap[newIrr.block.Hash()]; exist {
+				log.Error("Irreversible blocks get into a loop")
+				return nil
+			}
+			exts = append(exts, parent)
+		}
+
 		newIrr = parent
 	}
 
@@ -415,8 +410,11 @@ func SetBlockChain(blockChain *core.BlockChain) {
 	irrBlock.isLinked = true
 	irrBlock.isStored = true
 
-	cbft.forNext = irrBlock
+	cbft.saveBlock(currentBlock.Hash(), irrBlock)
+
 	cbft.irreversible = irrBlock
+	cbft.forNext = irrBlock
+
 }
 
 func BlockSynchronisation() {
@@ -474,7 +472,7 @@ func (cbft *Cbft) dataReceiverGoroutine() {
 func (cbft *Cbft) slideWindow(newIrr *BlockExt) {
 	//printExtMap()
 	for hash, ext := range cbft.blockExtMap {
-		if ext.block != nil && ext.block.NumberU64() <= cbft.irreversible.block.NumberU64()-windowSize {
+		if ext.block != nil && ext.block.NumberU64() <= cbft.irreversible.block.NumberU64()-windowSize && ext.block.Hash() != cbft.irreversible.block.Hash() {
 			log.Info("to delete hash from blockExtMap", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64())
 			delete(cbft.blockExtMap, hash)
 		}
@@ -618,7 +616,6 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	parent := ext.findParent()
 	if parent != nil && parent.isLinked {
-
 		needSign := cbft.irreversible.isAncestor(ext)
 
 		cbft.handleDescendant(ext, parent, needSign)
