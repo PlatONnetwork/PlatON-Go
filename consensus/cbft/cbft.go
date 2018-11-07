@@ -31,6 +31,7 @@ var (
 	errDuplicatedBlock    = errors.New("duplicated block")
 	errBlockNumber        = errors.New("error block number")
 	errUnknownBlock       = errors.New("unknown block")
+	errGenesisBlock       = errors.New("cannot handle genesis block")
 
 	errMissingSignature = errors.New("extra-data 65 byte signature suffix missing")
 	extraSeal           = 65
@@ -460,7 +461,10 @@ func (cbft *Cbft) dataReceiverGoroutine() {
 			} else {
 				block, ok := v.(*types.Block)
 				if ok {
-					cbft.blockReceiver(block)
+					err := cbft.blockReceiver(block)
+					if err != nil {
+						log.Error("Error", "msg", err)
+					}
 				} else {
 					log.Error("Received wrong data type")
 				}
@@ -569,6 +573,8 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 	if signCount >= cbft.getThreshold() && ext.isLinked {
 		cbft.handleNewIrreversible(ext)
 	}
+
+	log.Info("=== end to handle new signature ===", "Hash", sig.Hash, "Number", sig.Number.Uint64())
 }
 
 //handle the received block
@@ -580,7 +586,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	log.Info("=== begin to handle new block ===", "Hash", block.Hash(), "Number", block.Number().Uint64())
 
 	if block.NumberU64() <= 0 {
-		return nil
+		return errGenesisBlock
 	}
 	//recover the producer's NodeID
 	producerNodeID, sign, err := ecrecover(block.Header())
@@ -612,6 +618,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	}
 
 	//collect the block's sign of producer
+	log.Info("collect this block's sign")
 	ext.collectSign(common.NewBlockConfirmSign(sign))
 
 	parent := ext.findParent()
@@ -629,6 +636,8 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	} else {
 		log.Info("received block is discrete, just let it be")
 	}
+
+	log.Info("=== end to handle new block ===", "Hash", block.Hash(), "Number", block.Number().Uint64())
 	return nil
 }
 
