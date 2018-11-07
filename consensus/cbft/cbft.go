@@ -633,7 +633,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 }
 
 func (cbft *Cbft) ShouldSeal() (bool, error) {
-	nowInMilliseconds := time.Now().Unix() * 1000
+	nowInMilliseconds := toMilliseconds(time.Now())
 	printTurn(nowInMilliseconds)
 	return cbft.inTurn(nowInMilliseconds), nil
 }
@@ -973,7 +973,8 @@ func printTurn(nowInMilliseconds int64) {
 func (cbft *Cbft) isOverdue(blockTimestamp int64, nodeID discover.NodeID) bool {
 	signerIdx := cbft.dpos.NodeIndex(nodeID)
 
-	now := time.Now().Unix() * 1000
+	now := toMilliseconds(time.Now())
+
 	start := cbft.dpos.StartTimeOfEpoch() * 1000
 
 	durationMilliseconds := cbft.config.Duration * 1000
@@ -986,7 +987,7 @@ func (cbft *Cbft) isOverdue(blockTimestamp int64, nodeID discover.NodeID) bool {
 
 	deadline = deadline + int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
 
-	log.Info("isOverdue", "deadline", deadline, "now", now, "blockTimestamp", blockTimestamp)
+	log.Info("isOverdue", "start", start, "durationMilliseconds", durationMilliseconds, "totalDuration", totalDuration, "rounds", rounds, "deadline", deadline, "now", now, "blockTimestamp", blockTimestamp)
 
 	if deadline < now {
 		return true
@@ -1080,4 +1081,8 @@ func (cbft *Cbft) getThreshold() int {
 	} else {
 		return int(trunc + 1)
 	}
+}
+
+func toMilliseconds(t time.Time) int64 {
+	return t.UnixNano() / 1e6
 }

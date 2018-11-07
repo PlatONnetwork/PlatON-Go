@@ -85,6 +85,7 @@ func (d *dpos) StartTimeOfEpoch() int64 {
 }
 
 func (d *dpos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
-	// 设置最后一轮共识结束时的区块高度
+	// 设置最后一轮共识结束时的出块时间
 	d.startTimeOfEpoch = startTimeOfEpoch
+	log.Info("设置最后一轮共识结束时的出块时间", "startTimeOfEpoch", startTimeOfEpoch)
 }
