@@ -152,7 +152,6 @@ func (pm *ProtocolManager) syncer() {
 
 		case <-forceSync.C:
 			// Force a sync even if not enough peers are present
-			log.Info("---------forceSyncCycle---------")
 			go pm.synchronise(pm.peers.BestPeer())
 
 		case <-pm.noMorePeers:
@@ -168,14 +167,11 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	if peer == nil {
 		return
 	}
-	log.Info("synchronise", "peerID", peer.id)
 	// Make sure the peer's TD is higher than our own
 	currentBlock := pm.blockchain.CurrentBlock()
 	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
-	log.Info("currentBlock info", "number", currentBlock.NumberU64(), "hash", currentBlock.Hash(), "td", td)
 
 	pHead, pTd := peer.Head()
-	log.Info("peer block info", "pHead", pHead, "pTd", pTd)
 	if pTd.Cmp(td) <= 0 {
 		return
 	}
