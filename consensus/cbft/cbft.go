@@ -993,10 +993,10 @@ func (cbft *Cbft) isOverdue(blockTimestamp int64, nodeID discover.NodeID) bool {
 	rounds := (now - start) / totalDuration
 
 	deadline := start + totalDuration*rounds + durationMilliseconds*(signerIdx+1)
+	log.Info("isOverdue1:::", "start", start, "durationMilliseconds", durationMilliseconds, "totalDuration", totalDuration, "rounds", rounds, "deadline", deadline, "now", now, "blockTimestamp", blockTimestamp)
 
 	deadline = deadline + int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
-
-	log.Info("isOverdue", "start", start, "durationMilliseconds", durationMilliseconds, "totalDuration", totalDuration, "rounds", rounds, "deadline", deadline, "now", now, "blockTimestamp", blockTimestamp)
+	log.Info("isOverdue2:::", "start", start, "durationMilliseconds", durationMilliseconds, "totalDuration", totalDuration, "rounds", rounds, "deadline", deadline, "now", now, "blockTimestamp", blockTimestamp)
 
 	if deadline < now {
 		return true
