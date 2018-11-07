@@ -117,6 +117,12 @@ func (ext *BlockExt) collectSign(sign *common.BlockConfirmSign) int {
 	}
 	return 0
 }
+func (parent *BlockExt) isParent(child *types.Block) bool {
+	if parent.block.NumberU64()+1 == child.NumberU64() && parent.block.Hash() == child.ParentHash() {
+		return true
+	}
+	return false
+}
 
 func printExtMap() {
 	log.Info("printExtMap", "irrHash", cbft.irreversible.block.Hash(), "irrNumber", cbft.irreversible.block.Number().Uint64())
@@ -754,9 +760,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		return errUnknownBlock
 	}
 
-	parent := cbft.findBlockExt(header.ParentHash)
-	if parent == nil || parent.block == nil {
-		log.Error("cannot find parent block", "parentHash", header.ParentHash)
+	if !cbft.forNext.isParent(block) {
+		log.Error("cannot find parent block", "parentHash", block.ParentHash())
 		return errUnknownBlock
 	}
 
