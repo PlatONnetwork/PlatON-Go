@@ -950,7 +950,7 @@ func (cbft *Cbft) inTurnStrictly(pointInTime int64, nodeID discover.NodeID) bool
 
 func (cbft *Cbft) inTurnLaxly(pointInTime int64, nodeID discover.NodeID) bool {
 	preOffset := 0 - cbft.config.MaxLatency*5
-	sufOffset := preOffset
+	sufOffset := 0 + cbft.config.MaxLatency*5
 	signerIdx := cbft.dpos.NodeIndex(nodeID)
 	return cbft.calTurn(pointInTime, cbft.config.NodeID, signerIdx, preOffset, sufOffset)
 }
