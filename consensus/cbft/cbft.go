@@ -124,18 +124,21 @@ func NewFlowControl() *FlowControl {
 }
 
 func (flowControl *FlowControl) control(nodeID discover.NodeID, timePoint int64) bool {
+	passed := false
 	if flowControl.nodeID == nodeID {
 		differ := timePoint - flowControl.lastTime
 		if differ >= flowControl.minOffset && differ <= flowControl.maxOffset {
-			return true
+			passed = true
 		} else {
-			return false
+			passed = false
 		}
 	} else {
-		flowControl.nodeID = nodeID
-		flowControl.lastTime = timePoint
-		return true
+		passed = true
 	}
+	flowControl.nodeID = nodeID
+	flowControl.lastTime = timePoint
+
+	return passed
 }
 
 //find BlockExt in cbft.blockExtMap
@@ -635,7 +638,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	}
 
 	lax := cbft.inTurnLaxly(toMilliseconds(time.Now()), producerNodeID)
-	log.Info("check if block should stay", "result", lax, "producerNodeID", producerNodeID.String())
+	log.Info("check if block should stay", "result", lax, "producerNodeID", producerNodeID.Bytes()[:8])
 	if !lax {
 		return errIllegalBlock
 	}
@@ -668,10 +671,10 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		timePoint := toMilliseconds(time.Now())
 
 		inTurn := cbft.inTurnVerify(toMilliseconds(time.Now()), producerNodeID)
-		log.Info("check if block is in turn", "result", inTurn, "producerNodeID", producerNodeID.String())
+		log.Info("check if block is in turn", "result", inTurn, "producerNodeID", producerNodeID.Bytes()[:8])
 
 		passed := flowControl.control(producerNodeID, timePoint)
-		log.Info("check if block passed flow control", "result", passed, "producerNodeID", producerNodeID.String())
+		log.Info("check if block passed flow control", "result", passed, "producerNodeID", producerNodeID.Bytes()[:8])
 
 		needSign := inTurn && passed && cbft.irreversible.isAncestor(ext)
 
@@ -703,7 +706,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 }
 
 func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Info("call CheckConsensusNode()", "nodeID", nodeID.String())
+	log.Info("call CheckConsensusNode()", "nodeID", nodeID.Bytes()[:8])
 	return cbft.dpos.NodeIndex(nodeID) >= 0, nil
 }
 
@@ -915,7 +918,7 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 
 //receive the new block signature
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, rcvSign *cbfttypes.BlockSignature) error {
-	log.Info("Received a new signature", "Hash", rcvSign.Hash, "Number", rcvSign.Number, "nodeID", nodeID.String(), "signHash", rcvSign.SignHash, "sign", rcvSign.Signature.String())
+	log.Info("Received a new signature", "Hash", rcvSign.Hash, "Number", rcvSign.Number, "nodeID", nodeID.Bytes()[:8], "signHash", rcvSign.SignHash)
 
 	ok, err := verifySign(nodeID, rcvSign.SignHash, rcvSign.Signature[:])
 	if err != nil {
