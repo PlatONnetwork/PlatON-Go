@@ -400,7 +400,6 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						timer.Reset(recommit)
 						continue
 					}
-					log.Info("execute worker line 395", "Clique", w.config.Clique)
 					commit(true, commitInterruptResubmit)
 				}
 			}
@@ -527,7 +526,6 @@ func (w *worker) mainLoop() {
 			} else {
 				// If we're mining, but nothing is being processed, wake on new transactions
 				if w.config.Clique != nil && w.config.Clique.Period == 0 {
-					log.Info("execute worker line 514", "Clique", w.config.Clique)
 					w.commitNewWork(nil, false, time.Now().Unix())
 				}
 			}
@@ -705,7 +703,6 @@ func (w *worker) resultLoop() {
 			blockConfirmSigns := cbftResult.BlockConfirmSigns
 			// Short circuit when receiving empty result.
 			if block == nil || blockConfirmSigns == nil || len(blockConfirmSigns) <= 0 {
-				log.Error("execute worker line 693", "block", block, "blockConfirmSigns", blockConfirmSigns)
 				continue
 			}
 			var (
@@ -714,7 +711,6 @@ func (w *worker) resultLoop() {
 			)
 			// Short circuit when receiving duplicate result caused by resubmitting.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Error("execute worker line 702", "hash", block.Hash(), "number", block.NumberU64())
 				continue
 			}
 
@@ -735,6 +731,8 @@ func (w *worker) resultLoop() {
 			if _receipts == nil && len(block.Transactions()) >0 || _state == nil {
 				continue
 			}
+
+			log.Warn("[2]共识成功", "blockNumber", block.NumberU64(), "timestamp", time.Now().UnixNano() / 1e6)
 
 			// Different block could share same sealhash, deep copy here to prevent write-write conflict.
 			var (
@@ -1034,6 +1032,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		}
 		header.Coinbase = w.coinbase
 	}
+
+	log.Warn("[1]共识开始", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
