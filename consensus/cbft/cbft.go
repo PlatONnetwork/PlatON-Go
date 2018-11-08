@@ -936,49 +936,50 @@ func (cbft *Cbft) storeIrreversibles(exts []*BlockExt) {
 }
 
 //to check if it's my turn to produce blocks
-func (cbft *Cbft) inTurn(nowInMilliseconds int64) bool {
+func (cbft *Cbft) inTurn(timePoint int64) bool {
 	preOffset := 0 - int64(cbft.config.MaxLatency/3)
 	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
 
-	return cbft.calTurn(nowInMilliseconds, cbft.config.NodeID, preOffset, sufOffset)
+	return cbft.calTurn(timePoint, cbft.config.NodeID, preOffset, sufOffset)
 }
 
 //time in milliseconds
-func (cbft *Cbft) inTurnStrictly(time int64, nodeID discover.NodeID) bool {
+func (cbft *Cbft) inTurnStrictly(timePoint int64, nodeID discover.NodeID) bool {
 	preOffset := 0 - int64(cbft.config.MaxLatency/3)
 	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
-	time = time - int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
+	timePoint = timePoint - int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
 
-	return cbft.calTurn(time, nodeID, preOffset, sufOffset)
+	return cbft.calTurn(timePoint, nodeID, preOffset, sufOffset)
 }
 
 //time in milliseconds
-func (cbft *Cbft) inTurnLaxly(time int64, nodeID discover.NodeID) bool {
+func (cbft *Cbft) inTurnLaxly(timePoint int64, nodeID discover.NodeID) bool {
 	preOffset := 0 - cbft.config.MaxLatency*5
 	sufOffset := 0 + cbft.config.MaxLatency*5
-	time = time - int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
+	timePoint = timePoint - int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
 
-	return cbft.calTurn(time, nodeID, preOffset, sufOffset)
+	return cbft.calTurn(timePoint, nodeID, preOffset, sufOffset)
 }
 
 //time in milliseconds
-func (cbft *Cbft) calTurn(time int64, nodeID discover.NodeID, preOffset int64, sufOffset int64) bool {
-	signerIdx := cbft.dpos.NodeIndex(nodeID)
+func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID, preOffset int64, sufOffset int64) bool {
+	nodeIdx := cbft.dpos.NodeIndex(nodeID)
 	start := cbft.dpos.StartTimeOfEpoch() * 1000
 
-	if signerIdx >= 0 {
+	if nodeIdx >= 0 {
 		durationMilliseconds := cbft.config.Duration * 1000
 		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
-		value1 := signerIdx*(durationMilliseconds) + preOffset
+		rounds := (timePoint - start) / totalDuration
 
-		value2 := (time - start) % totalDuration
+		roundStartTime := rounds * totalDuration
 
-		value3 := (signerIdx+1)*durationMilliseconds + sufOffset
+		nodeStartTime := roundStartTime + nodeIdx*durationMilliseconds + preOffset
+		nodeEndTime := roundStartTime + (nodeIdx+1)*durationMilliseconds + sufOffset
 
-		log.Info("calTurn", "idx", signerIdx, "value1", value1, "value2", value2, "value3", value3, "time", time)
+		log.Info("calTurn", "nodeIdx", nodeIdx, "nodeStartTime", nodeStartTime, "nodeEndTime", nodeEndTime, "timePoint", timePoint)
 
-		if value2 > value1 && value3 > value2 {
+		if timePoint >= nodeStartTime && nodeEndTime >= timePoint {
 			return true
 		}
 	}
