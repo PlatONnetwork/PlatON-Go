@@ -23,4 +23,7 @@ type StateDB interface {
 	AddLog(*types.Log)
 	SetState(key []byte, value []byte)
 	GetState(key []byte) []byte
+
+	GetCallerNonce() int64
+	Transfer(addr common.Address, value *big.Int) (ret []byte, leftOverGas uint64, err error)
 }

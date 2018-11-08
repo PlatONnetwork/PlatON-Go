@@ -77,7 +77,11 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 // errExecutionReverted which means revert-and-keep-gas-lfet.
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 
-	in.wasmStateDB.contract = contract
+	if in.wasmStateDB.contract == nil {
+		in.wasmStateDB.contract = contract
+	}
+	in.wasmStateDB.curContract = contract
+
 
 	in.evm.depth++
 	defer func() { in.evm.depth-- }()
@@ -123,7 +127,8 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	}
 	res, err := in.lvm.RunWithGasLimit(entryID, int(in.vmContext.GasLimit), params...)
 	if err != nil {
-		in.lvm.PrintStackTrace()
+		//in.lvm.PrintStackTrace()
+		fmt.Println("throw exception:", err.Error())
 		return nil, err
 	}
 	if contract.Gas > in.vmContext.GasUsed {
