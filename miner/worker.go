@@ -263,6 +263,9 @@ func (w *worker) setRecommitInterval(interval time.Duration) {
 // pending returns the pending state and corresponding block.
 func (w *worker) pending() (*types.Block, *state.StateDB) {
 	// return a snapshot to avoid contention on currentMu mutex
+	if _, ok := w.engine.(consensus.Bft); ok {
+		return w.makePending()
+	}
 	w.snapshotMu.RLock()
 	defer w.snapshotMu.RUnlock()
 	if w.snapshotState == nil {
@@ -274,6 +277,10 @@ func (w *worker) pending() (*types.Block, *state.StateDB) {
 // pendingBlock returns pending block.
 func (w *worker) pendingBlock() *types.Block {
 	// return a snapshot to avoid contention on currentMu mutex
+	if _, ok := w.engine.(consensus.Bft); ok {
+		snapshotBlock, _ := w.makePending()
+		return snapshotBlock
+	}
 	w.snapshotMu.RLock()
 	defer w.snapshotMu.RUnlock()
 	return w.snapshotBlock
@@ -361,6 +368,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			timestamp = time.Now().Unix()
 			// modify by platon
 			//commit(false, commitInterruptNewHead)
+			w.makePending()
 			timer.Reset(0)
 
 		case head := <-w.chainHeadCh:
@@ -406,32 +414,40 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}*/
 
 		case interval := <-w.resubmitIntervalCh:
-			// Adjust resubmit interval explicitly by user.
-			if interval < minRecommitInterval {
-				log.Warn("Sanitizing miner recommit interval", "provided", interval, "updated", minRecommitInterval)
-				interval = minRecommitInterval
-			}
-			log.Info("Miner recommit interval update", "from", minRecommit, "to", interval)
-			minRecommit, recommit = interval, interval
+			// modify by platon
+			// cbft引擎不允许外界修改recommit值
+			if _, ok := w.engine.(consensus.Bft); !ok {
+				// Adjust resubmit interval explicitly by user.
+				if interval < minRecommitInterval {
+					log.Warn("Sanitizing miner recommit interval", "provided", interval, "updated", minRecommitInterval)
+					interval = minRecommitInterval
+				}
+				log.Info("Miner recommit interval update", "from", minRecommit, "to", interval)
+				minRecommit, recommit = interval, interval
 
-			if w.resubmitHook != nil {
-				w.resubmitHook(minRecommit, recommit)
+				if w.resubmitHook != nil {
+					w.resubmitHook(minRecommit, recommit)
+				}
 			}
 
 		case adjust := <-w.resubmitAdjustCh:
-			// Adjust resubmit interval by feedback.
-			if adjust.inc {
-				before := recommit
-				recalcRecommit(float64(recommit.Nanoseconds())/adjust.ratio, true)
-				log.Trace("Increase miner recommit interval", "from", before, "to", recommit)
-			} else {
-				before := recommit
-				recalcRecommit(float64(minRecommit.Nanoseconds()), false)
-				log.Trace("Decrease miner recommit interval", "from", before, "to", recommit)
-			}
+			// modify by platon
+			// cbft引擎不需要重新计算调整recommit值
+			if _, ok := w.engine.(consensus.Bft); !ok {
+				// Adjust resubmit interval by feedback.
+				if adjust.inc {
+					before := recommit
+					recalcRecommit(float64(recommit.Nanoseconds())/adjust.ratio, true)
+					log.Trace("Increase miner recommit interval", "from", before, "to", recommit)
+				} else {
+					before := recommit
+					recalcRecommit(float64(minRecommit.Nanoseconds()), false)
+					log.Trace("Decrease miner recommit interval", "from", before, "to", recommit)
+				}
 
-			if w.resubmitHook != nil {
-				w.resubmitHook(minRecommit, recommit)
+				if w.resubmitHook != nil {
+					w.resubmitHook(minRecommit, recommit)
+				}
 			}
 
 		case <-w.exitCh:
@@ -492,7 +508,6 @@ func (w *worker) mainLoop() {
 
 		case ev := <-w.txsCh:
 			// Apply transactions to the pending state if we're not mining.
-			//
 			// Note all transactions received may not be continuous with transactions
 			// already included in the current mining block. These transactions will
 			// be automatically eliminated.
@@ -1090,7 +1105,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
 		if _, ok := w.engine.(consensus.Bft); ok {
-			w.commit(uncles, nil, false, tstart)
+			w.commit(uncles, nil, true, tstart)
 		} else {
 			w.updateSnapshot()
 		}
@@ -1163,4 +1178,32 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		w.updateSnapshot()
 	}
 	return nil
+}
+
+func (w *worker) makePending() (*types.Block, *state.StateDB) {
+	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+		var parent = cbftEngine.HighestLogicalBlock()
+		parentNum := parent.Number()
+
+		if w.snapshotBlock == nil || w.snapshotBlock.Number().Cmp(parentNum.Add(parentNum, common.Big1)) == -1 {
+			header := &types.Header{
+				ParentHash: parent.Hash(),
+				Number:     parentNum.Add(parentNum, common.Big1),
+				GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
+				Extra:      w.extra,
+				Time:       big.NewInt(time.Now().Unix()),
+				Coinbase:   w.coinbase,
+				Difficulty: big.NewInt(2),
+			}
+			if len(header.Extra) < 32 {
+				header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
+			}
+			header.Extra = header.Extra[:32]
+			header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
+
+			w.makeCurrent(parent, header)
+			w.updateSnapshot()
+		}
+	}
+	return w.snapshotBlock, w.snapshotState.Copy()
 }
