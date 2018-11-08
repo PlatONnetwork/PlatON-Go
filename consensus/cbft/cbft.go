@@ -938,13 +938,18 @@ func (cbft *Cbft) storeIrreversibles(exts []*BlockExt) {
 
 //to check if it's my turn to produce blocks
 func (cbft *Cbft) inTurn(nowInMilliseconds int64) bool {
-	return cbft.inTurnStrictly(nowInMilliseconds, cbft.config.NodeID)
+	preOffset := 0 - int64(cbft.config.MaxLatency/3)
+	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
+
+	return cbft.calTurn(nowInMilliseconds, cbft.config.NodeID, preOffset, sufOffset)
 }
 
 //time in milliseconds
 func (cbft *Cbft) inTurnStrictly(time int64, nodeID discover.NodeID) bool {
 	preOffset := 0 - int64(cbft.config.MaxLatency/3)
 	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
+	time = time - int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
+
 	return cbft.calTurn(time, nodeID, preOffset, sufOffset)
 }
 
@@ -952,6 +957,8 @@ func (cbft *Cbft) inTurnStrictly(time int64, nodeID discover.NodeID) bool {
 func (cbft *Cbft) inTurnLaxly(time int64, nodeID discover.NodeID) bool {
 	preOffset := 0 - cbft.config.MaxLatency*5
 	sufOffset := 0 + cbft.config.MaxLatency*5
+	time = time - int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
+
 	return cbft.calTurn(time, nodeID, preOffset, sufOffset)
 }
 
