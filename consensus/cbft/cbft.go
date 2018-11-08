@@ -144,9 +144,6 @@ func (ext *BlockExt) findParent() *BlockExt {
 	if ext.block == nil {
 		return nil
 	}
-
-	printExtMap()
-
 	parent := cbft.findBlockExt(ext.block.ParentHash())
 	if parent != nil {
 		if parent.block == nil {
@@ -627,6 +624,8 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	//collect the block's sign of producer
 	log.Info("collect this block's sign")
 	ext.collectSign(common.NewBlockConfirmSign(sign))
+
+	printExtMap()
 
 	parent := ext.findParent()
 	if parent != nil && parent.isLinked {
