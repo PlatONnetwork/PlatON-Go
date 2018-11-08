@@ -629,7 +629,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	parent := ext.findParent()
 	if parent != nil && parent.isLinked {
-		strict := cbft.inTurnStrictly(toMilliseconds(time.Now()), producerNodeID)
+		strict := cbft.inTurnVerify(toMilliseconds(time.Now()), producerNodeID)
 		log.Info("check if block should be signed", "result", strict, "producerNodeID", producerNodeID.String())
 
 		needSign := strict && cbft.irreversible.isAncestor(ext)
@@ -944,7 +944,7 @@ func (cbft *Cbft) inTurn(timePoint int64) bool {
 }
 
 //time in milliseconds
-func (cbft *Cbft) inTurnStrictly(timePoint int64, nodeID discover.NodeID) bool {
+func (cbft *Cbft) inTurnVerify(timePoint int64, nodeID discover.NodeID) bool {
 	preOffset := 0 - int64(cbft.config.MaxLatency/3)
 	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
 	timePoint = timePoint - int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
@@ -954,32 +954,39 @@ func (cbft *Cbft) inTurnStrictly(timePoint int64, nodeID discover.NodeID) bool {
 
 //time in milliseconds
 func (cbft *Cbft) inTurnLaxly(timePoint int64, nodeID discover.NodeID) bool {
-	preOffset := 0 - cbft.config.MaxLatency*5
-	sufOffset := 0 + cbft.config.MaxLatency*5
+	preOffset := 0 - int64(cbft.config.MaxLatency/3)
+	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
 	timePoint = timePoint - int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
 
-	return cbft.calTurn(timePoint, nodeID, preOffset, sufOffset)
+	offset := 1000 * (cbft.config.Duration/2 - 1)
+
+	inTurn := cbft.calTurn(timePoint-offset, nodeID, preOffset, sufOffset)
+	if inTurn {
+		return inTurn
+	} else {
+		inTurn = cbft.calTurn(timePoint+offset, nodeID, preOffset, sufOffset)
+		return inTurn
+	}
 }
 
 //time in milliseconds
 func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID, preOffset int64, sufOffset int64) bool {
-	nodeIdx := cbft.dpos.NodeIndex(nodeID)
+	signerIdx := cbft.dpos.NodeIndex(nodeID)
 	start := cbft.dpos.StartTimeOfEpoch() * 1000
 
-	if nodeIdx >= 0 {
+	if signerIdx >= 0 {
 		durationMilliseconds := cbft.config.Duration * 1000
 		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
-		rounds := (timePoint - start) / totalDuration
+		value1 := signerIdx*(durationMilliseconds) + preOffset
 
-		roundStartTime := rounds * totalDuration
+		value2 := (timePoint - start) % totalDuration
 
-		nodeStartTime := roundStartTime + nodeIdx*durationMilliseconds + preOffset
-		nodeEndTime := roundStartTime + (nodeIdx+1)*durationMilliseconds + sufOffset
+		value3 := (signerIdx+1)*durationMilliseconds + sufOffset
 
-		log.Info("calTurn", "nodeIdx", nodeIdx, "nodeStartTime", nodeStartTime, "nodeEndTime", nodeEndTime, "timePoint", timePoint)
+		log.Info("calTurn", "idx", signerIdx, "value1", value1, "value2", value2, "value3", value3, "timePoint", timePoint)
 
-		if timePoint >= nodeStartTime && nodeEndTime >= timePoint {
+		if value2 > value1 && value3 > value2 {
 			return true
 		}
 	}
@@ -987,7 +994,7 @@ func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID, preOffset int
 }
 
 // all variables are in milliseconds
-func printTurn(nowInMilliseconds int64) {
+func printTurn(timePoint int64) {
 	inturn := false
 	start := cbft.dpos.StartTimeOfEpoch() * 1000
 
@@ -998,7 +1005,7 @@ func printTurn(nowInMilliseconds int64) {
 
 		value1 := idx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
 
-		value2 := (nowInMilliseconds - start) % totalDuration
+		value2 := (timePoint - start) % totalDuration
 
 		value3 := (idx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
 
@@ -1008,7 +1015,7 @@ func printTurn(nowInMilliseconds int64) {
 			inturn = false
 		}
 
-		log.Info("printTurn", "inturn", inturn, "idx", idx, "value1", value1, "value2", value2, "value3", value3, "nowInMilliseconds", nowInMilliseconds)
+		log.Info("printTurn", "inturn", inturn, "idx", idx, "value1", value1, "value2", value2, "value3", value3, "timePoint", timePoint)
 	}
 }
 
