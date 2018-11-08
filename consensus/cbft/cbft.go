@@ -452,6 +452,7 @@ func SetBlockChain(blockChain *core.BlockChain) {
 	irrBlock := NewBlockExt(currentBlock, currentBlock.NumberU64())
 	irrBlock.isLinked = true
 	irrBlock.isStored = true
+	irrBlock.number = currentBlock.NumberU64()
 
 	cbft.saveBlock(currentBlock.Hash(), irrBlock)
 
@@ -474,6 +475,7 @@ func BlockSynchronisation() {
 		irrBlock := NewBlockExt(currentBlock, currentBlock.NumberU64())
 		irrBlock.isLinked = true
 		irrBlock.isStored = true
+		irrBlock.number = currentBlock.NumberU64()
 
 		cbft.slideWindow(irrBlock)
 
@@ -594,6 +596,11 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 
 	log.Info("=== begin to handle new signature ===", "Hash", sig.Hash, "Number", sig.Number.Uint64())
 
+	if sig.Number.Uint64() <= cbft.irreversible.number {
+		log.Warn("block sign is too late")
+		return
+	}
+
 	ext := cbft.findBlockExt(sig.Hash)
 	if ext == nil {
 		log.Info("have not received the corresponding block")
@@ -631,15 +638,19 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
 	}
+
+	if block.NumberU64() <= cbft.irreversible.number {
+		return errBlockNumber
+	}
 	//recover the producer's NodeID
 	producerNodeID, sign, err := ecrecover(block.Header())
 	if err != nil {
 		return err
 	}
 
-	lax := cbft.inTurnLaxly(toMilliseconds(time.Now()), producerNodeID)
-	log.Info("check if block should stay", "result", lax, "producerNodeID", producerNodeID.Bytes()[:8])
-	if !lax {
+	keepIt := cbft.keetIt(toMilliseconds(time.Now()), producerNodeID)
+	log.Info("check if block should be kept", "result", keepIt, "producerNodeID", producerNodeID.Bytes()[:8])
+	if !keepIt {
 		return errIllegalBlock
 	}
 
@@ -997,7 +1008,7 @@ func (cbft *Cbft) inTurnVerify(timePoint int64, nodeID discover.NodeID) bool {
 }
 
 //time in milliseconds
-func (cbft *Cbft) inTurnLaxly(timePoint int64, nodeID discover.NodeID) bool {
+func (cbft *Cbft) keetIt(timePoint int64, nodeID discover.NodeID) bool {
 	preOffset := 0 - int64(cbft.config.MaxLatency/3)
 	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
 	timePoint = timePoint - int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
