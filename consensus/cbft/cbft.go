@@ -118,8 +118,8 @@ type FlowControl struct {
 func NewFlowControl() *FlowControl {
 	return &FlowControl{
 		nodeID:    discover.NodeID{},
-		maxOffset: int64(cbft.config.Period + cbft.config.Period*blockSpeedRatio/100),
-		minOffset: int64(cbft.config.Period - cbft.config.Period*blockSpeedRatio/100),
+		maxOffset: int64(cbft.config.Period*1000 + cbft.config.Period*1000*blockSpeedRatio/100),
+		minOffset: int64(cbft.config.Period*1000 - cbft.config.Period*1000*blockSpeedRatio/100),
 	}
 }
 
