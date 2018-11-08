@@ -85,19 +85,20 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 
 //the extension for Block
 type BlockExt struct {
-	block           *types.Block
-	isLinked        bool
-	isSigned        bool
-	isStored        bool
-	signsUpdateTime time.Time
-	signs           []*common.BlockConfirmSign //all signs for block
+	block    *types.Block
+	isLinked bool
+	isSigned bool
+	isStored bool
+	number   uint64
+	signs    []*common.BlockConfirmSign //all signs for block
 }
 
 // New creates a BlockExt object
-func NewBlockExt(block *types.Block) *BlockExt {
+func NewBlockExt(block *types.Block, blockNum uint64) *BlockExt {
 	return &BlockExt{
-		block: block,
-		signs: make([]*common.BlockConfirmSign, 0),
+		block:  block,
+		number: blockNum,
+		signs:  make([]*common.BlockConfirmSign, 0),
 	}
 }
 
@@ -412,7 +413,7 @@ func SetBlockChain(blockChain *core.BlockChain) {
 
 	log.Info("init cbft.highestLogicalBlock", "Hash", currentBlock.Hash(), "Number", currentBlock.NumberU64())
 
-	irrBlock := NewBlockExt(currentBlock)
+	irrBlock := NewBlockExt(currentBlock, currentBlock.NumberU64())
 	irrBlock.isLinked = true
 	irrBlock.isStored = true
 
@@ -434,7 +435,7 @@ func BlockSynchronisation() {
 	if currentBlock.NumberU64() > cbft.irreversible.block.NumberU64() {
 		log.Info("found higher irreversible block")
 
-		irrBlock := NewBlockExt(currentBlock)
+		irrBlock := NewBlockExt(currentBlock, currentBlock.NumberU64())
 		irrBlock.isLinked = true
 		irrBlock.isStored = true
 
@@ -481,9 +482,11 @@ func (cbft *Cbft) dataReceiverGoroutine() {
 func (cbft *Cbft) slideWindow(newIrr *BlockExt) {
 	//printExtMap()
 	for hash, ext := range cbft.blockExtMap {
-		if ext.block != nil && ext.block.NumberU64() <= cbft.irreversible.block.NumberU64()-windowSize && ext.block.Hash() != cbft.irreversible.block.Hash() {
-			log.Info("to delete hash from blockExtMap", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64())
-			delete(cbft.blockExtMap, hash)
+		if ext.number <= cbft.irreversible.block.NumberU64()-windowSize {
+			if ext.block == nil || ext.block.Hash() != cbft.irreversible.block.Hash() {
+				log.Info("to delete hash from blockExtMap", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64())
+				delete(cbft.blockExtMap, hash)
+			}
 		}
 	}
 
@@ -560,9 +563,8 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 		log.Info("have not received the corresponding block")
 
 		//the block is nil
-		ext = NewBlockExt(nil)
+		ext = NewBlockExt(nil, sig.Number.Uint64())
 		ext.isLinked = false
-		ext.signsUpdateTime = time.Now().UTC()
 
 		cbft.saveBlock(sig.Hash, ext)
 	} else if ext.isStored {
@@ -609,7 +611,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	//sometime we'll receive the block's sign before the block self.
 	ext := cbft.findBlockExt(block.Hash())
 	if ext == nil {
-		ext = NewBlockExt(block)
+		ext = NewBlockExt(block, block.NumberU64())
 		//default
 		ext.isLinked = false
 
@@ -790,7 +792,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	sealedBlock := block.WithSeal(header)
 
-	ext := NewBlockExt(sealedBlock)
+	ext := NewBlockExt(sealedBlock, sealedBlock.NumberU64())
 
 	//this block is produced by local node, so need not execute in cbft.
 	ext.isLinked = true
