@@ -27,7 +27,7 @@ import (
 var (
 	errSign               = errors.New("sign error")
 	errUnauthorizedSigner = errors.New("unauthorized signer")
-	errOverdueBlock       = errors.New("overdue block")
+	errIllegalBlock       = errors.New("illegal block")
 	errDuplicatedBlock    = errors.New("duplicated block")
 	errBlockNumber        = errors.New("error block number")
 	errUnknownBlock       = errors.New("unknown block")
@@ -128,10 +128,13 @@ func (parent *BlockExt) isParent(child *types.Block) bool {
 func printExtMap() {
 	log.Info("printExtMap", "irrHash", cbft.irreversible.block.Hash(), "irrNumber", cbft.irreversible.block.Number().Uint64())
 	for k, v := range cbft.blockExtMap {
-		if v != nil && v.block != nil {
-			log.Info("printExtMap", "Hash", k, "Number", v.block.Number().Uint64())
+		if v != nil {
+			if v.block != nil {
+				log.Info("printExtMap", "Hash", k, "Number", v.block.Number().Uint64())
+			} else {
+				log.Info("printExtMap", "Hash", k, "Number", "no_block")
+			}
 		}
-
 	}
 }
 
@@ -145,7 +148,9 @@ func (ext *BlockExt) findParent() *BlockExt {
 
 	parent := cbft.findBlockExt(ext.block.ParentHash())
 	if parent != nil {
-		if parent.block != nil && parent.block.NumberU64()+1 == ext.block.NumberU64() {
+		if parent.block == nil {
+			log.Warn("parent block has not received")
+		} else if parent.block.NumberU64()+1 == ext.block.NumberU64() {
 			return parent
 		} else {
 			log.Warn("data error, parent block hash is not mapping to number")
@@ -583,7 +588,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Info("=== begin to handle new block ===", "Hash", block.Hash(), "Number", block.Number().Uint64())
+	log.Info("=== begin to handle block ===", "Hash", block.Hash(), "Number", block.Number().Uint64(), "ParentHash", block.ParentHash())
 
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
@@ -594,10 +599,10 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		return err
 	}
 
-	overdue := cbft.isOverdue(block.Time().Int64()*1000, producerNodeID)
-	log.Info("check if block is overdue", "result", overdue, "producerNodeID", producerNodeID.String())
-	if overdue {
-		return errOverdueBlock
+	lax := cbft.inTurnLaxly(toMilliseconds(time.Now()), producerNodeID)
+	log.Info("check if block should stay", "result", lax, "producerNodeID", producerNodeID.String())
+	if !lax {
+		return errIllegalBlock
 	}
 
 	//to check if there's a existing blockExt for received block
@@ -623,7 +628,10 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	parent := ext.findParent()
 	if parent != nil && parent.isLinked {
-		needSign := cbft.irreversible.isAncestor(ext)
+		strict := cbft.inTurnStrictly(toMilliseconds(time.Now()), producerNodeID)
+		log.Info("check if block should be signed", "result", strict, "producerNodeID", producerNodeID.String())
+
+		needSign := strict && cbft.irreversible.isAncestor(ext)
 
 		cbft.handleDescendant(ext, parent, needSign)
 
@@ -634,10 +642,10 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 			cbft.handleNewIrreversible(newIrr)
 		}
 	} else {
-		log.Info("received block is discrete, just let it be")
+		log.Info("cannot find block's parent, just keep it")
 	}
 
-	log.Info("=== end to handle new block ===", "Hash", block.Hash(), "Number", block.Number().Uint64())
+	log.Info("=== end to handle block ===", "Hash", block.Hash(), "Number", block.Number().Uint64())
 	return nil
 }
 
@@ -928,18 +936,36 @@ func (cbft *Cbft) storeIrreversibles(exts []*BlockExt) {
 
 //to check if it's my turn to produce blocks
 func (cbft *Cbft) inTurn(nowInMilliseconds int64) bool {
-	signerIdx := cbft.dpos.NodeIndex(cbft.config.NodeID)
+	return cbft.inTurnStrictly(nowInMilliseconds, cbft.config.NodeID)
+}
+
+func (cbft *Cbft) inTurnStrictly(pointInTime int64, nodeID discover.NodeID) bool {
+	preOffset := 0 - int64(cbft.config.MaxLatency/3)
+	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
+	signerIdx := cbft.dpos.NodeIndex(nodeID)
+	return cbft.calTurn(pointInTime, cbft.config.NodeID, signerIdx, preOffset, sufOffset)
+}
+
+func (cbft *Cbft) inTurnLaxly(pointInTime int64, nodeID discover.NodeID) bool {
+	preOffset := 0 - cbft.config.MaxLatency*5
+	sufOffset := preOffset
+	signerIdx := cbft.dpos.NodeIndex(nodeID)
+	return cbft.calTurn(pointInTime, cbft.config.NodeID, signerIdx, preOffset, sufOffset)
+}
+
+func (cbft *Cbft) calTurn(nowInMilliseconds int64, nodeID discover.NodeID, idx int64, preOffset int64, sufOffset int64) bool {
+	signerIdx := cbft.dpos.NodeIndex(nodeID)
 	start := cbft.dpos.StartTimeOfEpoch() * 1000
 
 	if signerIdx >= 0 {
 		durationMilliseconds := cbft.config.Duration * 1000
 		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
-		value1 := signerIdx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
+		value1 := signerIdx*(durationMilliseconds) + preOffset
 
 		value2 := (nowInMilliseconds - start) % totalDuration
 
-		value3 := (signerIdx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
+		value3 := (signerIdx+1)*durationMilliseconds + sufOffset
 
 		log.Info("inTurn", "idx", signerIdx, "value1", value1, "value2", value2, "value3", value3, "now", nowInMilliseconds)
 
@@ -948,7 +974,6 @@ func (cbft *Cbft) inTurn(nowInMilliseconds int64) bool {
 		}
 	}
 	return false
-
 }
 
 // all variables are in milliseconds
