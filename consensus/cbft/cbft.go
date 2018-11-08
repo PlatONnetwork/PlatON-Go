@@ -37,6 +37,8 @@ var (
 	extraSeal           = 65
 
 	windowSize = uint64(20)
+
+	blockSpeedRatio = uint64(20) //meaning 20%
 )
 
 type Cbft struct {
@@ -77,6 +79,8 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		dataReceiveCh: make(chan interface{}, 250),
 	}
 
+	flowControl = NewFlowControl()
+
 	//启动协程处理新收到的签名
 	go cbft.dataReceiverGoroutine()
 
@@ -99,6 +103,38 @@ func NewBlockExt(block *types.Block, blockNum uint64) *BlockExt {
 		block:  block,
 		number: blockNum,
 		signs:  make([]*common.BlockConfirmSign, 0),
+	}
+}
+
+var flowControl *FlowControl
+
+type FlowControl struct {
+	nodeID    discover.NodeID
+	lastTime  int64
+	maxOffset int64
+	minOffset int64
+}
+
+func NewFlowControl() *FlowControl {
+	return &FlowControl{
+		nodeID:    discover.NodeID{},
+		maxOffset: int64(cbft.config.Period + cbft.config.Period*blockSpeedRatio/100),
+		minOffset: int64(cbft.config.Period - cbft.config.Period*blockSpeedRatio/100),
+	}
+}
+
+func (flowControl *FlowControl) control(nodeID discover.NodeID, timePoint int64) bool {
+	if flowControl.nodeID == nodeID {
+		differ := timePoint - flowControl.lastTime
+		if differ >= flowControl.minOffset && differ <= flowControl.maxOffset {
+			return true
+		} else {
+			return false
+		}
+	} else {
+		flowControl.nodeID = nodeID
+		flowControl.lastTime = timePoint
+		return true
 	}
 }
 
@@ -629,10 +665,15 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	parent := ext.findParent()
 	if parent != nil && parent.isLinked {
-		strict := cbft.inTurnVerify(toMilliseconds(time.Now()), producerNodeID)
-		log.Info("check if block should be signed", "result", strict, "producerNodeID", producerNodeID.String())
+		timePoint := toMilliseconds(time.Now())
 
-		needSign := strict && cbft.irreversible.isAncestor(ext)
+		inTurn := cbft.inTurnVerify(toMilliseconds(time.Now()), producerNodeID)
+		log.Info("check if block is in turn", "result", inTurn, "producerNodeID", producerNodeID.String())
+
+		passed := flowControl.control(producerNodeID, timePoint)
+		log.Info("check if block passed flow control", "result", passed, "producerNodeID", producerNodeID.String())
+
+		needSign := inTurn && passed && cbft.irreversible.isAncestor(ext)
 
 		cbft.handleDescendant(ext, parent, needSign)
 
