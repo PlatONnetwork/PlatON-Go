@@ -131,9 +131,9 @@ func printExtMap() {
 	for k, v := range cbft.blockExtMap {
 		if v != nil {
 			if v.block != nil {
-				log.Info("printExtMap", "Hash", k, "Number", v.block.Number().Uint64())
+				log.Info("printExtMap", "Hash", k, "Number", v.number, "Block", "True")
 			} else {
-				log.Info("printExtMap", "Hash", k, "Number", "no_block")
+				log.Info("printExtMap", "Hash", k, "Number", v.number, "Block", "nil")
 			}
 		}
 	}
@@ -361,7 +361,7 @@ func (cbft *Cbft) backTrackIrreversibles(newIrr *BlockExt) []*BlockExt {
 			break
 		} else {
 			log.Info("Found new irreversible block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "Number", parent.block.NumberU64())
-			if _, exist := existMap[newIrr.block.Hash()]; exist {
+			if _, exist := existMap[parent.block.Hash()]; exist {
 				log.Error("Irreversible blocks get into a loop")
 				return nil
 			}
