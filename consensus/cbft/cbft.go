@@ -941,19 +941,22 @@ func (cbft *Cbft) inTurn(nowInMilliseconds int64) bool {
 	return cbft.inTurnStrictly(nowInMilliseconds, cbft.config.NodeID)
 }
 
-func (cbft *Cbft) inTurnStrictly(pointInTime int64, nodeID discover.NodeID) bool {
+//time in milliseconds
+func (cbft *Cbft) inTurnStrictly(time int64, nodeID discover.NodeID) bool {
 	preOffset := 0 - int64(cbft.config.MaxLatency/3)
 	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
-	return cbft.calTurn(pointInTime, cbft.config.NodeID, preOffset, sufOffset)
+	return cbft.calTurn(time, nodeID, preOffset, sufOffset)
 }
 
-func (cbft *Cbft) inTurnLaxly(pointInTime int64, nodeID discover.NodeID) bool {
+//time in milliseconds
+func (cbft *Cbft) inTurnLaxly(time int64, nodeID discover.NodeID) bool {
 	preOffset := 0 - cbft.config.MaxLatency*5
 	sufOffset := 0 + cbft.config.MaxLatency*5
-	return cbft.calTurn(pointInTime, nodeID, preOffset, sufOffset)
+	return cbft.calTurn(time, nodeID, preOffset, sufOffset)
 }
 
-func (cbft *Cbft) calTurn(nowInMilliseconds int64, nodeID discover.NodeID, preOffset int64, sufOffset int64) bool {
+//time in milliseconds
+func (cbft *Cbft) calTurn(time int64, nodeID discover.NodeID, preOffset int64, sufOffset int64) bool {
 	signerIdx := cbft.dpos.NodeIndex(nodeID)
 	start := cbft.dpos.StartTimeOfEpoch() * 1000
 
@@ -963,11 +966,11 @@ func (cbft *Cbft) calTurn(nowInMilliseconds int64, nodeID discover.NodeID, preOf
 
 		value1 := signerIdx*(durationMilliseconds) + preOffset
 
-		value2 := (nowInMilliseconds - start) % totalDuration
+		value2 := (time - start) % totalDuration
 
 		value3 := (signerIdx+1)*durationMilliseconds + sufOffset
 
-		log.Info("calTurn", "idx", signerIdx, "value1", value1, "value2", value2, "value3", value3, "now", nowInMilliseconds)
+		log.Info("calTurn", "idx", signerIdx, "value1", value1, "value2", value2, "value3", value3, "time", time)
 
 		if value2 > value1 && value3 > value2 {
 			return true
