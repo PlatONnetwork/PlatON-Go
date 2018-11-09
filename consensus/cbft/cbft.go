@@ -1182,13 +1182,7 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 
 func (cbft *Cbft) getThreshold() int {
 	trunc := len(cbft.dpos.primaryNodeList) * 2 / 3
-	remainder := len(cbft.dpos.primaryNodeList) * 2 % 3
-
-	if remainder == 0 {
-		return int(trunc)
-	} else {
-		return int(trunc + 1)
-	}
+	return int(trunc + 1)
 }
 
 func toMilliseconds(t time.Time) int64 {
