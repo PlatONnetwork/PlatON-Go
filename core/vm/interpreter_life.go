@@ -77,12 +77,6 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 // errExecutionReverted which means revert-and-keep-gas-lfet.
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 
-	if in.wasmStateDB.contract == nil {
-		in.wasmStateDB.contract = contract
-	}
-	in.wasmStateDB.curContract = contract
-
-
 	in.evm.depth++
 	defer func() { in.evm.depth-- }()
 
@@ -94,11 +88,20 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		return nil, er
 	}
 
+	// 每轮自相关
+	context := &exec.VMContext{
+		Config: in.vmContext.Config,
+		Addr : contract.Address(),
+		GasLimit : contract.Gas,
+		StateDB : NewWasmStateDB(in.wasmStateDB, contract),
+		Log : in.vmContext.Log,
+	}
+
 	in.vmContext.Addr = contract.Address()
 	in.vmContext.GasLimit = contract.Gas // 可使用的即为受限制的
 
 	// 获取执行器对象
-	in.lvm, err = exec.NewVirtualMachine(code, *in.vmContext, in.resolver, nil)
+	in.lvm, err = exec.NewVirtualMachine(code, *context, in.resolver, nil)
 	if err != nil {
 		return nil, err
 	}

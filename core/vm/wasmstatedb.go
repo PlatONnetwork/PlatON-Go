@@ -13,8 +13,20 @@ type WasmStateDB struct {
 	evm      *EVM
 	cfg      *Config
 	contract *Contract
-	curContract *Contract
 }
+
+func NewWasmStateDB(db *WasmStateDB, contract ContractRef) *WasmStateDB {
+	stateDb := &WasmStateDB{
+		StateDB: db.StateDB,
+		evm: db.evm,
+		cfg : db.cfg,
+	}
+	if c, ok := contract.(*Contract); ok {
+		stateDb.contract = c
+	}
+	return stateDb
+}
+
 
 func (self *WasmStateDB) GasPrice() int64 {
 	return self.evm.Context.GasPrice.Int64()
@@ -49,15 +61,15 @@ func (self *WasmStateDB) Origin() common.Address {
 }
 
 func (self *WasmStateDB) Caller() common.Address {
-	return self.curContract.Caller()
+	return self.contract.Caller()
 }
 
 func (self *WasmStateDB) Address() common.Address {
-	return self.curContract.Address()
+	return self.contract.Address()
 }
 
 func (self *WasmStateDB) CallValue() int64 {
-	return self.curContract.Value().Int64()
+	return self.contract.Value().Int64()
 }
 
 func (self *WasmStateDB) AddLog(log *types.Log)  {
