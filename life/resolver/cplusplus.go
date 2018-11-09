@@ -5,12 +5,13 @@ import (
 	"Platon-go/core/types"
 	"Platon-go/crypto"
 	"Platon-go/life/compiler"
+	"Platon-go/life/exec"
 	"bytes"
 	"fmt"
 	"math"
 	"math/big"
 
-	"Platon-go/life/exec"
+	inner "Platon-go/common/math"
 )
 
 var (
@@ -100,6 +101,11 @@ func newCfcSet() map[string]map[string]*exec.FunctionImport {
 			"setState" : &exec.FunctionImport{Execute: envSetState, GasCost: envSetStateGasCost},
 			"getState" : &exec.FunctionImport{Execute: envGetState, GasCost: envGetStateGasCost},
 			"getStateSize" : &exec.FunctionImport{Execute: envGetStateSize, GasCost: envGetStateSizeGasCost},
+
+			// supplement
+			"getCallerNonce" : &exec.FunctionImport{Execute: envGetCallerNonce, GasCost: constGasFunc(compiler.GasQuickStep)},
+			"callTransfer"   : &exec.FunctionImport{Execute: envCallTransfer, GasCost: constGasFunc(compiler.GasQuickStep)},
+
 		},
 	}
 }
@@ -576,4 +582,29 @@ func envGetStateSize(vm *exec.VirtualMachine) (int64)  {
 
 func envGetStateSizeGasCost(vm *exec.VirtualMachine) (uint64, error) {
 	return 1, nil
+}
+
+// define: int64_t getNonce();
+func envGetCallerNonce(vm *exec.VirtualMachine) int64 {
+	return vm.Context.StateDB.GetCallerNonce()
+}
+
+func envCallTransfer(vm *exec.VirtualMachine) int64 {
+	key := int(int32(vm.GetCurrentFrame().Locals[0]))
+	keyLen := int(int32(vm.GetCurrentFrame().Locals[1]))
+	value := int64(vm.GetCurrentFrame().Locals[2])
+	bValue := big.NewInt(value)
+	value256 := inner.U256(bValue)
+	addr := vm.Memory.Memory[key : key + keyLen]
+
+	addrStr := string(addr)
+
+	_, returnGas, err := vm.Context.StateDB.Transfer(common.HexToAddress(addrStr), value256)
+
+	vm.Context.GasUsed -= returnGas
+	if err != nil {
+		return 0
+	} else {
+		return 1
+	}
 }
