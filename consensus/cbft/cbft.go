@@ -18,6 +18,7 @@ import (
 	"Platon-go/rpc"
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"errors"
 	"math/big"
 	"sync"
@@ -170,9 +171,9 @@ func printExtMap() {
 	for k, v := range cbft.blockExtMap {
 		if v != nil {
 			if v.block != nil {
-				log.Info("printExtMap", "Hash", k, "Number", v.number, "hasBlock", "true")
+				log.Info("printExtMap", "Hash", k, "number", v.number, "hasBlock", "true")
 			} else {
-				log.Info("printExtMap", "Hash", k, "Number", v.number, "hasBlock", "false")
+				log.Info("printExtMap", "Hash", k, "number", v.number, "hasBlock", "false")
 			}
 		}
 	}
@@ -330,7 +331,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 	sealHash := sealHash(ext.block.Header())
 	signature, err := cbft.signFn(sealHash.Bytes())
 	if err == nil {
-		log.Info("Sign block ", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature))
+		log.Info("Sign block ", "Hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature))
 
 		sign := common.NewBlockConfirmSign(signature)
 		ext.collectSign(sign)
@@ -378,7 +379,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 //the result is sorted by block number from lower to higher
 func (cbft *Cbft) backTrackIrreversibles(newIrr *BlockExt) []*BlockExt {
 
-	log.Info("Found new irreversible block", "Hash", newIrr.block.Hash(), "ParentHash", newIrr.block.ParentHash(), "Number", newIrr.block.NumberU64())
+	log.Info("Found new irreversible block", "Hash", newIrr.block.Hash(), "ParentHash", newIrr.block.ParentHash(), "number", newIrr.block.NumberU64())
 
 	existMap := make(map[common.Hash]struct{})
 
@@ -396,7 +397,7 @@ func (cbft *Cbft) backTrackIrreversibles(newIrr *BlockExt) []*BlockExt {
 			findRootIrr = true
 			break
 		} else {
-			log.Info("Found new irreversible block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "Number", parent.block.NumberU64())
+			log.Info("Found new irreversible block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
 			if _, exist := existMap[parent.block.Hash()]; exist {
 				log.Error("New irreversible block get into a loop")
 				return nil
@@ -447,7 +448,7 @@ func SetBlockChain(blockChain *core.BlockChain) {
 		currentBlock.Number()
 	}
 
-	log.Info("init cbft.highestLogicalBlock", "Hash", currentBlock.Hash(), "Number", currentBlock.NumberU64())
+	log.Info("init cbft.highestLogicalBlock", "Hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 
 	irrBlock := NewBlockExt(currentBlock, currentBlock.NumberU64())
 	irrBlock.isLinked = true
@@ -522,7 +523,7 @@ func (cbft *Cbft) slideWindow(newIrr *BlockExt) {
 	for hash, ext := range cbft.blockExtMap {
 		if ext.number <= cbft.irreversible.block.NumberU64()-windowSize {
 			if ext.block == nil || ext.block.Hash() != cbft.irreversible.block.Hash() {
-				log.Info("to delete hash from blockExtMap", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64())
+				log.Info("to delete hash from blockExtMap", "Hash", ext.block.Hash(), "number", ext.block.NumberU64())
 				delete(cbft.blockExtMap, hash)
 			}
 		}
@@ -530,7 +531,7 @@ func (cbft *Cbft) slideWindow(newIrr *BlockExt) {
 
 	for number, _ := range cbft.signedSet {
 		if number <= cbft.irreversible.block.NumberU64()-windowSize {
-			log.Info("to delete number from signedSet", "Number", number)
+			log.Info("to delete number from signedSet", "number", number)
 			delete(cbft.signedSet, number)
 		}
 	}
@@ -594,7 +595,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Info("=== begin to handle new signature ===", "Hash", sig.Hash, "Number", sig.Number.Uint64())
+	log.Info("=== begin to handle new signature ===", "Hash", sig.Hash, "number", sig.Number.Uint64())
 
 	if sig.Number.Uint64() <= cbft.irreversible.number {
 		log.Warn("block sign is too late")
@@ -624,7 +625,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 		cbft.handleNewIrreversible(ext)
 	}
 
-	log.Info("=== end to handle new signature ===", "Hash", sig.Hash, "Number", sig.Number.Uint64())
+	log.Info("=== end to handle new signature ===", "Hash", sig.Hash, "number", sig.Number.Uint64())
 }
 
 //handle the received block
@@ -633,7 +634,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Info("=== begin to handle block ===", "Hash", block.Hash(), "Number", block.Number().Uint64(), "ParentHash", block.ParentHash())
+	log.Info("=== begin to handle block ===", "Hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash())
 
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
@@ -649,7 +650,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	}
 
 	keepIt := cbft.keetIt(toMilliseconds(time.Now()), producerNodeID)
-	log.Info("check if block should be kept", "result", keepIt, "producerNodeID", producerNodeID.Bytes()[:8])
+	log.Info("check if block should be kept", "result", keepIt, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 	if !keepIt {
 		return errIllegalBlock
 	}
@@ -682,10 +683,10 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		timePoint := toMilliseconds(time.Now())
 
 		inTurn := cbft.inTurnVerify(toMilliseconds(time.Now()), producerNodeID)
-		log.Info("check if block is in turn", "result", inTurn, "producerNodeID", producerNodeID.Bytes()[:8])
+		log.Info("check if block is in turn", "result", inTurn, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 
 		passed := flowControl.control(producerNodeID, timePoint)
-		log.Info("check if block passed flow control", "result", passed, "producerNodeID", producerNodeID.Bytes()[:8])
+		log.Info("check if block passed flow control", "result", passed, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 
 		needSign := inTurn && passed && cbft.irreversible.isAncestor(ext)
 
@@ -701,7 +702,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		log.Info("cannot find block's parent, just keep it")
 	}
 
-	log.Info("=== end to handle block ===", "Hash", block.Hash(), "Number", block.Number().Uint64())
+	log.Info("=== end to handle block ===", "Hash", block.Hash(), "number", block.Number().Uint64())
 	return nil
 }
 
@@ -717,7 +718,7 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 }
 
 func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Info("call CheckConsensusNode()", "nodeID", nodeID.Bytes()[:8])
+	log.Info("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
 	return cbft.dpos.NodeIndex(nodeID) >= 0, nil
 }
 
@@ -729,14 +730,14 @@ func (cbft *Cbft) IsConsensusNode() (bool, error) {
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
-	log.Info("call Author()", "Hash", header.Hash(), "Number", header.Number.Uint64())
+	log.Info("call Author()", "Hash", header.Hash(), "number", header.Number.Uint64())
 
 	return header.Coinbase, nil
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules.
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	log.Info("call VerifyHeader()", "Hash", header.Hash(), "Number", header.Number.Uint64(), "seal", seal)
+	log.Info("call VerifyHeader()", "Hash", header.Hash(), "number", header.Number.Uint64(), "seal", seal)
 
 	//todo:每秒一个交易，校验块高/父区块
 	if header.Number == nil {
@@ -781,7 +782,7 @@ func (cbft *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) 
 // VerifySeal implements consensus.Engine, checking whether the signature contained
 // in the header satisfies the consensus protocol requirements.
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	log.Info("call VerifySeal()", "Hash", header.Hash(), "Number", header.Number.String())
+	log.Info("call VerifySeal()", "Hash", header.Hash(), "number", header.Number.String())
 
 	return cbft.verifySeal(chain, header, nil)
 }
@@ -789,7 +790,7 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
-	log.Info("call Prepare()", "Hash", header.Hash(), "Number", header.Number.Uint64())
+	log.Info("call Prepare()", "Hash", header.Hash(), "number", header.Number.Uint64())
 
 	//检查父区块
 	if header.ParentHash != cbft.forNext.block.Hash() || header.Number.Uint64()-1 != cbft.forNext.block.NumberU64() {
@@ -813,7 +814,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Info("call Finalize()", "Hash", header.Hash(), "Number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
+	log.Info("call Finalize()", "Hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 	return types.NewBlock(header, txs, nil, receipts), nil
@@ -821,7 +822,10 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 //to sign the block, and store the sign to header.Extra[32:], send the sign to chanel to broadcast to other consensus nodes
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
-	log.Info("call Seal()", "Number", block.NumberU64(), "parentHash", block.ParentHash())
+	cbft.lock.Lock()
+	defer cbft.lock.Unlock()
+
+	log.Info("call Seal()", "number", block.NumberU64(), "parentHash", block.ParentHash())
 
 	header := block.Header()
 	number := block.NumberU64()
@@ -857,7 +861,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	//save the block to cbft.blockExtMap
 	cbft.saveBlock(sealedBlock.Hash(), ext)
 
-	log.Info("seal complete", "Hash", sealedBlock.Hash(), "Number", block.NumberU64())
+	log.Info("seal complete", "Hash", sealedBlock.Hash(), "number", block.NumberU64())
 
 	if len(cbft.dpos.primaryNodeList) == 1 {
 		//only one consensus node, so, each block is irreversible. (lock is needless)
@@ -865,10 +869,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		return nil
 	}
 
-	cbft.lock.Lock()
 	//reset cbft.highestLogicalBlockExt cause this block is produced by myself
 	cbft.forNext = ext
-	cbft.lock.Unlock()
 
 	go func() {
 		select {
@@ -892,7 +894,7 @@ func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
-	log.Info("call SealHash()", "Hash", header.Hash(), "Number", header.Number.Uint64())
+	log.Info("call SealHash()", "Hash", header.Hash(), "number", header.Number.Uint64())
 	return sealHash(header)
 }
 
@@ -929,7 +931,7 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 
 //receive the new block signature
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, rcvSign *cbfttypes.BlockSignature) error {
-	log.Info("Received a new signature", "Hash", rcvSign.Hash, "Number", rcvSign.Number, "nodeID", nodeID.Bytes()[:8], "signHash", rcvSign.SignHash)
+	log.Info("Received a new signature", "Hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
 
 	ok, err := verifySign(nodeID, rcvSign.SignHash, rcvSign.Signature[:])
 	if err != nil {
@@ -949,7 +951,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 //receive the new block
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Info("Received a new block, put into chanel", "Hash", rcvBlock.Hash(), "Number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash(), "headerExtra", hexutil.Encode(rcvBlock.Header().Extra))
+	log.Info("Received a new block, put into chanel", "Hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
 
 	if rcvBlock.NumberU64() <= cbft.irreversible.block.NumberU64() {
 		log.Warn("Received block is lower than the irreversible block")
@@ -985,7 +987,7 @@ func (cbft *Cbft) storeIrreversibles(exts []*BlockExt) {
 			BlockConfirmSigns: ext.signs,
 		}
 		ext.isStored = true
-		log.Info("send to channel", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "signCount", len(ext.signs))
+		log.Info("send to channel", "Hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
 		cbft.cbftResultOutCh <- cbftResult
 	}
 }
