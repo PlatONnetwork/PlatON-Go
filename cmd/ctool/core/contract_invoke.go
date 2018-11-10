@@ -25,14 +25,14 @@ func ContractInvoke(contractAddr string, abiPath string, funcParams string, conf
 
 	//判断该方法是否存在
 	abiFunc := parseFuncFromAbi(abiPath, funcName)
-	if abiFunc.Method == "" {
+	if abiFunc.Name == "" {
 		fmt.Printf("the function not exist ,func= %s\n", funcName)
 		return
 	}
 
 	//判断参数是否正确
-	if len(abiFunc.Args) != len(inputParams) {
-		fmt.Printf("incorrect number of parameters ,request=%d,get=%d\n", len(abiFunc.Args), len(inputParams))
+	if len(abiFunc.Inputs) != len(inputParams) {
+		fmt.Printf("incorrect number of parameters ,request=%d,get=%d\n", len(abiFunc.Inputs), len(inputParams))
 		return
 	}
 
@@ -44,10 +44,11 @@ func ContractInvoke(contractAddr string, abiPath string, funcParams string, conf
 	}
 
 	for i, v := range inputParams {
-		f := abiFunc.Args[i]
-		p, e := StringConverter(v, f.RealTypeName)
+		input := abiFunc.Inputs[i]
+		p, e := StringConverter(v, input.Type)
 		if e != nil {
 			fmt.Printf("incorrect param type: %s,index:%d", v, i)
+			return
 		}
 		paramArr = append(paramArr, p)
 	}
@@ -69,7 +70,7 @@ func ContractInvoke(contractAddr string, abiPath string, funcParams string, conf
 	var r string
 	var err error
 	//是否走call
-	if abiFunc.FuncType == "const" {
+	if abiFunc.Constant == "true" {
 		paramList := make(List, 2)
 		paramList[0] = params
 		paramList[1] = "latest"
@@ -98,10 +99,13 @@ func ContractInvoke(contractAddr string, abiPath string, funcParams string, conf
 	}
 
 	//根据abi 返回类型判断解析什么类型
-	if abiFunc.FuncType == "const" {
-		bytes, _ := hexutil.Decode(resp.Result)
-		result := BytesConverter(bytes, abiFunc.Return)
-		fmt.Printf("\nresult: %v\n", result)
+	if abiFunc.Constant == "true" {
+		if len(abiFunc.Outputs) != 0 && abiFunc.Outputs[0].Type != "void" {
+			bytes, _ := hexutil.Decode(resp.Result)
+			result := BytesConverter(bytes, abiFunc.Outputs[0].Type)
+			fmt.Printf("\nresult: %v\n", result)
+		}
+		fmt.Printf("\nresult: []\n")
 	} else {
 		fmt.Printf("\ntrasaction hash: %s\n", resp.Result)
 	}

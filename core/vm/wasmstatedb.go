@@ -4,6 +4,7 @@ import (
 	"Platon-go/common"
 	"Platon-go/core/types"
 	"Platon-go/params"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 )
@@ -100,6 +101,18 @@ func (self *WasmStateDB) Transfer(toAddr common.Address, value *big.Int) (ret []
 	fmt.Println("Transfer caller:", caller.self.Address().Hex())
 	ret, returnGas, err := self.evm.Call(caller, toAddr, nil, gas, value)
 	return ret, returnGas, err
+}
+
+func (self *WasmStateDB) Call(addr, param []byte) ([]byte, error) {
+	// todo: 对返回值进行解码操作
+	ret, _, err := self.evm.Call(self.contract, common.HexToAddress(hex.EncodeToString(addr)), param, self.contract.Gas, self.contract.value)
+	return ret, err
+}
+
+func (self *WasmStateDB) DelegateCall(addr, param []byte) ([]byte, error) {
+	//todo value的值不应该是contract.value ????
+	ret, _, err := self.evm.DelegateCall(self.contract, common.HexToAddress(hex.EncodeToString(addr)), param, self.contract.Gas)
+	return ret, err
 }
 
 

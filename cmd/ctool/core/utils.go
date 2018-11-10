@@ -22,83 +22,79 @@ type Element interface{}
 type List []Element
 
 type JsonParam struct {
-	Jsonrpc string				`json:"jsonrpc"`
-	Method  string				`json:"method"`
-	Params  interface{}			`json:"params"`
-	Id      int					`json:"id"`
+	Jsonrpc string      `json:"jsonrpc"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params"`
+	Id      int         `json:"id"`
 }
 type BasicParam struct {
-	From     string				`json:"from"`
-	Gas      string				`json:"gas"`
-	GasPrice string				`json:"gas_price"`
+	From     string `json:"from"`
+	Gas      string `json:"gas"`
+	GasPrice string `json:"gas_price"`
 }
 
 type TxParams struct {
-	From     string				`json:"from"`
-	To       string				`json:"to"`
-	Gas      string				`json:"gas"`
-	GasPrice string				`json:"gasPrice"`
-	Value    string				`json:"value"`
-	Data     string				`json:"data"`
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Gas      string `json:"gas"`
+	GasPrice string `json:"gasPrice"`
+	Value    string `json:"value"`
+	Data     string `json:"data"`
 }
 
 type DeployParams struct {
-	From     string				`json:"from"`
-	Gas      string				`json:"gas"`
-	GasPrice string				`json:"gasPrice"`
-	Data     string				`json:"data"`
+	From     string `json:"from"`
+	Gas      string `json:"gas"`
+	GasPrice string `json:"gasPrice"`
+	Data     string `json:"data"`
 }
 
 type Config struct {
-	From     string				`json:"from"`
-	Gas      string				`json:"gas"`
-	GasPrice string				`json:"gasPrice"`
-	Url      string				`json:"url"`
-}
-
-type AbiS struct {
-	//Bytecode string
-	ContractName string			`json:"contractName"`
-	AbiJson      string			`json:"abiJson"`
-	Abi          []FuncDesc		`json:"abi"`
+	From     string `json:"from"`
+	Gas      string `json:"gas"`
+	GasPrice string `json:"gasPrice"`
+	Url      string `json:"url"`
 }
 
 type FuncDesc struct {
-	Method string				`json:"method"`
-	Args   []struct {
-		Name         string		`json:"name"`
-		TypeName     string		`json:"typeName"`
-		RealTypeName string		`json:"realTypeName"`
-	}							`json:"args"`
-	Return   string				`json:"return"`
-	FuncType string				`json:"funcType"`
+	Name   string `json:"name"`
+	Inputs []struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	} `json:"inputs"`
+	Outputs []struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	} `json:"outputs"`
+	Constant string `json:"constant"`
+	Type     string `json:"type"`
 }
 
 type Response struct {
-	Jsonrpc string				`json:"jsonrpc"`
-	Result  string				`json:"result"`
-	Id      int					`json:"id"`
+	Jsonrpc string `json:"jsonrpc"`
+	Result  string `json:"result"`
+	Id      int    `json:"id"`
 	Error   struct {
-		Code    int32			`json:"code"`
-		Message string			`json:"message"`
-	}							`json:"error"`
+		Code    int32  `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
 }
 
 type Receipt struct {
-	Jsonrpc string						`json:"jsonrpc"`
-	Id      int							`json:"id"`
+	Jsonrpc string `json:"jsonrpc"`
+	Id      int    `json:"id"`
 	Result  struct {
-		BlockHash         string		`json:"blockHash"`
-		BlockNumber       string		`json:"blockNumber"`
-		ContractAddress   string 		`json:"contractAddress"`
-		CumulativeGasUsed string 		`json:"cumulativeGas_used"`
-		From              string 		`json:"from"`
-		GasUsed           string 		`json:"gasUsed"`
-		Root              string 		`json:"root"`
-		To                string 		`json:"to"`
-		TransactionHash   string 		`json:"transactionHash"`
-		TransactionIndex  string 		`json:"transactionIndex"`
-	} 									`json:"result"`
+		BlockHash         string `json:"blockHash"`
+		BlockNumber       string `json:"blockNumber"`
+		ContractAddress   string `json:"contractAddress"`
+		CumulativeGasUsed string `json:"cumulativeGas_used"`
+		From              string `json:"from"`
+		GasUsed           string `json:"gasUsed"`
+		Root              string `json:"root"`
+		To                string `json:"to"`
+		TransactionHash   string `json:"transactionHash"`
+		TransactionIndex  string `json:"transactionIndex"`
+	} `json:"result"`
 }
 
 func parseConfigJson(configPath string, param interface{}) {
@@ -112,26 +108,24 @@ func parseConfigJson(configPath string, param interface{}) {
 	}
 }
 
-func parseAbiFromJson(fileName string) (AbiS, error) {
+func parseAbiFromJson(fileName string) ([]FuncDesc, error) {
 	bytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		panic(fmt.Sprintf("ReadFile: %s", err.Error()))
 	}
-	a := AbiS{}
+	var a []FuncDesc
 	if err := json.Unmarshal(bytes, &a); err != nil {
 		fmt.Println("Unmarshal: ", err.Error())
 		panic(fmt.Sprintf("Unmarshal: %s", err.Error()))
 	}
-	abijson, _ := json.Marshal(a.Abi)
-	a.AbiJson = string(abijson)
 	return a, nil
 }
 
 func parseFuncFromAbi(fileName string, funcName string) FuncDesc {
-	abis, _ := parseAbiFromJson(fileName)
+	funcs, _ := parseAbiFromJson(fileName)
 
-	for _, value := range abis.Abi {
-		if value.Method == funcName {
+	for _, value := range funcs {
+		if value.Name == funcName {
 			return value
 		}
 	}

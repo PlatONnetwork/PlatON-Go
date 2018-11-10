@@ -23,7 +23,7 @@ type WASMInterpreter struct {
 	evm         *EVM
 	cfg         Config
 	vmContext   *exec.VMContext
-	lvm         *exec.VirtualMachine
+	//lvm         *exec.VirtualMachine
 	wasmStateDB *WasmStateDB
 
 	resolver   exec.ImportResolver
@@ -101,7 +101,8 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	in.vmContext.GasLimit = contract.Gas // 可使用的即为受限制的
 
 	// 获取执行器对象
-	in.lvm, err = exec.NewVirtualMachine(code, *context, in.resolver, nil)
+	var lvm *exec.VirtualMachine
+	lvm, err = exec.NewVirtualMachine(code, *context, in.resolver, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -119,16 +120,16 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		funcName = "init" // init function.
 	} else {
 		// parse input.
-		_, funcName, params, returnType, err = parseInputFromAbi(in.lvm, input, abi)
+		_, funcName, params, returnType, err = parseInputFromAbi(lvm, input, abi)
 		if err != nil {
 			return nil, err
 		}
 	}
-	entryID, ok := in.lvm.GetFunctionExport(funcName)
+	entryID, ok := lvm.GetFunctionExport(funcName)
 	if !ok {
 		return nil, fmt.Errorf("entryId not found.")
 	}
-	res, err := in.lvm.RunWithGasLimit(entryID, int(in.vmContext.GasLimit), params...)
+	res, err := lvm.RunWithGasLimit(entryID, int(in.vmContext.GasLimit), params...)
 	if err != nil {
 		//in.lvm.PrintStackTrace()
 		fmt.Println("throw exception:", err.Error())
@@ -150,7 +151,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		return hashRes.Bytes(), nil
 	case "string":
 		returnBytes := make([]byte, 0)
-		copyData := in.lvm.Memory.Memory[res:]
+		copyData := lvm.Memory.Memory[res:]
 		for _, v := range copyData {
 			if v == 0 {
 				break
