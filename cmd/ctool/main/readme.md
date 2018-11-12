@@ -27,3 +27,28 @@ config.json文件如下：
   "from":"0xfb8c2fa47e84fbde43c97a0859557a36a5fb285b"
 }
 ```
+
+
+### 注意事项和异常说明：
+1.配置文件config.json中不支持注释，有注释可能会引起错误
+
+2.请确保节点正常启动,并开启挖矿,否则交易无法打包上链
+
+3.配置文件中ip和端口确保正确，否则会抛出一下异常
+```
+panic: runtime error: invalid memory address or nil pointer dereference
+```
+
+4.发布合约：必须指定合约abi和wasm文件的全路径
+
+5.合约调用：
+```
+  the contract address is not exist ...
+```
+  合约没有发布成功，获取不到合约的code，检查合约是否发布成功，命令中合约地址参数是否正确
+
+
+
+
+
+

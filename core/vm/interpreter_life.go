@@ -16,15 +16,15 @@ import (
 	"Platon-go/life/resolver"
 )
 
-const  CALL_CANTRACT_FLAG = 9
+const CALL_CANTRACT_FLAG = 9
 
 // WASM解释器，用于负责解析WASM指令集，具体执行将委托至Life虚拟机完成
 // 实现Interpreter的接口 run/canRun.
 // WASMInterpreter represents an WASM interpreter
 type WASMInterpreter struct {
-	evm         *EVM
-	cfg         Config
-	vmContext   *exec.VMContext
+	evm       *EVM
+	cfg       Config
+	vmContext *exec.VMContext
 	//lvm         *exec.VirtualMachine
 	wasmStateDB *WasmStateDB
 
@@ -43,7 +43,7 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 
 	wasmLog := cfg.WasmLogger
 	if wasmLog == nil {
-		wasmLog =log.New("wasm.stderr")
+		wasmLog = log.New("wasm.stderr")
 		wasmLog.SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(os.Stderr, log.FormatFunc(func(r *log.Record) []byte {
 			return []byte(r.Msg)
 		}))))
@@ -64,7 +64,7 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 			GasLimit: evm.Context.GasLimit,
 			// 验证此处是否可行
 			StateDB: wasmStateDB,
-			Log: wasmLog,
+			Log:     wasmLog,
 		},
 		wasmStateDB: wasmStateDB,
 		resolver:    resolver.NewResolver(0x01),
@@ -96,11 +96,11 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 
 	// 每轮自相关
 	context := &exec.VMContext{
-		Config: in.vmContext.Config,
-		Addr : contract.Address(),
-		GasLimit : contract.Gas,
-		StateDB : NewWasmStateDB(in.wasmStateDB, contract),
-		Log : in.vmContext.Log,
+		Config:   in.vmContext.Config,
+		Addr:     contract.Address(),
+		GasLimit: contract.Gas,
+		StateDB:  NewWasmStateDB(in.wasmStateDB, contract),
+		Log:      in.vmContext.Log,
 	}
 
 	in.vmContext.Addr = contract.Address()
@@ -116,12 +116,12 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	// input 代表着交易的data, 需要从中解析出entryPoint.
 	contract.Input = input
 	var (
-		funcName string
-		txType	int		// 交易类型：合约创建、交易、投票等类型
-		params []int64
-		returnType string 
+		funcName   string
+		txType     int // 交易类型：合约创建、交易、投票等类型
+		params     []int64
+		returnType string
 	)
-	
+
 	if input == nil {
 		funcName = "init" // init function.
 	} else {
@@ -136,6 +136,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		return nil, fmt.Errorf("entryId not found.")
 	}
 	res, err := lvm.RunWithGasLimit(entryID, int(in.vmContext.GasLimit), params...)
+	fmt.Printf("res:%v \n", res)
 	if err != nil {
 		//in.lvm.PrintStackTrace()
 		fmt.Println("throw exception:", err.Error())
@@ -153,7 +154,8 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 
 	// todo: 类型缺失，待继续补充
 	switch returnType {
-	case "void", "int8", "int", "int32", "int64" :
+	case "void", "int8", "int", "int32", "int64":
+
 		if txType == CALL_CANTRACT_FLAG {
 			return utils.Int64ToBytes(res), nil
 		}
@@ -168,7 +170,9 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 			}
 			returnBytes = append(returnBytes, v)
 		}
+
 		if txType == CALL_CANTRACT_FLAG {
+
 			return returnBytes, nil
 		}
 		// 0x0000000000000000000000000000000000000020
@@ -189,7 +193,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		finalData = append(finalData, dataByt...)
 
 		fmt.Println("CallReturn:", string(returnBytes))
-		return finalData,nil
+		return finalData, nil
 	}
 	return nil, nil
 }
@@ -231,7 +235,9 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 
 	params = make([]int64, 0)
 	if v, ok := iRlpList[0].([]byte); ok {
-		txType = int(bytes2int64(v))
+		fmt.Println(v)
+
+		txType = int(common.BytesToInt64(v))
 	}
 	if v, ok := iRlpList[1].([]byte); ok {
 		funcName = string(v)
@@ -281,7 +287,7 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 			params = append(params, int64(bts[0]))
 		}
 	}
-	return txType, funcName, params, returnType,nil
+	return txType, funcName, params, returnType, nil
 }
 
 // rlpData=RLP([txType][code][abi])

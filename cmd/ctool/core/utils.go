@@ -1,12 +1,11 @@
 package core
 
 import (
+	"Platon-go/cmd/ctool/rlp"
+	"Platon-go/common/hexutil"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -141,18 +140,6 @@ func substr(s string, pos, length int) string {
 	return string(runes[pos:l])
 }
 
-func getParentDirectory(dirctory string) string {
-	return substr(dirctory, 0, strings.LastIndex(dirctory, "/"))
-}
-
-func getCurrentDirectory() string {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
-	}
-	return strings.Replace(dir, "\\", "/", -1)
-}
-
 /**
   通过解析abi查找所调用方法
 */
@@ -172,4 +159,40 @@ func GetFuncNameAndParams(f string) (string, []string) {
 	}
 	return funcName, params
 
+}
+
+func encodeParam(abiPath string, funcName string, funcParams string) {
+	//判断该方法是否存在
+	abiFunc := parseFuncFromAbi(abiPath, funcName)
+	if abiFunc.Name == "" {
+		fmt.Printf("the function not exist ,func= %s\n", funcName)
+		return
+	}
+
+	//解析调用的方法 参数
+	funcName, inputParams := GetFuncNameAndParams(funcParams)
+
+	//判断参数是否正确
+	if len(abiFunc.Inputs) != len(inputParams) {
+		fmt.Printf("incorrect number of parameters ,request=%d,get=%d\n", len(abiFunc.Inputs), len(inputParams))
+		return
+	}
+
+	paramArr := [][]byte{
+		Int32ToBytes(111),
+		[]byte(funcName),
+	}
+
+	for i, v := range inputParams {
+		input := abiFunc.Inputs[i]
+		p, e := StringConverter(v, input.Type)
+		if e != nil {
+			fmt.Printf("incorrect param type: %s,index:%d", v, i)
+			return
+		}
+		paramArr = append(paramArr, p)
+	}
+
+	paramBytes, _ := rlp.EncodeToBytes(paramArr)
+	fmt.Printf(hexutil.Encode(paramBytes))
 }

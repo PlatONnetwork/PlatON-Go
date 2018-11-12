@@ -1,15 +1,16 @@
 package core
 
 import (
-	"Platon-go/common/hexutil"
+	"Platon-go/common"
 	"fmt"
 	"testing"
 )
 
 func TestByteConvert(t *testing.T) {
-	bytes, _ := hexutil.Decode("0x0c55699c")
+	//bytes, _ := hexutil.Decode("0x0c55699c")
+	hash := common.BytesToHash(Int32ToBytes(121))
 
-	result := BytesConverter(bytes, "int32")
+	result := BytesConverter(hash.Bytes(), "int32")
 	fmt.Printf("\nresult: %v\n", result)
 
 }

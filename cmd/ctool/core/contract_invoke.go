@@ -39,7 +39,7 @@ func ContractInvoke(contractAddr string, abiPath string, funcParams string, conf
 	//todo 参数类型校验
 
 	paramArr := [][]byte{
-		Int32ToBytes(invoke),
+		Int64ToBytes(invoke),
 		[]byte(funcName),
 	}
 
@@ -74,12 +74,20 @@ func ContractInvoke(contractAddr string, abiPath string, funcParams string, conf
 		paramList := make(List, 2)
 		paramList[0] = params
 		paramList[1] = "latest"
+
+		paramJson, _ := json.Marshal(paramList)
+		fmt.Printf("\nrequest json data：%s\n", string(paramJson))
 		r, err = Send(paramList, "eth_call", config.Url)
 	} else {
 		paramList := make(List, 1)
 		paramList[0] = params
+
+		paramJson, _ := json.Marshal(paramList)
+		fmt.Printf("\nrequest json data：%s\n", string(paramJson))
 		r, err = Send(paramList, "eth_sendTransaction", config.Url)
 	}
+
+	fmt.Printf("\nresponse json：%s\n", r)
 
 	if err != nil {
 		fmt.Printf("send http post to invoke contract error ")

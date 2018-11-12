@@ -29,8 +29,6 @@ func HttpPost(param JsonParam, url string) (string, error) {
 	req, _ := json.Marshal(param)
 	req_new := bytes.NewBuffer(req)
 
-	//fmt.Printf("request json data：%s\n",string(req))
-
 	request, _ := http.NewRequest("POST", url, req_new)
 	request.Header.Set("Content-type", "application/json")
 	response, err := client.Do(request)
