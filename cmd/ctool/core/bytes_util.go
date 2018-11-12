@@ -79,22 +79,22 @@ func convertStringsToBytes(content []string) []byte {
 }
 
 func BytesConverter(source []byte, t string) interface{} {
-	var dest interface{}
 	switch t {
 	case "int32":
-		dest = BytesToInt32(source)
+		return BytesToInt32(source)
 	case "int64":
-		dest = BytesToInt64(source)
+		return BytesToInt64(source)
 	case "float32":
-		dest = BytesToFloat32(source)
+		return BytesToFloat32(source)
 	case "float64":
-		dest = BytesToFloat64(source)
+		return BytesToFloat64(source)
 	case "string":
-		dest = string(source[:])
+		return string(source[:])
+	case "bool":
+		return bytes.Equal(source, []byte{1})
 	default:
-		dest = source
+		return source
 	}
-	return dest
 }
 
 func StringConverter(source string, t string) ([]byte, error) {
@@ -112,10 +112,8 @@ func StringConverter(source string, t string) ([]byte, error) {
 		dest, err := strconv.ParseFloat(source, 64)
 		return Float64ToBytes(dest), err
 	case "bool":
-		if "true" == source {
-			return BoolToBytes(true), nil
-		} else if "false" == source {
-			return BoolToBytes(false), nil
+		if "true" == source || "false" == source {
+			return BoolToBytes("true" == source), nil
 		} else {
 			return []byte{}, errors.New("invalid boolean param")
 		}

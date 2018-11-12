@@ -38,7 +38,7 @@ func Deploy(abiFilePath string, codeFilePath string, configPath string) error {
 	codeBytes := parseFile(codeFilePath)
 
 	param := [3][]byte{
-		Int32ToBytes(depoly),
+		Int64ToBytes(depoly),
 		codeBytes,
 		abiBytes,
 	}
@@ -56,7 +56,13 @@ func Deploy(abiFilePath string, codeFilePath string, configPath string) error {
 
 	paramList := make(List, 1)
 	paramList[0] = params
+
+	//paramJson, _ := json.Marshal(paramList)
+	//fmt.Printf("\n request json data：%s\n", string(paramJson))
+
 	r, err := Send(paramList, "eth_sendTransaction", config.Url)
+
+	//fmt.Printf("\nresponse json：%s\n", r)
 
 	resp := parseResponse(r)
 	fmt.Printf("\ntrasaction hash: %s\n", resp.Result)

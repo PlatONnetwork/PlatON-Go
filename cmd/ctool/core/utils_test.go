@@ -1,6 +1,7 @@
 package core
 
 import (
+	"Platon-go/common"
 	"Platon-go/rlp"
 	"bytes"
 	"encoding/json"
@@ -21,28 +22,28 @@ func TestParseConfig(t *testing.T) {
 }
 
 func TestParseFuncFromAbi(t *testing.T) {
-	//param := TxParams{}
+
 	dir, _ := os.Getwd()
-	filePath := dir + "/hello1.cpp.abi.json"
+	filePath := dir + "/demo01.cpp.abi.json"
 	funcDesc := parseFuncFromAbi(filePath, "transfer")
 
-	fmt.Println(funcDesc.Method)
-	fmt.Println(funcDesc.Args)
-	fmt.Println(funcDesc.Return)
-	fmt.Println(len(funcDesc.Args))
+	fmt.Println(funcDesc.Name)
+	fmt.Println(funcDesc.Inputs)
+	fmt.Println(funcDesc.Outputs)
+	fmt.Println(len(funcDesc.Constant))
 }
 
 func TestParseAbiFromJson(t *testing.T) {
 
 	dir, _ := os.Getwd()
-	filePath := dir + "/hello1.cpp.abi.json"
+	filePath := dir + "/demo01.cpp.abi.json"
 	a, e := parseAbiFromJson(filePath)
 	if e != nil {
 		t.Fatalf("parse abi json error! \n， %s", e.Error())
 	}
-	fmt.Println(a.ContractName)
-	fmt.Println(a.Abi)
-	fmt.Println(a.AbiJson)
+	fmt.Println(a)
+	marshal, _ := json.Marshal(a)
+	fmt.Println(string(marshal))
 }
 
 func TestHttpPostTransfer(t *testing.T) {
@@ -180,7 +181,40 @@ func TestGetFuncParam(t *testing.T) {
 }
 
 func TestAAA(t *testing.T) {
-	dir, _ := os.Getwd()
-	fmt.Printf("%s", dir)
+	//dir := "D:\\resource\\platon\\contract\\Platon-contract\\build\\user\\wuwei\\wuwei.cpp.abi.json"
+	//funcName:= "transfer"
+	//funcParams := "transfer(\"0x60ceca9c\",\"0x60ceca\",100)"
+	//encodeParam(dir,funcName,funcParams)
+
+	byts := []byte("0x00000000000000000000000000000000000000c5")
+	fmt.Print(byts)
+	//fmt.Printf(string(byts))
+
+	//toAddr :=common.Address{}
+	//toAddr.SetBytes([]byte("0x43355c787c50b647c425f594b441d4bd751951c1"))
+	//fmt.Printf(toAddr.Hex())
+	//
+	//
+	//toAddr2 :=common.Address{}
+	//decode, _ := hexutil.Decode("0x43355c787c50b647c425f594b441d4bd751951c1")
+	//toAddr2.SetBytes(decode)
+	//fmt.Printf(toAddr2.Hex())
+
+}
+func TestBBB(t *testing.T) {
+	dir := "D:\\resource\\platon\\contract\\Platon-contract\\temp\\contracta.cpp.abi.json"
+	funcName := "atransfer2"
+	funcParams := "atransfer2(\"eeeeeee\",\"ffffff\",3333)"
+	//funcParams := "transfer(\"0x43355c787c50b647c425f594b441d4bd751951c1\")"
+
+	encodeParam(dir, funcName, funcParams)
+
+}
+
+func TestCCC(t *testing.T) {
+	b := common.BytesToHash(common.Int64ToBytes(int64(1231)))
+	fmt.Println(bytes.Equal(b[:24], make([]byte, 24)))
+	fmt.Println(b[24:])
+	fmt.Print(common.Int64ToBytes(int64(1231)))
 
 }
