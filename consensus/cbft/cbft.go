@@ -33,9 +33,10 @@ var (
 	errBlockNumber        = errors.New("error block number")
 	errUnknownBlock       = errors.New("unknown block")
 	errGenesisBlock       = errors.New("cannot handle genesis block")
-
-	errMissingSignature = errors.New("extra-data 65 byte signature suffix missing")
-	extraSeal           = 65
+	errForNextBlock       = errors.New("cannot find a block for next")
+	errListIrrBlocks      = errors.New("list irreversible blocks error")
+	errMissingSignature   = errors.New("extra-data 65 byte signature suffix missing")
+	extraSeal             = 65
 
 	windowSize = uint64(20)
 
@@ -160,7 +161,7 @@ func (ext *BlockExt) collectSign(sign *common.BlockConfirmSign) int {
 	return 0
 }
 func (parent *BlockExt) isParent(child *types.Block) bool {
-	if parent.block.NumberU64()+1 == child.NumberU64() && parent.block.Hash() == child.ParentHash() {
+	if parent.block != nil && parent.block.NumberU64()+1 == child.NumberU64() && parent.block.Hash() == child.ParentHash() {
 		return true
 	}
 	return false
@@ -226,6 +227,9 @@ func (cbft *Cbft) saveBlock(hash common.Hash, ext *BlockExt) {
 }
 
 func (lower *BlockExt) isAncestor(higher *BlockExt) bool {
+	if higher.block == nil || lower.block == nil {
+		return false
+	}
 	generations := higher.block.NumberU64() - lower.block.NumberU64()
 
 	for i := uint64(0); i < generations; i++ {
@@ -502,7 +506,10 @@ func (cbft *Cbft) dataReceiverGoroutine() {
 		case v := <-cbft.dataReceiveCh:
 			sign, ok := v.(*cbfttypes.BlockSignature)
 			if ok {
-				cbft.signReceiver(sign)
+				err := cbft.signReceiver(sign)
+				if err != nil {
+					log.Error("Error", "msg", err)
+				}
 			} else {
 				block, ok := v.(*types.Block)
 				if ok {
@@ -542,7 +549,7 @@ func (cbft *Cbft) slideWindow(newIrr *BlockExt) {
 //gather the blocks from original irreversible block to this new one (excluding the original one), and save these blocks to chain
 //clean cbft.blockExtMap, cbft.signedSet
 //reset the cbft.irreversibleBlockExt
-func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) {
+func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) error {
 	needSlideWindow := false
 	if newIrr.block.NumberU64() > cbft.irreversible.block.NumberU64() {
 		//新确认块的高大于当前不可逆块高
@@ -556,12 +563,12 @@ func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) {
 		} else {
 			//当前不可逆块不是新确认块的祖先
 			log.Warn("consensus useless, the block is higher and in another branch")
-			return
+			return nil
 		}
 	} else if newIrr.block.NumberU64() == cbft.irreversible.block.NumberU64() {
 		//新确认块的高等于当前不可逆块高
 		log.Warn("consensus error, the block with same number are confirmed")
-		return
+		return nil
 	} else {
 		//新确认块的高小于当前不可逆块高，并且是另一条分支（相同分支的小于当前不可逆块高的块，都已经入链了）
 		log.Info("consensus success, the block is lower and in another branch")
@@ -571,8 +578,7 @@ func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) {
 	irrs := cbft.backTrackIrreversibles(newIrr)
 
 	if irrs == nil {
-		log.Error("list all irreversible blocks error")
-		return
+		return errListIrrBlocks
 	}
 
 	log.Info("found irreversible blocks", "count", len(irrs))
@@ -585,13 +591,18 @@ func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) {
 		cbft.forNext = cbft.findHighest(newIrr)
 	}
 
+	if cbft.forNext == nil {
+		return errForNextBlock
+	}
+
 	if needSlideWindow {
 		cbft.slideWindow(newIrr)
 	}
+	return nil
 }
 
 //handle the received block signature
-func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
+func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
@@ -599,7 +610,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 
 	if sig.Number.Uint64() <= cbft.irreversible.number {
 		log.Warn("block sign is too late")
-		return
+		return nil
 	}
 
 	ext := cbft.findBlockExt(sig.Hash)
@@ -614,7 +625,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 	} else if ext.isStored {
 		//收到已经确认块的签名，直接扔掉
 		log.Info("received a irreversible block's signature, just discard it")
-		return
+		return nil
 	}
 
 	signCount := ext.collectSign(sig.Signature)
@@ -622,10 +633,12 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) {
 	log.Info("count signatures", "Count", signCount)
 
 	if signCount >= cbft.getThreshold() && ext.isLinked {
-		cbft.handleNewIrreversible(ext)
+		return cbft.handleNewIrreversible(ext)
 	}
 
 	log.Info("=== end to handle new signature ===", "Hash", sig.Hash, "number", sig.Number.Uint64())
+
+	return nil
 }
 
 //handle the received block
@@ -635,6 +648,11 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	defer cbft.lock.Unlock()
 
 	log.Info("=== begin to handle block ===", "Hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash())
+
+	if block.NumberU64() <= cbft.irreversible.block.NumberU64() {
+		log.Warn("Received block is lower than the irreversible block")
+		return nil
+	}
 
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
@@ -696,7 +714,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		if newIrr != nil {
 			//处理新不可逆块
 			log.Info("found higher new irreversible")
-			cbft.handleNewIrreversible(newIrr)
+			return cbft.handleNewIrreversible(newIrr)
 		}
 	} else {
 		log.Info("cannot find block's parent, just keep it")
@@ -792,8 +810,11 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
 	log.Info("call Prepare()", "Hash", header.Hash(), "number", header.Number.Uint64())
 
+	cbft.lock.RLock()
+	defer cbft.lock.RUnlock()
+
 	//检查父区块
-	if header.ParentHash != cbft.forNext.block.Hash() || header.Number.Uint64()-1 != cbft.forNext.block.NumberU64() {
+	if cbft.forNext.block == nil || header.ParentHash != cbft.forNext.block.Hash() || header.Number.Uint64()-1 != cbft.forNext.block.NumberU64() {
 		return consensus.ErrUnknownAncestor
 	}
 
@@ -865,8 +886,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	if len(cbft.dpos.primaryNodeList) == 1 {
 		//only one consensus node, so, each block is irreversible. (lock is needless)
-		cbft.handleNewIrreversible(ext)
-		return nil
+		return cbft.handleNewIrreversible(ext)
 	}
 
 	//reset cbft.highestLogicalBlockExt cause this block is produced by myself
@@ -952,11 +972,6 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 //receive the new block
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
 	log.Info("Received a new block, put into chanel", "Hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
-
-	if rcvBlock.NumberU64() <= cbft.irreversible.block.NumberU64() {
-		log.Warn("Received block is lower than the irreversible block")
-		return nil
-	}
 
 	cbft.dataReceiveCh <- rcvBlock
 	return nil
