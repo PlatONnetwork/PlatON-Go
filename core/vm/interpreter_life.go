@@ -16,7 +16,7 @@ import (
 	"Platon-go/life/resolver"
 )
 
-const  CALL_CANTRACT_FLAG = 111
+const  CALL_CANTRACT_FLAG = 9
 
 // WASM解释器，用于负责解析WASM指令集，具体执行将委托至Life虚拟机完成
 // 实现Interpreter的接口 run/canRun.
@@ -78,7 +78,11 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 // considered a revert-and-consume-all-gas operations except for
 // errExecutionReverted which means revert-and-keep-gas-lfet.
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
-
+	defer func() {
+		if er := recover(); er != nil {
+			ret, err = nil, fmt.Errorf("VM execute fail")
+		}
+	}()
 	in.evm.depth++
 	defer func() { in.evm.depth-- }()
 
@@ -198,12 +202,6 @@ func (in *WASMInterpreter) CanRun(code []byte) bool {
 
 // parse input(payload)
 func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txType int, funcName string, params []int64, returnType string, err error) {
-	defer func() {
-		if er := recover(); er != nil {
-			txType, funcName, params, returnType, err = -1, "", nil, "", er.(error)
-			vm.Context.Log.Error("Parse input data fail.", "errMsg",err.Error())
-		}
-	}()
 	if input == nil || len(input) <= 1 {
 		return -1, "", nil, "", fmt.Errorf("invalid input.")
 	}
