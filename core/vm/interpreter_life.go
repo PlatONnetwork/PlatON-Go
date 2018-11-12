@@ -16,6 +16,8 @@ import (
 	"Platon-go/life/resolver"
 )
 
+const  CALL_CANTRACT_FLAG = 111
+
 // WASM解释器，用于负责解析WASM指令集，具体执行将委托至Life虚拟机完成
 // 实现Interpreter的接口 run/canRun.
 // WASMInterpreter represents an WASM interpreter
@@ -111,7 +113,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	contract.Input = input
 	var (
 		funcName string
-		//txType	int		// 交易类型：合约创建、交易、投票等类型
+		txType	int		// 交易类型：合约创建、交易、投票等类型
 		params []int64
 		returnType string 
 	)
@@ -120,7 +122,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		funcName = "init" // init function.
 	} else {
 		// parse input.
-		_, funcName, params, returnType, err = parseInputFromAbi(lvm, input, abi)
+		txType, funcName, params, returnType, err = parseInputFromAbi(lvm, input, abi)
 		if err != nil {
 			return nil, err
 		}
@@ -144,9 +146,13 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	if input == nil {
 		return contract.Code, nil
 	}
+
 	// todo: 类型缺失，待继续补充
 	switch returnType {
 	case "void", "int8", "int", "int32", "int64" :
+		if txType == CALL_CANTRACT_FLAG {
+			return utils.Int64ToBytes(res), nil
+		}
 		hashRes := common.BytesToHash(utils.Int64ToBytes(res))
 		return hashRes.Bytes(), nil
 	case "string":
@@ -157,6 +163,9 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 				break
 			}
 			returnBytes = append(returnBytes, v)
+		}
+		if txType == CALL_CANTRACT_FLAG {
+			return returnBytes, nil
 		}
 		// 0x0000000000000000000000000000000000000020
 		// 00000000000000000000000000000000000000000d
@@ -274,7 +283,6 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 			params = append(params, int64(bts[0]))
 		}
 	}
-
 	return txType, funcName, params, returnType,nil
 }
 
