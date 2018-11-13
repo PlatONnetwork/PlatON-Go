@@ -274,7 +274,10 @@ func (p *Peer) handle(msg Msg) error {
 	switch {
 	case msg.Code == pingMsg:
 		msg.Discard()
+		log.Info("We got the Ping message, then we should send a Pong Message...........")
 		go SendItems(p.rw, pongMsg)
+	case msg.Code == pongMsg:
+		log.Info("We got the Pong message...........")
 	case msg.Code == discMsg:
 		var reason [1]DiscReason
 		// This is the last message. We don't need to discard or
