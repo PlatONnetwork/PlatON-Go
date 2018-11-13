@@ -106,6 +106,13 @@ func newCfcSet() map[string]map[string]*exec.FunctionImport {
 			"getCallerNonce" : &exec.FunctionImport{Execute: envGetCallerNonce, GasCost: constGasFunc(compiler.GasQuickStep)},
 			"callTransfer"   : &exec.FunctionImport{Execute: envCallTransfer, GasCost: constGasFunc(compiler.GasQuickStep)},
 
+			"platonCall":               &exec.FunctionImport{Execute: envPlatonCall, GasCost: envPlatonCallGasCost},
+			"platonCallInt64":          &exec.FunctionImport{Execute: envPlatonCallInt64, GasCost: envPlatonCallInt64GasCost},
+			"platonCallString":         &exec.FunctionImport{Execute: envPlatonCallString, GasCost: envPlatonCallStringGasCost},
+			"platonDelegateCall":       &exec.FunctionImport{Execute: envPlatonDelegateCall, GasCost: envPlatonCallStringGasCost},
+			"platonDelegateCallInt64":  &exec.FunctionImport{Execute: envPlatonDelegateCallInt64, GasCost: envPlatonCallStringGasCost},
+			"platonDelegateCallString": &exec.FunctionImport{Execute: envPlatonDelegateCallString, GasCost: envPlatonCallStringGasCost},
+
 		},
 	}
 }
@@ -608,3 +615,93 @@ func envCallTransfer(vm *exec.VirtualMachine) int64 {
 		return 1
 	}
 }
+
+func envPlatonCall(vm *exec.VirtualMachine) int64 {
+	addr := int(int32(vm.GetCurrentFrame().Locals[0]))
+	params := int(int32(vm.GetCurrentFrame().Locals[1]))
+	paramsLen := int(int32(vm.GetCurrentFrame().Locals[2]))
+	_, err := vm.Context.StateDB.Call(vm.Memory.Memory[addr:addr+20], vm.Memory.Memory[params:params+paramsLen])
+	if err != nil {
+		fmt.Printf("call error,%s", err.Error())
+		return 0
+	}
+	return 0
+}
+func envPlatonDelegateCall(vm *exec.VirtualMachine) int64 {
+	addr := int(int32(vm.GetCurrentFrame().Locals[0]))
+	params := int(int32(vm.GetCurrentFrame().Locals[1]))
+	paramsLen := int(int32(vm.GetCurrentFrame().Locals[2]))
+
+	_, err := vm.Context.StateDB.DelegateCall(vm.Memory.Memory[addr:addr+20], vm.Memory.Memory[params:params+paramsLen])
+	if err != nil {
+		fmt.Printf("call error,%s", err.Error())
+		return 0
+	}
+	return 0
+}
+
+func envPlatonCallInt64(vm *exec.VirtualMachine) int64 {
+	addr := int(int32(vm.GetCurrentFrame().Locals[0]))
+	params := int(int32(vm.GetCurrentFrame().Locals[1]))
+	paramsLen := int(int32(vm.GetCurrentFrame().Locals[2]))
+
+	ret, err := vm.Context.StateDB.Call(vm.Memory.Memory[addr:addr+20], vm.Memory.Memory[params:params+paramsLen])
+	if err != nil {
+		fmt.Printf("call error,%s", err.Error())
+		return 0
+	}
+	return common.BytesToInt64(ret)
+}
+
+func envPlatonDelegateCallInt64(vm *exec.VirtualMachine) int64 {
+	addr := int(int32(vm.GetCurrentFrame().Locals[0]))
+	params := int(int32(vm.GetCurrentFrame().Locals[1]))
+	paramsLen := int(int32(vm.GetCurrentFrame().Locals[2]))
+
+	ret, err := vm.Context.StateDB.DelegateCall(vm.Memory.Memory[addr:addr+20], vm.Memory.Memory[params:params+paramsLen])
+	if err != nil {
+		fmt.Printf("call error,%s", err.Error())
+		return 0
+	}
+	return common.BytesToInt64(ret)
+}
+
+func envPlatonCallString(vm *exec.VirtualMachine) int64 {
+	addr := int(int32(vm.GetCurrentFrame().Locals[0]))
+	params := int(int32(vm.GetCurrentFrame().Locals[1]))
+	paramsLen := int(int32(vm.GetCurrentFrame().Locals[2]))
+
+	ret, err := vm.Context.StateDB.Call(vm.Memory.Memory[addr:addr+20], vm.Memory.Memory[params:params+paramsLen])
+	if err != nil {
+		fmt.Printf("call error,%s", err.Error())
+		return 0
+	}
+	return MallocString(vm, string(ret))
+}
+
+func envPlatonDelegateCallString(vm *exec.VirtualMachine) int64 {
+	addr := int(int32(vm.GetCurrentFrame().Locals[0]))
+	params := int(int32(vm.GetCurrentFrame().Locals[1]))
+	paramsLen := int(int32(vm.GetCurrentFrame().Locals[2]))
+
+	ret, err := vm.Context.StateDB.DelegateCall(vm.Memory.Memory[addr:addr+20], vm.Memory.Memory[params:params+paramsLen])
+	if err != nil {
+		fmt.Printf("call error,%s", err.Error())
+		return 0
+	}
+	return MallocString(vm, string(ret))
+}
+
+func envPlatonCallGasCost(vm *exec.VirtualMachine) (uint64, error) {
+	return 1, nil
+}
+
+func envPlatonCallInt64GasCost(vm *exec.VirtualMachine) (uint64, error) {
+	return 1, nil
+}
+
+func envPlatonCallStringGasCost(vm *exec.VirtualMachine) (uint64, error) {
+	return 1, nil
+}
+
+

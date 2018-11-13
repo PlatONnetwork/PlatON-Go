@@ -26,4 +26,6 @@ type StateDB interface {
 
 	GetCallerNonce() int64
 	Transfer(addr common.Address, value *big.Int) (ret []byte, leftOverGas uint64, err error)
+	DelegateCall(addr, params []byte) ([]byte, error)
+	Call(addr, params []byte) ([]byte, error)
 }
