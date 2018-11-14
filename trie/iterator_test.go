@@ -48,6 +48,7 @@ func TestIterator(t *testing.T) {
 	it := NewIterator(trie.NodeIterator(nil))
 	for it.Next() {
 		found[string(it.Key)] = string(it.Value)
+		fmt.Println(string(it.Key), "==", string(it.Value))
 	}
 
 	for k, v := range all {
