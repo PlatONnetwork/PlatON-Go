@@ -1,5 +1,6 @@
 // Copyright 2014 The go-ethereum Authors
 // This file is part of the go-ethereum library.
+
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -95,7 +96,8 @@ type stateObject struct {
 	dbErr error
 
 	// Write caches.
-	trie Trie // storage trie, which becomes non-nil on first access
+	trie Trie
+	// storage trie, which becomes non-nil on first access
 	code Code // contract bytecode, which gets set when code is loaded
 
 	// todo: 新增，此字段尚不明确是否需要进行使用
@@ -325,18 +327,18 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		//删除原来valueKey 对应的value
 		delete(self.originValueStorage, self.originStorage[key])
 
-		self.originStorage[key] = valueKey
-		self.originValueStorage[valueKey] = value
-
-		if (valueKey == common.Hash{}) {
+		if (valueKey == common.Hash{} || value == nil) {
 			self.setError(tr.TryDelete([]byte(key)))
 			continue
 		}
 
+		self.originStorage[key] = valueKey
+		self.originValueStorage[valueKey] = value
+
 		// Encoding []byte cannot fail, ok to ignore the error.
 		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
 		self.setError(tr.TryUpdate([]byte(key), v))
-		self.setError(tr.TryUpdateValue(valueKey[:], value))
+		//self.setError(tr.TryUpdateValue(valueKey[:], value))
 	}
 	return tr
 }
@@ -354,8 +356,11 @@ func (self *stateObject) CommitTrie(db Database) error {
 	if self.dbErr != nil {
 		return self.dbErr
 	}
+
 	for h, v := range self.originValueStorage {
-		self.trie.TryUpdateValue(h.Bytes(), v)
+		if (h != common.Hash{} || v != nil) {
+			self.trie.TryUpdateValue(h.Bytes(), v)
+		}
 	}
 	root, err := self.trie.Commit(nil)
 	if err == nil {
