@@ -297,7 +297,7 @@ func (self *StateDB) HasSuicided(addr common.Address) bool {
 	if stateObject != nil {
 		return stateObject.suicided
 	}
-	return falseset
+	return false
 }
 
 /*
