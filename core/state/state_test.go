@@ -250,7 +250,7 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 }
 
 func TestEmptyByte(t *testing.T) {
-	db := ethdb.NewMemDatabase()
+	db, _ := ethdb.NewLDBDatabase("D:\\resource\\platon\\platon-go\\data1", 0, 0)
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
@@ -302,6 +302,7 @@ func TestEmptyByte(t *testing.T) {
 	it = trie.NewIterator(so.trie.NodeIterator(nil))
 	for it.Next() {
 		fmt.Println(it.Key, it.Value)
+		fmt.Println(so.db.trie.GetKey(it.Value))
 	}
 
 }

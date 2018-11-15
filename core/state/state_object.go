@@ -296,7 +296,7 @@ func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.H
 	self.db.journal.append(storageChange{
 		account:  &self.address,
 		key:      keyTrie,
-		valueKey: valueKey,
+		valueKey: self.originStorage[keyTrie],
 		preValue: preValue,
 	})
 
