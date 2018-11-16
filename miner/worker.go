@@ -415,9 +415,11 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			w.commitWorkEnv.highestLogicalBlock = highestLogicalBlock
 			w.commitWorkEnv.highestLock.Unlock()
 
-			if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-				log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
-				commit(false, commitInterruptResubmit, commitBlock)
+			if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(); shouldSeal && error == nil {
+				if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
+					log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
+					commit(false, commitInterruptResubmit, commitBlock)
+				}
 			}
 
 		case <-timer.C:

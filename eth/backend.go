@@ -194,13 +194,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	// modify by platon
-	var consensusCache *cbft.Cache
-	if _, ok := eth.engine.(consensus.Bft); ok {
-		consensusCache = cbft.NewCache(eth.blockchain)
-		cbft.SetConsensusCache(consensusCache)
-		cbft.SetBlockChain(eth.blockchain)
-	}
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -220,8 +213,15 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	// modify by platon
 	// 方法增加blockSignatureCh、cbftResultCh入参
+	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
+
+	// modify by platon
+	if _, ok := eth.engine.(consensus.Bft); ok {
+		cbft.SetConsensusCache(consensusCache)
+		cbft.SetBlockChain(eth.blockchain)
+	}
 
 	eth.APIBackend = &EthAPIBackend{eth, nil}
 	gpoParams := config.GPO
