@@ -46,14 +46,14 @@ var (
 )
 
 type Cbft struct {
-	config          *params.CbftConfig
-	dpos            *dpos
-	rotating        *rotating
-	blockSignOutCh  chan *cbfttypes.BlockSignature //a channel to send block signature
-	cbftResultOutCh chan *cbfttypes.CbftResult     //a channel to send consensus result
+	config                *params.CbftConfig
+	dpos                  *dpos
+	rotating              *rotating
+	blockSignOutCh        chan *cbfttypes.BlockSignature //a channel to send block signature
+	cbftResultOutCh       chan *cbfttypes.CbftResult     //a channel to send consensus result
 	highestLogicalBlockCh chan *types.Block
-	closeOnce       sync.Once
-	exitCh          chan chan error
+	closeOnce             sync.Once
+	exitCh                chan chan error
 
 	//todo:（先log,再处理）
 	blockExtMap map[common.Hash]*BlockExt //store all received blocks and signs
@@ -78,11 +78,11 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 	_dpos := newDpos(config.InitialNodes)
 
 	cbft = &Cbft{
-		config:          config,
-		dpos:            _dpos,
-		rotating:        newRotating(_dpos, config.Duration),
-		blockSignOutCh:  blockSignatureCh,
-		cbftResultOutCh: cbftResultCh,
+		config:                config,
+		dpos:                  _dpos,
+		rotating:              newRotating(_dpos, config.Duration),
+		blockSignOutCh:        blockSignatureCh,
+		cbftResultOutCh:       cbftResultCh,
 		highestLogicalBlockCh: highestLogicalBlockCh,
 
 		blockExtMap:   make(map[common.Hash]*BlockExt),
@@ -481,6 +481,11 @@ func SetConsensusCache(cache *Cache) {
 	cbft.consensusCache = cache
 }
 
+func setHighestLogical(highestLogical *BlockExt) {
+	cbft.highestLogical = highestLogical
+	cbft.highestLogicalBlockCh <- highestLogical.block
+}
+
 func SetBlockChain(blockChain *core.BlockChain) {
 	log.Info("init cbft.blockChain")
 
@@ -507,7 +512,8 @@ func SetBlockChain(blockChain *core.BlockChain) {
 	cbft.saveBlock(currentBlock.Hash(), irrBlock)
 
 	cbft.irreversible = irrBlock
-	cbft.highestLogical = irrBlock
+	//cbft.highestLogical = irrBlock
+	setHighestLogical(irrBlock)
 
 }
 
@@ -533,10 +539,11 @@ func BlockSynchronisation() {
 
 		cbft.irreversible = irrBlock
 
-		cbft.highestLogical = cbft.findHighestSigned(irrBlock)
+		highestLogical := cbft.findHighestSigned(irrBlock)
 		if cbft.highestLogical == nil {
-			cbft.highestLogical = cbft.findHighest(irrBlock)
+			highestLogical = cbft.findHighest(irrBlock)
 		}
+		setHighestLogical(highestLogical)
 
 		children := irrBlock.findChildren()
 		for _, child := range children {
@@ -634,14 +641,15 @@ func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) error {
 	cbft.storeIrreversibles(irrs)
 
 	cbft.irreversible = newIrr
-	cbft.highestLogical = cbft.findHighestSigned(newIrr)
-	if cbft.highestLogical == nil {
-		cbft.highestLogical = cbft.findHighest(newIrr)
+	highestLogical := cbft.findHighestSigned(newIrr)
+	if highestLogical == nil {
+		highestLogical = cbft.findHighest(newIrr)
 	}
-
-	if cbft.highestLogical == nil {
+	if highestLogical == nil {
 		return errForNextBlock
 	}
+
+	setHighestLogical(highestLogical)
 
 	if needSlideWindow {
 		cbft.slideWindow(newIrr)
@@ -915,26 +923,26 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	sealedBlock := block.WithSeal(header)
 
-	ext := NewBlockExt(sealedBlock, sealedBlock.NumberU64())
+	curExt := NewBlockExt(sealedBlock, sealedBlock.NumberU64())
 
 	//this block is produced by local node, so need not execute in cbft.
-	ext.isLinked = true
+	curExt.isLinked = true
 
 	//collect the sign
-	ext.collectSign(common.NewBlockConfirmSign(sign))
+	curExt.collectSign(common.NewBlockConfirmSign(sign))
 
 	//save the block to cbft.blockExtMap
-	cbft.saveBlock(sealedBlock.Hash(), ext)
+	cbft.saveBlock(sealedBlock.Hash(), curExt)
 
 	log.Info("seal complete", "Hash", sealedBlock.Hash(), "number", block.NumberU64())
 
 	if len(cbft.dpos.primaryNodeList) == 1 {
 		//only one consensus node, so, each block is irreversible. (lock is needless)
-		return cbft.handleNewIrreversible(ext)
+		return cbft.handleNewIrreversible(curExt)
 	}
 
 	//reset cbft.highestLogicalBlockExt cause this block is produced by myself
-	cbft.highestLogical = ext
+	setHighestLogical(curExt)
 
 	go func() {
 		select {
