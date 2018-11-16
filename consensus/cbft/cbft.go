@@ -583,13 +583,14 @@ func (cbft *Cbft) dataReceiverGoroutine() {
 	}
 }
 
+//newIrr不能从blockExtMap中删除，但是可以从signedSet删除
 func (cbft *Cbft) slideWindow(newIrr *BlockExt) {
 	for hash, ext := range cbft.blockExtMap {
-		if ext.number <= cbft.irreversible.block.NumberU64()-windowSize {
+		if ext.number <= newIrr.block.NumberU64()-windowSize {
 			if ext.block == nil {
 				log.Info("delete blockExt(only signs) from blockExtMap", "Hash", hash)
 				delete(cbft.blockExtMap, hash)
-			} else {
+			} else if ext.block.Hash() != newIrr.block.Hash() {
 				log.Info("delete blockExt from blockExtMap", "Hash", hash, "number", ext.block.NumberU64())
 				delete(cbft.blockExtMap, hash)
 			}
