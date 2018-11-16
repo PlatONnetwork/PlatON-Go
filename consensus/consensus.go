@@ -138,7 +138,7 @@ type Bft interface {
 
 	// modify by platon
 	// Process the BFT signatures
-	OnPong(nodeID discover.NodeID, netLatency int64) error
+	OnPong(nodeID discover.NodeID, netLatency int64)
 
 	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
 

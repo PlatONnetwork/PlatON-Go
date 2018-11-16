@@ -1031,12 +1031,11 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 
 //receive the new block
 //netLatency：当前节点和nodeID直接的网络延迟
-//pongTime：nodeID发送pong时的时间（nodeID的当地时间）
-func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64, pongTime int64) {
+func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Info("Received a report for net latency", "Hash", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency, "pongTime", pongTime)
+	log.Info("Received a report for net latency", "Hash", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency)
 
 	latencyList, exist := cbft.netLatencyMap[nodeID]
 	if !exist {
