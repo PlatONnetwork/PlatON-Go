@@ -101,7 +101,7 @@ type cachingDB struct {
 	codeSizeCache *lru.Cache
 }
 
-// OpenTrie opens the main account trie.
+//OpenTrie opens the main account trie.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()

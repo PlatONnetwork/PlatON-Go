@@ -296,7 +296,7 @@ func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.H
 	self.db.journal.append(storageChange{
 		account:  &self.address,
 		key:      keyTrie,
-		valueKey: valueKey,
+		valueKey: self.originStorage[keyTrie],
 		preValue: preValue,
 	})
 
@@ -316,8 +316,11 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		value, dirty := self.dirtyValueStorage[valueKey]
 		if dirty {
 			// Skip noop changes, persist actual changes
-			if bytes.Equal(value, self.originValueStorage[valueKey]) {
-				continue
+			originValue, dirty2 := self.originValueStorage[valueKey]
+			if dirty2 {
+				if bytes.Equal(value, originValue) {
+					continue
+				}
 			}
 		}
 
@@ -327,13 +330,13 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		//删除原来valueKey 对应的value
 		delete(self.originValueStorage, self.originStorage[key])
 
-		if (valueKey == common.Hash{} || value == nil) {
+		self.originStorage[key] = valueKey
+		self.originValueStorage[valueKey] = value
+
+		if (valueKey == common.Hash{} || bytes.Equal(value, []byte{})) {
 			self.setError(tr.TryDelete([]byte(key)))
 			continue
 		}
-
-		self.originStorage[key] = valueKey
-		self.originValueStorage[valueKey] = value
 
 		// Encoding []byte cannot fail, ok to ignore the error.
 		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
@@ -358,7 +361,7 @@ func (self *stateObject) CommitTrie(db Database) error {
 	}
 
 	for h, v := range self.originValueStorage {
-		if (h != common.Hash{} && v != nil) {
+		if (h != common.Hash{} && !bytes.Equal(v, []byte{})) {
 			self.trie.TryUpdateValue(h.Bytes(), v)
 		}
 	}
@@ -506,9 +509,9 @@ func (self *stateObject) AbiHash() []byte {
 
 // ABI returns the contract abi associated with this object, if any.
 func (self *stateObject) Abi(db Database) []byte {
-	if self.Abi != nil {
-		return self.abi
-	}
+	//if self.Abi != nil {
+	//	return self.abi
+	//}
 	if bytes.Equal(self.AbiHash(), emptyCodeHash) {
 		return nil
 	}
