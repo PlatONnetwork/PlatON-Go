@@ -257,6 +257,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 
 	worker.recommit = recommit
 	worker.commitDuration = float64(recommit.Nanoseconds() / 1e6) * defaultCommitRatio		// 毫秒
+	log.Info("commitDuration", "commitDuration", worker.commitDuration)
 
 	go worker.mainLoop()
 	go worker.newWorkLoop(recommit)
@@ -411,6 +412,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			w.consensusCache.ClearCache(head.Block)
 
 		case highestLogicalBlock := <-w.highestLogicalBlockCh:
+			log.Info("highestLogicalBlockCh通道接收数据", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash())
 			w.commitWorkEnv.highestLock.Lock()
 			w.commitWorkEnv.highestLogicalBlock = highestLogicalBlock
 			w.commitWorkEnv.highestLock.Unlock()
@@ -1262,6 +1264,11 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 
 	baseBlock, commitTime := w.commitWorkEnv.commitBaseBlock, w.commitWorkEnv.commitTime
 	highestLogicalBlock := w.commitWorkEnv.getHighestLogicalBlock()
+	if baseBlock != nil {
+		log.Info("baseBlock", "number", baseBlock.NumberU64(), "hash", baseBlock.Hash(), "hashhex", baseBlock.Hash().Hex())
+		log.Info("commitTime", "commitTime", commitTime, "timestamp", timestamp)
+		log.Info("highestLogicalBlock", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash(), "hashhex", highestLogicalBlock.Hash().Hex())
+	}
 
 	shouldCommit := baseBlock == nil || baseBlock.Hash().Hex() != highestLogicalBlock.Hash().Hex()
 	if shouldCommit && timestamp != 0 {
