@@ -843,7 +843,7 @@ func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 	if block, ok := a.(*types.Block); ok {
 		for _, peer := range peers {
 			log.Warn("------------发送广播消息[PrepareBlockMsg]------------",
-				"peerId", peer.id, "Hash", block.Hash, "Number", block.Number)
+				"peerId", peer.id, "Hash", block.Hash(), "Number", block.Number())
 			peer.AsyncSendPrepareBlock(block)
 		}
 	} else if signature, ok := a.(*cbfttypes.BlockSignature); ok {
