@@ -1038,8 +1038,6 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 //receive the new block
 //netLatency：当前节点和nodeID直接的网络延迟
 func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) {
-	cbft.lock.Lock()
-	defer cbft.lock.Unlock()
 
 	log.Info("Received a report for net latency", "Hash", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency)
 
@@ -1057,9 +1055,6 @@ func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) {
 }
 
 func (cbft *Cbft) avgLatency(nodeID discover.NodeID) int64 {
-	cbft.lock.RLock()
-	defer cbft.lock.RUnlock()
-
 	if latencyList, exist := cbft.netLatencyMap[nodeID]; exist {
 		sum := int64(0)
 		counts := int64(0)
