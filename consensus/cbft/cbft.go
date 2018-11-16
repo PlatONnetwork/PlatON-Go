@@ -586,8 +586,11 @@ func (cbft *Cbft) dataReceiverGoroutine() {
 func (cbft *Cbft) slideWindow(newIrr *BlockExt) {
 	for hash, ext := range cbft.blockExtMap {
 		if ext.number <= cbft.irreversible.block.NumberU64()-windowSize {
-			if ext.block == nil || ext.block.Hash() != cbft.irreversible.block.Hash() {
-				log.Info("to delete hash from blockExtMap", "Hash", ext.block.Hash(), "number", ext.block.NumberU64())
+			if ext.block == nil {
+				log.Info("delete blockExt(only signs) from blockExtMap", "Hash", hash)
+				delete(cbft.blockExtMap, hash)
+			} else {
+				log.Info("delete blockExt from blockExtMap", "Hash", hash, "number", ext.block.NumberU64())
 				delete(cbft.blockExtMap, hash)
 			}
 		}
@@ -595,7 +598,7 @@ func (cbft *Cbft) slideWindow(newIrr *BlockExt) {
 
 	for number, _ := range cbft.signedSet {
 		if number <= cbft.irreversible.block.NumberU64()-windowSize {
-			log.Info("to delete number from signedSet", "number", number)
+			log.Info("delete number from signedSet", "number", number)
 			delete(cbft.signedSet, number)
 		}
 	}
@@ -623,7 +626,7 @@ func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) error {
 			//cbft.handleNewIrreversible(newIrr)
 		} else {
 			//当前不可逆块不是新确认块的祖先
-			log.Warn("consensus useless, the block is higher and in b branch")
+			log.Warn("consensus useless, the block is higher and in another branch")
 			return nil
 		}
 	} else if newIrr.block.NumberU64() == cbft.irreversible.block.NumberU64() {
@@ -1120,7 +1123,7 @@ func (cbft *Cbft) inTurn() bool {
 
 		log.Info("calTurn", "nodeIdx", nodeIdx, "startTime", startTime, "endTime", endTime, "curTime", curTime, "curTime", curTime, "startTimeOfEpoch", start)
 
-		if curTime > startTime && curTime < endTime {
+		if curTime >= startTime && curTime < endTime {
 			return true
 		}
 	}
