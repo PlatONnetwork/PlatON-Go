@@ -250,7 +250,7 @@ func (p *Peer) pingLoop() {
 		case <-ping.C:
 			//modified by Joey
 			pingTime := time.Now().UnixNano()
-			p.lock.RLock()
+			p.lock.Lock()
 			if p.PingList.Len() > 5 {
 				front := p.PingList.Front()
 				p.PingList.Remove(front)
