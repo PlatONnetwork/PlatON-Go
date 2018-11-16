@@ -133,6 +133,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	// modify by platon
 	blockSignatureCh := make(chan *cbfttypes.BlockSignature)
 	cbftResultCh := make(chan *cbfttypes.CbftResult)
+	highestLogicalBlockCh := make(chan *types.Block)
 
 	eth := &Ethereum{
 		config:         config,
@@ -140,7 +141,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
 		accountManager: ctx.AccountManager,
-		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb, blockSignatureCh, cbftResultCh, &config.CbftConfig),
+		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, &config.CbftConfig),
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
 		gasPrice:       config.MinerGasPrice,
@@ -219,7 +220,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	// modify by platon
 	// 方法增加blockSignatureCh、cbftResultCh入参
-	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, consensusCache)
+	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	eth.APIBackend = &EthAPIBackend{eth, nil}
@@ -264,8 +265,8 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
 // modify by platon
 // 默认创建Cbft engine，同时CreateConsensusEngine方法增加blockSignatureCh、cbftResultCh入参
-func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool,
-	db ethdb.Database, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, cbftConfig *CbftConfig) consensus.Engine {
+func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database,
+	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, cbftConfig *CbftConfig) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	// modify by platon
 	if chainConfig.Cbft != nil {
@@ -274,7 +275,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		chainConfig.Cbft.MaxLatency = cbftConfig.MaxLatency
 		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
 		chainConfig.Cbft.Duration = cbftConfig.Duration
-		return cbft.New(chainConfig.Cbft, blockSignatureCh, cbftResultCh)
+		return cbft.New(chainConfig.Cbft, blockSignatureCh, cbftResultCh, highestLogicalBlockCh)
 	}
 
 	if chainConfig.Clique != nil {
@@ -479,6 +480,9 @@ func (s *Ethereum) StartMining(threads int) error {
 		eb, err := s.Etherbase()
 		if err != nil {
 			log.Error("Cannot start mining without etherbase", "err", err)
+			if _, ok := s.engine.(consensus.Bft); ok {
+				panic("Cannot start mining without etherbase")
+			}
 			return fmt.Errorf("etherbase missing: %v", err)
 		}
 		if clique, ok := s.engine.(*clique.Clique); ok {
@@ -559,6 +563,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	// modify by platon
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
+		s.StartMining(1)
 	}
 
 	if s.lesServer != nil {

@@ -17,7 +17,9 @@
 package state
 
 import (
+	"Platon-go/trie"
 	"bytes"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -95,11 +97,11 @@ func (s *StateSuite) TestNull(c *checker.C) {
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
 	s.state.CreateAccount(address)
 	//value := common.FromHex("0x823140710bf13990e4500136726d8b55")
-	value := []byte{}
+	//value := nil
 	key := []byte{}
 
 	//s.state.SetState(address, common.Hash{}, value)
-	s.state.SetState(address, key, value)
+	s.state.SetState(address, key, nil)
 	s.state.Commit(false)
 
 	if value := s.state.GetState(address, common.Hash{}.Bytes()); bytes.Compare(value, common.Hash{}.Bytes()) != 0 {
@@ -245,4 +247,62 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 			t.Errorf("Origin storage key %x mismatch: have %v, want none.", k, v)
 		}
 	}
+}
+
+func TestEmptyByte(t *testing.T) {
+	db, _ := ethdb.NewLDBDatabase("D:\\resource\\platon\\platon-go\\data1", 0, 0)
+	state, _ := New(common.Hash{}, NewDatabase(db))
+
+	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
+	state.CreateAccount(address)
+	so := state.getStateObject(address)
+
+	//value := common.FromHex("0x823140710bf13990e4500136726d8b55")
+	pvalue := []byte{'a'}
+	key := []byte{'a'}
+
+	//s.state.SetState(address, common.Hash{}, value)
+	state.SetState(address, key, pvalue)
+	state.Commit(false)
+
+	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty current value, got %x", value)
+	}
+	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty committed value, got %x", value)
+	}
+
+	state.trie.NodeIterator(nil)
+	it := trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		fmt.Println(it.Key, it.Value)
+	}
+
+	pvalue = []byte{}
+	state.SetState(address, key, pvalue)
+	state.Commit(false)
+
+	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty current value, got %x", value)
+	}
+	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty committed value, got %x", value)
+	}
+
+	state.trie.NodeIterator(nil)
+	it = trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		fmt.Println(it.Key, it.Value)
+	}
+
+	pvalue = []byte("bbb")
+	state.SetState(address, key, pvalue)
+	state.Commit(false)
+	state.trie.NodeIterator(nil)
+	it = trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		fmt.Println(it.Key, it.Value)
+		fmt.Println(so.db.trie.GetKey(it.Value))
+	}
+
 }

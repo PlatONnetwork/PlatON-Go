@@ -1,5 +1,6 @@
 // Copyright 2014 The go-ethereum Authors
 // This file is part of the go-ethereum library.
+
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -95,7 +96,8 @@ type stateObject struct {
 	dbErr error
 
 	// Write caches.
-	trie Trie // storage trie, which becomes non-nil on first access
+	trie Trie
+	// storage trie, which becomes non-nil on first access
 	code Code // contract bytecode, which gets set when code is loaded
 
 	// todo: 新增，此字段尚不明确是否需要进行使用
@@ -294,7 +296,7 @@ func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.H
 	self.db.journal.append(storageChange{
 		account:  &self.address,
 		key:      keyTrie,
-		valueKey: valueKey,
+		valueKey: self.originStorage[keyTrie],
 		preValue: preValue,
 	})
 
@@ -314,8 +316,11 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		value, dirty := self.dirtyValueStorage[valueKey]
 		if dirty {
 			// Skip noop changes, persist actual changes
-			if bytes.Equal(value, self.originValueStorage[valueKey]) {
-				continue
+			originValue, dirty2 := self.originValueStorage[valueKey]
+			if dirty2 {
+				if bytes.Equal(value, originValue) {
+					continue
+				}
 			}
 		}
 
@@ -328,7 +333,7 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		self.originStorage[key] = valueKey
 		self.originValueStorage[valueKey] = value
 
-		if (valueKey == common.Hash{}) {
+		if (valueKey == common.Hash{} || bytes.Equal(value, []byte{})) {
 			self.setError(tr.TryDelete([]byte(key)))
 			continue
 		}
@@ -336,7 +341,7 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		// Encoding []byte cannot fail, ok to ignore the error.
 		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
 		self.setError(tr.TryUpdate([]byte(key), v))
-		self.setError(tr.TryUpdateValue(valueKey[:], value))
+		//self.setError(tr.TryUpdateValue(valueKey[:], value))
 	}
 	return tr
 }
@@ -354,8 +359,11 @@ func (self *stateObject) CommitTrie(db Database) error {
 	if self.dbErr != nil {
 		return self.dbErr
 	}
+
 	for h, v := range self.originValueStorage {
-		self.trie.TryUpdateValue(h.Bytes(), v)
+		if (h != common.Hash{} && !bytes.Equal(v, []byte{})) {
+			self.trie.TryUpdateValue(h.Bytes(), v)
+		}
 	}
 	root, err := self.trie.Commit(nil)
 	if err == nil {
@@ -501,9 +509,9 @@ func (self *stateObject) AbiHash() []byte {
 
 // ABI returns the contract abi associated with this object, if any.
 func (self *stateObject) Abi(db Database) []byte {
-	if self.Abi != nil {
-		return self.abi
-	}
+	//if self.Abi != nil {
+	//	return self.abi
+	//}
 	if bytes.Equal(self.AbiHash(), emptyCodeHash) {
 		return nil
 	}
