@@ -289,25 +289,25 @@ func (p *Peer) readLoop(errc chan<- error) {
 func (p *Peer) handle(msg Msg) error {
 	switch {
 	case msg.Code == pingMsg:
-		//msg.Discard()
-		//go SendItems(p.rw, pongMsg)
+		msg.Discard()
+		go SendItems(p.rw, pongMsg)
 
 		// modify by Joey
-		var pingTime int64
+		/*var pingTime int64
 		msg.Decode(&pingTime)
 		msg.Discard()
-		go SendItems(p.rw, pongMsg, pingTime)
-	case msg.Code == pongMsg:
-		//added by Joey
-		proto := p.running["eth"]
-		msg.Code = msg.Code + proto.offset
+		go SendItems(p.rw, pongMsg, pingTime)*/
+	/*case msg.Code == pongMsg:
+	//added by Joey
+	proto := p.running["eth"]
+	msg.Code = msg.Code + proto.offset
 
-		select {
-		case proto.in <- msg:
-			return nil
-		case <-p.closed:
-			return io.EOF
-		}
+	select {
+	case proto.in <- msg:
+		return nil
+	case <-p.closed:
+		return io.EOF
+	}*/
 	case msg.Code == discMsg:
 		var reason [1]DiscReason
 		// This is the last message. We don't need to discard or
