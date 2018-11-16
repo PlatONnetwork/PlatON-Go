@@ -27,18 +27,18 @@ import (
 )
 
 var (
-	errSign               = errors.New("sign error")
-	errUnauthorizedSigner = errors.New("unauthorized signer")
-	errIllegalBlock       = errors.New("illegal block")
-	errDuplicatedBlock    = errors.New("duplicated block")
-	errBlockNumber        = errors.New("error block number")
-	errUnknownBlock       = errors.New("unknown block")
-	errFutileBlock        = errors.New("futile block")
-	errGenesisBlock       = errors.New("cannot handle genesis block")
-	errForNextBlock       = errors.New("cannot find a block for next")
-	errListIrrBlocks      = errors.New("list irreversible blocks error")
-	errMissingSignature   = errors.New("extra-data 65 byte signature suffix missing")
-	extraSeal             = 65
+	errSign                = errors.New("sign error")
+	errUnauthorizedSigner  = errors.New("unauthorized signer")
+	errIllegalBlock        = errors.New("illegal block")
+	errDuplicatedBlock     = errors.New("duplicated block")
+	errBlockNumber         = errors.New("error block number")
+	errUnknownBlock        = errors.New("unknown block")
+	errFutileBlock         = errors.New("futile block")
+	errGenesisBlock        = errors.New("cannot handle genesis block")
+	errHighestLogicalBlock = errors.New("cannot find a logical block")
+	errListIrrBlocks       = errors.New("list irreversible blocks error")
+	errMissingSignature    = errors.New("extra-data 65 byte signature suffix missing")
+	extraSeal              = 65
 
 	windowSize = uint64(20)
 
@@ -543,6 +543,12 @@ func BlockSynchronisation() {
 		if cbft.highestLogical == nil {
 			highestLogical = cbft.findHighest(irrBlock)
 		}
+
+		if highestLogical == nil {
+			log.Warn("cannot find a logical block")
+			return
+		}
+
 		setHighestLogical(highestLogical)
 
 		children := irrBlock.findChildren()
@@ -646,7 +652,7 @@ func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) error {
 		highestLogical = cbft.findHighest(newIrr)
 	}
 	if highestLogical == nil {
-		return errForNextBlock
+		return errHighestLogicalBlock
 	}
 
 	setHighestLogical(highestLogical)
