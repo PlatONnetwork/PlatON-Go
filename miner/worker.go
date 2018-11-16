@@ -739,6 +739,7 @@ func (w *worker) resultLoop() {
 			blockConfirmSigns := cbftResult.BlockConfirmSigns
 			// Short circuit when receiving empty result.
 			if block == nil || blockConfirmSigns == nil || len(blockConfirmSigns) <= 0 {
+				log.Info("block.Number()",block.Number(),"block.Hash()",block.Hash(),"len(blockConfirmSigns)",len(blockConfirmSigns))
 				continue
 			}
 			var (
@@ -747,6 +748,7 @@ func (w *worker) resultLoop() {
 			)
 			// Short circuit when receiving duplicate result caused by resubmitting.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
+				log.Info("block.Number()",block.Number(),"block.Hash()",block.Hash())
 				continue
 			}
 
@@ -765,6 +767,7 @@ func (w *worker) resultLoop() {
 				_state = w.consensusCache.ReadStateDB(block.Root())
 			}
 			if _receipts == nil && len(block.Transactions()) >0 || _state == nil {
+				log.Info("_receipts",_receipts,"_state",_state)
 				continue
 			}
 
