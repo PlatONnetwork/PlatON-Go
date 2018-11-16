@@ -49,6 +49,7 @@ type Cbft struct {
 	rotating        *rotating
 	blockSignOutCh  chan *cbfttypes.BlockSignature //a channel to send block signature
 	cbftResultOutCh chan *cbfttypes.CbftResult     //a channel to send consensus result
+	highestLogicalBlockCh chan *types.Block
 	closeOnce       sync.Once
 	exitCh          chan chan error
 
@@ -66,7 +67,7 @@ type Cbft struct {
 var cbft *Cbft
 
 // New creates a concurrent BFT consensus engine
-func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *Cbft {
+func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
 	_dpos := newDpos(config.InitialNodes)
 
 	cbft = &Cbft{
@@ -75,6 +76,7 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		rotating:        newRotating(_dpos, config.Duration),
 		blockSignOutCh:  blockSignatureCh,
 		cbftResultOutCh: cbftResultCh,
+		highestLogicalBlockCh: highestLogicalBlockCh,
 
 		blockExtMap:   make(map[common.Hash]*BlockExt),
 		signedSet:     make(map[uint64]struct{}),

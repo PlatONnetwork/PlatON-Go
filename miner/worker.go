@@ -36,7 +36,7 @@ import (
 	"Platon-go/event"
 	"Platon-go/log"
 	"Platon-go/params"
-	mapset "github.com/deckarep/golang-set"
+	"github.com/deckarep/golang-set"
 )
 
 const (
@@ -77,6 +77,8 @@ const (
 
 	// staleThreshold is the maximum depth of the acceptable stale block.
 	staleThreshold = 7
+
+	defaultCommitRatio = 0.9
 )
 
 // environment is the worker's current environment and holds all of the current state information.
@@ -114,12 +116,27 @@ type newWorkReq struct {
 	interrupt *int32
 	noempty   bool
 	timestamp int64
+	commitBlock *types.Block
 }
 
 // intervalAdjust represents a resubmitting interval adjustment.
 type intervalAdjust struct {
 	ratio float64
 	inc   bool
+}
+
+type commitWorkEnv struct {
+	baseLock            sync.RWMutex
+	commitBaseBlock     *types.Block
+	commitTime          int64
+	highestLock         sync.RWMutex
+	highestLogicalBlock *types.Block
+}
+
+func (e *commitWorkEnv) getHighestLogicalBlock() *types.Block {
+	e.highestLock.RLock()
+	defer e.highestLock.RUnlock()
+	return e.highestLogicalBlock
 }
 
 // worker is the main object which takes care of submitting new work to consensus engine
@@ -149,6 +166,7 @@ type worker struct {
 	prepareResultCh    chan *types.Block
 	blockSignatureCh   chan *cbfttypes.BlockSignature // 签名
 	cbftResultCh       chan *cbfttypes.CbftResult     // Seal出块后输出的channel
+	highestLogicalBlockCh chan *types.Block
 	startCh            chan struct{}
 	exitCh             chan struct{}
 	resubmitIntervalCh chan time.Duration
@@ -178,6 +196,9 @@ type worker struct {
 	isLocalBlock func(block *types.Block) bool // Function used to determine whether the specified block is mined by local miner.
 
 	consensusCache *cbft.Cache
+	commitWorkEnv *commitWorkEnv
+	recommit time.Duration
+	commitDuration	float64
 
 	// Test hooks
 	newTaskHook  func(*task)                        // Method to call upon receiving a new sealing task.
@@ -186,8 +207,8 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64,
-	isLocalBlock func(*types.Block) bool, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, consensusCache *cbft.Cache) *worker {
+func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool,
+	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, consensusCache *cbft.Cache) *worker {
 	worker := &worker{
 		config:             config,
 		engine:             engine,
@@ -214,7 +235,9 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		resubmitAdjustCh:   make(chan *intervalAdjust, resubmitAdjustChanSize),
 		blockSignatureCh:   blockSignatureCh,
 		cbftResultCh:       cbftResultCh,
+		highestLogicalBlockCh: highestLogicalBlockCh,
 		consensusCache:     consensusCache,
+		commitWorkEnv:		&commitWorkEnv{},
 	}
 	// Subscribe NewTxsEvent for tx pool
 	worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
@@ -224,11 +247,16 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 
 	// modify by platon
 	// Sanitize recommit interval if the user-specified one is too short.
-	recommit = time.Duration(config.Cbft.Period) * time.Second
+	if config.Cbft != nil {
+		recommit = time.Duration(config.Cbft.Period) * time.Second
+	}
 	if recommit < minRecommitInterval {
 		log.Warn("Sanitizing miner recommit interval", "provided", recommit, "updated", minRecommitInterval)
 		recommit = minRecommitInterval
 	}
+
+	worker.recommit = recommit
+	worker.commitDuration = float64(recommit.Nanoseconds() / 1e6) * defaultCommitRatio		// 毫秒
 
 	go worker.mainLoop()
 	go worker.newWorkLoop(recommit)
@@ -263,9 +291,9 @@ func (w *worker) setRecommitInterval(interval time.Duration) {
 // pending returns the pending state and corresponding block.
 func (w *worker) pending() (*types.Block, *state.StateDB) {
 	// return a snapshot to avoid contention on currentMu mutex
-	if _, ok := w.engine.(consensus.Bft); ok {
-		return w.makePending()
-	}
+	//if _, ok := w.engine.(consensus.Bft); ok {
+	//	return w.makePending()
+	//}
 	w.snapshotMu.RLock()
 	defer w.snapshotMu.RUnlock()
 	if w.snapshotState == nil {
@@ -277,10 +305,10 @@ func (w *worker) pending() (*types.Block, *state.StateDB) {
 // pendingBlock returns pending block.
 func (w *worker) pendingBlock() *types.Block {
 	// return a snapshot to avoid contention on currentMu mutex
-	if _, ok := w.engine.(consensus.Bft); ok {
-		snapshotBlock, _ := w.makePending()
-		return snapshotBlock
-	}
+	//if _, ok := w.engine.(consensus.Bft); ok {
+	//	snapshotBlock, _ := w.makePending()
+	//	return snapshotBlock
+	//}
 	w.snapshotMu.RLock()
 	defer w.snapshotMu.RUnlock()
 	return w.snapshotBlock
@@ -320,12 +348,12 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 	<-timer.C // discard the initial tick
 
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.
-	commit := func(noempty bool, s int32) {
+	commit := func(noempty bool, s int32, baseBlock *types.Block) {
 		if interrupt != nil {
 			atomic.StoreInt32(interrupt, s)
 		}
 		interrupt = new(int32)
-		w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp}
+		w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp, commitBlock: baseBlock}
 		timer.Reset(recommit)
 		atomic.StoreInt32(&w.newTxs, 0)
 	}
@@ -366,10 +394,12 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-w.startCh:
 			clearPending(w.chain.CurrentBlock().NumberU64())
 			timestamp = time.Now().Unix()
-			// modify by platon
-			//commit(false, commitInterruptNewHead)
-			w.makePending()
-			timer.Reset(0)
+			if _, ok := w.engine.(consensus.Bft); !ok {
+				commit(false, commitInterruptNewHead, nil)
+			} else {
+				w.makePending()
+				timer.Reset(0)
+			}
 
 		case head := <-w.chainHeadCh:
 			clearPending(head.Block.NumberU64())
@@ -380,6 +410,16 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			log.Info("【chainHeadCh】", "block number", head.Block.NumberU64())
 			w.consensusCache.ClearCache(head.Block)
 
+		case highestLogicalBlock := <-w.highestLogicalBlockCh:
+			w.commitWorkEnv.highestLock.Lock()
+			w.commitWorkEnv.highestLogicalBlock = highestLogicalBlock
+			w.commitWorkEnv.highestLock.Unlock()
+
+			if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
+				log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
+				commit(false, commitInterruptResubmit, commitBlock)
+			}
+
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
@@ -389,9 +429,11 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 				log.Warn("----------间隔" + recommit.String() + "开始打包任务----------")
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
-						log.Warn("--------------节点当前时间窗口出块，执行打包出块逻辑--------------")
-						commit(false, commitInterruptResubmit)
-						continue
+						if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
+							log.Warn("--------------节点当前时间窗口出块，执行打包出块逻辑--------------")
+							commit(false, commitInterruptResubmit, commitBlock)
+							continue
+						}
 					}
 					timer.Reset(recommit)
 				} else if w.config.Clique == nil || w.config.Clique.Period > 0 {
@@ -400,17 +442,9 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						timer.Reset(recommit)
 						continue
 					}
-					commit(true, commitInterruptResubmit)
+					commit(true, commitInterruptResubmit, nil)
 				}
 			}
-			/*if w.isRunning() && (w.config.Clique == nil || w.config.Clique.Period > 0) {
-				// Short circuit if no new transaction arrives.
-				if atomic.LoadInt32(&w.newTxs) == 0 {
-					timer.Reset(recommit)
-					continue
-				}
-				commit(true, commitInterruptResubmit)
-			}*/
 
 		case interval := <-w.resubmitIntervalCh:
 			// modify by platon
@@ -464,7 +498,7 @@ func (w *worker) mainLoop() {
 	for {
 		select {
 		case req := <-w.newWorkCh:
-			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
+			w.commitNewWork(req.interrupt, req.noempty, req.timestamp, req.commitBlock)
 
 		case ev := <-w.chainSideCh:
 			// Short circuit for duplicate side blocks
@@ -521,12 +555,12 @@ func (w *worker) mainLoop() {
 					txs[acc] = append(txs[acc], tx)
 				}
 				txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
-				w.commitTransactions(txset, coinbase, nil)
+				w.commitTransactions(txset, coinbase, nil, 0)
 				w.updateSnapshot()
 			} else {
 				// If we're mining, but nothing is being processed, wake on new transactions
 				if w.config.Clique != nil && w.config.Clique.Period == 0 {
-					w.commitNewWork(nil, false, time.Now().Unix())
+					w.commitNewWork(nil, false, time.Now().Unix(), nil)
 				}
 			}
 			atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
@@ -783,8 +817,16 @@ func (w *worker) resultLoop() {
 // makeCurrent creates a new environment for the current cycle.
 func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 	// modify by platon
-	//state, err := w.chain.StateAt(parent.Root())
-	state, err := w.consensusCache.MakeStateDB(parent)
+	var (
+		state *state.StateDB
+		err error
+	)
+	if _, ok := w.engine.(consensus.Bft); ok {
+		state, err = w.consensusCache.MakeStateDB(parent)
+	} else {
+		state, err = w.chain.StateAt(parent.Root())
+	}
+
 	if err != nil {
 		return err
 	}
@@ -878,7 +920,7 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 	return receipt.Logs, nil
 }
 
-func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32) bool {
+func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64) bool {
 	// Short circuit if current is nil
 	if w.current == nil {
 		return true
@@ -891,6 +933,9 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	var coalescedLogs []*types.Log
 
 	for {
+		if _, ok := w.engine.(consensus.Bft); ok && (float64(time.Now().UnixNano() / 1e6 - timestamp) >= w.commitDuration) {
+			break
+		}
 		// In the following three cases, we will interrupt the execution of the transaction.
 		// (1) new head block event arrival, the interrupt signal is 1
 		// (2) worker start or restart, the interrupt signal is 1
@@ -992,16 +1037,16 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 }
 
 // commitNewWork generates several new sealing tasks based on the parent block.
-func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) {
+func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, commitBlock *types.Block) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
 
 	tstart := time.Now()
 	// modify by platon
 	var parent *types.Block
-	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-		parent = cbftEngine.HighestLogicalBlock()
-		timestamp = time.Now().Unix()
+	if _, ok := w.engine.(consensus.Bft); ok {
+		parent = commitBlock
+		timestamp = time.Now().UnixNano() / 1e6
 		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "hash", parent.Hash(), "number", parent.NumberU64(), "stateRoot", parent.Root())
 	} else {
 		parent = w.chain.CurrentBlock()
@@ -1121,13 +1166,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if w.commitTransactions(txs, w.coinbase, interrupt) {
+		if w.commitTransactions(txs, w.coinbase, interrupt, timestamp) {
 			return
 		}
 	}
 	if len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
-		if w.commitTransactions(txs, w.coinbase, interrupt) {
+		if w.commitTransactions(txs, w.coinbase, interrupt, timestamp) {
 			return
 		}
 	}
@@ -1181,29 +1226,45 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 }
 
 func (w *worker) makePending() (*types.Block, *state.StateDB) {
-	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-		var parent = cbftEngine.HighestLogicalBlock()
+	var parent = w.commitWorkEnv.getHighestLogicalBlock()
+	if parent != nil && (w.snapshotBlock == nil || w.snapshotBlock.Hash().Hex() != parent.Hash().Hex()) {
 		parentNum := parent.Number()
-
-		if w.snapshotBlock == nil || w.snapshotBlock.Number().Cmp(parentNum.Add(parentNum, common.Big1)) == -1 {
-			header := &types.Header{
-				ParentHash: parent.Hash(),
-				Number:     parentNum.Add(parentNum, common.Big1),
-				GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
-				Extra:      w.extra,
-				Time:       big.NewInt(time.Now().Unix()),
-				Coinbase:   w.coinbase,
-				Difficulty: big.NewInt(2),
-			}
-			if len(header.Extra) < 32 {
-				header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
-			}
-			header.Extra = header.Extra[:32]
-			header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
-
-			w.makeCurrent(parent, header)
-			w.updateSnapshot()
+		header := &types.Header{
+			ParentHash: parent.Hash(),
+			Number:     parentNum.Add(parentNum, common.Big1),
+			GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
+			Extra:      w.extra,
+			Time:       big.NewInt(time.Now().Unix()),
+			Coinbase:   w.coinbase,
+			Difficulty: big.NewInt(2),
 		}
+		if len(header.Extra) < 32 {
+			header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
+		}
+		header.Extra = header.Extra[:32]
+		header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
+
+		w.makeCurrent(parent, header)
+		w.updateSnapshot()
+		return w.snapshotBlock, w.snapshotState.Copy()
 	}
-	return w.snapshotBlock, w.snapshotState.Copy()
+	return w.snapshotBlock, nil
+}
+
+func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
+	w.commitWorkEnv.baseLock.Lock()
+	defer w.commitWorkEnv.baseLock.Unlock()
+
+	baseBlock, commitTime := w.commitWorkEnv.commitBaseBlock, w.commitWorkEnv.commitTime
+	highestLogicalBlock := w.commitWorkEnv.getHighestLogicalBlock()
+
+	shouldCommit := baseBlock == nil || baseBlock.Hash().Hex() != highestLogicalBlock.Hash().Hex()
+	if shouldCommit && timestamp != 0 {
+		shouldCommit = shouldCommit && (timestamp - commitTime >= w.recommit.Nanoseconds() / 1e6)
+	}
+	if shouldCommit {
+		w.commitWorkEnv.commitBaseBlock = highestLogicalBlock
+		w.commitWorkEnv.commitTime = time.Now().UnixNano() / 1e6
+	}
+	return shouldCommit, highestLogicalBlock
 }
