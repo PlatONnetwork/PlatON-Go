@@ -17,6 +17,7 @@ import (
 	"Platon-go/rlp"
 	"Platon-go/rpc"
 	"bytes"
+	"container/list"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
@@ -32,6 +33,7 @@ var (
 	errDuplicatedBlock    = errors.New("duplicated block")
 	errBlockNumber        = errors.New("error block number")
 	errUnknownBlock       = errors.New("unknown block")
+	errFutileBlock        = errors.New("futile block")
 	errGenesisBlock       = errors.New("cannot handle genesis block")
 	errForNextBlock       = errors.New("cannot find a block for next")
 	errListIrrBlocks      = errors.New("list irreversible blocks error")
@@ -52,15 +54,20 @@ type Cbft struct {
 	closeOnce       sync.Once
 	exitCh          chan chan error
 
+	//todo:（先log,再处理）
 	blockExtMap map[common.Hash]*BlockExt //store all received blocks and signs
 
-	dataReceiveCh  chan interface{}    //a channel to receive block signature
-	blockChain     *core.BlockChain    //the block chain
-	forNext        *BlockExt           //for next block
-	irreversible   *BlockExt           //highest irreversible block
+	dataReceiveCh  chan interface{} //a channel to receive block signature
+	blockChain     *core.BlockChain //the block chain
+	highestLogical *BlockExt        //for next block
+	irreversible   *BlockExt        //highest irreversible block
+
+	//todo:（先log,再处理）
 	signedSet      map[uint64]struct{} //all block numbers signed by local node
 	lock           sync.RWMutex
 	consensusCache *Cache //cache for cbft consensus
+
+	netLatencyMap map[discover.NodeID]*list.List
 }
 
 var cbft *Cbft
@@ -79,11 +86,12 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		blockExtMap:   make(map[common.Hash]*BlockExt),
 		signedSet:     make(map[uint64]struct{}),
 		dataReceiveCh: make(chan interface{}, 250),
+		netLatencyMap: make(map[discover.NodeID]*list.List),
 	}
 
 	flowControl = NewFlowControl()
 
-	//启动协程处理新收到的签名
+	//启动协程处理新收到的块/签名
 	go cbft.dataReceiverGoroutine()
 
 	return cbft
@@ -125,10 +133,11 @@ func NewFlowControl() *FlowControl {
 	}
 }
 
-func (flowControl *FlowControl) control(nodeID discover.NodeID, timePoint int64) bool {
+//收到新块时，要判断新块是否是出块人在出块窗口内按合理节奏出块的
+func (flowControl *FlowControl) control(nodeID discover.NodeID, curTime int64) bool {
 	passed := false
 	if flowControl.nodeID == nodeID {
-		differ := timePoint - flowControl.lastTime
+		differ := curTime - flowControl.lastTime
 		if differ >= flowControl.minOffset && differ <= flowControl.maxOffset {
 			passed = true
 		} else {
@@ -138,7 +147,7 @@ func (flowControl *FlowControl) control(nodeID discover.NodeID, timePoint int64)
 		passed = true
 	}
 	flowControl.nodeID = nodeID
-	flowControl.lastTime = timePoint
+	flowControl.lastTime = curTime
 
 	return passed
 }
@@ -165,19 +174,6 @@ func (parent *BlockExt) isParent(child *types.Block) bool {
 		return true
 	}
 	return false
-}
-
-func printExtMap() {
-	log.Info("printExtMap", "irrHash", cbft.irreversible.block.Hash(), "irrNumber", cbft.irreversible.block.Number().Uint64())
-	for k, v := range cbft.blockExtMap {
-		if v != nil {
-			if v.block != nil {
-				log.Info("printExtMap", "Hash", k, "number", v.number, "hasBlock", "true")
-			} else {
-				log.Info("printExtMap", "Hash", k, "number", v.number, "hasBlock", "false")
-			}
-		}
-	}
 }
 
 //to find current blockExt's parent with non-nil block
@@ -224,6 +220,7 @@ func (ext *BlockExt) findChildren() []*BlockExt {
 
 func (cbft *Cbft) saveBlock(hash common.Hash, ext *BlockExt) {
 	cbft.blockExtMap[hash] = ext
+	log.Debug("Blocks in memory", "counts", len(cbft.blockExtMap))
 }
 
 func (lower *BlockExt) isAncestor(higher *BlockExt) bool {
@@ -309,22 +306,39 @@ func (cbft *Cbft) findHighestSigned(ext *BlockExt) *BlockExt {
 	return highest
 }
 
-func (cbft *Cbft) handleDescendant(ext *BlockExt, parent *BlockExt, needSign bool) {
+func (cbft *Cbft) handleBlockAndDescendant(ext *BlockExt, parent *BlockExt, signIfPossible bool) {
 	log.Info("handle block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
-	if ext.isLinked == false {
-		cbft.execute(ext, parent)
-		if needSign {
+
+	cbft.executeBlockAndDescendant(ext, parent)
+
+	if ext.findChildren() == nil {
+		if signIfPossible {
 			if _, signed := cbft.signedSet[ext.block.NumberU64()]; !signed {
 				cbft.sign(ext)
 			}
 		}
+	} else {
+		highest := cbft.findHighest(ext)
+		logicalExts := cbft.backTrackLogicals(ext, highest)
+		for _, logical := range logicalExts {
+			if _, signed := cbft.signedSet[logical.block.NumberU64()]; !signed {
+				cbft.sign(logical)
+			}
+		}
+	}
+}
+
+func (cbft *Cbft) executeBlockAndDescendant(ext *BlockExt, parent *BlockExt) {
+	log.Info("handle block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
+	if ext.isLinked == false {
+		cbft.execute(ext, parent)
 		ext.isLinked = true
 	}
 	//each child has non-nil block
 	children := ext.findChildren()
 	if children != nil {
 		for _, child := range children {
-			cbft.handleDescendant(child, ext, needSign)
+			cbft.executeBlockAndDescendant(child, ext)
 		}
 	}
 }
@@ -379,6 +393,36 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	}
 }
 
+//exclude start
+func (cbft *Cbft) backTrackLogicals(start *BlockExt, end *BlockExt) []*BlockExt {
+
+	log.Info("backTrackLogicals", "start", start.block.Hash(), "startParentHash", start.block.ParentHash(), "end", end.block.Hash())
+
+	logicalExts := make([]*BlockExt, 1)
+	logicalExts[0] = end
+
+	for {
+		parent := end.findParent()
+		if parent == nil {
+			break
+		} else if end.block.ParentHash() == start.block.Hash() && end.block.NumberU64() == start.block.NumberU64()+1 {
+			log.Debug("ending of back track logicals ")
+			break
+		} else {
+			log.Debug("Found new logical block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
+			logicalExts = append(logicalExts, parent)
+		}
+	}
+
+	//sorted by block number from lower to higher
+	if len(logicalExts) > 1 {
+		for i, j := 0, len(logicalExts)-1; i < j; i, j = i+1, j-1 {
+			logicalExts[i], logicalExts[j] = logicalExts[j], logicalExts[i]
+		}
+	}
+	return logicalExts
+}
+
 //gather all irreversible blocks from the root one (excluded) to the highest one
 //the result is sorted by block number from lower to higher
 func (cbft *Cbft) backTrackIrreversibles(newIrr *BlockExt) []*BlockExt {
@@ -387,8 +431,8 @@ func (cbft *Cbft) backTrackIrreversibles(newIrr *BlockExt) []*BlockExt {
 
 	existMap := make(map[common.Hash]struct{})
 
-	exts := make([]*BlockExt, 1)
-	exts[0] = newIrr
+	IrrExts := make([]*BlockExt, 1)
+	IrrExts[0] = newIrr
 
 	existMap[newIrr.block.Hash()] = struct{}{}
 	findRootIrr := false
@@ -406,7 +450,7 @@ func (cbft *Cbft) backTrackIrreversibles(newIrr *BlockExt) []*BlockExt {
 				log.Error("New irreversible block get into a loop")
 				return nil
 			}
-			exts = append(exts, parent)
+			IrrExts = append(IrrExts, parent)
 		}
 
 		newIrr = parent
@@ -418,12 +462,12 @@ func (cbft *Cbft) backTrackIrreversibles(newIrr *BlockExt) []*BlockExt {
 	}
 
 	//sorted by block number from lower to higher
-	if len(exts) > 1 {
-		for i, j := 0, len(exts)-1; i < j; i, j = i+1, j-1 {
-			exts[i], exts[j] = exts[j], exts[i]
+	if len(IrrExts) > 1 {
+		for i, j := 0, len(IrrExts)-1; i < j; i, j = i+1, j-1 {
+			IrrExts[i], IrrExts[j] = IrrExts[j], IrrExts[i]
 		}
 	}
-	return exts
+	return IrrExts
 }
 
 func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
@@ -449,7 +493,6 @@ func SetBlockChain(blockChain *core.BlockChain) {
 	genesisParentHash := bytes.Repeat([]byte{0x00}, 32)
 	if bytes.Equal(currentBlock.ParentHash().Bytes(), genesisParentHash) && currentBlock.Number() == nil {
 		currentBlock.Header().Number = big.NewInt(0)
-		currentBlock.Number()
 	}
 
 	log.Info("init cbft.highestLogicalBlock", "Hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
@@ -462,7 +505,7 @@ func SetBlockChain(blockChain *core.BlockChain) {
 	cbft.saveBlock(currentBlock.Hash(), irrBlock)
 
 	cbft.irreversible = irrBlock
-	cbft.forNext = irrBlock
+	cbft.highestLogical = irrBlock
 
 }
 
@@ -488,14 +531,14 @@ func BlockSynchronisation() {
 
 		cbft.irreversible = irrBlock
 
-		cbft.forNext = cbft.findHighestSigned(irrBlock)
-		if cbft.forNext == nil {
-			cbft.forNext = cbft.findHighest(irrBlock)
+		cbft.highestLogical = cbft.findHighestSigned(irrBlock)
+		if cbft.highestLogical == nil {
+			cbft.highestLogical = cbft.findHighest(irrBlock)
 		}
 
 		children := irrBlock.findChildren()
 		for _, child := range children {
-			cbft.handleDescendant(child, irrBlock, true)
+			cbft.handleBlockAndDescendant(child, irrBlock, true)
 		}
 	}
 }
@@ -526,7 +569,6 @@ func (cbft *Cbft) dataReceiverGoroutine() {
 }
 
 func (cbft *Cbft) slideWindow(newIrr *BlockExt) {
-	//printExtMap()
 	for hash, ext := range cbft.blockExtMap {
 		if ext.number <= cbft.irreversible.block.NumberU64()-windowSize {
 			if ext.block == nil || ext.block.Hash() != cbft.irreversible.block.Hash() {
@@ -549,6 +591,10 @@ func (cbft *Cbft) slideWindow(newIrr *BlockExt) {
 //gather the blocks from original irreversible block to this new one (excluding the original one), and save these blocks to chain
 //clean cbft.blockExtMap, cbft.signedSet
 //reset the cbft.irreversibleBlockExt
+//1.1 如果新确认块高 > 当前不可逆块高，并且当前不可逆块高 是 新确认块祖先，则新确认块追溯到已经入链块之间的块，都需要入链
+//1.2 如果新确认块高 > 当前不可逆块高，并且当前不可逆块高 不是 新确认块祖先，则无需处理
+//2.1 如果新确认块高 = 当前不可逆块， 无需处理
+//3.1 如果新确认块高 < 当前不可逆块， 则发送分叉，新确认块追溯到已经入链块之间的块，都需要入链
 func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) error {
 	needSlideWindow := false
 	if newIrr.block.NumberU64() > cbft.irreversible.block.NumberU64() {
@@ -562,7 +608,7 @@ func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) error {
 			//cbft.handleNewIrreversible(newIrr)
 		} else {
 			//当前不可逆块不是新确认块的祖先
-			log.Warn("consensus useless, the block is higher and in another branch")
+			log.Warn("consensus useless, the block is higher and in b branch")
 			return nil
 		}
 	} else if newIrr.block.NumberU64() == cbft.irreversible.block.NumberU64() {
@@ -586,12 +632,12 @@ func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) error {
 	cbft.storeIrreversibles(irrs)
 
 	cbft.irreversible = newIrr
-	cbft.forNext = cbft.findHighestSigned(newIrr)
-	if cbft.forNext == nil {
-		cbft.forNext = cbft.findHighest(newIrr)
+	cbft.highestLogical = cbft.findHighestSigned(newIrr)
+	if cbft.highestLogical == nil {
+		cbft.highestLogical = cbft.findHighest(newIrr)
 	}
 
-	if cbft.forNext == nil {
+	if cbft.highestLogical == nil {
 		return errForNextBlock
 	}
 
@@ -667,7 +713,9 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		return err
 	}
 
-	keepIt := cbft.keetIt(toMilliseconds(time.Now()), producerNodeID)
+	curTime := toMilliseconds(time.Now())
+
+	keepIt := cbft.shouldKeepIt(curTime, producerNodeID)
 	log.Info("check if block should be kept", "result", keepIt, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 	if !keepIt {
 		return errIllegalBlock
@@ -694,21 +742,17 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	log.Info("collect this block's sign")
 	ext.collectSign(common.NewBlockConfirmSign(sign))
 
-	printExtMap()
-
 	parent := ext.findParent()
 	if parent != nil && parent.isLinked {
-		timePoint := toMilliseconds(time.Now())
-
-		inTurn := cbft.inTurnVerify(toMilliseconds(time.Now()), producerNodeID)
+		inTurn := cbft.inTurnVerify(curTime, producerNodeID)
 		log.Info("check if block is in turn", "result", inTurn, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 
-		passed := flowControl.control(producerNodeID, timePoint)
-		log.Info("check if block passed flow control", "result", passed, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
+		passed := flowControl.control(producerNodeID, curTime)
+		log.Info("check if block is allowed by flow control", "result", passed, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 
-		needSign := inTurn && passed && cbft.irreversible.isAncestor(ext)
+		signIfPossible := inTurn && passed && cbft.irreversible.isAncestor(ext)
 
-		cbft.handleDescendant(ext, parent, needSign)
+		cbft.handleBlockAndDescendant(ext, parent, signIfPossible)
 
 		newIrr := cbft.findHighestNewIrreversible(ext)
 		if newIrr != nil {
@@ -725,9 +769,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 }
 
 func (cbft *Cbft) ShouldSeal() (bool, error) {
-	nowInMilliseconds := toMilliseconds(time.Now())
-	printTurn(nowInMilliseconds)
-	return cbft.inTurn(nowInMilliseconds), nil
+	return cbft.inTurn(), nil
 }
 
 func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
@@ -814,7 +856,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 	defer cbft.lock.RUnlock()
 
 	//检查父区块
-	if cbft.forNext.block == nil || header.ParentHash != cbft.forNext.block.Hash() || header.Number.Uint64()-1 != cbft.forNext.block.NumberU64() {
+	if cbft.highestLogical.block == nil || header.ParentHash != cbft.highestLogical.block.Hash() || header.Number.Uint64()-1 != cbft.highestLogical.block.NumberU64() {
 		return consensus.ErrUnknownAncestor
 	}
 
@@ -855,9 +897,9 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		return errUnknownBlock
 	}
 
-	if !cbft.forNext.isParent(block) {
-		log.Error("cannot find parent block", "parentHash", block.ParentHash())
-		return errUnknownBlock
+	if !cbft.highestLogical.isParent(block) {
+		log.Error("Futile block cause highest logical block changed", "parentHash", block.ParentHash())
+		return errFutileBlock
 	}
 
 	// sign the seal hash
@@ -890,7 +932,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	}
 
 	//reset cbft.highestLogicalBlockExt cause this block is produced by myself
-	cbft.forNext = ext
+	cbft.highestLogical = ext
 
 	go func() {
 		select {
@@ -977,12 +1019,55 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 	return nil
 }
 
+//receive the new block
+//netLatency：当前节点和nodeID直接的网络延迟
+//pongTime：nodeID发送pong时的时间（nodeID的当地时间）
+func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64, pongTime int64) {
+	cbft.lock.Lock()
+	defer cbft.lock.Unlock()
+
+	log.Info("Received a report for net latency", "Hash", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency, "pongTime", pongTime)
+
+	latencyList, exist := cbft.netLatencyMap[nodeID]
+	if !exist {
+		cbft.netLatencyMap[nodeID] = list.New()
+		cbft.netLatencyMap[nodeID].PushBack(netLatency)
+	} else {
+		if latencyList.Len() > 5 {
+			e := latencyList.Front()
+			cbft.netLatencyMap[nodeID].Remove(e)
+		}
+		cbft.netLatencyMap[nodeID].PushBack(netLatency)
+	}
+}
+
+func (cbft *Cbft) avgLatency(nodeID discover.NodeID) int64 {
+	cbft.lock.RLock()
+	defer cbft.lock.RUnlock()
+
+	if latencyList, exist := cbft.netLatencyMap[nodeID]; exist {
+		sum := int64(0)
+		counts := int64(0)
+		for e := latencyList.Front(); e != nil; e = e.Next() {
+			if latency, ok := e.Value.(int64); ok {
+				counts++
+				sum += latency
+			}
+		}
+		if counts > 0 {
+			return sum / counts
+		}
+	}
+	return cbft.config.MaxLatency
+}
+
 func (cbft *Cbft) HighestLogicalBlock() *types.Block {
 	cbft.lock.RLock()
 	defer cbft.lock.RUnlock()
 
 	log.Info("call HighestLogicalBlock() ...")
-	return cbft.forNext.block
+
+	return cbft.highestLogical.block
 }
 
 func IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
@@ -1008,114 +1093,84 @@ func (cbft *Cbft) storeIrreversibles(exts []*BlockExt) {
 }
 
 //to check if it's my turn to produce blocks
-func (cbft *Cbft) inTurn(timePoint int64) bool {
-	preOffset := 0 - int64(cbft.config.MaxLatency/3)
-	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
+func (cbft *Cbft) inTurn() bool {
+	curTime := toMilliseconds(time.Now())
 
-	return cbft.calTurn(timePoint, cbft.config.NodeID, preOffset, sufOffset)
-}
-
-//time in milliseconds
-func (cbft *Cbft) inTurnVerify(timePoint int64, nodeID discover.NodeID) bool {
-	preOffset := 0 - int64(cbft.config.MaxLatency/3)
-	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
-	timePoint = timePoint - int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
-
-	return cbft.calTurn(timePoint, nodeID, preOffset, sufOffset)
-}
-
-//time in milliseconds
-func (cbft *Cbft) keetIt(timePoint int64, nodeID discover.NodeID) bool {
-	preOffset := 0 - int64(cbft.config.MaxLatency/3)
-	sufOffset := 0 - int64(cbft.config.MaxLatency*2/3)
-	timePoint = timePoint - int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
-
-	offset := 1000 * (cbft.config.Duration/2 - 1)
-
-	inTurn := cbft.calTurn(timePoint-offset, nodeID, preOffset, sufOffset)
-	if inTurn {
-		return inTurn
-	} else {
-		inTurn = cbft.calTurn(timePoint+offset, nodeID, preOffset, sufOffset)
-		return inTurn
-	}
-}
-
-//time in milliseconds
-func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID, preOffset int64, sufOffset int64) bool {
-	signerIdx := cbft.dpos.NodeIndex(nodeID)
+	nodeIdx := cbft.dpos.NodeIndex(cbft.config.NodeID)
 	start := cbft.dpos.StartTimeOfEpoch() * 1000
-
-	if signerIdx >= 0 {
+	if nodeIdx >= 0 {
 		durationMilliseconds := cbft.config.Duration * 1000
 		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
 
-		value1 := signerIdx*(durationMilliseconds) + preOffset
+		startTime := nodeIdx * (durationMilliseconds)
 
-		value2 := (timePoint - start) % totalDuration
+		curTime := (curTime - start) % totalDuration
 
-		value3 := (signerIdx+1)*durationMilliseconds + sufOffset
+		endTime := (nodeIdx + 1) * durationMilliseconds
 
-		log.Info("calTurn", "idx", signerIdx, "value1", value1, "value2", value2, "value3", value3, "timePoint", timePoint)
+		log.Info("calTurn", "nodeIdx", nodeIdx, "startTime", startTime, "endTime", endTime, "curTime", curTime, "curTime", curTime, "startTimeOfEpoch", start)
 
-		if value2 > value1 && value3 > value2 {
+		if curTime > startTime && curTime < endTime {
 			return true
 		}
 	}
 	return false
 }
 
-// all variables are in milliseconds
-func printTurn(timePoint int64) {
-	inturn := false
+//time in milliseconds
+func (cbft *Cbft) inTurnVerify(curTime int64, nodeID discover.NodeID) bool {
+
+	nodeIdx := cbft.dpos.NodeIndex(nodeID)
 	start := cbft.dpos.StartTimeOfEpoch() * 1000
+	durationPerNode := cbft.config.Duration * 1000
+	durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
 
-	for i := 0; i < len(cbft.dpos.primaryNodeList); i++ {
-		idx := int64(i)
-		durationMilliseconds := cbft.config.Duration * 1000
-		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
+	avgLatency := cbft.avgLatency(nodeID)
+	blockTime := curTime - avgLatency
 
-		value1 := idx*(durationMilliseconds) - int64(cbft.config.MaxLatency/3)
+	rounds := (curTime - start) / durationPerTurn
 
-		value2 := (timePoint - start) % totalDuration
+	startTimeOfCurTurn := start + durationPerTurn*rounds
 
-		value3 := (idx+1)*durationMilliseconds - int64(cbft.config.MaxLatency*2/3)
+	startTime := startTimeOfCurTurn + durationPerNode*nodeIdx - avgLatency/3
+	endTime := startTimeOfCurTurn + durationPerNode*(nodeIdx+1) - avgLatency*2/3
 
-		if value2 > value1 && value3 > value2 {
-			inturn = true
-		} else {
-			inturn = false
-		}
+	log.Info("inTurnVerify", "start", start, "startTime", startTime, "endTime", endTime, "blockTime", blockTime, "curTime", curTime, "avgLatency", avgLatency)
 
-		log.Info("printTurn", "inturn", inturn, "idx", idx, "value1", value1, "value2", value2, "value3", value3, "timePoint", timePoint)
+	if blockTime > startTime && blockTime < endTime {
+		return true
+	} else {
+		return false
 	}
 }
 
-// to check if the block is overdue,
-// all variables are in milliseconds
-func (cbft *Cbft) isOverdue(blockTimestamp int64, nodeID discover.NodeID) bool {
-	signerIdx := cbft.dpos.NodeIndex(nodeID)
+//time in milliseconds
+func (cbft *Cbft) shouldKeepIt(curTime int64, nodeID discover.NodeID) bool {
 
-	now := toMilliseconds(time.Now())
+	offset := 1000 * (cbft.config.Duration/2 - 1)
 
+	nodeIdx := cbft.dpos.NodeIndex(nodeID)
 	start := cbft.dpos.StartTimeOfEpoch() * 1000
+	durationPerNode := cbft.config.Duration * 1000
+	durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
 
-	durationMilliseconds := cbft.config.Duration * 1000
+	avgLatency := cbft.avgLatency(nodeID)
+	blockTime := curTime - avgLatency
 
-	totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
+	rounds := (curTime - start) / durationPerTurn
 
-	rounds := (now - start) / totalDuration
+	startTimeOfCurTurn := start + durationPerTurn*rounds
 
-	deadline := start + totalDuration*rounds + durationMilliseconds*(signerIdx+1)
-	log.Info("isOverdue1:::", "start", start, "durationMilliseconds", durationMilliseconds, "totalDuration", totalDuration, "rounds", rounds, "deadline", deadline, "now", now, "blockTimestamp", blockTimestamp)
+	startTime := startTimeOfCurTurn + durationPerNode*nodeIdx - offset
+	endTime := startTimeOfCurTurn + durationPerNode*(nodeIdx+1) + offset
 
-	deadline = deadline + int64(float64(cbft.config.MaxLatency)*cbft.config.LegalCoefficient)
-	log.Info("isOverdue2:::", "start", start, "durationMilliseconds", durationMilliseconds, "totalDuration", totalDuration, "rounds", rounds, "deadline", deadline, "now", now, "blockTimestamp", blockTimestamp)
+	log.Info("shouldKeepIt", "start", start, "startTime", startTime, "endTime", endTime, "blockTime", blockTime, "curTime", curTime, "avgLatency", avgLatency)
 
-	if deadline < now {
+	if blockTime > startTime && blockTime < endTime {
 		return true
+	} else {
+		return false
 	}
-	return false
 }
 
 // producer's signature = header.Extra[32:]

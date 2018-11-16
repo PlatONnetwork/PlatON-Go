@@ -136,6 +136,10 @@ type Bft interface {
 	// Process the BFT signatures
 	OnNewBlock(chain ChainReader, block *types.Block) error
 
+	// modify by platon
+	// Process the BFT signatures
+	OnPong(nodeID discover.NodeID, netLatency int64) error
+
 	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
 
 	IsConsensusNode() (bool, error)
