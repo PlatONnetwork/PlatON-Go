@@ -251,12 +251,13 @@ func (p *Peer) pingLoop() {
 			//modified by Joey
 			pingTime := time.Now().UnixNano()
 			p.lock.Lock()
+			defer p.lock.Unlock()
+
 			if p.PingList.Len() > 5 {
 				front := p.PingList.Front()
 				p.PingList.Remove(front)
 			}
 			p.PingList.PushBack(pingTime)
-			p.lock.Unlock()
 
 			if err := SendItems(p.rw, pingMsg, pingTime); err != nil {
 				p.protoErr <- err

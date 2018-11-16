@@ -765,6 +765,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if err := msg.Decode(&pingTime); err != nil {
 				return errResp(ErrDecode, "%v: %v", msg, err)
 			}
+			p.lock.Lock()
+			defer p.lock.Unlock()
 			for {
 				e := p.PingList.Front()
 				if e != nil {
@@ -781,6 +783,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 					break
 				}
 			}
+
 		}
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
