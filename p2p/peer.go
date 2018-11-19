@@ -299,7 +299,7 @@ func (p *Peer) handle(msg Msg) error {
 		// modify by Joey
 		var pingTime [1]string
 		msg.Decode(&pingTime)
-		log.Info("Receive a Ping message, then response a Pong message", "pingTimeNano", pingTime[0])
+		log.Debug("Receive a Ping message, then response a Pong message", "pingTimeNano", pingTime[0])
 
 		msg.Discard()
 		go SendItems(p.rw, pongMsg, pingTime[0])
@@ -310,8 +310,12 @@ func (p *Peer) handle(msg Msg) error {
 	case msg.Code == pongMsg:
 		//added by Joey
 		proto := p.running["eth"]
+
 		msg.Code = 0x0a + proto.offset
-		log.Info("Receive a Pong message, set msg.Code", "msg.Code", fmt.Sprint("%x", msg.Code))
+
+		code := fmt.Sprintf("msg.Code: 0x%x", msg.Code)
+		log.Debug("Receive a Pong message, reset msg.Code for eth protocol", "msg.Code", code)
+
 		select {
 		case proto.in <- msg:
 			return nil
