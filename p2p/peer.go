@@ -264,7 +264,7 @@ func (p *Peer) pingLoop() {
 				p.protoErr <- err
 				return
 			}*/
-			if err := SendItems(p.rw, pingMsg); err != nil {
+			if err := SendItems(p.rw, pingMsg, time.Now().UnixNano()); err != nil {
 				p.protoErr <- err
 				return
 			}
