@@ -344,7 +344,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	}
 	defer msg.Discard()
 
-	log.Info("eth message code:::", " msg.Code==", msg.Code)
+	log.Info("eth message code:::", " msg.Code==", fmt.Sprint("%x", msg.Code))
 
 	// Handle the message depending on its contents
 	switch {
@@ -763,32 +763,34 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// modify by platon
 	case msg.Code == PongMsg:
+		log.Debug("handle a eth Pong message")
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-			var pingTimeString [1]string
-			if err := msg.Decode(&pingTimeString); err != nil {
+			var pingTime [1]string
+			if err := msg.Decode(&pingTime); err != nil {
 				return errResp(ErrDecode, "%v: %v", msg, err)
 			}
-
-			pingTime, err := strconv.ParseInt(pingTimeString[0], 10, 64)
-			if err != nil {
-				return errResp(ErrDecode, "%v: %v", msg, err)
-			}
-
 			p.lock.Lock()
 			defer p.lock.Unlock()
 			for {
 				e := p.PingList.Front()
 				if e != nil {
-					if t, ok := p.PingList.Remove(e).(int64); ok {
-						if t == pingTime {
+					log.Debug("Front element of p.PingList", "element", e)
+					if t, ok := p.PingList.Remove(e).(string); ok {
+						if t == pingTime[0] {
 							//找到对应的ping，以及对应的时间
 							//计算网络延时，毫秒
-							latency := (time.Now().UnixNano() - t) / 2 / 1000000
+							tInt64, err := strconv.ParseInt(t, 10, 64)
+							if err != nil {
+								return errResp(ErrDecode, "%v: %v", msg, err)
+							}
+							//发出ping到收到pong的总时间/2，再转成毫秒
+							latency := (time.Now().UnixNano() - tInt64) / 2 / 1000000
 							cbftEngine.OnPong(p.Peer.ID(), latency)
 							break
 						}
 					}
 				} else {
+					log.Debug("end of p.PingList")
 					break
 				}
 			}

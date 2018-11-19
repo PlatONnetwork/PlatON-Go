@@ -261,7 +261,7 @@ func (p *Peer) pingLoop() {
 			}
 			p.PingList.PushBack(pingTime)
 
-			log.Info("send a Ping message", "pingTimeNano", pingTime)
+			log.Info("send a Ping message", "pingTimeNano", pingTime, "PingList.Len", p.PingList.Len())
 			if err := SendItems(p.rw, pingMsg, pingTime); err != nil {
 				p.protoErr <- err
 				return
@@ -311,7 +311,7 @@ func (p *Peer) handle(msg Msg) error {
 		//added by Joey
 		proto := p.running["eth"]
 		msg.Code = 0x0a + proto.offset
-		log.Info("Receive a Pong message, set msg.Code", "msg.Code", msg.Code)
+		log.Info("Receive a Pong message, set msg.Code", "msg.Code", fmt.Sprint("%x", msg.Code))
 		select {
 		case proto.in <- msg:
 			return nil
