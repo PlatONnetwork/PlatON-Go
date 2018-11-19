@@ -343,6 +343,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	}
 	defer msg.Discard()
 
+	log.Info("eth message code:::", " msg.Code==", msg.Code)
+
 	// Handle the message depending on its contents
 	switch {
 	case msg.Code == StatusMsg:
