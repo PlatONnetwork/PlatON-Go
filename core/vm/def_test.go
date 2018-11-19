@@ -1,0 +1,66 @@
+package vm
+
+import (
+	"Platon-go/common"
+	"Platon-go/common/byteutil"
+	"Platon-go/common/hexutil"
+	"Platon-go/rlp"
+	"bytes"
+	"fmt"
+	"reflect"
+	"testing"
+)
+
+func TestRlpEncode(t *testing.T) {
+
+	// 编码
+	var source [][]byte
+	source = make([][]byte, 0)
+	source = append(source, common.Hex2Bytes("1011"))  // tx type
+	//source = append(source, []byte("SayHi")) // func name
+	//source = append(source, byteutil.IntToBytes(50))    // param1
+	//source = append(source, byteutil.StringToBytes("abc"))    // param2
+	source = append(source, []byte("SayHi"))
+	source = append(source, []byte{30})
+	source = append(source, byteutil.Uint64ToBytes(100))
+	//source = append(source, []byte("abc"))
+
+	buffer := new(bytes.Buffer)
+	err := rlp.Encode(buffer, source)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("fail")
+	}
+	encodedBytes := buffer.Bytes()
+	// 编码后字节数组
+	fmt.Println(encodedBytes)
+	// to hex as data
+	fmt.Println(hexutil.Encode(encodedBytes))
+
+	// 解码
+	ptr := new(interface{})
+	rlp.Decode(bytes.NewReader(encodedBytes), &ptr)
+
+	deref := reflect.ValueOf(ptr).Elem().Interface()
+	fmt.Println(deref)
+	for i, v := range deref.([]interface{}) {
+		// fmt.Println(i,"    ",hex.EncodeToString(v.([]byte)))
+		// 类型判断，然后转换
+		switch i {
+		case 0:
+			// fmt.Println(string(v.([]byte)))
+		case 1:
+			fmt.Println(string(v.([]byte)))
+		case 2:
+			// fmt.Println(string(v.([]byte)))
+		}
+	}
+}
+
+func TestAppendSlice(t *testing.T)  {
+	a := []int{0, 1, 2, 3, 4}
+	// 删除第i个元素
+	i := 2
+	a = append(a[:i], a[i+1:]...)
+	fmt.Println(a)
+}
