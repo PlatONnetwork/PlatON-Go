@@ -249,7 +249,7 @@ func (p *Peer) pingLoop() {
 		select {
 		case <-ping.C:
 			//modified by Joey
-			pingTime := time.Now().UnixNano()
+			/*pingTime := time.Now().UnixNano()
 			p.lock.Lock()
 			defer p.lock.Unlock()
 
@@ -261,6 +261,10 @@ func (p *Peer) pingLoop() {
 
 			log.Info("send a Ping message", "pingTimeNano", pingTime)
 			if err := SendItems(p.rw, pingMsg, pingTime); err != nil {
+				p.protoErr <- err
+				return
+			}*/
+			if err := SendItems(p.rw, pingMsg); err != nil {
 				p.protoErr <- err
 				return
 			}
@@ -290,23 +294,24 @@ func (p *Peer) readLoop(errc chan<- error) {
 func (p *Peer) handle(msg Msg) error {
 	switch {
 	case msg.Code == pingMsg:
-		// modify by Joey
 		log.Info("Receive a Ping message")
+		// modify by Joey
+		/*log.Info("Receive a Ping message")
 		var pingTime int64
 		msg.Decode(&pingTime)
 
 		msg.Discard()
 
 		log.Info("Response a Pong message", "pingTimeNano", pingTime)
-		go SendItems(p.rw, pongMsg, pingTime)
+		go SendItems(p.rw, pongMsg, pingTime)*/
 
-		//msg.Discard()
-		//go SendItems(p.rw, pongMsg)
+		msg.Discard()
+		go SendItems(p.rw, pongMsg)
 
 	case msg.Code == pongMsg:
 		//added by Joey
 		log.Info("Receive a Pong message")
-		proto := p.running["eth"]
+		/*proto := p.running["eth"]
 		msg.Code = msg.Code + proto.offset
 
 		select {
@@ -314,7 +319,7 @@ func (p *Peer) handle(msg Msg) error {
 			return nil
 		case <-p.closed:
 			return io.EOF
-		}
+		}*/
 	case msg.Code == discMsg:
 		var reason [1]DiscReason
 		// This is the last message. We don't need to discard or
