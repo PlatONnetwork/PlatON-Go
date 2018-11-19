@@ -306,7 +306,7 @@ func (p *Peer) handle(msg Msg) error {
 
 		log.Info("Response a Pong message", "pingTimeNano", pingTime)
 
-		go SendItems(p.rw, pongMsg, []interface{}{pingTime})
+		go SendItems(p.rw, pongMsg, pingTime)
 
 		/*msg.Discard()
 		go SendItems(p.rw, pongMsg)*/
