@@ -11,7 +11,6 @@ import (
 	"Platon-go/core"
 	"Platon-go/core/vm"
 	"Platon-go/consensus/ethash"
-	"Platon-go/core/state"
 	"Platon-go/p2p/discover"
 )
 
@@ -69,37 +68,26 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 		MaxCount: 3,
 		Candidates: can_Configs,
 	}
-
-	//cfg := &params.ChainConfig{}
-	//cfg.Cbft.Dposes = configs
 	var candidatePool *CandidatePool
-	currentBlock := blockchain.CurrentBlock()
-	var state *state.StateDB
-	if statedb, err := blockchain.State(); nil != err {
-		fmt.Println("reference statedb failed", err)
-	}else {
-		var isgenesis bool
-		//fmt.Printf("genesis: %+v, current: %+v \n", blockchain.Genesis(), currentBlock)
-		if blockchain.Genesis().NumberU64() == currentBlock.NumberU64() {
-			isgenesis = true
-			//fmt.Println("YES")
-		}
-		/** test init candidatePool */
-		if pool, err := NewCandidatePool(statedb, &configs, isgenesis); nil != err {
-			fmt.Println("init candidatePool err", err)
-		}else{
-			candidatePool = pool
-		}
-		state = statedb
-
+	//if statedb, err := blockchain.State(); nil != err {
+	//	fmt.Println("reference statedb failed", err)
+	//}else {
+	//
+	//	state = statedb
+	//}
+	/** test init candidatePool */
+	if pool, err := NewCandidatePool(blockchain, &configs); nil != err {
+		fmt.Println("init candidatePool err", err)
+	}else{
+		candidatePool = pool
 	}
 	// commit trie to db
-	state.Commit(false)
-	tr := state.StorageTrie(CandidateAddr)
-	iteratorTrie("初始化：", tr)
-	printObject("初始化DB中的 " + WitnessPrefix, buildCandidatesByTrie(tr, WitnessPrefix))
-	printObject("初始化DB中的 " + ImmediatePrefix, buildCandidatesByTrie(tr, ImmediatePrefix))
-	printObject("初始化DB中的 " + DefeatPrefix, buildCandidateArrByTrie(tr, DefeatPrefix))
+	candidatePool.CommitTrie(false)
+	//tr := state.StorageTrie(CandidateAddr)
+	candidatePool.IteratorTrie("初始化：")
+	printObject("初始化DB中的 " + WitnessPrefix, candidatePool.buildCandidatesByTrie(WitnessPrefix))
+	printObject("初始化DB中的 " + ImmediatePrefix, candidatePool.buildCandidatesByTrie(ImmediatePrefix))
+	printObject("初始化DB中的 " + DefeatPrefix, candidatePool.buildCandidateArrByTrie(DefeatPrefix))
 
 
 
@@ -119,12 +107,11 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	candidatePool.SetCandidate(candidate.CandidateId, candidate)
 
 	// commit trie to db
-	state.Commit(false)
-	tr = state.StorageTrie(CandidateAddr)
+	candidatePool.CommitTrie(false)
 	fmt.Println("提交.......")
-	printObject("更新后DB中的 " + WitnessPrefix, buildCandidatesByTrie(tr, WitnessPrefix))
-	printObject("更新后DB中的 " + ImmediatePrefix, buildCandidatesByTrie(tr, ImmediatePrefix))
-	printObject("更新后DB中的 " + DefeatPrefix, buildCandidateArrByTrie(tr, DefeatPrefix))
+	printObject("更新后DB中的 " + WitnessPrefix, candidatePool.buildCandidatesByTrie(WitnessPrefix))
+	printObject("更新后DB中的 " + ImmediatePrefix, candidatePool.buildCandidatesByTrie(ImmediatePrefix))
+	printObject("更新后DB中的 " + DefeatPrefix, candidatePool.buildCandidateArrByTrie(DefeatPrefix))
 
 	/** test GetCandidate */
 	can := candidatePool.GetCandidate(discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"))
@@ -134,20 +121,18 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	/** test WithdrawCandidate */
 	ok1 := candidatePool.WithdrawCandidate(discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), 99)
 	fmt.Println(ok1)
-	state.Commit(false)
-	tr = state.StorageTrie(CandidateAddr)
-	printObject("退款后DB中的 " + WitnessPrefix, buildCandidatesByTrie(tr, WitnessPrefix))
-	printObject("退款后DB中的 " + ImmediatePrefix, buildCandidatesByTrie(tr, ImmediatePrefix))
-	printObject("退款后DB中的 " + DefeatPrefix, buildCandidateArrByTrie(tr, DefeatPrefix))
+	candidatePool.CommitTrie(false)
+	printObject("退款后DB中的 " + WitnessPrefix, candidatePool.buildCandidatesByTrie(WitnessPrefix))
+	printObject("退款后DB中的 " + ImmediatePrefix, candidatePool.buildCandidatesByTrie(ImmediatePrefix))
+	printObject("退款后DB中的 " + DefeatPrefix, candidatePool.buildCandidateArrByTrie(DefeatPrefix))
 
 	/** test WithdrawCandidate again */
 	ok2 := candidatePool.WithdrawCandidate(discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), 1)
 	fmt.Println(ok2)
-	state.Commit(false)
-	tr = state.StorageTrie(CandidateAddr)
-	printObject("退款后DB中的 " + WitnessPrefix, buildCandidatesByTrie(tr, WitnessPrefix))
-	printObject("退款后DB中的 " + ImmediatePrefix, buildCandidatesByTrie(tr, ImmediatePrefix))
-	printObject("退款后DB中的 " + DefeatPrefix, buildCandidateArrByTrie(tr, DefeatPrefix))
+	candidatePool.CommitTrie(false)
+	printObject("退款后DB中的 " + WitnessPrefix, candidatePool.buildCandidatesByTrie(WitnessPrefix))
+	printObject("退款后DB中的 " + ImmediatePrefix, candidatePool.buildCandidatesByTrie(ImmediatePrefix))
+	printObject("退款后DB中的 " + DefeatPrefix, candidatePool.buildCandidateArrByTrie(DefeatPrefix))
 
 	/** test GetChosens */
 	canArr := candidatePool.GetChosens()
@@ -167,6 +152,8 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 	/** test RefundBalance */
 
+
+	/** test GetOwner */
 }
 
 func TestInitCandidatePoolByTrie (t *testing.T){

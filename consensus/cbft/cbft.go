@@ -463,19 +463,10 @@ func SetBlockChain(blockChain *core.BlockChain) {
 
 	cbft.irreversible = irrBlock
 	cbft.forNext = irrBlock
+}
 
-	if statedb, err := blockChain.State(); nil != err {
-		log.Error("reference statedb failed", err)
-	}else {
-		var isgenesis bool
-		//fmt.Printf("genesis: %+v, current: %+v \n", blockChain.Genesis(), currentBlock)
-		if blockChain.Genesis().NumberU64() == currentBlock.NumberU64() {
-			isgenesis = true
-			//fmt.Println("YES")
-		}
-		cbft.dpos.SetCandidatePool(statedb, isgenesis)
-	}
-
+func SetDopsOption(blockChain *core.BlockChain){
+	cbft.dpos.SetCandidatePool(blockChain)
 }
 
 func BlockSynchronisation() {

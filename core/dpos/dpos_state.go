@@ -12,6 +12,7 @@ import (
 	"Platon-go/core/state"
 	"Platon-go/p2p/discover"
 	"math/big"
+	"Platon-go/core"
 )
 
 
@@ -54,18 +55,30 @@ type CandidatePool struct {
 	immediateCandates 		map[discover.NodeID]*Candidate
 	// 质押失败的竞选人集 (退款用)
 	defeatCandidates 		map[discover.NodeID][]*Candidate
-	state 					*state.StateDB
+	blockChain     			*core.BlockChain
+	cacheState 				*state.StateDB
+
 	// cache
 	candidateCacheArr 		[]*Candidate
 	lock 					*sync.RWMutex
 }
 
 // 初始化全局候选池对象
-func NewCandidatePool(state *state.StateDB, configs *params.DposConfig, isgenesis bool) (*CandidatePool, error) {
+//func NewCandidatePool(state *state.StateDB, configs *params.DposConfig, isgenesis bool) (*CandidatePool, error) {
+func NewCandidatePool(blockChain *core.BlockChain, configs *params.DposConfig) (*CandidatePool, error) {
+
+	currentBlock := blockChain.CurrentBlock()
+	var state *state.StateDB
+	if statedb, err := blockChain.State(); nil != err {
+		log.Error("reference statedb failed", err)
+	}else {
+		state = statedb
+	}
+
 	var originMap, immediateMap map[discover.NodeID]*Candidate
 	var  defeatMap map[discover.NodeID][]*Candidate
 	// 非创世块，需要从db加载
-	if !isgenesis {
+	if blockChain.Genesis().NumberU64() != currentBlock.NumberU64() {
 		tr := state.StorageTrie(CandidateAddr)
 		// 构造上一轮见证人的map
 		originMap, immediateMap, defeatMap = initCandidatesByTrie(tr)
@@ -82,7 +95,8 @@ func NewCandidatePool(state *state.StateDB, configs *params.DposConfig, isgenesi
 		originCandidates: 		originMap,
 		immediateCandates: 		immediateMap,
 		defeatCandidates: 		defeatMap,
-		state: 					state,
+		blockChain: 			blockChain,
+		cacheState: 			state,
 		candidateCacheArr: 		make([]*Candidate, 0),
 		lock: 					&sync.RWMutex{},
 	}, nil
@@ -124,6 +138,14 @@ func buildByConfig(configs *params.DposConfig, state *state.StateDB) (map[discov
 	return originMap, immediateMap
 }
 
+func (c *CandidatePool) CommitTrie (deleteEmptyObjects bool) (root common.Hash, err error) {
+	return c.cacheState.Commit(deleteEmptyObjects)
+}
+
+func (c *CandidatePool)IteratorTrie(s string){
+	iteratorTrie(s, c.cacheState.StorageTrie(CandidateAddr))
+}
+
 func iteratorTrie(s string, tr state.Trie){
 	it := tr.NodeIterator(nil)
 	for it.Next(true) {
@@ -140,7 +162,8 @@ func printObject(s string, obj interface{}){
 	fmt.Println(s, string(objs), "\n")
 }
 
-func buildCandidatesByTrie(tr state.Trie, prefix string) map[common.Hash]*Candidate {
+func (c *CandidatePool)buildCandidatesByTrie(prefix string) map[common.Hash]*Candidate {
+	tr := c.cacheState.StorageTrie(CandidateAddr)
 	it := tr.NodeIterator(nil)
 	candidates := make(map[common.Hash]*Candidate, 0)
 	for it.Next(true) {
@@ -162,7 +185,8 @@ func buildCandidatesByTrie(tr state.Trie, prefix string) map[common.Hash]*Candid
 	return candidates
 }
 
-func buildCandidateArrByTrie(tr state.Trie, prefix string) map[common.Hash][]*Candidate {
+func (c *CandidatePool)buildCandidateArrByTrie(prefix string) map[common.Hash][]*Candidate {
+	tr := c.cacheState.StorageTrie(CandidateAddr)
 	it := tr.NodeIterator(nil)
 	candidates := make(map[common.Hash][]*Candidate, 0)
 	for it.Next(true) {
@@ -275,7 +299,7 @@ func (c *CandidatePool) WithdrawCandidate (nodeId discover.NodeID, price int) bo
 	can, ok := c.immediateCandates[nodeId]
 	if !ok {
 		// 从树拿
-		enc := c.state.GetState(CandidateAddr, ImmediateKey(nodeId))
+		enc := c.cacheState.GetState(CandidateAddr, ImmediateKey(nodeId))
 		var tmp Candidate
 		if err := rlp.DecodeBytes(enc, &tmp); nil != err {
 			log.Error("withdraw failed", "key", nodeId.String(), "err", err)
@@ -363,7 +387,7 @@ func (c *CandidatePool) GetChairpersons () []*Candidate {
 func (c *CandidatePool) GetDefeat(nodeId discover.NodeID) []*Candidate{
 	defeat, ok := c.defeatCandidates[nodeId]
 	if !ok {
-		enc := c.state.GetState(CandidateAddr, DefeatKey(nodeId))
+		enc := c.cacheState.GetState(CandidateAddr, DefeatKey(nodeId))
 		var tmp []*Candidate
 		if err := rlp.DecodeBytes(enc, &tmp); nil != err {
 			log.Error("Failed to decode candidate object on GetDefeat", "key", nodeId.String(), "err", err)
@@ -379,7 +403,7 @@ func (c *CandidatePool) GetDefeat(nodeId discover.NodeID) []*Candidate{
 func (c *CandidatePool) IsDefeat (nodeId discover.NodeID) bool {
 
 	if _, ok := c.immediateCandates[nodeId]; !ok {
-		enc := c.state.GetState(CandidateAddr, ImmediateKey(nodeId))
+		enc := c.cacheState.GetState(CandidateAddr, ImmediateKey(nodeId))
 		var tmp Candidate
 		if err := rlp.DecodeBytes(enc, &tmp); nil != err {
 			log.Error("Failed to decode candidate object on IsDefeat", "key", nodeId.String(), "err", err)
@@ -387,22 +411,46 @@ func (c *CandidatePool) IsDefeat (nodeId discover.NodeID) bool {
 		}
 		// 有点问题，不能直接这么写
 		c.setImmediate(nodeId, &tmp)
-		return true
-	}else {
+		return true	}else {
 		return true
 	}
 }
 
+// 根据nodeId查询 质押信息中的 受益者地址
+func (c *CandidatePool) GetOwner (nodeId discover.NodeID) common.Address {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	// 先查见证人
+	var addr common.Address
+	or_can, or_ok := c.originCandidates[nodeId]
+	im_can, im_ok := c.immediateCandates[nodeId]
+	canArr, de_ok := c.defeatCandidates[nodeId]
+	if or_ok {
+		addr = or_can.Owner
+		return addr
+	}
+	if im_ok {
+		addr = im_can.Owner
+		return addr
+	}
+	if de_ok {
+		if len(canArr) != 0 {
+			addr = canArr[0].Owner
+			return addr
+		}
+	}
+	return common.Address{}
+}
 
 // 揭榜见证人
-func (c *CandidatePool) Election(nodeId discover.NodeID) bool {
+func (c *CandidatePool) Election() bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	// 先判断当前nodeId 是否为本轮见证人
-	if _, ok := c.originCandidates[nodeId]; !ok {
-		log.Error("Current NODEID is not this round of witnesses")
-		return false
-	}
+	//if _, ok := c.originCandidates[nodeId]; !ok {
+	//	log.Error("Current NODEID is not this round of witnesses")
+	//	return false
+	//}
 	candidateSort(c.candidateCacheArr)
 	// 缓存前面一定数量的见证人
 	var arr []*Candidate
@@ -425,12 +473,12 @@ func (c *CandidatePool) Election(nodeId discover.NodeID) bool {
 	// update trie
 	if len(delMap) != 0 {
 		for id, _ := range delMap {
-			c.state.SetState(CandidateAddr, WitnessKey(id), []byte{})
+			c.cacheState.SetState(CandidateAddr, WitnessKey(id), []byte{})
 		}
 	}
 	for id, can := range updateMap {
 		if val, err := rlp.EncodeToBytes(can); nil == err {
-			c.state.SetState(CandidateAddr, WitnessKey(id), val)
+			c.cacheState.SetState(CandidateAddr, WitnessKey(id), val)
 		}else {
 			log.Error("Failed to encode candidate object on Election", "key", string(WitnessKey(id)), "err", err)
 			continue
@@ -449,7 +497,7 @@ func (c *CandidatePool) RefundBalance (nodeId discover.NodeID, index int) bool{
 		arr = defeatArr
 	}else {
 		var canArr []*Candidate
-		enc := c.state.GetState(CandidateAddr, DefeatKey(nodeId))
+		enc := c.cacheState.GetState(CandidateAddr, DefeatKey(nodeId))
 		if err := rlp.DecodeBytes(enc, &canArr); nil != err {
 			log.Error("Failed to decode candidate object on RefundBalance", "key", nodeId.String(), "err", err)
 			return false
@@ -463,8 +511,8 @@ func (c *CandidatePool) RefundBalance (nodeId discover.NodeID, index int) bool{
 	}
 	// 退款
 	can := arr[index]
-	if (c.state.GetBalance(CandidateAddr).Cmp(new(big.Int).SetUint64(can.Deposit))) < 0 {
-		log.Error("constract account insufficient balance ", c.state.GetBalance(CandidateAddr).String())
+	if (c.cacheState.GetBalance(CandidateAddr).Cmp(new(big.Int).SetUint64(can.Deposit))) < 0 {
+		log.Error("constract account insufficient balance ", c.cacheState.GetBalance(CandidateAddr).String())
 		return false
 	}
 	// 删除落选信息 map
@@ -475,18 +523,27 @@ func (c *CandidatePool) RefundBalance (nodeId discover.NodeID, index int) bool{
 		log.Error("Failed to encode candidate object on RefundBalance", "key", nodeId.String(), "err", err)
 		return false
 	}else {
-		c.state.SetState(CandidateAddr, DefeatKey(nodeId), val)
+		c.cacheState.SetState(CandidateAddr, DefeatKey(nodeId), val)
 	}
 	// 扣减合约余额
-	amount := new(big.Int).Sub(c.state.GetBalance(CandidateAddr), new(big.Int).SetUint64(can.Deposit))
-	c.state.SetBalance(CandidateAddr, amount)
+	amount := new(big.Int).Sub(c.cacheState.GetBalance(CandidateAddr), new(big.Int).SetUint64(can.Deposit))
+	c.cacheState.SetBalance(CandidateAddr, amount)
 	// 增加收益账户余额
-	count := new(big.Int).Add(c.state.GetBalance(can.Owner), new(big.Int).SetUint64(can.Deposit))
-	c.state.SetBalance(can.Owner, count)
+	count := new(big.Int).Add(c.cacheState.GetBalance(can.Owner), new(big.Int).SetUint64(can.Deposit))
+	c.cacheState.SetBalance(can.Owner, count)
 	return true
 }
 
+// 触发替换下轮见证人列表
+func (c *CandidatePool) Switch() bool {
 
+	return false
+}
+
+// 根据块高重置 state
+func (c *CandidatePool) ResetStateByBlockNumber (blockNumber uint64) bool {
+	return false
+}
 
 
 
@@ -497,7 +554,7 @@ func (c *CandidatePool) setImmediate(key discover.NodeID, can *Candidate) {
 		log.Error("Failed to encode candidate object on setImmediate", "key", key.String(), "err", err)
 	}else {
 		// 实时的入围候选人 input trie
-		c.state.SetState(CandidateAddr, ImmediateKey(key), value)
+		c.cacheState.SetState(CandidateAddr, ImmediateKey(key), value)
 		c.count ++
 	}
 
@@ -507,7 +564,7 @@ func (c *CandidatePool) delImmediate (candidateId discover.NodeID) {
 	// map 中删掉
 	delete(c.immediateCandates, candidateId)
 	// trie 中删掉实时信息
-	c.state.SetState(CandidateAddr, ImmediateKey(candidateId), []byte{})
+	c.cacheState.SetState(CandidateAddr, ImmediateKey(candidateId), []byte{})
 	c.count --
 }
 
@@ -531,7 +588,7 @@ func (c *CandidatePool) setDefeat(candidateId discover.NodeID, can *Candidate){
 	if value ,err := rlp.EncodeToBytes(&defeatArr); nil != err {
 		log.Error("Failed to encode candidate object on setDefeat", "key", candidateId.String(), "err", err)
 	}else {
-		c.state.SetState(CandidateAddr, DefeatKey(candidateId), value)
+		c.cacheState.SetState(CandidateAddr, DefeatKey(candidateId), value)
 	}
 }
 
@@ -544,7 +601,7 @@ func (c *CandidatePool) getCandidate(nodeId discover.NodeID) *Candidate{
 		return candidatePtr
 	}
 	// 没有就去树上拿
-	enc := c.state.GetState(CandidateAddr, ImmediateKey(nodeId))
+	enc := c.cacheState.GetState(CandidateAddr, ImmediateKey(nodeId))
 	var data Candidate
 	if err := rlp.DecodeBytes(enc, &data); nil != err {
 		log.Error("Failed to decode candidate object on getCandidate", "key", nodeId.String(), "err", err)
@@ -555,7 +612,9 @@ func (c *CandidatePool) getCandidate(nodeId discover.NodeID) *Candidate{
 }
 
 
-
+//func (c *CandidatePool) GetStorageTrie() Trie {
+//
+//}
 
 
 

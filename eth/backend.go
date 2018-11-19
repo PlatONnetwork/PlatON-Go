@@ -200,6 +200,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		consensusCache = cbft.NewCache(eth.blockchain)
 		cbft.SetConsensusCache(consensusCache)
 		cbft.SetBlockChain(eth.blockchain)
+		cbft.SetDopsOption(eth.blockchain)
 
 	}
 	// Rewind the chain in case of an incompatible config upgrade.

@@ -112,8 +112,9 @@ func (d *dpos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 }
 // dpos 新增func
 // 设置 dpos 竞选池
-func (d *dpos) SetCandidatePool(state *state.StateDB, isgenesis bool){
-	if canPool, err := depos.NewCandidatePool(state, d.config, isgenesis); nil != err {
+func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
+//func (d *dpos) SetCandidatePool(state *state.StateDB, isgenesis bool){
+	if canPool, err := depos.NewCandidatePool(blockChain, d.config); nil != err {
 		log.Error("Failed to init CandidatePool", err)
 	}else {
 		d.candidatePool = canPool
@@ -149,10 +150,22 @@ func (d *dpos) IsDefeat(nodeId discover.NodeID) bool {
 	return d.candidatePool.IsDefeat(nodeId)
 }
 // 揭榜
-func (d *dpos)  Election(nodeId discover.NodeID) bool {
-	return d.candidatePool. Election(nodeId)
+func (d *dpos)  Election() bool {
+	return d.candidatePool.Election()
 }
 // 提款
 func (d *dpos) RefundBalance (nodeId discover.NodeID, index int) bool{
 	return d.candidatePool.RefundBalance (nodeId, index)
+}
+// 根据nodeId查询 质押信息中的 受益者地址
+func (d *dpos) GetOwner (nodeId discover.NodeID) common.Address {
+	return d.candidatePool.GetOwner(nodeId)
+}
+// 触发替换下轮见证人列表
+func (d *dpos)  Switch() bool {
+	return d.candidatePool.Switch()
+}
+// 根据块高重置 state
+func (d *dpos) ResetStateByBlockNumber  (blockNumber uint64) bool {
+	return d.candidatePool.ResetStateByBlockNumber(blockNumber)
 }
