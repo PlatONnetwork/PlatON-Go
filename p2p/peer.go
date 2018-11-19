@@ -298,15 +298,15 @@ func (p *Peer) handle(msg Msg) error {
 	case msg.Code == pingMsg:
 		// modify by Joey
 		log.Info("Receive a Ping message")
-		var pingTime string
+		var pingTime [1]string
 		msg.Decode(&pingTime)
-		log.Info("Response a Pong message", "pingTimeNano", pingTime)
+		log.Info("Response a Pong message", "pingTimeNano", pingTime[0])
 
 		msg.Discard()
 
-		log.Info("Response a Pong message", "pingTimeNano", pingTime)
+		log.Info("Response a Pong message", "pingTimeNano", pingTime[0])
 
-		go SendItems(p.rw, pongMsg, pingTime)
+		go SendItems(p.rw, pongMsg, pingTime[0])
 
 		/*msg.Discard()
 		go SendItems(p.rw, pongMsg)*/
