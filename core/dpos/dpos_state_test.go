@@ -114,21 +114,21 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	printObject("更新后DB中的 " + DefeatPrefix, candidatePool.buildCandidateArrByTrie(DefeatPrefix))
 
 	/** test GetCandidate */
-	can := candidatePool.GetCandidate(discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"))
-	fmt.Println(can)
+	can, _ := candidatePool.GetCandidate(discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"))
+	fmt.Println("GetCandidate", can)
 
 
 	/** test WithdrawCandidate */
 	ok1 := candidatePool.WithdrawCandidate(discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), 99)
-	fmt.Println(ok1)
+	fmt.Println("error", ok1)
 	candidatePool.CommitTrie(false)
 	printObject("退款后DB中的 " + WitnessPrefix, candidatePool.buildCandidatesByTrie(WitnessPrefix))
 	printObject("退款后DB中的 " + ImmediatePrefix, candidatePool.buildCandidatesByTrie(ImmediatePrefix))
 	printObject("退款后DB中的 " + DefeatPrefix, candidatePool.buildCandidateArrByTrie(DefeatPrefix))
 
 	/** test WithdrawCandidate again */
-	ok2 := candidatePool.WithdrawCandidate(discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), 1)
-	fmt.Println(ok2)
+	ok2 := candidatePool.WithdrawCandidate(discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), 12)
+	fmt.Println("error", ok2)
 	candidatePool.CommitTrie(false)
 	printObject("退款后DB中的 " + WitnessPrefix, candidatePool.buildCandidatesByTrie(WitnessPrefix))
 	printObject("退款后DB中的 " + ImmediatePrefix, candidatePool.buildCandidatesByTrie(ImmediatePrefix))

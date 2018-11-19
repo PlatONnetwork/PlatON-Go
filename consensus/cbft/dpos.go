@@ -11,7 +11,6 @@ import (
 
 	"Platon-go/core/dpos"
 	"Platon-go/params"
-	"Platon-go/core/state"
 )
 
 type dpos struct {
@@ -36,14 +35,16 @@ type dpos struct {
 	// dpos 候选人池
 	candidatePool		*depos.CandidatePool
 }
+// 定义一个全局的dpos
+var dposPtr *dpos
 
 func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
-	dpos := &dpos{
+	dposPtr = &dpos{
 		primaryNodeList:   initialNodes,
 		lastCycleBlockNum: 0,
 		config: 			config.DposConfig,
 	}
-	return dpos
+	return dposPtr
 }
 
 func (d *dpos) IsPrimary(addr common.Address) bool {
@@ -122,15 +123,15 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 }
 
 // 质押竞选人
-func (d *dpos) SetCandidate(nodeId discover.NodeID, can *depos.Candidate){
-	d.candidatePool.SetCandidate(nodeId, can)
+func (d *dpos) SetCandidate(nodeId discover.NodeID, can *depos.Candidate) error{
+	return d.candidatePool.SetCandidate(nodeId, can)
 }
 // 查询入围者信息
-func(d *dpos) GetCandidate(nodeId discover.NodeID) *depos.Candidate {
+func(d *dpos) GetCandidate(nodeId discover.NodeID) (*depos.Candidate, error) {
 	return d.candidatePool.GetCandidate(nodeId)
 }
 // 入围者退出质押
-func (d *dpos) WithdrawCandidate (nodeId discover.NodeID, price int) bool {
+func (d *dpos) WithdrawCandidate (nodeId discover.NodeID, price int) error {
 	return d.candidatePool.WithdrawCandidate (nodeId, price)
 }
 // 获取当前实时的入围者列表
@@ -142,11 +143,11 @@ func (d *dpos) GetChairpersons () []*depos.Candidate {
 	return d.candidatePool.GetChairpersons()
 }
 // 获取某竞选者所有可提款信息
-func (d *dpos) GetDefeat(nodeId discover.NodeID) []*depos.Candidate{
+func (d *dpos) GetDefeat(nodeId discover.NodeID) ([]*depos.Candidate, error){
 	return d.candidatePool.GetDefeat(nodeId)
 }
 // 判断某个竞选人是否入围
-func (d *dpos) IsDefeat(nodeId discover.NodeID) bool {
+func (d *dpos) IsDefeat(nodeId discover.NodeID) (bool, error) {
 	return d.candidatePool.IsDefeat(nodeId)
 }
 // 揭榜
@@ -154,8 +155,8 @@ func (d *dpos)  Election() bool {
 	return d.candidatePool.Election()
 }
 // 提款
-func (d *dpos) RefundBalance (nodeId discover.NodeID, index int) bool{
-	return d.candidatePool.RefundBalance (nodeId, index)
+func (d *dpos) RefundBalance (nodeId discover.NodeID) error{
+	return d.candidatePool.RefundBalance (nodeId)
 }
 // 根据nodeId查询 质押信息中的 受益者地址
 func (d *dpos) GetOwner (nodeId discover.NodeID) common.Address {
@@ -168,4 +169,8 @@ func (d *dpos)  Switch() bool {
 // 根据块高重置 state
 func (d *dpos) ResetStateByBlockNumber  (blockNumber uint64) bool {
 	return d.candidatePool.ResetStateByBlockNumber(blockNumber)
+}
+
+func GetDpos() *dpos{
+	return dposPtr
 }
