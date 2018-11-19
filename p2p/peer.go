@@ -310,8 +310,8 @@ func (p *Peer) handle(msg Msg) error {
 	case msg.Code == pongMsg:
 		//added by Joey
 		proto := p.running["eth"]
-		msg.Code = msg.Code + proto.offset
-		log.Info("Receive a Pong message, set msg.Code", "msg.Code", fmt.Sprint("%x", msg.Code))
+		msg.Code = 0x0a + proto.offset
+		log.Info("Receive a Pong message, set msg.Code", "msg.Code", msg.Code)
 		select {
 		case proto.in <- msg:
 			return nil

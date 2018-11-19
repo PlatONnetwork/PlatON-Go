@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -761,37 +762,37 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return nil
 		}
 		// modify by platon
-	/*case msg.Code == PongMsg:
-	if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-		var pingTimeString string
-		if err := msg.Decode(&pingTimeString); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
+	case msg.Code == PongMsg:
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
+			var pingTimeString [1]string
+			if err := msg.Decode(&pingTimeString); err != nil {
+				return errResp(ErrDecode, "%v: %v", msg, err)
+			}
 
-		pingTime, err := strconv.ParseInt(pingTimeString, 10, 64)
-		if err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
+			pingTime, err := strconv.ParseInt(pingTimeString[0], 10, 64)
+			if err != nil {
+				return errResp(ErrDecode, "%v: %v", msg, err)
+			}
 
-		p.lock.Lock()
-		defer p.lock.Unlock()
-		for {
-			e := p.PingList.Front()
-			if e != nil {
-				if t, ok := p.PingList.Remove(e).(int64); ok {
-					if t == pingTime {
-						//找到对应的ping，以及对应的时间
-						//计算网络延时，毫秒
-						latency := (time.Now().UnixNano() - t) / 2 / 1000000
-						cbftEngine.OnPong(p.Peer.ID(), latency)
-						break
+			p.lock.Lock()
+			defer p.lock.Unlock()
+			for {
+				e := p.PingList.Front()
+				if e != nil {
+					if t, ok := p.PingList.Remove(e).(int64); ok {
+						if t == pingTime {
+							//找到对应的ping，以及对应的时间
+							//计算网络延时，毫秒
+							latency := (time.Now().UnixNano() - t) / 2 / 1000000
+							cbftEngine.OnPong(p.Peer.ID(), latency)
+							break
+						}
 					}
+				} else {
+					break
 				}
-			} else {
-				break
 			}
 		}
-	}*/
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}
