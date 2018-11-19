@@ -46,6 +46,7 @@ var PrecompiledContractsDpos = map[common.Address]PrecompiledContract{
 
 type candidateContract struct{
 	contract *Contract
+	state StateDB
 }
 
 func (c *candidateContract) RequiredGas(input []byte) uint64 {
@@ -65,7 +66,11 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	}
 	switch string(params[1]) {
 	case "CandidateDeposit":
-		return candidateDeposit(params[2:], c.contract)
+		return c.candidateDeposit(params[2:])
+	case "CandidateApplyWithdraw":
+		return c.candidateApplyWithdraw(params[2:])
+	case "CandidateWithdraw":
+		return c.candidateWithdraw(params[2:])
 	default:
 		fmt.Println("Undefined function")
 		return nil, ErrUndefFunction
@@ -73,7 +78,7 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 }
 
 //候选人申请 && 增加质押金
-func candidateDeposit(params [][]byte, c *Contract) ([]byte, error)   {
+func (c *candidateContract) candidateDeposit(params [][]byte) ([]byte, error)   {
 
 	//params parse
 	if len(params)!=3 {
@@ -82,7 +87,7 @@ func candidateDeposit(params [][]byte, c *Contract) ([]byte, error)   {
 	nodeId := hex.EncodeToString(params[0])
 	owner := hex.EncodeToString(params[1])
 	fee := binary.BigEndian.Uint64(params[2])
-	deposit := *c.value
+	deposit := *c.contract.value
 	fmt.Println("CandidateDeposit==> nodeId: ", nodeId, " owner: ", owner, " deposit: ", deposit, "  fee: ", fee)
 
 	//todo
@@ -91,20 +96,20 @@ func candidateDeposit(params [][]byte, c *Contract) ([]byte, error)   {
 }
 
 //申请退回质押金
-func candidateApplyWithdraw(params [][]byte, c *Contract) ([]byte, error)  {
+func (c *candidateContract) candidateApplyWithdraw(params [][]byte) ([]byte, error)  {
 
 	if len(params)!=1 {
 		return nil, ErrParamsLen
 	}
 	nodeId := hex.EncodeToString(params[0])
-	from := c.caller.Address().Hex()
+	from := c.contract.caller.Address().Hex()
 
 	fmt.Println("CandidateApplyWithdraw==> nodeId: ", nodeId, " from: ", from)
 	return nil, nil
 }
 
 //质押金提现
-func candidateWithdraw(params [][]byte, c *Contract) ([]byte, error)  {
+func (c *candidateContract) candidateWithdraw(params [][]byte) ([]byte, error)  {
 
 	if len(params)!=1 {
 		return nil, ErrParamsLen
@@ -116,19 +121,19 @@ func candidateWithdraw(params [][]byte, c *Contract) ([]byte, error)  {
 }
 
 //获取候选人详情
-func candidateDetails(params [][]byte, c *Contract)([]byte, error)  {
+func (c *candidateContract) candidateDetails(params [][]byte)([]byte, error)  {
 
 	return nil, nil
 }
 
 //获取当前区块候选人列表 0~200
-func candidateList(params [][]byte, c *Contract) ([]byte, error) {
+func (c *candidateContract) candidateList(params [][]byte) ([]byte, error) {
 
 	return nil, nil
 }
 
 //获取当前区块轮次验证人列表 25个
-func verifiersList(params [][]byte, c *Contract) ([]byte, error) {
+func (c *candidateContract) verifiersList(params [][]byte) ([]byte, error) {
 
 	return nil, nil
 }
