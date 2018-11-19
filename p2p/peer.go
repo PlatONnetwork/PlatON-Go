@@ -17,6 +17,7 @@
 package p2p
 
 import (
+	"container/list"
 	"errors"
 	"fmt"
 	"io"
@@ -112,6 +113,9 @@ type Peer struct {
 
 	// events receives message send / receive events if set
 	events *event.Feed
+
+	lock     sync.RWMutex
+	PingList *list.List
 }
 
 // NewPeer returns a peer for testing purposes.
@@ -178,6 +182,7 @@ func newPeer(conn *conn, protocols []Protocol) *Peer {
 		protoErr: make(chan error, len(protomap)+1), // protocols + pingLoop
 		closed:   make(chan struct{}),
 		log:      log.New("id", conn.id, "conn", conn.flags),
+		PingList: list.New(),
 	}
 	return p
 }
@@ -243,7 +248,19 @@ func (p *Peer) pingLoop() {
 	for {
 		select {
 		case <-ping.C:
-			if err := SendItems(p.rw, pingMsg); err != nil {
+			//modified by Joey
+			pingTime := time.Now().UnixNano()
+			p.lock.Lock()
+			defer p.lock.Unlock()
+
+			if p.PingList.Len() > 5 {
+				front := p.PingList.Front()
+				p.PingList.Remove(front)
+			}
+			p.PingList.PushBack(pingTime)
+
+			log.Info("send a Ping message", "pingTimeNano", pingTime)
+			if err := SendItems(p.rw, pingMsg, pingTime); err != nil {
 				p.protoErr <- err
 				return
 			}
@@ -273,11 +290,28 @@ func (p *Peer) readLoop(errc chan<- error) {
 func (p *Peer) handle(msg Msg) error {
 	switch {
 	case msg.Code == pingMsg:
+		//msg.Discard()
+		//go SendItems(p.rw, pongMsg)
+
+		// modify by Joey
+		var pingTime int64
+		msg.Decode(&pingTime)
 		msg.Discard()
-		log.Info("We got the Ping message, then we should send a Pong Message...........")
-		go SendItems(p.rw, pongMsg)
+
+		log.Info("Receive a Ping message, then response a Pong message", "pingTimeNano", pingTime)
+		go SendItems(p.rw, pongMsg, pingTime)
 	case msg.Code == pongMsg:
-		log.Info("We got the Pong message...........")
+		//added by Joey
+		proto := p.running["eth"]
+		msg.Code = msg.Code + proto.offset
+
+		log.Info("Receive a Pong message")
+		select {
+		case proto.in <- msg:
+			return nil
+		case <-p.closed:
+			return io.EOF
+		}
 	case msg.Code == discMsg:
 		var reason [1]DiscReason
 		// This is the last message. We don't need to discard or
