@@ -168,6 +168,7 @@ type DposConfig struct {
 	MaxCount				uint64					`json:"maxCount"`
 	// 最大允许见证人数目
 	MaxChair				uint64					`json:"maxChair"`
+	RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
 	// 内置见证人
 	Chairs 					[]*CandidateConfig 		`json:"chairs"`
 }

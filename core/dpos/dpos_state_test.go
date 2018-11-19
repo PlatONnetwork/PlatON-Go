@@ -33,7 +33,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 	can_Configs := []*params.CandidateConfig {
 		&params.CandidateConfig{
-			Deposit:			0,
+			Deposit:			new(big.Int).SetUint64(0),
 			BlockNumber: 	 	new(big.Int).SetUint64(10),
 			TxIndex: 		 	2,
 			CandidateId:		discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
@@ -41,7 +41,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 			Port: 			 	"8545",
 		},
 		&params.CandidateConfig{
-			Deposit:			0,
+			Deposit:			new(big.Int).SetUint64(0),
 			BlockNumber: 	 	new(big.Int).SetUint64(10),
 			TxIndex: 		 	2,
 			CandidateId:		discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
@@ -49,7 +49,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 			Port: 			 	"8546",
 		},
 		&params.CandidateConfig{
-			Deposit:			0,
+			Deposit:			new(big.Int).SetUint64(0),
 			BlockNumber: 	 	new(big.Int).SetUint64(10),
 			TxIndex: 		 	2,
 			CandidateId:		discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
@@ -66,6 +66,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	configs := params.DposConfig{
 		MaxChair: 1,
 		MaxCount: 3,
+		RefundBlockNumber: 	1,
 		Candidates: can_Configs,
 	}
 	var candidatePool *CandidatePool
@@ -92,7 +93,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 
 	candidate := &Candidate{
-		Deposit: 		100,
+		Deposit: 		new(big.Int).SetUint64(100),
 		BlockNumber:    new(big.Int).SetUint64(7),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
 		TxIndex:  		6,
@@ -143,7 +144,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	printObject("见证人", canArr)
 
 	/** test GetDefeat */
-
+	//candidatePool.GetDefeat()
 
 	/** test IsDefeat */
 

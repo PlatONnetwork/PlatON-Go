@@ -231,10 +231,11 @@ type CbftConfig struct {
 type DposConfig struct{
 	MaxCount				uint64
 	MaxChair				uint64
+	RefundBlockNumber 		uint64
 	Candidates 				[]*CandidateConfig
 }
 type CandidateConfig struct {
-	Deposit			uint64
+	Deposit			*big.Int
 	BlockNumber 	*big.Int
 	TxIndex 		uint32
 	CandidateId 	discover.NodeID

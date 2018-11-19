@@ -10,7 +10,7 @@ import (
 type Candidate struct {
 
 	// 抵押金额(保证金)数目
-	Deposit			uint64
+	Deposit			*big.Int
 	// 发生抵押时的当前块高
 	BlockNumber 	*big.Int
 	// 发生抵押时的tx index

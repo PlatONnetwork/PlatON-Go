@@ -595,7 +595,7 @@ func setDposConfig (dposConfig *DposConfig) *params.DposConfig{
 
 	for _, dposConf := range dposConfig.Chairs {
 		candidateConf := &params.CandidateConfig{
-			Deposit:			dposConf.Deposit,
+			Deposit:		new(big.Int).SetUint64(dposConf.Deposit),
 			BlockNumber: 	new(big.Int).SetUint64(dposConf.BlockNumber),
 			TxIndex: 		dposConf.TxIndex,
 			CandidateId: 	discover.MustHexID(dposConf.CandidateId),
@@ -609,6 +609,7 @@ func setDposConfig (dposConfig *DposConfig) *params.DposConfig{
 	return &params.DposConfig{
 		MaxCount: 		dposConfig.MaxCount,
 		MaxChair: 		dposConfig.MaxChair,
+		RefundBlockNumber: 	dposConfig.RefundBlockNumber,
 		Candidates: 	candidateConfigs,
 	}
 }

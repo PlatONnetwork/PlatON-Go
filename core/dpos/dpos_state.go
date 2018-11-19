@@ -112,6 +112,7 @@ func NewCandidatePool(blockChain *core.BlockChain, configs *params.DposConfig) (
 		count: 					uint64(len(immediateMap)),
 		maxCount:				configs.MaxCount,
 		maxChair:				configs.MaxChair,
+		RefundBlockNumber: 		configs.RefundBlockNumber,
 		originCandidates: 		originMap,
 		immediateCandates: 		immediateMap,
 		defeatCandidates: 		defeatMap,
@@ -345,10 +346,10 @@ func (c *CandidatePool) WithdrawCandidate (nodeId discover.NodeID, price int) er
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	// 判断退押 金额
-	if can.Deposit < uint64(price) {
+	if (can.Deposit.Cmp(new(big.Int).SetUint64(uint64(price)))) < 0 {
 		log.Error("withdraw failed refund price must less or equal deposit", "key", nodeId.String())
 		return WithdrawPriceErr
-	}else if can.Deposit == uint64(price) { // 全额退出质押
+	}else if (can.Deposit.Cmp(new(big.Int).SetUint64(uint64(price)))) == 0 { // 全额退出质押
 		c.delImmediate(nodeId)
 		// 追加到落选
 		if err := c.setDefeat(nodeId, can); nil != err {
@@ -359,7 +360,7 @@ func (c *CandidatePool) WithdrawCandidate (nodeId discover.NodeID, price int) er
 			if v.CandidateId == nodeId {
 				// 剩下部分
 				canNew := &Candidate{
-					Deposit:		can.Deposit - uint64(price),
+					Deposit:		new(big.Int).Sub(can.Deposit, new(big.Int).SetUint64(uint64(price))),
 					BlockNumber: 	can.BlockNumber,
 					TxIndex: 		can.TxIndex,
 					CandidateId: 	v.CandidateId,
@@ -368,15 +369,13 @@ func (c *CandidatePool) WithdrawCandidate (nodeId discover.NodeID, price int) er
 					Owner: 			can.Owner,
 					From: 			can.From,
 				}
-				//c.candidateCacheArr = append(c.candidateCacheArr[:i], c.candidateCacheArr[i+1:]...)
-				//c.candidateCacheArr = append(c.candidateCacheArr, canNew)
 				c.candidateCacheArr[i] = canNew
 				// 剩余部分
 				if err := c.setImmediate(nodeId, canNew); nil != err {
 					return err
 				}
 				canDefeat := &Candidate{
-					Deposit: 		uint64(price),
+					Deposit: 		new(big.Int).SetUint64(uint64(price)),
 					BlockNumber: 	can.BlockNumber,
 					TxIndex: 		can.TxIndex,
 					CandidateId: 	v.CandidateId,
@@ -717,7 +716,7 @@ func breakUpMap(origin, newData map[discover.NodeID]*Candidate) (map[discover.No
 
 func (c *Candidate) compare(can *Candidate) int {
 	// 质押金大的放前面
-	if c.Deposit > can.Deposit {
+	if c.Deposit.Cmp(can.Deposit) > 0 {
 		return 1
 	}else if c.Deposit == can.Deposit {
 		// 块高小的放前面
