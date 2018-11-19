@@ -763,7 +763,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// modify by platon
 	case msg.Code == PongMsg:
-		log.Debug("handle a eth Pong message")
+		curTime := time.Now().UnixNano()
+		log.Debug("handle a eth Pong message", "curTime", curTime)
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
 			var pingTime [1]string
 			if err := msg.Decode(&pingTime); err != nil {
@@ -784,7 +785,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 								return errResp(ErrDecode, "%v: %v", msg, err)
 							}
 							//发出ping到收到pong的总时间/2，再转成毫秒
-							latency := (time.Now().UnixNano() - tInt64) / 2 / 1000000
+							log.Debug("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
+							latency := (curTime - tInt64) / 2 / 1000000
 							cbftEngine.OnPong(p.Peer.ID(), latency)
 							break
 						}
