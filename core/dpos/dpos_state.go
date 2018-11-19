@@ -13,7 +13,8 @@ import (
 	"Platon-go/p2p/discover"
 	"math/big"
 	"Platon-go/core"
-	"github.com/go-errors/errors"
+	"errors"
+	//"github.com/go-errors/errors"
 )
 
 
