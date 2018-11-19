@@ -1013,7 +1013,7 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 
 //receive the new block signature
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, rcvSign *cbfttypes.BlockSignature) error {
-	log.Info("Received a new signature", "Hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
+	log.Info("Receive a new signature", "Hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
 
 	ok, err := verifySign(nodeID, rcvSign.SignHash, rcvSign.Signature[:])
 	if err != nil {
@@ -1033,7 +1033,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 //receive the new block
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Info("Received a new block, put into chanel", "Hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
+	log.Info("Receive a new block, put into chanel", "Hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
 
 	cbft.dataReceiveCh <- rcvBlock
 	return nil
@@ -1042,8 +1042,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 //receive the new block
 //netLatency：当前节点和nodeID直接的网络延迟
 func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) {
-
-	log.Info("Received a report for net latency", "Hash", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency)
+	log.Info("Receive a net latency report", "Hash", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency)
 
 	latencyList, exist := cbft.netLatencyMap[nodeID]
 	if !exist {
@@ -1109,82 +1108,53 @@ func (cbft *Cbft) storeIrreversibles(exts []*BlockExt) {
 //to check if it's my turn to produce blocks
 func (cbft *Cbft) inTurn() bool {
 	curTime := toMilliseconds(time.Now())
+	inturn := cbft.calTurn(curTime, cbft.config.NodeID)
+	log.Info("inTurn", "result", inturn)
+	return inturn
 
-	nodeIdx := cbft.dpos.NodeIndex(cbft.config.NodeID)
-	start := cbft.dpos.StartTimeOfEpoch() * 1000
-	if nodeIdx >= 0 {
-		durationMilliseconds := cbft.config.Duration * 1000
-		totalDuration := durationMilliseconds * int64(len(cbft.dpos.primaryNodeList))
-
-		startTime := nodeIdx * (durationMilliseconds)
-
-		curTime := (curTime - start) % totalDuration
-
-		endTime := (nodeIdx + 1) * durationMilliseconds
-
-		log.Info("calTurn", "nodeIdx", nodeIdx, "startTime", startTime, "endTime", endTime, "curTime", curTime, "curTime", curTime, "startTimeOfEpoch", start)
-
-		if curTime >= startTime && curTime < endTime {
-			return true
-		}
-	}
-	return false
 }
 
 //time in milliseconds
 func (cbft *Cbft) inTurnVerify(curTime int64, nodeID discover.NodeID) bool {
-
-	nodeIdx := cbft.dpos.NodeIndex(nodeID)
-	start := cbft.dpos.StartTimeOfEpoch() * 1000
-	durationPerNode := cbft.config.Duration * 1000
-	durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
-
-	avgLatency := cbft.avgLatency(nodeID)
-	blockTime := curTime - avgLatency
-
-	rounds := (curTime - start) / durationPerTurn
-
-	startTimeOfCurTurn := start + durationPerTurn*rounds
-
-	startTime := startTimeOfCurTurn + durationPerNode*nodeIdx - avgLatency/3
-	endTime := startTimeOfCurTurn + durationPerNode*(nodeIdx+1) - avgLatency*2/3
-
-	log.Info("inTurnVerify", "start", start, "startTime", startTime, "endTime", endTime, "blockTime", blockTime, "curTime", curTime, "avgLatency", avgLatency)
-
-	if blockTime > startTime && blockTime < endTime {
-		return true
-	} else {
-		return false
-	}
+	latency := cbft.avgLatency(nodeID)
+	inTurnVerify := cbft.calTurn(curTime-latency, nodeID)
+	log.Info("inTurnVerify", "result", inTurnVerify, "latency", latency)
+	return inTurnVerify
 }
 
 //time in milliseconds
 func (cbft *Cbft) shouldKeepIt(curTime int64, nodeID discover.NodeID) bool {
-
 	offset := 1000 * (cbft.config.Duration/2 - 1)
-
-	nodeIdx := cbft.dpos.NodeIndex(nodeID)
-	start := cbft.dpos.StartTimeOfEpoch() * 1000
-	durationPerNode := cbft.config.Duration * 1000
-	durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
-
-	avgLatency := cbft.avgLatency(nodeID)
-	blockTime := curTime - avgLatency
-
-	rounds := (curTime - start) / durationPerTurn
-
-	startTimeOfCurTurn := start + durationPerTurn*rounds
-
-	startTime := startTimeOfCurTurn + durationPerNode*nodeIdx - offset
-	endTime := startTimeOfCurTurn + durationPerNode*(nodeIdx+1) + offset
-
-	log.Info("shouldKeepIt", "start", start, "startTime", startTime, "endTime", endTime, "blockTime", blockTime, "curTime", curTime, "avgLatency", avgLatency)
-
-	if blockTime > startTime && blockTime < endTime {
-		return true
-	} else {
-		return false
+	keepIt := cbft.calTurn(curTime-offset, nodeID)
+	if !keepIt {
+		keepIt = cbft.calTurn(curTime+offset, nodeID)
 	}
+	log.Info("shouldKeepIt", "result", keepIt, "offset", offset)
+	return keepIt
+}
+
+//time in milliseconds
+func (cbft *Cbft) calTurn(curTime int64, nodeID discover.NodeID) bool {
+	nodeIdx := cbft.dpos.NodeIndex(nodeID)
+	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
+
+	if nodeIdx >= 0 {
+		durationPerNode := cbft.config.Duration * 1000
+		durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
+
+		min := nodeIdx * (durationPerNode)
+
+		value := (curTime - startEpoch) % durationPerTurn
+
+		max := (nodeIdx + 1) * durationPerNode
+
+		log.Info("calTurn", "idx", nodeIdx, "min", min, "value", value, "max", max, "curTime", curTime, "startEpoch", startEpoch)
+
+		if value > min && value < max {
+			return true
+		}
+	}
+	return false
 }
 
 // producer's signature = header.Extra[32:]
