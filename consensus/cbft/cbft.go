@@ -67,7 +67,7 @@ var cbft *Cbft
 
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult) *Cbft {
-	_dpos := newDpos(config.InitialNodes)
+	_dpos := newDpos(config.InitialNodes, config)
 
 	cbft = &Cbft{
 		config:          config,
@@ -463,6 +463,18 @@ func SetBlockChain(blockChain *core.BlockChain) {
 
 	cbft.irreversible = irrBlock
 	cbft.forNext = irrBlock
+
+	if statedb, err := blockChain.State(); nil != err {
+		log.Error("reference statedb failed", err)
+	}else {
+		var isgenesis bool
+		//fmt.Printf("genesis: %+v, current: %+v \n", blockChain.Genesis(), currentBlock)
+		if blockChain.Genesis().NumberU64() == currentBlock.NumberU64() {
+			isgenesis = true
+			//fmt.Println("YES")
+		}
+		cbft.dpos.SetCandidatePool(statedb, isgenesis)
+	}
 
 }
 
@@ -1203,3 +1215,4 @@ func (cbft *Cbft) getThreshold() int {
 func toMilliseconds(t time.Time) int64 {
 	return t.UnixNano() / 1e6
 }
+

@@ -355,11 +355,14 @@ func getKeyValue(address common.Address, key []byte, value []byte) (string, comm
 	buffer.WriteString(string(key))
 	keyTrie := buffer.String()
 
+	//if value != nil && !bytes.Equal(value,[]byte{}){
 	buffer.Reset()
 	buffer.WriteString(string(key))
 	buffer.WriteString(string(value))
 	valueKey := sha3.Sum256(buffer.Bytes())
 	return keyTrie, valueKey, value
+	//}
+	//return keyTrie, common.Hash{}, value
 }
 
 // Suicide marks the given account as suicided.

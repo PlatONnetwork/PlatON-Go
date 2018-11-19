@@ -7,20 +7,41 @@ import (
 	"Platon-go/log"
 	"Platon-go/p2p/discover"
 	"bytes"
+	"sync"
+
+	"Platon-go/core/dpos"
+	"Platon-go/params"
+	"Platon-go/core/state"
 )
 
 type dpos struct {
-	primaryNodeList   []discover.NodeID
-	chain             *core.BlockChain
-	lastCycleBlockNum uint64
-	startTimeOfEpoch  int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
+	primaryNodeList   	[]discover.NodeID
+	chain             	*core.BlockChain
+	lastCycleBlockNum 	uint64
+	startTimeOfEpoch  	int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
+	config              *params.DposConfig
 
+	// dpos
+
+	// 是否正在 揭榜
+	publishing 			bool
+
+	// 读写锁
+	lock 				sync.RWMutex
+	// 当前轮见证人
+	chairperson			common.Hash
+	// 下一轮见证人
+	nextChairperson  	common.Hash
+
+	// dpos 候选人池
+	candidatePool		*depos.CandidatePool
 }
 
-func newDpos(initialNodes []discover.NodeID) *dpos {
+func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
 	dpos := &dpos{
 		primaryNodeList:   initialNodes,
 		lastCycleBlockNum: 0,
+		config: 			config.DposConfig,
 	}
 	return dpos
 }
@@ -88,4 +109,50 @@ func (d *dpos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 	// 设置最后一轮共识结束时的出块时间
 	d.startTimeOfEpoch = startTimeOfEpoch
 	log.Info("设置最后一轮共识结束时的出块时间", "startTimeOfEpoch", startTimeOfEpoch)
+}
+// dpos 新增func
+// 设置 dpos 竞选池
+func (d *dpos) SetCandidatePool(state *state.StateDB, isgenesis bool){
+	if canPool, err := depos.NewCandidatePool(state, d.config, isgenesis); nil != err {
+		log.Error("Failed to init CandidatePool", err)
+	}else {
+		d.candidatePool = canPool
+	}
+}
+
+// 质押竞选人
+func (d *dpos) SetCandidate(nodeId discover.NodeID, can *depos.Candidate){
+	d.candidatePool.SetCandidate(nodeId, can)
+}
+// 查询入围者信息
+func(d *dpos) GetCandidate(nodeId discover.NodeID) *depos.Candidate {
+	return d.candidatePool.GetCandidate(nodeId)
+}
+// 入围者退出质押
+func (d *dpos) WithdrawCandidate (nodeId discover.NodeID, price int) bool {
+	return d.candidatePool.WithdrawCandidate (nodeId, price)
+}
+// 获取当前实时的入围者列表
+func (d *dpos) GetChosens () []*depos.Candidate {
+	return d.candidatePool.GetChosens()
+}
+// 获取当前见证人列表
+func (d *dpos) GetChairpersons () []*depos.Candidate {
+	return d.candidatePool.GetChairpersons()
+}
+// 获取某竞选者所有可提款信息
+func (d *dpos) GetDefeat(nodeId discover.NodeID) []*depos.Candidate{
+	return d.candidatePool.GetDefeat(nodeId)
+}
+// 判断某个竞选人是否入围
+func (d *dpos) IsDefeat(nodeId discover.NodeID) bool {
+	return d.candidatePool.IsDefeat(nodeId)
+}
+// 揭榜
+func (d *dpos)  Election(nodeId discover.NodeID) bool {
+	return d.candidatePool. Election(nodeId)
+}
+// 提款
+func (d *dpos) RefundBalance (nodeId discover.NodeID, index int) bool{
+	return d.candidatePool.RefundBalance (nodeId, index)
 }

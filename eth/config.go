@@ -37,18 +37,19 @@ import (
 )
 
 const (
-	datadirCbftConfig     = "cbft.json"  // Path within the datadir to the cbft config
+	datadirCbftConfig = "cbft.json" // Path within the datadir to the cbft config
+	datadirDposConfig = "dpos.json"
 )
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FastSync,
 	CbftConfig: CbftConfig{
-		Period:	1,
-		Epoch:	250000,
-		MaxLatency:	600,
+		Period:           1,
+		Epoch:            250000,
+		MaxLatency:       600,
 		LegalCoefficient: 1.0,
-		Duration: 10,
+		Duration:         10,
 	},
 	Ethash: ethash.Config{
 		CacheDir:       "ethash",
@@ -96,7 +97,8 @@ type Config struct {
 	Genesis *core.Genesis `toml:",omitempty"`
 
 	// modify by platon
-	CbftConfig	CbftConfig `toml:",omitempty"`
+	CbftConfig CbftConfig `toml:",omitempty"`
+	DposConfig DposConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
@@ -160,6 +162,32 @@ type CbftConfig struct {
 	//PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
 }
 
+// modify by platon
+type DposConfig struct {
+	// 最大允许入选人数目
+	MaxCount				uint64					`json:"maxCount"`
+	// 最大允许见证人数目
+	MaxChair				uint64					`json:"maxChair"`
+	// 内置见证人
+	Chairs 					[]*CandidateConfig 		`json:"chairs"`
+}
+// modify by platon
+type CandidateConfig struct {
+	// 抵押金额(保证金)数目
+	Deposit 				uint64 			`json:"deposit"`
+	// 发生抵押时的当前块高
+	BlockNumber			 	uint64 			`json:"blocknumber"`
+	// 发生抵押时的tx index
+	TxIndex 				uint32 			`json:"txindex"`
+	// 候选人Id
+	CandidateId 			string 			`json:"candidateid"`
+	//
+	Host 					string 			`json:"host"`
+	Port 					string 			`json:"port"`
+	Owner 					string			`json:"owner"`
+	From 					string 			`json:"from"`
+}
+
 type configMarshaling struct {
 	MinerExtraData hexutil.Bytes
 }
@@ -177,6 +205,23 @@ func (c *Config) parsePersistentCbftConfig(path string) *CbftConfig {
 	}
 	// Load the nodes from the config file.
 	config := CbftConfig{}
+	if err := common.LoadJSON(path, &config); err != nil {
+		log.Error(fmt.Sprintf("Can't load cbft config file %s: %v", path, err))
+		return nil
+	}
+	return &config
+}
+
+func (c *Config) LoadDposConfig(nodeConfig node.Config) *DposConfig {
+	return c.parsePersistentDposConfig(filepath.Join(nodeConfig.DataDir, datadirDposConfig))
+}
+
+func (c *Config) parsePersistentDposConfig(path string) *DposConfig {
+	if _, err := os.Stat(path); err != nil {
+		return nil
+	}
+	// Load the nodes from the config file.
+	config := DposConfig{}
 	if err := common.LoadJSON(path, &config); err != nil {
 		log.Error(fmt.Sprintf("Can't load cbft config file %s: %v", path, err))
 		return nil

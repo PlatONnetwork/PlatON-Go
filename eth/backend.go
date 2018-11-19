@@ -52,6 +52,7 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"Platon-go/rpc"
+	"Platon-go/p2p/discover"
 )
 
 type LesServer interface {
@@ -140,7 +141,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
 		accountManager: ctx.AccountManager,
-		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb, blockSignatureCh, cbftResultCh, &config.CbftConfig),
+		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb, blockSignatureCh, cbftResultCh, &config.CbftConfig, &config.DposConfig),
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
 		gasPrice:       config.MinerGasPrice,
@@ -199,6 +200,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		consensusCache = cbft.NewCache(eth.blockchain)
 		cbft.SetConsensusCache(consensusCache)
 		cbft.SetBlockChain(eth.blockchain)
+
 	}
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
@@ -265,7 +267,7 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 // modify by platon
 // 默认创建Cbft engine，同时CreateConsensusEngine方法增加blockSignatureCh、cbftResultCh入参
 func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool,
-	db ethdb.Database, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, cbftConfig *CbftConfig) consensus.Engine {
+	db ethdb.Database, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, cbftConfig *CbftConfig, dposConfig *DposConfig) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	// modify by platon
 	if chainConfig.Cbft != nil {
@@ -274,9 +276,9 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		chainConfig.Cbft.MaxLatency = cbftConfig.MaxLatency
 		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
 		chainConfig.Cbft.Duration = cbftConfig.Duration
+		chainConfig.Cbft.DposConfig = setDposConfig(dposConfig)
 		return cbft.New(chainConfig.Cbft, blockSignatureCh, cbftResultCh)
 	}
-
 	if chainConfig.Clique != nil {
 		return clique.New(chainConfig.Clique, db)
 	}
@@ -584,4 +586,28 @@ func (s *Ethereum) Stop() error {
 	s.chainDb.Close()
 	close(s.shutdownChan)
 	return nil
+}
+
+
+func setDposConfig (dposConfig *DposConfig) *params.DposConfig{
+	candidateConfigs := make([]*params.CandidateConfig, 0)
+
+	for _, dposConf := range dposConfig.Chairs {
+		candidateConf := &params.CandidateConfig{
+			Deposit:			dposConf.Deposit,
+			BlockNumber: 	new(big.Int).SetUint64(dposConf.BlockNumber),
+			TxIndex: 		dposConf.TxIndex,
+			CandidateId: 	discover.MustHexID(dposConf.CandidateId),
+			Host: 			dposConf.Host,
+			Port: 			dposConf.Port,
+			Owner: 			common.HexToAddress(dposConf.Owner),
+			From: 			common.HexToAddress(dposConf.From),
+		}
+		candidateConfigs = append(candidateConfigs, candidateConf)
+	}
+	return &params.DposConfig{
+		MaxCount: 		dposConfig.MaxCount,
+		MaxChair: 		dposConfig.MaxChair,
+		Candidates: 	candidateConfigs,
+	}
 }

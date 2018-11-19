@@ -17,7 +17,9 @@
 package state
 
 import (
+	"Platon-go/trie"
 	"bytes"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -25,6 +27,8 @@ import (
 	"Platon-go/crypto"
 	"Platon-go/ethdb"
 	checker "gopkg.in/check.v1"
+	//"Platon-go/rlp"
+	"Platon-go/rlp"
 )
 
 type StateSuite struct {
@@ -95,11 +99,11 @@ func (s *StateSuite) TestNull(c *checker.C) {
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
 	s.state.CreateAccount(address)
 	//value := common.FromHex("0x823140710bf13990e4500136726d8b55")
-	value := []byte{}
+	//value := nil
 	key := []byte{}
 
 	//s.state.SetState(address, common.Hash{}, value)
-	s.state.SetState(address, key, value)
+	s.state.SetState(address, key, nil)
 	s.state.Commit(false)
 
 	if value := s.state.GetState(address, common.Hash{}.Bytes()); bytes.Compare(value, common.Hash{}.Bytes()) != 0 {
@@ -244,5 +248,148 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 		if so1.originStorage[k] != v {
 			t.Errorf("Origin storage key %x mismatch: have %v, want none.", k, v)
 		}
+	}
+}
+
+func TestEmptyByte(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+	state, _ := New(common.Hash{}, NewDatabase(db))
+
+	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
+	state.CreateAccount(address)
+	so := state.getStateObject(address)
+
+	//value := common.FromHex("0x823140710bf13990e4500136726d8b55")
+	//pvalue := []byte("b")
+	type Candidate struct {
+		Deposit			uint64
+		BlockNumber 	*big.Int
+		TxIndex 		uint32
+		CandidateId 	string
+		Host 			string
+		Port 			string
+	}
+	can := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "啦啦", Host: "10.0.0.0"}
+	prefix := []byte("im")
+	pvalue, _ := rlp.EncodeToBytes(&can)
+	//pvalue := common.Int32ToBytes(32)
+	key := append(prefix, []byte("a")...)
+	//fmt.Printf("存进去之前: %+v \n", can)
+	//s.state.SetState(address, common.Hash{}, value)
+	state.SetState(address, key, pvalue)
+	state.Commit(false)
+
+	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty current value, got %x", value)
+	}
+	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty committed value, got %x", value)
+	}
+
+	state.trie.NodeIterator(nil)
+	it := trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		var a Candidate
+		 rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
+		fmt.Println("初始化对比键值对", string(so.db.trie.GetKey(it.Key)), "== ", &a)
+		//trieKey := so.db.trie.GetKey(it.Key)
+		//fmt.Println(address.String())
+		//fmt.Println([]byte(address.String()))
+		//cleanKey := trieKey[len([]byte(address.String())):]
+		//fmt.Println(string(cleanKey))
+		//strings.HasPrefix(string(keyBytes), prefix)
+		//fmt.Println("初始化：", string(trieKey))
+
+		//k := common.BytesToHash(cleanKey[len([]byte(prefix)):])
+		//fmt.Println("HASH1", common.BytesToHash([]byte("a")))
+		//fmt.Println("hash2", k)
+		//fmt.Printf("DB结构： %v == %+v \n", k, &a)
+	}
+
+	can2 := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "OK", Host: "10.0.0.0"}
+	prefix2 := []byte("im")
+	pvalue2, _ := rlp.EncodeToBytes(&can2)
+	//pvalue := common.Int32ToBytes(32)
+	key2 := append(prefix2, []byte("b")...)
+	//fmt.Printf("存进去之前: %+v \n", can)
+	//s.state.SetState(address, common.Hash{}, value)
+	state.SetState(address, key2, pvalue2)
+	state.Commit(false)
+
+	if value := state.GetState(address, key2); !bytes.Equal(value, pvalue2) {
+		t.Errorf("expected empty current value, got %x", value)
+	}
+	if value := state.GetCommittedState(address, key2); !bytes.Equal(value, pvalue2) {
+		t.Errorf("expected empty committed value, got %x", value)
+	}
+
+	state.trie.NodeIterator(nil)
+	it = trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		var a Candidate
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
+		fmt.Println("添加后对比键值对", string(so.db.trie.GetKey(it.Key)), "== ", &a)
+	}
+
+
+
+	pvalue = []byte{}
+	state.SetState(address, key, pvalue)
+	state.Commit(false)
+
+	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty current value, got %x", value)
+	}
+	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty committed value, got %x", value)
+	}
+
+	state.trie.NodeIterator(nil)
+	it = trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		var a Candidate
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
+		fmt.Println("删除后对比键值对", string(so.db.trie.GetKey(it.Key)), "==", &a)
+	}
+}
+
+func TestSlice(t *testing.T){
+	db := ethdb.NewMemDatabase()
+	state, _ := New(common.Hash{}, NewDatabase(db))
+
+	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
+	state.CreateAccount(address)
+	so := state.getStateObject(address)
+
+	type Candidate struct {
+		Deposit			uint64
+		BlockNumber 	*big.Int
+		TxIndex 		uint32
+		CandidateId 	string
+		Host 			string
+		Port 			string
+	}
+	can1 := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "啦啦", Host: "10.0.0.0"}
+	can2 := Candidate{Deposit: 200, BlockNumber: new(big.Int).SetUint64(13), CandidateId: "哈哈", Host: "127.0.0.1"}
+	arr := []*Candidate{&can1, &can2}
+	prefix := []byte("im")
+	pvalue, _ := rlp.EncodeToBytes(&arr)
+	key := append(prefix, []byte("a")...)
+	state.SetState(address, key, pvalue)
+	state.Commit(false)
+
+	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty current value, got %x", value)
+	}
+	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty committed value, got %x", value)
+	}
+
+	state.trie.NodeIterator(nil)
+	it := trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		var arr []*Candidate
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &arr)
+		fmt.Printf("初始化对比键值对 %v == &+v", string(so.db.trie.GetKey(it.Key)), &arr)
 	}
 }
