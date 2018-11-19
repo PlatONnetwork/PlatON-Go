@@ -23,6 +23,7 @@ import (
 	"io"
 	"net"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -249,9 +250,7 @@ func (p *Peer) pingLoop() {
 		select {
 		case <-ping.C:
 			//modified by Joey
-			//pingTime := strconv.FormatInt(time.Now().UnixNano(), 10)
-
-			pingTime := time.Now().UnixNano()
+			pingTime := strconv.FormatInt(time.Now().UnixNano(), 10)
 
 			p.lock.Lock()
 			defer p.lock.Unlock()
@@ -298,7 +297,7 @@ func (p *Peer) handle(msg Msg) error {
 	switch {
 	case msg.Code == pingMsg:
 		// modify by Joey
-		var pingTime [1]int64
+		var pingTime [1]string
 		msg.Decode(&pingTime)
 		log.Info("Receive a Ping message, then response a Pong message", "pingTimeNano", pingTime[0])
 
@@ -310,7 +309,6 @@ func (p *Peer) handle(msg Msg) error {
 
 	case msg.Code == pongMsg:
 		//added by Joey
-
 		proto := p.running["eth"]
 		msg.Code = msg.Code + proto.offset
 		log.Info("Receive a Pong message, set msg.Code", "msg.Code", fmt.Sprint("%x", msg.Code))
