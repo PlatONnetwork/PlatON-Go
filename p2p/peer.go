@@ -290,22 +290,25 @@ func (p *Peer) readLoop(errc chan<- error) {
 func (p *Peer) handle(msg Msg) error {
 	switch {
 	case msg.Code == pingMsg:
+		// modify by Joey
+		log.Info("Receive a Ping message")
+		var pingTime int64
+		msg.Decode(&pingTime)
+
+		msg.Discard()
+
+		log.Info("Response a Pong message", "pingTimeNano", pingTime)
+		go SendItems(p.rw, pongMsg, pingTime)
+
 		//msg.Discard()
 		//go SendItems(p.rw, pongMsg)
 
-		// modify by Joey
-		var pingTime int64
-		msg.Decode(&pingTime)
-		msg.Discard()
-
-		log.Info("Receive a Ping message, then response a Pong message", "pingTimeNano", pingTime)
-		go SendItems(p.rw, pongMsg, pingTime)
 	case msg.Code == pongMsg:
 		//added by Joey
+		log.Info("Receive a Pong message")
 		proto := p.running["eth"]
 		msg.Code = msg.Code + proto.offset
 
-		log.Info("Receive a Pong message")
 		select {
 		case proto.in <- msg:
 			return nil
