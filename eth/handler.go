@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -763,10 +764,16 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// modify by platon
 	case msg.Code == PongMsg:
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-			var pingTime int64
-			if err := msg.Decode(&pingTime); err != nil {
+			var pingTimeString string
+			if err := msg.Decode(&pingTimeString); err != nil {
 				return errResp(ErrDecode, "%v: %v", msg, err)
 			}
+
+			pingTime, err := strconv.ParseInt(pingTimeString, 10, 64)
+			if err != nil {
+				return errResp(ErrDecode, "%v: %v", msg, err)
+			}
+
 			p.lock.Lock()
 			defer p.lock.Unlock()
 			for {
