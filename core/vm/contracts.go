@@ -17,7 +17,6 @@
 package vm
 
 import (
-	"Platon-go/common/hexutil"
 	"crypto/sha256"
 	"errors"
 	"math/big"
@@ -38,9 +37,6 @@ type PrecompiledContract interface {
 	Run(input []byte) ([]byte, error) // Run runs the precompiled contract
 }
 
-// 质押合约地址
-var defContract, err = hexutil.Decode("0x1000000000000000000000000000000000000011")
-
 // PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum
 // contracts used in the Frontier and Homestead releases.
 var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
@@ -48,8 +44,6 @@ var PrecompiledContractsHomestead = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{2}): &sha256hash{},
 	common.BytesToAddress([]byte{3}): &ripemd160hash{},
 	common.BytesToAddress([]byte{4}): &dataCopy{},
-	// 添加预编译合约
-	//common.BytesToAddress(defContract) : &def{},
 }
 
 // PrecompiledContractsByzantium contains the default set of pre-compiled Ethereum
@@ -63,8 +57,6 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{6}): &bn256Add{},
 	common.BytesToAddress([]byte{7}): &bn256ScalarMul{},
 	common.BytesToAddress([]byte{8}): &bn256Pairing{},
-	// 添加预编译合约
-	//common.BytesToAddress(defContract): &def{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.

@@ -479,6 +479,14 @@ func (self *StateDB) CreateAccount(addr common.Address) {
 	}
 }
 
+func (self *StateDB) txHash() common.Hash  {
+	return self.thash
+}
+
+func (self *StateDB) txIdx() int  {
+	return self.txIndex
+}
+
 func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) {
 	so := db.getStateObject(addr)
 	if so == nil {
@@ -493,14 +501,6 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 		}
 		cb(key, common.BytesToHash(it.Value))
 	}
-}
-
-func (self *StateDB) txHash() common.Hash  {
-	return self.thash
-}
-
-func (self *StateDB) txIdx() int  {
-	return self.txIndex
 }
 
 // Copy creates a deep, independent copy of the state.

@@ -76,7 +76,7 @@ type StateDB interface {
 
 	//platon add
 	//txHash() common.Hash
-	txIdx() int
+	//txIdx() int
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM
