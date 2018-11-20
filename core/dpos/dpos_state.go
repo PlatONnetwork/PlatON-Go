@@ -87,6 +87,8 @@ type CandidatePool struct {
 	lock 					*sync.RWMutex
 }
 
+var candidatePool *CandidatePool
+
 // 初始化全局候选池对象
 func NewCandidatePool(state vm.StateDB, configs *params.DposConfig, isgenesis bool) (*CandidatePool, error) {
 //func NewCandidatePool(blockChain *core.BlockChain, configs *params.DposConfig) (*CandidatePool, error) {
@@ -126,7 +128,7 @@ func NewCandidatePool(state vm.StateDB, configs *params.DposConfig, isgenesis bo
 	//	defeatMap =  make(map[discover.NodeID][]*Candidate)
 	//}
 
-	return &CandidatePool{
+	candidatePool =  &CandidatePool{
 		count: 					uint64(len(idArr)),
 		maxCount:				configs.MaxCount,
 		maxChair:				configs.MaxChair,
@@ -135,7 +137,8 @@ func NewCandidatePool(state vm.StateDB, configs *params.DposConfig, isgenesis bo
 		immediateCandates: 		make(map[discover.NodeID]*types.Candidate, 0),
 		defeatCandidates: 		make(map[discover.NodeID][]*types.Candidate, 0),
 		lock: 					&sync.RWMutex{},
-	}, nil
+	}
+	return candidatePool, nil
 }
 //// 根据配置文件构建 dpos原始见证人
 //func buildByConfig(configs *params.DposConfig, state *state.StateDB) (map[discover.NodeID]*Candidate, map[discover.NodeID]*Candidate, error){
@@ -237,6 +240,10 @@ func loadConfig(configs *params.DposConfig, state vm.StateDB) error {
 		}
 	}
 	return nil
+}
+
+func GetCandidatePtr () *CandidatePool {
+	return candidatePool
 }
 //
 //func (c *CandidatePool) CommitTrie (deleteEmptyObjects bool) (root common.Hash, err error) {
