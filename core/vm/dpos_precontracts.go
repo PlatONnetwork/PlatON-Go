@@ -20,15 +20,20 @@ data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
 package vm
 
 import (
-	"fmt"
-	"errors"
 	"Platon-go/common"
+	"Platon-go/common/byteutil"
+	"Platon-go/consensus/cbft"
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
+	"fmt"
+	"reflect"
+	//"Platon-go/consensus/cbft"
 )
+
 //error def
 var (
 	ErrRepeatOwner = errors.New("Node ID cannot bind multiple owners")
@@ -46,34 +51,90 @@ var PrecompiledContractsDpos = map[common.Address]PrecompiledContract{
 
 type candidateContract struct{
 	contract *Contract
+	evm *EVM
+}
+
+// 用map封装所有的函数
+var command = map[string] interface{} {
+	"CandidateDetails" : candidateContract.CandidateDetails,
+	"CandidateApplyWithdraw" : candidateContract.CandidateApplyWithdraw,
+	"CandidateDeposit" : candidateContract.CandidateDeposit,
+	"CandidateList" : candidateContract.CandidateList,
+	"CandidateWithdraw" : candidateContract.CandidateWithdraw,
+	"VerifiersList" : candidateContract.VerifiersList,
+	// TODO test delete
+	"SayHi" : SayHi,
 }
 
 func (c *candidateContract) RequiredGas(input []byte) uint64 {
+	// TODO 获取设定的预编译合约消耗
 	return params.EcrecoverGas
 }
 
 func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	//rlp decode
-	var params [][]byte
-	if err := rlp.Decode(bytes.NewReader(input), &params); err!=nil {
+	var source [][]byte
+	if err := rlp.Decode(bytes.NewReader(input), &source); err != nil {
 		fmt.Println(err)
 		return nil, ErrParamsRlpDecode
 	}
 	//function call
-	if len(params)<2 {
+	if len(source)<2 {
 		return nil, ErrParamsBaselen
 	}
-	switch string(params[1]) {
-	case "CandidateDeposit":
-		return candidateDeposit(params[2:], c.contract)
-	default:
-		fmt.Println("Undefined function")
+	// 获取要调用的函数
+	if _, ok := command[byteutil.BytesToString(source[1])]; !ok {
 		return nil, ErrUndefFunction
 	}
+	funcValue := command[byteutil.BytesToString(source[1])]
+	// 目标函数参数列表
+	paramList := reflect.TypeOf(funcValue)
+	// 目标函数参数个数
+	paramNum := paramList.NumIn()
+	// var param []interface{}
+	params := make([]reflect.Value, paramNum)
+
+	for i := 0; i < paramNum; i++ {
+		// 目标参数类型的值
+		targetType := paramList.In(i).String()
+		// 原始[]byte类型参数
+		originByte := []reflect.Value{reflect.ValueOf(source[i+2])}
+		// 转换为对应类型的参数
+		params[i] = reflect.ValueOf(byteutil.Command[targetType]).Call(originByte)[0]
+	}
+	// 传入参数调用函数
+	result := reflect.ValueOf(funcValue).Call(params)
+	// TODO
+	// 返回值也是一个 Value 的 slice，同样对应反射函数类型的返回值。
+	return result[0].Bytes(), result[1].Interface().(error)
+}
+
+func SayHi(a []byte, b [64]byte) (string) {
+	fmt.Println(b)
+	return "2"
+}
+
+//获取候选人详情
+func (c *candidateContract) CandidateDetails(nodeId [64]byte) ([]byte, error)  {
+	cbft.GetDpos().GetCandidate(nodeId)
+	// TODO
+	return nil, nil
+}
+
+//获取当前区块候选人列表 0~200
+func (c *candidateContract) CandidateList() ([]byte, error) {
+	// dpos.GetChosens()
+	return nil, nil
+}
+
+//获取当前区块轮次验证人列表 25个
+func (c *candidateContract) VerifiersList() ([]byte, error) {
+	// dpos.GetChairpersons()
+	return nil, nil
 }
 
 //候选人申请 && 增加质押金
-func candidateDeposit(params [][]byte, c *Contract) ([]byte, error)   {
+func (c *candidateContract) CandidateDeposit(params [][]byte) ([]byte, error)   {
 
 	//params parse
 	if len(params)!=3 {
@@ -82,53 +143,103 @@ func candidateDeposit(params [][]byte, c *Contract) ([]byte, error)   {
 	nodeId := hex.EncodeToString(params[0])
 	owner := hex.EncodeToString(params[1])
 	fee := binary.BigEndian.Uint64(params[2])
-	deposit := *c.value
+	deposit := *c.contract.value
 	fmt.Println("CandidateDeposit==> nodeId: ", nodeId, " owner: ", owner, " deposit: ", deposit, "  fee: ", fee)
 
 	//todo
+	//dpos := cbft.GetDpos()
+	//dpos.Switch()
+	//cbft.GetDpos()
+
+
+
+
+	//判断nodeid和owner是否唯一
+	//先获取已有质押金，加上本次value，更新
+
+
+
+
+
+	//调用操作db的接口如果失败，则回滚交易。申请失败的交易，钱会被扣除,需要回滚
+	//返回值用json形式按照实际合约执行的返回形式格式化
+
 
 	return nil, nil
 }
 
 //申请退回质押金
-func candidateApplyWithdraw(params [][]byte, c *Contract) ([]byte, error)  {
+func (c *candidateContract) CandidateApplyWithdraw(params [][]byte) ([]byte, error)  {
 
 	if len(params)!=1 {
 		return nil, ErrParamsLen
 	}
 	nodeId := hex.EncodeToString(params[0])
-	from := c.caller.Address().Hex()
-
+	from := c.contract.caller.Address().Hex()
 	fmt.Println("CandidateApplyWithdraw==> nodeId: ", nodeId, " from: ", from)
+
+	//校验from和owner是否一致
+	//调用接口生成退款记录
+
+
 	return nil, nil
 }
 
 //质押金提现
-func candidateWithdraw(params [][]byte, c *Contract) ([]byte, error)  {
+func (c *candidateContract) CandidateWithdraw(params [][]byte) ([]byte, error)  {
 
 	if len(params)!=1 {
 		return nil, ErrParamsLen
 	}
 	nodeId := hex.EncodeToString(params[0])
+
+	//调用接口退款，判断返回值
 
 	fmt.Println("CandidateWithdraw==> nodeId: ", nodeId)
 	return nil, nil
 }
 
 //获取候选人详情
-func candidateDetails(params [][]byte, c *Contract)([]byte, error)  {
+func (c *candidateContract) candidateDetails(params [][]byte)([]byte, error)  {
 
 	return nil, nil
 }
 
 //获取当前区块候选人列表 0~200
-func candidateList(params [][]byte, c *Contract) ([]byte, error) {
+func (c *candidateContract) candidateList(params [][]byte) ([]byte, error) {
 
 	return nil, nil
 }
 
 //获取当前区块轮次验证人列表 25个
-func verifiersList(params [][]byte, c *Contract) ([]byte, error) {
+func (c *candidateContract) verifiersList(params [][]byte) ([]byte, error) {
 
 	return nil, nil
+}
+
+func DecodeResultStr (result string) []byte {
+	// 0x0000000000000000000000000000000000000020
+	// 00000000000000000000000000000000000000000d
+	// 00000000000000000000000000000000000000000
+
+	resultBytes := []byte(result)
+
+	strHash := common.BytesToHash(common.Int32ToBytes(32))
+	sizeHash := common.BytesToHash(common.Int64ToBytes(int64((len(resultBytes)))))
+	var dataRealSize = len(resultBytes)
+	if (dataRealSize % 32) != 0 {
+		dataRealSize = dataRealSize + (32 - (dataRealSize % 32))
+	}
+	dataByt := make([]byte, dataRealSize)
+	copy(dataByt[0:], resultBytes)
+
+	finalData := make([]byte, 0)
+	finalData = append(finalData, strHash.Bytes()...)
+	finalData = append(finalData, sizeHash.Bytes()...)
+	finalData = append(finalData, dataByt...)
+
+	encodedStr := hex.EncodeToString(finalData)
+	fmt.Println("finalData: ", encodedStr)
+
+	return finalData
 }

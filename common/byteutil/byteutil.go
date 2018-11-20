@@ -10,9 +10,11 @@ import (
 	"reflect"
 )
 
-// map 封装所有的方法
 var Command = map[string] interface{} {
 	"string" : BytesToString,
+	"[]uint8" : OrginBytes,
+	"[64]uint8" : BytesTo64Bytes,
+	"[32]uint8" : BytesTo32Bytes,
 	"int" : BytesToInt,
 	"Int" : BytesToBigInt,
 	"uint32" : binary.LittleEndian.Uint32,
@@ -25,16 +27,26 @@ var Command = map[string] interface{} {
 	"Address" : common.BytesToAddress,
 }
 
+func BytesTo32Bytes(curByte []byte) [32]byte {
+	var arr [32]byte
+	copy(arr[:], curByte)
+	return arr
+}
+
+func BytesTo64Bytes(curByte []byte) [64]byte {
+	var arr [64]byte
+	copy(arr[:], curByte)
+	return arr
+}
+
+func OrginBytes(curByte []byte) []byte {
+	return curByte
+}
+
 func Uint64ToBytes(val uint64) []byte {
 	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, val)
 	return buf[:]
-}
-
-func BoolToBytes(val bool) []byte {
-	buf := bytes.NewBuffer([]byte{})
-	binary.Write(buf, binary.BigEndian, true)
-	return buf.Bytes()
 }
 
 func BytesToBigInt(curByte []byte) interface{} {
@@ -55,17 +67,23 @@ func BytesToInt(curByte []byte) int {
 	return b
 }
 
-func IntToBytes(curInt int) []byte {
-	x := int32(curInt)
-	bytesBuffer := bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.BigEndian, &x)
-	return bytesBuffer.Bytes()
-}
-
 func BytesToString(curByte []byte) string {
 	return string(curByte)
 }
 
 func StringToBytes(curStr string) []byte {
 	return []byte(curStr)
+}
+
+func BoolToBytes(val bool) []byte {
+	buf := bytes.NewBuffer([]byte{})
+	binary.Write(buf, binary.BigEndian, true)
+	return buf.Bytes()
+}
+
+func IntToBytes(curInt int) []byte {
+	x := int32(curInt)
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	binary.Write(bytesBuffer, binary.BigEndian, &x)
+	return bytesBuffer.Bytes()
 }
