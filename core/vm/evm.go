@@ -25,7 +25,6 @@ import (
 	"Platon-go/common"
 	"Platon-go/crypto"
 	"Platon-go/params"
-	"fmt"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -54,7 +53,6 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			return RunPrecompiledContract(p, input, contract)
 		}
 		//dpos
-		fmt.Println("contract.CodeAddr: ", contract.CodeAddr.Hex(), " caller: ", contract.caller.Address().Hex(), " self: ", contract.self.Address().Hex())
 		if p := PrecompiledContractsDpos[*contract.CodeAddr]; p != nil {
 			if f, ok := p.(*candidateContract);ok {
 				f.contract = contract
@@ -138,6 +136,9 @@ type EVM struct {
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
 	callGasTemp uint64
+
+	//dpos add
+	CandidatePool candidatePool
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
