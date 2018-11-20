@@ -39,10 +39,14 @@ var (
 	errListIrrBlocks       = errors.New("list irreversible blocks error")
 	errMissingSignature    = errors.New("extra-data 65 byte signature suffix missing")
 	extraSeal              = 65
+	windowSize             = uint64(20)
+	periodMargin           = uint64(20) //meaning 20%
 
-	windowSize = uint64(20)
+	//一次Ping/Pong的最大网络延迟，毫秒
+	maxPingLatency = int64(5000)
 
-	blockSpeedRatio = uint64(20) //meaning 20%
+	//最大平均网络延迟，毫秒
+	maxAvgLatency = int64(2000)
 )
 
 type Cbft struct {
@@ -121,17 +125,17 @@ func NewBlockExt(block *types.Block, blockNum uint64) *BlockExt {
 var flowControl *FlowControl
 
 type FlowControl struct {
-	nodeID    discover.NodeID
-	lastTime  int64
-	maxOffset int64
-	minOffset int64
+	nodeID      discover.NodeID
+	lastTime    int64
+	maxInterval int64
+	minInterval int64
 }
 
 func NewFlowControl() *FlowControl {
 	return &FlowControl{
-		nodeID:    discover.NodeID{},
-		maxOffset: int64(cbft.config.Period*1000 + cbft.config.Period*1000*blockSpeedRatio/100),
-		minOffset: int64(cbft.config.Period*1000 - cbft.config.Period*1000*blockSpeedRatio/100),
+		nodeID:      discover.NodeID{},
+		maxInterval: int64(cbft.config.Period*1000 + cbft.config.Period*1000*periodMargin/100),
+		minInterval: int64(cbft.config.Period*1000 - cbft.config.Period*1000*periodMargin/100),
 	}
 }
 
@@ -140,7 +144,7 @@ func (flowControl *FlowControl) control(nodeID discover.NodeID, curTime int64) b
 	passed := false
 	if flowControl.nodeID == nodeID {
 		differ := curTime - flowControl.lastTime
-		if differ >= flowControl.minOffset && differ <= flowControl.maxOffset {
+		if differ >= flowControl.minInterval && differ <= flowControl.maxInterval {
 			passed = true
 		} else {
 			passed = false
@@ -1046,6 +1050,9 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 //netLatency：当前节点和nodeID直接的网络延迟
 func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) {
 	log.Debug("Receive a net latency report", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency)
+	if netLatency >= maxPingLatency {
+		return
+	}
 
 	latencyList, exist := cbft.netLatencyMap[nodeID]
 	if !exist {
@@ -1120,6 +1127,10 @@ func (cbft *Cbft) inTurn() bool {
 //time in milliseconds
 func (cbft *Cbft) inTurnVerify(curTime int64, nodeID discover.NodeID) bool {
 	latency := cbft.avgLatency(nodeID)
+	if latency >= maxAvgLatency {
+		log.Debug("inTurnVerify, return false cause of net latency", "result", false, "latency", latency)
+		return false
+	}
 	inTurnVerify := cbft.calTurn(curTime-latency, nodeID)
 	log.Debug("inTurnVerify", "result", inTurnVerify, "latency", latency)
 	return inTurnVerify
