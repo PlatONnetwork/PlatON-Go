@@ -791,8 +791,7 @@ func (w *worker) resultLoop() {
 				logs = append(logs, receipt.Logs...)
 			}
 			// Commit block and state to database.
-			// platon TODO
-			// 保存区块确认签名
+			block.ConfirmSigns = blockConfirmSigns
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
 			if err != nil {
 				log.Error("Failed writing block to chain", "err", err)
@@ -801,8 +800,6 @@ func (w *worker) resultLoop() {
 			log.Info("Successfully sealed new block", "number", block.Number(), "hash", hash)
 
 			// Broadcast the block and announce chain insertion event
-			// platon TODO
-			// 广播区块带上区块确认签名
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})
 
 			var events []interface{}
@@ -938,9 +935,10 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	}
 
 	var coalescedLogs []*types.Log
+	var bftEngine = w.config.Cbft != nil
 
 	for {
-		if _, ok := w.engine.(consensus.Bft); ok && (float64(time.Now().UnixNano() / 1e6 - timestamp) >= w.commitDuration) {
+		if bftEngine && (float64(time.Now().UnixNano() / 1e6 - timestamp) >= w.commitDuration) {
 			break
 		}
 		// In the following three cases, we will interrupt the execution of the transaction.
@@ -993,17 +991,17 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		switch err {
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
-			log.Trace("Gas limit exceeded for current block", "sender", from)
+			log.Warn("Gas limit exceeded for current block", "sender", from)
 			txs.Pop()
 
 		case core.ErrNonceTooLow:
 			// New head notification data race between the transaction pool and miner, shift
-			log.Trace("Skipping transaction with low nonce", "sender", from, "nonce", tx.Nonce())
+			log.Warn("Skipping transaction with low nonce", "sender", from, "nonce", tx.Nonce())
 			txs.Shift()
 
 		case core.ErrNonceTooHigh:
 			// Reorg notification data race between the transaction pool and miner, skip account =
-			log.Trace("Skipping account with hight nonce", "sender", from, "nonce", tx.Nonce())
+			log.Warn("Skipping account with hight nonce", "sender", from, "nonce", tx.Nonce())
 			txs.Pop()
 
 		case nil:
