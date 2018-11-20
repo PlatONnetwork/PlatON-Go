@@ -1,9 +1,9 @@
-package depos
+package types
 
 import (
 	"math/big"
-	"Platon-go/common"
 	"Platon-go/p2p/discover"
+	"Platon-go/common"
 )
 
 // 候选人
@@ -38,6 +38,3 @@ type Candidate struct {
 	//Brokerage		uint64				`json:"brokerage"`
 }
 
-func newCandidate (){
-
-}
