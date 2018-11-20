@@ -1053,7 +1053,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if _, ok := w.engine.(consensus.Bft); ok {
 		parent = commitBlock
 		timestamp = time.Now().UnixNano() / 1e6
-		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "hash", parent.Hash(), "number", parent.NumberU64(), "stateRoot", parent.Root())
+		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "hash", parent.Hash(), "number", "timestamp", timestamp, parent.NumberU64(), "stateRoot", parent.Root())
 	} else {
 		parent = w.chain.CurrentBlock()
 		if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
@@ -1084,12 +1084,15 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		header.Coinbase = w.coinbase
 	}
 
-	log.Warn("[1]共识开始", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
+	//log.Warn("[1]共识开始", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
+	log.Warn("---【开始调用Prepare】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
 	}
+	log.Warn("---【结束调用Prepare】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	// If we are care about TheDAO hard-fork check whether to override the extra-data or not
+	log.Warn("---【开始调用DAOForkBlock】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	if daoBlock := w.config.DAOForkBlock; daoBlock != nil {
 		// Check whether the block is among the fork extra-override range
 		limit := new(big.Int).Add(daoBlock, params.DAOForkExtraRange)
@@ -1102,6 +1105,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			}
 		}
 	}
+	log.Warn("---【结束调用DAOForkBlock】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
+
 	// Could potentially happen if starting to mine in an odd state.
 	err := w.makeCurrent(parent, header)
 	if err != nil {
@@ -1135,8 +1140,12 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 	// Prefer to locally generated uncle
+	log.Warn("---【开始调用commit local Uncles】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	commitUncles(w.localUncles)
+	log.Warn("---【结束调用commit local Uncles】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
+	log.Warn("---【开始调用commit remote Uncles】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	commitUncles(w.remoteUncles)
+	log.Warn("---【结束调用commit remote Uncles】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 
 	if !noempty {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
@@ -1148,7 +1157,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	// Fill the block with all available pending transactions.
+	log.Warn("---【开始获取pending交易】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	pending, err := w.eth.TxPool().Pending()
+	log.Warn("---【结束获取pending交易】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6, "pending", pending)
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return
@@ -1163,6 +1174,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		return
 	}
 	// Split the pending transactions into locals and remotes
+	log.Warn("---【开始组装pending交易】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
 	for _, account := range w.eth.TxPool().Locals() {
 		if txs := remoteTxs[account]; len(txs) > 0 {
@@ -1170,6 +1182,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			localTxs[account] = txs
 		}
 	}
+	log.Warn("---【结束组装pending交易】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt, timestamp) {
