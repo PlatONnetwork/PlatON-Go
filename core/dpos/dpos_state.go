@@ -47,7 +47,8 @@ var (
 	DefeatListBtyePrefix 		= []byte("dL")
 
 	// 内置候选池合约账户
-	CandidateAddr 				= common.HexToAddress("0x1....10")
+	CandidateAddr 				= common.HexToAddress("0x1000000000000000000000000000000000000111")
+	zeroAddr 					= common.HexToAddress(common.Address{}.String())
 
 
 
@@ -87,7 +88,7 @@ type CandidatePool struct {
 }
 
 // 初始化全局候选池对象
-func NewCandidatePool(state *state.StateDB, configs *params.DposConfig, isgenesis bool) (*CandidatePool, error) {
+func NewCandidatePool(state vm.StateDB, configs *params.DposConfig, isgenesis bool) (*CandidatePool, error) {
 //func NewCandidatePool(blockChain *core.BlockChain, configs *params.DposConfig) (*CandidatePool, error) {
 
 	// 创世块的时候需要, 把配置的信息加载到stateDB
@@ -173,7 +174,7 @@ func NewCandidatePool(state *state.StateDB, configs *params.DposConfig, isgenesi
 //	return originMap, immediateMap, nil
 //}
 
-func loadConfig(configs *params.DposConfig, state *state.StateDB) error {
+func loadConfig(configs *params.DposConfig, state vm.StateDB) error {
 	if len(configs.Candidates) != 0 {
 		// 如果配置过多，只取前面的
 		if len(configs.Candidates) > int(configs.MaxCount) {
@@ -446,6 +447,7 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
+		log.Error("Failed to initDataByState on SetCandidate err", err)
 		return err
 	}
 	// 先追加到 缓存数组中然后做排序
@@ -485,21 +487,20 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 	}
 	// 入围者上树
 	for _, id := range c.candiateIds {
+
 		can := c.immediateCandates[id]
-		if val, err := rlp.EncodeToBytes(can); nil != err {
-			log.Error("Failed to encode Candidate err", err)
-			return err
-		}else {
-			state.SetState(CandidateAddr, ImmediateKey(id), val)
-		}
+		c.setImmediate(state, id, can)
+		//
+		//if val, err := rlp.EncodeToBytes(can); nil != err {
+		//	log.Error("Failed to encode Candidate err", err)
+		//	return err
+		//}else {
+		//	setImmediate()
+		//	state.SetState(CandidateAddr, ImmediateKey(id), val)
+		//}
 	}
 	// 更新入围者索引
-	if val, err := rlp.EncodeToBytes(c.candiateIds); nil != err {
-		log.Error("Failed to encode ImmediateIds err", err)
-		return err
-	}else {
-		state.SetState(CandidateAddr, ImmediateListKey(), val)
-	}
+	c.setImmediateIndex(state, c.candiateIds)
 	return nil
 }
 
@@ -514,6 +515,7 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
+		log.Error("Failed to initDataByState on WithdrawCandidate err", err)
 		return err
 	}
 
@@ -523,11 +525,11 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 	}
 	can, ok := c.immediateCandates[nodeId]
 	if !ok {
-		log.Error("current Candidate is empty")
+		log.Error("withdraw failed current Candidate is empty")
 		return CandidateEmptyErr
 	}
 	if nil == can {
-		log.Error("current Candidate is empty")
+		log.Error("withdraw failed current Candidate is empty")
 		return CandidateEmptyErr
 	}
 	// 判断退押 金额
@@ -597,6 +599,7 @@ func (c *CandidatePool) GetChosens (state vm.StateDB) []*types.Candidate {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
+		log.Error("Failed to initDataByState on WithdrawCandidate err", err)
 		return nil
 	}
 	immediateIds, err := c.getImmediateIndex(state)
@@ -616,6 +619,7 @@ func (c *CandidatePool) GetChairpersons (state vm.StateDB) []*types.Candidate {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
+		log.Error("Failed to initDataByState on GetChairpersons err", err)
 		return nil
 	}
 	witnessIds, err := c.getWitnessIndex(state)
@@ -636,6 +640,7 @@ func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
+		log.Error("Failed to initDataByState on GetDefeat err", err)
 		return nil, err
 	}
 
@@ -652,6 +657,7 @@ func (c *CandidatePool) IsDefeat (state vm.StateDB, nodeId discover.NodeID) (boo
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
+		log.Error("Failed to initDataByState on IsDefeat err", err)
 		return false, err
 	}
 
@@ -667,6 +673,7 @@ func (c *CandidatePool) GetOwner (state vm.StateDB, nodeId discover.NodeID) comm
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
+		log.Error("Failed to initDataByState on GetOwner err", err)
 		return common.Address{}
 	}
 	// 先查见证人
@@ -691,17 +698,119 @@ func (c *CandidatePool) GetOwner (state vm.StateDB, nodeId discover.NodeID) comm
 	return common.Address{}
 }
 
+
+// 一键提款
+func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID, blockNumber uint64) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.initDataByState(state); nil != err {
+		log.Error("Failed to initDataByState on RefundBalance err", err)
+		return err
+	}
+
+	var arr []*types.Candidate
+	if defeatArr, ok := c.defeatCandidates[nodeId]; ok {
+		arr = defeatArr
+	}else {
+		log.Error("Failed to refundbalance cnadidate is empty")
+		return CandidateDecodeErr
+	}
+	// cache
+	// 用来做校验用，即正常情况应该每个nodeId的质押退款信息中的收益者(owner)应该为同一个
+	var addr common.Address
+	// 累计需要一次性退款的金额
+	var amount uint64
+	// 中转需要删除的退款信息
+	delCanArr := make([]*types.Candidate, 0)
+
+	//contractBalance := state.GetBalance(CandidateAddr)
+	currentNum := new(big.Int).SetUint64(blockNumber)
+
+	// 遍历该nodeId下的所有 退款信息
+	for index, can := range arr {
+		sub := new(big.Int).Sub(currentNum, can.BlockNumber)
+		if sub.Cmp(new(big.Int).SetUint64(c.RefundBlockNumber)) >= 0 { // 允许退款
+			delCanArr = append(delCanArr, can)
+			arr = append(arr[:index], arr[index+1:]...)
+			// 累加一次性退款金额
+			amount += can.Deposit.Uint64()
+		}else {
+			continue
+		}
+
+		if addr == zeroAddr {
+			addr = can.Owner
+		}else {
+			if addr != can.Owner {
+				log.Info("Failed to refundbalance 发现抵押节点nodeId下有不同受益者地址", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", can.Owner)
+				if len(arr) != 0 {
+					arr = append(delCanArr, arr...)
+				}else {
+					arr = delCanArr
+				}
+				c.defeatCandidates[nodeId] = arr
+				fmt.Println("Failed to refundbalance 发现抵押节点nodeId下有不同受益者地址", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", can.Owner)
+				return CandidateOwnerErr
+			}
+		}
+
+		//if (contractBalance.Cmp(new(big.Int).SetUint64(amount))) < 0 {
+		//	log.Error("Failed to refundbalance constract account insufficient balance ", state.GetBalance(CandidateAddr).String(), "amount", amount)
+		//	if len(arr) != 0 {
+		//		arr = append(delCanArr, arr...)
+		//	}else {
+		//		arr = delCanArr
+		//	}
+		//	c.defeatCandidates[nodeId] = arr
+		//	return ContractBalanceNotEnoughErr
+		//}
+	}
+
+	// 统一更新树
+	if len(arr) == 0 {
+		//state.SetState(CandidateAddr, DefeatKey(nodeId), []byte{})
+		//delete(c.defeatCandidates, nodeId)
+		if err := c.delDefeat(state, nodeId); nil != err {
+			log.Error("RefundBalance failed to delDefeat err", err)
+			return err
+		}
+	}else {
+		// 如果没被退完, 更新剩下的
+		if val, err := rlp.EncodeToBytes(arr); nil != err {
+			log.Error("Failed to encode candidate object on RefundBalance", "key", nodeId.String(), "err", err)
+			arr = append(delCanArr, arr...)
+			c.defeatCandidates[nodeId] = arr
+			return CandidateDecodeErr
+		}else {
+			state.SetState(CandidateAddr, DefeatKey(nodeId), val)
+			c.defeatCandidates[nodeId] = arr
+		}
+	}
+	// 扣减合约余额
+	//sub := new(big.Int).Sub(state.GetBalance(CandidateAddr), new(big.Int).SetUint64(amount))
+	//state.SetBalance(CandidateAddr, sub)
+	state.SubBalance(CandidateAddr, new(big.Int).SetUint64(amount))
+	// 增加收益账户余额
+	//add := new(big.Int).Add(c.cacheState.GetBalance(addr), new(big.Int).SetUint64(amount))
+	//c.cacheState.SetBalance(addr, add)
+	state.AddBalance(addr, new(big.Int).SetUint64(amount))
+	return nil
+}
+
+
+
+
 // 揭榜见证人
 func (c *CandidatePool) Election(state *state.StateDB) bool{
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
-		log.Error("Failed to election err", err)
+		log.Error("Failed to initDataByState on Election err", err)
 		return false
 	}
 	immediateIds, err := c.getImmediateIndex(state)
 	if nil != err {
-		log.Error("Failed to getImmediateIndex err", err)
+		log.Error("Failed to getImmediateIndex on Election err", err)
 		return false
 	}
 	// 对当前所有入围者排序
@@ -747,107 +856,43 @@ func (c *CandidatePool) Election(state *state.StateDB) bool{
 }
 
 
-
-// 一键提款
-func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID, blockNumber uint64) error {
+// 触发替换下轮见证人列表
+func (c *CandidatePool) Switch(state *state.StateDB) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
-		log.Error("Failed to refundbalance err", err)
-		return err
+		log.Error("Failed to initDataByState on Switch err", err)
+		return false
 	}
-
-	var arr []*types.Candidate
-	if defeatArr, ok := c.defeatCandidates[nodeId]; ok {
-		arr = defeatArr
-	}else {
-		log.Error("Failed to refundbalance cnadidate is empty")
-		return CandidateDecodeErr
-	}
-	// cache
-	// 用来做校验用，即正常情况应该每个nodeId的质押退款信息中的收益者(owner)应该为同一个
-	var addr common.Address
-	// 累计需要一次性退款的金额
-	var amount uint64
-	// 中转需要删除的退款信息
-	delCanArr := make([]*types.Candidate, 0)
-
-	contractBalance := state.GetBalance(CandidateAddr)
-	currentNum := new(big.Int).SetUint64(blockNumber)
-
-	for index, can := range arr {
-		sub := new(big.Int).Sub(currentNum, can.BlockNumber)
-		if sub.Cmp(new(big.Int).SetUint64(c.RefundBlockNumber)) >= 0 { // 允许退款
-			delCanArr = append(delCanArr, can)
-			arr = append(arr[:index], arr[index+1:]...)
-		}else {
-			continue
-		}
-
-		if len(addr) == 0 {
-			addr = can.Owner
-		}else {
-			if addr != can.Owner {
-				log.Info("发现抵押节点nodeId下有不同受益者地址", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", can.Owner)
-				if len(arr) != 0 {
-					arr = append(delCanArr, arr...)
-				}else {
-					arr = delCanArr
-				}
-				c.defeatCandidates[nodeId] = arr
-				return CandidateOwnerErr
-			}
-		}
-
-		if (contractBalance.Cmp(new(big.Int).SetUint64(amount))) < 0 {
-			log.Error("constract account insufficient balance ", state.GetBalance(CandidateAddr).String(), "amount", amount)
-			if len(arr) != 0 {
-				arr = append(delCanArr, arr...)
-			}else {
-				arr = delCanArr
-			}
-			c.defeatCandidates[nodeId] = arr
-			return ContractBalanceNotEnoughErr
+	// 删除旧的
+	for nodeId,_ := range c.originCandidates {
+		if err := c.delWitness(state, nodeId); nil != err {
+			log.Error("Failed to delWitness on Switch err", err)
+			return false
 		}
 	}
-
-	// 统一更新树
-	if len(arr) == 0 {
-		state.SetState(CandidateAddr, DefeatKey(nodeId), []byte{})
-		delete(c.defeatCandidates, nodeId)
-	}else {
-		if val, err := rlp.EncodeToBytes(arr); nil != err {
-			log.Error("Failed to encode candidate object on RefundBalance", "key", nodeId.String(), "err", err)
-			arr = append(delCanArr, arr...)
-			c.defeatCandidates[nodeId] = arr
-			return CandidateDecodeErr
-		}else {
-			state.SetState(CandidateAddr, DefeatKey(nodeId), val)
-			c.defeatCandidates[nodeId] = arr
+	// 设置新的
+	arr := make([]discover.NodeID, 0)
+	for nodeId, can := range c.nextOriginCandidates {
+		if err := c.setWitness(state, nodeId, can); nil != err {
+			log.Error("Failed to setWitness on Switch err", err)
+			return false
 		}
+		arr = append(arr, nodeId)
 	}
-	// 扣减合约余额
-	//sub := new(big.Int).Sub(state.GetBalance(CandidateAddr), new(big.Int).SetUint64(amount))
-	//state.SetBalance(CandidateAddr, sub)
-	state.SubBalance(CandidateAddr, new(big.Int).SetUint64(amount))
-	// 增加收益账户余额
-	//add := new(big.Int).Add(c.cacheState.GetBalance(addr), new(big.Int).SetUint64(amount))
-	//c.cacheState.SetBalance(addr, add)
-	state.AddBalance(addr, new(big.Int).SetUint64(amount))
-	return nil
+	// 排序
+	candidateSort(arr, c.nextOriginCandidates)
+	// 替换新索引
+	if err := c.setWitnessindex(state, arr); nil != err {
+		log.Error("Failed to setWitnessindex on Switch err", err)
+		return false
+	}
+	c.originCandidates = c.nextOriginCandidates
+	c.nextOriginCandidates = make(map[discover.NodeID]*types.Candidate)
+	return true
 }
 
-// 触发替换下轮见证人列表
-func (c *CandidatePool) Switch() bool {
-
-	return false
-}
-
-// 根据块高重置 state
-func (c *CandidatePool) ResetStateByBlockNumber (blockNumber uint64) bool {
-	return false
-}
-
+//func (c *CandidatePool) GetWitness (state *state.StateDB) []*Candidate {}
 
 
 
@@ -903,6 +948,16 @@ func (c *CandidatePool) delImmediate (state vm.StateDB, candidateId discover.Nod
 	return nil
 }
 
+func (c *CandidatePool) setImmediateIndex (state vm.StateDB, nodeIds []discover.NodeID) error {
+	if val, err := rlp.EncodeToBytes(nodeIds); nil != err {
+		log.Error("Failed to encode ImmediateIds err", err)
+		return err
+	}else {
+		state.SetState(CandidateAddr, ImmediateListKey(), val)
+	}
+	return nil
+}
+
 // 设置退款信息
 func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error {
 
@@ -927,6 +982,35 @@ func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID,
 	}
 	return nil
 }
+
+func (c *CandidatePool) delDefeat(state vm.StateDB, nodeId discover.NodeID) error {
+	delete(c.defeatCandidates, nodeId)
+	state.SetState(CandidateAddr, DefeatKey(nodeId), []byte{})
+
+	// 删除索引中的对应id
+	var ids []discover.NodeID
+	if err := rlp.DecodeBytes(state.GetState(CandidateAddr, DefeatListKey()), &ids); nil != err {
+		log.Error("Failed to decode DefeatIds err", err)
+		return err
+	}
+	var flag bool
+	for i, id := range ids {
+		if id == nodeId {
+			flag = true
+			ids = append(ids[:i], ids[i+1:]...)
+		}
+	}
+	if flag {
+		if val, err := rlp.EncodeToBytes(ids); nil != err {
+			log.Error("Failed to encode ImmediateIds err", err)
+			return err
+		}else {
+			state.SetState(CandidateAddr, DefeatListKey(), val)
+		}
+	}
+	return nil
+}
+
 // 更新退款信息索引
 func (c *CandidatePool)setDefeatIndex(state vm.StateDB) error {
 	newdefeatIds := make([]discover.NodeID, 0)
@@ -943,6 +1027,56 @@ func (c *CandidatePool)setDefeatIndex(state vm.StateDB) error {
 }
 
 
+func (c *CandidatePool) setWitness (state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
+	c.originCandidates[nodeId] = can
+	if val, err := rlp.EncodeToBytes(can); nil != err {
+		log.Error("Failed to encode Candidate on setWitness err", err)
+		return err
+	}else {
+		state.SetState(CandidateAddr, WitnessKey(nodeId), val)
+	}
+	return nil
+}
+func (c *CandidatePool) setWitnessindex(state vm.StateDB, nodeIds []discover.NodeID) error {
+	if val, err := rlp.EncodeToBytes(nodeIds); nil != err {
+		log.Error("Failed to encode WitnessIds err", err)
+		return err
+	}else {
+		state.SetState(CandidateAddr, WitnessListKey(), val)
+	}
+	return nil
+}
+
+func (c *CandidatePool) delWitness (state vm.StateDB, candidateId discover.NodeID) error {
+	// map 中删掉
+	delete(c.originCandidates, candidateId)
+	// trie 中删掉实时信息
+	state.SetState(CandidateAddr, WitnessKey(candidateId), []byte{})
+	// 删除索引中的对应id
+	var ids []discover.NodeID
+	if err := rlp.DecodeBytes(state.GetState(CandidateAddr, WitnessListKey()), &ids); nil != err {
+		log.Error("Failed to decode ImmediateIds err", err)
+		return err
+	}
+	var flag bool
+	for i, id := range ids {
+		if id == candidateId {
+			flag = true
+			ids = append(ids[:i], ids[i+1:]...)
+		}
+	}
+	if flag {
+		if val, err := rlp.EncodeToBytes(ids); nil != err {
+			log.Error("Failed to encode ImmediateIds err", err)
+			return err
+		}else {
+			state.SetState(CandidateAddr, WitnessListKey(), val)
+		}
+	}
+	return nil
+}
+
+
 
 func (c *CandidatePool) getWitnessIndex (state vm.StateDB) ([]discover.NodeID, error) {
 	var arr []discover.NodeID
@@ -951,6 +1085,9 @@ func (c *CandidatePool) getWitnessIndex (state vm.StateDB) ([]discover.NodeID, e
 	}
 	return arr, nil
 }
+
+
+
 
 func (c *CandidatePool) setNextWitness(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 	c.nextOriginCandidates[nodeId] = can
@@ -1008,6 +1145,7 @@ func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
+		log.Error("Failed to initDataByState on getCandidate err", err)
 		return nil, err
 	}
 	if candidatePtr, ok := c.immediateCandates[nodeId]; ok {
@@ -1017,23 +1155,23 @@ func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (
 }
 
 
-func breakUpMap(origin, newData map[discover.NodeID]*types.Candidate) (map[discover.NodeID]*types.Candidate, map[discover.NodeID]struct{}){
-	// 需要更新集 		需要删除集
-	updateMap, delMap := make(map[discover.NodeID]*types.Candidate, 0), make(map[discover.NodeID]struct{}, 0)
-	for id, can := range origin {
-		if _, ok := newData[id]; ok {
-			updateMap[id] = can
-		}else {
-			delMap[id] = struct{}{}
-		}
-	}
-	for id, can := range newData {
-		if _, ok := origin[id]; !ok {
-			updateMap[id] = can
-		}
-	}
-	return updateMap, delMap
-}
+//func breakUpMap(origin, newData map[discover.NodeID]*types.Candidate) (map[discover.NodeID]*types.Candidate, map[discover.NodeID]struct{}){
+//	// 需要更新集 		需要删除集
+//	updateMap, delMap := make(map[discover.NodeID]*types.Candidate, 0), make(map[discover.NodeID]struct{}, 0)
+//	for id, can := range origin {
+//		if _, ok := newData[id]; ok {
+//			updateMap[id] = can
+//		}else {
+//			delMap[id] = struct{}{}
+//		}
+//	}
+//	for id, can := range newData {
+//		if _, ok := origin[id]; !ok {
+//			updateMap[id] = can
+//		}
+//	}
+//	return updateMap, delMap
+//}
 
 
 func copyCandidateMapByIds(target, source map[discover.NodeID]*types.Candidate, ids []discover.NodeID){

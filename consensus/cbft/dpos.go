@@ -122,12 +122,8 @@ func (d *dpos)  Election(state *state.StateDB) bool {
 }
 
 // 触发替换下轮见证人列表
-func (d *dpos)  Switch() bool {
-	return d.candidatePool.Switch()
-}
-// 根据块高重置 state
-func (d *dpos) ResetStateByBlockNumber  (blockNumber uint64) bool {
-	return d.candidatePool.ResetStateByBlockNumber(blockNumber)
+func (d *dpos)  Switch(state *state.StateDB) bool {
+	return d.candidatePool.Switch(state)
 }
 
 
@@ -161,11 +157,11 @@ func (d *dpos) WithdrawCandidate (state vm.StateDB, nodeId discover.NodeID, pric
 	return d.candidatePool.WithdrawCandidate (state, nodeId, price)
 }
 // 获取当前实时的入围者列表
-func (d *dpos) GetChosens (state vm.StateDB, ) []*types.Candidate {
+func (d *dpos) GetChosens (state vm.StateDB) []*types.Candidate {
 	return d.candidatePool.GetChosens(state)
 }
 // 获取当前见证人列表
-func (d *dpos) GetChairpersons (state vm.StateDB, ) []*types.Candidate {
+func (d *dpos) GetChairpersons (state vm.StateDB) []*types.Candidate {
 	return d.candidatePool.GetChairpersons(state)
 }
 // 获取某竞选者所有可提款信息

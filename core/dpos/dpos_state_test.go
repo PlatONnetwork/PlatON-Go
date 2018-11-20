@@ -158,17 +158,29 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	printObject("见证人", canArr)
 
 	/** test GetDefeat */
-	//candidatePool.GetDefeat()
+	fmt.Println("test GetDefeat")
+	defeatArr, _ := candidatePool.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	printObject("可以退款信息", defeatArr)
 
 	/** test IsDefeat */
+	fmt.Println("test IsDefeat")
+	flag, _ := candidatePool.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	printObject("是否落榜", flag)
 
 	/** test Election */
-
+	fmt.Println("test Election")
+	flag = candidatePool.Election(state)
+	fmt.Println("是否揭榜成功", flag)
 
 	/** test RefundBalance */
-
+	fmt.Println("test RefundBalance")
+	err := candidatePool.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), 10)
+	fmt.Println("err", err)
 
 	/** test GetOwner */
+	fmt.Println("test GetOwner")
+	addr := candidatePool.GetOwner(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	fmt.Println("收益地址", addr.String())
 }
 
 func TestInitCandidatePoolByTrie (t *testing.T){
