@@ -8,9 +8,9 @@ import (
 	"Platon-go/p2p/discover"
 	"bytes"
 	"sync"
-
 	"Platon-go/core/dpos"
 	"Platon-go/params"
+	"Platon-go/core/state"
 )
 
 type dpos struct {
@@ -113,55 +113,59 @@ func (d *dpos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 }
 // dpos 新增func
 // 设置 dpos 竞选池
-func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
+func (d *dpos) SetCandidatePool(state *state.StateDB, blockChain *core.BlockChain) {
 //func (d *dpos) SetCandidatePool(state *state.StateDB, isgenesis bool){
-	if canPool, err := depos.NewCandidatePool(blockChain, d.config); nil != err {
+	var isgenesis bool
+	if blockChain.Genesis().NumberU64() == blockChain.CurrentBlock().NumberU64() {
+		isgenesis = true
+	}
+	if canPool, err := depos.NewCandidatePool(state, d.config, isgenesis); nil != err {
 		log.Error("Failed to init CandidatePool", err)
 	}else {
 		d.candidatePool = canPool
 	}
 }
 
-// 质押竞选人
-func (d *dpos) SetCandidate(nodeId discover.NodeID, can *depos.Candidate) error{
-	return d.candidatePool.SetCandidate(nodeId, can)
-}
-// 查询入围者信息
-func(d *dpos) GetCandidate(nodeId discover.NodeID) (*depos.Candidate, error) {
-	return d.candidatePool.GetCandidate(nodeId)
-}
-// 入围者退出质押
-func (d *dpos) WithdrawCandidate (nodeId discover.NodeID, price int) error {
-	return d.candidatePool.WithdrawCandidate (nodeId, price)
-}
-// 获取当前实时的入围者列表
-func (d *dpos) GetChosens () []*depos.Candidate {
-	return d.candidatePool.GetChosens()
-}
-// 获取当前见证人列表
-func (d *dpos) GetChairpersons () []*depos.Candidate {
-	return d.candidatePool.GetChairpersons()
-}
-// 获取某竞选者所有可提款信息
-func (d *dpos) GetDefeat(nodeId discover.NodeID) ([]*depos.Candidate, error){
-	return d.candidatePool.GetDefeat(nodeId)
-}
-// 判断某个竞选人是否入围
-func (d *dpos) IsDefeat(nodeId discover.NodeID) (bool, error) {
-	return d.candidatePool.IsDefeat(nodeId)
-}
-// 揭榜
-func (d *dpos)  Election() bool {
-	return d.candidatePool.Election()
-}
-// 提款
-func (d *dpos) RefundBalance (nodeId discover.NodeID) error{
-	return d.candidatePool.RefundBalance (nodeId)
-}
-// 根据nodeId查询 质押信息中的 受益者地址
-func (d *dpos) GetOwner (nodeId discover.NodeID) common.Address {
-	return d.candidatePool.GetOwner(nodeId)
-}
+//// 质押竞选人
+//func (d *dpos) SetCandidate(nodeId discover.NodeID, can *depos.Candidate) error{
+//	return d.candidatePool.SetCandidate(nodeId, can)
+//}
+//// 查询入围者信息
+//func(d *dpos) GetCandidate(nodeId discover.NodeID) (*depos.Candidate, error) {
+//	return d.candidatePool.GetCandidate(nodeId)
+//}
+//// 入围者退出质押
+//func (d *dpos) WithdrawCandidate (nodeId discover.NodeID, price int) error {
+//	return d.candidatePool.WithdrawCandidate (nodeId, price)
+//}
+//// 获取当前实时的入围者列表
+//func (d *dpos) GetChosens () []*depos.Candidate {
+//	return d.candidatePool.GetChosens()
+//}
+//// 获取当前见证人列表
+//func (d *dpos) GetChairpersons () []*depos.Candidate {
+//	return d.candidatePool.GetChairpersons()
+//}
+//// 获取某竞选者所有可提款信息
+//func (d *dpos) GetDefeat(nodeId discover.NodeID) ([]*depos.Candidate, error){
+//	return d.candidatePool.GetDefeat(nodeId)
+//}
+//// 判断某个竞选人是否入围
+//func (d *dpos) IsDefeat(nodeId discover.NodeID) (bool, error) {
+//	return d.candidatePool.IsDefeat(nodeId)
+//}
+//// 揭榜
+//func (d *dpos)  Election() bool {
+//	return d.candidatePool.Election()
+//}
+//// 提款
+//func (d *dpos) RefundBalance (nodeId discover.NodeID) error{
+//	return d.candidatePool.RefundBalance (nodeId)
+//}
+//// 根据nodeId查询 质押信息中的 受益者地址
+//func (d *dpos) GetOwner (nodeId discover.NodeID) common.Address {
+//	return d.candidatePool.GetOwner(nodeId)
+//}
 // 触发替换下轮见证人列表
 func (d *dpos)  Switch() bool {
 	return d.candidatePool.Switch()
