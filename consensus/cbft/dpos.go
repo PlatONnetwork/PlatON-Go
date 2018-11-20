@@ -11,6 +11,8 @@ import (
 	"Platon-go/core/dpos"
 	"Platon-go/params"
 	"Platon-go/core/state"
+	"Platon-go/core/types"
+	"Platon-go/core/vm"
 )
 
 type dpos struct {
@@ -112,6 +114,23 @@ func (d *dpos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 	log.Info("设置最后一轮共识结束时的出块时间", "startTimeOfEpoch", startTimeOfEpoch)
 }
 // dpos 新增func
+
+// 供cbft 调用
+// 揭榜
+func (d *dpos)  Election(state *state.StateDB) bool {
+	return d.candidatePool.Election(state)
+}
+
+// 触发替换下轮见证人列表
+func (d *dpos)  Switch() bool {
+	return d.candidatePool.Switch()
+}
+// 根据块高重置 state
+func (d *dpos) ResetStateByBlockNumber  (blockNumber uint64) bool {
+	return d.candidatePool.ResetStateByBlockNumber(blockNumber)
+}
+
+
 // 设置 dpos 竞选池
 func (d *dpos) SetCandidatePool(state *state.StateDB, blockChain *core.BlockChain) {
 //func (d *dpos) SetCandidatePool(state *state.StateDB, isgenesis bool){
@@ -126,54 +145,47 @@ func (d *dpos) SetCandidatePool(state *state.StateDB, blockChain *core.BlockChai
 	}
 }
 
-//// 质押竞选人
-//func (d *dpos) SetCandidate(nodeId discover.NodeID, can *depos.Candidate) error{
-//	return d.candidatePool.SetCandidate(nodeId, can)
-//}
-//// 查询入围者信息
-//func(d *dpos) GetCandidate(nodeId discover.NodeID) (*depos.Candidate, error) {
-//	return d.candidatePool.GetCandidate(nodeId)
-//}
-//// 入围者退出质押
-//func (d *dpos) WithdrawCandidate (nodeId discover.NodeID, price int) error {
-//	return d.candidatePool.WithdrawCandidate (nodeId, price)
-//}
-//// 获取当前实时的入围者列表
-//func (d *dpos) GetChosens () []*depos.Candidate {
-//	return d.candidatePool.GetChosens()
-//}
-//// 获取当前见证人列表
-//func (d *dpos) GetChairpersons () []*depos.Candidate {
-//	return d.candidatePool.GetChairpersons()
-//}
-//// 获取某竞选者所有可提款信息
-//func (d *dpos) GetDefeat(nodeId discover.NodeID) ([]*depos.Candidate, error){
-//	return d.candidatePool.GetDefeat(nodeId)
-//}
-//// 判断某个竞选人是否入围
-//func (d *dpos) IsDefeat(nodeId discover.NodeID) (bool, error) {
-//	return d.candidatePool.IsDefeat(nodeId)
-//}
-//// 揭榜
-//func (d *dpos)  Election() bool {
-//	return d.candidatePool.Election()
-//}
-//// 提款
-//func (d *dpos) RefundBalance (nodeId discover.NodeID) error{
-//	return d.candidatePool.RefundBalance (nodeId)
-//}
-//// 根据nodeId查询 质押信息中的 受益者地址
-//func (d *dpos) GetOwner (nodeId discover.NodeID) common.Address {
-//	return d.candidatePool.GetOwner(nodeId)
-//}
-// 触发替换下轮见证人列表
-func (d *dpos)  Switch() bool {
-	return d.candidatePool.Switch()
+
+
+// 供内置合约调用
+// 质押竞选人
+func (d *dpos) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error{
+	return d.candidatePool.SetCandidate(state, nodeId, can)
 }
-// 根据块高重置 state
-func (d *dpos) ResetStateByBlockNumber  (blockNumber uint64) bool {
-	return d.candidatePool.ResetStateByBlockNumber(blockNumber)
+// 查询入围者信息
+func(d *dpos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
+	return d.candidatePool.GetCandidate(state, nodeId)
 }
+// 入围者退出质押
+func (d *dpos) WithdrawCandidate (state vm.StateDB, nodeId discover.NodeID, price int) error {
+	return d.candidatePool.WithdrawCandidate (state, nodeId, price)
+}
+// 获取当前实时的入围者列表
+func (d *dpos) GetChosens (state vm.StateDB, ) []*types.Candidate {
+	return d.candidatePool.GetChosens(state)
+}
+// 获取当前见证人列表
+func (d *dpos) GetChairpersons (state vm.StateDB, ) []*types.Candidate {
+	return d.candidatePool.GetChairpersons(state)
+}
+// 获取某竞选者所有可提款信息
+func (d *dpos) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*types.Candidate, error){
+	return d.candidatePool.GetDefeat(state, nodeId)
+}
+// 判断某个竞选人是否入围
+func (d *dpos) IsDefeat(state vm.StateDB, nodeId discover.NodeID) (bool, error) {
+	return d.candidatePool.IsDefeat(state, nodeId)
+}
+
+// 提款
+func (d *dpos) RefundBalance (state vm.StateDB, nodeId discover.NodeID, blockNumber uint64) error{
+	return d.candidatePool.RefundBalance (state, nodeId, blockNumber)
+}
+// 根据nodeId查询 质押信息中的 受益者地址
+func (d *dpos) GetOwner (state vm.StateDB, nodeId discover.NodeID) common.Address {
+	return d.candidatePool.GetOwner(state, nodeId)
+}
+
 
 func GetDpos() *dpos{
 	return dposPtr

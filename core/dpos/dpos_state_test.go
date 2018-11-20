@@ -13,6 +13,7 @@ import (
 	"Platon-go/consensus/ethash"
 	"Platon-go/p2p/discover"
 	"Platon-go/core/state"
+	"Platon-go/core/types"
 )
 
 func TestInitCandidatePoolByConfig (t *testing.T){
@@ -98,7 +99,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 
 
-	candidate := &Candidate{
+	candidate := &types.Candidate{
 		Deposit: 		new(big.Int).SetUint64(100),
 		BlockNumber:    new(big.Int).SetUint64(7),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),

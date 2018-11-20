@@ -45,7 +45,7 @@ var (
 
 type Cbft struct {
 	config          *params.CbftConfig
-	dpos            *Dpos
+	dpos            *dpos
 	rotating        *rotating
 	blockSignOutCh  chan *cbfttypes.BlockSignature //a channel to send block signature
 	cbftResultOutCh chan *cbfttypes.CbftResult     //a channel to send consensus result
