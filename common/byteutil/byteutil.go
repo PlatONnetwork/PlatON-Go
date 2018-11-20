@@ -17,12 +17,14 @@ var Command = map[string] interface{} {
 	"*big.Int" : BytesToBigInt,
 	"uint32" : binary.LittleEndian.Uint32,
 	"uint64" : binary.LittleEndian.Uint64,
+	//
 	"int32" : common.BytesToInt32,
 	"int64" : common.BytesToInt64,
 	"float32" : common.BytesToFloat32,
 	"float64" : common.BytesToFloat64,
-	"Hash": common.BytesToHash,
-	"Address" : common.BytesToAddress,
+	"discover.NodeID" : binary.LittleEndian.Uint64,
+	"common.Hash": common.BytesToHash,
+	"common.Address" : common.BytesToAddress,
 }
 
 func BytesTo32Bytes(curByte []byte) [32]byte {
