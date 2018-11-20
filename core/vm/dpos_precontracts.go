@@ -26,10 +26,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
 	"encoding/hex"
 	"encoding/binary"
-	//"Platon-go/consensus/cbft"
 )
 
 //error def
