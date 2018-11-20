@@ -28,6 +28,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"Platon-go/consensus/cbft"
 )
 //error def
 var (
@@ -46,7 +47,7 @@ var PrecompiledContractsDpos = map[common.Address]PrecompiledContract{
 
 type candidateContract struct{
 	contract *Contract
-	state StateDB
+	evm *EVM
 }
 
 func (c *candidateContract) RequiredGas(input []byte) uint64 {
@@ -91,6 +92,21 @@ func (c *candidateContract) candidateDeposit(params [][]byte) ([]byte, error)   
 	fmt.Println("CandidateDeposit==> nodeId: ", nodeId, " owner: ", owner, " deposit: ", deposit, "  fee: ", fee)
 
 	//todo
+	dpos := cbft.GetDpos()
+
+
+
+
+	//判断nodeid和owner是否唯一
+	//先获取已有质押金，加上本次value，更新
+
+
+
+
+
+	//调用操作db的接口如果失败，则回滚交易。申请失败的交易，钱会被扣除,需要回滚
+	//返回值用json形式按照实际合约执行的返回形式格式化
+
 
 	return nil, nil
 }
@@ -103,8 +119,12 @@ func (c *candidateContract) candidateApplyWithdraw(params [][]byte) ([]byte, err
 	}
 	nodeId := hex.EncodeToString(params[0])
 	from := c.contract.caller.Address().Hex()
-
 	fmt.Println("CandidateApplyWithdraw==> nodeId: ", nodeId, " from: ", from)
+
+	//校验from和owner是否一致
+	//调用接口生成退款记录
+
+
 	return nil, nil
 }
 
@@ -115,6 +135,8 @@ func (c *candidateContract) candidateWithdraw(params [][]byte) ([]byte, error)  
 		return nil, ErrParamsLen
 	}
 	nodeId := hex.EncodeToString(params[0])
+
+	//调用接口退款，判断返回值
 
 	fmt.Println("CandidateWithdraw==> nodeId: ", nodeId)
 	return nil, nil
@@ -136,4 +158,31 @@ func (c *candidateContract) candidateList(params [][]byte) ([]byte, error) {
 func (c *candidateContract) verifiersList(params [][]byte) ([]byte, error) {
 
 	return nil, nil
+}
+
+func DecodeResultStr (result string) []byte {
+	// 0x0000000000000000000000000000000000000020
+	// 00000000000000000000000000000000000000000d
+	// 00000000000000000000000000000000000000000
+
+	resultBytes := []byte(result)
+
+	strHash := common.BytesToHash(common.Int32ToBytes(32))
+	sizeHash := common.BytesToHash(common.Int64ToBytes(int64((len(resultBytes)))))
+	var dataRealSize = len(resultBytes)
+	if (dataRealSize % 32) != 0 {
+		dataRealSize = dataRealSize + (32 - (dataRealSize % 32))
+	}
+	dataByt := make([]byte, dataRealSize)
+	copy(dataByt[0:], resultBytes)
+
+	finalData := make([]byte, 0)
+	finalData = append(finalData, strHash.Bytes()...)
+	finalData = append(finalData, sizeHash.Bytes()...)
+	finalData = append(finalData, dataByt...)
+
+	encodedStr := hex.EncodeToString(finalData)
+	fmt.Println("finalData: ", encodedStr)
+
+	return finalData
 }

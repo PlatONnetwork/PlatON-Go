@@ -495,6 +495,14 @@ func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common
 	}
 }
 
+func (self *StateDB) txHash() common.Hash  {
+	return self.thash
+}
+
+func (self *StateDB) txIdx() int  {
+	return self.txIndex
+}
+
 // Copy creates a deep, independent copy of the state.
 // Snapshots of the copied state cannot be applied to the copy.
 func (self *StateDB) Copy() *StateDB {
