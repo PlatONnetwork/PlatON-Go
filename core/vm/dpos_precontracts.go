@@ -24,11 +24,12 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"bytes"
-	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"Platon-go/consensus/cbft"
+
+	"encoding/hex"
+	"encoding/binary"
+	//"Platon-go/consensus/cbft"
 )
 
 //error def
@@ -86,12 +87,12 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	}
 }
 
-var dpos *cbft.Dpos
+/*var dpos *cbft.Dpos
 
 // 初始化获取dpos实例
 func init() {
 	dpos = cbft.GetDpos()
-}
+}*/
 
 //获取候选人详情
 func (c *candidateContract) CandidateDetails(params [][]byte)([]byte, error)  {
@@ -127,6 +128,8 @@ func (c *candidateContract) CandidateDeposit(params [][]byte) ([]byte, error)   
 
 	//todo
 	//dpos := cbft.GetDpos()
+	//dpos.Switch()
+	//cbft.GetDpos()
 
 
 

@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"sync"
 
-	"Platon-go/core/Dpos"
+	"Platon-go/core/dpos"
 	"Platon-go/params"
 )
 

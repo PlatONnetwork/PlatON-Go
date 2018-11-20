@@ -479,11 +479,11 @@ func (self *StateDB) CreateAccount(addr common.Address) {
 	}
 }
 
-func (self *StateDB) txHash() common.Hash  {
+func (self *StateDB) TxHash() common.Hash  {
 	return self.thash
 }
 
-func (self *StateDB) txIdx() int  {
+func (self *StateDB) TxIdx() int  {
 	return self.txIndex
 }
 
