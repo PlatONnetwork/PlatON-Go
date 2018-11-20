@@ -5,9 +5,7 @@ import (
 	"Platon-go/common"
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"math/big"
-	"reflect"
 )
 
 var Command = map[string] interface{} {
@@ -16,7 +14,7 @@ var Command = map[string] interface{} {
 	"[64]uint8" : BytesTo64Bytes,
 	"[32]uint8" : BytesTo32Bytes,
 	"int" : BytesToInt,
-	"Int" : BytesToBigInt,
+	"*big.Int" : BytesToBigInt,
 	"uint32" : binary.LittleEndian.Uint32,
 	"uint64" : binary.LittleEndian.Uint64,
 	"int32" : common.BytesToInt32,
@@ -49,9 +47,8 @@ func Uint64ToBytes(val uint64) []byte {
 	return buf[:]
 }
 
-func BytesToBigInt(curByte []byte) interface{} {
+func BytesToBigInt(curByte []byte) *big.Int {
 	big1 := new(big.Int).SetInt64(BytesToInt64(curByte))
-	fmt.Println(reflect.TypeOf(big1))
 	return big1
 }
 

@@ -21,6 +21,10 @@ package vm
 
 import (
 	"Platon-go/common"
+<<<<<<< HEAD
+	"Platon-go/common/byteutil"
+=======
+>>>>>>> 6147a1bfddb57d02d70d7edb5db56bd27fc4bff6
 	//"Platon-go/consensus/cbft"
 	"Platon-go/params"
 	"Platon-go/rlp"
@@ -51,6 +55,8 @@ type candidateContract struct{
 	evm *EVM
 }
 
+<<<<<<< HEAD
+=======
 // 用map封装所有的函数
 /*var command = map[string] interface{} {
 	"CandidateDetails" : candidateContract.CandidateDetails,
@@ -63,12 +69,26 @@ type candidateContract struct{
 	"SayHi" : SayHi,
 }*/
 
+>>>>>>> 6147a1bfddb57d02d70d7edb5db56bd27fc4bff6
 func (c *candidateContract) RequiredGas(input []byte) uint64 {
 	// TODO 获取设定的预编译合约消耗
 	return params.EcrecoverGas
 }
 
 func (c *candidateContract) Run(input []byte) ([]byte, error) {
+
+	// 用map封装所有的函数
+	var command = map[string] interface{}{
+		"CandidateDetails" : c.CandidateDetails,
+		"CandidateApplyWithdraw" : c.CandidateApplyWithdraw,
+		"CandidateDeposit" : c.CandidateDeposit,
+		"CandidateList" : c.CandidateList,
+		"CandidateWithdraw" : c.CandidateWithdraw,
+		"VerifiersList" : c.VerifiersList,
+		// TODO test delete
+		"SayHi" : SayHi,
+	}
+
 	//rlp decode
 	var params [][]byte
 	if err := rlp.Decode(bytes.NewReader(input), &params); err != nil {
@@ -116,7 +136,34 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	result := reflect.ValueOf(funcValue).Call(params)
 	// TODO
 	// 返回值也是一个 Value 的 slice，同样对应反射函数类型的返回值。
+<<<<<<< HEAD
+	return result[0].Bytes(), result[1].Interface().(error)
+}
+
+func SayHi(a []byte, b [64]byte) (string) {
+	fmt.Println(b)
+	return "2"
+}
+
+//获取候选人详情
+func (c *candidateContract) CandidateDetails(nodeId [64]byte) ([]byte, error)  {
+	//cbft.GetDpos().GetCandidate(nodeId)
+	return nil, nil
+}
+
+//获取当前区块候选人列表 0~200
+func (c *candidateContract) CandidateList() ([]byte, error) {
+	// dpos.GetChosens()
+	return nil, nil
+}
+
+//获取当前区块轮次验证人列表 25个
+func (c *candidateContract) VerifiersList() ([]byte, error) {
+	// dpos.GetChairpersons()
+	return nil, nil
+=======
 	return result[0].Bytes(), result[1].Interface().(error)*/
+>>>>>>> 6147a1bfddb57d02d70d7edb5db56bd27fc4bff6
 }
 
 //候选人申请 && 增加质押金
