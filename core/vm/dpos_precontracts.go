@@ -20,15 +20,17 @@ data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
 package vm
 
 import (
-	"fmt"
-	"errors"
 	"Platon-go/common"
+	"Platon-go/consensus/cbft"
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
+	"fmt"
 )
+
 //error def
 var (
 	ErrRepeatOwner = errors.New("Node ID cannot bind multiple owners")
@@ -50,6 +52,7 @@ type candidateContract struct{
 }
 
 func (c *candidateContract) RequiredGas(input []byte) uint64 {
+	// TODO 获取设定的预编译合约消耗
 	return params.EcrecoverGas
 }
 
@@ -65,20 +68,52 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 		return nil, ErrParamsBaselen
 	}
 	switch string(params[1]) {
-	case "CandidateDeposit":
-		return c.candidateDeposit(params[2:])
-	case "CandidateApplyWithdraw":
-		return c.candidateApplyWithdraw(params[2:])
-	case "CandidateWithdraw":
-		return c.candidateWithdraw(params[2:])
-	default:
-		fmt.Println("Undefined function")
-		return nil, ErrUndefFunction
+		case "CandidateDeposit":
+			return c.CandidateDeposit(params[2:])
+		case "CandidateApplyWithdraw":
+			return c.CandidateApplyWithdraw(params[2:])
+		case "CandidateWithdraw":
+			return c.CandidateWithdraw(params[2:])
+		case "CandidateDetails":
+			return c.CandidateDetails(params[2:])
+		case "CandidateList":
+			return c.CandidateList(params[2:])
+		case "VerifiersList":
+			return c.VerifiersList(params[2:])
+		default:
+			fmt.Println("Undefined function")
+			return nil, ErrUndefFunction
 	}
 }
 
+var dpos *cbft.Dpos
+
+// 初始化获取dpos实例
+func init() {
+	dpos = cbft.GetDpos()
+}
+
+//获取候选人详情
+func (c *candidateContract) CandidateDetails(params [][]byte)([]byte, error)  {
+	// TODO nodeId discover.NodeID 参数校验
+	// dpos.GetCandidate()
+	return nil, nil
+}
+
+//获取当前区块候选人列表 0~200
+func (c *candidateContract) CandidateList(params [][]byte) ([]byte, error) {
+	// dpos.GetChosens()
+	return nil, nil
+}
+
+//获取当前区块轮次验证人列表 25个
+func (c *candidateContract) VerifiersList(params [][]byte) ([]byte, error) {
+	// dpos.GetChairpersons()
+	return nil, nil
+}
+
 //候选人申请 && 增加质押金
-func (c *candidateContract) candidateDeposit(params [][]byte) ([]byte, error)   {
+func (c *candidateContract) CandidateDeposit(params [][]byte) ([]byte, error)   {
 
 	//params parse
 	if len(params)!=3 {
@@ -96,7 +131,7 @@ func (c *candidateContract) candidateDeposit(params [][]byte) ([]byte, error)   
 }
 
 //申请退回质押金
-func (c *candidateContract) candidateApplyWithdraw(params [][]byte) ([]byte, error)  {
+func (c *candidateContract) CandidateApplyWithdraw(params [][]byte) ([]byte, error)  {
 
 	if len(params)!=1 {
 		return nil, ErrParamsLen
@@ -109,7 +144,7 @@ func (c *candidateContract) candidateApplyWithdraw(params [][]byte) ([]byte, err
 }
 
 //质押金提现
-func (c *candidateContract) candidateWithdraw(params [][]byte) ([]byte, error)  {
+func (c *candidateContract) CandidateWithdraw(params [][]byte) ([]byte, error)  {
 
 	if len(params)!=1 {
 		return nil, ErrParamsLen
@@ -117,23 +152,5 @@ func (c *candidateContract) candidateWithdraw(params [][]byte) ([]byte, error)  
 	nodeId := hex.EncodeToString(params[0])
 
 	fmt.Println("CandidateWithdraw==> nodeId: ", nodeId)
-	return nil, nil
-}
-
-//获取候选人详情
-func (c *candidateContract) candidateDetails(params [][]byte)([]byte, error)  {
-
-	return nil, nil
-}
-
-//获取当前区块候选人列表 0~200
-func (c *candidateContract) candidateList(params [][]byte) ([]byte, error) {
-
-	return nil, nil
-}
-
-//获取当前区块轮次验证人列表 25个
-func (c *candidateContract) verifiersList(params [][]byte) ([]byte, error) {
-
 	return nil, nil
 }
