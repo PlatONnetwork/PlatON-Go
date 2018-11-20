@@ -21,24 +21,17 @@ package vm
 
 import (
 	"Platon-go/common"
-<<<<<<< HEAD
 	"Platon-go/common/byteutil"
 	"Platon-go/consensus/cbft"
-=======
->>>>>>> 22e14a9c3d3ef2e24123dfcc6c8e3f5a4ebea11d
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"bytes"
+	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
-<<<<<<< HEAD
 	"reflect"
-=======
-
-	"encoding/hex"
-	"encoding/binary"
 	//"Platon-go/consensus/cbft"
->>>>>>> 22e14a9c3d3ef2e24123dfcc6c8e3f5a4ebea11d
 )
 
 //error def
@@ -71,13 +64,6 @@ var command = map[string] interface{} {
 	"VerifiersList" : candidateContract.VerifiersList,
 	// TODO test delete
 	"SayHi" : SayHi,
-}
-
-var dpos *cbft.Dpos
-
-// 初始化获取dpos实例
-func init() {
-	dpos = cbft.GetDpos()
 }
 
 func (c *candidateContract) RequiredGas(input []byte) uint64 {
@@ -123,23 +109,14 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	return result[0].Bytes(), result[1].Interface().(error)
 }
 
-<<<<<<< HEAD
 func SayHi(a []byte, b [64]byte) (string) {
 	fmt.Println(b)
 	return "2"
 }
-=======
-/*var dpos *cbft.Dpos
 
-// 初始化获取dpos实例
-func init() {
-	dpos = cbft.GetDpos()
-}*/
-
->>>>>>> 22e14a9c3d3ef2e24123dfcc6c8e3f5a4ebea11d
 //获取候选人详情
 func (c *candidateContract) CandidateDetails(nodeId [64]byte) ([]byte, error)  {
-	dpos.GetCandidate(nodeId)
+	cbft.GetDpos().GetCandidate(nodeId)
 	// TODO
 	return nil, nil
 }
