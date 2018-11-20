@@ -661,6 +661,7 @@ func (cbft *Cbft) handleNewIrreversible(newIrr *BlockExt) error {
 
 	setHighestLogical(highestLogical)
 
+	log.Info("check the flag to free memory", "needSlideWindow", needSlideWindow)
 	if needSlideWindow {
 		cbft.slideWindow(newIrr)
 	}
