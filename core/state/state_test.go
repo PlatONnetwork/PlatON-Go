@@ -272,19 +272,21 @@ func TestEmptyByte(t *testing.T) {
 	can := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "啦啦", Host: "10.0.0.0"}
 	prefix := []byte("im")
 	pvalue, _ := rlp.EncodeToBytes(&can)
-	//pvalue := common.Int32ToBytes(32)
 	key := append(prefix, []byte("a")...)
-	//fmt.Printf("存进去之前: %+v \n", can)
-	//s.state.SetState(address, common.Hash{}, value)
 	state.SetState(address, key, pvalue)
-	state.Commit(false)
+	//state.Commit(false)
 
 	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
 		t.Errorf("expected empty current value, got %x", value)
+	}else{
+		var can Candidate
+		rlp.DecodeBytes(value, &can)
+		fmt.Printf("%+v \n", can)
 	}
-	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
-		t.Errorf("expected empty committed value, got %x", value)
-	}
+
+	//if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+	//	t.Errorf("expected empty committed value, got %x", value)
+	//}
 
 	state.trie.NodeIterator(nil)
 	it := trie.NewIterator(so.trie.NodeIterator(nil))
@@ -292,36 +294,25 @@ func TestEmptyByte(t *testing.T) {
 		var a Candidate
 		 rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
 		fmt.Println("初始化对比键值对", string(so.db.trie.GetKey(it.Key)), "== ", &a)
-		//trieKey := so.db.trie.GetKey(it.Key)
-		//fmt.Println(address.String())
-		//fmt.Println([]byte(address.String()))
-		//cleanKey := trieKey[len([]byte(address.String())):]
-		//fmt.Println(string(cleanKey))
-		//strings.HasPrefix(string(keyBytes), prefix)
-		//fmt.Println("初始化：", string(trieKey))
-
-		//k := common.BytesToHash(cleanKey[len([]byte(prefix)):])
-		//fmt.Println("HASH1", common.BytesToHash([]byte("a")))
-		//fmt.Println("hash2", k)
-		//fmt.Printf("DB结构： %v == %+v \n", k, &a)
 	}
 
 	can2 := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "OK", Host: "10.0.0.0"}
 	prefix2 := []byte("im")
 	pvalue2, _ := rlp.EncodeToBytes(&can2)
-	//pvalue := common.Int32ToBytes(32)
 	key2 := append(prefix2, []byte("b")...)
-	//fmt.Printf("存进去之前: %+v \n", can)
-	//s.state.SetState(address, common.Hash{}, value)
 	state.SetState(address, key2, pvalue2)
-	state.Commit(false)
+	//state.Commit(false)
 
 	if value := state.GetState(address, key2); !bytes.Equal(value, pvalue2) {
 		t.Errorf("expected empty current value, got %x", value)
+	}else{
+		var can Candidate
+		rlp.DecodeBytes(value, &can)
+		fmt.Printf("%+v \n", can)
 	}
-	if value := state.GetCommittedState(address, key2); !bytes.Equal(value, pvalue2) {
-		t.Errorf("expected empty committed value, got %x", value)
-	}
+	//if value := state.GetCommittedState(address, key2); !bytes.Equal(value, pvalue2) {
+	//	t.Errorf("expected empty committed value, got %x", value)
+	//}
 
 	state.trie.NodeIterator(nil)
 	it = trie.NewIterator(so.trie.NodeIterator(nil))
@@ -335,14 +326,14 @@ func TestEmptyByte(t *testing.T) {
 
 	pvalue = []byte{}
 	state.SetState(address, key, pvalue)
-	state.Commit(false)
+	//state.Commit(false)
 
 	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
 		t.Errorf("expected empty current value, got %x", value)
 	}
-	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
-		t.Errorf("expected empty committed value, got %x", value)
-	}
+	//if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+	//	t.Errorf("expected empty committed value, got %x", value)
+	//}
 
 	state.trie.NodeIterator(nil)
 	it = trie.NewIterator(so.trie.NodeIterator(nil))
@@ -350,6 +341,30 @@ func TestEmptyByte(t *testing.T) {
 		var a Candidate
 		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
 		fmt.Println("删除后对比键值对", string(so.db.trie.GetKey(it.Key)), "==", &a)
+	}
+
+	// insert empty value
+	key = []byte("bb")
+	pvalue = []byte{}
+	state.SetState(address, key, pvalue)
+
+	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty current value, got %x", value)
+	}else {
+		var a Candidate
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
+		fmt.Println("插入空值后对比键值对", string(so.db.trie.GetKey(it.Key)), "==", &a)
+	}
+	//if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+	//	t.Errorf("expected empty committed value, got %x", value)
+	//}
+
+	state.trie.NodeIterator(nil)
+	it = trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		var a Candidate
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
+		fmt.Println("插入空值后对比键值对", string(so.db.trie.GetKey(it.Key)), "==", &a)
 	}
 }
 
