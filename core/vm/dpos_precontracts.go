@@ -21,16 +21,24 @@ package vm
 
 import (
 	"Platon-go/common"
+<<<<<<< HEAD
 	"Platon-go/common/byteutil"
 	"Platon-go/consensus/cbft"
+=======
+>>>>>>> 22e14a9c3d3ef2e24123dfcc6c8e3f5a4ebea11d
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"bytes"
-	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
+<<<<<<< HEAD
 	"reflect"
+=======
+
+	"encoding/hex"
+	"encoding/binary"
+	//"Platon-go/consensus/cbft"
+>>>>>>> 22e14a9c3d3ef2e24123dfcc6c8e3f5a4ebea11d
 )
 
 //error def
@@ -50,7 +58,7 @@ var PrecompiledContractsDpos = map[common.Address]PrecompiledContract{
 
 type candidateContract struct{
 	contract *Contract
-	state StateDB
+	evm *EVM
 }
 
 // 用map封装所有的函数
@@ -115,10 +123,20 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	return result[0].Bytes(), result[1].Interface().(error)
 }
 
+<<<<<<< HEAD
 func SayHi(a []byte, b [64]byte) (string) {
 	fmt.Println(b)
 	return "2"
 }
+=======
+/*var dpos *cbft.Dpos
+
+// 初始化获取dpos实例
+func init() {
+	dpos = cbft.GetDpos()
+}*/
+
+>>>>>>> 22e14a9c3d3ef2e24123dfcc6c8e3f5a4ebea11d
 //获取候选人详情
 func (c *candidateContract) CandidateDetails(nodeId [64]byte) ([]byte, error)  {
 	dpos.GetCandidate(nodeId)
@@ -152,6 +170,23 @@ func (c *candidateContract) CandidateDeposit(params [][]byte) ([]byte, error)   
 	fmt.Println("CandidateDeposit==> nodeId: ", nodeId, " owner: ", owner, " deposit: ", deposit, "  fee: ", fee)
 
 	//todo
+	//dpos := cbft.GetDpos()
+	//dpos.Switch()
+	//cbft.GetDpos()
+
+
+
+
+	//判断nodeid和owner是否唯一
+	//先获取已有质押金，加上本次value，更新
+
+
+
+
+
+	//调用操作db的接口如果失败，则回滚交易。申请失败的交易，钱会被扣除,需要回滚
+	//返回值用json形式按照实际合约执行的返回形式格式化
+
 
 	return nil, nil
 }
@@ -164,8 +199,12 @@ func (c *candidateContract) CandidateApplyWithdraw(params [][]byte) ([]byte, err
 	}
 	nodeId := hex.EncodeToString(params[0])
 	from := c.contract.caller.Address().Hex()
-
 	fmt.Println("CandidateApplyWithdraw==> nodeId: ", nodeId, " from: ", from)
+
+	//校验from和owner是否一致
+	//调用接口生成退款记录
+
+
 	return nil, nil
 }
 
@@ -177,6 +216,53 @@ func (c *candidateContract) CandidateWithdraw(params [][]byte) ([]byte, error)  
 	}
 	nodeId := hex.EncodeToString(params[0])
 
+	//调用接口退款，判断返回值
+
 	fmt.Println("CandidateWithdraw==> nodeId: ", nodeId)
 	return nil, nil
+}
+
+//获取候选人详情
+func (c *candidateContract) candidateDetails(params [][]byte)([]byte, error)  {
+
+	return nil, nil
+}
+
+//获取当前区块候选人列表 0~200
+func (c *candidateContract) candidateList(params [][]byte) ([]byte, error) {
+
+	return nil, nil
+}
+
+//获取当前区块轮次验证人列表 25个
+func (c *candidateContract) verifiersList(params [][]byte) ([]byte, error) {
+
+	return nil, nil
+}
+
+func DecodeResultStr (result string) []byte {
+	// 0x0000000000000000000000000000000000000020
+	// 00000000000000000000000000000000000000000d
+	// 00000000000000000000000000000000000000000
+
+	resultBytes := []byte(result)
+
+	strHash := common.BytesToHash(common.Int32ToBytes(32))
+	sizeHash := common.BytesToHash(common.Int64ToBytes(int64((len(resultBytes)))))
+	var dataRealSize = len(resultBytes)
+	if (dataRealSize % 32) != 0 {
+		dataRealSize = dataRealSize + (32 - (dataRealSize % 32))
+	}
+	dataByt := make([]byte, dataRealSize)
+	copy(dataByt[0:], resultBytes)
+
+	finalData := make([]byte, 0)
+	finalData = append(finalData, strHash.Bytes()...)
+	finalData = append(finalData, sizeHash.Bytes()...)
+	finalData = append(finalData, dataByt...)
+
+	encodedStr := hex.EncodeToString(finalData)
+	fmt.Println("finalData: ", encodedStr)
+
+	return finalData
 }

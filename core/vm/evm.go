@@ -58,7 +58,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		if p := PrecompiledContractsDpos[*contract.CodeAddr]; p != nil {
 			if f, ok := p.(*candidateContract);ok {
 				f.contract = contract
-				f.state = evm.StateDB
+				f.evm = evm
 			}		
 			return RunPrecompiledContract(p, input, contract)
 		}
