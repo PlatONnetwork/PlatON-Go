@@ -939,6 +939,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 
 	for {
 		if bftEngine && (float64(time.Now().UnixNano() / 1e6 - timestamp) >= w.commitDuration) {
+			log.Warn("------执行交易超时，主动退出，继续剩余打包流程------", "超时时长", w.commitDuration, "本轮执行交易数", w.current.tcount)
 			break
 		}
 		// In the following three cases, we will interrupt the execution of the transaction.
