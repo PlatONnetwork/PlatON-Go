@@ -22,7 +22,7 @@ package vm
 import (
 	"Platon-go/common"
 	"Platon-go/common/byteutil"
-	"Platon-go/consensus/cbft"
+	//"Platon-go/consensus/cbft"
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"bytes"
@@ -54,24 +54,25 @@ type candidateContract struct{
 	evm *EVM
 }
 
-// 用map封装所有的函数
-var command = map[string] interface{} {
-	"CandidateDetails" : candidateContract.CandidateDetails,
-	"CandidateApplyWithdraw" : candidateContract.CandidateApplyWithdraw,
-	"CandidateDeposit" : candidateContract.CandidateDeposit,
-	"CandidateList" : candidateContract.CandidateList,
-	"CandidateWithdraw" : candidateContract.CandidateWithdraw,
-	"VerifiersList" : candidateContract.VerifiersList,
-	// TODO test delete
-	"SayHi" : SayHi,
-}
-
 func (c *candidateContract) RequiredGas(input []byte) uint64 {
 	// TODO 获取设定的预编译合约消耗
 	return params.EcrecoverGas
 }
 
 func (c *candidateContract) Run(input []byte) ([]byte, error) {
+
+	// 用map封装所有的函数
+	var command = map[string] interface{}{
+		"CandidateDetails" : c.CandidateDetails,
+		"CandidateApplyWithdraw" : c.CandidateApplyWithdraw,
+		"CandidateDeposit" : c.CandidateDeposit,
+		"CandidateList" : c.CandidateList,
+		"CandidateWithdraw" : c.CandidateWithdraw,
+		"VerifiersList" : c.VerifiersList,
+		// TODO test delete
+		"SayHi" : SayHi,
+	}
+
 	//rlp decode
 	var source [][]byte
 	if err := rlp.Decode(bytes.NewReader(input), &source); err != nil {
@@ -116,8 +117,7 @@ func SayHi(a []byte, b [64]byte) (string) {
 
 //获取候选人详情
 func (c *candidateContract) CandidateDetails(nodeId [64]byte) ([]byte, error)  {
-	cbft.GetDpos().GetCandidate(nodeId)
-	// TODO
+	//cbft.GetDpos().GetCandidate(nodeId)
 	return nil, nil
 }
 
