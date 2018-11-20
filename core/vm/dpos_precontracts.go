@@ -21,8 +21,7 @@ package vm
 
 import (
 	"Platon-go/common"
-	"Platon-go/common/byteutil"
-	"Platon-go/consensus/cbft"
+	//"Platon-go/consensus/cbft"
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"bytes"
@@ -30,8 +29,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"reflect"
-	//"Platon-go/consensus/cbft"
 )
 
 //error def
@@ -55,7 +52,7 @@ type candidateContract struct{
 }
 
 // 用map封装所有的函数
-var command = map[string] interface{} {
+/*var command = map[string] interface{} {
 	"CandidateDetails" : candidateContract.CandidateDetails,
 	"CandidateApplyWithdraw" : candidateContract.CandidateApplyWithdraw,
 	"CandidateDeposit" : candidateContract.CandidateDeposit,
@@ -64,7 +61,7 @@ var command = map[string] interface{} {
 	"VerifiersList" : candidateContract.VerifiersList,
 	// TODO test delete
 	"SayHi" : SayHi,
-}
+}*/
 
 func (c *candidateContract) RequiredGas(input []byte) uint64 {
 	// TODO 获取设定的预编译合约消耗
@@ -73,17 +70,30 @@ func (c *candidateContract) RequiredGas(input []byte) uint64 {
 
 func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	//rlp decode
-	var source [][]byte
-	if err := rlp.Decode(bytes.NewReader(input), &source); err != nil {
+	var params [][]byte
+	if err := rlp.Decode(bytes.NewReader(input), &params); err != nil {
 		fmt.Println(err)
 		return nil, ErrParamsRlpDecode
 	}
 	//function call
-	if len(source)<2 {
+	if len(params)<2 {
 		return nil, ErrParamsBaselen
 	}
-	// 获取要调用的函数
-	if _, ok := command[byteutil.BytesToString(source[1])]; !ok {
+
+	switch string(params[1]) {
+	case "CandidateDeposit":
+		return c.CandidateDeposit(params[2:])
+	case "CandidateApplyWithdraw":
+		return c.CandidateApplyWithdraw(params[2:])
+	case "CandidateWithdraw":
+		return c.CandidateWithdraw(params[2:])
+	default:
+		fmt.Println("Undefined function")
+		return nil, ErrUndefFunction
+	}
+
+		// 获取要调用的函数
+	/*if _, ok := command[byteutil.BytesToString(source[1])]; !ok {
 		return nil, ErrUndefFunction
 	}
 	funcValue := command[byteutil.BytesToString(source[1])]
@@ -106,31 +116,7 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	result := reflect.ValueOf(funcValue).Call(params)
 	// TODO
 	// 返回值也是一个 Value 的 slice，同样对应反射函数类型的返回值。
-	return result[0].Bytes(), result[1].Interface().(error)
-}
-
-func SayHi(a []byte, b [64]byte) (string) {
-	fmt.Println(b)
-	return "2"
-}
-
-//获取候选人详情
-func (c *candidateContract) CandidateDetails(nodeId [64]byte) ([]byte, error)  {
-	cbft.GetDpos().GetCandidate(nodeId)
-	// TODO
-	return nil, nil
-}
-
-//获取当前区块候选人列表 0~200
-func (c *candidateContract) CandidateList() ([]byte, error) {
-	// dpos.GetChosens()
-	return nil, nil
-}
-
-//获取当前区块轮次验证人列表 25个
-func (c *candidateContract) VerifiersList() ([]byte, error) {
-	// dpos.GetChairpersons()
-	return nil, nil
+	return result[0].Bytes(), result[1].Interface().(error)*/
 }
 
 //候选人申请 && 增加质押金
@@ -200,20 +186,21 @@ func (c *candidateContract) CandidateWithdraw(params [][]byte) ([]byte, error)  
 }
 
 //获取候选人详情
-func (c *candidateContract) candidateDetails(params [][]byte)([]byte, error)  {
-
+func (c *candidateContract) CandidateDetails(nodeId [64]byte) ([]byte, error)  {
+	//cbft.GetDpos().GetCandidate(nodeId)
+	// TODO
 	return nil, nil
 }
 
 //获取当前区块候选人列表 0~200
-func (c *candidateContract) candidateList(params [][]byte) ([]byte, error) {
-
+func (c *candidateContract) CandidateList() ([]byte, error) {
+	// dpos.GetChosens()
 	return nil, nil
 }
 
 //获取当前区块轮次验证人列表 25个
-func (c *candidateContract) verifiersList(params [][]byte) ([]byte, error) {
-
+func (c *candidateContract) VerifiersList() ([]byte, error) {
+	// dpos.GetChairpersons()
 	return nil, nil
 }
 
@@ -242,4 +229,9 @@ func DecodeResultStr (result string) []byte {
 	fmt.Println("finalData: ", encodedStr)
 
 	return finalData
+}
+
+func SayHi(a []byte, b [64]byte) (string) {
+	fmt.Println(b)
+	return "2"
 }
