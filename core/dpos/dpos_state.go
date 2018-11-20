@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"errors"
 	"Platon-go/core/vm"
+	"Platon-go/core/types"
 )
 
 
@@ -69,13 +70,13 @@ type CandidatePool struct {
 	RefundBlockNumber 		uint64
 
 	// 本轮选出的见证人集
-	originCandidates  		map[discover.NodeID]*Candidate
+	originCandidates  		map[discover.NodeID]*types.Candidate
 	// 下一轮见证人集
-	nextOriginCandidates  	map[discover.NodeID]*Candidate
+	nextOriginCandidates  	map[discover.NodeID]*types.Candidate
 	// 即时的入选人集
-	immediateCandates 		map[discover.NodeID]*Candidate
+	immediateCandates 		map[discover.NodeID]*types.Candidate
 	// 质押失败的竞选人集 (退款用)
-	defeatCandidates 		map[discover.NodeID][]*Candidate
+	defeatCandidates 		map[discover.NodeID][]*types.Candidate
 	//blockChain     			*core.BlockChain
 	//cacheState 				*state.StateDB
 
@@ -129,9 +130,9 @@ func NewCandidatePool(state *state.StateDB, configs *params.DposConfig, isgenesi
 		maxCount:				configs.MaxCount,
 		maxChair:				configs.MaxChair,
 		RefundBlockNumber: 		configs.RefundBlockNumber,
-		originCandidates: 		make(map[discover.NodeID]*Candidate, 0),
-		immediateCandates: 		make(map[discover.NodeID]*Candidate, 0),
-		defeatCandidates: 		make(map[discover.NodeID][]*Candidate, 0),
+		originCandidates: 		make(map[discover.NodeID]*types.Candidate, 0),
+		immediateCandates: 		make(map[discover.NodeID]*types.Candidate, 0),
+		defeatCandidates: 		make(map[discover.NodeID][]*types.Candidate, 0),
 		lock: 					&sync.RWMutex{},
 	}, nil
 }
@@ -183,11 +184,11 @@ func loadConfig(configs *params.DposConfig, state *state.StateDB) error {
 		witnessIds 	:= make([]discover.NodeID, 0)
 		immediateIds := make([]discover.NodeID, 0)
 
-		witnessMap := make(map[discover.NodeID]*Candidate, 0)
-		immediateMap := make(map[discover.NodeID]*Candidate, 0)
+		witnessMap := make(map[discover.NodeID]*types.Candidate, 0)
+		immediateMap := make(map[discover.NodeID]*types.Candidate, 0)
 
 		for i, canConfig := range configs.Candidates {
-			can := &Candidate{
+			can := &types.Candidate{
 				Deposit:			canConfig.Deposit,
 				BlockNumber: 		canConfig.BlockNumber,
 				TxIndex: 		 	canConfig.TxIndex,
@@ -249,7 +250,7 @@ func iteratorTrie(s string, tr state.Trie){
 	it := tr.NodeIterator(nil)
 	for it.Next(true) {
 		if it.Leaf() {
-			var a Candidate
+			var a types.Candidate
 			rlp.DecodeBytes(tr.GetKey(it.LeafBlob()), &a)
 			fmt.Println(s, string(tr.GetKey(it.LeafKey())), "== ", &a)
 		}
@@ -365,7 +366,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 
 	// 加载 见证人信息
 	var witnessIds []discover.NodeID
-	c.originCandidates = make(map[discover.NodeID]*Candidate, 0)
+	c.originCandidates = make(map[discover.NodeID]*types.Candidate, 0)
 	if valByte := state.GetState(CandidateAddr, WitnessListKey()); len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			log.Error("Failed to decode witnessIds", "err", err)
@@ -375,7 +376,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 
 	for _, witnessId := range witnessIds {
 		fmt.Println("witnessId = ", witnessId.String())
-		var can Candidate
+		var can types.Candidate
 		if err := rlp.DecodeBytes(state.GetState(CandidateAddr, WitnessKey(witnessId)), &can); nil != err {
 			log.Error("Failed to decode Candidate", "err", err)
 			return CandidateDecodeErr
@@ -384,7 +385,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 	}
 	// 加载 下一轮见证人
 	var nextWitnessIds []discover.NodeID
-	c.nextOriginCandidates = make(map[discover.NodeID]*Candidate, 0)
+	c.nextOriginCandidates = make(map[discover.NodeID]*types.Candidate, 0)
 	if valByte := state.GetState(CandidateAddr, NextWitnessListKey()); len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &nextWitnessIds); nil != err {
 			log.Error("Failed to decode nextWitnessIds", "err", err)
@@ -394,7 +395,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 
 	for _, witnessId := range nextWitnessIds {
 		fmt.Println("nextwitnessId = ", witnessId.String())
-		var can Candidate
+		var can types.Candidate
 		if err := rlp.DecodeBytes(state.GetState(CandidateAddr, NextWitnessKey(witnessId)), &can); nil != err {
 			log.Error("Failed to decode Candidate", "err", err)
 			return CandidateDecodeErr
@@ -403,7 +404,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 	}
 	// 加载 入围者
 	var immediateIds []discover.NodeID
-	c.immediateCandates = make(map[discover.NodeID]*Candidate, 0)
+	c.immediateCandates = make(map[discover.NodeID]*types.Candidate, 0)
 	if valByte := state.GetState(CandidateAddr, ImmediateListKey()); len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &immediateIds); nil != err {
 			log.Error("Failed to decode immediateIds", "err", err)
@@ -412,7 +413,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 	}
 	for _, immediateId := range immediateIds {
 		fmt.Println("immediateId = ", immediateId.String())
-		var can Candidate
+		var can types.Candidate
 		if err := rlp.DecodeBytes(state.GetState(CandidateAddr, ImmediateKey(immediateId)), &can); nil != err {
 			log.Error("Failed to decode Candidate", "err", err)
 			return CandidateDecodeErr
@@ -421,7 +422,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 	}
 	// 加载 需要退款信息
 	var defeatIds []discover.NodeID
-	c.defeatCandidates = make(map[discover.NodeID][]*Candidate, 0)
+	c.defeatCandidates = make(map[discover.NodeID][]*types.Candidate, 0)
 	if valBtye := state.GetState(CandidateAddr, DefeatListKey()); len(valBtye) != 0 {
 		if err := rlp.DecodeBytes(valBtye, &defeatIds); nil != err {
 			log.Error("Failed to decode defeatIds", "err", err)
@@ -430,7 +431,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 	}
 	for _, defeatId := range defeatIds {
 		fmt.Println("defeatId = ", defeatId.String())
-		var canArr []*Candidate
+		var canArr []*types.Candidate
 		if err := rlp.DecodeBytes(state.GetState(CandidateAddr, DefeatKey(defeatId)), &canArr); nil != err {
 			log.Error("Failed to decode CandidateArr", "err", err)
 			return CandidateDecodeErr
@@ -441,7 +442,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 }
 
 // 候选人抵押
-func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *Candidate) error {
+func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
@@ -504,7 +505,7 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 
 
 // 获取入围候选人信息
-func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*Candidate, error) {
+func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
 	return c.getCandidate(state, nodeId)
 }
 
@@ -550,7 +551,7 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 		for id, v := range c.immediateCandates {
 			if id == nodeId {
 				// 剩下部分
-				canNew := &Candidate{
+				canNew := &types.Candidate{
 					Deposit:		new(big.Int).Sub(can.Deposit, new(big.Int).SetUint64(uint64(price))),
 					BlockNumber: 	can.BlockNumber,
 					TxIndex: 		can.TxIndex,
@@ -567,7 +568,7 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 					return err
 				}
 				// 退款部分新建退款信息
-				canDefeat := &Candidate{
+				canDefeat := &types.Candidate{
 					Deposit: 		new(big.Int).SetUint64(uint64(price)),
 					BlockNumber: 	can.BlockNumber,
 					TxIndex: 		can.TxIndex,
@@ -592,7 +593,7 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 }
 
 // 获取实时所有入围候选人
-func (c *CandidatePool) GetChosens (state vm.StateDB) []*Candidate {
+func (c *CandidatePool) GetChosens (state vm.StateDB) []*types.Candidate {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
@@ -603,7 +604,7 @@ func (c *CandidatePool) GetChosens (state vm.StateDB) []*Candidate {
 			log.Error("Failed to getImmediateIndex err", err)
 		return nil
 	}
-	arr := make([]*Candidate, 0)
+	arr := make([]*types.Candidate, 0)
 	for _, id := range immediateIds {
 		arr = append(arr, c.immediateCandates[id])
 	}
@@ -611,7 +612,7 @@ func (c *CandidatePool) GetChosens (state vm.StateDB) []*Candidate {
 }
 
 // 获取所有见证人
-func (c *CandidatePool) GetChairpersons (state vm.StateDB) []*Candidate {
+func (c *CandidatePool) GetChairpersons (state vm.StateDB) []*types.Candidate {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
@@ -622,7 +623,7 @@ func (c *CandidatePool) GetChairpersons (state vm.StateDB) []*Candidate {
 		log.Error("Failed to getWitnessIndex err", err)
 		return nil
 	}
-	arr := make([]*Candidate, 0)
+	arr := make([]*types.Candidate, 0)
 	for _, id := range witnessIds {
 		arr = append(arr, c.originCandidates[id])
 	}
@@ -631,7 +632,7 @@ func (c *CandidatePool) GetChairpersons (state vm.StateDB) []*Candidate {
 
 
 // 获取退款信息
-func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*Candidate, error){
+func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*types.Candidate, error){
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
@@ -719,7 +720,7 @@ func (c *CandidatePool) Election(state *state.StateDB) bool{
 		copy(nextWitIds, immediateIds)
 	}
 
-	nextWits := make(map[discover.NodeID]*Candidate, 0)
+	nextWits := make(map[discover.NodeID]*types.Candidate, 0)
 	// copy 见证人信息
 	copyCandidateMapByIds(nextWits, c.immediateCandates, nextWitIds)
 
@@ -756,7 +757,7 @@ func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID,
 		return err
 	}
 
-	var arr []*Candidate
+	var arr []*types.Candidate
 	if defeatArr, ok := c.defeatCandidates[nodeId]; ok {
 		arr = defeatArr
 	}else {
@@ -769,7 +770,7 @@ func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID,
 	// 累计需要一次性退款的金额
 	var amount uint64
 	// 中转需要删除的退款信息
-	delCanArr := make([]*Candidate, 0)
+	delCanArr := make([]*types.Candidate, 0)
 
 	contractBalance := state.GetBalance(CandidateAddr)
 	currentNum := new(big.Int).SetUint64(blockNumber)
@@ -850,7 +851,7 @@ func (c *CandidatePool) ResetStateByBlockNumber (blockNumber uint64) bool {
 
 
 
-func (c *CandidatePool) setImmediate(state vm.StateDB, key discover.NodeID, can *Candidate) error {
+func (c *CandidatePool) setImmediate(state vm.StateDB, key discover.NodeID, can *types.Candidate) error {
 	c.immediateCandates[key] = can
 	if value, err := rlp.EncodeToBytes(can); nil != err {
 		log.Error("Failed to encode candidate object on setImmediate", "key", key.String(), "err", err)
@@ -903,16 +904,16 @@ func (c *CandidatePool) delImmediate (state vm.StateDB, candidateId discover.Nod
 }
 
 // 设置退款信息
-func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID, can *Candidate) error {
+func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error {
 
-	var defeatArr []*Candidate
+	var defeatArr []*types.Candidate
 	// 追加退款信息
 	if defeatArrTmp, ok := c.defeatCandidates[can.CandidateId]; ok {
 		defeatArrTmp = append(defeatArrTmp, can)
 		c.defeatCandidates[can.CandidateId] = defeatArrTmp
 		defeatArr = defeatArrTmp
 	}else {
-		defeatArrTmp = make([]*Candidate, 0)
+		defeatArrTmp = make([]*types.Candidate, 0)
 		defeatArrTmp = append(defeatArr, can)
 		c.defeatCandidates[can.CandidateId] = defeatArrTmp
 		defeatArr = defeatArrTmp
@@ -951,7 +952,7 @@ func (c *CandidatePool) getWitnessIndex (state vm.StateDB) ([]discover.NodeID, e
 	return arr, nil
 }
 
-func (c *CandidatePool) setNextWitness(state vm.StateDB, nodeId discover.NodeID, can *Candidate) error {
+func (c *CandidatePool) setNextWitness(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 	c.nextOriginCandidates[nodeId] = can
 	if value, err := rlp.EncodeToBytes(can); nil != err {
 		log.Error("Failed to encode candidate object on setImmediate", "key", nodeId.String(), "err", err)
@@ -1003,7 +1004,7 @@ func (c *CandidatePool) setNextWitnessIndex (state vm.StateDB, nodeIds []discove
 }
 
 
-func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (*Candidate, error){
+func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error){
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
@@ -1016,9 +1017,9 @@ func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (
 }
 
 
-func breakUpMap(origin, newData map[discover.NodeID]*Candidate) (map[discover.NodeID]*Candidate, map[discover.NodeID]struct{}){
+func breakUpMap(origin, newData map[discover.NodeID]*types.Candidate) (map[discover.NodeID]*types.Candidate, map[discover.NodeID]struct{}){
 	// 需要更新集 		需要删除集
-	updateMap, delMap := make(map[discover.NodeID]*Candidate, 0), make(map[discover.NodeID]struct{}, 0)
+	updateMap, delMap := make(map[discover.NodeID]*types.Candidate, 0), make(map[discover.NodeID]struct{}, 0)
 	for id, can := range origin {
 		if _, ok := newData[id]; ok {
 			updateMap[id] = can
@@ -1035,13 +1036,13 @@ func breakUpMap(origin, newData map[discover.NodeID]*Candidate) (map[discover.No
 }
 
 
-func copyCandidateMapByIds(target, source map[discover.NodeID]*Candidate, ids []discover.NodeID){
+func copyCandidateMapByIds(target, source map[discover.NodeID]*types.Candidate, ids []discover.NodeID){
 	for _, id := range ids {
 		target[id] = source[id]
 	}
 }
 
-func (c *Candidate) compare(can *Candidate) int {
+func compare(c, can *types.Candidate) int {
 	// 质押金大的放前面
 	if c.Deposit.Cmp(can.Deposit) > 0 {
 		return 1
@@ -1066,26 +1067,26 @@ func (c *Candidate) compare(can *Candidate) int {
 	}
 }
 // 候选人排序
-func candidateSort(arr []discover.NodeID, candidates map[discover.NodeID]*Candidate) {
+func candidateSort(arr []discover.NodeID, candidates map[discover.NodeID]*types.Candidate) {
 	quickRealSort(arr, candidates, 0, len(arr) - 1)
 }
-func quickRealSort (arr []discover.NodeID, candidates map[discover.NodeID]*Candidate, left, right int)  {
+func quickRealSort (arr []discover.NodeID, candidates map[discover.NodeID]*types.Candidate, left, right int)  {
 	if left < right {
 		pivot := partition(arr, candidates, left, right)
 		quickRealSort(arr, candidates, left, pivot - 1)
 		quickRealSort(arr, candidates, pivot + 1, right)
 	}
 }
-func partition(arr []discover.NodeID, candidates map[discover.NodeID]*Candidate, left, right int) int {
+func partition(arr []discover.NodeID, candidates map[discover.NodeID]*types.Candidate, left, right int) int {
 	for left < right {
-		for left < right && candidates[arr[left]].compare(candidates[arr[right]]) >= 0 {
+		for left < right && compare(candidates[arr[left]], candidates[arr[right]]) >= 0 {
 			right --
 		}
 		if left < right {
 			arr[left], arr[right] = arr[right], arr[left]
 			left ++
 		}
-		for left < right && candidates[arr[left]].compare(candidates[arr[right]]) >= 0 {
+		for left < right && compare(candidates[arr[left]], candidates[arr[right]]) >= 0 {
 			left ++
 		}
 		if left < right {
