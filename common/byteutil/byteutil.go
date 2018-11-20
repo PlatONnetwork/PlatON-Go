@@ -15,8 +15,8 @@ var Command = map[string] interface{} {
 	"[32]uint8" : BytesTo32Bytes,
 	"int" : BytesToInt,
 	"*big.Int" : BytesToBigInt,
-	"uint32" : binary.LittleEndian.Uint32,
-	"uint64" : binary.LittleEndian.Uint64,
+	"uint32" : binary.BigEndian.Uint32,
+	"uint64" : binary.BigEndian.Uint64,
 	"int32" : common.BytesToInt32,
 	"int64" : common.BytesToInt64,
 	"float32" : common.BytesToFloat32,
@@ -40,12 +40,6 @@ func BytesTo64Bytes(curByte []byte) [64]byte {
 
 func OrginBytes(curByte []byte) []byte {
 	return curByte
-}
-
-func Uint64ToBytes(val uint64) []byte {
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, val)
-	return buf[:]
 }
 
 func BytesToBigInt(curByte []byte) *big.Int {
@@ -84,4 +78,10 @@ func IntToBytes(curInt int) []byte {
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	binary.Write(bytesBuffer, binary.BigEndian, &x)
 	return bytesBuffer.Bytes()
+}
+
+func Uint64ToBytes(val uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, val)
+	return buf[:]
 }

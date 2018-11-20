@@ -131,9 +131,10 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func SayHi(a []byte, b [64]byte) (string) {
-	fmt.Println(b)
-	return "2"
+func SayHi(nodeId discover.NodeID, owner common.Address, fee uint64) ([]byte, error) {
+	fmt.Println("into ...")
+	fmt.Println("CandidateDeposit==> nodeId: ", nodeId, " owner: ", owner, "  fee: ", fee)
+	return nil, nil
 }
 
 //候选人申请 && 增加质押金
