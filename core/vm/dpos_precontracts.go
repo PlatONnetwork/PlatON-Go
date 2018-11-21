@@ -54,12 +54,12 @@ var PrecompiledContractsDpos = map[common.Address]PrecompiledContract{
 type candidatePool interface {
 	SetCandidate(state StateDB, nodeId discover.NodeID, can *types.Candidate) error
 	GetCandidate(state StateDB, nodeId discover.NodeID) (*types.Candidate, error)
-	WithdrawCandidate (state StateDB, nodeId discover.NodeID, price int) error
+	WithdrawCandidate (state StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error
 	GetChosens (state StateDB, ) []*types.Candidate
 	GetChairpersons (state StateDB, ) []*types.Candidate
 	GetDefeat(state StateDB, nodeId discover.NodeID) ([]*types.Candidate, error)
 	IsDefeat(state StateDB, nodeId discover.NodeID) (bool, error)
-	RefundBalance (state StateDB, nodeId discover.NodeID, blockNumber uint64) error
+	RefundBalance (state StateDB, nodeId discover.NodeID, blockNumber *big.Int) error
 	GetOwner (state StateDB, nodeId discover.NodeID) common.Address
 }
 
@@ -126,18 +126,21 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	}
 	fmt.Println("params: ", params)
 	// 传入参数调用函数
-	//result := reflect.ValueOf(funcValue).Call(params)
-	reflect.ValueOf(funcValue).Call(params)
-	// TODO
+	result := reflect.ValueOf(funcValue).Call(params)
+	if _, err := result[1].Interface().(error); !err {
+		return result[0].Bytes(), nil
+	}
+	fmt.Println(result[1].Interface().(error).Error())
 	// 返回值也是一个 Value 的 slice，同样对应反射函数类型的返回值。
-	//return result[0].Bytes(), result[1].Interface().(error)
-	return nil, nil
+	return result[0].Bytes(), result[1].Interface().(error)
+	// return nil ,nil
 }
 
 func SayHi(nodeId discover.NodeID, owner common.Address, fee uint64) ([]byte, error) {
 	fmt.Println("into ...")
 	fmt.Println("CandidateDeposit==> nodeId: ", nodeId, " owner: ", owner, "  fee: ", fee)
-	return nil, nil
+	err := fmt.Errorf("this is new Error")
+	return []byte{1}, err
 }
 
 //候选人申请 && 增加质押金
@@ -226,21 +229,34 @@ func (c *candidateContract) CandidateWithdraw(params [][]byte) ([]byte, error)  
 }
 
 //获取候选人详情
-func (c *candidateContract) CandidateDetails(nodeId [64]byte) ([]byte, error)  {
-	//cbft.GetDpos().GetCandidate(nodeId)
-	// TODO
-	return nil, nil
+func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, error)  {
+	// GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error)
+	fmt.Println("into func CandidateDetails... ")
+	fmt.Println(nodeId.String())
+	candidate, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
+	if err != nil{
+		return nil, err
+	}
+	data, _ := json.Marshal(candidate)
+	sdata := DecodeResultStr(string(data))
+	fmt.Println("json: ", string(data), " []byte: ", sdata)
+	return sdata, nil
 }
 
 //获取当前区块候选人列表 0~200
 func (c *candidateContract) CandidateList() ([]byte, error) {
-	// dpos.GetChosens()
+	fmt.Println("into func CandidateList... ")
+	// GetChosens (state vm.StateDB) []*types.Candidate
+	// arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB)
 	return nil, nil
 }
 
 //获取当前区块轮次验证人列表 25个
 func (c *candidateContract) VerifiersList() ([]byte, error) {
-	// dpos.GetChairpersons()
+	fmt.Println("into func VerifiersList... ")
+	// GetChairpersons (state vm.StateDB) []*types.Candidate
+	// arr := c.evm.CandidatePool.GetChairpersons(c.evm.StateDB)
+
 	return nil, nil
 }
 
