@@ -37,11 +37,11 @@ type dpos struct {
 	// dpos 候选人池
 	candidatePool		*depos.CandidatePool
 }
-// 定义一个全局的dpos
-var dposPtr *dpos
+// //定义一个全局的dpos
+//var dposPtr *dpos
 
 func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
-	dposPtr = &dpos{
+	dposPtr := &dpos{
 		primaryNodeList:   initialNodes,
 		lastCycleBlockNum: 0,
 		config: 			config.DposConfig,
@@ -183,6 +183,6 @@ func (d *dpos) GetOwner (state vm.StateDB, nodeId discover.NodeID) common.Addres
 }
 
 
-func GetDpos() *dpos{
-	return dposPtr
-}
+//func GetDpos() *dpos{
+//	return dposPtr
+//}

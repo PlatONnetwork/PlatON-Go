@@ -14,6 +14,8 @@ import (
 	"errors"
 	"Platon-go/core/vm"
 	"Platon-go/core/types"
+	"net"
+	"strconv"
 )
 
 
@@ -261,7 +263,7 @@ func iteratorTrie(s string, tr state.Trie){
 	}
 }
 
-func printObject(s string, obj interface{}){
+func PrintObject(s string, obj interface{}){
 	objs, _ := json.Marshal(obj)
 	fmt.Println(s, string(objs), "\n")
 }
@@ -627,7 +629,7 @@ func (c *CandidatePool) GetChairpersons (state vm.StateDB) []*types.Candidate {
 	}
 	witnessIds, err := c.getWitnessIndex(state)
 	if nil != err {
-		log.Error("Failed to getWitnessIndex err", err)
+		log.Error("Failed to getWitnessIndex on GetChairpersonserr", err)
 		return nil
 	}
 	arr := make([]*types.Candidate, 0)
@@ -894,9 +896,46 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 	c.nextOriginCandidates = make(map[discover.NodeID]*types.Candidate)
 	return true
 }
+// 获取见证人节点列表
+func (c *CandidatePool) GetWitness (state *state.StateDB) []*discover.Node {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.initDataByState(state); nil != err {
+		log.Error("Failed to initDataByState on GetWitness err", err)
+		return nil
+	}
+	witnessIds, err := c.getWitnessIndex(state)
+	if nil != err {
+		log.Error("Failed to getWitnessIndex on GetWitness err", err)
+		return nil
+	}
+	arr := make([]*discover.Node, 0)
+	for _, id := range witnessIds {
+		can := c.originCandidates[id]
+		if node, err := buildWitnessNode(can); nil != err {
+			log.Error("Failed to build Node on GetWitness err", err, "nodeId", can.CandidateId.String())
+			continue
+		}else {
+			arr = append(arr, node)
+		}
+	}
+	return arr
+}
 
-//func (c *CandidatePool) GetWitness (state *state.StateDB) []*Candidate {}
-
+func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
+	if nil == can {
+		return nil, CandidateEmptyErr
+	}
+	ip := net.ParseIP(can.Host)
+	// uint16
+	var port uint16
+	if portInt, err := strconv.Atoi(can.Port); nil != err {
+		return nil, err
+	}else {
+		port = uint16(portInt)
+	}
+	return discover.NewNode(can.CandidateId, ip, port, port), nil
+}
 
 
 func (c *CandidatePool) setImmediate(state vm.StateDB, key discover.NodeID, can *types.Candidate) error {

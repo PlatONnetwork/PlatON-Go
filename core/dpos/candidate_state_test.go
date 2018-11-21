@@ -1,4 +1,4 @@
-package depos
+package depos_test
 
 import (
 	"testing"
@@ -10,10 +10,12 @@ import (
 	"Platon-go/ethdb"
 	"Platon-go/core"
 	"Platon-go/core/vm"
-	"Platon-go/consensus/ethash"
-	"Platon-go/p2p/discover"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
+	"Platon-go/consensus/ethash"
+	"Platon-go/p2p/discover"
+
+	"Platon-go/core/dpos"
 )
 
 func TestInitCandidatePoolByConfig (t *testing.T){
@@ -71,7 +73,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 		RefundBlockNumber: 	1,
 		Candidates: can_Configs,
 	}
-	var candidatePool *CandidatePool
+	var candidatePool *depos.CandidatePool
 	var state *state.StateDB
 	if statedb, err := blockchain.State(); nil != err {
 		fmt.Println("reference statedb failed", err)
@@ -81,7 +83,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 			isgenesis = true
 		}
 		/** test init candidatePool */
-		if pool, err := NewCandidatePool(statedb, &configs, isgenesis); nil != err {
+		if pool, err := depos.NewCandidatePool(statedb, &configs, isgenesis); nil != err {
 			fmt.Println("init candidatePool err", err)
 		}else{
 			candidatePool = pool
@@ -150,22 +152,22 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	/** test GetChosens */
 	fmt.Println("test GetChosens")
 	canArr := candidatePool.GetChosens(state)
-	printObject("入围候选人", canArr)
+	depos.PrintObject("入围候选人", canArr)
 
 	/** test GetChairpersons */
 	fmt.Println("test GetChairpersons")
 	canArr = candidatePool.GetChairpersons(state)
-	printObject("见证人", canArr)
+	depos.PrintObject("见证人", canArr)
 
 	/** test GetDefeat */
 	fmt.Println("test GetDefeat")
 	defeatArr, _ := candidatePool.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
-	printObject("可以退款信息", defeatArr)
+	depos.PrintObject("可以退款信息", defeatArr)
 
 	/** test IsDefeat */
 	fmt.Println("test IsDefeat")
 	flag, _ := candidatePool.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
-	printObject("是否落榜", flag)
+	depos.PrintObject("是否落榜", flag)
 
 	/** test Election */
 	fmt.Println("test Election")
@@ -181,6 +183,11 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	fmt.Println("test GetOwner")
 	addr := candidatePool.GetOwner(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	fmt.Println("收益地址", addr.String())
+
+	/**  test GetWitness */
+	fmt.Println("test GetWitness")
+	nodeArr := candidatePool.GetWitness(state)
+	fmt.Printf("nodeArr := %+v", nodeArr)
 }
 
 func TestInitCandidatePoolByTrie (t *testing.T){
