@@ -20,7 +20,6 @@ package main
 import (
 	"fmt"
 	"math"
-	"net/http"
 	"os"
 	"runtime"
 	godebug "runtime/debug"
@@ -254,11 +253,6 @@ func init() {
 }
 
 func main() {
-
-	go func() {
-		http.ListenAndServe("localhost:6060", nil)
-	}()
-
 	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
