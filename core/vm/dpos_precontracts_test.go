@@ -6,22 +6,23 @@ import (
 	"Platon-go/common/hexutil"
 	"Platon-go/rlp"
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"reflect"
 	"testing"
 )
 
 func TestRlpEncode(t *testing.T) {
+	nodeId, _ := hex.DecodeString("e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
+	owner, _ := hex.DecodeString("4FED1fC4144c223aE3C1553be203cDFcbD38C581")
 
 	// 编码
 	var source [][]byte
 	source = make([][]byte, 0)
 	source = append(source, common.Hex2Bytes("1011"))  // tx type
-	//source = append(source, []byte("SayHi")) // func name
-	//source = append(source, byteutil.IntToBytes(50))    // param1
-	//source = append(source, byteutil.StringToBytes("abc"))    // param2
-	source = append(source, []byte("SayHi"))
-	source = append(source, []byte{30})
+	source = append(source, []byte("SayHi")) // func name
+	source = append(source, nodeId) // [64]byte nodeId discover.NodeID
+	source = append(source, owner) // [20]byte owner common.Address
 	source = append(source, byteutil.Uint64ToBytes(100))
 	//source = append(source, []byte("abc"))
 

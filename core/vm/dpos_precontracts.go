@@ -23,15 +23,14 @@ import (
 	"Platon-go/common"
 	"Platon-go/common/byteutil"
 	"reflect"
-
-	//"Platon-go/consensus/cbft"
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"Platon-go/p2p/discover"
+	"Platon-go/core/types"
 )
 
 //error def
@@ -43,10 +42,23 @@ var (
 	ErrParamsBaselen = errors.New("Params Base length does not match")
 	ErrParamsLen = errors.New("Params length does not match")
 	ErrUndefFunction = errors.New("Undefined function")
+	ErrCandidateEmpyt = errors.New("CandidatePool is nil")
 )
 
 var PrecompiledContractsDpos = map[common.Address]PrecompiledContract{
 	common.HexToAddress("0x1000000000000000000000000000000000000111") : &candidateContract{},
+}
+
+type candidatePool interface {
+	SetCandidate(state StateDB, nodeId discover.NodeID, can *types.Candidate) error
+	GetCandidate(state StateDB, nodeId discover.NodeID) (*types.Candidate, error)
+	WithdrawCandidate (state StateDB, nodeId discover.NodeID, price int) error
+	GetChosens (state StateDB, ) []*types.Candidate
+	GetChairpersons (state StateDB, ) []*types.Candidate
+	GetDefeat(state StateDB, nodeId discover.NodeID) ([]*types.Candidate, error)
+	IsDefeat(state StateDB, nodeId discover.NodeID) (bool, error)
+	RefundBalance (state StateDB, nodeId discover.NodeID, blockNumber uint64) error
+	GetOwner (state StateDB, nodeId discover.NodeID) common.Address
 }
 
 type candidateContract struct{
@@ -76,9 +88,12 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 		fmt.Println(err)
 		return nil, ErrParamsRlpDecode
 	}
-	//function call
+	//check
 	if len(source)<2 {
 		return nil, ErrParamsBaselen
+	}
+	if c.evm.CandidatePool==nil{
+		return nil, ErrCandidateEmpyt
 	}
 
 	// 获取要调用的函数
@@ -93,45 +108,49 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	// var param []interface{}
 	params := make([]reflect.Value, paramNum)
 
+	if paramNum!=len(source) {
+		return nil, ErrParamsLen
+	}
+
 	for i := 0; i < paramNum; i++ {
 		// 目标参数类型的值
 		targetType := paramList.In(i).String()
+		fmt.Println("i: ", i, " type: ", targetType)
 		// 原始[]byte类型参数
 		originByte := []reflect.Value{reflect.ValueOf(source[i+2])}
 		// 转换为对应类型的参数
 		params[i] = reflect.ValueOf(byteutil.Command[targetType]).Call(originByte)[0]
 	}
+	fmt.Println("params: ", params)
 	// 传入参数调用函数
-	result := reflect.ValueOf(funcValue).Call(params)
+	//result := reflect.ValueOf(funcValue).Call(params)
+	reflect.ValueOf(funcValue).Call(params)
 	// TODO
 	// 返回值也是一个 Value 的 slice，同样对应反射函数类型的返回值。
-	return result[0].Bytes(), result[1].Interface().(error)
+	//return result[0].Bytes(), result[1].Interface().(error)
+	return nil, nil
 }
 
-func SayHi(a []byte, b [64]byte) (string) {
-	fmt.Println(b)
-	return "2"
+func SayHi(nodeId discover.NodeID, owner common.Address, fee uint64) ([]byte, error) {
+	fmt.Println("into ...")
+	fmt.Println("CandidateDeposit==> nodeId: ", nodeId, " owner: ", owner, "  fee: ", fee)
+	return nil, nil
 }
 
 //候选人申请 && 增加质押金
-func (c *candidateContract) CandidateDeposit(params [][]byte) ([]byte, error)   {
+func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64) ([]byte, error)   {
+
+
 
 	//params parse
-	if len(params)!=3 {
-		return nil, ErrParamsLen
-	}
-	nodeId := hex.EncodeToString(params[0])
-	owner := hex.EncodeToString(params[1])
-	fee := binary.BigEndian.Uint64(params[2])
 	deposit := *c.contract.value
-	fmt.Println("CandidateDeposit==> nodeId: ", nodeId, " owner: ", owner, " deposit: ", deposit, "  fee: ", fee)
+	txHash := c.evm.StateDB.TxHash()
+	txIdx := c.evm.StateDB.TxIdx()
+	fmt.Println("CandidateDeposit==> nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
+		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx)
 
 	//todo
-	//dpos := cbft.GetDpos()
-	//dpos.Switch()
-	//cbft.GetDpos()
-
-
+	c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
 
 
 	//判断nodeid和owner是否唯一
