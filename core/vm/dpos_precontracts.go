@@ -126,18 +126,21 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	}
 	fmt.Println("params: ", params)
 	// 传入参数调用函数
-	//result := reflect.ValueOf(funcValue).Call(params)
-	reflect.ValueOf(funcValue).Call(params)
-	// TODO
+	result := reflect.ValueOf(funcValue).Call(params)
+	if _, err := result[1].Interface().(error); !err {
+		return result[0].Bytes(), nil
+	}
+	fmt.Println(result[1].Interface().(error).Error())
 	// 返回值也是一个 Value 的 slice，同样对应反射函数类型的返回值。
-	//return result[0].Bytes(), result[1].Interface().(error)
-	return nil, nil
+	return result[0].Bytes(), result[1].Interface().(error)
+	// return nil ,nil
 }
 
 func SayHi(nodeId discover.NodeID, owner common.Address, fee uint64) ([]byte, error) {
 	fmt.Println("into ...")
 	fmt.Println("CandidateDeposit==> nodeId: ", nodeId, " owner: ", owner, "  fee: ", fee)
-	return nil, nil
+	err := fmt.Errorf("this is new Error")
+	return []byte{1}, err
 }
 
 //候选人申请 && 增加质押金
@@ -225,6 +228,7 @@ func (c *candidateContract) CandidateWithdraw(params [][]byte) ([]byte, error)  
 func (c *candidateContract) CandidateDetails(nodeId [64]byte) ([]byte, error)  {
 	//cbft.GetDpos().GetCandidate(nodeId)
 	// TODO
+
 	return nil, nil
 }
 
