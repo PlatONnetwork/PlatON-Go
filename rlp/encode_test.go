@@ -303,11 +303,11 @@ func TestDecodeEncode(t *testing.T){
 
 	var source [][]byte
 	source = make([][]byte, 0)
-	source = append(source, uint64ToBytes(11))
+	source = append(source, uint64ToBytes(0xf1))
 	source = append(source, []byte("CandidateDeposit"))
 	source = append(source, nodeId)
 	source = append(source, owner)
-	source = append(source, uint64ToBytes(100))	//10000
+	source = append(source, uint64ToBytes(500))	//10000
 	source = append(source, []byte("127.0.0.1"))
 	source = append(source, []byte("7890"))
 

@@ -150,16 +150,19 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	height := c.evm.Context.BlockNumber
 	from := c.contract.caller.Address()
 	fmt.Println("CandidateDeposit==> nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
-		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex())
+		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
+		" host: ", host, " port: ", port)
 
 	//todo
 	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
 	if err!=nil {
+		fmt.Println("GetCandidate err!=nill: ", err.Error())
 		return nil, err
 	}
 	var alldeposit *big.Int
 	if can!=nil {
 		if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
+			fmt.Println(ErrOwnerNotonly.Error())
 			return nil, ErrOwnerNotonly
 		}
 		alldeposit = can.Deposit.Add(can.Deposit, deposit)
@@ -174,6 +177,7 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		owner,
 		from,
 	}
+	fmt.Println("canDeposit: ", canDeposit)
 	if err = c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, &canDeposit); err!=nil {
 		//回滚交易
 		return nil, err
