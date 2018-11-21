@@ -13,6 +13,7 @@ import (
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/core/vm"
+	"math/big"
 )
 
 type dpos struct {
@@ -153,8 +154,8 @@ func(d *dpos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Can
 	return d.candidatePool.GetCandidate(state, nodeId)
 }
 // 入围者退出质押
-func (d *dpos) WithdrawCandidate (state vm.StateDB, nodeId discover.NodeID, price int) error {
-	return d.candidatePool.WithdrawCandidate (state, nodeId, price)
+func (d *dpos) WithdrawCandidate (state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
+	return d.candidatePool.WithdrawCandidate (state, nodeId, price, blockNumber)
 }
 // 获取当前实时的入围者列表
 func (d *dpos) GetChosens (state vm.StateDB) []*types.Candidate {
@@ -174,7 +175,7 @@ func (d *dpos) IsDefeat(state vm.StateDB, nodeId discover.NodeID) (bool, error) 
 }
 
 // 提款
-func (d *dpos) RefundBalance (state vm.StateDB, nodeId discover.NodeID, blockNumber uint64) error{
+func (d *dpos) RefundBalance (state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error{
 	return d.candidatePool.RefundBalance (state, nodeId, blockNumber)
 }
 // 根据nodeId查询 质押信息中的 受益者地址

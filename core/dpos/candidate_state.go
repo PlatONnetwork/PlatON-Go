@@ -522,7 +522,7 @@ func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (
 }
 
 // 候选人退出
-func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.NodeID, price int) error {
+func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
@@ -530,8 +530,8 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 		return err
 	}
 
-	if price <= 0 {
-		log.Error("withdraw failed price invalid, price", price)
+	if price.Cmp(new(big.Int).SetUint64(0)) <= 0 {
+		log.Error("withdraw failed price invalid, price", price.String())
 		return WithdrawPriceErr
 	}
 	can, ok := c.immediateCandates[nodeId]
@@ -544,10 +544,10 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 		return CandidateEmptyErr
 	}
 	// 判断退押 金额
-	if (can.Deposit.Cmp(new(big.Int).SetUint64(uint64(price)))) < 0 {
+	if can.Deposit.Cmp(price) < 0 {
 		log.Error("withdraw failed refund price must less or equal deposit", "key", nodeId.String())
 		return WithdrawPriceErr
-	}else if (can.Deposit.Cmp(new(big.Int).SetUint64(uint64(price)))) == 0 { // 全额退出质押
+	}else if can.Deposit.Cmp(price) == 0 { // 全额退出质押
 		// 删除入围者信息
 		if err := c.delImmediate(state, nodeId); nil != err {
 			return err
@@ -563,7 +563,7 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 	}else { // 只退了一部分, 需要重新对入围者排序
 		// 剩下部分
 		canNew := &types.Candidate{
-			Deposit:		new(big.Int).Sub(can.Deposit, new(big.Int).SetUint64(uint64(price))),
+			Deposit:		new(big.Int).Sub(can.Deposit, price),
 			BlockNumber: 	can.BlockNumber,
 			TxIndex: 		can.TxIndex,
 			CandidateId: 	can.CandidateId,
@@ -580,8 +580,8 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 		}
 		// 退款部分新建退款信息
 		canDefeat := &types.Candidate{
-			Deposit: 		new(big.Int).SetUint64(uint64(price)),
-			BlockNumber: 	can.BlockNumber,
+			Deposit: 		price,
+			BlockNumber: 	blockNumber,
 			TxIndex: 		can.TxIndex,
 			CandidateId: 	can.CandidateId,
 			Host: 			can.Host,
@@ -707,7 +707,7 @@ func (c *CandidatePool) GetOwner (state vm.StateDB, nodeId discover.NodeID) comm
 
 
 // 一键提款
-func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID, blockNumber uint64) error {
+func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
@@ -731,11 +731,13 @@ func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID,
 	delCanArr := make([]*types.Candidate, 0)
 
 	//contractBalance := state.GetBalance(common.CandidateAddr)
-	currentNum := new(big.Int).SetUint64(blockNumber)
+	//currentNum := new(big.Int).SetUint64(blockNumber)
 
 	// 遍历该nodeId下的所有 退款信息
 	for index, can := range canArr {
-		sub := new(big.Int).Sub(currentNum, can.BlockNumber)
+		sub := new(big.Int).Sub(blockNumber, can.BlockNumber)
+		fmt.Println("当前块高:", blockNumber.String(), "质押块高:", can.BlockNumber.String(), "相差:", sub.String())
+		fmt.Println("当前nodeId:", can.CandidateId.String())
 		if sub.Cmp(new(big.Int).SetUint64(c.RefundBlockNumber)) >= 0 { // 允许退款
 			delCanArr = append(delCanArr, can)
 			canArr = append(canArr[:index], canArr[index+1:]...)

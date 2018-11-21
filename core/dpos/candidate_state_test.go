@@ -133,7 +133,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 	/** test WithdrawCandidate */
 	fmt.Println("test WithdrawCandidate")
-	ok1 := candidatePool.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), 99)
+	ok1 := candidatePool.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
 	fmt.Println("error", ok1)
 	//candidatePool.CommitTrie(false)
 	//printObject("退款后DB中的 " + WitnessPrefix, candidatePool.buildCandidatesByTrie(WitnessPrefix))
@@ -142,7 +142,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 	/** test WithdrawCandidate again */
 	fmt.Println("test WithdrawCandidate again")
-	ok2 := candidatePool.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), 12)
+	ok2 := candidatePool.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(10)), new(big.Int).SetUint64(uint64(11)))
 	fmt.Println("error", ok2)
 	//candidatePool.CommitTrie(false)
 	//printObject("退款后DB中的 " + WitnessPrefix, candidatePool.buildCandidatesByTrie(WitnessPrefix))
@@ -176,7 +176,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 	/** test RefundBalance */
 	fmt.Println("test RefundBalance")
-	err := candidatePool.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), 10)
+	err := candidatePool.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(10)))
 	fmt.Println("err", err)
 
 	/** test GetOwner */
