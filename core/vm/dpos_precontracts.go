@@ -31,6 +31,8 @@ import (
 	"fmt"
 	"Platon-go/p2p/discover"
 	"Platon-go/core/types"
+	"math/big"
+	"encoding/json"
 )
 
 //error def
@@ -46,7 +48,7 @@ var (
 )
 
 var PrecompiledContractsDpos = map[common.Address]PrecompiledContract{
-	common.HexToAddress("0x1000000000000000000000000000000000000111") : &candidateContract{},
+	common.CandidateAddr : &candidateContract{},
 }
 
 type candidatePool interface {
@@ -108,7 +110,8 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	// var param []interface{}
 	params := make([]reflect.Value, paramNum)
 
-	if paramNum!=len(source) {
+	fmt.Println("paramnum: ", paramNum, " len(source): ", len(source))
+	if paramNum!=len(source)-2 {
 		return nil, ErrParamsLen
 	}
 
@@ -144,49 +147,47 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	deposit := c.contract.value
 	txHash := c.evm.StateDB.TxHash()
 	txIdx := c.evm.StateDB.TxIdx()
+	height := c.evm.Context.BlockNumber
+	from := c.contract.caller.Address()
 	fmt.Println("CandidateDeposit==> nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
-		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx)
+		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex())
 
 	//todo
 	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
 	if err!=nil {
 		return nil, err
 	}
-
-	if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
-		return nil, ErrOwnerNotonly
+	var alldeposit *big.Int
+	if can!=nil {
+		if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
+			return nil, ErrOwnerNotonly
+		}
+		alldeposit = can.Deposit.Add(can.Deposit, deposit)
 	}
-	//alldeposit := can.Deposit.Add(can.Deposit, deposit)
-	//c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, can *types.Candidate)
+	canDeposit := types.Candidate{
+		alldeposit,
+		height,
+		txIdx,
+		nodeId,
+		host,
+		port,
+		owner,
+		from,
+	}
+	if err = c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, &canDeposit); err!=nil {
+		//回滚交易
+		return nil, err
+	}
 
+	type result struct{
+		 ret bool
+	}
+	r := &result{true}
+	data, _ := json.Marshal(r)
+	sdata := DecodeResultStr(string(data))
+	fmt.Println("json: ", string(data), " []byte: ", sdata)
 
-	//canDeposit := types.Candidate{
-	//	alldeposit,
-	//
-	//	// 发生抵押时的tx index
-	//	TxIndex 		uint32
-	//	// 候选人Id
-	//	CandidateId 	discover.NodeID
-	//	//CandidateId 	string			`json:"candidateid"`
-	//	Host 			string
-	//	Port 			string
-	//	Owner 			common.Address
-	//	From 			common.Address
-	//}
-
-	
-
-	//先获取已有质押金，加上本次value，更新
-
-
-
-
-
-	//调用操作db的接口如果失败，则回滚交易。申请失败的交易，钱会被扣除,需要回滚
-	//返回值用json形式按照实际合约执行的返回形式格式化
-
-
-	return nil, nil
+	return sdata, nil
 }
 
 //申请退回质押金

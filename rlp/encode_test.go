@@ -308,6 +308,8 @@ func TestDecodeEncode(t *testing.T){
 	source = append(source, nodeId)
 	source = append(source, owner)
 	source = append(source, uint64ToBytes(100))	//10000
+	source = append(source, []byte("127.0.0.1"))
+	source = append(source, []byte("7890"))
 
 	//rlp 编码
 	buffer := new(bytes.Buffer)
