@@ -1355,6 +1355,9 @@ func compare(c, can *types.Candidate) int {
 }
 // 候选人排序
 func candidateSort(arr []discover.NodeID, candidates map[discover.NodeID]*types.Candidate) {
+	if len(arr) <= 1 {
+		return
+	}
 	quickRealSort(arr, candidates, 0, len(arr) - 1)
 }
 func quickRealSort (arr []discover.NodeID, candidates map[discover.NodeID]*types.Candidate, left, right int)  {
