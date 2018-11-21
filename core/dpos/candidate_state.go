@@ -384,6 +384,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 	}else {
 		witnessIds = ids
 	}
+	//PrintObject("witnessIds = ", witnessIds)
 	for _, witnessId := range witnessIds {
 		fmt.Println("witnessId = ", witnessId.String())
 		var can *types.Candidate
@@ -404,7 +405,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 	}else {
 		nextWitnessIds = ids
 	}
-
+	//PrintObject("nextWitnessIds = ", nextWitnessIds)
 	for _, witnessId := range nextWitnessIds {
 		fmt.Println("nextwitnessId = ", witnessId.String())
 		var can *types.Candidate
@@ -425,7 +426,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 	}else {
 		immediateIds = ids
 	}
-
+	//PrintObject("immediateIds = ", immediateIds)
 	for _, immediateId := range immediateIds {
 		fmt.Println("immediateId = ", immediateId.String())
 		var can *types.Candidate
@@ -446,7 +447,7 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 	}else {
 		defeatIds = ids
 	}
-
+	//PrintObject("defeatIds = ", defeatIds)
 	for _, defeatId := range defeatIds {
 		fmt.Println("defeatId = ", defeatId.String())
 		var canArr []*types.Candidate
@@ -1200,7 +1201,7 @@ func (c *CandidatePool) setNextWitnessIndex (state vm.StateDB, nodeIds []discove
 		log.Error("Failed to encode candidate object on setDefeatIds err", err)
 		return CandidateEncodeErr
 	}else {
-		setDefeatIdsState(state, value)
+		setNextWitnessIdsState(state, value)
 	}
 	return nil
 }

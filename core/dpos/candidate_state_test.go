@@ -179,6 +179,12 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	err := candidatePool.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(10)))
 	fmt.Println("err", err)
 
+	/** test RefundBalance again */
+	fmt.Println("test RefundBalance again")
+	err = candidatePool.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"), new(big.Int).SetUint64(uint64(10)))
+	fmt.Println("err", err)
+
+
 	/** test GetOwner */
 	fmt.Println("test GetOwner")
 	addr := candidatePool.GetOwner(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
