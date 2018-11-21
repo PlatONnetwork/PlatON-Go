@@ -35,7 +35,7 @@ import (
 
 //error def
 var (
-	ErrRepeatOwner = errors.New("Node ID cannot bind multiple owners")
+	ErrOwnerNotonly = errors.New("Node ID cannot bind multiple owners")
 	ErrPermissionDenied = errors.New("Transaction from address permission denied")
 	ErrWithdrawEmpyt = errors.New("No withdrawal amount")
 	ErrParamsRlpDecode = errors.New("Rlp decode faile")
@@ -138,19 +138,44 @@ func SayHi(nodeId discover.NodeID, owner common.Address, fee uint64) ([]byte, er
 }
 
 //候选人申请 && 增加质押金
-func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64) ([]byte, error)   {
-	//params parse
-	deposit := *c.contract.value
+func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port string) ([]byte, error)   {
+
+	//debug
+	deposit := c.contract.value
 	txHash := c.evm.StateDB.TxHash()
 	txIdx := c.evm.StateDB.TxIdx()
 	fmt.Println("CandidateDeposit==> nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
 		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx)
 
 	//todo
-	c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
+	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
+	if err!=nil {
+		return nil, err
+	}
+
+	if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
+		return nil, ErrOwnerNotonly
+	}
+	//alldeposit := can.Deposit.Add(can.Deposit, deposit)
+	//c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, can *types.Candidate)
 
 
-	//判断nodeid和owner是否唯一
+	//canDeposit := types.Candidate{
+	//	alldeposit,
+	//
+	//	// 发生抵押时的tx index
+	//	TxIndex 		uint32
+	//	// 候选人Id
+	//	CandidateId 	discover.NodeID
+	//	//CandidateId 	string			`json:"candidateid"`
+	//	Host 			string
+	//	Port 			string
+	//	Owner 			common.Address
+	//	From 			common.Address
+	//}
+
+	
+
 	//先获取已有质押金，加上本次value，更新
 
 
