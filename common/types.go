@@ -43,6 +43,10 @@ const (
 var (
 	hashT    = reflect.TypeOf(Hash{})
 	addressT = reflect.TypeOf(Address{})
+
+	// modify by platon
+	CandidateAddr 	= HexToAddress("0x1000000000000000000000000000000000000111")
+	ZeroAddr 		= HexToAddress(Address{}.String())
 )
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
