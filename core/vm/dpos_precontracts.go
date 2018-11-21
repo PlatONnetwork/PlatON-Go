@@ -138,9 +138,6 @@ func SayHi(a []byte, b [64]byte) (string) {
 
 //候选人申请 && 增加质押金
 func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64) ([]byte, error)   {
-
-
-
 	//params parse
 	deposit := *c.contract.value
 	txHash := c.evm.StateDB.TxHash()
