@@ -563,6 +563,9 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	// modify by platon
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
+		for _, n := range s.chainConfig.Cbft.InitialNodes {
+			srvr.AddConsensusPeer(&n)
+		}
 		s.StartMining(1)
 	}
 

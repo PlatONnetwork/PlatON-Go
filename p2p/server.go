@@ -170,6 +170,8 @@ type Server struct {
 	quit          chan struct{}
 	addstatic     chan *discover.Node
 	removestatic  chan *discover.Node
+	addconsensus	chan *discover.Node
+	removeconsensus	chan *discover.Node
 	addtrusted    chan *discover.Node
 	removetrusted chan *discover.Node
 	posthandshake chan *conn
@@ -195,6 +197,7 @@ const (
 	staticDialedConn
 	inboundConn
 	trustedConn
+	consensusDialedConn
 )
 
 // conn wraps a network connection with information gathered
@@ -315,6 +318,21 @@ func (srv *Server) AddPeer(node *discover.Node) {
 func (srv *Server) RemovePeer(node *discover.Node) {
 	select {
 	case srv.removestatic <- node:
+	case <-srv.quit:
+	}
+}
+
+func (srv *Server) AddConsensusPeer(node *discover.Node) {
+	select {
+	case srv.addconsensus <- node:
+	case <-srv.quit:
+	}
+}
+
+// RemovePeer disconnects from the given node
+func (srv *Server) RemoveConsensusPeer(node *discover.Node) {
+	select {
+	case srv.removeconsensus <- node:
 	case <-srv.quit:
 	}
 }
@@ -447,6 +465,8 @@ func (srv *Server) Start() (err error) {
 	srv.posthandshake = make(chan *conn)
 	srv.addstatic = make(chan *discover.Node)
 	srv.removestatic = make(chan *discover.Node)
+	srv.addconsensus = make(chan *discover.Node)
+	srv.removeconsensus = make(chan *discover.Node)
 	srv.addtrusted = make(chan *discover.Node)
 	srv.removetrusted = make(chan *discover.Node)
 	srv.peerOp = make(chan peerOpFunc)
@@ -572,6 +592,8 @@ type dialer interface {
 	taskDone(task, time.Time)
 	addStatic(*discover.Node)
 	removeStatic(*discover.Node)
+	addConsensus(*discover.Node)
+	removeConsensus(*discover.Node)
 }
 
 func (srv *Server) run(dialstate dialer) {
@@ -640,6 +662,15 @@ running:
 			// stop keeping the node connected.
 			srv.log.Trace("Removing static node", "node", n)
 			dialstate.removeStatic(n)
+			if p, ok := peers[n.ID]; ok {
+				p.Disconnect(DiscRequested)
+			}
+		case n := <-srv.addconsensus:
+			srv.log.Trace("Adding consensus node", "node", n)
+			dialstate.addConsensus(n)
+		case n := <-srv.removeconsensus:
+			srv.log.Trace("Removing consensus node", "node", n)
+			dialstate.removeConsensus(n)
 			if p, ok := peers[n.ID]; ok {
 				p.Disconnect(DiscRequested)
 			}

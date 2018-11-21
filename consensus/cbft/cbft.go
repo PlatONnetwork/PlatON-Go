@@ -79,7 +79,11 @@ var cbft *Cbft
 
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
-	_dpos := newDpos(config.InitialNodes)
+	initialNodesID := make([]discover.NodeID, 0, len(config.InitialNodes))
+	for _,n := range config.InitialNodes {
+		initialNodesID = append(initialNodesID, n.ID)
+	}
+	_dpos := newDpos(initialNodesID)
 
 	cbft = &Cbft{
 		config:                config,

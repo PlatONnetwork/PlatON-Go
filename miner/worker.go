@@ -1085,14 +1085,11 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	//log.Warn("[1]共识开始", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
-	log.Warn("---【开始调用Prepare】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
 	}
-	log.Warn("---【结束调用Prepare】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	// If we are care about TheDAO hard-fork check whether to override the extra-data or not
-	log.Warn("---【开始调用DAOForkBlock】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	if daoBlock := w.config.DAOForkBlock; daoBlock != nil {
 		// Check whether the block is among the fork extra-override range
 		limit := new(big.Int).Add(daoBlock, params.DAOForkExtraRange)
@@ -1105,7 +1102,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			}
 		}
 	}
-	log.Warn("---【结束调用DAOForkBlock】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 
 	// Could potentially happen if starting to mine in an odd state.
 	err := w.makeCurrent(parent, header)
@@ -1140,12 +1136,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 	// Prefer to locally generated uncle
-	log.Warn("---【开始调用commit local Uncles】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	commitUncles(w.localUncles)
-	log.Warn("---【结束调用commit local Uncles】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
-	log.Warn("---【开始调用commit remote Uncles】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	commitUncles(w.remoteUncles)
-	log.Warn("---【结束调用commit remote Uncles】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 
 	if !noempty {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
