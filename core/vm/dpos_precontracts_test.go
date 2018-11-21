@@ -2,7 +2,6 @@ package vm
 
 import (
 	"Platon-go/common"
-	"Platon-go/common/byteutil"
 	"Platon-go/common/hexutil"
 	"Platon-go/rlp"
 	"bytes"
@@ -13,18 +12,22 @@ import (
 )
 
 func TestRlpEncode(t *testing.T) {
-	nodeId, _ := hex.DecodeString("e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
-	owner, _ := hex.DecodeString("4FED1fC4144c223aE3C1553be203cDFcbD38C581")
-
+	nodeId, _ := hex.DecodeString("01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012339")
+	//owner, _ := hex.DecodeString("5a5c4368e2692746b286cee36ab0710af3efa6cf") //39
+	//owner, _ := hex.DecodeString("0x493301712671ada506ba6ca7891f436d29185821") //40
+	fmt.Println(nodeId)
 	// 编码
 	var source [][]byte
 	source = make([][]byte, 0)
 	source = append(source, common.Hex2Bytes("1011"))  // tx type
-	source = append(source, []byte("SayHi")) // func name
+	//source = append(source, []byte("CandidateDeposit")) // func name
+	source = append(source, []byte("CandidateDetails")) // func name
+	//source = append(source, []byte("CandidateList")) // func name
 	source = append(source, nodeId) // [64]byte nodeId discover.NodeID
-	source = append(source, owner) // [20]byte owner common.Address
-	source = append(source, byteutil.Uint64ToBytes(100))
-	//source = append(source, []byte("abc"))
+	//source = append(source, owner) // [20]byte owner common.Address
+	//source = append(source, byteutil.Uint64ToBytes(100)) // fee
+	//source = append(source, []byte("0.0.0.2")) // host
+	//source = append(source, []byte("6789")) // port
 
 	buffer := new(bytes.Buffer)
 	err := rlp.Encode(buffer, source)

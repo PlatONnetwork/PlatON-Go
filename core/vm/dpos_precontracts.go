@@ -225,22 +225,34 @@ func (c *candidateContract) CandidateWithdraw(params [][]byte) ([]byte, error)  
 }
 
 //获取候选人详情
-func (c *candidateContract) CandidateDetails(nodeId [64]byte) ([]byte, error)  {
-	//cbft.GetDpos().GetCandidate(nodeId)
-	// TODO
-
-	return nil, nil
+func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, error)  {
+	// GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error)
+	fmt.Println("into func CandidateDetails... ")
+	fmt.Println(nodeId.String())
+	candidate, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
+	if err != nil{
+		return nil, err
+	}
+	data, _ := json.Marshal(candidate)
+	sdata := DecodeResultStr(string(data))
+	fmt.Println("json: ", string(data), " []byte: ", sdata)
+	return sdata, nil
 }
 
 //获取当前区块候选人列表 0~200
 func (c *candidateContract) CandidateList() ([]byte, error) {
-	// dpos.GetChosens()
+	fmt.Println("into func CandidateList... ")
+	// GetChosens (state vm.StateDB) []*types.Candidate
+	// arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB)
 	return nil, nil
 }
 
 //获取当前区块轮次验证人列表 25个
 func (c *candidateContract) VerifiersList() ([]byte, error) {
-	// dpos.GetChairpersons()
+	fmt.Println("into func VerifiersList... ")
+	// GetChairpersons (state vm.StateDB) []*types.Candidate
+	// arr := c.evm.CandidatePool.GetChairpersons(c.evm.StateDB)
+
 	return nil, nil
 }
 
