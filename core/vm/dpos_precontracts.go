@@ -153,16 +153,19 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	height := c.evm.Context.BlockNumber
 	from := c.contract.caller.Address()
 	fmt.Println("CandidateDeposit==> nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
-		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex())
+		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
+		" host: ", host, " port: ", port)
 
 	//todo
 	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
 	if err!=nil {
+		fmt.Println("GetCandidate err!=nill: ", err.Error())
 		return nil, err
 	}
 	var alldeposit *big.Int
 	if can!=nil {
 		if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
+			fmt.Println(ErrOwnerNotonly.Error())
 			return nil, ErrOwnerNotonly
 		}
 		alldeposit = can.Deposit.Add(can.Deposit, deposit)
@@ -177,6 +180,7 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		owner,
 		from,
 	}
+	fmt.Println("canDeposit: ", canDeposit)
 	if err = c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, &canDeposit); err!=nil {
 		//回滚交易
 		return nil, err
@@ -194,14 +198,10 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 }
 
 //申请退回质押金
-func (c *candidateContract) CandidateApplyWithdraw(params [][]byte) ([]byte, error)  {
+func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error)  {
 
-	if len(params)!=1 {
-		return nil, ErrParamsLen
-	}
-	nodeId := hex.EncodeToString(params[0])
 	from := c.contract.caller.Address().Hex()
-	fmt.Println("CandidateApplyWithdraw==> nodeId: ", nodeId, " from: ", from)
+	fmt.Println("CandidateApplyWithdraw==> nodeId: ", nodeId, " from: ", from, " withdraw: ", withdraw)
 
 	//校验from和owner是否一致
 	//调用接口生成退款记录
@@ -211,16 +211,18 @@ func (c *candidateContract) CandidateApplyWithdraw(params [][]byte) ([]byte, err
 }
 
 //质押金提现
-func (c *candidateContract) CandidateWithdraw(params [][]byte) ([]byte, error)  {
-
-	if len(params)!=1 {
-		return nil, ErrParamsLen
-	}
-	nodeId := hex.EncodeToString(params[0])
+func (c *candidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, error)  {
 
 	//调用接口退款，判断返回值
 
 	fmt.Println("CandidateWithdraw==> nodeId: ", nodeId)
+	return nil, nil
+}
+
+//获取已申请的退款记录
+func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byte, error){
+
+	fmt.Println("CandidateWithdrawInfos==> nodeId: ", nodeId)
 	return nil, nil
 }
 
