@@ -26,7 +26,6 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"Platon-go/p2p/discover"
@@ -290,10 +289,18 @@ func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byt
 	return sdata, nil
 }
 
+//設置附加信息
 func (c *candidateContract) SetCandidateExtra(nodeId discover.NodeID, extra string)([]byte, error){
+
 	//debug
-	fmt.Println("SetCandidate==> nodeId: ", nodeId.String(), " extra: ", extra)
+	from := c.contract.caller.Address()
+	fmt.Println("SetCandidate==> nodeId: ", nodeId.String(), " extra: ", extra, " from: ", from.Hex())
 	//todo
+	owner :=  c.evm.CandidatePool.GetOwner(c.evm.StateDB, nodeId)
+	if ok := bytes.Equal(owner.Bytes(), from.Bytes()); !ok {
+		fmt.Println(ErrPermissionDenied.Error())
+		return nil, ErrPermissionDenied
+	}
 	if err := c.evm.CandidatePool.SetCandidateExtra(c.evm.StateDB, nodeId, extra); err!=nil{
 		fmt.Println(err.Error())
 		return nil, err
@@ -362,8 +369,8 @@ func DecodeResultStr (result string) []byte {
 	finalData = append(finalData, sizeHash.Bytes()...)
 	finalData = append(finalData, dataByt...)
 
-	encodedStr := hex.EncodeToString(finalData)
-	fmt.Println("finalData: ", encodedStr)
+	//encodedStr := hex.EncodeToString(finalData)
+	//fmt.Println("finalData: ", encodedStr)
 
 	return finalData
 }
