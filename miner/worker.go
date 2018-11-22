@@ -1191,6 +1191,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 	//w.commit(uncles, w.fullTaskHook, true, tstart)
+	log.Warn("---【交易总数】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6, "total", len(w.current.txs))
 	w.commit(nil, w.fullTaskHook, true, tstart)
 }
 

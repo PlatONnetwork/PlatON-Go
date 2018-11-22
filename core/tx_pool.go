@@ -38,7 +38,7 @@ import (
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
 	chainHeadChanSize = 10
-	newTxChanSize = 20480
+	newTxChanSize = 4096
 )
 
 var (
@@ -272,18 +272,15 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 }
 
 func (pool *TxPool) newTxsLoop() {
-	for {
-		select {
-		// Handle new tx
-		case newTxs := <-pool.newTxsCh:
-			if newTxs != nil {
-				if len(newTxs.txs) == 1 {
-					//newTxs.handleResultsCh <- []error{pool.addTx(newTxs.txs[0], newTxs.local)}
-					pool.addTx(newTxs.txs[0], newTxs.local)
-				} else {
-					//newTxs.handleResultsCh <- pool.addTxs(newTxs.txs, newTxs.local)
-					pool.addTxs(newTxs.txs, newTxs.local)
-				}
+	for newTxs := range pool.newTxsCh {
+		log.Warn("---------newTxsLoop---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh))
+		if newTxs != nil {
+			if len(newTxs.txs) == 1 {
+				//newTxs.handleResultsCh <- []error{pool.addTx(newTxs.txs[0], newTxs.local)}
+				pool.addTx(newTxs.txs[0], newTxs.local)
+			} else {
+				//newTxs.handleResultsCh <- pool.addTxs(newTxs.txs, newTxs.local)
+				pool.addTxs(newTxs.txs, newTxs.local)
 			}
 		}
 	}
@@ -805,7 +802,9 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 	//handleResultsCh := make(chan []error)
 	newTxs := &newTxs{[]*types.Transaction{tx}, !pool.config.NoLocals, nil }
+	log.Warn("---------AddLocal start---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh), "timestamp", time.Now().UnixNano() / 1e6)
 	pool.newTxsCh <- newTxs
+	log.Warn("---------AddLocal end---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh), "timestamp", time.Now().UnixNano() / 1e6)
 	return nil
 	//for {
 	//	select {
