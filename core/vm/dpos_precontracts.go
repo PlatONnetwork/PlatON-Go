@@ -308,12 +308,16 @@ func (c *candidateContract) SetCandidateExtra(nodeId discover.NodeID, extra stri
 
 //获取候选人详情
 func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, error)  {
-	// GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error)
 	fmt.Println("into func CandidateDetails... ")
 	fmt.Println(nodeId.String())
 	candidate, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
 	if err != nil{
+		fmt.Println("get CandidateDetails() occured error: ", err.Error())
 		return nil, err
+	}
+	if nil == candidate {
+		fmt.Println("The candidate for the inquiry does not exist")
+		return nil, nil
 	}
 	data, _ := json.Marshal(candidate)
 	sdata := DecodeResultStr(string(data))
@@ -325,6 +329,10 @@ func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, er
 func (c *candidateContract) CandidateList() ([]byte, error) {
 	fmt.Println("into func CandidateList... ")
 	arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB)
+	if nil == arr {
+		fmt.Println("The candidateList for the inquiry does not exist")
+		return nil, nil
+	}
 	data, _ := json.Marshal(arr)
 	sdata := DecodeResultStr(string(data))
 	fmt.Println("json: ", string(data), " []byte: ", sdata)
@@ -335,6 +343,10 @@ func (c *candidateContract) CandidateList() ([]byte, error) {
 func (c *candidateContract) VerifiersList() ([]byte, error) {
 	fmt.Println("into func VerifiersList... ")
 	arr := c.evm.CandidatePool.GetChairpersons(c.evm.StateDB)
+	if nil == arr {
+		fmt.Println("The verifiersList for the inquiry does not exist")
+		return nil, nil
+	}
 	data, _ := json.Marshal(arr)
 	sdata := DecodeResultStr(string(data))
 	fmt.Println("json: ", string(data), " []byte: ", sdata)
