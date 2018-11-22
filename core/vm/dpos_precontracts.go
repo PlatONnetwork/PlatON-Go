@@ -91,6 +91,8 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 		"CandidateDeposit" : c.CandidateDeposit,
 		"CandidateList" : c.CandidateList,
 		"CandidateWithdraw" : c.CandidateWithdraw,
+		"SetCandidateExtra" : c.SetCandidateExtra,
+		"CandidateWithdrawInfos": c.CandidateWithdrawInfos,
 		"VerifiersList" : c.VerifiersList,
 		"SayHi" : SayHi,
 	}
@@ -291,10 +293,17 @@ func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byt
 func (c *candidateContract) SetCandidateExtra(nodeId discover.NodeID, extra string)([]byte, error){
 	//debug
 	fmt.Println("SetCandidate==> nodeId: ", nodeId.String(), " extra: ", extra)
-
-	c.evm.CandidatePool.SetCandidateExtra(c.evm.StateDB, nodeId, extra)
-
-	return nil, nil
+	//todo
+	if err := c.evm.CandidatePool.SetCandidateExtra(c.evm.StateDB, nodeId, extra); err!=nil{
+		fmt.Println(err.Error())
+		return nil, err
+	}
+	//return
+	r := ResultCommon{true, "success"}
+	data, _ := json.Marshal(r)
+	sdata := DecodeResultStr(string(data))
+	fmt.Println("json: ", string(data))
+	return sdata, nil
 }
 
 //获取候选人详情
