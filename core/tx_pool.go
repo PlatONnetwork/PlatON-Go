@@ -806,6 +806,7 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 	for result := range handleResultsCh {
 		return result[0]
 	}
+	return nil
 
 	/*
 	//handleResultsCh := make(chan []error)
@@ -842,6 +843,7 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 	for result := range handleResultsCh {
 		return result
 	}
+	return nil
 	//return pool.addTxs(txs, !pool.config.NoLocals)
 }
 
