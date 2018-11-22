@@ -217,7 +217,9 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 
 	// Create dials for consensus nodes if they are not connected.
 	for id, t := range s.consensus {
+		log.Warn("consensus task", "info", s.consensus)
 		err := s.checkDial(t.dest, peers)
+		log.Warn("checkDial", "err", err)
 		switch err {
 		case errNotWhitelisted, errSelf:
 			log.Warn("Removing consensus dial candidate", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}, "err", err)

@@ -1153,7 +1153,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	// Fill the block with all available pending transactions.
 	log.Warn("---【开始获取pending交易】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	pending, err := w.eth.TxPool().Pending()
-	log.Warn("---【结束获取pending交易】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6, "pending", pending)
+	log.Warn("---【结束获取pending交易】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6)
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return
