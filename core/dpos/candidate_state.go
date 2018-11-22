@@ -447,6 +447,7 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 			Port: 			can.Port,
 			Owner: 			can.Owner,
 			From: 			can.From,
+			Extra: 			can.Extra,
 		}
 		c.immediateCandates[nodeId] = canNew
 
@@ -464,6 +465,7 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 			Port: 			can.Port,
 			Owner: 			can.Owner,
 			From: 			can.From,
+			Extra:  		can.Extra,
 		}
 		// 退出部分
 		if err := c.setDefeat(state, nodeId, canDefeat); nil != err {
@@ -678,6 +680,24 @@ func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID,
 	state.AddBalance(addr, new(big.Int).SetUint64(amount))
 	return nil
 }
+
+// 设置入围者的拓展信息
+func (c *CandidatePool)SetCandidateExtra(state vm.StateDB, nodeId discover.NodeID, extra string) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.initDataByState(state); nil != err {
+		log.Error("Failed to initDataByState on SetCandidateExtra err", err)
+		return err
+	}
+
+	if can, ok := c.immediateCandates[nodeId]; ok {
+		can.Extra = extra
+	}else {
+		return CandidateEmptyErr
+	}
+	return nil
+}
+
 
 
 

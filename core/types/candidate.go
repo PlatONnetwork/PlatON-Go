@@ -28,6 +28,7 @@ type Candidate struct {
 	From 			common.Address
 
 
+	Extra 			string
 	// 被投的票Id集
 	//ticketPool		[]common.Hash
 	// 被投票数目
