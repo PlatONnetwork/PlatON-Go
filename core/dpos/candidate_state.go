@@ -1098,6 +1098,7 @@ func (c *CandidatePool) setNextWitnessIndex (state vm.StateDB, nodeIds []discove
 }
 
 func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error){
+	fmt.Println("入参：", nodeId.String())
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
@@ -1105,6 +1106,7 @@ func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (
 		return nil, err
 	}
 	if candidatePtr, ok := c.immediateCandates[nodeId]; ok {
+		PrintObject("返回：", candidatePtr)
 		return candidatePtr, nil
 	}
 	return nil, nil

@@ -170,6 +170,7 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 
 	//todo
 	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
+	fmt.Printf("获取: %+v \n", can)
 	if err!=nil {
 		fmt.Println("GetCandidate err!=nill: ", err.Error())
 		return nil, err
