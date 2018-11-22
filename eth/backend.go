@@ -20,6 +20,7 @@ package eth
 import (
 	"Platon-go/consensus/cbft"
 	"Platon-go/core/cbfttypes"
+	"Platon-go/p2p/discover"
 	"errors"
 	"fmt"
 	"math/big"
@@ -564,7 +565,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
 		for _, n := range s.chainConfig.Cbft.InitialNodes {
-			srvr.AddConsensusPeer(&n)
+			srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
 		}
 		s.StartMining(1)
 	}
