@@ -17,13 +17,11 @@
 package p2p
 
 import (
-	"container/list"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 
@@ -114,9 +112,6 @@ type Peer struct {
 
 	// events receives message send / receive events if set
 	events *event.Feed
-
-	lock     sync.RWMutex
-	PingList *list.List
 }
 
 // NewPeer returns a peer for testing purposes.
@@ -183,7 +178,6 @@ func newPeer(conn *conn, protocols []Protocol) *Peer {
 		protoErr: make(chan error, len(protomap)+1), // protocols + pingLoop
 		closed:   make(chan struct{}),
 		log:      log.New("id", conn.id, "conn", conn.flags),
-		PingList: list.New(),
 	}
 	return p
 }
@@ -249,27 +243,10 @@ func (p *Peer) pingLoop() {
 	for {
 		select {
 		case <-ping.C:
-			//modified by Joey
-			pingTime := strconv.FormatInt(time.Now().UnixNano(), 10)
-
-			p.lock.Lock()
-			defer p.lock.Unlock()
-
-			if p.PingList.Len() > 5 {
-				front := p.PingList.Front()
-				p.PingList.Remove(front)
-			}
-			p.PingList.PushBack(pingTime)
-
-			log.Info("send a Ping message", "pingTimeNano", pingTime, "PingList.Len", p.PingList.Len())
-			if err := SendItems(p.rw, pingMsg, pingTime); err != nil {
+			if err := SendItems(p.rw, pingMsg); err != nil {
 				p.protoErr <- err
 				return
 			}
-			/*if err := SendItems(p.rw, pingMsg); err != nil {
-				p.protoErr <- err
-				return
-			}*/
 			ping.Reset(pingInterval)
 		case <-p.closed:
 			return
@@ -296,32 +273,8 @@ func (p *Peer) readLoop(errc chan<- error) {
 func (p *Peer) handle(msg Msg) error {
 	switch {
 	case msg.Code == pingMsg:
-		// modify by Joey
-		var pingTime [1]string
-		msg.Decode(&pingTime)
-		log.Debug("Receive a Ping message, then response a Pong message", "pingTimeNano", pingTime[0])
-
 		msg.Discard()
-		go SendItems(p.rw, pongMsg, pingTime[0])
-
-		/*msg.Discard()
-		go SendItems(p.rw, pongMsg)*/
-
-	case msg.Code == pongMsg:
-		//added by Joey
-		proto := p.running["eth"]
-
-		msg.Code = 0x0a + proto.offset
-
-		code := fmt.Sprintf("msg.Code: 0x%x", msg.Code)
-		log.Debug("Receive a Pong message, reset msg.Code for eth protocol", "msg.Code", code)
-
-		select {
-		case proto.in <- msg:
-			return nil
-		case <-p.closed:
-			return io.EOF
-		}
+		go SendItems(p.rw, pongMsg)
 	case msg.Code == discMsg:
 		var reason [1]DiscReason
 		// This is the last message. We don't need to discard or
@@ -473,7 +426,6 @@ type PeerInfo struct {
 		Inbound       bool   `json:"inbound"`
 		Trusted       bool   `json:"trusted"`
 		Static        bool   `json:"static"`
-		Consensus     bool   `json:"consensus"`
 	} `json:"network"`
 	Protocols map[string]interface{} `json:"protocols"` // Sub-protocol specific metadata fields
 }
@@ -497,7 +449,6 @@ func (p *Peer) Info() *PeerInfo {
 	info.Network.Inbound = p.rw.is(inboundConn)
 	info.Network.Trusted = p.rw.is(trustedConn)
 	info.Network.Static = p.rw.is(staticDialedConn)
-	info.Network.Consensus = p.rw.is(consensusDialedConn)
 
 	// Gather all the running protocol infos
 	for _, proto := range p.running {
