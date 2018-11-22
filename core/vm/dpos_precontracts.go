@@ -47,8 +47,17 @@ var (
 	ErrCandidateEmpyt = errors.New("CandidatePool is nil")
 )
 
+var (
+	WithDrawLock = big.NewInt(50000)
+)
+
 var PrecompiledContractsDpos = map[common.Address]PrecompiledContract{
 	common.CandidateAddr : &candidateContract{},
+}
+
+type ResultCommon struct {
+	Ret bool
+	ErrMsg string
 }
 
 type candidatePool interface {
@@ -61,6 +70,7 @@ type candidatePool interface {
 	IsDefeat(state StateDB, nodeId discover.NodeID) (bool, error)
 	RefundBalance (state StateDB, nodeId discover.NodeID, blockNumber *big.Int) error
 	GetOwner (state StateDB, nodeId discover.NodeID) common.Address
+	SetCandidateExtra(state StateDB, nodeId discover.NodeID, extra string) error
 }
 
 type candidateContract struct{
@@ -162,7 +172,7 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		fmt.Println("GetCandidate err!=nill: ", err.Error())
 		return nil, err
 	}
-	var alldeposit *big.Int
+	alldeposit := deposit
 	if can!=nil {
 		if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
 			fmt.Println(ErrOwnerNotonly.Error())
@@ -170,10 +180,7 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		}
 		alldeposit = can.Deposit.Add(can.Deposit, deposit)
 		fmt.Println("alldeposit: ", alldeposit,  " can.Deposit: ", can.Deposit, " deposit: ", deposit)
-	}else {
-		alldeposit = deposit
 	}
-
 	canDeposit := types.Candidate{
 		alldeposit,
 		height,
@@ -183,6 +190,7 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		port,
 		owner,
 		from,
+		"",
 	}
 	fmt.Println("canDeposit: ", canDeposit)
 	if err = c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, &canDeposit); err!=nil {
@@ -191,15 +199,11 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		return nil, err
 	}
 
-	type result struct{
-		 Ret bool
-		 ErrMsg string
-	}
-	r := &result{true, "success"}
+	//return
+	r := ResultCommon{true, "success"}
 	data, _ := json.Marshal(r)
 	sdata := DecodeResultStr(string(data))
-	fmt.Println("json: ", string(data), " []byte: ", sdata)
-
+	fmt.Println("json: ", string(data))
 	return sdata, nil
 }
 
@@ -217,15 +221,17 @@ func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 		fmt.Println(ErrPermissionDenied.Error())
 		return nil, ErrPermissionDenied
 	}
-	c.evm.CandidatePool.WithdrawCandidate(c.evm.StateDB, nodeId, withdraw, height)
-	
-	
+	if err := c.evm.CandidatePool.WithdrawCandidate(c.evm.StateDB, nodeId, withdraw, height); err!=nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
 
-	//校验from和owner是否一致
-	//调用接口生成退款记录
-
-
-	return nil, nil
+	//return
+	r := ResultCommon{true, "success"}
+	data, _ := json.Marshal(r)
+	sdata := DecodeResultStr(string(data))
+	fmt.Println("json: ", string(data))
+	return sdata, nil
 }
 
 //质押金提现
@@ -235,10 +241,17 @@ func (c *candidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, e
 	fmt.Println("CandidateWithdraw==> nodeId: ", nodeId.String(), " height: ", 	height)
 
 	//todo
-	c.evm.CandidatePool.RefundBalance(c.evm.StateDB, nodeId, height)
+	if err :=c.evm.CandidatePool.RefundBalance(c.evm.StateDB, nodeId, height); err!=nil{
+		fmt.Println(err.Error())
+		return nil, err
+	}
 
-
-	return nil, nil
+	//return
+	r := ResultCommon{true, "success"}
+	data, _ := json.Marshal(r)
+	sdata := DecodeResultStr(string(data))
+	fmt.Println("json: ", string(data))
+	return sdata, nil
 }
 
 //获取已申请的退款记录
@@ -247,9 +260,39 @@ func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byt
 	fmt.Println("CandidateWithdrawInfos==> nodeId: ", nodeId.String())
 
 	//todo
-	if infos, err = c.evm.CandidatePool.GetDefeat(c.evm.StateDB, nodeId); err!=nil{
-
+	infos, err := c.evm.CandidatePool.GetDefeat(c.evm.StateDB, nodeId)
+	if err!=nil{
+		fmt.Println(err.Error())
+		return nil, err
 	}
+	//return
+	type WithdrawInfo struct {
+		Balance *big.Int 
+		LockNumber *big.Int
+		LockBlockCycle *big.Int
+	} 
+	type WithdrawInfos struct {
+		Ret ResultCommon
+		Infos []WithdrawInfo
+	}
+
+	r := WithdrawInfos{}
+	r.Ret = ResultCommon{true, "success"}
+	r.Infos = make([]WithdrawInfo, len(infos))
+	for i, v := range infos {
+		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, WithDrawLock}
+	}
+	data, _ := json.Marshal(r)
+	sdata := DecodeResultStr(string(data))
+	fmt.Println("json: ", string(data))
+	return sdata, nil
+}
+
+func (c *candidateContract) SetCandidateExtra(nodeId discover.NodeID, extra string)([]byte, error){
+	//debug
+	fmt.Println("SetCandidate==> nodeId: ", nodeId.String(), " extra: ", extra)
+
+	c.evm.CandidatePool.SetCandidateExtra(c.evm.StateDB, nodeId, extra)
 
 	return nil, nil
 }
@@ -272,18 +315,21 @@ func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, er
 //获取当前区块候选人列表 0~200
 func (c *candidateContract) CandidateList() ([]byte, error) {
 	fmt.Println("into func CandidateList... ")
-	// GetChosens (state vm.StateDB) []*types.Candidate
-	// arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB)
-	return nil, nil
+	arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB)
+	data, _ := json.Marshal(arr)
+	sdata := DecodeResultStr(string(data))
+	fmt.Println("json: ", string(data), " []byte: ", sdata)
+	return sdata, nil
 }
 
 //获取当前区块轮次验证人列表 25个
 func (c *candidateContract) VerifiersList() ([]byte, error) {
 	fmt.Println("into func VerifiersList... ")
-	// GetChairpersons (state vm.StateDB) []*types.Candidate
-	// arr := c.evm.CandidatePool.GetChairpersons(c.evm.StateDB)
-
-	return nil, nil
+	arr := c.evm.CandidatePool.GetChairpersons(c.evm.StateDB)
+	data, _ := json.Marshal(arr)
+	sdata := DecodeResultStr(string(data))
+	fmt.Println("json: ", string(data), " []byte: ", sdata)
+	return sdata, nil
 }
 
 func DecodeResultStr (result string) []byte {
