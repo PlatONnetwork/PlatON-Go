@@ -60,7 +60,7 @@ var (
 
 type CandidatePool struct {
 	// 当前入围者数目
-	count 					uint64
+	//count 					uint64
 	// 最大允许入围人数目
 	maxCount				uint64
 	// 最大允许见证人数目
@@ -96,13 +96,13 @@ func NewCandidatePool(state vm.StateDB, configs *params.DposConfig, isgenesis bo
 			return nil, err
 		}
 	}
-	var idArr []discover.NodeID
-	if ids, err := getImmediateIdsByState(state); nil != err {
-		log.Error("Failed to decode immediateIds on NewCandidatePool", "err", err)
-		return nil, err
-	}else {
-		idArr = ids
-	}
+	//var idArr []discover.NodeID
+	//if ids, err := getImmediateIdsByState(state); nil != err {
+	//	log.Error("Failed to decode immediateIds on NewCandidatePool", "err", err)
+	//	return nil, err
+	//}else {
+	//	idArr = ids
+	//}
 
 
 	//var originMap, immediateMap map[discover.NodeID]*Candidate
@@ -126,7 +126,7 @@ func NewCandidatePool(state vm.StateDB, configs *params.DposConfig, isgenesis bo
 	//}
 
 	candidatePool =  &CandidatePool{
-		count: 					uint64(len(idArr)),
+		//count: 					uint64(len(idArr)),
 		maxCount:				configs.MaxCount,
 		maxChair:				configs.MaxChair,
 		RefundBlockNumber: 		configs.RefundBlockNumber,
@@ -331,7 +331,7 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 	}
 
 	// cache map
-	cache := c.immediateCandates
+	//cache := c.immediateCandates
 
 	// 判断当前质押人是否新来的
 	// 只有是新来的，才会追加数组中
@@ -356,12 +356,12 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 		// 处理落选人
 		for _, tmpCan := range tmpArr {
 
-			var isDEL bool
-			if _, ok := cache[tmpCan.CandidateId]; ok {
-				isDEL = true
-			}
+			//var isDEL bool
+			//if _, ok := cache[tmpCan.CandidateId]; ok {
+			//	isDEL = true
+			//}
 			// 删除trie中的 入围者信息
-			if err := c.delImmediate(state, tmpCan.CandidateId, isDEL); nil != err {
+			if err := c.delImmediate(state, tmpCan.CandidateId); nil != err {
 				return err
 			}
 			// 追加到落榜集
@@ -380,11 +380,11 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 
 	// 入围者上树
 	for _, can := range c.candidateCacheArr {
-		var isADD bool
-		if _, ok := cache[can.CandidateId]; !ok {
-			isADD = true
-		}
-		c.setImmediate(state, can.CandidateId, can, isADD)
+		//var isADD bool
+		//if _, ok := cache[can.CandidateId]; !ok {
+		//	isADD = true
+		//}
+		c.setImmediate(state, can.CandidateId, can)
 		sortIds = append(sortIds, can.CandidateId)
 	}
 	// 更新入围者索引
@@ -425,7 +425,7 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 		return WithdrawPriceErr
 	}else if can.Deposit.Cmp(price) == 0 { // 全额退出质押
 		// 删除入围者信息
-		if err := c.delImmediate(state, nodeId, true); nil != err {
+		if err := c.delImmediate(state, nodeId); nil != err {
 			return err
 		}
 		// 追加到落选
@@ -451,7 +451,7 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 		c.immediateCandates[nodeId] = canNew
 
 		// 更新剩余部分
-		if err := c.setImmediate(state, nodeId, canNew, false); nil != err {
+		if err := c.setImmediate(state, nodeId, canNew); nil != err {
 			return err
 		}
 		// 退款部分新建退款信息
@@ -825,7 +825,7 @@ func (c *CandidatePool) GetWitness (state *state.StateDB) []*discover.Node {
 
 
 
-func (c *CandidatePool) setImmediate(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate, isADD bool) error {
+func (c *CandidatePool) setImmediate(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate/*, isADD bool*/) error {
 	c.immediateCandates[candidateId] = can
 	if value, err := rlp.EncodeToBytes(can); nil != err {
 		log.Error("Failed to encode candidate object on setImmediate", "key", candidateId.String(), "err", err)
@@ -833,9 +833,9 @@ func (c *CandidatePool) setImmediate(state vm.StateDB, candidateId discover.Node
 	}else {
 		// 实时的入围候选人 input trie
 		setImmediateState(state, candidateId, value)
-		if isADD {
-			c.count ++
-		}
+		//if isADD {
+		//	c.count ++
+		//}
 	}
 	return nil
 }
@@ -845,15 +845,17 @@ func (c *CandidatePool) getImmediateIndex (state vm.StateDB) ([]discover.NodeID,
 }
 
 // 删除自动更新索引
-func (c *CandidatePool) delImmediate (state vm.StateDB, candidateId discover.NodeID, isDEL bool) error {
+func (c *CandidatePool) delImmediate (state vm.StateDB, candidateId discover.NodeID/*, isDEL bool*/) error {
 
 	// trie 中删掉实时信息
 	setImmediateState(state, candidateId, []byte{})
-	if isDEL {
-		// map 中删掉
-		delete(c.immediateCandates, candidateId)
-		c.count --
-	}
+	// map 中删掉
+	delete(c.immediateCandates, candidateId)
+	//if isDEL {
+	//	// map 中删掉
+	//	delete(c.immediateCandates, candidateId)
+	//	c.count --
+	//}
 	// 删除索引中的对应id
 	var canIds []discover.NodeID
 	if ids, err := getImmediateIdsByState(state); nil != err {
