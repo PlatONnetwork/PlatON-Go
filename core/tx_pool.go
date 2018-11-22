@@ -276,11 +276,9 @@ func (pool *TxPool) newTxsLoop() {
 		log.Warn("---------newTxsLoop---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh))
 		if newTxs != nil {
 			if len(newTxs.txs) == 1 {
-				//newTxs.handleResultsCh <- []error{pool.addTx(newTxs.txs[0], newTxs.local)}
-				pool.addTx(newTxs.txs[0], newTxs.local)
+				newTxs.handleResultsCh <- []error{pool.addTx(newTxs.txs[0], newTxs.local)}
 			} else {
-				//newTxs.handleResultsCh <- pool.addTxs(newTxs.txs, newTxs.local)
-				pool.addTxs(newTxs.txs, newTxs.local)
+				newTxs.handleResultsCh <- pool.addTxs(newTxs.txs, newTxs.local)
 			}
 		}
 	}
@@ -800,6 +798,16 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 // the sender as a local one in the mean time, ensuring it goes around the local
 // pricing constraints.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
+	handleResultsCh := make(chan []error)
+	newTxs := &newTxs{[]*types.Transaction{tx}, !pool.config.NoLocals, handleResultsCh }
+	log.Warn("---------AddLocal start---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh), "timestamp", time.Now().UnixNano() / 1e6)
+	pool.newTxsCh <- newTxs
+	log.Warn("---------AddLocal end---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh), "timestamp", time.Now().UnixNano() / 1e6)
+	for result := range handleResultsCh {
+		return result[0]
+	}
+
+	/*
 	//handleResultsCh := make(chan []error)
 	newTxs := &newTxs{[]*types.Transaction{tx}, !pool.config.NoLocals, nil }
 	log.Warn("---------AddLocal start---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh), "timestamp", time.Now().UnixNano() / 1e6)
@@ -813,6 +821,7 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 	//	}
 	//}
 	//return pool.addTx(tx, !pool.config.NoLocals)
+	*/
 }
 
 // AddRemote enqueues a single transaction into the pool if it is valid. If the
@@ -829,11 +838,9 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 	handleResultsCh := make(chan []error)
 	newTxs := &newTxs{txs, !pool.config.NoLocals, handleResultsCh }
 	pool.newTxsCh <- newTxs
-	for {
-		select {
-		case result := <- handleResultsCh:
-			return result
-		}
+
+	for result := range handleResultsCh {
+		return result
 	}
 	//return pool.addTxs(txs, !pool.config.NoLocals)
 }
