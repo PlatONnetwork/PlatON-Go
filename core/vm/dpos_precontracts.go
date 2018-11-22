@@ -169,6 +169,8 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 			return nil, ErrOwnerNotonly
 		}
 		alldeposit = can.Deposit.Add(can.Deposit, deposit)
+	} else { // TODO to be deleted
+		alldeposit = deposit
 	}
 	canDeposit := types.Candidate{
 		alldeposit,
@@ -244,18 +246,21 @@ func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, er
 //获取当前区块候选人列表 0~200
 func (c *candidateContract) CandidateList() ([]byte, error) {
 	fmt.Println("into func CandidateList... ")
-	// GetChosens (state vm.StateDB) []*types.Candidate
-	// arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB)
-	return nil, nil
+	arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB)
+	data, _ := json.Marshal(arr)
+	sdata := DecodeResultStr(string(data))
+	fmt.Println("json: ", string(data), " []byte: ", sdata)
+	return sdata, nil
 }
 
 //获取当前区块轮次验证人列表 25个
 func (c *candidateContract) VerifiersList() ([]byte, error) {
 	fmt.Println("into func VerifiersList... ")
-	// GetChairpersons (state vm.StateDB) []*types.Candidate
-	// arr := c.evm.CandidatePool.GetChairpersons(c.evm.StateDB)
-
-	return nil, nil
+	arr := c.evm.CandidatePool.GetChairpersons(c.evm.StateDB)
+	data, _ := json.Marshal(arr)
+	sdata := DecodeResultStr(string(data))
+	fmt.Println("json: ", string(data), " []byte: ", sdata)
+	return sdata, nil
 }
 
 func DecodeResultStr (result string) []byte {
