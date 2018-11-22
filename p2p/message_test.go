@@ -150,3 +150,14 @@ func unhex(str string) []byte {
 	}
 	return b
 }
+
+func TestMsgCode(t *testing.T) {
+	fmt.Printf("%x\n", 456)
+
+	msg := Msg{Code: 0x0a}
+
+	x := fmt.Sprintf("msg.Code: 0x%x", msg.Code)
+
+	fmt.Println(x)
+
+}

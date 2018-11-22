@@ -292,7 +292,7 @@ func TestEmptyByte(t *testing.T) {
 	it := trie.NewIterator(so.trie.NodeIterator(nil))
 	for it.Next() {
 		var a Candidate
-		 rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
 		fmt.Println("初始化对比键值对", string(so.db.trie.GetKey(it.Key)), "== ", &a)
 	}
 
