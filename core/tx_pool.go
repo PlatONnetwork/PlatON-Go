@@ -38,7 +38,7 @@ import (
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
 	chainHeadChanSize = 10
-	newTxChanSize = 8192
+	newTxChanSize = 10240
 )
 
 var (
@@ -278,9 +278,11 @@ func (pool *TxPool) newTxsLoop() {
 		case newTxs := <-pool.newTxsCh:
 			if newTxs != nil {
 				if len(newTxs.txs) == 1 {
-					newTxs.handleResultsCh <- []error{pool.addTx(newTxs.txs[0], newTxs.local)}
+					//newTxs.handleResultsCh <- []error{pool.addTx(newTxs.txs[0], newTxs.local)}
+					pool.addTx(newTxs.txs[0], newTxs.local)
 				} else {
-					newTxs.handleResultsCh <- pool.addTxs(newTxs.txs, newTxs.local)
+					//newTxs.handleResultsCh <- pool.addTxs(newTxs.txs, newTxs.local)
+					pool.addTxs(newTxs.txs, newTxs.local)
 				}
 			}
 		}
@@ -801,15 +803,16 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 // the sender as a local one in the mean time, ensuring it goes around the local
 // pricing constraints.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
-	handleResultsCh := make(chan []error)
-	newTxs := &newTxs{[]*types.Transaction{tx}, !pool.config.NoLocals, handleResultsCh }
+	//handleResultsCh := make(chan []error)
+	newTxs := &newTxs{[]*types.Transaction{tx}, !pool.config.NoLocals, nil }
 	pool.newTxsCh <- newTxs
-	for {
-		select {
-		case result := <- handleResultsCh:
-			return result[0]
-		}
-	}
+	return nil
+	//for {
+	//	select {
+	//	case result := <- handleResultsCh:
+	//		return result[0]
+	//	}
+	//}
 	//return pool.addTx(tx, !pool.config.NoLocals)
 }
 

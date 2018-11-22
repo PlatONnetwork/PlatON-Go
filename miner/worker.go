@@ -1053,7 +1053,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if _, ok := w.engine.(consensus.Bft); ok {
 		parent = commitBlock
 		timestamp = time.Now().UnixNano() / 1e6
-		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "hash", parent.Hash(), "number", "timestamp", timestamp, parent.NumberU64(), "stateRoot", parent.Root())
+		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "hash", parent.Hash(), "number", parent.NumberU64(), "timestamp", timestamp, "stateRoot", parent.Root())
 	} else {
 		parent = w.chain.CurrentBlock()
 		if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
