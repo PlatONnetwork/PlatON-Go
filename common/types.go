@@ -45,7 +45,7 @@ var (
 	addressT = reflect.TypeOf(Address{})
 
 	// modify by platon
-	CandidateAddr 	= HexToAddress("0x1000000000000000000000000000000000000111")
+	CandidateAddr 	= HexToAddress("0x1000000000000000000000000000000000000001")
 	ZeroAddr 		= HexToAddress(Address{}.String())
 )
 

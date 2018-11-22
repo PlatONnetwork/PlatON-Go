@@ -169,7 +169,11 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 			return nil, ErrOwnerNotonly
 		}
 		alldeposit = can.Deposit.Add(can.Deposit, deposit)
+		fmt.Println("alldeposit: ", alldeposit,  " can.Deposit: ", can.Deposit, " deposit: ", deposit)
+	}else {
+		alldeposit = deposit
 	}
+
 	canDeposit := types.Candidate{
 		alldeposit,
 		height,
@@ -183,13 +187,15 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	fmt.Println("canDeposit: ", canDeposit)
 	if err = c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, &canDeposit); err!=nil {
 		//回滚交易
+		fmt.Println("SetCandidate return err: ", err.Error())
 		return nil, err
 	}
 
 	type result struct{
-		 ret bool
+		 Ret bool
+		 ErrMsg string
 	}
-	r := &result{true}
+	r := &result{true, "success"}
 	data, _ := json.Marshal(r)
 	sdata := DecodeResultStr(string(data))
 	fmt.Println("json: ", string(data), " []byte: ", sdata)
@@ -200,8 +206,20 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 //申请退回质押金
 func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error)  {
 
-	from := c.contract.caller.Address().Hex()
-	fmt.Println("CandidateApplyWithdraw==> nodeId: ", nodeId, " from: ", from, " withdraw: ", withdraw)
+	//debug
+	from := c.contract.caller.Address()
+	height := c.evm.Context.BlockNumber
+	fmt.Println("CandidateApplyWithdraw==> nodeId: ", nodeId.String(), " from: ", from.Hex(), " withdraw: ", withdraw, " height: ", height)
+
+	//todo
+	owner :=  c.evm.CandidatePool.GetOwner(c.evm.StateDB, nodeId)
+	if ok := bytes.Equal(owner.Bytes(), from.Bytes()); !ok {
+		fmt.Println(ErrPermissionDenied.Error())
+		return nil, ErrPermissionDenied
+	}
+	c.evm.CandidatePool.WithdrawCandidate(c.evm.StateDB, nodeId, withdraw, height)
+	
+	
 
 	//校验from和owner是否一致
 	//调用接口生成退款记录
@@ -212,17 +230,27 @@ func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 
 //质押金提现
 func (c *candidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, error)  {
+	//debug
+	height := c.evm.Context.BlockNumber
+	fmt.Println("CandidateWithdraw==> nodeId: ", nodeId.String(), " height: ", 	height)
 
-	//调用接口退款，判断返回值
+	//todo
+	c.evm.CandidatePool.RefundBalance(c.evm.StateDB, nodeId, height)
 
-	fmt.Println("CandidateWithdraw==> nodeId: ", nodeId)
+
 	return nil, nil
 }
 
 //获取已申请的退款记录
 func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byte, error){
+	//debug
+	fmt.Println("CandidateWithdrawInfos==> nodeId: ", nodeId.String())
 
-	fmt.Println("CandidateWithdrawInfos==> nodeId: ", nodeId)
+	//todo
+	if infos, err = c.evm.CandidatePool.GetDefeat(c.evm.StateDB, nodeId); err!=nil{
+
+	}
+
 	return nil, nil
 }
 

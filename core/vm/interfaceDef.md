@@ -10,7 +10,7 @@ data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
 
 | **参数名** | **类型** | **大小** | **参数说明** |
 | --- | --- | --- | --- |
-| type | bytes | 8byte | 交易类型(候选池0x00000000000000f1) |
+| type | bytes | 8byte | 交易类型(供前端扩展使用，底层不使用该字段) |
 | funcname | string | 不定 | 内置合约定义的具体函数名称 |
 | param1 | 不定 | 不定 | 函数参数 |
 | ...... | ...... | ...... | ...... |
@@ -28,8 +28,8 @@ data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
 * `port`: string 节点端口号
 
 出参：
-* `ret`: bool 操作结果
-* `errmsg`: string 错误信息
+* `Ret`: bool 操作结果
+* `ErrMsg`: string 错误信息
 
 ### **`CandidateApplyWithdraw`**
 节点质押金退回申请，申请成功后节点将被重新排序，权限校验from==owner。
@@ -38,8 +38,8 @@ data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
 * `withdraw`: uint256 退款金额 (单位：ADP)
 
 出参：
-* `ret`: bool 操作结果
-* `errmsg`: string 错误信息
+* `Ret`: bool 操作结果
+* `ErrMsg`: string 错误信息
 
 ### **`CandidateWithdrawInfos`**
 获取节点申请的退款记录列表
@@ -47,12 +47,12 @@ data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
 * `nodeId`: [64]byte 节点ID(公钥)
 
 出参：
-* `ret`: bool 操作结果
-* `errmsg`: string 错误信息
+* `Ret`: bool 操作结果
+* `ErrMsg`: string 错误信息
 * `[]`:列表
-* 'balance': uint256 退款金额 (单位：ADP)
-* `lockNumber`: uint256 退款申请所在块高
-* `lockBlockCycle`: uint256 退款金额锁定周期
+	* 'Balance': uint256 退款金额 (单位：ADP)
+	* `LockNumber`: uint256 退款申请所在块高
+	* `LockBlockCycle`: uint256 退款金额锁定周期
 
 ### **`CandidateWithdraw`**
 节点质押金提取，调用成功后会提取所有已申请退回的质押金到owner账户。
@@ -60,8 +60,18 @@ data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
 * `nodeId`: [64]byte 节点ID(公钥)
 
 出参：
-* `ret`: bool 操作结果
-* `errmsg`: string 错误信息
+* `Ret`: bool 操作结果
+* `ErrMsg`: string 错误信息
+
+### **`SetCandidateExtra`**
+设置节点附加信息，供前端扩展使用。
+入参：
+* `nodeId`: [64]byte 节点ID(公钥)
+* `extra`: string 附加信息
+
+出参：
+* `Ret`: bool 操作结果
+* `ErrMsg`: string 错误信息
 
 ### **`CandidateDetails`**
 获取候选人信息。
@@ -69,14 +79,14 @@ data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
 * `nodeId`: [64]byte 节点ID(公钥)
 
 出参：
-* `ret`: bool 操作结果
-* `errmsg`: string 错误信息
-* `deposit`: uint256 质押金额 (单位：ADP)
-* `blockNumber`: uint256 质押金更新的最新块高
-* `owner`: [20]byte 质押金退款地址
-* `fee`: uint32 出块奖励佣金比，以10000为基数(eg：5%，则fee=500)
-* `host`: string 节点IP
-* `port`: string 节点端口号
+* `Ret`: bool 操作结果
+* `ErrMsg`: string 错误信息
+* `Deposit`: uint256 质押金额 (单位：ADP)
+* `BlockNumber`: uint256 质押金更新的最新块高
+* `Owner`: [20]byte 质押金退款地址
+* `Fee`: uint32 出块奖励佣金比，以10000为基数(eg：5%，则fee=500)
+* `Host`: string 节点IP
+* `Port`: string 节点端口号
 
 ### **`CandidateList`**
 获取所有入围节点的信息列表
@@ -84,15 +94,15 @@ data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
 * 无
 
 出参：
-* `ret`: bool 操作结果
-* `errmsg`: string 错误信息
+* `Ret`: bool 操作结果
+* `ErrMsg`: string 错误信息
 * `[]`:列表
-* `deposit`: uint256 质押金额 (单位：ADP)
-* `blockNumber`: uint256 质押金更新的最新块高
-* `owner`: [20]byte 质押金退款地址
-* `fee`: uint32 出块奖励佣金比，以10000为基数(eg：5%，则fee=500)
-* `host`: string 节点IP
-* `port`: string 节点端口号
+	* `Deposit`: uint256 质押金额 (单位：ADP)
+	* `BlockNumber`: uint256 质押金更新的最新块高
+	* `Owner`: [20]byte 质押金退款地址
+	* `Fee`: uint32 出块奖励佣金比，以10000为基数(eg：5%，则fee=500)
+	* `Host`: string 节点IP
+	* `Port`: string 节点端口号
 
 ### **`VerifiersList`**
 获取参与当前共识的验证人列表
@@ -100,15 +110,15 @@ data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
 * 无
 
 出参：
-* `ret`: bool 操作结果
-* `errmsg`: string 错误信息
+* `Ret`: bool 操作结果
+* `ErrMsg`: string 错误信息
 * `[]`:列表
-* `deposit`: uint256 质押金额 (单位：ADP)
-* `blockNumber`: uint256 质押金更新的最新块高
-* `owner`: [20]byte 质押金退款地址
-* `fee`: uint32 出块奖励佣金比，以10000为基数(eg：5%，则fee=500)
-* `host`: string 节点IP
-* `port`: string 节点端口号
+	* `Deposit`: uint256 质押金额 (单位：ADP)
+	* `BlockNumber`: uint256 质押金更新的最新块高
+	* `Owner`: [20]byte 质押金退款地址
+	* `Fee`: uint32 出块奖励佣金比，以10000为基数(eg：5%，则fee=500)
+	* `Host`: string 节点IP
+	* `Port`: string 节点端口号
 
 
 ##### 注：所有返回值均为json格式
@@ -130,7 +140,7 @@ rlp[0x00000000000000f1, "CandidateDeposit", 0xe152be5f5f0167250592a12a197ab19b21
 交易：
 {
 from:eth.accounts[0],
-to:"0x1000000000000000000000000000000000000111",
+to:"0x1000000000000000000000000000000000000001",
 value:web3.toWei(100, "ether"),
 data:"0xf8898800000000000000f19043616e6469646174654465706f736974b840e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7944fed1fc4144c223ae3c1553be203cdfcbd38c5818800000000000001f4893132372e302e302e318437383930"
 }
