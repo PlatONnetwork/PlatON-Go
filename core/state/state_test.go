@@ -27,6 +27,8 @@ import (
 	"Platon-go/crypto"
 	"Platon-go/ethdb"
 	checker "gopkg.in/check.v1"
+	//"Platon-go/rlp"
+	"Platon-go/rlp"
 )
 
 type StateSuite struct {
@@ -250,7 +252,7 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 }
 
 func TestEmptyByte(t *testing.T) {
-	db, _ := ethdb.NewLDBDatabase("D:\\resource\\platon\\platon-go\\data1", 0, 0)
+	db := ethdb.NewMemDatabase()
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
@@ -258,10 +260,136 @@ func TestEmptyByte(t *testing.T) {
 	so := state.getStateObject(address)
 
 	//value := common.FromHex("0x823140710bf13990e4500136726d8b55")
-	pvalue := []byte{'a'}
-	key := []byte{'a'}
+	//pvalue := []byte("b")
+	type Candidate struct {
+		Deposit			uint64
+		BlockNumber 	*big.Int
+		TxIndex 		uint32
+		CandidateId 	string
+		Host 			string
+		Port 			string
+	}
+	can := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "啦啦", Host: "10.0.0.0"}
+	prefix := []byte("im")
+	pvalue, _ := rlp.EncodeToBytes(&can)
+	key := append(prefix, []byte("a")...)
+	state.SetState(address, key, pvalue)
+	//state.Commit(false)
 
-	//s.state.SetState(address, common.Hash{}, value)
+	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty current value, got %x", value)
+	}else{
+		var can Candidate
+		rlp.DecodeBytes(value, &can)
+		fmt.Printf("%+v \n", can)
+	}
+
+	//if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+	//	t.Errorf("expected empty committed value, got %x", value)
+	//}
+
+	state.trie.NodeIterator(nil)
+	it := trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		var a Candidate
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
+		fmt.Println("初始化对比键值对", string(so.db.trie.GetKey(it.Key)), "== ", &a)
+	}
+
+	can2 := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "OK", Host: "10.0.0.0"}
+	prefix2 := []byte("im")
+	pvalue2, _ := rlp.EncodeToBytes(&can2)
+	key2 := append(prefix2, []byte("b")...)
+	state.SetState(address, key2, pvalue2)
+	//state.Commit(false)
+
+	if value := state.GetState(address, key2); !bytes.Equal(value, pvalue2) {
+		t.Errorf("expected empty current value, got %x", value)
+	}else{
+		var can Candidate
+		rlp.DecodeBytes(value, &can)
+		fmt.Printf("%+v \n", can)
+	}
+	//if value := state.GetCommittedState(address, key2); !bytes.Equal(value, pvalue2) {
+	//	t.Errorf("expected empty committed value, got %x", value)
+	//}
+
+	state.trie.NodeIterator(nil)
+	it = trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		var a Candidate
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
+		fmt.Println("添加后对比键值对", string(so.db.trie.GetKey(it.Key)), "== ", &a)
+	}
+
+
+
+	pvalue = []byte{}
+	state.SetState(address, key, pvalue)
+	//state.Commit(false)
+
+	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty current value, got %x", value)
+	}
+	//if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+	//	t.Errorf("expected empty committed value, got %x", value)
+	//}
+
+	state.trie.NodeIterator(nil)
+	it = trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		var a Candidate
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
+		fmt.Println("删除后对比键值对", string(so.db.trie.GetKey(it.Key)), "==", &a)
+	}
+
+	// insert empty value
+	key = []byte("bb")
+	pvalue = []byte{}
+	state.SetState(address, key, pvalue)
+
+	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty current value, got %x", value)
+	}else {
+		var a Candidate
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
+		fmt.Println("插入空值后对比键值对", string(so.db.trie.GetKey(it.Key)), "==", &a)
+	}
+	//if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+	//	t.Errorf("expected empty committed value, got %x", value)
+	//}
+
+	state.trie.NodeIterator(nil)
+	it = trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		var a Candidate
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
+		fmt.Println("插入空值后对比键值对", string(so.db.trie.GetKey(it.Key)), "==", &a)
+	}
+}
+
+func TestSlice(t *testing.T){
+	db := ethdb.NewMemDatabase()
+	state, _ := New(common.Hash{}, NewDatabase(db))
+
+	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
+	state.CreateAccount(address)
+	so := state.getStateObject(address)
+
+	type Candidate struct {
+		Deposit			uint64
+		BlockNumber 	*big.Int
+		TxIndex 		uint32
+		CandidateId 	string
+		Host 			string
+		Port 			string
+	}
+	can1 := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "啦啦", Host: "10.0.0.0"}
+	can2 := Candidate{Deposit: 200, BlockNumber: new(big.Int).SetUint64(13), CandidateId: "哈哈", Host: "127.0.0.1"}
+	arr := []*Candidate{&can1, &can2}
+	prefix := []byte("im")
+	pvalue, _ := rlp.EncodeToBytes(&arr)
+	key := append(prefix, []byte("a")...)
 	state.SetState(address, key, pvalue)
 	state.Commit(false)
 
@@ -275,34 +403,8 @@ func TestEmptyByte(t *testing.T) {
 	state.trie.NodeIterator(nil)
 	it := trie.NewIterator(so.trie.NodeIterator(nil))
 	for it.Next() {
-		fmt.Println(it.Key, it.Value)
+		var arr []*Candidate
+		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &arr)
+		fmt.Printf("初始化对比键值对 %v == &+v", string(so.db.trie.GetKey(it.Key)), &arr)
 	}
-
-	pvalue = []byte{}
-	state.SetState(address, key, pvalue)
-	state.Commit(false)
-
-	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
-		t.Errorf("expected empty current value, got %x", value)
-	}
-	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
-		t.Errorf("expected empty committed value, got %x", value)
-	}
-
-	state.trie.NodeIterator(nil)
-	it = trie.NewIterator(so.trie.NodeIterator(nil))
-	for it.Next() {
-		fmt.Println(it.Key, it.Value)
-	}
-
-	pvalue = []byte("bbb")
-	state.SetState(address, key, pvalue)
-	state.Commit(false)
-	state.trie.NodeIterator(nil)
-	it = trie.NewIterator(so.trie.NodeIterator(nil))
-	for it.Next() {
-		fmt.Println(it.Key, it.Value)
-		fmt.Println(so.db.trie.GetKey(it.Value))
-	}
-
 }

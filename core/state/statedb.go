@@ -479,6 +479,14 @@ func (self *StateDB) CreateAccount(addr common.Address) {
 	}
 }
 
+func (self *StateDB) TxHash() common.Hash  {
+	return self.thash
+}
+
+func (self *StateDB) TxIdx() uint32  {
+	return uint32(self.txIndex)
+}
+
 func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) {
 	so := db.getStateObject(addr)
 	if so == nil {

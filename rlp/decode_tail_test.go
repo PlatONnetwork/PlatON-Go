@@ -47,3 +47,4 @@ func ExampleDecode_structTagTail() {
 	// with 6 elements: err=<nil> val={1 2 [3 4 5 6]}
 	// with 1 element: err="rlp: too few elements for rlp.structWithTail"
 }
+

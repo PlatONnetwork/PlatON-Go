@@ -64,6 +64,7 @@ type Cbft struct {
 
 	dataReceiveCh  chan interface{} //a channel to receive block signature
 	blockChain     *core.BlockChain //the block chain
+	forNext        *BlockExt           //for next block
 	highestLogical *BlockExt        //for next block
 	irreversible   *BlockExt        //highest irreversible block
 
@@ -83,8 +84,7 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 	for _,n := range config.InitialNodes {
 		initialNodesID = append(initialNodesID, n.ID)
 	}
-	_dpos := newDpos(initialNodesID)
-
+	_dpos := newDpos(initialNodesID, config)
 	cbft = &Cbft{
 		config:                config,
 		dpos:                  _dpos,
@@ -522,7 +522,12 @@ func SetBlockChain(blockChain *core.BlockChain) {
 	cbft.irreversible = irrBlock
 	//cbft.highestLogical = irrBlock
 	setHighestLogical(irrBlock)
+	cbft.forNext = irrBlock
+}
 
+func SetDopsOption(blockChain *core.BlockChain){
+	state, _ := blockChain.State()
+	cbft.dpos.SetCandidatePool(state, blockChain)
 }
 
 func BlockSynchronisation() {
@@ -1260,3 +1265,4 @@ func (cbft *Cbft) getThreshold() int {
 func toMilliseconds(t time.Time) int64 {
 	return t.UnixNano() / 1e6
 }
+

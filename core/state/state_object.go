@@ -296,7 +296,7 @@ func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.H
 	self.db.journal.append(storageChange{
 		account:  &self.address,
 		key:      keyTrie,
-		valueKey: self.originStorage[keyTrie],
+		valueKey: valueKey,
 		preValue: preValue,
 	})
 
@@ -329,6 +329,8 @@ func (self *stateObject) updateTrie(db Database) Trie {
 
 		//删除原来valueKey 对应的value
 		delete(self.originValueStorage, self.originStorage[key])
+
+		fmt.Println(key, valueKey, value)
 
 		self.originStorage[key] = valueKey
 		self.originValueStorage[valueKey] = value
@@ -539,4 +541,7 @@ func (self *stateObject) SetAbi(abiHash common.Hash, abi []byte) {
 func (self *stateObject) setAbi(abiHash common.Hash, abi []byte) {
 	self.abi = abi
 	self.data.AbiHash = abiHash[:]
+}
+func (self *stateObject) GetStorageTrie (db Database) Trie {
+	return self.getTrie(db)
 }

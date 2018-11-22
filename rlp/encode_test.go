@@ -28,6 +28,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"encoding/hex"
 )
 
 type testEncoder struct {
@@ -284,10 +285,84 @@ func boolToBytes(val bool) []byte {
 	return buf.Bytes()
 }
 
+func TestDecodeEncode(t *testing.T){
+
+	//[]byte -> String
+	/*src := []byte("Hello")
+	encodedStr := hex.EncodeToString(src)
+	fmt.Println("Hello -> hex_str: ", encodedStr)
+
+	//String -> []byte
+	test, _ := hex.DecodeString(encodedStr)
+	fmt.Println("Hello -> hex_str -> bytes[]: ", test)*/
+
+	///////////////////////////////////////////////////////////////////////////////
+	nodeId, _ := hex.DecodeString("e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
+	owner, _ := hex.DecodeString("4FED1fC4144c223aE3C1553be203cDFcbD38C581")
+
+
+	var source [][]byte
+	source = make([][]byte, 0)
+	source = append(source, uint64ToBytes(0xf1))
+	source = append(source, []byte("CandidateDeposit"))
+	source = append(source, nodeId)
+	source = append(source, owner)
+	source = append(source, uint64ToBytes(500))	//10000
+	source = append(source, []byte("127.0.0.1"))
+	source = append(source, []byte("7890"))
+
+	//rlp 编码
+	buffer := new(bytes.Buffer)
+	err := Encode(buffer, source)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("fail")
+	} else {
+		fmt.Println("encode_hex_string: ", hexutil.Encode(buffer.Bytes()))
+		fmt.Println("encode_bytes: ", buffer.Bytes())
+	}
+
+	//rlp 解码
+	ptr := new(interface{})
+	if err := Decode(bytes.NewReader(buffer.Bytes()), &ptr); err!=nil {
+		fmt.Println(err)
+		t.Errorf("fail")
+	} else {
+		deref := reflect.ValueOf(ptr).Elem().Interface()
+		//fmt.Println(deref)
+
+		for i, v := range deref.([]interface{}) {
+			//fmt.Println("i:", i, "  v:", v)
+			fmt.Println(i,": ",hex.EncodeToString(v.([]byte)))
+
+			// 类型判断，然后转换
+			/*switch i {
+			case 0:
+				fmt.Println(string(v.([]byte)))
+			case 1:
+				fmt.Println(binary.BigEndian.Uint64(v.([]byte)))
+			case 2:
+				fmt.Println(binary.BigEndian.Uint64(v.([]byte)))
+			case 3:
+				byt := v.([]byte)[0]
+				if byt == 1 {
+					fmt.Println("false")
+				} else {
+					fmt.Println("true")
+				}
+			case 4:
+				fmt.Println(string(v.([]byte)))
+			}*/
+		}
+	}
+
+}
+
 func TestEncodeF03(t *testing.T) {
 
 	str := "e4babae6898de698afe4bda0e59097"
 	res, _ := hexutil.Decode(str)
+
 	fmt.Println(string(res))
 
 	//val :=  []interface{}{"transfer", uint(0xFFFFFF), []interface{}{[]uint{4, 5, 5}}, "abc"}
@@ -308,13 +383,16 @@ func TestEncodeF03(t *testing.T) {
 	}
 	// 编码后字节数组
 	encodedBytes := buffer.Bytes()
+	fmt.Println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+	fmt.Println("encode_string: ", hexutil.Encode(buffer.Bytes()))
 	fmt.Println(encodedBytes)
+
 
 	ptr := new(interface{})
 	Decode(bytes.NewReader(encodedBytes), &ptr)
-
 	deref := reflect.ValueOf(ptr).Elem().Interface()
 	fmt.Println(deref)
+
 	for i, v := range deref.([]interface{}) {
 		// fmt.Println(i,"    ",hex.EncodeToString(v.([]byte)))
 		// 类型判断，然后转换
