@@ -6,7 +6,6 @@ import (
 	"math/big"
 )
 
-// modify by platon
 // Block's Signature info
 type BlockSignature struct {
 	SignHash  common.Hash //签名hash，header[0:32]
@@ -16,7 +15,6 @@ type BlockSignature struct {
 	Signature *common.BlockConfirmSign
 }
 
-// modify by platon
 type CbftResult struct {
 	Block *types.Block
 	//Receipts          types.Receipts

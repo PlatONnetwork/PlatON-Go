@@ -279,6 +279,10 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 	return worker
 }
 
+func (w *worker) InitAddConsensusPeerFn(fn addConsensusPeerFn) {
+	w.addConsensusPeerFn = fn
+}
+
 // setEtherbase sets the etherbase used to initialize the block coinbase field.
 func (w *worker) setEtherbase(addr common.Address) {
 	w.mu.Lock()
@@ -751,7 +755,6 @@ func (w *worker) resultLoop() {
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
 
-			// modify by platon
 		case cbftResult := <-w.cbftResultCh:
 			block := cbftResult.Block
 			blockConfirmSigns := cbftResult.BlockConfirmSigns
@@ -817,6 +820,7 @@ func (w *worker) resultLoop() {
 
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})
+			w.attemptAddConsensusPeer(block.Number(), _state, 1)	// flag：0: 本轮见证人   1: 下一轮见证人
 
 			var events []interface{}
 			switch stat {
@@ -1296,10 +1300,6 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 	return w.snapshotBlock, nil
 }
 
-func (w *worker) InitAddConsensusPeerFn(fn addConsensusPeerFn) {
-	w.addConsensusPeerFn = fn
-}
-
 func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	w.commitWorkEnv.baseLock.Lock()
 	defer w.commitWorkEnv.baseLock.Unlock()
@@ -1322,39 +1322,3 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	}
 	return shouldCommit, highestLogicalBlock
 }
-
-func (w *worker) election(blockNumber *big.Int) error {
-	if ok := w.shouldElection(blockNumber); ok {
-		log.Info("请求揭榜", "blockNumber", blockNumber)
-		success := w.engine.(consensus.Bft).Election(w.current.state)
-		if !success {
-			log.Error("Failed to Election", "blockNumber", blockNumber)
-			return errors.New("Failed to Election")
-		}
-	}
-	return nil
-}
-
-func (w *worker) shouldElection(blockNumber *big.Int) bool {
-	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(baseElection), new(big.Int))
-	return m.Cmp(big.NewInt(0)) == 0
-}
-
-func (w *worker) switchWitness(blockNumber *big.Int) error {
-	if ok := w.shouldSwitch(blockNumber); ok {
-		log.Info("触发替换下轮见证人列表", "blockNumber", blockNumber)
-		success := w.engine.(consensus.Bft).Switch(w.current.state)
-		if !success {
-			log.Error("Failed to switchWitness", "blockNumber", blockNumber)
-			return errors.New("Failed to switchWitness")
-		}
-	}
-	return nil
-}
-
-func (w *worker) shouldSwitch(blockNumber *big.Int) bool {
-	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(baseSwitchWitness), new(big.Int))
-	return m.Cmp(big.NewInt(0)) == 0
-}
-
-

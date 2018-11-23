@@ -374,6 +374,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 		blockSign := &cbfttypes.BlockSignature{
 			SignHash:  sealHash,
 			Hash:      blockHash,
+			SealHash:  cbft.SealHash(ext.block.Header()),
 			Number:    ext.block.Number(),
 			Signature: sign,
 		}
@@ -1266,10 +1267,14 @@ func toMilliseconds(t time.Time) int64 {
 	return t.UnixNano() / 1e6
 }
 
-func (cbft *Cbft) Election(state *state.StateDB) bool {
+func (cbft *Cbft) Election(state *state.StateDB) ([]*discover.Node, error) {
 	return cbft.dpos.Election(state)
 }
 
 func (cbft *Cbft) Switch(state *state.StateDB) bool {
 	return cbft.dpos.Switch(state)
+}
+
+func (cbft *Cbft) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
+	return cbft.dpos.GetWitness(state, flag)
 }
