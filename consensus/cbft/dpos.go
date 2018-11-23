@@ -17,7 +17,8 @@ import (
 )
 
 type dpos struct {
-	primaryNodeList   	[]discover.NodeID
+	formerlyNodeList 	[]discover.NodeID   // 上一轮的
+	primaryNodeList   	[]discover.NodeID	// 本轮的
 	chain             	*core.BlockChain
 	lastCycleBlockNum 	uint64
 	startTimeOfEpoch  	int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
@@ -43,6 +44,7 @@ type dpos struct {
 
 func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
 	dposPtr := &dpos{
+		formerlyNodeList:  initialNodes,
 		primaryNodeList:   initialNodes,
 		lastCycleBlockNum: 0,
 		config: 			config.DposConfig,
@@ -124,7 +126,20 @@ func (d *dpos)  Election(state *state.StateDB) ([]*discover.Node, error) {
 
 // 触发替换下轮见证人列表
 func (d *dpos)  Switch(state *state.StateDB) bool {
-	return d.candidatePool.Switch(state)
+	if !d.candidatePool.Switch(state) {
+		return false
+	}
+	nodeArr, err := d.candidatePool.GetWitness(state, 0)
+	if nil != err {
+		return false
+	}
+	d.formerlyNodeList = d.primaryNodeList
+	arr := make([]discover.NodeID, 0)
+	for _, node := range nodeArr {
+		arr = append(arr, node.ID)
+	}
+	d.primaryNodeList = arr
+	return true
 }
 
 // 获取见证节点列表

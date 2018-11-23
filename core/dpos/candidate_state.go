@@ -833,14 +833,29 @@ func (c *CandidatePool) GetWitness (state *state.StateDB, flag int) ([]*discover
 		log.Error("Failed to initDataByState on GetWitness err", err)
 		return nil, err
 	}
-	witnessIds, err := c.getWitnessIndex(state)
-	if nil != err {
-		log.Error("Failed to getWitnessIndex on GetWitness err", err)
-		return nil, err
+	var ids []discover.NodeID
+	var witness map[discover.NodeID]*types.Candidate
+	if flag == 0 {
+		witnessIds, err := c.getWitnessIndex(state)
+		if nil != err {
+			log.Error("Failed to getWitnessIndex on GetWitness err", err)
+			return nil, err
+		}
+		ids = witnessIds
+		witness = c.originCandidates
+	}else if flag == 1 {
+		nextWitnessIds, err := c.getNextWitnessIndex(state)
+		if nil != err {
+			log.Error("Failed to getWitnessIndex on GetWitness err", err)
+			return nil, err
+		}
+		ids = nextWitnessIds
+		witness = c.nextOriginCandidates
 	}
+
 	arr := make([]*discover.Node, 0)
-	for _, id := range witnessIds {
-		can := c.originCandidates[id]
+	for _, id := range ids {
+		can := witness[id]
 		if node, err := buildWitnessNode(can); nil != err {
 			log.Error("Failed to build Node on GetWitness err", err, "nodeId", can.CandidateId.String())
 			continue
@@ -850,10 +865,6 @@ func (c *CandidatePool) GetWitness (state *state.StateDB, flag int) ([]*discover
 	}
 	return arr, nil
 }
-
-
-
-
 
 func (c *CandidatePool) setImmediate(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate/*, isADD bool*/) error {
 	c.immediateCandates[candidateId] = can
@@ -1105,6 +1116,10 @@ func (c *CandidatePool) setNextWitnessIndex (state vm.StateDB, nodeIds []discove
 		setNextWitnessIdsState(state, value)
 	}
 	return nil
+}
+
+func (c *CandidatePool) getNextWitnessIndex(state vm.StateDB) ([]discover.NodeID, error) {
+	return getNextWitnessIdsByState(state)
 }
 
 func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error){
