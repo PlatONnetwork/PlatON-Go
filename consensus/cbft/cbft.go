@@ -1266,3 +1266,10 @@ func toMilliseconds(t time.Time) int64 {
 	return t.UnixNano() / 1e6
 }
 
+func (cbft *Cbft) Election(state *state.StateDB) bool {
+	return cbft.dpos.Election(state)
+}
+
+func (cbft *Cbft) Switch(state *state.StateDB) bool {
+	return cbft.dpos.Switch(state)
+}

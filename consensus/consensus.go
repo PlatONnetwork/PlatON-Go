@@ -149,5 +149,9 @@ type Bft interface {
 
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
+	Election(state *state.StateDB) bool
+
+	Switch(state *state.StateDB) bool
+
 	//SetBlockChain(blockChain *core.BlockChain)
 }

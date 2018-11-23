@@ -179,3 +179,7 @@ func (self *Miner) SetEtherbase(addr common.Address) {
 	self.coinbase = addr
 	self.worker.setEtherbase(addr)
 }
+
+func (self *Miner) InitAddConsensusPeerFn(fn addConsensusPeerFn) {
+	self.worker.InitAddConsensusPeerFn(fn)
+}

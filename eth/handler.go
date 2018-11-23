@@ -846,9 +846,9 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 
 // modify by platon
 // 组播区块/区块签名消息，发送给当前本轮所有共识节点
-func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
+func (pm *ProtocolManager) MulticastConsensus(a interface{}, consensusNodes []discover.NodeID) {
 	// 共识节点peer
-	peers := pm.peers.PeersWithConsensus(pm.engine)
+	peers := pm.peers.PeersWithConsensus(consensusNodes)
 	if peers == nil || len(peers) <= 0 {
 		log.Error("consensus peers is empty")
 	}
@@ -922,7 +922,7 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
 	for obj := range pm.prepareMinedBlockSub.Chan() {
 		if ev, ok := obj.Data.(core.PrepareMinedBlockEvent); ok {
-			pm.MulticastConsensus(ev.Block) // propagate block to consensus peers
+			pm.MulticastConsensus(ev.Block, ev.ConsensusNodes) // propagate block to consensus peers
 		}
 	}
 }
@@ -930,7 +930,7 @@ func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
 func (pm *ProtocolManager) blockSignaturecastLoop() {
 	for obj := range pm.blockSignatureSub.Chan() {
 		if ev, ok := obj.Data.(core.BlockSignatureEvent); ok {
-			pm.MulticastConsensus(ev.BlockSignature) // propagate blockSignature to consensus peers
+			pm.MulticastConsensus(ev.BlockSignature, ev.ConsensusNodes) // propagate blockSignature to consensus peers
 		}
 	}
 }
