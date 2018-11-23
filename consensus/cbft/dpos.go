@@ -118,7 +118,7 @@ func (d *dpos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 
 // 供cbft 调用
 // 揭榜
-func (d *dpos)  Election(state *state.StateDB) bool {
+func (d *dpos)  Election(state *state.StateDB) ([]*discover.Node, error) {
 	return d.candidatePool.Election(state)
 }
 
@@ -127,6 +127,11 @@ func (d *dpos)  Switch(state *state.StateDB) bool {
 	return d.candidatePool.Switch(state)
 }
 
+// 获取见证节点列表
+// flag：0: 本轮见证人   1: 下一轮见证人
+func (d *dpos) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
+	return d.candidatePool.GetWitness(state, flag)
+}
 
 // 设置 dpos 竞选池
 func (d *dpos) SetCandidatePool(state *state.StateDB, blockChain *core.BlockChain) {

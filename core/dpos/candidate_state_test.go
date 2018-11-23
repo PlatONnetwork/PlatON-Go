@@ -171,12 +171,12 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 	/** test Election */
 	fmt.Println("test Election")
-	flag = candidatePool.Election(state)
-	fmt.Println("是否揭榜成功", flag)
-
+	_, err := candidatePool.Election(state)
+	fmt.Println("是否揭榜成功", err)
+z
 	/** test RefundBalance */
 	fmt.Println("test RefundBalance")
-	err := candidatePool.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(11)))
+	err = candidatePool.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(11)))
 	fmt.Println("err", err)
 
 	/** test RefundBalance again */
@@ -192,7 +192,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 	/**  test GetWitness */
 	fmt.Println("test GetWitness")
-	nodeArr := candidatePool.GetWitness(state)
+	nodeArr, _ := candidatePool.GetWitness(state, 0)
 	fmt.Printf("nodeArr := %+v", nodeArr)
 }
 

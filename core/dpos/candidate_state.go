@@ -702,12 +702,12 @@ func (c *CandidatePool)SetCandidateExtra(state vm.StateDB, nodeId discover.NodeI
 
 
 // 揭榜见证人
-func (c *CandidatePool) Election(state *state.StateDB) bool{
+func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error){
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
 		log.Error("Failed to initDataByState on Election err", err)
-		return false
+		return nil, err
 	}
 	//immediateIds, err := c.getImmediateIndex(state)
 	//if nil != err {
@@ -748,24 +748,33 @@ func (c *CandidatePool) Election(state *state.StateDB) bool{
 	for nodeId, _ := range c.nextOriginCandidates {
 		if err := c.delNextWitness(state, nodeId); nil != err {
 			log.Error("failed to delNextWitness on election err", err)
-			return false
+			return nil, err
 		}
 	}
 	// 设置新的 can
 	for nodeId, can := range nextWits {
 		if err := c.setNextWitness(state, nodeId, can); nil != err {
 			log.Error("failed to setNextWitness on election err", err)
-			return false
+			return nil, err
 		}
 	}
 	// 更新索引
 	if err := c.setNextWitnessIndex(state, nextWitIds); nil != err {
 		log.Error("failed to setNextWitnessIndex on election err", err)
-		return false
+		return nil, err
 	}
 	// 将新的揭榜后的见证人信息，置入下轮见证人集
 	c.nextOriginCandidates = nextWits
-	return len(c.nextOriginCandidates) > 0
+	arr := make([]*discover.Node, 0)
+	for _, can := range nextWits {
+		if node, err := buildWitnessNode(can); nil != err {
+			log.Error("Failed to build Node on GetWitness err", err, "nodeId", can.CandidateId.String())
+			continue
+		}else {
+			arr = append(arr, node)
+		}
+	}
+	return arr, nil
 }
 
 // 触发替换下轮见证人列表
@@ -816,17 +825,18 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 }
 
 // 获取见证人节点列表
-func (c *CandidatePool) GetWitness (state *state.StateDB) []*discover.Node {
+// flag：0: 本轮见证人   1: 下一轮见证人
+func (c *CandidatePool) GetWitness (state *state.StateDB, flag int) ([]*discover.Node, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state); nil != err {
 		log.Error("Failed to initDataByState on GetWitness err", err)
-		return nil
+		return nil, err
 	}
 	witnessIds, err := c.getWitnessIndex(state)
 	if nil != err {
 		log.Error("Failed to getWitnessIndex on GetWitness err", err)
-		return nil
+		return nil, err
 	}
 	arr := make([]*discover.Node, 0)
 	for _, id := range witnessIds {
@@ -838,7 +848,7 @@ func (c *CandidatePool) GetWitness (state *state.StateDB) []*discover.Node {
 			arr = append(arr, node)
 		}
 	}
-	return arr
+	return arr, nil
 }
 
 
