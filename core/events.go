@@ -20,6 +20,7 @@ import (
 	"Platon-go/common"
 	"Platon-go/core/cbfttypes"
 	"Platon-go/core/types"
+	"Platon-go/p2p/discover"
 )
 
 // NewTxsEvent is posted when a batch of transactions enter the transaction pool.
@@ -33,9 +34,14 @@ type PendingLogsEvent struct {
 // NewMinedBlockEvent is posted when a block has been imported.
 type NewMinedBlockEvent struct{ Block *types.Block }
 
-// modify by platon
-type PrepareMinedBlockEvent struct{ Block *types.Block }
-type BlockSignatureEvent struct{ BlockSignature *cbfttypes.BlockSignature }
+type PrepareMinedBlockEvent struct {
+	Block *types.Block
+	ConsensusNodes []discover.NodeID
+}
+type BlockSignatureEvent struct {
+	BlockSignature *cbfttypes.BlockSignature
+	ConsensusNodes []discover.NodeID
+}
 
 // RemovedLogsEvent is posted when a reorg happens
 type RemovedLogsEvent struct{ Logs []*types.Log }

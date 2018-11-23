@@ -564,6 +564,14 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 
 	// modify by platon
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
+		addConsensusPeer := func(nodes []*discover.Node) error {
+			for _, n := range nodes {
+				srvr.AddConsensusPeer(n)
+			}
+			return nil
+		}
+		s.miner.InitAddConsensusPeerFn(addConsensusPeer)
+
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
 		for _, n := range s.chainConfig.Cbft.InitialNodes {
 			srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
