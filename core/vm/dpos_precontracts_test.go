@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"reflect"
 	"testing"
 )
@@ -22,10 +23,10 @@ func TestRlpEncode(t *testing.T) {
 	source = make([][]byte, 0)
 	source = append(source, common.Hex2Bytes("1011"))  // tx type
 	//source = append(source, []byte("CandidateDeposit")) // func name
-	//source = append(source, []byte("CandidateApplyWithdraw")) // func name
+	source = append(source, []byte("CandidateApplyWithdraw")) // func name
 	//source = append(source, []byte("CandidateWithdraw")) // func name
 	//source = append(source, []byte("CandidateWithdrawInfos")) // func name
-	source = append(source, []byte("SetCandidateExtra")) // func name
+	//source = append(source, []byte("SetCandidateExtra")) // func name
 	//source = append(source, []byte("CandidateDetails")) // func name
 	//source = append(source, []byte("CandidateList")) // func name
 	//source = append(source, []byte("VerifiersList")) // func name
@@ -34,8 +35,8 @@ func TestRlpEncode(t *testing.T) {
 	//source = append(source, byteutil.Uint64ToBytes(100)) // fee
 	//source = append(source, []byte("0.0.0.1")) // host
 	//source = append(source, []byte("6789")) // port
-	source = append(source, []byte("extra info..")) // extra
-	//source = append(source, new(big.Int).SetInt64(1).Bytes()) // withdraw
+	//source = append(source, []byte("extra info..")) // extra
+	source = append(source, new(big.Int).SetInt64(1).Bytes()) // withdraw
 
 	buffer := new(bytes.Buffer)
 	err := rlp.Encode(buffer, source)

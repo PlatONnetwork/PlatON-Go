@@ -10,7 +10,7 @@ import (
 
 var Command = map[string] interface{} {
 	"string" : BytesToString,
-	"[]uint8" : OrginBytes,
+	"[]uint8" : OriginBytes,
 	"[64]uint8" : BytesTo64Bytes,
 	"[32]uint8" : BytesTo32Bytes,
 	"int" : BytesToInt,
@@ -38,17 +38,13 @@ func BytesTo64Bytes(curByte []byte) [64]byte {
 	return arr
 }
 
-func OrginBytes(curByte []byte) []byte {
+func OriginBytes(curByte []byte) []byte {
 	return curByte
 }
 
 func BytesToBigInt(curByte []byte) *big.Int {
-	big1 := new(big.Int).SetInt64(BytesToInt64(curByte))
+	big1 := new(big.Int).SetInt64(common.BytesToInt64(curByte))
 	return big1
-}
-
-func BytesToInt64(buf []byte) int64 {
-	return int64(binary.BigEndian.Uint64(buf))
 }
 
 func BytesToInt(curByte []byte) int {

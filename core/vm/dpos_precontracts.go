@@ -44,6 +44,7 @@ var (
 	ErrParamsLen = errors.New("Params length does not match")
 	ErrUndefFunction = errors.New("Undefined function")
 	ErrCandidateEmpyt = errors.New("CandidatePool is nil")
+	ErrCallRecode = errors.New("Call recode error, panic...")
 )
 
 var (
@@ -83,6 +84,12 @@ func (c *candidateContract) RequiredGas(input []byte) uint64 {
 }
 
 func (c *candidateContract) Run(input []byte) ([]byte, error) {
+	defer func() {
+		if err := recover(); nil != err {
+			// 捕捉反射解析参数时由input中数据源问题造成的panic
+			fmt.Println(ErrCallRecode.Error())
+		}
+	}()
 	// 用map封装所有的函数
 	var command = map[string] interface{}{
 		"CandidateDetails" : c.CandidateDetails,
@@ -124,7 +131,6 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	if paramNum!=len(source)-2 {
 		return nil, ErrParamsLen
 	}
-
 	for i := 0; i < paramNum; i++ {
 		// 目标参数类型的值
 		targetType := paramList.In(i).String()
@@ -140,6 +146,7 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	if _, err := result[1].Interface().(error); !err {
 		return result[0].Bytes(), nil
 	}
+	fmt.Println("result[0] is: ", result[0].Bytes())
 	fmt.Println(result[1].Interface().(error).Error())
 	// 返回值也是一个 Value 的 slice，同样对应反射函数类型的返回值。
 	return result[0].Bytes(), result[1].Interface().(error)
