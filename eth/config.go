@@ -98,7 +98,7 @@ type Config struct {
 
 	// modify by platon
 	CbftConfig CbftConfig `toml:",omitempty"`
-	DposConfig DposConfig `toml:",omitempty"`
+	//DposConfig DposConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
@@ -160,33 +160,40 @@ type CbftConfig struct {
 	//InitialNodes []discover.Node   `json:"initialNodes"`
 	//NodeID       discover.NodeID   `json:"nodeID,omitempty"`
 	//PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
+	Dpos 			*DposConfig 	`json:"dpos"`
 }
 
 // modify by platon
 type DposConfig struct {
+	//// 最大允许入选人数目
+	//MaxCount				uint64					`json:"maxCount"`
+	//// 最大允许见证人数目
+	//MaxChair				uint64					`json:"maxChair"`
+	//RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
+	//// 内置见证人
+	//Chairs 					[]*CandidateConfig 		`json:"chairs"`
+	Candidate 				*CandidateConfig 			`json:"candidate"`
+}
+// modify by platon
+type CandidateConfig struct {
 	// 最大允许入选人数目
 	MaxCount				uint64					`json:"maxCount"`
 	// 最大允许见证人数目
 	MaxChair				uint64					`json:"maxChair"`
 	RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
-	// 内置见证人
-	Chairs 					[]*CandidateConfig 		`json:"chairs"`
-}
-// modify by platon
-type CandidateConfig struct {
-	// 抵押金额(保证金)数目
-	Deposit 				uint64 			`json:"deposit"`
-	// 发生抵押时的当前块高
-	BlockNumber			 	uint64 			`json:"blocknumber"`
-	// 发生抵押时的tx index
-	TxIndex 				uint32 			`json:"txindex"`
-	// 候选人Id
-	CandidateId 			string 			`json:"candidateid"`
-	//
-	Host 					string 			`json:"host"`
-	Port 					string 			`json:"port"`
-	Owner 					string			`json:"owner"`
-	From 					string 			`json:"from"`
+	//// 抵押金额(保证金)数目
+	//Deposit 				uint64 			`json:"deposit"`
+	//// 发生抵押时的当前块高
+	//BlockNumber			 	uint64 			`json:"blocknumber"`
+	//// 发生抵押时的tx index
+	//TxIndex 				uint32 			`json:"txindex"`
+	//// 候选人Id
+	//CandidateId 			string 			`json:"candidateid"`
+	////
+	//Host 					string 			`json:"host"`
+	//Port 					string 			`json:"port"`
+	//Owner 					string			`json:"owner"`
+	//From 					string 			`json:"from"`
 }
 
 type configMarshaling struct {

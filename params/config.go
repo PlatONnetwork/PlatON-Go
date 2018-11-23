@@ -236,20 +236,24 @@ type CbftConfig struct {
 }
 // modify by platon
 type DposConfig struct{
+	//MaxCount				uint64
+	//MaxChair				uint64
+	//RefundBlockNumber 		uint64
+	//Candidates 				[]*CandidateConfig
+	Candidate 				*CandidateConfig
+}
+type CandidateConfig struct {
 	MaxCount				uint64
 	MaxChair				uint64
 	RefundBlockNumber 		uint64
-	Candidates 				[]*CandidateConfig
-}
-type CandidateConfig struct {
-	Deposit			*big.Int
+	/*Deposit			*big.Int
 	BlockNumber 	*big.Int
 	TxIndex 		uint32
 	CandidateId 	discover.NodeID
 	Host 			string
 	Port 			string
 	Owner 			common.Address
-	From 			common.Address
+	From 			common.Address*/
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.

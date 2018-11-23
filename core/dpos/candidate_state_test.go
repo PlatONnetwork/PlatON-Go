@@ -35,32 +35,32 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	//	return
 	//}
 
-	can_Configs := []*params.CandidateConfig {
-		&params.CandidateConfig{
-			Deposit:			new(big.Int).SetUint64(0),
-			BlockNumber: 	 	new(big.Int).SetUint64(9),
-			TxIndex: 		 	2,
-			CandidateId:		discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
-			Host: 			 	"10.0.0.1",
-			Port: 			 	"8545",
-		},
-		&params.CandidateConfig{
-			Deposit:			new(big.Int).SetUint64(0),
-			BlockNumber: 	 	new(big.Int).SetUint64(10),
-			TxIndex: 		 	2,
-			CandidateId:		discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
-			Host: 			 	"10.0.0.1",
-			Port: 			 	"8546",
-		},
-		&params.CandidateConfig{
-			Deposit:			new(big.Int).SetUint64(0),
-			BlockNumber: 	 	new(big.Int).SetUint64(10),
-			TxIndex: 		 	3,
-			CandidateId:		discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
-			Host: 			 	"10.0.0.1",
-			Port: 			 	"8547",
-		},
-	}
+	//can_Configs := []*params.CandidateConfig {
+	//	&params.CandidateConfig{
+	//		Deposit:			new(big.Int).SetUint64(0),
+	//		BlockNumber: 	 	new(big.Int).SetUint64(9),
+	//		TxIndex: 		 	2,
+	//		CandidateId:		discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+	//		Host: 			 	"10.0.0.1",
+	//		Port: 			 	"8545",
+	//	},
+	//	&params.CandidateConfig{
+	//		Deposit:			new(big.Int).SetUint64(0),
+	//		BlockNumber: 	 	new(big.Int).SetUint64(10),
+	//		TxIndex: 		 	2,
+	//		CandidateId:		discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
+	//		Host: 			 	"10.0.0.1",
+	//		Port: 			 	"8546",
+	//	},
+	//	&params.CandidateConfig{
+	//		Deposit:			new(big.Int).SetUint64(0),
+	//		BlockNumber: 	 	new(big.Int).SetUint64(10),
+	//		TxIndex: 		 	3,
+	//		CandidateId:		discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
+	//		Host: 			 	"10.0.0.1",
+	//		Port: 			 	"8547",
+	//	},
+	//}
 	//a := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
 	//b := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343")
 	//c := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012344")
@@ -68,28 +68,40 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 
 	configs := params.DposConfig{
-		MaxChair: 1,
-		MaxCount: 3,
-		RefundBlockNumber: 	1,
-		Candidates: can_Configs,
+		//MaxChair: 1,
+		//MaxCount: 3,
+		//RefundBlockNumber: 	1,
+		Candidate: &params.CandidateConfig{
+			MaxChair: 1,
+			MaxCount: 3,
+			RefundBlockNumber: 	1,
+		},
 	}
 	var candidatePool *depos.CandidatePool
 	var state *state.StateDB
 	if statedb, err := blockchain.State(); nil != err {
 		fmt.Println("reference statedb failed", err)
 	}else {
-		var isgenesis bool
+		/*var isgenesis bool
 		if blockchain.CurrentBlock().NumberU64() == blockchain.Genesis().NumberU64() {
 			isgenesis = true
 		}
-		/** test init candidatePool */
-		if pool, err := depos.NewCandidatePool(statedb, &configs, isgenesis); nil != err {
+		*//** test init candidatePool *//*
+		if pool, err := depos.NewCandidatePool(*//*statedb,*//* &configs*//*, isgenesis*//*); nil != err {
 			fmt.Println("init candidatePool err", err)
 		}else{
 			candidatePool = pool
-		}
+		}*/
 		state = statedb
 	}
+
+	/** test init candidatePool */
+	//if pool, err := depos.NewCandidatePool(/*statedb,*/ &configs/*, isgenesis*/); nil != err {
+	//	fmt.Println("init candidatePool err", err)
+	//}else{
+	//	candidatePool = pool
+	//}
+	candidatePool = depos.NewCandidatePool(/*statedb,*/ &configs/*, isgenesis*/)
 
 	// commit trie to db
 	state.Commit(false)
@@ -173,7 +185,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	fmt.Println("test Election")
 	_, err := candidatePool.Election(state)
 	fmt.Println("是否揭榜成功", err)
-z
+
 	/** test RefundBalance */
 	fmt.Println("test RefundBalance")
 	err = candidatePool.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(11)))

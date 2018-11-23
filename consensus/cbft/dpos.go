@@ -48,6 +48,7 @@ func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
 		primaryNodeList:   initialNodes,
 		lastCycleBlockNum: 0,
 		config: 			config.DposConfig,
+		candidatePool:		depos.NewCandidatePool(config.DposConfig),
 	}
 	return dposPtr
 }
@@ -151,15 +152,34 @@ func (d *dpos) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, err
 // 设置 dpos 竞选池
 func (d *dpos) SetCandidatePool(state *state.StateDB, blockChain *core.BlockChain) {
 //func (d *dpos) SetCandidatePool(state *state.StateDB, isgenesis bool){
-	var isgenesis bool
-	if blockChain.Genesis().NumberU64() == blockChain.CurrentBlock().NumberU64() {
-		isgenesis = true
+//	var isgenesis bool
+//	if blockChain.Genesis().NumberU64() == blockChain.CurrentBlock().NumberU64() {
+//		isgenesis = true
+//	}
+	// 链上最高块不是创世块时，需要从stateDB 加载 见证 nodeIdList
+	if  blockChain.Genesis().NumberU64() != blockChain.CurrentBlock().NumberU64() {
+		if nodeArr, err := d.candidatePool.GetWitness(state, 0); nil != err {
+			log.Error("Load Witness from state failed on SetCandidatePool err", err)
+		}else {
+			ids := make([]discover.NodeID, 0)
+			for _, node := range nodeArr {
+				ids = append(ids, node.ID)
+			}
+			if len(ids) != 0 {
+				d.formerlyNodeList = ids
+				d.primaryNodeList = ids
+			}
+		}
+
 	}
-	if canPool, err := depos.NewCandidatePool(state, d.config, isgenesis); nil != err {
-		log.Error("Failed to init CandidatePool", err)
-	}else {
-		d.candidatePool = canPool
-	}
+	//
+	//
+	//if canPool, err := depos.NewCandidatePool(state, d.config, isgenesis); nil != err {
+	//	log.Error("Failed to init CandidatePool", err)
+	//}else {
+	//	d.candidatePool = canPool
+	//}
+
 }
 
 

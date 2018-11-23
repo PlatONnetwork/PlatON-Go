@@ -86,134 +86,107 @@ type CandidatePool struct {
 var candidatePool *CandidatePool
 
 // 初始化全局候选池对象
-func NewCandidatePool(state vm.StateDB, configs *params.DposConfig, isgenesis bool) (*CandidatePool, error) {
+//func NewCandidatePool(/*state vm.StateDB, */configs *params.DposConfig/*, isgenesis bool*/) (*CandidatePool, error) {
 //func NewCandidatePool(blockChain *core.BlockChain, configs *params.DposConfig) (*CandidatePool, error) {
+func NewCandidatePool(/*state vm.StateDB, */configs *params.DposConfig/*, isgenesis bool*/) *CandidatePool {
 
 	// 创世块的时候需要, 把配置的信息加载到stateDB
-	if isgenesis {
-		if err := loadConfig(configs, state); nil != err {
-			log.Error("Failed to load config on NewCandidatePool", "err", err)
-			return nil, err
-		}
-	}
-	//var idArr []discover.NodeID
-	//if ids, err := getImmediateIdsByState(state); nil != err {
-	//	log.Error("Failed to decode immediateIds on NewCandidatePool", "err", err)
-	//	return nil, err
-	//}else {
-	//	idArr = ids
-	//}
-
-
-	//var originMap, immediateMap map[discover.NodeID]*Candidate
-	//var  defeatMap map[discover.NodeID][]*Candidate
-	//// 非创世块，需要从db加载
-	//if isgenesis {
-	//	tr := state.StorageTrie(common.CandidateAddr)
-	//	// 构造上一轮见证人的map
-	//	var err error
-	//	originMap, immediateMap, defeatMap, err = initCandidatesByTrie(tr)
-	//	if nil != err {
+	//if !isgenesis {
+	//	if err := loadConfig(configs, state); nil != err {
+	//		log.Error("Failed to load config on NewCandidatePool", "err", err)
 	//		return nil, err
 	//	}
-	//}else {
-	//	var err error
-	//	originMap, immediateMap, err = buildByConfig(configs, state)
-	//	if nil != err {
-	//		return nil, err
-	//	}
-	//	defeatMap =  make(map[discover.NodeID][]*Candidate)
 	//}
-
 	candidatePool =  &CandidatePool{
-		//count: 					uint64(len(idArr)),
-		maxCount:				configs.MaxCount,
-		maxChair:				configs.MaxChair,
-		RefundBlockNumber: 		configs.RefundBlockNumber,
+		maxCount:				configs.Candidate.MaxCount,
+		maxChair:				configs.Candidate.MaxChair,
+		RefundBlockNumber: 		configs.Candidate.RefundBlockNumber,
 		originCandidates: 		make(map[discover.NodeID]*types.Candidate, 0),
 		immediateCandates: 		make(map[discover.NodeID]*types.Candidate, 0),
 		defeatCandidates: 		make(map[discover.NodeID][]*types.Candidate, 0),
+		candidateCacheArr: 		make([]*types.Candidate, 0),
 		lock: 					&sync.RWMutex{},
 	}
-	return candidatePool, nil
+	return candidatePool
 }
 
-func loadConfig(configs *params.DposConfig, state vm.StateDB) error {
-	if len(configs.Candidates) != 0 {
-		// 如果配置过多，只取前面的
-		if len(configs.Candidates) > int(configs.MaxCount) {
-			configs.Candidates = (configs.Candidates)[:configs.MaxCount]
-		}
+//func loadConfig(configs *params.DposConfig, state vm.StateDB) error {
+//	if len(configs.Candidates) != 0 {
+//		// 如果配置过多，只取前面的
+//		if len(configs.Candidates) > int(configs.MaxCount) {
+//			configs.Candidates = (configs.Candidates)[:configs.MaxCount]
+//		}
+//
+//		// can cache
+//		witcans 		:=	make([]*types.Candidate, 0)
+//		immcans 		:=  make([]*types.Candidate, 0)
+//
+//		//witnessMap := make(map[discover.NodeID]*types.Candidate, 0)
+//		//immediateMap := make(map[discover.NodeID]*types.Candidate, 0)
+//
+//		for i, canConfig := range configs.Candidates {
+//			can := &types.Candidate{
+//				Deposit:			canConfig.Deposit,
+//				BlockNumber: 		canConfig.BlockNumber,
+//				TxIndex: 		 	canConfig.TxIndex,
+//				CandidateId: 	 	canConfig.CandidateId,
+//				Host: 			 	canConfig.Host,
+//				Port: 			 	canConfig.Port,
+//				Owner: 				canConfig.Owner,
+//				From: 				canConfig.From,
+//			}
+//			// 详情追加到树中
+//			if val, err := rlp.EncodeToBytes(can); nil == err {
+//				// 追加见证人信息
+//				if uint64(i) < configs.MaxChair {
+//					fmt.Println("设置进去WitnessId = ", can.CandidateId.String())
+//					//state.SetState(common.CandidateAddr, WitnessKey(can.CandidateId), val)
+//					setWitnessState(state, can.CandidateId, val)
+//					witcans = append(witcans, can)
+//				}
+//				fmt.Println("设置进去ImmediateId = ", can.CandidateId.String())
+//				// 追加入围人信息
+//				//state.SetState(common.CandidateAddr,  ImmediateKey(can.CandidateId), val)
+//				setImmediateState(state, can.CandidateId, val)
+//				immcans = append(immcans, can)
+//			}else {
+//				log.Error("Failed to encode candidate object on loadConfig", "key", string(WitnessKey(can.CandidateId)), "err", err)
+//				return err
+//			}
+//		}
+//		// 索引排序
+//		candidateSort(witcans)
+//		candidateSort(immcans)
+//
+//		// id cache
+//		witnessIds 		:= 	make([]discover.NodeID, 0)
+//		immediateIds 	:= 	make([]discover.NodeID, 0)
+//
+//		for _, can := range witcans {
+//			witnessIds = append(witnessIds, can.CandidateId)
+//		}
+//		for _, can := range immcans {
+//			immediateIds = append(immediateIds, can.CandidateId)
+//		}
+//
+//		// 索引上树
+//		if arrVal, err := rlp.EncodeToBytes(witnessIds); nil == err {
+//			setWitnessIdsState(state, arrVal)
+//		}else {
+//			log.Error("Failed to encode witnessIds on loadConfig", "err", err)
+//			return err
+//		}
+//
+//		if arrVal, err := rlp.EncodeToBytes(immediateIds); nil == err {
+//			setImmediateIdsState(state, arrVal)
+//		}else {
+//			log.Error("Failed to encode immediateIds on loadConfig", "err", err)
+//			return err
+//		}
+//	}
+//	return nil
+//}
 
-		// can cache
-		witcans 		:=	make([]*types.Candidate, 0)
-		immcans 		:=  make([]*types.Candidate, 0)
-
-		//witnessMap := make(map[discover.NodeID]*types.Candidate, 0)
-		//immediateMap := make(map[discover.NodeID]*types.Candidate, 0)
-
-		for i, canConfig := range configs.Candidates {
-			can := &types.Candidate{
-				Deposit:			canConfig.Deposit,
-				BlockNumber: 		canConfig.BlockNumber,
-				TxIndex: 		 	canConfig.TxIndex,
-				CandidateId: 	 	canConfig.CandidateId,
-				Host: 			 	canConfig.Host,
-				Port: 			 	canConfig.Port,
-				Owner: 				canConfig.Owner,
-				From: 				canConfig.From,
-			}
-			// 详情追加到树中
-			if val, err := rlp.EncodeToBytes(can); nil == err {
-				// 追加见证人信息
-				if uint64(i) < configs.MaxChair {
-					fmt.Println("设置进去WitnessId = ", can.CandidateId.String())
-					//state.SetState(common.CandidateAddr, WitnessKey(can.CandidateId), val)
-					setWitnessState(state, can.CandidateId, val)
-					witcans = append(witcans, can)
-				}
-				fmt.Println("设置进去ImmediateId = ", can.CandidateId.String())
-				// 追加入围人信息
-				//state.SetState(common.CandidateAddr,  ImmediateKey(can.CandidateId), val)
-				setImmediateState(state, can.CandidateId, val)
-				immcans = append(immcans, can)
-			}else {
-				log.Error("Failed to encode candidate object on loadConfig", "key", string(WitnessKey(can.CandidateId)), "err", err)
-				return err
-			}
-		}
-		// 索引排序
-		candidateSort(witcans)
-		candidateSort(immcans)
-
-		// id cache
-		witnessIds 		:= 	make([]discover.NodeID, 0)
-		immediateIds 	:= 	make([]discover.NodeID, 0)
-
-		for _, can := range witcans {
-			witnessIds = append(witnessIds, can.CandidateId)
-		}
-		for _, can := range immcans {
-			immediateIds = append(immediateIds, can.CandidateId)
-		}
-
-		// 索引上树
-		if arrVal, err := rlp.EncodeToBytes(witnessIds); nil == err {
-			setWitnessIdsState(state, arrVal)
-		}else {
-			log.Error("Failed to encode witnessIds on loadConfig", "err", err)
-			return err
-		}
-
-		if arrVal, err := rlp.EncodeToBytes(immediateIds); nil == err {
-			setImmediateIdsState(state, arrVal)
-		}else {
-			log.Error("Failed to encode immediateIds on loadConfig", "err", err)
-			return err
-		}
-	}
-	return nil
-}
 
 func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 
