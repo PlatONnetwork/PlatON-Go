@@ -155,7 +155,7 @@ func SayHi(nodeId discover.NodeID, owner common.Address, fee uint64) ([]byte, er
 }
 
 //候选人申请 && 增加质押金
-func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port string) ([]byte, error)   {
+func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error)   {
 
 	//debug
 	deposit := c.contract.value
@@ -165,7 +165,7 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	from := c.contract.caller.Address()
 	fmt.Println("CandidateDeposit==> nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
 		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
-		" host: ", host, " port: ", port)
+		" host: ", host, " port: ", port, " extra: ", extra)
 
 	//todo
 	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
@@ -174,14 +174,17 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		fmt.Println("GetCandidate err!=nill: ", err.Error())
 		return nil, err
 	}
-	alldeposit := deposit
+
+	var alldeposit *big.Int
 	if can!=nil {
 		if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
 			fmt.Println(ErrOwnerNotonly.Error())
 			return nil, ErrOwnerNotonly
 		}
-		alldeposit = can.Deposit.Add(can.Deposit, deposit)
+		alldeposit = new(big.Int).Add(can.Deposit, deposit)
 		fmt.Println("alldeposit: ", alldeposit,  " can.Deposit: ", can.Deposit, " deposit: ", deposit)
+	}else {
+		alldeposit = deposit
 	}
 	canDeposit := types.Candidate{
 		alldeposit,
@@ -192,7 +195,7 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		port,
 		owner,
 		from,
-		"",
+		extra,
 	}
 	fmt.Println("canDeposit: ", canDeposit)
 	if err = c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, &canDeposit); err!=nil {
