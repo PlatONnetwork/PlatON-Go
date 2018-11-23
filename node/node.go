@@ -17,15 +17,6 @@
 package node
 
 import (
-	"errors"
-	"fmt"
-	"net"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strings"
-	"sync"
-
 	"Platon-go/accounts"
 	"Platon-go/ethdb"
 	"Platon-go/event"
@@ -33,7 +24,15 @@ import (
 	"Platon-go/log"
 	"Platon-go/p2p"
 	"Platon-go/rpc"
+	"errors"
+	"fmt"
 	"github.com/prometheus/prometheus/util/flock"
+	"net"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"sync"
 )
 
 // Node is a container on which services can be registered.

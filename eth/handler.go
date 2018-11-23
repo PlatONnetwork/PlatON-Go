@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -342,6 +343,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, ProtocolMaxMsgSize)
 	}
 	defer msg.Discard()
+
+	code := fmt.Sprintf("msg.Code: 0x%x", msg.Code)
+	log.Debug("eth message code:::", " msg.Code", code)
 
 	// Handle the message depending on its contents
 	switch {
@@ -758,7 +762,42 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			}
 			return nil
 		}
-
+		// modify by platon
+	case msg.Code == PongMsg:
+		curTime := time.Now().UnixNano()
+		log.Debug("handle a eth Pong message", "curTime", curTime)
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
+			var pingTime [1]string
+			if err := msg.Decode(&pingTime); err != nil {
+				return errResp(ErrDecode, "%v: %v", msg, err)
+			}
+			p.lock.Lock()
+			defer p.lock.Unlock()
+			for {
+				e := p.PingList.Front()
+				if e != nil {
+					log.Debug("Front element of p.PingList", "element", e)
+					if t, ok := p.PingList.Remove(e).(string); ok {
+						if t == pingTime[0] {
+							//找到对应的ping，以及对应的时间
+							//计算网络延时，毫秒
+							tInt64, err := strconv.ParseInt(t, 10, 64)
+							if err != nil {
+								return errResp(ErrDecode, "%v: %v", msg, err)
+							}
+							//发出ping到收到pong的总时间/2，再转成毫秒
+							log.Debug("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
+							latency := (curTime - tInt64) / 2 / 1000000
+							cbftEngine.OnPong(p.Peer.ID(), latency)
+							break
+						}
+					}
+				} else {
+					log.Debug("end of p.PingList")
+					break
+				}
+			}
+		}
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}
@@ -817,7 +856,7 @@ func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 	if block, ok := a.(*types.Block); ok {
 		for _, peer := range peers {
 			log.Warn("------------发送广播消息[PrepareBlockMsg]------------",
-				"peerId", peer.id, "Block", block)
+				"peerId", peer.id, "Hash", block.Hash(), "Number", block.Number())
 			peer.AsyncSendPrepareBlock(block)
 		}
 	} else if signature, ok := a.(*cbfttypes.BlockSignature); ok {

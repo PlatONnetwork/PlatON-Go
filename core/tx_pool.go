@@ -38,6 +38,7 @@ import (
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
 	chainHeadChanSize = 10
+	newTxChanSize = 4096
 )
 
 var (
@@ -191,6 +192,7 @@ type TxPool struct {
 	scope        event.SubscriptionScope
 	chainHeadCh  chan ChainHeadEvent
 	chainHeadSub event.Subscription
+	newTxsCh     chan *newTxs
 	signer       types.Signer
 	mu           sync.RWMutex
 
@@ -212,6 +214,12 @@ type TxPool struct {
 	homestead bool
 }
 
+type newTxs struct {
+	txs []*types.Transaction
+	local bool
+	handleResultsCh chan []error
+}
+
 // NewTxPool creates a new transaction pool to gather, sort and filter inbound
 // transactions from the network.
 func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain blockChain) *TxPool {
@@ -229,6 +237,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		beats:       make(map[common.Address]time.Time),
 		all:         newTxLookup(),
 		chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
+		newTxsCh:    make(chan *newTxs, newTxChanSize),
 		gasPrice:    new(big.Int).SetUint64(config.PriceLimit),
 	}
 	pool.locals = newAccountSet(pool.signer)
@@ -237,6 +246,8 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		pool.locals.add(addr)
 	}
 	pool.priced = newTxPricedList(pool.all)
+
+	go pool.newTxsLoop()
 	pool.reset(nil, chain.CurrentBlock().Header())
 
 	// If local transactions and journaling is enabled, load from disk
@@ -258,6 +269,19 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 	go pool.loop()
 
 	return pool
+}
+
+func (pool *TxPool) newTxsLoop() {
+	for newTxs := range pool.newTxsCh {
+		log.Warn("---------newTxsLoop---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh))
+		if newTxs != nil {
+			if len(newTxs.txs) == 1 {
+				newTxs.handleResultsCh <- []error{pool.addTx(newTxs.txs[0], newTxs.local)}
+			} else {
+				newTxs.handleResultsCh <- pool.addTxs(newTxs.txs, newTxs.local)
+			}
+		}
+	}
 }
 
 // loop is the transaction pool's main event loop, waiting for and reacting to
@@ -296,6 +320,7 @@ func (pool *TxPool) loop() {
 
 				pool.mu.Unlock()
 			}
+
 		// Be unsubscribed due to system stopped
 		case <-pool.chainHeadSub.Err():
 			return
@@ -773,7 +798,31 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 // the sender as a local one in the mean time, ensuring it goes around the local
 // pricing constraints.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
-	return pool.addTx(tx, !pool.config.NoLocals)
+	handleResultsCh := make(chan []error)
+	newTxs := &newTxs{[]*types.Transaction{tx}, !pool.config.NoLocals, handleResultsCh }
+	log.Warn("---------AddLocal start---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh), "timestamp", time.Now().UnixNano() / 1e6)
+	pool.newTxsCh <- newTxs
+	log.Warn("---------AddLocal end---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh), "timestamp", time.Now().UnixNano() / 1e6)
+	for result := range handleResultsCh {
+		return result[0]
+	}
+	return nil
+
+	/*
+	//handleResultsCh := make(chan []error)
+	newTxs := &newTxs{[]*types.Transaction{tx}, !pool.config.NoLocals, nil }
+	log.Warn("---------AddLocal start---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh), "timestamp", time.Now().UnixNano() / 1e6)
+	pool.newTxsCh <- newTxs
+	log.Warn("---------AddLocal end---------", "newTxsCh length", len(pool.newTxsCh), "newTxsCh cap", cap(pool.newTxsCh), "timestamp", time.Now().UnixNano() / 1e6)
+	return nil
+	//for {
+	//	select {
+	//	case result := <- handleResultsCh:
+	//		return result[0]
+	//	}
+	//}
+	//return pool.addTx(tx, !pool.config.NoLocals)
+	*/
 }
 
 // AddRemote enqueues a single transaction into the pool if it is valid. If the
@@ -787,14 +836,31 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 // marking the senders as a local ones in the mean time, ensuring they go around
 // the local pricing constraints.
 func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
-	return pool.addTxs(txs, !pool.config.NoLocals)
+	handleResultsCh := make(chan []error)
+	newTxs := &newTxs{txs, !pool.config.NoLocals, handleResultsCh }
+	pool.newTxsCh <- newTxs
+
+	for result := range handleResultsCh {
+		return result
+	}
+	return nil
+	//return pool.addTxs(txs, !pool.config.NoLocals)
 }
 
 // AddRemotes enqueues a batch of transactions into the pool if they are valid.
 // If the senders are not among the locally tracked ones, full pricing constraints
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
-	return pool.addTxs(txs, false)
+	handleResultsCh := make(chan []error)
+	newTxs := &newTxs{txs, false, handleResultsCh }
+	pool.newTxsCh <- newTxs
+	for {
+		select {
+		case result := <- handleResultsCh:
+			return result
+		}
+	}
+	//return pool.addTxs(txs, false)
 }
 
 // addTx enqueues a single transaction into the pool if it is valid.
