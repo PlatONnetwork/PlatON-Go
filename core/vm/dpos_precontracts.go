@@ -93,7 +93,6 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 		"SetCandidateExtra" : c.SetCandidateExtra,
 		"CandidateWithdrawInfos": c.CandidateWithdrawInfos,
 		"VerifiersList" : c.VerifiersList,
-		"SayHi" : SayHi,
 	}
 	//rlp decode
 	var source [][]byte
@@ -145,13 +144,6 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	// 返回值也是一个 Value 的 slice，同样对应反射函数类型的返回值。
 	return result[0].Bytes(), result[1].Interface().(error)
 	// return nil ,nil
-}
-
-func SayHi(nodeId discover.NodeID, owner common.Address, fee uint64) ([]byte, error) {
-	fmt.Println("into ...")
-	fmt.Println("CandidateDeposit==> nodeId: ", nodeId, " owner: ", owner, "  fee: ", fee)
-	err := fmt.Errorf("this is new Error")
-	return []byte{1}, err
 }
 
 //候选人申请 && 增加质押金
