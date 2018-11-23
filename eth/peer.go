@@ -154,7 +154,7 @@ func (p *peer) broadcast() {
 
 		// modify by platon
 		case prop := <-p.queuedSignature:
-			signature := &cbfttypes.BlockSignature{prop.SignHash, prop.Hash, prop.Number, prop.Signature}
+			signature := &cbfttypes.BlockSignature{SignHash: prop.SignHash, Hash: prop.Hash, Number: prop.Number, Signature: prop.Signature}
 			if err := p.SendSignature(signature); err != nil {
 				return
 			}

@@ -72,6 +72,11 @@ func (d *dpos) NodeIndex(nodeID discover.NodeID) int64 {
 			return int64(idx)
 		}
 	}
+	for idx, node := range d.formerlyNodeList {
+		if node == nodeID {
+			return int64(idx)
+		}
+	}
 	return int64(-1)
 }
 
