@@ -54,6 +54,8 @@ func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
 }
 
 func (d *dpos) IsPrimary(addr common.Address) bool {
+	d.lock.Lock()
+	defer d.lock.Unlock()
 	// 判断当前节点是否是共识节点
 	for _, node := range d.primaryNodeList {
 		pub, err := node.Pubkey()
