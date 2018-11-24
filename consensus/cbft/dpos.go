@@ -54,8 +54,8 @@ func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
 }
 
 func (d *dpos) IsPrimary(addr common.Address) bool {
-	d.lock.Lock()
-	defer d.lock.Unlock()
+	d.lock.RLock()
+	defer d.lock.RUnlock()
 	// 判断当前节点是否是共识节点
 	for _, node := range d.primaryNodeList {
 		pub, err := node.Pubkey()
@@ -69,19 +69,21 @@ func (d *dpos) IsPrimary(addr common.Address) bool {
 }
 
 func (d *dpos) NodeIndex(nodeID discover.NodeID) int64 {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	for idx, node := range d.primaryNodeList {
-		if node == nodeID {
-			return int64(idx)
-		}
-	}
-	for idx, node := range d.formerlyNodeList {
+	d.lock.RLock()
+	defer d.lock.RUnlock()
+	nodeList := append(d.primaryNodeList, d.formerlyNodeList...)
+	for idx, node := range nodeList {
 		if node == nodeID {
 			return int64(idx)
 		}
 	}
 	return int64(-1)
+}
+
+func (d *dpos) getPrimaryNodes() []discover.NodeID {
+	d.lock.RLock()
+	defer d.lock.RUnlock()
+	return d.primaryNodeList
 }
 
 func (d *dpos) LastCycleBlockNum() uint64 {
