@@ -811,7 +811,7 @@ func (cbft *Cbft) ShouldSeal() (bool, error) {
 
 func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 	log.Debug("call ConsensusNodes()")
-	return cbft.dpos.primaryNodeList, nil
+	return cbft.dpos.getPrimaryNodes(), nil
 }
 
 func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
@@ -963,7 +963,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	log.Debug("seal complete", "Hash", sealedBlock.Hash(), "number", block.NumberU64())
 
-	if len(cbft.dpos.primaryNodeList) == 1 {
+	if len(cbft.dpos.getPrimaryNodes()) == 1 {
 		//only one consensus node, so, each block is irreversible. (lock is needless)
 		return cbft.handleNewIrreversible(curExt)
 	}
@@ -1164,7 +1164,7 @@ func (cbft *Cbft) calTurn(curTime int64, nodeID discover.NodeID) bool {
 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
-		durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
+		durationPerTurn := durationPerNode * int64(len(cbft.dpos.getPrimaryNodes()))
 
 		min := nodeIdx * (durationPerNode)
 
@@ -1259,7 +1259,7 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 }
 
 func (cbft *Cbft) getThreshold() int {
-	trunc := len(cbft.dpos.primaryNodeList) * 2 / 3
+	trunc := len(cbft.dpos.getPrimaryNodes()) * 2 / 3
 	return int(trunc + 1)
 }
 
