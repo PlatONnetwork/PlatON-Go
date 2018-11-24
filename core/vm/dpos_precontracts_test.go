@@ -7,14 +7,16 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math/big"
+	//"math/big"
 	"reflect"
 	"testing"
+	"Platon-go/common/byteutil"
 )
 
 func TestRlpEncode(t *testing.T) {
-	nodeId, _ := hex.DecodeString("01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012340")
-	//owner, _ := hex.DecodeString("740ce31b3fac20dac379db243021a51e80ad00d7") //38
+	nodeId, _ := hex.DecodeString("a363d1243646b6eabf1d4851f646b523f5707d053caab95022f1682605aca0537ee0c5c14b4dfa76dcbce264b7e68d59de79a42b7cda059e9d358336a9ab8d80")
+
+	owner, _ := hex.DecodeString("740ce31b3fac20dac379db243021a51e80ad00d7") //38
 	//owner, _ := hex.DecodeString("5a5c4368e2692746b286cee36ab0710af3efa6cf") //39
 	//owner, _ := hex.DecodeString("493301712671ada506ba6ca7891f436d29185821") //40
 	//fmt.Println(nodeId)
@@ -22,8 +24,8 @@ func TestRlpEncode(t *testing.T) {
 	var source [][]byte
 	source = make([][]byte, 0)
 	source = append(source, common.Hex2Bytes("1011"))  // tx type
-	//source = append(source, []byte("CandidateDeposit")) // func name
-	source = append(source, []byte("CandidateApplyWithdraw")) // func name
+	source = append(source, []byte("CandidateDeposit")) // func name
+	//source = append(source, []byte("CandidateApplyWithdraw")) // func name
 	//source = append(source, []byte("CandidateWithdraw")) // func name
 	//source = append(source, []byte("CandidateWithdrawInfos")) // func name
 	//source = append(source, []byte("SetCandidateExtra")) // func name
@@ -31,12 +33,12 @@ func TestRlpEncode(t *testing.T) {
 	//source = append(source, []byte("CandidateList")) // func name
 	//source = append(source, []byte("VerifiersList")) // func name
 	source = append(source, nodeId) // [64]byte nodeId discover.NodeID
-	//source = append(source, owner) // [20]byte owner common.Address
-	//source = append(source, byteutil.Uint64ToBytes(100)) // fee
-	//source = append(source, []byte("0.0.0.1")) // host
-	//source = append(source, []byte("6789")) // port
-	//source = append(source, []byte("extra info..")) // extra
-	source = append(source, new(big.Int).SetInt64(1).Bytes()) // withdraw
+	source = append(source, owner) // [20]byte owner common.Address
+	source = append(source, byteutil.Uint64ToBytes(100)) // fee
+	source = append(source, []byte("192.168.7.167")) // host
+	source = append(source, []byte("8545")) // port
+	source = append(source, []byte("extra info..")) // extra
+	//source = append(source, new(big.Int).SetInt64(1).Bytes()) // withdraw
 
 	buffer := new(bytes.Buffer)
 	err := rlp.Encode(buffer, source)

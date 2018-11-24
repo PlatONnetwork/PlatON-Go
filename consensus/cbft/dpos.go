@@ -67,6 +67,8 @@ func (d *dpos) IsPrimary(addr common.Address) bool {
 }
 
 func (d *dpos) NodeIndex(nodeID discover.NodeID) int64 {
+	d.lock.Lock()
+	defer d.lock.Unlock()
 	for idx, node := range d.primaryNodeList {
 		if node == nodeID {
 			return int64(idx)
@@ -132,6 +134,7 @@ func (d *dpos)  Election(state *state.StateDB) ([]*discover.Node, error) {
 
 // 触发替换下轮见证人列表
 func (d *dpos)  Switch(state *state.StateDB) bool {
+
 	if !d.candidatePool.Switch(state) {
 		return false
 	}
@@ -139,12 +142,16 @@ func (d *dpos)  Switch(state *state.StateDB) bool {
 	if nil != err {
 		return false
 	}
-	d.formerlyNodeList = d.primaryNodeList
-	arr := make([]discover.NodeID, 0)
-	for _, node := range nodeArr {
-		arr = append(arr, node.ID)
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	if len(nodeArr) != 0 {
+		d.formerlyNodeList = d.primaryNodeList
+		arr := make([]discover.NodeID, 0)
+		for _, node := range nodeArr {
+			arr = append(arr, node.ID)
+		}
+		d.primaryNodeList = arr
 	}
-	d.primaryNodeList = arr
 	return true
 }
 
@@ -170,6 +177,8 @@ func (d *dpos) SetCandidatePool(state *state.StateDB, blockChain *core.BlockChai
 			for _, node := range nodeArr {
 				ids = append(ids, node.ID)
 			}
+			d.lock.Lock()
+			defer d.lock.Unlock()
 			if len(ids) != 0 {
 				d.formerlyNodeList = ids
 				d.primaryNodeList = ids
