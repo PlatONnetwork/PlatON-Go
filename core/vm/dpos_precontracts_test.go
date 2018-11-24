@@ -36,7 +36,7 @@ func TestRlpEncode(t *testing.T) {
 	source = append(source, owner) // [20]byte owner common.Address
 	source = append(source, byteutil.Uint64ToBytes(100)) // fee
 	source = append(source, []byte("192.168.7.167")) // host
-	source = append(source, []byte("8545")) // port
+	source = append(source, []byte("30303")) // port
 	source = append(source, []byte("extra info..")) // extra
 	//source = append(source, new(big.Int).SetInt64(1).Bytes()) // withdraw
 
