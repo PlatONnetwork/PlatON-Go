@@ -3,10 +3,10 @@ package miner
 import (
 	"Platon-go/consensus"
 	"Platon-go/core/state"
-	"Platon-go/p2p/discover"
-	"math/big"
-	"errors"
 	"Platon-go/log"
+	"Platon-go/p2p/discover"
+	"errors"
+	"math/big"
 )
 
 func (w *worker) election(blockNumber *big.Int) error {
@@ -47,9 +47,9 @@ func (w *worker) shouldSwitch(blockNumber *big.Int) bool {
 	return m.Cmp(big.NewInt(0)) == 0
 }
 
-func (w *worker) attemptAddConsensusPeer(blockNumber *big.Int, state *state.StateDB, flag int) {
+func (w *worker) attemptAddConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
 	if should := w.shouldElection(blockNumber); should {
-		consensusNodes, err := w.getWitness(blockNumber, state, flag)
+		consensusNodes, err := w.getWitness(blockNumber, state, 1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
 		if err == nil && len(consensusNodes) > 0 {
 			w.addConsensusPeerFn(consensusNodes)
 		}
@@ -66,4 +66,30 @@ func (w *worker) getWitness(blockNumber *big.Int, state *state.StateDB, flag int
 	return consensusNodes, nil
 }
 
+func (w *worker) attemptRemoveConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
+	if should := w.shouldRemoveFormer(blockNumber); should {
+		formerNodes, err1 := w.getWitness(blockNumber, state, -1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
+		currentNodes, err2 := w.getWitness(blockNumber, state, 0)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
+		removeNodes := make([]*discover.Node, len(formerNodes))
+		if err1 == nil && err2 == nil && len(formerNodes) > 0 && len(currentNodes) > 0 {
+			currentNodesMap := make(map[discover.NodeID]discover.NodeID)
+			for _,n := range currentNodes {
+				currentNodesMap[n.ID] = n.ID
+			}
+			for _,n := range formerNodes {
+				if _,ok := currentNodesMap[n.ID]; !ok {
+					removeNodes = append(removeNodes, n)
+				}
+			}
+			if len(removeNodes) > 0 {
+				w.removeConsensusPeerFn(removeNodes)
+			}
+		}
+	}
+}
+
+func (w *worker) shouldRemoveFormer(blockNumber *big.Int) bool {
+	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(baseRemoveFormerPeers), new(big.Int))
+	return m.Cmp(big.NewInt(0)) == 0
+}
 

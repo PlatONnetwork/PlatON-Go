@@ -570,7 +570,13 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 			}
 			return nil
 		}
-		s.miner.InitAddConsensusPeerFn(addConsensusPeer)
+		removeConsensusPeer := func(nodes []*discover.Node) error {
+			for _, n := range nodes {
+				srvr.RemoveConsensusPeer(n)
+			}
+			return nil
+		}
+		s.miner.InitConsensusPeerFn(addConsensusPeer, removeConsensusPeer)
 
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
 		for _, n := range s.chainConfig.Cbft.InitialNodes {
