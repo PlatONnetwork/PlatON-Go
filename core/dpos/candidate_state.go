@@ -20,31 +20,31 @@ import (
 
 
 const(
-	// 即时入围竞选人
+	// immediate candidate
 	ImmediatePrefix 			= "id"
 	ImmediateListPrefix 		= "iL"
-	// 见证人
+	// witness
 	WitnessPrefix 				= "wn"
 	WitnessListPrefix 			= "wL"
-	// 下一轮见证人
+	// next witness
 	NextWitnessPrefix 			= "Nwn"
 	NextWitnessListPrefix		= "NwL"
-	// 需要退款的
+	// need refund
 	DefeatPrefix 				= "df"
 	DefeatListPrefix 			= "dL"
 )
 
 var (
-	// 即时入围竞选人
+	// immediate candidate
 	ImmediateBtyePrefix 		= []byte(ImmediatePrefix)
 	ImmediateListBtyePrefix 	= []byte(ImmediateListPrefix)
-	// 见证人
+	// witness
 	WitnessBtyePrefix 			= []byte(WitnessPrefix)
 	WitnessListBtyePrefix 		= []byte(WitnessListPrefix)
-	// 下一轮见证人
+	// next witness
 	NextWitnessBtyePrefix 		= []byte(NextWitnessPrefix)
 	NextWitnessListBytePrefix 	= []byte(NextWitnessListPrefix)
-	// 需要退款的
+	// need refund
 	DefeatBtyePrefix 			= []byte(DefeatPrefix)
 	DefeatListBtyePrefix 		= []byte(DefeatListPrefix)
 
@@ -59,9 +59,7 @@ var (
 )
 
 type CandidatePool struct {
-	// 当前入围者数目
-	//count 					uint64
-	// 最大允许入围人数目
+	// allow immediate max count
 	maxCount				uint64
 	// 最大允许见证人数目
 	maxChair				uint64
@@ -454,8 +452,8 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 
 // 获取实时所有入围候选人
 func (c *CandidatePool) GetChosens (state vm.StateDB) []*types.Candidate {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	if err := c.initDataByState(state); nil != err {
 		log.Error("Failed to initDataByState on WithdrawCandidate err", err)
 		return nil
@@ -474,8 +472,8 @@ func (c *CandidatePool) GetChosens (state vm.StateDB) []*types.Candidate {
 
 // 获取所有见证人
 func (c *CandidatePool) GetChairpersons (state vm.StateDB) []*types.Candidate {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	if err := c.initDataByState(state); nil != err {
 		log.Error("Failed to initDataByState on GetChairpersons err", err)
 		return nil
@@ -494,8 +492,8 @@ func (c *CandidatePool) GetChairpersons (state vm.StateDB) []*types.Candidate {
 
 // 获取退款信息
 func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*types.Candidate, error){
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	if err := c.initDataByState(state); nil != err {
 		log.Error("Failed to initDataByState on GetDefeat err", err)
 		return nil, err
@@ -511,8 +509,8 @@ func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*
 
 // 判断是否落榜
 func (c *CandidatePool) IsDefeat (state vm.StateDB, nodeId discover.NodeID) (bool, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	if err := c.initDataByState(state); nil != err {
 		log.Error("Failed to initDataByState on IsDefeat err", err)
 		return false, err
@@ -527,8 +525,8 @@ func (c *CandidatePool) IsDefeat (state vm.StateDB, nodeId discover.NodeID) (boo
 
 // 根据nodeId查询 质押信息中的 受益者地址
 func (c *CandidatePool) GetOwner (state vm.StateDB, nodeId discover.NodeID) common.Address {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	if err := c.initDataByState(state); nil != err {
 		log.Error("Failed to initDataByState on GetOwner err", err)
 		return common.Address{}
@@ -800,8 +798,8 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 // 获取见证人节点列表
 // flag：0: 本轮见证人   1: 下一轮见证人
 func (c *CandidatePool) GetWitness (state *state.StateDB, flag int) ([]*discover.Node, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	if err := c.initDataByState(state); nil != err {
 		log.Error("Failed to initDataByState on GetWitness err", err)
 		return nil, err
@@ -1097,8 +1095,8 @@ func (c *CandidatePool) getNextWitnessIndex(state vm.StateDB) ([]discover.NodeID
 
 func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error){
 	fmt.Println("入参：", nodeId.String())
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	if err := c.initDataByState(state); nil != err {
 		log.Error("Failed to initDataByState on getCandidate err", err)
 		return nil, err
