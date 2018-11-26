@@ -67,6 +67,7 @@ const (
 	DiscInvalidIdentity
 	DiscQuitting
 	DiscUnexpectedIdentity
+	DiscOverdueIdentity
 	DiscSelf
 	DiscReadTimeout
 	DiscSubprotocolError = 0x10
@@ -83,6 +84,7 @@ var discReasonToString = [...]string{
 	DiscInvalidIdentity:     "invalid node identity",
 	DiscQuitting:            "client quitting",
 	DiscUnexpectedIdentity:  "unexpected identity",
+	DiscOverdueIdentity:		"overdue identity",
 	DiscSelf:                "connected to self",
 	DiscReadTimeout:         "read timeout",
 	DiscSubprotocolError:    "subprotocol error",

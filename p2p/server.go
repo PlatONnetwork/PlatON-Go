@@ -54,6 +54,8 @@ const (
 
 var errServerStopped = errors.New("server stopped")
 
+type checkConsensusNodeFn func(nodeID discover.NodeID) (bool, error)
+
 // Config holds Server options.
 type Config struct {
 	// This field must be set to a valid secp256k1 private key.
@@ -180,6 +182,7 @@ type Server struct {
 	loopWG        sync.WaitGroup // loop, listenLoop
 	peerFeed      event.Feed
 	log           log.Logger
+	checkConsensusNodeFn checkConsensusNodeFn
 }
 
 type peerOpFunc func(map[discover.NodeID]*Peer)
@@ -798,9 +801,9 @@ func (srv *Server) protoHandshakeChecks(peers map[discover.NodeID]*Peer, inbound
 
 func (srv *Server) encHandshakeChecks(peers map[discover.NodeID]*Peer, inboundCount int, c *conn) error {
 	switch {
-	case !c.is(trustedConn|staticDialedConn) && len(peers) >= srv.MaxPeers:
+	case !c.is(trustedConn|staticDialedConn|consensusDialedConn) && len(peers) >= srv.MaxPeers:
 		return DiscTooManyPeers
-	case !c.is(trustedConn) && c.is(inboundConn) && inboundCount >= srv.maxInboundConns():
+	case !c.is(trustedConn|consensusDialedConn) && c.is(inboundConn) && inboundCount >= srv.maxInboundConns():
 		return DiscTooManyPeers
 	case peers[c.id] != nil:
 		return DiscAlreadyConnected
@@ -920,6 +923,12 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	if dialDest != nil && c.id != dialDest.ID {
 		clog.Trace("Dialed identity mismatch", "want", c, dialDest.ID)
 		return DiscUnexpectedIdentity
+	}
+	if dialDest == nil && c.is(inboundConn) {
+		if exists,err := srv.checkConsensusNodeFn(c.id); !exists || err != nil {
+			clog.Trace("Dialed overdue consensus identity")
+			return DiscOverdueIdentity
+		}
 	}
 	err = srv.checkpoint(c, srv.posthandshake)
 	if err != nil {
@@ -1061,4 +1070,8 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 		}
 	}
 	return infos
+}
+
+func (srv *Server) InitCheckConsensusNodeFn(fn checkConsensusNodeFn) {
+	srv.checkConsensusNodeFn = fn
 }
