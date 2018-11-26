@@ -57,7 +57,7 @@ func (w *worker) attemptAddConsensusPeer(blockNumber *big.Int, state *state.Stat
 }
 
 func (w *worker) getWitness(blockNumber *big.Int, state *state.StateDB, flag int) ([]*discover.Node, error) {
-	log.Info("获取当前轮榜单", "blockNumber", blockNumber, "flag", flag)
+	log.Info("getWitness", "blockNumber", blockNumber, "flag", flag)
 	consensusNodes, err := w.engine.(consensus.Bft).GetWitness(state, flag)
 	if err != nil {
 		log.Error("Failed to GetWitness", "blockNumber", blockNumber, "state", state, "error", err)
@@ -66,12 +66,21 @@ func (w *worker) getWitness(blockNumber *big.Int, state *state.StateDB, flag int
 	return consensusNodes, nil
 }
 
+func (w *worker) getAllWitness(blockNumber *big.Int, state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
+	log.Info("getAllWitness", "blockNumber", blockNumber)
+	preArr, curArr, nextArr, err := w.engine.(consensus.Bft).GetAllWitness(state)
+	if err != nil {
+		log.Error("Failed to getAllWitness", "blockNumber", blockNumber, "state", state, "error", err)
+		return nil, nil, nil, errors.New("Failed to GetWitness")
+	}
+	return preArr, curArr, nextArr, nil
+}
+
 func (w *worker) attemptRemoveConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
 	if should := w.shouldRemoveFormer(blockNumber); should {
-		formerNodes, err1 := w.getWitness(blockNumber, state, -1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
-		currentNodes, err2 := w.getWitness(blockNumber, state, 0)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
-		removeNodes := make([]*discover.Node, len(formerNodes))
-		if err1 == nil && err2 == nil && len(formerNodes) > 0 && len(currentNodes) > 0 {
+		formerNodes,currentNodes,_,err := w.getAllWitness(blockNumber, state)	// 上一轮、当前轮
+		removeNodes := make([]*discover.Node, 0, len(formerNodes))
+		if err == nil && len(formerNodes) > 0 && len(currentNodes) > 0 {
 			currentNodesMap := make(map[discover.NodeID]discover.NodeID)
 			for _,n := range currentNodes {
 				currentNodesMap[n.ID] = n.ID
@@ -92,4 +101,3 @@ func (w *worker) shouldRemoveFormer(blockNumber *big.Int) bool {
 	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(baseRemoveFormerPeers), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
-

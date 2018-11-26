@@ -138,9 +138,11 @@ type Bft interface {
 
 	// modify by platon
 	// Process the BFT signatures
-	OnPong(nodeID discover.NodeID, netLatency int64)
+	OnPong(nodeID discover.NodeID, netLatency int64) error
 
 	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
+
+	CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error)
 
 	IsConsensusNode() (bool, error)
 
@@ -154,6 +156,8 @@ type Bft interface {
 	Switch(state *state.StateDB) bool
 
 	GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error)
+
+	GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error)
 
 	//SetBlockChain(blockChain *core.BlockChain)
 }

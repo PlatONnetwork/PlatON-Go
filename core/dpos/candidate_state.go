@@ -57,7 +57,7 @@ var (
 
 
 	CandidateEncodeErr    		= errors.New("Candidate encoding err")
-	CandidateDecodeErr 			= errors.New("Cnadidate decoding err")
+	CandidateDecodeErr 			= errors.New("Candidate decoding err")
 	WithdrawPriceErr 			= errors.New("Withdraw Price err")
 	CandidateEmptyErr 			= errors.New("Candidate is empty")
 	ContractBalanceNotEnoughErr = errors.New("Contract's balance is not enough")
@@ -390,12 +390,27 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 			From: 			can.From,
 			Extra: 			can.Extra,
 		}
-		//c.immediateCandates[nodeId] = canNew
 
 		// update current candidate
 		if err := c.setImmediate(state, nodeId, canNew); nil != err {
 			return err
 		}
+
+		// sort immediate
+		c.candidateCacheArr = make([]*types.Candidate, 0)
+		for _, can := range c.immediateCandates {
+			c.candidateCacheArr = append(c.candidateCacheArr, can)
+		}
+		candidateSort(c.candidateCacheArr)
+		ids := make([]discover.NodeID, 0)
+		for _, can := range c.candidateCacheArr {
+			ids = append(ids, can.CandidateId)
+		}
+		// update new index
+		if err := c.setImmediateIndex(state, ids); nil != err {
+			return err
+		}
+
 		// the withdraw price to build a new refund into defeat on trie
 		canDefeat := &types.Candidate{
 			Deposit: 		price,
@@ -503,6 +518,7 @@ func (c *CandidatePool) GetOwner (state vm.StateDB, nodeId discover.NodeID) comm
 	}
 	pre_can, pre_ok := c.preOriginCandidates[nodeId]
 	or_can, or_ok := c.originCandidates[nodeId]
+	ne_can, ne_ok := c.nextOriginCandidates[nodeId]
 	im_can, im_ok := c.immediateCandates[nodeId]
 	canArr, de_ok := c.defeatCandidates[nodeId]
 
@@ -511,6 +527,9 @@ func (c *CandidatePool) GetOwner (state vm.StateDB, nodeId discover.NodeID) comm
 	}
 	if or_ok {
 		return or_can.Owner
+	}
+	if ne_ok {
+		return ne_can.Owner
 	}
 	if im_ok {
 		return im_can.Owner
@@ -536,7 +555,7 @@ func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID,
 	if defeatArr, ok := c.defeatCandidates[nodeId]; ok {
 		canArr = defeatArr
 	}else {
-		log.Error("Failed to refundbalance cnadidate is empty")
+		log.Error("Failed to refundbalance candidate is empty")
 		return CandidateDecodeErr
 	}
 	// cache

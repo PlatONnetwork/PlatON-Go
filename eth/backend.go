@@ -221,7 +221,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	// modify by platon
 	if _, ok := eth.engine.(consensus.Bft); ok {
 		cbft.SetConsensusCache(consensusCache)
-		cbft.SetBlockChain(eth.blockchain)
+		cbft.SetBackend(eth.blockchain, eth.txPool)
 		cbft.SetDopsOption(eth.blockchain)
 	}
 
@@ -576,11 +576,11 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 			}
 			return nil
 		}
-		checkConsensusNode := func(nodeID discover.NodeID) (bool, error) {
-			return cbftEngine.CheckConsensusNode(nodeID)
+		checkFutureConsensusNode := func(nodeID discover.NodeID) (bool, error) {
+			return cbftEngine.CheckFutureConsensusNode(nodeID)
 		}
 		s.miner.InitConsensusPeerFn(addConsensusPeer, removeConsensusPeer)
-		srvr.InitCheckConsensusNodeFn(checkConsensusNode)
+		srvr.InitcheckFutureConsensusNodeFn(checkFutureConsensusNode)
 
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
 		for _, n := range s.chainConfig.Cbft.InitialNodes {
