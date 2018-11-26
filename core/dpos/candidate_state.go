@@ -561,6 +561,7 @@ func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID,
 			// add up the refund price
 			amount += can.Deposit.Uint64()
 		}else {
+			log.Error("block height number had mismatch, No refunds allowed, current block height", blockNumber.String(), "deposit block height", can.BlockNumber.String(), "allowed block interval", c.RefundBlockNumber)
 			fmt.Println("块高不匹配，不给予退款...")
 			continue
 		}
@@ -569,7 +570,7 @@ func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID,
 			addr = can.Owner
 		}else {
 			if addr != can.Owner {
-				log.Info("Failed to refundbalance 发现抵押节点nodeId下有不同受益者地址", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", can.Owner)
+				log.Info("Failed to refundbalance couse current nodeId had bind different owner address ", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", can.Owner)
 				if len(canArr) != 0 {
 					canArr = append(delCanArr, canArr...)
 				}else {
