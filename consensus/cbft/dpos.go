@@ -231,3 +231,26 @@ func (d *dpos) RefundBalance (state vm.StateDB, nodeId discover.NodeID, blockNum
 func (d *dpos) GetOwner (state vm.StateDB, nodeId discover.NodeID) common.Address {
 	return d.candidatePool.GetOwner(state, nodeId)
 }
+
+// cbft共识区块产生分叉后需要更新primaryNodeList和formerlyNodeList
+func (d *dpos) UpdateNodeList (state *state.StateDB) {
+	log.Warn("---cbft共识区块产生分叉，更新primaryNodeList和formerlyNodeList---", "state", state)
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	formerNodes, err1 := d.GetWitness(state, -1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
+	currentNodes, err2 := d.GetWitness(state, 0)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
+	if err1 == nil && err2 == nil && len(formerNodes) > 0 && len(currentNodes) > 0 {
+		d.primaryNodeList = convertNodeID(currentNodes)
+		d.formerlyNodeList = convertNodeID(formerNodes)
+	} else {
+		panic("UpdateNodeList error")
+	}
+}
+
+func convertNodeID(nodes []*discover.Node) []discover.NodeID {
+	nodesID := make([]discover.NodeID, len(nodes), len(nodes))
+	for _,n := range nodes {
+		nodesID = append(nodesID, n.ID)
+	}
+	return nodesID
+}
