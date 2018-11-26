@@ -180,6 +180,6 @@ func (self *Miner) SetEtherbase(addr common.Address) {
 	self.worker.setEtherbase(addr)
 }
 
-func (self *Miner) InitAddConsensusPeerFn(fn addConsensusPeerFn) {
-	self.worker.InitAddConsensusPeerFn(fn)
+func (self *Miner) InitConsensusPeerFn(addFn addConsensusPeerFn, removeFn removeConsensusPeerFn) {
+	self.worker.InitConsensusPeerFn(addFn, removeFn)
 }

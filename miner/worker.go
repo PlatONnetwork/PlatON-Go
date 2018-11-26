@@ -84,9 +84,13 @@ const (
 	baseElection = 230
 
 	baseSwitchWitness = 250
+
+	baseRemoveFormerPeers = 270
 )
 
 type addConsensusPeerFn func(nodes []*discover.Node) error
+
+type removeConsensusPeerFn func(nodes []*discover.Node) error
 
 // environment is the worker's current environment and holds all of the current state information.
 type environment struct {
@@ -102,6 +106,7 @@ type environment struct {
 	header   *types.Header
 	txs      []*types.Transaction
 	receipts []*types.Receipt
+	consensusNodes []discover.NodeID
 }
 
 // task contains all information for consensus engine sealing and result submitting.
@@ -208,6 +213,7 @@ type worker struct {
 	recommit time.Duration
 	commitDuration	float64
 	addConsensusPeerFn	addConsensusPeerFn
+	removeConsensusPeerFn removeConsensusPeerFn
 
 	// Test hooks
 	newTaskHook  func(*task)                        // Method to call upon receiving a new sealing task.
@@ -279,8 +285,9 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 	return worker
 }
 
-func (w *worker) InitAddConsensusPeerFn(fn addConsensusPeerFn) {
-	w.addConsensusPeerFn = fn
+func (w *worker) InitConsensusPeerFn(addFn addConsensusPeerFn, removeFn removeConsensusPeerFn) {
+	w.addConsensusPeerFn = addFn
+	w.removeConsensusPeerFn = removeFn
 }
 
 // setEtherbase sets the etherbase used to initialize the block coinbase field.
@@ -820,7 +827,8 @@ func (w *worker) resultLoop() {
 
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})
-			w.attemptAddConsensusPeer(block.Number(), _state, 1)	// flag：0: 本轮见证人   1: 下一轮见证人
+			w.attemptAddConsensusPeer(block.Number(), _state)
+			w.attemptRemoveConsensusPeer(block.Number(), _state)
 
 			var events []interface{}
 			switch stat {
@@ -861,6 +869,12 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		family:    mapset.NewSet(),
 		uncles:    mapset.NewSet(),
 		header:    header,
+	}
+	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+		env.consensusNodes,err = cbftEngine.ConsensusNodes()
+		if err != nil {
+			return err
+		}
 	}
 
 	// when 08 is processed ancestors contain 07 (quick block)
@@ -1129,12 +1143,12 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		log.Error("Failed to create mining context", "err", err)
 		return
 	}
-	// 揭榜
+	// 揭榜(如果符合条件)
 	electionErr := w.election(header.Number)
 	if electionErr != nil {
 		return
 	}
-	// 触发替换下轮见证人列表
+	// 触发替换下轮见证人列表(如果符合条件)
 	switchWitnessErr := w.switchWitness(header.Number)
 	if switchWitnessErr != nil {
 		return
@@ -1239,15 +1253,8 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		if interval != nil {
 			interval()
 		}
-		var currentConsensusNodes []discover.NodeID
-		if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-			currentConsensusNodes, err = cbftEngine.ConsensusNodes()
-			if err != nil {
-				return err
-			}
-		}
 		select {
-		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now(), consensusNodes: currentConsensusNodes}:
+		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now(), consensusNodes: w.current.consensusNodes}:
 			// modify by platon
 			// 保存receipts、stateDB至缓存
 			w.consensusCache.WriteReceipts(block.Hash(), receipts, block.NumberU64())
