@@ -159,5 +159,7 @@ type Bft interface {
 
 	GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error)
 
+	GetOwnNodeID() discover.NodeID
+
 	//SetBlockChain(blockChain *core.BlockChain)
 }

@@ -20,6 +20,7 @@ package eth
 import (
 	"Platon-go/consensus/cbft"
 	"Platon-go/core/cbfttypes"
+	"Platon-go/core/state"
 	"Platon-go/p2p/discover"
 	"errors"
 	"fmt"
@@ -223,6 +224,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		cbft.SetConsensusCache(consensusCache)
 		cbft.SetBackend(eth.blockchain, eth.txPool)
 		cbft.SetDopsOption(eth.blockchain)
+
+		shouldElection := func(blockNumber *big.Int) bool {
+			return eth.miner.ShouldElection(blockNumber)
+		}
+		shouldSwitch := func(blockNumber *big.Int) bool {
+			return eth.miner.ShouldSwitch(blockNumber)
+		}
+		attemptAddConsensusPeer := func(blockNumber *big.Int, state *state.StateDB) {
+			eth.miner.AttemptAddConsensusPeer(blockNumber, state)
+		}
+		attemptRemoveConsensusPeer := func(blockNumber *big.Int, state *state.StateDB) {
+			eth.miner.AttemptRemoveConsensusPeer(blockNumber, state)
+		}
+		eth.blockchain.InitConsensusPeerFn(shouldElection, shouldSwitch, attemptAddConsensusPeer, attemptRemoveConsensusPeer)
 	}
 
 	eth.APIBackend = &EthAPIBackend{eth, nil}

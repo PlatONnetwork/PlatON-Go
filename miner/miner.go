@@ -21,6 +21,7 @@ import (
 	"Platon-go/consensus/cbft"
 	"Platon-go/core/cbfttypes"
 	"fmt"
+	"math/big"
 	"sync/atomic"
 	"time"
 
@@ -182,4 +183,20 @@ func (self *Miner) SetEtherbase(addr common.Address) {
 
 func (self *Miner) InitConsensusPeerFn(addFn addConsensusPeerFn, removeFn removeConsensusPeerFn) {
 	self.worker.InitConsensusPeerFn(addFn, removeFn)
+}
+
+func (self *Miner) ShouldElection(blockNumber *big.Int) bool {
+	return self.worker.shouldElection(blockNumber)
+}
+
+func (self *Miner) ShouldSwitch(blockNumber *big.Int) bool {
+	return self.worker.shouldSwitch(blockNumber)
+}
+
+func (self *Miner) AttemptAddConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
+	self.worker.attemptAddConsensusPeer(blockNumber, state)
+}
+
+func (self *Miner) AttemptRemoveConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
+	self.worker.attemptRemoveConsensusPeer(blockNumber, state)
 }

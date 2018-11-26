@@ -48,12 +48,21 @@ func (w *worker) shouldSwitch(blockNumber *big.Int) bool {
 }
 
 func (w *worker) attemptAddConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
-	if should := w.shouldElection(blockNumber); should {
+	if should := w.shouldSwitch(blockNumber); should {
 		consensusNodes, err := w.getWitness(blockNumber, state, 1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
-		if err == nil && len(consensusNodes) > 0 {
+		if err == nil && len(consensusNodes) > 0 && existsNode(w.engine.(consensus.Bft).GetOwnNodeID(), consensusNodes) {
 			w.addConsensusPeerFn(consensusNodes)
 		}
 	}
+}
+
+func existsNode(nodeID discover.NodeID, nodeList []*discover.Node) bool {
+	for _,n := range nodeList {
+		if nodeID == n.ID {
+			return true
+		}
+	}
+	return false
 }
 
 func (w *worker) getWitness(blockNumber *big.Int, state *state.StateDB, flag int) ([]*discover.Node, error) {
@@ -80,7 +89,7 @@ func (w *worker) attemptRemoveConsensusPeer(blockNumber *big.Int, state *state.S
 	if should := w.shouldRemoveFormer(blockNumber); should {
 		formerNodes,currentNodes,_,err := w.getAllWitness(blockNumber, state)	// 上一轮、当前轮
 		removeNodes := make([]*discover.Node, 0, len(formerNodes))
-		if err == nil && len(formerNodes) > 0 && len(currentNodes) > 0 {
+		if err == nil && len(formerNodes) > 0 && len(currentNodes) > 0 && existsNode(w.engine.(consensus.Bft).GetOwnNodeID(), formerNodes) {
 			currentNodesMap := make(map[discover.NodeID]discover.NodeID)
 			for _,n := range currentNodes {
 				currentNodesMap[n.ID] = n.ID

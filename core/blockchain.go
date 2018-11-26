@@ -64,6 +64,14 @@ const (
 	BlockChainVersion = 3
 )
 
+type shouldElectionFn func(blockNumber *big.Int) bool
+
+type shouldSwitchFn func(blockNumber *big.Int) bool
+
+type attemptAddConsensusPeerFn func(blockNumber *big.Int, state *state.StateDB)
+
+type attemptRemoveConsensusPeerFn func(blockNumber *big.Int, state *state.StateDB)
+
 // CacheConfig contains the configuration values for the trie caching/pruning
 // that's resident in a blockchain.
 type CacheConfig struct {
@@ -130,6 +138,11 @@ type BlockChain struct {
 
 	badBlocks      *lru.Cache              // Bad block cache
 	shouldPreserve func(*types.Block) bool // Function used to determine whether should preserve the given block.
+
+	shouldElectionFn	shouldElectionFn
+	shouldSwitchFn	shouldSwitchFn
+	attemptAddConsensusPeerFn	attemptAddConsensusPeerFn
+	attemptRemoveConsensusPeerFn	attemptRemoveConsensusPeerFn
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -195,6 +208,13 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	// Take ownership of this particular state
 	go bc.update()
 	return bc, nil
+}
+
+func (bc *BlockChain) InitConsensusPeerFn(seFn shouldElectionFn, ssFn shouldSwitchFn, addFn attemptAddConsensusPeerFn, removeFn attemptRemoveConsensusPeerFn) {
+	bc.shouldElectionFn = seFn
+	bc.shouldSwitchFn = ssFn
+	bc.attemptAddConsensusPeerFn = addFn
+	bc.attemptRemoveConsensusPeerFn = removeFn
 }
 
 func (bc *BlockChain) getProcInterrupt() bool {
@@ -1172,6 +1192,18 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			bc.reportBlock(block, receipts, err)
 			return i, events, coalescedLogs, err
 		}
+		// modify by platon
+		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+			// 揭榜(如果符合条件)
+			if bc.shouldSwitchFn(block.Number()) {
+				cbftEngine.Election(state)
+			}
+			// 触发替换下轮见证人列表(如果符合条件)
+			if bc.shouldSwitchFn(block.Number()) {
+				cbftEngine.Switch(state)
+			}
+		}
+
 		// Validate the state using the default validator
 		err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 		if err != nil {
@@ -1185,6 +1217,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
+
+		// modify by platon
+		if _, ok := bc.engine.(consensus.Bft); ok {
+			bc.attemptAddConsensusPeerFn(block.Number(), state)
+			bc.attemptRemoveConsensusPeerFn(block.Number(), state)
+		}
+
 		switch status {
 		case CanonStatTy:
 			log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),

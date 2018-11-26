@@ -1426,3 +1426,7 @@ func (cbft *Cbft) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, 
 func (cbft *Cbft) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
 	return cbft.dpos.GetAllWitness(state)
 }
+
+func (cbft *Cbft) GetOwnNodeID() discover.NodeID {
+	return cbft.config.NodeID
+}
