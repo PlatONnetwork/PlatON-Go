@@ -287,19 +287,9 @@ func boolToBytes(val bool) []byte {
 
 func TestDecodeEncode(t *testing.T){
 
-	//[]byte -> String
-	/*src := []byte("Hello")
-	encodedStr := hex.EncodeToString(src)
-	fmt.Println("Hello -> hex_str: ", encodedStr)
-
-	//String -> []byte
-	test, _ := hex.DecodeString(encodedStr)
-	fmt.Println("Hello -> hex_str -> bytes[]: ", test)*/
-
 	///////////////////////////////////////////////////////////////////////////////
 	nodeId, _ := hex.DecodeString("e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
 	owner, _ := hex.DecodeString("4FED1fC4144c223aE3C1553be203cDFcbD38C581")
-
 
 	var source [][]byte
 	source = make([][]byte, 0)
@@ -310,6 +300,7 @@ func TestDecodeEncode(t *testing.T){
 	source = append(source, uint64ToBytes(500))	//10000
 	source = append(source, []byte("127.0.0.1"))
 	source = append(source, []byte("7890"))
+	source = append(source, []byte("extra data"))
 
 	//rlp 编码
 	buffer := new(bytes.Buffer)
@@ -329,33 +320,10 @@ func TestDecodeEncode(t *testing.T){
 		t.Errorf("fail")
 	} else {
 		deref := reflect.ValueOf(ptr).Elem().Interface()
-		//fmt.Println(deref)
-
 		for i, v := range deref.([]interface{}) {
-			//fmt.Println("i:", i, "  v:", v)
 			fmt.Println(i,": ",hex.EncodeToString(v.([]byte)))
-
-			// 类型判断，然后转换
-			/*switch i {
-			case 0:
-				fmt.Println(string(v.([]byte)))
-			case 1:
-				fmt.Println(binary.BigEndian.Uint64(v.([]byte)))
-			case 2:
-				fmt.Println(binary.BigEndian.Uint64(v.([]byte)))
-			case 3:
-				byt := v.([]byte)[0]
-				if byt == 1 {
-					fmt.Println("false")
-				} else {
-					fmt.Println("true")
-				}
-			case 4:
-				fmt.Println(string(v.([]byte)))
-			}*/
 		}
 	}
-
 }
 
 func TestEncodeF03(t *testing.T) {

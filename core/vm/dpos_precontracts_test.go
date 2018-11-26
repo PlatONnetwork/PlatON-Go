@@ -5,12 +5,15 @@ import (
 	"Platon-go/common/hexutil"
 	"Platon-go/rlp"
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math/big"
+
+	"Platon-go/common/byteutil"
 	//"math/big"
 	"reflect"
 	"testing"
-	"Platon-go/common/byteutil"
 )
 
 func TestRlpEncode(t *testing.T) {
@@ -78,4 +81,116 @@ func TestAppendSlice(t *testing.T)  {
 	i := 2
 	a = append(a[:i], a[i+1:]...)
 	fmt.Println(a)
+}
+
+func TestRlpData(t *testing.T)  {
+
+	nodeId, _ := hex.DecodeString("e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
+	owner, _ := hex.DecodeString("00a8499dd60261e61113d7c6d249aa98b3dd6e40")
+
+	//CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
+	var CandidateDeposit [][]byte
+	CandidateDeposit = make([][]byte, 0)
+	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(0xf1))
+	CandidateDeposit = append(CandidateDeposit, []byte("CandidateDeposit"))
+	CandidateDeposit = append(CandidateDeposit, nodeId)
+	CandidateDeposit = append(CandidateDeposit, owner)
+	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(500))	//10000
+	CandidateDeposit = append(CandidateDeposit, []byte("127.0.0.1"))
+	CandidateDeposit = append(CandidateDeposit, []byte("7890"))
+	CandidateDeposit = append(CandidateDeposit, []byte("extra data"))
+	bufDeposit := new(bytes.Buffer)
+	err := rlp.Encode(bufDeposit, CandidateDeposit)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("CandidateDeposit encode rlp data fail")
+	} else {
+		fmt.Println("CandidateDeposit data rlp: ", hexutil.Encode(bufDeposit.Bytes()))
+	}
+
+	//CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int)
+	var CandidateApplyWithdraw [][]byte
+	CandidateApplyWithdraw = make([][]byte, 0)
+	CandidateApplyWithdraw = append(CandidateApplyWithdraw, uint64ToBytes(0xf1))
+	CandidateApplyWithdraw = append(CandidateApplyWithdraw, []byte("CandidateApplyWithdraw"))
+	CandidateApplyWithdraw = append(CandidateApplyWithdraw, nodeId)
+	withdraw, ok :=new(big.Int).SetString("14d1120d7b160000", 16)
+	if !ok {
+		t.Errorf("big int setstring fail")
+	}
+	CandidateApplyWithdraw = append(CandidateApplyWithdraw, withdraw.Bytes())
+	bufApply := new(bytes.Buffer)
+	err = rlp.Encode(bufApply, CandidateApplyWithdraw)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("CandidateApplyWithdraw encode rlp data fail")
+	} else {
+		fmt.Println("CandidateApplyWithdraw data rlp: ", hexutil.Encode(bufApply.Bytes()))
+	}
+
+	//CandidateWithdraw(nodeId discover.NodeID)
+	var CandidateWithdraw [][]byte
+	CandidateWithdraw = make([][]byte, 0)
+	CandidateWithdraw = append(CandidateWithdraw, uint64ToBytes(0xf1))
+	CandidateWithdraw = append(CandidateWithdraw, []byte("CandidateWithdraw"))
+	CandidateWithdraw = append(CandidateWithdraw, nodeId)
+	bufWith := new(bytes.Buffer)
+	err = rlp.Encode(bufWith, CandidateWithdraw)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("CandidateWithdraw encode rlp data fail")
+	} else {
+		fmt.Println("CandidateWithdraw data rlp: ", hexutil.Encode(bufWith.Bytes()))
+	}
+
+	//CandidateWithdrawInfos(nodeId discover.NodeID)
+	var CandidateWithdrawInfos [][]byte
+	CandidateWithdrawInfos = make([][]byte, 0)
+	CandidateWithdrawInfos = append(CandidateWithdrawInfos, uint64ToBytes(0xf1))
+	CandidateWithdrawInfos = append(CandidateWithdrawInfos, []byte("CandidateWithdrawInfos"))
+	CandidateWithdrawInfos = append(CandidateWithdrawInfos, nodeId)
+	bufWithInfos := new(bytes.Buffer)
+	err = rlp.Encode(bufWithInfos, CandidateWithdrawInfos)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("CandidateWithdrawInfos encode rlp data fail")
+	} else {
+		fmt.Println("CandidateWithdrawInfos data rlp: ", hexutil.Encode(bufWithInfos.Bytes()))
+	}
+
+	//CandidateDetails(nodeId discover.NodeID)
+	var CandidateDetails [][]byte
+	CandidateDetails = make([][]byte, 0)
+	CandidateDetails = append(CandidateDetails, uint64ToBytes(0xf1))
+	CandidateDetails = append(CandidateDetails, []byte("CandidateDetails"))
+	CandidateDetails = append(CandidateDetails, nodeId)
+	bufDetails := new(bytes.Buffer)
+	err = rlp.Encode(bufDetails, CandidateDetails)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("CandidateDetails encode rlp data fail")
+	} else {
+		fmt.Println("CandidateDetails data rlp: ", hexutil.Encode(bufDetails.Bytes()))
+	}
+}
+
+func TestRlpDecode(t *testing.T)  {
+
+	//HexString -> []byte
+	rlpcode, _ := hex.DecodeString("f85c8800000000000000f19043616e64696461746544657461696c73b840e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
+	var source [][]byte
+	if err := rlp.Decode(bytes.NewReader(rlpcode), &source); err != nil {
+		fmt.Println(err)
+		t.Errorf("TestRlpDecode decode rlp data fail")
+	}
+
+	for i,v := range source {
+		fmt.Println("i: ", i, " v: ", hex.EncodeToString(v))
+	}
+}
+
+func uint64ToBytes(val uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, val)
+	return buf[:]
 }
