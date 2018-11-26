@@ -131,16 +131,24 @@ func (d *dpos)  Switch(state *state.StateDB) bool {
 	if !d.candidatePool.Switch(state) {
 		return false
 	}
-	nodeArr, err := d.candidatePool.GetWitness(state, 0)
+	preArr, curArr, _, err := d.candidatePool.GetAllWitness(state)
 	if nil != err {
 		return false
 	}
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	if len(nodeArr) != 0 {
-		d.formerlyNodeList = d.primaryNodeList
+	if len(preArr) != 0 {
+		//d.formerlyNodeList = d.primaryNodeList
 		arr := make([]discover.NodeID, 0)
-		for _, node := range nodeArr {
+		for _, node := range preArr {
+			arr = append(arr, node.ID)
+		}
+		d.formerlyNodeList = arr
+	}
+	if len(curArr) != 0 {
+		//d.formerlyNodeList = d.primaryNodeList
+		arr := make([]discover.NodeID, 0)
+		for _, node := range curArr {
 			arr = append(arr, node.ID)
 		}
 		d.primaryNodeList = arr
@@ -158,21 +166,28 @@ func (d *dpos) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, err
 func (d *dpos) SetCandidatePool(state *state.StateDB, blockChain *core.BlockChain) {
 	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
 	if  blockChain.Genesis().NumberU64() != blockChain.CurrentBlock().NumberU64() {
-		if nodeArr, err := d.candidatePool.GetWitness(state, 0); nil != err {
+		if preArr, curArr, _, err := d.candidatePool.GetAllWitness(state); nil != err {
 			log.Error("Load Witness from state failed on SetCandidatePool err", err)
 		}else {
-			ids := make([]discover.NodeID, 0)
-			for _, node := range nodeArr {
-				ids = append(ids, node.ID)
-			}
 			d.lock.Lock()
 			defer d.lock.Unlock()
-			if len(ids) != 0 {
-				d.formerlyNodeList = ids
-				d.primaryNodeList = ids
+			if len(preArr) != 0 {
+				//d.formerlyNodeList = d.primaryNodeList
+				arr := make([]discover.NodeID, 0)
+				for _, node := range preArr {
+					arr = append(arr, node.ID)
+				}
+				d.formerlyNodeList = arr
+			}
+			if len(curArr) != 0 {
+				//d.formerlyNodeList = d.primaryNodeList
+				arr := make([]discover.NodeID, 0)
+				for _, node := range curArr {
+					arr = append(arr, node.ID)
+				}
+				d.primaryNodeList = arr
 			}
 		}
-
 	}
 }
 

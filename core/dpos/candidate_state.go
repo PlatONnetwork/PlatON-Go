@@ -811,6 +811,50 @@ func (c *CandidatePool) GetWitness (state *state.StateDB, flag int) ([]*discover
 	return arr, nil
 }
 
+// Getting previous and current and next witnesses
+func (c *CandidatePool) GetAllWitness (state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	if err := c.initDataByState(state, 0); nil != err {
+		log.Error("Failed to initDataByState on GetAllWitness err", err)
+		return nil, nil, nil, err
+	}
+	//var ids []discover.NodeID
+	var prewitness, witness, nextwitness map[discover.NodeID]*types.Candidate
+	prewitness = c.preOriginCandidates
+	witness = c.originCandidates
+	nextwitness = c.nextOriginCandidates
+
+
+	preArr, curArr, nextArr := make([]*discover.Node, 0), make([]*discover.Node, 0), make([]*discover.Node, 0)
+	for _, can := range prewitness {
+		if node, err := buildWitnessNode(can); nil != err {
+			log.Error("Failed to build pre Node on GetAllWitness err", err, "nodeId", can.CandidateId.String())
+			continue
+		}else {
+			preArr = append(preArr, node)
+		}
+	}
+	for _, can := range witness {
+		if node, err := buildWitnessNode(can); nil != err {
+			log.Error("Failed to build cur Node on GetAllWitness err", err, "nodeId", can.CandidateId.String())
+			continue
+		}else {
+			curArr = append(curArr, node)
+		}
+	}
+	for _, can := range nextwitness {
+		if node, err := buildWitnessNode(can); nil != err {
+			log.Error("Failed to build next Node on GetAllWitness err", err, "nodeId", can.CandidateId.String())
+			continue
+		}else {
+			nextArr = append(nextArr, node)
+		}
+	}
+	return preArr, curArr, nextArr,nil
+}
+
+
 func (c *CandidatePool) setImmediate(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate/*, isADD bool*/) error {
 	c.immediateCandates[candidateId] = can
 	if value, err := rlp.EncodeToBytes(can); nil != err {
