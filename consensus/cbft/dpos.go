@@ -163,9 +163,14 @@ func (d *dpos) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, err
 }
 
 // setting candidate pool of dpos module
-func (d *dpos) SetCandidatePool(state *state.StateDB, blockChain *core.BlockChain) {
+func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
 	if  blockChain.Genesis().NumberU64() != blockChain.CurrentBlock().NumberU64() {
+		state, err := blockChain.State()
+		if nil != err {
+			log.Error("Load state from chain failed on SetCandidatePool err", err)
+			return
+		}
 		if preArr, curArr, _, err := d.candidatePool.GetAllWitness(state); nil != err {
 			log.Error("Load Witness from state failed on SetCandidatePool err", err)
 		}else {

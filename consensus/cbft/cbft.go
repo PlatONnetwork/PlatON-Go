@@ -527,8 +527,7 @@ func SetBlockChain(blockChain *core.BlockChain) {
 }
 
 func SetDopsOption(blockChain *core.BlockChain){
-	state, _ := blockChain.State()
-	cbft.dpos.SetCandidatePool(state, blockChain)
+	cbft.dpos.SetCandidatePool(blockChain)
 }
 
 func BlockSynchronisation() {

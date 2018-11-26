@@ -127,11 +127,11 @@ func (c *CandidatePool) initDataByState (state vm.StateDB, flag int) error {
 	for _, witnessId := range prewitnessIds {
 		fmt.Println("prewitnessId = ", witnessId.String())
 		var can *types.Candidate
-		if c, err := getPreviousWitnessByState(state, witnessId); nil != err {
+		if ca, err := getPreviousWitnessByState(state, witnessId); nil != err {
 			log.Error("Failed to decode Candidate on initDataByState", "err", err)
 			return CandidateDecodeErr
 		}else {
-			can = c
+			can = ca
 		}
 		c.preOriginCandidates[witnessId] = can
 	}
@@ -149,11 +149,11 @@ func (c *CandidatePool) initDataByState (state vm.StateDB, flag int) error {
 	for _, witnessId := range witnessIds {
 		fmt.Println("witnessId = ", witnessId.String())
 		var can *types.Candidate
-		if c, err := getWitnessByState(state, witnessId); nil != err {
+		if ca, err := getWitnessByState(state, witnessId); nil != err {
 			log.Error("Failed to decode Candidate on initDataByState", "err", err)
 			return CandidateDecodeErr
 		}else {
-			can = c
+			can = ca
 		}
 		c.originCandidates[witnessId] = can
 	}
@@ -171,11 +171,11 @@ func (c *CandidatePool) initDataByState (state vm.StateDB, flag int) error {
 	for _, witnessId := range nextWitnessIds {
 		fmt.Println("nextwitnessId = ", witnessId.String())
 		var can *types.Candidate
-		if c, err := getNextWitnessByState(state, witnessId); nil != err {
+		if ca, err := getNextWitnessByState(state, witnessId); nil != err {
 			log.Error("Failed to decode Candidate on initDataByState", "err", err)
 			return CandidateDecodeErr
 		}else {
-			can = c
+			can = ca
 		}
 		c.nextOriginCandidates[witnessId] = can
 	}
@@ -198,11 +198,11 @@ func (c *CandidatePool) initDataByState (state vm.StateDB, flag int) error {
 		for _, immediateId := range immediateIds {
 			fmt.Println("immediateId = ", immediateId.String())
 			var can *types.Candidate
-			if c, err := getImmediateByState(state, immediateId); nil != err {
+			if ca, err := getImmediateByState(state, immediateId); nil != err {
 				log.Error("Failed to decode Candidate on initDataByState", "err", err)
 				return CandidateDecodeErr
 			}else {
-				can = c
+				can = ca
 			}
 			c.immediateCandates[immediateId] = can
 			canCache = append(canCache, can)
@@ -324,14 +324,15 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 		return WithdrawPriceErr
 	}
 	can, ok := c.immediateCandates[nodeId]
-	if !ok {
+	if !ok || nil == can{
 		log.Error("withdraw failed current Candidate is empty")
 		return CandidateEmptyErr
 	}
-	if nil == can {
-		log.Error("withdraw failed current Candidate is empty")
-		return CandidateEmptyErr
-	}
+	//if nil == can {
+	//	log.Error("withdraw failed current Candidate is empty")
+	//	return CandidateEmptyErr
+	//}
+
 	// check withdraw price
 	if can.Deposit.Cmp(price) < 0 {
 		log.Error("withdraw failed refund price must less or equal deposit", "key", nodeId.String())
@@ -663,6 +664,7 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 	//			return nil, err
 	//		}
 	//}
+
 	// set up all new nextwitnesses information
 	for nodeId, can := range nextWits {
 		if err := c.setNextWitness(state, nodeId, can); nil != err {
@@ -1338,8 +1340,6 @@ func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
 }
 
 func compare(c, can *types.Candidate) int {
-	//PrintObject("c", c)
-	//PrintObject("can", can)
 	// put the larger deposit in front
 	if c.Deposit.Cmp(can.Deposit) > 0 {
 		return 1
