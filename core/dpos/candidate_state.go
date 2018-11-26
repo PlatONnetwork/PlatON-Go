@@ -518,6 +518,7 @@ func (c *CandidatePool) GetOwner (state vm.StateDB, nodeId discover.NodeID) comm
 	}
 	pre_can, pre_ok := c.preOriginCandidates[nodeId]
 	or_can, or_ok := c.originCandidates[nodeId]
+	ne_can, ne_ok := c.nextOriginCandidates[nodeId]
 	im_can, im_ok := c.immediateCandates[nodeId]
 	canArr, de_ok := c.defeatCandidates[nodeId]
 
@@ -526,6 +527,9 @@ func (c *CandidatePool) GetOwner (state vm.StateDB, nodeId discover.NodeID) comm
 	}
 	if or_ok {
 		return or_can.Owner
+	}
+	if ne_ok {
+		return ne_can.Owner
 	}
 	if im_ok {
 		return im_can.Owner
