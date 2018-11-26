@@ -132,27 +132,20 @@ func (d *dpos)  Switch(state *state.StateDB) bool {
 	if !d.candidatePool.Switch(state) {
 		return false
 	}
-	preArr, curArr, _, err := d.candidatePool.GetAllWitness(state)
+	preArr, curArr, nextArr, err := d.candidatePool.GetAllWitness(state)
 	if nil != err {
 		return false
 	}
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	if len(preArr) != 0 {
-		//d.formerlyNodeList = d.primaryNodeList
-		arr := make([]discover.NodeID, 0)
-		for _, node := range preArr {
-			arr = append(arr, node.ID)
-		}
-		d.formerlyNodeList = arr
+		d.formerlyNodeList = convertNodeID(preArr)
 	}
 	if len(curArr) != 0 {
-		//d.formerlyNodeList = d.primaryNodeList
-		arr := make([]discover.NodeID, 0)
-		for _, node := range curArr {
-			arr = append(arr, node.ID)
-		}
-		d.primaryNodeList = arr
+		d.primaryNodeList = convertNodeID(curArr)
+	}
+	if len(nextArr) != 0 {
+		d.nextNodeList = convertNodeID(nextArr)
 	}
 	return true
 }
@@ -176,26 +169,19 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 			log.Error("Load state from chain failed on SetCandidatePool err", err)
 			return
 		}
-		if preArr, curArr, _, err := d.candidatePool.GetAllWitness(state); nil != err {
+		if preArr, curArr, nextArr, err := d.candidatePool.GetAllWitness(state); nil != err {
 			log.Error("Load Witness from state failed on SetCandidatePool err", err)
 		}else {
 			d.lock.Lock()
 			defer d.lock.Unlock()
 			if len(preArr) != 0 {
-				//d.formerlyNodeList = d.primaryNodeList
-				arr := make([]discover.NodeID, 0)
-				for _, node := range preArr {
-					arr = append(arr, node.ID)
-				}
-				d.formerlyNodeList = arr
+				d.formerlyNodeList = convertNodeID(preArr)
 			}
 			if len(curArr) != 0 {
-				//d.formerlyNodeList = d.primaryNodeList
-				arr := make([]discover.NodeID, 0)
-				for _, node := range curArr {
-					arr = append(arr, node.ID)
-				}
-				d.primaryNodeList = arr
+				d.primaryNodeList = convertNodeID(curArr)
+			}
+			if len(nextArr) != 0 {
+				d.nextNodeList = convertNodeID(nextArr)
 			}
 		}
 	}
@@ -242,19 +228,38 @@ func (d *dpos) GetOwner (state vm.StateDB, nodeId discover.NodeID) common.Addres
 	return d.candidatePool.GetOwner(state, nodeId)
 }
 
+// Getting allow block interval for refunds
+func (d *dpos) GetRefundInterval () uint64 {
+	return d.candidatePool.GetRefundInterval()
+}
+
 // cbft共识区块产生分叉后需要更新primaryNodeList和formerlyNodeList
 func (d *dpos) UpdateNodeList (state *state.StateDB) {
 	log.Warn("---cbft共识区块产生分叉，更新primaryNodeList和formerlyNodeList---", "state", state)
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	formerNodes, err1 := d.GetWitness(state, -1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
-	currentNodes, err2 := d.GetWitness(state, 0)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
-	if err1 == nil && err2 == nil && len(formerNodes) > 0 && len(currentNodes) > 0 {
-		d.primaryNodeList = convertNodeID(currentNodes)
-		d.formerlyNodeList = convertNodeID(formerNodes)
-	} else {
+	//formerNodes, err1 := d.GetWitness(state, -1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
+	//currentNodes, err2 := d.GetWitness(state, 0)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
+	if preArr, curArr, nextArr, err := d.candidatePool.GetAllWitness(state); nil != err {
+		log.Error("Load Witness from state failed on SetCandidatePool err", err)
 		panic("UpdateNodeList error")
+	}else {
+		if len(preArr) != 0 {
+			d.formerlyNodeList = convertNodeID(preArr)
+		}
+		if len(curArr) != 0 {
+			d.primaryNodeList = convertNodeID(curArr)
+		}
+		if len(nextArr) != 0 {
+			d.nextNodeList = convertNodeID(nextArr)
+		}
 	}
+	//if err1 == nil && err2 == nil && len(formerNodes) > 0 && len(currentNodes) > 0 {
+	//	d.primaryNodeList = convertNodeID(currentNodes)
+	//	d.formerlyNodeList = convertNodeID(formerNodes)
+	//} else {
+	//	panic("UpdateNodeList error")
+	//}
 }
 
 func convertNodeID(nodes []*discover.Node) []discover.NodeID {

@@ -857,6 +857,10 @@ func (c *CandidatePool) GetAllWitness (state *state.StateDB) ([]*discover.Node, 
 }
 
 
+func(c *CandidatePool) GetRefundInterval() uint64 {
+	return c.RefundBlockNumber
+}
+
 func (c *CandidatePool) setImmediate(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate/*, isADD bool*/) error {
 	c.immediateCandates[candidateId] = can
 	if value, err := rlp.EncodeToBytes(can); nil != err {
