@@ -19,6 +19,7 @@ import (
 type dpos struct {
 	formerlyNodeList 	[]discover.NodeID   // the previous round of witnesses nodeId
 	primaryNodeList   	[]discover.NodeID	// the current round of witnesses nodeId
+	nextNodeList 		[]discover.NodeID  	// the next round of witnesses nodeId
 	chain             	*core.BlockChain
 	lastCycleBlockNum 	uint64
 	startTimeOfEpoch  	int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
@@ -160,6 +161,10 @@ func (d *dpos)  Switch(state *state.StateDB) bool {
 // flag：-1: the previous round of witnesses  0: the current round of witnesses   1: the next round of witnesses
 func (d *dpos) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
 	return d.candidatePool.GetWitness(state, flag)
+}
+
+func (d *dpos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
+	return d.candidatePool.GetAllWitness(state)
 }
 
 // setting candidate pool of dpos module
