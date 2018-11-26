@@ -275,6 +275,11 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 		tmpArr := (c.candidateCacheArr)[c.maxCount:]
 		// Reserve elected candidates
 		c.candidateCacheArr = (c.candidateCacheArr)[:c.maxCount]
+
+		newimmediateIds := make([]discover.NodeID, 0)
+		for _, can := range c.candidateCacheArr {
+			newimmediateIds = append(newimmediateIds, can.CandidateId)
+		}
 		// handle tmpArr
 		for _, tmpCan := range tmpArr {
 			// delete the lost candidates from immediate elected candidates of trie
@@ -286,6 +291,13 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 				return err
 			}
 		}
+
+		// update immediate index
+		if err := c.setImmediateIndex(state, newimmediateIds); nil != err {
+			log.Error("Failed to encode immediate ids on SetCandidate err", err)
+			return err
+		}
+
 		// update index of refund (defeat) on trie
 		if err := c.setDefeatIndex(state); nil != err {
 			return err
@@ -342,6 +354,20 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 		if err := c.delImmediate(state, nodeId); nil != err {
 			return err
 		}
+		// update immediate id index
+		if ids, err := c.getImmediateIndex(state); nil != err {
+			return err
+		}else {
+			for i, id := range ids {
+				if id == nodeId {
+					ids = append(ids[:i], ids[i+1:]...)
+				}
+			}
+			if err := c.setImmediateIndex(state, ids); nil != err {
+				return err
+			}
+		}
+
 		// append to refund (defeat) trie
 		if err := c.setDefeat(state, nodeId, can); nil != err {
 			return err
@@ -575,6 +601,19 @@ func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID,
 			log.Error("RefundBalance failed to delDefeat err", err)
 			return err
 		}
+		if ids, err := getDefeatIdsByState(state); nil != err {
+			for i, id := range ids {
+				if id == nodeId {
+					ids = append(ids[:i], ids[i+1:]...)
+				}
+			}
+			if value ,err := rlp.EncodeToBytes(&ids); nil != err {
+				log.Error("Failed to encode candidate ids on RefundBalance err", err)
+				return CandidateEncodeErr
+			}else {
+				setDefeatIdsState(state, value)
+			}
+		}
 	}else {
 		// If have some remaining, update that
 		if arrVal, err := rlp.EncodeToBytes(canArr); nil != err {
@@ -759,8 +798,8 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 			return false
 		}
 	}
-	//// clear next witness index
-	//c.setNextWitnessIndex(state, make([]discover.NodeID, 0))
+	// clear next witness index
+	c.setNextWitnessIndex(state, make([]discover.NodeID, 0))
 	return true
 }
 
@@ -884,30 +923,30 @@ func (c *CandidatePool) delImmediate (state vm.StateDB, candidateId discover.Nod
 	setImmediateState(state, candidateId, []byte{})
 	// deleted immedidate candidate by id on map
 	delete(c.immediateCandates, candidateId)
-	// delete the corresponding id in the index
-	var canIds []discover.NodeID
-	if ids, err := getImmediateIdsByState(state); nil != err {
-		log.Error("Failed to decode ImmediateIds err", err)
-		return err
-	}else {
-		canIds = ids
-	}
-
-	var flag bool
-	for i, id := range canIds {
-		if id == candidateId {
-			flag = true
-			canIds = append(canIds[:i], canIds[i+1:]...)
-		}
-	}
-	if flag {
-		if val, err := rlp.EncodeToBytes(canIds); nil != err {
-			log.Error("Failed to encode ImmediateIds err", err)
-			return err
-		}else {
-			setImmediateIdsState(state, val)
-		}
-	}
+	//// delete the corresponding id in the index
+	//var canIds []discover.NodeID
+	//if ids, err := getImmediateIdsByState(state); nil != err {
+	//	log.Error("Failed to decode ImmediateIds err", err)
+	//	return err
+	//}else {
+	//	canIds = ids
+	//}
+	//
+	//var flag bool
+	//for i, id := range canIds {
+	//	if id == candidateId {
+	//		flag = true
+	//		canIds = append(canIds[:i], canIds[i+1:]...)
+	//	}
+	//}
+	//if flag {
+	//	if val, err := rlp.EncodeToBytes(canIds); nil != err {
+	//		log.Error("Failed to encode ImmediateIds err", err)
+	//		return err
+	//	}else {
+	//		setImmediateIdsState(state, val)
+	//	}
+	//}
 	return nil
 }
 
@@ -950,30 +989,30 @@ func (c *CandidatePool) delDefeat(state vm.StateDB, nodeId discover.NodeID) erro
 	delete(c.defeatCandidates, nodeId)
 	setDefeatState(state, nodeId, []byte{})
 
-	// delete the corresponding id in the index
-	var canIds []discover.NodeID
-	if ids, err := getDefeatIdsByState(state); nil != err {
-		log.Error("Failed to decode DefeatIds err", err)
-		return err
-	}else {
-		canIds = ids
-	}
-
-	var flag bool
-	for i, id := range canIds {
-		if id == nodeId {
-			flag = true
-			canIds = append(canIds[:i], canIds[i+1:]...)
-		}
-	}
-	if flag {
-		if val, err := rlp.EncodeToBytes(canIds); nil != err {
-			log.Error("Failed to encode ImmediateIds err", err)
-			return err
-		}else {
-			setDefeatIdsState(state, val)
-		}
-	}
+	//// delete the corresponding id in the index
+	//var canIds []discover.NodeID
+	//if ids, err := getDefeatIdsByState(state); nil != err {
+	//	log.Error("Failed to decode DefeatIds err", err)
+	//	return err
+	//}else {
+	//	canIds = ids
+	//}
+	//
+	//var flag bool
+	//for i, id := range canIds {
+	//	if id == nodeId {
+	//		flag = true
+	//		canIds = append(canIds[:i], canIds[i+1:]...)
+	//	}
+	//}
+	//if flag {
+	//	if val, err := rlp.EncodeToBytes(canIds); nil != err {
+	//		log.Error("Failed to encode ImmediateIds err", err)
+	//		return err
+	//	}else {
+	//		setDefeatIdsState(state, val)
+	//	}
+	//}
 	return nil
 }
 
@@ -998,30 +1037,30 @@ func (c *CandidatePool) delPreviousWitness (state vm.StateDB, candidateId discov
 	delete(c.preOriginCandidates, candidateId)
 	// delete previous witness by id on trie
 	setPreviousWitnessState(state, candidateId, []byte{})
-	// delete the corresponding id in the index
-	var canIds []discover.NodeID
-	if ids, err := getPreviousWitnessIdsState(state); nil != err {
-		log.Error("Failed to decode PreviousWitnessIds err", err)
-		return err
-	}else {
-		canIds = ids
-	}
-
-	var flag bool
-	for i, id := range canIds {
-		if id == candidateId {
-			flag = true
-			canIds = append(canIds[:i], canIds[i+1:]...)
-		}
-	}
-	if flag {
-		if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
-			log.Error("Failed to encode PreviousWitnessIds err", err)
-			return err
-		}else {
-			setPreviosWitnessIdsState(state, arrVal)
-		}
-	}
+	//// delete the corresponding id in the index
+	//var canIds []discover.NodeID
+	//if ids, err := getPreviousWitnessIdsState(state); nil != err {
+	//	log.Error("Failed to decode PreviousWitnessIds err", err)
+	//	return err
+	//}else {
+	//	canIds = ids
+	//}
+	//
+	//var flag bool
+	//for i, id := range canIds {
+	//	if id == candidateId {
+	//		flag = true
+	//		canIds = append(canIds[:i], canIds[i+1:]...)
+	//	}
+	//}
+	//if flag {
+	//	if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
+	//		log.Error("Failed to encode PreviousWitnessIds err", err)
+	//		return err
+	//	}else {
+	//		setPreviosWitnessIdsState(state, arrVal)
+	//	}
+	//}
 	return nil
 }
 
@@ -1076,30 +1115,30 @@ func (c *CandidatePool) delWitness (state vm.StateDB, candidateId discover.NodeI
 	delete(c.originCandidates, candidateId)
 	// delete witness by id on trie
 	setWitnessState(state, candidateId, []byte{})
-	// delete the corresponding id in the index
-	var canIds []discover.NodeID
-	if ids, err := getWitnessIdsByState(state); nil != err {
-		log.Error("Failed to decode WitnessIds err", err)
-		return err
-	}else {
-		canIds = ids
-	}
-
-	var flag bool
-	for i, id := range canIds {
-		if id == candidateId {
-			flag = true
-			canIds = append(canIds[:i], canIds[i+1:]...)
-		}
-	}
-	if flag {
-		if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
-			log.Error("Failed to encode WitnessIds err", err)
-			return err
-		}else {
-			setWitnessIdsState(state, arrVal)
-		}
-	}
+	//// delete the corresponding id in the index
+	//var canIds []discover.NodeID
+	//if ids, err := getWitnessIdsByState(state); nil != err {
+	//	log.Error("Failed to decode WitnessIds err", err)
+	//	return err
+	//}else {
+	//	canIds = ids
+	//}
+	//
+	//var flag bool
+	//for i, id := range canIds {
+	//	if id == candidateId {
+	//		flag = true
+	//		canIds = append(canIds[:i], canIds[i+1:]...)
+	//	}
+	//}
+	//if flag {
+	//	if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
+	//		log.Error("Failed to encode WitnessIds err", err)
+	//		return err
+	//	}else {
+	//		setWitnessIdsState(state, arrVal)
+	//	}
+	//}
 	return nil
 }
 
@@ -1125,31 +1164,31 @@ func (c *CandidatePool) delNextWitness (state vm.StateDB, candidateId discover.N
 	// deleted next witness by id on trie
 	setNextWitnessState(state, candidateId, []byte{})
 
-	// getting origin index
-	var canIds []discover.NodeID
-	if ids, err := getNextWitnessIdsByState(state); nil != err {
-		log.Error("Failed to decode NextWitnessIds err", err)
-		return err
-	}else {
-		canIds = ids
-	}
-
-	// delete the corresponding id in the index
-	var flag bool
-	for i, id := range canIds {
-		if id == candidateId {
-			flag = true
-			canIds = append(canIds[:i], canIds[i+1:]...)
-		}
-	}
-	if flag {
-		if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
-			log.Error("Failed to encode NextWitnessIds err", err)
-			return err
-		}else {
-			setNextWitnessIdsState(state, arrVal)
-		}
-	}
+	//// getting origin index
+	//var canIds []discover.NodeID
+	//if ids, err := getNextWitnessIdsByState(state); nil != err {
+	//	log.Error("Failed to decode NextWitnessIds err", err)
+	//	return err
+	//}else {
+	//	canIds = ids
+	//}
+	//
+	//// delete the corresponding id in the index
+	//var flag bool
+	//for i, id := range canIds {
+	//	if id == candidateId {
+	//		flag = true
+	//		canIds = append(canIds[:i], canIds[i+1:]...)
+	//	}
+	//}
+	//if flag {
+	//	if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
+	//		log.Error("Failed to encode NextWitnessIds err", err)
+	//		return err
+	//	}else {
+	//		setNextWitnessIdsState(state, arrVal)
+	//	}
+	//}
 	return nil
 }
 
