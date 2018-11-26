@@ -71,6 +71,7 @@ type candidatePool interface {
 	RefundBalance (state StateDB, nodeId discover.NodeID, blockNumber *big.Int) error
 	GetOwner (state StateDB, nodeId discover.NodeID) common.Address
 	SetCandidateExtra(state StateDB, nodeId discover.NodeID, extra string) error
+	GetRefundInterval() uint64
 }
 
 type candidateContract struct{
@@ -273,7 +274,7 @@ func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byt
 	type WithdrawInfo struct {
 		Balance *big.Int 
 		LockNumber *big.Int
-		LockBlockCycle *big.Int
+		LockBlockCycle uint64
 	} 
 	type WithdrawInfos struct {
 		Ret ResultCommon
@@ -284,7 +285,7 @@ func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byt
 	r.Ret = ResultCommon{true, "success"}
 	r.Infos = make([]WithdrawInfo, len(infos))
 	for i, v := range infos {
-		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, WithDrawLock}
+		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, c.evm.CandidatePool.GetRefundInterval()}
 	}
 	data, _ := json.Marshal(r)
 	sdata := DecodeResultStr(string(data))
