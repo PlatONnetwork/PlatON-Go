@@ -80,7 +80,7 @@ var cbft *Cbft
 
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
-	initialNodesID := make([]discover.NodeID, 0, len(config.InitialNodes))
+	initialNodesID := make([]discover.NodeID, len(config.InitialNodes), len(config.InitialNodes))
 	for _,n := range config.InitialNodes {
 		initialNodesID = append(initialNodesID, n.ID)
 	}
@@ -813,9 +813,9 @@ func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
 	return cbft.dpos.getPrimaryNodes(), nil
 }
 
-func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
+func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID, flag int) (bool, error) {
 	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
-	return cbft.dpos.NodeIndex(nodeID) >= 0, nil
+	return cbft.dpos.NodeIndex(nodeID, flag) >= 0, nil
 }
 
 func (cbft *Cbft) IsConsensusNode() (bool, error) {
