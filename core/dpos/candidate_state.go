@@ -23,6 +23,9 @@ const(
 	// immediate elected candidate
 	ImmediatePrefix 			= "id"
 	ImmediateListPrefix 		= "iL"
+	// previous witness
+	PreWitnessPrefix			= "Pwn"
+	PreWitnessListPrefix 		= "PwL"
 	// witness
 	WitnessPrefix 				= "wn"
 	WitnessListPrefix 			= "wL"
@@ -38,6 +41,9 @@ var (
 	// immediate elected candidate
 	ImmediateBtyePrefix 		= []byte(ImmediatePrefix)
 	ImmediateListBtyePrefix 	= []byte(ImmediateListPrefix)
+	// previous witness
+	PreWitnessBytePrefix		= []byte(PreWitnessPrefix)
+	PreWitnessListBytePrefix	= []byte(PreWitnessListPrefix)
 	// witness
 	WitnessBtyePrefix 			= []byte(WitnessPrefix)
 	WitnessListBtyePrefix 		= []byte(WitnessListPrefix)
@@ -66,6 +72,8 @@ type CandidatePool struct {
 	// allow block interval for refunds
 	RefundBlockNumber 		uint64
 
+	// previous witness
+	preOriginCandidates 	map[discover.NodeID]*types.Candidate
 	// current witnesses
 	originCandidates  		map[discover.NodeID]*types.Candidate
 	// next witnesses
@@ -83,13 +91,15 @@ type CandidatePool struct {
 var candidatePool *CandidatePool
 
 // Initialize the global candidate pool object
-func NewCandidatePool(/*state vm.StateDB, */configs *params.DposConfig/*, isgenesis bool*/) *CandidatePool {
+func NewCandidatePool(configs *params.DposConfig) *CandidatePool {
 
 	candidatePool =  &CandidatePool{
 		maxCount:				configs.Candidate.MaxCount,
 		maxChair:				configs.Candidate.MaxChair,
 		RefundBlockNumber: 		configs.Candidate.RefundBlockNumber,
+		preOriginCandidates: 	make(map[discover.NodeID]*types.Candidate, 0),
 		originCandidates: 		make(map[discover.NodeID]*types.Candidate, 0),
+		nextOriginCandidates: 	make(map[discover.NodeID]*types.Candidate, 0),
 		immediateCandates: 		make(map[discover.NodeID]*types.Candidate, 0),
 		defeatCandidates: 		make(map[discover.NodeID][]*types.Candidate, 0),
 		candidateCacheArr: 		make([]*types.Candidate, 0),
@@ -98,88 +108,33 @@ func NewCandidatePool(/*state vm.StateDB, */configs *params.DposConfig/*, isgene
 	return candidatePool
 }
 
-//func loadConfig(configs *params.DposConfig, state vm.StateDB) error {
-//	if len(configs.Candidates) != 0 {
-//		// 如果配置过多，只取前面的
-//		if len(configs.Candidates) > int(configs.MaxCount) {
-//			configs.Candidates = (configs.Candidates)[:configs.MaxCount]
-//		}
-//
-//		// can cache
-//		witcans 		:=	make([]*types.Candidate, 0)
-//		immcans 		:=  make([]*types.Candidate, 0)
-//
-//		//witnessMap := make(map[discover.NodeID]*types.Candidate, 0)
-//		//immediateMap := make(map[discover.NodeID]*types.Candidate, 0)
-//
-//		for i, canConfig := range configs.Candidates {
-//			can := &types.Candidate{
-//				Deposit:			canConfig.Deposit,
-//				BlockNumber: 		canConfig.BlockNumber,
-//				TxIndex: 		 	canConfig.TxIndex,
-//				CandidateId: 	 	canConfig.CandidateId,
-//				Host: 			 	canConfig.Host,
-//				Port: 			 	canConfig.Port,
-//				Owner: 				canConfig.Owner,
-//				From: 				canConfig.From,
-//			}
-//			// 详情追加到树中
-//			if val, err := rlp.EncodeToBytes(can); nil == err {
-//				// 追加见证人信息
-//				if uint64(i) < configs.MaxChair {
-//					fmt.Println("设置进去WitnessId = ", can.CandidateId.String())
-//					//state.SetState(common.CandidateAddr, WitnessKey(can.CandidateId), val)
-//					setWitnessState(state, can.CandidateId, val)
-//					witcans = append(witcans, can)
-//				}
-//				fmt.Println("设置进去ImmediateId = ", can.CandidateId.String())
-//				// 追加入围人信息
-//				//state.SetState(common.CandidateAddr,  ImmediateKey(can.CandidateId), val)
-//				setImmediateState(state, can.CandidateId, val)
-//				immcans = append(immcans, can)
-//			}else {
-//				log.Error("Failed to encode candidate object on loadConfig", "key", string(WitnessKey(can.CandidateId)), "err", err)
-//				return err
-//			}
-//		}
-//		// 索引排序
-//		candidateSort(witcans)
-//		candidateSort(immcans)
-//
-//		// id cache
-//		witnessIds 		:= 	make([]discover.NodeID, 0)
-//		immediateIds 	:= 	make([]discover.NodeID, 0)
-//
-//		for _, can := range witcans {
-//			witnessIds = append(witnessIds, can.CandidateId)
-//		}
-//		for _, can := range immcans {
-//			immediateIds = append(immediateIds, can.CandidateId)
-//		}
-//
-//		// 索引上树
-//		if arrVal, err := rlp.EncodeToBytes(witnessIds); nil == err {
-//			setWitnessIdsState(state, arrVal)
-//		}else {
-//			log.Error("Failed to encode witnessIds on loadConfig", "err", err)
-//			return err
-//		}
-//
-//		if arrVal, err := rlp.EncodeToBytes(immediateIds); nil == err {
-//			setImmediateIdsState(state, arrVal)
-//		}else {
-//			log.Error("Failed to encode immediateIds on loadConfig", "err", err)
-//			return err
-//		}
-//	}
-//	return nil
-//}
 
 // flag:
-// 0: only init current witness and next witness
-// 1：init current witness and next witness and immediate
+// 0: only init previous witness and current witness and next witness
+// 1：init previous witness and current witness and next witness and immediate
 // 2: init all information
 func (c *CandidatePool) initDataByState (state vm.StateDB, flag int) error {
+	// loading previous witness
+	var prewitnessIds []discover.NodeID
+	c.preOriginCandidates = make(map[discover.NodeID]*types.Candidate, 0)
+	if ids, err := getPreviousWitnessIdsState(state); nil != err {
+		log.Error("Failed to decode previous witnessIds on initDataByState err", err)
+		return err
+	}else {
+		prewitnessIds = ids
+	}
+	PrintObject("prewitnessIds = ", prewitnessIds)
+	for _, witnessId := range prewitnessIds {
+		fmt.Println("prewitnessId = ", witnessId.String())
+		var can *types.Candidate
+		if c, err := getPreviousWitnessByState(state, witnessId); nil != err {
+			log.Error("Failed to decode Candidate on initDataByState", "err", err)
+			return CandidateDecodeErr
+		}else {
+			can = c
+		}
+		c.preOriginCandidates[witnessId] = can
+	}
 
 	// loading current witnesses
 	var witnessIds []discover.NodeID
@@ -300,9 +255,6 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 		}
 	}
 
-	// cache map
-	//cache := c.immediateCandates
-
 	// Whether the current candidate is new
 	// then append to cache array
 	var needSort bool
@@ -411,7 +363,7 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 			From: 			can.From,
 			Extra: 			can.Extra,
 		}
-		c.immediateCandates[nodeId] = canNew
+		//c.immediateCandates[nodeId] = canNew
 
 		// update current candidate
 		if err := c.setImmediate(state, nodeId, canNew); nil != err {
@@ -522,22 +474,23 @@ func (c *CandidatePool) GetOwner (state vm.StateDB, nodeId discover.NodeID) comm
 		log.Error("Failed to initDataByState on GetOwner err", err)
 		return common.Address{}
 	}
-	var addr common.Address
+	pre_can, pre_ok := c.preOriginCandidates[nodeId]
 	or_can, or_ok := c.originCandidates[nodeId]
 	im_can, im_ok := c.immediateCandates[nodeId]
 	canArr, de_ok := c.defeatCandidates[nodeId]
+
+	if pre_ok {
+		return pre_can.Owner
+	}
 	if or_ok {
-		addr = or_can.Owner
-		return addr
+		return or_can.Owner
 	}
 	if im_ok {
-		addr = im_can.Owner
-		return addr
+		return im_can.Owner
 	}
 	if de_ok {
 		if len(canArr) != 0 {
-			addr = canArr[0].Owner
-			return addr
+			return canArr[0].Owner
 		}
 	}
 	return common.Address{}
@@ -703,13 +656,13 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 	// copy witnesses information
 	copyCandidateMapByIds(nextWits, c.immediateCandates, nextWitIds)
 
-	// clear all old nextwitnesses information
-	for nodeId, _ := range c.nextOriginCandidates {
-		if err := c.delNextWitness(state, nodeId); nil != err {
-			log.Error("failed to delNextWitness on election err", err)
-			return nil, err
-		}
-	}
+	//// clear all old nextwitnesses information
+	//	for nodeId, _ := range c.nextOriginCandidates {
+	//		if err := c.delNextWitness(state, nodeId); nil != err {
+	//			log.Error("failed to delNextWitness on election err", err)
+	//			return nil, err
+	//		}
+	//}
 	// set up all new nextwitnesses information
 	for nodeId, can := range nextWits {
 		if err := c.setNextWitness(state, nodeId, can); nil != err {
@@ -744,6 +697,34 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 		log.Error("Failed to initDataByState on Switch err", err)
 		return false
 	}
+	// clear all old previous witness on trie
+	for nodeId, _ := range c.preOriginCandidates {
+		if err := c.delPreviousWitness(state, nodeId); nil != err {
+			log.Error("Failed to delPreviousWitness on Switch err", err)
+			return false
+		}
+	}
+	// set up new witnesses to previous witnesses on trie by current witnesses
+	for nodeId, can := range c.originCandidates {
+		if err := c.setPreviousWitness(state, nodeId, can); nil != err {
+			log.Error("Failed to setPreviousWitness on Switch err", err)
+			return false
+		}
+
+	}
+	// update previous witness index by current witness index
+	if ids, err := c.getWitnessIndex(state); nil != err {
+		log.Error("Failed to getWitnessIndex on Switch err", err)
+		return false
+	}else {
+		// replace witnesses index
+		if err := c.setPreviousWitnessindex(state, ids); nil != err {
+			log.Error("Failed to setPreviousWitnessindex on Switch err", err)
+			return false
+		}
+	}
+
+
 	// clear all old witnesses on trie
 	for nodeId,_ := range c.originCandidates {
 		if err := c.delWitness(state, nodeId); nil != err {
@@ -751,37 +732,33 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 			return false
 		}
 	}
-
-	// cache candidates
-	// collected new witnesses
-	caches := make([]*types.Candidate, 0)
-
-	// set up new witnesses to current witnesses on trie
+	// set up new witnesses to current witnesses on trie by next witnesses
 	for nodeId, can := range c.nextOriginCandidates {
 		if err := c.setWitness(state, nodeId, can); nil != err {
 			log.Error("Failed to setWitness on Switch err", err)
 			return false
 		}
-		caches = append(caches, can)
 	}
-	// sort new witnesses
-	candidateSort(caches)
-
-	// cache ids
-	// collected ids of new witnesses
-	canIds := make([]discover.NodeID, 0)
-
-	for _, can := range caches {
-		canIds = append(canIds, can.CandidateId)
-	}
-
-	// replace witnesses index
-	if err := c.setWitnessindex(state, canIds); nil != err {
-		log.Error("Failed to setWitnessindex on Switch err", err)
+	// update current witness index by next witness index
+	if ids, err := c.getNextWitnessIndex(state); nil != err {
+		log.Error("Failed to getNextWitnessIndex on Switch err", err)
 		return false
+	}else {
+		// replace witnesses index
+		if err := c.setWitnessindex(state, ids); nil != err {
+			log.Error("Failed to setWitnessindex on Switch err", err)
+			return false
+		}
 	}
-	c.originCandidates = c.nextOriginCandidates
-	c.nextOriginCandidates = make(map[discover.NodeID]*types.Candidate)
+	// clear all old nextwitnesses information
+	for nodeId, _ := range c.nextOriginCandidates {
+		if err := c.delNextWitness(state, nodeId); nil != err {
+			log.Error("failed to delNextWitness on election err", err)
+			return false
+		}
+	}
+	//// clear next witness index
+	//c.setNextWitnessIndex(state, make([]discover.NodeID, 0))
 	return true
 }
 
@@ -794,29 +771,36 @@ func (c *CandidatePool) GetWitness (state *state.StateDB, flag int) ([]*discover
 		log.Error("Failed to initDataByState on GetWitness err", err)
 		return nil, err
 	}
-	var ids []discover.NodeID
+	//var ids []discover.NodeID
 	var witness map[discover.NodeID]*types.Candidate
-	if flag == 0 {
-		witnessIds, err := c.getWitnessIndex(state)
-		if nil != err {
-			log.Error("Failed to getWitnessIndex on GetWitness err", err)
-			return nil, err
-		}
-		ids = witnessIds
+	if flag == -1 {
+		//prewitnessIds, err := c.getPreviousWitnessIndex(state)
+		//if nil != err {
+		//	log.Error("Failed to getPreviousWitnessIndex on GetWitness err", err)
+		//	return nil, err
+		//}
+		//ids = prewitnessIds
+		witness = c.preOriginCandidates
+	}else if flag == 0 {
+		//witnessIds, err := c.getWitnessIndex(state)
+		//if nil != err {
+		//	log.Error("Failed to getWitnessIndex on GetWitness err", err)
+		//	return nil, err
+		//}
+		//ids = witnessIds
 		witness = c.originCandidates
 	}else if flag == 1 {
-		nextWitnessIds, err := c.getNextWitnessIndex(state)
-		if nil != err {
-			log.Error("Failed to getWitnessIndex on GetWitness err", err)
-			return nil, err
-		}
-		ids = nextWitnessIds
+		//nextWitnessIds, err := c.getNextWitnessIndex(state)
+		//if nil != err {
+		//	log.Error("Failed to getNextWitnessIndex on GetWitness err", err)
+		//	return nil, err
+		//}
+		//ids = nextWitnessIds
 		witness = c.nextOriginCandidates
 	}
 
 	arr := make([]*discover.Node, 0)
-	for _, id := range ids {
-		can := witness[id]
+	for _, can := range witness {
 		if node, err := buildWitnessNode(can); nil != err {
 			log.Error("Failed to build Node on GetWitness err", err, "nodeId", can.CandidateId.String())
 			continue
@@ -958,6 +942,64 @@ func (c *CandidatePool)setDefeatIndex(state vm.StateDB) error {
 	return nil
 }
 
+
+func (c *CandidatePool) delPreviousWitness (state vm.StateDB, candidateId discover.NodeID) error {
+	// deleted previous witness by id on map
+	delete(c.preOriginCandidates, candidateId)
+	// delete previous witness by id on trie
+	setPreviousWitnessState(state, candidateId, []byte{})
+	// delete the corresponding id in the index
+	var canIds []discover.NodeID
+	if ids, err := getPreviousWitnessIdsState(state); nil != err {
+		log.Error("Failed to decode PreviousWitnessIds err", err)
+		return err
+	}else {
+		canIds = ids
+	}
+
+	var flag bool
+	for i, id := range canIds {
+		if id == candidateId {
+			flag = true
+			canIds = append(canIds[:i], canIds[i+1:]...)
+		}
+	}
+	if flag {
+		if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
+			log.Error("Failed to encode PreviousWitnessIds err", err)
+			return err
+		}else {
+			setPreviosWitnessIdsState(state, arrVal)
+		}
+	}
+	return nil
+}
+
+func (c *CandidatePool) setPreviousWitness (state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
+	c.preOriginCandidates[nodeId] = can
+	if val, err := rlp.EncodeToBytes(can); nil != err {
+		log.Error("Failed to encode Candidate on setPreviousWitness err", err)
+		return err
+	}else {
+		setPreviousWitnessState(state, nodeId, val)
+	}
+	return nil
+}
+
+func (c *CandidatePool) setPreviousWitnessindex(state vm.StateDB, nodeIds []discover.NodeID) error {
+	if val, err := rlp.EncodeToBytes(nodeIds); nil != err {
+		log.Error("Failed to encode Previous WitnessIds err", err)
+		return err
+	}else {
+		setPreviosWitnessIdsState(state, val)
+	}
+	return nil
+}
+
+func (c *CandidatePool) getPreviousWitnessIndex (state vm.StateDB) ([]discover.NodeID, error) {
+	return getPreviousWitnessIdsState(state)
+}
+
 func (c *CandidatePool) setWitness (state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 	c.originCandidates[nodeId] = can
 	if val, err := rlp.EncodeToBytes(can); nil != err {
@@ -987,7 +1029,7 @@ func (c *CandidatePool) delWitness (state vm.StateDB, candidateId discover.NodeI
 	// delete the corresponding id in the index
 	var canIds []discover.NodeID
 	if ids, err := getWitnessIdsByState(state); nil != err {
-		log.Error("Failed to decode ImmediateIds err", err)
+		log.Error("Failed to decode WitnessIds err", err)
 		return err
 	}else {
 		canIds = ids
@@ -1002,7 +1044,7 @@ func (c *CandidatePool) delWitness (state vm.StateDB, candidateId discover.NodeI
 	}
 	if flag {
 		if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
-			log.Error("Failed to encode ImmediateIds err", err)
+			log.Error("Failed to encode WitnessIds err", err)
 			return err
 		}else {
 			setWitnessIdsState(state, arrVal)
@@ -1036,7 +1078,7 @@ func (c *CandidatePool) delNextWitness (state vm.StateDB, candidateId discover.N
 	// getting origin index
 	var canIds []discover.NodeID
 	if ids, err := getNextWitnessIdsByState(state); nil != err {
-		log.Error("Failed to decode ImmediateIds err", err)
+		log.Error("Failed to decode NextWitnessIds err", err)
 		return err
 	}else {
 		canIds = ids
@@ -1052,7 +1094,7 @@ func (c *CandidatePool) delNextWitness (state vm.StateDB, candidateId discover.N
 	}
 	if flag {
 		if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
-			log.Error("Failed to encode ImmediateIds err", err)
+			log.Error("Failed to encode NextWitnessIds err", err)
 			return err
 		}else {
 			setNextWitnessIdsState(state, arrVal)
@@ -1089,8 +1131,31 @@ func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (
 	return nil, nil
 }
 
+func getPreviousWitnessIdsState(state vm.StateDB) ([]discover.NodeID, error) {
+	var witnessIds []discover.NodeID
+	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessListKey()); len(valByte) != 0 {
+		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
+			return nil, err
+		}
+	}
+	return witnessIds, nil
+}
 
+func setPreviosWitnessIdsState (state vm.StateDB, arrVal []byte) {
+	state.SetState(common.CandidateAddr, PreviousWitnessListKey(), arrVal)
+}
 
+func getPreviousWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
+	var can types.Candidate
+	if err := rlp.DecodeBytes(state.GetState(common.CandidateAddr, PreviousWitnessKey(id)), &can); nil != err {
+		return nil, err
+	}
+	return &can, nil
+}
+
+func setPreviousWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
+	state.SetState(common.CandidateAddr, PreviousWitnessKey(id), val)
+}
 
 func getWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var witnessIds []discover.NodeID
@@ -1296,6 +1361,14 @@ func immediateKey(key []byte) []byte {
 	return append(ImmediateBtyePrefix, key...)
 }
 
+func PreviousWitnessKey(nodeId discover.NodeID) []byte {
+	return prewitnessKey(nodeId.Bytes())
+}
+
+func prewitnessKey (key []byte) []byte {
+	return append(PreWitnessBytePrefix, key...)
+}
+
 func WitnessKey(nodeId discover.NodeID) []byte {
 	//key, _ := rlp.EncodeToBytes(nodeId)
 	return witnessKey(nodeId.Bytes())
@@ -1321,6 +1394,10 @@ func defeatKey(key []byte) []byte {
 
 func ImmediateListKey() []byte {
 	return ImmediateListBtyePrefix
+}
+
+func PreviousWitnessListKey () []byte {
+	return PreWitnessListBytePrefix
 }
 
 func WitnessListKey () []byte {
