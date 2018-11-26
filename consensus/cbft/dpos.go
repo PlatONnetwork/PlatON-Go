@@ -241,7 +241,7 @@ func (d *dpos) UpdateNodeList (state *state.StateDB) {
 	//formerNodes, err1 := d.GetWitness(state, -1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
 	//currentNodes, err2 := d.GetWitness(state, 0)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
 	if preArr, curArr, nextArr, err := d.candidatePool.GetAllWitness(state); nil != err {
-		log.Error("Load Witness from state failed on SetCandidatePool err", err)
+		log.Error("Load Witness from state failed on UpdateNodeList err", err)
 		panic("UpdateNodeList error")
 	}else {
 		if len(preArr) != 0 {
