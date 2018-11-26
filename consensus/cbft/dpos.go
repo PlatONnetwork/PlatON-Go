@@ -70,6 +70,18 @@ func (d *dpos) NodeIndex(nodeID discover.NodeID) int64 {
 	return int64(-1)
 }
 
+func (d *dpos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
+	d.lock.RLock()
+	defer d.lock.RUnlock()
+	nodeList := append(d.primaryNodeList, d.nextNodeList...)
+	for idx, node := range nodeList {
+		if node == nodeID {
+			return int64(idx)
+		}
+	}
+	return int64(-1)
+}
+
 func (d *dpos) getPrimaryNodes() []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
@@ -235,11 +247,9 @@ func (d *dpos) GetRefundInterval () uint64 {
 
 // cbft共识区块产生分叉后需要更新primaryNodeList和formerlyNodeList
 func (d *dpos) UpdateNodeList (state *state.StateDB) {
-	log.Warn("---cbft共识区块产生分叉，更新primaryNodeList和formerlyNodeList---", "state", state)
+	log.Warn("---cbft共识区块产生分叉，更新formerlyNodeList、primaryNodeList和nextNodeList---", "state", state)
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	//formerNodes, err1 := d.GetWitness(state, -1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
-	//currentNodes, err2 := d.GetWitness(state, 0)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
 	if preArr, curArr, nextArr, err := d.candidatePool.GetAllWitness(state); nil != err {
 		log.Error("Load Witness from state failed on UpdateNodeList err", err)
 		panic("UpdateNodeList error")
@@ -254,12 +264,6 @@ func (d *dpos) UpdateNodeList (state *state.StateDB) {
 			d.nextNodeList = convertNodeID(nextArr)
 		}
 	}
-	//if err1 == nil && err2 == nil && len(formerNodes) > 0 && len(currentNodes) > 0 {
-	//	d.primaryNodeList = convertNodeID(currentNodes)
-	//	d.formerlyNodeList = convertNodeID(formerNodes)
-	//} else {
-	//	panic("UpdateNodeList error")
-	//}
 }
 
 func convertNodeID(nodes []*discover.Node) []discover.NodeID {

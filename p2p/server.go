@@ -54,7 +54,7 @@ const (
 
 var errServerStopped = errors.New("server stopped")
 
-type checkConsensusNodeFn func(nodeID discover.NodeID) (bool, error)
+type checkFutureConsensusNodeFn func(nodeID discover.NodeID) (bool, error)
 
 // Config holds Server options.
 type Config struct {
@@ -182,7 +182,7 @@ type Server struct {
 	loopWG        sync.WaitGroup // loop, listenLoop
 	peerFeed      event.Feed
 	log           log.Logger
-	checkConsensusNodeFn checkConsensusNodeFn
+	checkFutureConsensusNodeFn checkFutureConsensusNodeFn
 }
 
 type peerOpFunc func(map[discover.NodeID]*Peer)
@@ -925,7 +925,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 		return DiscUnexpectedIdentity
 	}
 	if dialDest == nil && c.is(inboundConn) {
-		if exists,err := srv.checkConsensusNodeFn(c.id); !exists || err != nil {
+		if exists,err := srv.checkFutureConsensusNodeFn(c.id); !exists || err != nil {
 			clog.Trace("Dialed overdue consensus identity")
 			return DiscOverdueIdentity
 		}
@@ -1072,6 +1072,6 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 	return infos
 }
 
-func (srv *Server) InitCheckConsensusNodeFn(fn checkConsensusNodeFn) {
-	srv.checkConsensusNodeFn = fn
+func (srv *Server) InitcheckFutureConsensusNodeFn(fn checkFutureConsensusNodeFn) {
+	srv.checkFutureConsensusNodeFn = fn
 }
