@@ -20,7 +20,7 @@ import (
 
 
 const(
-	// immediate candidate
+	// immediate elected candidate
 	ImmediatePrefix 			= "id"
 	ImmediateListPrefix 		= "iL"
 	// witness
@@ -35,7 +35,7 @@ const(
 )
 
 var (
-	// immediate candidate
+	// immediate elected candidate
 	ImmediateBtyePrefix 		= []byte(ImmediatePrefix)
 	ImmediateListBtyePrefix 	= []byte(ImmediateListPrefix)
 	// witness
@@ -59,42 +59,32 @@ var (
 )
 
 type CandidatePool struct {
-	// allow immediate max count
+	// allow immediate elected max count
 	maxCount				uint64
-	// 最大允许见证人数目
+	// allow witness max count
 	maxChair				uint64
-	// 允许退款的块间隔
+	// allow block interval for refunds
 	RefundBlockNumber 		uint64
 
-	// 本轮选出的见证人集
+	// current witnesses
 	originCandidates  		map[discover.NodeID]*types.Candidate
-	// 下一轮见证人集
+	// next witnesses
 	nextOriginCandidates  	map[discover.NodeID]*types.Candidate
-	// 即时的入选人集
+	// immediates
 	immediateCandates 		map[discover.NodeID]*types.Candidate
-	// 质押失败的竞选人集 (退款用)
+	// refunds
 	defeatCandidates 		map[discover.NodeID][]*types.Candidate
 
 	// cache
 	candidateCacheArr 		[]*types.Candidate
-	//candiateIds 			[]discover.NodeID
 	lock 					*sync.RWMutex
 }
 
 var candidatePool *CandidatePool
 
-// 初始化全局候选池对象
-//func NewCandidatePool(/*state vm.StateDB, */configs *params.DposConfig/*, isgenesis bool*/) (*CandidatePool, error) {
-//func NewCandidatePool(blockChain *core.BlockChain, configs *params.DposConfig) (*CandidatePool, error) {
+// Initialize the global candidate pool object
 func NewCandidatePool(/*state vm.StateDB, */configs *params.DposConfig/*, isgenesis bool*/) *CandidatePool {
 
-	// 创世块的时候需要, 把配置的信息加载到stateDB
-	//if !isgenesis {
-	//	if err := loadConfig(configs, state); nil != err {
-	//		log.Error("Failed to load config on NewCandidatePool", "err", err)
-	//		return nil, err
-	//	}
-	//}
 	candidatePool =  &CandidatePool{
 		maxCount:				configs.Candidate.MaxCount,
 		maxChair:				configs.Candidate.MaxChair,
@@ -185,10 +175,13 @@ func NewCandidatePool(/*state vm.StateDB, */configs *params.DposConfig/*, isgene
 //	return nil
 //}
 
+// flag:
+// 0: only init current witness and next witness
+// 1：init current witness and next witness and immediate
+// 2: init all information
+func (c *CandidatePool) initDataByState (state vm.StateDB, flag int) error {
 
-func (c *CandidatePool) initDataByState (state vm.StateDB) error {
-
-	// 加载 见证人信息
+	// loading current witnesses
 	var witnessIds []discover.NodeID
 	c.originCandidates = make(map[discover.NodeID]*types.Candidate, 0)
 	if ids, err := getWitnessIdsByState(state); nil != err {
@@ -209,7 +202,8 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 		}
 		c.originCandidates[witnessId] = can
 	}
-	// 加载 下一轮见证人
+
+	// loading next witnesses
 	var nextWitnessIds []discover.NodeID
 	c.nextOriginCandidates = make(map[discover.NodeID]*types.Candidate, 0)
 	if ids, err := getNextWitnessIdsByState(state); nil != err {
@@ -230,54 +224,59 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 		}
 		c.nextOriginCandidates[witnessId] = can
 	}
-	// 加载 入围者
-	var immediateIds []discover.NodeID
-	c.immediateCandates = make(map[discover.NodeID]*types.Candidate, 0)
-	if ids, err := getImmediateIdsByState(state); nil != err {
-		log.Error("Failed to decode immediateIds on initDataByState", "err", err)
-		return err
-	}else {
-		immediateIds = ids
-	}
 
-	// cache
-	canCache := make([]*types.Candidate, 0)
-
-	PrintObject("immediateIds = ", immediateIds)
-	for _, immediateId := range immediateIds {
-		fmt.Println("immediateId = ", immediateId.String())
-		var can *types.Candidate
-		if c, err := getImmediateByState(state, immediateId); nil != err {
-			log.Error("Failed to decode Candidate on initDataByState", "err", err)
-			return CandidateDecodeErr
+	if flag == 1 || flag == 2 {
+		// loading immediate elected candidates
+		var immediateIds []discover.NodeID
+		c.immediateCandates = make(map[discover.NodeID]*types.Candidate, 0)
+		if ids, err := getImmediateIdsByState(state); nil != err {
+			log.Error("Failed to decode immediateIds on initDataByState", "err", err)
+			return err
 		}else {
-			can = c
+			immediateIds = ids
 		}
-		c.immediateCandates[immediateId] = can
-		canCache = append(canCache, can)
-	}
-	c.candidateCacheArr = canCache
 
-	// 加载 需要退款信息
-	var defeatIds []discover.NodeID
-	c.defeatCandidates = make(map[discover.NodeID][]*types.Candidate, 0)
-	if ids, err := getDefeatIdsByState(state); nil != err {
-		log.Error("Failed to decode defeatIds on initDataByState", "err", err)
-		return err
-	}else {
-		defeatIds = ids
-	}
-	PrintObject("defeatIds = ", defeatIds)
-	for _, defeatId := range defeatIds {
-		fmt.Println("defeatId = ", defeatId.String())
-		var canArr []*types.Candidate
-		if arr, err := getDefeatsByState(state, defeatId); nil != err {
-			log.Error("Failed to decode CandidateArr on initDataByState", "err", err)
-			return CandidateDecodeErr
-		}else {
-			canArr = arr
+		// cache
+		canCache := make([]*types.Candidate, 0)
+
+		PrintObject("immediateIds = ", immediateIds)
+		for _, immediateId := range immediateIds {
+			fmt.Println("immediateId = ", immediateId.String())
+			var can *types.Candidate
+			if c, err := getImmediateByState(state, immediateId); nil != err {
+				log.Error("Failed to decode Candidate on initDataByState", "err", err)
+				return CandidateDecodeErr
+			}else {
+				can = c
+			}
+			c.immediateCandates[immediateId] = can
+			canCache = append(canCache, can)
 		}
-		c.defeatCandidates[defeatId] = canArr
+		c.candidateCacheArr = canCache
+	}
+
+	if flag == 2 {
+		// load refunds
+		var defeatIds []discover.NodeID
+		c.defeatCandidates = make(map[discover.NodeID][]*types.Candidate, 0)
+		if ids, err := getDefeatIdsByState(state); nil != err {
+			log.Error("Failed to decode defeatIds on initDataByState", "err", err)
+			return err
+		}else {
+			defeatIds = ids
+		}
+		PrintObject("defeatIds = ", defeatIds)
+		for _, defeatId := range defeatIds {
+			fmt.Println("defeatId = ", defeatId.String())
+			var canArr []*types.Candidate
+			if arr, err := getDefeatsByState(state, defeatId); nil != err {
+				log.Error("Failed to decode CandidateArr on initDataByState", "err", err)
+				return CandidateDecodeErr
+			}else {
+				canArr = arr
+			}
+			c.defeatCandidates[defeatId] = canArr
+		}
 	}
 	return nil
 }
@@ -285,16 +284,16 @@ func (c *CandidatePool) initDataByState (state vm.StateDB) error {
 
 
 
-// 候选人抵押
+// pledge Candidate
 func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 	PrintObject("can:", can)
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 2); nil != err {
 		log.Error("Failed to initDataByState on SetCandidate err", err)
 		return err
 	}
-	// 先追加到 缓存数组中然后做排序
+	// append to the cache array and then sort
 	if len(c.immediateCandates) != 0 && len(c.candidateCacheArr) == 0 {
 		for _, v := range c.immediateCandates {
 			c.candidateCacheArr = append(c.candidateCacheArr, v)
@@ -304,8 +303,8 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 	// cache map
 	//cache := c.immediateCandates
 
-	// 判断当前质押人是否新来的
-	// 只有是新来的，才会追加数组中
+	// Whether the current candidate is new
+	// then append to cache array
 	var needSort bool
 	if _, ok := c.immediateCandates[can.CandidateId]; !ok {
 		c.candidateCacheArr = append(c.candidateCacheArr, can)
@@ -314,33 +313,28 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 
 	c.immediateCandates[can.CandidateId] = can
 	PrintObject("immediateMap:", c.immediateCandates)
-	// 排序
+	// sort cache array
 	if needSort {
 		candidateSort(c.candidateCacheArr)
 	}
-	// 把多余入围者移入落榜名单
+	// move the excessive of immediate elected candidate to refunds
 	if len(c.candidateCacheArr) > int(c.maxCount) {
-		// 截取出当前落榜的候选人
+		// Intercepting the lost candidates to tmpArr
 		tmpArr := (c.candidateCacheArr)[c.maxCount:]
-		// 保留入围候选人
+		// Reserve elected candidates
 		c.candidateCacheArr = (c.candidateCacheArr)[:c.maxCount]
-		// 处理落选人
+		// handle tmpArr
 		for _, tmpCan := range tmpArr {
-
-			//var isDEL bool
-			//if _, ok := cache[tmpCan.CandidateId]; ok {
-			//	isDEL = true
-			//}
-			// 删除trie中的 入围者信息
+			// delete the lost candidates from immediate elected candidates of trie
 			if err := c.delImmediate(state, tmpCan.CandidateId); nil != err {
 				return err
 			}
-			// 追加到落榜集
+			// append to refunds (defeat) trie
 			if err := c.setDefeat(state, tmpCan.CandidateId, tmpCan); nil != err {
 				return err
 			}
 		}
-		// 更新落选人索引
+		// update index of refund (defeat) on trie
 		if err := c.setDefeatIndex(state); nil != err {
 			return err
 		}
@@ -349,30 +343,26 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 	// cache id
 	sortIds := make([]discover.NodeID, 0)
 
-	// 入围者上树
+	// insert elected candidate to tire
 	for _, can := range c.candidateCacheArr {
-		//var isADD bool
-		//if _, ok := cache[can.CandidateId]; !ok {
-		//	isADD = true
-		//}
 		c.setImmediate(state, can.CandidateId, can)
 		sortIds = append(sortIds, can.CandidateId)
 	}
-	// 更新入围者索引
+	// update index of immediate elected candidates on trie
 	c.setImmediateIndex(state, sortIds)
 	return nil
 }
 
-// 获取入围候选人信息
+// Getting immediate candidate info by nodeId
 func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
 	return c.getCandidate(state, nodeId)
 }
 
-// 候选人退出
+// candidate withdraw from immediates elected candidates
 func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 2); nil != err {
 		log.Error("Failed to initDataByState on WithdrawCandidate err", err)
 		return err
 	}
@@ -390,25 +380,26 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 		log.Error("withdraw failed current Candidate is empty")
 		return CandidateEmptyErr
 	}
-	// 判断退押 金额
+	// check withdraw price
 	if can.Deposit.Cmp(price) < 0 {
 		log.Error("withdraw failed refund price must less or equal deposit", "key", nodeId.String())
 		return WithdrawPriceErr
-	}else if can.Deposit.Cmp(price) == 0 { // 全额退出质押
-		// 删除入围者信息
+	}else if can.Deposit.Cmp(price) == 0 { // full withdraw
+		// delete current candidate from immediate elected candidates
 		if err := c.delImmediate(state, nodeId); nil != err {
 			return err
 		}
-		// 追加到落选
+		// append to refund (defeat) trie
 		if err := c.setDefeat(state, nodeId, can); nil != err {
 			return err
 		}
-		// 更新落榜索引
+		// update index of defeat on trie
 		if err := c.setDefeatIndex(state); nil != err {
 			return err
 		}
-	}else { // 只退了一部分, 需要重新对入围者排序
-		// 剩下部分
+	}else {
+		// Only withdraw part of the refunds, need to reorder the immediate elected candidates
+		// The remaining candiate price to update current candidate info
 		canNew := &types.Candidate{
 			Deposit:		new(big.Int).Sub(can.Deposit, price),
 			BlockNumber: 	can.BlockNumber,
@@ -422,11 +413,11 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 		}
 		c.immediateCandates[nodeId] = canNew
 
-		// 更新剩余部分
+		// update current candidate
 		if err := c.setImmediate(state, nodeId, canNew); nil != err {
 			return err
 		}
-		// 退款部分新建退款信息
+		// the withdraw price to build a new refund into defeat on trie
 		canDefeat := &types.Candidate{
 			Deposit: 		price,
 			BlockNumber: 	blockNumber,
@@ -438,11 +429,11 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 			From: 			can.From,
 			Extra:  		can.Extra,
 		}
-		// 退出部分
+		// the withdraw
 		if err := c.setDefeat(state, nodeId, canDefeat); nil != err {
 			return err
 		}
-		//更新退款索引
+		// update index of defeat on trie
 		if err := c.setDefeatIndex(state); nil != err {
 			return err
 		}
@@ -450,11 +441,11 @@ func (c *CandidatePool) WithdrawCandidate (state vm.StateDB, nodeId discover.Nod
 	return nil
 }
 
-// 获取实时所有入围候选人
+// Getting all immediate elected candidates array
 func (c *CandidatePool) GetChosens (state vm.StateDB) []*types.Candidate {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on WithdrawCandidate err", err)
 		return nil
 	}
@@ -470,11 +461,11 @@ func (c *CandidatePool) GetChosens (state vm.StateDB) []*types.Candidate {
 	return arr
 }
 
-// 获取所有见证人
+// Getting all witness array
 func (c *CandidatePool) GetChairpersons (state vm.StateDB) []*types.Candidate {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on GetChairpersons err", err)
 		return nil
 	}
@@ -490,11 +481,11 @@ func (c *CandidatePool) GetChairpersons (state vm.StateDB) []*types.Candidate {
 	return arr
 }
 
-// 获取退款信息
+// Getting all refund array by nodeId
 func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*types.Candidate, error){
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 2); nil != err {
 		log.Error("Failed to initDataByState on GetDefeat err", err)
 		return nil, err
 	}
@@ -507,11 +498,11 @@ func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*
 	return defeat, nil
 }
 
-// 判断是否落榜
+// Checked current candidate was defeat by nodeId
 func (c *CandidatePool) IsDefeat (state vm.StateDB, nodeId discover.NodeID) (bool, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on IsDefeat err", err)
 		return false, err
 	}
@@ -523,15 +514,14 @@ func (c *CandidatePool) IsDefeat (state vm.StateDB, nodeId discover.NodeID) (boo
 	return true, nil
 }
 
-// 根据nodeId查询 质押信息中的 受益者地址
+// Getting owner's address of candidate info by nodeId
 func (c *CandidatePool) GetOwner (state vm.StateDB, nodeId discover.NodeID) common.Address {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 2); nil != err {
 		log.Error("Failed to initDataByState on GetOwner err", err)
 		return common.Address{}
 	}
-	// 先查见证人
 	var addr common.Address
 	or_can, or_ok := c.originCandidates[nodeId]
 	im_can, im_ok := c.immediateCandates[nodeId]
@@ -553,11 +543,11 @@ func (c *CandidatePool) GetOwner (state vm.StateDB, nodeId discover.NodeID) comm
 	return common.Address{}
 }
 
-// 一键提款
+// refund once
 func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 2); nil != err {
 		log.Error("Failed to initDataByState on RefundBalance err", err)
 		return err
 	}
@@ -570,25 +560,25 @@ func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID,
 		return CandidateDecodeErr
 	}
 	// cache
-	// 用来做校验用，即正常情况应该每个nodeId的质押退款信息中的收益者(owner)应该为同一个
+	// Used for verification purposes, that is, the beneficiary in the pledge refund information of each nodeId should be the same
 	var addr common.Address
-	// 累计需要一次性退款的金额
+	// Grand total refund amount for one-time
 	var amount uint64
-	// 中转需要删除的退款信息
+	// Transfer refund information that needs to be deleted
 	delCanArr := make([]*types.Candidate, 0)
 
-	//contractBalance := state.GetBalance(common.CandidateAddr)
+	contractBalance := state.GetBalance(common.CandidateAddr)
 	//currentNum := new(big.Int).SetUint64(blockNumber)
 
-	// 遍历该nodeId下的所有 退款信息
+	// Traverse all refund information belong to this nodeId
 	for index, can := range canArr {
 		sub := new(big.Int).Sub(blockNumber, can.BlockNumber)
 		fmt.Println("当前块高:", blockNumber.String(), "质押块高:", can.BlockNumber.String(), "相差:", sub.String())
 		fmt.Println("当前nodeId:", can.CandidateId.String())
-		if sub.Cmp(new(big.Int).SetUint64(c.RefundBlockNumber)) >= 0 { // 允许退款
+		if sub.Cmp(new(big.Int).SetUint64(c.RefundBlockNumber)) >= 0 { // allow refund
 			delCanArr = append(delCanArr, can)
 			canArr = append(canArr[:index], canArr[index+1:]...)
-			// 累加一次性退款金额
+			// add up the refund price
 			amount += can.Deposit.Uint64()
 		}else {
 			fmt.Println("块高不匹配，不给予退款...")
@@ -611,58 +601,61 @@ func (c *CandidatePool) RefundBalance (state vm.StateDB, nodeId discover.NodeID,
 			}
 		}
 
-		//if (contractBalance.Cmp(new(big.Int).SetUint64(amount))) < 0 {
-		//	log.Error("Failed to refundbalance constract account insufficient balance ", state.GetBalance(common.CandidateAddr).String(), "amount", amount)
-		//	if len(arr) != 0 {
-		//		arr = append(delCanArr, arr...)
-		//	}else {
-		//		arr = delCanArr
-		//	}
-		//	c.defeatCandidates[nodeId] = arr
-		//	return ContractBalanceNotEnoughErr
-		//}
+		// check contract account balance
+		if (contractBalance.Cmp(new(big.Int).SetUint64(amount))) < 0 {
+			log.Error("Failed to refundbalance constract account insufficient balance ", state.GetBalance(common.CandidateAddr).String(), "amount", amount)
+			if len(canArr) != 0 {
+				canArr = append(delCanArr, canArr...)
+			}else {
+				canArr = delCanArr
+			}
+			c.defeatCandidates[nodeId] = canArr
+			return ContractBalanceNotEnoughErr
+		}
 	}
 
-	// 统一更新树
+	// update the tire
 	if len(canArr) == 0 {
-		//state.SetState(common.CandidateAddr, DefeatKey(nodeId), []byte{})
 		//delete(c.defeatCandidates, nodeId)
 		if err := c.delDefeat(state, nodeId); nil != err {
 			log.Error("RefundBalance failed to delDefeat err", err)
 			return err
 		}
 	}else {
-		// 如果没被退完, 更新剩下的
+		// If have some remaining, update that
 		if arrVal, err := rlp.EncodeToBytes(canArr); nil != err {
 			log.Error("Failed to encode candidate object on RefundBalance", "key", nodeId.String(), "err", err)
 			canArr = append(delCanArr, canArr...)
 			c.defeatCandidates[nodeId] = canArr
 			return CandidateDecodeErr
 		}else {
-			// 更新退款详情
+			// update the refund information
 			setDefeatState(state, nodeId, arrVal)
-			// 把没退完的设置回 map
+			// remaining set back to defeat map
 			c.defeatCandidates[nodeId] = canArr
 		}
 	}
-	// 扣减合约余额
+	// sub contract account balance
 	state.SubBalance(common.CandidateAddr, new(big.Int).SetUint64(amount))
-	// 增加收益账户余额
+	// add owner balace
 	state.AddBalance(addr, new(big.Int).SetUint64(amount))
 	return nil
 }
 
-// 设置入围者的拓展信息
+// set immediate candidate extra value
 func (c *CandidatePool)SetCandidateExtra(state vm.StateDB, nodeId discover.NodeID, extra string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on SetCandidateExtra err", err)
 		return err
 	}
-
 	if can, ok := c.immediateCandates[nodeId]; ok {
+		// update current candidate info and update to tire
 		can.Extra = extra
+		if err := c.setImmediate(state, nodeId, can); nil != err {
+			return err
+		}
 	}else {
 		return CandidateEmptyErr
 	}
@@ -672,21 +665,16 @@ func (c *CandidatePool)SetCandidateExtra(state vm.StateDB, nodeId discover.NodeI
 
 
 
-// 揭榜见证人
+// Announce witness
 func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error){
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on Election err", err)
 		return nil, err
 	}
-	//immediateIds, err := c.getImmediateIndex(state)
-	//if nil != err {
-	//	log.Error("Failed to getImmediateIndex on Election err", err)
-	//	return false
-	//}
 
-	// 对当前所有入围者排序
+	// sort immediate candidates
 	candidateSort(c.candidateCacheArr)
 
 	// cache ids
@@ -695,15 +683,15 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 		immediateIds = append(immediateIds, can.CandidateId)
 	}
 
-	// 缓存前面一定数量的见证人
+	// a certain number of witnesses in front of the cache
 	var nextWitIds []discover.NodeID
-	// 如果入选人数不超过见证人数
+	// If the number of candidate selected does not exceed the number of witnesses
 	if len(immediateIds) <= int(c.maxChair) {
 		nextWitIds = make([]discover.NodeID, len(immediateIds))
 		copy(nextWitIds, immediateIds)
 
 	} else {
-		// 入选人数超过了见证人数，提取前N名
+		// If the number of candidate selected exceeds the number of witnesses, the top N is extracted.
 		nextWitIds = make([]discover.NodeID, c.maxChair)
 		copy(nextWitIds, immediateIds)
 	}
@@ -712,29 +700,29 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 	nextWits := make(map[discover.NodeID]*types.Candidate, 0)
 
 
-	// copy 见证人信息
+	// copy witnesses information
 	copyCandidateMapByIds(nextWits, c.immediateCandates, nextWitIds)
 
-	// 清空所有旧的
+	// clear all old nextwitnesses information
 	for nodeId, _ := range c.nextOriginCandidates {
 		if err := c.delNextWitness(state, nodeId); nil != err {
 			log.Error("failed to delNextWitness on election err", err)
 			return nil, err
 		}
 	}
-	// 设置新的 can
+	// set up all new nextwitnesses information
 	for nodeId, can := range nextWits {
 		if err := c.setNextWitness(state, nodeId, can); nil != err {
 			log.Error("failed to setNextWitness on election err", err)
 			return nil, err
 		}
 	}
-	// 更新索引
+	// update new nextwitnesses index
 	if err := c.setNextWitnessIndex(state, nextWitIds); nil != err {
 		log.Error("failed to setNextWitnessIndex on election err", err)
 		return nil, err
 	}
-	// 将新的揭榜后的见证人信息，置入下轮见证人集
+	// replace the next round of witnesses
 	c.nextOriginCandidates = nextWits
 	arr := make([]*discover.Node, 0)
 	for _, can := range nextWits {
@@ -748,15 +736,15 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 	return arr, nil
 }
 
-// 触发替换下轮见证人列表
+// switch next witnesses to current witnesses
 func (c *CandidatePool) Switch(state *state.StateDB) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on Switch err", err)
 		return false
 	}
-	// 清空所有旧的
+	// clear all old witnesses on trie
 	for nodeId,_ := range c.originCandidates {
 		if err := c.delWitness(state, nodeId); nil != err {
 			log.Error("Failed to delWitness on Switch err", err)
@@ -764,10 +752,11 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 		}
 	}
 
-	// cache can
+	// cache candidates
+	// collected new witnesses
 	caches := make([]*types.Candidate, 0)
 
-	// 设置新的
+	// set up new witnesses to current witnesses on trie
 	for nodeId, can := range c.nextOriginCandidates {
 		if err := c.setWitness(state, nodeId, can); nil != err {
 			log.Error("Failed to setWitness on Switch err", err)
@@ -775,17 +764,18 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 		}
 		caches = append(caches, can)
 	}
-	// 排序
+	// sort new witnesses
 	candidateSort(caches)
 
 	// cache ids
+	// collected ids of new witnesses
 	canIds := make([]discover.NodeID, 0)
 
 	for _, can := range caches {
 		canIds = append(canIds, can.CandidateId)
 	}
 
-	// 替换新索引
+	// replace witnesses index
 	if err := c.setWitnessindex(state, canIds); nil != err {
 		log.Error("Failed to setWitnessindex on Switch err", err)
 		return false
@@ -795,12 +785,12 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 	return true
 }
 
-// 获取见证人节点列表
-// flag：0: 本轮见证人   1: 下一轮见证人
+// Getting nodes of witnesses
+// flag：-1: the previous round of witnesses  0: the current round of witnesses   1: the next round of witnesses
 func (c *CandidatePool) GetWitness (state *state.StateDB, flag int) ([]*discover.Node, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on GetWitness err", err)
 		return nil, err
 	}
@@ -843,11 +833,8 @@ func (c *CandidatePool) setImmediate(state vm.StateDB, candidateId discover.Node
 		log.Error("Failed to encode candidate object on setImmediate", "key", candidateId.String(), "err", err)
 		return CandidateEncodeErr
 	}else {
-		// 实时的入围候选人 input trie
+		// set immediate candidate input the trie
 		setImmediateState(state, candidateId, value)
-		//if isADD {
-		//	c.count ++
-		//}
 	}
 	return nil
 }
@@ -856,19 +843,14 @@ func (c *CandidatePool) getImmediateIndex (state vm.StateDB) ([]discover.NodeID,
 	return getImmediateIdsByState(state)
 }
 
-// 删除自动更新索引
+// deleted immediate candidate by nodeId (Automatically update the index)
 func (c *CandidatePool) delImmediate (state vm.StateDB, candidateId discover.NodeID/*, isDEL bool*/) error {
 
-	// trie 中删掉实时信息
+	// deleted immediate candidate by id on trie
 	setImmediateState(state, candidateId, []byte{})
-	// map 中删掉
+	// deleted immedidate candidate by id on map
 	delete(c.immediateCandates, candidateId)
-	//if isDEL {
-	//	// map 中删掉
-	//	delete(c.immediateCandates, candidateId)
-	//	c.count --
-	//}
-	// 删除索引中的对应id
+	// delete the corresponding id in the index
 	var canIds []discover.NodeID
 	if ids, err := getImmediateIdsByState(state); nil != err {
 		log.Error("Failed to decode ImmediateIds err", err)
@@ -905,11 +887,11 @@ func (c *CandidatePool) setImmediateIndex (state vm.StateDB, nodeIds []discover.
 	return nil
 }
 
-// 设置退款信息
+// setting refund information
 func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error {
 
 	var defeatArr []*types.Candidate
-	// 追加退款信息
+	// append refund information
 	if defeatArrTmp, ok := c.defeatCandidates[can.CandidateId]; ok {
 		defeatArrTmp = append(defeatArrTmp, can)
 		c.defeatCandidates[can.CandidateId] = defeatArrTmp
@@ -920,7 +902,7 @@ func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID,
 		c.defeatCandidates[can.CandidateId] = defeatArrTmp
 		defeatArr = defeatArrTmp
 	}
-	// trie 中添加 退款信息
+	// setting refund information on trie
 	if value ,err := rlp.EncodeToBytes(&defeatArr); nil != err {
 		log.Error("Failed to encode candidate object on setDefeat", "key", candidateId.String(), "err", err)
 		return CandidateEncodeErr
@@ -934,7 +916,7 @@ func (c *CandidatePool) delDefeat(state vm.StateDB, nodeId discover.NodeID) erro
 	delete(c.defeatCandidates, nodeId)
 	setDefeatState(state, nodeId, []byte{})
 
-	// 删除索引中的对应id
+	// delete the corresponding id in the index
 	var canIds []discover.NodeID
 	if ids, err := getDefeatIdsByState(state); nil != err {
 		log.Error("Failed to decode DefeatIds err", err)
@@ -961,7 +943,7 @@ func (c *CandidatePool) delDefeat(state vm.StateDB, nodeId discover.NodeID) erro
 	return nil
 }
 
-// 更新退款信息索引
+// update refund index
 func (c *CandidatePool)setDefeatIndex(state vm.StateDB) error {
 	newdefeatIds := make([]discover.NodeID, 0)
 	for id, _ := range c.defeatCandidates {
@@ -998,11 +980,11 @@ func (c *CandidatePool) setWitnessindex(state vm.StateDB, nodeIds []discover.Nod
 }
 
 func (c *CandidatePool) delWitness (state vm.StateDB, candidateId discover.NodeID) error {
-	// map 中删掉
+	// deleted witness by id on map
 	delete(c.originCandidates, candidateId)
-	// trie 中删掉实时信息
+	// delete witness by id on trie
 	setWitnessState(state, candidateId, []byte{})
-	// 删除索引中的对应id
+	// delete the corresponding id in the index
 	var canIds []discover.NodeID
 	if ids, err := getWitnessIdsByState(state); nil != err {
 		log.Error("Failed to decode ImmediateIds err", err)
@@ -1039,19 +1021,19 @@ func (c *CandidatePool) setNextWitness(state vm.StateDB, nodeId discover.NodeID,
 		log.Error("Failed to encode candidate object on setImmediate", "key", nodeId.String(), "err", err)
 		return CandidateEncodeErr
 	}else {
-		// 实时的入围候选人 input trie
+		// setting next witness information on trie
 		setNextWitnessState(state, nodeId, value)
 	}
 	return nil
 }
 
 func (c *CandidatePool) delNextWitness (state vm.StateDB, candidateId discover.NodeID) error {
-	// map 中删掉
+	// deleted next witness by id on map
 	delete(c.nextOriginCandidates, candidateId)
-	// trie 中删掉实时信息
+	// deleted next witness by id on trie
 	setNextWitnessState(state, candidateId, []byte{})
 
-	// 获取原有索引
+	// getting origin index
 	var canIds []discover.NodeID
 	if ids, err := getNextWitnessIdsByState(state); nil != err {
 		log.Error("Failed to decode ImmediateIds err", err)
@@ -1060,7 +1042,7 @@ func (c *CandidatePool) delNextWitness (state vm.StateDB, candidateId discover.N
 		canIds = ids
 	}
 
-	// 删除索引中的对应id
+	// delete the corresponding id in the index
 	var flag bool
 	for i, id := range canIds {
 		if id == candidateId {
@@ -1094,10 +1076,9 @@ func (c *CandidatePool) getNextWitnessIndex(state vm.StateDB) ([]discover.NodeID
 }
 
 func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error){
-	fmt.Println("入参：", nodeId.String())
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	if err := c.initDataByState(state); nil != err {
+	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on getCandidate err", err)
 		return nil, err
 	}
@@ -1248,17 +1229,17 @@ func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
 }
 
 func compare(c, can *types.Candidate) int {
-	PrintObject("c", c)
-	PrintObject("can", can)
-	// 质押金大的放前面
+	//PrintObject("c", c)
+	//PrintObject("can", can)
+	// put the larger deposit in front
 	if c.Deposit.Cmp(can.Deposit) > 0 {
 		return 1
 	}else if c.Deposit.Cmp(can.Deposit) == 0 {
-		// 块高小的放前面
+		// put the smaller blocknumber in front
 		if c.BlockNumber.Cmp(can.BlockNumber) > 0 {
 			return -1
 		}else if c.BlockNumber.Cmp(can.BlockNumber) == 0 {
-			// tx index 小的放前面
+			// put the smaller tx'index in front
 			if c.TxIndex > can.TxIndex {
 				return -1
 			}else if c.TxIndex == can.TxIndex {
@@ -1273,7 +1254,7 @@ func compare(c, can *types.Candidate) int {
 		return -1
 	}
 }
-// 候选人排序
+// sorted candidates
 func candidateSort(arr []*types.Candidate) {
 	if len(arr) <= 1 {
 		return

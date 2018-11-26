@@ -6,36 +6,34 @@ import (
 	"Platon-go/common"
 )
 
-// 候选人
+// candiate info
 type Candidate struct {
 
-	// 抵押金额(保证金)数目
+	// Mortgage amount (margin)
 	Deposit			*big.Int
-	// 发生抵押时的当前块高
+	// Current block height number at the time of the mortgage
 	BlockNumber 	*big.Int
-	// 发生抵押时的tx index
+	// Current tx'index at the time of the mortgage
 	TxIndex 		uint32
-	// 候选人Id
+	// candidate's server nodeId
 	CandidateId 	discover.NodeID
-	//CandidateId 	string			`json:"candidateid"`
-	//
 	Host 			string
 	Port 			string
 
-	// 质押收益账户
+	// Mortgage beneficiary's account address
 	Owner 			common.Address
-	// 发起质押的账户
+	// The account address of initiating a mortgaged
 	From 			common.Address
 
 
 	Extra 			string
-	// 被投的票Id集
+	// Voted ticket'id set
 	//ticketPool		[]common.Hash
-	// 被投票数目
+	// Voted ticket count
 	//TCount    		uint64				`json:"tcount"`
-	// 票龄
+	// Ticket age
 	//Epoch			*big.Int			`json:"epoch"`
-	// 佣金
+	// brokerage
 	//Brokerage		uint64				`json:"brokerage"`
 }
 

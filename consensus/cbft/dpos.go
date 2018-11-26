@@ -17,30 +17,19 @@ import (
 )
 
 type dpos struct {
-	formerlyNodeList 	[]discover.NodeID   // 上一轮的
-	primaryNodeList   	[]discover.NodeID	// 本轮的
+	formerlyNodeList 	[]discover.NodeID   // the previous round of witnesses nodeId
+	primaryNodeList   	[]discover.NodeID	// the current round of witnesses nodeId
 	chain             	*core.BlockChain
 	lastCycleBlockNum 	uint64
 	startTimeOfEpoch  	int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
 	config              *params.DposConfig
 
-	// dpos
+	// added by candidatepool module
 
-	// 是否正在 揭榜
-	publishing 			bool
-
-	// 读写锁
 	lock 				sync.RWMutex
-	// 当前轮见证人
-	chairperson			common.Hash
-	// 下一轮见证人
-	nextChairperson  	common.Hash
-
-	// dpos 候选人池
+	// the candidate pool object pointer
 	candidatePool		*depos.CandidatePool
 }
-// //定义一个全局的dpos
-//var dposPtr *dpos
 
 func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
 	dposPtr := &dpos{
@@ -128,15 +117,15 @@ func (d *dpos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 	d.startTimeOfEpoch = startTimeOfEpoch
 	log.Info("设置最后一轮共识结束时的出块时间", "startTimeOfEpoch", startTimeOfEpoch)
 }
-// dpos 新增func
 
-// 供cbft 调用
-// 揭榜
+/** dpos was added func */
+/** Method provided to the cbft module call */
+// Announce witness
 func (d *dpos)  Election(state *state.StateDB) ([]*discover.Node, error) {
 	return d.candidatePool.Election(state)
 }
 
-// 触发替换下轮见证人列表
+// switch next witnesses to current witnesses
 func (d *dpos)  Switch(state *state.StateDB) bool {
 
 	if !d.candidatePool.Switch(state) {
@@ -159,20 +148,15 @@ func (d *dpos)  Switch(state *state.StateDB) bool {
 	return true
 }
 
-// 获取见证节点列表
-// flag：0: 本轮见证人   1: 下一轮见证人
+// Getting nodes of witnesses
+// flag：-1: the previous round of witnesses  0: the current round of witnesses   1: the next round of witnesses
 func (d *dpos) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
 	return d.candidatePool.GetWitness(state, flag)
 }
 
-// 设置 dpos 竞选池
+// setting candidate pool of dpos module
 func (d *dpos) SetCandidatePool(state *state.StateDB, blockChain *core.BlockChain) {
-//func (d *dpos) SetCandidatePool(state *state.StateDB, isgenesis bool){
-//	var isgenesis bool
-//	if blockChain.Genesis().NumberU64() == blockChain.CurrentBlock().NumberU64() {
-//		isgenesis = true
-//	}
-	// 链上最高块不是创世块时，需要从stateDB 加载 见证 nodeIdList
+	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
 	if  blockChain.Genesis().NumberU64() != blockChain.CurrentBlock().NumberU64() {
 		if nodeArr, err := d.candidatePool.GetWitness(state, 0); nil != err {
 			log.Error("Load Witness from state failed on SetCandidatePool err", err)
@@ -190,58 +174,45 @@ func (d *dpos) SetCandidatePool(state *state.StateDB, blockChain *core.BlockChai
 		}
 
 	}
-	//
-	//
-	//if canPool, err := depos.NewCandidatePool(state, d.config, isgenesis); nil != err {
-	//	log.Error("Failed to init CandidatePool", err)
-	//}else {
-	//	d.candidatePool = canPool
-	//}
-
 }
 
 
 
-// 供内置合约调用
-// 质押竞选人
+/** Method provided to the built-in contract call */
+// pledge Candidate
 func (d *dpos) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error{
 	return d.candidatePool.SetCandidate(state, nodeId, can)
 }
-// 查询入围者信息
+// Getting immediate candidate info by nodeId
 func(d *dpos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
 	return d.candidatePool.GetCandidate(state, nodeId)
 }
-// 入围者退出质押
+// candidate withdraw from immediates elected candidates
 func (d *dpos) WithdrawCandidate (state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
 	return d.candidatePool.WithdrawCandidate (state, nodeId, price, blockNumber)
 }
-// 获取当前实时的入围者列表
+// Getting all immediate elected candidates array
 func (d *dpos) GetChosens (state vm.StateDB) []*types.Candidate {
 	return d.candidatePool.GetChosens(state)
 }
-// 获取当前见证人列表
+// Getting all witness array
 func (d *dpos) GetChairpersons (state vm.StateDB) []*types.Candidate {
 	return d.candidatePool.GetChairpersons(state)
 }
-// 获取某竞选者所有可提款信息
+// Getting all refund array by nodeId
 func (d *dpos) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*types.Candidate, error){
 	return d.candidatePool.GetDefeat(state, nodeId)
 }
-// 判断某个竞选人是否入围
+// Checked current candidate was defeat by nodeId
 func (d *dpos) IsDefeat(state vm.StateDB, nodeId discover.NodeID) (bool, error) {
 	return d.candidatePool.IsDefeat(state, nodeId)
 }
 
-// 提款
+// refund once
 func (d *dpos) RefundBalance (state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error{
 	return d.candidatePool.RefundBalance (state, nodeId, blockNumber)
 }
-// 根据nodeId查询 质押信息中的 受益者地址
+// Getting owner's address of candidate info by nodeId
 func (d *dpos) GetOwner (state vm.StateDB, nodeId discover.NodeID) common.Address {
 	return d.candidatePool.GetOwner(state, nodeId)
 }
-
-
-//func GetDpos() *dpos{
-//	return dposPtr
-//}
