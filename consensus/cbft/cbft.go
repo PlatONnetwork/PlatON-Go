@@ -82,7 +82,7 @@ var cbft *Cbft
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
 	initialNodesID := make([]discover.NodeID, 0, len(config.InitialNodes))
-	for _,n := range config.InitialNodes {
+	for _, n := range config.InitialNodes {
 		initialNodesID = append(initialNodesID, n.ID)
 	}
 	_dpos := newDpos(initialNodesID, config)
@@ -627,7 +627,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	txPool = txPool
 }
 
-func SetDopsOption(blockChain *core.BlockChain){
+func SetDopsOption(blockChain *core.BlockChain) {
 	cbft.dpos.SetCandidatePool(blockChain)
 }
 
@@ -886,7 +886,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	curTime := toMilliseconds(time.Now())
 
-	keepIt := cbft.shouldKeepIt(curTime, producerNodeID)
+	keepIt := cbft.shouldKeepIt(block.NumberU64(), curTime, producerNodeID)
 	log.Debug("check if block should be kept", "result", keepIt, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 	if !keepIt {
 		return errIllegalBlock
@@ -916,7 +916,8 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	parent := ext.findParent()
 	if parent != nil && parent.isLinked {
-		inTurn := cbft.inTurnVerify(curTime, producerNodeID)
+		//inTurn := cbft.inTurnVerify(curTime, producerNodeID)
+		inTurn := cbft.inTurnVerify(block.NumberU64(), curTime, producerNodeID)
 		log.Debug("check if block is in turn", "result", inTurn, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 
 		passed := flowControl.control(producerNodeID, curTime)
@@ -955,7 +956,7 @@ func (cbft *Cbft) ConsensusNodes(blockNum *big.Int) []discover.NodeID {
 // wether nodeID in former or current or next
 func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
 	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
-	return cbft.dpos.NodeIndex(nodeID) >= 0, nil
+	return cbft.dpos.AnyIndex(nodeID) >= 0, nil
 }
 
 //// wether nodeID in primaryNodeList or nextNodeList
@@ -967,7 +968,7 @@ func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
 // wether nodeID in former or current or next
 func (cbft *Cbft) IsConsensusNode() (bool, error) {
 	log.Debug("call IsConsensusNode()")
-	return cbft.dpos.NodeIndex(cbft.config.NodeID) >= 0, nil
+	return cbft.dpos.AnyIndex(cbft.config.NodeID) >= 0, nil
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
@@ -1275,14 +1276,14 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 //to check if it's my turn to produce blocks
 func (cbft *Cbft) inTurn() bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(curTime, cbft.config.NodeID)
+	inturn := cbft.calTurn(0, curTime, cbft.config.NodeID)
 	log.Debug("inTurn", "result", inturn)
 	return inturn
 
 }
 
 //time in milliseconds
-func (cbft *Cbft) inTurnVerify(curTime int64, nodeID discover.NodeID) bool {
+/*func (cbft *Cbft) inTurnVerify(curTime int64, nodeID discover.NodeID) bool {
 	latency := cbft.avgLatency(nodeID)
 	if latency >= maxAvgLatency {
 		log.Debug("inTurnVerify, return false cause of net latency", "result", false, "latency", latency)
@@ -1292,26 +1293,59 @@ func (cbft *Cbft) inTurnVerify(curTime int64, nodeID discover.NodeID) bool {
 	log.Debug("inTurnVerify", "result", inTurnVerify, "latency", latency)
 	return inTurnVerify
 }
+*/
+func (cbft *Cbft) inTurnVerify(number uint64, curTime int64, nodeID discover.NodeID) bool {
+	latency := cbft.avgLatency(nodeID)
+	if latency >= maxAvgLatency {
+		log.Debug("inTurnVerify, return false cause of net latency", "result", false, "latency", latency)
+		return false
+	}
+	inTurnVerify := cbft.calTurn(number, curTime-latency, nodeID)
+	log.Debug("inTurnVerify", "result", inTurnVerify, "latency", latency)
+	return inTurnVerify
+}
 
 //time in milliseconds
-func (cbft *Cbft) shouldKeepIt(curTime int64, nodeID discover.NodeID) bool {
+func (cbft *Cbft) shouldKeepIt(number uint64, curTime int64, nodeID discover.NodeID) bool {
 	offset := 1000 * (cbft.config.Duration/2 - 1)
-	keepIt := cbft.calTurn(curTime-offset, nodeID)
+	keepIt := cbft.calTurn(number, curTime-offset, nodeID)
 	if !keepIt {
-		keepIt = cbft.calTurn(curTime+offset, nodeID)
+		keepIt = cbft.calTurn(number, curTime+offset, nodeID)
 	}
 	log.Debug("shouldKeepIt", "result", keepIt, "offset", offset)
 	return keepIt
 }
 
 //time in milliseconds
-func (cbft *Cbft) calTurn(curTime int64, nodeID discover.NodeID) bool {
+/*func (cbft *Cbft) calTurn(curTime int64, nodeID discover.NodeID) bool {
 	nodeIdx := cbft.dpos.NodeIndex(nodeID)
 	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
 		durationPerTurn := durationPerNode * int64(len(cbft.dpos.current.nodes))
+
+		min := nodeIdx * (durationPerNode)
+
+		value := (curTime - startEpoch) % durationPerTurn
+
+		max := (nodeIdx + 1) * durationPerNode
+
+		log.Debug("calTurn", "idx", nodeIdx, "min", min, "value", value, "max", max, "curTime", curTime, "startEpoch", startEpoch)
+
+		if value > min && value < max {
+			return true
+		}
+	}
+	return false
+}*/
+func (cbft *Cbft) calTurn(number uint64, curTime int64, nodeID discover.NodeID) bool {
+	nodeIdx := cbft.dpos.BlockProducerIndex(number, nodeID)
+	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
+
+	if nodeIdx >= 0 {
+		durationPerNode := cbft.config.Duration * 1000
+		durationPerTurn := durationPerNode * cbft.dpos.MaxChair()
 
 		min := nodeIdx * (durationPerNode)
 
