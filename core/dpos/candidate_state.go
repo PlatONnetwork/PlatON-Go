@@ -16,6 +16,7 @@ import (
 	"Platon-go/core/types"
 	"net"
 	"strconv"
+	"sync/atomic"
 )
 
 
@@ -918,6 +919,23 @@ func (c *CandidatePool) GetAllWitness (state *state.StateDB) ([]*discover.Node, 
 
 func(c *CandidatePool) GetRefundInterval() uint64 {
 	return c.RefundBlockNumber
+}
+
+// update candidate's tickets
+func (c *CandidatePool) UpdateCandidateTicket(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if err := c.initDataByState(state, 1); nil != err {
+		log.Error("Failed to initDataByState on UpdateCandidateTicket err", err)
+		return err
+	}
+	if _, ok := c.immediateCandates[nodeId]; !ok {
+		return CandidateEmptyErr
+	}
+	if err := c.setImmediate(state, nodeId, can); nil != err {
+		return err
+	}
+	return nil
 }
 
 func (c *CandidatePool) setImmediate(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate/*, isADD bool*/) error {

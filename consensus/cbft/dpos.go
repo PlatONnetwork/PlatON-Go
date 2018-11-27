@@ -245,6 +245,11 @@ func (d *dpos) GetRefundInterval () uint64 {
 	return d.candidatePool.GetRefundInterval()
 }
 
+// update candidate's tickets
+func (d *dpos) UpdateCandidateTicket (state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
+	return d.candidatePool.UpdateCandidateTicket(state, nodeId, can)
+}
+
 // cbft共识区块产生分叉后需要更新primaryNodeList和formerlyNodeList
 func (d *dpos) UpdateNodeList (state *state.StateDB) {
 	log.Warn("---cbft共识区块产生分叉，更新formerlyNodeList、primaryNodeList和nextNodeList---", "state", state)
