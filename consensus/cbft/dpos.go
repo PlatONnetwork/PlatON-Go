@@ -348,7 +348,7 @@ func calcurround (blocknumber *big.Int) uint64 {
 	// current num
 	var round uint64
 	div := blocknumber.Uint64()/ BaseSwitchWitness
-	mod := blocknumber.Uint64()/ BaseSwitchWitness
+	mod := blocknumber.Uint64()% BaseSwitchWitness
 	if (div == 0 && mod == 0) || (div == 0 && mod > 0 && mod < BaseSwitchWitness) { // first round
 		round = 1
 	}else if div > 0 && mod == 0 {
