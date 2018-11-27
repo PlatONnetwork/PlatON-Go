@@ -140,10 +140,11 @@ func (d *dpos)  Election(state *state.StateDB) ([]*discover.Node, error) {
 
 // switch next witnesses to current witnesses
 func (d *dpos)  Switch(state *state.StateDB) bool {
-
+	log.Info("Switch begin...")
 	if !d.candidatePool.Switch(state) {
 		return false
 	}
+	log.Info("Switch success...")
 	preArr, curArr, nextArr, err := d.candidatePool.GetAllWitness(state)
 	if nil != err {
 		return false
@@ -177,6 +178,7 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
 	if  blockChain.Genesis().NumberU64() != blockChain.CurrentBlock().NumberU64() {
 		state, err := blockChain.State()
+		log.Warn("---重新启动节点，更新formerlyNodeList、primaryNodeList和nextNodeList---", "state", state)
 		if nil != err {
 			log.Error("Load state from chain failed on SetCandidatePool err", err)
 			return
