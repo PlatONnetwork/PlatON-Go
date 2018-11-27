@@ -509,11 +509,16 @@ func (c *CandidatePool) IsDefeat (state vm.StateDB, nodeId discover.NodeID) (boo
 		return false, err
 	}
 
-	if _, ok := c.immediateCandates[nodeId]; !ok {
+	if _, ok := c.immediateCandates[nodeId]; ok {
 		log.Error("Candidate is empty")
 		return false, nil
 	}
-	return true, nil
+
+	if arr, ok := c.defeatCandidates[nodeId]; ok && len(arr) != 0{
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // Getting owner's address of candidate info by nodeId
