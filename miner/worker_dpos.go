@@ -14,7 +14,7 @@ func (w *worker) election(blockNumber *big.Int) error {
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		if should := w.shouldElection(blockNumber); should {
 			log.Info("请求揭榜", "blockNumber", blockNumber)
-			_, err := cbftEngine.Election(w.current.state)
+			_, err := cbftEngine.Election(w.current.state, blockNumber)
 			if err != nil {
 				log.Error("Failed to Election", "blockNumber", blockNumber, "error", err)
 				return errors.New("Failed to Election")

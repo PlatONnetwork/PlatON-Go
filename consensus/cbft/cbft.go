@@ -415,7 +415,6 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 		blockSign := &cbfttypes.BlockSignature{
 			SignHash:  sealHash,
 			Hash:      blockHash,
-			SealHash:  sealHash,
 			Number:    ext.block.Number(),
 			Signature: sign,
 		}
@@ -773,7 +772,7 @@ func (cbft *Cbft) handleNewConfirmed(newConfirmed *BlockExt) error {
 			if err == nil {
 				state, err := cbft.consensusCache.MakeStateDB(newConfirmed.block)
 				if err == nil {
-					cbft.dpos.UpdateNodeList(state)
+					cbft.dpos.UpdateNodeList(state, newConfirmed.block.Number())
 				} else {
 					log.Error("consensus success, but updateNodeList error", "err", err)
 					return nil
@@ -946,26 +945,26 @@ func (cbft *Cbft) ShouldSeal() (bool, error) {
 }
 
 func (cbft *Cbft) CurrentNodes() []discover.NodeID {
-	return cbft.dpos.getPrimaryNodes()
+	return cbft.dpos.getCurrentNodes()
 }
 
 func (cbft *Cbft) ConsensusNodes(blockNum *big.Int) []discover.NodeID {
 	return cbft.dpos.consensusNodes(blockNum)
 }
 
-// wether nodeID in formerlyNodeList or primaryNodeList
+// wether nodeID in former or current or next
 func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
 	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
 	return cbft.dpos.NodeIndex(nodeID) >= 0, nil
 }
 
-// wether nodeID in primaryNodeList or nextNodeList
-func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Debug("call CheckFutureConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
-	return cbft.dpos.NodeIndexInFuture(nodeID) >= 0, nil
-}
+//// wether nodeID in primaryNodeList or nextNodeList
+//func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error) {
+//	log.Debug("call CheckFutureConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+//	return cbft.dpos.NodeIndexInFuture(nodeID) >= 0, nil
+//}
 
-// wether current node in formerlyNodeList or primaryNodeList
+// wether nodeID in former or current or next
 func (cbft *Cbft) IsConsensusNode() (bool, error) {
 	log.Debug("call IsConsensusNode()")
 	return cbft.dpos.NodeIndex(cbft.config.NodeID) >= 0, nil
@@ -1415,8 +1414,8 @@ func toMilliseconds(t time.Time) int64 {
 	return t.UnixNano() / 1e6
 }
 
-func (cbft *Cbft) Election(state *state.StateDB) ([]*discover.Node, error) {
-	return cbft.dpos.Election(state)
+func (cbft *Cbft) Election(state *state.StateDB, blockNumber *big.Int) ([]*discover.Node, error) {
+	return cbft.dpos.Election(state, blockNumber)
 }
 
 func (cbft *Cbft) Switch(state *state.StateDB) bool {

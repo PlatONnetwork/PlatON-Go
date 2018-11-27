@@ -140,7 +140,7 @@ type Bft interface {
 
 	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
 
-	CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error)
+	//CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error)
 
 	IsConsensusNode() (bool, error)
 
@@ -149,7 +149,7 @@ type Bft interface {
 
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
-	Election(state *state.StateDB) ([]*discover.Node, error)
+	Election(state *state.StateDB, blockNumber *big.Int) ([]*discover.Node, error)
 
 	Switch(state *state.StateDB) bool
 
