@@ -79,13 +79,7 @@ const (
 	// staleThreshold is the maximum depth of the acceptable stale block.
 	staleThreshold = 7
 
-	defaultCommitRatio = 0.9
-
-	baseElection = 230
-
-	baseSwitchWitness = 250
-
-	baseRemoveFormerPeers = 270
+	defaultCommitRatio = 0.95
 )
 
 type addConsensusPeerFn func(nodes []*discover.Node) error

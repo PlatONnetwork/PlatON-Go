@@ -17,9 +17,9 @@ import (
 )
 
 type dpos struct {
-	formerlyNodeList 	[]discover.NodeID   // the previous round of witnesses nodeId
-	primaryNodeList   	[]discover.NodeID	// the current round of witnesses nodeId
-	nextNodeList 		[]discover.NodeID  	// the next round of witnesses nodeId
+	former	dposRound   // the previous round of witnesses nodeId
+	current	dposRound	// the current round of witnesses nodeId
+	next	dposRound  	// the next round of witnesses nodeId
 	chain             	*core.BlockChain
 	lastCycleBlockNum 	uint64
 	startTimeOfEpoch  	int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
@@ -30,6 +30,12 @@ type dpos struct {
 	lock 				sync.RWMutex
 	// the candidate pool object pointer
 	candidatePool		*depos.CandidatePool
+}
+
+type dposRound struct {
+	nodes []discover.NodeID
+	start *big.Int
+	end *big.Int
 }
 
 func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
