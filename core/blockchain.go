@@ -1195,11 +1195,15 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		// modify by platon
 		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
 			// 揭榜(如果符合条件)
+			log.Warn("---insertchain试图揭榜---", "number", block.Number())
 			if bc.shouldSwitchFn(block.Number()) {
+				log.Warn("---insertchain调用揭榜---", "number", block.Number(), "state", state)
 				cbftEngine.Election(state)
 			}
 			// 触发替换下轮见证人列表(如果符合条件)
+			log.Warn("---insertchain试图触发替换下轮见证人列表---", "number", block.Number())
 			if bc.shouldSwitchFn(block.Number()) {
+				log.Warn("---insertchain触发替换下轮见证人列表---", "number", block.Number(), "state", state)
 				cbftEngine.Switch(state)
 			}
 		}
@@ -1220,7 +1224,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 		// modify by platon
 		if _, ok := bc.engine.(consensus.Bft); ok {
+			log.Warn("---insertchain尝试连接下一轮共识节点---", "number", block.Number(), "state", state)
 			bc.attemptAddConsensusPeerFn(block.Number(), state)
+			log.Warn("---insertchain尝试断连上一轮共识节点---", "number", block.Number(), "state", state)
 			bc.attemptRemoveConsensusPeerFn(block.Number(), state)
 		}
 

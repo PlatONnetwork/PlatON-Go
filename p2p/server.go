@@ -924,12 +924,12 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 		clog.Trace("Dialed identity mismatch", "want", c, dialDest.ID)
 		return DiscUnexpectedIdentity
 	}
-	if dialDest == nil && c.is(inboundConn) {
-		if exists,err := srv.checkFutureConsensusNodeFn(c.id); !exists || err != nil {
-			clog.Trace("Dialed overdue consensus identity")
-			return DiscOverdueIdentity
-		}
-	}
+	//if dialDest == nil && c.is(inboundConn) {
+	//	if exists,err := srv.checkFutureConsensusNodeFn(c.id); !exists || err != nil {
+	//		clog.Trace("Dialed overdue consensus identity", "nodeID", c.id)
+	//		return DiscOverdueIdentity
+	//	}
+	//}
 	err = srv.checkpoint(c, srv.posthandshake)
 	if err != nil {
 		clog.Trace("Rejected peer before protocol handshake", "err", err)
