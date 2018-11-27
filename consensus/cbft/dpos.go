@@ -41,12 +41,12 @@ func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
 	formerRound := &dposRound{
 		nodes: initialNodes,
 		start: big.NewInt(1),
-		end:   big.NewInt(250),
+		end:   big.NewInt(BaseSwitchWitness),
 	}
 	currentRound := &dposRound{
 		nodes: initialNodes,
 		start: big.NewInt(1),
-		end:   big.NewInt(250),
+		end:   big.NewInt(BaseSwitchWitness),
 	}
 	return &dpos{
 		former:            formerRound,
@@ -99,7 +99,7 @@ func (d *dpos) BlockProducerIndex(number uint64, nodeID discover.NodeID) int64 {
 		return -1
 	}
 
-	if number >= d.next.start.Uint64() && number <= d.next.end.Uint64() {
+	if d.next != nil && number >= d.next.start.Uint64() && number <= d.next.end.Uint64() {
 		for idx, node := range d.next.nodes {
 			if node == nodeID {
 				return int64(idx)

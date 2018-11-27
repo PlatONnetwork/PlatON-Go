@@ -1,9 +1,15 @@
 package cbft
 
 const (
-	BaseElection = 230
+	//BaseElection = 230
+	//
+	//BaseSwitchWitness = 250
+	//
+	//BaseRemoveFormerPeers = 270
 
-	BaseSwitchWitness = 250
+	BaseElection = 50
 
-	BaseRemoveFormerPeers = 270
+	BaseSwitchWitness = 60
+
+	BaseRemoveFormerPeers = 70
 )

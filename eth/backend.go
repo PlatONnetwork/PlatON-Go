@@ -598,8 +598,10 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 		srvr.InitcheckFutureConsensusNodeFn(checkFutureConsensusNode)
 
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
-		for _, n := range s.chainConfig.Cbft.InitialNodes {
-			srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
+		if flag, err := cbftEngine.IsConsensusNode(); flag && err == nil {
+			for _, n := range s.chainConfig.Cbft.InitialNodes {
+				srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
+			}
 		}
 		//s.StartMining(1)
 	}
