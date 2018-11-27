@@ -1264,9 +1264,30 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 }
 
 //joey.lyu
-func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB) (types.Receipts, error) {
+func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
 	// Process block using the parent state as reference point.
-	receipts, logs, _, err := bc.processor.Process(block, state, bc.vmConfig)
+	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
+	if err != nil {
+		bc.reportBlock(block, receipts, err)
+		return nil, err
+	}
+	// modify by platon
+	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+		// 揭榜(如果符合条件)
+		log.Warn("---insertchain试图揭榜---", "number", block.Number())
+		if bc.shouldSwitchFn(block.Number()) {
+			log.Warn("---insertchain调用揭榜---", "number", block.Number(), "state", state)
+			cbftEngine.Election(state, block.Number())
+		}
+		// 触发替换下轮见证人列表(如果符合条件)
+		log.Warn("---insertchain试图触发替换下轮见证人列表---", "number", block.Number())
+		if bc.shouldSwitchFn(block.Number()) {
+			log.Warn("---insertchain触发替换下轮见证人列表---", "number", block.Number(), "state", state)
+			cbftEngine.Switch(state)
+		}
+	}
+	// Validate the state using the default validator
+	err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 	if err != nil {
 		bc.reportBlock(block, receipts, err)
 		return nil, err
@@ -1275,7 +1296,6 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB) 
 	if logs != nil {
 		bc.logsFeed.Send(logs)
 	}
-
 	return receipts, nil
 }
 
