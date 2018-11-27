@@ -729,13 +729,13 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 	// copy witnesses information
 	copyCandidateMapByIds(nextWits, c.immediateCandates, nextWitIds)
 
-	//// clear all old nextwitnesses information
-	//	for nodeId, _ := range c.nextOriginCandidates {
-	//		if err := c.delNextWitness(state, nodeId); nil != err {
-	//			log.Error("failed to delNextWitness on election err", err)
-	//			return nil, err
-	//		}
-	//}
+	// clear all old nextwitnesses information （If it is forked, the next round is no empty.）
+	for nodeId, _ := range c.nextOriginCandidates {
+		if err := c.delNextWitness(state, nodeId); nil != err {
+			log.Error("failed to delNextWitness on election err", err)
+			return nil, err
+		}
+	}
 
 	// set up all new nextwitnesses information
 	for nodeId, can := range nextWits {
@@ -881,7 +881,7 @@ func (c *CandidatePool) GetWitness (state *state.StateDB, flag int) ([]*discover
 	for _, can := range witness {
 		if node, err := buildWitnessNode(can); nil != err {
 			log.Error("Failed to build Node on GetWitness err", err, "nodeId", can.CandidateId.String())
-			continue
+			return nil, err
 		}else {
 			arr = append(arr, node)
 		}
@@ -909,7 +909,8 @@ func (c *CandidatePool) GetAllWitness (state *state.StateDB) ([]*discover.Node, 
 	for _, can := range prewitness {
 		if node, err := buildWitnessNode(can); nil != err {
 			log.Error("Failed to build pre Node on GetAllWitness err", err, "nodeId", can.CandidateId.String())
-			continue
+			//continue
+			return nil, nil, nil, err
 		}else {
 			preArr = append(preArr, node)
 		}
@@ -917,7 +918,8 @@ func (c *CandidatePool) GetAllWitness (state *state.StateDB) ([]*discover.Node, 
 	for _, can := range witness {
 		if node, err := buildWitnessNode(can); nil != err {
 			log.Error("Failed to build cur Node on GetAllWitness err", err, "nodeId", can.CandidateId.String())
-			continue
+			//continue
+			return nil, nil, nil, err
 		}else {
 			curArr = append(curArr, node)
 		}
@@ -925,7 +927,8 @@ func (c *CandidatePool) GetAllWitness (state *state.StateDB) ([]*discover.Node, 
 	for _, can := range nextwitness {
 		if node, err := buildWitnessNode(can); nil != err {
 			log.Error("Failed to build next Node on GetAllWitness err", err, "nodeId", can.CandidateId.String())
-			continue
+			//continue
+			return nil, nil, nil, err
 		}else {
 			nextArr = append(nextArr, node)
 		}

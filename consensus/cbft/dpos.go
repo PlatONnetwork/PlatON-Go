@@ -17,9 +17,9 @@ import (
 )
 
 type dpos struct {
-	former	dposRound   // the previous round of witnesses nodeId
-	current	dposRound	// the current round of witnesses nodeId
-	next	dposRound  	// the next round of witnesses nodeId
+	former				*dposRound   // the previous round of witnesses nodeId
+	current				*dposRound	// the current round of witnesses nodeId
+	next				*dposRound  	// the next round of witnesses nodeId
 	chain             	*core.BlockChain
 	lastCycleBlockNum 	uint64
 	startTimeOfEpoch  	int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
@@ -39,14 +39,25 @@ type dposRound struct {
 }
 
 func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
-	dposPtr := &dpos{
-		formerlyNodeList:  initialNodes,
-		primaryNodeList:   initialNodes,
-		lastCycleBlockNum: 0,
+
+	formerRound := &dposRound{
+		nodes: 		initialNodes,
+		start:		big.NewInt(0),
+		end: 		big.NewInt(250),
+	}
+	currentRound := &dposRound{
+		nodes: 		initialNodes,
+		start:		big.NewInt(0),
+		end: 		big.NewInt(250),
+	}
+	return &dpos{
+		former:  			formerRound,
+		current:   			currentRound,
+		lastCycleBlockNum: 	0,
 		config: 			config.DposConfig,
 		candidatePool:		depos.NewCandidatePool(config.DposConfig),
 	}
-	return dposPtr
+	//return dposPtr
 }
 
 func (d *dpos) IsPrimary(addr common.Address) bool {
@@ -140,31 +151,47 @@ func (d *dpos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 /** dpos was added func */
 /** Method provided to the cbft module call */
 // Announce witness
-func (d *dpos)  Election(state *state.StateDB) ([]*discover.Node, error) {
-	return d.candidatePool.Election(state)
+func (d *dpos)  Election(state *state.StateDB, start, end *big.Int) ([]*discover.Node, error) {
+	if nextNodes, err := d.candidatePool.Election(state); nil != err {
+		log.Error("dpos election next witness err", err)
+		panic("Election error " + err.Error())
+	}else {
+		d.next = &dposRound{
+			nodes: 			convertNodeID(nextNodes),
+			start: 			start,
+			end: 			end,
+		}
+		return nextNodes, nil
+	}
 }
 
 // switch next witnesses to current witnesses
-func (d *dpos)  Switch(state *state.StateDB) bool {
+func (d *dpos)  Switch(state *state.StateDB/*, start, end *big.Int*/) bool {
 	log.Info("Switch begin...")
 	if !d.candidatePool.Switch(state) {
 		return false
 	}
 	log.Info("Switch success...")
-	preArr, curArr, nextArr, err := d.candidatePool.GetAllWitness(state)
+	preArr, curArr, _, err := d.candidatePool.GetAllWitness(state)
 	if nil != err {
 		return false
 	}
 	d.lock.Lock()
 	if len(preArr) != 0 {
-		d.formerlyNodeList = convertNodeID(preArr)
+		d.former = &dposRound{
+			nodes: 			convertNodeID(preArr),
+			start: 			d.current.start,
+			end: 			d.current.end,
+		}
 	}
 	if len(curArr) != 0 {
-		d.primaryNodeList = convertNodeID(curArr)
+		d.current = &dposRound{
+			nodes: 		convertNodeID(curArr),
+			start: 		d.next.start,
+			end: 		d.next.end,
+		}
 	}
-	if len(nextArr) != 0 {
-		d.nextNodeList = convertNodeID(nextArr)
-	}
+	d.next = nil
 	d.lock.Unlock()
 	return true
 }
@@ -193,14 +220,26 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 			log.Error("Load Witness from state failed on SetCandidatePool err", err)
 		}else {
 			d.lock.Lock()
+
+			// current num
+			round := blockChain.CurrentBlock().NumberU64()/ BaseSwitchWitness
+
+			d.former.start = big.NewInt(int64(BaseSwitchWitness * (round - 1)))
+			d.former.end = new(big.Int).Add(d.former.start, big.NewInt(int64(BaseSwitchWitness - 1)))
 			if len(preArr) != 0 {
-				d.formerlyNodeList = convertNodeID(preArr)
+				d.former.nodes = convertNodeID(preArr)
 			}
+
+			d.current.start = big.NewInt(int64(BaseSwitchWitness * round))
+			d.current.end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness - 1)))
 			if len(curArr) != 0 {
-				d.primaryNodeList = convertNodeID(curArr)
+				d.current.nodes = convertNodeID(curArr)
 			}
+
+			d.next.start = big.NewInt(int64(BaseSwitchWitness * (round + 1)))
+			d.next.end = new(big.Int).Add(d.next.start, big.NewInt(int64(BaseSwitchWitness - 1)))
 			if len(nextArr) != 0 {
-				d.nextNodeList = convertNodeID(nextArr)
+				d.next.nodes = convertNodeID(nextArr)
 			}
 			d.lock.Unlock()
 		}
@@ -254,23 +293,32 @@ func (d *dpos) GetRefundInterval () uint64 {
 }
 
 // cbft共识区块产生分叉后需要更新primaryNodeList和formerlyNodeList
-func (d *dpos) UpdateNodeList (state *state.StateDB) {
+func (d *dpos) UpdateNodeList (state *state.StateDB, start, end *big.Int) {
 	log.Warn("---cbft共识区块产生分叉，更新formerlyNodeList、primaryNodeList和nextNodeList---", "state", state)
-	if preArr, curArr, nextArr, err := d.candidatePool.GetAllWitness(state); nil != err {
+	if preArr, curArr, _, err := d.candidatePool.GetAllWitness(state); nil != err {
 		log.Error("Load Witness from state failed on UpdateNodeList err", err)
 		panic("UpdateNodeList error")
 	}else {
 		d.lock.Lock()
+		formerStartReset := new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+		formerEndReset := new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+
+
 		if len(preArr) != 0 {
-			d.formerlyNodeList = convertNodeID(preArr)
+			d.former = &dposRound{
+				nodes: 			convertNodeID(preArr),
+				start: 			formerStartReset,
+				end: 			formerEndReset,
+			}
 		}
 		if len(curArr) != 0 {
-			d.primaryNodeList = convertNodeID(curArr)
+			d.current = &dposRound{
+				nodes: 			convertNodeID(curArr),
+				start: 			start,
+				end: 			end,
+			}
 		}
-		//if len(nextArr) != 0 {
-		//	d.nextNodeList = convertNodeID(nextArr)
-		//}
-		d.nextNodeList = convertNodeID(nextArr)
+		d.next = nil
 		d.lock.Unlock()
 	}
 }
