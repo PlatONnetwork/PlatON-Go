@@ -64,8 +64,8 @@ func (d *dpos) IsPrimary(addr common.Address) bool {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 	// 判断当前节点是否是共识节点
-	for _, node := range d.primaryNodeList {
-		pub, err := node.Pubkey()
+	for _, n := range d.current.nodes {
+		pub, err := n.Pubkey()
 		if err != nil || pub == nil {
 			log.Error("nodeID.ID.Pubkey error!")
 		}
@@ -78,7 +78,16 @@ func (d *dpos) IsPrimary(addr common.Address) bool {
 func (d *dpos) NodeIndex(nodeID discover.NodeID) int64 {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	nodeList := append(d.primaryNodeList, d.formerlyNodeList...)
+	nodeList := make([]discover.NodeID, 0)
+	if d.former != nil && d.former.nodes != nil && len(d.former.nodes) > 0 {
+		nodeList = append(nodeList, d.former.nodes...)
+	}
+	if d.current != nil && d.current.nodes != nil && len(d.current.nodes) > 0 {
+		nodeList = append(nodeList, d.current.nodes...)
+	}
+	if d.next != nil && d.next.nodes != nil && len(d.next.nodes) > 0 {
+		nodeList = append(nodeList, d.next.nodes...)
+	}
 	for idx, node := range nodeList {
 		if node == nodeID {
 			return int64(idx)
@@ -87,22 +96,36 @@ func (d *dpos) NodeIndex(nodeID discover.NodeID) int64 {
 	return int64(-1)
 }
 
-func (d *dpos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
+//func (d *dpos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
+//	d.lock.RLock()
+//	defer d.lock.RUnlock()
+//	nodeList := append(d.current.nodes, d.next.nodes...)
+//	for idx, node := range nodeList {
+//		if node == nodeID {
+//			return int64(idx)
+//		}
+//	}
+//	return int64(-1)
+//}
+
+func (d *dpos) getCurrentNodes() []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	nodeList := append(d.primaryNodeList, d.nextNodeList...)
-	for idx, node := range nodeList {
-		if node == nodeID {
-			return int64(idx)
-		}
-	}
-	return int64(-1)
+	return d.current.nodes
 }
 
-func (d *dpos) getPrimaryNodes() []discover.NodeID {
+func (d *dpos) consensusNodes(blockNum *big.Int) []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	return d.primaryNodeList
+
+	if d.former != nil && blockNum.Cmp(d.former.start) >= 0 && blockNum.Cmp(d.former.end) <= 0 {
+		return d.former.nodes
+	} else if d.current != nil && blockNum.Cmp(d.current.start) >= 0 && blockNum.Cmp(d.current.end) <= 0 {
+		return d.current.nodes
+	} else if d.next != nil && blockNum.Cmp(d.next.start) >= 0 && blockNum.Cmp(d.next.end) <= 0 {
+		return d.next.nodes
+	}
+	return nil
 }
 
 func (d *dpos) LastCycleBlockNum() uint64 {

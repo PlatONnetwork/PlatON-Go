@@ -1198,7 +1198,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			log.Warn("---insertchain试图揭榜---", "number", block.Number())
 			if bc.shouldSwitchFn(block.Number()) {
 				log.Warn("---insertchain调用揭榜---", "number", block.Number(), "state", state)
-				cbftEngine.Election(state)
+				cbftEngine.Election(state, block.Number())
 			}
 			// 触发替换下轮见证人列表(如果符合条件)
 			log.Warn("---insertchain试图触发替换下轮见证人列表---", "number", block.Number())

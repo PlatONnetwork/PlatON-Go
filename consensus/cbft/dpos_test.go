@@ -21,28 +21,6 @@ func newTesterAccountPool() ([]discover.NodeID, error) {
 	return accounts, nil
 }
 
-func TestDpos(t *testing.T) {
-	nodes, _ := newTesterAccountPool()
-	dpos := newDpos(nodes)
-	dpos.SetLastCycleBlockNum(100)
-	if dpos.LastCycleBlockNum() != 100 {
-		t.Errorf("dpos.SetLastCycleBlockNum failed!")
-	}
-
-	nodeID := dpos.primaryNodeList[0]
-	if dpos.NodeIndex(nodeID) <= 0 {
-		t.Errorf("dpos.CheckConsensusNode failed!")
-	}
-
-	addr, err := nodeID.Pubkey()
-	if err != nil || addr == nil {
-		t.Errorf("nodeID.ID.Pubkey error!")
-	}
-	if !dpos.IsPrimary(crypto.PubkeyToAddress(*addr)) {
-		t.Errorf("dpos.IsPrimary!")
-	}
-}
-
 func TestBlockCopy(t *testing.T) {
 	header := &types.Header{
 		Number: big.NewInt(1),
