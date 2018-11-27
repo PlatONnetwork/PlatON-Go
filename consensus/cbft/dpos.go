@@ -278,11 +278,13 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 			if len(curArr) != 0 {
 				d.current.nodes = convertNodeID(curArr)
 			}
-			if nil != d.next {
-				d.next.start = big.NewInt(int64(BaseSwitchWitness*(round+1)) + 1)
-				d.next.end = new(big.Int).Add(d.next.start, big.NewInt(int64(BaseSwitchWitness-1)))
-				if len(nextArr) != 0 {
-					d.next.nodes = convertNodeID(nextArr)
+			if len(nextArr) != 0 {
+				start := big.NewInt(int64(BaseSwitchWitness*(round+1)) + 1)
+				end := new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
+				d.next = &dposRound{
+					nodes: 		convertNodeID(nextArr),
+					start: 		start,
+					end: 		end,
 				}
 			}
 
