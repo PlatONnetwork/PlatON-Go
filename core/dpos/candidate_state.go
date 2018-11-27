@@ -89,7 +89,7 @@ var candidatePool *CandidatePool
 
 // Initialize the global candidate pool object
 func NewCandidatePool(configs *params.DposConfig) *CandidatePool {
-
+	PrintObject("初始化配置文件", *configs)
 	candidatePool = &CandidatePool{
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
