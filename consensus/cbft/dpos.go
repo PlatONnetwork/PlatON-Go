@@ -151,15 +151,23 @@ func (d *dpos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 /** dpos was added func */
 /** Method provided to the cbft module call */
 // Announce witness
-func (d *dpos)  Election(state *state.StateDB, start, end *big.Int) ([]*discover.Node, error) {
+func (d *dpos)  Election(state *state.StateDB, blocknumber *big.Int) ([]*discover.Node, error) {
 	if nextNodes, err := d.candidatePool.Election(state); nil != err {
 		log.Error("dpos election next witness err", err)
 		panic("Election error " + err.Error())
 	}else {
+
+		// current round
+		round := calcurround(blocknumber)
+
+		//d.next.start = big.NewInt(int64(BaseSwitchWitness * (round + 1)) + 1)
+		//d.next.end = new(big.Int).Add(d.next.start, big.NewInt(int64(BaseSwitchWitness - 1)))
+		nextStart := big.NewInt(int64(BaseSwitchWitness * (round + 1)) + 1)
+		nextEnd := new(big.Int).Add(d.next.start, big.NewInt(int64(BaseSwitchWitness - 1)))
 		d.next = &dposRound{
 			nodes: 			convertNodeID(nextNodes),
-			start: 			start,
-			end: 			end,
+			start: 			nextStart,
+			end: 			nextEnd,
 		}
 		return nextNodes, nil
 	}
@@ -220,23 +228,22 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 			log.Error("Load Witness from state failed on SetCandidatePool err", err)
 		}else {
 			d.lock.Lock()
+			// current round
+			round := calcurround(blockChain.CurrentBlock().Number())
 
-			// current num
-			round := blockChain.CurrentBlock().NumberU64()/ BaseSwitchWitness
-
-			d.former.start = big.NewInt(int64(BaseSwitchWitness * (round - 1)))
+			d.former.start = big.NewInt(int64(BaseSwitchWitness * (round - 1)) + 1)
 			d.former.end = new(big.Int).Add(d.former.start, big.NewInt(int64(BaseSwitchWitness - 1)))
 			if len(preArr) != 0 {
 				d.former.nodes = convertNodeID(preArr)
 			}
 
-			d.current.start = big.NewInt(int64(BaseSwitchWitness * round))
+			d.current.start = big.NewInt(int64(BaseSwitchWitness * round) + 1)
 			d.current.end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness - 1)))
 			if len(curArr) != 0 {
 				d.current.nodes = convertNodeID(curArr)
 			}
 
-			d.next.start = big.NewInt(int64(BaseSwitchWitness * (round + 1)))
+			d.next.start = big.NewInt(int64(BaseSwitchWitness * (round + 1)) + 1)
 			d.next.end = new(big.Int).Add(d.next.start, big.NewInt(int64(BaseSwitchWitness - 1)))
 			if len(nextArr) != 0 {
 				d.next.nodes = convertNodeID(nextArr)
@@ -293,17 +300,22 @@ func (d *dpos) GetRefundInterval () uint64 {
 }
 
 // cbft共识区块产生分叉后需要更新primaryNodeList和formerlyNodeList
-func (d *dpos) UpdateNodeList (state *state.StateDB, start, end *big.Int) {
+func (d *dpos) UpdateNodeList (state *state.StateDB, blocknumber  *big.Int) {
 	log.Warn("---cbft共识区块产生分叉，更新formerlyNodeList、primaryNodeList和nextNodeList---", "state", state)
 	if preArr, curArr, _, err := d.candidatePool.GetAllWitness(state); nil != err {
 		log.Error("Load Witness from state failed on UpdateNodeList err", err)
 		panic("UpdateNodeList error")
 	}else {
 		d.lock.Lock()
+
+		// current round
+		round := calcurround(blocknumber)
+
+		start := big.NewInt(int64(BaseSwitchWitness * round) + 1)
+		end := new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness - 1)))
+
 		formerStartReset := new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 		formerEndReset := new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
-
-
 		if len(preArr) != 0 {
 			d.former = &dposRound{
 				nodes: 			convertNodeID(preArr),
@@ -329,4 +341,20 @@ func convertNodeID(nodes []*discover.Node) []discover.NodeID {
 		nodesID = append(nodesID, n.ID)
 	}
 	return nodesID
+}
+
+// calculate current round number by current blocknumber
+func calcurround (blocknumber *big.Int) uint64 {
+	// current num
+	var round uint64
+	div := blocknumber.Uint64()/ BaseSwitchWitness
+	mod := blocknumber.Uint64()/ BaseSwitchWitness
+	if (div == 0 && mod == 0) || (div == 0 && mod > 0 && mod < BaseSwitchWitness) { // first round
+		round = 1
+	}else if div > 0 && mod == 0 {
+		round = div
+	} else if div > 0 && mod > 0 && mod < BaseSwitchWitness {
+		round = div + 1
+	}
+	return round
 }
