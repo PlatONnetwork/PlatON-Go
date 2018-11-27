@@ -120,23 +120,21 @@ type PoW interface {
 type Bft interface {
 	Engine
 
-	// modify by platon
 	// 返回当前共识节点地址列表
-	ConsensusNodes() ([]discover.NodeID, error)
+	CurrentNodes() []discover.NodeID
+
+	ConsensusNodes(blockNum *big.Int) []discover.NodeID
 
 	// 返回当前节点是否轮值出块
 	ShouldSeal() (bool, error)
 
-	// modify by platon
 	//收到新的区块签名
 	//需要验证签名是否时nodeID签名的
 	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error
 
-	// modify by platon
 	// Process the BFT signatures
 	OnNewBlock(chain ChainReader, block *types.Block) error
 
-	// modify by platon
 	// Process the BFT signatures
 	OnPong(nodeID discover.NodeID, netLatency int64) error
 

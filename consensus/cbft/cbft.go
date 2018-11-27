@@ -945,9 +945,12 @@ func (cbft *Cbft) ShouldSeal() (bool, error) {
 	return cbft.inTurn(), nil
 }
 
-func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
-	log.Debug("call ConsensusNodes()", "dposNodeCount", len(cbft.dpos.primaryNodeList))
-	return cbft.dpos.primaryNodeList, nil
+func (cbft *Cbft) CurrentNodes() []discover.NodeID {
+	return cbft.dpos.getPrimaryNodes()
+}
+
+func (cbft *Cbft) ConsensusNodes(blockNum *big.Int) []discover.NodeID {
+	return cbft.dpos.consensusNodes(blockNum)
 }
 
 // wether nodeID in formerlyNodeList or primaryNodeList
@@ -1107,7 +1110,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	log.Debug("seal complete", "Hash", sealedBlock.Hash(), "number", block.NumberU64())
 
-	if len(cbft.dpos.primaryNodeList) == 1 {
+	if len(cbft.dpos.current.nodes) == 1 {
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
 		return cbft.handleNewConfirmed(curExt)
 	}
@@ -1309,7 +1312,7 @@ func (cbft *Cbft) calTurn(curTime int64, nodeID discover.NodeID) bool {
 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
-		durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
+		durationPerTurn := durationPerNode * int64(len(cbft.dpos.current.nodes))
 
 		min := nodeIdx * (durationPerNode)
 
@@ -1404,7 +1407,7 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 }
 
 func (cbft *Cbft) getThreshold() int {
-	trunc := len(cbft.dpos.primaryNodeList) * 2 / 3
+	trunc := len(cbft.dpos.current.nodes) * 2 / 3
 	return int(trunc + 1)
 }
 

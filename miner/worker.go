@@ -615,20 +615,17 @@ func (w *worker) mainLoop() {
 			}
 
 			// Broadcast the block and announce chain insertion event
+			log.Warn("Post PrepareMinedBlockEvent", "consensusNodes", task.consensusNodes)
 			w.mux.Post(core.PrepareMinedBlockEvent{Block: block, ConsensusNodes: task.consensusNodes})
 
-			// modify by platon
 		case blockSignature := <-w.blockSignatureCh:
 			if blockSignature != nil {
 				// send blockSignatureMsg to consensus node peer
-				w.pendingMu.RLock()
-				task, exist := w.pendingTasks[blockSignature.SealHash]
-				w.pendingMu.RUnlock()
-				if !exist {
-					log.Error("deal blockSignature but no relative pending task", "Hash", blockSignature.Hash, "SealHash", blockSignature.SealHash)
-					continue
+				consensusNodes := w.engine.(consensus.Bft).ConsensusNodes(blockSignature.Number)
+				if consensusNodes != nil {
+					log.Warn("Post BlockSignatureEvent", "consensusNodes", consensusNodes)
+					w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature, ConsensusNodes: consensusNodes})
 				}
-				w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature, ConsensusNodes: task.consensusNodes})
 			}
 		}
 	}
@@ -865,10 +862,11 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		header:    header,
 	}
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-		env.consensusNodes,err = cbftEngine.ConsensusNodes()
-		if err != nil {
-			return err
+		currentNodes := cbftEngine.CurrentNodes()
+		if currentNodes == nil || len(currentNodes) <= 0 {
+			return errors.New("Failed to load current consensus nodes")
 		}
+		env.consensusNodes = currentNodes
 	}
 
 	// when 08 is processed ancestors contain 07 (quick block)
