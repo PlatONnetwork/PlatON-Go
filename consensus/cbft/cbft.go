@@ -24,6 +24,7 @@ import (
 	"math/big"
 	"sync"
 	"time"
+	"Platon-go/core/dpos"
 )
 
 var (
@@ -85,6 +86,7 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 	for _, n := range config.InitialNodes {
 		initialNodesID = append(initialNodesID, n.ID)
 	}
+	depos.PrintObject("获取dpos config：", *config)
 	_dpos := newDpos(initialNodesID, config)
 
 	cbft = &Cbft{

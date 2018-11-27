@@ -16,6 +16,7 @@ import (
 	"net"
 	"strconv"
 	"sync"
+	"fmt"
 )
 
 const (
@@ -687,7 +688,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 // Announce witness
 func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error) {
 	log.Info("揭榜...")
-	log.Info("揭榜 candidate：%+v", *c)
+	PrintObject("揭榜 candidate：", *c)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
@@ -704,7 +705,7 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 		immediateIds = append(immediateIds, can.CandidateId)
 	}
 	PrintObject("当前入围者ids：", immediateIds)
-	log.Info("当前配置的允许见证人个数:", c.maxChair)
+	log.Info("当前配置的允许见证人个数:", fmt.Sprint(c.maxChair))
 	// a certain number of witnesses in front of the cache
 	var nextWitIds []discover.NodeID
 	// If the number of candidate selected does not exceed the number of witnesses
@@ -1402,7 +1403,7 @@ func GetCandidatePtr() *CandidatePool {
 
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
-	log.Info(s, string(objs), "\n")
+	log.Info(s, string(objs))
 }
 
 func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
