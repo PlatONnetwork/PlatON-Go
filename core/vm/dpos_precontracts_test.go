@@ -177,7 +177,7 @@ func TestRlpData(t *testing.T)  {
 func TestRlpDecode(t *testing.T)  {
 
 	//HexString -> []byte
-	rlpcode, _ := hex.DecodeString("f85c8800000000000000f19043616e64696461746544657461696c73b840e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
+	rlpcode, _ := hex.DecodeString("f85c8800000000000000049043616e64696461746544657461696c73b840e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
 	var source [][]byte
 	if err := rlp.Decode(bytes.NewReader(rlpcode), &source); err != nil {
 		fmt.Println(err)

@@ -2,6 +2,7 @@ package miner
 
 import (
 	"Platon-go/consensus"
+	"Platon-go/consensus/cbft"
 	"Platon-go/core/state"
 	"Platon-go/log"
 	"Platon-go/p2p/discover"
@@ -24,7 +25,7 @@ func (w *worker) election(blockNumber *big.Int) error {
 }
 
 func (w *worker) shouldElection(blockNumber *big.Int) bool {
-	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(baseElection), new(big.Int))
+	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(cbft.BaseElection), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
 
@@ -43,7 +44,7 @@ func (w *worker) switchWitness(blockNumber *big.Int) error {
 }
 
 func (w *worker) shouldSwitch(blockNumber *big.Int) bool {
-	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(baseSwitchWitness), new(big.Int))
+	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(cbft.BaseSwitchWitness), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
 
@@ -112,6 +113,6 @@ func (w *worker) attemptRemoveConsensusPeer(blockNumber *big.Int, state *state.S
 }
 
 func (w *worker) shouldRemoveFormer(blockNumber *big.Int) bool {
-	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(baseRemoveFormerPeers), new(big.Int))
+	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(cbft.BaseRemoveFormerPeers), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
