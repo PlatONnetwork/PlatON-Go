@@ -401,3 +401,7 @@ func calcurround(blocknumber *big.Int) uint64 {
 	}
 	return round
 }
+
+func (d *dpos) GetCandidatePtr () *depos.CandidatePool {
+	return d.candidatePool
+}
