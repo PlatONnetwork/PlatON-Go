@@ -198,10 +198,8 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 		// current round
 		round := calcurround(blocknumber)
 
-		//d.next.start = big.NewInt(int64(BaseSwitchWitness * (round + 1)) + 1)
-		//d.next.end = new(big.Int).Add(d.next.start, big.NewInt(int64(BaseSwitchWitness - 1)))
 		nextStart := big.NewInt(int64(BaseSwitchWitness*(round+1)) + 1)
-		nextEnd := new(big.Int).Add(d.next.start, big.NewInt(int64(BaseSwitchWitness-1)))
+		nextEnd := new(big.Int).Add(nextStart, big.NewInt(int64(BaseSwitchWitness-1)))
 		d.next = &dposRound{
 			nodes: convertNodeID(nextNodes),
 			start: nextStart,
