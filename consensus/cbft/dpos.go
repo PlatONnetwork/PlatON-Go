@@ -150,7 +150,6 @@ func (d *dpos)  Switch(state *state.StateDB) bool {
 		return false
 	}
 	d.lock.Lock()
-	defer d.lock.Unlock()
 	if len(preArr) != 0 {
 		d.formerlyNodeList = convertNodeID(preArr)
 	}
@@ -160,6 +159,7 @@ func (d *dpos)  Switch(state *state.StateDB) bool {
 	if len(nextArr) != 0 {
 		d.nextNodeList = convertNodeID(nextArr)
 	}
+	d.lock.Unlock()
 	return true
 }
 
@@ -187,7 +187,6 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 			log.Error("Load Witness from state failed on SetCandidatePool err", err)
 		}else {
 			d.lock.Lock()
-			defer d.lock.Unlock()
 			if len(preArr) != 0 {
 				d.formerlyNodeList = convertNodeID(preArr)
 			}
@@ -197,6 +196,7 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 			if len(nextArr) != 0 {
 				d.nextNodeList = convertNodeID(nextArr)
 			}
+			d.lock.Unlock()
 		}
 	}
 }
@@ -250,21 +250,22 @@ func (d *dpos) GetRefundInterval () uint64 {
 // cbft共识区块产生分叉后需要更新primaryNodeList和formerlyNodeList
 func (d *dpos) UpdateNodeList (state *state.StateDB) {
 	log.Warn("---cbft共识区块产生分叉，更新formerlyNodeList、primaryNodeList和nextNodeList---", "state", state)
-	d.lock.Lock()
-	defer d.lock.Unlock()
 	if preArr, curArr, nextArr, err := d.candidatePool.GetAllWitness(state); nil != err {
 		log.Error("Load Witness from state failed on UpdateNodeList err", err)
 		panic("UpdateNodeList error")
 	}else {
+		d.lock.Lock()
 		if len(preArr) != 0 {
 			d.formerlyNodeList = convertNodeID(preArr)
 		}
 		if len(curArr) != 0 {
 			d.primaryNodeList = convertNodeID(curArr)
 		}
-		if len(nextArr) != 0 {
-			d.nextNodeList = convertNodeID(nextArr)
-		}
+		//if len(nextArr) != 0 {
+		//	d.nextNodeList = convertNodeID(nextArr)
+		//}
+		d.nextNodeList = convertNodeID(nextArr)
+		d.lock.Unlock()
 	}
 }
 
