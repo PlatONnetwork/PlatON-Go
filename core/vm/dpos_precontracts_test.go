@@ -17,7 +17,7 @@ import (
 )
 
 func TestRlpEncode(t *testing.T) {
-	nodeId, _ := hex.DecodeString("a363d1243646b6eabf1d4851f646b523f5707d053caab95022f1682605aca0537ee0c5c14b4dfa76dcbce264b7e68d59de79a42b7cda059e9d358336a9ab8d80")
+	nodeId, _ := hex.DecodeString("97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0")
 
 	owner, _ := hex.DecodeString("740ce31b3fac20dac379db243021a51e80ad00d7") //38
 	//owner, _ := hex.DecodeString("5a5c4368e2692746b286cee36ab0710af3efa6cf") //39
@@ -38,8 +38,8 @@ func TestRlpEncode(t *testing.T) {
 	source = append(source, nodeId) // [64]byte nodeId discover.NodeID
 	source = append(source, owner) // [20]byte owner common.Address
 	source = append(source, byteutil.Uint64ToBytes(100)) // fee
-	source = append(source, []byte("192.168.7.167")) // host
-	source = append(source, []byte("30303")) // port
+	source = append(source, []byte("192.168.9.184")) // host
+	source = append(source, []byte("16789")) // port
 	source = append(source, []byte("extra info..")) // extra
 	//source = append(source, new(big.Int).SetInt64(1).Bytes()) // withdraw
 

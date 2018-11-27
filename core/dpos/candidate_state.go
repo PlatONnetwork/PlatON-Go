@@ -249,6 +249,8 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 		log.Error("Failed to initDataByState on SetCandidate err", err)
 		return err
 	}
+	c.immediateCandates[can.CandidateId] = can
+	c.candidateCacheArr = make([]*types.Candidate, 0)
 	// append to the cache array and then sort
 	if len(c.immediateCandates) != 0 && len(c.candidateCacheArr) == 0 {
 		for _, v := range c.immediateCandates {
@@ -258,18 +260,19 @@ func(c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, ca
 
 	// Whether the current candidate is new
 	// then append to cache array
-	var needSort bool
-	if _, ok := c.immediateCandates[can.CandidateId]; !ok {
-		c.candidateCacheArr = append(c.candidateCacheArr, can)
-		needSort = true
-	}
+	//var needSort bool
+	//if _, ok := c.immediateCandates[can.CandidateId]; !ok {
+	//	c.candidateCacheArr = append(c.candidateCacheArr, can)
+	//	//needSort = true
+	//}
 
-	c.immediateCandates[can.CandidateId] = can
+
 	PrintObject("SetCandidate immediateMap:", c.immediateCandates)
 	// sort cache array
-	if needSort {
-		candidateSort(c.candidateCacheArr)
-	}
+	candidateSort(c.candidateCacheArr)
+	//if needSort {
+	//	candidateSort(c.candidateCacheArr)
+	//}
 	// move the excessive of immediate elected candidate to refunds
 	if len(c.candidateCacheArr) > int(c.maxCount) {
 		// Intercepting the lost candidates to tmpArr
