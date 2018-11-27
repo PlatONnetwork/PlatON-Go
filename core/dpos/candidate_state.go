@@ -350,10 +350,12 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 	} else if can.Deposit.Cmp(price) == 0 { // full withdraw
 		// delete current candidate from immediate elected candidates
 		if err := c.delImmediate(state, nodeId); nil != err {
+			log.Error("withdraw failed delImmediate on full withdraw err", err)
 			return err
 		}
 		// update immediate id index
 		if ids, err := c.getImmediateIndex(state); nil != err {
+			log.Error("withdraw failed getImmediateIndex on full withdrawerr", err)
 			return err
 		} else {
 			for i, id := range ids {
@@ -362,16 +364,19 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 				}
 			}
 			if err := c.setImmediateIndex(state, ids); nil != err {
+				log.Error("withdraw failed setImmediateIndex on full withdrawerr", err)
 				return err
 			}
 		}
 
 		// append to refund (defeat) trie
 		if err := c.setDefeat(state, nodeId, can); nil != err {
+			log.Error("withdraw failed setDefeat on full withdrawerr", err)
 			return err
 		}
 		// update index of defeat on trie
 		if err := c.setDefeatIndex(state); nil != err {
+			log.Error("withdraw failed setDefeatIndex on full withdrawerr", err)
 			return err
 		}
 	} else {
@@ -391,6 +396,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 		// update current candidate
 		if err := c.setImmediate(state, nodeId, canNew); nil != err {
+			log.Error("withdraw failed setImmediate on a few of withdrawerr", err)
 			return err
 		}
 
@@ -406,6 +412,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 		}
 		// update new index
 		if err := c.setImmediateIndex(state, ids); nil != err {
+			log.Error("withdraw failed setImmediateIndex on a few of withdrawerr", err)
 			return err
 		}
 
@@ -423,10 +430,12 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 		}
 		// the withdraw
 		if err := c.setDefeat(state, nodeId, canDefeat); nil != err {
+			log.Error("withdraw failed setDefeat on a few of withdrawerr", err)
 			return err
 		}
 		// update index of defeat on trie
 		if err := c.setDefeatIndex(state); nil != err {
+			log.Error("withdraw failed setDefeatIndex on a few of withdrawerr", err)
 			return err
 		}
 	}
@@ -677,6 +686,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 		// update current candidate info and update to tire
 		can.Extra = extra
 		if err := c.setImmediate(state, nodeId, can); nil != err {
+			log.Error("Failed to setImmediate on SetCandidateExtra err", err)
 			return err
 		}
 	} else {
@@ -1124,13 +1134,13 @@ func (c *CandidatePool) getPreviousWitnessIndex(state vm.StateDB) ([]discover.No
 }
 
 func (c *CandidatePool) setWitness(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
-	PrintObject("把下一轮设置本轮", can)
 	c.originCandidates[nodeId] = can
 	if val, err := rlp.EncodeToBytes(can); nil != err {
 		log.Error("Failed to encode Candidate on setWitness err", err)
 		return err
 	} else {
 		setWitnessState(state, nodeId, val)
+		PrintObject("设置 setWitness ", *can)
 	}
 	return nil
 }
@@ -1182,7 +1192,6 @@ func (c *CandidatePool) getWitnessIndex(state vm.StateDB) ([]discover.NodeID, er
 }
 
 func (c *CandidatePool) setNextWitness(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
-	PrintObject("设置 setNextWitness", *can)
 	c.nextOriginCandidates[nodeId] = can
 	if value, err := rlp.EncodeToBytes(can); nil != err {
 		log.Error("Failed to encode candidate object on setImmediate", "key", nodeId.String(), "err", err)
@@ -1190,6 +1199,7 @@ func (c *CandidatePool) setNextWitness(state vm.StateDB, nodeId discover.NodeID,
 	} else {
 		// setting next witness information on trie
 		setNextWitnessState(state, nodeId, value)
+		PrintObject("设置 setNextWitness", *can)
 	}
 	return nil
 }
@@ -1229,12 +1239,12 @@ func (c *CandidatePool) delNextWitness(state vm.StateDB, candidateId discover.No
 }
 
 func (c *CandidatePool) setNextWitnessIndex(state vm.StateDB, nodeIds []discover.NodeID) error {
-	PrintObject("设置 setNextWitnessIndex:", nodeIds)
 	if value, err := rlp.EncodeToBytes(&nodeIds); nil != err {
 		log.Error("Failed to encode candidate object on setDefeatIds err", err)
 		return CandidateEncodeErr
 	} else {
 		setNextWitnessIdsState(state, value)
+		PrintObject("设置 setNextWitnessIndex:", nodeIds)
 	}
 	return nil
 }
