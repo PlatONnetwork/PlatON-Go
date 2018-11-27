@@ -415,6 +415,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 		blockSign := &cbfttypes.BlockSignature{
 			SignHash:  sealHash,
 			Hash:      blockHash,
+			SealHash:  sealHash,
 			Number:    ext.block.Number(),
 			Signature: sign,
 		}
