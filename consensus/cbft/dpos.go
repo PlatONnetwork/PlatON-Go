@@ -111,17 +111,17 @@ func (d *dpos) BlockProducerIndex(number uint64, nodeID discover.NodeID) int64 {
 
 }
 
-//func (d *dpos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
-//	d.lock.RLock()
-//	defer d.lock.RUnlock()
-//	nodeList := append(d.current.nodes, d.next.nodes...)
-//	for idx, node := range nodeList {
-//		if node == nodeID {
-//			return int64(idx)
-//		}
-//	}
-//	return int64(-1)
-//}
+func (d *dpos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
+	d.lock.RLock()
+	defer d.lock.RUnlock()
+	nodeList := append(d.current.nodes, d.next.nodes...)
+	for idx, node := range nodeList {
+		if node == nodeID {
+			return int64(idx)
+		}
+	}
+	return int64(-1)
+}
 
 func (d *dpos) getCurrentNodes() []discover.NodeID {
 	d.lock.RLock()

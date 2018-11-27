@@ -140,7 +140,7 @@ type Bft interface {
 
 	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
 
-	//CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error)
+	CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error)
 
 	IsConsensusNode() (bool, error)
 

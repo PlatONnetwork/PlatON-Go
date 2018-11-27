@@ -959,11 +959,11 @@ func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
 	return cbft.dpos.AnyIndex(nodeID) >= 0, nil
 }
 
-//// wether nodeID in primaryNodeList or nextNodeList
-//func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error) {
-//	log.Debug("call CheckFutureConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
-//	return cbft.dpos.NodeIndexInFuture(nodeID) >= 0, nil
-//}
+// wether nodeID in current or next
+func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error) {
+	log.Debug("call CheckFutureConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+	return cbft.dpos.NodeIndexInFuture(nodeID) >= 0, nil
+}
 
 // wether nodeID in former or current or next
 func (cbft *Cbft) IsConsensusNode() (bool, error) {
