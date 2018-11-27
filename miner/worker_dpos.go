@@ -25,7 +25,8 @@ func (w *worker) election(blockNumber *big.Int) error {
 }
 
 func (w *worker) shouldElection(blockNumber *big.Int) bool {
-	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(cbft.BaseElection), new(big.Int))
+	d := new(big.Int).Sub(blockNumber, big.NewInt(cbft.BaseElection))
+	_, m := new(big.Int).DivMod(d, big.NewInt(cbft.BaseSwitchWitness), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
 
@@ -113,6 +114,7 @@ func (w *worker) attemptRemoveConsensusPeer(blockNumber *big.Int, state *state.S
 }
 
 func (w *worker) shouldRemoveFormer(blockNumber *big.Int) bool {
-	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(cbft.BaseRemoveFormerPeers), new(big.Int))
+	d := new(big.Int).Sub(blockNumber, big.NewInt(cbft.BaseRemoveFormerPeers))
+	_, m := new(big.Int).DivMod(d, big.NewInt(cbft.BaseSwitchWitness), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
