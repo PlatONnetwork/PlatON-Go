@@ -687,6 +687,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 // Announce witness
 func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error) {
 	log.Info("揭榜...")
+	log.Info("揭榜 candidate：%+v", *c)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
