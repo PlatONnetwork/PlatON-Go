@@ -402,6 +402,6 @@ func calcurround(blocknumber *big.Int) uint64 {
 	return round
 }
 
-func (d *dpos) GetCandidatePtr () *depos.CandidatePool {
-	return d.candidatePool
+func (d *dpos) MaxChair() int64 {
+	return int64(d.candidatePool.MaxChair())
 }
