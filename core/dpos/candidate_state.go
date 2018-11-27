@@ -696,13 +696,14 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 
 	// sort immediate candidates
 	candidateSort(c.candidateCacheArr)
-
+	PrintObject("揭榜时，排序的数组:", c.candidateCacheArr)
 	// cache ids
 	immediateIds := make([]discover.NodeID, 0)
 	for _, can := range c.candidateCacheArr {
 		immediateIds = append(immediateIds, can.CandidateId)
 	}
-
+	PrintObject("当前入围者ids：", immediateIds)
+	log.Info("当前配置的允许见证人个数:", c.maxChair)
 	// a certain number of witnesses in front of the cache
 	var nextWitIds []discover.NodeID
 	// If the number of candidate selected does not exceed the number of witnesses
@@ -715,13 +716,13 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 		nextWitIds = make([]discover.NodeID, c.maxChair)
 		copy(nextWitIds, immediateIds)
 	}
-
+	PrintObject("选出来的下一轮见证人Ids:", nextWitIds)
 	// cache map
 	nextWits := make(map[discover.NodeID]*types.Candidate, 0)
 
 	// copy witnesses information
 	copyCandidateMapByIds(nextWits, c.immediateCandates, nextWitIds)
-
+	PrintObject("从入围信息copy过来的见证人;", nextWits)
 	// clear all old nextwitnesses information （If it is forked, the next round is no empty.）
 	for nodeId, _ := range c.nextOriginCandidates {
 		if err := c.delNextWitness(state, nodeId); nil != err {
@@ -753,6 +754,7 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 			arr = append(arr, node)
 		}
 	}
+	PrintObject("下一轮见证人node信息:", arr)
 	log.Info("揭榜完成...")
 	return arr, nil
 }
@@ -1120,6 +1122,7 @@ func (c *CandidatePool) getPreviousWitnessIndex(state vm.StateDB) ([]discover.No
 }
 
 func (c *CandidatePool) setWitness(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
+	PrintObject("把下一轮设置本轮", can)
 	c.originCandidates[nodeId] = can
 	if val, err := rlp.EncodeToBytes(can); nil != err {
 		log.Error("Failed to encode Candidate on setWitness err", err)
@@ -1177,6 +1180,7 @@ func (c *CandidatePool) getWitnessIndex(state vm.StateDB) ([]discover.NodeID, er
 }
 
 func (c *CandidatePool) setNextWitness(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
+	PrintObject("设置 setNextWitness", *can)
 	c.nextOriginCandidates[nodeId] = can
 	if value, err := rlp.EncodeToBytes(can); nil != err {
 		log.Error("Failed to encode candidate object on setImmediate", "key", nodeId.String(), "err", err)
@@ -1223,6 +1227,7 @@ func (c *CandidatePool) delNextWitness(state vm.StateDB, candidateId discover.No
 }
 
 func (c *CandidatePool) setNextWitnessIndex(state vm.StateDB, nodeIds []discover.NodeID) error {
+	PrintObject("设置 setNextWitnessIndex:", nodeIds)
 	if value, err := rlp.EncodeToBytes(&nodeIds); nil != err {
 		log.Error("Failed to encode candidate object on setDefeatIds err", err)
 		return CandidateEncodeErr

@@ -205,6 +205,7 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 			start: nextStart,
 			end:   nextEnd,
 		}
+		log.Info("揭榜维护下一轮dposRound：%+v", d.next)
 		return nextNodes, nil
 	}
 }
