@@ -42,12 +42,12 @@ func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
 
 	formerRound := &dposRound{
 		nodes: 		initialNodes,
-		start:		big.NewInt(0),
+		start:		big.NewInt(1),
 		end: 		big.NewInt(250),
 	}
 	currentRound := &dposRound{
 		nodes: 		initialNodes,
-		start:		big.NewInt(0),
+		start:		big.NewInt(1),
 		end: 		big.NewInt(250),
 	}
 	return &dpos{
