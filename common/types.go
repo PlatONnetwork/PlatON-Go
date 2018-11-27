@@ -46,6 +46,7 @@ var (
 
 	// modify by platon
 	CandidateAddr 	= HexToAddress("0x1000000000000000000000000000000000000001")
+	TicketAddr 		= HexToAddress("0x1000000000000000000000000000000000000002")
 	ZeroAddr 		= HexToAddress(Address{}.String())
 )
 

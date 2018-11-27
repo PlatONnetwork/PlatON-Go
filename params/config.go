@@ -242,6 +242,7 @@ type DposConfig struct{
 	//RefundBlockNumber 		uint64
 	//Candidates 				[]*CandidateConfig
 	Candidate 				*CandidateConfig
+	TicketConfig			*TicketConfig
 }
 type CandidateConfig struct {
 	MaxCount				uint64
@@ -255,6 +256,11 @@ type CandidateConfig struct {
 	Port 			string
 	Owner 			common.Address
 	From 			common.Address*/
+}
+
+type TicketConfig struct {
+	MaxCount				uint64
+	ExpireBlockNumber		uint64
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
