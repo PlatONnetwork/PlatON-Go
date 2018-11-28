@@ -1194,6 +1194,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 		// modify by platon
 		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+			log.Warn("------------insertchain收到区块------------", "number", block.Number(), "hash", block.Hash(), "stateRoot", block.Header().Root)
 			// 揭榜(如果符合条件)
 			log.Warn("---insertchain试图揭榜---", "number", block.Number())
 			if bc.shouldSwitchFn(block.Number()) {
@@ -1265,6 +1266,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 //joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
+	log.Warn("------------收到区块------------", "number", block.Number(), "hash", block.Hash(), "stateRoot", block.Header().Root)
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {

@@ -615,6 +615,7 @@ func (w *worker) mainLoop() {
 			}
 
 			// Broadcast the block and announce chain insertion event
+			log.Warn("------------出块prepareResultCh------------", "number", block.Number(), "hash", block.Hash(), "stateRoot", block.Header().Root)
 			log.Warn("Post PrepareMinedBlockEvent", "consensusNodes", task.consensusNodes)
 			w.mux.Post(core.PrepareMinedBlockEvent{Block: block, ConsensusNodes: task.consensusNodes})
 
