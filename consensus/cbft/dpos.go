@@ -82,16 +82,25 @@ func (d *dpos) AnyIndex(nodeID discover.NodeID) int64 {
 func (d *dpos) BlockProducerIndex(number uint64, nodeID discover.NodeID) int64 {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	if number == 0 {
-		for idx, node := range d.current.nodes {
+	//if number == 0 {
+	//	for idx, node := range d.current.nodes {
+	//		if node == nodeID {
+	//			return int64(idx)
+	//		}
+	//	}
+	//	return -1
+	//}
+	if number >= d.former.start.Uint64() && number <= d.former.end.Uint64() {
+		for idx, node := range d.former.nodes {
 			if node == nodeID {
 				return int64(idx)
 			}
 		}
 		return -1
 	}
-	if number >= d.former.start.Uint64() && number <= d.former.end.Uint64() {
-		for idx, node := range d.former.nodes {
+
+	if number >= d.current.start.Uint64() && number <= d.current.end.Uint64() {
+		for idx, node := range d.current.nodes {
 			if node == nodeID {
 				return int64(idx)
 			}
