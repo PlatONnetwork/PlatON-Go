@@ -97,7 +97,7 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 	if err := t.candidatePool.UpdateCandidateTicket(stateDB, ticket.CandidateId, candidate); err != nil {
 		return err
 	}
-	if err := t.setPoolNumber(stateDB); err != nil {
+	if err := t.subPoolNumber(stateDB); err != nil {
 		return err
 	}
 	return nil
@@ -106,11 +106,14 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 //
 func (t *TicketPool) GetExpireTicket(stateDB vm.StateDB, blockNumber *big.Int) ([]common.Hash, error) {
 	var expireTickets []common.Hash
-	if val := stateDB.GetState(common.TicketAddr, ExpireTicketKey((*blockNumber).Bytes())); len(val) > 0 {
+	/*if val := stateDB.GetState(common.TicketAddr, ExpireTicketKey((*blockNumber).Bytes())); len(val) > 0 {
 		if err := rlp.DecodeBytes(val, &expireTickets); nil != err {
 			log.Error("Decode ExpireTicket error", "key", *blockNumber, "err", err)
 			return nil, err
 		}
+	}*/
+	if err := getState(stateDB, ExpireTicketKey((*blockNumber).Bytes()), &expireTickets); nil != err {
+		return nil, err
 	}
 	return expireTickets, nil
 }
@@ -164,9 +167,12 @@ func (t *TicketPool) GetTicketList(stateDB vm.StateDB, ticketIds []common.Hash) 
 
 // Get ticket details based on TicketId
 func (t *TicketPool) GetTicket(stateDB vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
-	var ticket *types.Ticket
-	if err := rlp.DecodeBytes(stateDB.GetState(common.TicketAddr, ticketId.Bytes()), &ticket); nil != err {
+	var ticket= new(types.Ticket)
+	/*if err := rlp.DecodeBytes(stateDB.GetState(common.TicketAddr, ticketId.Bytes()), &ticket); nil != err {
 		log.Error("Decode Ticket error", "key", ticketId, "err", err)
+		return nil, DecodeTicketErr
+	}*/
+	if err := getState(stateDB, ticketId.Bytes(), ticket); nil != err {
 		return nil, DecodeTicketErr
 	}
 	return ticket, nil
@@ -210,10 +216,12 @@ func (t *TicketPool) ReleaseTicket(stateDB vm.StateDB, nodeId discover.NodeID, t
 	if nil != err {
 		return err
 	}
-	t.SurplusQuantity++
-	candidate.TCount--
+	if err := t.addPoolNumber(stateDB); err != nil {
+		return err
+	}
 	num := blockNumber.Sub(blockNumber, ticket.BlockNumber)
 	candidate.Epoch = candidate.Epoch.Sub(candidate.Epoch, num.Add(num, ticket.BlockNumber))
+	candidate.TCount--
 	t.candidatePool.UpdateCandidateTicket(stateDB, candidate.CandidateId, candidate)
 	return nil
 }
@@ -224,9 +232,18 @@ func removeCandidateTicket(index int, ticketPool []common.Hash) []common.Hash {
 	return append(start, end...)
 }
 
-func (t *TicketPool) setPoolNumber(stateDB vm.StateDB) error {
+func (t *TicketPool) addPoolNumber(stateDB vm.StateDB) error {
+	t.SurplusQuantity++
+	return t.setPoolNumber(stateDB, t.SurplusQuantity)
+}
+
+func (t *TicketPool) subPoolNumber(stateDB vm.StateDB) error {
 	t.SurplusQuantity--
-	if value, err := rlp.EncodeToBytes(t.SurplusQuantity); nil != err {
+	return t.setPoolNumber(stateDB, t.SurplusQuantity)
+}
+
+func (t *TicketPool) setPoolNumber(stateDB vm.StateDB, surplusQuantity uint64) error {
+	if value, err := rlp.EncodeToBytes(surplusQuantity); nil != err {
 		log.Error("Failed to encode surplusQuantity object on setPoolNumber", "key", string(SurplusQuantityKey), "err", err)
 		return EncodePoolNumberErr
 	} else {
@@ -237,11 +254,24 @@ func (t *TicketPool) setPoolNumber(stateDB vm.StateDB) error {
 
 func (t *TicketPool) GetPoolNumber(stateDB vm.StateDB) (uint64, error) {
 	var surplusQuantity uint64
-	if err := rlp.DecodeBytes(stateDB.GetState(common.TicketAddr, SurplusQuantityKey), surplusQuantity); nil != err {
+	/*if err := rlp.DecodeBytes(stateDB.GetState(common.TicketAddr, SurplusQuantityKey), &surplusQuantity); nil != err {
 		log.Error("Decode ticket pool SurplusQuantity error", "key", string(SurplusQuantityKey), "err", err)
+		return 0, DecodePoolNumberErr
+	}*/
+	if err := getState(stateDB, SurplusQuantityKey, &surplusQuantity); nil != err {
 		return 0, DecodePoolNumberErr
 	}
 	return surplusQuantity, nil
+}
+
+func getState(stateDB vm.StateDB, key []byte, result interface{}) error {
+	if val := stateDB.GetState(common.TicketAddr, key); len(val) > 0 {
+		if err := rlp.DecodeBytes(val, result); nil != err {
+			log.Error("Decode Data error", "key", string(key), "err", err)
+			return err
+		}
+	}
+	return nil
 }
 
 func setState(stateDB vm.StateDB, key []byte, val []byte) {

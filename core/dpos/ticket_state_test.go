@@ -95,7 +95,7 @@ func TestVoteTicket(t *testing.T)  {
 	ticketList, err := ticketPool.GetTicketList(state, candidate.TicketPool)
 
 	expireTicketList, err := ticketPool.GetExpireTicket(state, new(big.Int).SetUint64(10))
-
+	ticketPool.SurplusQuantity, err = ticketPool.GetPoolNumber(state)
 	//fmt.Printf("print info:\n\t%+v\n\t%+v\n\t%+v\n\t%+v,%v", candidatePool, ticketPool, candidate, ticketList, err)
 	fmt.Printf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
 		ticketPool.SurplusQuantity, len(expireTicketList), len(candidate.TicketPool), candidate.TCount, candidate.Epoch)
@@ -107,6 +107,7 @@ func TestVoteTicket(t *testing.T)  {
 	fmt.Printf("-----------开始释放一张选票【%v】-----------\n", hexutil.Encode(ticketId.Bytes()))
 	ticketPool.ReleaseTicket(state, candidate.CandidateId, ticketId, blockNumber)
 	candidate, err = candidatePool.GetCandidate(state, candidate.CandidateId)
+	ticketPool.SurplusQuantity, err = ticketPool.GetPoolNumber(state)
 	fmt.Printf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
 		ticketPool.SurplusQuantity, len(expireTicketList), len(candidate.TicketPool), candidate.TCount, candidate.Epoch)
 	if err := ticketPool.HandleExpireTicket(state, blockNumber); err != nil {
@@ -114,8 +115,9 @@ func TestVoteTicket(t *testing.T)  {
 	}
 	candidate, err = candidatePool.GetCandidate(state, candidate.CandidateId)
 	expireTicketList, err = ticketPool.GetExpireTicket(state, new(big.Int).SetUint64(10))
+	ticketPool.SurplusQuantity, err = ticketPool.GetPoolNumber(state)
 	fmt.Printf("开始处理过期票块高为：[%d] ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		blockNumber, ticketPool.SurplusQuantity, len(expireTicketList), len(candidate.TicketPool), candidate.TCount, candidate.Epoch)
+		blockNumber, ticketPool.SurplusQuantity, len(expireTicketList), len(candidate.TicketPool), candidate.TCount, candidate.Epoch, )
 	var temp []string
 	temp = append(temp, "string")
 	fmt.Println(temp==nil, len(temp), cap(temp))
