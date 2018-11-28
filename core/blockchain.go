@@ -1192,23 +1192,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			bc.reportBlock(block, receipts, err)
 			return i, events, coalescedLogs, err
 		}
-		// modify by platon
-		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-			log.Warn("------------insertchain收到区块------------", "number", block.Number(), "hash", block.Hash(), "stateRoot", block.Header().Root)
-			// 揭榜(如果符合条件)
-			log.Warn("---insertchain试图揭榜---", "number", block.Number())
-			if bc.shouldSwitchFn(block.Number()) {
-				log.Warn("---insertchain调用揭榜---", "number", block.Number(), "state", state)
-				cbftEngine.Election(state, block.Number())
-			}
-			// 触发替换下轮见证人列表(如果符合条件)
-			log.Warn("---insertchain试图触发替换下轮见证人列表---", "number", block.Number())
-			if bc.shouldSwitchFn(block.Number()) {
-				log.Warn("---insertchain触发替换下轮见证人列表---", "number", block.Number(), "state", state)
-				cbftEngine.Switch(state)
-			}
-		}
-
 		// Validate the state using the default validator
 		err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 		if err != nil {
@@ -1266,28 +1249,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 //joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
-	log.Warn("------------收到区块------------", "number", block.Number(), "hash", block.Hash(), "stateRoot", block.Header().Root)
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {
 		bc.reportBlock(block, receipts, err)
 		return nil, err
 	}
-	// modify by platon
-	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-		// 揭榜(如果符合条件)
-		log.Warn("---ProcessDirectly试图揭榜---", "number", block.Number())
-		if bc.shouldSwitchFn(block.Number()) {
-			log.Warn("---ProcessDirectly调用揭榜---", "number", block.Number(), "state", state)
-			cbftEngine.Election(state, block.Number())
-		}
-		// 触发替换下轮见证人列表(如果符合条件)
-		log.Warn("---ProcessDirectly试图触发替换下轮见证人列表---", "number", block.Number())
-		if bc.shouldSwitchFn(block.Number()) {
-			log.Warn("---ProcessDirectly触发替换下轮见证人列表---", "number", block.Number(), "state", state)
-			cbftEngine.Switch(state)
-		}
-	}
+
 	// Validate the state using the default validator
 	err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 	if err != nil {
