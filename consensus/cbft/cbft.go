@@ -22,6 +22,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
+	"math"
 	"math/big"
 	"sync"
 	"time"
@@ -180,7 +181,7 @@ func (cbft *Cbft) findBlockExt(hash common.Hash) *BlockExt {
 func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 	if sign != nil {
 		ext.signs = append(ext.signs, sign)
-		if len(ext.signs) >= cbft.getThreshold() {
+		if len(ext.signs) >= cbft.getThreshold(ext.block.Number()) {
 			ext.isConfirmed = true
 		}
 	}
@@ -1127,7 +1128,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	log.Debug("seal complete", "Hash", sealedBlock.Hash(), "number", block.NumberU64())
 
-	if len(cbft.dpos.current.nodes) == 1 {
+	consensusNodes := cbft.ConsensusNodes(block.Number())
+	if consensusNodes != nil && len(consensusNodes) == 1 {
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
 		return cbft.handleNewConfirmed(curExt)
 	}
@@ -1456,9 +1458,13 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 	return crypto.Sign(headerHash, cbft.config.PrivateKey)
 }
 
-func (cbft *Cbft) getThreshold() int {
-	trunc := len(cbft.dpos.current.nodes) * 2 / 3
-	return int(trunc + 1)
+func (cbft *Cbft) getThreshold(blockNumber *big.Int) int {
+	consensusNodes := cbft.ConsensusNodes(blockNumber)
+	if consensusNodes != nil {
+		trunc := len(consensusNodes) * 2 / 3
+		return int(trunc + 1)
+	}
+	return math.MaxInt16
 }
 
 func toMilliseconds(t time.Time) int64 {
