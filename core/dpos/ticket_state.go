@@ -28,6 +28,7 @@ var (
 	DecodeTicketErr				= errors.New("Decode Ticket error")
 	DecodePoolNumberErr			= errors.New("Decode SurplusQuantity error")
 	RecordExpireTicketErr		= errors.New("Record Expire Ticket error")
+	CandidateNotFindTicketErr	= errors.New("The candidate no longer has this ticket")
 )
 
 type TicketPool struct {
@@ -87,9 +88,6 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 	candidate.TicketPool = append(candidate.TicketPool, ticketId)
 	candidate.TCount++
 	candidate.Epoch = candidate.Epoch.Add(candidate.Epoch, blockNumber)
-	if err := t.setPoolNumber(stateDB); err != nil {
-		return err
-	}
 	if err := t.setTicket(stateDB, ticketId, ticket); err != nil {
 		return err
 	}
@@ -97,6 +95,9 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 		return err
 	}
 	if err := t.candidatePool.UpdateCandidateTicket(stateDB, ticket.CandidateId, candidate); err != nil {
+		return err
+	}
+	if err := t.setPoolNumber(stateDB); err != nil {
 		return err
 	}
 	return nil
@@ -127,6 +128,23 @@ func (t *TicketPool) recordExpireTicket(stateDB vm.StateDB, blockNumber *big.Int
 		return EncodeTicketErr
 	} else {
 		setState(stateDB, ExpireTicketKey((*blockNumber).Bytes()), value)
+	}
+	return nil
+}
+
+func (t *TicketPool) HandleExpireTicket(stateDB vm.StateDB, blockNumber *big.Int) error {
+	ticketIdList, err := t.GetExpireTicket(stateDB, blockNumber)
+	if err != nil {
+		return err
+	}
+	for _, ticketId := range ticketIdList {
+		ticket, err := t.GetTicket(stateDB, ticketId)
+		if err != nil {
+			return err
+		}
+		if err := t.ReleaseTicket(stateDB, ticket.CandidateId, ticketId, blockNumber); err != nil {
+			//return err
+		}
 	}
 	return nil
 }
@@ -167,26 +185,32 @@ func (t *TicketPool) setTicket(stateDB vm.StateDB, ticketId common.Hash, ticket 
 func (t *TicketPool) ReleaseTicket(stateDB vm.StateDB, nodeId discover.NodeID, ticketId common.Hash, blockNumber *big.Int) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	t.SurplusQuantity++
 	candidate, err := candidatePool.GetCandidate(stateDB, nodeId)
 	if err != nil {
 		log.Error("GetCandidate error", err)
 		return err
 	}
 	if candidate == nil {
-		log.Error("The node has lost its candidacy", err)
+		log.Error("The node has lost its candidacy", "err", err)
 		return CandidateNotFindErr
+	}
+	exists := false
+	for index, tempTicketId := range candidate.TicketPool {
+		if tempTicketId == ticketId {
+			exists = true
+			candidate.TicketPool = removeCandidateTicket(index, candidate.TicketPool)
+			break
+		}
+	}
+	if !exists {
+		log.Error("The candidate no longer has this ticket", "err", err)
+		return CandidateNotFindTicketErr
 	}
 	ticket, err := t.GetTicket(stateDB, ticketId)
 	if nil != err {
 		return err
 	}
-	for index, tempTicketId := range candidate.TicketPool {
-		if tempTicketId == ticketId {
-			candidate.TicketPool = removeCandidateTicket(index, candidate.TicketPool)
-			break
-		}
-	}
+	t.SurplusQuantity++
 	candidate.TCount--
 	num := blockNumber.Sub(blockNumber, ticket.BlockNumber)
 	candidate.Epoch = candidate.Epoch.Sub(candidate.Epoch, num.Add(num, ticket.BlockNumber))

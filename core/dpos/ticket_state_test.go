@@ -15,8 +15,8 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"sync/atomic"
 	"testing"
-	"time"
 )
 
 func TestVoteTicket(t *testing.T)  {
@@ -71,16 +71,21 @@ func TestVoteTicket(t *testing.T)  {
 	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
 		fmt.Println("SetCandidate err:", err)
 	}
-
-	for i := 0; i < 50 ; i++ {
+	var count uint32 = 0
+	var blockNumber = new(big.Int).SetUint64(10)
+	voteNum := 50
+	for i := 0; i < voteNum ; i++ {
 		go func() {
-			err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), new(big.Int).SetUint64(10), candidate.CandidateId, new(big.Int).SetUint64(10))
+			err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), new(big.Int).SetUint64(10), candidate.CandidateId, blockNumber)
 			if nil != err {
 				fmt.Println("vote ticket error:", err)
 			}
+			atomic.AddUint32(&count, 1)
 		}()
 	}
-	time.Sleep(time.Second * 5)
+	for int(count) < voteNum  {
+
+	}
 	candidate, err := candidatePool.GetCandidate(state, candidate.CandidateId)
 	if err != nil {
 		fmt.Println("GetCandidate error")
@@ -100,8 +105,18 @@ func TestVoteTicket(t *testing.T)  {
 	}
 	ticketId := ticketList[rand.Intn(len(ticketList))].TicketId
 	fmt.Printf("-----------开始释放一张选票【%v】-----------\n", hexutil.Encode(ticketId.Bytes()))
-	ticketPool.ReleaseTicket(state, candidate.CandidateId, ticketId, new(big.Int).SetUint64(10))
+	ticketPool.ReleaseTicket(state, candidate.CandidateId, ticketId, blockNumber)
 	candidate, err = candidatePool.GetCandidate(state, candidate.CandidateId)
 	fmt.Printf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
 		ticketPool.SurplusQuantity, len(expireTicketList), len(candidate.TicketPool), candidate.TCount, candidate.Epoch)
+	if err := ticketPool.HandleExpireTicket(state, blockNumber); err != nil {
+		fmt.Println("Execute HandleExpireTicket error", err)
+	}
+	candidate, err = candidatePool.GetCandidate(state, candidate.CandidateId)
+	expireTicketList, err = ticketPool.GetExpireTicket(state, new(big.Int).SetUint64(10))
+	fmt.Printf("开始处理过期票块高为：[%d] ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
+		blockNumber, ticketPool.SurplusQuantity, len(expireTicketList), len(candidate.TicketPool), candidate.TCount, candidate.Epoch)
+	var temp []string
+	temp = append(temp, "string")
+	fmt.Println(temp==nil, len(temp), cap(temp))
 }
