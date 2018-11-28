@@ -236,7 +236,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 
 // pledge Candidate
 func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
-	PrintObject("发生质押 SetCandidate:", can)
+	PrintObject("发生质押 SetCandidate:", *can)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
@@ -1271,7 +1271,7 @@ func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (
 		return nil, err
 	}
 	if candidatePtr, ok := c.immediateCandates[nodeId]; ok {
-		PrintObject("GetCandidate 返回：", candidatePtr)
+		PrintObject("GetCandidate 返回：", *candidatePtr)
 		return candidatePtr, nil
 	}
 	return nil, nil
@@ -1423,8 +1423,8 @@ func GetCandidatePtr() *CandidatePool {
 
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
-	//log.Info(s, string(objs))
-	fmt.Println(s, string(objs))
+	log.Info(s, string(objs))
+	//fmt.Println(s, string(objs))
 }
 
 func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
