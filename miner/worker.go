@@ -433,10 +433,12 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			w.commitWorkEnv.highestLogicalBlock = highestLogicalBlock
 			w.commitWorkEnv.highestLock.Unlock()
 
-			if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(); shouldSeal && error == nil {
+			if w.isRunning() {
 				if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-					log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
-					commit(false, commitInterruptResubmit, commitBlock)
+					if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(commitBlock.Number().Add(commitBlock.Number(), common.Big1)); shouldSeal && error == nil {
+						log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
+						commit(false, commitInterruptResubmit, commitBlock)
+					}
 				}
 			}
 
@@ -448,8 +450,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if w.isRunning() {
 				log.Warn("----------间隔" + recommit.String() + "开始打包任务----------")
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
-						if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
+					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
+						if shouldSeal, error := cbftEngine.ShouldSeal(commitBlock.Number().Add(commitBlock.Number(), common.Big1)); shouldSeal && error == nil {
 							log.Warn("--------------节点当前时间窗口出块，执行打包出块逻辑--------------")
 							commit(false, commitInterruptResubmit, commitBlock)
 							continue
@@ -812,9 +814,6 @@ func (w *worker) resultLoop() {
 			}
 			// Commit block and state to database.
 			block.ConfirmSigns = blockConfirmSigns
-			if cbftResult.Block.NumberU64() == 49 {
-				log.Warn("resultLoop", "number", cbftResult.Block.Number(), "_state", _state)
-			}
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
 			if err != nil {
 				log.Error("Failed writing block to chain", "err", err)
@@ -1084,9 +1083,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	var parent *types.Block
 	if _, ok := w.engine.(consensus.Bft); ok {
 		parent = commitBlock
-		if parent.NumberU64() == 49 {
-			log.Warn("------commitNewWork------", "parent hash", parent.Hash(), "stateRoot", parent.Header().Root)
-		}
 		timestamp = time.Now().UnixNano() / 1e6
 		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "hash", parent.Hash(), "number", parent.NumberU64(), "stateRoot", parent.Root())
 	} else {
@@ -1146,9 +1142,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 	// Create the current work task and check any fork transitions needed
 	env := w.current
-	if parent.NumberU64() == 49 {
-		log.Warn("------commitNewWork------", "parentNumber", parent.Number(), "currentNumber", header.Number, "state", env.state)
-	}
 	if w.config.DAOForkSupport && w.config.DAOForkBlock != nil && w.config.DAOForkBlock.Cmp(header.Number) == 0 {
 		misc.ApplyDAOHardFork(env.state)
 	}

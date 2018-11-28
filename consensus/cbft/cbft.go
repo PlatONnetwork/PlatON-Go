@@ -959,8 +959,8 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	return nil
 }
 
-func (cbft *Cbft) ShouldSeal() (bool, error) {
-	return cbft.inTurn(), nil
+func (cbft *Cbft) ShouldSeal(blockNumber *big.Int) (bool, error) {
+	return cbft.inTurn(blockNumber), nil
 }
 
 func (cbft *Cbft) CurrentNodes() []discover.NodeID {
@@ -1293,9 +1293,9 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 }
 
 //to check if it's my turn to produce blocks
-func (cbft *Cbft) inTurn() bool {
+func (cbft *Cbft) inTurn(blockNumber *big.Int) bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(0, curTime, cbft.config.NodeID)
+	inturn := cbft.calTurn(blockNumber.Uint64(), curTime, cbft.config.NodeID)
 	log.Debug("inTurn", "result", inturn)
 	return inturn
 
@@ -1364,7 +1364,12 @@ func (cbft *Cbft) calTurn(number uint64, curTime int64, nodeID discover.NodeID) 
 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
-		durationPerTurn := durationPerNode * cbft.dpos.MaxChair()
+
+		consensusNodes := cbft.ConsensusNodes(big.NewInt(int64(number)))
+		if consensusNodes == nil || len(consensusNodes) <= 0 {
+			return false
+		}
+		durationPerTurn := durationPerNode * int64(len(consensusNodes))
 
 		min := nodeIdx * (durationPerNode)
 
