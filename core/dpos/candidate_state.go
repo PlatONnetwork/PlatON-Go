@@ -708,12 +708,14 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 
 	// sort immediate candidates
 	candidateSort(c.candidateCacheArr)
+	log.Info("揭榜时，排序的数组长度:", len(c.candidateCacheArr))
 	PrintObject("揭榜时，排序的数组:", c.candidateCacheArr)
 	// cache ids
 	immediateIds := make([]discover.NodeID, 0)
 	for _, can := range c.candidateCacheArr {
 		immediateIds = append(immediateIds, can.CandidateId)
 	}
+	log.Info("当前入围者ids 长度：", len(immediateIds))
 	PrintObject("当前入围者ids：", immediateIds)
 	log.Info("当前配置的允许见证人个数:", fmt.Sprint(c.maxChair))
 	// a certain number of witnesses in front of the cache
@@ -728,12 +730,14 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 		nextWitIds = make([]discover.NodeID, c.maxChair)
 		copy(nextWitIds, immediateIds)
 	}
+	log.Info("选出来的下一轮见证人Ids 个数:", len(nextWitIds))
 	PrintObject("选出来的下一轮见证人Ids:", nextWitIds)
 	// cache map
 	nextWits := make(map[discover.NodeID]*types.Candidate, 0)
 
 	// copy witnesses information
 	copyCandidateMapByIds(nextWits, c.immediateCandates, nextWitIds)
+	log.Info("从入围信息copy过来的见证人个数;", len(nextWits))
 	PrintObject("从入围信息copy过来的见证人;", nextWits)
 	// clear all old nextwitnesses information （If it is forked, the next round is no empty.）
 	for nodeId, _ := range c.nextOriginCandidates {
@@ -766,6 +770,7 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 			arr = append(arr, node)
 		}
 	}
+	log.Info("下一轮见证人node 个数:", len(arr))
 	PrintObject("下一轮见证人node信息:", arr)
 	log.Info("揭榜完成...")
 	return arr, nil

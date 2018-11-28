@@ -194,6 +194,7 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 		log.Error("dpos election next witness err", err)
 		panic("Election error " + err.Error())
 	} else {
+		log.Info("揭榜完成，再次查看stateDB信息...")
 		d.candidatePool.GetAllWitness(state)
 		// current round
 		round := calcurround(blocknumber)
