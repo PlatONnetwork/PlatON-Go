@@ -29,7 +29,7 @@ type Candidate struct {
 	Extra 			string
 
 	// brokerage   example: (fee/10000) * 100% == x%
-	Fee 			uint32
+	Fee 			uint64
 
 	// Voted ticket'id set
 	//ticketPool		[]common.Hash
