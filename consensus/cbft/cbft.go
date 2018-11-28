@@ -7,6 +7,7 @@ import (
 	"Platon-go/consensus"
 	"Platon-go/core"
 	"Platon-go/core/cbfttypes"
+	"Platon-go/core/dpos"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/crypto"
@@ -24,7 +25,6 @@ import (
 	"math/big"
 	"sync"
 	"time"
-	"Platon-go/core/dpos"
 )
 
 var (
@@ -358,10 +358,14 @@ func (cbft *Cbft) findHighestSigned(ext *BlockExt) *BlockExt {
 	return highest
 }
 
-func (cbft *Cbft) handleBlockAndDescendant(ext *BlockExt, parent *BlockExt, signIfPossible bool) {
+func (cbft *Cbft) handleBlockAndDescendant(ext *BlockExt, parent *BlockExt, signIfPossible bool) error {
 	log.Debug("handle block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 
-	cbft.executeBlockAndDescendant(ext, parent)
+	err := cbft.executeBlockAndDescendant(ext, parent)
+
+	if err != nil {
+		return nil
+	}
 
 	if ext.findChildren() == nil {
 		if signIfPossible {
@@ -378,20 +382,26 @@ func (cbft *Cbft) handleBlockAndDescendant(ext *BlockExt, parent *BlockExt, sign
 			}
 		}
 	}
+	return nil
 }
 
-func (cbft *Cbft) executeBlockAndDescendant(ext *BlockExt, parent *BlockExt) {
+func (cbft *Cbft) executeBlockAndDescendant(ext *BlockExt, parent *BlockExt) error {
 	log.Debug("execute block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 	if ext.isLinked == false {
-		cbft.execute(ext, parent)
+		err := cbft.execute(ext, parent)
+		if err != nil {
+			return err
+		}
 		ext.isLinked = true
 	}
 	//each child has non-nil block
 	children := ext.findChildren()
 	if children != nil {
 		for _, child := range children {
-			cbft.executeBlockAndDescendant(child, ext)
+			return cbft.executeBlockAndDescendant(child, ext)
 		}
+	} else {
+		return nil
 	}
 }
 
@@ -428,11 +438,11 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 
 //execute the block based on its parent
 // if success then set this block's level with Ledge, and save the receipts and state to consensusCache
-func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
+func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	state, err := cbft.consensusCache.MakeStateDB(parent.block)
 	if err != nil {
 		log.Error("execute block error, cannot make state based on parent")
-		return
+		return err
 	}
 
 	//to execute
@@ -444,6 +454,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	} else {
 		log.Error("execute a block error", err)
 	}
+	return err
 }
 
 //查询暂存于内存中，并且已经上链的区块
@@ -670,7 +681,8 @@ func BlockSynchronisation() {
 
 		children := confirmedBlock.findChildren()
 		for _, child := range children {
-			cbft.handleBlockAndDescendant(child, confirmedBlock, true)
+			err := cbft.handleBlockAndDescendant(child, confirmedBlock, true)
+			log.Error("block sync error", "err", err)
 		}
 	}
 }
@@ -927,7 +939,11 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 		signIfPossible := inTurn && passed && cbft.highestConfirmed.isAncestor(ext)
 
-		cbft.handleBlockAndDescendant(ext, parent, signIfPossible)
+		err := cbft.handleBlockAndDescendant(ext, parent, signIfPossible)
+
+		if err != nil {
+			return err
+		}
 
 		newConfirmed := cbft.findNewHighestConfirmed(ext)
 		if newConfirmed != nil {
