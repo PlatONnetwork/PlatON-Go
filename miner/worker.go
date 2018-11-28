@@ -810,6 +810,7 @@ func (w *worker) resultLoop() {
 			}
 			// Commit block and state to database.
 			block.ConfirmSigns = blockConfirmSigns
+			log.Warn("resultLoop", "number", cbftResult.Block.Number(), "_state", _state)
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
 			if err != nil {
 				log.Error("Failed writing block to chain", "err", err)
@@ -1079,6 +1080,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	var parent *types.Block
 	if _, ok := w.engine.(consensus.Bft); ok {
 		parent = commitBlock
+		log.Warn("------commitNewWork------", "parent hash", parent.Hash(), "stateRoot", parent.Header().Root)
 		timestamp = time.Now().UnixNano() / 1e6
 		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "hash", parent.Hash(), "number", parent.NumberU64(), "stateRoot", parent.Root())
 	} else {
@@ -1138,6 +1140,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 	// Create the current work task and check any fork transitions needed
 	env := w.current
+	log.Warn("------commitNewWork------", "parentNumber", parent.Number(), "currentNumber", header.Number, "state", env.state)
 	if w.config.DAOForkSupport && w.config.DAOForkBlock != nil && w.config.DAOForkBlock.Cmp(header.Number) == 0 {
 		misc.ApplyDAOHardFork(env.state)
 	}
