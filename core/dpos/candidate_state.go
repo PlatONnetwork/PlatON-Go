@@ -236,7 +236,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 
 // pledge Candidate
 func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
-	PrintObject("SetCandidate:", can)
+	PrintObject("发生质押 SetCandidate:", can)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
@@ -260,12 +260,16 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	//	//needSort = true
 	//}
 
-	PrintObject("SetCandidate immediateMap:", c.immediateCandates)
+	PrintObject("质押 SetCandidate immediateMap:", c.immediateCandates)
 	// sort cache array
 	candidateSort(c.candidateCacheArr)
 	//if needSort {
 	//	candidateSort(c.candidateCacheArr)
 	//}
+
+	log.Info("质押开始,读取配置的允许入围信息.", fmt.Sprint(c.maxCount))
+	log.Info("实时入围者数组长度:", len(c.candidateCacheArr))
+	PrintObject("实时入围者数组", c.candidateCacheArr)
 	// move the excessive of immediate elected candidate to refunds
 	if len(c.candidateCacheArr) > int(c.maxCount) {
 		// Intercepting the lost candidates to tmpArr
@@ -273,10 +277,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		// Reserve elected candidates
 		c.candidateCacheArr = (c.candidateCacheArr)[:c.maxCount]
 
-		newimmediateIds := make([]discover.NodeID, 0)
-		for _, can := range c.candidateCacheArr {
-			newimmediateIds = append(newimmediateIds, can.CandidateId)
-		}
+
 		// handle tmpArr
 		for _, tmpCan := range tmpArr {
 			// delete the lost candidates from immediate elected candidates of trie
@@ -289,17 +290,14 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 			}
 		}
 
-		// update immediate index
-		if err := c.setImmediateIndex(state, newimmediateIds); nil != err {
-			log.Error("Failed to encode immediate ids on SetCandidate err", err)
-			return err
-		}
-
 		// update index of refund (defeat) on trie
 		if err := c.setDefeatIndex(state); nil != err {
 			return err
 		}
 	}
+
+	log.Info("计算完之后实时入围者数组长度:", len(c.candidateCacheArr))
+	PrintObject("计算完之后实时入围者数组", c.candidateCacheArr)
 
 	// cache id
 	sortIds := make([]discover.NodeID, 0)
@@ -309,8 +307,13 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		c.setImmediate(state, can.CandidateId, can)
 		sortIds = append(sortIds, can.CandidateId)
 	}
+
 	// update index of immediate elected candidates on trie
 	c.setImmediateIndex(state, sortIds)
+	log.Info("上树的实时入围ids数目:", len(sortIds))
+	PrintObject("上树的实时入围Ids：", sortIds)
+	log.Info("质押成功..再次查看stateDB信息")
+	c.initDataByState(state, 2)
 	return nil
 }
 
@@ -698,7 +701,9 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 // Announce witness
 func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error) {
 	log.Info("揭榜...")
-	PrintObject("揭榜 candidate：", *c)
+	PrintObject("揭榜 maxChair：", c.maxChair)
+	PrintObject("揭榜 maxCount：", c.maxCount)
+	PrintObject("揭榜 RefundBlockNumber：", c.RefundBlockNumber)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
@@ -1418,7 +1423,8 @@ func GetCandidatePtr() *CandidatePool {
 
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
-	log.Info(s, string(objs))
+	//log.Info(s, string(objs))
+	fmt.Println(s, string(objs))
 }
 
 func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {

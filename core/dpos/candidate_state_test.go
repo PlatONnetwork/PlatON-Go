@@ -579,6 +579,13 @@ func TestGetDefeat(t *testing.T) {
 	_, err := candidatePool.Election(state)
 	t.Log("Whether election was successful err", err)
 
+	/**  */
+	printObject("candidatePool:", *candidatePool, t)
+	/** test MaxChair */
+	t.Log("test MaxChair:", candidatePool.MaxChair())
+	/**test Interval*/
+	t.Log("test Interval:", candidatePool.GetRefundInterval())
+
 	/** test switch */
 	t.Log("test Switch ...")
 	flag := candidatePool.Switch(state)
