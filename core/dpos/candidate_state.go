@@ -395,6 +395,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 			Owner:       can.Owner,
 			From:        can.From,
 			Extra:       can.Extra,
+			Fee: 		 can.Fee,
 		}
 
 		// update current candidate
@@ -430,6 +431,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 			Owner:       can.Owner,
 			From:        can.From,
 			Extra:       can.Extra,
+			Fee: 		 can.Fee,
 		}
 		// the withdraw
 		if err := c.setDefeat(state, nodeId, canDefeat); nil != err {
