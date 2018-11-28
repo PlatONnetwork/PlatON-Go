@@ -389,7 +389,7 @@ func (d *dpos) UpdateNodeList(state *state.StateDB, blocknumber *big.Int) {
 }
 
 func convertNodeID(nodes []*discover.Node) []discover.NodeID {
-	nodesID := make([]discover.NodeID, len(nodes), len(nodes))
+	nodesID := make([]discover.NodeID, 0, len(nodes))
 	for _, n := range nodes {
 		nodesID = append(nodesID, n.ID)
 	}
