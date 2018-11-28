@@ -87,35 +87,46 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 	candidate.TicketPool = append(candidate.TicketPool, ticketId)
 	candidate.TCount++
 	candidate.Epoch = candidate.Epoch.Add(candidate.Epoch, blockNumber)
-	t.setPoolNumber(stateDB)
-	t.setTicket(stateDB, ticketId, ticket)
-	t.recordExpireTicket(stateDB, blockNumber, ticketId)
-	t.candidatePool.UpdateCandidateTicket(stateDB, ticket.CandidateId, candidate)
+	if err := t.setPoolNumber(stateDB); err != nil {
+		return err
+	}
+	if err := t.setTicket(stateDB, ticketId, ticket); err != nil {
+		return err
+	}
+	if err := t.recordExpireTicket(stateDB, blockNumber, ticketId); err != nil {
+		return err
+	}
+	if err := t.candidatePool.UpdateCandidateTicket(stateDB, ticket.CandidateId, candidate); err != nil {
+		return err
+	}
 	return nil
 }
 
 //
-func (t *TicketPool) getExpireTicket(stateDB vm.StateDB, blockNumber *big.Int) ([]common.Hash, error) {
+func (t *TicketPool) GetExpireTicket(stateDB vm.StateDB, blockNumber *big.Int) ([]common.Hash, error) {
 	var expireTickets []common.Hash
-	if err := rlp.DecodeBytes(stateDB.GetState(common.TicketAddr, ExpireTicketKey(blockNumber.Bytes())), expireTickets); nil != err {
-		return nil, err
+	if val := stateDB.GetState(common.TicketAddr, ExpireTicketKey((*blockNumber).Bytes())); len(val) > 0 {
+		if err := rlp.DecodeBytes(val, &expireTickets); nil != err {
+			log.Error("Decode ExpireTicket error", "key", *blockNumber, "err", err)
+			return nil, err
+		}
 	}
 	return expireTickets, nil
 }
 
 // 在当前区块投入的票，则把票id放入，以块高为key的value切片中，以便查找过期票
 func (t *TicketPool) recordExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, ticketId common.Hash) error {
-	expireTickets, err := t.getExpireTicket(stateDB, blockNumber)
+	expireTickets, err := t.GetExpireTicket(stateDB, blockNumber)
 	if err != nil {
-		log.Error("recordExpireTicket error", "key", blockNumber, "err", err)
+		log.Error("recordExpireTicket error", "key", *blockNumber, "err", err)
 		return RecordExpireTicketErr
 	}
 	expireTickets = append(expireTickets, ticketId)
 	if value, err := rlp.EncodeToBytes(expireTickets); nil != err {
-		log.Error("Failed to encode ticketid object on recordExpireTicket", "key", blockNumber, "value", ticketId.String(), "err", err)
+		log.Error("Failed to encode ticketid object on recordExpireTicket", "key", *blockNumber, "value", ticketId.String(), "err", err)
 		return EncodeTicketErr
 	} else {
-		setState(stateDB, ExpireTicketKey(blockNumber.Bytes()), value)
+		setState(stateDB, ExpireTicketKey((*blockNumber).Bytes()), value)
 	}
 	return nil
 }
@@ -124,7 +135,7 @@ func (t *TicketPool) recordExpireTicket(stateDB vm.StateDB, blockNumber *big.Int
 func (t *TicketPool) GetTicketList(stateDB vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
 	var tickets []*types.Ticket
 	for _, ticketId := range ticketIds {
-		ticket, err := t.getTicket(stateDB, ticketId)
+		ticket, err := t.GetTicket(stateDB, ticketId)
 		if nil != err {
 			return nil, err
 		}
@@ -134,7 +145,7 @@ func (t *TicketPool) GetTicketList(stateDB vm.StateDB, ticketIds []common.Hash) 
 }
 
 // Get ticket details based on TicketId
-func (t *TicketPool) getTicket(stateDB vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
+func (t *TicketPool) GetTicket(stateDB vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
 	var ticket *types.Ticket
 	if err := rlp.DecodeBytes(stateDB.GetState(common.TicketAddr, ticketId.Bytes()), &ticket); nil != err {
 		log.Error("Decode Ticket error", "key", ticketId, "err", err)
@@ -166,13 +177,13 @@ func (t *TicketPool) ReleaseTicket(stateDB vm.StateDB, nodeId discover.NodeID, t
 		log.Error("The node has lost its candidacy", err)
 		return CandidateNotFindErr
 	}
-	ticket, err := t.getTicket(stateDB, ticketId)
+	ticket, err := t.GetTicket(stateDB, ticketId)
 	if nil != err {
 		return err
 	}
 	for index, tempTicketId := range candidate.TicketPool {
 		if tempTicketId == ticketId {
-			candidate.TicketPool = removeCandidate(index, candidate.TicketPool)
+			candidate.TicketPool = removeCandidateTicket(index, candidate.TicketPool)
 			break
 		}
 	}
@@ -183,7 +194,7 @@ func (t *TicketPool) ReleaseTicket(stateDB vm.StateDB, nodeId discover.NodeID, t
 	return nil
 }
 
-func removeCandidate(index int, ticketPool []common.Hash) []common.Hash {
+func removeCandidateTicket(index int, ticketPool []common.Hash) []common.Hash {
 	start := ticketPool[:index]
 	end := ticketPool[index+1:]
 	return append(start, end...)
@@ -200,7 +211,7 @@ func (t *TicketPool) setPoolNumber(stateDB vm.StateDB) error {
 	return nil
 }
 
-func (t *TicketPool) getPoolNumber(stateDB vm.StateDB) (uint64, error) {
+func (t *TicketPool) GetPoolNumber(stateDB vm.StateDB) (uint64, error) {
 	var surplusQuantity uint64
 	if err := rlp.DecodeBytes(stateDB.GetState(common.TicketAddr, SurplusQuantityKey), surplusQuantity); nil != err {
 		log.Error("Decode ticket pool SurplusQuantity error", "key", string(SurplusQuantityKey), "err", err)

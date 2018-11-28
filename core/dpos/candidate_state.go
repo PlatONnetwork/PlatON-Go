@@ -16,7 +16,6 @@ import (
 	"Platon-go/core/types"
 	"net"
 	"strconv"
-	"sync/atomic"
 )
 
 
@@ -1401,7 +1400,7 @@ func GetCandidatePtr () *CandidatePool {
 
 func PrintObject(s string, obj interface{}){
 	objs, _ := json.Marshal(obj)
-	fmt.Println(s, string(objs), "\n")
+	fmt.Println(s, string(objs))
 }
 
 

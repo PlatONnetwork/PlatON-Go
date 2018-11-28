@@ -124,7 +124,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 	}
 
-	fmt.Println("设置新的k-v \n")
+	fmt.Println("设置新的k-v")
 	/** test SetCandidate */
 	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
 		fmt.Println("SetCandidate err:", err)
