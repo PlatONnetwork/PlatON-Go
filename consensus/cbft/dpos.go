@@ -210,7 +210,7 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 		log.Info("揭榜维护下一轮的nodeIds长度:", len(nextNodes))
 		depos.PrintObject("揭榜维护下一轮的nodeIds:", nextNodes)
 		depos.PrintObject("揭榜维护下一轮dposRound：", *(d.next))
-		depos.PrintObject("当前dpos实体:", *d)
+		depos.PrintObject("揭榜当前dpos实体:", *d)
 		return nextNodes, nil
 	}
 }
@@ -242,7 +242,7 @@ func (d *dpos) Switch(state *state.StateDB /*, start, end *big.Int*/) bool {
 		}
 	}
 	d.next = nil
-	depos.PrintObject("当前dpos实体:", *d)
+	depos.PrintObject("Switch当前dpos实体:", *d)
 	d.lock.Unlock()
 	return true
 }
@@ -294,7 +294,7 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 					end: 		end,
 				}
 			}
-			depos.PrintObject("当前dpos实体:", *d)
+			depos.PrintObject("重新启动链当前dpos实体:", *d)
 			d.lock.Unlock()
 		}
 	}
@@ -383,7 +383,7 @@ func (d *dpos) UpdateNodeList(state *state.StateDB, blocknumber *big.Int) {
 			}
 		}
 		d.next = nil
-		depos.PrintObject("当前dpos实体:", *d)
+		depos.PrintObject("分叉当前dpos实体:", *d)
 		d.lock.Unlock()
 	}
 }
