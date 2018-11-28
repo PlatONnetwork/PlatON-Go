@@ -50,6 +50,8 @@ func (w *worker) shouldSwitch(blockNumber *big.Int) bool {
 }
 
 func (w *worker) attemptAddConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
+	consensusNodes, err := w.getWitness(blockNumber, state, 1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
+	log.Warn("xxxxxxxxxxxxx", "number", blockNumber, "consensusNodes", consensusNodes, "err", err)
 	if should := w.shouldElection(blockNumber); should {
 		log.Info("尝试连接下一轮共识节点", "blockNumber", blockNumber)
 		consensusNodes, err := w.getWitness(blockNumber, state, 1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人

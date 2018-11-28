@@ -209,7 +209,7 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 
 		log.Info("揭榜维护下一轮的nodeIds长度:", len(nextNodes))
 		depos.PrintObject("揭榜维护下一轮的nodeIds:", nextNodes)
-		depos.PrintObject("揭榜维护下一轮dposRound：", *(d.next))
+		depos.PrintObject("揭榜维护下一轮dposRound：", d.next.nodes)
 		depos.PrintObject("揭榜当前dpos实体:", *d)
 		return nextNodes, nil
 	}
