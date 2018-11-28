@@ -400,9 +400,8 @@ func (cbft *Cbft) executeBlockAndDescendant(ext *BlockExt, parent *BlockExt) err
 		for _, child := range children {
 			return cbft.executeBlockAndDescendant(child, ext)
 		}
-	} else {
-		return nil
-	}
+	} 
+	return nil
 }
 
 //to sign a block
