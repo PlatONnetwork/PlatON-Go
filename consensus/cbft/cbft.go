@@ -181,7 +181,7 @@ func (cbft *Cbft) findBlockExt(hash common.Hash) *BlockExt {
 func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 	if sign != nil {
 		ext.signs = append(ext.signs, sign)
-		if len(ext.signs) >= cbft.getThreshold(ext.block.Number()) {
+		if len(ext.signs) >= cbft.getThreshold(big.NewInt(int64(ext.number))) {
 			ext.isConfirmed = true
 		}
 	}
