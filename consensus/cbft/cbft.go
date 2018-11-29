@@ -1365,10 +1365,14 @@ func (cbft *Cbft) calTurn(number uint64, curTime int64, nodeID discover.NodeID) 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
 
-		consensusNodes := cbft.ConsensusNodes(big.NewInt(int64(number)))
+		consensusNodes := cbft.dpos.getCurrentNodes()
+		if number != 0 {
+			consensusNodes = cbft.ConsensusNodes(big.NewInt(int64(number)))
+		}
 		if consensusNodes == nil || len(consensusNodes) <= 0 {
 			return false
 		}
+
 		durationPerTurn := durationPerNode * int64(len(consensusNodes))
 
 		min := nodeIdx * (durationPerNode)
