@@ -92,7 +92,7 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	defer func() {
 		if err := recover(); nil != err {
 			// 捕捉反射解析参数时由input中数据源问题造成的panic
-			c.logError("Run==> ", ErrCallRecode.Error())
+			c.logError("Run==> ", "ErrCallRecode: ", ErrCallRecode.Error())
 		}
 	}()
 	// 用map封装所有的函数
@@ -113,16 +113,16 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	}
 	//check
 	if len(source)<2 {
-		c.logError("Run==> ", ErrParamsBaselen.Error())
+		c.logError("Run==> ", "ErrParamsBaselen: ", ErrParamsBaselen.Error())
 		return nil, ErrParamsBaselen
 	}
 	if c.evm.CandidatePool==nil{
-		c.logError("Run==> ", ErrCandidateEmpyt.Error())
+		c.logError("Run==> ", "ErrCandidateEmpyt: ", ErrCandidateEmpyt.Error())
 		return nil, ErrCandidateEmpyt
 	}
 	// 获取要调用的函数
 	if _, ok := command[byteutil.BytesToString(source[1])]; !ok {
-		c.logError("Run==> ", ErrUndefFunction.Error())
+		c.logError("Run==> ", "ErrUndefFunction: ", ErrUndefFunction.Error())
 		return nil, ErrUndefFunction
 	}
 	funcValue := command[byteutil.BytesToString(source[1])]
@@ -133,7 +133,7 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	// var param []interface{}
 	params := make([]reflect.Value, paramNum)
 	if paramNum!=len(source)-2 {
-		c.logError("Run==> ", ErrParamsLen.Error())
+		c.logError("Run==> ", "ErrParamsLen: ",ErrParamsLen.Error())
 		return nil, ErrParamsLen
 	}
 	for i := 0; i < paramNum; i++ {
@@ -147,10 +147,10 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	// 传入参数调用函数
 	result := reflect.ValueOf(funcValue).Call(params)
 	if _, err := result[1].Interface().(error); !err {
-		c.logError("Run==> ", err)
+		c.logError("Run==> ", "Interface err: ", err)
 		return result[0].Bytes(), nil
 	}
-	c.logInfo("result[0] is: ", result[0].Bytes())
+	c.logInfo("Run==> ", "result[0]: ", result[0].Bytes())
 	c.logInfo(result[1].Interface().(error).Error())
 	// 返回值也是一个 Value 的 slice，同样对应反射函数类型的返回值。
 	return result[0].Bytes(), result[1].Interface().(error)
@@ -164,13 +164,13 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	txIdx := c.evm.StateDB.TxIdx()
 	height := c.evm.Context.BlockNumber
 	from := c.contract.caller.Address()
-	c.logPrint(log.LvlInfo,"CandidateDeposit==> nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
+	c.logInfo("CandidateDeposit==> ", "nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
 		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
 		" host: ", host, " port: ", port, " extra: ", extra)
 	//todo
 	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
 	if err!=nil {
-		c.logError("GetCandidate err!=nill: ", err.Error())
+		c.logError("CandidateDeposit==> ","err!=nill: ", err.Error())
 		return nil, err
 	}
 	var alldeposit *big.Int
@@ -180,7 +180,7 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 			return nil, ErrOwnerNotonly
 		}
 		alldeposit = new(big.Int).Add(can.Deposit, deposit)
-		c.logInfo("alldeposit: ", alldeposit,  " can.Deposit: ", can.Deposit, " deposit: ", deposit)
+		c.logInfo("CandidateDeposit==> ","alldeposit: ", alldeposit,  " can.Deposit: ", can.Deposit, " deposit: ", deposit)
 	}else {
 		alldeposit = deposit
 	}
@@ -196,17 +196,17 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		extra,
 		fee,
 	}
-	c.logInfo("canDeposit: ", canDeposit)
+	c.logInfo("CandidateDeposit==> ","canDeposit: ", canDeposit)
 	if err = c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, &canDeposit); err!=nil {
 		//rollback transaction
 		//......
-		c.logError("SetCandidate return err: ", err.Error())
+		c.logError("CandidateDeposit==> ","SetCandidate return err: ", err.Error())
 		return nil, err
 	}
 	r := ResultCommon{true, "success"}
 	data, _ := json.Marshal(r)
 	c.addLog(CandidateDepositEvent, string(data))
-	c.logInfo("json: ", string(data))
+	c.logInfo("CandidateDeposit==> ","json: ", string(data))
 	return nil, nil
 }
 
@@ -215,7 +215,7 @@ func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	//debug
 	from := c.contract.caller.Address()
 	height := c.evm.Context.BlockNumber
-	c.logInfo("CandidateApplyWithdraw==> nodeId: ", nodeId.String(), " from: ", from.Hex(), " withdraw: ", withdraw, " height: ", height)
+	c.logInfo("CandidateApplyWithdraw==> ","nodeId: ", nodeId.String(), " from: ", from.Hex(), " withdraw: ", withdraw, " height: ", height)
 	//todo
 	owner :=  c.evm.CandidatePool.GetOwner(c.evm.StateDB, nodeId)
 	if ok := bytes.Equal(owner.Bytes(), from.Bytes()); !ok {
@@ -229,7 +229,7 @@ func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	r := ResultCommon{true, "success"}
 	data, _ := json.Marshal(r)
 	c.addLog(CandidateApplyWithdrawEvent, string(data))
-	c.logInfo("json: ", string(data))
+	c.logInfo("CandidateApplyWithdraw==> ","json: ", string(data))
 	return nil, nil
 }
 
@@ -237,7 +237,7 @@ func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 func (c *candidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, error)  {
 	//debug
 	height := c.evm.Context.BlockNumber
-	c.logInfo("CandidateWithdraw==> nodeId: ", nodeId.String(), " height: ", 	height)
+	c.logInfo("CandidateWithdraw==> ","nodeId: ", nodeId.String(), " height: ", 	height)
 	//todo
 	if err :=c.evm.CandidatePool.RefundBalance(c.evm.StateDB, nodeId, height); err!=nil{
 		c.logError(err.Error())
@@ -247,14 +247,14 @@ func (c *candidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, e
 	r := ResultCommon{true, "success"}
 	data, _ := json.Marshal(r)
 	c.addLog(CandidateWithdrawEvent, string(data))
-	c.logInfo("json: ", string(data))
+	c.logInfo("CandidateWithdraw==> ", "json: ", string(data))
 	return nil, nil
 }
 
 //Get the refund history you have applied for
 func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byte, error){
 	//debug
-	c.logInfo("CandidateWithdrawInfos==> nodeId: ", nodeId.String())
+	c.logInfo("CandidateWithdrawInfos==> ","nodeId: ", nodeId.String())
 	//todo
 	infos, err := c.evm.CandidatePool.GetDefeat(c.evm.StateDB, nodeId)
 	if err!=nil{
@@ -279,7 +279,7 @@ func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byt
 	}
 	data, _ := json.Marshal(r)
 	sdata := DecodeResultStr(string(data))
-	c.logInfo("json: ", string(data))
+	c.logInfo("CandidateWithdrawInfos==> ","json: ", string(data))
 	return sdata, nil
 }
 
@@ -287,7 +287,7 @@ func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byt
 func (c *candidateContract) SetCandidateExtra(nodeId discover.NodeID, extra string)([]byte, error){
 	//debug
 	from := c.contract.caller.Address()
-	c.logInfo("SetCandidate==> nodeId: ", nodeId.String(), " extra: ", extra, " from: ", from.Hex())
+	c.logInfo("SetCandidate==> ","nodeId: ", nodeId.String(), " extra: ", extra, " from: ", from.Hex())
 	//todo
 	owner :=  c.evm.CandidatePool.GetOwner(c.evm.StateDB, nodeId)
 	if ok := bytes.Equal(owner.Bytes(), from.Bytes()); !ok {
@@ -301,53 +301,53 @@ func (c *candidateContract) SetCandidateExtra(nodeId discover.NodeID, extra stri
 	r := ResultCommon{true, "success"}
 	data, _ := json.Marshal(r)
 	c.addLog(SetCandidateExtraEvent, string(data))
-	c.logInfo("json: ", string(data))
+	c.logInfo("SetCandidate==> ","json: ", string(data))
 	return nil, nil
 }
 
 //Get candidate details
 func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, error)  {
-	c.logInfo("CandidateDetails==> nodeId: ", nodeId.String())
+	c.logInfo("CandidateDetails==> ","nodeId: ", nodeId.String())
 	candidate, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
 	if err != nil{
-		c.logError("get CandidateDetails() occured error: ", err.Error())
+		c.logError("CandidateDetails==> ","get CandidateDetails() occured error: ", err.Error())
 		return nil, err
 	}
 	if nil == candidate {
-		c.logError("The candidate for the inquiry does not exist")
+		c.logError("CandidateDetails==> The candidate for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(candidate)
 	sdata := DecodeResultStr(string(data))
-	fmt.Println("json: ", string(data), " []byte: ", sdata)
+	c.logInfo("CandidateDetails==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
 //Get the current block candidate list 0~200
 func (c *candidateContract) CandidateList() ([]byte, error) {
-	c.logInfo("into func CandidateList... ")
+	c.logInfo("CandidateList==> into func CandidateList... ")
 	arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB)
 	if nil == arr {
-		fmt.Println("The candidateList for the inquiry does not exist")
+		c.logError("CandidateList==> The candidateList for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(arr)
 	sdata := DecodeResultStr(string(data))
-	c.logInfo("json: ", string(data), " []byte: ", sdata)
+	c.logInfo("CandidateList==>","json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
 //Get the current block round certifier list 25个
 func (c *candidateContract) VerifiersList() ([]byte, error) {
-	c.logInfo("into func VerifiersList... ")
+	c.logInfo("VerifiersList==> into func VerifiersList... ")
 	arr := c.evm.CandidatePool.GetChairpersons(c.evm.StateDB)
 	if nil == arr {
-		c.logError("The verifiersList for the inquiry does not exist")
+		c.logError("VerifiersList==> The verifiersList for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(arr)
 	sdata := DecodeResultStr(string(data))
-	c.logInfo("json: ", string(data), " []byte: ", sdata)
+	c.logInfo("VerifiersList==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
@@ -358,7 +358,7 @@ func (c *candidateContract) addLog(event, data string) {
 	logdata = append(logdata, []byte(data))
 	buf := new(bytes.Buffer)
 	if err := rlp.Encode(buf, logdata); err!=nil {
-		c.logError("addlog rlp encode fail: ", err.Error())
+		c.logError("addlog==> ","rlp encode fail: ", err.Error())
 	}
 	c.evm.StateDB.AddLog(&types.Log{
 		Address:common.CandidateAddr,
@@ -380,7 +380,7 @@ func (c *candidateContract) logInfo(msg string, ctx ...interface{})  {
 		fmt.Println(args...)
 	}else {
 		//log output
-		c.logInfo(msg, ctx...)
+		log.Info(msg, ctx...)
 	}
 }
 func (c *candidateContract) logError(msg string, ctx ...interface{})  {
