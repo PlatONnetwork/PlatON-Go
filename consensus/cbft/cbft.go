@@ -181,7 +181,7 @@ func (cbft *Cbft) findBlockExt(hash common.Hash) *BlockExt {
 func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 	if sign != nil {
 		ext.signs = append(ext.signs, sign)
-		if len(ext.signs) >= cbft.getThreshold(ext.block.Number()) {
+		if len(ext.signs) >= cbft.getThreshold(big.NewInt(int64(ext.number))) {
 			ext.isConfirmed = true
 		}
 	}
@@ -668,7 +668,7 @@ func BlockSynchronisation() {
 		cbft.highestConfirmed = confirmedBlock
 
 		highestLogical := cbft.findHighestSigned(confirmedBlock)
-		if cbft.highestLogical == nil {
+		if highestLogical == nil {
 			highestLogical = cbft.findHighest(confirmedBlock)
 		}
 
@@ -959,12 +959,23 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	return nil
 }
 
-func (cbft *Cbft) ShouldSeal(blockNumber *big.Int) (bool, error) {
-	return cbft.inTurn(blockNumber), nil
+func (cbft *Cbft) ShouldSeal() (bool, error) {
+	return cbft.inTurn(), nil
 }
 
 func (cbft *Cbft) CurrentNodes() []discover.NodeID {
 	return cbft.dpos.getCurrentNodes()
+}
+
+func (cbft *Cbft) IsCurrentNode(blockNum *big.Int) bool {
+	currentNodes := cbft.ConsensusNodes(blockNum)
+	nodeID := cbft.GetOwnNodeID()
+	for _, n := range currentNodes {
+		if nodeID == n {
+			return true
+		}
+	}
+	return false
 }
 
 func (cbft *Cbft) ConsensusNodes(blockNum *big.Int) []discover.NodeID {
@@ -1293,9 +1304,9 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 }
 
 //to check if it's my turn to produce blocks
-func (cbft *Cbft) inTurn(blockNumber *big.Int) bool {
+func (cbft *Cbft) inTurn() bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(blockNumber.Uint64(), curTime, cbft.config.NodeID)
+	inturn := cbft.calTurn(0, curTime, cbft.config.NodeID)
 	log.Debug("inTurn", "result", inturn)
 	return inturn
 
@@ -1365,10 +1376,14 @@ func (cbft *Cbft) calTurn(number uint64, curTime int64, nodeID discover.NodeID) 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
 
-		consensusNodes := cbft.ConsensusNodes(big.NewInt(int64(number)))
+		consensusNodes := cbft.dpos.getCurrentNodes()
+		if number != 0 {
+			consensusNodes = cbft.ConsensusNodes(big.NewInt(int64(number)))
+		}
 		if consensusNodes == nil || len(consensusNodes) <= 0 {
 			return false
 		}
+
 		durationPerTurn := durationPerNode * int64(len(consensusNodes))
 
 		min := nodeIdx * (durationPerNode)

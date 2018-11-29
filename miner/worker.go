@@ -419,6 +419,11 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case head := <-w.chainHeadCh:
+			go func() {
+				if cbftEngine,ok := w.engine.(consensus.Bft); ok && !cbftEngine.IsCurrentNode(head.Block.Number()) {
+					cbft.BlockSynchronisation()
+				}
+			}()
 			clearPending(head.Block.NumberU64())
 			timestamp = time.Now().Unix()
 			// modify by platon
@@ -434,8 +439,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			w.commitWorkEnv.highestLock.Unlock()
 
 			if w.isRunning() {
-				if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-					if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(commitBlock.Number().Add(commitBlock.Number(), common.Big1)); shouldSeal && error == nil {
+				if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(); shouldSeal && error == nil {
+					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
 						log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
 						commit(false, commitInterruptResubmit, commitBlock)
 					}
@@ -450,8 +455,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if w.isRunning() {
 				log.Warn("----------间隔" + recommit.String() + "开始打包任务----------")
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-						if shouldSeal, error := cbftEngine.ShouldSeal(commitBlock.Number().Add(commitBlock.Number(), common.Big1)); shouldSeal && error == nil {
+					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
+						if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
 							log.Warn("--------------节点当前时间窗口出块，执行打包出块逻辑--------------")
 							commit(false, commitInterruptResubmit, commitBlock)
 							continue

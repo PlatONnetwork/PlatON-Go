@@ -80,7 +80,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// 揭榜(如果符合条件)
 		log.Warn("---Process试图揭榜---", "number", block.Number())
-		if p.bc.shouldSwitchFn(block.Number()) {
+		if p.bc.shouldElectionFn(block.Number()) {
 			log.Warn("---Process调用揭榜---", "number", block.Number(), "state", statedb)
 			cbftEngine.Election(statedb, block.Number())
 		}

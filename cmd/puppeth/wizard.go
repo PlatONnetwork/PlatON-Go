@@ -323,31 +323,31 @@ func (w *wizard) readNodeURL() *discover.Node {
 	}
 }
 
-func (w *wizard) readNodeID() discover.NodeID {
-	for {
-		// Read the url from the user
-		fmt.Printf("> 0x")
-		text, err := w.in.ReadString('\n')
-		if err != nil {
-			log.Crit("Failed to read user input", "err", err)
-		}
-		if text = strings.TrimSpace(text); text == "" {
-			return discover.NodeID{0}
-		}
-
-		// Make sure it looks ok and return it if so
-		if len(text) < 128 {
-			log.Error("Invalid url length, please retry")
-			continue
-		}
-		node,err := discover.BytesID(common.Hex2Bytes(text))
-		if err != nil {
-			log.Error("Node ID invalid", "NodeID", text, "err", err)
-		}
-
-		return node
-	}
-}
+//func (w *wizard) readNodeID() discover.NodeID {
+//	for {
+//		// Read the url from the user
+//		fmt.Printf("> 0x")
+//		text, err := w.in.ReadString('\n')
+//		if err != nil {
+//			log.Crit("Failed to read user input", "err", err)
+//		}
+//		if text = strings.TrimSpace(text); text == "" {
+//			return discover.NodeID{0}
+//		}
+//
+//		// Make sure it looks ok and return it if so
+//		if len(text) < 128 {
+//			log.Error("Invalid url length, please retry")
+//			continue
+//		}
+//		node,err := discover.BytesID(common.Hex2Bytes(text))
+//		if err != nil {
+//			log.Error("Node ID invalid", "NodeID", text, "err", err)
+//		}
+//
+//		return node
+//	}
+//}
 
 // readPrivate reads a single line from stdin, parse and convert
 // it to an Ethereum ecdsa private key.
