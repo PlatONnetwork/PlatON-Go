@@ -102,7 +102,6 @@ func (self *Miner) update() {
 					self.Start(self.coinbase)
 				}
 
-				// modify by platon
 				go func() {
 					if _, ok := self.engine.(consensus.Bft); ok {
 						cbft.BlockSynchronisation()

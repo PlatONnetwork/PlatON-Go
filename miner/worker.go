@@ -419,6 +419,11 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case head := <-w.chainHeadCh:
+			go func() {
+				if _, ok := w.engine.(consensus.Bft); ok {
+					cbft.BlockSynchronisation()
+				}
+			}()
 			clearPending(head.Block.NumberU64())
 			timestamp = time.Now().Unix()
 			// modify by platon
