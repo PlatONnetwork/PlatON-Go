@@ -123,7 +123,7 @@ type Bft interface {
 	// 返回当前共识节点地址列表
 	CurrentNodes() []discover.NodeID
 
-	IsCurrentNode() bool
+	IsCurrentNode(blockNum *big.Int) bool
 
 	ConsensusNodes(blockNum *big.Int) []discover.NodeID
 

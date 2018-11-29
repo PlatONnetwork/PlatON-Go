@@ -967,8 +967,8 @@ func (cbft *Cbft) CurrentNodes() []discover.NodeID {
 	return cbft.dpos.getCurrentNodes()
 }
 
-func (cbft *Cbft) IsCurrentNode() bool {
-	currentNodes := cbft.dpos.getCurrentNodes()
+func (cbft *Cbft) IsCurrentNode(blockNum *big.Int) bool {
+	currentNodes := cbft.ConsensusNodes(blockNum)
 	nodeID := cbft.GetOwnNodeID()
 	for _, n := range currentNodes {
 		if nodeID == n {
