@@ -106,6 +106,21 @@ func NewCandidatePool(configs *params.DposConfig) *CandidatePool {
 	return candidatePool
 }
 
+//func (c *CandidatePool) initSatedbByConfig (state vm.StateDB, initialNodes []discover.Node) error {
+//	// build previous witnesses and current witnesses
+//	for _, node := range initialNodes {
+//		can := &types.Candidate{
+//			Deposit: 			big.NewInt(0),
+//			BlockNumber: 		big.NewInt(0),
+//			TxIndex: 			0,
+//			CandidateId: 		node.ID,
+//			Host: 				node.IP.String(),
+//			Port:
+//
+//		}
+//	}
+//}
+
 // flag:
 // 0: only init previous witness and current witness and next witness
 // 1：init previous witness and current witness and next witness and immediate

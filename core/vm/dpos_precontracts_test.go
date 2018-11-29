@@ -17,7 +17,7 @@ import (
 )
 
 func TestRlpEncode(t *testing.T) {
-	nodeId, _ := hex.DecodeString("97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0")
+	nodeId, _ := hex.DecodeString("751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c")
 
 	owner, _ := hex.DecodeString("740ce31b3fac20dac379db243021a51e80ad00d7") //38
 	//owner, _ := hex.DecodeString("5a5c4368e2692746b286cee36ab0710af3efa6cf") //39

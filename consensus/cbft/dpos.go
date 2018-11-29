@@ -22,7 +22,7 @@ type dpos struct {
 	lastCycleBlockNum uint64
 	startTimeOfEpoch  int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
 	config            *params.DposConfig
-
+	//initialNodes      []discover.Node
 	// added by candidatepool module
 
 	lock sync.RWMutex
@@ -39,7 +39,7 @@ type dposRound struct {
 func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
 
 	formerRound := &dposRound{
-		nodes: initialNodes,
+		nodes: make([]discover.NodeID, 0),
 		start: big.NewInt(1),
 		end:   big.NewInt(BaseSwitchWitness),
 	}
@@ -48,11 +48,13 @@ func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
 		start: big.NewInt(1),
 		end:   big.NewInt(BaseSwitchWitness),
 	}
+
 	return &dpos{
 		former:            formerRound,
 		current:           currentRound,
 		lastCycleBlockNum: 0,
 		config:            config.DposConfig,
+		//initialNodes: 	   config.InitialNodes,
 		candidatePool:     depos.NewCandidatePool(config.DposConfig),
 	}
 	//return dposPtr
@@ -151,10 +153,26 @@ func (d *dpos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
 	return int64(-1)
 }
 
+func (d *dpos) getFormerNodes () []discover.NodeID {
+	d.lock.RLock()
+	defer d.lock.RLock()
+	return d.former.nodes
+}
+
 func (d *dpos) getCurrentNodes() []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 	return d.current.nodes
+}
+
+func (d *dpos) getNextNodes () []discover.NodeID {
+	d.lock.RLock()
+	defer d.lock.RLock()
+	if nil != d.next {
+		return d.next.nodes
+	}else {
+		return make([]discover.NodeID, 0)
+	}
 }
 
 func (d *dpos) consensusNodes(blockNum *big.Int) []discover.NodeID {
@@ -228,6 +246,7 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 		round := calcurround(blocknumber)
 
 		d.lock.Lock()
+		log.Info("揭榜维护", "blockNumber:", blocknumber.Uint64(), "round:", round)
 		nextStart := big.NewInt(int64(BaseSwitchWitness*(round+1)) + 1)
 		nextEnd := new(big.Int).Add(nextStart, big.NewInt(int64(BaseSwitchWitness-1)))
 		d.next = &dposRound{
@@ -235,7 +254,7 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 			start: nextStart,
 			end:   nextEnd,
 		}
-
+		log.Info("揭榜维护:下一轮", "start", d.next.start, "end", d.next.end)
 		log.Info("揭榜维护下一轮的nodeIds长度:", "len", len(nextNodes))
 		depos.PrintObject("揭榜维护下一轮的nodeIds:", nextNodes)
 		depos.PrintObject("揭榜的上轮dposRound：", d.former.nodes)
@@ -247,33 +266,41 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 }
 
 // switch next witnesses to current witnesses
-func (d *dpos) Switch(state *state.StateDB /*, start, end *big.Int*/) bool {
+func (d *dpos) Switch(state *state.StateDB) bool {
 	log.Info("Switch begin...")
 	if !d.candidatePool.Switch(state) {
 		return false
 	}
 	log.Info("Switch success...")
-	preArr, curArr, _, err := d.candidatePool.GetAllWitness(state)
+	_, curArr, _, err := d.candidatePool.GetAllWitness(state)
 	if nil != err {
 		return false
 	}
 	d.lock.Lock()
-	if len(preArr) != 0 {
-		d.former = &dposRound{
-			nodes: convertNodeID(preArr),
-			start: d.current.start,
-			end:   d.current.end,
-		}
-	}
+	//if len(preArr) != 0 {
+	//	d.former = &dposRound{
+	//		nodes: convertNodeID(preArr),
+	//		start: d.current.start,
+	//		end:   d.current.end,
+	//	}
+	//}
+	d.former.start = d.current.start
+	d.former.end = d.current.end
+	d.current.start = d.next.start
+	d.current.end = d.next.end
 	if len(curArr) != 0 {
+		d.former.nodes = d.current.nodes
 		d.current = &dposRound{
 			nodes: convertNodeID(curArr),
-			start: d.next.start,
-			end:   d.next.end,
 		}
+		depos.PrintObject("Switch获取上一轮dposRound：", d.former.nodes)
 	}
+
 	d.next = nil
-	depos.PrintObject("Switch获取上一轮nodes：", preArr)
+	log.Info("Switch获取:上一轮", "start", d.former.start, "end", d.former.end)
+	log.Info("Switch获取:当前轮", "start", d.current.start, "end", d.current.end)
+	//log.Info("Switch获取:下一轮", "start", d.next.start, "end", d.next.end)
+	//depos.PrintObject("Switch获取上一轮nodes：", preArr)
 	depos.PrintObject("Switch获取当前轮nodes：", curArr)
 	depos.PrintObject("Switch的上轮dposRound：", d.former.nodes)
 	depos.PrintObject("Switch的当前轮dposRound：", d.current.nodes)
@@ -308,26 +335,30 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 			d.lock.Lock()
 			// current round
 			round := calcurround(blockChain.CurrentBlock().Number())
-
+			log.Info("重新加载", "blockNumber:", blockChain.CurrentBlock().Number(), "round:", round)
 			d.former.start = big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
 			d.former.end = new(big.Int).Add(d.former.start, big.NewInt(int64(BaseSwitchWitness-1)))
+			log.Info("重新加载:上一轮", "start", d.former.start, "end", d.former.end)
 			if len(preArr) != 0 {
 				d.former.nodes = convertNodeID(preArr)
 			}
 
 			d.current.start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
 			d.current.end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+			log.Info("重新加载:当前轮", "start", d.current.start, "end", d.current.end)
 			if len(curArr) != 0 {
 				d.current.nodes = convertNodeID(curArr)
 			}
 			if len(nextArr) != 0 {
 				start := big.NewInt(int64(BaseSwitchWitness*(round+1)) + 1)
 				end := new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
+
 				d.next = &dposRound{
 					nodes: 		convertNodeID(nextArr),
 					start: 		start,
 					end: 		end,
 				}
+				log.Info("重新加载:下一轮", "start", d.next.start, "end", d.next.end)
 				depos.PrintObject("重新加载获取当前轮nodes：", nextArr)
 				depos.PrintObject("重新加载的上轮dposRound：", d.next.nodes)
 			}
@@ -338,7 +369,10 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 
 			d.lock.Unlock()
 		}
-	}
+	}/*else { // if current block is genesis , loading config nodes into stateDB
+
+
+	}*/
 }
 
 /** Method provided to the built-in contract call */
@@ -403,24 +437,25 @@ func (d *dpos) UpdateNodeList(state *state.StateDB, blocknumber *big.Int) {
 
 		// current round
 		round := calcurround(blocknumber)
-
+		log.Info("分叉获取", "blockNumber:", blocknumber.Uint64(), "round:", round)
 		start := big.NewInt(int64(BaseSwitchWitness*round) + 1)
 		end := new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
 
-		formerStartReset := new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
-		formerEndReset := new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+		d.former.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+		d.former.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+		log.Info("分叉获取:上一轮", "start", d.former.start, "end", d.former.end)
 		if len(preArr) != 0 {
 			d.former = &dposRound{
 				nodes: convertNodeID(preArr),
-				start: formerStartReset,
-				end:   formerEndReset,
 			}
 		}
+
+		d.current.start = start
+		d.current.end = end
+		log.Info("分叉获取:当前轮", "start", d.current.start, "end", d.current.end)
 		if len(curArr) != 0 {
 			d.current = &dposRound{
 				nodes: convertNodeID(curArr),
-				start: start,
-				end:   end,
 			}
 		}
 		d.next = nil
