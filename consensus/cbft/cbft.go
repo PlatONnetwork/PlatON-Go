@@ -967,6 +967,17 @@ func (cbft *Cbft) CurrentNodes() []discover.NodeID {
 	return cbft.dpos.getCurrentNodes()
 }
 
+func (cbft *Cbft) IsCurrentNode() bool {
+	currentNodes := cbft.dpos.getCurrentNodes()
+	nodeID := cbft.GetOwnNodeID()
+	for _, n := range currentNodes {
+		if nodeID == n {
+			return true
+		}
+	}
+	return false
+}
+
 func (cbft *Cbft) ConsensusNodes(blockNum *big.Int) []discover.NodeID {
 	return cbft.dpos.consensusNodes(blockNum)
 }

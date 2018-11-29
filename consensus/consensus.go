@@ -123,6 +123,8 @@ type Bft interface {
 	// 返回当前共识节点地址列表
 	CurrentNodes() []discover.NodeID
 
+	IsCurrentNode() bool
+
 	ConsensusNodes(blockNum *big.Int) []discover.NodeID
 
 	// 返回当前节点是否轮值出块

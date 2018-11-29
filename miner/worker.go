@@ -420,7 +420,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 		case head := <-w.chainHeadCh:
 			go func() {
-				if _, ok := w.engine.(consensus.Bft); ok {
+				if cbftEngine,ok := w.engine.(consensus.Bft); ok && !cbftEngine.IsCurrentNode() {
 					cbft.BlockSynchronisation()
 				}
 			}()
