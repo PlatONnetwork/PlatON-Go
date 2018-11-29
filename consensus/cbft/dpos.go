@@ -90,6 +90,20 @@ func (d *dpos) BlockProducerIndex(number uint64, nodeID discover.NodeID) int64 {
 	//	}
 	//	return -1
 	//}
+	depos.PrintObject("former nodes", d.former.nodes)
+	depos.PrintObject("former start", d.former.start)
+	depos.PrintObject("former end", d.former.end)
+
+	depos.PrintObject("current nodes", d.current.nodes)
+	depos.PrintObject("current start", d.current.start)
+	depos.PrintObject("current end", d.current.end)
+
+	if d.next != nil {
+		depos.PrintObject("next nodes", d.next.nodes)
+		depos.PrintObject("next start", d.next.start)
+		depos.PrintObject("next end", d.next.end)
+	}
+
 	if number >= d.former.start.Uint64() && number <= d.former.end.Uint64() {
 		for idx, node := range d.former.nodes {
 			if node == nodeID {
