@@ -73,6 +73,7 @@ var DefaultConfig = Config{
 		Blocks:     20,
 		Percentile: 60,
 	},
+	Debug: false,
 }
 
 func init() {
@@ -148,6 +149,9 @@ type Config struct {
 
 	// output wasm contract log into the file
 	WASMLogFile string `toml:",omitempty"`
+
+	//platon add
+	Debug bool
 }
 
 type CbftConfig struct {
