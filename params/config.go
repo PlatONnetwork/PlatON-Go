@@ -199,18 +199,18 @@ func (c *EthashConfig) String() string {
 
 // modify by platon
 type CbftConfig struct {
-	Period           uint64  `json:"period"`           // Number of seconds between blocks to enforce
-	Epoch            uint64  `json:"epoch"`            // Epoch length to reset votes and checkpoint
-	MaxLatency       int64   `json:"maxLatency"`       // number of milliseconds of max net latency between the consensus nodes
-	LegalCoefficient float64 `json:"legalCoefficient"` // coefficient for checking if a block is in it's turn
-	Duration         int64   `json:"duration"`         // number of seconds for a node to produce blocks
+	Period           uint64  `json:"period,omitempty"`           // Number of seconds between blocks to enforce
+	Epoch            uint64  `json:"epoch,omitempty"`            // Epoch length to reset votes and checkpoint
+	MaxLatency       int64   `json:"maxLatency,omitempty"`       // number of milliseconds of max net latency between the consensus nodes
+	LegalCoefficient float64 `json:"legalCoefficient,omitempty"` // coefficient for checking if a block is in it's turn
+	Duration         int64   `json:"duration,omitempty"`         // number of seconds for a node to produce blocks
 	//mock
-	InitialNodes []discover.Node `json:"initialNodes"`
+	InitialNodes []discover.Node `json:"initialNodes,omitempty"`
 	NodeID       discover.NodeID   `json:"nodeID,omitempty"`
-	PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
+	PrivateKey   *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 
 	// modify by dpos
-	DposConfig 		*DposConfig
+	DposConfig 		*DposConfig	`json:"dposConfig,omitempty"`
 }
 // modify by platon
 type DposConfig struct{
