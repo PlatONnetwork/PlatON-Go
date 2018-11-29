@@ -84,7 +84,6 @@ func TestVoteTicket(t *testing.T)  {
 		}()
 	}
 	for int(count) < voteNum  {
-
 	}
 	candidate, err := candidatePool.GetCandidate(state, candidate.CandidateId)
 	if err != nil {
