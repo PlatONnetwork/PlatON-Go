@@ -126,7 +126,7 @@ type Bft interface {
 	ConsensusNodes(blockNum *big.Int) []discover.NodeID
 
 	// 返回当前节点是否轮值出块
-	ShouldSeal(blockNumber *big.Int) (bool, error)
+	ShouldSeal() (bool, error)
 
 	//收到新的区块签名
 	//需要验证签名是否时nodeID签名的
