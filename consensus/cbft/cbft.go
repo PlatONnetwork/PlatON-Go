@@ -668,7 +668,7 @@ func BlockSynchronisation() {
 		cbft.highestConfirmed = confirmedBlock
 
 		highestLogical := cbft.findHighestSigned(confirmedBlock)
-		if cbft.highestLogical == nil {
+		if highestLogical == nil {
 			highestLogical = cbft.findHighest(confirmedBlock)
 		}
 
