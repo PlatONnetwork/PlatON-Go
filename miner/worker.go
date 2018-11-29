@@ -172,6 +172,8 @@ type worker struct {
 	resultCh           chan *types.Block
 	prepareResultCh    chan *types.Block
 	blockSignatureCh   chan *cbfttypes.BlockSignature // 签名
+
+
 	cbftResultCh       chan *cbfttypes.CbftResult     // Seal出块后输出的channel
 	highestLogicalBlockCh chan *types.Block
 	startCh            chan struct{}
@@ -431,10 +433,12 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			w.commitWorkEnv.highestLogicalBlock = highestLogicalBlock
 			w.commitWorkEnv.highestLock.Unlock()
 
-			if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(); shouldSeal && error == nil {
+			if w.isRunning() {
 				if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-					log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
-					commit(false, commitInterruptResubmit, commitBlock)
+					if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(commitBlock.Number().Add(commitBlock.Number(), common.Big1)); shouldSeal && error == nil {
+						log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
+						commit(false, commitInterruptResubmit, commitBlock)
+					}
 				}
 			}
 
@@ -446,8 +450,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if w.isRunning() {
 				log.Warn("----------间隔" + recommit.String() + "开始打包任务----------")
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
-						if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
+					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
+						if shouldSeal, error := cbftEngine.ShouldSeal(commitBlock.Number().Add(commitBlock.Number(), common.Big1)); shouldSeal && error == nil {
 							log.Warn("--------------节点当前时间窗口出块，执行打包出块逻辑--------------")
 							commit(false, commitInterruptResubmit, commitBlock)
 							continue
@@ -553,7 +557,7 @@ func (w *worker) mainLoop() {
 						uncles = append(uncles, uncle.Header())
 						return false
 					})
-					w.commit(uncles, nil, true, start)
+					w.commit(uncles, nil, true, start, nil)
 				}
 			}
 
@@ -1136,16 +1140,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		log.Error("Failed to create mining context", "err", err)
 		return
 	}
-	// 揭榜(如果符合条件)
-	electionErr := w.election(header.Number)
-	if electionErr != nil {
-		return
-	}
-	// 触发替换下轮见证人列表(如果符合条件)
-	switchWitnessErr := w.switchWitness(header.Number)
-	if switchWitnessErr != nil {
-		return
-	}
 	// Create the current work task and check any fork transitions needed
 	env := w.current
 	if w.config.DAOForkSupport && w.config.DAOForkBlock != nil && w.config.DAOForkBlock.Cmp(header.Number) == 0 {
@@ -1181,7 +1175,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		// execution finished.
 		// modify by platon
 		if _, ok := w.engine.(consensus.Bft); !ok {
-			w.commit(uncles, nil, false, tstart)
+			w.commit(uncles, nil, false, tstart, nil)
 		}
 	}
 
@@ -1196,7 +1190,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
 		if _, ok := w.engine.(consensus.Bft); ok {
-			w.commit(uncles, nil, true, tstart)
+			w.commit(uncles, nil, true, tstart, header)
 		} else {
 			w.updateSnapshot()
 		}
@@ -1225,18 +1219,31 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 	log.Warn("---【交易总数】---", "blockNumber", header.Number, "timestamp", time.Now().UnixNano() / 1e6, "total", len(w.current.txs))
-	w.commit(uncles, w.fullTaskHook, true, tstart)
+	w.commit(uncles, w.fullTaskHook, true, tstart, header)
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
 // and commits new work if consensus engine is running.
-func (w *worker) commit(uncles []*types.Header, interval func(), update bool, start time.Time) error {
+func (w *worker) commit(uncles []*types.Header, interval func(), update bool, start time.Time, header *types.Header) error {
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := make([]*types.Receipt, len(w.current.receipts))
 	for i, l := range w.current.receipts {
 		receipts[i] = new(types.Receipt)
 		*receipts[i] = *l
 	}
+	if header != nil {
+		// 揭榜(如果符合条件)
+		electionErr := w.election(header.Number)
+		if electionErr != nil {
+			return errors.New("election failure")
+		}
+		// 触发替换下轮见证人列表(如果符合条件)
+		switchWitnessErr := w.switchWitness(header.Number)
+		if switchWitnessErr != nil {
+			return errors.New("switchWitness failure")
+		}
+	}
+	w.current.state.IntermediateRoot(true)
 	s := w.current.state.Copy()
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 	if err != nil {

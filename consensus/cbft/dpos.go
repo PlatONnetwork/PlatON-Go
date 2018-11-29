@@ -82,16 +82,25 @@ func (d *dpos) AnyIndex(nodeID discover.NodeID) int64 {
 func (d *dpos) BlockProducerIndex(number uint64, nodeID discover.NodeID) int64 {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	if number == 0 {
-		for idx, node := range d.current.nodes {
+	//if number == 0 {
+	//	for idx, node := range d.current.nodes {
+	//		if node == nodeID {
+	//			return int64(idx)
+	//		}
+	//	}
+	//	return -1
+	//}
+	if number >= d.former.start.Uint64() && number <= d.former.end.Uint64() {
+		for idx, node := range d.former.nodes {
 			if node == nodeID {
 				return int64(idx)
 			}
 		}
 		return -1
 	}
-	if number >= d.former.start.Uint64() && number <= d.former.end.Uint64() {
-		for idx, node := range d.former.nodes {
+
+	if number >= d.current.start.Uint64() && number <= d.current.end.Uint64() {
+		for idx, node := range d.current.nodes {
 			if node == nodeID {
 				return int64(idx)
 			}
@@ -199,6 +208,7 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 		// current round
 		round := calcurround(blocknumber)
 
+		d.lock.Lock()
 		nextStart := big.NewInt(int64(BaseSwitchWitness*(round+1)) + 1)
 		nextEnd := new(big.Int).Add(nextStart, big.NewInt(int64(BaseSwitchWitness-1)))
 		d.next = &dposRound{
@@ -207,10 +217,12 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 			end:   nextEnd,
 		}
 
-		log.Info("揭榜维护下一轮的nodeIds长度:", len(nextNodes))
+		log.Info("揭榜维护下一轮的nodeIds长度:", "len", len(nextNodes))
 		depos.PrintObject("揭榜维护下一轮的nodeIds:", nextNodes)
-		depos.PrintObject("揭榜维护下一轮dposRound：", *(d.next))
-		depos.PrintObject("揭榜当前dpos实体:", *d)
+		depos.PrintObject("揭榜的上轮dposRound：", d.former.nodes)
+		depos.PrintObject("揭榜的当前轮dposRound：", d.current.nodes)
+		depos.PrintObject("揭榜维护下一轮dposRound：", d.next.nodes)
+		d.lock.Unlock()
 		return nextNodes, nil
 	}
 }
@@ -242,7 +254,11 @@ func (d *dpos) Switch(state *state.StateDB /*, start, end *big.Int*/) bool {
 		}
 	}
 	d.next = nil
-	depos.PrintObject("Switch当前dpos实体:", *d)
+	depos.PrintObject("Switch获取上一轮nodes：", preArr)
+	depos.PrintObject("Switch获取当前轮nodes：", curArr)
+	depos.PrintObject("Switch的上轮dposRound：", d.former.nodes)
+	depos.PrintObject("Switch的当前轮dposRound：", d.current.nodes)
+
 	d.lock.Unlock()
 	return true
 }
@@ -293,8 +309,14 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 					start: 		start,
 					end: 		end,
 				}
+				depos.PrintObject("重新加载获取当前轮nodes：", nextArr)
+				depos.PrintObject("重新加载的上轮dposRound：", d.next.nodes)
 			}
-			depos.PrintObject("重新启动链当前dpos实体:", *d)
+			depos.PrintObject("重新加载获取上一轮nodes：", preArr)
+			depos.PrintObject("重新加载获取当前轮nodes：", curArr)
+			depos.PrintObject("重新加载的上轮dposRound：", d.former.nodes)
+			depos.PrintObject("重新加载的当前轮dposRound：", d.current.nodes)
+
 			d.lock.Unlock()
 		}
 	}
@@ -383,13 +405,16 @@ func (d *dpos) UpdateNodeList(state *state.StateDB, blocknumber *big.Int) {
 			}
 		}
 		d.next = nil
-		depos.PrintObject("分叉当前dpos实体:", *d)
+		depos.PrintObject("分叉获取上一轮nodes：", preArr)
+		depos.PrintObject("分叉获取当前轮nodes：", curArr)
+		depos.PrintObject("分叉的上轮dposRound：", d.former.nodes)
+		depos.PrintObject("分叉的当前轮dposRound：", d.current.nodes)
 		d.lock.Unlock()
 	}
 }
 
 func convertNodeID(nodes []*discover.Node) []discover.NodeID {
-	nodesID := make([]discover.NodeID, len(nodes), len(nodes))
+	nodesID := make([]discover.NodeID, 0, len(nodes))
 	for _, n := range nodes {
 		nodesID = append(nodesID, n.ID)
 	}
@@ -412,6 +437,6 @@ func calcurround(blocknumber *big.Int) uint64 {
 	return round
 }
 
-func (d *dpos) MaxChair() int64 {
-	return int64(d.candidatePool.MaxChair())
-}
+//func (d *dpos) MaxChair() int64 {
+//	return int64(d.candidatePool.MaxChair())
+//}
