@@ -17,7 +17,6 @@
 package core
 
 import (
-	"Platon-go/core/dpos"
 	"errors"
 	"math"
 	"math/big"
@@ -26,6 +25,7 @@ import (
 	"Platon-go/core/vm"
 	"Platon-go/log"
 	"Platon-go/params"
+	"Platon-go/core/ppos"
 )
 
 var (
@@ -112,8 +112,8 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
-	//dpos
-	evm.CandidatePool = depos.GetCandidatePtr()
+	//ppos
+	evm.CandidatePool = pposm.GetCandidatePtr()
 	return &StateTransition{
 		gp:       gp,
 		evm:      evm,

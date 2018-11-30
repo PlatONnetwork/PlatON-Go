@@ -2,7 +2,6 @@ package cbft
 
 import (
 	"Platon-go/core/types"
-	"Platon-go/crypto"
 	"Platon-go/p2p/discover"
 	"Platon-go/params"
 	"math/big"

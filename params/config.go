@@ -183,7 +183,6 @@ type ChainConfig struct {
 	Clique *CliqueConfig `json:"clique,omitempty"`
 	// modify by platon
 	Cbft *CbftConfig `json:"cbft,omitempty"`
-	//Dposes []*DposConfig `json:"dposes,omitempty"`
 
 	// Various vm interpreter
 	VMInterpreter string `json:"interpreter,omitempty"`
@@ -209,11 +208,11 @@ type CbftConfig struct {
 	NodeID       discover.NodeID   `json:"nodeID,omitempty"`
 	PrivateKey   *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 
-	// modify by dpos
-	DposConfig 		*DposConfig	`json:"dposConfig,omitempty"`
+	// modify by ppos
+	PposConfig 		*PposConfig	`json:"pposConfig,omitempty"`
 }
 // modify by platon
-type DposConfig struct{
+type PposConfig struct{
 	//MaxCount				uint64
 	//MaxChair				uint64
 	//RefundBlockNumber 		uint64
