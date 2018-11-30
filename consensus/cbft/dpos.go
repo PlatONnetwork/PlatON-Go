@@ -31,20 +31,27 @@ type dpos struct {
 }
 
 type dposRound struct {
-	nodes []discover.NodeID
+	nodeIds []discover.NodeID
+	nodes 	[]*discover.Node
 	start *big.Int
 	end   *big.Int
 }
 
-func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
-
+func newDpos(initialNodes []discover.Node, config *params.CbftConfig) *dpos {
+	initNodeArr := make([]*discover.Node, 0, len(initialNodes))
+	initialNodesIDs := make([]discover.NodeID, 0, len(initialNodes))
+	for _, n := range config.InitialNodes {
+		initialNodesIDs = append(initialNodesIDs, n.ID)
+		initNodeArr = append(initNodeArr, &n)
+	}
 	formerRound := &dposRound{
-		nodes: make([]discover.NodeID, 0),
+		nodeIds: make([]discover.NodeID, 0),
 		start: big.NewInt(0),
 		end:   big.NewInt(0),
 	}
 	currentRound := &dposRound{
-		nodes: initialNodes,
+		nodeIds: initialNodesIDs,
+		nodes: 	initNodeArr,
 		start: big.NewInt(1),
 		end:   big.NewInt(BaseSwitchWitness),
 	}
@@ -65,13 +72,13 @@ func (d *dpos) AnyIndex(nodeID discover.NodeID) int64 {
 	defer d.lock.RUnlock()
 	nodeList := make([]discover.NodeID, 0)
 	if d.former != nil && d.former.nodes != nil && len(d.former.nodes) > 0 {
-		nodeList = append(nodeList, d.former.nodes...)
+		nodeList = append(nodeList, d.former.nodeIds...)
 	}
 	if d.current != nil && d.current.nodes != nil && len(d.current.nodes) > 0 {
-		nodeList = append(nodeList, d.current.nodes...)
+		nodeList = append(nodeList, d.current.nodeIds...)
 	}
 	if d.next != nil && d.next.nodes != nil && len(d.next.nodes) > 0 {
-		nodeList = append(nodeList, d.next.nodes...)
+		nodeList = append(nodeList, d.next.nodeIds...)
 	}
 	for idx, node := range nodeList {
 		if node == nodeID {
@@ -103,7 +110,7 @@ func (d *dpos) BlockProducerIndex(number uint64, nodeID discover.NodeID) int64 {
 	}
 
 	if number == 0 {
-		for idx, node := range d.current.nodes {
+		for idx, node := range d.current.nodeIds {
 			if node == nodeID {
 				return int64(idx)
 			}
@@ -112,7 +119,7 @@ func (d *dpos) BlockProducerIndex(number uint64, nodeID discover.NodeID) int64 {
 	}
 
 	if number >= d.former.start.Uint64() && number <= d.former.end.Uint64() {
-		for idx, node := range d.former.nodes {
+		for idx, node := range d.former.nodeIds {
 			if node == nodeID {
 				return int64(idx)
 			}
@@ -121,7 +128,7 @@ func (d *dpos) BlockProducerIndex(number uint64, nodeID discover.NodeID) int64 {
 	}
 
 	if number >= d.current.start.Uint64() && number <= d.current.end.Uint64() {
-		for idx, node := range d.current.nodes {
+		for idx, node := range d.current.nodeIds {
 			if node == nodeID {
 				return int64(idx)
 			}
@@ -130,7 +137,7 @@ func (d *dpos) BlockProducerIndex(number uint64, nodeID discover.NodeID) int64 {
 	}
 
 	if d.next != nil && number >= d.next.start.Uint64() && number <= d.next.end.Uint64() {
-		for idx, node := range d.next.nodes {
+		for idx, node := range d.next.nodeIds {
 			if node == nodeID {
 				return int64(idx)
 			}
@@ -144,7 +151,7 @@ func (d *dpos) BlockProducerIndex(number uint64, nodeID discover.NodeID) int64 {
 func (d *dpos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	nodeList := append(d.current.nodes, d.next.nodes...)
+	nodeList := append(d.current.nodeIds, d.next.nodeIds...)
 	for idx, node := range nodeList {
 		if node == nodeID {
 			return int64(idx)
@@ -156,20 +163,20 @@ func (d *dpos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
 func (d *dpos) getFormerNodes () []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RLock()
-	return d.former.nodes
+	return d.former.nodeIds
 }
 
 func (d *dpos) getCurrentNodes() []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	return d.current.nodes
+	return d.current.nodeIds
 }
 
 func (d *dpos) getNextNodes () []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RLock()
 	if nil != d.next {
-		return d.next.nodes
+		return d.next.nodeIds
 	}else {
 		return make([]discover.NodeID, 0)
 	}
@@ -180,11 +187,11 @@ func (d *dpos) consensusNodes(blockNum *big.Int) []discover.NodeID {
 	defer d.lock.RUnlock()
 
 	if d.former != nil && blockNum.Cmp(d.former.start) >= 0 && blockNum.Cmp(d.former.end) <= 0 {
-		return d.former.nodes
+		return d.former.nodeIds
 	} else if d.current != nil && blockNum.Cmp(d.current.start) >= 0 && blockNum.Cmp(d.current.end) <= 0 {
-		return d.current.nodes
+		return d.current.nodeIds
 	} else if d.next != nil && blockNum.Cmp(d.next.start) >= 0 && blockNum.Cmp(d.next.end) <= 0 {
-		return d.next.nodes
+		return d.next.nodeIds
 	}
 	return nil
 }
@@ -250,7 +257,8 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 		nextStart := big.NewInt(int64(BaseSwitchWitness*round) + 1)
 		nextEnd := new(big.Int).Add(nextStart, big.NewInt(int64(BaseSwitchWitness-1)))
 		d.next = &dposRound{
-			nodes: convertNodeID(nextNodes),
+			nodeIds: convertNodeID(nextNodes),
+			nodes:	nextNodes,
 			start: nextStart,
 			end:   nextEnd,
 		}
@@ -292,7 +300,8 @@ func (d *dpos) Switch(state *state.StateDB) bool {
 	d.former.nodes = d.current.nodes
 	if len(curArr) != 0 {
 		d.current = &dposRound{
-			nodes: convertNodeID(curArr),
+			nodeIds: convertNodeID(curArr),
+			nodes:	curArr,
 		}
 		depos.PrintObject("Switch获取上一轮dposRound：", d.former.nodes)
 	}
@@ -344,7 +353,8 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 			}
 			log.Info("重新加载:上一轮", "start", d.former.start, "end", d.former.end)
 			if len(preArr) != 0 {
-				d.former.nodes = convertNodeID(preArr)
+				d.former.nodeIds = convertNodeID(preArr)
+				d.former.nodes = preArr
 			}else {
 				d.former.nodes = d.current.nodes
 			}
@@ -353,14 +363,16 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 			d.current.end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
 			log.Info("重新加载:当前轮", "start", d.current.start, "end", d.current.end)
 			if len(curArr) != 0 {
-				d.current.nodes = convertNodeID(curArr)
+				d.current.nodeIds = convertNodeID(curArr)
+				d.current.nodes = curArr
 			}
 			if len(nextArr) != 0 {
 				start := big.NewInt(int64(BaseSwitchWitness*round) + 1)
 				end := new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
 
 				d.next = &dposRound{
-					nodes: 		convertNodeID(nextArr),
+					nodeIds: 	convertNodeID(nextArr),
+					nodes: 		nextArr,
 					start: 		start,
 					end: 		end,
 				}
@@ -455,7 +467,8 @@ func (d *dpos) UpdateNodeList(state *state.StateDB, blocknumber *big.Int) {
 		log.Info("分叉获取:上一轮", "start", d.former.start, "end", d.former.end)
 		if len(preArr) != 0 {
 			d.former = &dposRound{
-				nodes: convertNodeID(preArr),
+				nodeIds: convertNodeID(preArr),
+				nodes: 	preArr,
 			}
 		}
 
@@ -464,7 +477,8 @@ func (d *dpos) UpdateNodeList(state *state.StateDB, blocknumber *big.Int) {
 		log.Info("分叉获取:当前轮", "start", d.current.start, "end", d.current.end)
 		if len(curArr) != 0 {
 			d.current = &dposRound{
-				nodes: convertNodeID(curArr),
+				nodeIds: convertNodeID(curArr),
+				nodes: 	curArr,
 			}
 		}
 		d.next = nil
