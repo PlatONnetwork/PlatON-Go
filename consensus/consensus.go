@@ -120,12 +120,24 @@ type PoW interface {
 type Bft interface {
 	Engine
 
-	// 返回当前共识节点地址列表
-	CurrentNodes() []discover.NodeID
+	// 返回上一轮共识节点地址列表
+	FormerNodeID() []discover.NodeID
 
-	IsCurrentNode(blockNum *big.Int) bool
+	// 返回上一轮共识节点信息列表
+	FormerNodes() []*discover.Node
 
-	ConsensusNodes(blockNum *big.Int) []discover.NodeID
+	// 返回当前轮共识节点地址列表
+	CurrentNodeID() []discover.NodeID
+
+	// 返回当前轮共识节点信息列表
+	CurrentNodes() []*discover.Node
+
+	// 返回下一轮共识节点地址列表
+	NextNodeID() []discover.NodeID
+
+	IsCurrentNode(blockNumber *big.Int) bool
+
+	ConsensusNodes(blockNumber *big.Int) []discover.NodeID
 
 	// 返回当前节点是否轮值出块
 	ShouldSeal() (bool, error)

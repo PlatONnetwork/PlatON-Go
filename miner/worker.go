@@ -872,11 +872,11 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		header:    header,
 	}
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-		currentNodes := cbftEngine.CurrentNodes()
-		if currentNodes == nil || len(currentNodes) <= 0 {
-			return errors.New("Failed to load current consensus nodes")
+		nodes := cbftEngine.ConsensusNodes(header.Number)
+		if nodes == nil || len(nodes) <= 0 {
+			return errors.New("Failed to load consensus nodes in method makeCurrent")
 		}
-		env.consensusNodes = currentNodes
+		env.consensusNodes = nodes
 	}
 
 	// when 08 is processed ancestors contain 07 (quick block)
