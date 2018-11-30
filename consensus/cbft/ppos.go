@@ -41,8 +41,9 @@ func newPpos(initialNodes []discover.Node, config *params.CbftConfig) *ppos {
 	initNodeArr := make([]*discover.Node, 0, len(initialNodes))
 	initialNodesIDs := make([]discover.NodeID, 0, len(initialNodes))
 	for _, n := range config.InitialNodes {
-		initialNodesIDs = append(initialNodesIDs, n.ID)
-		initNodeArr = append(initNodeArr, &n)
+		node := n
+		initialNodesIDs = append(initialNodesIDs, node.ID)
+		initNodeArr = append(initNodeArr, &node)
 	}
 
 	formerRound := &pposRound{
