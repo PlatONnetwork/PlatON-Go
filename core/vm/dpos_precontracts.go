@@ -91,11 +91,10 @@ func (c *candidateContract) RequiredGas(input []byte) uint64 {
 func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	defer func() {
 		if err := recover(); nil != err {
-			// 捕捉反射解析参数时由input中数据源问题造成的panic
+			// catch call panic
 			c.logError("Run==> ", "ErrCallRecode: ", ErrCallRecode.Error())
 		}
 	}()
-	// 用map封装所有的函数
 	var command = map[string] interface{}{
 		"CandidateDetails" : c.CandidateDetails,
 		"CandidateApplyWithdraw" : c.CandidateApplyWithdraw,
@@ -120,15 +119,13 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 		c.logError("Run==> ", "ErrCandidateEmpyt: ", ErrCandidateEmpyt.Error())
 		return nil, ErrCandidateEmpyt
 	}
-	// 获取要调用的函数
+	// get func and param list
 	if _, ok := command[byteutil.BytesToString(source[1])]; !ok {
 		c.logError("Run==> ", "ErrUndefFunction: ", ErrUndefFunction.Error())
 		return nil, ErrUndefFunction
 	}
 	funcValue := command[byteutil.BytesToString(source[1])]
-	// 目标函数参数列表
 	paramList := reflect.TypeOf(funcValue)
-	// 目标函数参数个数
 	paramNum := paramList.NumIn()
 	// var param []interface{}
 	params := make([]reflect.Value, paramNum)
@@ -137,22 +134,17 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 		return nil, ErrParamsLen
 	}
 	for i := 0; i < paramNum; i++ {
-		// 目标参数类型的值
 		targetType := paramList.In(i).String()
-		// 原始[]byte类型参数
 		originByte := []reflect.Value{reflect.ValueOf(source[i+2])}
-		// 转换为对应类型的参数
 		params[i] = reflect.ValueOf(byteutil.Command[targetType]).Call(originByte)[0]
 	}
-	// 传入参数调用函数
+	// call func
 	result := reflect.ValueOf(funcValue).Call(params)
+	c.logInfo("Run==> ", "result[0]: ", result[0].Bytes())
 	if _, err := result[1].Interface().(error); !err {
-		c.logError("Run==> ", "Interface err: ", err)
 		return result[0].Bytes(), nil
 	}
-	c.logInfo("Run==> ", "result[0]: ", result[0].Bytes())
 	c.logInfo(result[1].Interface().(error).Error())
-	// 返回值也是一个 Value 的 slice，同样对应反射函数类型的返回值。
 	return result[0].Bytes(), result[1].Interface().(error)
 }
 
