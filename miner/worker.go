@@ -1312,7 +1312,9 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 		header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
 
 		err := w.makeCurrent(parent, header)
-		panic(err)
+		if err != nil {
+			panic("Failed to create mining context in makePending")
+		}
 		w.updateSnapshot()
 		return w.snapshotBlock, w.snapshotState.Copy()
 	}
