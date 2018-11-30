@@ -12,9 +12,9 @@ type rotating struct {
 	timeInterval int64            // 每个节点出块时间，单位毫秒
 }
 
-func newRotating(dpos *ppos, timeInterval int64) *rotating {
+func newRotating(ppos *ppos, timeInterval int64) *rotating {
 	rotating := &rotating{
-		ppos:         dpos,
+		ppos:         ppos,
 		timeInterval: timeInterval,
 	}
 	return rotating
