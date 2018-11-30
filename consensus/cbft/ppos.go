@@ -162,7 +162,7 @@ func (d *ppos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
 
 func (d *ppos) getFormerNodeID () []discover.NodeID {
 	d.lock.RLock()
-	defer d.lock.RLock()
+	defer d.lock.RUnlock()
 	return d.former.nodeIds
 }
 
@@ -174,7 +174,7 @@ func (d *ppos) getCurrentNodeID() []discover.NodeID {
 
 func (d *ppos) getNextNodeID () []discover.NodeID {
 	d.lock.RLock()
-	defer d.lock.RLock()
+	defer d.lock.RUnlock()
 	if nil != d.next {
 		return d.next.nodeIds
 	}else {
@@ -184,13 +184,13 @@ func (d *ppos) getNextNodeID () []discover.NodeID {
 
 func (d *ppos) getFormerNodes () []*discover.Node {
 	d.lock.RLock()
-	defer d.lock.RLock()
+	defer d.lock.RUnlock()
 	return d.former.nodes
 }
 
 func (d *ppos) getCurrentNodes () []*discover.Node {
 	d.lock.RLock()
-	defer d.lock.RLock()
+	defer d.lock.RUnlock()
 	return d.current.nodes
 }
 
@@ -255,6 +255,9 @@ func (d *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 /** Method provided to the cbft module call */
 // Announce witness
 func (d *ppos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover.Node, error) {
+	if blocknumber.Uint64() == 50 {
+
+	}
 	if nextNodes, err := d.candidatePool.Election(state); nil != err {
 		log.Error("ppos election next witness err", err)
 		panic("Election error " + err.Error())
