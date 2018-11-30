@@ -288,8 +288,9 @@ func (d *dpos) Switch(state *state.StateDB) bool {
 	d.former.end = d.current.end
 	d.current.start = d.next.start
 	d.current.end = d.next.end
+
+	d.former.nodes = d.current.nodes
 	if len(curArr) != 0 {
-		d.former.nodes = d.current.nodes
 		d.current = &dposRound{
 			nodes: convertNodeID(curArr),
 		}
@@ -341,6 +342,8 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 			log.Info("重新加载:上一轮", "start", d.former.start, "end", d.former.end)
 			if len(preArr) != 0 {
 				d.former.nodes = convertNodeID(preArr)
+			}else {
+				d.former.nodes = d.current.nodes
 			}
 
 			d.current.start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
