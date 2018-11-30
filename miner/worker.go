@@ -796,7 +796,7 @@ func (w *worker) resultLoop() {
 				_state = w.consensusCache.ReadStateDB(block.Root())
 			}
 			if _receipts == nil && len(block.Transactions()) >0 || _state == nil {
-				log.Info("_receipts",_receipts,"_state",_state)
+				log.Info("cbftResultCh", "_receipts",_receipts,"_state",_state)
 				continue
 			}
 
