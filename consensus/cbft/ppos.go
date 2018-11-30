@@ -379,7 +379,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain) {
 				copy(d.former.nodes, preArr)
 				//d.former.nodes = preArr
 			}else {
-				if round != 1 {
+				if round == 1 {
 					d.former.nodeIds = convertNodeID(d.current.nodes)
 					d.former.nodes = make([]*discover.Node, len(d.current.nodes))
 					copy(d.former.nodes, d.current.nodes)
