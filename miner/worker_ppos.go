@@ -84,8 +84,9 @@ func (w *worker) attemptRemoveConsensusPeer(blockNumber *big.Int, state *state.S
 		log.Info("当前轮共识节点列表","number", blockNumber, "currentNodes", currentNodes, "currentNodes length", len(currentNodes))
 
 		removeNodes := formerNodes
-		if len(formerNodes) > 0 && len(currentNodes) > 0 && existsNode(w.engine.(consensus.Bft).GetOwnNodeID(), formerNodes) {
-			if existsNode(w.engine.(consensus.Bft).GetOwnNodeID(), currentNodes) {
+		ownNodeID := w.engine.(consensus.Bft).GetOwnNodeID()
+		if len(formerNodes) > 0 && len(currentNodes) > 0 && existsNode(ownNodeID, formerNodes) {
+			if existsNode(ownNodeID, currentNodes) {
 				currentNodesMap := make(map[discover.NodeID]discover.NodeID)
 				for _,n := range currentNodes {
 					currentNodesMap[n.ID] = n.ID
