@@ -74,7 +74,8 @@ type Cbft struct {
 	//todo:（先log,再处理）
 	signedSet      map[uint64]struct{} //all block numbers signed by local node
 	lock           sync.RWMutex
-	consensusCache *Cache //cache for cbft consensus
+	// modify by platon remove consensusCache
+	//consensusCache *Cache //cache for cbft consensus
 
 	netLatencyMap map[discover.NodeID]*list.List
 }
@@ -118,6 +119,9 @@ type BlockExt struct {
 	isConfirmed bool
 	number      uint64
 	signs       []*common.BlockConfirmSign //all signs for block
+	// modify by platon remove consensusCache
+	Receipts          types.Receipts
+	State             *state.StateDB
 }
 
 // New creates a BlockExt object
@@ -436,7 +440,9 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 //execute the block based on its parent
 // if success then set this block's level with Ledge, and save the receipts and state to consensusCache
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
-	state, err := cbft.consensusCache.MakeStateDB(parent.block)
+	// modify by platon remove consensusCache
+	//state, err := cbft.consensusCache.MakeStateDB(parent.block)
+	state, err := cbft.blockChain.StateAt(parent.block.Root())
 	if err != nil {
 		log.Error("execute block error, cannot make state based on parent")
 		return err
@@ -445,9 +451,12 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	//to execute
 	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block)
 	if err == nil {
-		//save the receipts and state to consensusCache
-		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
-		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
+		// modify by platon remove consensusCache
+		////save the receipts and state to consensusCache
+		//cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
+		//cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
+		ext.Receipts = receipts
+		ext.State = state
 	} else {
 		log.Error("execute a block error", err)
 	}
@@ -595,9 +604,10 @@ func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	cbft.config.NodeID = discover.PubkeyID(&privateKey.PublicKey)
 }
 
-func SetConsensusCache(cache *Cache) {
-	cbft.consensusCache = cache
-}
+// modify by platon remove consensusCache
+//func SetConsensusCache(cache *Cache) {
+//	cbft.consensusCache = cache
+//}
 
 func setHighestLogical(highestLogical *BlockExt) {
 	cbft.highestLogical = highestLogical
@@ -781,7 +791,9 @@ func (cbft *Cbft) handleNewConfirmed(newConfirmed *BlockExt) error {
 			err := cbft.handleNewConfirmedContinue(newConfirmed, newFork[1:])
 
 			if err == nil {
-				state, err := cbft.consensusCache.MakeStateDB(newConfirmed.block)
+				// modify by platon remove consensusCache
+				//state, err := cbft.consensusCache.MakeStateDB(newConfirmed.block)
+				state, err := cbft.blockChain.StateAt(newConfirmed.block.Root())
 				if err == nil {
 					cbft.ppos.UpdateNodeList(state, newConfirmed.block.Number())
 				} else {
