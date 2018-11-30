@@ -956,47 +956,6 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	return nil
 }
 
-func (cbft *Cbft) ShouldSeal() (bool, error) {
-	return cbft.inTurn(), nil
-}
-
-func (cbft *Cbft) CurrentNodes() []discover.NodeID {
-	return cbft.dpos.getCurrentNodes()
-}
-
-func (cbft *Cbft) IsCurrentNode(blockNum *big.Int) bool {
-	currentNodes := cbft.ConsensusNodes(blockNum)
-	nodeID := cbft.GetOwnNodeID()
-	for _, n := range currentNodes {
-		if nodeID == n {
-			return true
-		}
-	}
-	return false
-}
-
-func (cbft *Cbft) ConsensusNodes(blockNum *big.Int) []discover.NodeID {
-	return cbft.dpos.consensusNodes(blockNum)
-}
-
-// wether nodeID in former or current or next
-func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
-	return cbft.dpos.AnyIndex(nodeID) >= 0, nil
-}
-
-// wether nodeID in current or next
-func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Debug("call CheckFutureConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
-	return cbft.dpos.NodeIndexInFuture(nodeID) >= 0, nil
-}
-
-// wether nodeID in former or current or next
-func (cbft *Cbft) IsConsensusNode() (bool, error) {
-	log.Debug("call IsConsensusNode()")
-	return cbft.dpos.AnyIndex(cbft.config.NodeID) >= 0, nil
-}
-
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
@@ -1373,7 +1332,7 @@ func (cbft *Cbft) calTurn(number uint64, curTime int64, nodeID discover.NodeID) 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
 
-		consensusNodes := cbft.dpos.getCurrentNodes()
+		consensusNodes := cbft.CurrentNodes()
 		if number != 0 {
 			consensusNodes = cbft.ConsensusNodes(big.NewInt(int64(number)))
 		}
@@ -1486,6 +1445,55 @@ func (cbft *Cbft) getThreshold(blockNumber *big.Int) int {
 
 func toMilliseconds(t time.Time) int64 {
 	return t.UnixNano() / 1e6
+}
+
+func (cbft *Cbft) ShouldSeal() (bool, error) {
+	return cbft.inTurn(), nil
+}
+
+func (cbft *Cbft) FormerNodes() []discover.NodeID {
+	return cbft.dpos.getFormerNodes()
+}
+
+func (cbft *Cbft) CurrentNodes() []discover.NodeID {
+	return cbft.dpos.getCurrentNodes()
+}
+
+func (cbft *Cbft) NextNodes() []discover.NodeID {
+	return cbft.dpos.getNextNodes()
+}
+
+func (cbft *Cbft) IsCurrentNode(blockNumber *big.Int) bool {
+	currentNodes := cbft.ConsensusNodes(blockNumber)
+	nodeID := cbft.GetOwnNodeID()
+	for _, n := range currentNodes {
+		if nodeID == n {
+			return true
+		}
+	}
+	return false
+}
+
+func (cbft *Cbft) ConsensusNodes(blockNumber *big.Int) []discover.NodeID {
+	return cbft.dpos.consensusNodes(blockNumber)
+}
+
+// wether nodeID in former or current or next
+func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
+	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+	return cbft.dpos.AnyIndex(nodeID) >= 0, nil
+}
+
+// wether nodeID in current or next
+func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error) {
+	log.Debug("call CheckFutureConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+	return cbft.dpos.NodeIndexInFuture(nodeID) >= 0, nil
+}
+
+// wether nodeID in former or current or next
+func (cbft *Cbft) IsConsensusNode() (bool, error) {
+	log.Debug("call IsConsensusNode()")
+	return cbft.dpos.AnyIndex(cbft.config.NodeID) >= 0, nil
 }
 
 func (cbft *Cbft) Election(state *state.StateDB, blockNumber *big.Int) ([]*discover.Node, error) {
