@@ -84,8 +84,8 @@ func TestAppendSlice(t *testing.T)  {
 
 func TestRlpData(t *testing.T)  {
 
-	nodeId, _ := hex.DecodeString("e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
-	owner, _ := hex.DecodeString("00a8499dd60261e61113d7c6d249aa98b3dd6e40")
+	nodeId, _ := hex.DecodeString("a363d1243646b6eabf1d4851f646b523f5707d053caab95022f1682605aca0537ee0c5c14b4dfa76dcbce264b7e68d59de79a42b7cda059e9d358336a9ab8d80")
+	owner, _ := hex.DecodeString("f216d6e4c17097a60ee2b8e5c88941cd9f07263b")
 
 	//CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
 	var CandidateDeposit [][]byte
@@ -95,8 +95,8 @@ func TestRlpData(t *testing.T)  {
 	CandidateDeposit = append(CandidateDeposit, nodeId)
 	CandidateDeposit = append(CandidateDeposit, owner)
 	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(500))	//10000
-	CandidateDeposit = append(CandidateDeposit, []byte("127.0.0.1"))
-	CandidateDeposit = append(CandidateDeposit, []byte("7890"))
+	CandidateDeposit = append(CandidateDeposit, []byte("0.0.0.0"))
+	CandidateDeposit = append(CandidateDeposit, []byte("30303"))
 	CandidateDeposit = append(CandidateDeposit, []byte("extra data"))
 	bufDeposit := new(bytes.Buffer)
 	err := rlp.Encode(bufDeposit, CandidateDeposit)
