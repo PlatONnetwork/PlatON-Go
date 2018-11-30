@@ -278,7 +278,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 	go worker.taskLoop()
 
 	// Submit first work to initialize pending state.
-	//worker.startCh <- struct{}{}
+	worker.startCh <- struct{}{}
 
 	return worker
 }
@@ -880,7 +880,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		nodes := cbftEngine.ConsensusNodes(header.Number)
 		if nodes == nil || len(nodes) <= 0 {
-			return errors.New("Failed to load consensus nodes in method makeCurrent")
+			return errors.New("Failed to load consensus nodes")
 		}
 		env.consensusNodes = nodes
 	}
@@ -1311,7 +1311,8 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 		header.Extra = header.Extra[:32]
 		header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
 
-		w.makeCurrent(parent, header)
+		err := w.makeCurrent(parent, header)
+		panic(err)
 		w.updateSnapshot()
 		return w.snapshotBlock, w.snapshotState.Copy()
 	}
