@@ -1,4 +1,4 @@
-package depos
+package pposm
 
 import (
 	"Platon-go/common"
@@ -89,7 +89,7 @@ type CandidatePool struct {
 var candidatePool *CandidatePool
 
 // Initialize the global candidate pool object
-func NewCandidatePool(configs *params.DposConfig) *CandidatePool {
+func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 	PrintObject("初始化配置文件", *configs)
 	candidatePool = &CandidatePool{
 		maxCount:             configs.Candidate.MaxCount,

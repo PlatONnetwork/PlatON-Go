@@ -7,7 +7,7 @@ import (
 	"Platon-go/consensus"
 	"Platon-go/core"
 	"Platon-go/core/cbfttypes"
-	"Platon-go/core/dpos"
+	"Platon-go/core/ppos"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/crypto"
@@ -53,7 +53,7 @@ var (
 
 type Cbft struct {
 	config                *params.CbftConfig
-	dpos                  *dpos
+	ppos                  *ppos
 	rotating              *rotating
 	blockSignOutCh        chan *cbfttypes.BlockSignature //a channel to send block signature
 	cbftResultOutCh       chan *cbfttypes.CbftResult     //a channel to send consensus result
@@ -83,17 +83,14 @@ var cbft *Cbft
 
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
-	initialNodesID := make([]discover.NodeID, 0, len(config.InitialNodes))
-	for _, n := range config.InitialNodes {
-		initialNodesID = append(initialNodesID, n.ID)
-	}
-	depos.PrintObject("获取dpos config：", *config)
-	_dpos := newDpos(initialNodesID, config)
+
+	pposm.PrintObject("获取ppos config：", *config)
+	_ppos := newPpos(config.InitialNodes, config)
 
 	cbft = &Cbft{
 		config:                config,
-		dpos:                  _dpos,
-		rotating:              newRotating(_dpos, config.Duration),
+		ppos:                  _ppos,
+		rotating:              newRotating(_ppos, config.Duration),
 		blockSignOutCh:        blockSignatureCh,
 		cbftResultOutCh:       cbftResultCh,
 		highestLogicalBlockCh: highestLogicalBlockCh,
@@ -614,7 +611,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	defer cbft.lock.Unlock()
 
 	cbft.blockChain = blockChain
-	cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
+	cbft.ppos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
 
 	currentBlock := blockChain.CurrentBlock()
 
@@ -641,7 +638,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 }
 
 func SetDopsOption(blockChain *core.BlockChain) {
-	cbft.dpos.SetCandidatePool(blockChain)
+	cbft.ppos.SetCandidatePool(blockChain)
 }
 
 func BlockSynchronisation() {
@@ -786,7 +783,7 @@ func (cbft *Cbft) handleNewConfirmed(newConfirmed *BlockExt) error {
 			if err == nil {
 				state, err := cbft.consensusCache.MakeStateDB(newConfirmed.block)
 				if err == nil {
-					cbft.dpos.UpdateNodeList(state, newConfirmed.block.Number())
+					cbft.ppos.UpdateNodeList(state, newConfirmed.block.Number())
 				} else {
 					log.Error("consensus success, but updateNodeList error", "err", err)
 					return nil
@@ -957,47 +954,6 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	log.Debug("=== end to handle block ===", "Hash", block.Hash(), "number", block.Number().Uint64())
 	return nil
-}
-
-func (cbft *Cbft) ShouldSeal() (bool, error) {
-	return cbft.inTurn(), nil
-}
-
-func (cbft *Cbft) CurrentNodes() []discover.NodeID {
-	return cbft.dpos.getCurrentNodes()
-}
-
-func (cbft *Cbft) IsCurrentNode(blockNum *big.Int) bool {
-	currentNodes := cbft.ConsensusNodes(blockNum)
-	nodeID := cbft.GetOwnNodeID()
-	for _, n := range currentNodes {
-		if nodeID == n {
-			return true
-		}
-	}
-	return false
-}
-
-func (cbft *Cbft) ConsensusNodes(blockNum *big.Int) []discover.NodeID {
-	return cbft.dpos.consensusNodes(blockNum)
-}
-
-// wether nodeID in former or current or next
-func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
-	return cbft.dpos.AnyIndex(nodeID) >= 0, nil
-}
-
-// wether nodeID in current or next
-func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Debug("call CheckFutureConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
-	return cbft.dpos.NodeIndexInFuture(nodeID) >= 0, nil
-}
-
-// wether nodeID in former or current or next
-func (cbft *Cbft) IsConsensusNode() (bool, error) {
-	log.Debug("call IsConsensusNode()")
-	return cbft.dpos.AnyIndex(cbft.config.NodeID) >= 0, nil
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
@@ -1348,12 +1304,12 @@ func (cbft *Cbft) shouldKeepIt(number uint64, curTime int64, nodeID discover.Nod
 
 //time in milliseconds
 /*func (cbft *Cbft) calTurn(curTime int64, nodeID discover.NodeID) bool {
-	nodeIdx := cbft.dpos.NodeIndex(nodeID)
-	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
+	nodeIdx := cbft.ppos.NodeIndex(nodeID)
+	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
-		durationPerTurn := durationPerNode * int64(len(cbft.dpos.current.nodes))
+		durationPerTurn := durationPerNode * int64(len(cbft.ppos.current.nodes))
 
 		min := nodeIdx * (durationPerNode)
 
@@ -1370,13 +1326,13 @@ func (cbft *Cbft) shouldKeepIt(number uint64, curTime int64, nodeID discover.Nod
 	return false
 }*/
 func (cbft *Cbft) calTurn(number uint64, curTime int64, nodeID discover.NodeID) bool {
-	nodeIdx := cbft.dpos.BlockProducerIndex(number, nodeID)
-	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
+	nodeIdx := cbft.ppos.BlockProducerIndex(number, nodeID)
+	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
 
-		consensusNodes := cbft.dpos.getCurrentNodes()
+		consensusNodes := cbft.CurrentNodeID()
 		if number != 0 {
 			consensusNodes = cbft.ConsensusNodes(big.NewInt(int64(number)))
 		}
@@ -1491,20 +1447,73 @@ func toMilliseconds(t time.Time) int64 {
 	return t.UnixNano() / 1e6
 }
 
+func (cbft *Cbft) ShouldSeal() (bool, error) {
+	return cbft.inTurn(), nil
+}
+
+func (cbft *Cbft) FormerNodeID() []discover.NodeID {
+	return cbft.ppos.getFormerNodeID()
+}
+
+func (cbft *Cbft) CurrentNodeID() []discover.NodeID {
+	return cbft.ppos.getCurrentNodeID()
+}
+
+func (cbft *Cbft) NextNodeID() []discover.NodeID {
+	return cbft.ppos.getNextNodeID()
+}
+
+func (cbft *Cbft) FormerNodes() []*discover.Node {
+	return cbft.ppos.getFormerNodes()
+}
+
+func (cbft *Cbft) CurrentNodes() []*discover.Node {
+	return cbft.ppos.getCurrentNodes()
+}
+
+func (cbft *Cbft) IsCurrentNode(blockNumber *big.Int) bool {
+	currentNodes := cbft.ConsensusNodes(blockNumber)
+	nodeID := cbft.GetOwnNodeID()
+	for _, n := range currentNodes {
+		if nodeID == n {
+			return true
+		}
+	}
+	return false
+}
+
+func (cbft *Cbft) ConsensusNodes(blockNumber *big.Int) []discover.NodeID {
+	return cbft.ppos.consensusNodes(blockNumber)
+}
+
+// wether nodeID in former or current or next
+func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
+	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+	return cbft.ppos.AnyIndex(nodeID) >= 0, nil
+}
+
+// wether nodeID in current or next
+func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error) {
+	log.Debug("call CheckFutureConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+	return cbft.ppos.NodeIndexInFuture(nodeID) >= 0, nil
+}
+
+// wether nodeID in former or current or next
+func (cbft *Cbft) IsConsensusNode() (bool, error) {
+	log.Debug("call IsConsensusNode()")
+	return cbft.ppos.AnyIndex(cbft.config.NodeID) >= 0, nil
+}
+
 func (cbft *Cbft) Election(state *state.StateDB, blockNumber *big.Int) ([]*discover.Node, error) {
-	return cbft.dpos.Election(state, blockNumber)
+	return cbft.ppos.Election(state, blockNumber)
 }
 
 func (cbft *Cbft) Switch(state *state.StateDB) bool {
-	return cbft.dpos.Switch(state)
+	return cbft.ppos.Switch(state)
 }
 
 func (cbft *Cbft) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
-	return cbft.dpos.GetWitness(state, flag)
-}
-
-func (cbft *Cbft) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
-	return cbft.dpos.GetAllWitness(state)
+	return cbft.ppos.GetWitness(state, flag)
 }
 
 func (cbft *Cbft) GetOwnNodeID() discover.NodeID {

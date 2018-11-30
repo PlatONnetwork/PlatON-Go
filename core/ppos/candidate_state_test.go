@@ -1,4 +1,4 @@
-package depos_test
+package pposm_test
 
 import (
 	"testing"
@@ -14,7 +14,7 @@ import (
 	"Platon-go/consensus/ethash"
 	"Platon-go/p2p/discover"
 
-	"Platon-go/core/dpos"
+	"Platon-go/core/ppos"
 	"errors"
 	"encoding/json"
 )
@@ -37,7 +37,7 @@ func newChainState() (*state.StateDB, error) {
 			isgenesis = true
 		}
 		*//** test init candidatePool *//*
-		if pool, err := depos.NewCandidatePool(*//*statedb,*//* &configs*//*, isgenesis*//*); nil != err {
+		if pool, err := pposm.NewCandidatePool(*//*statedb,*//* &configs*//*, isgenesis*//*); nil != err {
 			t.Log("init candidatePool err", err)
 		}else{
 			candidatePool = pool
@@ -47,15 +47,15 @@ func newChainState() (*state.StateDB, error) {
 	return state, nil
 }
 
-func newCandidatePool() *depos.CandidatePool {
-	configs := params.DposConfig{
+func newCandidatePool() *pposm.CandidatePool {
+	configs := params.PposConfig{
 		Candidate: &params.CandidateConfig{
 			MaxChair: 1,
 			MaxCount: 3,
 			RefundBlockNumber: 	1,
 		},
 	}
-	return depos.NewCandidatePool(&configs)
+	return pposm.NewCandidatePool(&configs)
 }
 
 func printObject(title string, obj interface{}, t *testing.T){
@@ -65,7 +65,7 @@ func printObject(title string, obj interface{}, t *testing.T){
 
 func TestInitCandidatePoolByConfig (t *testing.T){
 
-	var candidatePool *depos.CandidatePool
+	var candidatePool *pposm.CandidatePool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
@@ -157,7 +157,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 }
 
 func TestSetCandidate (t *testing.T){
-	var candidatePool *depos.CandidatePool
+	var candidatePool *pposm.CandidatePool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
@@ -188,7 +188,7 @@ func TestSetCandidate (t *testing.T){
 
 
 func TestGetCandidate (t *testing.T) {
-	var candidatePool *depos.CandidatePool
+	var candidatePool *pposm.CandidatePool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
@@ -222,7 +222,7 @@ func TestGetCandidate (t *testing.T) {
 }
 
 func TestWithdrawCandidate(t *testing.T) {
-	var candidatePool *depos.CandidatePool
+	var candidatePool *pposm.CandidatePool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
@@ -279,7 +279,7 @@ func TestWithdrawCandidate(t *testing.T) {
 }
 
 func TestGetChosens(t *testing.T) {
-	var candidatePool *depos.CandidatePool
+	var candidatePool *pposm.CandidatePool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
@@ -328,7 +328,7 @@ func TestGetChosens(t *testing.T) {
 
 
 func TestGetElection(t *testing.T) {
-	var candidatePool *depos.CandidatePool
+	var candidatePool *pposm.CandidatePool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
@@ -410,7 +410,7 @@ func TestGetElection(t *testing.T) {
 
 
 func TestGetWitness (t *testing.T) {
-	var candidatePool *depos.CandidatePool
+	var candidatePool *pposm.CandidatePool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
@@ -501,7 +501,7 @@ func TestGetWitness (t *testing.T) {
 
 
 func TestGetDefeat(t *testing.T) {
-	var candidatePool *depos.CandidatePool
+	var candidatePool *pposm.CandidatePool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)

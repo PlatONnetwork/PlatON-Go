@@ -36,7 +36,7 @@ var (
 		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.9.181:16789",
 		"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.9.182:16789",
 		"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.183:16789",
-		//"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.184:16789",
+		"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.184:16789",
 	}
 
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
@@ -55,7 +55,7 @@ var (
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialConsensusNodes),
 		},
-		VMInterpreter : "wasm",
+		VMInterpreter: "wasm",
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -183,7 +183,6 @@ type ChainConfig struct {
 	Clique *CliqueConfig `json:"clique,omitempty"`
 	// modify by platon
 	Cbft *CbftConfig `json:"cbft,omitempty"`
-	//Dposes []*DposConfig `json:"dposes,omitempty"`
 
 	// Various vm interpreter
 	VMInterpreter string `json:"interpreter,omitempty"`
@@ -205,25 +204,26 @@ type CbftConfig struct {
 	LegalCoefficient float64 `json:"legalCoefficient,omitempty"` // coefficient for checking if a block is in it's turn
 	Duration         int64   `json:"duration,omitempty"`         // number of seconds for a node to produce blocks
 	//mock
-	InitialNodes []discover.Node `json:"initialNodes,omitempty"`
+	InitialNodes []discover.Node   `json:"initialNodes,omitempty"`
 	NodeID       discover.NodeID   `json:"nodeID,omitempty"`
 	PrivateKey   *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 
-	// modify by dpos
-	DposConfig 		*DposConfig	`json:"dposConfig,omitempty"`
+	// modify by ppos
+	PposConfig *PposConfig `json:"pposConfig,omitempty"`
 }
+
 // modify by platon
-type DposConfig struct{
+type PposConfig struct {
 	//MaxCount				uint64
 	//MaxChair				uint64
 	//RefundBlockNumber 		uint64
 	//Candidates 				[]*CandidateConfig
-	Candidate 				*CandidateConfig
+	Candidate *CandidateConfig
 }
 type CandidateConfig struct {
-	MaxCount				uint64
-	MaxChair				uint64
-	RefundBlockNumber 		uint64
+	MaxCount          uint64
+	MaxChair          uint64
+	RefundBlockNumber uint64
 	/*Deposit			*big.Int
 	BlockNumber 	*big.Int
 	TxIndex 		uint32

@@ -137,7 +137,7 @@ type EVM struct {
 	// applied in opCall*.
 	callGasTemp uint64
 
-	//dpos add
+	//ppos add
 	CandidatePool candidatePool
 }
 

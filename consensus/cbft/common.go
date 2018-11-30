@@ -11,5 +11,7 @@ const (
 
 	BaseSwitchWitness = 60
 
+	BaseAddNextPeers = 50
+
 	BaseRemoveFormerPeers = 70
 )
