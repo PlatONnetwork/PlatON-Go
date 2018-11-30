@@ -1332,7 +1332,7 @@ func (cbft *Cbft) calTurn(number uint64, curTime int64, nodeID discover.NodeID) 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
 
-		consensusNodes := cbft.CurrentNodes()
+		consensusNodes := cbft.CurrentNodeID()
 		if number != 0 {
 			consensusNodes = cbft.ConsensusNodes(big.NewInt(int64(number)))
 		}
@@ -1451,16 +1451,24 @@ func (cbft *Cbft) ShouldSeal() (bool, error) {
 	return cbft.inTurn(), nil
 }
 
-func (cbft *Cbft) FormerNodes() []discover.NodeID {
+func (cbft *Cbft) FormerNodeID() []discover.NodeID {
+	return cbft.dpos.getFormerNodeID()
+}
+
+func (cbft *Cbft) CurrentNodeID() []discover.NodeID {
+	return cbft.dpos.getCurrentNodeID()
+}
+
+func (cbft *Cbft) NextNodeID() []discover.NodeID {
+	return cbft.dpos.getNextNodeID()
+}
+
+func (cbft *Cbft) FormerNodes() []*discover.Node {
 	return cbft.dpos.getFormerNodes()
 }
 
-func (cbft *Cbft) CurrentNodes() []discover.NodeID {
+func (cbft *Cbft) CurrentNodes() []*discover.Node {
 	return cbft.dpos.getCurrentNodes()
-}
-
-func (cbft *Cbft) NextNodes() []discover.NodeID {
-	return cbft.dpos.getNextNodes()
 }
 
 func (cbft *Cbft) IsCurrentNode(blockNumber *big.Int) bool {

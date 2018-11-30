@@ -160,19 +160,19 @@ func (d *dpos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
 	return int64(-1)
 }
 
-func (d *dpos) getFormerNodes () []discover.NodeID {
+func (d *dpos) getFormerNodeID () []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RLock()
 	return d.former.nodeIds
 }
 
-func (d *dpos) getCurrentNodes() []discover.NodeID {
+func (d *dpos) getCurrentNodeID() []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 	return d.current.nodeIds
 }
 
-func (d *dpos) getNextNodes () []discover.NodeID {
+func (d *dpos) getNextNodeID () []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RLock()
 	if nil != d.next {
@@ -182,15 +182,27 @@ func (d *dpos) getNextNodes () []discover.NodeID {
 	}
 }
 
-func (d *dpos) consensusNodes(blockNum *big.Int) []discover.NodeID {
+func (d *dpos) getFormerNodes () []*discover.Node {
+	d.lock.RLock()
+	defer d.lock.RLock()
+	return d.former.nodes
+}
+
+func (d *dpos) getCurrentNodes () []*discover.Node {
+	d.lock.RLock()
+	defer d.lock.RLock()
+	return d.current.nodes
+}
+
+func (d *dpos) consensusNodes(blockNumber *big.Int) []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
-	if d.former != nil && blockNum.Cmp(d.former.start) >= 0 && blockNum.Cmp(d.former.end) <= 0 {
+	if d.former != nil && blockNumber.Cmp(d.former.start) >= 0 && blockNumber.Cmp(d.former.end) <= 0 {
 		return d.former.nodeIds
-	} else if d.current != nil && blockNum.Cmp(d.current.start) >= 0 && blockNum.Cmp(d.current.end) <= 0 {
+	} else if d.current != nil && blockNumber.Cmp(d.current.start) >= 0 && blockNumber.Cmp(d.current.end) <= 0 {
 		return d.current.nodeIds
-	} else if d.next != nil && blockNum.Cmp(d.next.start) >= 0 && blockNum.Cmp(d.next.end) <= 0 {
+	} else if d.next != nil && blockNumber.Cmp(d.next.start) >= 0 && blockNumber.Cmp(d.next.end) <= 0 {
 		return d.next.nodeIds
 	}
 	return nil

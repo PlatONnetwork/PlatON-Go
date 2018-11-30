@@ -121,13 +121,19 @@ type Bft interface {
 	Engine
 
 	// 返回上一轮共识节点地址列表
-	FormerNodes() []discover.NodeID
+	FormerNodeID() []discover.NodeID
+
+	// 返回上一轮共识节点信息列表
+	FormerNodes() []*discover.Node
 
 	// 返回当前轮共识节点地址列表
-	CurrentNodes() []discover.NodeID
+	CurrentNodeID() []discover.NodeID
+
+	// 返回当前轮共识节点信息列表
+	CurrentNodes() []*discover.Node
 
 	// 返回下一轮共识节点地址列表
-	NextNodes() []discover.NodeID
+	NextNodeID() []discover.NodeID
 
 	IsCurrentNode(blockNumber *big.Int) bool
 
