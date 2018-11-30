@@ -365,14 +365,24 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain) {
 			log.Error("Load Witness from state failed on SetCandidatePool err", err)
 		} else {
 			d.lock.Lock()
+
+			currentNumber := blockChain.CurrentBlock().Number()
 			// current round
-			round := calcurround(blockChain.CurrentBlock().Number())
-			log.Info("重新加载", "blockNumber:", blockChain.CurrentBlock().Number(), "round:", round)
-			// is'nt first round
-			if round != 1 {
+			round := calcurround(currentNumber)
+			log.Info("重新加载", "blockNumber:", currentNumber, "round:", round)
+
+			// last block of first round
+			if round == 1 && (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
+				d.former.start = big.NewInt(1)
+				d.former.end = big.NewInt(BaseSwitchWitness)
+			}else  if round != 1 && (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
+				d.former.start = big.NewInt(int64(BaseSwitchWitness * (round - 1)) + 1)
+				d.former.end = new(big.Int).Add(d.former.start, big.NewInt(int64(BaseSwitchWitness -1)))
+			}else if round != 1 && (currentNumber.Uint64()%BaseSwitchWitness) != 0 {
 				d.former.start = big.NewInt(int64(BaseSwitchWitness*(round-2)) + 1)
-				d.former.end = new(big.Int).Add(d.former.start, big.NewInt(int64(BaseSwitchWitness-1)))
+				d.former.end = new(big.Int).Add(d.former.start, big.NewInt(int64(BaseSwitchWitness -1)))
 			}
+
 			log.Info("重新加载:上一轮", "start", d.former.start, "end", d.former.end)
 			if len(preArr) != 0 {
 				d.former.nodeIds = convertNodeID(preArr)
@@ -380,7 +390,10 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain) {
 				copy(d.former.nodes, preArr)
 				//d.former.nodes = preArr
 			}else {
-				if round == 1 {
+				// if current block number is last block of first round
+				// if current round is not first round
+				// when previous nodes is empty on stateDB
+				if blockChain.CurrentBlock().NumberU64() ==  uint64(BaseSwitchWitness) || round != 1 {
 					d.former.nodeIds = convertNodeID(d.current.nodes)
 					d.former.nodes = make([]*discover.Node, len(d.current.nodes))
 					copy(d.former.nodes, d.current.nodes)
@@ -388,8 +401,14 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain) {
 				//d.former.nodes = d.current.nodes
 			}
 
-			d.current.start = big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
-			d.current.end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+
+			if (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
+				d.current.start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
+				d.current.end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+			}else {
+				d.current.start = big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
+				d.current.end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+			}
 			log.Info("重新加载:当前轮", "start", d.current.start, "end", d.current.end)
 			if len(curArr) != 0 {
 				d.current.nodeIds = convertNodeID(curArr)
@@ -398,8 +417,15 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain) {
 				//d.current.nodes = curArr
 			}
 			if len(nextArr) != 0 {
-				start := big.NewInt(int64(BaseSwitchWitness*round) + 1)
-				end := new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
+				var start, end *big.Int
+				if (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
+
+					start = big.NewInt(int64(BaseSwitchWitness*(round + 1)) + 1)
+					end = new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
+				}else {
+					start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
+					end = new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
+				}
 
 				d.next = &pposRound{
 					nodeIds: 	convertNodeID(nextArr),
@@ -411,11 +437,11 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain) {
 				copy(d.next.nodes, nextArr)
 
 				log.Info("重新加载:下一轮", "start", d.next.start, "end", d.next.end)
-				pposm.PrintObject("重新加载获取下一轮nodes：", nextArr)
+				pposm.PrintObject("重新加载获取 stateDB 下一轮nodes：", nextArr)
 				pposm.PrintObject("重新加载的下一轮pposRound：", d.next.nodes)
 			}
-			pposm.PrintObject("重新加载获取上一轮nodes：", preArr)
-			pposm.PrintObject("重新加载获取当前轮nodes：", curArr)
+			pposm.PrintObject("重新加载获取 stateDB 上一轮nodes：", preArr)
+			pposm.PrintObject("重新加载获取 stateDB 当前轮nodes：", curArr)
 			pposm.PrintObject("重新加载的上轮pposRound：", d.former.nodes)
 			pposm.PrintObject("重新加载的当前轮pposRound：", d.current.nodes)
 
@@ -490,20 +516,27 @@ func (d *ppos) UpdateNodeList(state *state.StateDB, blocknumber *big.Int) {
 		// current round
 		round := calcurround(blocknumber)
 		log.Info("分叉获取", "blockNumber:", blocknumber.Uint64(), "round:", round)
-		start := big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
-		end := new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
 
-		// is'nt first round
+
+		//start := big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
+		//end := new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+
+		var start, end *big.Int
+
+		if (blocknumber.Uint64()%BaseSwitchWitness) == 0 {
+			start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
+			end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+		}else {
+			start = big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
+			end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+		}
+
 		if round != 1 {
 			d.former.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 			d.former.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 		}
 		log.Info("分叉获取:上一轮", "start", d.former.start, "end", d.former.end)
 		if len(preArr) != 0 {
-			//d.former = &pposRound{
-			//	nodeIds: convertNodeID(preArr),
-			//	//nodes: 	preArr,
-			//}
 			d.former.nodeIds = convertNodeID(preArr)
 			d.former.nodes = make([]*discover.Node, len(preArr))
 			copy(d.former.nodes, preArr)
@@ -513,10 +546,6 @@ func (d *ppos) UpdateNodeList(state *state.StateDB, blocknumber *big.Int) {
 		d.current.end = end
 		log.Info("分叉获取:当前轮", "start", d.current.start, "end", d.current.end)
 		if len(curArr) != 0 {
-			//d.current = &pposRound{
-			//	nodeIds: convertNodeID(curArr),
-			//	//nodes: 	curArr,
-			//}
 			d.current.nodeIds = convertNodeID(curArr)
 			d.current.nodes = make([]*discover.Node, len(curArr))
 			copy(d.current.nodes, curArr)
