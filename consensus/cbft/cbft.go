@@ -72,8 +72,8 @@ type Cbft struct {
 	highestConfirmed *BlockExt        //highest highestConfirmed block
 
 	//todo:（先log,再处理）
-	signedSet      map[uint64]struct{} //all block numbers signed by local node
-	lock           sync.RWMutex
+	signedSet map[uint64]struct{} //all block numbers signed by local node
+	lock      sync.RWMutex
 	// modify by platon remove consensusCache
 	//consensusCache *Cache //cache for cbft consensus
 
@@ -120,8 +120,8 @@ type BlockExt struct {
 	number      uint64
 	signs       []*common.BlockConfirmSign //all signs for block
 	// modify by platon remove consensusCache
-	Receipts          types.Receipts
-	State             *state.StateDB
+	Receipts types.Receipts
+	State    *state.StateDB
 }
 
 // New creates a BlockExt object
@@ -377,7 +377,7 @@ func (cbft *Cbft) handleBlockAndDescendant(ext *BlockExt, parent *BlockExt, sign
 		}
 	} else {
 		highest := cbft.findHighest(ext)
-		logicalExts := cbft.backTrackLogicals(highest, ext)
+		logicalExts := cbft.backTrackBlocks(highest, ext, false)
 		for _, logical := range logicalExts {
 			if _, signed := cbft.signedSet[logical.block.NumberU64()]; !signed {
 				cbft.sign(logical)
@@ -402,7 +402,7 @@ func (cbft *Cbft) executeBlockAndDescendant(ext *BlockExt, parent *BlockExt) err
 		for _, child := range children {
 			return cbft.executeBlockAndDescendant(child, ext)
 		}
-	} 
+	}
 	return nil
 }
 
@@ -463,98 +463,51 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	return err
 }
 
-//查询暂存于内存中，并且已经上链的区块
-/*func (cbft *Cbft) backTrackStoredBlocks() []*BlockExt {
-	log.Debug("back track china blocks from highest confirmed block", "highestConfirmed", cbft.highestConfirmed.block.Hash())
-
-	chainBlocks := make([]*BlockExt, 1)
-	chainBlocks[0] = cbft.highestConfirmed
-
-	tempExt := cbft.highestConfirmed
-
-	for {
-		parent := tempExt.findParent()
-		if parent != nil && parent.block!= nil && parent.block.NumberU64() +1 == tempExt.block.NumberU64() && parent.isStored {
-			chainBlocks = append(chainBlocks, parent)
-			tempExt = parent
-		} else {
-			break
-		}
-	}
-
-	//sorted by block number from lower to higher
-	if len(chainBlocks) > 1 {
-		reverse(chainBlocks)
-	}
-	return chainBlocks
-}*/
-
-func (cbft *Cbft) backTrackBlocks(endIncluded *BlockExt) []*BlockExt {
-	log.Debug("back track china blocks from highest confirmed block", "highestConfirmed", cbft.highestConfirmed.block.Hash())
-
-	chainBlocks := make([]*BlockExt, 1)
-	chainBlocks[0] = cbft.highestConfirmed
-
-	tempExt := cbft.highestConfirmed
-	for {
-		parent := tempExt.findParent()
-		if parent != nil && parent.block != nil {
-			chainBlocks = append(chainBlocks, parent)
-
-			if parent.block.Hash() == endIncluded.block.Hash() && parent.block.NumberU64() == endIncluded.block.NumberU64() {
-				break
-			} else {
-				tempExt = parent
-			}
-		}
-	}
-
-	//sorted by block number from lower to higher
-	if len(chainBlocks) > 1 {
-		reverse(chainBlocks)
-	}
-	return chainBlocks
-}
-
 func reverse(s []*BlockExt) {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
 }
 
-//exclude root
-func (cbft *Cbft) backTrackLogicals(highest *BlockExt, rootExcluded *BlockExt) []*BlockExt {
+func (cbft *Cbft) backTrackBlocks(start *BlockExt, end *BlockExt, includeEnd bool) []*BlockExt {
+	log.Debug("back track blocks", "startHash", start.block.Hash(), "startParentHash", end.block.ParentHash(), "endHash", start.block.Hash())
 
-	log.Debug("back track logical blocks", "rootExcluded", rootExcluded.block.Hash(), "highest", highest.block.Hash(), "highestParentHash", highest.block.ParentHash())
-
+	found := false
 	logicalExts := make([]*BlockExt, 1)
-	logicalExts[0] = highest
+	logicalExts[0] = start
 
 	for {
-		parent := highest.findParent()
+		parent := start.findParent()
 		if parent == nil {
 			break
-		} else if highest.block.ParentHash() == rootExcluded.block.Hash() && highest.block.NumberU64() == rootExcluded.block.NumberU64()+1 {
-			log.Debug("ending of back track logicals ")
+		} else if parent.block.Hash() == end.block.Hash() && parent.block.NumberU64() == end.block.NumberU64() {
+			log.Debug("ending of back track block ")
+			if includeEnd {
+				logicalExts = append(logicalExts, parent)
+			}
+			found = true
 			break
 		} else {
-			log.Debug("found new logical block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
+			log.Debug("found new block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
 			logicalExts = append(logicalExts, parent)
-
-			highest = parent
+			start = parent
 		}
 	}
 
-	//sorted by block number from lower to higher
-	if len(logicalExts) > 1 {
-		reverse(logicalExts)
+	if found {
+		//sorted by block number from lower to higher
+		if len(logicalExts) > 1 {
+			reverse(logicalExts)
+		}
+		return logicalExts
+	} else {
+		return nil
 	}
-	return logicalExts
 }
 
 //gather all blocks from the current highest confirmed one (excluded) to the new confirmed one
 //the result is sorted by block number from lower to higher
-func (cbft *Cbft) backTrackTillStored(newConfirmed *BlockExt) []*BlockExt {
+func (cbft *Cbft) backTrackTillConfirmed(newConfirmed *BlockExt) []*BlockExt {
 
 	log.Debug("found new block to store", "Hash", newConfirmed.block.Hash(), "ParentHash", newConfirmed.block.ParentHash(), "number", newConfirmed.block.NumberU64())
 
@@ -754,7 +707,7 @@ func (cbft *Cbft) handleNewConfirmed(newConfirmed *BlockExt) error {
 			//当前最高确认块是新确认块的祖先
 			log.Debug("consensus success, new confirmed block is higher, and it is a descendant of the highest confirmed")
 
-			blocksToStore := cbft.backTrackTillStored(newConfirmed)
+			blocksToStore := cbft.backTrackTillConfirmed(newConfirmed)
 
 			if blocksToStore == nil {
 				return errListConfirmedBlocks
@@ -772,13 +725,14 @@ func (cbft *Cbft) handleNewConfirmed(newConfirmed *BlockExt) error {
 		return nil
 	} else {
 		//新确认块的高小于当前最高确认区块，则可能分叉
-		newFork := cbft.backTrackTillStored(newConfirmed)
+		newFork := cbft.backTrackTillConfirmed(newConfirmed)
 		if len(newFork) <= 1 {
 			log.Error("new fork error")
 			return nil
 		}
 
-		oldFork := cbft.backTrackBlocks(newFork[0])
+		//newForm[0] is a confirmed and stored block
+		oldFork := cbft.backTrackBlocks(cbft.highestConfirmed, newFork[0], true)
 		if len(newFork) >= len(oldFork) {
 			log.Error("new fork error")
 			return nil
