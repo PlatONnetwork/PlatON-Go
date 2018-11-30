@@ -40,8 +40,8 @@ func newDpos(initialNodes []discover.NodeID, config *params.CbftConfig) *dpos {
 
 	formerRound := &dposRound{
 		nodes: make([]discover.NodeID, 0),
-		start: big.NewInt(1),
-		end:   big.NewInt(BaseSwitchWitness),
+		start: big.NewInt(0),
+		end:   big.NewInt(0),
 	}
 	currentRound := &dposRound{
 		nodes: initialNodes,
@@ -247,7 +247,7 @@ func (d *dpos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 
 		d.lock.Lock()
 		log.Info("揭榜维护", "blockNumber:", blocknumber.Uint64(), "round:", round)
-		nextStart := big.NewInt(int64(BaseSwitchWitness*(round+1)) + 1)
+		nextStart := big.NewInt(int64(BaseSwitchWitness*round) + 1)
 		nextEnd := new(big.Int).Add(nextStart, big.NewInt(int64(BaseSwitchWitness-1)))
 		d.next = &dposRound{
 			nodes: convertNodeID(nextNodes),
@@ -337,8 +337,11 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 			// current round
 			round := calcurround(blockChain.CurrentBlock().Number())
 			log.Info("重新加载", "blockNumber:", blockChain.CurrentBlock().Number(), "round:", round)
-			d.former.start = big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
-			d.former.end = new(big.Int).Add(d.former.start, big.NewInt(int64(BaseSwitchWitness-1)))
+			// is'nt first round
+			if round != 1 {
+				d.former.start = big.NewInt(int64(BaseSwitchWitness*(round-2)) + 1)
+				d.former.end = new(big.Int).Add(d.former.start, big.NewInt(int64(BaseSwitchWitness-1)))
+			}
 			log.Info("重新加载:上一轮", "start", d.former.start, "end", d.former.end)
 			if len(preArr) != 0 {
 				d.former.nodes = convertNodeID(preArr)
@@ -346,14 +349,14 @@ func (d *dpos) SetCandidatePool(blockChain *core.BlockChain) {
 				d.former.nodes = d.current.nodes
 			}
 
-			d.current.start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
+			d.current.start = big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
 			d.current.end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
 			log.Info("重新加载:当前轮", "start", d.current.start, "end", d.current.end)
 			if len(curArr) != 0 {
 				d.current.nodes = convertNodeID(curArr)
 			}
 			if len(nextArr) != 0 {
-				start := big.NewInt(int64(BaseSwitchWitness*(round+1)) + 1)
+				start := big.NewInt(int64(BaseSwitchWitness*round) + 1)
 				end := new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
 
 				d.next = &dposRound{
@@ -441,11 +444,14 @@ func (d *dpos) UpdateNodeList(state *state.StateDB, blocknumber *big.Int) {
 		// current round
 		round := calcurround(blocknumber)
 		log.Info("分叉获取", "blockNumber:", blocknumber.Uint64(), "round:", round)
-		start := big.NewInt(int64(BaseSwitchWitness*round) + 1)
+		start := big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
 		end := new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
 
-		d.former.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
-		d.former.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+		// is'nt first round
+		if round != 1 {
+			d.former.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+			d.former.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+		}
 		log.Info("分叉获取:上一轮", "start", d.former.start, "end", d.former.end)
 		if len(preArr) != 0 {
 			d.former = &dposRound{
