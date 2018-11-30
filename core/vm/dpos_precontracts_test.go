@@ -23,7 +23,7 @@ func TestRlpEncode(t *testing.T) {
 	//owner, _ := hex.DecodeString("5a5c4368e2692746b286cee36ab0710af3efa6cf") //39
 	//owner, _ := hex.DecodeString("493301712671ada506ba6ca7891f436d29185821") //40
 	//fmt.Println(nodeId)
-	// 编码
+	// code
 	var source [][]byte
 	source = make([][]byte, 0)
 	source = append(source, common.Hex2Bytes("1011"))  // tx type
@@ -50,12 +50,12 @@ func TestRlpEncode(t *testing.T) {
 		t.Errorf("fail")
 	}
 	encodedBytes := buffer.Bytes()
-	// 编码后字节数组
+	// result
 	fmt.Println(encodedBytes)
 	// to hex as data
 	fmt.Println(hexutil.Encode(encodedBytes))
 
-	// 解码
+	// decode
 	ptr := new(interface{})
 	rlp.Decode(bytes.NewReader(encodedBytes), &ptr)
 
@@ -63,7 +63,7 @@ func TestRlpEncode(t *testing.T) {
 	fmt.Println(deref)
 	for i, v := range deref.([]interface{}) {
 		// fmt.Println(i,"    ",hex.EncodeToString(v.([]byte)))
-		// 类型判断，然后转换
+		// check type and switch
 		switch i {
 		case 0:
 			// fmt.Println(string(v.([]byte)))
@@ -77,7 +77,6 @@ func TestRlpEncode(t *testing.T) {
 
 func TestAppendSlice(t *testing.T)  {
 	a := []int{0, 1, 2, 3, 4}
-	// 删除第i个元素
 	i := 2
 	a = append(a[:i], a[i+1:]...)
 	fmt.Println(a)
