@@ -365,8 +365,8 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 		blockNumber = blockChain.CurrentBlock().NumberU64()
 		blockHash = blockChain.CurrentBlock().Hash()
 
-		d.lock.Lock()
-		defer d.lock.Unlock()
+		//d.lock.Lock()
+		//defer d.lock.Unlock()
 
 		count := 0
 		for {
@@ -431,10 +431,11 @@ func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes [
 		current: 	currentRound,
 	}
 
-	numRound := make(roundCache, 0)
+	nodeRound := make(roundCache, 0)
 	hashRound := make(map[common.Hash]*nodeCache, 0)
 	hashRound[blockHash] = node
-	numRound[blockNumber] = hashRound
+	nodeRound[blockNumber] = hashRound
+	return nodeRound
 }
 
 
@@ -490,57 +491,44 @@ func (d *ppos) GetRefundInterval() uint64 {
 }
 
 // cbft共识区块产生分叉后需要更新primaryNodeList和formerlyNodeList
-func (d *ppos) UpdateNodeList(blocknumber *big.Int, blockHash common.Hash) {
-	log.Warn("---cbft共识区块产生分叉，更新formerlyNodeList、primaryNodeList和nextNodeList---", "state", state)
-	if preArr, curArr, _, err := d.candidatePool.GetAllWitness(state); nil != err {
-		log.Error("Load Witness from state failed on UpdateNodeList err", err)
-		panic("UpdateNodeList error")
-	} else {
-		d.lock.Lock()
-
-		// current round
-		round := calcurround(blocknumber)
-		log.Info("分叉获取", "blockNumber:", blocknumber.Uint64(), "round:", round)
+func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int, blockHash common.Hash) {
+	log.Info("---cbft consensus fork，update nodeRound---")
+	// clean nodeCache
+	d.cleanNodeRound()
 
 
-		//start := big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
-		//end := new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+	var curBlockNumber uint64 = blocknumber.Uint64()
+	var curBlockHash common.Hash = blockHash
 
-		var start, end *big.Int
+	currentBlock := blockChain.GetBlock(curBlockHash, curBlockNumber)
+	genesis := blockChain.Genesis()
+	d.lock.Lock()
+	defer d.lock.Unlock()
 
-		if (blocknumber.Uint64()%BaseSwitchWitness) == 0 {
-			start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
-			end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+	count := 0
+	for {
+
+		if curBlockNumber == genesis.NumberU64() || count == BaseIrrCount {
+			break
+		}
+
+		parentNum := curBlockNumber - 1
+		parentHash := currentBlock.ParentHash()
+
+		// stateDB by block
+		stateRoot := blockChain.GetBlock(curBlockHash, curBlockNumber).Root()
+		if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+			log.Error("Failed to load stateDB by block", "curBlockNumber", curBlockNumber, "Hash", curBlockHash.String(), "err", err)
+			panic("Failed to load stateDB by block curBlockNumber" + fmt.Sprint(curBlockNumber) + ", Hash" + curBlockHash.String() + "err" + err.Error())
 		}else {
-			start = big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
-			end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+			if err := d.setNodeCache(currntState, parentNum, curBlockNumber, parentHash, curBlockHash); nil != err {
+				log.Error("Failed to load stateDB by block", "curBlockNumber", curBlockNumber, "Hash", curBlockHash.String(), "err", err)
+				panic("Failed to load stateDB by block curBlockNumber" + fmt.Sprint(curBlockNumber) + ", Hash" + curBlockHash.String() + "err" + err.Error())
+			}
 		}
-
-		if round != 1 {
-			d.former.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
-			d.former.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
-		}
-		log.Info("分叉获取:上一轮", "start", d.former.start, "end", d.former.end)
-		if len(preArr) != 0 {
-			d.former.nodeIds = convertNodeID(preArr)
-			d.former.nodes = make([]*discover.Node, len(preArr))
-			copy(d.former.nodes, preArr)
-		}
-
-		d.current.start = start
-		d.current.end = end
-		log.Info("分叉获取:当前轮", "start", d.current.start, "end", d.current.end)
-		if len(curArr) != 0 {
-			d.current.nodeIds = convertNodeID(curArr)
-			d.current.nodes = make([]*discover.Node, len(curArr))
-			copy(d.current.nodes, curArr)
-		}
-		d.next = nil
-		pposm.PrintObject("分叉获取上一轮nodes：", preArr)
-		pposm.PrintObject("分叉获取当前轮nodes：", curArr)
-		pposm.PrintObject("分叉的上轮pposRound：", d.former.nodes)
-		pposm.PrintObject("分叉的当前轮pposRound：", d.current.nodes)
-		d.lock.Unlock()
+		curBlockNumber = parentNum
+		curBlockHash = parentHash
+		count ++
 	}
 }
 
@@ -574,18 +562,26 @@ func calcurround(blocknumber uint64) uint64 {
 
 
 func (d *ppos) GetFormerRound(blockNumber *big.Int, blockHash common.Hash) *pposRound {
+	d.lock.RLock()
+	defer d.lock.RUnlock()
 	return d.nodeRound.GetFormerRound(blockNumber, blockHash)
 }
 
 func (d *ppos) GetCurrentRound (blockNumber *big.Int, blockHash common.Hash) *pposRound {
+	d.lock.RLock()
+	defer d.lock.RUnlock()
 	return d.nodeRound.GetCurrentRound(blockNumber, blockHash)
 }
 
 func (d *ppos)  GetNextRound (blockNumber *big.Int, blockHash common.Hash) *pposRound {
+	d.lock.RLock()
+	defer d.lock.RUnlock()
 	return d.nodeRound.GetNextRound(blockNumber, blockHash)
 }
 
 func (d *ppos) SetNodeCache (state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash/*, cache *nodeCache*/) error {
+	d.lock.Lock()
+	defer d.lock.Unlock()
 	return d.setNodeCache(state, parentNumber.Uint64(), currentNumber.Uint64(), parentHash, currentHash/*, cache*/)
 }
 func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber uint64, parentHash, currentHash common.Hash/*, cache *nodeCache*/) error {
@@ -725,4 +721,10 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber u
 	}
 	d.nodeRound.SetNodeCache(big.NewInt(int64(currentNumber)), currentHash, cache)
 	return nil
+}
+
+func (d *ppos) cleanNodeRound () {
+	d.lock.Lock()
+	d.nodeRound =  make(roundCache, 0)
+	d.lock.Unlock()
 }
