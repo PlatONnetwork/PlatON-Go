@@ -21,7 +21,7 @@ type ppos struct {
 	//next              *pposRound // the next round of witnesses nodeId
 
 	nodeRound 		  roundCache
-	chain             *core.BlockChain
+	//chain             *core.BlockChain
 	lastCycleBlockNum uint64
 	startTimeOfEpoch  int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
 	config            *params.PposConfig
