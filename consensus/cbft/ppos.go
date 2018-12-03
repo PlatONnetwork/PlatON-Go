@@ -34,7 +34,6 @@ type ppos struct {
 }
 
 
-
 func newPpos(/*initialNodes []discover.Node, */config *params.CbftConfig) *ppos {
 	//initNodeArr := make([]*discover.Node, 0, len(initialNodes))
 	//initialNodesIDs := make([]discover.NodeID, 0, len(initialNodes))
@@ -384,31 +383,70 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 		//d.lock.Lock()
 		//defer d.lock.Unlock()
 
-		count := 0
-		for {
 
+		count := 0
+		blockArr := make([]*types.Block, 0)
+		for {
 			if blockNumber == genesis.NumberU64() || count == BaseIrrCount {
 				break
 			}
-
 			parentNum := blockNumber - 1
+			parentHash := currentBlock.ParentHash()
+			blockArr = append(blockArr, currentBlock)
+
+			blockNumber = parentNum
+			blockHash = parentHash
+			currentBlock = blockChain.GetBlock(blockHash, blockNumber)
+			count ++
+
+		}
+
+		for i := len(blockArr) - 1; 0 <= i; i-- {
+			currentBlock := blockArr[i]
+			currentNum := currentBlock.NumberU64()
+			currentHash := currentBlock.Hash()
+
+			parentNum := currentNum - 1
 			parentHash := currentBlock.ParentHash()
 
 			// stateDB by block
-			stateRoot := blockChain.GetBlock(blockHash, blockNumber).Root()
+			stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
 			if currntState, err := blockChain.StateAt(stateRoot); nil != err {
-				log.Error("Failed to load stateDB by block", "blockNumber", blockNumber, "Hash", blockHash.String(), "err", err)
-				panic("Failed to load stateDB by block blockNumber" + fmt.Sprint(blockNumber) + ", Hash" + blockHash.String() + "err" + err.Error())
+				log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
+				panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 			}else {
-				if err := d.setNodeCache(currntState, parentNum, blockNumber, parentHash, blockHash); nil != err {
-					log.Error("Failed to load stateDB by block", "blockNumber", blockNumber, "Hash", blockHash.String(), "err", err)
-					panic("Failed to load stateDB by block blockNumber" + fmt.Sprint(blockNumber) + ", Hash" + blockHash.String() + "err" + err.Error())
+				if err := d.setNodeCache(currntState, parentNum, currentNum, parentHash, currentHash); nil != err {
+					log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
+					panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 				}
 			}
-			blockNumber = parentNum
-			blockHash = parentHash
-			count ++
 		}
+
+		//for {
+		//
+		//	if blockNumber == genesis.NumberU64() || count == BaseIrrCount {
+		//		break
+		//	}
+		//
+		//	parentNum := blockNumber - 1
+		//	parentHash := currentBlock.ParentHash()
+		//
+		//	// stateDB by block
+		//	stateRoot := blockChain.GetBlock(blockHash, blockNumber).Root()
+		//	if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+		//		log.Error("Failed to load stateDB by block", "blockNumber", blockNumber, "Hash", blockHash.String(), "err", err)
+		//		panic("Failed to load stateDB by block blockNumber" + fmt.Sprint(blockNumber) + ", Hash" + blockHash.String() + "err" + err.Error())
+		//	}else {
+		//		if err := d.setNodeCache(currntState, parentNum, blockNumber, parentHash, blockHash); nil != err {
+		//			log.Error("Failed to load stateDB by block", "blockNumber", blockNumber, "Hash", blockHash.String(), "err", err)
+		//			panic("Failed to load stateDB by block blockNumber" + fmt.Sprint(blockNumber) + ", Hash" + blockHash.String() + "err" + err.Error())
+		//		}
+		//	}
+		//	blockNumber = parentNum
+		//	blockHash = parentHash
+		//	currentBlock = blockChain.GetBlock(blockHash, blockNumber)
+		//	count ++
+		//}
 	}
 	pposm.PrintObject("启动node时, nodeRound:", d.nodeRound)
 }
@@ -523,30 +561,69 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 	defer d.lock.Unlock()
 
 	count := 0
+	blockArr := make([]*types.Block, 0)
 	for {
-
 		if curBlockNumber == genesis.NumberU64() || count == BaseIrrCount {
 			break
 		}
-
 		parentNum := curBlockNumber - 1
+		parentHash := currentBlock.ParentHash()
+		blockArr = append(blockArr, currentBlock)
+
+		curBlockNumber = parentNum
+		curBlockHash = parentHash
+		currentBlock = blockChain.GetBlock(curBlockHash, curBlockNumber)
+		count ++
+
+	}
+
+	for i := len(blockArr) - 1; 0 <= i; i-- {
+		currentBlock := blockArr[i]
+		currentNum := currentBlock.NumberU64()
+		currentHash := currentBlock.Hash()
+
+		parentNum := currentNum - 1
 		parentHash := currentBlock.ParentHash()
 
 		// stateDB by block
-		stateRoot := blockChain.GetBlock(curBlockHash, curBlockNumber).Root()
+		stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
 		if currntState, err := blockChain.StateAt(stateRoot); nil != err {
-			log.Error("Failed to load stateDB by block", "curBlockNumber", curBlockNumber, "Hash", curBlockHash.String(), "err", err)
-			panic("Failed to load stateDB by block curBlockNumber" + fmt.Sprint(curBlockNumber) + ", Hash" + curBlockHash.String() + "err" + err.Error())
+			log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
+			panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 		}else {
-			if err := d.setNodeCache(currntState, parentNum, curBlockNumber, parentHash, curBlockHash); nil != err {
-				log.Error("Failed to load stateDB by block", "curBlockNumber", curBlockNumber, "Hash", curBlockHash.String(), "err", err)
-				panic("Failed to load stateDB by block curBlockNumber" + fmt.Sprint(curBlockNumber) + ", Hash" + curBlockHash.String() + "err" + err.Error())
+			if err := d.setNodeCache(currntState, parentNum, currentNum, parentHash, currentHash); nil != err {
+				log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
+				panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 			}
 		}
-		curBlockNumber = parentNum
-		curBlockHash = parentHash
-		count ++
 	}
+
+
+	//for {
+	//
+	//	if curBlockNumber == genesis.NumberU64() || count == BaseIrrCount {
+	//		break
+	//	}
+	//
+	//	parentNum := curBlockNumber - 1
+	//	parentHash := currentBlock.ParentHash()
+	//
+	//	// stateDB by block
+	//	stateRoot := blockChain.GetBlock(curBlockHash, curBlockNumber).Root()
+	//	if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+	//		log.Error("Failed to load stateDB by block", "curBlockNumber", curBlockNumber, "Hash", curBlockHash.String(), "err", err)
+	//		panic("Failed to load stateDB by block curBlockNumber" + fmt.Sprint(curBlockNumber) + ", Hash" + curBlockHash.String() + "err" + err.Error())
+	//	}else {
+	//		if err := d.setNodeCache(currntState, parentNum, curBlockNumber, parentHash, curBlockHash); nil != err {
+	//			log.Error("Failed to load stateDB by block", "curBlockNumber", curBlockNumber, "Hash", curBlockHash.String(), "err", err)
+	//			panic("Failed to load stateDB by block curBlockNumber" + fmt.Sprint(curBlockNumber) + ", Hash" + curBlockHash.String() + "err" + err.Error())
+	//		}
+	//	}
+	//	currentBlock = blockChain.GetBlock(curBlockHash, curBlockNumber)
+	//	curBlockNumber = parentNum
+	//	curBlockHash = parentHash
+	//	count ++
+	//}
 	pposm.PrintObject("分叉重载时, nodeRound:", d.nodeRound)
 }
 
