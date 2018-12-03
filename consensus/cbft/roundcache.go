@@ -26,8 +26,8 @@ func (r roundCache) GetFormerRound(blockNumber *big.Int, blockHash common.Hash) 
 	num := blockNumber.Uint64()
 	if round, ok := r[num]; ok {
 		if node, has := round[blockHash]; has {
-			if nil != node.current {
-				return node.current
+			if nil != node.former {
+				return node.former
 			}
 		}
 	}
@@ -39,8 +39,8 @@ func (r roundCache) GetCurrentRound (blockNumber *big.Int, blockHash common.Hash
 	num := blockNumber.Uint64()
 	if round, ok := r[num]; ok {
 		if node, has := round[blockHash]; has {
-			if nil != node.former {
-				return node.former
+			if nil != node.current {
+				return node.current
 			}
 		}
 	}

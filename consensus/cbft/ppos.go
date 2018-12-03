@@ -626,17 +626,20 @@ func calcurround(blocknumber *big.Int) uint64 {
 
 
 func (d *ppos) GetFormerRound(blockNumber *big.Int, blockHash common.Hash) *pposRound {
-	return nil
+	return d.nodeRound.GetFormerRound(blockNumber, blockHash)
 }
 
 func (d *ppos) GetCurrentRound (blockNumber *big.Int, blockHash common.Hash) *pposRound {
-	return nil
+	return d.nodeRound.GetCurrentRound(blockNumber, blockHash)
 }
 
 func (d *ppos)  GetNextRound (blockNumber *big.Int, blockHash common.Hash) *pposRound {
-	return nil
+	return d.nodeRound.GetNextRound(blockNumber, blockHash)
 }
 
 func (d *ppos) SetNodeCache (state *state.StateDB, blockNumber *big.Int, blockHash common.Hash, cache *nodeCache) {
+	d.setNodeCache(state, blockNumber, blockHash, cache)
+}
+func (d *ppos) setNodeCache (state *state.StateDB, blockNumber *big.Int, blockHash common.Hash, cache *nodeCache) {
 
 }
