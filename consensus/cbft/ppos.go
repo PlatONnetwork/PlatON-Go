@@ -267,28 +267,28 @@ func (d *ppos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 		log.Info("揭榜完成，再次查看stateDB信息...")
 		d.candidatePool.GetAllWitness(state)
 		// current round
-		round := calcurround(blocknumber)
+		//round := calcurround(blocknumber)
 
-		d.lock.Lock()
-		log.Info("揭榜维护", "blockNumber:", blocknumber.Uint64(), "round:", round)
-		nextStart := big.NewInt(int64(BaseSwitchWitness*round) + 1)
-		nextEnd := new(big.Int).Add(nextStart, big.NewInt(int64(BaseSwitchWitness-1)))
-		d.next = &pposRound{
-			nodeIds: convertNodeID(nextNodes),
-			//nodes:	nextNodes,
-			start: nextStart,
-			end:   nextEnd,
-		}
-		d.next.nodes = make([]*discover.Node, len(nextNodes))
-		copy(d.next.nodes, nextNodes)
-
-		log.Info("揭榜维护:下一轮", "start", d.next.start, "end", d.next.end)
-		log.Info("揭榜维护下一轮的nodeIds长度:", "len", len(nextNodes))
-		pposm.PrintObject("揭榜维护下一轮的nodeIds:", nextNodes)
-		pposm.PrintObject("揭榜的上轮pposRound：", d.former.nodes)
-		pposm.PrintObject("揭榜的当前轮pposRound：", d.current.nodes)
-		pposm.PrintObject("揭榜维护下一轮pposRound：", d.next.nodes)
-		d.lock.Unlock()
+		//d.lock.Lock()
+		//log.Info("揭榜维护", "blockNumber:", blocknumber.Uint64(), "round:", round)
+		//nextStart := big.NewInt(int64(BaseSwitchWitness*round) + 1)
+		//nextEnd := new(big.Int).Add(nextStart, big.NewInt(int64(BaseSwitchWitness-1)))
+		//d.next = &pposRound{
+		//	nodeIds: convertNodeID(nextNodes),
+		//	//nodes:	nextNodes,
+		//	start: nextStart,
+		//	end:   nextEnd,
+		//}
+		//d.next.nodes = make([]*discover.Node, len(nextNodes))
+		//copy(d.next.nodes, nextNodes)
+		//
+		//log.Info("揭榜维护:下一轮", "start", d.next.start, "end", d.next.end)
+		//log.Info("揭榜维护下一轮的nodeIds长度:", "len", len(nextNodes))
+		//pposm.PrintObject("揭榜维护下一轮的nodeIds:", nextNodes)
+		//pposm.PrintObject("揭榜的上轮pposRound：", d.former.nodes)
+		//pposm.PrintObject("揭榜的当前轮pposRound：", d.current.nodes)
+		//pposm.PrintObject("揭榜维护下一轮pposRound：", d.next.nodes)
+		//d.lock.Unlock()
 		return nextNodes, nil
 	}
 }
@@ -300,41 +300,41 @@ func (d *ppos) Switch(state *state.StateDB) bool {
 		return false
 	}
 	log.Info("Switch success...")
-	_, curArr, _, err := d.candidatePool.GetAllWitness(state)
-	if nil != err {
-		return false
-	}
-	d.lock.Lock()
+	/*_, curArr, _, err := */d.candidatePool.GetAllWitness(state)
+	//if nil != err {
+	//	return false
+	//}
+	//d.lock.Lock()
 
-	cur_start := d.current.start
-	cur_end :=  d.current.end
-	d.former.start = cur_start
-	d.former.end = cur_end
+	//cur_start := d.current.start
+	//cur_end :=  d.current.end
+	//d.former.start = cur_start
+	//d.former.end = cur_end
+	//
+	//next_start :=  d.next.start
+	//next_end := d.next.end
+	//d.current.start = next_start
+	//d.current.end = next_end
+	//d.former.nodeIds = convertNodeID(d.current.nodes)
+	//d.former.nodes = make([]*discover.Node, len(d.current.nodes))
+	//copy(d.former.nodes, d.current.nodes)
+	//if len(curArr) != 0 {
+	//	d.current.nodeIds = convertNodeID(curArr)
+	//	d.current.nodes = make([]*discover.Node, len(curArr))
+	//	copy(d.current.nodes, curArr)
+	//}
+	//
+	//d.next = nil
+	//log.Info("Switch获取:上一轮", "start", d.former.start, "end", d.former.end)
+	//log.Info("Switch获取:当前轮", "start", d.current.start, "end", d.current.end)
+	////log.Info("Switch获取:下一轮", "start", d.next.start, "end", d.next.end)
+	////pposm.PrintObject("Switch获取上一轮nodes：", preArr)
+	//
+	//pposm.PrintObject("Switch获取当前轮nodes：", curArr)
+	//pposm.PrintObject("Switch的上轮pposRound：", d.former.nodes)
+	//pposm.PrintObject("Switch的当前轮pposRound：", d.current.nodes)
 
-	next_start :=  d.next.start
-	next_end := d.next.end
-	d.current.start = next_start
-	d.current.end = next_end
-	d.former.nodeIds = convertNodeID(d.current.nodes)
-	d.former.nodes = make([]*discover.Node, len(d.current.nodes))
-	copy(d.former.nodes, d.current.nodes)
-	if len(curArr) != 0 {
-		d.current.nodeIds = convertNodeID(curArr)
-		d.current.nodes = make([]*discover.Node, len(curArr))
-		copy(d.current.nodes, curArr)
-	}
-
-	d.next = nil
-	log.Info("Switch获取:上一轮", "start", d.former.start, "end", d.former.end)
-	log.Info("Switch获取:当前轮", "start", d.current.start, "end", d.current.end)
-	//log.Info("Switch获取:下一轮", "start", d.next.start, "end", d.next.end)
-	//pposm.PrintObject("Switch获取上一轮nodes：", preArr)
-
-	pposm.PrintObject("Switch获取当前轮nodes：", curArr)
-	pposm.PrintObject("Switch的上轮pposRound：", d.former.nodes)
-	pposm.PrintObject("Switch的当前轮pposRound：", d.current.nodes)
-
-	d.lock.Unlock()
+	//d.lock.Unlock()
 	return true
 }
 
@@ -356,6 +356,28 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 	d.nodeRound = buildGenesisRound(genesis.NumberU64(), genesis.Hash(), initialNodes)
 	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
 	if genesis.NumberU64() != blockChain.CurrentBlock().NumberU64() {
+
+		var blockNumber uint64
+		var blockHash common.Hash
+
+		blockNumber = blockChain.CurrentBlock().NumberU64()
+		blockHash = blockChain.CurrentBlock().Hash()
+
+		for {
+			stateRoot := blockChain.GetBlock(common.BytesToHash([]byte{}), 3).Root()
+			if stateDB, err := blockChain.StateAt(stateRoot); nil != err {
+
+			}else {
+				d.setNodeCache(stateDB)
+			}
+		}
+
+
+
+
+
+
+
 		state, err := blockChain.State()
 		if nil != err {
 			log.Error("Load state from chain failed on SetCandidatePool err", err)
@@ -366,6 +388,22 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 			log.Error("Load Witness from state failed on SetCandidatePool err", err)
 		} else {
 			d.lock.Lock()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 			currentNumber := blockChain.CurrentBlock().Number()
 			// current round
@@ -453,6 +491,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 
 	}*/
 }
+
 
 func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes []discover.Node) roundCache {
 	initNodeArr := make([]*discover.Node, 0, len(initialNodes))
@@ -648,7 +687,7 @@ func (d *ppos) SetNodeCache (state *state.StateDB, parentNumber, currentNumber *
 func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash/*, cache *nodeCache*/) error {
 	// current round
 	round := calcurround(currentNumber)
-	log.Info("分叉获取", "currentNumber:", currentNumber.Uint64(), "round:", round)
+	log.Info("设置当前区块", "currentNumber:", currentNumber.Uint64(), "round:", round)
 
 	preNodes, curNodes, nextNodes, err := d.candidatePool.GetAllWitness(state)
 
@@ -656,6 +695,7 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 		log.Error("Failed to setting nodeCache on setNodeCache", "err", err)
 		return err
 	}
+
 
 	var start, end *big.Int
 
@@ -675,13 +715,30 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 		formerRound.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 		formerRound.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 	}
-	log.Info("分叉获取:上一轮", "start",formerRound.start, "end", formerRound.end)
+	log.Info("设置当前区块:上一轮", "start",formerRound.start, "end", formerRound.end)
 	if len(preNodes) != 0 {
 		formerRound.nodeIds = convertNodeID(preNodes)
 		formerRound.nodes = make([]*discover.Node, len(preNodes))
 		copy(formerRound.nodes, preNodes)
 	}else { // Reference parent
-
+		// if last block of round
+		if (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
+			parentCurRound := d.nodeRound.GetCurrentRound(parentNumber, parentHash)
+			if nil != parentCurRound {
+				formerRound.nodeIds = make([]discover.NodeID, len(parentCurRound.nodeIds))
+				copy(formerRound.nodeIds, parentCurRound.nodeIds)
+				formerRound.nodes = make([]*discover.Node, len(parentCurRound.nodes))
+				copy(formerRound.nodes, parentCurRound.nodes)
+			}
+		}else { // Is'nt last block of round
+			parentFormerRound := d.nodeRound.GetFormerRound(parentNumber, parentHash)
+			if nil != parentFormerRound {
+				formerRound.nodeIds = make([]discover.NodeID, len(parentFormerRound.nodeIds))
+				copy(formerRound.nodeIds, parentFormerRound.nodeIds)
+				formerRound.nodes = make([]*discover.Node, len(parentFormerRound.nodes))
+				copy(formerRound.nodes, parentFormerRound.nodes)
+			}
+		}
 	}
 
 	// current
@@ -689,14 +746,32 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 	// current start, end
 	currentRound.start = start
 	currentRound.end = end
-	log.Info("分叉获取:当前轮", "start", currentRound.start, "end",currentRound.end)
+	log.Info("设置当前区块:当前轮", "start", currentRound.start, "end",currentRound.end)
 	if len(curNodes) != 0 {
 		currentRound.nodeIds = convertNodeID(curNodes)
 		currentRound.nodes = make([]*discover.Node, len(curNodes))
 		copy(currentRound.nodes, curNodes)
 	}else { // Reference parent
-
+		// if last block of round
+		if (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
+			parentNextRound := d.nodeRound.GetNextRound(parentNumber, parentHash)
+			if nil != parentNextRound {
+				currentRound.nodeIds = make([]discover.NodeID, len(parentNextRound.nodeIds))
+				copy(currentRound.nodeIds, parentNextRound.nodeIds)
+				currentRound.nodes = make([]*discover.Node, len(parentNextRound.nodes))
+				copy(currentRound.nodes, parentNextRound.nodes)
+			}
+		}else { // Is'nt last block of round
+			parentCurRound := d.nodeRound.GetCurrentRound(parentNumber, parentHash)
+			if nil != parentCurRound {
+				currentRound.nodeIds = make([]discover.NodeID, len(parentCurRound.nodeIds))
+				copy(currentRound.nodeIds, parentCurRound.nodeIds)
+				currentRound.nodes = make([]*discover.Node, len(parentCurRound.nodes))
+				copy(currentRound.nodes, parentCurRound.nodes)
+			}
+		}
 	}
+
 
 	// next
 	nextRound := &pposRound{}
@@ -709,6 +784,26 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 		copy(nextRound.nodes, nextNodes)
 	}else { // Reference parent
 
+		if (currentNumber.Uint64() % BaseElection) == 0 { // election index == cur index
+			parentCurRound := d.nodeRound.GetCurrentRound(parentNumber, parentHash)
+			if nil != parentCurRound {
+				nextRound.nodeIds = make([]discover.NodeID, len(parentCurRound.nodeIds))
+				copy(nextRound.nodeIds, parentCurRound.nodeIds)
+				nextRound.nodes = make([]*discover.Node, len(parentCurRound.nodes))
+				copy(nextRound.nodes, parentCurRound.nodes)
+			}
+		}else if (currentNumber.Uint64() % BaseElection) != 0 && (currentNumber.Uint64() / BaseElection) == round {  // election index < cur index < switch index
+			parentNextRound := d.nodeRound.GetNextRound(parentNumber, parentHash)
+			if nil != parentNextRound {
+				nextRound.nodeIds = make([]discover.NodeID, len(parentNextRound.nodeIds))
+				copy(nextRound.nodeIds, parentNextRound.nodeIds)
+				nextRound.nodes = make([]*discover.Node, len(parentNextRound.nodes))
+				copy(nextRound.nodes, parentNextRound.nodes)
+			}
+		}else { // switch index <= cur index < next election index
+			nextRound.nodeIds = make([]discover.NodeID, 0)
+			nextRound.nodes = make([]*discover.Node, 0)
+		}
 	}
 
 	pposm.PrintObject("设置当前区块 stateDB 上一轮nodes：", preNodes)
@@ -718,7 +813,7 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 	pposm.PrintObject("设置当前区块的当前轮pposRound：", currentRound.nodes)
 	pposm.PrintObject("设置当前区块的下一轮pposRound：", nextRound.nodes)
 
-	cache = &nodeCache{
+	cache := &nodeCache{
 		former: 	formerRound,
 		current: 	currentRound,
 		next: 		nextRound,
