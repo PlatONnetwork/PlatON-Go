@@ -12,6 +12,7 @@ import (
 	"Platon-go/params"
 	"math/big"
 	"sync"
+	"fmt"
 )
 
 type ppos struct {
@@ -350,146 +351,49 @@ func (d *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discove
 
 // setting candidate pool of ppos module
 func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []discover.Node) {
-	log.Info("---重新启动节点，更新nodeRound---")
+	log.Info("---restart node，to update nodeRound---")
 	genesis := blockChain.Genesis()
 	// init roundCache by config
 	d.nodeRound = buildGenesisRound(genesis.NumberU64(), genesis.Hash(), initialNodes)
 	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
 	if genesis.NumberU64() != blockChain.CurrentBlock().NumberU64() {
 
+		currentBlock := blockChain.CurrentBlock()
 		var blockNumber uint64
 		var blockHash common.Hash
 
 		blockNumber = blockChain.CurrentBlock().NumberU64()
 		blockHash = blockChain.CurrentBlock().Hash()
 
+		d.lock.Lock()
+		defer d.lock.Unlock()
+
+		count := 0
 		for {
-			stateRoot := blockChain.GetBlock(common.BytesToHash([]byte{}), 3).Root()
-			if stateDB, err := blockChain.StateAt(stateRoot); nil != err {
 
+			if blockNumber == genesis.NumberU64() || count == BaseIrrCount {
+				break
+			}
+
+			parentNum := blockNumber - 1
+			parentHash := currentBlock.ParentHash()
+
+			// stateDB by block
+			stateRoot := blockChain.GetBlock(blockHash, blockNumber).Root()
+			if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+				log.Error("Failed to load stateDB by block", "blockNumber", blockNumber, "Hash", blockHash.String(), "err", err)
+				panic("Failed to load stateDB by block blockNumber" + fmt.Sprint(blockNumber) + ", Hash" + blockHash.String() + "err" + err.Error())
 			}else {
-				d.setNodeCache(stateDB)
-			}
-		}
-
-
-
-
-
-
-
-		state, err := blockChain.State()
-		if nil != err {
-			log.Error("Load state from chain failed on SetCandidatePool err", err)
-			return
-		}
-		log.Info("---重新启动节点，更新nodeRound---当前块不是创世块时：", "blockNumber", blockChain.CurrentBlock().NumberU64(), "blockHash", blockChain.CurrentBlock().Hash())
-		if preArr, curArr, nextArr, err := d.candidatePool.GetAllWitness(state); nil != err {
-			log.Error("Load Witness from state failed on SetCandidatePool err", err)
-		} else {
-			d.lock.Lock()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-			currentNumber := blockChain.CurrentBlock().Number()
-			// current round
-			round := calcurround(currentNumber)
-			log.Info("重新加载", "blockNumber:", currentNumber, "round:", round)
-
-			// last block of first round
-			if round == 1 && (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
-				d.former.start = big.NewInt(1)
-				d.former.end = big.NewInt(BaseSwitchWitness)
-			}else  if round != 1 && (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
-				d.former.start = big.NewInt(int64(BaseSwitchWitness * (round - 1)) + 1)
-				d.former.end = new(big.Int).Add(d.former.start, big.NewInt(int64(BaseSwitchWitness -1)))
-			}else if round != 1 && (currentNumber.Uint64()%BaseSwitchWitness) != 0 {
-				d.former.start = big.NewInt(int64(BaseSwitchWitness*(round-2)) + 1)
-				d.former.end = new(big.Int).Add(d.former.start, big.NewInt(int64(BaseSwitchWitness -1)))
-			}
-
-			log.Info("重新加载:上一轮", "start", d.former.start, "end", d.former.end)
-			if len(preArr) != 0 {
-				d.former.nodeIds = convertNodeID(preArr)
-				d.former.nodes = make([]*discover.Node, len(preArr))
-				copy(d.former.nodes, preArr)
-				//d.former.nodes = preArr
-			}else {
-				// if current block number is last block of first round
-				// if current round is not first round
-				// when previous nodes is empty on stateDB
-				if blockChain.CurrentBlock().NumberU64() ==  uint64(BaseSwitchWitness) || round != 1 {
-					d.former.nodeIds = convertNodeID(d.current.nodes)
-					d.former.nodes = make([]*discover.Node, len(d.current.nodes))
-					copy(d.former.nodes, d.current.nodes)
+				if err := d.setNodeCache(currntState, parentNum, blockNumber, parentHash, blockHash); nil != err {
+					log.Error("Failed to load stateDB by block", "blockNumber", blockNumber, "Hash", blockHash.String(), "err", err)
+					panic("Failed to load stateDB by block blockNumber" + fmt.Sprint(blockNumber) + ", Hash" + blockHash.String() + "err" + err.Error())
 				}
-				//d.former.nodes = d.current.nodes
 			}
-
-
-			if (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
-				d.current.start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
-				d.current.end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
-			}else {
-				d.current.start = big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
-				d.current.end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
-			}
-			log.Info("重新加载:当前轮", "start", d.current.start, "end", d.current.end)
-			if len(curArr) != 0 {
-				d.current.nodeIds = convertNodeID(curArr)
-				d.current.nodes = make([]*discover.Node, len(curArr))
-				copy(d.current.nodes, curArr)
-				//d.current.nodes = curArr
-			}
-			if len(nextArr) != 0 {
-				var start, end *big.Int
-				if (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
-
-					start = big.NewInt(int64(BaseSwitchWitness*(round + 1)) + 1)
-					end = new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
-				}else {
-					start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
-					end = new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
-				}
-
-				d.next = &pposRound{
-					nodeIds: 	convertNodeID(nextArr),
-					//nodes: 		nextArr,
-					start: 		start,
-					end: 		end,
-				}
-				d.next.nodes = make([]*discover.Node, len(nextArr))
-				copy(d.next.nodes, nextArr)
-
-				log.Info("重新加载:下一轮", "start", d.next.start, "end", d.next.end)
-				pposm.PrintObject("重新加载获取 stateDB 下一轮nodes：", nextArr)
-				pposm.PrintObject("重新加载的下一轮pposRound：", d.next.nodes)
-			}
-			pposm.PrintObject("重新加载获取 stateDB 上一轮nodes：", preArr)
-			pposm.PrintObject("重新加载获取 stateDB 当前轮nodes：", curArr)
-			pposm.PrintObject("重新加载的上轮pposRound：", d.former.nodes)
-			pposm.PrintObject("重新加载的当前轮pposRound：", d.current.nodes)
-
-			d.lock.Unlock()
+			blockNumber = parentNum
+			blockHash = parentHash
+			count ++
 		}
-	}/*else { // if current block is genesis , loading config nodes into stateDB
-
-
-	}*/
+	}
 }
 
 
@@ -586,7 +490,7 @@ func (d *ppos) GetRefundInterval() uint64 {
 }
 
 // cbft共识区块产生分叉后需要更新primaryNodeList和formerlyNodeList
-func (d *ppos) UpdateNodeList(state *state.StateDB, blocknumber *big.Int) {
+func (d *ppos) UpdateNodeList(blocknumber *big.Int, blockHash common.Hash) {
 	log.Warn("---cbft共识区块产生分叉，更新formerlyNodeList、primaryNodeList和nextNodeList---", "state", state)
 	if preArr, curArr, _, err := d.candidatePool.GetAllWitness(state); nil != err {
 		log.Error("Load Witness from state failed on UpdateNodeList err", err)
@@ -649,11 +553,11 @@ func convertNodeID(nodes []*discover.Node) []discover.NodeID {
 }
 
 // calculate current round number by current blocknumber
-func calcurround(blocknumber *big.Int) uint64 {
+func calcurround(blocknumber uint64) uint64 {
 	// current num
 	var round uint64
-	div := blocknumber.Uint64() / BaseSwitchWitness
-	mod := blocknumber.Uint64() % BaseSwitchWitness
+	div := blocknumber / BaseSwitchWitness
+	mod := blocknumber % BaseSwitchWitness
 	if (div == 0 && mod == 0) || (div == 0 && mod > 0 && mod < BaseSwitchWitness) { // first round
 		round = 1
 	} else if div > 0 && mod == 0 {
@@ -682,12 +586,13 @@ func (d *ppos)  GetNextRound (blockNumber *big.Int, blockHash common.Hash) *ppos
 }
 
 func (d *ppos) SetNodeCache (state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash/*, cache *nodeCache*/) error {
-	return d.setNodeCache(state, parentNumber, currentNumber, parentHash, currentHash/*, cache*/)
+	return d.setNodeCache(state, parentNumber.Uint64(), currentNumber.Uint64(), parentHash, currentHash/*, cache*/)
 }
-func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash/*, cache *nodeCache*/) error {
+func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber uint64, parentHash, currentHash common.Hash/*, cache *nodeCache*/) error {
+	parentNumBigInt := big.NewInt(int64(parentNumber))
 	// current round
 	round := calcurround(currentNumber)
-	log.Info("设置当前区块", "currentNumber:", currentNumber.Uint64(), "round:", round)
+	log.Info("设置当前区块", "currentNumber:", currentNumber, "round:", round)
 
 	preNodes, curNodes, nextNodes, err := d.candidatePool.GetAllWitness(state)
 
@@ -700,7 +605,7 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 	var start, end *big.Int
 
 	// 判断是否是 本轮的最后一个块，如果是，则start 为下一轮的 start， end 为下一轮的 end
-	if (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
+	if (currentNumber  % BaseSwitchWitness) == 0 {
 		start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
 		end = new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
 	}else {
@@ -722,8 +627,8 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 		copy(formerRound.nodes, preNodes)
 	}else { // Reference parent
 		// if last block of round
-		if (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
-			parentCurRound := d.nodeRound.GetCurrentRound(parentNumber, parentHash)
+		if (currentNumber % BaseSwitchWitness) == 0 {
+			parentCurRound := d.nodeRound.GetCurrentRound(parentNumBigInt, parentHash)
 			if nil != parentCurRound {
 				formerRound.nodeIds = make([]discover.NodeID, len(parentCurRound.nodeIds))
 				copy(formerRound.nodeIds, parentCurRound.nodeIds)
@@ -731,7 +636,7 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 				copy(formerRound.nodes, parentCurRound.nodes)
 			}
 		}else { // Is'nt last block of round
-			parentFormerRound := d.nodeRound.GetFormerRound(parentNumber, parentHash)
+			parentFormerRound := d.nodeRound.GetFormerRound(parentNumBigInt, parentHash)
 			if nil != parentFormerRound {
 				formerRound.nodeIds = make([]discover.NodeID, len(parentFormerRound.nodeIds))
 				copy(formerRound.nodeIds, parentFormerRound.nodeIds)
@@ -753,8 +658,8 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 		copy(currentRound.nodes, curNodes)
 	}else { // Reference parent
 		// if last block of round
-		if (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
-			parentNextRound := d.nodeRound.GetNextRound(parentNumber, parentHash)
+		if (currentNumber % BaseSwitchWitness) == 0 {
+			parentNextRound := d.nodeRound.GetNextRound(parentNumBigInt, parentHash)
 			if nil != parentNextRound {
 				currentRound.nodeIds = make([]discover.NodeID, len(parentNextRound.nodeIds))
 				copy(currentRound.nodeIds, parentNextRound.nodeIds)
@@ -762,7 +667,7 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 				copy(currentRound.nodes, parentNextRound.nodes)
 			}
 		}else { // Is'nt last block of round
-			parentCurRound := d.nodeRound.GetCurrentRound(parentNumber, parentHash)
+			parentCurRound := d.nodeRound.GetCurrentRound(parentNumBigInt, parentHash)
 			if nil != parentCurRound {
 				currentRound.nodeIds = make([]discover.NodeID, len(parentCurRound.nodeIds))
 				copy(currentRound.nodeIds, parentCurRound.nodeIds)
@@ -784,16 +689,16 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 		copy(nextRound.nodes, nextNodes)
 	}else { // Reference parent
 
-		if (currentNumber.Uint64() % BaseElection) == 0 { // election index == cur index
-			parentCurRound := d.nodeRound.GetCurrentRound(parentNumber, parentHash)
+		if (currentNumber % BaseElection) == 0 { // election index == cur index
+			parentCurRound := d.nodeRound.GetCurrentRound(parentNumBigInt, parentHash)
 			if nil != parentCurRound {
 				nextRound.nodeIds = make([]discover.NodeID, len(parentCurRound.nodeIds))
 				copy(nextRound.nodeIds, parentCurRound.nodeIds)
 				nextRound.nodes = make([]*discover.Node, len(parentCurRound.nodes))
 				copy(nextRound.nodes, parentCurRound.nodes)
 			}
-		}else if (currentNumber.Uint64() % BaseElection) != 0 && (currentNumber.Uint64() / BaseElection) == round {  // election index < cur index < switch index
-			parentNextRound := d.nodeRound.GetNextRound(parentNumber, parentHash)
+		}else if (currentNumber % BaseElection) != 0 && (currentNumber / BaseElection) == round {  // election index < cur index < switch index
+			parentNextRound := d.nodeRound.GetNextRound(parentNumBigInt, parentHash)
 			if nil != parentNextRound {
 				nextRound.nodeIds = make([]discover.NodeID, len(parentNextRound.nodeIds))
 				copy(nextRound.nodeIds, parentNextRound.nodeIds)
@@ -818,6 +723,6 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *
 		current: 	currentRound,
 		next: 		nextRound,
 	}
-	d.nodeRound.SetNodeCache(currentNumber, currentHash, cache)
+	d.nodeRound.SetNodeCache(big.NewInt(int64(currentNumber)), currentHash, cache)
 	return nil
 }

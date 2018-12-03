@@ -14,4 +14,6 @@ const (
 	BaseAddNextPeers = 50
 
 	BaseRemoveFormerPeers = 70
+
+	BaseIrrCount = 20
 )
