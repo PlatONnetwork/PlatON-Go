@@ -1,6 +1,7 @@
 package miner
 
 import (
+	"Platon-go/common"
 	"Platon-go/consensus"
 	"Platon-go/consensus/cbft"
 	"Platon-go/core/state"
@@ -75,13 +76,13 @@ func (w *worker) attemptAddConsensusPeer(blockNumber *big.Int, state *state.Stat
 	}
 }
 
-func (w *worker) attemptRemoveConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
+func (w *worker) attemptRemoveConsensusPeer(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, state *state.StateDB) {
 	if should := w.shouldRemoveFormerPeers(blockNumber); should {
-		log.Info("尝试断开上一轮共识节点", "blockNumber", blockNumber)
-		formerNodes := w.engine.(consensus.Bft).FormerNodes()
-		log.Info("上一轮共识节点列表","number", blockNumber, "formerNodes", formerNodes, "formerNodes length", len(formerNodes))
-		currentNodes := w.engine.(consensus.Bft).CurrentNodes()
-		log.Info("当前轮共识节点列表","number", blockNumber, "currentNodes", currentNodes, "currentNodes length", len(currentNodes))
+		log.Info("尝试断开上一轮共识节点","parentNumber", parentNumber, "parentHash", parentHash, "blockNumber", blockNumber)
+		formerNodes := w.engine.(consensus.Bft).FormerNodes(parentNumber, parentHash, blockNumber)
+		log.Info("上一轮共识节点列表","parentNumber", parentNumber, "parentHash", parentHash, "number", blockNumber, "formerNodes", formerNodes, "formerNodes length", len(formerNodes))
+		currentNodes := w.engine.(consensus.Bft).CurrentNodes(parentNumber, parentHash, blockNumber)
+		log.Info("当前轮共识节点列表","parentNumber", parentNumber, "parentHash", parentHash, "number", blockNumber, "currentNodes", currentNodes, "currentNodes length", len(currentNodes))
 
 		removeNodes := formerNodes
 		ownNodeID := w.engine.(consensus.Bft).GetOwnNodeID()
@@ -123,4 +124,8 @@ func (w *worker) getWitness(blockNumber *big.Int, state *state.StateDB, flag int
 	}
 	log.Info("getWitness end", "blockNumber", blockNumber, "flag", flag, "consensusNodes", consensusNodes, "consensusNodes length", len(consensusNodes))
 	return consensusNodes, nil
+}
+
+func (w *worker) setNodeCache(state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash) error {
+	return w.engine.(consensus.Bft).SetNodeCache(state, parentNumber, currentNumber, parentHash, currentHash)
 }

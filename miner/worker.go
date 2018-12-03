@@ -833,7 +833,7 @@ func (w *worker) resultLoop() {
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})
 			w.attemptAddConsensusPeer(block.Number(), _state)
-			w.attemptRemoveConsensusPeer(block.Number(), _state)
+			w.attemptRemoveConsensusPeer(block.Number().Sub(block.Number(),common.Big1), block.ParentHash(), block.Number(), _state)
 
 			var events []interface{}
 			switch stat {
@@ -1251,12 +1251,18 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		if switchWitnessErr != nil {
 			return errors.New("switchWitness failure")
 		}
+
 	}
 	w.current.state.IntermediateRoot(true)
 	s := w.current.state.Copy()
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 	if err != nil {
 		return err
+	}
+	if header != nil {
+		// 更新nodeCache
+		blockNumber := block.Number()
+		w.setNodeCache(s, blockNumber.Sub(blockNumber, common.Big1), block.Number(), block.ParentHash(), block.Hash())
 	}
 	if w.isRunning() {
 		if interval != nil {

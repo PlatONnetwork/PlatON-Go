@@ -73,130 +73,112 @@ func newPpos(/*initialNodes []discover.Node, */config *params.CbftConfig) *ppos 
 	//return pposPtr
 }
 
-func (d *ppos) AnyIndex(nodeID discover.NodeID) int64 {
+//func (d *ppos) AnyIndex(nodeID discover.NodeID) int64 {
+//	d.lock.RLock()
+//	defer d.lock.RUnlock()
+//	nodeList := make([]discover.NodeID, 0)
+//	if d.former != nil && d.former.nodes != nil && len(d.former.nodes) > 0 {
+//		nodeList = append(nodeList, d.former.nodeIds...)
+//	}
+//	if d.current != nil && d.current.nodes != nil && len(d.current.nodes) > 0 {
+//		nodeList = append(nodeList, d.current.nodeIds...)
+//	}
+//	if d.next != nil && d.next.nodes != nil && len(d.next.nodes) > 0 {
+//		nodeList = append(nodeList, d.next.nodeIds...)
+//	}
+//	for idx, node := range nodeList {
+//		if node == nodeID {
+//			return int64(idx)
+//		}
+//	}
+//	return int64(-1)
+//}
+
+func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID) int64 {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	nodeList := make([]discover.NodeID, 0)
-	if d.former != nil && d.former.nodes != nil && len(d.former.nodes) > 0 {
-		nodeList = append(nodeList, d.former.nodeIds...)
+
+	log.Warn("BlockProducerIndex", "parentNumber", parentNumber, "parentHash", parentHash, "blockNumber", blockNumber, "nodeID", nodeID)
+	pposm.PrintObject("BlockProducerIndex nodeID", nodeID)
+
+	nodeCache := d.nodeRound.GetNodeCache(parentNumber, parentHash)
+	if nodeCache != nil {
+		if nodeCache.former != nil && blockNumber.Cmp(nodeCache.former.start) >= 0 && blockNumber.Cmp(nodeCache.former.end) <= 0 {
+			return d.roundIndex(nodeID, nodeCache.former)
+		} else if nodeCache.current != nil && blockNumber.Cmp(nodeCache.current.start) >= 0 && blockNumber.Cmp(nodeCache.current.end) <= 0 {
+			return d.roundIndex(nodeID, nodeCache.current)
+		} else if nodeCache.next != nil && blockNumber.Cmp(nodeCache.next.start) >= 0 && blockNumber.Cmp(nodeCache.next.end) <= 0 {
+			return d.roundIndex(nodeID, nodeCache.next)
+		}
 	}
-	if d.current != nil && d.current.nodes != nil && len(d.current.nodes) > 0 {
-		nodeList = append(nodeList, d.current.nodeIds...)
-	}
-	if d.next != nil && d.next.nodes != nil && len(d.next.nodes) > 0 {
-		nodeList = append(nodeList, d.next.nodeIds...)
-	}
-	for idx, node := range nodeList {
-		if node == nodeID {
+	return -1
+}
+
+func (d *ppos) roundIndex(nodeID discover.NodeID, round *pposRound) int64 {
+	for idx, nid := range round.nodeIds {
+		if nid == nodeID {
 			return int64(idx)
 		}
 	}
-	return int64(-1)
-}
-
-func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int, nodeID discover.NodeID) int64 {
-	d.lock.RLock()
-	defer d.lock.RUnlock()
-
-	log.Warn("BlockProducerIndex", "parentNumber", parentNumber, "parentHash", parentHash, "commitNumber", commitNumber, "nodeID", nodeID)
-	pposm.PrintObject("BlockProducerIndex nodeID", nodeID)
-
-	currentRound := d.nodeRound.GetCurrentRound(parentNumber, parentHash)
-	if currentRound != nil {
-		if commitNumber.Cmp(currentRound.start) >= 0 && commitNumber.Cmp(currentRound.end) <= 0 {
-			for idx, nid := range currentRound.nodeIds {
-				if nid == nodeID {
-					return int64(idx)
-				}
-			}
-		}
-	}
 	return -1
-
-
-	//if number == 0 {
-	//	for idx, node := range d.current.nodeIds {
-	//		if node == nodeID {
-	//			return int64(idx)
-	//		}
-	//	}
-	//	return -1
-	//}
-
-	//if number >= d.former.start.Uint64() && number <= d.former.end.Uint64() {
-	//	for idx, node := range d.former.nodeIds {
-	//		if node == nodeID {
-	//			return int64(idx)
-	//		}
-	//	}
-	//	return -1
-	//}
-	//
-	//if number >= d.current.start.Uint64() && number <= d.current.end.Uint64() {
-	//	for idx, node := range d.current.nodeIds {
-	//		if node == nodeID {
-	//			return int64(idx)
-	//		}
-	//	}
-	//	return -1
-	//}
-	//
-	//if d.next != nil && number >= d.next.start.Uint64() && number <= d.next.end.Uint64() {
-	//	for idx, node := range d.next.nodeIds {
-	//		if node == nodeID {
-	//			return int64(idx)
-	//		}
-	//	}
-	//	return -1
-	//}
-	return -1
-
 }
 
 func (d *ppos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
+	//d.lock.RLock()
+	//defer d.lock.RUnlock()
+	//nodeList := append(d.current.nodeIds, d.next.nodeIds...)
+	//for idx, node := range nodeList {
+	//	if node == nodeID {
+	//		return int64(idx)
+	//	}
+	//}
+	//return int64(-1)
+	// TODO
+	return -1
+}
+
+//func (d *ppos) getFormerNodeID () []discover.NodeID {
+//	d.lock.RLock()
+//	defer d.lock.RUnlock()
+//	return d.former.nodeIds
+//}
+
+//func (d *ppos) getCurrentNodeID() []discover.NodeID {
+//	d.lock.RLock()
+//	defer d.lock.RUnlock()
+//	return d.current.nodeIds
+//}
+
+//func (d *ppos) getNextNodeID () []discover.NodeID {
+//	d.lock.RLock()
+//	defer d.lock.RUnlock()
+//	if nil != d.next {
+//		return d.next.nodeIds
+//	}else {
+//		return make([]discover.NodeID, 0)
+//	}
+//}
+
+func (d *ppos) getFormerNodes (parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	nodeList := append(d.current.nodeIds, d.next.nodeIds...)
-	for idx, node := range nodeList {
-		if node == nodeID {
-			return int64(idx)
-		}
+
+	formerRound := d.nodeRound.GetFormerRound(parentNumber, parentHash)
+	if formerRound != nil && len(formerRound.nodes) > 0 && blockNumber.Cmp(formerRound.start) >= 0 && blockNumber.Cmp(formerRound.end) <= 0{
+		return formerRound.nodes
 	}
-	return int64(-1)
+	return nil
 }
 
-func (d *ppos) getFormerNodeID () []discover.NodeID {
+func (d *ppos) getCurrentNodes (parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
-	return d.former.nodeIds
-}
 
-func (d *ppos) getCurrentNodeID() []discover.NodeID {
-	d.lock.RLock()
-	defer d.lock.RUnlock()
-	return d.current.nodeIds
-}
-
-func (d *ppos) getNextNodeID () []discover.NodeID {
-	d.lock.RLock()
-	defer d.lock.RUnlock()
-	if nil != d.next {
-		return d.next.nodeIds
-	}else {
-		return make([]discover.NodeID, 0)
+	currentRound := d.nodeRound.GetCurrentRound(parentNumber, parentHash)
+	if currentRound != nil && len(currentRound.nodes) > 0 && blockNumber.Cmp(currentRound.start) >= 0 && blockNumber.Cmp(currentRound.end) <= 0{
+		return currentRound.nodes
 	}
-}
-
-func (d *ppos) getFormerNodes () []*discover.Node {
-	d.lock.RLock()
-	defer d.lock.RUnlock()
-	return d.former.nodes
-}
-
-func (d *ppos) getCurrentNodes () []*discover.Node {
-	d.lock.RLock()
-	defer d.lock.RUnlock()
-	return d.current.nodes
+	return nil
 }
 
 //func (d *ppos) consensusNodes(blockNumber *big.Int) []discover.NodeID {
@@ -213,17 +195,17 @@ func (d *ppos) getCurrentNodes () []*discover.Node {
 //	return nil
 //}
 
-func (d *ppos) consensusNodes(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) []discover.NodeID {
+func (d *ppos) consensusNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []discover.NodeID {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
 	nodeCache := d.nodeRound.GetNodeCache(parentNumber, parentHash)
 	if nodeCache != nil {
-		if nodeCache.former != nil && commitNumber.Cmp(nodeCache.former.start) >= 0 && commitNumber.Cmp(nodeCache.former.end) <= 0 {
+		if nodeCache.former != nil && blockNumber.Cmp(nodeCache.former.start) >= 0 && blockNumber.Cmp(nodeCache.former.end) <= 0 {
 			return nodeCache.former.nodeIds
-		} else if nodeCache.current != nil && commitNumber.Cmp(nodeCache.current.start) >= 0 && commitNumber.Cmp(nodeCache.current.end) <= 0 {
+		} else if nodeCache.current != nil && blockNumber.Cmp(nodeCache.current.start) >= 0 && blockNumber.Cmp(nodeCache.current.end) <= 0 {
 			return nodeCache.current.nodeIds
-		} else if nodeCache.next != nil && commitNumber.Cmp(nodeCache.next.start) >= 0 && commitNumber.Cmp(nodeCache.next.end) <= 0 {
+		} else if nodeCache.next != nil && blockNumber.Cmp(nodeCache.next.start) >= 0 && blockNumber.Cmp(nodeCache.next.end) <= 0 {
 			return nodeCache.next.nodeIds
 		}
 	}

@@ -121,23 +121,23 @@ type Bft interface {
 	Engine
 
 	// 返回上一轮共识节点地址列表
-	FormerNodeID() []discover.NodeID
+	//FormerNodeID() []discover.NodeID
 
 	// 返回上一轮共识节点信息列表
-	FormerNodes() []*discover.Node
+	FormerNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
 
 	// 返回当前轮共识节点地址列表
-	CurrentNodeID() []discover.NodeID
+	//CurrentNodeID() []discover.NodeID
 
 	// 返回当前轮共识节点信息列表
-	CurrentNodes() []*discover.Node
+	CurrentNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
 
 	// 返回下一轮共识节点地址列表
-	NextNodeID() []discover.NodeID
+	//NextNodeID() []discover.NodeID
 
 	IsCurrentNode(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) bool
 
-	ConsensusNodes(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) []discover.NodeID
+	ConsensusNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []discover.NodeID
 
 	// 返回当前节点是否轮值出块
 	ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool
@@ -170,4 +170,6 @@ type Bft interface {
 	GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error)
 
 	GetOwnNodeID() discover.NodeID
+
+	SetNodeCache(state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash) error
 }
