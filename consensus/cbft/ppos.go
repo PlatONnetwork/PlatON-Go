@@ -478,6 +478,7 @@ func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes [
 	currentRound.nodes = make([]*discover.Node, len(initNodeArr))
 	copy(currentRound.nodes, initNodeArr)
 
+
 	log.Info("根据配置文件初始化 ppos 当前轮配置节点:", "blockNumber", blockNumber, "blockHash", blockHash, "start", currentRound.start, "end", currentRound.end)
 	pposm.PrintObject("初始化 ppos 当前轮 nodeIds:", initialNodesIDs)
 	pposm.PrintObject("初始化 ppos 当前轮 nodes:", initNodeArr)
@@ -641,51 +642,87 @@ func (d *ppos)  GetNextRound (blockNumber *big.Int, blockHash common.Hash) *ppos
 	return d.nodeRound.GetNextRound(blockNumber, blockHash)
 }
 
-func (d *ppos) SetNodeCache (state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash, cache *nodeCache) error {
-	d.setNodeCache(state, parentNumber, currentNumber, parentHash, currentHash, cache)
+func (d *ppos) SetNodeCache (state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash/*, cache *nodeCache*/) error {
+	return d.setNodeCache(state, parentNumber, currentNumber, parentHash, currentHash/*, cache*/)
 }
-func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash, cache *nodeCache) error {
+func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash/*, cache *nodeCache*/) error {
 	// current round
 	round := calcurround(currentNumber)
 	log.Info("分叉获取", "currentNumber:", currentNumber.Uint64(), "round:", round)
 
 	preNodes, curNodes, nextNodes, err := d.candidatePool.GetAllWitness(state)
 
+	if nil != err {
+		log.Error("Failed to setting nodeCache on setNodeCache", "err", err)
+		return err
+	}
 
 	var start, end *big.Int
 
-	if (blocknumber.Uint64()%BaseSwitchWitness) == 0 {
+	// 判断是否是 本轮的最后一个块，如果是，则start 为下一轮的 start， end 为下一轮的 end
+	if (currentNumber.Uint64()%BaseSwitchWitness) == 0 {
 		start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
-		end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+		end = new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
 	}else {
 		start = big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
-		end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+		end = new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
 	}
 
+	// former
+	formerRound := &pposRound{}
+	// former start, end
 	if round != 1 {
-		d.former.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
-		d.former.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+		formerRound.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+		formerRound.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 	}
-	log.Info("分叉获取:上一轮", "start", d.former.start, "end", d.former.end)
-	if len(preArr) != 0 {
-		d.former.nodeIds = convertNodeID(preArr)
-		d.former.nodes = make([]*discover.Node, len(preArr))
-		copy(d.former.nodes, preArr)
+	log.Info("分叉获取:上一轮", "start",formerRound.start, "end", formerRound.end)
+	if len(preNodes) != 0 {
+		formerRound.nodeIds = convertNodeID(preNodes)
+		formerRound.nodes = make([]*discover.Node, len(preNodes))
+		copy(formerRound.nodes, preNodes)
+	}else { // Reference parent
+
 	}
 
-	d.current.start = start
-	d.current.end = end
-	log.Info("分叉获取:当前轮", "start", d.current.start, "end", d.current.end)
-	if len(curArr) != 0 {
-		d.current.nodeIds = convertNodeID(curArr)
-		d.current.nodes = make([]*discover.Node, len(curArr))
-		copy(d.current.nodes, curArr)
-	}
-	d.next = nil
-	pposm.PrintObject("分叉获取上一轮nodes：", preArr)
-	pposm.PrintObject("分叉获取当前轮nodes：", curArr)
-	pposm.PrintObject("分叉的上轮pposRound：", d.former.nodes)
-	pposm.PrintObject("分叉的当前轮pposRound：", d.current.nodes)
+	// current
+	currentRound := &pposRound{}
+	// current start, end
+	currentRound.start = start
+	currentRound.end = end
+	log.Info("分叉获取:当前轮", "start", currentRound.start, "end",currentRound.end)
+	if len(curNodes) != 0 {
+		currentRound.nodeIds = convertNodeID(curNodes)
+		currentRound.nodes = make([]*discover.Node, len(curNodes))
+		copy(currentRound.nodes, curNodes)
+	}else { // Reference parent
 
-	d.nodeRound.SetNodeCache()
+	}
+
+	// next
+	nextRound := &pposRound{}
+	// next start, end
+	nextRound.start = new(big.Int).Add(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+	nextRound.end = new(big.Int).Add(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+	if len(nextNodes) != 0 {
+		nextRound.nodeIds = convertNodeID(nextNodes)
+		nextRound.nodes = make([]*discover.Node, len(nextNodes))
+		copy(nextRound.nodes, nextNodes)
+	}else { // Reference parent
+
+	}
+
+	pposm.PrintObject("设置当前区块 stateDB 上一轮nodes：", preNodes)
+	pposm.PrintObject("设置当前区块 stateDB 当前轮nodes：", curNodes)
+	pposm.PrintObject("设置当前区块 stateDB 下一轮nodes：", nextNodes)
+	pposm.PrintObject("设置当前区块的上轮pposRound：", formerRound.nodes)
+	pposm.PrintObject("设置当前区块的当前轮pposRound：", currentRound.nodes)
+	pposm.PrintObject("设置当前区块的下一轮pposRound：", nextRound.nodes)
+
+	cache = &nodeCache{
+		former: 	formerRound,
+		current: 	currentRound,
+		next: 		nextRound,
+	}
+	d.nodeRound.SetNodeCache(currentNumber, currentHash, cache)
+	return nil
 }
