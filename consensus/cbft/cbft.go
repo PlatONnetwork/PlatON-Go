@@ -702,21 +702,11 @@ func (cbft *Cbft) handleNewConfirmed(newConfirmed *BlockExt) error {
 			return nil
 		} else {
 			err := cbft.handleNewConfirmedContinue(newConfirmed, newFork[1:])
-
 			if err == nil {
-
-				txsInNewFork := cbft.collectTxs(newFork[1:])
-
-				txsInOldFork := cbft.collectTxs(oldFork[1:])
-
-				differ := types.TxDifference(txsInNewFork, txsInOldFork)
-
-				log.Debug("consensus success, recover the txs from original branch", "txsCount", len(differ))
-
-				cbft.txPool.RecoverTxs(differ)
+				log.Warn("chain forks to new confirmed", "causeHash", cause.block.Hash(), "causeNumber", cause.block.NumberU64())
 				return nil
 			} else {
-				log.Error("consensus success, but fork error", "err", err)
+				log.Error("chain forks error", "err", err)
 				return nil
 			}
 		}
