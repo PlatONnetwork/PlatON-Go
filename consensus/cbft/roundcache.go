@@ -22,7 +22,7 @@ type pposRound struct {
 }
 
 
-func (r roundCache) GetFormerRound(blockNumber *big.Int, blockHash common.Hash) *pposRound {
+func (r roundCache) getFormerRound(blockNumber *big.Int, blockHash common.Hash) *pposRound {
 	num := blockNumber.Uint64()
 	if round, ok := r[num]; ok {
 		if node, has := round[blockHash]; has {
@@ -35,7 +35,7 @@ func (r roundCache) GetFormerRound(blockNumber *big.Int, blockHash common.Hash) 
 }
 
 
-func (r roundCache) GetCurrentRound (blockNumber *big.Int, blockHash common.Hash) *pposRound {
+func (r roundCache) getCurrentRound (blockNumber *big.Int, blockHash common.Hash) *pposRound {
 	num := blockNumber.Uint64()
 	if round, ok := r[num]; ok {
 		if node, has := round[blockHash]; has {
@@ -47,7 +47,7 @@ func (r roundCache) GetCurrentRound (blockNumber *big.Int, blockHash common.Hash
 	return nil
 }
 
-func (r roundCache) GetNextRound (blockNumber *big.Int, blockHash common.Hash) *pposRound {
+func (r roundCache) getNextRound (blockNumber *big.Int, blockHash common.Hash) *pposRound {
 	num := blockNumber.Uint64()
 	if round, ok := r[num]; ok {
 		if node, has := round[blockHash]; has {
@@ -59,7 +59,7 @@ func (r roundCache) GetNextRound (blockNumber *big.Int, blockHash common.Hash) *
 	return nil
 }
 
-func (r roundCache) GetNodeCache (blockNumber *big.Int, blockHash common.Hash) *nodeCache {
+func (r roundCache) getNodeCache (blockNumber *big.Int, blockHash common.Hash) *nodeCache {
 	num := blockNumber.Uint64()
 	if round, ok := r[num]; ok {
 		if node, has := round[blockHash]; has {
@@ -70,7 +70,7 @@ func (r roundCache) GetNodeCache (blockNumber *big.Int, blockHash common.Hash) *
 }
 
 
-func (r roundCache) SetNodeCache (blockNumber *big.Int, blockHash common.Hash, cache *nodeCache) {
+func (r roundCache) setNodeCache (blockNumber *big.Int, blockHash common.Hash, cache *nodeCache) {
 	num := blockNumber.Uint64()
 	var node map[common.Hash]*nodeCache
 	if _, ok := r[num]; ok {
