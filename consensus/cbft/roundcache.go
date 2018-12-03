@@ -70,6 +70,7 @@ func (r roundCache) SetNodeCache (blockNumber *big.Int, blockHash common.Hash, c
 	}
 	if _, ok := node[blockHash]; !ok {
 		node[blockHash] = cache
+		r[num] = node
 	}
 }
 
