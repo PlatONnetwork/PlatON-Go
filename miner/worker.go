@@ -422,7 +422,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 		case head := <-w.chainHeadCh:
 			go func() {
-				if cbftEngine,ok := w.engine.(consensus.Bft); ok && !cbftEngine.IsCurrentNode(head.Block.Number()) {
+				blockNumber := head.Block.Number()
+				if cbftEngine,ok := w.engine.(consensus.Bft); ok && !cbftEngine.IsCurrentNode(blockNumber.Sub(blockNumber, common.Big1), head.Block.ParentHash(), blockNumber) {
 					cbft.BlockSynchronisation()
 				}
 			}()
@@ -442,11 +443,9 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			w.commitWorkEnv.highestLock.Unlock()
 
 			if w.isRunning() {
-				if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(); shouldSeal && error == nil {
-					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-						log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
-						commit(false, commitInterruptResubmit, commitBlock)
-					}
+				if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
+					log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
+					commit(false, commitInterruptResubmit, commitBlock)
 				}
 			}
 
@@ -457,13 +456,11 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
 				log.Warn("----------间隔" + recommit.String() + "开始打包任务----------")
-				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
-						if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-							log.Warn("--------------节点当前时间窗口出块，执行打包出块逻辑--------------")
-							commit(false, commitInterruptResubmit, commitBlock)
-							continue
-						}
+				if _,ok := w.engine.(consensus.Bft); ok {
+					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
+						log.Warn("--------------节点当前时间窗口出块，执行打包出块逻辑--------------")
+						commit(false, commitInterruptResubmit, commitBlock)
+						continue
 					}
 					timer.Reset(recommit)
 				} else if w.config.Clique == nil || w.config.Clique.Period > 0 {
@@ -634,7 +631,8 @@ func (w *worker) mainLoop() {
 		case blockSignature := <-w.blockSignatureCh:
 			if blockSignature != nil {
 				// send blockSignatureMsg to consensus node peer
-				consensusNodes := w.engine.(consensus.Bft).ConsensusNodes(blockSignature.Number)
+				blockNumber := blockSignature.Number
+				consensusNodes := w.engine.(consensus.Bft).ConsensusNodes(blockNumber.Sub(blockNumber, common.Big1), blockSignature.ParentHash, blockNumber)
 				if consensusNodes != nil {
 					log.Warn("Post BlockSignatureEvent", "consensusNodes", consensusNodes)
 					w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature, ConsensusNodes: consensusNodes})
@@ -878,7 +876,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		header:    header,
 	}
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-		nodes := cbftEngine.ConsensusNodes(header.Number)
+		nodes := cbftEngine.ConsensusNodes(parent.Number(), parent.Hash(), header.Number)
 		if nodes == nil || len(nodes) <= 0 {
 			return errors.New("Failed to load consensus nodes")
 		}
@@ -1337,7 +1335,7 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	if shouldCommit && timestamp != 0 {
 		shouldCommit = shouldCommit && (timestamp - commitTime >= w.recommit.Nanoseconds() / 1e6)
 	}
-	if shouldCommit {
+	if shouldCommit && w.engine.(consensus.Bft).ShouldSeal(baseBlock.Number(), baseBlock.Hash(), highestLogicalBlock.Number()) {
 		w.commitWorkEnv.commitBaseBlock = highestLogicalBlock
 		w.commitWorkEnv.commitTime = time.Now().UnixNano() / 1e6
 	}

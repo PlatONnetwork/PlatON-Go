@@ -430,6 +430,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 			Hash:      blockHash,
 			Number:    ext.block.Number(),
 			Signature: sign,
+			ParentHash: ext.block.ParentHash(),
 		}
 		cbft.blockSignOutCh <- blockSign
 	} else {
@@ -1226,9 +1227,17 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 }
 
 //to check if it's my turn to produce blocks
-func (cbft *Cbft) inTurn() bool {
+//func (cbft *Cbft) inTurn() bool {
+//	curTime := toMilliseconds(time.Now())
+//	inturn := cbft.calTurn(0, curTime, cbft.config.NodeID)
+//	log.Debug("inTurn", "result", inturn)
+//	return inturn
+//
+//}
+
+func (cbft *Cbft) inTurn(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(0, curTime, cbft.config.NodeID)
+	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime, cbft.config.NodeID)
 	log.Debug("inTurn", "result", inturn)
 	return inturn
 
@@ -1268,31 +1277,8 @@ func (cbft *Cbft) shouldKeepIt(number uint64, curTime int64, nodeID discover.Nod
 	return keepIt
 }
 
-//time in milliseconds
-/*func (cbft *Cbft) calTurn(curTime int64, nodeID discover.NodeID) bool {
-	nodeIdx := cbft.ppos.NodeIndex(nodeID)
-	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
-
-	if nodeIdx >= 0 {
-		durationPerNode := cbft.config.Duration * 1000
-		durationPerTurn := durationPerNode * int64(len(cbft.ppos.current.nodes))
-
-		min := nodeIdx * (durationPerNode)
-
-		value := (curTime - startEpoch) % durationPerTurn
-
-		max := (nodeIdx + 1) * durationPerNode
-
-		log.Debug("calTurn", "idx", nodeIdx, "min", min, "value", value, "max", max, "curTime", curTime, "startEpoch", startEpoch)
-
-		if value > min && value < max {
-			return true
-		}
-	}
-	return false
-}*/
-func (cbft *Cbft) calTurn(number uint64, curTime int64, nodeID discover.NodeID) bool {
-	nodeIdx := cbft.ppos.BlockProducerIndex(number, nodeID)
+func (cbft *Cbft) calTurn(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int, curTime int64, nodeID discover.NodeID) bool {
+	nodeIdx := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, commitNumber, nodeID)
 	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
@@ -1413,8 +1399,8 @@ func toMilliseconds(t time.Time) int64 {
 	return t.UnixNano() / 1e6
 }
 
-func (cbft *Cbft) ShouldSeal() (bool, error) {
-	return cbft.inTurn(), nil
+func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
+	return cbft.inTurn(parentNumber, parentHash, commitNumber)
 }
 
 func (cbft *Cbft) FormerNodeID() []discover.NodeID {
@@ -1437,8 +1423,8 @@ func (cbft *Cbft) CurrentNodes() []*discover.Node {
 	return cbft.ppos.getCurrentNodes()
 }
 
-func (cbft *Cbft) IsCurrentNode(blockNumber *big.Int) bool {
-	currentNodes := cbft.ConsensusNodes(blockNumber)
+func (cbft *Cbft) IsCurrentNode(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) bool {
+	currentNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
 	nodeID := cbft.GetOwnNodeID()
 	for _, n := range currentNodes {
 		if nodeID == n {
@@ -1448,15 +1434,15 @@ func (cbft *Cbft) IsCurrentNode(blockNumber *big.Int) bool {
 	return false
 }
 
-func (cbft *Cbft) ConsensusNodes(blockNumber *big.Int) []discover.NodeID {
-	return cbft.ppos.consensusNodes(blockNumber)
+func (cbft *Cbft) ConsensusNodes(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) []discover.NodeID {
+	return cbft.ppos.consensusNodes(parentNumber, parentHash, commitNumber)
 }
 
 // wether nodeID in former or current or next
-func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
-	return cbft.ppos.AnyIndex(nodeID) >= 0, nil
-}
+//func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
+//	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+//	return cbft.ppos.AnyIndex(nodeID) >= 0, nil
+//}
 
 // wether nodeID in current or next
 func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error) {
@@ -1465,10 +1451,10 @@ func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error)
 }
 
 // wether nodeID in former or current or next
-func (cbft *Cbft) IsConsensusNode() (bool, error) {
-	log.Debug("call IsConsensusNode()")
-	return cbft.ppos.AnyIndex(cbft.config.NodeID) >= 0, nil
-}
+//func (cbft *Cbft) IsConsensusNode() (bool, error) {
+//	log.Debug("call IsConsensusNode()")
+//	return cbft.ppos.AnyIndex(cbft.config.NodeID) >= 0, nil
+//}
 
 func (cbft *Cbft) Election(state *state.StateDB, blockNumber *big.Int) ([]*discover.Node, error) {
 	return cbft.ppos.Election(state, blockNumber)

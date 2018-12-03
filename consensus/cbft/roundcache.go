@@ -59,6 +59,16 @@ func (r roundCache) GetNextRound (blockNumber *big.Int, blockHash common.Hash) *
 	return nil
 }
 
+func (r roundCache) GetNodeCache (blockNumber *big.Int, blockHash common.Hash) *nodeCache {
+	num := blockNumber.Uint64()
+	if round, ok := r[num]; ok {
+		if node, has := round[blockHash]; has {
+			return node
+		}
+	}
+	return nil
+}
+
 
 func (r roundCache) SetNodeCache (blockNumber *big.Int, blockHash common.Hash, cache *nodeCache) {
 	num := blockNumber.Uint64()
