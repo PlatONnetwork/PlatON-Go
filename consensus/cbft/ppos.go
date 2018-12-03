@@ -15,9 +15,11 @@ import (
 )
 
 type ppos struct {
-	former            *pposRound // the previous round of witnesses nodeId
-	current           *pposRound // the current round of witnesses nodeId
-	next              *pposRound // the next round of witnesses nodeId
+	//former            *pposRound // the previous round of witnesses nodeId
+	//current           *pposRound // the current round of witnesses nodeId
+	//next              *pposRound // the next round of witnesses nodeId
+
+	nodeRound 		  roundCache
 	chain             *core.BlockChain
 	lastCycleBlockNum uint64
 	startTimeOfEpoch  int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
@@ -30,43 +32,38 @@ type ppos struct {
 	candidatePool *pposm.CandidatePool
 }
 
-type pposRound struct {
-	nodeIds []discover.NodeID
-	nodes 	[]*discover.Node
-	start *big.Int
-	end   *big.Int
-}
 
-func newPpos(initialNodes []discover.Node, config *params.CbftConfig) *ppos {
-	initNodeArr := make([]*discover.Node, 0, len(initialNodes))
-	initialNodesIDs := make([]discover.NodeID, 0, len(initialNodes))
-	for _, n := range config.InitialNodes {
-		node := n
-		initialNodesIDs = append(initialNodesIDs, node.ID)
-		initNodeArr = append(initNodeArr, &node)
-	}
 
-	formerRound := &pposRound{
-		nodeIds: make([]discover.NodeID, 0),
-		nodes: 	make([]*discover.Node, 0),
-		start: big.NewInt(0),
-		end:   big.NewInt(0),
-	}
-	currentRound := &pposRound{
-		nodeIds: initialNodesIDs,
-		//nodes: 	initNodeArr,
-		start: big.NewInt(1),
-		end:   big.NewInt(BaseSwitchWitness),
-	}
-	currentRound.nodes = make([]*discover.Node, len(initNodeArr))
-	copy(currentRound.nodes, initNodeArr)
-
-	log.Info("初始化 ppos 当前轮配置节点:", "start", currentRound.start, "end", currentRound.end)
-	pposm.PrintObject("初始化 ppos 当前轮 nodeIds:", initialNodesIDs)
-	pposm.PrintObject("初始化 ppos 当前轮 nodes:", initNodeArr)
+func newPpos(/*initialNodes []discover.Node, */config *params.CbftConfig) *ppos {
+	//initNodeArr := make([]*discover.Node, 0, len(initialNodes))
+	//initialNodesIDs := make([]discover.NodeID, 0, len(initialNodes))
+	//for _, n := range config.InitialNodes {
+	//	node := n
+	//	initialNodesIDs = append(initialNodesIDs, node.ID)
+	//	initNodeArr = append(initNodeArr, &node)
+	//}
+	//
+	//formerRound := &pposRound{
+	//	nodeIds: make([]discover.NodeID, 0),
+	//	nodes: 	make([]*discover.Node, 0),
+	//	start: big.NewInt(0),
+	//	end:   big.NewInt(0),
+	//}
+	//currentRound := &pposRound{
+	//	nodeIds: initialNodesIDs,
+	//	//nodes: 	initNodeArr,
+	//	start: big.NewInt(1),
+	//	end:   big.NewInt(BaseSwitchWitness),
+	//}
+	//currentRound.nodes = make([]*discover.Node, len(initNodeArr))
+	//copy(currentRound.nodes, initNodeArr)
+	//
+	//log.Info("初始化 ppos 当前轮配置节点:", "start", currentRound.start, "end", currentRound.end)
+	//pposm.PrintObject("初始化 ppos 当前轮 nodeIds:", initialNodesIDs)
+	//pposm.PrintObject("初始化 ppos 当前轮 nodes:", initNodeArr)
 	return &ppos{
-		former:            formerRound,
-		current:           currentRound,
+		//former:            formerRound,
+		//current:           currentRound,
 		lastCycleBlockNum: 0,
 		config:            config.PposConfig,
 		//initialNodes: 	   config.InitialNodes,
@@ -352,7 +349,12 @@ func (d *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discove
 }
 
 // setting candidate pool of ppos module
-func (d *ppos) SetCandidatePool(blockChain *core.BlockChain) {
+func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []discover.Node) {
+
+
+
+
+
 	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
 	if blockChain.Genesis().NumberU64() != blockChain.CurrentBlock().NumberU64() {
 		state, err := blockChain.State()
@@ -452,6 +454,41 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain) {
 
 	}*/
 }
+
+func buildGenesisRound(initialNodes []discover.Node) roundCache {
+	initNodeArr := make([]*discover.Node, 0, len(initialNodes))
+	initialNodesIDs := make([]discover.NodeID, 0, len(initialNodes))
+	for _, n := range initialNodes {
+		node := n
+		initialNodesIDs = append(initialNodesIDs, node.ID)
+		initNodeArr = append(initNodeArr, &node)
+	}
+
+	formerRound := &pposRound{
+		nodeIds: make([]discover.NodeID, 0),
+		nodes: 	make([]*discover.Node, 0),
+		start: big.NewInt(0),
+		end:   big.NewInt(0),
+	}
+	currentRound := &pposRound{
+		nodeIds: initialNodesIDs,
+		//nodes: 	initNodeArr,
+		start: big.NewInt(1),
+		end:   big.NewInt(BaseSwitchWitness),
+	}
+	currentRound.nodes = make([]*discover.Node, len(initNodeArr))
+	copy(currentRound.nodes, initNodeArr)
+
+	log.Info("初始化 ppos 当前轮配置节点:", "start", currentRound.start, "end", currentRound.end)
+	pposm.PrintObject("初始化 ppos 当前轮 nodeIds:", initialNodesIDs)
+	pposm.PrintObject("初始化 ppos 当前轮 nodes:", initNodeArr)
+
+
+
+	nodeRound := make(roundCache, 0)
+
+}
+
 
 /** Method provided to the built-in contract call */
 // pledge Candidate
@@ -586,3 +623,20 @@ func calcurround(blocknumber *big.Int) uint64 {
 //func (d *ppos) MaxChair() int64 {
 //	return int64(d.candidatePool.MaxChair())
 //}
+
+
+func (d *ppos) GetFormerRound(blockNumber *big.Int, blockHash common.Hash) *pposRound {
+	return nil
+}
+
+func (d *ppos) GetCurrentRound (blockNumber *big.Int, blockHash common.Hash) *pposRound {
+	return nil
+}
+
+func (d *ppos)  GetNextRound (blockNumber *big.Int, blockHash common.Hash) *pposRound {
+	return nil
+}
+
+func (d *ppos) SetNodeCache (state *state.StateDB, blockNumber *big.Int, blockHash common.Hash, cache *nodeCache) {
+
+}

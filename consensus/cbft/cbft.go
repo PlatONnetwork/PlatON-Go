@@ -86,7 +86,7 @@ var cbft *Cbft
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
 
 	pposm.PrintObject("获取ppos config：", *config)
-	_ppos := newPpos(config.InitialNodes, config)
+	_ppos := newPpos(/*config.InitialNodes, */config)
 
 	cbft = &Cbft{
 		config:                config,
@@ -601,7 +601,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 }
 
 func SetDopsOption(blockChain *core.BlockChain) {
-	cbft.ppos.SetCandidatePool(blockChain)
+	cbft.ppos.SetCandidatePool(blockChain, cbft.config.InitialNodes)
 }
 
 func BlockSynchronisation() {
