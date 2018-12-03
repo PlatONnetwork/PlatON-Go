@@ -350,19 +350,18 @@ func (d *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discove
 
 // setting candidate pool of ppos module
 func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []discover.Node) {
-
-
-
-
-
+	log.Info("---重新启动节点，更新nodeRound---")
+	genesis := blockChain.Genesis()
+	// init roundCache by config
+	d.nodeRound = buildGenesisRound(genesis.NumberU64(), genesis.Hash(), initialNodes)
 	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
-	if blockChain.Genesis().NumberU64() != blockChain.CurrentBlock().NumberU64() {
+	if genesis.NumberU64() != blockChain.CurrentBlock().NumberU64() {
 		state, err := blockChain.State()
-		log.Warn("---重新启动节点，更新formerlyNodeList、primaryNodeList和nextNodeList---", "state", state)
 		if nil != err {
 			log.Error("Load state from chain failed on SetCandidatePool err", err)
 			return
 		}
+		log.Info("---重新启动节点，更新nodeRound---当前块不是创世块时：", "blockNumber", blockChain.CurrentBlock().NumberU64(), "blockHash", blockChain.CurrentBlock().Hash())
 		if preArr, curArr, nextArr, err := d.candidatePool.GetAllWitness(state); nil != err {
 			log.Error("Load Witness from state failed on SetCandidatePool err", err)
 		} else {
@@ -455,7 +454,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 	}*/
 }
 
-func buildGenesisRound(initialNodes []discover.Node) roundCache {
+func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes []discover.Node) roundCache {
 	initNodeArr := make([]*discover.Node, 0, len(initialNodes))
 	initialNodesIDs := make([]discover.NodeID, 0, len(initialNodes))
 	for _, n := range initialNodes {
@@ -479,14 +478,19 @@ func buildGenesisRound(initialNodes []discover.Node) roundCache {
 	currentRound.nodes = make([]*discover.Node, len(initNodeArr))
 	copy(currentRound.nodes, initNodeArr)
 
-	log.Info("初始化 ppos 当前轮配置节点:", "start", currentRound.start, "end", currentRound.end)
+	log.Info("根据配置文件初始化 ppos 当前轮配置节点:", "blockNumber", blockNumber, "blockHash", blockHash, "start", currentRound.start, "end", currentRound.end)
 	pposm.PrintObject("初始化 ppos 当前轮 nodeIds:", initialNodesIDs)
 	pposm.PrintObject("初始化 ppos 当前轮 nodes:", initNodeArr)
 
+	node := &nodeCache{
+		former: 	formerRound,
+		current: 	currentRound,
+	}
 
-
-	nodeRound := make(roundCache, 0)
-
+	numRound := make(roundCache, 0)
+	hashRound := make(map[common.Hash]*nodeCache, 0)
+	hashRound[blockHash] = node
+	numRound[blockNumber] = hashRound
 }
 
 
@@ -637,9 +641,51 @@ func (d *ppos)  GetNextRound (blockNumber *big.Int, blockHash common.Hash) *ppos
 	return d.nodeRound.GetNextRound(blockNumber, blockHash)
 }
 
-func (d *ppos) SetNodeCache (state *state.StateDB, blockNumber *big.Int, blockHash common.Hash, cache *nodeCache) {
-	d.setNodeCache(state, blockNumber, blockHash, cache)
+func (d *ppos) SetNodeCache (state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash, cache *nodeCache) error {
+	d.setNodeCache(state, parentNumber, currentNumber, parentHash, currentHash, cache)
 }
-func (d *ppos) setNodeCache (state *state.StateDB, blockNumber *big.Int, blockHash common.Hash, cache *nodeCache) {
+func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash, cache *nodeCache) error {
+	// current round
+	round := calcurround(currentNumber)
+	log.Info("分叉获取", "currentNumber:", currentNumber.Uint64(), "round:", round)
 
+	preNodes, curNodes, nextNodes, err := d.candidatePool.GetAllWitness(state)
+
+
+	var start, end *big.Int
+
+	if (blocknumber.Uint64()%BaseSwitchWitness) == 0 {
+		start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
+		end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+	}else {
+		start = big.NewInt(int64(BaseSwitchWitness*(round-1)) + 1)
+		end = new(big.Int).Add(d.current.start, big.NewInt(int64(BaseSwitchWitness-1)))
+	}
+
+	if round != 1 {
+		d.former.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+		d.former.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+	}
+	log.Info("分叉获取:上一轮", "start", d.former.start, "end", d.former.end)
+	if len(preArr) != 0 {
+		d.former.nodeIds = convertNodeID(preArr)
+		d.former.nodes = make([]*discover.Node, len(preArr))
+		copy(d.former.nodes, preArr)
+	}
+
+	d.current.start = start
+	d.current.end = end
+	log.Info("分叉获取:当前轮", "start", d.current.start, "end", d.current.end)
+	if len(curArr) != 0 {
+		d.current.nodeIds = convertNodeID(curArr)
+		d.current.nodes = make([]*discover.Node, len(curArr))
+		copy(d.current.nodes, curArr)
+	}
+	d.next = nil
+	pposm.PrintObject("分叉获取上一轮nodes：", preArr)
+	pposm.PrintObject("分叉获取当前轮nodes：", curArr)
+	pposm.PrintObject("分叉的上轮pposRound：", d.former.nodes)
+	pposm.PrintObject("分叉的当前轮pposRound：", d.current.nodes)
+
+	d.nodeRound.SetNodeCache()
 }
