@@ -351,7 +351,7 @@ func (d *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discove
 
 // setting candidate pool of ppos module
 func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []discover.Node) {
-	log.Info("---restart node，to update nodeRound---")
+	log.Info("---start node，to update nodeRound---")
 	genesis := blockChain.Genesis()
 	// init roundCache by config
 	d.nodeRound = buildGenesisRound(genesis.NumberU64(), genesis.Hash(), initialNodes)
@@ -394,6 +394,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 			count ++
 		}
 	}
+	pposm.PrintObject("启动node时, nodeRound:", d.nodeRound)
 }
 
 
@@ -422,7 +423,7 @@ func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes [
 	copy(currentRound.nodes, initNodeArr)
 
 
-	log.Info("根据配置文件初始化 ppos 当前轮配置节点:", "blockNumber", blockNumber, "blockHash", blockHash, "start", currentRound.start, "end", currentRound.end)
+	log.Info("根据配置文件初始化 ppos 当前轮配置节点:", "blockNumber", blockNumber, "blockHash", blockHash.String(), "start", currentRound.start, "end", currentRound.end)
 	pposm.PrintObject("初始化 ppos 当前轮 nodeIds:", initialNodesIDs)
 	pposm.PrintObject("初始化 ppos 当前轮 nodes:", initNodeArr)
 
@@ -490,7 +491,7 @@ func (d *ppos) GetRefundInterval() uint64 {
 	return d.candidatePool.GetRefundInterval()
 }
 
-// cbft共识区块产生分叉后需要更新primaryNodeList和formerlyNodeList
+// cbft consensus fork need to update  nodeRound
 func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int, blockHash common.Hash) {
 	log.Info("---cbft consensus fork，update nodeRound---")
 	// clean nodeCache
@@ -530,6 +531,7 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 		curBlockHash = parentHash
 		count ++
 	}
+	pposm.PrintObject("分叉重载时, nodeRound:", d.nodeRound)
 }
 
 func convertNodeID(nodes []*discover.Node) []discover.NodeID {
@@ -720,6 +722,8 @@ func (d *ppos) setNodeCache (state *state.StateDB, parentNumber, currentNumber u
 		next: 		nextRound,
 	}
 	d.nodeRound.SetNodeCache(big.NewInt(int64(currentNumber)), currentHash, cache)
+	log.Info("设置当前区块的信息时", "currentBlockNum", currentNumber, "parentNum", parentNumber, "currentHash", currentHash.String(), "parentHash", parentHash.String())
+	pposm.PrintObject("设置当前区块的信息时, nodeRound:", d.nodeRound)
 	return nil
 }
 
