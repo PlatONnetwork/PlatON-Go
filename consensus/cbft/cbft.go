@@ -568,7 +568,6 @@ func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 func setHighestLogical(highestLogical *BlockExt) {
 	cbft.highestLogical = highestLogical
 	cbft.highestLogicalBlockCh <- highestLogical.block
-	log.Warn("xxxxxxxxxxxxxxxxxxxxxxxxxxxx222", "number", highestLogical.block.NumberU64())
 }
 
 func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
@@ -1074,7 +1073,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 	log.Warn("setNodeCache", "parentNumber", parentNumber, "parentHash", curExt.block.ParentHash(), "blockNumber", blockNumber, "blockHash", curExt.block.Hash())
 	if state, err := cbft.blockChain.StateAt(curExt.block.Root()); err == nil {
-		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), block.Hash())
+		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), curExt.block.Hash())
 	} else {
 		log.Info("setNodeCache error", "err", err)
 	}
