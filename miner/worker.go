@@ -627,17 +627,7 @@ func (w *worker) mainLoop() {
 			// Broadcast the block and announce chain insertion event
 			log.Warn("------------出块prepareResultCh------------", "number", block.Number(), "hash", block.Hash(), "stateRoot", block.Header().Root)
 			log.Warn("Post PrepareMinedBlockEvent", "consensusNodes", task.consensusNodes)
-
-			// 更新nodeCache
-			blockNumber := block.Number()
-			parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
-			log.Warn("setNodeCache", "parentNumber", parentNumber, "parentHash", block.ParentHash(), "blockNumber", blockNumber, "blockHash", block.Hash())
-			if state, err := w.chain.StateAt(block.Root()); err == nil {
-				w.setNodeCache(state, parentNumber, blockNumber, block.ParentHash(), block.Hash())
-				w.mux.Post(core.PrepareMinedBlockEvent{Block: block, ConsensusNodes: task.consensusNodes})
-			} else {
-				log.Info("setNodeCache get state error", "err", err)
-			}
+			w.mux.Post(core.PrepareMinedBlockEvent{Block: block, ConsensusNodes: task.consensusNodes})
 
 		case blockSignature := <-w.blockSignatureCh:
 			if blockSignature != nil {

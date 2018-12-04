@@ -1069,12 +1069,19 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	log.Debug("seal complete", "Hash", sealedBlock.Hash(), "number", block.NumberU64())
 
-	blockNumber := block.Number()
+	// 更新nodeCache
+	blockNumber := curExt.block.Number()
 	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
-	consensusNodes := cbft.ConsensusNodes(parentNumber, block.ParentHash(), blockNumber)
+	log.Warn("setNodeCache", "parentNumber", parentNumber, "parentHash", curExt.block.ParentHash(), "blockNumber", blockNumber, "blockHash", curExt.block.Hash())
+	if state, err := cbft.blockChain.StateAt(curExt.block.Root()); err == nil {
+		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), block.Hash())
+	} else {
+		log.Info("setNodeCache error", "err", err)
+	}
+
+	consensusNodes := cbft.ConsensusNodes(parentNumber, curExt.block.ParentHash(), blockNumber)
 	if consensusNodes != nil && len(consensusNodes) == 1 {
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
-		log.Warn("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1111")
 		return cbft.handleNewConfirmed(curExt)
 	}
 
@@ -1229,6 +1236,8 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 		cbftResult := &cbfttypes.CbftResult{
 			Block:             ext.block,
 			BlockConfirmSigns: ext.signs,
+			Receipts:          ext.Receipts,
+			State:	           ext.State,
 		}
 		ext.isStored = true
 		log.Debug("send to channel", "Hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
