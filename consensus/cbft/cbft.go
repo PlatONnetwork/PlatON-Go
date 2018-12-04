@@ -1172,6 +1172,8 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 		cbftResult := &cbfttypes.CbftResult{
 			Block:             ext.block,
 			BlockConfirmSigns: ext.signs,
+			Receipts:          ext.Receipts,
+			State:             ext.State,
 		}
 		ext.isStored = true
 		log.Debug("send to channel", "Hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
