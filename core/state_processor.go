@@ -93,6 +93,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
+	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
+		// 更新nodeCache
+		blockNumber := block.Number()
+		log.Warn("---Process更新nodeCache---", "number", block.Number())
+		cbftEngine.SetNodeCache(statedb, blockNumber.Sub(blockNumber, common.Big1), block.Number(), block.ParentHash(), block.Hash())
+	}
 
 	return receipts, allLogs, *usedGas, nil
 }

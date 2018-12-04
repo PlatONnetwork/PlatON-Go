@@ -196,6 +196,6 @@ func (self *Miner) AttemptAddConsensusPeer(blockNumber *big.Int, state *state.St
 	self.worker.attemptAddConsensusPeer(blockNumber, state)
 }
 
-func (self *Miner) AttemptRemoveConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
-	self.worker.attemptRemoveConsensusPeer(blockNumber, state)
+func (self *Miner) AttemptRemoveConsensusPeer(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, state *state.StateDB) {
+	self.worker.attemptRemoveConsensusPeer(parentNumber, parentHash, blockNumber, state)
 }

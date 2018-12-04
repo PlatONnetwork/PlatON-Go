@@ -236,8 +236,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		attemptAddConsensusPeer := func(blockNumber *big.Int, state *state.StateDB) {
 			eth.miner.AttemptAddConsensusPeer(blockNumber, state)
 		}
-		attemptRemoveConsensusPeer := func(blockNumber *big.Int, state *state.StateDB) {
-			eth.miner.AttemptRemoveConsensusPeer(blockNumber, state)
+		attemptRemoveConsensusPeer := func(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, state *state.StateDB) {
+			eth.miner.AttemptRemoveConsensusPeer(parentNumber, parentHash, blockNumber, state)
 		}
 		eth.blockchain.InitConsensusPeerFn(shouldElection, shouldSwitch, attemptAddConsensusPeer, attemptRemoveConsensusPeer)
 	}
@@ -600,7 +600,8 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 		srvr.InitcheckFutureConsensusNodeFn(checkFutureConsensusNode)
 
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
-		if flag, err := cbftEngine.IsConsensusNode(); flag && err == nil {
+		currentBlock := s.blockchain.CurrentBlock()
+		if cbftEngine.IsCurrentNode(currentBlock.Number().Sub(currentBlock.Number(), common.Big1), currentBlock.ParentHash(), currentBlock.Number()) {
 			for _, n := range s.chainConfig.Cbft.InitialNodes {
 				srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
 			}
