@@ -778,7 +778,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	var start, end *big.Int
 
 	// 判断是否是 本轮的最后一个块，如果是，则start 为下一轮的 start， end 为下一轮的 end
-	if (currentNumber  % BaseSwitchWitness) == 0 {
+	if cmpSwitch(round, currentNumber) == 0 {
 		start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
 		end = new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
 	}else {
@@ -803,7 +803,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 		copy(formerRound.nodes, preNodes)
 	}else { // Reference parent
 		// if last block of round
-		if (currentNumber % BaseSwitchWitness) == 0 {
+		if cmpSwitch(round, currentNumber) == 0 {
 			parentCurRound := d.nodeRound.getCurrentRound(parentNumBigInt, parentHash)
 			if nil != parentCurRound {
 				formerRound.nodeIds = make([]discover.NodeID, len(parentCurRound.nodeIds))
@@ -834,7 +834,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 		copy(currentRound.nodes, curNodes)
 	}else { // Reference parent
 		// if last block of round
-		if (currentNumber % BaseSwitchWitness) == 0 {
+		if cmpSwitch(round, currentNumber) == 0 {
 			parentNextRound := d.nodeRound.getNextRound(parentNumBigInt, parentHash)
 			if nil != parentNextRound {
 				currentRound.nodeIds = make([]discover.NodeID, len(parentNextRound.nodeIds))
@@ -853,7 +853,9 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 		}
 	}
 
+	if currentNumber == 457 {
 
+	}
 	// next
 	nextRound := &pposRound{}
 	// next start, end
@@ -866,7 +868,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 		copy(nextRound.nodes, nextNodes)
 	}else { // Reference parent
 
-		if (currentNumber % BaseElection) == 0 { // election index == cur index
+		if cmpElection(round, currentNumber) == 0  { // election index == cur index
 			parentCurRound := d.nodeRound.getCurrentRound(parentNumBigInt, parentHash)
 			if nil != parentCurRound {
 				nextRound.nodeIds = make([]discover.NodeID, len(parentCurRound.nodeIds))
@@ -874,7 +876,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 				nextRound.nodes = make([]*discover.Node, len(parentCurRound.nodes))
 				copy(nextRound.nodes, parentCurRound.nodes)
 			}
-		}else if (currentNumber % BaseElection) != 0 && (currentNumber / BaseElection) == round && (currentNumber % BaseSwitchWitness) != 0 {  // election index < cur index < switch index
+		}else if cmpElection(round, currentNumber) > 0  &&  cmpSwitch(round, currentNumber) < 0 {  // election index < cur index < switch index
 			parentNextRound := d.nodeRound.getNextRound(parentNumBigInt, parentHash)
 			if nil != parentNextRound {
 				nextRound.nodeIds = make([]discover.NodeID, len(parentNextRound.nodeIds))
@@ -929,7 +931,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 	var start, end *big.Int
 
 	// 判断是否是 本轮的最后一个块，如果是，则start 为下一轮的 start， end 为下一轮的 end
-	if (currentNumber  % BaseSwitchWitness) == 0 {
+	if cmpSwitch(round, currentNumber) == 0 {
 		start = big.NewInt(int64(BaseSwitchWitness*round) + 1)
 		end = new(big.Int).Add(start, big.NewInt(int64(BaseSwitchWitness-1)))
 	}else {
@@ -954,7 +956,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 		copy(formerRound.nodes, curr_preNodes)
 	}else { // Reference parent
 		// if last block of round
-		if (currentNumber % BaseSwitchWitness) == 0 {
+		if cmpSwitch(round, currentNumber) == 0 {
 			// 先从上一个块的stateDB拿, 上一个块的stateDB 也没有，就从对应着创世块的 nodeCache拿
 			if len(parent_curNodes) != 0 {
 				//formerRound.nodeIds = make([]discover.NodeID, len(parent_curNodes))
@@ -1001,7 +1003,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 		copy(currentRound.nodes, curr_curNodes)
 	}else { // Reference parent
 		// if last block of round
-		if (currentNumber % BaseSwitchWitness) == 0 {
+		if cmpSwitch(round, currentNumber) == 0 {
 			if len(parent_nextNodes) != 0  {
 				currentRound.nodeIds = convertNodeID(parent_nextNodes)
 				currentRound.nodes = make([]*discover.Node, len(parent_nextNodes))
@@ -1033,7 +1035,9 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 		}
 	}
 
+	if currentNumber == 457 {
 
+	}
 	// next
 	nextRound := &pposRound{}
 	// next start, end
@@ -1045,8 +1049,8 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 		nextRound.nodes = make([]*discover.Node, len(curr_nextNodes))
 		copy(nextRound.nodes, curr_nextNodes)
 	}else { // Reference parent
-
-		if (currentNumber % BaseElection) == 0 || ((currentNumber % BaseElection) != 0 && (currentNumber / BaseElection) == round && (currentNumber % BaseSwitchWitness) != 0) { // election index == cur index || election index < cur index < switch index
+		// election index == cur index || election index < cur index < switch index
+		if cmpElection(round, currentNumber) == 0 || (cmpElection(round, currentNumber) > 0 && cmpSwitch(round, currentNumber) < 0)  {
 
 			genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash)
 			if nil != genesisCurRound {
@@ -1055,7 +1059,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 				nextRound.nodes = make([]*discover.Node, len(genesisCurRound.nodes))
 				copy(nextRound.nodes, genesisCurRound.nodes)
 			}
-		}else { // switch index <= cur index < next election index
+		}else { // parent switch index <= cur index < election index  || switch index <= cur index < next election index
 			nextRound.nodeIds = make([]discover.NodeID, 0)
 			nextRound.nodes = make([]*discover.Node, 0)
 		}
@@ -1090,3 +1094,49 @@ func (d *ppos) cleanNodeRound () {
 	d.nodeRound =  make(roundCache, 0)
 	d.lock.Unlock()
 }
+
+// election index == cur       0
+// cur < election index       -1
+// election index < cur        1
+// param invalid              -2
+func cmpElection (round, currentNumber uint64) int {
+	// last num of round
+	last := round * BaseSwitchWitness
+	ele_sub := uint64(BaseSwitchWitness - BaseElection)
+	curr_sub := last - currentNumber
+	if curr_sub < 0  {
+		return -2
+	}else if ele_sub - curr_sub > 0 {
+		return 1
+	}else if ele_sub - curr_sub == 0 {
+		return 0
+	}else {
+		return -1
+	}
+}
+
+// switch index == cur       0
+// cur < switch index       -1
+// switch index < cur        1
+// param invalid            -2
+func cmpSwitch (round, currentNum uint64) int {
+	last := round * BaseSwitchWitness
+	if last < currentNum {
+		return 1
+	}else if last == currentNum {
+		return 0
+	}else {
+		return -1
+	}
+}
+
+//func  shouldElection(blockNumber *big.Int) bool {
+//	d := new(big.Int).Sub(blockNumber, big.NewInt(cbft.BaseElection))
+//	_, m := new(big.Int).DivMod(d, big.NewInt(cbft.BaseSwitchWitness), new(big.Int))
+//	return m.Cmp(big.NewInt(0)) == 0
+//}
+//
+//func  shouldSwitch(blockNumber *big.Int) bool {
+//	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(cbft.BaseSwitchWitness), new(big.Int))
+//	return m.Cmp(big.NewInt(0)) == 0
+//}
