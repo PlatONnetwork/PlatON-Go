@@ -396,7 +396,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 				// parentStateDB by block
 				parentStateRoot := blockChain.GetBlock(parentHash, parentNum).Root()
 				if parentState, err := blockChain.StateAt(parentStateRoot); nil != err {
-					log.Error("Failed to load parentStateDB by block", "parentNum", parentNum, "Hash", parentHash.String(), "err", err)
+					log.Error("Failed to load parentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "parentNum", parentNum, "Hash", parentHash.String(), "err", err)
 					panic("Failed to load parentStateDB by block parentNum" + fmt.Sprint(parentNum) + ", Hash" + parentHash.String() + "err" + err.Error())
 				}else {
 					parent = parentState
@@ -405,7 +405,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 				// currentStateDB by block
 				stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
 				if currntState, err := blockChain.StateAt(stateRoot); nil != err {
-					log.Error("Failed to load currentStateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
+					log.Error("Failed to load currentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "err", err)
 					panic("Failed to load currentStateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 				}else {
 					current = currntState
@@ -603,7 +603,7 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 			// parentStateDB by block
 			parentStateRoot := blockChain.GetBlock(parentHash, parentNum).Root()
 			if parentState, err := blockChain.StateAt(parentStateRoot); nil != err {
-				log.Error("Failed to load parentStateDB by block", "parentNum", parentNum, "Hash", parentHash.String(), "err", err)
+				log.Error("Failed to load parentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "parentNum", parentNum, "Hash", parentHash.String(), "err", err)
 				panic("Failed to load parentStateDB by block parentNum" + fmt.Sprint(parentNum) + ", Hash" + parentHash.String() + "err" + err.Error())
 			}else {
 				parent = parentState
