@@ -1119,7 +1119,7 @@ func cmpElection (round, currentNumber uint64) int {
 	ele_sub := int(BaseSwitchWitness - BaseElection)
 	curr_sub := last - int(currentNumber)
 	sub := ele_sub - curr_sub
-	fmt.Println("sss ", sub)
+	//fmt.Println("sss ", sub)
 	if curr_sub < int(0)  {
 		return -2
 	}else if sub > int(0) {

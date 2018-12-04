@@ -213,7 +213,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
 		return nil, err
 	}
-
+	if _, ok := eth.engine.(consensus.Bft); ok {
+		cbft.SetDopsOption(eth.blockchain)
+	}
 	// 方法增加blockSignatureCh、cbftResultCh入参
 	// modify by platon remove consensusCache
 	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
@@ -225,7 +227,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		// modify by platon remove consensusCache
 		//cbft.SetConsensusCache(consensusCache)
 		cbft.SetBackend(eth.blockchain, eth.txPool)
-		cbft.SetDopsOption(eth.blockchain)
 
 		shouldElection := func(blockNumber *big.Int) bool {
 			return eth.miner.ShouldElection(blockNumber)
