@@ -510,8 +510,12 @@ func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Ha
 	res := d.nodeRound[blockNumber]
 	round := res[blockHash]
 	log.Info(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-	pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 上一轮: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
-	pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 当前轮: start:" + round.current.start.String() + ", end:" + round.current.end.String() + ", nodes: ", round.current.nodes)
+	if nil != round.former{
+		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 上一轮: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
+	}
+	if nil != round.current {
+		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 当前轮: start:" + round.current.start.String() + ", end:" + round.current.end.String() + ", nodes: ", round.current.nodes)
+	}
 	if nil != round.next {
 		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 下一轮: start:" + round.next.start.String() + ", end:" + round.next.end.String() + ", nodes: ", round.next.nodes)
 	}
