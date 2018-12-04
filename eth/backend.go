@@ -601,8 +601,10 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
 		currentBlock := s.blockchain.CurrentBlock()
-		if cbftEngine.IsCurrentNode(currentBlock.Number().Sub(currentBlock.Number(), common.Big1), currentBlock.ParentHash(), currentBlock.Number()) {
-			currentNodes := cbftEngine.CurrentNodes(currentBlock.Number().Sub(currentBlock.Number(), common.Big1), currentBlock.ParentHash(), currentBlock.Number())
+		blockNumber := currentBlock.Number()
+		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+		if cbftEngine.IsCurrentNode(parentNumber, currentBlock.ParentHash(), blockNumber) {
+			currentNodes := cbftEngine.CurrentNodes(parentNumber, currentBlock.ParentHash(), blockNumber)
 			for _, n := range currentNodes {
 				srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
 			}

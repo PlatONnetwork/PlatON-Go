@@ -182,7 +182,9 @@ func (cbft *Cbft) findBlockExt(hash common.Hash) *BlockExt {
 func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 	if sign != nil {
 		ext.signs = append(ext.signs, sign)
-		if len(ext.signs) >= cbft.getThreshold(ext.block.Number().Sub(ext.block.Number(), common.Big1), ext.block.ParentHash(), ext.block.Number()) {
+		blockNumber := ext.block.Number()
+		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+		if len(ext.signs) >= cbft.getThreshold(parentNumber, ext.block.ParentHash(), blockNumber) {
 			ext.isConfirmed = true
 		}
 	}
@@ -566,6 +568,7 @@ func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 func setHighestLogical(highestLogical *BlockExt) {
 	cbft.highestLogical = highestLogical
 	cbft.highestLogicalBlockCh <- highestLogical.block
+	log.Warn("xxxxxxxxxxxxxxxxxxxxxxxxxxxx222", "number", highestLogical.block.NumberU64())
 }
 
 func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
@@ -864,7 +867,9 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	curTime := toMilliseconds(time.Now())
 
-	keepIt := cbft.shouldKeepIt(block.Number().Sub(block.Number(),common.Big1), block.ParentHash(), block.Number(), curTime, producerNodeID)
+	blockNumber := block.Number()
+	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+	keepIt := cbft.shouldKeepIt(parentNumber, block.ParentHash(), blockNumber, curTime, producerNodeID)
 	log.Debug("check if block should be kept", "result", keepIt, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 	if !keepIt {
 		return errIllegalBlock
@@ -895,7 +900,9 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	parent := ext.findParent()
 	if parent != nil && parent.isLinked {
 		//inTurn := cbft.inTurnVerify(curTime, producerNodeID)
-		inTurn := cbft.inTurnVerify(block.Number().Sub(block.Number(),common.Big1), block.ParentHash(), block.Number(), curTime, producerNodeID)
+		blockNumber := block.Number()
+		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+		inTurn := cbft.inTurnVerify(parentNumber, block.ParentHash(), blockNumber, curTime, producerNodeID)
 		log.Debug("check if block is in turn", "result", inTurn, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 
 		passed := flowControl.control(producerNodeID, curTime)
@@ -1062,9 +1069,12 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	log.Debug("seal complete", "Hash", sealedBlock.Hash(), "number", block.NumberU64())
 
-	consensusNodes := cbft.ConsensusNodes(block.Number().Sub(block.Number(), common.Big1), block.ParentHash(), block.Number())
+	blockNumber := block.Number()
+	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+	consensusNodes := cbft.ConsensusNodes(parentNumber, block.ParentHash(), blockNumber)
 	if consensusNodes != nil && len(consensusNodes) == 1 {
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
+		log.Warn("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1111")
 		return cbft.handleNewConfirmed(curExt)
 	}
 

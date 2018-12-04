@@ -1211,7 +1211,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			log.Warn("---insertchain尝试连接下一轮共识节点---", "number", block.Number(), "state", state)
 			bc.attemptAddConsensusPeerFn(block.Number(), state)
 			log.Warn("---insertchain尝试断连上一轮共识节点---", "number", block.Number(), "state", state)
-			bc.attemptRemoveConsensusPeerFn(block.Number().Sub(block.Number(), common.Big1), block.ParentHash(), block.Number(), state)
+
+			blockNumber := block.Number()
+			parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+			bc.attemptRemoveConsensusPeerFn(parentNumber, block.ParentHash(), block.Number(), state)
 		}
 
 		switch status {

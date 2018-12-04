@@ -423,7 +423,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case head := <-w.chainHeadCh:
 			go func() {
 				blockNumber := head.Block.Number()
-				if cbftEngine,ok := w.engine.(consensus.Bft); ok && !cbftEngine.IsCurrentNode(blockNumber.Sub(blockNumber, common.Big1), head.Block.ParentHash(), blockNumber) {
+				parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+				if cbftEngine,ok := w.engine.(consensus.Bft); ok && !cbftEngine.IsCurrentNode(parentNumber, head.Block.ParentHash(), blockNumber) {
 					cbft.BlockSynchronisation()
 				}
 			}()
@@ -626,13 +627,24 @@ func (w *worker) mainLoop() {
 			// Broadcast the block and announce chain insertion event
 			log.Warn("------------出块prepareResultCh------------", "number", block.Number(), "hash", block.Hash(), "stateRoot", block.Header().Root)
 			log.Warn("Post PrepareMinedBlockEvent", "consensusNodes", task.consensusNodes)
-			w.mux.Post(core.PrepareMinedBlockEvent{Block: block, ConsensusNodes: task.consensusNodes})
+
+			// 更新nodeCache
+			blockNumber := block.Number()
+			parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+			log.Warn("setNodeCache", "parentNumber", parentNumber, "parentHash", block.ParentHash(), "blockNumber", blockNumber, "blockHash", block.Hash())
+			if state, err := w.chain.StateAt(block.Root()); err == nil {
+				w.setNodeCache(state, parentNumber, blockNumber, block.ParentHash(), block.Hash())
+				w.mux.Post(core.PrepareMinedBlockEvent{Block: block, ConsensusNodes: task.consensusNodes})
+			} else {
+				log.Info("setNodeCache get state error", "err", err)
+			}
 
 		case blockSignature := <-w.blockSignatureCh:
 			if blockSignature != nil {
 				// send blockSignatureMsg to consensus node peer
 				blockNumber := blockSignature.Number
-				consensusNodes := w.engine.(consensus.Bft).ConsensusNodes(blockNumber.Sub(blockNumber, common.Big1), blockSignature.ParentHash, blockNumber)
+				parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+				consensusNodes := w.engine.(consensus.Bft).ConsensusNodes(parentNumber, blockSignature.ParentHash, blockNumber)
 				if consensusNodes != nil {
 					log.Warn("Post BlockSignatureEvent", "consensusNodes", consensusNodes)
 					w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature, ConsensusNodes: consensusNodes})
@@ -833,7 +845,10 @@ func (w *worker) resultLoop() {
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})
 			w.attemptAddConsensusPeer(block.Number(), _state)
-			w.attemptRemoveConsensusPeer(block.Number().Sub(block.Number(),common.Big1), block.ParentHash(), block.Number(), _state)
+
+			blockNumber := block.Number()
+			parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+			w.attemptRemoveConsensusPeer(parentNumber, block.ParentHash(), blockNumber, _state)
 
 			var events []interface{}
 			switch stat {
@@ -1259,11 +1274,6 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	if err != nil {
 		return err
 	}
-	if header != nil {
-		// 更新nodeCache
-		blockNumber := block.Number()
-		w.setNodeCache(s, blockNumber.Sub(blockNumber, common.Big1), block.Number(), block.ParentHash(), block.Hash())
-	}
 	if w.isRunning() {
 		if interval != nil {
 			interval()
@@ -1298,7 +1308,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 
 func (w *worker) makePending() (*types.Block, *state.StateDB) {
 	var parent = w.commitWorkEnv.getHighestLogicalBlock()
-	if parent != nil && (w.snapshotBlock == nil || w.snapshotBlock.Hash().Hex() != parent.Hash().Hex()) {
+	if parent != nil && (w.snapshotBlock == nil || w.snapshotBlock.Hash() != parent.Hash()) {
 		parentNum := parent.Number()
 		header := &types.Header{
 			ParentHash: parent.Hash(),
@@ -1337,11 +1347,25 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 		log.Info("highestLogicalBlock", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash(), "hashhex", highestLogicalBlock.Hash().Hex())
 	}
 
-	shouldCommit := baseBlock == nil || baseBlock.Hash().Hex() != highestLogicalBlock.Hash().Hex()
+	shouldCommit := baseBlock == nil || baseBlock.Hash() != highestLogicalBlock.Hash()
 	if shouldCommit && timestamp != 0 {
 		shouldCommit = shouldCommit && (timestamp - commitTime >= w.recommit.Nanoseconds() / 1e6)
 	}
-	if shouldCommit && w.engine.(consensus.Bft).ShouldSeal(baseBlock.Number(), baseBlock.Hash(), highestLogicalBlock.Number()) {
+
+	if shouldCommit {
+		shouldSeal := false
+		if highestLogicalBlock.NumberU64() == 0 {	// 创世区块
+			shouldSeal = w.engine.(consensus.Bft).ShouldSeal(highestLogicalBlock.Number(), highestLogicalBlock.Hash(), common.Big1)
+		} else {
+			parentBlock := w.eth.BlockChain().GetBlock(highestLogicalBlock.ParentHash(), highestLogicalBlock.NumberU64()-1)
+			if parentBlock != nil {
+				shouldSeal = w.engine.(consensus.Bft).ShouldSeal(parentBlock.Number(), parentBlock.Hash(), highestLogicalBlock.Number())
+			}
+		}
+		shouldCommit = shouldCommit && shouldSeal
+	}
+
+	if shouldCommit {
 		w.commitWorkEnv.commitBaseBlock = highestLogicalBlock
 		w.commitWorkEnv.commitTime = time.Now().UnixNano() / 1e6
 	}

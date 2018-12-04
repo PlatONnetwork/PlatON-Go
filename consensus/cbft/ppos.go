@@ -195,13 +195,15 @@ func (d *ppos) consensusNodes(parentNumber *big.Int, parentHash common.Hash, blo
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
+	log.Warn("consensusNodes", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash, "blockNumber", blockNumber.Uint64())
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
+	pposm.PrintObject("consensusNodes nodeCache", nodeCache)
 	if nodeCache != nil {
-		if nodeCache.former != nil && blockNumber.Cmp(nodeCache.former.start) >= 0 && blockNumber.Cmp(nodeCache.former.end) <= 0 {
+		if nodeCache.former != nil && nodeCache.former.start != nil && nodeCache.former.end != nil && blockNumber.Cmp(nodeCache.former.start) >= 0 && blockNumber.Cmp(nodeCache.former.end) <= 0 {
 			return nodeCache.former.nodeIds
-		} else if nodeCache.current != nil && blockNumber.Cmp(nodeCache.current.start) >= 0 && blockNumber.Cmp(nodeCache.current.end) <= 0 {
+		} else if nodeCache.current != nil && nodeCache.current.start != nil && nodeCache.current.end != nil && blockNumber.Cmp(nodeCache.current.start) >= 0 && blockNumber.Cmp(nodeCache.current.end) <= 0 {
 			return nodeCache.current.nodeIds
-		} else if nodeCache.next != nil && blockNumber.Cmp(nodeCache.next.start) >= 0 && blockNumber.Cmp(nodeCache.next.end) <= 0 {
+		} else if nodeCache.next != nil && nodeCache.next.start != nil && nodeCache.next.end != nil && blockNumber.Cmp(nodeCache.next.start) >= 0 && blockNumber.Cmp(nodeCache.next.end) <= 0 {
 			return nodeCache.next.nodeIds
 		}
 	}

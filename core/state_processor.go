@@ -26,6 +26,7 @@ import (
 	"Platon-go/crypto"
 	"Platon-go/params"
 	"Platon-go/log"
+	"math/big"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -97,7 +98,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		// 更新nodeCache
 		blockNumber := block.Number()
 		log.Warn("---Process更新nodeCache---", "number", block.Number())
-		cbftEngine.SetNodeCache(statedb, blockNumber.Sub(blockNumber, common.Big1), block.Number(), block.ParentHash(), block.Hash())
+		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+		cbftEngine.SetNodeCache(statedb, parentNumber, blockNumber, block.ParentHash(), block.Hash())
 	}
 
 	return receipts, allLogs, *usedGas, nil
