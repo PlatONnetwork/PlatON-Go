@@ -847,7 +847,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 				nextRound.nodes = make([]*discover.Node, len(parentCurRound.nodes))
 				copy(nextRound.nodes, parentCurRound.nodes)
 			}
-		}else if (currentNumber % BaseElection) != 0 && (currentNumber / BaseElection) == round {  // election index < cur index < switch index
+		}else if (currentNumber % BaseElection) != 0 && (currentNumber / BaseElection) == round && (currentNumber % BaseSwitchWitness) != 0 {  // election index < cur index < switch index
 			parentNextRound := d.nodeRound.getNextRound(parentNumBigInt, parentHash)
 			if nil != parentNextRound {
 				nextRound.nodeIds = make([]discover.NodeID, len(parentNextRound.nodeIds))
@@ -1019,7 +1019,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 		copy(nextRound.nodes, curr_nextNodes)
 	}else { // Reference parent
 
-		if (currentNumber % BaseElection) == 0 || ((currentNumber % BaseElection) != 0 && (currentNumber / BaseElection) == round) { // election index == cur index || election index < cur index < switch index
+		if (currentNumber % BaseElection) == 0 || ((currentNumber % BaseElection) != 0 && (currentNumber / BaseElection) == round && (currentNumber % BaseSwitchWitness) != 0) { // election index == cur index || election index < cur index < switch index
 
 			genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash)
 			if nil != genesisCurRound {
