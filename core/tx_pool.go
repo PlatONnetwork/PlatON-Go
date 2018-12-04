@@ -798,7 +798,7 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 
 	pool.txExtBuffer <- txExt
 
-	log.Debug("--------- AddLocal txExtBuffer --------", "bufferLength", len(pool.txExtBuffer), "bufferCapacity", cap(pool.txExtBuffer), "timestamp(Nano)", time.Now().UnixNano())
+	//log.Debug("--------- AddLocal txExtBuffer --------", "bufferLength", len(pool.txExtBuffer), "bufferCapacity", cap(pool.txExtBuffer), "timestamp(Nano)", time.Now().UnixNano())
 
 	err := <-errCh
 	if e, ok := err.(error); ok {
