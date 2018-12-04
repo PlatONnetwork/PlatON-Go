@@ -68,6 +68,7 @@ type Cbft struct {
 	highestConfirmed      *BlockExt                 //highest confirmed block, it will be written to chain
 	signedSet             map[uint64]struct{}       //all block numbers signed by local node
 	lock                  sync.RWMutex
+	consensusCache *Cache //cache for cbft consensus
 
 	netLatencyMap map[discover.NodeID]*list.List
 }
@@ -111,8 +112,6 @@ type BlockExt struct {
 	isConfirmed bool
 	number      uint64
 	signs       []*common.BlockConfirmSign //all signs for block
-	Receipts    types.Receipts
-	State       *state.StateDB
 }
 
 // New creates a BlockExt object
@@ -412,7 +411,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 // execute executes the block's transactions based on its parent
 // if success then save the receipts and state to consensusCache
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
-	state, err := cbft.blockChain.StateAt(parent.block.Root())
+	state, err := cbft.consensusCache.MakeStateDB(parent.block)
 	if err != nil {
 		log.Error("execute block error, cannot make state based on parent")
 		return
@@ -421,8 +420,9 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	//to execute
 	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block)
 	if err == nil {
-		ext.Receipts = receipts
-		ext.State = state
+		//save the receipts and state to consensusCache
+		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
+		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
 	} else {
 		log.Error("execute a block error", err)
 	}
@@ -523,6 +523,10 @@ func (cbft *Cbft) backTrackTillStored(newConfirmed *BlockExt) []*BlockExt {
 func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	cbft.config.PrivateKey = privateKey
 	cbft.config.NodeID = discover.PubkeyID(&privateKey.PublicKey)
+}
+
+func SetConsensusCache(cache *Cache) {
+	cbft.consensusCache = cache
 }
 
 // setHighestLogical sets highest logical block and send it to the highestLogicalBlockCh
@@ -1172,8 +1176,6 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 		cbftResult := &cbfttypes.CbftResult{
 			Block:             ext.block,
 			BlockConfirmSigns: ext.signs,
-			Receipts:          ext.Receipts,
-			State:             ext.State,
 		}
 		ext.isStored = true
 		log.Debug("send to channel", "Hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
