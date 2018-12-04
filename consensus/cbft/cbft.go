@@ -341,7 +341,7 @@ func (cbft *Cbft) findHighestSignedByLocal(ext *BlockExt) *BlockExt {
 
 // handleBlockAndDescendant executes the block's transactions and its descendant, and sign the block and its descendant if possible
 func (cbft *Cbft) handleBlockAndDescendant(ext *BlockExt, parent *BlockExt, signIfPossible bool) {
-	log.Debug("handle block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
+	log.Debug("handle block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signIfPossible", signIfPossible)
 
 	cbft.executeBlockAndDescendant(ext, parent)
 

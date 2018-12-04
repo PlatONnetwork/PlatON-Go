@@ -1067,7 +1067,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		header.Coinbase = w.coinbase
 	}
 
-	log.Warn("[1]共识开始", "blockNumber", header.Number, "timestamp", time.Now().UnixNano()/1e6)
+	log.Warn("[1]共识开始", "gasLimit", header.GasLimit, "blockNumber", header.Number, "timestamp", time.Now().UnixNano()/1e6)
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
