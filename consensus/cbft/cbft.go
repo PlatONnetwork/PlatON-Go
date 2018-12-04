@@ -279,7 +279,7 @@ func (lower *BlockExt) isAncestor(higher *BlockExt) bool {
 
 // findNewHighestConfirmed finds a new highest confirmed blockExt from ext start; If there are multiple highest confirmed blockExts, return the first.
 func (cbft *Cbft) findNewHighestConfirmed(ext *BlockExt) *BlockExt {
-	log.Trace("find first, highest confirmed block ")
+	log.Debug("find first, highest confirmed block ")
 	found := ext
 	if !found.isConfirmed {
 		found = nil
@@ -299,7 +299,7 @@ func (cbft *Cbft) findNewHighestConfirmed(ext *BlockExt) *BlockExt {
 
 // findHighest finds the highest block from ext start; If there are multiple highest blockExts, return the one that has most signs
 func (cbft *Cbft) findHighest(ext *BlockExt) *BlockExt {
-	log.Trace("find highest block")
+	log.Debug("find highest block")
 	highest := ext
 	//each child has non-nil block
 	children := ext.findChildren()
@@ -316,7 +316,7 @@ func (cbft *Cbft) findHighest(ext *BlockExt) *BlockExt {
 
 // findHighestSignedByLocal finds the highest block signed by local node from ext start; If there are multiple highest blockExts, return the one that has most signs
 func (cbft *Cbft) findHighestSignedByLocal(ext *BlockExt) *BlockExt {
-	log.Trace("find highest block has most signs")
+	log.Debug("find highest block has most signs")
 	highest := ext
 
 	if !highest.isSigned {
@@ -341,7 +341,7 @@ func (cbft *Cbft) findHighestSignedByLocal(ext *BlockExt) *BlockExt {
 
 // handleBlockAndDescendant executes the block's transactions and its descendant, and sign the block and its descendant if possible
 func (cbft *Cbft) handleBlockAndDescendant(ext *BlockExt, parent *BlockExt, signIfPossible bool) {
-	log.Trace("handle block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
+	log.Debug("handle block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 
 	cbft.executeBlockAndDescendant(ext, parent)
 
@@ -365,7 +365,7 @@ func (cbft *Cbft) handleBlockAndDescendant(ext *BlockExt, parent *BlockExt, sign
 
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlockAndDescendant(ext *BlockExt, parent *BlockExt) {
-	log.Trace("execute block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
+	log.Debug("execute block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 	if ext.isLinked == false {
 		cbft.execute(ext, parent)
 		ext.isLinked = true
@@ -384,7 +384,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 	sealHash := sealHash(ext.block.Header())
 	signature, err := cbft.signFn(sealHash.Bytes())
 	if err == nil {
-		log.Trace("Sign block ", "Hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature))
+		log.Debug("Sign block ", "Hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature))
 
 		sign := common.NewBlockConfirmSign(signature)
 		ext.isSigned = true
@@ -431,7 +431,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 // backTrackBlocks return blocks from start to end, these blocks are in a same tree branch.
 // The result is sorted by block number from lower to higher.
 func (cbft *Cbft) backTrackBlocks(start *BlockExt, end *BlockExt, includeEnd bool) []*BlockExt {
-	log.Trace("back track blocks", "startHash", start.block.Hash(), "startParentHash", end.block.ParentHash(), "endHash", start.block.Hash())
+	log.Debug("back track blocks", "startHash", start.block.Hash(), "startParentHash", end.block.ParentHash(), "endHash", start.block.Hash())
 
 	found := false
 	logicalExts := make([]*BlockExt, 1)
@@ -476,7 +476,7 @@ func reverse(s []*BlockExt) {
 // The result is sorted by block number from lower to higher.
 func (cbft *Cbft) backTrackTillStored(newConfirmed *BlockExt) []*BlockExt {
 
-	log.Trace("found new block to store", "Hash", newConfirmed.block.Hash(), "ParentHash", newConfirmed.block.ParentHash(), "number", newConfirmed.block.NumberU64())
+	log.Debug("found new block to store", "Hash", newConfirmed.block.Hash(), "ParentHash", newConfirmed.block.ParentHash(), "number", newConfirmed.block.NumberU64())
 
 	existMap := make(map[common.Hash]struct{})
 
@@ -533,7 +533,7 @@ func setHighestLogical(highestLogical *BlockExt) {
 
 // SetBackend sets blockChain and txPool into cbft
 func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
-	log.Trace("call SetBackend()")
+	log.Debug("call SetBackend()")
 
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
@@ -568,7 +568,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.
 // This function is invoked after that local has synced new blocks from other node.
 func BlockSynchronisation() {
-	log.Trace("call BlockSynchronisation()")
+	log.Debug("call BlockSynchronisation()")
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
@@ -714,7 +714,7 @@ func (cbft *Cbft) handleNewConfirmed(newConfirmed *BlockExt) error {
 }
 
 func (cbft *Cbft) handleNewConfirmedContinue(newConfirmed *BlockExt, blocksToStore []*BlockExt) error {
-	log.Trace("call handleNewConfirmedContinue()", "blockCount", len(blocksToStore))
+	log.Debug("call handleNewConfirmedContinue()", "blockCount", len(blocksToStore))
 
 	cbft.storeBlocks(blocksToStore)
 
@@ -739,7 +739,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Trace("=== call handleNewConfirmedContinue() ===", "Hash", sig.Hash, "number", sig.Number.Uint64())
+	log.Debug("=== call handleNewConfirmedContinue() ===", "Hash", sig.Hash, "number", sig.Number.Uint64())
 
 	if sig.Number.Uint64() <= cbft.highestConfirmed.number {
 		log.Warn("block sign is too late")
@@ -768,7 +768,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 		return cbft.handleNewConfirmed(ext)
 	}
 
-	log.Trace("=== end to handle new signature ===", "Hash", sig.Hash, "number", sig.Number.Uint64())
+	log.Debug("=== end to handle new signature ===", "Hash", sig.Hash, "number", sig.Number.Uint64())
 
 	return nil
 }
@@ -779,7 +779,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Trace("=== call blockReceiver() ===", "Hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash())
+	log.Debug("=== call blockReceiver() ===", "Hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash())
 
 	if block.NumberU64() <= cbft.highestConfirmed.block.NumberU64() {
 		log.Warn("Received block is lower than the highestConfirmed block")
@@ -846,41 +846,41 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 			return cbft.handleNewConfirmed(newConfirmed)
 		}
 	} else {
-		log.Trace("cannot find block's parent, just keep it")
+		log.Warn("cannot find block's parent, just keep it")
 	}
 
-	log.Trace("=== end to handle block ===", "Hash", block.Hash(), "number", block.Number().Uint64())
+	log.Debug("=== end to handle block ===", "Hash", block.Hash(), "number", block.Number().Uint64())
 	return nil
 }
 
 // ShouldSeal checks if it's local's turn to package new block at current time.
 func (cbft *Cbft) ShouldSeal() (bool, error) {
-	log.Trace("call ShouldSeal()")
+	log.Debug("call ShouldSeal()")
 	return cbft.inTurn(), nil
 }
 
 // ConsensusNodes returns all consensus nodes.
 func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
-	log.Trace("call ConsensusNodes()", "dposNodeCount", len(cbft.dpos.primaryNodeList))
+	log.Debug("call ConsensusNodes()", "dposNodeCount", len(cbft.dpos.primaryNodeList))
 	return cbft.dpos.primaryNodeList, nil
 }
 
 // CheckConsensusNode check if the nodeID is a consensus node.
 func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Trace("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
 	return cbft.dpos.NodeIndex(nodeID) >= 0, nil
 }
 
 // IsConsensusNode check if local is a consensus node.
 func (cbft *Cbft) IsConsensusNode() (bool, error) {
-	log.Trace("call IsConsensusNode()")
+	log.Debug("call IsConsensusNode()")
 	return cbft.dpos.NodeIndex(cbft.config.NodeID) >= 0, nil
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
-	log.Trace("call Author()", "Hash", header.Hash(), "number", header.Number.Uint64())
+	log.Debug("call Author()", "Hash", header.Hash(), "number", header.Number.Uint64())
 	return header.Coinbase, nil
 }
 
@@ -930,7 +930,7 @@ func (cbft *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) 
 // VerifySeal implements consensus.Engine, checking whether the signature contained
 // in the header satisfies the consensus protocol requirements.
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	log.Trace("call VerifySeal()", "Hash", header.Hash(), "number", header.Number.String())
+	log.Debug("call VerifySeal()", "Hash", header.Hash(), "number", header.Number.String())
 
 	return cbft.verifySeal(chain, header, nil)
 }
@@ -1038,19 +1038,19 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 // that a new block should have based on the previous blocks in the chain and the
 // current signer.
 func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
-	log.Trace("call CalcDifficulty()", "time", time, "parentHash", parent.Hash(), "parentNumber", parent.Number.Uint64())
+	log.Debug("call CalcDifficulty()", "time", time, "parentHash", parent.Hash(), "parentNumber", parent.Number.Uint64())
 	return big.NewInt(2)
 }
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
-	log.Trace("call SealHash()", "Hash", header.Hash(), "number", header.Number.Uint64())
+	log.Debug("call SealHash()", "Hash", header.Hash(), "number", header.Number.Uint64())
 	return sealHash(header)
 }
 
 // Close implements consensus.Engine. It's a noop for cbft as there is are no background threads.
 func (cbft *Cbft) Close() error {
-	log.Trace("call Close()")
+	log.Debug("call Close()")
 
 	var err error
 	cbft.closeOnce.Do(func() {
@@ -1069,7 +1069,7 @@ func (cbft *Cbft) Close() error {
 // APIs implements consensus.Engine, returning the user facing RPC API to allow
 // controlling the signer voting.
 func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
-	log.Trace("call APIs()")
+	log.Debug("call APIs()")
 
 	return []rpc.API{{
 		Namespace: "cbft",
@@ -1081,7 +1081,7 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 
 // OnBlockSignature is called by by protocol handler when it received a new block signature by P2P.
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, rcvSign *cbfttypes.BlockSignature) error {
-	log.Trace("call OnBlockSignature()", "Hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
+	log.Debug("call OnBlockSignature()", "Hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
 
 	ok, err := verifySign(nodeID, rcvSign.SignHash, rcvSign.Signature[:])
 	if err != nil {
@@ -1101,7 +1101,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 // OnNewBlock is called by protocol handler when it received a new block by P2P.
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Trace("call OnNewBlock()", "Hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
+	log.Debug("call OnNewBlock()", "Hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
 
 	cbft.dataReceiveCh <- rcvBlock
 	return nil
@@ -1109,7 +1109,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 
 // OnPong is called by protocol handler when it received a new Pong message by P2P.
 func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
-	log.Trace("call OnPong()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency)
+	log.Debug("call OnPong()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency)
 	if netLatency >= maxPingLatency {
 		return nil
 	}
