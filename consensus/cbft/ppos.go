@@ -533,14 +533,16 @@ func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Ha
 	res := d.nodeRound[blockNumber]
 	round := res[blockHash]
 	log.Info(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-	if nil != round.former{
-		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 上一轮: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
-	}
-	if nil != round.current {
-		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 当前轮: start:" + round.current.start.String() + ", end:" + round.current.end.String() + ", nodes: ", round.current.nodes)
-	}
-	if nil != round.next {
-		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 下一轮: start:" + round.next.start.String() + ", end:" + round.next.end.String() + ", nodes: ", round.next.nodes)
+	if nil != round {
+		if nil != round.former{
+			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 上一轮: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
+		}
+		if nil != round.current {
+			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 当前轮: start:" + round.current.start.String() + ", end:" + round.current.end.String() + ", nodes: ", round.current.nodes)
+		}
+		if nil != round.next {
+			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 下一轮: start:" + round.next.start.String() + ", end:" + round.next.end.String() + ", nodes: ", round.next.nodes)
+		}
 	}
 }
 
@@ -853,8 +855,14 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 		}
 	}
 
-	if currentNumber == 457 {
-
+	if currentNumber == 486 {
+		fmt.Println()
+	}
+	if currentNumber == 487 {
+		fmt.Println()
+	}
+	if currentNumber == 488 {
+		fmt.Println()
 	}
 	// next
 	nextRound := &pposRound{}
@@ -1035,8 +1043,14 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 		}
 	}
 
-	if currentNumber == 457 {
-
+	if currentNumber == 486 {
+		fmt.Println()
+	}
+	if currentNumber == 487 {
+		fmt.Println()
+	}
+	if currentNumber == 488 {
+		fmt.Println()
 	}
 	// next
 	nextRound := &pposRound{}
@@ -1101,14 +1115,16 @@ func (d *ppos) cleanNodeRound () {
 // param invalid              -2
 func cmpElection (round, currentNumber uint64) int {
 	// last num of round
-	last := round * BaseSwitchWitness
-	ele_sub := uint64(BaseSwitchWitness - BaseElection)
-	curr_sub := last - currentNumber
-	if curr_sub < 0  {
+	last := int(round * BaseSwitchWitness)
+	ele_sub := int(BaseSwitchWitness - BaseElection)
+	curr_sub := last - int(currentNumber)
+	sub := ele_sub - curr_sub
+	fmt.Println("sss ", sub)
+	if curr_sub < int(0)  {
 		return -2
-	}else if ele_sub - curr_sub > 0 {
+	}else if sub > int(0) {
 		return 1
-	}else if ele_sub - curr_sub == 0 {
+	}else if sub == int(0) {
 		return 0
 	}else {
 		return -1
