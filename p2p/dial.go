@@ -134,7 +134,7 @@ func newDialState(static []*discover.Node, bootnodes []*discover.Node, ntab disc
 		ntab:        ntab,
 		netrestrict: netrestrict,
 		static:      make(map[discover.NodeID]*dialTask),
-		consensus:	 make(map[discover.NodeID]*dialTask),
+		consensus:   make(map[discover.NodeID]*dialTask),
 		dialing:     make(map[discover.NodeID]connFlag),
 		bootnodes:   make([]*discover.Node, len(bootnodes)),
 		randomNodes: make([]*discover.Node, maxdyn/2),
@@ -220,9 +220,9 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 
 	// Create dials for consensus nodes if they are not connected.
 	for id, t := range s.consensus {
-		log.Warn("consensus task", "info", s.consensus)
+		//log.Warn("consensus task", "info", s.consensus)
 		err := s.checkDial(t.dest, peers)
-		log.Warn("checkDial", "err", err)
+		//log.Warn("checkDial", "err", err)
 		switch err {
 		case errNotWhitelisted, errSelf:
 			log.Warn("Removing consensus dial candidate", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}, "err", err)
