@@ -855,38 +855,38 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 // ShouldSeal checks if it's local's turn to package new block at current time.
 func (cbft *Cbft) ShouldSeal() (bool, error) {
-	log.Debug("call ShouldSeal()")
+	log.Trace("call ShouldSeal()")
 	return cbft.inTurn(), nil
 }
 
 // ConsensusNodes returns all consensus nodes.
 func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
-	log.Debug("call ConsensusNodes()", "dposNodeCount", len(cbft.dpos.primaryNodeList))
+	log.Trace("call ConsensusNodes()", "dposNodeCount", len(cbft.dpos.primaryNodeList))
 	return cbft.dpos.primaryNodeList, nil
 }
 
 // CheckConsensusNode check if the nodeID is a consensus node.
 func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+	log.Trace("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
 	return cbft.dpos.NodeIndex(nodeID) >= 0, nil
 }
 
 // IsConsensusNode check if local is a consensus node.
 func (cbft *Cbft) IsConsensusNode() (bool, error) {
-	log.Debug("call IsConsensusNode()")
+	log.Trace("call IsConsensusNode()")
 	return cbft.dpos.NodeIndex(cbft.config.NodeID) >= 0, nil
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
-	log.Debug("call Author()", "Hash", header.Hash(), "number", header.Number.Uint64())
+	log.Trace("call Author()", "Hash", header.Hash(), "number", header.Number.Uint64())
 	return header.Coinbase, nil
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules.
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	log.Debug("call VerifyHeader()", "Hash", header.Hash(), "number", header.Number.Uint64(), "seal", seal)
+	log.Trace("call VerifyHeader()", "Hash", header.Hash(), "number", header.Number.Uint64(), "seal", seal)
 
 	if header.Number == nil {
 		return errUnknownBlock
@@ -902,7 +902,7 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 // method returns a quit channel to abort the operations and a results channel to
 // retrieve the async verifications (the order is that of the input slice).
 func (cbft *Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
-	log.Debug("call VerifyHeaders()", "Headers count", len(headers))
+	log.Trace("call VerifyHeaders()", "Headers count", len(headers))
 
 	abort := make(chan struct{})
 	results := make(chan error, len(headers))
@@ -930,7 +930,7 @@ func (cbft *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) 
 // VerifySeal implements consensus.Engine, checking whether the signature contained
 // in the header satisfies the consensus protocol requirements.
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	log.Debug("call VerifySeal()", "Hash", header.Hash(), "number", header.Number.String())
+	log.Trace("call VerifySeal()", "Hash", header.Hash(), "number", header.Number.String())
 
 	return cbft.verifySeal(chain, header, nil)
 }
@@ -1038,7 +1038,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 // that a new block should have based on the previous blocks in the chain and the
 // current signer.
 func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *types.Header) *big.Int {
-	log.Debug("call CalcDifficulty()", "time", time, "parentHash", parent.Hash(), "parentNumber", parent.Number.Uint64())
+	log.Trace("call CalcDifficulty()", "time", time, "parentHash", parent.Hash(), "parentNumber", parent.Number.Uint64())
 	return big.NewInt(2)
 }
 
@@ -1050,7 +1050,7 @@ func (b *Cbft) SealHash(header *types.Header) common.Hash {
 
 // Close implements consensus.Engine. It's a noop for cbft as there is are no background threads.
 func (cbft *Cbft) Close() error {
-	log.Debug("call Close()")
+	log.Trace("call Close()")
 
 	var err error
 	cbft.closeOnce.Do(func() {
@@ -1069,7 +1069,7 @@ func (cbft *Cbft) Close() error {
 // APIs implements consensus.Engine, returning the user facing RPC API to allow
 // controlling the signer voting.
 func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
-	log.Debug("call APIs()")
+	log.Trace("call APIs()")
 
 	return []rpc.API{{
 		Namespace: "cbft",
@@ -1101,7 +1101,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 // OnNewBlock is called by protocol handler when it received a new block by P2P.
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Debug("call OnNewBlock()", "Hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
+	log.Trace("call OnNewBlock()", "Hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
 
 	cbft.dataReceiveCh <- rcvBlock
 	return nil
@@ -1109,7 +1109,7 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 
 // OnPong is called by protocol handler when it received a new Pong message by P2P.
 func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
-	log.Debug("call OnPong()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency)
+	log.Trace("call OnPong()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency)
 	if netLatency >= maxPingLatency {
 		return nil
 	}

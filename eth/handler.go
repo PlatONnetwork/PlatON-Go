@@ -340,9 +340,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	}
 	defer msg.Discard()
 
-	code := fmt.Sprintf("msg.Code: 0x%x", msg.Code)
-	log.Debug("eth message code:::", " msg.Code", code)
-
 	// Handle the message depending on its contents
 	switch {
 	case msg.Code == StatusMsg:
