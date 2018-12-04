@@ -28,6 +28,13 @@ import (
 	"time"
 )
 
+const (
+	former int32 = iota
+	current
+	next
+	all
+)
+
 var (
 	errSign                = errors.New("sign error")
 	errUnauthorizedSigner  = errors.New("unauthorized signer")
@@ -1255,7 +1262,7 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 
 func (cbft *Cbft) inTurn(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime, cbft.config.NodeID)
+	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime, cbft.config.NodeID, current)
 	log.Debug("inTurn", "result", inturn)
 	return inturn
 }
@@ -1278,7 +1285,7 @@ func (cbft *Cbft) inTurnVerify(parentNumber *big.Int, parentHash common.Hash, bl
 		log.Debug("inTurnVerify, return false cause of net latency", "result", false, "latency", latency)
 		return false
 	}
-	inTurnVerify := cbft.calTurn(parentNumber, parentHash, blockNumber, curTime-latency, nodeID)
+	inTurnVerify := cbft.calTurn(parentNumber, parentHash, blockNumber, curTime-latency, nodeID, all)
 	log.Debug("inTurnVerify", "result", inTurnVerify, "latency", latency)
 	return inTurnVerify
 }
@@ -1286,16 +1293,16 @@ func (cbft *Cbft) inTurnVerify(parentNumber *big.Int, parentHash common.Hash, bl
 //time in milliseconds
 func (cbft *Cbft) shouldKeepIt(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, curTime int64, nodeID discover.NodeID) bool {
 	offset := 1000 * (cbft.config.Duration/2 - 1)
-	keepIt := cbft.calTurn(parentNumber, parentHash, blockNumber, curTime-offset, nodeID)
+	keepIt := cbft.calTurn(parentNumber, parentHash, blockNumber, curTime-offset, nodeID, all)
 	if !keepIt {
-		keepIt = cbft.calTurn(parentNumber, parentHash, blockNumber, curTime+offset, nodeID)
+		keepIt = cbft.calTurn(parentNumber, parentHash, blockNumber, curTime+offset, nodeID, all)
 	}
 	log.Debug("shouldKeepIt", "result", keepIt, "offset", offset)
 	return keepIt
 }
 
-func (cbft *Cbft) calTurn(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, curTime int64, nodeID discover.NodeID) bool {
-	nodeIdx := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, blockNumber, nodeID)
+func (cbft *Cbft) calTurn(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, curTime int64, nodeID discover.NodeID, round int32) bool {
+	nodeIdx := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, blockNumber, nodeID, round)
 	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {

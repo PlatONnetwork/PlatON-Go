@@ -10,9 +10,9 @@ import (
 	"Platon-go/log"
 	"Platon-go/p2p/discover"
 	"Platon-go/params"
+	"fmt"
 	"math/big"
 	"sync"
-	"fmt"
 )
 
 type ppos struct {
@@ -90,22 +90,45 @@ func newPpos(/*initialNodes []discover.Node, */config *params.CbftConfig) *ppos 
 //	return int64(-1)
 //}
 
-func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID) int64 {
+func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) int64 {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
-	log.Warn("BlockProducerIndex", "parentNumber", parentNumber, "parentHash", parentHash, "blockNumber", blockNumber, "nodeID", nodeID)
+	log.Warn("BlockProducerIndex", "parentNumber", parentNumber, "parentHash", parentHash, "blockNumber", blockNumber, "nodeID", nodeID, "round", round)
 	pposm.PrintObject("BlockProducerIndex nodeID", nodeID)
 
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
 	d.printMapInfo("BlockProducerIndex", parentNumber.Uint64(), parentHash)
+
 	if nodeCache != nil {
-		if nodeCache.former != nil && nodeCache.former.start != nil && nodeCache.former.end != nil && blockNumber.Cmp(nodeCache.former.start) >= 0 && blockNumber.Cmp(nodeCache.former.end) <= 0 {
-			return d.roundIndex(nodeID, nodeCache.former)
-		} else if nodeCache.current != nil && nodeCache.current.start != nil && nodeCache.current.end != nil && blockNumber.Cmp(nodeCache.current.start) >= 0 && blockNumber.Cmp(nodeCache.current.end) <= 0 {
-			return d.roundIndex(nodeID, nodeCache.current)
-		} else if nodeCache.next != nil && nodeCache.next.start != nil && nodeCache.next.end != nil && blockNumber.Cmp(nodeCache.next.start) >= 0 && blockNumber.Cmp(nodeCache.next.end) <= 0 {
-			return d.roundIndex(nodeID, nodeCache.next)
+		_former := nodeCache.former
+		_current := nodeCache.current
+		_next := nodeCache.next
+
+		switch round {
+			case former:
+				if _former != nil && _former.start != nil && _former.end != nil && blockNumber.Cmp(_former.start) >= 0 && blockNumber.Cmp(_former.end) <= 0 {
+					return d.roundIndex(nodeID, _former)
+				}
+
+			case current:
+				if _current != nil && _current.start != nil && _current.end != nil && blockNumber.Cmp(_current.start) >= 0 && blockNumber.Cmp(_current.end) <= 0 {
+					return d.roundIndex(nodeID, _current)
+				}
+
+			case next:
+				if _next != nil && _next.start != nil && _next.end != nil && blockNumber.Cmp(_next.start) >= 0 && blockNumber.Cmp(_next.end) <= 0 {
+					return d.roundIndex(nodeID, _next)
+				}
+
+			default:
+				if _former != nil && _former.start != nil && _former.end != nil && blockNumber.Cmp(_former.start) >= 0 && blockNumber.Cmp(_former.end) <= 0 {
+					return d.roundIndex(nodeID, _former)
+				} else if _current != nil && _current.start != nil && _current.end != nil && blockNumber.Cmp(_current.start) >= 0 && blockNumber.Cmp(_current.end) <= 0 {
+					return d.roundIndex(nodeID, _current)
+				} else if _next != nil && _next.start != nil && _next.end != nil && blockNumber.Cmp(_next.start) >= 0 && blockNumber.Cmp(_next.end) <= 0 {
+					return d.roundIndex(nodeID, _next)
+				}
 		}
 	}
 	return -1

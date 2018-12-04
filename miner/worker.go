@@ -1347,10 +1347,9 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 		if highestLogicalBlock.NumberU64() == 0 {	// 创世区块
 			shouldSeal = w.engine.(consensus.Bft).ShouldSeal(highestLogicalBlock.Number(), highestLogicalBlock.Hash(), common.Big1)
 		} else {
-			parentBlock := w.eth.BlockChain().GetBlock(highestLogicalBlock.ParentHash(), highestLogicalBlock.NumberU64()-1)
-			if parentBlock != nil {
-				shouldSeal = w.engine.(consensus.Bft).ShouldSeal(parentBlock.Number(), parentBlock.Hash(), highestLogicalBlock.Number())
-			}
+			//parentBlock := w.eth.BlockChain().GetBlock(highestLogicalBlock.ParentHash(), highestLogicalBlock.NumberU64()-1)
+			num := highestLogicalBlock.Number()
+			shouldSeal = w.engine.(consensus.Bft).ShouldSeal(num, highestLogicalBlock.Hash(), new(big.Int).Add(num, common.Big1))
 		}
 		shouldCommit = shouldCommit && shouldSeal
 	}
