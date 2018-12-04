@@ -636,6 +636,7 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 				log.Error("Failed to setEarliestIrrNodeCache", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 				panic("Failed to setEarliestIrrNodeCache currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 			}
+			d.printMapInfo("分叉时重新加载最早块", currentNum, currentHash)
 			continue
 		}
 
@@ -650,6 +651,7 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 				panic("Failed to setGeneralNodeCache currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 			}
 		}
+		d.printMapInfo("分叉时重新加载前面普通块", currentNum, currentHash)
 	}
 
 
@@ -678,7 +680,6 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 	//	curBlockHash = parentHash
 	//	count ++
 	//}
-	pposm.PrintObject("分叉重载时, nodeRound:", d.nodeRound)
 }
 
 func convertNodeID(nodes []*discover.Node) []discover.NodeID {
