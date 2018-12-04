@@ -1263,7 +1263,7 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 func (cbft *Cbft) inTurn(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	curTime := toMilliseconds(time.Now())
 	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime, cbft.config.NodeID, current)
-	log.Debug("inTurn", "result", inturn)
+	log.Info("inTurn", "result", inturn)
 	return inturn
 }
 
