@@ -98,6 +98,7 @@ func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash,
 	pposm.PrintObject("BlockProducerIndex nodeID", nodeID)
 
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
+	d.printMapInfo("BlockProducerIndex", parentNumber.Uint64(), parentHash)
 	if nodeCache != nil {
 		if nodeCache.former != nil && blockNumber.Cmp(nodeCache.former.start) >= 0 && blockNumber.Cmp(nodeCache.former.end) <= 0 {
 			return d.roundIndex(nodeID, nodeCache.former)
@@ -197,7 +198,7 @@ func (d *ppos) consensusNodes(parentNumber *big.Int, parentHash common.Hash, blo
 
 	log.Warn("consensusNodes", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash, "blockNumber", blockNumber.Uint64())
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
-	pposm.PrintObject("consensusNodes nodeCache", nodeCache)
+	d.printMapInfo("consensusNodes nodeCache", parentNumber.Uint64(), parentHash)
 	if nodeCache != nil {
 		if nodeCache.former != nil && nodeCache.former.start != nil && nodeCache.former.end != nil && blockNumber.Cmp(nodeCache.former.start) >= 0 && blockNumber.Cmp(nodeCache.former.end) <= 0 {
 			return nodeCache.former.nodeIds
@@ -351,6 +352,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 	genesis := blockChain.Genesis()
 	// init roundCache by config
 	d.nodeRound = buildGenesisRound(genesis.NumberU64(), genesis.Hash(), initialNodes)
+	d.printMapInfo("启动时读取创世块配置", genesis.NumberU64(), genesis.Hash())
 	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
 	if genesis.NumberU64() != blockChain.CurrentBlock().NumberU64() {
 
@@ -417,6 +419,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 					log.Error("Failed to setEarliestIrrNodeCache", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 					panic("Failed to setEarliestIrrNodeCache currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 				}
+				d.printMapInfo("启动时重新加载最早块", currentNum, currentHash)
 				continue
 			}
 
@@ -431,6 +434,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 					panic("Failed to setGeneralNodeCache currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 				}
 			}
+			d.printMapInfo("启动时重新加载前面普通快", currentNum, currentHash)
 		}
 
 		//for {
@@ -459,7 +463,6 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 		//	count ++
 		//}
 	}
-	pposm.PrintObject("启动node时, nodeRound:", d.nodeRound)
 }
 
 
@@ -496,14 +499,23 @@ func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes [
 		former: 	formerRound,
 		current: 	currentRound,
 	}
-
-	nodeRound := make(roundCache, 0)
+	res := make(roundCache, 0)
 	hashRound := make(map[common.Hash]*nodeCache, 0)
 	hashRound[blockHash] = node
-	nodeRound[blockNumber] = hashRound
-	return nodeRound
+	res[blockNumber] = hashRound
+	return res
 }
 
+func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Hash){
+	res := d.nodeRound[blockNumber]
+	round := res[blockHash]
+	log.Info(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
+	pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 上一轮: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
+	pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 当前轮: start:" + round.current.start.String() + ", end:" + round.current.end.String() + ", nodes: ", round.current.nodes)
+	if nil != round.next {
+		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 下一轮: start:" + round.next.start.String() + ", end:" + round.next.end.String() + ", nodes: ", round.next.nodes)
+	}
+}
 
 /** Method provided to the built-in contract call */
 // pledge Candidate
@@ -752,6 +764,9 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	if round != 1 {
 		formerRound.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 		formerRound.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+	}else {
+		formerRound.start = big.NewInt(0)
+		formerRound.end = big.NewInt(0)
 	}
 	log.Info("设置当前区块:上一轮", "start",formerRound.start, "end", formerRound.end)
 	if len(preNodes) != 0 {
@@ -859,7 +874,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	}
 	d.nodeRound.setNodeCache(big.NewInt(int64(currentNumber)), currentHash, cache)
 	log.Info("设置当前区块的信息时", "currentBlockNum", currentNumber, "parentNum", parentNumber, "currentHash", currentHash.String(), "parentHash", parentHash.String())
-	pposm.PrintObject("设置当前区块的信息时, nodeRound:", d.nodeRound)
+	d.printMapInfo("设置当前区块的信息时", currentNumber, currentHash)
 	return nil
 }
 
@@ -900,6 +915,9 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 	if round != 1 {
 		formerRound.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 		formerRound.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+	}else {
+		formerRound.start = big.NewInt(0)
+		formerRound.end = big.NewInt(0)
 	}
 	log.Info("设置最远允许缓存保留区块:上一轮", "start",formerRound.start, "end", formerRound.end)
 	if len(curr_preNodes) != 0 {
@@ -1034,7 +1052,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 	}
 	d.nodeRound.setNodeCache(big.NewInt(int64(currentNumber)), currentHash, cache)
 	log.Info("设置最远允许缓存保留区块的信息时", "currentBlockNum", currentNumber, "currentHash", currentHash.String())
-	pposm.PrintObject("设置最远允许缓存保留区块的信息时, nodeRound:", d.nodeRound)
+	d.printMapInfo("设置最远允许缓存保留区块的信息时", currentNumber, currentHash)
 	return nil
 }
 
