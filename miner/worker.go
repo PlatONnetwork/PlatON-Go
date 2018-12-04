@@ -717,9 +717,11 @@ func (w *worker) resultLoop() {
 			var events []interface{}
 			switch stat {
 			case core.CanonStatTy:
+				log.Debug("Prepare Events, WriteStatus=CanonStatTy")
 				events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
 				events = append(events, core.ChainHeadEvent{Block: block})
 			case core.SideStatTy:
+				log.Debug("Prepare Events, WriteStatus=SideStatTy")
 				events = append(events, core.ChainSideEvent{Block: block})
 			}
 			w.chain.PostChainEvents(events, logs)
@@ -732,7 +734,7 @@ func (w *worker) resultLoop() {
 			blockConfirmSigns := cbftResult.BlockConfirmSigns
 			// Short circuit when receiving empty result.
 			if block == nil || blockConfirmSigns == nil || len(blockConfirmSigns) <= 0 {
-				log.Info("block.Number()", block.Number(), "block.Hash()", block.Hash(), "len(blockConfirmSigns)", len(blockConfirmSigns))
+				log.Warn("block.Number()", block.Number(), "block.Hash()", block.Hash(), "len(blockConfirmSigns)", len(blockConfirmSigns))
 				continue
 			}
 			var (
@@ -741,7 +743,7 @@ func (w *worker) resultLoop() {
 			)
 			// Short circuit when receiving duplicate result caused by resubmitting.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Info("block.Number()", block.Number(), "block.Hash()", block.Hash())
+				log.Warn("block.Number()", block.Number(), "block.Hash()", block.Hash())
 				continue
 			}
 
@@ -758,8 +760,9 @@ func (w *worker) resultLoop() {
 				_receipts = cbftResult.Receipts
 				_state = cbftResult.State
 			}
+
 			if _receipts == nil && len(block.Transactions()) > 0 || _state == nil {
-				log.Info("cbftResultCh","_receipts", _receipts, "_state", _state)
+				log.Warn("cbftResultCh", "_receipts", _receipts, "_state", _state)
 				continue
 			}
 
