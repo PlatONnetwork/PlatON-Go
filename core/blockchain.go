@@ -1259,7 +1259,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 		bc.reportBlock(block, receipts, err)
 		return nil, err
 	}
-
+	log.Info("收到广播区块时,本地执行完交易后的stateDB", "currentBlockNum", block.NumberU64(), "currentStateRoot", block.Root().String())
 	// Validate the state using the default validator
 	err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 	if err != nil {

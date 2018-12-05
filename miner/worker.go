@@ -682,6 +682,7 @@ func (w *worker) taskLoop() {
 				// 保存receipts、stateDB至缓存
 				w.consensusCache.WriteReceipts(task.block.Hash(), task.receipts, task.block.NumberU64())
 				w.consensusCache.WriteStateDB(task.block.Root(), task.state, task.block.NumberU64())
+				log.Info("接收task任务，在打包之前", "currentBlockNum", task.block.NumberU64(), "currentStateRoot", task.block.Root().String())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
 				}
@@ -1262,6 +1263,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		}
 		select {
 		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now(), consensusNodes: w.current.consensusNodes}:
+			log.Info("发送task任务", "currentBlockNum", block.NumberU64(), "currentStateRoot", block.Root().String())
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
 			feesWei := new(big.Int)
