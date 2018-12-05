@@ -995,13 +995,14 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 				return NonStatTy, err
 			}
 		}*/
-		if block.ParentHash() == currentBlock.Hash() {
-			// Write the positional metadata for transaction/receipt lookups and preimages
-			rawdb.WriteTxLookupEntries(batch, block)
-			rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
+		//if block.ParentHash() == currentBlock.Hash() {
+		// Write the positional metadata for transaction/receipt lookups and preimages
+		rawdb.WriteTxLookupEntries(batch, block)
+		rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
 
-			status = CanonStatTy
-		}
+		status = CanonStatTy
+		//}
+
 	} else {
 		status = SideStatTy
 	}
