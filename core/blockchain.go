@@ -998,7 +998,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		//if block.ParentHash() == currentBlock.Hash() {
 		// Write the positional metadata for transaction/receipt lookups and preimages
 
-		if block.NumberU64() >= currentBlock.NumberU64()-20 {
+		if block.NumberU64() >= (currentBlock.NumberU64() - 20) {
 			if bc.HasBlock(block.ParentHash(), block.NumberU64()-1) {
 				rawdb.WriteTxLookupEntries(batch, block)
 				rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
