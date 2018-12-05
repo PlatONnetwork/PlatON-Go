@@ -236,7 +236,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		blockSignatureCh:      blockSignatureCh,
 		cbftResultCh:          cbftResultCh,
 		highestLogicalBlockCh: highestLogicalBlockCh,
-		consensusCache:     consensusCache,
+		consensusCache:        consensusCache,
 		commitWorkEnv:         &commitWorkEnv{},
 	}
 	// Subscribe NewTxsEvent for tx pool
@@ -736,8 +736,11 @@ func (w *worker) resultLoop() {
 			block := cbftResult.Block
 			blockConfirmSigns := cbftResult.BlockConfirmSigns
 			// Short circuit when receiving empty result.
-			if block == nil || blockConfirmSigns == nil || len(blockConfirmSigns) <= 0 {
-				log.Warn("block.Number()", block.Number(), "block.Hash()", block.Hash(), "len(blockConfirmSigns)", len(blockConfirmSigns))
+			if block == nil {
+				log.Warn("cbft result error, block is nil")
+				continue
+			} else if blockConfirmSigns == nil || len(blockConfirmSigns) == 0 {
+				log.Warn("cbft result error, blockConfirmSigns is nil")
 				continue
 			}
 			var (
@@ -746,7 +749,7 @@ func (w *worker) resultLoop() {
 			)
 			// Short circuit when receiving duplicate result caused by resubmitting.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Warn("block.Number()", block.Number(), "block.Hash()", block.Hash())
+				log.Warn("cbft result error, duplicated block", "block.Number()", block.Number(), "block.Hash()", block.Hash())
 				continue
 			}
 
@@ -819,7 +822,7 @@ func (w *worker) resultLoop() {
 func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 	var (
 		state *state.StateDB
-		err error
+		err   error
 	)
 	if _, ok := w.engine.(consensus.Bft); ok {
 		state, err = w.consensusCache.MakeStateDB(parent)
