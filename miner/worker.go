@@ -1251,7 +1251,8 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		}
 
 	}
-	w.current.state.IntermediateRoot(false)
+	log.Info("commit IsEIP158","number", header.Number, "flag", w.config.IsEIP158(header.Number))
+	w.current.state.IntermediateRoot(w.config.IsEIP158(header.Number))
 	s := w.current.state.Copy()
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 	if err != nil {
