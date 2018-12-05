@@ -413,7 +413,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	state, err := cbft.consensusCache.MakeStateDB(parent.block)
 	if err != nil {
-		log.Error("execute block error, cannot make state based on parent")
+		log.Error("execute block error, cannot make state based on parent", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return
 	}
 
@@ -421,10 +421,13 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block)
 	if err == nil {
 		//save the receipts and state to consensusCache
+		log.Debug("save executed block receipts", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "lenReceipts", len(receipts))
+		log.Debug("save executed block state", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "state", state)
+
 		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
 		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
 	} else {
-		log.Error("execute a block error", err)
+		log.Error("execute a block error", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 	}
 }
 

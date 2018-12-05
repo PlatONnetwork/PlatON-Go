@@ -746,10 +746,11 @@ func (w *worker) resultLoop() {
 			var (
 				hash     = block.Hash()
 				sealhash = w.engine.SealHash(block.Header())
+				number   = block.NumberU64()
 			)
 			// Short circuit when receiving duplicate result caused by resubmitting.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Warn("cbft result error, duplicated block", "block.Number()", block.Number(), "block.Hash()", block.Hash())
+				log.Warn("cbft result error, duplicated block", "Hash", hash, "Number", number)
 				continue
 			}
 
@@ -762,18 +763,22 @@ func (w *worker) resultLoop() {
 			if exist && cbft.IsSignedBySelf(sealhash, block.Extra()[32:]) {
 				_receipts = task.receipts
 				_state = task.state
+				log.Debug("block is packaged by local", "Hash", hash, "Number", number, "len(Receipts)", len(_receipts), "state", _state)
 			} else {
-				log.Info("从consensusCache中读取receipts、state", "blockHash", block.Hash(), "stateRoot", block.Root())
 				_receipts = w.consensusCache.ReadReceipts(block.Hash())
 				_state = w.consensusCache.ReadStateDB(block.Root())
+				log.Debug("block is packaged by other", "Hash", hash, "Number", number, "len(Receipts)", len(_receipts), "blockRoot", block.Root(), "state", _state)
 			}
 
-			if _receipts == nil && len(block.Transactions()) > 0 || _state == nil {
-				log.Warn("cbftResultCh", "_receipts", _receipts, "_state", _state)
+			if _state == nil {
+				log.Error("cbft result error, state is nil", "Hash", hash, "Number", number)
+				continue
+			} else if len(block.Transactions()) > 0 && len(_receipts) == 0 {
+				log.Error("cbft result error, block has transactions but receipts is nil", "Hash", hash, "Number", number)
 				continue
 			}
 
-			log.Warn("[2]共识成功", "blockNumber", block.NumberU64(), "timestamp", time.Now().UnixNano()/1e6)
+			log.Warn("[2]共识成功", "Hash", hash, "number", number, "timestamp", time.Now().UnixNano()/1e6)
 
 			// Different block could share same sealhash, deep copy here to prevent write-write conflict.
 			var (
@@ -794,10 +799,10 @@ func (w *worker) resultLoop() {
 			block.ConfirmSigns = blockConfirmSigns
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
 			if err != nil {
-				log.Error("Failed writing block to chain", "err", err)
+				log.Error("Failed writing block to chain", "Hash", block.Hash(), "Number", block.NumberU64(), "err", err)
 				continue
 			}
-			log.Info("Successfully sealed new block", "number", block.Number(), "hash", hash)
+			log.Info("Successfully write new block", "Hash", block.Hash(), "Number", block.NumberU64())
 
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.NewMinedBlockEvent{Block: block})

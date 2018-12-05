@@ -890,6 +890,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Calculate the total difficulty of the block
 	ptd := bc.GetTd(block.ParentHash(), block.NumberU64()-1)
 	if ptd == nil {
+		log.Error("cannot get parent block total difficulty", "ParentHash", block.ParentHash(), "ParentNumber", block.NumberU64()-1)
 		return NonStatTy, consensus.ErrUnknownAncestor
 	}
 	// Make sure no inconsistent state is leaked during insertion
@@ -902,12 +903,14 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 	// Irrelevant of the canonical status, write the block itself to the database
 	if err := bc.hc.WriteTd(block.Hash(), block.NumberU64(), externTd); err != nil {
+		log.Error("Write block total difficulty", "Hash", block.Hash(), "Number", block.NumberU64())
 		return NonStatTy, err
 	}
 	rawdb.WriteBlock(bc.db, block)
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
+		log.Error("check block is EIP158 error", "Hash", block.Hash(), "Number", block.NumberU64())
 		return NonStatTy, err
 	}
 	triedb := bc.stateCache.TrieDB()
@@ -915,6 +918,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.Disabled {
 		if err := triedb.Commit(root, false); err != nil {
+			log.Error("Commit to triedb error", "root", root)
 			return NonStatTy, err
 		}
 	} else {
