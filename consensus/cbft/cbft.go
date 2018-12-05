@@ -421,8 +421,9 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block)
 	if err == nil {
 		//save the receipts and state to consensusCache
+		stateIsNil := state == nil
 		log.Debug("save executed block receipts", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "lenReceipts", len(receipts))
-		log.Debug("save executed block state", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "state", state)
+		log.Debug("save executed block state", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "stateIsNil", stateIsNil)
 
 		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
 		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())

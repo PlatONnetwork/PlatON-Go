@@ -763,11 +763,13 @@ func (w *worker) resultLoop() {
 			if exist && cbft.IsSignedBySelf(sealhash, block.Extra()[32:]) {
 				_receipts = task.receipts
 				_state = task.state
-				log.Debug("block is packaged by local", "Hash", hash, "Number", number, "len(Receipts)", len(_receipts), "state", _state)
+				stateIsNil := _state == nil
+				log.Debug("block is packaged by local", "Hash", hash, "Number", number, "len(Receipts)", len(_receipts), "stateIsNil", stateIsNil)
 			} else {
 				_receipts = w.consensusCache.ReadReceipts(block.Hash())
 				_state = w.consensusCache.ReadStateDB(block.Root())
-				log.Debug("block is packaged by other", "Hash", hash, "Number", number, "len(Receipts)", len(_receipts), "blockRoot", block.Root(), "state", _state)
+				stateIsNil := _state == nil
+				log.Debug("block is packaged by other", "Hash", hash, "Number", number, "len(Receipts)", len(_receipts), "blockRoot", block.Root(), "stateIsNil", stateIsNil)
 			}
 
 			if _state == nil {
