@@ -1252,6 +1252,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 //joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
+	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {

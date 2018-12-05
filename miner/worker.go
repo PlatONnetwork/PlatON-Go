@@ -862,6 +862,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 	} else {
 		state, err = w.chain.StateAt(parent.Root())
 	}
+	log.Info("-----------构建statedb---------", "blockNumber", header.Number.Uint64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	if err != nil {
 		return err
 	}
