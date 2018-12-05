@@ -68,7 +68,7 @@ type Cbft struct {
 	highestConfirmed      *BlockExt                 //highest confirmed block, it will be written to chain
 	signedSet             map[uint64]struct{}       //all block numbers signed by local node
 	lock                  sync.RWMutex
-	consensusCache *Cache //cache for cbft consensus
+	consensusCache        *Cache //cache for cbft consensus
 
 	netLatencyMap map[discover.NodeID]*list.List
 }
@@ -845,9 +845,14 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 		newConfirmed := cbft.findNewHighestConfirmed(ext)
 		if newConfirmed != nil {
-			//处理新不可逆块
 			log.Debug("found new highest confirmed block")
+			// cbft.handleNewConfirmed will reset highest logical block
 			return cbft.handleNewConfirmed(newConfirmed)
+		} else {
+			//reset highest logical block
+			if ext.isSigned {
+				setHighestLogical(ext)
+			}
 		}
 	} else {
 		log.Warn("cannot find block's parent, just keep it")
