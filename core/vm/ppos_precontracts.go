@@ -29,6 +29,7 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -40,6 +41,7 @@ import (
 var (
 	ErrOwnerNotonly = errors.New("Node ID cannot bind multiple owners")
 	ErrPermissionDenied = errors.New("Transaction from address permission denied")
+	ErrDepositEmpyt = errors.New("Deposit balance not zero")
 	ErrWithdrawEmpyt = errors.New("No withdrawal amount")
 	ErrParamsRlpDecode = errors.New("Rlp decode faile")
 	ErrParamsBaselen = errors.New("Params Base length does not match")
@@ -89,6 +91,10 @@ func (c *candidateContract) RequiredGas(input []byte) uint64 {
 }
 
 func (c *candidateContract) Run(input []byte) ([]byte, error) {
+
+	//debug
+	c.logError("Run==> ", "input: ", hex.EncodeToString(input))
+
 	defer func() {
 		if err := recover(); nil != err {
 			// catch call panic
@@ -160,6 +166,9 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
 		" host: ", host, " port: ", port, " extra: ", extra)
 	//todo
+	if deposit.Cmp(big.NewInt(0))<1 {
+		return nil, ErrDepositEmpyt
+	}
 	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
 	if err!=nil {
 		c.logError("CandidateDeposit==> ","err!=nill: ", err.Error())
@@ -209,8 +218,15 @@ func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	height := c.evm.Context.BlockNumber
 	c.logInfo("CandidateApplyWithdraw==> ","nodeId: ", nodeId.String(), " from: ", from.Hex(), " withdraw: ", withdraw, " height: ", height)
 	//todo
-	owner :=  c.evm.CandidatePool.GetOwner(c.evm.StateDB, nodeId)
-	if ok := bytes.Equal(owner.Bytes(), from.Bytes()); !ok {
+	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
+	if err!=nil {
+		c.logError("CandidateApplyWithdraw==> ","err!=nill: ", err.Error())
+		return nil, err
+	}
+	if can.Deposit.Cmp(big.NewInt(0))<1 {
+		return nil, ErrWithdrawEmpyt
+	}
+	if ok := bytes.Equal( can.Owner.Bytes(), from.Bytes()); !ok {
 		c.logError(ErrPermissionDenied.Error())
 		return nil, ErrPermissionDenied
 	}

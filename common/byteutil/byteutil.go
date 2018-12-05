@@ -3,6 +3,7 @@ package byteutil
 
 import (
 	"Platon-go/common"
+	"Platon-go/p2p/discover"
 	"bytes"
 	"encoding/binary"
 	"math/big"
@@ -21,9 +22,9 @@ var Command = map[string] interface{} {
 	"int64" : common.BytesToInt64,
 	"float32" : common.BytesToFloat32,
 	"float64" : common.BytesToFloat64,
-	"discover.NodeID" : BytesTo64Bytes,
+	"discover.NodeID" : HexToNodeId,//BytesTo64Bytes,
 	"common.Hash": common.BytesToHash,
-	"common.Address" : common.BytesToAddress,
+	"common.Address" : HexToAddress,//common.BytesToAddress,
 }
 
 func BytesTo32Bytes(curByte []byte) [32]byte {
@@ -80,4 +81,13 @@ func Uint64ToBytes(val uint64) []byte {
 	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, val)
 	return buf[:]
+}
+
+func HexToAddress(b []byte) common.Address {
+	return common.HexToAddress(string(b))
+}
+
+func HexToNodeId(b []byte) discover.NodeID {
+	nodeid, _ := discover.HexID(string(b))
+	return nodeid
 }
