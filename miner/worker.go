@@ -737,10 +737,10 @@ func (w *worker) resultLoop() {
 			blockConfirmSigns := cbftResult.BlockConfirmSigns
 			// Short circuit when receiving empty result.
 			if block == nil {
-				log.Warn("cbft result error, block is nil")
+				log.Error("cbft result error, block is nil")
 				continue
 			} else if blockConfirmSigns == nil || len(blockConfirmSigns) == 0 {
-				log.Warn("cbft result error, blockConfirmSigns is nil")
+				log.Error("cbft result error, blockConfirmSigns is nil")
 				continue
 			}
 			var (
@@ -750,7 +750,7 @@ func (w *worker) resultLoop() {
 			)
 			// Short circuit when receiving duplicate result caused by resubmitting.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Warn("cbft result error, duplicated block", "Hash", hash, "Number", number)
+				log.Error("cbft result error, duplicated block", "Hash", hash, "Number", number)
 				continue
 			}
 
