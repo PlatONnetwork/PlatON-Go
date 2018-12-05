@@ -858,15 +858,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 		}
 	}
 
-	if currentNumber == 486 {
-		fmt.Println()
-	}
-	if currentNumber == 487 {
-		fmt.Println()
-	}
-	if currentNumber == 488 {
-		fmt.Println()
-	}
+
 	// next
 	nextRound := &pposRound{}
 	// next start, end
@@ -1046,15 +1038,6 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 		}
 	}
 
-	if currentNumber == 486 {
-		fmt.Println()
-	}
-	if currentNumber == 487 {
-		fmt.Println()
-	}
-	if currentNumber == 488 {
-		fmt.Println()
-	}
 	// next
 	nextRound := &pposRound{}
 	// next start, end
