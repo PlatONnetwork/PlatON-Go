@@ -213,19 +213,18 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
 		return nil, err
 	}
-
+	if _, ok := eth.engine.(consensus.Bft); ok {
+		cbft.SetDopsOption(eth.blockchain)
+	}
 	// 方法增加blockSignatureCh、cbftResultCh入参
-	// modify by platon remove consensusCache
-	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
-	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh)
+	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
+	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	// modify by platon
 	if _, ok := eth.engine.(consensus.Bft); ok {
-		// modify by platon remove consensusCache
-		//cbft.SetConsensusCache(consensusCache)
+		cbft.SetConsensusCache(consensusCache)
 		cbft.SetBackend(eth.blockchain, eth.txPool)
-		cbft.SetDopsOption(eth.blockchain)
 
 		shouldElection := func(blockNumber *big.Int) bool {
 			return eth.miner.ShouldElection(blockNumber)
@@ -236,8 +235,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		attemptAddConsensusPeer := func(blockNumber *big.Int, state *state.StateDB) {
 			eth.miner.AttemptAddConsensusPeer(blockNumber, state)
 		}
-		attemptRemoveConsensusPeer := func(blockNumber *big.Int, state *state.StateDB) {
-			eth.miner.AttemptRemoveConsensusPeer(blockNumber, state)
+		attemptRemoveConsensusPeer := func(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, state *state.StateDB) {
+			eth.miner.AttemptRemoveConsensusPeer(parentNumber, parentHash, blockNumber, state)
 		}
 		eth.blockchain.InitConsensusPeerFn(shouldElection, shouldSwitch, attemptAddConsensusPeer, attemptRemoveConsensusPeer)
 	}
@@ -600,10 +599,17 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 		srvr.InitcheckFutureConsensusNodeFn(checkFutureConsensusNode)
 
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
-		if flag, err := cbftEngine.IsConsensusNode(); flag && err == nil {
-			for _, n := range s.chainConfig.Cbft.InitialNodes {
+		currentBlock := s.blockchain.CurrentBlock()
+		blockNumber := currentBlock.Number()
+		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+		if cbftEngine.IsCurrentNode(parentNumber, currentBlock.ParentHash(), blockNumber) {
+			currentNodes := cbftEngine.CurrentNodes(parentNumber, currentBlock.ParentHash(), blockNumber)
+			for _, n := range currentNodes {
 				srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
 			}
+			//for _, n := range s.chainConfig.Cbft.InitialNodes {
+			//	srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
+			//}
 		}
 		//s.StartMining(1)
 	}

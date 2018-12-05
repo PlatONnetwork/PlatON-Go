@@ -56,14 +56,14 @@ type Miner struct {
 }
 
 func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(block *types.Block) bool,
-	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Miner {
+	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, consensusCache *cbft.Cache) *Miner {
 	miner := &Miner{
 		eth:    eth,
 		mux:    mux,
 		engine: engine,
 		exitCh: make(chan struct{}),
 		// modify by platon
-		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil, isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh),
+		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil, isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache),
 		canStart: 1,
 	}
 	go miner.update()
@@ -196,6 +196,6 @@ func (self *Miner) AttemptAddConsensusPeer(blockNumber *big.Int, state *state.St
 	self.worker.attemptAddConsensusPeer(blockNumber, state)
 }
 
-func (self *Miner) AttemptRemoveConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
-	self.worker.attemptRemoveConsensusPeer(blockNumber, state)
+func (self *Miner) AttemptRemoveConsensusPeer(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, state *state.StateDB) {
+	self.worker.attemptRemoveConsensusPeer(parentNumber, parentHash, blockNumber, state)
 }
