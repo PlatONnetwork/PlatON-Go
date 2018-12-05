@@ -55,6 +55,7 @@ func (c *Cache) ReadReceipts(blockHash common.Hash) []*types.Receipt {
 func (c *Cache) ReadStateDB(stateRoot common.Hash) *state.StateDB {
 	c.stateDBMu.RLock()
 	defer c.stateDBMu.RUnlock()
+	log.Info("从缓存map中读取StateDB实例", "stateRoot", stateRoot)
 	if obj, exist := c.stateDBCache[stateRoot]; exist {
 		return obj.stateDB
 	}
@@ -77,6 +78,7 @@ func (c *Cache) WriteReceipts(blockHash common.Hash, receipts []*types.Receipt, 
 func (c *Cache) WriteStateDB(stateRoot common.Hash, stateDB *state.StateDB, blockNum uint64) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
+	log.Info("将StateDB实例写入缓存", "stateRoot", stateRoot, "blockNum", blockNum)
 	if _, exist := c.stateDBCache[stateRoot]; !exist {
 		c.stateDBCache[stateRoot] = &stateDBCache{stateDB: stateDB, blockNum: blockNum}
 	}

@@ -1071,7 +1071,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	if state != nil {
 		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), curExt.block.Hash())
 	} else {
-		log.Error("setNodeCache error", "err", err)
+		log.Error("setNodeCache error")
 	}
 
 	consensusNodes := cbft.ConsensusNodes(parentNumber, curExt.block.ParentHash(), blockNumber)
