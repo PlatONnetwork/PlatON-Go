@@ -1005,10 +1005,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 				status = CanonStatTy
 			} else {
-				log.Error("parent block does not reside in chain")
+				log.Error("parent block does not reside in chain", "block.Number", block.NumberU64(), "block.ParentHash", block.ParentHash())
 			}
 		} else {
-			log.Error("block is too lower")
+			log.Error("block is too low", "block.Number", block.NumberU64(), "currentBlock.Number", currentBlock.NumberU64())
 		}
 	} else {
 		status = SideStatTy
