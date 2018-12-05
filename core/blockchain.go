@@ -896,7 +896,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
 
-	//currentBlock := bc.CurrentBlock()
+	currentBlock := bc.CurrentBlock()
 	//localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 	externTd := new(big.Int).Add(block.Difficulty(), ptd)
 
@@ -997,12 +997,19 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		}*/
 		//if block.ParentHash() == currentBlock.Hash() {
 		// Write the positional metadata for transaction/receipt lookups and preimages
-		rawdb.WriteTxLookupEntries(batch, block)
-		rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
 
-		status = CanonStatTy
-		//}
+		if block.NumberU64() >= currentBlock.NumberU64()-20 {
+			if bc.HasBlock(block.ParentHash(), block.NumberU64()-1) {
+				rawdb.WriteTxLookupEntries(batch, block)
+				rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
 
+				status = CanonStatTy
+			} else {
+				log.Error("parent block does not reside in chain")
+			}
+		} else {
+			log.Error("block is too lower")
+		}
 	} else {
 		status = SideStatTy
 	}
