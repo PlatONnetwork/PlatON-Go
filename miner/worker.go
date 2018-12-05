@@ -1251,7 +1251,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		}
 
 	}
-	w.current.state.IntermediateRoot(true)
+	w.current.state.IntermediateRoot(false)
 	s := w.current.state.Copy()
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 	if err != nil {
