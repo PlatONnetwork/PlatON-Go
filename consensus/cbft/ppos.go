@@ -195,7 +195,7 @@ func (d *ppos) getCurrentNodes (parentNumber *big.Int, parentHash common.Hash, b
 	defer d.lock.RUnlock()
 
 	currentRound := d.nodeRound.getCurrentRound(parentNumber, parentHash)
-	if currentRound != nil && len(currentRound.nodes) > 0 && blockNumber.Cmp(currentRound.start) >= 0 && blockNumber.Cmp(currentRound.end) <= 0{
+	if currentRound != nil && currentRound.start != nil && currentRound.end != nil && len(currentRound.nodes) > 0 && blockNumber.Cmp(currentRound.start) >= 0 && blockNumber.Cmp(currentRound.end) <= 0{
 		return currentRound.nodes
 	}
 	return nil
