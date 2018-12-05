@@ -217,15 +217,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		cbft.SetDopsOption(eth.blockchain)
 	}
 	// 方法增加blockSignatureCh、cbftResultCh入参
-	// modify by platon remove consensusCache
-	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
-	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh)
+	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
+	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	// modify by platon
 	if _, ok := eth.engine.(consensus.Bft); ok {
-		// modify by platon remove consensusCache
-		//cbft.SetConsensusCache(consensusCache)
+		cbft.SetConsensusCache(consensusCache)
 		cbft.SetBackend(eth.blockchain, eth.txPool)
 
 		shouldElection := func(blockNumber *big.Int) bool {

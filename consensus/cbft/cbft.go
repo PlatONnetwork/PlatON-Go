@@ -81,8 +81,7 @@ type Cbft struct {
 	//todo:（先log,再处理）
 	signedSet map[uint64]struct{} //all block numbers signed by local node
 	lock      sync.RWMutex
-	// modify by platon remove consensusCache
-	//consensusCache *Cache //cache for cbft consensus
+	consensusCache *Cache //cache for cbft consensus
 
 	netLatencyMap map[discover.NodeID]*list.List
 }
@@ -126,9 +125,6 @@ type BlockExt struct {
 	isConfirmed bool
 	number      uint64
 	signs       []*common.BlockConfirmSign //all signs for block
-	// modify by platon remove consensusCache
-	Receipts types.Receipts
-	State    *state.StateDB
 }
 
 // New creates a BlockExt object
@@ -450,9 +446,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 //execute the block based on its parent
 // if success then set this block's level with Ledge, and save the receipts and state to consensusCache
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
-	// modify by platon remove consensusCache
-	//state, err := cbft.consensusCache.MakeStateDB(parent.block)
-	state, err := cbft.blockChain.StateAt(parent.block.Root())
+	state, err := cbft.consensusCache.MakeStateDB(parent.block)
 	if err != nil {
 		log.Error("execute block error, cannot make state based on parent")
 		return err
@@ -461,12 +455,9 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	//to execute
 	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block)
 	if err == nil {
-		// modify by platon remove consensusCache
-		////save the receipts and state to consensusCache
-		//cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
-		//cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
-		ext.Receipts = receipts
-		ext.State = state
+		//save the receipts and state to consensusCache
+		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
+		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
 	} else {
 		log.Error("execute a block error", err)
 	}
@@ -567,10 +558,9 @@ func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	cbft.config.NodeID = discover.PubkeyID(&privateKey.PublicKey)
 }
 
-// modify by platon remove consensusCache
-//func SetConsensusCache(cache *Cache) {
-//	cbft.consensusCache = cache
-//}
+func SetConsensusCache(cache *Cache) {
+	cbft.consensusCache = cache
+}
 
 func setHighestLogical(highestLogical *BlockExt) {
 	cbft.highestLogical = highestLogical
@@ -755,9 +745,7 @@ func (cbft *Cbft) handleNewConfirmed(newConfirmed *BlockExt) error {
 			err := cbft.handleNewConfirmedContinue(newConfirmed, newFork[1:])
 
 			if err == nil {
-				// modify by platon remove consensusCache
-				//state, err := cbft.consensusCache.MakeStateDB(newConfirmed.block)
-				_, err := cbft.blockChain.StateAt(newConfirmed.block.Root())
+				_, err := cbft.consensusCache.MakeStateDB(newConfirmed.block)
 				if err == nil {
 					cbft.ppos.UpdateNodeList(cbft.blockChain, newConfirmed.block.Number(), newConfirmed.block.Hash())
 				} else {
@@ -1078,11 +1066,12 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	// 更新nodeCache
 	blockNumber := curExt.block.Number()
 	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+	state := cbft.consensusCache.ReadStateDB(curExt.block.Root())
 	log.Warn("setNodeCache", "parentNumber", parentNumber, "parentHash", curExt.block.ParentHash(), "blockNumber", blockNumber, "blockHash", curExt.block.Hash())
-	if state, err := cbft.blockChain.StateAt(curExt.block.Root()); err == nil {
+	if state != nil {
 		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), curExt.block.Hash())
 	} else {
-		log.Info("setNodeCache error", "err", err)
+		log.Error("setNodeCache error", "err", err)
 	}
 
 	consensusNodes := cbft.ConsensusNodes(parentNumber, curExt.block.ParentHash(), blockNumber)
@@ -1242,8 +1231,6 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 		cbftResult := &cbfttypes.CbftResult{
 			Block:             ext.block,
 			BlockConfirmSigns: ext.signs,
-			Receipts:          ext.Receipts,
-			State:	           ext.State,
 		}
 		ext.isStored = true
 		log.Debug("send to channel", "Hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
