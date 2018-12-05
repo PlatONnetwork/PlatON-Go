@@ -195,6 +195,7 @@ type worker struct {
 	// External functions
 	isLocalBlock func(block *types.Block) bool // Function used to determine whether the specified block is mined by local miner.
 
+	consensusCache *cbft.Cache
 	commitWorkEnv  *commitWorkEnv
 	recommit       time.Duration
 	commitDuration float64
@@ -207,7 +208,7 @@ type worker struct {
 }
 
 func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool,
-	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *worker {
+	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, consensusCache *cbft.Cache) *worker {
 	worker := &worker{
 		config:                config,
 		engine:                engine,
@@ -235,6 +236,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		blockSignatureCh:      blockSignatureCh,
 		cbftResultCh:          cbftResultCh,
 		highestLogicalBlockCh: highestLogicalBlockCh,
+		consensusCache:     consensusCache,
 		commitWorkEnv:         &commitWorkEnv{},
 	}
 	// Subscribe NewTxsEvent for tx pool
@@ -405,6 +407,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
 			log.Info("【chainHeadCh】", "block number", head.Block.NumberU64())
+			w.consensusCache.ClearCache(head.Block)
 
 		case highestLogicalBlock := <-w.highestLogicalBlockCh:
 			log.Info("highestLogicalBlockCh通道接收数据", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash())
@@ -757,8 +760,9 @@ func (w *worker) resultLoop() {
 				_receipts = task.receipts
 				_state = task.state
 			} else {
-				_receipts = cbftResult.Receipts
-				_state = cbftResult.State
+				log.Info("从consensusCache中读取receipts、state", "blockHash", block.Hash(), "stateRoot", block.Root())
+				_receipts = w.consensusCache.ReadReceipts(block.Hash())
+				_state = w.consensusCache.ReadStateDB(block.Root())
 			}
 
 			if _receipts == nil && len(block.Transactions()) > 0 || _state == nil {
@@ -813,7 +817,15 @@ func (w *worker) resultLoop() {
 
 // makeCurrent creates a new environment for the current cycle.
 func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
-	state, err := w.chain.StateAt(parent.Root())
+	var (
+		state *state.StateDB
+		err error
+	)
+	if _, ok := w.engine.(consensus.Bft); ok {
+		state, err = w.consensusCache.MakeStateDB(parent)
+	} else {
+		state, err = w.chain.StateAt(parent.Root())
+	}
 	if err != nil {
 		return err
 	}
@@ -1200,6 +1212,10 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		}
 		select {
 		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now()}:
+			// 保存receipts、stateDB至缓存
+			w.consensusCache.WriteReceipts(block.Hash(), receipts, block.NumberU64())
+			w.consensusCache.WriteStateDB(block.Root(), s, block.NumberU64())
+
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
 			feesWei := new(big.Int)
