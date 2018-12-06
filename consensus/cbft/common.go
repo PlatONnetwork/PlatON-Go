@@ -7,9 +7,9 @@ const (
 	//
 	//BaseRemoveFormerPeers = 270
 
-	//BaseElection = 50
+	BaseElection = 50
 	//
-	//BaseSwitchWitness = 60
+	BaseSwitchWitness = 60
 	//
 	//BaseAddNextPeers = 50
 	//
@@ -17,9 +17,9 @@ const (
 	//
 	//BaseIrrCount = 20
 
-	BaseElection = 50000
+	//BaseElection = 50000
 
-	BaseSwitchWitness = 60000
+	//BaseSwitchWitness = 60000
 
 	BaseAddNextPeers = 50000
 

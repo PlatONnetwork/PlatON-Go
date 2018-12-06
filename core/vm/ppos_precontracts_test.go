@@ -95,8 +95,8 @@ func TestRlpData(t *testing.T)  {
 	CandidateDeposit = append(CandidateDeposit, nodeId)
 	CandidateDeposit = append(CandidateDeposit, owner)
 	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(500))	//10000
-	CandidateDeposit = append(CandidateDeposit, []byte("192.168.9.181"))
-	CandidateDeposit = append(CandidateDeposit, []byte("16789"))
+	CandidateDeposit = append(CandidateDeposit, []byte("0.0.0.0"))
+	CandidateDeposit = append(CandidateDeposit, []byte("30303"))
 	CandidateDeposit = append(CandidateDeposit, []byte("extra data"))
 	bufDeposit := new(bytes.Buffer)
 	err := rlp.Encode(bufDeposit, CandidateDeposit)
