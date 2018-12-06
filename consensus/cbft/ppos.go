@@ -393,9 +393,18 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 		count := 0
 		blockArr := make([]*types.Block, 0)
 		for {
-			if currBlockNumber == genesis.NumberU64() || count == BaseIrrCount {
+			if currBlockNumber == genesis.NumberU64() || /*count == BaseIrrCount*/ count > BaseIrrCount {
 				break
 			}
+			/** 添加的调试信息 */
+			stateRoot := blockChain.GetBlock(currBlockHash, currBlockNumber).Root()
+			parentState, err := blockChain.StateAt(stateRoot)
+			log.Info("启动调试 stateDB:", "currBlockNumber", currBlockNumber, "currBlockHash", currBlockHash, "stateRoot", stateRoot.String())
+			if nil != err {
+				log.Error("启动调试 stateDB:", "err", err)
+				log.Error("启动时调试 stateDB:", "parentState", parentState)
+			}
+
 			parentNum := currBlockNumber - 1
 			parentHash := currentBlock.ParentHash()
 			blockArr = append(blockArr, currentBlock)
