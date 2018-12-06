@@ -459,7 +459,8 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	if err == nil {
 		//save the receipts and state to consensusCache
 		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
-		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
+		executeState := *state
+		cbft.consensusCache.WriteStateDB(ext.block.Root(), executeState, ext.block.NumberU64())
 	} else {
 		log.Error("execute a block error", "err", err)
 	}
