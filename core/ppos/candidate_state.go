@@ -139,14 +139,17 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 	PrintObject("prewitnessIds", prewitnessIds)
 	for _, witnessId := range prewitnessIds {
 		//fmt.Println("prewitnessId = ", witnessId.String())
-		var can *types.Candidate
+		//var can *types.Candidate
 		if ca, err := getPreviousWitnessByState(state, witnessId); nil != err {
 			log.Error("Failed to decode Candidate on initDataByState", "err", err)
 			return CandidateDecodeErr
 		} else {
-			can = ca
+			if nil != ca {
+				c.preOriginCandidates[witnessId] = ca
+			}else {
+				delete(c.preOriginCandidates, witnessId)
+			}
 		}
-		c.preOriginCandidates[witnessId] = can
 	}
 
 	// loading current witnesses
@@ -161,14 +164,17 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 	PrintObject("witnessIds", witnessIds)
 	for _, witnessId := range witnessIds {
 		//fmt.Println("witnessId = ", witnessId.String())
-		var can *types.Candidate
+		//var can *types.Candidate
 		if ca, err := getWitnessByState(state, witnessId); nil != err {
 			log.Error("Failed to decode Candidate on initDataByState", "err", err)
 			return CandidateDecodeErr
 		} else {
-			can = ca
+			if nil != ca {
+				c.originCandidates[witnessId] = ca
+			}else {
+				delete(c.originCandidates, witnessId)
+			}
 		}
-		c.originCandidates[witnessId] = can
 	}
 
 	// loading next witnesses
@@ -183,14 +189,17 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 	PrintObject("nextWitnessIds", nextWitnessIds)
 	for _, witnessId := range nextWitnessIds {
 		//fmt.Println("nextwitnessId = ", witnessId.String())
-		var can *types.Candidate
+		//var can *types.Candidate
 		if ca, err := getNextWitnessByState(state, witnessId); nil != err {
 			log.Error("Failed to decode Candidate on initDataByState", "err", err)
 			return CandidateDecodeErr
 		} else {
-			can = ca
+			if nil != ca {
+				c.nextOriginCandidates[witnessId] = ca
+			}else {
+				delete(c.nextOriginCandidates, witnessId)
+			}
 		}
-		c.nextOriginCandidates[witnessId] = can
 	}
 
 	if flag == 1 || flag == 2 {
@@ -210,15 +219,18 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		PrintObject("immediateIds", immediateIds)
 		for _, immediateId := range immediateIds {
 			//fmt.Println("immediateId = ", immediateId.String())
-			var can *types.Candidate
+			//var can *types.Candidate
 			if ca, err := getImmediateByState(state, immediateId); nil != err {
 				log.Error("Failed to decode Candidate on initDataByState", "err", err)
 				return CandidateDecodeErr
 			} else {
-				can = ca
+				if nil != ca {
+					c.immediateCandates[immediateId] = ca
+					canCache = append(canCache, ca)
+				}else {
+					delete(c.immediateCandates, immediateId)
+				}
 			}
-			c.immediateCandates[immediateId] = can
-			canCache = append(canCache, can)
 		}
 		c.candidateCacheArr = canCache
 	}
@@ -236,14 +248,17 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		PrintObject("defeatIds", defeatIds)
 		for _, defeatId := range defeatIds {
 			//fmt.Println("defeatId = ", defeatId.String())
-			var canArr []*types.Candidate
+			//var canArr []*types.Candidate
 			if arr, err := getDefeatsByState(state, defeatId); nil != err {
 				log.Error("Failed to decode CandidateArr on initDataByState", "err", err)
 				return CandidateDecodeErr
 			} else {
-				canArr = arr
+				if nil != arr && len(arr) != 0 {
+					c.defeatCandidates[defeatId] = arr
+				}else{
+					delete(c.defeatCandidates, defeatId)
+				}
 			}
-			c.defeatCandidates[defeatId] = canArr
 		}
 	}
 	return nil
@@ -1314,8 +1329,10 @@ func setPreviosWitnessIdsState(state vm.StateDB, arrVal []byte) {
 
 func getPreviousWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if err := rlp.DecodeBytes(state.GetState(common.CandidateAddr, PreviousWitnessKey(id)), &can); nil != err {
-		return nil, err
+	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessKey(id)); nil != valByte {
+		if err := rlp.DecodeBytes(valByte, &can); nil != err {
+			return nil, err
+		}
 	}
 	return &can, nil
 }
@@ -1340,8 +1357,10 @@ func setWitnessIdsState(state vm.StateDB, arrVal []byte) {
 
 func getWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if err := rlp.DecodeBytes(state.GetState(common.CandidateAddr, WitnessKey(id)), &can); nil != err {
-		return nil, err
+	if valByte := state.GetState(common.CandidateAddr, WitnessKey(id)); nil != valByte {
+		if err := rlp.DecodeBytes(valByte, &can); nil != err {
+			return nil, err
+		}
 	}
 	return &can, nil
 }
@@ -1366,8 +1385,10 @@ func setNextWitnessIdsState(state vm.StateDB, arrVal []byte) {
 
 func getNextWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if err := rlp.DecodeBytes(state.GetState(common.CandidateAddr, NextWitnessKey(id)), &can); nil != err {
-		return nil, err
+	if valByte := state.GetState(common.CandidateAddr, NextWitnessKey(id)); nil != valByte {
+		if err := rlp.DecodeBytes(valByte, &can); nil != err {
+			return nil, err
+		}
 	}
 	return &can, nil
 }
@@ -1392,8 +1413,10 @@ func setImmediateIdsState(state vm.StateDB, arrVal []byte) {
 
 func getImmediateByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if err := rlp.DecodeBytes(state.GetState(common.CandidateAddr, ImmediateKey(id)), &can); nil != err {
-		return nil, err
+	if valByte := state.GetState(common.CandidateAddr, ImmediateKey(id)); nil != valByte {
+		if err := rlp.DecodeBytes(valByte, &can); nil != err {
+			return nil, err
+		}
 	}
 	return &can, nil
 }
@@ -1418,8 +1441,10 @@ func setDefeatIdsState(state vm.StateDB, arrVal []byte) {
 
 func getDefeatsByState(state vm.StateDB, id discover.NodeID) ([]*types.Candidate, error) {
 	var canArr []*types.Candidate
-	if err := rlp.DecodeBytes(state.GetState(common.CandidateAddr, DefeatKey(id)), &canArr); nil != err {
-		return nil, err
+	if valByte := state.GetState(common.CandidateAddr, DefeatKey(id)); nil != valByte && len(valByte) != 0 {
+		if err := rlp.DecodeBytes(valByte, &canArr); nil != err {
+			return nil, err
+		}
 	}
 	return canArr, nil
 }
