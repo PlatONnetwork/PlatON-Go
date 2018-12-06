@@ -393,7 +393,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 		count := 0
 		blockArr := make([]*types.Block, 0)
 		for {
-			if currBlockNumber == genesis.NumberU64() || /*count == BaseIrrCount*/ count > BaseIrrCount {
+			if currBlockNumber == genesis.NumberU64() /*|| *//*count == BaseIrrCount*//* count > BaseIrrCount*/ {
 				break
 			}
 			/** 添加的调试信息 */
