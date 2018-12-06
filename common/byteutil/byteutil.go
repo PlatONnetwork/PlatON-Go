@@ -44,8 +44,7 @@ func OriginBytes(curByte []byte) []byte {
 }
 
 func BytesToBigInt(curByte []byte) *big.Int {
-	big1 := new(big.Int).SetInt64(common.BytesToInt64(curByte))
-	return big1
+	return new(big.Int).SetBytes(curByte)
 }
 
 func BytesToInt(curByte []byte) int {

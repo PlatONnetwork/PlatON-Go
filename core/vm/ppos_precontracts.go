@@ -276,12 +276,11 @@ func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byt
 		LockBlockCycle uint64
 	} 
 	type WithdrawInfos struct {
-		Ret ResultCommon
+		Ret bool
+		ErrMsg string
 		Infos []WithdrawInfo
 	}
-	r := WithdrawInfos{}
-	r.Ret = ResultCommon{true, "success"}
-	r.Infos = make([]WithdrawInfo, len(infos))
+	r := WithdrawInfos{true, "success", make([]WithdrawInfo, len(infos))}
 	for i, v := range infos {
 		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, c.evm.CandidatePool.GetRefundInterval()}
 	}
@@ -378,32 +377,32 @@ func (c *candidateContract) addLog(event, data string) {
 
 //debug log
 func (c *candidateContract) logInfo(msg string, ctx ...interface{})  {
-	if c.evm.vmConfig.ConsoleOutput {
+	args := []interface{}{msg}
+	args = append(args, ctx...)
+	fmt.Println(args...)
+	/*if c.evm.vmConfig.ConsoleOutput {
 		//console output
-		args := make([]interface{}, len(ctx)+1)
-		args[0] = msg
-		for i, v := range ctx{
-			args[i+1] = v
-		}
+		args := []interface{}{msg}
+		args = append(args, ctx...)
 		fmt.Println(args...)
 	}else {
 		//log output
 		log.Info(msg, ctx...)
-	}
+	}*/
 }
 func (c *candidateContract) logError(msg string, ctx ...interface{})  {
-	if c.evm.vmConfig.ConsoleOutput {
+	args := []interface{}{msg}
+	args = append(args, ctx...)
+	fmt.Println(args...)
+	/*if c.evm.vmConfig.ConsoleOutput {
 		//console output
-		args := make([]interface{}, len(ctx)+1)
-		args[0] = msg
-		for i, v := range ctx{
-			args[i+1] = v
-		}
+		args := []interface{}{msg}
+		args = append(args, ctx...)
 		fmt.Println(args...)
 	}else {
 		//log output
 		log.Error(msg, ctx...)
-	}
+	}*/
 }
 func (c *candidateContract) logPrint(level log.Lvl, msg string, ctx ...interface{})  {
 	if c.evm.vmConfig.ConsoleOutput {
