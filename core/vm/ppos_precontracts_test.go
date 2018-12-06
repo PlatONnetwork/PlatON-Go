@@ -22,7 +22,7 @@ func TestRlpEncode(t *testing.T) {
 	owner, _ := hex.DecodeString("740ce31b3fac20dac379db243021a51e80ad00d7") //38
 	//owner, _ := hex.DecodeString("5a5c4368e2692746b286cee36ab0710af3efa6cf") //39
 	//owner, _ := hex.DecodeString("493301712671ada506ba6ca7891f436d29185821") //40
-	//fmt.Println(nodeId)
+
 	// code
 	var source [][]byte
 	source = make([][]byte, 0)
