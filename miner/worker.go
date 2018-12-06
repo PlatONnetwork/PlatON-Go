@@ -679,14 +679,15 @@ func (w *worker) taskLoop() {
 			w.pendingMu.Unlock()
 
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+				// 保存stateDB至缓存
+				taskState := *task.state
+				w.consensusCache.WriteStateDB(task.block.Root(), taskState, task.block.NumberU64())
 				log.Info("接收task任务，在打包之前", "currentBlockNum", task.block.NumberU64(), "currentStateRoot", task.block.Root().String())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
 				} else {
-					// 保存receipts、stateDB至缓存
+					// 保存receipts至缓存
 					w.consensusCache.WriteReceipts(task.block.Hash(), task.receipts, task.block.NumberU64())
-					taskState := *task.state
-					w.consensusCache.WriteStateDB(task.block.Root(), taskState, task.block.NumberU64())
 				}
 				continue
 			}
