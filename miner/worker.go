@@ -678,9 +678,11 @@ func (w *worker) taskLoop() {
 			w.pendingTasks[w.engine.SealHash(task.block.Header())] = task
 			w.pendingMu.Unlock()
 
-			// modify by platon
-			//if w.config.Bft != nil {
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+				// 保存receipts、stateDB至缓存
+				w.consensusCache.WriteReceipts(task.block.Hash(), task.receipts, task.block.NumberU64())
+				w.consensusCache.WriteStateDB(task.block.Root(), task.state, task.block.NumberU64())
+				log.Info("接收task任务，在打包之前", "currentBlockNum", task.block.NumberU64(), "currentStateRoot", task.block.Root().String())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
 				}
@@ -861,6 +863,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 	} else {
 		state, err = w.chain.StateAt(parent.Root())
 	}
+	log.Info("-----------构建statedb---------", "blockNumber", header.Number.Uint64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	if err != nil {
 		return err
 	}
@@ -1248,7 +1251,8 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		}
 
 	}
-	w.current.state.IntermediateRoot(true)
+	log.Info("commit IsEIP158","number", header.Number, "flag", w.config.IsEIP158(header.Number))
+	w.current.state.IntermediateRoot(w.config.IsEIP158(header.Number))
 	s := w.current.state.Copy()
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 	if err != nil {
@@ -1260,10 +1264,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		}
 		select {
 		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now(), consensusNodes: w.current.consensusNodes}:
-			// 保存receipts、stateDB至缓存
-			w.consensusCache.WriteReceipts(block.Hash(), receipts, block.NumberU64())
-			w.consensusCache.WriteStateDB(block.Root(), s, block.NumberU64())
-
+			log.Info("发送task任务", "currentBlockNum", block.NumberU64(), "currentStateRoot", block.Root().String())
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
 			feesWei := new(big.Int)
@@ -1306,7 +1307,7 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 
 		err := w.makeCurrent(parent, header)
 		if err != nil {
-			panic("Failed to create mining context in makePending")
+			panic("Failed to create mining context in makePending, err " + err.Error())
 		}
 		w.updateSnapshot()
 		return w.snapshotBlock, w.snapshotState.Copy()

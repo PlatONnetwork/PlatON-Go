@@ -185,7 +185,7 @@ func (cbft *Cbft) findBlockExt(hash common.Hash) *BlockExt {
 func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 	if sign != nil {
 		ext.signs = append(ext.signs, sign)
-		blockNumber := ext.block.Number()
+		blockNumber := big.NewInt((int64(ext.number)))
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 		if len(ext.signs) >= cbft.getThreshold(parentNumber, ext.block.ParentHash(), blockNumber) {
 			ext.isConfirmed = true
@@ -459,7 +459,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
 		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
 	} else {
-		log.Error("execute a block error", err)
+		log.Error("execute a block error", "err", err)
 	}
 	return err
 }
@@ -1014,8 +1014,8 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Debug("call Finalize()", "Hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	log.Info("call Finalize()", "Hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts), "header.Root", header.Root)
 	header.UncleHash = types.CalcUncleHash(nil)
 	return types.NewBlock(header, txs, nil, receipts), nil
 }
@@ -1067,11 +1067,12 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	blockNumber := curExt.block.Number()
 	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 	state := cbft.consensusCache.ReadStateDB(curExt.block.Root())
+	log.Info("接收task任务，在打包之后，广播之前", "currentBlockNum", curExt.block.NumberU64(), "currentStateRoot", curExt.block.Root().String())
 	log.Warn("setNodeCache", "parentNumber", parentNumber, "parentHash", curExt.block.ParentHash(), "blockNumber", blockNumber, "blockHash", curExt.block.Hash())
 	if state != nil {
 		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), curExt.block.Hash())
 	} else {
-		log.Error("setNodeCache error", "err", err)
+		log.Error("setNodeCache error")
 	}
 
 	consensusNodes := cbft.ConsensusNodes(parentNumber, curExt.block.ParentHash(), blockNumber)

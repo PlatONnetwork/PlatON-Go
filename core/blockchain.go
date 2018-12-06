@@ -1252,13 +1252,14 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 //joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
+	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {
 		bc.reportBlock(block, receipts, err)
 		return nil, err
 	}
-
+	log.Info("收到广播区块时,本地执行完交易后的stateDB", "currentBlockNum", block.NumberU64(), "currentStateRoot", block.Root().String())
 	// Validate the state using the default validator
 	err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 	if err != nil {

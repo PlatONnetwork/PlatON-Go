@@ -602,8 +602,14 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 		currentBlock := s.blockchain.CurrentBlock()
 		blockNumber := currentBlock.Number()
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
-		if cbftEngine.IsCurrentNode(parentNumber, currentBlock.ParentHash(), blockNumber) {
-			currentNodes := cbftEngine.CurrentNodes(parentNumber, currentBlock.ParentHash(), blockNumber)
+		parentHash := currentBlock.ParentHash()
+		if currentBlock.NumberU64() == 0 {
+			parentNumber = common.Big0
+			blockNumber = common.Big1
+			parentHash = currentBlock.Hash()
+		}
+		if cbftEngine.IsCurrentNode(parentNumber, parentHash, blockNumber) {
+			currentNodes := cbftEngine.CurrentNodes(parentNumber, parentHash, blockNumber)
 			for _, n := range currentNodes {
 				srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
 			}
