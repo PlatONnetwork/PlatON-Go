@@ -679,12 +679,17 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 					ids = append(ids[:i], ids[i+1:]...)
 				}
 			}
-			if value, err := rlp.EncodeToBytes(&ids); nil != err {
-				log.Error("Failed to encode candidate ids on RefundBalance", "err", err)
-				return CandidateEncodeErr
-			} else {
-				setDefeatIdsState(state, value)
+			if len(ids) != 0 {
+				if value, err := rlp.EncodeToBytes(&ids); nil != err {
+					log.Error("Failed to encode candidate ids on RefundBalance", "err", err)
+					return CandidateEncodeErr
+				} else {
+					setDefeatIdsState(state, value)
+				}
+			}else {
+				setDefeatIdsState(state, []byte{})
 			}
+
 		}
 	} else {
 		// If have some remaining, update that
@@ -835,7 +840,6 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 			log.Error("Failed to setPreviousWitness on Switch", "err", err)
 			return false
 		}
-
 	}
 	// update previous witness index by current witness index
 	if ids, err := c.getWitnessIndex(state); nil != err {
@@ -1038,6 +1042,10 @@ func (c *CandidatePool) delImmediate(state vm.StateDB, candidateId discover.Node
 }
 
 func (c *CandidatePool) setImmediateIndex(state vm.StateDB, nodeIds []discover.NodeID) error {
+	if len(nodeIds) == 0 {
+		setImmediateIdsState(state, []byte{})
+		return nil
+	}
 	if val, err := rlp.EncodeToBytes(nodeIds); nil != err {
 		log.Error("Failed to encode ImmediateIds", "err", err)
 		return err
@@ -1054,12 +1062,12 @@ func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID,
 	// append refund information
 	if defeatArrTmp, ok := c.defeatCandidates[can.CandidateId]; ok {
 		defeatArrTmp = append(defeatArrTmp, can)
-		c.defeatCandidates[can.CandidateId] = defeatArrTmp
+		//c.defeatCandidates[can.CandidateId] = defeatArrTmp
 		defeatArr = defeatArrTmp
 	} else {
 		defeatArrTmp = make([]*types.Candidate, 0)
 		defeatArrTmp = append(defeatArr, can)
-		c.defeatCandidates[can.CandidateId] = defeatArrTmp
+		//c.defeatCandidates[can.CandidateId] = defeatArrTmp
 		defeatArr = defeatArrTmp
 	}
 	// setting refund information on trie
@@ -1068,6 +1076,7 @@ func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID,
 		return CandidateEncodeErr
 	} else {
 		setDefeatState(state, candidateId, value)
+		c.defeatCandidates[can.CandidateId] = defeatArr
 	}
 	return nil
 }
@@ -1109,6 +1118,10 @@ func (c *CandidatePool) setDefeatIndex(state vm.StateDB) error {
 	for id, _ := range c.defeatCandidates {
 		newdefeatIds = append(newdefeatIds, id)
 	}
+	if len(newdefeatIds) == 0 {
+		setDefeatIdsState(state, []byte{})
+		return nil
+	}
 	if value, err := rlp.EncodeToBytes(&newdefeatIds); nil != err {
 		log.Error("Failed to encode candidate object on setDefeatIds", "err", err)
 		return CandidateEncodeErr
@@ -1123,30 +1136,6 @@ func (c *CandidatePool) delPreviousWitness(state vm.StateDB, candidateId discove
 	delete(c.preOriginCandidates, candidateId)
 	// delete previous witness by id on trie
 	setPreviousWitnessState(state, candidateId, []byte{})
-	//// delete the corresponding id in the index
-	//var canIds []discover.NodeID
-	//if ids, err := getPreviousWitnessIdsState(state); nil != err {
-	//	log.Error("Failed to decode PreviousWitnessIds err", err)
-	//	return err
-	//}else {
-	//	canIds = ids
-	//}
-	//
-	//var flag bool
-	//for i, id := range canIds {
-	//	if id == candidateId {
-	//		flag = true
-	//		canIds = append(canIds[:i], canIds[i+1:]...)
-	//	}
-	//}
-	//if flag {
-	//	if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
-	//		log.Error("Failed to encode PreviousWitnessIds err", err)
-	//		return err
-	//	}else {
-	//		setPreviosWitnessIdsState(state, arrVal)
-	//	}
-	//}
 	return nil
 }
 
@@ -1162,6 +1151,10 @@ func (c *CandidatePool) setPreviousWitness(state vm.StateDB, nodeId discover.Nod
 }
 
 func (c *CandidatePool) setPreviousWitnessindex(state vm.StateDB, nodeIds []discover.NodeID) error {
+	if len(nodeIds) == 0 {
+		setPreviosWitnessIdsState(state, []byte{})
+		return nil
+	}
 	if val, err := rlp.EncodeToBytes(nodeIds); nil != err {
 		log.Error("Failed to encode Previous WitnessIds", "err", err)
 		return err
@@ -1182,12 +1175,16 @@ func (c *CandidatePool) setWitness(state vm.StateDB, nodeId discover.NodeID, can
 		return err
 	} else {
 		setWitnessState(state, nodeId, val)
-		PrintObject("设置 setWitness ", *can)
+		//PrintObject("设置 setWitness ", *can)
 	}
 	return nil
 }
 
 func (c *CandidatePool) setWitnessindex(state vm.StateDB, nodeIds []discover.NodeID) error {
+	if len(nodeIds) == 0 {
+		setWitnessIdsState(state, []byte{})
+		return nil
+	}
 	if val, err := rlp.EncodeToBytes(nodeIds); nil != err {
 		log.Error("Failed to encode WitnessIds", "err", err)
 		return err
@@ -1202,30 +1199,6 @@ func (c *CandidatePool) delWitness(state vm.StateDB, candidateId discover.NodeID
 	delete(c.originCandidates, candidateId)
 	// delete witness by id on trie
 	setWitnessState(state, candidateId, []byte{})
-	//// delete the corresponding id in the index
-	//var canIds []discover.NodeID
-	//if ids, err := getWitnessIdsByState(state); nil != err {
-	//	log.Error("Failed to decode WitnessIds err", err)
-	//	return err
-	//}else {
-	//	canIds = ids
-	//}
-	//
-	//var flag bool
-	//for i, id := range canIds {
-	//	if id == candidateId {
-	//		flag = true
-	//		canIds = append(canIds[:i], canIds[i+1:]...)
-	//	}
-	//}
-	//if flag {
-	//	if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
-	//		log.Error("Failed to encode WitnessIds err", err)
-	//		return err
-	//	}else {
-	//		setWitnessIdsState(state, arrVal)
-	//	}
-	//}
 	return nil
 }
 
@@ -1252,44 +1225,24 @@ func (c *CandidatePool) delNextWitness(state vm.StateDB, candidateId discover.No
 	// deleted next witness by id on trie
 	setNextWitnessState(state, candidateId, []byte{})
 
-	//// getting origin index
-	//var canIds []discover.NodeID
-	//if ids, err := getNextWitnessIdsByState(state); nil != err {
-	//	log.Error("Failed to decode NextWitnessIds err", err)
-	//	return err
-	//}else {
-	//	canIds = ids
-	//}
-	//
-	//// delete the corresponding id in the index
-	//var flag bool
-	//for i, id := range canIds {
-	//	if id == candidateId {
-	//		flag = true
-	//		canIds = append(canIds[:i], canIds[i+1:]...)
-	//	}
-	//}
-	//if flag {
-	//	if arrVal, err := rlp.EncodeToBytes(canIds); nil != err {
-	//		log.Error("Failed to encode NextWitnessIds err", err)
-	//		return err
-	//	}else {
-	//		setNextWitnessIdsState(state, arrVal)
-	//	}
-	//}
 	return nil
 }
 
 func (c *CandidatePool) setNextWitnessIndex(state vm.StateDB, nodeIds []discover.NodeID) error {
+	if len(nodeIds) == 0 {
+		setNextWitnessIdsState(state, []byte{})
+		return nil
+	}
 	if value, err := rlp.EncodeToBytes(&nodeIds); nil != err {
 		log.Error("Failed to encode candidate object on setDefeatIds", "err", err)
 		return CandidateEncodeErr
 	} else {
 		setNextWitnessIdsState(state, value)
-		PrintObject("设置 setNextWitnessIndex:", nodeIds)
+		//PrintObject("设置 setNextWitnessIndex:", nodeIds)
 	}
 	return nil
 }
+
 
 func (c *CandidatePool) getNextWitnessIndex(state vm.StateDB) ([]discover.NodeID, error) {
 	return getNextWitnessIdsByState(state)
@@ -1315,7 +1268,7 @@ func (c *CandidatePool) MaxChair() uint64 {
 
 func getPreviousWitnessIdsState(state vm.StateDB) ([]discover.NodeID, error) {
 	var witnessIds []discover.NodeID
-	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessListKey()); len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessListKey()); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
@@ -1329,7 +1282,7 @@ func setPreviosWitnessIdsState(state vm.StateDB, arrVal []byte) {
 
 func getPreviousWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessKey(id)); nil != valByte {
+	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessKey(id)); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1343,7 +1296,7 @@ func setPreviousWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
 
 func getWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var witnessIds []discover.NodeID
-	if valByte := state.GetState(common.CandidateAddr, WitnessListKey()); len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidateAddr, WitnessListKey()); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
@@ -1357,7 +1310,7 @@ func setWitnessIdsState(state vm.StateDB, arrVal []byte) {
 
 func getWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if valByte := state.GetState(common.CandidateAddr, WitnessKey(id)); nil != valByte {
+	if valByte := state.GetState(common.CandidateAddr, WitnessKey(id)); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1371,7 +1324,7 @@ func setWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
 
 func getNextWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var nextWitnessIds []discover.NodeID
-	if valByte := state.GetState(common.CandidateAddr, NextWitnessListKey()); len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidateAddr, NextWitnessListKey()); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &nextWitnessIds); nil != err {
 			return nil, err
 		}
@@ -1385,7 +1338,7 @@ func setNextWitnessIdsState(state vm.StateDB, arrVal []byte) {
 
 func getNextWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if valByte := state.GetState(common.CandidateAddr, NextWitnessKey(id)); nil != valByte {
+	if valByte := state.GetState(common.CandidateAddr, NextWitnessKey(id)); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1399,7 +1352,7 @@ func setNextWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
 
 func getImmediateIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var immediateIds []discover.NodeID
-	if valByte := state.GetState(common.CandidateAddr, ImmediateListKey()); len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidateAddr, ImmediateListKey()); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &immediateIds); nil != err {
 			return nil, err
 		}
@@ -1413,7 +1366,7 @@ func setImmediateIdsState(state vm.StateDB, arrVal []byte) {
 
 func getImmediateByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if valByte := state.GetState(common.CandidateAddr, ImmediateKey(id)); nil != valByte {
+	if valByte := state.GetState(common.CandidateAddr, ImmediateKey(id)); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1427,7 +1380,7 @@ func setImmediateState(state vm.StateDB, id discover.NodeID, val []byte) {
 
 func getDefeatIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var defeatIds []discover.NodeID
-	if valBtye := state.GetState(common.CandidateAddr, DefeatListKey()); len(valBtye) != 0 {
+	if valByte := state.GetState(common.CandidateAddr, DefeatListKey()); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valBtye, &defeatIds); nil != err {
 			return nil, err
 		}
