@@ -23,7 +23,7 @@ type Cache struct {
 }
 
 type stateDBCache struct {
-	stateDB *state.StateDB
+	stateDB state.StateDB
 	blockNum uint64
 }
 
@@ -57,7 +57,7 @@ func (c *Cache) ReadStateDB(stateRoot common.Hash) *state.StateDB {
 	defer c.stateDBMu.RUnlock()
 	log.Info("从缓存map中读取StateDB实例", "stateRoot", stateRoot)
 	if obj, exist := c.stateDBCache[stateRoot]; exist {
-		return obj.stateDB
+		return &obj.stateDB
 	}
 	return nil
 }
@@ -75,7 +75,7 @@ func (c *Cache) WriteReceipts(blockHash common.Hash, receipts []*types.Receipt, 
 }
 
 // 将StateDB实例写入缓存
-func (c *Cache) WriteStateDB(stateRoot common.Hash, stateDB *state.StateDB, blockNum uint64) {
+func (c *Cache) WriteStateDB(stateRoot common.Hash, stateDB state.StateDB, blockNum uint64) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
 	log.Info("将StateDB实例写入缓存", "stateRoot", stateRoot, "blockNum", blockNum)
@@ -109,7 +109,7 @@ func (c *Cache) clearStateDB(stateRoot common.Hash) {
 	var blockNum uint64
 	if obj, exist := c.stateDBCache[stateRoot]; exist {
 		blockNum = obj.blockNum
-		//delete(c.stateDBCache, stateRoot)
+		delete(c.stateDBCache, stateRoot)
 	}
 	for hash, obj := range c.stateDBCache {
 		if obj.blockNum <= blockNum {
