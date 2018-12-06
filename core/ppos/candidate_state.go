@@ -1315,7 +1315,7 @@ func setImmediateState(state vm.StateDB, id discover.NodeID, val []byte) {
 func getDefeatIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var defeatIds []discover.NodeID
 	if valByte := state.GetState(common.CandidateAddr, DefeatListKey()); nil != valByte && len(valByte) != 0 {
-		if err := rlp.DecodeBytes(valBtye, &defeatIds); nil != err {
+		if err := rlp.DecodeBytes(valByte, &defeatIds); nil != err {
 			return nil, err
 		}
 	}
