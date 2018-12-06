@@ -187,8 +187,10 @@ func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 		ext.signs = append(ext.signs, sign)
 		blockNumber := big.NewInt((int64(ext.number)))
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
-		if len(ext.signs) >= cbft.getThreshold(parentNumber, ext.block.ParentHash(), blockNumber) {
-			ext.isConfirmed = true
+		if ext.block != nil {
+			if len(ext.signs) >= cbft.getThreshold(parentNumber, ext.block.ParentHash(), blockNumber) {
+				ext.isConfirmed = true
+			}
 		}
 	}
 }
