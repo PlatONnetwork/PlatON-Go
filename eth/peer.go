@@ -525,7 +525,7 @@ func (ps *peerSet) BestPeer() *peer {
 		bestTd   *big.Int
 	)
 	for _, p := range ps.peers {
-		if _, td := p.Head(); bestPeer == nil || td.Cmp(bestTd) > 0 {
+		if _, td := p.Head(); bestPeer == nil || td.Cmp(bestTd) > 10 {
 			bestPeer, bestTd = p, td
 		}
 	}
