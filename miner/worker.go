@@ -1307,7 +1307,7 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 
 		err := w.makeCurrent(parent, header)
 		if err != nil {
-			panic("Failed to create mining context in makePending")
+			panic("Failed to create mining context in makePending, err " + err.Error())
 		}
 		w.updateSnapshot()
 		return w.snapshotBlock, w.snapshotState.Copy()

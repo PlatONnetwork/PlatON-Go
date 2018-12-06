@@ -419,24 +419,28 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 			if i == len(blockArr) - 1 && currentNum > 1  {
 
 				var parent, current *state.StateDB
-
+				/** 调试用 */
+				parent, _ = blockChain.State()
+				current, _ = blockChain.State()
 				// parentStateDB by block
 				parentStateRoot := blockChain.GetBlock(parentHash, parentNum).Root()
-				if parentState, err := blockChain.StateAt(parentStateRoot); nil != err {
-					log.Error("Failed to load parentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "parentNum", parentNum, "Hash", parentHash.String(), "err", err)
-					panic("Failed to load parentStateDB by block parentNum" + fmt.Sprint(parentNum) + ", Hash" + parentHash.String() + "err" + err.Error())
-				}else {
-					parent = parentState
-				}
+				log.Info("启动时重新加载最早块", "parentNum", parentNum, "parentHash", parentHash, "parentStateRoot", parentStateRoot.String())
+				//if parentState, err := blockChain.StateAt(parentStateRoot); nil != err {
+				//	log.Error("Failed to load parentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "parentNum", parentNum, "Hash", parentHash.String(), "err", err)
+				//	panic("Failed to load parentStateDB by block parentNum" + fmt.Sprint(parentNum) + ", Hash" + parentHash.String() + "err" + err.Error())
+				//}else {
+				//	parent = parentState
+				//}
 
 				// currentStateDB by block
 				stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
-				if currntState, err := blockChain.StateAt(stateRoot); nil != err {
-					log.Error("Failed to load currentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "err", err)
-					panic("Failed to load currentStateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
-				}else {
-					current = currntState
-				}
+				log.Info("启动时重新加载最早块", "currentNum", currentNum, "currentHash", currentHash, "stateRoot", stateRoot.String())
+				//if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+				//	log.Error("Failed to load currentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "err", err)
+				//	panic("Failed to load currentStateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
+				//}else {
+				//	current = currntState
+				//}
 
 				if err := d.setEarliestIrrNodeCache(parent, current, genesis.NumberU64(), currentNum, genesis.Hash(), currentHash); nil != err {
 					log.Error("Failed to setEarliestIrrNodeCache", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
@@ -448,15 +452,18 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 
 			// stateDB by block
 			stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
-			if currntState, err := blockChain.StateAt(stateRoot); nil != err {
-				log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
-				panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
-			}else {
+			log.Info("启动时重新加载前面普通快", "currentNum", currentNum, "currentHash", currentHash, "stateRoot", stateRoot.String())
+			//if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+			//	log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
+			//	panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
+			//}else {
+				/** 调试用 */
+			currntState, _ := blockChain.State()
 				if err := d.setGeneralNodeCache(currntState, parentNum, currentNum, parentHash, currentHash); nil != err {
 					log.Error("Failed to setGeneralNodeCache", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 					panic("Failed to setGeneralNodeCache currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 				}
-			}
+			//}
 			d.printMapInfo("启动时重新加载前面普通快", currentNum, currentHash)
 		}
 
