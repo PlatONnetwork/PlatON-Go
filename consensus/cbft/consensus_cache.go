@@ -109,7 +109,7 @@ func (c *Cache) clearStateDB(stateRoot common.Hash) {
 	var blockNum uint64
 	if obj, exist := c.stateDBCache[stateRoot]; exist {
 		blockNum = obj.blockNum
-		delete(c.stateDBCache, stateRoot)
+		//delete(c.stateDBCache, stateRoot)
 	}
 	for hash, obj := range c.stateDBCache {
 		if obj.blockNum <= blockNum {
