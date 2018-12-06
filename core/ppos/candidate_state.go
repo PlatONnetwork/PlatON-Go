@@ -904,28 +904,10 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 	//var ids []discover.NodeID
 	var witness map[discover.NodeID]*types.Candidate
 	if flag == -1 {
-		//prewitnessIds, err := c.getPreviousWitnessIndex(state)
-		//if nil != err {
-		//	log.Error("Failed to getPreviousWitnessIndex on GetWitness err", err)
-		//	return nil, err
-		//}
-		//ids = prewitnessIds
 		witness = c.preOriginCandidates
 	} else if flag == 0 {
-		//witnessIds, err := c.getWitnessIndex(state)
-		//if nil != err {
-		//	log.Error("Failed to getWitnessIndex on GetWitness err", err)
-		//	return nil, err
-		//}
-		//ids = witnessIds
 		witness = c.originCandidates
 	} else if flag == 1 {
-		//nextWitnessIds, err := c.getNextWitnessIndex(state)
-		//if nil != err {
-		//	log.Error("Failed to getNextWitnessIndex on GetWitness err", err)
-		//	return nil, err
-		//}
-		//ids = nextWitnessIds
 		witness = c.nextOriginCandidates
 	}
 
@@ -1014,30 +996,6 @@ func (c *CandidatePool) delImmediate(state vm.StateDB, candidateId discover.Node
 	setImmediateState(state, candidateId, []byte{})
 	// deleted immedidate candidate by id on map
 	delete(c.immediateCandates, candidateId)
-	//// delete the corresponding id in the index
-	//var canIds []discover.NodeID
-	//if ids, err := getImmediateIdsByState(state); nil != err {
-	//	log.Error("Failed to decode ImmediateIds err", err)
-	//	return err
-	//}else {
-	//	canIds = ids
-	//}
-	//
-	//var flag bool
-	//for i, id := range canIds {
-	//	if id == candidateId {
-	//		flag = true
-	//		canIds = append(canIds[:i], canIds[i+1:]...)
-	//	}
-	//}
-	//if flag {
-	//	if val, err := rlp.EncodeToBytes(canIds); nil != err {
-	//		log.Error("Failed to encode ImmediateIds err", err)
-	//		return err
-	//	}else {
-	//		setImmediateIdsState(state, val)
-	//	}
-	//}
 	return nil
 }
 
@@ -1085,30 +1043,6 @@ func (c *CandidatePool) delDefeat(state vm.StateDB, nodeId discover.NodeID) erro
 	delete(c.defeatCandidates, nodeId)
 	setDefeatState(state, nodeId, []byte{})
 
-	//// delete the corresponding id in the index
-	//var canIds []discover.NodeID
-	//if ids, err := getDefeatIdsByState(state); nil != err {
-	//	log.Error("Failed to decode DefeatIds err", err)
-	//	return err
-	//}else {
-	//	canIds = ids
-	//}
-	//
-	//var flag bool
-	//for i, id := range canIds {
-	//	if id == nodeId {
-	//		flag = true
-	//		canIds = append(canIds[:i], canIds[i+1:]...)
-	//	}
-	//}
-	//if flag {
-	//	if val, err := rlp.EncodeToBytes(canIds); nil != err {
-	//		log.Error("Failed to encode ImmediateIds err", err)
-	//		return err
-	//	}else {
-	//		setDefeatIdsState(state, val)
-	//	}
-	//}
 	return nil
 }
 
