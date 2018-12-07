@@ -214,9 +214,10 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 //Apply for a refund of the deposit
 func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error)  {
 	//debug
+	txHash := c.evm.StateDB.TxHash()
 	from := c.contract.caller.Address()
 	height := c.evm.Context.BlockNumber
-	c.logInfo("CandidateApplyWithdraw==> ","nodeId: ", nodeId.String(), " from: ", from.Hex(), " withdraw: ", withdraw, " height: ", height)
+	c.logInfo("CandidateApplyWithdraw==> ","nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
 	//todo
 	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
 	if err!=nil {
@@ -244,8 +245,9 @@ func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 //Deposit withdrawal
 func (c *candidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, error)  {
 	//debug
+	txHash := c.evm.StateDB.TxHash()
 	height := c.evm.Context.BlockNumber
-	c.logInfo("CandidateWithdraw==> ","nodeId: ", nodeId.String(), " height: ", 	height)
+	c.logInfo("CandidateWithdraw==> ","nodeId: ", nodeId.String(), " height: ", 	height, " txHash: ", txHash.Hex())
 	//todo
 	if err :=c.evm.CandidatePool.RefundBalance(c.evm.StateDB, nodeId, height); err!=nil{
 		c.logError(err.Error())
@@ -293,8 +295,9 @@ func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byt
 //Set up additional information
 func (c *candidateContract) SetCandidateExtra(nodeId discover.NodeID, extra string)([]byte, error){
 	//debug
+	txHash := c.evm.StateDB.TxHash()
 	from := c.contract.caller.Address()
-	c.logInfo("SetCandidate==> ","nodeId: ", nodeId.String(), " extra: ", extra, " from: ", from.Hex())
+	c.logInfo("SetCandidate==> ","nodeId: ", nodeId.String(), " extra: ", extra, " from: ", from.Hex(), " txHash: ", txHash.Hex())
 	//todo
 	owner :=  c.evm.CandidatePool.GetOwner(c.evm.StateDB, nodeId)
 	if ok := bytes.Equal(owner.Bytes(), from.Bytes()); !ok {
