@@ -1242,22 +1242,45 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		receipts[i] = new(types.Receipt)
 		*receipts[i] = *l
 	}
-	if header != nil {
-		// 揭榜(如果符合条件)
-		electionErr := w.election(header.Number)
-		if electionErr != nil {
-			return errors.New("election failure")
-		}
-		// 触发替换下轮见证人列表(如果符合条件)
-		switchWitnessErr := w.switchWitness(header.Number)
-		if switchWitnessErr != nil {
-			return errors.New("switchWitness failure")
-		}
-	}
+	//if header != nil {
+	//	// 揭榜(如果符合条件)
+	//	electionErr := w.election(header.Number)
+	//	if electionErr != nil {
+	//		return errors.New("election failure")
+	//	}
+	//	// 触发替换下轮见证人列表(如果符合条件)
+	//	switchWitnessErr := w.switchWitness(header.Number)
+	//	if switchWitnessErr != nil {
+	//		return errors.New("switchWitness failure")
+	//	}
+	//}
 	log.Info("commit IsEIP158","number", header.Number, "flag", w.config.IsEIP158(header.Number))
 	//root := w.current.state.IntermediateRoot(w.chain.Config().IsEIP158(header.Number))
 	//fmt.Println("root", root.String())
 	s := w.current.state.Copy()
+	if nil != header {
+		if should := w.shouldElection(header.Number); should {
+			log.Info("请求揭榜", "blockNumber", header.Number.Uint64())
+			_, err := w.engine.(consensus.Bft).Election(s, header.Number)
+			if err != nil {
+				log.Error("Failed to election", "blockNumber", header.Number.Uint64(), "error", err)
+				return errors.New("Failed to Election")
+			}
+			log.Info("Success to election", "blockNumber", header.Number.Uint64())
+		}
+
+		if should := w.shouldSwitch(header.Number); should {
+			log.Info("触发替换下轮见证人列表", "blockNumber", header.Number.Uint64())
+			success := w.engine.(consensus.Bft).Switch(s)
+			if !success {
+				log.Error("Failed to switchWitness", "blockNumber", header.Number.Uint64())
+				return errors.New("Failed to switchWitness")
+			}
+			log.Info("Success to switchWitness", "blockNumber", header.Number.Uint64())
+		}
+
+	}
+
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 	if err != nil {
 		return err
