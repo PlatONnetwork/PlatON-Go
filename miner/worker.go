@@ -1252,7 +1252,6 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		if switchWitnessErr != nil {
 			return errors.New("switchWitness failure")
 		}
-
 	}
 	log.Info("commit IsEIP158","number", header.Number, "flag", w.config.IsEIP158(header.Number))
 	w.current.state.IntermediateRoot(w.chain.Config().IsEIP158(header.Number))
