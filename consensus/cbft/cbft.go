@@ -26,6 +26,7 @@ import (
 	"math/big"
 	"sync"
 	"time"
+	"fmt"
 )
 
 const (
@@ -1018,6 +1019,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	fmt.Println("finalize root", header.Root.String())
 	log.Info("call Finalize()", "Hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts), "header.Root", header.Root)
 	header.UncleHash = types.CalcUncleHash(nil)
 	return types.NewBlock(header, txs, nil, receipts), nil
