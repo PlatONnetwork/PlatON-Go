@@ -196,9 +196,9 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		owner,
 		from,
 		extra,
-		make([]common.Hash, 0),
 		0,
 		new(big.Int).SetUint64(0),
+		common.Hash{},
 	}
 	fmt.Println("canDeposit: ", canDeposit)
 	if err = c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, &canDeposit); err!=nil {

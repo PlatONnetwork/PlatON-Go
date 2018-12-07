@@ -45,9 +45,10 @@ var (
 	addressT = reflect.TypeOf(Address{})
 
 	// modify by platon
-	CandidateAddr 	= HexToAddress("0x1000000000000000000000000000000000000001")
-	TicketAddr 		= HexToAddress("0x1000000000000000000000000000000000000002")
-	ZeroAddr 		= HexToAddress(Address{}.String())
+	CandidateAddr 			= HexToAddress("0x1000000000000000000000000000000000000001")
+	TicketPoolAddr 			= HexToAddress("0x1000000000000000000000000000000000000002")
+	TicketDetailAddr 		= HexToAddress("0x1000000000000000000000000000000000000003")
+	ZeroAddr 				= HexToAddress(Address{}.String())
 )
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.

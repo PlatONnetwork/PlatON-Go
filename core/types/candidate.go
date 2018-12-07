@@ -28,11 +28,13 @@ type Candidate struct {
 
 	Extra 			string
 	// Voted ticket'id set
-	TicketPool		[]common.Hash
+	//TicketPool		[]common.Hash
 	// Voted ticket count
 	TCount    		uint64				`json:"tcount"`
 	// Ticket age
 	Epoch			*big.Int			`json:"epoch"`
+	// Selected TicketId
+	TicketId		common.Hash
 	// brokerage
 	//Brokerage		uint64				`json:"brokerage"`
 }
