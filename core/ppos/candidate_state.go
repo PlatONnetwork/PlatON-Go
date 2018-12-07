@@ -391,9 +391,12 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 			log.Error("withdraw failed getImmediateIndex on full withdrawerr", "err", err)
 			return err
 		} else {
-			for i, id := range ids {
+			//for i, id := range ids {
+			for i := 0; i < len(ids); i ++ {
+				id := ids[i]
 				if id == nodeId {
 					ids = append(ids[:i], ids[i+1:]...)
+					i --
 				}
 			}
 			if err := c.setImmediateIndex(state, ids); nil != err {
@@ -622,13 +625,16 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	//currentNum := new(big.Int).SetUint64(blockNumber)
 
 	// Traverse all refund information belong to this nodeId
-	for index, can := range canArr {
+	//for index, can := range canArr {
+	for index := 0; index < len(canArr); index ++ {
+		can := canArr[index]
 		sub := new(big.Int).Sub(blockNumber, can.BlockNumber)
 		log.Info("检查退款信息", "当前块高:", blockNumber.String(), "质押块高:", can.BlockNumber.String(), "相差:", sub.String())
 		log.Info("检查退款信息", "当前nodeId:", can.CandidateId.String())
 		if sub.Cmp(new(big.Int).SetUint64(c.RefundBlockNumber)) >= 0 { // allow refund
 			delCanArr = append(delCanArr, can)
 			canArr = append(canArr[:index], canArr[index+1:]...)
+			index --
 			// add up the refund price
 			amount += can.Deposit.Uint64()
 		} else {
@@ -674,9 +680,12 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 			return err
 		}
 		if ids, err := getDefeatIdsByState(state); nil != err {
-			for i, id := range ids {
+			//for i, id := range ids {
+			for i := 0; i < len(ids); i ++ {
+				id := ids[i]
 				if id == nodeId {
 					ids = append(ids[:i], ids[i+1:]...)
+					i --
 				}
 			}
 			if len(ids) != 0 {

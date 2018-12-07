@@ -8,12 +8,22 @@ const (
 	//BaseRemoveFormerPeers = 270
 
 	BaseElection = 50
-
+	//
 	BaseSwitchWitness = 60
+	//
+	//BaseAddNextPeers = 50
+	//
+	//BaseRemoveFormerPeers = 70
+	//
+	//BaseIrrCount = 20
 
-	BaseAddNextPeers = 50
+	//BaseElection = 50000
 
-	BaseRemoveFormerPeers = 70
+	//BaseSwitchWitness = 60000
 
-	BaseIrrCount = 20
+	BaseAddNextPeers = 50000
+
+	BaseRemoveFormerPeers = 700000
+
+	BaseIrrCount = 2000
 )

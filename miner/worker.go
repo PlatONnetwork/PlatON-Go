@@ -679,12 +679,15 @@ func (w *worker) taskLoop() {
 			w.pendingMu.Unlock()
 
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-				// 保存receipts、stateDB至缓存
-				w.consensusCache.WriteReceipts(task.block.Hash(), task.receipts, task.block.NumberU64())
-				w.consensusCache.WriteStateDB(task.block.Root(), task.state, task.block.NumberU64())
+				// 保存stateDB至缓存
+				taskState := *task.state
+				w.consensusCache.WriteStateDB(task.block.Root(), taskState, task.block.NumberU64())
 				log.Info("接收task任务，在打包之前", "currentBlockNum", task.block.NumberU64(), "currentStateRoot", task.block.Root().String())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
+				} else {
+					// 保存receipts至缓存
+					w.consensusCache.WriteReceipts(task.block.Hash(), task.receipts, task.block.NumberU64())
 				}
 				continue
 			}
@@ -1218,6 +1221,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		if w.commitTransactions(txs, w.coinbase, interrupt, timestamp) {
 			return
 		}
+
 	}
 	if len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
@@ -1238,22 +1242,45 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		receipts[i] = new(types.Receipt)
 		*receipts[i] = *l
 	}
-	if header != nil {
-		// 揭榜(如果符合条件)
-		electionErr := w.election(header.Number)
-		if electionErr != nil {
-			return errors.New("election failure")
+	//if header != nil {
+	//	// 揭榜(如果符合条件)
+	//	electionErr := w.election(header.Number)
+	//	if electionErr != nil {
+	//		return errors.New("election failure")
+	//	}
+	//	// 触发替换下轮见证人列表(如果符合条件)
+	//	switchWitnessErr := w.switchWitness(header.Number)
+	//	if switchWitnessErr != nil {
+	//		return errors.New("switchWitness failure")
+	//	}
+	//}
+	log.Info("commit IsEIP158","number", header.Number, "flag", w.config.IsEIP158(header.Number))
+	//root := w.current.state.IntermediateRoot(w.chain.Config().IsEIP158(header.Number))
+	//fmt.Println("root", root.String())
+	s := w.current.state.Copy()
+	if nil != header {
+		if should := w.shouldElection(header.Number); should {
+			log.Info("请求揭榜", "blockNumber", header.Number.Uint64())
+			_, err := w.engine.(consensus.Bft).Election(s, header.Number)
+			if err != nil {
+				log.Error("Failed to election", "blockNumber", header.Number.Uint64(), "error", err)
+				return errors.New("Failed to Election")
+			}
+			log.Info("Success to election", "blockNumber", header.Number.Uint64())
 		}
-		// 触发替换下轮见证人列表(如果符合条件)
-		switchWitnessErr := w.switchWitness(header.Number)
-		if switchWitnessErr != nil {
-			return errors.New("switchWitness failure")
+
+		if should := w.shouldSwitch(header.Number); should {
+			log.Info("触发替换下轮见证人列表", "blockNumber", header.Number.Uint64())
+			success := w.engine.(consensus.Bft).Switch(s)
+			if !success {
+				log.Error("Failed to switchWitness", "blockNumber", header.Number.Uint64())
+				return errors.New("Failed to switchWitness")
+			}
+			log.Info("Success to switchWitness", "blockNumber", header.Number.Uint64())
 		}
 
 	}
-	log.Info("commit IsEIP158","number", header.Number, "flag", w.config.IsEIP158(header.Number))
-	w.current.state.IntermediateRoot(w.config.IsEIP158(header.Number))
-	s := w.current.state.Copy()
+
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 	if err != nil {
 		return err

@@ -26,6 +26,7 @@ import (
 	"math/big"
 	"sync"
 	"time"
+	"fmt"
 )
 
 const (
@@ -187,8 +188,10 @@ func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 		ext.signs = append(ext.signs, sign)
 		blockNumber := big.NewInt((int64(ext.number)))
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
-		if len(ext.signs) >= cbft.getThreshold(parentNumber, ext.block.ParentHash(), blockNumber) {
-			ext.isConfirmed = true
+		if ext.block != nil {
+			if len(ext.signs) >= cbft.getThreshold(parentNumber, ext.block.ParentHash(), blockNumber) {
+				ext.isConfirmed = true
+			}
 		}
 	}
 }
@@ -457,7 +460,8 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	if err == nil {
 		//save the receipts and state to consensusCache
 		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
-		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
+		executeState := *state
+		cbft.consensusCache.WriteStateDB(ext.block.Root(), executeState, ext.block.NumberU64())
 	} else {
 		log.Error("execute a block error", "err", err)
 	}
@@ -1015,6 +1019,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	fmt.Println("finalize root", header.Root.String())
 	log.Info("call Finalize()", "Hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts), "header.Root", header.Root)
 	header.UncleHash = types.CalcUncleHash(nil)
 	return types.NewBlock(header, txs, nil, receipts), nil
