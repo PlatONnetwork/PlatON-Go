@@ -397,13 +397,13 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 				break
 			}
 			/** 添加的调试信息 */
-			stateRoot := blockChain.GetBlock(currBlockHash, currBlockNumber).Root()
-			parentState, err := blockChain.StateAt(stateRoot)
-			log.Info("启动调试 stateDB:", "currBlockNumber", currBlockNumber, "currBlockHash", currBlockHash, "stateRoot", stateRoot.String())
-			if nil != err {
-				log.Error("启动调试 stateDB:", "err", err)
-				log.Error("启动时调试 stateDB:", "parentState", parentState)
-			}
+			//stateRoot := blockChain.GetBlock(currBlockHash, currBlockNumber).Root()
+			//parentState, err := blockChain.StateAt(stateRoot)
+			//log.Info("启动调试 stateDB:", "currBlockNumber", currBlockNumber, "currBlockHash", currBlockHash, "stateRoot", stateRoot.String())
+			//if nil != err {
+			//	log.Error("启动调试 stateDB:", "err", err)
+			//	log.Error("启动时调试 stateDB:", "parentState", parentState)
+			//}
 
 			parentNum := currBlockNumber - 1
 			parentHash := currentBlock.ParentHash()
@@ -522,23 +522,23 @@ func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes [
 }
 
 func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Hash){
-	res := d.nodeRound[blockNumber]
-
-	log.Info(title + ":遍历出来存进去的RoundNodes，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-	pposm.PrintObject(title + ":遍历出来存进去的Round:", d.nodeRound)
-	if round, ok  := res[blockHash]; ok {
-		if nil != round.former{
-			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 上一轮: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
-		}
-		if nil != round.current {
-			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 当前轮: start:" + round.current.start.String() + ", end:" + round.current.end.String() + ", nodes: ", round.current.nodes)
-		}
-		if nil != round.next {
-			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 下一轮: start:" + round.next.start.String() + ", end:" + round.next.end.String() + ", nodes: ", round.next.nodes)
-		}
-	}else {
-		log.Info(title + ":遍历出来存进去的Round 不存在，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-	}
+	//res := d.nodeRound[blockNumber]
+	//
+	//log.Info(title + ":遍历出来存进去的RoundNodes，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
+	//pposm.PrintObject(title + ":遍历出来存进去的Round:", d.nodeRound)
+	//if round, ok  := res[blockHash]; ok {
+	//	if nil != round.former{
+	//		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 上一轮: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
+	//	}
+	//	if nil != round.current {
+	//		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 当前轮: start:" + round.current.start.String() + ", end:" + round.current.end.String() + ", nodes: ", round.current.nodes)
+	//	}
+	//	if nil != round.next {
+	//		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 下一轮: start:" + round.next.start.String() + ", end:" + round.next.end.String() + ", nodes: ", round.next.nodes)
+	//	}
+	//}else {
+	//	log.Info(title + ":遍历出来存进去的Round 不存在，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
+	//}
 }
 
 /** Method provided to the built-in contract call */
