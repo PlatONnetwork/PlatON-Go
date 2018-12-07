@@ -219,7 +219,7 @@ func (d *ppos) consensusNodes(parentNumber *big.Int, parentHash common.Hash, blo
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
-	log.Warn("consensusNodes", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash, "blockNumber", blockNumber.Uint64())
+	log.Warn("call consensusNodes", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash, "blockNumber", blockNumber.Uint64())
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
 	d.printMapInfo("consensusNodes nodeCache", parentNumber.Uint64(), parentHash)
 	if nodeCache != nil {

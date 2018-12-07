@@ -57,7 +57,8 @@ func (c *Cache) ReadStateDB(stateRoot common.Hash) *state.StateDB {
 	defer c.stateDBMu.RUnlock()
 	log.Info("从缓存map中读取StateDB实例", "stateRoot", stateRoot)
 	if obj, exist := c.stateDBCache[stateRoot]; exist {
-		return &obj.stateDB
+		state := obj.stateDB
+		return &state
 	}
 	return nil
 }
