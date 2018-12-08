@@ -371,8 +371,7 @@ func (cbft *Cbft) handleLogicalBlockAndDescendant(current *BlockExt) {
 
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt) error {
-
-	if current.isLinked == false {
+	if current.isLinked {
 		err := cbft.execute(current, parent)
 		if err != nil {
 			current.isLinked = false
