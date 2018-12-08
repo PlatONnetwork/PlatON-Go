@@ -178,6 +178,7 @@ func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 		if len(ext.signs) >= cbft.getThreshold() {
 			ext.isConfirmed = true
 		}
+		log.Debug("count signatures", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "isConfirm", ext.isConfirmed)
 	}
 }
 
@@ -430,7 +431,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	state, err := cbft.consensusCache.MakeStateDB(parent.block)
 	if err != nil {
-		log.Error("execute block error, cannot make state based on parent", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
+		log.Error("execute block error, cannot make state based on parent", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return errors.New("execute block error")
 	}
 
@@ -439,13 +440,13 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	if err == nil {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
-		log.Debug("save executed block receipts", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "lenReceipts", len(receipts))
-		log.Debug("save executed block state", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "stateIsNil", stateIsNil)
+		log.Debug("save executed block receipts", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "lenReceipts", len(receipts))
+		log.Debug("save executed block state", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "stateIsNil", stateIsNil)
 
 		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
 		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
 	} else {
-		log.Error("execute a block error", "Hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
+		log.Error("execute a block error", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return errors.New("execute block error")
 	}
 	return nil
@@ -476,7 +477,7 @@ func (cbft *Cbft) backTrackBlocks(start *BlockExt, end *BlockExt, includeEnd boo
 				found = true
 				break
 			} else {
-				//log.Debug("found new block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
+				//log.Debug("found new block", "hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
 				result = append(result, parent)
 				start = parent
 			}
@@ -493,7 +494,7 @@ func (cbft *Cbft) backTrackBlocks(start *BlockExt, end *BlockExt, includeEnd boo
 	}
 
 	for _, logical := range result {
-		log.Debug("found new block", "Hash", logical.block.Hash(), "number", logical.block.NumberU64())
+		log.Debug("found new block", "hash", logical.block.Hash(), "number", logical.block.NumberU64())
 	}
 
 	return result
@@ -509,7 +510,7 @@ func reverse(s []*BlockExt) {
 // The result is sorted by block number from lower to higher.
 func (cbft *Cbft) backTrackTillStored(newConfirmed *BlockExt) []*BlockExt {
 
-	log.Debug("found new block to store", "Hash", newConfirmed.block.Hash(), "ParentHash", newConfirmed.block.ParentHash(), "number", newConfirmed.block.NumberU64())
+	log.Debug("found new block to store", "hash", newConfirmed.block.Hash(), "ParentHash", newConfirmed.block.ParentHash(), "number", newConfirmed.block.NumberU64())
 
 	existMap := make(map[common.Hash]struct{})
 
@@ -530,7 +531,7 @@ func (cbft *Cbft) backTrackTillStored(newConfirmed *BlockExt) []*BlockExt {
 			foundRoot = true
 			break
 		} else {
-			log.Debug("found new block to store", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
+			log.Debug("found new block to store", "hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
 			if _, exist := existMap[parent.block.Hash()]; exist {
 				log.Error("get into a loop when finding new block to store")
 				return nil
@@ -585,7 +586,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 		currentBlock.Header().Number = big.NewInt(0)
 	}
 
-	log.Debug("init cbft.highestLogicalBlock", "Hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
+	log.Debug("init cbft.highestLogicalBlock", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 
 	current := NewBlockExt(currentBlock, currentBlock.NumberU64())
 	current.isLinked = true
@@ -721,7 +722,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Debug("=== call signReceiver() ===", "Hash", sig.Hash, "number", sig.Number.Uint64())
+	log.Debug("=== call signReceiver() ===", "hash", sig.Hash, "number", sig.Number.Uint64())
 
 	if sig.Number.Uint64() <= cbft.rootIrreversible.number {
 		log.Warn("block sign is too late")
@@ -740,8 +741,6 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 
 	cbft.collectSign(ext, sig.Signature)
 
-	log.Debug("count signatures", "signCount", len(ext.signs))
-
 	if ext.isConfirmed && ext.isLinked {
 		if ext.number < cbft.highestConfirmed.number && ext.isAncestor(cbft.highestConfirmed) {
 			//fork to lower block
@@ -757,7 +756,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 		cbft.flushReadyBlock()
 	}
 
-	log.Debug("=== end to handle new signature ===", "Hash", sig.Hash, "number", sig.Number.Uint64())
+	log.Debug("=== end to handle new signature ===", "hash", sig.Hash, "number", sig.Number.Uint64())
 
 	return nil
 }
@@ -768,7 +767,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Debug("=== call blockReceiver() ===", "Hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash())
+	log.Debug("=== call blockReceiver() ===", "hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash())
 
 	if block.NumberU64() <= cbft.highestConfirmed.number {
 		return errBlockNumber
@@ -852,7 +851,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		log.Warn("cannot find block's parent, just keep it")
 	}
 
-	log.Debug("=== end to handle block ===", "Hash", block.Hash(), "number", block.Number().Uint64())
+	log.Debug("=== end to handle block ===", "hash", block.Hash(), "number", block.Number().Uint64())
 	return nil
 }
 
@@ -970,13 +969,13 @@ func (cbft *Cbft) IsConsensusNode() (bool, error) {
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
-	log.Trace("call Author()", "Hash", header.Hash(), "number", header.Number.Uint64())
+	log.Trace("call Author()", "hash", header.Hash(), "number", header.Number.Uint64())
 	return header.Coinbase, nil
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules.
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	log.Trace("call VerifyHeader()", "Hash", header.Hash(), "number", header.Number.Uint64(), "seal", seal)
+	log.Trace("call VerifyHeader()", "hash", header.Hash(), "number", header.Number.Uint64(), "seal", seal)
 
 	if header.Number == nil {
 		return errUnknownBlock
@@ -1020,7 +1019,7 @@ func (cbft *Cbft) VerifyUncles(chain consensus.ChainReader, block *types.Block) 
 // VerifySeal implements consensus.Engine, checking whether the signature contained
 // in the header satisfies the consensus protocol requirements.
 func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	log.Trace("call VerifySeal()", "Hash", header.Hash(), "number", header.Number.String())
+	log.Trace("call VerifySeal()", "hash", header.Hash(), "number", header.Number.String())
 
 	return cbft.verifySeal(chain, header, nil)
 }
@@ -1028,7 +1027,7 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
-	log.Debug("call Prepare()", "Hash", header.Hash(), "number", header.Number.Uint64())
+	log.Debug("call Prepare()", "hash", header.Hash(), "number", header.Number.Uint64())
 
 	cbft.lock.RLock()
 	defer cbft.lock.RUnlock()
@@ -1055,7 +1054,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Debug("call Finalize()", "Hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
+	log.Debug("call Finalize()", "hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 	return types.NewBlock(header, txs, nil, receipts), nil
@@ -1095,6 +1094,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	//this block is produced by local node, so need not execute in cbft.
 	current.isLinked = true
+	current.isSigned = true
 
 	//save the block to cbft.blockExtMap
 	cbft.saveBlockExt(sealedBlock.Hash(), current)
@@ -1105,7 +1105,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	//build tree node
 	cbft.buildTreeNode(current)
 
-	log.Debug("seal complete", "Hash", sealedBlock.Hash(), "number", block.NumberU64())
+	log.Debug("seal complete", "hash", sealedBlock.Hash(), "number", block.NumberU64())
 
 	if len(cbft.dpos.primaryNodeList) == 1 {
 		log.Debug("single node Mode")
@@ -1143,7 +1143,7 @@ func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
-	log.Debug("call SealHash()", "Hash", header.Hash(), "number", header.Number.Uint64())
+	log.Debug("call SealHash()", "hash", header.Hash(), "number", header.Number.Uint64())
 	return sealHash(header)
 }
 
@@ -1180,7 +1180,7 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 
 // OnBlockSignature is called by by protocol handler when it received a new block signature by P2P.
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, rcvSign *cbfttypes.BlockSignature) error {
-	log.Debug("call OnBlockSignature()", "Hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
+	log.Debug("call OnBlockSignature()", "hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
 
 	ok, err := verifySign(nodeID, rcvSign.SignHash, rcvSign.Signature[:])
 	if err != nil {
@@ -1200,7 +1200,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 
 // OnNewBlock is called by protocol handler when it received a new block by P2P.
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Trace("call OnNewBlock()", "Hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
+	log.Trace("call OnNewBlock()", "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
 
 	cbft.dataReceiveCh <- rcvBlock
 	return nil
