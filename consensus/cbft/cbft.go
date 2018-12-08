@@ -349,7 +349,9 @@ func (cbft *Cbft) findLastClosestConfirmed(current *BlockExt) *BlockExt {
 func (cbft *Cbft) handleLogicalBlockAndDescendant(current *BlockExt) {
 	log.Debug("handle logical block and its descendant", "hash", current.block.Hash(), "number", current.block.NumberU64())
 	highestLogical := cbft.findHighestLogical(current)
+
 	logicalBlocks := cbft.backTrackBlocks(highestLogical, current, true)
+
 	var highestConfirmed *BlockExt
 	for _, logical := range logicalBlocks {
 		if _, signed := cbft.signedSet[logical.block.NumberU64()]; !logical.isSigned && !signed {
@@ -454,37 +456,47 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 func (cbft *Cbft) backTrackBlocks(start *BlockExt, end *BlockExt, includeEnd bool) []*BlockExt {
 	log.Debug("back track blocks", "startHash", start.block.Hash(), "startParentHash", end.block.ParentHash(), "endHash", start.block.Hash())
 
-	found := false
-	logicalExts := make([]*BlockExt, 1)
-	logicalExts[0] = start
+	result := make([]*BlockExt, 0)
 
-	for {
-		parent := start.parent
-		if parent == nil {
-			break
-		} else if parent.block.Hash() == end.block.Hash() && parent.block.NumberU64() == end.block.NumberU64() {
-			log.Debug("ending of back track block ")
-			if includeEnd {
-				logicalExts = append(logicalExts, parent)
+	if start.block.Hash() == end.block.Hash() && includeEnd {
+		result = append(result, start)
+	} else if start.block.NumberU64() > end.block.NumberU64() {
+		found := false
+		result = append(result, start)
+
+		for {
+			parent := start.parent
+			if parent == nil {
+				break
+			} else if parent.block.Hash() == end.block.Hash() && parent.block.NumberU64() == end.block.NumberU64() {
+				//log.Debug("ending of back track block ")
+				if includeEnd {
+					result = append(result, parent)
+				}
+				found = true
+				break
+			} else {
+				//log.Debug("found new block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
+				result = append(result, parent)
+				start = parent
 			}
-			found = true
-			break
+		}
+
+		if found {
+			//sorted by block number from lower to higher
+			if len(result) > 1 {
+				reverse(result)
+			}
 		} else {
-			log.Debug("found new block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
-			logicalExts = append(logicalExts, parent)
-			start = parent
+			result = nil
 		}
 	}
 
-	if found {
-		//sorted by block number from lower to higher
-		if len(logicalExts) > 1 {
-			reverse(logicalExts)
-		}
-		return logicalExts
-	} else {
-		return []*BlockExt{start}
+	for _, logical := range result {
+		log.Debug("found new block", "Hash", logical.block.Hash(), "number", logical.block.NumberU64())
 	}
+
+	return result
 }
 
 func reverse(s []*BlockExt) {
