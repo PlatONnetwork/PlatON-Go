@@ -283,35 +283,13 @@ func (lower *BlockExt) isAncestor(higher *BlockExt) bool {
 	return false
 }
 
-// findHighest finds the highest block from ext start; If there are multiple highest blockExts, return the one that has most signs
-func (cbft *Cbft) findHighest(ext *BlockExt) *BlockExt {
-	log.Debug("find highest block")
-	highest := ext
-	for _, child := range ext.children {
+// findHighest finds the highest block from current start; If there are multiple highest blockExts, return the one that has most signs
+func (cbft *Cbft) findHighest(current *BlockExt) *BlockExt {
+	highest := current
+	for _, child := range current.children {
 		current := cbft.findHighest(child)
 		if current.block.NumberU64() > highest.block.NumberU64() || (current.block.NumberU64() == highest.block.NumberU64() && len(current.signs) > len(highest.signs)) {
 			highest = current
-		}
-	}
-	return highest
-}
-
-// findHighestSignedByLocal finds the highest block signed by local node from ext start; If there are multiple highest blockExts, return the one that has most signs
-func (cbft *Cbft) findHighestSignedByLocal(ext *BlockExt) *BlockExt {
-	log.Debug("find highest block has most signs")
-	highest := ext
-
-	if !highest.isSigned {
-		highest = nil
-	}
-	for _, child := range ext.children {
-		current := cbft.findHighestSignedByLocal(child)
-		if current != nil && current.isSigned {
-			if highest == nil {
-				highest = current
-			} else if current.block.NumberU64() > highest.block.NumberU64() || (current.block.NumberU64() == highest.block.NumberU64() && len(current.signs) > len(highest.signs)) {
-				highest = current
-			}
 		}
 	}
 	return highest
@@ -336,6 +314,7 @@ func (cbft *Cbft) findHighestLogical(cur *BlockExt) *BlockExt {
 	}
 }
 
+//findClosestConfirmed returns the confirmed block that is closest to current, if current is confirmed then returns itself.
 func (cbft *Cbft) findClosestConfirmed(current *BlockExt) *BlockExt {
 	closest := current
 	if len(current.signs) < cbft.getThreshold() {
@@ -350,6 +329,7 @@ func (cbft *Cbft) findClosestConfirmed(current *BlockExt) *BlockExt {
 	return closest
 }
 
+// findLastClosestConfirmed return the last found block by call findClosestConfirmed in a circular manner
 func (cbft *Cbft) findLastClosestConfirmed(current *BlockExt) *BlockExt {
 	var closest *BlockExt
 	for _, child := range current.children {
@@ -365,10 +345,11 @@ func (cbft *Cbft) findLastClosestConfirmed(current *BlockExt) *BlockExt {
 	return closest
 }
 
-func (cbft *Cbft) handleLogicalBlockAndDescendant(ext *BlockExt) {
-	log.Debug("handle logical block and its descendant", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
-	highestLogical := cbft.findHighestLogical(ext)
-	logicalBlocks := cbft.backTrackBlocks(highestLogical, ext, true)
+// handleLogicalBlockAndDescendant signs logical block go along the logical path from current block, and will not sign the block if there's another same number block has been signed.
+func (cbft *Cbft) handleLogicalBlockAndDescendant(current *BlockExt) {
+	log.Debug("handle logical block and its descendant", "hash", current.block.Hash(), "number", current.block.NumberU64())
+	highestLogical := cbft.findHighestLogical(current)
+	logicalBlocks := cbft.backTrackBlocks(highestLogical, current, true)
 	var highestConfirmed *BlockExt
 	for _, logical := range logicalBlocks {
 		if _, signed := cbft.signedSet[logical.block.NumberU64()]; !logical.isSigned && !signed {
@@ -378,37 +359,35 @@ func (cbft *Cbft) handleLogicalBlockAndDescendant(ext *BlockExt) {
 			highestConfirmed = logical
 		}
 	}
-	log.Info("handle logical block successful", "reset highestLogical", highestLogical)
+	log.Info("reset highest logical", "hash", highestLogical.block.Hash(), "number", highestLogical.block.NumberU64())
 	cbft.setHighestLogical(highestLogical)
 	if highestConfirmed != nil {
-		log.Info("handle logical block successful", "reset highestConfirmed", highestConfirmed)
+		log.Info("reset highest confirmed", "hash", highestConfirmed.block.Hash(), "number", highestConfirmed.block.NumberU64())
 		cbft.highestConfirmed = highestConfirmed
 	}
 }
 
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt) error {
-	log.Debug("execute block recursively", "hash", current.block.Hash(), "number", current.block.NumberU64())
+
 	if current.isLinked == false {
 		err := cbft.execute(current, parent)
 		if err != nil {
 			current.isLinked = false
-
 			//remove bad block from tree and map
 			cbft.removeBadBlock(current)
-
-			return errors.New("execute block recursively error")
+			log.Error("execute block error", "hash", current.block.Hash(), "number", current.block.NumberU64())
+			return errors.New("execute block error")
 		} else {
+			log.Debug("execute block success", "hash", current.block.Hash(), "number", current.block.NumberU64())
 			current.isLinked = true
 		}
 	}
 	//each child has non-nil block
 	for _, child := range current.children {
 		if err := cbft.executeBlockAndDescendant(child, current); err != nil {
-
 			//remove bad block from tree and map
 			cbft.removeBadBlock(child)
-
 			return err
 		}
 	}
@@ -419,7 +398,7 @@ func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt)
 func (cbft *Cbft) sign(ext *BlockExt) {
 	sealHash := sealHash(ext.block.Header())
 	if signature, err := cbft.signFn(sealHash.Bytes()); err == nil {
-		log.Debug("Sign block ", "Hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature))
+		log.Debug("Sign block ", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature))
 
 		sign := common.NewBlockConfirmSign(signature)
 		ext.isSigned = true
@@ -730,7 +709,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Debug("=== call handleNewConfirmedContinue() ===", "Hash", sig.Hash, "number", sig.Number.Uint64())
+	log.Debug("=== call signReceiver() ===", "Hash", sig.Hash, "number", sig.Number.Uint64())
 
 	if sig.Number.Uint64() <= cbft.rootIrreversible.number {
 		log.Warn("block sign is too late")
@@ -867,7 +846,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 // flushReadyBlock finds ready blocks and flush them to chain
 func (cbft *Cbft) flushReadyBlock() {
-	log.Debug("check if there's any block ready to flush to chain")
+	log.Debug("check if there's any block ready to flush to chain", "highestConfirmedNumber", cbft.highestConfirmed.number, "rootIrreversibleNumber", cbft.rootIrreversible.number)
 	if exceededCount := cbft.highestConfirmed.number - cbft.rootIrreversible.number; exceededCount > 0 {
 		//find the completed path from root to highest logical
 		logicalBlocks := cbft.backTrackBlocks(cbft.highestConfirmed, cbft.rootIrreversible, false)
@@ -1282,7 +1261,7 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 			BlockConfirmSigns: ext.signs,
 		}
 		ext.isStored = true
-		log.Debug("send to channel", "Hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
+		log.Debug("send to channel", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
 		cbft.cbftResultOutCh <- cbftResult
 	}
 }
