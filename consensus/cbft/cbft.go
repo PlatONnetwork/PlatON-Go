@@ -109,7 +109,6 @@ type BlockExt struct {
 	block       *types.Block
 	isLinked    bool
 	isSigned    bool
-	isStored    bool
 	isConfirmed bool
 	number      uint64
 	signs       []*common.BlockConfirmSign //all signs for block
@@ -506,53 +505,6 @@ func reverse(s []*BlockExt) {
 	}
 }
 
-// backTrackTillStored return blocks from the new confirmed one till the already confirmed one(including), these blocks are in a same tree branch.
-// The result is sorted by block number from lower to higher.
-func (cbft *Cbft) backTrackTillStored(newConfirmed *BlockExt) []*BlockExt {
-
-	log.Debug("found new block to store", "hash", newConfirmed.block.Hash(), "ParentHash", newConfirmed.block.ParentHash(), "number", newConfirmed.block.NumberU64())
-
-	existMap := make(map[common.Hash]struct{})
-
-	foundExts := make([]*BlockExt, 1)
-	foundExts[0] = newConfirmed
-
-	existMap[newConfirmed.block.Hash()] = struct{}{}
-	foundRoot := false
-	for {
-		parent := newConfirmed.parent
-		if parent == nil {
-			break
-		}
-
-		foundExts = append(foundExts, parent)
-
-		if parent.isStored {
-			foundRoot = true
-			break
-		} else {
-			log.Debug("found new block to store", "hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
-			if _, exist := existMap[parent.block.Hash()]; exist {
-				log.Error("get into a loop when finding new block to store")
-				return nil
-			}
-
-			newConfirmed = parent
-		}
-	}
-
-	if !foundRoot {
-		log.Error("cannot lead to a already store block")
-		return nil
-	}
-
-	//sorted by block number from lower to higher
-	if len(foundExts) > 1 {
-		reverse(foundExts)
-	}
-	return foundExts
-}
-
 // SetPrivateKey sets local's private key by the backend.go
 func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	cbft.config.PrivateKey = privateKey
@@ -590,7 +542,6 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 
 	current := NewBlockExt(currentBlock, currentBlock.NumberU64())
 	current.isLinked = true
-	current.isStored = true
 	current.isConfirmed = true
 	current.number = currentBlock.NumberU64()
 
@@ -620,7 +571,6 @@ func BlockSynchronisation() {
 
 		newRoot := NewBlockExt(currentBlock, currentBlock.NumberU64())
 		newRoot.isLinked = true
-		newRoot.isStored = true
 		newRoot.isConfirmed = true
 		newRoot.number = currentBlock.NumberU64()
 
@@ -729,29 +679,27 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 		return nil
 	}
 
-	ext := cbft.findBlockExt(sig.Hash)
-	if ext == nil {
+	current := cbft.findBlockExt(sig.Hash)
+	if current == nil {
 		log.Debug("have not received the corresponding block")
 		//the block is nil
-		ext = NewBlockExt(nil, sig.Number.Uint64())
-		ext.isLinked = false
+		current = NewBlockExt(nil, sig.Number.Uint64())
+		current.isLinked = false
 
-		cbft.saveBlockExt(sig.Hash, ext)
+		cbft.saveBlockExt(sig.Hash, current)
 	}
 
-	cbft.collectSign(ext, sig.Signature)
+	cbft.collectSign(current, sig.Signature)
 
-	if ext.isConfirmed && ext.isLinked {
-		if ext.number < cbft.highestConfirmed.number && ext.isAncestor(cbft.highestConfirmed) {
-			//fork to lower block
-			newHighestConfirmed := cbft.findLastClosestConfirmed(ext)
-			newHighestLogical := cbft.findHighestLogical(ext)
-			//newHighestLogical = cbft.findHighestLogical(newHighestConfirmed)
-
-			log.Warn("chain fork to lower block", "reset highestLogical", newHighestLogical, "reset highestConfirmed", newHighestConfirmed)
-
+	if current.isConfirmed && current.isLinked {
+		//the current is new highestConfirmed
+		if current.number > cbft.highestConfirmed.number && cbft.highestConfirmed.isAncestor(current) {
+			cbft.highestConfirmed = current
+			newHighestLogical := cbft.findHighestLogical(current)
 			cbft.setHighestLogical(newHighestLogical)
-			cbft.highestConfirmed = newHighestConfirmed
+		} else if current.number < cbft.highestConfirmed.number && !current.isAncestor(cbft.highestConfirmed) {
+			//forkFrom to lower block
+			cbft.forkFrom(current)
 		}
 		cbft.flushReadyBlock()
 	}
@@ -829,20 +777,17 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		log.Debug("check if block is logical", "result", isLogical)
 
 		if isLogical {
+			//主链
 			cbft.handleLogicalBlockAndDescendant(ext)
 		} else {
+			//分支
 			closestConfirmed := cbft.findClosestConfirmed(ext)
-			//if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number && closestConfirmed.isAncestor(cbft.highestConfirmed){
+			//分支上发现有确认块，并且此块高度小于主链的最高确认块。说明在主链上低于最高确认块，且与新确认块相同高度的块，一定是未确认块。则发生分叉
+
+			//if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number && !closestConfirmed.isAncestor(cbft.highestConfirmed){
 			if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number {
-				//fork to lower block
-				newHighestConfirmed := cbft.findLastClosestConfirmed(ext)
-				newHighestLogical := cbft.findHighestLogical(ext)
-				//newHighestLogical = cbft.findHighestLogical(newHighestConfirmed)
-
-				log.Warn("chain fork to lower block", "reset highestLogical", newHighestLogical, "reset highestConfirmed", newHighestConfirmed)
-
-				cbft.setHighestLogical(newHighestLogical)
-				cbft.highestConfirmed = newHighestConfirmed
+				//forkFrom to lower block
+				cbft.forkFrom(closestConfirmed)
 			}
 		}
 
@@ -853,6 +798,20 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	log.Debug("=== end to handle block ===", "hash", block.Hash(), "number", block.Number().Uint64())
 	return nil
+}
+
+// forkFrom handles chain forkFrom to another branch from closestForked
+func (cbft *Cbft) forkFrom(closestForked *BlockExt) {
+	//todo:被分叉的块，其中的交易如何回滚？
+	//forkFrom to lower block
+	newHighestConfirmed := cbft.findLastClosestConfirmed(closestForked)
+	newHighestLogical := cbft.findHighestLogical(closestForked)
+	//newHighestLogical = cbft.findHighestLogical(newHighestConfirmed)
+
+	log.Warn("chain forkFrom to lower block", "reset highestLogical", newHighestLogical, "reset highestConfirmed", newHighestConfirmed)
+
+	cbft.setHighestLogical(newHighestLogical)
+	cbft.highestConfirmed = newHighestConfirmed
 }
 
 // flushReadyBlock finds ready blocks and flush them to chain
@@ -1272,7 +1231,6 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 			Block:             ext.block,
 			BlockConfirmSigns: ext.signs,
 		}
-		ext.isStored = true
 		log.Debug("send to channel", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
 		cbft.cbftResultOutCh <- cbftResult
 	}
