@@ -177,7 +177,7 @@ func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 		if len(ext.signs) >= cbft.getThreshold() {
 			ext.isConfirmed = true
 		}
-		log.Debug("count signatures", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "isConfirm", ext.isConfirmed)
+		log.Debug("count signatures", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "isConfirmed", ext.isConfirmed)
 	}
 }
 
@@ -400,7 +400,7 @@ func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt)
 func (cbft *Cbft) sign(ext *BlockExt) {
 	sealHash := sealHash(ext.block.Header())
 	if signature, err := cbft.signFn(sealHash.Bytes()); err == nil {
-		log.Debug("Sign block ", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature))
+		log.Debug("Sign block ", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature[:8]))
 
 		sign := common.NewBlockConfirmSign(signature)
 		ext.isSigned = true
@@ -834,35 +834,37 @@ func (cbft *Cbft) flushReadyBlock() {
 			newRoot = forced[len(forced)-1]
 			logicalBlocks = logicalBlocks[total-20:]
 		}
-		stop := 0
+
+		count := 0
 		for _, pending := range logicalBlocks {
 			if pending.isConfirmed {
 				newRoot = pending
-				log.Debug("find block confirmed", "hash", newRoot.block.Hash(), "number", newRoot.number)
-				stop++
+				log.Debug("find confirmed block that can be flushed to chain  ", "hash", newRoot.block.Hash(), "number", newRoot.number)
+				count++
 			} else {
 				break
 			}
 		}
-		pendings := logicalBlocks[:stop]
+		if count > 0 {
+			cbft.storeBlocks(logicalBlocks[:count])
+		}
+		if newRoot != nil {
+			// blocks[0] == cbft.rootIrreversible
+			oldRoot := cbft.rootIrreversible
+			log.Debug("oldRoot", "hash", oldRoot.block.Hash(), "number", oldRoot.number)
+			log.Debug("newRoot", "hash", newRoot.block.Hash(), "number", newRoot.number)
+			//cut off old tree from new root,
+			tailorTree(newRoot)
 
-		cbft.storeBlocks(pendings)
+			//set the new root as cbft.rootIrreversible
+			cbft.rootIrreversible = newRoot
 
-		// blocks[0] == cbft.rootIrreversible
-		oldRoot := cbft.rootIrreversible
-		log.Debug("oldRoot", "hash", oldRoot.block.Hash(), "number", oldRoot.number)
-		log.Debug("newRoot", "hash", newRoot.block.Hash(), "number", newRoot.number)
-		//cut off old tree from new root,
-		tailorTree(newRoot)
+			//remove all blocks referenced in old tree after being cut off
+			cbft.cleanBlockExtMapByTailoredTree(oldRoot)
 
-		//set the new root as cbft.rootIrreversible
-		cbft.rootIrreversible = newRoot
-
-		//remove all blocks referenced in old tree after being cut off
-		cbft.cleanBlockExtMapByTailoredTree(oldRoot)
-
-		//remove all other blocks those their numbers are too low
-		cbft.cleanBlockExtMapByNumber(cbft.rootIrreversible.number)
+			//remove all other blocks those their numbers are too low
+			cbft.cleanBlockExtMapByNumber(cbft.rootIrreversible.number)
+		}
 	}
 }
 
