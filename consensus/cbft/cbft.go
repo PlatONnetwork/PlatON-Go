@@ -372,8 +372,7 @@ func (cbft *Cbft) handleLogicalBlockAndDescendant(current *BlockExt) {
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt) error {
 	if current.isLinked {
-		err := cbft.execute(current, parent)
-		if err != nil {
+		if err := cbft.execute(current, parent); err != nil {
 			current.isLinked = false
 			//remove bad block from tree and map
 			cbft.removeBadBlock(current)
@@ -384,7 +383,7 @@ func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt)
 			current.isLinked = true
 		}
 	}
-	//each child has non-nil block
+
 	for _, child := range current.children {
 		if err := cbft.executeBlockAndDescendant(child, current); err != nil {
 			//remove bad block from tree and map
@@ -835,9 +834,9 @@ func (cbft *Cbft) flushReadyBlock() {
 		}
 
 		count := 0
-		for _, pending := range logicalBlocks {
-			if pending.isConfirmed {
-				newRoot = pending
+		for _, confirmed := range logicalBlocks {
+			if confirmed.isConfirmed {
+				newRoot = confirmed
 				log.Debug("find confirmed block that can be flushed to chain  ", "hash", newRoot.block.Hash(), "number", newRoot.number)
 				count++
 			} else {
