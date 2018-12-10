@@ -58,7 +58,7 @@ const (
 	SetCandidateExtraEvent = "SetCandidateExtraEvent"
 )
 
-var PrecompiledContractsDpos = map[common.Address]PrecompiledContract{
+var PrecompiledContractsPpos = map[common.Address]PrecompiledContract{
 	common.CandidateAddr : &candidateContract{},
 }
 
