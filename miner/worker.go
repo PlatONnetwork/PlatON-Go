@@ -406,7 +406,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			timestamp = time.Now().Unix()
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
-			log.Info("【chainHeadCh】", "hash", head.Block.Hash(), "Number", head.Block.NumberU64(), head.Block.Root())
+			log.Info("【chainHeadCh】", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "blockRoot", head.Block.Root())
 			w.consensusCache.ClearCache(head.Block)
 
 		case highestLogicalBlock := <-w.highestLogicalBlockCh:

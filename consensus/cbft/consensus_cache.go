@@ -133,7 +133,7 @@ func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 
 // 获取相应block的StateDB实例
 func (c *Cache) ClearCache(block *types.Block) {
-	log.Debug("call ClearCache()", "hash", block.Hash(), "Number", block.NumberU64(), block.Root())
+	log.Debug("call ClearCache()", "hash", block.Hash(), "number", block.NumberU64(), "blockRoot", block.Root())
 	c.clearReceipts(block.Hash())
 	c.clearStateDB(block.Root())
 }
