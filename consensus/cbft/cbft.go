@@ -692,11 +692,11 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 	cbft.collectSign(current, sig.Signature)
 
 	if current.isConfirmed && current.isLinked {
-		//the current is new highestConfirmed
+		//the current is new highestConfirmed on the same logical path
 		if current.number > cbft.highestConfirmed.number && cbft.highestConfirmed.isAncestor(current) {
 			cbft.highestConfirmed = current
-			newHighestLogical := cbft.findHighestLogical(current)
-			cbft.setHighestLogical(newHighestLogical)
+			//newHighestLogical := cbft.findHighestLogical(current)
+			//cbft.setHighestLogical(newHighestLogical)
 		} else if current.number < cbft.highestConfirmed.number && !current.isAncestor(cbft.highestConfirmed) {
 			//forkFrom to lower block
 			cbft.forkFrom(current)
@@ -817,7 +817,55 @@ func (cbft *Cbft) forkFrom(closestForked *BlockExt) {
 // flushReadyBlock finds ready blocks and flush them to chain
 func (cbft *Cbft) flushReadyBlock() {
 	log.Debug("check if there's any block ready to flush to chain", "highestConfirmedNumber", cbft.highestConfirmed.number, "rootIrreversibleNumber", cbft.rootIrreversible.number)
-	if exceededCount := cbft.highestConfirmed.number - cbft.rootIrreversible.number; exceededCount > 0 {
+
+	fallCount := cbft.highestConfirmed.number - cbft.rootIrreversible.number
+	var newRoot *BlockExt
+	if fallCount == 1 && cbft.rootIrreversible.isParent(cbft.highestConfirmed.block) {
+		cbft.storeBlocks([]*BlockExt{cbft.highestConfirmed})
+		newRoot = cbft.highestConfirmed
+	} else if fallCount > 20 {
+		//find the completed path from root to highest logical
+		logicalBlocks := cbft.backTrackBlocks(cbft.highestConfirmed, cbft.rootIrreversible, false)
+		total := len(logicalBlocks)
+		toFlushs := logicalBlocks[:total-20]
+
+		logicalBlocks = logicalBlocks[total-20:]
+
+		for _, confirmed := range logicalBlocks {
+			if confirmed.isConfirmed {
+				toFlushs = append(toFlushs, confirmed)
+			} else {
+				break
+			}
+		}
+
+		cbft.storeBlocks(toFlushs)
+
+		for _, confirmed := range toFlushs {
+			log.Debug("blocks should be flushed to chain  ", "hash", confirmed.block.Hash(), "number", confirmed.number)
+		}
+
+		newRoot = toFlushs[len(toFlushs)-1]
+	}
+	if newRoot != nil {
+		// blocks[0] == cbft.rootIrreversible
+		oldRoot := cbft.rootIrreversible
+		log.Debug("tree reorged, old root", "hash", oldRoot.block.Hash(), "number", oldRoot.number)
+		log.Debug("tree reorged, new root", "hash", newRoot.block.Hash(), "number", newRoot.number)
+		//cut off old tree from new root,
+		tailorTree(newRoot)
+
+		//set the new root as cbft.rootIrreversible
+		cbft.rootIrreversible = newRoot
+
+		//remove all blocks referenced in old tree after being cut off
+		cbft.cleanBlockExtMapByTailoredTree(oldRoot)
+
+		//remove all other blocks those their numbers are too low
+		cbft.cleanBlockExtMapByNumber(cbft.rootIrreversible.number)
+	}
+
+	/*if exceededCount := cbft.highestConfirmed.number - cbft.rootIrreversible.number; exceededCount > 0 {
 		//find the completed path from root to highest logical
 		logicalBlocks := cbft.backTrackBlocks(cbft.highestConfirmed, cbft.rootIrreversible, false)
 
@@ -865,7 +913,7 @@ func (cbft *Cbft) flushReadyBlock() {
 			//remove all other blocks those their numbers are too low
 			cbft.cleanBlockExtMapByNumber(cbft.rootIrreversible.number)
 		}
-	}
+	}*/
 }
 
 // tailorTree tailors the old tree from new root
