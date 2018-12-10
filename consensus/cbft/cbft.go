@@ -717,10 +717,6 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	log.Debug("=== call blockReceiver() ===", "hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash())
 
-	if block.NumberU64() <= cbft.highestConfirmed.number {
-		return errBlockNumber
-	}
-
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
 	}
