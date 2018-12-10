@@ -645,8 +645,15 @@ func (w *worker) taskLoop() {
 
 			//if w.config.Bft != nil {
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
+				} else {
+					// 保存receipts、stateDB至缓存
+					w.consensusCache.WriteReceipts(task.block.Hash(), task.receipts, task.block.NumberU64())
+
+					sCpy := *task.state
+					w.consensusCache.WriteStateDB(task.block.Hash(), sCpy, task.block.NumberU64())
 				}
 				continue
 			}
@@ -1218,12 +1225,6 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		}
 		select {
 		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now()}:
-			// 保存receipts、stateDB至缓存
-			w.consensusCache.WriteReceipts(block.Hash(), receipts, block.NumberU64())
-
-			sCpy := *s
-			w.consensusCache.WriteStateDB(block.Hash(), sCpy, block.NumberU64())
-
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
 			feesWei := new(big.Int)

@@ -114,6 +114,7 @@ func (c *Cache) clearStateDB(blockHash common.Hash) {
 	}
 	for hash, obj := range c.stateDBCache {
 		if obj.blockNum <= blockNum {
+			log.Info("clear block state in cache", "hash", hash, "number", obj.blockNum)
 			delete(c.stateDBCache, hash)
 		}
 	}
