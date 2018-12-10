@@ -39,7 +39,7 @@ var (
 	errListConfirmedBlocks = errors.New("list confirmed blocks error")
 	errMissingSignature    = errors.New("extra-data 65 byte signature suffix missing")
 	extraSeal              = 65
-	windowSize             = uint64(20)
+	windowSize             = 20
 
 	//periodMargin is a percentum for period margin
 	periodMargin = uint64(20)
@@ -806,18 +806,18 @@ func (cbft *Cbft) forkFrom(closestForked *BlockExt) {
 func (cbft *Cbft) flushReadyBlock() {
 	log.Debug("check if there's any block ready to flush to chain", "highestConfirmedNumber", cbft.highestConfirmed.number, "rootIrreversibleNumber", cbft.rootIrreversible.number)
 
-	fallCount := cbft.highestConfirmed.number - cbft.rootIrreversible.number
+	fallCount := int(cbft.highestConfirmed.number - cbft.rootIrreversible.number)
 	var newRoot *BlockExt
 	if fallCount == 1 && cbft.rootIrreversible.isParent(cbft.highestConfirmed.block) {
 		cbft.storeBlocks([]*BlockExt{cbft.highestConfirmed})
 		newRoot = cbft.highestConfirmed
-	} else if fallCount > 20 {
+	} else if fallCount > windowSize {
 		//find the completed path from root to highest logical
 		logicalBlocks := cbft.backTrackBlocks(cbft.highestConfirmed, cbft.rootIrreversible, false)
 		total := len(logicalBlocks)
-		toFlushs := logicalBlocks[:total-20]
+		toFlushs := logicalBlocks[:total-windowSize]
 
-		logicalBlocks = logicalBlocks[total-20:]
+		logicalBlocks = logicalBlocks[total-windowSize:]
 
 		for _, confirmed := range logicalBlocks {
 			if confirmed.isConfirmed {
@@ -847,10 +847,10 @@ func (cbft *Cbft) flushReadyBlock() {
 		cbft.rootIrreversible = newRoot
 
 		//remove all blocks referenced in old tree after being cut off
-		cbft.cleanBlockExtMapByTailoredTree(oldRoot)
+		cbft.cleanByTailoredTree(oldRoot)
 
 		//remove all other blocks those their numbers are too low
-		cbft.cleanBlockExtMapByNumber(cbft.rootIrreversible.number)
+		cbft.cleanByNumber(cbft.rootIrreversible.number)
 	}
 
 	/*if exceededCount := cbft.highestConfirmed.number - cbft.rootIrreversible.number; exceededCount > 0 {
@@ -896,10 +896,10 @@ func (cbft *Cbft) flushReadyBlock() {
 			cbft.rootIrreversible = newRoot
 
 			//remove all blocks referenced in old tree after being cut off
-			cbft.cleanBlockExtMapByTailoredTree(oldRoot)
+			cbft.cleanByTailoredTree(oldRoot)
 
 			//remove all other blocks those their numbers are too low
-			cbft.cleanBlockExtMapByNumber(cbft.rootIrreversible.number)
+			cbft.cleanByNumber(cbft.rootIrreversible.number)
 		}
 	}*/
 }
@@ -916,25 +916,31 @@ func tailorTree(newRoot *BlockExt) {
 	newRoot.parent = nil
 }
 
-// cleanBlockExtMapByTailoredTree removes all blocks in the tree which has been tailored.
-func (cbft *Cbft) cleanBlockExtMapByTailoredTree(root *BlockExt) {
-	log.Trace("call cleanBlockExtMapByTailoredTree()", "rootHash", root.block.Hash(), "rootNumber", root.block.NumberU64())
+// cleanByTailoredTree removes all blocks in the tree which has been tailored.
+func (cbft *Cbft) cleanByTailoredTree(root *BlockExt) {
+	log.Trace("call cleanByTailoredTree()", "rootHash", root.block.Hash(), "rootNumber", root.block.NumberU64())
 	if len(root.children) > 0 {
 		for _, child := range root.children {
-			cbft.cleanBlockExtMapByTailoredTree(child)
+			cbft.cleanByTailoredTree(child)
 			delete(cbft.blockExtMap, root.block.Hash())
+			delete(cbft.signedSet, root.block.NumberU64())
 		}
 	} else {
 		delete(cbft.blockExtMap, root.block.Hash())
 	}
 }
 
-// cleanBlockExtMapByNumber removes all blocks lower than upperLimit in BlockExtMap.
-func (cbft *Cbft) cleanBlockExtMapByNumber(upperLimit uint64) {
-	log.Trace("call cleanBlockExtMapByNumber()", "upperLimit", upperLimit)
+// cleanByNumber removes all blocks lower than upperLimit in BlockExtMap.
+func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
+	log.Trace("call cleanByNumber()", "upperLimit", upperLimit)
 	for hash, ext := range cbft.blockExtMap {
 		if ext.number < upperLimit {
 			delete(cbft.blockExtMap, hash)
+		}
+	}
+	for number, _ := range cbft.signedSet {
+		if number < upperLimit {
+			delete(cbft.signedSet, number)
 		}
 	}
 }
