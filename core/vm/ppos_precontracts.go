@@ -231,6 +231,9 @@ func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 		c.logError(ErrPermissionDenied.Error())
 		return nil, ErrPermissionDenied
 	}
+	if withdraw.Cmp(can.Deposit)>0 {
+		withdraw = can.Deposit
+	}
 	if err := c.evm.CandidatePool.WithdrawCandidate(c.evm.StateDB, nodeId, withdraw, height); err!=nil {
 		c.logError(err.Error())
 		return nil, err
@@ -380,9 +383,10 @@ func (c *candidateContract) addLog(event, data string) {
 
 //debug log
 func (c *candidateContract) logInfo(msg string, ctx ...interface{})  {
-	args := []interface{}{msg}
-	args = append(args, ctx...)
-	fmt.Println(args...)
+	log.Info(msg, ctx...)
+	//args := []interface{}{msg}
+	//args = append(args, ctx...)
+	//fmt.Println(args...)
 	/*if c.evm.vmConfig.ConsoleOutput {
 		//console output
 		args := []interface{}{msg}
@@ -394,9 +398,10 @@ func (c *candidateContract) logInfo(msg string, ctx ...interface{})  {
 	}*/
 }
 func (c *candidateContract) logError(msg string, ctx ...interface{})  {
-	args := []interface{}{msg}
-	args = append(args, ctx...)
-	fmt.Println(args...)
+	log.Error(msg, ctx...)
+	//args := []interface{}{msg}
+	//args = append(args, ctx...)
+	//fmt.Println(args...)
 	/*if c.evm.vmConfig.ConsoleOutput {
 		//console output
 		args := []interface{}{msg}

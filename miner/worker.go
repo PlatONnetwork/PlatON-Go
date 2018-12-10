@@ -1221,7 +1221,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		if w.commitTransactions(txs, w.coinbase, interrupt, timestamp) {
 			return
 		}
-
 	}
 	if len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
