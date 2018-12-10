@@ -23,6 +23,5 @@ type Ticket struct {
 func (t *Ticket) CalcEpoch(blockNumber *big.Int) *big.Int {
 	result := new(big.Int).SetUint64(0)
 	result.Sub(blockNumber, t.BlockNumber)
-	result.Add(result, t.BlockNumber)
 	return result
 }

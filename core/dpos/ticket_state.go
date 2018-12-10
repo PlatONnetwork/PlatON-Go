@@ -105,7 +105,6 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 	candidateTicketIds = append(candidateTicketIds, ticketId)
 	ownerTicketIds = append(ownerTicketIds, ticketId)
 	candidate.TCount++
-	candidate.Epoch = candidate.Epoch.Add(candidate.Epoch, blockNumber)
 	if err := t.setTicket(stateDB, ticketId, ticket); err != nil {
 		return err
 	}
@@ -324,7 +323,6 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidate *types.Candidat
 	candidate.Epoch = candidate.Epoch.Sub(candidate.Epoch, ticket.CalcEpoch(blockNumber))
 	candidate.TCount--
 	t.candidatePool.UpdateCandidateTicket(stateDB, candidate.CandidateId, candidate)
-	// 把票池的质押金转给票详情合约管理
 	return ticket, transfer(stateDB, common.TicketDetailAddr, ticket.Owner, ticket.Deposit)
 }
 
