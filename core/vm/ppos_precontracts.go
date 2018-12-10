@@ -383,9 +383,10 @@ func (c *candidateContract) addLog(event, data string) {
 
 //debug log
 func (c *candidateContract) logInfo(msg string, ctx ...interface{})  {
-	args := []interface{}{msg}
-	args = append(args, ctx...)
-	fmt.Println(args...)
+	log.Info(msg, ctx...)
+	//args := []interface{}{msg}
+	//args = append(args, ctx...)
+	//fmt.Println(args...)
 	/*if c.evm.vmConfig.ConsoleOutput {
 		//console output
 		args := []interface{}{msg}
@@ -397,9 +398,10 @@ func (c *candidateContract) logInfo(msg string, ctx ...interface{})  {
 	}*/
 }
 func (c *candidateContract) logError(msg string, ctx ...interface{})  {
-	args := []interface{}{msg}
-	args = append(args, ctx...)
-	fmt.Println(args...)
+	log.Error(msg, ctx...)
+	//args := []interface{}{msg}
+	//args = append(args, ctx...)
+	//fmt.Println(args...)
 	/*if c.evm.vmConfig.ConsoleOutput {
 		//console output
 		args := []interface{}{msg}
