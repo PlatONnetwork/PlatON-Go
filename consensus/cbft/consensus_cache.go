@@ -6,8 +6,8 @@ import (
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/log"
-	"sync"
 	"errors"
+	"sync"
 )
 
 var (
@@ -15,15 +15,15 @@ var (
 )
 
 type Cache struct {
-	stateDBCache		map[common.Hash]*stateDBCache		// key is header stateRoot
-	receiptsCache		map[common.Hash]*receiptsCache		// key is header hash
-	chain  				*core.BlockChain
-	stateDBMu       	sync.RWMutex
-	receiptsMu			sync.RWMutex
+	stateDBCache  map[common.Hash]*stateDBCache  // key is header stateRoot
+	receiptsCache map[common.Hash]*receiptsCache // key is header hash
+	chain         *core.BlockChain
+	stateDBMu     sync.RWMutex
+	receiptsMu    sync.RWMutex
 }
 
 type stateDBCache struct {
-	stateDB *state.StateDB
+	stateDB  *state.StateDB
 	blockNum uint64
 }
 
@@ -34,9 +34,9 @@ type receiptsCache struct {
 
 func NewCache(blockChain *core.BlockChain) *Cache {
 	cache := &Cache{
-		stateDBCache:        make(map[common.Hash]*stateDBCache),
-		receiptsCache:       make(map[common.Hash]*receiptsCache),
-		chain: blockChain,
+		stateDBCache:  make(map[common.Hash]*stateDBCache),
+		receiptsCache: make(map[common.Hash]*receiptsCache),
+		chain:         blockChain,
 	}
 	return cache
 }
@@ -133,6 +133,7 @@ func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 
 // 获取相应block的StateDB实例
 func (c *Cache) ClearCache(block *types.Block) {
+	log.Debug("call ClearCache()", "hash", block.Hash(), "Number", block.NumberU64(), block.Root())
 	c.clearReceipts(block.Hash())
 	c.clearStateDB(block.Root())
 }

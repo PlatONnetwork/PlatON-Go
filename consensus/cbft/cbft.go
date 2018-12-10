@@ -438,7 +438,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
 		log.Debug("save executed block receipts", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "lenReceipts", len(receipts))
-		log.Debug("save executed block state", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "stateIsNil", stateIsNil)
+		log.Debug("save executed block state", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "stateIsNil", stateIsNil, "root", ext.block.Root())
 
 		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
 		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
@@ -606,6 +606,8 @@ func BlockSynchronisation() {
 		cbft.handleLogicalBlockAndDescendant(newRoot)
 
 		cbft.flushReadyBlock()
+	} else {
+
 	}
 }
 
