@@ -20,6 +20,7 @@ package eth
 import (
 	"Platon-go/consensus/cbft"
 	"Platon-go/core/cbfttypes"
+	"Platon-go/core/state"
 	"Platon-go/p2p/discover"
 	"errors"
 	"fmt"
@@ -142,7 +143,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
 		accountManager: ctx.AccountManager,
-		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, &config.CbftConfig/*, &config.DposConfig*/),
+		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, &config.CbftConfig),
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
 		gasPrice:       config.MinerGasPrice,
@@ -165,6 +166,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			EnablePreimageRecording: config.EnablePreimageRecording,
 			EWASMInterpreter:        config.EWASMInterpreter,
 			EVMInterpreter:          config.EVMInterpreter,
+			ConsoleOutput: config.Debug,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
@@ -211,8 +213,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
 		return nil, err
 	}
-
-	// modify by platon
+	if _, ok := eth.engine.(consensus.Bft); ok {
+		cbft.SetDopsOption(eth.blockchain)
+	}
 	// 方法增加blockSignatureCh、cbftResultCh入参
 	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)
@@ -222,7 +225,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if _, ok := eth.engine.(consensus.Bft); ok {
 		cbft.SetConsensusCache(consensusCache)
 		cbft.SetBackend(eth.blockchain, eth.txPool)
-		cbft.SetDopsOption(eth.blockchain)
+
+		shouldElection := func(blockNumber *big.Int) bool {
+			return eth.miner.ShouldElection(blockNumber)
+		}
+		shouldSwitch := func(blockNumber *big.Int) bool {
+			return eth.miner.ShouldSwitch(blockNumber)
+		}
+		attemptAddConsensusPeer := func(blockNumber *big.Int, state *state.StateDB) {
+			eth.miner.AttemptAddConsensusPeer(blockNumber, state)
+		}
+		attemptRemoveConsensusPeer := func(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, state *state.StateDB) {
+			eth.miner.AttemptRemoveConsensusPeer(parentNumber, parentHash, blockNumber, state)
+		}
+		eth.blockchain.InitConsensusPeerFn(shouldElection, shouldSwitch, attemptAddConsensusPeer, attemptRemoveConsensusPeer)
 	}
 
 	eth.APIBackend = &EthAPIBackend{eth, nil}
@@ -268,7 +284,7 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 // modify by platon
 // 默认创建Cbft engine，同时CreateConsensusEngine方法增加blockSignatureCh、cbftResultCh入参
 func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database,
-	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, cbftConfig *CbftConfig/*, dposConfig *DposConfig*/) consensus.Engine {
+	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, cbftConfig *CbftConfig) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	// modify by platon
 	if chainConfig.Cbft != nil {
@@ -277,7 +293,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		chainConfig.Cbft.MaxLatency = cbftConfig.MaxLatency
 		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
 		chainConfig.Cbft.Duration = cbftConfig.Duration
-		chainConfig.Cbft.DposConfig = setDposConfig(cbftConfig.Dpos)
+		chainConfig.Cbft.PposConfig = setPposConfig(cbftConfig.Ppos)
 		return cbft.New(chainConfig.Cbft, blockSignatureCh, cbftResultCh, highestLogicalBlockCh)
 	}
 	if chainConfig.Clique != nil {
@@ -583,10 +599,25 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 		srvr.InitcheckFutureConsensusNodeFn(checkFutureConsensusNode)
 
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
-		for _, n := range s.chainConfig.Cbft.InitialNodes {
-			srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
+		currentBlock := s.blockchain.CurrentBlock()
+		blockNumber := currentBlock.Number()
+		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+		parentHash := currentBlock.ParentHash()
+		if currentBlock.NumberU64() == 0 {
+			parentNumber = common.Big0
+			blockNumber = common.Big1
+			parentHash = currentBlock.Hash()
 		}
-		s.StartMining(1)
+		if cbftEngine.IsCurrentNode(parentNumber, parentHash, blockNumber) {
+			currentNodes := cbftEngine.CurrentNodes(parentNumber, parentHash, blockNumber)
+			for _, n := range currentNodes {
+				srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
+			}
+			//for _, n := range s.chainConfig.Cbft.InitialNodes {
+			//	srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
+			//}
+		}
+		//s.StartMining(1)
 	}
 
 	if s.lesServer != nil {
@@ -615,12 +646,12 @@ func (s *Ethereum) Stop() error {
 }
 
 
-func setDposConfig (dposConfig *DposConfig) *params.DposConfig{
-	return &params.DposConfig{
+func setPposConfig (pposConfig *PposConfig) *params.PposConfig{
+	return &params.PposConfig{
 		Candidate: 	&params.CandidateConfig{
-					MaxChair:  				dposConfig.Candidate.MaxChair,
-					MaxCount:  				dposConfig.Candidate.MaxCount,
-					RefundBlockNumber: 		dposConfig.Candidate.RefundBlockNumber,
+					MaxChair:  				pposConfig.Candidate.MaxChair,
+					MaxCount:  				pposConfig.Candidate.MaxCount,
+					RefundBlockNumber: 		pposConfig.Candidate.RefundBlockNumber,
 		},
 	}
 }

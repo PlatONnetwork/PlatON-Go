@@ -549,7 +549,6 @@ func (ps *peerSet) Close() {
 	ps.closed = true
 }
 
-// modify by platon
 func (ps *peerSet) PeersWithConsensus(consensusNodes []discover.NodeID) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
@@ -564,7 +563,6 @@ func (ps *peerSet) PeersWithConsensus(consensusNodes []discover.NodeID) []*peer 
 	return list
 }
 
-// modify by platon
 //func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
 //	ps.lock.RLock()
 //	defer ps.lock.RUnlock()

@@ -32,35 +32,19 @@ var (
 )
 
 var (
+	//initialConsensusNodes = []string{
+	//	//"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.9.181:16789",
+	//	"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.9.182:16789",
+	//	//"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.183:16789",
+	//	//"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.184:16789",
+	//}
+
 	initialConsensusNodes = []string{
-		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.7.167:30303",
-		"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.7.122:30303",
-		//"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.183:16789",
-		//"enode://a363d1243646b6eabf1d4851f646b523f5707d053caab95022f1682605aca0537ee0c5c14b4dfa76dcbce264b7e68d59de79a42b7cda059e9d358336a9ab8d80@192.168.7.167:30303",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.9.180:9500",
+		"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.9.180:9501",
+		"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.180:9502",
+		"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.180:9503",
 	}
-
-	//initialConsensusNodes = []string{
-	//	//"1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429",
-	//	"751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c",
-	//	//"b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6",
-	//	//"97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0",
-	//}
-
-	// dev
-	//initialConsensusNodes = []string{
-	//	"1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429",
-	//	"751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c",
-	//	"b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6",
-	//	"97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0",
-	//}
-
-	// test
-	//initialConsensusNodes = []string{
-	//	"3b53564afbc3aef1f6e0678171811f65a7caa27a927ddd036a46f817d075ef0a5198cd7f480829b53fe62bdb063bc6a17f800d2eebf7481b091225aabac2428d",
-	//	"858d6f6ae871e291d3b7b2b91f7369f46deb6334e9dacb66fa8ba6746ee1f025bd4c090b17d17e0d9d5c19fdf81eb8bde3d40a383c9eecbe7ebda9ca95a3fb94",
-	//	"97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0",
-	//	"b0971a3670e593ad7a3d5b3983b5d67db827e1fd267688dfef97e27604c1121dc6b8e5ba82a89d6dc552083296df8a7ab41466ab1e47929af69e94efd65df7b3",
-	//}
 
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
@@ -78,7 +62,7 @@ var (
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialConsensusNodes),
 		},
-		VMInterpreter : "wasm",
+		VMInterpreter: "wasm",
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -206,7 +190,6 @@ type ChainConfig struct {
 	Clique *CliqueConfig `json:"clique,omitempty"`
 	// modify by platon
 	Cbft *CbftConfig `json:"cbft,omitempty"`
-	//Dposes []*DposConfig `json:"dposes,omitempty"`
 
 	// Various vm interpreter
 	VMInterpreter string `json:"interpreter,omitempty"`
@@ -222,32 +205,33 @@ func (c *EthashConfig) String() string {
 
 // modify by platon
 type CbftConfig struct {
-	Period           uint64  `json:"period"`           // Number of seconds between blocks to enforce
-	Epoch            uint64  `json:"epoch"`            // Epoch length to reset votes and checkpoint
-	MaxLatency       int64   `json:"maxLatency"`       // number of milliseconds of max net latency between the consensus nodes
-	LegalCoefficient float64 `json:"legalCoefficient"` // coefficient for checking if a block is in it's turn
-	Duration         int64   `json:"duration"`         // number of seconds for a node to produce blocks
+	Period           uint64  `json:"period,omitempty"`           // Number of seconds between blocks to enforce
+	Epoch            uint64  `json:"epoch,omitempty"`            // Epoch length to reset votes and checkpoint
+	MaxLatency       int64   `json:"maxLatency,omitempty"`       // number of milliseconds of max net latency between the consensus nodes
+	LegalCoefficient float64 `json:"legalCoefficient,omitempty"` // coefficient for checking if a block is in it's turn
+	Duration         int64   `json:"duration,omitempty"`         // number of seconds for a node to produce blocks
 	//mock
-	InitialNodes []discover.Node `json:"initialNodes"`
+	InitialNodes []discover.Node   `json:"initialNodes,omitempty"`
 	NodeID       discover.NodeID   `json:"nodeID,omitempty"`
-	PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
+	PrivateKey   *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 
-	// modify by dpos
-	DposConfig 		*DposConfig
+	// modify by ppos
+	PposConfig *PposConfig `json:"pposConfig,omitempty"`
 }
+
 // modify by platon
-type DposConfig struct{
+type PposConfig struct {
 	//MaxCount				uint64
 	//MaxChair				uint64
 	//RefundBlockNumber 		uint64
 	//Candidates 				[]*CandidateConfig
-	Candidate 				*CandidateConfig
-	TicketConfig			*TicketConfig
+	Candidate *CandidateConfig
+	TicketConfig *TicketConfig
 }
 type CandidateConfig struct {
-	MaxCount				uint64
-	MaxChair				uint64
-	RefundBlockNumber 		uint64
+	MaxCount          uint64
+	MaxChair          uint64
+	RefundBlockNumber uint64
 	/*Deposit			*big.Int
 	BlockNumber 	*big.Int
 	TxIndex 		uint32

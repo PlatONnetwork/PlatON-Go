@@ -138,10 +138,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	if cbftConfig := cfg.Eth.LoadCbftConfig(cfg.Node); cbftConfig != nil {
 		cfg.Eth.CbftConfig = *cbftConfig
 	}
-	//// load dpos config file
-	//if dposConfig := cfg.Eth.LoadDposConfig(cfg.Node); nil != dposConfig {
-	//	cfg.Eth.DposConfig = *dposConfig
-	//}
+
 
 	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
 		cfg.Ethstats.URL = ctx.GlobalString(utils.EthStatsURLFlag.Name)
@@ -149,6 +146,10 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 
 	utils.SetShhConfig(ctx, stack, &cfg.Shh)
 	utils.SetDashboardConfig(ctx, &cfg.Dashboard)
+
+
+	//platon add set debug
+	//cfg.Eth.Debug = ctx.
 
 	return stack, cfg
 }

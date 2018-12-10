@@ -408,3 +408,7 @@ func TestSlice(t *testing.T){
 		fmt.Printf("初始化对比键值对 %v == &+v", string(so.db.trie.GetKey(it.Key)), &arr)
 	}
 }
+
+func TestIntermediateRoot(t *testing.T) {
+
+}

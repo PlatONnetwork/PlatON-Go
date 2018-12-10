@@ -330,7 +330,7 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		//删除原来valueKey 对应的value
 		delete(self.originValueStorage, self.originStorage[key])
 
-		fmt.Println(key, valueKey, value)
+		//fmt.Println(key, valueKey, value)
 
 		self.originStorage[key] = valueKey
 		self.originValueStorage[valueKey] = value

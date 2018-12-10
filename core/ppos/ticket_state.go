@@ -1,4 +1,4 @@
-package depos
+package pposm
 
 import (
 	"Platon-go/common"
@@ -55,7 +55,7 @@ type TicketPool struct {
 var ticketPool *TicketPool
 
 // initialize the global ticket pool object
-func NewTicketPool(configs *params.DposConfig, candidatePool *CandidatePool) *TicketPool {
+func NewTicketPool(configs *params.PposConfig, candidatePool *CandidatePool) *TicketPool {
 	ticketPool = &TicketPool{
 		MaxCount:				configs.TicketConfig.MaxCount,
 		SurplusQuantity:		configs.TicketConfig.MaxCount,

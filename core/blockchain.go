@@ -64,6 +64,14 @@ const (
 	BlockChainVersion = 3
 )
 
+type shouldElectionFn func(blockNumber *big.Int) bool
+
+type shouldSwitchFn func(blockNumber *big.Int) bool
+
+type attemptAddConsensusPeerFn func(blockNumber *big.Int, state *state.StateDB)
+
+type attemptRemoveConsensusPeerFn func(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, state *state.StateDB)
+
 // CacheConfig contains the configuration values for the trie caching/pruning
 // that's resident in a blockchain.
 type CacheConfig struct {
@@ -130,6 +138,11 @@ type BlockChain struct {
 
 	badBlocks      *lru.Cache              // Bad block cache
 	shouldPreserve func(*types.Block) bool // Function used to determine whether should preserve the given block.
+
+	shouldElectionFn	shouldElectionFn
+	shouldSwitchFn	shouldSwitchFn
+	attemptAddConsensusPeerFn	attemptAddConsensusPeerFn
+	attemptRemoveConsensusPeerFn	attemptRemoveConsensusPeerFn
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -195,6 +208,13 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	// Take ownership of this particular state
 	go bc.update()
 	return bc, nil
+}
+
+func (bc *BlockChain) InitConsensusPeerFn(seFn shouldElectionFn, ssFn shouldSwitchFn, addFn attemptAddConsensusPeerFn, removeFn attemptRemoveConsensusPeerFn) {
+	bc.shouldElectionFn = seFn
+	bc.shouldSwitchFn = ssFn
+	bc.attemptAddConsensusPeerFn = addFn
+	bc.attemptRemoveConsensusPeerFn = removeFn
 }
 
 func (bc *BlockChain) getProcInterrupt() bool {
@@ -907,6 +927,16 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	rawdb.WriteBlock(bc.db, block)
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
+
+	//log.Info("写链时:", "blockNumber", block.NumberU64(), "header.root", block.Root().String(), "state.root", root.String())
+	//fmt.Println("写链时:", "blockNumber", block.NumberU64(), "header.root", block.Root().String(), "state.root", root.String())
+	//parentRoot := bc.GetBlockByHash(block.ParentHash()).Root()
+	//if _, err := bc.StateAt(parentRoot); nil != err {
+	//	fmt.Println("写链时", "blockNumber", block.NumberU64(),"parentRoot", parentRoot.String(), "先拿前面一个块state校验 err", err)
+	//}else{
+	//	fmt.Println("写链时", "blockNumber", block.NumberU64(),"parentRoot", parentRoot.String(), "Getting Parent's StateDB OK !")
+	//}
+
 	if err != nil {
 		return NonStatTy, err
 	}
@@ -1121,6 +1151,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			// Block competing with the canonical chain, store in the db, but don't process
 			// until the competitor TD goes above the canonical TD
 			currentBlock := bc.CurrentBlock()
+			//fmt.Println("这里调用了 WriteBlockWithoutState。。。。。。。。。。。。。。。", "num", currentBlock.NumberU64(), "stateRoot", currentBlock.Root())
 			localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 			externTd := new(big.Int).Add(bc.GetTd(block.ParentHash(), block.NumberU64()-1), block.Difficulty())
 			if localTd.Cmp(externTd) > 0 {
@@ -1185,6 +1216,18 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
+
+		// modify by platon
+		if _, ok := bc.engine.(consensus.Bft); ok {
+			log.Warn("---insertchain尝试连接下一轮共识节点---", "number", block.Number(), "state", state)
+			bc.attemptAddConsensusPeerFn(block.Number(), state)
+			log.Warn("---insertchain尝试断连上一轮共识节点---", "number", block.Number(), "state", state)
+
+			blockNumber := block.Number()
+			parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+			bc.attemptRemoveConsensusPeerFn(parentNumber, block.ParentHash(), block.Number(), state)
+		}
+
 		switch status {
 		case CanonStatTy:
 			log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
@@ -1219,9 +1262,17 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 }
 
 //joey.lyu
-func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB) (types.Receipts, error) {
+func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
+	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	// Process block using the parent state as reference point.
-	receipts, logs, _, err := bc.processor.Process(block, state, bc.vmConfig)
+	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
+	if err != nil {
+		bc.reportBlock(block, receipts, err)
+		return nil, err
+	}
+
+	// Validate the state using the default validator
+	err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 	if err != nil {
 		bc.reportBlock(block, receipts, err)
 		return nil, err
@@ -1230,7 +1281,6 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB) 
 	if logs != nil {
 		bc.logsFeed.Send(logs)
 	}
-
 	return receipts, nil
 }
 

@@ -22,4 +22,7 @@ type Config struct {
 	EWASMInterpreter string
 	// Type of the EVM interpreter
 	EVMInterpreter string
+
+	//platon add
+	ConsoleOutput bool
 }

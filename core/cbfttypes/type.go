@@ -10,9 +10,9 @@ import (
 type BlockSignature struct {
 	SignHash  common.Hash //签名hash，header[0:32]
 	Hash      common.Hash //块hash，header[:]
-	SealHash  common.Hash
 	Number    *big.Int
 	Signature *common.BlockConfirmSign
+	ParentHash common.Hash
 }
 
 type CbftResult struct {

@@ -7,6 +7,7 @@ import (
 	"Platon-go/consensus"
 	"Platon-go/core"
 	"Platon-go/core/cbfttypes"
+	"Platon-go/core/ppos"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/crypto"
@@ -21,9 +22,18 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
+	"math"
 	"math/big"
 	"sync"
 	"time"
+	"fmt"
+)
+
+const (
+	former int32 = iota
+	current
+	next
+	all
 )
 
 var (
@@ -51,7 +61,7 @@ var (
 
 type Cbft struct {
 	config                *params.CbftConfig
-	dpos                  *dpos
+	ppos                  *ppos
 	rotating              *rotating
 	blockSignOutCh        chan *cbfttypes.BlockSignature //a channel to send block signature
 	cbftResultOutCh       chan *cbfttypes.CbftResult     //a channel to send consensus result
@@ -70,8 +80,8 @@ type Cbft struct {
 	highestConfirmed *BlockExt        //highest highestConfirmed block
 
 	//todo:（先log,再处理）
-	signedSet      map[uint64]struct{} //all block numbers signed by local node
-	lock           sync.RWMutex
+	signedSet map[uint64]struct{} //all block numbers signed by local node
+	lock      sync.RWMutex
 	consensusCache *Cache //cache for cbft consensus
 
 	netLatencyMap map[discover.NodeID]*list.List
@@ -81,16 +91,14 @@ var cbft *Cbft
 
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
-	initialNodesID := make([]discover.NodeID, 0, len(config.InitialNodes))
-	for _,n := range config.InitialNodes {
-		initialNodesID = append(initialNodesID, n.ID)
-	}
-	_dpos := newDpos(initialNodesID, config)
+
+	pposm.PrintObject("获取ppos config：", *config)
+	_ppos := newPpos(/*config.InitialNodes, */config)
 
 	cbft = &Cbft{
 		config:                config,
-		dpos:                  _dpos,
-		rotating:              newRotating(_dpos, config.Duration),
+		ppos:                  _ppos,
+		rotating:              newRotating(_ppos, config.Duration),
 		blockSignOutCh:        blockSignatureCh,
 		cbftResultOutCh:       cbftResultCh,
 		highestLogicalBlockCh: highestLogicalBlockCh,
@@ -178,8 +186,12 @@ func (cbft *Cbft) findBlockExt(hash common.Hash) *BlockExt {
 func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 	if sign != nil {
 		ext.signs = append(ext.signs, sign)
-		if len(ext.signs) >= cbft.getThreshold() {
-			ext.isConfirmed = true
+		blockNumber := big.NewInt((int64(ext.number)))
+		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+		if ext.block != nil {
+			if len(ext.signs) >= cbft.getThreshold(parentNumber, ext.block.ParentHash(), blockNumber) {
+				ext.isConfirmed = true
+			}
 		}
 	}
 }
@@ -356,10 +368,14 @@ func (cbft *Cbft) findHighestSigned(ext *BlockExt) *BlockExt {
 	return highest
 }
 
-func (cbft *Cbft) handleBlockAndDescendant(ext *BlockExt, parent *BlockExt, signIfPossible bool) {
+func (cbft *Cbft) handleBlockAndDescendant(ext *BlockExt, parent *BlockExt, signIfPossible bool) error {
 	log.Debug("handle block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 
-	cbft.executeBlockAndDescendant(ext, parent)
+	err := cbft.executeBlockAndDescendant(ext, parent)
+
+	if err != nil {
+		return nil
+	}
 
 	if ext.findChildren() == nil {
 		if signIfPossible {
@@ -369,28 +385,33 @@ func (cbft *Cbft) handleBlockAndDescendant(ext *BlockExt, parent *BlockExt, sign
 		}
 	} else {
 		highest := cbft.findHighest(ext)
-		logicalExts := cbft.backTrackLogicals(highest, ext)
+		logicalExts := cbft.backTrackBlocks(highest, ext, false)
 		for _, logical := range logicalExts {
 			if _, signed := cbft.signedSet[logical.block.NumberU64()]; !signed {
 				cbft.sign(logical)
 			}
 		}
 	}
+	return nil
 }
 
-func (cbft *Cbft) executeBlockAndDescendant(ext *BlockExt, parent *BlockExt) {
+func (cbft *Cbft) executeBlockAndDescendant(ext *BlockExt, parent *BlockExt) error {
 	log.Debug("execute block recursively", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 	if ext.isLinked == false {
-		cbft.execute(ext, parent)
+		err := cbft.execute(ext, parent)
+		if err != nil {
+			return err
+		}
 		ext.isLinked = true
 	}
 	//each child has non-nil block
 	children := ext.findChildren()
 	if children != nil {
 		for _, child := range children {
-			cbft.executeBlockAndDescendant(child, ext)
+			return cbft.executeBlockAndDescendant(child, ext)
 		}
 	}
+	return nil
 }
 
 //to sign a block
@@ -417,6 +438,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 			Hash:      blockHash,
 			Number:    ext.block.Number(),
 			Signature: sign,
+			ParentHash: ext.block.ParentHash(),
 		}
 		cbft.blockSignOutCh <- blockSign
 	} else {
@@ -426,75 +448,24 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 
 //execute the block based on its parent
 // if success then set this block's level with Ledge, and save the receipts and state to consensusCache
-func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
+func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	state, err := cbft.consensusCache.MakeStateDB(parent.block)
 	if err != nil {
 		log.Error("execute block error, cannot make state based on parent")
-		return
+		return err
 	}
 
 	//to execute
-	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state)
+	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block)
 	if err == nil {
 		//save the receipts and state to consensusCache
 		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
-		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
+		executeState := *state
+		cbft.consensusCache.WriteStateDB(ext.block.Root(), executeState, ext.block.NumberU64())
 	} else {
-		log.Error("execute a block error", err)
+		log.Error("execute a block error", "err", err)
 	}
-}
-
-//查询暂存于内存中，并且已经上链的区块
-/*func (cbft *Cbft) backTrackStoredBlocks() []*BlockExt {
-	log.Debug("back track china blocks from highest confirmed block", "highestConfirmed", cbft.highestConfirmed.block.Hash())
-
-	chainBlocks := make([]*BlockExt, 1)
-	chainBlocks[0] = cbft.highestConfirmed
-
-	tempExt := cbft.highestConfirmed
-
-	for {
-		parent := tempExt.findParent()
-		if parent != nil && parent.block!= nil && parent.block.NumberU64() +1 == tempExt.block.NumberU64() && parent.isStored {
-			chainBlocks = append(chainBlocks, parent)
-			tempExt = parent
-		} else {
-			break
-		}
-	}
-
-	//sorted by block number from lower to higher
-	if len(chainBlocks) > 1 {
-		reverse(chainBlocks)
-	}
-	return chainBlocks
-}*/
-
-func (cbft *Cbft) backTrackBlocks(endIncluded *BlockExt) []*BlockExt {
-	log.Debug("back track china blocks from highest confirmed block", "highestConfirmed", cbft.highestConfirmed.block.Hash())
-
-	chainBlocks := make([]*BlockExt, 1)
-	chainBlocks[0] = cbft.highestConfirmed
-
-	tempExt := cbft.highestConfirmed
-	for {
-		parent := tempExt.findParent()
-		if parent != nil && parent.block != nil {
-			chainBlocks = append(chainBlocks, parent)
-
-			if parent.block.Hash() == endIncluded.block.Hash() && parent.block.NumberU64() == endIncluded.block.NumberU64() {
-				break
-			} else {
-				tempExt = parent
-			}
-		}
-	}
-
-	//sorted by block number from lower to higher
-	if len(chainBlocks) > 1 {
-		reverse(chainBlocks)
-	}
-	return chainBlocks
+	return err
 }
 
 func reverse(s []*BlockExt) {
@@ -503,39 +474,45 @@ func reverse(s []*BlockExt) {
 	}
 }
 
-//exclude root
-func (cbft *Cbft) backTrackLogicals(highest *BlockExt, rootExcluded *BlockExt) []*BlockExt {
+func (cbft *Cbft) backTrackBlocks(start *BlockExt, end *BlockExt, includeEnd bool) []*BlockExt {
+	log.Debug("back track blocks", "startHash", start.block.Hash(), "startParentHash", end.block.ParentHash(), "endHash", start.block.Hash())
 
-	log.Debug("back track logical blocks", "rootExcluded", rootExcluded.block.Hash(), "highest", highest.block.Hash(), "highestParentHash", highest.block.ParentHash())
-
+	found := false
 	logicalExts := make([]*BlockExt, 1)
-	logicalExts[0] = highest
+	logicalExts[0] = start
 
 	for {
-		parent := highest.findParent()
+		parent := start.findParent()
 		if parent == nil {
 			break
-		} else if highest.block.ParentHash() == rootExcluded.block.Hash() && highest.block.NumberU64() == rootExcluded.block.NumberU64()+1 {
-			log.Debug("ending of back track logicals ")
+		} else if parent.block.Hash() == end.block.Hash() && parent.block.NumberU64() == end.block.NumberU64() {
+			log.Debug("ending of back track block ")
+			if includeEnd {
+				logicalExts = append(logicalExts, parent)
+			}
+			found = true
 			break
 		} else {
-			log.Debug("found new logical block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
+			log.Debug("found new block", "Hash", parent.block.Hash(), "ParentHash", parent.block.ParentHash(), "number", parent.block.NumberU64())
 			logicalExts = append(logicalExts, parent)
-
-			highest = parent
+			start = parent
 		}
 	}
 
-	//sorted by block number from lower to higher
-	if len(logicalExts) > 1 {
-		reverse(logicalExts)
+	if found {
+		//sorted by block number from lower to higher
+		if len(logicalExts) > 1 {
+			reverse(logicalExts)
+		}
+		return logicalExts
+	} else {
+		return nil
 	}
-	return logicalExts
 }
 
 //gather all blocks from the current highest confirmed one (excluded) to the new confirmed one
 //the result is sorted by block number from lower to higher
-func (cbft *Cbft) backTrackTillStored(newConfirmed *BlockExt) []*BlockExt {
+func (cbft *Cbft) backTrackTillConfirmed(newConfirmed *BlockExt) []*BlockExt {
 
 	log.Debug("found new block to store", "Hash", newConfirmed.block.Hash(), "ParentHash", newConfirmed.block.ParentHash(), "number", newConfirmed.block.NumberU64())
 
@@ -601,7 +578,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	defer cbft.lock.Unlock()
 
 	cbft.blockChain = blockChain
-	cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
+	cbft.ppos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
 
 	currentBlock := blockChain.CurrentBlock()
 
@@ -627,8 +604,8 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	txPool = txPool
 }
 
-func SetDopsOption(blockChain *core.BlockChain){
-	cbft.dpos.SetCandidatePool(blockChain)
+func SetDopsOption(blockChain *core.BlockChain) {
+	cbft.ppos.SetCandidatePool(blockChain, cbft.config.InitialNodes)
 }
 
 func BlockSynchronisation() {
@@ -655,7 +632,7 @@ func BlockSynchronisation() {
 		cbft.highestConfirmed = confirmedBlock
 
 		highestLogical := cbft.findHighestSigned(confirmedBlock)
-		if cbft.highestLogical == nil {
+		if highestLogical == nil {
 			highestLogical = cbft.findHighest(confirmedBlock)
 		}
 
@@ -668,7 +645,8 @@ func BlockSynchronisation() {
 
 		children := confirmedBlock.findChildren()
 		for _, child := range children {
-			cbft.handleBlockAndDescendant(child, confirmedBlock, true)
+			err := cbft.handleBlockAndDescendant(child, confirmedBlock, true)
+			log.Error("block sync error", "err", err)
 		}
 	}
 }
@@ -733,7 +711,7 @@ func (cbft *Cbft) handleNewConfirmed(newConfirmed *BlockExt) error {
 			//当前最高确认块是新确认块的祖先
 			log.Debug("consensus success, new confirmed block is higher, and it is a descendant of the highest confirmed")
 
-			blocksToStore := cbft.backTrackTillStored(newConfirmed)
+			blocksToStore := cbft.backTrackTillConfirmed(newConfirmed)
 
 			if blocksToStore == nil {
 				return errListConfirmedBlocks
@@ -751,13 +729,14 @@ func (cbft *Cbft) handleNewConfirmed(newConfirmed *BlockExt) error {
 		return nil
 	} else {
 		//新确认块的高小于当前最高确认区块，则可能分叉
-		newFork := cbft.backTrackTillStored(newConfirmed)
+		newFork := cbft.backTrackTillConfirmed(newConfirmed)
 		if len(newFork) <= 1 {
 			log.Error("new fork error")
 			return nil
 		}
 
-		oldFork := cbft.backTrackBlocks(newFork[0])
+		//newForm[0] is a confirmed and stored block
+		oldFork := cbft.backTrackBlocks(cbft.highestConfirmed, newFork[0], true)
 		if len(newFork) >= len(oldFork) {
 			log.Error("new fork error")
 			return nil
@@ -770,9 +749,9 @@ func (cbft *Cbft) handleNewConfirmed(newConfirmed *BlockExt) error {
 			err := cbft.handleNewConfirmedContinue(newConfirmed, newFork[1:])
 
 			if err == nil {
-				state, err := cbft.consensusCache.MakeStateDB(newConfirmed.block)
+				_, err := cbft.consensusCache.MakeStateDB(newConfirmed.block)
 				if err == nil {
-					cbft.dpos.UpdateNodeList(state)
+					cbft.ppos.UpdateNodeList(cbft.blockChain, newConfirmed.block.Number(), newConfirmed.block.Hash())
 				} else {
 					log.Error("consensus success, but updateNodeList error", "err", err)
 					return nil
@@ -886,7 +865,9 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	curTime := toMilliseconds(time.Now())
 
-	keepIt := cbft.shouldKeepIt(curTime, producerNodeID)
+	blockNumber := block.Number()
+	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+	keepIt := cbft.shouldKeepIt(parentNumber, block.ParentHash(), blockNumber, curTime, producerNodeID)
 	log.Debug("check if block should be kept", "result", keepIt, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 	if !keepIt {
 		return errIllegalBlock
@@ -916,7 +897,10 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	parent := ext.findParent()
 	if parent != nil && parent.isLinked {
-		inTurn := cbft.inTurnVerify(curTime, producerNodeID)
+		//inTurn := cbft.inTurnVerify(curTime, producerNodeID)
+		blockNumber := block.Number()
+		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+		inTurn := cbft.inTurnVerify(parentNumber, block.ParentHash(), blockNumber, curTime, producerNodeID)
 		log.Debug("check if block is in turn", "result", inTurn, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 
 		passed := flowControl.control(producerNodeID, curTime)
@@ -924,7 +908,11 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 		signIfPossible := inTurn && passed && cbft.highestConfirmed.isAncestor(ext)
 
-		cbft.handleBlockAndDescendant(ext, parent, signIfPossible)
+		err := cbft.handleBlockAndDescendant(ext, parent, signIfPossible)
+
+		if err != nil {
+			return err
+		}
 
 		newConfirmed := cbft.findNewHighestConfirmed(ext)
 		if newConfirmed != nil {
@@ -938,33 +926,6 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	log.Debug("=== end to handle block ===", "Hash", block.Hash(), "number", block.Number().Uint64())
 	return nil
-}
-
-func (cbft *Cbft) ShouldSeal() (bool, error) {
-	return cbft.inTurn(), nil
-}
-
-func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
-	log.Debug("call ConsensusNodes()", "dposNodeCount", len(cbft.dpos.primaryNodeList))
-	return cbft.dpos.primaryNodeList, nil
-}
-
-// wether nodeID in formerlyNodeList or primaryNodeList
-func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
-	return cbft.dpos.NodeIndex(nodeID) >= 0, nil
-}
-
-// wether nodeID in primaryNodeList or nextNodeList
-func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error) {
-	log.Debug("call CheckFutureConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
-	return cbft.dpos.NodeIndexInFuture(nodeID) >= 0, nil
-}
-
-// wether current node in formerlyNodeList or primaryNodeList
-func (cbft *Cbft) IsConsensusNode() (bool, error) {
-	log.Debug("call IsConsensusNode()")
-	return cbft.dpos.NodeIndex(cbft.config.NodeID) >= 0, nil
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
@@ -1057,8 +1018,9 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Debug("call Finalize()", "Hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	fmt.Println("finalize root", header.Root.String())
+	log.Info("call Finalize()", "Hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts), "header.Root", header.Root)
 	header.UncleHash = types.CalcUncleHash(nil)
 	return types.NewBlock(header, txs, nil, receipts), nil
 }
@@ -1106,7 +1068,20 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	log.Debug("seal complete", "Hash", sealedBlock.Hash(), "number", block.NumberU64())
 
-	if len(cbft.dpos.primaryNodeList) == 1 {
+	// 更新nodeCache
+	blockNumber := curExt.block.Number()
+	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+	state := cbft.consensusCache.ReadStateDB(curExt.block.Root())
+	log.Info("接收task任务，在打包之后，广播之前", "currentBlockNum", curExt.block.NumberU64(), "currentStateRoot", curExt.block.Root().String())
+	log.Warn("setNodeCache", "parentNumber", parentNumber, "parentHash", curExt.block.ParentHash(), "blockNumber", blockNumber, "blockHash", curExt.block.Hash())
+	if state != nil {
+		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), curExt.block.Hash())
+	} else {
+		log.Error("setNodeCache error")
+	}
+
+	consensusNodes := cbft.ConsensusNodes(parentNumber, curExt.block.ParentHash(), blockNumber)
+	if consensusNodes != nil && len(consensusNodes) == 1 {
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
 		return cbft.handleNewConfirmed(curExt)
 	}
@@ -1270,16 +1245,23 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 }
 
 //to check if it's my turn to produce blocks
-func (cbft *Cbft) inTurn() bool {
-	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(curTime, cbft.config.NodeID)
-	log.Debug("inTurn", "result", inturn)
-	return inturn
+//func (cbft *Cbft) inTurn() bool {
+//	curTime := toMilliseconds(time.Now())
+//	inturn := cbft.calTurn(0, curTime, cbft.config.NodeID)
+//	log.Debug("inTurn", "result", inturn)
+//	return inturn
+//
+//}
 
+func (cbft *Cbft) inTurn(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
+	curTime := toMilliseconds(time.Now())
+	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime, cbft.config.NodeID, current)
+	log.Info("inTurn", "result", inturn)
+	return inturn
 }
 
 //time in milliseconds
-func (cbft *Cbft) inTurnVerify(curTime int64, nodeID discover.NodeID) bool {
+/*func (cbft *Cbft) inTurnVerify(curTime int64, nodeID discover.NodeID) bool {
 	latency := cbft.avgLatency(nodeID)
 	if latency >= maxAvgLatency {
 		log.Debug("inTurnVerify, return false cause of net latency", "result", false, "latency", latency)
@@ -1289,26 +1271,42 @@ func (cbft *Cbft) inTurnVerify(curTime int64, nodeID discover.NodeID) bool {
 	log.Debug("inTurnVerify", "result", inTurnVerify, "latency", latency)
 	return inTurnVerify
 }
+*/
+func (cbft *Cbft) inTurnVerify(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, curTime int64, nodeID discover.NodeID) bool {
+	latency := cbft.avgLatency(nodeID)
+	if latency >= maxAvgLatency {
+		log.Debug("inTurnVerify, return false cause of net latency", "result", false, "latency", latency)
+		return false
+	}
+	inTurnVerify := cbft.calTurn(parentNumber, parentHash, blockNumber, curTime-latency, nodeID, all)
+	log.Debug("inTurnVerify", "result", inTurnVerify, "latency", latency)
+	return inTurnVerify
+}
 
 //time in milliseconds
-func (cbft *Cbft) shouldKeepIt(curTime int64, nodeID discover.NodeID) bool {
+func (cbft *Cbft) shouldKeepIt(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, curTime int64, nodeID discover.NodeID) bool {
 	offset := 1000 * (cbft.config.Duration/2 - 1)
-	keepIt := cbft.calTurn(curTime-offset, nodeID)
+	keepIt := cbft.calTurn(parentNumber, parentHash, blockNumber, curTime-offset, nodeID, all)
 	if !keepIt {
-		keepIt = cbft.calTurn(curTime+offset, nodeID)
+		keepIt = cbft.calTurn(parentNumber, parentHash, blockNumber, curTime+offset, nodeID, all)
 	}
 	log.Debug("shouldKeepIt", "result", keepIt, "offset", offset)
 	return keepIt
 }
 
-//time in milliseconds
-func (cbft *Cbft) calTurn(curTime int64, nodeID discover.NodeID) bool {
-	nodeIdx := cbft.dpos.NodeIndex(nodeID)
-	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
+func (cbft *Cbft) calTurn(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, curTime int64, nodeID discover.NodeID, round int32) bool {
+	nodeIdx := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, blockNumber, nodeID, round)
+	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
-		durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
+
+		consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
+		if consensusNodes == nil || len(consensusNodes) <= 0 {
+			return false
+		}
+
+		durationPerTurn := durationPerNode * int64(len(consensusNodes))
 
 		min := nodeIdx * (durationPerNode)
 
@@ -1402,27 +1400,95 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 	return crypto.Sign(headerHash, cbft.config.PrivateKey)
 }
 
-func (cbft *Cbft) getThreshold() int {
-	trunc := len(cbft.dpos.primaryNodeList) * 2 / 3
-	return int(trunc + 1)
+func (cbft *Cbft) getThreshold(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) int {
+	consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
+	if consensusNodes != nil {
+		trunc := len(consensusNodes) * 2 / 3
+		return int(trunc + 1)
+	}
+	return math.MaxInt16
 }
 
 func toMilliseconds(t time.Time) int64 {
 	return t.UnixNano() / 1e6
 }
 
-func (cbft *Cbft) Election(state *state.StateDB) ([]*discover.Node, error) {
-	return cbft.dpos.Election(state)
+func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
+	return cbft.inTurn(parentNumber, parentHash, commitNumber)
+}
+
+//func (cbft *Cbft) FormerNodeID() []discover.NodeID {
+//	return cbft.ppos.getFormerNodeID()
+//}
+//
+//func (cbft *Cbft) CurrentNodeID() []discover.NodeID {
+//	return cbft.ppos.getCurrentNodeID()
+//}
+//
+//func (cbft *Cbft) NextNodeID() []discover.NodeID {
+//	return cbft.ppos.getNextNodeID()
+//}
+
+func (cbft *Cbft) FormerNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node {
+	return cbft.ppos.getFormerNodes(parentNumber, parentHash, blockNumber)
+}
+
+func (cbft *Cbft) CurrentNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node {
+	return cbft.ppos.getCurrentNodes(parentNumber, parentHash, blockNumber)
+}
+
+func (cbft *Cbft) IsCurrentNode(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) bool {
+	currentNodes := cbft.ppos.getCurrentNodes(parentNumber, parentHash, blockNumber)
+	nodeID := cbft.GetOwnNodeID()
+	for _, n := range currentNodes {
+		if nodeID == n.ID {
+			return true
+		}
+	}
+	return false
+}
+
+func (cbft *Cbft) ConsensusNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []discover.NodeID {
+	return cbft.ppos.consensusNodes(parentNumber, parentHash, blockNumber)
+}
+
+// wether nodeID in former or current or next
+//func (cbft *Cbft) CheckConsensusNode(nodeID discover.NodeID) (bool, error) {
+//	log.Debug("call CheckConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+//	return cbft.ppos.AnyIndex(nodeID) >= 0, nil
+//}
+
+// wether nodeID in current or next
+func (cbft *Cbft) CheckFutureConsensusNode(nodeID discover.NodeID) (bool, error) {
+	log.Debug("call CheckFutureConsensusNode()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+	return cbft.ppos.NodeIndexInFuture(nodeID) >= 0, nil
+}
+
+// wether nodeID in former or current or next
+//func (cbft *Cbft) IsConsensusNode() (bool, error) {
+//	log.Debug("call IsConsensusNode()")
+//	return cbft.ppos.AnyIndex(cbft.config.NodeID) >= 0, nil
+//}
+
+func (cbft *Cbft) Election(state *state.StateDB, blockNumber *big.Int) ([]*discover.Node, error) {
+	return cbft.ppos.Election(state, blockNumber)
 }
 
 func (cbft *Cbft) Switch(state *state.StateDB) bool {
-	return cbft.dpos.Switch(state)
+	return cbft.ppos.Switch(state)
 }
 
 func (cbft *Cbft) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
-	return cbft.dpos.GetWitness(state, flag)
+	return cbft.ppos.GetWitness(state, flag)
 }
 
-func (cbft *Cbft) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
-	return cbft.dpos.GetAllWitness(state)
+func (cbft *Cbft) GetOwnNodeID() discover.NodeID {
+	return cbft.config.NodeID
 }
+
+func (cbft *Cbft) SetNodeCache(state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash) error {
+	log.Info("cbft SetNodeCache", "parentNumber", parentNumber, "parentHash", parentHash, "currentNumber", currentNumber, "currentHash", currentHash)
+	return cbft.ppos.SetNodeCache(state, parentNumber, currentNumber, parentHash, currentHash)
+}
+
+

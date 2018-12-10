@@ -17,13 +17,13 @@ import (
 )
 
 func TestRlpEncode(t *testing.T) {
-	nodeId, _ := hex.DecodeString("a363d1243646b6eabf1d4851f646b523f5707d053caab95022f1682605aca0537ee0c5c14b4dfa76dcbce264b7e68d59de79a42b7cda059e9d358336a9ab8d80")
+	nodeId, _ := hex.DecodeString("751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c")
 
 	owner, _ := hex.DecodeString("740ce31b3fac20dac379db243021a51e80ad00d7") //38
 	//owner, _ := hex.DecodeString("5a5c4368e2692746b286cee36ab0710af3efa6cf") //39
 	//owner, _ := hex.DecodeString("493301712671ada506ba6ca7891f436d29185821") //40
-	//fmt.Println(nodeId)
-	// 编码
+
+	// code
 	var source [][]byte
 	source = make([][]byte, 0)
 	source = append(source, common.Hex2Bytes("1011"))  // tx type
@@ -38,8 +38,8 @@ func TestRlpEncode(t *testing.T) {
 	source = append(source, nodeId) // [64]byte nodeId discover.NodeID
 	source = append(source, owner) // [20]byte owner common.Address
 	source = append(source, byteutil.Uint64ToBytes(100)) // fee
-	source = append(source, []byte("192.168.7.167")) // host
-	source = append(source, []byte("30303")) // port
+	source = append(source, []byte("192.168.9.184")) // host
+	source = append(source, []byte("16789")) // port
 	source = append(source, []byte("extra info..")) // extra
 	//source = append(source, new(big.Int).SetInt64(1).Bytes()) // withdraw
 
@@ -50,12 +50,12 @@ func TestRlpEncode(t *testing.T) {
 		t.Errorf("fail")
 	}
 	encodedBytes := buffer.Bytes()
-	// 编码后字节数组
+	// result
 	fmt.Println(encodedBytes)
 	// to hex as data
 	fmt.Println(hexutil.Encode(encodedBytes))
 
-	// 解码
+	// decode
 	ptr := new(interface{})
 	rlp.Decode(bytes.NewReader(encodedBytes), &ptr)
 
@@ -63,7 +63,7 @@ func TestRlpEncode(t *testing.T) {
 	fmt.Println(deref)
 	for i, v := range deref.([]interface{}) {
 		// fmt.Println(i,"    ",hex.EncodeToString(v.([]byte)))
-		// 类型判断，然后转换
+		// check type and switch
 		switch i {
 		case 0:
 			// fmt.Println(string(v.([]byte)))
@@ -77,7 +77,6 @@ func TestRlpEncode(t *testing.T) {
 
 func TestAppendSlice(t *testing.T)  {
 	a := []int{0, 1, 2, 3, 4}
-	// 删除第i个元素
 	i := 2
 	a = append(a[:i], a[i+1:]...)
 	fmt.Println(a)
@@ -85,8 +84,8 @@ func TestAppendSlice(t *testing.T)  {
 
 func TestRlpData(t *testing.T)  {
 
-	nodeId, _ := hex.DecodeString("e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
-	owner, _ := hex.DecodeString("00a8499dd60261e61113d7c6d249aa98b3dd6e40")
+	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
+	owner := []byte("0xf216d6e4c17097a60ee2b8e5c88941cd9f07263b")
 
 	//CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
 	var CandidateDeposit [][]byte
@@ -96,8 +95,8 @@ func TestRlpData(t *testing.T)  {
 	CandidateDeposit = append(CandidateDeposit, nodeId)
 	CandidateDeposit = append(CandidateDeposit, owner)
 	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(500))	//10000
-	CandidateDeposit = append(CandidateDeposit, []byte("127.0.0.1"))
-	CandidateDeposit = append(CandidateDeposit, []byte("7890"))
+	CandidateDeposit = append(CandidateDeposit, []byte("0.0.0.0"))
+	CandidateDeposit = append(CandidateDeposit, []byte("30303"))
 	CandidateDeposit = append(CandidateDeposit, []byte("extra data"))
 	bufDeposit := new(bytes.Buffer)
 	err := rlp.Encode(bufDeposit, CandidateDeposit)
@@ -177,7 +176,7 @@ func TestRlpData(t *testing.T)  {
 func TestRlpDecode(t *testing.T)  {
 
 	//HexString -> []byte
-	rlpcode, _ := hex.DecodeString("f85c8800000000000000f19043616e64696461746544657461696c73b840e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
+	rlpcode, _ := hex.DecodeString("f9024005853339059800829c409410000000000000000000000000000000000000019331303030303030303030303030303030303030b901c7f901c48800000000000000029043616e6469646174654465706f736974b88230786133363364313234333634366236656162663164343835316636343662353233663537303764303533636161623935303232663136383236303561636130353337656530633563313462346466613736646362636532363462376536386435396465373961343262376364613035396539643335383333366139616238643830aa3078663231366436653463313730393761363065653262386535633838393431636439663037323633628800000000000001f487302e302e302e30853330333033b8e27b226e6f64654e616d65223a22e88a82e782b9e5908de7a7b0222c226e6f64654469736372697074696f6e223a22e88a82e782b9e7ae80e4bb8b222c226e6f64654465706172746d656e74223a22e69cbae69e84e5908de7a7b0222c226f6666696369616c57656273697465223a227777772e706c61746f6e2e6e6574776f726b222c226e6f6465506f727472616974223a2255524c222c2274696d65223a313534333931333639353638352c226f776e6572223a22307866323136643665346331373039376136306565326238653563383839343163643966303732363362227d1ba0e789e2d95ed796dec19e7a40b760a9849a1ca09110e1f95e46ed0c18487cfdf3a021bfd18bdb4c32a70f2836c6b78944c88b92d09f5e5201f125444792538617e7")
 	var source [][]byte
 	if err := rlp.Decode(bytes.NewReader(rlpcode), &source); err != nil {
 		fmt.Println(err)

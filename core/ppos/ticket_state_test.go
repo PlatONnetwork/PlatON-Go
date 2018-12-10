@@ -1,4 +1,4 @@
-package depos_test
+package pposm
 
 import (
 	"Platon-go/common"

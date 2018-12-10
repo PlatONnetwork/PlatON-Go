@@ -38,7 +38,6 @@ import (
 
 const (
 	datadirCbftConfig = "cbft.json" // Path within the datadir to the cbft config
-	datadirDposConfig = "dpos.json"
 )
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
@@ -73,6 +72,7 @@ var DefaultConfig = Config{
 		Blocks:     20,
 		Percentile: 60,
 	},
+	Debug: false,
 }
 
 func init() {
@@ -98,7 +98,6 @@ type Config struct {
 
 	// modify by platon
 	CbftConfig CbftConfig `toml:",omitempty"`
-	//DposConfig DposConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
@@ -148,6 +147,9 @@ type Config struct {
 
 	// output wasm contract log into the file
 	WASMLogFile string `toml:",omitempty"`
+
+	//platon add
+	Debug bool
 }
 
 type CbftConfig struct {
@@ -160,40 +162,22 @@ type CbftConfig struct {
 	//InitialNodes []discover.Node   `json:"initialNodes"`
 	//NodeID       discover.NodeID   `json:"nodeID,omitempty"`
 	//PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
-	Dpos 			*DposConfig 	`json:"dpos"`
+	Ppos 			*PposConfig 	`json:"ppos"`
 }
 
 // modify by platon
-type DposConfig struct {
-	//// 最大允许入选人数目
-	//MaxCount				uint64					`json:"maxCount"`
-	//// 最大允许见证人数目
-	//MaxChair				uint64					`json:"maxChair"`
-	//RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
-	//// 内置见证人
-	//Chairs 					[]*CandidateConfig 		`json:"chairs"`
+type PposConfig struct {
 	Candidate 				*CandidateConfig 			`json:"candidate"`
 }
 // modify by platon
 type CandidateConfig struct {
-	// 最大允许入选人数目
+	// allow immediate elected max count
 	MaxCount				uint64					`json:"maxCount"`
-	// 最大允许见证人数目
+	// allow witness max count
 	MaxChair				uint64					`json:"maxChair"`
+	// allow block interval for refunds
 	RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
-	//// 抵押金额(保证金)数目
-	//Deposit 				uint64 			`json:"deposit"`
-	//// 发生抵押时的当前块高
-	//BlockNumber			 	uint64 			`json:"blocknumber"`
-	//// 发生抵押时的tx index
-	//TxIndex 				uint32 			`json:"txindex"`
-	//// 候选人Id
-	//CandidateId 			string 			`json:"candidateid"`
-	////
-	//Host 					string 			`json:"host"`
-	//Port 					string 			`json:"port"`
-	//Owner 					string			`json:"owner"`
-	//From 					string 			`json:"from"`
+
 }
 
 type configMarshaling struct {
@@ -220,19 +204,5 @@ func (c *Config) parsePersistentCbftConfig(path string) *CbftConfig {
 	return &config
 }
 
-func (c *Config) LoadDposConfig(nodeConfig node.Config) *DposConfig {
-	return c.parsePersistentDposConfig(filepath.Join(nodeConfig.DataDir, datadirDposConfig))
-}
 
-func (c *Config) parsePersistentDposConfig(path string) *DposConfig {
-	if _, err := os.Stat(path); err != nil {
-		return nil
-	}
-	// Load the nodes from the config file.
-	config := DposConfig{}
-	if err := common.LoadJSON(path, &config); err != nil {
-		log.Error(fmt.Sprintf("Can't load cbft config file %s: %v", path, err))
-		return nil
-	}
-	return &config
-}
+
