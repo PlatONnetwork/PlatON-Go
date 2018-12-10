@@ -1,10 +1,9 @@
-package pposm
+package pposm_test
 
 import (
 	"Platon-go/common"
 	"Platon-go/consensus/ethash"
 	"Platon-go/core"
-	"Platon-go/core/dpos"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/core/vm"
@@ -17,6 +16,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"Platon-go/core/ppos"
 )
 
 func TestVoteTicket(t *testing.T)  {
@@ -28,7 +28,7 @@ func TestVoteTicket(t *testing.T)  {
 	// Initialize a fresh chain with only a genesis block
 	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, ethash.NewFaker(), vm.Config{}, nil)
 
-	configs := params.DposConfig{
+	configs := params.PposConfig{
 		//MaxChair: 1,
 		//MaxCount: 3,
 		//RefundBlockNumber: 	1,
@@ -43,9 +43,9 @@ func TestVoteTicket(t *testing.T)  {
 		},
 	}
 
-	candidatePool := depos.NewCandidatePool(&configs)
+	candidatePool := pposm.NewCandidatePool(&configs)
 
-	ticketPool := depos.NewTicketPool(&configs, candidatePool)
+	ticketPool := pposm.NewTicketPool(&configs, candidatePool)
 
 	t.Log("MaxCount", ticketPool.MaxCount, "ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 
