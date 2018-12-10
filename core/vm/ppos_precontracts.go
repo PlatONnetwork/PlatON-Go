@@ -231,6 +231,9 @@ func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 		c.logError(ErrPermissionDenied.Error())
 		return nil, ErrPermissionDenied
 	}
+	if withdraw.Cmp(can.Deposit)>0 {
+		withdraw = can.Deposit
+	}
 	if err := c.evm.CandidatePool.WithdrawCandidate(c.evm.StateDB, nodeId, withdraw, height); err!=nil {
 		c.logError(err.Error())
 		return nil, err
