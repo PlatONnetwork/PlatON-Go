@@ -15,7 +15,7 @@ var (
 )
 
 type Cache struct {
-	stateDBCache  map[common.Hash]*stateDBCache  // key is header stateRoot
+	stateDBCache  map[common.Hash]*stateDBCache  // key is header hash
 	receiptsCache map[common.Hash]*receiptsCache // key is header hash
 	chain         *core.BlockChain
 	stateDBMu     sync.RWMutex
@@ -23,7 +23,7 @@ type Cache struct {
 }
 
 type stateDBCache struct {
-	stateDB  *state.StateDB
+	stateDB  state.StateDB
 	blockNum uint64
 }
 
@@ -52,11 +52,13 @@ func (c *Cache) ReadReceipts(blockHash common.Hash) []*types.Receipt {
 }
 
 // 从缓存map中读取StateDB实例
-func (c *Cache) ReadStateDB(stateRoot common.Hash) *state.StateDB {
+func (c *Cache) ReadStateDB(blockHash common.Hash) *state.StateDB {
 	c.stateDBMu.RLock()
 	defer c.stateDBMu.RUnlock()
-	if obj, exist := c.stateDBCache[stateRoot]; exist {
-		return obj.stateDB
+	log.Info("从缓存map中读取StateDB实例", "blockHash", blockHash)
+	if obj, exist := c.stateDBCache[blockHash]; exist {
+		state := obj.stateDB
+		return &state
 	}
 	return nil
 }
@@ -74,11 +76,12 @@ func (c *Cache) WriteReceipts(blockHash common.Hash, receipts []*types.Receipt, 
 }
 
 // 将StateDB实例写入缓存
-func (c *Cache) WriteStateDB(stateRoot common.Hash, stateDB *state.StateDB, blockNum uint64) {
+func (c *Cache) WriteStateDB(blockHash common.Hash, stateDB state.StateDB, blockNum uint64) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
-	if _, exist := c.stateDBCache[stateRoot]; !exist {
-		c.stateDBCache[stateRoot] = &stateDBCache{stateDB: stateDB, blockNum: blockNum}
+	log.Info("将StateDB实例写入缓存", "blockHash", blockHash, "blockNum", blockNum)
+	if _, exist := c.stateDBCache[blockHash]; !exist {
+		c.stateDBCache[blockHash] = &stateDBCache{stateDB: stateDB, blockNum: blockNum}
 	}
 }
 
@@ -100,14 +103,14 @@ func (c *Cache) clearReceipts(blockHash common.Hash) {
 }
 
 // 从缓存map中读取StateDB实例
-func (c *Cache) clearStateDB(stateRoot common.Hash) {
+func (c *Cache) clearStateDB(blockHash common.Hash) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
 
 	var blockNum uint64
-	if obj, exist := c.stateDBCache[stateRoot]; exist {
+	if obj, exist := c.stateDBCache[blockHash]; exist {
 		blockNum = obj.blockNum
-		//delete(c.stateDBCache, stateRoot)
+		//delete(c.stateDBCache, blockHash)
 	}
 	for hash, obj := range c.stateDBCache {
 		if obj.blockNum <= blockNum {
@@ -123,8 +126,8 @@ func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 		return state, nil
 	}
 	// 读取并拷贝缓存中StateDB实例
-	log.Info("读取并拷贝缓存中StateDB实例", "stateRoot", block.Root())
-	if state := c.ReadStateDB(block.Root()); state != nil {
+	log.Info("读取并拷贝缓存中StateDB实例", "blockHash", block.Hash(), "blockNum", block.NumberU64(), "stateRoot", block.Root())
+	if state := c.ReadStateDB(block.Hash()); state != nil {
 		return state.Copy(), nil
 	} else {
 		return nil, errMakeStateDB
@@ -133,7 +136,6 @@ func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 
 // 获取相应block的StateDB实例
 func (c *Cache) ClearCache(block *types.Block) {
-	log.Debug("call ClearCache()", "hash", block.Hash(), "number", block.NumberU64(), "blockRoot", block.Root())
 	c.clearReceipts(block.Hash())
-	c.clearStateDB(block.Root())
+	c.clearStateDB(block.Hash())
 }

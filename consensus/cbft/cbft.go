@@ -207,17 +207,6 @@ func (cbft *Cbft) findParent(ext *BlockExt) *BlockExt {
 	return nil
 }
 
-// isFork checks if new branch is forked from old branch
-// newFork[0] == oldFork[0], newFork[len(newFork)-1] is the new confirmed block
-func (cbft *Cbft) isFork(newFork []*BlockExt, oldFork []*BlockExt) (bool, *BlockExt) {
-	for i := 1; i < len(newFork); i++ {
-		if oldFork[i].isConfirmed {
-			return false, oldFork[i]
-		}
-	}
-	return true, nil
-}
-
 // collectTxs collects exts's transactions
 func (cbft *Cbft) collectTxs(exts []*BlockExt) types.Transactions {
 	txs := make([]*types.Transaction, 0)
@@ -427,6 +416,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 // if success then save the receipts and state to consensusCache
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	state, err := cbft.consensusCache.MakeStateDB(parent.block)
+
 	if err != nil {
 		log.Error("execute block error, cannot make state based on parent", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return errors.New("execute block error")
@@ -441,7 +431,9 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 		log.Debug("save executed block state", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "stateIsNil", stateIsNil, "root", ext.block.Root())
 
 		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
-		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
+
+		stateCpy := *state
+		cbft.consensusCache.WriteStateDB(ext.block.Hash(), stateCpy, ext.block.NumberU64())
 	} else {
 		log.Error("execute a block error", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return errors.New("execute block error")
@@ -804,7 +796,7 @@ func (cbft *Cbft) forkFrom(closestForked *BlockExt) {
 	newHighestLogical := cbft.findHighestLogical(closestForked)
 	//newHighestLogical = cbft.findHighestLogical(newHighestConfirmed)
 
-	log.Warn("chain forkFrom to lower block", "reset highestLogical", newHighestLogical, "reset highestConfirmed", newHighestConfirmed)
+	log.Warn("chain fork to lower block", "reset highestLogical", newHighestLogical, "reset highestConfirmed", newHighestConfirmed)
 
 	cbft.setHighestLogical(newHighestLogical)
 	cbft.highestConfirmed = newHighestConfirmed

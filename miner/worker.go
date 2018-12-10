@@ -764,7 +764,7 @@ func (w *worker) resultLoop() {
 				log.Debug("block is packaged by local", "hash", hash, "number", number, "len(Receipts)", len(_receipts), "stateIsNil", stateIsNil)
 			} else {
 				_receipts = w.consensusCache.ReadReceipts(block.Hash())
-				_state = w.consensusCache.ReadStateDB(block.Root())
+				_state = w.consensusCache.ReadStateDB(block.Hash())
 				stateIsNil := _state == nil
 				log.Debug("block is packaged by other", "hash", hash, "number", number, "len(Receipts)", len(_receipts), "blockRoot", block.Root(), "stateIsNil", stateIsNil)
 			}
@@ -1220,7 +1220,9 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now()}:
 			// 保存receipts、stateDB至缓存
 			w.consensusCache.WriteReceipts(block.Hash(), receipts, block.NumberU64())
-			w.consensusCache.WriteStateDB(block.Root(), s, block.NumberU64())
+
+			sCpy := *s
+			w.consensusCache.WriteStateDB(block.Hash(), sCpy, block.NumberU64())
 
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
