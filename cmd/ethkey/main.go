@@ -41,6 +41,7 @@ func init() {
 		commandChangePassphrase,
 		commandSignMessage,
 		commandVerifyMessage,
+		commandGenkeypair,
 	}
 }
 
