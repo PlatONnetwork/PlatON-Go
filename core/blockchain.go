@@ -927,6 +927,16 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	rawdb.WriteBlock(bc.db, block)
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
+
+	//log.Info("写链时:", "blockNumber", block.NumberU64(), "header.root", block.Root().String(), "state.root", root.String())
+	//fmt.Println("写链时:", "blockNumber", block.NumberU64(), "header.root", block.Root().String(), "state.root", root.String())
+	//parentRoot := bc.GetBlockByHash(block.ParentHash()).Root()
+	//if _, err := bc.StateAt(parentRoot); nil != err {
+	//	fmt.Println("写链时", "blockNumber", block.NumberU64(),"parentRoot", parentRoot.String(), "先拿前面一个块state校验 err", err)
+	//}else{
+	//	fmt.Println("写链时", "blockNumber", block.NumberU64(),"parentRoot", parentRoot.String(), "Getting Parent's StateDB OK !")
+	//}
+
 	if err != nil {
 		return NonStatTy, err
 	}
@@ -1141,6 +1151,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			// Block competing with the canonical chain, store in the db, but don't process
 			// until the competitor TD goes above the canonical TD
 			currentBlock := bc.CurrentBlock()
+			//fmt.Println("这里调用了 WriteBlockWithoutState。。。。。。。。。。。。。。。", "num", currentBlock.NumberU64(), "stateRoot", currentBlock.Root())
 			localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 			externTd := new(big.Int).Add(bc.GetTd(block.ParentHash(), block.NumberU64()-1), block.Difficulty())
 			if localTd.Cmp(externTd) > 0 {
@@ -1259,7 +1270,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 		bc.reportBlock(block, receipts, err)
 		return nil, err
 	}
-	log.Info("收到广播区块时,本地执行完交易后的stateDB", "currentBlockNum", block.NumberU64(), "currentStateRoot", block.Root().String())
+
 	// Validate the state using the default validator
 	err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
 	if err != nil {

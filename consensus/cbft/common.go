@@ -11,19 +11,19 @@ const (
 	//
 	BaseSwitchWitness = 60
 	//
-	//BaseAddNextPeers = 50
+	BaseAddNextPeers = 50
 	//
-	//BaseRemoveFormerPeers = 70
+	BaseRemoveFormerPeers = 70
 	//
-	//BaseIrrCount = 20
+	BaseIrrCount = 20
 
 	//BaseElection = 50000
 
 	//BaseSwitchWitness = 60000
 
-	BaseAddNextPeers = 50000
+	//BaseAddNextPeers = 50000
 
-	BaseRemoveFormerPeers = 700000
+	//BaseRemoveFormerPeers = 700000
 
-	BaseIrrCount = 2000
+	//BaseIrrCount = 2000
 )
