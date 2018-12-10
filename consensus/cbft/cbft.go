@@ -174,10 +174,15 @@ func (cbft *Cbft) findBlockExt(hash common.Hash) *BlockExt {
 func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 	if sign != nil {
 		ext.signs = append(ext.signs, sign)
-		if len(ext.signs) >= cbft.getThreshold() {
-			ext.isConfirmed = true
+		//if ext.isLinked && ext.block != nil {
+		if ext.isLinked { // ext.block != nil is unnecessary
+			if len(ext.signs) >= cbft.getThreshold() {
+				ext.isConfirmed = true
+			}
+			log.Debug("count signatures", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "isConfirmed", ext.isConfirmed)
+		} else {
+			log.Debug("count signatures for unreceived block", "number", ext.number, "signCount", len(ext.signs), "isConfirmed", ext.isConfirmed)
 		}
-		log.Debug("count signatures", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "isConfirmed", ext.isConfirmed)
 	}
 }
 
