@@ -406,11 +406,11 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			timestamp = time.Now().Unix()
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
-			log.Info("【chainHeadCh】", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "blockRoot", head.Block.Root())
+			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "blockRoot", head.Block.Root())
 			w.consensusCache.ClearCache(head.Block)
 
 		case highestLogicalBlock := <-w.highestLogicalBlockCh:
-			log.Info("highestLogicalBlockCh通道接收数据", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash())
+			log.Debug("received a notify for new highest logical", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash())
 			w.commitWorkEnv.highestLock.Lock()
 			w.commitWorkEnv.highestLogicalBlock = highestLogicalBlock
 			w.commitWorkEnv.highestLock.Unlock()
@@ -418,7 +418,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if w.isRunning() {
 				if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(); shouldSeal && error == nil {
 					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-						log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
+						log.Debug("begin to package new block in time after getting a new highest logical blcok")
 						commit(false, commitInterruptResubmit, commitBlock)
 					}
 				}
@@ -429,11 +429,10 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// higher priced transactions. Disable this overhead for pending blocks.
 			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
-				log.Warn("----------间隔" + recommit.String() + "开始打包任务----------")
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
 						if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-							log.Warn("--------------节点当前时间窗口出块，执行打包出块逻辑--------------")
+							log.Debug("begin to package new block regularly ")
 							commit(false, commitInterruptResubmit, commitBlock)
 							continue
 						}
@@ -450,7 +449,6 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case interval := <-w.resubmitIntervalCh:
-			// cbft引擎不允许外界修改recommit值
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				// Adjust resubmit interval explicitly by user.
 				if interval < minRecommitInterval {
@@ -466,7 +464,6 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case adjust := <-w.resubmitAdjustCh:
-			// cbft引擎不需要重新计算调整recommit值
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				// Adjust resubmit interval by feedback.
 				if adjust.inc {
@@ -780,7 +777,7 @@ func (w *worker) resultLoop() {
 				continue
 			}
 
-			log.Warn("[2]共识成功", "hash", hash, "number", number, "timestamp", time.Now().UnixNano()/1e6)
+			log.Debug("cbft consensus successful", "hash", hash, "number", number, "timestamp", time.Now().UnixNano()/1e6)
 
 			// Different block could share same sealhash, deep copy here to prevent write-write conflict.
 			var (
@@ -944,7 +941,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 
 	for {
 		if bftEngine && (float64(time.Now().UnixNano()/1e6-timestamp) >= w.commitDuration) {
-			log.Warn("------执行交易超时，主动退出，继续剩余打包流程------", "超时时长", w.commitDuration, "本轮执行交易数", w.current.tcount)
+			log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
 			break
 		}
 		// In the following three cases, we will interrupt the execution of the transaction.
@@ -1058,7 +1055,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if _, ok := w.engine.(consensus.Bft); ok {
 		parent = commitBlock
 		timestamp = time.Now().UnixNano() / 1e6
-		log.Warn("--------------cbftEngine.HighestLogicalBlock-----------", "hash", parent.Hash(), "number", parent.NumberU64(), "stateRoot", parent.Root())
 	} else {
 		parent = w.chain.CurrentBlock()
 		if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
@@ -1089,7 +1085,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		header.Coinbase = w.coinbase
 	}
 
-	log.Warn("[1]共识开始", "gasLimit", header.GasLimit, "blockNumber", header.Number, "timestamp", time.Now().UnixNano()/1e6)
+	log.Debug("cbft begin to consensus for new block", "number", header.Number, "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", time.Now().UnixNano()/1e6)
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
@@ -1152,7 +1148,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	// Fill the block with all available pending transactions.
-	log.Warn("start to fetch pending transactions", "timestamp", time.Now().UnixNano())
+	log.Debug("start to fetch pending transactions", "timestamp", time.Now().UnixNano())
 
 	pending, err := w.eth.TxPool().Pending()
 
@@ -1174,7 +1170,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	for _, accTxs := range pending {
 		txsCount = txsCount + len(accTxs)
 	}
-	log.Warn("total txs in pending", "commitBlockNumber", commitBlock.NumberU64(), "txsCount", txsCount)
+	log.Debug("total txs in pending", "commitBlockNumber", commitBlock.NumberU64(), "txsCount", txsCount)
 
 	// Split the pending transactions into locals and remotes
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
@@ -1185,14 +1181,14 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
-	log.Warn("start to execute local pending transactions", "timestamp", time.Now().UnixNano())
+	log.Debug("start to execute local pending transactions", "timestamp", time.Now().UnixNano())
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt, timestamp) {
 			return
 		}
 	}
-	log.Warn("start to execute local pending transactions", "timestamp", time.Now().UnixNano())
+	log.Debug("start to execute local pending transactions", "timestamp", time.Now().UnixNano())
 	if len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt, timestamp) {
@@ -1283,9 +1279,9 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	baseBlock, commitTime := w.commitWorkEnv.commitBaseBlock, w.commitWorkEnv.commitTime
 	highestLogicalBlock := w.commitWorkEnv.getHighestLogicalBlock()
 	if baseBlock != nil {
-		log.Info("baseBlock", "number", baseBlock.NumberU64(), "hash", baseBlock.Hash(), "hashhex", baseBlock.Hash().Hex())
+		log.Info("baseBlock", "number", baseBlock.NumberU64(), "hash", baseBlock.Hash(), "hashHex", baseBlock.Hash().Hex())
 		log.Info("commitTime", "commitTime", commitTime, "timestamp", timestamp)
-		log.Info("highestLogicalBlock", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash(), "hashhex", highestLogicalBlock.Hash().Hex())
+		log.Info("highestLogicalBlock", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash(), "hashHex", highestLogicalBlock.Hash().Hex())
 	}
 
 	shouldCommit := baseBlock == nil || baseBlock.Hash().Hex() != highestLogicalBlock.Hash().Hex()
