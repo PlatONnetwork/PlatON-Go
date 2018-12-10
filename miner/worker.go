@@ -745,9 +745,9 @@ func (w *worker) resultLoop() {
 				sealhash = w.engine.SealHash(block.Header())
 				number   = block.NumberU64()
 			)
-			// Short circuit when receiving duplicate result caused by resubmitting.
+			// Short circuit when receiving duplicate result caused by resubmitting or P2P sync.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Error("cbft result error, duplicated block", "hash", hash, "number", number)
+				log.Error("duplicate result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
 				continue
 			}
 
