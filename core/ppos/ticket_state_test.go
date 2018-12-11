@@ -168,7 +168,7 @@ func TestVoteTicket(t *testing.T)  {
 		t.Logf("owner[%v],NormalTicket[%v],ExpireTicket[%v]", ownerList[i].Hex(), len(ownerNormalTicketIds), len(ownerExpireTicketIds))
 	}
 
-	if err := ticketPool.OutBlockNotice(state, blockNumber, candidate.CandidateId); err != nil {
+	if err := ticketPool.Notify(state, blockNumber, candidate.CandidateId); err != nil {
 		t.Error("Execute HandleExpireTicket error", err)
 	}
 

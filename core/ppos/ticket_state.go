@@ -91,7 +91,7 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 	if nil != err {
 		return err
 	}
-	ticketId, err := generateTicket()
+	ticketId, err := generateTicketId()
 	if err != nil {
 		return err
 	}
@@ -328,7 +328,7 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidate *types.Candidat
 
 // 1.给幸运票发放奖励
 // 2.检查过期票
-func (t *TicketPool) OutBlockNotice(stateDB vm.StateDB, blockNumber *big.Int, nodeId discover.NodeID) error {
+func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int, nodeId discover.NodeID) error {
 	// 发放奖励
 
 	expireBlockNumber := t.calcExpireBlockNumber(stateDB, blockNumber)
@@ -442,7 +442,7 @@ func setTicketDetailState(stateDB vm.StateDB, key []byte, val []byte) {
 	stateDB.SetState(common.TicketDetailAddr, key, val)
 }
 
-func generateTicket() (common.Hash, error) {
+func generateTicketId() (common.Hash, error) {
 	// generate ticket id
 	uuid, err := uuid.NewV4()
 	if err != nil {
