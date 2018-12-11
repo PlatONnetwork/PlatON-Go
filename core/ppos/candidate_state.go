@@ -23,6 +23,9 @@ const (
 	// immediate elected candidate
 	ImmediatePrefix     = "id"
 	ImmediateListPrefix = "iL"
+	// reserve elected candidate
+	ReservePrefix     = "rd"
+	ReserveListPrefix = "rL"
 	// previous witness
 	PreWitnessPrefix     = "Pwn"
 	PreWitnessListPrefix = "PwL"
@@ -39,20 +42,23 @@ const (
 
 var (
 	// immediate elected candidate
-	ImmediateBtyePrefix     = []byte(ImmediatePrefix)
-	ImmediateListBtyePrefix = []byte(ImmediateListPrefix)
+	ImmediateBytePrefix     = []byte(ImmediatePrefix)
+	ImmediateListBytePrefix = []byte(ImmediateListPrefix)
+	// reserve elected candidate
+	ReserveBytePrefix     = []byte(ReservePrefix)
+	ReserveListBytePrefix = []byte(ReserveListPrefix)
 	// previous witness
 	PreWitnessBytePrefix     = []byte(PreWitnessPrefix)
 	PreWitnessListBytePrefix = []byte(PreWitnessListPrefix)
 	// witness
-	WitnessBtyePrefix     = []byte(WitnessPrefix)
-	WitnessListBtyePrefix = []byte(WitnessListPrefix)
+	WitnessBytePrefix     = []byte(WitnessPrefix)
+	WitnessListBytePrefix = []byte(WitnessListPrefix)
 	// next witness
-	NextWitnessBtyePrefix     = []byte(NextWitnessPrefix)
+	NextWitnessBytePrefix     = []byte(NextWitnessPrefix)
 	NextWitnessListBytePrefix = []byte(NextWitnessListPrefix)
 	// need refund
-	DefeatBtyePrefix     = []byte(DefeatPrefix)
-	DefeatListBtyePrefix = []byte(DefeatListPrefix)
+	DefeatBytePrefix     = []byte(DefeatPrefix)
+	DefeatListBytePrefix = []byte(DefeatListPrefix)
 
 	CandidateEncodeErr          = errors.New("Candidate encoding err")
 	CandidateDecodeErr          = errors.New("Candidate decoding err")
@@ -105,7 +111,6 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 	return candidatePool
 }
 
-
 // flag:
 // 0: only init previous witness and current witness and next witness
 // 1：init previous witness and current witness and next witness and immediate
@@ -131,7 +136,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		} else {
 			if nil != ca {
 				c.preOriginCandidates[witnessId] = ca
-			}else {
+			} else {
 				delete(c.preOriginCandidates, witnessId)
 			}
 		}
@@ -156,7 +161,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		} else {
 			if nil != ca {
 				c.originCandidates[witnessId] = ca
-			}else {
+			} else {
 				delete(c.originCandidates, witnessId)
 			}
 		}
@@ -181,7 +186,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		} else {
 			if nil != ca {
 				c.nextOriginCandidates[witnessId] = ca
-			}else {
+			} else {
 				delete(c.nextOriginCandidates, witnessId)
 			}
 		}
@@ -212,7 +217,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				if nil != ca {
 					c.immediateCandates[immediateId] = ca
 					canCache = append(canCache, ca)
-				}else {
+				} else {
 					delete(c.immediateCandates, immediateId)
 				}
 			}
@@ -240,7 +245,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 			} else {
 				if nil != arr && len(arr) != 0 {
 					c.defeatCandidates[defeatId] = arr
-				}else{
+				} else {
 					delete(c.defeatCandidates, defeatId)
 				}
 			}
@@ -267,7 +272,6 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		}
 	}
 
-
 	PrintObject("质押 SetCandidate immediateMap:", c.immediateCandates)
 	// sort cache array
 	candidateSort(c.candidateCacheArr)
@@ -284,7 +288,6 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		tmpArr := (c.candidateCacheArr)[c.maxCount:]
 		// Reserve elected candidates
 		c.candidateCacheArr = (c.candidateCacheArr)[:c.maxCount]
-
 
 		// handle tmpArr
 		for _, tmpCan := range tmpArr {
@@ -402,7 +405,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 			Owner:       can.Owner,
 			From:        can.From,
 			Extra:       can.Extra,
-			Fee: 		 can.Fee,
+			Fee:         can.Fee,
 		}
 
 		// update current candidate
@@ -438,7 +441,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 			Owner:       can.Owner,
 			From:        can.From,
 			Extra:       can.Extra,
-			Fee: 		 can.Fee,
+			Fee:         can.Fee,
 		}
 		// the withdraw
 		if err := c.setDefeat(state, nodeId, canDefeat); nil != err {
@@ -612,7 +615,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 			// add up the refund price
 			amount += can.Deposit.Uint64()
 		} else {
-			log.Error("block height number had mismatch, No refunds allowed", "current block height",blockNumber.String(), "deposit block height", can.BlockNumber.String(), "allowed block interval", c.RefundBlockNumber)
+			log.Error("block height number had mismatch, No refunds allowed", "current block height", blockNumber.String(), "deposit block height", can.BlockNumber.String(), "allowed block interval", c.RefundBlockNumber)
 			log.Info("块高不匹配，不给予退款...")
 			continue
 		}
@@ -669,7 +672,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 				} else {
 					setDefeatIdsState(state, value)
 				}
-			}else {
+			} else {
 				setDefeatIdsState(state, []byte{})
 			}
 
@@ -956,7 +959,6 @@ func (c *CandidatePool) GetRefundInterval() uint64 {
 	return c.RefundBlockNumber
 }
 
-
 // update candidate's tickets
 func (c *CandidatePool) UpdateCandidateTicket(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 	c.lock.Lock()
@@ -1176,7 +1178,6 @@ func (c *CandidatePool) setNextWitnessIndex(state vm.StateDB, nodeIds []discover
 	}
 	return nil
 }
-
 
 func (c *CandidatePool) getNextWitnessIndex(state vm.StateDB) ([]discover.NodeID, error) {
 	return getNextWitnessIdsByState(state)
@@ -1432,11 +1433,18 @@ func partition(arr []*types.Candidate, left, right int) int {
 }
 
 func ImmediateKey(nodeId discover.NodeID) []byte {
-	//key, _ := rlp.EncodeToBytes(nodeId)
 	return immediateKey(nodeId.Bytes())
 }
 func immediateKey(key []byte) []byte {
-	return append(ImmediateBtyePrefix, key...)
+	return append(ImmediateBytePrefix, key...)
+}
+
+func ReserveKey(nodeId discover.NodeID) []byte {
+	return reserveKey(nodeId.Bytes())
+}
+
+func reserveKey(key []byte) []byte {
+	return append(ReserveBytePrefix, key...)
 }
 
 func PreviousWitnessKey(nodeId discover.NodeID) []byte {
@@ -1448,30 +1456,32 @@ func prewitnessKey(key []byte) []byte {
 }
 
 func WitnessKey(nodeId discover.NodeID) []byte {
-	//key, _ := rlp.EncodeToBytes(nodeId)
 	return witnessKey(nodeId.Bytes())
 }
 func witnessKey(key []byte) []byte {
-	return append(WitnessBtyePrefix, key...)
+	return append(WitnessBytePrefix, key...)
 }
 
 func NextWitnessKey(nodeId discover.NodeID) []byte {
 	return nextWitnessKey(nodeId.Bytes())
 }
 func nextWitnessKey(key []byte) []byte {
-	return append(NextWitnessBtyePrefix, key...)
+	return append(NextWitnessBytePrefix, key...)
 }
 
 func DefeatKey(nodeId discover.NodeID) []byte {
-	//key, _ := rlp.EncodeToBytes(nodeId)
 	return defeatKey(nodeId.Bytes())
 }
 func defeatKey(key []byte) []byte {
-	return append(DefeatBtyePrefix, key...)
+	return append(DefeatBytePrefix, key...)
 }
 
 func ImmediateListKey() []byte {
-	return ImmediateListBtyePrefix
+	return ImmediateListBytePrefix
+}
+
+func ReserveListKey() []byte {
+	return ReserveListBytePrefix
 }
 
 func PreviousWitnessListKey() []byte {
@@ -1479,7 +1489,7 @@ func PreviousWitnessListKey() []byte {
 }
 
 func WitnessListKey() []byte {
-	return WitnessListBtyePrefix
+	return WitnessListBytePrefix
 }
 
 func NextWitnessListKey() []byte {
@@ -1487,5 +1497,5 @@ func NextWitnessListKey() []byte {
 }
 
 func DefeatListKey() []byte {
-	return DefeatListBtyePrefix
+	return DefeatListBytePrefix
 }
