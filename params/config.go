@@ -109,6 +109,23 @@ var (
 		},
 	}
 
+	GrapeChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(304),
+		HomesteadBlock:      big.NewInt(1),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      true,
+		EIP150Block:         big.NewInt(2),
+		EIP150Hash:          common.HexToHash("0x9b095b36c15eaf13044373aef8ee0bd3a382a5abb92e402afa44b8249c3a90e9"),
+		EIP155Block:         big.NewInt(3),
+		EIP158Block:         big.NewInt(3),
+		ByzantiumBlock:      big.NewInt(1035301),
+		ConstantinopleBlock: nil,
+		Cbft: &CbftConfig{
+			Period: 3,
+			Epoch:  30000,
+			Duration:  30,
+		},
+	}
 	// RinkebyTrustedCheckpoint contains the light client trusted checkpoint for the Rinkeby test network.
 	RinkebyTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "rinkeby",
