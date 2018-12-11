@@ -17,55 +17,29 @@ import (
 
 type ppos struct {
 
-	nodeRound 		  roundCache
-	//chain             *core.BlockChain
-	lastCycleBlockNum uint64
-	startTimeOfEpoch  int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
-	config            *params.PposConfig
-	//initialNodes      []discover.Node
-	// added by candidatepool module
+	nodeRound 		  		roundCache
 
-	lock sync.RWMutex
+	lastCycleBlockNum 		uint64
+	startTimeOfEpoch  		int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
+	config           	 	*params.PposConfig
+
+	// added by candidatepool module
+	lock 					sync.RWMutex
 	// the candidate pool object pointer
-	candidatePool *pposm.CandidatePool
+	candidatePool 			*pposm.CandidatePool
+	// the ticket pool object pointer
+	ticketPool				*pposm.TicketPool
 }
 
 
 
-func newPpos(/*initialNodes []discover.Node, */config *params.CbftConfig) *ppos {
-	//initNodeArr := make([]*discover.Node, 0, len(initialNodes))
-	//initialNodesIDs := make([]discover.NodeID, 0, len(initialNodes))
-	//for _, n := range config.InitialNodes {
-	//	node := n
-	//	initialNodesIDs = append(initialNodesIDs, node.ID)
-	//	initNodeArr = append(initNodeArr, &node)
-	//}
-	//
-	//formerRound := &pposRound{
-	//	nodeIds: make([]discover.NodeID, 0),
-	//	nodes: 	make([]*discover.Node, 0),
-	//	start: big.NewInt(0),
-	//	end:   big.NewInt(0),
-	//}
-	//currentRound := &pposRound{
-	//	nodeIds: initialNodesIDs,
-	//	//nodes: 	initNodeArr,
-	//	start: big.NewInt(1),
-	//	end:   big.NewInt(BaseSwitchWitness),
-	//}
-	//currentRound.nodes = make([]*discover.Node, len(initNodeArr))
-	//copy(currentRound.nodes, initNodeArr)
-	//
-	//log.Info("初始化 ppos 当前轮配置节点:", "start", currentRound.start, "end", currentRound.end)
-	//pposm.PrintObject("初始化 ppos 当前轮 nodeIds:", initialNodesIDs)
-	//pposm.PrintObject("初始化 ppos 当前轮 nodes:", initNodeArr)
+func newPpos(config *params.CbftConfig) *ppos {
+	canpoolPtr := pposm.NewCandidatePool(config.PposConfig)
 	return &ppos{
-		//former:            formerRound,
-		//current:           currentRound,
-		lastCycleBlockNum: 0,
-		config:            config.PposConfig,
-		//initialNodes: 	   config.InitialNodes,
-		candidatePool:     pposm.NewCandidatePool(config.PposConfig),
+		lastCycleBlockNum: 	0,
+		config:            	config.PposConfig,
+		candidatePool:     	canpoolPtr,
+		ticketPool: 		pposm.NewTicketPool(config.PposConfig, canpoolPtr),
 	}
 }
 
@@ -287,29 +261,7 @@ func (d *ppos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 	} else {
 		log.Info("揭榜完成，再次查看stateDB信息...")
 		d.candidatePool.GetAllWitness(state)
-		// current round
-		//round := calcurround(blocknumber)
 
-		//d.lock.Lock()
-		//log.Info("揭榜维护", "blockNumber:", blocknumber.Uint64(), "round:", round)
-		//nextStart := big.NewInt(int64(BaseSwitchWitness*round) + 1)
-		//nextEnd := new(big.Int).Add(nextStart, big.NewInt(int64(BaseSwitchWitness-1)))
-		//d.next = &pposRound{
-		//	nodeIds: convertNodeID(nextNodes),
-		//	//nodes:	nextNodes,
-		//	start: nextStart,
-		//	end:   nextEnd,
-		//}
-		//d.next.nodes = make([]*discover.Node, len(nextNodes))
-		//copy(d.next.nodes, nextNodes)
-		//
-		//log.Info("揭榜维护:下一轮", "start", d.next.start, "end", d.next.end)
-		//log.Info("揭榜维护下一轮的nodeIds长度:", "len", len(nextNodes))
-		//pposm.PrintObject("揭榜维护下一轮的nodeIds:", nextNodes)
-		//pposm.PrintObject("揭榜的上轮pposRound：", d.former.nodes)
-		//pposm.PrintObject("揭榜的当前轮pposRound：", d.current.nodes)
-		//pposm.PrintObject("揭榜维护下一轮pposRound：", d.next.nodes)
-		//d.lock.Unlock()
 		return nextNodes, nil
 	}
 }
@@ -321,41 +273,8 @@ func (d *ppos) Switch(state *state.StateDB) bool {
 		return false
 	}
 	log.Info("Switch success...")
-	/*_, curArr, _, err := */d.candidatePool.GetAllWitness(state)
-	//if nil != err {
-	//	return false
-	//}
-	//d.lock.Lock()
+	d.candidatePool.GetAllWitness(state)
 
-	//cur_start := d.current.start
-	//cur_end :=  d.current.end
-	//d.former.start = cur_start
-	//d.former.end = cur_end
-	//
-	//next_start :=  d.next.start
-	//next_end := d.next.end
-	//d.current.start = next_start
-	//d.current.end = next_end
-	//d.former.nodeIds = convertNodeID(d.current.nodes)
-	//d.former.nodes = make([]*discover.Node, len(d.current.nodes))
-	//copy(d.former.nodes, d.current.nodes)
-	//if len(curArr) != 0 {
-	//	d.current.nodeIds = convertNodeID(curArr)
-	//	d.current.nodes = make([]*discover.Node, len(curArr))
-	//	copy(d.current.nodes, curArr)
-	//}
-	//
-	//d.next = nil
-	//log.Info("Switch获取:上一轮", "start", d.former.start, "end", d.former.end)
-	//log.Info("Switch获取:当前轮", "start", d.current.start, "end", d.current.end)
-	////log.Info("Switch获取:下一轮", "start", d.next.start, "end", d.next.end)
-	////pposm.PrintObject("Switch获取上一轮nodes：", preArr)
-	//
-	//pposm.PrintObject("Switch获取当前轮nodes：", curArr)
-	//pposm.PrintObject("Switch的上轮pposRound：", d.former.nodes)
-	//pposm.PrintObject("Switch的当前轮pposRound：", d.current.nodes)
-
-	//d.lock.Unlock()
 	return true
 }
 
@@ -386,8 +305,6 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 		currBlockNumber = blockChain.CurrentBlock().NumberU64()
 		currBlockHash = blockChain.CurrentBlock().Hash()
 
-		//d.lock.Lock()
-		//defer d.lock.Unlock()
 
 
 		count := 0
@@ -595,6 +512,44 @@ func (d *ppos) GetRefundInterval() uint64 {
 // update candidate's tickets
 func (d *ppos) UpdateCandidateTicket (state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 	return d.candidatePool.UpdateCandidateTicket(state, nodeId, can)
+}
+
+/** about ticketpool's method */
+
+func (d *ppos) GetPoolNumber (stateDB vm.StateDB) (uint64, error) {
+	return d.ticketPool.GetPoolNumber(stateDB)
+}
+
+func (d *ppos) VoteTicket (stateDB vm.StateDB, owner common.Address, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) error {
+	return d.ticketPool.VoteTicket(stateDB, owner, deposit, nodeId, blockNumber)
+}
+
+func (d *ppos) GetTicket(stateDB vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
+	return d.ticketPool.GetTicket(stateDB, ticketId)
+}
+
+func (d *ppos) GetTicketList (stateDB vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
+	return d.ticketPool.GetTicketList(stateDB, ticketIds)
+}
+
+func (d *ppos) ReturnTicket (stateDB vm.StateDB, candidate *types.Candidate, ticketId common.Hash, blockNumber *big.Int) error {
+	return d.ticketPool.ReturnTicket(stateDB, candidate, ticketId, blockNumber)
+}
+
+func (d *ppos) GetCandidateTicketIds (stateDB vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
+	return d.ticketPool.GetCandidateTicketIds(stateDB, nodeId)
+}
+
+func (d *ppos) GetOwnerNormalTicketIds (stateDB vm.StateDB, owner common.Address) ([]common.Hash, error) {
+	return d.ticketPool.GetOwnerNormalTicketIds(stateDB, owner)
+}
+
+func (d *ppos) GetOwnerExpireTicketIds (stateDB vm.StateDB, owner common.Address) ([]common.Hash, error) {
+	return d.ticketPool.GetOwnerExpireTicketIds(stateDB, owner)
+}
+
+func (d *ppos) Notify (stateDB vm.StateDB, blockNumber *big.Int, nodeId discover.NodeID) error {
+	return d.ticketPool.Notify(stateDB, blockNumber, nodeId)
 }
 
 // cbft consensus fork need to update  nodeRound

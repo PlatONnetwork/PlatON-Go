@@ -90,7 +90,6 @@ var candidatePool *CandidatePool
 
 // Initialize the global candidate pool object
 func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
-	PrintObject("初始化配置文件", *configs)
 	candidatePool = &CandidatePool{
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
@@ -106,20 +105,6 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 	return candidatePool
 }
 
-//func (c *CandidatePool) initSatedbByConfig (state vm.StateDB, initialNodes []discover.Node) error {
-//	// build previous witnesses and current witnesses
-//	for _, node := range initialNodes {
-//		can := &types.Candidate{
-//			Deposit: 			big.NewInt(0),
-//			BlockNumber: 		big.NewInt(0),
-//			TxIndex: 			0,
-//			CandidateId: 		node.ID,
-//			Host: 				node.IP.String(),
-//			Port:
-//
-//		}
-//	}
-//}
 
 // flag:
 // 0: only init previous witness and current witness and next witness
@@ -282,13 +267,6 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		}
 	}
 
-	// Whether the current candidate is new
-	// then append to cache array
-	//var needSort bool
-	//if _, ok := c.immediateCandates[can.CandidateId]; !ok {
-	//	c.candidateCacheArr = append(c.candidateCacheArr, can)
-	//	//needSort = true
-	//}
 
 	PrintObject("质押 SetCandidate immediateMap:", c.immediateCandates)
 	// sort cache array
@@ -371,10 +349,6 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 		log.Error("withdraw failed current Candidate is empty")
 		return CandidateEmptyErr
 	}
-	//if nil == can {
-	//	log.Error("withdraw failed current Candidate is empty")
-	//	return CandidateEmptyErr
-	//}
 
 	// check withdraw price
 	if can.Deposit.Cmp(price) < 0 {
@@ -1069,7 +1043,6 @@ func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID,
 func (c *CandidatePool) delDefeat(state vm.StateDB, nodeId discover.NodeID) error {
 	delete(c.defeatCandidates, nodeId)
 	setDefeatState(state, nodeId, []byte{})
-
 	return nil
 }
 
