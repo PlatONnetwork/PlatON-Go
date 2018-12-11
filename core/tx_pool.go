@@ -825,18 +825,16 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 
 	startTime := time.Now().UnixNano()
 
+	log.Debug("AddLocal to txExtBuffer", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "timestamp", startTime)
+
 	errCh := make(chan interface{})
 
 	txExt := &txExt{tx, !pool.config.NoLocals, errCh}
 
 	pool.txExtBuffer <- txExt
-
-	endTime := time.Now().UnixNano()
-	log.Debug("AddLocal to txExtBuffer", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
-
 	err := <-errCh
-
-	log.Debug("AddLocal to txExtBuffer response", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
+	endTime := time.Now().UnixNano()
+	log.Debug("AddLocal to txExtBuffer response", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "timestamp", endTime, "duration", endTime-startTime)
 
 	if e, ok := err.(error); ok {
 		return e
