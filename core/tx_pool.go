@@ -100,7 +100,8 @@ var (
 	invalidTxCounter     = metrics.NewRegisteredCounter("txpool/invalid", nil)
 	underpricedTxCounter = metrics.NewRegisteredCounter("txpool/underpriced", nil)
 
-	addedTxCounter int64
+	sendLocalTxCounter  int
+	sendRemoteTxCounter int
 )
 
 // TxStatus is the current status of a transaction as seen by the pool.
@@ -274,24 +275,35 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 }
 
 func (pool *TxPool) txExtBufferReadLoop() {
-	var txCounter int64
+	var txCounter int
 	for {
 		txExt := <-pool.txExtBuffer
 
 		startTime := time.Now().UnixNano()
-		txCounter++
-		tx, ok := txExt.tx.(*types.Transaction)
-		if ok {
-			log.Debug("addTx to pending", "localTxHash", tx.Hash(), "txCount", txCounter)
-		} else {
-			log.Debug("addTx to pending continue")
+
+		tx, single := txExt.tx.(*types.Transaction)
+		txs, multi := txExt.tx.([]*types.Transaction)
+		if single {
+			txCounter++
+		}
+		if multi {
+			txCounter = txCounter + len(txs)
+			for _, tx := range txs {
+				log.Debug("addTx to pending", "txHash", tx.Hash(), "txCounter", txCounter)
+			}
 		}
 
 		err := pool.addTxExt(txExt)
 		txExt.txErr <- err
 
-		log.Debug("addTx to pending response", "localTxHash", tx.Hash(), "txCount", txCounter, "time", time.Now().UnixNano()-startTime)
-
+		if single {
+			log.Debug("addTx to pending response", "txHash", tx.Hash(), "txCounter", txCounter, "time", time.Now().UnixNano()-startTime)
+		}
+		if multi {
+			for _, tx := range txs {
+				log.Debug("addTx to pending response", "txHash", tx.Hash(), "txCounter", txCounter, "time", time.Now().UnixNano()-startTime)
+			}
+		}
 	}
 }
 
@@ -809,7 +821,7 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 // pricing constraints.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 
-	addedTxCounter++
+	sendLocalTxCounter++
 
 	startTime := time.Now().UnixNano()
 
@@ -820,11 +832,11 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 	pool.txExtBuffer <- txExt
 
 	endTime := time.Now().UnixNano()
-	log.Debug("AddLocal to txExtBuffer", "localTxHash", tx.Hash(), "addedTxCounter", addedTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
+	log.Debug("AddLocal to txExtBuffer", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
 
 	err := <-errCh
 
-	log.Debug("AddLocal to txExtBuffer response", "localTxHash", tx.Hash(), "addedTxCounter", addedTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
+	log.Debug("AddLocal to txExtBuffer response", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
 
 	if e, ok := err.(error); ok {
 		return e
@@ -840,13 +852,22 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 // sender is not among the locally tracked ones, full pricing constraints will
 // apply.
 func (pool *TxPool) AddRemote(tx *types.Transaction) error {
+	sendRemoteTxCounter++
+	startTime := time.Now().UnixNano()
+
 	errCh := make(chan interface{})
 
 	txExt := &txExt{tx, false, errCh}
 
 	pool.txExtBuffer <- txExt
 
+	endTime := time.Now().UnixNano()
+	log.Debug("AddRemote to txExtBuffer", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
+
 	err := <-errCh
+
+	log.Debug("AddRemote to txExtBuffer response", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
+
 	if e, ok := err.(error); ok {
 		return e
 	} else {
@@ -860,6 +881,8 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 // marking the senders as a local ones in the mean time, ensuring they go around
 // the local pricing constraints.
 func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
+	sendLocalTxCounter = sendLocalTxCounter + len(txs)
+	startTime := time.Now().UnixNano()
 
 	errCh := make(chan interface{})
 
@@ -867,7 +890,13 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 
 	pool.txExtBuffer <- txExt
 
+	endTime := time.Now().UnixNano()
+	log.Debug("AddLocals to txExtBuffer", "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
+
 	err := <-errCh
+
+	log.Debug("AddLocals to txExtBuffer response", "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
+
 	if e, ok := err.([]error); ok {
 		return e
 	} else {
@@ -879,6 +908,8 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // If the senders are not among the locally tracked ones, full pricing constraints
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
+	sendRemoteTxCounter = sendRemoteTxCounter + len(txs)
+	startTime := time.Now().UnixNano()
 
 	errCh := make(chan interface{})
 
@@ -886,7 +917,18 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 
 	pool.txExtBuffer <- txExt
 
+	endTime := time.Now().UnixNano()
+	//log.Debug("AddRemotes to txExtBuffer",  "addedTxCounter", addedTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
+	for _, tx := range txs {
+		log.Debug("AddRemotes to txExtBuffer", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
+	}
+
 	err := <-errCh
+
+	for _, tx := range txs {
+		log.Debug("AddRemotes to txExtBuffer response", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
+	}
+
 	if e, ok := err.([]error); ok {
 		return e
 	} else {
