@@ -1155,14 +1155,16 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	// Fill the block with all available pending transactions.
-	log.Debug("start to fetch pending transactions", "timestamp", time.Now().UnixNano())
-
+	startTime := time.Now().UnixNano()
 	pending, err := w.eth.TxPool().Pending()
 
 	if err != nil {
-		log.Error("Failed to fetch pending transactions", "err", err)
+		log.Error("Failed to fetch pending transactions", "time", time.Now().UnixNano()-startTime, "err", err)
 		return
 	}
+
+	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", time.Now().UnixNano()-startTime)
+
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
 		if _, ok := w.engine.(consensus.Bft); ok {
