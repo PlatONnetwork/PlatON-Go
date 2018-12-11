@@ -74,6 +74,7 @@ var (
 	allToolsArchiveFiles = []string{
 		"COPYING",
 		executablePath("abigen"),
+		executablePath("ctool"),
 		executablePath("bootnode"),
 		executablePath("evm"),
 		executablePath("platon"),
@@ -90,6 +91,10 @@ var (
 
 	// A debian package is created for all executables listed here.
 	debExecutables = []debExecutable{
+		{
+			BinaryName:  "ctool",
+			Description: "Tx Tool.",
+		},
 		{
 			BinaryName:  "abigen",
 			Description: "Source code generator to convert Ethereum contract definitions into easy to use, compile-time type-safe Go packages.",
