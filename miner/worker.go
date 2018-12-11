@@ -450,7 +450,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case interval := <-w.resubmitIntervalCh:
-			// cbft引擎不允许外界修改recommit值
+			// 
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				// Adjust resubmit interval explicitly by user.
 				if interval < minRecommitInterval {
@@ -466,7 +466,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case adjust := <-w.resubmitAdjustCh:
-			// cbft引擎不需要重新计算调整recommit值
+			// 
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				// Adjust resubmit interval by feedback.
 				if adjust.inc {

@@ -71,7 +71,7 @@ const (
 	TxDataNonZeroGas uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
 
 	// todo: MAX CODE SIZE. pre value : 24576
-	MaxCodeSize = 24576 // Maximum bytecode to permit for a contract
+	MaxCodeSize = 524288 // Maximum bytecode to permit for a contract
 
 	// Precompiled contract gas prices
 

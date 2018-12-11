@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -483,6 +485,26 @@ type PublicBlockChainAPI struct {
 // NewPublicBlockChainAPI creates a new Ethereum blockchain API.
 func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 	return &PublicBlockChainAPI{b}
+}
+
+// SetActor set address for mpc compute.
+func (s *PublicBlockChainAPI) SetActor(address common.Address) (error) {
+	absPath, err := filepath.Abs(core.DEFAULT_ACTOR_FILE_NAME)
+	if err != nil {
+		return fmt.Errorf("Get file path fail: &v", err.Error())
+	}
+	f, err := os.OpenFile(absPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("open file error : %v ", err.Error())
+	}
+	f.Write(address.Bytes())
+	f.Close()
+
+	if core.MPC_POOL != nil {
+		core.MPC_POOL.LoadActor()
+	}
+
+	return nil
 }
 
 // BlockNumber returns the block number of the chain head.
@@ -1189,7 +1211,7 @@ func submitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 		addr := crypto.CreateAddress(from, tx.Nonce())
 		log.Info("Submitted contract creation", "fullhash", tx.Hash().Hex(), "contract", addr.Hex())
 	} else {
-		//log.Info("Submitted transaction", "fullhash", tx.Hash().Hex(), "recipient", tx.To())
+		log.Info("Submitted transaction", "fullhash", tx.Hash().Hex(), "recipient", tx.To())
 	}
 	return tx.Hash(), nil
 }

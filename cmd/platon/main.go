@@ -164,6 +164,12 @@ var (
 		utils.MetricsInfluxDBPasswordFlag,
 		utils.MetricsInfluxDBHostTagFlag,
 	}
+
+	mpcFlags = []cli.Flag{
+		utils.MPCEnabledFlag,
+		utils.MPCIceFileFlag,
+		utils.MPCActorFlag,
+	}
 )
 
 func init() {
@@ -207,6 +213,9 @@ func init() {
 	app.Flags = append(app.Flags, debug.Flags...)
 	app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
+
+	// for mpc
+	app.Flags = append(app.Flags, mpcFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
