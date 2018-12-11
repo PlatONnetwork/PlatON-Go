@@ -99,6 +99,8 @@ var (
 	// General tx metrics
 	invalidTxCounter     = metrics.NewRegisteredCounter("txpool/invalid", nil)
 	underpricedTxCounter = metrics.NewRegisteredCounter("txpool/underpriced", nil)
+
+	addedTxCounter int64
 )
 
 // TxStatus is the current status of a transaction as seen by the pool.
@@ -272,10 +274,24 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 }
 
 func (pool *TxPool) txExtBufferReadLoop() {
+	var txCounter int64
 	for {
 		txExt := <-pool.txExtBuffer
+
+		startTime := time.Now().UnixNano()
+		txCounter++
+		tx, ok := txExt.tx.(*types.Transaction)
+		if ok {
+			log.Debug("addTx to pending", "localTxHash", tx.Hash(), "txCount", txCounter)
+		} else {
+			log.Debug("addTx to pending continue")
+		}
+
 		err := pool.addTxExt(txExt)
 		txExt.txErr <- err
+
+		log.Debug("addTx to pending response", "localTxHash", tx.Hash(), "txCount", txCounter, "time", time.Now().UnixNano()-startTime)
+
 	}
 }
 
@@ -792,15 +808,24 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 // the sender as a local one in the mean time, ensuring it goes around the local
 // pricing constraints.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
+
+	addedTxCounter++
+
+	startTime := time.Now().UnixNano()
+
 	errCh := make(chan interface{})
 
 	txExt := &txExt{tx, !pool.config.NoLocals, errCh}
 
 	pool.txExtBuffer <- txExt
 
-	//log.Debug("--------- AddLocal txExtBuffer --------", "bufferLength", len(pool.txExtBuffer), "bufferCapacity", cap(pool.txExtBuffer), "timestamp(Nano)", time.Now().UnixNano())
+	endTime := time.Now().UnixNano()
+	log.Debug("AddLocal to txExtBuffer", "localTxHash", tx.Hash(), "addedTxCounter", addedTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
 
 	err := <-errCh
+
+	log.Debug("AddLocal to txExtBuffer response", "localTxHash", tx.Hash(), "addedTxCounter", addedTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
+
 	if e, ok := err.(error); ok {
 		return e
 	} else {
