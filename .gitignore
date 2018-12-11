@@ -56,3 +56,5 @@ coverage.txt
 *.test
 
 go.sum
+
+life/resolver/builtins/build

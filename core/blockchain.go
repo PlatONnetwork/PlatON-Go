@@ -1007,6 +1007,10 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Set new head.
 	if status == CanonStatTy {
 		bc.insert(block)
+
+		// parse block and retrieves txs
+		receipts:= bc.GetReceiptsByHash(block.Hash())
+		MPC_POOL.InjectTxs(block, receipts, bc, state)
 	}
 	bc.futureBlocks.Remove(block.Hash())
 	return status, nil

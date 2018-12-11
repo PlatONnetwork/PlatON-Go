@@ -1,0 +1,4 @@
+build/*/*.o
+build/*/*.a
+/build
+build/Win64-MinGW-w64/Makefile

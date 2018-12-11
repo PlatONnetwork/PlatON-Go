@@ -74,6 +74,8 @@ type Ethereum struct {
 	blockchain      *core.BlockChain
 	protocolManager *ProtocolManager
 	lesServer       LesServer
+	// modify
+	mpcPool 		*core.MPCPool
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -180,6 +182,21 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
 	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
+
+	// mpcPool deal with mpc transactions
+	// modify By J
+	if config.MPCPool.Journal != "" {
+		config.MPCPool.Journal = ctx.ResolvePath(config.MPCPool.Journal)
+	} else {
+		config.MPCPool.Journal = ctx.ResolvePath(core.DefaultMPCPoolConfig.Journal)
+	}
+	if config.MPCPool.Rejournal == 0 {
+		config.MPCPool.Rejournal = core.DefaultMPCPoolConfig.Rejournal
+	}
+	if config.MPCPool.Lifetime == 0 {
+		config.MPCPool.Lifetime = core.DefaultMPCPoolConfig.Lifetime
+	}
+	eth.mpcPool = core.NewMPCPool(config.MPCPool, eth.chainConfig, eth.blockchain)
 
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
 		return nil, err
