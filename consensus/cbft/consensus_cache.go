@@ -129,7 +129,8 @@ func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 	// 读取并拷贝缓存中StateDB实例
 	log.Info("读取并拷贝缓存中StateDB实例", "blockHash", block.Hash(), "blockNum", block.NumberU64(), "stateRoot", block.Root())
 	if state := c.ReadStateDB(block.Hash()); state != nil {
-		return state.Copy(), nil
+		//return state.Copy(), nil
+		return state, nil
 	} else {
 		return nil, errMakeStateDB
 	}
