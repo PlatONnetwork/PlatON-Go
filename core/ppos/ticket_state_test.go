@@ -135,7 +135,7 @@ func TestVoteTicket(t *testing.T)  {
 	selectedTicketId := ticketList[selectedTicketIndex].TicketId
 	t.Logf("-----------开始释放一张选票【%v】owner【%v】-----------\n", selectedTicketId.Hex(), ticketList[selectedTicketIndex].Owner.Hex())
 	tempTime := time.Now().UnixNano() / 1e6
-	err = ticketPool.ReleaseSelectedTicket(state, candidate, selectedTicketId, blockNumber)
+	err = ticketPool.ReturnTicket(state, candidate, selectedTicketId, blockNumber)
 	if nil != err {
 		t.Error("ReleaseSelectedTicket error", err)
 	}

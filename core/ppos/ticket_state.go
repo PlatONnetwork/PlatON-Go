@@ -289,7 +289,7 @@ func (t *TicketPool) setTicket(stateDB vm.StateDB, ticketId common.Hash, ticket 
 	return nil
 }
 
-func (t *TicketPool) ReleaseSelectedTicket(stateDB vm.StateDB, candidate *types.Candidate, ticketId common.Hash, blockNumber *big.Int) error {
+func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, candidate *types.Candidate, ticketId common.Hash, blockNumber *big.Int) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	ticket, err := t.releaseTicket(stateDB, candidate, ticketId, blockNumber)
