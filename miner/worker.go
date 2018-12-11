@@ -1195,9 +1195,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			return
 		}
 	}
-	commitLocalTxEndTime := (time.Now().Nanosecond()) - commitTxStartTime
+	commitLocalTxEndTime := time.Now().Nanosecond()
 	commitLocalTxCount := w.current.tcount
-	log.Debug("execute local transactions end", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitLocalTxCount, "time", commitLocalTxEndTime)
+	log.Debug("local transactions ending", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitLocalTxCount, "time", (commitLocalTxEndTime - commitTxStartTime))
 
 	if len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
@@ -1205,9 +1205,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			return
 		}
 	}
-	commitTxRemoteEndTime := time.Now().Nanosecond() - commitLocalTxEndTime
+	commitTxRemoteEndTime := time.Now().Nanosecond()
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
-	log.Debug("execute remote transactions end", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", commitTxRemoteEndTime)
+	log.Debug("execute remote transactions end", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", (commitTxRemoteEndTime - commitLocalTxEndTime))
 
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
