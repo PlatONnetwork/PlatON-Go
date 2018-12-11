@@ -1,23 +1,20 @@
 package mpc
 
-/// 测试部分 - 非动态库形式
+/// test part
 
 /*
 #include <stdio.h>
 #include <stdlib.h>
 
 void notify_security_init(const char* icecfg, const char* url) {
-	//printf("init : icecfg : %s, url : %s", icecfg, url);
+	printf("init : icecfg : %s, url : %s", icecfg, url);
 }
 
 void notify_security_calculation(const char* taskid, const char* pubkey, const char* address, const char* ir_address, const char* method, const char* extra) {
-	printf("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n");
 	printf("Received Params: taskId:%s, pubkey:%s, addr:%s, irAddr:%s, method:%s, extra:%s", taskid, pubkey, address, ir_address, method, extra);
 }
 */
 import "C"
-
-/// 主要部分，调用库形式
 
 /*
 #cgo LDFLAGS: -Wl,-rpath="./libs"

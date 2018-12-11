@@ -31,7 +31,6 @@ var DEFAULT_VM_CONFIG = exec.VMConfig {
 type WASMInterpreter struct {
 	evm       *EVM
 	cfg       Config
-	//vmContext *exec.VMContext
 	wasmStateDB *WasmStateDB
 	WasmLogger log.Logger
 	resolver   exec.ImportResolver
@@ -50,18 +49,6 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 		evm: evm,
 		cfg: cfg,
 		WasmLogger: NewWasmLogger(cfg, log.WasmRoot()),
-		/*vmContext: &exec.VMContext{
-			Config: exec.VMConfig{
-				EnableJIT:          false,
-				DefaultMemoryPages: 512,
-				DynamicMemoryPages: 5,
-			},
-			Addr:     [20]byte{},
-			GasUsed:  0,
-			GasLimit: evm.Context.GasLimit,
-			StateDB: wasmStateDB,
-			Log:     NewWasmLogger(cfg, log.WasmRoot()),
-		},*/
 		wasmStateDB: wasmStateDB,
 		resolver:    resolver.NewResolver(0x01),
 	}

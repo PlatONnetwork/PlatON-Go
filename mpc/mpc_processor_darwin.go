@@ -1,7 +1,5 @@
 package mpc
 
-// 测试部分 - 非动态库形式
-
 /*
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +15,6 @@ void notify_security_calculation(const char* taskid, const char* pubkey, const c
 */
 import "C"
 
-// 主要部分，调用库形式
 
 /*
 #cgo LDFLAGS: -Wl,-rpath="./libs"
@@ -48,10 +45,6 @@ type MPCParams struct {
 	Extra 		string
 }
 
-var (
-	myRedis, _ = NewRedis("192.168.9.14:6379")
-)
-
 func InitVM(icepath string, httpEndpoint string) {
 	cCfg := C.CString(icepath)
 	cUrl := C.CString(httpEndpoint)
@@ -66,6 +59,13 @@ func InitVM(icepath string, httpEndpoint string) {
 
 // for test
 func ExecuteMPCTxForRedis(params MPCParams) (err error) {
+
+	myRedis, err := NewRedis("192.168.9.14:6379")
+	if err != nil {
+		log.Error("Create connection of redis not success.", "err", err.Error())
+		return err
+	}
+
 	var (
 		KEY_TASK_ID = "taskId"
 		KEY_PUB_KEY = "pubKey"
@@ -85,15 +85,14 @@ func ExecuteMPCTxForRedis(params MPCParams) (err error) {
 
 	err = myRedis.RPush(MPC_TASK_KEY_ALICE, jsonMap)
 	if err != nil {
-		fmt.Println("mpc计算任务如队列失败，入Alice队列")
+		fmt.Println("add mpc task to queue fail : -> to Alice")
 		return err
 	}
 	myRedis.RPush(MPC_TASK_KEY_BOB, jsonMap)
 	if err != nil {
-		fmt.Println("mpc计算任务如队列失败，入Bob队列")
+		fmt.Println("add mpc task to queue fail : -> to Bob")
 		return err
 	}
-	fmt.Println("MPC计算任务入队成功，入队参数：", jsonMap)
 
 	log.Trace("Notify mvm success, ExecuteMPCTx method invoke success.",
 		"taskId", params.TaskId,
@@ -106,7 +105,6 @@ func ExecuteMPCTxForRedis(params MPCParams) (err error) {
 
 func ExecuteMPCTx(params MPCParams) error {
 
-	// 参数转换，调用c接口
 	cTaskId := C.CString(params.TaskId)
 	cPubKey := C.CString(params.Pubkey)
 	cAddr := C.CString(params.From.Hex())
@@ -127,7 +125,6 @@ func ExecuteMPCTx(params MPCParams) error {
 		C.free(unsafe.Pointer(cExtra))
 	}()
 
-	// 测试过程中先将数据输入到redis，后续则直接切换为对包的调用。
 	fmt.Printf("02->Received param, the taskId: %v, the pubkey: %v, the from: %v, the irAddr: %v, the method: %v, the extra: %v \n",
 		params.TaskId, params.Pubkey, params.From.Hex(), params.IRAddr.Hex(), params.Method, params.Extra)
 
