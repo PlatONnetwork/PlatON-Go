@@ -58,3 +58,4 @@ coverage.txt
 go.sum
 
 life/resolver/builtins/build
+life/resolver/softfloat/*
