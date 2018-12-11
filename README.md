@@ -67,7 +67,6 @@ then, edit the following content and save it as json file, such as genesis.json
     "cbft": {
       "initialNodes": ["enode://8917c748513c23db46d23f531cc083d2f6001b4cc2396eb8412d73a3e4450ffc5f5235757abf9873de469498d8cf45f5bb42c215da79d59940e17fcb22dfc127@127.0.0.1:16789"]
       }
-    },
   },
   "nonce": "0x0",
   "timestamp": "0x5c074288",
