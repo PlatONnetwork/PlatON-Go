@@ -17,17 +17,16 @@
 package types
 
 import (
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/crypto"
+	"Platon-go/log"
+	"Platon-go/rlp"
 	"container/heap"
 	"errors"
 	"io"
 	"math/big"
-	"platon-go/log"
 	"sync/atomic"
-
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/crypto"
-	"Platon-go/rlp"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
