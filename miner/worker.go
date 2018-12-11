@@ -587,19 +587,12 @@ func (w *worker) mainLoop() {
 				hash     = block.Hash()
 			)
 			w.pendingMu.RLock()
-			task, exist := w.pendingTasks[sealhash]
+			_, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
 			if !exist {
 				log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
 				continue
-			} else {
-				// 保存receipts、stateDB至缓存
-				w.consensusCache.WriteReceipts(block.Hash(), task.receipts, block.NumberU64())
-
-				sCpy := *task.state
-				w.consensusCache.WriteStateDB(block.Hash(), sCpy, block.NumberU64())
 			}
-
 			// Broadcast the block and announce chain insertion event
 			w.mux.Post(core.PrepareMinedBlockEvent{Block: block})
 
@@ -651,6 +644,10 @@ func (w *worker) taskLoop() {
 
 			//if w.config.Bft != nil {
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+
+				// 保存receipts、stateDB至缓存
+				w.consensusCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
+				w.consensusCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
 
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
@@ -770,8 +767,8 @@ func (w *worker) resultLoop() {
 				stateIsNil := _state == nil
 				log.Debug("block is packaged by local", "hash", hash, "number", number, "len(Receipts)", len(_receipts), "stateIsNil", stateIsNil)
 			} else {
-				_receipts = w.consensusCache.ReadReceipts(block.Hash())
-				_state = w.consensusCache.ReadStateDB(block.Hash())
+				_receipts = w.consensusCache.ReadReceipts(sealhash)
+				_state = w.consensusCache.ReadStateDB(sealhash)
 				stateIsNil := _state == nil
 				log.Debug("block is packaged by other", "hash", hash, "number", number, "len(Receipts)", len(_receipts), "blockRoot", block.Root(), "stateIsNil", stateIsNil)
 			}
