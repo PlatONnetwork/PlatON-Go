@@ -16,12 +16,6 @@ import (
 )
 
 var (
-	// Remaining number key
-	SurplusQuantityKey			= []byte("sq")
-	// Expire ticket prefix
-	ExpireTicketPrefix			= []byte("et")
-	AccountExpireTicketPrefix	= []byte("ae")
-	AccountNormalTicketPrefix	= []byte("an")
 
 	CandidateNotFindErr			= errors.New("The node has lost its candidacy")
 	TicketNilErr				= errors.New("Ticket Insufficient quantity")
