@@ -587,11 +587,17 @@ func (w *worker) mainLoop() {
 				hash     = block.Hash()
 			)
 			w.pendingMu.RLock()
-			_, exist := w.pendingTasks[sealhash]
+			task, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
 			if !exist {
 				log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
 				continue
+			} else {
+				// 保存receipts、stateDB至缓存
+				w.consensusCache.WriteReceipts(block.Hash(), task.receipts, block.NumberU64())
+
+				sCpy := *task.state
+				w.consensusCache.WriteStateDB(block.Hash(), sCpy, block.NumberU64())
 			}
 
 			// Broadcast the block and announce chain insertion event
@@ -648,12 +654,6 @@ func (w *worker) taskLoop() {
 
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
-				} else {
-					// 保存receipts、stateDB至缓存
-					w.consensusCache.WriteReceipts(task.block.Hash(), task.receipts, task.block.NumberU64())
-
-					sCpy := *task.state
-					w.consensusCache.WriteStateDB(task.block.Hash(), sCpy, task.block.NumberU64())
 				}
 				continue
 			}
@@ -1188,14 +1188,14 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
-	log.Debug("start to execute local pending transactions", "timestamp", time.Now().UnixNano())
+	log.Debug("start to execute local pending transactions", "localTxsCount", len(localTxs), "timestamp", time.Now().UnixNano())
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt, timestamp) {
 			return
 		}
 	}
-	log.Debug("start to execute local pending transactions", "timestamp", time.Now().UnixNano())
+	log.Debug("start to execute remote pending transactions", "remoteTxsCount", len(remoteTxs), "timestamp", time.Now().UnixNano())
 	if len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt, timestamp) {
