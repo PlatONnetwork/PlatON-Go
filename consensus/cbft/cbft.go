@@ -712,7 +712,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Debug("=== call blockReceiver() ===", "hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash())
+	log.Debug("=== call blockReceiver() ===", "hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash(), "ReceiptHash", block.ReceiptHash())
 
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
