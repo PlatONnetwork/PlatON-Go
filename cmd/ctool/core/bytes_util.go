@@ -70,9 +70,6 @@ func BoolToBytes(b bool) []byte {
 	return buf.Bytes()
 }
 
-/**
-  []string 转[]byte
-*/
 func convertStringsToBytes(content []string) []byte {
 	byteContent := "\x00" + strings.Join(content, "\x02\x00")
 	return []byte(byteContent)

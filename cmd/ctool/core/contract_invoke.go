@@ -1,42 +1,34 @@
 package core
 
 import (
-	"Platon-go/cmd/ctool/rlp"
+	"Platon-go/rlp"
 	"Platon-go/common/hexutil"
 	"encoding/json"
 	"fmt"
 )
 
-/**
-  合约调用入口
-*/
+/// contract invoke.
 func ContractInvoke(contractAddr string, abiPath string, funcParams string, configPath string) {
 	config := Config{}
 	parseConfigJson(configPath, &config)
 
-	//判断该合约是否存在
 	if !getContractByAddress(contractAddr, config.Url) {
 		fmt.Printf("the contract address is not exist ...")
 		return
 	}
 
-	//解析调用的方法 参数
 	funcName, inputParams := GetFuncNameAndParams(funcParams)
 
-	//判断该方法是否存在
 	abiFunc := parseFuncFromAbi(abiPath, funcName)
 	if abiFunc.Name == "" {
 		fmt.Printf("the function not exist ,func= %s\n", funcName)
 		return
 	}
 
-	//判断参数是否正确
 	if len(abiFunc.Inputs) != len(inputParams) {
 		fmt.Printf("incorrect number of parameters ,request=%d,get=%d\n", len(abiFunc.Inputs), len(inputParams))
 		return
 	}
-
-	//todo 参数类型校验
 
 	paramArr := [][]byte{
 		Int64ToBytes(invoke),
@@ -69,7 +61,6 @@ func ContractInvoke(contractAddr string, abiPath string, funcParams string, conf
 
 	var r string
 	var err error
-	//是否走call
 	if abiFunc.Constant == "true" {
 		paramList := make(List, 2)
 		paramList[0] = params
@@ -106,7 +97,6 @@ func ContractInvoke(contractAddr string, abiPath string, funcParams string, conf
 		return
 	}
 
-	//根据abi 返回类型判断解析什么类型
 	if abiFunc.Constant == "true" {
 		if len(abiFunc.Outputs) != 0 && abiFunc.Outputs[0].Type != "void" {
 			bytes, _ := hexutil.Decode(resp.Result)
@@ -120,9 +110,6 @@ func ContractInvoke(contractAddr string, abiPath string, funcParams string, conf
 
 }
 
-/**
-  通过eth_getCode判断合约是否存在
-*/
 func getContractByAddress(addr, url string) bool {
 
 	params := []string{addr, "latest"}

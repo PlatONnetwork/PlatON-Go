@@ -67,11 +67,9 @@ func Deploy(abiFilePath string, codeFilePath string, configPath string) error {
 	resp := parseResponse(r)
 	fmt.Printf("\ntrasaction hash: %s\n", resp.Result)
 
-	//根据result获取交易receipt
 	ch := make(chan string, 1)
 	go GetTransactionReceipt(resp.Result, ch, config.Url)
 
-	//获取receipt
 	select {
 	case address := <-ch:
 		fmt.Printf("contract address: %s\n", address)

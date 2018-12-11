@@ -1,7 +1,7 @@
 package core
 
 import (
-	"Platon-go/cmd/ctool/rlp"
+	"Platon-go/rlp"
 	"Platon-go/common/hexutil"
 	"encoding/json"
 	"fmt"
@@ -140,9 +140,6 @@ func substr(s string, pos, length int) string {
 	return string(runes[pos:l])
 }
 
-/**
-  通过解析abi查找所调用方法
-*/
 func GetFuncNameAndParams(f string) (string, []string) {
 	funcName := string(f[0:strings.Index(f, "(")])
 
@@ -162,17 +159,14 @@ func GetFuncNameAndParams(f string) (string, []string) {
 }
 
 func encodeParam(abiPath string, funcName string, funcParams string) {
-	//判断该方法是否存在
 	abiFunc := parseFuncFromAbi(abiPath, funcName)
 	if abiFunc.Name == "" {
 		fmt.Printf("the function not exist ,func= %s\n", funcName)
 		return
 	}
 
-	//解析调用的方法 参数
 	funcName, inputParams := GetFuncNameAndParams(funcParams)
 
-	//判断参数是否正确
 	if len(abiFunc.Inputs) != len(inputParams) {
 		fmt.Printf("incorrect number of parameters ,request=%d,get=%d\n", len(abiFunc.Inputs), len(inputParams))
 		return
