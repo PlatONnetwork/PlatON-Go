@@ -21,6 +21,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"platon-go/log"
 	"sync/atomic"
 
 	"Platon-go/common"
@@ -340,6 +341,7 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 		}
 	}
 	heap.Init(&heads)
+	log.Debug("NewTransactionsByPriceAndNonce", "txsCount", len(txs))
 
 	// Assemble and return the transaction set
 	return &TransactionsByPriceAndNonce{
