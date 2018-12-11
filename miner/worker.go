@@ -1173,12 +1173,11 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		return
 	}
 
+	commitTxStartTime := time.Now().Nanosecond()
 	txsCount := 0
 	for _, accTxs := range pending {
 		txsCount = txsCount + len(accTxs)
 	}
-	log.Debug("total txs in pending", "commitBlockNumber", commitBlock.NumberU64(), "txsCount", txsCount)
-
 	// Split the pending transactions into locals and remotes
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
 	for _, account := range w.eth.TxPool().Locals() {
@@ -1188,20 +1187,28 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
-	log.Debug("start to execute local pending transactions", "localTxsCount", len(localTxs), "timestamp", time.Now().UnixNano())
+	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs))
+
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt, timestamp) {
 			return
 		}
 	}
-	log.Debug("start to execute remote pending transactions", "remoteTxsCount", len(remoteTxs), "timestamp", time.Now().UnixNano())
+	commitLocalTxEndTime := (time.Now().Nanosecond()) - commitTxStartTime
+	commitLocalTxCount := w.current.tcount
+	log.Debug("execute local transactions end", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitLocalTxCount, "time", commitLocalTxEndTime)
+
 	if len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt, timestamp) {
 			return
 		}
 	}
+	commitTxRemoteEndTime := time.Now().Nanosecond() - commitLocalTxEndTime
+	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
+	log.Debug("execute remote transactions end", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", commitTxRemoteEndTime)
+
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
 
