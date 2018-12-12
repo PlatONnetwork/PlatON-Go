@@ -421,8 +421,8 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) {
 	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block)
 	if err == nil {
 		//save the receipts and state to consensusCache
-		cbft.consensusCache.WriteReceipts(ext.block.Hash(), receipts, ext.block.NumberU64())
-		cbft.consensusCache.WriteStateDB(ext.block.Root(), state, ext.block.NumberU64())
+		cbft.consensusCache.WriteReceipts(cbft.SealHash(ext.block.Header()), receipts, ext.block.NumberU64())
+		cbft.consensusCache.WriteStateDB(cbft.SealHash(ext.block.Header()), state, ext.block.NumberU64())
 	} else {
 		log.Error("execute a block error", err)
 	}
