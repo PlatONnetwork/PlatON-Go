@@ -2,17 +2,13 @@ package vm
 
 import (
 	"Platon-go/common"
-	"Platon-go/common/byteutil"
 	"Platon-go/core/types"
 	"Platon-go/p2p/discover"
 	"Platon-go/params"
-	"Platon-go/rlp"
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"math/big"
-	"reflect"
 )
 
 // error def
@@ -21,12 +17,7 @@ var (
 	ErrPermissionDenied = errors.New("Transaction from address permission denied")
 	ErrDepositEmpyt = errors.New("Deposit balance not zero")
 	ErrWithdrawEmpyt = errors.New("No withdrawal amount")
-	ErrParamsRlpDecode = errors.New("Rlp decode faile")
-	ErrParamsBaselen = errors.New("Params Base length does not match")
-	ErrParamsLen = errors.New("Params length does not match")
-	ErrUndefFunction = errors.New("Undefined function")
 	ErrCandidateEmpyt = errors.New("CandidatePool is nil")
-	ErrCallRecode = errors.New("Call recode error, panic...")
 )
 
 const (
@@ -60,16 +51,10 @@ func (c *candidateContract) RequiredGas(input []byte) uint64 {
 }
 
 func (c *candidateContract) Run(input []byte) ([]byte, error) {
-
-	// debug
-	logError("Run==> ", "input: ", hex.EncodeToString(input))
-
-	defer func() {
-		if err := recover(); nil != err {
-			// catch call panic
-			logError("Run==> ", "ErrCallRecode: ", ErrCallRecode.Error())
-		}
-	}()
+	if c.evm.CandidatePool==nil{
+		logError("Run==> ", "ErrCandidateEmpyt: ", ErrCandidateEmpyt.Error())
+		return nil, ErrCandidateEmpyt
+	}
 	var command = map[string] interface{}{
 		"CandidateDetails" : c.CandidateDetails,
 		"CandidateApplyWithdraw" : c.CandidateApplyWithdraw,
@@ -80,47 +65,7 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 		"CandidateWithdrawInfos": c.CandidateWithdrawInfos,
 		"VerifiersList" : c.VerifiersList,
 	}
-	var source [][]byte
-	if err := rlp.Decode(bytes.NewReader(input), &source); err != nil {
-		logError("Run==> ", err.Error())
-		return nil, ErrParamsRlpDecode
-	}
-	// check
-	if len(source)<2 {
-		logError("Run==> ", "ErrParamsBaselen: ", ErrParamsBaselen.Error())
-		return nil, ErrParamsBaselen
-	}
-	if c.evm.CandidatePool==nil{
-		logError("Run==> ", "ErrCandidateEmpyt: ", ErrCandidateEmpyt.Error())
-		return nil, ErrCandidateEmpyt
-	}
-	// get func and param list
-	if _, ok := command[byteutil.BytesToString(source[1])]; !ok {
-		logError("Run==> ", "ErrUndefFunction: ", ErrUndefFunction.Error())
-		return nil, ErrUndefFunction
-	}
-	funcValue := command[byteutil.BytesToString(source[1])]
-	paramList := reflect.TypeOf(funcValue)
-	paramNum := paramList.NumIn()
-	// var param []interface{}
-	params := make([]reflect.Value, paramNum)
-	if paramNum!=len(source)-2 {
-		logError("Run==> ", "ErrParamsLen: ",ErrParamsLen.Error())
-		return nil, ErrParamsLen
-	}
-	for i := 0; i < paramNum; i++ {
-		targetType := paramList.In(i).String()
-		originByte := []reflect.Value{reflect.ValueOf(source[i+2])}
-		params[i] = reflect.ValueOf(byteutil.Command[targetType]).Call(originByte)[0]
-	}
-	// call func
-	result := reflect.ValueOf(funcValue).Call(params)
-	logInfo("Run==> ", "result[0]: ", result[0].Bytes())
-	if _, err := result[1].Interface().(error); !err {
-		return result[0].Bytes(), nil
-	}
-	logInfo(result[1].Interface().(error).Error())
-	return result[0].Bytes(), result[1].Interface().(error)
+	return execute(input, command)
 }
 
 
