@@ -42,10 +42,6 @@ func (t *ticketContract) Run(input []byte) ([]byte, error) {
 		logError("Run==> ", "ErrParamsBaselen: ", ErrParamsBaselen.Error())
 		return nil, ErrParamsBaselen
 	}
-	if t.evm.CandidatePool==nil{
-		logError("Run==> ", "ErrCandidateEmpyt: ", ErrCandidateEmpyt.Error())
-		return nil, ErrCandidateEmpyt
-	}
 	// get func and param list
 	if _, ok := command[byteutil.BytesToString(source[1])]; !ok {
 		logError("Run==> ", "ErrUndefFunction: ", ErrUndefFunction.Error())
