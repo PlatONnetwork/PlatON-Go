@@ -728,6 +728,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
 			}
 			return nil
+		} else {
+			log.Warn("Consensus engine is not cbft", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 		}
 
 	case msg.Code == BlockSignatureMsg:
