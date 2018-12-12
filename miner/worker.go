@@ -409,6 +409,14 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "blockRoot", head.Block.Root())
 			w.consensusCache.ClearCache(head.Block)
 
+			go func() {
+				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+					if isConsensusNode, _ := cbftEngine.IsConsensusNode(); !isConsensusNode {
+						cbft.BlockSynchronisation()
+					}
+				}
+			}()
+
 		case highestLogicalBlock := <-w.highestLogicalBlockCh:
 			log.Debug("received a notify for new highest logical", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash())
 			w.commitWorkEnv.highestLock.Lock()
