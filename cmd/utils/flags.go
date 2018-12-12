@@ -624,6 +624,22 @@ var (
 		Value: "",
 	}
 
+	// mpc compute
+	MPCIceFileFlag = cli.StringFlag{
+		Name:  "mpc.ice",
+		Usage: "Filename for ice to init mvm",
+		Value: "",
+	}
+	MPCActorFlag = cli.StringFlag{
+		Name: "mpc.actor",
+		Usage: "The address of actor to exec mpc compute",
+		Value: "",
+	}
+	MPCEnabledFlag = cli.BoolFlag{
+		Name:  "mpc",
+		Usage: "Enable mpc compute",
+	}
+
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1051,6 +1067,31 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 }
 
+func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
+	if ctx.GlobalIsSet(MPCEnabledFlag.Name) {
+		cfg.MPCEnable = ctx.GlobalBool(MPCEnabledFlag.Name)
+	}
+	if ctx.GlobalIsSet(MPCActorFlag.Name) {
+		cfg.MpcActor = common.HexToAddress(ctx.GlobalString(MPCActorFlag.Name))
+	}
+	if file := ctx.GlobalString(MPCIceFileFlag.Name); file != "" {
+		if _, err := os.Stat(file); err != nil {
+			fmt.Println("ice conf not exists.")
+			return
+		}
+		if b := filepath.IsAbs(file); !b {
+			absPath, err := filepath.Abs(file)
+			if err != nil {
+				fmt.Println("Read abs path of ice conf fail: ", err.Error())
+				return
+			}
+			cfg.IceConf = absPath
+		} else {
+			cfg.IceConf = file
+		}
+	}
+}
+
 func setEthash(ctx *cli.Context, cfg *eth.Config) {
 	if ctx.GlobalIsSet(EthashCacheDirFlag.Name) {
 		cfg.Ethash.CacheDir = ctx.GlobalString(EthashCacheDirFlag.Name)
@@ -1133,6 +1174,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	setEtherbase(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
+	// for mpc compute
+	setMpcPool(ctx, &cfg.MPCPool)
 	setEthash(ctx, cfg)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {

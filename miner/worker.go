@@ -450,7 +450,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case interval := <-w.resubmitIntervalCh:
-			// cbft引擎不允许外界修改recommit值
+			// 
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				// Adjust resubmit interval explicitly by user.
 				if interval < minRecommitInterval {
@@ -466,7 +466,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case adjust := <-w.resubmitAdjustCh:
-			// cbft引擎不需要重新计算调整recommit值
+			// 
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				// Adjust resubmit interval by feedback.
 				if adjust.inc {
@@ -646,8 +646,10 @@ func (w *worker) taskLoop() {
 			w.pendingTasks[w.engine.SealHash(task.block.Header())] = task
 			w.pendingMu.Unlock()
 
-			//if w.config.Bft != nil {
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+				// 保存stateDB至缓存、receipts至缓存
+				w.consensusCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
+				w.consensusCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
 				}
@@ -764,8 +766,8 @@ func (w *worker) resultLoop() {
 				_state = task.state
 			} else {
 				log.Info("从consensusCache中读取receipts、state", "blockHash", block.Hash(), "stateRoot", block.Root())
-				_receipts = w.consensusCache.ReadReceipts(block.Hash())
-				_state = w.consensusCache.ReadStateDB(block.Root())
+				_receipts = w.consensusCache.ReadReceipts(sealhash)
+				_state = w.consensusCache.ReadStateDB(sealhash)
 			}
 
 			if _receipts == nil && len(block.Transactions()) > 0 || _state == nil {
@@ -1215,10 +1217,6 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		}
 		select {
 		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now()}:
-			// 保存receipts、stateDB至缓存
-			w.consensusCache.WriteReceipts(block.Hash(), receipts, block.NumberU64())
-			w.consensusCache.WriteStateDB(block.Root(), s, block.NumberU64())
-
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
 			feesWei := new(big.Int)
