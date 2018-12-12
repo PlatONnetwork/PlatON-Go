@@ -2,9 +2,13 @@
 
 set -e
 
-root=`pwd | awk '{split($0, path, "platon-go"); print path[1]}'`
+if [ ! -f "build/clean_deps.sh" ]; then
+    echo "$0 must be run from the root of the repository."
+    exit 2
+fi
 
-root=$root/platon-go/life/resolver
+root=`pwd`
+root=$root/life/resolver
 
 # Build softfloat
 SF_BUILD=$root/softfloat/build
