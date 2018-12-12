@@ -464,19 +464,19 @@ func (d *ppos) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types
 	return d.candidatePool.SetCandidate(state, nodeId, can)
 }
 
-// Getting immediate candidate info by nodeId
+// Getting immediate or reserve candidate info by nodeId
 func (d *ppos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
 	return d.candidatePool.GetCandidate(state, nodeId)
 }
 
-// candidate withdraw from immediates elected candidates
+// candidate withdraw from  elected candidates
 func (d *ppos) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
 	return d.candidatePool.WithdrawCandidate(state, nodeId, price, blockNumber)
 }
 
-// Getting all immediate elected candidates array
-func (d *ppos) GetChosens(state vm.StateDB) []*types.Candidate {
-	return d.candidatePool.GetChosens(state)
+// Getting all  elected candidates array
+func (d *ppos) GetChosens(state vm.StateDB, flag int) []*types.Candidate {
+	return d.candidatePool.GetChosens(state, flag)
 }
 
 // Getting all witness array

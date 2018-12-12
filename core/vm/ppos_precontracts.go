@@ -71,8 +71,8 @@ type candidatePool interface {
 	SetCandidate(state StateDB, nodeId discover.NodeID, can *types.Candidate) error
 	GetCandidate(state StateDB, nodeId discover.NodeID) (*types.Candidate, error)
 	WithdrawCandidate (state StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error
-	GetChosens (state StateDB, ) []*types.Candidate
-	GetChairpersons (state StateDB, ) []*types.Candidate
+	GetChosens (state StateDB, flag int) []*types.Candidate
+	GetChairpersons (state StateDB) []*types.Candidate
 	GetDefeat(state StateDB, nodeId discover.NodeID) ([]*types.Candidate, error)
 	IsDefeat(state StateDB, nodeId discover.NodeID) (bool, error)
 	RefundBalance (state StateDB, nodeId discover.NodeID, blockNumber *big.Int) error
@@ -342,7 +342,7 @@ func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, er
 //Get the current block candidate list 0~200
 func (c *candidateContract) CandidateList() ([]byte, error) {
 	c.logInfo("CandidateList==> into func CandidateList... ")
-	arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB)
+	arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB, 0)
 	if nil == arr {
 		c.logError("CandidateList==> The candidateList for the inquiry does not exist")
 		return nil, nil

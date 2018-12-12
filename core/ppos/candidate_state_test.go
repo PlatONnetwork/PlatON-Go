@@ -111,7 +111,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 	/** test GetChosens */
 	t.Log("test GetChosens ...")
-	canArr := candidatePool.GetChosens(state)
+	canArr := candidatePool.GetChosens(state, 0)
 	printObject("Elected candidates", canArr, t)
 
 	/** test GetChairpersons */
@@ -321,7 +321,7 @@ func TestGetChosens(t *testing.T) {
 
 	/** test GetChosens */
 	t.Log("test GetChosens ...")
-	canArr := candidatePool.GetChosens(state)
+	canArr := candidatePool.GetChosens(state, 0)
 	printObject("immediate elected candidates", canArr, t)
 
 }
