@@ -547,8 +547,11 @@ func (d *ppos) GetOwnerNormalTicketIds (stateDB vm.StateDB, owner common.Address
 func (d *ppos) GetOwnerExpireTicketIds (stateDB vm.StateDB, owner common.Address) ([]common.Hash, error) {
 	return d.ticketPool.GetOwnerExpireTicketIds(stateDB, owner)
 }
-
+////// 每一个块都会调用的方法
 func (d *ppos) Notify (stateDB vm.StateDB, blockNumber *big.Int, nodeId discover.NodeID) error {
+
+
+
 	return d.ticketPool.Notify(stateDB, blockNumber, nodeId)
 }
 
