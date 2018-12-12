@@ -1,22 +1,3 @@
-/**********************定义*********************************
-内置合约地址：
-0x1000..0011		候选池内置合约
-0x1000..0012		选票池内置合约
-0x1000..0010 + x	其他定义的内置合约
-
-交易data字段定义：
-data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
-
-候选池合约：
-0x11 + "funcname" + parmas
-
-选票池合约：
-0x12 + "funcname" + parmas
-
-其他合约：
-(0x10+x) + "funcname" + parmas
-
-**********************定义*********************************/
 package vm
 
 import (
@@ -25,109 +6,52 @@ import (
 	"Platon-go/core/types"
 	"Platon-go/crypto"
 	"Platon-go/log"
-	"Platon-go/p2p/discover"
-	"Platon-go/params"
 	"Platon-go/rlp"
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"reflect"
 )
 
-//error def
+// Ppos pre-compiled contract address
+var PrecompiledContractsPpos = map[common.Address]PrecompiledContract{
+	common.CandidatePoolAddr : &candidateContract{},
+	common.TicketPoolAddr : &ticketContract{},
+}
+
+// error def
 var (
-	ErrOwnerNotonly = errors.New("Node ID cannot bind multiple owners")
-	ErrPermissionDenied = errors.New("Transaction from address permission denied")
-	ErrDepositEmpyt = errors.New("Deposit balance not zero")
-	ErrWithdrawEmpyt = errors.New("No withdrawal amount")
 	ErrParamsRlpDecode = errors.New("Rlp decode faile")
 	ErrParamsBaselen = errors.New("Params Base length does not match")
 	ErrParamsLen = errors.New("Params length does not match")
 	ErrUndefFunction = errors.New("Undefined function")
-	ErrCandidateEmpyt = errors.New("CandidatePool is nil")
 	ErrCallRecode = errors.New("Call recode error, panic...")
 )
 
-const (
-	CandidateDepositEvent = "CandidateDepositEvent"
-	CandidateApplyWithdrawEvent = "CandidateApplyWithdrawEvent"
-	CandidateWithdrawEvent = "CandidateWithdrawEvent"
-	SetCandidateExtraEvent = "SetCandidateExtraEvent"
-)
-
-var PrecompiledContractsPpos = map[common.Address]PrecompiledContract{
-	common.CandidateAddr : &candidateContract{},
-}
-
-type ResultCommon struct {
-	Ret bool
-	ErrMsg string
-}
-
-type candidatePool interface {
-	SetCandidate(state StateDB, nodeId discover.NodeID, can *types.Candidate) error
-	GetCandidate(state StateDB, nodeId discover.NodeID) (*types.Candidate, error)
-	WithdrawCandidate (state StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error
-	GetChosens (state StateDB, flag int) []*types.Candidate
-	GetChairpersons (state StateDB) []*types.Candidate
-	GetDefeat(state StateDB, nodeId discover.NodeID) ([]*types.Candidate, error)
-	IsDefeat(state StateDB, nodeId discover.NodeID) (bool, error)
-	RefundBalance (state StateDB, nodeId discover.NodeID, blockNumber *big.Int) error
-	GetOwner (state StateDB, nodeId discover.NodeID) common.Address
-	SetCandidateExtra(state StateDB, nodeId discover.NodeID, extra string) error
-	GetRefundInterval() uint64
-}
-
-type candidateContract struct{
-	contract *Contract
-	evm *EVM
-}
-
-func (c *candidateContract) RequiredGas(input []byte) uint64 {
-	return params.EcrecoverGas
-}
-
-func (c *candidateContract) Run(input []byte) ([]byte, error) {
-
-	//debug
-	c.logError("Run==> ", "input: ", hex.EncodeToString(input))
-
+// execute decode input data and call the function
+func execute(input []byte, command map[string]interface{}) ([]byte, error) {
+	// debug
+	logError("Run==> ", "input: ", hex.EncodeToString(input))
 	defer func() {
 		if err := recover(); nil != err {
 			// catch call panic
-			c.logError("Run==> ", "ErrCallRecode: ", ErrCallRecode.Error())
+			logError("Run==> ", "ErrCallRecode: ", ErrCallRecode.Error())
 		}
 	}()
-	var command = map[string] interface{}{
-		"CandidateDetails" : c.CandidateDetails,
-		"CandidateApplyWithdraw" : c.CandidateApplyWithdraw,
-		"CandidateDeposit" : c.CandidateDeposit,
-		"CandidateList" : c.CandidateList,
-		"CandidateWithdraw" : c.CandidateWithdraw,
-		"SetCandidateExtra" : c.SetCandidateExtra,
-		"CandidateWithdrawInfos": c.CandidateWithdrawInfos,
-		"VerifiersList" : c.VerifiersList,
-	}
 	var source [][]byte
 	if err := rlp.Decode(bytes.NewReader(input), &source); err != nil {
-		c.logError("Run==> ", err.Error())
+		logError("Run==> ", err.Error())
 		return nil, ErrParamsRlpDecode
 	}
-	//check
+	// check
 	if len(source)<2 {
-		c.logError("Run==> ", "ErrParamsBaselen: ", ErrParamsBaselen.Error())
+		logError("Run==> ", "ErrParamsBaselen: ", ErrParamsBaselen.Error())
 		return nil, ErrParamsBaselen
-	}
-	if c.evm.CandidatePool==nil{
-		c.logError("Run==> ", "ErrCandidateEmpyt: ", ErrCandidateEmpyt.Error())
-		return nil, ErrCandidateEmpyt
 	}
 	// get func and param list
 	if _, ok := command[byteutil.BytesToString(source[1])]; !ok {
-		c.logError("Run==> ", "ErrUndefFunction: ", ErrUndefFunction.Error())
+		logError("Run==> ", "ErrUndefFunction: ", ErrUndefFunction.Error())
 		return nil, ErrUndefFunction
 	}
 	funcValue := command[byteutil.BytesToString(source[1])]
@@ -136,7 +60,7 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	// var param []interface{}
 	params := make([]reflect.Value, paramNum)
 	if paramNum!=len(source)-2 {
-		c.logError("Run==> ", "ErrParamsLen: ",ErrParamsLen.Error())
+		logError("Run==> ", "ErrParamsLen: ",ErrParamsLen.Error())
 		return nil, ErrParamsLen
 	}
 	for i := 0; i < paramNum; i++ {
@@ -146,246 +70,38 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	}
 	// call func
 	result := reflect.ValueOf(funcValue).Call(params)
-	c.logInfo("Run==> ", "result[0]: ", result[0].Bytes())
+	logInfo("Run==> ", "result[0]: ", result[0].Bytes())
 	if _, err := result[1].Interface().(error); !err {
 		return result[0].Bytes(), nil
 	}
-	c.logInfo(result[1].Interface().(error).Error())
+	logInfo(result[1].Interface().(error).Error())
 	return result[0].Bytes(), result[1].Interface().(error)
 }
 
-//Candidate Application && Increase Quality Deposit
-func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error)   {
-	//debug
-	deposit := c.contract.value
-	txHash := c.evm.StateDB.TxHash()
-	txIdx := c.evm.StateDB.TxIdx()
-	height := c.evm.Context.BlockNumber
-	from := c.contract.caller.Address()
-	c.logInfo("CandidateDeposit==> ", "nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
-		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
-		" host: ", host, " port: ", port, " extra: ", extra)
-	//todo
-	if deposit.Cmp(big.NewInt(0))<1 {
-		return nil, ErrDepositEmpyt
-	}
-	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
-	if err!=nil {
-		c.logError("CandidateDeposit==> ","err!=nill: ", err.Error())
-		return nil, err
-	}
-	var alldeposit *big.Int
-	if can!=nil {
-		if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
-			c.logError(ErrOwnerNotonly.Error())
-			return nil, ErrOwnerNotonly
-		}
-		alldeposit = new(big.Int).Add(can.Deposit, deposit)
-		c.logInfo("CandidateDeposit==> ","alldeposit: ", alldeposit,  " can.Deposit: ", can.Deposit, " deposit: ", deposit)
-	}else {
-		alldeposit = deposit
-	}
-	canDeposit := types.Candidate{
-		alldeposit,
-		height,
-		txIdx,
-		nodeId,
-		host,
-		port,
-		owner,
-		from,
-		extra,
-		fee,
-		0,
-		new(big.Int).SetUint64(0),
-		common.Hash{},
-	}
-	c.logInfo("CandidateDeposit==> ","canDeposit: ", canDeposit)
-	if err = c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, &canDeposit); err!=nil {
-		//rollback transaction
-		//......
-		c.logError("CandidateDeposit==> ","SetCandidate return err: ", err.Error())
-		return nil, err
-	}
-	r := ResultCommon{true, "success"}
-	data, _ := json.Marshal(r)
-	c.addLog(CandidateDepositEvent, string(data))
-	c.logInfo("CandidateDeposit==> ","json: ", string(data))
-	return nil, nil
+type ResultCommon struct {
+	Ret bool
+	ErrMsg string
 }
 
-//Apply for a refund of the deposit
-func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error)  {
-	//debug
-	txHash := c.evm.StateDB.TxHash()
-	from := c.contract.caller.Address()
-	height := c.evm.Context.BlockNumber
-	c.logInfo("CandidateApplyWithdraw==> ","nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
-	//todo
-	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
-	if err!=nil {
-		c.logError("CandidateApplyWithdraw==> ","err!=nill: ", err.Error())
-		return nil, err
-	}
-	if can.Deposit.Cmp(big.NewInt(0))<1 {
-		return nil, ErrWithdrawEmpyt
-	}
-	if ok := bytes.Equal( can.Owner.Bytes(), from.Bytes()); !ok {
-		c.logError(ErrPermissionDenied.Error())
-		return nil, ErrPermissionDenied
-	}
-	if withdraw.Cmp(can.Deposit)>0 {
-		withdraw = can.Deposit
-	}
-	if err := c.evm.CandidatePool.WithdrawCandidate(c.evm.StateDB, nodeId, withdraw, height); err!=nil {
-		c.logError(err.Error())
-		return nil, err
-	}
-	r := ResultCommon{true, "success"}
-	data, _ := json.Marshal(r)
-	c.addLog(CandidateApplyWithdrawEvent, string(data))
-	c.logInfo("CandidateApplyWithdraw==> ","json: ", string(data))
-	return nil, nil
-}
-
-//Deposit withdrawal
-func (c *candidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, error)  {
-	//debug
-	txHash := c.evm.StateDB.TxHash()
-	height := c.evm.Context.BlockNumber
-	c.logInfo("CandidateWithdraw==> ","nodeId: ", nodeId.String(), " height: ", 	height, " txHash: ", txHash.Hex())
-	//todo
-	if err :=c.evm.CandidatePool.RefundBalance(c.evm.StateDB, nodeId, height); err!=nil{
-		c.logError(err.Error())
-		return nil, err
-	}
-	//return
-	r := ResultCommon{true, "success"}
-	data, _ := json.Marshal(r)
-	c.addLog(CandidateWithdrawEvent, string(data))
-	c.logInfo("CandidateWithdraw==> ", "json: ", string(data))
-	return nil, nil
-}
-
-//Get the refund history you have applied for
-func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byte, error){
-	//debug
-	c.logInfo("CandidateWithdrawInfos==> ","nodeId: ", nodeId.String())
-	//todo
-	infos, err := c.evm.CandidatePool.GetDefeat(c.evm.StateDB, nodeId)
-	if err!=nil{
-		c.logError(err.Error())
-		return nil, err
-	}
-	//return
-	type WithdrawInfo struct {
-		Balance *big.Int 
-		LockNumber *big.Int
-		LockBlockCycle uint64
-	} 
-	type WithdrawInfos struct {
-		Ret bool
-		ErrMsg string
-		Infos []WithdrawInfo
-	}
-	r := WithdrawInfos{true, "success", make([]WithdrawInfo, len(infos))}
-	for i, v := range infos {
-		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, c.evm.CandidatePool.GetRefundInterval()}
-	}
-	data, _ := json.Marshal(r)
-	sdata := DecodeResultStr(string(data))
-	c.logInfo("CandidateWithdrawInfos==> ","json: ", string(data))
-	return sdata, nil
-}
-
-//Set up additional information
-func (c *candidateContract) SetCandidateExtra(nodeId discover.NodeID, extra string)([]byte, error){
-	//debug
-	txHash := c.evm.StateDB.TxHash()
-	from := c.contract.caller.Address()
-	c.logInfo("SetCandidate==> ","nodeId: ", nodeId.String(), " extra: ", extra, " from: ", from.Hex(), " txHash: ", txHash.Hex())
-	//todo
-	owner :=  c.evm.CandidatePool.GetOwner(c.evm.StateDB, nodeId)
-	if ok := bytes.Equal(owner.Bytes(), from.Bytes()); !ok {
-		c.logError(ErrPermissionDenied.Error())
-		return nil, ErrPermissionDenied
-	}
-	if err := c.evm.CandidatePool.SetCandidateExtra(c.evm.StateDB, nodeId, extra); err!=nil{
-		c.logError(err.Error())
-		return nil, err
-	}
-	r := ResultCommon{true, "success"}
-	data, _ := json.Marshal(r)
-	c.addLog(SetCandidateExtraEvent, string(data))
-	c.logInfo("SetCandidate==> ","json: ", string(data))
-	return nil, nil
-}
-
-//Get candidate details
-func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, error)  {
-	c.logInfo("CandidateDetails==> ","nodeId: ", nodeId.String())
-	candidate, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
-	if err != nil{
-		c.logError("CandidateDetails==> ","get CandidateDetails() occured error: ", err.Error())
-		return nil, err
-	}
-	if nil == candidate {
-		c.logError("CandidateDetails==> The candidate for the inquiry does not exist")
-		return nil, nil
-	}
-	data, _ := json.Marshal(candidate)
-	sdata := DecodeResultStr(string(data))
-	c.logInfo("CandidateDetails==> ", "json: ", string(data), " []byte: ", sdata)
-	return sdata, nil
-}
-
-//Get the current block candidate list 0~200
-func (c *candidateContract) CandidateList() ([]byte, error) {
-	c.logInfo("CandidateList==> into func CandidateList... ")
-	arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB, 0)
-	if nil == arr {
-		c.logError("CandidateList==> The candidateList for the inquiry does not exist")
-		return nil, nil
-	}
-	data, _ := json.Marshal(arr)
-	sdata := DecodeResultStr(string(data))
-	c.logInfo("CandidateList==>","json: ", string(data), " []byte: ", sdata)
-	return sdata, nil
-}
-
-//Get the current block round certifier list 25个
-func (c *candidateContract) VerifiersList() ([]byte, error) {
-	c.logInfo("VerifiersList==> into func VerifiersList... ")
-	arr := c.evm.CandidatePool.GetChairpersons(c.evm.StateDB)
-	if nil == arr {
-		c.logError("VerifiersList==> The verifiersList for the inquiry does not exist")
-		return nil, nil
-	}
-	data, _ := json.Marshal(arr)
-	sdata := DecodeResultStr(string(data))
-	c.logInfo("VerifiersList==> ", "json: ", string(data), " []byte: ", sdata)
-	return sdata, nil
-}
-
-//transaction add event
+// transaction add event
 func (c *candidateContract) addLog(event, data string) {
 	var logdata [][]byte
 	logdata = make([][]byte, 0)
 	logdata = append(logdata, []byte(data))
 	buf := new(bytes.Buffer)
 	if err := rlp.Encode(buf, logdata); err!=nil {
-		c.logError("addlog==> ","rlp encode fail: ", err.Error())
+		logError("addlog==> ","rlp encode fail: ", err.Error())
 	}
 	c.evm.StateDB.AddLog(&types.Log{
-		Address:common.CandidateAddr,
+		Address:common.CandidatePoolAddr,
 		Topics: []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
 		Data: buf.Bytes(),
 		BlockNumber: c.evm.Context.BlockNumber.Uint64(),
 	})
 }
 
-//debug log
-func (c *candidateContract) logInfo(msg string, ctx ...interface{})  {
+// debug log
+func logInfo(msg string, ctx ...interface{})  {
 	log.Info(msg, ctx...)
 	//args := []interface{}{msg}
 	//args = append(args, ctx...)
@@ -400,7 +116,7 @@ func (c *candidateContract) logInfo(msg string, ctx ...interface{})  {
 		log.Info(msg, ctx...)
 	}*/
 }
-func (c *candidateContract) logError(msg string, ctx ...interface{})  {
+func logError(msg string, ctx ...interface{})  {
 	log.Error(msg, ctx...)
 	//args := []interface{}{msg}
 	//args = append(args, ctx...)
@@ -416,7 +132,7 @@ func (c *candidateContract) logError(msg string, ctx ...interface{})  {
 	}*/
 }
 func (c *candidateContract) logPrint(level log.Lvl, msg string, ctx ...interface{})  {
-	if c.evm.vmConfig.ConsoleOutput {
+	if 	c.evm.vmConfig.ConsoleOutput {
 		//console output
 		args := make([]interface{}, len(ctx)+1)
 		args[0] = msg
@@ -443,7 +159,7 @@ func (c *candidateContract) logPrint(level log.Lvl, msg string, ctx ...interface
 	}
 }
 
-//return string format
+// return string format
 func DecodeResultStr (result string) []byte {
 	// 0x0000000000000000000000000000000000000020
 	// 00000000000000000000000000000000000000000d

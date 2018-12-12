@@ -786,7 +786,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	// Transfer refund information that needs to be deleted
 	delCanArr := make([]*types.Candidate, 0)
 
-	contractBalance := state.GetBalance(common.CandidateAddr)
+	contractBalance := state.GetBalance(common.CandidatePoolAddr)
 	//currentNum := new(big.Int).SetUint64(blockNumber)
 
 	// Traverse all refund information belong to this nodeId
@@ -825,7 +825,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 
 		// check contract account balance
 		if (contractBalance.Cmp(new(big.Int).SetUint64(amount))) < 0 {
-			log.Error("Failed to refundbalance constract account insufficient balance ", "contract's balance", state.GetBalance(common.CandidateAddr).String(), "amount", amount)
+			log.Error("Failed to refundbalance constract account insufficient balance ", "contract's balance", state.GetBalance(common.CandidatePoolAddr).String(), "amount", amount)
 			if len(canArr) != 0 {
 				canArr = append(delCanArr, canArr...)
 			} else {
@@ -877,7 +877,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 		}
 	}
 	// sub contract account balance
-	state.SubBalance(common.CandidateAddr, new(big.Int).SetUint64(amount))
+	state.SubBalance(common.CandidatePoolAddr, new(big.Int).SetUint64(amount))
 	// add owner balace
 	state.AddBalance(addr, new(big.Int).SetUint64(amount))
 	log.Info("一键退款完成...")
@@ -1468,7 +1468,7 @@ func (c *CandidatePool) MaxChair() uint64 {
 
 func getPreviousWitnessIdsState(state vm.StateDB) ([]discover.NodeID, error) {
 	var witnessIds []discover.NodeID
-	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessListKey()); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, PreviousWitnessListKey()); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
@@ -1477,12 +1477,12 @@ func getPreviousWitnessIdsState(state vm.StateDB) ([]discover.NodeID, error) {
 }
 
 func setPreviosWitnessIdsState(state vm.StateDB, arrVal []byte) {
-	state.SetState(common.CandidateAddr, PreviousWitnessListKey(), arrVal)
+	state.SetState(common.CandidatePoolAddr, PreviousWitnessListKey(), arrVal)
 }
 
 func getPreviousWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessKey(id)); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, PreviousWitnessKey(id)); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1491,12 +1491,12 @@ func getPreviousWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Can
 }
 
 func setPreviousWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
-	state.SetState(common.CandidateAddr, PreviousWitnessKey(id), val)
+	state.SetState(common.CandidatePoolAddr, PreviousWitnessKey(id), val)
 }
 
 func getWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var witnessIds []discover.NodeID
-	if valByte := state.GetState(common.CandidateAddr, WitnessListKey()); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, WitnessListKey()); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
@@ -1505,12 +1505,12 @@ func getWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 }
 
 func setWitnessIdsState(state vm.StateDB, arrVal []byte) {
-	state.SetState(common.CandidateAddr, WitnessListKey(), arrVal)
+	state.SetState(common.CandidatePoolAddr, WitnessListKey(), arrVal)
 }
 
 func getWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if valByte := state.GetState(common.CandidateAddr, WitnessKey(id)); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, WitnessKey(id)); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1519,12 +1519,12 @@ func getWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, 
 }
 
 func setWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
-	state.SetState(common.CandidateAddr, WitnessKey(id), val)
+	state.SetState(common.CandidatePoolAddr, WitnessKey(id), val)
 }
 
 func getNextWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var nextWitnessIds []discover.NodeID
-	if valByte := state.GetState(common.CandidateAddr, NextWitnessListKey()); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, NextWitnessListKey()); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &nextWitnessIds); nil != err {
 			return nil, err
 		}
@@ -1533,12 +1533,12 @@ func getNextWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 }
 
 func setNextWitnessIdsState(state vm.StateDB, arrVal []byte) {
-	state.SetState(common.CandidateAddr, NextWitnessListKey(), arrVal)
+	state.SetState(common.CandidatePoolAddr, NextWitnessListKey(), arrVal)
 }
 
 func getNextWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if valByte := state.GetState(common.CandidateAddr, NextWitnessKey(id)); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, NextWitnessKey(id)); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1547,12 +1547,12 @@ func getNextWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candida
 }
 
 func setNextWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
-	state.SetState(common.CandidateAddr, NextWitnessKey(id), val)
+	state.SetState(common.CandidatePoolAddr, NextWitnessKey(id), val)
 }
 
 func getImmediateIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var immediateIds []discover.NodeID
-	if valByte := state.GetState(common.CandidateAddr, ImmediateListKey()); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, ImmediateListKey()); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &immediateIds); nil != err {
 			return nil, err
 		}
@@ -1561,12 +1561,12 @@ func getImmediateIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 }
 
 func setImmediateIdsState(state vm.StateDB, arrVal []byte) {
-	state.SetState(common.CandidateAddr, ImmediateListKey(), arrVal)
+	state.SetState(common.CandidatePoolAddr, ImmediateListKey(), arrVal)
 }
 
 func getImmediateByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if valByte := state.GetState(common.CandidateAddr, ImmediateKey(id)); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, ImmediateKey(id)); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1575,13 +1575,13 @@ func getImmediateByState(state vm.StateDB, id discover.NodeID) (*types.Candidate
 }
 
 func setImmediateState(state vm.StateDB, id discover.NodeID, val []byte) {
-	state.SetState(common.CandidateAddr, ImmediateKey(id), val)
+	state.SetState(common.CandidatePoolAddr, ImmediateKey(id), val)
 }
 
 
 func getReserveIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var reserveIds []discover.NodeID
-	if valByte := state.GetState(common.CandidateAddr, ReserveListKey()); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, ReserveListKey()); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &reserveIds); nil != err {
 			return nil, err
 		}
@@ -1590,13 +1590,13 @@ func getReserveIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 }
 
 func setReserveIdsState(state vm.StateDB, arrVal []byte) {
-	state.SetState(common.CandidateAddr, ReserveListKey(), arrVal)
+	state.SetState(common.CandidatePoolAddr, ReserveListKey(), arrVal)
 }
 
 
 func getReserveByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	if valByte := state.GetState(common.CandidateAddr, ReserveKey(id)); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, ReserveKey(id)); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1605,13 +1605,13 @@ func getReserveByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, 
 }
 
 func setReserveState(state vm.StateDB, id discover.NodeID, val []byte) {
-	state.SetState(common.CandidateAddr, ReserveKey(id), val)
+	state.SetState(common.CandidatePoolAddr, ReserveKey(id), val)
 }
 
 
 func getDefeatIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var defeatIds []discover.NodeID
-	if valByte := state.GetState(common.CandidateAddr, DefeatListKey()); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, DefeatListKey()); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &defeatIds); nil != err {
 			return nil, err
 		}
@@ -1620,12 +1620,12 @@ func getDefeatIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 }
 
 func setDefeatIdsState(state vm.StateDB, arrVal []byte) {
-	state.SetState(common.CandidateAddr, DefeatListKey(), arrVal)
+	state.SetState(common.CandidatePoolAddr, DefeatListKey(), arrVal)
 }
 
 func getDefeatsByState(state vm.StateDB, id discover.NodeID) ([]*types.Candidate, error) {
 	var canArr []*types.Candidate
-	if valByte := state.GetState(common.CandidateAddr, DefeatKey(id)); nil != valByte && len(valByte) != 0 {
+	if valByte := state.GetState(common.CandidatePoolAddr, DefeatKey(id)); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &canArr); nil != err {
 			return nil, err
 		}
@@ -1634,7 +1634,7 @@ func getDefeatsByState(state vm.StateDB, id discover.NodeID) ([]*types.Candidate
 }
 
 func setDefeatState(state vm.StateDB, id discover.NodeID, val []byte) {
-	state.SetState(common.CandidateAddr, DefeatKey(id), val)
+	state.SetState(common.CandidatePoolAddr, DefeatKey(id), val)
 }
 
 func copyCandidateMapByIds(target, source map[discover.NodeID]*types.Candidate, ids []discover.NodeID) {
