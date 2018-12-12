@@ -314,7 +314,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		}
 	}
 
-	dosomething := func (arr  []*types.Candidate, setInfoFn func (state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
+	handle := func (arr  []*types.Candidate, setInfoFn func (state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
 						setIndexFn func (state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
 						// cache id
@@ -348,7 +348,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		//
 		//// update index of immediate elected candidates on trie
 		//c.setImmediateIndex(state, sortIds)
-		return dosomething(c.immediateCacheArr, c.setImmediate, c.setImmediateIndex)
+		return handle(c.immediateCacheArr, c.setImmediate, c.setImmediateIndex)
 	}else {
 		//c.reserveCacheArr = cacheArr
 		//// insert elected candidate to tire
@@ -359,7 +359,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		//
 		//// update index of reserve elected candidates on trie
 		//c.setReserveIndex(state, sortIds)
-		return dosomething(c.reserveCacheArr, c.setReserve, c.setReserveIndex)
+		return handle(c.reserveCacheArr, c.setReserve, c.setReserveIndex)
 	}
 	return nil
 }
@@ -886,7 +886,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 
 // set elected candidate extra value
 func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.NodeID, extra string) error {
-	log.Info("设置推展信息: nodeId = " + nodeId.String())
+	log.Info("设置扩展信息: nodeId = " + nodeId.String())
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
