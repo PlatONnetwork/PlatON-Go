@@ -330,14 +330,14 @@ func (r *UnitTestResolver) envEmitEvent(vm *exec.VirtualMachine) int64 {
 }
 
 func (r *UnitTestResolver) envBigintAdd(vm *exec.VirtualMachine) int64 {
-	frame := vm.GetCurrentFrame();
+	frame := vm.GetCurrentFrame()
 	src := int(int32(frame.Locals[0]))
 	srcLen := int(int32(frame.Locals[1]))
 	dst := int(int32(frame.Locals[2]))
 	dstLen := int(int32(frame.Locals[3]))
 
 	i := new(big.Int)
-	i.SetBytes(vm.Memory.Memory[src:src+srcLen])
+	i.SetBytes(vm.Memory.Memory[src : src+srcLen])
 
 	ii := new(big.Int)
 	ii.SetUint64(1)
@@ -412,8 +412,8 @@ func (s *stateDB) Caller() common.Address {
 func (s *stateDB) Address() common.Address {
 	return common.HexToAddress(s.state.Address)
 }
-func (s *stateDB) CallValue() int64 {
-	return s.state.Value
+func (s *stateDB) CallValue() *big.Int {
+	return big.NewInt(s.state.Value)
 }
 func (s *stateDB) AddLog(address common.Address, topics []common.Hash, data []byte, bn uint64) {
 

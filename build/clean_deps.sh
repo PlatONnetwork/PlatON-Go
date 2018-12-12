@@ -2,9 +2,9 @@
 
 set -e
 
-root=`pwd | awk '{split($0, path, "Platon-go"); print path[1]}'`
+root=`pwd | awk '{split($0, path, "platon-go"); print path[1]}'`
 
-root=$root/Platon-go/life/resolver
+root=$root/platon-go/life/resolver
 
 # Build softfloat
 SF_BUILD=$root/softfloat/build
