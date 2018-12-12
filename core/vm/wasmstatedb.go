@@ -69,8 +69,8 @@ func (self *WasmStateDB) Address() common.Address {
 	return self.contract.Address()
 }
 
-func (self *WasmStateDB) CallValue() int64 {
-	return self.contract.Value().Int64()
+func (self *WasmStateDB) CallValue() *big.Int {
+	return self.contract.Value()
 }
 
 /*func (self *WasmStateDB) AddLog(log *types.Log)  {
