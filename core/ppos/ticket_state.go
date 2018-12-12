@@ -2,6 +2,7 @@ package pposm
 
 import (
 	"Platon-go/common"
+	"Platon-go/common/hexutil"
 	"Platon-go/core/types"
 	"Platon-go/core/vm"
 	"Platon-go/crypto/sha3"
@@ -12,6 +13,7 @@ import (
 	"errors"
 	"github.com/satori/go.uuid"
 	"math/big"
+	"sort"
 	"sync"
 )
 
@@ -335,6 +337,25 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int, nodeId dis
 	return nil
 }
 
+func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.NodeID, blockHash common.Hash) (common.Hash, error) {
+	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
+	luckyTicketId := common.Hash{}
+	if nil != err {
+		return luckyTicketId, err
+	}
+	decList := make([]float64, 0)
+	decMap := make(map[float64]common.Hash, 0)
+	for _, ticketId := range candidateTicketIds {
+		decNumber := hexutil.HexDec(ticketId.Hex()[2:])
+		decList = append(decList, decNumber)
+		decMap[decNumber] = ticketId
+	}
+	sort.Float64s(decList)
+	index := findFirstMatch(decList, hexutil.HexDec(blockHash.Hex()[2:]))
+	luckyTicketId = decMap[decList[index]]
+	return luckyTicketId, nil
+}
+
 func removeTicketId(ticketId common.Hash, ticketIds []common.Hash) ([]common.Hash, bool) {
 	for index, tempTicketId := range ticketIds {
 		if tempTicketId == ticketId {
@@ -457,4 +478,22 @@ func AccountNormalTicketIdsKey(key []byte) []byte {
 
 func AccountExpireTicketIdsKey(key []byte) []byte {
 	return append(AccountExpireTicketPrefix, key...)
+}
+
+func findFirstMatch(list []float64, key float64) int {
+	left := 0
+	right := len(list) - 1
+	for left <= right {
+		mid := (left + right) / 2
+		if list[mid] >= key {
+			right = mid - 1
+		} else {
+			left = mid + 1
+		}
+	}
+	// 如果找不到匹配的，默认返回最后一个下标
+	if left >= len(list)  {
+		return len(list) - 1
+	}
+	return left
 }
