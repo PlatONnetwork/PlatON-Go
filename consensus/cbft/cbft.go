@@ -664,6 +664,7 @@ func (cbft *Cbft) removeBadBlock(badBlock *BlockExt) {
 
 // signReceiver handles the received block signature
 func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
+	log.Debug("=== call signReceiver(), trying to lock ===", "hash", sig.Hash, "number", sig.Number.Uint64())
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
@@ -1197,17 +1198,19 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 		log.Error("unauthorized signer")
 		return errUnauthorizedSigner
 	}
-
+	log.Debug("call OnBlockSignature(), writing to dataReceiveCh", "hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
 	cbft.dataReceiveCh <- rcvSign
-
+	log.Debug("call OnBlockSignature(), writing to dataReceiveCh success", "hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
 	return nil
 }
 
 // OnNewBlock is called by protocol handler when it received a new block by P2P.
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Trace("call OnNewBlock()", "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
+	log.Debug("call OnNewBlock()", "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
 
 	cbft.dataReceiveCh <- rcvBlock
+
+	log.Debug("call OnNewBlock(), writing to dataReceiveCh success ", "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
 	return nil
 }
 
