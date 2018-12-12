@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 
-root=`pwd | awk '{split($0, path, "Platon-go"); print path[1]}'`
-root=$root/Platon-go/life/resolver
+root=`pwd | awk '{split($0, path, "platon-go"); print path[1]}'`
+root=$root/platon-go/life/resolver
 
 if [ "`ls $root/softfloat`" = "" ]; then
     # pull softfloat
