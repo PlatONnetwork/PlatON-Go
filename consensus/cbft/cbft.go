@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"math/big"
+	"runtime/debug"
 	"sync"
 	"time"
 )
@@ -664,11 +665,11 @@ func (cbft *Cbft) removeBadBlock(badBlock *BlockExt) {
 
 // signReceiver handles the received block signature
 func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
-	log.Debug("=== call signReceiver(), trying to lock ===", "hash", sig.Hash, "number", sig.Number.Uint64())
+	log.Debug("=== call signReceiver(), trying to lock ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", sig.Hash, "number", sig.Number.Uint64())
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Debug("=== call signReceiver() ===", "hash", sig.Hash, "number", sig.Number.Uint64())
+	log.Debug("=== call signReceiver() ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", sig.Hash, "number", sig.Number.Uint64())
 
 	if sig.Number.Uint64() <= cbft.rootIrreversible.number {
 		log.Warn("block sign is too late")
@@ -707,11 +708,12 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 
 //blockReceiver handles the new block
 func (cbft *Cbft) blockReceiver(block *types.Block) error {
+	log.Debug("=== call blockReceiver() ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash(), "ReceiptHash", block.ReceiptHash())
 
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
-	log.Debug("=== call blockReceiver() ===", "hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash(), "ReceiptHash", block.ReceiptHash())
+	log.Debug("=== call blockReceiver() ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash(), "ReceiptHash", block.ReceiptHash())
 
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
@@ -1186,8 +1188,8 @@ func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
 
 // OnBlockSignature is called by by protocol handler when it received a new block signature by P2P.
 func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.NodeID, rcvSign *cbfttypes.BlockSignature) error {
-	log.Debug("call OnBlockSignature()", "hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
-
+	log.Debug("call OnBlockSignature()", "GoRoutineID", common.CurrentGoRoutineID(), "hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
+	debug.Stack()
 	ok, err := verifySign(nodeID, rcvSign.SignHash, rcvSign.Signature[:])
 	if err != nil {
 		log.Error("verify sign error", "errors", err)
@@ -1198,19 +1200,19 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 		log.Error("unauthorized signer")
 		return errUnauthorizedSigner
 	}
-	log.Debug("call OnBlockSignature(), writing to dataReceiveCh", "hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
+	log.Debug("call OnBlockSignature(), writing to dataReceiveCh", "GoRoutineID", common.CurrentGoRoutineID(), "hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
 	cbft.dataReceiveCh <- rcvSign
-	log.Debug("call OnBlockSignature(), writing to dataReceiveCh success", "hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
+	log.Debug("call OnBlockSignature(), writing to dataReceiveCh success", "GoRoutineID", common.CurrentGoRoutineID(), "hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
 	return nil
 }
 
 // OnNewBlock is called by protocol handler when it received a new block by P2P.
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
-	log.Debug("call OnNewBlock()", "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
+	log.Debug("call OnNewBlock()", "GoRoutineID", common.CurrentGoRoutineID(), "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
 
 	cbft.dataReceiveCh <- rcvBlock
 
-	log.Debug("call OnNewBlock(), writing to dataReceiveCh success ", "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
+	log.Debug("call OnNewBlock(), writing to dataReceiveCh success ", "GoRoutineID", common.CurrentGoRoutineID(), "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
 	return nil
 }
 
