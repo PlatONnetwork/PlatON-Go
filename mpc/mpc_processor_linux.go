@@ -14,17 +14,17 @@ void notify_security_calculation(const char* taskid, const char* pubkey, const c
 	printf("Received Params: taskId:%s, pubkey:%s, addr:%s, irAddr:%s, method:%s, extra:%s", taskid, pubkey, address, ir_address, method, extra);
 }
 */
-import "C"
+//import "C"
 
 /*
 #cgo LDFLAGS: -Wl,-rpath="./libs"
 #cgo LDFLAGS: -L./libs
-#cgo LDFLAGS: -ljuzixmpcvm_platonsdk
+#cgo LDFLAGS: -lmpc_vm_platonsdk
 #include <stdio.h>
 #include <stdlib.h>
 #include "platonvmsdk.h"
 */
-//import "C"
+import "C"
 
 import (
 	"Platon-go/common"
