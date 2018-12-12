@@ -256,7 +256,11 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, cbftConfig *CbftConfig) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	if chainConfig.Cbft != nil {
-		chainConfig.Cbft.Period = cbftConfig.Period
+		if cbftConfig.Period < 1 {
+			chainConfig.Cbft.Period = 1
+		} else {
+			chainConfig.Cbft.Period = cbftConfig.Period
+		}
 		chainConfig.Cbft.Epoch = cbftConfig.Epoch
 		chainConfig.Cbft.MaxLatency = cbftConfig.MaxLatency
 		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
