@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"math/big"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -171,7 +172,9 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 
 	pHead, pTd := peer.Head()
-	if pTd.Cmp(td) <= 0 {
+	//modified by platon
+	diff := new(big.Int).Sub(pTd, td)
+	if diff.Cmp(big.NewInt(10)) <= 0 {
 		return
 	}
 	// Otherwise try to sync with the downloader
