@@ -259,10 +259,13 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		return err
 	}
 
-	var flag bool
+	var flag, delreserve bool
 	// check ticket count
 	if checkTicket(can.TCount, c.maxCount) {
 		flag = true
+		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
+			delreserve = true
+		}
 		c.immediateCandidates[can.CandidateId] = can
 	}else {
 		c.reserveCandidates[can.CandidateId] = can
@@ -293,14 +296,10 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		for _, tmpCan := range tmpArr {
 			if flag {
 				// delete the lost candidates from immediate elected candidates of trie
-				if err := c.delImmediate(state, tmpCan.CandidateId); nil != err {
-					return err
-				}
+				c.delImmediate(state, tmpCan.CandidateId)
 			}else {
 				// delete the lost candidates from reserve elected candidates of trie
-				if err := c.delReserve(state, tmpCan.CandidateId); nil != err {
-					return err
-				}
+				c.delReserve(state, tmpCan.CandidateId)
 			}
 			// append to refunds (defeat) trie
 			if err := c.setDefeat(state, tmpCan.CandidateId, tmpCan); nil != err {
@@ -314,16 +313,16 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		}
 	}
 
-	handle := func (arr  []*types.Candidate, setInfoFn func (state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
+	handle := func (candidateArr  []*types.Candidate, setInfoFn func (state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
 						setIndexFn func (state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
 						// cache id
 						sortIds := make([]discover.NodeID, 0)
 
 						/**  doing ... */
-						arr = cacheArr
+						candidateArr = cacheArr
 						// insert elected candidate to tire
-						for _, can := range arr {
+						for _, can := range candidateArr {
 							if err := setInfoFn(state, can.CandidateId, can); nil != err {
 								return err
 							}
@@ -348,6 +347,29 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		//
 		//// update index of immediate elected candidates on trie
 		//c.setImmediateIndex(state, sortIds)
+
+		/** first delete this can on reserves */
+		if delreserve {
+			c.delReserve(state, can.CandidateId)
+			// update reserve id index
+			if ids, err := c.getReserveIndex(state); nil != err {
+				log.Error("withdraw failed getReserveIndex on full withdrawerr", "err", err)
+				return err
+			} else {
+				//for i, id := range ids {
+				for i := 0; i < len(ids); i ++ {
+					id := ids[i]
+					if id == can.CandidateId {
+						ids = append(ids[:i], ids[i+1:]...)
+						i --
+					}
+				}
+				if err := c.setReserveIndex(state, ids); nil != err {
+					log.Error("withdraw failed setReserveIndex on full withdrawerr", "err", err)
+					return err
+				}
+			}
+		}
 		return handle(c.immediateCacheArr, c.setImmediate, c.setImmediateIndex)
 	}else {
 		//c.reserveCacheArr = cacheArr
@@ -408,15 +430,16 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 		return WithdrawPriceErr
 	}else if can.Deposit.Cmp(price) == 0 { // full withdraw
 
-		handle := func (tiltle string, delInfoFn func (state vm.StateDB, candidateId discover.NodeID) error,
+		handle := func (tiltle string, delInfoFn func (state vm.StateDB, candidateId discover.NodeID),
 						getIndexFn func (state vm.StateDB) ([]discover.NodeID, error),
 						setIndexFn func (state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
 						// delete current candidate from this elected candidates
-						if err := delInfoFn(state, nodeId); nil != err {
+						/*if err := delInfoFn(state, nodeId); nil != err {
 							log.Error("withdraw failed del" + tiltle + " on full withdraw", "err", err)
 							return err
-						}
+						}*/
+						delInfoFn(state, nodeId)
 						// update this id index
 						if ids, err := getIndexFn(state); nil != err {
 							log.Error("withdraw failed get" + tiltle + "Index on full withdrawerr", "err", err)
@@ -838,10 +861,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 
 	// update the tire
 	if len(canArr) == 0 {
-		if err := c.delDefeat(state, nodeId); nil != err {
-			log.Error("RefundBalance failed to delDefeat", "err", err)
-			return err
-		}
+		c.delDefeat(state, nodeId)
 		if ids, err := getDefeatIdsByState(state); nil != err {
 			for i := 0; i < len(ids); i ++ {
 				id := ids[i]
@@ -963,10 +983,7 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 	PrintObject("从入围信息copy过来的见证人;", nextWits)
 	// clear all old nextwitnesses information （If it is forked, the next round is no empty.）
 	for nodeId, _ := range c.nextOriginCandidates {
-		if err := c.delNextWitness(state, nodeId); nil != err {
-			log.Error("failed to delNextWitness on election", "err", err)
-			return nil, err
-		}
+		c.delNextWitness(state, nodeId)
 	}
 
 	// set up all new nextwitnesses information
@@ -1009,10 +1026,7 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 	}
 	// clear all old previous witness on trie
 	for nodeId, _ := range c.preOriginCandidates {
-		if err := c.delPreviousWitness(state, nodeId); nil != err {
-			log.Error("Failed to delPreviousWitness on Switch", "err", err)
-			return false
-		}
+		c.delPreviousWitness(state, nodeId)
 	}
 	// set up new witnesses to previous witnesses on trie by current witnesses
 	for nodeId, can := range c.originCandidates {
@@ -1035,10 +1049,7 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 
 	// clear all old witnesses on trie
 	for nodeId, _ := range c.originCandidates {
-		if err := c.delWitness(state, nodeId); nil != err {
-			log.Error("Failed to delWitness on Switch", "err", err)
-			return false
-		}
+		c.delWitness(state, nodeId)
 	}
 	// set up new witnesses to current witnesses on trie by next witnesses
 	for nodeId, can := range c.nextOriginCandidates {
@@ -1060,10 +1071,7 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 	}
 	// clear all old nextwitnesses information
 	for nodeId, _ := range c.nextOriginCandidates {
-		if err := c.delNextWitness(state, nodeId); nil != err {
-			log.Error("failed to delNextWitness on election", "err", err)
-			return false
-		}
+		c.delNextWitness(state, nodeId)
 	}
 	// clear next witness index
 	c.setNextWitnessIndex(state, make([]discover.NodeID, 0))
@@ -1161,11 +1169,94 @@ func (c *CandidatePool) UpdateCandidateTicket(state vm.StateDB, nodeId discover.
 		log.Error("Failed to initDataByState on UpdateCandidateTicket err", err)
 		return err
 	}
-	if _, ok := c.immediateCandidates[nodeId]; !ok {
-		return CandidateEmptyErr
-	}
-	if err := c.setImmediate(state, nodeId, can); nil != err {
-		return err
+
+	// 如果本来就在 候选池中，直接修改即可
+	if _, ok := c.immediateCandidates[nodeId]; ok {
+		if err := c.setImmediate(state, nodeId, can); nil != err {
+			return err
+		}
+	}else { // 否则，去备选池中查
+		if _, ok := c.reserveCandidates[nodeId]; !ok {
+			return CandidateEmptyErr
+		}else {
+			// 则需要先判断当前入参的 can的得票数
+			// 如果还是不满足移到 候选池中，则直接修改 备选池的 can 信息
+			if !checkTicket(can.TCount, c.maxCount) {
+				if err := c.setReserve(state, nodeId, can); nil != err {
+					return err
+				}
+			}else {
+				// 否则，往候选池中追加该 can
+				// 且， 备选池中的该 can 的信息删除
+				/** 先删除 备选池 can 信息 */
+				c.delReserve(state, can.CandidateId)
+				// update reserve id index
+				if ids, err := c.getReserveIndex(state); nil != err {
+					log.Error("withdraw failed getReserveIndex on full withdrawerr", "err", err)
+					return err
+				} else {
+					//for i, id := range ids {
+					for i := 0; i < len(ids); i ++ {
+						id := ids[i]
+						if id == can.CandidateId {
+							ids = append(ids[:i], ids[i+1:]...)
+							i --
+						}
+					}
+					if err := c.setReserveIndex(state, ids); nil != err {
+						log.Error("withdraw failed setReserveIndex on full withdrawerr", "err", err)
+						return err
+					}
+				}
+
+				/** 追加到 候选池 */
+				c.immediateCandidates[can.CandidateId] = can
+				c.immediateCacheArr = make([]*types.Candidate, 0)
+				for _, v := range c.immediateCandidates {
+					c.immediateCacheArr = append(c.immediateCacheArr, v)
+				}
+
+				// sort cache array
+				candidateSort(c.immediateCacheArr)
+
+				if len(c.immediateCacheArr) > int(c.maxCount) {
+					// Intercepting the lost candidates to tmpArr
+					tmpArr := (c.immediateCacheArr)[c.maxCount:]
+					// qualified elected candidates
+					c.immediateCacheArr = (c.immediateCacheArr)[:c.maxCount]
+
+					// handle tmpArr
+					for _, tmpCan := range tmpArr {
+						c.delImmediate(state, tmpCan.CandidateId)
+						// append to refunds (defeat) trie
+						if err := c.setDefeat(state, tmpCan.CandidateId, tmpCan); nil != err {
+							return err
+						}
+					}
+
+					// update index of refund (defeat) on trie
+					if err := c.setDefeatIndex(state); nil != err {
+						return err
+					}
+				}
+
+				// cache id
+				sortIds := make([]discover.NodeID, 0)
+
+				/** 设置新的 候选人数组 */
+				// insert elected candidate to tire
+				for _, can := range c.immediateCacheArr {
+					if err := c.setImmediate(state, can.CandidateId, can); nil != err {
+						return err
+					}
+					sortIds = append(sortIds, can.CandidateId)
+				}
+				// update index of immediate elected candidates on trie
+				if err := c.setImmediateIndex(state, sortIds); nil != err {
+					return err
+				}
+			}
+		}
 	}
 	return nil
 }
@@ -1195,13 +1286,11 @@ func (c *CandidatePool) getImmediateIndex(state vm.StateDB) ([]discover.NodeID, 
 }
 
 // deleted immediate candidate by nodeId (Automatically update the index)
-func (c *CandidatePool) delImmediate(state vm.StateDB, candidateId discover.NodeID) error {
-
+func (c *CandidatePool) delImmediate(state vm.StateDB, candidateId discover.NodeID)  {
 	// deleted immediate candidate by id on trie
 	setImmediateState(state, candidateId, []byte{})
 	// deleted immedidate candidate by id on map
 	delete(c.immediateCandidates, candidateId)
-	return nil
 }
 
 func (c *CandidatePool) setImmediateIndex(state vm.StateDB, nodeIds []discover.NodeID) error {
@@ -1238,12 +1327,11 @@ func (c *CandidatePool) getReserveIndex(state vm.StateDB) ([]discover.NodeID, er
 }
 
 // deleted reserve candidate by nodeId (Automatically update the index)
-func (c *CandidatePool) delReserve(state vm.StateDB, candidateId discover.NodeID) error {
+func (c *CandidatePool) delReserve(state vm.StateDB, candidateId discover.NodeID)  {
 	// deleted reserve candidate by id on trie
 	setReserveState(state, candidateId, []byte{})
 	// deleted reserve candidate by id on map
 	delete(c.reserveCandidates, candidateId)
-	return nil
 }
 
 func (c *CandidatePool) setReserveIndex(state vm.StateDB, nodeIds []discover.NodeID) error {
@@ -1303,10 +1391,9 @@ func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID,
 	return nil
 }
 
-func (c *CandidatePool) delDefeat(state vm.StateDB, nodeId discover.NodeID) error {
+func (c *CandidatePool) delDefeat(state vm.StateDB, nodeId discover.NodeID)  {
 	delete(c.defeatCandidates, nodeId)
 	setDefeatState(state, nodeId, []byte{})
-	return nil
 }
 
 // update refund index
@@ -1328,12 +1415,11 @@ func (c *CandidatePool) setDefeatIndex(state vm.StateDB) error {
 	return nil
 }
 
-func (c *CandidatePool) delPreviousWitness(state vm.StateDB, candidateId discover.NodeID) error {
+func (c *CandidatePool) delPreviousWitness(state vm.StateDB, candidateId discover.NodeID)  {
 	// deleted previous witness by id on map
 	delete(c.preOriginCandidates, candidateId)
 	// delete previous witness by id on trie
 	setPreviousWitnessState(state, candidateId, []byte{})
-	return nil
 }
 
 func (c *CandidatePool) setPreviousWitness(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
@@ -1391,12 +1477,11 @@ func (c *CandidatePool) setWitnessindex(state vm.StateDB, nodeIds []discover.Nod
 	return nil
 }
 
-func (c *CandidatePool) delWitness(state vm.StateDB, candidateId discover.NodeID) error {
+func (c *CandidatePool) delWitness(state vm.StateDB, candidateId discover.NodeID)  {
 	// deleted witness by id on map
 	delete(c.originCandidates, candidateId)
 	// delete witness by id on trie
 	setWitnessState(state, candidateId, []byte{})
-	return nil
 }
 
 func (c *CandidatePool) getWitnessIndex(state vm.StateDB) ([]discover.NodeID, error) {
@@ -1416,13 +1501,11 @@ func (c *CandidatePool) setNextWitness(state vm.StateDB, nodeId discover.NodeID,
 	return nil
 }
 
-func (c *CandidatePool) delNextWitness(state vm.StateDB, candidateId discover.NodeID) error {
+func (c *CandidatePool) delNextWitness(state vm.StateDB, candidateId discover.NodeID)  {
 	// deleted next witness by id on map
 	delete(c.nextOriginCandidates, candidateId)
 	// deleted next witness by id on trie
 	setNextWitnessState(state, candidateId, []byte{})
-
-	return nil
 }
 
 func (c *CandidatePool) setNextWitnessIndex(state vm.StateDB, nodeIds []discover.NodeID) error {
