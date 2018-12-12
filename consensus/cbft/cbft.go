@@ -293,15 +293,7 @@ func (cbft *Cbft) findHighest(current *BlockExt) *BlockExt {
 // findHighestLogical finds a logical path and return the highest block.
 // the precondition is cur is a logical block, so, findHighestLogical will return cur if the path only has one block.
 func (cbft *Cbft) findHighestLogical(cur *BlockExt) *BlockExt {
-	var lastClosestConfirmed *BlockExt
-	for {
-		lastClosestConfirmed = cbft.findLastClosestConfirmed(cur)
-		if lastClosestConfirmed == nil || lastClosestConfirmed.block.Hash() == cur.block.Hash() {
-			break
-		} else {
-			cur = lastClosestConfirmed
-		}
-	}
+	lastClosestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(cur)
 	if lastClosestConfirmed == nil {
 		return cbft.findHighest(cur)
 	} else {
@@ -309,29 +301,51 @@ func (cbft *Cbft) findHighestLogical(cur *BlockExt) *BlockExt {
 	}
 }
 
-//findClosestConfirmed returns the confirmed block that is closest to current, if current is confirmed then returns itself.
-func (cbft *Cbft) findClosestConfirmed(current *BlockExt) *BlockExt {
+// findLastClosestConfirmedIncludingSelf return the last found block by call findClosestConfirmedExcludingSelf in a circular manner
+func (cbft *Cbft) findLastClosestConfirmedIncludingSelf(cur *BlockExt) *BlockExt {
+	var lastClosestConfirmed *BlockExt
+	for {
+		lastClosestConfirmed = cbft.findClosestConfirmedExcludingSelf(cur)
+		if lastClosestConfirmed == nil || lastClosestConfirmed.block.Hash() == cur.block.Hash() {
+			break
+		} else {
+			cur = lastClosestConfirmed
+		}
+	}
+	if lastClosestConfirmed != nil {
+		return lastClosestConfirmed
+	} else if cur.isConfirmed {
+		return cur
+	} else {
+		return nil
+	}
+}
+
+// findClosestConfirmedIncludingSelf returns the closest confirmed block in current's descendant (including current itself).
+// return nil if there's no confirmed in current's descendant.
+func (cbft *Cbft) findClosestConfirmedIncludingSelf(current *BlockExt) *BlockExt {
 	closest := current
-	if len(current.signs) < cbft.getThreshold() {
+	if current.isLinked && current.isConfirmed {
 		closest = nil
 	}
 	for _, node := range current.children {
-		now := cbft.findClosestConfirmed(node)
-		if now != nil && len(now.signs) >= cbft.getThreshold() && (closest == nil || now.number < closest.number) {
+		now := cbft.findClosestConfirmedIncludingSelf(node)
+		if now != nil && now.isLinked && now.isConfirmed && (closest == nil || now.number < closest.number) {
 			closest = now
 		}
 	}
 	return closest
 }
 
-// findLastClosestConfirmed return the last found block by call findClosestConfirmed in a circular manner
-func (cbft *Cbft) findLastClosestConfirmed(current *BlockExt) *BlockExt {
+// findClosestConfirmedExcludingSelf returns the closest confirmed block in current's descendant (excluding current itself).
+// return nil if there's no confirmed in current's descendant.
+func (cbft *Cbft) findClosestConfirmedExcludingSelf(current *BlockExt) *BlockExt {
 	var closest *BlockExt
 	for _, child := range current.children {
-		if child != nil && len(child.signs) >= cbft.getThreshold() {
+		if child != nil && child.isLinked && child.isConfirmed {
 			return child
 		} else {
-			cur := cbft.findClosestConfirmed(child)
+			cur := cbft.findClosestConfirmedIncludingSelf(child)
 			if closest == nil || cur.number < closest.number {
 				closest = cur
 			}
@@ -583,7 +597,7 @@ func BlockSynchronisation() {
 		cbft.setHighestLogical(highestLogical)
 
 		//reset highest confirmed block
-		cbft.highestConfirmed = cbft.findLastClosestConfirmed(newRoot)
+		cbft.highestConfirmed = cbft.findLastClosestConfirmedIncludingSelf(newRoot)
 
 		//reset the new root irreversible
 		cbft.rootIrreversible = newRoot
@@ -695,8 +709,8 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 			//newHighestLogical := cbft.findHighestLogical(current)
 			//cbft.setHighestLogical(newHighestLogical)
 		} else if current.number < cbft.highestConfirmed.number && !current.isAncestor(cbft.highestConfirmed) {
-			//forkFrom to lower block
-			cbft.forkFrom(current)
+			//only this case may cause a new fork
+			cbft.checkFork(current)
 		}
 		cbft.flushReadyBlock()
 	}
@@ -775,13 +789,13 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 			cbft.handleLogicalBlockAndDescendant(ext)
 		} else {
 			//分支
-			closestConfirmed := cbft.findClosestConfirmed(ext)
+			closestConfirmed := cbft.findClosestConfirmedIncludingSelf(ext)
 			//分支上发现有确认块，并且此块高度小于主链的最高确认块。说明在主链上低于最高确认块，且与新确认块相同高度的块，一定是未确认块。则发生分叉
 
 			//if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number && !closestConfirmed.isAncestor(cbft.highestConfirmed){
 			if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number {
-				//forkFrom to lower block
-				cbft.forkFrom(closestConfirmed)
+				//only this case may cause a new fork
+				cbft.checkFork(closestConfirmed)
 			}
 		}
 
@@ -794,18 +808,35 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	return nil
 }
 
-// forkFrom handles chain forkFrom to another branch from closestForked
-func (cbft *Cbft) forkFrom(closestForked *BlockExt) {
-	//todo:被分叉的块，其中的交易如何回滚？
-	//forkFrom to lower block
-	newHighestConfirmed := cbft.findLastClosestConfirmed(closestForked)
-	newHighestLogical := cbft.findHighestLogical(closestForked)
-	//newHighestLogical = cbft.findHighestLogical(newHighestConfirmed)
+// forked returns the blocks forked from original branch
+// original[0] == newFork[0] == cbft.rootIrreversible, len(original) > len(newFork)
+func (cbft *Cbft) forked(original []*BlockExt, newFork []*BlockExt) []*BlockExt {
+	for i := 0; i < len(newFork); i++ {
+		if newFork[i].block.Hash() != original[i].block.Hash() {
+			return original[i:]
+		}
+	}
+	return nil
+}
 
-	log.Warn("chain fork to lower block", "reset highestLogical", newHighestLogical, "reset highestConfirmed", newHighestConfirmed)
+// checkFork checks if the logical path is changed cause the newConfirmed, if changed, this is a new fork.
+func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
+	newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(cbft.rootIrreversible)
+	if newHighestConfirmed != nil && newHighestConfirmed.block.Hash() != cbft.highestConfirmed.block.Hash() {
+		//fork
+		//todo: how to handle the txs resided in forked blocks
+		//original := cbft.backTrackBlocks(cbft.highestConfirmed, cbft.rootIrreversible, true)
+		//newFork :=  cbft.backTrackBlocks(newHighestConfirmed, cbft.rootIrreversible, true)
+		//forked := cbft.forked(original, newFork)
 
-	cbft.setHighestLogical(newHighestLogical)
-	cbft.highestConfirmed = newHighestConfirmed
+		//forkFrom to lower block
+		newHighestLogical := cbft.findHighestLogical(newHighestConfirmed)
+
+		cbft.setHighestLogical(newHighestLogical)
+		cbft.highestConfirmed = newHighestConfirmed
+
+		log.Warn("chain is forked", "reset highestLogical", newHighestLogical, "reset highestConfirmed", newHighestConfirmed)
+	}
 }
 
 // flushReadyBlock finds ready blocks and flush them to chain
