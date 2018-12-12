@@ -672,7 +672,10 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// a singe block (as the true TD is below the propagated block), however this
 			// scenario should easily be covered by the fetcher.
 			currentBlock := pm.blockchain.CurrentBlock()
-			if trueTD.Cmp(pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())) > 10 {
+			//modified by platon
+			myTD := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
+			diff := new(big.Int).Sub(trueTD, myTD)
+			if diff.Cmp(big.NewInt(10)) > 0 {
 				go pm.synchronise(p)
 			}
 		}
