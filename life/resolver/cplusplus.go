@@ -559,7 +559,19 @@ func envCaller(vm *exec.VirtualMachine) int64 {
 
 // define: int64_t callValue();
 func envCallValue(vm *exec.VirtualMachine) int64 {
-	return vm.Context.StateDB.CallValue()
+	value := vm.Context.StateDB.CallValue()
+	ptr := int(int32(vm.GetCurrentFrame().Locals[0]))
+	if len(value.Bytes()) > 32 {
+		panic(fmt.Sprintf("balance overflow(%d > 32)", len(value.Bytes())))
+	}
+	// bigendian
+	offset := 32 - len(value.Bytes())
+	if offset > 0 {
+		empty := make([]byte, offset)
+		copy(vm.Memory.Memory[ptr:ptr+offset], empty)
+	}
+	copy(vm.Memory.Memory[ptr+offset:], value.Bytes())
+	return 0
 }
 
 // define: void address(char hash[20]);
@@ -686,9 +698,9 @@ func envCallTransfer(vm *exec.VirtualMachine) int64 {
 
 	vm.Context.GasUsed -= returnGas
 	if err != nil {
-		return 0
-	} else {
 		return 1
+	} else {
+		return 0
 	}
 }
 
