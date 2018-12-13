@@ -439,23 +439,23 @@ func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes [
 }
 
 func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Hash){
-	//res := d.nodeRound[blockNumber]
-	//
-	//log.Info(title + ":遍历出来存进去的RoundNodes，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-	//pposm.PrintObject(title + ":遍历出来存进去的Round:", d.nodeRound)
-	//if round, ok  := res[blockHash]; ok {
-	//	if nil != round.former{
-	//		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 上一轮: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
-	//	}
-	//	if nil != round.current {
-	//		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 当前轮: start:" + round.current.start.String() + ", end:" + round.current.end.String() + ", nodes: ", round.current.nodes)
-	//	}
-	//	if nil != round.next {
-	//		pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 下一轮: start:" + round.next.start.String() + ", end:" + round.next.end.String() + ", nodes: ", round.next.nodes)
-	//	}
-	//}else {
-	//	log.Info(title + ":遍历出来存进去的Round 不存在，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-	//}
+	res := d.nodeRound[blockNumber]
+
+	log.Info(title + ":遍历出来存进去的RoundNodes，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
+	pposm.PrintObject(title + ":遍历出来存进去的Round:", d.nodeRound)
+	if round, ok  := res[blockHash]; ok {
+		if nil != round.former{
+			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 上一轮: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
+		}
+		if nil != round.current {
+			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 当前轮: start:" + round.current.start.String() + ", end:" + round.current.end.String() + ", nodes: ", round.current.nodes)
+		}
+		if nil != round.next {
+			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 下一轮: start:" + round.next.start.String() + ", end:" + round.next.end.String() + ", nodes: ", round.next.nodes)
+		}
+	}else {
+		log.Info(title + ":遍历出来存进去的Round 不存在，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
+	}
 }
 
 /** Method provided to the built-in contract call */
@@ -549,9 +549,6 @@ func (d *ppos) GetOwnerExpireTicketIds (stateDB vm.StateDB, owner common.Address
 }
 ////// 每一个块都会调用的方法
 func (d *ppos) Notify (stateDB vm.StateDB, blockNumber *big.Int, nodeId discover.NodeID) error {
-
-
-
 	return d.ticketPool.Notify(stateDB, blockNumber, nodeId)
 }
 
