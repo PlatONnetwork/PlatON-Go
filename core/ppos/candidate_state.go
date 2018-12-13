@@ -1261,6 +1261,12 @@ func (c *CandidatePool) UpdateCandidateTicket(state vm.StateDB, nodeId discover.
 	return nil
 }
 
+// TODO
+func (c *CandidatePool) AddCandidateEpoch() error {
+	// 遍历出所有 候选人和备选人 逐个叠加票龄
+
+	return nil
+}
 
 func checkTicket (t_count, c_count uint64) bool {
 	if t_count >= c_count {
