@@ -148,7 +148,7 @@ type Downloader struct {
 	bodyFetchHook    func([]*types.Header) // Method to call upon starting a block body fetch
 	receiptFetchHook func([]*types.Header) // Method to call upon starting a receipt fetch
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
-	running int32 	// The indicator whether the Downloader is running or not.
+	running          int32                 // The indicator whether the Downloader is running or not.
 }
 
 // LightChain encapsulates functions required to synchronise a light chain.
@@ -315,7 +315,7 @@ func (d *Downloader) UnregisterPeer(id string) error {
 // Synchronise tries to sync up our local block chain with a remote peer, both
 // adding various sanity checks as well as wrapping it with various log entries.
 func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode SyncMode) error {
-	log.Warn("----------向对端节点同步区块数据----------", "peerID", id, "head", head, "td", td, "mode", mode)
+	log.Debug("Synchronise from other peer", "peerID", id, "head", head, "td", td, "mode", mode)
 	err := d.synchronise(id, head, td, mode)
 	switch err {
 	case nil:

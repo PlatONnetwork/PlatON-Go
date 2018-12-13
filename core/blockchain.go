@@ -18,15 +18,6 @@
 package core
 
 import (
-	"errors"
-	"fmt"
-	"io"
-	"math/big"
-	mrand "math/rand"
-	"sync"
-	"sync/atomic"
-	"time"
-
 	"Platon-go/common"
 	"Platon-go/common/mclock"
 	"Platon-go/common/prque"
@@ -43,7 +34,14 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"Platon-go/trie"
+	"errors"
+	"fmt"
 	"github.com/hashicorp/golang-lru"
+	"io"
+	"math/big"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 var (
@@ -887,27 +885,35 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
+	currentBlock := bc.CurrentBlock()
+	if block.NumberU64() <= currentBlock.NumberU64() {
+		log.Warn("block lower than current block in chain", "blockHash", block.Hash(), "blockNumber", block.NumberU64(), "currentHash", currentBlock.Hash(), "currentNumber", currentBlock.NumberU64())
+		return NonStatTy, nil
+	}
+
 	// Calculate the total difficulty of the block
 	ptd := bc.GetTd(block.ParentHash(), block.NumberU64()-1)
 	if ptd == nil {
+		log.Error("cannot get parent block total difficulty", "ParentHash", block.ParentHash(), "ParentNumber", block.NumberU64()-1)
 		return NonStatTy, consensus.ErrUnknownAncestor
 	}
 	// Make sure no inconsistent state is leaked during insertion
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
 
-	currentBlock := bc.CurrentBlock()
-	localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
+	//localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 	externTd := new(big.Int).Add(block.Difficulty(), ptd)
 
 	// Irrelevant of the canonical status, write the block itself to the database
 	if err := bc.hc.WriteTd(block.Hash(), block.NumberU64(), externTd); err != nil {
+		log.Error("Write block total difficulty", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
 	}
 	rawdb.WriteBlock(bc.db, block)
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
+		log.Error("check block is EIP158 error", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
 	}
 	triedb := bc.stateCache.TrieDB()
@@ -915,6 +921,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.Disabled {
 		if err := triedb.Commit(root, false); err != nil {
+			log.Error("Commit to triedb error", "root", root)
 			return NonStatTy, err
 		}
 	} else {
@@ -969,7 +976,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// If the total difficulty is higher than our known, add it to the canonical chain
 	// Second clause in the if statement reduces the vulnerability to selfish mining.
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
-	reorg := externTd.Cmp(localTd) > 0
+	/*reorg := externTd.Cmp(localTd) > 0
 	currentBlock = bc.CurrentBlock()
 	if !reorg && externTd.Cmp(localTd) == 0 {
 		// Split same-difficulty blocks by number, then preferentially select
@@ -998,11 +1005,17 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		status = CanonStatTy
 	} else {
 		status = SideStatTy
-	}
+	}*/
+
+	// Write the positional metadata for transaction/receipt lookups and preimages
+	rawdb.WriteTxLookupEntries(batch, block)
+	rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
+
+	status = CanonStatTy
 	if err := batch.Write(); err != nil {
 		return NonStatTy, err
 	}
-	log.Info("insert into chain", "WriteStatus", status, "hash", block.Hash(), "number", block.NumberU64(), "signs", rawdb.ReadBlockConfirmSigns(bc.db, block.Hash(), block.NumberU64()))
+	log.Debug("insert into chain", "WriteStatus", status, "hash", block.Hash(), "number", block.NumberU64(), "signs", rawdb.ReadBlockConfirmSigns(bc.db, block.Hash(), block.NumberU64()))
 
 	// Set new head.
 	if status == CanonStatTy {

@@ -17,16 +17,16 @@
 package types
 
 import (
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/crypto"
+	"Platon-go/log"
+	"Platon-go/rlp"
 	"container/heap"
 	"errors"
 	"io"
 	"math/big"
 	"sync/atomic"
-
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/crypto"
-	"Platon-go/rlp"
 )
 
 //go:generate gencodec -type txdata -field-override txdataMarshaling -out gen_tx_json.go
@@ -340,6 +340,7 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 		}
 	}
 	heap.Init(&heads)
+	log.Debug("NewTransactionsByPriceAndNonce", "txsCount", len(txs))
 
 	// Assemble and return the transaction set
 	return &TransactionsByPriceAndNonce{
