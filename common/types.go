@@ -47,7 +47,6 @@ var (
 	// modify by platon
 	CandidatePoolAddr 			= HexToAddress("0x1000000000000000000000000000000000000001")
 	TicketPoolAddr 			= HexToAddress("0x1000000000000000000000000000000000000002")
-	TicketDetailAddr 		= HexToAddress("0x1000000000000000000000000000000000000003")
 	ZeroAddr 				= HexToAddress(Address{}.String())
 )
 

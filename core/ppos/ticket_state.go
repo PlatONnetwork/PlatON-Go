@@ -120,8 +120,7 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 	if err := t.candidatePool.UpdateCandidateTicket(stateDB, ticket.CandidateId, candidate); err != nil {
 		return err
 	}
-	// 把票池的质押金转给票详情合约管理
-	return transfer(stateDB, common.TicketPoolAddr, common.TicketDetailAddr, deposit)
+	return nil
 }
 
 func setOwnerTicketIds(stateDB vm.StateDB, key []byte, ticketIds []common.Hash) error {
@@ -129,7 +128,7 @@ func setOwnerTicketIds(stateDB vm.StateDB, key []byte, ticketIds []common.Hash) 
 		log.Error("setOwnerTicketIds error", "key", string(key), "err", err)
 		return SetOwnerTicketIdsErr
 	} else {
-		setTicketDetailState(stateDB, key, value)
+		setTicketPoolState(stateDB, key, value)
 	}
 	return nil
 }
@@ -144,7 +143,7 @@ func (t *TicketPool) setOwnerNormalTicketIds(stateDB vm.StateDB, owner common.Ad
 
 func getOwnerTicketIds(stateDB vm.StateDB, key []byte) ([]common.Hash, error) {
 	var ticketIds []common.Hash
-	if err := getTicketDetailState(stateDB, key, &ticketIds); nil != err {
+	if err := getTicketPoolState(stateDB, key, &ticketIds); nil != err {
 		log.Error("getOwnerTicketIds error", "key", string(key))
 		return nil, GetOwnerTicketIdsErr
 	}
@@ -160,7 +159,7 @@ func (t *TicketPool) GetOwnerNormalTicketIds(stateDB vm.StateDB, owner common.Ad
 }
 
 func (t *TicketPool) calcExpireBlockNumber(stateDB vm.StateDB, blockNumber *big.Int) *big.Int {
-	num := new(big.Int).SetUint64(0)
+	num := new(big.Int).SetUint64(-1)
 	if blockNumber.Cmp(new(big.Int).SetUint64(t.ExpireBlockNumber)) >= 0 {
 		num.Sub(blockNumber, new(big.Int).SetUint64(t.ExpireBlockNumber))
 	}
@@ -208,23 +207,23 @@ func (t *TicketPool) removeExpireTicket(stateDB vm.StateDB, blockNumber *big.Int
 	return t.setExpireTicket(stateDB, blockNumber, ticketIdList)
 }
 
-func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, blockNumber *big.Int) error {
+func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, candidateList []*types.Candidate) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	ticketIdList, err := t.GetExpireTicketIds(stateDB, blockNumber)
 	if err != nil {
 		return err
 	}
+	candidateMap := make(map[discover.NodeID]*types.Candidate)
+	for _, c := range candidateList {
+		candidateMap[c.CandidateId] = c
+	}
 	for _, ticketId := range ticketIdList {
 		ticket, err := t.GetTicket(stateDB, ticketId)
 		if err != nil {
 			return err
 		}
-		candidate, err := t.candidatePool.GetCandidate(stateDB, ticket.CandidateId)
-		if err != nil {
-			log.Error("GetCandidate error", err)
-			continue
-		}
+		candidate := candidateMap[ticket.CandidateId]
 		if candidate != nil {
 			if _, err := t.releaseTicket(stateDB, candidate, ticketId, blockNumber); nil != err {
 				continue
@@ -269,7 +268,7 @@ func (t *TicketPool) GetTicketList(stateDB vm.StateDB, ticketIds []common.Hash) 
 // Get ticket details based on TicketId
 func (t *TicketPool) GetTicket(stateDB vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
 	var ticket= new(types.Ticket)
-	if err := getTicketDetailState(stateDB, ticketId.Bytes(), ticket); nil != err {
+	if err := getTicketPoolState(stateDB, ticketId.Bytes(), ticket); nil != err {
 		return nil, DecodeTicketErr
 	}
 	return ticket, nil
@@ -280,7 +279,7 @@ func (t *TicketPool) setTicket(stateDB vm.StateDB, ticketId common.Hash, ticket 
 		log.Error("Failed to encode ticket object on setTicket", "key", ticketId.String(), "err", err)
 		return EncodeTicketErr
 	} else {
-		setTicketDetailState(stateDB, ticketId.Bytes(), value)
+		setTicketPoolState(stateDB, ticketId.Bytes(), value)
 	}
 	return nil
 }
@@ -289,6 +288,7 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, candidate *types.Candidate
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	ticket, err := t.releaseTicket(stateDB, candidate, ticketId, blockNumber)
+	t.candidatePool.UpdateCandidateTicket(stateDB, candidate.CandidateId, candidate)
 	if nil != err {
 		return err
 	}
@@ -318,21 +318,27 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidate *types.Candidat
 	}
 	candidate.Epoch = candidate.Epoch.Sub(candidate.Epoch, ticket.CalcEpoch(blockNumber))
 	candidate.TCount--
-	t.candidatePool.UpdateCandidateTicket(stateDB, candidate.CandidateId, candidate)
-	return ticket, transfer(stateDB, common.TicketDetailAddr, ticket.Owner, ticket.Deposit)
+	return ticket, transfer(stateDB, common.TicketPoolAddr, ticket.Owner, ticket.Deposit)
 }
 
 // 1.给幸运票发放奖励
 // 2.检查过期票
+// 3.增加总票龄
 func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int, nodeId discover.NodeID) error {
 	// 发放奖励
 
+	candidateList := t.candidatePool.GetChosens(stateDB, 0)
 	expireBlockNumber := t.calcExpireBlockNumber(stateDB, blockNumber)
-	if expireBlockNumber.Uint64() > 0 {
-		if err := t.handleExpireTicket(stateDB, expireBlockNumber); nil != err {
+	if expireBlockNumber.Uint64() > -1 {
+		if err := t.handleExpireTicket(stateDB, expireBlockNumber, candidateList); nil != err {
 			log.Error("OutBlockNotice method handleExpireTicket error", "blockNumber", *blockNumber, "err", err)
 			return HandleExpireTicketErr
 		}
+	}
+	// 每个候选人增加总票龄
+	for _, candidate := range candidateList {
+		candidate.Epoch = candidate.Epoch.Add(candidate.Epoch, new(big.Int).SetUint64(candidate.TCount))
+		t.candidatePool.UpdateCandidateTicket(stateDB, candidate.CandidateId, candidate)
 	}
 	return nil
 }
@@ -422,7 +428,7 @@ func checkBalance(stateDB vm.StateDB, addr common.Address, amount *big.Int) bool
 }
 
 func transfer(stateDB vm.StateDB, from common.Address, to common.Address, amount *big.Int) error {
-	if !checkBalance(stateDB, common.TicketPoolAddr, amount) {
+	if !checkBalance(stateDB, from, amount) {
 		log.Error("TicketPool not sufficient funds", "from", from.Hex(), "to", to.Hex(), "money", *amount)
 		return TicketPoolBalanceErr
 	}
@@ -433,10 +439,6 @@ func transfer(stateDB vm.StateDB, from common.Address, to common.Address, amount
 
 func getTicketPoolState(stateDB vm.StateDB, key []byte, result interface{}) error {
 	return getState(common.TicketPoolAddr, stateDB, key, result)
-}
-
-func getTicketDetailState(stateDB vm.StateDB, key []byte, result interface{}) error {
-	return getState(common.TicketDetailAddr, stateDB, key, result)
 }
 
 func getState(addr common.Address, stateDB vm.StateDB, key []byte, result interface{}) error {
@@ -451,10 +453,6 @@ func getState(addr common.Address, stateDB vm.StateDB, key []byte, result interf
 
 func setTicketPoolState(stateDB vm.StateDB, key []byte, val []byte) {
 	stateDB.SetState(common.TicketPoolAddr, key, val)
-}
-
-func setTicketDetailState(stateDB vm.StateDB, key []byte, val []byte) {
-	stateDB.SetState(common.TicketDetailAddr, key, val)
 }
 
 func generateTicketId() (common.Hash, error) {
