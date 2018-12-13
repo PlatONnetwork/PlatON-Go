@@ -249,7 +249,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 	return nil
 }
 
-// pledge Candidate
+// pledge Candidate // TODO 需要抽小方法
 func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 	PrintObject("发生质押 SetCandidate", *can)
 	c.lock.Lock()
@@ -375,7 +375,7 @@ func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (
 	return c.getCandidate(state, nodeId)
 }
 
-// candidate withdraw from immediates or reserve elected candidates
+// candidate withdraw from immediates or reserve elected candidates // TODO 需要抽小方法
 func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
 	log.Info("WithdrawCandidate...")
 	c.lock.Lock()
@@ -412,6 +412,10 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 		log.Error("withdraw failed refund price must less or equal deposit", "key", nodeId.String())
 		return WithdrawPriceErr
 	}else if can.Deposit.Cmp(price) == 0 { // full withdraw
+
+		// return ticket call
+		// TODO
+		//ticketPool.ReturnTicket(state, )
 
 		handle := func (tiltle string, delInfoFn func (state vm.StateDB, candidateId discover.NodeID),
 						getIndexFn func (state vm.StateDB) ([]discover.NodeID, error),
@@ -641,6 +645,11 @@ func (c *CandidatePool) IsDefeat(state vm.StateDB, nodeId discover.NodeID) (bool
 	return false, nil
 }
 
+func (c *CandidatePool) IsChosens(stateDB vm.StateDB, nodeId discover.NodeID) (bool, error) {
+
+	return true, nil
+}
+
 // Getting owner's address of candidate info by nodeId
 func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) common.Address {
 	log.Info("获取收益者地址: nodeId = " + nodeId.String())
@@ -701,7 +710,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	// Used for verification purposes, that is, the beneficiary in the pledge refund information of each nodeId should be the same
 	var addr common.Address
 	// Grand total refund amount for one-time
-	var amount uint64
+	amount := big.NewInt(0)
 	// Transfer refund information that needs to be deleted
 	delCanArr := make([]*types.Candidate, 0)
 
@@ -719,9 +728,10 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 			canArr = append(canArr[:index], canArr[index+1:]...)
 			index --
 			// add up the refund price
-			amount += can.Deposit.Uint64()
+			amount = new(big.Int).Add(amount, can.Deposit)
+			//amount += can.Deposit.Uint64()
 		} else {
-			log.Error("block height number had mismatch, No refunds allowed", "current block height", blockNumber.String(), "deposit block height", can.BlockNumber.String(), "allowed block interval", c.RefundBlockNumber)
+			log.Error("block height number had mismatch, No refunds allowed", "current block height",blockNumber.String(), "deposit block height", can.BlockNumber.String(), "allowed block interval", c.RefundBlockNumber)
 			log.Info("块高不匹配，不给予退款...")
 			continue
 		}
@@ -743,8 +753,9 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 		}
 
 		// check contract account balance
-		if (contractBalance.Cmp(new(big.Int).SetUint64(amount))) < 0 {
-			log.Error("Failed to refundbalance constract account insufficient balance ", "contract's balance", state.GetBalance(common.CandidatePoolAddr).String(), "amount", amount)
+		//if (contractBalance.Cmp(new(big.Int).SetUint64(amount))) < 0 {
+		if (contractBalance.Cmp(amount)) < 0 {
+			log.Error("Failed to refundbalance constract account insufficient balance ", "contract's balance", contractBalance.String(), "amount", amount.String())
 			if len(canArr) != 0 {
 				canArr = append(delCanArr, canArr...)
 			} else {
@@ -792,10 +803,12 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 			c.defeatCandidates[nodeId] = canArr
 		}
 	}
+	log.Info("退款转账操作：", "nodeId", nodeId.String(), "contractAddr", common.CandidatePoolAddr.String(), "受益人addr", addr.String(), "退还需转账金额:", amount.String())
+
 	// sub contract account balance
-	state.SubBalance(common.CandidatePoolAddr, new(big.Int).SetUint64(amount))
+	state.SubBalance(common.CandidatePoolAddr, amount)
 	// add owner balace
-	state.AddBalance(addr, new(big.Int).SetUint64(amount))
+	state.AddBalance(addr, amount)
 	log.Info("一键退款完成...")
 	return nil
 }
@@ -905,6 +918,11 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 			arr = append(arr, node)
 		}
 	}
+
+	// 揭榜后回去调 获取幸运票逻辑 TODO
+
+	// 然后需要对入围候选人再次做排序 TODO
+
 	log.Info("下一轮见证人node 个数:", "len", len(arr))
 	PrintObject("下一轮见证人node信息:", arr)
 	log.Info("揭榜完成...")
@@ -1057,7 +1075,7 @@ func (c *CandidatePool) GetRefundInterval() uint64 {
 	return c.RefundBlockNumber
 }
 
-// update candidate's tickets
+// update candidate's tickets  // TODO 需要抽小方法
 func (c *CandidatePool) UpdateCandidateTicket(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -1123,6 +1141,11 @@ func (c *CandidatePool) UpdateCandidateTicket(state vm.StateDB, nodeId discover.
 
 					// handle tmpArr
 					for _, tmpCan := range tmpArr {
+
+						// return ticket call
+						// TODO
+						//ticketPool.ReturnTicket(state, )
+
 						c.delImmediate(state, tmpCan.CandidateId)
 						// append to refunds (defeat) trie
 						if err := c.setDefeat(state, tmpCan.CandidateId, tmpCan); nil != err {
@@ -1158,7 +1181,7 @@ func (c *CandidatePool) UpdateCandidateTicket(state vm.StateDB, nodeId discover.
 }
 
 // 根据nodeId 去重新决定当前候选人的去留
-func (c *CandidatePool) UpdateElectedQueue(nodeId discover.NodeID) error {
+func (c *CandidatePool) UpdateElectedQueue(stateDB vm.StateDB, nodeId... discover.NodeID) error {
 
 	return nil
 }
