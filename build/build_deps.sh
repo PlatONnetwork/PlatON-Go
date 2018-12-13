@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 
+if [ ! -f "build/build_deps.sh" ]; then
+    echo "$0 must be run from the root of the repository."
+    exit 2
+fi
 
-root=`pwd | awk '{split($0, path, "platon-go"); print path[1]}'`
-root=$root/platon-go/life/resolver
+root=`pwd`
+root=$root/life/resolver
 
 if [ "`ls $root/softfloat`" = "" ]; then
     # pull softfloat
