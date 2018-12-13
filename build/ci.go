@@ -289,6 +289,8 @@ func buildFlags(env build.Environment) (flags []string) {
 	}
 	if runtime.GOOS == "darwin" {
 		ld = append(ld, "-s")
+	} else {
+		ld = append(ld, "-extldflags", "-static")
 	}
 
 	if len(ld) > 0 {
