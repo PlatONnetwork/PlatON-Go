@@ -338,16 +338,6 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	// cache id
 	//sortIds := make([]discover.NodeID, 0)
 	if flag {
-		//c.immediateCacheArr = cacheArr
-		//// insert elected candidate to tire
-		//for _, can := range c.immediateCacheArr {
-		//	c.setImmediate(state, can.CandidateId, can)
-		//	sortIds = append(sortIds, can.CandidateId)
-		//}
-		//
-		//// update index of immediate elected candidates on trie
-		//c.setImmediateIndex(state, sortIds)
-
 		/** first delete this can on reserves */
 		if delreserve {
 			c.delReserve(state, can.CandidateId)
@@ -372,15 +362,6 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		}
 		return handle(c.immediateCacheArr, c.setImmediate, c.setImmediateIndex)
 	}else {
-		//c.reserveCacheArr = cacheArr
-		//// insert elected candidate to tire
-		//for _, can := range c.reserveCacheArr {
-		//	c.setReserve(state, can.CandidateId, can)
-		//	sortIds = append(sortIds, can.CandidateId)
-		//}
-		//
-		//// update index of reserve elected candidates on trie
-		//c.setReserveIndex(state, sortIds)
 		return handle(c.reserveCacheArr, c.setReserve, c.setReserveIndex)
 	}
 	return nil
@@ -423,7 +404,6 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 		flag = true
 	}
 
-
 	// check withdraw price
 	if can.Deposit.Cmp(price) < 0 {
 		log.Error("withdraw failed refund price must less or equal deposit", "key", nodeId.String())
@@ -461,61 +441,12 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 						return nil
 					}
 
-
-
 		if flag {
-			//// delete current candidate from immediate elected candidates
-			//if err := c.delImmediate(state, nodeId); nil != err {
-			//	log.Error("withdraw failed delImmediate on full withdraw", "err", err)
-			//	return err
-			//}
-			//// update immediate id index
-			//if ids, err := c.getImmediateIndex(state); nil != err {
-			//	log.Error("withdraw failed getImmediateIndex on full withdrawerr", "err", err)
-			//	return err
-			//} else {
-			//	//for i, id := range ids {
-			//	for i := 0; i < len(ids); i ++ {
-			//		id := ids[i]
-			//		if id == nodeId {
-			//			ids = append(ids[:i], ids[i+1:]...)
-			//			i --
-			//		}
-			//	}
-			//	if err := c.setImmediateIndex(state, ids); nil != err {
-			//		log.Error("withdraw failed setImmediateIndex on full withdrawerr", "err", err)
-			//		return err
-			//	}
-			//}
 			if err := handle("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
 				return err
 			}
 
 		}else {
-			//// delete current candidate from reserve elected candidates
-			//if err := c.delReserve(state, nodeId); nil != err {
-			//	log.Error("withdraw failed delReserve on full withdraw", "err", err)
-			//	return err
-			//}
-			//// update reserve id index
-			//if ids, err := c.getReserveIndex(state); nil != err {
-			//	log.Error("withdraw failed getReserveIndex on full withdrawerr", "err", err)
-			//	return err
-			//} else {
-			//	//for i, id := range ids {
-			//	for i := 0; i < len(ids); i ++ {
-			//		id := ids[i]
-			//		if id == nodeId {
-			//			ids = append(ids[:i], ids[i+1:]...)
-			//			i --
-			//		}
-			//	}
-			//	if err := c.setReserveIndex(state, ids); nil != err {
-			//		log.Error("withdraw failed setReserveIndex on full withdrawerr", "err", err)
-			//		return err
-			//	}
-			//}
-
 			if err := handle("Reserve", c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
 				return err
 			}
@@ -577,48 +508,10 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 
 		if flag {
-			//// update current candidate
-			//if err := c.setImmediate(state, nodeId, canNew); nil != err {
-			//	log.Error("withdraw failed setImmediate on a few of withdrawerr", "err", err)
-			//	return err
-			//}
-			//
-			//// sort immediate
-			//c.immediateCacheArr = make([]*types.Candidate, 0)
-			//for _, can := range c.immediateCandidates {
-			//	c.immediateCacheArr = append(c.immediateCacheArr, can)
-			//}
-			//candidateSort(c.immediateCacheArr)
-			//ids := make([]discover.NodeID, 0)
-			//for _, can := range c.immediateCacheArr {
-			//	ids = append(ids, can.CandidateId)
-			//}
-			//// update new index
-			//if err := c.setImmediateIndex(state, ids); nil != err {
-			//	log.Error("withdraw failed setImmediateIndex on a few of withdrawerr", "err", err)
-			//	return err
-			//}
 			if err := handle("Immediate", c.immediateCacheArr, c.immediateCandidates, c.setImmediate, c.setImmediateIndex); nil != err {
 				return err
 			}
 		}else {
-			//if err := c.setReserve(state, nodeId, canNew); nil != err {
-			//	log.Error("withdraw failed setReserve on a few of withdrawerr", "err", err)
-			//	return err
-			//}
-			//c.reserveCacheArr = make([]*types.Candidate, 0)
-			//for _, can := range c.reserveCandidates {
-			//	c.reserveCacheArr = append(c.reserveCacheArr, can)
-			//}
-			//candidateSort(c.reserveCacheArr)
-			//ids := make([]discover.NodeID, 0)
-			//for _, can := range c.reserveCacheArr {
-			//	ids = append(ids, can.CandidateId)
-			//}
-			//if err := c.setReserveIndex(state, ids); nil != err {
-			//	log.Error("withdraw failed setReserveIndex on a few of withdrawerr", "err", err)
-			//	return err
-			//}
 			if err := handle("Reserve", c.reserveCacheArr, c.reserveCandidates, c.setReserve, c.setReserveIndex); nil != err {
 				return err
 			}

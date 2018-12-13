@@ -604,7 +604,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	txPool = txPool
 }
 
-func SetDopsOption(blockChain *core.BlockChain) {
+func SetPposOption(blockChain *core.BlockChain) {
 	cbft.ppos.SetCandidatePool(blockChain, cbft.config.InitialNodes)
 }
 
