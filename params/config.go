@@ -55,7 +55,7 @@ var (
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialConsensusNodes),
 		},
-		VMInterpreter: "evm",
+		VMInterpreter: "wasm",
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
