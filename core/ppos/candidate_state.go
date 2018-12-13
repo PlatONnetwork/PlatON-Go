@@ -294,6 +294,9 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 
 		// handle tmpArr
 		for _, tmpCan := range tmpArr {
+			// return ticket call
+			// TODO
+			//ticketPool.ReturnTicket(state, )
 			if flag {
 				// delete the lost candidates from immediate elected candidates of trie
 				c.delImmediate(state, tmpCan.CandidateId)
