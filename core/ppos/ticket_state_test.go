@@ -4,6 +4,7 @@ import (
 	"Platon-go/common"
 	"Platon-go/consensus/ethash"
 	"Platon-go/core"
+	"Platon-go/core/ppos"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/core/vm"
@@ -16,7 +17,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-	"Platon-go/core/ppos"
 )
 
 func TestVoteTicket(t *testing.T)  {
@@ -127,15 +127,20 @@ func TestVoteTicket(t *testing.T)  {
 		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), candidate.TCount, candidate.Epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketDetailAddr))
 	fmt.Println("------all ticket-----")
-	/*for _, ticket := range ticketList {
+	for _, ticket := range ticketList {
 		fmt.Printf("ticket:%+v,ticketId:[%v]\n", ticket, ticket.TicketId.Hex())
-	}*/
-
-	selectedTicketIndex := rand.Intn(len(ticketList))
-	selectedTicketId := ticketList[selectedTicketIndex].TicketId
-	t.Logf("-----------开始释放一张选票【%v】owner【%v】-----------\n", selectedTicketId.Hex(), ticketList[selectedTicketIndex].Owner.Hex())
+	}
+	blockHash := common.Hash{}
+	blockHash.SetBytes([]byte("3b41e0aee38c1a1f959a6aaae678d86f1e6af59617d2f667bb2ef5527779c861"))
+	luckyTicketId, err := ticketPool.SelectionLuckyTicket(state, candidate.CandidateId, blockHash)
+	if nil != err {
+		t.Error("SelectionLuckyTicket error", err)
+	}
+	//selectedTicketIndex := rand.Intn(len(ticketList))
+	//selectedTicketId := ticketList[selectedTicketIndex].TicketId
+	t.Logf("-----------开始释放一张选票【%v】-----------\n", luckyTicketId.Hex())
 	tempTime := time.Now().UnixNano() / 1e6
-	err = ticketPool.ReturnTicket(state, candidate, selectedTicketId, blockNumber)
+	err = ticketPool.ReturnTicket(state, candidate, luckyTicketId, blockNumber)
 	if nil != err {
 		t.Error("ReleaseSelectedTicket error", err)
 	}
@@ -203,7 +208,7 @@ func TestVoteTicket(t *testing.T)  {
 	temp = append(temp, "string")
 	fmt.Println(temp==nil, len(temp), cap(temp))
 
-	fmt.Println("释放一张选票耗时：", releaseTime, "ms", "下标：", selectedTicketIndex)
+	fmt.Println("释放一张选票耗时：", releaseTime, "ms")
 	fmt.Println("第10000张票时，投票所耗时：", timeMap[10000], "ms")
 	fmt.Println("第5000张票时，投票所耗时：", timeMap[5000], "ms")
 	fmt.Println("第1000张票时，投票所耗时：", timeMap[1000], "ms")
