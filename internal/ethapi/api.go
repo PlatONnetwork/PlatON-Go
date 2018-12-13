@@ -488,7 +488,7 @@ func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 }
 
 // SetActor set address for mpc compute.
-func (s *PublicBlockChainAPI) SetActor(address common.Address) (error) {
+func (s *PublicBlockChainAPI) SetActor(address common.Address) error {
 	absPath, err := filepath.Abs(core.DEFAULT_ACTOR_FILE_NAME)
 	if err != nil {
 		return fmt.Errorf("File not exists : %v", err.Error())
@@ -1346,6 +1346,14 @@ func (s *PublicTransactionPoolAPI) PendingTransactions() ([]*RPCTransaction, err
 		}
 	}
 	return transactions, nil
+}
+
+func (s *PublicTransactionPoolAPI) PendingTransactionsLength() int {
+	pending, err := s.b.GetPoolTransactions()
+	if err != nil {
+		return -1
+	}
+	return len(pending)
 }
 
 // Resend accepts an existing transaction and a new gas price and limit. It will remove

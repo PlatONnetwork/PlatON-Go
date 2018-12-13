@@ -705,7 +705,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		log.Warn("------------接收到广播消息[PrepareBlockMsg]------------", "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
+		log.Warn("------------接收到广播消息[PrepareBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
@@ -731,6 +731,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
 			}
 			return nil
+		} else {
+			log.Warn("Consensus engine is not cbft", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 		}
 
 	case msg.Code == BlockSignatureMsg:
@@ -740,7 +742,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 
-		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
+		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
 		engineBlockSignature := &cbfttypes.BlockSignature{request.SignHash, request.Hash, request.Number, request.Signature}
 
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
