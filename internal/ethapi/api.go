@@ -491,7 +491,7 @@ func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 func (s *PublicBlockChainAPI) SetActor(address common.Address) (error) {
 	absPath, err := filepath.Abs(core.DEFAULT_ACTOR_FILE_NAME)
 	if err != nil {
-		return fmt.Errorf("Get file path fail: &v", err.Error())
+		return fmt.Errorf("File not exists : %v", err.Error())
 	}
 	f, err := os.OpenFile(absPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
 	if err != nil {
