@@ -1154,6 +1154,12 @@ func (c *CandidatePool) UpdateCandidateTicket(state vm.StateDB, nodeId discover.
 	return nil
 }
 
+// 根据nodeId 去重新决定当前候选人的去留
+func (c *CandidatePool) UpdateElectedQueue(nodeId discover.NodeID) error {
+
+	return nil
+}
+
 // TODO
 func (c *CandidatePool) AddCandidateEpoch() error {
 	// 遍历出所有 候选人和备选人 逐个叠加票龄
