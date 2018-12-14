@@ -1,0 +1,18 @@
+syntax = "proto3";
+package pposm;
+
+message TicketIds {
+  repeated bytes TicketId = 1;
+}
+
+message NodeTicketIds {
+  map<string, TicketIds> NTickets = 1;
+}
+
+message BlockNodes {
+  map<string, NodeTicketIds> BNodes = 1;
+}
+
+message NumBlocks {
+  map<string, BlockNodes> NBlocks = 1;
+}
