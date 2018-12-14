@@ -149,6 +149,8 @@ type Config struct {
 
 	// MPC pool options
 	MPCPool core.MPCPoolConfig
+
+	Debug bool
 }
 
 type CbftConfig struct {

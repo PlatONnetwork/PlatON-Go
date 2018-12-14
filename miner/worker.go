@@ -668,7 +668,6 @@ func (w *worker) taskLoop() {
 			w.pendingMu.Unlock()
 
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-				log.Info("接收task任务，在打包之前", "currentBlockNum", task.block.NumberU64(), "currentStateRoot", task.block.Root().String())
 				// 保存stateDB至缓存、receipts至缓存
 				w.consensusCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
 				w.consensusCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
@@ -768,7 +767,7 @@ func (w *worker) resultLoop() {
 			)
 			// Short circuit when receiving duplicate result caused by resubmitting.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Error("duplicate result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
+				log.Error("duplicate result caused by resubmitting or P2P sync.", "hash", hash, "number", block.NumberU64())
 				continue
 			}
 
@@ -791,7 +790,7 @@ func (w *worker) resultLoop() {
 				continue
 			}
 
-			log.Debug("cbft consensus successful", "hash", hash, "number", number, "timestamp", time.Now().UnixNano()/1e6)
+			log.Debug("cbft consensus successful", "hash", hash, "number", block.NumberU64(), "timestamp", time.Now().UnixNano()/1e6)
 
 			// Different block could share same sealhash, deep copy here to prevent write-write conflict.
 			var (
@@ -1231,7 +1230,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
 	log.Debug("remote transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", (commitTxRemoteEndTime - commitLocalTxEndTime))
 
-	w.commit(uncles, w.fullTaskHook, true, tstart)
+	w.commit(uncles, w.fullTaskHook, true, tstart, header)
 }
 
 // commit runs any post-transaction state modifications, assembles the final block

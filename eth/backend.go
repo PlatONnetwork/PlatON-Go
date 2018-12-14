@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"os"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -187,7 +186,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
 
 	// mpcPool deal with mpc transactions
-	// modify By J
 	if config.MPCPool.Journal != "" {
 		config.MPCPool.Journal = ctx.ResolvePath(config.MPCPool.Journal)
 	} else {
@@ -207,7 +205,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if _, ok := eth.engine.(consensus.Bft); ok {
 		cbft.SetDopsOption(eth.blockchain)
 	}
-	// 方法增加blockSignatureCh、cbftResultCh入参
+
 	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))

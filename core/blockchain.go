@@ -20,13 +20,12 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/golang-lru"
 	"io"
 	"math/big"
-	mrand "math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
-
 	"Platon-go/common"
 	"Platon-go/common/mclock"
 	"Platon-go/common/prque"
@@ -43,14 +42,6 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"Platon-go/trie"
-	"errors"
-	"fmt"
-	"github.com/hashicorp/golang-lru"
-	"io"
-	"math/big"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 var (

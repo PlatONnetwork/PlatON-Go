@@ -849,7 +849,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	}
 }
 
-func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
+func (pm *ProtocolManager) MulticastConsensus(a interface{}, consensusNodes []discover.NodeID) {
 	// 共识节点peer
 	peers := pm.peers.PeersWithConsensus(consensusNodes)
 	if peers == nil || len(peers) <= 0 {

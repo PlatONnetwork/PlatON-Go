@@ -43,12 +43,21 @@ type (
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
 func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, error) {
+
 	if contract.CodeAddr != nil {
 		precompiles := PrecompiledContractsHomestead
 		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {
 			precompiles = PrecompiledContractsByzantium
 		}
 		if p := precompiles[*contract.CodeAddr]; p != nil {
+			return RunPrecompiledContract(p, input, contract)
+		}
+		//ppos
+		if p := PrecompiledContractsPpos[*contract.CodeAddr]; p != nil {
+			if f, ok := p.(*candidateContract);ok {
+				f.contract = contract
+				f.evm = evm
+			}
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}
@@ -127,6 +136,9 @@ type EVM struct {
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
 	callGasTemp uint64
+
+	//ppos add
+	CandidatePool candidatePool
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should

@@ -79,25 +79,25 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	}
 	// modify by platon
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
-		// ½Ò°ñ(Èç¹û·ûºÏÌõ¼ş)
-		log.Warn("---ProcessÊÔÍ¼½Ò°ñ---", "number", block.Number())
+		// æ­æ¦œ(å¦‚æœç¬¦åˆæ¡ä»¶)
+		log.Warn("---Processè¯•å›¾æ­æ¦œ---", "number", block.Number())
 		if p.bc.shouldElectionFn(block.Number()) {
-			log.Warn("---Processµ÷ÓÃ½Ò°ñ---", "number", block.Number(), "state", statedb)
+			log.Warn("---Processè°ƒç”¨æ­æ¦œ---", "number", block.Number(), "state", statedb)
 			cbftEngine.Election(statedb, block.Number())
 		}
-		// ´¥·¢Ìæ»»ÏÂÂÖ¼ûÖ¤ÈËÁĞ±í(Èç¹û·ûºÏÌõ¼ş)
-		log.Warn("---ProcessÊÔÍ¼´¥·¢Ìæ»»ÏÂÂÖ¼ûÖ¤ÈËÁĞ±í---", "number", block.Number())
+		// è§¦å‘æ›¿æ¢ä¸‹è½®è§è¯äººåˆ—è¡¨(å¦‚æœç¬¦åˆæ¡ä»¶)
+		log.Warn("---Processè¯•å›¾è§¦å‘æ›¿æ¢ä¸‹è½®è§è¯äººåˆ—è¡¨---", "number", block.Number())
 		if p.bc.shouldSwitchFn(block.Number()) {
-			log.Warn("---Process´¥·¢Ìæ»»ÏÂÂÖ¼ûÖ¤ÈËÁĞ±í---", "number", block.Number(), "state", statedb)
+			log.Warn("---Processè§¦å‘æ›¿æ¢ä¸‹è½®è§è¯äººåˆ—è¡¨---", "number", block.Number(), "state", statedb)
 			cbftEngine.Switch(statedb)
 		}
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
-		// ¸üĞÂnodeCache
+		// æ›´æ–°nodeCache
 		blockNumber := block.Number()
-		log.Warn("---Process¸üĞÂnodeCache---", "number", block.Number())
+		log.Warn("---Processæ›´æ–°nodeCache---", "number", block.Number())
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 		cbftEngine.SetNodeCache(statedb, parentNumber, blockNumber, block.ParentHash(), block.Hash())
 	}
