@@ -34,9 +34,9 @@ type receiptsCache struct {
 
 func NewCache(blockChain *core.BlockChain) *Cache {
 	cache := &Cache{
-		stateDBCache:  make(map[common.Hash]*stateDBCache),
-		receiptsCache: make(map[common.Hash]*receiptsCache),
-		chain:         blockChain,
+		stateDBCache:        make(map[common.Hash]*stateDBCache),
+		receiptsCache:       make(map[common.Hash]*receiptsCache),
+		chain: blockChain,
 	}
 	return cache
 }

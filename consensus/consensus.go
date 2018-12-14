@@ -120,11 +120,27 @@ type PoW interface {
 type Bft interface {
 	Engine
 
-	// 返回当前共识节点地址列表
-	ConsensusNodes() ([]discover.NodeID, error)
+	// 返回上一轮共识节点地址列表
+	//FormerNodeID() []discover.NodeID
+
+	// 返回上一轮共识节点信息列表
+	FormerNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
+
+	// 返回当前轮共识节点地址列表
+	//CurrentNodeID() []discover.NodeID
+
+	// 返回当前轮共识节点信息列表
+	CurrentNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
+
+	// 返回下一轮共识节点地址列表
+	//NextNodeID() []discover.NodeID
+
+	IsCurrentNode(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) bool
+
+	ConsensusNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []discover.NodeID
 
 	// 返回当前节点是否轮值出块
-	ShouldSeal() (bool, error)
+	ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool
 
 	//收到新的区块签名
 	//需要验证签名是否时nodeID签名的
@@ -136,14 +152,22 @@ type Bft interface {
 	// Process the BFT signatures
 	OnPong(nodeID discover.NodeID, netLatency int64) error
 
-	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
+	//CheckConsensusNode(nodeID discover.NodeID) (bool, error)
 
-	IsConsensusNode() (bool, error)
+	//IsConsensusNode() (bool, error)
 
 	//目前最高的合理块，本节点出块时，需要基于最高合理块来生成区块。
 	HighestLogicalBlock() *types.Block
 
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
-	//SetBlockChain(blockChain *core.BlockChain)
+	Election(state *state.StateDB, blockNumber *big.Int) ([]*discover.Node, error)
+
+	Switch(state *state.StateDB) bool
+
+	GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error)
+
+	GetOwnNodeID() discover.NodeID
+
+	SetNodeCache(state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash) error
 }

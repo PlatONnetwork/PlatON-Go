@@ -12,6 +12,7 @@ type BlockSignature struct {
 	Hash      common.Hash //块hash，header[:]
 	Number    *big.Int
 	Signature *common.BlockConfirmSign
+	ParentHash common.Hash
 }
 
 type CbftResult struct {

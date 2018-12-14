@@ -264,7 +264,8 @@ func (pm *ProtocolManager) newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *p
 // this function terminates, the peer is disconnected.
 func (pm *ProtocolManager) handle(p *peer) error {
 	// Ignore maxPeers if this is a trusted peer
-	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted {
+	log.Info("eth接收到peer类型", "is consensus", p.Peer.Info().Network.Consensus)
+	if pm.peers.Len() >= pm.maxPeers && !p.Peer.Info().Network.Trusted && !p.Peer.Info().Network.Consensus {
 		return p2p.DiscTooManyPeers
 	}
 	p.Log().Debug("Ethereum peer connected", "name", p.Name())
@@ -723,11 +724,16 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			//if pm.downloader.IsRunning() {
 			//	log.Warn("downloader is running,discard this msg")
 			//}
+			/*
 			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
 				log.Warn("local node is not consensus node,discard this msg")
 			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
 				log.Warn("remote node is not consensus node,discard this msg")
 			} else if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
+				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
+			}
+			*/
+			if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
 				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
 			}
 			return nil
@@ -742,18 +748,23 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 
-		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
-		engineBlockSignature := &cbfttypes.BlockSignature{request.SignHash, request.Hash, request.Number, request.Signature}
+		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
+		engineBlockSignature := &cbfttypes.BlockSignature{SignHash: request.SignHash, Hash: request.Hash, Number: request.Number, Signature: request.Signature}
 
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
 			//if pm.downloader.IsRunning() {
 			//	log.Warn("downloader is running,discard this msg")
 			//}
+			/*
 			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
 				log.Warn("local node is not consensus node,discard this msg")
 			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
 				log.Warn("remote node is not consensus node,discard this msg")
 			} else if err := cbftEngine.OnBlockSignature(pm.blockchain, p.Peer.ID(), engineBlockSignature); err != nil {
+				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
+			}
+			*/
+			if err := cbftEngine.OnBlockSignature(pm.blockchain, p.Peer.ID(), engineBlockSignature); err != nil {
 				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
 			}
 			return nil
@@ -840,7 +851,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 
 func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 	// 共识节点peer
-	peers := pm.peers.PeersWithConsensus(pm.engine)
+	peers := pm.peers.PeersWithConsensus(consensusNodes)
 	if peers == nil || len(peers) <= 0 {
 		log.Error("consensus peers is empty")
 	}
@@ -912,7 +923,7 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
 	for obj := range pm.prepareMinedBlockSub.Chan() {
 		if ev, ok := obj.Data.(core.PrepareMinedBlockEvent); ok {
-			pm.MulticastConsensus(ev.Block) // propagate block to consensus peers
+			pm.MulticastConsensus(ev.Block, ev.ConsensusNodes) // propagate block to consensus peers
 		}
 	}
 }
@@ -920,7 +931,7 @@ func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
 func (pm *ProtocolManager) blockSignaturecastLoop() {
 	for obj := range pm.blockSignatureSub.Chan() {
 		if ev, ok := obj.Data.(core.BlockSignatureEvent); ok {
-			pm.MulticastConsensus(ev.BlockSignature) // propagate blockSignature to consensus peers
+			pm.MulticastConsensus(ev.BlockSignature, ev.ConsensusNodes) // propagate blockSignature to consensus peers
 		}
 	}
 }

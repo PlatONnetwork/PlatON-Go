@@ -540,3 +540,6 @@ func (self *stateObject) setAbi(abiHash common.Hash, abi []byte) {
 	self.abi = abi
 	self.data.AbiHash = abiHash[:]
 }
+func (self *stateObject) GetStorageTrie (db Database) Trie {
+	return self.getTrie(db)
+}

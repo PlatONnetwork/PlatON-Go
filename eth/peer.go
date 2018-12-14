@@ -17,8 +17,8 @@
 package eth
 
 import (
-	"Platon-go/consensus"
 	"Platon-go/core/cbfttypes"
+	"Platon-go/p2p/discover"
 	"errors"
 	"fmt"
 	"math/big"
@@ -149,7 +149,7 @@ func (p *peer) broadcast() {
 			p.Log().Trace("Propagated prepare block", "number", prop.block.Number(), "hash", prop.block.Hash())
 
 		case prop := <-p.queuedSignature:
-			signature := &cbfttypes.BlockSignature{prop.SignHash, prop.Hash, prop.Number, prop.Signature}
+			signature := &cbfttypes.BlockSignature{SignHash: prop.SignHash, Hash: prop.Hash, Number: prop.Number, Signature: prop.Signature}
 			if err := p.SendSignature(signature); err != nil {
 				return
 			}
@@ -544,48 +544,43 @@ func (ps *peerSet) Close() {
 	ps.closed = true
 }
 
-func (ps *peerSet) PeersWithConsensus(engine consensus.Engine) []*peer {
+func (ps *peerSet) PeersWithConsensus(consensusNodes []discover.NodeID) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
-	if cbftEngine, ok := engine.(consensus.Bft); ok {
-		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
-			list := make([]*peer, 0, len(consensusNodes))
-			for _, nodeID := range consensusNodes {
-				nodeID := fmt.Sprintf("%x", nodeID.Bytes()[:8])
-				if peer, ok := ps.peers[nodeID]; ok {
-					list = append(list, peer)
-				}
-			}
-			return list
-		}
-	}
-	return nil
-}
-
-func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	consensusNodeMap := make(map[string]string)
-	if cbftEngine, ok := engine.(consensus.Bft); ok {
-		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
-			for _, nodeID := range consensusNodes {
-				nodeID := fmt.Sprintf("%x", nodeID.Bytes()[:8])
-				consensusNodeMap[nodeID] = nodeID
-			}
-		}
-	}
-
-	list := make([]*peer, 0, len(ps.peers))
-	for nodeId, peer := range ps.peers {
-		if _, ok := consensusNodeMap[nodeId]; !ok {
+	list := make([]*peer, 0, len(consensusNodes))
+	for _, nodeID := range consensusNodes {
+		nodeID := fmt.Sprintf("%x", nodeID.Bytes()[:8])
+		if peer, ok := ps.peers[nodeID]; ok {
 			list = append(list, peer)
 		}
 	}
-
 	return list
 }
+
+//func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
+//	ps.lock.RLock()
+//	defer ps.lock.RUnlock()
+//
+//	consensusNodeMap := make(map[string]string)
+//	if cbftEngine, ok := engine.(consensus.Bft); ok {
+//		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
+//			for _, nodeID := range consensusNodes {
+//				nodeID := fmt.Sprintf("%x", nodeID.Bytes()[:8])
+//				consensusNodeMap[nodeID] = nodeID
+//			}
+//		}
+//	}
+//
+//	list := make([]*peer, 0, len(ps.peers))
+//	for nodeId, peer := range ps.peers {
+//		if _, ok := consensusNodeMap[nodeId]; !ok {
+//			list = append(list, peer)
+//		}
+//	}
+//
+//	return list
+//}
 
 type preBlockEvent struct {
 	block *types.Block

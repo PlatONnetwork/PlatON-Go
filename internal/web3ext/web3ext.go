@@ -153,6 +153,16 @@ web3._extend({
 			params: 1
 		}),
 		new web3._extend.Method({
+			name: 'addConsensusPeer',
+			call: 'admin_addConsensusPeer',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'removeConsensusPeer',
+			call: 'admin_removeConsensusPeer',
+			params: 1
+		}),
+		new web3._extend.Method({
 			name: 'addTrustedPeer',
 			call: 'admin_addTrustedPeer',
 			params: 1

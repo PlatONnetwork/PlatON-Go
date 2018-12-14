@@ -161,6 +161,22 @@ type CbftConfig struct {
 	//InitialNodes []discover.Node   `json:"initialNodes"`
 	//NodeID       discover.NodeID   `json:"nodeID,omitempty"`
 	//PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
+	Ppos 			*PposConfig 	`json:"ppos"`
+}
+
+// modify by platon
+type PposConfig struct {
+	Candidate 				*CandidateConfig 			`json:"candidate"`
+}
+// modify by platon
+type CandidateConfig struct {
+	// allow immediate elected max count
+	MaxCount				uint64					`json:"maxCount"`
+	// allow witness max count
+	MaxChair				uint64					`json:"maxChair"`
+	// allow block interval for refunds
+	RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
+
 }
 
 type configMarshaling struct {

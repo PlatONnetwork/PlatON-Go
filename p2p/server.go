@@ -63,6 +63,8 @@ type Config struct {
 	// connected. It must be greater than zero.
 	MaxPeers int
 
+	MaxConsensusPeers int
+
 	// MaxPendingPeers is the maximum number of peers that can be pending in the
 	// handshake phase, counted separately for inbound and outbound connections.
 	// Zero defaults to preset values.
@@ -545,7 +547,7 @@ func (srv *Server) Start() (err error) {
 	}
 
 	dynPeers := srv.maxDialedConns()
-	dialer := newDialState(srv.StaticNodes, srv.BootstrapNodes, srv.ntab, dynPeers, srv.NetRestrict)
+	dialer := newDialState(srv.StaticNodes, srv.BootstrapNodes, srv.ntab, dynPeers, srv.NetRestrict, srv.MaxConsensusPeers)
 
 	// handshake
 	srv.ourHandshake = &protoHandshake{Version: baseProtocolVersion, Name: srv.Name, ID: discover.PubkeyID(&srv.PrivateKey.PublicKey)}
@@ -597,6 +599,8 @@ type dialer interface {
 	removeStatic(*discover.Node)
 	addConsensus(*discover.Node)
 	removeConsensus(*discover.Node)
+	removeConsensusFromQueue(*discover.Node)
+	initRemoveConsensusPeerFn(removeConsensusPeerFn removeConsensusPeerFn)
 }
 
 func (srv *Server) run(dialstate dialer) {
@@ -608,6 +612,7 @@ func (srv *Server) run(dialstate dialer) {
 		taskdone     = make(chan task, maxActiveDialTasks)
 		runningTasks []task
 		queuedTasks  []task // tasks that can't run yet
+
 	)
 	// Put trusted nodes into a map to speed up checks.
 	// Trusted peers are loaded on startup or added via AddTrustedPeer RPC.
@@ -638,12 +643,23 @@ func (srv *Server) run(dialstate dialer) {
 	scheduleTasks := func() {
 		// Start from queue first.
 		queuedTasks = append(queuedTasks[:0], startTasks(queuedTasks)...)
+		log.Warn("queuedTasks1", "length", len(queuedTasks))
 		// Query dialer for new tasks and start as many as possible now.
+		log.Warn("runningTasks", "length", len(runningTasks))
 		if len(runningTasks) < maxActiveDialTasks {
 			nt := dialstate.newTasks(len(runningTasks)+len(queuedTasks), peers, time.Now())
 			queuedTasks = append(queuedTasks, startTasks(nt)...)
+			log.Warn("queuedTasks2", "length", len(queuedTasks))
 		}
 	}
+	dialstateRemoveConsensusPeerFn := func(node *discover.Node) {
+		srv.log.Trace("Removing consensus node from dialstate", "node", node)
+		dialstate.removeConsensusFromQueue(node)
+		if p, ok := peers[node.ID]; ok {
+			p.Disconnect(DiscRequested)
+		}
+	}
+	dialstate.initRemoveConsensusPeerFn(dialstateRemoveConsensusPeerFn)
 
 running:
 	for {

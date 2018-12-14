@@ -18,6 +18,15 @@
 package core
 
 import (
+	"errors"
+	"fmt"
+	"io"
+	"math/big"
+	mrand "math/rand"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"Platon-go/common"
 	"Platon-go/common/mclock"
 	"Platon-go/common/prque"
@@ -61,6 +70,12 @@ const (
 	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
 	BlockChainVersion = 3
 )
+
+type shouldElectionFn func(blockNumber *big.Int) bool
+
+type shouldSwitchFn func(blockNumber *big.Int) bool
+
+type attemptAddConsensusPeerFn func(blockNumber *big.Int, state *state.StateDB)
 
 // CacheConfig contains the configuration values for the trie caching/pruning
 // that's resident in a blockchain.
@@ -128,6 +143,10 @@ type BlockChain struct {
 
 	badBlocks      *lru.Cache              // Bad block cache
 	shouldPreserve func(*types.Block) bool // Function used to determine whether should preserve the given block.
+
+	shouldElectionFn	shouldElectionFn
+	shouldSwitchFn	shouldSwitchFn
+	attemptAddConsensusPeerFn	attemptAddConsensusPeerFn
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -195,6 +214,12 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	return bc, nil
 }
 
+func (bc *BlockChain) InitConsensusPeerFn(seFn shouldElectionFn, ssFn shouldSwitchFn, addFn attemptAddConsensusPeerFn) {
+	bc.shouldElectionFn = seFn
+	bc.shouldSwitchFn = ssFn
+	bc.attemptAddConsensusPeerFn = addFn
+}
+
 func (bc *BlockChain) getProcInterrupt() bool {
 	return atomic.LoadInt32(&bc.procInterrupt) == 1
 }
@@ -219,7 +244,7 @@ func (bc *BlockChain) loadLastState() error {
 	// Make sure the state associated with the block is available
 	if _, err := state.New(currentBlock.Root(), bc.stateCache); err != nil {
 		// Dangling block without a state associated, init from scratch
-		log.Warn("Head state missing, repairing chain", "number", currentBlock.Number(), "hash", currentBlock.Hash(), "err", err)
+		log.Warn("Head state missing, repairing chain", "number", currentBlock.Number(), "hash", currentBlock.Hash())
 		if err := bc.repair(&currentBlock); err != nil {
 			return err
 		}
@@ -1202,6 +1227,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
+
+		// modify by platon
+		if _, ok := bc.engine.(consensus.Bft); ok {
+			log.Warn("---insertchain尝试连接下一轮共识节点---", "number", block.Number(), "state", state)
+			bc.attemptAddConsensusPeerFn(block.Number(), state)
+		}
+
 		switch status {
 		case CanonStatTy:
 			log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
@@ -1237,6 +1269,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 //joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
+	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {
@@ -1254,7 +1287,6 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	if logs != nil {
 		bc.logsFeed.Send(logs)
 	}
-
 	return receipts, nil
 }
 
