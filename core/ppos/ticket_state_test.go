@@ -120,12 +120,12 @@ func TestVoteTicket(t *testing.T)  {
 	//expireTickets, err := ticketPool.GetTicketList(state, expireTicketIds)
 
 	ticketPool.SurplusQuantity, err = ticketPool.GetPoolNumber(state)
-
+	candidateAttach, err := ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 
 	//fmt.Printf("print info:\n\t%+v\n\t%+v\n\t%+v\n\t%+v,%v", candidatePool, ticketPool, candidate, ticketList, err)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), candidate.TCount, candidate.Epoch)
-	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketDetailAddr))
+		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), 0, candidateAttach.Epoch)
+	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 	fmt.Println("------all ticket-----")
 	for _, ticket := range ticketList {
 		fmt.Printf("ticket:%+v,ticketId:[%v]\n", ticket, ticket.TicketId.Hex())
@@ -140,7 +140,7 @@ func TestVoteTicket(t *testing.T)  {
 	//selectedTicketId := ticketList[selectedTicketIndex].TicketId
 	t.Logf("-----------开始释放一张选票【%v】-----------\n", luckyTicketId.Hex())
 	tempTime := time.Now().UnixNano() / 1e6
-	err = ticketPool.ReturnTicket(state, candidate, luckyTicketId, blockNumber)
+	err = ticketPool.ReturnTicket(state, candidate.CandidateId, luckyTicketId, blockNumber)
 	if nil != err {
 		t.Error("ReleaseSelectedTicket error", err)
 	}
@@ -157,9 +157,10 @@ func TestVoteTicket(t *testing.T)  {
 		t.Error("GetExpireTicketIds error", err)
 	}
 	ticketPool.SurplusQuantity, err = ticketPool.GetPoolNumber(state)
+	candidateAttach, err = ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), candidate.TCount, candidate.Epoch)
-	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketDetailAddr))
+		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), 0, candidateAttach.Epoch)
+	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 
 	for i := 0; i < len(ownerList); i++ {
 		ownerNormalTicketIds, err := ticketPool.GetOwnerNormalTicketIds(state, ownerList[i])
@@ -187,10 +188,11 @@ func TestVoteTicket(t *testing.T)  {
 		t.Error("GetExpireTicketIds error", err)
 	}
 	ticketPool.SurplusQuantity, err = ticketPool.GetPoolNumber(state)
+	candidateAttach, err = ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 	t.Logf("处理完过期票块高为：[%d]", blockNumber)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), candidate.TCount, candidate.Epoch)
-	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketDetailAddr))
+		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), 0, candidateAttach.Epoch)
+	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 
 	for i := 0; i < len(ownerList); i++ {
 		ownerNormalTicketIds, err := ticketPool.GetOwnerNormalTicketIds(state, ownerList[i])

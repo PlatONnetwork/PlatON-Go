@@ -11,7 +11,6 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"errors"
-	"fmt"
 	"github.com/satori/go.uuid"
 	"math/big"
 	"sort"
@@ -63,6 +62,13 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 }
 
 func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) error {
+	t.voteTicket(stateDB, owner, deposit, nodeId, blockNumber)
+	// 调用候选人重新排序接口
+	candidatePool.UpdateElectedQueue(stateDB, nodeId)
+	return nil
+}
+
+func(t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	// check ticket pool count
@@ -111,8 +117,6 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 	if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
 		return err
 	}
-	// 调用候选人重新排序接口
-
 	return nil
 }
 
@@ -355,11 +359,15 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int, nodeId dis
 			return HandleExpireTicketErr
 		} else {
 			// 处理完过期票之后，通知候选人更新榜单信息
-			fmt.Println(nodeIdList)
+			candidatePool.UpdateElectedQueue(stateDB, nodeIdList...)
 		}
 	}
 	// 每个候选人增加总票龄
-	
+	nodeIdList, err := t.calcCandidateEpoch(stateDB)
+	if nil != err {
+		return err
+	}
+	candidatePool.UpdateElectedQueue(stateDB, nodeIdList...)
 	return nil
 }
 
