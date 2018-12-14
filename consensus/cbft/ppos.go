@@ -36,12 +36,12 @@ type ppos struct {
 
 
 func newPpos(config *params.CbftConfig) *ppos {
-	canpoolPtr := pposm.NewCandidatePool(config.PposConfig)
 	return &ppos{
 		lastCycleBlockNum: 	0,
 		config:            	config.PposConfig,
-		candidatePool:     	canpoolPtr,
+		candidatePool:     	pposm.NewCandidatePool(config.PposConfig),
 		ticketPool: 		pposm.NewTicketPool(config.PposConfig),
+		ticketidsCache: 	pposm.NewTicketIdsCache(),
 	}
 }
 
