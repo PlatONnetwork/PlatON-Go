@@ -29,6 +29,8 @@ type ppos struct {
 	candidatePool 			*pposm.CandidatePool
 	// the ticket pool object pointer
 	ticketPool				*pposm.TicketPool
+	// the ticket id list cache
+	ticketidsCache 			*pposm.NumBlocks
 }
 
 

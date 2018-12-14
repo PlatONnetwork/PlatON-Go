@@ -16,10 +16,12 @@ var (
 	ErrFaile = errors.New("fail")
 )
 
+var ticketidsCache *NumBlocks
+
 func newTicketIdsCache() (*NumBlocks, error)  {
 
 	//read from leveldb
-	instance := &NumBlocks{}
+	ticketidsCache = &NumBlocks{}
 
 	//test
 	fname := ".//pb1.bin"
@@ -28,11 +30,12 @@ func newTicketIdsCache() (*NumBlocks, error)  {
 		log.Fatalln("Error reading file:", err)
 	}
 	if len(in)!=0 {
-		if err := proto.Unmarshal(in, instance); err != nil {
+		if err := proto.Unmarshal(in, ticketidsCache); err != nil {
 			log.Fatalln("Failed to parse address book:", err)
 		}
 	}
-	return instance, ErrFaile
+
+	return ticketidsCache, ErrFaile
 }
 
 func (nb *NumBlocks) Put(blocknumber *big.Int, blockhash common.Hash, nodeId discover.NodeID, tIds []common.Hash) error  {
@@ -64,20 +67,30 @@ func (nb *NumBlocks) Put(blocknumber *big.Int, blockhash common.Hash, nodeId dis
 
 func (nb *NumBlocks) Del(ticketIds []common.Hash) error {
 
+
+
+
 	return ErrFaile
 }
 
 func (nb *NumBlocks) Get(blocknumber *big.Int, blockhash common.Hash, nodeId discover.NodeID)([]common.Hash, error) {
+
+
 
 	return []common.Hash{}, ErrFaile
 }
 
 func (nb *NumBlocks) Hash(blockhash common.Hash) common.Hash {
 
+
+
 	return common.Hash{}
 }
 
 func (nb *NumBlocks) TCount() *big.Int {
+
+
+
 	return big.NewInt(0)
 }
 
