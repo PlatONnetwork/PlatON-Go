@@ -90,7 +90,7 @@ func TestVoteTicket(t *testing.T)  {
 				tempBlockNumber.SetUint64(6)
 				t.Logf("vote blockNumber[%v]", tempBlockNumber.Uint64())
 			}
-			err := ticketPool.VoteTicket(state, voteOwner, deposit, candidate.CandidateId, tempBlockNumber)
+			_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 			if nil != err {
 				fmt.Println("vote ticket error:", err)
 			}
@@ -119,7 +119,7 @@ func TestVoteTicket(t *testing.T)  {
 	}
 	//expireTickets, err := ticketPool.GetTicketList(state, expireTicketIds)
 
-	ticketPool.SurplusQuantity, err = ticketPool.GetPoolNumber(state)
+	ticketPool.GetPoolNumber(state)
 	candidateAttach, err := ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 
 	//fmt.Printf("print info:\n\t%+v\n\t%+v\n\t%+v\n\t%+v,%v", candidatePool, ticketPool, candidate, ticketList, err)
@@ -156,7 +156,7 @@ func TestVoteTicket(t *testing.T)  {
 	if nil != err {
 		t.Error("GetExpireTicketIds error", err)
 	}
-	ticketPool.SurplusQuantity, err = ticketPool.GetPoolNumber(state)
+	ticketPool.GetPoolNumber(state)
 	candidateAttach, err = ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
 		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), 0, candidateAttach.Epoch)
@@ -187,7 +187,7 @@ func TestVoteTicket(t *testing.T)  {
 	if nil != err {
 		t.Error("GetExpireTicketIds error", err)
 	}
-	ticketPool.SurplusQuantity, err = ticketPool.GetPoolNumber(state)
+	ticketPool.GetPoolNumber(state)
 	candidateAttach, err = ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 	t.Logf("处理完过期票块高为：[%d]", blockNumber)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
