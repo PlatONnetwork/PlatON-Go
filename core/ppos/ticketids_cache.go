@@ -22,7 +22,7 @@ var (
 
 var ticketidsCache *NumBlocks
 
-func newTicketIdsCache() (*NumBlocks, error)  {
+func NewTicketIdsCache()  *NumBlocks  {
 
 	//read from leveldb
 	ticketidsCache = &NumBlocks{}
@@ -32,14 +32,16 @@ func newTicketIdsCache() (*NumBlocks, error)  {
 	in, err := ioutil.ReadFile(fname)
 	if err != nil {
 		log.Fatalln("Error reading file:", err)
+		panic("Error reading file:" + err.Error())
 	}
 	if len(in)!=0 {
 		if err := proto.Unmarshal(in, ticketidsCache); err != nil {
 			log.Fatalln("Failed to parse address book:", err)
+			panic("Failed to parse address book:" + err.Error())
 		}
 	}
 
-	return ticketidsCache, ErrFaile
+	return ticketidsCache
 }
 
 func (nb *NumBlocks) Put(blocknumber *big.Int, blockhash common.Hash, nodeId discover.NodeID, tIds []common.Hash) error  {

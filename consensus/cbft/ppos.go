@@ -36,12 +36,12 @@ type ppos struct {
 
 
 func newPpos(config *params.CbftConfig) *ppos {
-	canpoolPtr := pposm.NewCandidatePool(config.PposConfig)
 	return &ppos{
 		lastCycleBlockNum: 	0,
 		config:            	config.PposConfig,
-		candidatePool:     	canpoolPtr,
+		candidatePool:     	pposm.NewCandidatePool(config.PposConfig),
 		ticketPool: 		pposm.NewTicketPool(config.PposConfig),
+		ticketidsCache: 	pposm.NewTicketIdsCache(),
 	}
 }
 
@@ -70,8 +70,7 @@ func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash,
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
-	log.Warn("BlockProducerIndex", "parentNumber", parentNumber, "parentHash", parentHash, "blockNumber", blockNumber, "nodeID", nodeID, "round", round)
-	pposm.PrintObject("BlockProducerIndex nodeID", nodeID)
+	log.Warn("BlockProducerIndex", "parentNumber", parentNumber, "parentHash", parentHash.String(), "blockNumber", blockNumber.String(), "nodeID", nodeID.String(), "round", round)
 
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
 	d.printMapInfo("BlockProducerIndex", parentNumber.Uint64(), parentHash)
@@ -510,8 +509,8 @@ func (d *ppos) GetRefundInterval() uint64 {
 }
 
 // update candidate's tickets
-func (d *ppos) UpdateCandidateTicket (state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
-	return d.candidatePool.UpdateCandidateTicket(state, nodeId, can)
+func (d *ppos) UpdateCandidateTicket (state vm.StateDB, blockNumber *big.Int, nodeId discover.NodeID, can *types.Candidate) error {
+	return d.candidatePool.UpdateCandidateTicket(state, blockNumber, nodeId, can)
 }
 
 /** about ticketpool's method */
