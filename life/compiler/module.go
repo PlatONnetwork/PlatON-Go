@@ -3,6 +3,8 @@ package compiler
 import (
 	"bytes"
 	"encoding/binary"
+	"runtime"
+
 	//"fmt"
 	"github.com/go-interpreter/wagon/disasm"
 	"github.com/go-interpreter/wagon/wasm"
@@ -32,6 +34,7 @@ func LoadModule(raw []byte) (*Module, error) {
 
 	m, err := wasm.ReadModule(reader, nil)
 	if err != nil {
+		runtime.GC()
 		return nil, err
 	}
 
