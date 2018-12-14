@@ -111,8 +111,8 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		from,
 		extra,
 		fee,
-		0,
-		new(big.Int).SetUint64(0),
+		//0,
+		//new(big.Int).SetUint64(0),
 		common.Hash{},
 	}
 	logInfo("CandidateDeposit==> ","canDeposit: ", canDeposit)

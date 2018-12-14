@@ -11,7 +11,6 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"errors"
-	"fmt"
 	"github.com/satori/go.uuid"
 	"math/big"
 	"sort"
@@ -62,58 +61,75 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 	return ticketPool
 }
 
-func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) error {
+func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
+	voteTicketIdList, err := t.voteTicket(stateDB, owner, voteNumber, deposit, nodeId, blockNumber)
+	if nil != err {
+		return voteTicketIdList, err
+	}
+	// 调用候选人重新排序接口
+	candidatePool.UpdateElectedQueue(stateDB, nodeId)
+	return voteTicketIdList, nil
+}
+
+func(t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
+	voteTicketIdList := make([]common.Hash, 0)
 	// check ticket pool count
+	t.GetPoolNumber(stateDB)
 	if t.SurplusQuantity == 0 {
 		log.Error("Ticket Insufficient quantity", TicketNilErr)
-		return TicketNilErr
+		return voteTicketIdList, TicketNilErr
+	}
+	if t.SurplusQuantity < voteNumber {
+		voteNumber -= t.SurplusQuantity
 	}
 	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
 	if nil != err {
-		return err
+		return voteTicketIdList, err
 	}
 	ownerTicketIds, err := t.GetOwnerNormalTicketIds(stateDB, owner)
 	if nil != err {
-		return err
+		return voteTicketIdList, err
 	}
-	ticketId, err := generateTicketId()
-	if err != nil {
-		return err
-	}
-	ticket := &types.Ticket{
-		TicketId:		ticketId,
-		Owner:			owner,
-		Deposit:		deposit,
-		CandidateId:	nodeId,
-		BlockNumber:	blockNumber,
-	}
-	candidateTicketIds = append(candidateTicketIds, ticketId)
-	ownerTicketIds = append(ownerTicketIds, ticketId)
-	if err := t.setTicket(stateDB, ticketId, ticket); err != nil {
-		return err
+	var i uint64 = 0
+	for ; i < voteNumber; i++ {
+		ticketId, err := generateTicketId()
+		if err != nil {
+			return voteTicketIdList, err
+		}
+		ticket := &types.Ticket{
+			TicketId:		ticketId,
+			Owner:			owner,
+			Deposit:		deposit,
+			CandidateId:	nodeId,
+			BlockNumber:	blockNumber,
+		}
+		voteTicketIdList = append(voteTicketIdList, ticketId)
+		candidateTicketIds = append(candidateTicketIds, ticketId)
+		ownerTicketIds = append(ownerTicketIds, ticketId)
+		if err := t.setTicket(stateDB, ticketId, ticket); err != nil {
+			return voteTicketIdList, err
+		}
+		if err := t.recordExpireTicket(stateDB, blockNumber, ticketId); err != nil {
+			return voteTicketIdList, err
+		}
+		if err := t.subPoolNumber(stateDB); err != nil {
+			return voteTicketIdList, err
+		}
 	}
 	// 设置购票人的购票关联信息
 	if err := t.setOwnerNormalTicketIds(stateDB, owner, ownerTicketIds); err != nil {
-		return err
-	}
-	if err := t.recordExpireTicket(stateDB, blockNumber, ticketId); err != nil {
-		return err
+		return voteTicketIdList, err
 	}
 	if err := t.setCandidateTicketIds(stateDB, nodeId, candidateTicketIds); err != nil {
-		return err
-	}
-	if err := t.subPoolNumber(stateDB); err != nil {
-		return err
+		return voteTicketIdList, err
 	}
 	candidateAttach := new(types.CandidateAttach)
 	if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
-		return err
+		return voteTicketIdList, err
 	}
-	// 调用候选人重新排序接口
-
-	return nil
+	return voteTicketIdList, nil
 }
 
 func setOwnerTicketIds(stateDB vm.StateDB, key []byte, ticketIds []common.Hash) error {
@@ -151,12 +167,13 @@ func (t *TicketPool) GetOwnerNormalTicketIds(stateDB vm.StateDB, owner common.Ad
 	return getOwnerTicketIds(stateDB, AccountNormalTicketIdsKey(owner.Bytes()))
 }
 
-func (t *TicketPool) calcExpireBlockNumber(stateDB vm.StateDB, blockNumber *big.Int) *big.Int {
-	num := new(big.Int).SetUint64(-1)
+func (t *TicketPool) calcExpireBlockNumber(stateDB vm.StateDB, blockNumber *big.Int) (*big.Int, bool) {
+	num := new(big.Int).SetUint64(0)
 	if blockNumber.Cmp(new(big.Int).SetUint64(t.ExpireBlockNumber)) >= 0 {
 		num.Sub(blockNumber, new(big.Int).SetUint64(t.ExpireBlockNumber))
+		return num, true
 	}
-	return num
+	return num, false
 }
 
 func (t *TicketPool) GetExpireTicketIds(stateDB vm.StateDB, blockNumber *big.Int) ([]common.Hash, error) {
@@ -348,39 +365,39 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int, nodeId dis
 	// 发放奖励
 
 	// 检查过期票
-	expireBlockNumber := t.calcExpireBlockNumber(stateDB, blockNumber)
-	if expireBlockNumber.Uint64() > -1 {
+	expireBlockNumber, ok := t.calcExpireBlockNumber(stateDB, blockNumber)
+	if ok {
 		if nodeIdList, err := t.handleExpireTicket(stateDB, expireBlockNumber); nil != err {
 			log.Error("OutBlockNotice method handleExpireTicket error", "blockNumber", *blockNumber, "err", err)
 			return HandleExpireTicketErr
 		} else {
 			// 处理完过期票之后，通知候选人更新榜单信息
-			fmt.Println(nodeIdList)
+			candidatePool.UpdateElectedQueue(stateDB, nodeIdList...)
 		}
 	}
 	// 每个候选人增加总票龄
-	
+	if err := t.calcCandidateEpoch(stateDB); nil != err {
+		return err
+	}
 	return nil
 }
 
-func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB) ([]discover.NodeID, error) {
+func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	candidateList := candidatePool.GetChosens(stateDB, 0)
-	nodeIdList := make([]discover.NodeID, 0)
 	for _, candidate := range candidateList {
 		candidateAttach, err := t.GetCandidateAttach(stateDB, candidate.CandidateId)
 		if nil != err {
-			return nil, err
+			return err
 		}
-		nodeIdList = append(nodeIdList, candidate.CandidateId)
 		// 获取总票数，增加总票龄
 		//candidateAttach.AddEpoch()
 		if err := t.setCandidateAttach(stateDB, candidate.CandidateId, candidateAttach); nil != err {
-			return nil, err
+			return err
 		}
 	}
-	return nodeIdList, nil
+	return nil
 }
 
 func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.NodeID, blockHash common.Hash) (common.Hash, error) {
@@ -435,8 +452,15 @@ func (t *TicketPool) setPoolNumber(stateDB vm.StateDB, surplusQuantity uint64) e
 
 func (t *TicketPool) GetPoolNumber(stateDB vm.StateDB) (uint64, error) {
 	var surplusQuantity uint64
-	if err := getTicketPoolState(stateDB, SurplusQuantityKey, &surplusQuantity); nil != err {
-		return 0, DecodePoolNumberErr
+	if val := stateDB.GetState(common.TicketPoolAddr, SurplusQuantityKey); len(val) > 0 {
+		if err := rlp.DecodeBytes(val, &surplusQuantity); nil != err {
+			log.Error("Decode PoolNumber error", "key", string(SurplusQuantityKey), "err", err)
+			return surplusQuantity, DecodePoolNumberErr
+		}
+		t.SurplusQuantity = surplusQuantity
+	} else {
+		// Default initialization values
+		surplusQuantity = t.SurplusQuantity
 	}
 	return surplusQuantity, nil
 }
