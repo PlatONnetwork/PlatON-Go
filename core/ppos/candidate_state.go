@@ -880,7 +880,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 	return nil
 }
 
-// Announce witness
+// Announce witness // TODO 需要抽出小方法
 func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error) {
 	log.Info("揭榜...")
 	PrintObject("揭榜 maxChair：", c.maxChair)
@@ -956,6 +956,8 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 	}
 
 	// 揭榜后回去调 获取幸运票逻辑 TODO
+
+	// 获取TCount TODO
 
 	// 然后需要对入围候选人再次做排序 TODO
 
