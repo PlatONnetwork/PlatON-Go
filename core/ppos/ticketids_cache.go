@@ -87,10 +87,10 @@ func (nb *NumBlocks) Hash(blockhash common.Hash) common.Hash {
 	return common.Hash{}
 }
 
-func (nb *NumBlocks) TCount() *big.Int {
+func (nb *NumBlocks) TCount(blockhash common.Hash, nodeId discover.NodeID) *big.Int {
 
 
-
+	
 	return big.NewInt(0)
 }
 
