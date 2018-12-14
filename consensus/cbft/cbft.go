@@ -179,10 +179,8 @@ func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 			if len(ext.signs) >= cbft.getThreshold() {
 				ext.isConfirmed = true
 			}
-			log.Debug("count signatures", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "isConfirmed", ext.isConfirmed)
-		} else {
-			log.Debug("count signatures for unreceived block", "number", ext.number, "signCount", len(ext.signs), "isConfirmed", ext.isConfirmed)
 		}
+		log.Debug("count signatures", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "isLinked", ext.isLinked, "isConfirmed", ext.isConfirmed)
 	}
 }
 
@@ -763,11 +761,11 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		return errDuplicatedBlock
 	}
 
-	//collect the block's sign of producer
-	cbft.collectSign(ext, common.NewBlockConfirmSign(sign))
-
 	//make tree node
 	cbft.buildTreeNode(ext)
+
+	//collect the block's sign of producer
+	cbft.collectSign(ext, common.NewBlockConfirmSign(sign))
 
 	if ext.isLinked {
 		if err := cbft.executeBlockAndDescendant(ext, ext.parent); err != nil {
@@ -789,7 +787,6 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		} else {
 			//分支
 			closestConfirmed := cbft.findClosestConfirmedIncludingSelf(ext)
-			//分支上发现有确认块，并且此块高度小于主链的最高确认块。说明在主链上低于最高确认块，且与新确认块相同高度的块，一定是未确认块。则发生分叉
 
 			//if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number && !closestConfirmed.isAncestor(cbft.highestConfirmed){
 			if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number {
