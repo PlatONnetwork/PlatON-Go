@@ -39,7 +39,7 @@ func newPpos(config *params.CbftConfig) *ppos {
 		lastCycleBlockNum: 	0,
 		config:            	config.PposConfig,
 		candidatePool:     	canpoolPtr,
-		ticketPool: 		pposm.NewTicketPool(config.PposConfig, canpoolPtr),
+		ticketPool: 		pposm.NewTicketPool(config.PposConfig),
 	}
 }
 

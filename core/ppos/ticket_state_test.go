@@ -45,7 +45,7 @@ func TestVoteTicket(t *testing.T)  {
 
 	candidatePool := pposm.NewCandidatePool(&configs)
 
-	ticketPool := pposm.NewTicketPool(&configs, candidatePool)
+	ticketPool := pposm.NewTicketPool(&configs)
 
 	t.Log("MaxCount", ticketPool.MaxCount, "ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 

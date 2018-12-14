@@ -34,12 +34,25 @@ type Candidate struct {
 	// Voted ticket'id set
 	//TicketPool		[]common.Hash
 	// Voted ticket count
-	TCount    		uint64				`json:"tcount"`
+	//TCount    		uint64				`json:"tcount"`
 	// Ticket age
-	Epoch			*big.Int			`json:"epoch"`
+	//Epoch			*big.Int			`json:"epoch"`
 	// Selected TicketId
 	TicketId		common.Hash
 	// brokerage
 	//Brokerage		uint64				`json:"brokerage"`
+}
+
+type CandidateAttach struct {
+	// Sum Ticket age
+	Epoch			*big.Int			`json:"epoch"`
+}
+
+func (ca *CandidateAttach) AddEpoch(number *big.Int) {
+	ca.Epoch.Add(ca.Epoch, number)
+}
+
+func (ca *CandidateAttach) SubEpoch(number *big.Int) {
+	ca.Epoch.Sub(ca.Epoch, number)
 }
 

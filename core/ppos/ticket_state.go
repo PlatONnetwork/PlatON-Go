@@ -11,6 +11,7 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"errors"
+	"fmt"
 	"github.com/satori/go.uuid"
 	"math/big"
 	"sort"
@@ -34,6 +35,8 @@ var (
 	SetOwnerTicketIdsErr		= errors.New("Update Owner TicketIds error")
 	TicketIdNotFindErr			= errors.New("TicketId not find")
 	HandleExpireTicketErr		= errors.New("Failure to deal with expired tickets")
+	GetCandidateAttachErr		= errors.New("Get CandidateAttach error")
+	SetCandidateAttachErr		= errors.New("Update CandidateAttach error")
 )
 
 type TicketPool struct {
@@ -43,20 +46,17 @@ type TicketPool struct {
 	SurplusQuantity		uint64
 	// Overdue
 	ExpireBlockNumber	uint64
-	// the candidate pool object pointer
-	candidatePool		*CandidatePool
 	lock				*sync.RWMutex
 }
 
 var ticketPool *TicketPool
 
 // initialize the global ticket pool object
-func NewTicketPool(configs *params.PposConfig, candidatePool *CandidatePool) *TicketPool {
+func NewTicketPool(configs *params.PposConfig) *TicketPool {
 	ticketPool = &TicketPool{
 		MaxCount:				configs.TicketConfig.MaxCount,
 		SurplusQuantity:		configs.TicketConfig.MaxCount,
 		ExpireBlockNumber:		configs.TicketConfig.ExpireBlockNumber,
-		candidatePool:			candidatePool,
 		lock:					&sync.RWMutex{},
 	}
 	return ticketPool
@@ -69,15 +69,6 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 	if t.SurplusQuantity == 0 {
 		log.Error("Ticket Insufficient quantity", TicketNilErr)
 		return TicketNilErr
-	}
-	candidate, err := t.candidatePool.GetCandidate(stateDB, nodeId)
-	if err != nil {
-		log.Error("GetCandidate error", err)
-		return err
-	}
-	if candidate == nil {
-		log.Error("The node has lost its candidacy", err)
-		return CandidateNotFindErr
 	}
 	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
 	if nil != err {
@@ -100,7 +91,6 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 	}
 	candidateTicketIds = append(candidateTicketIds, ticketId)
 	ownerTicketIds = append(ownerTicketIds, ticketId)
-	candidate.TCount++
 	if err := t.setTicket(stateDB, ticketId, ticket); err != nil {
 		return err
 	}
@@ -117,9 +107,12 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, deposit
 	if err := t.subPoolNumber(stateDB); err != nil {
 		return err
 	}
-	if err := t.candidatePool.UpdateCandidateTicket(stateDB, ticket.CandidateId, candidate); err != nil {
+	candidateAttach := new(types.CandidateAttach)
+	if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
 		return err
 	}
+	// 调用候选人重新排序接口
+
 	return nil
 }
 
@@ -207,49 +200,58 @@ func (t *TicketPool) removeExpireTicket(stateDB vm.StateDB, blockNumber *big.Int
 	return t.setExpireTicket(stateDB, blockNumber, ticketIdList)
 }
 
-func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, candidateList []*types.Candidate) error {
+func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, blockNumber *big.Int) ([]discover.NodeID, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	ticketIdList, err := t.GetExpireTicketIds(stateDB, blockNumber)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	candidateMap := make(map[discover.NodeID]*types.Candidate)
-	for _, c := range candidateList {
-		candidateMap[c.CandidateId] = c
-	}
+	candidateAttachMap := make(map[discover.NodeID]*types.CandidateAttach)
+	changeNodeIdList := make([]discover.NodeID, 0)
 	for _, ticketId := range ticketIdList {
 		ticket, err := t.GetTicket(stateDB, ticketId)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		candidate := candidateMap[ticket.CandidateId]
-		if candidate != nil {
-			if _, err := t.releaseTicket(stateDB, candidate, ticketId, blockNumber); nil != err {
-				continue
+		candidateAttach, ok := candidateAttachMap[ticket.CandidateId]
+		if !ok {
+			tempCandidateAttach, err := t.GetCandidateAttach(stateDB, ticket.CandidateId)
+			candidateAttach = tempCandidateAttach
+			if nil != err {
+				return nil, err
 			}
-			// 把过期票放入，购买者的过期票列表中
-			ticketIds, err := t.GetOwnerNormalTicketIds(stateDB, ticket.Owner)
+			candidateAttachMap[ticket.CandidateId] = candidateAttach
+			changeNodeIdList = append(changeNodeIdList, ticket.CandidateId)
+		}
+		if _, err := t.releaseTicket(stateDB, ticket.CandidateId, candidateAttach, ticketId, blockNumber); nil != err {
+			continue
+		}
+		// 把过期票放入，购买者的过期票列表中
+		ticketIds, err := t.GetOwnerNormalTicketIds(stateDB, ticket.Owner)
+		if err != nil {
+			return nil, err
+		}
+		ticketIds, success := removeTicketId(ticketId, ticketIds)
+		if success {
+			if err := t.setOwnerNormalTicketIds(stateDB, ticket.Owner, ticketIds); nil != err {
+				return nil, err
+			}
+			ticketIds, err := t.GetOwnerExpireTicketIds(stateDB, ticket.Owner)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			ticketIds, success := removeTicketId(ticketId, ticketIds)
-			if success {
-				if err := t.setOwnerNormalTicketIds(stateDB, ticket.Owner, ticketIds); nil != err {
-					return err
-				}
-				ticketIds, err := t.GetOwnerExpireTicketIds(stateDB, ticket.Owner)
-				if err != nil {
-					return err
-				}
-				ticketIds = append(ticketIds, ticketId)
-				if err := t.setOwnerExpireTicketIds(stateDB, ticket.Owner, ticketIds); nil != err {
-					return  err
-				}
+			ticketIds = append(ticketIds, ticketId)
+			if err := t.setOwnerExpireTicketIds(stateDB, ticket.Owner, ticketIds); nil != err {
+				return nil, err
 			}
 		}
 	}
-	return nil
+	// Update CandidateAttach
+	for nodeId, ca := range candidateAttachMap{
+		t.setCandidateAttach(stateDB, nodeId, ca)
+	}
+	return changeNodeIdList, nil
 }
 
 // Get ticket list
@@ -284,24 +286,43 @@ func (t *TicketPool) setTicket(stateDB vm.StateDB, ticketId common.Hash, ticket 
 	return nil
 }
 
-func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, candidate *types.Candidate, ticketId common.Hash, blockNumber *big.Int) error {
+func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, nodeIds ...discover.NodeID) error {
+	for _, nodeId := range nodeIds {
+		candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
+		if nil != err {
+			return err
+		}
+		for _, ticketId := range candidateTicketIds {
+			t.ReturnTicket(stateDB, nodeId, ticketId, blockNumber)
+		}
+	}
+	return nil
+}
+
+func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ticketId common.Hash, blockNumber *big.Int) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	ticket, err := t.releaseTicket(stateDB, candidate, ticketId, blockNumber)
-	t.candidatePool.UpdateCandidateTicket(stateDB, candidate.CandidateId, candidate)
+	candidateAttach, err := t.GetCandidateAttach(stateDB, nodeId)
 	if nil != err {
+		return err
+	}
+	if nil == candidateAttach {
+		candidateAttach = new(types.CandidateAttach)
+	}
+	ticket, err := t.releaseTicket(stateDB, nodeId, candidateAttach, ticketId, blockNumber)
+	if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
 		return err
 	}
 	// 从待过期票中删除
  	return t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
 }
 
-func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidate *types.Candidate, ticketId common.Hash, blockNumber *big.Int) (*types.Ticket, error) {
+func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.NodeID, candidateAttach *types.CandidateAttach, ticketId common.Hash, blockNumber *big.Int) (*types.Ticket, error) {
 	ticket, err := t.GetTicket(stateDB, ticketId)
 	if nil != err {
 		return ticket, err
 	}
-	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, candidate.CandidateId)
+	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, candidateId)
 	if nil != err {
 		return ticket, err
 	}
@@ -310,14 +331,13 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidate *types.Candidat
 		log.Error("The candidate no longer has this ticket", "err", err)
 		return ticket, CandidateNotFindTicketErr
 	}
-	if err := t.setCandidateTicketIds(stateDB, candidate.CandidateId, candidateTicketIds); err != nil {
+	if err := t.setCandidateTicketIds(stateDB, candidateId, candidateTicketIds); err != nil {
 		return ticket, err
 	}
 	if err := t.addPoolNumber(stateDB); err != nil {
 		return ticket, err
 	}
-	candidate.Epoch = candidate.Epoch.Sub(candidate.Epoch, ticket.CalcEpoch(blockNumber))
-	candidate.TCount--
+	candidateAttach.SubEpoch(ticket.CalcEpoch(blockNumber))
 	return ticket, transfer(stateDB, common.TicketPoolAddr, ticket.Owner, ticket.Deposit)
 }
 
@@ -327,20 +347,40 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidate *types.Candidat
 func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int, nodeId discover.NodeID) error {
 	// 发放奖励
 
-	candidateList := t.candidatePool.GetChosens(stateDB, 0)
+	// 检查过期票
 	expireBlockNumber := t.calcExpireBlockNumber(stateDB, blockNumber)
 	if expireBlockNumber.Uint64() > -1 {
-		if err := t.handleExpireTicket(stateDB, expireBlockNumber, candidateList); nil != err {
+		if nodeIdList, err := t.handleExpireTicket(stateDB, expireBlockNumber); nil != err {
 			log.Error("OutBlockNotice method handleExpireTicket error", "blockNumber", *blockNumber, "err", err)
 			return HandleExpireTicketErr
+		} else {
+			// 处理完过期票之后，通知候选人更新榜单信息
+			fmt.Println(nodeIdList)
 		}
 	}
 	// 每个候选人增加总票龄
-	for _, candidate := range candidateList {
-		candidate.Epoch = candidate.Epoch.Add(candidate.Epoch, new(big.Int).SetUint64(candidate.TCount))
-		t.candidatePool.UpdateCandidateTicket(stateDB, candidate.CandidateId, candidate)
-	}
+	
 	return nil
+}
+
+func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB) ([]discover.NodeID, error) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	candidateList := candidatePool.GetChosens(stateDB, 0)
+	nodeIdList := make([]discover.NodeID, 0)
+	for _, candidate := range candidateList {
+		candidateAttach, err := t.GetCandidateAttach(stateDB, candidate.CandidateId)
+		if nil != err {
+			return nil, err
+		}
+		nodeIdList = append(nodeIdList, candidate.CandidateId)
+		// 获取总票数，增加总票龄
+		//candidateAttach.AddEpoch()
+		if err := t.setCandidateAttach(stateDB, candidate.CandidateId, candidateAttach); nil != err {
+			return nil, err
+		}
+	}
+	return nodeIdList, nil
 }
 
 func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.NodeID, blockHash common.Hash) (common.Hash, error) {
@@ -420,6 +460,25 @@ func (t *TicketPool) setCandidateTicketIds(stateDB vm.StateDB, nodeId discover.N
 	return nil
 }
 
+func (t *TicketPool) GetCandidateAttach(stateDB vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
+	candidateAttach := new(types.CandidateAttach)
+	if err := getTicketPoolState(stateDB, CandidateAttachKey(nodeId.Bytes()), candidateAttach); nil != err {
+		log.Error("GetCandidateAttach error", "key", string(nodeId.Bytes()), "err", err)
+		return nil, GetCandidateAttachErr
+	}
+	return candidateAttach, nil
+}
+
+func (t *TicketPool) setCandidateAttach(stateDB vm.StateDB, nodeId discover.NodeID, candidateAttach *types.CandidateAttach) error {
+	if value, err := rlp.EncodeToBytes(candidateAttach); nil != err {
+		log.Error("Failed to encode candidateAttach object on setCandidateAttach", "key", string(nodeId.Bytes()), "value", *candidateAttach, "err", err)
+		return SetCandidateAttachErr
+	} else {
+		setTicketPoolState(stateDB, CandidateAttachKey(nodeId.Bytes()), value)
+	}
+	return nil
+}
+
 func checkBalance(stateDB vm.StateDB, addr common.Address, amount *big.Int) bool {
 	if stateDB.GetBalance(addr).Cmp(amount) >= 0 {
 		return true
@@ -476,6 +535,10 @@ func AccountNormalTicketIdsKey(key []byte) []byte {
 
 func AccountExpireTicketIdsKey(key []byte) []byte {
 	return append(AccountExpireTicketPrefix, key...)
+}
+
+func CandidateAttachKey(key []byte) []byte {
+	return append(CandidateAttachPrefix, key...)
 }
 
 func findFirstMatch(list []float64, key float64) int {
