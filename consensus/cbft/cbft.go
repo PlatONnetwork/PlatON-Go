@@ -825,7 +825,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		highestConfirmedIsAncestor := cbft.highestConfirmed.isAncestor(ext)
 
 		isLogical := inTurn && flowControl && highestConfirmedIsAncestor
-		log.Debug("check if block is logical", "result", "hash", ext.block.Hash(), "number", ext.number, "inTurn", inTurn, "flowControl", flowControl, "highestConfirmedIsAncestor", highestConfirmedIsAncestor)
+		log.Debug("check if block is logical", "result", isLogical, "hash", ext.block.Hash(), "number", ext.number, "inTurn", inTurn, "flowControl", flowControl, "highestConfirmedIsAncestor", highestConfirmedIsAncestor)
 
 		if isLogical {
 			//主链
