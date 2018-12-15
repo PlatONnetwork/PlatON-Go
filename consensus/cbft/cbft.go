@@ -564,7 +564,15 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.
 // This function is invoked after that local has synced new blocks from other node.
 func BlockSynchronisation() {
-	log.Debug("call BlockSynchronisation()")
+
+	log.Debug("=== call BlockSynchronisation() ===\n",
+		"highestLogicalHash", cbft.highestLogical.block.Hash(),
+		"highestLogicalNumber", cbft.highestLogical.number,
+		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+		"highestConfirmedNumber", cbft.highestConfirmed.number,
+		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+		"rootIrreversibleNumber", cbft.rootIrreversible.number)
+
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
@@ -612,9 +620,15 @@ func BlockSynchronisation() {
 		cbft.handleLogicalBlockAndDescendant(newRoot)
 
 		cbft.flushReadyBlock()
-	} else {
-
 	}
+
+	log.Debug("=== end of BlockSynchronisation() ===\n",
+		"highestLogicalHash", cbft.highestLogical.block.Hash(),
+		"highestLogicalNumber", cbft.highestLogical.number,
+		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+		"highestConfirmedNumber", cbft.highestConfirmed.number,
+		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+		"rootIrreversibleNumber", cbft.rootIrreversible.number)
 }
 
 // dataReceiverLoop is the main loop that handle the data from worker, or eth protocol's handler
@@ -725,7 +739,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 		cbft.flushReadyBlock()
 	}
 
-	log.Debug("=== end to handle new signature ===\n",
+	log.Debug("=== end of signReceiver()  ===\n",
 		"hash", hashLog,
 		"number", current.number,
 		"highestLogicalHash", cbft.highestLogical.block.Hash(),
@@ -829,7 +843,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 		cbft.flushReadyBlock()
 	}
-	log.Debug("=== end to handle block ===\n",
+	log.Debug("=== end of blockReceiver() ===\n",
 		"hash", block.Hash(),
 		"number", block.NumberU64(),
 		"parentHash", block.ParentHash(),
