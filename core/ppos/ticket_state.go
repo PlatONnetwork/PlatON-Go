@@ -290,7 +290,7 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.Node
 	if nil != err {
 		return ticket, err
 	}
-	candidateTicketIds, err := ticketidsCache.Get(blockNumber, blockhash, candidateId)
+	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, blockNumber, blockhash, candidateId)
 	if nil != err {
 		return ticket, err
 	}
@@ -356,7 +356,7 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 }
 
 func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int, blockHash common.Hash) (common.Hash, error) {
-	candidateTicketIds, err := ticketidsCache.Get(blockNumber, blockHash, nodeId)
+	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, blockNumber, blockHash, nodeId)
 	luckyTicketId := common.Hash{}
 	if nil != err {
 		return luckyTicketId, err
