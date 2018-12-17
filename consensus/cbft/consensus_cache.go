@@ -41,7 +41,7 @@ func NewCache(blockChain *core.BlockChain) *Cache {
 	return cache
 }
 
-// 从缓存map中读取Receipt集合
+// Read the Receipt collection from the cache map.
 func (c *Cache) ReadReceipts(blockHash common.Hash) []*types.Receipt {
 	c.receiptsMu.RLock()
 	defer c.receiptsMu.RUnlock()
@@ -51,7 +51,7 @@ func (c *Cache) ReadReceipts(blockHash common.Hash) []*types.Receipt {
 	return nil
 }
 
-// 从缓存map中读取StateDB实例
+// Read the StateDB instance from the cache map.
 func (c *Cache) ReadStateDB(stateRoot common.Hash) *state.StateDB {
 	c.stateDBMu.RLock()
 	defer c.stateDBMu.RUnlock()
@@ -61,7 +61,7 @@ func (c *Cache) ReadStateDB(stateRoot common.Hash) *state.StateDB {
 	return nil
 }
 
-// 将Receipt写入缓存
+// Write Receipt to the cache.
 func (c *Cache) WriteReceipts(blockHash common.Hash, receipts []*types.Receipt, blockNum uint64) {
 	c.receiptsMu.Lock()
 	defer c.receiptsMu.Unlock()
@@ -73,7 +73,7 @@ func (c *Cache) WriteReceipts(blockHash common.Hash, receipts []*types.Receipt, 
 	}
 }
 
-// 将StateDB实例写入缓存
+// Write StateDB instance to the cache.
 func (c *Cache) WriteStateDB(stateRoot common.Hash, stateDB *state.StateDB, blockNum uint64) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
@@ -82,7 +82,7 @@ func (c *Cache) WriteStateDB(stateRoot common.Hash, stateDB *state.StateDB, bloc
 	}
 }
 
-// 从缓存map中读取Receipt集合
+// Read the Receipt collection from the cache map.
 func (c *Cache) clearReceipts(blockHash common.Hash) {
 	c.receiptsMu.Lock()
 	defer c.receiptsMu.Unlock()
@@ -99,7 +99,7 @@ func (c *Cache) clearReceipts(blockHash common.Hash) {
 	}
 }
 
-// 从缓存map中读取StateDB实例
+// Read the statedb instance from the cache map.
 func (c *Cache) clearStateDB(stateRoot common.Hash) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
@@ -116,14 +116,14 @@ func (c *Cache) clearStateDB(stateRoot common.Hash) {
 	}
 }
 
-// 获取相应block的StateDB实例
+// Get the StateDB instance of the corresponding block.
 func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
-	// 基于stateRoot从blockchain中创建StateDB实例
+	// Create a StateDB instance from the blockchain based on stateRoot.
 	if state, err := c.chain.StateAt(block.Root()); err == nil && state != nil {
 		return state, nil
 	}
-	// 读取并拷贝缓存中StateDB实例
-	log.Info("读取并拷贝缓存中StateDB实例", "stateRoot", block.Root())
+	// Read and copy the stateDB instance in the cache.
+	log.Info("~ Read and copy the stateDB instance in the cache.", "stateRoot", block.Root())
 	if state := c.ReadStateDB(block.Root()); state != nil {
 		return state.Copy(), nil
 	} else {
@@ -131,7 +131,7 @@ func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 	}
 }
 
-// 获取相应block的StateDB实例
+// Get the StateDB instance of the corresponding block.
 func (c *Cache) ClearCache(block *types.Block) {
 	c.clearReceipts(block.Hash())
 	c.clearStateDB(block.Root())

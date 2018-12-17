@@ -759,7 +759,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 
 		cbft.saveBlock(sig.Hash, ext)
 	} else if ext.isStored {
-		//收到已经确认块的签名，直接扔掉
+		// Receive the signature of the confirmed block and throw it away directly.
 		log.Debug("received a highestConfirmed block's signature, just discard it")
 		return nil
 	}
@@ -952,7 +952,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 	cbft.lock.RLock()
 	defer cbft.lock.RUnlock()
 
-	//检查父区块
+	// Check the parent block
 	if cbft.highestLogical.block == nil || header.ParentHash != cbft.highestLogical.block.Hash() || header.Number.Uint64()-1 != cbft.highestLogical.block.NumberU64() {
 		return consensus.ErrUnknownAncestor
 	}
