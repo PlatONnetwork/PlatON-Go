@@ -31,6 +31,11 @@ var (
 type candidateStorage map[discover.NodeID]*types.Candidate
 type refundStorage map[discover.NodeID][]*types.Candidate
 
+//type returnTicket struct {
+//	NodeId 		discover.NodeID
+//	TicketId	common.Hash
+//}
+
 type CandidatePool struct {
 	// allow immediate elected max count
 	maxCount uint64
@@ -250,26 +255,36 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 }
 
 // pledge Candidate // TODO 需要抽小方法
-func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
+func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate, parentNumber *big.Int, parentHash common.Hash) error {
 	var nodeIds []discover.NodeID
+	c.lock.Lock()
+	if err := c.initDataByState(state, 2); nil != err {
+		c.lock.Unlock()
+		log.Error("Failed to initDataByState on SetCandidate", "nodeId", nodeId.String(), " err", err)
+		return err
+	}
 	if arr, err := c.setCandidateInfo(state, nodeId, can); nil != err {
+		c.lock.Unlock()
+		log.Error("Failed to setCandidateInfo on SetCandidate", "nodeId", nodeId.String(), "err", err)
 		return err
 	} else {
 		nodeIds = arr
 	}
-	return ticketPool.DropReturnTicket(state, can.BlockNumber, nodeIds...)
+	c.lock.Unlock()
+	return ticketPool.DropReturnTicket(state, parentNumber, parentHash, nodeIds...)
 }
 
+// 还需要补上 如果TCout 小了，要先移到 reserves 中，不然才算落榜
 func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) ([]discover.NodeID, error) {
 	PrintObject("发生质押 SetCandidate", *can)
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.initDataByState(state, 2); nil != err {
-		log.Error("Failed to initDataByState on SetCandidate", " err", err)
-		return nil, err
-	}
+	//c.lock.Lock()
+	//defer c.lock.Unlock()
+	//if err := c.initDataByState(state, 2); nil != err {
+	//	log.Error("Failed to initDataByState on SetCandidate", " err", err)
+	//	return nil, err
+	//}
 
-	var flag, delreserve bool
+	var flag, delimmediate, delreserve bool
 	// check ticket count
 	if checkTicket(ticketidsCache.TCount(), c.maxCount) {
 		flag = true
@@ -278,6 +293,9 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		}
 		c.immediateCandidates[can.CandidateId] = can
 	} else {
+		if _, ok := c.immediateCandidates[can.CandidateId]; ok {
+			delimmediate = true
+		}
 		c.reserveCandidates[can.CandidateId] = can
 	}
 
@@ -331,54 +349,70 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 	}
 
 	handle := func(candidateArr []*types.Candidate, setInfoFn func(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
-		setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
+					setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
-		// cache id
-		sortIds := make([]discover.NodeID, 0)
+					// cache id
+					sortIds := make([]discover.NodeID, 0)
 
-		/**  doing ... */
-		candidateArr = cacheArr
-		// insert elected candidate to tire
-		for _, can := range candidateArr {
-			if err := setInfoFn(state, can.CandidateId, can); nil != err {
-				return err
-			}
-			sortIds = append(sortIds, can.CandidateId)
-		}
-		// update index of elected candidates on trie
-		if err := setIndexFn(state, sortIds); nil != err {
-			return err
-		}
-		return nil
-	}
+					/**  doing ... */
+					candidateArr = cacheArr
+					// insert elected candidate to tire
+					for _, can := range candidateArr {
+						if err := setInfoFn(state, can.CandidateId, can); nil != err {
+							return err
+						}
+						sortIds = append(sortIds, can.CandidateId)
+					}
+					// update index of elected candidates on trie
+					if err := setIndexFn(state, sortIds); nil != err {
+						return err
+					}
+					return nil
+				}
+
+	delFunc := func (title string, delInfoFn func (state vm.StateDB, candidateId discover.NodeID),
+					getIndexFn func (state vm.StateDB) ([]discover.NodeID, error),
+					setIndexFn func (state vm.StateDB, nodeIds []discover.NodeID) error) error{
+
+					delInfoFn(state, can.CandidateId)
+					// update reserve id index
+					if ids, err := getIndexFn(state); nil != err {
+						log.Error("withdraw failed get"+title+"Index on full withdrawerr", "err", err)
+						return err
+					} else {
+						//for i, id := range ids {
+						for i := 0; i < len(ids); i ++ {
+							id := ids[i]
+							if id == can.CandidateId {
+								ids = append(ids[:i], ids[i+1:]...)
+								i --
+							}
+						}
+						if err := setIndexFn(state, ids); nil != err {
+							log.Error("withdraw failed set"+title+"Index on full withdrawerr", "err", err)
+							return err
+						}
+					}
+					return nil
+				}
 
 	// cache id
 	//sortIds := make([]discover.NodeID, 0)
 	if flag {
 		/** first delete this can on reserves */
 		if delreserve {
-			c.delReserve(state, can.CandidateId)
-			// update reserve id index
-			if ids, err := c.getReserveIndex(state); nil != err {
-				log.Error("withdraw failed getReserveIndex on full withdrawerr", "err", err)
+			if err := delFunc ("Reserve", c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
 				return nil, err
-			} else {
-				//for i, id := range ids {
-				for i := 0; i < len(ids); i ++ {
-					id := ids[i]
-					if id == can.CandidateId {
-						ids = append(ids[:i], ids[i+1:]...)
-						i --
-					}
-				}
-				if err := c.setReserveIndex(state, ids); nil != err {
-					log.Error("withdraw failed setReserveIndex on full withdrawerr", "err", err)
-					return nil, err
-				}
 			}
 		}
 		return nodeIds, handle(c.immediateCacheArr, c.setImmediate, c.setImmediateIndex)
 	} else {
+		/** first delete this can on immediates */
+		if delimmediate {
+			if err := delFunc ("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
+				return nil, err
+			}
+		}
 		return nodeIds, handle(c.reserveCacheArr, c.setReserve, c.setReserveIndex)
 	}
 }
@@ -389,14 +423,14 @@ func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (
 }
 
 // candidate withdraw from immediates or reserve elected candidates // TODO 需要抽小方法
-func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
+func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber, parentNumber *big.Int, parentHash common.Hash) error {
 	var nodeIds []discover.NodeID
 	if arr, err := c.withdrawCandidate(state, nodeId, price, blockNumber); nil != err {
 		return err
 	} else {
 		nodeIds = arr
 	}
-	return ticketPool.DropReturnTicket(state, blockNumber, nodeIds...)
+	return ticketPool.DropReturnTicket(state, parentNumber, parentHash, nodeIds...)
 }
 
 func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) ([]discover.NodeID, error) {
@@ -876,16 +910,64 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 }
 
 // Announce witness // TODO 需要抽出小方法
-func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error) {
-	log.Info("揭榜...")
-	PrintObject("揭榜 maxChair：", c.maxChair)
-	PrintObject("揭榜 maxCount：", c.maxCount)
-	PrintObject("揭榜 RefundBlockNumber：", c.RefundBlockNumber)
+func (c *CandidatePool) Election(state *state.StateDB, parentNumber *big.Int, parentHash common.Hash) ([]*discover.Node, error) {
+	var nodes []*discover.Node
+	var cans []*types.Candidate
+	if nodeArr, canArr, err := c.election(state, parentHash); nil != err {
+		return nil, err
+	}else {
+		nodes, cans = nodeArr, canArr
+	}
+
+
+	nodeIds := make([]discover.NodeID, 0)
+	for _, can := range cans {
+		// 释放幸运票 TODO
+		if err := ticketPool.ReturnTicket(state, can.CandidateId, can.TicketId, big.NewInt(0), common.HexToHash("")); nil != err {
+			log.Error("Failed to ReturnTicket on Election", "nodeId", can.CandidateId.String(), "ticketId", can.TicketId.String(), "err", err)
+			continue
+		}
+
+
+		/**
+		获取TCount TODO
+		然后需要对入围候选人再次做排序 TODO
+		 */
+		c.lock.Lock()
+		if err := c.initDataByState(state, 2); nil != err {
+			c.lock.Unlock()
+			log.Error("Failed to initDataByState on Election", "nodeId", can.CandidateId.String(), " err", err)
+			return nil, err
+		}
+		// 这个和 setCandidate  还不一样。。。
+		// 因为需要先判断是否之前在 immediates 中，如果是则转移到 reserves 中
+		if _, err := c.setCandidateInfo(state, can.CandidateId, can); nil != err {
+			c.lock.Unlock()
+			log.Error("Failed to setCandidateInfo on Election", "nodeId", can.CandidateId.String(), "err", err)
+			return nil, err
+		}
+
+		//if _, ok := c.immediateCandidates[can.CandidateId]; ok {
+		//
+		//}
+		c.lock.Unlock()
+		nodeIds = append(nodeIds, can.CandidateId)
+	}
+	// 释放落榜的
+	if err := ticketPool.DropReturnTicket(state, parentNumber, parentHash, nodeIds...); nil != err {
+		log.Error("Failed to DropReturnTicket on Election", "err", err)
+		return nil, err
+	}
+	return nodes, nil
+}
+
+func (c *CandidatePool) election (state *state.StateDB, parentHash common.Hash) ([]*discover.Node, []*types.Candidate, error) {
+	log.Info("揭榜...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.RefundBlockNumber)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on Election", "err", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	// sort immediate candidates
@@ -899,7 +981,6 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 	}
 	log.Info("当前入围者ids 长度：", "len", len(immediateIds))
 	PrintObject("当前入围者ids：", immediateIds)
-	log.Info("当前配置的允许见证人个数:", "maxChair", fmt.Sprint(c.maxChair))
 	// a certain number of witnesses in front of the cache
 	var nextWitIds []discover.NodeID
 	// If the number of candidate selected does not exceed the number of witnesses
@@ -926,22 +1007,27 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 		c.delNextWitness(state, nodeId)
 	}
 
+
+	arr := make([]*discover.Node, 0)
+	caches := make([]*types.Candidate, 0)
 	// set up all new nextwitnesses information
 	for nodeId, can := range nextWits {
+
+		// 揭榜后回去调 获取幸运票逻辑 TODO
+	    luckyId, err := ticketPool.SelectionLuckyTicket(state, nodeId, big.NewInt(0), parentHash)
+	    if nil != err {
+	    	log.Error("Failed to take luckyId on Election", "nodeId", nodeId.String(), "err", err)
+	    	return nil, nil, err
+		}
+
+
+		// 将幸运票ID 置入 next witness 详情中
+		can.TicketId = luckyId
 		if err := c.setNextWitness(state, nodeId, can); nil != err {
 			log.Error("failed to setNextWitness on election", "err", err)
-			return nil, err
+			return nil, nil, err
 		}
-	}
-	// update new nextwitnesses index
-	if err := c.setNextWitnessIndex(state, nextWitIds); nil != err {
-		log.Error("failed to setNextWitnessIndex on election", "err", err)
-		return nil, err
-	}
-	// replace the next round of witnesses
-	c.nextOriginCandidates = nextWits
-	arr := make([]*discover.Node, 0)
-	for _, can := range nextWits {
+		caches = append(caches, can)
 		if node, err := buildWitnessNode(can); nil != err {
 			log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
 			continue
@@ -949,18 +1035,20 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 			arr = append(arr, node)
 		}
 	}
-
-	// 揭榜后回去调 获取幸运票逻辑 TODO
-
-	// 获取TCount TODO
-
-	// 然后需要对入围候选人再次做排序 TODO
+	// update new nextwitnesses index
+	if err := c.setNextWitnessIndex(state, nextWitIds); nil != err {
+		log.Error("failed to setNextWitnessIndex on election", "err", err)
+		return nil, nil, err
+	}
+	// replace the next round of witnesses
+	c.nextOriginCandidates = nextWits
 
 	log.Info("下一轮见证人node 个数:", "len", len(arr))
 	PrintObject("下一轮见证人node信息:", arr)
 	log.Info("揭榜完成...")
-	return arr, nil
+	return arr, caches, nil
 }
+
 
 // switch next witnesses to current witnesses
 func (c *CandidatePool) Switch(state *state.StateDB) bool {
@@ -1108,124 +1196,126 @@ func (c *CandidatePool) GetRefundInterval() uint64 {
 	return c.RefundBlockNumber
 }
 
-// update candidate's tickets  // TODO 需要抽小方法
-func (c *CandidatePool) UpdateCandidateTicket(state vm.StateDB, blockNumber *big.Int, nodeId discover.NodeID, can *types.Candidate) error {
-	var nodeIds []discover.NodeID
-	if arr, err := c.updateCandidateTicket(state, nodeId, can); nil != err {
-		return err
-	} else {
-		nodeIds = arr
-	}
-	return ticketPool.DropReturnTicket(state, can.BlockNumber, nodeIds...)
-}
-
-func (c *CandidatePool) updateCandidateTicket(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) ([]discover.NodeID, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if err := c.initDataByState(state, 1); nil != err {
-		log.Error("Failed to initDataByState on UpdateCandidateTicket err", err)
-		return nil, err
-	}
-
-	// nodeIds cache for lost elected
-	nodeIds := make([]discover.NodeID, 0)
-
-	// 如果本来就在 候选池中，直接修改即可
-	if _, ok := c.immediateCandidates[nodeId]; ok {
-		if err := c.setImmediate(state, nodeId, can); nil != err {
-			return nil, err
-		}
-	} else { // 否则，去备选池中查
-		if _, ok := c.reserveCandidates[nodeId]; !ok {
-			return nil, CandidateEmptyErr
-		} else {
-			// 则需要先判断当前入参的 can的得票数
-			// 如果还是不满足移到 候选池中，则直接修改 备选池的 can 信息
-			if !checkTicket(can.TCount, c.maxCount) {
-				if err := c.setReserve(state, nodeId, can); nil != err {
-					return nil, err
-				}
-			} else {
-				// 否则，往候选池中追加该 can
-				// 且， 备选池中的该 can 的信息删除
-				/** 先删除 备选池 can 信息 */
-				c.delReserve(state, can.CandidateId)
-				// update reserve id index
-				if ids, err := c.getReserveIndex(state); nil != err {
-					log.Error("withdraw failed getReserveIndex on full withdrawerr", "err", err)
-					return nil, err
-				} else {
-					//for i, id := range ids {
-					for i := 0; i < len(ids); i ++ {
-						id := ids[i]
-						if id == can.CandidateId {
-							ids = append(ids[:i], ids[i+1:]...)
-							i --
-						}
-					}
-					if err := c.setReserveIndex(state, ids); nil != err {
-						log.Error("withdraw failed setReserveIndex on full withdrawerr", "err", err)
-						return nil, err
-					}
-				}
-
-				/** 追加到 候选池 */
-				c.immediateCandidates[can.CandidateId] = can
-				c.immediateCacheArr = make([]*types.Candidate, 0)
-				for _, v := range c.immediateCandidates {
-					c.immediateCacheArr = append(c.immediateCacheArr, v)
-				}
-
-				// sort cache array
-				candidateSort(c.immediateCacheArr)
-
-				if len(c.immediateCacheArr) > int(c.maxCount) {
-					// Intercepting the lost candidates to tmpArr
-					tmpArr := (c.immediateCacheArr)[c.maxCount:]
-					// qualified elected candidates
-					c.immediateCacheArr = (c.immediateCacheArr)[:c.maxCount]
-
-					// handle tmpArr
-					for _, tmpCan := range tmpArr {
-
-						// return ticket call
-						// TODO
-						//ticketPool.ReturnTicket(state, )
-
-						c.delImmediate(state, tmpCan.CandidateId)
-						// append to refunds (defeat) trie
-						if err := c.setDefeat(state, tmpCan.CandidateId, tmpCan); nil != err {
-							return nil, err
-						}
-						nodeIds = append(nodeIds, tmpCan.CandidateId)
-					}
-
-					// update index of refund (defeat) on trie
-					if err := c.setDefeatIndex(state); nil != err {
-						return nil, err
-					}
-				}
-
-				// cache id
-				sortIds := make([]discover.NodeID, 0)
-
-				/** 设置新的 候选人数组 */
-				// insert elected candidate to tire
-				for _, can := range c.immediateCacheArr {
-					if err := c.setImmediate(state, can.CandidateId, can); nil != err {
-						return nil, err
-					}
-					sortIds = append(sortIds, can.CandidateId)
-				}
-				// update index of immediate elected candidates on trie
-				if err := c.setImmediateIndex(state, sortIds); nil != err {
-					return nil, err
-				}
-			}
-		}
-	}
-	return nodeIds, nil
-}
+//// update candidate's tickets  // TODO 需要抽小方法
+//func (c *CandidatePool) UpdateCandidateTicket(state vm.StateDB, blockNumber *big.Int, blockHash common.Hash, nodeId discover.NodeID, can *types.Candidate) error {
+//	var nodeIds []discover.NodeID
+//	if arr, err := c.updateCandidateTicket(state, nodeId, can); nil != err {
+//		return err
+//	} else {
+//		nodeIds = arr
+//	}
+//	return ticketPool.DropReturnTicket(state, blockNumber, blockHash, nodeIds...)
+//}
+//
+//func (c *CandidatePool) updateCandidateTicket(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) ([]discover.NodeID, error) {
+//	c.lock.Lock()
+//	defer c.lock.Unlock()
+//	if err := c.initDataByState(state, 1); nil != err {
+//		log.Error("Failed to initDataByState on UpdateCandidateTicket err", err)
+//		return nil, err
+//	}
+//
+//	// nodeIds cache for lost elected
+//	nodeIds := make([]discover.NodeID, 0)
+//
+//
+//	/** // 还需要补上 如果TCout 小了，要先移到 reserves 中，不然才算落榜 TODO  */
+//	// 如果本来就在 候选池中，直接修改即可
+//	if _, ok := c.immediateCandidates[nodeId]; ok {
+//		if err := c.setImmediate(state, nodeId, can); nil != err {
+//			return nil, err
+//		}
+//	} else { // 否则，去备选池中查
+//		if _, ok := c.reserveCandidates[nodeId]; !ok {
+//			return nil, CandidateEmptyErr
+//		} else {
+//			// 则需要先判断当前入参的 can的得票数
+//			// 如果还是不满足移到 候选池中，则直接修改 备选池的 can 信息
+//			if !checkTicket(ticketidsCache.TCount(), c.maxCount) {
+//				if err := c.setReserve(state, nodeId, can); nil != err {
+//					return nil, err
+//				}
+//			} else {
+//				// 否则，往候选池中追加该 can
+//				// 且， 备选池中的该 can 的信息删除
+//				/** 先删除 备选池 can 信息 */
+//				c.delReserve(state, can.CandidateId)
+//				// update reserve id index
+//				if ids, err := c.getReserveIndex(state); nil != err {
+//					log.Error("withdraw failed getReserveIndex on full withdrawerr", "err", err)
+//					return nil, err
+//				} else {
+//					//for i, id := range ids {
+//					for i := 0; i < len(ids); i ++ {
+//						id := ids[i]
+//						if id == can.CandidateId {
+//							ids = append(ids[:i], ids[i+1:]...)
+//							i --
+//						}
+//					}
+//					if err := c.setReserveIndex(state, ids); nil != err {
+//						log.Error("withdraw failed setReserveIndex on full withdrawerr", "err", err)
+//						return nil, err
+//					}
+//				}
+//
+//				/** 追加到 候选池 */
+//				c.immediateCandidates[can.CandidateId] = can
+//				c.immediateCacheArr = make([]*types.Candidate, 0)
+//				for _, v := range c.immediateCandidates {
+//					c.immediateCacheArr = append(c.immediateCacheArr, v)
+//				}
+//
+//				// sort cache array
+//				candidateSort(c.immediateCacheArr)
+//
+//				if len(c.immediateCacheArr) > int(c.maxCount) {
+//					// Intercepting the lost candidates to tmpArr
+//					tmpArr := (c.immediateCacheArr)[c.maxCount:]
+//					// qualified elected candidates
+//					c.immediateCacheArr = (c.immediateCacheArr)[:c.maxCount]
+//
+//					// handle tmpArr
+//					for _, tmpCan := range tmpArr {
+//
+//						// return ticket call
+//						// TODO
+//						//ticketPool.ReturnTicket(state, )
+//
+//						c.delImmediate(state, tmpCan.CandidateId)
+//						// append to refunds (defeat) trie
+//						if err := c.setDefeat(state, tmpCan.CandidateId, tmpCan); nil != err {
+//							return nil, err
+//						}
+//						nodeIds = append(nodeIds, tmpCan.CandidateId)
+//					}
+//
+//					// update index of refund (defeat) on trie
+//					if err := c.setDefeatIndex(state); nil != err {
+//						return nil, err
+//					}
+//				}
+//
+//				// cache id
+//				sortIds := make([]discover.NodeID, 0)
+//
+//				/** 设置新的 候选人数组 */
+//				// insert elected candidate to tire
+//				for _, can := range c.immediateCacheArr {
+//					if err := c.setImmediate(state, can.CandidateId, can); nil != err {
+//						return nil, err
+//					}
+//					sortIds = append(sortIds, can.CandidateId)
+//				}
+//				// update index of immediate elected candidates on trie
+//				if err := c.setImmediateIndex(state, sortIds); nil != err {
+//					return nil, err
+//				}
+//			}
+//		}
+//	}
+//	return nodeIds, nil
+//}
 
 // 根据nodeId 去重新决定当前候选人的去留
 func (c *CandidatePool) UpdateElectedQueue(stateDB vm.StateDB, nodeId ... discover.NodeID) error {
@@ -1315,7 +1405,7 @@ func (c *CandidatePool) delReserve(state vm.StateDB, candidateId discover.NodeID
 	delete(c.reserveCandidates, candidateId)
 }
 
-func (c *CandidatePool) setReserveIndex(state vm.StateDB, nodeIds []discover.NodeID) error {
+func (c *CandidatePool) setReserveIndex (state vm.StateDB, nodeIds []discover.NodeID) error {
 	if len(nodeIds) == 0 {
 		setReserveIdsState(state, []byte{})
 		return nil

@@ -509,46 +509,40 @@ func (d *ppos) GetRefundInterval() uint64 {
 }
 
 // update candidate's tickets
-func (d *ppos) UpdateCandidateTicket (state vm.StateDB, blockNumber *big.Int, nodeId discover.NodeID, can *types.Candidate) error {
-	return d.candidatePool.UpdateCandidateTicket(state, blockNumber, nodeId, can)
+func (d *ppos) UpdateCandidateTicket (state vm.StateDB, blockNumber *big.Int, blockHash common.Hash, nodeId discover.NodeID, can *types.Candidate) error {
+	return d.candidatePool.UpdateCandidateTicket(state, blockNumber, blockHash, nodeId, can)
 }
 
 /** about ticketpool's method */
 
-func (d *ppos) GetPoolNumber (stateDB vm.StateDB) (uint64, error) {
-	return d.ticketPool.GetPoolNumber(stateDB)
+func (d *ppos) GetPoolNumber (state vm.StateDB) (uint64, error) {
+	return d.ticketPool.GetPoolNumber(state)
 }
 
-func (d *ppos) VoteTicket (stateDB vm.StateDB, owner common.Address, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) error {
-	return d.ticketPool.VoteTicket(stateDB, owner, deposit, nodeId, blockNumber)
+func (d *ppos) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int, blockhash common.Hash) ([]common.Hash, error) {
+	return d.ticketPool.VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber, blockhash)
 }
 
-func (d *ppos) GetTicket(stateDB vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
-	return d.ticketPool.GetTicket(stateDB, ticketId)
+func (d *ppos) GetTicket(state vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
+	return d.ticketPool.GetTicket(state, ticketId)
 }
 
-func (d *ppos) GetTicketList (stateDB vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
-	return d.ticketPool.GetTicketList(stateDB, ticketIds)
+func (d *ppos) GetTicketList (state vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
+	return d.ticketPool.GetTicketList(state, ticketIds)
 }
 
-func (d *ppos) ReturnTicket (stateDB vm.StateDB, candidate *types.Candidate, ticketId common.Hash, blockNumber *big.Int) error {
-	return d.ticketPool.ReturnTicket(stateDB, candidate, ticketId, blockNumber)
+func (d *ppos) ReturnTicket (state vm.StateDB, nodeId discover.NodeID, ticketId common.Hash, blockNumber *big.Int, blockhash common.Hash) error {
+	return d.ticketPool.ReturnTicket(state, nodeId, ticketId, blockNumber, blockhash)
 }
 
-func (d *ppos) GetCandidateTicketIds (stateDB vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
-	return d.ticketPool.GetCandidateTicketIds(stateDB, nodeId)
+func (d *ppos) GetCandidateTicketIds (state vm.StateDB, blockNumber *big.Int, blockhash common.Hash, nodeId discover.NodeID) ([]common.Hash, error) {
+	return d.ticketPool.GetCandidateTicketIds(state, blockNumber, blockhash, nodeId)
 }
 
-func (d *ppos) GetOwnerNormalTicketIds (stateDB vm.StateDB, owner common.Address) ([]common.Hash, error) {
-	return d.ticketPool.GetOwnerNormalTicketIds(stateDB, owner)
-}
 
-func (d *ppos) GetOwnerExpireTicketIds (stateDB vm.StateDB, owner common.Address) ([]common.Hash, error) {
-	return d.ticketPool.GetOwnerExpireTicketIds(stateDB, owner)
-}
 ////// 每一个块都会调用的方法
-func (d *ppos) Notify (stateDB vm.StateDB, blockNumber *big.Int, nodeId discover.NodeID) error {
-	return d.ticketPool.Notify(stateDB, blockNumber, nodeId)
+func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int, blockhash common.Hash, nodeId discover.NodeID) error {
+	return d.ticketPool.Notify(state, blockNumber, blockhash, nodeId)
 }
 
 // cbft consensus fork need to update  nodeRound
