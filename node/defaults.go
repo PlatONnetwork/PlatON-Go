@@ -22,9 +22,9 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/nat"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 const (
@@ -45,7 +45,7 @@ var DefaultConfig = Config{
 	WSModules:        []string{"net", "web3"},
 	P2P: p2p.Config{
 		ListenAddr: ":30303",
-		MaxPeers:   25,
+		MaxPeers:   50,
 		NAT:        nat.Any(),
 	},
 }

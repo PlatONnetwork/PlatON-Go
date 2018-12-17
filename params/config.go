@@ -17,10 +17,11 @@
 package params
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"crypto/ecdsa"
 	"fmt"
 	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -31,6 +32,13 @@ var (
 )
 
 var (
+	initialConsensusNodes = []string{
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.9.181:16789",
+		"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.9.182:16789",
+		"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.183:16789",
+		"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.184:16789",
+	}
+
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(1),
@@ -43,7 +51,11 @@ var (
 		EIP158Block:         big.NewInt(2675000),
 		ByzantiumBlock:      big.NewInt(4370000),
 		ConstantinopleBlock: nil,
-		Ethash:              new(EthashConfig),
+		//Ethash:              new(EthashConfig),
+		Cbft: &CbftConfig{
+			InitialNodes: convertNodeUrl(initialConsensusNodes),
+		},
+		VMInterpreter: "evm",
 	}
 
 	// MainnetTrustedCheckpoint contains the light client trusted checkpoint for the main network.
@@ -111,17 +123,19 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, new(EthashConfig), nil}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, new(EthashConfig), nil, nil, ""}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Ethereum core developers into the Clique consensus.
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
+	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}, nil, ""}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, new(EthashConfig), nil}
-	TestRules       = TestChainConfig.Rules(new(big.Int))
+	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, new(EthashConfig), nil, nil, ""}
+
+	AllCbftProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, new(CbftConfig), ""}
+	TestRules              = TestChainConfig.Rules(new(big.Int))
 )
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
@@ -163,6 +177,10 @@ type ChainConfig struct {
 	// Various consensus engines
 	Ethash *EthashConfig `json:"ethash,omitempty"`
 	Clique *CliqueConfig `json:"clique,omitempty"`
+	Cbft   *CbftConfig   `json:"cbft,omitempty"`
+
+	// Various vm interpreter
+	VMInterpreter string `json:"interpreter,omitempty"`
 }
 
 // EthashConfig is the consensus engine configs for proof-of-work based sealing.
@@ -171,6 +189,18 @@ type EthashConfig struct{}
 // String implements the stringer interface, returning the consensus engine details.
 func (c *EthashConfig) String() string {
 	return "ethash"
+}
+
+type CbftConfig struct {
+	Period           uint64  `json:"period,omitempty"`           // Number of seconds between blocks to enforce
+	Epoch            uint64  `json:"epoch,omitempty"`            // Epoch length to reset votes and checkpoint
+	MaxLatency       int64   `json:"maxLatency,omitempty"`       // number of milliseconds of max net latency between the consensus nodes
+	LegalCoefficient float64 `json:"legalCoefficient,omitempty"` // coefficient for checking if a block is in it's turn
+	Duration         int64   `json:"duration,omitempty"`         // number of seconds for a node to produce blocks
+	//mock
+	InitialNodes []discover.Node   `json:"initialNodes,omitempty"`
+	NodeID       discover.NodeID   `json:"-"`
+	PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
@@ -192,6 +222,9 @@ func (c *ChainConfig) String() string {
 		engine = c.Ethash
 	case c.Clique != nil:
 		engine = c.Clique
+	// joey.lyu
+	case c.Cbft != nil:
+		engine = c.Cbft
 	default:
 		engine = "unknown"
 	}
@@ -401,4 +434,17 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsByzantium:      c.IsByzantium(num),
 		IsConstantinople: c.IsConstantinople(num),
 	}
+}
+
+func convertNodeUrl(initialNodes []string) []discover.Node {
+	NodeList := make([]discover.Node, 0, len(initialNodes))
+	for _, url := range initialNodes {
+		//if nodeID, error := discover.HexID(value); error == nil {
+		//	NodeIDList = append(NodeIDList, nodeID)
+		//}
+		if node, err := discover.ParseNode(url); err == nil {
+			NodeList = append(NodeList, *node)
+		}
+	}
+	return NodeList
 }

@@ -17,6 +17,8 @@
 package eth
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"fmt"
 	"math/big"
 	"os"
 	"os/user"
@@ -24,18 +26,30 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/consensus/ethash"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/eth/downloader"
-	"github.com/ethereum/go-ethereum/eth/gasprice"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+)
+
+const (
+	datadirCbftConfig = "cbft.json" // Path within the datadir to the cbft config
 )
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FastSync,
+	CbftConfig: CbftConfig{
+		Period:           1,
+		Epoch:            250000,
+		MaxLatency:       600,
+		LegalCoefficient: 1.0,
+		Duration:         10,
+	},
 	Ethash: ethash.Config{
 		CacheDir:       "ethash",
 		CachesInMem:    2,
@@ -48,8 +62,8 @@ var DefaultConfig = Config{
 	DatabaseCache: 768,
 	TrieCache:     256,
 	TrieTimeout:   60 * time.Minute,
-	MinerGasFloor: 8000000,
-	MinerGasCeil:  8000000,
+	MinerGasFloor: 3150000000,
+	MinerGasCeil:  3150000000,
 	MinerGasPrice: big.NewInt(params.GWei),
 	MinerRecommit: 3 * time.Second,
 
@@ -80,6 +94,8 @@ type Config struct {
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
+
+	CbftConfig CbftConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
@@ -128,6 +144,38 @@ type Config struct {
 	EVMInterpreter string
 }
 
+type CbftConfig struct {
+	Period           uint64  `json:"period"` // Number of seconds between blocks to enforce
+	Epoch            uint64  `json:"epoch"`  // Epoch length to reset votes and checkpoint
+	MaxLatency       int64   `json:"maxLatency"`
+	LegalCoefficient float64 `json:"legalCoefficient"`
+	Duration         int64   `json:"duration"`
+	//mock
+	//InitialNodes []discover.Node   `json:"initialNodes"`
+	//NodeID       discover.NodeID   `json:"nodeID,omitempty"`
+	//PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
+}
+
 type configMarshaling struct {
 	MinerExtraData hexutil.Bytes
+}
+
+// StaticNodes returns a list of node enode URLs configured as static nodes.
+func (c *Config) LoadCbftConfig(nodeConfig node.Config) *CbftConfig {
+	return c.parsePersistentCbftConfig(filepath.Join(nodeConfig.DataDir, datadirCbftConfig))
+}
+
+// parsePersistentNodes parses a list of discovery node URLs loaded from a .json
+// file from within the data directory.
+func (c *Config) parsePersistentCbftConfig(path string) *CbftConfig {
+	if _, err := os.Stat(path); err != nil {
+		return nil
+	}
+	// Load the nodes from the config file.
+	config := CbftConfig{}
+	if err := common.LoadJSON(path, &config); err != nil {
+		log.Error(fmt.Sprintf("Can't load cbft config file %s: %v", path, err))
+		return nil
+	}
+	return &config
 }

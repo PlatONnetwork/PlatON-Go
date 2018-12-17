@@ -17,13 +17,15 @@
 package state
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"bytes"
+	"fmt"
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	checker "gopkg.in/check.v1"
 )
 
@@ -95,15 +97,17 @@ func (s *StateSuite) TestNull(c *checker.C) {
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
 	s.state.CreateAccount(address)
 	//value := common.FromHex("0x823140710bf13990e4500136726d8b55")
-	var value common.Hash
+	//value := nil
+	key := []byte{}
 
-	s.state.SetState(address, common.Hash{}, value)
+	//s.state.SetState(address, common.Hash{}, value)
+	s.state.SetState(address, key, nil)
 	s.state.Commit(false)
 
-	if value := s.state.GetState(address, common.Hash{}); value != (common.Hash{}) {
+	if value := s.state.GetState(address, common.Hash{}.Bytes()); bytes.Compare(value, common.Hash{}.Bytes()) != 0 {
 		c.Errorf("expected empty current value, got %x", value)
 	}
-	if value := s.state.GetCommittedState(address, common.Hash{}); value != (common.Hash{}) {
+	if value := s.state.GetCommittedState(address, key); !bytes.Equal(value, []byte{}) {
 		c.Errorf("expected empty committed value, got %x", value)
 	}
 }
@@ -118,20 +122,20 @@ func (s *StateSuite) TestSnapshot(c *checker.C) {
 	genesis := s.state.Snapshot()
 
 	// set initial state object value
-	s.state.SetState(stateobjaddr, storageaddr, data1)
+	s.state.SetState(stateobjaddr, storageaddr.Bytes(), data1.Bytes())
 	snapshot := s.state.Snapshot()
 
 	// set a new state object value, revert it and ensure correct content
-	s.state.SetState(stateobjaddr, storageaddr, data2)
+	s.state.SetState(stateobjaddr, storageaddr.Bytes(), data2.Bytes())
 	s.state.RevertToSnapshot(snapshot)
 
-	c.Assert(s.state.GetState(stateobjaddr, storageaddr), checker.DeepEquals, data1)
-	c.Assert(s.state.GetCommittedState(stateobjaddr, storageaddr), checker.DeepEquals, common.Hash{})
+	c.Assert(s.state.GetState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, data1)
+	c.Assert(s.state.GetCommittedState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, common.Hash{})
 
 	// revert up to the genesis state and ensure correct content
 	s.state.RevertToSnapshot(genesis)
-	c.Assert(s.state.GetState(stateobjaddr, storageaddr), checker.DeepEquals, common.Hash{})
-	c.Assert(s.state.GetCommittedState(stateobjaddr, storageaddr), checker.DeepEquals, common.Hash{})
+	c.Assert(s.state.GetState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, common.Hash{})
+	c.Assert(s.state.GetCommittedState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, common.Hash{})
 }
 
 func (s *StateSuite) TestSnapshotEmpty(c *checker.C) {
@@ -145,13 +149,13 @@ func TestSnapshot2(t *testing.T) {
 
 	stateobjaddr0 := toAddr([]byte("so0"))
 	stateobjaddr1 := toAddr([]byte("so1"))
-	var storageaddr common.Hash
+	var storageaddr common.Address
 
 	data0 := common.BytesToHash([]byte{17})
 	data1 := common.BytesToHash([]byte{18})
 
-	state.SetState(stateobjaddr0, storageaddr, data0)
-	state.SetState(stateobjaddr1, storageaddr, data1)
+	state.SetState(stateobjaddr0, storageaddr.Bytes(), data0.Bytes())
+	state.SetState(stateobjaddr1, storageaddr.Bytes(), data1.Bytes())
 
 	// db, trie are already non-empty values
 	so0 := state.getStateObject(stateobjaddr0)
@@ -184,7 +188,8 @@ func TestSnapshot2(t *testing.T) {
 
 	so0Restored := state.getStateObject(stateobjaddr0)
 	// Update lazily-loaded values before comparing.
-	so0Restored.GetState(state.db, storageaddr)
+	key, _, _ := getKeyValue(stateobjaddr0, storageaddr.Bytes(), nil)
+	so0Restored.GetState(state.db, key)
 	so0Restored.Code(state.db)
 	// non-deleted is equal (restored)
 	compareStateObjects(so0Restored, so0, t)
@@ -242,4 +247,62 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 			t.Errorf("Origin storage key %x mismatch: have %v, want none.", k, v)
 		}
 	}
+}
+
+func TestEmptyByte(t *testing.T) {
+	db, _ := ethdb.NewLDBDatabase("D:\\resource\\platon\\platon-go\\data1", 0, 0)
+	state, _ := New(common.Hash{}, NewDatabase(db))
+
+	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
+	state.CreateAccount(address)
+	so := state.getStateObject(address)
+
+	//value := common.FromHex("0x823140710bf13990e4500136726d8b55")
+	pvalue := []byte{'a'}
+	key := []byte{'a'}
+
+	//s.state.SetState(address, common.Hash{}, value)
+	state.SetState(address, key, pvalue)
+	state.Commit(false)
+
+	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty current value, got %x", value)
+	}
+	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty committed value, got %x", value)
+	}
+
+	state.trie.NodeIterator(nil)
+	it := trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		fmt.Println(it.Key, it.Value)
+	}
+
+	pvalue = []byte{}
+	state.SetState(address, key, pvalue)
+	state.Commit(false)
+
+	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty current value, got %x", value)
+	}
+	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
+		t.Errorf("expected empty committed value, got %x", value)
+	}
+
+	state.trie.NodeIterator(nil)
+	it = trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		fmt.Println(it.Key, it.Value)
+	}
+
+	pvalue = []byte("bbb")
+	state.SetState(address, key, pvalue)
+	state.Commit(false)
+	state.trie.NodeIterator(nil)
+	it = trie.NewIterator(so.trie.NodeIterator(nil))
+	for it.Next() {
+		fmt.Println(it.Key, it.Value)
+		fmt.Println(so.db.trie.GetKey(it.Value))
+	}
+
 }

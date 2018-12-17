@@ -19,8 +19,8 @@ package vm
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // StateDB is an EVM database for full state querying.
@@ -39,13 +39,22 @@ type StateDB interface {
 	SetCode(common.Address, []byte)
 	GetCodeSize(common.Address) int
 
+	// todo: new func for abi of contract.
+	GetAbiHash(common.Address) common.Hash
+	GetAbi(common.Address) []byte
+	SetAbi(common.Address, []byte)
+
 	AddRefund(uint64)
 	SubRefund(uint64)
 	GetRefund() uint64
 
-	GetCommittedState(common.Address, common.Hash) common.Hash
-	GetState(common.Address, common.Hash) common.Hash
-	SetState(common.Address, common.Hash, common.Hash)
+	// todo: hash -> bytes
+	GetCommittedState(common.Address, []byte) []byte
+	//GetState(common.Address, common.Hash) common.Hash
+	//SetState(common.Address, common.Hash, common.Hash)
+	GetState(common.Address, []byte) []byte
+	SetState(common.Address, []byte, []byte)
+
 
 	Suicide(common.Address) bool
 	HasSuicided(common.Address) bool

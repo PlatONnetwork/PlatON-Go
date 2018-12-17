@@ -17,14 +17,15 @@
 package clique
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"bytes"
 	"encoding/json"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -209,7 +210,7 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 			delete(snap.Recents, number-limit)
 		}
 		// Resolve the authorization key and check against signers
-		signer, err := ecrecover(header, s.sigcache)
+		signer, err := consensus.Ecrecover(header, s.sigcache)
 		if err != nil {
 			return nil, err
 		}

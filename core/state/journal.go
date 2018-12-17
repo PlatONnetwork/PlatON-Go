@@ -19,7 +19,7 @@ package state
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // journalEntry is a modification entry in the state change journal that can be
@@ -108,12 +108,19 @@ type (
 		prev    uint64
 	}
 	storageChange struct {
-		account       *common.Address
-		key, prevalue common.Hash
+		account  *common.Address
+		key      string
+		valueKey common.Hash
+		preValue []byte
 	}
 	codeChange struct {
 		account            *common.Address
 		prevcode, prevhash []byte
+	}
+	abiChange struct {
+		account  *common.Address
+		prevabi  []byte
+		prevhash []byte
 	}
 
 	// Changes to other state values.
@@ -195,8 +202,18 @@ func (ch codeChange) dirtied() *common.Address {
 	return ch.account
 }
 
+// todo: new method -> revert.
+func (ch abiChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).SetAbi(common.BytesToHash(ch.prevhash), ch.prevabi)
+}
+
+// todo: new method -> dirtied.
+func (ch abiChange) dirtied() *common.Address {
+	return ch.account
+}
+
 func (ch storageChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).setState(ch.key, ch.prevalue)
+	s.getStateObject(*ch.account).setState(ch.key, ch.valueKey, ch.preValue)
 }
 
 func (ch storageChange) dirtied() *common.Address {

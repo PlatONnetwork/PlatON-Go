@@ -45,3 +45,14 @@ profile.cov
 /dashboard/assets/package-lock.json
 
 **/yarn-error.log
+
+# for life vm
+.idea/
+.vscode/
+
+coverage.txt
+
+*.exe
+*.test
+
+go.sum

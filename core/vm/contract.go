@@ -19,7 +19,7 @@ package vm
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // ContractRef is a reference to the contract's backing object
@@ -55,6 +55,10 @@ type Contract struct {
 	CodeHash common.Hash
 	CodeAddr *common.Address
 	Input    []byte
+
+	ABI     []byte
+	ABIHash common.Hash
+	ABIAddr *common.Address
 
 	Gas   uint64
 	value *big.Int
@@ -150,4 +154,11 @@ func (c *Contract) SetCallCode(addr *common.Address, hash common.Hash, code []by
 	c.Code = code
 	c.CodeHash = hash
 	c.CodeAddr = addr
+}
+
+// todo:
+func (c *Contract) SetCallAbi(addr *common.Address, hash common.Hash, abi []byte) {
+	c.ABI = abi
+	c.ABIHash = hash
+	c.ABIAddr = addr
 }

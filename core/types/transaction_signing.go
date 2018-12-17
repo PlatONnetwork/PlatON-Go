@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 var (
@@ -100,6 +100,8 @@ type Signer interface {
 	Hash(tx *Transaction) common.Hash
 	// Equal returns true if the given signer is the same as the receiver.
 	Equal(Signer) bool
+	// Signature return the sig info of the transaction
+	SignatureAndSender(tx *Transaction) (common.Address, []byte, error)
 }
 
 // EIP155Transaction implements Signer using the EIP155 rules.
@@ -164,6 +166,18 @@ func (s EIP155Signer) Hash(tx *Transaction) common.Hash {
 	})
 }
 
+func (s EIP155Signer) SignatureAndSender(tx *Transaction) (common.Address, []byte, error) {
+	if !tx.Protected() {
+		return HomesteadSigner{}.SignatureAndSender(tx)
+	}
+	if tx.ChainId().Cmp(s.chainId) != 0 {
+		return common.Address{}, []byte{}, ErrInvalidChainId
+	}
+	V := new(big.Int).Sub(tx.data.V, s.chainIdMul)
+	V.Sub(V, big8)
+	return recoverPubKeyAndSender(s.Hash(tx), tx.data.R, tx.data.S, V, true)
+}
+
 // HomesteadTransaction implements TransactionInterface using the
 // homestead rules.
 type HomesteadSigner struct{ FrontierSigner }
@@ -181,6 +195,10 @@ func (hs HomesteadSigner) SignatureValues(tx *Transaction, sig []byte) (r, s, v 
 
 func (hs HomesteadSigner) Sender(tx *Transaction) (common.Address, error) {
 	return recoverPlain(hs.Hash(tx), tx.data.R, tx.data.S, tx.data.V, true)
+}
+
+func (hs HomesteadSigner) SignatureAndSender(tx *Transaction) (common.Address, []byte, error) {
+	return recoverPubKeyAndSender(hs.Hash(tx), tx.data.R, tx.data.S, tx.data.V, true)
 }
 
 type FrontierSigner struct{}
@@ -219,6 +237,10 @@ func (fs FrontierSigner) Sender(tx *Transaction) (common.Address, error) {
 	return recoverPlain(fs.Hash(tx), tx.data.R, tx.data.S, tx.data.V, false)
 }
 
+func (fs FrontierSigner) SignatureAndSender(tx *Transaction) (common.Address, []byte, error) {
+	return recoverPubKeyAndSender(fs.Hash(tx), tx.data.R, tx.data.S, tx.data.V, false)
+}
+
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
 	if Vb.BitLen() > 8 {
 		return common.Address{}, ErrInvalidSig
@@ -244,6 +266,34 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 	var addr common.Address
 	copy(addr[:], crypto.Keccak256(pub[1:])[12:])
 	return addr, nil
+}
+
+func recoverPubKeyAndSender(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, []byte, error) {
+	if Vb.BitLen() > 8 {
+		return common.Address{}, []byte{}, ErrInvalidSig
+	}
+	V := byte(Vb.Uint64() - 27)
+	if !crypto.ValidateSignatureValues(V, R, S, homestead) {
+		return common.Address{}, []byte{}, ErrInvalidSig
+	}
+	// encode the snature in uncompressed format
+	r, s := R.Bytes(), S.Bytes()
+	sig := make([]byte, 65)
+	copy(sig[32-len(r):32], r)
+	copy(sig[64-len(s):64], s)
+	sig[64] = V
+	// recover the public key from the snature
+	pub, err := crypto.Ecrecover(sighash[:], sig)
+	if err != nil {
+		return common.Address{}, []byte{}, err
+	}
+	if len(pub) == 0 || pub[0] != 4 {
+		return common.Address{}, []byte{}, errors.New("invalid public key")
+	}
+	pubValid := crypto.Keccak256(pub[1:])
+	var addr common.Address
+	copy(addr[:], pubValid[12:])
+	return addr, pub[1:], nil
 }
 
 // deriveChainId derives the chain id from the given v parameter

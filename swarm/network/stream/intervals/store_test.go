@@ -20,7 +20,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/swarm/state"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/state"
 )
 
 var ErrNotFound = errors.New("not found")

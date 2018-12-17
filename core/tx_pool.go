@@ -25,14 +25,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/prque"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/prque"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -210,6 +210,14 @@ type TxPool struct {
 	wg sync.WaitGroup // for shutdown sync
 
 	homestead bool
+
+	txExtBuffer chan *txExt
+}
+
+type txExt struct {
+	tx    interface{} //*types.Transaction
+	local bool
+	txErr chan interface{}
 }
 
 // NewTxPool creates a new transaction pool to gather, sort and filter inbound
@@ -230,6 +238,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		all:         newTxLookup(),
 		chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
 		gasPrice:    new(big.Int).SetUint64(config.PriceLimit),
+		txExtBuffer: make(chan *txExt, 1024),
 	}
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
@@ -238,6 +247,8 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 	}
 	pool.priced = newTxPricedList(pool.all)
 	pool.reset(nil, chain.CurrentBlock().Header())
+
+	go pool.txExtBufferReadLoop()
 
 	// If local transactions and journaling is enabled, load from disk
 	if !config.NoLocals && config.Journal != "" {
@@ -258,6 +269,14 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 	go pool.loop()
 
 	return pool
+}
+
+func (pool *TxPool) txExtBufferReadLoop() {
+	for {
+		txExt := <-pool.txExtBuffer
+		err := pool.addTxExt(txExt)
+		txExt.txErr <- err
+	}
 }
 
 // loop is the transaction pool's main event loop, waiting for and reacting to
@@ -567,7 +586,8 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
-	if tx.Size() > 32*1024 {
+	// 32kb -> 1m
+	if tx.Size() > 1024*128 {
 		return ErrOversizedData
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded
@@ -772,34 +792,155 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 // the sender as a local one in the mean time, ensuring it goes around the local
 // pricing constraints.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
-	return pool.addTx(tx, !pool.config.NoLocals)
+	errCh := make(chan interface{})
+
+	txExt := &txExt{tx, !pool.config.NoLocals, errCh}
+
+	pool.txExtBuffer <- txExt
+
+	//log.Debug("--------- AddLocal txExtBuffer --------", "bufferLength", len(pool.txExtBuffer), "bufferCapacity", cap(pool.txExtBuffer), "timestamp(Nano)", time.Now().UnixNano())
+
+	err := <-errCh
+	if e, ok := err.(error); ok {
+		return e
+	} else {
+		return nil
+	}
+
+	//return pool.addTx(tx, !pool.config.NoLocals)
+
 }
 
 // AddRemote enqueues a single transaction into the pool if it is valid. If the
 // sender is not among the locally tracked ones, full pricing constraints will
 // apply.
 func (pool *TxPool) AddRemote(tx *types.Transaction) error {
-	return pool.addTx(tx, false)
+	errCh := make(chan interface{})
+
+	txExt := &txExt{tx, false, errCh}
+
+	pool.txExtBuffer <- txExt
+
+	err := <-errCh
+	if e, ok := err.(error); ok {
+		return e
+	} else {
+		return nil
+	}
+
+	//return pool.addTx(tx, false)
 }
 
 // AddLocals enqueues a batch of transactions into the pool if they are valid,
 // marking the senders as a local ones in the mean time, ensuring they go around
 // the local pricing constraints.
 func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
-	return pool.addTxs(txs, !pool.config.NoLocals)
+
+	errCh := make(chan interface{})
+
+	txExt := &txExt{txs, !pool.config.NoLocals, errCh}
+
+	pool.txExtBuffer <- txExt
+
+	err := <-errCh
+	if e, ok := err.([]error); ok {
+		return e
+	} else {
+		return nil
+	}
 }
 
 // AddRemotes enqueues a batch of transactions into the pool if they are valid.
 // If the senders are not among the locally tracked ones, full pricing constraints
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
-	return pool.addTxs(txs, false)
+
+	errCh := make(chan interface{})
+
+	txExt := &txExt{txs, false, errCh}
+
+	pool.txExtBuffer <- txExt
+
+	err := <-errCh
+	if e, ok := err.([]error); ok {
+		return e
+	} else {
+		return nil
+	}
+}
+
+func (pool *TxPool) RecoverTx(tx *types.Transaction) bool {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	from, _ := types.Sender(pool.signer, tx)
+	return pool.recoverTx(tx, from, pool.locals.contains(from))
+}
+
+func (pool *TxPool) RecoverTxs(txs []*types.Transaction) []bool {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	results := make([]bool, len(txs))
+	for i, tx := range txs {
+		from, _ := types.Sender(pool.signer, tx)
+		results[i] = pool.recoverTx(tx, from, pool.locals.contains(from))
+	}
+	return results
+}
+
+func (pool *TxPool) recoverTx(tx *types.Transaction, from common.Address, local bool) bool {
+	// If the transaction is already known, discard it
+	hash := tx.Hash()
+	if pool.all.Get(hash) != nil {
+		log.Trace("Discarding already known transaction", "hash", hash)
+		return false
+	}
+
+	// If the transaction pool is full, discard underpriced transactions
+	if uint64(pool.all.Count()) >= pool.config.GlobalSlots+pool.config.GlobalQueue {
+		// New transaction is better than our worse ones, make room for it
+		drop := pool.priced.Discard(pool.all.Count()-int(pool.config.GlobalSlots+pool.config.GlobalQueue-1), pool.locals)
+		for _, tx := range drop {
+			log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "price", tx.GasPrice())
+			underpricedTxCounter.Inc(1)
+			pool.removeTx(tx.Hash(), false)
+		}
+	}
+
+	if local {
+		if !pool.locals.contains(from) {
+			log.Info("Setting new local account", "address", from)
+			pool.locals.add(from)
+		}
+	}
+	pool.journalTx(from, tx)
+	pool.promoteTx(from, hash, tx)
+
+	return true
+
 }
 
 // addTx enqueues a single transaction into the pool if it is valid.
 func (pool *TxPool) addTx(tx *types.Transaction, local bool) error {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
+
+	return pool.addTxLocked(tx, local)
+	/*// Try to inject the transaction and update any state
+	replace, err := pool.add(tx, local)
+	if err != nil {
+		return err
+	}
+	// If we added a new transaction, run promotion checks and return
+	if !replace {
+		from, _ := types.Sender(pool.signer, tx) // already validated
+		pool.promoteExecutables([]common.Address{from})
+	}
+	return nil*/
+}
+
+func (pool *TxPool) addTxLocked(tx *types.Transaction, local bool) error {
 
 	// Try to inject the transaction and update any state
 	replace, err := pool.add(tx, local)
@@ -811,6 +952,21 @@ func (pool *TxPool) addTx(tx *types.Transaction, local bool) error {
 		from, _ := types.Sender(pool.signer, tx) // already validated
 		pool.promoteExecutables([]common.Address{from})
 	}
+	return nil
+}
+
+func (pool *TxPool) addTxExt(txExt *txExt) interface{} {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	if tx, ok := txExt.tx.(*types.Transaction); ok {
+		return pool.addTxLocked(tx, txExt.local)
+	}
+
+	if txs, ok := txExt.tx.([]*types.Transaction); ok {
+		return pool.addTxsLocked(txs, txExt.local)
+	}
+
 	return nil
 }
 

@@ -17,8 +17,9 @@
 package core
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // NewTxsEvent is posted when a batch of transactions enter the transaction pool.
@@ -31,6 +32,9 @@ type PendingLogsEvent struct {
 
 // NewMinedBlockEvent is posted when a block has been imported.
 type NewMinedBlockEvent struct{ Block *types.Block }
+
+type PrepareMinedBlockEvent struct{ Block *types.Block }
+type BlockSignatureEvent struct{ BlockSignature *cbfttypes.BlockSignature }
 
 // RemovedLogsEvent is posted when a reorg happens
 type RemovedLogsEvent struct{ Logs []*types.Log }

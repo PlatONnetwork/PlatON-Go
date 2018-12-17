@@ -18,12 +18,13 @@ package vm
 
 import (
 	"math/big"
+	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -51,6 +52,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}
+
 	for _, interpreter := range evm.interpreters {
 		if interpreter.CanRun(contract.Code) {
 			if evm.interpreter != interpreter {
@@ -139,27 +141,15 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 		interpreters: make([]Interpreter, 0, 1),
 	}
 
-	if chainConfig.IsEWASM(ctx.BlockNumber) {
-		// to be implemented by EVM-C and Wagon PRs.
-		// if vmConfig.EWASMInterpreter != "" {
-		//  extIntOpts := strings.Split(vmConfig.EWASMInterpreter, ":")
-		//  path := extIntOpts[0]
-		//  options := []string{}
-		//  if len(extIntOpts) > 1 {
-		//    options = extIntOpts[1..]
-		//  }
-		//  evm.interpreters = append(evm.interpreters, NewEVMVCInterpreter(evm, vmConfig, options))
-		// } else {
-		// 	evm.interpreters = append(evm.interpreters, NewEWASMInterpreter(evm, vmConfig))
-		// }
-		panic("No supported ewasm interpreter yet.")
-	}
-
 	// vmConfig.EVMInterpreter will be used by EVM-C, it won't be checked here
 	// as we always want to have the built-in EVM as the failover option.
-	evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
+	// todo: replace the evm to wasm for the interpreter.
+	if strings.EqualFold("wasm", chainConfig.VMInterpreter) {
+		evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
+	} else {
+		evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
+	}
 	evm.interpreter = evm.interpreters[0]
-
 	return evm
 }
 
@@ -194,7 +184,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 
 	var (
 		to       = AccountRef(addr)
-		snapshot = evm.StateDB.Snapshot()
+		snapshot = evm.StateDB.Snapshot() // - snapshot.
 	)
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsHomestead
@@ -216,8 +206,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
 	contract := NewContract(caller, to, value, gas)
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
+	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 	start := time.Now()
 
 	// Capture the tracer start/end events in debug mode
@@ -447,3 +437,15 @@ func (evm *EVM) Create2(caller ContractRef, code []byte, gas uint64, endowment *
 
 // ChainConfig returns the environment's chain configuration
 func (evm *EVM) ChainConfig() *params.ChainConfig { return evm.chainConfig }
+
+func (evm *EVM) GetStateDB() StateDB {
+	return evm.StateDB
+}
+
+func (evm *EVM) GetEvm() *EVM {
+	return evm
+}
+
+func (evm *EVM) GetConfig() Config {
+	return evm.vmConfig
+}

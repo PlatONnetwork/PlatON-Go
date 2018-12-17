@@ -25,15 +25,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	ethereum "github.com/ethereum/go-ethereum"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/params"
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 var (
@@ -148,6 +148,7 @@ type Downloader struct {
 	bodyFetchHook    func([]*types.Header) // Method to call upon starting a block body fetch
 	receiptFetchHook func([]*types.Header) // Method to call upon starting a receipt fetch
 	chainInsertHook  func([]*fetchResult)  // Method to call upon inserting a chain of blocks (possibly in multiple invocations)
+	running int32 	// The indicator whether the Downloader is running or not.
 }
 
 // LightChain encapsulates functions required to synchronise a light chain.
@@ -314,6 +315,7 @@ func (d *Downloader) UnregisterPeer(id string) error {
 // Synchronise tries to sync up our local block chain with a remote peer, both
 // adding various sanity checks as well as wrapping it with various log entries.
 func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode SyncMode) error {
+	log.Warn("----------向对端节点同步区块数据----------", "peerID", id, "head", head, "td", td, "mode", mode)
 	err := d.synchronise(id, head, td, mode)
 	switch err {
 	case nil:
@@ -403,11 +405,14 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode 
 // specified peer and head hash.
 func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.Int) (err error) {
 	d.mux.Post(StartEvent{})
+	d.start()
 	defer func() {
 		// reset on error
 		if err != nil {
+			d.stop()
 			d.mux.Post(FailedEvent{err})
 		} else {
+			d.stop()
 			d.mux.Post(DoneEvent{})
 		}
 	}()
@@ -1639,4 +1644,16 @@ func (d *Downloader) requestTTL() time.Duration {
 		ttl = ttlLimit
 	}
 	return ttl
+}
+
+func (d *Downloader) start() {
+	atomic.StoreInt32(&d.running, 1)
+}
+
+func (d *Downloader) stop() {
+	atomic.StoreInt32(&d.running, 0)
+}
+
+func (d *Downloader) IsRunning() bool {
+	return atomic.LoadInt32(&d.running) == 1
 }
