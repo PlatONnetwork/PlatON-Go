@@ -124,7 +124,7 @@ type Bft interface {
 	//FormerNodeID() []discover.NodeID
 
 	// 返回上一轮共识节点信息列表
-	FormerNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
+	//FormerNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
 
 	// 返回当前轮共识节点地址列表
 	//CurrentNodeID() []discover.NodeID
