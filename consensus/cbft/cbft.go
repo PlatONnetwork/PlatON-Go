@@ -387,7 +387,7 @@ func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt)
 			log.Error("execute block error", "hash", current.block.Hash(), "number", current.block.NumberU64())
 			return errors.New("execute block error")
 		} else {
-			log.Debug("execute block success", "hash", current.block.Hash(), "number", current.block.NumberU64())
+			//log.Debug("execute block success", "hash", current.block.Hash(), "number", current.block.NumberU64())
 			current.isExecuted = true
 		}
 	}
@@ -448,7 +448,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	if err == nil {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
-		log.Debug("execute block success", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", "lenReceipts", len(receipts), "stateIsNil", stateIsNil, "root", ext.block.Root())
+		log.Debug("execute block success", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "lenReceipts", len(receipts), "stateIsNil", stateIsNil, "root", ext.block.Root())
 		cbft.consensusCache.WriteReceipts(cbft.SealHash(ext.block.Header()), receipts, ext.block.NumberU64())
 		cbft.consensusCache.WriteStateDB(cbft.SealHash(ext.block.Header()), state, ext.block.NumberU64())
 	} else {
@@ -749,8 +749,8 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 		//the current is new highestConfirmed on the same logical path
 		if current.number > cbft.highestConfirmed.number && cbft.highestConfirmed.isAncestor(current) {
 			cbft.highestConfirmed = current
-			//newHighestLogical := cbft.findHighestLogical(current)
-			//cbft.setHighestLogical(newHighestLogical)
+			newHighestLogical := cbft.findHighestLogical(current)
+			cbft.setHighestLogical(newHighestLogical)
 		} else if current.number < cbft.highestConfirmed.number && !current.isAncestor(cbft.highestConfirmed) {
 			//only this case may cause a new fork
 			cbft.checkFork(current)
