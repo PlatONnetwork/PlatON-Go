@@ -164,8 +164,8 @@ type worker struct {
 	taskCh                chan *task
 	resultCh              chan *types.Block
 	prepareResultCh       chan *types.Block
-	blockSignatureCh      chan *cbfttypes.BlockSignature // 签名
-	cbftResultCh          chan *cbfttypes.CbftResult     // Seal出块后输出的channel
+	blockSignatureCh      chan *cbfttypes.BlockSignature // signature
+	cbftResultCh          chan *cbfttypes.CbftResult     // Seal block and output to channel
 	highestLogicalBlockCh chan *types.Block
 	startCh               chan struct{}
 	exitCh                chan struct{}
@@ -410,7 +410,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			w.consensusCache.ClearCache(head.Block)
 
 		case highestLogicalBlock := <-w.highestLogicalBlockCh:
-			log.Info("highestLogicalBlockCh通道接收数据", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash())
+			log.Info("highestLogicalBlockCh - Channel receiving data", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash())
 			w.commitWorkEnv.highestLock.Lock()
 			w.commitWorkEnv.highestLogicalBlock = highestLogicalBlock
 			w.commitWorkEnv.highestLock.Unlock()
@@ -418,7 +418,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if w.isRunning() {
 				if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(); shouldSeal && error == nil {
 					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-						log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
+						log.Warn("~ HighestLogicalBlock increase, And interval " + recommit.String() + " Package task not executed，Execute packed out logic.")
 						commit(false, commitInterruptResubmit, commitBlock)
 					}
 				}
@@ -427,13 +427,12 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
-			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
-				log.Warn("----------间隔" + recommit.String() + "开始打包任务----------")
+				log.Warn("~ Interval" + recommit.String() + " to start packing tasks.")
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
 						if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-							log.Warn("--------------节点当前时间窗口出块，执行打包出块逻辑--------------")
+							log.Warn("~ The current time window of the node is out of the block, and the packaged block logic is executed.")
 							commit(false, commitInterruptResubmit, commitBlock)
 							continue
 						}
@@ -450,7 +449,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case interval := <-w.resubmitIntervalCh:
-			// cbft引擎不允许外界修改recommit值
+			// cbft engine do not allow outside modifications recommit value.
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				// Adjust resubmit interval explicitly by user.
 				if interval < minRecommitInterval {
@@ -466,7 +465,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case adjust := <-w.resubmitAdjustCh:
-			// cbft引擎不需要重新计算调整recommit值
+			// cbft engine no need to recalculate adjustments recommit value.
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				// Adjust resubmit interval by feedback.
 				if adjust.inc {
@@ -763,7 +762,7 @@ func (w *worker) resultLoop() {
 				_receipts = task.receipts
 				_state = task.state
 			} else {
-				log.Info("从consensusCache中读取receipts、state", "blockHash", block.Hash(), "stateRoot", block.Root())
+				log.Info("~ Read receipts、state from consensusCache", "blockHash", block.Hash(), "stateRoot", block.Root())
 				_receipts = w.consensusCache.ReadReceipts(block.Hash())
 				_state = w.consensusCache.ReadStateDB(block.Root())
 			}
@@ -773,7 +772,7 @@ func (w *worker) resultLoop() {
 				continue
 			}
 
-			log.Warn("[2]共识成功", "blockNumber", block.NumberU64(), "timestamp", time.Now().UnixNano()/1e6)
+			log.Warn("[2]Consensus success", "blockNumber", block.NumberU64(), "timestamp", time.Now().UnixNano()/1e6)
 
 			// Different block could share same sealhash, deep copy here to prevent write-write conflict.
 			var (
@@ -937,7 +936,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 
 	for {
 		if bftEngine && (float64(time.Now().UnixNano()/1e6-timestamp) >= w.commitDuration) {
-			log.Warn("------执行交易超时，主动退出，继续剩余打包流程------", "超时时长", w.commitDuration, "本轮执行交易数", w.current.tcount)
+			log.Warn("~ Execute transaction timeout, take the initiative to exit, continue the remaining packaging process", "Timeout period", w.commitDuration, "Number of executed transactions in the current round", w.current.tcount)
 			break
 		}
 		// In the following three cases, we will interrupt the execution of the transaction.
@@ -1082,7 +1081,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		header.Coinbase = w.coinbase
 	}
 
-	log.Warn("[1]共识开始", "gasLimit", header.GasLimit, "blockNumber", header.Number, "timestamp", time.Now().UnixNano()/1e6)
+	log.Warn("[1]Consensus Start", "gasLimit", header.GasLimit, "blockNumber", header.Number, "timestamp", time.Now().UnixNano()/1e6)
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
@@ -1215,7 +1214,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		}
 		select {
 		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now()}:
-			// 保存receipts、stateDB至缓存
+			// save receipts、stateDB to cache.
 			w.consensusCache.WriteReceipts(block.Hash(), receipts, block.NumberU64())
 			w.consensusCache.WriteStateDB(block.Root(), s, block.NumberU64())
 

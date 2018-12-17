@@ -25,7 +25,7 @@ import (
 var errBadChannel = errors.New("event: Subscribe argument does not have sendable channel type")
 
 // Feed implements one-to-many subscriptions where the carrier of events is a channel.
-// Values sent to a Feed are delivered to all subscribed channels simultaneously.(同时的)
+// Values sent to a Feed are delivered to all subscribed channels simultaneously.
 //
 // Feeds can only be used with a single type. The type is determined by the first Send or
 // Subscribe operation. Subsequent calls to these methods panic if the type does not

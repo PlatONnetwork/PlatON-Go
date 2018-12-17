@@ -291,10 +291,10 @@ func TestEncodeF03(t *testing.T) {
 	fmt.Println(string(res))
 
 	//val :=  []interface{}{"transfer", uint(0xFFFFFF), []interface{}{[]uint{4, 5, 5}}, "abc"}
-	fmt.Println([]byte("人才是你吗"))
+	fmt.Println([]byte("Hello"))
 	var source [][]byte
 	source = make([][]byte, 0)
-	source = append(source, []byte("人才是你吗"))
+	source = append(source, []byte("Hello"))
 	source = append(source, uint64ToBytes(1000))
 	source = append(source, uint64ToBytes(2000))
 	source = append(source, boolToBytes(false))
@@ -306,7 +306,7 @@ func TestEncodeF03(t *testing.T) {
 		fmt.Println(err)
 		t.Errorf("fail")
 	}
-	// 编码后字节数组
+
 	encodedBytes := buffer.Bytes()
 	fmt.Println(encodedBytes)
 
@@ -317,7 +317,7 @@ func TestEncodeF03(t *testing.T) {
 	fmt.Println(deref)
 	for i, v := range deref.([]interface{}) {
 		// fmt.Println(i,"    ",hex.EncodeToString(v.([]byte)))
-		// 类型判断，然后转换
+		// Type judgment, then convert
 		switch i {
 		case 0:
 			fmt.Println(string(v.([]byte)))
