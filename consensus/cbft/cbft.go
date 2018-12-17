@@ -12,6 +12,7 @@ import (
 	"Platon-go/core/types"
 	"Platon-go/crypto"
 	"Platon-go/crypto/sha3"
+	"Platon-go/ethdb"
 	"Platon-go/log"
 	"Platon-go/p2p/discover"
 	"Platon-go/params"
@@ -604,8 +605,9 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	txPool = txPool
 }
 
-func SetPposOption(blockChain *core.BlockChain) {
+func SetPposOption(blockChain *core.BlockChain, database ethdb.Database) {
 	cbft.ppos.SetCandidatePool(blockChain, cbft.config.InitialNodes)
+	cbft.ppos.setTicketPoolCache(database)
 }
 
 func BlockSynchronisation() {

@@ -214,7 +214,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, err
 	}
 	if _, ok := eth.engine.(consensus.Bft); ok {
-		cbft.SetPposOption(eth.blockchain)
+		cbft.SetPposOption(eth.blockchain, chainDb)
 	}
 	// 方法增加blockSignatureCh、cbftResultCh入参
 	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)

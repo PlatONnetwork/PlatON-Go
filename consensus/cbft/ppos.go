@@ -7,6 +7,7 @@ import (
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/core/vm"
+	"Platon-go/ethdb"
 	"Platon-go/log"
 	"Platon-go/p2p/discover"
 	"Platon-go/params"
@@ -41,7 +42,6 @@ func newPpos(config *params.CbftConfig) *ppos {
 		config:            	config.PposConfig,
 		candidatePool:     	pposm.NewCandidatePool(config.PposConfig),
 		ticketPool: 		pposm.NewTicketPool(config.PposConfig),
-		ticketidsCache: 	pposm.NewTicketIdsCache(),
 	}
 }
 
@@ -256,7 +256,8 @@ func (d *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 /** Method provided to the cbft module call */
 // Announce witness
 func (d *ppos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover.Node, error) {
-	if nextNodes, err := d.candidatePool.Election(state); nil != err {
+	// TODO
+	if nextNodes, err := d.candidatePool.Election(state, blocknumber, common.BytesToHash([]byte(""))); nil != err {
 		log.Error("ppos election next witness err", err)
 		panic("Election error " + err.Error())
 	} else {
@@ -460,7 +461,8 @@ func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Ha
 /** Method provided to the built-in contract call */
 // pledge Candidate
 func (d *ppos) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
-	return d.candidatePool.SetCandidate(state, nodeId, can)
+	// TODO
+	return d.candidatePool.SetCandidate(state, nodeId, can, big.NewInt(0), common.Hash{})
 }
 
 // Getting immediate or reserve candidate info by nodeId
@@ -470,7 +472,8 @@ func (d *ppos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Ca
 
 // candidate withdraw from  elected candidates
 func (d *ppos) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
-	return d.candidatePool.WithdrawCandidate(state, nodeId, price, blockNumber)
+	// TODO
+	return d.candidatePool.WithdrawCandidate(state, nodeId, price, blockNumber, blockNumber, common.Hash{})
 }
 
 // Getting all  elected candidates array
@@ -509,9 +512,9 @@ func (d *ppos) GetRefundInterval() uint64 {
 }
 
 // update candidate's tickets
-func (d *ppos) UpdateCandidateTicket (state vm.StateDB, blockNumber *big.Int, blockHash common.Hash, nodeId discover.NodeID, can *types.Candidate) error {
-	return d.candidatePool.UpdateCandidateTicket(state, blockNumber, blockHash, nodeId, can)
-}
+//func (d *ppos) UpdateCandidateTicket (state vm.StateDB, blockNumber *big.Int, blockHash common.Hash, nodeId discover.NodeID, can *types.Candidate) error {
+//	return d.candidatePool.UpdateCandidateTicket(state, blockNumber, blockHash, nodeId, can)
+//}
 
 /** about ticketpool's method */
 
@@ -1044,4 +1047,8 @@ func cmpSwitch (round, currentNum uint64) int {
 	}else {
 		return -1
 	}
+}
+
+func (d *ppos) setTicketPoolCache (database ethdb.Database) {
+	d.ticketidsCache = pposm.NewTicketIdsCache(database)
 }

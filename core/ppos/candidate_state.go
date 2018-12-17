@@ -16,7 +16,6 @@ import (
 	"net"
 	"strconv"
 	"sync"
-	"fmt"
 )
 
 var (
@@ -286,7 +285,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 
 	var flag, delimmediate, delreserve bool
 	// check ticket count
-	if checkTicket(ticketidsCache.TCount(), c.maxCount) {
+	if checkTicket(40/*ticketidsCache.TCount()*/, c.maxCount) {
 		flag = true
 		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
 			delreserve = true
