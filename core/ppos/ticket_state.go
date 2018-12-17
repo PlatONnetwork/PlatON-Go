@@ -327,13 +327,13 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int, blockhash 
 		}
 	}
 	// 每个候选人增加总票龄
-	if err := t.calcCandidateEpoch(stateDB, blockhash, nodeId); nil != err {
+	if err := t.calcCandidateEpoch(stateDB, blockNumber, blockhash, nodeId); nil != err {
 		return err
 	}
 	return nil
 }
 
-func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockhash common.Hash, nodeId discover.NodeID) error {
+func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int, blockhash common.Hash, nodeId discover.NodeID) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	candidateList := candidatePool.GetChosens(stateDB, 0)
@@ -343,7 +343,11 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockhash common.Has
 			return err
 		}
 		// 获取总票数，增加总票龄
-		candidateAttach.AddEpoch(ticketidsCache.TCount(blockhash, nodeId))
+		tcount, err := ticketidsCache.TCount(blockNumber, blockhash, nodeId)
+		if nil != err {
+			return err
+		}
+		candidateAttach.AddEpoch(tcount)
 		if err := t.setCandidateAttach(stateDB, candidate.CandidateId, candidateAttach); nil != err {
 			return err
 		}
