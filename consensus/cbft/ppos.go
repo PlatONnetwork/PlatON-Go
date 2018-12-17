@@ -7,6 +7,7 @@ import (
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/core/vm"
+	"Platon-go/ethdb"
 	"Platon-go/log"
 	"Platon-go/p2p/discover"
 	"Platon-go/params"
@@ -41,7 +42,6 @@ func newPpos(config *params.CbftConfig) *ppos {
 		config:            	config.PposConfig,
 		candidatePool:     	pposm.NewCandidatePool(config.PposConfig),
 		ticketPool: 		pposm.NewTicketPool(config.PposConfig),
-		ticketidsCache: 	pposm.NewTicketIdsCache(),
 	}
 }
 
@@ -1050,4 +1050,8 @@ func cmpSwitch (round, currentNum uint64) int {
 	}else {
 		return -1
 	}
+}
+
+func (d *ppos) setTicketPoolCache (database ethdb.Database) {
+	d.ticketidsCache = pposm.NewTicketIdsCache(database)
 }

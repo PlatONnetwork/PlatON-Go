@@ -1,17 +1,16 @@
 package pposm
 
 import (
-	"Platon-go/common/hexutil"
-	"fmt"
-	"github.com/syndtr/goleveldb/leveldb"
+	_ "Platon-go/common/hexutil"
+	_ "github.com/syndtr/goleveldb/leveldb"
 	"testing"
 )
 
 func Test(t *testing.T) {
 
-	filename := ".//testDb"
-	db, err := leveldb.OpenFile(filename, nil)
-	fmt.Println("open err: ", err.Error())
+	//filename := ".//testDb"
+	//db, err := leveldb.OpenFile(filename, nil)
+	//fmt.Println("open err: ", err.Error())
 	//if err==nil {
 	//	cache, err :=db.Get(ticketPoolCacheKey, nil)
 	//	fmt.Println("get cache: ", hexutil.Encode(cache), " err: ", err.Error())
