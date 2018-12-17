@@ -32,6 +32,9 @@ const (
 	AccountNormalTicket	= "an"
 	// candidate attach
 	CandidateAttach	= "ca"
+
+	//ticket id list cache key
+	ticketPoolCache = "ticketPoolCache"
 )
 
 
@@ -65,4 +68,6 @@ var (
 	AccountExpireTicketPrefix	= []byte(AccountExpireTicket)
 	AccountNormalTicketPrefix	= []byte(AccountNormalTicket)
 	CandidateAttachPrefix		= []byte(CandidateAttach)
+
+	ticketPoolCacheKey			= []byte(ticketPoolCache)
 )

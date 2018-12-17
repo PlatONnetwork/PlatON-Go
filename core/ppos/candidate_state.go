@@ -271,7 +271,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 
 	var flag, delreserve bool
 	// check ticket count
-	if checkTicket(ticketidsCache.TCount(), c.maxCount) {
+	if checkTicket(40/*ticketidsCache.TCount()*/, c.maxCount) {
 		flag = true
 		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
 			delreserve = true
@@ -1144,7 +1144,7 @@ func (c *CandidatePool) updateCandidateTicket(state vm.StateDB, nodeId discover.
 		} else {
 			// 则需要先判断当前入参的 can的得票数
 			// 如果还是不满足移到 候选池中，则直接修改 备选池的 can 信息
-			if !checkTicket(can.TCount, c.maxCount) {
+			if !checkTicket(0,/*can.TCount,*/ c.maxCount) {
 				if err := c.setReserve(state, nodeId, can); nil != err {
 					return nil, err
 				}

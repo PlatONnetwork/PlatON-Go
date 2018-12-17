@@ -1,0 +1,25 @@
+=============== Dec 17, 2018 (CST) ===============
+15:19:18.569557 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+15:19:18.791550 db@open opening
+15:19:18.808551 version@stat F·[] S·0B[] Sc·[]
+15:19:18.856576 db@janitor F·2 G·0
+15:19:18.856576 db@open done T·65.0261ms
+=============== Dec 17, 2018 (CST) ===============
+15:24:55.754989 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+15:24:55.774985 version@stat F·[] S·0B[] Sc·[]
+15:24:55.775999 db@open opening
+15:24:55.775999 journal@recovery F·1
+15:24:55.776993 journal@recovery recovering @1
+15:24:55.922989 memdb@flush created L0@2 N·1 S·136B "tic..che,v1":"tic..che,v1"
+15:24:55.942992 version@stat F·[1] S·136B[136B] Sc·[0.25]
+15:24:56.011987 db@janitor F·3 G·0
+15:24:56.011987 db@open done T·235.9882ms
+=============== Dec 17, 2018 (CST) ===============
+15:26:18.128134 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+15:26:18.148149 version@stat F·[1] S·136B[136B] Sc·[0.25]
+15:26:18.148149 db@open opening
+15:26:18.148149 journal@recovery F·1
+15:26:18.149147 journal@recovery recovering @3
+15:26:18.151136 version@stat F·[1] S·136B[136B] Sc·[0.25]
+15:26:18.215135 db@janitor F·3 G·0
+15:26:18.215135 db@open done T·66.9862ms

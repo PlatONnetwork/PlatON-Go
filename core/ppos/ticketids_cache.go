@@ -4,46 +4,34 @@ import (
 	"Platon-go/common"
 	"Platon-go/common/hexutil"
 	"Platon-go/crypto"
-	"Platon-go/p2p/discover"
+	"Platon-go/ethdb"
 	"Platon-go/log"
-	"encoding/hex"
+	"Platon-go/p2p/discover"
 	"errors"
-	"fmt"
 	"github.com/golang/protobuf/proto"
-	_ "github.com/syndtr/goleveldb/leveldb"
-	"io/ioutil"
 	"math/big"
 )
 
 var (
-	ErrFaile = errors.New("fail")
 	ErrNotfindFromblockNumber = errors.New("Not find tickets from block number")
 	ErrNotfindFromblockHash = errors.New("Not find tickets from block hash")
 	ErrNotfindFromnodeId = errors.New("Not find tickets from node id")
 	ErrProbufMarshal = errors.New("protocol buffer Marshal faile")
+	ErrLeveldbPut = errors.New("level db put faile")
+	ErrExistFromblockHash = errors.New("nodeId->tickets map is exist")
 )
 
 var ticketidsCache *NumBlocks
 
-func NewTicketIdsCache()  *NumBlocks  {
+func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
 
-	//read from leveldb
 	ticketidsCache = &NumBlocks{}
-
-	//read from leveldb
-	fname := ".//pb1.bin"
-	in, err := ioutil.ReadFile(fname)
-	if err != nil {
-		//log.Fatalln("Error reading file:", err)
-		panic("Error reading file:" + err.Error())
-	}
-	if len(in)!=0 {
-		if err := proto.Unmarshal(in, ticketidsCache); err != nil {
-			//log.Fatalln("Failed to parse address book:", err)
-			panic("Failed to parse address book:" + err.Error())
+	cache, err := db.Get(ticketPoolCacheKey)
+	if err == nil {
+		if err := proto.Unmarshal(cache, ticketidsCache); err != nil {
+			log.Error("protocol buffer Unmarshal faile hex: ", hexutil.Encode(cache))
 		}
 	}
-
 	return ticketidsCache
 }
 
@@ -87,7 +75,6 @@ func (nb *NumBlocks) Del(blocknumber *big.Int, blockhash common.Hash, nodeId dis
 	if !ok {
 		return ErrNotfindFromnodeId
 	}
-
 	//1
 	mapTIds := make(map[string]common.Hash)
 	for _, tin := range tIds {
@@ -133,6 +120,7 @@ func (nb *NumBlocks) Get(blocknumber *big.Int, blockhash common.Hash, nodeId dis
 }
 
 func (nb *NumBlocks) Hash(blocknumber *big.Int, blockhash common.Hash) (common.Hash, error) {
+
 	blockNodes, ok := nb.NBlocks[blocknumber.String()]
 	if !ok {
 		return common.Hash{}, ErrNotfindFromblockNumber
@@ -149,32 +137,74 @@ func (nb *NumBlocks) Hash(blocknumber *big.Int, blockhash common.Hash) (common.H
 	return crypto.Keccak256Hash(out), nil
 }
 
-func (nb *NumBlocks) TCount(blocknumber *big.Int, blockhash common.Hash, nodeId discover.NodeID)(*big.Int, error) {
+func (nb *NumBlocks) TCount(blocknumber *big.Int, blockhash common.Hash, nodeId discover.NodeID)(uint64, error) {
 
-
-
-	return big.NewInt(0), nil
+	blockNodes, ok := nb.NBlocks[blocknumber.String()]
+	if !ok {
+		return 0, ErrNotfindFromblockNumber
+	}
+	nodeTicketIds, ok := blockNodes.BNodes[blockhash.String()]
+	if !ok {
+		return 0, ErrNotfindFromblockHash
+	}
+	ticketIds, ok := nodeTicketIds.NTickets[nodeId.String()]
+	if !ok {
+		return 0, ErrNotfindFromnodeId
+	}
+	return uint64(len(ticketIds.TicketId)), nil
 }
 
-func (nb *NumBlocks) Commit() error {
+func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Hash) (*NodeTicketIds, error){
+
+	blockNodes, ok := nb.NBlocks[blocknumber.String()]
+	if !ok {
+		return nil, ErrNotfindFromblockNumber
+	}
+	nodeTicketIds, ok := blockNodes.BNodes[blockhash.String()]
+	if !ok {
+		return nil, ErrNotfindFromblockHash
+	}
+	return nodeTicketIds, nil
+}
+
+func (nb *NumBlocks) Submit2Cache(blocknumber *big.Int, blockhash common.Hash, in map[string][]common.Hash) error  {
+
+	blockNodes, ok := nb.NBlocks[blocknumber.String()]
+	if !ok {
+		blockNodes = &BlockNodes{}
+		blockNodes.BNodes = make(map[string]*NodeTicketIds)
+		nb.NBlocks[blocknumber.String()] = blockNodes
+	}
+	nodeTicketIds, ok := blockNodes.BNodes[blockhash.String()]
+	if ok {
+		return ErrExistFromblockHash
+	}
+	nodeTicketIds = &NodeTicketIds{}
+	nodeTicketIds.NTickets = make(map[string]*TicketIds)
+	blockNodes.BNodes[blockhash.String()] = nodeTicketIds
+	for k, v := range in {
+		tIds := &TicketIds{}
+		for _, va := range v {
+			tIds.TicketId = append(tIds.TicketId, va.Bytes())
+		}
+		nodeTicketIds.NTickets[k] = tIds
+	}
+	return nil
+}
+
+func (nb *NumBlocks) Commit(db ethdb.Database) error {
+
 	out, err := proto.Marshal(nb)
 	if err != nil {
-		log.Error("Failed to Marshal :", nb, " err: ", err)
+		log.Error("Protocol buffer failed to marshal :", nb, " err: ", err.Error())
 		return ErrProbufMarshal
 	}
 	log.Info("Marshal out: ", hexutil.Encode(out))
-
-	//write level db
-	//filedb := ".//testData"
-	if err := ioutil.WriteFile(fname, out, 0644); err != nil {
-		//log.Fatalln("Failed to write address book:", err)
+	if err := db.Put(ticketPoolCacheKey, out); err != nil  {
+		log.Error("level db put faile: ", err.Error())
+		return ErrLeveldbPut
 	}
-	fmt.Println("Person Marshal: ", hex.EncodeToString(out))
-
-
-	//leveldb.OpenFile()
-
-	return ErrFaile
+	return nil
 }
 
 
