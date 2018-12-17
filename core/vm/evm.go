@@ -139,6 +139,7 @@ type EVM struct {
 
 	//ppos add
 	CandidatePool candidatePool
+	TicketPool    ticketPool
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should

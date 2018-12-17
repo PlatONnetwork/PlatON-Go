@@ -23232,7 +23232,7 @@ var _bundleJs = []byte((((((((((`!function(modules) {
                     }
                 }
             }
-            function logError(boundary, errorInfo) {
+            function log.Error(boundary, errorInfo) {
                 var source = errorInfo.source, stack = errorInfo.stack;
                 null === stack && null !== source && (stack = getStackAddendumByWorkInProgressFiber(source));
                 var capturedError = {
@@ -23557,7 +23557,7 @@ var _bundleJs = []byte((((((((((`!function(modules) {
                 };
                 var error = errorInfo.value;
                 return update.callback = function() {
-                    onUncaughtError(error), logError(fiber, errorInfo);
+                    onUncaughtError(error), log.Error(fiber, errorInfo);
                 }, update;
             }
             function createClassErrorUpdate(fiber, errorInfo, expirationTime) {
@@ -23574,7 +23574,7 @@ var _bundleJs = []byte((((((((((`!function(modules) {
                 return null !== inst && "function" == typeof inst.componentDidCatch && (update.callback = function() {
                     enableGetDerivedStateFromCatch && "function" === getDerivedStateFromCatch || markLegacyErrorBoundaryAsFailed(this);
                     var error = errorInfo.value, stack = errorInfo.stack;
-                    logError(fiber, errorInfo), this.componentDidCatch(error, {
+                    log.Error(fiber, errorInfo), this.componentDidCatch(error, {
                         componentStack: null !== stack ? stack : ""
                     });
                 }), update;

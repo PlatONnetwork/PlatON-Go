@@ -3,8 +3,11 @@ package vm
 import (
 	"Platon-go/common"
 	"Platon-go/core/types"
+	"Platon-go/crypto"
+	"Platon-go/log"
 	"Platon-go/p2p/discover"
 	"Platon-go/params"
+	"Platon-go/rlp"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -17,7 +20,7 @@ var (
 	ErrPermissionDenied = errors.New("Transaction from address permission denied")
 	ErrDepositEmpyt = errors.New("Deposit balance not zero")
 	ErrWithdrawEmpyt = errors.New("No withdrawal amount")
-	ErrCandidateEmpyt = errors.New("CandidatePool is nil")
+	ErrCandidateEmpty= errors.New("CandidatePool is null")
 )
 
 const (
@@ -41,7 +44,7 @@ type candidatePool interface {
 	GetRefundInterval() uint64
 }
 
-type candidateContract struct{
+type candidateContract struct {
 	contract *Contract
 	evm *EVM
 }
@@ -52,8 +55,8 @@ func (c *candidateContract) RequiredGas(input []byte) uint64 {
 
 func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	if c.evm.CandidatePool==nil{
-		logError("Run==> ", "ErrCandidateEmpyt: ", ErrCandidateEmpyt.Error())
-		return nil, ErrCandidateEmpyt
+		log.Error("Run==> ", "ErrCandidateEmpty: ", ErrCandidateEmpty.Error())
+		return nil, ErrCandidateEmpty
 	}
 	var command = map[string] interface{}{
 		"CandidateDetails" : c.CandidateDetails,
@@ -70,14 +73,14 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 
 
 // Candidate Application && Increase Quality Deposit
-func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error)   {
+func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error) {
 	// debug
 	deposit := c.contract.value
 	txHash := c.evm.StateDB.TxHash()
 	txIdx := c.evm.StateDB.TxIdx()
 	height := c.evm.Context.BlockNumber
 	from := c.contract.caller.Address()
-	logInfo("CandidateDeposit==> ", "nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
+	log.Info("CandidateDeposit==> ", "nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
 		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
 		" host: ", host, " port: ", port, " extra: ", extra)
 	//todo
@@ -85,22 +88,22 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		return nil, ErrDepositEmpyt
 	}
 	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
-	if err!=nil {
-		logError("CandidateDeposit==> ","err!=nill: ", err.Error())
+	if nil != err {
+		log.Error("CandidateDeposit==> ","err!=nill: ", err.Error())
 		return nil, err
 	}
 	var alldeposit *big.Int
-	if can!=nil {
+	if nil != can {
 		if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
-			logError(ErrOwnerNotonly.Error())
+			log.Error(ErrOwnerNotonly.Error())
 			return nil, ErrOwnerNotonly
 		}
 		alldeposit = new(big.Int).Add(can.Deposit, deposit)
-		logInfo("CandidateDeposit==> ","alldeposit: ", alldeposit,  " can.Deposit: ", can.Deposit, " deposit: ", deposit)
-	}else {
+		log.Info("CandidateDeposit==> ","alldeposit: ", alldeposit,  " can.Deposit: ", can.Deposit, " deposit: ", deposit)
+	} else {
 		alldeposit = deposit
 	}
-	canDeposit := types.Candidate{
+	canDeposit := types.Candidate {
 		alldeposit,
 		height,
 		txIdx,
@@ -115,81 +118,81 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		//new(big.Int).SetUint64(0),
 		common.Hash{},
 	}
-	logInfo("CandidateDeposit==> ","canDeposit: ", canDeposit)
+	log.Info("CandidateDeposit==> ","canDeposit: ", canDeposit)
 	if err = c.evm.CandidatePool.SetCandidate(c.evm.StateDB, nodeId, &canDeposit); err!=nil {
 		// rollback transaction
 		// ......
-		logError("CandidateDeposit==> ","SetCandidate return err: ", err.Error())
+		log.Error("CandidateDeposit==> ","SetCandidate return err: ", err.Error())
 		return nil, err
 	}
 	r := ResultCommon{true, "success"}
 	data, _ := json.Marshal(r)
 	c.addLog(CandidateDepositEvent, string(data))
-	logInfo("CandidateDeposit==> ","json: ", string(data))
+	log.Info("CandidateDeposit==> ","json: ", string(data))
 	return nil, nil
 }
 
 // Apply for a refund of the deposit
-func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error)  {
+func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error) {
 	// debug
 	txHash := c.evm.StateDB.TxHash()
 	from := c.contract.caller.Address()
 	height := c.evm.Context.BlockNumber
-	logInfo("CandidateApplyWithdraw==> ","nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
+	log.Info("CandidateApplyWithdraw==> ","nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
 	// todo
 	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
 	if err!=nil {
-		logError("CandidateApplyWithdraw==> ","err!=nill: ", err.Error())
+		log.Error("CandidateApplyWithdraw==> ","err!=nill: ", err.Error())
 		return nil, err
 	}
-	if can.Deposit.Cmp(big.NewInt(0))<1 {
+	if can.Deposit.Cmp(big.NewInt(0)) < 1 {
 		return nil, ErrWithdrawEmpyt
 	}
 	if ok := bytes.Equal( can.Owner.Bytes(), from.Bytes()); !ok {
-		logError(ErrPermissionDenied.Error())
+		log.Error(ErrPermissionDenied.Error())
 		return nil, ErrPermissionDenied
 	}
 	if withdraw.Cmp(can.Deposit)>0 {
 		withdraw = can.Deposit
 	}
-	if err := c.evm.CandidatePool.WithdrawCandidate(c.evm.StateDB, nodeId, withdraw, height); err!=nil {
-		logError(err.Error())
+	if err := c.evm.CandidatePool.WithdrawCandidate(c.evm.StateDB, nodeId, withdraw, height); nil != err {
+		log.Error(err.Error())
 		return nil, err
 	}
 	r := ResultCommon{true, "success"}
 	data, _ := json.Marshal(r)
 	c.addLog(CandidateApplyWithdrawEvent, string(data))
-	logInfo("CandidateApplyWithdraw==> ","json: ", string(data))
+	log.Info("CandidateApplyWithdraw==> ","json: ", string(data))
 	return nil, nil
 }
 
 // Deposit withdrawal
-func (c *candidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, error)  {
+func (c *candidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, error) {
 	// debug
 	txHash := c.evm.StateDB.TxHash()
 	height := c.evm.Context.BlockNumber
-	logInfo("CandidateWithdraw==> ","nodeId: ", nodeId.String(), " height: ", 	height, " txHash: ", txHash.Hex())
+	log.Info("CandidateWithdraw==> ","nodeId: ", nodeId.String(), " height: ", 	height, " txHash: ", txHash.Hex())
 	// todo
-	if err :=c.evm.CandidatePool.RefundBalance(c.evm.StateDB, nodeId, height); err!=nil{
-		logError(err.Error())
+	if err := c.evm.CandidatePool.RefundBalance(c.evm.StateDB, nodeId, height); nil != err {
+		log.Error(err.Error())
 		return nil, err
 	}
 	// return
 	r := ResultCommon{true, "success"}
 	data, _ := json.Marshal(r)
 	c.addLog(CandidateWithdrawEvent, string(data))
-	logInfo("CandidateWithdraw==> ", "json: ", string(data))
+	log.Info("CandidateWithdraw==> ", "json: ", string(data))
 	return nil, nil
 }
 
 // Get the refund history you have applied for
-func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byte, error){
+func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error) {
 	// debug
-	logInfo("CandidateWithdrawInfos==> ","nodeId: ", nodeId.String())
+	log.Info("CandidateWithdrawInfos==> ","nodeId: ", nodeId.String())
 	// todo
 	infos, err := c.evm.CandidatePool.GetDefeat(c.evm.StateDB, nodeId)
 	if err!=nil{
-		logError(err.Error())
+		log.Error(err.Error())
 		return nil, err
 	}
 	// return
@@ -209,75 +212,92 @@ func (c *candidateContract) CandidateWithdrawInfos(nodeId discover.NodeID)([]byt
 	}
 	data, _ := json.Marshal(r)
 	sdata := DecodeResultStr(string(data))
-	logInfo("CandidateWithdrawInfos==> ","json: ", string(data))
+	log.Info("CandidateWithdrawInfos==> ","json: ", string(data))
 	return sdata, nil
 }
 
 // Set up additional information
-func (c *candidateContract) SetCandidateExtra(nodeId discover.NodeID, extra string)([]byte, error){
+func (c *candidateContract) SetCandidateExtra(nodeId discover.NodeID, extra string) ([]byte, error) {
 	// debug
 	txHash := c.evm.StateDB.TxHash()
 	from := c.contract.caller.Address()
-	logInfo("SetCandidate==> ","nodeId: ", nodeId.String(), " extra: ", extra, " from: ", from.Hex(), " txHash: ", txHash.Hex())
+	log.Info("SetCandidate==> ","nodeId: ", nodeId.String(), " extra: ", extra, " from: ", from.Hex(), " txHash: ", txHash.Hex())
 	// todo
 	owner :=  c.evm.CandidatePool.GetOwner(c.evm.StateDB, nodeId)
 	if ok := bytes.Equal(owner.Bytes(), from.Bytes()); !ok {
-		logError(ErrPermissionDenied.Error())
+		log.Error(ErrPermissionDenied.Error())
 		return nil, ErrPermissionDenied
 	}
-	if err := c.evm.CandidatePool.SetCandidateExtra(c.evm.StateDB, nodeId, extra); err!=nil{
-		logError(err.Error())
+	if err := c.evm.CandidatePool.SetCandidateExtra(c.evm.StateDB, nodeId, extra); nil != err {
+		log.Error(err.Error())
 		return nil, err
 	}
 	r := ResultCommon{true, "success"}
 	data, _ := json.Marshal(r)
 	c.addLog(SetCandidateExtraEvent, string(data))
-	logInfo("SetCandidate==> ","json: ", string(data))
+	log.Info("SetCandidate==> ","json: ", string(data))
 	return nil, nil
 }
 
 // Get candidate details
-func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, error)  {
-	logInfo("CandidateDetails==> ","nodeId: ", nodeId.String())
+func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, error) {
+	log.Info("CandidateDetails==> ","nodeId: ", nodeId.String())
 	candidate, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
-	if err != nil{
-		logError("CandidateDetails==> ","get CandidateDetails() occured error: ", err.Error())
+	if nil != err {
+		log.Error("CandidateDetails==> ","get CandidateDetails() occured error: ", err.Error())
 		return nil, err
 	}
 	if nil == candidate {
-		logError("CandidateDetails==> The candidate for the inquiry does not exist")
+		log.Error("CandidateDetails==> The candidate for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(candidate)
 	sdata := DecodeResultStr(string(data))
-	logInfo("CandidateDetails==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("CandidateDetails==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
 // Get the current block candidate list
 func (c *candidateContract) CandidateList() ([]byte, error) {
-	logInfo("CandidateList==> into func CandidateList... ")
+	log.Info("CandidateList==> into func CandidateList... ")
 	arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB, 0)
 	if nil == arr {
-		logError("CandidateList==> The candidateList for the inquiry does not exist")
+		log.Error("CandidateList==> The candidateList for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(arr)
 	sdata := DecodeResultStr(string(data))
-	logInfo("CandidateList==>","json: ", string(data), " []byte: ", sdata)
+	log.Info("CandidateList==>","json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
 // Get the current block round certifier list
 func (c *candidateContract) VerifiersList() ([]byte, error) {
-	logInfo("VerifiersList==> into func VerifiersList... ")
+	log.Info("VerifiersList==> into func VerifiersList... ")
 	arr := c.evm.CandidatePool.GetChairpersons(c.evm.StateDB)
 	if nil == arr {
-		logError("VerifiersList==> The verifiersList for the inquiry does not exist")
+		log.Error("VerifiersList==> The verifiersList for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(arr)
 	sdata := DecodeResultStr(string(data))
-	logInfo("VerifiersList==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("VerifiersList==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
+}
+
+// transaction add event
+func (c *candidateContract) addLog(event, data string) {
+	var logdata [][]byte
+	logdata = make([][]byte, 0)
+	logdata = append(logdata, []byte(data))
+	buf := new(bytes.Buffer)
+	if err := rlp.Encode(buf, logdata); nil != err {
+		log.Error("addlog==> ","rlp encode fail: ", err.Error())
+	}
+	c.evm.StateDB.AddLog(&types.Log{
+		Address:common.CandidatePoolAddr,
+		Topics: []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
+		Data: buf.Bytes(),
+		BlockNumber: c.evm.Context.BlockNumber.Uint64(),
+	})
 }
