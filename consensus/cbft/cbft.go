@@ -692,11 +692,18 @@ func (cbft *Cbft) removeBadBlock(badBlock *BlockExt) {
 
 // signReceiver handles the received block signature
 func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
-	log.Debug("=== call signReceiver(), trying to lock ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", sig.Hash, "number", sig.Number.Uint64())
+	log.Debug("=== call signReceiver() ===\n",
+		"hash", sig.Hash,
+		"number", sig.Number.Uint64(),
+		"highestLogicalHash", cbft.highestLogical.block.Hash(),
+		"highestLogicalNumber", cbft.highestLogical.number,
+		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+		"highestConfirmedNumber", cbft.highestConfirmed.number,
+		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+		"rootIrreversibleNumber", cbft.rootIrreversible.number)
+
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
-
-	log.Debug("=== call signReceiver() ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", sig.Hash, "number", sig.Number.Uint64())
 
 	if sig.Number.Uint64() <= cbft.rootIrreversible.number {
 		log.Warn("block sign is too late")
@@ -715,6 +722,21 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 
 	cbft.collectSign(current, sig.Signature)
 
+	var hashLog interface{}
+	if current.block != nil {
+		hashLog = current.block.Hash()
+	} else {
+		hashLog = "hash is nil"
+	}
+
+	log.Debug("count signatures",
+		"hash", hashLog,
+		"number", current.number,
+		"signCount", len(current.signs),
+		"isLinked", current.isLinked,
+		"isConfirmed", current.isConfirmed,
+		"isSigned", current.isSigned)
+
 	if current.isConfirmed && current.isLinked {
 		//the current is new highestConfirmed on the same logical path
 		if current.number > cbft.highestConfirmed.number && cbft.highestConfirmed.isAncestor(current) {
@@ -728,19 +750,35 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 		cbft.flushReadyBlock()
 	}
 
-	log.Debug("=== end to handle new signature ===", "hash", sig.Hash, "number", sig.Number.Uint64())
+	log.Debug("=== end of signReceiver()  ===\n",
+		"hash", hashLog,
+		"number", current.number,
+		"highestLogicalHash", cbft.highestLogical.block.Hash(),
+		"highestLogicalNumber", cbft.highestLogical.number,
+		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+		"highestConfirmedNumber", cbft.highestConfirmed.number,
+		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+		"rootIrreversibleNumber", cbft.rootIrreversible.number)
 
 	return nil
 }
 
 //blockReceiver handles the new block
 func (cbft *Cbft) blockReceiver(block *types.Block) error {
-	log.Debug("=== call blockReceiver() ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash(), "ReceiptHash", block.ReceiptHash())
+		log.Debug("=== call blockReceiver() ===\n",
+			"hash", block.Hash(),
+			"number", block.NumberU64(),
+			"parentHash", block.ParentHash(),
+			"ReceiptHash", block.ReceiptHash(),
+			"highestLogicalHash", cbft.highestLogical.block.Hash(),
+			"highestLogicalNumber", cbft.highestLogical.number,
+			"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+			"highestConfirmedNumber", cbft.highestConfirmed.number,
+			"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+			"rootIrreversibleNumber", cbft.rootIrreversible.number)
 
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
-
-	log.Debug("=== call blockReceiver() ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash(), "ReceiptHash", block.ReceiptHash())
 
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
@@ -795,13 +833,11 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		blockNumber := block.Number()
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 		inTurn := cbft.inTurnVerify(parentNumber, block.ParentHash(), blockNumber, curTime, producerID)
-		log.Debug("check if block is in turn", "result", inTurn, "producerID", hex.EncodeToString(producerID.Bytes()[:8]))
-
 		passed := flowControl.control(producerID, curTime)
-		log.Debug("check if block is allowed by flow control", "result", passed, "producerID", hex.EncodeToString(producerID.Bytes()[:8]))
+		highestConfirmedIsAncestor := cbft.highestConfirmed.isAncestor(ext)
 
-		isLogical := inTurn && passed && cbft.highestConfirmed.isAncestor(ext)
-		log.Debug("check if block is logical", "result", isLogical)
+		isLogical := inTurn && passed && highestConfirmedIsAncestor
+		log.Debug("check if block is logical", "result", isLogical, "hash", ext.block.Hash(), "number", ext.number, "inTurn", inTurn, "flowControl", flowControl, "highestConfirmedIsAncestor", highestConfirmedIsAncestor)
 
 		if isLogical {
 			//主链
@@ -823,7 +859,18 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		log.Warn("cannot find block's parent, just keep it")
 	}
 
-	log.Debug("=== end to handle block ===", "hash", block.Hash(), "number", block.Number().Uint64())
+	log.Debug("=== end of blockReceiver() ===\n",
+		"hash", block.Hash(),
+		"number", block.NumberU64(),
+		"parentHash", block.ParentHash(),
+		"ReceiptHash", block.ReceiptHash(),
+		"highestLogicalHash", cbft.highestLogical.block.Hash(),
+		"highestLogicalNumber", cbft.highestLogical.number,
+		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+		"highestConfirmedNumber", cbft.highestConfirmed.number,
+		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+		"rootIrreversibleNumber", cbft.rootIrreversible.number)
+
 	return nil
 }
 
