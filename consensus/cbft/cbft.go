@@ -791,7 +791,9 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		log.Warn("illegal block",
 			"hash", block.Hash(),
 			"number", block.NumberU64(),
-			"parentHash", block.ParentHash())
+			"parentHash", block.ParentHash(),
+			"curTime", curTime,
+			"producerID", producerID)
 		return errIllegalBlock
 	}
 
@@ -832,6 +834,15 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		}
 
 		inTurn := cbft.inTurnVerify(curTime, producerID)
+		if !inTurn {
+			log.Warn("not in turn",
+				"hash", block.Hash(),
+				"number", block.NumberU64(),
+				"parentHash", block.ParentHash(),
+				"curTime", curTime,
+				"producerID", producerID)
+		}
+
 		flowControl := flowControl.control(producerID, curTime)
 		highestConfirmedIsAncestor := cbft.highestConfirmed.isAncestor(ext)
 
