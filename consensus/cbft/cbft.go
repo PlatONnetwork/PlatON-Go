@@ -388,7 +388,7 @@ func (cbft *Cbft) handleLogicalBlockAndDescendant(current *BlockExt) {
 
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt) error {
-	if current.isLinked {
+	if !current.isLinked {
 		if err := cbft.execute(current, parent); err != nil {
 			current.isLinked = false
 			//remove bad block from tree and map
@@ -433,6 +433,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 			Hash:      blockHash,
 			Number:    ext.block.Number(),
 			Signature: sign,
+			ParentHash: ext.block.ParentHash(),
 		}
 		cbft.blockSignOutCh <- blockSign
 	} else {
@@ -1146,8 +1147,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 	sealhash := cbft.SealHash(current.block.Header())
 	state := cbft.consensusCache.ReadStateDB(sealhash)
-	log.Info("接收task任务，在打包之后，广播之前", "currentBlockNum", current.block.NumberU64(), "currentStateRoot", current.block.Root().String())
-	log.Warn("setNodeCache", "parentNumber", parentNumber, "parentHash", current.block.ParentHash(), "blockNumber", blockNumber, "blockHash", current.block.Hash())
+	log.Debug("setNodeCache", "parentNumber", parentNumber, "parentHash", current.block.ParentHash(), "blockNumber", blockNumber, "blockHash", current.block.Hash())
 	if state != nil {
 		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), current.block.Hash())
 	} else {

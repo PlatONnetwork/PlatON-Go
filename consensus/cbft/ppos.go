@@ -761,7 +761,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	parentNumBigInt := big.NewInt(int64(parentNumber))
 	// current round
 	round := calcurround(currentNumber)
-	log.Info("设置当前区块", "parentNumber", parentNumber, "ParentHash", parentHash.String(), "currentNumber:", currentNumber, "hash", currentHash.String(), "round:", round)
+	log.Info("【设置当前区块】", "parentNumber", parentNumber, "ParentHash", parentHash.String(), "currentNumber:", currentNumber, "hash", currentHash.String(), "round:", round)
 
 	preNodes, curNodes, nextNodes, err := d.candidatePool.GetAllWitness(state)
 
@@ -792,7 +792,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 		formerRound.start = big.NewInt(0)
 		formerRound.end = big.NewInt(0)
 	}
-	log.Info("设置当前区块:上一轮", "start",formerRound.start, "end", formerRound.end)
+	log.Info("【设置当前区块:上一轮】", "start",formerRound.start, "end", formerRound.end)
 	if len(preNodes) != 0 {
 		formerRound.nodeIds = convertNodeID(preNodes)
 		formerRound.nodes = make([]*discover.Node, len(preNodes))
@@ -823,7 +823,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	// current start, end
 	currentRound.start = start
 	currentRound.end = end
-	log.Info("设置当前区块:当前轮", "start", currentRound.start, "end",currentRound.end)
+	log.Info("【设置当前区块:当前轮】", "start", currentRound.start, "end",currentRound.end)
 	if len(curNodes) != 0 {
 		currentRound.nodeIds = convertNodeID(curNodes)
 		currentRound.nodes = make([]*discover.Node, len(curNodes))
@@ -855,7 +855,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	// next start, end
 	nextRound.start = new(big.Int).Add(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 	nextRound.end = new(big.Int).Add(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
-	log.Info("设置当前区块:下一轮", "start", nextRound.start, "end",nextRound.end)
+	log.Info("【设置当前区块:下一轮】", "start", nextRound.start, "end",nextRound.end)
 	if len(nextNodes) != 0 {
 		nextRound.nodeIds = convertNodeID(nextNodes)
 		nextRound.nodes = make([]*discover.Node, len(nextNodes))
@@ -884,12 +884,12 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 		}
 	}
 
-	pposm.PrintObject("设置当前区块 stateDB 上一轮nodes：", preNodes)
-	pposm.PrintObject("设置当前区块 stateDB 当前轮nodes：", curNodes)
-	pposm.PrintObject("设置当前区块 stateDB 下一轮nodes：", nextNodes)
-	pposm.PrintObject("设置当前区块的上轮pposRound：", formerRound.nodes)
-	pposm.PrintObject("设置当前区块的当前轮pposRound：", currentRound.nodes)
-	pposm.PrintObject("设置当前区块的下一轮pposRound：", nextRound.nodes)
+	pposm.PrintObject("【设置当前区块 stateDB 上一轮nodes】：", preNodes)
+	pposm.PrintObject("【设置当前区块 stateDB 当前轮nodes】：", curNodes)
+	pposm.PrintObject("【设置当前区块 stateDB 下一轮nodes】：", nextNodes)
+	pposm.PrintObject("【设置当前区块的上轮pposRound】：", formerRound.nodes)
+	pposm.PrintObject("【设置当前区块的当前轮pposRound】：", currentRound.nodes)
+	pposm.PrintObject("【设置当前区块的下一轮pposRound】：", nextRound.nodes)
 
 	cache := &nodeCache{
 		former: 	formerRound,
@@ -897,8 +897,8 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 		next: 		nextRound,
 	}
 	d.nodeRound.setNodeCache(big.NewInt(int64(currentNumber)), currentHash, cache)
-	log.Info("设置当前区块的信息时", "currentBlockNum", currentNumber, "parentNum", parentNumber, "currentHash", currentHash.String(), "parentHash", parentHash.String())
-	d.printMapInfo("设置当前区块的信息时", currentNumber, currentHash)
+	log.Info("【设置当前区块的信息时】", "currentBlockNum", currentNumber, "parentNum", parentNumber, "currentHash", currentHash.String(), "parentHash", parentHash.String())
+	d.printMapInfo("【设置当前区块的信息时】", currentNumber, currentHash)
 	return nil
 }
 
