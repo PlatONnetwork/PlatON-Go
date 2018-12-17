@@ -406,7 +406,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			timestamp = time.Now().Unix()
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
-			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "blockRoot", head.Block.Root())
+			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash())
 			w.consensusCache.ClearCache(head.Block)
 
 			go func() {
