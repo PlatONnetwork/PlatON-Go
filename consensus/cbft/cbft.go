@@ -425,7 +425,9 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 			Number:    ext.block.Number(),
 			Signature: sign,
 		}
+		log.Debug("to send blockSign to worker")
 		cbft.blockSignOutCh <- blockSign
+		log.Debug("end to blockSign to worker")
 	} else {
 		panic("sign block fatal error")
 	}
