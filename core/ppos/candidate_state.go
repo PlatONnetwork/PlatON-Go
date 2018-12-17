@@ -444,17 +444,12 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
 			// delete current candidate from this elected candidates
-			/*if err := delInfoFn(state, nodeId); nil != err {
-				log.Error("withdraw failed del" + tiltle + " on full withdraw", "err", err)
-				return err
-			}*/
 			delInfoFn(state, nodeId)
 			// update this id index
 			if ids, err := getIndexFn(state); nil != err {
 				log.Error("withdraw failed get"+tiltle+"Index on full withdrawerr", "err", err)
 				return err
 			} else {
-				//for i, id := range ids {
 				for i := 0; i < len(ids); i ++ {
 					id := ids[i]
 					if id == nodeId {

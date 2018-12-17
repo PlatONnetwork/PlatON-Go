@@ -453,7 +453,7 @@ func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Ha
 			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 下一轮: start:" + round.next.start.String() + ", end:" + round.next.end.String() + ", nodes: ", round.next.nodes)
 		}
 	}else {
-		log.Info(title + ":遍历出来存进去的Round 不存在，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
+		log.Error(title + ":遍历出来存进去的Round 不存在，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
 	}
 }
 
