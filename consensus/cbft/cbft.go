@@ -788,6 +788,10 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	isLegal := cbft.isLegal(curTime, producerID)
 	if !isLegal {
+		log.Warn("illegal block",
+			"hash", block.Hash(),
+			"number", block.NumberU64(),
+			"parentHash", block.ParentHash())
 		return errIllegalBlock
 	}
 
