@@ -28,8 +28,6 @@ const (
 	SurplusQuantity		= "sq"
 	// Expire ticket prefix
 	ExpireTicket		= "et"
-	AccountExpireTicket	= "ae"
-	AccountNormalTicket	= "an"
 	// candidate attach
 	CandidateAttach	= "ca"
 
@@ -65,8 +63,6 @@ var (
 	SurplusQuantityKey			= []byte(SurplusQuantity)
 	// Expire ticket prefix
 	ExpireTicketPrefix			= []byte(ExpireTicket)
-	AccountExpireTicketPrefix	= []byte(AccountExpireTicket)
-	AccountNormalTicketPrefix	= []byte(AccountNormalTicket)
 	CandidateAttachPrefix		= []byte(CandidateAttach)
 
 	ticketPoolCacheKey			= []byte(ticketPoolCache)

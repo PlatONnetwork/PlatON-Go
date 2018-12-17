@@ -75,6 +75,7 @@ func TestVoteTicket(t *testing.T)  {
 	ownerList := []common.Address{common.HexToAddress("0x20"), common.HexToAddress("0x21")}
 	var count uint32 = 0
 	var blockNumber = new(big.Int).SetUint64(10)
+	blockhash := common.Hash{}
 	voteNum := 10001
 	timeMap := make(map[uint32]int64)
 	var releaseTime int64 = 0
@@ -90,7 +91,7 @@ func TestVoteTicket(t *testing.T)  {
 				tempBlockNumber.SetUint64(6)
 				t.Logf("vote blockNumber[%v]", tempBlockNumber.Uint64())
 			}
-			_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+			_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber, blockhash)
 			if nil != err {
 				fmt.Println("vote ticket error:", err)
 			}
@@ -107,7 +108,7 @@ func TestVoteTicket(t *testing.T)  {
 		return
 	}
 
-	ticketIds, err := ticketPool.GetCandidateTicketIds(state, candidate.CandidateId)
+	ticketIds, err := ticketPool.GetCandidateTicketIds(state, blockNumber, blockhash, candidate.CandidateId)
 	if nil != err {
 		t.Error("GetCandidateTicketIds error", err)
 	}
@@ -132,7 +133,7 @@ func TestVoteTicket(t *testing.T)  {
 	}
 	blockHash := common.Hash{}
 	blockHash.SetBytes([]byte("3b41e0aee38c1a1f959a6aaae678d86f1e6af59617d2f667bb2ef5527779c861"))
-	luckyTicketId, err := ticketPool.SelectionLuckyTicket(state, candidate.CandidateId, blockHash)
+	luckyTicketId, err := ticketPool.SelectionLuckyTicket(state, candidate.CandidateId, blockNumber, blockHash)
 	if nil != err {
 		t.Error("SelectionLuckyTicket error", err)
 	}
@@ -140,15 +141,16 @@ func TestVoteTicket(t *testing.T)  {
 	//selectedTicketId := ticketList[selectedTicketIndex].TicketId
 	t.Logf("-----------开始释放一张选票【%v】-----------\n", luckyTicketId.Hex())
 	tempTime := time.Now().UnixNano() / 1e6
-	err = ticketPool.ReturnTicket(state, candidate.CandidateId, luckyTicketId, blockNumber)
+	err = ticketPool.ReturnTicket(state, candidate.CandidateId, luckyTicketId, blockNumber, blockhash)
 	if nil != err {
 		t.Error("ReleaseSelectedTicket error", err)
 	}
 	releaseTime = (time.Now().UnixNano() / 1e6) - tempTime
-
+	ticket, err := ticketPool.GetTicket(state, luckyTicketId)
+	t.Logf("幸运票:%+v", ticket)
 
 	candidate, err = candidatePool.GetCandidate(state, candidate.CandidateId)
-	ticketIds, err = ticketPool.GetCandidateTicketIds(state, candidate.CandidateId)
+	ticketIds, err = ticketPool.GetCandidateTicketIds(state, blockNumber, blockhash, candidate.CandidateId)
 	if nil != err {
 		t.Error("GetCandidateTicketIds error", err)
 	}
@@ -162,24 +164,12 @@ func TestVoteTicket(t *testing.T)  {
 		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), 0, candidateAttach.Epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 
-	for i := 0; i < len(ownerList); i++ {
-		ownerNormalTicketIds, err := ticketPool.GetOwnerNormalTicketIds(state, ownerList[i])
-		if nil != err {
-			t.Error("GetOwnerNormalTicketIds error", err)
-		}
-		ownerExpireTicketIds, err := ticketPool.GetOwnerExpireTicketIds(state, ownerList[i])
-		if nil != err {
-			t.Error("GetOwnerExpireTicketIds error", err)
-		}
-		t.Logf("owner[%v],NormalTicket[%v],ExpireTicket[%v]", ownerList[i].Hex(), len(ownerNormalTicketIds), len(ownerExpireTicketIds))
-	}
-
-	if err := ticketPool.Notify(state, blockNumber, candidate.CandidateId); err != nil {
+	if err := ticketPool.Notify(state, blockNumber, blockhash, candidate.CandidateId); err != nil {
 		t.Error("Execute HandleExpireTicket error", err)
 	}
 
 	candidate, err = candidatePool.GetCandidate(state, candidate.CandidateId)
-	ticketIds, err = ticketPool.GetCandidateTicketIds(state, candidate.CandidateId)
+	ticketIds, err = ticketPool.GetCandidateTicketIds(state, blockNumber, blockhash, candidate.CandidateId)
 	if nil != err {
 		t.Error("GetCandidateTicketIds error", err)
 	}
@@ -193,18 +183,6 @@ func TestVoteTicket(t *testing.T)  {
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
 		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), 0, candidateAttach.Epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
-
-	for i := 0; i < len(ownerList); i++ {
-		ownerNormalTicketIds, err := ticketPool.GetOwnerNormalTicketIds(state, ownerList[i])
-		if nil != err {
-			t.Error("GetOwnerNormalTicketIds error", err)
-		}
-		ownerExpireTicketIds, err := ticketPool.GetOwnerExpireTicketIds(state, ownerList[i])
-		if nil != err {
-			t.Error("GetOwnerExpireTicketIds error", err)
-		}
-		t.Logf("owner[%v],NormalTicket[%v],ExpireTicket[%v]", ownerList[i].Hex(), len(ownerNormalTicketIds), len(ownerExpireTicketIds))
-	}
 
 	var temp []string
 	temp = append(temp, "string")

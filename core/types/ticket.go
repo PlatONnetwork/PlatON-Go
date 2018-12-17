@@ -18,6 +18,12 @@ type Ticket struct {
 	CandidateId 	discover.NodeID
 	// current block height number when purchasing tickets
 	BlockNumber 	*big.Int
+	// Ticket state
+	// 1 -> Normal
+	// 2 -> Selected
+	// 3 -> Expire
+	// 4 -> Invalid
+	State 			uint8
 }
 
 func (t *Ticket) CalcEpoch(blockNumber *big.Int) *big.Int {
