@@ -24,12 +24,12 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/log/term"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/metrics/exp"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log/term"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/metrics/exp"
 	"github.com/fjl/memsize/memsizeui"
-	colorable "github.com/mattn/go-colorable"
+	"github.com/mattn/go-colorable"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -55,6 +55,7 @@ var (
 		Name:  "debug",
 		Usage: "Prepends log messages with call-site location (file and line number)",
 	}
+
 	pprofFlag = cli.BoolFlag{
 		Name:  "pprof",
 		Usage: "Enable the pprof HTTP server",
@@ -86,6 +87,12 @@ var (
 		Name:  "trace",
 		Usage: "Write execution trace to the given file",
 	}
+
+	wasmLogFileFlag = cli.StringFlag{
+		Name:  "wasmlog",
+		Usage: "output wasm contract log to file",
+		Value: "",
+	}
 )
 
 // Flags holds all command-line flags required for debugging.
@@ -93,6 +100,8 @@ var Flags = []cli.Flag{
 	verbosityFlag, vmoduleFlag, backtraceAtFlag, debugFlag,
 	pprofFlag, pprofAddrFlag, pprofPortFlag,
 	memprofilerateFlag, blockprofilerateFlag, cpuprofileFlag, traceFlag,
+	wasmLogFileFlag,
+
 }
 
 var (
@@ -150,6 +159,28 @@ func Setup(ctx *cli.Context, logdir string) error {
 		address := fmt.Sprintf("%s:%d", ctx.GlobalString(pprofAddrFlag.Name), ctx.GlobalInt(pprofPortFlag.Name))
 		StartPProf(address)
 	}
+	return nil
+}
+
+func SetupWasmLog(ctx *cli.Context) error {
+	log.SetWasmLogLevel(log.Lvl(ctx.GlobalInt(verbosityFlag.Name)))
+	wasmFileName := ctx.GlobalString(wasmLogFileFlag.Name)
+
+	if wasmFileName == "" {
+		log.WasmRoot().SetHandler(log.Root().GetHandler())
+		return nil
+	}
+
+	handler, err := log.FileHandler(wasmFileName, log.FormatFunc(func(r *log.Record) []byte {
+		return []byte(r.Msg)
+	}))
+
+	if err != nil {
+		return err
+	}
+
+	log.WasmRoot().SetHandler(handler)
+
 	return nil
 }
 

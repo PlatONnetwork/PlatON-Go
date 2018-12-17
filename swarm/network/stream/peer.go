@@ -22,14 +22,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/p2p/protocols"
-	"github.com/ethereum/go-ethereum/swarm/log"
-	pq "github.com/ethereum/go-ethereum/swarm/network/priorityqueue"
-	"github.com/ethereum/go-ethereum/swarm/network/stream/intervals"
-	"github.com/ethereum/go-ethereum/swarm/spancontext"
-	"github.com/ethereum/go-ethereum/swarm/state"
-	"github.com/ethereum/go-ethereum/swarm/storage"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/protocols"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	pq "github.com/PlatONnetwork/PlatON-Go/swarm/network/priorityqueue"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/network/stream/intervals"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/spancontext"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/state"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
 	opentracing "github.com/opentracing/opentracing-go"
 )
 

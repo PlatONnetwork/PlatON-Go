@@ -18,13 +18,15 @@
 package consensus
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"crypto/ecdsa"
 	"math/big"
-
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rpc"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -113,4 +115,35 @@ type PoW interface {
 
 	// Hashrate returns the current mining hashrate of a PoW consensus engine.
 	Hashrate() float64
+}
+
+type Bft interface {
+	Engine
+
+	// 返回当前共识节点地址列表
+	ConsensusNodes() ([]discover.NodeID, error)
+
+	// 返回当前节点是否轮值出块
+	ShouldSeal() (bool, error)
+
+	//收到新的区块签名
+	//需要验证签名是否时nodeID签名的
+	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error
+
+	// Process the BFT signatures
+	OnNewBlock(chain ChainReader, block *types.Block) error
+
+	// Process the BFT signatures
+	OnPong(nodeID discover.NodeID, netLatency int64) error
+
+	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
+
+	IsConsensusNode() (bool, error)
+
+	//目前最高的合理块，本节点出块时，需要基于最高合理块来生成区块。
+	HighestLogicalBlock() *types.Block
+
+	SetPrivateKey(privateKey *ecdsa.PrivateKey)
+
+	//SetBlockChain(blockChain *core.BlockChain)
 }

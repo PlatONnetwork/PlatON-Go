@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
+// 对solc的一个包装啦啦啦啦
 // Package compiler wraps the Solidity compiler executable (solc).
 package compiler
 
@@ -68,6 +69,7 @@ type solcOutput struct {
 	Version string
 }
 
+// 构建命令参数
 func (s *Solidity) makeArgs() []string {
 	p := []string{
 		"--combined-json", "bin,abi,userdoc,devdoc",
@@ -91,6 +93,7 @@ func SolidityVersion(solc string) (*Solidity, error) {
 	if err != nil {
 		return nil, err
 	}
+	// 正则表达式取匹配部分
 	matches := versionRegexp.FindStringSubmatch(out.String())
 	if len(matches) != 4 {
 		return nil, fmt.Errorf("can't parse solc version %q", out.String())

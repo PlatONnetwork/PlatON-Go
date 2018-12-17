@@ -24,9 +24,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p/discover"
-	"github.com/ethereum/go-ethereum/p2p/netutil"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 )
 
 const (
@@ -78,6 +78,7 @@ type dialstate struct {
 	lookupBuf     []*discover.Node // current discovery lookup results
 	randomNodes   []*discover.Node // filled from Table
 	static        map[discover.NodeID]*dialTask
+	consensus     map[discover.NodeID]*dialTask
 	hist          *dialHistory
 
 	start     time.Time        // time when the dialer was first used
@@ -133,6 +134,7 @@ func newDialState(static []*discover.Node, bootnodes []*discover.Node, ntab disc
 		ntab:        ntab,
 		netrestrict: netrestrict,
 		static:      make(map[discover.NodeID]*dialTask),
+		consensus:   make(map[discover.NodeID]*dialTask),
 		dialing:     make(map[discover.NodeID]connFlag),
 		bootnodes:   make([]*discover.Node, len(bootnodes)),
 		randomNodes: make([]*discover.Node, maxdyn/2),
@@ -156,6 +158,16 @@ func (s *dialstate) removeStatic(n *discover.Node) {
 	delete(s.static, n.ID)
 	// This removes a previous dial timestamp so that application
 	// can force a server to reconnect with chosen peer immediately.
+	s.hist.remove(n.ID)
+}
+
+func (s *dialstate) addConsensus(n *discover.Node) {
+	log.Warn("dial adding consensus node", "node", n)
+	s.consensus[n.ID] = &dialTask{flags: consensusDialedConn, dest: n}
+}
+
+func (s *dialstate) removeConsensus(n *discover.Node) {
+	delete(s.consensus, n.ID)
 	s.hist.remove(n.ID)
 }
 
@@ -203,6 +215,20 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 			newtasks = append(newtasks, t)
 		}
 	}
+
+	// Create dials for consensus nodes if they are not connected.
+	for id, t := range s.consensus {
+		err := s.checkDial(t.dest, peers)
+		switch err {
+		case errNotWhitelisted, errSelf:
+			log.Warn("Removing consensus dial candidate", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}, "err", err)
+			delete(s.consensus, t.dest.ID)
+		case nil:
+			s.dialing[id] = t.flags
+			newtasks = append(newtasks, t)
+		}
+	}
+
 	// If we don't have any peers whatsoever, try to dial a random bootnode. This
 	// scenario is useful for the testnet (and private networks) where the discovery
 	// table might be full of mostly bad peers, making it hard to find good ones.

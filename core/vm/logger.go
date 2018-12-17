@@ -17,16 +17,18 @@
 package vm
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // Storage represents a contract's storage.
@@ -253,3 +255,80 @@ func WriteLogs(writer io.Writer, logs []*types.Log) {
 		fmt.Fprintln(writer)
 	}
 }
+
+
+type WasmLogger struct {
+	log.Logger
+	root log.Logger
+	buf *bytes.Buffer
+	logger log.Logger
+}
+
+func NewWasmLogger(cfg Config, root log.Logger) *WasmLogger {
+	l := &WasmLogger{
+		root:root,
+		logger:root.New(),
+	}
+
+	l.buf = new(bytes.Buffer)
+
+	level := log.LvlInfo
+
+	if cfg.Debug || log.GetWasmLogLevel() >= log.LvlDebug{
+		level = log.LvlDebug
+	}
+
+
+	l.logger.SetHandler(log.LvlFilterHandler(level, log.StreamHandler(l.buf, log.FormatFunc(func(r *log.Record) []byte {
+		return []byte(r.Msg)
+	}))))
+
+
+	return l
+}
+
+
+func (wl *WasmLogger) Flush()  {
+	if wl.buf.Len() != 0 {
+		wl.root.Debug(wl.buf.String())
+	}
+	wl.buf.Reset()
+}
+
+func (wl *WasmLogger) New(ctx ...interface{}) log.Logger {
+	return nil
+}
+
+// GetHandler gets the handler associated with the logger.
+func (wl *WasmLogger) GetHandler() log.Handler {
+	return nil
+}
+
+// SetHandler updates the logger to write records to the specified handler.
+func (wl *WasmLogger) SetHandler(h log.Handler) {
+}
+
+
+// Log a message at the given level with context key/value pairs
+func (wl *WasmLogger) Trace(msg string, ctx ...interface{}) {
+	wl.logger.Trace(msg, ctx...)
+}
+func (wl *WasmLogger) Debug(msg string, ctx ...interface{}) {
+	wl.logger.Debug(msg, ctx...)
+}
+func (wl *WasmLogger) Info(msg string, ctx ...interface{}) {
+	wl.logger.Info(msg, ctx...)
+}
+func (wl *WasmLogger) Warn(msg string, ctx ...interface{}) {
+	wl.logger.Warn(msg, ctx...)
+}
+func (wl *WasmLogger) Error(msg string, ctx ...interface{}) {
+	wl.logger.Error(msg, ctx...)
+}
+func (wl *WasmLogger) Crit(msg string, ctx ...interface{}) {
+	wl.logger.Crit(msg, ctx...)
+}
+
+
+
+

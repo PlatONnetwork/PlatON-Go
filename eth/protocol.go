@@ -21,11 +21,11 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Constants to match up protocol versions and messages
@@ -56,6 +56,10 @@ const (
 	GetBlockBodiesMsg  = 0x05
 	BlockBodiesMsg     = 0x06
 	NewBlockMsg        = 0x07
+	PrepareBlockMsg   = 0x08
+	BlockSignatureMsg = 0x09
+
+	PongMsg = 0x0a
 
 	// Protocol messages belonging to eth/63
 	GetNodeDataMsg = 0x0d
@@ -171,6 +175,17 @@ func (hn *hashOrNumber) DecodeRLP(s *rlp.Stream) error {
 type newBlockData struct {
 	Block *types.Block
 	TD    *big.Int
+}
+
+type prepareBlockData struct {
+	Block *types.Block
+}
+
+type blockSignature struct {
+	SignHash  common.Hash //签名hash，header[0:32]
+	Hash      common.Hash //块hash，header[:]
+	Number    *big.Int
+	Signature *common.BlockConfirmSign
 }
 
 // blockBody represents the data content of a single block.

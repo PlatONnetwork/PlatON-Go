@@ -17,29 +17,31 @@
 package eth
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
 	"math/big"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/misc"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/eth/downloader"
-	"github.com/ethereum/go-ethereum/eth/fetcher"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/discover"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/eth/fetcher"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 const (
@@ -85,6 +87,9 @@ type ProtocolManager struct {
 	txsSub        event.Subscription
 	minedBlockSub *event.TypeMuxSubscription
 
+	prepareMinedBlockSub *event.TypeMuxSubscription
+	blockSignatureSub    *event.TypeMuxSubscription
+
 	// channels for fetcher, syncer, txsyncLoop
 	newPeerCh   chan *peer
 	txsyncCh    chan *txsync
@@ -94,6 +99,8 @@ type ProtocolManager struct {
 	// wait group is used for graceful shutdowns during downloading
 	// and processing
 	wg sync.WaitGroup
+
+	engine consensus.Engine
 }
 
 // NewProtocolManager returns a new Ethereum sub protocol manager. The Ethereum sub protocol manages peers capable
@@ -111,6 +118,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		noMorePeers: make(chan struct{}),
 		txsyncCh:    make(chan *txsync),
 		quitSync:    make(chan struct{}),
+		engine:      engine,
 	}
 	// Figure out whether to allow fast sync or not
 	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() > 0 {
@@ -176,6 +184,7 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		atomic.StoreUint32(&manager.acceptTxs, 1) // Mark initial sync done on any fetcher import
 		return manager.blockchain.InsertChain(blocks)
 	}
+
 	manager.fetcher = fetcher.New(blockchain.GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
 
 	return manager, nil
@@ -210,7 +219,12 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 
 	// broadcast mined blocks
 	pm.minedBlockSub = pm.eventMux.Subscribe(core.NewMinedBlockEvent{})
+	// broadcast prepare mined blocks
+	pm.prepareMinedBlockSub = pm.eventMux.Subscribe(core.PrepareMinedBlockEvent{})
+	pm.blockSignatureSub = pm.eventMux.Subscribe(core.BlockSignatureEvent{})
 	go pm.minedBroadcastLoop()
+	go pm.prepareMinedBlockcastLoop()
+	go pm.blockSignaturecastLoop()
 
 	// start sync handlers
 	go pm.syncer()
@@ -658,7 +672,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// a singe block (as the true TD is below the propagated block), however this
 			// scenario should easily be covered by the fetcher.
 			currentBlock := pm.blockchain.CurrentBlock()
-			if trueTD.Cmp(pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())) > 0 {
+			if trueTD.Cmp(pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())) > 10 {
 				go pm.synchronise(p)
 			}
 		}
@@ -682,6 +696,98 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		pm.txpool.AddRemotes(txs)
 
+	case msg.Code == PrepareBlockMsg:
+		// Retrieve and decode the propagated block
+		var request prepareBlockData
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		log.Warn("------------接收到广播消息[PrepareBlockMsg]------------", "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
+
+		request.Block.ReceivedAt = msg.ReceivedAt
+		request.Block.ReceivedFrom = p
+
+		// 初步校验block
+		if err := pm.engine.VerifyHeader(pm.blockchain, request.Block.Header(), true); err != nil {
+			log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
+			return nil
+		}
+		if pm.blockchain.HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
+			log.Warn("Block already in blockchain,discard this msg", "err", err)
+			return nil
+		}
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
+			//if pm.downloader.IsRunning() {
+			//	log.Warn("downloader is running,discard this msg")
+			//}
+			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
+				log.Warn("local node is not consensus node,discard this msg")
+			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
+				log.Warn("remote node is not consensus node,discard this msg")
+			} else if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
+				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
+			}
+			return nil
+		}
+
+	case msg.Code == BlockSignatureMsg:
+		// Retrieve and decode the propagated block
+		var request blockSignature
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+
+		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
+		engineBlockSignature := &cbfttypes.BlockSignature{request.SignHash, request.Hash, request.Number, request.Signature}
+
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
+			//if pm.downloader.IsRunning() {
+			//	log.Warn("downloader is running,discard this msg")
+			//}
+			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
+				log.Warn("local node is not consensus node,discard this msg")
+			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
+				log.Warn("remote node is not consensus node,discard this msg")
+			} else if err := cbftEngine.OnBlockSignature(pm.blockchain, p.Peer.ID(), engineBlockSignature); err != nil {
+				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
+			}
+			return nil
+		}
+
+	case msg.Code == PongMsg:
+		curTime := time.Now().UnixNano()
+		log.Debug("handle a eth Pong message", "curTime", curTime)
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
+			var pingTime [1]string
+			if err := msg.Decode(&pingTime); err != nil {
+				return errResp(ErrDecode, "%v: %v", msg, err)
+			}
+			p.lock.Lock()
+			defer p.lock.Unlock()
+			for {
+				e := p.PingList.Front()
+				if e != nil {
+					log.Debug("Front element of p.PingList", "element", e)
+					if t, ok := p.PingList.Remove(e).(string); ok {
+						if t == pingTime[0] {
+
+							tInt64, err := strconv.ParseInt(t, 10, 64)
+							if err != nil {
+								return errResp(ErrDecode, "%v: %v", msg, err)
+							}
+
+							log.Debug("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
+							latency := (curTime - tInt64) / 2 / 1000000
+							cbftEngine.OnPong(p.Peer.ID(), latency)
+							break
+						}
+					}
+				} else {
+					log.Debug("end of p.PingList")
+					break
+				}
+			}
+		}
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}
@@ -693,6 +799,12 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	hash := block.Hash()
 	peers := pm.peers.PeersWithoutBlock(hash)
+	//var peers []*peer
+	//if _, ok := pm.engine.(consensus.Bft); ok {
+	//	peers = pm.peers.PeersWithoutConsensus(pm.engine)
+	//} else {
+	//	peers = pm.peers.PeersWithoutBlock(hash)
+	//}
 
 	// If propagation is requested, send to a subset of the peer
 	if propagate {
@@ -718,6 +830,28 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 			peer.AsyncSendNewBlockHash(block)
 		}
 		log.Trace("Announced block", "hash", hash, "recipients", len(peers), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
+	}
+}
+
+func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
+	// 共识节点peer
+	peers := pm.peers.PeersWithConsensus(pm.engine)
+	if peers == nil || len(peers) <= 0 {
+		log.Error("consensus peers is empty")
+	}
+
+	if block, ok := a.(*types.Block); ok {
+		for _, peer := range peers {
+			log.Warn("------------发送广播消息[PrepareBlockMsg]------------",
+				"peerId", peer.id, "Hash", block.Hash(), "Number", block.Number())
+			peer.AsyncSendPrepareBlock(block)
+		}
+	} else if signature, ok := a.(*cbfttypes.BlockSignature); ok {
+		for _, peer := range peers {
+			log.Warn("------------发送广播消息[BlockSignatureMsg]------------",
+				"peerId", peer.id, "SignHash", signature.SignHash, "Hash", signature.Hash, "Number", signature.Number, "SignHash", signature.SignHash)
+			peer.AsyncSendSignature(signature)
+		}
 	}
 }
 
@@ -747,6 +881,41 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 		if ev, ok := obj.Data.(core.NewMinedBlockEvent); ok {
 			pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
 			pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
+		}
+	}
+	/*
+		for {
+			select {
+			case event :=  <- pm.minedBlockSub.Chan():
+				if ev, ok := event.Data.(core.NewMinedBlockEvent); ok {
+					pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
+					pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
+				}
+			case event :=  <- pm.prepareMinedBlockSub.Chan():
+				if ev, ok := event.Data.(core.PrepareMinedBlockEvent); ok {
+					pm.MulticastConsensus(ev.Block)  // propagate block to consensus peers
+				}
+			case event :=  <- pm.blockSignatureSub.Chan():
+				if ev, ok := event.Data.(core.BlockSignatureEvent); ok {
+					pm.MulticastConsensus(ev.BlockSignature)  // propagate blockSignature to consensus peers
+				}
+			}
+		}
+	*/
+}
+
+func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
+	for obj := range pm.prepareMinedBlockSub.Chan() {
+		if ev, ok := obj.Data.(core.PrepareMinedBlockEvent); ok {
+			pm.MulticastConsensus(ev.Block) // propagate block to consensus peers
+		}
+	}
+}
+
+func (pm *ProtocolManager) blockSignaturecastLoop() {
+	for obj := range pm.blockSignatureSub.Chan() {
+		if ev, ok := obj.Data.(core.BlockSignatureEvent); ok {
+			pm.MulticastConsensus(ev.BlockSignature) // propagate blockSignature to consensus peers
 		}
 	}
 }

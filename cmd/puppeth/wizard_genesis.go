@@ -17,6 +17,8 @@
 package main
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -25,10 +27,10 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // makeGenesis creates a new genesis struct based on some user input.
@@ -36,7 +38,7 @@ func (w *wizard) makeGenesis() {
 	// Construct a default genesis block
 	genesis := &core.Genesis{
 		Timestamp:  uint64(time.Now().Unix()),
-		GasLimit:   4700000,
+		GasLimit:   3150000000,
 		Difficulty: big.NewInt(524288),
 		Alloc:      make(core.GenesisAlloc),
 		Config: &params.ChainConfig{
@@ -49,9 +51,10 @@ func (w *wizard) makeGenesis() {
 	}
 	// Figure out which consensus engine to choose
 	fmt.Println()
-	fmt.Println("Which consensus engine to use? (default = clique)")
+	fmt.Println("Which consensus engine to use? (default = CBFT)")
 	fmt.Println(" 1. Ethash - proof-of-work")
 	fmt.Println(" 2. Clique - proof-of-authority")
+	fmt.Println(" 3. CBFT -   Concurrent Byzantine Fault Tolerance")
 
 	choice := w.read()
 	switch {
@@ -60,7 +63,7 @@ func (w *wizard) makeGenesis() {
 		genesis.Config.Ethash = new(params.EthashConfig)
 		genesis.ExtraData = make([]byte, 32)
 
-	case choice == "" || choice == "2":
+	case choice == "2":
 		// In the case of clique, configure the consensus parameters
 		genesis.Difficulty = big.NewInt(1)
 		genesis.Config.Clique = &params.CliqueConfig{
@@ -98,6 +101,37 @@ func (w *wizard) makeGenesis() {
 			copy(genesis.ExtraData[32+i*common.AddressLength:], signer[:])
 		}
 
+	case choice == "" || choice == "3":
+		// In the case of cbft, configure the consensus parameters
+		genesis.Difficulty = big.NewInt(2)
+		genesis.Config.Cbft = &params.CbftConfig{}
+		// We also need the initial list of signers
+		fmt.Println()
+		fmt.Println("Which nodes are allowed to seal? (mandatory at least four)")
+
+		var nodes []discover.Node
+		for {
+			if node := w.readNodeURL(); node != nil {
+				nodes = append(nodes, *node)
+				continue
+			}
+			if len(nodes) >= 4 {
+				break
+			}
+		}
+		// Sort the signers and embed into the extra-data section
+		for i := 0; i < len(nodes); i++ {
+			for j := i + 1; j < len(nodes); j++ {
+				if bytes.Compare(nodes[i].ID[:], nodes[j].ID[:]) > 0 {
+					nodes[i], nodes[j] = nodes[j], nodes[i]
+				}
+			}
+		}
+		genesis.ExtraData = make([]byte, 32+len(nodes)*common.AddressLength+65)
+		for i, node := range nodes {
+			copy(genesis.ExtraData[32+i*common.AddressLength:], crypto.Keccak256(node.ID[:])[12:])
+		}
+		genesis.Config.Cbft.InitialNodes = nodes
 	default:
 		log.Crit("Invalid consensus engine choice", "choice", choice)
 	}

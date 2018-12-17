@@ -1,5 +1,6 @@
 // Copyright 2014 The go-ethereum Authors
 // This file is part of the go-ethereum library.
+
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -22,31 +23,51 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
+
+// account对象的抽象，提供了账户的一些功能。
+// 表示正在修改的以太坊账户
 
 var emptyCodeHash = crypto.Keccak256(nil)
 
 type Code []byte
+type Abi []byte
 
 func (self Code) String() string {
 	return string(self) //strings.Join(Disassemble(self), " ")
 }
 
-type Storage map[common.Hash]common.Hash
+type Storage map[string]common.Hash
+type ValueStorage map[common.Hash][]byte
+
+// 该结构：用于缓存智能合约中所有变量的值
+// Storage -> hash : hash , common.Hash ([32]byte)
+//type Storage map[common.Hash]common.Hash
 
 func (self Storage) String() (str string) {
 	for key, value := range self {
+		// %X -> 提供16进制
 		str += fmt.Sprintf("%X : %X\n", key, value)
 	}
 
 	return
 }
 
+// 复制一份Storage
 func (self Storage) Copy() Storage {
 	cpy := make(Storage)
+	for key, value := range self {
+		cpy[key] = value
+	}
+
+	return cpy
+}
+
+func (self ValueStorage) Copy() ValueStorage {
+	cpy := make(ValueStorage)
 	for key, value := range self {
 		cpy[key] = value
 	}
@@ -71,14 +92,22 @@ type stateObject struct {
 	// unable to deal with database-level errors. Any error that occurs
 	// during a database read is memoized here and will eventually be returned
 	// by StateDB.Commit.
+	// 当一个对象被标记为自杀时，它将在状态转换的“更新”阶段期间从树中删除。
 	dbErr error
 
 	// Write caches.
-	trie Trie // storage trie, which becomes non-nil on first access
+	trie Trie
+	// storage trie, which becomes non-nil on first access
 	code Code // contract bytecode, which gets set when code is loaded
 
-	originStorage Storage // Storage cache of original entries to dedup rewrites
-	dirtyStorage  Storage // Storage entries that need to be flushed to disk
+	// todo: 新增，此字段尚不明确是否需要进行使用
+	abi Abi
+
+	originStorage      Storage      // Storage cache of original entries to dedup rewrites
+	originValueStorage ValueStorage // Storage cache of original entries to dedup rewrites
+
+	dirtyStorage      Storage      // Storage entries that need to be flushed to disk
+	dirtyValueStorage ValueStorage // Storage entries that need to be flushed to disk
 
 	// Cache flags.
 	// When an object is marked suicided it will be delete from the trie
@@ -95,11 +124,14 @@ func (s *stateObject) empty() bool {
 
 // Account is the Ethereum consensus representation of accounts.
 // These objects are stored in the main account trie.
+// 帐户是以太坊共识表示的帐户。 这些对象存储在main account trie。
 type Account struct {
 	Nonce    uint64
 	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
+	// todo: 新增AbiHash字段
+	AbiHash []byte
 }
 
 // newObject creates a state object.
@@ -111,12 +143,16 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 		data.CodeHash = emptyCodeHash
 	}
 	return &stateObject{
-		db:            db,
-		address:       address,
-		addrHash:      crypto.Keccak256Hash(address[:]),
-		data:          data,
-		originStorage: make(Storage),
-		dirtyStorage:  make(Storage),
+		db:       db,
+		address:  address,
+		addrHash: crypto.Keccak256Hash(address[:]),
+		data:     data,
+
+		originStorage:      make(Storage),
+		originValueStorage: make(map[common.Hash][]byte),
+
+		dirtyStorage:      make(Storage),
+		dirtyValueStorage: make(map[common.Hash][]byte),
 	}
 }
 
@@ -160,79 +196,152 @@ func (c *stateObject) getTrie(db Database) Trie {
 }
 
 // GetState retrieves a value from the account storage trie.
-func (self *stateObject) GetState(db Database, key common.Hash) common.Hash {
+//func (self *stateObject) GetState(db Database, key common.Hash) common.Hash {
+//	// If we have a dirty value for this state entry, return it
+//	value, dirty := self.dirtyStorage[key]
+//	if dirty {
+//		return value
+//	}
+//	// Otherwise return the entry's original value
+//	return self.GetCommittedState(db, key)
+//}
+
+// GetState retrieves a value from the account storage trie.
+func (self *stateObject) GetState(db Database, keyTree string) []byte {
 	// If we have a dirty value for this state entry, return it
-	value, dirty := self.dirtyStorage[key]
+	valueKey, dirty := self.dirtyStorage[keyTree]
 	if dirty {
-		return value
+		value, ok := self.dirtyValueStorage[valueKey]
+		if ok {
+			return value
+		}
 	}
 	// Otherwise return the entry's original value
-	return self.GetCommittedState(db, key)
+	return self.GetCommittedState(db, keyTree)
 }
 
 // GetCommittedState retrieves a value from the committed account storage trie.
-func (self *stateObject) GetCommittedState(db Database, key common.Hash) common.Hash {
+//func (self *stateObject) GetCommittedState(db Database, key common.Hash) common.Hash {
+//	// If we have the original value cached, return that
+//	value, cached := self.originStorage[key]
+//	if cached {
+//		return value
+//	}
+//	// Otherwise load the value from the database
+//	enc, err := self.getTrie(db).TryGet(key[:])
+//	if err != nil {
+//		self.setError(err)
+//		return common.Hash{}
+//	}
+//	if len(enc) > 0 {
+//		_, content, _, err := rlp.Split(enc)
+//		if err != nil {
+//			self.setError(err)
+//		}
+//		value.SetBytes(content)
+//	}
+//	self.originStorage[key] = value
+//	return value
+//}
+
+// GetCommittedState retrieves a value from the committed account storage trie.
+func (self *stateObject) GetCommittedState(db Database, key string) []byte {
+	var value []byte
 	// If we have the original value cached, return that
-	value, cached := self.originStorage[key]
+	valueKey, cached := self.originStorage[key]
 	if cached {
-		return value
+		value, cached2 := self.originValueStorage[valueKey]
+		if cached2 {
+			return value
+		}
 	}
-	// Otherwise load the value from the database
-	enc, err := self.getTrie(db).TryGet(key[:])
+
+	// Otherwise load the valueKey from trie
+	enc, err := self.getTrie(db).TryGet([]byte(key))
 	if err != nil {
 		self.setError(err)
-		return common.Hash{}
+		return []byte{}
 	}
 	if len(enc) > 0 {
 		_, content, _, err := rlp.Split(enc)
 		if err != nil {
 			self.setError(err)
 		}
-		value.SetBytes(content)
+		valueKey.SetBytes(content)
+
+		//load value from db
+		value = self.db.trie.GetKey(valueKey.Bytes())
+		if err != nil {
+			self.setError(err)
+		}
 	}
-	self.originStorage[key] = value
+
+	self.originStorage[key] = valueKey
+	self.originValueStorage[valueKey] = value
 	return value
 }
 
 // SetState updates a value in account storage.
-func (self *stateObject) SetState(db Database, key, value common.Hash) {
-	// If the new value is the same as old, don't set
-	prev := self.GetState(db, key)
-	if prev == value {
+// set [keyTrie,valueKey] to storage
+// set [valueKey,value] to db
+func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.Hash, value []byte) {
+
+	//if the new value is the same as old,don't set
+	preValue := self.GetState(db, keyTrie) //获取value key
+	if bytes.Equal(preValue, value) {
 		return
 	}
-	// New value is different, update and journal the change
+
+	//New value is different, update and journal the change
 	self.db.journal.append(storageChange{
 		account:  &self.address,
-		key:      key,
-		prevalue: prev,
+		key:      keyTrie,
+		valueKey: self.originStorage[keyTrie],
+		preValue: preValue,
 	})
-	self.setState(key, value)
+
+	self.setState(keyTrie, valueKey, value)
 }
 
-func (self *stateObject) setState(key, value common.Hash) {
-	self.dirtyStorage[key] = value
+func (self *stateObject) setState(key string, valueKey common.Hash, value []byte) {
+	self.dirtyStorage[key] = valueKey
+	self.dirtyValueStorage[valueKey] = value
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
 func (self *stateObject) updateTrie(db Database) Trie {
 	tr := self.getTrie(db)
-	for key, value := range self.dirtyStorage {
+	for key, valueKey := range self.dirtyStorage {
+
+		value, dirty := self.dirtyValueStorage[valueKey]
+		if dirty {
+			// Skip noop changes, persist actual changes
+			originValue, dirty2 := self.originValueStorage[valueKey]
+			if dirty2 {
+				if bytes.Equal(value, originValue) {
+					continue
+				}
+			}
+		}
+
 		delete(self.dirtyStorage, key)
+		delete(self.dirtyValueStorage, valueKey)
 
-		// Skip noop changes, persist actual changes
-		if value == self.originStorage[key] {
+		//删除原来valueKey 对应的value
+		delete(self.originValueStorage, self.originStorage[key])
+
+		self.originStorage[key] = valueKey
+		self.originValueStorage[valueKey] = value
+
+		if (valueKey == common.Hash{} || bytes.Equal(value, []byte{})) {
+			self.setError(tr.TryDelete([]byte(key)))
 			continue
 		}
-		self.originStorage[key] = value
 
-		if (value == common.Hash{}) {
-			self.setError(tr.TryDelete(key[:]))
-			continue
-		}
 		// Encoding []byte cannot fail, ok to ignore the error.
-		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(value[:], "\x00"))
-		self.setError(tr.TryUpdate(key[:], v))
+		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
+		self.setError(tr.TryUpdate([]byte(key), v))
+		//self.setError(tr.TryUpdateValue(valueKey[:], value))
 	}
 	return tr
 }
@@ -249,6 +358,12 @@ func (self *stateObject) CommitTrie(db Database) error {
 	self.updateTrie(db)
 	if self.dbErr != nil {
 		return self.dbErr
+	}
+
+	for h, v := range self.originValueStorage {
+		if (h != common.Hash{} && !bytes.Equal(v, []byte{})) {
+			self.trie.TryUpdateValue(h.Bytes(), v)
+		}
 	}
 	root, err := self.trie.Commit(nil)
 	if err == nil {
@@ -303,7 +418,9 @@ func (self *stateObject) deepCopy(db *StateDB) *stateObject {
 	}
 	stateObject.code = self.code
 	stateObject.dirtyStorage = self.dirtyStorage.Copy()
+	stateObject.dirtyValueStorage = self.dirtyValueStorage.Copy()
 	stateObject.originStorage = self.originStorage.Copy()
+	stateObject.originValueStorage = self.originValueStorage.Copy()
 	stateObject.suicided = self.suicided
 	stateObject.dirtyCode = self.dirtyCode
 	stateObject.deleted = self.deleted
@@ -380,4 +497,46 @@ func (self *stateObject) Nonce() uint64 {
 // interface. Interfaces are awesome.
 func (self *stateObject) Value() *big.Int {
 	panic("Value on stateObject should never be called")
+}
+
+// todo: 新增方法
+// ======================================= 新增方法 ===============================
+
+// todo: new method -> AbiHash
+func (self *stateObject) AbiHash() []byte {
+	return self.data.AbiHash
+}
+
+// ABI returns the contract abi associated with this object, if any.
+func (self *stateObject) Abi(db Database) []byte {
+	//if self.Abi != nil {
+	//	return self.abi
+	//}
+	if bytes.Equal(self.AbiHash(), emptyCodeHash) {
+		return nil
+	}
+	// 从树中提取code，入参：地址及hash, 此处需要深入发现获取规则
+	abi, err := db.ContractAbi(self.addrHash, common.BytesToHash(self.AbiHash()))
+	if err != nil {
+		self.setError(fmt.Errorf("can't load abi hash %x: %v", self.AbiHash(), err))
+	}
+	self.abi = abi
+	return abi
+}
+
+// todo: new method -> SetAbi.
+func (self *stateObject) SetAbi(abiHash common.Hash, abi []byte) {
+	prevabi := self.Abi(self.db.db)
+	self.db.journal.append(abiChange{
+		account:  &self.address,
+		prevhash: self.AbiHash(),
+		prevabi:  prevabi,
+	})
+	self.setAbi(abiHash, abi)
+}
+
+// todo: new method -> setAbi
+func (self *stateObject) setAbi(abiHash common.Hash, abi []byte) {
+	self.abi = abi
+	self.data.AbiHash = abiHash[:]
 }

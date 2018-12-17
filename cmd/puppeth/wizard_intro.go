@@ -26,7 +26,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // makeWizard creates and returns a new puppeth wizard.
@@ -46,11 +46,11 @@ func makeWizard(network string) *wizard {
 // setting up a new or managing an existing Ethereum private network.
 func (w *wizard) run() {
 	fmt.Println("+-----------------------------------------------------------+")
-	fmt.Println("| Welcome to puppeth, your Ethereum private network manager |")
+	fmt.Println("| Welcome to puppeth, your Platon private network manager |")
 	fmt.Println("|                                                           |")
-	fmt.Println("| This tool lets you create a new Ethereum network down to  |")
-	fmt.Println("| the genesis block, bootnodes, miners and ethstats servers |")
-	fmt.Println("| without the hassle that it would normally entail.         |")
+	fmt.Println("| This tool lets you create a new Platon network down to   |")
+	fmt.Println("| the genesis block, bootnodes and ethstats servers without|")
+	fmt.Println("| the hassle that it would normally entail.                |")
 	fmt.Println("|                                                           |")
 	fmt.Println("| Puppeth uses SSH to dial in to remote servers, and builds |")
 	fmt.Println("| its network components out of Docker containers using the |")
