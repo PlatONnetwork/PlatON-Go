@@ -19,7 +19,7 @@ package shhclient
 import (
 	"context"
 
-	"Platon-go"
+	"github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"

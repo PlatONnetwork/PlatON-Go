@@ -20,7 +20,7 @@ import (
 	"context"
 	"sync"
 
-	ethereum "Platon-go"
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )

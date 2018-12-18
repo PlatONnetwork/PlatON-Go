@@ -19,7 +19,7 @@ package keystore
 import (
 	"math/big"
 
-	ethereum "Platon-go"
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )

@@ -21,7 +21,7 @@ package geth
 import (
 	"errors"
 
-	ethereum "Platon-go"
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
