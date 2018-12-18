@@ -705,12 +705,12 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		log.Warn("------------接收到广播消息[PrepareBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
+		log.Warn("Received a broadcast message[PrepareBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
 
-		// 初步校验block
+		// Preliminary check block
 		if err := pm.engine.VerifyHeader(pm.blockchain, request.Block.Header(), true); err != nil {
 			log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
 			return nil
@@ -742,7 +742,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 
-		log.Warn("------------接收到广播消息[BlockSignatureMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
+		log.Warn("~ Received a broadcast message[BlockSignatureMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
 		engineBlockSignature := &cbfttypes.BlockSignature{request.SignHash, request.Hash, request.Number, request.Signature}
 
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
@@ -839,7 +839,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 }
 
 func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
-	// 共识节点peer
+	// Consensus node peer
 	peers := pm.peers.PeersWithConsensus(pm.engine)
 	if peers == nil || len(peers) <= 0 {
 		log.Error("consensus peers is empty")
@@ -847,13 +847,13 @@ func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 
 	if block, ok := a.(*types.Block); ok {
 		for _, peer := range peers {
-			log.Warn("------------发送广播消息[PrepareBlockMsg]------------",
+			log.Warn("~ Send a broadcast message[PrepareBlockMsg]------------",
 				"peerId", peer.id, "Hash", block.Hash(), "Number", block.Number())
 			peer.AsyncSendPrepareBlock(block)
 		}
 	} else if signature, ok := a.(*cbfttypes.BlockSignature); ok {
 		for _, peer := range peers {
-			log.Warn("------------发送广播消息[BlockSignatureMsg]------------",
+			log.Warn("~ Send a broadcast message[BlockSignatureMsg]------------",
 				"peerId", peer.id, "SignHash", signature.SignHash, "Hash", signature.Hash, "Number", signature.Number, "SignHash", signature.SignHash)
 			peer.AsyncSendSignature(signature)
 		}

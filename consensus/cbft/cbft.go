@@ -784,12 +784,15 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		log.Debug("check if block is logical", "result", isLogical)
 
 		if isLogical {
-			//主链
+			// Main chain
 			cbft.handleLogicalBlockAndDescendant(ext)
 		} else {
-			//分支
+			// Branch
 			closestConfirmed := cbft.findClosestConfirmedIncludingSelf(ext)
-			//分支上发现有确认块，并且此块高度小于主链的最高确认块。说明在主链上低于最高确认块，且与新确认块相同高度的块，一定是未确认块。则发生分叉
+			// A confirmation block is found on the branch and this block height
+			// is less than the highest acknowledgment block of the main chain.
+			// A block that is lower than the highest acknowledgment block in the main chain
+			// and has the same height as the new acknowledgment block must be an unconfirmed block. Bifurcation
 
 			//if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number && !closestConfirmed.isAncestor(cbft.highestConfirmed){
 			if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number {
@@ -1071,7 +1074,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 	cbft.lock.RLock()
 	defer cbft.lock.RUnlock()
 
-	//检查父区块
+	// Check the parent block
 	if cbft.highestLogical.block == nil || header.ParentHash != cbft.highestLogical.block.Hash() || header.Number.Uint64()-1 != cbft.highestLogical.block.NumberU64() {
 		return consensus.ErrUnknownAncestor
 	}

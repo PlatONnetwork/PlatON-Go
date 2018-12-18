@@ -41,7 +41,7 @@ func NewCache(blockChain *core.BlockChain) *Cache {
 	return cache
 }
 
-// 从缓存map中读取Receipt集合
+// Read the Receipt collection from the cache map.
 func (c *Cache) ReadReceipts(sealHash common.Hash) []*types.Receipt {
 	c.receiptsMu.RLock()
 	defer c.receiptsMu.RUnlock()
@@ -51,18 +51,18 @@ func (c *Cache) ReadReceipts(sealHash common.Hash) []*types.Receipt {
 	return nil
 }
 
-// 从缓存map中读取StateDB实例
+// Read the StateDB instance from the cache map
 func (c *Cache) ReadStateDB(sealHash common.Hash) *state.StateDB {
 	c.stateDBMu.RLock()
 	defer c.stateDBMu.RUnlock()
-	log.Info("从缓存map中读取StateDB实例","sealHash", sealHash)
+	log.Info("Read the StateDB instance from the cache map","sealHash", sealHash)
 	if obj, exist := c.stateDBCache[sealHash]; exist {
 		return obj.stateDB.Copy()
 	}
 	return nil
 }
 
-// 将Receipt写入缓存
+// Write Receipt to the cache
 func (c *Cache) WriteReceipts(sealHash common.Hash, receipts []*types.Receipt, blockNum uint64) {
 	c.receiptsMu.Lock()
 	defer c.receiptsMu.Unlock()
@@ -74,17 +74,17 @@ func (c *Cache) WriteReceipts(sealHash common.Hash, receipts []*types.Receipt, b
 	}
 }
 
-// 将StateDB实例写入缓存
+// Write a StateDB instance to the cache
 func (c *Cache) WriteStateDB(sealHash common.Hash, stateDB *state.StateDB, blockNum uint64) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
-	log.Info("将StateDB实例写入缓存", "sealHash", sealHash, "blockNum", blockNum)
+	log.Info("Write a StateDB instance to the cache", "sealHash", sealHash, "blockNum", blockNum)
 	if _, exist := c.stateDBCache[sealHash]; !exist {
 		c.stateDBCache[sealHash] = &stateDBCache{stateDB: stateDB, blockNum: blockNum}
 	}
 }
 
-// 从缓存map中读取Receipt集合
+// Read the Receipt collection from the cache map
 func (c *Cache) clearReceipts(sealHash common.Hash) {
 	c.receiptsMu.Lock()
 	defer c.receiptsMu.Unlock()
@@ -101,7 +101,7 @@ func (c *Cache) clearReceipts(sealHash common.Hash) {
 	}
 }
 
-// 从缓存map中读取StateDB实例
+// Read the StateDB instance from the cache map
 func (c *Cache) clearStateDB(sealHash common.Hash) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
@@ -118,15 +118,15 @@ func (c *Cache) clearStateDB(sealHash common.Hash) {
 	}
 }
 
-// 获取相应block的StateDB实例
+// Get the StateDB instance of the corresponding block
 func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
-	// 基于stateRoot从blockchain中创建StateDB实例
+	// Create a StateDB instance from the blockchain based on stateRoot
 	if state, err := c.chain.StateAt(block.Root()); err == nil && state != nil {
 		return state, nil
 	}
-	// 读取并拷贝缓存中StateDB实例
+	// Read and copy the stateDB instance in the cache
 	sealHash := c.chain.Engine().SealHash(block.Header())
-	log.Info("读取并拷贝缓存中StateDB实例","sealHash", sealHash, "blockHash", block.Hash(), "blockNum", block.NumberU64(), "stateRoot", block.Root())
+	log.Info("Read and copy the stateDB instance in the cache","sealHash", sealHash, "blockHash", block.Hash(), "blockNum", block.NumberU64(), "stateRoot", block.Root())
 	if state := c.ReadStateDB(sealHash); state != nil {
 		//return state.Copy(), nil
 		return state, nil
@@ -135,7 +135,7 @@ func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 	}
 }
 
-// 获取相应block的StateDB实例
+// Get the StateDB instance of the corresponding block
 func (c *Cache) ClearCache(block *types.Block) {
 	sealHash := c.chain.Engine().SealHash(block.Header())
 	c.clearReceipts(sealHash)

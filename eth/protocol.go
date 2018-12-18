@@ -182,8 +182,8 @@ type prepareBlockData struct {
 }
 
 type blockSignature struct {
-	SignHash  common.Hash //签名hash，header[0:32]
-	Hash      common.Hash //块hash，header[:]
+	SignHash  common.Hash // signature hash，header[0:32]
+	Hash      common.Hash // blokc hash，header[:]
 	Number    *big.Int
 	Signature *common.BlockConfirmSign
 }

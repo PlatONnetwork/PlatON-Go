@@ -118,15 +118,15 @@ type Fetcher struct {
 	quit chan struct{}
 
 	// Announce states
-	//joey.lyu,记录peer获取区块信息请求的数量
+	// Record the number of peer requests for obtaining block information
 	announces map[string]int // Per peer announce counts to prevent memory exhaustion
-	//joey.lyu,记录peer同一个获取区块信息的请求
+	// Record peer request for obtaining block information
 	announced map[common.Hash][]*announce // Announced blocks, scheduled for fetching
-	//joey.lyu,获取区块信息的请求已经发出，正等待响应的
+	// A request to get block information has been sent, waiting for a response
 	fetching map[common.Hash]*announce // Announced blocks, currently fetching
-	//joey.lyu,完成获取区块信息
+	// Complete the acquisition of block information
 	fetched map[common.Hash][]*announce // Blocks with headers fetched, scheduled for body retrieval
-	//joey.lyu,完成获取区块头，正在下载body
+	// Finish getting the block header and downloading the body
 	completing map[common.Hash]*announce // Blocks with headers, currently body-completing
 
 	// Block cache

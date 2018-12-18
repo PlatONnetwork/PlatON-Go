@@ -119,7 +119,7 @@ func runCmd(ctx *cli.Context) error {
 				utils.Fatalf("Could not load code from file: %v", err)
 			}
 		}
-		// 剔除换行符
+		// Eliminate line breaks
 		code = common.Hex2Bytes(string(bytes.TrimRight(hexcode,"\n")))
 	} else if ctx.GlobalString(CodeFlag.Name) != "" {
 		code = common.Hex2Bytes(ctx.GlobalString(CodeFlag.Name))
@@ -175,7 +175,7 @@ func runCmd(ctx *cli.Context) error {
 	tstart := time.Now()
 	var leftOverGas uint64
 	if ctx.GlobalBool(CreateFlag.Name) {
-		// 合约创建逻辑，input为外部输入, 可能是参数，在以太坊中。在wasm中需要进行编码才能完成
+		// Contract creation logic，Input is an external input, possibly a parameter。Need to be encoded in wasm to complete
 		rlpData := make([][]byte,0)
 		rlpData = append(rlpData, covert.Int64ToBytes(txType), abi, code)
 

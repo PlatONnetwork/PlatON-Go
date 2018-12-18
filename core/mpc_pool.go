@@ -404,7 +404,7 @@ func (pool *MPCPool) enqueueTx(hash common.Hash, tx *types.TransactionWrap) (boo
 	return true, nil
 }
 
-// 写入文件
+// Write local file
 func (pool *MPCPool) journalTx(tx *types.TransactionWrap) {
 	if pool.journal == nil {
 		return

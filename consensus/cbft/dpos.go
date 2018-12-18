@@ -13,7 +13,8 @@ type dpos struct {
 	primaryNodeList   []discover.NodeID
 	chain             *core.BlockChain
 	lastCycleBlockNum uint64
-	startTimeOfEpoch  int64 // 一轮共识开始时间，通常是上一轮共识结束时最后一个区块的出块时间；如果是第一轮，则从1970.1.1.0.0.0.0开始。单位：秒
+	startTimeOfEpoch  int64 // A round of consensus start time is usually the block time of the last block at the end of the last round of consensus;
+							// if it is the first round, it starts from 1970.1.1.0.0.0.0. Unit: second
 
 }
 
@@ -26,7 +27,7 @@ func newDpos(initialNodes []discover.NodeID) *dpos {
 }
 
 func (d *dpos) IsPrimary(addr common.Address) bool {
-	// 判断当前节点是否是共识节点
+	// Determine whether the current node is a consensus node
 	for _, node := range d.primaryNodeList {
 		pub, err := node.Pubkey()
 		if err != nil || pub == nil {
@@ -48,21 +49,21 @@ func (d *dpos) NodeIndex(nodeID discover.NodeID) int64 {
 }
 
 func (d *dpos) LastCycleBlockNum() uint64 {
-	// 获取最后一轮共识结束时的区块高度
+	// Get the block height at the end of the final round of consensus
 	return d.lastCycleBlockNum
 }
 
 func (d *dpos) SetLastCycleBlockNum(blockNumber uint64) {
-	// 设置最后一轮共识结束时的区块高度
+	// Set the block height at the end of the last round of consensus
 	d.lastCycleBlockNum = blockNumber
 }
 
-// 返回当前共识节点地址列表
+// Returns the current consensus node address list
 /*func (b *dpos) ConsensusNodes() []discover.Node {
 	return b.primaryNodeList
 }
 */
-// 判断某个节点是否本轮或上一轮选举共识节点
+// Determine whether a node is the current or previous round of election consensus nodes
 /*func (b *dpos) CheckConsensusNode(id discover.NodeID) bool {
 	nodes := b.ConsensusNodes()
 	for _, node := range nodes {
@@ -73,7 +74,7 @@ func (d *dpos) SetLastCycleBlockNum(blockNumber uint64) {
 	return false
 }*/
 
-// 判断当前节点是否本轮或上一轮选举共识节点
+// Determine whether the current node is the current or previous round of election consensus nodes
 /*func (b *dpos) IsConsensusNode() (bool, error) {
 	return true, nil
 }
@@ -84,7 +85,7 @@ func (d *dpos) StartTimeOfEpoch() int64 {
 }
 
 func (d *dpos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
-	// 设置最后一轮共识结束时的出块时间
+	// Set the block time at the end of the last round of consensus
 	d.startTimeOfEpoch = startTimeOfEpoch
-	log.Info("设置最后一轮共识结束时的出块时间", "startTimeOfEpoch", startTimeOfEpoch)
+	log.Info("Set the block time at the end of the last round of consensus", "startTimeOfEpoch", startTimeOfEpoch)
 }

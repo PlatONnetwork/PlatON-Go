@@ -32,23 +32,19 @@ import (
 	"Platon-go/log"
 )
 
-// 定义了处理区块链片段的方法，并把处理结果写入数据库
 // ChainIndexerBackend defines the methods needed to process chain segments in
 // the background and write the segment results into the database. These can be
 // used to create filter blooms or CHTs.
 type ChainIndexerBackend interface {
 
-	// 用来初始化一个新的区块链片段，可能会终止任何没有完成的操作
 	// Reset initiates the processing of a new chain segment, potentially terminating
 	// any partially completed operations (in case of a reorg).
 	Reset(ctx context.Context, section uint64, prevHead common.Hash) error
 
-	// 对区块链片段中的下一个区块头进行处理。 调用者将确保区块头的连续顺序
 	// Process crunches through the next header in the chain segment. The caller
 	// will ensure a sequential order of headers.
 	Process(ctx context.Context, header *types.Header) error
 
-	// 完成区块链片段的元数据并将其存储到数据库中
 	// Commit finalizes the section metadata and stores it into the database.
 	Commit() error
 }

@@ -75,10 +75,8 @@ func main() {
 		}
 	}
 
-	// 合约方法结构：int transfer(address from, address to, int asset)
-	// todo: 此处确定了ID，传入需要的参数，然后获取返回值？返回值？？？
 	// Run the WebAssembly module's entry function.
-	ret, err := vm.Run(entryID, resolver.MallocString(vm, "helloh汉子来了"), resolver.MallocString(vm, "world"), 45)
+	ret, err := vm.Run(entryID, resolver.MallocString(vm, "hello"), resolver.MallocString(vm, "world"), 45)
 	if err != nil {
 		vm.PrintStackTrace()
 		panic(err)

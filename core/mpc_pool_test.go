@@ -63,7 +63,7 @@ func mpcPricedTransaction(nonce uint64, gaslimit uint64, gasprice *big.Int, key 
 	return tx
 }
 
-// 配置MPCPool 交易池
+// Configuring the MPCPool transaction pool.
 func setupMpcPool() (*MPCPool, *ecdsa.PrivateKey) {
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
 	blockchain := &testMpcBlockChain{statedb, 1000000, new(event.Feed)}
