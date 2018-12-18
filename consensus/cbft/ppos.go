@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"Platon-go/core/ticketcache"
 )
 
 type ppos struct {
@@ -31,7 +32,7 @@ type ppos struct {
 	// the ticket pool object pointer
 	ticketPool				*pposm.TicketPool
 	// the ticket id list cache
-	ticketidsCache 			*pposm.NumBlocks
+	ticketidsCache 			*ticketcache.NumBlocks
 }
 
 
@@ -303,8 +304,10 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 		currentBlock := blockChain.CurrentBlock()
 		var currBlockNumber uint64
 		var currBlockHash common.Hash
+		var currentBigInt *big.Int
 
 		currBlockNumber = blockChain.CurrentBlock().NumberU64()
+		currentBigInt = blockChain.CurrentBlock().Number()
 		currBlockHash = blockChain.CurrentBlock().Hash()
 
 
@@ -317,7 +320,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 			}
 			/** 添加的调试信息 */
 			stateRoot := blockChain.GetBlock(currBlockHash, currBlockNumber).Root()
-			parentState, err := blockChain.StateAt(stateRoot)
+			parentState, err := blockChain.StateAt(stateRoot, currentBigInt, currBlockHash)
 			log.Info("启动调试 stateDB:", "currBlockNumber", currBlockNumber, "currBlockHash", currBlockHash, "stateRoot", stateRoot.String())
 			if nil != err {
 				log.Error("启动调试 stateDB:", "err", err)
@@ -325,10 +328,12 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 			}
 
 			parentNum := currBlockNumber - 1
+			parentBigInt := new(big.Int).Sub(currentBigInt, big.NewInt(1))
 			parentHash := currentBlock.ParentHash()
 			blockArr = append(blockArr, currentBlock)
 
 			currBlockNumber = parentNum
+			currentBigInt = parentBigInt
 			currBlockHash = parentHash
 			currentBlock = blockChain.GetBlock(currBlockHash, currBlockNumber)
 			count ++
@@ -338,9 +343,11 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 		for i := len(blockArr) - 1; 0 <= i; i-- {
 			currentBlock := blockArr[i]
 			currentNum := currentBlock.NumberU64()
+			currentBigInt := currentBlock.Number()
 			currentHash := currentBlock.Hash()
 
 			parentNum := currentNum - 1
+			parentBigInt := new(big.Int).Sub(currentBigInt, big.NewInt(1))
 			parentHash := currentBlock.ParentHash()
 
 			// 特殊处理数组最后一个块, 也就是最高块往前推第20个块
@@ -353,7 +360,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 				// parentStateDB by block
 				parentStateRoot := blockChain.GetBlock(parentHash, parentNum).Root()
 				log.Info("启动时重新加载最早块", "parentNum", parentNum, "parentHash", parentHash, "parentStateRoot", parentStateRoot.String())
-				if parentState, err := blockChain.StateAt(parentStateRoot); nil != err {
+				if parentState, err := blockChain.StateAt(parentStateRoot, parentBigInt, parentHash); nil != err {
 					log.Error("Failed to load parentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "parentNum", parentNum, "Hash", parentHash.String(), "err", err)
 					//panic("Failed to load parentStateDB by block parentNum" + fmt.Sprint(parentNum) + ", Hash" + parentHash.String() + "err" + err.Error())
 				}else {
@@ -363,7 +370,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 				// currentStateDB by block
 				stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
 				log.Info("启动时重新加载最早块", "currentNum", currentNum, "currentHash", currentHash, "stateRoot", stateRoot.String())
-				if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+				if currntState, err := blockChain.StateAt(stateRoot, currentBigInt, currentHash); nil != err {
 					log.Error("Failed to load currentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "err", err)
 					//panic("Failed to load currentStateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 				}else {
@@ -381,7 +388,7 @@ func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 			// stateDB by block
 			stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
 			log.Info("启动时重新加载前面普通快", "currentNum", currentNum, "currentHash", currentHash, "stateRoot", stateRoot.String())
-			if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+			if currntState, err := blockChain.StateAt(stateRoot, currentBigInt, currentHash); nil != err {
 				log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 				//panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 			}else {
@@ -544,8 +551,8 @@ func (d *ppos) GetCandidateTicketIds (state vm.StateDB, blockNumber *big.Int, bl
 
 
 ////// 每一个块都会调用的方法
-func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int, blockhash common.Hash, nodeId discover.NodeID) error {
-	return d.ticketPool.Notify(state, blockNumber, blockhash, nodeId)
+func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int, blockhash common.Hash) error {
+	return d.ticketPool.Notify(state, blockNumber, blockhash)
 }
 
 // cbft consensus fork need to update  nodeRound
@@ -583,9 +590,11 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 	for i := len(blockArr) - 1; 0 <= i; i-- {
 		currentBlock := blockArr[i]
 		currentNum := currentBlock.NumberU64()
+		currentBigInt := currentBlock.Number()
 		currentHash := currentBlock.Hash()
 
 		parentNum := currentNum - 1
+		parentBigInt := new(big.Int).Sub(currentBigInt, big.NewInt(1))
 		parentHash := currentBlock.ParentHash()
 
 
@@ -596,7 +605,7 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 
 			// parentStateDB by block
 			parentStateRoot := blockChain.GetBlock(parentHash, parentNum).Root()
-			if parentState, err := blockChain.StateAt(parentStateRoot); nil != err {
+			if parentState, err := blockChain.StateAt(parentStateRoot, parentBigInt, parentHash); nil != err {
 				log.Error("Failed to load parentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "parentNum", parentNum, "Hash", parentHash.String(), "err", err)
 				panic("Failed to load parentStateDB by block parentNum" + fmt.Sprint(parentNum) + ", Hash" + parentHash.String() + "err" + err.Error())
 			}else {
@@ -605,7 +614,7 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 
 			// currentStateDB by block
 			stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
-			if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+			if currntState, err := blockChain.StateAt(stateRoot, currentBigInt, currentHash); nil != err {
 				log.Error("Failed to load currentStateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 				panic("Failed to load currentStateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 			}else {
@@ -622,7 +631,7 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 
 		// stateDB by block
 		stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
-		if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+		if currntState, err := blockChain.StateAt(stateRoot, currentBigInt, currentHash); nil != err {
 			log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 			panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 		}else {
@@ -1050,5 +1059,5 @@ func cmpSwitch (round, currentNum uint64) int {
 }
 
 func (d *ppos) setTicketPoolCache (database ethdb.Database) {
-	d.ticketidsCache = pposm.NewTicketIdsCache(database)
+	d.ticketidsCache = ticketcache.NewTicketIdsCache(database)
 }

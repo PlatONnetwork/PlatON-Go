@@ -237,5 +237,8 @@ func (nb *NumBlocks) Commit(db ethdb.Database) error {
 	return nil
 }
 
+func GetTicketidsCachePtr() *NumBlocks {
+	return ticketidsCache
+}
 
 

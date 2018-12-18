@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"sort"
 	"sync"
+	"Platon-go/core/ticketcache"
 )
 
 var (
@@ -365,7 +366,7 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 			return err
 		}
 		// 获取总票数，增加总票龄
-		tcount, err := ticketidsCache.TCount(blockNumber, blockhash, candidate.CandidateId)
+		tcount, err := ticketcache.GetTicketidsCachePtr().TCount(blockNumber, blockhash, candidate.CandidateId)
 		if nil != err {
 			return err
 		}
@@ -445,7 +446,7 @@ func (t *TicketPool) GetPoolNumber(stateDB vm.StateDB) (uint64, error) {
 }
 
 func (t *TicketPool) GetCandidateTicketIds(stateDB vm.StateDB, blockNumber *big.Int, blockhash common.Hash, nodeId discover.NodeID) ([]common.Hash, error) {
-	candidateTicketIds, err := ticketidsCache.Get(blockNumber, blockhash, nodeId)
+	candidateTicketIds, err := ticketcache.GetTicketidsCachePtr().Get(blockNumber, blockhash, nodeId)
 	if nil != err {
 		return nil, err
 	}
@@ -453,7 +454,7 @@ func (t *TicketPool) GetCandidateTicketIds(stateDB vm.StateDB, blockNumber *big.
 }
 
 func (t *TicketPool) setCandidateTicketIds(stateDB vm.StateDB, blockNumber *big.Int, blockhash common.Hash, nodeId discover.NodeID, ticketIds []common.Hash) error {
-	if err := ticketidsCache.Put(blockNumber, blockhash, nodeId, ticketIds); err != nil {
+	if err := ticketcache.GetTicketidsCachePtr().Put(blockNumber, blockhash, nodeId, ticketIds); err != nil {
 		return err
 	}
 	return nil
