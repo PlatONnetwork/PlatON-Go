@@ -71,7 +71,8 @@ type Cbft struct {
 	lock                  sync.RWMutex
 	consensusCache        *Cache //cache for cbft consensus
 
-	netLatencyMap map[discover.NodeID]*list.List
+	netLatencyMap  map[discover.NodeID]*list.List
+	netLatencyLock sync.Mutex
 }
 
 var cbft *Cbft
@@ -107,7 +108,8 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 // BlockExt is an extension from Block
 type BlockExt struct {
 	block       *types.Block
-	isLinked    bool
+	inTree      bool
+	isExecuted  bool
 	isSigned    bool
 	isConfirmed bool
 	number      uint64
@@ -175,13 +177,10 @@ func (cbft *Cbft) collectSign(ext *BlockExt, sign *common.BlockConfirmSign) {
 	if sign != nil {
 		ext.signs = append(ext.signs, sign)
 		//if ext.isLinked && ext.block != nil {
-		if ext.isLinked { // ext.block != nil is unnecessary
+		if ext.inTree { // ext.block != nil is unnecessary
 			if len(ext.signs) >= cbft.getThreshold() {
 				ext.isConfirmed = true
 			}
-			log.Debug("count signatures", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "isConfirmed", ext.isConfirmed)
-		} else {
-			log.Debug("count signatures for unreceived block", "number", ext.number, "signCount", len(ext.signs), "isConfirmed", ext.isConfirmed)
 		}
 	}
 }
@@ -324,12 +323,12 @@ func (cbft *Cbft) findLastClosestConfirmedIncludingSelf(cur *BlockExt) *BlockExt
 // return nil if there's no confirmed in current's descendant.
 func (cbft *Cbft) findClosestConfirmedIncludingSelf(current *BlockExt) *BlockExt {
 	closest := current
-	if current.isLinked && current.isConfirmed {
+	if current.inTree && current.isExecuted && current.isConfirmed {
 		closest = nil
 	}
 	for _, node := range current.children {
 		now := cbft.findClosestConfirmedIncludingSelf(node)
-		if now != nil && now.isLinked && now.isConfirmed && (closest == nil || now.number < closest.number) {
+		if now != nil && now.inTree && now.isExecuted && now.isConfirmed && (closest == nil || now.number < closest.number) {
 			closest = now
 		}
 	}
@@ -341,7 +340,7 @@ func (cbft *Cbft) findClosestConfirmedIncludingSelf(current *BlockExt) *BlockExt
 func (cbft *Cbft) findClosestConfirmedExcludingSelf(current *BlockExt) *BlockExt {
 	var closest *BlockExt
 	for _, child := range current.children {
-		if child != nil && child.isLinked && child.isConfirmed {
+		if child != nil && child.inTree && child.isExecuted && child.isConfirmed {
 			return child
 		} else {
 			cur := cbft.findClosestConfirmedIncludingSelf(child)
@@ -354,11 +353,11 @@ func (cbft *Cbft) findClosestConfirmedExcludingSelf(current *BlockExt) *BlockExt
 }
 
 // handleLogicalBlockAndDescendant signs logical block go along the logical path from current block, and will not sign the block if there's another same number block has been signed.
-func (cbft *Cbft) handleLogicalBlockAndDescendant(current *BlockExt) {
-	log.Debug("handle logical block and its descendant", "hash", current.block.Hash(), "number", current.block.NumberU64())
+func (cbft *Cbft) handleLogicalBlockAndDescendant(current *BlockExt, includeCurrent bool) {
+	log.Trace("handle logical block and its descendant", "hash", current.block.Hash(), "number", current.block.NumberU64(), "includeCurrent", includeCurrent)
 	highestLogical := cbft.findHighestLogical(current)
 
-	logicalBlocks := cbft.backTrackBlocks(highestLogical, current, true)
+	logicalBlocks := cbft.backTrackBlocks(highestLogical, current, includeCurrent)
 
 	var highestConfirmed *BlockExt
 	for _, logical := range logicalBlocks {
@@ -369,26 +368,27 @@ func (cbft *Cbft) handleLogicalBlockAndDescendant(current *BlockExt) {
 			highestConfirmed = logical
 		}
 	}
-	log.Info("reset highest logical", "hash", highestLogical.block.Hash(), "number", highestLogical.block.NumberU64())
+	log.Trace("reset highest logical", "hash", highestLogical.block.Hash(), "number", highestLogical.block.NumberU64())
 	cbft.setHighestLogical(highestLogical)
 	if highestConfirmed != nil {
-		log.Info("reset highest confirmed", "hash", highestConfirmed.block.Hash(), "number", highestConfirmed.block.NumberU64())
+		log.Trace("reset highest confirmed", "hash", highestConfirmed.block.Hash(), "number", highestConfirmed.block.NumberU64())
 		cbft.highestConfirmed = highestConfirmed
 	}
 }
 
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt) error {
-	if current.isLinked {
+	if current.inTree && !current.isExecuted {
 		if err := cbft.execute(current, parent); err != nil {
-			current.isLinked = false
+			current.inTree = false
+			current.isExecuted = false
 			//remove bad block from tree and map
 			cbft.removeBadBlock(current)
 			log.Error("execute block error", "hash", current.block.Hash(), "number", current.block.NumberU64())
 			return errors.New("execute block error")
 		} else {
-			log.Debug("execute block success", "hash", current.block.Hash(), "number", current.block.NumberU64())
-			current.isLinked = true
+			//log.Debug("execute block success", "hash", current.block.Hash(), "number", current.block.NumberU64())
+			current.isExecuted = true
 		}
 	}
 
@@ -446,13 +446,11 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	if err == nil {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
-		log.Debug("save executed block receipts", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "lenReceipts", len(receipts))
-		log.Debug("save executed block state", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "stateIsNil", stateIsNil, "root", ext.block.Root())
-
+		log.Debug("execute block success", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "lenReceipts", len(receipts), "stateIsNil", stateIsNil, "root", ext.block.Root())
 		cbft.consensusCache.WriteReceipts(cbft.SealHash(ext.block.Header()), receipts, ext.block.NumberU64())
 		cbft.consensusCache.WriteStateDB(cbft.SealHash(ext.block.Header()), state, ext.block.NumberU64())
 	} else {
-		log.Error("execute a block error", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
+		log.Error("execute block error", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return errors.New("execute block error")
 	}
 	return nil
@@ -461,7 +459,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 // backTrackBlocks return blocks from start to end, these blocks are in a same tree branch.
 // The result is sorted by block number from lower to higher.
 func (cbft *Cbft) backTrackBlocks(start *BlockExt, end *BlockExt, includeEnd bool) []*BlockExt {
-	log.Debug("back track blocks", "startHash", start.block.Hash(), "startParentHash", end.block.ParentHash(), "endHash", start.block.Hash())
+	log.Trace("back track blocks", "startHash", start.block.Hash(), "startParentHash", end.block.ParentHash(), "endHash", start.block.Hash())
 
 	result := make([]*BlockExt, 0)
 
@@ -548,7 +546,9 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	log.Debug("init cbft.highestLogicalBlock", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 
 	current := NewBlockExt(currentBlock, currentBlock.NumberU64())
-	current.isLinked = true
+	current.inTree = true
+	current.isExecuted = true
+	current.isSigned = true
 	current.isConfirmed = true
 	current.number = currentBlock.NumberU64()
 
@@ -567,17 +567,27 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.
 // This function is invoked after that local has synced new blocks from other node.
 func BlockSynchronisation() {
-	log.Debug("call BlockSynchronisation()")
+
+	log.Debug("=== call BlockSynchronisation() ===\n",
+		"highestLogicalHash", cbft.highestLogical.block.Hash(),
+		"highestLogicalNumber", cbft.highestLogical.number,
+		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+		"highestConfirmedNumber", cbft.highestConfirmed.number,
+		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+		"rootIrreversibleNumber", cbft.rootIrreversible.number)
+
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
 	currentBlock := cbft.blockChain.CurrentBlock()
 
 	if currentBlock.NumberU64() > cbft.rootIrreversible.number {
-		log.Debug("found higher irreversible block")
+		log.Debug("chain has a higher irreversible block")
 
 		newRoot := NewBlockExt(currentBlock, currentBlock.NumberU64())
-		newRoot.isLinked = true
+		newRoot.inTree = true
+		newRoot.isExecuted = true
+		newRoot.isSigned = true
 		newRoot.isConfirmed = true
 		newRoot.number = currentBlock.NumberU64()
 
@@ -590,6 +600,8 @@ func BlockSynchronisation() {
 
 		//save the root in BlockExtMap
 		cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
+
+		//
 
 		//reset logical path
 		highestLogical := cbft.findHighestLogical(newRoot)
@@ -612,12 +624,18 @@ func BlockSynchronisation() {
 		}
 
 		//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
-		cbft.handleLogicalBlockAndDescendant(newRoot)
+		cbft.handleLogicalBlockAndDescendant(newRoot, false)
 
 		cbft.flushReadyBlock()
-	} else {
-
 	}
+
+	log.Debug("=== end of BlockSynchronisation() ===\n",
+		"highestLogicalHash", cbft.highestLogical.block.Hash(),
+		"highestLogicalNumber", cbft.highestLogical.number,
+		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+		"highestConfirmedNumber", cbft.highestConfirmed.number,
+		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+		"rootIrreversibleNumber", cbft.rootIrreversible.number)
 }
 
 // dataReceiverLoop is the main loop that handle the data from worker, or eth protocol's handler
@@ -654,7 +672,7 @@ func (cbft *Cbft) buildTreeNode(current *BlockExt) {
 		//catch up with parent
 		parent.children = append(parent.children, current)
 		current.parent = parent
-		current.isLinked = parent.isLinked
+		current.inTree = parent.inTree
 	}
 
 	children := cbft.findChildren(current)
@@ -678,12 +696,17 @@ func (cbft *Cbft) removeBadBlock(badBlock *BlockExt) {
 
 // signReceiver handles the received block signature
 func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
-	log.Debug("=== call signReceiver(), trying to lock ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", sig.Hash, "number", sig.Number.Uint64())
+	log.Debug("=== call signReceiver() ===\n",
+		"hash", sig.Hash,
+		"number", sig.Number.Uint64(),
+		"highestLogicalHash", cbft.highestLogical.block.Hash(),
+		"highestLogicalNumber", cbft.highestLogical.number,
+		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+		"highestConfirmedNumber", cbft.highestConfirmed.number,
+		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+		"rootIrreversibleNumber", cbft.rootIrreversible.number)
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
-
-	log.Debug("=== call signReceiver() ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", sig.Hash, "number", sig.Number.Uint64())
-
 	if sig.Number.Uint64() <= cbft.rootIrreversible.number {
 		log.Warn("block sign is too late")
 		return nil
@@ -691,22 +714,41 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 
 	current := cbft.findBlockExt(sig.Hash)
 	if current == nil {
-		log.Debug("have not received the corresponding block")
+		log.Warn("have not received the corresponding block")
 		//the block is nil
 		current = NewBlockExt(nil, sig.Number.Uint64())
-		current.isLinked = false
+		current.inTree = false
+		current.isExecuted = false
+		current.isSigned = false
+		current.isConfirmed = false
 
 		cbft.saveBlockExt(sig.Hash, current)
 	}
 
 	cbft.collectSign(current, sig.Signature)
 
-	if current.isConfirmed && current.isLinked {
+	var hashLog interface{}
+	if current.block != nil {
+		hashLog = current.block.Hash()
+	} else {
+		hashLog = "hash is nil"
+	}
+
+	log.Debug("count signatures",
+		"hash", hashLog,
+		"number", current.number,
+		"signCount", len(current.signs),
+		"inTree", current.inTree,
+		"isExecuted", current.isExecuted,
+		"isConfirmed", current.isConfirmed,
+		"isSigned", current.isSigned)
+
+	if current.inTree && current.isConfirmed {
 		//the current is new highestConfirmed on the same logical path
 		if current.number > cbft.highestConfirmed.number && cbft.highestConfirmed.isAncestor(current) {
 			cbft.highestConfirmed = current
-			//newHighestLogical := cbft.findHighestLogical(current)
-			//cbft.setHighestLogical(newHighestLogical)
+			newHighestLogical := cbft.findHighestLogical(current)
+			cbft.setHighestLogical(newHighestLogical)
 		} else if current.number < cbft.highestConfirmed.number && !current.isAncestor(cbft.highestConfirmed) {
 			//only this case may cause a new fork
 			cbft.checkFork(current)
@@ -714,19 +756,34 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 		cbft.flushReadyBlock()
 	}
 
-	log.Debug("=== end to handle new signature ===", "hash", sig.Hash, "number", sig.Number.Uint64())
-
+	log.Debug("=== end of signReceiver()  ===\n",
+		"hash", hashLog,
+		"number", current.number,
+		"highestLogicalHash", cbft.highestLogical.block.Hash(),
+		"highestLogicalNumber", cbft.highestLogical.number,
+		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+		"highestConfirmedNumber", cbft.highestConfirmed.number,
+		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+		"rootIrreversibleNumber", cbft.rootIrreversible.number)
 	return nil
 }
 
 //blockReceiver handles the new block
 func (cbft *Cbft) blockReceiver(block *types.Block) error {
-	log.Debug("=== call blockReceiver() ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash(), "ReceiptHash", block.ReceiptHash())
+	log.Debug("=== call blockReceiver() ===\n",
+		"hash", block.Hash(),
+		"number", block.NumberU64(),
+		"parentHash", block.ParentHash(),
+		"ReceiptHash", block.ReceiptHash(),
+		"highestLogicalHash", cbft.highestLogical.block.Hash(),
+		"highestLogicalNumber", cbft.highestLogical.number,
+		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+		"highestConfirmedNumber", cbft.highestConfirmed.number,
+		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+		"rootIrreversibleNumber", cbft.rootIrreversible.number)
 
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
-
-	log.Debug("=== call blockReceiver() ===", "GoRoutineID", common.CurrentGoRoutineID(), "hash", block.Hash(), "number", block.Number().Uint64(), "ParentHash", block.ParentHash(), "ReceiptHash", block.ReceiptHash())
 
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
@@ -741,8 +798,13 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	curTime := toMilliseconds(time.Now())
 
 	isLegal := cbft.isLegal(curTime, producerID)
-	log.Debug("check if block time is legal", "result", isLegal, "producerID", hex.EncodeToString(producerID.Bytes()[:8]))
 	if !isLegal {
+		log.Warn("illegal block",
+			"hash", block.Hash(),
+			"number", block.NumberU64(),
+			"parentHash", block.ParentHash(),
+			"curTime", curTime,
+			"producerID", producerID)
 		return errIllegalBlock
 	}
 
@@ -752,7 +814,10 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	if ext == nil {
 		ext = NewBlockExt(block, block.NumberU64())
 		//default
-		ext.isLinked = false
+		ext.inTree = false
+		ext.isExecuted = false
+		ext.isSigned = false
+		ext.isConfirmed = false
 
 		cbft.saveBlockExt(block.Hash(), ext)
 
@@ -763,36 +828,46 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		return errDuplicatedBlock
 	}
 
-	//collect the block's sign of producer
-	cbft.collectSign(ext, common.NewBlockConfirmSign(sign))
-
 	//make tree node
 	cbft.buildTreeNode(ext)
 
-	if ext.isLinked {
+	//collect the block's sign of producer
+	cbft.collectSign(ext, common.NewBlockConfirmSign(sign))
+
+	log.Debug("count signatures",
+		"hash", ext.block.Hash(),
+		"number", ext.number,
+		"signCount", len(ext.signs),
+		"inTree", ext.inTree,
+		"isExecuted", ext.isExecuted,
+		"isConfirmed", ext.isConfirmed,
+		"isSigned", ext.isSigned)
+
+	if ext.inTree {
 		if err := cbft.executeBlockAndDescendant(ext, ext.parent); err != nil {
 			return err
 		}
 
 		inTurn := cbft.inTurnVerify(curTime, producerID)
-		log.Debug("check if block is in turn", "result", inTurn, "producerID", hex.EncodeToString(producerID.Bytes()[:8]))
+		if !inTurn {
+			log.Warn("not in turn",
+				"hash", block.Hash(),
+				"number", block.NumberU64(),
+				"parentHash", block.ParentHash(),
+				"curTime", curTime,
+				"producerID", producerID)
+		}
 
-		passed := flowControl.control(producerID, curTime)
-		log.Debug("check if block is allowed by flow control", "result", passed, "producerID", hex.EncodeToString(producerID.Bytes()[:8]))
+		flowControl := flowControl.control(producerID, curTime)
+		highestConfirmedIsAncestor := cbft.highestConfirmed.isAncestor(ext)
 
-		isLogical := inTurn && passed && cbft.highestConfirmed.isAncestor(ext)
-		log.Debug("check if block is logical", "result", isLogical)
+		isLogical := inTurn && flowControl && highestConfirmedIsAncestor
+		log.Debug("check if block is logical", "result", isLogical, "hash", ext.block.Hash(), "number", ext.number, "inTurn", inTurn, "flowControl", flowControl, "highestConfirmedIsAncestor", highestConfirmedIsAncestor)
 
 		if isLogical {
-			// Main chain
-			cbft.handleLogicalBlockAndDescendant(ext)
+			cbft.handleLogicalBlockAndDescendant(ext, true)
 		} else {
-			// Branch
 			closestConfirmed := cbft.findClosestConfirmedIncludingSelf(ext)
-			// A confirmation block is found on the branch and this block height
-			// is less than the highest acknowledgment block of the main chain.
-			// A block that is lower than the highest acknowledgment block in the main chain
-			// and has the same height as the new acknowledgment block must be an unconfirmed block. Bifurcation
 
 			//if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number && !closestConfirmed.isAncestor(cbft.highestConfirmed){
 			if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number {
@@ -802,11 +877,18 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		}
 
 		cbft.flushReadyBlock()
-	} else {
-		log.Warn("cannot find block's parent, just keep it")
 	}
-
-	log.Debug("=== end to handle block ===", "hash", block.Hash(), "number", block.Number().Uint64())
+	log.Debug("=== end of blockReceiver() ===\n",
+		"hash", block.Hash(),
+		"number", block.NumberU64(),
+		"parentHash", block.ParentHash(),
+		"ReceiptHash", block.ReceiptHash(),
+		"highestLogicalHash", cbft.highestLogical.block.Hash(),
+		"highestLogicalNumber", cbft.highestLogical.number,
+		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
+		"highestConfirmedNumber", cbft.highestConfirmed.number,
+		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
+		"rootIrreversibleNumber", cbft.rootIrreversible.number)
 	return nil
 }
 
@@ -837,7 +919,7 @@ func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
 		cbft.setHighestLogical(newHighestLogical)
 		cbft.highestConfirmed = newHighestConfirmed
 
-		log.Warn("chain is forked", "reset highestLogical", newHighestLogical, "reset highestConfirmed", newHighestConfirmed)
+		log.Warn("chain is forked")
 	}
 }
 
@@ -1074,7 +1156,6 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 	cbft.lock.RLock()
 	defer cbft.lock.RUnlock()
 
-	// Check the parent block
 	if cbft.highestLogical.block == nil || header.ParentHash != cbft.highestLogical.block.Hash() || header.Number.Uint64()-1 != cbft.highestLogical.block.NumberU64() {
 		return consensus.ErrUnknownAncestor
 	}
@@ -1135,7 +1216,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	current := NewBlockExt(sealedBlock, sealedBlock.NumberU64())
 
 	//this block is produced by local node, so need not execute in cbft.
-	current.isLinked = true
+	current.inTree = true
+	current.isExecuted = true
 	current.isSigned = true
 
 	//save the block to cbft.blockExtMap
@@ -1252,6 +1334,10 @@ func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block)
 // OnPong is called by protocol handler when it received a new Pong message by P2P.
 func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
 	log.Trace("call OnPong()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "netLatency", netLatency)
+
+	cbft.netLatencyLock.Lock()
+	defer cbft.netLatencyLock.Unlock()
+
 	if netLatency >= maxPingLatency {
 		return nil
 	}
