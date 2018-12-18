@@ -39,7 +39,7 @@ type testAccount struct {
 func makeTestState() (Database, common.Hash, []*testAccount) {
 	// Create an empty state
 	db := NewDatabase(ethdb.NewMemDatabase())
-	state, _ := New(common.Hash{}, db)
+	state, _ := New(common.Hash{}, db, big.NewInt(0), common.Hash{})
 
 	// Fill it with some arbitrary data
 	accounts := []*testAccount{}

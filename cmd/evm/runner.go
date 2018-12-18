@@ -101,10 +101,10 @@ func runCmd(ctx *cli.Context) error {
 		genesisConfig = gen
 		db := ethdb.NewMemDatabase()
 		genesis := gen.ToBlock(db)
-		statedb, _ = state.New(genesis.Root(), state.NewDatabase(db))
+		statedb, _ = state.New(genesis.Root(), state.NewDatabase(db), genesis.Number(), genesis.Hash())
 		chainConfig = gen.Config
 	} else {
-		statedb, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		statedb, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()), big.NewInt(0), common.Hash{})
 		genesisConfig = new(core.Genesis)
 	}
 	if ctx.GlobalString(SenderFlag.Name) != "" {

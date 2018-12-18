@@ -227,7 +227,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	if db == nil {
 		db = ethdb.NewMemDatabase()
 	}
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db), big.NewInt(0), common.Hash{})
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)

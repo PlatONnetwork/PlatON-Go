@@ -31,8 +31,6 @@ const (
 	// candidate attach
 	CandidateAttach	= "ca"
 
-	//ticket id list cache key
-	ticketPoolCache = "ticketPoolCache"
 )
 
 
@@ -65,5 +63,4 @@ var (
 	ExpireTicketPrefix			= []byte(ExpireTicket)
 	CandidateAttachPrefix		= []byte(CandidateAttach)
 
-	ticketPoolCacheKey			= []byte(ticketPoolCache)
 )

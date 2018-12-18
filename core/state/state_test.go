@@ -92,7 +92,7 @@ func (s *StateSuite) TestDump(c *checker.C) {
 
 func (s *StateSuite) SetUpTest(c *checker.C) {
 	s.db = ethdb.NewMemDatabase()
-	s.state, _ = New(common.Hash{}, NewDatabase(s.db))
+	s.state, _ = New(common.Hash{}, NewDatabase(s.db), big.NewInt(0), common.Hash{})
 }
 
 func (s *StateSuite) TestNull(c *checker.C) {
@@ -147,7 +147,7 @@ func (s *StateSuite) TestSnapshotEmpty(c *checker.C) {
 // use testing instead of checker because checker does not support
 // printing/logging in tests (-check.vv does not work)
 func TestSnapshot2(t *testing.T) {
-	state, _ := New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()))
+	state, _ := New(common.Hash{}, NewDatabase(ethdb.NewMemDatabase()), big.NewInt(0), common.Hash{})
 
 	stateobjaddr0 := toAddr([]byte("so0"))
 	stateobjaddr1 := toAddr([]byte("so1"))
@@ -253,7 +253,7 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 
 func TestEmptyByte(t *testing.T) {
 	db := ethdb.NewMemDatabase()
-	state, _ := New(common.Hash{}, NewDatabase(db))
+	state, _ := New(common.Hash{}, NewDatabase(db), big.NewInt(0), common.Hash{})
 
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
 	state.CreateAccount(address)
@@ -370,7 +370,7 @@ func TestEmptyByte(t *testing.T) {
 
 func TestSlice(t *testing.T){
 	db := ethdb.NewMemDatabase()
-	state, _ := New(common.Hash{}, NewDatabase(db))
+	state, _ := New(common.Hash{}, NewDatabase(db), big.NewInt(0), common.Hash{})
 
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
 	state.CreateAccount(address)

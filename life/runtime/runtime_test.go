@@ -70,7 +70,7 @@ func TestExecute(t *testing.T) {
 }
 
 func TestCall(t *testing.T) {
-	state, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+	state, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()), big.NewInt(0), common.Hash{})
 	address := common.HexToAddress("0x0a")
 	code := genCodeInput()
 	state.SetCode(address, code)

@@ -1,5 +1,5 @@
 syntax = "proto3";
-package pposm;
+package ticketcache;
 
 message TicketIds {
   repeated bytes TicketId = 1;

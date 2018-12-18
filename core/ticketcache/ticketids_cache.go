@@ -1,4 +1,4 @@
-package pposm
+package ticketcache
 
 import (
 	"Platon-go/common"
@@ -13,18 +13,38 @@ import (
 )
 
 var (
+	//error def
 	ErrNotfindFromblockNumber = errors.New("Not find tickets from block number")
 	ErrNotfindFromblockHash = errors.New("Not find tickets from block hash")
 	ErrNotfindFromnodeId = errors.New("Not find tickets from node id")
 	ErrProbufMarshal = errors.New("protocol buffer Marshal faile")
 	ErrLeveldbPut = errors.New("level db put faile")
 	ErrExistFromblockHash = errors.New("nodeId->tickets map is exist")
+
+	//const def
+	ticketPoolCacheKey = []byte("ticketPoolCache")
 )
 
 var ticketidsCache *NumBlocks
 
-func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
+func GetNodeTicketsCacheMap(blocknumber *big.Int, blockhash common.Hash) (ret map[string][]common.Hash) {
+	if ticketidsCache!=nil {
+		var err error
+		ret, err = ticketidsCache.GetNodeTicketsMap(blocknumber, blockhash)
+		if err!=nil {
+			log.Error("GetNodeTicketsMap err: ", err.Error())
+		}
+	}else {
+		log.Error("ticketidsCache==nil!")
+	}
+	return
+}
 
+func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
+	/*
+		Put 购票交易新增选票
+		Del 节点掉榜，选票过期，选票被选中
+	*/
 	ticketidsCache = &NumBlocks{}
 	cache, err := db.Get(ticketPoolCacheKey)
 	if err == nil {
@@ -154,7 +174,7 @@ func (nb *NumBlocks) TCount(blocknumber *big.Int, blockhash common.Hash, nodeId 
 	return uint64(len(ticketIds.TicketId)), nil
 }
 
-func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Hash) (*NodeTicketIds, error){
+func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Hash) (map[string][]common.Hash, error){
 
 	blockNodes, ok := nb.NBlocks[blocknumber.String()]
 	if !ok {
@@ -164,7 +184,17 @@ func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Ha
 	if !ok {
 		return nil, ErrNotfindFromblockHash
 	}
-	return nodeTicketIds, nil
+	out := make(map[string][]common.Hash)
+	for k, v := range nodeTicketIds.NTickets{
+		tids := make([]common.Hash, len(v.TicketId))
+		for _, t := range v.TicketId {
+			tid := common.Hash{}
+			tid.SetBytes(t)
+			tids = append(tids, tid)
+		}
+		out[k] = tids
+	}
+	return out, nil
 }
 
 func (nb *NumBlocks) Submit2Cache(blocknumber *big.Int, blockhash common.Hash, in map[string][]common.Hash) error  {

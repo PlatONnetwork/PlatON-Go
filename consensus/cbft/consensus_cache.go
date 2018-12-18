@@ -122,7 +122,7 @@ func (c *Cache) clearStateDB(stateRoot common.Hash) {
 // 获取相应block的StateDB实例
 func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 	// 基于stateRoot从blockchain中创建StateDB实例
-	if state, err := c.chain.StateAt(block.Root()); err == nil && state != nil {
+	if state, err := c.chain.StateAt(block.Root(), block.Number(), block.Hash()); err == nil && state != nil {
 		return state, nil
 	}
 	// 读取并拷贝缓存中StateDB实例

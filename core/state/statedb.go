@@ -18,13 +18,13 @@
 package state
 
 import (
+	"Platon-go/core/ticketcache"
 	"Platon-go/crypto/sha3"
 	"bytes"
 	"fmt"
 	"math/big"
 	"sort"
 	"sync"
-
 	"Platon-go/common"
 	"Platon-go/core/types"
 	"Platon-go/crypto"
@@ -54,6 +54,13 @@ var (
 // nested states. It's the general query interface to retrieve:
 // * Contracts
 // * Accounts
+
+type A struct {
+	S StateDB
+	workingTicketCache map[string][]common.Hash
+}
+
+
 type StateDB struct {
 	db   Database // 后端的数据库
 	trie Trie     // 树
@@ -86,10 +93,15 @@ type StateDB struct {
 	nextRevisionId int
 
 	lock sync.Mutex
+
+	//ppos add -> Current ticket pool cache object <nodeid.string(), ticketId>
+	cTicketCache map[string][]common.Hash
+
 }
 
 // Create a new state from a given trie.
-func New(root common.Hash, db Database) (*StateDB, error) {
+//func New(root common.Hash, db Database) (*StateDB, error) {
+func New(root common.Hash, db Database, blocknumber *big.Int, blockhash common.Hash) (*StateDB, error) {
 	tr, err := db.OpenTrie(root)
 	if err != nil {
 		return nil, err
@@ -102,6 +114,7 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		logs:              make(map[common.Hash][]*types.Log),
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
+		cTicketCache:      ticketcache.GetNodeTicketsCacheMap(blocknumber, blockhash),
 	}, nil
 }
 
@@ -520,6 +533,7 @@ func (self *StateDB) Copy() *StateDB {
 		logSize:           self.logSize,
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
+		cTicketCache:      make(map[string][]common.Hash, len(self.cTicketCache)),
 	}
 	// Copy the dirty states, logs, and preimages
 	for addr := range self.journal.dirties {
@@ -551,6 +565,15 @@ func (self *StateDB) Copy() *StateDB {
 	}
 	for hash, preimage := range self.preimages {
 		state.preimages[hash] = preimage
+	}
+
+	//ppos add
+	for nodeid, tids := range self.cTicketCache {
+		tidArray := make([]common.Hash, len(tids))
+		for _, tid := range tids {
+			tidArray = append(tidArray, tid)
+		}
+		state.cTicketCache[nodeid] = tidArray
 	}
 	return state
 }

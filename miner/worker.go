@@ -864,7 +864,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 	if _, ok := w.engine.(consensus.Bft); ok {
 		state, err = w.consensusCache.MakeStateDB(parent)
 	} else {
-		state, err = w.chain.StateAt(parent.Root())
+		state, err = w.chain.StateAt(parent.Root(), parent.Number(), parent.Hash())
 	}
 	log.Info("-----------构建statedb---------", "blockNumber", header.Number.Uint64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	if err != nil {
