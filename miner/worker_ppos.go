@@ -34,11 +34,11 @@ func (w *worker) shouldRemoveFormerPeers(blockNumber *big.Int) bool {
 	return m.Cmp(big.NewInt(0)) == 0
 }
 */
-func (w *worker) election(blockNumber *big.Int) error {
+func (w *worker) election(state *state.StateDB, blockNumber *big.Int) error {
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		if should := w.shouldElection(blockNumber); should {
 			log.Info("请求揭榜", "blockNumber", blockNumber)
-			_, err := cbftEngine.Election(w.current.state, blockNumber)
+			_, err := cbftEngine.Election(state, blockNumber)
 			if err != nil {
 				log.Error("Failed to election", "blockNumber", blockNumber, "error", err)
 				return errors.New("Failed to Election")
@@ -49,11 +49,11 @@ func (w *worker) election(blockNumber *big.Int) error {
 	return nil
 }
 
-func (w *worker) switchWitness(blockNumber *big.Int) error {
+func (w *worker) switchWitness(state *state.StateDB, blockNumber *big.Int) error {
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		if should := w.shouldSwitch(blockNumber); should {
 			log.Info("触发替换下轮见证人列表", "blockNumber", blockNumber)
-			success := cbftEngine.Switch(w.current.state)
+			success := cbftEngine.Switch(state)
 			if !success {
 				log.Error("Failed to switchWitness", "blockNumber", blockNumber)
 				return errors.New("Failed to switchWitness")

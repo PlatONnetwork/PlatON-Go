@@ -1244,44 +1244,18 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		receipts[i] = new(types.Receipt)
 		*receipts[i] = *l
 	}
-	//if header != nil {
-	//	// 揭榜(如果符合条件)
-	//	electionErr := w.election(header.Number)
-	//	if electionErr != nil {
-	//		return errors.New("election failure")
-	//	}
-	//	// 触发替换下轮见证人列表(如果符合条件)
-	//	switchWitnessErr := w.switchWitness(header.Number)
-	//	if switchWitnessErr != nil {
-	//		return errors.New("switchWitness failure")
-	//	}
-	//}
-	//root := w.current.state.IntermediateRoot(w.chain.Config().IsEIP158(header.Number))
-	s := w.current.state.Copy()
-	if nil != header {
-		if should := w.shouldElection(header.Number); should {
-			log.Info("请求揭榜", "blockNumber", header.Number.Uint64())
-			_, err := w.engine.(consensus.Bft).Election(s, header.Number)
-			if err != nil {
-				log.Error("Failed to election", "blockNumber", header.Number.Uint64(), "error", err)
-				return errors.New("Failed to Election")
-			}
-			log.Info("Success to election", "blockNumber", header.Number.Uint64())
-		}
-	}
 
-	// 触发替换下轮见证人列表(如果符合条件)
-	if should := w.shouldSwitch(header.Number); should {
-		switchWitnessErr := w.switchWitness(header.Number)
-		log.Info("触发替换下轮见证人列表", "blockNumber", header.Number.Uint64())
+	s := w.current.state.Copy()
+	if header != nil {
+		// 揭榜(如果符合条件)
+		electionErr := w.election(s, header.Number)
+		if electionErr != nil {
+			return errors.New("election failure")
+		}
+		// 触发替换下轮见证人列表(如果符合条件)
+		switchWitnessErr := w.switchWitness(s, header.Number)
 		if switchWitnessErr != nil {
-			success := w.engine.(consensus.Bft).Switch(s)
 			return errors.New("switchWitness failure")
-			if !success {
-				log.Error("Failed to switchWitness", "blockNumber", header.Number.Uint64())
-				return errors.New("Failed to switchWitness")
-			}
-			log.Info("Success to switchWitness", "blockNumber", header.Number.Uint64())
 		}
 	}
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)

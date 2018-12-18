@@ -93,7 +93,7 @@ func (c *candidateContract) RequiredGas(input []byte) uint64 {
 func (c *candidateContract) Run(input []byte) ([]byte, error) {
 
 	//debug
-	c.logError("Run==> ", "input: ", hex.EncodeToString(input))
+	c.logInfo("Run==> ", "input: ", hex.EncodeToString(input))
 
 	defer func() {
 		if err := recover(); nil != err {

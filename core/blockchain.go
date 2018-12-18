@@ -25,7 +25,6 @@ import (
 	"math/big"
 	"sync"
 	"sync/atomic"
-	mrand "math/rand"
 	"time"
 	"Platon-go/common"
 	"Platon-go/common/mclock"
@@ -43,6 +42,7 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"Platon-go/trie"
+	mrand "math/rand"
 )
 
 var (
