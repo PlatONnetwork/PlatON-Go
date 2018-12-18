@@ -347,7 +347,7 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 		if nil != err {
 			return err
 		}
-		candidateAttach.AddEpoch(tcount)
+		candidateAttach.AddEpoch(new(big.Int).SetUint64(tcount))
 		if err := t.setCandidateAttach(stateDB, candidate.CandidateId, candidateAttach); nil != err {
 			return err
 		}
@@ -452,6 +452,18 @@ func (t *TicketPool) setCandidateAttach(stateDB vm.StateDB, nodeId discover.Node
 		setTicketPoolState(stateDB, CandidateAttachKey(nodeId.Bytes()), value)
 	}
 	return nil
+}
+
+func (t *TicketPool) GetCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeID) (uint64, error) {
+	candidateAttach, err := t.GetCandidateAttach(stateDB, nodeId)
+	if nil != err {
+		return 0, err
+	}
+	return candidateAttach.Epoch.Uint64(), nil
+}
+
+func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) (*big.Int, error) {
+	return new(big.Int).SetUint64(1), nil
 }
 
 func checkBalance(stateDB vm.StateDB, addr common.Address, amount *big.Int) bool {
