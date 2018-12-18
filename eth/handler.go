@@ -321,7 +321,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	// main loop. handle incoming messages.
 	for {
 		if err := pm.handleMsg(p); err != nil {
-			p.Log().Debug("Ethereum message handling failed", "err", err)
+			p.Log().Error("Ethereum message handling failed", "err", err)
 			return err
 		}
 	}
@@ -333,6 +333,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	// Read the next message from the remote peer, and ensure it's fully consumed
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
+		p.Log().Error("read peer message error", "err", err)
 		return err
 	}
 	if msg.Size > ProtocolMaxMsgSize {
