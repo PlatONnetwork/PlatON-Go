@@ -2,6 +2,11 @@
 package cbft
 
 import (
+	"bytes"
+	"container/list"
+	"crypto/ecdsa"
+	"encoding/hex"
+	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -16,11 +21,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"bytes"
-	"container/list"
-	"crypto/ecdsa"
-	"encoding/hex"
-	"errors"
 	"math/big"
 	"sync"
 	"time"
@@ -30,6 +30,7 @@ var (
 	errSign                = errors.New("sign error")
 	errUnauthorizedSigner  = errors.New("unauthorized signer")
 	errIllegalBlock        = errors.New("illegal block")
+	lateBlock              = errors.New("block is late")
 	errDuplicatedBlock     = errors.New("duplicated block")
 	errBlockNumber         = errors.New("error block number")
 	errUnknownBlock        = errors.New("unknown block")
@@ -787,6 +788,10 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
+	}
+
+	if block.NumberU64() <= cbft.rootIrreversible.number {
+		return lateBlock
 	}
 
 	//recover the producer's NodeID
