@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"Platon-go/crypto/sha3"
-	ch "Platon-go/swarm/chunk"
-	"Platon-go/swarm/storage/encryption"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	ch "github.com/PlatONnetwork/PlatON-Go/swarm/chunk"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/encryption"
 )
 
 type hasherStore struct {

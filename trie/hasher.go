@@ -20,9 +20,9 @@ import (
 	"hash"
 	"sync"
 
-	"Platon-go/common"
-	"Platon-go/crypto/sha3"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 type hasher struct {

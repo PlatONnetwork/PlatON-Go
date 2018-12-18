@@ -25,10 +25,10 @@ import (
 	"sort"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/mclock"
-	"Platon-go/crypto"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 const (

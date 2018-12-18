@@ -23,10 +23,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/core/rawdb"
-	"Platon-go/ethdb"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // Genesis block for nodes which don't care about the DAO fork (i.e. not configured)

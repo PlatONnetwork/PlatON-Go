@@ -2,20 +2,20 @@
 package cbft
 
 import (
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/consensus"
-	"Platon-go/core"
-	"Platon-go/core/cbfttypes"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/crypto/sha3"
-	"Platon-go/log"
-	"Platon-go/p2p/discover"
-	"Platon-go/params"
-	"Platon-go/rlp"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"bytes"
 	"container/list"
 	"crypto/ecdsa"
@@ -759,7 +759,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 
 		cbft.saveBlock(sig.Hash, ext)
 	} else if ext.isStored {
-		//收到已经确认块的签名，直接扔掉
+		// Receive the signature of the confirmed block and throw it away directly.
 		log.Debug("received a highestConfirmed block's signature, just discard it")
 		return nil
 	}
@@ -952,7 +952,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 	cbft.lock.RLock()
 	defer cbft.lock.RUnlock()
 
-	//检查父区块
+	// Check the parent block
 	if cbft.highestLogical.block == nil || header.ParentHash != cbft.highestLogical.block.Hash() || header.Number.Uint64()-1 != cbft.highestLogical.block.NumberU64() {
 		return consensus.ErrUnknownAncestor
 	}

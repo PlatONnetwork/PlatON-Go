@@ -19,10 +19,10 @@ package les
 import (
 	"context"
 
-	"Platon-go/core"
-	"Platon-go/ethdb"
-	"Platon-go/light"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/light"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // LesOdr implements light.OdrBackend

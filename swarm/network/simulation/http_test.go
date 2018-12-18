@@ -24,9 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/log"
-	"Platon-go/node"
-	"Platon-go/p2p/simulations/adapters"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
 )
 
 func TestSimulationWithHTTPServer(t *testing.T) {

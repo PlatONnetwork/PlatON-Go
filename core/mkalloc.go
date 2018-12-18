@@ -34,8 +34,8 @@ import (
 	"sort"
 	"strconv"
 
-	"Platon-go/core"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 type allocItem struct{ Addr, Balance *big.Int }

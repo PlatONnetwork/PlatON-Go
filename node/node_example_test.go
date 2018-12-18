@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"log"
 
-	"Platon-go/node"
-	"Platon-go/p2p"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 // SampleService is a trivial network service that can be attached to a node for

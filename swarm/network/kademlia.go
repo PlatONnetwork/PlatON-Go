@@ -24,9 +24,9 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/swarm/log"
-	"Platon-go/swarm/pot"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/pot"
 )
 
 /*

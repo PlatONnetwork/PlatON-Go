@@ -30,8 +30,8 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/accounts/keystore"
-	"Platon-go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // Tests that the account management snippets work correctly.

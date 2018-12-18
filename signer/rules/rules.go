@@ -22,12 +22,12 @@ import (
 	"os"
 	"strings"
 
-	"Platon-go/common"
-	"Platon-go/internal/ethapi"
-	"Platon-go/log"
-	"Platon-go/signer/core"
-	"Platon-go/signer/rules/deps"
-	"Platon-go/signer/storage"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/signer/core"
+	"github.com/PlatONnetwork/PlatON-Go/signer/rules/deps"
+	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
 	"github.com/robertkrimen/otto"
 )
 

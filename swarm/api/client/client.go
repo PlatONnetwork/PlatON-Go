@@ -34,8 +34,8 @@ import (
 	"strconv"
 	"strings"
 
-	"Platon-go/swarm/api"
-	"Platon-go/swarm/storage/mru"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mru"
 )
 
 var (

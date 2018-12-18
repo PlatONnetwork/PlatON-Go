@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // nginxDockerfile is theis the Dockerfile required to build an nginx reverse-

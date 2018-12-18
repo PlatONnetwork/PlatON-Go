@@ -22,8 +22,8 @@ package node
 import (
 	"reflect"
 
-	"Platon-go/p2p"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 // NoopService is a trivial implementation of the Service interface.

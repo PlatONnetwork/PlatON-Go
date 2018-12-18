@@ -23,11 +23,11 @@ package ens
 import (
 	"strings"
 
-	"Platon-go/accounts/abi/bind"
-	"Platon-go/common"
-	"Platon-go/contracts/ens/contract"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/contracts/ens/contract"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 var (

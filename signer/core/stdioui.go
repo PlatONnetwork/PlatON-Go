@@ -21,9 +21,9 @@ import (
 	"context"
 	"sync"
 
-	"Platon-go/internal/ethapi"
-	"Platon-go/log"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 type StdIOUI struct {

@@ -1,13 +1,11 @@
 ## Go PlatON
 
-Welcome to the PlatON source code repository! This software is Ethereum-based and it has changed some peculiarities according the PlatON's 
-
-[whitepaper]: (https://www.platon.network/static/pdf/en/PlatON_A%20High-Efficiency%20Trustless%20Computing%20Network_Whitepaper_EN.pdf).
+Welcome to the PlatON source code repository! This software is Ethereum-based and it has changed some peculiarities according the PlatON's [whitepaper](https://www.platon.network/static/pdf/en/PlatON_A%20High-Efficiency%20Trustless%20Computing%20Network_Whitepaper_EN.pdf).
 
 ## Building the source
 
 For prerequisites and detailed build instructions please read the
-[Installation Instructions](http://192.168.9.66/PlatON/wiki/wikis/home)
+[Installation Instructions](https://github.com/PlatONnetwork/wiki/wiki)
 on the wiki.
 
 Building platon requires both a Go (version 1.7 or later) and a C compiler.
@@ -121,4 +119,4 @@ Check the balance
 
 OK, it seems that the chain is running correctly
 
-For more information, please visit our [wiki](http://192.168.9.66/PlatON/wiki/wikis/home)
+For more information, please visit our [wiki](https://github.com/PlatONnetwork/wiki/wiki)

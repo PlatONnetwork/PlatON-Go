@@ -21,8 +21,8 @@ package geth
 import (
 	"errors"
 
-	ethereum "Platon-go"
-	"Platon-go/common"
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // Subscription represents an event subscription where events are

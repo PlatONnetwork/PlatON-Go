@@ -28,10 +28,10 @@ import (
 	"math/big"
 	"os"
 
-	"Platon-go/common"
-	"Platon-go/common/math"
-	"Platon-go/crypto/sha3"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var (
