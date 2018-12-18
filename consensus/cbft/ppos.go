@@ -286,29 +286,6 @@ func (d *ppos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 	} else {
 		log.Info("揭榜完成，再次查看stateDB信息...")
 		d.candidatePool.GetAllWitness(state)
-		// current round
-		//round := calcurround(blocknumber)
-
-		//d.lock.Lock()
-		//log.Info("揭榜维护", "blockNumber:", blocknumber.Uint64(), "round:", round)
-		//nextStart := big.NewInt(int64(BaseSwitchWitness*round) + 1)
-		//nextEnd := new(big.Int).Add(nextStart, big.NewInt(int64(BaseSwitchWitness-1)))
-		//d.next = &pposRound{
-		//	nodeIds: convertNodeID(nextNodes),
-		//	//nodes:	nextNodes,
-		//	start: nextStart,
-		//	end:   nextEnd,
-		//}
-		//d.next.nodes = make([]*discover.Node, len(nextNodes))
-		//copy(d.next.nodes, nextNodes)
-		//
-		//log.Info("揭榜维护:下一轮", "start", d.next.start, "end", d.next.end)
-		//log.Info("揭榜维护下一轮的nodeIds长度:", "len", len(nextNodes))
-		//pposm.PrintObject("揭榜维护下一轮的nodeIds:", nextNodes)
-		//pposm.PrintObject("揭榜的上轮pposRound：", d.former.nodes)
-		//pposm.PrintObject("揭榜的当前轮pposRound：", d.current.nodes)
-		//pposm.PrintObject("揭榜维护下一轮pposRound：", d.next.nodes)
-		//d.lock.Unlock()
 		return nextNodes, nil
 	}
 }
@@ -320,41 +297,7 @@ func (d *ppos) Switch(state *state.StateDB) bool {
 		return false
 	}
 	log.Info("Switch success...")
-	/*_, curArr, _, err := */d.candidatePool.GetAllWitness(state)
-	//if nil != err {
-	//	return false
-	//}
-	//d.lock.Lock()
-
-	//cur_start := d.current.start
-	//cur_end :=  d.current.end
-	//d.former.start = cur_start
-	//d.former.end = cur_end
-	//
-	//next_start :=  d.next.start
-	//next_end := d.next.end
-	//d.current.start = next_start
-	//d.current.end = next_end
-	//d.former.nodeIds = convertNodeID(d.current.nodes)
-	//d.former.nodes = make([]*discover.Node, len(d.current.nodes))
-	//copy(d.former.nodes, d.current.nodes)
-	//if len(curArr) != 0 {
-	//	d.current.nodeIds = convertNodeID(curArr)
-	//	d.current.nodes = make([]*discover.Node, len(curArr))
-	//	copy(d.current.nodes, curArr)
-	//}
-	//
-	//d.next = nil
-	//log.Info("Switch获取:上一轮", "start", d.former.start, "end", d.former.end)
-	//log.Info("Switch获取:当前轮", "start", d.current.start, "end", d.current.end)
-	////log.Info("Switch获取:下一轮", "start", d.next.start, "end", d.next.end)
-	////pposm.PrintObject("Switch获取上一轮nodes：", preArr)
-	//
-	//pposm.PrintObject("Switch获取当前轮nodes：", curArr)
-	//pposm.PrintObject("Switch的上轮pposRound：", d.former.nodes)
-	//pposm.PrintObject("Switch的当前轮pposRound：", d.current.nodes)
-
-	//d.lock.Unlock()
+	d.candidatePool.GetAllWitness(state)
 	return true
 }
 

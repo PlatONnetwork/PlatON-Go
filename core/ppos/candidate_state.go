@@ -817,12 +817,14 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 	// replace the next round of witnesses
 	c.nextOriginCandidates = nextWits
 	arr := make([]*discover.Node, 0)
-	for _, can := range nextWits {
-		if node, err := buildWitnessNode(can); nil != err {
-			log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
-			continue
-		} else {
-			arr = append(arr, node)
+	for _, id := range nextWitIds {
+		if can, ok := nextWits[id]; ok {
+			if node, err := buildWitnessNode(can); nil != err {
+				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
+				continue
+			} else {
+				arr = append(arr, node)
+			}
 		}
 	}
 	log.Info("下一轮见证人node 个数:", "len", len(arr))
@@ -916,21 +918,42 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 	}
 	//var ids []discover.NodeID
 	var witness map[discover.NodeID]*types.Candidate
+	var indexArr []discover.NodeID
 	if flag == -1 {
 		witness = c.preOriginCandidates
+		if ids, err := c.getPreviousWitnessIndex(state); nil != err {
+			log.Error("Failed to getPreviousWitnessIndex on GetWitness", "err", err)
+			return nil, err
+		}else {
+			indexArr = ids
+		}
 	} else if flag == 0 {
 		witness = c.originCandidates
+		if ids, err := c.getWitnessIndex(state); nil != err {
+			log.Error("Failed to getWitnessIndex on GetWitness", "err", err)
+			return nil, err
+		}else {
+			indexArr = ids
+		}
 	} else if flag == 1 {
 		witness = c.nextOriginCandidates
+		if ids, err := c.getNextWitnessIndex(state); nil != err {
+			log.Error("Failed to getNextWitnessIndex on GetWitness", "err", err)
+			return nil, err
+		}else {
+			indexArr = ids
+		}
 	}
 
 	arr := make([]*discover.Node, 0)
-	for _, can := range witness {
-		if node, err := buildWitnessNode(can); nil != err {
-			log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
-			return nil, err
-		} else {
-			arr = append(arr, node)
+	for _, id := range indexArr {
+		if can, ok := witness[id]; ok {
+			if node, err := buildWitnessNode(can); nil != err {
+				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
+				return nil, err
+			} else {
+				arr = append(arr, node)
+			}
 		}
 	}
 	return arr, nil
@@ -950,33 +973,59 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	prewitness = c.preOriginCandidates
 	witness = c.originCandidates
 	nextwitness = c.nextOriginCandidates
+	// witness index
+	var preIndex, curIndex, nextIndex []discover.NodeID
 
+	if ids, err := c.getPreviousWitnessIndex(state); nil != err {
+		log.Error("Failed to getPreviousWitnessIndex on GetAllWitness", "err", err)
+		return nil, nil, nil, err
+	}else {
+		preIndex = ids
+	}
+	if ids, err := c.getWitnessIndex(state); nil != err {
+		log.Error("Failed to getWitnessIndex on GetAllWitness", "err", err)
+		return nil, nil, nil, err
+	}else {
+		curIndex = ids
+	}
+	if ids, err := c.getNextWitnessIndex(state); nil != err {
+		log.Error("Failed to getNextWitnessIndex on GetAllWitness", "err", err)
+		return nil, nil, nil, err
+	}else {
+		nextIndex = ids
+	}
 	preArr, curArr, nextArr := make([]*discover.Node, 0), make([]*discover.Node, 0), make([]*discover.Node, 0)
-	for _, can := range prewitness {
-		if node, err := buildWitnessNode(can); nil != err {
-			log.Error("Failed to build pre Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
-			//continue
-			return nil, nil, nil, err
-		} else {
-			preArr = append(preArr, node)
+	for _, id := range preIndex {
+		if can, ok := prewitness[id]; ok {
+			if node, err := buildWitnessNode(can); nil != err {
+				log.Error("Failed to build pre Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
+				//continue
+				return nil, nil, nil, err
+			} else {
+				preArr = append(preArr, node)
+			}
 		}
 	}
-	for _, can := range witness {
-		if node, err := buildWitnessNode(can); nil != err {
-			log.Error("Failed to build cur Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
-			//continue
-			return nil, nil, nil, err
-		} else {
-			curArr = append(curArr, node)
+	for _, id := range curIndex {
+		if can, ok := witness[id]; ok {
+			if node, err := buildWitnessNode(can); nil != err {
+				log.Error("Failed to build cur Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
+				//continue
+				return nil, nil, nil, err
+			} else {
+				curArr = append(curArr, node)
+			}
 		}
 	}
-	for _, can := range nextwitness {
-		if node, err := buildWitnessNode(can); nil != err {
-			log.Error("Failed to build next Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
-			//continue
-			return nil, nil, nil, err
-		} else {
-			nextArr = append(nextArr, node)
+	for _, id := range nextIndex {
+		if can, ok := nextwitness[id]; ok {
+			if node, err := buildWitnessNode(can); nil != err {
+				log.Error("Failed to build next Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
+				//continue
+				return nil, nil, nil, err
+			} else {
+				nextArr = append(nextArr, node)
+			}
 		}
 	}
 	return preArr, curArr, nextArr, nil
