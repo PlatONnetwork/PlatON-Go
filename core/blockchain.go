@@ -25,6 +25,7 @@ import (
 	"math/big"
 	"sync"
 	"sync/atomic"
+	mrand "math/rand"
 	"time"
 	"Platon-go/common"
 	"Platon-go/common/mclock"
@@ -917,7 +918,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
 
-	//localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
+	localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 	externTd := new(big.Int).Add(block.Difficulty(), ptd)
 
 	// Irrelevant of the canonical status, write the block itself to the database
@@ -992,7 +993,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// If the total difficulty is higher than our known, add it to the canonical chain
 	// Second clause in the if statement reduces the vulnerability to selfish mining.
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
-	/*reorg := externTd.Cmp(localTd) > 0
+	reorg := externTd.Cmp(localTd) > 0
 	currentBlock = bc.CurrentBlock()
 	if !reorg && externTd.Cmp(localTd) == 0 {
 		// Split same-difficulty blocks by number, then preferentially select
@@ -1021,7 +1022,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		status = CanonStatTy
 	} else {
 		status = SideStatTy
-	}*/
+	}
 
 	// Write the positional metadata for transaction/receipt lookups and preimages
 	rawdb.WriteTxLookupEntries(batch, block)

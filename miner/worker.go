@@ -303,27 +303,29 @@ func (w *worker) setRecommitInterval(interval time.Duration) {
 // pending returns the pending state and corresponding block.
 func (w *worker) pending() (*types.Block, *state.StateDB) {
 	// return a snapshot to avoid contention on currentMu mutex
-	//if _, ok := w.engine.(consensus.Bft); ok {
-	//	return w.makePending()
-	//}
-	w.snapshotMu.RLock()
-	defer w.snapshotMu.RUnlock()
-	if w.snapshotState == nil {
-		return nil, nil
+	if _, ok := w.engine.(consensus.Bft); ok {
+		return w.makePending()
+	} else {
+		w.snapshotMu.RLock()
+		defer w.snapshotMu.RUnlock()
+		if w.snapshotState == nil {
+			return nil, nil
+		}
+		return w.snapshotBlock, w.snapshotState.Copy()
 	}
-	return w.snapshotBlock, w.snapshotState.Copy()
 }
 
 // pendingBlock returns pending block.
 func (w *worker) pendingBlock() *types.Block {
 	// return a snapshot to avoid contention on currentMu mutex
-	//if _, ok := w.engine.(consensus.Bft); ok {
-	//	snapshotBlock, _ := w.makePending()
-	//	return snapshotBlock
-	//}
-	w.snapshotMu.RLock()
-	defer w.snapshotMu.RUnlock()
-	return w.snapshotBlock
+	if _, ok := w.engine.(consensus.Bft); ok {
+		snapshotBlock, _ := w.makePending()
+		return snapshotBlock
+	} else {
+		w.snapshotMu.RLock()
+		defer w.snapshotMu.RUnlock()
+		return w.snapshotBlock
+	}
 }
 
 // start sets the running status as 1 and triggers new work submitting.
@@ -409,7 +411,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				commit(false, commitInterruptNewHead, nil)
 			} else {
-				w.makePending()
+				//w.makePending()
 				timer.Reset(0)
 			}
 
@@ -838,7 +840,7 @@ func (w *worker) resultLoop() {
 }
 
 // makeCurrent creates a new environment for the current cycle.
-func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
+func (w *worker) makeCurrent(parent *types.Block, header *types.Header, isCommitNewWork bool) error {
 	var (
 		state *state.StateDB
 		err   error
@@ -860,7 +862,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		uncles:    mapset.NewSet(),
 		header:    header,
 	}
-	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+	if cbftEngine, ok := w.engine.(consensus.Bft); ok && isCommitNewWork {
 		nodes := cbftEngine.ConsensusNodes(parent.Number(), parent.Hash(), header.Number)
 		if nodes == nil || len(nodes) <= 0 {
 			return errors.New("Failed to load consensus nodes")
@@ -1130,7 +1132,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 	// Could potentially happen if starting to mine in an odd state.
-	err := w.makeCurrent(parent, header)
+	err := w.makeCurrent(parent, header, true)
 	if err != nil {
 		log.Error("Failed to create mining context", "err", err)
 		return
@@ -1289,6 +1291,13 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 
 func (w *worker) makePending() (*types.Block, *state.StateDB) {
 	var parent = w.commitWorkEnv.getHighestLogicalBlock()
+	var parentChain = w.chain.CurrentBlock()
+
+	if parentChain.NumberU64() >= parent.NumberU64() {
+		parent = parentChain
+	}
+	log.Debug("parent in makePending", "number", parent.NumberU64(), "hash", parent.Hash())
+
 	if parent != nil && (w.snapshotBlock == nil || w.snapshotBlock.Hash() != parent.Hash()) {
 		parentNum := parent.Number()
 		header := &types.Header{
@@ -1306,11 +1315,12 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 		header.Extra = header.Extra[:32]
 		header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
 
-		err := w.makeCurrent(parent, header)
+		err := w.makeCurrent(parent, header, false)
 		if err != nil {
-			panic("Failed to create mining context in makePending, err " + err.Error())
+			log.Error("Failed to create mining context in makePending", "err", err.Error())
+		} else {
+			w.updateSnapshot()
 		}
-		w.updateSnapshot()
 		return w.snapshotBlock, w.snapshotState.Copy()
 	}
 	return w.snapshotBlock, nil
