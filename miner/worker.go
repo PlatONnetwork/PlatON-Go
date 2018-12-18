@@ -319,8 +319,8 @@ func (w *worker) pending() (*types.Block, *state.StateDB) {
 func (w *worker) pendingBlock() *types.Block {
 	// return a snapshot to avoid contention on currentMu mutex
 	if _, ok := w.engine.(consensus.Bft); ok {
-		snapshotBlock, _ := w.makePending()
-		return snapshotBlock
+		pendingBlock, _ := w.makePending()
+		return pendingBlock
 	} else {
 		w.snapshotMu.RLock()
 		defer w.snapshotMu.RUnlock()
@@ -840,7 +840,7 @@ func (w *worker) resultLoop() {
 }
 
 // makeCurrent creates a new environment for the current cycle.
-func (w *worker) makeCurrent(parent *types.Block, header *types.Header, isCommitNewWork bool) error {
+func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 	var (
 		state *state.StateDB
 		err   error
@@ -862,7 +862,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header, isCommit
 		uncles:    mapset.NewSet(),
 		header:    header,
 	}
-	if cbftEngine, ok := w.engine.(consensus.Bft); ok && isCommitNewWork {
+	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		nodes := cbftEngine.ConsensusNodes(parent.Number(), parent.Hash(), header.Number)
 		if nodes == nil || len(nodes) <= 0 {
 			return errors.New("Failed to load consensus nodes")
@@ -1132,7 +1132,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 	// Could potentially happen if starting to mine in an odd state.
-	err := w.makeCurrent(parent, header, true)
+	err := w.makeCurrent(parent, header)
 	if err != nil {
 		log.Error("Failed to create mining context", "err", err)
 		return
@@ -1298,32 +1298,20 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 	}
 	log.Debug("parent in makePending", "number", parent.NumberU64(), "hash", parent.Hash())
 
-	if parent != nil && (w.snapshotBlock == nil || w.snapshotBlock.Hash() != parent.Hash()) {
-		parentNum := parent.Number()
-		header := &types.Header{
-			ParentHash: parent.Hash(),
-			Number:     parentNum.Add(parentNum, common.Big1),
-			GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
-			Extra:      w.extra,
-			Time:       big.NewInt(time.Now().Unix()),
-			Coinbase:   w.coinbase,
-			Difficulty: big.NewInt(2),
-		}
-		if len(header.Extra) < 32 {
-			header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
-		}
-		header.Extra = header.Extra[:32]
-		header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
+	if parent != nil {
+		state, err := w.consensusCache.MakeStateDB(parent)
+		if err == nil {
+			block := types.NewBlock(
+				parent.Header(),
+				parent.Transactions(),
+				nil,
+				nil,
+			)
 
-		err := w.makeCurrent(parent, header, false)
-		if err != nil {
-			log.Error("Failed to create mining context in makePending", "err", err.Error())
-		} else {
-			w.updateSnapshot()
+			return block, state
 		}
-		return w.snapshotBlock, w.snapshotState.Copy()
 	}
-	return w.snapshotBlock, nil
+	return nil, nil
 }
 
 func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {

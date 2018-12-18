@@ -1072,7 +1072,6 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 	sealhash := cbft.SealHash(curExt.block.Header())
 	state := cbft.consensusCache.ReadStateDB(sealhash)
-	log.Info("接收task任务，在打包之后，广播之前", "currentBlockNum", curExt.block.NumberU64(), "currentStateRoot", curExt.block.Root().String())
 	log.Warn("setNodeCache", "parentNumber", parentNumber, "parentHash", curExt.block.ParentHash(), "blockNumber", blockNumber, "blockHash", curExt.block.Hash())
 	if state != nil {
 		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), curExt.block.Hash())
