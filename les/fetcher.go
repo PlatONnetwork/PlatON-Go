@@ -22,13 +22,13 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/mclock"
-	"Platon-go/consensus"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/light"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/light"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 const (

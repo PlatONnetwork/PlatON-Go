@@ -18,13 +18,13 @@
 package consensus
 
 import (
-	"Platon-go/common"
-	"Platon-go/core/cbfttypes"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/p2p/discover"
-	"Platon-go/params"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"crypto/ecdsa"
 	"math/big"
 )
@@ -120,14 +120,14 @@ type PoW interface {
 type Bft interface {
 	Engine
 
-	// 返回当前共识节点地址列表
+	// Returns the current consensus node address list.
 	ConsensusNodes() ([]discover.NodeID, error)
 
-	// 返回当前节点是否轮值出块
+	// Returns whether the current node is out of the block
 	ShouldSeal() (bool, error)
 
-	//收到新的区块签名
-	//需要验证签名是否时nodeID签名的
+	// Received a new block signature
+	// Need to verify if the signature is signed by nodeID
 	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error
 
 	// Process the BFT signatures
@@ -140,7 +140,7 @@ type Bft interface {
 
 	IsConsensusNode() (bool, error)
 
-	//目前最高的合理块，本节点出块时，需要基于最高合理块来生成区块。
+	// At present, the highest reasonable block, when the node is out of the block, it needs to generate the block based on the highest reasonable block.
 	HighestLogicalBlock() *types.Block
 
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)

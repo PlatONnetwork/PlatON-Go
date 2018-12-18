@@ -22,7 +22,7 @@ import (
 	"os"
 	"testing"
 
-	ch "Platon-go/swarm/chunk"
+	ch "github.com/PlatONnetwork/PlatON-Go/swarm/chunk"
 )
 
 var (

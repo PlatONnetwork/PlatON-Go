@@ -21,8 +21,8 @@ import (
 	"container/heap"
 	"errors"
 
-	"Platon-go/common"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Iterator is a key-value trie iterator that traverses a Trie.

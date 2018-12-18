@@ -35,12 +35,12 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/crypto"
-	"Platon-go/crypto/ecies"
-	"Platon-go/crypto/secp256k1"
-	"Platon-go/crypto/sha3"
-	"Platon-go/p2p/discover"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/ecies"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/golang/snappy"
 )
 

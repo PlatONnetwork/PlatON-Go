@@ -24,10 +24,10 @@ import (
 	"strings"
 	"syscall"
 
-	"Platon-go/cmd/utils"
-	"Platon-go/console"
-	"Platon-go/node"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/console"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"gopkg.in/urfave/cli.v1"
 )
 

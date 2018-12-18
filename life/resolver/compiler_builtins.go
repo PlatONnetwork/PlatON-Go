@@ -17,7 +17,7 @@ import (
 	"math"
 	"unsafe"
 
-	"Platon-go/life/exec"
+	"github.com/PlatONnetwork/PlatON-Go/life/exec"
 )
 
 type uint128 struct {
@@ -567,14 +567,14 @@ func env__fixunstfsi(vm *exec.VirtualMachine) int64 {
 	f.v[1] = C.uint64_t(frame.Locals[1])
 	/*
 	rounding:
-	二进制值00: 近似到最近的偶数(默认)
-	二进制值01: 向下近似趋向于-∞
-	二进制值10: 向上近似趋向于+∞
-	二进制值11: 近似趋向于0（剪裁)
+	Binary value 00: approximate to the nearest even number (default)
+	Binary value 01: downward approximation tends to -∞
+	Binary value 10: Upward approximation tends to +∞
+	Binary value 11: Approximate to 0 (trimming)
 
-	这里使用rounding使用1, 目的是保证__subtf3(a,b)中(a-b) >= 0.
-	根据调试结果, 当rounding为0, double/long double转换为字符串时,可能
-	会出现死循环.
+	Here rounding is used to use 1 to ensure that (a-b) >= 0 in __subtf3(a,b).
+	According to the debugging result, when rounding is 0, double/long double is converted to a string, it is possible
+	There will be an infinite loop.
 	*/
 	ret := uint32(C.f128_to_ui32(f, 1, false))
 	return int64(ret)

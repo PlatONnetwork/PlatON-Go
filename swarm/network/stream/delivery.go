@@ -22,12 +22,12 @@ import (
 
 	"fmt"
 
-	"Platon-go/metrics"
-	"Platon-go/p2p/discover"
-	"Platon-go/swarm/log"
-	"Platon-go/swarm/network"
-	"Platon-go/swarm/spancontext"
-	"Platon-go/swarm/storage"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/network"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/spancontext"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
 	opentracing "github.com/opentracing/opentracing-go"
 )
 

@@ -27,10 +27,10 @@ import (
 	"errors"
 	"strconv"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/crypto/ecies"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/ecies"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // MessageParams specifies the exact way a message should be wrapped into an Envelope.

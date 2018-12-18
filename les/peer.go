@@ -25,13 +25,13 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/eth"
-	"Platon-go/les/flowcontrol"
-	"Platon-go/light"
-	"Platon-go/p2p"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/eth"
+	"github.com/PlatONnetwork/PlatON-Go/les/flowcontrol"
+	"github.com/PlatONnetwork/PlatON-Go/light"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var (

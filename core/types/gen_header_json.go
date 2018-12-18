@@ -7,8 +7,8 @@ import (
 	"errors"
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
 var _ = (*headerMarshaling)(nil)

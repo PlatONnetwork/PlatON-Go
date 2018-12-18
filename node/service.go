@@ -19,11 +19,11 @@ package node
 import (
 	"reflect"
 
-	"Platon-go/accounts"
-	"Platon-go/ethdb"
-	"Platon-go/event"
-	"Platon-go/p2p"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 // ServiceContext is a collection of service independent options inherited from

@@ -19,9 +19,9 @@ package core
 import (
 	"container/list"
 
-	"Platon-go/core/types"
-	"Platon-go/ethdb"
-	"Platon-go/event"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 )
 
 // Implement our EthTest Manager

@@ -17,7 +17,7 @@
 package miner
 
 import (
-	"Platon-go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"bytes"
 	"errors"
 	"math/big"
@@ -25,17 +25,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/consensus"
-	"Platon-go/consensus/misc"
-	"Platon-go/core"
-	"Platon-go/core/cbfttypes"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/core/vm"
-	"Platon-go/event"
-	"Platon-go/log"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/deckarep/golang-set"
 )
 
@@ -164,8 +164,8 @@ type worker struct {
 	taskCh                chan *task
 	resultCh              chan *types.Block
 	prepareResultCh       chan *types.Block
-	blockSignatureCh      chan *cbfttypes.BlockSignature // 签名
-	cbftResultCh          chan *cbfttypes.CbftResult     // Seal出块后输出的channel
+	blockSignatureCh      chan *cbfttypes.BlockSignature // signature
+	cbftResultCh          chan *cbfttypes.CbftResult     // Channel output after Seal is released
 	highestLogicalBlockCh chan *types.Block
 	startCh               chan struct{}
 	exitCh                chan struct{}
@@ -435,7 +435,6 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
-			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
@@ -651,7 +650,7 @@ func (w *worker) taskLoop() {
 			w.pendingMu.Unlock()
 
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-				// 保存stateDB至缓存、receipts至缓存
+				// Save stateDB to cache, receipts to cache
 				w.consensusCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
 				w.consensusCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {

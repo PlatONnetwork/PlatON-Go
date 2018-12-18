@@ -1,23 +1,25 @@
-## 编译：
-在本目录下运行： go build cli.go 生成（更新）cli.exe文件
+## Compile：
 
-## 命令:
-##### 1.发布合约：
+Run in this directory： go build cli.go Generate (update) cli.exe file.
+
+## Command:
+
+##### 1.Deploy contract：
 ```
 ./cli -cmd deploy -abi "abi json file path(must) " -code "wasm file path (must)" -config "config path(optional)"
 ```
-##### 2.合约调用
+##### 2.Contract call
 ```
 ./cli -cmd invoke  -addr "contract address(must) " --func "functon name and param : eg transfer("a",b,c) (must) " --abi "abi file path (must) " -config "config path(optional)"
 ```
-##### 3.查询交易receipt
+##### 3.Query transactionReceipt
 ```
 ./cli -cmd getTxReceipt -hash "txhash (must)" -config "config path (optional)"
 ```
 
-##### config说明： 命令中不传递config参数，则默认读取本当前目录下的config.json文件
+##### Config Description： The config parameter is not passed in the command, and the `config.json` file in the current directory is read by default.
 
-config.json文件如下：
+The config.json file is as follows：
 
 ```
 {
@@ -29,23 +31,25 @@ config.json文件如下：
 ```
 
 
-### 注意事项和异常说明：
-1.配置文件config.json中不支持注释，有注释可能会引起错误
+### Notes and Exceptions：
 
-2.请确保节点正常启动,并开启挖矿,否则交易无法打包上链
+1.Comments are not supported in the configuration file config.json. Comments may cause errors.
 
-3.配置文件中ip和端口确保正确，否则会抛出一下异常
+2.Please ensure that the node starts normally and starts mining, otherwise the transaction cannot be packaged.
+
+3.The ip and port in the configuration file are guaranteed to be correct, otherwise an exception will be thrown.
 ```
 panic: runtime error: invalid memory address or nil pointer dereference
 ```
 
-4.发布合约：必须指定合约abi和wasm文件的全路径
+4.Deploy contract: must specify the full path of the contract abi and wasm files.
 
-5.合约调用：
+5.Contract call：
 ```
   the contract address is not exist ...
 ```
-  合约没有发布成功，获取不到合约的code，检查合约是否发布成功，命令中合约地址参数是否正确
+  The contract was not successfully deploy, the code of the contract could not be obtained, and the contract was successfully issued.
+  The contract address parameter in the command was correct.
 
 
 

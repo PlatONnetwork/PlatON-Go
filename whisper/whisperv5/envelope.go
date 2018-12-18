@@ -26,11 +26,11 @@ import (
 	"math/big"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/math"
-	"Platon-go/crypto"
-	"Platon-go/crypto/ecies"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/ecies"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Envelope represents a clear-text data packet to transmit through the Whisper

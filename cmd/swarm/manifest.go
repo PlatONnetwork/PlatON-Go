@@ -22,9 +22,9 @@ import (
 	"os"
 	"strings"
 
-	"Platon-go/cmd/utils"
-	"Platon-go/swarm/api"
-	swarm "Platon-go/swarm/api/client"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
+	swarm "github.com/PlatONnetwork/PlatON-Go/swarm/api/client"
 	"gopkg.in/urfave/cli.v1"
 )
 

@@ -5,12 +5,12 @@ import (
 	"math/big"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/core/state"
-	"Platon-go/core/vm"
-	"Platon-go/crypto"
-	"Platon-go/ethdb"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // Config is a basic type specifying certain configuration flags
@@ -80,7 +80,7 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	if cfg == nil {
 		cfg = new(Config)
 	}
-	// 设置默认配置
+	// Set default configuration
 	setDefaults(cfg)
 
 	if cfg.State == nil {
@@ -108,7 +108,6 @@ func Execute(code, input []byte, cfg *Config) ([]byte, *state.StateDB, error) {
 	return ret, cfg.State, err
 }
 
-// 发布合约
 // Create executes the code using the EVM create method
 func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 	if cfg == nil {

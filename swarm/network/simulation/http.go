@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"Platon-go/log"
-	"Platon-go/p2p/simulations"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations"
 )
 
 // Package defaults.

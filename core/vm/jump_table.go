@@ -20,7 +20,7 @@ import (
 	"errors"
 	"math/big"
 
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 type (

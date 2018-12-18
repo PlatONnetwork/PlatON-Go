@@ -28,7 +28,7 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	colorable "github.com/mattn/go-colorable"
 )
 

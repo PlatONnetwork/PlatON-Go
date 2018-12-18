@@ -19,9 +19,9 @@ package state
 import (
 	"bytes"
 
-	"Platon-go/common"
-	"Platon-go/rlp"
-	"Platon-go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 // NewStateSync create a new state trie download scheduler.

@@ -2,20 +2,20 @@
 package cbft
 
 import (
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/consensus"
-	"Platon-go/core"
-	"Platon-go/core/cbfttypes"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/crypto/sha3"
-	"Platon-go/log"
-	"Platon-go/p2p/discover"
-	"Platon-go/params"
-	"Platon-go/rlp"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"bytes"
 	"container/list"
 	"crypto/ecdsa"
@@ -784,12 +784,15 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		log.Debug("check if block is logical", "result", isLogical)
 
 		if isLogical {
-			//主链
+			// Main chain
 			cbft.handleLogicalBlockAndDescendant(ext)
 		} else {
-			//分支
+			// Branch
 			closestConfirmed := cbft.findClosestConfirmedIncludingSelf(ext)
-			//分支上发现有确认块，并且此块高度小于主链的最高确认块。说明在主链上低于最高确认块，且与新确认块相同高度的块，一定是未确认块。则发生分叉
+			// A confirmation block is found on the branch and this block height
+			// is less than the highest acknowledgment block of the main chain.
+			// A block that is lower than the highest acknowledgment block in the main chain
+			// and has the same height as the new acknowledgment block must be an unconfirmed block. Bifurcation
 
 			//if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number && !closestConfirmed.isAncestor(cbft.highestConfirmed){
 			if closestConfirmed != nil && closestConfirmed.number < cbft.highestConfirmed.number {
@@ -1071,7 +1074,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 	cbft.lock.RLock()
 	defer cbft.lock.RUnlock()
 
-	//检查父区块
+	// Check the parent block
 	if cbft.highestLogical.block == nil || header.ParentHash != cbft.highestLogical.block.Hash() || header.Number.Uint64()-1 != cbft.highestLogical.block.NumberU64() {
 		return consensus.ErrUnknownAncestor
 	}
