@@ -906,6 +906,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		log.Debug("check if block is allowed by flow control", "result", passed, "producerNodeID", hex.EncodeToString(producerNodeID.Bytes()[:8]))
 
 		signIfPossible := inTurn && passed && cbft.highestConfirmed.isAncestor(ext)
+		log.Debug("check if block is signIfPossible", "signIfPossible", signIfPossible, "number", blockNumber, "hash", block.Hash())
 
 		err := cbft.handleBlockAndDescendant(ext, parent, signIfPossible)
 
