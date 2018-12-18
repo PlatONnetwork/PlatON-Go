@@ -181,7 +181,7 @@ func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB 
 	}
 	// Commit and re-open to start with a clean state.
 	root, _ := statedb.Commit(false)
-	statedb, _ = state.New(root, sdb)
+	statedb, _ = state.New(root, sdb, big.NewInt(0), common.Hash{})
 	return statedb
 }
 

@@ -70,7 +70,7 @@ func makeTestState() (Database, common.Hash, []*testAccount) {
 // account array.
 func checkStateAccounts(t *testing.T, db ethdb.Database, root common.Hash, accounts []*testAccount) {
 	// Check root availability and state contents
-	state, err := New(root, NewDatabase(db))
+	state, err := New(root, NewDatabase(db), big.NewInt(0), common.Hash{})
 	if err != nil {
 		t.Fatalf("failed to create state trie at %x: %v", root, err)
 	}
@@ -111,7 +111,7 @@ func checkStateConsistency(db ethdb.Database, root common.Hash) error {
 	if _, err := db.Get(root.Bytes()); err != nil {
 		return nil // Consider a non existent state consistent.
 	}
-	state, err := New(root, NewDatabase(db))
+	state, err := New(root, NewDatabase(db), big.NewInt(0), common.Hash{})
 	if err != nil {
 		return err
 	}
