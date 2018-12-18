@@ -25,11 +25,11 @@ import (
 	"time"
 	"unsafe"
 
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/core/vm"
-	"Platon-go/crypto"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	duktape "gopkg.in/olebedev/go-duktape.v3"
 )
 

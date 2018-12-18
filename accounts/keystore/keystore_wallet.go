@@ -20,8 +20,8 @@ import (
 	"math/big"
 
 	ethereum "Platon-go"
-	"Platon-go/accounts"
-	"Platon-go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // keystoreWallet implements the accounts.Wallet interface for the original

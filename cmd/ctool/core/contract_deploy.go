@@ -1,8 +1,8 @@
 package core
 
 import (
-	"Platon-go/common/hexutil"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"

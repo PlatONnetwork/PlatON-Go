@@ -21,8 +21,8 @@ import (
 	"math/big"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
 func hexAddr(a string) common.Address { return common.BytesToAddress(common.FromHex(a)) }

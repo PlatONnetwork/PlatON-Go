@@ -1,11 +1,11 @@
 package cbft
 
 import (
-	"Platon-go/common"
-	"Platon-go/consensus"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 type API struct {

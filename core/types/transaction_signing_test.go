@@ -20,9 +20,9 @@ import (
 	"math/big"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 func TestEIP155Signing(t *testing.T) {

@@ -20,9 +20,9 @@ import (
 	"errors"
 	"fmt"
 
-	"Platon-go/common"
-	"Platon-go/common/prque"
-	"Platon-go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/prque"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 // ErrNotRequested is returned by the trie sync when it's requested to process a

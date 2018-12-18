@@ -21,11 +21,11 @@ import (
 	"errors"
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/common/math"
-	"Platon-go/crypto"
-	"Platon-go/crypto/bn256"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/bn256"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"golang.org/x/crypto/ripemd160"
 )
 

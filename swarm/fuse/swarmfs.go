@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/swarm/api"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
 )
 
 const (

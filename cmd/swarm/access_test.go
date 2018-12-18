@@ -32,13 +32,13 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/crypto"
-	"Platon-go/crypto/ecies"
-	"Platon-go/crypto/sha3"
-	"Platon-go/log"
-	"Platon-go/swarm/api"
-	swarm "Platon-go/swarm/api/client"
-	"Platon-go/swarm/testutil"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/ecies"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
+	swarm "github.com/PlatONnetwork/PlatON-Go/swarm/api/client"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/testutil"
 )
 
 const (

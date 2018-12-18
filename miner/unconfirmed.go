@@ -20,9 +20,9 @@ import (
 	"container/ring"
 	"sync"
 
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // chainRetriever is used by the unconfirmed block set to verify whether a previously

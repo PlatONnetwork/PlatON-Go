@@ -21,11 +21,11 @@ import (
 	"strings"
 	"testing"
 
-	"Platon-go/accounts/abi"
-	"Platon-go/common"
-	"Platon-go/core/state"
-	"Platon-go/core/vm"
-	"Platon-go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 func TestDefaults(t *testing.T) {

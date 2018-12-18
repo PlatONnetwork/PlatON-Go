@@ -20,9 +20,9 @@ import (
 	"context"
 
 	"Platon-go"
-	"Platon-go/common/hexutil"
-	"Platon-go/rpc"
-	whisper "Platon-go/whisper/whisperv6"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 )
 
 // Client defines typed wrappers for the Whisper v6 RPC API.

@@ -29,13 +29,13 @@ import (
 
 	cli "gopkg.in/urfave/cli.v1"
 
-	"Platon-go/cmd/utils"
-	"Platon-go/common"
-	"Platon-go/log"
-	"Platon-go/node"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/naoina/toml"
 
-	bzzapi "Platon-go/swarm/api"
+	bzzapi "github.com/PlatONnetwork/PlatON-Go/swarm/api"
 )
 
 var (

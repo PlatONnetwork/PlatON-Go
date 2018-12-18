@@ -20,8 +20,8 @@ import (
 	"errors"
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // senderFromServer is a types.Signer that remembers the sender address returned by the RPC

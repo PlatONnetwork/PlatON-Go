@@ -22,7 +22,7 @@ import (
 	"errors"
 
 	ethereum "Platon-go"
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // Subscription represents an event subscription where events are

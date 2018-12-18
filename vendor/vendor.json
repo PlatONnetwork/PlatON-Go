@@ -142,56 +142,56 @@
 		},
 		{
 			"checksumSHA1": "CXz+lMUb7OO0p+5BjBA8paN7Sfc=",
-			"origin": "Platon-go/life/vendor/github.com/go-interpreter/wagon/disasm",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/disasm",
 			"path": "github.com/go-interpreter/wagon/disasm",
 			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
 			"revisionTime": "2018-11-23T03:28:02Z"
 		},
 		{
 			"checksumSHA1": "zz8wpBjGbyNABBpUj7UZdcfsplQ=",
-			"origin": "Platon-go/life/vendor/github.com/go-interpreter/wagon/exec",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/exec",
 			"path": "github.com/go-interpreter/wagon/exec",
 			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
 			"revisionTime": "2018-11-23T03:28:02Z"
 		},
 		{
 			"checksumSHA1": "tv/PJK8bSSQO6Z+3DOK/JGCQzQ4=",
-			"origin": "Platon-go/life/vendor/github.com/go-interpreter/wagon/exec/internal/compile",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/exec/internal/compile",
 			"path": "github.com/go-interpreter/wagon/exec/internal/compile",
 			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
 			"revisionTime": "2018-11-23T03:28:02Z"
 		},
 		{
 			"checksumSHA1": "5JuAtc+nvjtqrR50YvsjfjV27VQ=",
-			"origin": "Platon-go/life/vendor/github.com/go-interpreter/wagon/validate",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/validate",
 			"path": "github.com/go-interpreter/wagon/validate",
 			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
 			"revisionTime": "2018-11-23T03:28:02Z"
 		},
 		{
 			"checksumSHA1": "E9WykM5oshMl0mwmK4GNB0dTC+Y=",
-			"origin": "Platon-go/life/vendor/github.com/go-interpreter/wagon/wasm",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm",
 			"path": "github.com/go-interpreter/wagon/wasm",
 			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
 			"revisionTime": "2018-11-23T03:28:02Z"
 		},
 		{
 			"checksumSHA1": "lLulPBI1ZMUPiwKAGfKWvD6haFQ=",
-			"origin": "Platon-go/life/vendor/github.com/go-interpreter/wagon/wasm/internal/readpos",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm/internal/readpos",
 			"path": "github.com/go-interpreter/wagon/wasm/internal/readpos",
 			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
 			"revisionTime": "2018-11-23T03:28:02Z"
 		},
 		{
 			"checksumSHA1": "7SFxMDdS8ewsjTOEpxczE69ysGg=",
-			"origin": "Platon-go/life/vendor/github.com/go-interpreter/wagon/wasm/leb128",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm/leb128",
 			"path": "github.com/go-interpreter/wagon/wasm/leb128",
 			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
 			"revisionTime": "2018-11-23T03:28:02Z"
 		},
 		{
 			"checksumSHA1": "T8jDOmLM08fT540n/0BPPA0JtgM=",
-			"origin": "Platon-go/life/vendor/github.com/go-interpreter/wagon/wasm/operators",
+			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm/operators",
 			"path": "github.com/go-interpreter/wagon/wasm/operators",
 			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
 			"revisionTime": "2018-11-23T03:28:02Z"

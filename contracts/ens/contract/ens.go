@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	ethereum "Platon-go"
-	"Platon-go/accounts/abi"
-	"Platon-go/accounts/abi/bind"
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/event"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 )
 
 // ENSABI is the input ABI used to generate the binding from.

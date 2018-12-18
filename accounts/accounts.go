@@ -21,9 +21,9 @@ import (
 	"math/big"
 
 	ethereum "Platon-go"
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/event"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 )
 
 // Account represents an Ethereum account located at a specific location defined

@@ -20,9 +20,9 @@ import (
 	"math/big"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 // Tests that positional lookup metadata can be stored and retrieved.

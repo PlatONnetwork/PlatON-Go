@@ -1,8 +1,8 @@
 package core
 
 import (
-	"Platon-go/common"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"bytes"
 	"encoding/json"
 	"fmt"

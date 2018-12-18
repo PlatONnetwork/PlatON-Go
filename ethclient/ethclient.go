@@ -25,11 +25,11 @@ import (
 	"math/big"
 
 	"Platon-go"
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/core/types"
-	"Platon-go/rlp"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 // Client defines typed wrappers for the Ethereum RPC API.

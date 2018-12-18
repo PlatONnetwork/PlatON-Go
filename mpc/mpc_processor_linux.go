@@ -27,8 +27,8 @@ void notify_security_calculation(const char* taskid, const char* pubkey, const c
 import "C"
 
 import (
-	"Platon-go/common"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"unsafe"
 )
 

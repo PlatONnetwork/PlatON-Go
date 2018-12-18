@@ -22,7 +22,7 @@ import (
 	"errors"
 	"math/big"
 
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // Interface represents a wrapped version of Go's interface{}, with the capacity

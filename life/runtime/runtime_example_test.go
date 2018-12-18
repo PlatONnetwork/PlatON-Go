@@ -3,7 +3,7 @@ package runtime_test
 import (
 	"fmt"
 
-	"Platon-go/life/runtime"
+	"github.com/PlatONnetwork/PlatON-Go/life/runtime"
 )
 
 func ExampleExecute() {

@@ -26,9 +26,9 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/accounts"
-	"Platon-go/common"
-	"Platon-go/event"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 )
 
 var testSigData = make([]byte, 32)

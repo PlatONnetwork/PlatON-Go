@@ -1,7 +1,7 @@
 package core
 
 import (
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"crypto/ecdsa"
 	"io/ioutil"
 	"math/big"
@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/ethdb"
-	"Platon-go/event"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 var mpcTestTxPoolConfig MPCPoolConfig

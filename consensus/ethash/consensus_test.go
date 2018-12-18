@@ -23,9 +23,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"Platon-go/common/math"
-	"Platon-go/core/types"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 type diffTest struct {

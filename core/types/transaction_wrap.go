@@ -1,7 +1,7 @@
 package types
 
 import (
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io"
 )
 

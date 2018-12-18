@@ -24,8 +24,8 @@ import (
 	"os"
 	"strings"
 
-	"Platon-go/accounts/abi/bind"
-	"Platon-go/common/compiler"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind"
+	"github.com/PlatONnetwork/PlatON-Go/common/compiler"
 )
 
 var (

@@ -19,7 +19,7 @@ package simulation
 import (
 	"testing"
 
-	"Platon-go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 func TestConnectToPivotNode(t *testing.T) {
