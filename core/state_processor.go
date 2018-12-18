@@ -17,14 +17,14 @@
 package core
 
 import (
-	"Platon-go/common"
-	"Platon-go/consensus"
-	"Platon-go/consensus/misc"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/core/vm"
-	"Platon-go/crypto"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning

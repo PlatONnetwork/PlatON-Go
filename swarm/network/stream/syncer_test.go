@@ -28,17 +28,17 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/node"
-	"Platon-go/p2p"
-	"Platon-go/p2p/discover"
-	"Platon-go/p2p/simulations/adapters"
-	"Platon-go/swarm/log"
-	"Platon-go/swarm/network"
-	"Platon-go/swarm/network/simulation"
-	"Platon-go/swarm/state"
-	"Platon-go/swarm/storage"
-	mockdb "Platon-go/swarm/storage/mock/db"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/network"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/network/simulation"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/state"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
+	mockdb "github.com/PlatONnetwork/PlatON-Go/swarm/storage/mock/db"
 )
 
 const dataChunkCount = 200

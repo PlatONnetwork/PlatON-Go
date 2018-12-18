@@ -24,8 +24,8 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/crypto"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

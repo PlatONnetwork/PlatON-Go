@@ -27,7 +27,7 @@ import (
 	"strings"
 	"testing"
 
-	"Platon-go/swarm"
+	"github.com/PlatONnetwork/PlatON-Go/swarm"
 )
 
 // TestCLISwarmExportImport perform the following test:

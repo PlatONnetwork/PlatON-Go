@@ -23,14 +23,14 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/bitutil"
-	"Platon-go/core/bloombits"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/ethdb"
-	"Platon-go/event"
-	"Platon-go/node"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/bitutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 )
 
 func BenchmarkBloomBits512(b *testing.B) {

@@ -27,12 +27,12 @@ import (
 
 	cli "gopkg.in/urfave/cli.v1"
 
-	"Platon-go/cmd/utils"
-	"Platon-go/dashboard"
-	"Platon-go/eth"
-	"Platon-go/node"
-	"Platon-go/params"
-	whisper "Platon-go/whisper/whisperv6"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/dashboard"
+	"github.com/PlatONnetwork/PlatON-Go/eth"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 	"github.com/naoina/toml"
 )
 

@@ -23,7 +23,7 @@ import (
 	"os"
 	"runtime/trace"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // StartGoTrace turns on tracing, writing to the given file.

@@ -17,15 +17,15 @@
 package state
 
 import (
-	"Platon-go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"bytes"
 	"fmt"
 	"math/big"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	checker "gopkg.in/check.v1"
 )
 

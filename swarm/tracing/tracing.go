@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	jaeger "github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	jaegerlog "github.com/uber/jaeger-client-go/log"

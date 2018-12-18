@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // manageServers displays a list of servers the user can disconnect from, and an

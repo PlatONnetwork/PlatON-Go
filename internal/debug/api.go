@@ -34,7 +34,7 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // Handler is the global debugging handler.

@@ -27,15 +27,15 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/node"
-	"Platon-go/p2p"
-	"Platon-go/p2p/simulations/adapters"
-	p2ptest "Platon-go/p2p/testing"
-	"Platon-go/swarm/log"
-	"Platon-go/swarm/network"
-	"Platon-go/swarm/network/simulation"
-	"Platon-go/swarm/state"
-	"Platon-go/swarm/storage"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
+	p2ptest "github.com/PlatONnetwork/PlatON-Go/p2p/testing"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/network"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/network/simulation"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/state"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
 )
 
 func TestStreamerRetrieveRequest(t *testing.T) {

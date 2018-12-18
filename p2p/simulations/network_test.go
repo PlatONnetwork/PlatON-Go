@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/p2p/discover"
-	"Platon-go/p2p/simulations/adapters"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
 )
 
 // TestNetworkSimulation creates a multi-node simulation network with each node

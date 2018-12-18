@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"Platon-go/common/math"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // Interpreter is used to run Ethereum based contracts and will utilise the

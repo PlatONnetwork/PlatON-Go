@@ -24,9 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/crypto"
-	"Platon-go/p2p"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 var (

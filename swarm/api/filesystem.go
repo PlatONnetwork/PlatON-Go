@@ -27,9 +27,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"Platon-go/common"
-	"Platon-go/swarm/log"
-	"Platon-go/swarm/storage"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
 )
 
 const maxParallelFiles = 5

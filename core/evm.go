@@ -19,10 +19,10 @@ package core
 import (
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/consensus"
-	"Platon-go/core/types"
-	"Platon-go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 )
 
 // ChainContext supports retrieving headers and consensus parameters from the
