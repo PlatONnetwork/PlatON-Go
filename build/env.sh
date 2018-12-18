@@ -13,11 +13,11 @@ root="$PWD"
 
 echo "$root" "$workspace"
 
-ethdir="$workspace/src"
-if [ ! -L "$ethdir/Platon-go" ]; then
-    mkdir -p "$ethdir"
-    cd "$ethdir"
-    ln -s ../../../. Platon-go
+platondir="$workspace/src/github.com/PlatONnetwork"
+if [ ! -L "$platondir/PlatON-Go" ]; then
+    mkdir -p "$platondir"
+    cd "$platondir"
+    ln -s ../../../../../. PlatON-Go
     cd "$root"
 fi
 
@@ -28,8 +28,8 @@ GOPATH="$workspace"
 export GOPATH
 
 # Run the command inside the workspace.
-cd "$ethdir/Platon-go"
-PWD="$ethdir/Platon-go"
+cd "$platondir/PlatON-Go"
+PWD="$platondir/PlatON-Go"
 
 # Launch the arguments with the configured environment.
 exec "$@"

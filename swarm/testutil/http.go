@@ -23,9 +23,9 @@ import (
 	"os"
 	"testing"
 
-	"Platon-go/swarm/api"
-	"Platon-go/swarm/storage"
-	"Platon-go/swarm/storage/mru"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mru"
 )
 
 type TestServer interface {

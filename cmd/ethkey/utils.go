@@ -22,9 +22,9 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"Platon-go/cmd/utils"
-	"Platon-go/console"
-	"Platon-go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/console"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"gopkg.in/urfave/cli.v1"
 )
 

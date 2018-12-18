@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 var (

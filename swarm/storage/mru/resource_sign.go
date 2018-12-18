@@ -19,8 +19,8 @@ package mru
 import (
 	"crypto/ecdsa"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 const signatureLength = 65

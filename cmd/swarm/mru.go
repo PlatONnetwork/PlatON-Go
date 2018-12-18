@@ -22,11 +22,11 @@ import (
 	"strconv"
 	"strings"
 
-	"Platon-go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 
-	"Platon-go/cmd/utils"
-	swarm "Platon-go/swarm/api/client"
-	"Platon-go/swarm/storage/mru"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	swarm "github.com/PlatONnetwork/PlatON-Go/swarm/api/client"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mru"
 	"gopkg.in/urfave/cli.v1"
 )
 

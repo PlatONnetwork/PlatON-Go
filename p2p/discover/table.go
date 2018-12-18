@@ -32,10 +32,10 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/log"
-	"Platon-go/p2p/netutil"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 )
 
 const (

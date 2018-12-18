@@ -5,8 +5,8 @@ import (
 	uurl "net/url"
 	"time"
 
-	"Platon-go/log"
-	"Platon-go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/influxdata/influxdb/client"
 )
 

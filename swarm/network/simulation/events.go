@@ -20,9 +20,9 @@ import (
 	"context"
 	"sync"
 
-	"Platon-go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
-	"Platon-go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
 
 // PeerEvent is the type of the channel returned by Simulation.PeerEvents.

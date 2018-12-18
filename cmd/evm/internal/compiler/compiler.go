@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 
-	"Platon-go/core/asm"
+	"github.com/PlatONnetwork/PlatON-Go/core/asm"
 )
 
 func Compile(fn string, src []byte, debug bool) (string, error) {

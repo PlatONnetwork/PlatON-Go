@@ -25,15 +25,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	ethereum "Platon-go"
-	"Platon-go/common"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/ethdb"
-	"Platon-go/event"
-	"Platon-go/log"
-	"Platon-go/metrics"
-	"Platon-go/params"
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 var (
@@ -315,7 +315,7 @@ func (d *Downloader) UnregisterPeer(id string) error {
 // Synchronise tries to sync up our local block chain with a remote peer, both
 // adding various sanity checks as well as wrapping it with various log entries.
 func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode SyncMode) error {
-	log.Warn("----------向对端节点同步区块数据----------", "peerID", id, "head", head, "td", td, "mode", mode)
+	log.Warn("~ Synchronize block data to the peer node", "peerID", id, "head", head, "td", td, "mode", mode)
 	err := d.synchronise(id, head, td, mode)
 	switch err {
 	case nil:

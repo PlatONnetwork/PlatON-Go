@@ -23,15 +23,15 @@ import (
 	"errors"
 	"fmt"
 
-	"Platon-go/common"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/ethdb"
-	"Platon-go/light"
-	"Platon-go/log"
-	"Platon-go/rlp"
-	"Platon-go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/light"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 var (

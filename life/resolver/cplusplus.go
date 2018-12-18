@@ -1,16 +1,16 @@
 package resolver
 
 import (
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/life/compiler"
-	"Platon-go/life/exec"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/life/compiler"
+	"github.com/PlatONnetwork/PlatON-Go/life/exec"
 	"bytes"
 	"fmt"
 	"math"
 	"math/big"
 
-	inner "Platon-go/common/math"
+	inner "github.com/PlatONnetwork/PlatON-Go/common/math"
 )
 
 var (

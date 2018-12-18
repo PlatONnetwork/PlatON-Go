@@ -31,9 +31,9 @@ import (
 	"strings"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/crypto/secp256k1"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
 )
 
 const NodeIDBits = 512

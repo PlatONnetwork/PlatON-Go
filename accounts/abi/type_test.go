@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // typeWithoutStringer is a alias for the Type type which simply doesn't implement

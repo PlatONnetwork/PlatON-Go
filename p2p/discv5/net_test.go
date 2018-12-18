@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 func TestNetwork_Lookup(t *testing.T) {

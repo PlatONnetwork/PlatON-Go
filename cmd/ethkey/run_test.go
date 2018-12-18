@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/docker/docker/pkg/reexec"
-	"Platon-go/internal/cmdtest"
+	"github.com/PlatONnetwork/PlatON-Go/internal/cmdtest"
 )
 
 type testEthkey struct {

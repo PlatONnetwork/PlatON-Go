@@ -25,9 +25,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"Platon-go/event"
-	"Platon-go/p2p/discover"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Msg defines the structure of a p2p message.

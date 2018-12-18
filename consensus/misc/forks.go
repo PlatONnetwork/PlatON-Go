@@ -19,9 +19,9 @@ package misc
 import (
 	"fmt"
 
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // VerifyForkHashes verifies that blocks conforming to network hard-forks do have

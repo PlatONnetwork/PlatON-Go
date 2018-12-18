@@ -20,10 +20,10 @@ import (
 	"math/big"
 	"testing"
 
-	"Platon-go/consensus/ethash"
-	"Platon-go/core/vm"
-	"Platon-go/ethdb"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // Tests that DAO-fork enabled clients can properly filter out fork-commencing

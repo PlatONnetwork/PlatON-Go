@@ -28,7 +28,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
 )

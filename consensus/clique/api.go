@@ -17,10 +17,10 @@
 package clique
 
 import (
-	"Platon-go/common"
-	"Platon-go/consensus"
-	"Platon-go/core/types"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 // API is a user facing RPC API to allow controlling the signer and voting
