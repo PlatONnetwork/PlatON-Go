@@ -57,7 +57,8 @@ func (c *Cache) ReadStateDB(sealHash common.Hash) *state.StateDB {
 	defer c.stateDBMu.RUnlock()
 	log.Info("从缓存map中读取StateDB实例","sealHash", sealHash)
 	if obj, exist := c.stateDBCache[sealHash]; exist {
-		return obj.stateDB.Copy()
+		//return obj.stateDB.Copy()
+		return obj.stateDB
 	}
 	return nil
 }
@@ -126,10 +127,10 @@ func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 	}
 	// 读取并拷贝缓存中StateDB实例
 	sealHash := c.chain.Engine().SealHash(block.Header())
-	log.Info("读取并拷贝缓存中StateDB实例","sealHash", sealHash, "blockHash", block.Hash(), "blockNum", block.NumberU64(), "stateRoot", block.Root())
+	log.Info("读取并拷贝缓存中StateDB实例","sealHash", sealHash, "blockHash", block.Hash(), "blockNum", block.NumberU64())
 	if state := c.ReadStateDB(sealHash); state != nil {
-		//return state.Copy(), nil
-		return state, nil
+		return state.Copy(), nil
+		//return state, nil
 	} else {
 		return nil, errMakeStateDB
 	}
