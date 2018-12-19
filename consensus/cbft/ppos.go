@@ -258,7 +258,7 @@ func (d *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 // Announce witness
 func (d *ppos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover.Node, error) {
 	// TODO
-	if nextNodes, err := d.candidatePool.Election(state, blocknumber, common.BytesToHash([]byte(""))); nil != err {
+	if nextNodes, err := d.candidatePool.Election(state, common.BytesToHash([]byte("") /** parentHash */)); nil != err {
 		log.Error("ppos election next witness err", err)
 		panic("Election error " + err.Error())
 	} else {
@@ -468,8 +468,7 @@ func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Ha
 /** Method provided to the built-in contract call */
 // pledge Candidate
 func (d *ppos) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
-	// TODO
-	return d.candidatePool.SetCandidate(state, nodeId, can, big.NewInt(0), common.Hash{})
+	return d.candidatePool.SetCandidate(state, nodeId, can)
 }
 
 // Getting immediate or reserve candidate info by nodeId
@@ -479,8 +478,7 @@ func (d *ppos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Ca
 
 // candidate withdraw from  elected candidates
 func (d *ppos) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
-	// TODO
-	return d.candidatePool.WithdrawCandidate(state, nodeId, price, blockNumber, blockNumber, common.Hash{})
+	return d.candidatePool.WithdrawCandidate(state, nodeId, price, blockNumber)
 }
 
 // Getting all  elected candidates array
