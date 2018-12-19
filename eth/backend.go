@@ -18,11 +18,11 @@
 package eth
 
 import (
+	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"errors"
-	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
@@ -75,7 +75,7 @@ type Ethereum struct {
 	protocolManager *ProtocolManager
 	lesServer       LesServer
 	// modify
-	mpcPool 		*core.MPCPool
+	mpcPool *core.MPCPool
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -170,6 +170,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	platonBlockChain := core.NewPlatonBlockChain(eth.blockchain)
+
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -181,7 +184,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
-	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
+	//eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
+	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, platonBlockChain)
 
 	// mpcPool deal with mpc transactions
 	// modify By J
