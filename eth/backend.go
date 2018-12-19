@@ -653,5 +653,9 @@ func setPposConfig (pposConfig *PposConfig) *params.PposConfig{
 					MaxCount:  				pposConfig.Candidate.MaxCount,
 					RefundBlockNumber: 		pposConfig.Candidate.RefundBlockNumber,
 		},
+		TicketConfig: &params.TicketConfig{
+			MaxCount:			pposConfig.Ticket.MaxCount,
+			ExpireBlockNumber: 	pposConfig.Ticket.ExpireBlockNumber,
+		},
 	}
 }
