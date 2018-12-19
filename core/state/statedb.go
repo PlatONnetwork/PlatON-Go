@@ -21,6 +21,7 @@ import (
 	"Platon-go/core/ticketcache"
 	"Platon-go/crypto/sha3"
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -47,6 +48,9 @@ var (
 
 	// emptyCode is the known hash of the empty EVM bytecode.
 	emptyCode = crypto.Keccak256Hash(nil)
+
+	//ppos add
+	ErrNotfindFromNodeId = errors.New("Not find tickets from node id")
 )
 
 // StateDBs within the ethereum protocol are used to store anything
@@ -96,7 +100,7 @@ type StateDB struct {
 
 	//ppos add -> Current ticket pool cache object <nodeid.string(), ticketId>
 	cTicketCache map[string][]common.Hash
-
+	tclock sync.RWMutex
 }
 
 // Create a new state from a given trie.
@@ -772,4 +776,51 @@ func (s *StateDB) SetAbi(addr common.Address, abi []byte) {
 	if stateObject != nil {
 		stateObject.SetAbi(crypto.Keccak256Hash(abi), abi)
 	}
+}
+
+//ppos add
+func (self *StateDB) SetTicketCache(nodeid string, tids []common.Hash) {
+	self.tclock.Lock()
+	value, ok := self.cTicketCache[nodeid]
+	if !ok {
+		value = make([]common.Hash, 0)
+	}
+	for _, id := range tids {
+		value = append(value, id)
+	}
+	self.cTicketCache[nodeid] = value
+	self.tclock.Unlock()
+}
+
+func (self *StateDB) GetTicketCache(nodeid string) ([]common.Hash, error) {
+	self.tclock.RLock()
+	ret, ok := self.cTicketCache[nodeid]
+	if !ok {
+		self.tclock.RUnlock()
+		return nil, ErrNotfindFromNodeId
+	}
+	self.tclock.RUnlock()
+	return ret, ErrNotfindFromNodeId
+}
+
+func (self *StateDB) DelTicketCache(nodeid string, tids []common.Hash) error {
+	self.tclock.Lock()
+	cache, ok := self.cTicketCache[nodeid]
+	if !ok {
+		self.tclock.Unlock()
+		return ErrNotfindFromNodeId
+	}
+	mapTIds := make(map[string]common.Hash)
+	for _, id := range tids {
+		mapTIds[id.Hex()] = id
+	}
+	for i:=0; i<len(cache); i++ {
+		if _, ok := mapTIds[cache[i].Hex()]; ok {
+			cache = append(cache[:i], cache[i+1:]...)
+			i = i-1
+		}
+	}
+	self.cTicketCache[nodeid] = cache
+	self.tclock.Unlock()
+	return nil
 }
