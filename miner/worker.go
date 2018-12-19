@@ -291,27 +291,29 @@ func (w *worker) setRecommitInterval(interval time.Duration) {
 // pending returns the pending state and corresponding block.
 func (w *worker) pending() (*types.Block, *state.StateDB) {
 	// return a snapshot to avoid contention on currentMu mutex
-	//if _, ok := w.engine.(consensus.Bft); ok {
-	//	return w.makePending()
-	//}
-	w.snapshotMu.RLock()
-	defer w.snapshotMu.RUnlock()
-	if w.snapshotState == nil {
-		return nil, nil
+	if _, ok := w.engine.(consensus.Bft); ok {
+		return w.makePending()
+	} else {
+		w.snapshotMu.RLock()
+		defer w.snapshotMu.RUnlock()
+		if w.snapshotState == nil {
+			return nil, nil
+		}
+		return w.snapshotBlock, w.snapshotState.Copy()
 	}
-	return w.snapshotBlock, w.snapshotState.Copy()
 }
 
 // pendingBlock returns pending block.
 func (w *worker) pendingBlock() *types.Block {
 	// return a snapshot to avoid contention on currentMu mutex
-	//if _, ok := w.engine.(consensus.Bft); ok {
-	//	snapshotBlock, _ := w.makePending()
-	//	return snapshotBlock
-	//}
-	w.snapshotMu.RLock()
-	defer w.snapshotMu.RUnlock()
-	return w.snapshotBlock
+	if _, ok := w.engine.(consensus.Bft); ok {
+		pendingBlock, _ := w.makePending()
+		return pendingBlock
+	} else {
+		w.snapshotMu.RLock()
+		defer w.snapshotMu.RUnlock()
+		return w.snapshotBlock
+	}
 }
 
 // start sets the running status as 1 and triggers new work submitting.
@@ -397,7 +399,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				commit(false, commitInterruptNewHead, nil)
 			} else {
-				w.makePending()
+				//w.makePending()
 				timer.Reset(0)
 			}
 
@@ -570,7 +572,7 @@ func (w *worker) mainLoop() {
 			}
 			atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
 
-		// System stopped
+			// System stopped
 		case <-w.exitCh:
 			return
 		case <-w.txsSub.Err():
@@ -1383,31 +1385,27 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 
 func (w *worker) makePending() (*types.Block, *state.StateDB) {
 	var parent = w.commitWorkEnv.getHighestLogicalBlock()
-	if parent != nil && (w.snapshotBlock == nil || w.snapshotBlock.Hash().Hex() != parent.Hash().Hex()) {
-		parentNum := parent.Number()
-		header := &types.Header{
-			ParentHash: parent.Hash(),
-			Number:     parentNum.Add(parentNum, common.Big1),
-			GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
-			Extra:      w.extra,
-			Time:       big.NewInt(time.Now().Unix()),
-			Coinbase:   w.coinbase,
-			Difficulty: big.NewInt(2),
-		}
-		if len(header.Extra) < 32 {
-			header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
-		}
-		header.Extra = header.Extra[:32]
-		header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
+	var parentChain = w.chain.CurrentBlock()
 
-		err := w.makeCurrent(parent, header)
-		if err != nil {
-			panic("Failed to create mining context in makePending")
-		}
-		w.updateSnapshot()
-		return w.snapshotBlock, w.snapshotState.Copy()
+	if parentChain.NumberU64() >= parent.NumberU64() {
+		parent = parentChain
 	}
-	return w.snapshotBlock, nil
+	log.Debug("parent in makePending", "number", parent.NumberU64(), "hash", parent.Hash())
+
+	if parent != nil {
+		state, err := w.consensusCache.MakeStateDB(parent)
+		if err == nil {
+			block := types.NewBlock(
+				parent.Header(),
+				parent.Transactions(),
+				nil,
+				nil,
+			)
+
+			return block, state
+		}
+	}
+	return nil, nil
 }
 
 func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
