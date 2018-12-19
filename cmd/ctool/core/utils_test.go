@@ -54,7 +54,7 @@ func TestHttpPostTransfer(t *testing.T) {
 	//	Gas: "0x76c0",
 	//	GasPrice:"0x9184e72a000",
 	//}
-	url := "http://localhost:8545"
+	url := "http://localhost:6789"
 	param := JsonParam{
 		Jsonrpc: "2.0",
 		Method:  "eth_sendTransaction",
@@ -77,7 +77,7 @@ func TestHttpPostDeploy(t *testing.T) {
 
 	//combine := BytesCombine(abiyBtes, codeBytes)
 	//fmt.Println(string(combine))
-	url := "http://localhost:8545"
+	url := "http://localhost:6789"
 	params := DeployParams{
 		From:     "0xfb8c2fa47e84fbde43c97a0859557a36a5fb285b",
 		Gas:      "0x400000",
@@ -124,7 +124,7 @@ func TestHttpPostDeploy(t *testing.T) {
 
 func TestHttpCallContact(t *testing.T) {
 
-	url := "http://localhost:8545"
+	url := "http://localhost:6789"
 	param1 := uint(33)
 	b := new(bytes.Buffer)
 	rlp.Encode(b, param1)
