@@ -1,11 +1,11 @@
 package cbft
 
 import (
-	"Platon-go/common"
-	"Platon-go/consensus"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 type API struct {
@@ -13,7 +13,7 @@ type API struct {
 	cbft  *Cbft
 }
 
-// 获取出块人地址
+// Get the block address
 func (api *API) GetProducer(number *rpc.BlockNumber) (common.Address, error) {
 	// Retrieve the requested block number (or current if none requested)
 	var header *types.Header

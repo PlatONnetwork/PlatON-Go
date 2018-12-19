@@ -17,8 +17,8 @@
 package eth
 
 import (
-	"Platon-go/metrics"
-	"Platon-go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
 
 var (

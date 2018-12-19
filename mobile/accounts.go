@@ -23,10 +23,10 @@ import (
 	"errors"
 	"time"
 
-	"Platon-go/accounts"
-	"Platon-go/accounts/keystore"
-	"Platon-go/common"
-	"Platon-go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 const (

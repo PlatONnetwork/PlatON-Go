@@ -21,11 +21,11 @@ import (
 	"io"
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/core"
-	"Platon-go/core/types"
-	"Platon-go/event"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Constants to match up protocol versions and messages
@@ -182,8 +182,8 @@ type prepareBlockData struct {
 }
 
 type blockSignature struct {
-	SignHash  common.Hash //签名hash，header[0:32]
-	Hash      common.Hash //块hash，header[:]
+	SignHash  common.Hash // signature hash，header[0:32]
+	Hash      common.Hash // blokc hash，header[:]
 	Number    *big.Int
 	Signature *common.BlockConfirmSign
 }

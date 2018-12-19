@@ -27,11 +27,11 @@ import (
 	"time"
 	"unsafe"
 
-	"Platon-go/common"
-	"Platon-go/common/bitutil"
-	"Platon-go/crypto"
-	"Platon-go/crypto/sha3"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/bitutil"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 const (

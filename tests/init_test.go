@@ -29,7 +29,7 @@ import (
 	"strings"
 	"testing"
 
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 var (

@@ -24,8 +24,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"Platon-go/p2p/discover"
-	"Platon-go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
 
 	lru "github.com/hashicorp/golang-lru"
 )

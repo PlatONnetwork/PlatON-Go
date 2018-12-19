@@ -22,8 +22,8 @@ import (
 	"errors"
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // NotFound is returned by API methods if the requested item does not exist.

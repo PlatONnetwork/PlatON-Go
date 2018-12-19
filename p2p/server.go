@@ -26,14 +26,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/mclock"
-	"Platon-go/event"
-	"Platon-go/log"
-	"Platon-go/p2p/discover"
-	"Platon-go/p2p/discv5"
-	"Platon-go/p2p/nat"
-	"Platon-go/p2p/netutil"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 )
 
 const (

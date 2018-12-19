@@ -2,8 +2,8 @@
 package vm
 
 import (
-	"Platon-go/common"
-	"Platon-go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -62,7 +62,7 @@ func TestWasmInterpreter(t *testing.T) {
 		Gas: 1000000,
 		ABI: []byte(abi),
 	}
-	// 构建input, {1}{transfer}{from}{to}{asset}
+	// build input, {1}{transfer}{from}{to}{asset}
 	input := genInput()
 	wasmInterpreter.Run(contract, input, true)
 

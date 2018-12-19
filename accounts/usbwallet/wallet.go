@@ -25,11 +25,11 @@ import (
 	"sync"
 	"time"
 
-	ethereum "Platon-go"
-	"Platon-go/accounts"
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/log"
+	ethereum "github.com/PlatONnetwork/PlatON-Go"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/karalabe/hid"
 )
 

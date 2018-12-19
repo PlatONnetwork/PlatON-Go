@@ -26,7 +26,7 @@ import (
 	"strings"
 	"sync"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // makeWizard creates and returns a new puppeth wizard.

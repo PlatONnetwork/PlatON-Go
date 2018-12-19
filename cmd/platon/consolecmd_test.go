@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (

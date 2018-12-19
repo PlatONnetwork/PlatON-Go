@@ -26,9 +26,9 @@ import (
 	"sync"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // prepare converts an ethash cache or dataset from a byte stream into the internal

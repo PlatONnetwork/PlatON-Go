@@ -25,14 +25,14 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/common/hexutil"
-	"Platon-go/p2p"
-	"Platon-go/p2p/discover"
-	"Platon-go/p2p/protocols"
-	"Platon-go/rlp"
-	"Platon-go/rpc"
-	"Platon-go/swarm/log"
-	"Platon-go/swarm/pss"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/protocols"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/pss"
 )
 
 const (

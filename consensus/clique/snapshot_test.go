@@ -17,19 +17,19 @@
 package clique
 
 import (
-	"Platon-go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"bytes"
 	"crypto/ecdsa"
 	"sort"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/core"
-	"Platon-go/core/types"
-	"Platon-go/core/vm"
-	"Platon-go/crypto"
-	"Platon-go/ethdb"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // testerAccountPool is a pool to maintain currently active tester accounts,

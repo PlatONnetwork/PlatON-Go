@@ -23,13 +23,10 @@ import (
 	"io"
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
-
-// account对象的抽象，提供了账户的一些功能。
-// 表示正在修改的以太坊账户
 
 var emptyCodeHash = crypto.Keccak256(nil)
 
@@ -43,20 +40,19 @@ func (self Code) String() string {
 type Storage map[string]common.Hash
 type ValueStorage map[common.Hash][]byte
 
-// 该结构：用于缓存智能合约中所有变量的值
 // Storage -> hash : hash , common.Hash ([32]byte)
 //type Storage map[common.Hash]common.Hash
 
 func (self Storage) String() (str string) {
 	for key, value := range self {
-		// %X -> 提供16进制
+		// %X -> Provide hexadecimal
 		str += fmt.Sprintf("%X : %X\n", key, value)
 	}
 
 	return
 }
 
-// 复制一份Storage
+// Copy a copy of Storage
 func (self Storage) Copy() Storage {
 	cpy := make(Storage)
 	for key, value := range self {
@@ -92,7 +88,6 @@ type stateObject struct {
 	// unable to deal with database-level errors. Any error that occurs
 	// during a database read is memoized here and will eventually be returned
 	// by StateDB.Commit.
-	// 当一个对象被标记为自杀时，它将在状态转换的“更新”阶段期间从树中删除。
 	dbErr error
 
 	// Write caches.
@@ -100,7 +95,6 @@ type stateObject struct {
 	// storage trie, which becomes non-nil on first access
 	code Code // contract bytecode, which gets set when code is loaded
 
-	// todo: 新增，此字段尚不明确是否需要进行使用
 	abi Abi
 
 	originStorage      Storage      // Storage cache of original entries to dedup rewrites
@@ -124,13 +118,11 @@ func (s *stateObject) empty() bool {
 
 // Account is the Ethereum consensus representation of accounts.
 // These objects are stored in the main account trie.
-// 帐户是以太坊共识表示的帐户。 这些对象存储在main account trie。
 type Account struct {
 	Nonce    uint64
 	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
-	// todo: 新增AbiHash字段
 	AbiHash []byte
 }
 
@@ -287,7 +279,7 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.Hash, value []byte) {
 
 	//if the new value is the same as old,don't set
-	preValue := self.GetState(db, keyTrie) //获取value key
+	preValue := self.GetState(db, keyTrie) // get value key
 	if bytes.Equal(preValue, value) {
 		return
 	}
@@ -327,7 +319,7 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		delete(self.dirtyStorage, key)
 		delete(self.dirtyValueStorage, valueKey)
 
-		//删除原来valueKey 对应的value
+		// Delete the value corresponding to the original valueKey
 		delete(self.originValueStorage, self.originStorage[key])
 
 		self.originStorage[key] = valueKey
@@ -499,8 +491,8 @@ func (self *stateObject) Value() *big.Int {
 	panic("Value on stateObject should never be called")
 }
 
-// todo: 新增方法
-// ======================================= 新增方法 ===============================
+// todo: New method
+// ======================================= New method ===============================
 
 // todo: new method -> AbiHash
 func (self *stateObject) AbiHash() []byte {
@@ -515,7 +507,7 @@ func (self *stateObject) Abi(db Database) []byte {
 	if bytes.Equal(self.AbiHash(), emptyCodeHash) {
 		return nil
 	}
-	// 从树中提取code，入参：地址及hash, 此处需要深入发现获取规则
+	// Extract the code from the tree, enter the parameters: address and hash, here you need to find the acquisition rules in depth
 	abi, err := db.ContractAbi(self.addrHash, common.BytesToHash(self.AbiHash()))
 	if err != nil {
 		self.setError(fmt.Errorf("can't load abi hash %x: %v", self.AbiHash(), err))

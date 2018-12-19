@@ -30,8 +30,8 @@ import (
 	"strconv"
 	"strings"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 // Node represents a host on the network.

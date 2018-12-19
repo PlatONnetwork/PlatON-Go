@@ -19,7 +19,7 @@ package main
 import (
 	"fmt"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // ensureVirtualHost checks whether a reverse-proxy is running on the specified

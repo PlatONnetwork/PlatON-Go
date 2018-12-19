@@ -58,9 +58,9 @@ import (
 	"strings"
 	"time"
 
-	"Platon-go/internal/build"
-	"Platon-go/params"
-	sv "Platon-go/swarm/version"
+	"github.com/PlatONnetwork/PlatON-Go/internal/build"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	sv "github.com/PlatONnetwork/PlatON-Go/swarm/version"
 )
 
 var (
@@ -791,7 +791,7 @@ func doAndroidArchive(cmdline []string) {
 	// Build the Android archive and Maven resources
 	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 	build.MustRun(gomobileTool("init", "--ndk", os.Getenv("ANDROID_NDK")))
-	build.MustRun(gomobileTool("bind", "-ldflags", "-s -w", "--target", "android", "--javapkg", "org.ethereum", "-v", "Platon-go/mobile"))
+	build.MustRun(gomobileTool("bind", "-ldflags", "-s -w", "--target", "android", "--javapkg", "org.ethereum", "-v", "github.com/PlatONnetwork/PlatON-Go/mobile"))
 
 	if *local {
 		// If we're building locally, copy bundle to build dir and skip Maven
@@ -917,7 +917,7 @@ func doXCodeFramework(cmdline []string) {
 	// Build the iOS XCode framework
 	build.MustRun(goTool("get", "golang.org/x/mobile/cmd/gomobile", "golang.org/x/mobile/cmd/gobind"))
 	build.MustRun(gomobileTool("init"))
-	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "--tags", "ios", "-v", "Platon-go/mobile")
+	bind := gomobileTool("bind", "-ldflags", "-s -w", "--target", "ios", "--tags", "ios", "-v", "github.com/PlatONnetwork/PlatON-Go/mobile")
 
 	if *local {
 		// If we're building locally, use the build folder and stop afterwards

@@ -20,8 +20,8 @@ import (
 	"math/big"
 	"reflect"
 
-	"Platon-go/common"
-	"Platon-go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
 )
 
 // packBytesSlice packs the given bytes as [L, V] as the canonical representation

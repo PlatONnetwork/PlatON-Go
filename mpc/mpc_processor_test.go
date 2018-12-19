@@ -1,7 +1,7 @@
 package mpc
 
 import (
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"testing"
 )
 

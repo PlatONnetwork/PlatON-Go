@@ -27,22 +27,22 @@ import (
 	"strings"
 	"time"
 
-	"Platon-go/accounts"
-	"Platon-go/accounts/keystore"
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/common/math"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/core/vm"
-	"Platon-go/crypto"
-	"Platon-go/log"
-	"Platon-go/p2p"
-	"Platon-go/params"
-	"Platon-go/rlp"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -1211,7 +1211,7 @@ func submitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 		addr := crypto.CreateAddress(from, tx.Nonce())
 		log.Info("Submitted contract creation", "fullhash", tx.Hash().Hex(), "contract", addr.Hex())
 	} else {
-		log.Info("Submitted transaction", "fullhash", tx.Hash().Hex(), "recipient", tx.To())
+		//log.Info("Submitted transaction", "fullhash", tx.Hash().Hex(), "recipient", tx.To())
 	}
 	return tx.Hash(), nil
 }
