@@ -414,7 +414,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				commit(false, commitInterruptNewHead, nil)
 			} else {
-				w.makePending()
+				//w.makePending()
 				timer.Reset(0)
 			}
 
