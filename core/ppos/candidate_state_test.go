@@ -131,7 +131,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 	/** test Election */
 	t.Log("test Election ...")
-	_, err := candidatePool.Election(state)
+	_, err := candidatePool.Election(state, common.Hash{})
 	t.Log("whether election was successful", err)
 
 	/** test RefundBalance */
@@ -403,7 +403,7 @@ func TestGetElection(t *testing.T) {
 
 	/** test Election */
 	t.Log("test Election ...")
-	_, err := candidatePool.Election(state)
+	_, err := candidatePool.Election(state, common.Hash{})
 	t.Log("Whether election was successful err", err)
 
 }
@@ -485,7 +485,7 @@ func TestGetWitness (t *testing.T) {
 
 	/** test Election */
 	t.Log("test Election ...")
-	_, err := candidatePool.Election(state)
+	_, err := candidatePool.Election(state, common.Hash{})
 	t.Log("Whether election was successful err", err)
 
 	/** test switch */
@@ -576,7 +576,7 @@ func TestGetDefeat(t *testing.T) {
 
 	/** test Election */
 	t.Log("test Election ...")
-	_, err := candidatePool.Election(state)
+	_, err := candidatePool.Election(state, common.Hash{})
 	t.Log("Whether election was successful err", err)
 
 	/**  */
