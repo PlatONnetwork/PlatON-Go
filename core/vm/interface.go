@@ -80,7 +80,7 @@ type StateDB interface {
 	SetTicketCache(nodeid string, tids []common.Hash)
 	GetTicketCache(nodeid string) ([]common.Hash, error)
 	DelTicketCache(nodeid string, tids []common.Hash) error
-	TCount(nodeid string) (uint64, error)
+	TCount(nodeid string) uint64
 	TicketCaceheSnapshot() map[string][]common.Hash
 }
 

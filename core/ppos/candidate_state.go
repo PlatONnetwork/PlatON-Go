@@ -1428,7 +1428,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 		switch c.checkExist(nodeId) {
 		case 1:
 			// remove to immediates from reserves
-			if !c.checkTicket(40 /*ticketidsCache.TCount()  TODO */) {
+			if !c.checkTicket(state.TCount(nodeId.String())/*ticketidsCache.TCount()  TODO */) {
 				if arr, err := handle("Immediate", "Reserve", nodeId, c.immediateCandidates, c.reserveCandidates,
 					c.reserveCacheArr, c.delImmediate, c.delReserve, c.setReserve, c.getImmediateIndex, c.setImmediateIndex, c.setReserveIndex); nil != err {
 					return nil, err
