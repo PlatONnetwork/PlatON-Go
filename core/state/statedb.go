@@ -797,7 +797,7 @@ func (self *StateDB) GetTicketCache(nodeid string) ([]common.Hash, error) {
 		return nil, ErrNotfindFromNodeId
 	}
 	self.tclock.RUnlock()
-	return ret, ErrNotfindFromNodeId
+	return ret, nil
 }
 
 func (self *StateDB) DelTicketCache(nodeid string, tids []common.Hash) error {

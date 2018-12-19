@@ -58,6 +58,21 @@ func BytesToString(curByte []byte) string {
 	return string(curByte)
 }
 
+func Uint64ToBytes(val uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, val)
+	return buf[:]
+}
+
+func HexToAddress(b []byte) common.Address {
+	return common.HexToAddress(string(b))
+}
+
+func HexToNodeId(b []byte) discover.NodeID {
+	nodeid, _ := discover.HexID(string(b))
+	return nodeid
+}
+
 func StringToBytes(curStr string) []byte {
 	return []byte(curStr)
 }
@@ -73,19 +88,4 @@ func IntToBytes(curInt int) []byte {
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	binary.Write(bytesBuffer, binary.BigEndian, &x)
 	return bytesBuffer.Bytes()
-}
-
-func Uint64ToBytes(val uint64) []byte {
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, val)
-	return buf[:]
-}
-
-func HexToAddress(b []byte) common.Address {
-	return common.HexToAddress(string(b))
-}
-
-func HexToNodeId(b []byte) discover.NodeID {
-	nodeid, _ := discover.HexID(string(b))
-	return nodeid
 }
