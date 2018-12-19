@@ -994,27 +994,29 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	arr := make([]*discover.Node, 0)
 	caches := make([]*types.Candidate, 0)
 	// set up all new nextwitnesses information
-	for nodeId, can := range nextWits {
+	//for nodeId, can := range nextWits {
+	for _, nodeId := range nextWitIds {
+		if can, ok := nextWits[nodeId]; ok {
+			// 揭榜后回去调 获取幸运票逻辑
+			luckyId, err := ticketPool.SelectionLuckyTicket(state, nodeId, parentHash)
+			if nil != err {
+				log.Error("Failed to take luckyId on Election", "nodeId", nodeId.String(), "err", err)
+				return nil, nil, err
+			}
 
-		// 揭榜后回去调 获取幸运票逻辑
-		luckyId, err := ticketPool.SelectionLuckyTicket(state, nodeId, parentHash)
-		if nil != err {
-			log.Error("Failed to take luckyId on Election", "nodeId", nodeId.String(), "err", err)
-			return nil, nil, err
-		}
-
-		// 将幸运票ID 置入 next witness 详情中
-		can.TicketId = luckyId
-		if err := c.setNextWitness(state, nodeId, can); nil != err {
-			log.Error("failed to setNextWitness on election", "err", err)
-			return nil, nil, err
-		}
-		caches = append(caches, can)
-		if node, err := buildWitnessNode(can); nil != err {
-			log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
-			continue
-		} else {
-			arr = append(arr, node)
+			// 将幸运票ID 置入 next witness 详情中
+			can.TicketId = luckyId
+			if err := c.setNextWitness(state, nodeId, can); nil != err {
+				log.Error("failed to setNextWitness on election", "err", err)
+				return nil, nil, err
+			}
+			caches = append(caches, can)
+			if node, err := buildWitnessNode(can); nil != err {
+				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
+				continue
+			} else {
+				arr = append(arr, node)
+			}
 		}
 	}
 	// update new nextwitnesses index
@@ -1337,28 +1339,50 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 	}
 
 	delNodeIds := make([]discover.NodeID, 0)
+
+	type result struct {
+		Err 	error
+		ResArr 	[]discover.NodeID
+	}
+	resChan := make(chan *result, len(nodeIds))
+	var wg sync.WaitGroup
+	wg.Add(len(nodeIds))
 	for _, nodeId := range nodeIds {
 		switch c.checkExist(nodeId) {
 		case 1:
 			// remove to immediates from reserves
-			if !c.checkTicket(state.TCount(nodeId.String())) {
-				if arr, err := handle("Immediate", "Reserve", nodeId, c.immediateCandidates, c.reserveCandidates,
-					c.reserveCacheArr, c.delImmediate, c.delReserve, c.setReserve, c.getImmediateIndex, c.setImmediateIndex, c.setReserveIndex); nil != err {
-					return nil, err
-				} else {
-					delNodeIds = append(delNodeIds, arr...)
+			go func() {
+				defer wg.Done()
+				res := new(result)
+				if !c.checkTicket(state.TCount(nodeId.String())) {
+					if arr, err := handle("Immediate", "Reserve", nodeId, c.immediateCandidates, c.reserveCandidates,
+						c.reserveCacheArr, c.delImmediate, c.delReserve, c.setReserve, c.getImmediateIndex, c.setImmediateIndex, c.setReserveIndex); nil != err {
+						//return nil, err
+						res.Err = err
+					} else if len(arr) != 0{
+						//delNodeIds = append(delNodeIds, arr...)
+						res.ResArr = arr
+					}
 				}
-			}
+				resChan <- res
+			}()
 		case 2:
 			// remove to reserves from immediates
-			if c.checkTicket(state.TCount(nodeId.String())) {
-				if arr, err := handle("Reserve", "Immediate", nodeId, c.reserveCandidates, c.immediateCandidates,
-					c.immediateCacheArr, c.delReserve, c.delImmediate, c.setImmediate, c.getReserveIndex, c.setReserveIndex, c.setImmediateIndex); nil != err {
-					return nil, err
-				} else {
-					delNodeIds = append(delNodeIds, arr...)
+			go func() {
+				defer wg.Done()
+				res := new(result)
+				if c.checkTicket(state.TCount(nodeId.String())) {
+					if arr, err := handle("Reserve", "Immediate", nodeId, c.reserveCandidates, c.immediateCandidates,
+						c.immediateCacheArr, c.delReserve, c.delImmediate, c.setImmediate, c.getReserveIndex, c.setReserveIndex, c.setImmediateIndex); nil != err {
+						//return nil, err
+						res.Err = err
+					} else if len(arr) != 0 {
+						//delNodeIds = append(delNodeIds, arr...)
+						res.ResArr = arr
+					}
 				}
-			}
+				resChan <- res
+			}()
 
 			//
 			//if c.checkTicket(40 /*ticketidsCache.TCount()  TODO */) {
@@ -1446,10 +1470,20 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 			//	}
 			//}
 		default:
+			wg.Done()
 			continue
 		}
 	}
-
+	wg.Wait()
+	close(resChan)
+	for res := range resChan {
+		if nil != res.Err {
+			return nil, res.Err
+		}
+		if len(res.ResArr) != 0 {
+			delNodeIds = append(delNodeIds, res.ResArr...)
+		}
+	}
 	return delNodeIds, nil
 }
 
