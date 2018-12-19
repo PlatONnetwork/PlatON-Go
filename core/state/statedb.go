@@ -824,13 +824,9 @@ func (self *StateDB) DelTicketCache(nodeid string, tids []common.Hash) error {
 
 func (self *StateDB) TCount(nodeid string)  uint64 {
 	self.tclock.RLock()
-	cache, ok := self.cTicketCache[nodeid]
-	if !ok {
-		self.tclock.RUnlock()
-		return 0
-	}
+	count := uint64(len(self.cTicketCache[nodeid]))
 	self.tclock.RUnlock()
-	return uint64(len(cache))
+	return count
 }
 
 func (self *StateDB) TicketCaceheSnapshot() map[string][]common.Hash  {
