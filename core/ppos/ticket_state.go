@@ -44,7 +44,7 @@ type TicketPool struct {
 	MaxCount			uint64
 	// Remaining number of ticket pool
 	SurplusQuantity		uint64
-	// Overdue
+	// Reach expired quantity
 	ExpireBlockNumber	uint64
 	lock				*sync.RWMutex
 }

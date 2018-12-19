@@ -168,6 +168,7 @@ type CbftConfig struct {
 // modify by platon
 type PposConfig struct {
 	Candidate 				*CandidateConfig 			`json:"candidate"`
+	Ticket 					*TicketConfig 				`json:"ticket"`
 }
 // modify by platon
 type CandidateConfig struct {
@@ -178,6 +179,13 @@ type CandidateConfig struct {
 	// allow block interval for refunds
 	RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
 
+}
+// modify by platon
+type TicketConfig struct {
+	// Maximum number of ticket pool
+	MaxCount				uint64					`json:"maxCount"`
+	// Reach expired quantity
+	ExpireBlockNumber		uint64					`json:"expireBlockNumber"`
 }
 
 type configMarshaling struct {
