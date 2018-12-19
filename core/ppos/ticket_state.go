@@ -15,7 +15,6 @@ import (
 	"math/big"
 	"sort"
 	"sync"
-	"Platon-go/core/ticketcache"
 )
 
 var (
@@ -71,7 +70,7 @@ func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNum
 	}
 	// 调用候选人重新排序接口
 	log.Info("投票成功，开始更新候选人榜单")
-	candidatePool.UpdateElectedQueue(stateDB, blockNumber, blockhash, nodeId)
+	candidatePool.UpdateElectedQueue(stateDB, nodeId)
 	log.Info("投票成功，候选人榜单更新成功")
 	return voteTicketIdList, nil
 }
@@ -258,7 +257,29 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 		}
 		log.Info("掉榜候选人：", nodeId.String(), "总票数：", len(candidateTicketIds), "块高：", blockNumber.Uint64())
 		for _, ticketId := range candidateTicketIds {
-			t.returnTicket(stateDB, nodeId, ticketId, blockNumber, 4)
+			ticket, err := t.GetTicket(stateDB, ticketId)
+			if nil != err {
+				return err
+			}
+			ticket.State = 4
+			if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
+				return  err
+			}
+			t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
+			//t.returnTicket(stateDB, nodeId, ticketId, blockNumber, 4)
+		}
+		candidateAttach, err := t.GetCandidateAttach(stateDB, nodeId)
+		if nil != err {
+			return err
+		}
+		candidateAttach.Epoch = new(big.Int).SetUint64(0)
+		log.Info("更新掉榜候选人：", nodeId.String(), "票龄：", candidateAttach.Epoch)
+		if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
+			return err
+		}
+		log.Info("删除掉榜候选人：", nodeId.String(), "所得票：", len(candidateTicketIds))
+		if err := stateDB.DelTicketCache(nodeId.String(), candidateTicketIds); nil != err {
+			return err
 		}
 	}
 	log.Info("结束处理掉榜票")
@@ -267,10 +288,6 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 
 func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ticketId common.Hash, blockNumber *big.Int) error {
 	log.Info("释放选中票，候选人：", nodeId.String(), "票Id：", ticketId.Hex(), "块高：", blockNumber.Uint64())
-	return t.returnTicket(stateDB, nodeId, ticketId, blockNumber, 2)
-}
-
-func (t *TicketPool) returnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ticketId common.Hash, blockNumber *big.Int, state uint8) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	candidateAttach, err := t.GetCandidateAttach(stateDB, nodeId)
@@ -278,12 +295,12 @@ func (t *TicketPool) returnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 		return err
 	}
 	ticket, err := t.releaseTicket(stateDB, nodeId, candidateAttach, ticketId, blockNumber)
-	ticket.State = state
+	ticket.State = 2
 	log.Info("更新票状态为：", ticket.State)
 	if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
 		return  err
 	}
-	log.Info("更新候选人：", nodeId.String(), "票龄：", candidateAttach.Epoch, "入DB")
+	log.Info("更新候选人：", nodeId.String(), "票龄：", candidateAttach.Epoch)
 	if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
 		return err
 	}
@@ -312,7 +329,7 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.Node
 	log.Info("releaseTicket,开始更新候选人：", candidateId.String(), "总票龄：", candidateAttach.Epoch, "当前块高：", blockNumber.Uint64(), "票块高：", ticket.BlockNumber.Uint64())
 	candidateAttach.SubEpoch(ticket.CalcEpoch(blockNumber))
 	log.Info("releaseTicket,结束更新候选人：", candidateId.String(), "总票龄：", candidateAttach.Epoch, "当前块高：", blockNumber.Uint64(), "票块高：", ticket.BlockNumber.Uint64())
-	return ticket, transfer(stateDB, common.TicketPoolAddr, ticket.Owner, ticket.Deposit)
+	return ticket, nil
 }
 
 // 1.给幸运票发放奖励
@@ -331,12 +348,12 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int) error {
 		} else {
 			// 处理完过期票之后，通知候选人更新榜单信息
 			log.Info("处理完过期票，开始更新候选人榜单，块高：", blockNumber.Uint64(), "变动候选人数量：", len(nodeIdList))
-			candidatePool.UpdateElectedQueue(stateDB, blockNumber, blockhash, nodeIdList...)
+			candidatePool.UpdateElectedQueue(stateDB, nodeIdList...)
 		}
 	}
 	// 每个候选人增加总票龄
 	log.Info("开始为所有候选人增加总票龄，块高：", blockNumber.Uint64())
-	if err := t.calcCandidateEpoch(stateDB, blockNumber, blockhash); nil != err {
+	if err := t.calcCandidateEpoch(stateDB, blockNumber); nil != err {
 		return err
 	}
 	return nil
@@ -352,12 +369,9 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 			return err
 		}
 		// 获取总票数，增加总票龄
-		tcount, err := ticketcache.GetTicketidsCachePtr().TCount(blockNumber, blockhash, candidate.CandidateId)
-		if nil != err {
-			return err
-		}
-		if tcount > 0 {
-			candidateAttach.AddEpoch(new(big.Int).SetUint64(tcount))
+		ticketCount := stateDB.TCount(candidate.CandidateId.String())
+		if ticketCount > 0 {
+			candidateAttach.AddEpoch(new(big.Int).SetUint64(ticketCount))
 			if err := t.setCandidateAttach(stateDB, candidate.CandidateId, candidateAttach); nil != err {
 				return err
 			}
