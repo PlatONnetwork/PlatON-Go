@@ -27,12 +27,12 @@ import (
 
 	cli "gopkg.in/urfave/cli.v1"
 
-	"Platon-go/cmd/utils"
-	"Platon-go/dashboard"
-	"Platon-go/eth"
-	"Platon-go/node"
-	"Platon-go/params"
-	whisper "Platon-go/whisper/whisperv6"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/dashboard"
+	"github.com/PlatONnetwork/PlatON-Go/eth"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 	"github.com/naoina/toml"
 )
 
@@ -133,6 +133,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	}
 
 	utils.SetEthConfig(ctx, stack, &cfg.Eth)
+
+	// pass on the rpc port to mpc pool conf.
+	cfg.Eth.MPCPool.LocalRpcPort = cfg.Node.HTTPPort
 
 	// load cbft config file.
 	if cbftConfig := cfg.Eth.LoadCbftConfig(cfg.Node); cbftConfig != nil {

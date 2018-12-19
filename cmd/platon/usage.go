@@ -24,8 +24,8 @@ import (
 
 	"strings"
 
-	"Platon-go/cmd/utils"
-	"Platon-go/internal/debug"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -242,6 +242,14 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MinerLegacyGasPriceFlag,
 			utils.MinerLegacyEtherbaseFlag,
 			utils.MinerLegacyExtraDataFlag,
+		},
+	},
+	{
+		Name: "MPC COMPUTE",
+		Flags: []cli.Flag{
+			utils.MPCEnabledFlag,
+			utils.MPCActorFlag,
+			utils.MPCIceFileFlag,
 		},
 	},
 	{

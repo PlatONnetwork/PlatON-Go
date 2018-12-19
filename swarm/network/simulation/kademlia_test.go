@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/node"
-	"Platon-go/p2p/simulations/adapters"
-	"Platon-go/swarm/network"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/network"
 )
 
 func TestWaitTillHealthy(t *testing.T) {

@@ -25,10 +25,10 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/p2p/discover"
-	ch "Platon-go/swarm/chunk"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	ch "github.com/PlatONnetwork/PlatON-Go/swarm/chunk"
 
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 var sourcePeerID = discover.MustHexID("2dd9d65c4552b5eb43d5ad55a2ee3f56c6cbc1c64a5c8d659f51fcd51bace24351232b8d7821617d2b29b54b81cdefb9b3e9c37d7fd5f63270bcc9e1a6f6a439")

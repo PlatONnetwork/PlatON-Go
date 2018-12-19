@@ -21,7 +21,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"Platon-go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
 // Tests that data bitset encoding and decoding works and is bijective.

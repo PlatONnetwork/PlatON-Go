@@ -20,11 +20,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/common/math"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core/types"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 //go:generate gencodec -type DifficultyTest -field-override difficultyTestMarshaling -out gen_difficultytest.go

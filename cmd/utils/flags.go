@@ -28,35 +28,35 @@ import (
 	"strings"
 	"time"
 
-	"Platon-go/accounts"
-	"Platon-go/accounts/keystore"
-	"Platon-go/common"
-	"Platon-go/common/fdlimit"
-	"Platon-go/consensus"
-	"Platon-go/consensus/clique"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core"
-	"Platon-go/core/state"
-	"Platon-go/core/vm"
-	"Platon-go/crypto"
-	"Platon-go/dashboard"
-	"Platon-go/eth"
-	"Platon-go/eth/downloader"
-	"Platon-go/eth/gasprice"
-	"Platon-go/ethdb"
-	"Platon-go/ethstats"
-	"Platon-go/les"
-	"Platon-go/log"
-	"Platon-go/metrics"
-	"Platon-go/metrics/influxdb"
-	"Platon-go/node"
-	"Platon-go/p2p"
-	"Platon-go/p2p/discover"
-	"Platon-go/p2p/discv5"
-	"Platon-go/p2p/nat"
-	"Platon-go/p2p/netutil"
-	"Platon-go/params"
-	whisper "Platon-go/whisper/whisperv6"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/fdlimit"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/clique"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/dashboard"
+	"github.com/PlatONnetwork/PlatON-Go/eth"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/ethstats"
+	"github.com/PlatONnetwork/PlatON-Go/les"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/metrics/influxdb"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 	"gopkg.in/urfave/cli.v1"
 )
 
@@ -624,6 +624,22 @@ var (
 		Value: "",
 	}
 
+	// mpc compute
+	MPCIceFileFlag = cli.StringFlag{
+		Name:  "mpc.ice",
+		Usage: "Filename for ice to init mvm",
+		Value: "",
+	}
+	MPCActorFlag = cli.StringFlag{
+		Name: "mpc.actor",
+		Usage: "The address of actor to exec mpc compute",
+		Value: "",
+	}
+	MPCEnabledFlag = cli.BoolFlag{
+		Name:  "mpc",
+		Usage: "Enable mpc compute",
+	}
+
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1051,6 +1067,31 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 }
 
+func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
+	if ctx.GlobalIsSet(MPCEnabledFlag.Name) {
+		cfg.MPCEnable = ctx.GlobalBool(MPCEnabledFlag.Name)
+	}
+	if ctx.GlobalIsSet(MPCActorFlag.Name) {
+		cfg.MpcActor = common.HexToAddress(ctx.GlobalString(MPCActorFlag.Name))
+	}
+	if file := ctx.GlobalString(MPCIceFileFlag.Name); file != "" {
+		if _, err := os.Stat(file); err != nil {
+			fmt.Println("ice conf not exists.")
+			return
+		}
+		if b := filepath.IsAbs(file); !b {
+			absPath, err := filepath.Abs(file)
+			if err != nil {
+				fmt.Println("Read abs path of ice conf fail: ", err.Error())
+				return
+			}
+			cfg.IceConf = absPath
+		} else {
+			cfg.IceConf = file
+		}
+	}
+}
+
 func setEthash(ctx *cli.Context, cfg *eth.Config) {
 	if ctx.GlobalIsSet(EthashCacheDirFlag.Name) {
 		cfg.Ethash.CacheDir = ctx.GlobalString(EthashCacheDirFlag.Name)
@@ -1133,6 +1174,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	setEtherbase(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
+	// for mpc compute
+	setMpcPool(ctx, &cfg.MPCPool)
 	setEthash(ctx, cfg)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
@@ -1262,7 +1305,6 @@ func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
 // RegisterEthService adds an Ethereum client to the stack.
 func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 	var err error
-	// 注册即为定义构造函数的实现方式
 	if cfg.SyncMode == downloader.LightSync {
 		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 			return les.New(ctx, cfg)

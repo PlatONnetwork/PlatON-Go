@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"Platon-go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
 )
 
 // Memory implements a simple memory model for the ethereum virtual machine.

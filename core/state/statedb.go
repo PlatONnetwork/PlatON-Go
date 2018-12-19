@@ -18,19 +18,19 @@
 package state
 
 import (
-	"Platon-go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"bytes"
 	"fmt"
 	"math/big"
 	"sort"
 	"sync"
 
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/log"
-	"Platon-go/rlp"
-	"Platon-go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 type revision struct {
@@ -624,6 +624,9 @@ func (s *StateDB) clearJournalAndRefund() {
 
 // Commit writes the state to the underlying in-memory trie database.
 func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	defer s.clearJournalAndRefund()
 
 	for addr := range s.journal.dirties {

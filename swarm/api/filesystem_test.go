@@ -24,8 +24,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/swarm/storage"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
 )
 
 var testDownloadDir, _ = ioutil.TempDir(os.TempDir(), "bzz-test")

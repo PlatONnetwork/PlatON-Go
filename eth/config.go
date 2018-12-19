@@ -17,7 +17,7 @@
 package eth
 
 import (
-	"Platon-go/node"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"fmt"
 	"math/big"
 	"os"
@@ -26,14 +26,14 @@ import (
 	"runtime"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core"
-	"Platon-go/eth/downloader"
-	"Platon-go/eth/gasprice"
-	"Platon-go/log"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -72,6 +72,9 @@ var DefaultConfig = Config{
 		Blocks:     20,
 		Percentile: 60,
 	},
+
+	MPCPool: core.DefaultMPCPoolConfig ,
+
 }
 
 func init() {
@@ -95,7 +98,7 @@ type Config struct {
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
 
-	CbftConfig CbftConfig `toml:",omitempty"`
+	CbftConfig	CbftConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
@@ -142,11 +145,15 @@ type Config struct {
 	EWASMInterpreter string
 	// Type of the EVM interpreter ("" for default)
 	EVMInterpreter string
+
+
+	// MPC pool options
+	MPCPool core.MPCPoolConfig
 }
 
 type CbftConfig struct {
-	Period           uint64  `json:"period"` // Number of seconds between blocks to enforce
-	Epoch            uint64  `json:"epoch"`  // Epoch length to reset votes and checkpoint
+	Period           uint64  `json:"period"`           // Number of seconds between blocks to enforce
+	Epoch            uint64  `json:"epoch"`            // Epoch length to reset votes and checkpoint
 	MaxLatency       int64   `json:"maxLatency"`
 	LegalCoefficient float64 `json:"legalCoefficient"`
 	Duration         int64   `json:"duration"`

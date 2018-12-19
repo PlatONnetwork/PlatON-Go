@@ -20,7 +20,7 @@ import (
 	"errors"
 	"sync"
 
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 /*

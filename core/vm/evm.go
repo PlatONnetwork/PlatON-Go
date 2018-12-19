@@ -22,9 +22,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -144,10 +144,10 @@ func NewEVM(ctx Context, statedb StateDB, chainConfig *params.ChainConfig, vmCon
 	// vmConfig.EVMInterpreter will be used by EVM-C, it won't be checked here
 	// as we always want to have the built-in EVM as the failover option.
 	// todo: replace the evm to wasm for the interpreter.
-	if strings.EqualFold("wasm", chainConfig.VMInterpreter) {
-		evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
-	} else {
+	if strings.EqualFold("evm", chainConfig.VMInterpreter) {
 		evm.interpreters = append(evm.interpreters, NewEVMInterpreter(evm, vmConfig))
+	} else {
+		evm.interpreters = append(evm.interpreters, NewWASMInterpreter(evm, vmConfig))
 	}
 	evm.interpreter = evm.interpreters[0]
 	return evm

@@ -19,7 +19,7 @@
 package fetcher
 
 import (
-	"Platon-go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 )
 
 var (

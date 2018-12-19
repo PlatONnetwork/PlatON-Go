@@ -31,13 +31,13 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/rs/cors"
 )
 
 const (
 	contentType             = "application/json"
-	maxRequestContentLength = 128 * 512	// TODO: MAX REQUEST CONTENT LENGTH PRE : 128
+	maxRequestContentLength = 1024 * 1024	// 128
 )
 
 var nullAddr, _ = net.ResolveTCPAddr("tcp", "127.0.0.1:0")

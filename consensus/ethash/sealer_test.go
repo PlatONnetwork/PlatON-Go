@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // Tests whether remote HTTP servers are correctly notified of new work.

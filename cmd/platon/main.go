@@ -28,16 +28,16 @@ import (
 	"strings"
 	"time"
 
-	"Platon-go/accounts"
-	"Platon-go/accounts/keystore"
-	"Platon-go/cmd/utils"
-	"Platon-go/console"
-	"Platon-go/eth"
-	"Platon-go/ethclient"
-	"Platon-go/internal/debug"
-	"Platon-go/log"
-	"Platon-go/metrics"
-	"Platon-go/node"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/console"
+	"github.com/PlatONnetwork/PlatON-Go/eth"
+	"github.com/PlatONnetwork/PlatON-Go/ethclient"
+	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/elastic/gosigar"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -164,6 +164,12 @@ var (
 		utils.MetricsInfluxDBPasswordFlag,
 		utils.MetricsInfluxDBHostTagFlag,
 	}
+
+	mpcFlags = []cli.Flag{
+		utils.MPCEnabledFlag,
+		utils.MPCIceFileFlag,
+		utils.MPCActorFlag,
+	}
 )
 
 func init() {
@@ -207,6 +213,9 @@ func init() {
 	app.Flags = append(app.Flags, debug.Flags...)
 	app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
+
+	// for mpc
+	app.Flags = append(app.Flags, mpcFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())

@@ -22,25 +22,27 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
-	"Platon-go/accounts"
-	"Platon-go/accounts/keystore"
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/common/math"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/core/vm"
-	"Platon-go/crypto"
-	"Platon-go/log"
-	"Platon-go/p2p"
-	"Platon-go/params"
-	"Platon-go/rlp"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -483,6 +485,26 @@ type PublicBlockChainAPI struct {
 // NewPublicBlockChainAPI creates a new Ethereum blockchain API.
 func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 	return &PublicBlockChainAPI{b}
+}
+
+// SetActor set address for mpc compute.
+func (s *PublicBlockChainAPI) SetActor(address common.Address) error {
+	absPath, err := filepath.Abs(core.DEFAULT_ACTOR_FILE_NAME)
+	if err != nil {
+		return fmt.Errorf("File not exists : %v", err.Error())
+	}
+	f, err := os.OpenFile(absPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("open file error : %v ", err.Error())
+	}
+	f.Write(address.Bytes())
+	f.Close()
+
+	if core.MPC_POOL != nil {
+		core.MPC_POOL.LoadActor()
+	}
+
+	return nil
 }
 
 // BlockNumber returns the block number of the chain head.
@@ -1324,6 +1346,14 @@ func (s *PublicTransactionPoolAPI) PendingTransactions() ([]*RPCTransaction, err
 		}
 	}
 	return transactions, nil
+}
+
+func (s *PublicTransactionPoolAPI) PendingTransactionsLength() int {
+	pending, err := s.b.GetPoolTransactions()
+	if err != nil {
+		return -1
+	}
+	return len(pending)
 }
 
 // Resend accepts an existing transaction and a new gas price and limit. It will remove

@@ -22,8 +22,8 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"Platon-go/accounts/abi"
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 
 	"bytes"
 	"os"

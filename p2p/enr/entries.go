@@ -22,8 +22,8 @@ import (
 	"io"
 	"net"
 
-	"Platon-go/crypto"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Entry is implemented by known node record entry types.

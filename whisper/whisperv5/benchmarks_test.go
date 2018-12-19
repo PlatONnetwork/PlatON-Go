@@ -19,7 +19,7 @@ package whisperv5
 import (
 	"testing"
 
-	"Platon-go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 func BenchmarkDeriveKeyMaterial(b *testing.B) {
