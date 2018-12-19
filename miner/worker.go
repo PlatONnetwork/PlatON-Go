@@ -428,7 +428,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
 			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "blockRoot", head.Block.Root())
-			w.consensusCache.ClearCache(head.Block)			
+			w.consensusCache.ClearCache(head.Block)
 
 		case highestLogicalBlock := <-w.highestLogicalBlockCh:
 			log.Debug("received a notify for new highest logical", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash())
