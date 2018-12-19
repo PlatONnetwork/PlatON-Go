@@ -573,11 +573,8 @@ func (self *StateDB) Copy() *StateDB {
 
 	//ppos add
 	for nodeid, tids := range self.cTicketCache {
-		tidArray := make([]common.Hash, len(tids))
-		for _, tid := range tids {
-			tidArray = append(tidArray, tid)
-		}
-		state.cTicketCache[nodeid] = tidArray
+		state.cTicketCache[nodeid] = make([]common.Hash, len(tids))
+		copy(state.cTicketCache[nodeid], tids)
 	}
 	return state
 }
@@ -800,7 +797,7 @@ func (self *StateDB) GetTicketCache(nodeid string) ([]common.Hash, error) {
 		return nil, ErrNotfindFromNodeId
 	}
 	self.tclock.RUnlock()
-	return ret, ErrNotfindFromNodeId
+	return ret, ErrNotfindFromNodeId //？
 }
 
 func (self *StateDB) DelTicketCache(nodeid string, tids []common.Hash) error {
@@ -823,4 +820,24 @@ func (self *StateDB) DelTicketCache(nodeid string, tids []common.Hash) error {
 	self.cTicketCache[nodeid] = cache
 	self.tclock.Unlock()
 	return nil
+}
+
+func (self *StateDB) TCount(nodeid string) (uint64, error) {
+	self.tclock.RLock()
+	cache, ok := self.cTicketCache[nodeid]
+	if !ok {
+		self.tclock.RUnlock()
+		return 0, ErrNotfindFromNodeId
+	}
+	self.tclock.RUnlock()
+	return uint64(len(cache)), nil
+}
+
+func (self *StateDB) TicketCaceheSnapshot() map[string][]common.Hash  {
+	ret := make(map[string][]common.Hash, len(self.cTicketCache))
+	for nodeid, tids := range self.cTicketCache {
+		ret[nodeid] = make([]common.Hash, len(tids))
+		copy(ret[nodeid], tids)
+	}
+	return ret
 }

@@ -80,6 +80,8 @@ type StateDB interface {
 	SetTicketCache(nodeid string, tids []common.Hash)
 	GetTicketCache(nodeid string) ([]common.Hash, error)
 	DelTicketCache(nodeid string, tids []common.Hash) error
+	TCount(nodeid string) (uint64, error)
+	TicketCaceheSnapshot() map[string][]common.Hash
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM
