@@ -16,6 +16,7 @@ import (
 	"net"
 	"strconv"
 	"sync"
+	"Platon-go/core/ticketcache"
 )
 
 var (
@@ -1312,14 +1313,14 @@ func (c *CandidatePool) GetRefundInterval() uint64 {
 //}
 
 // 根据nodeId 去重新决定当前候选人的去留
-func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, blockNumber *big.Int, blockhash common.Hash, nodeIds ... discover.NodeID) error {
+func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, nodeIds ... discover.NodeID) error {
 	var ids []discover.NodeID
 	if arr, err := c.updateQueue(state, nodeIds...); nil != err {
 		return err
 	} else {
 		ids = arr
 	}
-	return ticketPool.DropReturnTicket(state, blockNumber, blockhash, ids...)
+	return ticketPool.DropReturnTicket(state, ids...)
 }
 
 func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeID) ([]discover.NodeID, error) {
