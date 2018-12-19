@@ -74,9 +74,12 @@ type StateDB interface {
 
 	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
 
-	//platon add
+	//ppos add
 	TxHash() common.Hash
 	TxIdx() uint32
+	SetTicketCache(nodeid string, tids []common.Hash)
+	GetTicketCache(nodeid string) ([]common.Hash, error)
+	DelTicketCache(nodeid string, tids []common.Hash) error
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM
