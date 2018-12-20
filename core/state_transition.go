@@ -17,6 +17,7 @@
 package core
 
 import (
+	"Platon-go/core/ppos"
 	"errors"
 	"math"
 	"math/big"
@@ -112,7 +113,7 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
 	//ppos
-	//evm.CandidatePool = pposm.GetCandidatePtr()
+	evm.CandidatePool = pposm.GetCandidatePtr()
 	return &StateTransition{
 		gp:       gp,
 		evm:      evm,
