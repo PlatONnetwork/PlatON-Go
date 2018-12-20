@@ -2,21 +2,131 @@ package ticketcache
 
 import (
 	"Platon-go/common"
+	"Platon-go/common/byteutil"
 	"Platon-go/common/hexutil"
 	"Platon-go/crypto"
 	"Platon-go/ethdb"
+	"Platon-go/p2p/discover"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"math/big"
 	"testing"
+	"time"
 )
+
+func getMaxtickets() (map[string][]common.Hash, error) {
+	//every nodeid hash 256 ticket total has 200 nodeid
+	ret := make(map[string][]common.Hash)
+
+	for n:=0; n<200; n++ {
+		nodeid := make([]byte, 0, 64)
+		nodeid = append(nodeid, crypto.Keccak256Hash([]byte("nodeid"), byteutil.IntToBytes(n)).Bytes()...)
+		nodeid = append(nodeid, crypto.Keccak256Hash([]byte("nodeid"), byteutil.IntToBytes(n*10)).Bytes()...)
+		NodeId, err := discover.BytesID(nodeid)
+		if err!=nil {
+			return ret, err
+		}
+		tids := make([]common.Hash, 0)
+		for i:=0; i<256 ; i++ {
+			tids = append(tids, crypto.Keccak256Hash([]byte("tid"), byteutil.IntToBytes(i)))
+		}
+		ret[NodeId.String()] = tids
+	}
+
+	return ret, nil
+}
+
+func Test_GenerateData (t *testing.T)  {
+	for i:=0; i<20; i++  {
+		_,err := getMaxtickets()
+		if err!=nil {
+			fmt.Println("getMaxtickets faile err: ", err.Error())
+			t.Errorf("getMaxtickets faile")
+		}
+	}
+}
+
+func Test_Submit2Cache(t *testing.T)  {
+	ldb, err := ethdb.NewLDBDatabase("./data/platon/chaindata", 0, 0)
+	if err!=nil {
+		t.Errorf("NewLDBDatabase faile")
+	}
+
+	tc := NewTicketIdsCache(ldb)
+	for i:=0; i<20; i++  {
+		number := big.NewInt(int64(i))
+		bkhash := crypto.Keccak256Hash(byteutil.IntToBytes(i))
+		mapCache ,err := getMaxtickets()
+		if err!=nil {
+			fmt.Println("getMaxtickets faile err: ", err.Error())
+			t.Errorf("getMaxtickets faile")
+		}
+		tc.Submit2Cache(number, bkhash, mapCache)
+		//chash, err:= tc.Hash(number, bkhash)
+		//fmt.Println("hash: ", chash.Hex())
+	}
+	ldb.Close()
+}
+
+func Test_Write(t *testing.T)  {
+	ldb, err := ethdb.NewLDBDatabase("./data/platon/chaindata", 0, 0)
+	if err!=nil {
+		t.Errorf("NewLDBDatabase faile")
+	}
+
+	tc := NewTicketIdsCache(ldb)
+	for i:=0; i<20; i++  {
+		number := big.NewInt(int64(i))
+		bkhash := crypto.Keccak256Hash(byteutil.IntToBytes(i))
+		mapCache ,err := getMaxtickets()
+		if err!=nil {
+			fmt.Println("getMaxtickets faile err: ", err.Error())
+			t.Errorf("getMaxtickets faile")
+		}
+
+		tb := time.Now().Nanosecond()
+		tc.Submit2Cache(number, bkhash, mapCache)
+		fmt.Println("run submit time: ", time.Now().Nanosecond() - tb)
+
+		tb = time.Now().Nanosecond()
+		chash, err:= tc.Hash(number, bkhash)
+		fmt.Println("run Hash time: ", time.Now().Nanosecond() - tb, " hash: ", chash.Hex())
+
+	}
+	tc.Commit(ldb)
+	ldb.Close()
+}
+
+func Test_New(t *testing.T)  {
+	ldb, err := ethdb.NewLDBDatabase("./data/platon/chaindata", 0, 0)
+	if err!=nil {
+		t.Errorf("NewLDBDatabase faile")
+	}
+
+	NewTicketIdsCache(ldb)
+	ldb.Close()
+}
+
+func Test_Read(t *testing.T)  {
+	ldb, err := ethdb.NewLDBDatabase("./data/platon/chaindata", 0, 0)
+	if err!=nil {
+		t.Errorf("NewLDBDatabase faile")
+	}
+
+	tcCopy := NewTicketIdsCache(ldb)
+	for i:=0; i<20; i++  {
+		number := big.NewInt(int64(i))
+		bkhash := crypto.Keccak256Hash(byteutil.IntToBytes(i))
+		tcCopy.GetNodeTicketsMap(number, bkhash)
+	}
+	ldb.Close()
+}
 
 func Test_All(t *testing.T)  {
 	ldb, err := ethdb.NewLDBDatabase("./data/platon/chaindata", 0, 0)
 	if err!=nil {
 		t.Errorf("NewLDBDatabase faile")
 	}
-	defer ldb.Close()
 
 	number := big.NewInt(0)
 	bkhash := common.HexToHash("0xe58643cfb17fc50b8579784e134d36bb4021ed70f9baac84190d9260dc005a10")
@@ -34,7 +144,7 @@ func Test_All(t *testing.T)  {
 	chash, err:= tc.Hash(number, bkhash)
 	fmt.Println("hash: ", chash.Hex())
 	tc.Commit(ldb)
-
+	ldb.Close()
 }
 
 func Test_Hash(t *testing.T)  {
