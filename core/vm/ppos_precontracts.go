@@ -13,17 +13,17 @@ import (
 
 // Ppos pre-compiled contract address
 var PrecompiledContractsPpos = map[common.Address]PrecompiledContract{
-	common.CandidatePoolAddr : &candidateContract{},
-	common.TicketPoolAddr : &ticketContract{},
+	common.CandidatePoolAddr: &candidateContract{},
+	common.TicketPoolAddr:    &ticketContract{},
 }
 
 // error def
 var (
 	ErrParamsRlpDecode = errors.New("Rlp decode fail")
-	ErrParamsBaselen = errors.New("Params Base length does not match")
-	ErrParamsLen = errors.New("Params length does not match")
-	ErrUndefFunction = errors.New("Undefined function")
-	ErrCallRecode = errors.New("Call recode error, panic...")
+	ErrParamsBaselen   = errors.New("Params Base length does not match")
+	ErrParamsLen       = errors.New("Params length does not match")
+	ErrUndefFunction   = errors.New("Undefined function")
+	ErrCallRecode      = errors.New("Call recode error, panic...")
 )
 
 // execute decode input data and call the function
@@ -56,8 +56,8 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 	paramNum := paramList.NumIn()
 	// var param []interface{}
 	params := make([]reflect.Value, paramNum)
-	if paramNum!=len(source)-2 {
-		log.Error("Run==> ", "ErrParamsLen: ",ErrParamsLen.Error())
+	if paramNum != len(source)-2 {
+		log.Error("Run==> ", "ErrParamsLen: ", ErrParamsLen.Error())
 		return nil, ErrParamsLen
 	}
 	for i := 0; i < paramNum; i++ {
@@ -76,12 +76,12 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 }
 
 type ResultCommon struct {
-	Ret bool
+	Ret    bool
 	ErrMsg string
 }
 
 // return string format
-func DecodeResultStr (result string) []byte {
+func DecodeResultStr(result string) []byte {
 	// 0x0000000000000000000000000000000000000020
 	// 00000000000000000000000000000000000000000d
 	// 00000000000000000000000000000000000000000
