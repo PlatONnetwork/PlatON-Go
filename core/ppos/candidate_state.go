@@ -89,6 +89,34 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 	log.Info("init data by stateDB...")
 	// loading previous witness
+	//handleWitnessFunc := func(title string, canMap candidateStorage, getIndexFn func (state vm.StateDB) ([]discover.NodeID, error),
+	//					getInfoFn func (state vm.StateDB, id discover.NodeID) (*types.Candidate, error),) error {
+	//	var witnessIds []discover.NodeID
+	//	canMap = make(candidateStorage, 0)
+	//	if ids, err := getIndexFn(state); nil != err {
+	//		log.Error("Failed to decode "+title+" witnessIds on initDataByState", " err", err)
+	//		return err
+	//	} else {
+	//		witnessIds = ids
+	//	}
+	//	PrintObject(title+" witnessIds", witnessIds)
+	//	for _, witnessId := range witnessIds {
+	//
+	//		if ca, err := getInfoFn(state, witnessId); nil != err {
+	//			log.Error("Failed to decode "+title+" witness Candidate on initDataByState", "err", err)
+	//			return CandidateDecodeErr
+	//		} else {
+	//			if nil != ca {
+	//				canMap[witnessId] = ca
+	//			} else {
+	//				delete(canMap, witnessId)
+	//			}
+	//		}
+	//	}
+	//	return nil
+	//}
+
+
 	var prewitnessIds []discover.NodeID
 	c.preOriginCandidates = make(candidateStorage, 0)
 	if ids, err := getPreviousWitnessIdsState(state); nil != err {
@@ -117,7 +145,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 	var witnessIds []discover.NodeID
 	c.originCandidates = make(candidateStorage, 0)
 	if ids, err := getWitnessIdsByState(state); nil != err {
-		log.Error("Failed to decode witnessIds on initDataByState", "err", err)
+		log.Error("Failed to decode current witnessIds on initDataByState", "err", err)
 		return err
 	} else {
 		witnessIds = ids
@@ -142,7 +170,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 	var nextWitnessIds []discover.NodeID
 	c.nextOriginCandidates = make(candidateStorage, 0)
 	if ids, err := getNextWitnessIdsByState(state); nil != err {
-		log.Error("Failed to decode nextWitnessIds on initDataByState", "err", err)
+		log.Error("Failed to decode next witnessIds on initDataByState", "err", err)
 		return err
 	} else {
 		nextWitnessIds = ids
@@ -899,7 +927,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 }
 
 // Announce witness
-func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash) ([]*discover.Node, error) {
+func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, currBlockNumber *big.Int) ([]*discover.Node, error) {
 	var nodes []*discover.Node
 	var cans []*types.Candidate
 	if nodeArr, canArr, err := c.election(state, parentHash); nil != err {
@@ -911,14 +939,14 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash) (
 	nodeIds := make([]discover.NodeID, 0)
 	for _, can := range cans {
 		// 释放幸运票
-		if err := ticketPool.ReturnTicket(state, can.CandidateId, can.TicketId, big.NewInt(0), common.HexToHash("")); nil != err {
+		if err := ticketPool.ReturnTicket(state, can.CandidateId, can.TicketId, currBlockNumber); nil != err {
 			log.Error("Failed to ReturnTicket on Election", "nodeId", can.CandidateId.String(), "ticketId", can.TicketId.String(), "err", err)
 			continue
 		}
 
 		/**
 		获取TCount
-		然后需要对入围候选人再次做排序 T
+		然后需要对入围候选人再次做排序
 		 */
 		c.lock.Lock()
 		if err := c.initDataByState(state, 2); nil != err {

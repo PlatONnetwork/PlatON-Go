@@ -256,9 +256,9 @@ func (d *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 /** ppos was added func */
 /** Method provided to the cbft module call */
 // Announce witness
-func (d *ppos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover.Node, error) {
+func (d *ppos) Election(state *state.StateDB, currBlocknumber *big.Int) ([]*discover.Node, error) {
 	// TODO
-	if nextNodes, err := d.candidatePool.Election(state, common.BytesToHash([]byte("") /** parentHash */)); nil != err {
+	if nextNodes, err := d.candidatePool.Election(state, common.BytesToHash([]byte("") /** parentHash */), currBlocknumber); nil != err {
 		log.Error("ppos election next witness err", err)
 		panic("Election error " + err.Error())
 	} else {
@@ -527,8 +527,8 @@ func (d *ppos) GetPoolNumber (state vm.StateDB) (uint64, error) {
 	return d.ticketPool.GetPoolNumber(state)
 }
 
-func (d *ppos) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int, blockhash common.Hash) ([]common.Hash, error) {
-	return d.ticketPool.VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber, blockhash)
+func (d *ppos) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
+	return d.ticketPool.VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber)
 }
 
 func (d *ppos) GetTicket(state vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
@@ -539,18 +539,18 @@ func (d *ppos) GetTicketList (state vm.StateDB, ticketIds []common.Hash) ([]*typ
 	return d.ticketPool.GetTicketList(state, ticketIds)
 }
 
-func (d *ppos) ReturnTicket (state vm.StateDB, nodeId discover.NodeID, ticketId common.Hash, blockNumber *big.Int, blockhash common.Hash) error {
-	return d.ticketPool.ReturnTicket(state, nodeId, ticketId, blockNumber, blockhash)
+func (d *ppos) ReturnTicket (state vm.StateDB, nodeId discover.NodeID, ticketId common.Hash, blockNumber *big.Int) error {
+	return d.ticketPool.ReturnTicket(state, nodeId, ticketId, blockNumber)
 }
 
-func (d *ppos) GetCandidateTicketIds (state vm.StateDB, blockNumber *big.Int, blockhash common.Hash, nodeId discover.NodeID) ([]common.Hash, error) {
-	return d.ticketPool.GetCandidateTicketIds(state, blockNumber, blockhash, nodeId)
+func (d *ppos) GetCandidateTicketIds (state vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
+	return d.ticketPool.GetCandidateTicketIds(state, nodeId)
 }
 
 
 ////// 每一个块都会调用的方法
-func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int, blockhash common.Hash) error {
-	return d.ticketPool.Notify(state, blockNumber, blockhash)
+func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
+	return d.ticketPool.Notify(state, blockNumber)
 }
 
 // cbft consensus fork need to update  nodeRound
