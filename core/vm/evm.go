@@ -52,12 +52,16 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
-		//ppos
+		// ppos
 		if p := PrecompiledContractsPpos[*contract.CodeAddr]; p != nil {
-			if f, ok := p.(*candidateContract);ok {
-				f.contract = contract
-				f.evm = evm
-			}		
+			if c, ok := p.(*candidateContract); ok {
+				c.contract = contract
+				c.evm = evm
+			}
+			if t, ok := p.(*ticketContract); ok {
+				t.contract = contract
+				t.evm = evm
+			}
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}

@@ -46,7 +46,7 @@ func (t *ticketContract) RequiredGas(input []byte) uint64 {
 
 func (t *ticketContract) Run(input []byte) ([]byte, error) {
 	if nil == t.evm.TicketPool {
-		log.Error("Run==> ", "ErrTicketPoolEmpty: ", ErrTicketPoolEmpty.Error())
+		log.Error("Run==> ", "ErrTicketPoolEmpty", ErrTicketPoolEmpty.Error())
 		return nil, ErrTicketPoolEmpty
 	}
 	var command = map[string]interface{}{
