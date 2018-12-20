@@ -79,7 +79,7 @@ func (t *ticketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 		return nil, ErrCandidateNotExist
 	}
 	totalPrice := new(big.Int).Mul(new(big.Int).SetUint64(count), price)
-	if totalPrice != value || value.Cmp(big.NewInt(0)) != 1 || totalPrice.Cmp(big.NewInt(0)) != 1 {
+	if totalPrice.Cmp(value) != 0 || value.Cmp(big.NewInt(0)) != 1 || totalPrice.Cmp(big.NewInt(0)) != 1 {
 		return nil, ErrIllegalDeposit
 	}
 	// return ([]common.hash, error) successful ticketIds
