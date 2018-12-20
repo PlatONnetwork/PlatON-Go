@@ -178,11 +178,15 @@ func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Ha
 
 	blockNodes, ok := nb.NBlocks[blocknumber.String()]
 	if !ok {
-		return nil, ErrNotfindFromblockNumber
+		blockNodes = &BlockNodes{}
+		blockNodes.BNodes = make(map[string]*NodeTicketIds)
+		nb.NBlocks[blocknumber.String()] = blockNodes
 	}
 	nodeTicketIds, ok := blockNodes.BNodes[blockhash.String()]
 	if !ok {
-		return nil, ErrNotfindFromblockHash
+		nodeTicketIds = &NodeTicketIds{}
+		nodeTicketIds.NTickets = make(map[string]*TicketIds)
+		blockNodes.BNodes[blockhash.String()] = nodeTicketIds
 	}
 	out := make(map[string][]common.Hash)
 	for k, v := range nodeTicketIds.NTickets{
