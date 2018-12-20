@@ -17,6 +17,10 @@ import (
 	"Platon-go/core/ppos"
 	"errors"
 	"encoding/json"
+	"sync/atomic"
+	"time"
+	"math/rand"
+	//"Platon-go/core/ticketcache"
 )
 
 func newChainState() (*state.StateDB, error) {
@@ -25,6 +29,8 @@ func newChainState() (*state.StateDB, error) {
 		genesis = new(core.Genesis).MustCommit(db)
 	)
 	fmt.Println("genesis", genesis)
+	//// new ticketIdsCache
+	//ticketcache.NewTicketIdsCache(db)
 	// Initialize a fresh chain with only a genesis block
 	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, ethash.NewFaker(), vm.Config{}, nil)
 
@@ -47,15 +53,19 @@ func newChainState() (*state.StateDB, error) {
 	return state, nil
 }
 
-func newCandidatePool() *pposm.CandidatePool {
+func newPool() (*pposm.CandidatePool, *pposm.TicketPool) {
 	configs := params.PposConfig{
 		Candidate: &params.CandidateConfig{
 			MaxChair: 1,
 			MaxCount: 3,
 			RefundBlockNumber: 	1,
 		},
+		TicketConfig: &params.TicketConfig {
+			MaxCount: 1,
+			ExpireBlockNumber: 2,
+		},
 	}
-	return pposm.NewCandidatePool(&configs)
+	return pposm.NewCandidatePool(&configs), pposm.NewTicketPool(&configs)
 }
 
 func printObject(title string, obj interface{}, t *testing.T){
@@ -66,12 +76,13 @@ func printObject(title string, obj interface{}, t *testing.T){
 func TestInitCandidatePoolByConfig (t *testing.T){
 
 	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
 	}else {state = st}
-	/** test init candidatePool */
-	candidatePool = newCandidatePool()
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
 
 	//state.Commit(false)
 
@@ -92,6 +103,40 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 		t.Error("SetCandidate err:", err)
 	}
 
+	/** vote ticket */
+	var count uint32 = 0
+	ownerList := []common.Address{common.HexToAddress("0x20"), common.HexToAddress("0x21")}
+	var blockNumber = new(big.Int).SetUint64(10)
+	voteNum := 10
+	timeMap := make(map[uint32]int64)
+	for i := 0; i < voteNum ; i++ {
+		startTime := time.Now().UnixNano() / 1e6
+		voteOwner := ownerList[rand.Intn(2)]
+		deposit := new(big.Int).SetUint64(10)
+		state.SubBalance(voteOwner, deposit)
+		state.AddBalance(common.TicketPoolAddr, deposit)
+		tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
+		if i < 2 {
+			tempBlockNumber.SetUint64(6)
+			t.Logf("vote blockNumber[%v]", tempBlockNumber.Uint64())
+		}
+
+		if i == 2 {
+			var tempBlockNumber uint64 = 6
+			for i := 0; i < 4; i++ {
+				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				tempBlockNumber++
+			}
+		}
+
+		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+		if nil != err {
+			fmt.Println("vote ticket error:", err)
+		}
+		atomic.AddUint32(&count, 1)
+		timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
+
+	}
 
 	/** test GetCandidate */
 	t.Log("test GetCandidate ...")
@@ -158,13 +203,14 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 func TestSetCandidate (t *testing.T){
 	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
 	}else {state = st}
-	/** test init candidatePool */
-	candidatePool = newCandidatePool()
-
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 	//state.Commit(false)
 
 	candidate := &types.Candidate{
@@ -189,12 +235,14 @@ func TestSetCandidate (t *testing.T){
 
 func TestGetCandidate (t *testing.T) {
 	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
 	}else {state = st}
-	/** test init candidatePool */
-	candidatePool = newCandidatePool()
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 
 	candidate := &types.Candidate{
 		Deposit: 		new(big.Int).SetUint64(100),
@@ -223,12 +271,14 @@ func TestGetCandidate (t *testing.T) {
 
 func TestWithdrawCandidate(t *testing.T) {
 	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
 	}else {state = st}
-	/** test init candidatePool */
-	candidatePool = newCandidatePool()
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 
 	candidate := &types.Candidate{
 		Deposit: 		new(big.Int).SetUint64(100),
@@ -280,12 +330,14 @@ func TestWithdrawCandidate(t *testing.T) {
 
 func TestGetChosens(t *testing.T) {
 	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
 	}else {state = st}
-	/** test init candidatePool */
-	candidatePool = newCandidatePool()
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 
 	candidate := &types.Candidate{
 		Deposit: 		new(big.Int).SetUint64(100),
@@ -329,12 +381,14 @@ func TestGetChosens(t *testing.T) {
 
 func TestGetElection(t *testing.T) {
 	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
 	}else {state = st}
-	/** test init candidatePool */
-	candidatePool = newCandidatePool()
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 
 	candidate := &types.Candidate{
 		Deposit: 		new(big.Int).SetUint64(100),
@@ -411,12 +465,14 @@ func TestGetElection(t *testing.T) {
 
 func TestGetWitness (t *testing.T) {
 	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
 	}else {state = st}
-	/** test init candidatePool */
-	candidatePool = newCandidatePool()
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 
 	candidate := &types.Candidate{
 		Deposit: 		new(big.Int).SetUint64(100),
@@ -502,12 +558,14 @@ func TestGetWitness (t *testing.T) {
 
 func TestGetDefeat(t *testing.T) {
 	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
 	}else {state = st}
-	/** test init candidatePool */
-	candidatePool = newCandidatePool()
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 
 	candidate := &types.Candidate{
 		Deposit: 		new(big.Int).SetUint64(100),
