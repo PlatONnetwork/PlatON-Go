@@ -125,16 +125,16 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 
 	// loading witnesses
 	go func() {
-		defer wg.Done()
 		witErrCh <- loadWitFunc("previous", c.preOriginCandidates, getPreviousWitnessIdsState, getPreviousWitnessByState)
+		wg.Done()
 	}()
 	go func() {
-		defer wg.Done()
 		witErrCh <- loadWitFunc("current", c.originCandidates, getWitnessIdsByState, getWitnessByState)
+		wg.Done()
 	}()
 	go func() {
-		defer wg.Done()
 		witErrCh <- loadWitFunc("next", c.nextOriginCandidates, getNextWitnessIdsByState, getNextWitnessByState)
+		wg.Done()
 	}()
 	var err error
 	for i := 1; i <= 3; i++ {
@@ -263,7 +263,6 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		resCh := make(chan *result, 2)
 		wg.Add(2)
 		go func() {
-			defer wg.Done()
 			res := new(result)
 			res.Type = 0
 			if arr, err := loadElectedFunc("immediate", c.immediateCandidates, getImmediateIdsByState, getImmediateByState); nil != err {
@@ -273,9 +272,9 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				res.Arr = arr
 				resCh <- res
 			}
+			wg.Done()
 		}()
 		go func() {
-			defer wg.Done()
 			res := new(result)
 			res.Type = 0
 			if arr, err := loadElectedFunc("reserve", c.reserveCandidates, getReserveIdsByState, getReserveByState); nil != err {
@@ -285,6 +284,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				res.Arr = arr
 				resCh <- res
 			}
+			wg.Done()
 		}()
 		wg.Wait()
 		close(resCh)
@@ -1503,7 +1503,6 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 		case 1:
 			// remove to immediates from reserves
 			go func() {
-				defer wg.Done()
 				res := new(result)
 				res.Type = 0
 				if !c.checkTicket(state.TCount(nodeId.String())) { // TODO
@@ -1520,11 +1519,11 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 					}
 				}
 				resChan <- res
+				wg.Done()
 			}()
 		case 2:
 			// remove to reserves from immediates
 			go func() {
-				defer wg.Done()
 				res := new(result)
 				res.Type = 1
 				if c.checkTicket(state.TCount(nodeId.String())) { // TODO
@@ -1541,6 +1540,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 					}
 				}
 				resChan <- res
+				wg.Done()
 			}()
 
 			//
