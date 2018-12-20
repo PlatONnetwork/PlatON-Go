@@ -405,7 +405,8 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		nodeIds = arr
 	}
 	c.lock.Unlock()
-	return ticketPool.DropReturnTicket(state, nodeIds...)
+	go ticketPool.DropReturnTicket(state, nodeIds...)
+	return nil
 }
 
 // 还需要补上 如果TCout 小了，要先移到 reserves 中，不然才算落榜
@@ -557,7 +558,8 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 	} else {
 		nodeIds = arr
 	}
-	return ticketPool.DropReturnTicket(state, nodeIds...)
+	go ticketPool.DropReturnTicket(state, nodeIds...)
+	return nil
 }
 
 func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) ([]discover.NodeID, error) {
@@ -1077,10 +1079,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 		nodeIds = append(nodeIds, can.CandidateId)
 	}
 	// 释放落榜的
-	if err := ticketPool.DropReturnTicket(state, nodeIds...); nil != err {
-		log.Error("Failed to DropReturnTicket on Election", "err", err)
-		return nil, err
-	}
+	go ticketPool.DropReturnTicket(state, nodeIds...)
 	return nodes, nil
 }
 
@@ -1373,7 +1372,8 @@ func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, nodeIds ... discove
 	} else {
 		ids = arr
 	}
-	return ticketPool.DropReturnTicket(state, ids...)
+	go ticketPool.DropReturnTicket(state, ids...)
+	return nil
 }
 
 func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeID) ([]discover.NodeID, error) {
