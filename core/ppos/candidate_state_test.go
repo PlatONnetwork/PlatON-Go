@@ -61,7 +61,7 @@ func newPool() (*pposm.CandidatePool, *pposm.TicketPool) {
 			RefundBlockNumber: 	1,
 		},
 		TicketConfig: &params.TicketConfig {
-			MaxCount: 1,
+			MaxCount: 100,
 			ExpireBlockNumber: 2,
 		},
 	}
@@ -109,6 +109,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	var blockNumber = new(big.Int).SetUint64(10)
 	voteNum := 10
 	timeMap := make(map[uint32]int64)
+	fmt.Println("投票开始 .............................................................")
 	for i := 0; i < voteNum ; i++ {
 		startTime := time.Now().UnixNano() / 1e6
 		voteOwner := ownerList[rand.Intn(2)]
@@ -128,7 +129,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 				tempBlockNumber++
 			}
 		}
-
+		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
 		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
@@ -137,6 +138,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 		timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
 
 	}
+	fmt.Println("投票结束 .............................................................")
 
 	/** test GetCandidate */
 	t.Log("test GetCandidate ...")
