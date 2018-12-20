@@ -54,6 +54,7 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"Platon-go/rpc"
+	"Platon-go/core/ticketcache"
 )
 
 type LesServer interface {
@@ -126,6 +127,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+	tCache := ticketcache.NewTicketIdsCache(chainDb)
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
@@ -214,7 +216,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, err
 	}
 	if _, ok := eth.engine.(consensus.Bft); ok {
-		cbft.SetPposOption(eth.blockchain, chainDb)
+		cbft.SetPposOption(eth.blockchain, tCache)
 	}
 	// 方法增加blockSignatureCh、cbftResultCh入参
 	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
