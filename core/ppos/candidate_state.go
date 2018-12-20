@@ -30,10 +30,6 @@ var (
 type candidateStorage map[discover.NodeID]*types.Candidate
 type refundStorage map[discover.NodeID][]*types.Candidate
 
-//type returnTicket struct {
-//	NodeId 		discover.NodeID
-//	TicketId	common.Hash
-//}
 
 type CandidatePool struct {
 	// allow immediate elected max count
