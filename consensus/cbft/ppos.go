@@ -7,7 +7,7 @@ import (
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/core/vm"
-	"Platon-go/ethdb"
+	//"Platon-go/ethdb"
 	"Platon-go/log"
 	"Platon-go/p2p/discover"
 	"Platon-go/params"
@@ -292,7 +292,7 @@ func (d *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discove
 }
 
 // setting candidate pool of ppos module
-func (d *ppos) SetCandidatePool(blockChain *core.BlockChain, initialNodes []discover.Node) {
+func (d *ppos) setCandidatePool(blockChain *core.BlockChain, initialNodes []discover.Node) {
 	log.Info("---start node，to update nodeRound---")
 	genesis := blockChain.Genesis()
 	// init roundCache by config
@@ -1056,6 +1056,8 @@ func cmpSwitch (round, currentNum uint64) int {
 	}
 }
 
-func (d *ppos) setTicketPoolCache (database ethdb.Database) {
-	d.ticketidsCache = ticketcache.NewTicketIdsCache(database)
+//func (d *ppos) setTicketPoolCache (database ethdb.Database) {
+func (d *ppos) setTicketPoolCache (cache *ticketcache.NumBlocks) {
+//	d.ticketidsCache = ticketcache.NewTicketIdsCache(database)
+	d.ticketidsCache = cache
 }

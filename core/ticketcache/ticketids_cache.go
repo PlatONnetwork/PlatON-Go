@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"math/big"
 	"sort"
+	"Platon-go/log"
 )
 
 var (
@@ -45,6 +46,7 @@ func GetNodeTicketsCacheMap(blocknumber *big.Int, blockhash common.Hash) (ret ma
 		ret = ticketidsCache.GetNodeTicketsMap(blocknumber, blockhash)
 	}else {
 		logError("ticketidsCache instance is nil!")
+		log.Error("ticketidsCache is Empty no GetNodeTicketsCacheMap ... ")
 	}
 	return
 }
@@ -55,6 +57,7 @@ func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
 		Del 节点掉榜，选票过期，选票被选中
 	*/
 	logInfo("NewTicketIdsCache==> in")
+	log.Info("Init ticketidsCache call NewTicketIdsCache func...")
 	ticketidsCache = &NumBlocks{}
 	ticketidsCache.NBlocks = make(map[string]*BlockNodes)
 	cache, err := db.Get(ticketPoolCacheKey)

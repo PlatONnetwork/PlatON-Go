@@ -405,7 +405,10 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		nodeIds = arr
 	}
 	c.lock.Unlock()
-	go ticketPool.DropReturnTicket(state, nodeIds...)
+	//go ticketPool.DropReturnTicket(state, nodeIds...)
+	if err := ticketPool.DropReturnTicket(state, nodeIds...); nil != err {
+		log.Error("Failed to DropReturnTicket on SetCandidate ...")
+	}
 	return nil
 }
 
@@ -558,7 +561,10 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 	} else {
 		nodeIds = arr
 	}
-	go ticketPool.DropReturnTicket(state, nodeIds...)
+	//go ticketPool.DropReturnTicket(state, nodeIds...)
+	if err := ticketPool.DropReturnTicket(state, nodeIds...); nil != err {
+		log.Error("Failed to DropReturnTicket on WithdrawCandidate ...")
+	}
 	return nil
 }
 
@@ -1079,7 +1085,10 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 		nodeIds = append(nodeIds, can.CandidateId)
 	}
 	// 释放落榜的
-	go ticketPool.DropReturnTicket(state, nodeIds...)
+	//go ticketPool.DropReturnTicket(state, nodeIds...)
+	if err := ticketPool.DropReturnTicket(state, nodeIds...); nil != err {
+		log.Error("Failed to DropReturnTicket on Election ...")
+	}
 	return nodes, nil
 }
 
@@ -1372,8 +1381,8 @@ func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, nodeIds ... discove
 	} else {
 		ids = arr
 	}
-	go ticketPool.DropReturnTicket(state, ids...)
-	return nil
+	//go ticketPool.DropReturnTicket(state, ids...)
+	return ticketPool.DropReturnTicket(state, ids...)
 }
 
 func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeID) ([]discover.NodeID, error) {
