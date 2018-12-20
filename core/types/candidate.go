@@ -53,6 +53,8 @@ func (ca *CandidateAttach) AddEpoch(number *big.Int) {
 }
 
 func (ca *CandidateAttach) SubEpoch(number *big.Int) {
-	ca.Epoch.Sub(ca.Epoch, number)
+	if ca.Epoch.Cmp(number) >= 0 && number.Uint64() > 0 {
+		ca.Epoch.Sub(ca.Epoch, number)
+	}
 }
 

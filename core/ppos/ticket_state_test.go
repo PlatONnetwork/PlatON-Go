@@ -6,6 +6,7 @@ import (
 	"Platon-go/core"
 	"Platon-go/core/ppos"
 	"Platon-go/core/state"
+	"Platon-go/core/ticketcache"
 	"Platon-go/core/types"
 	"Platon-go/core/vm"
 	"Platon-go/ethdb"
@@ -26,6 +27,7 @@ func TestVoteTicket(t *testing.T)  {
 	)
 	fmt.Println("genesis", genesis)
 	// Initialize a fresh chain with only a genesis block
+	ticketcache.NewTicketIdsCache(db)
 	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, ethash.NewFaker(), vm.Config{}, nil)
 
 	configs := params.PposConfig{
@@ -90,6 +92,15 @@ func TestVoteTicket(t *testing.T)  {
 				tempBlockNumber.SetUint64(6)
 				t.Logf("vote blockNumber[%v]", tempBlockNumber.Uint64())
 			}
+
+			if i == 2 {
+				var tempBlockNumber uint64 = 6
+				for i := 0; i < 4; i++ {
+					ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+					tempBlockNumber++
+				}
+			}
+
 			_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 			if nil != err {
 				fmt.Println("vote ticket error:", err)
@@ -101,6 +112,7 @@ func TestVoteTicket(t *testing.T)  {
 	for int(count) < voteNum  {
 		fmt.Println("count:", count)
 	}
+
 	candidate, err := candidatePool.GetCandidate(state, candidate.CandidateId)
 	if err != nil {
 		fmt.Println("GetCandidate error")
@@ -122,9 +134,8 @@ func TestVoteTicket(t *testing.T)  {
 	ticketPool.GetPoolNumber(state)
 	candidateAttach, err := ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 
-	//fmt.Printf("print info:\n\t%+v\n\t%+v\n\t%+v\n\t%+v,%v", candidatePool, ticketPool, candidate, ticketList, err)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), 0, candidateAttach.Epoch)
+		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId.String()), candidateAttach.Epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 	fmt.Println("------all ticket-----")
 	for _, ticket := range ticketList {
@@ -160,7 +171,7 @@ func TestVoteTicket(t *testing.T)  {
 	ticketPool.GetPoolNumber(state)
 	candidateAttach, err = ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), 0, candidateAttach.Epoch)
+		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId.String()), candidateAttach.Epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 
 	if err := ticketPool.Notify(state, blockNumber); err != nil {
@@ -180,7 +191,7 @@ func TestVoteTicket(t *testing.T)  {
 	candidateAttach, err = ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 	t.Logf("处理完过期票块高为：[%d]", blockNumber)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), 0, candidateAttach.Epoch)
+		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId.String()), candidateAttach.Epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 
 	var temp []string
