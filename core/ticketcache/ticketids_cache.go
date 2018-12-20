@@ -2,15 +2,15 @@ package ticketcache
 
 import (
 	"Platon-go/common"
-	"Platon-go/common/hexutil"
 	"Platon-go/crypto"
 	"Platon-go/ethdb"
+	"Platon-go/log"
 	"errors"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"math/big"
 	"sort"
-	"Platon-go/log"
+	"sync"
 )
 
 var (
@@ -62,9 +62,10 @@ func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
 	ticketidsCache.NBlocks = make(map[string]*BlockNodes)
 	cache, err := db.Get(ticketPoolCacheKey)
 	if err == nil {
-		logInfo("NewTicketIdsCache==> Get db cache hex: ", hexutil.Encode(cache))
+		//logInfo("NewTicketIdsCache==> Get db cache hex: ", hexutil.Encode(cache))
 		if err := proto.Unmarshal(cache, ticketidsCache); err != nil {
-			logError("protocol buffer Unmarshal faile hex: ", hexutil.Encode(cache))
+			//logError("protocol buffer Unmarshal faile hex: ", hexutil.Encode(cache))
+			logError("protocol buffer Unmarshal faile hex: &&&&&&&&&&&&&&&")
 		}
 	}
 	return ticketidsCache
@@ -95,7 +96,7 @@ func (nb *NumBlocks) Hash(blocknumber *big.Int, blockhash common.Hash) (common.H
 
 func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Hash) map[string][]common.Hash{
 
-	logInfo("GetNodeTicketsMap==> ", blocknumber, "  ", blockhash.Hex())
+	//logInfo("GetNodeTicketsMap==> ", blocknumber, "  ", blockhash.Hex())
 	blockNodes, ok := nb.NBlocks[blocknumber.String()]
 	if !ok {
 		blockNodes = &BlockNodes{}
@@ -123,24 +124,54 @@ func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Ha
 
 func (nb *NumBlocks) Submit2Cache(blocknumber *big.Int, blockhash common.Hash, in map[string][]common.Hash) {
 
-	logInfo("Submit2Cache==> ", blocknumber, "  ", blockhash.Hex())
-	blockNodes, ok := nb.NBlocks[blocknumber.String()]
+	//logInfo("Submit2Cache==> ", blocknumber, "  ", blockhash.Hex())
+	blockNodes, ok := nb.NBlocks[blocknumber.String()];
 	if !ok {
 		blockNodes = &BlockNodes{}
 		blockNodes.BNodes = make(map[string]*NodeTicketIds)
-		nb.NBlocks[blocknumber.String()] = blockNodes
 	}
 	//The same block hash data will be overwritten
 	nodeTicketIds := &NodeTicketIds{}
 	nodeTicketIds.NTickets = make(map[string]*TicketIds)
-	blockNodes.BNodes[blockhash.String()] = nodeTicketIds
-	for k, v := range in {
-		tIds := &TicketIds{}
-		for _, va := range v {
-			tIds.TicketId = append(tIds.TicketId, va.Bytes())
-		}
-		nodeTicketIds.NTickets[k] = tIds
+
+	//go thread
+	type result struct {
+		key string
+		value *TicketIds
 	}
+	resCh := make(chan *result, len(in))
+	var wg sync.WaitGroup
+	wg.Add(len(in))
+	for k, v := range in {
+		go func  (key string, val []common.Hash){
+			tIds := &TicketIds{}
+			for _, va := range v {
+				tIds.TicketId = append(tIds.TicketId, va.Bytes())
+			}
+			res := new(result)
+			res.key = k
+			res.value = tIds
+			resCh <- res
+			wg.Done()
+		}(k, v)
+	}
+	wg.Wait()
+	close(resCh)
+	for res := range resCh {
+		nodeTicketIds.NTickets[res.key] = res.value
+	}
+
+	//not thread
+	//for k, v := range in {
+	//	tIds := &TicketIds{}
+	//	for _, va := range v {
+	//		tIds.TicketId = append(tIds.TicketId, va.Bytes())
+	//	}
+	//	nodeTicketIds.NTickets[k] = tIds
+	//}
+
+	blockNodes.BNodes[blockhash.String()] = nodeTicketIds
+	nb.NBlocks[blocknumber.String()] = blockNodes
 }
 
 func (nb *NumBlocks) Commit(db ethdb.Database) error {
@@ -151,7 +182,8 @@ func (nb *NumBlocks) Commit(db ethdb.Database) error {
 		logError("Protocol buffer failed to marshal :", nb, " err: ", err.Error())
 		return ErrProbufMarshal
 	}
-	logInfo("Marshal out: ", hexutil.Encode(out))
+	//logInfo("Marshal out: ", hexutil.Encode(out))
+	logInfo("Marshal out len: ", len(out))
 	if err := db.Put(ticketPoolCacheKey, out); err != nil  {
 		logError("level db put faile: ", err.Error())
 		return ErrLeveldbPut
