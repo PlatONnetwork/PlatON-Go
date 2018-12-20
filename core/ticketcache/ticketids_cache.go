@@ -46,6 +46,7 @@ func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
 		Del 节点掉榜，选票过期，选票被选中
 	*/
 	ticketidsCache = &NumBlocks{}
+	ticketidsCache.NBlocks = make(map[string]*BlockNodes)
 	cache, err := db.Get(ticketPoolCacheKey)
 	if err == nil {
 		if err := proto.Unmarshal(cache, ticketidsCache); err != nil {
