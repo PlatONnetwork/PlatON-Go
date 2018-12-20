@@ -17,10 +17,10 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"math/big"
 	"sync"
 	"time"
@@ -90,15 +90,15 @@ type peer struct {
 	td   *big.Int
 	lock sync.RWMutex
 
-	knownTxs    mapset.Set                // Set of transaction hashes known to be known by this peer
-	knownBlocks mapset.Set                // Set of block hashes known to be known by this peer
+	knownTxs           mapset.Set                // Set of transaction hashes known to be known by this peer
+	knownBlocks        mapset.Set                // Set of block hashes known to be known by this peer
 	knownPrepareBlocks mapset.Set                // Set of prepareblock hashes known to be known by this peer
 	queuedTxs          chan []*types.Transaction // Queue of transactions to broadcast to the peer
 	queuedProps        chan *propEvent           // Queue of blocks to broadcast to the peer
 	queuedAnns         chan *types.Block         // Queue of blocks to announce to the peer
 	term               chan struct{}             // Termination channel to stop the broadcaster
-	queuedPreBlock  chan *preBlockEvent
-	queuedSignature chan *signatureEvent
+	queuedPreBlock     chan *preBlockEvent
+	queuedSignature    chan *signatureEvent
 }
 
 func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
@@ -124,12 +124,6 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 func (p *peer) broadcast() {
 	for {
 		select {
-		case txs := <-p.queuedTxs:
-			if err := p.SendTransactions(txs); err != nil {
-				return
-			}
-			p.Log().Trace("Broadcast transactions", "count", len(txs))
-
 		case prop := <-p.queuedProps:
 			if err := p.SendNewBlock(prop.block, prop.td); err != nil {
 				return
@@ -157,6 +151,17 @@ func (p *peer) broadcast() {
 
 		case <-p.term:
 			return
+		default:
+		}
+
+		select {
+		case txs := <-p.queuedTxs:
+			if err := p.SendTransactions(txs); err != nil {
+				return
+			}
+			p.Log().Trace("Broadcast transactions", "count", len(txs))
+
+		default:
 		}
 	}
 }
