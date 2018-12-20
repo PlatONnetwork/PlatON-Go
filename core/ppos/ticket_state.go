@@ -486,6 +486,10 @@ func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) (*big.Int, error) {
 	return new(big.Int).SetUint64(1), nil
 }
 
+func GetTicketPtr() *TicketPool {
+	return ticketPool
+}
+
 func checkBalance(stateDB vm.StateDB, addr common.Address, amount *big.Int) bool {
 	if stateDB.GetBalance(addr).Cmp(amount) >= 0 {
 		return true
