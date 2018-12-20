@@ -16,3 +16,8 @@ message BlockNodes {
 message NumBlocks {
   map<string, BlockNodes> NBlocks = 1;
 }
+
+message SortCalcHash {
+  repeated string Nodeids = 1;
+  repeated TicketIds Tids = 2;
+}

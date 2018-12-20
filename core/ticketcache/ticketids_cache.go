@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"math/big"
+	"sort"
 	"Platon-go/log"
 )
 
@@ -78,18 +79,18 @@ func (nb *NumBlocks) Hash(blocknumber *big.Int, blockhash common.Hash) (common.H
 		return common.Hash{}, ErrNotfindFromblockNumber
 	}
 	nodeTicketIds, ok := blockNodes.BNodes[blockhash.String()]
-	//sort by nodeid
-	//...
 	if !ok {
 		logError(ErrNotfindFromblockHash.Error())
 		return common.Hash{}, ErrNotfindFromblockHash
 	}
-	out, err := proto.Marshal(nodeTicketIds)
+	out, err := proto.Marshal(getSortStruct(nodeTicketIds.NTickets))
 	if err != nil {
 		logError(ErrProbufMarshal.Error())
 		return common.Hash{}, ErrProbufMarshal
 	}
-	return crypto.Keccak256Hash(out), nil
+	ret := crypto.Keccak256Hash(out)
+	logInfo("Hash==> output: ", ret.Hex())
+	return ret, nil
 }
 
 func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Hash) map[string][]common.Hash{
@@ -162,4 +163,17 @@ func GetTicketidsCachePtr() *NumBlocks {
 	return ticketidsCache
 }
 
+func getSortStruct(NTickets map[string]*TicketIds) *SortCalcHash {
+	sc := &SortCalcHash{}
+	sc.Nodeids = make([]string, 0, len(NTickets))
+	sc.Tids = make([]*TicketIds, 0, len(NTickets))
+	for k := range NTickets {
+		sc.Nodeids = append(sc.Nodeids, k)
+	}
+	sort.Strings(sc.Nodeids)
+	for _, k := range sc.Nodeids {
+		sc.Tids = append(sc.Tids, NTickets[k])
+	}
+	return sc
+}
 
