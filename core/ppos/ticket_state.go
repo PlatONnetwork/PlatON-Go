@@ -174,14 +174,14 @@ func (t *TicketPool) removeExpireTicket(stateDB vm.StateDB, blockNumber *big.Int
 	return t.setExpireTicket(stateDB, blockNumber, ticketIdList)
 }
 
-func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, blockNumber *big.Int) ([]discover.NodeID, error) {
+func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, expireBlockNumber *big.Int, currentBlockNumber *big.Int) ([]discover.NodeID, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	ticketIdList, err := t.GetExpireTicketIds(stateDB, blockNumber)
+	ticketIdList, err := t.GetExpireTicketIds(stateDB, expireBlockNumber)
 	if err != nil {
 		return nil, err
 	}
-	log.Info("待处理的过期票", "数量：", len(ticketIdList), "块高：", blockNumber.Uint64())
+	log.Info("待处理的过期票", "数量：", len(ticketIdList), "块高：", expireBlockNumber.Uint64())
 	candidateAttachMap := make(map[discover.NodeID]*types.CandidateAttach)
 	changeNodeIdList := make([]discover.NodeID, 0)
 	for _, ticketId := range ticketIdList {
@@ -199,7 +199,7 @@ func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, blockNumber *big.Int
 			candidateAttachMap[ticket.CandidateId] = candidateAttach
 			changeNodeIdList = append(changeNodeIdList, ticket.CandidateId)
 		}
-		if _, err := t.releaseTicket(stateDB, ticket.CandidateId, candidateAttach, ticketId, blockNumber); nil != err {
+		if _, err := t.releaseTicket(stateDB, ticket.CandidateId, candidateAttach, ticketId, currentBlockNumber); nil != err {
 			return changeNodeIdList, err
 		}
 		// Set ticket state to invalid
@@ -208,7 +208,7 @@ func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, blockNumber *big.Int
 			return changeNodeIdList, err
 		}
 	}
-	log.Info("处理完过期票，更新候选人总票龄", "候选人数量：", len(changeNodeIdList), "块高：", blockNumber.Uint64())
+	log.Info("处理完过期票，更新候选人总票龄", "候选人数量：", len(changeNodeIdList), "当前块高：", currentBlockNumber.Uint64())
 	// Update CandidateAttach
 	for nodeId, ca := range candidateAttachMap{
 		t.setCandidateAttach(stateDB, nodeId, ca)
@@ -249,24 +249,13 @@ func (t *TicketPool) setTicket(stateDB vm.StateDB, ticketId common.Hash, ticket 
 }
 
 func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, nodeIds ...discover.NodeID) error {
+	t.lock.Lock()
+	defer t.lock.Unlock()
 	log.Info("开始处理掉榜票", "掉榜候选人数量：", len(nodeIds))
 	for _, nodeId := range nodeIds {
 		candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
 		if nil != err {
 			return err
-		}
-		log.Info("掉榜", "候选人：", nodeId.String(), "总票数：", len(candidateTicketIds))
-		for _, ticketId := range candidateTicketIds {
-			ticket, err := t.GetTicket(stateDB, ticketId)
-			if nil != err {
-				return err
-			}
-			ticket.State = 4
-			if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
-				return  err
-			}
-			t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
-			//t.returnTicket(stateDB, nodeId, ticketId, blockNumber, 4)
 		}
 		candidateAttach, err := t.GetCandidateAttach(stateDB, nodeId)
 		if nil != err {
@@ -280,6 +269,18 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, nodeIds ...discover.No
 		log.Info("删除掉榜信息", "候选人：", nodeId.String(), "所得票：", len(candidateTicketIds))
 		if err := stateDB.DelTicketCache(nodeId.String(), candidateTicketIds); nil != err {
 			return err
+		}
+		log.Info("开始处理掉榜的票", "候选人：", nodeId.String(), "总票数：", len(candidateTicketIds))
+		for _, ticketId := range candidateTicketIds {
+			ticket, err := t.GetTicket(stateDB, ticketId)
+			if nil != err {
+				return err
+			}
+			ticket.State = 4
+			if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
+				return  err
+			}
+			t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
 		}
 	}
 	log.Info("结束处理掉榜票")
@@ -342,7 +343,7 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int) error {
 	expireBlockNumber, ok := t.calcExpireBlockNumber(stateDB, blockNumber)
 	log.Info("检查过期票", "是否需要处理：", ok, "过期票所在块高：", expireBlockNumber.Uint64())
 	if ok {
-		if nodeIdList, err := t.handleExpireTicket(stateDB, expireBlockNumber); nil != err {
+		if nodeIdList, err := t.handleExpireTicket(stateDB, expireBlockNumber, blockNumber); nil != err {
 			log.Error("OutBlockNotice method handleExpireTicket error", "blockNumber", *blockNumber, "err", err)
 			return HandleExpireTicketErr
 		} else {
@@ -455,6 +456,7 @@ func (t *TicketPool) GetCandidateTicketIds(stateDB vm.StateDB, nodeId discover.N
 
 func (t *TicketPool) GetCandidateAttach(stateDB vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
 	candidateAttach := new(types.CandidateAttach)
+	candidateAttach.Epoch = new(big.Int)
 	if err := getTicketPoolState(stateDB, CandidateAttachKey(nodeId.Bytes()), candidateAttach); nil != err {
 		log.Error("GetCandidateAttach error", "key", string(nodeId.Bytes()), "err", err)
 		return nil, GetCandidateAttachErr
