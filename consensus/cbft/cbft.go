@@ -354,12 +354,12 @@ func (cbft *Cbft) findClosestConfirmedExcludingSelf(current *BlockExt) *BlockExt
 	return closest
 }
 
-// handleLogicalBlockAndDescendant signs logical block go along the logical path from current block, and will not sign the block if there's another same number block has been signed.
-func (cbft *Cbft) handleLogicalBlockAndDescendant(current *BlockExt, includeCurrent bool) {
-	log.Trace("handle logical block and its descendant", "hash", current.block.Hash(), "number", current.block.NumberU64(), "includeCurrent", includeCurrent)
+// signLogicalAndDescendant signs logical block go along the logical path from current block, and will not sign the block if there's another same number block has been signed.
+func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
+	log.Trace("sign logical block and its descendant", "hash", current.block.Hash(), "number", current.block.NumberU64())
 	highestLogical := cbft.findHighestLogical(current)
 
-	logicalBlocks := cbft.backTrackBlocks(highestLogical, current, includeCurrent)
+	logicalBlocks := cbft.backTrackBlocks(highestLogical, current, true)
 
 	//var highestConfirmed *BlockExt
 	for _, logical := range logicalBlocks {
@@ -368,6 +368,12 @@ func (cbft *Cbft) handleLogicalBlockAndDescendant(current *BlockExt, includeCurr
 				cbft.sign(logical)
 			}
 		}
+
+		cbft.txPool.Reset(logical.block)
+
+		/*if logical.isConfirmed {
+			cbft.txPool.LockedReset(current.parent.block.Header(), current.block.Header())
+		}*/
 
 		/*if logical.isConfirmed {
 			highestConfirmed = logical
@@ -621,7 +627,7 @@ func BlockSynchronisation() {
 		}
 
 		//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
-		cbft.handleLogicalBlockAndDescendant(newRoot, false)
+		cbft.signLogicalAndDescendant(newRoot)
 
 		//reset logical path
 		highestLogical := cbft.findHighestLogical(newRoot)
@@ -634,6 +640,8 @@ func BlockSynchronisation() {
 			//remove all other blocks those their numbers are too low
 			cbft.cleanByNumber(cbft.rootIrreversible.number)
 		}
+
+		cbft.txPool.Reset(currentBlock)
 	}
 
 	log.Debug("=== end of BlockSynchronisation() ===\n",
@@ -880,9 +888,9 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		log.Debug("check if block is logical", "result", isLogical, "hash", ext.block.Hash(), "number", ext.number, "inTurn", inTurn, "flowControl", flowControl, "highestConfirmedIsAncestor", highestConfirmedIsAncestor)
 
 		if isLogical {
-			cbft.handleLogicalBlockAndDescendant(ext, true)
-
-			newHighestLogical := cbft.findHighestLogical(ext)
+			cbft.signLogicalAndDescendant(ext)
+			//rearrange logical path
+			newHighestLogical := cbft.findHighestLogical(cbft.highestConfirmed)
 			if newHighestLogical != nil {
 				cbft.setHighestLogical(newHighestLogical)
 			}
@@ -918,14 +926,22 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 }
 
 // forked returns the blocks forked from original branch
-// original[0] == newFork[0] == cbft.rootIrreversible, len(original) > len(newFork)
-func (cbft *Cbft) forked(original []*BlockExt, newFork []*BlockExt) []*BlockExt {
-	for i := 0; i < len(newFork); i++ {
-		if newFork[i].block.Hash() != original[i].block.Hash() {
-			return original[i:]
+// original[0] == newFork[0] == cbft.rootIrreversible, len(origPath) > len(newPath)
+func (cbft *Cbft) forked(origPath []*BlockExt, newPath []*BlockExt) (oldTress, newTress []*BlockExt) {
+	for i := 0; i < len(newPath); i++ {
+		if newPath[i].block.Hash() != origPath[i].block.Hash() {
+			return origPath[i:], newPath[i:]
 		}
 	}
-	return nil
+	return nil, nil
+}
+
+func extraBlocks(exts []*BlockExt) []*types.Block {
+	blocks := make([]*types.Block, len(exts))
+	for idx, ext := range exts {
+		blocks[idx] = ext.block
+	}
+	return blocks
 }
 
 // checkFork checks if the logical path is changed cause the newConfirmed, if changed, this is a new fork.
@@ -933,17 +949,18 @@ func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
 	newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(newConfirmed)
 	if newHighestConfirmed != nil && newHighestConfirmed.block.Hash() != cbft.highestConfirmed.block.Hash() {
 		//fork
-		//todo: how to handle the txs resided in forked blocks
-		//original := cbft.backTrackBlocks(cbft.highestConfirmed, cbft.rootIrreversible, true)
-		//newFork :=  cbft.backTrackBlocks(newHighestConfirmed, cbft.rootIrreversible, true)
-		//forked := cbft.forked(original, newFork)
+		newHighestLogical := cbft.findHighestLogical(newHighestConfirmed)
+		newPath := cbft.backTrackBlocks(newHighestLogical, cbft.rootIrreversible, true)
+
+		origPath := cbft.backTrackBlocks(cbft.highestLogical, cbft.rootIrreversible, true)
+
+		oldTress, newTress := cbft.forked(origPath, newPath)
+
+		cbft.txPool.ForkedReset(extraBlocks(oldTress), extraBlocks(newTress))
 
 		//forkFrom to lower block
-		newHighestLogical := cbft.findHighestLogical(newHighestConfirmed)
-
-		cbft.setHighestLogical(newHighestLogical)
 		cbft.highestConfirmed = newHighestConfirmed
-
+		cbft.setHighestLogical(newHighestLogical)
 		log.Warn("chain is forked")
 	}
 }
@@ -1281,8 +1298,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		}
 	}()
 
-	// remove
-	cbft.txPool.DemoteUnexecutables()
+	cbft.txPool.Reset(current.block)
 	return nil
 }
 

@@ -120,8 +120,9 @@ type txPoolBlockChain interface {
 	CurrentBlock() *types.Block
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
-
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
+
+	ReadStateDB(sealHash common.Hash) *state.StateDB
 }
 
 // TxPoolConfig are the configuration parameters of the transaction pool.
@@ -194,6 +195,7 @@ type TxPool struct {
 	txFeed   event.Feed
 	scope    event.SubscriptionScope
 	// modified by PlatON
+	chainHeadCh chan *types.Block
 	//chainHeadCh  chan ChainHeadEvent
 	//chainHeadSub event.Subscription
 	signer types.Signer
@@ -244,6 +246,8 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		all:         newTxLookup(),
 		// modified by PlatON
 		// chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
+		chainHeadCh: make(chan *types.Block, chainHeadChanSize),
+
 		gasPrice:    new(big.Int).SetUint64(config.PriceLimit),
 		txExtBuffer: make(chan *txExt, 64),
 	}
@@ -331,25 +335,25 @@ func (pool *TxPool) loop() {
 	defer journal.Stop()
 
 	// Track the previous head headers for transaction reorgs
-	// modified by PlatON
-	//head := pool.chain.CurrentBlock()
+
+	head := pool.chain.CurrentBlock()
 
 	// Keep waiting for and reacting to the various events
 	for {
 		select {
 		// Handle ChainHeadEvent
-		// modified by PlatON
-		/*case ev := <-pool.chainHeadCh:
-		if ev.Block != nil {
-			pool.mu.Lock()
-			if pool.chainconfig.IsHomestead(ev.Block.Number()) {
-				pool.homestead = true
-			}
-			pool.reset(head.Header(), ev.Block.Header())
-			head = ev.Block
 
-			pool.mu.Unlock()
-		}*/
+		case block := <-pool.chainHeadCh:
+			if block != nil {
+				pool.mu.Lock()
+				if pool.chainconfig.IsHomestead(block.Number()) {
+					pool.homestead = true
+				}
+				pool.reset(head.Header(), block.Header())
+				head = block
+
+				pool.mu.Unlock()
+			}
 		// Be unsubscribed due to system stopped
 		// modified by PlatON
 		//case <-pool.chainHeadSub.Err():
@@ -404,6 +408,59 @@ func (pool *TxPool) lockedReset(oldHead, newHead *types.Header) {
 	defer pool.mu.Unlock()
 
 	pool.reset(oldHead, newHead)
+}
+
+// added by PlatON
+func (pool *TxPool) Reset(newBlock *types.Block) {
+	pool.chainHeadCh <- newBlock
+}
+
+func (pool *TxPool) ForkedReset(origTress, newTress []*types.Block) {
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+
+	var reinject types.Transactions
+	// Reorg seems shallow enough to pull in all transactions into memory
+	var discarded, included types.Transactions
+
+	for _, orig := range origTress {
+		discarded = append(discarded, orig.Transactions()...)
+	}
+	for _, new := range newTress {
+		included = append(included, new.Transactions()...)
+	}
+
+	reinject = types.TxDifference(discarded, included)
+
+	// Initialize the internal state to the current head
+	statedb, err := pool.chain.StateAt(newTress[len(newTress)-1].Header().Root)
+	if err != nil {
+		log.Error("Failed to reset txpool state", "err", err)
+		return
+	}
+	pool.currentState = statedb
+	pool.pendingState = state.ManageState(statedb)
+	pool.currentMaxGas = newTress[len(newTress)-1].Header().GasLimit
+
+	// Inject any transactions discarded due to reorgs
+	log.Debug("Reinjecting stale transactions", "count", len(reinject))
+	senderCacher.recover(pool.signer, reinject)
+	pool.addTxsLocked(reinject, false)
+
+	// validate the pool of pending transactions, this will remove
+	// any transactions that have been included in the block or
+	// have been invalidated because of another transaction (e.g.
+	// higher gas price)
+	pool.demoteUnexecutables()
+
+	// Update all accounts to the latest known pending nonce
+	for addr, list := range pool.pending {
+		txs := list.Flatten() // Heavy but will be cached and is needed by the miner anyway
+		pool.pendingState.SetNonce(addr, txs[len(txs)-1].Nonce()+1)
+	}
+	// Check the queue and move transactions over to the pending if possible
+	// or remove those that have become invalid
+	pool.promoteExecutables(nil)
 }
 
 // reset retrieves the current state of the blockchain and ensures the content
@@ -1325,11 +1382,6 @@ func (pool *TxPool) promoteExecutables(accounts []common.Address) {
 			}
 		}
 	}
-}
-
-// modified by PlatON
-func (pool *TxPool) DemoteUnexecutables() {
-	pool.demoteUnexecutables()
 }
 
 // demoteUnexecutables removes invalid and processed transactions from the pools
