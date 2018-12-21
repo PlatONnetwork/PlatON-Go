@@ -17,9 +17,9 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"bytes"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -412,10 +412,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			w.consensusCache.ClearCache(head.Block)
 
 			go func() {
-				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-					if isConsensusNode, _ := cbftEngine.IsConsensusNode(); !isConsensusNode {
-						cbft.BlockSynchronisation()
-					}
+				if _, ok := w.engine.(consensus.Bft); ok {
+					cbft.BlockSynchronisation()
 				}
 			}()
 
