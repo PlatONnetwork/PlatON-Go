@@ -81,6 +81,7 @@ var (
 		ContractAbiFilePathFlag,
 		ContractAddrFlag,
 		ConfigPathFlag,
+		TransactionTypeFlag,
 	}
 
 	sendTransactionCmdFlags = []cli.Flag{
