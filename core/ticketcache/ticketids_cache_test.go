@@ -14,11 +14,16 @@ import (
 	"time"
 )
 
-func getMaxtickets() (map[string][]common.Hash, error) {
-	//every nodeid hash 256 ticket total has 200 nodeid
-	ret := make(map[string][]common.Hash)
+const (
+	blockCount = 20
+	nodeCount = 200
+	ticketCount = 51200
+)
 
-	for n:=0; n<200; n++ {
+func getBlockMaxData() (map[string][]common.Hash, error) {
+	//every nodeid has 256 ticket total has 200 nodeid
+	ret := make(map[string][]common.Hash)
+	for n:=0; n<nodeCount; n++ {
 		nodeid := make([]byte, 0, 64)
 		nodeid = append(nodeid, crypto.Keccak256Hash([]byte("nodeid"), byteutil.IntToBytes(n)).Bytes()...)
 		nodeid = append(nodeid, crypto.Keccak256Hash([]byte("nodeid"), byteutil.IntToBytes(n*10)).Bytes()...)
@@ -27,18 +32,17 @@ func getMaxtickets() (map[string][]common.Hash, error) {
 			return ret, err
 		}
 		tids := make([]common.Hash, 0)
-		for i:=0; i<256 ; i++ {
+		for i:=0; i<ticketCount/nodeCount ; i++ {
 			tids = append(tids, crypto.Keccak256Hash([]byte("tid"), byteutil.IntToBytes(i)))
 		}
 		ret[NodeId.String()] = tids
 	}
-
 	return ret, nil
 }
 
 func Test_GenerateData (t *testing.T)  {
-	for i:=0; i<20; i++  {
-		_,err := getMaxtickets()
+	for i:=0; i<blockCount; i++  {
+		_,err := getBlockMaxData()
 		if err!=nil {
 			fmt.Println("getMaxtickets faile err: ", err.Error())
 			t.Errorf("getMaxtickets faile")
@@ -51,12 +55,11 @@ func Test_Submit2Cache(t *testing.T)  {
 	if err!=nil {
 		t.Errorf("NewLDBDatabase faile")
 	}
-
 	tc := NewTicketIdsCache(ldb)
-	for i:=0; i<20; i++  {
+	for i:=0; i<blockCount; i++  {
 		number := big.NewInt(int64(i))
 		bkhash := crypto.Keccak256Hash(byteutil.IntToBytes(i))
-		mapCache ,err := getMaxtickets()
+		mapCache ,err := getBlockMaxData()
 		if err!=nil {
 			fmt.Println("getMaxtickets faile err: ", err.Error())
 			t.Errorf("getMaxtickets faile")
@@ -73,25 +76,29 @@ func Test_Write(t *testing.T)  {
 	if err!=nil {
 		t.Errorf("NewLDBDatabase faile")
 	}
-
 	tc := NewTicketIdsCache(ldb)
-	for i:=0; i<20; i++  {
+	for i:=0; i<blockCount; i++  {
 		number := big.NewInt(int64(i))
 		bkhash := crypto.Keccak256Hash(byteutil.IntToBytes(i))
-		mapCache ,err := getMaxtickets()
+		mapCache ,err := getBlockMaxData()
 		if err!=nil {
 			fmt.Println("getMaxtickets faile err: ", err.Error())
 			t.Errorf("getMaxtickets faile")
 		}
 
+		//==>"run submit time
 		tb := time.Now().Nanosecond()
 		tc.Submit2Cache(number, bkhash, mapCache)
-		fmt.Println("run submit time: ", time.Now().Nanosecond() - tb)
+		tns := time.Now().Nanosecond() - tb
+		tms := float64(tns)/float64(1e6)
+		fmt.Printf("run submit time [index=%d] [ns=%d] [ms=%.3f]\n", i, tns, tms)
 
+		//==>run Hash time
 		tb = time.Now().Nanosecond()
 		chash, err:= tc.Hash(number, bkhash)
-		fmt.Println("run Hash time: ", time.Now().Nanosecond() - tb, " hash: ", chash.Hex())
-
+		tns = time.Now().Nanosecond() - tb
+		tms = float64(tns)/float64(1e6)
+		fmt.Printf("run hash time [index=%d] [ns=%d] [ms=%.3f][hash=%s]\n", i, tns, tms, chash.Hex())
 	}
 	tc.Commit(ldb)
 	ldb.Close()
@@ -102,7 +109,6 @@ func Test_New(t *testing.T)  {
 	if err!=nil {
 		t.Errorf("NewLDBDatabase faile")
 	}
-
 	NewTicketIdsCache(ldb)
 	ldb.Close()
 }
@@ -112,12 +118,16 @@ func Test_Read(t *testing.T)  {
 	if err!=nil {
 		t.Errorf("NewLDBDatabase faile")
 	}
-
 	tcCopy := NewTicketIdsCache(ldb)
 	for i:=0; i<20; i++  {
 		number := big.NewInt(int64(i))
 		bkhash := crypto.Keccak256Hash(byteutil.IntToBytes(i))
+		//==>run Hash time
+		tb := time.Now().Nanosecond()
 		tcCopy.GetNodeTicketsMap(number, bkhash)
+		tns := time.Now().Nanosecond() - tb
+		tms := float64(tns)/float64(1e6)
+		fmt.Printf("run getNodeTicketsMap time [index=%d] [ns=%d] [ms=%.3f]\n", i, tns, tms)
 	}
 	ldb.Close()
 }

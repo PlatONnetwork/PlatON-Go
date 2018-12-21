@@ -56,8 +56,7 @@ func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
 		Put 购票交易新增选票
 		Del 节点掉榜，选票过期，选票被选中
 	*/
-	logInfo("NewTicketIdsCache==> in")
-	log.Info("Init ticketidsCache call NewTicketIdsCache func...")
+	//logInfo("NewTicketIdsCache==> Init ticketidsCache call NewTicketIdsCache func")
 	ticketidsCache = &NumBlocks{}
 	ticketidsCache.NBlocks = make(map[string]*BlockNodes)
 	cache, err := db.Get(ticketPoolCacheKey)
@@ -73,7 +72,7 @@ func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
 
 func (nb *NumBlocks) Hash(blocknumber *big.Int, blockhash common.Hash) (common.Hash, error) {
 
-	logInfo("Hash==> ", blocknumber, "  ", blockhash.Hex())
+	//logInfo("Hash==> ", blocknumber, "  ", blockhash.Hex())
 	blockNodes, ok := nb.NBlocks[blocknumber.String()]
 	if !ok {
 		logError(ErrNotfindFromblockNumber.Error())
@@ -90,7 +89,7 @@ func (nb *NumBlocks) Hash(blocknumber *big.Int, blockhash common.Hash) (common.H
 		return common.Hash{}, ErrProbufMarshal
 	}
 	ret := crypto.Keccak256Hash(out)
-	logInfo("Hash==> output: ", ret.Hex())
+	//logInfo("Hash==> output: ", ret.Hex())
 	return ret, nil
 }
 
@@ -109,16 +108,46 @@ func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Ha
 		nodeTicketIds.NTickets = make(map[string]*TicketIds)
 		blockNodes.BNodes[blockhash.String()] = nodeTicketIds
 	}
-	out := make(map[string][]common.Hash)
-	for k, v := range nodeTicketIds.NTickets{
-		tids := make([]common.Hash, 0)
-		for _, t := range v.TicketId {
-			tid := common.Hash{}
-			tid.SetBytes(t)
-			tids = append(tids, tid)
-		}
-		out[k] = tids
+	//go thread
+	type result struct {
+		key string
+		tids []common.Hash
 	}
+	resCh := make(chan *result, len(nodeTicketIds.NTickets))
+	var wg sync.WaitGroup
+	wg.Add(len(nodeTicketIds.NTickets))
+	for k, v := range nodeTicketIds.NTickets {
+		go func  (nodeid string, tidslice *TicketIds){
+			tids := make([]common.Hash, 0, len(tidslice.TicketId))
+			for _, tid := range tidslice.TicketId {
+				tids = append(tids, common.BytesToHash(tid))
+			}
+			res := new(result)
+			res.key = nodeid
+			res.tids = tids
+			resCh <- res
+			wg.Done()
+		}(k, v)
+	}
+	wg.Wait()
+	close(resCh)
+	out := make(map[string][]common.Hash)
+	for res := range resCh {
+		out[res.key] = res.tids
+	}
+
+	//no thread
+	//out := make(map[string][]common.Hash)
+	//for k, v := range nodeTicketIds.NTickets{
+	//	tids := make([]common.Hash, 0)
+	//	for _, t := range v.TicketId {
+	//		tid := common.Hash{}
+	//		tid.SetBytes(t)
+	//		tids = append(tids, tid)
+	//	}
+	//	out[k] = tids
+	//}
+
 	return out
 }
 
@@ -133,7 +162,6 @@ func (nb *NumBlocks) Submit2Cache(blocknumber *big.Int, blockhash common.Hash, i
 	//The same block hash data will be overwritten
 	nodeTicketIds := &NodeTicketIds{}
 	nodeTicketIds.NTickets = make(map[string]*TicketIds)
-
 	//go thread
 	type result struct {
 		key string
@@ -145,11 +173,11 @@ func (nb *NumBlocks) Submit2Cache(blocknumber *big.Int, blockhash common.Hash, i
 	for k, v := range in {
 		go func  (key string, val []common.Hash){
 			tIds := &TicketIds{}
-			for _, va := range v {
+			for _, va := range val {
 				tIds.TicketId = append(tIds.TicketId, va.Bytes())
 			}
 			res := new(result)
-			res.key = k
+			res.key = key
 			res.value = tIds
 			resCh <- res
 			wg.Done()
