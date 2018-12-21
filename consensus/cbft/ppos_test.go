@@ -14,6 +14,7 @@ import (
 	"errors"
 	"Platon-go/consensus/ethash"
 	"Platon-go/core/vm"
+	"encoding/json"
 )
 
 func newTesterAccountPool() ([]discover.NodeID, error) {
@@ -64,6 +65,19 @@ func newChainState() (*state.StateDB, error) {
 	return state, nil
 }
 
+
+func printObject(title string, obj, logger interface{}){
+	objs, _ := json.Marshal(obj)
+	switch logger.(type) {
+	case *testing.T:
+		t := logger.(*testing.T)
+		t.Log(title, string(objs), "\n")
+	case *testing.B:
+		b := logger.(*testing.B)
+		b.Log(title, string(objs), "\n")
+	}
+}
+
 func newPool() (*pposm.CandidatePool, *pposm.TicketPool) {
 	configs := params.PposConfig{
 		Candidate: &params.CandidateConfig{
@@ -79,8 +93,47 @@ func newPool() (*pposm.CandidatePool, *pposm.TicketPool) {
 	return pposm.NewCandidatePool(&configs), pposm.NewTicketPool(&configs)
 }
 
+func buildPpos() *ppos {
+	configs := params.PposConfig{
+		Candidate: &params.CandidateConfig{
+			MaxChair: 1,
+			MaxCount: 3,
+			RefundBlockNumber: 	1,
+		},
+		TicketConfig: &params.TicketConfig {
+			MaxCount: 100,
+			ExpireBlockNumber: 2,
+		},
+	}
+	ppos := &ppos{
+		candidatePool: pposm.NewCandidatePool(&configs),
+		ticketPool: pposm.NewTicketPool(&configs),
+	}
 
-func testNewPpos (t *testing.T) {
+	return ppos
+}
 
+func TestNewPpos (t *testing.T) {
+	configs := params.PposConfig{
+		Candidate: &params.CandidateConfig{
+			MaxChair: 1,
+			MaxCount: 3,
+			RefundBlockNumber: 	1,
+		},
+		TicketConfig: &params.TicketConfig {
+			MaxCount: 100,
+			ExpireBlockNumber: 2,
+		},
+	}
+	ppos := &ppos{
+		candidatePool: pposm.NewCandidatePool(&configs),
+		ticketPool: pposm.NewTicketPool(&configs),
+	}
+	printObject("ppos.candidatePool:", ppos.candidatePool, t)
+	printObject("ppos.ticketPool:", ppos.ticketPool, t)
+}
+
+// test BlockProducerIndex
+func ppos_BlockProducerIndex(logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
 
 }

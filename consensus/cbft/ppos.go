@@ -242,7 +242,7 @@ func (d *ppos) setCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 	log.Info("---start node，to update nodeRound---")
 	genesis := blockChain.Genesis()
 	// init roundCache by config
-	d.nodeRound = buildGenesisRound(genesis.NumberU64(), genesis.Hash(), initialNodes)
+	d.buildGenesisRound(genesis.NumberU64(), genesis.Hash(), initialNodes)
 	d.printMapInfo("启动时读取创世块配置", genesis.NumberU64(), genesis.Hash())
 	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
 	if genesis.NumberU64() != blockChain.CurrentBlock().NumberU64() {
@@ -351,7 +351,7 @@ func (d *ppos) setCandidatePool(blockChain *core.BlockChain, initialNodes []disc
 }
 
 
-func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes []discover.Node) roundCache {
+func (d *ppos)buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes []discover.Node) {
 	initNodeArr := make([]*discover.Node, 0, len(initialNodes))
 	initialNodesIDs := make([]discover.NodeID, 0, len(initialNodes))
 	for _, n := range initialNodes {
@@ -388,7 +388,8 @@ func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes [
 	hashRound := make(map[common.Hash]*nodeCache, 0)
 	hashRound[blockHash] = node
 	res[blockNumber] = hashRound
-	return res
+	/* set nodeRound ... */
+	d.nodeRound = res
 }
 
 func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Hash){

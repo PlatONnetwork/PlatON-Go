@@ -146,80 +146,6 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		return err
 	}
 
-	/*var prewitnessIds []discover.NodeID
-	c.preOriginCandidates = make(candidateStorage, 0)
-	if ids, err := getPreviousWitnessIdsState(state); nil != err {
-		log.Error("Failed to decode previous witnessIds on initDataByState", " err", err)
-		return err
-	} else {
-		prewitnessIds = ids
-	}
-	PrintObject("prewitnessIds", prewitnessIds)
-	for _, witnessId := range prewitnessIds {
-		//fmt.Println("prewitnessId = ", witnessId.String())
-		//var can *types.Candidate
-		if ca, err := getPreviousWitnessByState(state, witnessId); nil != err {
-			log.Error("Failed to decode previous witness Candidate on initDataByState", "err", err)
-			return CandidateDecodeErr
-		} else {
-			if nil != ca {
-				c.preOriginCandidates[witnessId] = ca
-			} else {
-				delete(c.preOriginCandidates, witnessId)
-			}
-		}
-	}
-
-	// loading current witnesses
-	var witnessIds []discover.NodeID
-	c.originCandidates = make(candidateStorage, 0)
-	if ids, err := getWitnessIdsByState(state); nil != err {
-		log.Error("Failed to decode current witnessIds on initDataByState", "err", err)
-		return err
-	} else {
-		witnessIds = ids
-	}
-	PrintObject("witnessIds", witnessIds)
-	for _, witnessId := range witnessIds {
-		//fmt.Println("witnessId = ", witnessId.String())
-		//var can *types.Candidate
-		if ca, err := getWitnessByState(state, witnessId); nil != err {
-			log.Error("Failed to decode current witness Candidate on initDataByState", "err", err)
-			return CandidateDecodeErr
-		} else {
-			if nil != ca {
-				c.originCandidates[witnessId] = ca
-			} else {
-				delete(c.originCandidates, witnessId)
-			}
-		}
-	}
-
-	// loading next witnesses
-	var nextWitnessIds []discover.NodeID
-	c.nextOriginCandidates = make(candidateStorage, 0)
-	if ids, err := getNextWitnessIdsByState(state); nil != err {
-		log.Error("Failed to decode next witnessIds on initDataByState", "err", err)
-		return err
-	} else {
-		nextWitnessIds = ids
-	}
-	PrintObject("nextWitnessIds", nextWitnessIds)
-	for _, witnessId := range nextWitnessIds {
-		//fmt.Println("nextwitnessId = ", witnessId.String())
-		//var can *types.Candidate
-		if ca, err := getNextWitnessByState(state, witnessId); nil != err {
-			log.Error("Failed to decode next witness Candidate on initDataByState", "err", err)
-			return CandidateDecodeErr
-		} else {
-			if nil != ca {
-				c.nextOriginCandidates[witnessId] = ca
-			} else {
-				delete(c.nextOriginCandidates, witnessId)
-			}
-		}
-	}*/
-
 	// loading elected candidates
 	if flag == 1 || flag == 2 {
 
@@ -300,62 +226,6 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				continue
 			}
 		}
-
-
-
-
-		/*// loading immediate elected candidates
-		var immediateIds []discover.NodeID
-		c.immediateCandidates = make(candidateStorage, 0)
-		if ids, err := getImmediateIdsByState(state); nil != err {
-			log.Error("Failed to decode immediateIds on initDataByState", "err", err)
-			return err
-		} else {
-			immediateIds = ids
-		}
-		// cache
-		canCache := make([]*types.Candidate, 0)
-		PrintObject("immediateIds", immediateIds)
-		for _, immediateId := range immediateIds {
-			if ca, err := getImmediateByState(state, immediateId); nil != err {
-				log.Error("Failed to decode immediate Candidate on initDataByState", "err", err)
-				return CandidateDecodeErr
-			} else {
-				if nil != ca {
-					c.immediateCandidates[immediateId] = ca
-					canCache = append(canCache, ca)
-				} else {
-					delete(c.immediateCandidates, immediateId)
-				}
-			}
-		}
-		c.immediateCacheArr = canCache
-
-		// loading reserve elected candidates
-		var reserveIds []discover.NodeID
-		c.reserveCandidates = make(candidateStorage, 0)
-		if ids, err := getReserveIdsByState(state); nil != err {
-			log.Error("Failed to decode reserveIds on initDataByState", "err", err)
-			return err
-		} else {
-			reserveIds = ids
-		}
-		canCache = make([]*types.Candidate, 0)
-		PrintObject("reserveIds", reserveIds)
-		for _, reserveId := range reserveIds {
-			if ca, err := getReserveByState(state, reserveId); nil != err {
-				log.Error("Failed to decode reserve Candidate on initDataByState", "err", err)
-				return CandidateDecodeErr
-			} else {
-				if nil != ca {
-					c.reserveCandidates[reserveId] = ca
-					canCache = append(canCache, ca)
-				} else {
-					delete(c.reserveCandidates, reserveId)
-				}
-			}
-		}
-		c.reserveCacheArr = canCache*/
 
 	}
 
@@ -1306,12 +1176,15 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 		log.Error("Failed to initDataByState on GetAllWitness", "err", err)
 		return nil, nil, nil, err
 	}
-	//var ids []discover.NodeID
+
+	/*
+	var ids []discover.NodeID
 	var prewitness, witness, nextwitness candidateStorage
 	prewitness = c.preOriginCandidates
 	witness = c.originCandidates
 	nextwitness = c.nextOriginCandidates
-	// witness index
+
+	 //witness index
 	var preIndex, curIndex, nextIndex []discover.NodeID
 
 	if ids, err := c.getPreviousWitnessIndex(state); nil != err {
@@ -1364,6 +1237,98 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 			} else {
 				nextArr = append(nextArr, node)
 			}
+		}
+	}*/
+
+	fetchWitnessFunc := func (title string, witnesses candidateStorage,
+		getIndexFn func  (state vm.StateDB) ([]discover.NodeID, error)) ([]*discover.Node, error){
+
+		nodes := make([]*discover.Node, 0)
+
+		// caches
+		witIndex := make([]discover.NodeID, 0)
+
+		// getting witness index
+		if ids, err := getIndexFn(state); nil != err {
+			log.Error("Failed to getting "+title+" witness ids on GetAllWitness", "err", err)
+			return nodes, err
+		} else {
+			witIndex = ids
+		}
+
+		// getting witness info
+		for _, id := range witIndex {
+			if can, ok := witnesses[id]; ok {
+				if node, err := buildWitnessNode(can); nil != err {
+					log.Error("Failed to build "+title+" Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
+					//continue
+					return nodes, err
+				} else {
+					nodes = append(nodes, node)
+				}
+			}
+		}
+		return nodes, nil
+	}
+	preArr, curArr, nextArr := make([]*discover.Node, 0), make([]*discover.Node, 0), make([]*discover.Node, 0)
+
+	type result struct {
+		Type 	int 	// -1: previous; 0: current; 1: next
+		Err 	error
+		nodes  	[]*discover.Node
+	}
+	var wg sync.WaitGroup
+	wg.Add(3)
+	resCh := make(chan *result, 3)
+
+	go func() {
+		res := new(result)
+		res.Type = -1
+		if nodes, err := fetchWitnessFunc("previous", c.preOriginCandidates, c.getPreviousWitnessIndex); nil != err {
+			res.Err = err
+		}else {
+			res.nodes = nodes
+		}
+		resCh <- res
+		wg.Done()
+	}()
+	go func() {
+		res := new(result)
+		res.Type = 0
+		if nodes, err := fetchWitnessFunc("current", c.originCandidates, c.getWitnessIndex); nil != err {
+			res.Err = err
+		}else {
+			res.nodes = nodes
+		}
+		resCh <- res
+		wg.Done()
+	}()
+	go func() {
+		res := new(result)
+		res.Type = 1
+		if nodes, err := fetchWitnessFunc("next", c.nextOriginCandidates, c.getNextWitnessIndex); nil != err {
+			res.Err = err
+		}else {
+			res.nodes = nodes
+		}
+		resCh <- res
+		wg.Done()
+	}()
+	wg.Wait()
+	close(resCh)
+	for res := range resCh {
+		if nil != res.Err {
+			return nil, nil, nil, res.Err
+		}
+		switch res.Type {
+		case -1:
+			preArr = res.nodes
+		case 0:
+			curArr = res.nodes
+		case 1:
+			nextArr = res.nodes
+		default:
+			continue
 		}
 	}
 	return preArr, curArr, nextArr, nil
