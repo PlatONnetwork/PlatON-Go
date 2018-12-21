@@ -1,10 +1,10 @@
 package core
 
 import (
-	"Platon-go/cmd/ctool/rlp"
-	"Platon-go/common/hexutil"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io/ioutil"
 	"os"
 	"path/filepath"
