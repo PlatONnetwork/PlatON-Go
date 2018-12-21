@@ -18,33 +18,34 @@ import (
 )
 
 var (
-	CandidateNotFindErr       = errors.New("The node has lost its candidacy")
-	TicketNilErr              = errors.New("Ticket Insufficient quantity")
-	EncodeTicketErr           = errors.New("Encode Ticket error")
-	EncodePoolNumberErr       = errors.New("Encode SurplusQuantity error")
-	DecodeTicketErr           = errors.New("Decode Ticket error")
-	DecodePoolNumberErr       = errors.New("Decode SurplusQuantity error")
-	RecordExpireTicketErr     = errors.New("Record Expire Ticket error")
-	CandidateNotFindTicketErr = errors.New("The candidate no longer has this ticket")
-	GetCandidateTicketIdErr   = errors.New("Get Candidate TicketIds error")
-	SetCandidateTicketIdErr   = errors.New("Update Candidate TicketIds error")
-	TicketPoolBalanceErr      = errors.New("TicketPool not sufficient funds")
-	GetOwnerTicketIdsErr      = errors.New("Get Owner TicketIds error")
-	SetOwnerTicketIdsErr      = errors.New("Update Owner TicketIds error")
-	TicketIdNotFindErr        = errors.New("TicketId not find")
-	HandleExpireTicketErr     = errors.New("Failure to deal with expired tickets")
-	GetCandidateAttachErr     = errors.New("Get CandidateAttach error")
-	SetCandidateAttachErr     = errors.New("Update CandidateAttach error")
+
+	TicketPoolNilErr			= errors.New("Ticket Insufficient quantity")
+	EncodeTicketErr				= errors.New("Encode Ticket error")
+	EncodePoolNumberErr			= errors.New("Encode SurplusQuantity error")
+	DecodeTicketErr				= errors.New("Decode Ticket error")
+	DecodePoolNumberErr			= errors.New("Decode SurplusQuantity error")
+	RecordExpireTicketErr		= errors.New("Record Expire Ticket error")
+	CandidateNotFindTicketErr	= errors.New("The candidate no longer has this ticket")
+	CandidateNilTicketErr		= errors.New("This candidate has no ticket")
+	GetCandidateTicketIdErr		= errors.New("Get Candidate TicketIds error")
+	SetCandidateTicketIdErr		= errors.New("Update Candidate TicketIds error")
+	TicketPoolBalanceErr		= errors.New("TicketPool not sufficient funds")
+	GetOwnerTicketIdsErr		= errors.New("Get Owner TicketIds error")
+	SetOwnerTicketIdsErr		= errors.New("Update Owner TicketIds error")
+	TicketIdNotFindErr			= errors.New("TicketId not find")
+	HandleExpireTicketErr		= errors.New("Failure to deal with expired tickets")
+	GetCandidateAttachErr		= errors.New("Get CandidateAttach error")
+	SetCandidateAttachErr		= errors.New("Update CandidateAttach error")
 )
 
 type TicketPool struct {
 	// Maximum number of ticket pool
-	MaxCount uint64
+	MaxCount			uint64
 	// Remaining number of ticket pool
-	SurplusQuantity uint64
+	SurplusQuantity		uint64
 	// Reach expired quantity
-	ExpireBlockNumber uint64
-	lock              *sync.RWMutex
+	ExpireBlockNumber	uint64
+	lock				*sync.RWMutex
 }
 
 var ticketPool *TicketPool
@@ -55,15 +56,15 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 		return ticketPool
 	}
 	ticketPool = &TicketPool{
-		MaxCount:          configs.TicketConfig.MaxCount,
-		SurplusQuantity:   configs.TicketConfig.MaxCount,
-		ExpireBlockNumber: configs.TicketConfig.ExpireBlockNumber,
-		lock:              &sync.RWMutex{},
+		MaxCount:				configs.TicketConfig.MaxCount,
+		SurplusQuantity:		configs.TicketConfig.MaxCount,
+		ExpireBlockNumber:		configs.TicketConfig.ExpireBlockNumber,
+		lock:					&sync.RWMutex{},
 	}
 	return ticketPool
 }
 
-func (t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
+func(t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
 	log.Info("开始投票", "购票人：", owner.Hex(), "购票数量：", voteNumber, "购票单价：", deposit.Uint64(), "所投节点：", nodeId.String(), "块高：", blockNumber.Uint64())
 	voteTicketIdList, err := t.voteTicket(stateDB, owner, voteNumber, deposit, nodeId, blockNumber)
 	if nil != err {
@@ -77,7 +78,7 @@ func (t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	return voteTicketIdList, nil
 }
 
-func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
+func(t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	voteTicketIdList := make([]common.Hash, 0)
@@ -86,7 +87,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	log.Info("票池", "剩余数量：", t.SurplusQuantity, "购票数量：", voteNumber, "块高：", blockNumber.Uint64())
 	if t.SurplusQuantity == 0 {
 		log.Error("Ticket Insufficient quantity")
-		return voteTicketIdList, TicketNilErr
+		return voteTicketIdList, TicketPoolNilErr
 	}
 	if t.SurplusQuantity < voteNumber {
 		voteNumber -= t.SurplusQuantity
@@ -99,18 +100,18 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 			return voteTicketIdList, err
 		}
 		ticket := &types.Ticket{
-			TicketId:    ticketId,
-			Owner:       owner,
-			Deposit:     deposit,
-			CandidateId: nodeId,
-			BlockNumber: blockNumber,
-			State:       1,
+			TicketId:		ticketId,
+			Owner:			owner,
+			Deposit:		deposit,
+			CandidateId:	nodeId,
+			BlockNumber:	blockNumber,
+			State:			1,
 		}
 		voteTicketIdList = append(voteTicketIdList, ticketId)
 		if err := t.setTicket(stateDB, ticketId, ticket); err != nil {
 			return voteTicketIdList, err
 		}
-		log.Info("setTicket成功，开始记录待过期票", "块高：", blockNumber.Uint64(), "票Id: ", ticketId.String())
+		log.Info("setTicket成功，开始记录待过期票", "块高：", blockNumber.Uint64())
 		if err := t.recordExpireTicket(stateDB, blockNumber, ticketId); err != nil {
 			return voteTicketIdList, err
 		}
@@ -212,7 +213,7 @@ func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, expireBlockNumber *b
 	}
 	log.Info("处理完过期票，更新候选人总票龄", "候选人数量：", len(changeNodeIdList), "当前块高：", currentBlockNumber.Uint64())
 	// Update CandidateAttach
-	for nodeId, ca := range candidateAttachMap {
+	for nodeId, ca := range candidateAttachMap{
 		t.setCandidateAttach(stateDB, nodeId, ca)
 	}
 	return changeNodeIdList, nil
@@ -233,7 +234,7 @@ func (t *TicketPool) GetTicketList(stateDB vm.StateDB, ticketIds []common.Hash) 
 
 // Get ticket details based on TicketId
 func (t *TicketPool) GetTicket(stateDB vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
-	var ticket = new(types.Ticket)
+	var ticket= new(types.Ticket)
 	if err := getTicketPoolState(stateDB, ticketId.Bytes(), ticket); nil != err {
 		return nil, DecodeTicketErr
 	}
@@ -280,7 +281,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, nodeIds ...discover.No
 			}
 			ticket.State = 4
 			if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
-				return err
+				return  err
 			}
 			t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
 		}
@@ -293,6 +294,9 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 	log.Info("释放选中票", "候选人：", nodeId.String(), "票Id：", ticketId.Hex(), "块高：", blockNumber.Uint64())
 	t.lock.Lock()
 	defer t.lock.Unlock()
+	if ticketId == (common.Hash{}) {
+		return TicketIdNotFindErr
+	}
 	candidateAttach, err := t.GetCandidateAttach(stateDB, nodeId)
 	if nil != err {
 		return err
@@ -301,7 +305,7 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 	ticket.State = 2
 	log.Info("更新票", "状态为：", ticket.State)
 	if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
-		return err
+		return  err
 	}
 	log.Info("更新候选人总票龄", "候选人：", nodeId.String(), "票龄：", candidateAttach.Epoch)
 	if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
@@ -390,6 +394,9 @@ func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.No
 	if nil != err {
 		return luckyTicketId, err
 	}
+	if len(candidateTicketIds) == 0 {
+		return luckyTicketId, CandidateNilTicketErr
+	}
 	decList := make([]float64, 0)
 	decMap := make(map[float64]common.Hash, 0)
 	for _, ticketId := range candidateTicketIds {
@@ -399,6 +406,7 @@ func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.No
 	}
 	sort.Float64s(decList)
 	index := findFirstMatch(decList, hexutil.HexDec(blockHash.Hex()[2:]))
+	log.Info("选出幸运票", "下标", index)
 	luckyTicketId = decMap[decList[index]]
 	log.Info("结束选取幸运票", "候选人", nodeId.String(), "区块Hash", blockHash.Hex(), "幸运票", luckyTicketId.Hex(), "候选人票数", len(candidateTicketIds))
 	return luckyTicketId, nil
@@ -560,7 +568,7 @@ func findFirstMatch(list []float64, key float64) int {
 		}
 	}
 	// 如果找不到匹配的，默认返回最后一个下标
-	if left >= len(list) {
+	if left >= len(list)  {
 		return len(list) - 1
 	}
 	return left

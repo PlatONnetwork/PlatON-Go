@@ -59,11 +59,6 @@ var (
 // * Contracts
 // * Accounts
 
-type A struct {
-	S                  StateDB
-	workingTicketCache map[string][]common.Hash
-}
-
 type StateDB struct {
 	db   Database // 后端的数据库
 	trie Trie     // 树
