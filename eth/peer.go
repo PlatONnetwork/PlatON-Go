@@ -151,9 +151,11 @@ func (p *peer) broadcast() {
 
 		case <-p.term:
 			return
-		default:
 		}
 
+	}
+
+	go func() {
 		select {
 		case txs := <-p.queuedTxs:
 			if err := p.SendTransactions(txs); err != nil {
@@ -161,9 +163,10 @@ func (p *peer) broadcast() {
 			}
 			p.Log().Trace("Broadcast transactions", "count", len(txs))
 
-		default:
+		case <-p.term:
+			return
 		}
-	}
+	}()
 }
 
 // close signals the broadcast goroutine to terminate.
@@ -239,7 +242,7 @@ func (p *peer) AsyncSendTransactions(txs []*types.Transaction) {
 			p.knownTxs.Add(tx.Hash())
 		}
 	default:
-		p.Log().Debug("Dropping transaction propagation", "count", len(txs))
+		p.Log().Debug("x transaction propagation", "count", len(txs))
 	}
 }
 
