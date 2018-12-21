@@ -690,15 +690,25 @@ func (cbft *Cbft) buildTreeNode(current *BlockExt) {
 		parent.children = append(parent.children, current)
 		current.parent = parent
 		current.inTree = parent.inTree
+	} else {
+		log.Warn("cannot find parent block", "hash", current.block.Hash(), "number", current.block.NumberU64())
 	}
 
 	children := cbft.findChildren(current)
 	if len(children) > 0 {
 		current.children = append(current.children, current)
 		for _, child := range children {
-			//child should catch up with ext
-			child.parent = parent
+			//child should catch up with current
+			child.parent = current
+			cbft.buildChild(child, current.inTree)
 		}
+	}
+}
+
+func (cbft *Cbft) buildChild(child *BlockExt, inTree bool) {
+	child.inTree = inTree
+	for _, grandchild := range child.children {
+		cbft.buildChild(grandchild, inTree)
 	}
 }
 
