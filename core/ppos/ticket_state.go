@@ -71,9 +71,9 @@ func (t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 		return voteTicketIdList, err
 	}
 	// 调用候选人重新排序接口
-	log.Info("投票成功，开始更新候选人榜单")
+	log.Info("投票成功，开始更新候选人榜单", "成功票数", len(voteTicketIdList))
 	candidatePool.UpdateElectedQueue(stateDB, nodeId)
-	log.Info("投票成功，候选人榜单更新成功")
+	log.Info("投票成功，候选人榜单更新成功", "成功票数", len(voteTicketIdList))
 	return voteTicketIdList, nil
 }
 
@@ -223,7 +223,7 @@ func (t *TicketPool) GetTicketList(stateDB vm.StateDB, ticketIds []common.Hash) 
 	var tickets []*types.Ticket
 	for _, ticketId := range ticketIds {
 		ticket, err := t.GetTicket(stateDB, ticketId)
-		if nil != err {
+		if nil != err || ticket.TicketId == (common.Hash{}) {
 			return nil, err
 		}
 		tickets = append(tickets, ticket)
@@ -385,6 +385,7 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 
 func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.NodeID, blockHash common.Hash) (common.Hash, error) {
 	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
+	log.Info("开始选取幸运票", "候选人", nodeId.String(), "区块Hash", blockHash.Hex(), "候选人票数", len(candidateTicketIds))
 	luckyTicketId := common.Hash{}
 	if nil != err {
 		return luckyTicketId, err
@@ -399,6 +400,7 @@ func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.No
 	sort.Float64s(decList)
 	index := findFirstMatch(decList, hexutil.HexDec(blockHash.Hex()[2:]))
 	luckyTicketId = decMap[decList[index]]
+	log.Info("结束选取幸运票", "候选人", nodeId.String(), "区块Hash", blockHash.Hex(), "幸运票", luckyTicketId.Hex(), "候选人票数", len(candidateTicketIds))
 	return luckyTicketId, nil
 }
 
