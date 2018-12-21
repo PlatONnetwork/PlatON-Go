@@ -366,10 +366,10 @@ func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
 		if logical.inTurn && !logical.isSigned {
 			if _, signed := cbft.signedSet[logical.block.NumberU64()]; !signed {
 				cbft.sign(logical)
+
+				cbft.txPool.Reset(logical.block)
 			}
 		}
-
-		cbft.txPool.Reset(logical.block)
 
 		/*if logical.isConfirmed {
 			cbft.txPool.LockedReset(current.parent.block.Header(), current.block.Header())
@@ -886,6 +886,28 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		isLogical := inTurn && flowControl && highestConfirmedIsAncestor
 
 		log.Debug("check if block is logical", "result", isLogical, "hash", ext.block.Hash(), "number", ext.number, "inTurn", inTurn, "flowControl", flowControl, "highestConfirmedIsAncestor", highestConfirmedIsAncestor)
+
+		/*
+			if isLogical {
+				cbft.signLogicalAndDescendant(ext)
+			}
+			//rearrange logical path from cbft.rootIrreversible each time
+			newHighestLogical := cbft.findHighestLogical(cbft.rootIrreversible)
+			if newHighestLogical != nil {
+				cbft.setHighestLogical(newHighestLogical)
+			}
+
+			newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(cbft.rootIrreversible)
+			if newHighestConfirmed != nil && newHighestConfirmed.block.Hash() != cbft.highestConfirmed.block.Hash() {
+				//fork
+				if newHighestConfirmed.number < cbft.highestConfirmed.number  ||  (newHighestConfirmed.number > cbft.highestConfirmed.number && !cbft.highestConfirmed.isAncestor(newHighestConfirmed)) {
+					//only this case may cause a new fork
+					cbft.checkFork(closestConfirmed)
+				}
+
+				cbft.highestConfirmed = newHighestConfirmed
+			}
+		*/
 
 		if isLogical {
 			cbft.signLogicalAndDescendant(ext)
