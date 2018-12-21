@@ -58,6 +58,9 @@ func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
 	*/
 	logInfo("NewTicketIdsCache==> in")
 	log.Info("Init ticketidsCache call NewTicketIdsCache func...")
+	if nil != ticketidsCache {
+		return ticketidsCache
+	}
 	ticketidsCache = &NumBlocks{}
 	ticketidsCache.NBlocks = make(map[string]*BlockNodes)
 	cache, err := db.Get(ticketPoolCacheKey)
