@@ -275,7 +275,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		}()
 		go func() {
 			res := new(result)
-			res.Type = 0
+			res.Type = 1
 			if arr, err := loadElectedFunc("reserve", c.reserveCandidates, getReserveIdsByState, getReserveByState); nil != err {
 				res.Err = err
 				resCh <- res
@@ -1102,8 +1102,8 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 
 	// sort immediate candidates
 	candidateSort(c.immediateCacheArr)
-	log.Info("揭榜时，排序的数组长度:", "len", len(c.immediateCacheArr))
-	PrintObject("揭榜时，排序的数组:", c.immediateCacheArr)
+	log.Info("揭榜时，排序的候选池数组长度:", "len", len(c.immediateCacheArr))
+	PrintObject("揭榜时，排序的候选池数组:", c.immediateCacheArr)
 	// cache ids
 	immediateIds := make([]discover.NodeID, 0)
 	for _, can := range c.immediateCacheArr {
@@ -1143,6 +1143,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	//for nodeId, can := range nextWits {
 	for _, nodeId := range nextWitIds {
 		if can, ok := nextWits[nodeId]; ok {
+
 			// 揭榜后回去调 获取幸运票逻辑 TODO
 			luckyId, err := ticketPool.SelectionLuckyTicket(state, nodeId, parentHash)
 			if nil != err {
@@ -2109,7 +2110,9 @@ func setDefeatState(state vm.StateDB, id discover.NodeID, val []byte) {
 
 func copyCandidateMapByIds(target, source candidateStorage, ids []discover.NodeID) {
 	for _, id := range ids {
-		target[id] = source[id]
+		if v, ok := source[id]; ok {
+			target[id] = v
+		}
 	}
 }
 
