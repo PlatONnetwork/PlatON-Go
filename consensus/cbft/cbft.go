@@ -325,7 +325,7 @@ func (cbft *Cbft) findLastClosestConfirmedIncludingSelf(cur *BlockExt) *BlockExt
 // return nil if there's no confirmed in current's descendant.
 func (cbft *Cbft) findClosestConfirmedIncludingSelf(current *BlockExt) *BlockExt {
 	closest := current
-	if current.inTree && current.isExecuted && current.isConfirmed {
+	if current.inTree && current.isExecuted && !current.isConfirmed {
 		closest = nil
 	}
 	for _, node := range current.children {
