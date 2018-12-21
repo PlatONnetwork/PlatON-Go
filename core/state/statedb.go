@@ -271,11 +271,14 @@ func (self *StateDB) GetCodeHash(addr common.Address) common.Hash {
 
 // GetState retrieves a value from the given account's storage trie.
 func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
+	self.lock.Lock()
 	stateObject := self.getStateObject(addr)
 	keyTrie, _, _ := getKeyValue(addr, key, nil)
 	if stateObject != nil {
+		self.lock.Unlock()
 		return stateObject.GetState(self.db, keyTrie)
 	}
+	self.lock.Unlock()
 	return []byte{}
 }
 
@@ -359,11 +362,13 @@ func (self *StateDB) SetCode(addr common.Address, code []byte) {
 }
 
 func (self *StateDB) SetState(address common.Address, key, value []byte) {
+	self.lock.Lock()
 	stateObject := self.GetOrNewStateObject(address)
 	keyTrie, valueKey, value := getKeyValue(address, key, value)
 	if stateObject != nil {
 		stateObject.SetState(self.db, keyTrie, valueKey, value)
 	}
+	self.lock.Unlock()
 }
 
 func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
