@@ -1,21 +1,44 @@
 ## Compile：
 
-Run in this directory： go build cli.go Generate (update) cli.exe file.
+Run in this directory： go build ctool.go generate or update ctool.exe file.
 
 ## Command:
 
 ##### 1.Deploy contract：
 ```
-./cli -cmd deploy -abi "abi json file path(must) " -code "wasm file path (must)" -config "config path(optional)"
+./ctool deploy -abi "abi json file path(must) " -code "wasm file path (must)" -config "config path(optional)"
 ```
 ##### 2.Contract call
 ```
-./cli -cmd invoke  -addr "contract address(must) " --func "functon name and param : eg transfer("a",b,c) (must) " --abi "abi file path (must) " -config "config path(optional)"
+./ctool invoke -addr "contract address(must) " --func "functon name and param : eg transfer("a",b,c) (must) " --abi "abi file path (must) " -config "config path(optional)"
 ```
-##### 3.Query transactionReceipt
+##### 3.Send transaction
 ```
-./cli -cmd getTxReceipt -hash "txhash (must)" -config "config path (optional)"
+./ctool sendTransaction -from "msg sender(must)" -to "msg acceptor(must)" -value "transfer value(must)" -config "config path (optional)"
 ```
+##### 4.Send raw transaction
+```
+./ctool sendRawTransaction -pk "private key file" -from "msg sender(must)" -to "msg acceptor(must)" -value "transfer value(must)" -config "config path (optional)"
+```
+##### 5.Query transactionReceipt
+```
+./ctool getTxReceipt -hash "txhash (must)" -config "config path (optional)"
+```
+##### 6.Prepare transaction stability test account
+```
+./ctool prepare -pkfile "account private key file path (must)" -size "the number of accounts " value "transfer value" -config "config path (optional)"
+```
+
+eg: ./ctool.exe pre -size 10 -pkfile "./test/privateKeys.txt" -value 0xDE0B6B3A7640000
+
+##### 7.Make Stability test
+```
+./ctool stab -pkfile "account private key file path (must)" -times "send transaction times " -config "config path (optional)"
+```
+
+eg:  ./ctool.exe stab -pkfile "./test/privateKeys.txt" -times 10000
+
+note: If the command exits normally,the next time you can continue to run with the generated accounts and the command exits abnormally, you need to re-use the pre command to generate the test accounts.
 
 ##### Config Description： The config parameter is not passed in the command, and the `config.json` file in the current directory is read by default.
 
@@ -29,30 +52,5 @@ The config.json file is as follows：
   "from":"0xfb8c2fa47e84fbde43c97a0859557a36a5fb285b"
 }
 ```
-
-
-### Notes and Exceptions：
-
-1.Comments are not supported in the configuration file config.json. Comments may cause errors.
-
-2.Please ensure that the node starts normally and starts mining, otherwise the transaction cannot be packaged.
-
-3.The ip and port in the configuration file are guaranteed to be correct, otherwise an exception will be thrown.
-```
-panic: runtime error: invalid memory address or nil pointer dereference
-```
-
-4.Deploy contract: must specify the full path of the contract abi and wasm files.
-
-5.Contract call：
-```
-  the contract address is not exist ...
-```
-  The contract was not successfully deploy, the code of the contract could not be obtained, and the contract was successfully issued.
-  The contract address parameter in the command was correct.
-
-
-
-
 
 
