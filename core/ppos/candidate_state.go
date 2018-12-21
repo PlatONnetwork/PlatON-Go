@@ -30,10 +30,6 @@ var (
 type candidateStorage map[discover.NodeID]*types.Candidate
 type refundStorage map[discover.NodeID][]*types.Candidate
 
-//type returnTicket struct {
-//	NodeId 		discover.NodeID
-//	TicketId	common.Hash
-//}
 
 type CandidatePool struct {
 	// allow immediate elected max count
@@ -66,6 +62,9 @@ var candidatePool *CandidatePool
 
 // Initialize the global candidate pool object
 func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
+	if nil != candidatePool {
+		return candidatePool
+	}
 	candidatePool = &CandidatePool{
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
@@ -125,16 +124,16 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 
 	// loading witnesses
 	go func() {
-		defer wg.Done()
 		witErrCh <- loadWitFunc("previous", c.preOriginCandidates, getPreviousWitnessIdsState, getPreviousWitnessByState)
+		wg.Done()
 	}()
 	go func() {
-		defer wg.Done()
 		witErrCh <- loadWitFunc("current", c.originCandidates, getWitnessIdsByState, getWitnessByState)
+		wg.Done()
 	}()
 	go func() {
-		defer wg.Done()
 		witErrCh <- loadWitFunc("next", c.nextOriginCandidates, getNextWitnessIdsByState, getNextWitnessByState)
+		wg.Done()
 	}()
 	var err error
 	for i := 1; i <= 3; i++ {
@@ -263,7 +262,6 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		resCh := make(chan *result, 2)
 		wg.Add(2)
 		go func() {
-			defer wg.Done()
 			res := new(result)
 			res.Type = 0
 			if arr, err := loadElectedFunc("immediate", c.immediateCandidates, getImmediateIdsByState, getImmediateByState); nil != err {
@@ -273,11 +271,11 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				res.Arr = arr
 				resCh <- res
 			}
+			wg.Done()
 		}()
 		go func() {
-			defer wg.Done()
 			res := new(result)
-			res.Type = 0
+			res.Type = 1
 			if arr, err := loadElectedFunc("reserve", c.reserveCandidates, getReserveIdsByState, getReserveByState); nil != err {
 				res.Err = err
 				resCh <- res
@@ -285,6 +283,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				res.Arr = arr
 				resCh <- res
 			}
+			wg.Done()
 		}()
 		wg.Wait()
 		close(resCh)
@@ -1103,8 +1102,8 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 
 	// sort immediate candidates
 	candidateSort(c.immediateCacheArr)
-	log.Info("揭榜时，排序的数组长度:", "len", len(c.immediateCacheArr))
-	PrintObject("揭榜时，排序的数组:", c.immediateCacheArr)
+	log.Info("揭榜时，排序的候选池数组长度:", "len", len(c.immediateCacheArr))
+	PrintObject("揭榜时，排序的候选池数组:", c.immediateCacheArr)
 	// cache ids
 	immediateIds := make([]discover.NodeID, 0)
 	for _, can := range c.immediateCacheArr {
@@ -1144,6 +1143,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	//for nodeId, can := range nextWits {
 	for _, nodeId := range nextWitIds {
 		if can, ok := nextWits[nodeId]; ok {
+
 			// 揭榜后回去调 获取幸运票逻辑 TODO
 			luckyId, err := ticketPool.SelectionLuckyTicket(state, nodeId, parentHash)
 			if nil != err {
@@ -1503,7 +1503,6 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 		case 1:
 			// remove to immediates from reserves
 			go func() {
-				defer wg.Done()
 				res := new(result)
 				res.Type = 0
 				if !c.checkTicket(state.TCount(nodeId.String())) { // TODO
@@ -1520,11 +1519,11 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 					}
 				}
 				resChan <- res
+				wg.Done()
 			}()
 		case 2:
 			// remove to reserves from immediates
 			go func() {
-				defer wg.Done()
 				res := new(result)
 				res.Type = 1
 				if c.checkTicket(state.TCount(nodeId.String())) { // TODO
@@ -1541,6 +1540,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 					}
 				}
 				resChan <- res
+				wg.Done()
 			}()
 
 			//
@@ -2110,7 +2110,9 @@ func setDefeatState(state vm.StateDB, id discover.NodeID, val []byte) {
 
 func copyCandidateMapByIds(target, source candidateStorage, ids []discover.NodeID) {
 	for _, id := range ids {
-		target[id] = source[id]
+		if v, ok := source[id]; ok {
+			target[id] = v
+		}
 	}
 }
 

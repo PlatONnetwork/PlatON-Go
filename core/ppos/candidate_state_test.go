@@ -29,8 +29,6 @@ func newChainState() (*state.StateDB, error) {
 		genesis = new(core.Genesis).MustCommit(db)
 	)
 	fmt.Println("genesis", genesis)
-	//// new ticketIdsCache
-	//ticketcache.NewTicketIdsCache(db)
 	// Initialize a fresh chain with only a genesis block
 	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, ethash.NewFaker(), vm.Config{}, nil)
 
@@ -38,16 +36,6 @@ func newChainState() (*state.StateDB, error) {
 	if statedb, err := blockchain.State(); nil != err {
 		return nil, errors.New("reference statedb failed" + err.Error())
 	}else {
-		/*var isgenesis bool
-		if blockchain.CurrentBlock().NumberU64() == blockchain.Genesis().NumberU64() {
-			isgenesis = true
-		}
-		*//** test init candidatePool *//*
-		if pool, err := pposm.NewCandidatePool(*//*statedb,*//* &configs*//*, isgenesis*//*); nil != err {
-			t.Log("init candidatePool err", err)
-		}else{
-			candidatePool = pool
-		}*/
 		state = statedb
 	}
 	return state, nil
@@ -109,7 +97,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	var blockNumber = new(big.Int).SetUint64(10)
 	voteNum := 10
 	timeMap := make(map[uint32]int64)
-	fmt.Println("投票开始 .............................................................")
+	fmt.Println("VOTING START .............................................................")
 	for i := 0; i < voteNum ; i++ {
 		startTime := time.Now().UnixNano() / 1e6
 		voteOwner := ownerList[rand.Intn(2)]
@@ -123,11 +111,13 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 		}
 
 		if i == 2 {
+			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
 				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
+			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
 		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
@@ -138,7 +128,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 		timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
 
 	}
-	fmt.Println("投票结束 .............................................................")
+	fmt.Println("VOTING END .............................................................")
 
 	/** test GetCandidate */
 	t.Log("test GetCandidate ...")
@@ -392,6 +382,9 @@ func TestGetElection(t *testing.T) {
 	candidatePool, ticketPool = newPool()
 	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 
+	// cache
+	cans := make([]*types.Candidate, 0)
+
 	candidate := &types.Candidate{
 		Deposit: 		new(big.Int).SetUint64(100),
 		BlockNumber:    new(big.Int).SetUint64(7),
@@ -404,6 +397,7 @@ func TestGetElection(t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate)
 	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
@@ -420,6 +414,7 @@ func TestGetElection(t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate2)
 	if err := candidatePool.SetCandidate(state, candidate2.CandidateId, candidate2); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
@@ -436,6 +431,7 @@ func TestGetElection(t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate3)
 	if err := candidatePool.SetCandidate(state, candidate3.CandidateId, candidate3); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
@@ -452,9 +448,52 @@ func TestGetElection(t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate4)
 	if err := candidatePool.SetCandidate(state, candidate4.CandidateId, candidate4); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
+
+	/** vote ticket */
+	var count uint32 = 0
+	ownerList := []common.Address{common.HexToAddress("0x20"), common.HexToAddress("0x21")}
+	var blockNumber = new(big.Int).SetUint64(10)
+	voteNum := 13
+	timeMap := make(map[uint32]int64)
+	fmt.Println("VOTING START .............................................................")
+	for i := 0; i < voteNum ; i++ {
+		can := cans[rand.Intn(4)]
+
+		startTime := time.Now().UnixNano() / 1e6
+		voteOwner := ownerList[rand.Intn(2)]
+		deposit := new(big.Int).SetUint64(10)
+		state.SubBalance(voteOwner, deposit)
+		state.AddBalance(common.TicketPoolAddr, deposit)
+		tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
+		if i < 2 {
+			tempBlockNumber.SetUint64(6)
+			t.Logf("vote blockNumber[%v]", tempBlockNumber.Uint64())
+		}
+
+		if i == 2 {
+			fmt.Println("release ticket,start ############################################################")
+			var tempBlockNumber uint64 = 6
+			for i := 0; i < 4; i++ {
+				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				tempBlockNumber++
+			}
+			fmt.Println("release ticket,end ############################################################")
+		}
+		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", can.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		if nil != err {
+			fmt.Println("vote ticket error:", err)
+		}
+		atomic.AddUint32(&count, 1)
+		timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
+
+	}
+	fmt.Println("VOTING END .............................................................")
+
 
 
 	/** test Election */
@@ -462,6 +501,8 @@ func TestGetElection(t *testing.T) {
 	_, err := candidatePool.Election(state, common.Hash{}, big.NewInt(0))
 	t.Log("Whether election was successful err", err)
 
+	arr, _ := candidatePool.GetWitness(state, 1)
+	fmt.Println(arr)
 }
 
 
@@ -476,6 +517,9 @@ func TestGetWitness (t *testing.T) {
 	candidatePool, ticketPool = newPool()
 	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 
+	// cache
+	cans := make([]*types.Candidate, 0)
+
 	candidate := &types.Candidate{
 		Deposit: 		new(big.Int).SetUint64(100),
 		BlockNumber:    new(big.Int).SetUint64(7),
@@ -488,6 +532,7 @@ func TestGetWitness (t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate)
 	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
@@ -504,6 +549,7 @@ func TestGetWitness (t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate2)
 	if err := candidatePool.SetCandidate(state, candidate2.CandidateId, candidate2); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
@@ -520,6 +566,7 @@ func TestGetWitness (t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate3)
 	if err := candidatePool.SetCandidate(state, candidate3.CandidateId, candidate3); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
@@ -536,10 +583,52 @@ func TestGetWitness (t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate4)
 	if err := candidatePool.SetCandidate(state, candidate4.CandidateId, candidate4); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
 
+
+	/** vote ticket */
+	var count uint32 = 0
+	ownerList := []common.Address{common.HexToAddress("0x20"), common.HexToAddress("0x21")}
+	var blockNumber = new(big.Int).SetUint64(10)
+	voteNum := 13
+	timeMap := make(map[uint32]int64)
+	fmt.Println("VOTING START .............................................................")
+	for i := 0; i < voteNum ; i++ {
+		can := cans[rand.Intn(4)]
+
+		startTime := time.Now().UnixNano() / 1e6
+		voteOwner := ownerList[rand.Intn(2)]
+		deposit := new(big.Int).SetUint64(10)
+		state.SubBalance(voteOwner, deposit)
+		state.AddBalance(common.TicketPoolAddr, deposit)
+		tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
+		if i < 2 {
+			tempBlockNumber.SetUint64(6)
+			t.Logf("vote blockNumber[%v]", tempBlockNumber.Uint64())
+		}
+
+		if i == 2 {
+			fmt.Println("release ticket,start ############################################################")
+			var tempBlockNumber uint64 = 6
+			for i := 0; i < 4; i++ {
+				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				tempBlockNumber++
+			}
+			fmt.Println("release ticket,end ############################################################")
+		}
+		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", can.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		if nil != err {
+			fmt.Println("vote ticket error:", err)
+		}
+		atomic.AddUint32(&count, 1)
+		timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
+
+	}
+	fmt.Println("VOTING END .............................................................")
 
 	/** test Election */
 	t.Log("test Election ...")
@@ -569,6 +658,9 @@ func TestGetDefeat(t *testing.T) {
 	candidatePool, ticketPool = newPool()
 	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 
+	// cache
+	cans := make([]*types.Candidate, 0)
+
 	candidate := &types.Candidate{
 		Deposit: 		new(big.Int).SetUint64(100),
 		BlockNumber:    new(big.Int).SetUint64(7),
@@ -581,6 +673,7 @@ func TestGetDefeat(t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate)
 	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
@@ -597,6 +690,7 @@ func TestGetDefeat(t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate2)
 	if err := candidatePool.SetCandidate(state, candidate2.CandidateId, candidate2); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
@@ -613,6 +707,7 @@ func TestGetDefeat(t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate3)
 	if err := candidatePool.SetCandidate(state, candidate3.CandidateId, candidate3); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
@@ -629,9 +724,52 @@ func TestGetDefeat(t *testing.T) {
 	}
 	t.Log("Set New Candidate ...")
 	/** test SetCandidate */
+	cans = append(cans, candidate4)
 	if err := candidatePool.SetCandidate(state, candidate4.CandidateId, candidate4); nil != err {
 		t.Error("SetCandidate err:", err)
 	}
+
+
+	/** vote ticket */
+	var count uint32 = 0
+	ownerList := []common.Address{common.HexToAddress("0x20"), common.HexToAddress("0x21")}
+	var blockNumber = new(big.Int).SetUint64(10)
+	voteNum := 13
+	timeMap := make(map[uint32]int64)
+	fmt.Println("VOTING START .............................................................")
+	for i := 0; i < voteNum ; i++ {
+		can := cans[rand.Intn(4)]
+
+		startTime := time.Now().UnixNano() / 1e6
+		voteOwner := ownerList[rand.Intn(2)]
+		deposit := new(big.Int).SetUint64(10)
+		state.SubBalance(voteOwner, deposit)
+		state.AddBalance(common.TicketPoolAddr, deposit)
+		tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
+		if i < 2 {
+			tempBlockNumber.SetUint64(6)
+			t.Logf("vote blockNumber[%v]", tempBlockNumber.Uint64())
+		}
+
+		if i == 2 {
+			fmt.Println("release ticket,start ############################################################")
+			var tempBlockNumber uint64 = 6
+			for i := 0; i < 4; i++ {
+				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				tempBlockNumber++
+			}
+			fmt.Println("release ticket,end ############################################################")
+		}
+		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", can.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		if nil != err {
+			fmt.Println("vote ticket error:", err)
+		}
+		atomic.AddUint32(&count, 1)
+		timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
+
+	}
+	fmt.Println("VOTING END .............................................................")
 
 
 	/** test Election */
