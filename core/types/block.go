@@ -162,6 +162,7 @@ type extblock struct {
 	Header *Header
 	Txs    []*Transaction
 	Uncles []*Header
+	ConfirmSigns []*common.BlockConfirmSign
 }
 
 // [deprecated by eth/63]
@@ -246,7 +247,7 @@ func (b *Block) DecodeRLP(s *rlp.Stream) error {
 	if err := s.Decode(&eb); err != nil {
 		return err
 	}
-	b.header, b.uncles, b.transactions = eb.Header, eb.Uncles, eb.Txs
+	b.header, b.uncles, b.transactions, b.ConfirmSigns = eb.Header, eb.Uncles, eb.Txs, eb.ConfirmSigns
 	b.size.Store(common.StorageSize(rlp.ListSize(size)))
 	return nil
 }
@@ -257,6 +258,7 @@ func (b *Block) EncodeRLP(w io.Writer) error {
 		Header: b.header,
 		Txs:    b.transactions,
 		Uncles: b.uncles,
+		ConfirmSigns: b.ConfirmSigns,
 	})
 }
 
