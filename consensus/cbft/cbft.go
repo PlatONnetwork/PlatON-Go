@@ -7,7 +7,6 @@ import (
 	"Platon-go/consensus"
 	"Platon-go/core"
 	"Platon-go/core/cbfttypes"
-	"Platon-go/core/ppos"
 	"Platon-go/core/state"
 	"Platon-go/core/types"
 	"Platon-go/crypto"
