@@ -62,6 +62,9 @@ var candidatePool *CandidatePool
 
 // Initialize the global candidate pool object
 func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
+	if nil != candidatePool {
+		return candidatePool
+	}
 	candidatePool = &CandidatePool{
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,

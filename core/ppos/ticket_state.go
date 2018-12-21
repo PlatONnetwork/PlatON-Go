@@ -52,6 +52,9 @@ var ticketPool *TicketPool
 
 // initialize the global ticket pool object
 func NewTicketPool(configs *params.PposConfig) *TicketPool {
+	if nil != ticketPool {
+		return ticketPool
+	}
 	ticketPool = &TicketPool{
 		MaxCount:				configs.TicketConfig.MaxCount,
 		SurplusQuantity:		configs.TicketConfig.MaxCount,
