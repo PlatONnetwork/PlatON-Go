@@ -56,12 +56,19 @@ func newPool() (*pposm.CandidatePool, *pposm.TicketPool) {
 	return pposm.NewCandidatePool(&configs), pposm.NewTicketPool(&configs)
 }
 
-func printObject(title string, obj interface{}, t *testing.T){
+func printObject(title string, obj, logger interface{}){
 	objs, _ := json.Marshal(obj)
-	t.Log(title, string(objs), "\n")
+	switch logger.(type) {
+	case *testing.T:
+		t := logger.(*testing.T)
+		t.Log(title, string(objs), "\n")
+	case *testing.B:
+		b := logger.(*testing.B)
+		b.Log(title, string(objs), "\n")
+	}
 }
 
-func TestInitCandidatePoolByConfig (t *testing.T){
+func TestCandidatePoolAllCircle (t *testing.T){
 
 	var candidatePool *pposm.CandidatePool
 	var ticketPool *pposm.TicketPool
@@ -168,7 +175,7 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 
 	/** test Election */
 	t.Log("test Election ...")
-	_, err := candidatePool.Election(state, common.Hash{}, big.NewInt(0))
+	_, err := candidatePool.Election(state, common.Hash{}, big.NewInt(20))
 	t.Log("whether election was successful", err)
 
 	/** test RefundBalance */
@@ -193,131 +200,8 @@ func TestInitCandidatePoolByConfig (t *testing.T){
 	printObject("nodeArr", nodeArr, t)
 }
 
-func TestSetCandidate (t *testing.T){
-	var candidatePool *pposm.CandidatePool
-	var ticketPool *pposm.TicketPool
-	var state *state.StateDB
-	if st, err := newChainState(); nil != err {
-		t.Error("Getting stateDB err", err)
-	}else {state = st}
-	/** test init candidatePool and ticketPool */
-	candidatePool, ticketPool = newPool()
-	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
-	//state.Commit(false)
-
-	candidate := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(100),
-		BlockNumber:    new(big.Int).SetUint64(7),
-		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
-		TxIndex:  		6,
-		Host:  			"10.0.0.1",
-		Port:  			"8548",
-		Owner: 			common.HexToAddress("0x12"),
-
-	}
-
-	t.Log("Set New Candidate ...")
-	/** test SetCandidate */
-	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
-		t.Error("SetCandidate err:", err)
-	}
-
-}
-
-
-func TestGetCandidate (t *testing.T) {
-	var candidatePool *pposm.CandidatePool
-	var ticketPool *pposm.TicketPool
-	var state *state.StateDB
-	if st, err := newChainState(); nil != err {
-		t.Error("Getting stateDB err", err)
-	}else {state = st}
-	/** test init candidatePool and ticketPool */
-	candidatePool, ticketPool = newPool()
-	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
-
-	candidate := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(100),
-		BlockNumber:    new(big.Int).SetUint64(7),
-		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
-		TxIndex:  		6,
-		Host:  			"10.0.0.1",
-		Port:  			"8548",
-		Owner: 			common.HexToAddress("0x12"),
-
-	}
-
-	t.Log("Set New Candidate ...")
-	/** test SetCandidate */
-	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
-		t.Error("SetCandidate err:", err)
-	}
-
-
-	/** test GetCandidate */
-	t.Log("test GetCandidate ...")
-	can, _ := candidatePool.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
-	printObject("GetCandidate", can, t)
-
-}
-
 func TestWithdrawCandidate(t *testing.T) {
-	var candidatePool *pposm.CandidatePool
-	var ticketPool *pposm.TicketPool
-	var state *state.StateDB
-	if st, err := newChainState(); nil != err {
-		t.Error("Getting stateDB err", err)
-	}else {state = st}
-	/** test init candidatePool and ticketPool */
-	candidatePool, ticketPool = newPool()
-	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
 
-	candidate := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(100),
-		BlockNumber:    new(big.Int).SetUint64(7),
-		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
-		TxIndex:  		6,
-		Host:  			"10.0.0.1",
-		Port:  			"8548",
-		Owner: 			common.HexToAddress("0x12"),
-
-	}
-	t.Log("Set New Candidate ...")
-	/** test SetCandidate */
-	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
-		t.Error("SetCandidate err:", err)
-	}
-
-	candidate2 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
-		BlockNumber:    new(big.Int).SetUint64(7),
-		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
-		TxIndex:  		5,
-		Host:  			"10.0.0.1",
-		Port:  			"8548",
-		Owner: 			common.HexToAddress("0x15"),
-
-	}
-	t.Log("Set New Candidate ...")
-	/** test SetCandidate */
-	if err := candidatePool.SetCandidate(state, candidate2.CandidateId, candidate2); nil != err {
-		t.Error("SetCandidate err:", err)
-	}
-
-	/** test GetCandidate */
-	t.Log("test GetCandidate ...")
-	can, _ := candidatePool.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
-	printObject("GetCandidate", can, t)
-
-	/** test WithdrawCandidate */
-	t.Log("test WithdrawCandidate ...")
-	ok1 := candidatePool.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
-	t.Log("error", ok1)
-
-	/** test GetCandidate */
-	t.Log("test GetCandidate ...")
-	can2, _ := candidatePool.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
-	printObject("GetCandidate", can2, t)
 }
 
 func TestGetChosens(t *testing.T) {
@@ -498,7 +382,7 @@ func TestGetElection(t *testing.T) {
 
 	/** test Election */
 	t.Log("test Election ...")
-	_, err := candidatePool.Election(state, common.Hash{}, big.NewInt(0))
+	_, err := candidatePool.Election(state, common.Hash{}, big.NewInt(20))
 	t.Log("Whether election was successful err", err)
 
 	arr, _ := candidatePool.GetWitness(state, 1)
@@ -632,7 +516,7 @@ func TestGetWitness (t *testing.T) {
 
 	/** test Election */
 	t.Log("test Election ...")
-	_, err := candidatePool.Election(state, common.Hash{}, big.NewInt(0))
+	_, err := candidatePool.Election(state, common.Hash{}, big.NewInt(20))
 	t.Log("Whether election was successful err", err)
 
 	/** test switch */
@@ -774,7 +658,7 @@ func TestGetDefeat(t *testing.T) {
 
 	/** test Election */
 	t.Log("test Election ...")
-	_, err := candidatePool.Election(state, common.Hash{}, big.NewInt(0))
+	_, err := candidatePool.Election(state, common.Hash{}, big.NewInt(20))
 	t.Log("Whether election was successful err", err)
 
 	/**  */
@@ -839,3 +723,259 @@ func TestGetDefeat(t *testing.T) {
 	nodeArr, _ := candidatePool.GetWitness(state, 0)
 	printObject("nodeArr", nodeArr, t)
 }
+
+
+/** Unit Testing */
+func TestCandidatePool_SetCandidate(t *testing.T) {
+	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
+	var state *state.StateDB
+	if st, err := newChainState(); nil != err {
+		t.Error("Getting stateDB err", err)
+	}else {state = st}
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	//state.Commit(false)
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+
+	t.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		t.Error("SetCandidate err:", err)
+	}
+
+}
+
+func TestCandidatePool_GetCandidate(t *testing.T) {
+	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
+	var state *state.StateDB
+	if st, err := newChainState(); nil != err {
+		t.Error("Getting stateDB err", err)
+	}else {state = st}
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+
+	t.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		t.Error("SetCandidate err:", err)
+	}
+
+
+	/** test GetCandidate */
+	t.Log("test GetCandidate ...")
+	can, _ := candidatePool.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	printObject("GetCandidate", can, t)
+
+}
+
+func TestCandidatePool_WithdrawCandidate(t *testing.T) {
+	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
+	var state *state.StateDB
+	if st, err := newChainState(); nil != err {
+		t.Error("Getting stateDB err", err)
+	}else {state = st}
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	t.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+	t.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		t.Error("SetCandidate err:", err)
+	}
+
+	candidate2 := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(99),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		TxIndex:  		5,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x15"),
+
+	}
+	t.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate2.CandidateId, candidate2); nil != err {
+		t.Error("SetCandidate err:", err)
+	}
+
+	/** test GetCandidate */
+	t.Log("test GetCandidate ...")
+	can, _ := candidatePool.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	printObject("GetCandidate", can, t)
+
+	/** test WithdrawCandidate */
+	t.Log("test WithdrawCandidate ...")
+	ok1 := candidatePool.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
+	t.Log("error", ok1)
+
+	/** test GetCandidate */
+	t.Log("test GetCandidate ...")
+	can2, _ := candidatePool.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	printObject("GetCandidate", can2, t)
+}
+
+/** Unit BenchMarking */
+
+func BenchmarkCandidatePool_SetCandidate(b *testing.B) {
+	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
+	var state *state.StateDB
+	if st, err := newChainState(); nil != err {
+		b.Error("Getting stateDB err", err)
+	}else {state = st}
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	b.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	//state.Commit(false)
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+
+	b.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		b.Error("SetCandidate err:", err)
+	}
+}
+
+func BenchmarkCandidatePool_GetCandidate(b *testing.B) {
+	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
+	var state *state.StateDB
+	if st, err := newChainState(); nil != err {
+		b.Error("Getting stateDB err", err)
+	}else {state = st}
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	b.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+
+	b.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		b.Error("SetCandidate err:", err)
+	}
+
+
+	/** test GetCandidate */
+	b.Log("test GetCandidate ...")
+	can, _ := candidatePool.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	printObject("GetCandidate", can, b)
+
+}
+
+func BenchmarkCandidatePool_WithdrawCandidate(b *testing.B) {
+	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
+	var state *state.StateDB
+	if st, err := newChainState(); nil != err {
+		b.Error("Getting stateDB err", err)
+	}else {state = st}
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	b.Log("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+	b.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		b.Error("SetCandidate err:", err)
+	}
+
+	candidate2 := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(99),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		TxIndex:  		5,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x15"),
+
+	}
+	b.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate2.CandidateId, candidate2); nil != err {
+		b.Error("SetCandidate err:", err)
+	}
+
+	/** test GetCandidate */
+	b.Log("test GetCandidate ...")
+	can, _ := candidatePool.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	printObject("GetCandidate", can, b)
+
+	/** test WithdrawCandidate */
+	b.Log("test WithdrawCandidate ...")
+	ok1 := candidatePool.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
+	b.Log("error", ok1)
+
+	/** test GetCandidate */
+	b.Log("test GetCandidate ...")
+	can2, _ := candidatePool.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	printObject("GetCandidate", can2, b)
+}
+

@@ -46,26 +46,6 @@ func newPpos(config *params.CbftConfig) *ppos {
 	}
 }
 
-//func (d *ppos) AnyIndex(nodeID discover.NodeID) int64 {
-//	d.lock.RLock()
-//	defer d.lock.RUnlock()
-//	nodeList := make([]discover.NodeID, 0)
-//	if d.former != nil && d.former.nodes != nil && len(d.former.nodes) > 0 {
-//		nodeList = append(nodeList, d.former.nodeIds...)
-//	}
-//	if d.current != nil && d.current.nodes != nil && len(d.current.nodes) > 0 {
-//		nodeList = append(nodeList, d.current.nodeIds...)
-//	}
-//	if d.next != nil && d.next.nodes != nil && len(d.next.nodes) > 0 {
-//		nodeList = append(nodeList, d.next.nodeIds...)
-//	}
-//	for idx, node := range nodeList {
-//		if node == nodeID {
-//			return int64(idx)
-//		}
-//	}
-//	return int64(-1)
-//}
 
 func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) int64 {
 	d.lock.RLock()
@@ -133,27 +113,7 @@ func (d *ppos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
 	return -1
 }
 
-//func (d *ppos) getFormerNodeID () []discover.NodeID {
-//	d.lock.RLock()
-//	defer d.lock.RUnlock()
-//	return d.former.nodeIds
-//}
 
-//func (d *ppos) getCurrentNodeID() []discover.NodeID {
-//	d.lock.RLock()
-//	defer d.lock.RUnlock()
-//	return d.current.nodeIds
-//}
-
-//func (d *ppos) getNextNodeID () []discover.NodeID {
-//	d.lock.RLock()
-//	defer d.lock.RUnlock()
-//	if nil != d.next {
-//		return d.next.nodeIds
-//	}else {
-//		return make([]discover.NodeID, 0)
-//	}
-//}
 
 func (d *ppos) getFormerNodes (parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node {
 	d.lock.RLock()
@@ -176,20 +136,6 @@ func (d *ppos) getCurrentNodes (parentNumber *big.Int, parentHash common.Hash, b
 	}
 	return nil
 }
-
-//func (d *ppos) consensusNodes(blockNumber *big.Int) []discover.NodeID {
-//	d.lock.RLock()
-//	defer d.lock.RUnlock()
-//
-//	if d.former != nil && blockNumber.Cmp(d.former.start) >= 0 && blockNumber.Cmp(d.former.end) <= 0 {
-//		return d.former.nodeIds
-//	} else if d.current != nil && blockNumber.Cmp(d.current.start) >= 0 && blockNumber.Cmp(d.current.end) <= 0 {
-//		return d.current.nodeIds
-//	} else if d.next != nil && blockNumber.Cmp(d.next.start) >= 0 && blockNumber.Cmp(d.next.end) <= 0 {
-//		return d.next.nodeIds
-//	}
-//	return nil
-//}
 
 func (d *ppos) consensusNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []discover.NodeID {
 	d.lock.RLock()
@@ -516,10 +462,7 @@ func (d *ppos) GetRefundInterval() uint64 {
 	return d.candidatePool.GetRefundInterval()
 }
 
-// update candidate's tickets
-//func (d *ppos) UpdateCandidateTicket (state vm.StateDB, blockNumber *big.Int, blockHash common.Hash, nodeId discover.NodeID, can *types.Candidate) error {
-//	return d.candidatePool.UpdateCandidateTicket(state, blockNumber, blockHash, nodeId, can)
-//}
+
 
 /** about ticketpool's method */
 

@@ -94,8 +94,7 @@ var cbft *Cbft
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
 
-	pposm.PrintObject("获取ppos config：", *config)
-	_ppos := newPpos(/*config.InitialNodes, */config)
+	_ppos := newPpos(config)
 
 	cbft = &Cbft{
 		config:                config,
