@@ -986,9 +986,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Write other block data using a batch.
 	batch := bc.db.NewBatch()
 	rawdb.WriteReceipts(batch, block.Hash(), block.NumberU64(), receipts)
-	if block.ConfirmSigns != nil {
-		rawdb.WriteBlockConfirmSigns(batch, block.Hash(), block.NumberU64(), block.ConfirmSigns)
-	}
 
 	// If the total difficulty is higher than our known, add it to the canonical chain
 	// Second clause in the if statement reduces the vulnerability to selfish mining.
@@ -1032,7 +1029,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if err := batch.Write(); err != nil {
 		return NonStatTy, err
 	}
-	log.Debug("insert into chain", "WriteStatus", status, "hash", block.Hash(), "number", block.NumberU64(), "signs", rawdb.ReadBlockConfirmSigns(bc.db, block.Hash(), block.NumberU64()))
+	log.Debug("Read block signatures", "WriteStatus", status, "hash", block.Hash(), "number", block.NumberU64(), "signs", rawdb.ReadBody(bc.db, block.Hash(), block.NumberU64()).Signatures)
 
 	// Set new head.
 	if status == CanonStatTy {

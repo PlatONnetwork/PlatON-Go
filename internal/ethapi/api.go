@@ -864,6 +864,13 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 	}
 	fields["uncles"] = uncleHashes
 
+	signatures := b.Signatures()
+	signHashes := make([]string, len(signatures))
+	for i, sign := range signatures {
+		signHashes[i] = sign.String()
+	}
+	fields["signatures"] = signHashes
+
 	return fields, nil
 }
 
