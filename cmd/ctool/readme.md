@@ -33,10 +33,10 @@ eg: ./ctool.exe pre -size 10 -pkfile "./test/privateKeys.txt" -value 0xDE0B6B3A7
 
 ##### 7.Make Stability test
 ```
-./ctool stab -pkfile "account private key file path (must)" -times "send transaction times " -config "config path (optional)"
+./ctool stab -pkfile "account private key file path (must)" -times "send transaction times " -interval " "-config "config path (optional)"
 ```
 
-eg:  ./ctool.exe stab -pkfile "./test/privateKeys.txt" -times 10000
+eg:  ./ctool.exe stab -pkfile "./test/privateKeys.txt" -times 10000 -interval 10
 
 note: If the command exits normally,the next time you can continue to run with the generated accounts and the command exits abnormally, you need to re-use the pre command to generate the test accounts.
 
