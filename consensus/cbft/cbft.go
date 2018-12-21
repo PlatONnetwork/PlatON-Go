@@ -325,7 +325,7 @@ func (cbft *Cbft) findLastClosestConfirmedIncludingSelf(cur *BlockExt) *BlockExt
 // return nil if there's no confirmed in current's descendant.
 func (cbft *Cbft) findClosestConfirmedIncludingSelf(current *BlockExt) *BlockExt {
 	closest := current
-	if current.inTree && current.isExecuted && current.isConfirmed {
+	if current.inTree && current.isExecuted && !current.isConfirmed {
 		closest = nil
 	}
 	for _, node := range current.children {
@@ -587,7 +587,7 @@ func BlockSynchronisation() {
 	currentBlock := cbft.blockChain.CurrentBlock()
 
 	if currentBlock.NumberU64() > cbft.rootIrreversible.number {
-		log.Debug("chain has a higher irreversible block")
+		log.Debug("chain has a higher irreversible block", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 
 		newRoot := NewBlockExt(currentBlock, currentBlock.NumberU64())
 		newRoot.inTree = true
@@ -601,6 +601,7 @@ func BlockSynchronisation() {
 		for _, child := range children {
 			child.parent = newRoot
 			child.inTree = true
+			log.Debug("find newRoot's child", "hash", child.block.Hash(), "number", child.block.NumberU64(), "child", child)
 		}
 		newRoot.children = children
 
@@ -609,6 +610,7 @@ func BlockSynchronisation() {
 
 		//reset the new root irreversible
 		cbft.rootIrreversible = newRoot
+		log.Debug("cbft.rootIrreversible", "hash", cbft.rootIrreversible.block.Hash(), "number", cbft.rootIrreversible.block.NumberU64())
 
 		//the new root's children should re-execute base on new state
 		for _, child := range newRoot.children {
@@ -627,8 +629,16 @@ func BlockSynchronisation() {
 		highestLogical := cbft.findHighestLogical(newRoot)
 		cbft.setHighestLogical(highestLogical)
 
+		log.Debug("newRoot", "hash", newRoot.block.Hash(), "number", newRoot.block.NumberU64())
+
 		//reset highest confirmed block
 		cbft.highestConfirmed = cbft.findLastClosestConfirmedIncludingSelf(newRoot)
+
+		if cbft.highestConfirmed != nil {
+			log.Debug("cbft.highestConfirmed", "hash", newRoot.block.Hash(), "number", newRoot.block.NumberU64())
+		} else {
+			log.Debug("cbft.highestConfirmed is null")
+		}
 
 		if !cbft.flushReadyBlock() {
 			//remove all other blocks those their numbers are too low
@@ -680,15 +690,25 @@ func (cbft *Cbft) buildTreeNode(current *BlockExt) {
 		parent.children = append(parent.children, current)
 		current.parent = parent
 		current.inTree = parent.inTree
+	} else {
+		log.Warn("cannot find parent block", "hash", current.block.Hash(), "number", current.block.NumberU64())
 	}
 
 	children := cbft.findChildren(current)
 	if len(children) > 0 {
 		current.children = append(current.children, current)
 		for _, child := range children {
-			//child should catch up with ext
-			child.parent = parent
+			//child should catch up with current
+			child.parent = current
+			cbft.buildChild(child, current.inTree)
 		}
+	}
+}
+
+func (cbft *Cbft) buildChild(child *BlockExt, inTree bool) {
+	child.inTree = inTree
+	for _, grandchild := range child.children {
+		cbft.buildChild(grandchild, inTree)
 	}
 }
 
