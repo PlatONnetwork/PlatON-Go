@@ -18,20 +18,20 @@
 package state
 
 import (
+	"Platon-go/common"
 	"Platon-go/core/ticketcache"
+	"Platon-go/core/types"
+	"Platon-go/crypto"
 	"Platon-go/crypto/sha3"
+	"Platon-go/log"
+	"Platon-go/rlp"
+	"Platon-go/trie"
 	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
 	"sort"
 	"sync"
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/log"
-	"Platon-go/rlp"
-	"Platon-go/trie"
 )
 
 // 主要是提供了state trie的部分功能
@@ -60,10 +60,9 @@ var (
 // * Accounts
 
 type A struct {
-	S StateDB
+	S                  StateDB
 	workingTicketCache map[string][]common.Hash
 }
-
 
 type StateDB struct {
 	db   Database // 后端的数据库
@@ -100,7 +99,7 @@ type StateDB struct {
 
 	//ppos add -> Current ticket pool cache object <nodeid.string(), ticketId>
 	cTicketCache map[string][]common.Hash
-	tclock sync.RWMutex
+	tclock       sync.RWMutex
 }
 
 // Create a new state from a given trie.
@@ -272,13 +271,12 @@ func (self *StateDB) GetCodeHash(addr common.Address) common.Hash {
 // GetState retrieves a value from the given account's storage trie.
 func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
 	self.lock.Lock()
+	defer self.lock.Unlock()
 	stateObject := self.getStateObject(addr)
 	keyTrie, _, _ := getKeyValue(addr, key, nil)
 	if stateObject != nil {
-		self.lock.Unlock()
 		return stateObject.GetState(self.db, keyTrie)
 	}
-	self.lock.Unlock()
 	return []byte{}
 }
 
@@ -501,11 +499,11 @@ func (self *StateDB) CreateAccount(addr common.Address) {
 	}
 }
 
-func (self *StateDB) TxHash() common.Hash  {
+func (self *StateDB) TxHash() common.Hash {
 	return self.thash
 }
 
-func (self *StateDB) TxIdx() uint32  {
+func (self *StateDB) TxIdx() uint32 {
 	return uint32(self.txIndex)
 }
 
@@ -816,10 +814,10 @@ func (self *StateDB) DelTicketCache(nodeid string, tids []common.Hash) error {
 	for _, id := range tids {
 		mapTIds[id.Hex()] = id
 	}
-	for i:=0; i<len(cache); i++ {
+	for i := 0; i < len(cache); i++ {
 		if _, ok := mapTIds[cache[i].Hex()]; ok {
 			cache = append(cache[:i], cache[i+1:]...)
-			i = i-1
+			i = i - 1
 		}
 	}
 	self.cTicketCache[nodeid] = cache
@@ -827,14 +825,14 @@ func (self *StateDB) DelTicketCache(nodeid string, tids []common.Hash) error {
 	return nil
 }
 
-func (self *StateDB) TCount(nodeid string)  uint64 {
+func (self *StateDB) TCount(nodeid string) uint64 {
 	self.tclock.RLock()
 	count := uint64(len(self.cTicketCache[nodeid]))
 	self.tclock.RUnlock()
 	return count
 }
 
-func (self *StateDB) TicketCaceheSnapshot() map[string][]common.Hash  {
+func (self *StateDB) TicketCaceheSnapshot() map[string][]common.Hash {
 	ret := make(map[string][]common.Hash, len(self.cTicketCache))
 	for nodeid, tids := range self.cTicketCache {
 		ret[nodeid] = make([]common.Hash, len(tids))
