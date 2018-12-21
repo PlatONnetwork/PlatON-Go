@@ -79,7 +79,7 @@ func (t *ticketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 		return nil, ErrCandidateNotExist
 	}
 	totalPrice := new(big.Int).Mul(new(big.Int).SetUint64(count), price)
-	if totalPrice.Cmp(value) != 0 || value.Cmp(big.NewInt(0)) != 1 || totalPrice.Cmp(big.NewInt(0)) != 1 {
+	if totalPrice.Cmp(value) != 0 || totalPrice.Cmp(big.NewInt(0)) != 1 {
 		return nil, ErrIllegalDeposit
 	}
 	// return ([]common.hash, error) successful ticketIds
@@ -107,7 +107,7 @@ func (t *ticketContract) GetTicketDetail(ticketId common.Hash) ([]byte, error) {
 		log.Error("GetTicketDetail==> ", "GetTicketDetail() occured error: ", err.Error())
 		return nil, err
 	}
-	if nil == ticket {
+	if nil == ticket.BlockNumber {
 		log.Error("GetTicketDetail==> The GetTicketDetail for the inquiry does not exist")
 		return nil, nil
 	}
@@ -147,7 +147,7 @@ func (t *ticketContract) GetCandidateEpoch(nodeId discover.NodeID) ([]byte, erro
 	return byteutil.Uint64ToBytes(epoch), nil
 }
 
-// GetPoolRemainder returns the amount of remaining tikcets in the ticket pool.
+// GetPoolRemainder returns the amount of remaining tickets in the ticket pool.
 func (t *ticketContract) GetPoolRemainder() ([]byte, error) {
 	remainder, err := t.evm.TicketPool.GetPoolNumber(t.evm.StateDB)
 	if nil != err {
