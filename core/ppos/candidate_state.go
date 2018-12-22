@@ -28,7 +28,7 @@ var (
 )
 
 type candidateStorage map[discover.NodeID]*types.Candidate
-type refundStorage map[discover.NodeID][]*types.Candidate
+type refundStorage map[discover.NodeID]types.CandidateQueue
 
 type CandidatePool struct {
 	// allow immediate elected max count
@@ -52,8 +52,8 @@ type CandidatePool struct {
 	defeatCandidates refundStorage
 
 	// cache
-	immediateCacheArr []*types.Candidate
-	reserveCacheArr   []*types.Candidate
+	immediateCacheArr types.CandidateQueue
+	reserveCacheArr   types.CandidateQueue
 	lock              *sync.RWMutex
 }
 
@@ -74,8 +74,8 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		immediateCandidates:  make(candidateStorage, 0),
 		reserveCandidates:    make(candidateStorage, 0),
 		defeatCandidates:     make(refundStorage, 0),
-		immediateCacheArr:    make([]*types.Candidate, 0),
-		reserveCacheArr:      make([]*types.Candidate, 0),
+		immediateCacheArr:    make(types.CandidateQueue, 0),
+		reserveCacheArr:      make(types.CandidateQueue, 0),
 		lock:                 &sync.RWMutex{},
 	}
 	return candidatePool
@@ -151,7 +151,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 
 		loadElectedFunc := func(title string, canMap candidateStorage,
 			getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
-			getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) ([]*types.Candidate, error) {
+			getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) (types.CandidateQueue, error) {
 			var witnessIds []discover.NodeID
 			canMap = make(candidateStorage, 0)
 			if ids, err := getIndexFn(state); nil != err {
@@ -161,7 +161,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				witnessIds = ids
 			}
 			// cache
-			canCache := make([]*types.Candidate, 0)
+			canCache := make(types.CandidateQueue, 0)
 
 			PrintObject(title+" Ids", witnessIds)
 			for _, witnessId := range witnessIds {
@@ -182,7 +182,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		}
 		type result struct {
 			Type 	int  // 0: immediate; 1: reserve
-			Arr 	[]*types.Candidate
+			Arr 	types.CandidateQueue
 			Err 	error
 		}
 		resCh := make(chan *result, 2)
@@ -302,7 +302,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 	}
 
 	// cache
-	cacheArr := make([]*types.Candidate, 0)
+	cacheArr := make(types.CandidateQueue, 0)
 	if flag {
 		for _, v := range c.immediateCandidates {
 			cacheArr = append(cacheArr, v)
@@ -541,7 +541,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 		handle := func(title string, candidateMap candidateStorage,
 			setInfoFn func(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
-			setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) ([]*types.Candidate, error) {
+			setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) (types.CandidateQueue, error) {
 
 			// update current candidate
 			if err := setInfoFn(state, nodeId, canNew); nil != err {
@@ -550,7 +550,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			}
 
 			// sort current candidates
-			candidateArr := make([]*types.Candidate, 0)
+			candidateArr := make(types.CandidateQueue, 0)
 			for _, can := range candidateMap {
 				candidateArr = append(candidateArr, can)
 			}
@@ -613,11 +613,11 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 // 0:  Getting all elected candidates array
 // 1:  Getting all immediate elected candidates array
 // 2:  Getting all reserve elected candidates array
-func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) []*types.Candidate {
+func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.CandidateQueue {
 	log.Info("获取入围列表...")
 	c.lock.RLock()
 	defer c.lock.RUnlock()
-	arr := make([]*types.Candidate, 0)
+	arr := make(types.CandidateQueue, 0)
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on GetChosens", "err", err)
 		return arr
@@ -636,7 +636,7 @@ func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) []*types.Candidat
 		reserveIds, err := c.getReserveIndex(state)
 		if nil != err {
 			log.Error("Failed to getReserveIndex on GetChosens", "err", err)
-			return make([]*types.Candidate, 0)
+			return make(types.CandidateQueue, 0)
 		}
 		for _, id := range reserveIds {
 			arr = append(arr, c.reserveCandidates[id])
@@ -646,7 +646,7 @@ func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) []*types.Candidat
 }
 
 // Getting all witness array
-func (c *CandidatePool) GetChairpersons(state vm.StateDB) []*types.Candidate {
+func (c *CandidatePool) GetChairpersons(state vm.StateDB) types.CandidateQueue {
 	log.Info("获取本轮见证人列表...")
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -659,7 +659,7 @@ func (c *CandidatePool) GetChairpersons(state vm.StateDB) []*types.Candidate {
 		log.Error("Failed to getWitnessIndex on GetChairpersonserr", "err", err)
 		return nil
 	}
-	arr := make([]*types.Candidate, 0)
+	arr := make(types.CandidateQueue, 0)
 	for _, id := range witnessIds {
 		arr = append(arr, c.originCandidates[id])
 	}
@@ -667,7 +667,7 @@ func (c *CandidatePool) GetChairpersons(state vm.StateDB) []*types.Candidate {
 }
 
 // Getting all refund array by nodeId
-func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*types.Candidate, error) {
+func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) (types.CandidateQueue, error) {
 	log.Info("获取退款列表: nodeId = " + nodeId.String())
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -769,7 +769,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 		return err
 	}
 
-	var canArr []*types.Candidate
+	var canArr types.CandidateQueue
 	if defeatArr, ok := c.defeatCandidates[nodeId]; ok {
 		canArr = defeatArr
 	} else {
@@ -782,7 +782,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	// Grand total refund amount for one-time
 	amount := big.NewInt(0)
 	// Transfer refund information that needs to be deleted
-	delCanArr := make([]*types.Candidate, 0)
+	delCanArr := make(types.CandidateQueue, 0)
 
 	contractBalance := state.GetBalance(common.CandidatePoolAddr)
 	//currentNum := new(big.Int).SetUint64(blockNumber)
@@ -917,7 +917,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 // Announce witness
 func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, currBlockNumber *big.Int) ([]*discover.Node, error) {
 	var nodes []*discover.Node
-	var cans []*types.Candidate
+	var cans types.CandidateQueue
 	if nodeArr, canArr, err := c.election(state, parentHash); nil != err {
 		return nil, err
 	} else {
@@ -961,7 +961,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	return nodes, nil
 }
 
-func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) ([]*discover.Node, []*types.Candidate, error) {
+func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) ([]*discover.Node, types.CandidateQueue, error) {
 	log.Info("揭榜...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.RefundBlockNumber)
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -1008,7 +1008,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	}
 
 	arr := make([]*discover.Node, 0)
-	caches := make([]*types.Candidate, 0)
+	caches := make(types.CandidateQueue, 0)
 	// set up all new nextwitnesses information
 	//for nodeId, can := range nextWits {
 	for _, nodeId := range nextWitIds {
@@ -1365,13 +1365,13 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 		getOldIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 		setOldIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error,
 		setNewIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error,
-	) ([]discover.NodeID, []*types.Candidate, error) {
+	) ([]discover.NodeID, types.CandidateQueue, error) {
 
 		can := oldMap[nodeId]
 		newMap[nodeId] = can
 
 		// cache
-		cacheArr := make([]*types.Candidate, 0)
+		cacheArr := make(types.CandidateQueue, 0)
 		for _, v := range newMap {
 			cacheArr = append(cacheArr, v)
 		}
@@ -1458,7 +1458,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 		Type 	int // 0: immediate; 1: reserve
 		Err    error
 		ResArr []discover.NodeID
-		CanArr []*types.Candidate
+		CanArr types.CandidateQueue
 	}
 	resChan := make(chan *result, len(nodeIds))
 	var wg sync.WaitGroup
@@ -1515,7 +1515,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 			//
 			//
 			//	// cache
-			//	cacheArr := make([]*types.Candidate, 0)
+			//	cacheArr := make(types.CandidateQueue, 0)
 			//	for _, v := range c.immediateCandidates {
 			//		cacheArr = append(cacheArr, v)
 			//	}
@@ -1724,14 +1724,14 @@ func (c *CandidatePool) setReserveIndex(state vm.StateDB, nodeIds []discover.Nod
 // setting refund information
 func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error {
 
-	var defeatArr []*types.Candidate
+	var defeatArr types.CandidateQueue
 	// append refund information
 	if defeatArrTmp, ok := c.defeatCandidates[can.CandidateId]; ok {
 		defeatArrTmp = append(defeatArrTmp, can)
 		//c.defeatCandidates[can.CandidateId] = defeatArrTmp
 		defeatArr = defeatArrTmp
 	} else {
-		defeatArrTmp = make([]*types.Candidate, 0)
+		defeatArrTmp = make(types.CandidateQueue, 0)
 		defeatArrTmp = append(defeatArr, can)
 		//c.defeatCandidates[can.CandidateId] = defeatArrTmp
 		defeatArr = defeatArrTmp
@@ -2059,8 +2059,8 @@ func setDefeatIdsState(state vm.StateDB, arrVal []byte) {
 	state.SetState(common.CandidatePoolAddr, DefeatListKey(), arrVal)
 }
 
-func getDefeatsByState(state vm.StateDB, id discover.NodeID) ([]*types.Candidate, error) {
-	var canArr []*types.Candidate
+func getDefeatsByState(state vm.StateDB, id discover.NodeID) (types.CandidateQueue, error) {
+	var canArr types.CandidateQueue
 	if valByte := state.GetState(common.CandidatePoolAddr, DefeatKey(id)); nil != valByte && len(valByte) != 0 {
 		if err := rlp.DecodeBytes(valByte, &canArr); nil != err {
 			return nil, err
@@ -2133,20 +2133,20 @@ func compare(c, can *types.Candidate) int {
 }
 
 // sorted candidates
-func candidateSort(arr []*types.Candidate) {
+func candidateSort(arr types.CandidateQueue) {
 	if len(arr) <= 1 {
 		return
 	}
 	quickSort(arr, 0, len(arr)-1)
 }
-func quickSort(arr []*types.Candidate, left, right int) {
+func quickSort(arr types.CandidateQueue, left, right int) {
 	if left < right {
 		pivot := partition(arr, left, right)
 		quickSort(arr, left, pivot-1)
 		quickSort(arr, pivot+1, right)
 	}
 }
-func partition(arr []*types.Candidate, left, right int) int {
+func partition(arr types.CandidateQueue, left, right int) int {
 	for left < right {
 		for left < right && compare(arr[left], arr[right]) >= 0 {
 			right--
