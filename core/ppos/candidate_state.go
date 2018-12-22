@@ -30,7 +30,6 @@ var (
 type candidateStorage map[discover.NodeID]*types.Candidate
 type refundStorage map[discover.NodeID][]*types.Candidate
 
-
 type CandidatePool struct {
 	// allow immediate elected max count
 	maxCount uint64
@@ -142,6 +141,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		}
 	}
 	wg.Wait()
+	close(witErrCh)
 	if nil != err {
 		return err
 	}
