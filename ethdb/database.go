@@ -23,8 +23,8 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/log"
-	"Platon-go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"

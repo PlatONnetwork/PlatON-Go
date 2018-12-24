@@ -21,11 +21,11 @@ import (
 	"math"
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/core/vm"
-	"Platon-go/log"
-	"Platon-go/params"
-	"Platon-go/core/ppos"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos"
 )
 
 var (

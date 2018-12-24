@@ -25,16 +25,16 @@ import (
 	"math/big"
 	"strings"
 
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/common/math"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/ethdb"
-	"Platon-go/log"
-	"Platon-go/params"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go

@@ -22,7 +22,7 @@ import (
 	"errors"
 	"math/big"
 
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // A BigInt represents a signed multi-precision integer.

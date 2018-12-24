@@ -20,7 +20,7 @@ import (
 	"os"
 	"sort"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	colorable "github.com/mattn/go-colorable"
 
 	cli "gopkg.in/urfave/cli.v1"

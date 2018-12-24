@@ -22,11 +22,11 @@ import (
 	"math/rand"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/prque"
-	"Platon-go/consensus"
-	"Platon-go/core/types"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/prque"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 const (

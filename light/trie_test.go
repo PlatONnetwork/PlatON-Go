@@ -23,13 +23,13 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core"
-	"Platon-go/core/state"
-	"Platon-go/core/vm"
-	"Platon-go/ethdb"
-	"Platon-go/params"
-	"Platon-go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 func TestNodeIterator(t *testing.T) {

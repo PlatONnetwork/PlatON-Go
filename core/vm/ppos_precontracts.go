@@ -20,14 +20,14 @@ data = rlp(type [8]byte, funcname string, parma1 []byte, parma2 []byte, ...)
 package vm
 
 import (
-	"Platon-go/common"
-	"Platon-go/common/byteutil"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/log"
-	"Platon-go/p2p/discover"
-	"Platon-go/params"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"bytes"
 	"encoding/hex"
 	"encoding/json"

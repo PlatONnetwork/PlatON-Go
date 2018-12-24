@@ -20,8 +20,8 @@ import (
 	"math/big"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 type twoOperandTest struct {

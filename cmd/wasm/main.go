@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Platon-go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"fmt"
 	"gopkg.in/urfave/cli.v1"
 	"os"

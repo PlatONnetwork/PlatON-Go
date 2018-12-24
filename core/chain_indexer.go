@@ -24,12 +24,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/ethdb"
-	"Platon-go/event"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // 定义了处理区块链片段的方法，并把处理结果写入数据库

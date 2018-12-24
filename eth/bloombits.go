@@ -20,13 +20,13 @@ import (
 	"context"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/bitutil"
-	"Platon-go/core"
-	"Platon-go/core/bloombits"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/bitutil"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 const (

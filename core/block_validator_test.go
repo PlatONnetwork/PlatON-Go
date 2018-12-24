@@ -21,11 +21,11 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/consensus/ethash"
-	"Platon-go/core/types"
-	"Platon-go/core/vm"
-	"Platon-go/ethdb"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // Tests that simple header verification works, for both good and bad blocks.

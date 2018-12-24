@@ -25,7 +25,7 @@ import (
 	"strings"
 	"testing"
 
-	"Platon-go/swarm/storage"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
 )
 
 func manifest(paths ...string) (manifestReader storage.LazySectionReader) {

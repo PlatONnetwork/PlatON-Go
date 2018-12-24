@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"Platon-go"
-	"Platon-go/accounts/abi"
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/event"
+	"github.com/PlatONnetwork/PlatON-Go"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 )
 
 // SignerFn is a signer function callback when a contract requires a method to

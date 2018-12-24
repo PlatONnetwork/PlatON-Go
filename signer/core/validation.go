@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 // The validation package contains validation checks for transactions

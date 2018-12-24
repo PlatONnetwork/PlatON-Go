@@ -2,8 +2,8 @@
 package vm
 
 import (
-	"Platon-go/common"
-	"Platon-go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"fmt"
 	"io/ioutil"
 	"math/big"

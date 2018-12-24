@@ -1,8 +1,8 @@
 package p2p
 
 import (
-	"Platon-go/log"
-	"Platon-go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"fmt"
 	"strings"
 	"sync"

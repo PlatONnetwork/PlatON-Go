@@ -19,11 +19,11 @@ package downloader
 import (
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/core"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 // FakePeer is a mock downloader peer that operates on a local database instance

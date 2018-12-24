@@ -17,7 +17,7 @@
 package eth
 
 import (
-	"Platon-go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,20 +28,20 @@ import (
 	"sync/atomic"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/consensus"
-	"Platon-go/consensus/misc"
-	"Platon-go/core"
-	"Platon-go/core/types"
-	"Platon-go/eth/downloader"
-	"Platon-go/eth/fetcher"
-	"Platon-go/ethdb"
-	"Platon-go/event"
-	"Platon-go/log"
-	"Platon-go/p2p"
-	"Platon-go/p2p/discover"
-	"Platon-go/params"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/eth/fetcher"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 const (

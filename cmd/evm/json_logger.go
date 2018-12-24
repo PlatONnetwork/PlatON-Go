@@ -22,9 +22,9 @@ import (
 	"math/big"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/math"
-	"Platon-go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 )
 
 type JSONLogger struct {

@@ -1,11 +1,11 @@
 package cbft
 
 import (
-	"Platon-go/common"
-	"Platon-go/core"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"sync"
 	"errors"
 )

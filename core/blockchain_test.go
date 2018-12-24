@@ -24,16 +24,16 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/consensus"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/core/vm"
-	"Platon-go/crypto"
-	"Platon-go/ethdb"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // So we can deterministically seed different blockchains

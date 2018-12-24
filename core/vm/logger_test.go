@@ -17,13 +17,13 @@
 package vm
 
 import (
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"bytes"
 	"math/big"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 type dummyContractRef struct {

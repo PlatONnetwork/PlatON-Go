@@ -22,9 +22,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already

@@ -23,15 +23,15 @@ import (
 	"os"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/ethdb"
-	"Platon-go/event"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 func makeReceipt(addr common.Address) *types.Receipt {

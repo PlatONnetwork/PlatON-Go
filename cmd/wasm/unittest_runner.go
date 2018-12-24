@@ -1,11 +1,11 @@
 package main
 
 import (
-	"Platon-go/common"
-	"Platon-go/core/vm"
-	"Platon-go/life/exec"
-	"Platon-go/life/resolver"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/life/exec"
+	"github.com/PlatONnetwork/PlatON-Go/life/resolver"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"bytes"
 	"encoding/hex"
 	"encoding/json"

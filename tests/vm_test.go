@@ -19,7 +19,7 @@ package tests
 import (
 	"testing"
 
-	"Platon-go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 )
 
 func TestVM(t *testing.T) {

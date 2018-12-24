@@ -26,10 +26,10 @@ import (
 	"time"
 	"unsafe"
 
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/crypto/sha3"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var (

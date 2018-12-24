@@ -26,13 +26,13 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/log"
-	"Platon-go/node"
-	"Platon-go/p2p"
-	"Platon-go/p2p/discover"
-	"Platon-go/p2p/simulations"
-	"Platon-go/p2p/simulations/adapters"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 var (

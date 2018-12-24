@@ -2,8 +2,8 @@
 package byteutil
 
 import (
-	"Platon-go/common"
-	"Platon-go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"bytes"
 	"encoding/binary"
 	"math/big"

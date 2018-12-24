@@ -23,9 +23,9 @@ import (
 	"strings"
 	"time"
 
-	"Platon-go/accounts/usbwallet"
-	"Platon-go/log"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/usbwallet"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/robertkrimen/otto"
 )
 

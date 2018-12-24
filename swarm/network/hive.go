@@ -21,11 +21,11 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/common/hexutil"
-	"Platon-go/p2p"
-	"Platon-go/p2p/discover"
-	"Platon-go/swarm/log"
-	"Platon-go/swarm/state"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/state"
 )
 
 /*

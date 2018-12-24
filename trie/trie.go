@@ -21,10 +21,10 @@ import (
 	"bytes"
 	"fmt"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/log"
-	"Platon-go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 )
 
 var (
