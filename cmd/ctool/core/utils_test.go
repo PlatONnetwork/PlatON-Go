@@ -1,11 +1,11 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"os"
 	"testing"
 	"time"
@@ -14,7 +14,7 @@ import (
 func TestParseConfig(t *testing.T) {
 	//param := TxParams{}
 	param := DeployParams{}
-	parseConfigJson("D:\\resource\\platon\\platon-go\\src\\cli\\core\\config.json", &param)
+	parseConfigJson(configPath)
 
 	fmt.Println(param.Gas)
 	fmt.Println(param.GasPrice)
@@ -25,7 +25,7 @@ func TestParseFuncFromAbi(t *testing.T) {
 
 	dir, _ := os.Getwd()
 	filePath := dir + "/demo01.cpp.abi.json"
-	funcDesc := parseFuncFromAbi(filePath, "transfer")
+	funcDesc, _ := parseFuncFromAbi(filePath, "transfer")
 
 	fmt.Println(funcDesc.Name)
 	fmt.Println(funcDesc.Inputs)
@@ -54,14 +54,14 @@ func TestHttpPostTransfer(t *testing.T) {
 	//	Gas: "0x76c0",
 	//	GasPrice:"0x9184e72a000",
 	//}
-	url := "http://localhost:8545"
+	//url := "http://localhost:8545"
 	param := JsonParam{
 		Jsonrpc: "2.0",
 		Method:  "eth_sendTransaction",
 		//Params:[]TxParams{},
 		Id: 1,
 	}
-	s, e := HttpPost(param, url)
+	s, e := HttpPost(param)
 	if e != nil {
 		t.Fatal("test http post error .\n" + e.Error())
 	}
@@ -70,31 +70,22 @@ func TestHttpPostTransfer(t *testing.T) {
 }
 
 func TestHttpPostDeploy(t *testing.T) {
-
-	//a, _ := parseAbiFromJson("D:\\resource\\platon\\platon-go\\src\\cli\\core\\Test.json")
-	//abiyBtes, _ := rlp.EncodeToBytes(a.AbiJson)
-	//codeBytes, _ := rlp.EncodeToBytes(a.Bytecode)
-
-	//combine := BytesCombine(abiyBtes, codeBytes)
-	//fmt.Println(string(combine))
-	url := "http://localhost:8545"
-	params := DeployParams{
+	deployParams := DeployParams{
 		From:     "0xfb8c2fa47e84fbde43c97a0859557a36a5fb285b",
 		Gas:      "0x400000",
 		GasPrice: "0x9184e72a000",
-		//Data:     a.AbiJson,
 	}
 
-	paramList := make(List, 1)
-	paramList[0] = params
+	params := make([]interface{}, 1)
+	params[0] = deployParams
 	param := JsonParam{
 		Jsonrpc: "2.0",
 		Method:  "eth_sendTransaction",
-		Params:  paramList,
+		Params:  params,
 		Id:      1,
 	}
 
-	r, e := HttpPost(param, url)
+	r, e := HttpPost(param)
 	if e != nil {
 		t.Fatal("test http post error .\n" + e.Error())
 	}
@@ -110,9 +101,11 @@ func TestHttpPostDeploy(t *testing.T) {
 	}
 	fmt.Printf("trasaction hash: %s\n", resp.Result)
 
+	//根据result获取交易receipt
 	ch := make(chan string, 1)
-	go GetTransactionReceipt(resp.Result, ch, url)
+	go GetTransactionReceipt(resp.Result, ch)
 
+	//然后，我们把timeout这个channel利用起来
 	select {
 	case address := <-ch:
 		fmt.Printf("contract address:%s\n", address)
@@ -124,7 +117,7 @@ func TestHttpPostDeploy(t *testing.T) {
 
 func TestHttpCallContact(t *testing.T) {
 
-	url := "http://localhost:8545"
+	//url := "http://localhost:8545"
 	param1 := uint(33)
 	b := new(bytes.Buffer)
 	rlp.Encode(b, param1)
@@ -146,7 +139,7 @@ func TestHttpCallContact(t *testing.T) {
 	}
 	paramJson, _ := json.Marshal(param)
 	fmt.Println(string(paramJson))
-	s, e := HttpPost(param, url)
+	s, e := HttpPost(param)
 	if e != nil {
 		t.Fatal("test http post error .\n" + e.Error())
 	}

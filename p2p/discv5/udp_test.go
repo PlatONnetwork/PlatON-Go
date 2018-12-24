@@ -56,7 +56,7 @@ var (
 // 		pipe:       newpipe(),
 // 		localkey:   newkey(),
 // 		remotekey:  newkey(),
-// 		remoteaddr: &net.UDPAddr{IP: net.IP{1, 2, 3, 4}, Port: 30303},
+// 		remoteaddr: &net.UDPAddr{IP: net.IP{1, 2, 3, 4}, Port: 16789},
 // 	}
 // 	test.table, test.udp, _ = newUDP(test.localkey, test.pipe, nil, "")
 // 	return test

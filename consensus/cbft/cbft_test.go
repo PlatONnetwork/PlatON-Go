@@ -1,15 +1,15 @@
 package cbft
 
 import (
+	"container/list"
+	"crypto/md5"
+	"flag"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"container/list"
-	"crypto/md5"
-	"flag"
-	"fmt"
 	"math/big"
 	"os"
 	"strconv"
@@ -31,6 +31,106 @@ func TestMain(m *testing.M) {
 
 //var cbftConfig *params.CbftConfig
 var forkRoot common.Hash
+var rootBlock *types.Block
+var rootNumber uint64
+
+func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
+
+	newRoot := NewBlockExt(rootBlock, 0)
+	newRoot.inTree = true
+	newRoot.isExecuted = true
+	newRoot.isSigned = true
+	newRoot.isConfirmed = true
+	newRoot.number = rootBlock.NumberU64()
+
+	//reorg the block tree
+	children := cbft.findChildren(newRoot)
+	for _, child := range children {
+		child.parent = newRoot
+		child.inTree = true
+	}
+	newRoot.children = children
+
+	//save the root in BlockExtMap
+	cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
+
+	//reset the new root irreversible
+	cbft.rootIrreversible = newRoot
+	//the new root's children should re-execute base on new state
+	for _, child := range newRoot.children {
+		if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
+			//remove bad block from tree and map
+			cbft.removeBadBlock(child)
+			break
+		}
+	}
+
+	//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
+	cbft.handleLogicalBlockAndDescendant(newRoot, false)
+
+	//reset logical path
+	//highestLogical := cbft.findHighestLogical(newRoot)
+	//cbft.setHighestLogical(highestLogical)
+	//reset highest confirmed block
+	cbft.highestConfirmed = cbft.findLastClosestConfirmedIncludingSelf(newRoot)
+
+	if cbft.highestConfirmed != nil {
+		t.Log("ok")
+	} else {
+		t.Log("cbft.highestConfirmed is null")
+	}
+}
+
+func TestExecuteBlockAndDescendant(t *testing.T) {
+	parentHash := hash(1, 20)
+
+	header := &types.Header{
+		ParentHash: parentHash,
+		Number:     big.NewInt(int64(21)),
+		TxHash:     hash(1, 21),
+		Difficulty: big.NewInt(int64(21) * 2),
+	}
+	block := types.NewBlockWithHeader(header)
+
+	forkExt := &BlockExt{
+		block:       block,
+		inTree:      true,
+		isExecuted:  true,
+		isSigned:    true,
+		isConfirmed: false,
+		number:      block.NumberU64(),
+		signs:       make([]*common.BlockConfirmSign, 0),
+	}
+
+	newRoot := NewBlockExt(forkExt.block, 21)
+	newRoot.inTree = true
+	newRoot.isExecuted = true
+	newRoot.isSigned = true
+	newRoot.isConfirmed = true
+	newRoot.number = rootBlock.NumberU64()
+
+	//reorg the block tree
+	children := cbft.findChildren(newRoot)
+	for _, child := range children {
+		child.parent = newRoot
+		child.inTree = true
+	}
+	newRoot.children = children
+
+	//save the root in BlockExtMap
+	cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
+
+	//reset the new root irreversible
+	cbft.rootIrreversible = newRoot
+	//the new root's children should re-execute base on new state
+	for _, child := range newRoot.children {
+		if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
+			//remove bad block from tree and map
+			cbft.removeBadBlock(child)
+			break
+		}
+	}
+}
 
 func TestBackTrackBlocksIncludingEnd(t *testing.T) {
 	testBackTrackBlocks(t, true)
@@ -41,7 +141,7 @@ func TestBackTrackBlocksExcludingEnd(t *testing.T) {
 }
 
 func testBackTrackBlocks(t *testing.T, includeEnd bool) {
-	end := cbft.blockExtMap[forkRoot]
+	end := cbft.blockExtMap[rootBlock.Hash()]
 	exts := cbft.backTrackBlocks(cbft.highestLogical, end, includeEnd)
 
 	t.Log("len(exts)", len(exts))
@@ -92,9 +192,9 @@ func buildFork(cbft *Cbft) {
 
 		ext := &BlockExt{
 			block:       block,
-			isLinked:    true,
-			isSigned:    true,
-			isStored:    false,
+			inTree:      true,
+			isExecuted:  true,
+			isSigned:    false,
 			isConfirmed: false,
 			number:      block.NumberU64(),
 			signs:       make([]*common.BlockConfirmSign, 0),
@@ -117,12 +217,14 @@ func buildMain(cbft *Cbft) {
 	//sealhash := cbft.SealHash(header)
 
 	rootHeader := &types.Header{Number: big.NewInt(0), Difficulty: big.NewInt(0), TxHash: hash(1, 0)}
-	rootBlock := types.NewBlockWithHeader(rootHeader)
+	rootBlock = types.NewBlockWithHeader(rootHeader)
+	rootNumber = 0
+
 	rootExt := &BlockExt{
 		block:       rootBlock,
-		isLinked:    true,
+		inTree:      true,
+		isExecuted:  true,
 		isSigned:    true,
-		isStored:    false,
 		isConfirmed: false,
 		number:      rootBlock.NumberU64(),
 		signs:       make([]*common.BlockConfirmSign, 0),
@@ -144,9 +246,9 @@ func buildMain(cbft *Cbft) {
 
 		ext := &BlockExt{
 			block:       block,
-			isLinked:    true,
+			inTree:      true,
+			isExecuted:  true,
 			isSigned:    true,
-			isStored:    false,
 			isConfirmed: false,
 			number:      block.NumberU64(),
 			signs:       make([]*common.BlockConfirmSign, 0),
@@ -161,6 +263,9 @@ func buildMain(cbft *Cbft) {
 		if i == 4 {
 			forkRoot = block.Hash()
 		}
+
+		cbft.buildIntoTree(ext)
+
 	}
 
 }
