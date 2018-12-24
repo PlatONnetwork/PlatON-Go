@@ -536,7 +536,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if filter {
 			transactions, uncles, signatures = pm.fetcher.FilterBodies(p.id, transactions, uncles, signatures, time.Now())
 		}
-		if len(transactions) > 0 || len(uncles) > 0 || !filter {
+		if len(transactions) > 0 || len(uncles) > 0 || len(signatures) > 0 || !filter {
 			err := pm.downloader.DeliverBodies(p.id, transactions, uncles, signatures)
 			if err != nil {
 				log.Debug("Failed to deliver bodies", "err", err)
