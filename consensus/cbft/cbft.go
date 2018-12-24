@@ -697,7 +697,7 @@ func (cbft *Cbft) buildIntoTree(current *BlockExt) {
 func (cbft *Cbft) buildChildNode(current *BlockExt) {
 	children := cbft.findChildren(current)
 	if len(children) > 0 {
-		current.children = append(current.children, current)
+		current.children = children
 		for _, child := range children {
 			//child should catch up with current
 			child.parent = current
@@ -904,12 +904,12 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		if isLogical {
 			cbft.handleLogicalBlockAndDescendant(ext, true)
 
-			newHighestLogical := cbft.findHighestLogical(ext)
+			newHighestLogical := cbft.findHighestLogical(cbft.highestConfirmed)
 			if newHighestLogical != nil {
 				cbft.setHighestLogical(newHighestLogical)
 			}
 
-			newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(ext)
+			newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(cbft.highestConfirmed)
 			if newHighestConfirmed != nil {
 				cbft.highestConfirmed = newHighestConfirmed
 			}
