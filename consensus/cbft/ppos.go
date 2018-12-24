@@ -505,6 +505,9 @@ func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
 }
 
 // TODO 添加一个方法，每 seal 完一个块之后，就调用该 Func
+func (d *ppos) Submit2Cache (state *state.StateDB, currBlocknumber *big.Int, currBlockhash common.Hash) {
+	d.ticketidsCache.Submit2Cache(currBlocknumber, currBlockhash, state.TicketCaceheSnapshot())
+}
 
 // cbft consensus fork need to update  nodeRound
 func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int, blockHash common.Hash) {
