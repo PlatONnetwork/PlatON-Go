@@ -81,6 +81,35 @@ func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
 	}
 }
 
+func TestExecuteBlockAndDescendant(t *testing.T) {
+	newRoot := NewBlockExt(rootBlock, 0)
+	newRoot.inTree = true
+	newRoot.isExecuted = true
+	newRoot.isSigned = true
+	newRoot.isConfirmed = true
+	newRoot.number = rootBlock.NumberU64()
+
+	//save the root in BlockExtMap
+	cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
+
+	//reset the new root irreversible
+	cbft.rootIrreversible = newRoot
+	//reorg the block tree
+	cbft.buildChildNode(newRoot)
+
+	//the new root's children should re-execute base on new state
+	for _, child := range newRoot.children {
+		if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
+			//remove bad block from tree and map
+			cbft.removeBadBlock(child)
+			break
+		}
+	}
+
+	//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
+	cbft.handleLogicalBlockAndDescendant(newRoot, false)
+}
+
 func TestBackTrackBlocksIncludingEnd(t *testing.T) {
 	testBackTrackBlocks(t, true)
 }
@@ -184,7 +213,7 @@ func buildMain(cbft *Cbft) {
 	cbft.highestConfirmed = rootExt
 
 	parentHash := rootBlock.Hash()
-	for i := uint64(1); i <= 2; i++ {
+	for i := uint64(1); i <= 10; i++ {
 		header := &types.Header{
 			ParentHash: parentHash,
 			Number:     big.NewInt(int64(i)),
@@ -213,7 +242,7 @@ func buildMain(cbft *Cbft) {
 			forkRoot = block.Hash()
 		}
 
-		cbft.buildTreeNode(ext)
+		cbft.buildIntoTree(ext)
 
 	}
 
