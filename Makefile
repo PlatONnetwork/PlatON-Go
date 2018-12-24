@@ -12,6 +12,7 @@ GOBIN = $(shell pwd)/build/bin
 GO ?= latest
 
 platon:
+	build/build_deps.sh
 	build/env.sh go run build/ci.go install ./cmd/platon
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/platon\" to launch platon."
@@ -22,6 +23,7 @@ swarm:
 	@echo "Run \"$(GOBIN)/swarm\" to launch swarm."
 
 all:
+	build/build_deps.sh
 	build/env.sh go run build/ci.go install
 
 android:
@@ -41,6 +43,7 @@ lint: ## Run linters.
 	build/env.sh go run build/ci.go lint
 
 clean:
+	./build/clean_deps.sh
 	./build/clean_go_build_cache.sh
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
 

@@ -18,15 +18,6 @@
 package core
 
 import (
-	"errors"
-	"fmt"
-	"io"
-	"math/big"
-	mrand "math/rand"
-	"sync"
-	"sync/atomic"
-	"time"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -43,7 +34,15 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"errors"
+	"fmt"
 	"github.com/hashicorp/golang-lru"
+	"io"
+	"math/big"
+	mrand "math/rand"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 var (
@@ -887,27 +886,35 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
+	currentBlock := bc.CurrentBlock()
+	if block.NumberU64() <= currentBlock.NumberU64() {
+		log.Warn("block lower than current block in chain", "blockHash", block.Hash(), "blockNumber", block.NumberU64(), "currentHash", currentBlock.Hash(), "currentNumber", currentBlock.NumberU64())
+		return NonStatTy, nil
+	}
+
 	// Calculate the total difficulty of the block
 	ptd := bc.GetTd(block.ParentHash(), block.NumberU64()-1)
 	if ptd == nil {
+		log.Error("cannot get parent block total difficulty", "ParentHash", block.ParentHash(), "ParentNumber", block.NumberU64()-1)
 		return NonStatTy, consensus.ErrUnknownAncestor
 	}
 	// Make sure no inconsistent state is leaked during insertion
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
 
-	currentBlock := bc.CurrentBlock()
 	localTd := bc.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 	externTd := new(big.Int).Add(block.Difficulty(), ptd)
 
 	// Irrelevant of the canonical status, write the block itself to the database
 	if err := bc.hc.WriteTd(block.Hash(), block.NumberU64(), externTd); err != nil {
+		log.Error("Write block total difficulty", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
 	}
 	rawdb.WriteBlock(bc.db, block)
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
+		log.Error("check block is EIP158 error", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
 	}
 	triedb := bc.stateCache.TrieDB()
@@ -915,6 +922,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// If we're running an archive node, always flush
 	if bc.cacheConfig.Disabled {
 		if err := triedb.Commit(root, false); err != nil {
+			log.Error("Commit to triedb error", "root", root)
 			return NonStatTy, err
 		}
 	} else {
@@ -999,14 +1007,24 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	} else {
 		status = SideStatTy
 	}
+
+	// Write the positional metadata for transaction/receipt lookups and preimages
+	rawdb.WriteTxLookupEntries(batch, block)
+	rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
+
+	status = CanonStatTy
 	if err := batch.Write(); err != nil {
 		return NonStatTy, err
 	}
-	log.Info("insert into chain", "WriteStatus", status, "hash", block.Hash(), "number", block.NumberU64(), "signs", rawdb.ReadBlockConfirmSigns(bc.db, block.Hash(), block.NumberU64()))
+	log.Debug("insert into chain", "WriteStatus", status, "hash", block.Hash(), "number", block.NumberU64(), "signs", rawdb.ReadBlockConfirmSigns(bc.db, block.Hash(), block.NumberU64()))
 
 	// Set new head.
 	if status == CanonStatTy {
 		bc.insert(block)
+
+		// parse block and retrieves txs
+		receipts := bc.GetReceiptsByHash(block.Hash())
+		MPC_POOL.InjectTxs(block, receipts, bc, state)
 	}
 	bc.futureBlocks.Remove(block.Hash())
 	return status, nil

@@ -70,7 +70,6 @@ func NewLDBDatabase(file string, cache int, handles int) (*LDBDatabase, error) {
 	}
 	logger.Info("Allocated cache and file handles", "cache", cache, "handles", handles)
 
-	// Build DB instance.
 	// Open the db and recover any potential corruptions
 	db, err := leveldb.OpenFile(file, &opt.Options{
 		OpenFilesCacheCapacity: handles,

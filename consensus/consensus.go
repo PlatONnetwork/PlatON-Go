@@ -123,7 +123,7 @@ type Bft interface {
 	// Returns the current consensus node address list.
 	ConsensusNodes() ([]discover.NodeID, error)
 
-	// Returns whether the current node is out of the block.
+	// Returns whether the current node is out of the block
 	ShouldSeal() (bool, error)
 
 	// Received a new block signature
@@ -140,8 +140,7 @@ type Bft interface {
 
 	IsConsensusNode() (bool, error)
 
-	// At present, the highest reasonable block, when the node is out of the block,
-	// it needs to generate the block based on the highest reasonable block.
+	// At present, the highest reasonable block, when the node is out of the block, it needs to generate the block based on the highest reasonable block.
 	HighestLogicalBlock() *types.Block
 
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)

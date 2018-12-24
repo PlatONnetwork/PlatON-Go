@@ -15,8 +15,8 @@ var (
 )
 
 type Cache struct {
-	stateDBCache		map[common.Hash]*stateDBCache		// key is header stateRoot
-	receiptsCache		map[common.Hash]*receiptsCache		// key is header hash
+	stateDBCache		map[common.Hash]*stateDBCache		// key is header SealHash
+	receiptsCache		map[common.Hash]*receiptsCache		// key is header SealHash
 	chain  				*core.BlockChain
 	stateDBMu       	sync.RWMutex
 	receiptsMu			sync.RWMutex
@@ -34,63 +34,65 @@ type receiptsCache struct {
 
 func NewCache(blockChain *core.BlockChain) *Cache {
 	cache := &Cache{
-		stateDBCache:        make(map[common.Hash]*stateDBCache),
-		receiptsCache:       make(map[common.Hash]*receiptsCache),
-		chain: blockChain,
+		stateDBCache:  make(map[common.Hash]*stateDBCache),
+		receiptsCache: make(map[common.Hash]*receiptsCache),
+		chain:         blockChain,
 	}
 	return cache
 }
 
 // Read the Receipt collection from the cache map.
-func (c *Cache) ReadReceipts(blockHash common.Hash) []*types.Receipt {
+func (c *Cache) ReadReceipts(sealHash common.Hash) []*types.Receipt {
 	c.receiptsMu.RLock()
 	defer c.receiptsMu.RUnlock()
-	if obj, exist := c.receiptsCache[blockHash]; exist {
+	if obj, exist := c.receiptsCache[sealHash]; exist {
 		return obj.receipts
 	}
 	return nil
 }
 
-// Read the StateDB instance from the cache map.
-func (c *Cache) ReadStateDB(stateRoot common.Hash) *state.StateDB {
+// Read the StateDB instance from the cache map
+func (c *Cache) ReadStateDB(sealHash common.Hash) *state.StateDB {
 	c.stateDBMu.RLock()
 	defer c.stateDBMu.RUnlock()
-	if obj, exist := c.stateDBCache[stateRoot]; exist {
-		return obj.stateDB
+	log.Info("Read the StateDB instance from the cache map","sealHash", sealHash)
+	if obj, exist := c.stateDBCache[sealHash]; exist {
+		return obj.stateDB.Copy()
 	}
 	return nil
 }
 
-// Write Receipt to the cache.
-func (c *Cache) WriteReceipts(blockHash common.Hash, receipts []*types.Receipt, blockNum uint64) {
+// Write Receipt to the cache
+func (c *Cache) WriteReceipts(sealHash common.Hash, receipts []*types.Receipt, blockNum uint64) {
 	c.receiptsMu.Lock()
 	defer c.receiptsMu.Unlock()
-	obj, exist := c.receiptsCache[blockHash]
+	obj, exist := c.receiptsCache[sealHash]
 	if exist && obj.blockNum == blockNum {
 		obj.receipts = append(obj.receipts, receipts...)
 	} else if !exist {
-		c.receiptsCache[blockHash] = &receiptsCache{receipts: receipts, blockNum: blockNum}
+		c.receiptsCache[sealHash] = &receiptsCache{receipts: receipts, blockNum: blockNum}
 	}
 }
 
-// Write StateDB instance to the cache.
-func (c *Cache) WriteStateDB(stateRoot common.Hash, stateDB *state.StateDB, blockNum uint64) {
+// Write a StateDB instance to the cache
+func (c *Cache) WriteStateDB(sealHash common.Hash, stateDB *state.StateDB, blockNum uint64) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
-	if _, exist := c.stateDBCache[stateRoot]; !exist {
-		c.stateDBCache[stateRoot] = &stateDBCache{stateDB: stateDB, blockNum: blockNum}
+	log.Info("Write a StateDB instance to the cache", "sealHash", sealHash, "blockNum", blockNum)
+	if _, exist := c.stateDBCache[sealHash]; !exist {
+		c.stateDBCache[sealHash] = &stateDBCache{stateDB: stateDB, blockNum: blockNum}
 	}
 }
 
-// Read the Receipt collection from the cache map.
-func (c *Cache) clearReceipts(blockHash common.Hash) {
+// Read the Receipt collection from the cache map
+func (c *Cache) clearReceipts(sealHash common.Hash) {
 	c.receiptsMu.Lock()
 	defer c.receiptsMu.Unlock()
 
 	var blockNum uint64
-	if obj, exist := c.receiptsCache[blockHash]; exist {
+	if obj, exist := c.receiptsCache[sealHash]; exist {
 		blockNum = obj.blockNum
-		//delete(c.receiptsCache, blockHash)
+		//delete(c.receiptsCache, sealHash)
 	}
 	for hash, obj := range c.receiptsCache {
 		if obj.blockNum <= blockNum {
@@ -99,15 +101,15 @@ func (c *Cache) clearReceipts(blockHash common.Hash) {
 	}
 }
 
-// Read the statedb instance from the cache map.
-func (c *Cache) clearStateDB(stateRoot common.Hash) {
+// Read the StateDB instance from the cache map
+func (c *Cache) clearStateDB(sealHash common.Hash) {
 	c.stateDBMu.Lock()
 	defer c.stateDBMu.Unlock()
 
 	var blockNum uint64
-	if obj, exist := c.stateDBCache[stateRoot]; exist {
+	if obj, exist := c.stateDBCache[sealHash]; exist {
 		blockNum = obj.blockNum
-		//delete(c.stateDBCache, stateRoot)
+		//delete(c.stateDBCache, sealHash)
 	}
 	for hash, obj := range c.stateDBCache {
 		if obj.blockNum <= blockNum {
@@ -116,23 +118,26 @@ func (c *Cache) clearStateDB(stateRoot common.Hash) {
 	}
 }
 
-// Get the StateDB instance of the corresponding block.
+// Get the StateDB instance of the corresponding block
 func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
-	// Create a StateDB instance from the blockchain based on stateRoot.
+	// Create a StateDB instance from the blockchain based on stateRoot
 	if state, err := c.chain.StateAt(block.Root()); err == nil && state != nil {
 		return state, nil
 	}
-	// Read and copy the stateDB instance in the cache.
-	log.Info("~ Read and copy the stateDB instance in the cache.", "stateRoot", block.Root())
-	if state := c.ReadStateDB(block.Root()); state != nil {
-		return state.Copy(), nil
+	// Read and copy the stateDB instance in the cache
+	sealHash := c.chain.Engine().SealHash(block.Header())
+	log.Info("Read and copy the stateDB instance in the cache","sealHash", sealHash, "blockHash", block.Hash(), "blockNum", block.NumberU64(), "stateRoot", block.Root())
+	if state := c.ReadStateDB(sealHash); state != nil {
+		//return state.Copy(), nil
+		return state, nil
 	} else {
 		return nil, errMakeStateDB
 	}
 }
 
-// Get the StateDB instance of the corresponding block.
+// Get the StateDB instance of the corresponding block
 func (c *Cache) ClearCache(block *types.Block) {
-	c.clearReceipts(block.Hash())
-	c.clearStateDB(block.Root())
+	sealHash := c.chain.Engine().SealHash(block.Header())
+	c.clearReceipts(sealHash)
+	c.clearStateDB(sealHash)
 }

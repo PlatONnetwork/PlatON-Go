@@ -45,12 +45,14 @@ type ValueStorage map[common.Hash][]byte
 
 func (self Storage) String() (str string) {
 	for key, value := range self {
+		// %X -> Provide hexadecimal
 		str += fmt.Sprintf("%X : %X\n", key, value)
 	}
 
 	return
 }
 
+// Copy a copy of Storage
 func (self Storage) Copy() Storage {
 	cpy := make(Storage)
 	for key, value := range self {
@@ -277,7 +279,7 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.Hash, value []byte) {
 
 	//if the new value is the same as old,don't set
-	preValue := self.GetState(db, keyTrie) //get value key
+	preValue := self.GetState(db, keyTrie) // get value key
 	if bytes.Equal(preValue, value) {
 		return
 	}
@@ -317,6 +319,7 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		delete(self.dirtyStorage, key)
 		delete(self.dirtyValueStorage, valueKey)
 
+		// Delete the value corresponding to the original valueKey
 		delete(self.originValueStorage, self.originStorage[key])
 
 		self.originStorage[key] = valueKey
@@ -488,6 +491,9 @@ func (self *stateObject) Value() *big.Int {
 	panic("Value on stateObject should never be called")
 }
 
+// todo: New method
+// ======================================= New method ===============================
+
 // todo: new method -> AbiHash
 func (self *stateObject) AbiHash() []byte {
 	return self.data.AbiHash
@@ -501,6 +507,7 @@ func (self *stateObject) Abi(db Database) []byte {
 	if bytes.Equal(self.AbiHash(), emptyCodeHash) {
 		return nil
 	}
+	// Extract the code from the tree, enter the parameters: address and hash, here you need to find the acquisition rules in depth
 	abi, err := db.ContractAbi(self.addrHash, common.BytesToHash(self.AbiHash()))
 	if err != nil {
 		self.setError(fmt.Errorf("can't load abi hash %x: %v", self.AbiHash(), err))

@@ -78,7 +78,7 @@ func TestCompileError(t *testing.T) {
 
 func TestSolidityVersion(t *testing.T) {
 	solidity, err := SolidityVersion("solc")
-	t.Log("Hahahaha, this is unit test")
+	t.Log("This is unit test")
 	if err != nil {
 		t.Log("error throws.", err)
 	} else {

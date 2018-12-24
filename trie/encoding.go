@@ -35,7 +35,7 @@ package trie
 // into the remaining bytes. Compact encoding is used for nodes stored on disk.
 
 func hexToCompact(hex []byte) []byte {
-	terminator := byte(0) // Separator
+	terminator := byte(0) //
 	if hasTerm(hex) {
 		terminator = 1
 		hex = hex[:len(hex)-1]

@@ -13,7 +13,7 @@ type API struct {
 	cbft  *Cbft
 }
 
-// Get the block address of producer.
+// Get the block address
 func (api *API) GetProducer(number *rpc.BlockNumber) (common.Address, error) {
 	// Retrieve the requested block number (or current if none requested)
 	var header *types.Header

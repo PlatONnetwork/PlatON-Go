@@ -101,7 +101,7 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 		db:           db,
 		originalRoot: root,
 	}
-	// If root is not empty, restore the node from the DB (the whole tree).
+	// If root is not empty, restore the node from the DB (the whole tree)
 	if root != (common.Hash{}) && root != emptyRoot {
 		rootnode, err := trie.resolveHash(root[:], nil)
 		if err != nil {

@@ -1,4 +1,4 @@
-# Install script for directory: D:/goprojects/opensource/src/Platon-go/life/resolver/builtins
+# Install script for directory: D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -33,7 +33,7 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/libbuiltins.a")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/libbuiltins.a")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)
@@ -44,5 +44,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
