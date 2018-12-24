@@ -362,10 +362,12 @@ func (hc *HeaderChain) GetAncestor(hash common.Hash, number, ancestor uint64, ma
 func (hc *HeaderChain) GetTd(hash common.Hash, number uint64) *big.Int {
 	// Short circuit if the td's already in the cache, retrieve otherwise
 	if cached, ok := hc.tdCache.Get(hash); ok {
+		log.Debug("GetTd from hc.tdCache", "td", cached.(*big.Int).Uint64())
 		return cached.(*big.Int)
 	}
 	td := rawdb.ReadTd(hc.chainDb, hash, number)
 	if td == nil {
+		log.Debug("GetTd is null from rawdb")
 		return nil
 	}
 	// Cache the found body for next time and return

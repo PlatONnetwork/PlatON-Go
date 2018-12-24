@@ -321,7 +321,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 	// main loop. handle incoming messages.
 	for {
 		if err := pm.handleMsg(p); err != nil {
-			p.Log().Debug("Ethereum message handling failed", "err", err)
+			p.Log().Error("Ethereum message handling failed", "err", err)
 			return err
 		}
 	}
@@ -333,6 +333,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	// Read the next message from the remote peer, and ensure it's fully consumed
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
+		p.Log().Error("read peer message error", "err", err)
 		return err
 	}
 	if msg.Size > ProtocolMaxMsgSize {
@@ -672,7 +673,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// a singe block (as the true TD is below the propagated block), however this
 			// scenario should easily be covered by the fetcher.
 			currentBlock := pm.blockchain.CurrentBlock()
-			if trueTD.Cmp(pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())) > 10 {
+			if trueTD.Cmp(pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())) > 0 {
 				go pm.synchronise(p)
 			}
 		}
@@ -702,7 +703,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		log.Warn("~ Received a broadcast message[PrepareBlockMsg]------------", "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
+		log.Warn("Received a broadcast message[PrepareBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
@@ -728,6 +729,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
 			}
 			return nil
+		} else {
+			log.Warn("Consensus engine is not cbft", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 		}
 
 	case msg.Code == BlockSignatureMsg:
@@ -737,7 +740,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 
-		log.Warn("~ Received a broadcast message[BlockSignatureMsg]------------", "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
+		log.Warn("~ Received a broadcast message[BlockSignatureMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
 		engineBlockSignature := &cbfttypes.BlockSignature{request.SignHash, request.Hash, request.Number, request.Signature}
 
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
@@ -842,7 +845,7 @@ func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 
 	if block, ok := a.(*types.Block); ok {
 		for _, peer := range peers {
-			log.Warn("~ Send a broadcast message [PrepareBlockMsg]------------",
+			log.Warn("~ Send a broadcast message[PrepareBlockMsg]------------",
 				"peerId", peer.id, "Hash", block.Hash(), "Number", block.Number())
 			peer.AsyncSendPrepareBlock(block)
 		}

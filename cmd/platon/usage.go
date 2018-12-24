@@ -245,6 +245,14 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "MPC COMPUTE",
+		Flags: []cli.Flag{
+			utils.MPCEnabledFlag,
+			utils.MPCActorFlag,
+			utils.MPCIceFileFlag,
+		},
+	},
+	{
 		Name: "MISC",
 	},
 

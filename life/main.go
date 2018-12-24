@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/PlatONnetwork/PlatON-Go/life/exec"
 	"github.com/PlatONnetwork/PlatON-Go/life/resolver"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"fmt"
 	"io/ioutil"
 	"time"
@@ -17,7 +18,7 @@ func main() {
 
 	// mocking test
 	flag := false
-	pages := 1
+	pages := 64
 	functionFlag := "transfer"
 	jitFlag := &flag
 	dynamicPages := &pages
@@ -26,11 +27,14 @@ func main() {
 	rl := resolver.NewResolver(0x01)
 	// Read WebAssembly *.wasm file.
 	//input, err := ioutil.ReadFile(flag.Arg(0))
-	input, err := ioutil.ReadFile("C:\\sunzone\\MyDocument\\liteide\\src\\Platon-go\\core\\vm\\life\\contract\\hello.wasm")
+	input, err := ioutil.ReadFile("D:\\repos\\Platon-contract\\build\\hello\\hello.wasm")
 	//fmt.Println(common.ToHex(input))
 	if err != nil {
 		panic(err)
 	}
+
+	rootLog := log.New()
+	rootLog.SetHandler(log.StderrHandler)
 
 	// Instantiate a new WebAssembly VM with a few resolved imports.
 	vm, err := exec.NewVirtualMachine(input, &exec.VMContext{
@@ -43,6 +47,7 @@ func main() {
 		Addr:     [20]byte{},
 		GasUsed:  0,
 		GasLimit: 20000000,
+		Log: rootLog,
 	}, rl, nil)
 
 	if err != nil {

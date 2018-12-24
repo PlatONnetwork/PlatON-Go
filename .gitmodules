@@ -1,3 +1,6 @@
 [submodule "tests"]
 	path = tests/testdata
 	url = https://github.com/ethereum/tests
+[submodule "life/resolver/softfloat"]
+	path = life/resolver/softfloat
+	url = https://github.com/ucb-bar/berkeley-softfloat-3.git

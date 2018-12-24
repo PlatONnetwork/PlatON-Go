@@ -18,97 +18,97 @@ softfloat_types.h
 stdint.h
 -
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/ashriti3.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/ashriti3.c
 stdint.h
 -
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/divti3.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/divti3.c
 stdint.h
 -
 assert.h
 -
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixdfti.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixdfti.c
 fp64.h
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fp64.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fp64.h
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixsfti.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixsfti.c
 fp32.h
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fp32.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fp32.h
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixtfti.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixtfti.c
 fp128.h
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fp128.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fp128.h
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixunsdfti.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixunsdfti.c
 fp64.h
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fp64.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fp64.h
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixunssfti.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixunssfti.c
 fp32.h
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fp32.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fp32.h
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixunstfti.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixunstfti.c
 fp128.h
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fp128.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fp128.h
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/floattidf.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/floattidf.c
 float.h
 -
 int_t.h
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/int_t.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/int_t.h
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/floatuntidf.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/floatuntidf.c
 int_t.h
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/int_t.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/int_t.h
 float.h
 -
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fp128.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fp128.h
 limits.h
 -
 stdint.h
 -
 softfloat.h
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/softfloat.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/softfloat.h
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fp32.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fp32.h
 limits.h
 -
 stdint.h
 -
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fp64.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fp64.h
 limits.h
 -
 stdint.h
 -
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/int_t.h
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/int_t.h
 stdint.h
 -
 limits.h
 -
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/modti3.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/modti3.c
 stdint.h
 -
 assert.h
 -
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/multi3.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/multi3.c
 stdint.h
 -
 assert.h
 -
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/udivti3.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/udivti3.c
 stdint.h
 -
 assert.h
 -
 
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/umodti3.c
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/umodti3.c
 stdint.h
 -
 assert.h

@@ -1,72 +1,72 @@
 [
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\ashriti3.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\ashriti3.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/ashriti3.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\ashriti3.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\ashriti3.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/ashriti3.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixtfti.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\fixtfti.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixtfti.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixtfti.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\fixtfti.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixtfti.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixunstfti.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\fixunstfti.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixunstfti.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixunstfti.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\fixunstfti.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixunstfti.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixsfti.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\fixsfti.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixsfti.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixsfti.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\fixsfti.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixsfti.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixdfti.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\fixdfti.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixdfti.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixdfti.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\fixdfti.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixdfti.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixunssfti.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\fixunssfti.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixunssfti.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixunssfti.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\fixunssfti.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixunssfti.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixunsdfti.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\fixunsdfti.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixunsdfti.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\fixunsdfti.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\fixunsdfti.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixunsdfti.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\floattidf.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\floattidf.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/floattidf.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\floattidf.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\floattidf.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/floattidf.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\floatuntidf.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\floatuntidf.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/floatuntidf.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\floatuntidf.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\floatuntidf.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/floatuntidf.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\divti3.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\divti3.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/divti3.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\divti3.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\divti3.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/divti3.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\udivti3.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\udivti3.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/udivti3.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\udivti3.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\udivti3.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/udivti3.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\modti3.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\modti3.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/modti3.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\modti3.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\modti3.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/modti3.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\umodti3.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\umodti3.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/umodti3.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\umodti3.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\umodti3.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/umodti3.c"
 },
 {
-  "directory": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build",
-  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\multi3.obj   -c D:\\goprojects\\opensource\\src\\Platon-go\\life\\resolver\\builtins\\multi3.c",
-  "file": "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/multi3.c"
+  "directory": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build",
+  "command": "C:\\MinGW\\bin\\gcc.exe  @CMakeFiles/builtins.dir/includes_C.rsp  -Wall     -o CMakeFiles\\builtins.dir\\multi3.obj   -c D:\\goprojects\\src\\github.com\\PlatONnetwork\\PlatON-Go\\life\\resolver\\builtins\\multi3.c",
+  "file": "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/multi3.c"
 }
 ]

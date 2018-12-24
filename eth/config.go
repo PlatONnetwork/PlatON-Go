@@ -42,7 +42,7 @@ const (
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
-	SyncMode: downloader.FastSync,
+	SyncMode: downloader.FullSync,
 	CbftConfig: CbftConfig{
 		Period:           1,
 		Epoch:            250000,
@@ -72,6 +72,9 @@ var DefaultConfig = Config{
 		Blocks:     20,
 		Percentile: 60,
 	},
+
+	MPCPool: core.DefaultMPCPoolConfig ,
+
 }
 
 func init() {
@@ -95,7 +98,7 @@ type Config struct {
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
 
-	CbftConfig CbftConfig `toml:",omitempty"`
+	CbftConfig	CbftConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
@@ -142,11 +145,15 @@ type Config struct {
 	EWASMInterpreter string
 	// Type of the EVM interpreter ("" for default)
 	EVMInterpreter string
+
+
+	// MPC pool options
+	MPCPool core.MPCPoolConfig
 }
 
 type CbftConfig struct {
-	Period           uint64  `json:"period"` // Number of seconds between blocks to enforce
-	Epoch            uint64  `json:"epoch"`  // Epoch length to reset votes and checkpoint
+	Period           uint64  `json:"period"`           // Number of seconds between blocks to enforce
+	Epoch            uint64  `json:"epoch"`            // Epoch length to reset votes and checkpoint
 	MaxLatency       int64   `json:"maxLatency"`
 	LegalCoefficient float64 `json:"legalCoefficient"`
 	Duration         int64   `json:"duration"`

@@ -8,8 +8,8 @@ import (
 
 // Block's Signature info
 type BlockSignature struct {
-	SignHash  common.Hash // signature hash，header[0:32]
-	Hash      common.Hash // block hash，header[:]
+	SignHash  common.Hash // Signature hash，header[0:32]
+	Hash      common.Hash // Block hash，header[:]
 	Number    *big.Int
 	Signature *common.BlockConfirmSign
 }

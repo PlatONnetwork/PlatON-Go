@@ -31,7 +31,7 @@ The project comes with several executables found in the `cmd` directory.
 
 ### Config the chain data
 
-first, you need to get an account
+first, you need to get an account:
 
 ```
 $ ./platon --datadir ./data account new
@@ -50,7 +50,7 @@ PrivateKey:  1abd1200759d4693f4510fbcf7d5caad743b11b5886dc229da6c0747061fca36
 PublicKey :  8917c748513c23db46d23f531cc083d2f6001b4cc2396eb8412d73a3e4450ffc5f5235757abf9873de469498d8cf45f5bb42c215da79d59940e17fcb22dfc127
 ```
 
-then, edit the following content and save it as json file, such as genesis.json
+then, edit the following content and save it as json file, such as genesis.json:
 
 ```
 {
@@ -84,7 +84,7 @@ then, edit the following content and save it as json file, such as genesis.json
 }
 ```
 
-at last, init the chain as follow
+at last, init the chain as follow:
 
 ```
 $ ./platon --datadir ./data init platon.json
@@ -97,7 +97,7 @@ and it will output msg as:
 Successfully wrote genesis state
 ```
 
-so we can launch the node 
+so we can launch the node: 
 
 ```
 $ ./platon --identity "platon" --datadir ./data --nodekey ./data/platon/nodekey --rpcaddr 0.0.0.0 --rpcport 6789 --rpcapi "db,eth,net,web3,admin,personal" --rpc --nodiscover
@@ -110,13 +110,13 @@ $ ./platon --identity "platon" --datadir ./data --nodekey ./data/platon/nodekey 
 "0xa8a79933511158c2513ae3378ba780bf9bda9a12e455a7c55045469a6b856c1b"
 ```
 
-Check the balance
+Check the balance:
 
 ```
 > eth.getBalance("0x3dea985c48e82ce4023263dbb380fc5ce9de95fd")
 10
 ```
-
+ 
 OK, it seems that the chain is running correctly
 
 For more information, please visit our [wiki](https://github.com/PlatONnetwork/wiki/wiki)

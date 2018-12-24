@@ -1,7 +1,7 @@
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/install/strip.dir
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/install/local.dir
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/install.dir
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/edit_cache.dir
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/rebuild_cache.dir
-D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/list_install_components.dir
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/install/strip.dir
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/install/local.dir
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/install.dir
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/edit_cache.dir
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/rebuild_cache.dir
+D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/list_install_components.dir

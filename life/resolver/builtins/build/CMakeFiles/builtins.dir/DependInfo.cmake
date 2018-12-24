@@ -4,20 +4,20 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_C
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/ashriti3.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/ashriti3.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/divti3.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/divti3.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixdfti.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixdfti.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixsfti.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixsfti.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixtfti.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixtfti.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixunsdfti.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixunsdfti.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixunssfti.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixunssfti.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/fixunstfti.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixunstfti.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/floattidf.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/floattidf.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/floatuntidf.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/floatuntidf.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/modti3.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/modti3.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/multi3.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/multi3.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/udivti3.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/udivti3.obj"
-  "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/umodti3.c" "D:/goprojects/opensource/src/Platon-go/life/resolver/builtins/build/CMakeFiles/builtins.dir/umodti3.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/ashriti3.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/ashriti3.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/divti3.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/divti3.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixdfti.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixdfti.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixsfti.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixsfti.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixtfti.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixtfti.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixunsdfti.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixunsdfti.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixunssfti.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixunssfti.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/fixunstfti.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/fixunstfti.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/floattidf.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/floattidf.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/floatuntidf.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/floatuntidf.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/modti3.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/modti3.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/multi3.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/multi3.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/udivti3.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/udivti3.obj"
+  "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/umodti3.c" "D:/goprojects/src/github.com/PlatONnetwork/PlatON-Go/life/resolver/builtins/build/CMakeFiles/builtins.dir/umodti3.obj"
   )
 set(CMAKE_C_COMPILER_ID "GNU")
 

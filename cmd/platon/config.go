@@ -124,6 +124,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 		}
 	}
 
+	// Current version only supports full syncmode
+	ctx.GlobalSet(utils.SyncModeFlag.Name, cfg.Eth.SyncMode.String())
+
 	// Apply flags.
 	utils.SetNodeConfig(ctx, &cfg.Node)
 
@@ -133,6 +136,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	}
 
 	utils.SetEthConfig(ctx, stack, &cfg.Eth)
+
+	// pass on the rpc port to mpc pool conf.
+	cfg.Eth.MPCPool.LocalRpcPort = cfg.Node.HTTPPort
 
 	// load cbft config file.
 	if cbftConfig := cfg.Eth.LoadCbftConfig(cfg.Node); cbftConfig != nil {

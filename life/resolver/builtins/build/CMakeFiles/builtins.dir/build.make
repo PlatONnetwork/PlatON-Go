@@ -42,10 +42,10 @@ RM = "C:\Program Files\CMake\bin\cmake.exe" -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = D:\goprojects\opensource\src\Platon-go\life\resolver\builtins
+CMAKE_SOURCE_DIR = D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build
+CMAKE_BINARY_DIR = D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/builtins.dir/depend.make
@@ -59,198 +59,198 @@ include CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/ashriti3.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/ashriti3.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/ashriti3.obj: ../ashriti3.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/builtins.dir/ashriti3.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\ashriti3.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\ashriti3.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/builtins.dir/ashriti3.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\ashriti3.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\ashriti3.c
 
 CMakeFiles/builtins.dir/ashriti3.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/ashriti3.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\ashriti3.c > CMakeFiles\builtins.dir\ashriti3.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\ashriti3.c > CMakeFiles\builtins.dir\ashriti3.i
 
 CMakeFiles/builtins.dir/ashriti3.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/ashriti3.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\ashriti3.c -o CMakeFiles\builtins.dir\ashriti3.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\ashriti3.c -o CMakeFiles\builtins.dir\ashriti3.s
 
 CMakeFiles/builtins.dir/fixtfti.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/fixtfti.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/fixtfti.obj: ../fixtfti.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/builtins.dir/fixtfti.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixtfti.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixtfti.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building C object CMakeFiles/builtins.dir/fixtfti.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixtfti.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixtfti.c
 
 CMakeFiles/builtins.dir/fixtfti.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/fixtfti.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixtfti.c > CMakeFiles\builtins.dir\fixtfti.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixtfti.c > CMakeFiles\builtins.dir\fixtfti.i
 
 CMakeFiles/builtins.dir/fixtfti.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/fixtfti.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixtfti.c -o CMakeFiles\builtins.dir\fixtfti.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixtfti.c -o CMakeFiles\builtins.dir\fixtfti.s
 
 CMakeFiles/builtins.dir/fixunstfti.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/fixunstfti.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/fixunstfti.obj: ../fixunstfti.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building C object CMakeFiles/builtins.dir/fixunstfti.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixunstfti.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixunstfti.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building C object CMakeFiles/builtins.dir/fixunstfti.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixunstfti.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixunstfti.c
 
 CMakeFiles/builtins.dir/fixunstfti.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/fixunstfti.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixunstfti.c > CMakeFiles\builtins.dir\fixunstfti.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixunstfti.c > CMakeFiles\builtins.dir\fixunstfti.i
 
 CMakeFiles/builtins.dir/fixunstfti.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/fixunstfti.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixunstfti.c -o CMakeFiles\builtins.dir\fixunstfti.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixunstfti.c -o CMakeFiles\builtins.dir\fixunstfti.s
 
 CMakeFiles/builtins.dir/fixsfti.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/fixsfti.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/fixsfti.obj: ../fixsfti.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building C object CMakeFiles/builtins.dir/fixsfti.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixsfti.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixsfti.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building C object CMakeFiles/builtins.dir/fixsfti.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixsfti.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixsfti.c
 
 CMakeFiles/builtins.dir/fixsfti.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/fixsfti.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixsfti.c > CMakeFiles\builtins.dir\fixsfti.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixsfti.c > CMakeFiles\builtins.dir\fixsfti.i
 
 CMakeFiles/builtins.dir/fixsfti.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/fixsfti.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixsfti.c -o CMakeFiles\builtins.dir\fixsfti.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixsfti.c -o CMakeFiles\builtins.dir\fixsfti.s
 
 CMakeFiles/builtins.dir/fixdfti.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/fixdfti.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/fixdfti.obj: ../fixdfti.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building C object CMakeFiles/builtins.dir/fixdfti.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixdfti.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixdfti.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building C object CMakeFiles/builtins.dir/fixdfti.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixdfti.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixdfti.c
 
 CMakeFiles/builtins.dir/fixdfti.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/fixdfti.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixdfti.c > CMakeFiles\builtins.dir\fixdfti.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixdfti.c > CMakeFiles\builtins.dir\fixdfti.i
 
 CMakeFiles/builtins.dir/fixdfti.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/fixdfti.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixdfti.c -o CMakeFiles\builtins.dir\fixdfti.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixdfti.c -o CMakeFiles\builtins.dir\fixdfti.s
 
 CMakeFiles/builtins.dir/fixunssfti.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/fixunssfti.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/fixunssfti.obj: ../fixunssfti.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building C object CMakeFiles/builtins.dir/fixunssfti.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixunssfti.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixunssfti.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building C object CMakeFiles/builtins.dir/fixunssfti.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixunssfti.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixunssfti.c
 
 CMakeFiles/builtins.dir/fixunssfti.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/fixunssfti.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixunssfti.c > CMakeFiles\builtins.dir\fixunssfti.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixunssfti.c > CMakeFiles\builtins.dir\fixunssfti.i
 
 CMakeFiles/builtins.dir/fixunssfti.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/fixunssfti.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixunssfti.c -o CMakeFiles\builtins.dir\fixunssfti.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixunssfti.c -o CMakeFiles\builtins.dir\fixunssfti.s
 
 CMakeFiles/builtins.dir/fixunsdfti.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/fixunsdfti.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/fixunsdfti.obj: ../fixunsdfti.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building C object CMakeFiles/builtins.dir/fixunsdfti.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixunsdfti.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixunsdfti.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building C object CMakeFiles/builtins.dir/fixunsdfti.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\fixunsdfti.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixunsdfti.c
 
 CMakeFiles/builtins.dir/fixunsdfti.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/fixunsdfti.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixunsdfti.c > CMakeFiles\builtins.dir\fixunsdfti.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixunsdfti.c > CMakeFiles\builtins.dir\fixunsdfti.i
 
 CMakeFiles/builtins.dir/fixunsdfti.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/fixunsdfti.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\fixunsdfti.c -o CMakeFiles\builtins.dir\fixunsdfti.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\fixunsdfti.c -o CMakeFiles\builtins.dir\fixunsdfti.s
 
 CMakeFiles/builtins.dir/floattidf.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/floattidf.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/floattidf.obj: ../floattidf.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building C object CMakeFiles/builtins.dir/floattidf.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\floattidf.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\floattidf.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building C object CMakeFiles/builtins.dir/floattidf.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\floattidf.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\floattidf.c
 
 CMakeFiles/builtins.dir/floattidf.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/floattidf.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\floattidf.c > CMakeFiles\builtins.dir\floattidf.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\floattidf.c > CMakeFiles\builtins.dir\floattidf.i
 
 CMakeFiles/builtins.dir/floattidf.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/floattidf.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\floattidf.c -o CMakeFiles\builtins.dir\floattidf.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\floattidf.c -o CMakeFiles\builtins.dir\floattidf.s
 
 CMakeFiles/builtins.dir/floatuntidf.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/floatuntidf.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/floatuntidf.obj: ../floatuntidf.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building C object CMakeFiles/builtins.dir/floatuntidf.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\floatuntidf.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\floatuntidf.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building C object CMakeFiles/builtins.dir/floatuntidf.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\floatuntidf.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\floatuntidf.c
 
 CMakeFiles/builtins.dir/floatuntidf.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/floatuntidf.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\floatuntidf.c > CMakeFiles\builtins.dir\floatuntidf.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\floatuntidf.c > CMakeFiles\builtins.dir\floatuntidf.i
 
 CMakeFiles/builtins.dir/floatuntidf.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/floatuntidf.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\floatuntidf.c -o CMakeFiles\builtins.dir\floatuntidf.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\floatuntidf.c -o CMakeFiles\builtins.dir\floatuntidf.s
 
 CMakeFiles/builtins.dir/divti3.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/divti3.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/divti3.obj: ../divti3.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building C object CMakeFiles/builtins.dir/divti3.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\divti3.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\divti3.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building C object CMakeFiles/builtins.dir/divti3.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\divti3.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\divti3.c
 
 CMakeFiles/builtins.dir/divti3.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/divti3.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\divti3.c > CMakeFiles\builtins.dir\divti3.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\divti3.c > CMakeFiles\builtins.dir\divti3.i
 
 CMakeFiles/builtins.dir/divti3.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/divti3.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\divti3.c -o CMakeFiles\builtins.dir\divti3.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\divti3.c -o CMakeFiles\builtins.dir\divti3.s
 
 CMakeFiles/builtins.dir/udivti3.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/udivti3.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/udivti3.obj: ../udivti3.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building C object CMakeFiles/builtins.dir/udivti3.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\udivti3.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\udivti3.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building C object CMakeFiles/builtins.dir/udivti3.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\udivti3.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\udivti3.c
 
 CMakeFiles/builtins.dir/udivti3.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/udivti3.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\udivti3.c > CMakeFiles\builtins.dir\udivti3.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\udivti3.c > CMakeFiles\builtins.dir\udivti3.i
 
 CMakeFiles/builtins.dir/udivti3.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/udivti3.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\udivti3.c -o CMakeFiles\builtins.dir\udivti3.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\udivti3.c -o CMakeFiles\builtins.dir\udivti3.s
 
 CMakeFiles/builtins.dir/modti3.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/modti3.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/modti3.obj: ../modti3.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building C object CMakeFiles/builtins.dir/modti3.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\modti3.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\modti3.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building C object CMakeFiles/builtins.dir/modti3.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\modti3.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\modti3.c
 
 CMakeFiles/builtins.dir/modti3.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/modti3.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\modti3.c > CMakeFiles\builtins.dir\modti3.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\modti3.c > CMakeFiles\builtins.dir\modti3.i
 
 CMakeFiles/builtins.dir/modti3.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/modti3.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\modti3.c -o CMakeFiles\builtins.dir\modti3.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\modti3.c -o CMakeFiles\builtins.dir\modti3.s
 
 CMakeFiles/builtins.dir/umodti3.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/umodti3.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/umodti3.obj: ../umodti3.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building C object CMakeFiles/builtins.dir/umodti3.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\umodti3.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\umodti3.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building C object CMakeFiles/builtins.dir/umodti3.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\umodti3.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\umodti3.c
 
 CMakeFiles/builtins.dir/umodti3.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/umodti3.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\umodti3.c > CMakeFiles\builtins.dir\umodti3.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\umodti3.c > CMakeFiles\builtins.dir\umodti3.i
 
 CMakeFiles/builtins.dir/umodti3.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/umodti3.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\umodti3.c -o CMakeFiles\builtins.dir\umodti3.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\umodti3.c -o CMakeFiles\builtins.dir\umodti3.s
 
 CMakeFiles/builtins.dir/multi3.obj: CMakeFiles/builtins.dir/flags.make
 CMakeFiles/builtins.dir/multi3.obj: CMakeFiles/builtins.dir/includes_C.rsp
 CMakeFiles/builtins.dir/multi3.obj: ../multi3.c
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building C object CMakeFiles/builtins.dir/multi3.obj"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\multi3.obj   -c D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\multi3.c
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building C object CMakeFiles/builtins.dir/multi3.obj"
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -o CMakeFiles\builtins.dir\multi3.obj   -c D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\multi3.c
 
 CMakeFiles/builtins.dir/multi3.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/builtins.dir/multi3.i"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\multi3.c > CMakeFiles\builtins.dir\multi3.i
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\multi3.c > CMakeFiles\builtins.dir\multi3.i
 
 CMakeFiles/builtins.dir/multi3.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/builtins.dir/multi3.s"
-	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\multi3.c -o CMakeFiles\builtins.dir\multi3.s
+	C:\MinGW\bin\gcc.exe $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\multi3.c -o CMakeFiles\builtins.dir\multi3.s
 
 # Object files for target builtins
 builtins_OBJECTS = \
@@ -288,7 +288,7 @@ libbuiltins.a: CMakeFiles/builtins.dir/umodti3.obj
 libbuiltins.a: CMakeFiles/builtins.dir/multi3.obj
 libbuiltins.a: CMakeFiles/builtins.dir/build.make
 libbuiltins.a: CMakeFiles/builtins.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Linking C static library libbuiltins.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Linking C static library libbuiltins.a"
 	$(CMAKE_COMMAND) -P CMakeFiles\builtins.dir\cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles\builtins.dir\link.txt --verbose=$(VERBOSE)
 
@@ -302,6 +302,6 @@ CMakeFiles/builtins.dir/clean:
 .PHONY : CMakeFiles/builtins.dir/clean
 
 CMakeFiles/builtins.dir/depend:
-	$(CMAKE_COMMAND) -E cmake_depends "MinGW Makefiles" D:\goprojects\opensource\src\Platon-go\life\resolver\builtins D:\goprojects\opensource\src\Platon-go\life\resolver\builtins D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build D:\goprojects\opensource\src\Platon-go\life\resolver\builtins\build\CMakeFiles\builtins.dir\DependInfo.cmake --color=$(COLOR)
+	$(CMAKE_COMMAND) -E cmake_depends "MinGW Makefiles" D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build D:\goprojects\src\github.com\PlatONnetwork\PlatON-Go\life\resolver\builtins\build\CMakeFiles\builtins.dir\DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/builtins.dir/depend
 
