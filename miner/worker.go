@@ -240,7 +240,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		commitWorkEnv:         &commitWorkEnv{},
 	}
 	// Subscribe NewTxsEvent for tx pool
-	worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
+	// worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
 	// Subscribe events for blockchain
 	worker.chainHeadSub = eth.BlockChain().SubscribeChainHeadEvent(worker.chainHeadCh)
 	worker.chainSideSub = eth.BlockChain().SubscribeChainSideEvent(worker.chainSideCh)
@@ -496,7 +496,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 // mainLoop is a standalone goroutine to regenerate the sealing task based on the received event.
 func (w *worker) mainLoop() {
-	defer w.txsSub.Unsubscribe()
+	// defer w.txsSub.Unsubscribe()
 	defer w.chainHeadSub.Unsubscribe()
 	defer w.chainSideSub.Unsubscribe()
 
@@ -543,38 +543,44 @@ func (w *worker) mainLoop() {
 					w.commit(uncles, nil, true, start)
 				}
 			}
+		/*
+			case  <-w.txsCh:
 
-		case ev := <-w.txsCh:
-			// Apply transactions to the pending state if we're not mining.
-			// Note all transactions received may not be continuous with transactions
-			// already included in the current mining block. These transactions will
-			// be automatically eliminated.
-			if !w.isRunning() && w.current != nil {
-				w.mu.RLock()
-				coinbase := w.coinbase
-				w.mu.RUnlock()
+				// Apply transactions to the pending state if we're not mining.
+				// Note all transactions received may not be continuous with transactions
+				// already included in the current mining block. These transactions will
+				// be automatically eliminated.
+				if !w.isRunning() && w.current != nil {
+					w.mu.RLock()
+					coinbase := w.coinbase
+					w.mu.RUnlock()
 
-				txs := make(map[common.Address]types.Transactions)
-				for _, tx := range ev.Txs {
-					acc, _ := types.Sender(w.current.signer, tx)
-					txs[acc] = append(txs[acc], tx)
+					txs := make(map[common.Address]types.Transactions)
+					for _, tx := range ev.Txs {
+						acc, _ := types.Sender(w.current.signer, tx)
+						txs[acc] = append(txs[acc], tx)
+					}
+					txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
+					w.commitTransactions(txset, coinbase, nil, 0)
+					w.updateSnapshot()
+				} else {
+					// If we're mining, but nothing is being processed, wake on new transactions
+					if w.config.Clique != nil && w.config.Clique.Period == 0 {
+						w.commitNewWork(nil, false, time.Now().Unix(), nil)
+					}
 				}
-				txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
-				w.commitTransactions(txset, coinbase, nil, 0)
-				w.updateSnapshot()
-			} else {
-				// If we're mining, but nothing is being processed, wake on new transactions
-				if w.config.Clique != nil && w.config.Clique.Period == 0 {
-					w.commitNewWork(nil, false, time.Now().Unix(), nil)
-				}
-			}
-			atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
+				atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
+		*/
 
-			// System stopped
+		// System stopped
 		case <-w.exitCh:
 			return
-		case <-w.txsSub.Err():
-			return
+
+			/*
+				case <-w.txsSub.Err():
+					return
+			*/
+
 		case <-w.chainHeadSub.Err():
 			return
 		case <-w.chainSideSub.Err():
