@@ -2116,16 +2116,94 @@ func BenchmarkPpos_Notify(b *testing.B) {
 /** about other */
 
 // test UpdateNodeList
+func ppos_UpdateNodeList (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
+	ppos, bc := buildPpos()
+	logFn("test UpdateNodeList ...")
+	genesis := bc.Genesis()
+	ppos.UpdateNodeList(bc, genesis.Number(), genesis.Hash())
+}
+func TestPpos_UpdateNodeList(t *testing.T) {
+	ppos_UpdateNodeList(t, t.Log, t.Error)
+}
+func BenchmarkPpos_UpdateNodeList(b *testing.B) {
+	ppos_UpdateNodeList(b, b.Log, b.Error)
+}
 
-// test Submit2Cache
+// test Submit2Cache TODO
+func ppos_Submit2Cache () {
+
+}
+
+// TODO Hash
 
 // test GetFormerRound
+func ppos_GetFormerRound (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
+	ppos, bc := buildPpos()
+	logFn("test GetFormerRound ...")
+	genesis := bc.Genesis()
+	round := ppos.GetFormerRound(genesis.Number(), genesis.Hash())
+	printObject("GetFormerRound", round.nodes, logger)
+}
+func TestPpos_GetFormerRound(t *testing.T) {
+	ppos_GetFormerRound(t, t.Log, t.Error)
+}
+func BenchmarkPpos_GetFormerRound(b *testing.B) {
+	ppos_GetFormerRound(b, b.Log, b.Error)
+}
 
 // test GetCurrentRound
+func ppos_GetCurrentRound (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
+	ppos, bc := buildPpos()
+	logFn("test GetCurrentRound ...")
+	genesis := bc.Genesis()
+	round := ppos.GetCurrentRound(genesis.Number(), genesis.Hash())
+	printObject("GetCurrentRound", round.nodes, logger)
+}
+func TestPpos_GetCurrentRound(t *testing.T) {
+	ppos_GetCurrentRound(t, t.Log, t.Error)
+}
+func BenchmarkPpos_GetCurrentRound(b *testing.B) {
+	ppos_GetCurrentRound(b, b.Log, b.Error)
+}
+
 
 // test GetNextRound
+func ppos_GetNextRound (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
+	ppos, bc := buildPpos()
+	logFn("test GetNextRound ...")
+	genesis := bc.Genesis()
+	round := ppos.GetNextRound(genesis.Number(), genesis.Hash())
+	printObject("GetNextRound", round.nodes, logger)
+}
+func TestPpos_GetNextRound(t *testing.T) {
+	ppos_GetNextRound(t, t.Log, t.Error)
+}
+func BenchmarkPpos_GetNextRound(b *testing.B) {
+	ppos_GetNextRound(b, b.Log, b.Error)
+}
 
 // test SetNodeCache
-
+func ppos_SetNodeCache (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
+	ppos, bc := buildPpos()
+	var state *state.StateDB
+	if st, err := bc.State(); nil != err {
+		errFn("test SetNodeCache getting state err", err)
+	}else {
+		state = st
+	}
+	logFn("test SetNodeCache ...")
+	genesis := bc.Genesis()
+	if err := ppos.SetNodeCache(state, big.NewInt(0), genesis.Number(), common.Hash{}, genesis.Hash()); nil != err {
+		errFn("SetNodeCache err", err)
+	}else {
+		logFn("SetNodeCache success ... ")
+	}
+}
+func TestPpos_SetNodeCache(t *testing.T) {
+	ppos_SetNodeCache(t, t.Log, t.Error)
+}
+func BenchmarkPpos_SetNodeCache(b *testing.B) {
+	ppos_SetNodeCache(b, b.Log, b.Error)
+}
 
 
