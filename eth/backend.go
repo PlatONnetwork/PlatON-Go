@@ -129,9 +129,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
-	blockSignatureCh := make(chan *cbfttypes.BlockSignature)
+	blockSignatureCh := make(chan *cbfttypes.BlockSignature, 20)
 	cbftResultCh := make(chan *cbfttypes.CbftResult)
-	highestLogicalBlockCh := make(chan *types.Block)
+	highestLogicalBlockCh := make(chan *types.Block, 20)
 
 	eth := &Ethereum{
 		config:         config,
