@@ -383,6 +383,7 @@ func (cbft *Cbft) handleLogicalBlockAndDescendant(current *BlockExt, includeCurr
 
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt) error {
+	log.Debug("execute block", "hash", current.block.Hash(), "number", current.block.NumberU64())
 	if !current.isExecuted {
 		if err := cbft.execute(current, parent); err != nil {
 			current.inTree = false
@@ -574,6 +575,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 func BlockSynchronisation() {
 
 	log.Debug("=== call BlockSynchronisation() ===\n",
+		"GoRoutineID", common.CurrentGoRoutineID(),
 		"highestLogicalHash", cbft.highestLogical.block.Hash(),
 		"highestLogicalNumber", cbft.highestLogical.number,
 		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
@@ -595,15 +597,7 @@ func BlockSynchronisation() {
 		newRoot.isSigned = true
 		newRoot.isConfirmed = true
 		newRoot.number = currentBlock.NumberU64()
-
-		//reorg the block tree
-		children := cbft.findChildren(newRoot)
-		for _, child := range children {
-			child.parent = newRoot
-			child.inTree = true
-			log.Debug("find newRoot's child", "hash", child.block.Hash(), "number", child.block.NumberU64(), "child", child)
-		}
-		newRoot.children = children
+		newRoot.parent = nil
 
 		//save the root in BlockExtMap
 		cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
@@ -611,6 +605,9 @@ func BlockSynchronisation() {
 		//reset the new root irreversible
 		cbft.rootIrreversible = newRoot
 		log.Debug("cbft.rootIrreversible", "hash", cbft.rootIrreversible.block.Hash(), "number", cbft.rootIrreversible.block.NumberU64())
+
+		//reorg the block tree
+		cbft.buildChildNode(newRoot)
 
 		//the new root's children should re-execute base on new state
 		for _, child := range newRoot.children {
@@ -682,8 +679,8 @@ func (cbft *Cbft) dataReceiverLoop() {
 	}
 }
 
-// buildTreeNode inserts current BlockExt to the tree structure
-func (cbft *Cbft) buildTreeNode(current *BlockExt) {
+// buildIntoTree inserts current BlockExt to the tree structure
+func (cbft *Cbft) buildIntoTree(current *BlockExt) {
 	parent := cbft.findParent(current)
 	if parent != nil {
 		//catch up with parent
@@ -694,21 +691,26 @@ func (cbft *Cbft) buildTreeNode(current *BlockExt) {
 		log.Warn("cannot find parent block", "hash", current.block.Hash(), "number", current.block.NumberU64())
 	}
 
+	cbft.buildChildNode(current)
+}
+
+func (cbft *Cbft) buildChildNode(current *BlockExt) {
 	children := cbft.findChildren(current)
 	if len(children) > 0 {
-		current.children = append(current.children, current)
+		current.children = children
 		for _, child := range children {
 			//child should catch up with current
 			child.parent = current
-			cbft.buildChild(child, current.inTree)
 		}
+		cbft.setDescendantInTree(current)
 	}
 }
 
-func (cbft *Cbft) buildChild(child *BlockExt, inTree bool) {
-	child.inTree = inTree
+func (cbft *Cbft) setDescendantInTree(child *BlockExt) {
+	log.Debug("set descendant inTree attribute", "hash", child.block.Hash(), "number", child.number)
 	for _, grandchild := range child.children {
-		cbft.buildChild(grandchild, inTree)
+		grandchild.inTree = child.inTree
+		cbft.setDescendantInTree(grandchild)
 	}
 }
 
@@ -860,7 +862,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	}
 
 	//make tree node
-	cbft.buildTreeNode(ext)
+	cbft.buildIntoTree(ext)
 
 	//collect the block's sign of producer
 	cbft.collectSign(ext, common.NewBlockConfirmSign(sign))
@@ -902,12 +904,12 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		if isLogical {
 			cbft.handleLogicalBlockAndDescendant(ext, true)
 
-			newHighestLogical := cbft.findHighestLogical(ext)
+			newHighestLogical := cbft.findHighestLogical(cbft.highestConfirmed)
 			if newHighestLogical != nil {
 				cbft.setHighestLogical(newHighestLogical)
 			}
 
-			newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(ext)
+			newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(cbft.highestConfirmed)
 			if newHighestConfirmed != nil {
 				cbft.highestConfirmed = newHighestConfirmed
 			}
@@ -1273,7 +1275,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	cbft.collectSign(current, common.NewBlockConfirmSign(sign))
 
 	//build tree node
-	cbft.buildTreeNode(current)
+	cbft.buildIntoTree(current)
 
 	log.Debug("seal complete", "hash", sealedBlock.Hash(), "number", block.NumberU64())
 
