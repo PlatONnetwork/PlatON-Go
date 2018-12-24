@@ -483,19 +483,28 @@ func (d *ppos) GetTicketList (state vm.StateDB, ticketIds []common.Hash) ([]*typ
 	return d.ticketPool.GetTicketList(state, ticketIds)
 }
 
-func (d *ppos) ReturnTicket (state vm.StateDB, nodeId discover.NodeID, ticketId common.Hash, blockNumber *big.Int) error {
-	return d.ticketPool.ReturnTicket(state, nodeId, ticketId, blockNumber)
-}
-
 func (d *ppos) GetCandidateTicketIds (state vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
 	return d.ticketPool.GetCandidateTicketIds(state, nodeId)
 }
 
+func (d *ppos) GetCandidateEpoch (state vm.StateDB, nodeId discover.NodeID) (uint64, error) {
+	return d.ticketPool.GetCandidateEpoch(state, nodeId)
+}
+
+func (d *ppos) GetTicketPrice (state vm.StateDB) (*big.Int, error) {
+	return d.ticketPool.GetTicketPrice(state)
+}
+
+func (d *ppos) GetCandidateAttach (state vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
+	return d.ticketPool.GetCandidateAttach(state, nodeId)
+}
 
 ////// 每一个块都会调用的方法
 func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
 	return d.ticketPool.Notify(state, blockNumber)
 }
+
+// TODO 添加一个方法，每 seal 完一个块之后，就调用该 Func
 
 // cbft consensus fork need to update  nodeRound
 func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int, blockHash common.Hash) {

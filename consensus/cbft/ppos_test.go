@@ -135,6 +135,7 @@ func BenchmarkPpos_BlockProducerIndex(b *testing.B) {
 	ppos_BlockProducerIndex(b, b.Log, b.Error)
 }
 
+/** about candidatepool */
 // test SetCandidate
 func ppos_SetCandidate (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
 	ppos, bc := buildPpos()
@@ -173,16 +174,16 @@ func BenchmarkPpos_SetCandidate(b *testing.B) {
 	ppos_SetCandidate(b, b.Log, b.Error)
 }
 
-// test GetCnadidate
+// test GetCandidate
 func ppos_GetCandidate (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test GetCandidate getting state err", err)
 	}else {
 		state = st
 	}
-	logFn("test GetCnadidate ...")
+	logFn("test GetCandidate ...")
 
 
 
@@ -223,7 +224,7 @@ func ppos_Election (logger interface{}, logFn func (args ... interface{}), errFn
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test Election getting state err", err)
 	}else {
 		state = st
 	}
@@ -359,7 +360,7 @@ func ppos_Switch (logger interface{}, logFn func (args ... interface{}), errFn f
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test Switch getting state err", err)
 	}else {
 		state = st
 	}
@@ -505,7 +506,7 @@ func ppos_GetWitness (logger interface{}, logFn func (args ... interface{}), err
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test GetWitness getting state err", err)
 	}else {
 		state = st
 	}
@@ -656,7 +657,7 @@ func ppos_GetAllWitness (logger interface{}, logFn func (args ... interface{}), 
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test GetAllWitness getting state err", err)
 	}else {
 		state = st
 	}
@@ -814,7 +815,7 @@ func ppos_WithdrawCandidate (logger interface{}, logFn func (args ... interface{
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test WithdrawCandidate getting state err", err)
 	}else {
 		state = st
 	}
@@ -914,7 +915,7 @@ func ppos_GetChosens (logger interface{}, logFn func (args ... interface{}), err
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test GetChosens getting state err", err)
 	}else {
 		state = st
 	}
@@ -969,7 +970,7 @@ func ppos_GetChairpersons (logger interface{}, logFn func (args ... interface{})
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test GetChairpersons getting state err", err)
 	}else {
 		state = st
 	}
@@ -1108,7 +1109,6 @@ func ppos_GetChairpersons (logger interface{}, logFn func (args ... interface{})
 	canArr := ppos.GetChairpersons(state)
 	printObject("GetChairpersons canArr:", canArr, logger)
 }
-
 func TestPpos_GetChairpersons(t *testing.T) {
 	ppos_GetChairpersons(t, t.Log, t.Error)
 }
@@ -1121,7 +1121,7 @@ func ppos_GetDefeat (logger interface{}, logFn func (args ... interface{}), errF
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test GetDefeat getting state err", err)
 	}else {
 		state = st
 	}
@@ -1270,7 +1270,7 @@ func ppos_IsDefeat (logger interface{}, logFn func (args ... interface{}), errFn
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test IsDefeat getting state err", err)
 	}else {
 		state = st
 	}
@@ -1414,7 +1414,7 @@ func ppos_RefundBalance (logger interface{}, logFn func (args ... interface{}), 
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test RefundBalance getting state err", err)
 	}else {
 		state = st
 	}
@@ -1559,7 +1559,7 @@ func ppos_GetOwner (logger interface{}, logFn func (args ... interface{}), errFn
 	ppos, bc := buildPpos()
 	var state *state.StateDB
 	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
+		errFn("test GetOwner getting state err", err)
 	}else {
 		state = st
 	}
@@ -1598,19 +1598,13 @@ func BenchmarkPpos_GetOwner(b *testing.B) {
 
 // test GetRefundInterval
 func ppos_GetRefundInterval (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
-	ppos, bc := buildPpos()
-	var state *state.StateDB
-	if st, err := bc.State(); nil != err {
-		errFn("test SetCandidate getting state err", err)
-	}else {
-		state = st
-	}
+	ppos, _ := buildPpos()
+
 	logFn("test GetRefundInterval ...")
 
 	/** test  GetRefundInterval*/
 	num := ppos.GetRefundInterval()
 	logFn("RefundInterval:", num)
-	fmt.Println(state.Error())
 }
 func TestPpos_GetRefundInterval(t *testing.T) {
 	ppos_GetRefundInterval(t, t.Log, t.Error)
@@ -1618,3 +1612,516 @@ func TestPpos_GetRefundInterval(t *testing.T) {
 func BenchmarkPpos_GetRefundInterval(b *testing.B) {
 	ppos_GetRefundInterval(b, b.Log, b.Error)
 }
+
+/** about tickpool */
+// test GetPoolNumber
+func ppos_GetPoolNumber (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
+	ppos, bc := buildPpos()
+	var state *state.StateDB
+	if st, err := bc.State(); nil != err {
+		errFn("test GetPoolNumber getting state err", err)
+	}else {
+		state = st
+	}
+	logFn("test GetPoolNumber ...")
+
+	/** test  GetPoolNumber */
+	logFn("test GetPoolNumber ...")
+	if num, err := ppos.GetPoolNumber(state); nil != err {
+		errFn("GetPoolNumber err", err)
+	}else {
+		logFn("GetPoolNumber:", num)
+	}
+}
+func TestPpos_GetPoolNumber(t *testing.T) {
+	ppos_GetPoolNumber(t, t.Log, t.Error)
+}
+func BenchmarkPpos_GetPoolNumber(b *testing.B) {
+	ppos_GetPoolNumber(b, b.Log, b.Error)
+}
+
+// test VoteTicket
+func ppos_VoteTicket (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
+	ppos, bc := buildPpos()
+	var state *state.StateDB
+	if st, err := bc.State(); nil != err {
+		errFn("test VoteTicket getting state err", err)
+	}else {
+		state = st
+	}
+	logFn("test VoteTicket ...")
+
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := ppos.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		errFn("SetCandidate err:", err)
+	}
+
+
+	/** vote ticket */
+	var count uint32 = 0
+	var blockNumber = new(big.Int).SetUint64(10)
+
+	timeMap := make(map[uint32]int64)
+	logFn("VOTING START .............................................................")
+
+	startTime := time.Now().UnixNano() / 1e6
+	voteOwner := common.HexToAddress("0x20")
+	deposit := new(big.Int).SetUint64(10)
+	state.SubBalance(voteOwner, deposit)
+	state.AddBalance(common.TicketPoolAddr, deposit)
+	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
+	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+	if nil != err {
+		errFn("vote ticket error:", err)
+	}
+	atomic.AddUint32(&count, 1)
+	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
+	logFn("VOTING END .............................................................")
+}
+func TestPpos_VoteTicket(t *testing.T) {
+	ppos_VoteTicket(t, t.Log, t.Error)
+}
+func BenchmarkPpos_VoteTicket(b *testing.B) {
+	ppos_VoteTicket(b, b.Log, b.Error)
+}
+
+// test GetTicket
+func ppos_GetTicket (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
+	ppos, bc := buildPpos()
+	var state *state.StateDB
+	if st, err := bc.State(); nil != err {
+		errFn("test GetTicket getting state err", err)
+	}else {
+		state = st
+	}
+	logFn("test GetTicket ...")
+
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := ppos.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		errFn("SetCandidate err:", err)
+	}
+
+
+	/** vote ticket */
+	var count uint32 = 0
+	var blockNumber = new(big.Int).SetUint64(10)
+
+	timeMap := make(map[uint32]int64)
+	logFn("VOTING START .............................................................")
+
+	startTime := time.Now().UnixNano() / 1e6
+	voteOwner := common.HexToAddress("0x20")
+	deposit := new(big.Int).SetUint64(10)
+	state.SubBalance(voteOwner, deposit)
+	state.AddBalance(common.TicketPoolAddr, deposit)
+	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
+	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	tickList, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+	if nil != err {
+		errFn("vote ticket error:", err)
+	}
+	atomic.AddUint32(&count, 1)
+	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
+	logFn("VOTING END .............................................................")
+
+	/** GetTicket */
+	if ticket, err := ppos.GetTicket(state, tickList[0]); nil != err {
+		errFn("GetTicket err", err)
+	}else {
+		printObject("GetTicket ticketInfo:", ticket, logger)
+	}
+}
+func TestPpos_GetTicket(t *testing.T) {
+	ppos_GetTicket(t, t.Log, t.Error)
+}
+func BenchmarkPpos_GetTicket(b *testing.B) {
+	ppos_GetTicket(b, b.Log, b.Error)
+}
+
+// test GetTicketList
+func ppos_GetTicketList (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
+	ppos, bc := buildPpos()
+	var state *state.StateDB
+	if st, err := bc.State(); nil != err {
+		errFn("test GetTicketList getting state err", err)
+	}else {
+		state = st
+	}
+	logFn("test GetTicketList ...")
+
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := ppos.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		errFn("SetCandidate err:", err)
+	}
+
+
+	/** vote ticket */
+	var count uint32 = 0
+	var blockNumber = new(big.Int).SetUint64(10)
+
+	timeMap := make(map[uint32]int64)
+	logFn("VOTING START .............................................................")
+
+	startTime := time.Now().UnixNano() / 1e6
+	voteOwner := common.HexToAddress("0x20")
+	deposit := new(big.Int).SetUint64(10)
+	state.SubBalance(voteOwner, deposit)
+	state.AddBalance(common.TicketPoolAddr, deposit)
+	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
+	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	tickIdList, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+	if nil != err {
+		errFn("vote ticket error:", err)
+	}
+	atomic.AddUint32(&count, 1)
+	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
+	logFn("VOTING END .............................................................")
+
+	/** GetTicketList */
+	if tickets, err := ppos.GetTicketList(state, tickIdList); nil != err {
+		errFn("GetTicketList err", err)
+	}else {
+		printObject("GetTicketList ticketArr:", tickets, logger)
+	}
+}
+func TestPpos_GetTicketList(t *testing.T) {
+	ppos_GetTicketList(t, t.Log, t.Error)
+}
+func BenchmarkPpos_GetTicketList(b *testing.B) {
+	ppos_GetTicketList(b, b.Log, b.Error)
+}
+
+// test GetCandidateTicketIds
+func ppos_GetCandidateTicketIds (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
+	ppos, bc := buildPpos()
+	var state *state.StateDB
+	if st, err := bc.State(); nil != err {
+		errFn("test GetCandidateTicketIds getting state err", err)
+	}else {
+		state = st
+	}
+	logFn("test GetCandidateTicketIds ...")
+
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := ppos.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		errFn("SetCandidate err:", err)
+	}
+
+
+	/** vote ticket */
+	var count uint32 = 0
+	var blockNumber = new(big.Int).SetUint64(10)
+
+	timeMap := make(map[uint32]int64)
+	logFn("VOTING START .............................................................")
+
+	startTime := time.Now().UnixNano() / 1e6
+	voteOwner := common.HexToAddress("0x20")
+	deposit := new(big.Int).SetUint64(10)
+	state.SubBalance(voteOwner, deposit)
+	state.AddBalance(common.TicketPoolAddr, deposit)
+	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
+	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+	if nil != err {
+		errFn("vote ticket error:", err)
+	}
+	atomic.AddUint32(&count, 1)
+	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
+	logFn("VOTING END .............................................................")
+
+	tickIds, err := ppos.GetCandidateTicketIds(state, candidate.CandidateId)
+	if nil != err {
+		errFn("GetCandidateTicketIds err", err)
+	}else {
+		printObject("GetCandidateTicketIds:", tickIds, logger)
+	}
+}
+func TestPpos_GetCandidateTicketIds(t *testing.T) {
+	ppos_GetCandidateTicketIds(t, t.Log, t.Error)
+}
+func BenchmarkPpos_GetCandidateTicketIds(b *testing.B) {
+	ppos_GetCandidateTicketIds(b, b.Log, b.Error)
+}
+
+// test GetCandidateEpoch
+func ppos_GetCandidateEpoch  (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
+	ppos, bc := buildPpos()
+	var state *state.StateDB
+	if st, err := bc.State(); nil != err {
+		errFn("test GetCandidateEpoch getting state err", err)
+	}else {
+		state = st
+	}
+	logFn("test GetCandidateEpoch ...")
+
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := ppos.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		errFn("SetCandidate err:", err)
+	}
+
+
+	/** vote ticket */
+	var count uint32 = 0
+	var blockNumber = new(big.Int).SetUint64(10)
+
+	timeMap := make(map[uint32]int64)
+	logFn("VOTING START .............................................................")
+
+	startTime := time.Now().UnixNano() / 1e6
+	voteOwner := common.HexToAddress("0x20")
+	deposit := new(big.Int).SetUint64(10)
+	state.SubBalance(voteOwner, deposit)
+	state.AddBalance(common.TicketPoolAddr, deposit)
+	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
+	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+	if nil != err {
+		errFn("vote ticket error:", err)
+	}
+	atomic.AddUint32(&count, 1)
+	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
+	logFn("VOTING END .............................................................")
+
+	epoch, err := ppos.GetCandidateEpoch(state, candidate.CandidateId)
+	if nil != err {
+		errFn("GetCandidateEpoch err", err)
+	}else {
+		logFn("GetCandidateEpoch:", epoch)
+	}
+}
+func TestPpos_GetCandidateEpoch(t *testing.T) {
+	ppos_GetCandidateEpoch(t, t.Log, t.Error)
+}
+func BenchmarkPpos_GetCandidateEpoch(b *testing.B) {
+	ppos_GetCandidateEpoch(b, b.Log, b.Error)
+}
+
+// test GetTicketPrice
+func ppos_GetTicketPrice (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
+	ppos, bc := buildPpos()
+	var state *state.StateDB
+	if st, err := bc.State(); nil != err {
+		errFn("test GetTicketPrice getting state err", err)
+	}else {
+		state = st
+	}
+	logFn("test GetTicketPrice ...")
+
+	/** test  GetTicketPrice */
+	logFn("test GetTicketPrice ...")
+	if num, err := ppos.GetTicketPrice(state); nil != err {
+		errFn("GetTicketPrice err", err)
+	}else {
+		logFn("GetTicketPrice:", num)
+	}
+}
+func TestPpos_GetTicketPrice(t *testing.T) {
+	ppos_GetTicketPrice(t, t.Log, t.Error)
+}
+func BenchmarkPpos_GetTicketPrice(b *testing.B) {
+	ppos_GetTicketPrice(b, b.Log, b.Error)
+}
+
+// test GetCandidateAttach
+func ppos_GetCandidateAttach (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
+	ppos, bc := buildPpos()
+	var state *state.StateDB
+	if st, err := bc.State(); nil != err {
+		errFn("test GetCandidateAttach getting state err", err)
+	}else {
+		state = st
+	}
+	logFn("test GetCandidateAttach ...")
+
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := ppos.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		errFn("SetCandidate err:", err)
+	}
+
+
+	/** vote ticket */
+	var count uint32 = 0
+	var blockNumber = new(big.Int).SetUint64(10)
+
+	timeMap := make(map[uint32]int64)
+	logFn("VOTING START .............................................................")
+
+	startTime := time.Now().UnixNano() / 1e6
+	voteOwner := common.HexToAddress("0x20")
+	deposit := new(big.Int).SetUint64(10)
+	state.SubBalance(voteOwner, deposit)
+	state.AddBalance(common.TicketPoolAddr, deposit)
+	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
+	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+	if nil != err {
+		errFn("vote ticket error:", err)
+	}
+	atomic.AddUint32(&count, 1)
+	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
+	logFn("VOTING END .............................................................")
+
+	attach, err := ppos.GetCandidateAttach(state, candidate.CandidateId)
+	if nil != err {
+		errFn("GetCandidateAttach err", err)
+	}else {
+		printObject("GetCandidateAttach:", attach, logger)
+	}
+}
+func TestPpos_GetCandidateAttach(t *testing.T) {
+	ppos_GetCandidateAttach(t, t.Log, t.Error)
+}
+func BenchmarkPpos_GetCandidateAttach(b *testing.B) {
+	ppos_GetCandidateAttach(b, b.Log, b.Error)
+}
+
+// test Notify
+func ppos_Notify (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
+	ppos, bc := buildPpos()
+	var state *state.StateDB
+	if st, err := bc.State(); nil != err {
+		errFn("test Notify getting state err", err)
+	}else {
+		state = st
+	}
+	logFn("test Notify ...")
+
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := ppos.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		errFn("SetCandidate err:", err)
+	}
+
+
+	/** vote ticket */
+	var count uint32 = 0
+	var blockNumber = new(big.Int).SetUint64(10)
+
+	timeMap := make(map[uint32]int64)
+	logFn("VOTING START .............................................................")
+
+	startTime := time.Now().UnixNano() / 1e6
+	voteOwner := common.HexToAddress("0x20")
+	deposit := new(big.Int).SetUint64(10)
+	state.SubBalance(voteOwner, deposit)
+	state.AddBalance(common.TicketPoolAddr, deposit)
+	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
+	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+	if nil != err {
+		errFn("vote ticket error:", err)
+	}
+	atomic.AddUint32(&count, 1)
+	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
+	logFn("VOTING END .............................................................")
+
+	if err := ppos.Notify(state, new(big.Int).SetUint64(10)); nil != err {
+		errFn("Notify err", err)
+	}else {
+		logFn("Notify success ... ")
+	}
+}
+func TestPpos_Notify(t *testing.T) {
+	ppos_Notify(t, t.Log, t.Error)
+}
+func BenchmarkPpos_Notify(b *testing.B) {
+	ppos_Notify(b, b.Log, b.Error)
+}
+
+/** about other */
+
+// test UpdateNodeList
+
+// test GetFormerRound
+
+// test GetCurrentRound
+
+// test GetNextRound
+
+// test SetNodeCache
+
