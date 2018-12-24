@@ -34,9 +34,9 @@ type candidatePool interface {
 	SetCandidate(state StateDB, nodeId discover.NodeID, can *types.Candidate) error
 	GetCandidate(state StateDB, nodeId discover.NodeID) (*types.Candidate, error)
 	WithdrawCandidate(state StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error
-	GetChosens(state StateDB, flag int) []*types.Candidate
-	GetChairpersons(state StateDB) []*types.Candidate
-	GetDefeat(state StateDB, nodeId discover.NodeID) ([]*types.Candidate, error)
+	GetChosens(state StateDB, flag int) types.CandidateQueue
+	GetChairpersons(state StateDB) types.CandidateQueue
+	GetDefeat(state StateDB, nodeId discover.NodeID) (types.CandidateQueue, error)
 	IsDefeat(state StateDB, nodeId discover.NodeID) (bool, error)
 	RefundBalance(state StateDB, nodeId discover.NodeID, blockNumber *big.Int) error
 	GetOwner(state StateDB, nodeId discover.NodeID) common.Address
