@@ -17,9 +17,9 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"bytes"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -543,32 +543,34 @@ func (w *worker) mainLoop() {
 					w.commit(uncles, nil, true, start)
 				}
 			}
+		// removed by PlatON
+		/*
+			case ev := <-w.txsCh:
+				// Apply transactions to the pending state if we're not mining.
+				// Note all transactions received may not be continuous with transactions
+				// already included in the current mining block. These transactions will
+				// be automatically eliminated.
+				if !w.isRunning() && w.current != nil {
+					w.mu.RLock()
+					coinbase := w.coinbase
+					w.mu.RUnlock()
 
-		case ev := <-w.txsCh:
-			// Apply transactions to the pending state if we're not mining.
-			// Note all transactions received may not be continuous with transactions
-			// already included in the current mining block. These transactions will
-			// be automatically eliminated.
-			if !w.isRunning() && w.current != nil {
-				w.mu.RLock()
-				coinbase := w.coinbase
-				w.mu.RUnlock()
-
-				txs := make(map[common.Address]types.Transactions)
-				for _, tx := range ev.Txs {
-					acc, _ := types.Sender(w.current.signer, tx)
-					txs[acc] = append(txs[acc], tx)
+					txs := make(map[common.Address]types.Transactions)
+					for _, tx := range ev.Txs {
+						acc, _ := types.Sender(w.current.signer, tx)
+						txs[acc] = append(txs[acc], tx)
+					}
+					txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
+					w.commitTransactions(txset, coinbase, nil, 0)
+					w.updateSnapshot()
+				} else {
+					// If we're mining, but nothing is being processed, wake on new transactions
+					if w.config.Clique != nil && w.config.Clique.Period == 0 {
+						w.commitNewWork(nil, false, time.Now().Unix(), nil)
+					}
 				}
-				txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
-				w.commitTransactions(txset, coinbase, nil, 0)
-				w.updateSnapshot()
-			} else {
-				// If we're mining, but nothing is being processed, wake on new transactions
-				if w.config.Clique != nil && w.config.Clique.Period == 0 {
-					w.commitNewWork(nil, false, time.Now().Unix(), nil)
-				}
-			}
-			atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
+				atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
+		*/
 
 		// System stopped
 		case <-w.exitCh:
