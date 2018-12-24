@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"Platon-go/common"
 	"Platon-go/common/byteutil"
 	"Platon-go/common/hexutil"
 	"Platon-go/rlp"
@@ -47,7 +48,7 @@ func TestTicketPoolEncode(t *testing.T) {
 	}
 
 	// GetTicketDetail(ticketId common.Hash)
-	ticketId := []byte("0x7eddf4275f3327327b887d410445de75b69bd11f104008ad8eb6fe9e51e900c0")
+	ticketId := common.Hex2Bytes("64a25965db45003819598699d46a138b3e91ab0be338463359a21eb3e896ac68")
 	var GetTicketDetail [][]byte
 	GetTicketDetail = make([][]byte, 0)
 	GetTicketDetail = append(GetTicketDetail, uint64ToBytes(0xf1))
