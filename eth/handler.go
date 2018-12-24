@@ -532,10 +532,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			signatures[i] = body.Signatures
 		}
 		// Filter out any explicitly requested bodies, deliver the rest to the downloader
-		filter := len(transactions) > 0 || len(uncles) > 0
+		filter := len(transactions) > 0 || len(uncles) > 0 || len(signatures) > 0
 		if filter {
-			// TODO
-			transactions, uncles = pm.fetcher.FilterBodies(p.id, transactions, uncles, time.Now())
+			transactions, uncles, signatures = pm.fetcher.FilterBodies(p.id, transactions, uncles, signatures, time.Now())
 		}
 		if len(transactions) > 0 || len(uncles) > 0 || !filter {
 			err := pm.downloader.DeliverBodies(p.id, transactions, uncles, signatures)

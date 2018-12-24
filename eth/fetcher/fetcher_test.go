@@ -192,7 +192,7 @@ func (f *fetcherTester) makeBodyFetcher(peer string, blocks map[common.Hash]*typ
 			}
 		}
 		// Return on a new thread
-		go f.fetcher.FilterBodies(peer, transactions, uncles, time.Now().Add(drift))
+		go f.fetcher.FilterBodies(peer, transactions, uncles, nil, time.Now().Add(drift))
 
 		return nil
 	}
