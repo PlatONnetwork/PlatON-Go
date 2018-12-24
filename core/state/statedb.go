@@ -93,7 +93,7 @@ type StateDB struct {
 	lock sync.Mutex
 
 	//ppos add -> Current ticket pool cache object <nodeid.string(), ticketId>
-	cTicketCache map[string][]common.Hash
+	cTicketCache map[string][]common.Hash // TODO to discover.nodeID
 	tclock       sync.RWMutex
 }
 
