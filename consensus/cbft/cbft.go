@@ -698,7 +698,7 @@ func (cbft *Cbft) buildIntoTree(current *BlockExt) {
 func (cbft *Cbft) buildChildNode(current *BlockExt) {
 	children := cbft.findChildren(current)
 	if len(children) > 0 {
-		current.children = append(current.children, current)
+		current.children = children
 		for _, child := range children {
 			//child should catch up with current
 			child.parent = current
