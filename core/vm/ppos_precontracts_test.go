@@ -38,7 +38,7 @@ func TestRlpEncode(t *testing.T) {
 	source = append(source, nodeId) // [64]byte nodeId discover.NodeID
 	source = append(source, owner) // [20]byte owner common.Address
 	source = append(source, byteutil.Uint64ToBytes(100)) // fee
-	source = append(source, []byte("192.168.9.184")) // host
+	source = append(source, []byte("192.168.7.122")) // host
 	source = append(source, []byte("16789")) // port
 	source = append(source, []byte("extra info..")) // extra
 	//source = append(source, new(big.Int).SetInt64(1).Bytes()) // withdraw
@@ -96,7 +96,7 @@ func TestRlpData(t *testing.T)  {
 	CandidateDeposit = append(CandidateDeposit, owner)
 
 	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(500))	//10000
-	CandidateDeposit = append(CandidateDeposit, []byte("192.168.9.182"))
+	CandidateDeposit = append(CandidateDeposit, []byte("192.168.18.182"))
 	CandidateDeposit = append(CandidateDeposit, []byte("16789"))
 	CandidateDeposit = append(CandidateDeposit, []byte("extra data"))
 	bufDeposit := new(bytes.Buffer)
