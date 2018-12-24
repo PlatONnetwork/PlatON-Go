@@ -95,6 +95,7 @@ func(t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNum
 	log.Info("开始循环投票", "候选人：", nodeId.String())
 	var i uint64 = 0
 	for ; i < voteNumber; i++ {
+		// TODO 交易Hash+当前交易生成下票index
 		ticketId, err := generateTicketId()
 		if err != nil {
 			return voteTicketIdList, err
@@ -280,6 +281,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, nodeIds ...discover.No
 				return err
 			}
 			ticket.State = 4
+			// TODO 记录释放票的块高
 			if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
 				return  err
 			}
