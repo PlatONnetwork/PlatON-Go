@@ -372,10 +372,6 @@ func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
 		}
 
 		/*if logical.isConfirmed {
-			cbft.txPool.LockedReset(current.parent.block.Header(), current.block.Header())
-		}*/
-
-		/*if logical.isConfirmed {
 			highestConfirmed = logical
 		}*/
 	}
@@ -936,7 +932,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 				cbft.setHighestLogical(newHighestLogical)
 			}
 
-			newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(ext)
+			newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(cbft.highestConfirmed)
 			if newHighestConfirmed != nil {
 				cbft.highestConfirmed = newHighestConfirmed
 			}
