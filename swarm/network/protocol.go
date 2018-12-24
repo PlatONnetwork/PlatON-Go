@@ -390,7 +390,7 @@ func NewNodeIDFromAddr(addr *BzzAddr) discover.NodeID {
 func NewAddrFromNodeID(id discover.NodeID) *BzzAddr {
 	return &BzzAddr{
 		OAddr: ToOverlayAddr(id.Bytes()),
-		UAddr: []byte(discover.NewNode(id, net.IP{127, 0, 0, 1}, 30303, 30303).String()),
+		UAddr: []byte(discover.NewNode(id, net.IP{127, 0, 0, 1}, 16789, 16789).String()),
 	}
 }
 

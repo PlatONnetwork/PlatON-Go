@@ -17,7 +17,7 @@ void notify_security_calculation(const char* taskid, const char* pubkey, const c
 */
 import "C"
 
-// 主要部分，调用库形式
+// Main part, call library form
 
 /*
 #cgo LDFLAGS: -Wl,-rpath="./libs"

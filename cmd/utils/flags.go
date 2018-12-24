@@ -499,7 +499,7 @@ var (
 	ListenPortFlag = cli.IntFlag{
 		Name:  "port",
 		Usage: "Network listening port",
-		Value: 30303,
+		Value: 16789,
 	}
 	BootnodesFlag = cli.StringFlag{
 		Name:  "bootnodes",
@@ -1313,7 +1313,6 @@ func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
 // RegisterEthService adds an Ethereum client to the stack.
 func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 	var err error
-	// 注册即为定义构造函数的实现方式
 	if cfg.SyncMode == downloader.LightSync {
 		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 			return les.New(ctx, cfg)

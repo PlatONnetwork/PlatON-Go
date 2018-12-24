@@ -124,17 +124,11 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 func (p *peer) broadcast() {
 	for {
 		select {
-		case txs := <-p.queuedTxs:
-			if err := p.SendTransactions(txs); err != nil {
-				return
-			}
-			p.Log().Trace("Broadcast transactions", "count", len(txs))
-
 		case prop := <-p.queuedProps:
 			if err := p.SendNewBlock(prop.block, prop.td); err != nil {
 				return
 			}
-			p.Log().Info("Propagated block", "number", prop.block.Number(), "hash", prop.block.Hash(), "td", prop.td, "block signatures", prop.block.ConfirmSigns)
+			p.Log().Trace("Propagated block", "number", prop.block.Number(), "hash", prop.block.Hash(), "td", prop.td)
 
 		case block := <-p.queuedAnns:
 			if err := p.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}); err != nil {
@@ -159,6 +153,19 @@ func (p *peer) broadcast() {
 			return
 		}
 	}
+
+	go func() {
+		select {
+		case txs := <-p.queuedTxs:
+			if err := p.SendTransactions(txs); err != nil {
+				return
+			}
+			p.Log().Trace("Broadcast transactions", "count", len(txs))
+
+		case <-p.term:
+			return
+		}
+	}()
 }
 
 // close signals the broadcast goroutine to terminate.
@@ -587,8 +594,8 @@ type preBlockEvent struct {
 }
 
 type signatureEvent struct {
-	SignHash  common.Hash //签名hash，header[0:32]
-	Hash      common.Hash //块hash，header[:]
+	SignHash  common.Hash // Signature hash，header[0:32]
+	Hash      common.Hash // Block hash，header[:]
 	Number    *big.Int
 	Signature *common.BlockConfirmSign
 }

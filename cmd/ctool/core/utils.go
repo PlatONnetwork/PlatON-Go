@@ -1,35 +1,35 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
 const (
 	transfer = iota
-	depoly
-	invoke
+	deployContract
+	invokeContract
 	vote
 	permission
+
+	DefaultConfigFilePath = "/config.json"
 )
 
-type Element interface{}
-type List []Element
+var (
+	config = Config{}
+)
 
 type JsonParam struct {
 	Jsonrpc string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
 	Params  interface{} `json:"params"`
 	Id      int         `json:"id"`
-}
-type BasicParam struct {
-	From     string `json:"from"`
-	Gas      string `json:"gas"`
-	GasPrice string `json:"gas_price"`
 }
 
 type TxParams struct {
@@ -39,6 +39,11 @@ type TxParams struct {
 	GasPrice string `json:"gasPrice"`
 	Value    string `json:"value"`
 	Data     string `json:"data"`
+}
+
+type RawTxParams struct {
+	TxParams
+	Nonce int64 `json:"Nonce"`
 }
 
 type DeployParams struct {
@@ -96,50 +101,56 @@ type Receipt struct {
 	} `json:"result"`
 }
 
-func parseConfigJson(configPath string, param interface{}) {
-	bytes, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		panic(err)
+func parseConfigJson(configPath string) error {
+	if configPath == "" {
+		dir, _ := os.Getwd()
+		configPath = dir + DefaultConfigFilePath
 	}
 
-	if err := json.Unmarshal(bytes, &param); err != nil {
-		panic(err)
+	if !filepath.IsAbs(configPath) {
+		configPath, _ = filepath.Abs(configPath)
 	}
+
+	bytes, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		panic(fmt.Errorf("parse config file error,%s", err.Error()))
+	}
+
+	if err := json.Unmarshal(bytes, &config); err != nil {
+		panic(fmt.Errorf("parse config to json error,%s", err.Error()))
+	}
+	return nil
 }
 
 func parseAbiFromJson(fileName string) ([]FuncDesc, error) {
 	bytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		panic(fmt.Sprintf("ReadFile: %s", err.Error()))
+		return nil, fmt.Errorf("parse abi file error: %s", err.Error())
 	}
 	var a []FuncDesc
 	if err := json.Unmarshal(bytes, &a); err != nil {
-		fmt.Println("Unmarshal: ", err.Error())
-		panic(fmt.Sprintf("Unmarshal: %s", err.Error()))
+		return nil, fmt.Errorf("parse abi to json error: %s", err.Error())
 	}
 	return a, nil
 }
 
-func parseFuncFromAbi(fileName string, funcName string) FuncDesc {
-	funcs, _ := parseAbiFromJson(fileName)
+func parseFuncFromAbi(fileName string, funcName string) (*FuncDesc, error) {
+	funcs, err := parseAbiFromJson(fileName)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, value := range funcs {
 		if value.Name == funcName {
-			return value
+			return &value, nil
 		}
 	}
-	return FuncDesc{}
+	return nil, fmt.Errorf("function %s not found in %s", funcName, fileName)
 }
 
-func substr(s string, pos, length int) string {
-	runes := []rune(s)
-	l := pos + length
-	if l > len(runes) {
-		l = len(runes)
-	}
-	return string(runes[pos:l])
-}
-
+/**
+  通过解析abi查找所调用方法
+*/
 func GetFuncNameAndParams(f string) (string, []string) {
 	funcName := string(f[0:strings.Index(f, "(")])
 
@@ -158,18 +169,22 @@ func GetFuncNameAndParams(f string) (string, []string) {
 
 }
 
-func encodeParam(abiPath string, funcName string, funcParams string) {
-	abiFunc := parseFuncFromAbi(abiPath, funcName)
-	if abiFunc.Name == "" {
-		fmt.Printf("the function not exist ,func= %s\n", funcName)
-		return
+/**
+  自测方法，用于对参数加密
+*/
+func encodeParam(abiPath string, funcName string, funcParams string) error {
+	//判断该方法是否存在
+	abiFunc, err := parseFuncFromAbi(abiPath, funcName)
+	if err != nil {
+		return err
 	}
 
+	//解析调用的方法 参数
 	funcName, inputParams := GetFuncNameAndParams(funcParams)
 
+	//判断参数是否正确
 	if len(abiFunc.Inputs) != len(inputParams) {
-		fmt.Printf("incorrect number of parameters ,request=%d,get=%d\n", len(abiFunc.Inputs), len(inputParams))
-		return
+		return fmt.Errorf("incorrect number of parameters ,request=%d,get=%d\n", len(abiFunc.Inputs), len(inputParams))
 	}
 
 	paramArr := [][]byte{
@@ -181,12 +196,14 @@ func encodeParam(abiPath string, funcName string, funcParams string) {
 		input := abiFunc.Inputs[i]
 		p, e := StringConverter(v, input.Type)
 		if e != nil {
-			fmt.Printf("incorrect param type: %s,index:%d", v, i)
-			return
+			return err
 		}
 		paramArr = append(paramArr, p)
 	}
 
 	paramBytes, _ := rlp.EncodeToBytes(paramArr)
+
 	fmt.Printf(hexutil.Encode(paramBytes))
+
+	return nil
 }

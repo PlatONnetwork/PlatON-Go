@@ -91,7 +91,7 @@ func env__ashlti3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__ashlti3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__ashrti3(vm *exec.VirtualMachine) int64 {
@@ -109,7 +109,7 @@ func env__ashrti3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__ashrti3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__lshlti3(vm *exec.VirtualMachine) int64 {
@@ -131,7 +131,7 @@ func env__lshlti3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__lshlti3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__lshrti3(vm *exec.VirtualMachine) int64 {
@@ -153,7 +153,7 @@ func env__lshrti3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__lshrti3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__divti3(vm *exec.VirtualMachine) int64 {
@@ -173,7 +173,7 @@ func env__divti3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__divti3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__udivti3(vm *exec.VirtualMachine) int64 {
@@ -193,7 +193,7 @@ func env__udivti3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__udivti3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__modti3(vm *exec.VirtualMachine) int64 {
@@ -213,7 +213,7 @@ func env__modti3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__modti3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__umodti3(vm *exec.VirtualMachine) int64 {
@@ -233,7 +233,7 @@ func env__umodti3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__umodti3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__multi3(vm *exec.VirtualMachine) int64 {
@@ -253,7 +253,7 @@ func env__multi3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__multi3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__addtf3(vm *exec.VirtualMachine) int64 {
@@ -278,7 +278,7 @@ func env__addtf3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__addtf3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__subtf3(vm *exec.VirtualMachine) int64 {
@@ -300,7 +300,7 @@ func env__subtf3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__subtf3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__multf3(vm *exec.VirtualMachine) int64 {
@@ -320,7 +320,7 @@ func env__multf3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__multf3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__divtf3(vm *exec.VirtualMachine) int64 {
@@ -342,7 +342,7 @@ func env__divtf3(vm *exec.VirtualMachine) int64 {
 }
 
 func env__divtf3GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 // conversion long double
@@ -359,7 +359,7 @@ func env__floatsitf(vm *exec.VirtualMachine) int64 {
 }
 
 func env__floatsitfGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__floatunsitf(vm *exec.VirtualMachine) int64 {
@@ -374,7 +374,7 @@ func env__floatunsitf(vm *exec.VirtualMachine) int64 {
 }
 
 func env__floatunsitfGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__floatditf(vm *exec.VirtualMachine) int64 {
@@ -390,7 +390,7 @@ func env__floatditf(vm *exec.VirtualMachine) int64 {
 }
 
 func env__floatditfGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__floatunditf(vm *exec.VirtualMachine) int64 {
@@ -406,7 +406,7 @@ func env__floatunditf(vm *exec.VirtualMachine) int64 {
 }
 
 func env__floatunditfGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__floattidf(vm *exec.VirtualMachine) int64 {
@@ -419,7 +419,7 @@ func env__floattidf(vm *exec.VirtualMachine) int64 {
 }
 
 func env__floattidfGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__floatuntidf(vm *exec.VirtualMachine) int64 {
@@ -432,7 +432,7 @@ func env__floatuntidf(vm *exec.VirtualMachine) int64 {
 }
 
 func env__floatuntidfGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__floatsidf(vm *exec.VirtualMachine) int64 {
@@ -443,7 +443,7 @@ func env__floatsidf(vm *exec.VirtualMachine) int64 {
 }
 
 func env__floatsidfGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__extendsftf2(vm *exec.VirtualMachine) int64 {
@@ -460,7 +460,7 @@ func env__extendsftf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__extendsftf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__extenddftf2(vm *exec.VirtualMachine) int64 {
@@ -478,7 +478,7 @@ func env__extenddftf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__extenddftf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__fixtfti(vm *exec.VirtualMachine) int64 {
@@ -497,7 +497,7 @@ func env__fixtfti(vm *exec.VirtualMachine) int64 {
 }
 
 func env__fixtftiGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__fixtfdi(vm *exec.VirtualMachine) int64 {
@@ -511,7 +511,7 @@ func env__fixtfdi(vm *exec.VirtualMachine) int64 {
 }
 
 func env__fixtfdiGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__fixtfsi(vm *exec.VirtualMachine) int64 {
@@ -524,7 +524,7 @@ func env__fixtfsi(vm *exec.VirtualMachine) int64 {
 }
 
 func env__fixtfsiGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__fixunstfti(vm *exec.VirtualMachine) int64 {
@@ -543,7 +543,7 @@ func env__fixunstfti(vm *exec.VirtualMachine) int64 {
 }
 
 func env__fixunstftiGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__fixunstfdi(vm *exec.VirtualMachine) int64 {
@@ -557,7 +557,7 @@ func env__fixunstfdi(vm *exec.VirtualMachine) int64 {
 }
 
 func env__fixunstfdiGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__fixunstfsi(vm *exec.VirtualMachine) int64 {
@@ -567,21 +567,21 @@ func env__fixunstfsi(vm *exec.VirtualMachine) int64 {
 	f.v[1] = C.uint64_t(frame.Locals[1])
 	/*
 	rounding:
-	二进制值00: 近似到最近的偶数(默认)
-	二进制值01: 向下近似趋向于-∞
-	二进制值10: 向上近似趋向于+∞
-	二进制值11: 近似趋向于0（剪裁)
+	Binary value 00: approximate to the nearest even number (default)
+	Binary value 01: downward approximation tends to -∞
+	Binary value 10: Upward approximation tends to +∞
+	Binary value 11: Approximate to 0 (trimming)
 
-	这里使用rounding使用1, 目的是保证__subtf3(a,b)中(a-b) >= 0.
-	根据调试结果, 当rounding为0, double/long double转换为字符串时,可能
-	会出现死循环.
+	Here rounding is used to use 1 to ensure that (a-b) >= 0 in __subtf3(a,b).
+	According to the debugging result, when rounding is 0, double/long double is converted to a string, it is possible
+	There will be an infinite loop.
 	*/
 	ret := uint32(C.f128_to_ui32(f, 1, false))
 	return int64(ret)
 }
 
 func env__fixunstfsiGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__fixsfti(vm *exec.VirtualMachine) int64 {
@@ -596,7 +596,7 @@ func env__fixsfti(vm *exec.VirtualMachine) int64 {
 }
 
 func env__fixsftiGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__fixdfti(vm *exec.VirtualMachine) int64 {
@@ -611,7 +611,7 @@ func env__fixdfti(vm *exec.VirtualMachine) int64 {
 }
 
 func env__fixdftiGasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__trunctfdf2(vm *exec.VirtualMachine) int64 {
@@ -627,7 +627,7 @@ func env__trunctfdf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__trunctfdf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__trunctfsf2(vm *exec.VirtualMachine) int64 {
@@ -642,7 +642,7 @@ func env__trunctfsf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__trunctfsf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__eqtf2(vm *exec.VirtualMachine) int64 {
@@ -655,7 +655,7 @@ func env__eqtf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__eqtf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__netf2(vm *exec.VirtualMachine) int64 {
@@ -668,7 +668,7 @@ func env__netf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__netf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__getf2(vm *exec.VirtualMachine) int64 {
@@ -681,7 +681,7 @@ func env__getf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__getf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__gttf2(vm *exec.VirtualMachine) int64 {
@@ -694,7 +694,7 @@ func env__gttf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__gttf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__lttf2(vm *exec.VirtualMachine) int64 {
@@ -707,7 +707,7 @@ func env__lttf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__lttf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__letf2(vm *exec.VirtualMachine) int64 {
@@ -720,7 +720,7 @@ func env__letf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__letf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__cmptf2(vm *exec.VirtualMachine) int64 {
@@ -733,7 +733,7 @@ func env__cmptf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__cmptf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__unordtf2(vm *exec.VirtualMachine) int64 {
@@ -753,7 +753,7 @@ func env__unordtf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__unordtf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func env__negtf2(vm *exec.VirtualMachine) int64 {
@@ -774,7 +774,7 @@ func env__negtf2(vm *exec.VirtualMachine) int64 {
 }
 
 func env__negtf2GasCost(vm *exec.VirtualMachine) (uint64, error) {
-	return 0, nil
+	return 1, nil
 }
 
 func isNan(f C.float128_t) bool {

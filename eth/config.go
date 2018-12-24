@@ -166,11 +166,11 @@ type CbftConfig struct {
 	Ppos 			*PposConfig 	`json:"ppos"`
 }
 
-// modify by platon
+
 type PposConfig struct {
 	Candidate 				*CandidateConfig 			`json:"candidate"`
 }
-// modify by platon
+
 type CandidateConfig struct {
 	// allow immediate elected max count
 	MaxCount				uint64					`json:"maxCount"`

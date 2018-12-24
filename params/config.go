@@ -226,11 +226,9 @@ type CbftConfig struct {
 	NodeID       discover.NodeID   `json:"-"`
 	PrivateKey   *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 
-	// modify by ppos
 	PposConfig *PposConfig `json:"pposConfig,omitempty"`
 }
 
-// modify by platon
 type PposConfig struct {
 	//MaxCount				uint64
 	//MaxChair				uint64

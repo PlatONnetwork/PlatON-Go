@@ -18,14 +18,6 @@
 package core
 
 import (
-	"errors"
-	"fmt"
-	"github.com/hashicorp/golang-lru"
-	"io"
-	"math/big"
-	"sync"
-	"sync/atomic"
-	"time"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -42,7 +34,15 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"errors"
+	"fmt"
+	"github.com/hashicorp/golang-lru"
+	"io"
+	"math/big"
 	mrand "math/rand"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 var (
@@ -236,7 +236,7 @@ func (bc *BlockChain) loadLastState() error {
 	// Make sure the state associated with the block is available
 	if _, err := state.New(currentBlock.Root(), bc.stateCache); err != nil {
 		// Dangling block without a state associated, init from scratch
-		log.Warn("Head state missing, repairing chain", "number", currentBlock.Number(), "hash", currentBlock.Hash())
+		log.Warn("Head state missing, repairing chain", "number", currentBlock.Number(), "hash", currentBlock.Hash(), "err", err)
 		if err := bc.repair(&currentBlock); err != nil {
 			return err
 		}
