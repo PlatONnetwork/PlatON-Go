@@ -82,46 +82,21 @@ func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
 }
 
 func TestExecuteBlockAndDescendant(t *testing.T) {
-	parentHash := hash(1, 20)
-
-	header := &types.Header{
-		ParentHash: parentHash,
-		Number:     big.NewInt(int64(21)),
-		TxHash:     hash(1, 21),
-		Difficulty: big.NewInt(int64(21) * 2),
-	}
-	block := types.NewBlockWithHeader(header)
-
-	forkExt := &BlockExt{
-		block:       block,
-		inTree:      true,
-		isExecuted:  true,
-		isSigned:    true,
-		isConfirmed: false,
-		number:      block.NumberU64(),
-		signs:       make([]*common.BlockConfirmSign, 0),
-	}
-
-	newRoot := NewBlockExt(forkExt.block, 21)
+	newRoot := NewBlockExt(rootBlock, 0)
 	newRoot.inTree = true
 	newRoot.isExecuted = true
 	newRoot.isSigned = true
 	newRoot.isConfirmed = true
 	newRoot.number = rootBlock.NumberU64()
 
-	//reorg the block tree
-	children := cbft.findChildren(newRoot)
-	for _, child := range children {
-		child.parent = newRoot
-		child.inTree = true
-	}
-	newRoot.children = children
-
 	//save the root in BlockExtMap
 	cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
 
 	//reset the new root irreversible
 	cbft.rootIrreversible = newRoot
+	//reorg the block tree
+	cbft.buildChildNode(newRoot)
+
 	//the new root's children should re-execute base on new state
 	for _, child := range newRoot.children {
 		if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
@@ -130,6 +105,9 @@ func TestExecuteBlockAndDescendant(t *testing.T) {
 			break
 		}
 	}
+
+	//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
+	cbft.handleLogicalBlockAndDescendant(newRoot, false)
 }
 
 func TestBackTrackBlocksIncludingEnd(t *testing.T) {
