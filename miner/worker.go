@@ -240,7 +240,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		commitWorkEnv:         &commitWorkEnv{},
 	}
 	// Subscribe NewTxsEvent for tx pool
-	worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
+	// worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
 	// Subscribe events for blockchain
 	worker.chainHeadSub = eth.BlockChain().SubscribeChainHeadEvent(worker.chainHeadCh)
 	worker.chainSideSub = eth.BlockChain().SubscribeChainSideEvent(worker.chainSideCh)
@@ -496,7 +496,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 // mainLoop is a standalone goroutine to regenerate the sealing task based on the received event.
 func (w *worker) mainLoop() {
-	defer w.txsSub.Unsubscribe()
+	// defer w.txsSub.Unsubscribe()
 	defer w.chainHeadSub.Unsubscribe()
 	defer w.chainSideSub.Unsubscribe()
 
@@ -545,7 +545,8 @@ func (w *worker) mainLoop() {
 			}
 		// removed by PlatON
 		/*
-			case ev := <-w.txsCh:
+			case  <-w.txsCh:
+
 				// Apply transactions to the pending state if we're not mining.
 				// Note all transactions received may not be continuous with transactions
 				// already included in the current mining block. These transactions will
@@ -572,11 +573,15 @@ func (w *worker) mainLoop() {
 				atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
 		*/
 
-			// System stopped
+		// System stopped
 		case <-w.exitCh:
 			return
-		case <-w.txsSub.Err():
-			return
+
+			/*
+				case <-w.txsSub.Err():
+					return
+			*/
+
 		case <-w.chainHeadSub.Err():
 			return
 		case <-w.chainSideSub.Err():
