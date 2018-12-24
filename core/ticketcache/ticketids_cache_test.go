@@ -100,7 +100,12 @@ func Test_Write(t *testing.T)  {
 		tms = float64(tns)/float64(1e6)
 		fmt.Printf("run hash time [index=%d] [ns=%d] [ms=%.3f][hash=%s]\n", i, tns, tms, chash.Hex())
 	}
+
+	tb := time.Now().Nanosecond()
 	tc.Commit(ldb)
+	tns := time.Now().Nanosecond() - tb
+	tms := float64(tns)/float64(1e6)
+	fmt.Printf("run Commit time [ns=%d] [ms=%.3f]\n", tns, tms)
 	ldb.Close()
 }
 
@@ -119,14 +124,22 @@ func Test_Read(t *testing.T)  {
 		t.Errorf("NewLDBDatabase faile")
 	}
 	tcCopy := NewTicketIdsCache(ldb)
-	for i:=0; i<20; i++  {
+	for i:=0; i<2; i++  {
 		number := big.NewInt(int64(i))
 		bkhash := crypto.Keccak256Hash(byteutil.IntToBytes(i))
+
 		//==>run Hash time
 		tb := time.Now().Nanosecond()
-		tcCopy.GetNodeTicketsMap(number, bkhash)
+		chash, _:= tcCopy.Hash(number, bkhash)
 		tns := time.Now().Nanosecond() - tb
 		tms := float64(tns)/float64(1e6)
+		fmt.Printf("run hash time [index=%d] [ns=%d] [ms=%.3f][hash=%s]\n", i, tns, tms, chash.Hex())
+
+		//==>run GetNodeTicketsMap time
+		tb = time.Now().Nanosecond()
+		tcCopy.GetNodeTicketsMap(number, bkhash)
+		tns = time.Now().Nanosecond() - tb
+		tms = float64(tns)/float64(1e6)
 		fmt.Printf("run getNodeTicketsMap time [index=%d] [ns=%d] [ms=%.3f]\n", i, tns, tms)
 	}
 	ldb.Close()

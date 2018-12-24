@@ -2,11 +2,11 @@ package ticketcache
 
 import (
 	"Platon-go/common"
+	"Platon-go/common/hexutil"
 	"Platon-go/crypto"
 	"Platon-go/ethdb"
 	"Platon-go/log"
 	"errors"
-	"fmt"
 	"github.com/golang/protobuf/proto"
 	"math/big"
 	"sort"
@@ -26,27 +26,12 @@ var (
 
 var ticketidsCache *NumBlocks
 
-func logError(msg string, ctx ...interface{})  {
-	args := []interface{}{msg}
-	args = append(args, ctx...)
-	fmt.Println(args...)
-	//log.Error(msg, ctx...)
-}
-
-func logInfo(msg string, ctx ...interface{})  {
-	args := []interface{}{msg}
-	args = append(args, ctx...)
-	fmt.Println(args...)
-	//log.logInfo(msg, ctx...)
-}
-
 func GetNodeTicketsCacheMap(blocknumber *big.Int, blockhash common.Hash) (ret map[string][]common.Hash) {
-	logInfo("GetNodeTicketsCacheMap==> ", blocknumber, "  ", blockhash.Hex())
+	log.Info("GetNodeTicketsCacheMap==> ", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
 	if ticketidsCache!=nil {
 		ret = ticketidsCache.GetNodeTicketsMap(blocknumber, blockhash)
 	}else {
-		logError("ticketidsCache instance is nil!")
-		log.Error("ticketidsCache is Empty no GetNodeTicketsCacheMap ... ")
+		log.Error("GetNodeTicketsCacheMap==> ticketidsCache instance is nil!")
 	}
 	return
 }
@@ -64,10 +49,9 @@ func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
 	ticketidsCache.NBlocks = make(map[string]*BlockNodes)
 	cache, err := db.Get(ticketPoolCacheKey)
 	if err == nil {
-		//logInfo("NewTicketIdsCache==> Get db cache hex: ", hexutil.Encode(cache))
+		log.Info("NewTicketIdsCache==> ", "CacheHex: ", hexutil.Encode(cache))
 		if err := proto.Unmarshal(cache, ticketidsCache); err != nil {
-			//logError("protocol buffer Unmarshal faile hex: ", hexutil.Encode(cache))
-			logError("protocol buffer Unmarshal faile hex: &&&&&&&&&&&&&&&")
+			log.Error("NewTicketIdsCache==> protocol buffer Unmarshal faile")
 		}
 	}
 	return ticketidsCache
@@ -75,30 +59,30 @@ func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
 
 func (nb *NumBlocks) Hash(blocknumber *big.Int, blockhash common.Hash) (common.Hash, error) {
 
-	//logInfo("Hash==> ", blocknumber, "  ", blockhash.Hex())
+	log.Info("Hash==> ", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
 	blockNodes, ok := nb.NBlocks[blocknumber.String()]
 	if !ok {
-		logError(ErrNotfindFromblockNumber.Error())
+		log.Error("Hash==> ", "ErrNotfindFromblockNumber: ", ErrNotfindFromblockNumber.Error())
 		return common.Hash{}, ErrNotfindFromblockNumber
 	}
 	nodeTicketIds, ok := blockNodes.BNodes[blockhash.String()]
 	if !ok {
-		logError(ErrNotfindFromblockHash.Error())
+		log.Error("Hash==> ", "ErrNotfindFromblockHash: ", ErrNotfindFromblockHash.Error())
 		return common.Hash{}, ErrNotfindFromblockHash
 	}
 	out, err := proto.Marshal(getSortStruct(nodeTicketIds.NTickets))
+	log.Info("Hash==> ", "lenOut: ", len(out), " hexOut: ", hexutil.Encode(out))
 	if err != nil {
-		logError(ErrProbufMarshal.Error())
+		log.Error("Hash==> ", "ErrProbufMarshal: ", ErrProbufMarshal.Error())
 		return common.Hash{}, ErrProbufMarshal
 	}
 	ret := crypto.Keccak256Hash(out)
-	//logInfo("Hash==> output: ", ret.Hex())
 	return ret, nil
 }
 
 func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Hash) map[string][]common.Hash{
 
-	//logInfo("GetNodeTicketsMap==> ", blocknumber, "  ", blockhash.Hex())
+	log.Info("GetNodeTicketsMap==> ", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
 	blockNodes, ok := nb.NBlocks[blocknumber.String()]
 	if !ok {
 		blockNodes = &BlockNodes{}
@@ -156,7 +140,7 @@ func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Ha
 
 func (nb *NumBlocks) Submit2Cache(blocknumber *big.Int, blockhash common.Hash, in map[string][]common.Hash) {
 
-	//logInfo("Submit2Cache==> ", blocknumber, "  ", blockhash.Hex())
+	log.Info("Submit2Cache==> ", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
 	blockNodes, ok := nb.NBlocks[blocknumber.String()];
 	if !ok {
 		blockNodes = &BlockNodes{}
@@ -207,16 +191,15 @@ func (nb *NumBlocks) Submit2Cache(blocknumber *big.Int, blockhash common.Hash, i
 
 func (nb *NumBlocks) Commit(db ethdb.Database) error {
 
-	logInfo("Commit==> in")
 	out, err := proto.Marshal(nb)
 	if err != nil {
-		logError("Protocol buffer failed to marshal :", nb, " err: ", err.Error())
+		log.Error("Commit==> ","ErrProbufMarshal: ", err.Error())
 		return ErrProbufMarshal
 	}
 	//logInfo("Marshal out: ", hexutil.Encode(out))
-	logInfo("Marshal out len: ", len(out))
+	log.Info("Commit==> ", "outlen: ", len(out), " outhex: ", hexutil.Encode(out))
 	if err := db.Put(ticketPoolCacheKey, out); err != nil  {
-		logError("level db put faile: ", err.Error())
+		log.Error("level db put faile: ", err.Error())
 		return ErrLeveldbPut
 	}
 	return nil
@@ -239,4 +222,3 @@ func getSortStruct(NTickets map[string]*TicketIds) *SortCalcHash {
 	}
 	return sc
 }
-
