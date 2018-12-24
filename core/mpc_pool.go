@@ -1,6 +1,8 @@
 package core
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -12,8 +14,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/mpc"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"bytes"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -28,12 +28,12 @@ import (
 var MPC_POOL *MPCPool
 
 const (
-	MinBlockConfirms int64 = 20
-	DEFAULT_ACTOR_FILE_NAME = ".actor"
+	MinBlockConfirms        int64 = 20
+	DEFAULT_ACTOR_FILE_NAME       = ".actor"
 )
 
 const (
-	TX_TRANSFER  = iota
+	TX_TRANSFER = iota
 	TX_CONTRACT_DEPLOY
 	TX_CONTRACT_CALL
 	TX_VOTE
@@ -49,47 +49,47 @@ type mpcBlockChain interface {
 }
 
 type MPCPoolConfig struct {
-	MPCEnable       bool 				// the switch of mpc compute
+	MPCEnable bool // the switch of mpc compute
 
-	NoLocals  		bool             	// Whether local transaction handling should be disabled
-	Journal   		string           	// Journal of local transactions to survive node restarts
-	Rejournal 		time.Duration    	// Time interval to regenerate the local transaction journal
-	GlobalQueue  	uint64 				// Maximum number of non-executable transaction slots for all accounts
-	Lifetime 		time.Duration 		// Maximum amount of time non-executable transaction are queued
+	NoLocals    bool          // Whether local transaction handling should be disabled
+	Journal     string        // Journal of local transactions to survive node restarts
+	Rejournal   time.Duration // Time interval to regenerate the local transaction journal
+	GlobalQueue uint64        // Maximum number of non-executable transaction slots for all accounts
+	Lifetime    time.Duration // Maximum amount of time non-executable transaction are queued
 
-	LocalRpcPort	int					// LocalRpcPort of local rpc port
-	IceConf			string				// ice conf to init vm
-	MpcActor		common.Address		// the actor of mpc compute
+	LocalRpcPort int            // LocalRpcPort of local rpc port
+	IceConf      string         // ice conf to init vm
+	MpcActor     common.Address // the actor of mpc compute
 }
 
 var DefaultMPCPoolConfig = MPCPoolConfig{
-	Journal:   		"mpc_transactions.rlp",
-	Rejournal: 		time.Second * 4,
-	GlobalQueue:  	1024,
-	Lifetime: 		3 * time.Hour,
+	Journal:     "mpc_transactions.rlp",
+	Rejournal:   time.Second * 4,
+	GlobalQueue: 1024,
+	Lifetime:    3 * time.Hour,
 }
 
 type MPCPool struct {
-	config       	MPCPoolConfig
-	chainconfig  	*params.ChainConfig
-	chain        	mpcBlockChain
+	config      MPCPoolConfig
+	chainconfig *params.ChainConfig
+	chain       mpcBlockChain
 
-	mu           	sync.RWMutex
-	journal 		*mpcJournal  			// Journal of local mpc transaction to back up to disk
-	all     		*mpcLookup              // All transactions to allow lookups
-	queue  			*mpcList                // All transactions sorted by price
+	mu      sync.RWMutex
+	journal *mpcJournal // Journal of local mpc transaction to back up to disk
+	all     *mpcLookup  // All transactions to allow lookups
+	queue   *mpcList    // All transactions sorted by price
 
-	quiteSign 		chan interface{}
+	quiteSign chan interface{}
 
-	wg sync.WaitGroup 						// for shutdown sync
+	wg sync.WaitGroup // for shutdown sync
 }
 
-func NewMPCPool(config MPCPoolConfig, chainconfig *params.ChainConfig, chain blockChain) *MPCPool {
+func NewMPCPool(config MPCPoolConfig, chainconfig *params.ChainConfig, chain mpcBlockChain) *MPCPool {
 	pool := &MPCPool{
-		config:      	config,
-		chainconfig: 	chainconfig,
-		chain:       	chain,
-		all:       		newMpcLookup(),
+		config:      config,
+		chainconfig: chainconfig,
+		chain:       chain,
+		all:         newMpcLookup(),
 	}
 
 	pool.queue = newMpcList(pool.all)
@@ -133,12 +133,12 @@ func (pool *MPCPool) loop() {
 	// Keep waiting for and reacting to the various events
 	for {
 		select {
-		case <- report.C:
+		case <-report.C:
 			pool.mu.RLock()
 			_, queued := pool.stats()
 			pool.mu.RUnlock()
 			if queued != prevQueued {
-				log.Debug("Mpc transaction pool status report","queued", queued)
+				log.Debug("Mpc transaction pool status report", "queued", queued)
 				prevQueued = queued
 			}
 			//debug.FreeOSMemory()
@@ -153,15 +153,15 @@ func (pool *MPCPool) loop() {
 				pool.mu.Unlock()
 			}
 
-		case <- pool.quiteSign:
+		case <-pool.quiteSign:
 			return
 
-		case <- pop.C:
+		case <-pop.C:
 			if pool.queue.items.Len() != 0 {
 				pool.mu.Lock()
 				tx := pool.queue.Pop()
 				bn := pool.chain.CurrentBlock().Number().Int64()
-				if bn < int64(tx.Bn) || (bn - int64(tx.Bn)) >= MinBlockConfirms {
+				if bn < int64(tx.Bn) || (bn-int64(tx.Bn)) >= MinBlockConfirms {
 					pool.all.Remove(tx.Hash())
 				} else {
 					pool.queue.Put(tx)
@@ -169,7 +169,7 @@ func (pool *MPCPool) loop() {
 				pool.mu.Unlock()
 
 				if (bn - int64(tx.Bn)) >= MinBlockConfirms {
-					log.Trace("Wow ~ Received mpc transaction", "hash", tx.Hash()," bn", tx.Bn)
+					log.Trace("Wow ~ Received mpc transaction", "hash", tx.Hash(), " bn", tx.Bn)
 					singer := types.MakeSigner(pool.chainconfig, big.NewInt(int64(tx.Bn)))
 					caller, pubKey, err := singer.SignatureAndSender(tx.Transaction)
 					if err != nil {
@@ -177,12 +177,12 @@ func (pool *MPCPool) loop() {
 					}
 					log.Info("Recover pubKey success", "pubKey", common.Bytes2Hex(pubKey))
 					mpc.ExecuteMPCTx(mpc.MPCParams{
-						TaskId: 	tx.TaskId,
-						Pubkey: 	common.Bytes2Hex(pubKey),
-						From : 		caller,
-						IRAddr :	*tx.To(),
-						Method :	tx.FuncName,
-						Extra :		"",
+						TaskId: tx.TaskId,
+						Pubkey: common.Bytes2Hex(pubKey),
+						From:   caller,
+						IRAddr: *tx.To(),
+						Method: tx.FuncName,
+						Extra:  "",
 					})
 				}
 			}
@@ -311,8 +311,8 @@ func (pool *MPCPool) validateTx(tx *types.TransactionWrap) (err error) {
 		return fmt.Errorf("Invalid input. ele must greater than 2")
 	}
 	var (
-		txType 		int
-		funcName 	string
+		txType   int
+		funcName string
 	)
 	if v, ok := iRlpList[0].([]byte); ok {
 		txType = int(common.BytesToInt64(v))
@@ -351,10 +351,10 @@ func (pool *MPCPool) InjectTxs(block *types.Block, receipts types.Receipts, bc *
 			}
 		}
 		if isSave {
-			wrap := &types.TransactionWrap {
-				Transaction : tx,
-				Bn: block.NumberU64(),
-				TaskId: taskId,
+			wrap := &types.TransactionWrap{
+				Transaction: tx,
+				Bn:          block.NumberU64(),
+				TaskId:      taskId,
 			}
 			// basic validate
 			if err := pool.validateTx(wrap); err != nil {
@@ -428,8 +428,8 @@ func (pool *MPCPool) addTx(tx *types.TransactionWrap) error {
 }
 
 type mpcLookup struct {
-	txs  		map[common.Hash]*types.TransactionWrap
-	lock 		sync.RWMutex
+	txs  map[common.Hash]*types.TransactionWrap
+	lock sync.RWMutex
 }
 
 // newTxLookup returns a new mpcLookup structure.
@@ -502,8 +502,8 @@ func verifyStartCalcLogs(logs []*types.Log) (string, error) {
 				iRlpList := rlpList.([]interface{})
 				// [0] -> code [1] -> taskId
 				var (
-					code 	uint64
-					taskId 	string
+					code   uint64
+					taskId string
 				)
 				if v, ok := iRlpList[0].([]byte); ok {
 					code = uint64(common.BytesToInt64(common.PaddingLeft(v, 8)))
