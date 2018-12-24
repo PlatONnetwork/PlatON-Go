@@ -19,14 +19,14 @@ import (
 
 var (
 
-	CandidateNotFindErr			= errors.New("The node has lost its candidacy")
-	TicketNilErr				= errors.New("Ticket Insufficient quantity")
+	TicketPoolNilErr			= errors.New("Ticket Insufficient quantity")
 	EncodeTicketErr				= errors.New("Encode Ticket error")
 	EncodePoolNumberErr			= errors.New("Encode SurplusQuantity error")
 	DecodeTicketErr				= errors.New("Decode Ticket error")
 	DecodePoolNumberErr			= errors.New("Decode SurplusQuantity error")
 	RecordExpireTicketErr		= errors.New("Record Expire Ticket error")
 	CandidateNotFindTicketErr	= errors.New("The candidate no longer has this ticket")
+	CandidateNilTicketErr		= errors.New("This candidate has no ticket")
 	GetCandidateTicketIdErr		= errors.New("Get Candidate TicketIds error")
 	SetCandidateTicketIdErr		= errors.New("Update Candidate TicketIds error")
 	TicketPoolBalanceErr		= errors.New("TicketPool not sufficient funds")
@@ -87,7 +87,7 @@ func(t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNum
 	log.Info("票池", "剩余数量：", t.SurplusQuantity, "购票数量：", voteNumber, "块高：", blockNumber.Uint64())
 	if t.SurplusQuantity == 0 {
 		log.Error("Ticket Insufficient quantity")
-		return voteTicketIdList, TicketNilErr
+		return voteTicketIdList, TicketPoolNilErr
 	}
 	if t.SurplusQuantity < voteNumber {
 		voteNumber -= t.SurplusQuantity
@@ -294,6 +294,9 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 	log.Info("释放选中票", "候选人：", nodeId.String(), "票Id：", ticketId.Hex(), "块高：", blockNumber.Uint64())
 	t.lock.Lock()
 	defer t.lock.Unlock()
+	if ticketId == (common.Hash{}) {
+		return TicketIdNotFindErr
+	}
 	candidateAttach, err := t.GetCandidateAttach(stateDB, nodeId)
 	if nil != err {
 		return err
@@ -391,6 +394,9 @@ func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.No
 	if nil != err {
 		return luckyTicketId, err
 	}
+	if len(candidateTicketIds) == 0 {
+		return luckyTicketId, CandidateNilTicketErr
+	}
 	decList := make([]float64, 0)
 	decMap := make(map[float64]common.Hash, 0)
 	for _, ticketId := range candidateTicketIds {
@@ -400,6 +406,7 @@ func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.No
 	}
 	sort.Float64s(decList)
 	index := findFirstMatch(decList, hexutil.HexDec(blockHash.Hex()[2:]))
+	log.Info("选出幸运票", "下标", index)
 	luckyTicketId = decMap[decList[index]]
 	log.Info("结束选取幸运票", "候选人", nodeId.String(), "区块Hash", blockHash.Hex(), "幸运票", luckyTicketId.Hex(), "候选人票数", len(candidateTicketIds))
 	return luckyTicketId, nil
