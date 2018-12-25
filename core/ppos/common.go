@@ -30,6 +30,8 @@ const (
 	ExpireTicket		= "et"
 	// candidate attach
 	CandidateAttach	= "ca"
+	// Ticket pool hash
+	TicketPoolHash	= "tph"
 
 )
 
@@ -63,4 +65,5 @@ var (
 	ExpireTicketPrefix			= []byte(ExpireTicket)
 	CandidateAttachPrefix		= []byte(CandidateAttach)
 
+	TicketPoolHashKey			= []byte(TicketPoolHash)
 )

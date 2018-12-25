@@ -3,6 +3,7 @@ package pposm
 import (
 	"Platon-go/common"
 	"Platon-go/common/hexutil"
+	"Platon-go/core/ticketcache"
 	"Platon-go/core/types"
 	"Platon-go/core/vm"
 	"Platon-go/crypto/sha3"
@@ -121,7 +122,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 		log.Info("减少票池剩余量成功", "剩余量：", t.SurplusQuantity)
 	}
 	log.Info("结束循环投票", "候选人：", nodeId.String())
-	stateDB.SetTicketCache(nodeId.String(), voteTicketIdList)
+	stateDB.AppendTicketCache(nodeId, voteTicketIdList)
 	return voteTicketIdList, nil
 }
 
@@ -269,7 +270,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 			return err
 		}
 		log.Info("删除掉榜信息", "候选人：", nodeId.String(), "所得票：", len(candidateTicketIds))
-		if err := stateDB.DelTicketCache(nodeId.String(), candidateTicketIds); nil != err {
+		if err := stateDB.RemoveTicketCache(nodeId, candidateTicketIds); nil != err {
 			return err
 		}
 		log.Info("开始处理掉榜的票", "候选人：", nodeId.String(), "总票数：", len(candidateTicketIds))
@@ -323,7 +324,7 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.Node
 	log.Info("releaseTicket,开始更新", "候选人：", candidateId.String())
 	candidateTicketIds := make([]common.Hash, 0)
 	candidateTicketIds = append(candidateTicketIds, ticketId)
-	if err := stateDB.DelTicketCache(candidateId.String(), candidateTicketIds); err != nil {
+	if err := stateDB.RemoveTicketCache(candidateId, candidateTicketIds); err != nil {
 		return ticket, err
 	}
 	log.Info("releaseTicket,结束更新", "候选人：", candidateId.String())
@@ -375,7 +376,7 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 			return err
 		}
 		// 获取总票数，增加总票龄
-		ticketCount := stateDB.TCount(candidate.CandidateId.String())
+		ticketCount := stateDB.TCount(candidate.CandidateId)
 		if ticketCount > 0 {
 			candidateAttach.AddEpoch(new(big.Int).SetUint64(ticketCount))
 			if err := t.setCandidateAttach(stateDB, candidate.CandidateId, candidateAttach); nil != err {
@@ -459,7 +460,7 @@ func (t *TicketPool) GetPoolNumber(stateDB vm.StateDB) (uint64, error) {
 }
 
 func (t *TicketPool) GetCandidateTicketIds(stateDB vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
-	candidateTicketIds, err := stateDB.GetTicketCache(nodeId.String())
+	candidateTicketIds, err := stateDB.GetTicketCache(nodeId)
 	if nil != err {
 		return nil, err
 	}
@@ -496,6 +497,16 @@ func (t *TicketPool) GetCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeI
 
 func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) (*big.Int, error) {
 	return new(big.Int).SetUint64(1), nil
+}
+
+// Save the hash value of the current state of the ticket pool
+func (t *TicketPool) CommitHash(stateDB vm.StateDB) error {
+	hash, err := ticketcache.GetTicketidsCachePtr().Hash(stateDB.TicketCaceheSnapshot())
+	if nil != err {
+		return err
+	}
+	setTicketPoolState(stateDB, TicketPoolHashKey, hash.Bytes())
+	return nil
 }
 
 func GetTicketPtr() *TicketPool {
