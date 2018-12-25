@@ -18,6 +18,14 @@ or, to build the full suite of utilities:
 
     make all
 
+If you want to Building platon with MPC function, run
+
+    make platon-with-mpc
+
+or:
+
+    make all-with-mpc
+
 ## Executables
 
 The project comes with several executables found in the `cmd` directory.
