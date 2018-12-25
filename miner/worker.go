@@ -1321,9 +1321,9 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	baseBlock, commitTime := w.commitWorkEnv.commitBaseBlock, w.commitWorkEnv.commitTime
 	highestLogicalBlock := w.commitWorkEnv.getHighestLogicalBlock()
 	if baseBlock != nil {
-		log.Info("baseBlock", "number", baseBlock.NumberU64(), "hash", baseBlock.Hash().Hex())
-		log.Info("commitTime", "commitTime", commitTime, "timestamp", timestamp)
-		log.Info("highestLogicalBlock", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash().Hex())
+		log.Debug("baseBlock", "number", baseBlock.NumberU64(), "hash", baseBlock.Hash().Hex())
+		log.Debug("commitTime", "commitTime", commitTime, "timestamp", timestamp)
+		log.Debug("highestLogicalBlock", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash().Hex())
 	}
 
 	shouldCommit := baseBlock == nil || baseBlock.Hash() != highestLogicalBlock.Hash()
@@ -1333,13 +1333,8 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 
 	if shouldCommit {
 		shouldSeal := false
-		if highestLogicalBlock.NumberU64() == 0 {	// 创世区块
-			shouldSeal = w.engine.(consensus.Bft).ShouldSeal(highestLogicalBlock.Number(), highestLogicalBlock.Hash(), common.Big1)
-		} else {
-			//parentBlock := w.eth.BlockChain().GetBlock(highestLogicalBlock.ParentHash(), highestLogicalBlock.NumberU64()-1)
-			num := highestLogicalBlock.Number()
-			shouldSeal = w.engine.(consensus.Bft).ShouldSeal(num, highestLogicalBlock.Hash(), new(big.Int).Add(num, common.Big1))
-		}
+		num := highestLogicalBlock.Number()
+		shouldSeal = w.engine.(consensus.Bft).ShouldSeal(num, highestLogicalBlock.Hash(), new(big.Int).Add(num, common.Big1))
 		shouldCommit = shouldCommit && shouldSeal
 	}
 
