@@ -283,6 +283,64 @@ func BenchmarkCandidatePool_GetCandidate(b *testing.B) {
 	candidate_GetCandidate(b, b.Log, b.Error)
 }
 
+// test GetCandidate
+func candidate_GetCandidateArr(logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
+	var candidatePool *pposm.CandidatePool
+	var ticketPool *pposm.TicketPool
+	var state *state.StateDB
+	if st, err := newChainState(); nil != err {
+		errFn("Getting stateDB err", err)
+	}else {state = st}
+	/** test init candidatePool and ticketPool */
+	candidatePool, ticketPool = newPool()
+	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		errFn("SetCandidate err:", err)
+	}
+
+
+	candidate2 := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(99),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		TxIndex:  		5,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x15"),
+
+	}
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate2.CandidateId, candidate2); nil != err {
+		errFn("SetCandidate err:", err)
+	}
+
+	/** test GetCandidate */
+	logFn("test GetCandidateArr ...")
+	can, _ := candidatePool.GetCandidateArr(state, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
+	printObject("GetCandidateArr", can, logger)
+}
+func TestCandidatePool_GetCandidateArr(t *testing.T) {
+	candidate_GetCandidateArr(t, t.Log, t.Error)
+}
+func BenchmarkCandidatePool_GetCandidateArr(b *testing.B) {
+	candidate_GetCandidateArr(b, b.Log, b.Error)
+}
+
 // test SetCandidateExtra
 func candidate_SetCandidateExtra (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
 	var candidatePool *pposm.CandidatePool
