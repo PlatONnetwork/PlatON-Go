@@ -1247,12 +1247,12 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 
 	s := w.current.state.Copy()
 	if header != nil {
-		// 揭榜(如果符合条件)
+		// Election call(if match condition)
 		electionErr := w.election(s, header.Number)
 		if electionErr != nil {
 			return errors.New("election failure")
 		}
-		// 触发替换下轮见证人列表(如果符合条件)
+		// SwitchWitness call(if match condition)
 		switchWitnessErr := w.switchWitness(s, header.Number)
 		if switchWitnessErr != nil {
 			return errors.New("switchWitness failure")

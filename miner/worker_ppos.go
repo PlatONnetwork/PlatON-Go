@@ -37,13 +37,13 @@ func (w *worker) shouldRemoveFormerPeers(blockNumber *big.Int) bool {
 func (w *worker) election(state *state.StateDB, blockNumber *big.Int) error {
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		if should := w.shouldElection(blockNumber); should {
-			log.Info("请求揭榜", "blockNumber", blockNumber)
+			log.Debug("Election call:", "blockNumber", blockNumber)
 			_, err := cbftEngine.Election(state, blockNumber)
 			if err != nil {
 				log.Error("Failed to election", "blockNumber", blockNumber, "error", err)
 				return errors.New("Failed to Election")
 			}
-			log.Info("Success to election", "blockNumber", blockNumber)
+			log.Debug("Success to election", "blockNumber", blockNumber)
 		}
 	}
 	return nil
@@ -52,13 +52,13 @@ func (w *worker) election(state *state.StateDB, blockNumber *big.Int) error {
 func (w *worker) switchWitness(state *state.StateDB, blockNumber *big.Int) error {
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		if should := w.shouldSwitch(blockNumber); should {
-			log.Info("触发替换下轮见证人列表", "blockNumber", blockNumber)
+			log.Debug("SwitchWitness call:", "blockNumber", blockNumber)
 			success := cbftEngine.Switch(state)
 			if !success {
 				log.Error("Failed to switchWitness", "blockNumber", blockNumber)
 				return errors.New("Failed to switchWitness")
 			}
-			log.Info("Success to switchWitness", "blockNumber", blockNumber)
+			log.Debug("Success to switchWitness", "blockNumber", blockNumber)
 		}
 	}
 	return nil
@@ -66,10 +66,11 @@ func (w *worker) switchWitness(state *state.StateDB, blockNumber *big.Int) error
 
 func (w *worker) attemptAddConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
 	if should := w.shouldAddNextPeers(blockNumber); should {
-		log.Info("尝试连接下一轮共识节点", "blockNumber", blockNumber)
-		// 此时只能从statedb中获取下一轮共识节点，因为还没有调用switch进行切换，内存中next没有刷新
-		nextNodes, err := w.getWitness(blockNumber, state, 1)	// flag：-1: 上一轮	  0: 本轮见证人   1: 下一轮见证人
-		log.Info("下一轮共识节点列表","number", blockNumber, "nextNodes", nextNodes, "nextNodes length", len(nextNodes), "err", err)
+		log.Debug("Attempt to connect the next round of consensus nodes", "blockNumber", blockNumber)
+		// At this point, only the next round of consensus nodes can be obtained from statedb,
+		// because switch has not been invoked for switching, and next in memory has not been refreshed.
+		nextNodes, err := w.getWitness(blockNumber, state, 1)	// flag：-1: former	  0: current   1: next
+		log.Info("Next round consensus node list:","number", blockNumber, "nextNodes", nextNodes, "nextNodes length", len(nextNodes), "err", err)
 		if err == nil && len(nextNodes) > 0 && existsNode(w.engine.(consensus.Bft).GetOwnNodeID(), nextNodes) {
 			w.addConsensusPeerFn(nextNodes)
 		}
@@ -78,11 +79,11 @@ func (w *worker) attemptAddConsensusPeer(blockNumber *big.Int, state *state.Stat
 /*
 func (w *worker) attemptRemoveConsensusPeer(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, state *state.StateDB) {
 	if should := w.shouldRemoveFormerPeers(blockNumber); should {
-		log.Info("尝试断开上一轮共识节点","parentNumber", parentNumber, "parentHash", parentHash, "blockNumber", blockNumber)
+		log.Info("Attempt to disconnect the former round of consensus nodes","parentNumber", parentNumber, "parentHash", parentHash, "blockNumber", blockNumber)
 		formerNodes := w.engine.(consensus.Bft).FormerNodes(parentNumber, parentHash, blockNumber)
-		log.Info("上一轮共识节点列表","parentNumber", parentNumber, "parentHash", parentHash, "number", blockNumber, "formerNodes", formerNodes, "formerNodes length", len(formerNodes))
+		log.Info("Former round consensus node list:","parentNumber", parentNumber, "parentHash", parentHash, "number", blockNumber, "formerNodes", formerNodes, "formerNodes length", len(formerNodes))
 		currentNodes := w.engine.(consensus.Bft).CurrentNodes(parentNumber, parentHash, blockNumber)
-		log.Info("当前轮共识节点列表","parentNumber", parentNumber, "parentHash", parentHash, "number", blockNumber, "currentNodes", currentNodes, "currentNodes length", len(currentNodes))
+		log.Info("Current round consensus node list:","parentNumber", parentNumber, "parentHash", parentHash, "number", blockNumber, "currentNodes", currentNodes, "currentNodes length", len(currentNodes))
 
 		removeNodes := formerNodes
 		ownNodeID := w.engine.(consensus.Bft).GetOwnNodeID()
@@ -116,13 +117,13 @@ func existsNode(nodeID discover.NodeID, nodes []*discover.Node) bool {
 }
 
 func (w *worker) getWitness(blockNumber *big.Int, state *state.StateDB, flag int) ([]*discover.Node, error) {
-	log.Info("getWitness begin", "blockNumber", blockNumber, "flag", flag)
+	log.Debug("GetWitness begin", "blockNumber", blockNumber, "flag", flag)
 	consensusNodes, err := w.engine.(consensus.Bft).GetWitness(state, flag)
 	if err != nil {
 		log.Error("Failed to GetWitness", "blockNumber", blockNumber, "state", state, "error", err)
 		return nil, errors.New("Failed to GetWitness")
 	}
-	log.Info("getWitness end", "blockNumber", blockNumber, "flag", flag, "consensusNodes", consensusNodes, "consensusNodes length", len(consensusNodes))
+	log.Info("GetWitness end", "blockNumber", blockNumber, "flag", flag, "consensusNodes", consensusNodes, "consensusNodes length", len(consensusNodes))
 	return consensusNodes, nil
 }
 

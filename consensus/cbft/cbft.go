@@ -1275,7 +1275,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	log.Debug("seal complete", "hash", sealedBlock.Hash(), "number", block.NumberU64())
 
-	// 更新nodeCache
+	// SetNodeCache
 	blockNumber := current.block.Number()
 	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 	sealhash := cbft.SealHash(current.block.Header())
@@ -1431,16 +1431,6 @@ func (cbft *Cbft) avgLatency(nodeID discover.NodeID) int64 {
 		}
 	}
 	return cbft.config.MaxLatency
-}
-
-// HighestLogicalBlock returns the cbft.highestLogical.block.
-func (cbft *Cbft) HighestLogicalBlock() *types.Block {
-	cbft.lock.RLock()
-	defer cbft.lock.RUnlock()
-
-	log.Debug("call HighestLogicalBlock() ...")
-
-	return cbft.highestLogical.block
 }
 
 // IsSignedBySelf returns if the block is signed by local.
