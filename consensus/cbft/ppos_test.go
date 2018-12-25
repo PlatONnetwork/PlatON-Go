@@ -219,6 +219,72 @@ func BenchmarkPpos_GetCandidate(b *testing.B) {
 	ppos_GetCandidate(b, b.Log, b.Error)
 }
 
+// test GetCandidateArr
+func ppos_GetCandidateArr (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
+	ppos, bc := buildPpos()
+	var state *state.StateDB
+	if st, err := bc.State(); nil != err {
+		errFn("test GetCandidateArr getting state err", err)
+	}else {
+		state = st
+	}
+	logFn("test GetCandidateArr ...")
+
+
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := ppos.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		errFn("SetCandidate err:", err)
+	}else {
+		logFn("SetCandidate success ... ")
+	}
+
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := ppos.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		errFn("SetCandidate err:", err)
+	}
+
+
+	candidate2 := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(99),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		TxIndex:  		5,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x15"),
+
+	}
+	logFn("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := ppos.SetCandidate(state, candidate2.CandidateId, candidate2); nil != err {
+		errFn("SetCandidate err:", err)
+	}
+
+	/** test GetCandidate */
+	logFn("test GetCandidateArr ...")
+	canArr, _ := ppos.GetCandidateArr(state, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
+	printObject("GetCandidateArr", canArr, logger)
+}
+func TestPpos_GetCandidateArr(t *testing.T) {
+	ppos_GetCandidateArr(t, t.Log, t.Error)
+}
+func BenchmarkPpos_GetCandidateArr(b *testing.B) {
+	ppos_GetCandidateArr(b, b.Log, b.Error)
+}
+
 // test Election
 func ppos_Election (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
 	ppos, bc := buildPpos()

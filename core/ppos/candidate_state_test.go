@@ -283,7 +283,7 @@ func BenchmarkCandidatePool_GetCandidate(b *testing.B) {
 	candidate_GetCandidate(b, b.Log, b.Error)
 }
 
-// test GetCandidate
+// test GetCandidateArr
 func candidate_GetCandidateArr(logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
 	var candidatePool *pposm.CandidatePool
 	var ticketPool *pposm.TicketPool
@@ -331,8 +331,8 @@ func candidate_GetCandidateArr(logger interface{}, logFn func (args ... interfac
 
 	/** test GetCandidate */
 	logFn("test GetCandidateArr ...")
-	can, _ := candidatePool.GetCandidateArr(state, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
-	printObject("GetCandidateArr", can, logger)
+	canArr, _ := candidatePool.GetCandidateArr(state, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
+	printObject("GetCandidateArr", canArr, logger)
 }
 func TestCandidatePool_GetCandidateArr(t *testing.T) {
 	candidate_GetCandidateArr(t, t.Log, t.Error)
@@ -1824,7 +1824,7 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func (args ... inter
 
 	/** test UpdateElectedQueue */
 	logFn("test UpdateElectedQueue")
-	if err := candidatePool.UpdateElectedQueue(state, []discover.NodeID{candidate2.CandidateId, candidate3.CandidateId}...); nil != err {
+	if err := candidatePool.UpdateElectedQueue(state, big.NewInt(11), []discover.NodeID{candidate2.CandidateId, candidate3.CandidateId}...); nil != err {
 		errFn("UpdateElectedQueue err", err)
 	}else {
 		logFn("test UpdateElectedQueue success")
