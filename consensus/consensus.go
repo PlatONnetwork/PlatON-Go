@@ -120,27 +120,27 @@ type PoW interface {
 type Bft interface {
 	Engine
 
-	// 返回上一轮共识节点地址列表
+	// the former round of consensus node ids
 	//FormerNodeID() []discover.NodeID
 
-	// 返回上一轮共识节点信息列表
+	// the former round of consensus nodes
 	//FormerNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
 
-	// 返回当前轮共识节点地址列表
+	// the current round of consensus node ids
 	//CurrentNodeID() []discover.NodeID
 
-	// 返回当前轮共识节点信息列表
+	// the current round of consensus nodes
 	CurrentNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
 
 	IsCurrentNode(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) bool
 
 	ConsensusNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []discover.NodeID
 
-	// 返回当前节点是否轮值出块
+	// whether the current node should packing
 	ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool
 
-	// 收到新的区块签名
-	// 需要验证签名是否时nodeID签名的
+	// received a new block signature
+	// verify if the signature is signed by nodeID
 	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error
 
 	// Process the BFT signatures

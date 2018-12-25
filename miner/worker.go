@@ -169,10 +169,10 @@ type worker struct {
 	taskCh             chan *task
 	resultCh           chan *types.Block
 	prepareResultCh    chan *types.Block
-	blockSignatureCh   chan *cbfttypes.BlockSignature // 签名
+	blockSignatureCh   chan *cbfttypes.BlockSignature // signature
 
 
-	cbftResultCh       chan *cbfttypes.CbftResult     // Seal出块后输出的channel
+	cbftResultCh       chan *cbfttypes.CbftResult     // channel output after Seal is released
 	highestLogicalBlockCh chan *types.Block
 	startCh            chan struct{}
 	exitCh             chan struct{}
@@ -438,7 +438,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 			if w.isRunning() {
 				if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-					log.Warn("--------------highestLogicalBlock增长,并且间隔" + recommit.String() + "未执行打包任务，执行打包出块逻辑--------------")
+					log.Debug("--------------HighestLogicalBlock change,and the commitNewWork task is not executed at intervals of " + recommit.String() + ",Packing Start--------------")
 					commit(false, commitInterruptResubmit, commitBlock)
 				}
 			}
@@ -446,12 +446,11 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
-			// timer控制，间隔recommit seconds进行出块，如果是cbft共识允许出空块
 			if w.isRunning() {
-				log.Warn("----------间隔" + recommit.String() + "开始打包任务----------")
+				log.Debug("----------Interval " + recommit.String() + ",attempt to commitNewWork----------")
 				if _,ok := w.engine.(consensus.Bft); ok {
 					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-						log.Warn("--------------节点当前时间窗口出块，执行打包出块逻辑--------------")
+						log.Debug("--------------node inTurn,Packing Start--------------")
 						commit(false, commitInterruptResubmit, commitBlock)
 						continue
 					}
@@ -613,8 +612,7 @@ func (w *worker) mainLoop() {
 			}
 
 			// Broadcast the block and announce chain insertion event
-			log.Warn("------------出块prepareResultCh------------", "number", block.Number(), "hash", block.Hash(), "stateRoot", block.Header().Root)
-			log.Warn("Post PrepareMinedBlockEvent", "consensusNodes", task.consensusNodes)
+			log.Debug("Post PrepareMinedBlockEvent", "consensusNodes", task.consensusNodes)
 			w.mux.Post(core.PrepareMinedBlockEvent{Block: block, ConsensusNodes: task.consensusNodes})
 
 		case blockSignature := <-w.blockSignatureCh:
@@ -624,7 +622,7 @@ func (w *worker) mainLoop() {
 				parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 				consensusNodes := w.engine.(consensus.Bft).ConsensusNodes(parentNumber, blockSignature.ParentHash, blockNumber)
 				if consensusNodes != nil {
-					log.Warn("Post BlockSignatureEvent", "consensusNodes", consensusNodes)
+					log.Debug("Post BlockSignatureEvent", "consensusNodes", consensusNodes)
 					w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature, ConsensusNodes: consensusNodes})
 				}
 			}
@@ -670,7 +668,7 @@ func (w *worker) taskLoop() {
 			w.pendingMu.Unlock()
 
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-				// 保存stateDB至缓存、receipts至缓存
+				// Save stateDB, receipts to consensusCache
 				w.consensusCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
 				w.consensusCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
@@ -783,7 +781,7 @@ func (w *worker) resultLoop() {
 				_receipts = task.receipts
 				_state = task.state
 			} else {
-				log.Info("从consensusCache中读取receipts、state", "blockHash", block.Hash(), "stateRoot", block.Root())
+				log.Info("Read receipts, state from consensusCache", "blockHash", block.Hash(), "stateRoot", block.Root())
 				_receipts = w.consensusCache.ReadReceipts(sealhash)
 				_state = w.consensusCache.ReadStateDB(sealhash)
 			}
@@ -850,7 +848,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 	} else {
 		state, err = w.chain.StateAt(parent.Root())
 	}
-	log.Info("-----------构建statedb---------", "blockNumber", header.Number.Uint64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
+	log.Info("-----------Build statedb---------", "blockNumber", header.Number.Uint64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	if err != nil {
 		return err
 	}
@@ -1321,9 +1319,9 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	baseBlock, commitTime := w.commitWorkEnv.commitBaseBlock, w.commitWorkEnv.commitTime
 	highestLogicalBlock := w.commitWorkEnv.getHighestLogicalBlock()
 	if baseBlock != nil {
-		log.Info("baseBlock", "number", baseBlock.NumberU64(), "hash", baseBlock.Hash().Hex())
-		log.Info("commitTime", "commitTime", commitTime, "timestamp", timestamp)
-		log.Info("highestLogicalBlock", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash().Hex())
+		log.Debug("baseBlock", "number", baseBlock.NumberU64(), "hash", baseBlock.Hash().Hex())
+		log.Debug("commitTime", "commitTime", commitTime, "timestamp", timestamp)
+		log.Debug("highestLogicalBlock", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash().Hex())
 	}
 
 	shouldCommit := baseBlock == nil || baseBlock.Hash() != highestLogicalBlock.Hash()
@@ -1333,13 +1331,8 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 
 	if shouldCommit {
 		shouldSeal := false
-		if highestLogicalBlock.NumberU64() == 0 {	// 创世区块
-			shouldSeal = w.engine.(consensus.Bft).ShouldSeal(highestLogicalBlock.Number(), highestLogicalBlock.Hash(), common.Big1)
-		} else {
-			//parentBlock := w.eth.BlockChain().GetBlock(highestLogicalBlock.ParentHash(), highestLogicalBlock.NumberU64()-1)
-			num := highestLogicalBlock.Number()
-			shouldSeal = w.engine.(consensus.Bft).ShouldSeal(num, highestLogicalBlock.Hash(), new(big.Int).Add(num, common.Big1))
-		}
+		num := highestLogicalBlock.Number()
+		shouldSeal = w.engine.(consensus.Bft).ShouldSeal(num, highestLogicalBlock.Hash(), new(big.Int).Add(num, common.Big1))
 		shouldCommit = shouldCommit && shouldSeal
 	}
 
