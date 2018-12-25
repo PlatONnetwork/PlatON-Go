@@ -366,7 +366,6 @@ func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
 		if logical.inTurn && !logical.isSigned {
 			if _, signed := cbft.signedSet[logical.block.NumberU64()]; !signed {
 				cbft.sign(logical)
-
 				cbft.txPool.Reset(logical.block)
 			}
 		}
@@ -1123,11 +1122,11 @@ func (cbft *Cbft) cleanByTailoredTree(root *BlockExt) {
 	if len(root.children) > 0 {
 		for _, child := range root.children {
 			cbft.cleanByTailoredTree(child)
-			log.Debug("remove block in memory", "hash", root.block.Hash(), "number", root.block.NumberU64())
 			delete(cbft.blockExtMap, root.block.Hash())
 			delete(cbft.signedSet, root.block.NumberU64())
 		}
 	} else {
+		log.Debug("remove block in memory", "hash", root.block.Hash(), "number", root.block.NumberU64())
 		delete(cbft.blockExtMap, root.block.Hash())
 	}
 }
