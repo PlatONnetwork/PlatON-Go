@@ -242,7 +242,7 @@ func (p *peer) AsyncSendTransactions(txs []*types.Transaction) {
 			p.knownTxs.Add(tx.Hash())
 		}
 	default:
-		p.Log().Debug("x transaction propagation", "count", len(txs))
+		p.Log().Debug("Dropping transaction propagation", "count", len(txs))
 	}
 }
 
