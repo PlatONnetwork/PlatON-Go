@@ -423,6 +423,11 @@ func (d *ppos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Ca
 	return d.candidatePool.GetCandidate(state, nodeId)
 }
 
+// Getting immediate or reserve candidate info arr by nodeIds
+func (d *ppos) GetCandidateArr (state vm.StateDB, nodeIds ... discover.NodeID) (types.CandidateQueue, error) {
+	return d.candidatePool.GetCandidateArr(state, nodeIds...)
+}
+
 // candidate withdraw from  elected candidates
 func (d *ppos) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
 	return d.candidatePool.WithdrawCandidate(state, nodeId, price, blockNumber)

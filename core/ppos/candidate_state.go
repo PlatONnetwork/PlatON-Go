@@ -422,6 +422,11 @@ func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (
 	return c.getCandidate(state, nodeId)
 }
 
+// Getting immediate or reserve candidate info arr by nodeIds
+func (c *CandidatePool) GetCandidateArr (state vm.StateDB, nodeIds ... discover.NodeID) (types.CandidateQueue, error) {
+	return c.getCandidates(state, nodeIds...)
+}
+
 // candidate withdraw from immediates or reserve elected candidates
 func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
 	var nodeIds []discover.NodeID
@@ -1899,6 +1904,35 @@ func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (
 		return candidatePtr, nil
 	}
 	return nil, nil
+}
+
+func (c *CandidatePool) getCandidates (state vm.StateDB, nodeIds ... discover.NodeID) (types.CandidateQueue, error) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	if err := c.initDataByState(state, 1); nil != err {
+		log.Error("Failed to initDataByState on getCandidates", "err", err)
+		return nil, err
+	}
+
+	canArr := make(types.CandidateQueue, 0)
+	tem := make(map[discover.NodeID]struct{}, 0)
+	for _, nodeId := range nodeIds {
+		if _, ok := tem[nodeId]; ok {
+			continue
+		}
+		if candidatePtr, ok := c.immediateCandidates[nodeId]; ok {
+			canArr = append(canArr, candidatePtr)
+			tem[nodeId] = struct{}{}
+		}
+		if _, ok := tem[nodeId]; ok {
+			continue
+		}
+		if candidatePtr, ok := c.reserveCandidates[nodeId]; ok {
+			canArr = append(canArr, candidatePtr)
+			tem[nodeId] = struct{}{}
+		}
+	}
+	return canArr, nil
 }
 
 func (c *CandidatePool) MaxChair() uint64 {
