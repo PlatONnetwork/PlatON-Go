@@ -24,6 +24,7 @@ import (
 	"Platon-go/crypto"
 	"Platon-go/crypto/sha3"
 	"Platon-go/log"
+	"Platon-go/p2p/discover"
 	"Platon-go/rlp"
 	"Platon-go/trie"
 	"bytes"
@@ -93,7 +94,7 @@ type StateDB struct {
 	lock sync.Mutex
 
 	//ppos add -> Current ticket pool cache object <nodeid.string(), ticketId>
-	cTicketCache map[string][]common.Hash // TODO to discover.nodeID
+	tickeCache ticketcache.TicketCache
 	tclock       sync.RWMutex
 }
 
@@ -112,7 +113,7 @@ func New(root common.Hash, db Database, blocknumber *big.Int, blockhash common.H
 		logs:              make(map[common.Hash][]*types.Log),
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-		cTicketCache:      ticketcache.GetNodeTicketsCacheMap(blocknumber, blockhash),
+		tickeCache:        ticketcache.GetNodeTicketsCacheMap(blocknumber, blockhash),
 	}, nil
 }
 
@@ -774,64 +775,32 @@ func (s *StateDB) SetAbi(addr common.Address, abi []byte) {
 }
 
 //ppos add
-func (self *StateDB) SetTicketCache(nodeid string, tids []common.Hash) {
+func (self *StateDB) AppendTicketCache(nodeid discover.NodeID, tids []common.Hash) {
 	self.tclock.Lock()
-	value, ok := self.cTicketCache[nodeid]
-	if !ok {
-		value = make([]common.Hash, 0)
-	}
-	for _, id := range tids {
-		value = append(value, id)
-	}
-	self.cTicketCache[nodeid] = value
+	self.tickeCache.AppendTicketCache(nodeid, tids)
 	self.tclock.Unlock()
 }
 
-func (self *StateDB) GetTicketCache(nodeid string) ([]common.Hash, error) {
+func (self *StateDB) GetTicketCache(nodeid discover.NodeID) ([]common.Hash, error) {
 	self.tclock.RLock()
-	ret, ok := self.cTicketCache[nodeid]
-	if !ok {
-		self.tclock.RUnlock()
-		return nil, ErrNotfindFromNodeId
-	}
-	self.tclock.RUnlock()
-	return ret, nil
+	defer self.tclock.RUnlock()
+	return self.tickeCache.GetTicketCache(nodeid)
 }
 
-func (self *StateDB) DelTicketCache(nodeid string, tids []common.Hash) error {
+func (self *StateDB) RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) error {
 	self.tclock.Lock()
-	cache, ok := self.cTicketCache[nodeid]
-	if !ok {
-		self.tclock.Unlock()
-		return ErrNotfindFromNodeId
-	}
-	mapTIds := make(map[string]common.Hash)
-	for _, id := range tids {
-		mapTIds[id.Hex()] = id
-	}
-	for i := 0; i < len(cache); i++ {
-		if _, ok := mapTIds[cache[i].Hex()]; ok {
-			cache = append(cache[:i], cache[i+1:]...)
-			i = i - 1
-		}
-	}
-	self.cTicketCache[nodeid] = cache
-	self.tclock.Unlock()
-	return nil
+	defer self.tclock.Unlock()
+	return self.tickeCache.RemoveTicketCache(nodeid, tids)
 }
 
-func (self *StateDB) TCount(nodeid string) uint64 {
+func (self *StateDB) TCount(nodeid discover.NodeID) uint64 {
 	self.tclock.RLock()
-	count := uint64(len(self.cTicketCache[nodeid]))
-	self.tclock.RUnlock()
-	return count
+	defer self.tclock.RUnlock()
+	return self.tickeCache.TCount(nodeid)
 }
 
-func (self *StateDB) TicketCaceheSnapshot() map[string][]common.Hash {
-	ret := make(map[string][]common.Hash, len(self.cTicketCache))
-	for nodeid, tids := range self.cTicketCache {
-		ret[nodeid] = make([]common.Hash, len(tids))
-		copy(ret[nodeid], tids)
-	}
-	return ret
+func (self *StateDB) TicketCaceheSnapshot() ticketcache.TicketCache {
+	self.tclock.RLock()
+	defer self.tclock.RUnlock()
+	return self.tickeCache.TicketCaceheSnapshot()
 }
