@@ -250,7 +250,7 @@ func compareStateObjects(so0, so1 *stateObject, t *testing.T) {
 }
 
 func TestEmptyByte(t *testing.T) {
-	db, _ := ethdb.NewLDBDatabase("D:\\resource\\platon\\platon-go\\data1", 0, 0)
+	db, _ := ethdb.NewLDBDatabase("D:\\resource\\platon\\github.com/PlatONnetwork/PlatON-Go\\data1", 0, 0)
 	state, _ := New(common.Hash{}, NewDatabase(db))
 
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
