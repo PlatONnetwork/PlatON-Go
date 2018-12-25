@@ -28,8 +28,7 @@ var (
 
 // execute decode input data and call the function
 func execute(input []byte, command map[string]interface{}) ([]byte, error) {
-	// debug
-	log.Error("Run==> ", "input: ", hex.EncodeToString(input))
+	log.Info("Run==> ", "input: ", hex.EncodeToString(input))
 	defer func() {
 		if err := recover(); nil != err {
 			// catch call panic
@@ -41,7 +40,6 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 		log.Error("Run==> ", err.Error())
 		return nil, ErrParamsRlpDecode
 	}
-	// check
 	if len(source) < 2 {
 		log.Error("Run==> ", "ErrParamsBaselen: ", ErrParamsBaselen.Error())
 		return nil, ErrParamsBaselen
@@ -54,7 +52,6 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 	funcValue := command[byteutil.BytesToString(source[1])]
 	paramList := reflect.TypeOf(funcValue)
 	paramNum := paramList.NumIn()
-	// var param []interface{}
 	params := make([]reflect.Value, paramNum)
 	if paramNum != len(source)-2 {
 		log.Error("Run==> ", "ErrParamsLen: ", ErrParamsLen.Error())
@@ -65,7 +62,6 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 		originByte := []reflect.Value{reflect.ValueOf(source[i+2])}
 		params[i] = reflect.ValueOf(byteutil.Command[targetType]).Call(originByte)[0]
 	}
-	// call func
 	result := reflect.ValueOf(funcValue).Call(params)
 	log.Info("Run==> ", "result[0]: ", result[0].Bytes())
 	if _, err := result[1].Interface().(error); !err {

@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"Platon-go/common"
 	"Platon-go/common/byteutil"
 	"Platon-go/common/hexutil"
 	"Platon-go/rlp"
@@ -11,7 +12,6 @@ import (
 	"testing"
 )
 
-// send tx from script
 func TestTicketPoolEncode(t *testing.T) {
 	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
 
@@ -20,7 +20,7 @@ func TestTicketPoolEncode(t *testing.T) {
 	VoteTicket = make([][]byte, 0)
 	VoteTicket = append(VoteTicket, uint64ToBytes(0xf1))
 	VoteTicket = append(VoteTicket, []byte("VoteTicket"))
-	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1000))
+	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1))
 	VoteTicket = append(VoteTicket, big.NewInt(1).Bytes())
 	VoteTicket = append(VoteTicket, nodeId)
 	bufVoteTicket := new(bytes.Buffer)
@@ -31,22 +31,6 @@ func TestTicketPoolEncode(t *testing.T) {
 	} else {
 		fmt.Println("VoteTicket data rlp: ", hexutil.Encode(bufVoteTicket.Bytes()))
 	}
-
-	// GetTicketDetail(ticketId common.Hash)
-	/*ticketId := []byte("")
-	var GetTicketDetail [][]byte
-	GetTicketDetail = make([][]byte, 0)
-	GetTicketDetail = append(GetTicketDetail, uint64ToBytes(0xf1))
-	GetTicketDetail = append(GetTicketDetail, []byte("GetTicketDetail"))
-	GetTicketDetail = append(GetTicketDetail, ticketId)
-	bufGetTicketDetail := new(bytes.Buffer)
-	err = rlp.Encode(bufGetTicketDetail, GetTicketDetail)
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("GetTicketDetail encode rlp data fail")
-	} else {
-		fmt.Println("GetTicketDetail data rlp: ", hexutil.Encode(bufGetTicketDetail.Bytes()))
-	}*/
 
 	// GetCandidateTicketIds(nodeId discover.NodeID)
 	var GetCandidateTicketIds [][]byte
@@ -61,6 +45,22 @@ func TestTicketPoolEncode(t *testing.T) {
 		t.Errorf("GetCandidateTicketIds encode rlp data fail")
 	} else {
 		fmt.Println("GetCandidateTicketIds data rlp: ", hexutil.Encode(bufGetCandidateTicketIds.Bytes()))
+	}
+
+	// GetTicketDetail(ticketId common.Hash)
+	ticketId := common.Hex2Bytes("64a25965db45003819598699d46a138b3e91ab0be338463359a21eb3e896ac68")
+	var GetTicketDetail [][]byte
+	GetTicketDetail = make([][]byte, 0)
+	GetTicketDetail = append(GetTicketDetail, uint64ToBytes(0xf1))
+	GetTicketDetail = append(GetTicketDetail, []byte("GetTicketDetail"))
+	GetTicketDetail = append(GetTicketDetail, ticketId)
+	bufGetTicketDetail := new(bytes.Buffer)
+	err = rlp.Encode(bufGetTicketDetail, GetTicketDetail)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetTicketDetail encode rlp data fail")
+	} else {
+		fmt.Println("GetTicketDetail data rlp: ", hexutil.Encode(bufGetTicketDetail.Bytes()))
 	}
 }
 
