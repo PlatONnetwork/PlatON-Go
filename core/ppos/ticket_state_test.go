@@ -357,7 +357,7 @@ func TestTicketPool_DropReturnTicket(t *testing.T) {
 		log.Error("vote ticket fail", "err", err)
 	}
 
-	err = ticketPool.DropReturnTicket(state, candidate.CandidateId)
+	err = ticketPool.DropReturnTicket(state,candidate.BlockNumber, candidate.CandidateId)
 	if nil != err {
 		log.Error("dropReturnTicket fail", "err", err)
 	}
