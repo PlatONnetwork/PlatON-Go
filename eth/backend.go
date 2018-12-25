@@ -202,10 +202,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	eth.mpcPool = core.NewMPCPool(config.MPCPool, eth.chainConfig, eth.blockchain)
 
-	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
-		return nil, err
-	}
-
 	// modify by platon remove consensusCache
 	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)
@@ -214,6 +210,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if _, ok := eth.engine.(consensus.Bft); ok {
 		cbft.SetConsensusCache(consensusCache)
 		cbft.SetBackend(eth.blockchain, eth.txPool)
+	}
+
+	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
+		return nil, err
 	}
 
 	eth.APIBackend = &EthAPIBackend{eth, nil}
