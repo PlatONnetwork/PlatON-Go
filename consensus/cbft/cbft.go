@@ -328,10 +328,10 @@ func (cbft *Cbft) findClosestConfirmedIncludingSelf(current *BlockExt) *BlockExt
 	if current.inTree && current.isExecuted && !current.isConfirmed {
 		closest = nil
 	}
-	for _, node := range current.children {
-		now := cbft.findClosestConfirmedIncludingSelf(node)
-		if now != nil && now.inTree && now.isExecuted && now.isConfirmed && (closest == nil || now.number < closest.number) {
-			closest = now
+	for _, child := range current.children {
+		temp := cbft.findClosestConfirmedIncludingSelf(child)
+		if closest == nil || (temp != nil && temp.inTree && temp.isExecuted && temp.isConfirmed && temp.number < closest.number) {
+			closest = temp
 		}
 	}
 	return closest
@@ -345,9 +345,9 @@ func (cbft *Cbft) findClosestConfirmedExcludingSelf(current *BlockExt) *BlockExt
 		if child != nil && child.inTree && child.isExecuted && child.isConfirmed {
 			return child
 		} else {
-			cur := cbft.findClosestConfirmedIncludingSelf(child)
-			if closest == nil || cur.number < closest.number {
-				closest = cur
+			temp := cbft.findClosestConfirmedIncludingSelf(child)
+			if closest == nil || (temp != nil && temp.number < closest.number) {
+				closest = temp
 			}
 		}
 	}
