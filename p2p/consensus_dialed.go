@@ -41,7 +41,6 @@ func (tasks *dialedTasks) AddTask(task *dialTask) error {
 		log.Info("consensus任务存在,将新任务重新移到队尾", "index", index)
 		tasks.pollIndex(index)
 		tasks.offer(task)
-
 	} else if tasks.size() < tasks.maxPeers {
 		log.Info("consensus任务不存在,未超过最大限制数，将新任务直接添加到队尾", "tasks size", tasks.size(), "maxConsensusPeers", tasks.maxPeers)
 		tasks.offer(task)
