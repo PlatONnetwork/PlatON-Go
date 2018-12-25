@@ -1458,22 +1458,27 @@ func (cbft *Cbft) avgLatency(nodeID discover.NodeID) int64 {
 
 // HighestLogicalBlock returns the cbft.highestLogical.block.
 func (cbft *Cbft) HighestLogicalBlock() *types.Block {
+	log.Debug("call HighestLogicalBlock() ...")
 	cbft.lock.RLock()
 	defer cbft.lock.RUnlock()
 
-	log.Debug("call HighestLogicalBlock() ...")
-
-	return cbft.highestLogical.block
+	if cbft.highestLogical == nil {
+		return nil
+	} else {
+		return cbft.highestLogical.block
+	}
 }
 
 // HighestConfirmedBlock returns the cbft.highestConfirmed.block.
 func (cbft *Cbft) HighestConfirmedBlock() *types.Block {
+	log.Debug("call HighestConfirmedBlock() ...")
 	cbft.lock.RLock()
 	defer cbft.lock.RUnlock()
-
-	log.Debug("call HighestConfirmedBlock() ...")
-
-	return cbft.highestConfirmed.block
+	if cbft.highestConfirmed == nil {
+		return nil
+	} else {
+		return cbft.highestConfirmed.block
+	}
 }
 
 // GetBlock returns the block in blockExtMap.

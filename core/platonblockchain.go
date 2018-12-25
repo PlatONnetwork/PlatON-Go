@@ -34,10 +34,11 @@ type receiptsCache struct {
 
 func (pbc *PlatonBlockChain) CurrentBlock() *types.Block {
 	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
-		return cbft.HighestLogicalBlock()
-	} else {
-		return pbc.currentBlock.Load().(*types.Block)
+		if block := cbft.HighestLogicalBlock(); block != nil {
+			return block
+		}
 	}
+	return pbc.currentBlock.Load().(*types.Block)
 }
 
 func (pbc *PlatonBlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
