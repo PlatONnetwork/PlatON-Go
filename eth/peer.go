@@ -523,6 +523,21 @@ func (ps *peerSet) PeersWithoutTx(hash common.Hash) []*peer {
 	return list
 }
 
+// ConsensusPeersWithoutTx retrieves a list of consensus peers that do not have a given transaction
+// in their set of known hashes.
+func (ps *peerSet) ConsensusPeersWithoutTx(csPeers []*peer, hash common.Hash) []*peer{
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	list := make([]*peer, 0, len(csPeers))
+	for _, p := range csPeers {
+		if !p.knownTxs.Contains(hash) {
+			list = append(list, p)
+		}
+	}
+	return list
+}
+
 // BestPeer retrieves the known peer with the currently highest total difficulty.
 func (ps *peerSet) BestPeer() *peer {
 	ps.lock.RLock()
