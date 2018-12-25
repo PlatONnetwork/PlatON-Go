@@ -25,7 +25,7 @@ import (
 	"strings"
 	"text/template"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // ethstatsDockerfile is the Dockerfile required to build an ethstats backend

@@ -27,16 +27,16 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"Platon-go/cmd/evm/internal/compiler"
-	"Platon-go/cmd/utils"
-	"Platon-go/common"
-	"Platon-go/core"
-	"Platon-go/core/state"
-	"Platon-go/core/vm"
-	"Platon-go/core/vm/runtime"
-	"Platon-go/ethdb"
-	"Platon-go/log"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/evm/internal/compiler"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm/runtime"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -101,10 +101,10 @@ func runCmd(ctx *cli.Context) error {
 		genesisConfig = gen
 		db := ethdb.NewMemDatabase()
 		genesis := gen.ToBlock(db)
-		statedb, _ = state.New(genesis.Root(), state.NewDatabase(db))
+		statedb, _ = state.New(genesis.Root(), state.NewDatabase(db), genesis.Number(), genesis.Hash())
 		chainConfig = gen.Config
 	} else {
-		statedb, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+		statedb, _ = state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()), big.NewInt(0), common.Hash{})
 		genesisConfig = new(core.Genesis)
 	}
 	if ctx.GlobalString(SenderFlag.Name) != "" {

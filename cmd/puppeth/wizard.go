@@ -17,7 +17,7 @@
 package main
 
 import (
-	"Platon-go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -31,9 +31,9 @@ import (
 	"strings"
 	"sync"
 
-	"Platon-go/common"
-	"Platon-go/core"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"golang.org/x/crypto/ssh/terminal"
 )
 

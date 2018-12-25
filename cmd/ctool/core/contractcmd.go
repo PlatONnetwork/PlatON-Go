@@ -3,8 +3,8 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"Platon-go/common/hexutil"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"gopkg.in/urfave/cli.v1"
 	"io/ioutil"
 	"time"

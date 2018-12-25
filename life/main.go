@@ -1,9 +1,9 @@
 package main
 
 import (
-	"Platon-go/life/exec"
-	"Platon-go/life/resolver"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/life/exec"
+	"github.com/PlatONnetwork/PlatON-Go/life/resolver"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"fmt"
 	"io/ioutil"
 	"time"

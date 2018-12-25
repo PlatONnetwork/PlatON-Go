@@ -17,10 +17,10 @@
 package core
 
 import (
-	"Platon-go/common"
-	"Platon-go/core/cbfttypes"
-	"Platon-go/core/types"
-	"Platon-go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // NewTxsEvent is posted when a batch of transactions enter the transaction pool.

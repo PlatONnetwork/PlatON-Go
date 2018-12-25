@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	"Platon-go/swarm/state"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/state"
 )
 
 // TestDBStore tests basic functionality of DBStore.

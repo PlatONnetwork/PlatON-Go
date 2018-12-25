@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
 )
 
 const (

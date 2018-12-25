@@ -5,7 +5,7 @@ package whisperv5
 import (
 	"encoding/json"
 
-	"Platon-go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
 var _ = (*newMessageOverride)(nil)

@@ -18,10 +18,10 @@
 package eth
 
 import (
-	"Platon-go/consensus/cbft"
-	"Platon-go/core/cbfttypes"
-	"Platon-go/core/state"
-	"Platon-go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"errors"
 	"fmt"
 	"math/big"
@@ -29,30 +29,31 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"Platon-go/accounts"
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/consensus"
-	"Platon-go/consensus/clique"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core"
-	"Platon-go/core/bloombits"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/core/vm"
-	"Platon-go/eth/downloader"
-	"Platon-go/eth/filters"
-	"Platon-go/eth/gasprice"
-	"Platon-go/ethdb"
-	"Platon-go/event"
-	"Platon-go/internal/ethapi"
-	"Platon-go/log"
-	"Platon-go/miner"
-	"Platon-go/node"
-	"Platon-go/p2p"
-	"Platon-go/params"
-	"Platon-go/rlp"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/clique"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/eth/filters"
+	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/miner"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 )
 
 type LesServer interface {
@@ -62,6 +63,7 @@ type LesServer interface {
 	SetBloomBitsIndexer(bbIndexer *core.ChainIndexer)
 }
 
+// 以太坊协议的数据结构
 // Ethereum implements the Ethereum full node service.
 type Ethereum struct {
 	config      *Config
@@ -124,6 +126,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+	// ppos add
+	if nil == ticketcache.GetTicketidsCachePtr() {
+		ticketcache.NewTicketIdsCache(chainDb)
+	}
+
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
@@ -172,6 +179,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if err != nil {
+		return nil, err
+	}
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -203,9 +214,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, err
 	}
 	if _, ok := eth.engine.(consensus.Bft); ok {
-		cbft.SetDopsOption(eth.blockchain)
+		cbft.SetPposOption(eth.blockchain, ticketcache.GetTicketidsCachePtr())
 	}
-
 	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
@@ -266,15 +276,13 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 }
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
+
 func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database,
 	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, cbftConfig *CbftConfig) consensus.Engine {
 	// If proof-of-authority is requested, set it up
+	// modify by platon
 	if chainConfig.Cbft != nil {
-		if cbftConfig.Period < 1 {
-			chainConfig.Cbft.Period = 1
-		} else {
-			chainConfig.Cbft.Period = cbftConfig.Period
-		}
+		chainConfig.Cbft.Period = cbftConfig.Period
 		chainConfig.Cbft.Epoch = cbftConfig.Epoch
 		chainConfig.Cbft.MaxLatency = cbftConfig.MaxLatency
 		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
@@ -282,7 +290,6 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		chainConfig.Cbft.PposConfig = setPposConfig(cbftConfig.Ppos)
 		return cbft.New(chainConfig.Cbft, blockSignatureCh, cbftResultCh, highestLogicalBlockCh)
 	}
-
 	if chainConfig.Clique != nil {
 		return clique.New(chainConfig.Clique, db)
 	}
@@ -628,6 +635,10 @@ func setPposConfig (pposConfig *PposConfig) *params.PposConfig{
 					MaxChair:  				pposConfig.Candidate.MaxChair,
 					MaxCount:  				pposConfig.Candidate.MaxCount,
 					RefundBlockNumber: 		pposConfig.Candidate.RefundBlockNumber,
+		},
+		TicketConfig: &params.TicketConfig{
+			MaxCount:			pposConfig.Ticket.MaxCount,
+			ExpireBlockNumber: 	pposConfig.Ticket.ExpireBlockNumber,
 		},
 	}
 }

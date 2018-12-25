@@ -1,11 +1,11 @@
 package cbft
 
 import (
-	"Platon-go/common"
-	"Platon-go/core"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"sync"
 	"errors"
 )
@@ -121,7 +121,7 @@ func (c *Cache) clearStateDB(sealHash common.Hash) {
 // Get the StateDB instance of the corresponding block
 func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 	// Create a StateDB instance from the blockchain based on stateRoot
-	if state, err := c.chain.StateAt(block.Root()); err == nil && state != nil {
+	if state, err := c.chain.StateAt(block.Root(), block.Number(), block.Hash()); err == nil && state != nil {
 		return state, nil
 	}
 	// Read and copy the stateDB instance in the cache

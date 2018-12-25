@@ -19,7 +19,7 @@ package p2p
 import (
 	"fmt"
 
-	"Platon-go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // Protocol represents a P2P subprotocol implementation.

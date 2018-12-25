@@ -20,12 +20,12 @@ import (
 	"bytes"
 	"context"
 
-	"Platon-go/common"
-	"Platon-go/core"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var sha3_nil = crypto.Keccak256Hash(nil)

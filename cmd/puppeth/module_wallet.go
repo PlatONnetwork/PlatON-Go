@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // walletDockerfile is the Dockerfile required to run a web wallet.

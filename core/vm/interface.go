@@ -17,10 +17,12 @@
 package vm
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // StateDB is an EVM database for full state querying.
@@ -74,8 +76,14 @@ type StateDB interface {
 
 	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
 
+	//ppos add
 	TxHash() common.Hash
 	TxIdx() uint32
+	AppendTicketCache(nodeid discover.NodeID, tids []common.Hash)
+	GetTicketCache(nodeid discover.NodeID) ([]common.Hash, error)
+	RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) error
+	TCount(nodeid discover.NodeID) uint64
+	TicketCaceheSnapshot() ticketcache.TicketCache
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM

@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"sync"
 
-	"Platon-go/common/math"
-	"Platon-go/crypto"
-	"Platon-go/crypto/sha3"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Registry of known identity schemes.

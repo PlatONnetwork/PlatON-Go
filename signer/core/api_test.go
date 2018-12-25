@@ -27,13 +27,13 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/accounts/keystore"
-	"Platon-go/cmd/utils"
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/core/types"
-	"Platon-go/internal/ethapi"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 //Used for testing

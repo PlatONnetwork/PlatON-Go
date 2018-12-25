@@ -18,13 +18,13 @@
 package consensus
 
 import (
-	"Platon-go/common"
-	"Platon-go/core/cbfttypes"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/p2p/discover"
-	"Platon-go/params"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"crypto/ecdsa"
 	"math/big"
 )

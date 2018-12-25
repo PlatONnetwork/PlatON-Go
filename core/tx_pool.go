@@ -25,14 +25,14 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/prque"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/event"
-	"Platon-go/log"
-	"Platon-go/metrics"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/prque"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -119,7 +119,7 @@ const (
 type blockChain interface {
 	CurrentBlock() *types.Block
 	GetBlock(hash common.Hash, number uint64) *types.Block
-	StateAt(root common.Hash) (*state.StateDB, error)
+	StateAt(root common.Hash, blocknumber *big.Int, blockhash common.Hash) (*state.StateDB, error)
 
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
 }
@@ -242,6 +242,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
 		gasPrice:    new(big.Int).SetUint64(config.PriceLimit),
 		txExtBuffer: make(chan *txExt, 64),
+
 	}
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
@@ -252,6 +253,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 	pool.reset(nil, chain.CurrentBlock().Header())
 
 	go pool.txExtBufferReadLoop()
+
 
 	// If local transactions and journaling is enabled, load from disk
 	if !config.NoLocals && config.Journal != "" {
@@ -304,6 +306,7 @@ func (pool *TxPool) txExtBufferReadLoop() {
 				log.Debug("addTx to pending response", "txHash", tx.Hash(), "txCounter", txCounter, "time", time.Now().UnixNano()-startTime)
 			}
 		}*/
+
 	}
 }
 
@@ -452,7 +455,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	if newHead == nil {
 		newHead = pool.chain.CurrentBlock().Header() // Special case during testing
 	}
-	statedb, err := pool.chain.StateAt(newHead.Root)
+	statedb, err := pool.chain.StateAt(newHead.Root, newHead.Number, newHead.Hash())
 	if err != nil {
 		log.Error("Failed to reset txpool state", "err", err)
 		return
@@ -930,7 +933,6 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	/*for _, tx := range txs {
 		log.Debug("AddRemotes to txExtBuffer response", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
 	}*/
-
 	if e, ok := err.([]error); ok {
 		return e
 	} else {

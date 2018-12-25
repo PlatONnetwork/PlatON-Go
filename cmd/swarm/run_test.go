@@ -32,13 +32,13 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/reexec"
-	"Platon-go/accounts"
-	"Platon-go/accounts/keystore"
-	"Platon-go/internal/cmdtest"
-	"Platon-go/node"
-	"Platon-go/p2p"
-	"Platon-go/rpc"
-	"Platon-go/swarm"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
+	"github.com/PlatONnetwork/PlatON-Go/internal/cmdtest"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/swarm"
 )
 
 func init() {

@@ -26,8 +26,8 @@ import (
 	"reflect"
 	"strings"
 
-	"Platon-go/common/hexutil"
-	"Platon-go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 )
 
 // Lengths of hashes and addresses in bytes.
@@ -36,7 +36,6 @@ const (
 	HashLength = 32
 	// AddressLength is the expected length of the address
 	AddressLength = 20
-
 	BlockConfirmSignLength = 65
 )
 
@@ -44,8 +43,10 @@ var (
 	hashT    = reflect.TypeOf(Hash{})
 	addressT = reflect.TypeOf(Address{})
 
-	CandidateAddr 	= HexToAddress("0x1000000000000000000000000000000000000001")
-	ZeroAddr 		= HexToAddress(Address{}.String())
+	// modify by platon
+	CandidatePoolAddr 			= HexToAddress("0x1000000000000000000000000000000000000001")
+	TicketPoolAddr 			= HexToAddress("0x1000000000000000000000000000000000000002")
+	ZeroAddr 				= HexToAddress(Address{}.String())
 )
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.

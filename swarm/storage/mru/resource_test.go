@@ -27,12 +27,12 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/contracts/ens"
-	"Platon-go/crypto"
-	"Platon-go/log"
-	"Platon-go/swarm/chunk"
-	"Platon-go/swarm/multihash"
-	"Platon-go/swarm/storage"
+	"github.com/PlatONnetwork/PlatON-Go/contracts/ens"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/chunk"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/multihash"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
 )
 
 var (

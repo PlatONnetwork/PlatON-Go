@@ -22,9 +22,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // emptyCodeHash is used by create to ensure deployment is disallowed to already
@@ -51,11 +51,15 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
-		//ppos
+		// ppos
 		if p := PrecompiledContractsPpos[*contract.CodeAddr]; p != nil {
-			if f, ok := p.(*candidateContract);ok {
-				f.contract = contract
-				f.evm = evm
+			if c, ok := p.(*candidateContract); ok {
+				c.contract = contract
+				c.evm = evm
+			}
+			if t, ok := p.(*ticketContract); ok {
+				t.contract = contract
+				t.evm = evm
 			}
 			return RunPrecompiledContract(p, input, contract)
 		}
@@ -138,6 +142,7 @@ type EVM struct {
 
 	//ppos add
 	CandidatePool candidatePool
+	TicketPool    ticketPool
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should

@@ -24,9 +24,9 @@ import (
 	"strings"
 	"time"
 
-	"Platon-go/log"
-	"Platon-go/metrics"
-	"Platon-go/swarm/api"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
 )
 
 var (

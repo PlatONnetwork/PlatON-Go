@@ -21,7 +21,7 @@ package geth
 import (
 	"errors"
 
-	"Platon-go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
 
 // NodeInfo represents pi short summary of the information known about the host.

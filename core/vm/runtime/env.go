@@ -17,9 +17,9 @@
 package runtime
 
 import (
-	"Platon-go/common"
-	"Platon-go/core"
-	"Platon-go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 )
 
 func NewEnv(cfg *Config) *vm.EVM {

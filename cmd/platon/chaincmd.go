@@ -25,17 +25,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"Platon-go/cmd/utils"
-	"Platon-go/common"
-	"Platon-go/console"
-	"Platon-go/core"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/eth/downloader"
-	"Platon-go/ethdb"
-	"Platon-go/event"
-	"Platon-go/log"
-	"Platon-go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/console"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/urfave/cli.v1"
 )
@@ -454,7 +454,7 @@ func dump(ctx *cli.Context) error {
 			fmt.Println("{}")
 			utils.Fatalf("block not found")
 		} else {
-			state, err := state.New(block.Root(), state.NewDatabase(chainDb))
+			state, err := state.New(block.Root(), state.NewDatabase(chainDb), block.Number(), block.Hash())
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}

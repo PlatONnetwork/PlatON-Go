@@ -20,9 +20,9 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/swarm/storage"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
 )
 
 // updateRequestJSON represents a JSON-serialized UpdateRequest

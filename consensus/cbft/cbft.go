@@ -2,21 +2,20 @@
 package cbft
 
 import (
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/consensus"
-	"Platon-go/core"
-	"Platon-go/core/cbfttypes"
-	"Platon-go/core/ppos"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/crypto/sha3"
-	"Platon-go/log"
-	"Platon-go/p2p/discover"
-	"Platon-go/params"
-	"Platon-go/rlp"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"bytes"
 	"container/list"
 	"crypto/ecdsa"
@@ -26,6 +25,7 @@ import (
 	"math/big"
 	"sync"
 	"time"
+	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 )
 
 const (
@@ -89,8 +89,8 @@ var cbft *Cbft
 
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
-	pposm.PrintObject("Get ppos config：", *config)
-	_ppos := newPpos(/*config.InitialNodes, */config)
+
+	_ppos := newPpos(config)
 
 	cbft = &Cbft{
 		config:                config,
@@ -579,8 +579,9 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	txPool = txPool
 }
 
-func SetDopsOption(blockChain *core.BlockChain) {
-	cbft.ppos.SetCandidatePool(blockChain, cbft.config.InitialNodes)
+func SetPposOption(blockChain *core.BlockChain, cache *ticketcache.NumBlocks) {
+	cbft.ppos.setCandidatePool(blockChain, cbft.config.InitialNodes)
+	cbft.ppos.setTicketPoolCache(cache)
 }
 
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.

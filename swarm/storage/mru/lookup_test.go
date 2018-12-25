@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"Platon-go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
 func getTestUpdateLookup() *UpdateLookup {

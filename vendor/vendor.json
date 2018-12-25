@@ -123,78 +123,10 @@
 			"revisionTime": "2018-04-18T12:24:29Z"
 		},
 		{
-			"checksumSHA1": "6X3O3mfvOyiwV2iAb5GjxARs08c=",
-			"path": "github.com/garyburd/redigo/internal",
-			"revision": "569eae59ada904ea8db7a225c2b47165af08735a",
-			"revisionTime": "2018-04-04T16:07:26Z"
-		},
-		{
-			"checksumSHA1": "TRsWhl8gX4p8xoErljH/oyNmY5M=",
-			"path": "github.com/garyburd/redigo/redis",
-			"revision": "569eae59ada904ea8db7a225c2b47165af08735a",
-			"revisionTime": "2018-04-04T16:07:26Z"
-		},
-		{
 			"checksumSHA1": "0orwvPL96wFckVJyPl39fz2QsgA=",
 			"path": "github.com/gizak/termui",
 			"revision": "991cd3d3809135dc24daf6188dc6edcaf3d7d2d9",
 			"revisionTime": "2017-01-17T22:23:42Z"
-		},
-		{
-			"checksumSHA1": "CXz+lMUb7OO0p+5BjBA8paN7Sfc=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/disasm",
-			"path": "github.com/go-interpreter/wagon/disasm",
-			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
-			"revisionTime": "2018-11-23T03:28:02Z"
-		},
-		{
-			"checksumSHA1": "zz8wpBjGbyNABBpUj7UZdcfsplQ=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/exec",
-			"path": "github.com/go-interpreter/wagon/exec",
-			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
-			"revisionTime": "2018-11-23T03:28:02Z"
-		},
-		{
-			"checksumSHA1": "tv/PJK8bSSQO6Z+3DOK/JGCQzQ4=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/exec/internal/compile",
-			"path": "github.com/go-interpreter/wagon/exec/internal/compile",
-			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
-			"revisionTime": "2018-11-23T03:28:02Z"
-		},
-		{
-			"checksumSHA1": "5JuAtc+nvjtqrR50YvsjfjV27VQ=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/validate",
-			"path": "github.com/go-interpreter/wagon/validate",
-			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
-			"revisionTime": "2018-11-23T03:28:02Z"
-		},
-		{
-			"checksumSHA1": "E9WykM5oshMl0mwmK4GNB0dTC+Y=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm",
-			"path": "github.com/go-interpreter/wagon/wasm",
-			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
-			"revisionTime": "2018-11-23T03:28:02Z"
-		},
-		{
-			"checksumSHA1": "lLulPBI1ZMUPiwKAGfKWvD6haFQ=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm/internal/readpos",
-			"path": "github.com/go-interpreter/wagon/wasm/internal/readpos",
-			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
-			"revisionTime": "2018-11-23T03:28:02Z"
-		},
-		{
-			"checksumSHA1": "7SFxMDdS8ewsjTOEpxczE69ysGg=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm/leb128",
-			"path": "github.com/go-interpreter/wagon/wasm/leb128",
-			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
-			"revisionTime": "2018-11-23T03:28:02Z"
-		},
-		{
-			"checksumSHA1": "T8jDOmLM08fT540n/0BPPA0JtgM=",
-			"origin": "github.com/PlatONnetwork/PlatON-Go/life/vendor/github.com/go-interpreter/wagon/wasm/operators",
-			"path": "github.com/go-interpreter/wagon/wasm/operators",
-			"revision": "f57a056c48bc57757c6d03cbcd0626728e1620be",
-			"revisionTime": "2018-11-23T03:28:02Z"
 		},
 		{
 			"checksumSHA1": "gxV/cPPLkByTdY8y172t7v4qcZA=",
@@ -215,16 +147,16 @@
 			"revisionTime": "2017-07-10T16:04:46Z"
 		},
 		{
-			"checksumSHA1": "yqF125xVSkmfLpIVGrLlfE05IUk=",
+			"checksumSHA1": "Wp97rIwFg54dNwuCeR9Vslaehtw=",
 			"path": "github.com/golang/protobuf/proto",
-			"revision": "748d386b5c1ea99658fd69fe9f03991ce86a90c1",
-			"revisionTime": "2017-07-26T21:28:29Z"
+			"revision": "1d3f30b51784bec5aad268e59fd3c2fc1c2fe73f",
+			"revisionTime": "2018-11-28T19:23:52Z"
 		},
 		{
-			"checksumSHA1": "Z1gJ3PKzwBpOoPnTSEM5yd0zHYA=",
+			"checksumSHA1": "NmOpWW+Eg+Na/v2K/PIzybRV8gM=",
 			"path": "github.com/golang/protobuf/protoc-gen-go/descriptor",
-			"revision": "748d386b5c1ea99658fd69fe9f03991ce86a90c1",
-			"revisionTime": "2017-07-26T21:28:29Z"
+			"revision": "1d3f30b51784bec5aad268e59fd3c2fc1c2fe73f",
+			"revisionTime": "2018-11-28T19:23:52Z"
 		},
 		{
 			"checksumSHA1": "p/8vSviYF91gFflhrt5vkyksroo=",
@@ -990,5 +922,5 @@
 			"revisionTime": "2017-08-11T01:42:03Z"
 		}
 	],
-	"rootPath": "github.com/PlatONnetwork/PlatON-Go"
+	"rootPath": "Platon-go"
 }

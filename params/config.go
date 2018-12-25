@@ -17,8 +17,8 @@
 package params
 
 import (
-	"Platon-go/common"
-	"Platon-go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
@@ -32,19 +32,19 @@ var (
 )
 
 var (
-	initialConsensusNodes = []string{
-		//"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.18.181:16789",
-		"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.18.182:16789",
-		//"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.18.183:16789",
-		//"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.18.184:16789",
-	}
-
 	//initialConsensusNodes = []string{
-	//	"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.9.180:9500",
-	//	"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.9.180:9501",
-	//	"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.180:9502",
-	//	"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.180:9503",
+	//	//"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.9.181:16789",
+	//	"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.9.182:16789",
+	//	//"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.183:16789",
+	//	//"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.184:16789",
 	//}
+
+	initialConsensusNodes = []string{
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.9.180:9500",
+		"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.9.180:9501",
+		"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.180:9502",
+		"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.180:9503",
+	}
 
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
@@ -116,6 +116,7 @@ var (
 		},
 	}
 
+
 	GrapeChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(304),
 		HomesteadBlock:      big.NewInt(1),
@@ -147,6 +148,7 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
+	// modify by platon
 	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, new(EthashConfig), nil, nil, ""}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
@@ -154,10 +156,13 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
+	// modify by platon
 	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}, nil, ""}
 
+	// modify by platon
 	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, new(EthashConfig), nil, nil, ""}
 
+	// modify by platon
 	AllCbftProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, new(CbftConfig), ""}
 	TestRules              = TestChainConfig.Rules(new(big.Int))
 )
@@ -201,7 +206,8 @@ type ChainConfig struct {
 	// Various consensus engines
 	Ethash *EthashConfig `json:"ethash,omitempty"`
 	Clique *CliqueConfig `json:"clique,omitempty"`
-	Cbft   *CbftConfig   `json:"cbft,omitempty"`
+	// modify by platon
+	Cbft *CbftConfig `json:"cbft,omitempty"`
 
 	// Various vm interpreter
 	VMInterpreter string `json:"interpreter,omitempty"`
@@ -215,6 +221,7 @@ func (c *EthashConfig) String() string {
 	return "ethash"
 }
 
+// modify by platon
 type CbftConfig struct {
 	Period           uint64  `json:"period,omitempty"`           // Number of seconds between blocks to enforce
 	Epoch            uint64  `json:"epoch,omitempty"`            // Epoch length to reset votes and checkpoint
@@ -223,18 +230,21 @@ type CbftConfig struct {
 	Duration         int64   `json:"duration,omitempty"`         // number of seconds for a node to produce blocks
 	//mock
 	InitialNodes []discover.Node   `json:"initialNodes,omitempty"`
-	NodeID       discover.NodeID   `json:"-"`
+	NodeID       discover.NodeID   `json:"nodeID,omitempty"`
 	PrivateKey   *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 
+	// modify by ppos
 	PposConfig *PposConfig `json:"pposConfig,omitempty"`
 }
 
+// modify by platon
 type PposConfig struct {
 	//MaxCount				uint64
 	//MaxChair				uint64
 	//RefundBlockNumber 		uint64
 	//Candidates 				[]*CandidateConfig
 	Candidate *CandidateConfig
+	TicketConfig *TicketConfig
 }
 type CandidateConfig struct {
 	MaxCount          uint64
@@ -248,6 +258,11 @@ type CandidateConfig struct {
 	Port 			string
 	Owner 			common.Address
 	From 			common.Address*/
+}
+
+type TicketConfig struct {
+	MaxCount				uint64
+	ExpireBlockNumber		uint64
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.

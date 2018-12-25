@@ -21,11 +21,11 @@ import (
 
 	"encoding/json"
 
-	"Platon-go/accounts"
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/internal/ethapi"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 type AuditLogger struct {

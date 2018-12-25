@@ -52,6 +52,7 @@ func TestStreamKind(t *testing.T) {
 		// using plainReader to inhibit input limit errors.
 		s := NewStream(newPlainReader(unhex(test.input)), 0)
 		kind, len, err := s.Kind()
+		fmt.Println("i: ", i, "test: ", test, "s: ", s, "kind: ", kind)
 		if err != nil {
 			t.Errorf("test %d: Kind returned error: %v", i, err)
 			continue
@@ -67,6 +68,7 @@ func TestStreamKind(t *testing.T) {
 
 func TestNewListStream(t *testing.T) {
 	ls := NewListStream(bytes.NewReader(unhex("0101010101")), 3)
+	println(ls, "\n")
 	if k, size, err := ls.Kind(); k != List || size != 3 || err != nil {
 		t.Errorf("Kind() returned (%v, %d, %v), expected (List, 3, nil)", k, size, err)
 	}
@@ -228,7 +230,6 @@ testfor:
 
 func TestStreamList(t *testing.T) {
 	s := NewStream(bytes.NewReader(unhex("C80102030405060708")), 0)
-
 	len, err := s.List()
 	if err != nil {
 		t.Fatalf("List error: %v", err)
@@ -236,9 +237,9 @@ func TestStreamList(t *testing.T) {
 	if len != 8 {
 		t.Fatalf("List returned invalid length, got %d, want 8", len)
 	}
-
 	for i := uint64(1); i <= 8; i++ {
 		v, err := s.Uint()
+		println("i: ", i, " v: ", v)
 		if err != nil {
 			t.Fatalf("Uint error: %v", err)
 		}
@@ -253,6 +254,32 @@ func TestStreamList(t *testing.T) {
 	if err = s.ListEnd(); err != nil {
 		t.Fatalf("ListEnd error: %v", err)
 	}
+}
+
+func TestStreamList2(t *testing.T) {
+	s := NewStream(bytes.NewReader(unhex("C90A1486666F6F626172")), 0)
+	len, err := s.List()
+	if err != nil {
+		t.Fatalf("List error: %v", err)
+	}
+	println("len: ", len)
+
+	for i := uint64(1); i <= 3; i++ {
+
+		size, err:= s.List()
+		s.Uint()
+		println("size: ", size)
+		if err != nil {
+			t.Fatalf("Uint error: %v", err)
+		}
+	}
+
+	/*if _, err := s.Uint(); err != EOL {
+		t.Errorf("Uint error mismatch, got %v, want %v", err, EOL)
+	}
+	if err = s.ListEnd(); err != nil {
+		t.Fatalf("ListEnd error: %v", err)
+	}*/
 }
 
 func TestStreamRaw(t *testing.T) {
@@ -275,6 +302,36 @@ func TestStreamRaw(t *testing.T) {
 
 		want := unhex(tt.output)
 		raw, err := s.Raw()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(want, raw) {
+			t.Errorf("test %d: raw mismatch: got %x, want %x", i, raw, want)
+		}
+	}
+}
+
+func TestStreamRaw2(t *testing.T) {
+	tests := []struct {
+		input  string
+		output string
+	}{
+		{
+			"C58401010101",
+			"8401010101",
+		},
+		{
+			"F842B84001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101",
+			"B84001010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101",
+		},
+	}
+	for i, tt := range tests {
+		s := NewStream(bytes.NewReader(unhex(tt.input)), 0)
+		s.List()
+
+		want := unhex(tt.output)
+		raw, err := s.Raw()
+		println("want: ", want, " raw ", raw)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -744,6 +801,7 @@ func ExampleStream() {
 
 	// Check what kind of value lies ahead
 	kind, size, _ := s.Kind()
+	//fmt.Println(kind)
 	fmt.Printf("Kind: %v size:%d\n", kind, size)
 
 	// Enter the list

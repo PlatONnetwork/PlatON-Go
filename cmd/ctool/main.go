@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"Platon-go/cmd/ctool/core"
-	"Platon-go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/ctool/core"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"gopkg.in/urfave/cli.v1"
 	"os"
 	"sort"

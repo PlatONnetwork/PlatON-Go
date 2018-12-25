@@ -2,7 +2,7 @@ package core
 
 import (
 	"fmt"
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"testing"
 )
 

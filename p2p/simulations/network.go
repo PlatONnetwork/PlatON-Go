@@ -24,11 +24,11 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/event"
-	"Platon-go/log"
-	"Platon-go/p2p"
-	"Platon-go/p2p/discover"
-	"Platon-go/p2p/simulations/adapters"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
 )
 
 var DialBanTimeout = 200 * time.Millisecond

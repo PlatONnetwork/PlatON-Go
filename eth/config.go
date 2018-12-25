@@ -17,7 +17,7 @@
 package eth
 
 import (
-	"Platon-go/node"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"fmt"
 	"math/big"
 	"os"
@@ -26,14 +26,14 @@ import (
 	"runtime"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core"
-	"Platon-go/eth/downloader"
-	"Platon-go/eth/gasprice"
-	"Platon-go/log"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -169,6 +169,7 @@ type CbftConfig struct {
 
 type PposConfig struct {
 	Candidate 				*CandidateConfig 			`json:"candidate"`
+	Ticket 					*TicketConfig 				`json:"ticket"`
 }
 
 type CandidateConfig struct {
@@ -179,6 +180,13 @@ type CandidateConfig struct {
 	// allow block interval for refunds
 	RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
 
+}
+// modify by platon
+type TicketConfig struct {
+	// Maximum number of ticket pool
+	MaxCount				uint64					`json:"maxCount"`
+	// Reach expired quantity
+	ExpireBlockNumber		uint64					`json:"expireBlockNumber"`
 }
 
 type configMarshaling struct {

@@ -29,9 +29,9 @@ import (
 	"strings"
 	"time"
 
-	"Platon-go/accounts"
-	"Platon-go/common"
-	"Platon-go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/pborman/uuid"
 )
 
