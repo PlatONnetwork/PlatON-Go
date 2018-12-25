@@ -569,7 +569,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 
 	cbft.rootIrreversible = current
 
-	txPool = txPool
+	cbft.txPool = txPool
 }
 
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.
