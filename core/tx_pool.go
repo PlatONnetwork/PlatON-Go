@@ -286,31 +286,8 @@ func (pool *TxPool) txExtBufferReadLoop() {
 	for {
 		txExt := <-pool.txExtBuffer
 
-		/*startTime := time.Now().UnixNano()
-
-		tx, single := txExt.tx.(*types.Transaction)
-		txs, multi := txExt.tx.([]*types.Transaction)
-		if single {
-			txCounter++
-		}
-		if multi {
-			txCounter = txCounter + len(txs)
-			for _, tx := range txs {
-				log.Debug("addTx to pending", "txHash", tx.Hash(), "txCounter", txCounter)
-			}
-		}*/
-
 		err := pool.addTxExt(txExt)
 		txExt.txErr <- err
-
-		/*if single {
-			log.Debug("addTx to pending response", "txHash", tx.Hash(), "txCounter", txCounter, "time", time.Now().UnixNano()-startTime)
-		}
-		if multi {
-			for _, tx := range txs {
-				log.Debug("addTx to pending response", "txHash", tx.Hash(), "txCounter", txCounter, "time", time.Now().UnixNano()-startTime)
-			}
-		}*/
 	}
 }
 
@@ -339,8 +316,7 @@ func (pool *TxPool) loop() {
 	// Keep waiting for and reacting to the various events
 	for {
 		select {
-		// Handle ChainHeadEvent
-
+		// Handle block
 		case block := <-pool.chainHeadCh:
 			if block != nil {
 				pool.mu.Lock()
@@ -352,6 +328,7 @@ func (pool *TxPool) loop() {
 
 				pool.mu.Unlock()
 			}
+
 		// Be unsubscribed due to system stopped
 		// modified by PlatON
 		//case <-pool.chainHeadSub.Err():
@@ -485,33 +462,35 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 				rem = pool.chain.GetBlock(oldHead.Hash(), oldHead.Number.Uint64())
 				add = pool.chain.GetBlock(newHead.Hash(), newHead.Number.Uint64())
 			)
-			for rem.NumberU64() > add.NumberU64() {
-				discarded = append(discarded, rem.Transactions()...)
-				if rem = pool.chain.GetBlock(rem.ParentHash(), rem.NumberU64()-1); rem == nil {
-					log.Error("Unrooted old chain seen by tx pool", "block", oldHead.Number, "hash", oldHead.Hash())
-					return
+			if rem != nil && add != nil {
+				for rem.NumberU64() > add.NumberU64() {
+					discarded = append(discarded, rem.Transactions()...)
+					if rem = pool.chain.GetBlock(rem.ParentHash(), rem.NumberU64()-1); rem == nil {
+						log.Error("Unrooted old chain seen by tx pool", "block", oldHead.Number, "hash", oldHead.Hash())
+						return
+					}
 				}
+				for add.NumberU64() > rem.NumberU64() {
+					included = append(included, add.Transactions()...)
+					if add = pool.chain.GetBlock(add.ParentHash(), add.NumberU64()-1); add == nil {
+						log.Error("Unrooted new chain seen by tx pool", "block", newHead.Number, "hash", newHead.Hash())
+						return
+					}
+				}
+				for rem.Hash() != add.Hash() {
+					discarded = append(discarded, rem.Transactions()...)
+					if rem = pool.chain.GetBlock(rem.ParentHash(), rem.NumberU64()-1); rem == nil {
+						log.Error("Unrooted old chain seen by tx pool", "block", oldHead.Number, "hash", oldHead.Hash())
+						return
+					}
+					included = append(included, add.Transactions()...)
+					if add = pool.chain.GetBlock(add.ParentHash(), add.NumberU64()-1); add == nil {
+						log.Error("Unrooted new chain seen by tx pool", "block", newHead.Number, "hash", newHead.Hash())
+						return
+					}
+				}
+				reinject = types.TxDifference(discarded, included)
 			}
-			for add.NumberU64() > rem.NumberU64() {
-				included = append(included, add.Transactions()...)
-				if add = pool.chain.GetBlock(add.ParentHash(), add.NumberU64()-1); add == nil {
-					log.Error("Unrooted new chain seen by tx pool", "block", newHead.Number, "hash", newHead.Hash())
-					return
-				}
-			}
-			for rem.Hash() != add.Hash() {
-				discarded = append(discarded, rem.Transactions()...)
-				if rem = pool.chain.GetBlock(rem.ParentHash(), rem.NumberU64()-1); rem == nil {
-					log.Error("Unrooted old chain seen by tx pool", "block", oldHead.Number, "hash", oldHead.Hash())
-					return
-				}
-				included = append(included, add.Transactions()...)
-				if add = pool.chain.GetBlock(add.ParentHash(), add.NumberU64()-1); add == nil {
-					log.Error("Unrooted new chain seen by tx pool", "block", newHead.Number, "hash", newHead.Hash())
-					return
-				}
-			}
-			reinject = types.TxDifference(discarded, included)
 		}
 	}
 	// Initialize the internal state to the current head
