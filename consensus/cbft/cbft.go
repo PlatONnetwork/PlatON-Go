@@ -249,7 +249,7 @@ func (cbft *Cbft) findChildren(parent *BlockExt) []*BlockExt {
 // saveBlockExt saves block in memory
 func (cbft *Cbft) saveBlockExt(hash common.Hash, ext *BlockExt) {
 	cbft.blockExtMap[hash] = ext
-	log.Debug("total blocks in memory", "totalBlocks", len(cbft.blockExtMap))
+	log.Debug("save block in memory", "hash", hash, "number", ext.number, "totalBlocks", len(cbft.blockExtMap))
 }
 
 // isAncestor checks if a block is another's ancestor
@@ -1123,6 +1123,7 @@ func (cbft *Cbft) cleanByTailoredTree(root *BlockExt) {
 	if len(root.children) > 0 {
 		for _, child := range root.children {
 			cbft.cleanByTailoredTree(child)
+			log.Debug("remove block in memory", "hash", root.block.Hash(), "number", root.block.NumberU64())
 			delete(cbft.blockExtMap, root.block.Hash())
 			delete(cbft.signedSet, root.block.NumberU64())
 		}
@@ -1136,6 +1137,7 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 	log.Trace("call cleanByNumber()", "upperLimit", upperLimit)
 	for hash, ext := range cbft.blockExtMap {
 		if ext.number < upperLimit {
+			log.Debug("remove block in memory", "hash", hash, "number", ext.number)
 			delete(cbft.blockExtMap, hash)
 		}
 	}
@@ -1265,10 +1267,9 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 //to sign the block, and store the sign to header.Extra[32:], send the sign to chanel to broadcast to other consensus nodes
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
+	log.Debug("call Seal()", "number", block.NumberU64(), "parentHash", block.ParentHash())
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
-
-	log.Debug("call Seal()", "number", block.NumberU64(), "parentHash", block.ParentHash())
 
 	header := block.Header()
 	number := block.NumberU64()
