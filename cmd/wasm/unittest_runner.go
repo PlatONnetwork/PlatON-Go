@@ -1,11 +1,11 @@
 package main
 
 import (
-	"Platon-go/common"
-	"Platon-go/core/vm"
-	"Platon-go/life/exec"
-	"Platon-go/life/resolver"
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/life/exec"
+	"github.com/PlatONnetwork/PlatON-Go/life/resolver"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
@@ -23,7 +23,11 @@ import (
 	"strings"
 )
 
-// 单元测试使用的runner, 主要负责测试Platonlib c++ 库，根据dir 扫描目录下wasm文件执行 wasm从main入口进入，根据--outdir创建db, 测试工具根据日志信息判断测试结果
+// The runner used in the unit test is mainly responsible for testing the Platonlib c++ library.
+// The wasm file is executed according to the dir scan directory.
+// The wasm is entered from the main entry.
+// The db is created according to --outdir.
+// The test tool judges the test result based on the log information.
 var (
 	resultReg = regexp.MustCompile(`([\d]+)\s+tests,\s+([\d]+)\s+assertions,\s+([\d]+)\s+failures`)
 
@@ -158,7 +162,7 @@ func runTest(code []byte, db *leveldb.DB, logStream *bytes.Buffer) error {
 		Log:      wasmLog,
 	}
 
-	// 获取执行器对象
+	// Get the executor object
 	vm, err := exec.NewVirtualMachine(code, context, newUnitTestResolver(db, logStream), nil)
 
 	entryID, ok := vm.GetFunctionExport("_Z4mainiPPc")

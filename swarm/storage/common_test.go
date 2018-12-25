@@ -29,8 +29,8 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/log"
-	ch "Platon-go/swarm/chunk"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	ch "github.com/PlatONnetwork/PlatON-Go/swarm/chunk"
 	colorable "github.com/mattn/go-colorable"
 )
 

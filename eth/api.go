@@ -28,17 +28,17 @@ import (
 	"strings"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/core"
-	"Platon-go/core/rawdb"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/internal/ethapi"
-	"Platon-go/params"
-	"Platon-go/rlp"
-	"Platon-go/rpc"
-	"Platon-go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
 
 // PublicEthereumAPI provides an API to access Ethereum full node-related

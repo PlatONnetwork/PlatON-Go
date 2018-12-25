@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // explorerDockerfile is the Dockerfile required to run a block explorer.
@@ -58,7 +58,7 @@ var explorerEthstats = `[
     {
       "NODE_ENV"        : "production",
       "RPC_HOST"        : "localhost",
-      "RPC_PORT"        : "8545",
+      "RPC_PORT"        : "6789",
       "LISTENING_PORT"  : "{{.Port}}",
       "INSTANCE_NAME"   : "{{.Name}}",
       "CONTACT_DETAILS" : "",

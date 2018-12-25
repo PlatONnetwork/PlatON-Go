@@ -1,9 +1,9 @@
 package cbft
 
 import (
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"math/big"
-	"Platon-go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 type roundCache map[uint64]map[common.Hash]*nodeCache

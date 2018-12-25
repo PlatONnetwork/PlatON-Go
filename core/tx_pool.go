@@ -25,14 +25,14 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/prque"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/event"
-	"Platon-go/log"
-	"Platon-go/metrics"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/prque"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -241,7 +241,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 		all:         newTxLookup(),
 		chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
 		gasPrice:    new(big.Int).SetUint64(config.PriceLimit),
-		txExtBuffer: make(chan *txExt, 1024),
+		txExtBuffer: make(chan *txExt, 64),
 	}
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
@@ -275,11 +275,11 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 }
 
 func (pool *TxPool) txExtBufferReadLoop() {
-	var txCounter int
+	//var txCounter int
 	for {
 		txExt := <-pool.txExtBuffer
 
-		startTime := time.Now().UnixNano()
+		/*startTime := time.Now().UnixNano()
 
 		tx, single := txExt.tx.(*types.Transaction)
 		txs, multi := txExt.tx.([]*types.Transaction)
@@ -291,19 +291,19 @@ func (pool *TxPool) txExtBufferReadLoop() {
 			for _, tx := range txs {
 				log.Debug("addTx to pending", "txHash", tx.Hash(), "txCounter", txCounter)
 			}
-		}
+		}*/
 
 		err := pool.addTxExt(txExt)
 		txExt.txErr <- err
 
-		if single {
+		/*if single {
 			log.Debug("addTx to pending response", "txHash", tx.Hash(), "txCounter", txCounter, "time", time.Now().UnixNano()-startTime)
 		}
 		if multi {
 			for _, tx := range txs {
 				log.Debug("addTx to pending response", "txHash", tx.Hash(), "txCounter", txCounter, "time", time.Now().UnixNano()-startTime)
 			}
-		}
+		}*/
 	}
 }
 
@@ -823,9 +823,9 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 
 	sendLocalTxCounter++
 
-	startTime := time.Now().UnixNano()
+	//startTime := time.Now().UnixNano()
 
-	log.Debug("AddLocal to txExtBuffer start ", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "timestamp", startTime)
+	//log.Debug("AddLocal to txExtBuffer start ", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "timestamp", startTime)
 
 	errCh := make(chan interface{})
 
@@ -833,12 +833,12 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 
 	pool.txExtBuffer <- txExt
 
-	endTime1 := time.Now().UnixNano()
-	log.Debug("AddLocal to txExtBuffer end", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "timestamp", endTime1, "duration", endTime1-startTime)
+	//endTime1 := time.Now().UnixNano()
+	//log.Debug("AddLocal to txExtBuffer end", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "timestamp", endTime1, "duration", endTime1-startTime)
 
 	err := <-errCh
-	endTime := time.Now().UnixNano()
-	log.Debug("AddLocal to txExtBuffer response", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "timestamp", endTime, "duration", endTime-endTime1)
+	//endTime := time.Now().UnixNano()
+	//log.Debug("AddLocal to txExtBuffer response", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "timestamp", endTime, "duration", endTime-endTime1)
 
 	if e, ok := err.(error); ok {
 		return e
@@ -855,7 +855,7 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 // apply.
 func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 	sendRemoteTxCounter++
-	startTime := time.Now().UnixNano()
+	//startTime := time.Now().UnixNano()
 
 	errCh := make(chan interface{})
 
@@ -863,12 +863,12 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 
 	pool.txExtBuffer <- txExt
 
-	endTime := time.Now().UnixNano()
-	log.Debug("AddRemote to txExtBuffer", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
+	//endTime := time.Now().UnixNano()
+	//log.Debug("AddRemote to txExtBuffer", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
 
 	err := <-errCh
 
-	log.Debug("AddRemote to txExtBuffer response", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
+	//log.Debug("AddRemote to txExtBuffer response", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
 
 	if e, ok := err.(error); ok {
 		return e
@@ -884,7 +884,7 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 // the local pricing constraints.
 func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 	sendLocalTxCounter = sendLocalTxCounter + len(txs)
-	startTime := time.Now().UnixNano()
+	//startTime := time.Now().UnixNano()
 
 	errCh := make(chan interface{})
 
@@ -892,12 +892,12 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 
 	pool.txExtBuffer <- txExt
 
-	endTime := time.Now().UnixNano()
-	log.Debug("AddLocals to txExtBuffer", "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
+	//endTime := time.Now().UnixNano()
+	//log.Debug("AddLocals to txExtBuffer", "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
 
 	err := <-errCh
 
-	log.Debug("AddLocals to txExtBuffer response", "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
+	//log.Debug("AddLocals to txExtBuffer response", "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
 
 	if e, ok := err.([]error); ok {
 		return e
@@ -911,7 +911,7 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	sendRemoteTxCounter = sendRemoteTxCounter + len(txs)
-	startTime := time.Now().UnixNano()
+	//startTime := time.Now().UnixNano()
 
 	errCh := make(chan interface{})
 
@@ -919,17 +919,17 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 
 	pool.txExtBuffer <- txExt
 
-	endTime := time.Now().UnixNano()
+	//endTime := time.Now().UnixNano()
 	//log.Debug("AddRemotes to txExtBuffer",  "addedTxCounter", addedTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
-	for _, tx := range txs {
+	/*for _, tx := range txs {
 		log.Debug("AddRemotes to txExtBuffer", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
-	}
+	}*/
 
 	err := <-errCh
 
-	for _, tx := range txs {
+	/*for _, tx := range txs {
 		log.Debug("AddRemotes to txExtBuffer response", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
-	}
+	}*/
 
 	if e, ok := err.([]error); ok {
 		return e

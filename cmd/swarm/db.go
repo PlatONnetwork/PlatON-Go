@@ -22,10 +22,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"Platon-go/cmd/utils"
-	"Platon-go/common"
-	"Platon-go/log"
-	"Platon-go/swarm/storage"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
 	"gopkg.in/urfave/cli.v1"
 )
 

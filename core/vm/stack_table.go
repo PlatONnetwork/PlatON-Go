@@ -19,7 +19,7 @@ package vm
 import (
 	"fmt"
 
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 func makeStackFunc(pop, push int) stackValidationFunc {

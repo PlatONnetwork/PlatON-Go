@@ -20,8 +20,8 @@ package rawdb
 import (
 	"encoding/binary"
 
-	"Platon-go/common"
-	"Platon-go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 )
 
 // The fields below define the low level database schema prefixing.
@@ -49,7 +49,6 @@ var (
 
 	blockBodyPrefix     = []byte("b") // blockBodyPrefix + num (uint64 big endian) + hash -> block body
 	blockReceiptsPrefix = []byte("r") // blockReceiptsPrefix + num (uint64 big endian) + hash -> block receipts
-	blockConfirmSignsPrefix = []byte("cs") // blockConfirmSignsPrefix + num (uint64 big endian) + hash
 
 	txLookupPrefix  = []byte("l") // txLookupPrefix + hash -> transaction/receipt lookup metadata
 	bloomBitsPrefix = []byte("B") // bloomBitsPrefix + bit (uint16 big endian) + section (uint64 big endian) + hash -> bloom bits
@@ -107,11 +106,6 @@ func blockBodyKey(number uint64, hash common.Hash) []byte {
 // blockReceiptsKey = blockReceiptsPrefix + num (uint64 big endian) + hash
 func blockReceiptsKey(number uint64, hash common.Hash) []byte {
 	return append(append(blockReceiptsPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
-}
-
-// blockConfirmSignsKey = blockConfirmSignsPrefix + num (uint64 big endian) + hash
-func blockConfirmSignsKey(number uint64, hash common.Hash) []byte {
-	return append(append(blockConfirmSignsPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
 }
 
 // txLookupKey = txLookupPrefix + hash

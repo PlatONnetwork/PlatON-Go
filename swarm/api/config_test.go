@@ -20,8 +20,8 @@ import (
 	"reflect"
 	"testing"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 func TestConfig(t *testing.T) {

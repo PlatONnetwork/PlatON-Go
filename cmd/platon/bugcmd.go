@@ -26,10 +26,10 @@ import (
 	"runtime"
 	"strings"
 
-	"Platon-go/cmd/internal/browser"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/internal/browser"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 
-	"Platon-go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	cli "gopkg.in/urfave/cli.v1"
 )
 

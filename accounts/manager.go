@@ -21,7 +21,7 @@ import (
 	"sort"
 	"sync"
 
-	"Platon-go/event"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 )
 
 // Manager is an overarching account manager that can communicate with various

@@ -19,7 +19,7 @@ package ethapi
 import (
 	"sync"
 
-	"Platon-go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 type AddrLocker struct {

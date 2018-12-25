@@ -27,11 +27,11 @@ import (
 	"sync"
 	"time"
 
-	"Platon-go/common/mclock"
-	"Platon-go/event"
-	"Platon-go/log"
-	"Platon-go/p2p/discover"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var (
@@ -248,7 +248,6 @@ func (p *Peer) pingLoop() {
 	for {
 		select {
 		case <-ping.C:
-			//modified by Joey
 			pingTime := strconv.FormatInt(time.Now().UnixNano(), 10)
 
 			if p.PingList.Len() > 5 {
@@ -257,7 +256,7 @@ func (p *Peer) pingLoop() {
 			}
 			p.PingList.PushBack(pingTime)
 
-			log.Debug("send a Ping message", "pingTimeNano", pingTime, "PingList.Len", p.PingList.Len())
+			log.Debug("send a Ping message", "peerID", p.ID(), "pingTimeNano", pingTime, "PingList.Len", p.PingList.Len())
 			if err := SendItems(p.rw, pingMsg, pingTime); err != nil {
 				p.protoErr <- err
 				return
@@ -269,7 +268,7 @@ func (p *Peer) pingLoop() {
 			}*/
 			ping.Reset(pingInterval)
 		case <-p.closed:
-			log.Debug("Ping loop closed")
+			log.Debug("Ping loop closed", "peerID", p.ID())
 			return
 		}
 	}

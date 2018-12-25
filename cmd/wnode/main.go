@@ -35,16 +35,16 @@ import (
 	"strings"
 	"time"
 
-	"Platon-go/cmd/utils"
-	"Platon-go/common"
-	"Platon-go/console"
-	"Platon-go/crypto"
-	"Platon-go/log"
-	"Platon-go/p2p"
-	"Platon-go/p2p/discover"
-	"Platon-go/p2p/nat"
-	"Platon-go/whisper/mailserver"
-	whisper "Platon-go/whisper/whisperv6"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/console"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
+	"github.com/PlatONnetwork/PlatON-Go/whisper/mailserver"
+	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -97,7 +97,7 @@ var (
 	argPoW       = flag.Float64("pow", whisper.DefaultMinimumPoW, "PoW for normal messages in float format (e.g. 2.7)")
 	argServerPoW = flag.Float64("mspow", whisper.DefaultMinimumPoW, "PoW requirement for Mail Server request")
 
-	argIP      = flag.String("ip", "", "IP address and port of this node (e.g. 127.0.0.1:30303)")
+	argIP      = flag.String("ip", "", "IP address and port of this node (e.g. 127.0.0.1:16789)")
 	argPub     = flag.String("pub", "", "public key for asymmetric encryption")
 	argDBPath  = flag.String("dbpath", "", "path to the server's DB directory")
 	argIDFile  = flag.String("idfile", "", "file name with node id (private key)")

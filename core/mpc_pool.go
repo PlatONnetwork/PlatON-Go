@@ -1,17 +1,17 @@
 package core
 
 import (
-	"Platon-go/common"
-	"Platon-go/common/math"
-	"Platon-go/core/state"
-	"Platon-go/core/types"
-	"Platon-go/core/vm"
-	"Platon-go/crypto"
-	"Platon-go/event"
-	"Platon-go/log"
-	"Platon-go/mpc"
-	"Platon-go/params"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/mpc"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -404,7 +404,7 @@ func (pool *MPCPool) enqueueTx(hash common.Hash, tx *types.TransactionWrap) (boo
 	return true, nil
 }
 
-// 写入文件
+// Write local file
 func (pool *MPCPool) journalTx(tx *types.TransactionWrap) {
 	if pool.journal == nil {
 		return

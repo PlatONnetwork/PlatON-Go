@@ -17,9 +17,10 @@
 package downloader
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"fmt"
 
-	"Platon-go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.
@@ -47,6 +48,7 @@ type bodyPack struct {
 	peerID       string
 	transactions [][]*types.Transaction
 	uncles       [][]*types.Header
+	signatures 	 [][]*common.BlockConfirmSign
 }
 
 func (p *bodyPack) PeerId() string { return p.peerID }

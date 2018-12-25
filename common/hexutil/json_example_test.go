@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"Platon-go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
 type MyType [5]byte

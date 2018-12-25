@@ -28,12 +28,12 @@ import (
 	"io"
 	"math/big"
 
-	"Platon-go/accounts"
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/core/types"
-	"Platon-go/log"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // ledgerOpcode is an enumeration encoding the supported Ledger opcodes.

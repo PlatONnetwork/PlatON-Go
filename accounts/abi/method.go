@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"Platon-go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 // Method represents a callable given a `Name` and whether the method is a constant.

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"Platon-go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // deployExplorer creates a new block explorer based on some user input.
@@ -50,7 +50,7 @@ func (w *wizard) deployExplorer() {
 	infos, err := checkExplorer(client, w.network)
 	if err != nil {
 		infos = &explorerInfos{
-			nodePort: 30303, webPort: 80, webHost: client.server,
+			nodePort: 16789, webPort: 80, webHost: client.server,
 		}
 	}
 	existed := err == nil

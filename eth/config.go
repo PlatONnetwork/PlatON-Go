@@ -17,7 +17,7 @@
 package eth
 
 import (
-	"Platon-go/node"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"fmt"
 	"math/big"
 	"os"
@@ -26,14 +26,14 @@ import (
 	"runtime"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/common/hexutil"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core"
-	"Platon-go/eth/downloader"
-	"Platon-go/eth/gasprice"
-	"Platon-go/log"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 const (
@@ -166,11 +166,11 @@ type CbftConfig struct {
 	Ppos 			*PposConfig 	`json:"ppos"`
 }
 
-// modify by platon
+
 type PposConfig struct {
 	Candidate 				*CandidateConfig 			`json:"candidate"`
 }
-// modify by platon
+
 type CandidateConfig struct {
 	// allow immediate elected max count
 	MaxCount				uint64					`json:"maxCount"`

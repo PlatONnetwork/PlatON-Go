@@ -6,7 +6,6 @@ import (
 	"errors"
 	"math"
 	"strconv"
-	"strings"
 )
 
 func BytesCombine(pBytes ...[]byte) []byte {
@@ -68,11 +67,6 @@ func BoolToBytes(b bool) []byte {
 	buf := bytes.NewBuffer([]byte{})
 	binary.Write(buf, binary.BigEndian, b)
 	return buf.Bytes()
-}
-
-func convertStringsToBytes(content []string) []byte {
-	byteContent := "\x00" + strings.Join(content, "\x02\x00")
-	return []byte(byteContent)
 }
 
 func BytesConverter(source []byte, t string) interface{} {

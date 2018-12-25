@@ -6,11 +6,11 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"Platon-go/metrics"
-	"Platon-go/swarm/api"
-	"Platon-go/swarm/log"
-	"Platon-go/swarm/sctx"
-	"Platon-go/swarm/spancontext"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/sctx"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/spancontext"
 	"github.com/pborman/uuid"
 )
 

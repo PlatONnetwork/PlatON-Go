@@ -23,10 +23,10 @@ import (
 	"io"
 	"sync"
 
-	"Platon-go/metrics"
-	ch "Platon-go/swarm/chunk"
-	"Platon-go/swarm/log"
-	"Platon-go/swarm/spancontext"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	ch "github.com/PlatONnetwork/PlatON-Go/swarm/chunk"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/spancontext"
 	opentracing "github.com/opentracing/opentracing-go"
 	olog "github.com/opentracing/opentracing-go/log"
 )

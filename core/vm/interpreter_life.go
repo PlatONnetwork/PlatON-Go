@@ -1,11 +1,11 @@
 package vm
 
 import (
-	"Platon-go/common"
-	"Platon-go/common/math"
-	"Platon-go/life/utils"
-	"Platon-go/log"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/life/utils"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -13,8 +13,8 @@ import (
 	"reflect"
 	"strings"
 
-	"Platon-go/life/exec"
-	"Platon-go/life/resolver"
+	"github.com/PlatONnetwork/PlatON-Go/life/exec"
+	"github.com/PlatONnetwork/PlatON-Go/life/resolver"
 )
 
 const (
@@ -63,7 +63,7 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 	defer func() {
 		if er := recover(); er != nil {
-			ret, err = nil, fmt.Errorf("VM execute fail")
+			ret, err = nil, fmt.Errorf("VM execute fail:%v", er)
 		}
 	}()
 	in.evm.depth++

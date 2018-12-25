@@ -1,15 +1,15 @@
 package cbfttypes
 
 import (
-	"Platon-go/common"
-	"Platon-go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"math/big"
 )
 
 // Block's Signature info
 type BlockSignature struct {
-	SignHash  common.Hash //签名hash，header[0:32]
-	Hash      common.Hash //块hash，header[:]
+	SignHash  common.Hash // Signature hash，header[0:32]
+	Hash      common.Hash // Block hash，header[:]
 	Number    *big.Int
 	Signature *common.BlockConfirmSign
 	ParentHash common.Hash

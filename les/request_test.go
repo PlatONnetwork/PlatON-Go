@@ -21,11 +21,11 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/core/rawdb"
-	"Platon-go/crypto"
-	"Platon-go/ethdb"
-	"Platon-go/light"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/light"
 )
 
 var testBankSecureTrieKey = secAddr(testBankAddress)

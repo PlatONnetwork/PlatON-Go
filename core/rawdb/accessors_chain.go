@@ -21,10 +21,10 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/log"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // ReadCanonicalHash retrieves the hash assigned to a canonical block number.
@@ -308,38 +308,38 @@ func WriteReceipts(db DatabaseWriter, hash common.Hash, number uint64, receipts 
 	}
 }
 
-// ReadBlockConfirmSigns retrieves all the block confirmSigns belonging to a block.
-func ReadBlockConfirmSigns(db DatabaseReader, hash common.Hash, number uint64) []*common.BlockConfirmSign {
-	data, _ := db.Get(blockConfirmSignsKey(number, hash))
-	if len(data) == 0 {
-		return nil
-	}
-	blockConfirmSigns := []*common.BlockConfirmSign{}
-	if err := rlp.DecodeBytes(data, &blockConfirmSigns); err != nil {
-		log.Error("Invalid block confirmSign array RLP", "hash", hash, "err", err)
-		return nil
-	}
-	return blockConfirmSigns
-}
-
-// WriteBlockConfirmSigns stores all the block confirmSigns belonging to a block.
-func WriteBlockConfirmSigns(db DatabaseWriter, hash common.Hash, number uint64, blockConfirmSigns []*common.BlockConfirmSign) {
-	bytes, err := rlp.EncodeToBytes(blockConfirmSigns)
-	if err != nil {
-		log.Crit("Failed to encode block confirmSigns", "err", err)
-	}
-	// Store the flattened receipt slice
-	if err := db.Put(blockConfirmSignsKey(number, hash), bytes); err != nil {
-		log.Crit("Failed to store block confirmSigns", "err", err)
-	}
-}
-
 // DeleteReceipts removes all receipt data associated with a block hash.
 func DeleteReceipts(db DatabaseDeleter, hash common.Hash, number uint64) {
 	if err := db.Delete(blockReceiptsKey(number, hash)); err != nil {
 		log.Crit("Failed to delete block receipts", "err", err)
 	}
 }
+
+// ReadBlockConfirmSigns retrieves all the block confirmSigns belonging to a block.
+//func ReadBlockConfirmSigns(db DatabaseReader, hash common.Hash, number uint64) []*common.BlockConfirmSign {
+//	data, _ := db.Get(blockConfirmSignsKey(number, hash))
+//	if len(data) == 0 {
+//		return nil
+//	}
+//	blockConfirmSigns := []*common.BlockConfirmSign{}
+//	if err := rlp.DecodeBytes(data, &blockConfirmSigns); err != nil {
+//		log.Error("Invalid block confirmSign array RLP", "hash", hash, "err", err)
+//		return nil
+//	}
+//	return blockConfirmSigns
+//}
+
+// WriteBlockConfirmSigns stores all the block confirmSigns belonging to a block.
+//func WriteBlockConfirmSigns(db DatabaseWriter, hash common.Hash, number uint64, blockConfirmSigns []*common.BlockConfirmSign) {
+//	bytes, err := rlp.EncodeToBytes(blockConfirmSigns)
+//	if err != nil {
+//		log.Crit("Failed to encode block confirmSigns", "err", err)
+//	}
+//	// Store the flattened receipt slice
+//	if err := db.Put(blockConfirmSignsKey(number, hash), bytes); err != nil {
+//		log.Crit("Failed to store block confirmSigns", "err", err)
+//	}
+//}
 
 // ReadBlock retrieves an entire block corresponding to the hash, assembling it
 // back from the stored header and body. If either the header or body could not
@@ -356,7 +356,7 @@ func ReadBlock(db DatabaseReader, hash common.Hash, number uint64) *types.Block 
 	if body == nil {
 		return nil
 	}
-	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles)
+	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles, body.Signatures)
 }
 
 // WriteBlock serializes a block into the database, header and body separately.

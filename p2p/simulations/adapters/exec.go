@@ -35,11 +35,11 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/reexec"
-	"Platon-go/log"
-	"Platon-go/node"
-	"Platon-go/p2p"
-	"Platon-go/p2p/discover"
-	"Platon-go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"golang.org/x/net/websocket"
 )
 

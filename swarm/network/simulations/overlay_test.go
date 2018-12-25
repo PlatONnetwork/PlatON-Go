@@ -26,9 +26,9 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/p2p/discover"
-	"Platon-go/p2p/simulations"
-	"Platon-go/swarm/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations"
+	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
 )
 
 var (

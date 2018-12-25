@@ -24,9 +24,9 @@ import (
 	"net"
 	"time"
 
-	"Platon-go/log"
-	"Platon-go/p2p/discover"
-	"Platon-go/p2p/netutil"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
 )
 
 const (

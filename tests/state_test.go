@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	"Platon-go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 )
 
 func TestState(t *testing.T) {

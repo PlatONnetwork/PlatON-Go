@@ -1,8 +1,8 @@
 package log
 
 import (
-	l "Platon-go/log"
-	"Platon-go/metrics"
+	l "github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/metrics"
 )
 
 const (

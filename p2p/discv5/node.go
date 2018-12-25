@@ -30,8 +30,8 @@ import (
 	"strconv"
 	"strings"
 
-	"Platon-go/common"
-	"Platon-go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 )
 
 // Node represents a host on the network.
@@ -144,7 +144,7 @@ var incompleteNodeURL = regexp.MustCompile("(?i)^(?:enode://)?([0-9a-f]+)$")
 // query parameter "discport".
 //
 // In the following example, the node URL describes
-// a node with IP address 10.3.58.6, TCP listening port 30303
+// a node with IP address 10.3.58.6, TCP listening port 16789
 // and UDP discovery port 30301.
 //
 //    enode://<hex node id>@10.3.58.6:30303?discport=30301

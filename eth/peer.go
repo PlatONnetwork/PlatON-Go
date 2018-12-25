@@ -17,18 +17,18 @@
 package eth
 
 import (
-	"Platon-go/core/cbfttypes"
-	"Platon-go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"errors"
 	"fmt"
 	"math/big"
 	"sync"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/core/types"
-	"Platon-go/p2p"
-	"Platon-go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	mapset "github.com/deckarep/golang-set"
 )
 
@@ -124,12 +124,6 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 func (p *peer) broadcast() {
 	for {
 		select {
-		case txs := <-p.queuedTxs:
-			if err := p.SendTransactions(txs); err != nil {
-				return
-			}
-			p.Log().Trace("Broadcast transactions", "count", len(txs))
-
 		case prop := <-p.queuedProps:
 			if err := p.SendNewBlock(prop.block, prop.td); err != nil {
 				return
@@ -159,6 +153,19 @@ func (p *peer) broadcast() {
 			return
 		}
 	}
+
+	go func() {
+		select {
+		case txs := <-p.queuedTxs:
+			if err := p.SendTransactions(txs); err != nil {
+				return
+			}
+			p.Log().Trace("Broadcast transactions", "count", len(txs))
+
+		case <-p.term:
+			return
+		}
+	}()
 }
 
 // close signals the broadcast goroutine to terminate.
@@ -587,8 +594,8 @@ type preBlockEvent struct {
 }
 
 type signatureEvent struct {
-	SignHash  common.Hash //签名hash，header[0:32]
-	Hash      common.Hash //块hash，header[:]
+	SignHash  common.Hash // Signature hash，header[0:32]
+	Hash      common.Hash // Block hash，header[:]
 	Number    *big.Int
 	Signature *common.BlockConfirmSign
 }

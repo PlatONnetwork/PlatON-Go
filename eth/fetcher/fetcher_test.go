@@ -24,13 +24,13 @@ import (
 	"testing"
 	"time"
 
-	"Platon-go/common"
-	"Platon-go/consensus/ethash"
-	"Platon-go/core"
-	"Platon-go/core/types"
-	"Platon-go/crypto"
-	"Platon-go/ethdb"
-	"Platon-go/params"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 var (
@@ -192,7 +192,7 @@ func (f *fetcherTester) makeBodyFetcher(peer string, blocks map[common.Hash]*typ
 			}
 		}
 		// Return on a new thread
-		go f.fetcher.FilterBodies(peer, transactions, uncles, time.Now().Add(drift))
+		go f.fetcher.FilterBodies(peer, transactions, uncles, nil, time.Now().Add(drift))
 
 		return nil
 	}
