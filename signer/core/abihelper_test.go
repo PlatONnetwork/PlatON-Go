@@ -25,8 +25,8 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/accounts/abi"
+	"Platon-go/common"
 )
 
 func verify(t *testing.T, jsondata, calldata string, exp []interface{}) {

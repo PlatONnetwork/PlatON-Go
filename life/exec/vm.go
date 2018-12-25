@@ -1,15 +1,15 @@
 package exec
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/log"
 	"encoding/binary"
 	"fmt"
 	"math"
 	"math/bits"
 
-	"github.com/PlatONnetwork/PlatON-Go/life/compiler"
-	"github.com/PlatONnetwork/PlatON-Go/life/compiler/opcodes"
-	"github.com/PlatONnetwork/PlatON-Go/life/utils"
+	"Platon-go/life/compiler"
+	"Platon-go/life/compiler/opcodes"
+	"Platon-go/life/utils"
 
 	"github.com/go-interpreter/wagon/wasm"
 )

@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"Platon-go/common"
+	"Platon-go/crypto"
 )
 
 var seed int64

@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
+	"Platon-go/common/mclock"
 )
 
 const rcConst = 1000000

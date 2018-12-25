@@ -23,17 +23,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/protocols"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/network"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/network/stream/intervals"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/pot"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/state"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
+	"Platon-go/metrics"
+	"Platon-go/p2p"
+	"Platon-go/p2p/discover"
+	"Platon-go/p2p/protocols"
+	"Platon-go/rpc"
+	"Platon-go/swarm/log"
+	"Platon-go/swarm/network"
+	"Platon-go/swarm/network/stream/intervals"
+	"Platon-go/swarm/pot"
+	"Platon-go/swarm/state"
+	"Platon-go/swarm/storage"
 )
 
 const (

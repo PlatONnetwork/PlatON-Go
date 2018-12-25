@@ -17,15 +17,15 @@
 package clique
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"Platon-go/consensus"
 	"bytes"
 	"encoding/json"
 	"sort"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/ethdb"
+	"Platon-go/params"
 	lru "github.com/hashicorp/golang-lru"
 )
 

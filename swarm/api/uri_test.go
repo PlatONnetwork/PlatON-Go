@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
+	"Platon-go/swarm/storage"
 )
 
 func TestParseURI(t *testing.T) {

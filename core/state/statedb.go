@@ -18,19 +18,19 @@
 package state
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"Platon-go/crypto/sha3"
 	"bytes"
 	"fmt"
 	"math/big"
 	"sort"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/crypto"
+	"Platon-go/log"
+	"Platon-go/rlp"
+	"Platon-go/trie"
 )
 
 type revision struct {

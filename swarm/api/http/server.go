@@ -36,12 +36,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mru"
+	"Platon-go/common"
+	"Platon-go/metrics"
+	"Platon-go/swarm/api"
+	"Platon-go/swarm/log"
+	"Platon-go/swarm/storage"
+	"Platon-go/swarm/storage/mru"
 
 	"github.com/rs/cors"
 )

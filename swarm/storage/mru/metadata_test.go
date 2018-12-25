@@ -18,7 +18,7 @@ package mru
 import (
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"Platon-go/common/hexutil"
 )
 
 func compareByteSliceToExpectedHex(t *testing.T, variableName string, actualValue []byte, expectedHex string) {

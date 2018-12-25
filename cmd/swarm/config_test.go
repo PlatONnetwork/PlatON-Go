@@ -26,9 +26,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/PlatONnetwork/PlatON-Go/swarm"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
+	"Platon-go/rpc"
+	"Platon-go/swarm"
+	"Platon-go/swarm/api"
 
 	"github.com/docker/docker/pkg/reexec"
 )

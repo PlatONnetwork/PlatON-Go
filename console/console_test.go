@@ -26,12 +26,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
-	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
-	"github.com/PlatONnetwork/PlatON-Go/node"
+	"Platon-go/common"
+	"Platon-go/consensus/ethash"
+	"Platon-go/core"
+	"Platon-go/eth"
+	"Platon-go/internal/jsre"
+	"Platon-go/node"
 )
 
 const (

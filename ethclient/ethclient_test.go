@@ -16,7 +16,7 @@
 
 package ethclient
 
-import "github.com/PlatONnetwork/PlatON-Go"
+import "Platon-go"
 
 // Verify that Client implements the ethereum interfaces.
 var (

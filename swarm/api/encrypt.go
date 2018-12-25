@@ -20,8 +20,8 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/encryption"
+	"Platon-go/crypto/sha3"
+	"Platon-go/swarm/storage/encryption"
 )
 
 type RefEncryption struct {

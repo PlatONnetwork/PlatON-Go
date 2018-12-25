@@ -19,7 +19,7 @@ package mem
 import (
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mock/test"
+	"Platon-go/swarm/storage/mock/test"
 )
 
 // TestGlobalStore is running test for a GlobalStore

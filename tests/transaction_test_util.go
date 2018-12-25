@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/common/math"
+	"Platon-go/core/types"
+	"Platon-go/params"
+	"Platon-go/rlp"
 )
 
 // TransactionTest checks RLP decoding and sender derivation of transactions.

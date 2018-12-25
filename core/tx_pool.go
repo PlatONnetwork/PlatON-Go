@@ -25,14 +25,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/prque"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/common/prque"
+	"Platon-go/core/state"
+	"Platon-go/core/types"
+	"Platon-go/event"
+	"Platon-go/log"
+	"Platon-go/metrics"
+	"Platon-go/params"
 )
 
 const (

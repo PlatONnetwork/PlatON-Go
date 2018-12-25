@@ -30,10 +30,10 @@ import (
 	"testing/quick"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/crypto"
+	"Platon-go/ethdb"
+	"Platon-go/rlp"
 )
 
 func init() {

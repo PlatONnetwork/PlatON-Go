@@ -17,7 +17,7 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/log"
 	"bytes"
 	"encoding/hex"
 	"fmt"
@@ -25,10 +25,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/common/math"
+	"Platon-go/core/types"
 )
 
 // Storage represents a contract's storage.

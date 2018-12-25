@@ -1,11 +1,11 @@
 package consensus
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/crypto"
+	"Platon-go/crypto/sha3"
+	"Platon-go/rlp"
 	"errors"
 	"github.com/hashicorp/golang-lru"
 )

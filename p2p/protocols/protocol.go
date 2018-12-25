@@ -38,12 +38,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/spancontext"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/tracing"
+	"Platon-go/log"
+	"Platon-go/metrics"
+	"Platon-go/p2p"
+	"Platon-go/rlp"
+	"Platon-go/swarm/spancontext"
+	"Platon-go/swarm/tracing"
 	opentracing "github.com/opentracing/opentracing-go"
 )
 

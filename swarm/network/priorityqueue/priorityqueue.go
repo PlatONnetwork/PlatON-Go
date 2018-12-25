@@ -29,7 +29,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/log"
 )
 
 var (

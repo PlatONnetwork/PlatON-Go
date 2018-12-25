@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/consensus/ethash"
+	"Platon-go/core/types"
+	"Platon-go/core/vm"
+	"Platon-go/crypto"
+	"Platon-go/ethdb"
+	"Platon-go/params"
 )
 
 func ExampleGenerateChain() {

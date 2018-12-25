@@ -19,8 +19,8 @@ package vm
 import (
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"Platon-go/common"
+	"Platon-go/common/math"
 )
 
 // calculates the memory size required for a step

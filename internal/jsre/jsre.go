@@ -26,8 +26,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/internal/jsre/deps"
+	"Platon-go/common"
+	"Platon-go/internal/jsre/deps"
 	"github.com/robertkrimen/otto"
 )
 

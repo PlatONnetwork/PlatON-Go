@@ -17,8 +17,8 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"Platon-go/consensus/cbft"
+	"Platon-go/p2p/discover"
 	"bytes"
 	"errors"
 	"math/big"
@@ -26,17 +26,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/consensus"
+	"Platon-go/consensus/misc"
+	"Platon-go/core"
+	"Platon-go/core/cbfttypes"
+	"Platon-go/core/state"
+	"Platon-go/core/types"
+	"Platon-go/core/vm"
+	"Platon-go/event"
+	"Platon-go/log"
+	"Platon-go/params"
 	"github.com/deckarep/golang-set"
 )
 

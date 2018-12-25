@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"Platon-go/common/hexutil"
+	"Platon-go/common/math"
 )
 
 var _ = (*stTransactionMarshaling)(nil)

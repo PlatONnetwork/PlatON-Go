@@ -17,8 +17,8 @@
 package params
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"Platon-go/common"
+	"Platon-go/p2p/discover"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"

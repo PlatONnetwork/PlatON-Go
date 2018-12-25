@@ -1,12 +1,12 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"Platon-go/common"
+	"Platon-go/consensus"
+	"Platon-go/consensus/cbft"
+	"Platon-go/core/state"
+	"Platon-go/log"
+	"Platon-go/p2p/discover"
 	"errors"
 	"math/big"
 )

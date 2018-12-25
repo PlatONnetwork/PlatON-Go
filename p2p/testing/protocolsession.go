@@ -22,10 +22,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
+	"Platon-go/log"
+	"Platon-go/p2p"
+	"Platon-go/p2p/discover"
+	"Platon-go/p2p/simulations/adapters"
 )
 
 var errTimedOut = errors.New("timed out")

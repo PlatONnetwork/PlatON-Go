@@ -22,7 +22,7 @@ package geth
 import (
 	"errors"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
+	"Platon-go/p2p/discv5"
 )
 
 // Enode represents a host on the network.

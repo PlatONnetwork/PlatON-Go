@@ -26,11 +26,11 @@ import (
 	"strconv"
 
 	"github.com/docker/docker/pkg/reexec"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"Platon-go/crypto"
+	"Platon-go/node"
+	"Platon-go/p2p"
+	"Platon-go/p2p/discover"
+	"Platon-go/rpc"
 )
 
 // Node represents a node in a simulation network which is created by a

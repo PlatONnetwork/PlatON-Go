@@ -21,9 +21,9 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"Platon-go"
+	"Platon-go/common"
+	"Platon-go/core/types"
 )
 
 var (

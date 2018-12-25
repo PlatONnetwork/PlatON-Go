@@ -21,11 +21,11 @@ import (
 	"errors"
 	"math"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/consensus/ethash"
+	"Platon-go/core"
+	"Platon-go/params"
 )
 
 // cppEthereumGenesisSpec represents the genesis specification format used by the

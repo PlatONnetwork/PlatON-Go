@@ -25,10 +25,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"Platon-go/crypto"
+	"Platon-go/crypto/sha3"
+	"Platon-go/log"
+	"Platon-go/p2p/discover"
 )
 
 func init() {

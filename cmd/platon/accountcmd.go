@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/console"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/accounts"
+	"Platon-go/accounts/keystore"
+	"Platon-go/cmd/utils"
+	"Platon-go/console"
+	"Platon-go/crypto"
+	"Platon-go/log"
 	"gopkg.in/urfave/cli.v1"
 )
 

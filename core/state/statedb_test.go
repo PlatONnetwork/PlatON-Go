@@ -30,9 +30,9 @@ import (
 
 	"gopkg.in/check.v1"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/ethdb"
 )
 
 // Tests that updating a state trie does not leak any database writes prior to

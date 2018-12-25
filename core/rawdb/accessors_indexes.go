@@ -17,10 +17,10 @@
 package rawdb
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/log"
+	"Platon-go/rlp"
 )
 
 // ReadTxLookupEntry retrieves the positional metadata associated with a transaction

@@ -1,9 +1,9 @@
 package cbft
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/core/types"
+	"Platon-go/p2p/discover"
+	"Platon-go/params"
 	"math/big"
 	"testing"
 )

@@ -21,9 +21,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/encryption"
+	"Platon-go/swarm/storage/encryption"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 )
 
 func TestHasherStore(t *testing.T) {

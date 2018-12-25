@@ -21,11 +21,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/crypto/sha3"
+	"Platon-go/ethdb"
+	"Platon-go/rlp"
 )
 
 // Tests block header storage and retrieval operations.

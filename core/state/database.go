@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"Platon-go/common"
+	"Platon-go/ethdb"
+	"Platon-go/trie"
 	lru "github.com/hashicorp/golang-lru"
 )
 

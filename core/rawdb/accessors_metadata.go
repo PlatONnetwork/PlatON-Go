@@ -19,10 +19,10 @@ package rawdb
 import (
 	"encoding/json"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/log"
+	"Platon-go/params"
+	"Platon-go/rlp"
 )
 
 // ReadDatabaseVersion retrieves the version number of the database.

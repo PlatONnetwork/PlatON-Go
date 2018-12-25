@@ -19,8 +19,8 @@ package les
 import (
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"Platon-go/common"
+	"Platon-go/core/types"
 )
 
 type ltrInfo struct {

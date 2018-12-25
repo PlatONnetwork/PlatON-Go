@@ -24,13 +24,13 @@ import (
 	"net"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/common/mclock"
+	"Platon-go/crypto"
+	"Platon-go/crypto/sha3"
+	"Platon-go/log"
+	"Platon-go/p2p/netutil"
+	"Platon-go/rlp"
 )
 
 var (

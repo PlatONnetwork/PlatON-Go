@@ -21,10 +21,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
-	swarm "github.com/PlatONnetwork/PlatON-Go/swarm/api/client"
+	"Platon-go/cmd/utils"
+	"Platon-go/log"
+	"Platon-go/swarm/api"
+	swarm "Platon-go/swarm/api/client"
 	"gopkg.in/urfave/cli.v1"
 )
 

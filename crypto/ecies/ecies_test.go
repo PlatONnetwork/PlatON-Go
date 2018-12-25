@@ -40,7 +40,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"Platon-go/crypto"
 )
 
 var dumpEnc bool

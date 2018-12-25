@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"Platon-go/core/types"
 	"container/heap"
 )
 

@@ -21,11 +21,11 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"Platon-go/p2p/discover"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/network"
+	"Platon-go/common"
+	"Platon-go/log"
+	"Platon-go/swarm/network"
 )
 
 // BucketKeyKademlia is the key to be used for storing the kademlia

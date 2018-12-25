@@ -26,8 +26,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
-	"github.com/PlatONnetwork/PlatON-Go/light"
+	"Platon-go/common/mclock"
+	"Platon-go/light"
 )
 
 var (

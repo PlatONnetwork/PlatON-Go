@@ -19,10 +19,10 @@ package core
 import (
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/consensus"
+	"Platon-go/core/state"
+	"Platon-go/core/types"
+	"Platon-go/params"
 )
 
 // BlockValidator is responsible for validating block headers, uncles and

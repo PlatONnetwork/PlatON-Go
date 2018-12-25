@@ -26,8 +26,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
 )
 
 var testAddrHex = "970e8128ab834e8eac17ab8e3812f010678cf791"

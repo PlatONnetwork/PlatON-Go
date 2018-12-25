@@ -21,9 +21,9 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"Platon-go/common"
+	"Platon-go/core/state"
+	"Platon-go/ethdb"
 )
 
 var dumper = spew.ConfigState{Indent: "    "}

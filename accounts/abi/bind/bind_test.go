@@ -26,7 +26,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 	"golang.org/x/tools/imports"
 )
 

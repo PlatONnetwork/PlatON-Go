@@ -19,7 +19,7 @@ package state
 import (
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 )
 
 type account struct {

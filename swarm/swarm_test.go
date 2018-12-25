@@ -28,10 +28,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
+	"Platon-go/common"
+	"Platon-go/crypto"
+	"Platon-go/rpc"
+	"Platon-go/swarm/api"
 )
 
 // TestNewSwarm validates Swarm fields in repsect to the provided configuration.

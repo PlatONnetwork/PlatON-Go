@@ -26,10 +26,10 @@ package rpc
 import (
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mock"
+	"Platon-go/common"
+	"Platon-go/rpc"
+	"Platon-go/swarm/log"
+	"Platon-go/swarm/storage/mock"
 )
 
 // GlobalStore is rpc.Client that connects to a centralized mock store.

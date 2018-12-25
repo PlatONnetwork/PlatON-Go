@@ -20,8 +20,8 @@ package rawdb
 import (
 	"encoding/binary"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"Platon-go/common"
+	"Platon-go/metrics"
 )
 
 // The fields below define the low level database schema prefixing.

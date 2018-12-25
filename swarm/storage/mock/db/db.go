@@ -27,8 +27,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mock"
+	"Platon-go/common"
+	"Platon-go/swarm/storage/mock"
 )
 
 // GlobalStore contains the LevelDB database that is storing

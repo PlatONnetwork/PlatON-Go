@@ -20,7 +20,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/params"
 )
 
 func TestTransaction(t *testing.T) {

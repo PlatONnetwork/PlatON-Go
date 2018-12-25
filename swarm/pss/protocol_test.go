@@ -25,10 +25,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"Platon-go/common"
+	"Platon-go/p2p"
+	"Platon-go/p2p/discover"
+	"Platon-go/swarm/log"
 )
 
 type protoCtrl struct {

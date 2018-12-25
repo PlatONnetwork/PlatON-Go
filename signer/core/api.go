@@ -25,15 +25,15 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/usbwallet"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/accounts"
+	"Platon-go/accounts/keystore"
+	"Platon-go/accounts/usbwallet"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/crypto"
+	"Platon-go/internal/ethapi"
+	"Platon-go/log"
+	"Platon-go/rlp"
 )
 
 // ExternalAPI defines the external API through which signing requests are made.

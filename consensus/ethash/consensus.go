@@ -25,15 +25,15 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/common/math"
+	"Platon-go/consensus"
+	"Platon-go/consensus/misc"
+	"Platon-go/core/state"
+	"Platon-go/core/types"
+	"Platon-go/crypto/sha3"
+	"Platon-go/params"
+	"Platon-go/rlp"
 )
 
 // Ethash proof-of-work protocol constants.

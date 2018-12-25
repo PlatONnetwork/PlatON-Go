@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/log"
 )
 
 // deployEthstats queries the user for various input on deploying an ethstats

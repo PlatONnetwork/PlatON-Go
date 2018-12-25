@@ -28,9 +28,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/PlatONnetwork/PlatON-Go/internal/jsre"
-	"github.com/PlatONnetwork/PlatON-Go/internal/web3ext"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"Platon-go/internal/jsre"
+	"Platon-go/internal/web3ext"
+	"Platon-go/rpc"
 	"github.com/mattn/go-colorable"
 	"github.com/peterh/liner"
 	"github.com/robertkrimen/otto"

@@ -9,8 +9,8 @@ import (
 	"github.com/go-interpreter/wagon/disasm"
 	"github.com/go-interpreter/wagon/wasm"
 	//"github.com/go-interpreter/wagon/validate"
-	"github.com/PlatONnetwork/PlatON-Go/life/compiler/opcodes"
-	"github.com/PlatONnetwork/PlatON-Go/life/utils"
+	"Platon-go/life/compiler/opcodes"
+	"Platon-go/life/utils"
 	"github.com/go-interpreter/wagon/wasm/leb128"
 )
 

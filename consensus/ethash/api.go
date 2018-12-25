@@ -19,9 +19,9 @@ package ethash
 import (
 	"errors"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/core/types"
 )
 
 var errEthashStopped = errors.New("ethash stopped")

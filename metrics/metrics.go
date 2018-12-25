@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/log"
 )
 
 // Enabled is checked by the constructor functions for all of the

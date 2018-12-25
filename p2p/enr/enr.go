@@ -34,7 +34,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/rlp"
 )
 
 const SizeLimit = 300 // maximum encoded size of a node record in bytes

@@ -28,7 +28,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 )
 
 // In this test, nodes try to randomly resolve each other.

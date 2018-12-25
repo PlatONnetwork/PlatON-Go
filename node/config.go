@@ -25,15 +25,15 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/usbwallet"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"Platon-go/accounts"
+	"Platon-go/accounts/keystore"
+	"Platon-go/accounts/usbwallet"
+	"Platon-go/common"
+	"Platon-go/crypto"
+	"Platon-go/log"
+	"Platon-go/p2p"
+	"Platon-go/p2p/discover"
+	"Platon-go/rpc"
 )
 
 const (

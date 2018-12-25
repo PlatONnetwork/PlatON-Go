@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/life/exec"
+	"Platon-go/life/exec"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"

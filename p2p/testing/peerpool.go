@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"Platon-go/log"
+	"Platon-go/p2p/discover"
 )
 
 type TestPeer interface {

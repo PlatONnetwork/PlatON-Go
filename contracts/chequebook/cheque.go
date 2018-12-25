@@ -36,14 +36,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/contracts/chequebook/contract"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/services/swap/swap"
+	"Platon-go/accounts/abi/bind"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/contracts/chequebook/contract"
+	"Platon-go/core/types"
+	"Platon-go/crypto"
+	"Platon-go/log"
+	"Platon-go/swarm/services/swap/swap"
 )
 
 // TODO(zelig): watch peer solvency and notify of bouncing cheques

@@ -19,7 +19,7 @@ package rpc
 import (
 	"net"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/log"
 )
 
 // StartHTTPEndpoint starts the HTTP RPC endpoint, configured with cors/vhosts/modules

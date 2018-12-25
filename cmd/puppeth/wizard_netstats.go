@@ -23,8 +23,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/core"
+	"Platon-go/log"
 	"github.com/olekukonko/tablewriter"
 )
 

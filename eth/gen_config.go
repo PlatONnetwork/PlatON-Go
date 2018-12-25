@@ -6,12 +6,12 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/consensus/ethash"
+	"Platon-go/core"
+	"Platon-go/eth/downloader"
+	"Platon-go/eth/gasprice"
 )
 
 var _ = (*configMarshaling)(nil)

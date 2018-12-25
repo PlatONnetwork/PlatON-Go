@@ -25,8 +25,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"Platon-go/accounts"
+	"Platon-go/crypto"
 	"github.com/pborman/uuid"
 	"golang.org/x/crypto/pbkdf2"
 )

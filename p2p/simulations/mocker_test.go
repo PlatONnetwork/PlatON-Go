@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"Platon-go/p2p/discover"
 )
 
 func TestMocker(t *testing.T) {

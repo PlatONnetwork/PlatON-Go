@@ -22,9 +22,9 @@ import (
 	"math/big"
 	"reflect"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts/abi"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"Platon-go/accounts/abi"
+	"Platon-go/common"
+	"Platon-go/crypto"
 )
 
 // makeTopics converts a filter query argument list into a filter topic set.

@@ -20,8 +20,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
+	"Platon-go/node"
+	"Platon-go/p2p/simulations/adapters"
 )
 
 // TestServiceBucket tests all bucket functionalities using subtests.

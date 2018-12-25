@@ -21,7 +21,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 )
 
 // precompiledTest defines the input/output pairs for precompiled contract tests.

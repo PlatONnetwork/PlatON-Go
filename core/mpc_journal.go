@@ -4,9 +4,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/core/types"
+	"Platon-go/log"
+	"Platon-go/rlp"
 )
 
 // devNull is a WriteCloser that just discards anything written into it. Its

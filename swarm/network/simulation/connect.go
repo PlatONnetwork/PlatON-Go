@@ -19,7 +19,7 @@ package simulation
 import (
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"Platon-go/p2p/discover"
 )
 
 // ConnectToPivotNode connects the node with provided NodeID

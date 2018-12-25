@@ -1,16 +1,16 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/rlp"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+	"Platon-go/common/byteutil"
 	//"math/big"
 	"reflect"
 	"testing"

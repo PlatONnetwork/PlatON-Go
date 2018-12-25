@@ -17,18 +17,18 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"Platon-go/core/cbfttypes"
+	"Platon-go/p2p/discover"
 	"errors"
 	"fmt"
 	"math/big"
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/p2p"
+	"Platon-go/rlp"
 	mapset "github.com/deckarep/golang-set"
 )
 

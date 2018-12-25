@@ -23,11 +23,11 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"Platon-go/common"
+	"Platon-go/core"
+	"Platon-go/core/rawdb"
+	"Platon-go/core/types"
+	"Platon-go/ethdb"
 )
 
 // NoOdr is the default context passed to an ODR capable function when the ODR

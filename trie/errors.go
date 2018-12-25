@@ -19,7 +19,7 @@ package trie
 import (
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 )
 
 // MissingNodeError is returned by the trie functions (TryGet, TryUpdate, TryDelete)

@@ -1,9 +1,9 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/life/utils"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/life/utils"
+	"Platon-go/rlp"
 	"bytes"
 	"encoding/binary"
 	"fmt"

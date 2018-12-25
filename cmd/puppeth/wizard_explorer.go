@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/log"
 )
 
 // deployExplorer creates a new block explorer based on some user input.

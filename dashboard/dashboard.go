@@ -35,11 +35,11 @@ import (
 	"io"
 
 	"github.com/elastic/gosigar"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"Platon-go/log"
+	"Platon-go/metrics"
+	"Platon-go/p2p"
+	"Platon-go/params"
+	"Platon-go/rpc"
 	"github.com/mohae/deepcopy"
 	"golang.org/x/net/websocket"
 )

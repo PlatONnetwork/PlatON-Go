@@ -25,15 +25,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/tests"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/common/math"
+	"Platon-go/core"
+	"Platon-go/core/types"
+	"Platon-go/core/vm"
+	"Platon-go/ethdb"
+	"Platon-go/rlp"
+	"Platon-go/tests"
 )
 
 // To generate a new callTracer test, copy paste the makeTest method below into

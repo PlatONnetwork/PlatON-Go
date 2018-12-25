@@ -17,7 +17,7 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/node"
+	"Platon-go/node"
 	"fmt"
 	"math/big"
 	"os"
@@ -26,14 +26,14 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/consensus/ethash"
+	"Platon-go/core"
+	"Platon-go/eth/downloader"
+	"Platon-go/eth/gasprice"
+	"Platon-go/log"
+	"Platon-go/params"
 )
 
 const (

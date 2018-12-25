@@ -27,8 +27,8 @@ import (
 	"io/ioutil"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mock"
+	"Platon-go/common"
+	"Platon-go/swarm/storage/mock"
 )
 
 // GlobalStore stores all chunk data and also keys and node addresses relations.

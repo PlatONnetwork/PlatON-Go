@@ -27,11 +27,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/sctx"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/log"
+	"Platon-go/swarm/sctx"
+	"Platon-go/swarm/storage"
 )
 
 func init() {

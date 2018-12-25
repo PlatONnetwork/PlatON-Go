@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/params"
 )
 
 // Forks table defines supported forks and their chain config.

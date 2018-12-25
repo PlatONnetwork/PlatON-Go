@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
+	"Platon-go/common"
+	"Platon-go/common/mclock"
 )
 
 func TestTopicRadius(t *testing.T) {

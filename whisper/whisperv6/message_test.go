@@ -23,9 +23,9 @@ import (
 	mrand "math/rand"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common/hexutil"
+	"Platon-go/crypto"
+	"Platon-go/rlp"
 )
 
 func generateMessageParams() (*MessageParams, error) {

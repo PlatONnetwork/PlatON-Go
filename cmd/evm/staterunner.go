@@ -23,10 +23,10 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/tests"
+	"Platon-go/core/state"
+	"Platon-go/core/vm"
+	"Platon-go/log"
+	"Platon-go/tests"
 
 	cli "gopkg.in/urfave/cli.v1"
 )

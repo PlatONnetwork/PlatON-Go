@@ -20,11 +20,11 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/crypto"
+	"Platon-go/ethdb"
+	"Platon-go/log"
+	"Platon-go/rlp"
 )
 
 // Prove constructs a merkle proof for key. The result contains all encoded nodes

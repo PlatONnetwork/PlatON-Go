@@ -17,9 +17,9 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/common/math"
+	"Platon-go/params"
 )
 
 // memoryGasCosts calculates the quadratic gas for memory expansion. It does so

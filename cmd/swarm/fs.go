@@ -23,10 +23,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/fuse"
+	"Platon-go/cmd/utils"
+	"Platon-go/node"
+	"Platon-go/rpc"
+	"Platon-go/swarm/fuse"
 	"gopkg.in/urfave/cli.v1"
 )
 

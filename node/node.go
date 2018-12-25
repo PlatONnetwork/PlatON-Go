@@ -17,13 +17,13 @@
 package node
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"Platon-go/accounts"
+	"Platon-go/ethdb"
+	"Platon-go/event"
+	"Platon-go/internal/debug"
+	"Platon-go/log"
+	"Platon-go/p2p"
+	"Platon-go/rpc"
 	"errors"
 	"fmt"
 	"github.com/prometheus/prometheus/util/flock"

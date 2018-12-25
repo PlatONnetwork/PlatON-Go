@@ -20,9 +20,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/light"
+	"Platon-go/core/rawdb"
+	"Platon-go/eth/downloader"
+	"Platon-go/light"
 )
 
 // syncer is responsible for periodically synchronising with the network, both

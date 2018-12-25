@@ -2,8 +2,8 @@ package types
 
 import (
 	"math/big"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/p2p/discover"
+	"Platon-go/common"
 )
 
 // candiate info

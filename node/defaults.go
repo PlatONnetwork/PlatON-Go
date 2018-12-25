@@ -22,9 +22,9 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/nat"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"Platon-go/p2p"
+	"Platon-go/p2p/nat"
+	"Platon-go/rpc"
 )
 
 const (

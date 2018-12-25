@@ -20,8 +20,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"Platon-go/common"
+	"Platon-go/ethdb"
 )
 
 // makeTestTrie create a sample test trie to test node-wise reconstruction.

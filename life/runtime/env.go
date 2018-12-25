@@ -1,9 +1,9 @@
 package runtime
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"Platon-go/common"
+	"Platon-go/core"
+	"Platon-go/core/vm"
 )
 
 // create env for wasmvm

@@ -1,9 +1,9 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/params"
 	"encoding/hex"
 	"fmt"
 	"math/big"

@@ -21,8 +21,8 @@ package geth
 import (
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethclient"
+	"Platon-go/core/types"
+	"Platon-go/ethclient"
 )
 
 // EthereumClient provides access to the Ethereum APIs.

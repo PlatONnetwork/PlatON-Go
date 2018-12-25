@@ -25,11 +25,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/prque"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"Platon-go/common"
+	"Platon-go/common/prque"
+	"Platon-go/core/types"
+	"Platon-go/log"
+	"Platon-go/metrics"
 )
 
 var (

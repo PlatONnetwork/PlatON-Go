@@ -20,9 +20,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"Platon-go/common"
+	"Platon-go/rlp"
+	"Platon-go/trie"
 )
 
 type DumpAccount struct {

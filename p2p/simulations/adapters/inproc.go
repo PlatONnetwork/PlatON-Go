@@ -23,13 +23,13 @@ import (
 	"net"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/pipes"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"Platon-go/event"
+	"Platon-go/log"
+	"Platon-go/node"
+	"Platon-go/p2p"
+	"Platon-go/p2p/discover"
+	"Platon-go/p2p/simulations/pipes"
+	"Platon-go/rpc"
 )
 
 // SimAdapter is a NodeAdapter which creates in-memory simulation nodes and

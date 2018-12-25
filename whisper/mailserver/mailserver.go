@@ -20,11 +20,11 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
+	"Platon-go/common"
+	"Platon-go/crypto"
+	"Platon-go/log"
+	"Platon-go/rlp"
+	whisper "Platon-go/whisper/whisperv6"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )

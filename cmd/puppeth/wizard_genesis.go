@@ -17,8 +17,8 @@
 package main
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"Platon-go/crypto"
+	"Platon-go/p2p/discover"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -27,10 +27,10 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/core"
+	"Platon-go/log"
+	"Platon-go/params"
 )
 
 // makeGenesis creates a new genesis struct based on some user input.

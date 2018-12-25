@@ -23,8 +23,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
-	swarm "github.com/PlatONnetwork/PlatON-Go/swarm/api/client"
+	"Platon-go/swarm/api"
+	swarm "Platon-go/swarm/api/client"
 )
 
 // TestManifestChange tests manifest add, update and remove

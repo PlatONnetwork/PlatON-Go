@@ -23,10 +23,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
-	p2ptest "github.com/PlatONnetwork/PlatON-Go/p2p/testing"
+	"Platon-go/p2p"
+	"Platon-go/p2p/discover"
+	"Platon-go/p2p/simulations/adapters"
+	p2ptest "Platon-go/p2p/testing"
 )
 
 // handshake message type

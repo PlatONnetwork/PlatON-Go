@@ -22,13 +22,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
-	"github.com/PlatONnetwork/PlatON-Go/signer/core"
-	"github.com/PlatONnetwork/PlatON-Go/signer/storage"
+	"Platon-go/accounts"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/core/types"
+	"Platon-go/internal/ethapi"
+	"Platon-go/signer/core"
+	"Platon-go/signer/storage"
 )
 
 const JS = `

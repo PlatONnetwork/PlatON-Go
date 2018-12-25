@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/log"
 )
 
 // dashboardContent is the actual dashboard HTML content to serve up when users

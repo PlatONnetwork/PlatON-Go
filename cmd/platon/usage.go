@@ -24,8 +24,8 @@ import (
 
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
+	"Platon-go/cmd/utils"
+	"Platon-go/internal/debug"
 	"gopkg.in/urfave/cli.v1"
 )
 

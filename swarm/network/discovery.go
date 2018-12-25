@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/swarm/pot"
+	"Platon-go/swarm/pot"
 )
 
 // discovery bzz extension for requesting and relaying node address records

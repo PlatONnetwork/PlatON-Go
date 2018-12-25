@@ -20,7 +20,7 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"Platon-go/crypto"
 	"golang.org/x/crypto/pbkdf2"
 )
 

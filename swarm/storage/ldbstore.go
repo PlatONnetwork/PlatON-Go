@@ -35,11 +35,11 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	ch "github.com/PlatONnetwork/PlatON-Go/swarm/chunk"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mock"
+	"Platon-go/metrics"
+	"Platon-go/rlp"
+	ch "Platon-go/swarm/chunk"
+	"Platon-go/swarm/log"
+	"Platon-go/swarm/storage/mock"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )

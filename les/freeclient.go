@@ -23,11 +23,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
-	"github.com/PlatONnetwork/PlatON-Go/common/prque"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common/mclock"
+	"Platon-go/common/prque"
+	"Platon-go/ethdb"
+	"Platon-go/log"
+	"Platon-go/rlp"
 )
 
 // freeClientPool implements a client database that limits the connection time

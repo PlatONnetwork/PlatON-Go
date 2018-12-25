@@ -1,11 +1,11 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/life/utils"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/common/math"
+	"Platon-go/life/utils"
+	"Platon-go/log"
+	"Platon-go/rlp"
 	"bytes"
 	"encoding/binary"
 	"fmt"
@@ -13,8 +13,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/life/exec"
-	"github.com/PlatONnetwork/PlatON-Go/life/resolver"
+	"Platon-go/life/exec"
+	"Platon-go/life/resolver"
 )
 
 const (

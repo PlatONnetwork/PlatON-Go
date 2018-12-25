@@ -19,7 +19,7 @@ package network
 import (
 	"testing"
 
-	p2ptest "github.com/PlatONnetwork/PlatON-Go/p2p/testing"
+	p2ptest "Platon-go/p2p/testing"
 )
 
 /***

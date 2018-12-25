@@ -25,9 +25,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
+	"Platon-go/common"
+	"Platon-go/crypto"
+	whisper "Platon-go/whisper/whisperv6"
 )
 
 const powRequirement = 0.00001

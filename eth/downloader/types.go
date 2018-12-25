@@ -17,10 +17,10 @@
 package downloader
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"Platon-go/core/types"
 )
 
 // peerDropFn is a callback type for dropping a peer detected as malicious.

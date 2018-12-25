@@ -25,7 +25,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"Platon-go/ethdb"
 )
 
 func newTestLDB() (*ethdb.LDBDatabase, func()) {

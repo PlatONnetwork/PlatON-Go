@@ -20,9 +20,9 @@ import (
 	"bytes"
 	"hash"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
+	"Platon-go/common"
+	"Platon-go/crypto"
+	"Platon-go/swarm/storage"
 )
 
 // SignedResourceUpdate represents a resource update with all the necessary information to prove ownership of the resource

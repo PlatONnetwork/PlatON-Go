@@ -25,7 +25,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/log"
 )
 
 const (

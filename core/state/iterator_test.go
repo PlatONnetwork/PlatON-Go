@@ -20,8 +20,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"Platon-go/common"
+	"Platon-go/ethdb"
 )
 
 // Tests that the node iterator indeed walks over the entire database contents.

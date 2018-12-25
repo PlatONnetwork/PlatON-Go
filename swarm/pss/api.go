@@ -21,11 +21,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"Platon-go/common/hexutil"
+	"Platon-go/crypto"
+	"Platon-go/p2p"
+	"Platon-go/rpc"
+	"Platon-go/swarm/log"
 )
 
 // Wrapper for receiving pss messages when using the pss API

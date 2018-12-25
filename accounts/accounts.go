@@ -20,10 +20,10 @@ package accounts
 import (
 	"math/big"
 
-	ethereum "github.com/PlatONnetwork/PlatON-Go"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/event"
+	ethereum "Platon-go"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/event"
 )
 
 // Account represents an Ethereum account located at a specific location defined

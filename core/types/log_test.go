@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
 )
 
 var unmarshalLogTests = map[string]struct {

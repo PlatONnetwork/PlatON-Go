@@ -22,12 +22,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/network"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/network/simulation"
+	"Platon-go/log"
+	"Platon-go/node"
+	"Platon-go/p2p"
+	"Platon-go/p2p/simulations/adapters"
+	"Platon-go/swarm/network"
+	"Platon-go/swarm/network/simulation"
 )
 
 // Every node can have a Kademlia associated using the node bucket under

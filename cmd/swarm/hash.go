@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
+	"Platon-go/cmd/utils"
+	"Platon-go/swarm/storage"
 	"gopkg.in/urfave/cli.v1"
 )
 

@@ -7,10 +7,10 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/common/math"
+	"Platon-go/params"
 )
 
 var _ = (*genesisSpecMarshaling)(nil)

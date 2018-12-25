@@ -25,7 +25,7 @@ import (
 
 	"golang.org/x/net/html"
 
-	"github.com/PlatONnetwork/PlatON-Go/swarm/testutil"
+	"Platon-go/swarm/testutil"
 )
 
 func TestError(t *testing.T) {

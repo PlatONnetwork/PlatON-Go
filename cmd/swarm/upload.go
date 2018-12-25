@@ -30,8 +30,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	swarm "github.com/PlatONnetwork/PlatON-Go/swarm/api/client"
+	"Platon-go/cmd/utils"
+	swarm "Platon-go/swarm/api/client"
 	"gopkg.in/urfave/cli.v1"
 )
 

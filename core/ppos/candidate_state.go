@@ -1,14 +1,14 @@
 package pposm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/core/state"
+	"Platon-go/core/types"
+	"Platon-go/core/vm"
+	"Platon-go/log"
+	"Platon-go/p2p/discover"
+	"Platon-go/params"
+	"Platon-go/rlp"
 	"encoding/json"
 	"errors"
 	_ "fmt"

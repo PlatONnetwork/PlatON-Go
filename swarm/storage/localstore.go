@@ -21,9 +21,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mock"
+	"Platon-go/metrics"
+	"Platon-go/swarm/log"
+	"Platon-go/swarm/storage/mock"
 )
 
 type LocalStoreParams struct {

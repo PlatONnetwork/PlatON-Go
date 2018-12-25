@@ -30,7 +30,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/log"
 	"github.com/pborman/uuid"
 
 	cli "gopkg.in/urfave/cli.v1"

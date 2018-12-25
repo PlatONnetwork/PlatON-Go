@@ -28,14 +28,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/network/simulation"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
+	"Platon-go/crypto"
+	"Platon-go/log"
+	"Platon-go/node"
+	"Platon-go/p2p/discover"
+	"Platon-go/p2p/simulations/adapters"
+	"Platon-go/swarm/api"
+	"Platon-go/swarm/network/simulation"
+	"Platon-go/swarm/storage"
 	colorable "github.com/mattn/go-colorable"
 )
 

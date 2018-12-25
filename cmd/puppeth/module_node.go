@@ -26,8 +26,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/common"
+	"Platon-go/log"
 )
 
 // nodeDockerfile is the Dockerfile required to run an Ethereum node.

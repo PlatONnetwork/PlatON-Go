@@ -27,13 +27,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common/mclock"
+	"Platon-go/ethdb"
+	"Platon-go/log"
+	"Platon-go/p2p"
+	"Platon-go/p2p/discover"
+	"Platon-go/p2p/discv5"
+	"Platon-go/rlp"
 )
 
 const (

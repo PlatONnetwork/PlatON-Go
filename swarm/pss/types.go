@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
-	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv5"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/p2p"
+	"Platon-go/rlp"
+	"Platon-go/swarm/storage"
+	whisper "Platon-go/whisper/whisperv5"
 )
 
 const (

@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/docker/docker/pkg/reexec"
-	"github.com/PlatONnetwork/PlatON-Go/internal/cmdtest"
+	"Platon-go/internal/cmdtest"
 )
 
 func tmpdir(t *testing.T) string {

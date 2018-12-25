@@ -17,9 +17,9 @@
 package simulation
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
+	"Platon-go/node"
+	"Platon-go/p2p/discover"
+	"Platon-go/p2p/simulations/adapters"
 )
 
 // Service returns a single Service by name on a particular node

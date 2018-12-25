@@ -19,8 +19,8 @@ package runtime_test
 import (
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm/runtime"
+	"Platon-go/common"
+	"Platon-go/core/vm/runtime"
 )
 
 func ExampleExecute() {

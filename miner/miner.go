@@ -18,22 +18,22 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"Platon-go/consensus/cbft"
+	"Platon-go/core/cbfttypes"
 	"fmt"
 	"math/big"
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/consensus"
+	"Platon-go/core"
+	"Platon-go/core/state"
+	"Platon-go/core/types"
+	"Platon-go/eth/downloader"
+	"Platon-go/event"
+	"Platon-go/log"
+	"Platon-go/params"
 )
 
 // Backend wraps all methods required for mining.

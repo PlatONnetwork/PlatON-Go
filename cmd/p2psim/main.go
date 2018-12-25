@@ -45,12 +45,12 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"Platon-go/crypto"
+	"Platon-go/p2p"
+	"Platon-go/p2p/discover"
+	"Platon-go/p2p/simulations"
+	"Platon-go/p2p/simulations/adapters"
+	"Platon-go/rpc"
 	"gopkg.in/urfave/cli.v1"
 )
 

@@ -19,10 +19,10 @@ package metrics
 import (
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	gethmetrics "github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/metrics/influxdb"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"Platon-go/cmd/utils"
+	gethmetrics "Platon-go/metrics"
+	"Platon-go/metrics/influxdb"
+	"Platon-go/swarm/log"
 	"gopkg.in/urfave/cli.v1"
 )
 

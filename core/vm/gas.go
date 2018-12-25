@@ -19,7 +19,7 @@ package vm
 import (
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/params"
 )
 
 // Gas costs

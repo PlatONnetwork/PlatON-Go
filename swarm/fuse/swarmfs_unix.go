@@ -30,9 +30,9 @@ import (
 
 	"bazil.org/fuse"
 	"bazil.org/fuse/fs"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"Platon-go/common"
+	"Platon-go/swarm/api"
+	"Platon-go/swarm/log"
 )
 
 var (

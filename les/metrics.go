@@ -17,8 +17,8 @@
 package les
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"Platon-go/metrics"
+	"Platon-go/p2p"
 )
 
 var (

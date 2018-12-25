@@ -28,8 +28,8 @@ import (
 	"testing/quick"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"Platon-go/common"
+	"Platon-go/crypto"
 )
 
 func TestTable_pingReplace(t *testing.T) {

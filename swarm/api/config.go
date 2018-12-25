@@ -23,16 +23,16 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/contracts/ens"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/network"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/pss"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/services/swap"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
+	"Platon-go/common"
+	"Platon-go/contracts/ens"
+	"Platon-go/crypto"
+	"Platon-go/node"
+	"Platon-go/p2p/discover"
+	"Platon-go/swarm/log"
+	"Platon-go/swarm/network"
+	"Platon-go/swarm/pss"
+	"Platon-go/swarm/services/swap"
+	"Platon-go/swarm/storage"
 )
 
 const (

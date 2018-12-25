@@ -23,7 +23,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mock/test"
+	"Platon-go/swarm/storage/mock/test"
 )
 
 // TestDBStore is running a test.MockStore tests

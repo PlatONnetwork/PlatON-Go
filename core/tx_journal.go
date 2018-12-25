@@ -21,10 +21,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/log"
+	"Platon-go/rlp"
 )
 
 // errNoActiveJournal is returned if a transaction is attempted to be inserted

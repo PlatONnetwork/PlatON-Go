@@ -23,13 +23,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/consensus/ethash"
+	"Platon-go/core"
+	"Platon-go/core/types"
+	"Platon-go/core/vm"
+	"Platon-go/ethdb"
+	"Platon-go/params"
 )
 
 type testTxRelay struct {

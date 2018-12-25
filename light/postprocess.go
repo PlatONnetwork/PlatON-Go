@@ -24,16 +24,16 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/bitutil"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"Platon-go/common"
+	"Platon-go/common/bitutil"
+	"Platon-go/core"
+	"Platon-go/core/rawdb"
+	"Platon-go/core/types"
+	"Platon-go/ethdb"
+	"Platon-go/log"
+	"Platon-go/params"
+	"Platon-go/rlp"
+	"Platon-go/trie"
 )
 
 // IndexerConfig includes a set of configs for chain indexers.

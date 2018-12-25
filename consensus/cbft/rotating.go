@@ -1,7 +1,7 @@
 package cbft
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 )
 
 type rotating struct {

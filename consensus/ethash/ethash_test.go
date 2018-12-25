@@ -25,9 +25,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"Platon-go/common"
+	"Platon-go/common/hexutil"
+	"Platon-go/core/types"
 )
 
 // Tests that ethash works correctly in test mode.

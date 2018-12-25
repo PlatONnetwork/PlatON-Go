@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/log"
 )
 
 // explorerDockerfile is the Dockerfile required to run a block explorer.

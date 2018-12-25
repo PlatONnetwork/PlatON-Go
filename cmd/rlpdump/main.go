@@ -26,7 +26,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/rlp"
 )
 
 var (

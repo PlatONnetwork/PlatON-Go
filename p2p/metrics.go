@@ -21,7 +21,7 @@ package p2p
 import (
 	"net"
 
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"Platon-go/metrics"
 )
 
 var (

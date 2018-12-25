@@ -24,10 +24,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/protocols"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"Platon-go/p2p"
+	"Platon-go/p2p/protocols"
+	"Platon-go/rlp"
+	"Platon-go/swarm/log"
 )
 
 const (

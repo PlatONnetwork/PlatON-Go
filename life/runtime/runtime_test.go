@@ -1,9 +1,9 @@
 package runtime
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/life/utils"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common/math"
+	"Platon-go/life/utils"
+	"Platon-go/rlp"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"Platon-go/common"
+	"Platon-go/core/state"
+	"Platon-go/ethdb"
 )
 
 func TestDefaults(t *testing.T) {

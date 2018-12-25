@@ -23,9 +23,9 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/crypto"
+	"Platon-go/rlp"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)

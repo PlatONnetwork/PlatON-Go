@@ -1,7 +1,7 @@
 package exec
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 	"math/big"
 )
 

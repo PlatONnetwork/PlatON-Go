@@ -26,13 +26,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"Platon-go/common"
+	"Platon-go/consensus"
+	"Platon-go/core/rawdb"
+	"Platon-go/core/types"
+	"Platon-go/ethdb"
+	"Platon-go/log"
+	"Platon-go/params"
 	"github.com/hashicorp/golang-lru"
 )
 

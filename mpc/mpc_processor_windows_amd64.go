@@ -31,8 +31,8 @@ extern int notify_security_calculation(const char* taskid, const char* pubkey, c
 //import "C"
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/common"
+	"Platon-go/log"
 	"fmt"
 	"unsafe"
 )

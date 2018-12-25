@@ -17,7 +17,7 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/PlatONnetwork/PlatON-Go/life/exec"
+	"Platon-go/life/exec"
 )
 
 type uint128 struct {

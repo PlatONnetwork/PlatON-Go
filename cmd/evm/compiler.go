@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/evm/internal/compiler"
+	"Platon-go/cmd/evm/internal/compiler"
 
 	cli "gopkg.in/urfave/cli.v1"
 )

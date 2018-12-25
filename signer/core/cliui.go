@@ -25,9 +25,9 @@ import (
 	"sync"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/internal/ethapi"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/common"
+	"Platon-go/internal/ethapi"
+	"Platon-go/log"
 	"golang.org/x/crypto/ssh/terminal"
 )
 

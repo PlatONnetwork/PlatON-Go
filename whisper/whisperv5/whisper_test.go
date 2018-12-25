@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 )
 
 func TestWhisperBasic(t *testing.T) {

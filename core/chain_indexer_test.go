@@ -24,10 +24,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"Platon-go/common"
+	"Platon-go/core/rawdb"
+	"Platon-go/core/types"
+	"Platon-go/ethdb"
 )
 
 // Runs multiple tests with randomized parameters.

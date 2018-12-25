@@ -25,7 +25,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"Platon-go/crypto/sha3"
 )
 
 /*

@@ -25,13 +25,13 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/api"
-	swarmhttp "github.com/PlatONnetwork/PlatON-Go/swarm/api/http"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/multihash"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mru"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/testutil"
+	"Platon-go/common"
+	"Platon-go/crypto"
+	"Platon-go/swarm/api"
+	swarmhttp "Platon-go/swarm/api/http"
+	"Platon-go/swarm/multihash"
+	"Platon-go/swarm/storage/mru"
+	"Platon-go/swarm/testutil"
 )
 
 func serverFunc(api *api.API) testutil.TestServer {

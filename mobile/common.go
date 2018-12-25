@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 )
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.

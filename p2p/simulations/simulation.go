@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"Platon-go/p2p/discover"
 )
 
 // Simulation provides a framework for running actions in a simulated network

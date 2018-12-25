@@ -21,11 +21,11 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/core"
+	"Platon-go/core/types"
+	"Platon-go/event"
+	"Platon-go/rlp"
 )
 
 // Constants to match up protocol versions and messages

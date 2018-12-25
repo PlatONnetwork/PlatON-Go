@@ -26,12 +26,12 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common"
+	"Platon-go/core"
+	"Platon-go/core/rawdb"
+	"Platon-go/crypto"
+	"Platon-go/crypto/secp256k1"
+	"Platon-go/rlp"
 )
 
 // Constants to match up protocol versions and messages

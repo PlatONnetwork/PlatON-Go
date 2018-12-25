@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
+	"Platon-go/swarm/log"
 )
 
 /*
@@ -29,8 +29,8 @@ see https://github.com/ethereum/go-ethereum/issues/2040
 Usage:
 
 import (
- "github.com/PlatONnetwork/PlatON-Go/common/httpclient"
- "github.com/PlatONnetwork/PlatON-Go/swarm/api/http"
+ "Platon-go/common/httpclient"
+ "Platon-go/swarm/api/http"
 )
 client := httpclient.New()
 // for (private) swarm proxy running locally

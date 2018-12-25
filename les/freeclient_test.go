@@ -24,8 +24,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"Platon-go/common/mclock"
+	"Platon-go/ethdb"
 )
 
 func TestFreeClientPoolL10C100(t *testing.T) {

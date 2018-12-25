@@ -27,7 +27,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"Platon-go/common/math"
 	"gopkg.in/urfave/cli.v1"
 )
 

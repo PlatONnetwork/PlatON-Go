@@ -24,9 +24,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/simulations/adapters"
+	"Platon-go/log"
+	"Platon-go/p2p/discover"
+	"Platon-go/p2p/simulations/adapters"
 )
 
 //a map of mocker names to its function

@@ -25,9 +25,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/PlatONnetwork/PlatON-Go/swarm/chunk"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
+	"Platon-go/swarm/chunk"
+	"Platon-go/swarm/log"
+	"Platon-go/swarm/storage"
 )
 
 type Handler struct {

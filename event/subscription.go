@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
+	"Platon-go/common/mclock"
 )
 
 // Subscription represents a stream of events. The carrier of the events is typically a

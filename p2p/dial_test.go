@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/netutil"
+	"Platon-go/p2p/discover"
+	"Platon-go/p2p/netutil"
 )
 
 func init() {

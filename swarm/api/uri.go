@@ -22,8 +22,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage"
+	"Platon-go/common"
+	"Platon-go/swarm/storage"
 )
 
 //matches hex swarm hashes

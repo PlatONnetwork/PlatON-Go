@@ -22,8 +22,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"Platon-go/common/math"
+	"Platon-go/core/vm"
 )
 
 // Compiler contains information about the parsed source

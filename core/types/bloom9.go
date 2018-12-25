@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"Platon-go/common/hexutil"
+	"Platon-go/crypto"
 )
 
 type bytesBacked interface {

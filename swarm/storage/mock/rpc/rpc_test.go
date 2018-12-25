@@ -19,9 +19,9 @@ package rpc
 import (
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mock/mem"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mock/test"
+	"Platon-go/rpc"
+	"Platon-go/swarm/storage/mock/mem"
+	"Platon-go/swarm/storage/mock/test"
 )
 
 // TestDBStore is running test for a GlobalStore

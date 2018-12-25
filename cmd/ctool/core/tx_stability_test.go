@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	configPath = "D:\\resource\\platon\\github.com/PlatONnetwork/PlatON-Go\\src\\github.com\\PlatONnetwork\\github.com/PlatONnetwork/PlatON-Go\\cmd\\ctool\\config.json"
+	configPath = "D:\\resource\\platon\\Platon-go\\src\\github.com\\PlatONnetwork\\Platon-go\\cmd\\ctool\\config.json"
 	pkFilePath = "../test/privateKeys.txt"
 )
 

@@ -23,7 +23,7 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 )
 
 func TestMultipleTopicCopyInNewMessageFilter(t *testing.T) {

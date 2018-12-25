@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	"Platon-go/common"
+	"Platon-go/crypto"
+	"Platon-go/log"
 )
 
 // Filter represents a Whisper message filter

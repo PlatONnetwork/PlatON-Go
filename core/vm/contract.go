@@ -19,7 +19,7 @@ package vm
 import (
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 )
 
 // ContractRef is a reference to the contract's backing object

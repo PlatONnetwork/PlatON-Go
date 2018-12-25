@@ -29,7 +29,7 @@ import (
 	"net"
 	"sort"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	"Platon-go/common"
 )
 
 const (

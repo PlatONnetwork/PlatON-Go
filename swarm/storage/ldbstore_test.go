@@ -25,10 +25,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	ch "github.com/PlatONnetwork/PlatON-Go/swarm/chunk"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/storage/mock/mem"
+	"Platon-go/common"
+	ch "Platon-go/swarm/chunk"
+	"Platon-go/swarm/log"
+	"Platon-go/swarm/storage/mock/mem"
 
 	ldberrors "github.com/syndtr/goleveldb/leveldb/errors"
 )

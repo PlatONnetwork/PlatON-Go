@@ -19,8 +19,8 @@ package miner
 import (
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"Platon-go/common"
+	"Platon-go/core/types"
 )
 
 // noopChainRetriever is an implementation of headerRetriever that always

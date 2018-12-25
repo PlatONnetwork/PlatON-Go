@@ -19,9 +19,9 @@ package types
 import (
 	"bytes"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"Platon-go/common"
+	"Platon-go/rlp"
+	"Platon-go/trie"
 )
 
 type DerivableList interface {

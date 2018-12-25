@@ -20,8 +20,8 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"Platon-go/core/types"
+	"Platon-go/crypto"
 )
 
 // Tests that transactions can be added to strict lists and list contents and

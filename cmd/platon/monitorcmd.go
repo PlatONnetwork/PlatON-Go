@@ -25,9 +25,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"Platon-go/cmd/utils"
+	"Platon-go/node"
+	"Platon-go/rpc"
 	"github.com/gizak/termui"
 	"gopkg.in/urfave/cli.v1"
 )

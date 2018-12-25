@@ -23,9 +23,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/swarm/pot"
+	"Platon-go/common"
+	"Platon-go/log"
+	"Platon-go/swarm/pot"
 )
 
 func init() {

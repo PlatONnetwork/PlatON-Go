@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
+	"Platon-go/cmd/utils"
 	"gopkg.in/urfave/cli.v1"
 )
 

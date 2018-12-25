@@ -21,7 +21,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth/tracers/internal/tracers"
+	"Platon-go/eth/tracers/internal/tracers"
 )
 
 // all contains all the built in JavaScript tracers by name.

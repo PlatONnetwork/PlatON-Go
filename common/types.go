@@ -26,8 +26,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"Platon-go/common/hexutil"
+	"Platon-go/crypto/sha3"
 )
 
 // Lengths of hashes and addresses in bytes.

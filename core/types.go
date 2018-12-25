@@ -17,9 +17,9 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"Platon-go/core/state"
+	"Platon-go/core/types"
+	"Platon-go/core/vm"
 )
 
 // Validator is an interface which defines the standard for block validation. It

@@ -23,10 +23,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
+	"Platon-go/common"
+	"Platon-go/core/types"
+	"Platon-go/rlp"
+	whisper "Platon-go/whisper/whisperv6"
 )
 
 // A Nonce is a 64-bit hash which proves (combined with the mix-hash) that

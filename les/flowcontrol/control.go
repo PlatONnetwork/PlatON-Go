@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
+	"Platon-go/common/mclock"
 )
 
 const fcTimeConst = time.Millisecond

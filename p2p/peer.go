@@ -27,11 +27,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"Platon-go/common/mclock"
+	"Platon-go/event"
+	"Platon-go/log"
+	"Platon-go/p2p/discover"
+	"Platon-go/rlp"
 )
 
 var (
