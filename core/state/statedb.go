@@ -536,7 +536,7 @@ func (self *StateDB) Copy() *StateDB {
 		logSize:           self.logSize,
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-		cTicketCache:      make(map[string][]common.Hash, len(self.cTicketCache)),
+		tickeCache:        self.tickeCache.TicketCaceheSnapshot(),
 	}
 	// Copy the dirty states, logs, and preimages
 	for addr := range self.journal.dirties {
@@ -570,11 +570,6 @@ func (self *StateDB) Copy() *StateDB {
 		state.preimages[hash] = preimage
 	}
 
-	//ppos add
-	for nodeid, tids := range self.cTicketCache {
-		state.cTicketCache[nodeid] = make([]common.Hash, len(tids))
-		copy(state.cTicketCache[nodeid], tids)
-	}
 	return state
 }
 

@@ -17,6 +17,8 @@
 package vm
 
 import (
+	"Platon-go/core/ticketcache"
+	"Platon-go/p2p/discover"
 	"math/big"
 
 	"Platon-go/common"
@@ -77,11 +79,11 @@ type StateDB interface {
 	//ppos add
 	TxHash() common.Hash
 	TxIdx() uint32
-	SetTicketCache(nodeid string, tids []common.Hash)
-	GetTicketCache(nodeid string) ([]common.Hash, error)
-	DelTicketCache(nodeid string, tids []common.Hash) error
-	TCount(nodeid string) uint64
-	TicketCaceheSnapshot() map[string][]common.Hash
+	AppendTicketCache(nodeid discover.NodeID, tids []common.Hash)
+	GetTicketCache(nodeid discover.NodeID) ([]common.Hash, error)
+	RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) error
+	TCount(nodeid discover.NodeID) uint64
+	TicketCaceheSnapshot() ticketcache.TicketCache
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM
