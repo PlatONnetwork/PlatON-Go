@@ -11,9 +11,9 @@ import (
 	"Platon-go/params"
 	"Platon-go/rlp"
 	"errors"
-	"github.com/satori/go.uuid"
 	"math/big"
 	"sort"
+	"strconv"
 	"sync"
 )
 
@@ -95,7 +95,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	var i uint64 = 0
 	for ; i < voteNumber; i++ {
 		// TODO 交易Hash+当前交易生成下票index
-		ticketId, err := generateTicketId()
+		ticketId, err := generateTicketId(stateDB.TxHash(), i)
 		if err != nil {
 			return voteTicketIdList, err
 		}
@@ -105,8 +105,8 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 			Deposit:     deposit,
 			CandidateId: nodeId,
 			BlockNumber: blockNumber,
-			State:       1,
 		}
+		ticket.SetNormal()
 		voteTicketIdList = append(voteTicketIdList, ticketId)
 		if err := t.setTicket(stateDB, ticketId, ticket); err != nil {
 			return voteTicketIdList, err
@@ -156,7 +156,7 @@ func (t *TicketPool) recordExpireTicket(stateDB vm.StateDB, blockNumber *big.Int
 
 func (t *TicketPool) setExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, expireTickets []common.Hash) error {
 	if value, err := rlp.EncodeToBytes(expireTickets); nil != err {
-		log.Error("Failed to encode ticketid object on setExpireTicket", "key", *blockNumber, "err", err)
+		log.Error("Failed to encode ticketId object on setExpireTicket", "key", *blockNumber, "err", err)
 		return EncodeTicketErr
 	} else {
 		setTicketPoolState(stateDB, ExpireTicketKey((*blockNumber).Bytes()), value)
@@ -205,8 +205,8 @@ func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, expireBlockNumber *b
 		if _, err := t.releaseTicket(stateDB, ticket.CandidateId, candidateAttach, ticketId, currentBlockNumber); nil != err {
 			return changeNodeIdList, err
 		}
-		// Set ticket state to invalid
-		ticket.State = 3
+		// Set ticket state to expired
+		ticket.SetExpired(currentBlockNumber)
 		if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
 			return changeNodeIdList, err
 		}
@@ -251,7 +251,7 @@ func (t *TicketPool) setTicket(stateDB vm.StateDB, ticketId common.Hash, ticket 
 	return nil
 }
 
-func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, nodeIds ...discover.NodeID) error {
+func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, nodeIds ...discover.NodeID) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	log.Info("开始处理掉榜票", "掉榜候选人数量：", len(nodeIds))
@@ -279,8 +279,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, nodeIds ...discover.No
 			if nil != err {
 				return err
 			}
-			ticket.State = 4
-			// TODO 记录释放票的块高
+			ticket.SetInvalid(blockNumber)
 			if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
 				return err
 			}
@@ -303,8 +302,8 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 		return err
 	}
 	ticket, err := t.releaseTicket(stateDB, nodeId, candidateAttach, ticketId, blockNumber)
-	ticket.State = 2
-	log.Info("更新票", "状态为：", ticket.State)
+	ticket.SetSelected(blockNumber)
+	log.Info("更新票", "状态为：", ticket.State, "释放块高", blockNumber.Uint64())
 	if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
 		return err
 	}
@@ -388,6 +387,7 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 	return nil
 }
 
+// 简版幸运票算法 --> 根据上一个区块Hash找到第一个比该Hash大的票Id，找不到则取最后一个票Id
 func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.NodeID, blockHash common.Hash) (common.Hash, error) {
 	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
 	log.Info("开始选取幸运票", "候选人", nodeId.String(), "区块Hash", blockHash.Hex(), "候选人票数", len(candidateTicketIds))
@@ -538,14 +538,10 @@ func setTicketPoolState(stateDB vm.StateDB, key []byte, val []byte) {
 	stateDB.SetState(common.TicketPoolAddr, key, val)
 }
 
-func generateTicketId() (common.Hash, error) {
+func generateTicketId(txHash common.Hash, index uint64) (common.Hash, error) {
 	// generate ticket id
-	uuid, err := uuid.NewV4()
-	if err != nil {
-		log.Error("generate ticket fail", "err", err)
-		return common.Hash{}, err
-	}
-	ticketId := sha3.Sum256(uuid[:])
+	value := append(txHash.Bytes(), []byte(strconv.Itoa(int(index)))...)
+	ticketId := sha3.Sum256(value[:])
 	return ticketId, nil
 }
 
