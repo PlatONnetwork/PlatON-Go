@@ -876,16 +876,15 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	bc.wg.Add(1)
 	defer bc.wg.Done()
 
+	// Make sure no inconsistent state is leaked during insertion
+	bc.mu.Lock()
+	defer bc.mu.Unlock()
+
 	currentBlock := bc.CurrentBlock()
 	if block.NumberU64() <= currentBlock.NumberU64() {
 		log.Warn("block lower than current block in chain", "blockHash", block.Hash(), "blockNumber", block.NumberU64(), "currentHash", currentBlock.Hash(), "currentNumber", currentBlock.NumberU64())
 		return NonStatTy, nil
 	}
-
-	// Make sure no inconsistent state is leaked during insertion
-	bc.mu.Lock()
-	defer bc.mu.Unlock()
-
 	localBn := currentBlock.Number()
 	externBn := block.Number()
 
