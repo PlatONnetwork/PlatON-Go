@@ -136,6 +136,7 @@ type TxPoolConfig struct {
 	GlobalSlots  uint64 // Maximum number of executable transaction slots for all accounts
 	AccountQueue uint64 // Maximum number of non-executable transaction slots permitted per account
 	GlobalQueue  uint64 // Maximum number of non-executable transaction slots for all accounts
+	GlobalTxCount uint64 // Maximum number of transactions for package
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
 }
@@ -153,6 +154,7 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	GlobalSlots:  4096,
 	AccountQueue: 64,
 	GlobalQueue:  1024,
+	GlobalTxCount: 3000,
 
 	Lifetime: 3 * time.Hour,
 }
@@ -645,9 +647,14 @@ func (pool *TxPool) Pending() (map[common.Address]types.Transactions, error) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
+	txCount := 0
 	pending := make(map[common.Address]types.Transactions)
 	for addr, list := range pool.pending {
 		pending[addr] = list.Flatten()
+		txCount += len(pending[addr])
+		if txCount >= int(pool.config.GlobalTxCount) {
+			break
+		}
 	}
 	return pending, nil
 }
