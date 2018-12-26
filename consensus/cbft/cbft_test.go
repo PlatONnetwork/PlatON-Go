@@ -118,7 +118,7 @@ func TestExecuteBlockAndDescendant(t *testing.T) {
 	}
 
 	//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
-	cbft.handleLogicalBlockAndDescendant(newRoot, false)
+	cbft.signLogicalAndDescendant(newRoot)
 }
 
 func TestBackTrackBlocksIncludingEnd(t *testing.T) {
