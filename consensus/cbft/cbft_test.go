@@ -66,7 +66,7 @@ func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
 	}
 
 	//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
-	cbft.handleLogicalBlockAndDescendant(newRoot, false)
+	cbft.signLogicalAndDescendant(newRoot)
 
 	//reset logical path
 	//highestLogical := cbft.findHighestLogical(newRoot)
@@ -79,6 +79,17 @@ func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
 	} else {
 		t.Log("cbft.highestConfirmed is null")
 	}
+}
+func TestFindClosestConfirmedExcludingSelf(t *testing.T) {
+	newRoot := NewBlockExt(rootBlock, 0)
+	newRoot.inTree = true
+	newRoot.isExecuted = true
+	newRoot.isSigned = true
+	newRoot.isConfirmed = true
+	newRoot.number = rootBlock.NumberU64()
+
+	closest := cbft.findClosestConfirmedExcludingSelf(newRoot)
+	fmt.Println(closest)
 }
 
 func TestExecuteBlockAndDescendant(t *testing.T) {

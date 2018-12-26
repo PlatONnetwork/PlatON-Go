@@ -14,6 +14,9 @@ type BlockSignature struct {
 	Signature *common.BlockConfirmSign
 }
 
+type BlockSynced struct {
+}
+
 type CbftResult struct {
 	Block *types.Block
 	//Receipts          types.Receipts

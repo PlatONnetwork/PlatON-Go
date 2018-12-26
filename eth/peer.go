@@ -242,7 +242,7 @@ func (p *peer) AsyncSendTransactions(txs []*types.Transaction) {
 			p.knownTxs.Add(tx.Hash())
 		}
 	default:
-		p.Log().Debug("x transaction propagation", "count", len(txs))
+		//p.Log().Debug("Dropping transaction propagation", "count", len(txs))
 	}
 }
 
@@ -516,6 +516,21 @@ func (ps *peerSet) PeersWithoutTx(hash common.Hash) []*peer {
 
 	list := make([]*peer, 0, len(ps.peers))
 	for _, p := range ps.peers {
+		if !p.knownTxs.Contains(hash) {
+			list = append(list, p)
+		}
+	}
+	return list
+}
+
+// ConsensusPeersWithoutTx retrieves a list of consensus peers that do not have a given transaction
+// in their set of known hashes.
+func (ps *peerSet) ConsensusPeersWithoutTx(csPeers []*peer, hash common.Hash) []*peer{
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	list := make([]*peer, 0, len(csPeers))
+	for _, p := range csPeers {
 		if !p.knownTxs.Contains(hash) {
 			list = append(list, p)
 		}
