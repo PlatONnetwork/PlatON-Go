@@ -18,6 +18,7 @@
 package consensus
 
 import (
+	"crypto/ecdsa"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -25,7 +26,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"crypto/ecdsa"
 	"math/big"
 )
 
@@ -136,12 +136,19 @@ type Bft interface {
 	// Process the BFT signatures
 	OnPong(nodeID discover.NodeID, netLatency int64) error
 
+	// Send a signal if a block synced from other peer.
+	OnBlockSynced()
+
 	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
 
 	IsConsensusNode() (bool, error)
 
 	// At present, the highest reasonable block, when the node is out of the block, it needs to generate the block based on the highest reasonable block.
 	HighestLogicalBlock() *types.Block
+
+	HighestConfirmedBlock() *types.Block
+
+	GetBlock(hash common.Hash, number uint64) *types.Block
 
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 

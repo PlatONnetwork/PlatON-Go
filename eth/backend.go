@@ -18,11 +18,11 @@
 package eth
 
 import (
+	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"errors"
-	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
@@ -75,7 +75,7 @@ type Ethereum struct {
 	protocolManager *ProtocolManager
 	lesServer       LesServer
 	// modify
-	mpcPool 		*core.MPCPool
+	mpcPool *core.MPCPool
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -170,6 +170,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	blockChainCache := core.NewBlockChainCache(eth.blockchain)
+
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -181,8 +184,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
-	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
+	//eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
+	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, blockChainCache)
 
+	log.Debug("eth.txPool:::::", "txPool", eth.txPool)
 	// mpcPool deal with mpc transactions
 	// modify By J
 	if config.MPCPool.Journal != "" {
@@ -198,18 +203,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	eth.mpcPool = core.NewMPCPool(config.MPCPool, eth.chainConfig, eth.blockchain)
 
-	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
-		return nil, err
-	}
-
 	// modify by platon remove consensusCache
-	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
-	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)
+	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
+	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	if _, ok := eth.engine.(consensus.Bft); ok {
-		cbft.SetConsensusCache(consensusCache)
+
+		log.Debug("cbft.SetBackend:::::", "SetBackend", eth.txPool)
+		cbft.SetBlockChainCache(blockChainCache)
 		cbft.SetBackend(eth.blockchain, eth.txPool)
+	}
+
+	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
+		return nil, err
 	}
 
 	eth.APIBackend = &EthAPIBackend{eth, nil}
