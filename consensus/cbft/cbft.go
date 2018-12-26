@@ -726,6 +726,7 @@ func (cbft *Cbft) removeBadBlock(badBlock *BlockExt) {
 // signReceiver handles the received block signature
 func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 	log.Debug("=== call signReceiver() ===\n",
+		"RoutineID", common.CurrentGoRoutineID(),
 		"hash", sig.Hash,
 		"number", sig.Number.Uint64(),
 		"highestLogicalHash", cbft.highestLogical.block.Hash(),
@@ -764,6 +765,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 	}
 
 	log.Debug("count signatures",
+		"RoutineID", common.CurrentGoRoutineID(),
 		"hash", hashLog,
 		"number", current.number,
 		"signCount", len(current.signs),
@@ -786,6 +788,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 	}
 
 	log.Debug("=== end of signReceiver()  ===\n",
+		"RoutineID", common.CurrentGoRoutineID(),
 		"hash", hashLog,
 		"number", current.number,
 		"highestLogicalHash", cbft.highestLogical.block.Hash(),
@@ -800,6 +803,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 //blockReceiver handles the new block
 func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	log.Debug("=== call blockReceiver() ===\n",
+		"RoutineID", common.CurrentGoRoutineID(),
 		"hash", block.Hash(),
 		"number", block.NumberU64(),
 		"parentHash", block.ParentHash(),
@@ -833,6 +837,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	isLegal := cbft.isLegal(curTime, producerID)
 	if !isLegal {
 		log.Warn("illegal block",
+			"RoutineID", common.CurrentGoRoutineID(),
 			"hash", block.Hash(),
 			"number", block.NumberU64(),
 			"parentHash", block.ParentHash(),
@@ -868,6 +873,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	cbft.collectSign(ext, common.NewBlockConfirmSign(sign))
 
 	log.Debug("count signatures",
+		"RoutineID", common.CurrentGoRoutineID(),
 		"hash", ext.block.Hash(),
 		"number", ext.number,
 		"signCount", len(ext.signs),
@@ -884,6 +890,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		inTurn := cbft.inTurnVerify(curTime, producerID)
 		if !inTurn {
 			log.Warn("not in turn",
+				"RoutineID", common.CurrentGoRoutineID(),
 				"hash", block.Hash(),
 				"number", block.NumberU64(),
 				"parentHash", block.ParentHash(),
@@ -899,7 +906,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 
 		isLogical := inTurn && flowControl && highestConfirmedIsAncestor
 
-		log.Debug("check if block is logical", "result", isLogical, "hash", ext.block.Hash(), "number", ext.number, "inTurn", inTurn, "flowControl", flowControl, "highestConfirmedIsAncestor", highestConfirmedIsAncestor)
+		log.Debug("check if block is logical", "RoutineID", common.CurrentGoRoutineID(), "result", isLogical, "hash", ext.block.Hash(), "number", ext.number, "inTurn", inTurn, "flowControl", flowControl, "highestConfirmedIsAncestor", highestConfirmedIsAncestor)
 
 		/*
 			if isLogical {
@@ -948,6 +955,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		cbft.flushReadyBlock()
 	}
 	log.Debug("=== end of blockReceiver() ===\n",
+		"RoutineID", common.CurrentGoRoutineID(),
 		"hash", block.Hash(),
 		"number", block.NumberU64(),
 		"parentHash", block.ParentHash(),
@@ -1003,7 +1011,7 @@ func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
 
 // flushReadyBlock finds ready blocks and flush them to chain
 func (cbft *Cbft) flushReadyBlock() bool {
-	log.Debug("check if there's any block ready to flush to chain", "highestConfirmedNumber", cbft.highestConfirmed.number, "rootIrreversibleNumber", cbft.rootIrreversible.number)
+	log.Debug("check if there's any block ready to flush to chain", "RoutineID", common.CurrentGoRoutineID(), "highestConfirmedNumber", cbft.highestConfirmed.number, "rootIrreversibleNumber", cbft.rootIrreversible.number)
 
 	fallCount := int(cbft.highestConfirmed.number - cbft.rootIrreversible.number)
 	var newRoot *BlockExt
@@ -1029,7 +1037,7 @@ func (cbft *Cbft) flushReadyBlock() bool {
 		cbft.storeBlocks(toFlushs)
 
 		for _, confirmed := range toFlushs {
-			log.Debug("blocks should be flushed to chain  ", "hash", confirmed.block.Hash(), "number", confirmed.number)
+			log.Debug("blocks should be flushed to chain  ", "RoutineID", common.CurrentGoRoutineID(), "hash", confirmed.block.Hash(), "number", confirmed.number)
 		}
 
 		newRoot = toFlushs[len(toFlushs)-1]
@@ -1037,7 +1045,7 @@ func (cbft *Cbft) flushReadyBlock() bool {
 	if newRoot != nil {
 		// blocks[0] == cbft.rootIrreversible
 		oldRoot := cbft.rootIrreversible
-		log.Debug("blockExt tree reorged, root info", "origHash", oldRoot.block.Hash(), "origNumber", oldRoot.number, "newHash", newRoot.block.Hash(), "newNumber", newRoot.number)
+		log.Debug("blockExt tree reorged, root info", "RoutineID", common.CurrentGoRoutineID(), "origHash", oldRoot.block.Hash(), "origNumber", oldRoot.number, "newHash", newRoot.block.Hash(), "newNumber", newRoot.number)
 		//cut off old tree from new root,
 		tailorTree(newRoot)
 
@@ -1118,26 +1126,26 @@ func tailorTree(newRoot *BlockExt) {
 
 // cleanByTailoredTree removes all blocks in the tree which has been tailored.
 func (cbft *Cbft) cleanByTailoredTree(root *BlockExt) {
-	log.Trace("call cleanByTailoredTree()", "rootHash", root.block.Hash(), "rootNumber", root.block.NumberU64())
+	log.Trace("call cleanByTailoredTree()", "RoutineID", common.CurrentGoRoutineID(), "rootHash", root.block.Hash(), "rootNumber", root.block.NumberU64())
 	if len(root.children) > 0 {
 		for _, child := range root.children {
 			cbft.cleanByTailoredTree(child)
-			log.Debug("remove block in memory", "hash", root.block.Hash(), "number", root.block.NumberU64())
+			log.Debug("remove block in memory", "RoutineID", common.CurrentGoRoutineID(), "hash", root.block.Hash(), "number", root.block.NumberU64())
 			delete(cbft.blockExtMap, root.block.Hash())
 			delete(cbft.signedSet, root.block.NumberU64())
 		}
 	} else {
-		log.Debug("remove block in memory", "hash", root.block.Hash(), "number", root.block.NumberU64())
+		log.Debug("remove block in memory", "RoutineID", common.CurrentGoRoutineID(), "hash", root.block.Hash(), "number", root.block.NumberU64())
 		delete(cbft.blockExtMap, root.block.Hash())
 	}
 }
 
 // cleanByNumber removes all blocks lower than upperLimit in BlockExtMap.
 func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
-	log.Trace("call cleanByNumber()", "upperLimit", upperLimit)
+	log.Trace("call cleanByNumber()", "RoutineID", common.CurrentGoRoutineID(), "upperLimit", upperLimit)
 	for hash, ext := range cbft.blockExtMap {
 		if ext.number < upperLimit {
-			log.Debug("remove block in memory", "hash", hash, "number", ext.number)
+			log.Debug("remove block in memory", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", ext.number)
 			delete(cbft.blockExtMap, hash)
 		}
 	}
@@ -1233,7 +1241,7 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
-	log.Debug("call Prepare()", "hash", header.Hash(), "number", header.Number.Uint64())
+	log.Debug("call Prepare()", "RoutineID", common.CurrentGoRoutineID(), "hash", header.Hash(), "number", header.Number.Uint64())
 
 	cbft.lock.RLock()
 	defer cbft.lock.RUnlock()
@@ -1259,7 +1267,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Debug("call Finalize()", "hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
+	log.Debug("call Finalize()", "RoutineID", common.CurrentGoRoutineID(), "hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 	return types.NewBlock(header, txs, nil, receipts), nil
@@ -1267,7 +1275,7 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 
 //to sign the block, and store the sign to header.Extra[32:], send the sign to chanel to broadcast to other consensus nodes
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
-	log.Debug("call Seal()", "number", block.NumberU64(), "parentHash", block.ParentHash())
+	log.Debug("call Seal()", "RoutineID", common.CurrentGoRoutineID(), "number", block.NumberU64(), "parentHash", block.ParentHash())
 	cbft.lock.Lock()
 	defer cbft.lock.Unlock()
 
@@ -1310,7 +1318,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	//build tree node
 	cbft.buildIntoTree(current)
 
-	log.Debug("seal complete", "hash", sealedBlock.Hash(), "number", block.NumberU64())
+	log.Debug("seal complete", "RoutineID", common.CurrentGoRoutineID(), "hash", sealedBlock.Hash(), "number", block.NumberU64())
 
 	if len(cbft.dpos.primaryNodeList) == 1 {
 		log.Debug("single node Mode")
@@ -1350,7 +1358,7 @@ func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *
 
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
-	log.Debug("call SealHash()", "hash", header.Hash(), "number", header.Number.Uint64())
+	log.Debug("call SealHash()", "RoutineID", common.CurrentGoRoutineID(), "hash", header.Hash(), "number", header.Number.Uint64())
 	return sealHash(header)
 }
 
@@ -1398,19 +1406,14 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 		log.Error("unauthorized signer")
 		return errUnauthorizedSigner
 	}
-	log.Debug("call OnBlockSignature(), writing to dataReceiveCh", "GoRoutineID", common.CurrentGoRoutineID(), "hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
 	cbft.dataReceiveCh <- rcvSign
-	log.Debug("call OnBlockSignature(), writing to dataReceiveCh success", "GoRoutineID", common.CurrentGoRoutineID(), "hash", rcvSign.Hash, "number", rcvSign.Number, "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]), "signHash", rcvSign.SignHash)
 	return nil
 }
 
 // OnNewBlock is called by protocol handler when it received a new block by P2P.
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
 	log.Debug("call OnNewBlock()", "GoRoutineID", common.CurrentGoRoutineID(), "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash(), "cbft.dataReceiveCh.len", len(cbft.dataReceiveCh))
-
 	cbft.dataReceiveCh <- rcvBlock
-
-	log.Debug("call OnNewBlock(), writing to dataReceiveCh success ", "GoRoutineID", common.CurrentGoRoutineID(), "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash())
 	return nil
 }
 

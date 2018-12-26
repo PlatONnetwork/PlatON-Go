@@ -47,10 +47,10 @@ func (pbc *PlatonBlockChain) GetBlock(hash common.Hash, number uint64) *types.Bl
 		block = cbft.GetBlock(hash, number)
 	}
 	if block == nil {
-		log.Debug("cannot find block in cbft", "hash", hash, "number", number)
+		log.Debug("cannot find block in cbft", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
 		block = pbc.getBlock(hash, number)
 		if block == nil {
-			log.Debug("cannot find block in chain", "hash", hash, "number", number)
+			log.Debug("cannot find block in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
 		}
 	}
 	return block
