@@ -216,6 +216,7 @@ func doInstall(cmdline []string) {
 	var (
 		arch = flag.String("arch", "", "Architecture to cross build for")
 		cc   = flag.String("cc", "", "C compiler to cross build with")
+		mpc  = flag.String("mpc", "off", "Switch of mpc , on for compiling MPC, off for without compiling")
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -244,6 +245,9 @@ func doInstall(cmdline []string) {
 	if *arch == "" || *arch == runtime.GOARCH {
 		goinstall := goTool("install", buildFlags(env)...)
 		goinstall.Args = append(goinstall.Args, "-v")
+		if *mpc == "on" {
+			goinstall.Args = append(goinstall.Args, "-tags=mpcon")
+		}
 		goinstall.Args = append(goinstall.Args, packages...)
 		build.MustRun(goinstall)
 		return

@@ -195,10 +195,10 @@ type worker struct {
 	// External functions
 	isLocalBlock func(block *types.Block) bool // Function used to determine whether the specified block is mined by local miner.
 
-	consensusCache *cbft.Cache
-	commitWorkEnv  *commitWorkEnv
-	recommit       time.Duration
-	commitDuration float64
+	blockChainCache *core.BlockChainCache
+	commitWorkEnv   *commitWorkEnv
+	recommit        time.Duration
+	commitDuration  float64
 
 	// Test hooks
 	newTaskHook  func(*task)                        // Method to call upon receiving a new sealing task.
@@ -208,7 +208,7 @@ type worker struct {
 }
 
 func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool,
-	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, consensusCache *cbft.Cache) *worker {
+	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, blockChainCache *core.BlockChainCache) *worker {
 	worker := &worker{
 		config:                config,
 		engine:                engine,
@@ -236,7 +236,7 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		blockSignatureCh:      blockSignatureCh,
 		cbftResultCh:          cbftResultCh,
 		highestLogicalBlockCh: highestLogicalBlockCh,
-		consensusCache:        consensusCache,
+		blockChainCache:       blockChainCache,
 		commitWorkEnv:         &commitWorkEnv{},
 	}
 	// Subscribe NewTxsEvent for tx pool
@@ -409,13 +409,11 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
 			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash())
-			w.consensusCache.ClearCache(head.Block)
+			w.blockChainCache.ClearCache(head.Block)
 
-			go func() {
-				if _, ok := w.engine.(consensus.Bft); ok {
-					cbft.BlockSynchronisation()
-				}
-			}()
+			if cbft, ok := w.engine.(consensus.Bft); ok {
+				cbft.OnBlockSynced()
+			}
 
 		case highestLogicalBlock := <-w.highestLogicalBlockCh:
 			log.Debug("received a notify for new highest logical", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash())
@@ -543,6 +541,7 @@ func (w *worker) mainLoop() {
 					w.commit(uncles, nil, true, start)
 				}
 			}
+		// removed by PlatON
 		/*
 			case  <-w.txsCh:
 
@@ -654,13 +653,14 @@ func (w *worker) taskLoop() {
 				continue
 			}
 			w.pendingMu.Lock()
-			w.pendingTasks[w.engine.SealHash(task.block.Header())] = task
+			w.pendingTasks[sealHash] = task
 			w.pendingMu.Unlock()
 
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 				// Save stateDB to cache, receipts to cache
-				w.consensusCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
-				w.consensusCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
+				w.blockChainCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
+				w.blockChainCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
+
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
 				}
@@ -779,8 +779,8 @@ func (w *worker) resultLoop() {
 				stateIsNil := _state == nil
 				log.Debug("block is packaged by local", "hash", hash, "number", number, "len(Receipts)", len(_receipts), "stateIsNil", stateIsNil)
 			} else {
-				_receipts = w.consensusCache.ReadReceipts(sealhash)
-				_state = w.consensusCache.ReadStateDB(sealhash)
+				_receipts = w.blockChainCache.ReadReceipts(sealhash)
+				_state = w.blockChainCache.ReadStateDB(sealhash)
 				stateIsNil := _state == nil
 				log.Debug("block is packaged by other", "hash", hash, "number", number, "len(Receipts)", len(_receipts), "blockRoot", block.Root(), "stateIsNil", stateIsNil)
 			}
@@ -845,7 +845,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		err   error
 	)
 	if _, ok := w.engine.(consensus.Bft); ok {
-		state, err = w.consensusCache.MakeStateDB(parent)
+		state, err = w.blockChainCache.MakeStateDB(parent)
 	} else {
 		state, err = w.chain.StateAt(parent.Root())
 	}
@@ -1321,7 +1321,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
-	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs))
+	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
 
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
@@ -1397,7 +1397,7 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 	log.Debug("parent in makePending", "number", parent.NumberU64(), "hash", parent.Hash())
 
 	if parent != nil {
-		state, err := w.consensusCache.MakeStateDB(parent)
+		state, err := w.blockChainCache.MakeStateDB(parent)
 		if err == nil {
 			block := types.NewBlock(
 				parent.Header(),

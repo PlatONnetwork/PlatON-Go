@@ -1,3 +1,5 @@
+// +build mpcon
+
 package mpc
 
 /// test part
