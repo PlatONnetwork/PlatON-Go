@@ -26,4 +26,6 @@ const (
 	//BaseRemoveFormerPeers = 700000
 
 	//BaseIrrCount = 2000
+
+	FirstRound = 1
 )

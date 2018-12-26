@@ -1132,7 +1132,7 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 	//var ids []discover.NodeID
 	var witness candidateStorage
 	var indexArr []discover.NodeID
-	if flag == -1 {
+	if flag == -PREVIOUS_C {
 		witness = c.preOriginCandidates
 		if ids, err := c.getPreviousWitnessIndex(state); nil != err {
 			log.Error("Failed to getPreviousWitnessIndex on GetWitness", "err", err)
@@ -1140,7 +1140,7 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 		} else {
 			indexArr = ids
 		}
-	} else if flag == 0 {
+	} else if flag == CURRENT_C {
 		witness = c.originCandidates
 		if ids, err := c.getWitnessIndex(state); nil != err {
 			log.Error("Failed to getWitnessIndex on GetWitness", "err", err)
@@ -1148,7 +1148,7 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 		} else {
 			indexArr = ids
 		}
-	} else if flag == 1 {
+	} else if flag == NEXT_C {
 		witness = c.nextOriginCandidates
 		if ids, err := c.getNextWitnessIndex(state); nil != err {
 			log.Error("Failed to getNextWitnessIndex on GetWitness", "err", err)
@@ -1288,7 +1288,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 
 	go func() {
 		res := new(result)
-		res.Type = -1
+		res.Type = PREVIOUS_C
 		if nodes, err := fetchWitnessFunc("previous", c.preOriginCandidates, c.getPreviousWitnessIndex); nil != err {
 			res.Err = err
 		}else {
@@ -1299,7 +1299,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	}()
 	go func() {
 		res := new(result)
-		res.Type = 0
+		res.Type = CURRENT_C
 		if nodes, err := fetchWitnessFunc("current", c.originCandidates, c.getWitnessIndex); nil != err {
 			res.Err = err
 		}else {
@@ -1310,7 +1310,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	}()
 	go func() {
 		res := new(result)
-		res.Type = 1
+		res.Type = NEXT_C
 		if nodes, err := fetchWitnessFunc("next", c.nextOriginCandidates, c.getNextWitnessIndex); nil != err {
 			res.Err = err
 		}else {
@@ -1326,11 +1326,11 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 			return nil, nil, nil, res.Err
 		}
 		switch res.Type {
-		case -1:
+		case PREVIOUS_C:
 			preArr = res.nodes
-		case 0:
+		case CURRENT_C:
 			curArr = res.nodes
-		case 1:
+		case NEXT_C:
 			nextArr = res.nodes
 		default:
 			continue
@@ -2122,8 +2122,8 @@ func GetCandidatePtr() *CandidatePool {
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
 
-	//log.Info(s, "==", string(objs))
-	fmt.Println(s, string(objs))
+	log.Info(s, "==", string(objs))
+	//fmt.Println(s, string(objs))
 }
 
 func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {

@@ -691,7 +691,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	// former
 	formerRound := &pposRound{}
 	// former start, end
-	if round != 1 {
+	if round != FirstRound {
 		formerRound.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 		formerRound.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 	}else {
@@ -843,7 +843,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 	// former
 	formerRound := &pposRound{}
 	// former start, end
-	if round != 1 {
+	if round != FirstRound {
 		formerRound.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 		formerRound.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 	}else {
