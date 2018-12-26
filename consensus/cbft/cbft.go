@@ -1208,8 +1208,6 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 		return consensus.ErrUnknownAncestor
 	}
 
-	header.Difficulty = big.NewInt(2)
-
 	//header.Extra[0:31] to store block's version info etc. and right pad with 0x00;
 	//header.Extra[32:] to store block's sign of producer, the length of sign is 65.
 	if len(header.Extra) < 32 {
@@ -1559,7 +1557,6 @@ func sealHash(header *types.Header) (hash common.Hash) {
 		header.TxHash,
 		header.ReceiptHash,
 		header.Bloom,
-		header.Difficulty,
 		header.Number,
 		header.GasLimit,
 		header.GasUsed,
