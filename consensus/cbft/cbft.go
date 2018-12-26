@@ -356,7 +356,7 @@ func (cbft *Cbft) findClosestConfirmedExcludingSelf(current *BlockExt) *BlockExt
 
 // signLogicalAndDescendant signs logical block go along the logical path from current block, and will not sign the block if there's another same number block has been signed.
 func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
-	log.Trace("sign logical block and its descendant", "hash", current.block.Hash(), "number", current.block.NumberU64())
+	log.Debug("sign logical block and its descendant", "RoutineID", common.CurrentGoRoutineID(), "hash", current.block.Hash(), "number", current.block.NumberU64())
 	highestLogical := cbft.findHighestLogical(current)
 
 	logicalBlocks := cbft.backTrackBlocks(highestLogical, current, true)
@@ -366,6 +366,7 @@ func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
 		if logical.inTurn && !logical.isSigned {
 			if _, signed := cbft.signedSet[logical.block.NumberU64()]; !signed {
 				cbft.sign(logical)
+				log.Debug("reset TxPool after block signed", "RoutineID", common.CurrentGoRoutineID(), "hash", logical.block.Hash(), "number", logical.number)
 				cbft.txPool.Reset(logical.block)
 			}
 		}
@@ -640,10 +641,13 @@ func BlockSynchronisation() {
 			//remove all other blocks those their numbers are too low
 			cbft.cleanByNumber(cbft.rootIrreversible.number)
 		}
+
+		log.Debug("reset TxPool after block synced", "RoutineID", common.CurrentGoRoutineID(), "hash", newRoot.block.Hash(), "number", newRoot.number)
 		cbft.txPool.Reset(currentBlock)
 	}
 
 	log.Debug("=== end of BlockSynchronisation() ===\n",
+		"RoutineID", common.CurrentGoRoutineID(),
 		"highestLogicalHash", cbft.highestLogical.block.Hash(),
 		"highestLogicalNumber", cbft.highestLogical.number,
 		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
@@ -993,6 +997,7 @@ func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
 	newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(newConfirmed)
 	if newHighestConfirmed != nil && newHighestConfirmed.block.Hash() != cbft.highestConfirmed.block.Hash() {
 		//fork
+		log.Debug("the block chain in memory forked", "RoutineID", common.CurrentGoRoutineID(), "newHighestConfirmedHash", newHighestConfirmed.block.Hash(), "newHighestConfirmedNumber", newHighestConfirmed.number)
 		newHighestLogical := cbft.findHighestLogical(newHighestConfirmed)
 		newPath := cbft.backTrackBlocks(newHighestLogical, cbft.rootIrreversible, true)
 
@@ -1344,6 +1349,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		}
 	}()
 
+	log.Debug("reset TxPool after block sealed", "RoutineID", common.CurrentGoRoutineID(), "hash", current.block.Hash(), "number", current.number)
 	cbft.txPool.Reset(current.block)
 	return nil
 }
