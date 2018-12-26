@@ -25,7 +25,6 @@ import (
 	"math/big"
 	"sync"
 	"time"
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 )
 
 const (
