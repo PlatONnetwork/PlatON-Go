@@ -55,7 +55,7 @@ func NewStateProcessor(config *params.ChainConfig, bc *BlockChain, engine consen
 // Process returns the receipts and logs accumulated during the process and
 // returns the amount of gas that was used in the process. If any of the
 // transactions failed to execute due to insufficient gas it will return an error.
-func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error) {
+func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg vm.Config, blockInterval *big.Int) (types.Receipts, []*types.Log, uint64, error) {
 	var (
 		receipts types.Receipts
 		usedGas  = new(uint64)
@@ -82,13 +82,15 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		// Election call(if match condition)
 		if p.bc.shouldElectionFn(block.Number()) {
 			log.Warn("---Election call when processing block:---", "number", block.Number(), "state", statedb)
-			cbftEngine.Election(statedb, block.Number())
+			cbftEngine.Election(statedb, block.ParentHash(), block.Number())
 		}
 		// SwitchWitness call(if match condition)
 		if p.bc.shouldSwitchFn(block.Number()) {
 			log.Warn("---SwitchWitness call when processing block:---", "number", block.Number(), "state", statedb)
 			cbftEngine.Switch(statedb)
 		}
+		// ppos Store Hash
+		cbftEngine.StoreHash(statedb)
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
@@ -98,6 +100,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		log.Warn("---SetNodeCache call when processing block---", "number", block.Number())
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 		cbftEngine.SetNodeCache(statedb, parentNumber, blockNumber, block.ParentHash(), block.Hash())
+		// ppos Submit2Cache
+		cbftEngine.Submit2Cache(statedb, blockNumber, blockInterval, block.Hash())
 	}
 
 	return receipts, allLogs, *usedGas, nil
