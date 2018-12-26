@@ -136,6 +136,9 @@ type Bft interface {
 	// Process the BFT signatures
 	OnPong(nodeID discover.NodeID, netLatency int64) error
 
+	// Send a signal if a block synced from other peer.
+	OnBlockSynced()
+
 	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
 
 	IsConsensusNode() (bool, error)

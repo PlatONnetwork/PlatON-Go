@@ -71,6 +71,7 @@ type Cbft struct {
 	signedSet             map[uint64]struct{}       //all block numbers signed by local node
 	lock                  sync.RWMutex
 	blockChainCache       *core.BlockChainCache
+	blockSyncedCh         chan struct{}
 
 	netLatencyMap  map[discover.NodeID]*list.List
 	netLatencyLock sync.Mutex
@@ -96,6 +97,7 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		blockExtMap:   make(map[common.Hash]*BlockExt),
 		signedSet:     make(map[uint64]struct{}),
 		dataReceiveCh: make(chan interface{}, 250),
+		blockSyncedCh: make(chan struct{}),
 		netLatencyMap: make(map[discover.NodeID]*list.List),
 	}
 
@@ -575,9 +577,13 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.
 // This function is invoked after that local has synced new blocks from other node.
-func BlockSynchronisation() {
+func (cbft *Cbft) OnBlockSynced() {
+	log.Debug("call OnBlockSynced(）", "GoRoutineID", common.CurrentGoRoutineID())
+	cbft.dataReceiveCh <- &cbfttypes.BlockSynced{}
+}
 
-	log.Debug("=== call BlockSynchronisation() ===\n",
+func (cbft *Cbft) blockSynced() {
+	log.Debug("=== call blockSynced() ===\n",
 		"GoRoutineID", common.CurrentGoRoutineID(),
 		"highestLogicalHash", cbft.highestLogical.block.Hash(),
 		"highestLogicalNumber", cbft.highestLogical.number,
@@ -647,7 +653,7 @@ func BlockSynchronisation() {
 		cbft.txPool.Reset(currentBlock)
 	}
 
-	log.Debug("=== end of BlockSynchronisation() ===\n",
+	log.Debug("=== end of blockSynced() ===\n",
 		"RoutineID", common.CurrentGoRoutineID(),
 		"highestLogicalHash", cbft.highestLogical.block.Hash(),
 		"highestLogicalNumber", cbft.highestLogical.number,
@@ -677,7 +683,12 @@ func (cbft *Cbft) dataReceiverLoop() {
 						log.Error("Error", "msg", err)
 					}
 				} else {
-					log.Error("Received wrong data type")
+					_, ok := v.(*cbfttypes.BlockSynced)
+					if ok {
+						cbft.blockSynchronisation()
+					} else {
+						log.Error("Received wrong data type")
+					}
 				}
 			}
 		}
