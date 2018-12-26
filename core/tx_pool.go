@@ -444,7 +444,14 @@ func (pool *TxPool) ForkedReset(origTress, newTress []*types.Block) {
 // reset retrieves the current state of the blockchain and ensures the content
 // of the transaction pool is valid with regard to the chain state.
 func (pool *TxPool) reset(oldHead, newHead *types.Header) {
-	log.Debug("reset txpool", "RoutineID", common.CurrentGoRoutineID(), "oldHash", oldHead.Hash(), "oldNumber", oldHead.Number.Uint64(), "newHash", newHead.Hash(), "newNumber", newHead.Number.Uint64())
+	var oldHash common.Hash
+	var oldNumber uint64
+	if oldHead != nil {
+		oldHash = oldHead.Hash()
+		oldNumber = oldHead.Number.Uint64()
+	}
+
+	log.Debug("reset txpool", "RoutineID", common.CurrentGoRoutineID(), "oldHash", oldHash, "oldNumber", oldNumber, "newHash", newHead.Hash(), "newNumber", newHead.Number.Uint64())
 	// If we're reorging an old state, reinject all dropped transactions
 	var reinject types.Transactions
 
