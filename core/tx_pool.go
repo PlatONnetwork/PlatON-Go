@@ -120,7 +120,6 @@ type txPoolBlockChain interface {
 	CurrentBlock() *types.Block
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	StateAt(root common.Hash) (*state.StateDB, error)
-	ReadStateDB(sealHash common.Hash) *state.StateDB
 }
 
 // TxPoolConfig are the configuration parameters of the transaction pool.
@@ -449,6 +448,11 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	if oldHead != nil {
 		oldHash = oldHead.Hash()
 		oldNumber = oldHead.Number.Uint64()
+	}
+
+	if oldHead != nil && newHead != nil && oldHead.Hash() == newHead.Hash() && oldHead.Number.Uint64() == newHead.Number.Uint64() {
+		log.Debug("txpool needn't reset cause not changed", "RoutineID", common.CurrentGoRoutineID(), "oldHash", oldHash, "oldNumber", oldNumber, "newHash", newHead.Hash(), "newNumber", newHead.Number.Uint64())
+		return
 	}
 
 	log.Debug("reset txpool", "RoutineID", common.CurrentGoRoutineID(), "oldHash", oldHash, "oldNumber", oldNumber, "newHash", newHead.Hash(), "newNumber", newHead.Number.Uint64())

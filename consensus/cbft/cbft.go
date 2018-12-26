@@ -70,7 +70,7 @@ type Cbft struct {
 	rootIrreversible      *BlockExt                 //the latest block has stored in chain
 	signedSet             map[uint64]struct{}       //all block numbers signed by local node
 	lock                  sync.RWMutex
-	consensusCache        *Cache //cache for cbft consensus
+	blockChainCache       *core.BlockChainCache
 
 	netLatencyMap  map[discover.NodeID]*list.List
 	netLatencyLock sync.Mutex
@@ -249,7 +249,7 @@ func (cbft *Cbft) findChildren(parent *BlockExt) []*BlockExt {
 // saveBlockExt saves block in memory
 func (cbft *Cbft) saveBlockExt(hash common.Hash, ext *BlockExt) {
 	cbft.blockExtMap[hash] = ext
-	log.Debug("save block in memory", "hash", hash, "number", ext.number, "totalBlocks", len(cbft.blockExtMap))
+	log.Debug("save block in memory", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", ext.number, "totalBlocks", len(cbft.blockExtMap))
 }
 
 // isAncestor checks if a block is another's ancestor
@@ -385,7 +385,7 @@ func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
 
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt) error {
-	log.Debug("execute block", "hash", current.block.Hash(), "number", current.block.NumberU64())
+	log.Debug("execute block", "RoutineID", common.CurrentGoRoutineID(), "hash", current.block.Hash(), "number", current.block.NumberU64())
 	if !current.isExecuted {
 		if err := cbft.execute(current, parent); err != nil {
 			current.inTree = false
@@ -414,7 +414,7 @@ func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt)
 func (cbft *Cbft) sign(ext *BlockExt) {
 	sealHash := sealHash(ext.block.Header())
 	if signature, err := cbft.signFn(sealHash.Bytes()); err == nil {
-		log.Debug("Sign block ", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature[:8]))
+		log.Debug("Sign block ", "RoutineID", common.CurrentGoRoutineID(), "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature[:8]))
 
 		sign := common.NewBlockConfirmSign(signature)
 		ext.isSigned = true
@@ -442,7 +442,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 // execute executes the block's transactions based on its parent
 // if success then save the receipts and state to consensusCache
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
-	state, err := cbft.consensusCache.MakeStateDB(parent.block)
+	state, err := cbft.blockChainCache.MakeStateDB(parent.block)
 
 	if err != nil {
 		log.Error("execute block error, cannot make state based on parent", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
@@ -455,8 +455,9 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
 		log.Debug("execute block success", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "lenReceipts", len(receipts), "stateIsNil", stateIsNil, "root", ext.block.Root())
-		cbft.consensusCache.WriteReceipts(cbft.SealHash(ext.block.Header()), receipts, ext.block.NumberU64())
-		cbft.consensusCache.WriteStateDB(cbft.SealHash(ext.block.Header()), state, ext.block.NumberU64())
+		sealHash := sealHash(ext.block.Header())
+		cbft.blockChainCache.WriteReceipts(sealHash, receipts, ext.block.NumberU64())
+		cbft.blockChainCache.WriteStateDB(sealHash, state, ext.block.NumberU64())
 	} else {
 		log.Error("execute block error", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return errors.New("execute block error")
@@ -467,7 +468,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 // backTrackBlocks return blocks from start to end, these blocks are in a same tree branch.
 // The result is sorted by block number from lower to higher.
 func (cbft *Cbft) backTrackBlocks(start *BlockExt, end *BlockExt, includeEnd bool) []*BlockExt {
-	log.Trace("back track blocks", "startHash", start.block.Hash(), "startParentHash", end.block.ParentHash(), "endHash", start.block.Hash())
+	log.Trace("back track blocks", "RoutineID", common.CurrentGoRoutineID(), "startHash", start.block.Hash(), "startParentHash", end.block.ParentHash(), "endHash", start.block.Hash())
 
 	result := make([]*BlockExt, 0)
 
@@ -524,8 +525,8 @@ func (cbft *Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	cbft.config.NodeID = discover.PubkeyID(&privateKey.PublicKey)
 }
 
-func SetConsensusCache(cache *Cache) {
-	cbft.consensusCache = cache
+func SetBlockChainCache(blockChainCache *core.BlockChainCache) {
+	cbft.blockChainCache = blockChainCache
 }
 
 // setHighestLogical sets highest logical block and send it to the highestLogicalBlockCh
@@ -711,7 +712,7 @@ func (cbft *Cbft) buildChildNode(current *BlockExt) {
 }
 
 func (cbft *Cbft) setDescendantInTree(child *BlockExt) {
-	log.Debug("set descendant inTree attribute", "hash", child.block.Hash(), "number", child.number)
+	log.Debug("set descendant inTree attribute", "RoutineID", common.CurrentGoRoutineID(), "hash", child.block.Hash(), "number", child.number)
 	for _, grandchild := range child.children {
 		grandchild.inTree = child.inTree
 		cbft.setDescendantInTree(grandchild)
@@ -1345,7 +1346,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 			return
 		case sealResultCh <- sealedBlock:
 		default:
-			log.Warn("Sealing result is not ready by miner", "sealHash", cbft.SealHash(header))
+			log.Warn("Sealing result is not ready by miner", "sealHash", sealHash(header))
 		}
 	}()
 
@@ -1520,7 +1521,7 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 			Block:             ext.block,
 			BlockConfirmSigns: ext.signs,
 		}
-		log.Debug("send to channel", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
+		log.Debug("send to channel", "RoutineID", common.CurrentGoRoutineID(), "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
 		cbft.cbftResultOutCh <- cbftResult
 	}
 }

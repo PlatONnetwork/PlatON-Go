@@ -14,7 +14,7 @@ var (
 	errMakeStateDB = errors.New("make StateDB error")
 )
 
-type PlatonBlockChain struct {
+type BlockChainCache struct {
 	*BlockChain
 	stateDBCache  map[common.Hash]*stateDBCache  // key is header SealHash
 	receiptsCache map[common.Hash]*receiptsCache // key is header SealHash
@@ -32,7 +32,7 @@ type receiptsCache struct {
 	blockNum uint64
 }
 
-func (pbc *PlatonBlockChain) CurrentBlock() *types.Block {
+func (pbc *BlockChainCache) CurrentBlock() *types.Block {
 	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
 		if block := cbft.HighestLogicalBlock(); block != nil {
 			return block
@@ -41,7 +41,7 @@ func (pbc *PlatonBlockChain) CurrentBlock() *types.Block {
 	return pbc.currentBlock.Load().(*types.Block)
 }
 
-func (pbc *PlatonBlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
+func (pbc *BlockChainCache) GetBlock(hash common.Hash, number uint64) *types.Block {
 	var block *types.Block
 	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
 		log.Debug("find block in cbft", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
@@ -57,8 +57,8 @@ func (pbc *PlatonBlockChain) GetBlock(hash common.Hash, number uint64) *types.Bl
 	return block
 }
 
-func NewPlatonBlockChain(blockChain *BlockChain) *PlatonBlockChain {
-	pbc := &PlatonBlockChain{}
+func NewBlockChainCache(blockChain *BlockChain) *BlockChainCache {
+	pbc := &BlockChainCache{}
 	pbc.BlockChain = blockChain
 	pbc.stateDBCache = make(map[common.Hash]*stateDBCache)
 	pbc.receiptsCache = make(map[common.Hash]*receiptsCache)
@@ -67,17 +67,17 @@ func NewPlatonBlockChain(blockChain *BlockChain) *PlatonBlockChain {
 }
 
 // Read the Receipt collection from the cache map.
-func (pbc *PlatonBlockChain) ReadReceipts(sealHash common.Hash) []*types.Receipt {
-	pbc.receiptsMu.RLock()
-	defer pbc.receiptsMu.RUnlock()
-	if obj, exist := pbc.receiptsCache[sealHash]; exist {
+func (bcc *BlockChainCache) ReadReceipts(sealHash common.Hash) []*types.Receipt {
+	bcc.receiptsMu.RLock()
+	defer bcc.receiptsMu.RUnlock()
+	if obj, exist := bcc.receiptsCache[sealHash]; exist {
 		return obj.receipts
 	}
 	return nil
 }
 
 // Read the StateDB instance from the cache map
-func (pbc *PlatonBlockChain) ReadStateDB(sealHash common.Hash) *state.StateDB {
+func (pbc *BlockChainCache) ReadStateDB(sealHash common.Hash) *state.StateDB {
 	pbc.stateDBMu.RLock()
 	defer pbc.stateDBMu.RUnlock()
 	log.Info("Read the StateDB instance from the cache map", "sealHash", sealHash)
@@ -88,7 +88,7 @@ func (pbc *PlatonBlockChain) ReadStateDB(sealHash common.Hash) *state.StateDB {
 }
 
 // Write Receipt to the cache
-func (pbc *PlatonBlockChain) WriteReceipts(sealHash common.Hash, receipts []*types.Receipt, blockNum uint64) {
+func (pbc *BlockChainCache) WriteReceipts(sealHash common.Hash, receipts []*types.Receipt, blockNum uint64) {
 	pbc.receiptsMu.Lock()
 	defer pbc.receiptsMu.Unlock()
 	obj, exist := pbc.receiptsCache[sealHash]
@@ -100,59 +100,59 @@ func (pbc *PlatonBlockChain) WriteReceipts(sealHash common.Hash, receipts []*typ
 }
 
 // Write a StateDB instance to the cache
-func (pbc *PlatonBlockChain) WriteStateDB(sealHash common.Hash, stateDB *state.StateDB, blockNum uint64) {
-	pbc.stateDBMu.Lock()
-	defer pbc.stateDBMu.Unlock()
+func (bcc *BlockChainCache) WriteStateDB(sealHash common.Hash, stateDB *state.StateDB, blockNum uint64) {
+	bcc.stateDBMu.Lock()
+	defer bcc.stateDBMu.Unlock()
 	log.Info("Write a StateDB instance to the cache", "sealHash", sealHash, "blockNum", blockNum)
-	if _, exist := pbc.stateDBCache[sealHash]; !exist {
-		pbc.stateDBCache[sealHash] = &stateDBCache{stateDB: stateDB, blockNum: blockNum}
+	if _, exist := bcc.stateDBCache[sealHash]; !exist {
+		bcc.stateDBCache[sealHash] = &stateDBCache{stateDB: stateDB, blockNum: blockNum}
 	}
 }
 
 // Read the Receipt collection from the cache map
-func (pbc *PlatonBlockChain) clearReceipts(sealHash common.Hash) {
-	pbc.receiptsMu.Lock()
-	defer pbc.receiptsMu.Unlock()
+func (bcc *BlockChainCache) clearReceipts(sealHash common.Hash) {
+	bcc.receiptsMu.Lock()
+	defer bcc.receiptsMu.Unlock()
 
 	var blockNum uint64
-	if obj, exist := pbc.receiptsCache[sealHash]; exist {
+	if obj, exist := bcc.receiptsCache[sealHash]; exist {
 		blockNum = obj.blockNum
 		//delete(pbc.receiptsCache, sealHash)
 	}
-	for hash, obj := range pbc.receiptsCache {
+	for hash, obj := range bcc.receiptsCache {
 		if obj.blockNum <= blockNum {
-			delete(pbc.receiptsCache, hash)
+			delete(bcc.receiptsCache, hash)
 		}
 	}
 }
 
 // Read the StateDB instance from the cache map
-func (pbc *PlatonBlockChain) clearStateDB(sealHash common.Hash) {
-	pbc.stateDBMu.Lock()
-	defer pbc.stateDBMu.Unlock()
+func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
+	bcc.stateDBMu.Lock()
+	defer bcc.stateDBMu.Unlock()
 
 	var blockNum uint64
-	if obj, exist := pbc.stateDBCache[sealHash]; exist {
+	if obj, exist := bcc.stateDBCache[sealHash]; exist {
 		blockNum = obj.blockNum
 		//delete(pbc.stateDBCache, sealHash)
 	}
-	for hash, obj := range pbc.stateDBCache {
+	for hash, obj := range bcc.stateDBCache {
 		if obj.blockNum <= blockNum {
-			delete(pbc.stateDBCache, hash)
+			delete(bcc.stateDBCache, hash)
 		}
 	}
 }
 
 // Get the StateDB instance of the corresponding block
-func (pbc *PlatonBlockChain) MakeStateDB(block *types.Block) (*state.StateDB, error) {
+func (bcc *BlockChainCache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 	// Create a StateDB instance from the blockchain based on stateRoot
-	if state, err := pbc.StateAt(block.Root()); err == nil && state != nil {
+	if state, err := bcc.StateAt(block.Root()); err == nil && state != nil {
 		return state, nil
 	}
 	// Read and copy the stateDB instance in the cache
-	sealHash := pbc.Engine().SealHash(block.Header())
+	sealHash := bcc.Engine().SealHash(block.Header())
 	log.Info("Read and copy the stateDB instance in the cache", "sealHash", sealHash, "blockHash", block.Hash(), "blockNum", block.NumberU64(), "stateRoot", block.Root())
-	if state := pbc.ReadStateDB(sealHash); state != nil {
+	if state := bcc.ReadStateDB(sealHash); state != nil {
 		//return state.Copy(), nil
 		return state, nil
 	} else {
@@ -161,8 +161,8 @@ func (pbc *PlatonBlockChain) MakeStateDB(block *types.Block) (*state.StateDB, er
 }
 
 // Get the StateDB instance of the corresponding block
-func (pbc *PlatonBlockChain) ClearCache(block *types.Block) {
-	sealHash := pbc.Engine().SealHash(block.Header())
-	pbc.clearReceipts(sealHash)
-	pbc.clearStateDB(sealHash)
+func (bcc *BlockChainCache) ClearCache(block *types.Block) {
+	sealHash := bcc.Engine().SealHash(block.Header())
+	bcc.clearReceipts(sealHash)
+	bcc.clearStateDB(sealHash)
 }
