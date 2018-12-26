@@ -48,8 +48,8 @@ var ticketidsCache *NumBlocks
 
 func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
 	/*
-		Put 购票交易新增选票
-		Del 节点掉榜，选票过期，选票被选中
+		append: New votes for ticket purchases
+		Del: Node elimination，ticket expired，ticket release
 	*/
 	//logInfo("NewTicketIdsCache==> Init ticketidsCache call NewTicketIdsCache func")
 	timer := Timer{}
@@ -148,9 +148,9 @@ func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Ha
 	return out
 }
 
-func (nb *NumBlocks) Submit2Cache(blocknumber *big.Int, blockhash common.Hash, in map[discover.NodeID][]common.Hash) {
+func (nb *NumBlocks) Submit2Cache(blocknumber, blockInterval *big.Int, blockhash common.Hash, in map[discover.NodeID][]common.Hash) {
 	log.Info("Submit2Cache==> ", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
-	blockNodes, ok := nb.NBlocks[blocknumber.String()];
+	blockNodes, ok := nb.NBlocks[blocknumber.String()]
 	if !ok {
 		blockNodes = &BlockNodes{}
 		blockNodes.BNodes = make(map[string]*NodeTicketIds)
@@ -186,6 +186,16 @@ func (nb *NumBlocks) Submit2Cache(blocknumber *big.Int, blockhash common.Hash, i
 	}
 	blockNodes.BNodes[blockhash.String()] = nodeTicketIds
 	nb.NBlocks[blocknumber.String()] = blockNodes
+
+	//del old cache
+	number := blocknumber.Sub(blocknumber, blockInterval)
+	for k := range nb.NBlocks {
+		if n, b := big.NewInt(0).SetString(k, 0); b {
+			if n.Cmp(number) < 0 {
+				delete(nb.NBlocks, k)
+			}
+		}
+	}
 }
 
 func (nb *NumBlocks) Commit(db ethdb.Database) error {
@@ -209,7 +219,7 @@ func (nb *NumBlocks) Commit(db ethdb.Database) error {
 ///////////////////////////////////
 
 func NewTicketCache() TicketCache  {
-	return make(map[discover.NodeID][]common.Hash)
+	return make(TicketCache)
 }
 
 func (tc TicketCache) AppendTicketCache (nodeid discover.NodeID, tids []common.Hash){

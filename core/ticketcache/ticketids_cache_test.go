@@ -85,7 +85,7 @@ func Test_Submit2Cache(t *testing.T)  {
 		timer := Timer{}
 		timer.Begin()
 		fmt.Println("msg==> ", "begin: ", timer.End())
-		tc.Submit2Cache(number, bkhash, mapCache)
+		tc.Submit2Cache(number, big.NewInt(int64(blockCount)), bkhash, mapCache)
 		fmt.Printf("run submit time [index=%d][ms=%.3f]\n", i, timer.End())
 	}
 	ldb.Close()
@@ -109,7 +109,7 @@ func Test_Write(t *testing.T)  {
 
 		////Submit2Cache
 		timer.Begin()
-		tc.Submit2Cache(number, bkhash, mapCache)
+		tc.Submit2Cache(number, big.NewInt(int64(blockCount)), bkhash, mapCache)
 		fmt.Printf("run submit time [index=%d][ms=%.3f]\n", i, timer.End())
 
 		//Hash
