@@ -579,9 +579,9 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	txPool = txPool
 }
 
-func SetPposOption(blockChain *core.BlockChain, cache *ticketcache.NumBlocks) {
+func SetPposOption(blockChain *core.BlockChain) {
 	cbft.ppos.setCandidatePool(blockChain, cbft.config.InitialNodes)
-	cbft.ppos.setTicketPoolCache(cache)
+	cbft.ppos.setTicketPoolCache()
 }
 
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.

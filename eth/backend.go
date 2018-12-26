@@ -214,7 +214,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, err
 	}
 	if _, ok := eth.engine.(consensus.Bft); ok {
-		cbft.SetPposOption(eth.blockchain, ticketcache.GetTicketidsCachePtr())
+		cbft.SetPposOption(eth.blockchain)
 	}
 	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)

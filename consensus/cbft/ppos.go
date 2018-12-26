@@ -1025,8 +1025,6 @@ func cmpSwitch (round, currentNum uint64) int {
 	}
 }
 
-//func (d *ppos) setTicketPoolCache (database ethdb.Database) {
-func (d *ppos) setTicketPoolCache (cache *ticketcache.NumBlocks) {
-//	d.ticketidsCache = ticketcache.NewTicketIdsCache(database)
-	d.ticketidsCache = cache
+func (d *ppos) setTicketPoolCache () {
+	d.ticketidsCache = ticketcache.GetTicketidsCachePtr()
 }
