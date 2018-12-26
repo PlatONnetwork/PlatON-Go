@@ -18,9 +18,9 @@
 package miner
 
 import (
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -55,13 +55,13 @@ type Miner struct {
 }
 
 func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(block *types.Block) bool,
-	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, consensusCache *cbft.Cache) *Miner {
+	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, blockChainCache *core.BlockChainCache) *Miner {
 	miner := &Miner{
-		eth:    eth,
-		mux:    mux,
-		engine: engine,
-		exitCh: make(chan struct{}),
-		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil, isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache),
+		eth:      eth,
+		mux:      mux,
+		engine:   engine,
+		exitCh:   make(chan struct{}),
+		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil, isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, blockChainCache),
 		canStart: 1,
 	}
 	go miner.update()
