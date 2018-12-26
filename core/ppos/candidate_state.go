@@ -2122,8 +2122,8 @@ func GetCandidatePtr() *CandidatePool {
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
 
-	//log.Info(s, "==", string(objs))
-	fmt.Println(s, string(objs))
+	log.Info(s, "==", string(objs))
+	//fmt.Println(s, string(objs))
 }
 
 func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
