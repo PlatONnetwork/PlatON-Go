@@ -685,7 +685,7 @@ func (cbft *Cbft) dataReceiverLoop() {
 				} else {
 					_, ok := v.(*cbfttypes.BlockSynced)
 					if ok {
-						cbft.blockSynchronisation()
+						cbft.blockSynced()
 					} else {
 						log.Error("Received wrong data type")
 					}
