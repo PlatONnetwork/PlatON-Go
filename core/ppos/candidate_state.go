@@ -486,7 +486,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			delInfoFn(state, nodeId)
 			// update this id index
 			if ids, err := getIndexFn(state); nil != err {
-				log.Error("withdraw failed get"+tiltle+"Index on full withdrawerr", "err", err)
+				log.Error("withdraw failed get"+tiltle+"Index on full withdraw", "err", err)
 				return err
 			} else {
 				for i := 0; i < len(ids); i ++ {
@@ -497,7 +497,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 					}
 				}
 				if err := setIndexFn(state, ids); nil != err {
-					log.Error("withdraw failed set"+tiltle+"Index on full withdrawerr", "err", err)
+					log.Error("withdraw failed set"+tiltle+"Index on full withdraw", "err", err)
 					return err
 				}
 			}
@@ -517,12 +517,12 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 		// append to refund (defeat) trie
 		if err := c.setDefeat(state, nodeId, can); nil != err {
-			log.Error("withdraw failed setDefeat on full withdrawerr", "err", err)
+			log.Error("withdraw failed setDefeat on full withdraw", "err", err)
 			return nil, err
 		}
 		// update index of defeat on trie
 		if err := c.setDefeatIndex(state); nil != err {
-			log.Error("withdraw failed setDefeatIndex on full withdrawerr", "err", err)
+			log.Error("withdraw failed setDefeatIndex on full withdraw", "err", err)
 			return nil, err
 		}
 
@@ -550,7 +550,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 			// update current candidate
 			if err := setInfoFn(state, nodeId, canNew); nil != err {
-				log.Error("withdraw failed set"+title+" on a few of withdrawerr", "err", err)
+				log.Error("withdraw failed set"+title+" on a few of withdraw", "err", err)
 				return nil, err
 			}
 
@@ -566,7 +566,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			}
 			// update new index
 			if err := setIndexFn(state, ids); nil != err {
-				log.Error("withdraw failed set"+title+"Index on a few of withdrawerr", "err", err)
+				log.Error("withdraw failed set"+title+"Index on a few of withdraw", "err", err)
 				return nil, err
 			}
 			return candidateArr, nil
@@ -601,12 +601,12 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 		}
 		// the withdraw
 		if err := c.setDefeat(state, nodeId, canDefeat); nil != err {
-			log.Error("withdraw failed setDefeat on a few of withdrawerr", "err", err)
+			log.Error("withdraw failed setDefeat on a few of withdraw", "err", err)
 			return nil, err
 		}
 		// update index of defeat on trie
 		if err := c.setDefeatIndex(state); nil != err {
-			log.Error("withdraw failed setDefeatIndex on a few of withdrawerr", "err", err)
+			log.Error("withdraw failed setDefeatIndex on a few of withdraw", "err", err)
 			return nil, err
 		}
 	}

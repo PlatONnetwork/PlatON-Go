@@ -202,9 +202,9 @@ func (d *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 /** ppos was added func */
 /** Method provided to the cbft module call */
 // Announce witness
-func (d *ppos) Election(state *state.StateDB, currBlocknumber *big.Int) ([]*discover.Node, error) {
+func (d *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlocknumber *big.Int) ([]*discover.Node, error) {
 	// TODO
-	if nextNodes, err := d.candidatePool.Election(state, common.BytesToHash([]byte("") /** parentHash TODO */), currBlocknumber); nil != err {
+	if nextNodes, err := d.candidatePool.Election(state, parentHash, currBlocknumber); nil != err {
 		log.Error("ppos election next witness err", err)
 		panic("Election error " + err.Error())
 	} else {
@@ -504,12 +504,18 @@ func (d *ppos) GetCandidateAttach (state vm.StateDB, nodeId discover.NodeID) (*t
 	return d.ticketPool.GetCandidateAttach(state, nodeId)
 }
 
-////// 每一个块都会调用的方法
+// TODO 每一个块执行交易前都会调用的方法
 func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
 	return d.ticketPool.Notify(state, blockNumber)
 }
 
 // TODO 添加一个方法， 每次finalize 之前，调用求Hash 加入 stateDB
+func (d *ppos) StoreHash (state *state.StateDB) {
+	if err := d.ticketPool.CommitHash(state); nil != err {
+		log.Error("Failed to StoreHash", "err", err)
+		panic("Failed to StoreHash err" + err.Error())
+	}
+}
 
 // TODO 添加一个方法，每 seal 完一个块之后，就调用该 Func
 func (d *ppos) Submit2Cache (state *state.StateDB, currBlocknumber *big.Int, currBlockhash common.Hash) {

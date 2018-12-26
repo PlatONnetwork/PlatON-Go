@@ -33,6 +33,7 @@ const (
 	// Ticket pool hash
 	TicketPoolHash	= "tph"
 
+
 )
 
 
@@ -66,4 +67,5 @@ var (
 	CandidateAttachPrefix		= []byte(CandidateAttach)
 
 	TicketPoolHashKey			= []byte(TicketPoolHash)
+
 )
