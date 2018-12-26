@@ -41,7 +41,7 @@ func (bc *testMpcBlockChain) GetBlock(hash common.Hash, number uint64) *types.Bl
 	return bc.CurrentBlock()
 }
 
-func (bc *testMpcBlockChain) StateAt(common.Hash) (*state.StateDB, error) {
+func (bc *testMpcBlockChain) StateAt(common.Hash, *big.Int, common.Hash) (*state.StateDB, error) {
 	return bc.statedb, nil
 }
 
@@ -65,7 +65,7 @@ func mpcPricedTransaction(nonce uint64, gaslimit uint64, gasprice *big.Int, key 
 
 // Configuring the MPCPool transaction pool.
 func setupMpcPool() (*MPCPool, *ecdsa.PrivateKey) {
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()), big.NewInt(0), common.Hash{})
 	blockchain := &testMpcBlockChain{statedb, 1000000, new(event.Feed)}
 
 	key, _ := crypto.GenerateKey()
@@ -153,7 +153,7 @@ func testMpcTransactionJournaling(t *testing.T, nolocals bool) {
 	os.Remove(journal)
 
 	// Create the original pool to inject transaction into the journal
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()), big.NewInt(0), common.Hash{})
 	blockchain := &testMpcBlockChain{statedb, 1000000, new(event.Feed)}
 
 	config := mpcTestTxPoolConfig
