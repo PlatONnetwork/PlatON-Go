@@ -13,8 +13,8 @@ import (
 
 // Ppos pre-compiled contract address
 var PrecompiledContractsPpos = map[common.Address]PrecompiledContract{
-	common.CandidatePoolAddr: &candidateContract{},
-	common.TicketPoolAddr:    &ticketContract{},
+	common.CandidatePoolAddr: &CandidateContract{},
+	common.TicketPoolAddr:    &TicketContract{},
 }
 
 // error def

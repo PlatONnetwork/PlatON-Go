@@ -1,12 +1,21 @@
-package vm
+package vm_test
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -15,6 +24,132 @@ import (
 	"reflect"
 	"testing"
 )
+
+func TestCandidatePoolOverAll(t *testing.T) {
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error)
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("质押成功...")
+
+	// CandidateDetails(nodeId discover.NodeID) ([]byte, error)
+	_, err = candidateContract.CandidateDetails(nodeId)
+	if nil != err {
+		fmt.Println("CandidateDetails fail", "err", err)
+	}
+
+	// CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error)
+	_, err = candidateContract.CandidateApplyWithdraw(nodeId, big.NewInt(10))
+	if nil != err {
+		fmt.Println("CandidateApplyWithdraw fail", "err", err)
+	}
+
+	// CandidateWithdraw(nodeId discover.NodeID) ([]byte, error)
+	_, err = candidateContract.CandidateWithdraw(nodeId)
+	if nil != err {
+		fmt.Println("CandidateWithdraw fail", "err", err)
+	}
+
+	_, err = candidateContract.CandidateDetails(nodeId)
+	if nil != err {
+		fmt.Println("CandidateDetails fail", "err", err)
+	}
+
+	// CandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error)
+	_, err = candidateContract.CandidateWithdrawInfos(nodeId)
+	if nil != err {
+		fmt.Println("CandidateWithdrawInfos fail", "err", err)
+	}
+
+	nodeId = discover.MustHexID("0x67834567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner = common.HexToAddress("0x13")
+	fee = uint64(1)
+	host = "10.0.0.2"
+	port = "8548"
+	extra = "extra data"
+	_, err = candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("质押成功...")
+
+	// CandidateList() ([]byte, error)
+	_, err = candidateContract.CandidateList()
+	if nil != err {
+		fmt.Println("CandidateList fail", "err", err)
+	}
+
+	// VerifiersList() ([]byte, error)
+	_, err = candidateContract.VerifiersList()
+	if nil != err {
+		fmt.Println("VerifiersList fail", "err", err)
+	}
+}
+
+func newContract() *vm.Contract {
+	callerAddress := vm.AccountRef(common.HexToAddress("0x12"))
+	contract := vm.NewContract(callerAddress, callerAddress, big.NewInt(1000), uint64(1))
+	return contract
+}
+
+func newEvm() *vm.EVM {
+	state, _ := newChainState()
+	candidatePool, ticketPool := newPool()
+	evm := &vm.EVM{
+		StateDB:       state,
+		CandidatePool: candidatePool,
+		TicketPool:    ticketPool,
+	}
+	context := vm.Context{
+		BlockNumber: big.NewInt(7),
+	}
+	evm.Context = context
+	return evm
+}
+
+func newChainState() (*state.StateDB, error) {
+	var (
+		db      = ethdb.NewMemDatabase()
+		genesis = new(core.Genesis).MustCommit(db)
+	)
+	fmt.Println("genesis", genesis)
+	// Initialize a fresh chain with only a genesis block
+	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, ethash.NewFaker(), vm.Config{}, nil)
+
+	var state *state.StateDB
+	if statedb, err := blockchain.State(); nil != err {
+		return nil, errors.New("reference statedb failed" + err.Error())
+	} else {
+		state = statedb
+	}
+	return state, nil
+}
+
+func newPool() (*pposm.CandidatePool, *pposm.TicketPool) {
+	configs := params.PposConfig{
+		Candidate: &params.CandidateConfig{
+			MaxChair:          1,
+			MaxCount:          3,
+			RefundBlockNumber: 1,
+		},
+		TicketConfig: &params.TicketConfig{
+			MaxCount:          100,
+			ExpireBlockNumber: 2,
+		},
+	}
+	return pposm.NewCandidatePool(&configs), pposm.NewTicketPool(&configs)
+}
 
 func TestRlpEncode(t *testing.T) {
 	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
@@ -73,13 +208,6 @@ func TestRlpEncode(t *testing.T) {
 			// fmt.Println(string(v.([]byte)))
 		}
 	}
-}
-
-func TestAppendSlice(t *testing.T) {
-	a := []int{0, 1, 2, 3, 4}
-	i := 2
-	a = append(a[:i], a[i+1:]...)
-	fmt.Println(a)
 }
 
 func TestRlpData(t *testing.T) {
@@ -186,6 +314,13 @@ func TestRlpDecode(t *testing.T) {
 	for i, v := range source {
 		fmt.Println("i: ", i, " v: ", hex.EncodeToString(v))
 	}
+}
+
+func TestAppendSlice(t *testing.T) {
+	a := []int{0, 1, 2, 3, 4}
+	i := 2
+	a = append(a[:i], a[i+1:]...)
+	fmt.Println(a)
 }
 
 func uint64ToBytes(val uint64) []byte {

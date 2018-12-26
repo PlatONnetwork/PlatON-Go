@@ -136,7 +136,7 @@ func TestTicketProcess(t *testing.T)  {
 	candidateAttach, err := ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId.String()), candidateAttach.Epoch)
+		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId), candidateAttach.Epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 	fmt.Println("------all ticket-----")
 	for _, ticket := range ticketList {
@@ -172,7 +172,7 @@ func TestTicketProcess(t *testing.T)  {
 	ticketPool.GetPoolNumber(state)
 	candidateAttach, err = ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId.String()), candidateAttach.Epoch)
+		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId), candidateAttach.Epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 
 	if err := ticketPool.Notify(state, blockNumber); err != nil {
@@ -192,7 +192,7 @@ func TestTicketProcess(t *testing.T)  {
 	candidateAttach, err = ticketPool.GetCandidateAttach(state, candidate.CandidateId)
 	t.Logf("处理完过期票块高为：[%d]", blockNumber)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId.String()), candidateAttach.Epoch)
+		ticketPool.SurplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId), candidateAttach.Epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 
 	var temp []string
