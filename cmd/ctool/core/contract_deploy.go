@@ -18,19 +18,19 @@ func parseFile(file string) []byte {
 	return codeBytes
 }
 
-func parseResponse(r string) *Response {
-	var resp = Response{}
-	err := json.Unmarshal([]byte(r), &resp)
-
-	if err != nil {
-		panic(fmt.Sprintf("parse result error ! error:%s \n", err.Error()))
-	}
-
-	if resp.Error.Code != 0 {
-		panic(fmt.Sprintf("send transaction error ,error:%v \n", resp.Error.Message))
-	}
-	return &resp
-}
+//func parseResponse(r string) *Response {
+//	var resp = Response{}
+//	err := json.Unmarshal([]byte(r), &resp)
+//
+//	if err != nil {
+//		panic(fmt.Sprintf("parse result error ! error:%s \n", err.Error()))
+//	}
+//
+//	if resp.Error.Code != 0 {
+//		panic(fmt.Sprintf("send transaction error ,error:%v \n", resp.Error.Message))
+//	}
+//	return &resp
+//}
 
 func Deploy(abiFilePath string, codeFilePath string, configPath string) error {
 
