@@ -643,13 +643,10 @@ func (srv *Server) run(dialstate dialer) {
 	scheduleTasks := func() {
 		// Start from queue first.
 		queuedTasks = append(queuedTasks[:0], startTasks(queuedTasks)...)
-		log.Warn("queuedTasks1", "length", len(queuedTasks))
 		// Query dialer for new tasks and start as many as possible now.
-		log.Warn("runningTasks", "length", len(runningTasks))
 		if len(runningTasks) < maxActiveDialTasks {
 			nt := dialstate.newTasks(len(runningTasks)+len(queuedTasks), peers, time.Now())
 			queuedTasks = append(queuedTasks, startTasks(nt)...)
-			log.Warn("queuedTasks2", "length", len(queuedTasks))
 		}
 	}
 	dialstateRemoveConsensusPeerFn := func(node *discover.Node) {
