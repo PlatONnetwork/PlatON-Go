@@ -279,8 +279,11 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	}
 	c.lock.Unlock()
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
-	if err := ticketPool.DropReturnTicket(state, can.BlockNumber, nodeIds...); nil != err {
-		log.Error("Failed to DropReturnTicket on SetCandidate ...")
+	if len(nodeIds) > 0 {
+		if err := ticketPool.DropReturnTicket(state, can.BlockNumber, nodeIds...); nil != err {
+			log.Error("Failed to DropReturnTicket on SetCandidate ...")
+			//return err
+		}
 	}
 	return nil
 }
@@ -440,8 +443,10 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 		nodeIds = arr
 	}
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
-	if err := ticketPool.DropReturnTicket(state, blockNumber, nodeIds...); nil != err {
-		log.Error("Failed to DropReturnTicket on WithdrawCandidate ...")
+	if len(nodeIds) > 0 {
+		if err := ticketPool.DropReturnTicket(state, blockNumber, nodeIds...); nil != err {
+			log.Error("Failed to DropReturnTicket on WithdrawCandidate ...")
+		}
 	}
 	return nil
 }
@@ -964,8 +969,10 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	}
 	// 释放落榜的
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
-	if err := ticketPool.DropReturnTicket(state, currBlockNumber, nodeIds...); nil != err {
-		log.Error("Failed to DropReturnTicket on Election ...")
+	if len(nodeIds) > 0 {
+		if err := ticketPool.DropReturnTicket(state, currBlockNumber, nodeIds...); nil != err {
+			log.Error("Failed to DropReturnTicket on Election ...")
+		}
 	}
 	return nodes, nil
 }
@@ -1356,7 +1363,10 @@ func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *bi
 		ids = arr
 	}
 	//go ticketPool.DropReturnTicket(state, ids...)
-	return ticketPool.DropReturnTicket(state, currBlockNumber, ids...)
+	if len(ids) > 0 {
+		return ticketPool.DropReturnTicket(state, currBlockNumber, ids...)
+	}
+	return nil
 }
 
 func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeID) ([]discover.NodeID, error) {
