@@ -193,7 +193,7 @@ type TxPool struct {
 	// modified by PlatON
 	chainHeadCh chan *types.Block
 	//chainHeadCh  chan ChainHeadEvent
-	//chainHeadSub event.Subscription
+	exitCh chan struct{}
 	signer types.Signer
 	mu     sync.RWMutex
 
@@ -243,7 +243,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		// modified by PlatON
 		// chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
 		chainHeadCh: make(chan *types.Block, chainHeadChanSize),
-
+		exitCh:      make(chan struct{}),
 		gasPrice:    new(big.Int).SetUint64(config.PriceLimit),
 		txExtBuffer: make(chan *txExt, 64),
 	}
@@ -327,10 +327,8 @@ func (pool *TxPool) loop() {
 				pool.mu.Unlock()
 			}
 
-		// Be unsubscribed due to system stopped
-		// modified by PlatON
-		//case <-pool.chainHeadSub.Err():
-		//	return
+		case <-pool.exitCh:
+			return
 
 		// Handle stats reporting ticks
 		case <-report.C:
@@ -551,9 +549,8 @@ func (pool *TxPool) Stop() {
 	// Unsubscribe all subscriptions registered from txpool
 	pool.scope.Close()
 
-	// Unsubscribe subscriptions registered from blockchain
-	// modified by PlatON
-	//pool.chainHeadSub.Unsubscribe()
+	pool.exitCh <- struct{}{}
+
 	pool.wg.Wait()
 
 	if pool.journal != nil {
