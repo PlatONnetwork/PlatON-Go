@@ -874,9 +874,9 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
 		peers := pm.peers.ConsensusPeersWithoutTx(consensusPeers, tx.Hash())
-		if len(peers) > 0  {
+		if len(peers) > 0 {
 			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			for i := 0; i < f; i++ {
+			for i := 0; i < f && i < len(peers); i++ {
 				idx := r.Intn(len(peers))
 				txset[peers[idx]] = append(txset[peers[idx]], tx)
 				log.Trace("Broadcast transaction", "hash", tx.Hash(), "peer", peers[idx].id)
