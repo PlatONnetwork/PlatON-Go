@@ -149,7 +149,7 @@ func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Ha
 }
 
 func (nb *NumBlocks) Submit2Cache(blocknumber, blockInterval *big.Int, blockhash common.Hash, in map[discover.NodeID][]common.Hash) {
-	log.Info("Submit2Cache==> ", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
+	log.Info("Submit2Cache==> ", "blocknumber: ", blocknumber, " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " cachelen: ", len(nb.NBlocks))
 	blockNodes, ok := nb.NBlocks[blocknumber.String()]
 	if !ok {
 		blockNodes = &BlockNodes{}
@@ -196,6 +196,7 @@ func (nb *NumBlocks) Submit2Cache(blocknumber, blockInterval *big.Int, blockhash
 			}
 		}
 	}
+	log.Info("Submit2Cache==> run end ", "cachelen: ", len(nb.NBlocks))
 }
 
 func (nb *NumBlocks) Commit(db ethdb.Database) error {
@@ -207,7 +208,7 @@ func (nb *NumBlocks) Commit(db ethdb.Database) error {
 		return ErrProbufMarshal
 	}
 	//logInfo("Marshal out: ", hexutil.Encode(out))
-	log.Info("Commit==> ", "outlen: ", len(out), " outhex: ", hexutil.Encode(out))
+	log.Info("Commit==> ", "cachelen: ", len(nb.NBlocks), " outlen: ", len(out), " outhex: ", hexutil.Encode(out))
 	if err := db.Put(ticketPoolCacheKey, out); err != nil  {
 		log.Error("level db put faile: ", err.Error())
 		return ErrLeveldbPut
