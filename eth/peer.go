@@ -535,8 +535,10 @@ func (ps *peerSet) ConsensusPeersWithoutTx(csPeers []*peer, hash common.Hash) []
 
 	list := make([]*peer, 0, len(csPeers))
 	for _, p := range csPeers {
-		if !p.knownTxs.Contains(hash) {
-			list = append(list, p)
+		if _, ok := ps.peers[p.id]; ok {
+			if !p.knownTxs.Contains(hash) {
+				list = append(list, p)
+			}
 		}
 	}
 	return list
