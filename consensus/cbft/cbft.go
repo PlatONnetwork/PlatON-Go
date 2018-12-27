@@ -60,7 +60,7 @@ type Cbft struct {
 	cbftResultOutCh       chan *cbfttypes.CbftResult     //a channel to send consensus result
 	highestLogicalBlockCh chan *types.Block
 	closeOnce             sync.Once
-	exitCh                chan chan error
+	exitCh                chan struct{}
 	txPool                *core.TxPool
 	blockExtMap           map[common.Hash]*BlockExt //store all received blocks and signs
 	dataReceiveCh         chan interface{}          //a channel to receive data from miner
@@ -93,12 +93,12 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		blockSignOutCh:        blockSignatureCh,
 		cbftResultOutCh:       cbftResultCh,
 		highestLogicalBlockCh: highestLogicalBlockCh,
-
-		blockExtMap:   make(map[common.Hash]*BlockExt),
-		signedSet:     make(map[uint64]struct{}),
-		dataReceiveCh: make(chan interface{}, 250),
-		blockSyncedCh: make(chan struct{}),
-		netLatencyMap: make(map[discover.NodeID]*list.List),
+		exitCh:                make(chan struct{}),
+		blockExtMap:           make(map[common.Hash]*BlockExt),
+		signedSet:             make(map[uint64]struct{}),
+		dataReceiveCh:         make(chan interface{}, 250),
+		blockSyncedCh:         make(chan struct{}),
+		netLatencyMap:         make(map[discover.NodeID]*list.List),
 	}
 
 	flowControl = NewFlowControl()
@@ -1383,19 +1383,15 @@ func (b *Cbft) SealHash(header *types.Header) common.Hash {
 // Close implements consensus.Engine. It's a noop for cbft as there is are no background threads.
 func (cbft *Cbft) Close() error {
 	log.Trace("call Close()")
-
-	var err error
 	cbft.closeOnce.Do(func() {
 		// Short circuit if the exit channel is not allocated.
 		if cbft.exitCh == nil {
 			return
 		}
-		errc := make(chan error)
-		cbft.exitCh <- errc
-		err = <-errc
+		cbft.exitCh <- struct{}{}
 		close(cbft.exitCh)
 	})
-	return err
+	return nil
 }
 
 // APIs implements consensus.Engine, returning the user facing RPC API to allow
