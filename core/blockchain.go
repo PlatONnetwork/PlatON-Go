@@ -20,6 +20,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"io"
 	"math/big"
 	mrand "math/rand"
@@ -681,6 +682,10 @@ func (bc *BlockChain) Stop() {
 	//  - HEAD-1:   So we don't do large reorgs if our HEAD becomes an uncle
 	//  - HEAD-127: So we have a hard limit on the number of blocks reexecuted
 	if !bc.cacheConfig.Disabled {
+		//ppos add -> commit memory ticket cache to disk
+		ticketcache.GetTicketidsCachePtr().Commit(bc.db)
+
+		//eth...
 		triedb := bc.stateCache.TrieDB()
 
 		for _, offset := range []uint64{0, 1, triesInMemory - 1} {
@@ -927,6 +932,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		log.Error("Write block total difficulty", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
 	}
+	rawdb.TicketCacheCommit(bc.db)
 	rawdb.WriteBlock(bc.db, block)
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
