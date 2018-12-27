@@ -22,14 +22,13 @@ package downloader
 import (
 	"errors"
 	"fmt"
-	"sync"
-	"time"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
+	"sync"
+	"time"
 )
 
 var (
@@ -396,11 +395,7 @@ func (q *queue) Results(block bool) []*fetchResult {
 			for _, tx := range result.Transactions {
 				size += tx.Size()
 			}
-			for _, signature := range result.Signatures {
-				// TODO
-				log.Debug("Results signature", "signature", signature)
-				//size += signature.Size()
-			}
+			size += common.StorageSize(len(result.Signatures)*common.BlockConfirmSignLength)
 			q.resultSize = common.StorageSize(blockCacheSizeWeight)*size + (1-common.StorageSize(blockCacheSizeWeight))*q.resultSize
 		}
 	}

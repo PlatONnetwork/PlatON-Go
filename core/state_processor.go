@@ -77,27 +77,25 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 	}
-	// modify by platon
+
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
-		// 揭榜(如果符合条件)
-		log.Warn("---Process试图揭榜---", "number", block.Number())
+		// Election call(if match condition)
 		if p.bc.shouldElectionFn(block.Number()) {
-			log.Warn("---Process调用揭榜---", "number", block.Number(), "state", statedb)
+			log.Warn("---Election call when processing block:---", "number", block.Number(), "state", statedb)
 			cbftEngine.Election(statedb, block.Number())
 		}
-		// 触发替换下轮见证人列表(如果符合条件)
-		log.Warn("---Process试图触发替换下轮见证人列表---", "number", block.Number())
+		// SwitchWitness call(if match condition)
 		if p.bc.shouldSwitchFn(block.Number()) {
-			log.Warn("---Process触发替换下轮见证人列表---", "number", block.Number(), "state", statedb)
+			log.Warn("---SwitchWitness call when processing block:---", "number", block.Number(), "state", statedb)
 			cbftEngine.Switch(statedb)
 		}
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
-		// 更新nodeCache
+		// SetNodeCache
 		blockNumber := block.Number()
-		log.Warn("---Process更新nodeCache---", "number", block.Number())
+		log.Warn("---SetNodeCache call when processing block---", "number", block.Number())
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 		cbftEngine.SetNodeCache(statedb, parentNumber, blockNumber, block.ParentHash(), block.Hash())
 	}

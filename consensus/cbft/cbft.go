@@ -89,7 +89,7 @@ var cbft *Cbft
 
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
-	pposm.PrintObject("获取ppos config：", *config)
+	pposm.PrintObject("Get ppos config：", *config)
 	_ppos := newPpos(/*config.InitialNodes, */config)
 
 	cbft = &Cbft{
@@ -1275,7 +1275,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	log.Debug("seal complete", "hash", sealedBlock.Hash(), "number", block.NumberU64())
 
-	// 更新nodeCache
+	// SetNodeCache
 	blockNumber := current.block.Number()
 	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 	sealhash := cbft.SealHash(current.block.Header())
@@ -1431,16 +1431,6 @@ func (cbft *Cbft) avgLatency(nodeID discover.NodeID) int64 {
 		}
 	}
 	return cbft.config.MaxLatency
-}
-
-// HighestLogicalBlock returns the cbft.highestLogical.block.
-func (cbft *Cbft) HighestLogicalBlock() *types.Block {
-	cbft.lock.RLock()
-	defer cbft.lock.RUnlock()
-
-	log.Debug("call HighestLogicalBlock() ...")
-
-	return cbft.highestLogical.block
 }
 
 // IsSignedBySelf returns if the block is signed by local.

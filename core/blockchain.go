@@ -1217,9 +1217,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return i, events, coalescedLogs, err
 		}
 
-		// modify by platon
 		if _, ok := bc.engine.(consensus.Bft); ok {
-			log.Warn("---insertchain尝试连接下一轮共识节点---", "number", block.Number(), "state", state)
+			log.Debug("Attempt to connect the next round of consensus nodes when insertchain", "number", block.Number(), "state", state)
 			bc.attemptAddConsensusPeerFn(block.Number(), state)
 		}
 
