@@ -86,7 +86,6 @@ type Header struct {
 
 // field type overrides for gencodec
 type headerMarshaling struct {
-	Difficulty *hexutil.Big
 	Number     *hexutil.Big
 	GasLimit   hexutil.Uint64
 	GasUsed    hexutil.Uint64

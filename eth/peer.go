@@ -67,7 +67,7 @@ const (
 // about a connected peer.
 type PeerInfo struct {
 	Version    int      `json:"version"`    // Ethereum protocol version negotiated
-	BN         *big.Int `json:"difficulty"` // The block number of the peer's blockchain
+	BN         *big.Int `json:"number"`     // The block number of the peer's blockchain
 	Head       string   `json:"head"`       // SHA3 hash of the peer's best owned block
 }
 
