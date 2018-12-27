@@ -37,7 +37,7 @@ import (
 
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
-	chainHeadChanSize = 0
+	chainHeadChanSize = 10
 )
 
 var (
@@ -132,10 +132,10 @@ type TxPoolConfig struct {
 	PriceLimit uint64 // Minimum gas price to enforce for acceptance into the pool
 	PriceBump  uint64 // Minimum price bump percentage to replace an already existing transaction (nonce)
 
-	AccountSlots uint64 // Number of executable transaction slots guaranteed per account
-	GlobalSlots  uint64 // Maximum number of executable transaction slots for all accounts
-	AccountQueue uint64 // Maximum number of non-executable transaction slots permitted per account
-	GlobalQueue  uint64 // Maximum number of non-executable transaction slots for all accounts
+	AccountSlots  uint64 // Number of executable transaction slots guaranteed per account
+	GlobalSlots   uint64 // Maximum number of executable transaction slots for all accounts
+	AccountQueue  uint64 // Maximum number of non-executable transaction slots permitted per account
+	GlobalQueue   uint64 // Maximum number of non-executable transaction slots for all accounts
 	GlobalTxCount uint64 // Maximum number of transactions for package
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
@@ -150,10 +150,10 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	PriceLimit: 1,
 	PriceBump:  10,
 
-	AccountSlots: 16,
-	GlobalSlots:  4096,
-	AccountQueue: 64,
-	GlobalQueue:  1024,
+	AccountSlots:  16,
+	GlobalSlots:   4096,
+	AccountQueue:  64,
+	GlobalQueue:   1024,
 	GlobalTxCount: 3000,
 
 	Lifetime: 3 * time.Hour,
