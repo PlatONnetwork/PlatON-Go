@@ -782,20 +782,20 @@ func (self *StateDB) GetTicketCache(nodeid discover.NodeID) (ret []common.Hash, 
 func (self *StateDB) RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) (err error) {
 	self.tclock.Lock()
 	err = self.tickeCache.RemoveTicketCache(nodeid, tids)
-	defer self.tclock.Unlock()
+	self.tclock.Unlock()
 	return
 }
 
 func (self *StateDB) TCount(nodeid discover.NodeID) (ret uint64) {
 	self.tclock.RLock()
 	ret = self.tickeCache.TCount(nodeid)
-	defer self.tclock.RUnlock()
+	self.tclock.RUnlock()
 	return ret
 }
 
 func (self *StateDB) TicketCaceheSnapshot() (ret ticketcache.TicketCache) {
 	self.tclock.RLock()
 	ret = self.tickeCache.TicketCaceheSnapshot()
-	defer self.tclock.RUnlock()
+	self.tclock.RUnlock()
 	return
 }
