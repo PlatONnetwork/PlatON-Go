@@ -11,7 +11,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 	"net"
 	"strconv"
@@ -1193,69 +1192,6 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 		return nil, nil, nil, err
 	}
 
-	/*
-	var ids []discover.NodeID
-	var prewitness, witness, nextwitness candidateStorage
-	prewitness = c.preOriginCandidates
-	witness = c.originCandidates
-	nextwitness = c.nextOriginCandidates
-
-	 //witness index
-	var preIndex, curIndex, nextIndex []discover.NodeID
-
-	if ids, err := c.getPreviousWitnessIndex(state); nil != err {
-		log.Error("Failed to getPreviousWitnessIndex on GetAllWitness", "err", err)
-		return nil, nil, nil, err
-	} else {
-		preIndex = ids
-	}
-	if ids, err := c.getWitnessIndex(state); nil != err {
-		log.Error("Failed to getWitnessIndex on GetAllWitness", "err", err)
-		return nil, nil, nil, err
-	} else {
-		curIndex = ids
-	}
-	if ids, err := c.getNextWitnessIndex(state); nil != err {
-		log.Error("Failed to getNextWitnessIndex on GetAllWitness", "err", err)
-		return nil, nil, nil, err
-	} else {
-		nextIndex = ids
-	}
-	preArr, curArr, nextArr := make([]*discover.Node, 0), make([]*discover.Node, 0), make([]*discover.Node, 0)
-	for _, id := range preIndex {
-		if can, ok := prewitness[id]; ok {
-			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build pre Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
-				//continue
-				return nil, nil, nil, err
-			} else {
-				preArr = append(preArr, node)
-			}
-		}
-	}
-	for _, id := range curIndex {
-		if can, ok := witness[id]; ok {
-			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build cur Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
-				//continue
-				return nil, nil, nil, err
-			} else {
-				curArr = append(curArr, node)
-			}
-		}
-	}
-	for _, id := range nextIndex {
-		if can, ok := nextwitness[id]; ok {
-			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build next Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
-				//continue
-				return nil, nil, nil, err
-			} else {
-				nextArr = append(nextArr, node)
-			}
-		}
-	}*/
-
 	fetchWitnessFunc := func (title string, witnesses candidateStorage,
 		getIndexFn func  (state vm.StateDB) ([]discover.NodeID, error)) ([]*discover.Node, error){
 
@@ -1362,6 +1298,8 @@ func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *bi
 	} else {
 		ids = arr
 	}
+	log.Info("处理完 updateQueue 后再次查看 stateDB ...")
+	c.initDataByState(state, 1)
 	//go ticketPool.DropReturnTicket(state, ids...)
 	if len(ids) > 0 {
 		return ticketPool.DropReturnTicket(state, currBlockNumber, ids...)
@@ -1372,6 +1310,8 @@ func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *bi
 func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeID) ([]discover.NodeID, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	log.Info("开始更新竞选队列...")
+	PrintObject("入参的nodeIds:", nodeIds)
 	if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on UpdateElectedQueue", "err", err)
 		return nil, err
@@ -1386,6 +1326,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 		setNewIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error,
 	) ([]discover.NodeID, types.CandidateQueue, error) {
 
+		log.Info("处理", "old", "delTitle", "new", "setTitle")
+		PrintObject("oldMap", oldMap)
+		PrintObject("newMap", newMap)
 		can := oldMap[nodeId]
 		newMap[nodeId] = can
 
@@ -1483,13 +1426,17 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 	var wg sync.WaitGroup
 	wg.Add(len(nodeIds))
 	for _, nodeId := range nodeIds {
+		log.Info("判断当前nodeId原来属于哪个队列", "nodeId", nodeId.String())
 		switch c.checkExist(nodeId) {
 		case 1:
-			// remove to immediates from reserves
+
+
 			go func() {
 				res := new(result)
 				res.Type = 0
+				// remove to immediates from reserves
 				if !c.checkTicket(state.TCount(nodeId)) { // TODO
+					log.Info("原来在 im中需要移到 re中", "nodeId", nodeId.String())
 				//if !c.checkTicket(40) {
 					if delIds, canArr, err := handle("Immediate", "Reserve", nodeId, c.immediateCandidates, c.reserveCandidates,
 						c.delImmediate, c.delReserve, c.setReserve, c.getImmediateIndex, c.setImmediateIndex, c.setReserveIndex); nil != err {
@@ -1506,11 +1453,14 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 				wg.Done()
 			}()
 		case 2:
-			// remove to reserves from immediates
+
+
 			go func() {
 				res := new(result)
 				res.Type = 1
+				// remove to reserves from immediates
 				if c.checkTicket(state.TCount(nodeId)) { // TODO
+					log.Info("原来在 re中需要移到 im中", "nodeId", nodeId.String())
 				//if c.checkTicket(40) {
 					if delIds, canArr, err := handle("Reserve", "Immediate", nodeId, c.reserveCandidates, c.immediateCandidates,
 						c.delReserve, c.delImmediate, c.setImmediate, c.getReserveIndex, c.setReserveIndex, c.setImmediateIndex); nil != err {
@@ -1655,12 +1605,12 @@ func (c *CandidatePool) checkExist(nodeId discover.NodeID) int {
 }
 
 func (c *CandidatePool) checkTicket(t_count uint64) bool {
-	fmt.Println("对比当前候选人得票数为:", t_count, "入选门槛为:", c.maxCount)
+	log.Info("对比当前候选人得票数为:", t_count, "入选门槛为:", c.maxCount)
 	if t_count >= c.maxCount {
-		fmt.Println("当前候选人得票数符合进入候选池...")
+		log.Info("当前候选人得票数符合进入候选池...")
 		return true
 	}
-	fmt.Println("不进候选池...")
+	log.Info("不进候选池...")
 	return false
 }
 
