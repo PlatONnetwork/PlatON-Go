@@ -870,6 +870,9 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 
 	consensusPeers := pm.peers.PeersWithConsensus(pm.engine)
 	f := len(consensusPeers) / 3
+	if f <= 0 {
+		f = 1
+	}
 
 	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
