@@ -188,9 +188,9 @@ func (nb *NumBlocks) Submit2Cache(blocknumber, blockInterval *big.Int, blockhash
 	nb.NBlocks[blocknumber.String()] = blockNodes
 
 	//del old cache
-	number := blocknumber.Sub(blocknumber, blockInterval)
+	number := new(big.Int).Sub(blocknumber, blockInterval)
 	for k := range nb.NBlocks {
-		if n, b := big.NewInt(0).SetString(k, 0); b {
+		if n, b := new(big.Int).SetString(k, 0); b {
 			if n.Cmp(number) < 0 {
 				delete(nb.NBlocks, k)
 			}
