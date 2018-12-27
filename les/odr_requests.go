@@ -428,7 +428,6 @@ func (r *ChtRequest) Validate(db ethdb.Database, msg *Msg) error {
 		// Verifications passed, store and return
 		r.Header = proof.Header
 		r.Proof = light.NodeList(proof.Proof).NodeSet()
-		r.Td = node.Td
 	case MsgHelperTrieProofs:
 		resp := msg.Obj.(HelperTrieResps)
 		if len(resp.AuxData) != 1 {
@@ -470,7 +469,6 @@ func (r *ChtRequest) Validate(db ethdb.Database, msg *Msg) error {
 		// Verifications passed, store and return
 		r.Header = header
 		r.Proof = nodeSet
-		r.Td = node.Td
 	default:
 		return errInvalidMessageType
 	}

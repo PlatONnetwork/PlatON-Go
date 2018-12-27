@@ -39,7 +39,6 @@ func (w *wizard) makeGenesis() {
 	genesis := &core.Genesis{
 		Timestamp:  uint64(time.Now().Unix()),
 		GasLimit:   3150000000,
-		Difficulty: big.NewInt(524288),
 		Alloc:      make(core.GenesisAlloc),
 		Config: &params.ChainConfig{
 			HomesteadBlock: big.NewInt(1),
@@ -65,7 +64,6 @@ func (w *wizard) makeGenesis() {
 
 	case choice == "2":
 		// In the case of clique, configure the consensus parameters
-		genesis.Difficulty = big.NewInt(1)
 		genesis.Config.Clique = &params.CliqueConfig{
 			Period: 15,
 			Epoch:  30000,
@@ -103,7 +101,6 @@ func (w *wizard) makeGenesis() {
 
 	case choice == "" || choice == "3":
 		// In the case of cbft, configure the consensus parameters
-		genesis.Difficulty = big.NewInt(2)
 		genesis.Config.Cbft = &params.CbftConfig{}
 		// We also need the initial list of signers
 		fmt.Println()
