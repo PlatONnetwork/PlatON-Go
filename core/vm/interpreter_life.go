@@ -3,7 +3,6 @@ package vm
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/core/lru"
 	"github.com/PlatONnetwork/PlatON-Go/life/utils"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -95,19 +94,7 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	}
 
 	var lvm *exec.VirtualMachine
-	var module *lru.WasmModule
-	module, ok := lru.WasmCache().Get(contract.Address())
-
-	if !ok {
-		module = &lru.WasmModule{}
-		module.Module, module.FunctionCode, err = exec.ParseModuleAndFunc(code, nil)
-		if err != nil {
-			return nil, err
-		}
-		lru.WasmCache().Add(contract.Address(), module)
-	}
-
-	lvm, err = exec.NewVirtualMachineWithModule(module.Module, module.FunctionCode, context, in.resolver, nil)
+	lvm, err = exec.NewVirtualMachine(code, context, in.resolver, nil)
 	if err != nil {
 		return nil, err
 	}

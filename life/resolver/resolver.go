@@ -2,6 +2,7 @@ package resolver
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/life/exec"
+	"fmt"
 )
 
 var (
@@ -24,10 +25,13 @@ func MallocString(vm *exec.VirtualMachine, str string) int64 {
 	mem := vm.Memory
 	size := len([]byte(str)) + 1
 
+	if mem.Current+size > len(mem.Memory) {
+		panic(fmt.Sprintf("out of memory  current:%d len:%d memory len:%d", mem.Current, size, len(mem.Memory)))
+	}
 
-
-	pos := mem.Malloc(size)
-	copy(mem.Memory[pos:pos+size], []byte(str))
-
-	return int64(pos)
+	pos := int64(mem.Current)
+	mem.MemPoints[mem.Current] = size
+	copy(mem.Memory[mem.Current:], []byte(str))
+	mem.Current += size
+	return pos
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/life/compiler"
 	"github.com/PlatONnetwork/PlatON-Go/life/exec"
 	"github.com/PlatONnetwork/PlatON-Go/life/resolver"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -136,16 +135,16 @@ func runTestDir(testDir, dbPath string, logStream *bytes.Buffer) (retErr error) 
 	}
 	return nil
 }
-
-func newContext(logStream *bytes.Buffer) *exec.VMContext {
+func runTest(code []byte, db *leveldb.DB, logStream *bytes.Buffer) error {
 	logger := log.New("wasm")
 	logger.SetHandler(log.LvlFilterHandler(log.LvlDebug, log.StreamHandler(logStream, log.FormatFunc(func(r *log.Record) []byte {
 		return []byte(r.Msg)
 	}))))
 
+
 	wasmLog := vm.NewWasmLogger(vm.Config{Debug: true}, logger)
 
-	return &exec.VMContext{
+	context := &exec.VMContext{
 		Config: exec.VMConfig{
 			EnableJIT:          false,
 			DynamicMemoryPages: 1,
@@ -162,49 +161,23 @@ func newContext(logStream *bytes.Buffer) *exec.VMContext {
 		StateDB:  nil,
 		Log:      wasmLog,
 	}
-}
 
-func runMain(wasm *exec.VirtualMachine) error {
-	entryID, ok := wasm.GetFunctionExport("_Z4mainiPPc")
+	// Get the executor object
+	vm, err := exec.NewVirtualMachine(code, context, newUnitTestResolver(db, logStream), nil)
+
+	entryID, ok := vm.GetFunctionExport("_Z4mainiPPc")
 	if !ok {
 		return errors.New("find main error")
 	}
 
-	_, err := wasm.Run(entryID, 0, 0)
+	_, err = vm.Run(entryID, 0, 0)
 
-	if logger, ok := wasm.Context.Log.(*vm.WasmLogger); ok {
-		logger.Flush()
-	}
-
-	wasm.Stop()
+	wasmLog.Flush()
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func runModule(m *compiler.Module, functionCode []compiler.InterpreterCode, db *leveldb.DB, logStream *bytes.Buffer) error {
-	context := newContext(logStream)
-
-	wasm, err := exec.NewVirtualMachineWithModule(m, functionCode, context, newUnitTestResolver(db, logStream), nil)
-
-	if err != nil {
-		return err
-	}
-	return runMain(wasm)
-}
-
-func runTest(code []byte, db *leveldb.DB, logStream *bytes.Buffer) error {
-	context := newContext(logStream)
-
-
-	wasm, err := exec.NewVirtualMachine(code, context, newUnitTestResolver(db, logStream), nil)
-
-	if err != nil {
-		return err
-	}
-	return runMain(wasm)
 }
 
 type UnitTestResolver struct {
@@ -242,30 +215,9 @@ func newUnitTestResolver(ldb *leveldb.DB, logStream *bytes.Buffer) *UnitTestReso
 			"platonDelegateCall":       &exec.FunctionImport{Execute: resolver.envPlatonCall, GasCost: constGasFunc},
 			"emitEvent":                &exec.FunctionImport{Execute: resolver.envEmitEvent, GasCost: constGasFunc},
 			"bigintAdd":                &exec.FunctionImport{Execute: resolver.envBigintAdd, GasCost: constGasFunc},
-			"envMalloc":                &exec.FunctionImport{Execute: resolver.envMalloc, GasCost: constGasFunc},
-			"envFree":                  &exec.FunctionImport{Execute: resolver.envFree, GasCost: constGasFunc},
 		},
 	}
 	return resolver
-}
-
-func (r *UnitTestResolver) envMalloc(vm *exec.VirtualMachine) int64 {
-
-	mem := vm.Memory
-	size := int(uint32(vm.GetCurrentFrame().Locals[0]))
-	pos := mem.Malloc(size)
-
-	return int64(pos)
-}
-
-func (r *UnitTestResolver) envFree(vm *exec.VirtualMachine) int64 {
-	mem := vm.Memory
-	offset := int(uint32(vm.GetCurrentFrame().Locals[0]))
-	err := mem.Free(offset)
-	if err != nil {
-		return -1
-	}
-	return 0
 }
 
 func (r *UnitTestResolver) ResolveFunc(module, field string) *exec.FunctionImport {

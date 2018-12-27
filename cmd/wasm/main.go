@@ -106,7 +106,6 @@ func init() {
 	app.Commands = []cli.Command{
 		runCommond,
 		unittestCommand,
-		benchmarkCommand,
 	}
 }
 

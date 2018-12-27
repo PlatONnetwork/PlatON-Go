@@ -392,13 +392,14 @@ func envPrinthexGasCost(vm *exec.VirtualMachine) (uint64, error) {
 func envMalloc(vm *exec.VirtualMachine) int64 {
 	//mem := vm.Memory
 	size := int(uint32(vm.GetCurrentFrame().Locals[0]))
-
-	pos := vm.Memory.Malloc(size)
-	if pos == -1 {
-		panic("melloc error...")
+	if vm.Memory.Current+size > len(vm.Memory.Memory) {
+		panic("out of memory")
 	}
+	pos := int64(vm.Memory.Current)
+	vm.Memory.MemPoints[vm.Memory.Current] = size
+	vm.Memory.Current += size
 
-	return int64(pos)
+	return pos
 }
 
 func envMallocGasCost(vm *exec.VirtualMachine) (uint64, error) {
@@ -407,14 +408,6 @@ func envMallocGasCost(vm *exec.VirtualMachine) (uint64, error) {
 
 //libc free()
 func envFree(vm *exec.VirtualMachine) int64 {
-	mem := vm.Memory
-	offset := int(uint32(vm.GetCurrentFrame().Locals[0]))
-
-	err := mem.Free(offset)
-	if err != nil {
-		panic("free error...")
-	}
-
 	return 0
 }
 
@@ -428,12 +421,19 @@ func envCalloc(vm *exec.VirtualMachine) int64 {
 	num := int(int32(vm.GetCurrentFrame().Locals[0]))
 	size := int(int32(vm.GetCurrentFrame().Locals[1]))
 	total := num * size
+	if mem.Current+total > len(mem.Memory) {
+		panic("out of memory")
+	}
 
+	for i := 0; i < total; i++ {
+		mem.Memory[mem.Current+i] = 0
+	}
 
+	pos := int64(mem.Current)
+	mem.MemPoints[mem.Current] = total
+	mem.Current += total
 
-	pos := mem.Malloc(total)
-
-	return int64(pos)
+	return pos
 }
 
 func envCallocGasCost(vm *exec.VirtualMachine) (uint64, error) {
@@ -452,9 +452,20 @@ func envRealloc(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	pos := mem.Malloc(size)
+	/*
+		if _, exist := mem.MemPoints[ptr]; exist != true {
+			panic("realloc error")
+		}
+	*/
 
-	return int64(pos)
+	if mem.Current+size > len(mem.Memory) {
+		panic("out of memory")
+	}
+
+	pos := int64(mem.Current)
+	mem.MemPoints[mem.Current] = size
+	mem.Current += size
+	return pos
 }
 
 func envReallocGasCost(vm *exec.VirtualMachine) (uint64, error) {
