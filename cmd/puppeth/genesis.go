@@ -23,7 +23,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
@@ -113,13 +112,13 @@ func newCppEthereumGenesisSpec(network string, genesis *core.Genesis) (*cppEther
 	spec.Params.DifficultyBoundDivisor = (*hexutil.Big)(params.DifficultyBoundDivisor)
 	spec.Params.GasLimitBoundDivisor = (hexutil.Uint64)(params.GasLimitBoundDivisor)
 	spec.Params.DurationLimit = (*hexutil.Big)(params.DurationLimit)
-	spec.Params.BlockReward = (*hexutil.Big)(ethash.FrontierBlockReward)
+	//spec.Params.BlockReward = (*hexutil.Big)(ethash.FrontierBlockReward)
 
 	spec.Genesis.Nonce = (hexutil.Bytes)(make([]byte, 8))
 	binary.LittleEndian.PutUint64(spec.Genesis.Nonce[:], genesis.Nonce)
 
 	spec.Genesis.MixHash = genesis.Mixhash
-	spec.Genesis.Difficulty = (*hexutil.Big)(genesis.Difficulty)
+	//spec.Genesis.Difficulty = (*hexutil.Big)(genesis.Difficulty)
 	spec.Genesis.Author = genesis.Coinbase
 	spec.Genesis.Timestamp = (hexutil.Uint64)(genesis.Timestamp)
 	spec.Genesis.ParentHash = genesis.ParentHash
@@ -271,13 +270,13 @@ func newParityChainSpec(network string, genesis *core.Genesis, bootnodes []strin
 	spec.Engine.Ethash.Params.MinimumDifficulty = (*hexutil.Big)(params.MinimumDifficulty)
 	spec.Engine.Ethash.Params.DifficultyBoundDivisor = (*hexutil.Big)(params.DifficultyBoundDivisor)
 	spec.Engine.Ethash.Params.DurationLimit = (*hexutil.Big)(params.DurationLimit)
-	spec.Engine.Ethash.Params.BlockReward = (*hexutil.Big)(ethash.FrontierBlockReward)
+	//spec.Engine.Ethash.Params.BlockReward = (*hexutil.Big)(ethash.FrontierBlockReward)
 	spec.Engine.Ethash.Params.HomesteadTransition = genesis.Config.HomesteadBlock.Uint64()
 	spec.Engine.Ethash.Params.EIP150Transition = genesis.Config.EIP150Block.Uint64()
 	spec.Engine.Ethash.Params.EIP160Transition = genesis.Config.EIP155Block.Uint64()
 	spec.Engine.Ethash.Params.EIP161abcTransition = genesis.Config.EIP158Block.Uint64()
 	spec.Engine.Ethash.Params.EIP161dTransition = genesis.Config.EIP158Block.Uint64()
-	spec.Engine.Ethash.Params.EIP649Reward = (*hexutil.Big)(ethash.ByzantiumBlockReward)
+	//spec.Engine.Ethash.Params.EIP649Reward = (*hexutil.Big)(ethash.ByzantiumBlockReward)
 	spec.Engine.Ethash.Params.EIP100bTransition = genesis.Config.ByzantiumBlock.Uint64()
 	spec.Engine.Ethash.Params.EIP649Transition = genesis.Config.ByzantiumBlock.Uint64()
 
@@ -298,7 +297,7 @@ func newParityChainSpec(network string, genesis *core.Genesis, bootnodes []strin
 	binary.LittleEndian.PutUint64(spec.Genesis.Seal.Ethereum.Nonce[:], genesis.Nonce)
 
 	spec.Genesis.Seal.Ethereum.MixHash = (hexutil.Bytes)(genesis.Mixhash[:])
-	spec.Genesis.Difficulty = (*hexutil.Big)(genesis.Difficulty)
+	//spec.Genesis.Difficulty = (*hexutil.Big)(genesis.Difficulty)
 	spec.Genesis.Author = genesis.Coinbase
 	spec.Genesis.Timestamp = (hexutil.Uint64)(genesis.Timestamp)
 	spec.Genesis.ParentHash = genesis.ParentHash
@@ -366,7 +365,7 @@ func newPyEthereumGenesisSpec(network string, genesis *core.Genesis) (*pyEthereu
 		Timestamp:  (hexutil.Uint64)(genesis.Timestamp),
 		ExtraData:  genesis.ExtraData,
 		GasLimit:   (hexutil.Uint64)(genesis.GasLimit),
-		Difficulty: (*hexutil.Big)(genesis.Difficulty),
+		//Difficulty: (*hexutil.Big)(genesis.Difficulty),
 		Mixhash:    genesis.Mixhash,
 		Coinbase:   genesis.Coinbase,
 		Alloc:      genesis.Alloc,
