@@ -183,7 +183,6 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		//fmt.Println("CallReturn:", string(returnBytes))
 		return finalData, nil
 	}
-	lvm.Stop()
 	return nil, nil
 }
 
