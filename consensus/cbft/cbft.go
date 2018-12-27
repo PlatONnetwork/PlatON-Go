@@ -691,6 +691,8 @@ func (cbft *Cbft) dataReceiverLoop() {
 					}
 				}
 			}
+		case <-cbft.exitCh:
+			return
 		}
 	}
 }
