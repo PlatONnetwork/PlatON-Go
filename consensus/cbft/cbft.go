@@ -40,7 +40,7 @@ var (
 	errListConfirmedBlocks = errors.New("list confirmed blocks error")
 	errMissingSignature    = errors.New("extra-data 65 byte signature suffix missing")
 	extraSeal              = 65
-	windowSize             = 20
+	windowSize             = 10
 
 	//periodMargin is a percentum for period margin
 	periodMargin = uint64(20)
