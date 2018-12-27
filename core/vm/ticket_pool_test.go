@@ -1,15 +1,16 @@
 package vm_test
 
 import (
+	"bytes"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"bytes"
-	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 )
@@ -32,6 +33,7 @@ func TestTicketPoolOverAll(t *testing.T) {
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
 	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
 	if nil != err {
 		fmt.Println("CandidateDeposit fail", "err", err)
@@ -41,30 +43,255 @@ func TestTicketPoolOverAll(t *testing.T) {
 	// VoteTicket(count uint64, price *big.Int, nodeId discover.NodeID) ([]byte, error)
 	count := uint64(1000)
 	price := big.NewInt(1)
-	_, err = ticketContract.VoteTicket(count, price, nodeId)
+	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId: ", nodeId.String())
+	resByte, err := ticketContract.VoteTicket(count, price, nodeId)
+	if nil != err {
+		fmt.Println("VoteTicket fail", "err", err)
+	}
+	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
+
+	/*// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
+	fmt.Println("GetCandidateTicketIds input==>", "nodeId: ", nodeId.String())
+	// TODO 查询候选人的选票列表
+	resByte, err = ticketContract.GetCandidateTicketIds(nodeId)
+	if nil != err {
+		fmt.Println("GetCandidateTicketIds fail", "err", err)
+	}
+	fmt.Println("The candidate's ticketId are: ", vm.ResultByte2Json(resByte))*/
+
+	// GetTicketDetail(ticketId common.Hash) ([]byte, error)
+	ticketId := common.HexToHash("e69d8e6dbc1ee87d7fb20600f3fc6744f28b637d43b5a130b2904c30d12e9b30")
+	fmt.Println("GetTicketDetail input==>", "ticketId: ", ticketId.String())
+	resByte, err = ticketContract.GetTicketDetail(ticketId)
+	if nil != err {
+		fmt.Println("GetTicketDetail fail", "err", err)
+	}
+	fmt.Println("ticketInfo is: ", vm.ResultByte2Json(resByte))
+
+	// GetBatchTicketDetail(ticketIds []common.Hash) ([]byte, error)
+	ticketIds := []common.Hash{common.HexToHash("e69d8e6dbc1ee87d7fb20600f3fc6744f28b637d43b5a130b2904c30d12e9b30"), common.HexToHash("008674dae3f0c660158fe602589c5505b20e24be4caa8f65c0f92ff372149ccc")}
+	input, _ := json.Marshal(ticketIds)
+	fmt.Println("GetBatchTicketDetail input==>", "ticketIds: ", string(input))
+	resByte, err = ticketContract.GetBatchTicketDetail(ticketIds)
+	if nil != err {
+		fmt.Println("GetBatchTicketDetail fail", "err", err)
+	}
+	fmt.Println("ticketInfo is: ", vm.ResultByte2Json(resByte))
+}
+
+func TestVoteTicket(t *testing.T) {
+	ticketContract := vm.TicketContract{
+		newContract(),
+		newEvm(),
+	}
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+
+	// VoteTicket(count uint64, price *big.Int, nodeId discover.NodeID) ([]byte, error)
+	count := uint64(1000)
+	price := big.NewInt(1)
+	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId: ", nodeId.String())
+	resByte, err := ticketContract.VoteTicket(count, price, nodeId)
+	if nil != err {
+		fmt.Println("VoteTicket fail", "err", err)
+	}
+	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
+}
+
+func TestGetTicketDetail(t *testing.T) {
+	ticketContract := vm.TicketContract{
+		newContract(),
+		newEvm(),
+	}
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	count := uint64(1000)
+	price := big.NewInt(1)
+	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId: ", nodeId.String())
+	resByte, err := ticketContract.VoteTicket(count, price, nodeId)
+	if nil != err {
+		fmt.Println("VoteTicket fail", "err", err)
+	}
+	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
+
+	// GetTicketDetail(ticketId common.Hash) ([]byte, error)
+	ticketId := common.HexToHash("e69d8e6dbc1ee87d7fb20600f3fc6744f28b637d43b5a130b2904c30d12e9b30")
+	fmt.Println("GetTicketDetail input==>", "ticketId: ", ticketId.String())
+	resByte, err = ticketContract.GetTicketDetail(ticketId)
+	if nil != err {
+		fmt.Println("GetTicketDetail fail", "err", err)
+	}
+	if nil == resByte {
+		fmt.Println("The ticket info is null")
+		return
+	}
+	fmt.Println("ticketInfo is: ", vm.ResultByte2Json(resByte))
+}
+
+func TestGetBatchTicketDetail(t *testing.T) {
+	ticketContract := vm.TicketContract{
+		newContract(),
+		newEvm(),
+	}
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	count := uint64(1000)
+	price := big.NewInt(1)
+	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId: ", nodeId.String())
+	resByte, err := ticketContract.VoteTicket(count, price, nodeId)
+	if nil != err {
+		fmt.Println("VoteTicket fail", "err", err)
+	}
+	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
+
+	// GetBatchTicketDetail(ticketIds []common.Hash) ([]byte, error)
+	ticketIds := []common.Hash{common.HexToHash("e69d8e6dbc1ee87d7fb20600f3fc6744f28b637d43b5a130b2904c30d12e9b30"), common.HexToHash("008674dae3f0c660158fe602589c5505b20e24be4caa8f65c0f92ff372149ccc")}
+	input, _ := json.Marshal(ticketIds)
+	fmt.Println("GetBatchTicketDetail input==>", "ticketIds: ", string(input))
+	resByte, err = ticketContract.GetBatchTicketDetail(ticketIds)
+	if nil != err {
+		fmt.Println("GetBatchTicketDetail fail", "err", err)
+	}
+	if nil == resByte {
+		fmt.Println("The batch ticket info is null")
+		return
+	}
+	fmt.Println("ticketInfo is: ", vm.ResultByte2Json(resByte))
+}
+
+func TestGetCandidateTicketIds(t *testing.T) {
+	ticketContract := vm.TicketContract{
+		newContract(),
+		newEvm(),
+	}
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	count := uint64(1000)
+	price := big.NewInt(1)
+	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId: ", nodeId.String())
+	resByte, err := ticketContract.VoteTicket(count, price, nodeId)
+	if nil != err {
+		fmt.Println("VoteTicket fail", "err", err)
+	}
+	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
+
+	// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
+	fmt.Println("GetCandidateTicketIds input==>", "nodeId: ", nodeId.String())
+	// TODO 查询候选人的选票列表
+	resByte, err = ticketContract.GetCandidateTicketIds(nodeId)
+	if nil != err {
+		fmt.Println("GetCandidateTicketIds fail", "err", err)
+	}
+	if nil == resByte {
+		fmt.Println("The candidate's ticket list is null")
+		return
+	}
+	fmt.Println("The candidate's ticketId are: ", vm.ResultByte2Json(resByte))
+}
+
+func TestGetCandidateEpoch(t *testing.T) {
+	ticketContract := vm.TicketContract{
+		newContract(),
+		newEvm(),
+	}
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	count := uint64(1000)
+	price := big.NewInt(1)
+	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId: ", nodeId.String())
+	resByte, err := ticketContract.VoteTicket(count, price, nodeId)
 	if nil != err {
 		fmt.Println("VoteTicket fail", "err", err)
 	}
 
-	// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
-	_, err = ticketContract.GetCandidateTicketIds(nodeId)
+	// GetCandidateEpoch(nodeId discover.NodeID) ([]byte, error)
+	// TODO
+	fmt.Println("GetCandidateEpoch input==>", "nodeId: ", nodeId.String())
+	resByte, err = ticketContract.GetCandidateEpoch(nodeId)
 	if nil != err {
-		fmt.Println("GetCandidateTicketIds fail", "err", err)
+		fmt.Println("GetCandidateEpoch fail", "err", err)
+	}
+	fmt.Println("The candidate's epoch is: ", vm.ResultByte2Json(resByte))
+
+}
+
+func TestGetTicketPrice(t *testing.T) {
+	ticketContract := vm.TicketContract{
+		newContract(),
+		newEvm(),
 	}
 
-	// GetTicketDetail(ticketId common.Hash) ([]byte, error)
-	ticketId := common.HexToHash("e69d8e6dbc1ee87d7fb20600f3fc6744f28b637d43b5a130b2904c30d12e9b30")
-	_, err = ticketContract.GetTicketDetail(ticketId)
+	// GetTicketPrice() ([]byte, error)
+	resByte, err := ticketContract.GetTicketPrice()
 	if nil != err {
-		fmt.Println("GetTicketDetail fail", "err", err)
+		fmt.Println("GetTicketPrice fail", "err", err)
 	}
-
-	// GetBatchTicketDetail(ticketIds []common.Hash) ([]byte, error)
-	ticketIds := []common.Hash{common.HexToHash("e69d8e6dbc1ee87d7fb20600f3fc6744f28b637d43b5a130b2904c30d12e9b30"), common.HexToHash("008674dae3f0c660158fe602589c5505b20e24be4caa8f65c0f92ff372149ccc")}
-	_, err = ticketContract.GetBatchTicketDetail(ticketIds)
-	if nil != err {
-		fmt.Println("GetTicketDetail fail", "err", err)
-	}
+	fmt.Println("The ticket price is: ", vm.ResultByte2Json(resByte))
 }
 
 func TestTicketPoolEncode(t *testing.T) {

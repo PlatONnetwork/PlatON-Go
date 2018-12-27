@@ -1,6 +1,12 @@
 package vm_test
 
 import (
+	"bytes"
+	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
@@ -12,11 +18,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"bytes"
-	"encoding/binary"
-	"encoding/hex"
-	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
@@ -26,75 +27,77 @@ import (
 )
 
 func TestCandidatePoolOverAll(t *testing.T) {
+
 	candidateContract := vm.CandidateContract{
 		newContract(),
 		newEvm(),
 	}
-	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error)
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
 	fee := uint64(1)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
 	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
 	if nil != err {
 		fmt.Println("CandidateDeposit fail", "err", err)
 	}
-	fmt.Println("质押成功...")
+	fmt.Println("CandidateDeposit success")
 
 	// CandidateDetails(nodeId discover.NodeID) ([]byte, error)
-	_, err = candidateContract.CandidateDetails(nodeId)
+	fmt.Println("CandidateDetails input==>", "nodeId: ", nodeId.String())
+	resByte, err := candidateContract.CandidateDetails(nodeId)
 	if nil != err {
 		fmt.Println("CandidateDetails fail", "err", err)
+		return
 	}
+	if nil == resByte {
+		fmt.Println("The candidate info is null")
+		return
+	}
+	fmt.Println("The candidate info is: ", vm.ResultByte2Json(resByte))
 
 	// CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error)
-	_, err = candidateContract.CandidateApplyWithdraw(nodeId, big.NewInt(10))
+	withdraw := big.NewInt(100)
+	fmt.Println("CandidateApplyWithdraw input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err = candidateContract.CandidateApplyWithdraw(nodeId, withdraw)
 	if nil != err {
 		fmt.Println("CandidateApplyWithdraw fail", "err", err)
 	}
+	fmt.Println("CandidateApplyWithdraw success")
 
 	// CandidateWithdraw(nodeId discover.NodeID) ([]byte, error)
+	fmt.Println("CandidateWithdraw input==>", "nodeId: ", nodeId.String())
 	_, err = candidateContract.CandidateWithdraw(nodeId)
 	if nil != err {
 		fmt.Println("CandidateWithdraw fail", "err", err)
 	}
-
-	_, err = candidateContract.CandidateDetails(nodeId)
-	if nil != err {
-		fmt.Println("CandidateDetails fail", "err", err)
-	}
+	fmt.Println("CandidateWithdraw success")
 
 	// CandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error)
-	_, err = candidateContract.CandidateWithdrawInfos(nodeId)
+	fmt.Println("CandidateWithdrawInfos input==>", "nodeId: ", nodeId.String())
+	resByte, err = candidateContract.CandidateWithdrawInfos(nodeId)
 	if nil != err {
 		fmt.Println("CandidateWithdrawInfos fail", "err", err)
+		return
 	}
-
-	nodeId = discover.MustHexID("0x67834567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
-	owner = common.HexToAddress("0x13")
-	fee = uint64(1)
-	host = "10.0.0.2"
-	port = "8548"
-	extra = "extra data"
-	_, err = candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
-	if nil != err {
-		fmt.Println("CandidateDeposit fail", "err", err)
+	if nil == resByte {
+		fmt.Println("The CandidateWithdrawInfos is null")
+		return
 	}
-	fmt.Println("质押成功...")
+	fmt.Println("The CandidateWithdrawInfos is: ", vm.ResultByte2Json(resByte))
 
 	// CandidateList() ([]byte, error)
-	_, err = candidateContract.CandidateList()
+	resByte, err = candidateContract.CandidateList()
 	if nil != err {
 		fmt.Println("CandidateList fail", "err", err)
 	}
-
-	// VerifiersList() ([]byte, error)
-	_, err = candidateContract.VerifiersList()
-	if nil != err {
-		fmt.Println("VerifiersList fail", "err", err)
+	if nil == resByte {
+		fmt.Println("The candidate list is null")
+		return
 	}
+	fmt.Println("The candidate list is: ", vm.ResultByte2Json(resByte))
 }
 
 func newContract() *vm.Contract {
@@ -149,6 +152,316 @@ func newPool() (*pposm.CandidatePool, *pposm.TicketPool) {
 		},
 	}
 	return pposm.NewCandidatePool(&configs), pposm.NewTicketPool(&configs)
+}
+
+func TestCandidateDeposit(t *testing.T) {
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+
+	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error)
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit success")
+}
+
+func TestCandidateDetails(t *testing.T) {
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit success")
+
+	// CandidateDetails(nodeId discover.NodeID) ([]byte, error)
+	// nodeId = discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	fmt.Println("CandidateDetails input==>", "nodeId: ", nodeId.String())
+	resByte, err := candidateContract.CandidateDetails(nodeId)
+	if nil != err {
+		fmt.Println("CandidateDetails fail", "err", err)
+		return
+	}
+	if nil == resByte {
+		fmt.Println("The candidate info is null")
+		return
+	}
+	fmt.Println("The candidate info is: ", vm.ResultByte2Json(resByte))
+}
+
+func TestGetBatchCandidateDetail(t *testing.T) {
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit1 success")
+
+	nodeId = discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner = common.HexToAddress("0x12")
+	fee = uint64(1)
+	host = "10.0.0.2"
+	port = "8548"
+	extra = "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err = candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit2 success")
+
+	// GetBatchCandidateDetail(nodeIds []discover.NodeID) ([]byte, error)
+	nodeIds := []discover.NodeID{discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")}
+	input, _ := json.Marshal(nodeIds)
+	fmt.Println("GetBatchCandidateDetail input==>", "nodeIds: ", string(input))
+	resByte, err := candidateContract.GetBatchCandidateDetail(nodeIds)
+	if nil != err {
+		fmt.Println("GetBatchCandidateDetail fail", "err", err)
+	}
+	if nil == resByte {
+		fmt.Println("The candidate info is null")
+		return
+	}
+	fmt.Println("The batch candidate info is: ", vm.ResultByte2Json(resByte))
+}
+
+func TestCandidateList(t *testing.T) {
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit1 success")
+
+	nodeId = discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner = common.HexToAddress("0x12")
+	fee = uint64(1)
+	host = "10.0.0.2"
+	port = "8548"
+	extra = "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err = candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit2 success")
+
+	// CandidateList() ([]byte, error)
+	resByte, err := candidateContract.CandidateList()
+	if nil != err {
+		fmt.Println("CandidateList fail", "err", err)
+	}
+	if nil == resByte {
+		fmt.Println("The candidate list is null")
+		return
+	}
+	fmt.Println("The candidate list is: ", vm.ResultByte2Json(resByte))
+}
+
+func TestSetCandidateExtra(t *testing.T) {
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit success")
+
+	// SetCandidateExtra(nodeId discover.NodeID, extra string) ([]byte, error)
+	extra = "this node is powerful"
+	fmt.Println("SetCandidateExtra input=>", "nodeId: ", nodeId.String(), "extra: ", extra)
+	_, err = candidateContract.SetCandidateExtra(nodeId, extra)
+	if nil != err {
+		fmt.Println("SetCandidateExtra fail", "err", err)
+	}
+	fmt.Println("SetCandidateExtra success")
+
+	// CandidateDetails(nodeId discover.NodeID) ([]byte, error)
+	fmt.Println("CandidateDetails input==>", "nodeId: ", nodeId.String())
+	resByte, err := candidateContract.CandidateDetails(nodeId)
+	if nil != err {
+		fmt.Println("CandidateDetails fail", "err", err)
+		return
+	}
+	if nil == resByte {
+		fmt.Println("The candidate info is null")
+		return
+	}
+	fmt.Println("The candidate info is: ", vm.ResultByte2Json(resByte))
+}
+
+func TestCandidateApplyWithdraw(t *testing.T) {
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit success")
+
+	// CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error)
+	withdraw := big.NewInt(100)
+	fmt.Println("CandidateApplyWithdraw input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err = candidateContract.CandidateApplyWithdraw(nodeId, withdraw)
+	if nil != err {
+		fmt.Println("CandidateApplyWithdraw fail", "err", err)
+	}
+	fmt.Println("CandidateApplyWithdraw success")
+}
+
+func TestCandidateWithdraw(t *testing.T) {
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit success")
+
+	// CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error)
+	withdraw := big.NewInt(100)
+	fmt.Println("CandidateApplyWithdraw input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err = candidateContract.CandidateApplyWithdraw(nodeId, withdraw)
+	if nil != err {
+		fmt.Println("CandidateApplyWithdraw fail", "err", err)
+	}
+	fmt.Println("CandidateApplyWithdraw success")
+
+	// CandidateWithdraw(nodeId discover.NodeID) ([]byte, error)
+	fmt.Println("CandidateWithdraw input==>", "nodeId: ", nodeId.String())
+	_, err = candidateContract.CandidateWithdraw(nodeId)
+	if nil != err {
+		fmt.Println("CandidateWithdraw fail", "err", err)
+	}
+	fmt.Println("CandidateWithdraw success")
+
+	// CandidateDetails(nodeId discover.NodeID) ([]byte, error)
+	fmt.Println("CandidateDetails input==>", "nodeId: ", nodeId.String())
+	resByte, err := candidateContract.CandidateDetails(nodeId)
+	if nil != err {
+		fmt.Println("CandidateDetails fail", "err", err)
+		return
+	}
+	if nil == resByte {
+		fmt.Println("The candidate info is null")
+		return
+	}
+	fmt.Println("The candidate info is: ", vm.ResultByte2Json(resByte))
+}
+
+func TestCandidateWithdrawInfos(t *testing.T) {
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit success")
+
+	// CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error)
+	withdraw := big.NewInt(100)
+	fmt.Println("CandidateApplyWithdraw input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err = candidateContract.CandidateApplyWithdraw(nodeId, withdraw)
+	if nil != err {
+		fmt.Println("CandidateApplyWithdraw fail", "err", err)
+	}
+	fmt.Println("CandidateApplyWithdraw success")
+
+	// CandidateWithdraw(nodeId discover.NodeID) ([]byte, error)
+	fmt.Println("CandidateWithdraw input==>", "nodeId: ", nodeId.String())
+	_, err = candidateContract.CandidateWithdraw(nodeId)
+	if nil != err {
+		fmt.Println("CandidateWithdraw fail", "err", err)
+	}
+	fmt.Println("CandidateWithdraw success")
+
+	// CandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error)
+	fmt.Println("CandidateWithdrawInfos input==>", "nodeId: ", nodeId.String())
+	resByte, err := candidateContract.CandidateWithdrawInfos(nodeId)
+	if nil != err {
+		fmt.Println("CandidateWithdrawInfos fail", "err", err)
+		return
+	}
+	if nil == resByte {
+		fmt.Println("The CandidateWithdrawInfos is null")
+		return
+	}
+	fmt.Println("The CandidateWithdrawInfos is: ", vm.ResultByte2Json(resByte))
 }
 
 func TestRlpEncode(t *testing.T) {

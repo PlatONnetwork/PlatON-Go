@@ -1,18 +1,17 @@
 package vm
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"bytes"
-	"encoding/json"
-	"errors"
-	"fmt"
 	"math/big"
 )
 
@@ -107,11 +106,10 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 	}
 	data, _ := json.Marshal(arr)
 	sdata := DecodeResultStr(string(data))
-	fmt.Println("投票成功的票Id为: ", string(data))
 	log.Info("VoteTicket==> ", "json: ", string(data), " []byte: ", sdata)
 	if nil != err {
 		log.Error("VoteTicket==> ", "voteTicket occured error, tickets only partially successful", err.Error())
-		r := ResultCommon{false, err.Error()}
+		r := ResultCommon{true, err.Error()}
 		event, _ := json.Marshal(r)
 		t.addLog(VoteTicketEvent, string(event))
 		return sdata, err
@@ -124,8 +122,6 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 
 // GetTicketDetail returns the ticket info.
 func (t *TicketContract) GetTicketDetail(ticketId common.Hash) ([]byte, error) {
-	input, _ := json.Marshal(ticketId)
-	fmt.Println("ticketId: ", string(input))
 	log.Info("GetTicketDetail==>", "ticketId: ", ticketId.Hex())
 	ticket, err := t.Evm.TicketPool.GetTicket(t.Evm.StateDB, ticketId)
 	if nil != err {
@@ -138,7 +134,6 @@ func (t *TicketContract) GetTicketDetail(ticketId common.Hash) ([]byte, error) {
 	}
 	data, _ := json.Marshal(ticket)
 	sdata := DecodeResultStr(string(data))
-	fmt.Println("ticketInfo: ", string(data))
 	log.Info("GetTicketDetail==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
@@ -146,7 +141,6 @@ func (t *TicketContract) GetTicketDetail(ticketId common.Hash) ([]byte, error) {
 // GetBatchTicketDetail returns the batch of ticket info.
 func (t *TicketContract) GetBatchTicketDetail(ticketIds []common.Hash) ([]byte, error) {
 	input, _ := json.Marshal(ticketIds)
-	fmt.Println("length: ", len(ticketIds), "ticketIds: ", string(input))
 	log.Info("GetBatchTicketDetail==>", "length: ", len(ticketIds), "ticketIds: ", string(input))
 	tickets, err := t.Evm.TicketPool.GetTicketList(t.Evm.StateDB, ticketIds)
 	if nil != err {
@@ -159,7 +153,6 @@ func (t *TicketContract) GetBatchTicketDetail(ticketIds []common.Hash) ([]byte, 
 	}
 	data, _ := json.Marshal(tickets)
 	sdata := DecodeResultStr(string(data))
-	fmt.Println("ticketInfo: ", string(data))
 	log.Info("GetBatchTicketDetail==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
@@ -179,7 +172,6 @@ func (t *TicketContract) GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, 
 	}
 	data, _ := json.Marshal(candidateTicketIds)
 	sdata := DecodeResultStr(string(data))
-	fmt.Println("ticketIds: ", string(data))
 	log.Info("GetCandidateTicketIds==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
@@ -192,7 +184,9 @@ func (t *TicketContract) GetCandidateEpoch(nodeId discover.NodeID) ([]byte, erro
 		log.Error("GetCandidateEpoch==> ", "GetCandidateEpoch() occured error: ", err.Error())
 		return nil, err
 	}
-	return byteutil.Uint64ToBytes(epoch), nil
+	data, _ := json.Marshal(epoch)
+	sdata := DecodeResultStr(string(data))
+	return sdata, nil
 }
 
 // GetPoolRemainder returns the amount of remaining tickets in the ticket pool.
@@ -202,7 +196,9 @@ func (t *TicketContract) GetPoolRemainder() ([]byte, error) {
 		log.Error("GetPoolRemainder==> ", "GetPoolRemainder() occured error: ", err.Error())
 		return nil, err
 	}
-	return byteutil.Uint64ToBytes(remainder), nil
+	data, _ := json.Marshal(remainder)
+	sdata := DecodeResultStr(string(data))
+	return sdata, nil
 }
 
 // GetTicketPrice returns the current ticket price for the ticket pool.
@@ -212,7 +208,9 @@ func (t *TicketContract) GetTicketPrice() ([]byte, error) {
 		log.Error("GetTicketPrice==> ", "GetTicketPrice() occured error: ", err.Error())
 		return nil, err
 	}
-	return price.Bytes(), nil
+	data, _ := json.Marshal(price)
+	sdata := DecodeResultStr(string(data))
+	return sdata, nil
 }
 
 // transaction add event

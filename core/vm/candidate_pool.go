@@ -1,6 +1,9 @@
 package vm
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -8,9 +11,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"bytes"
-	"encoding/json"
-	"errors"
 	"math/big"
 )
 
@@ -300,7 +300,7 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 		log.Error("GetBatchCandidateDetail==> ", "get GetBatchCandidateDetail() occured error: ", err.Error())
 		return nil, err
 	}
-	if nil == candidates {
+	if 0 == len(candidates) {
 		log.Error("GetBatchCandidateDetail==> The candidates for the inquiry does not exist")
 		return nil, nil
 	}
@@ -313,12 +313,12 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 // Get the current block candidate list
 func (c *CandidateContract) CandidateList() ([]byte, error) {
 	log.Info("CandidateList==> into func CandidateList... ")
-	arr := c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 0)
-	if nil == arr {
+	candidates := c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 0)
+	if 0 == len(candidates) {
 		log.Error("CandidateList==> The candidateList for the inquiry does not exist")
 		return nil, nil
 	}
-	data, _ := json.Marshal(arr)
+	data, _ := json.Marshal(candidates)
 	sdata := DecodeResultStr(string(data))
 	log.Info("CandidateList==>", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
@@ -328,7 +328,7 @@ func (c *CandidateContract) CandidateList() ([]byte, error) {
 func (c *CandidateContract) VerifiersList() ([]byte, error) {
 	log.Info("VerifiersList==> into func VerifiersList... ")
 	arr := c.Evm.CandidatePool.GetChairpersons(c.Evm.StateDB)
-	if nil == arr {
+	if 0 == len(arr) {
 		log.Error("VerifiersList==> The verifiersList for the inquiry does not exist")
 		return nil, nil
 	}

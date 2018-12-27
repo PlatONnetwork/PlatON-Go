@@ -1,13 +1,13 @@
 package vm
 
 import (
+	"bytes"
+	"encoding/hex"
+	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"bytes"
-	"encoding/hex"
-	"errors"
 	"reflect"
 )
 

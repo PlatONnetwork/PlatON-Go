@@ -1,12 +1,12 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"testing"
 )
@@ -16,8 +16,10 @@ func TestExecute(t *testing.T) {
 		"recalled": recalled,
 	}
 	input, _ := hex.DecodeString("f8c28800000000000000f188726563616c6c6564b88230783166336138363732333438666636623738396534313637363261643533653639303633313338623865623464383738303130313635386632346232333639663161386530393439393232366234363764386263306334653033653164633930336466383537656562336336373733336432316236616165653238343065343239aa30786632313664366534633137303937613630656532623865356338383934316364396630373236336201")
-	result, error := execute(input, command)
-	fmt.Println(result, error)
+	_, err := execute(input, command)
+	if nil != err {
+		fmt.Println("execute fail", "err", err)
+	}
 }
 
 func TestDecodeResultStr(t *testing.T) {
@@ -29,14 +31,18 @@ func TestDecodeResultStr(t *testing.T) {
 		BlockNumber: big.NewInt(100),
 		State:       1,
 	}
-	ticketIds := make([]common.Hash, 0)
-	ticketIds = append(ticketIds, common.BytesToHash([]byte("1")))
 	data, _ := json.Marshal(ticket)
 	sdata := DecodeResultStr(string(data))
-	fmt.Println("GetTicketDetail==> ", "json: ", string(data), " []byte: ", sdata)
+	json := ResultByte2Json(sdata)
+	fmt.Println("origin: ", string(data), "[]byte: ", sdata, "json: ", json)
 }
 
 func recalled(nodeId discover.NodeID, owner common.Address, deposit *big.Int) ([]byte, error) {
 	fmt.Println("nodeId:", nodeId, "owner:", owner, "deposit:", deposit)
 	return nil, nil
+}
+
+func ResultByte2Json(origin []byte) string {
+	resultByte := origin[64:]
+	return string(resultByte)
 }
