@@ -1,13 +1,13 @@
 package ticketcache
 
 import (
+	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"errors"
 	"github.com/golang/protobuf/proto"
 	"math/big"
 	"sort"
@@ -227,9 +227,10 @@ func (tc TicketCache) AppendTicketCache (nodeid discover.NodeID, tids []common.H
 	if !ok {
 		value = make([]common.Hash, 0)
 	}
-	for _, id := range tids {
-		value = append(value, id)
-	}
+	//for _, id := range tids {
+	//	value = append(value, id)
+	//}
+	value = append(value, tids...)
 	tc[nodeid] = value
 }
 
@@ -255,10 +256,14 @@ func (tc TicketCache) RemoveTicketCache(nodeid discover.NodeID, tids []common.Ha
 	for i := 0; i < len(cache); i++ {
 		if _, ok := mapTIds[cache[i]]; ok {
 			cache = append(cache[:i], cache[i+1:]...)
-			i = i - 1
+			i--
 		}
 	}
-	tc[nodeid] = cache
+	if len(cache) > 0 {
+		tc[nodeid] = cache
+	} else {
+		delete(tc, nodeid)
+	}
 	return nil
 }
 
@@ -270,8 +275,9 @@ func (tc TicketCache) TCount(nodeid discover.NodeID) uint64 {
 func (tc TicketCache) TicketCaceheSnapshot() TicketCache {
 	ret := NewTicketCache()
 	for nodeid, tids := range tc {
-		ret[nodeid] = make([]common.Hash, 0, len(tids))
-		copy(ret[nodeid], tids)
+		arr := make([]common.Hash, len(tids))
+		copy(arr, tids)
+		ret[nodeid] = arr
 	}
 	return ret
 }

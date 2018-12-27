@@ -1577,9 +1577,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 
 		switch res.Type {
 		case 0:
-			c.immediateCacheArr = res.CanArr
-		case 1:
 			c.reserveCacheArr = res.CanArr
+		case 1:
+			c.immediateCacheArr = res.CanArr
 		default:
 			continue
 		}
