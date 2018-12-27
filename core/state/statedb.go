@@ -772,26 +772,30 @@ func (self *StateDB) AppendTicketCache(nodeid discover.NodeID, tids []common.Has
 	self.tclock.Unlock()
 }
 
-func (self *StateDB) GetTicketCache(nodeid discover.NodeID) ([]common.Hash, error) {
+func (self *StateDB) GetTicketCache(nodeid discover.NodeID) (ret []common.Hash, err error) {
 	self.tclock.RLock()
+	ret, err = self.tickeCache.GetTicketCache(nodeid)
 	defer self.tclock.RUnlock()
-	return self.tickeCache.GetTicketCache(nodeid)
+	return
 }
 
-func (self *StateDB) RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) error {
+func (self *StateDB) RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) (err error) {
 	self.tclock.Lock()
-	defer self.tclock.Unlock()
-	return self.tickeCache.RemoveTicketCache(nodeid, tids)
+	err = self.tickeCache.RemoveTicketCache(nodeid, tids)
+	self.tclock.Unlock()
+	return
 }
 
-func (self *StateDB) TCount(nodeid discover.NodeID) uint64 {
+func (self *StateDB) TCount(nodeid discover.NodeID) (ret uint64) {
 	self.tclock.RLock()
-	defer self.tclock.RUnlock()
-	return self.tickeCache.TCount(nodeid)
+	ret = self.tickeCache.TCount(nodeid)
+	self.tclock.RUnlock()
+	return ret
 }
 
-func (self *StateDB) TicketCaceheSnapshot() ticketcache.TicketCache {
+func (self *StateDB) TicketCaceheSnapshot() (ret ticketcache.TicketCache) {
 	self.tclock.RLock()
-	defer self.tclock.RUnlock()
-	return self.tickeCache.TicketCaceheSnapshot()
+	ret = self.tickeCache.TicketCaceheSnapshot()
+	self.tclock.RUnlock()
+	return
 }

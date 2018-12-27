@@ -9,6 +9,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -456,7 +457,8 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	}
 
 	//to execute
-	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block)
+	blockInterval := new(big.Int).Sub(ext.block.Number(), cbft.blockChain.CurrentBlock().Number())
+	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block, blockInterval)
 	if err == nil {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
@@ -1283,6 +1285,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	log.Debug("setNodeCache", "parentNumber", parentNumber, "parentHash", current.block.ParentHash(), "blockNumber", blockNumber, "blockHash", current.block.Hash())
 	if state != nil {
 		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), current.block.Hash())
+		blockInterval := new(big.Int).Sub(current.block.Number(), cbft.blockChain.CurrentBlock().Number())
+		cbft.ppos.Submit2Cache(state, blockNumber, blockInterval, current.block.Hash())
 	} else {
 		log.Error("setNodeCache error")
 	}
@@ -1694,8 +1698,8 @@ func (cbft *Cbft) ConsensusNodes(parentNumber *big.Int, parentHash common.Hash, 
 //	return cbft.ppos.AnyIndex(cbft.config.NodeID) >= 0, nil
 //}
 
-func (cbft *Cbft) Election(state *state.StateDB, blockNumber *big.Int) ([]*discover.Node, error) {
-	return cbft.ppos.Election(state, blockNumber)
+func (cbft *Cbft) Election(state *state.StateDB, parentHash common.Hash, blockNumber *big.Int) ([]*discover.Node, error) {
+	return cbft.ppos.Election(state, parentHash, blockNumber)
 }
 
 func (cbft *Cbft) Switch(state *state.StateDB) bool {
@@ -1713,4 +1717,16 @@ func (cbft *Cbft) GetOwnNodeID() discover.NodeID {
 func (cbft *Cbft) SetNodeCache(state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash) error {
 	log.Info("cbft SetNodeCache", "parentNumber", parentNumber, "parentHash", parentHash, "currentNumber", currentNumber, "currentHash", currentHash)
 	return cbft.ppos.SetNodeCache(state, parentNumber, currentNumber, parentHash, currentHash)
+}
+
+func (cbft *Cbft) Notify(state vm.StateDB, blockNumber *big.Int) error {
+	return cbft.ppos.Notify(state, blockNumber)
+}
+
+func (cbft *Cbft) StoreHash(state *state.StateDB) {
+	cbft.ppos.StoreHash(state)
+}
+
+func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash) {
+	cbft.ppos.Submit2Cache(state, currBlocknumber, blockInterval, currBlockhash)
 }

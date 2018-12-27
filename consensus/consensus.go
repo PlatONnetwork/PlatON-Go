@@ -22,6 +22,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
@@ -155,7 +156,7 @@ type Bft interface {
 
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
-	Election(state *state.StateDB, blockNumber *big.Int) ([]*discover.Node, error)
+	Election(state *state.StateDB, parentHash common.Hash, blockNumber *big.Int) ([]*discover.Node, error)
 
 	Switch(state *state.StateDB) bool
 
@@ -164,4 +165,10 @@ type Bft interface {
 	GetOwnNodeID() discover.NodeID
 
 	SetNodeCache(state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash) error
+
+	Notify(state vm.StateDB, blockNumber *big.Int) error
+
+	StoreHash(state *state.StateDB)
+
+	Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash)
 }

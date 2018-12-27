@@ -20,6 +20,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"io"
 	"math/big"
 	mrand "math/rand"
@@ -681,6 +682,10 @@ func (bc *BlockChain) Stop() {
 	//  - HEAD-1:   So we don't do large reorgs if our HEAD becomes an uncle
 	//  - HEAD-127: So we have a hard limit on the number of blocks reexecuted
 	if !bc.cacheConfig.Disabled {
+		//ppos add -> commit memory ticket cache to disk
+		ticketcache.GetTicketidsCachePtr().Commit(bc.db)
+
+		//eth...
 		triedb := bc.stateCache.TrieDB()
 
 		for _, offset := range []uint64{0, 1, triesInMemory - 1} {
@@ -927,6 +932,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		log.Error("Write block total difficulty", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
 	}
+	rawdb.TicketCacheCommit(bc.db)
 	rawdb.WriteBlock(bc.db, block)
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
@@ -1198,8 +1204,16 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
+
+		// ppos Notify
+		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+			if err := cbftEngine.Notify(state, block.Number()); err != nil {
+				log.Error("ppos notify error", "err", err)
+				break
+			}
+		}
 		// Process block using the parent state as reference point.
-		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
+		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
 			return i, events, coalescedLogs, err
@@ -1257,10 +1271,17 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 }
 
 //joey.lyu
-func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
+func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block, blockInterval *big.Int) (types.Receipts, error) {
 	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
+	// ppos Notify
+	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+		if err := cbftEngine.Notify(state, block.Number()); err != nil {
+			log.Error("ppos notify error", "err", err)
+			return nil, err
+		}
+	}
 	// Process block using the parent state as reference point.
-	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
+	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, blockInterval)
 	if err != nil {
 		bc.reportBlock(block, receipts, err)
 		return nil, err

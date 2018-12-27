@@ -19,6 +19,8 @@ package rawdb
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -398,4 +400,9 @@ func FindCommonAncestor(db DatabaseReader, a, b *types.Header) *types.Header {
 		}
 	}
 	return a
+}
+
+//ppos add -> commit memory ticket cache to disk
+func TicketCacheCommit(db ethdb.Database)  {
+	ticketcache.GetTicketidsCachePtr().Commit(db)
 }
