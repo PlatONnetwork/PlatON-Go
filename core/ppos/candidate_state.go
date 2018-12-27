@@ -92,7 +92,6 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 		getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) error {
 		var witnessIds []discover.NodeID
-		canMap = make(candidateStorage, 0)
 		if ids, err := getIndexFn(state); nil != err {
 			log.Error("Failed to decode "+title+" witnessIds on initDataByState", " err", err)
 			return err
@@ -123,14 +122,17 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 
 	// loading witnesses
 	go func() {
+		c.preOriginCandidates = make(candidateStorage, 0)
 		witErrCh <- loadWitFunc("previous", c.preOriginCandidates, getPreviousWitnessIdsState, getPreviousWitnessByState)
 		wg.Done()
 	}()
 	go func() {
+		c.originCandidates = make(candidateStorage, 0)
 		witErrCh <- loadWitFunc("current", c.originCandidates, getWitnessIdsByState, getWitnessByState)
 		wg.Done()
 	}()
 	go func() {
+		c.nextOriginCandidates = make(candidateStorage, 0)
 		witErrCh <- loadWitFunc("next", c.nextOriginCandidates, getNextWitnessIdsByState, getNextWitnessByState)
 		wg.Done()
 	}()
@@ -153,7 +155,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 			getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 			getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) (types.CandidateQueue, error) {
 			var witnessIds []discover.NodeID
-			canMap = make(candidateStorage, 0)
+
 			if ids, err := getIndexFn(state); nil != err {
 				log.Error("Failed to decode "+title+"Ids on initDataByState", " err", err)
 				return nil, err
@@ -190,6 +192,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		go func() {
 			res := new(result)
 			res.Type = 0
+			c.immediateCandidates = make(candidateStorage, 0)
 			if arr, err := loadElectedFunc("immediate", c.immediateCandidates, getImmediateIdsByState, getImmediateByState); nil != err {
 				res.Err = err
 				resCh <- res
@@ -202,6 +205,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		go func() {
 			res := new(result)
 			res.Type = 1
+			c.reserveCandidates = make(candidateStorage, 0)
 			if arr, err := loadElectedFunc("reserve", c.reserveCandidates, getReserveIdsByState, getReserveByState); nil != err {
 				res.Err = err
 				resCh <- res
