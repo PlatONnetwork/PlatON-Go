@@ -37,7 +37,7 @@ import (
 
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
-	chainHeadChanSize = 0
+	chainHeadChanSize = 10
 )
 
 var (
@@ -99,9 +99,6 @@ var (
 	// General tx metrics
 	invalidTxCounter     = metrics.NewRegisteredCounter("txpool/invalid", nil)
 	underpricedTxCounter = metrics.NewRegisteredCounter("txpool/underpriced", nil)
-
-	sendLocalTxCounter  int
-	sendRemoteTxCounter int
 )
 
 // TxStatus is the current status of a transaction as seen by the pool.
@@ -132,10 +129,10 @@ type TxPoolConfig struct {
 	PriceLimit uint64 // Minimum gas price to enforce for acceptance into the pool
 	PriceBump  uint64 // Minimum price bump percentage to replace an already existing transaction (nonce)
 
-	AccountSlots uint64 // Number of executable transaction slots guaranteed per account
-	GlobalSlots  uint64 // Maximum number of executable transaction slots for all accounts
-	AccountQueue uint64 // Maximum number of non-executable transaction slots permitted per account
-	GlobalQueue  uint64 // Maximum number of non-executable transaction slots for all accounts
+	AccountSlots  uint64 // Number of executable transaction slots guaranteed per account
+	GlobalSlots   uint64 // Maximum number of executable transaction slots for all accounts
+	AccountQueue  uint64 // Maximum number of non-executable transaction slots permitted per account
+	GlobalQueue   uint64 // Maximum number of non-executable transaction slots for all accounts
 	GlobalTxCount uint64 // Maximum number of transactions for package
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
@@ -150,10 +147,10 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	PriceLimit: 1,
 	PriceBump:  10,
 
-	AccountSlots: 16,
-	GlobalSlots:  4096,
-	AccountQueue: 64,
-	GlobalQueue:  1024,
+	AccountSlots:  16,
+	GlobalSlots:   4096,
+	AccountQueue:  64,
+	GlobalQueue:   1024,
 	GlobalTxCount: 3000,
 
 	Lifetime: 3 * time.Hour,
@@ -196,7 +193,7 @@ type TxPool struct {
 	// modified by PlatON
 	chainHeadCh chan *types.Block
 	//chainHeadCh  chan ChainHeadEvent
-	//chainHeadSub event.Subscription
+	exitCh chan struct{}
 	signer types.Signer
 	mu     sync.RWMutex
 
@@ -246,7 +243,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		// modified by PlatON
 		// chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
 		chainHeadCh: make(chan *types.Block, chainHeadChanSize),
-
+		exitCh:      make(chan struct{}),
 		gasPrice:    new(big.Int).SetUint64(config.PriceLimit),
 		txExtBuffer: make(chan *txExt, 64),
 	}
@@ -330,10 +327,8 @@ func (pool *TxPool) loop() {
 				pool.mu.Unlock()
 			}
 
-		// Be unsubscribed due to system stopped
-		// modified by PlatON
-		//case <-pool.chainHeadSub.Err():
-		//	return
+		case <-pool.exitCh:
+			return
 
 		// Handle stats reporting ticks
 		case <-report.C:
@@ -554,9 +549,8 @@ func (pool *TxPool) Stop() {
 	// Unsubscribe all subscriptions registered from txpool
 	pool.scope.Close()
 
-	// Unsubscribe subscriptions registered from blockchain
-	// modified by PlatON
-	//pool.chainHeadSub.Unsubscribe()
+	pool.exitCh <- struct{}{}
+
 	pool.wg.Wait()
 
 	if pool.journal != nil {
@@ -894,85 +888,40 @@ func (pool *TxPool) promoteTx(addr common.Address, hash common.Hash, tx *types.T
 // the sender as a local one in the mean time, ensuring it goes around the local
 // pricing constraints.
 func (pool *TxPool) AddLocal(tx *types.Transaction) error {
-
-	sendLocalTxCounter++
-
-	//startTime := time.Now().UnixNano()
-
-	//log.Debug("AddLocal to txExtBuffer start ", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "timestamp", startTime)
-
 	errCh := make(chan interface{})
-
 	txExt := &txExt{tx, !pool.config.NoLocals, errCh}
-
 	pool.txExtBuffer <- txExt
-
-	//endTime1 := time.Now().UnixNano()
-	//log.Debug("AddLocal to txExtBuffer end", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "timestamp", endTime1, "duration", endTime1-startTime)
-
 	err := <-errCh
-	//endTime := time.Now().UnixNano()
-	//log.Debug("AddLocal to txExtBuffer response", "localTxHash", tx.Hash(), "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "timestamp", endTime, "duration", endTime-endTime1)
-
 	if e, ok := err.(error); ok {
 		return e
 	} else {
 		return nil
 	}
-
-	//return pool.addTx(tx, !pool.config.NoLocals)
-
 }
 
 // AddRemote enqueues a single transaction into the pool if it is valid. If the
 // sender is not among the locally tracked ones, full pricing constraints will
 // apply.
 func (pool *TxPool) AddRemote(tx *types.Transaction) error {
-	sendRemoteTxCounter++
-	//startTime := time.Now().UnixNano()
-
 	errCh := make(chan interface{})
-
 	txExt := &txExt{tx, false, errCh}
-
 	pool.txExtBuffer <- txExt
-
-	//endTime := time.Now().UnixNano()
-	//log.Debug("AddRemote to txExtBuffer", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
-
 	err := <-errCh
-
-	//log.Debug("AddRemote to txExtBuffer response", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
-
 	if e, ok := err.(error); ok {
 		return e
 	} else {
 		return nil
 	}
-
-	//return pool.addTx(tx, false)
 }
 
 // AddLocals enqueues a batch of transactions into the pool if they are valid,
 // marking the senders as a local ones in the mean time, ensuring they go around
 // the local pricing constraints.
 func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
-	sendLocalTxCounter = sendLocalTxCounter + len(txs)
-	//startTime := time.Now().UnixNano()
-
 	errCh := make(chan interface{})
-
 	txExt := &txExt{txs, !pool.config.NoLocals, errCh}
-
 	pool.txExtBuffer <- txExt
-
-	//endTime := time.Now().UnixNano()
-	//log.Debug("AddLocals to txExtBuffer", "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
-
 	err := <-errCh
-
-	//log.Debug("AddLocals to txExtBuffer response", "sendLocalTxCounter", sendLocalTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
-
 	if e, ok := err.([]error); ok {
 		return e
 	} else {
@@ -984,27 +933,10 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // If the senders are not among the locally tracked ones, full pricing constraints
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
-	sendRemoteTxCounter = sendRemoteTxCounter + len(txs)
-	//startTime := time.Now().UnixNano()
-
 	errCh := make(chan interface{})
-
 	txExt := &txExt{txs, false, errCh}
-
 	pool.txExtBuffer <- txExt
-
-	//endTime := time.Now().UnixNano()
-	//log.Debug("AddRemotes to txExtBuffer",  "addedTxCounter", addedTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
-	/*for _, tx := range txs {
-		log.Debug("AddRemotes to txExtBuffer", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - startTime))
-	}*/
-
 	err := <-errCh
-
-	/*for _, tx := range txs {
-		log.Debug("AddRemotes to txExtBuffer response", "remoteTxHash", tx.Hash(), "sendRemoteTxCounter", sendRemoteTxCounter, "bufferLength", len(pool.txExtBuffer), "time", (time.Now().UnixNano() - endTime))
-	}*/
-
 	if e, ok := err.([]error); ok {
 		return e
 	} else {
