@@ -240,7 +240,7 @@ func (tc TicketCache) GetTicketCache(nodeid discover.NodeID) ([]common.Hash, err
 	if !ok {
 		return nil, ErrNotfindFromNodeId
 	}
-	ret := make([]common.Hash, 0, len(tids))
+	ret := make([]common.Hash, len(tids))
 	copy(ret, tids)
 	return ret, nil
 }

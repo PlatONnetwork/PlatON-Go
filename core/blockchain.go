@@ -948,7 +948,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 			log.Error("Commit to triedb error", "root", root)
 			return NonStatTy, err
 		}
+		log.Info("archive node commit stateDB trie", "blockNumber", block.NumberU64(), "root", root.String())
 	} else {
+		log.Info("non-archive node put stateDB trie", "blockNumber", block.NumberU64(), "root", root.String())
 		// Full but not archive node, do proper garbage collection
 		triedb.Reference(root, common.Hash{}) // metadata reference to keep trie alive
 		bc.triegc.Push(root, -int64(block.NumberU64()))
