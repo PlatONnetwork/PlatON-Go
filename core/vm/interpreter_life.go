@@ -115,6 +115,10 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		lvm.Stop()
 	}()
 
+	defer func() {
+		lvm.Stop()
+	}()
+
 	contract.Input = input
 	var (
 		funcName   string
