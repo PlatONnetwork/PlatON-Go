@@ -15,7 +15,10 @@ import (
 	"time"
 )
 
-// 单元测试使用的runner, 主要负责测试Platonlib c++ 库，根据dir 扫描目录下wasm文件执行 wasm从main入口进入，根据--outdir创建db, 测试工具根据日志信息判断测试结果
+// The runner used in the unit test is mainly responsible for testing the Platonlib c++ library.
+// According to the wasm file in the dir scan directory, the wasm is accessed from the main entry.
+// The db is created according to --outdir. The test tool judges the test result based on the log information.
+
 var (
 	wasmFileFlag = cli.StringFlag{
 		Name:  "file",

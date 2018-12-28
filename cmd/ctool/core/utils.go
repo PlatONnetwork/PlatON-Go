@@ -149,7 +149,7 @@ func parseFuncFromAbi(fileName string, funcName string) (*FuncDesc, error) {
 }
 
 /**
-  通过解析abi查找所调用方法
+  Find the method called by parsing abi
 */
 func GetFuncNameAndParams(f string) (string, []string) {
 	funcName := string(f[0:strings.Index(f, "(")])
@@ -170,19 +170,16 @@ func GetFuncNameAndParams(f string) (string, []string) {
 }
 
 /**
-  自测方法，用于对参数加密
+  Self-test method for encrypting parameters
 */
 func encodeParam(abiPath string, funcName string, funcParams string) error {
-	//判断该方法是否存在
 	abiFunc, err := parseFuncFromAbi(abiPath, funcName)
 	if err != nil {
 		return err
 	}
 
-	//解析调用的方法 参数
 	funcName, inputParams := GetFuncNameAndParams(funcParams)
 
-	//判断参数是否正确
 	if len(abiFunc.Inputs) != len(inputParams) {
 		return fmt.Errorf("incorrect number of parameters ,request=%d,get=%d\n", len(abiFunc.Inputs), len(inputParams))
 	}

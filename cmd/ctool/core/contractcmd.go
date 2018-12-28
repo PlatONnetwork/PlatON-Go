@@ -78,11 +78,9 @@ func DeployContract(abiFilePath string, codeFilePath string) error {
 
 	fmt.Printf("\ntrasaction hash: %s\n", resp.Result)
 
-	//根据result获取交易receipt
 	ch := make(chan string, 1)
 	go GetTransactionReceipt(resp.Result, ch)
 
-	//获取receipt
 	select {
 	case address := <-ch:
 		fmt.Printf("contract address: %s\n", address)

@@ -72,7 +72,6 @@ func (tp *TreePool) GetTree(pages int) tree {
 	}
 	if len(treeArr) > 0 {
 		tree := treeArr[0]
-		//删除
 		tp.trees[key] = append(treeArr[:0], treeArr[1:]...)
 		return tree
 	} else {
@@ -85,9 +84,7 @@ func (tp *TreePool) PutTree(tree []int) {
 	pages := size / DefaultPageSize
 	key := int(math.Log2(float64(pages)))
 
-	//判断是否需要reset
 	if tree[0] != size {
-		//需要reset
 		log.Debug("reset memory tree...")
 		reset(tree, tp.trees[key], size)
 	}
