@@ -1551,7 +1551,7 @@ func (c *CandidatePool) checkExist(nodeId discover.NodeID) int {
 }
 
 func (c *CandidatePool) checkTicket(t_count uint64) bool {
-	log.Info("对比当前候选人得票数为:", t_count, "入选门槛为:", c.maxCount)
+	log.Info("对比当前候选人得票数为:", "t_count", t_count, "入选门槛为:", c.maxCount)
 	if t_count >= c.maxCount {
 		log.Info("当前候选人得票数符合进入候选池...")
 		return true

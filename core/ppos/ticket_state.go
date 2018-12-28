@@ -321,6 +321,7 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.Node
 	if nil != err {
 		return ticket, err
 	}
+
 	log.Info("releaseTicket,开始更新", "候选人：", candidateId.String())
 	candidateTicketIds := make([]common.Hash, 0)
 	candidateTicketIds = append(candidateTicketIds, ticketId)

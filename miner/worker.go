@@ -1174,6 +1174,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			log.Error("ppos notify error", "err", err)
 			return
 		}
+		w.current.state.IntermediateRoot(w.config.IsEIP158(header.Number))
 	}
 
 	if !noempty {
@@ -1269,8 +1270,11 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		// ppos Store Hash
 		w.storeHash(s)
 	}
+
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 	log.Warn("worker: commit: Finalize", "blockNumber", block.Number(), "root", block.Root().String())
+	//root, _ := s.Commit(w.config.IsEIP158(w.current.header.Number))
+	//log.Warn("worker: commit: Commit", "blockNumber", header.Number.String(), "root", root.String())
 	if err != nil {
 		return err
 	}

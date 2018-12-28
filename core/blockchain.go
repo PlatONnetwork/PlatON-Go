@@ -1213,6 +1213,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 				log.Error("ppos notify error", "err", err)
 				break
 			}
+			state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
 		}
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
@@ -1281,6 +1282,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 			log.Error("ppos notify error", "err", err)
 			return nil, err
 		}
+		state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
 	}
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, blockInterval)
