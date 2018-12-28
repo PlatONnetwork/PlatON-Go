@@ -119,7 +119,8 @@ const (
 type txPoolBlockChain interface {
 	CurrentBlock() *types.Block
 	GetBlock(hash common.Hash, number uint64) *types.Block
-	StateAt(root common.Hash) (*state.StateDB, error)
+	//StateAt(root common.Hash) (*state.StateDB, error)
+	GetState(header *types.Header) (*state.StateDB, error)
 }
 
 // TxPoolConfig are the configuration parameters of the transaction pool.
@@ -132,10 +133,10 @@ type TxPoolConfig struct {
 	PriceLimit uint64 // Minimum gas price to enforce for acceptance into the pool
 	PriceBump  uint64 // Minimum price bump percentage to replace an already existing transaction (nonce)
 
-	AccountSlots uint64 // Number of executable transaction slots guaranteed per account
-	GlobalSlots  uint64 // Maximum number of executable transaction slots for all accounts
-	AccountQueue uint64 // Maximum number of non-executable transaction slots permitted per account
-	GlobalQueue  uint64 // Maximum number of non-executable transaction slots for all accounts
+	AccountSlots  uint64 // Number of executable transaction slots guaranteed per account
+	GlobalSlots   uint64 // Maximum number of executable transaction slots for all accounts
+	AccountQueue  uint64 // Maximum number of non-executable transaction slots permitted per account
+	GlobalQueue   uint64 // Maximum number of non-executable transaction slots for all accounts
 	GlobalTxCount uint64 // Maximum number of transactions for package
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
@@ -150,10 +151,10 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	PriceLimit: 1,
 	PriceBump:  10,
 
-	AccountSlots: 16,
-	GlobalSlots:  4096,
-	AccountQueue: 64,
-	GlobalQueue:  1024,
+	AccountSlots:  16,
+	GlobalSlots:   4096,
+	AccountQueue:  64,
+	GlobalQueue:   1024,
 	GlobalTxCount: 3000,
 
 	Lifetime: 3 * time.Hour,
@@ -412,7 +413,8 @@ func (pool *TxPool) ForkedReset(origTress, newTress []*types.Block) {
 	reinject = types.TxDifference(discarded, included)
 
 	// Initialize the internal state to the current head
-	statedb, err := pool.chain.StateAt(newTress[len(newTress)-1].Header().Root)
+	//
+	statedb, err := pool.chain.GetState(newTress[len(newTress)-1].Header())
 	if err != nil {
 		log.Error("Failed to reset txpool state", "err", err)
 		return
@@ -519,9 +521,9 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	if newHead == nil {
 		newHead = pool.chain.CurrentBlock().Header() // Special case during testing
 	}
-	statedb, err := pool.chain.StateAt(newHead.Root)
+	statedb, err := pool.chain.GetState(newHead)
 	if err != nil {
-		log.Error("Failed to reset txpool state", "err", err)
+		log.Error("Failed to reset txpool state", "newHeadHash", newHead.Hash(), "newHeadNumber", newHead.Number.Uint64(), "err", err)
 		return
 	}
 	pool.currentState = statedb
