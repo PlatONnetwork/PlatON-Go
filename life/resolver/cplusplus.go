@@ -628,7 +628,11 @@ func envSetState(vm *exec.VirtualMachine) int64 {
 	value := int(int32(vm.GetCurrentFrame().Locals[2]))
 	valueLen := int(int32(vm.GetCurrentFrame().Locals[3]))
 
-	vm.Context.StateDB.SetState(vm.Memory.Memory[key:key+keyLen], vm.Memory.Memory[value:value+valueLen])
+	copyKey := make([]byte, keyLen)
+	copyValue := make([]byte, valueLen)
+	copy(copyKey, vm.Memory.Memory[key : key+keyLen])
+	copy(copyValue, vm.Memory.Memory[value:value+valueLen])
+	vm.Context.StateDB.SetState(copyKey, copyValue)
 	return 0
 }
 
