@@ -851,16 +851,15 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 	curTime := toMilliseconds(time.Now())
 
 	isLegal := cbft.isLegal(curTime, producerID)
-	if !isLegal {
-		log.Warn("illegal block",
-			"RoutineID", common.CurrentGoRoutineID(),
-			"hash", block.Hash(),
-			"number", block.NumberU64(),
-			"parentHash", block.ParentHash(),
-			"curTime", curTime,
-			"producerID", producerID)
-		return errIllegalBlock
-	}
+
+	log.Debug("check if block is legal",
+		"RoutineID", common.CurrentGoRoutineID(),
+		"result", isLegal,
+		"hash", block.Hash(),
+		"number", block.NumberU64(),
+		"parentHash", block.ParentHash(),
+		"curTime", curTime,
+		"producerID", producerID)
 
 	//to check if there's a existing blockExt for received block
 	//sometime we'll receive the block's sign before the block self.
@@ -904,16 +903,6 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		}
 
 		inTurn := cbft.inTurnVerify(curTime, producerID)
-		if !inTurn {
-			log.Warn("not in turn",
-				"RoutineID", common.CurrentGoRoutineID(),
-				"hash", block.Hash(),
-				"number", block.NumberU64(),
-				"parentHash", block.ParentHash(),
-				"curTime", curTime,
-				"producerID", producerID)
-		}
-
 		ext.inTurn = inTurn
 
 		//flowControl := flowControl.control(producerID, curTime)
@@ -1576,7 +1565,7 @@ func (cbft *Cbft) calTurn(curTime int64, nodeID discover.NodeID) bool {
 
 		max := (nodeIdx + 1) * durationPerNode
 
-		log.Debug("calTurn", "idx", nodeIdx, "min", min, "value", value, "max", max, "curTime", curTime, "startEpoch", startEpoch)
+		//log.Debug("calTurn", "idx", nodeIdx, "min", min, "value", value, "max", max, "curTime", curTime, "startEpoch", startEpoch)
 
 		if value > min && value < max {
 			return true
