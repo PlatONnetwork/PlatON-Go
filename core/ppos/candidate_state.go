@@ -957,14 +957,15 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 		}
 		// 这个和 setCandidate  还不一样。。。
 		// 因为需要先判断是否之前在 immediates 中，如果是则转移到 reserves 中
-		if _, err := c.setCandidateInfo(state, can.CandidateId, can); nil != err {
+		if ids, err := c.setCandidateInfo(state, can.CandidateId, can); nil != err {
 			c.lock.Unlock()
 			log.Error("Failed to setCandidateInfo on Election", "nodeId", can.CandidateId.String(), "err", err)
 			return nil, err
+		}else {
+			nodeIds = append(nodeIds, ids...)
 		}
-
 		c.lock.Unlock()
-		nodeIds = append(nodeIds, can.CandidateId)
+
 	}
 	// 释放落榜的
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
