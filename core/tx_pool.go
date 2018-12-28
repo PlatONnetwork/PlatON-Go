@@ -281,12 +281,14 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 }
 
 func (pool *TxPool) txExtBufferReadLoop() {
-	//var txCounter int
 	for {
-		txExt := <-pool.txExtBuffer
-
-		err := pool.addTxExt(txExt)
-		txExt.txErr <- err
+		select {
+		case txExt := <-pool.txExtBuffer:
+			err := pool.addTxExt(txExt)
+			txExt.txErr <- err
+		case <-pool.exitCh:
+			return
+		}
 	}
 }
 
