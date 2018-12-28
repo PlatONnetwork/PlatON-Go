@@ -15,7 +15,6 @@ import (
 	"math/big"
 )
 
-// error def
 var (
 	ErrIllegalDeposit    = errors.New("Deposit balance not match")
 	ErrCandidateNotExist = errors.New("Voted candidate not exist")
@@ -64,7 +63,6 @@ func (t *TicketContract) Run(input []byte) ([]byte, error) {
 
 // VoteTicket let a account buy tickets and vote to the chosen candidate.
 func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discover.NodeID) ([]byte, error) {
-	// input params
 	value := t.Contract.value
 	txHash := t.Evm.StateDB.TxHash()
 	txIdx := t.Evm.StateDB.TxIdx()
@@ -75,14 +73,14 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 	can, err := t.Evm.CandidatePool.GetCandidate(t.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("VoteTicket==> ", "GetCandidate occured error", err.Error())
-		r := ResultCommon{false, err.Error()}
+		r := ResultCommon{false, "", err.Error()}
 		event, _ := json.Marshal(r)
 		t.addLog(VoteTicketEvent, string(event))
 		return nil, err
 	}
 	if nil == can {
 		log.Error("VoteTicket==> ", "GetCandidate occured error", ErrCandidateNotExist.Error())
-		r := ResultCommon{false, ErrCandidateNotExist.Error()}
+		r := ResultCommon{false, "", ErrCandidateNotExist.Error()}
 		event, _ := json.Marshal(r)
 		t.addLog(VoteTicketEvent, string(event))
 		return nil, ErrCandidateNotExist
@@ -90,16 +88,15 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 	totalPrice := new(big.Int).Mul(new(big.Int).SetUint64(count), price)
 	if totalPrice.Cmp(value) != 0 || totalPrice.Cmp(big.NewInt(0)) != 1 {
 		log.Error("VoteTicket==> ", "Compared deposit occured error", ErrIllegalDeposit.Error())
-		r := ResultCommon{false, ErrIllegalDeposit.Error()}
+		r := ResultCommon{false, "", ErrIllegalDeposit.Error()}
 		event, _ := json.Marshal(r)
 		t.addLog(VoteTicketEvent, string(event))
 		return nil, ErrIllegalDeposit
 	}
-	// return ([]common.hash, error) successful ticketIds
 	arr, err := t.Evm.TicketPool.VoteTicket(t.Evm.StateDB, from, count, price, nodeId, blockNumber)
 	if nil == arr {
 		log.Error("VoteTicket==> ", "voteTicket occured error, all the tickets failed", err.Error())
-		r := ResultCommon{false, err.Error()}
+		r := ResultCommon{false, "", err.Error()}
 		event, _ := json.Marshal(r)
 		t.addLog(VoteTicketEvent, string(event))
 		return nil, err
@@ -109,12 +106,12 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 	log.Info("VoteTicket==> ", "json: ", string(data), " []byte: ", sdata)
 	if nil != err {
 		log.Error("VoteTicket==> ", "voteTicket occured error, tickets only partially successful", err.Error())
-		r := ResultCommon{true, err.Error()}
+		r := ResultCommon{true, string(data), err.Error()}
 		event, _ := json.Marshal(r)
 		t.addLog(VoteTicketEvent, string(event))
 		return sdata, err
 	}
-	r := ResultCommon{true, "success"}
+	r := ResultCommon{true, string(data), "success"}
 	event, _ := json.Marshal(r)
 	t.addLog(VoteTicketEvent, string(event))
 	return sdata, nil
@@ -213,7 +210,7 @@ func (t *TicketContract) GetTicketPrice() ([]byte, error) {
 	return sdata, nil
 }
 
-// transaction add event
+// addLog let the result add to event.
 func (t *TicketContract) addLog(event, data string) {
 	var logdata [][]byte
 	logdata = make([][]byte, 0)

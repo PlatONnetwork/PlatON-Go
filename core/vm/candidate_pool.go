@@ -14,7 +14,6 @@ import (
 	"math/big"
 )
 
-// error def
 var (
 	ErrOwnerNotOnly     = errors.New("Node ID cannot bind multiple owners")
 	ErrPermissionDenied = errors.New("Transaction from address permission denied")
@@ -75,7 +74,6 @@ func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 
 // Candidate Application && Increase Quality Deposit
 func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error) {
-	// debug
 	deposit := c.Contract.value
 	txHash := c.Evm.StateDB.TxHash()
 	txIdx := c.Evm.StateDB.TxIdx()
@@ -84,9 +82,8 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	log.Info("CandidateDeposit==> ", "nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
 		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
 		" host: ", host, " port: ", port, " extra: ", extra)
-	//todo
 	if deposit.Cmp(big.NewInt(0)) < 1 {
-		r := ResultCommon{false, ErrDepositEmpty.Error()}
+		r := ResultCommon{false, "", ErrDepositEmpty.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(event))
 		return nil, ErrDepositEmpty
@@ -94,7 +91,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	can, err := c.Evm.CandidatePool.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("CandidateDeposit==> ", "err!=nill: ", err.Error())
-		r := ResultCommon{false, err.Error()}
+		r := ResultCommon{false, "", err.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(event))
 		return nil, err
@@ -103,7 +100,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	if nil != can {
 		if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
 			log.Error(ErrOwnerNotOnly.Error())
-			r := ResultCommon{false, ErrOwnerNotOnly.Error()}
+			r := ResultCommon{false, "", ErrOwnerNotOnly.Error()}
 			event, _ := json.Marshal(r)
 			c.addLog(CandidateDepositEvent, string(event))
 			return nil, ErrOwnerNotOnly
@@ -124,21 +121,17 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		from,
 		extra,
 		fee,
-		//0,
-		//new(big.Int).SetUint64(0),
 		common.Hash{},
 	}
 	log.Info("CandidateDeposit==> ", "canDeposit: ", canDeposit)
 	if err = c.Evm.CandidatePool.SetCandidate(c.Evm.StateDB, nodeId, &canDeposit); err != nil {
-		// rollback transaction
-		// ......
 		log.Error("CandidateDeposit==> ", "SetCandidate return err: ", err.Error())
-		r := ResultCommon{false, err.Error()}
+		r := ResultCommon{false, "", err.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(event))
 		return nil, err
 	}
-	r := ResultCommon{true, "success"}
+	r := ResultCommon{true, "", "success"}
 	event, _ := json.Marshal(r)
 	c.addLog(CandidateDepositEvent, string(event))
 	log.Info("CandidateDeposit==> ", "json: ", string(event))
@@ -147,29 +140,27 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 
 // Apply for a refund of the deposit
 func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int) ([]byte, error) {
-	// debug
 	txHash := c.Evm.StateDB.TxHash()
 	from := c.Contract.caller.Address()
 	height := c.Evm.Context.BlockNumber
 	log.Info("CandidateApplyWithdraw==> ", "nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
-	// todo
 	can, err := c.Evm.CandidatePool.GetCandidate(c.Evm.StateDB, nodeId)
 	if err != nil {
 		log.Error("CandidateApplyWithdraw==> ", "err!=nill: ", err.Error())
-		r := ResultCommon{false, err.Error()}
+		r := ResultCommon{false, "", err.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateApplyWithdrawEvent, string(event))
 		return nil, err
 	}
 	if can.Deposit.Cmp(big.NewInt(0)) < 1 {
-		r := ResultCommon{false, ErrWithdrawEmpty.Error()}
+		r := ResultCommon{false, "", ErrWithdrawEmpty.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateApplyWithdrawEvent, string(event))
 		return nil, ErrWithdrawEmpty
 	}
 	if ok := bytes.Equal(can.Owner.Bytes(), from.Bytes()); !ok {
 		log.Error(ErrPermissionDenied.Error())
-		r := ResultCommon{false, ErrPermissionDenied.Error()}
+		r := ResultCommon{false, "", ErrPermissionDenied.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateApplyWithdrawEvent, string(event))
 		return nil, ErrPermissionDenied
@@ -179,12 +170,12 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	}
 	if err := c.Evm.CandidatePool.WithdrawCandidate(c.Evm.StateDB, nodeId, withdraw, height); nil != err {
 		log.Error(err.Error())
-		r := ResultCommon{false, err.Error()}
+		r := ResultCommon{false, "", err.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateApplyWithdrawEvent, string(event))
 		return nil, err
 	}
-	r := ResultCommon{true, "success"}
+	r := ResultCommon{true, "", "success"}
 	event, _ := json.Marshal(r)
 	c.addLog(CandidateApplyWithdrawEvent, string(event))
 	log.Info("CandidateApplyWithdraw==> ", "json: ", string(event))
@@ -193,20 +184,17 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 
 // Deposit withdrawal
 func (c *CandidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, error) {
-	// debug
 	txHash := c.Evm.StateDB.TxHash()
 	height := c.Evm.Context.BlockNumber
 	log.Info("CandidateWithdraw==> ", "nodeId: ", nodeId.String(), " height: ", height, " txHash: ", txHash.Hex())
-	// todo
 	if err := c.Evm.CandidatePool.RefundBalance(c.Evm.StateDB, nodeId, height); nil != err {
 		log.Error(err.Error())
-		r := ResultCommon{false, err.Error()}
+		r := ResultCommon{false, "", err.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateWithdrawEvent, string(event))
 		return nil, err
 	}
-	// return
-	r := ResultCommon{true, "success"}
+	r := ResultCommon{true, "", "success"}
 	event, _ := json.Marshal(r)
 	c.addLog(CandidateWithdrawEvent, string(event))
 	log.Info("CandidateWithdraw==> ", "json: ", string(event))
@@ -215,15 +203,12 @@ func (c *CandidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, e
 
 // Get the refund history you have applied for
 func (c *CandidateContract) CandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error) {
-	// debug
 	log.Info("CandidateWithdrawInfos==> ", "nodeId: ", nodeId.String())
-	// todo
 	infos, err := c.Evm.CandidatePool.GetDefeat(c.Evm.StateDB, nodeId)
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
 	}
-	// return
 	type WithdrawInfo struct {
 		Balance        *big.Int
 		LockNumber     *big.Int
@@ -246,27 +231,25 @@ func (c *CandidateContract) CandidateWithdrawInfos(nodeId discover.NodeID) ([]by
 
 // Set up additional information
 func (c *CandidateContract) SetCandidateExtra(nodeId discover.NodeID, extra string) ([]byte, error) {
-	// debug
 	txHash := c.Evm.StateDB.TxHash()
 	from := c.Contract.caller.Address()
 	log.Info("SetCandidate==> ", "nodeId: ", nodeId.String(), " extra: ", extra, " from: ", from.Hex(), " txHash: ", txHash.Hex())
-	// todo
 	owner := c.Evm.CandidatePool.GetOwner(c.Evm.StateDB, nodeId)
 	if ok := bytes.Equal(owner.Bytes(), from.Bytes()); !ok {
 		log.Error(ErrPermissionDenied.Error())
-		r := ResultCommon{false, ErrPermissionDenied.Error()}
+		r := ResultCommon{false, "", ErrPermissionDenied.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(SetCandidateExtraEvent, string(event))
 		return nil, ErrPermissionDenied
 	}
 	if err := c.Evm.CandidatePool.SetCandidateExtra(c.Evm.StateDB, nodeId, extra); nil != err {
 		log.Error(err.Error())
-		r := ResultCommon{false, err.Error()}
+		r := ResultCommon{false, "", err.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(SetCandidateExtraEvent, string(event))
 		return nil, err
 	}
-	r := ResultCommon{true, "success"}
+	r := ResultCommon{true, "", "success"}
 	event, _ := json.Marshal(r)
 	c.addLog(SetCandidateExtraEvent, string(event))
 	log.Info("SetCandidate==> ", "json: ", string(event))
@@ -334,11 +317,11 @@ func (c *CandidateContract) VerifiersList() ([]byte, error) {
 	}
 	data, _ := json.Marshal(arr)
 	sdata := DecodeResultStr(string(data))
-	log.Info("VerifiersList==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("VerifiersList==> ", "json: ", string(data), "[]byte: ", sdata)
 	return sdata, nil
 }
 
-// transaction add event
+// addLog let the result add to event.
 func (c *CandidateContract) addLog(event, data string) {
 	var logdata [][]byte
 	logdata = make([][]byte, 0)

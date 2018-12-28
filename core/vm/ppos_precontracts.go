@@ -17,7 +17,6 @@ var PrecompiledContractsPpos = map[common.Address]PrecompiledContract{
 	common.TicketPoolAddr:    &TicketContract{},
 }
 
-// error def
 var (
 	ErrParamsRlpDecode = errors.New("Rlp decode fail")
 	ErrParamsBaselen   = errors.New("Params Base length does not match")
@@ -26,7 +25,7 @@ var (
 	ErrCallRecode      = errors.New("Call recode error, panic...")
 )
 
-// execute decode input data and call the function
+// execute decode input data and call the function.
 func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 	log.Info("Run==> ", "input: ", hex.EncodeToString(input))
 	defer func() {
@@ -71,17 +70,15 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 	return result[0].Bytes(), result[1].Interface().(error)
 }
 
+// ResultCommon is the struct of transaction event.
 type ResultCommon struct {
 	Ret    bool
+	Data   string
 	ErrMsg string
 }
 
-// return string format
+// DecodeResultStr format the string of value to bytes.
 func DecodeResultStr(result string) []byte {
-	// 0x0000000000000000000000000000000000000020
-	// 00000000000000000000000000000000000000000d
-	// 00000000000000000000000000000000000000000
-
 	resultBytes := []byte(result)
 	strHash := common.BytesToHash(common.Int32ToBytes(32))
 	sizeHash := common.BytesToHash(common.Int64ToBytes(int64((len(resultBytes)))))
@@ -96,7 +93,5 @@ func DecodeResultStr(result string) []byte {
 	finalData = append(finalData, strHash.Bytes()...)
 	finalData = append(finalData, sizeHash.Bytes()...)
 	finalData = append(finalData, dataByt...)
-	//encodedStr := hex.EncodeToString(finalData)
-	//fmt.Println("finalData: ", encodedStr)
 	return finalData
 }
