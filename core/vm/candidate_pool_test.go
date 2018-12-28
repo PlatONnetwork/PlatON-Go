@@ -20,9 +20,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
-	//"math/big"
-	"reflect"
 	"testing"
 )
 
@@ -464,71 +461,12 @@ func TestCandidateWithdrawInfos(t *testing.T) {
 	fmt.Println("The CandidateWithdrawInfos is: ", vm.ResultByte2Json(resByte))
 }
 
-func TestRlpEncode(t *testing.T) {
-	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
-
-	owner, _ := hex.DecodeString("740ce31b3fac20dac379db243021a51e80ad00d7") //38
-	//owner, _ := hex.DecodeString("5a5c4368e2692746b286cee36ab0710af3efa6cf") //39
-	//owner, _ := hex.DecodeString("493301712671ada506ba6ca7891f436d29185821") //40
-
-	// code
-	var source [][]byte
-	source = make([][]byte, 0)
-	source = append(source, common.Hex2Bytes("1011"))   // tx type
-	source = append(source, []byte("CandidateDeposit")) // func name
-	//source = append(source, []byte("CandidateApplyWithdraw")) // func name
-	//source = append(source, []byte("CandidateWithdraw")) // func name
-	//source = append(source, []byte("CandidateWithdrawInfos")) // func name
-	//source = append(source, []byte("SetCandidateExtra")) // func name
-	//source = append(source, []byte("CandidateDetails")) // func name
-	//source = append(source, []byte("CandidateList")) // func name
-	//source = append(source, []byte("VerifiersList")) // func name
-	source = append(source, nodeId)                      // [64]byte nodeId discover.NodeID
-	source = append(source, owner)                       // [20]byte owner common.Address
-	source = append(source, byteutil.Uint64ToBytes(100)) // fee
-	source = append(source, []byte("192.168.9.184"))     // host
-	source = append(source, []byte("16789"))             // port
-	source = append(source, []byte("extra info.."))      // extra
-	//source = append(source, new(big.Int).SetInt64(1).Bytes()) // withdraw
-
-	buffer := new(bytes.Buffer)
-	err := rlp.Encode(buffer, source)
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("fail")
-	}
-	encodedBytes := buffer.Bytes()
-	// result
-	fmt.Println(encodedBytes)
-	// to hex as data
-	fmt.Println(hexutil.Encode(encodedBytes))
-
-	// decode
-	ptr := new(interface{})
-	rlp.Decode(bytes.NewReader(encodedBytes), &ptr)
-
-	deref := reflect.ValueOf(ptr).Elem().Interface()
-	fmt.Println(deref)
-	for i, v := range deref.([]interface{}) {
-		// fmt.Println(i,"    ",hex.EncodeToString(v.([]byte)))
-		// check type and switch
-		switch i {
-		case 0:
-			// fmt.Println(string(v.([]byte)))
-		case 1:
-			fmt.Println(string(v.([]byte)))
-		case 2:
-			// fmt.Println(string(v.([]byte)))
-		}
-	}
-}
-
 func TestRlpData(t *testing.T) {
 
-	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
-	owner := []byte("0xf216d6e4c17097a60ee2b8e5c88941cd9f07263b")
+	nodeId := []byte("0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
+	owner := []byte("0x493301712671ada506ba6ca7891f436d29185821")
 
-	//CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
+	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
 	var CandidateDeposit [][]byte
 	CandidateDeposit = make([][]byte, 0)
 	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(0xf1))
@@ -536,7 +474,7 @@ func TestRlpData(t *testing.T) {
 	CandidateDeposit = append(CandidateDeposit, nodeId)
 	CandidateDeposit = append(CandidateDeposit, owner)
 	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(500)) //10000
-	CandidateDeposit = append(CandidateDeposit, []byte("0.0.0.0"))
+	CandidateDeposit = append(CandidateDeposit, []byte("0.0.0.2"))
 	CandidateDeposit = append(CandidateDeposit, []byte("30303"))
 	CandidateDeposit = append(CandidateDeposit, []byte("extra data"))
 	bufDeposit := new(bytes.Buffer)
@@ -548,7 +486,7 @@ func TestRlpData(t *testing.T) {
 		fmt.Println("CandidateDeposit data rlp: ", hexutil.Encode(bufDeposit.Bytes()))
 	}
 
-	//CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int)
+	// CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int)
 	var CandidateApplyWithdraw [][]byte
 	CandidateApplyWithdraw = make([][]byte, 0)
 	CandidateApplyWithdraw = append(CandidateApplyWithdraw, uint64ToBytes(0xf1))
@@ -568,7 +506,7 @@ func TestRlpData(t *testing.T) {
 		fmt.Println("CandidateApplyWithdraw data rlp: ", hexutil.Encode(bufApply.Bytes()))
 	}
 
-	//CandidateWithdraw(nodeId discover.NodeID)
+	// CandidateWithdraw(nodeId discover.NodeID)
 	var CandidateWithdraw [][]byte
 	CandidateWithdraw = make([][]byte, 0)
 	CandidateWithdraw = append(CandidateWithdraw, uint64ToBytes(0xf1))
@@ -583,7 +521,7 @@ func TestRlpData(t *testing.T) {
 		fmt.Println("CandidateWithdraw data rlp: ", hexutil.Encode(bufWith.Bytes()))
 	}
 
-	//CandidateWithdrawInfos(nodeId discover.NodeID)
+	// CandidateWithdrawInfos(nodeId discover.NodeID)
 	var CandidateWithdrawInfos [][]byte
 	CandidateWithdrawInfos = make([][]byte, 0)
 	CandidateWithdrawInfos = append(CandidateWithdrawInfos, uint64ToBytes(0xf1))
@@ -598,7 +536,7 @@ func TestRlpData(t *testing.T) {
 		fmt.Println("CandidateWithdrawInfos data rlp: ", hexutil.Encode(bufWithInfos.Bytes()))
 	}
 
-	//CandidateDetails(nodeId discover.NodeID)
+	// CandidateDetails(nodeId discover.NodeID)
 	var CandidateDetails [][]byte
 	CandidateDetails = make([][]byte, 0)
 	CandidateDetails = append(CandidateDetails, uint64ToBytes(0xf1))
@@ -611,6 +549,20 @@ func TestRlpData(t *testing.T) {
 		t.Errorf("CandidateDetails encode rlp data fail")
 	} else {
 		fmt.Println("CandidateDetails data rlp: ", hexutil.Encode(bufDetails.Bytes()))
+	}
+
+	// CandidateList()
+	var CandidateList [][]byte
+	CandidateList = make([][]byte, 0)
+	CandidateList = append(CandidateList, uint64ToBytes(0xf1))
+	CandidateList = append(CandidateList, []byte("CandidateList"))
+	bufCList := new(bytes.Buffer)
+	err = rlp.Encode(bufCList, CandidateList)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("CandidateList encode rlp data fail")
+	} else {
+		fmt.Println("CandidateList data rlp: ", hexutil.Encode(bufCList.Bytes()))
 	}
 }
 
