@@ -35,8 +35,8 @@ const (
 	// JITCodeSizeThreshold is the lower-bound code size threshold for the JIT compiler.
 	JITCodeSizeThreshold = 30
 
-	DefaultMemPoolCount   = 4
-	DefaultMemBlockSize   = 4
+	DefaultMemPoolCount   = 5
+	DefaultMemBlockSize   = 5
 	DefaultMemTreeMaxPage = 8
 )
 

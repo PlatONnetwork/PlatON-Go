@@ -112,6 +112,10 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		return nil, err
 	}
 
+	defer func() {
+		lvm.Stop()
+	}()
+
 	contract.Input = input
 	var (
 		funcName   string
@@ -196,7 +200,6 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		//fmt.Println("CallReturn:", string(returnBytes))
 		return finalData, nil
 	}
-	lvm.Stop()
 	return nil, nil
 }
 
