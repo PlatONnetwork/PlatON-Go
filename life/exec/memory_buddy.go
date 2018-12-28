@@ -35,10 +35,10 @@ func (m *Memory) Malloc(size int) int {
 		}
 	}
 	m.tree[index] = 0
-	//计算节点对应的地址
+	//Calculate the address corresponding to the node
 	offset := (index+1)*nodeSize - m.Size
 
-	//向上修改收到影响的父节点size大小
+	//Upward modify the size of the parent node affected by the size
 	for index > 0 {
 		index = parent(index)
 		m.tree[index] = max(m.tree[left(index)], m.tree[right(index)])
@@ -57,11 +57,11 @@ func (m *Memory) Free(offset int) error {
 		panic(fmt.Errorf("error offset=%d", offset))
 	}
 
-	//最下层节点
+	//Lowermost node
 	nodeSize := 1
-	//offset对应得节点索引
+	//Offset corresponds to the node index
 	index := offset + m.Size - 1
-	//从最后的节点开始一直往上找到size为0的节点，即当初分配块所适配的大小和位置
+	//From the last node, go up and find the node with size 0, that is, the size and position of the original allocation block.
 	for ; m.tree[index] != 0; index = parent(index) {
 		nodeSize *= 2
 		if index == 0 {
@@ -69,13 +69,13 @@ func (m *Memory) Free(offset int) error {
 		}
 	}
 
-	//恢复节点
+	//Recovery node
 	m.tree[index] = nodeSize
 
-	//清除节点对应的内存数据
+	//Clear the memory data corresponding to the node
 	clear(offset+m.Start, offset+m.Start+nodeSize, m.Memory)
 
-	//向上遍历恢复影响的节点
+	//Traverse up the nodes that are affected by the recovery
 	var leftNode int
 	var rightNode int
 	for index = parent(index); index >= 0; index = parent(index) {
@@ -99,21 +99,21 @@ func clear(start, end int, mem []byte) {
 }
 
 /**
-计算当前节点的index计算左叶子结点的index
+Calculate the index of the current node to calculate the index of the left leaf node
 */
 func left(index int) int {
 	return index*2 + 1
 }
 
 /**
-计算当前节点的index计算右叶子结点的index
+Calculate the index of the current node and calculate the index of the right leaf node
 */
 func right(index int) int {
 	return index*2 + 2
 }
 
 /**
-计算当前节点的index计算左叶子结点的index
+Calculate the index of the current node to calculate the index of the left leaf node
 */
 func parent(index int) int {
 	return ((index)+1)/2 - 1
@@ -128,7 +128,7 @@ func max(a, b int) int {
 }
 
 /**
-判断是否是2的次幂数
+Determine if it is the power of 2
 */
 func isPowOf2(n int) bool {
 	if n <= 0 {
@@ -138,7 +138,7 @@ func isPowOf2(n int) bool {
 }
 
 /*
-  获取大于size的最小2的次幂数
+Get the minimum power of 2 greater than size
 */
 func fixSize(size int) int {
 

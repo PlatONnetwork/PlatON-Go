@@ -130,6 +130,7 @@ func (mp *MemPool) Put(mem []byte) {
 			return
 		}
 		pool.Put(mem)
+	} else {
+		mp.memBlock[pos].Put(mem)
 	}
-	mp.memBlock[pos].Put(mem)
 }

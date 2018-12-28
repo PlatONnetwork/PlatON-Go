@@ -121,49 +121,53 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 // and transaction broadcasts into the remote peer. The goal is to have an async
 // writer that does not lock up node internals.
 func (p *peer) broadcast() {
-	for {
-		select {
-		case prop := <-p.queuedProps:
-			if err := p.SendNewBlock(prop.block); err != nil {
+	go func() {
+		for {
+			select {
+			case prop := <-p.queuedProps:
+				if err := p.SendNewBlock(prop.block); err != nil {
+					return
+				}
+				p.Log().Trace("Propagated block", "number", prop.block.Number(), "hash", prop.block.Hash())
+
+			case block := <-p.queuedAnns:
+				if err := p.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}); err != nil {
+					return
+				}
+				p.Log().Trace("Announced block", "number", block.Number(), "hash", block.Hash())
+
+			case prop := <-p.queuedPreBlock:
+				if err := p.SendPrepareBlock(prop.block); err != nil {
+					return
+				}
+				p.Log().Trace("Propagated prepare block", "number", prop.block.Number(), "hash", prop.block.Hash())
+
+			case prop := <-p.queuedSignature:
+				signature := &cbfttypes.BlockSignature{prop.SignHash, prop.Hash, prop.Number, prop.Signature}
+				if err := p.SendSignature(signature); err != nil {
+					return
+				}
+				p.Log().Trace("Propagated block signature", "hash", signature.Hash)
+
+			case <-p.term:
 				return
 			}
-			p.Log().Trace("Propagated block", "number", prop.block.Number(), "hash", prop.block.Hash())
 
-		case block := <-p.queuedAnns:
-			if err := p.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}); err != nil {
-				return
-			}
-			p.Log().Trace("Announced block", "number", block.Number(), "hash", block.Hash())
-
-		case prop := <-p.queuedPreBlock:
-			if err := p.SendPrepareBlock(prop.block); err != nil {
-				return
-			}
-			p.Log().Trace("Propagated prepare block", "number", prop.block.Number(), "hash", prop.block.Hash())
-
-		case prop := <-p.queuedSignature:
-			signature := &cbfttypes.BlockSignature{prop.SignHash, prop.Hash, prop.Number, prop.Signature}
-			if err := p.SendSignature(signature); err != nil {
-				return
-			}
-			p.Log().Trace("Propagated block signature", "hash", signature.Hash)
-
-		case <-p.term:
-			return
 		}
-
-	}
+	}()
 
 	go func() {
-		select {
-		case txs := <-p.queuedTxs:
-			if err := p.SendTransactions(txs); err != nil {
+		for {
+			select {
+			case txs := <-p.queuedTxs:
+				if err := p.SendTransactions(txs); err != nil {
+					return
+				}
+				p.Log().Trace("Broadcast transactions", "count", len(txs))
+
+			case <-p.term:
 				return
 			}
-			p.Log().Trace("Broadcast transactions", "count", len(txs))
-
-		case <-p.term:
-			return
 		}
 	}()
 }
@@ -530,8 +534,10 @@ func (ps *peerSet) ConsensusPeersWithoutTx(csPeers []*peer, hash common.Hash) []
 
 	list := make([]*peer, 0, len(csPeers))
 	for _, p := range csPeers {
-		if !p.knownTxs.Contains(hash) {
-			list = append(list, p)
+		if _, ok := ps.peers[p.id]; ok {
+			if !p.knownTxs.Contains(hash) {
+				list = append(list, p)
+			}
 		}
 	}
 	return list
