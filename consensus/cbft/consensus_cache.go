@@ -123,7 +123,10 @@ func (c *Cache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 	// Create a StateDB instance from the blockchain based on stateRoot
 	if state, err := c.chain.StateAt(block.Root(), block.Number(), block.Hash()); err == nil && state != nil {
 		return state, nil
+	} else {
+		log.Error("MakeStateDB StateAt" , "blockNumber", block.Number(), "blockHash", block.Hash(), "root", block.Root().String(), "error", err)
 	}
+
 	// Read and copy the stateDB instance in the cache
 	sealHash := c.chain.Engine().SealHash(block.Header())
 	log.Info("Read and copy the stateDB instance in the cache","sealHash", sealHash, "blockHash", block.Hash(), "blockNum", block.NumberU64())
