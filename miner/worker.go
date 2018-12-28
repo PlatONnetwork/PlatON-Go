@@ -667,6 +667,8 @@ func (w *worker) taskLoop() {
 			w.pendingTasks[sealHash] = task
 			w.pendingMu.Unlock()
 
+			log.Warn("当前task中的state为:", "blockNumber", task.block.NumberU64(), "root", task.state.IntermediateRoot(w.config.IsEIP158(task.block.Number())).String())
+
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 				// Save stateDB, receipts to consensusCache
 				w.consensusCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
@@ -680,7 +682,7 @@ func (w *worker) taskLoop() {
 			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
 				log.Warn("Block sealing failed", "err", err)
 			}
-
+			log.Warn("当前task中的state为:操作完seal之后", "blockNumber", task.block.NumberU64(), "root", task.state.IntermediateRoot(w.config.IsEIP158(task.block.Number())))
 		case <-w.exitCh:
 			interrupt()
 			return
@@ -774,7 +776,7 @@ func (w *worker) resultLoop() {
 			w.pendingMu.RLock()
 			task, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
-
+			log.Warn("当前task中的state为:写链之前，拿出来之前", "blockNumber", task.block.NumberU64(), "root", task.state.IntermediateRoot(w.config.IsEIP158(task.block.Number())).String())
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
 			if exist && cbft.IsSignedBySelf(sealhash, block.Extra()[32:]) {
@@ -807,6 +809,7 @@ func (w *worker) resultLoop() {
 				}
 				logs = append(logs, receipt.Logs...)
 			}
+			log.Warn("当前task中的state为:写链之前：拿出来之后", "blockNumber", task.block.NumberU64(), "root", _state.IntermediateRoot(w.config.IsEIP158(task.block.Number())).String())
 			// Commit block and state to database.
 			block.ConfirmSigns = blockConfirmSigns
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
@@ -1267,6 +1270,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		w.storeHash(s)
 	}
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
+	log.Warn("worker: commit: Finalize", "blockNumber", block.Number(), "root", block.Root().String())
 	if err != nil {
 		return err
 	}

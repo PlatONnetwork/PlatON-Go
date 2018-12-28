@@ -907,7 +907,7 @@ func (bc *BlockChain) WriteBlockWithoutState(block *types.Block, td *big.Int) (e
 func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDB) (status WriteStatus, err error) {
 	bc.wg.Add(1)
 	defer bc.wg.Done()
-
+	log.Warn("写链时,一进来:commit之前", "blockNumber", block.NumberU64(), "root", state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number())).String())
 	currentBlock := bc.CurrentBlock()
 	if block.NumberU64() <= currentBlock.NumberU64() {
 		log.Warn("block lower than current block in chain", "blockHash", block.Hash(), "blockNumber", block.NumberU64(), "currentHash", currentBlock.Hash(), "currentNumber", currentBlock.NumberU64())

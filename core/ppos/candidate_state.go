@@ -1327,7 +1327,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 		setNewIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error,
 	) ([]discover.NodeID, types.CandidateQueue, error) {
 
-		log.Info("处理", "old", "delTitle", "new", "setTitle")
+		log.Warn("处理", "old", delTitle, "new", setTitle)
 		PrintObject("oldMap", oldMap)
 		PrintObject("newMap", newMap)
 		can := oldMap[nodeId]
