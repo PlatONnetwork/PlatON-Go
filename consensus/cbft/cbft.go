@@ -15,11 +15,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"math/big"
 	"sync"
@@ -414,7 +412,7 @@ func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt)
 
 // sign signs a block
 func (cbft *Cbft) sign(ext *BlockExt) {
-	sealHash := sealHash(ext.block.Header())
+	sealHash := ext.block.Header().SealHash()
 	if signature, err := cbft.signFn(sealHash.Bytes()); err == nil {
 		log.Debug("Sign block ", "RoutineID", common.CurrentGoRoutineID(), "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "sealHash", sealHash, "signature", hexutil.Encode(signature[:8]))
 
@@ -457,7 +455,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
 		log.Debug("execute block success", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "lenReceipts", len(receipts), "stateIsNil", stateIsNil, "root", ext.block.Root())
-		sealHash := sealHash(ext.block.Header())
+		sealHash := ext.block.Header().SealHash()
 		cbft.blockChainCache.WriteReceipts(sealHash, receipts, ext.block.NumberU64())
 		cbft.blockChainCache.WriteStateDB(sealHash, state, ext.block.NumberU64())
 	} else {
@@ -1307,7 +1305,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	}
 
 	// sign the seal hash
-	sign, err := cbft.signFn(sealHash(header).Bytes())
+	sign, err := cbft.signFn(header.SealHash().Bytes())
 	if err != nil {
 		return err
 	}
@@ -1355,7 +1353,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 			return
 		case sealResultCh <- sealedBlock:
 		default:
-			log.Warn("Sealing result is not ready by miner", "sealHash", sealHash(header))
+			log.Warn("Sealing result is not ready by miner", "sealHash", header.SealHash())
 		}
 	}()
 
@@ -1375,7 +1373,7 @@ func (b *Cbft) CalcDifficulty(chain consensus.ChainReader, time uint64, parent *
 // SealHash returns the hash of a block prior to it being sealed.
 func (b *Cbft) SealHash(header *types.Header) common.Hash {
 	log.Debug("call SealHash()", "RoutineID", common.CurrentGoRoutineID(), "hash", header.Hash(), "number", header.Number.Uint64())
-	return sealHash(header)
+	return header.SealHash()
 }
 
 // Close implements consensus.Engine. It's a noop for cbft as there is are no background threads.
@@ -1598,7 +1596,7 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 		return nodeID, []byte{}, errMissingSignature
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
-	sealHash := sealHash(header)
+	sealHash := header.SealHash()
 
 	pubkey, err := crypto.Ecrecover(sealHash.Bytes(), signature)
 	if err != nil {
@@ -1625,31 +1623,6 @@ func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature 
 		return true, nil
 	}
 	return false, nil
-}
-
-// seal hash, only include from byte[0] to byte[32] of header.Extra
-func sealHash(header *types.Header) (hash common.Hash) {
-	hasher := sha3.NewKeccak256()
-
-	rlp.Encode(hasher, []interface{}{
-		header.ParentHash,
-		header.UncleHash,
-		header.Coinbase,
-		header.Root,
-		header.TxHash,
-		header.ReceiptHash,
-		header.Bloom,
-		header.Number,
-		header.GasLimit,
-		header.GasUsed,
-		header.Time,
-		header.Extra[0:32],
-		header.MixDigest,
-		header.Nonce,
-	})
-	hasher.Sum(hash[:0])
-
-	return hash
 }
 
 func (cbft *Cbft) verifySeal(chain consensus.ChainReader, header *types.Header, parents []*types.Header) error {
