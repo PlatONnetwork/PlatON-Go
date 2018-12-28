@@ -82,22 +82,58 @@ type Header struct {
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
+
+	// caches
+	sealHash atomic.Value `json:"sealHash"         gencodec:"required"`
 }
 
 // field type overrides for gencodec
 type headerMarshaling struct {
-	Number     *hexutil.Big
-	GasLimit   hexutil.Uint64
-	GasUsed    hexutil.Uint64
-	Time       *hexutil.Big
-	Extra      hexutil.Bytes
-	Hash       common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
+	Number   *hexutil.Big
+	GasLimit hexutil.Uint64
+	GasUsed  hexutil.Uint64
+	Time     *hexutil.Big
+	Extra    hexutil.Bytes
+	Hash     common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
 }
 
 // Hash returns the block hash of the header, which is simply the keccak256 hash of its
 // RLP encoding.
 func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
+}
+
+// SealHash returns the keccak256 seal hash of b's header.
+// The seal hash is computed on the first call and cached thereafter.
+func (header *Header) SealHash() (hash common.Hash) {
+	if sealHash := header.sealHash.Load(); sealHash != nil {
+		return sealHash.(common.Hash)
+	}
+	v := header._sealHash()
+	header.sealHash.Store(v)
+	return v
+}
+
+func (header *Header) _sealHash() (hash common.Hash) {
+	hasher := sha3.NewKeccak256()
+	rlp.Encode(hasher, []interface{}{
+		header.ParentHash,
+		header.UncleHash,
+		header.Coinbase,
+		header.Root,
+		header.TxHash,
+		header.ReceiptHash,
+		header.Bloom,
+		header.Number,
+		header.GasLimit,
+		header.GasUsed,
+		header.Time,
+		header.Extra[0:32],
+		header.MixDigest,
+		header.Nonce,
+	})
+	hasher.Sum(hash[:0])
+	return hash
 }
 
 // Size returns the approximate memory used by all internal contents. It is used
@@ -278,10 +314,10 @@ func (b *Block) Transaction(hash common.Hash) *Transaction {
 	return nil
 }
 
-func (b *Block) Number() *big.Int     { return new(big.Int).Set(b.header.Number) }
-func (b *Block) GasLimit() uint64     { return b.header.GasLimit }
-func (b *Block) GasUsed() uint64      { return b.header.GasUsed }
-func (b *Block) Time() *big.Int       { return new(big.Int).Set(b.header.Time) }
+func (b *Block) Number() *big.Int { return new(big.Int).Set(b.header.Number) }
+func (b *Block) GasLimit() uint64 { return b.header.GasLimit }
+func (b *Block) GasUsed() uint64  { return b.header.GasUsed }
+func (b *Block) Time() *big.Int   { return new(big.Int).Set(b.header.Time) }
 
 func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
 func (b *Block) MixDigest() common.Hash   { return b.header.MixDigest }
