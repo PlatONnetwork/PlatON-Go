@@ -1416,7 +1416,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 
 	delNodeIds := make([]discover.NodeID, 0)
 
-	type result struct {
+	/*type result struct {
 		Type 	int // 0: immediate; 1: reserve
 		Err    error
 		ResArr []discover.NodeID
@@ -1424,14 +1424,17 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 	}
 	resChan := make(chan *result, len(nodeIds))
 	var wg sync.WaitGroup
-	wg.Add(len(nodeIds))
+	wg.Add(len(nodeIds))*/
+
+
 	for _, nodeId := range nodeIds {
+
 		log.Info("判断当前nodeId原来属于哪个队列", "nodeId", nodeId.String())
 		switch c.checkExist(nodeId) {
 		case 1:
 
 
-			go func() {
+			/*go func() {
 				res := new(result)
 				res.Type = 0
 				// remove to immediates from reserves
@@ -1451,11 +1454,24 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 				}
 				resChan <- res
 				wg.Done()
-			}()
+			}()*/
+
+			if !c.checkTicket(state.TCount(nodeId)) { // TODO
+				log.Info("原来在 im 中需要移到 re中", "nodeId", nodeId.String())
+				if delIds, canArr, err := handle("Immediate", "Reserve", nodeId, c.immediateCandidates, c.reserveCandidates,
+					c.delImmediate, c.delReserve, c.setReserve, c.getImmediateIndex, c.setImmediateIndex, c.setReserveIndex); nil != err {
+					return nil, err
+				}else {
+					c.reserveCacheArr = append(c.reserveCacheArr, canArr...)
+					if len(delIds) != 0 {
+						delNodeIds = append(delNodeIds, delIds...)
+					}
+				}
+			}
 		case 2:
 
 
-			go func() {
+			/*go func() {
 				res := new(result)
 				res.Type = 1
 				// remove to reserves from immediates
@@ -1475,99 +1491,28 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 				}
 				resChan <- res
 				wg.Done()
-			}()
+			}()*/
 
-			//
-			//if c.checkTicket(40 /*ticketidsCache.TCount()  TODO */) {
-			//	can := c.reserveCandidates[nodeId]
-			//	c.immediateCandidates[nodeId] = can
-			//
-			//
-			//	// cache
-			//	cacheArr := make(types.CandidateQueue, 0)
-			//	for _, v := range c.immediateCandidates {
-			//		cacheArr = append(cacheArr, v)
-			//	}
-			//
-			//	// sort cache array
-			//	candidateSort(cacheArr)
-			//
-			//	// nodeIds cache for lost elected
-			//	nodeIds := make([]discover.NodeID, 0)
-			//
-			//	if len(cacheArr) > int(c.maxCount) {
-			//		// Intercepting the lost candidates to tmpArr
-			//		tmpArr := (cacheArr)[c.maxCount:]
-			//		// qualified elected candidates
-			//		cacheArr = (cacheArr)[:c.maxCount]
-			//
-			//		// handle tmpArr
-			//		for _, tmpCan := range tmpArr {
-			//			// delete the lost candidates from immediate elected candidates of trie
-			//			c.delImmediate(state, tmpCan.CandidateId)
-			//			// append to refunds (defeat) trie
-			//			if err := c.setDefeat(state, tmpCan.CandidateId, tmpCan); nil != err {
-			//				return err
-			//			}
-			//			nodeIds = append(nodeIds, tmpCan.CandidateId)
-			//		}
-			//
-			//		// update index of refund (defeat) on trie
-			//		if err := c.setDefeatIndex(state); nil != err {
-			//			return err
-			//		}
-			//	}
-			//
-			//	/** delete ... */
-			//
-			//	c.delReserve(state, can.CandidateId)
-			//	// update can's ids index
-			//	if ids, err := c.getReserveIndex(state); nil != err {
-			//		log.Error("withdraw failed get"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
-			//		return err
-			//	} else {
-			//		//for i, id := range ids {
-			//		for i := 0; i < len(ids); i ++ {
-			//			id := ids[i]
-			//			if id == can.CandidateId {
-			//				ids = append(ids[:i], ids[i+1:]...)
-			//				i --
-			//			}
-			//		}
-			//		if err := c.setReserveIndex(state, ids); nil != err {
-			//			log.Error("withdraw failed set"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
-			//			return err
-			//		}
-			//	}
-			//
-			//
-			//	/** setting ... */
-			//
-			//	// cache id
-			//	sortIds := make([]discover.NodeID, 0)
-			//
-			//	/**  doing ... */
-			//	c.immediateCacheArr = cacheArr
-			//	// insert elected candidate to tire
-			//	for _, can := range c.immediateCacheArr {
-			//		if err := c.setImmediate(state, can.CandidateId, can); nil != err {
-			//			log.Error("Failed to set"+setTitle+" on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
-			//			return err
-			//		}
-			//		sortIds = append(sortIds, can.CandidateId)
-			//	}
-			//	// update index of elected candidates on trie
-			//	if err := c.setImmediateIndex(state, sortIds); nil != err {
-			//		log.Error("Failed to set"+setTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
-			//		return err
-			//	}
-			//}
+			if c.checkTicket(state.TCount(nodeId)) { // TODO
+				log.Info("原来在 re 中需要移到 im中", "nodeId", nodeId.String())
+
+				if delIds, canArr, err := handle("Reserve", "Immediate", nodeId, c.reserveCandidates, c.immediateCandidates,
+					c.delReserve, c.delImmediate, c.setImmediate, c.getReserveIndex, c.setReserveIndex, c.setImmediateIndex); nil != err {
+					return nil, err
+				}else {
+					c.immediateCacheArr = append(c.immediateCacheArr, canArr...)
+					if len(delIds) != 0 {
+						delNodeIds = append(delNodeIds, delIds...)
+					}
+				}
+			}
+
 		default:
-			wg.Done()
+			//wg.Done()
 			continue
 		}
 	}
-	wg.Wait()
+	/*wg.Wait()
 	close(resChan)
 	for res := range resChan {
 
@@ -1577,9 +1522,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 
 		switch res.Type {
 		case 0:
-			c.reserveCacheArr = res.CanArr
+			c.reserveCacheArr = append(c.reserveCacheArr, res.CanArr...)
 		case 1:
-			c.immediateCacheArr = res.CanArr
+			c.immediateCacheArr = append(c.immediateCacheArr, res.CanArr...)
 		default:
 			continue
 		}
@@ -1587,7 +1532,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ... discover.NodeI
 		if len(res.ResArr) != 0 {
 			delNodeIds = append(delNodeIds, res.ResArr...)
 		}
-	}
+	}*/
 	return delNodeIds, nil
 }
 
