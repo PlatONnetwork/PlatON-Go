@@ -405,14 +405,13 @@ func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
 
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt) error {
-	cbft.log.Debug("execute block", "hash", current.block.Hash(), "number", current.block.NumberU64())
 	if !current.isExecuted {
 		if err := cbft.execute(current, parent); err != nil {
 			current.inTree = false
 			current.isExecuted = false
 			//remove bad block from tree and map
 			cbft.removeBadBlock(current)
-			cbft.log.Error("execute block error", "hash", current.block.Hash(), "number", current.block.NumberU64())
+			//cbft.log.Error("execute block error", "hash", current.block.Hash(), "number", current.block.NumberU64())
 			return errors.New("execute block error")
 		} else {
 			current.inTree = true
@@ -462,8 +461,8 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 // execute executes the block's transactions based on its parent
 // if success then save the receipts and state to consensusCache
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
+	cbft.log.Debug("execute block", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash())
 	state, err := cbft.blockChainCache.MakeStateDB(parent.block)
-
 	if err != nil {
 		cbft.log.Error("execute block error, cannot make state based on parent", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return errors.New("execute block error")
@@ -525,11 +524,6 @@ func (cbft *Cbft) backTrackBlocks(start *BlockExt, end *BlockExt, includeEnd boo
 			result = nil
 		}
 	}
-
-	for _, logical := range result {
-		cbft.log.Debug("found new block", "hash", logical.block.Hash(), "number", logical.block.NumberU64())
-	}
-
 	return result
 }
 
@@ -596,7 +590,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.
 // This function is invoked after that local has synced new blocks from other node.
 func (cbft *Cbft) OnBlockSynced() {
-	cbft.log.Debug("call OnBlockSynced(）")
+	cbft.log.Debug("call OnBlockSynced()")
 	cbft.dataReceiveCh <- &cbfttypes.BlockSynced{}
 }
 
@@ -671,7 +665,6 @@ func (cbft *Cbft) blockSynced() {
 	}
 
 	cbft.log.Debug("=== end of blockSynced() ===\n",
-
 		"highestLogicalHash", cbft.highestLogical.block.Hash(),
 		"highestLogicalNumber", cbft.highestLogical.number,
 		"highestConfirmedHash", cbft.highestConfirmed.block.Hash(),
@@ -1534,7 +1527,7 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 			Block:             ext.block,
 			BlockConfirmSigns: ext.signs,
 		}
-		cbft.log.Debug("send to channel", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
+		cbft.log.Debug("send consensus result to worker", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
 		cbft.cbftResultOutCh <- cbftResult
 	}
 }
@@ -1543,7 +1536,7 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 func (cbft *Cbft) inTurn() bool {
 	curTime := toMilliseconds(time.Now())
 	inturn := cbft.calTurn(curTime, cbft.config.NodeID)
-	cbft.log.Debug("inTurn", "result", inturn)
+	cbft.log.Debug("check if local's turn to commit block", "result", inturn)
 	return inturn
 
 }
@@ -1552,11 +1545,11 @@ func (cbft *Cbft) inTurn() bool {
 func (cbft *Cbft) inTurnVerify(curTime int64, nodeID discover.NodeID) bool {
 	latency := cbft.avgLatency(nodeID)
 	if latency >= maxAvgLatency {
-		cbft.log.Debug("inTurnVerify, return false cause of net latency", "result", false, "latency", latency)
+		cbft.log.Warn("check if peer's turn to commit block", "result", false, "peerID", nodeID, "high latency ", latency)
 		return false
 	}
 	inTurnVerify := cbft.calTurn(curTime-latency, nodeID)
-	cbft.log.Debug("inTurnVerify", "result", inTurnVerify, "latency", latency)
+	cbft.log.Debug("check if peer's turn to commit block", "result", inTurnVerify, "peerID", nodeID, "latency", latency)
 	return inTurnVerify
 }
 
