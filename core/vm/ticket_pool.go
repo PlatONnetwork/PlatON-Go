@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -157,7 +156,7 @@ func (t *TicketContract) GetBatchTicketDetail(ticketIds []common.Hash) ([]byte, 
 // GetCandidateTicketIds returns the list of ticketId for the candidate.
 func (t *TicketContract) GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error) {
 	log.Info("GetCandidateTicketIds==>", " nodeId: ", nodeId.String())
-	fmt.Println("input nodeId is: ", nodeId)
+
 	candidateTicketIds, err := t.Evm.TicketPool.GetCandidateTicketIds(t.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("GetCandidateTicketIds==> ", "GetCandidateTicketIds() occured error: ", err.Error())
