@@ -660,7 +660,7 @@ func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.CandidateQu
 			}
 		}
 	}
-	PrintObject("GetChosens ==>", arr)
+	PrintObject("GetChosens ########################### ", arr)
 	return arr
 }
 
@@ -684,6 +684,7 @@ func (c *CandidatePool) GetChairpersons(state vm.StateDB) types.CandidateQueue {
 			arr = append(arr, v)
 		}
 	}
+	PrintObject("GetChairpersons %%%%%%%%%%%%%%%%%%%%%% ", arr)
 	return arr
 }
 
