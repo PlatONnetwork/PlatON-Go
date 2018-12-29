@@ -1,7 +1,6 @@
 package exec
 
 import (
-	"fmt"
 	"math"
 	"sync"
 )
@@ -57,7 +56,6 @@ func (mb *MemBlock) Get() []byte {
 
 func (mb *MemBlock) Put(mem []byte) {
 	if len(mem) != mb.pages*DefaultPageSize {
-		fmt.Println(len(mem), mb.pages*DefaultPageSize)
 		panic("add wrong mem")
 	}
 
@@ -73,7 +71,7 @@ func NewMemPool(count int, size int) *MemPool {
 	pool := &MemPool{}
 	pool.memBlock = make([]*MemBlock, 0, count)
 	for i := 0; i < count; i++ {
-		pool.memBlock = append(pool.memBlock, NewMemBlock(size, 2+int(math.Pow(2, float64(i)))))
+		pool.memBlock = append(pool.memBlock, NewMemBlock(size, DefaultMemoryPages+int(math.Pow(2, float64(i)))))
 	}
 	pool.largeMem = make(map[int]*sync.Pool)
 	return pool
@@ -86,7 +84,7 @@ func (mp *MemPool) Get(pages int) []byte {
 		return nil
 	}
 	var mem []byte
-	pages = fixSize(pages - 2)
+	pages = fixSize(pages - DefaultMemoryPages)
 
 	pos := int(math.Log2(float64(pages)))
 	if pos >= len(mp.memBlock) {
@@ -95,7 +93,7 @@ func (mp *MemPool) Get(pages int) []byte {
 		if !ok {
 			pool = &sync.Pool{
 				New: func() interface{} {
-					return make([]byte, DefaultPageSize*(pages+2))
+					return make([]byte, DefaultPageSize*(pages+DefaultMemoryPages))
 				},
 			}
 			mp.largeMem[pages] = pool
@@ -122,7 +120,7 @@ func (mp *MemPool) Put(mem []byte) {
 	defer mp.Unlock()
 	pages := len(mem) / DefaultPageSize
 
-	pages = fixSize(pages - 2)
+	pages = fixSize(pages - DefaultMemoryPages)
 	pos := int(math.Log2(float64(pages)))
 	if pos >= len(mp.memBlock) {
 		pool, ok := mp.largeMem[pages]
