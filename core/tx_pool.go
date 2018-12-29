@@ -116,7 +116,8 @@ const (
 type txPoolBlockChain interface {
 	CurrentBlock() *types.Block
 	GetBlock(hash common.Hash, number uint64) *types.Block
-	StateAt(root common.Hash) (*state.StateDB, error)
+	//StateAt(root common.Hash) (*state.StateDB, error)
+	GetState(header *types.Header) (*state.StateDB, error)
 }
 
 // TxPoolConfig are the configuration parameters of the transaction pool.
@@ -280,12 +281,14 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 }
 
 func (pool *TxPool) txExtBufferReadLoop() {
-	//var txCounter int
 	for {
-		txExt := <-pool.txExtBuffer
-
-		err := pool.addTxExt(txExt)
-		txExt.txErr <- err
+		select {
+		case txExt := <-pool.txExtBuffer:
+			err := pool.addTxExt(txExt)
+			txExt.txErr <- err
+		case <-pool.exitCh:
+			return
+		}
 	}
 }
 
@@ -407,7 +410,8 @@ func (pool *TxPool) ForkedReset(origTress, newTress []*types.Block) {
 	reinject = types.TxDifference(discarded, included)
 
 	// Initialize the internal state to the current head
-	statedb, err := pool.chain.StateAt(newTress[len(newTress)-1].Header().Root)
+	//
+	statedb, err := pool.chain.GetState(newTress[len(newTress)-1].Header())
 	if err != nil {
 		log.Error("Failed to reset txpool state", "err", err)
 		return
@@ -514,9 +518,9 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	if newHead == nil {
 		newHead = pool.chain.CurrentBlock().Header() // Special case during testing
 	}
-	statedb, err := pool.chain.StateAt(newHead.Root)
+	statedb, err := pool.chain.GetState(newHead)
 	if err != nil {
-		log.Error("Failed to reset txpool state", "err", err)
+		log.Error("Failed to reset txpool state", "newHeadHash", newHead.Hash(), "newHeadNumber", newHead.Number.Uint64(), "err", err)
 		return
 	}
 	pool.currentState = statedb
