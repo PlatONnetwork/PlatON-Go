@@ -504,7 +504,7 @@ func (d *ppos) GetCandidateAttach (state vm.StateDB, nodeId discover.NodeID) (*t
 	return d.ticketPool.GetCandidateAttach(state, nodeId)
 }
 
-// TODO 每一个块执行交易前都会调用的方法
+// TODO 每一个块执行交易之后，揭榜或替换之前 都会调用的方法
 func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
 	return d.ticketPool.Notify(state, blockNumber)
 }

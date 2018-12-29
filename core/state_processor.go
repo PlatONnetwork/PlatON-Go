@@ -79,15 +79,23 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	}
 
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
+		// Notify call
+		if err := cbftEngine.Notify(statedb, block.Number()); err != nil {
+			log.Error("---Failed to Notify call when processing block:---",  "err", err, "number", block.Number(), "state", statedb)
+		}
 		// Election call(if match condition)
 		if p.bc.shouldElectionFn(block.Number()) {
-			log.Warn("---Election call when processing block:---", "number", block.Number(), "state", statedb)
-			cbftEngine.Election(statedb, block.ParentHash(), block.Number())
+			log.Info("---Election call when processing block:---", "number", block.Number(), "state", statedb)
+			if _, err := cbftEngine.Election(statedb, block.ParentHash(), block.Number()); nil != err {
+				log.Error("---Failed to Election call when processing block:---", "err", err, "number", block.Number(), "state", statedb)
+			}
 		}
 		// SwitchWitness call(if match condition)
 		if p.bc.shouldSwitchFn(block.Number()) {
-			log.Warn("---SwitchWitness call when processing block:---", "number", block.Number(), "state", statedb)
-			cbftEngine.Switch(statedb)
+			log.Info("---SwitchWitness call when processing block:---", "number", block.Number(), "state", statedb)
+			if !cbftEngine.Switch(statedb) {
+				log.Error("---Failed to SwitchWitness call when processing block:---", "number", block.Number(), "state", statedb)
+			}
 		}
 		// ppos Store Hash
 		cbftEngine.StoreHash(statedb)

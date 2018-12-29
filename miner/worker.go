@@ -1169,13 +1169,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	commitUncles(w.remoteUncles)
 
 	// ppos Notify
-	if _, ok := w.engine.(consensus.Bft); ok {
+	/*if _, ok := w.engine.(consensus.Bft); ok {
 		if err := w.notify(w.current.state, header.Number); err != nil {
 			log.Error("ppos notify error", "err", err)
 			return
 		}
 		w.current.state.IntermediateRoot(w.config.IsEIP158(header.Number))
-	}
+	}*/
 
 	if !noempty {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
@@ -1257,14 +1257,15 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 
 	s := w.current.state.Copy()
 	if header != nil {
+		if err := w.notify(w.current.state, header.Number); err != nil {
+			return errors.New("notify failure")
+		}
 		// Election call(if match condition)
-		electionErr := w.election(s, header.ParentHash, header.Number)
-		if electionErr != nil {
+		if electionErr := w.election(s, header.ParentHash, header.Number); electionErr != nil {
 			return errors.New("election failure")
 		}
 		// SwitchWitness call(if match condition)
-		switchWitnessErr := w.switchWitness(s, header.Number)
-		if switchWitnessErr != nil {
+		if switchWitnessErr := w.switchWitness(s, header.Number); switchWitnessErr != nil {
 			return errors.New("switchWitness failure")
 		}
 		// ppos Store Hash
