@@ -20,6 +20,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"math/big"
+	"regexp"
+	. "runtime/debug"
 	"sync"
 	"time"
 )
@@ -98,7 +100,23 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		dataReceiveCh:         make(chan interface{}, 250),
 		blockSyncedCh:         make(chan struct{}),
 		netLatencyMap:         make(map[discover.NodeID]*list.List),
-		log:                   log.New("cbft/RoutineID", log.Lazy{Fn: common.CurrentGoRoutineID()}),
+		log: log.New("cbft/RoutineID", log.Lazy{Fn: func() string {
+			bytes := Stack()
+			for i, ch := range bytes {
+				if ch == '\n' || ch == '\r' {
+					bytes = bytes[0:i]
+					break
+				}
+			}
+			line := string(bytes)
+			var valid = regexp.MustCompile(`goroutine\s(\d+)\s+\[`)
+
+			if params := valid.FindAllStringSubmatch(line, -1); params != nil {
+				return params[0][1]
+			} else {
+				return ""
+			}
+		}}),
 	}
 
 	flowControl = NewFlowControl()
