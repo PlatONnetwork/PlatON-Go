@@ -774,7 +774,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			for {
 				e := p.PingList.Front()
 				if e != nil {
-					log.Debug("Front element of p.PingList", "element", e)
+					log.Trace("Front element of p.PingList", "element", e)
 					if t, ok := p.PingList.Remove(e).(string); ok {
 						if t == pingTime[0] {
 
@@ -783,14 +783,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 								return errResp(ErrDecode, "%v: %v", msg, err)
 							}
 
-							log.Debug("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
+							log.Trace("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
 							latency := (curTime - tInt64) / 2 / 1000000
 							cbftEngine.OnPong(p.Peer.ID(), latency)
 							break
 						}
 					}
 				} else {
-					log.Debug("end of p.PingList")
+					log.Trace("end of p.PingList")
 					break
 				}
 			}
@@ -952,19 +952,19 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 // NodeInfo represents a short summary of the Ethereum sub-protocol metadata
 // known about the host peer.
 type NodeInfo struct {
-	Network    uint64              `json:"network"`    // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
-	Genesis    common.Hash         `json:"genesis"`    // SHA3 hash of the host's genesis block
-	Config     *params.ChainConfig `json:"config"`     // Chain configuration for the fork rules
-	Head       common.Hash         `json:"head"`       // SHA3 hash of the host's best owned block
+	Network uint64              `json:"network"` // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
+	Genesis common.Hash         `json:"genesis"` // SHA3 hash of the host's genesis block
+	Config  *params.ChainConfig `json:"config"`  // Chain configuration for the fork rules
+	Head    common.Hash         `json:"head"`    // SHA3 hash of the host's best owned block
 }
 
 // NodeInfo retrieves some protocol metadata about the running host node.
 func (pm *ProtocolManager) NodeInfo() *NodeInfo {
 	currentBlock := pm.blockchain.CurrentBlock()
 	return &NodeInfo{
-		Network:    pm.networkID,
-		Genesis:    pm.blockchain.Genesis().Hash(),
-		Config:     pm.blockchain.Config(),
-		Head:       currentBlock.Hash(),
+		Network: pm.networkID,
+		Genesis: pm.blockchain.Genesis().Hash(),
+		Config:  pm.blockchain.Config(),
+		Head:    currentBlock.Hash(),
 	}
 }
