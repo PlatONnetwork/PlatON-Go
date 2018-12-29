@@ -113,7 +113,7 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	}
 	var source [][]byte
 	if err := rlp.Decode(bytes.NewReader(input), &source); err != nil {
-		c.logError("Run Err==> ", err.Error())
+		c.logError("Run Err==> decode input err", err.Error())
 		return nil, ErrParamsRlpDecode
 	}
 	//check
