@@ -2,8 +2,14 @@
 package cbft
 
 import (
+	"bytes"
+	"container/list"
+	"crypto/ecdsa"
+	"encoding/hex"
+	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	math2 "github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -17,11 +23,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"bytes"
-	"container/list"
-	"crypto/ecdsa"
-	"encoding/hex"
-	"errors"
 	"math"
 	"math/big"
 	"sync"
@@ -1224,6 +1225,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	log.Debug("call Finalize()", "hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
+	cbft.accumulateRewards(chain.Config(), state, header, uncles)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 	return types.NewBlock(header, txs, nil, receipts), nil
@@ -1729,4 +1731,48 @@ func (cbft *Cbft) StoreHash(state *state.StateDB) {
 
 func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash) {
 	cbft.ppos.Submit2Cache(state, currBlocknumber, blockInterval, currBlockhash)
+}
+
+// AccumulateRewards for lucky tickets
+// Adjust rewards every 3600*24*365 blocks
+func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
+	//Calculate current block rewards
+	var blockReward *big.Int
+	preYearNumber := new(big.Int).Sub(header.Number, YearBlocks)
+	preCycle := new(big.Int).Div(preYearNumber, YearBlocks)
+	if preCycle.Cmp(big.NewInt(0)) >0  {
+		yearReward := new(big.Int).Sub(GetAmount(header.Number), GetAmount(preYearNumber))
+		blockReward = new(big.Int).Div(yearReward, YearBlocks)
+	} else {
+		blockReward = new(big.Int).Set(FirstYearReward)
+	}
+	can, err := cbft.ppos.GetCandidate(state, cbft.config.NodeID)
+	if err!=nil {
+		log.Error("accumulateRewards==> GetCandidate faile ", " nodeid: ", cbft.config.NodeID.String(), " err: ", err.Error())
+		return
+	}
+	ticket, err := cbft.ppos.ticketPool.GetTicket(state, can.TicketId)
+	if err!=nil {
+		log.Error("accumulateRewards==> GetTicket faile ", " ticketid: ", can.TicketId.Hex(), " err: ", err.Error())
+		return
+	}
+	nodeReward := new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(can.Fee)), FeeBase)
+	ticketReward := new(big.Int).Sub(blockReward, nodeReward)
+	state.SubBalance(common.RewardPoolAddr, blockReward)
+	state.AddBalance(header.Coinbase, nodeReward)
+	state.AddBalance(ticket.Owner, ticketReward)
+}
+
+func (cbft *Cbft)IncreaseRewardPool(number *big.Int)   {
+	//...
+}
+
+func GetAmount(number *big.Int) *big.Int  {
+	cycle := new(big.Int).Div(number, YearBlocks)
+	rate := math2.BigPow(Rate.Int64(), cycle.Int64())
+	base := math2.BigPow(Base.Int64(), cycle.Int64())
+	//fmt.Println("number: ", number, " cycle: ", cycle, " rate: ", rate, " base: ", base)
+	yearAmount := new(big.Int).Mul(InitAmount, rate)
+	ret := new(big.Int).Div(yearAmount, base)
+	return ret
 }
