@@ -295,14 +295,14 @@ func TestGetTicketPrice(t *testing.T) {
 }
 
 func TestTicketPoolEncode(t *testing.T) {
-	nodeId := []byte("0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
+	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
 
 	// VoteTicket(count uint64, price *big.Int, nodeId discover.NodeID)
 	var VoteTicket [][]byte
 	VoteTicket = make([][]byte, 0)
 	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(0xf1))
 	VoteTicket = append(VoteTicket, []byte("VoteTicket"))
-	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1001))
+	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1))
 	VoteTicket = append(VoteTicket, big.NewInt(1).Bytes())
 	VoteTicket = append(VoteTicket, nodeId)
 	bufVoteTicket := new(bytes.Buffer)
