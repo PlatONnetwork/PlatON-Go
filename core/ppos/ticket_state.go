@@ -468,6 +468,20 @@ func (t *TicketPool) GetCandidateTicketIds(stateDB vm.StateDB, nodeId discover.N
 	return candidateTicketIds, nil
 }
 
+func (t *TicketPool) GetCandidatesTicketIds(stateDB vm.StateDB, nodeIds []discover.NodeID) (map[discover.NodeID][]common.Hash, error) {
+	result := make(map[discover.NodeID][]common.Hash)
+	if nodeIds != nil {
+		for _, nodeId := range nodeIds {
+			ticketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
+			if nil != err {
+				return result, err
+			}
+			result[nodeId] = ticketIds
+		}
+	}
+	return result, nil
+}
+
 func (t *TicketPool) GetCandidateAttach(stateDB vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
 	candidateAttach := new(types.CandidateAttach)
 	candidateAttach.Epoch = new(big.Int)
