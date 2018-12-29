@@ -97,7 +97,7 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		exitCh:                make(chan struct{}),
 		blockExtMap:           make(map[common.Hash]*BlockExt),
 		signedSet:             make(map[uint64]struct{}),
-		dataReceiveCh:         make(chan interface{}, 250),
+		dataReceiveCh:         make(chan interface{}, 256),
 		blockSyncedCh:         make(chan struct{}),
 		netLatencyMap:         make(map[discover.NodeID]*list.List),
 		log: log.New("cbft/RoutineID", log.Lazy{Fn: func() string {
@@ -590,7 +590,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.
 // This function is invoked after that local has synced new blocks from other node.
 func (cbft *Cbft) OnBlockSynced() {
-	cbft.log.Debug("call OnBlockSynced()")
+	cbft.log.Debug("call OnBlockSynced()", "cbft.dataReceiveCh.len", len(cbft.dataReceiveCh))
 	cbft.dataReceiveCh <- &cbfttypes.BlockSynced{}
 }
 
@@ -702,6 +702,7 @@ func (cbft *Cbft) dataReceiverLoop() {
 				}
 			}
 		case <-cbft.exitCh:
+			cbft.log.Debug("consensus engine exit")
 			return
 		}
 	}
@@ -754,7 +755,6 @@ func (cbft *Cbft) removeBadBlock(badBlock *BlockExt) {
 // signReceiver handles the received block signature
 func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 	cbft.log.Debug("=== call signReceiver() ===\n",
-
 		"hash", sig.Hash,
 		"number", sig.Number.Uint64(),
 		"highestLogicalHash", cbft.highestLogical.block.Hash(),
@@ -816,7 +816,6 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 	}
 
 	cbft.log.Debug("=== end of signReceiver()  ===\n",
-
 		"hash", hashLog,
 		"number", current.number,
 		"highestLogicalHash", cbft.highestLogical.block.Hash(),
@@ -972,7 +971,6 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		cbft.flushReadyBlock()
 	}
 	cbft.log.Debug("=== end of blockReceiver() ===\n",
-
 		"hash", block.Hash(),
 		"number", block.NumberU64(),
 		"parentHash", block.ParentHash(),
