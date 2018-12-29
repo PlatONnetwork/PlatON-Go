@@ -553,7 +553,7 @@ func (pool *TxPool) Stop() {
 	// Unsubscribe all subscriptions registered from txpool
 	pool.scope.Close()
 
-	pool.exitCh <- struct{}{}
+	close(pool.exitCh)
 
 	pool.wg.Wait()
 
