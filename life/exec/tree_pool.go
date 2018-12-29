@@ -1,17 +1,19 @@
 package exec
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math"
 	"sync"
 )
 
 type tree []int
 type TreePool struct {
+	l         sync.Locker
 	trees     map[int][]tree
 	pool      map[int]*sync.Pool
 	cacheSize int
+	emptyTree map[int]tree
 }
 
 func initTree(t tree, size int) {
@@ -35,11 +37,11 @@ func buildTree(size int) tree {
 	return tree
 }
 
-func NewTreePool(poolSize int, cacheSize int) TreePool {
+func NewTreePool(poolSize int, cacheSize int) *TreePool {
 
 	trees := make(map[int][]tree, 0)
 	pool := make(map[int]*sync.Pool, 0)
-
+	emptyTree := make(map[int]tree, 0)
 	for i := 0; i < poolSize; i++ {
 		size := int(math.Pow(2, float64(i))) * DefaultPageSize
 		treeC := buildTree(size)
@@ -47,6 +49,11 @@ func NewTreePool(poolSize int, cacheSize int) TreePool {
 			t := make([]int, (2*size)-1)
 			copy(t, treeC)
 			trees[i] = append(trees[i], t)
+			if j == 0 {
+				e := make([]int, (2*size)-1)
+				copy(e, t)
+				emptyTree[i] = e
+			}
 		}
 		pool[i] = &sync.Pool{
 			New: func() interface{} {
@@ -55,18 +62,30 @@ func NewTreePool(poolSize int, cacheSize int) TreePool {
 		}
 	}
 
-	return TreePool{trees, pool, cacheSize}
+	return &TreePool{
+		l:         &sync.Mutex{},
+		trees:     trees,
+		pool:      pool,
+		cacheSize: cacheSize,
+		emptyTree: emptyTree,
+	}
 }
 
 func (tp *TreePool) GetTree(pages int) tree {
+	tp.l.Lock()
+	defer tp.l.Unlock()
 	pages = fixSize(pages)
 	key := int(math.Log2(float64(pages)))
 	treeArr, ok := tp.trees[key]
 	if !ok {
-		tp.pool[key] = &sync.Pool{
-			New: func() interface{} {
-				return buildTree(pages * DefaultPageSize)
-			},
+		_, ok := tp.pool[key]
+		if !ok {
+			tp.pool[key] = &sync.Pool{
+				New: func() interface{} {
+					return buildTree(pages * DefaultPageSize)
+				},
+			}
+			tp.emptyTree[key] = buildTree(pages * DefaultPageSize)
 		}
 		return tp.pool[key].Get().(tree)
 	}
@@ -80,13 +99,15 @@ func (tp *TreePool) GetTree(pages int) tree {
 }
 
 func (tp *TreePool) PutTree(tree []int) {
+	tp.l.Lock()
+	defer tp.l.Unlock()
 	size := (len(tree) + 1) / 2
 	pages := size / DefaultPageSize
 	key := int(math.Log2(float64(pages)))
 
 	if tree[0] != size {
 		log.Debug("reset memory tree...")
-		reset(tree, tp.trees[key], size)
+		reset(tree, tp.trees[key], tp.emptyTree[key])
 	}
 	treeArr, ok := tp.trees[key]
 	if !ok || len(treeArr) >= tp.cacheSize {
@@ -96,7 +117,7 @@ func (tp *TreePool) PutTree(tree []int) {
 	tp.trees[key] = append(treeArr, tree)
 }
 
-func reset(t tree, trees []tree, size int) {
+func reset(t tree, trees []tree, e tree) {
 	if trees != nil {
 		for _, treeC := range trees {
 			if treeC != nil {
@@ -105,5 +126,5 @@ func reset(t tree, trees []tree, size int) {
 			}
 		}
 	}
-	initTree(t, size)
+	copy(t, e)
 }
