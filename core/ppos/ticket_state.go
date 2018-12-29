@@ -20,6 +20,7 @@ import (
 
 var (
 	TicketPoolNilErr          = errors.New("Ticket Insufficient quantity")
+	TicketPoolOverflowErr     = errors.New("Number of ticket pool overflow")
 	EncodeTicketErr           = errors.New("Encode Ticket error")
 	EncodePoolNumberErr       = errors.New("Encode SurplusQuantity error")
 	DecodeTicketErr           = errors.New("Decode Ticket error")
@@ -90,7 +91,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 		return voteTicketIdList, TicketPoolNilErr
 	}
 	if t.SurplusQuantity < voteNumber {
-		voteNumber -= t.SurplusQuantity
+		voteNumber = t.SurplusQuantity
 	}
 	log.Info("开始循环投票", "候选人：", nodeId.String())
 	var i uint64 = 0
@@ -307,6 +308,8 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 	if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
 		return err
 	}
+	// 因为流程是 执行交易 -> 释放过期票 -> 增加票龄 -> 选取幸运票 所以释放幸运票时需要票龄多减一
+	candidateAttach.SubEpoch(common.Big1)
 	log.Info("更新候选人总票龄", "候选人：", nodeId.String(), "票龄：", candidateAttach.Epoch)
 	if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
 		return err
@@ -426,11 +429,17 @@ func removeTicketId(ticketId common.Hash, ticketIds []common.Hash) ([]common.Has
 }
 
 func (t *TicketPool) addPoolNumber(stateDB vm.StateDB) error {
+	if t.SurplusQuantity == t.MaxCount {
+		return TicketPoolOverflowErr
+	}
 	t.SurplusQuantity++
 	return t.setPoolNumber(stateDB, t.SurplusQuantity)
 }
 
 func (t *TicketPool) subPoolNumber(stateDB vm.StateDB) error {
+	if t.SurplusQuantity == 0 {
+		return TicketPoolNilErr
+	}
 	t.SurplusQuantity--
 	return t.setPoolNumber(stateDB, t.SurplusQuantity)
 }
