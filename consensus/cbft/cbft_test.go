@@ -175,7 +175,6 @@ func buildFork(cbft *Cbft) {
 			ParentHash: parentHash,
 			Number:     big.NewInt(int64(i)),
 			TxHash:     hash(1, i),
-			Difficulty: big.NewInt(int64(i) * 2),
 		}
 		block := types.NewBlockWithHeader(header)
 
@@ -205,7 +204,7 @@ func buildMain(cbft *Cbft) {
 
 	//sealhash := cbft.SealHash(header)
 
-	rootHeader := &types.Header{Number: big.NewInt(0), Difficulty: big.NewInt(0), TxHash: hash(1, 0)}
+	rootHeader := &types.Header{Number: big.NewInt(0), TxHash: hash(1, 0)}
 	rootBlock = types.NewBlockWithHeader(rootHeader)
 	rootNumber = 0
 
@@ -229,7 +228,6 @@ func buildMain(cbft *Cbft) {
 			ParentHash: parentHash,
 			Number:     big.NewInt(int64(i)),
 			TxHash:     hash(1, i),
-			Difficulty: big.NewInt(int64(i) * 2),
 		}
 		block := types.NewBlockWithHeader(header)
 
