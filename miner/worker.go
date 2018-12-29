@@ -1257,7 +1257,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 
 	s := w.current.state.Copy()
 	if header != nil {
-		if err := w.notify(w.current.state, header.Number); err != nil {
+		if err := w.notify(s, header.Number); err != nil {
 			return errors.New("notify failure")
 		}
 		// Election call(if match condition)
