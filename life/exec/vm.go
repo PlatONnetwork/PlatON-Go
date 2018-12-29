@@ -1,9 +1,9 @@
 package exec
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"encoding/binary"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math"
 	"math/bits"
 
@@ -59,15 +59,16 @@ type VirtualMachine struct {
 	Table           []uint32
 	Globals         []int64
 	//Memory          *VMMemory
-	Memory        *Memory
-	NumValueSlots int
-	Yielded       int64
-	InsideExecute bool
-	Delegate      func()
-	Exited        bool
-	ExitError     interface{}
-	ReturnValue   int64
-	Gas           uint64
+	Memory         *Memory
+	NumValueSlots  int
+	Yielded        int64
+	InsideExecute  bool
+	Delegate       func()
+	Exited         bool
+	ExitError      interface{}
+	ReturnValue    int64
+	Gas            uint64
+	ExternalParams []int64
 }
 
 // VMConfig denotes a set of options passed to a single VirtualMachine insta.ce
@@ -90,7 +91,7 @@ type VMContext struct {
 	GasLimit uint64
 
 	StateDB StateDB
-	Log log.Logger
+	Log     log.Logger
 }
 
 type VMMemory struct {
@@ -271,6 +272,7 @@ func NewVirtualMachineWithModule(m *compiler.Module, functionCode []compiler.Int
 		Globals:         globals,
 		Memory:          memory,
 		Exited:          true,
+		ExternalParams:  make([]int64, 0),
 	}, nil
 }
 
