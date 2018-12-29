@@ -281,6 +281,11 @@ var (
 		Usage: "Maximum number of non-executable transaction slots for all accounts",
 		Value: eth.DefaultConfig.TxPool.GlobalQueue,
 	}
+	TxPoolGlobalTxCountFlag = cli.Uint64Flag{
+		Name: "txpool.globaltxcount",
+		Usage: "Maximum number of transactions for package",
+		Value: eth.DefaultConfig.TxPool.GlobalTxCount,
+	}
 	TxPoolLifetimeFlag = cli.DurationFlag{
 		Name:  "txpool.lifetime",
 		Usage: "Maximum amount of time non-executable transaction are queued",
@@ -1069,6 +1074,9 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 	if ctx.GlobalIsSet(TxPoolGlobalQueueFlag.Name) {
 		cfg.GlobalQueue = ctx.GlobalUint64(TxPoolGlobalQueueFlag.Name)
+	}
+	if ctx.GlobalIsSet(TxPoolGlobalTxCountFlag.Name) {
+		cfg.GlobalTxCount = ctx.GlobalUint64(TxPoolGlobalTxCountFlag.Name)
 	}
 	if ctx.GlobalIsSet(TxPoolLifetimeFlag.Name) {
 		cfg.Lifetime = ctx.GlobalDuration(TxPoolLifetimeFlag.Name)

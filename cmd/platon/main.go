@@ -82,6 +82,7 @@ var (
 		utils.TxPoolGlobalSlotsFlag,
 		utils.TxPoolAccountQueueFlag,
 		utils.TxPoolGlobalQueueFlag,
+		utils.TxPoolGlobalTxCountFlag,
 		utils.TxPoolLifetimeFlag,
 		utils.SyncModeFlag,
 		utils.GCModeFlag,

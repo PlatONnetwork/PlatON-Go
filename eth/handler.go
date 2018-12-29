@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"math/rand"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -636,6 +637,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Mark the hashes as present at the remote node
 		for _, block := range announces {
 			p.MarkBlock(block.Hash)
+			log.Debug("Received a message[NewBlockHashesMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "receiveAt", msg.ReceivedAt.Unix(), "peerId", p.id, "hash", block.Hash, "number", block.Number)
 		}
 		// Schedule all the unknown hashes for retrieval
 		unknown := make(newBlockHashesData, 0, len(announces))
@@ -656,6 +658,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
+
+		log.Debug("Received a message[NewBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "receiveAt", request.Block.ReceivedAt.Unix(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 
 		// Mark the peer as owning the block and schedule it for import
 		p.MarkBlock(request.Block.Hash())
@@ -875,14 +879,30 @@ func (pm *ProtocolManager) MulticastConsensus(a interface{}, consensusNodes []di
 func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 	var txset = make(map[*peer]types.Transactions)
 
+	currentBlock := pm.blockchain.CurrentBlock()
+	blockNumber := currentBlock.Number()
+	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+	consensusNodes := pm.engine.(consensus.Bft).ConsensusNodes(parentNumber, currentBlock.ParentHash(), blockNumber)
+	log.Info("BroadcastTxs consensusNodes", "blockNumber", blockNumber, "consensusNodes", consensusNodes, "length consensusNodes", len(consensusNodes))
+	consensusPeers := pm.peers.PeersWithConsensus(consensusNodes)
+	f := len(consensusPeers) / 3
+	if f <= 0 {
+		f = 1
+	}
+
 	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
-		peers := pm.peers.PeersWithoutTx(tx.Hash())
-		for _, peer := range peers {
-			txset[peer] = append(txset[peer], tx)
+		peers := pm.peers.ConsensusPeersWithoutTx(consensusPeers, tx.Hash())
+		if len(peers) > 0 {
+			r := rand.New(rand.NewSource(time.Now().UnixNano()))
+			for i := 0; i < f && i < len(peers); i++ {
+				idx := r.Intn(len(peers))
+				txset[peers[idx]] = append(txset[peers[idx]], tx)
+				log.Trace("Broadcast transaction", "hash", tx.Hash(), "peer", peers[idx].id)
+			}
 		}
-		log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 	}
+
 	// FIXME include this again: peers = peers[:int(math.Sqrt(float64(len(peers))))]
 	for peer, txs := range txset {
 		peer.AsyncSendTransactions(txs)

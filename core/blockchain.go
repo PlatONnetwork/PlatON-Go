@@ -584,6 +584,11 @@ func (bc *BlockChain) HasBlockAndState(hash common.Hash, number uint64) bool {
 // GetBlock retrieves a block from the database by hash and number,
 // caching it if found.
 func (bc *BlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
+	return bc.getBlock(hash, number)
+}
+
+// modified by PlatON
+func (bc *BlockChain) getBlock(hash common.Hash, number uint64) *types.Block {
 	// Short circuit if the block's already in the cache, retrieve otherwise
 	if block, ok := bc.blockCache.Get(hash); ok {
 		return block.(*types.Block)
