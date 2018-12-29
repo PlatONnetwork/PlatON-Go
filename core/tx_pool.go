@@ -37,7 +37,7 @@ import (
 
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
-	chainHeadChanSize = 10
+	chainHeadChanSize = 256
 )
 
 var (
@@ -386,7 +386,7 @@ func (pool *TxPool) lockedReset(oldHead, newHead *types.Header) {
 
 // added by PlatON
 func (pool *TxPool) Reset(newBlock *types.Block) {
-	log.Debug("call Reset()", "RoutineID", common.CurrentGoRoutineID(), "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash())
+	log.Debug("call Reset()", "RoutineID", common.CurrentGoRoutineID(), "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash(), "pool.chainHeadCh.len", len(pool.chainHeadCh))
 	pool.chainHeadCh <- newBlock
 }
 
