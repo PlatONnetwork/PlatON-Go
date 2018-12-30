@@ -241,6 +241,88 @@ func TestGetCandidateTicketIds(t *testing.T) {
 	fmt.Println("The candidate's ticketId are: ", vm.ResultByte2Json(resByte))
 }
 
+func TestGetBatchCandidateTicketIds(t *testing.T) {
+	ticketContract := vm.TicketContract{
+		newContract(),
+		newEvm(),
+	}
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(1)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId1: ", nodeId1.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId1, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit1 success")
+
+	nodeId2 := discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner = common.HexToAddress("0x12")
+	fee = uint64(1)
+	host = "10.0.0.2"
+	port = "8548"
+	extra = "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId2: ", nodeId2.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err = candidateContract.CandidateDeposit(nodeId2, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit2 success")
+
+	// CandidateList() ([]byte, error)
+	resByte, err := candidateContract.CandidateList()
+	if nil != err {
+		fmt.Println("CandidateList fail", "err", err)
+	}
+	if nil == resByte {
+		fmt.Println("The candidate list is null")
+		return
+	}
+	fmt.Println("The candidate list is: ", vm.ResultByte2Json(resByte))
+
+	// Vote to Candidate1
+	count := uint64(1000)
+	price := big.NewInt(1)
+	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId1: ", nodeId1.String())
+	resByte, err = ticketContract.VoteTicket(count, price, nodeId1)
+	if nil != err {
+		fmt.Println("VoteTicket fail", "err", err)
+	}
+	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
+
+	// Vote to Candidate2
+	count = uint64(1000)
+	price = big.NewInt(1)
+	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId2: ", nodeId2.String())
+	resByte, err = ticketContract.VoteTicket(count, price, nodeId2)
+	if nil != err {
+		fmt.Println("VoteTicket fail", "err", err)
+	}
+	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
+
+	// GetBatchCandidateTicketIds(nodeIds []discover.NodeID) ([]byte, error)
+	fmt.Println("GetBatchCandidateTicketIds input==>", "nodeIds: ", nodeId1.String(), nodeId2.String())
+	var nodeIds []discover.NodeID
+	nodeIds = append(append(nodeIds, nodeId1), nodeId2)
+	// TODO 查询候选人的选票列表
+	resByte, err = ticketContract.GetBatchCandidateTicketIds(nodeIds)
+	if nil != err {
+		fmt.Println("GetBatchCandidateTicketIds fail", "err", err)
+	}
+	if nil == resByte {
+		fmt.Println("The candidates's ticket list is null")
+		return
+	}
+	fmt.Println("The candidate's ticketId are: ", vm.ResultByte2Json(resByte))
+}
+
 func TestGetCandidateEpoch(t *testing.T) {
 	ticketContract := vm.TicketContract{
 		newContract(),
