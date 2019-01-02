@@ -69,7 +69,6 @@ type Cbft struct {
 	highestConfirmed      *BlockExt                 //highest confirmed block in logical path
 	rootIrreversible      *BlockExt                 //the latest block has stored in chain
 	signedSet             map[uint64]struct{}       //all block numbers signed by local node
-	lock                  sync.RWMutex
 	blockChainCache       *core.BlockChainCache
 	blockSyncedCh         chan struct{}
 
@@ -552,10 +551,6 @@ func (cbft *Cbft) setHighestLogical(highestLogical *BlockExt) {
 // SetBackend sets blockChain and txPool into cbft
 func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	cbft.log.Debug("call SetBackend()")
-
-	cbft.lock.Lock()
-	defer cbft.lock.Unlock()
-
 	cbft.blockChain = blockChain
 	cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
 
@@ -603,11 +598,7 @@ func (cbft *Cbft) blockSynced() {
 		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
 		"rootIrreversibleNumber", cbft.rootIrreversible.number)
 
-	cbft.lock.Lock()
-	defer cbft.lock.Unlock()
-
 	currentBlock := cbft.blockChain.CurrentBlock()
-
 	if currentBlock.NumberU64() > cbft.rootIrreversible.number {
 		cbft.log.Debug("chain has a higher irreversible block", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 
@@ -763,8 +754,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 		"highestConfirmedNumber", cbft.highestConfirmed.number,
 		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
 		"rootIrreversibleNumber", cbft.rootIrreversible.number)
-	cbft.lock.Lock()
-	defer cbft.lock.Unlock()
+
 	if sig.Number.Uint64() <= cbft.rootIrreversible.number {
 		cbft.log.Warn("block sign is too late")
 		return nil
@@ -841,10 +831,6 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		"highestConfirmedNumber", cbft.highestConfirmed.number,
 		"rootIrreversibleHash", cbft.rootIrreversible.block.Hash(),
 		"rootIrreversibleNumber", cbft.rootIrreversible.number)
-
-	cbft.lock.Lock()
-	defer cbft.lock.Unlock()
-
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
 	}
@@ -1259,9 +1245,6 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
 	cbft.log.Debug("call Prepare()", "hash", header.Hash(), "number", header.Number.Uint64())
 
-	cbft.lock.RLock()
-	defer cbft.lock.RUnlock()
-
 	if cbft.highestLogical.block == nil || header.ParentHash != cbft.highestLogical.block.Hash() || header.Number.Uint64()-1 != cbft.highestLogical.block.NumberU64() {
 		return consensus.ErrUnknownAncestor
 	}
@@ -1290,8 +1273,8 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 //to sign the block, and store the sign to header.Extra[32:], send the sign to chanel to broadcast to other consensus nodes
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
 	cbft.log.Debug("call Seal()", "number", block.NumberU64(), "parentHash", block.ParentHash())
-	cbft.lock.Lock()
-	defer cbft.lock.Unlock()
+	/*cbft.lock.Lock()
+	defer cbft.lock.Unlock()*/
 
 	header := block.Header()
 	number := block.NumberU64()
@@ -1474,9 +1457,6 @@ func (cbft *Cbft) avgLatency(nodeID discover.NodeID) int64 {
 // HighestLogicalBlock returns the cbft.highestLogical.block.
 func (cbft *Cbft) HighestLogicalBlock() *types.Block {
 	cbft.log.Debug("call HighestLogicalBlock() ...")
-	cbft.lock.RLock()
-	defer cbft.lock.RUnlock()
-
 	if cbft.highestLogical == nil {
 		return nil
 	} else {
@@ -1487,8 +1467,6 @@ func (cbft *Cbft) HighestLogicalBlock() *types.Block {
 // HighestConfirmedBlock returns the cbft.highestConfirmed.block.
 func (cbft *Cbft) HighestConfirmedBlock() *types.Block {
 	cbft.log.Debug("call HighestConfirmedBlock() ...")
-	cbft.lock.RLock()
-	defer cbft.lock.RUnlock()
 	if cbft.highestConfirmed == nil {
 		return nil
 	} else {
@@ -1498,9 +1476,6 @@ func (cbft *Cbft) HighestConfirmedBlock() *types.Block {
 
 // GetBlock returns the block in blockExtMap.
 func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
-	cbft.lock.RLock()
-	defer cbft.lock.RUnlock()
-
 	ext := cbft.blockExtMap[hash]
 	if ext != nil && ext.block != nil && ext.number == number {
 		return ext.block
