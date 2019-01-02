@@ -308,8 +308,6 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 	if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
 		return err
 	}
-	// 因为流程是 执行交易 -> 释放过期票 -> 增加票龄 -> 选取幸运票 所以释放幸运票时需要票龄多减一
-	candidateAttach.SubEpoch(common.Big1)
 	log.Info("更新候选人总票龄", "候选人：", nodeId.String(), "票龄：", candidateAttach.Epoch)
 	if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
 		return err
