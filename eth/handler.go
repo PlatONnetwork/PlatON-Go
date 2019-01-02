@@ -774,7 +774,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			for {
 				e := p.PingList.Front()
 				if e != nil {
-					log.Debug("Front element of p.PingList", "element", e)
+					log.Trace("Front element of p.PingList", "element", e)
 					if t, ok := p.PingList.Remove(e).(string); ok {
 						if t == pingTime[0] {
 
@@ -783,14 +783,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 								return errResp(ErrDecode, "%v: %v", msg, err)
 							}
 
-							log.Debug("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
+							log.Trace("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
 							latency := (curTime - tInt64) / 2 / 1000000
 							cbftEngine.OnPong(p.Peer.ID(), latency)
 							break
 						}
 					}
 				} else {
-					log.Debug("end of p.PingList")
+					log.Trace("end of p.PingList")
 					break
 				}
 			}
