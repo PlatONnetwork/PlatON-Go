@@ -892,6 +892,7 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 	txExt := &txExt{tx, !pool.config.NoLocals, errCh}
 	pool.txExtBuffer <- txExt
 	err := <-errCh
+	log.Debug("Call AddLocal processing tx:", "txHash", tx.Hash().Hex())
 	if e, ok := err.(error); ok {
 		return e
 	} else {
@@ -907,6 +908,7 @@ func (pool *TxPool) AddRemote(tx *types.Transaction) error {
 	txExt := &txExt{tx, false, errCh}
 	pool.txExtBuffer <- txExt
 	err := <-errCh
+	log.Debug("Call AddRemote processing tx:", "txHash", tx.Hash().Hex())
 	if e, ok := err.(error); ok {
 		return e
 	} else {
@@ -1022,6 +1024,7 @@ func (pool *TxPool) addTxLocked(tx *types.Transaction, local bool) error {
 	if err != nil {
 		return err
 	}
+	log.Debug("Call addTxLocked add tx:", "txHash", tx.Hash().Hex())
 	// If we added a new transaction, run promotion checks and return
 	if !replace {
 		from, _ := types.Sender(pool.signer, tx) // already validated
