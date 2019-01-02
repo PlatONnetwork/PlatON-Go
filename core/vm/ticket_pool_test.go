@@ -397,7 +397,7 @@ func TestTicketPoolEncode(t *testing.T) {
 	// VoteTicket(count uint64, price *big.Int, nodeId discover.NodeID)
 	var VoteTicket [][]byte
 	VoteTicket = make([][]byte, 0)
-	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(0xf1))
+	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1000))
 	VoteTicket = append(VoteTicket, []byte("VoteTicket"))
 	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(100))
 	VoteTicket = append(VoteTicket, big.NewInt(1).Bytes())
@@ -427,7 +427,7 @@ func TestTicketPoolEncode(t *testing.T) {
 	}
 
 	// GetTicketDetail(ticketId common.Hash)
-	ticketId := common.Hex2Bytes("1476b2f3e4e45d04049db8774c27a76e960c24ed812e940f8e42e7f33d45a9fb")
+	ticketId := common.Hex2Bytes("3780eb19677a4c69add0fa8151abdac77d550f37585b3e1b06e73561f7197949")
 	var GetTicketDetail [][]byte
 	GetTicketDetail = make([][]byte, 0)
 	GetTicketDetail = append(GetTicketDetail, byteutil.Uint64ToBytes(0xf1))
@@ -440,6 +440,25 @@ func TestTicketPoolEncode(t *testing.T) {
 		t.Errorf("GetTicketDetail encode rlp data fail")
 	} else {
 		fmt.Println("GetTicketDetail data rlp: ", hexutil.Encode(bufGetTicketDetail.Bytes()))
+	}
+
+	// GetBatchCandidateTicketIds(nodeId []discover.NodeID)
+	nodeId1 := "0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeId2 := "0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeId3 := "0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeIds := nodeId1 + ":" + nodeId2 + ":" + nodeId3
+	var GetBatchCandidateTicketIds [][]byte
+	GetBatchCandidateTicketIds = make([][]byte, 0)
+	GetBatchCandidateTicketIds = append(GetBatchCandidateTicketIds, byteutil.Uint64ToBytes(0xf1))
+	GetBatchCandidateTicketIds = append(GetBatchCandidateTicketIds, []byte("GetBatchCandidateTicketIds"))
+	GetBatchCandidateTicketIds = append(GetBatchCandidateTicketIds, []byte(nodeIds))
+	bufGetBatchCandidateTicketIds := new(bytes.Buffer)
+	err = rlp.Encode(bufGetBatchCandidateTicketIds, GetBatchCandidateTicketIds)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetBatchCandidateTicketIds encode rlp data fail")
+	} else {
+		fmt.Println("GetBatchCandidateTicketIds data rlp: ", hexutil.Encode(bufGetBatchCandidateTicketIds.Bytes()))
 	}
 }
 

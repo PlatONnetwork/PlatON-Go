@@ -177,7 +177,6 @@ func (t *TicketContract) GetBatchCandidateTicketIds(nodeIds []discover.NodeID) (
 // GetCandidateTicketIds returns the list of ticketId for the candidate.
 func (t *TicketContract) GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error) {
 	log.Info("GetCandidateTicketIds==>", " nodeId: ", nodeId.String())
-
 	candidateTicketIds, err := t.Evm.TicketPool.GetCandidateTicketIds(t.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("GetCandidateTicketIds==> ", "GetCandidateTicketIds() occured error: ", err.Error())
