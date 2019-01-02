@@ -455,7 +455,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 }
 
 func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) ([]discover.NodeID, error) {
-	log.Info("WithdrawCandidate...")
+	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String())
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
@@ -631,7 +631,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 // 1:  Getting all immediate elected candidates array
 // 2:  Getting all reserve elected candidates array
 func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.CandidateQueue {
-	log.Info("获取入围列表...")
+	log.Info("获取实时入围列表...")
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	arr := make(types.CandidateQueue, 0)
@@ -909,14 +909,13 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 
 // set elected candidate extra value
 func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.NodeID, extra string) error {
-	log.Info("设置扩展信息: nodeId = " + nodeId.String())
+	log.Info("设置推展信息:", "nodeId", nodeId.String(), "extra", extra)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on SetCandidateExtra", "err", err)
 		return err
 	}
-
 	if can, ok := c.immediateCandidates[nodeId]; ok {
 		// update current candidate info and update to tire
 		can.Extra = extra
