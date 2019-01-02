@@ -142,7 +142,7 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 	}
 	if txFunc, ok := TxType[binary.BigEndian.Uint64(source[0])]; ok {
 		if reflect.TypeOf(txFunc) != reflect.TypeOf(funcValue) {
-			log.Error("execute==> ", "ErrTxType: ", ErrTxType.Error())
+			log.Error("Run Err==> ", "ErrTxType: ", ErrTxType.Error())
 			return nil, ErrTxType
 		}
 	}
