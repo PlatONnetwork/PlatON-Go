@@ -59,8 +59,8 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 		1003: command["CandidateWithdraw"],
 		1004: command["SetCandidateExtra"],
 	}
-	if _, ok := TxType[binary.BigEndian.Uint64(source[0])]; ok {
-		if reflect.TypeOf(TxType[binary.BigEndian.Uint64(source[0])]) != reflect.TypeOf(funcValue) {
+	if txFunc, ok := TxType[binary.BigEndian.Uint64(source[0])]; ok {
+		if reflect.TypeOf(txFunc) != reflect.TypeOf(funcValue) {
 			log.Error("execute==> ", "ErrTxType: ", ErrTxType.Error())
 			return nil, ErrTxType
 		}
