@@ -353,7 +353,7 @@ func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (
 
 // candidate withdraw from immediates elected candidates
 func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
-	log.Info("WithdrawCandidate...")
+	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String())
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
