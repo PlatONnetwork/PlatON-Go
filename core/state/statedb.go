@@ -18,6 +18,9 @@
 package state
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -27,14 +30,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"bytes"
-	"errors"
-	"fmt"
 	"math/big"
 	"sort"
 	"sync"
 )
-
 
 type revision struct {
 	id           int
@@ -90,9 +89,8 @@ type StateDB struct {
 
 	//ppos add -> Current ticket pool cache object <nodeid.string(), ticketId>
 	tickeCache ticketcache.TicketCache
-	tclock       sync.RWMutex
+	tclock     sync.RWMutex
 }
-
 
 // Create a new state from a given trie.
 //func New(root common.Hash, db Database) (*StateDB, error) {
@@ -491,11 +489,11 @@ func (self *StateDB) CreateAccount(addr common.Address) {
 	}
 }
 
-func (self *StateDB) TxHash() common.Hash  {
+func (self *StateDB) TxHash() common.Hash {
 	return self.thash
 }
 
-func (self *StateDB) TxIdx() uint32  {
+func (self *StateDB) TxIdx() uint32 {
 	return uint32(self.txIndex)
 }
 

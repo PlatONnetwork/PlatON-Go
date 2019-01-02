@@ -469,12 +469,12 @@ func TestRlpData(t *testing.T) {
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
 	var CandidateDeposit [][]byte
 	CandidateDeposit = make([][]byte, 0)
-	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(0xf1))
+	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(1001))
 	CandidateDeposit = append(CandidateDeposit, []byte("CandidateDeposit"))
 	CandidateDeposit = append(CandidateDeposit, nodeId)
 	CandidateDeposit = append(CandidateDeposit, owner)
-	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(500)) //10000
-	CandidateDeposit = append(CandidateDeposit, []byte("0.0.0.2"))
+	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(6000))
+	CandidateDeposit = append(CandidateDeposit, []byte("0.0.0.3"))
 	CandidateDeposit = append(CandidateDeposit, []byte("30303"))
 	CandidateDeposit = append(CandidateDeposit, []byte("extra data"))
 	bufDeposit := new(bytes.Buffer)

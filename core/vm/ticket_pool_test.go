@@ -394,13 +394,12 @@ func TestGetTicketPrice(t *testing.T) {
 
 func TestTicketPoolEncode(t *testing.T) {
 	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
-
 	// VoteTicket(count uint64, price *big.Int, nodeId discover.NodeID)
 	var VoteTicket [][]byte
 	VoteTicket = make([][]byte, 0)
 	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(0xf1))
 	VoteTicket = append(VoteTicket, []byte("VoteTicket"))
-	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1))
+	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(100))
 	VoteTicket = append(VoteTicket, big.NewInt(1).Bytes())
 	VoteTicket = append(VoteTicket, nodeId)
 	bufVoteTicket := new(bytes.Buffer)
@@ -428,11 +427,11 @@ func TestTicketPoolEncode(t *testing.T) {
 	}
 
 	// GetTicketDetail(ticketId common.Hash)
-	ticketId := common.Hex2Bytes("fc23d5d3cfed75a7d8cb4ad74da1d6a41bbe4b7f96405e094cedf410f2dc9f8a")
+	ticketId := common.Hex2Bytes("1476b2f3e4e45d04049db8774c27a76e960c24ed812e940f8e42e7f33d45a9fb")
 	var GetTicketDetail [][]byte
 	GetTicketDetail = make([][]byte, 0)
 	GetTicketDetail = append(GetTicketDetail, byteutil.Uint64ToBytes(0xf1))
-	GetTicketDetail = append(GetTicketDetail, []byte("GetBatchTicketDetail"))
+	GetTicketDetail = append(GetTicketDetail, []byte("GetTicketDetail"))
 	GetTicketDetail = append(GetTicketDetail, ticketId)
 	bufGetTicketDetail := new(bytes.Buffer)
 	err = rlp.Encode(bufGetTicketDetail, GetTicketDetail)
