@@ -644,6 +644,17 @@ var (
 		Name:  "mpc",
 		Usage: "Enable mpc compute",
 	}
+	VCActorFlag = cli.StringFlag{
+		Name: "vc.actor",
+		Usage: "The address of vc to exec set result",
+		Value: "",
+	}
+
+	VCPasswordFlag = cli.StringFlag{
+		Name: "vc.password",
+		Usage: "the pwd of unlock actor",
+		Value: "",
+	}
 
 )
 
@@ -1100,6 +1111,18 @@ func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
 	}
 }
 
+func setVcPool(ctx *cli.Context, cfg *core.VCPoolConfig) {
+	if ctx.GlobalIsSet(VCActorFlag.Name) {
+		cfg.VcActor = common.HexToAddress(ctx.GlobalString(VCActorFlag.Name))
+		fmt.Println("cfg.VcActor", cfg.VcActor)
+	}
+
+	if ctx.GlobalIsSet(VCPasswordFlag.Name) {
+		cfg.VcPassword = ctx.GlobalString(VCPasswordFlag.Name)
+	}
+
+}
+
 func setEthash(ctx *cli.Context, cfg *eth.Config) {
 	if ctx.GlobalIsSet(EthashCacheDirFlag.Name) {
 		cfg.Ethash.CacheDir = ctx.GlobalString(EthashCacheDirFlag.Name)
@@ -1184,6 +1207,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	setTxPool(ctx, &cfg.TxPool)
 	// for mpc compute
 	setMpcPool(ctx, &cfg.MPCPool)
+	setVcPool(ctx, &cfg.VCPool)
 	setEthash(ctx, cfg)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {

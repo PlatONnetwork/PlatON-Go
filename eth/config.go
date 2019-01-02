@@ -74,7 +74,7 @@ var DefaultConfig = Config{
 	},
 
 	MPCPool: core.DefaultMPCPoolConfig ,
-
+	VCPool: core.DefaultVCPoolConfig ,
 }
 
 func init() {
@@ -149,6 +149,7 @@ type Config struct {
 
 	// MPC pool options
 	MPCPool core.MPCPoolConfig
+	VCPool core.VCPoolConfig
 }
 
 type CbftConfig struct {
