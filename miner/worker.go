@@ -1288,7 +1288,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	// Fill the block with all available pending transactions.
 	startTime := time.Now().UnixNano()
-	pending, err := w.eth.TxPool().Pending()
+	pending, err := w.eth.TxPool().PendingLimited()
 
 	if err != nil {
 		log.Error("Failed to fetch pending transactions", "time", time.Now().UnixNano()-startTime, "err", err)
