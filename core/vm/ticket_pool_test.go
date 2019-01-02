@@ -16,14 +16,16 @@ import (
 )
 
 func TestTicketPoolOverAll(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
 
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error)
@@ -52,7 +54,6 @@ func TestTicketPoolOverAll(t *testing.T) {
 
 	/*// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
 	fmt.Println("GetCandidateTicketIds input==>", "nodeId: ", nodeId.String())
-	// TODO 查询候选人的选票列表
 	resByte, err = ticketContract.GetCandidateTicketIds(nodeId)
 	if nil != err {
 		fmt.Println("GetCandidateTicketIds fail", "err", err)
@@ -80,13 +81,16 @@ func TestTicketPoolOverAll(t *testing.T) {
 }
 
 func TestVoteTicket(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -112,13 +116,16 @@ func TestVoteTicket(t *testing.T) {
 }
 
 func TestGetTicketDetail(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -155,13 +162,16 @@ func TestGetTicketDetail(t *testing.T) {
 }
 
 func TestGetBatchTicketDetail(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -199,13 +209,16 @@ func TestGetBatchTicketDetail(t *testing.T) {
 }
 
 func TestGetCandidateTicketIds(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -229,7 +242,6 @@ func TestGetCandidateTicketIds(t *testing.T) {
 
 	// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
 	fmt.Println("GetCandidateTicketIds input==>", "nodeId: ", nodeId.String())
-	// TODO 查询候选人的选票列表
 	resByte, err = ticketContract.GetCandidateTicketIds(nodeId)
 	if nil != err {
 		fmt.Println("GetCandidateTicketIds fail", "err", err)
@@ -238,17 +250,20 @@ func TestGetCandidateTicketIds(t *testing.T) {
 		fmt.Println("The candidate's ticket list is null")
 		return
 	}
-	fmt.Println("The candidate's ticketId are: ", vm.ResultByte2Json(resByte))
+	fmt.Println("The candidate's ticketId is: ", vm.ResultByte2Json(resByte))
 }
 
 func TestGetBatchCandidateTicketIds(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -311,7 +326,6 @@ func TestGetBatchCandidateTicketIds(t *testing.T) {
 	fmt.Println("GetBatchCandidateTicketIds input==>", "nodeIds: ", nodeId1.String(), nodeId2.String())
 	var nodeIds []discover.NodeID
 	nodeIds = append(append(nodeIds, nodeId1), nodeId2)
-	// TODO 查询候选人的选票列表
 	resByte, err = ticketContract.GetBatchCandidateTicketIds(nodeIds)
 	if nil != err {
 		fmt.Println("GetBatchCandidateTicketIds fail", "err", err)
@@ -324,13 +338,16 @@ func TestGetBatchCandidateTicketIds(t *testing.T) {
 }
 
 func TestGetCandidateEpoch(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -352,7 +369,6 @@ func TestGetCandidateEpoch(t *testing.T) {
 	}
 
 	// GetCandidateEpoch(nodeId discover.NodeID) ([]byte, error)
-	// TODO
 	fmt.Println("GetCandidateEpoch input==>", "nodeId: ", nodeId.String())
 	resByte, err = ticketContract.GetCandidateEpoch(nodeId)
 	if nil != err {
