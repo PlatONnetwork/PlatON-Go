@@ -272,7 +272,7 @@ func (c *CandidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, er
 		return nil, err
 	}
 	if nil == candidate {
-		log.Error("CandidateDetails==> The candidate for the inquiry does not exist")
+		log.Error("CandidateDetails==> ", "The candidate for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(candidate)
@@ -291,7 +291,7 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 		return nil, err
 	}
 	if 0 == len(candidates) {
-		log.Error("GetBatchCandidateDetail==> The candidates for the inquiry does not exist")
+		log.Error("GetBatchCandidateDetail==> ", "The candidates for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(candidates)
@@ -302,10 +302,9 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 
 // Get the current block candidate list
 func (c *CandidateContract) CandidateList() ([]byte, error) {
-	log.Info("CandidateList==> into func CandidateList... ")
 	candidates := c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 0)
 	if 0 == len(candidates) {
-		log.Error("CandidateList==> The candidateList for the inquiry does not exist")
+		log.Error("CandidateList==> ", "The candidateList for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(candidates)
@@ -316,10 +315,9 @@ func (c *CandidateContract) CandidateList() ([]byte, error) {
 
 // Get the current block round certifier list
 func (c *CandidateContract) VerifiersList() ([]byte, error) {
-	log.Info("VerifiersList==> into func VerifiersList... ")
 	arr := c.Evm.CandidatePool.GetChairpersons(c.Evm.StateDB)
 	if 0 == len(arr) {
-		log.Error("VerifiersList==> The verifiersList for the inquiry does not exist")
+		log.Error("VerifiersList==> ", "The verifiersList for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(arr)
