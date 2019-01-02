@@ -21,6 +21,7 @@ package vm
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -47,6 +48,7 @@ var (
 	ErrParamsBaselen    = errors.New("Params Base length does not match")
 	ErrParamsLen        = errors.New("Params length does not match")
 	ErrUndefFunction    = errors.New("Undefined function")
+	ErrTxType           = errors.New("Transaction type does not match the function")
 	ErrCandidateEmpyt   = errors.New("CandidatePool is nil")
 	ErrCallRecode       = errors.New("Call recode error, panic...")
 )
@@ -131,6 +133,19 @@ func (c *candidateContract) Run(input []byte) ([]byte, error) {
 		return nil, ErrUndefFunction
 	}
 	funcValue := command[byteutil.BytesToString(source[1])]
+	// validate transaction type
+	var TxType = map[uint64]interface{}{
+		1001: c.CandidateDeposit,
+		1002: c.CandidateApplyWithdraw,
+		1003: c.CandidateWithdraw,
+		1004: c.SetCandidateExtra,
+	}
+	if _, ok := TxType[binary.BigEndian.Uint64(source[0])]; ok {
+		if reflect.TypeOf(TxType[binary.BigEndian.Uint64(source[0])]) != reflect.TypeOf(funcValue) {
+			log.Error("execute==> ", "ErrTxType: ", ErrTxType.Error())
+			return nil, ErrTxType
+		}
+	}
 	paramList := reflect.TypeOf(funcValue)
 	paramNum := paramList.NumIn()
 	// var param []interface{}
@@ -183,7 +198,7 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	var alldeposit *big.Int
 	if can != nil {
 		if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
-			c.logError("CandidateDeposit Err==> ", "err: ",ErrOwnerNotonly.Error())
+			c.logError("CandidateDeposit Err==> ", "err: ", ErrOwnerNotonly.Error())
 			r := ResultCommon{false, err.Error()}
 			data, _ := json.Marshal(r)
 			c.addLog(CandidateDepositEvent, string(data))
@@ -246,7 +261,7 @@ func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 		return nil, ErrWithdrawEmpyt
 	}
 	if ok := bytes.Equal(can.Owner.Bytes(), from.Bytes()); !ok {
-		c.logError("CandidateApplyWithdraw Err==> ", "err",ErrPermissionDenied.Error())
+		c.logError("CandidateApplyWithdraw Err==> ", "err", ErrPermissionDenied.Error())
 		r := ResultCommon{false, ErrPermissionDenied.Error()}
 		data, _ := json.Marshal(r)
 		c.addLog(CandidateApplyWithdrawEvent, string(data))
@@ -256,7 +271,7 @@ func (c *candidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 		withdraw = can.Deposit
 	}
 	if err := c.evm.CandidatePool.WithdrawCandidate(c.evm.StateDB, nodeId, withdraw, height); err != nil {
-		c.logError("CandidateApplyWithdraw Err==> ", "err",err.Error())
+		c.logError("CandidateApplyWithdraw Err==> ", "err", err.Error())
 		r := ResultCommon{false, err.Error()}
 		data, _ := json.Marshal(r)
 		c.addLog(CandidateApplyWithdrawEvent, string(data))
