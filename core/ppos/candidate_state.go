@@ -30,6 +30,8 @@ type candidateStorage map[discover.NodeID]*types.Candidate
 type refundStorage map[discover.NodeID]types.CandidateQueue
 
 type CandidatePool struct {
+	// allow put into immedidate condition
+	allowed	uint64
 	// allow immediate elected max count
 	maxCount uint64
 	// allow witness max count
@@ -64,6 +66,7 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		return candidatePool
 	}
 	candidatePool = &CandidatePool{
+		allowed: 			  configs.Candidate.Allowed,
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
 		RefundBlockNumber:    configs.Candidate.RefundBlockNumber,
@@ -1552,8 +1555,8 @@ func (c *CandidatePool) checkExist(nodeId discover.NodeID) int {
 }
 
 func (c *CandidatePool) checkTicket(t_count uint64) bool {
-	log.Info("对比当前候选人得票数为:", "t_count", t_count, "入选门槛为:", c.maxCount)
-	if t_count >= c.maxCount {
+	log.Info("对比当前候选人得票数为:", "t_count", t_count, "入选门槛为:", c.allowed)
+	if t_count >= c.allowed {
 		log.Info("当前候选人得票数符合进入候选池...")
 		return true
 	}

@@ -240,17 +240,10 @@ type PposConfig struct {
 	TicketConfig *TicketConfig
 }
 type CandidateConfig struct {
+	Allowed 		  uint64
 	MaxCount          uint64
 	MaxChair          uint64
 	RefundBlockNumber uint64
-	/*Deposit			*big.Int
-	BlockNumber 	*big.Int
-	TxIndex 		uint32
-	CandidateId 	discover.NodeID
-	Host 			string
-	Port 			string
-	Owner 			common.Address
-	From 			common.Address*/
 }
 
 type TicketConfig struct {
