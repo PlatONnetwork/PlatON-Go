@@ -42,6 +42,7 @@ import (
 var (
 	ErrOwnerNotonly     = errors.New("Node ID cannot bind multiple owners")
 	ErrPermissionDenied = errors.New("Transaction from address permission denied")
+	ErrFeeIllegal       = errors.New("The fee is illegal")
 	ErrDepositEmpyt     = errors.New("Deposit balance not zero")
 	ErrWithdrawEmpyt    = errors.New("No withdrawal amount")
 	ErrParamsRlpDecode  = errors.New("Rlp decode faile")
@@ -180,7 +181,12 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	c.logInfo("CandidateDeposit==> ", "nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
 		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
 		" host: ", host, " port: ", port, " extra: ", extra)
-	//todo
+	if fee > 10000 {
+		r := ResultCommon{false, ErrFeeIllegal.Error()}
+		data, _ := json.Marshal(r)
+		c.addLog(CandidateDepositEvent, string(data))
+		return nil, ErrFeeIllegal
+	}
 	if deposit.Cmp(big.NewInt(0)) < 1 {
 		r := ResultCommon{false, ErrDepositEmpyt.Error()}
 		data, _ := json.Marshal(r)
