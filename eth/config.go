@@ -54,7 +54,7 @@ var DefaultConfig = Config{
 				DepositLimit: 	  	10,
 				MaxCount:          	25,
 				MaxChair:          	200,
-				RefundBlockNumber: 	1536000,
+				RefundBlockNumber: 	512,
 			},
 		},
 	},
