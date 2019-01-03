@@ -699,7 +699,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			}
 			p.MarkTransaction(tx.Hash())
 		}
-		pm.txpool.AddRemotes(txs)
+
+		go pm.txpool.AddRemotes(txs)
 
 	case msg.Code == PrepareBlockMsg:
 		// Retrieve and decode the propagated block
