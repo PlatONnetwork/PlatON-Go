@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -24,7 +25,6 @@ var (
 	ErrParamsLen       = errors.New("Params length does not match")
 	ErrUndefFunction   = errors.New("Undefined function")
 	ErrTxType          = errors.New("Transaction type does not match the function")
-	ErrCallRecode      = errors.New("Call recode error, panic...")
 )
 
 // execute decode input data and call the function.
@@ -33,21 +33,21 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 	defer func() {
 		if err := recover(); nil != err {
 			// catch call panic
-			log.Error("execute==> ", "ErrCallRecode: ", ErrCallRecode.Error())
+			log.Error("Failed to execute==> ", "err: ", fmt.Sprint(err))
 		}
 	}()
 	var source [][]byte
 	if err := rlp.Decode(bytes.NewReader(input), &source); nil != err {
-		log.Error("execute==> ", err.Error())
+		log.Error("Failed to execute==> ", err.Error())
 		return nil, ErrParamsRlpDecode
 	}
 	if len(source) < 2 {
-		log.Error("execute==> ", "ErrParamsBaselen: ", ErrParamsBaselen.Error())
+		log.Error("Failed to execute==> ", "ErrParamsBaselen: ", ErrParamsBaselen.Error())
 		return nil, ErrParamsBaselen
 	}
 	// get func and param list
 	if _, ok := command[byteutil.BytesToString(source[1])]; !ok {
-		log.Error("execute==> ", "ErrUndefFunction: ", ErrUndefFunction.Error())
+		log.Error("Failed to execute==> ", "ErrUndefFunction: ", ErrUndefFunction.Error())
 		return nil, ErrUndefFunction
 	}
 	funcValue := command[byteutil.BytesToString(source[1])]
@@ -61,7 +61,7 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 	}
 	if txFunc, ok := TxType[binary.BigEndian.Uint64(source[0])]; ok {
 		if reflect.TypeOf(txFunc) != reflect.TypeOf(funcValue) {
-			log.Error("execute==> ", "ErrTxType: ", ErrTxType.Error())
+			log.Error("Failed to execute==> ", "ErrTxType: ", ErrTxType.Error())
 			return nil, ErrTxType
 		}
 	}
@@ -69,7 +69,7 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 	paramNum := paramList.NumIn()
 	params := make([]reflect.Value, paramNum)
 	if paramNum != len(source)-2 {
-		log.Error("execute==> ", "ErrParamsLen: ", ErrParamsLen.Error())
+		log.Error("Failed to execute==> ", "ErrParamsLen: ", ErrParamsLen.Error())
 		return nil, ErrParamsLen
 	}
 	for i := 0; i < paramNum; i++ {
