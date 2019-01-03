@@ -1551,7 +1551,10 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 // inTurn return if it is local's turn to package new block.
 func (cbft *Cbft) inTurn() bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(curTime, cbft.config.NodeID)
+	inturn := cbft.calTurn(curTime-300, cbft.config.NodeID)
+	if inturn {
+		inturn = cbft.calTurn(curTime+700, cbft.config.NodeID)
+	}
 	cbft.log.Debug("check if local's turn to commit block", "result", inturn)
 	return inturn
 
@@ -1569,7 +1572,7 @@ func (cbft *Cbft) inTurnVerify(curTime int64, nodeID discover.NodeID) bool {
 	return inTurnVerify
 }
 
-//shouldKeepIt verifies the time is legal to package new block for the nodeID.
+//isLegal verifies the time is legal to package new block for the nodeID.
 func (cbft *Cbft) isLegal(curTime int64, producerID discover.NodeID) bool {
 	offset := 1000 * (cbft.config.Duration/2 - 1)
 	isLegal := cbft.calTurn(curTime-offset, producerID)
