@@ -232,7 +232,7 @@ func TestWithdrawCandidate(t *testing.T) {
 	candidatePool = newCandidatePool()
 
 	candidate := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(100),
+		Deposit: 		new(big.Int).SetUint64(99),
 		BlockNumber:    new(big.Int).SetUint64(7),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
 		TxIndex:  		6,
@@ -270,7 +270,7 @@ func TestWithdrawCandidate(t *testing.T) {
 
 	/** test WithdrawCandidate */
 	t.Log("test WithdrawCandidate ...")
-	ok1 := candidatePool.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
+	ok1 := candidatePool.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(98)), new(big.Int).SetUint64(uint64(10)))
 	t.Log("error", ok1)
 
 	/** test GetCandidate */
