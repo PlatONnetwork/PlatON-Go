@@ -2,7 +2,6 @@ package vm
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -59,7 +58,8 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 		1003: command["CandidateWithdraw"],
 		1004: command["SetCandidateExtra"],
 	}
-	if txFunc, ok := TxType[binary.BigEndian.Uint64(source[0])]; ok {
+	//if txFunc, ok := TxType[binary.BigEndian.Uint64(source[0])]; ok {
+	if txFunc, ok := TxType[byteutil.BytesTouint64(source[0])]; ok {
 		if reflect.TypeOf(txFunc) != reflect.TypeOf(funcValue) {
 			log.Error("Failed to execute==> ", "ErrTxType: ", ErrTxType.Error())
 			return nil, ErrTxType

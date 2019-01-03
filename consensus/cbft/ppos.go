@@ -205,7 +205,7 @@ func (d *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 func (d *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlocknumber *big.Int) ([]*discover.Node, error) {
 	// TODO
 	if nextNodes, err := d.candidatePool.Election(state, parentHash, currBlocknumber); nil != err {
-		log.Error("ppos election next witness err", err)
+		log.Error("ppos election next witness", " err: ", err)
 		panic("Election error " + err.Error())
 	} else {
 		log.Info("揭榜完成，再次查看stateDB信息...")

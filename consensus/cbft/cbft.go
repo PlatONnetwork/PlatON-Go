@@ -1766,6 +1766,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	}
 	if ticket.Owner == common.ZeroAddr {
 		log.Info("accumulateRewards==> GetTicket return ticket owner is empty !")
+		return
 	}
 
 	nodeReward := new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(can.Fee)), FeeBase)
