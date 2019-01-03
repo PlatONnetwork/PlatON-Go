@@ -183,22 +183,28 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
 		" host: ", host, " port: ", port, " extra: ", extra)
 	if fee > 10000 {
+		c.logError("CandidateDeposit Err==> ", "err: ", ErrFeeIllegal.Error())
 		r := ResultCommon{false, ErrFeeIllegal.Error()}
 		data, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(data))
 		return nil, ErrFeeIllegal
 	}
 	if deposit.Cmp(big.NewInt(0)) < 1 {
+		c.logError("CandidateDeposit Err==> ", "err: ", ErrDepositEmpyt.Error())
 		r := ResultCommon{false, ErrDepositEmpyt.Error()}
 		data, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(data))
 		return nil, ErrDepositEmpyt
 	}
 	// get the minimum candidate's deposit
-	index := len(c.evm.CandidatePool.GetChosens(c.evm.StateDB)) - 1
-	minimumDeposit := c.evm.CandidatePool.GetChosens(c.evm.StateDB)[index].Deposit
+	minimumDeposit := new(big.Int)
+	if 0 != len(c.evm.CandidatePool.GetChosens(c.evm.StateDB)) {
+		index := len(c.evm.CandidatePool.GetChosens(c.evm.StateDB)) - 1
+		minimumDeposit = c.evm.CandidatePool.GetChosens(c.evm.StateDB)[index].Deposit
+	}
 	depositLimit := big.NewInt(11)
 	if new(big.Int).Mul(deposit, big.NewInt(10)).Cmp(new(big.Int).Mul(minimumDeposit, depositLimit)) < 1 {
+		c.logError("CandidateDeposit Err==> ", "err: ", ErrLowerDeposit.Error())
 		r := ResultCommon{false, ErrLowerDeposit.Error()}
 		data, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(data))
