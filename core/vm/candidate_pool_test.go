@@ -469,13 +469,13 @@ func TestRlpData(t *testing.T) {
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
 	var CandidateDeposit [][]byte
 	CandidateDeposit = make([][]byte, 0)
-	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(0xf1))
+	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(1001))
 	CandidateDeposit = append(CandidateDeposit, []byte("CandidateDeposit"))
 	CandidateDeposit = append(CandidateDeposit, nodeId)
 	CandidateDeposit = append(CandidateDeposit, owner)
-	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(500)) //10000
-	CandidateDeposit = append(CandidateDeposit, []byte("0.0.0.2"))
-	CandidateDeposit = append(CandidateDeposit, []byte("30303"))
+	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(10001))
+	CandidateDeposit = append(CandidateDeposit, []byte("0.0.0.3"))
+	CandidateDeposit = append(CandidateDeposit, []byte("30302"))
 	CandidateDeposit = append(CandidateDeposit, []byte("extra data"))
 	bufDeposit := new(bytes.Buffer)
 	err := rlp.Encode(bufDeposit, CandidateDeposit)
@@ -489,7 +489,7 @@ func TestRlpData(t *testing.T) {
 	// CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int)
 	var CandidateApplyWithdraw [][]byte
 	CandidateApplyWithdraw = make([][]byte, 0)
-	CandidateApplyWithdraw = append(CandidateApplyWithdraw, uint64ToBytes(0xf1))
+	CandidateApplyWithdraw = append(CandidateApplyWithdraw, uint64ToBytes(1002))
 	CandidateApplyWithdraw = append(CandidateApplyWithdraw, []byte("CandidateApplyWithdraw"))
 	CandidateApplyWithdraw = append(CandidateApplyWithdraw, nodeId)
 	withdraw, ok := new(big.Int).SetString("14d1120d7b160000", 16)
@@ -509,7 +509,7 @@ func TestRlpData(t *testing.T) {
 	// CandidateWithdraw(nodeId discover.NodeID)
 	var CandidateWithdraw [][]byte
 	CandidateWithdraw = make([][]byte, 0)
-	CandidateWithdraw = append(CandidateWithdraw, uint64ToBytes(0xf1))
+	CandidateWithdraw = append(CandidateWithdraw, uint64ToBytes(1003))
 	CandidateWithdraw = append(CandidateWithdraw, []byte("CandidateWithdraw"))
 	CandidateWithdraw = append(CandidateWithdraw, nodeId)
 	bufWith := new(bytes.Buffer)

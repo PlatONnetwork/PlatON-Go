@@ -17,8 +17,8 @@ var Command = map[string]interface{}{
 	"[32]uint8":         BytesTo32Bytes,
 	"int":               BytesToInt,
 	"*big.Int":          BytesToBigInt,
-	"uint32":            binary.BigEndian.Uint32,
-	"uint64":            binary.BigEndian.Uint64,
+	"uint32":            BytesTouint32,
+	"uint64":            BytesTouint64,
 	"int32":             common.BytesToInt32,
 	"int64":             common.BytesToInt64,
 	"float32":           common.BytesToFloat32,
@@ -103,4 +103,14 @@ func HexToAddress(b []byte) common.Address {
 func HexToNodeId(b []byte) discover.NodeID {
 	nodeid, _ := discover.HexID(string(b))
 	return nodeid
+}
+
+func BytesTouint32(b []byte) uint32  {
+	b = append(make([]byte, 8-len(b)), b...)
+	return binary.BigEndian.Uint32(b)
+}
+
+func BytesTouint64(b []byte) uint64  {
+	b = append(make([]byte, 8-len(b)), b...)
+	return binary.BigEndian.Uint64(b)
 }
