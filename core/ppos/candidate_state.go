@@ -1557,14 +1557,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 	return delNodeIds, nil
 }
 
-func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
-
-	// 如果之前在im 中的且 im满了
-
-	// 如果之前在re 中的且 re满了
-
-	// 之前都不在，但 都满了
-
+func (c *CandidatePool) checkDeposit(flag bool, can *types.Candidate) error {
 
 	if _, ok := c.immediateCandidates[can.CandidateId]; ok && uint64(len(c.immediateCandidates)) == c.maxCount {
 		last := c.immediateCacheArr[len(c.immediateCacheArr) - 1]
