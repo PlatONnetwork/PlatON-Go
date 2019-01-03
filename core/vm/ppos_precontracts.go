@@ -197,8 +197,8 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	// get the minimum candidate's deposit
 	index := len(c.evm.CandidatePool.GetChosens(c.evm.StateDB)) - 1
 	minimumDeposit := c.evm.CandidatePool.GetChosens(c.evm.StateDB)[index].Deposit
-	depositLimit := big.NewInt(1.1)
-	if deposit.Cmp(new(big.Int).Mul(minimumDeposit, depositLimit)) < 1 {
+	depositLimit := big.NewInt(11)
+	if new(big.Int).Mul(deposit, big.NewInt(10)).Cmp(new(big.Int).Mul(minimumDeposit, depositLimit)) < 1 {
 		r := ResultCommon{false, ErrLowerDeposit.Error()}
 		data, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(data))
