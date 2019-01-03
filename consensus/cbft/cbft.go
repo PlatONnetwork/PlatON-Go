@@ -78,14 +78,29 @@ type Cbft struct {
 }
 
 func (cbft *Cbft) getRootIrreversible() *BlockExt {
-	return cbft.rootIrreversible.Load().(*BlockExt)
+	v := cbft.rootIrreversible.Load()
+	if v == nil {
+		return nil
+	} else {
+		return v.(*BlockExt)
+	}
 }
 
 func (cbft *Cbft) getHighestConfirmed() *BlockExt {
-	return cbft.highestConfirmed.Load().(*BlockExt)
+	v := cbft.highestConfirmed.Load()
+	if v == nil {
+		return nil
+	} else {
+		return v.(*BlockExt)
+	}
 }
 func (cbft *Cbft) getHighestLogical() *BlockExt {
-	return cbft.highestLogical.Load().(*BlockExt)
+	v := cbft.highestLogical.Load()
+	if v == nil {
+		return nil
+	} else {
+		return v.(*BlockExt)
+	}
 }
 
 var cbft *Cbft
