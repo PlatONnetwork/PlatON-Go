@@ -226,7 +226,8 @@ func (t *TicketPool) GetTicketList(stateDB vm.StateDB, ticketIds []common.Hash) 
 	for _, ticketId := range ticketIds {
 		ticket, err := t.GetTicket(stateDB, ticketId)
 		if nil != err || ticket.TicketId == (common.Hash{}) {
-			return nil, err
+			log.Error("Did not find this ticket", "ticketId", ticketId)
+			continue
 		}
 		tickets = append(tickets, ticket)
 	}
@@ -308,8 +309,6 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 	if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
 		return err
 	}
-	// 因为流程是 执行交易 -> 释放过期票 -> 增加票龄 -> 选取幸运票 所以释放幸运票时需要票龄多减一
-	candidateAttach.SubEpoch(common.Big1)
 	log.Info("更新候选人总票龄", "候选人：", nodeId.String(), "票龄：", candidateAttach.Epoch)
 	if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
 		return err
@@ -381,6 +380,7 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 		}
 		// 获取总票数，增加总票龄
 		ticketCount := stateDB.TCount(candidate.CandidateId)
+		log.Info("候选人增加总票龄", "candidateId", candidate.CandidateId.String(), "ticketCount", ticketCount)
 		if ticketCount > 0 {
 			candidateAttach.AddEpoch(new(big.Int).SetUint64(ticketCount))
 			if err := t.setCandidateAttach(stateDB, candidate.CandidateId, candidateAttach); nil != err {

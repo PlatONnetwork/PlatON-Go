@@ -173,6 +173,8 @@ type PposConfig struct {
 }
 
 type CandidateConfig struct {
+	// allow put into immedidate condition
+	Allowed					uint64					`json:"allowed"`
 	// allow immediate elected max count
 	MaxCount				uint64					`json:"maxCount"`
 	// allow witness max count

@@ -16,14 +16,16 @@ import (
 )
 
 func TestTicketPoolOverAll(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
 
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error)
@@ -52,7 +54,6 @@ func TestTicketPoolOverAll(t *testing.T) {
 
 	/*// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
 	fmt.Println("GetCandidateTicketIds input==>", "nodeId: ", nodeId.String())
-	// TODO 查询候选人的选票列表
 	resByte, err = ticketContract.GetCandidateTicketIds(nodeId)
 	if nil != err {
 		fmt.Println("GetCandidateTicketIds fail", "err", err)
@@ -80,13 +81,16 @@ func TestTicketPoolOverAll(t *testing.T) {
 }
 
 func TestVoteTicket(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -112,13 +116,16 @@ func TestVoteTicket(t *testing.T) {
 }
 
 func TestGetTicketDetail(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -155,13 +162,16 @@ func TestGetTicketDetail(t *testing.T) {
 }
 
 func TestGetBatchTicketDetail(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -199,13 +209,16 @@ func TestGetBatchTicketDetail(t *testing.T) {
 }
 
 func TestGetCandidateTicketIds(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -229,7 +242,6 @@ func TestGetCandidateTicketIds(t *testing.T) {
 
 	// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
 	fmt.Println("GetCandidateTicketIds input==>", "nodeId: ", nodeId.String())
-	// TODO 查询候选人的选票列表
 	resByte, err = ticketContract.GetCandidateTicketIds(nodeId)
 	if nil != err {
 		fmt.Println("GetCandidateTicketIds fail", "err", err)
@@ -238,17 +250,20 @@ func TestGetCandidateTicketIds(t *testing.T) {
 		fmt.Println("The candidate's ticket list is null")
 		return
 	}
-	fmt.Println("The candidate's ticketId are: ", vm.ResultByte2Json(resByte))
+	fmt.Println("The candidate's ticketId is: ", vm.ResultByte2Json(resByte))
 }
 
 func TestGetBatchCandidateTicketIds(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -311,7 +326,6 @@ func TestGetBatchCandidateTicketIds(t *testing.T) {
 	fmt.Println("GetBatchCandidateTicketIds input==>", "nodeIds: ", nodeId1.String(), nodeId2.String())
 	var nodeIds []discover.NodeID
 	nodeIds = append(append(nodeIds, nodeId1), nodeId2)
-	// TODO 查询候选人的选票列表
 	resByte, err = ticketContract.GetBatchCandidateTicketIds(nodeIds)
 	if nil != err {
 		fmt.Println("GetBatchCandidateTicketIds fail", "err", err)
@@ -324,13 +338,16 @@ func TestGetBatchCandidateTicketIds(t *testing.T) {
 }
 
 func TestGetCandidateEpoch(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
 	ticketContract := vm.TicketContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	candidateContract := vm.CandidateContract{
-		newContract(),
-		newEvm(),
+		contract,
+		evm,
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
@@ -352,7 +369,6 @@ func TestGetCandidateEpoch(t *testing.T) {
 	}
 
 	// GetCandidateEpoch(nodeId discover.NodeID) ([]byte, error)
-	// TODO
 	fmt.Println("GetCandidateEpoch input==>", "nodeId: ", nodeId.String())
 	resByte, err = ticketContract.GetCandidateEpoch(nodeId)
 	if nil != err {
@@ -378,13 +394,12 @@ func TestGetTicketPrice(t *testing.T) {
 
 func TestTicketPoolEncode(t *testing.T) {
 	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
-
 	// VoteTicket(count uint64, price *big.Int, nodeId discover.NodeID)
 	var VoteTicket [][]byte
 	VoteTicket = make([][]byte, 0)
-	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(0xf1))
+	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1000))
 	VoteTicket = append(VoteTicket, []byte("VoteTicket"))
-	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1))
+	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(100))
 	VoteTicket = append(VoteTicket, big.NewInt(1).Bytes())
 	VoteTicket = append(VoteTicket, nodeId)
 	bufVoteTicket := new(bytes.Buffer)
@@ -412,11 +427,11 @@ func TestTicketPoolEncode(t *testing.T) {
 	}
 
 	// GetTicketDetail(ticketId common.Hash)
-	ticketId := common.Hex2Bytes("fc23d5d3cfed75a7d8cb4ad74da1d6a41bbe4b7f96405e094cedf410f2dc9f8a")
+	ticketId := common.Hex2Bytes("3780eb19677a4c69add0fa8151abdac77d550f37585b3e1b06e73561f7197949")
 	var GetTicketDetail [][]byte
 	GetTicketDetail = make([][]byte, 0)
 	GetTicketDetail = append(GetTicketDetail, byteutil.Uint64ToBytes(0xf1))
-	GetTicketDetail = append(GetTicketDetail, []byte("GetBatchTicketDetail"))
+	GetTicketDetail = append(GetTicketDetail, []byte("GetTicketDetail"))
 	GetTicketDetail = append(GetTicketDetail, ticketId)
 	bufGetTicketDetail := new(bytes.Buffer)
 	err = rlp.Encode(bufGetTicketDetail, GetTicketDetail)
@@ -425,6 +440,43 @@ func TestTicketPoolEncode(t *testing.T) {
 		t.Errorf("GetTicketDetail encode rlp data fail")
 	} else {
 		fmt.Println("GetTicketDetail data rlp: ", hexutil.Encode(bufGetTicketDetail.Bytes()))
+	}
+
+	// GetBatchTicketDetail(ticketId []common.Hash)
+	ticketId1 := "0x3780eb19677a4c69add0fa8151abdac77d550f37585b3e1b06e73561f7197949"
+	ticketId2 := "0x4780eb19677a4c69add0fa8151abdac77d550f37585b3e1b06e73561f7197949"
+	ticketIds := ticketId1 + ":" + ticketId2
+	var GetBatchTicketDetail [][]byte
+	GetBatchTicketDetail = make([][]byte, 0)
+	GetBatchTicketDetail = append(GetBatchTicketDetail, byteutil.Uint64ToBytes(0xf1))
+	GetBatchTicketDetail = append(GetBatchTicketDetail, []byte("GetBatchTicketDetail"))
+	GetBatchTicketDetail = append(GetBatchTicketDetail, []byte(ticketIds))
+	bufGetBatchTicketDetail := new(bytes.Buffer)
+	err = rlp.Encode(bufGetBatchTicketDetail, GetBatchTicketDetail)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetBatchTicketDetail encode rlp data fail")
+	} else {
+		fmt.Println("GetBatchTicketDetail data rlp: ", hexutil.Encode(bufGetBatchTicketDetail.Bytes()))
+	}
+
+	// GetBatchCandidateTicketIds(nodeId []discover.NodeID)
+	nodeId1 := "0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeId2 := "0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeId3 := "0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeIds := nodeId1 + ":" + nodeId2 + ":" + nodeId3
+	var GetBatchCandidateTicketIds [][]byte
+	GetBatchCandidateTicketIds = make([][]byte, 0)
+	GetBatchCandidateTicketIds = append(GetBatchCandidateTicketIds, byteutil.Uint64ToBytes(0xf1))
+	GetBatchCandidateTicketIds = append(GetBatchCandidateTicketIds, []byte("GetBatchCandidateTicketIds"))
+	GetBatchCandidateTicketIds = append(GetBatchCandidateTicketIds, []byte(nodeIds))
+	bufGetBatchCandidateTicketIds := new(bytes.Buffer)
+	err = rlp.Encode(bufGetBatchCandidateTicketIds, GetBatchCandidateTicketIds)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetBatchCandidateTicketIds encode rlp data fail")
+	} else {
+		fmt.Println("GetBatchCandidateTicketIds data rlp: ", hexutil.Encode(bufGetBatchCandidateTicketIds.Bytes()))
 	}
 }
 

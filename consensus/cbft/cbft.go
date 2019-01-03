@@ -435,10 +435,10 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 
 		//send the BlockSignature to channel
 		blockSign := &cbfttypes.BlockSignature{
-			SignHash:  sealHash,
-			Hash:      blockHash,
-			Number:    ext.block.Number(),
-			Signature: sign,
+			SignHash:   sealHash,
+			Hash:       blockHash,
+			Number:     ext.block.Number(),
+			Signature:  sign,
 			ParentHash: ext.block.ParentHash(),
 		}
 		cbft.blockSignOutCh <- blockSign
@@ -1746,14 +1746,15 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	blockReward = new(big.Int).Div(yearReward, YearBlocks)
 
 	can, err := cbft.ppos.GetCandidate(state, cbft.config.NodeID)
-	if err!=nil{
+	if err != nil {
 		log.Error("accumulateRewards==> GetCandidate faile ", " nodeid: ", cbft.config.NodeID.String(), " err: ", err.Error())
 		return
 	}
-	if can==nil {
+	if can == nil {
 		log.Info("accumulateRewards==> GetCandidate return nil ", "nodeid: ", cbft.config.NodeID.String())
 		return
 	}
+
 	ticket, err := cbft.ppos.ticketPool.GetTicket(state, can.TicketId)
 	if err!=nil {
 		log.Error("accumulateRewards==> GetTicket faile ", " err: ", err.Error())
@@ -1765,25 +1766,24 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	}
 	if ticket.Owner == common.ZeroAddr {
 		log.Info("accumulateRewards==> GetTicket return ticket owner is empty !")
-		return
 	}
 
 	nodeReward := new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(can.Fee)), FeeBase)
 	ticketReward := new(big.Int).Sub(blockReward, nodeReward)
+	log.Info("Rewards", "blockReward: ", blockReward, "nodeReward: ", nodeReward, "ticketReward: ", ticketReward)
 	state.SubBalance(common.RewardPoolAddr, blockReward)
 	state.AddBalance(header.Coinbase, nodeReward)
 	state.AddBalance(ticket.Owner, ticketReward)
-
 	log.Info("accumulateRewards==> success ", " yearReward: ", yearReward, " blockReward:", blockReward, " nodeReward: ", nodeReward,
 		" ticketReward: ", ticketReward, " RewardPoolAddr address: ", common.RewardPoolAddr.Hex(), " balance: ", state.GetBalance(common.RewardPoolAddr), " Fee: ", can.Fee,
 		" Coinbase address: ", header.Coinbase.Hex(), " balance: ", state.GetBalance(header.Coinbase), " Ticket address: ", ticket.Owner.Hex(), " balance: ", state.GetBalance(ticket.Owner))
 }
 
-func (cbft *Cbft)IncreaseRewardPool(number *big.Int)   {
+func (cbft *Cbft) IncreaseRewardPool(number *big.Int) {
 	//...
 }
 
-func GetAmount(number *big.Int) *big.Int  {
+func GetAmount(number *big.Int) *big.Int {
 	cycle := new(big.Int).Div(number, YearBlocks)
 	rate := math2.BigPow(Rate.Int64(), cycle.Int64())
 	base := math2.BigPow(Base.Int64(), cycle.Int64())
