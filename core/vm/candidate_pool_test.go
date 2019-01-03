@@ -19,6 +19,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
+	"time"
 
 	"testing"
 )
@@ -31,7 +32,7 @@ func TestCandidatePoolOverAll(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
+	fee := uint64(7000)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
@@ -160,7 +161,7 @@ func TestCandidateDeposit(t *testing.T) {
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error)
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
+	fee := uint64(7000)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
@@ -179,7 +180,7 @@ func TestCandidateDetails(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
+	fee := uint64(7000)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
@@ -212,7 +213,7 @@ func TestGetBatchCandidateDetail(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
+	fee := uint64(7000)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
@@ -225,7 +226,7 @@ func TestGetBatchCandidateDetail(t *testing.T) {
 
 	nodeId = discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner = common.HexToAddress("0x12")
-	fee = uint64(1)
+	fee = uint64(7000)
 	host = "10.0.0.2"
 	port = "8548"
 	extra = "extra data"
@@ -258,7 +259,7 @@ func TestCandidateList(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
+	fee := uint64(7000)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
@@ -271,7 +272,7 @@ func TestCandidateList(t *testing.T) {
 
 	nodeId = discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner = common.HexToAddress("0x12")
-	fee = uint64(1)
+	fee = uint64(6800)
 	host = "10.0.0.2"
 	port = "8548"
 	extra = "extra data"
@@ -370,7 +371,7 @@ func TestCandidateWithdraw(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
+	fee := uint64(7000)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
@@ -461,11 +462,15 @@ func TestCandidateWithdrawInfos(t *testing.T) {
 	fmt.Println("The CandidateWithdrawInfos is: ", vm.ResultByte2Json(resByte))
 }
 
+func TestTime(t *testing.T) {
+	fmt.Printf("时间戳（毫秒）：%v;\n", time.Now().UnixNano()/1e6)
+}
+
 func TestRlpData(t *testing.T) {
 
-	nodeId := []byte("0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
-	owner := []byte("0x493301712671ada506ba6ca7891f436d29185821")
-
+	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
+	owner := []byte("0x740ce31b3fac20dac379db243021a51e80ad00d7")
+	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
 	var CandidateDeposit [][]byte
 	CandidateDeposit = make([][]byte, 0)
@@ -473,10 +478,10 @@ func TestRlpData(t *testing.T) {
 	CandidateDeposit = append(CandidateDeposit, []byte("CandidateDeposit"))
 	CandidateDeposit = append(CandidateDeposit, nodeId)
 	CandidateDeposit = append(CandidateDeposit, owner)
-	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(10001))
-	CandidateDeposit = append(CandidateDeposit, []byte("0.0.0.3"))
-	CandidateDeposit = append(CandidateDeposit, []byte("30302"))
-	CandidateDeposit = append(CandidateDeposit, []byte("extra data"))
+	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(8000))
+	CandidateDeposit = append(CandidateDeposit, []byte("123.125.71.38"))
+	CandidateDeposit = append(CandidateDeposit, []byte("8545"))
+	CandidateDeposit = append(CandidateDeposit, []byte(extra))
 	bufDeposit := new(bytes.Buffer)
 	err := rlp.Encode(bufDeposit, CandidateDeposit)
 	if err != nil {
@@ -510,7 +515,7 @@ func TestRlpData(t *testing.T) {
 	var CandidateWithdraw [][]byte
 	CandidateWithdraw = make([][]byte, 0)
 	CandidateWithdraw = append(CandidateWithdraw, uint64ToBytes(1003))
-	CandidateWithdraw = append(CandidateWithdraw, []byte("CandidateWithdraw"))
+	CandidateWithdraw = append(CandidateWithdraw, []byte("CandidateWithdraw1"))
 	CandidateWithdraw = append(CandidateWithdraw, nodeId)
 	bufWith := new(bytes.Buffer)
 	err = rlp.Encode(bufWith, CandidateWithdraw)
