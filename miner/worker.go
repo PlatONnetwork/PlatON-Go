@@ -400,7 +400,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 				commit(false, commitInterruptNewHead, nil)
 			} else {
 				//w.makePending()
-				timer.Reset(0)
+				timer.Reset(100 * time.Microsecond)
 			}
 
 		case head := <-w.chainHeadCh:
@@ -435,14 +435,19 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// higher priced transactions. Disable this overhead for pending blocks.
 			if w.isRunning() {
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-					if shouldSeal, error := cbftEngine.ShouldSeal(); shouldSeal && error == nil {
-						if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-							log.Debug("begin to package new block regularly ")
-							commit(false, commitInterruptResubmit, commitBlock)
-							continue
+					if shouldSeal, error := cbftEngine.ShouldSeal(); error == nil {
+						if shouldSeal {
+							if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
+								log.Debug("begin to package new block regularly ")
+								commit(false, commitInterruptResubmit, commitBlock)
+								continue
+							}
+							timer.Reset(recommit)
+						} else {
+							timer.Reset(100 * time.Microsecond)
 						}
 					}
-					timer.Reset(recommit)
+
 				} else if w.config.Clique == nil || w.config.Clique.Period > 0 {
 					// Short circuit if no new transaction arrives.
 					if atomic.LoadInt32(&w.newTxs) == 0 {
