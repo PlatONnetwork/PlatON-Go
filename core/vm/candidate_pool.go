@@ -21,7 +21,6 @@ var (
 	ErrDepositEmpty     = errors.New("Deposit balance not zero")
 	ErrWithdrawEmpty    = errors.New("No withdrawal amount")
 	ErrCandidateEmpty   = errors.New("CandidatePool is null")
-	ErrLowerDeposit     = errors.New("No more than 10% above the minimum deposit")
 )
 
 const (
@@ -99,34 +98,6 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		c.addLog(CandidateDepositEvent, string(event))
 		return nil, ErrDepositEmpty
 	}
-	/*// get the minimum candidate's deposit
-	immediateNum := len(c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 1))
-	reserveNum := len(c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 2))
-	// TODO
-	if c.Evm.CandidatePool.MaxCount()*2 == uint64(immediateNum+reserveNum) {
-		immediateMinimumDeposit := new(big.Int)
-		reserveMinimumDeposit := new(big.Int)
-		minimumDeposit := new(big.Int)
-		if 0 != immediateNum {
-			immediateMinimumDeposit = c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 1)[immediateNum-1].Deposit
-		}
-		if 0 != reserveNum {
-			reserveMinimumDeposit = c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 2)[reserveNum-1].Deposit
-		}
-		depositLimit := big.NewInt(11)
-		if immediateMinimumDeposit.Cmp(reserveMinimumDeposit) < 1 {
-			minimumDeposit = reserveMinimumDeposit
-		} else {
-			minimumDeposit = immediateMinimumDeposit
-		}
-		if new(big.Int).Mul(deposit, big.NewInt(10)).Cmp(new(big.Int).Mul(minimumDeposit, depositLimit)) < 1 {
-			log.Error("Failed to CandidateDeposit==> ", "ErrLowerDeposit", ErrLowerDeposit.Error())
-			r := ResultCommon{false, "", ErrLowerDeposit.Error()}
-			event, _ := json.Marshal(r)
-			c.addLog(CandidateDepositEvent, string(event))
-			return nil, ErrLowerDeposit
-		}
-	}*/
 	can, err := c.Evm.CandidatePool.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("Failed to CandidateDeposit==> ", "err != nill: ", err.Error())
