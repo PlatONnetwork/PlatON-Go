@@ -156,6 +156,16 @@ func newCfcSet() map[string]map[string]*exec.FunctionImport {
 			"getState":     &exec.FunctionImport{Execute: envGetState, GasCost: envGetStateGasCost},
 			"getStateSize": &exec.FunctionImport{Execute: envGetStateSize, GasCost: envGetStateSizeGasCost},
 
+			// support for vc
+			"vc_InitGadgetEnv" : &exec.FunctionImport{Execute: envInitGadgetEnv, GasCost: envInitGadgetEnvGasCost},
+			"vc_UninitGadgetEnv" : &exec.FunctionImport{Execute: envUninitGadgetEnv, GasCost: envUninitGadgetEnvGasCost},
+			"vc_CreateBPVar" : &exec.FunctionImport{Execute: envCreateBPVarEnv, GasCost: envCreateBPVarGasCost},
+			"vc_CreateGadget" : &exec.FunctionImport{Execute: envCreateGadgetEnv, GasCost: envCreateGadgetGasCost},
+			"vc_SetVar" : &exec.FunctionImport{Execute: envSetVarEnv, GasCost: envSetVarGasCost},
+			"vc_GenerateWitness" : &exec.FunctionImport{Execute: envGenWitnessEnv, GasCost: envGenWitnessGasCost},
+			"vc_GenerateProofAndResult" : &exec.FunctionImport{Execute: envGenProofAndResultEnv, GasCost: envGenProofAndResultGasCost},
+			"vc_Verify" : &exec.FunctionImport{Execute: envVerifyEnv, GasCost: envVerifyGasCost},
+
 			// supplement
 			"getCallerNonce": &exec.FunctionImport{Execute: envGetCallerNonce, GasCost: constGasFunc(compiler.GasQuickStep)},
 			"callTransfer":   &exec.FunctionImport{Execute: envCallTransfer, GasCost: constGasFunc(compiler.GasQuickStep)},
