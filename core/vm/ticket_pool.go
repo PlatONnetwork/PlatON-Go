@@ -102,9 +102,9 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 		t.addLog(VoteTicketEvent, string(event))
 		return nil, err
 	}
-	data, _ := json.Marshal(arr)
+	data := len(arr)
 	sdata := DecodeResultStr(string(data))
-	log.Info("VoteTicket==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("VoteTicket==> ", "len(successTicketIds): ", data, " []byte: ", sdata)
 	if nil != err {
 		log.Error("Failed to VoteTicket==> ", "voteTicket occured error, tickets only partially successful", err.Error())
 		r := ResultCommon{true, string(data), err.Error()}
