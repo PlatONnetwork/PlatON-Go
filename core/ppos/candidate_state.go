@@ -23,7 +23,7 @@ var (
 	CandidateEmptyErr           = errors.New("Candidate is empty")
 	ContractBalanceNotEnoughErr = errors.New("Contract's balance is not enough")
 	CandidateOwnerErr           = errors.New("CandidateOwner Addr is illegal")
-	DepositLowErr 				= errors.New("Candidate deposit too low")
+	DepositLowErr               = errors.New("Candidate deposit too low")
 	WithdrawPriceErr            = errors.New("Withdraw Price err")
 	WithdrawLowErr              = errors.New("Withdraw Price too low")
 )
@@ -70,7 +70,7 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		return candidatePool
 	}
 	candidatePool = &CandidatePool{
-		depositLimit: 		  configs.Candidate.DepositLimit,
+		depositLimit:         configs.Candidate.DepositLimit,
 		allowed:              configs.Candidate.Allowed,
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
@@ -369,7 +369,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		}
 	}
 
-	handle := func(setInfoFn func(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
+	handleFunc := func(setInfoFn func(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
 		setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
 		// cache id
@@ -396,7 +396,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		delInfoFn(state, can.CandidateId)
 		// update reserve id index
 		if ids, err := getIndexFn(state); nil != err {
-			log.Error("withdraw failed get"+title+"Index on full withdrawerr", "err", err)
+			log.Error("withdraw failed get"+title+"Index on setCandidateInfo", "err", err)
 			return err
 		} else {
 			//for i, id := range ids {
@@ -408,7 +408,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 				}
 			}
 			if err := setIndexFn(state, ids); nil != err {
-				log.Error("withdraw failed set"+title+"Index on full withdrawerr", "err", err)
+				log.Error("withdraw failed set"+title+"Index on setCandidateInfo", "err", err)
 				return err
 			}
 		}
@@ -425,7 +425,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 			}
 		}
 		c.immediateCacheArr = cacheArr
-		return nodeIds, handle(c.setImmediate, c.setImmediateIndex)
+		return nodeIds, handleFunc(c.setImmediate, c.setImmediateIndex)
 	} else {
 		/** first delete this can on immediates */
 		if delimmediate {
@@ -434,7 +434,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 			}
 		}
 		c.reserveCacheArr = cacheArr
-		return nodeIds, handle(c.setReserve, c.setReserveIndex)
+		return nodeIds, handleFunc(c.setReserve, c.setReserveIndex)
 	}
 }
 
@@ -501,7 +501,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 		return nil, WithdrawPriceErr
 	} else if can.Deposit.Cmp(price) == 0 { // full withdraw
 
-		handle := func(tiltle string, delInfoFn func(state vm.StateDB, candidateId discover.NodeID),
+		handleFunc := func(tiltle string, delInfoFn func(state vm.StateDB, candidateId discover.NodeID),
 			getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 			setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
@@ -528,12 +528,12 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 		}
 
 		if flag {
-			if err := handle("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
+			if err := handleFunc("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
 				return nil, err
 			}
 
 		} else {
-			if err := handle("Reserve", c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
+			if err := handleFunc("Reserve", c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
 				return nil, err
 			}
 		}
@@ -573,7 +573,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			Fee:         can.Fee,
 		}
 
-		handle := func(title string, candidateMap candidateStorage,
+		handleFunc := func(title string, candidateMap candidateStorage,
 			setInfoFn func(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
 			setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) (types.CandidateQueue, error) {
 
@@ -602,13 +602,13 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 		}
 
 		if flag {
-			if arr, err := handle("Immediate", c.immediateCandidates, c.setImmediate, c.setImmediateIndex); nil != err {
+			if arr, err := handleFunc("Immediate", c.immediateCandidates, c.setImmediate, c.setImmediateIndex); nil != err {
 				return nil, err
 			} else {
 				c.immediateCacheArr = arr
 			}
 		} else {
-			if arr, err := handle("Reserve", c.reserveCandidates, c.setReserve, c.setReserveIndex); nil != err {
+			if arr, err := handleFunc("Reserve", c.reserveCandidates, c.setReserve, c.setReserveIndex); nil != err {
 				return nil, err
 			} else {
 				c.reserveCacheArr = arr
@@ -982,10 +982,17 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 			log.Error("Failed to initDataByState on Election", "nodeId", can.CandidateId.String(), " err", err)
 			return nil, err
 		}
+		/**
+		重新质押前的处理
+		 */
+		if flag, err := c.preElectionReset(state, can); nil != err {
+			c.lock.Unlock()
+			log.Error("Failed to preElectionReset on Election", "nodeId", can.CandidateId.String(), " err", err)
+			return nil, err
+		}else if nil == err && flag{
+			nodeIds = append(nodeIds, can.CandidateId)
+		}
 
-
-
-		// 这个和 setCandidate  还不一样。。。
 		// 因为需要先判断是否之前在 immediates 中，如果是则转移到 reserves 中
 		if ids, err := c.setCandidateInfo(state, can.CandidateId, can); nil != err {
 			c.lock.Unlock()
@@ -1348,7 +1355,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		return nil, err
 	}
 
-	handle := func(delTitle, setTitle string, nodeId discover.NodeID, oldMap, newMap candidateStorage,
+	handleFunc := func(delTitle, setTitle string, nodeId discover.NodeID, oldMap, newMap candidateStorage,
 		delOldInfoFn func(state vm.StateDB, candidateId discover.NodeID),
 		delNewInfoFn func(state vm.StateDB, candidateId discover.NodeID),
 		setNewInfoFn func(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
@@ -1441,49 +1448,64 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		return cacheNodeIds, cacheArr, nil
 	}
 
+	// 直接落榜并产生退款信息
+	directdropFunc := func(title string, can *types.Candidate,
+		delInfoFn func(state vm.StateDB, candidateId discover.NodeID),
+		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
+		setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
+
+		log.Debug("直接掉榜: 删除 "+title+" 中的can信息", "nodeId", can.CandidateId.String())
+		delInfoFn(state, can.CandidateId)
+
+		// append to refunds (defeat) trie
+		if err := c.setDefeat(state, can.CandidateId, can); nil != err {
+			return err
+		}
+
+		// update index of refund (defeat) on trie
+		if err := c.setDefeatIndex(state); nil != err {
+			return err
+		}
+
+		// update reserve id index
+		if ids, err := getIndexFn(state); nil != err {
+			log.Error("withdraw failed get"+title+"Index on UpdateElectedQueue", "err", err)
+			return err
+		} else {
+			//for i, id := range ids {
+			for i := 0; i < len(ids); i++ {
+				id := ids[i]
+				if id == can.CandidateId {
+					ids = append(ids[:i], ids[i+1:]...)
+					i--
+				}
+			}
+			if err := setIndexFn(state, ids); nil != err {
+				log.Error("withdraw failed set"+title+"Index on UpdateElectedQueue", "err", err)
+				return err
+			}
+		}
+		return nil
+	}
+
+
 	delNodeIds := make([]discover.NodeID, 0)
 
-	/*type result struct {
-		Type 	int // 0: immediate; 1: reserve
-		Err    error
-		ResArr []discover.NodeID
-		CanArr types.CandidateQueue
-	}
-	resChan := make(chan *result, len(nodeIds))
-	var wg sync.WaitGroup
-	wg.Add(len(nodeIds))*/
 
 	for _, nodeId := range nodeIds {
 
 		log.Info("判断当前nodeId原来属于哪个队列", "nodeId", nodeId.String())
 		switch c.checkExist(nodeId) {
 		case 1:
-
-			/*go func() {
-				res := new(result)
-				res.Type = 0
-				// remove to immediates from reserves
-				if !c.checkTicket(state.TCount(nodeId)) { // TODO
-					log.Info("原来在 im中需要移到 re中", "nodeId", nodeId.String())
-				//if !c.checkTicket(40) {
-					if delIds, canArr, err := handle("Immediate", "Reserve", nodeId, c.immediateCandidates, c.reserveCandidates,
-						c.delImmediate, c.delReserve, c.setReserve, c.getImmediateIndex, c.setImmediateIndex, c.setReserveIndex); nil != err {
-						//return nil, err
-						res.Err = err
-					}else {
-						res.CanArr = canArr
-						if len(delIds) != 0 {
-							res.ResArr = delIds
-						}
-					}
+			can := c.immediateCandidates[nodeId]
+			//if !c.checkTicket(state.TCount(nodeId)) { // TODO
+			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
+				if err := directdropFunc("Immediate", can, c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
+					return nil, err
 				}
-				resChan <- res
-				wg.Done()
-			}()*/
-
-			if !c.checkTicket(state.TCount(nodeId)) { // TODO
+			}else if noDrop && !tcount {
 				log.Info("原来在 im 中需要移到 re中", "nodeId", nodeId.String())
-				if delIds, canArr, err := handle("Immediate", "Reserve", nodeId, c.immediateCandidates, c.reserveCandidates,
+				if delIds, canArr, err := handleFunc("Immediate", "Reserve", nodeId, c.immediateCandidates, c.reserveCandidates,
 					c.delImmediate, c.delReserve, c.setReserve, c.getImmediateIndex, c.setImmediateIndex, c.setReserveIndex); nil != err {
 					return nil, err
 				} else {
@@ -1494,33 +1516,15 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 				}
 			}
 		case 2:
-
-			/*go func() {
-				res := new(result)
-				res.Type = 1
-				// remove to reserves from immediates
-				if c.checkTicket(state.TCount(nodeId)) { // TODO
-					log.Info("原来在 re中需要移到 im中", "nodeId", nodeId.String())
-				//if c.checkTicket(40) {
-					if delIds, canArr, err := handle("Reserve", "Immediate", nodeId, c.reserveCandidates, c.immediateCandidates,
-						c.delReserve, c.delImmediate, c.setImmediate, c.getReserveIndex, c.setReserveIndex, c.setImmediateIndex); nil != err {
-						//return nil, err
-						res.Err = err
-					}else {
-						res.CanArr = canArr
-						if len(delIds) != 0 {
-							res.ResArr = delIds
-						}
-					}
+			can := c.reserveCandidates[nodeId]
+			//if c.checkTicket(state.TCount(nodeId)) { // TODO
+			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
+				if err := directdropFunc("Reserve", can, c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
+					return nil, err
 				}
-				resChan <- res
-				wg.Done()
-			}()*/
-
-			if c.checkTicket(state.TCount(nodeId)) { // TODO
+			}else if noDrop && tcount{
 				log.Info("原来在 re 中需要移到 im中", "nodeId", nodeId.String())
-
-				if delIds, canArr, err := handle("Reserve", "Immediate", nodeId, c.reserveCandidates, c.immediateCandidates,
+				if delIds, canArr, err := handleFunc("Reserve", "Immediate", nodeId, c.reserveCandidates, c.immediateCandidates,
 					c.delReserve, c.delImmediate, c.setImmediate, c.getReserveIndex, c.setReserveIndex, c.setImmediateIndex); nil != err {
 					return nil, err
 				} else {
@@ -1530,115 +1534,47 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 					}
 				}
 			}
-
 		default:
-			//wg.Done()
 			continue
 		}
 	}
-	/*wg.Wait()
-	close(resChan)
-	for res := range resChan {
 
-		if nil != res.Err {
-			return nil, res.Err
-		}
-
-		switch res.Type {
-		case 0:
-			c.reserveCacheArr = append(c.reserveCacheArr, res.CanArr...)
-		case 1:
-			c.immediateCacheArr = append(c.immediateCacheArr, res.CanArr...)
-		default:
-			continue
-		}
-
-		if len(res.ResArr) != 0 {
-			delNodeIds = append(delNodeIds, res.ResArr...)
-		}
-	}*/
 	return delNodeIds, nil
 }
 
-
-
-func (c *CandidatePool) preElectionReset (state vm.StateDB, can *types.Candidate){
+// 揭榜后重新质押前的操作
+func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate) (bool, error) {
 	// 如果校验不通过的话，则直接掉榜，但掉榜前需要判断之前是在哪个队列的
-	if flag, ok := c.checkDeposit(state, can); !ok {
-		log.Info("Failed to checkDeposit on preElectionReset", "nodeId", can.CandidateId.String(), " err", DepositLowErr)
-
-		var del int  // del: 0 del immiedate; 1  del reserve
+	if _, ok := c.checkDeposit(state, can); !ok {
+		log.Warn("Failed to checkDeposit on preElectionReset", "nodeId", can.CandidateId.String(), " err", DepositLowErr)
+		var del int // del: 1 del immiedate; 2  del reserve
 		if _, ok := c.immediateCandidates[can.CandidateId]; ok {
-			del = 0
-		}
-		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
 			del = 1
 		}
-
-
-
-
-
-		// nodeIds cache for lost elected
-		nodeIds := make([]discover.NodeID, 0)
-
-		if len(cacheArr) > int(c.maxCount) {
-			// Intercepting the lost candidates to tmpArr
-			tmpArr := (cacheArr)[c.maxCount:]
-			// qualified elected candidates
-			cacheArr = (cacheArr)[:c.maxCount]
-
-			// handle tmpArr
-			for _, tmpCan := range tmpArr {
-
-				if flag {
-					// delete the lost candidates from immediate elected candidates of trie
-					c.delImmediate(state, tmpCan.CandidateId)
-				} else {
-					// delete the lost candidates from reserve elected candidates of trie
-					c.delReserve(state, tmpCan.CandidateId)
-				}
-				// append to refunds (defeat) trie
-				if err := c.setDefeat(state, tmpCan.CandidateId, tmpCan); nil != err {
-					return nil, err
-				}
-				nodeIds = append(nodeIds, tmpCan.CandidateId)
-			}
-
-			// update index of refund (defeat) on trie
-			if err := c.setDefeatIndex(state); nil != err {
-				return nil, err
-			}
+		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
+			del = 2
 		}
 
-		handle := func(setInfoFn func(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
-			setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
-
-			// cache id
-			sortIds := make([]discover.NodeID, 0)
-
-			// insert elected candidate to tire
-			for _, can := range cacheArr {
-				if err := setInfoFn(state, can.CandidateId, can); nil != err {
-					return err
-				}
-				sortIds = append(sortIds, can.CandidateId)
-			}
-			// update index of elected candidates on trie
-			if err := setIndexFn(state, sortIds); nil != err {
-				return err
-			}
-			return nil
-		}
-
+		// 直接产生退款信息
 		delFunc := func(title string, delInfoFn func(state vm.StateDB, candidateId discover.NodeID),
 			getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 			setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
 			delInfoFn(state, can.CandidateId)
+
+			// append to refunds (defeat) trie
+			if err := c.setDefeat(state, can.CandidateId, can); nil != err {
+				return err
+			}
+
+			// update index of refund (defeat) on trie
+			if err := c.setDefeatIndex(state); nil != err {
+				return err
+			}
+
 			// update reserve id index
 			if ids, err := getIndexFn(state); nil != err {
-				log.Error("withdraw failed get"+title+"Index on full withdrawerr", "err", err)
+				log.Error("withdraw failed get"+title+"Index on preElectionReset", "err", err)
 				return err
 			} else {
 				//for i, id := range ids {
@@ -1650,42 +1586,29 @@ func (c *CandidatePool) preElectionReset (state vm.StateDB, can *types.Candidate
 					}
 				}
 				if err := setIndexFn(state, ids); nil != err {
-					log.Error("withdraw failed set"+title+"Index on full withdrawerr", "err", err)
+					log.Error("withdraw failed set"+title+"Index on preElectionReset", "err", err)
 					return err
 				}
 			}
 			return nil
 		}
 
-		// cache id
-		//sortIds := make([]discover.NodeID, 0)
-		if flag {
-			/** first delete this can on reserves */
-			if delreserve {
-				if err := delFunc("Reserve", c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
-					return nil, err
-				}
-			}
-			c.immediateCacheArr = cacheArr
-			return nodeIds, handle(c.setImmediate, c.setImmediateIndex)
-		} else {
+		if del == 1 {
 			/** first delete this can on immediates */
-			if delimmediate {
-				if err := delFunc("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
-					return nil, err
-				}
-			}
-			c.reserveCacheArr = cacheArr
-			return nodeIds, handle(c.setReserve, c.setReserveIndex)
+			return true, delFunc("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex)
+		} else {
+			/** first delete this can on reserves */
+			return true, delFunc("Reserve", c.delReserve, c.getReserveIndex, c.setReserveIndex)
 		}
 	}
+	return false, nil
 }
 
 func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bool, bool) {
 	tcount := c.checkTicket(state.TCount(can.CandidateId))
 	// 如果当前得票数满足进入候选池，且候选池已满
 	if tcount && uint64(len(c.immediateCandidates)) == c.maxCount {
-		last := c.immediateCacheArr[len(c.immediateCacheArr) - 1]
+		last := c.immediateCacheArr[len(c.immediateCacheArr)-1]
 		lastDeposit := last.Deposit
 
 		// y = 100 + x
@@ -1700,7 +1623,7 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bo
 	}
 
 	if !tcount && uint64(len(c.reserveCandidates)) == c.maxCount {
-		last := c.reserveCacheArr[len(c.reserveCacheArr) - 1]
+		last := c.reserveCacheArr[len(c.reserveCacheArr)-1]
 		lastDeposit := last.Deposit
 
 		// y = 100 + x
@@ -1716,8 +1639,7 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bo
 	return tcount, true
 }
 
-
-func (c *CandidatePool)checkWithdraw(source, price *big.Int) error {
+func (c *CandidatePool) checkWithdraw(source, price *big.Int) error {
 	// y = old * x
 	percentage := new(big.Int).Mul(source, big.NewInt(int64(c.depositLimit)))
 	// y/100 == old * (x/100) == old * x%
