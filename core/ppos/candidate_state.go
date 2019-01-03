@@ -1041,8 +1041,11 @@ func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
 	if uint64(len(c.immediateCandates)) == c.maxCount {
 		last := c.candidateCacheArr[len(c.candidateCacheArr) - 1]
 		lastDeposit := last.Deposit
-		percentage := new(big.Int).Div(new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit))), big.NewInt(100))
+
+		percentage := new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit)))
+
 		tmp := new(big.Int).Mul(lastDeposit, percentage)
+		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
 			return DepositLowErr
 		}
