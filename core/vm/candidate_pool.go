@@ -85,12 +85,14 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
 		" host: ", host, " port: ", port, " extra: ", extra)
 	if fee > 10000 {
+		log.Error("Failed to CandidateDeposit==> ", "ErrFeeIllegal", ErrFeeIllegal.Error())
 		r := ResultCommon{false, "", ErrFeeIllegal.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(event))
 		return nil, ErrFeeIllegal
 	}
 	if deposit.Cmp(big.NewInt(0)) < 1 {
+		log.Error("Failed to CandidateDeposit==> ", "ErrDepositEmpty", ErrDepositEmpty.Error())
 		r := ResultCommon{false, "", ErrDepositEmpty.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(event))
@@ -115,6 +117,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		minimumDeposit = immediateMinimumDeposit
 	}
 	if new(big.Int).Mul(deposit, big.NewInt(10)).Cmp(new(big.Int).Mul(minimumDeposit, depositLimit)) < 1 {
+		log.Error("Failed to CandidateDeposit==> ", "ErrLowerDeposit", ErrLowerDeposit.Error())
 		r := ResultCommon{false, "", ErrLowerDeposit.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(event))
@@ -122,7 +125,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	}
 	can, err := c.Evm.CandidatePool.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil != err {
-		log.Error("Failed to CandidateDeposit==> ", "err!=nill: ", err.Error())
+		log.Error("Failed to CandidateDeposit==> ", "err != nill: ", err.Error())
 		r := ResultCommon{false, "", err.Error()}
 		event, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(event))
