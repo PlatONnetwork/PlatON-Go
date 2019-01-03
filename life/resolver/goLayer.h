@@ -11,10 +11,10 @@ typedef unsigned long long	uint64;
 //{
     void gadget_initEnv();
 	void gadget_uninitEnv();
-	void gadget_createPBVar(const char *varName);
-	unsigned char gadget_createGadget(const char *input0Name, const char *input1Name,
-    							const char *input2Name, const char *resName, int32 Type);
-	void gadget_setVar(const char *varName, uint64 Val);
+	void gadget_createPBVar(int64 varAddr);
+	unsigned char gadget_createGadget(int64 input0, int64 input1,
+    							int64 input2, int64 res, int32 Type);
+	void gadget_setVar(int64 varAddr, uint64 Val);
 	void gadget_generateWitness();
 	unsigned char GenerateProofAndResult(const char *pPKEY, char *pProof,
 										int prSize, char *pResult, int resSize);

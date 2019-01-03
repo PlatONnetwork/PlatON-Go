@@ -36,61 +36,39 @@ func envUninitGadgetEnvGasCost(vm *exec.VirtualMachine) (uint64, error) {
 	return 1, nil
 }
 
-// define: int64_t vc_CreateBPVar(const char *varName, int32_t Size);
-func envCreateBPVarEnv(vm *exec.VirtualMachine) int64 {
+// define: int64_t vc_CreatePBVar(void *varAddr);
+func envCreatePBVarEnv(vm *exec.VirtualMachine) int64 {
 	// get parameters
-	varOffset := int(int32(vm.GetCurrentFrame().Locals[0]))
-	varSize := int(int32(vm.GetCurrentFrame().Locals[1]))
-	varData := vm.Memory.Memory[varOffset : varOffset+varSize]
-	goVar := string(varData[:])
-	cVar := C.CString(goVar)
+	varAddr := int64(vm.GetCurrentFrame().Locals[0])
+	cvarAddr := C.longlong(varAddr)
 
 	// call c func
-	C.gadget_createPBVar(cVar)
+	C.gadget_createPBVar(cvarAddr)
 
-	// release memory
-	defer C.free(unsafe.Pointer(cVar))
 	return 0
 }
 
-func envCreateBPVarGasCost(vm *exec.VirtualMachine) (uint64, error) {
+func envCreatePBVarGasCost(vm *exec.VirtualMachine) (uint64, error) {
 	return 1, nil
 }
 
-// define: uint8_t vc_CreateGadget(const char *input0Name, int32_t input0Size, const char *input1Name, int32_t input1Size,
-//                 const char input2Name, int32_t input2Size, const char *resName, int32_t resSize, int32_t Type);
+// define: uint8_t vc_CreateGadget(void *input0, void *input1,
+//                 void *input2, void *res, int32_t Type);
 func envCreateGadgetEnv(vm *exec.VirtualMachine) int64 {
 	// get parameters
-	input0Offset := int(int32(vm.GetCurrentFrame().Locals[0]))
-	input0Size := int(int32(vm.GetCurrentFrame().Locals[1]))
-	input1Offset := int(int32(vm.GetCurrentFrame().Locals[2]))
-	input1Size := int(int32(vm.GetCurrentFrame().Locals[3]))
-	input2Offset := int(int32(vm.GetCurrentFrame().Locals[4]))
-	input2Size := int(int32(vm.GetCurrentFrame().Locals[5]))
-	resOffset := int(int32(vm.GetCurrentFrame().Locals[6]))
-	resSize := int(int32(vm.GetCurrentFrame().Locals[7]))
-	gType := int(int32(vm.GetCurrentFrame().Locals[8]))
-	input0Data := vm.Memory.Memory[input0Offset : input0Offset+input0Size]
-	input1Data := vm.Memory.Memory[input1Offset : input1Offset+input1Size]
-	input2Data := vm.Memory.Memory[input2Offset : input2Offset+input2Size]
-	resData := vm.Memory.Memory[resOffset : resOffset+resSize]
-	input0Var := string(input0Data[:])
-	input1Var := string(input1Data[:])
-	input2Var := string(input2Data[:])
-	resVar := string(resData[:])
-	csVar0 := C.CString(input0Var)
-	csVar1 := C.CString(input1Var)
-	csVar2 := C.CString(input2Var)
-	csresVar := C.CString(resVar)
+	input0Addr := int64(vm.GetCurrentFrame().Locals[0])
+	input1Addr := int64(vm.GetCurrentFrame().Locals[1])
+	input2Addr := int64(vm.GetCurrentFrame().Locals[2])
+	resAddr := 	int64(vm.GetCurrentFrame().Locals[3])
+	gType := int32(vm.GetCurrentFrame().Locals[4])
+
+	cinput0 := C.longlong(input0Addr)
+	cinput1 := C.longlong(input1Addr)
+	cinput2 := C.longlong(input2Addr)
+	cres := C.longlong(resAddr)
 
 	// call c func
-	retVal := uint8(C.gadget_createGadget(csVar0, csVar1, csVar2, csresVar, C.int(gType)))
-
-	// release memory
-	defer C.free(unsafe.Pointer(csVar0))
-	defer C.free(unsafe.Pointer(csVar1))
-	defer C.free(unsafe.Pointer(csVar2))
-	defer C.free(unsafe.Pointer(csresVar))
+	retVal := uint8(C.gadget_createGadget(cinput0, cinput1, cinput2, cres, C.int(gType)))
 
 	return int64(retVal)
 }
@@ -99,21 +77,17 @@ func envCreateGadgetGasCost(vm *exec.VirtualMachine) (uint64, error) {
 	return 1, nil
 }
 
-// define: void vc_SetVar(const char *varName, int32_t Size, uint64_t Val);
+// define: void vc_SetVar(void *var, uint64_t Val);
 func envSetVarEnv(vm *exec.VirtualMachine) int64 {
 	// get parameters
-	varOffset := int(int32(vm.GetCurrentFrame().Locals[0]))
-	varSize := int(int32(vm.GetCurrentFrame().Locals[1]))
-	val := int64(vm.GetCurrentFrame().Locals[2])
-	varData := vm.Memory.Memory[varOffset : varOffset+varSize]
-	goVar := string(varData[:])
-	cVar := C.CString(goVar)
+	varAddr := int64(vm.GetCurrentFrame().Locals[0])
+	varVal := int64(vm.GetCurrentFrame().Locals[1])
+	cvarAddr := C.longlong(varAddr)
+
 
 	// call c func
-	C.gadget_setVar(cVar, C.ulonglong(val))
+	C.gadget_setVar(cvarAddr, C.ulonglong(varVal))
 
-	// release memory
-	defer C.free(unsafe.Pointer(cVar))
 	return 0
 }
 
