@@ -99,7 +99,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		c.addLog(CandidateDepositEvent, string(event))
 		return nil, ErrDepositEmpty
 	}
-	// get the minimum candidate's deposit
+	/*// get the minimum candidate's deposit
 	immediateNum := len(c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 1))
 	reserveNum := len(c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 2))
 	// TODO
@@ -126,7 +126,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 			c.addLog(CandidateDepositEvent, string(event))
 			return nil, ErrLowerDeposit
 		}
-	}
+	}*/
 	can, err := c.Evm.CandidatePool.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("Failed to CandidateDeposit==> ", "err != nill: ", err.Error())

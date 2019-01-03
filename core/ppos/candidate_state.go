@@ -20,16 +20,20 @@ import (
 var (
 	CandidateEncodeErr          = errors.New("Candidate encoding err")
 	CandidateDecodeErr          = errors.New("Candidate decoding err")
-	WithdrawPriceErr            = errors.New("Withdraw Price err")
 	CandidateEmptyErr           = errors.New("Candidate is empty")
 	ContractBalanceNotEnoughErr = errors.New("Contract's balance is not enough")
 	CandidateOwnerErr           = errors.New("CandidateOwner Addr is illegal")
+	DepositLowErr 				= errors.New("Candidate deposit too low")
+	WithdrawPriceErr            = errors.New("Withdraw Price err")
+	WithdrawLowErr              = errors.New("Withdraw Price too low")
 )
 
 type candidateStorage map[discover.NodeID]*types.Candidate
 type refundStorage map[discover.NodeID]types.CandidateQueue
 
 type CandidatePool struct {
+	// min deposit limit percentage
+	depositLimit uint64
 	// allow put into immedidate condition
 	allowed uint64
 	// allow immediate elected max count
@@ -66,6 +70,7 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		return candidatePool
 	}
 	candidatePool = &CandidatePool{
+		depositLimit: 		  configs.Candidate.DepositLimit,
 		allowed:              configs.Candidate.Allowed,
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
@@ -273,6 +278,12 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		log.Error("Failed to initDataByState on SetCandidate", "nodeId", nodeId.String(), " err", err)
 		return err
 	}
+
+	if err := c.checkDeposit(can); nil != err {
+		log.Error("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", err)
+		return err
+	}
+
 	if arr, err := c.setCandidateInfo(state, nodeId, can); nil != err {
 		c.lock.Unlock()
 		log.Error("Failed to setCandidateInfo on SetCandidate", "nodeId", nodeId.String(), "err", err)
@@ -543,6 +554,12 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 	} else { // withdraw a few ...
 		// Only withdraw part of the refunds, need to reorder the immediate elected candidates
 		// The remaining candiate price to update current candidate info
+
+		if err := c.checkWithdraw(can.Deposit, price); nil != err {
+			log.Error("withdraw failed price invalid", " price", price.String(), "err", err)
+			return nil, err
+		}
+
 		canNew := &types.Candidate{
 			Deposit:     new(big.Int).Sub(can.Deposit, price),
 			BlockNumber: can.BlockNumber,
@@ -1538,6 +1555,66 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		}
 	}*/
 	return delNodeIds, nil
+}
+
+func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
+
+	// 如果之前在im 中的且 im满了
+
+	// 如果之前在re 中的且 re满了
+
+	// 之前都不在，但 都满了
+
+
+	if _, ok := c.immediateCandidates[can.CandidateId]; ok && uint64(len(c.immediateCandidates)) == c.maxCount {
+		last := c.immediateCacheArr[len(c.immediateCacheArr) - 1]
+		lastDeposit := last.Deposit
+		percentage := new(big.Int).Div(new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit))), big.NewInt(100))
+		tmp := new(big.Int).Mul(lastDeposit, percentage)
+		if can.Deposit.Cmp(tmp) <= 0 {
+			return DepositLowErr
+		}
+	}
+
+	if _, ok := c.reserveCandidates[can.CandidateId]; ok && uint64(len(c.reserveCandidates)) == c.maxCount {
+		last := c.reserveCacheArr[len(c.reserveCacheArr) - 1]
+		lastDeposit := last.Deposit
+		percentage := new(big.Int).Div(new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit))), big.NewInt(100))
+		tmp := new(big.Int).Mul(lastDeposit, percentage)
+		if can.Deposit.Cmp(tmp) <= 0 {
+			return DepositLowErr
+		}
+	}
+
+	if uint64(len(c.immediateCandidates)) == c.maxCount && uint64(len(c.reserveCandidates)) == c.maxCount {
+		im_last := c.immediateCacheArr[len(c.immediateCacheArr) - 1]
+		re_last := c.reserveCacheArr[len(c.reserveCacheArr) - 1]
+
+		var lastDeposit *big.Int
+
+		if im_last.Deposit.Cmp(re_last.Deposit) <= 0 {
+			lastDeposit = im_last.Deposit
+		}else {
+			lastDeposit = re_last.Deposit
+		}
+
+		percentage := new(big.Int).Div(new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit))), big.NewInt(100))
+		tmp := new(big.Int).Mul(lastDeposit, percentage)
+		if can.Deposit.Cmp(tmp) <= 0 {
+			return DepositLowErr
+		}
+	}
+	return nil
+}
+
+
+func (c *CandidatePool)checkWithdraw(source, price *big.Int) error {
+	percentage := new(big.Int).Div(big.NewInt(int64(c.depositLimit)), big.NewInt(100))
+	tmp := new(big.Int).Mul(source, percentage)
+	if price.Cmp(tmp) < 0 {
+		return WithdrawLowErr
+	}
+	return nil
 }
 
 // 0: empty

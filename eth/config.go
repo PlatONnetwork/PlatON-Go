@@ -173,6 +173,8 @@ type PposConfig struct {
 }
 
 type CandidateConfig struct {
+	// min deposit limit percentage
+	DepositLimit 			uint64					`json:"depositLimit"`
 	// allow put into immedidate condition
 	Allowed					uint64					`json:"allowed"`
 	// allow immediate elected max count

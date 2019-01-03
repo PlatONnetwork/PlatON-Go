@@ -232,14 +232,11 @@ type CbftConfig struct {
 
 // modify by platon
 type PposConfig struct {
-	//MaxCount				uint64
-	//MaxChair				uint64
-	//RefundBlockNumber 		uint64
-	//Candidates 				[]*CandidateConfig
 	Candidate *CandidateConfig
 	TicketConfig *TicketConfig
 }
 type CandidateConfig struct {
+	DepositLimit 	  uint64
 	Allowed 		  uint64
 	MaxCount          uint64
 	MaxChair          uint64
