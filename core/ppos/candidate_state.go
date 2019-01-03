@@ -56,13 +56,17 @@ var (
 
 	CandidateEncodeErr          = errors.New("Candidate encoding err")
 	CandidateDecodeErr          = errors.New("Candidate decoding err")
-	WithdrawPriceErr            = errors.New("Withdraw Price err")
 	CandidateEmptyErr           = errors.New("Candidate is empty")
 	ContractBalanceNotEnoughErr = errors.New("Contract's balance is not enough")
 	CandidateOwnerErr           = errors.New("CandidateOwner Addr is illegal")
+	DepositLowErr 				= errors.New("Candidate deposit too low")
+	WithdrawPriceErr            = errors.New("Withdraw Price err")
+	WithdrawLowErr              = errors.New("Withdraw Price too low")
 )
 
 type CandidatePool struct {
+	// min deposit limit percentage
+	depositLimit uint64
 	// allow immediate elected max count
 	maxCount uint64
 	// allow witness max count
@@ -91,6 +95,7 @@ var candidatePool *CandidatePool
 // Initialize the global candidate pool object
 func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 	candidatePool = &CandidatePool{
+		depositLimit: 		  configs.Candidate.DepositLimit,
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
 		RefundBlockNumber:    configs.Candidate.RefundBlockNumber,
@@ -105,20 +110,6 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 	return candidatePool
 }
 
-//func (c *CandidatePool) initSatedbByConfig (state vm.StateDB, initialNodes []discover.Node) error {
-//	// build previous witnesses and current witnesses
-//	for _, node := range initialNodes {
-//		can := &types.Candidate{
-//			Deposit: 			big.NewInt(0),
-//			BlockNumber: 		big.NewInt(0),
-//			TxIndex: 			0,
-//			CandidateId: 		node.ID,
-//			Host: 				node.IP.String(),
-//			Port:
-//
-//		}
-//	}
-//}
 
 // flag:
 // 0: only init previous witness and current witness and next witness
@@ -272,6 +263,12 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		log.Error("Failed to initDataByState on SetCandidate", " err", err)
 		return err
 	}
+
+	if err := c.checkDeposit(can); nil != err {
+		log.Error("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", err)
+		return err
+	}
+
 	c.immediateCandates[can.CandidateId] = can
 	c.candidateCacheArr = make([]*types.Candidate, 0)
 	// append to the cache array and then sort
@@ -416,6 +413,12 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 	} else {
 		// Only withdraw part of the refunds, need to reorder the immediate elected candidates
 		// The remaining candiate price to update current candidate info
+
+		if err := c.checkWithdraw(can.Deposit, price); nil != err {
+			log.Error("withdraw failed price invalid", " price", price.String(), "err", err)
+			return err
+		}
+
 		canNew := &types.Candidate{
 			Deposit:     new(big.Int).Sub(can.Deposit, price),
 			BlockNumber: can.BlockNumber,
@@ -1032,6 +1035,29 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 
 func (c *CandidatePool) GetRefundInterval() uint64 {
 	return c.RefundBlockNumber
+}
+
+func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
+	if uint64(len(c.immediateCandates)) == c.maxCount {
+		last := c.candidateCacheArr[len(c.candidateCacheArr) - 1]
+		lastDeposit := last.Deposit
+		percentage := new(big.Int).Div(new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit))), big.NewInt(100))
+		tmp := new(big.Int).Mul(lastDeposit, percentage)
+		if can.Deposit.Cmp(tmp) < 0 {
+			return DepositLowErr
+		}
+	}
+	return nil
+}
+
+
+func (c *CandidatePool)checkWithdraw(source, price *big.Int) error {
+	percentage := new(big.Int).Div(big.NewInt(int64(c.depositLimit)), big.NewInt(100))
+	tmp := new(big.Int).Mul(source, percentage)
+	if price.Cmp(tmp) < 0 {
+		return WithdrawLowErr
+	}
+	return nil
 }
 
 func (c *CandidatePool) setImmediate(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error {
