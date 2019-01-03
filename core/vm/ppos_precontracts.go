@@ -52,6 +52,7 @@ var (
 	ErrTxType           = errors.New("Transaction type does not match the function")
 	ErrCandidateEmpyt   = errors.New("CandidatePool is nil")
 	ErrCallRecode       = errors.New("Call recode error, panic...")
+	ErrLowerDeposit     = errors.New("No more than 10% above the minimum deposit")
 )
 
 const (
@@ -192,6 +193,16 @@ func (c *candidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		data, _ := json.Marshal(r)
 		c.addLog(CandidateDepositEvent, string(data))
 		return nil, ErrDepositEmpyt
+	}
+	// get the minimum candidate's deposit
+	index := len(c.evm.CandidatePool.GetChosens(c.evm.StateDB)) - 1
+	minimumDeposit := c.evm.CandidatePool.GetChosens(c.evm.StateDB)[index].Deposit
+	depositLimit := big.NewInt(1.1)
+	if deposit.Cmp(new(big.Int).Mul(minimumDeposit, depositLimit)) < 1 {
+		r := ResultCommon{false, ErrLowerDeposit.Error()}
+		data, _ := json.Marshal(r)
+		c.addLog(CandidateDepositEvent, string(data))
+		return nil, ErrLowerDeposit
 	}
 	can, err := c.evm.CandidatePool.GetCandidate(c.evm.StateDB, nodeId)
 	if err != nil {
@@ -381,7 +392,7 @@ func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, er
 		return nil, err
 	}
 	if nil == candidate {
-		c.logError("CandidateDetails Err==> The candidate for the inquiry does not exist")
+		c.logError("CandidateDetails Err==> ", "The candidate for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(candidate)
@@ -392,10 +403,9 @@ func (c *candidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, er
 
 //Get the current block candidate list 0~200
 func (c *candidateContract) CandidateList() ([]byte, error) {
-	c.logInfo("CandidateList==> into func CandidateList... ")
 	arr := c.evm.CandidatePool.GetChosens(c.evm.StateDB)
 	if nil == arr {
-		c.logError("CandidateList Err==> The candidateList for the inquiry does not exist")
+		c.logError("CandidateList Err==> ", "The candidateList for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(arr)
@@ -406,10 +416,9 @@ func (c *candidateContract) CandidateList() ([]byte, error) {
 
 //Get the current block round certifier list 25个
 func (c *candidateContract) VerifiersList() ([]byte, error) {
-	c.logInfo("VerifiersList==> into func VerifiersList... ")
 	arr := c.evm.CandidatePool.GetChairpersons(c.evm.StateDB)
 	if nil == arr {
-		c.logError("VerifiersList Err==> The verifiersList for the inquiry does not exist")
+		c.logError("VerifiersList Err==> ", "The verifiersList for the inquiry does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(arr)
