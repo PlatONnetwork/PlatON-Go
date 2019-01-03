@@ -1571,7 +1571,7 @@ func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
 		lastDeposit := last.Deposit
 		percentage := new(big.Int).Div(new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit))), big.NewInt(100))
 		tmp := new(big.Int).Mul(lastDeposit, percentage)
-		if can.Deposit.Cmp(tmp) <= 0 {
+		if can.Deposit.Cmp(tmp) < 0 {
 			return DepositLowErr
 		}
 	}
@@ -1581,7 +1581,7 @@ func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
 		lastDeposit := last.Deposit
 		percentage := new(big.Int).Div(new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit))), big.NewInt(100))
 		tmp := new(big.Int).Mul(lastDeposit, percentage)
-		if can.Deposit.Cmp(tmp) <= 0 {
+		if can.Deposit.Cmp(tmp) < 0 {
 			return DepositLowErr
 		}
 	}
@@ -1600,7 +1600,7 @@ func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
 
 		percentage := new(big.Int).Div(new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit))), big.NewInt(100))
 		tmp := new(big.Int).Mul(lastDeposit, percentage)
-		if can.Deposit.Cmp(tmp) <= 0 {
+		if can.Deposit.Cmp(tmp) < 0 {
 			return DepositLowErr
 		}
 	}
