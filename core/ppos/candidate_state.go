@@ -279,9 +279,10 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		return err
 	}
 
-	if err := c.checkDeposit(can); nil != err {
-		log.Error("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", err)
-		return err
+	// 每次质押前都需要先校验 当前can的质押金是否 不小于 要放置的对应的队列是否已满时的最小can的质押金
+	if _, ok := c.checkDeposit(state, can); !ok {
+		log.Error("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
+		return DepositLowErr
 	}
 
 	if arr, err := c.setCandidateInfo(state, nodeId, can); nil != err {
@@ -309,7 +310,6 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 	var flag, delimmediate, delreserve bool
 	// check ticket count
 	if c.checkTicket(state.TCount(nodeId)) { // TODO
-		//if c.checkTicket(40) {
 		flag = true
 		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
 			delreserve = true
@@ -982,6 +982,9 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 			log.Error("Failed to initDataByState on Election", "nodeId", can.CandidateId.String(), " err", err)
 			return nil, err
 		}
+
+
+
 		// 这个和 setCandidate  还不一样。。。
 		// 因为需要先判断是否之前在 immediates 中，如果是则转移到 reserves 中
 		if ids, err := c.setCandidateInfo(state, can.CandidateId, can); nil != err {
@@ -1557,9 +1560,131 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 	return delNodeIds, nil
 }
 
-func (c *CandidatePool) checkDeposit(flag bool, can *types.Candidate) error {
 
-	if _, ok := c.immediateCandidates[can.CandidateId]; ok && uint64(len(c.immediateCandidates)) == c.maxCount {
+
+func (c *CandidatePool) preElectionReset (state vm.StateDB, can *types.Candidate){
+	// 如果校验不通过的话，则直接掉榜，但掉榜前需要判断之前是在哪个队列的
+	if flag, ok := c.checkDeposit(state, can); !ok {
+		log.Info("Failed to checkDeposit on preElectionReset", "nodeId", can.CandidateId.String(), " err", DepositLowErr)
+
+		var del int  // del: 0 del immiedate; 1  del reserve
+		if _, ok := c.immediateCandidates[can.CandidateId]; ok {
+			del = 0
+		}
+		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
+			del = 1
+		}
+
+
+
+
+
+		// nodeIds cache for lost elected
+		nodeIds := make([]discover.NodeID, 0)
+
+		if len(cacheArr) > int(c.maxCount) {
+			// Intercepting the lost candidates to tmpArr
+			tmpArr := (cacheArr)[c.maxCount:]
+			// qualified elected candidates
+			cacheArr = (cacheArr)[:c.maxCount]
+
+			// handle tmpArr
+			for _, tmpCan := range tmpArr {
+
+				if flag {
+					// delete the lost candidates from immediate elected candidates of trie
+					c.delImmediate(state, tmpCan.CandidateId)
+				} else {
+					// delete the lost candidates from reserve elected candidates of trie
+					c.delReserve(state, tmpCan.CandidateId)
+				}
+				// append to refunds (defeat) trie
+				if err := c.setDefeat(state, tmpCan.CandidateId, tmpCan); nil != err {
+					return nil, err
+				}
+				nodeIds = append(nodeIds, tmpCan.CandidateId)
+			}
+
+			// update index of refund (defeat) on trie
+			if err := c.setDefeatIndex(state); nil != err {
+				return nil, err
+			}
+		}
+
+		handle := func(setInfoFn func(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
+			setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
+
+			// cache id
+			sortIds := make([]discover.NodeID, 0)
+
+			// insert elected candidate to tire
+			for _, can := range cacheArr {
+				if err := setInfoFn(state, can.CandidateId, can); nil != err {
+					return err
+				}
+				sortIds = append(sortIds, can.CandidateId)
+			}
+			// update index of elected candidates on trie
+			if err := setIndexFn(state, sortIds); nil != err {
+				return err
+			}
+			return nil
+		}
+
+		delFunc := func(title string, delInfoFn func(state vm.StateDB, candidateId discover.NodeID),
+			getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
+			setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
+
+			delInfoFn(state, can.CandidateId)
+			// update reserve id index
+			if ids, err := getIndexFn(state); nil != err {
+				log.Error("withdraw failed get"+title+"Index on full withdrawerr", "err", err)
+				return err
+			} else {
+				//for i, id := range ids {
+				for i := 0; i < len(ids); i++ {
+					id := ids[i]
+					if id == can.CandidateId {
+						ids = append(ids[:i], ids[i+1:]...)
+						i--
+					}
+				}
+				if err := setIndexFn(state, ids); nil != err {
+					log.Error("withdraw failed set"+title+"Index on full withdrawerr", "err", err)
+					return err
+				}
+			}
+			return nil
+		}
+
+		// cache id
+		//sortIds := make([]discover.NodeID, 0)
+		if flag {
+			/** first delete this can on reserves */
+			if delreserve {
+				if err := delFunc("Reserve", c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
+					return nil, err
+				}
+			}
+			c.immediateCacheArr = cacheArr
+			return nodeIds, handle(c.setImmediate, c.setImmediateIndex)
+		} else {
+			/** first delete this can on immediates */
+			if delimmediate {
+				if err := delFunc("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
+					return nil, err
+				}
+			}
+			c.reserveCacheArr = cacheArr
+			return nodeIds, handle(c.setReserve, c.setReserveIndex)
+		}
+	}
+}
+
+func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bool, bool) {
+	tcount := c.checkTicket(state.TCount(can.CandidateId))
+	// 如果当前得票数满足进入候选池，且候选池已满
+	if tcount && uint64(len(c.immediateCandidates)) == c.maxCount {
 		last := c.immediateCacheArr[len(c.immediateCacheArr) - 1]
 		lastDeposit := last.Deposit
 
@@ -1570,11 +1695,11 @@ func (c *CandidatePool) checkDeposit(flag bool, can *types.Candidate) error {
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
-			return DepositLowErr
+			return tcount, false
 		}
 	}
 
-	if _, ok := c.reserveCandidates[can.CandidateId]; ok && uint64(len(c.reserveCandidates)) == c.maxCount {
+	if !tcount && uint64(len(c.reserveCandidates)) == c.maxCount {
 		last := c.reserveCacheArr[len(c.reserveCacheArr) - 1]
 		lastDeposit := last.Deposit
 
@@ -1585,33 +1710,10 @@ func (c *CandidatePool) checkDeposit(flag bool, can *types.Candidate) error {
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
-			return DepositLowErr
+			return tcount, false
 		}
 	}
-
-	if uint64(len(c.immediateCandidates)) == c.maxCount && uint64(len(c.reserveCandidates)) == c.maxCount {
-		im_last := c.immediateCacheArr[len(c.immediateCacheArr) - 1]
-		re_last := c.reserveCacheArr[len(c.reserveCacheArr) - 1]
-
-		var lastDeposit *big.Int
-
-		if im_last.Deposit.Cmp(re_last.Deposit) <= 0 {
-			lastDeposit = im_last.Deposit
-		}else {
-			lastDeposit = re_last.Deposit
-		}
-
-		// y = 100 + x
-		percentage := new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit)))
-		// z = old * y
-		tmp := new(big.Int).Mul(lastDeposit, percentage)
-		// z/100 == old * (100 + x) / 100 == old * (y%)
-		tmp = new(big.Int).Div(tmp, big.NewInt(100))
-		if can.Deposit.Cmp(tmp) < 0 {
-			return DepositLowErr
-		}
-	}
-	return nil
+	return tcount, true
 }
 
 
