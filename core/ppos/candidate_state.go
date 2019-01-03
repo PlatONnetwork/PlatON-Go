@@ -31,7 +31,7 @@ type refundStorage map[discover.NodeID]types.CandidateQueue
 
 type CandidatePool struct {
 	// allow put into immedidate condition
-	allowed	uint64
+	allowed uint64
 	// allow immediate elected max count
 	maxCount uint64
 	// allow witness max count
@@ -66,7 +66,7 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		return candidatePool
 	}
 	candidatePool = &CandidatePool{
-		allowed: 			  configs.Candidate.Allowed,
+		allowed:              configs.Candidate.Allowed,
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
 		RefundBlockNumber:    configs.Candidate.RefundBlockNumber,
@@ -1850,6 +1850,10 @@ func (c *CandidatePool) getCandidates(state vm.StateDB, nodeIds ...discover.Node
 
 func (c *CandidatePool) MaxChair() uint64 {
 	return c.maxChair
+}
+
+func (c *CandidatePool) MaxCount() uint64 {
+	return c.maxCount
 }
 
 func getPreviousWitnessIdsState(state vm.StateDB) ([]discover.NodeID, error) {

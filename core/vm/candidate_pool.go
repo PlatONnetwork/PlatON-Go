@@ -44,6 +44,7 @@ type candidatePool interface {
 	GetOwner(state StateDB, nodeId discover.NodeID) common.Address
 	SetCandidateExtra(state StateDB, nodeId discover.NodeID, extra string) error
 	GetRefundInterval() uint64
+	MaxCount() uint64
 }
 
 type CandidateContract struct {
@@ -101,17 +102,16 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	// get the minimum candidate's deposit
 	immediateNum := len(c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 1))
 	reserveNum := len(c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 2))
-	if 200 == immediateNum+reserveNum {
+	// TODO
+	if c.Evm.CandidatePool.MaxCount()*2 == uint64(immediateNum+reserveNum) {
 		immediateMinimumDeposit := new(big.Int)
 		reserveMinimumDeposit := new(big.Int)
 		minimumDeposit := new(big.Int)
 		if 0 != immediateNum {
-			immediateIndex := immediateNum - 1
-			immediateMinimumDeposit = c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 1)[immediateIndex].Deposit
+			immediateMinimumDeposit = c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 1)[immediateNum-1].Deposit
 		}
 		if 0 != reserveNum {
-			reserveIndex := reserveNum - 1
-			reserveMinimumDeposit = c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 2)[reserveIndex].Deposit
+			reserveMinimumDeposit = c.Evm.CandidatePool.GetChosens(c.Evm.StateDB, 2)[reserveNum-1].Deposit
 		}
 		depositLimit := big.NewInt(11)
 		if immediateMinimumDeposit.Cmp(reserveMinimumDeposit) < 1 {
