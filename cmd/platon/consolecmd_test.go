@@ -56,9 +56,9 @@ func TestConsoleWelcome(t *testing.T) {
 
 	// Verify the actual welcome message to the required template
 	geth.Expect(`
-Welcome to the Platon JavaScript console!
+Welcome to the PlatON JavaScript console!
 
-instance: Platon/v{{gethver}}/{{goos}}-{{goarch}}/{{gover}}
+instance: PlatON/v{{gethver}}/{{goos}}-{{goarch}}/{{gover}}
 coinbase: {{.Etherbase}}
 at block: 0 ({{niltime}})
  datadir: {{.Datadir}}
