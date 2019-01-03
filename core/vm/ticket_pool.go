@@ -142,12 +142,14 @@ func (t *TicketContract) GetBatchTicketDetail(ticketIds []common.Hash) ([]byte, 
 	log.Info("GetBatchTicketDetail==>", "length: ", len(ticketIds), "ticketIds: ", string(input))
 	tickets, err := t.Evm.TicketPool.GetTicketList(t.Evm.StateDB, ticketIds)
 	if nil != err {
-		log.Error("GetBatchTicketDetail==> ", "GetBatchTicketDetail() occured error: ", err.Error())
-		return nil, err
-	}
-	if 0 == len(tickets) {
-		log.Error("GetBatchTicketDetail==> ", "The GetBatchTicketDetail for the inquiry does not exist")
-		return nil, nil
+		if 0 == len(tickets) {
+			log.Error("GetBatchTicketDetail==> ", "GetBatchTicketDetail() occured error: ", err.Error())
+			return nil, err
+		}
+		data, _ := json.Marshal(tickets)
+		sdata := DecodeResultStr(string(data))
+		log.Error("GetBatchTicketDetail==> ", "json: ", string(data), "[]byte: ", sdata, "GetBatchTicketDetail() occured error: ", err.Error())
+		return sdata, err
 	}
 	data, _ := json.Marshal(tickets)
 	sdata := DecodeResultStr(string(data))
@@ -162,10 +164,6 @@ func (t *TicketContract) GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, 
 	if nil != err {
 		log.Error("GetCandidateTicketIds==> ", "GetCandidateTicketIds() occured error: ", err.Error())
 		return nil, err
-	}
-	if 0 == len(candidateTicketIds) {
-		log.Error("GetCandidateTicketIds==> ", "The candidateTicketIds for the inquiry does not exist")
-		return nil, nil
 	}
 	data, _ := json.Marshal(candidateTicketIds)
 	sdata := DecodeResultStr(string(data))
