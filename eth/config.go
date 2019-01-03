@@ -49,6 +49,14 @@ var DefaultConfig = Config{
 		MaxLatency:       600,
 		LegalCoefficient: 1.0,
 		Duration:         10,
+		Ppos: 	&PposConfig{
+			Candidate: &CandidateConfig{
+				DepositLimit: 	  	10,
+				MaxCount:          	25,
+				MaxChair:          	200,
+				RefundBlockNumber: 	1536000,
+			},
+		},
 	},
 	Ethash: ethash.Config{
 		CacheDir:       "ethash",
