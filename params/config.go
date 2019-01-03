@@ -125,6 +125,19 @@ var (
 			Period: 3,
 			Epoch:  30000,
 			Duration:  30,
+			PposConfig: &PposConfig{
+				Candidate: &CandidateConfig{
+					DepositLimit: 	  	10,
+					Allowed: 			100,
+					MaxCount:          	25,
+					MaxChair:          	200,
+					RefundBlockNumber: 	512,
+				},
+				TicketConfig: &TicketConfig{
+					MaxCount:			51200,
+					ExpireBlockNumber: 	1536000,
+				},
+			},
 		},
 	}
 	// RinkebyTrustedCheckpoint contains the light client trusted checkpoint for the Rinkeby test network.
