@@ -281,6 +281,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 
 	// 每次质押前都需要先校验 当前can的质押金是否 不小于 要放置的对应的队列是否已满时的最小can的质押金
 	if _, ok := c.checkDeposit(state, can); !ok {
+		c.lock.Unlock()
 		log.Error("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
 		return DepositLowErr
 	}
@@ -989,8 +990,10 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 			c.lock.Unlock()
 			log.Error("Failed to preElectionReset on Election", "nodeId", can.CandidateId.String(), " err", err)
 			return nil, err
-		}else if nil == err && flag{
+		}else if nil == err && !flag{
 			nodeIds = append(nodeIds, can.CandidateId)
+			// continue handle next one
+			continue
 		}
 
 		// 因为需要先判断是否之前在 immediates 中，如果是则转移到 reserves 中
@@ -1454,7 +1457,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 		setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
-		log.Debug("直接掉榜: 删除 "+title+" 中的can信息", "nodeId", can.CandidateId.String())
+		log.Debug("直接掉榜: 删除 "+title+" 中的can信息 on UpdateElectedQueue", "nodeId", can.CandidateId.String())
 		delInfoFn(state, can.CandidateId)
 
 		// append to refunds (defeat) trie
@@ -1543,6 +1546,8 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 }
 
 // 揭榜后重新质押前的操作
+// false: direct get out
+// true: pass
 func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate) (bool, error) {
 	// 如果校验不通过的话，则直接掉榜，但掉榜前需要判断之前是在哪个队列的
 	if _, ok := c.checkDeposit(state, can); !ok {
@@ -1595,15 +1600,17 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 
 		if del == 1 {
 			/** first delete this can on immediates */
-			return true, delFunc("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex)
+			return false, delFunc("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex)
 		} else {
 			/** first delete this can on reserves */
-			return true, delFunc("Reserve", c.delReserve, c.getReserveIndex, c.setReserveIndex)
+			return false, delFunc("Reserve", c.delReserve, c.getReserveIndex, c.setReserveIndex)
 		}
 	}
-	return false, nil
+	return true, nil
 }
 
+// false: invalid deposit
+// true:  pass
 func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bool, bool) {
 	tcount := c.checkTicket(state.TCount(can.CandidateId))
 	// 如果当前得票数满足进入候选池，且候选池已满

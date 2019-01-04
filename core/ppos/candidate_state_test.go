@@ -582,7 +582,7 @@ func candidate_GetChairpersons (logger interface {}, logFn func (args ... interf
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -730,7 +730,7 @@ func candidate_GetWitness (logger interface {}, logFn func (args ... interface{}
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -882,7 +882,7 @@ func candidate_GetAllWitness (logger interface {}, logFn func (args ... interfac
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -1047,7 +1047,7 @@ func candidate_GetDefeat (logger interface {}, logFn func (args ... interface {}
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -1397,7 +1397,7 @@ func candidate_IsDefeat (logger interface{}, logFn func (args ... interface {}),
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -1573,7 +1573,7 @@ func candidate_RefundBalance(logger interface{}, logFn func (args ... interface 
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -1762,7 +1762,7 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func (args ... inter
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -1906,7 +1906,7 @@ func candidate_Election (logger interface{}, logFn func (args ...interface{}), e
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -2045,7 +2045,7 @@ func candidate_Switch (logger interface{}, logFn func (args ... interface {}), e
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
