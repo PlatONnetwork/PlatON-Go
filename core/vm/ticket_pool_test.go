@@ -31,7 +31,7 @@ func TestTicketPoolOverAll(t *testing.T) {
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error)
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
+	fee := uint64(7000)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
@@ -94,7 +94,7 @@ func TestVoteTicket(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
+	fee := uint64(7000)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
@@ -129,7 +129,7 @@ func TestGetTicketDetail(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
+	fee := uint64(7000)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
@@ -222,7 +222,7 @@ func TestGetCandidateTicketIds(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
+	fee := uint64(7000)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"
@@ -280,7 +280,7 @@ func TestGetBatchCandidateTicketIds(t *testing.T) {
 
 	nodeId2 := discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner = common.HexToAddress("0x12")
-	fee = uint64(1)
+	fee = uint64(7000)
 	host = "10.0.0.2"
 	port = "8548"
 	extra = "extra data"
@@ -351,7 +351,7 @@ func TestGetCandidateEpoch(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
+	fee := uint64(7000)
 	host := "10.0.0.1"
 	port := "8548"
 	extra := "extra data"

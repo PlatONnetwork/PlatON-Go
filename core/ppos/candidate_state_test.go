@@ -44,6 +44,8 @@ func newChainState() (*state.StateDB, error) {
 func newPool() (*pposm.CandidatePool, *pposm.TicketPool) {
 	configs := params.PposConfig{
 		Candidate: &params.CandidateConfig{
+			DepositLimit: 10,
+			Allowed: 2,
 			MaxChair: 1,
 			MaxCount: 3,
 			RefundBlockNumber: 	1,

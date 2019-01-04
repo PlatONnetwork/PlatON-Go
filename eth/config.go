@@ -49,6 +49,19 @@ var DefaultConfig = Config{
 		MaxLatency:       600,
 		LegalCoefficient: 1.0,
 		Duration:         10,
+		Ppos: &PposConfig{
+			Candidate: &CandidateConfig{
+				DepositLimit: 	  	10,
+				Allowed: 			100,
+				MaxCount:          	25,
+				MaxChair:          	200,
+				RefundBlockNumber: 	512,
+			},
+			Ticket: &TicketConfig{
+				MaxCount:			51200,
+				ExpireBlockNumber: 	1536000,
+			},
+		},
 	},
 	Ethash: ethash.Config{
 		CacheDir:       "ethash",
@@ -173,6 +186,8 @@ type PposConfig struct {
 }
 
 type CandidateConfig struct {
+	// min deposit limit percentage
+	DepositLimit 			uint64					`json:"depositLimit"`
 	// allow put into immedidate condition
 	Allowed					uint64					`json:"allowed"`
 	// allow immediate elected max count
