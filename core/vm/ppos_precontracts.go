@@ -28,13 +28,14 @@ var (
 
 // execute decode input data and call the function.
 func execute(input []byte, command map[string]interface{}) ([]byte, error) {
-	log.Info("execute==> ", "input: ", hex.EncodeToString(input))
+	log.Info("Input to execute==> ", "input: ", hex.EncodeToString(input))
 	defer func() {
 		if err := recover(); nil != err {
 			// catch call panic
 			log.Error("Failed to execute==> ", "err: ", fmt.Sprint(err))
 		}
 	}()
+	panic("ssss")
 	var source [][]byte
 	if err := rlp.Decode(bytes.NewReader(input), &source); nil != err {
 		log.Error("Failed to execute==> ", err.Error())
@@ -78,7 +79,7 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 		params[i] = reflect.ValueOf(byteutil.Command[targetType]).Call(originByte)[0]
 	}
 	result := reflect.ValueOf(funcValue).Call(params)
-	log.Info("execute==> ", "result[0]: ", result[0].Bytes())
+	log.Info("Result of execute==> ", "result[0]: ", result[0].Bytes())
 	if _, err := result[1].Interface().(error); !err {
 		return result[0].Bytes(), nil
 	}
