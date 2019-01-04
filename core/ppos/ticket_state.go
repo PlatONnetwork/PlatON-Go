@@ -483,7 +483,7 @@ func (t *TicketPool) GetCandidatesTicketIds(stateDB vm.StateDB, nodeIds []discov
 		for _, nodeId := range nodeIds {
 			ticketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
 			if nil != err {
-				return result, err
+				continue
 			}
 			result[nodeId] = ticketIds
 		}
