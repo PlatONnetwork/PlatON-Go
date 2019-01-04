@@ -35,7 +35,6 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 			log.Error("Failed to execute==> ", "err: ", fmt.Sprint(err))
 		}
 	}()
-	panic("ssss")
 	var source [][]byte
 	if err := rlp.Decode(bytes.NewReader(input), &source); nil != err {
 		log.Error("Failed to execute==> ", err.Error())
