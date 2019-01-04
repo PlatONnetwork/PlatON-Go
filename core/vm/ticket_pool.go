@@ -91,6 +91,12 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 		return nil, err
 	}
 	data := len(ticketIds)
+	// return the extra money
+	if uint64(data) < count {
+		failNum := count - uint64(data)
+		backBalance := new(big.Int).Mul(new(big.Int).SetUint64(failNum), price)
+		t.Evm.StateDB.AddBalance(from, backBalance)
+	}
 	sdata := DecodeResultStr(string(data))
 	log.Info("Result of VoteTicket==> ", "len(successTicketIds): ", data, " []byte: ", sdata)
 	if nil != err {
