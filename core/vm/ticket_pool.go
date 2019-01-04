@@ -46,7 +46,7 @@ func (t *TicketContract) RequiredGas(input []byte) uint64 {
 
 func (t *TicketContract) Run(input []byte) ([]byte, error) {
 	if nil == t.Evm.TicketPool {
-		log.Error("Failed to Run==> ", "ErrTicketPoolEmpty", ErrTicketPoolEmpty.Error())
+		log.Error("Failed to Run==> ", "ErrTicketPoolEmpty: ", ErrTicketPoolEmpty.Error())
 		return nil, ErrTicketPoolEmpty
 	}
 	var command = map[string]interface{}{
@@ -69,48 +69,42 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 	txIdx := t.Evm.StateDB.TxIdx()
 	blockNumber := t.Evm.Context.BlockNumber
 	from := t.Contract.caller.Address()
-	log.Info("VoteTicket==>", " nodeId: ", nodeId.String(), " owner: ", from.Hex(), " txhash: ", txHash.Hex(),
+	log.Info("Input to VoteTicket==>", " nodeId: ", nodeId.String(), " owner: ", from.Hex(), " txhash: ", txHash.Hex(),
 		" txIdx: ", txIdx, " blockNumber: ", blockNumber, " value: ", value, " count: ", count, " price: ", price)
 	can, err := t.Evm.CandidatePool.GetCandidate(t.Evm.StateDB, nodeId)
 	if nil != err {
-		log.Error("Failed to VoteTicket==> ", "GetCandidate occured error", err.Error())
-		r := ResultCommon{false, "", err.Error()}
-		event, _ := json.Marshal(r)
-		t.addLog(VoteTicketEvent, string(event))
+		log.Error("Failed to VoteTicket==> ", "GetCandidate return err: ", err.Error())
 		return nil, err
 	}
 	if nil == can {
-		log.Error("Failed to VoteTicket==> ", "GetCandidate occured error", ErrCandidateNotExist.Error())
-		r := ResultCommon{false, "", ErrCandidateNotExist.Error()}
-		event, _ := json.Marshal(r)
-		t.addLog(VoteTicketEvent, string(event))
+		log.Error("Failed to VoteTicket==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
 		return nil, ErrCandidateNotExist
 	}
 	totalPrice := new(big.Int).Mul(new(big.Int).SetUint64(count), price)
 	if totalPrice.Cmp(value) != 0 || totalPrice.Cmp(big.NewInt(0)) != 1 {
-		log.Error("Failed to VoteTicket==> ", "Compared deposit occured error", ErrIllegalDeposit.Error())
-		r := ResultCommon{false, "", ErrIllegalDeposit.Error()}
-		event, _ := json.Marshal(r)
-		t.addLog(VoteTicketEvent, string(event))
+		log.Error("Failed to VoteTicket==> ", "ErrIllegalDeposit: ", ErrIllegalDeposit.Error())
 		return nil, ErrIllegalDeposit
 	}
-	arr, err := t.Evm.TicketPool.VoteTicket(t.Evm.StateDB, from, count, price, nodeId, blockNumber)
-	if nil == arr {
-		log.Error("Failed to VoteTicket==> ", "voteTicket occured error, all the tickets failed", err.Error())
-		r := ResultCommon{false, "", err.Error()}
-		event, _ := json.Marshal(r)
-		t.addLog(VoteTicketEvent, string(event))
+	ticketIds, err := t.Evm.TicketPool.VoteTicket(t.Evm.StateDB, from, count, price, nodeId, blockNumber)
+	if nil == ticketIds {
+		log.Error("Failed to VoteTicket==> ", "VoteTicket return err(nil == ticketIds): ", err.Error())
 		return nil, err
 	}
-	data := len(arr)
+	data := len(ticketIds)
+	// return the extra money
+	if uint64(data) < count {
+		failNum := count - uint64(data)
+		backBalance := new(big.Int).Mul(new(big.Int).SetUint64(failNum), price)
+		t.Evm.StateDB.AddBalance(from, backBalance)
+	}
 	sdata := DecodeResultStr(string(data))
-	log.Info("VoteTicket==> ", "len(successTicketIds): ", data, " []byte: ", sdata)
+	log.Info("Result of VoteTicket==> ", "len(successTicketIds): ", data, " []byte: ", sdata)
 	if nil != err {
-		log.Error("Failed to VoteTicket==> ", "voteTicket occured error, tickets only partially successful", err.Error())
+		log.Error("Failed to VoteTicket==> ", "VoteTicket return err: ", err.Error())
 		r := ResultCommon{true, string(data), err.Error()}
 		event, _ := json.Marshal(r)
 		t.addLog(VoteTicketEvent, string(event))
-		return sdata, err
+		return sdata, nil
 	}
 	r := ResultCommon{true, string(data), "success"}
 	event, _ := json.Marshal(r)
@@ -120,88 +114,89 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 
 // GetTicketDetail returns the ticket info.
 func (t *TicketContract) GetTicketDetail(ticketId common.Hash) ([]byte, error) {
-	log.Info("GetTicketDetail==>", "ticketId: ", ticketId.Hex())
+	log.Info("Input to GetTicketDetail==> ", "ticketId: ", ticketId.Hex())
 	ticket, err := t.Evm.TicketPool.GetTicket(t.Evm.StateDB, ticketId)
 	if nil != err {
-		log.Error("Failed to GetTicketDetail==> ", "GetTicketDetail() occured error: ", err.Error())
+		log.Error("Failed to GetTicketDetail==> ", "GetTicket return err: ", err.Error())
 		return nil, err
 	}
-	if nil == ticket.BlockNumber {
-		log.Error("Failed to GetTicketDetail==> ", "The GetTicketDetail for the inquiry does not exist")
+	if (common.Hash{}) == ticket.TicketId {
+		log.Error("Failed to GetTicketDetail==> ", "The query does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(ticket)
 	sdata := DecodeResultStr(string(data))
-	log.Info("GetTicketDetail==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("Result of GetTicketDetail==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
 // GetBatchTicketDetail returns the batch of ticket info.
 func (t *TicketContract) GetBatchTicketDetail(ticketIds []common.Hash) ([]byte, error) {
 	input, _ := json.Marshal(ticketIds)
-	log.Info("GetBatchTicketDetail==>", "length: ", len(ticketIds), "ticketIds: ", string(input))
+	log.Info("Input to GetBatchTicketDetail==>", "length: ", len(ticketIds), "ticketIds: ", string(input))
 	tickets, err := t.Evm.TicketPool.GetTicketList(t.Evm.StateDB, ticketIds)
 	if nil != err {
 		if 0 == len(tickets) {
-			log.Error("Failed to Failed to GetBatchTicketDetail==> ", "GetBatchTicketDetail() occured error: ", err.Error())
+			log.Error("Failed to GetBatchTicketDetail==> ", "GetTicketList return err: ", err.Error())
 			return nil, err
 		}
 		data, _ := json.Marshal(tickets)
 		sdata := DecodeResultStr(string(data))
-		log.Error("Failed to GetBatchTicketDetail==> ", "json: ", string(data), "[]byte: ", sdata, "GetBatchTicketDetail() occured error: ", err.Error())
+		log.Info("Result of GetBatchTicketDetail==> ", "json: ", string(data), "[]byte: ", sdata)
 		return sdata, err
 	}
 	data, _ := json.Marshal(tickets)
 	sdata := DecodeResultStr(string(data))
-	log.Info("GetBatchTicketDetail==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("Result of GetBatchTicketDetail==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
 // GetCandidateTicketIds returns the list of ticketId for the candidate.
 func (t *TicketContract) GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error) {
-	log.Info("GetCandidateTicketIds==>", " nodeId: ", nodeId.String())
+	log.Info("Input to GetCandidateTicketIds==> ", " nodeId: ", nodeId.String())
 	candidateTicketIds, err := t.Evm.TicketPool.GetCandidateTicketIds(t.Evm.StateDB, nodeId)
 	if nil != err {
-		log.Error("Failed to GetCandidateTicketIds==> ", "GetCandidateTicketIds() occured error: ", err.Error())
+		log.Error("Failed to GetCandidateTicketIds==> ", "GetCandidateTicketIds return err: ", err.Error())
 		return nil, err
 	}
 	data, _ := json.Marshal(candidateTicketIds)
 	sdata := DecodeResultStr(string(data))
-	log.Info("GetCandidateTicketIds==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("Result of GetCandidateTicketIds==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
 // GetBatchCandidateTicketIds returns the batch of candidate's ticketIds.
 func (t *TicketContract) GetBatchCandidateTicketIds(nodeIds []discover.NodeID) ([]byte, error) {
 	input, _ := json.Marshal(nodeIds)
-	log.Info("GetBatchCandidateTicketIds==>", "length: ", len(nodeIds), "nodeIds: ", string(input))
+	log.Info("Input to GetBatchCandidateTicketIds==> ", "length: ", len(nodeIds), "nodeIds: ", string(input))
 	candidatesTicketIds, err := t.Evm.TicketPool.GetCandidatesTicketIds(t.Evm.StateDB, nodeIds)
 	if nil != err {
 		if 0 == len(candidatesTicketIds) {
-			log.Error("Failed to GetBatchCandidateTicketIds==> ", "GetBatchCandidateTicketIds() occured error: ", err.Error())
+			log.Error("Failed to GetBatchCandidateTicketIds==> ", "GetCandidatesTicketIds return err: ", err.Error())
 			return nil, err
 		}
 		data, _ := json.Marshal(candidatesTicketIds)
 		sdata := DecodeResultStr(string(data))
-		log.Error("Failed to GetBatchCandidateTicketIds==> ", "json: ", string(data), "[]byte: ", sdata, "GetBatchCandidateTicketIds() occured error: ", err.Error())
+		log.Info("Result of GetBatchCandidateTicketIds==> ", "json: ", string(data), "[]byte: ", sdata)
 		return sdata, err
 	}
 	data, _ := json.Marshal(candidatesTicketIds)
 	sdata := DecodeResultStr(string(data))
-	log.Info("GetBatchCandidateTicketIds==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("Result of GetBatchCandidateTicketIds==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
 // GetEpoch returns the current ticket age for the candidate.
 func (t *TicketContract) GetCandidateEpoch(nodeId discover.NodeID) ([]byte, error) {
-	log.Info("GetCandidateEpoch==>", " nodeId: ", nodeId.String())
+	log.Info("Input to GetCandidateEpoch==> ", " nodeId: ", nodeId.String())
 	epoch, err := t.Evm.TicketPool.GetCandidateEpoch(t.Evm.StateDB, nodeId)
 	if nil != err {
-		log.Error("Failed to GetCandidateEpoch==> ", "GetCandidateEpoch() occured error: ", err.Error())
+		log.Error("Failed to GetCandidateEpoch==> ", "GetCandidateEpoch return err: ", err.Error())
 		return nil, err
 	}
 	data, _ := json.Marshal(epoch)
 	sdata := DecodeResultStr(string(data))
+	log.Info("Result of GetCandidateEpoch==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
@@ -209,11 +204,12 @@ func (t *TicketContract) GetCandidateEpoch(nodeId discover.NodeID) ([]byte, erro
 func (t *TicketContract) GetPoolRemainder() ([]byte, error) {
 	remainder, err := t.Evm.TicketPool.GetPoolNumber(t.Evm.StateDB)
 	if nil != err {
-		log.Error("Failed to GetPoolRemainder==> ", "GetPoolRemainder() occured error: ", err.Error())
+		log.Error("Failed to GetPoolRemainder==> ", "GetPoolNumber return err: ", err.Error())
 		return nil, err
 	}
 	data, _ := json.Marshal(remainder)
 	sdata := DecodeResultStr(string(data))
+	log.Info("Result of GetPoolRemainder==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
@@ -221,11 +217,12 @@ func (t *TicketContract) GetPoolRemainder() ([]byte, error) {
 func (t *TicketContract) GetTicketPrice() ([]byte, error) {
 	price, err := t.Evm.TicketPool.GetTicketPrice(t.Evm.StateDB)
 	if nil != err {
-		log.Error("Failed to GetTicketPrice==> ", "GetTicketPrice() occured error: ", err.Error())
+		log.Error("Failed to GetTicketPrice==> ", "GetTicketPrice return err: ", err.Error())
 		return nil, err
 	}
 	data, _ := json.Marshal(price)
 	sdata := DecodeResultStr(string(data))
+	log.Info("Result of GetTicketPrice==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
