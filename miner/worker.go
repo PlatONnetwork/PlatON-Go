@@ -424,7 +424,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if w.isRunning() {
 				if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(); shouldSeal && error == nil {
 					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-						log.Debug("begin to package new block in time after getting a new highest logical blcok")
+						log.Debug("begin to package new block in time after resetting a new highest logical block")
 						commit(false, commitInterruptResubmit, commitBlock)
 					}
 				}
