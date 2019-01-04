@@ -1226,6 +1226,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	log.Debug("call Finalize()", "hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
 	cbft.accumulateRewards(chain.Config(), state, header, uncles)
+	cbft.IncreaseRewardPool(state, header.Number)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 	return types.NewBlock(header, txs, nil, receipts), nil
@@ -1754,7 +1755,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		log.Info("accumulateRewards==> GetCandidate return nil ", "nodeid: ", cbft.config.NodeID.String())
 		return
 	}
-
+	log.Info("accumulateRewards==> GetTicket ", "TicketId: ", can.TicketId.Hex())
 	ticket, err := cbft.ppos.ticketPool.GetTicket(state, can.TicketId)
 	if err!=nil {
 		log.Error("accumulateRewards==> GetTicket faile ", " err: ", err.Error())
@@ -1780,8 +1781,11 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		" Coinbase address: ", header.Coinbase.Hex(), " balance: ", state.GetBalance(header.Coinbase), " Ticket address: ", ticket.Owner.Hex(), " balance: ", state.GetBalance(ticket.Owner))
 }
 
-func (cbft *Cbft) IncreaseRewardPool(number *big.Int) {
-	//...
+func (cbft *Cbft) IncreaseRewardPool(state *state.StateDB, number *big.Int) {
+	//add balance to reward pool
+	if new(big.Int).Rem(number, YearBlocks).Cmp(big.NewInt(0)) == 0 {
+		state.AddBalance(common.RewardPoolAddr, GetAmount(number))
+	}
 }
 
 func GetAmount(number *big.Int) *big.Int {
