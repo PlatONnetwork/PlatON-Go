@@ -277,7 +277,7 @@ func (c *CandidateContract) CandidateList() ([]byte, error) {
 	}
 	data, _ := json.Marshal(candidates)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of CandidateList==>", "json: ", string(data), " []byte: ", sdata)
+	log.Info("Result of CandidateList==> ", "json: ", string(data), " []byte: ", sdata)
 	return sdata, nil
 }
 
