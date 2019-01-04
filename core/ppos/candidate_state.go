@@ -1505,6 +1505,8 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
 				if err := directdropFunc("Immediate", can, c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
 					return nil, err
+				}else {
+					delNodeIds = append(delNodeIds, nodeId)
 				}
 			}else if noDrop && !tcount {
 				log.Info("原来在 im 中需要移到 re中", "nodeId", nodeId.String())
@@ -1524,6 +1526,8 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
 				if err := directdropFunc("Reserve", can, c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
 					return nil, err
+				}else {
+					delNodeIds = append(delNodeIds, nodeId)
 				}
 			}else if noDrop && tcount{
 				log.Info("原来在 re 中需要移到 im中", "nodeId", nodeId.String())
