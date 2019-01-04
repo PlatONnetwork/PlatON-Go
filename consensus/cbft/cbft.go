@@ -1290,7 +1290,7 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
-func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
+func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
 	cbft.log.Debug("call Prepare()", "hash", header.Hash(), "number", header.Number.Uint64())
 
 	if cbft.getHighestLogical().block == nil || header.ParentHash != cbft.getHighestLogical().block.Hash() || header.Number.Uint64()-1 != cbft.getHighestLogical().block.NumberU64() {
@@ -1376,6 +1376,9 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		cbft.setHighestLogical(current)
 		cbft.highestConfirmed.Store(current)
 		cbft.flushReadyBlock()
+
+		cbft.log.Debug("reset TxPool after block sealed", "hash", current.block.Hash(), "number", current.number)
+		cbft.txPool.Reset(current.block)
 		return nil
 	}
 
