@@ -1,14 +1,15 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/life/utils"
-	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/core/lru"
+	"github.com/PlatONnetwork/PlatON-Go/life/utils"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"reflect"
 	"strings"
@@ -21,20 +22,20 @@ const (
 	CALL_CANTRACT_FLAG = 9
 )
 
-var DEFAULT_VM_CONFIG = exec.VMConfig {
+var DEFAULT_VM_CONFIG = exec.VMConfig{
 	EnableJIT:          false,
-	DefaultMemoryPages: 512,
-	DynamicMemoryPages: 10,
+	DefaultMemoryPages: exec.DefaultMemoryPages,
+	DynamicMemoryPages: exec.DynamicMemoryPages,
 }
 
 // WASMInterpreter represents an WASM interpreter
 type WASMInterpreter struct {
-	evm       *EVM
-	cfg       Config
+	evm         *EVM
+	cfg         Config
 	wasmStateDB *WasmStateDB
-	WasmLogger log.Logger
-	resolver   exec.ImportResolver
-	returnData []byte
+	WasmLogger  log.Logger
+	resolver    exec.ImportResolver
+	returnData  []byte
 }
 
 // NewWASMInterpreter returns a new instance of the Interpreter
@@ -46,9 +47,9 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 		cfg:     &cfg,
 	}
 	return &WASMInterpreter{
-		evm: evm,
-		cfg: cfg,
-		WasmLogger: NewWasmLogger(cfg, log.WasmRoot()),
+		evm:         evm,
+		cfg:         cfg,
+		WasmLogger:  NewWasmLogger(cfg, log.WasmRoot()),
 		wasmStateDB: wasmStateDB,
 		resolver:    resolver.NewResolver(0x01),
 	}
@@ -86,18 +87,33 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	}
 
 	context := &exec.VMContext{
-		Config :  	DEFAULT_VM_CONFIG,
-		Addr :     	contract.Address(),
-		GasLimit : 	contract.Gas,
-		StateDB :  	NewWasmStateDB(in.wasmStateDB, contract),
-		Log :      	in.WasmLogger,
+		Config:   DEFAULT_VM_CONFIG,
+		Addr:     contract.Address(),
+		GasLimit: contract.Gas,
+		StateDB:  NewWasmStateDB(in.wasmStateDB, contract),
+		Log:      in.WasmLogger,
 	}
 
 	var lvm *exec.VirtualMachine
-	lvm, err = exec.NewVirtualMachine(code, context, in.resolver, nil)
+	var module *lru.WasmModule
+	module, ok := lru.WasmCache().Get(contract.Address())
+
+	if !ok {
+		module = &lru.WasmModule{}
+		module.Module, module.FunctionCode, err = exec.ParseModuleAndFunc(code, nil)
+		if err != nil {
+			return nil, err
+		}
+		lru.WasmCache().Add(contract.Address(), module)
+	}
+
+	lvm, err = exec.NewVirtualMachineWithModule(module.Module, module.FunctionCode, context, in.resolver, nil)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		lvm.Stop()
+	}()
 
 	contract.Input = input
 	var (
