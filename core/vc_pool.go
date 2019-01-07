@@ -370,35 +370,6 @@ func (pool *VCPool) local() types.TransactionWraps {
 	return VCTxs
 }
 
-func (pool *VCPool) validateActor(wrapTx *types.TransactionWrap, bc *BlockChain, state *state.StateDB) (err error) {
-
-	header := bc.CurrentHeader()
-
-	singer := types.MakeSigner(pool.chainconfig, big.NewInt(int64(wrapTx.Bn)))
-	from, err := singer.Sender(wrapTx.Transaction)
-	if err != nil {
-		return fmt.Errorf("Retrive caller from transaction get failed : %v", err.Error())
-	}
-
-	input := "da880000000000000009906765745f7061727469636970616e7473"
-
-	msg := types.NewMessage(from, wrapTx.To(), 0, new(big.Int).SetInt64(0), wrapTx.Gas(), wrapTx.GasPrice(), common.Hex2Bytes(input), false)
-	context := NewEVMContext(msg, header, bc, nil)
-	vm := vm.NewEVM(context, state, bc.chainConfig, bc.vmConfig)
-	gp := new(GasPool).AddGas(math.MaxUint64)
-
-	ret, _, _, err := ApplyMessage(vm, msg, gp)
-	if err != nil {
-		return fmt.Errorf("get call error:%x", err)
-	}
-	fmt.Println(strings.ToLower(string(ret)))
-
-	// if !strings.Contains(strings.ToLower(string(ret)), state.)) {
-	// 	return fmt.Errorf("This from is not a participant : %x", err)
-	// }
-	return nil
-}
-
 func (pool *VCPool) validateTx(tx *types.TransactionWrap) (err error) {
 	input := tx.Data()
 	if input == nil || len(input) <= 1 {
