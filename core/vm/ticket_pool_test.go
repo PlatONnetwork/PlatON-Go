@@ -399,7 +399,7 @@ func TestTicketPoolEncode(t *testing.T) {
 	VoteTicket = make([][]byte, 0)
 	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1000))
 	VoteTicket = append(VoteTicket, []byte("VoteTicket"))
-	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(100))
+	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(9))
 	VoteTicket = append(VoteTicket, big.NewInt(1).Bytes())
 	VoteTicket = append(VoteTicket, nodeId)
 	bufVoteTicket := new(bytes.Buffer)

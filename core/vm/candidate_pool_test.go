@@ -469,7 +469,7 @@ func TestTime(t *testing.T) {
 func TestRlpData(t *testing.T) {
 
 	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
-	owner := []byte("0x740ce31b3fac20dac379db243021a51e80ad00d7")
+	owner := []byte("0xc1f330b214668beac2e6418dd651b09c759a4bf5")
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
 	var CandidateDeposit [][]byte
