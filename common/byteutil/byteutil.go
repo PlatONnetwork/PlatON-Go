@@ -23,11 +23,22 @@ var Command = map[string]interface{}{
 	"int64":             common.BytesToInt64,
 	"float32":           common.BytesToFloat32,
 	"float64":           common.BytesToFloat64,
-	"discover.NodeID":   HexToNodeId,
+	"discover.NodeID":   BytesToNodeId,
 	"[]discover.NodeID": ArrBytesToNodeId,
-	"common.Hash":       common.BytesToHash,
+	"common.Hash":       BytesToHash,
 	"[]common.Hash":     ArrBytesToHash,
 	"common.Address":    HexToAddress,
+}
+
+func BytesToNodeId(curByte []byte) discover.NodeID {
+	str := BytesToString(curByte)
+	nodeId, _ := discover.HexID(str)
+	return nodeId
+}
+
+func BytesToHash(curByte []byte) common.Hash {
+	str := BytesToString(curByte)
+	return common.HexToHash(str)
 }
 
 func ArrBytesToHash(curByte []byte) []common.Hash {
@@ -105,12 +116,12 @@ func HexToNodeId(b []byte) discover.NodeID {
 	return nodeid
 }
 
-func BytesTouint32(b []byte) uint32  {
+func BytesTouint32(b []byte) uint32 {
 	b = append(make([]byte, 8-len(b)), b...)
 	return binary.BigEndian.Uint32(b)
 }
 
-func BytesTouint64(b []byte) uint64  {
+func BytesTouint64(b []byte) uint64 {
 	b = append(make([]byte, 8-len(b)), b...)
 	return binary.BigEndian.Uint64(b)
 }
