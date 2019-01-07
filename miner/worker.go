@@ -667,8 +667,6 @@ func (w *worker) taskLoop() {
 			w.pendingTasks[sealHash] = task
 			w.pendingMu.Unlock()
 
-			log.Warn("当前task中的state为:", "blockNumber", task.block.NumberU64(), "root", task.state.IntermediateRoot(w.config.IsEIP158(task.block.Number())).String())
-
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 				// Save stateDB, receipts to consensusCache
 				w.consensusCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
@@ -682,7 +680,6 @@ func (w *worker) taskLoop() {
 			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
 				log.Warn("Block sealing failed", "err", err)
 			}
-			log.Warn("当前task中的state为:操作完seal之后", "blockNumber", task.block.NumberU64(), "root", task.state.IntermediateRoot(w.config.IsEIP158(task.block.Number())))
 		case <-w.exitCh:
 			interrupt()
 			return
