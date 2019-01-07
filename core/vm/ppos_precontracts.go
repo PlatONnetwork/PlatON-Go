@@ -51,16 +51,15 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 	}
 	funcValue := command[byteutil.BytesToString(source[1])]
 	// validate transaction type
-	var TxType = map[uint64]interface{}{
-		1000: command["VoteTicket"],
-		1001: command["CandidateDeposit"],
-		1002: command["CandidateApplyWithdraw"],
-		1003: command["CandidateWithdraw"],
-		1004: command["SetCandidateExtra"],
+	var txTypeMap = map[string]uint64{
+		"VoteTicket":             1000,
+		"CandidateDeposit":       1001,
+		"CandidateApplyWithdraw": 1002,
+		"CandidateWithdraw":      1003,
+		"SetCandidateExtra":      1004,
 	}
-	//if txFunc, ok := TxType[binary.BigEndian.Uint64(source[0])]; ok {
-	if txFunc, ok := TxType[byteutil.BytesTouint64(source[0])]; ok {
-		if reflect.TypeOf(txFunc) != reflect.TypeOf(funcValue) {
+	if txType, ok := txTypeMap[byteutil.BytesToString(source[1])]; ok {
+		if txType != byteutil.BytesTouint64(source[0]) {
 			log.Error("Failed to execute==> ", "ErrTxType: ", ErrTxType.Error())
 			return nil, ErrTxType
 		}
