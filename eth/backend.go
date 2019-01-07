@@ -130,9 +130,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
-	blockSignatureCh := make(chan *cbfttypes.BlockSignature)
+	blockSignatureCh := make(chan *cbfttypes.BlockSignature, 20)
 	cbftResultCh := make(chan *cbfttypes.CbftResult)
-	highestLogicalBlockCh := make(chan *types.Block)
+	highestLogicalBlockCh := make(chan *types.Block, 20)
 
 	eth := &Ethereum{
 		config:         config,
@@ -172,6 +172,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	blockChainCache := core.NewBlockChainCache(eth.blockchain)
+
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -183,9 +186,12 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
-	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
+	//eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
+	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, blockChainCache)
 
+	log.Debug("eth.txPool:::::", "txPool", eth.txPool)
 	// mpcPool deal with mpc transactions
+	// modify By J
 	if config.MPCPool.Journal != "" {
 		config.MPCPool.Journal = ctx.ResolvePath(config.MPCPool.Journal)
 	} else {
@@ -206,12 +212,12 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		cbft.SetDopsOption(eth.blockchain)
 	}
 
-	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
-	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)
+	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
+	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	if _, ok := eth.engine.(consensus.Bft); ok {
-		cbft.SetConsensusCache(consensusCache)
+		cbft.SetBlockChainCache(blockChainCache)
 		cbft.SetBackend(eth.blockchain, eth.txPool)
 
 		shouldElection := func(blockNumber *big.Int) bool {
@@ -622,6 +628,7 @@ func (s *Ethereum) Stop() error {
 func setPposConfig (pposConfig *PposConfig) *params.PposConfig{
 	return &params.PposConfig{
 		Candidate: 	&params.CandidateConfig{
+					DepositLimit:			pposConfig.Candidate.DepositLimit,
 					MaxChair:  				pposConfig.Candidate.MaxChair,
 					MaxCount:  				pposConfig.Candidate.MaxCount,
 					RefundBlockNumber: 		pposConfig.Candidate.RefundBlockNumber,

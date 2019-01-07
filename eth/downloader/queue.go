@@ -395,6 +395,7 @@ func (q *queue) Results(block bool) []*fetchResult {
 			for _, tx := range result.Transactions {
 				size += tx.Size()
 			}
+			// Recalculate the signatures result weights to prevent memory exhaustion
 			size += common.StorageSize(len(result.Signatures)*common.BlockConfirmSignLength)
 			q.resultSize = common.StorageSize(blockCacheSizeWeight)*size + (1-common.StorageSize(blockCacheSizeWeight))*q.resultSize
 		}

@@ -50,6 +50,7 @@ func newChainState() (*state.StateDB, error) {
 func newCandidatePool() *pposm.CandidatePool {
 	configs := params.PposConfig{
 		Candidate: &params.CandidateConfig{
+			DepositLimit: 10,
 			MaxChair: 1,
 			MaxCount: 3,
 			RefundBlockNumber: 	1,
@@ -231,7 +232,7 @@ func TestWithdrawCandidate(t *testing.T) {
 	candidatePool = newCandidatePool()
 
 	candidate := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(100),
+		Deposit: 		new(big.Int).SetUint64(99),
 		BlockNumber:    new(big.Int).SetUint64(7),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
 		TxIndex:  		6,
@@ -269,7 +270,7 @@ func TestWithdrawCandidate(t *testing.T) {
 
 	/** test WithdrawCandidate */
 	t.Log("test WithdrawCandidate ...")
-	ok1 := candidatePool.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
+	ok1 := candidatePool.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(98)), new(big.Int).SetUint64(uint64(10)))
 	t.Log("error", ok1)
 
 	/** test GetCandidate */
@@ -337,7 +338,7 @@ func TestGetElection(t *testing.T) {
 	candidatePool = newCandidatePool()
 
 	candidate := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(100),
+		Deposit: 		new(big.Int).SetUint64(110),
 		BlockNumber:    new(big.Int).SetUint64(7),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
 		TxIndex:  		6,
@@ -353,7 +354,7 @@ func TestGetElection(t *testing.T) {
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(100),
 		BlockNumber:    new(big.Int).SetUint64(7),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:  		5,
@@ -369,7 +370,7 @@ func TestGetElection(t *testing.T) {
 	}
 
 	candidate3 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(100),
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
 		TxIndex:  		5,
@@ -385,7 +386,7 @@ func TestGetElection(t *testing.T) {
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(90),
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
