@@ -121,7 +121,7 @@ func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 	}
 	if txType, ok := txTypeMap[byteutil.BytesToString(source[1])]; ok {
 		if txType != binary.BigEndian.Uint64(source[0]) {
-			log.Error("Failed to execute==> ", "ErrTxType: ", ErrTxType.Error())
+			log.Error("Failed to Run==> ", "ErrTxType: ", ErrTxType.Error())
 			return nil, ErrTxType
 		}
 	}
