@@ -27,7 +27,12 @@ var Command = map[string]interface{}{
 	"[]discover.NodeID": ArrBytesToNodeId,
 	"common.Hash":       BytesToHash,
 	"[]common.Hash":     ArrBytesToHash,
-	"common.Address":    HexToAddress,
+	"common.Address":    BytesToAddress,
+}
+
+func BytesToAddress(curByte []byte) common.Address {
+	str := BytesToString(curByte)
+	return common.HexToAddress(str)
 }
 
 func BytesToNodeId(curByte []byte) discover.NodeID {
@@ -109,11 +114,6 @@ func Uint64ToBytes(val uint64) []byte {
 
 func HexToAddress(b []byte) common.Address {
 	return common.HexToAddress(string(b))
-}
-
-func HexToNodeId(b []byte) discover.NodeID {
-	nodeid, _ := discover.HexID(string(b))
-	return nodeid
 }
 
 func BytesTouint32(b []byte) uint32 {

@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	ErrIllegalDeposit    = errors.New("Deposit balance not match")
+	ErrIllegalDeposit    = errors.New("Deposit balance not match or too low")
 	ErrCandidateNotExist = errors.New("Voted candidate not exist")
 	ErrTicketPoolEmpty   = errors.New("Ticket Pool is null")
 )
@@ -81,7 +81,7 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 		return nil, ErrCandidateNotExist
 	}
 	totalPrice := new(big.Int).Mul(new(big.Int).SetUint64(count), price)
-	if totalPrice.Cmp(value) != 0 || totalPrice.Cmp(big.NewInt(0)) != 1 {
+	if value.Cmp(totalPrice) < 0 || totalPrice.Cmp(big.NewInt(0)) != 1 {
 		log.Error("Failed to VoteTicket==> ", "ErrIllegalDeposit: ", ErrIllegalDeposit.Error())
 		return nil, ErrIllegalDeposit
 	}
