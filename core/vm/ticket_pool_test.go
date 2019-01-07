@@ -427,10 +427,10 @@ func TestTicketPoolEncode(t *testing.T) {
 	}
 
 	// GetTicketDetail(ticketId common.Hash)
-	ticketId := common.Hex2Bytes("3780eb19677a4c69add0fa8151abdac77d550f37585b3e1b06e73561f7197949")
+	ticketId := []byte("0x34bdecd0fa6b8d85b1fa436eac6066aca2f51cc5e84fec278bff7df781310982")
 	var GetTicketDetail [][]byte
 	GetTicketDetail = make([][]byte, 0)
-	GetTicketDetail = append(GetTicketDetail, byteutil.Uint64ToBytes(0xf1))
+	GetTicketDetail = append(GetTicketDetail, byteutil.Uint64ToBytes(1004))
 	GetTicketDetail = append(GetTicketDetail, []byte("GetTicketDetail"))
 	GetTicketDetail = append(GetTicketDetail, ticketId)
 	bufGetTicketDetail := new(bytes.Buffer)
