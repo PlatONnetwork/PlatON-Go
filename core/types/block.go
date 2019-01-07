@@ -83,6 +83,9 @@ type Header struct {
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
+
+	// caches
+	sealHash atomic.Value `json:"sealHash"         gencodec:"required"`
 }
 
 // field type overrides for gencodec
@@ -100,6 +103,39 @@ type headerMarshaling struct {
 // RLP encoding.
 func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
+}
+
+// SealHash returns the keccak256 seal hash of b's header.
+// The seal hash is computed on the first call and cached thereafter.
+func (header *Header) SealHash() (hash common.Hash) {
+	if sealHash := header.sealHash.Load(); sealHash != nil {
+		return sealHash.(common.Hash)
+	}
+	v := header._sealHash()
+	header.sealHash.Store(v)
+	return v
+}
+
+func (header *Header) _sealHash() (hash common.Hash) {
+	hasher := sha3.NewKeccak256()
+	rlp.Encode(hasher, []interface{}{
+		header.ParentHash,
+		header.UncleHash,
+		header.Coinbase,
+		header.Root,
+		header.TxHash,
+		header.ReceiptHash,
+		header.Bloom,
+		header.Number,
+		header.GasLimit,
+		header.GasUsed,
+		header.Time,
+		header.Extra[0:32],
+		header.MixDigest,
+		header.Nonce,
+	})
+	hasher.Sum(hash[:0])
+	return hash
 }
 
 // Size returns the approximate memory used by all internal contents. It is used

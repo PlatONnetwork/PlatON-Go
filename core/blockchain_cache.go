@@ -76,6 +76,16 @@ func (bcc *BlockChainCache) ReadReceipts(sealHash common.Hash) []*types.Receipt 
 	return nil
 }
 
+// GetState returns a new mutable state based on a particular point in time.
+func (bcc *BlockChainCache) GetState(header *types.Header) (*state.StateDB, error) {
+	state := bcc.ReadStateDB(header.SealHash())
+	if state != nil {
+		return state, nil
+	} else {
+		return bcc.StateAt(header.Root)
+	}
+}
+
 // Read the StateDB instance from the cache map
 func (pbc *BlockChainCache) ReadStateDB(sealHash common.Hash) *state.StateDB {
 	pbc.stateDBMu.RLock()
