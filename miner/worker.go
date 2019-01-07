@@ -400,7 +400,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 				commit(false, commitInterruptNewHead, nil)
 			} else {
 				//w.makePending()
-				timer.Reset(100 * time.Microsecond)
+				timer.Reset(100 * time.Millisecond)
 			}
 
 		case head := <-w.chainHeadCh:
@@ -444,7 +444,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 							}
 							timer.Reset(recommit)
 						} else {
-							timer.Reset(100 * time.Microsecond)
+							timer.Reset(100 * time.Millisecond)
 						}
 					}
 
