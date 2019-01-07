@@ -776,7 +776,6 @@ func (w *worker) resultLoop() {
 			w.pendingMu.RLock()
 			task, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
-			log.Warn("当前task中的state为:写链之前，拿出来之前", "blockNumber", task.block.NumberU64(), "root", task.state.IntermediateRoot(w.config.IsEIP158(task.block.Number())).String())
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
 			if exist && cbft.IsSignedBySelf(sealhash, block.Extra()[32:]) {
@@ -809,7 +808,6 @@ func (w *worker) resultLoop() {
 				}
 				logs = append(logs, receipt.Logs...)
 			}
-			log.Warn("当前task中的state为:写链之前：拿出来之后", "blockNumber", task.block.NumberU64(), "root", _state.IntermediateRoot(w.config.IsEIP158(task.block.Number())).String())
 			// Commit block and state to database.
 			block.ConfirmSigns = blockConfirmSigns
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
