@@ -7,9 +7,10 @@ package resolver
 */
 import "C"
 import (
-	"github.com/PlatONnetwork/PlatON-Go/life/exec"
 	"fmt"
 	"unsafe"
+
+	"github.com/PlatONnetwork/PlatON-Go/life/exec"
 )
 
 // define: void vc_InitGadgetEnv();
@@ -59,7 +60,7 @@ func envCreateGadgetEnv(vm *exec.VirtualMachine) int64 {
 	input0Addr := int64(vm.GetCurrentFrame().Locals[0])
 	input1Addr := int64(vm.GetCurrentFrame().Locals[1])
 	input2Addr := int64(vm.GetCurrentFrame().Locals[2])
-	resAddr := 	int64(vm.GetCurrentFrame().Locals[3])
+	resAddr := int64(vm.GetCurrentFrame().Locals[3])
 	gType := int32(vm.GetCurrentFrame().Locals[4])
 
 	cinput0 := C.longlong(input0Addr)
@@ -83,7 +84,6 @@ func envSetVarEnv(vm *exec.VirtualMachine) int64 {
 	varAddr := int64(vm.GetCurrentFrame().Locals[0])
 	varVal := int64(vm.GetCurrentFrame().Locals[1])
 	cvarAddr := C.longlong(varAddr)
-
 
 	// call c func
 	C.gadget_setVar(cvarAddr, C.ulonglong(varVal))

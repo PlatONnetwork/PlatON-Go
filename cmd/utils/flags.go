@@ -282,7 +282,7 @@ var (
 		Value: eth.DefaultConfig.TxPool.GlobalQueue,
 	}
 	TxPoolGlobalTxCountFlag = cli.Uint64Flag{
-		Name: "txpool.globaltxcount",
+		Name:  "txpool.globaltxcount",
 		Usage: "Maximum number of transactions for package",
 		Value: eth.DefaultConfig.TxPool.GlobalTxCount,
 	}
@@ -394,8 +394,6 @@ var (
 		Usage: "Password file to use for non-interactive password input",
 		Value: "",
 	}
-
-
 
 	VMEnableDebugFlag = cli.BoolFlag{
 		Name:  "vmdebug",
@@ -636,7 +634,7 @@ var (
 		Value: "",
 	}
 	MPCActorFlag = cli.StringFlag{
-		Name: "mpc.actor",
+		Name:  "mpc.actor",
 		Usage: "The address of actor to exec mpc compute",
 		Value: "",
 	}
@@ -644,18 +642,21 @@ var (
 		Name:  "mpc",
 		Usage: "Enable mpc compute",
 	}
+	VCEnabledFlag = cli.BoolFlag{
+		Name:  "vc",
+		Usage: "Enable vc compute",
+	}
 	VCActorFlag = cli.StringFlag{
-		Name: "vc.actor",
+		Name:  "vc.actor",
 		Usage: "The address of vc to exec set result",
 		Value: "",
 	}
 
 	VCPasswordFlag = cli.StringFlag{
-		Name: "vc.password",
+		Name:  "vc.password",
 		Usage: "the pwd of unlock actor",
 		Value: "",
 	}
-
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -915,7 +916,6 @@ func setEtherbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *eth.Config) {
 	}
 }
 
-
 // MakePasswordList reads password lines from the file specified by the global --password flag.
 func MakePasswordList(ctx *cli.Context) []string {
 	path := ctx.GlobalString(PasswordFileFlag.Name)
@@ -1112,6 +1112,9 @@ func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
 }
 
 func setVcPool(ctx *cli.Context, cfg *core.VCPoolConfig) {
+	if ctx.GlobalIsSet(VCEnabledFlag.Name) {
+		cfg.VCEnable = ctx.GlobalBool(VCEnabledFlag.Name)
+	}
 	if ctx.GlobalIsSet(VCActorFlag.Name) {
 		cfg.VcActor = common.HexToAddress(ctx.GlobalString(VCActorFlag.Name))
 		fmt.Println("cfg.VcActor", cfg.VcActor)

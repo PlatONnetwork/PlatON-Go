@@ -1,6 +1,19 @@
 package core
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"math/big"
+	"net/http"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -14,18 +27,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"math/big"
-	"net/http"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strings"
-	"sync"
-	"time"
 )
 
 var VC_POOL *VCPool
@@ -42,6 +43,7 @@ type VCBlockChain interface {
 }
 
 type VCPoolConfig struct {
+	VCEnable    bool          // the switch of vc compute
 	NoLocals    bool          // Whether local transaction handling should be disabled
 	Journal     string        // Journal of local transactions to survive node restarts
 	Rejournal   time.Duration // Time interval to regenerate the local transaction journal
@@ -434,6 +436,10 @@ func (pool *VCPool) validateTx(tx *types.TransactionWrap) (err error) {
 }
 
 func (pool *VCPool) InjectTxs(block *types.Block, receipts types.Receipts, bc *BlockChain, state *state.StateDB) {
+	if !pool.config.VCEnable {
+		log.Info("Wow ~ VC Disable...")
+		return
+	}
 
 	for _, tx := range block.Transactions() {
 		isSave := false
