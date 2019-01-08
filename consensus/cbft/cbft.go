@@ -1746,7 +1746,15 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	}
 	blockReward = new(big.Int).Div(yearReward, YearBlocks)
 
-	can, err := cbft.ppos.GetCandidate(state, cbft.config.NodeID)
+	//nodeid, ero := ecrecover(header)
+	//if ero!=nil {
+	//	return
+	//}
+
+
+
+
+	can, err := cbft.ppos. GetCandidate(state, cbft.config.NodeID)
 	if err != nil {
 		log.Error("accumulateRewards==> GetCandidate faile ", " nodeid: ", cbft.config.NodeID.String(), " err: ", err.Error())
 		return
@@ -1797,3 +1805,4 @@ func GetAmount(number *big.Int) *big.Int {
 	ret := new(big.Int).Div(yearAmount, base)
 	return ret
 }
+
