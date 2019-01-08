@@ -41,7 +41,8 @@ const (
 )
 
 const (
-	IS_IMMEDIATE = iota + 1
+	IS_LOST = iota
+	IS_IMMEDIATE
 	IS_RESERVE
 )
 

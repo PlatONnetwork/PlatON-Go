@@ -1717,7 +1717,7 @@ func (c *CandidatePool) checkExist(nodeId discover.NodeID) int {
 	if _, ok := c.reserveCandidates[nodeId]; ok {
 		return IS_RESERVE
 	}
-	return 0
+	return IS_LOST
 }
 
 func (c *CandidatePool) checkTicket(t_count uint64) bool {
