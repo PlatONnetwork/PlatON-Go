@@ -2205,7 +2205,7 @@ func GetCandidatePtr() *CandidatePool {
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
 
-	log.Info(s, "==", string(objs))
+	log.Debug(s, "==", string(objs))
 	//fmt.Println(s, string(objs))
 }
 
