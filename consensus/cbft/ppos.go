@@ -237,6 +237,15 @@ func (d *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discove
 	return d.candidatePool.GetAllWitness(state)
 }
 
+// Getting can by witnesses
+// flag:
+// -1: 		previous round
+// 0:		current round
+// 1: 		next round
+func (d *ppos) GetWitnessCandidate (state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
+	return d.candidatePool.GetWitnessCandidate(state, nodeId, flag)
+}
+
 // setting candidate pool of ppos module
 func (d *ppos) setCandidatePool(blockChain *core.BlockChain, initialNodes []discover.Node) {
 	log.Info("---start node，to update nodeRound---")
