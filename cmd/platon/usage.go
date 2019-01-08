@@ -256,6 +256,7 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "VC COMPUTE",
 		Flags: []cli.Flag{
+			utils.VCEnabledFlag,
 			utils.VCActorFlag,
 			utils.VCPasswordFlag,
 		},
@@ -263,7 +264,6 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "MISC",
 	},
-
 }
 
 // byCategory sorts an array of flagGroup by Name in the order

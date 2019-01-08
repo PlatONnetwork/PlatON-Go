@@ -172,6 +172,7 @@ var (
 		utils.MPCActorFlag,
 	}
 	vcFlags = []cli.Flag{
+		utils.VCEnabledFlag,
 		utils.VCActorFlag,
 		utils.VCPasswordFlag,
 	}
