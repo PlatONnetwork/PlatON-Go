@@ -237,6 +237,15 @@ func (d *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discove
 	return d.candidatePool.GetAllWitness(state)
 }
 
+// Getting can by witnesses
+// flag:
+// -1: 		previous round
+// 0:		current round
+// 1: 		next round
+func (d *ppos) GetWitnessCandidate (state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
+	return d.candidatePool.GetWitnessCandidate(state, nodeId, flag)
+}
+
 // setting candidate pool of ppos module
 func (d *ppos) setCandidatePool(blockChain *core.BlockChain, initialNodes []discover.Node) {
 	log.Info("---start node，to update nodeRound---")
@@ -396,7 +405,7 @@ func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Ha
 	res := d.nodeRound[blockNumber]
 
 	log.Info(title + ":遍历出来存进去的RoundNodes，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-	pposm.PrintObject(title + ":遍历出来存进去的Round:", d.nodeRound)
+	//pposm.PrintObject(title + ":遍历出来存进去的Round:", d.nodeRound)
 	if round, ok  := res[blockHash]; ok {
 		if nil != round.former{
 			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 上一轮: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)

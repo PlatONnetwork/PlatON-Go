@@ -95,7 +95,7 @@ func (nb *NumBlocks) Hash(cache TicketCache) (common.Hash, error) {
 		return common.Hash{}, ErrProbufMarshal
 	}
 	ret := crypto.Keccak256Hash(out)
-	log.Info("Hash==> ", "run time ",  " ms: ", timer.End())
+	log.Info("Hash==> ", "run time  ms: ", timer.End())
 	return ret, nil
 }
 

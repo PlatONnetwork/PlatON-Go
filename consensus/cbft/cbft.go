@@ -1290,6 +1290,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), current.block.Hash())
 		blockInterval := new(big.Int).Sub(current.block.Number(), cbft.blockChain.CurrentBlock().Number())
 		cbft.ppos.Submit2Cache(state, blockNumber, blockInterval, current.block.Hash())
+		root := state.IntermediateRoot(cbft.blockChain.Config().IsEIP158(current.block.Number()))
+		log.Debug("【共识 打包出块】最后在，Submit2Cache之后", "blockNumber", current.block.NumberU64(), "blockHash", current.block.Hash().Hex(), "block.root", current.block.Root().Hex(), "实时的state.root", root.Hex())
 	} else {
 		log.Error("setNodeCache error")
 	}

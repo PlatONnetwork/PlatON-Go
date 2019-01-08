@@ -1327,6 +1327,47 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	return preArr, curArr, nextArr, nil
 }
 
+// Getting can by witnesses
+// flag:
+// -1: 		previous round
+// 0:		current round
+// 1: 		next round
+func (c *CandidatePool) GetWitnessCandidate(state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.initDataByState(state, 0); nil != err {
+		log.Error("Failed to initDataByState on GetWitnessCandidate", "err", err)
+		return nil, err
+	}
+	switch flag {
+	case -1:
+		if can, ok := c.preOriginCandidates[nodeId]; !ok {
+			log.Error("Failed to found can on GetWitnessCandidate, can no exist in previous witnesses ", "nodeId", nodeId.String())
+			return nil, CandidateEmptyErr
+		}else {
+			return can, nil
+		}
+	case 0:
+		if can, ok := c.originCandidates[nodeId]; !ok {
+			log.Error("Failed to found can on GetWitnessCandidate, can no exist in current witnesses", "nodeId", nodeId.String())
+			return nil, CandidateEmptyErr
+		}else {
+			return can, nil
+		}
+	case 1:
+		if can, ok := c.nextOriginCandidates[nodeId]; !ok {
+			log.Error("Failed to found can on GetWitnessCandidate, can no exist in previous witnesses", "nodeId", nodeId.String())
+			return nil, CandidateEmptyErr
+		}else {
+			return can, nil
+		}
+	default:
+		log.Error("Failed to found can on GetWitnessCandidate, flag is invalid", "flag", flag)
+		return nil, CandidateEmptyErr
+	}
+}
+
 func (c *CandidatePool) GetRefundInterval() uint64 {
 	return c.RefundBlockNumber
 }
