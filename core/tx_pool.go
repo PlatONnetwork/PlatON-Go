@@ -281,15 +281,20 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 }
 
 func (pool *TxPool) txExtBufferReadLoop() {
-	for {
-		select {
-		case txExt := <-pool.txExtBuffer:
-			err := pool.addTxExt(txExt)
-			txExt.txErr <- err
-		case <-pool.exitCh:
-			return
-		}
+	for txExt := range pool.txExtBuffer {
+		err := pool.addTxExt(txExt)
+		txExt.txErr <- err
 	}
+	/*
+		for {
+			select {
+			case txExt := <-pool.txExtBuffer:
+				err := pool.addTxExt(txExt)
+				txExt.txErr <- err
+			case <-pool.exitCh:
+				return
+			}
+		}*/
 }
 
 // loop is the transaction pool's main event loop, waiting for and reacting to
@@ -553,7 +558,8 @@ func (pool *TxPool) Stop() {
 	// Unsubscribe all subscriptions registered from txpool
 	pool.scope.Close()
 
-	close(pool.exitCh)
+	pool.exitCh <- struct{}{}
+	close(pool.txExtBuffer)
 
 	pool.wg.Wait()
 
