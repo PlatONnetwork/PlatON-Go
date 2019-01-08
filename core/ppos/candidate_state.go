@@ -336,7 +336,8 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 	}
 
 	// sort cache array
-	candidateSort(cacheArr)
+	//candidateSort(cacheArr)
+	cacheArr.CandidateSort()
 
 	// nodeIds cache for lost elected
 	nodeIds := make([]discover.NodeID, 0)
@@ -589,7 +590,8 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			for _, can := range candidateMap {
 				candidateArr = append(candidateArr, can)
 			}
-			candidateSort(candidateArr)
+			//candidateSort(candidateArr)
+			candidateArr.CandidateSort()
 			ids := make([]discover.NodeID, 0)
 			for _, can := range candidateArr {
 				ids = append(ids, can.CandidateId)
@@ -1027,7 +1029,8 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	}
 
 	// sort immediate candidates
-	candidateSort(c.immediateCacheArr)
+	//candidateSort(c.immediateCacheArr)
+	c.immediateCacheArr.CandidateSort()
 	log.Info("揭榜时，排序的候选池数组长度:", "len", len(c.immediateCacheArr))
 	PrintObject("揭榜时，排序的候选池数组:", c.immediateCacheArr)
 	// cache ids
@@ -1421,7 +1424,8 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		}
 
 		// sort cache array
-		candidateSort(cacheArr)
+		//candidateSort(cacheArr)
+		cacheArr.CandidateSort()
 
 		// nodeIds cache for lost elected
 		cacheNodeIds := make([]discover.NodeID, 0)
@@ -2220,64 +2224,64 @@ func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
 	return discover.NewNode(can.CandidateId, ip, port, port), nil
 }
 
-func compare(c, can *types.Candidate) int {
-	// put the larger deposit in front
-	if c.Deposit.Cmp(can.Deposit) > 0 {
-		return 1
-	} else if c.Deposit.Cmp(can.Deposit) == 0 {
-		// put the smaller blocknumber in front
-		if c.BlockNumber.Cmp(can.BlockNumber) > 0 {
-			return -1
-		} else if c.BlockNumber.Cmp(can.BlockNumber) == 0 {
-			// put the smaller tx'index in front
-			if c.TxIndex > can.TxIndex {
-				return -1
-			} else if c.TxIndex == can.TxIndex {
-				return 0
-			} else {
-				return 1
-			}
-		} else {
-			return 1
-		}
-	} else {
-		return -1
-	}
-}
-
-// sorted candidates
-func candidateSort(arr types.CandidateQueue) {
-	if len(arr) <= 1 {
-		return
-	}
-	quickSort(arr, 0, len(arr)-1)
-}
-func quickSort(arr types.CandidateQueue, left, right int) {
-	if left < right {
-		pivot := partition(arr, left, right)
-		quickSort(arr, left, pivot-1)
-		quickSort(arr, pivot+1, right)
-	}
-}
-func partition(arr types.CandidateQueue, left, right int) int {
-	for left < right {
-		for left < right && compare(arr[left], arr[right]) >= 0 {
-			right--
-		}
-		if left < right {
-			arr[left], arr[right] = arr[right], arr[left]
-			left++
-		}
-		for left < right && compare(arr[left], arr[right]) >= 0 {
-			left++
-		}
-		if left < right {
-			arr[left], arr[right] = arr[right], arr[left]
-			right--
-		}
-	}
-	return left
-}
+//func compare(c, can *types.Candidate) int {
+//	// put the larger deposit in front
+//	if c.Deposit.Cmp(can.Deposit) > 0 {
+//		return 1
+//	} else if c.Deposit.Cmp(can.Deposit) == 0 {
+//		// put the smaller blocknumber in front
+//		if c.BlockNumber.Cmp(can.BlockNumber) > 0 {
+//			return -1
+//		} else if c.BlockNumber.Cmp(can.BlockNumber) == 0 {
+//			// put the smaller tx'index in front
+//			if c.TxIndex > can.TxIndex {
+//				return -1
+//			} else if c.TxIndex == can.TxIndex {
+//				return 0
+//			} else {
+//				return 1
+//			}
+//		} else {
+//			return 1
+//		}
+//	} else {
+//		return -1
+//	}
+//}
+//
+//// sorted candidates
+//func candidateSort(arr types.CandidateQueue) {
+//	if len(arr) <= 1 {
+//		return
+//	}
+//	quickSort(arr, 0, len(arr)-1)
+//}
+//func quickSort(arr types.CandidateQueue, left, right int) {
+//	if left < right {
+//		pivot := partition(arr, left, right)
+//		quickSort(arr, left, pivot-1)
+//		quickSort(arr, pivot+1, right)
+//	}
+//}
+//func partition(arr types.CandidateQueue, left, right int) int {
+//	for left < right {
+//		for left < right && compare(arr[left], arr[right]) >= 0 {
+//			right--
+//		}
+//		if left < right {
+//			arr[left], arr[right] = arr[right], arr[left]
+//			left++
+//		}
+//		for left < right && compare(arr[left], arr[right]) >= 0 {
+//			left++
+//		}
+//		if left < right {
+//			arr[left], arr[right] = arr[right], arr[left]
+//			right--
+//		}
+//	}
+//	return left
+//}
 
 func ImmediateKey(nodeId discover.NodeID) []byte {
 	return immediateKey(nodeId.Bytes())
