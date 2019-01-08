@@ -396,7 +396,7 @@ func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Ha
 	res := d.nodeRound[blockNumber]
 
 	log.Info(title + ":遍历出来存进去的RoundNodes，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-	pposm.PrintObject(title + ":遍历出来存进去的Round:", d.nodeRound)
+	//pposm.PrintObject(title + ":遍历出来存进去的Round:", d.nodeRound)
 	if round, ok  := res[blockHash]; ok {
 		if nil != round.former{
 			pposm.PrintObject(title + ":遍历出来存进去的Round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", 上一轮: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
