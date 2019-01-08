@@ -285,7 +285,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		log.Error("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
 		return DepositLowErr
 	}
-
+	PrintObject("发生质押 SetCandidate", *can)
 	if arr, err := c.setCandidateInfo(state, nodeId, can); nil != err {
 		c.lock.Unlock()
 		log.Error("Failed to setCandidateInfo on SetCandidate", "nodeId", nodeId.String(), "err", err)
@@ -306,7 +306,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 
 // 还需要补上 如果TCout 小了，要先移到 reserves 中，不然才算落榜
 func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) ([]discover.NodeID, error) {
-	PrintObject("发生质押 SetCandidate", *can)
+
 
 	var flag, delimmediate, delreserve bool
 	// check ticket count
@@ -997,7 +997,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 			// continue handle next one
 			continue
 		}
-
+		PrintObject("Election 更新质押 Candidate", *can)
 		// 因为需要先判断是否之前在 immediates 中，如果是则转移到 reserves 中
 		if ids, err := c.setCandidateInfo(state, can.CandidateId, can); nil != err {
 			c.lock.Unlock()
