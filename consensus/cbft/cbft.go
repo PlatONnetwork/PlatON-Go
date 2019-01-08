@@ -1224,7 +1224,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
-	log.Debug("call Finalize()", "hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
+	log.Debug("call Finalize()", "hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts), " extra: ", hexutil.Encode(header.Extra))
 	cbft.accumulateRewards(chain.Config(), state, header, uncles)
 	cbft.IncreaseRewardPool(state, header.Number)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
@@ -1739,14 +1739,18 @@ func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, b
 // AccumulateRewards for lucky tickets
 // Adjust rewards every 3600*24*365 blocks
 func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
-	nodeid, _, err := ecrecover(header)
-	if err!=nil {
-		log.Error("accumulateRewards==> ecrecover faile ", " err: ", err.Error())
-		return
+	nodeid := cbft.config.NodeID
+	if len(header.Extra) > 32 {
+		var e error
+		nodeid, _, e = ecrecover(header)
+		if e!=nil {
+			log.Error("accumulateRewards==> ecrecover faile ", " err: ", e.Error())
+			return
+		}
 	}
 	log.Info("accumulateRewards==> ecrecover return ", "nodeid: ", nodeid.String())
 	can, err := cbft.ppos.GetWitnessCandidate(state, nodeid, 0)
-	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(250))) == 0 {
+	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(BaseSwitchWitness))) == 0 {
 		can, err = cbft.ppos.GetWitnessCandidate(state, nodeid, -1)
 	}
 	if err != nil {
@@ -1754,7 +1758,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		return
 	}
 	if can == nil {
-		log.Info("accumulateRewards==> GetCandidate return nil ", "nodeid: ", cbft.config.NodeID.String())
+		log.Warn("accumulateRewards==> GetCandidate return nil ")
 		return
 	}
 	log.Info("accumulateRewards==> GetTicket ", "TicketId: ", can.TicketId.Hex())
@@ -1764,11 +1768,11 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		return
 	}
 	if ticket==nil {
-		log.Info("accumulateRewards==> GetTicket return nil !")
+		log.Warn("accumulateRewards==> GetTicket return nil !")
 		return
 	}
 	if ticket.Owner == common.ZeroAddr {
-		log.Info("accumulateRewards==> GetTicket return ticket owner is empty !")
+		log.Warn("accumulateRewards==> GetTicket return ticket owner is empty !")
 		return
 	}
 
@@ -1808,4 +1812,3 @@ func GetAmount(number *big.Int) *big.Int {
 	ret := new(big.Int).Div(yearAmount, base)
 	return ret
 }
-
