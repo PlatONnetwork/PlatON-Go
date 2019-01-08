@@ -412,6 +412,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 				commit(false, commitInterruptNewHead, nil)
 			} else {
 				//w.makePending()
+				//timer.Reset(0)
 				timer.Reset(100 * time.Millisecond)
 			}
 
