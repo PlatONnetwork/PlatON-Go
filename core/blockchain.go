@@ -907,7 +907,6 @@ func (bc *BlockChain) WriteBlockWithoutState(block *types.Block, td *big.Int) (e
 func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.Receipt, state *state.StateDB) (status WriteStatus, err error) {
 	bc.wg.Add(1)
 	defer bc.wg.Done()
-	log.Warn("写链时,一进来:commit之前", "blockNumber", block.NumberU64(), "root", state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number())).String())
 	currentBlock := bc.CurrentBlock()
 	if block.NumberU64() <= currentBlock.NumberU64() {
 		log.Warn("block lower than current block in chain", "blockHash", block.Hash(), "blockNumber", block.NumberU64(), "currentHash", currentBlock.Hash(), "currentNumber", currentBlock.NumberU64())
@@ -1215,6 +1214,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			}
 			state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
 		}*/
+		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
+		log.Debug("【非共识节点同步】执行交易前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
 		if err != nil {
@@ -1284,6 +1286,8 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 		}
 		state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
 	}*/
+	root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
+	log.Debug("【共识节点同步】执行交易前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, blockInterval)
 	if err != nil {

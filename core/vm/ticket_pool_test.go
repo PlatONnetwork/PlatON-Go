@@ -399,7 +399,7 @@ func TestTicketPoolEncode(t *testing.T) {
 	VoteTicket = make([][]byte, 0)
 	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1000))
 	VoteTicket = append(VoteTicket, []byte("VoteTicket"))
-	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(100))
+	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(10))
 	VoteTicket = append(VoteTicket, big.NewInt(1).Bytes())
 	VoteTicket = append(VoteTicket, nodeId)
 	bufVoteTicket := new(bytes.Buffer)
@@ -427,10 +427,10 @@ func TestTicketPoolEncode(t *testing.T) {
 	}
 
 	// GetTicketDetail(ticketId common.Hash)
-	ticketId := common.Hex2Bytes("3780eb19677a4c69add0fa8151abdac77d550f37585b3e1b06e73561f7197949")
+	ticketId := []byte("0x34bdecd0fa6b8d85b1fa436eac6066aca2f51cc5e84fec278bff7df781310982")
 	var GetTicketDetail [][]byte
 	GetTicketDetail = make([][]byte, 0)
-	GetTicketDetail = append(GetTicketDetail, byteutil.Uint64ToBytes(0xf1))
+	GetTicketDetail = append(GetTicketDetail, byteutil.Uint64ToBytes(1004))
 	GetTicketDetail = append(GetTicketDetail, []byte("GetTicketDetail"))
 	GetTicketDetail = append(GetTicketDetail, ticketId)
 	bufGetTicketDetail := new(bytes.Buffer)
@@ -477,6 +477,49 @@ func TestTicketPoolEncode(t *testing.T) {
 		t.Errorf("GetBatchCandidateTicketIds encode rlp data fail")
 	} else {
 		fmt.Println("GetBatchCandidateTicketIds data rlp: ", hexutil.Encode(bufGetBatchCandidateTicketIds.Bytes()))
+	}
+
+	// GetPoolRemainder() ([]byte, error)
+	var GetPoolRemainder [][]byte
+	GetPoolRemainder = make([][]byte, 0)
+	GetPoolRemainder = append(GetPoolRemainder, byteutil.Uint64ToBytes(0xf1))
+	GetPoolRemainder = append(GetPoolRemainder, []byte("GetPoolRemainder"))
+	bufGetPoolRemainder := new(bytes.Buffer)
+	err = rlp.Encode(bufGetPoolRemainder, GetPoolRemainder)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetPoolRemainder encode rlp data fail")
+	} else {
+		fmt.Println("GetPoolRemainder data rlp: ", hexutil.Encode(bufGetPoolRemainder.Bytes()))
+	}
+
+	// GetTicketPrice() ([]byte, error)
+	var GetTicketPrice [][]byte
+	GetTicketPrice = make([][]byte, 0)
+	GetTicketPrice = append(GetTicketPrice, byteutil.Uint64ToBytes(0xf1))
+	GetTicketPrice = append(GetTicketPrice, []byte("GetTicketPrice"))
+	bufGetTicketPrice := new(bytes.Buffer)
+	err = rlp.Encode(bufGetTicketPrice, GetTicketPrice)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetTicketPrice encode rlp data fail")
+	} else {
+		fmt.Println("GetTicketPrice data rlp: ", hexutil.Encode(bufGetTicketPrice.Bytes()))
+	}
+
+	// GetCandidateEpoch(nodeId discover.NodeID) ([]byte, error)G
+	var GetCandidateEpoch [][]byte
+	GetCandidateEpoch = make([][]byte, 0)
+	GetCandidateEpoch = append(GetCandidateEpoch, byteutil.Uint64ToBytes(0xf1))
+	GetCandidateEpoch = append(GetCandidateEpoch, []byte("GetCandidateEpoch"))
+	GetCandidateEpoch = append(GetCandidateEpoch, nodeId)
+	bufGetCandidateEpoch := new(bytes.Buffer)
+	err = rlp.Encode(bufGetCandidateEpoch, GetCandidateEpoch)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetCandidateEpoch encode rlp data fail")
+	} else {
+		fmt.Println("GetCandidateEpoch data rlp: ", hexutil.Encode(bufGetCandidateEpoch.Bytes()))
 	}
 }
 

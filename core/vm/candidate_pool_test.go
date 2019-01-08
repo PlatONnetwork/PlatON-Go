@@ -466,10 +466,10 @@ func TestTime(t *testing.T) {
 	fmt.Printf("时间戳（毫秒）：%v;\n", time.Now().UnixNano()/1e6)
 }
 
-func TestRlpData(t *testing.T) {
+func TestCandidatePoolEncode(t *testing.T) {
 
 	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
-	owner := []byte("0x740ce31b3fac20dac379db243021a51e80ad00d7")
+	owner := []byte("0xc1f330b214668beac2e6418dd651b09c759a4bf5")
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
 	var CandidateDeposit [][]byte
@@ -479,8 +479,8 @@ func TestRlpData(t *testing.T) {
 	CandidateDeposit = append(CandidateDeposit, nodeId)
 	CandidateDeposit = append(CandidateDeposit, owner)
 	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(8000))
-	CandidateDeposit = append(CandidateDeposit, []byte("123.125.71.38"))
-	CandidateDeposit = append(CandidateDeposit, []byte("8545"))
+	CandidateDeposit = append(CandidateDeposit, []byte("192.168.9.181"))
+	CandidateDeposit = append(CandidateDeposit, []byte("16789"))
 	CandidateDeposit = append(CandidateDeposit, []byte(extra))
 	bufDeposit := new(bytes.Buffer)
 	err := rlp.Encode(bufDeposit, CandidateDeposit)
@@ -571,7 +571,7 @@ func TestRlpData(t *testing.T) {
 	}
 }
 
-func TestRlpDecode(t *testing.T) {
+func TestCandidatePoolDecode(t *testing.T) {
 
 	//HexString -> []byte
 	rlpcode, _ := hex.DecodeString("f9024005853339059800829c409410000000000000000000000000000000000000019331303030303030303030303030303030303030b901c7f901c48800000000000000029043616e6469646174654465706f736974b88230786133363364313234333634366236656162663164343835316636343662353233663537303764303533636161623935303232663136383236303561636130353337656530633563313462346466613736646362636532363462376536386435396465373961343262376364613035396539643335383333366139616238643830aa3078663231366436653463313730393761363065653262386535633838393431636439663037323633628800000000000001f487302e302e302e30853330333033b8e27b226e6f64654e616d65223a22e88a82e782b9e5908de7a7b0222c226e6f64654469736372697074696f6e223a22e88a82e782b9e7ae80e4bb8b222c226e6f64654465706172746d656e74223a22e69cbae69e84e5908de7a7b0222c226f6666696369616c57656273697465223a227777772e706c61746f6e2e6e6574776f726b222c226e6f6465506f727472616974223a2255524c222c2274696d65223a313534333931333639353638352c226f776e6572223a22307866323136643665346331373039376136306565326238653563383839343163643966303732363362227d1ba0e789e2d95ed796dec19e7a40b760a9849a1ca09110e1f95e46ed0c18487cfdf3a021bfd18bdb4c32a70f2836c6b78944c88b92d09f5e5201f125444792538617e7")

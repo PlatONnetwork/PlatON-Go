@@ -1226,6 +1226,7 @@ func (b *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error 
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	log.Debug("call Finalize()", "hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
 	cbft.accumulateRewards(chain.Config(), state, header, uncles)
+	cbft.IncreaseRewardPool(state, header.Number)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 	return types.NewBlock(header, txs, nil, receipts), nil
@@ -1289,6 +1290,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), current.block.Hash())
 		blockInterval := new(big.Int).Sub(current.block.Number(), cbft.blockChain.CurrentBlock().Number())
 		cbft.ppos.Submit2Cache(state, blockNumber, blockInterval, current.block.Hash())
+		root := state.IntermediateRoot(cbft.blockChain.Config().IsEIP158(current.block.Number()))
+		log.Debug("【共识 打包出块】最后在，Submit2Cache之后", "blockNumber", current.block.NumberU64(), "blockHash", current.block.Hash().Hex(), "block.root", current.block.Root().Hex(), "实时的state.root", root.Hex())
 	} else {
 		log.Error("setNodeCache error")
 	}
@@ -1736,25 +1739,25 @@ func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, b
 // AccumulateRewards for lucky tickets
 // Adjust rewards every 3600*24*365 blocks
 func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
-	//Calculate current block rewards
-	var blockReward *big.Int
-	preYearNumber := new(big.Int).Sub(header.Number, YearBlocks)
-	yearReward := new(big.Int).Set(FirstYearReward)
-	if preYearNumber.Cmp(YearBlocks) > 0 { // otherwise is 0 year and 1 year block reward
-		yearReward = new(big.Int).Sub(GetAmount(header.Number), GetAmount(preYearNumber))
+	nodeid, _, err := ecrecover(header)
+	if err!=nil {
+		log.Error("accumulateRewards==> ecrecover faile ", " err: ", err.Error())
+		return
 	}
-	blockReward = new(big.Int).Div(yearReward, YearBlocks)
-
-	can, err := cbft.ppos.GetCandidate(state, cbft.config.NodeID)
+	log.Info("accumulateRewards==> ecrecover return ", "nodeid: ", nodeid.String())
+	can, err := cbft.ppos.GetWitnessCandidate(state, nodeid, 0)
+	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(250))) == 0 {
+		can, err = cbft.ppos.GetWitnessCandidate(state, nodeid, -1)
+	}
 	if err != nil {
-		log.Error("accumulateRewards==> GetCandidate faile ", " nodeid: ", cbft.config.NodeID.String(), " err: ", err.Error())
+		log.Error("accumulateRewards==> GetCandidate faile ", " err: ", err.Error())
 		return
 	}
 	if can == nil {
 		log.Info("accumulateRewards==> GetCandidate return nil ", "nodeid: ", cbft.config.NodeID.String())
 		return
 	}
-
+	log.Info("accumulateRewards==> GetTicket ", "TicketId: ", can.TicketId.Hex())
 	ticket, err := cbft.ppos.ticketPool.GetTicket(state, can.TicketId)
 	if err!=nil {
 		log.Error("accumulateRewards==> GetTicket faile ", " err: ", err.Error())
@@ -1769,8 +1772,17 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		return
 	}
 
+	//Calculate current block rewards
+	var blockReward *big.Int
+	preYearNumber := new(big.Int).Sub(header.Number, YearBlocks)
+	yearReward := new(big.Int).Set(FirstYearReward)
+	if preYearNumber.Cmp(YearBlocks) > 0 { // otherwise is 0 year and 1 year block reward
+		yearReward = new(big.Int).Sub(GetAmount(header.Number), GetAmount(preYearNumber))
+	}
+	blockReward = new(big.Int).Div(yearReward, YearBlocks)
 	nodeReward := new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(can.Fee)), FeeBase)
 	ticketReward := new(big.Int).Sub(blockReward, nodeReward)
+
 	log.Info("Rewards", "blockReward: ", blockReward, "nodeReward: ", nodeReward, "ticketReward: ", ticketReward)
 	state.SubBalance(common.RewardPoolAddr, blockReward)
 	state.AddBalance(header.Coinbase, nodeReward)
@@ -1780,8 +1792,11 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		" Coinbase address: ", header.Coinbase.Hex(), " balance: ", state.GetBalance(header.Coinbase), " Ticket address: ", ticket.Owner.Hex(), " balance: ", state.GetBalance(ticket.Owner))
 }
 
-func (cbft *Cbft) IncreaseRewardPool(number *big.Int) {
-	//...
+func (cbft *Cbft) IncreaseRewardPool(state *state.StateDB, number *big.Int) {
+	//add balance to reward pool
+	if new(big.Int).Rem(number, YearBlocks).Cmp(big.NewInt(0)) == 0 {
+		state.AddBalance(common.RewardPoolAddr, GetAmount(number))
+	}
 }
 
 func GetAmount(number *big.Int) *big.Int {
@@ -1793,3 +1808,4 @@ func GetAmount(number *big.Int) *big.Int {
 	ret := new(big.Int).Div(yearAmount, base)
 	return ret
 }
+

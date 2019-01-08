@@ -667,8 +667,6 @@ func (w *worker) taskLoop() {
 			w.pendingTasks[sealHash] = task
 			w.pendingMu.Unlock()
 
-			log.Warn("当前task中的state为:", "blockNumber", task.block.NumberU64(), "root", task.state.IntermediateRoot(w.config.IsEIP158(task.block.Number())).String())
-
 			if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 				// Save stateDB, receipts to consensusCache
 				w.consensusCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
@@ -682,7 +680,6 @@ func (w *worker) taskLoop() {
 			if err := w.engine.Seal(w.chain, task.block, w.resultCh, stopCh); err != nil {
 				log.Warn("Block sealing failed", "err", err)
 			}
-			log.Warn("当前task中的state为:操作完seal之后", "blockNumber", task.block.NumberU64(), "root", task.state.IntermediateRoot(w.config.IsEIP158(task.block.Number())))
 		case <-w.exitCh:
 			interrupt()
 			return
@@ -776,7 +773,6 @@ func (w *worker) resultLoop() {
 			w.pendingMu.RLock()
 			task, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
-			log.Warn("当前task中的state为:写链之前，拿出来之前", "blockNumber", task.block.NumberU64(), "root", task.state.IntermediateRoot(w.config.IsEIP158(task.block.Number())).String())
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
 			if exist && cbft.IsSignedBySelf(sealhash, block.Extra()[32:]) {
@@ -809,7 +805,6 @@ func (w *worker) resultLoop() {
 				}
 				logs = append(logs, receipt.Logs...)
 			}
-			log.Warn("当前task中的state为:写链之前：拿出来之后", "blockNumber", task.block.NumberU64(), "root", _state.IntermediateRoot(w.config.IsEIP158(task.block.Number())).String())
 			// Commit block and state to database.
 			block.ConfirmSigns = blockConfirmSigns
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
@@ -1017,8 +1012,13 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
 
 		log.Debug("commit transaction", "hash", tx.Hash(), "sender", from, "nonce", tx.Nonce())
+		root :=  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+		log.Debug("【共识 打包出块】执行交易前", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "实时的state.root", root.Hex())
 
 		logs, err := w.commitTransaction(tx, coinbase)
+		root =  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+		log.Debug("【共识 打包出块】执行交易之后", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "实时的state.root", root.Hex())
+
 		switch err {
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
@@ -1256,6 +1256,9 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	}
 
 	s := w.current.state.Copy()
+	root :=  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+	log.Debug("【共识 打包出块】执行交易之后, 调notify系列func之前", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "实时的state.root", root.Hex())
+
 	if header != nil {
 		if err := w.notify(s, header.Number); err != nil {
 			return errors.New("notify failure")
@@ -1271,8 +1274,14 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		// ppos Store Hash
 		w.storeHash(s)
 	}
+	root =  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+	log.Debug("【共识 打包出块】执行交易之后, 调notify系列func之后， finalize之前", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "实时的state.root", root.Hex())
 
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
+
+	root =  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+	log.Debug("【共识 打包出块】 finalize之后", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "实时的state.root", root.Hex())
+
 	log.Warn("worker: commit: Finalize", "blockNumber", block.Number(), "root", block.Root().String())
 	//root, _ := s.Commit(w.config.IsEIP158(w.current.header.Number))
 	//log.Warn("worker: commit: Commit", "blockNumber", header.Number.String(), "root", root.String())

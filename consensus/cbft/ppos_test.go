@@ -20,6 +20,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"math/rand"
 	"time"
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 )
 
 func newTesterAccountPool() ([]discover.NodeID, error) {
@@ -351,7 +354,7 @@ func ppos_Election (logger interface{}, logFn func (args ... interface{}), errFn
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -411,7 +414,7 @@ func ppos_Election (logger interface{}, logFn func (args ... interface{}), errFn
 
 	/** test Election */
 	logFn("test Election ...")
-	_, err := ppos.Election(state, big.NewInt(20))
+	_, err := ppos.Election(state, common.Hash{}, big.NewInt(20))
 	logFn("Whether election was successful err", err)
 }
 func TestPpos_Election(t *testing.T) {
@@ -487,7 +490,7 @@ func ppos_Switch (logger interface{}, logFn func (args ... interface{}), errFn f
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -547,7 +550,7 @@ func ppos_Switch (logger interface{}, logFn func (args ... interface{}), errFn f
 
 	/** test Election */
 	logFn("test Election ...")
-	_, err := ppos.Election(state, big.NewInt(20))
+	_, err := ppos.Election(state, common.Hash{}, big.NewInt(20))
 	logFn("Whether election was successful err", err)
 
 	/** test GetWitness */
@@ -633,7 +636,7 @@ func ppos_GetWitness (logger interface{}, logFn func (args ... interface{}), err
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -693,7 +696,7 @@ func ppos_GetWitness (logger interface{}, logFn func (args ... interface{}), err
 
 	/** test Election */
 	logFn("test Election ...")
-	_, err := ppos.Election(state, big.NewInt(20))
+	_, err := ppos.Election(state, common.Hash{}, big.NewInt(20))
 	logFn("Whether election was successful err", err)
 
 	/** test GetWitness */
@@ -784,7 +787,7 @@ func ppos_GetAllWitness (logger interface{}, logFn func (args ... interface{}), 
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -844,7 +847,7 @@ func ppos_GetAllWitness (logger interface{}, logFn func (args ... interface{}), 
 
 	/** test Election */
 	logFn("test Election ...")
-	_, err := ppos.Election(state, big.NewInt(20))
+	_, err := ppos.Election(state, common.Hash{}, big.NewInt(20))
 	logFn("Whether election was successful err", err)
 
 	/** test GetWitness */
@@ -859,7 +862,7 @@ func ppos_GetAllWitness (logger interface{}, logFn func (args ... interface{}), 
 
 	/** test Election again */
 	logFn("test Election again ...")
-	_, err = ppos.Election(state, big.NewInt(20))
+	_, err = ppos.Election(state, common.Hash{}, big.NewInt(20))
 	logFn("Whether election again was successful err", err)
 
 	/** test GetAllWitness */
@@ -937,7 +940,7 @@ func ppos_WithdrawCandidate (logger interface{}, logFn func (args ... interface{
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -1097,7 +1100,7 @@ func ppos_GetChairpersons (logger interface{}, logFn func (args ... interface{})
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -1157,7 +1160,7 @@ func ppos_GetChairpersons (logger interface{}, logFn func (args ... interface{})
 
 	/** test Election */
 	logFn("test Election ...")
-	_, err := ppos.Election(state, big.NewInt(20))
+	_, err := ppos.Election(state, common.Hash{}, big.NewInt(20))
 	logFn("Whether election was successful err", err)
 
 	/** test GetWitness */
@@ -1248,7 +1251,7 @@ func ppos_GetDefeat (logger interface{}, logFn func (args ... interface{}), errF
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -1397,7 +1400,7 @@ func ppos_IsDefeat (logger interface{}, logFn func (args ... interface{}), errFn
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -1541,7 +1544,7 @@ func ppos_RefundBalance (logger interface{}, logFn func (args ... interface{}), 
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		Deposit: 		new(big.Int).SetUint64(120), // 99
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -2195,9 +2198,49 @@ func BenchmarkPpos_UpdateNodeList(b *testing.B) {
 	ppos_UpdateNodeList(b, b.Log, b.Error)
 }
 
-// test Submit2Cache TODO
-func ppos_Submit2Cache () {
+// test Submit2Cache
+func getBlockMaxData() (ticketcache.TicketCache, error) {
+	//every nodeid has 256 ticket total has 200 nodeid
+	ret := ticketcache.NewTicketCache()
+	for n:=0; n<200; n++ {
+		nodeid := make([]byte, 0, 64)
+		nodeid = append(nodeid, crypto.Keccak256Hash([]byte("nodeid"), byteutil.IntToBytes(n)).Bytes()...)
+		nodeid = append(nodeid, crypto.Keccak256Hash([]byte("nodeid"), byteutil.IntToBytes(n*10)).Bytes()...)
+		NodeId, err := discover.BytesID(nodeid)
+		if err!=nil {
+			return ret, err
+		}
+		tids := make([]common.Hash, 0)
+		for i:=0; i< 51200/200 ; i++ {
+			tids = append(tids, crypto.Keccak256Hash([]byte("tid"), byteutil.IntToBytes(i)))
+		}
+		ret[NodeId] = tids
+	}
+	return ret, nil
+}
+func ppos_Submit2Cache (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
+	ldb, err := ethdb.NewLDBDatabase("./data/platon/chaindata", 0, 0)
+	if err!=nil {
+		errFn("NewLDBDatabase faile")
+	}
+	tc := ticketcache.NewTicketIdsCache(ldb)
+	for i:=0; i< 20; i++  {
+		number := big.NewInt(int64(i))
+		bkhash := crypto.Keccak256Hash(byteutil.IntToBytes(i))
+		mapCache ,err := getBlockMaxData()
+		if err!=nil {
+			errFn("getMaxtickets faile", "err: ", err)
+		}
+		tc.Submit2Cache(number, big.NewInt(int64(20)), bkhash, mapCache)
 
+	}
+	ldb.Close()
+}
+func TestPpos_Submit2Cache(t *testing.T) {
+	ppos_Submit2Cache(t, t.Log, t.Error)
+}
+func BenchmarkPpos_Submit2Cache(b *testing.B) {
+	ppos_Submit2Cache(b, b.Log, b.Error)
 }
 
 // TODO Hash

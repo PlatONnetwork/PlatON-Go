@@ -77,7 +77,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 	}
-
+	root := statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	log.Debug("执行交易后，调用notify系列func前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// Notify call
 		if err := cbftEngine.Notify(statedb, block.Number()); err != nil {
@@ -100,8 +101,13 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		// ppos Store Hash
 		cbftEngine.StoreHash(statedb)
 	}
+	root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	log.Debug("执行交易后，调用notify系列func后，finalize前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
+	root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	log.Debug("执行交易后，finalize之后", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// SetNodeCache
 		blockNumber := block.Number()
@@ -110,8 +116,9 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		cbftEngine.SetNodeCache(statedb, parentNumber, blockNumber, block.ParentHash(), block.Hash())
 		// ppos Submit2Cache
 		cbftEngine.Submit2Cache(statedb, blockNumber, blockInterval, block.Hash())
+		root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+		log.Debug("执行交易后，Submit2Cache之后", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
 	}
-
 	return receipts, allLogs, *usedGas, nil
 }
 

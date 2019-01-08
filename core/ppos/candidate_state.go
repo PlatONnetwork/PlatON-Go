@@ -281,6 +281,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 
 	// 每次质押前都需要先校验 当前can的质押金是否 不小于 要放置的对应的队列是否已满时的最小can的质押金
 	if _, ok := c.checkDeposit(state, can); !ok {
+		c.lock.Unlock()
 		log.Error("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
 		return DepositLowErr
 	}
@@ -335,7 +336,8 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 	}
 
 	// sort cache array
-	candidateSort(cacheArr)
+	//candidateSort(cacheArr)
+	cacheArr.CandidateSort()
 
 	// nodeIds cache for lost elected
 	nodeIds := make([]discover.NodeID, 0)
@@ -588,7 +590,8 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			for _, can := range candidateMap {
 				candidateArr = append(candidateArr, can)
 			}
-			candidateSort(candidateArr)
+			//candidateSort(candidateArr)
+			candidateArr.CandidateSort()
 			ids := make([]discover.NodeID, 0)
 			for _, can := range candidateArr {
 				ids = append(ids, can.CandidateId)
@@ -989,8 +992,10 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 			c.lock.Unlock()
 			log.Error("Failed to preElectionReset on Election", "nodeId", can.CandidateId.String(), " err", err)
 			return nil, err
-		}else if nil == err && flag{
+		}else if nil == err && !flag{
 			nodeIds = append(nodeIds, can.CandidateId)
+			// continue handle next one
+			continue
 		}
 
 		// 因为需要先判断是否之前在 immediates 中，如果是则转移到 reserves 中
@@ -1024,7 +1029,8 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	}
 
 	// sort immediate candidates
-	candidateSort(c.immediateCacheArr)
+	//candidateSort(c.immediateCacheArr)
+	c.immediateCacheArr.CandidateSort()
 	log.Info("揭榜时，排序的候选池数组长度:", "len", len(c.immediateCacheArr))
 	PrintObject("揭榜时，排序的候选池数组:", c.immediateCacheArr)
 	// cache ids
@@ -1324,6 +1330,47 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	return preArr, curArr, nextArr, nil
 }
 
+// Getting can by witnesses
+// flag:
+// -1: 		previous round
+// 0:		current round
+// 1: 		next round
+func (c *CandidatePool) GetWitnessCandidate(state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if err := c.initDataByState(state, 0); nil != err {
+		log.Error("Failed to initDataByState on GetWitnessCandidate", "err", err)
+		return nil, err
+	}
+	switch flag {
+	case -1:
+		if can, ok := c.preOriginCandidates[nodeId]; !ok {
+			log.Error("Failed to found can on GetWitnessCandidate, can no exist in previous witnesses ", "nodeId", nodeId.String())
+			return nil, CandidateEmptyErr
+		}else {
+			return can, nil
+		}
+	case 0:
+		if can, ok := c.originCandidates[nodeId]; !ok {
+			log.Error("Failed to found can on GetWitnessCandidate, can no exist in current witnesses", "nodeId", nodeId.String())
+			return nil, CandidateEmptyErr
+		}else {
+			return can, nil
+		}
+	case 1:
+		if can, ok := c.nextOriginCandidates[nodeId]; !ok {
+			log.Error("Failed to found can on GetWitnessCandidate, can no exist in previous witnesses", "nodeId", nodeId.String())
+			return nil, CandidateEmptyErr
+		}else {
+			return can, nil
+		}
+	default:
+		log.Error("Failed to found can on GetWitnessCandidate, flag is invalid", "flag", flag)
+		return nil, CandidateEmptyErr
+	}
+}
+
 func (c *CandidatePool) GetRefundInterval() uint64 {
 	return c.RefundBlockNumber
 }
@@ -1377,7 +1424,8 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		}
 
 		// sort cache array
-		candidateSort(cacheArr)
+		//candidateSort(cacheArr)
+		cacheArr.CandidateSort()
 
 		// nodeIds cache for lost elected
 		cacheNodeIds := make([]discover.NodeID, 0)
@@ -1454,7 +1502,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 		setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
-		log.Debug("直接掉榜: 删除 "+title+" 中的can信息", "nodeId", can.CandidateId.String())
+		log.Debug("直接掉榜: 删除 "+title+" 中的can信息 on UpdateElectedQueue", "nodeId", can.CandidateId.String())
 		delInfoFn(state, can.CandidateId)
 
 		// append to refunds (defeat) trie
@@ -1502,6 +1550,8 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
 				if err := directdropFunc("Immediate", can, c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
 					return nil, err
+				}else {
+					delNodeIds = append(delNodeIds, nodeId)
 				}
 			}else if noDrop && !tcount {
 				log.Info("原来在 im 中需要移到 re中", "nodeId", nodeId.String())
@@ -1521,6 +1571,8 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
 				if err := directdropFunc("Reserve", can, c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
 					return nil, err
+				}else {
+					delNodeIds = append(delNodeIds, nodeId)
 				}
 			}else if noDrop && tcount{
 				log.Info("原来在 re 中需要移到 im中", "nodeId", nodeId.String())
@@ -1543,6 +1595,8 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 }
 
 // 揭榜后重新质押前的操作
+// false: direct get out
+// true: pass
 func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate) (bool, error) {
 	// 如果校验不通过的话，则直接掉榜，但掉榜前需要判断之前是在哪个队列的
 	if _, ok := c.checkDeposit(state, can); !ok {
@@ -1595,15 +1649,17 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 
 		if del == 1 {
 			/** first delete this can on immediates */
-			return true, delFunc("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex)
+			return false, delFunc("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex)
 		} else {
 			/** first delete this can on reserves */
-			return true, delFunc("Reserve", c.delReserve, c.getReserveIndex, c.setReserveIndex)
+			return false, delFunc("Reserve", c.delReserve, c.getReserveIndex, c.setReserveIndex)
 		}
 	}
-	return false, nil
+	return true, nil
 }
 
+// false: invalid deposit
+// true:  pass
 func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bool, bool) {
 	tcount := c.checkTicket(state.TCount(can.CandidateId))
 	// 如果当前得票数满足进入候选池，且候选池已满
@@ -2149,7 +2205,7 @@ func GetCandidatePtr() *CandidatePool {
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
 
-	log.Info(s, "==", string(objs))
+	log.Debug(s, "==", string(objs))
 	//fmt.Println(s, string(objs))
 }
 
@@ -2168,64 +2224,64 @@ func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
 	return discover.NewNode(can.CandidateId, ip, port, port), nil
 }
 
-func compare(c, can *types.Candidate) int {
-	// put the larger deposit in front
-	if c.Deposit.Cmp(can.Deposit) > 0 {
-		return 1
-	} else if c.Deposit.Cmp(can.Deposit) == 0 {
-		// put the smaller blocknumber in front
-		if c.BlockNumber.Cmp(can.BlockNumber) > 0 {
-			return -1
-		} else if c.BlockNumber.Cmp(can.BlockNumber) == 0 {
-			// put the smaller tx'index in front
-			if c.TxIndex > can.TxIndex {
-				return -1
-			} else if c.TxIndex == can.TxIndex {
-				return 0
-			} else {
-				return 1
-			}
-		} else {
-			return 1
-		}
-	} else {
-		return -1
-	}
-}
-
-// sorted candidates
-func candidateSort(arr types.CandidateQueue) {
-	if len(arr) <= 1 {
-		return
-	}
-	quickSort(arr, 0, len(arr)-1)
-}
-func quickSort(arr types.CandidateQueue, left, right int) {
-	if left < right {
-		pivot := partition(arr, left, right)
-		quickSort(arr, left, pivot-1)
-		quickSort(arr, pivot+1, right)
-	}
-}
-func partition(arr types.CandidateQueue, left, right int) int {
-	for left < right {
-		for left < right && compare(arr[left], arr[right]) >= 0 {
-			right--
-		}
-		if left < right {
-			arr[left], arr[right] = arr[right], arr[left]
-			left++
-		}
-		for left < right && compare(arr[left], arr[right]) >= 0 {
-			left++
-		}
-		if left < right {
-			arr[left], arr[right] = arr[right], arr[left]
-			right--
-		}
-	}
-	return left
-}
+//func compare(c, can *types.Candidate) int {
+//	// put the larger deposit in front
+//	if c.Deposit.Cmp(can.Deposit) > 0 {
+//		return 1
+//	} else if c.Deposit.Cmp(can.Deposit) == 0 {
+//		// put the smaller blocknumber in front
+//		if c.BlockNumber.Cmp(can.BlockNumber) > 0 {
+//			return -1
+//		} else if c.BlockNumber.Cmp(can.BlockNumber) == 0 {
+//			// put the smaller tx'index in front
+//			if c.TxIndex > can.TxIndex {
+//				return -1
+//			} else if c.TxIndex == can.TxIndex {
+//				return 0
+//			} else {
+//				return 1
+//			}
+//		} else {
+//			return 1
+//		}
+//	} else {
+//		return -1
+//	}
+//}
+//
+//// sorted candidates
+//func candidateSort(arr types.CandidateQueue) {
+//	if len(arr) <= 1 {
+//		return
+//	}
+//	quickSort(arr, 0, len(arr)-1)
+//}
+//func quickSort(arr types.CandidateQueue, left, right int) {
+//	if left < right {
+//		pivot := partition(arr, left, right)
+//		quickSort(arr, left, pivot-1)
+//		quickSort(arr, pivot+1, right)
+//	}
+//}
+//func partition(arr types.CandidateQueue, left, right int) int {
+//	for left < right {
+//		for left < right && compare(arr[left], arr[right]) >= 0 {
+//			right--
+//		}
+//		if left < right {
+//			arr[left], arr[right] = arr[right], arr[left]
+//			left++
+//		}
+//		for left < right && compare(arr[left], arr[right]) >= 0 {
+//			left++
+//		}
+//		if left < right {
+//			arr[left], arr[right] = arr[right], arr[left]
+//			right--
+//		}
+//	}
+//	return left
+//}
 
 func ImmediateKey(nodeId discover.NodeID) []byte {
 	return immediateKey(nodeId.Bytes())

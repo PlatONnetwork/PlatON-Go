@@ -74,7 +74,9 @@ func (t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	}
 	// 调用候选人重新排序接口
 	log.Info("投票成功，开始更新候选人榜单", "成功票数", len(voteTicketIdList))
-	candidatePool.UpdateElectedQueue(stateDB, blockNumber, nodeId)
+	if err := candidatePool.UpdateElectedQueue(stateDB, blockNumber, nodeId); nil != err {
+		log.Error("Failed to Update candidate when voteTicket success", "err", err)
+	}
 	log.Info("投票成功，候选人榜单更新成功", "成功票数", len(voteTicketIdList))
 	return voteTicketIdList, nil
 }
@@ -358,7 +360,9 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int) error {
 		} else {
 			// 处理完过期票之后，通知候选人更新榜单信息
 			log.Info("处理完过期票，开始更新候选人榜单", "块高：", blockNumber.Uint64(), "变动候选人数量：", len(nodeIdList))
-			candidatePool.UpdateElectedQueue(stateDB, blockNumber, nodeIdList...)
+			if err := candidatePool.UpdateElectedQueue(stateDB, blockNumber, nodeIdList...); nil != err {
+				log.Error("Failed to Update candidate when handleExpireTicket success on Notify", "err", err)
+			}
 		}
 	}
 	// 每个候选人增加总票龄
