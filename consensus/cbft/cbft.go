@@ -73,7 +73,7 @@ type Cbft struct {
 	blockChainCache  *core.BlockChainCache
 
 	signReceiveCh  chan *cbfttypes.BlockSignature //a channel to receive data from miner
-	blockReceiveCh chan *types.Block              //a channel to receive data from miner
+	blockReceiveCh chan *BlockExt                 //a channel to receive data from miner
 	blockSyncedCh  chan struct{}
 
 	netLatencyMap  map[discover.NodeID]*list.List
@@ -127,8 +127,8 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		//blockExtMap:         make(map[common.Hash]*BlockExt),
 		signedSet: make(map[uint64]struct{}),
 		//dataReceiveCh: make(chan interface{}, 256),
-		signReceiveCh:  make(chan *cbfttypes.BlockSignature, 256), //a channel to receive data from miner
-		blockReceiveCh: make(chan *types.Block, 64),               //a channel to receive data from miner
+		signReceiveCh:  make(chan *cbfttypes.BlockSignature, 256), //a channel to receive sign from miner
+		blockReceiveCh: make(chan *BlockExt, 64),                  //a channel to receive block from miner
 		blockSyncedCh:  make(chan struct{}),
 		netLatencyMap:  make(map[discover.NodeID]*list.List),
 		log: log.New("cbft/RoutineID", log.Lazy{Fn: func() string {
@@ -168,6 +168,7 @@ type BlockExt struct {
 	isSigned    bool
 	isConfirmed bool
 	number      uint64
+	rcvTime     int64
 	signs       []*common.BlockConfirmSign //all signs for block
 	parent      *BlockExt
 	children    []*BlockExt
@@ -712,8 +713,8 @@ func (cbft *Cbft) blockSynced() {
 // dataReceiverLoop is the main loop that handle the data from worker, or eth protocol's handler
 // the new blocks packed by local in worker will be handled here; the other blocks and signs received by P2P will be handled here.
 func (cbft *Cbft) blockReceiverLoop() {
-	for block := range cbft.blockReceiveCh {
-		err := cbft.blockReceiver(block)
+	for ext := range cbft.blockReceiveCh {
+		err := cbft.blockReceiver(ext)
 		if err != nil {
 			cbft.log.Error("Error", "msg", err)
 		}
@@ -858,62 +859,54 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 }
 
 //blockReceiver handles the new block
-func (cbft *Cbft) blockReceiver(block *types.Block) error {
+func (cbft *Cbft) blockReceiver(blockExt *BlockExt) error {
 	cbft.log.Debug("=== call blockReceiver() ===\n",
 
-		"hash", block.Hash(),
-		"number", block.NumberU64(),
-		"parentHash", block.ParentHash(),
-		"ReceiptHash", block.ReceiptHash(),
+		"hash", blockExt.block.Hash(),
+		"number", blockExt.block.NumberU64(),
+		"parentHash", blockExt.block.ParentHash(),
+		"ReceiptHash", blockExt.block.ReceiptHash(),
 		"highestLogicalHash", cbft.getHighestLogical().block.Hash(),
 		"highestLogicalNumber", cbft.getHighestLogical().number,
 		"highestConfirmedHash", cbft.getHighestConfirmed().block.Hash(),
 		"highestConfirmedNumber", cbft.getHighestConfirmed().number,
 		"rootIrreversibleHash", cbft.getRootIrreversible().block.Hash(),
 		"rootIrreversibleNumber", cbft.getRootIrreversible().number)
-	if block.NumberU64() <= 0 {
+	if blockExt.block.NumberU64() <= 0 {
 		return errGenesisBlock
 	}
 
-	if block.NumberU64() <= cbft.getRootIrreversible().number {
+	if blockExt.block.NumberU64() <= cbft.getRootIrreversible().number {
 		return lateBlock
 	}
 
 	//recover the producer's NodeID
-	producerID, sign, err := ecrecover(block.Header())
+	producerID, sign, err := ecrecover(blockExt.block.Header())
 	if err != nil {
 		return err
 	}
 
-	curTime := toMilliseconds(time.Now())
-
-	isLegal := cbft.isLegal(curTime, producerID)
+	isLegal := cbft.isLegal(blockExt.rcvTime, producerID)
 
 	cbft.log.Debug("check if block is legal",
 
 		"result", isLegal,
-		"hash", block.Hash(),
-		"number", block.NumberU64(),
-		"parentHash", block.ParentHash(),
-		"curTime", curTime,
+		"hash", blockExt.block.Hash(),
+		"number", blockExt.block.NumberU64(),
+		"parentHash", blockExt.block.ParentHash(),
+		"rcvTime", blockExt.rcvTime,
 		"producerID", producerID)
 
 	//to check if there's a existing blockExt for received block
 	//sometime we'll receive the block's sign before the block self.
-	ext := cbft.findBlockExt(block.Hash())
+	ext := cbft.findBlockExt(blockExt.block.Hash())
 	if ext == nil {
-		ext = NewBlockExt(block, block.NumberU64())
-		//default
-		ext.inTree = false
-		ext.isExecuted = false
-		ext.isSigned = false
-		ext.isConfirmed = false
-
-		cbft.saveBlockExt(block.Hash(), ext)
-
+		ext = blockExt
+		cbft.saveBlockExt(blockExt.block.Hash(), ext)
 	} else if ext.block == nil {
 		//received its sign before.
-		ext.block = block
+		ext.block = blockExt.block
+		ext.rcvTime = blockExt.rcvTime
 	} else {
 		return errDuplicatedBlock
 	}
@@ -939,7 +932,7 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 			return err
 		}
 
-		inTurn := cbft.inTurnVerify(curTime, producerID)
+		inTurn := cbft.inTurnVerify(ext.rcvTime, producerID)
 		ext.inTurn = inTurn
 
 		//flowControl := flowControl.control(producerID, curTime)
@@ -997,10 +990,10 @@ func (cbft *Cbft) blockReceiver(block *types.Block) error {
 		cbft.flushReadyBlock()
 	}
 	cbft.log.Debug("=== end of blockReceiver() ===\n",
-		"hash", block.Hash(),
-		"number", block.NumberU64(),
-		"parentHash", block.ParentHash(),
-		"ReceiptHash", block.ReceiptHash(),
+		"hash", ext.block.Hash(),
+		"number", ext.block.NumberU64(),
+		"parentHash", ext.block.ParentHash(),
+		"ReceiptHash", ext.block.ReceiptHash(),
 		"highestLogicalHash", cbft.getHighestLogical().block.Hash(),
 		"highestLogicalNumber", cbft.getHighestLogical().number,
 		"highestConfirmedHash", cbft.getHighestConfirmed().block.Hash(),
@@ -1459,7 +1452,14 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 // OnNewBlock is called by protocol handler when it received a new block by P2P.
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
 	cbft.log.Debug("call OnNewBlock()", "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash(), "cbft.blockReceiveCh.len", len(cbft.blockReceiveCh))
-	cbft.blockReceiveCh <- rcvBlock
+	ext := NewBlockExt(rcvBlock, rcvBlock.NumberU64())
+	ext.rcvTime = toMilliseconds(time.Now())
+	ext.inTree = false
+	ext.isExecuted = false
+	ext.isSigned = false
+	ext.isConfirmed = false
+
+	cbft.blockReceiveCh <- ext
 	return nil
 }
 
