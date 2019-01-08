@@ -43,7 +43,7 @@ func (m *Memory) Malloc(size int) int {
 		index = parent(index)
 		m.tree[index] = max(m.tree[left(index)], m.tree[right(index)])
 	}
-
+	clear(offset+m.Start, offset+m.Start+nodeSize, m.Memory)
 	return offset + m.Start
 }
 
@@ -73,7 +73,7 @@ func (m *Memory) Free(offset int) error {
 	m.tree[index] = nodeSize
 
 	//Clear the memory data corresponding to the node
-	clear(offset+m.Start, offset+m.Start+nodeSize, m.Memory)
+	//clear(offset+m.Start, offset+m.Start+nodeSize, m.Memory)
 
 	//Traverse up the nodes that are affected by the recovery
 	var leftNode int
