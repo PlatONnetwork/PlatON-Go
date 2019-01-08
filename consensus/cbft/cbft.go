@@ -1750,7 +1750,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	}
 	log.Info("accumulateRewards==> ecrecover return ", "nodeid: ", nodeid.String())
 	can, err := cbft.ppos.GetWitnessCandidate(state, nodeid, 0)
-	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(250))) == 0 {
+	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(BaseSwitchWitness))) == 0 {
 		can, err = cbft.ppos.GetWitnessCandidate(state, nodeid, -1)
 	}
 	if err != nil {
