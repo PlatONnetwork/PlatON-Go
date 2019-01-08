@@ -83,9 +83,6 @@ type Header struct {
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
-
-	// caches
-	sealHash atomic.Value `json:"sealHash"         gencodec:"required"`
 }
 
 // field type overrides for gencodec
@@ -108,15 +105,6 @@ func (h *Header) Hash() common.Hash {
 // SealHash returns the keccak256 seal hash of b's header.
 // The seal hash is computed on the first call and cached thereafter.
 func (header *Header) SealHash() (hash common.Hash) {
-	if sealHash := header.sealHash.Load(); sealHash != nil {
-		return sealHash.(common.Hash)
-	}
-	v := header._sealHash()
-	header.sealHash.Store(v)
-	return v
-}
-
-func (header *Header) _sealHash() (hash common.Hash) {
 	hasher := sha3.NewKeccak256()
 	rlp.Encode(hasher, []interface{}{
 		header.ParentHash,
@@ -126,6 +114,7 @@ func (header *Header) _sealHash() (hash common.Hash) {
 		header.TxHash,
 		header.ReceiptHash,
 		header.Bloom,
+		header.Difficulty,
 		header.Number,
 		header.GasLimit,
 		header.GasUsed,

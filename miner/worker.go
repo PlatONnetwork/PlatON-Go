@@ -777,7 +777,7 @@ func (w *worker) resultLoop() {
 			)
 			// Short circuit when receiving duplicate result caused by resubmitting or P2P sync.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Error("duplicate result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
+				log.Warn("duplicate result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
 				continue
 			}
 
