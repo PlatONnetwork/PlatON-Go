@@ -433,6 +433,7 @@ func removeTicketId(ticketId common.Hash, ticketIds []common.Hash) ([]common.Has
 }
 
 func (t *TicketPool) addPoolNumber(stateDB vm.StateDB) error {
+	t.GetPoolNumber(stateDB)
 	if t.SurplusQuantity == t.MaxCount {
 		return TicketPoolOverflowErr
 	}
@@ -441,6 +442,7 @@ func (t *TicketPool) addPoolNumber(stateDB vm.StateDB) error {
 }
 
 func (t *TicketPool) subPoolNumber(stateDB vm.StateDB) error {
+	t.GetPoolNumber(stateDB)
 	if t.SurplusQuantity == 0 {
 		return TicketPoolNilErr
 	}
