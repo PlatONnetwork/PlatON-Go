@@ -596,7 +596,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 				srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
 			}
 		}
-		s.StartMining(1)
+		//s.StartMining(1)
 	}
 
 	if s.lesServer != nil {

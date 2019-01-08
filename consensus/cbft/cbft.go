@@ -1560,18 +1560,12 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 
 func (cbft *Cbft) inTurn(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime, cbft.config.NodeID, current)
-	log.Info("inTurn", "result", inturn)
+	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime-300, cbft.config.NodeID, current)
+	if inturn {
+		inturn = cbft.calTurn(parentNumber, parentHash, commitNumber, curTime+600, cbft.config.NodeID, current)
+	}
+	log.Debug("inTurn", "result", inturn)
 	return inturn
-
-
-	//curTime := toMilliseconds(time.Now())
-	//inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime-300, cbft.config.NodeID, current)
-	//if inturn {
-	//	inturn = cbft.calTurn(parentNumber, parentHash, commitNumber, curTime+600, cbft.config.NodeID, current)
-	//}
-	//log.Debug("inTurn", "result", inturn)
-	//return inturn
 }
 
 // inTurnVerify verifies the time is in the time-window of the nodeID to package new block.
