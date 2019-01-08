@@ -272,7 +272,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 			return err
 		}
 		log.Info("删除掉榜信息", "候选人：", nodeId.String(), "所得票：", len(candidateTicketIds))
-		if err := stateDB.RemoveTicketCache(nodeId, candidateTicketIds); nil != err {
+		if err := stateDB.RemoveTicketCache(nodeId, candidateTicketIds[:]); nil != err {
 			return err
 		}
 		log.Info("开始处理掉榜的票", "候选人：", nodeId.String(), "总票数：", len(candidateTicketIds))
@@ -318,7 +318,7 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 }
 
 func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.NodeID, candidateAttach *types.CandidateAttach, ticketId common.Hash, blockNumber *big.Int) (*types.Ticket, error) {
-	log.Info("开始执行releaseTicket", "候选人：", candidateId.String(), "Epoch：", candidateAttach.Epoch, "块高：", blockNumber.Uint64())
+	log.Info("开始执行releaseTicket", "候选人：", candidateId.String(), "ticketId", ticketId.Hex(), "Epoch：", candidateAttach.Epoch, "块高：", blockNumber.Uint64())
 	ticket, err := t.GetTicket(stateDB, ticketId)
 	if nil != err {
 		return ticket, err
