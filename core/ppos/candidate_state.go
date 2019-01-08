@@ -995,6 +995,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 		}else if nil == err && !flag{
 			nodeIds = append(nodeIds, can.CandidateId)
 			// continue handle next one
+			c.lock.Unlock()
 			continue
 		}
 		PrintObject("Election 更新质押 Candidate", *can)
@@ -1344,21 +1345,21 @@ func (c *CandidatePool) GetWitnessCandidate(state vm.StateDB, nodeId discover.No
 		return nil, err
 	}
 	switch flag {
-	case -1:
+	case PREVIOUS_C:
 		if can, ok := c.preOriginCandidates[nodeId]; !ok {
 			log.Error("Failed to found can on GetWitnessCandidate, can no exist in previous witnesses ", "nodeId", nodeId.String())
 			return nil, CandidateEmptyErr
 		}else {
 			return can, nil
 		}
-	case 0:
+	case CURRENT_C:
 		if can, ok := c.originCandidates[nodeId]; !ok {
 			log.Error("Failed to found can on GetWitnessCandidate, can no exist in current witnesses", "nodeId", nodeId.String())
 			return nil, CandidateEmptyErr
 		}else {
 			return can, nil
 		}
-	case 1:
+	case NEXT_C:
 		if can, ok := c.nextOriginCandidates[nodeId]; !ok {
 			log.Error("Failed to found can on GetWitnessCandidate, can no exist in previous witnesses", "nodeId", nodeId.String())
 			return nil, CandidateEmptyErr
@@ -1544,7 +1545,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 
 		log.Info("判断当前nodeId原来属于哪个队列", "nodeId", nodeId.String())
 		switch c.checkExist(nodeId) {
-		case 1:
+		case IS_IMMEDIATE:
 			can := c.immediateCandidates[nodeId]
 			//if !c.checkTicket(state.TCount(nodeId)) { // TODO
 			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
@@ -1565,7 +1566,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 					}
 				}
 			}
-		case 2:
+		case IS_RESERVE:
 			can := c.reserveCandidates[nodeId]
 			//if c.checkTicket(state.TCount(nodeId)) { // TODO
 			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
@@ -1603,10 +1604,10 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 		log.Warn("Failed to checkDeposit on preElectionReset", "nodeId", can.CandidateId.String(), " err", DepositLowErr)
 		var del int // del: 1 del immiedate; 2  del reserve
 		if _, ok := c.immediateCandidates[can.CandidateId]; ok {
-			del = 1
+			del = IS_IMMEDIATE
 		}
 		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
-			del = 2
+			del = IS_RESERVE
 		}
 
 		// 直接产生退款信息
@@ -1647,7 +1648,7 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 			return nil
 		}
 
-		if del == 1 {
+		if del == IS_IMMEDIATE {
 			/** first delete this can on immediates */
 			return false, delFunc("Immediate", c.delImmediate, c.getImmediateIndex, c.setImmediateIndex)
 		} else {
@@ -1711,10 +1712,10 @@ func (c *CandidatePool) checkWithdraw(source, price *big.Int) error {
 // 2: in reserves
 func (c *CandidatePool) checkExist(nodeId discover.NodeID) int {
 	if _, ok := c.immediateCandidates[nodeId]; ok {
-		return 1
+		return IS_IMMEDIATE
 	}
 	if _, ok := c.reserveCandidates[nodeId]; ok {
-		return 2
+		return IS_RESERVE
 	}
 	return 0
 }

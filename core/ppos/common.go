@@ -40,6 +40,10 @@ const (
 
 )
 
+const (
+	IS_IMMEDIATE = iota + 1
+	IS_RESERVE
+)
 
 var (
 
