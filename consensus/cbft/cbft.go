@@ -1739,26 +1739,18 @@ func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, b
 // AccumulateRewards for lucky tickets
 // Adjust rewards every 3600*24*365 blocks
 func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
-	//Calculate current block rewards
-	var blockReward *big.Int
-	preYearNumber := new(big.Int).Sub(header.Number, YearBlocks)
-	yearReward := new(big.Int).Set(FirstYearReward)
-	if preYearNumber.Cmp(YearBlocks) > 0 { // otherwise is 0 year and 1 year block reward
-		yearReward = new(big.Int).Sub(GetAmount(header.Number), GetAmount(preYearNumber))
+	nodeid, _, err := ecrecover(header)
+	if err!=nil {
+		log.Error("accumulateRewards==> ecrecover faile ", " err: ", err.Error())
+		return
 	}
-	blockReward = new(big.Int).Div(yearReward, YearBlocks)
-
-	//nodeid, ero := ecrecover(header)
-	//if ero!=nil {
-	//	return
-	//}
-
-
-
-
-	can, err := cbft.ppos. GetCandidate(state, cbft.config.NodeID)
+	log.Info("accumulateRewards==> ecrecover return ", "nodeid: ", nodeid.String())
+	can, err := cbft.ppos.GetWitnessCandidate(state, nodeid, 0)
+	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(250))) == 0 {
+		can, err = cbft.ppos.GetWitnessCandidate(state, nodeid, -1)
+	}
 	if err != nil {
-		log.Error("accumulateRewards==> GetCandidate faile ", " nodeid: ", cbft.config.NodeID.String(), " err: ", err.Error())
+		log.Error("accumulateRewards==> GetCandidate faile ", " err: ", err.Error())
 		return
 	}
 	if can == nil {
@@ -1780,8 +1772,17 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		return
 	}
 
+	//Calculate current block rewards
+	var blockReward *big.Int
+	preYearNumber := new(big.Int).Sub(header.Number, YearBlocks)
+	yearReward := new(big.Int).Set(FirstYearReward)
+	if preYearNumber.Cmp(YearBlocks) > 0 { // otherwise is 0 year and 1 year block reward
+		yearReward = new(big.Int).Sub(GetAmount(header.Number), GetAmount(preYearNumber))
+	}
+	blockReward = new(big.Int).Div(yearReward, YearBlocks)
 	nodeReward := new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(can.Fee)), FeeBase)
 	ticketReward := new(big.Int).Sub(blockReward, nodeReward)
+
 	log.Info("Rewards", "blockReward: ", blockReward, "nodeReward: ", nodeReward, "ticketReward: ", ticketReward)
 	state.SubBalance(common.RewardPoolAddr, blockReward)
 	state.AddBalance(header.Coinbase, nodeReward)
