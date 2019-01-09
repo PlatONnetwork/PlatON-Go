@@ -17,7 +17,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/secp256k1"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -1740,19 +1739,21 @@ func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, b
 // AccumulateRewards for lucky tickets
 // Adjust rewards every 3600*24*365 blocks
 func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
+	if len(header.Extra) < 64 {
+		log.Error("Failed to Call accumulateRewards, header.Extra < 64", " extra: ", hexutil.Encode(header.Extra))
+	}
 	var nodeId discover.NodeID
 	var err error
-	nodeId, _, err = ecrecover(header)
-	if err != nil {
-		if err == secp256k1.ErrRecoverFailed {
-			nodeId = cbft.config.NodeID
-		} else {
+	if ok := bytes.Equal(header.Extra[32:96], make([]byte, 64)); !ok {
+		nodeId = cbft.config.NodeID
+	} else {
+		if nodeId, _, err = ecrecover(header); err!=nil {
 			log.Error("Failed to Call accumulateRewards, ecrecover faile", " err: ", err)
 			return
 		}
 	}
-	log.Info("Call accumulateRewards", "nodeid: ", nodeId.String())
 
+	log.Info("Call accumulateRewards", "nodeid: ", nodeId.String())
 	var can *types.Candidate
 	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(BaseSwitchWitness))) == 0 {
 		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, -1)
