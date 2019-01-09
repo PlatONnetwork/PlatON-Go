@@ -1744,7 +1744,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	}
 	var nodeId discover.NodeID
 	var err error
-	if ok := bytes.Equal(header.Extra[32:96], make([]byte, 64)); !ok {
+	if ok := bytes.Equal(header.Extra[32:96], make([]byte, 64)); ok {
 		nodeId = cbft.config.NodeID
 	} else {
 		if nodeId, _, err = ecrecover(header); err!=nil {
