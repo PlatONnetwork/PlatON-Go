@@ -98,15 +98,15 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 		t.Evm.StateDB.AddBalance(from, backBalance)
 	}
 	sdata := DecodeResultStr(strconv.Itoa(data))
-	log.Info("Result of VoteTicket==> ", "len(successTicketIds): ", data, " []byte: ", sdata)
+	log.Info("Result of VoteTicket==> ", "len(successTicketIds): ", strconv.Itoa(data), " []byte: ", sdata)
 	if nil != err {
 		log.Error("Failed to VoteTicket==> ", "VoteTicket return err: ", err.Error())
-		r := ResultCommon{true, string(data), err.Error()}
+		r := ResultCommon{true, strconv.Itoa(data), err.Error()}
 		event, _ := json.Marshal(r)
 		t.addLog(VoteTicketEvent, string(event))
 		return sdata, nil
 	}
-	r := ResultCommon{true, string(data), "success"}
+	r := ResultCommon{true, strconv.Itoa(data), "success"}
 	event, _ := json.Marshal(r)
 	t.addLog(VoteTicketEvent, string(event))
 	return sdata, nil
