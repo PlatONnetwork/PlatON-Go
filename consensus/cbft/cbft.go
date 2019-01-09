@@ -1332,6 +1332,9 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	//collect the sign
 	cbft.collectSign(current, common.NewBlockConfirmSign(sign))
 
+	//log this signed block's number
+	cbft.signedSet[sealedBlock.NumberU64()] = struct{}{}
+
 	//build tree node
 	cbft.buildIntoTree(current)
 
@@ -1542,7 +1545,7 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 			Block:             ext.block,
 			BlockConfirmSigns: ext.signs,
 		}
-		log.Debug("send to channel", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
+		log.Debug("send to channel", "RoutineID", common.CurrentGoRoutineID(), "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
 		cbft.cbftResultOutCh <- cbftResult
 	}
 }
@@ -1557,7 +1560,10 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 
 func (cbft *Cbft) inTurn(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime, cbft.config.NodeID, current)
+	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime-300, cbft.config.NodeID, current)
+	if inturn {
+		inturn = cbft.calTurn(parentNumber, parentHash, commitNumber, curTime+600, cbft.config.NodeID, current)
+	}
 	log.Debug("inTurn", "result", inturn)
 	return inturn
 }

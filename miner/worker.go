@@ -412,7 +412,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 				commit(false, commitInterruptNewHead, nil)
 			} else {
 				//w.makePending()
-				timer.Reset(0)
+				//timer.Reset(0)
+				timer.Reset(100 * time.Millisecond)
 			}
 
 		case head := <-w.chainHeadCh:
@@ -451,7 +452,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						commit(false, commitInterruptResubmit, commitBlock)
 						continue
 					}
-					timer.Reset(recommit)
+					//timer.Reset(recommit)
+					timer.Reset(100 * time.Millisecond)
 				} else if w.config.Clique == nil || w.config.Clique.Period > 0 {
 					// Short circuit if no new transaction arrives.
 					if atomic.LoadInt32(&w.newTxs) == 0 {
@@ -776,7 +778,7 @@ func (w *worker) resultLoop() {
 			)
 			// Short circuit when receiving duplicate result caused by resubmitting or P2P sync.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Error("duplicate result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
+				log.Warn("duplicate result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
 				continue
 			}
 
@@ -953,7 +955,7 @@ func (w *worker) updateSnapshot() {
 
 func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Address) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
-	log.Debug("call commitTransaction tx previous:", "txHash", tx.Hash().Hex())
+
 	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, vm.Config{})
 	if err != nil {
 		w.current.state.RevertToSnapshot(snap)
@@ -961,7 +963,7 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 	}
 	w.current.txs = append(w.current.txs, tx)
 	w.current.receipts = append(w.current.receipts, receipt)
-	log.Debug("call commitTransaction tx done:", "txHash", tx.Hash().Hex())
+
 	return receipt.Logs, nil
 }
 func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64) bool {
@@ -1150,6 +1152,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
 
 		logs, err := w.commitTransaction(tx, coinbase)
+
 		switch err {
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
@@ -1237,7 +1240,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		Extra:      w.extra,
 		Time:       big.NewInt(timestamp),
 	}
-
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() {
 		if w.coinbase == (common.Address{}) {

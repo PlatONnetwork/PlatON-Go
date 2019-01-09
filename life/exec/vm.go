@@ -1,9 +1,9 @@
 package exec
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"encoding/binary"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math"
 	"math/bits"
 
@@ -34,10 +34,21 @@ const (
 
 	// JITCodeSizeThreshold is the lower-bound code size threshold for the JIT compiler.
 	JITCodeSizeThreshold = 30
+
+	DefaultMemoryPages = 16
+	DynamicMemoryPages = 16
+
+	DefaultMemPoolCount   = 5
+	DefaultMemBlockSize   = 5
+	DefaultMemTreeMaxPage = 8
 )
 
 // LE is a simple alias to `binary.LittleEndian`.
 var LE = binary.LittleEndian
+var memPool = NewMemPool(DefaultMemPoolCount, DefaultMemBlockSize)
+var treePool = NewTreePool(DefaultMemPoolCount, DefaultMemBlockSize)
+
+//var pageMemPool = NewPageMemPool()
 
 // VirtualMachine is a WebAssembly execution environment.
 type VirtualMachine struct {
@@ -50,15 +61,17 @@ type VirtualMachine struct {
 	CurrentFrame    int
 	Table           []uint32
 	Globals         []int64
-	Memory          *VMMemory
-	NumValueSlots   int
-	Yielded         int64
-	InsideExecute   bool
-	Delegate        func()
-	Exited          bool
-	ExitError       interface{}
-	ReturnValue     int64
-	Gas             uint64
+	//Memory          *VMMemory
+	Memory         *Memory
+	NumValueSlots  int
+	Yielded        int64
+	InsideExecute  bool
+	Delegate       func()
+	Exited         bool
+	ExitError      interface{}
+	ReturnValue    int64
+	Gas            uint64
+	ExternalParams []int64
 }
 
 // VMConfig denotes a set of options passed to a single VirtualMachine insta.ce
@@ -81,7 +94,7 @@ type VMContext struct {
 	GasLimit uint64
 
 	StateDB StateDB
-	Log log.Logger
+	Log     log.Logger
 }
 
 type VMMemory struct {
@@ -110,24 +123,20 @@ type ImportResolver interface {
 	ResolveGlobal(module, field string) int64
 }
 
-// NewVirtualMachine instantiates a virtual machine for a given WebAssembly module, with
-// specific execution options specified under a VMConfig, and a WebAssembly module import
-// resolver.
-func NewVirtualMachine(code []byte, context *VMContext, impResolver ImportResolver, gasPolicy compiler.GasPolicy) (_retVM *VirtualMachine, retErr error) {
-	if context.Config.EnableJIT {
-		fmt.Println("Warning: JIT support is incomplete and the internals are likely to change in the future.")
-	}
-
+func ParseModuleAndFunc(code []byte, gasPolicy compiler.GasPolicy) (*compiler.Module, []compiler.InterpreterCode, error) {
 	m, err := compiler.LoadModule(code)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	functionCode, err := m.CompileForInterpreter(gasPolicy)
+	functionCode, err := m.CompileForInterpreter(nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	return m, functionCode, nil
+}
 
+func NewVirtualMachineWithModule(m *compiler.Module, functionCode []compiler.InterpreterCode, context *VMContext, impResolver ImportResolver, gasPolicy compiler.GasPolicy) (_retVM *VirtualMachine, retErr error) {
 	defer utils.CatchPanic(&retErr)
 
 	table := make([]uint32, 0)
@@ -202,28 +211,49 @@ func NewVirtualMachine(code []byte, context *VMContext, impResolver ImportResolv
 
 	// Load linear memory.
 	//memory := make([]byte, 0)
-	memory := &VMMemory{
-		Memory:    make([]byte, 0),
-		Start:     0,
-		Current:   0,
-		MemPoints: make(map[int]int),
-	}
+
+	//memory := &VMMemory{
+	//	Memory:    make([]byte, 0),
+	//	Start:     0,
+	//	Current:   0,
+	//	MemPoints: make(map[int]int),
+	//}
+	//
+	//if m.Base.Memory != nil && len(m.Base.Memory.Entries) > 0 {
+	//	initialLimit := int(m.Base.Memory.Entries[0].Limits.Initial)
+	//	if context.Config.MaxMemoryPages != 0 && initialLimit > context.Config.MaxMemoryPages {
+	//		panic("max memory exceeded")
+	//	}
+	//
+	//	capacity := initialLimit + context.Config.DynamicMemoryPages
+	//
+	//	memory.Start = initialLimit * DefaultPageSize
+	//	memory.Current = initialLimit * DefaultPageSize
+	//	// Initialize empty memory.
+	//	//buffer := bytes.NewBuffer(make([]byte, capacity))
+	//	memory.Memory = memPool.Get(capacity)
+	//
+	//	if m.Base.Data != nil && len(m.Base.Data.Entries) > 0 {
+	//		for _, e := range m.Base.Data.Entries {
+	//			offset := int(execInitExpr(e.Offset, globals))
+	//			copy(memory.Memory[int(offset):], e.Data)
+	//		}
+	//	}
+	//}
+
+	memory := &Memory{}
 	if m.Base.Memory != nil && len(m.Base.Memory.Entries) > 0 {
 		initialLimit := int(m.Base.Memory.Entries[0].Limits.Initial)
 		if context.Config.MaxMemoryPages != 0 && initialLimit > context.Config.MaxMemoryPages {
 			panic("max memory exceeded")
 		}
 
-		capacity := (initialLimit + context.Config.DynamicMemoryPages) * DefaultPageSize
-
-		memory.Start = initialLimit * DefaultPageSize
-		memory.Current = initialLimit * DefaultPageSize
+		capacity := initialLimit + context.Config.DynamicMemoryPages
 		// Initialize empty memory.
-		//buffer := bytes.NewBuffer(make([]byte, capacity))
-		memory.Memory = make([]byte, capacity)
-		for i := 0; i < capacity; i++ {
-			memory.Memory[i] = 0
-		}
+		memory.Memory = memPool.Get(capacity)
+		memory.Start = initialLimit * DefaultPageSize
+		memory.Size = len(memory.Memory) - memory.Start
+		memory.tree = treePool.GetTree(capacity - initialLimit)
 
 		if m.Base.Data != nil && len(m.Base.Data.Entries) > 0 {
 			for _, e := range m.Base.Data.Entries {
@@ -238,14 +268,32 @@ func NewVirtualMachine(code []byte, context *VMContext, impResolver ImportResolv
 		Context:         context,
 		FunctionCode:    functionCode,
 		FunctionImports: funcImports,
-		JumpTable:       NewGasTable(),
+		JumpTable:       GasTable,
 		CallStack:       make([]Frame, DefaultCallStackSize),
 		CurrentFrame:    -1,
 		Table:           table,
 		Globals:         globals,
 		Memory:          memory,
 		Exited:          true,
+		ExternalParams:  make([]int64, 0),
 	}, nil
+}
+
+// NewVirtualMachine instantiates a virtual machine for a given WebAssembly module, with
+// specific execution options specified under a VMConfig, and a WebAssembly module import
+// resolver.
+func NewVirtualMachine(code []byte, context *VMContext, impResolver ImportResolver, gasPolicy compiler.GasPolicy) (_retVM *VirtualMachine, retErr error) {
+	if context.Config.EnableJIT {
+		fmt.Println("Warning: JIT support is incomplete and the internals are likely to change in the future.")
+	}
+
+	m, functionCode, err := ParseModuleAndFunc(code, gasPolicy)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewVirtualMachineWithModule(m, functionCode, context, impResolver, gasPolicy)
+
 }
 
 func ImportGasFunc(vm *VirtualMachine, frame *Frame) (uint64, error) {
