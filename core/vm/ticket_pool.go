@@ -12,6 +12,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
+	"strconv"
 )
 
 var (
@@ -96,7 +97,7 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 		backBalance := new(big.Int).Mul(new(big.Int).SetUint64(failNum), price)
 		t.Evm.StateDB.AddBalance(from, backBalance)
 	}
-	sdata := DecodeResultStr(string(data))
+	sdata := DecodeResultStr(strconv.Itoa(data))
 	log.Info("Result of VoteTicket==> ", "len(successTicketIds): ", data, " []byte: ", sdata)
 	if nil != err {
 		log.Error("Failed to VoteTicket==> ", "VoteTicket return err: ", err.Error())
