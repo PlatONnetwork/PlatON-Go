@@ -59,7 +59,7 @@ var (
 	CandidateEmptyErr           = errors.New("Candidate is empty")
 	ContractBalanceNotEnoughErr = errors.New("Contract's balance is not enough")
 	CandidateOwnerErr           = errors.New("CandidateOwner Addr is illegal")
-	DepositLowErr 				= errors.New("Candidate deposit too low")
+	DepositLowErr               = errors.New("Candidate deposit too low")
 	WithdrawPriceErr            = errors.New("Withdraw Price err")
 	WithdrawLowErr              = errors.New("Withdraw Price too low")
 )
@@ -95,7 +95,7 @@ var candidatePool *CandidatePool
 // Initialize the global candidate pool object
 func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 	candidatePool = &CandidatePool{
-		depositLimit: 		  configs.Candidate.DepositLimit,
+		depositLimit:         configs.Candidate.DepositLimit,
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
 		RefundBlockNumber:    configs.Candidate.RefundBlockNumber,
@@ -109,7 +109,6 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 	}
 	return candidatePool
 }
-
 
 // flag:
 // 0: only init previous witness and current witness and next witness
@@ -345,6 +344,11 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 // Getting immediate candidate info by nodeId
 func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
 	return c.getCandidate(state, nodeId)
+}
+
+// Getting immediate or reserve candidate info arr by nodeIds
+func (c *CandidatePool) GetCandidateArr(state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
+	return c.getCandidates(state, nodeIds...)
 }
 
 // candidate withdraw from immediates elected candidates
@@ -1039,7 +1043,7 @@ func (c *CandidatePool) GetRefundInterval() uint64 {
 
 func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
 	if uint64(len(c.immediateCandates)) == c.maxCount {
-		last := c.candidateCacheArr[len(c.candidateCacheArr) - 1]
+		last := c.candidateCacheArr[len(c.candidateCacheArr)-1]
 		lastDeposit := last.Deposit
 
 		// y = 100 + x
@@ -1055,8 +1059,7 @@ func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
 	return nil
 }
 
-
-func (c *CandidatePool)checkWithdraw(source, price *big.Int) error {
+func (c *CandidatePool) checkWithdraw(source, price *big.Int) error {
 	// y = old * x
 	percentage := new(big.Int).Mul(source, big.NewInt(int64(c.depositLimit)))
 	// y/100 == old * (x/100) == old * x%
@@ -1287,6 +1290,27 @@ func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (
 		return candidatePtr, nil
 	}
 	return nil, nil
+}
+
+func (c *CandidatePool) getCandidates(state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	if err := c.initDataByState(state, 1); nil != err {
+		log.Error("Failed to initDataByState on getCandidates", "err", err)
+		return nil, err
+	}
+	canArr := make(types.CandidateQueue, 0)
+	tem := make(map[discover.NodeID]struct{}, 0)
+	for _, nodeId := range nodeIds {
+		if _, ok := tem[nodeId]; ok {
+			continue
+		}
+		if candidatePtr, ok := c.immediateCandates[nodeId]; ok {
+			canArr = append(canArr, candidatePtr)
+			tem[nodeId] = struct{}{}
+		}
+	}
+	return canArr, nil
 }
 
 func (c *CandidatePool) MaxChair() uint64 {
