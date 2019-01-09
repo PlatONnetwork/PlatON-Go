@@ -1204,6 +1204,9 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 // ShouldSeal checks if it's local's turn to package new block at current time.
 func (cbft *Cbft) ShouldSeal() (bool, error) {
 	cbft.log.Trace("call ShouldSeal()")
+	if len(cbft.dpos.primaryNodeList) == 1 {
+		return true, nil
+	}
 	inturn := cbft.inTurn()
 	if inturn {
 		cbft.netLatencyLock.RLock()
