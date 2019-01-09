@@ -1219,7 +1219,7 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 	//var ids []discover.NodeID
 	var witness candidateStorage
 	var indexArr []discover.NodeID
-	if flag == -PREVIOUS_C {
+	if flag == PREVIOUS_C {
 		witness = c.preOriginCandidates
 		if ids, err := c.getPreviousWitnessIndex(state); nil != err {
 			log.Error("Failed to getPreviousWitnessIndex on GetWitness", "err", err)
