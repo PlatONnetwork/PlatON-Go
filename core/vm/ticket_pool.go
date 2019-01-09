@@ -15,9 +15,8 @@ import (
 )
 
 var (
-	ErrIllegalDeposit    = errors.New("Deposit balance not match or too low")
-	ErrCandidateNotExist = errors.New("Voted candidate not exist")
-	ErrTicketPoolEmpty   = errors.New("Ticket Pool is null")
+	ErrIllegalDeposit  = errors.New("Deposit balance not match or too low")
+	ErrTicketPoolEmpty = errors.New("Ticket Pool is null")
 )
 
 const (

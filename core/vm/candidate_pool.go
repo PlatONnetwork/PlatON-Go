@@ -15,12 +15,13 @@ import (
 )
 
 var (
-	ErrOwnerNotOnly     = errors.New("Node ID cannot bind multiple owners")
-	ErrPermissionDenied = errors.New("Transaction from address permission denied")
-	ErrFeeIllegal       = errors.New("The fee is illegal")
-	ErrDepositEmpty     = errors.New("Deposit balance not zero")
-	ErrWithdrawEmpty    = errors.New("No withdrawal amount")
-	ErrCandidateEmpty   = errors.New("CandidatePool is null")
+	ErrOwnerNotOnly       = errors.New("Node ID cannot bind multiple owners")
+	ErrPermissionDenied   = errors.New("Transaction from address permission denied")
+	ErrFeeIllegal         = errors.New("The fee is illegal")
+	ErrDepositEmpty       = errors.New("Deposit balance not zero")
+	ErrWithdrawEmpty      = errors.New("No withdrawal amount")
+	ErrCandidatePoolEmpty = errors.New("Candidate Pool is null")
+	ErrCandidateNotExist  = errors.New("The candidate is not exist")
 )
 
 const (
@@ -56,9 +57,9 @@ func (c *CandidateContract) RequiredGas(input []byte) uint64 {
 }
 
 func (c *CandidateContract) Run(input []byte) ([]byte, error) {
-	if c.Evm.CandidatePool == nil {
-		log.Error("Failed to Run==> ", "ErrCandidateEmpty: ", ErrCandidateEmpty.Error())
-		return nil, ErrCandidateEmpty
+	if nil == c.Evm.CandidatePool {
+		log.Error("Failed to Run==> ", "ErrCandidateEmpty: ", ErrCandidatePoolEmpty.Error())
+		return nil, ErrCandidatePoolEmpty
 	}
 	var command = map[string]interface{}{
 		"CandidateDetails":        c.CandidateDetails,
@@ -122,7 +123,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		common.Hash{},
 	}
 	log.Info("CandidateDeposit==> ", "canDeposit: ", canDeposit)
-	if err = c.Evm.CandidatePool.SetCandidate(c.Evm.StateDB, nodeId, &canDeposit); err != nil {
+	if err = c.Evm.CandidatePool.SetCandidate(c.Evm.StateDB, nodeId, &canDeposit); nil != err {
 		log.Error("Failed to CandidateDeposit==> ", "SetCandidate return err: ", err.Error())
 		return nil, err
 	}
@@ -143,6 +144,10 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	if nil != err {
 		log.Error("Failed to CandidateApplyWithdraw==> ", "GetCandidate return err: ", err.Error())
 		return nil, err
+	}
+	if nil == can {
+		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
+		return nil, ErrCandidateNotExist
 	}
 	if can.Deposit.Cmp(big.NewInt(0)) < 1 {
 		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrWithdrawEmpty: ", ErrWithdrawEmpty.Error())
