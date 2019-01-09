@@ -1,8 +1,8 @@
 package exec
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 type Memory struct {
@@ -43,7 +43,8 @@ func (m *Memory) Malloc(size int) int {
 		index = parent(index)
 		m.tree[index] = max(m.tree[left(index)], m.tree[right(index)])
 	}
-
+	//Clear the memory data corresponding to the node
+	clear(offset+m.Start, offset+m.Start+nodeSize, m.Memory)
 	return offset + m.Start
 }
 
@@ -71,9 +72,6 @@ func (m *Memory) Free(offset int) error {
 
 	//Recovery node
 	m.tree[index] = nodeSize
-
-	//Clear the memory data corresponding to the node
-	clear(offset+m.Start, offset+m.Start+nodeSize, m.Memory)
 
 	//Traverse up the nodes that are affected by the recovery
 	var leftNode int
