@@ -72,7 +72,7 @@ type Cbft struct {
 	signedSet             map[uint64]struct{} //all block numbers signed by local node
 	blockChainCache       *core.BlockChainCache
 	netLatencyMap         map[discover.NodeID]*list.List
-	netLatencyLock        sync.Mutex
+	netLatencyLock        sync.RWMutex
 	log                   log.Logger
 }
 
@@ -1204,12 +1204,23 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 // ShouldSeal checks if it's local's turn to package new block at current time.
 func (cbft *Cbft) ShouldSeal() (bool, error) {
 	cbft.log.Trace("call ShouldSeal()")
-	return cbft.inTurn(), nil
+	inturn := cbft.inTurn()
+	if inturn {
+		cbft.netLatencyLock.RLock()
+		defer cbft.netLatencyLock.RUnlock()
+		peersCount := len(cbft.netLatencyMap)
+		if peersCount < cbft.getThreshold() {
+			cbft.log.Debug("connected peers not enough", "connectedPeersCount", peersCount)
+			inturn = false
+		}
+	}
+	cbft.log.Debug("end of ShouldSeal()", "result", inturn)
+	return inturn, nil
 }
 
 // ConsensusNodes returns all consensus nodes.
 func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
-	cbft.log.Trace("call ConsensusNodes()", "dposNodeCount", len(cbft.dpos.primaryNodeList))
+	cbft.log.Trace("call ShouldSeal()", "dposNodeCount", len(cbft.dpos.primaryNodeList))
 	return cbft.dpos.primaryNodeList, nil
 }
 
@@ -1567,7 +1578,6 @@ func (cbft *Cbft) inTurn() bool {
 	if inturn {
 		inturn = cbft.calTurn(curTime+600, cbft.config.NodeID)
 	}
-	cbft.log.Debug("check if local's turn to commit block", "result", inturn)
 	return inturn
 
 }
