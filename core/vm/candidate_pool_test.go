@@ -468,7 +468,7 @@ func TestTime(t *testing.T) {
 
 func TestCandidatePoolEncode(t *testing.T) {
 
-	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
+	nodeId := []byte("0xb6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6")
 	owner := []byte("0x740ce31b3fac20dac379db243021a51e80ad00d7")
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
@@ -479,7 +479,7 @@ func TestCandidatePoolEncode(t *testing.T) {
 	CandidateDeposit = append(CandidateDeposit, nodeId)
 	CandidateDeposit = append(CandidateDeposit, owner)
 	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(8000))
-	CandidateDeposit = append(CandidateDeposit, []byte("192.168.9.181"))
+	CandidateDeposit = append(CandidateDeposit, []byte("192.168.9.183"))
 	CandidateDeposit = append(CandidateDeposit, []byte("16789"))
 	CandidateDeposit = append(CandidateDeposit, []byte(extra))
 	bufDeposit := new(bytes.Buffer)
