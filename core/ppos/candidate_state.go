@@ -1102,12 +1102,44 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 		return nil, nil, err
 	}
 	// replace the next round of witnesses
-	c.nextOriginCandidates = nextWits
+	//c.nextOriginCandidates = nextWits
 
 	log.Info("揭榜时，下一轮见证人node 个数:", "len", len(arr))
 	PrintObject("揭榜时，下一轮见证人node信息:", arr)
+	c.fixElection(state, nextWitIds)
 	log.Info("揭榜完成...")
 	return arr, caches, nil
+}
+
+func (c *CandidatePool) fixElection (state vm.StateDB, nextWitIds []discover.NodeID) {
+	if len(nextWitIds) != 0 && len(c.nextOriginCandidates) != 0 {
+		return
+	}
+	// 否则，表示当前揭榜出来的 next 为nil，则需要判断 当前 轮是否有 witness，
+	// 如果有，则使用当前轮的witness作为 next witness，
+	// 储备池的出块奖励需要用到 witness can info
+	/*if len(c.originCandidates) != 0 {
+
+	}*/
+	log.Info("揭榜时，揭出下轮见证人为 nil, 使用 当前轮作为下一轮...")
+	// set up new witnesses to next witnesses on trie by current witnesses
+	for nodeId, can := range c.originCandidates {
+		if err := c.setNextWitness(state, nodeId, can); nil != err {
+			log.Error("Failed to setNextWitness on fixElection", "err", err)
+			return
+		}
+	}
+	// update next witness index by current witness index
+	if ids, err := c.getWitnessIndex(state); nil != err {
+		log.Error("Failed to getWitnessIndex on fixElection", "err", err)
+		return
+	} else {
+		// replace witnesses index
+		if err := c.setNextWitnessIndex(state, ids); nil != err {
+			log.Error("Failed to setNextWitnessIndex on fixElection", "err", err)
+			return
+		}
+	}
 }
 
 // switch next witnesses to current witnesses
