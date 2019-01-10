@@ -413,8 +413,6 @@ func (pool *VCPool) InjectTxs(block *types.Block, receipts types.Receipts, bc *B
 		return
 	}
 
-	log.Debug("Wow ~ VC -------------------------------------------able...")
-
 	for _, tx := range block.Transactions() {
 		isSave := false
 		var taskId string
@@ -450,7 +448,7 @@ func (pool *VCPool) InjectTxs(block *types.Block, receipts types.Receipts, bc *B
 			// if err := pool.validateActor(wrap, bc, state); err != nil {
 			// 	log.Trace("God ~ Discarding the actor not belong to current VC contract.", "hash", wrap.Hash(), "err", err)
 			// 	return
-                       log.Debug("Wow ~ VC add pool--------------------------------------...")
+                        log.Debug("Wow ~ VC add pool--------------------------------------...")
 			// }
 			pool.add(wrap)
 		}
