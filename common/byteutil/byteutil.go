@@ -7,24 +7,26 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
+	"strings"
 )
 
 var Command = map[string]interface{}{
-	"string":          BytesToString,
-	"[]uint8":         OriginBytes,
-	"[64]uint8":       BytesTo64Bytes,
-	"[32]uint8":       BytesTo32Bytes,
-	"int":             BytesToInt,
-	"*big.Int":        BytesToBigInt,
-	"uint32":          binary.BigEndian.Uint32,
-	"uint64":          binary.BigEndian.Uint64,
-	"int32":           common.BytesToInt32,
-	"int64":           common.BytesToInt64,
-	"float32":         common.BytesToFloat32,
-	"float64":         common.BytesToFloat64,
-	"discover.NodeID": BytesToNodeId,
-	"common.Hash":     BytesToHash,
-	"common.Address":  BytesToAddress,
+	"string":            BytesToString,
+	"[]uint8":           OriginBytes,
+	"[64]uint8":         BytesTo64Bytes,
+	"[32]uint8":         BytesTo32Bytes,
+	"int":               BytesToInt,
+	"*big.Int":          BytesToBigInt,
+	"uint32":            binary.BigEndian.Uint32,
+	"uint64":            binary.BigEndian.Uint64,
+	"int32":             common.BytesToInt32,
+	"int64":             common.BytesToInt64,
+	"float32":           common.BytesToFloat32,
+	"float64":           common.BytesToFloat64,
+	"discover.NodeID":   BytesToNodeId,
+	"[]discover.NodeID": ArrBytesToNodeId,
+	"common.Hash":       BytesToHash,
+	"common.Address":    BytesToAddress,
 }
 
 func BytesToAddress(curByte []byte) common.Address {
@@ -36,6 +38,17 @@ func BytesToNodeId(curByte []byte) discover.NodeID {
 	str := BytesToString(curByte)
 	nodeId, _ := discover.HexID(str)
 	return nodeId
+}
+
+func ArrBytesToNodeId(curByte []byte) []discover.NodeID {
+	str := BytesToString(curByte)
+	strArr := strings.Split(str, ":")
+	var ANodeID []discover.NodeID
+	for i := 0; i < len(strArr); i++ {
+		nodeId, _ := discover.HexID(strArr[i])
+		ANodeID = append(ANodeID, nodeId)
+	}
+	return ANodeID
 }
 
 func BytesToHash(curByte []byte) common.Hash {

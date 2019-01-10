@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -196,6 +197,52 @@ func TestCandidateDetails(t *testing.T) {
 		return
 	}
 	fmt.Println("The candidate info is: ", ResultByte2Json(resByte))
+}
+
+func TestGetBatchCandidateDetail(t *testing.T) {
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(7000)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit1 success")
+
+	nodeId = discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner = common.HexToAddress("0x12")
+	fee = uint64(7000)
+	host = "10.0.0.2"
+	port = "8548"
+	extra = "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err = candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit2 success")
+
+	// GetBatchCandidateDetail(nodeIds []discover.NodeID) ([]byte, error)
+	nodeIds := []discover.NodeID{discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")}
+	input, _ := json.Marshal(nodeIds)
+	fmt.Println("GetBatchCandidateDetail input==>", "nodeIds: ", string(input))
+	resByte, err := candidateContract.GetBatchCandidateDetail(nodeIds)
+	if nil != err {
+		fmt.Println("GetBatchCandidateDetail fail", "err", err)
+	}
+	if nil == resByte {
+		fmt.Println("The candidate info is null")
+		return
+	}
+	fmt.Println("The batch candidate info is: ", ResultByte2Json(resByte))
 }
 
 func TestCandidateList(t *testing.T) {
@@ -412,7 +459,10 @@ func TestCandidateWithdrawInfos(t *testing.T) {
 }
 
 func TestRlpData(t *testing.T) {
-
+	//"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.9.181:16789",
+	//"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.9.182:16789",
+	//"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.183:16789",
+	//"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.184:16789"
 	nodeId := []byte("0x97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0")
 	owner := []byte("0x493301712671ada506ba6ca7891f436d29185821")
 
