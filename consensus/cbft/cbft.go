@@ -1362,6 +1362,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		cbft.setHighestLogical(current)
 		cbft.highestConfirmed = current
 		cbft.flushReadyBlock()
+		log.Debug("reset TxPool after block sealed", "RoutineID", common.CurrentGoRoutineID(), "hash", current.block.Hash(), "number", current.number)
+		cbft.txPool.Reset(current.block)
 		return nil
 	}
 
