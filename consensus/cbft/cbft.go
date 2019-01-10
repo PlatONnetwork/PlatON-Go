@@ -1739,40 +1739,47 @@ func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, b
 // AccumulateRewards for lucky tickets
 // Adjust rewards every 3600*24*365 blocks
 func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
-	nodeid := cbft.config.NodeID
-	if len(header.Extra) > 32 {
-		var e error
-		nodeid, _, e = ecrecover(header)
-		if e!=nil {
-			log.Error("accumulateRewards==> ecrecover faile ", " err: ", e.Error())
+	if len(header.Extra) < 64 {
+		log.Error("Failed to Call accumulateRewards, header.Extra < 64", " extra: ", hexutil.Encode(header.Extra))
+	}
+	var nodeId discover.NodeID
+	var err error
+	if ok := bytes.Equal(header.Extra[32:96], make([]byte, 64)); ok {
+		nodeId = cbft.config.NodeID
+	} else {
+		if nodeId, _, err = ecrecover(header); err!=nil {
+			log.Error("Failed to Call accumulateRewards, ecrecover faile", " err: ", err)
 			return
 		}
 	}
-	log.Info("accumulateRewards==> ecrecover return ", "nodeid: ", nodeid.String())
-	can, err := cbft.ppos.GetWitnessCandidate(state, nodeid, 0)
+
+	log.Info("Call accumulateRewards", "nodeid: ", nodeId.String())
+	var can *types.Candidate
 	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(BaseSwitchWitness))) == 0 {
-		can, err = cbft.ppos.GetWitnessCandidate(state, nodeid, -1)
+		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, -1)
+	}else {
+		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, 0)
 	}
 	if err != nil {
-		log.Error("accumulateRewards==> GetCandidate faile ", " err: ", err.Error())
+		log.Error("Failed to Call accumulateRewards, GetCandidate faile ", " err: ", err.Error())
 		return
 	}
 	if can == nil {
-		log.Warn("accumulateRewards==> GetCandidate return nil ")
+		log.Warn("Call accumulateRewards, Witness's can is Empty !!!!!!!!!!!!!!!!!!!!!!!!", "nodeId", nodeId)
 		return
 	}
-	log.Info("accumulateRewards==> GetTicket ", "TicketId: ", can.TicketId.Hex())
+	log.Info("Call accumulateRewards, GetTicket ", "TicketId: ", can.TicketId.Hex())
 	ticket, err := cbft.ppos.ticketPool.GetTicket(state, can.TicketId)
-	if err!=nil {
-		log.Error("accumulateRewards==> GetTicket faile ", " err: ", err.Error())
+	if nil != err {
+		log.Error("Failed to Call accumulateRewards, GetTicket faile ", " err: ", err.Error())
 		return
 	}
-	if ticket==nil {
-		log.Warn("accumulateRewards==> GetTicket return nil !")
+	if nil == ticket {
+		log.Warn("Call accumulateRewards, ticket info is Empty !!!!!!!!!!!!!!!!!!!!!!!!", "ticketId", can.TicketId.Hex())
 		return
 	}
 	if ticket.Owner == common.ZeroAddr {
-		log.Warn("accumulateRewards==> GetTicket return ticket owner is empty !")
+		log.Warn("Call accumulateRewards, ticket's owner addr is empty !!!!!!!!!!!!!!!!!!!!!!!!")
 		return
 	}
 
@@ -1787,11 +1794,11 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	nodeReward := new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(can.Fee)), FeeBase)
 	ticketReward := new(big.Int).Sub(blockReward, nodeReward)
 
-	log.Info("Rewards", "blockReward: ", blockReward, "nodeReward: ", nodeReward, "ticketReward: ", ticketReward)
+	log.Info("Call accumulateRewards, Rewards detail", "blockReward: ", blockReward, "nodeReward: ", nodeReward, "ticketReward: ", ticketReward)
 	state.SubBalance(common.RewardPoolAddr, blockReward)
 	state.AddBalance(header.Coinbase, nodeReward)
 	state.AddBalance(ticket.Owner, ticketReward)
-	log.Info("accumulateRewards==> success ", " yearReward: ", yearReward, " blockReward:", blockReward, " nodeReward: ", nodeReward,
+	log.Info("Call accumulateRewards SUCCESS !! ", " yearReward: ", yearReward, " blockReward:", blockReward, " nodeReward: ", nodeReward,
 		" ticketReward: ", ticketReward, " RewardPoolAddr address: ", common.RewardPoolAddr.Hex(), " balance: ", state.GetBalance(common.RewardPoolAddr), " Fee: ", can.Fee,
 		" Coinbase address: ", header.Coinbase.Hex(), " balance: ", state.GetBalance(header.Coinbase), " Ticket address: ", ticket.Owner.Hex(), " balance: ", state.GetBalance(ticket.Owner))
 }
@@ -1799,7 +1806,9 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 func (cbft *Cbft) IncreaseRewardPool(state *state.StateDB, number *big.Int) {
 	//add balance to reward pool
 	if new(big.Int).Rem(number, YearBlocks).Cmp(big.NewInt(0)) == 0 {
-		state.AddBalance(common.RewardPoolAddr, GetAmount(number))
+		num := GetAmount(number)
+		log.Info("Call IncreaseRewardPool SUCCESS !! ", "addr", common.RewardPoolAddr.Hex(), "num", num.String())
+		state.AddBalance(common.RewardPoolAddr, num)
 	}
 }
 

@@ -33,13 +33,19 @@ const (
 	// Ticket pool hash
 	TicketPoolHash	= "tph"
 
+)
+
+const (
 	PREVIOUS_C = iota -1
 	CURRENT_C
 	NEXT_C
-
-
 )
 
+const (
+	IS_LOST = iota
+	IS_IMMEDIATE
+	IS_RESERVE
+)
 
 var (
 

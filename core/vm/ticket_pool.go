@@ -12,12 +12,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
+	"strconv"
 )
 
 var (
-	ErrIllegalDeposit    = errors.New("Deposit balance not match or too low")
-	ErrCandidateNotExist = errors.New("Voted candidate not exist")
-	ErrTicketPoolEmpty   = errors.New("Ticket Pool is null")
+	ErrIllegalDeposit  = errors.New("Deposit balance not match or too low")
+	ErrTicketPoolEmpty = errors.New("Ticket Pool is null")
 )
 
 const (
@@ -97,16 +97,16 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 		backBalance := new(big.Int).Mul(new(big.Int).SetUint64(failNum), price)
 		t.Evm.StateDB.AddBalance(from, backBalance)
 	}
-	sdata := DecodeResultStr(string(data))
-	log.Info("Result of VoteTicket==> ", "len(successTicketIds): ", data, " []byte: ", sdata)
+	sdata := DecodeResultStr(strconv.Itoa(data))
+	log.Info("Result of VoteTicket==> ", "len(successTicketIds): ", strconv.Itoa(data), " []byte: ", sdata)
 	if nil != err {
 		log.Error("Failed to VoteTicket==> ", "VoteTicket return err: ", err.Error())
-		r := ResultCommon{true, string(data), err.Error()}
+		r := ResultCommon{true, strconv.Itoa(data), err.Error()}
 		event, _ := json.Marshal(r)
 		t.addLog(VoteTicketEvent, string(event))
 		return sdata, nil
 	}
-	r := ResultCommon{true, string(data), "success"}
+	r := ResultCommon{true, strconv.Itoa(data), "success"}
 	event, _ := json.Marshal(r)
 	t.addLog(VoteTicketEvent, string(event))
 	return sdata, nil
