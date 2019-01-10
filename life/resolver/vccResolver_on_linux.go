@@ -87,7 +87,7 @@ func envSetVarEnv(vm *exec.VirtualMachine) int64 {
 	cvarAddr := C.longlong(varAddr)
 
 	// call c func
-	C.gadget_setVar(cvarAddr, C.ulonglong(varVal), C.uchar(varUnsign))
+	C.gadget_setVar(cvarAddr, C.longlong(varVal), C.uchar(varUnsign))
 
 	return 0
 }
