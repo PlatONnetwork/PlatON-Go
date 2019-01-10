@@ -42,8 +42,6 @@ var (
 type TicketPool struct {
 	// Maximum number of ticket pool
 	MaxCount uint64
-	// Remaining number of ticket pool
-	SurplusQuantity uint64
 	// Reach expired quantity
 	ExpireBlockNumber uint64
 	lock              *sync.RWMutex
@@ -58,7 +56,6 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 	}
 	ticketPool = &TicketPool{
 		MaxCount:          configs.TicketConfig.MaxCount,
-		SurplusQuantity:   configs.TicketConfig.MaxCount,
 		ExpireBlockNumber: configs.TicketConfig.ExpireBlockNumber,
 		lock:              &sync.RWMutex{},
 	}
@@ -86,14 +83,17 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	defer t.lock.Unlock()
 	voteTicketIdList := make([]common.Hash, 0)
 	// check ticket pool count
-	t.GetPoolNumber(stateDB)
-	log.Info("票池", "剩余数量：", t.SurplusQuantity, "购票数量：", voteNumber, "块高：", blockNumber.Uint64())
-	if t.SurplusQuantity == 0 {
+	surplusQuantity, err := t.GetPoolNumber(stateDB)
+	if nil != err {
+		return voteTicketIdList, err
+	}
+	log.Info("票池", "剩余数量：", surplusQuantity, "购票数量：", voteNumber, "块高：", blockNumber.Uint64())
+	if surplusQuantity == 0 {
 		log.Error("Ticket Insufficient quantity")
 		return voteTicketIdList, TicketPoolNilErr
 	}
-	if t.SurplusQuantity < voteNumber {
-		voteNumber = t.SurplusQuantity
+	if surplusQuantity < voteNumber {
+		voteNumber = surplusQuantity
 	}
 	log.Info("开始循环投票", "候选人：", nodeId.String())
 	var i uint64 = 0
@@ -118,11 +118,19 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 		if err := t.recordExpireTicket(stateDB, blockNumber, ticketId); err != nil {
 			return voteTicketIdList, err
 		}
-		log.Info("记录待过期票成功，开始减少票池数量", "剩余量：", t.SurplusQuantity)
+		surplusQuantity, err := t.GetPoolNumber(stateDB)
+		if nil != err {
+			return voteTicketIdList, err
+		}
+		log.Info("记录待过期票成功，开始减少票池数量", "剩余量：", surplusQuantity)
 		if err := t.subPoolNumber(stateDB); err != nil {
 			return voteTicketIdList, err
 		}
-		log.Info("减少票池剩余量成功", "剩余量：", t.SurplusQuantity)
+		surplusQuantity, err = t.GetPoolNumber(stateDB)
+		if nil != err {
+			return voteTicketIdList, err
+		}
+		log.Info("减少票池剩余量成功", "剩余量：", surplusQuantity)
 	}
 	log.Info("结束循环投票", "候选人：", nodeId.String())
 	stateDB.AppendTicketCache(nodeId, voteTicketIdList)
@@ -332,12 +340,16 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.Node
 	if err := stateDB.RemoveTicketCache(candidateId, candidateTicketIds); err != nil {
 		return ticket, err
 	}
+	surplusQuantity, err := t.GetPoolNumber(stateDB)
+	if nil != err {
+		return ticket, err
+	}
 	log.Info("releaseTicket,结束更新", "候选人：", candidateId.String())
-	log.Info("releaseTicket,开始更新票池", "剩余量：", t.SurplusQuantity)
+	log.Info("releaseTicket,开始更新票池", "剩余量：", surplusQuantity)
 	if err := t.addPoolNumber(stateDB); err != nil {
 		return ticket, err
 	}
-	log.Info("releaseTicket,结束更新票池", "剩余量：", t.SurplusQuantity)
+	log.Info("releaseTicket,结束更新票池", "剩余量：", surplusQuantity)
 	log.Info("releaseTicket,开始更新候选人总票龄", "候选人：", candidateId.String(), "总票龄：", candidateAttach.Epoch, "当前块高：", blockNumber.Uint64(), "票块高：", ticket.BlockNumber.Uint64())
 	candidateAttach.SubEpoch(ticket.CalcEpoch(blockNumber))
 	log.Info("releaseTicket,结束更新候选人总票龄", "候选人：", candidateId.String(), "总票龄：", candidateAttach.Epoch, "当前块高：", blockNumber.Uint64(), "票块高：", ticket.BlockNumber.Uint64())
@@ -433,21 +445,27 @@ func removeTicketId(ticketId common.Hash, ticketIds []common.Hash) ([]common.Has
 }
 
 func (t *TicketPool) addPoolNumber(stateDB vm.StateDB) error {
-	t.GetPoolNumber(stateDB)
-	if t.SurplusQuantity == t.MaxCount {
+	surplusQuantity, err := t.GetPoolNumber(stateDB)
+	if nil != err {
+		return err
+	}
+	if surplusQuantity == t.MaxCount {
 		return TicketPoolOverflowErr
 	}
-	t.SurplusQuantity++
-	return t.setPoolNumber(stateDB, t.SurplusQuantity)
+	surplusQuantity++
+	return t.setPoolNumber(stateDB, surplusQuantity)
 }
 
 func (t *TicketPool) subPoolNumber(stateDB vm.StateDB) error {
-	t.GetPoolNumber(stateDB)
-	if t.SurplusQuantity == 0 {
+	surplusQuantity, err := t.GetPoolNumber(stateDB)
+	if nil != err {
+		return err
+	}
+	if surplusQuantity == 0 {
 		return TicketPoolNilErr
 	}
-	t.SurplusQuantity--
-	return t.setPoolNumber(stateDB, t.SurplusQuantity)
+	surplusQuantity--
+	return t.setPoolNumber(stateDB, surplusQuantity)
 }
 
 func (t *TicketPool) setPoolNumber(stateDB vm.StateDB, surplusQuantity uint64) error {
@@ -467,10 +485,9 @@ func (t *TicketPool) GetPoolNumber(stateDB vm.StateDB) (uint64, error) {
 			log.Error("Decode PoolNumber error", "key", string(SurplusQuantityKey), "err", err)
 			return surplusQuantity, DecodePoolNumberErr
 		}
-		t.SurplusQuantity = surplusQuantity
 	} else {
 		// Default initialization values
-		surplusQuantity = t.SurplusQuantity
+		surplusQuantity = t.MaxCount
 	}
 	return surplusQuantity, nil
 }
