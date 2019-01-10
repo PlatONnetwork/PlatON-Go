@@ -44,7 +44,6 @@ func getTxReceiptCmd(c *cli.Context) {
 
 func GetTxReceipt(txHash string) (Receipt, error) {
 	var receipt = Receipt{}
-	//根据result获取交易receipt
 	res, _ := Send([]string{txHash}, "eth_getTransactionReceipt")
 	e := json.Unmarshal([]byte(res), &receipt)
 	if e != nil {
