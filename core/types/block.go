@@ -115,7 +115,12 @@ func (header *Header) SealHash() (hash common.Hash) {
 }
 
 func (header *Header) _sealHash() (hash common.Hash) {
+	extra := header.Extra
+
 	hasher := sha3.NewKeccak256()
+	if len(header.Extra) > 32 {
+		extra = header.Extra[0:32]
+	}
 	rlp.Encode(hasher, []interface{}{
 		header.ParentHash,
 		header.UncleHash,
@@ -128,10 +133,11 @@ func (header *Header) _sealHash() (hash common.Hash) {
 		header.GasLimit,
 		header.GasUsed,
 		header.Time,
-		header.Extra[0:32],
+		extra,
 		header.MixDigest,
 		header.Nonce,
 	})
+
 	hasher.Sum(hash[:0])
 	return hash
 }
