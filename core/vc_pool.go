@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/accounts"
-	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
+	//"github.com/PlatONnetwork/PlatON-Go/accounts"
+	//"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -196,6 +196,7 @@ func (pool *VCPool) loop() {
 				bn := pool.chain.CurrentBlock().Number().Int64()
 				// 最新区块小于当前存储的，表示发生了分叉，移除交易
 				// 如果交易所属块与最新区块未间隔20个确认区块，则不进行处理
+				log.Debug("start evm ------------------------------------------------call ", "bn", bn)
 				if bn < int64(tx.Bn) || (bn-int64(tx.Bn)) >= MinBlockConfirms {
 					pool.all.Remove(tx.Hash())
 				} else {
@@ -238,17 +239,17 @@ func (pool *VCPool) loop() {
 					fmt.Println(string(res))
 
 					//fmt.Println("ApplyMessage ret:", bytes.TrimLeft(res, "\x00"))
-					var a accounts.Account
+					//var a accounts.Account
 					fmt.Println("unlock: ", pool.config.VcActor.Hex())
-					fmt.Println("password ", pool.config.VcPassword)
+					//fmt.Println("password ", pool.config.VcPassword)
 
 					state, err = bc.State()
-					a.Address = pool.config.VcActor
+					//a.Address = pool.config.VcActor
 					data := genSetResultInput(tx.TaskId, bytes.TrimLeft(res, "\x00"))
 					// resulttx := types.NewTransaction(state.GetNonce(a.Address), *(tx.To()), big.NewInt(0), 1000000,
 					// 	big.NewInt(2), common.Hex2Bytes(data))
-					ks := keystore.NewKeyStore(filepath.Join("./build/bin/data/", "keystore"), keystore.StandardScryptN, keystore.StandardScryptP)
-					ks.Unlock(a, pool.config.VcPassword)
+					//ks := keystore.NewKeyStore(filepath.Join("./build/bin/data/", "keystore"), keystore.StandardScryptN, keystore.StandardScryptP)
+					//ks.Unlock(a, pool.config.VcPassword)
 
 					vc_data := make(map[string]interface{})
 					vc_data["jsonrpc"] = "2.0"
@@ -412,6 +413,8 @@ func (pool *VCPool) InjectTxs(block *types.Block, receipts types.Receipts, bc *B
 		return
 	}
 
+	log.Debug("Wow ~ VC -------------------------------------------able...")
+
 	for _, tx := range block.Transactions() {
 		isSave := false
 		var taskId string
@@ -447,6 +450,7 @@ func (pool *VCPool) InjectTxs(block *types.Block, receipts types.Receipts, bc *B
 			// if err := pool.validateActor(wrap, bc, state); err != nil {
 			// 	log.Trace("God ~ Discarding the actor not belong to current VC contract.", "hash", wrap.Hash(), "err", err)
 			// 	return
+                       log.Debug("Wow ~ VC add pool--------------------------------------...")
 			// }
 			pool.add(wrap)
 		}
