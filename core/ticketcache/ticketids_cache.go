@@ -3,7 +3,6 @@ package ticketcache
 import (
 	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -61,7 +60,7 @@ func NewTicketIdsCache(db ethdb.Database)  *NumBlocks {
 	ticketidsCache.NBlocks = make(map[string]*BlockNodes)
 	cache, err := db.Get(ticketPoolCacheKey)
 	if err == nil {
-		log.Info("NewTicketIdsCache==> ", "CacheHex: ", hexutil.Encode(cache))
+		log.Info("NewTicketIdsCache==> ", "Cachelen: ", len(cache))
 		if err := proto.Unmarshal(cache, ticketidsCache); err != nil {
 			log.Error("NewTicketIdsCache==> protocol buffer Unmarshal faile")
 		}
@@ -89,7 +88,7 @@ func (nb *NumBlocks) Hash(cache TicketCache) (common.Hash, error) {
 	timer := Timer{}
 	timer.Begin()
 	out, err := proto.Marshal(cache.GetSortStruct())
-	log.Info("Hash==> ", "lenOut: ", len(out), " hexOut: ", hexutil.Encode(out))
+	log.Info("Hash==> ", "lenOut: ", len(out))
 	if err != nil {
 		log.Error("Hash==> ", "ErrProbufMarshal: ", ErrProbufMarshal.Error())
 		return common.Hash{}, ErrProbufMarshal
@@ -208,7 +207,7 @@ func (nb *NumBlocks) Commit(db ethdb.Database) error {
 		return ErrProbufMarshal
 	}
 	//logInfo("Marshal out: ", hexutil.Encode(out))
-	log.Info("Commit==> ", "cachelen: ", len(nb.NBlocks), " outlen: ", len(out), " outhex: ", hexutil.Encode(out))
+	log.Info("Commit==> ", "cachelen: ", len(nb.NBlocks), " outlen: ", len(out))
 	if err := db.Put(ticketPoolCacheKey, out); err != nil  {
 		log.Error("level db put faile: ", err.Error())
 		return ErrLeveldbPut
