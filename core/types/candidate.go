@@ -1,35 +1,34 @@
 package types
 
 import (
-	"math/big"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"math/big"
 )
 
 // candiate info
 type Candidate struct {
 
 	// Mortgage amount (margin)
-	Deposit			*big.Int
+	Deposit *big.Int
 	// Current block height number at the time of the mortgage
-	BlockNumber 	*big.Int
+	BlockNumber *big.Int
 	// Current tx'index at the time of the mortgage
-	TxIndex 		uint32
+	TxIndex uint32
 	// candidate's server nodeId
-	CandidateId 	discover.NodeID
-	Host 			string
-	Port 			string
+	CandidateId discover.NodeID
+	Host        string
+	Port        string
 
 	// Mortgage beneficiary's account address
-	Owner 			common.Address
+	Owner common.Address
 	// The account address of initiating a mortgaged
-	From 			common.Address
+	From common.Address
 
-
-	Extra 			string
+	Extra string
 
 	// brokerage   example: (fee/10000) * 100% == x%
-	Fee 			uint64
+	Fee uint64
 
 	// Voted ticket'id set
 	//ticketPool		[]common.Hash
@@ -41,3 +40,4 @@ type Candidate struct {
 	//Brokerage		uint64				`json:"brokerage"`
 }
 
+type CandidateQueue []*Candidate

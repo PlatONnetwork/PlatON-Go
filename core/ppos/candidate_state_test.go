@@ -510,8 +510,11 @@ func TestGetDefeat(t *testing.T) {
 	/** test init candidatePool */
 	candidatePool = newCandidatePool()
 
+	val, _ := new(big.Int).SetString("130000000000000000000", 10)
+
 	candidate := &types.Candidate{
-		Deposit: 		big.NewInt(110000000000000),
+		//Deposit: 		big.NewInt(130000000000000000000),
+		Deposit: val,
 		BlockNumber:    new(big.Int).SetUint64(7),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
 		TxIndex:  		6,
@@ -526,8 +529,10 @@ func TestGetDefeat(t *testing.T) {
 		t.Error("SetCandidate err:", err)
 	}
 
+	val, _ = new(big.Int).SetString("130000000000000000000", 10)
 	candidate2 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		//Deposit: 		new(big.Int).SetUint64(130000000000000000000),
+		Deposit: val,
 		BlockNumber:    new(big.Int).SetUint64(7),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:  		5,
@@ -542,8 +547,10 @@ func TestGetDefeat(t *testing.T) {
 		t.Error("SetCandidate err:", err)
 	}
 
+	val, _ = new(big.Int).SetString("130000000000000000000", 10)
 	candidate3 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		//Deposit: 		new(big.Int).SetUint64(130000000000000000000),
+		Deposit: val,
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
 		TxIndex:  		5,
@@ -558,8 +565,10 @@ func TestGetDefeat(t *testing.T) {
 		t.Error("SetCandidate err:", err)
 	}
 
+	val, _ = new(big.Int).SetString("130000000000000000000", 10)
 	candidate4 := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(99),
+		//Deposit: 		new(big.Int).SetUint64(130000000000000000000),
+		Deposit: val,
 		BlockNumber:    new(big.Int).SetUint64(6),
 		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:  		4,
@@ -574,6 +583,9 @@ func TestGetDefeat(t *testing.T) {
 		t.Error("SetCandidate err:", err)
 	}
 
+	arr := candidatePool.GetChosens(state)
+	by, _ := json.Marshal(arr)
+	fmt.Println(string(by))
 
 	/** test Election */
 	t.Log("test Election ...")

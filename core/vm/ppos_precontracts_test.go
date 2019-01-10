@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -196,6 +197,52 @@ func TestCandidateDetails(t *testing.T) {
 		return
 	}
 	fmt.Println("The candidate info is: ", ResultByte2Json(resByte))
+}
+
+func TestGetBatchCandidateDetail(t *testing.T) {
+	candidateContract := vm.CandidateContract{
+		newContract(),
+		newEvm(),
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint64(7000)
+	host := "10.0.0.1"
+	port := "8548"
+	extra := "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit1 success")
+
+	nodeId = discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner = common.HexToAddress("0x12")
+	fee = uint64(7000)
+	host = "10.0.0.2"
+	port = "8548"
+	extra = "extra data"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err = candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	fmt.Println("CandidateDeposit2 success")
+
+	// GetBatchCandidateDetail(nodeIds []discover.NodeID) ([]byte, error)
+	nodeIds := []discover.NodeID{discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")}
+	input, _ := json.Marshal(nodeIds)
+	fmt.Println("GetBatchCandidateDetail input==>", "nodeIds: ", string(input))
+	resByte, err := candidateContract.GetBatchCandidateDetail(nodeIds)
+	if nil != err {
+		fmt.Println("GetBatchCandidateDetail fail", "err", err)
+	}
+	if nil == resByte {
+		fmt.Println("The candidate info is null")
+		return
+	}
+	fmt.Println("The batch candidate info is: ", ResultByte2Json(resByte))
 }
 
 func TestCandidateList(t *testing.T) {
