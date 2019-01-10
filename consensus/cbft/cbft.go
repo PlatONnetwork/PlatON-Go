@@ -1212,7 +1212,7 @@ func (cbft *Cbft) ShouldSeal() (bool, error) {
 		cbft.netLatencyLock.RLock()
 		defer cbft.netLatencyLock.RUnlock()
 		peersCount := len(cbft.netLatencyMap)
-		if peersCount < cbft.getThreshold() {
+		if peersCount < cbft.getThreshold()-1 {
 			cbft.log.Debug("connected peers not enough", "connectedPeersCount", peersCount)
 			inturn = false
 		}
