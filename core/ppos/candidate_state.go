@@ -1063,6 +1063,7 @@ func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
 		//fmt.Println("对比质押金额：", "配置文件的limit:" , fmt.Sprint(c.depositLimit) ,"当前质押者金额：" , can.Deposit.String() , "最小者:" , last.CandidateId.String() ,  " 最小者的金额：" , last.Deposit.String() , "算了最小者的 百分比后的金额:", tmp.String())
 
 		if can.Deposit.Cmp(tmp) < 0 {
+			log.Error(DepositLowErr.Error(), "depositLimit:" , fmt.Sprint(c.depositLimit) ,"curr Deposit：" , can.Deposit.String() , " last Deposit：" , last.Deposit.String() , "target Deposit:", tmp.String())
 			return DepositLowErr
 		}
 	}
@@ -1083,6 +1084,7 @@ func (c *CandidatePool) checkWithdraw(source, price *big.Int) error {
 	//fmt.Println("对比退款金额：", "配置文件的limit:" , fmt.Sprint(c.depositLimit) ,"当前退款者原来金额：" , source.String() , "后来金额：" , price.String() , "算了百分比后的金额:", tmp.String())
 
 	if price.Cmp(tmp) < 0 {
+		log.Error(WithdrawLowErr.Error(), "depositLimit:" , fmt.Sprint(c.depositLimit) ,"origin Deposit：" , source.String() , " curr price：" , price.String() , "target Deposit:", tmp.String())
 		return WithdrawLowErr
 	}
 	return nil
