@@ -74,6 +74,7 @@ type Ethereum struct {
 	lesServer       LesServer
 	// modify
 	mpcPool *core.MPCPool
+	vcPool 		    *core.VCPool
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -200,6 +201,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.MPCPool.Lifetime = core.DefaultMPCPoolConfig.Lifetime
 	}
 	eth.mpcPool = core.NewMPCPool(config.MPCPool, eth.chainConfig, eth.blockchain)
+	eth.vcPool = core.NewVCPool(config.VCPool, eth.chainConfig, eth.blockchain)
 
 	// modify by platon remove consensusCache
 	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)

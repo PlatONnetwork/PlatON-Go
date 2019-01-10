@@ -3,9 +3,10 @@ package exec
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math"
 	"math/bits"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
 
 	"github.com/PlatONnetwork/PlatON-Go/life/compiler"
 	"github.com/PlatONnetwork/PlatON-Go/life/compiler/opcodes"
