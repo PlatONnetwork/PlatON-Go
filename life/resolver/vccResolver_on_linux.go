@@ -83,10 +83,11 @@ func envSetVarEnv(vm *exec.VirtualMachine) int64 {
 	// get parameters
 	varAddr := int64(vm.GetCurrentFrame().Locals[0])
 	varVal := int64(vm.GetCurrentFrame().Locals[1])
+	varUnsign := int8(vm.GetCurrentFrame().Locals[2])
 	cvarAddr := C.longlong(varAddr)
 
 	// call c func
-	C.gadget_setVar(cvarAddr, C.ulonglong(varVal))
+	C.gadget_setVar(cvarAddr, C.longlong(varVal), C.uchar(varUnsign))
 
 	return 0
 }
