@@ -349,6 +349,10 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.Node
 	if err := t.addPoolNumber(stateDB); err != nil {
 		return ticket, err
 	}
+	surplusQuantity, err = t.GetPoolNumber(stateDB)
+	if nil != err {
+		return ticket, err
+	}
 	log.Info("releaseTicket,结束更新票池", "剩余量：", surplusQuantity)
 	log.Info("releaseTicket,开始更新候选人总票龄", "候选人：", candidateId.String(), "总票龄：", candidateAttach.Epoch, "当前块高：", blockNumber.Uint64(), "票块高：", ticket.BlockNumber.Uint64())
 	candidateAttach.SubEpoch(ticket.CalcEpoch(blockNumber))
