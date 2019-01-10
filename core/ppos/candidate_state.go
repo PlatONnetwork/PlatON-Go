@@ -87,7 +87,8 @@ type CandidatePool struct {
 
 	// cache
 	candidateCacheArr []*types.Candidate
-	lock              *sync.RWMutex
+	//lock              *sync.RWMutex
+	lock 				*sync.Mutex
 }
 
 var candidatePool *CandidatePool
@@ -105,7 +106,8 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		immediateCandates:    make(map[discover.NodeID]*types.Candidate, 0),
 		defeatCandidates:     make(map[discover.NodeID][]*types.Candidate, 0),
 		candidateCacheArr:    make([]*types.Candidate, 0),
-		lock:                 &sync.RWMutex{},
+		//lock:                 &sync.RWMutex{},
+		lock:                 &sync.Mutex{},
 	}
 	return candidatePool
 }
@@ -488,8 +490,8 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 // Getting all immediate elected candidates array
 func (c *CandidatePool) GetChosens(state vm.StateDB) []*types.Candidate {
 	log.Info("获取实时入围列表...")
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on WithdrawCandidate", "err", err)
 		return nil
@@ -509,8 +511,8 @@ func (c *CandidatePool) GetChosens(state vm.StateDB) []*types.Candidate {
 // Getting all witness array
 func (c *CandidatePool) GetChairpersons(state vm.StateDB) []*types.Candidate {
 	log.Info("获取本轮见证人列表...")
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on GetChairpersons", "err", err)
 		return nil
@@ -530,8 +532,8 @@ func (c *CandidatePool) GetChairpersons(state vm.StateDB) []*types.Candidate {
 // Getting all refund array by nodeId
 func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*types.Candidate, error) {
 	log.Info("获取退款列表: nodeId = " + nodeId.String())
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
 		log.Error("Failed to initDataByState on GetDefeat", "err", err)
 		return nil, err
@@ -547,8 +549,8 @@ func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*
 
 // Checked current candidate was defeat by nodeId
 func (c *CandidatePool) IsDefeat(state vm.StateDB, nodeId discover.NodeID) (bool, error) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on IsDefeat", "err", err)
 		return false, err
@@ -569,8 +571,8 @@ func (c *CandidatePool) IsDefeat(state vm.StateDB, nodeId discover.NodeID) (bool
 // Getting owner's address of candidate info by nodeId
 func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) common.Address {
 	log.Info("获取收益者地址: nodeId = " + nodeId.String())
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
 		log.Error("Failed to initDataByState on GetOwner", "err", err)
 		return common.Address{}
@@ -916,8 +918,8 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 // flag：-1: the previous round of witnesses  0: the current round of witnesses   1: the next round of witnesses
 func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
 	log.Info("获取见证人: flag = " + strconv.Itoa(flag))
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on GetWitness", "err", err)
 		return nil, err
@@ -968,8 +970,8 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 // Getting previous and current and next witnesses
 func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
 	log.Info("获取所有见证人...")
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on GetAllWitness", "err", err)
 		return nil, nil, nil, err
@@ -1049,18 +1051,14 @@ func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
 		// y = 100 + x
 		percentage := new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit)))
 		log.Debug("对比质押金额：", "第一步:", percentage.String())
-		//fmt.Println("对比质押金额：", "第一步:", percentage.String())
 		// z = old * y
 		tmp := new(big.Int).Mul(lastDeposit, percentage)
 		log.Debug("对比质押金额：", "第二步:", tmp.String())
-		//fmt.Println("对比质押金额：", "第二步:", tmp.String())
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		log.Debug("对比质押金额：", "第三步:", tmp.String())
 		log.Debug("对比质押金额：", "配置文件的limit:" , fmt.Sprint(c.depositLimit) ,"当前质押者金额：" , can.Deposit.String() , "最小者:" , last.CandidateId.String() ,  " 最小者的金额：" , last.Deposit.String() , "算了最小者的 百分比后的金额:", tmp.String())
 
-		//fmt.Println("对比质押金额：", "第三步:", tmp.String())
-		//fmt.Println("对比质押金额：", "配置文件的limit:" , fmt.Sprint(c.depositLimit) ,"当前质押者金额：" , can.Deposit.String() , "最小者:" , last.CandidateId.String() ,  " 最小者的金额：" , last.Deposit.String() , "算了最小者的 百分比后的金额:", tmp.String())
 
 		if can.Deposit.Cmp(tmp) < 0 {
 			log.Error(DepositLowErr.Error(), "depositLimit:" , fmt.Sprint(c.depositLimit) ,"curr Deposit：" , can.Deposit.String() , " last Deposit：" , last.Deposit.String() , "target Deposit:", tmp.String())
@@ -1074,14 +1072,11 @@ func (c *CandidatePool) checkWithdraw(source, price *big.Int) error {
 	// y = old * x
 	percentage := new(big.Int).Mul(source, big.NewInt(int64(c.depositLimit)))
 	log.Debug("对比质押金额：", "第一步:", percentage.String())
-	//fmt.Println("对比质押金额：", "第一步:", percentage.String())
 	// y/100 == old * (x/100) == old * x%
 	tmp := new(big.Int).Div(percentage, big.NewInt(100))
 	log.Debug("对比退款金额：", "第二步:", tmp.String())
 	log.Debug("对比退款金额：", "配置文件的limit:" , fmt.Sprint(c.depositLimit) ,"当前退款者原来金额：" , source.String() , "后来金额：" , price.String() , "算了百分比后的金额:", tmp.String())
 
-	//fmt.Println("对比退款金额：", "第二步:", tmp.String())
-	//fmt.Println("对比退款金额：", "配置文件的limit:" , fmt.Sprint(c.depositLimit) ,"当前退款者原来金额：" , source.String() , "后来金额：" , price.String() , "算了百分比后的金额:", tmp.String())
 
 	if price.Cmp(tmp) < 0 {
 		log.Error(WithdrawLowErr.Error(), "depositLimit:" , fmt.Sprint(c.depositLimit) ,"origin Deposit：" , source.String() , " curr price：" , price.String() , "target Deposit:", tmp.String())
@@ -1299,8 +1294,8 @@ func (c *CandidatePool) getNextWitnessIndex(state vm.StateDB) ([]discover.NodeID
 }
 
 func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on getCandidate", "err", err)
 		return nil, err
@@ -1313,8 +1308,8 @@ func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (
 }
 
 func (c *CandidatePool) getCandidates(state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on getCandidates", "err", err)
 		return nil, err
