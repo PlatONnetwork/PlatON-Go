@@ -167,10 +167,6 @@ type CbftConfig struct {
 	MaxLatency       int64   `json:"maxLatency"`
 	LegalCoefficient float64 `json:"legalCoefficient"`
 	Duration         int64   `json:"duration"`
-	//mock
-	//InitialNodes []discover.Node   `json:"initialNodes"`
-	//NodeID       discover.NodeID   `json:"nodeID,omitempty"`
-	//PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
 	Ppos 			*PposConfig 	`json:"ppos"`
 }
 
