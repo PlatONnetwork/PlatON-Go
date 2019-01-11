@@ -32,6 +32,7 @@ func TestMemTreePool(t *testing.T) {
 		Start:  3 * DefaultPageSize,
 		tree:   treePool.GetTree(16),
 	}
+
 	m.Size = (len(m.tree) + 1) / 2
 	m.Malloc(64)
 }
