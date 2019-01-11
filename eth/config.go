@@ -53,8 +53,8 @@ var DefaultConfig = Config{
 			Candidate: &CandidateConfig{
 				DepositLimit: 	  	10,
 				Allowed: 			100,
-				MaxCount:          	25,
-				MaxChair:          	200,
+				MaxCount:          	10,
+				MaxChair:          	100,
 				RefundBlockNumber: 	512,
 			},
 			Ticket: &TicketConfig{
@@ -172,10 +172,6 @@ type CbftConfig struct {
 	MaxLatency       int64   `json:"maxLatency"`
 	LegalCoefficient float64 `json:"legalCoefficient"`
 	Duration         int64   `json:"duration"`
-	//mock
-	//InitialNodes []discover.Node   `json:"initialNodes"`
-	//NodeID       discover.NodeID   `json:"nodeID,omitempty"`
-	//PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
 	Ppos 			*PposConfig 	`json:"ppos"`
 }
 

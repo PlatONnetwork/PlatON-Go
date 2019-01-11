@@ -90,15 +90,15 @@ type peer struct {
 	td   *big.Int
 	lock sync.RWMutex
 
-	knownTxs    mapset.Set                // Set of transaction hashes known to be known by this peer
-	knownBlocks mapset.Set                // Set of block hashes known to be known by this peer
+	knownTxs           mapset.Set                // Set of transaction hashes known to be known by this peer
+	knownBlocks        mapset.Set                // Set of block hashes known to be known by this peer
 	knownPrepareBlocks mapset.Set                // Set of prepareblock hashes known to be known by this peer
 	queuedTxs          chan []*types.Transaction // Queue of transactions to broadcast to the peer
 	queuedProps        chan *propEvent           // Queue of blocks to broadcast to the peer
 	queuedAnns         chan *types.Block         // Queue of blocks to announce to the peer
 	term               chan struct{}             // Termination channel to stop the broadcaster
-	queuedPreBlock  chan *preBlockEvent
-	queuedSignature chan *signatureEvent
+	queuedPreBlock     chan *preBlockEvent
+	queuedSignature    chan *signatureEvent
 }
 
 func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
@@ -521,6 +521,23 @@ func (ps *peerSet) PeersWithoutTx(hash common.Hash) []*peer {
 	for _, p := range ps.peers {
 		if !p.knownTxs.Contains(hash) {
 			list = append(list, p)
+		}
+	}
+	return list
+}
+
+// ConsensusPeersWithoutTx retrieves a list of consensus peers that do not have a given transaction
+// in their set of known hashes.
+func (ps *peerSet) ConsensusPeersWithoutTx(csPeers []*peer, hash common.Hash) []*peer{
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	list := make([]*peer, 0, len(csPeers))
+	for _, p := range csPeers {
+		if _, ok := ps.peers[p.id]; ok {
+			if !p.knownTxs.Contains(hash) {
+				list = append(list, p)
+			}
 		}
 	}
 	return list

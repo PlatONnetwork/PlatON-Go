@@ -150,10 +150,18 @@ type Bft interface {
 	// Process the BFT signatures
 	OnPong(nodeID discover.NodeID, netLatency int64) error
 
+	// Send a signal if a block synced from other peer.
+	OnBlockSynced()
 	//CheckConsensusNode(nodeID discover.NodeID) (bool, error)
 
 	//IsConsensusNode() (bool, error)
 
+	// At present, the highest reasonable block, when the node is out of the block, it needs to generate the block based on the highest reasonable block.
+	HighestLogicalBlock() *types.Block
+
+	HighestConfirmedBlock() *types.Block
+
+	GetBlock(hash common.Hash, number uint64) *types.Block
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
 	Election(state *state.StateDB, parentHash common.Hash, blockNumber *big.Int) ([]*discover.Node, error)

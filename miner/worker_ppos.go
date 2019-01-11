@@ -121,7 +121,7 @@ func (w *worker) getWitness(blockNumber *big.Int, state *state.StateDB, flag int
 	log.Debug("GetWitness begin", "blockNumber", blockNumber, "flag", flag)
 	consensusNodes, err := w.engine.(consensus.Bft).GetWitness(state, flag)
 	if err != nil {
-		log.Error("Failed to GetWitness", "blockNumber", blockNumber, "state", state, "error", err)
+		log.Error("Failed to GetWitness", "blockNumber", blockNumber, "error", err)
 		return nil, errors.New("Failed to GetWitness")
 	}
 	log.Info("GetWitness end", "blockNumber", blockNumber, "flag", flag, "consensusNodes", consensusNodes, "consensusNodes length", len(consensusNodes))

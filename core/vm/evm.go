@@ -24,6 +24,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -53,6 +54,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		}
 		// ppos
 		if p := PrecompiledContractsPpos[*contract.CodeAddr]; p != nil {
+
 			if c, ok := p.(*CandidateContract); ok {
 				c.Contract = contract
 				c.Evm = evm
@@ -60,7 +62,9 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			if t, ok := p.(*TicketContract); ok {
 				t.Contract = contract
 				t.Evm = evm
+
 			}
+			log.Info("IN PPOS PrecompiledContractsPpos ... ")
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}

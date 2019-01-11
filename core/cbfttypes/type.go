@@ -15,6 +15,9 @@ type BlockSignature struct {
 	ParentHash common.Hash
 }
 
+type BlockSynced struct {
+}
+
 type CbftResult struct {
 	Block *types.Block
 	//Receipts          types.Receipts
