@@ -1029,8 +1029,10 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 			txs.Pop()
 
 		case nil:
-			log.Debug("commit transaction success", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "txNonce", tx.Nonce())
 
+			if from.String() == "0x493301712671Ada506ba6Ca7891F436D29185821" {
+				log.Debug("Nonce tracking", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "hash", tx.Hash(), "from", "0x493301712671Ada506ba6Ca7891F436D29185821", "nonce", w.current.state.GetNonce(from), "tx.Nonce()", tx.Nonce())
+			}
 			// Everything ok, collect the logs and shift in the next transaction from the same account
 			coalescedLogs = append(coalescedLogs, logs...)
 			w.current.tcount++
@@ -1039,7 +1041,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 		default:
 			// Strange error, discard the transaction and get the next in line (note, the
 			// nonce-too-high clause will prevent us from executing in vain).
-			log.Debug("Transaction failed, account skipped", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "hash", tx.Hash(), "hash", tx.Hash(), "err", err)
+			log.Warn("Transaction failed, account skipped", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "hash", tx.Hash(), "hash", tx.Hash(), "err", err)
 			txs.Shift()
 		}
 	}
