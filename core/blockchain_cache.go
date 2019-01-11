@@ -92,8 +92,8 @@ func (bcc *BlockChainCache) GetState(header *types.Header) (*state.StateDB, erro
 func (pbc *BlockChainCache) ReadStateDB(sealHash common.Hash) *state.StateDB {
 	pbc.stateDBMu.RLock()
 	defer pbc.stateDBMu.RUnlock()
-	log.Info("Read the StateDB instance from the cache map", "sealHash", sealHash)
 	if obj, exist := pbc.stateDBCache[sealHash]; exist {
+		log.Debug("Read the StateDB instance from the cache map", "sealHash", sealHash)
 		return obj.stateDB.Copy()
 	}
 	return nil
