@@ -730,7 +730,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Ensure the transaction adheres to nonce ordering
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
-		log.Error("Nonce tracking: GetNonce", "from", from, "nonce", pool.currentState.GetNonce(from), "tx.Nonce()", tx.Nonce())
+		/*from, _ := types.Sender(pool.signer, tx)
+		if local && from.String() == "0x493301712671Ada506ba6Ca7891F436D29185821" {
+			log.Debug("Nonce tracking, validate tx", "from", "0x493301712671Ada506ba6Ca7891F436D29185821", "nonce", pool.currentState.GetNonce(from), "tx.Nonce()", tx.Nonce())
+		}*/
 		return ErrNonceTooLow
 	}
 	// Transactor should have enough funds to cover the costs
@@ -1059,7 +1062,14 @@ func (pool *TxPool) addTxExt(txExt *txExt) interface{} {
 	defer pool.mu.Unlock()
 
 	if tx, ok := txExt.tx.(*types.Transaction); ok {
-		return pool.addTxLocked(tx, txExt.local)
+		err := pool.addTxLocked(tx, txExt.local)
+		if txExt.local {
+			from, _ := types.Sender(pool.signer, tx)
+			if from.String() == "0x493301712671Ada506ba6Ca7891F436D29185821" {
+				log.Debug("Nonce tracking, add tx to pool", "from", "0x493301712671Ada506ba6Ca7891F436D29185821", "err", err, "nonce", pool.currentState.GetNonce(from), "tx.Nonce()", tx.Nonce())
+			}
+		}
+		return err
 	}
 
 	if txs, ok := txExt.tx.([]*types.Transaction); ok {
