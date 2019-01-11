@@ -24,6 +24,18 @@ func TestMemory_Malloc(t *testing.T) {
 	}
 }
 
+func TestMemTreePool(t *testing.T) {
+	memPool := NewMemPool(DefaultMemPoolCount, DefaultMemBlockSize)
+	treePool := NewTreePool(DefaultMemPoolCount, DefaultMemBlockSize)
+	m := &Memory{
+		Memory: memPool.Get(19),
+		Start:  3 * DefaultPageSize,
+		tree:   treePool.GetTree(16),
+	}
+	m.Size = (len(m.tree) + 1) / 2
+	m.Malloc(64)
+}
+
 func TestMemory_Free(t *testing.T) {
 	size := 32
 	m := &Memory{
