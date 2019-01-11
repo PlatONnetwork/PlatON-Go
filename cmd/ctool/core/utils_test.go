@@ -101,11 +101,11 @@ func TestHttpPostDeploy(t *testing.T) {
 	}
 	fmt.Printf("trasaction hash: %s\n", resp.Result)
 
-	//根据result获取交易receipt
+	// Get transaction receipt according to result
 	ch := make(chan string, 1)
 	go GetTransactionReceipt(resp.Result, ch)
 
-	//然后，我们把timeout这个channel利用起来
+	// Then, we use the timeout channel
 	select {
 	case address := <-ch:
 		fmt.Printf("contract address:%s\n", address)

@@ -20,140 +20,139 @@ func constGasFunc(gas uint64) gasFunc {
 	}
 }
 
-func NewGasTable() [256]Instruction {
-	return [256]Instruction{
-		opcodes.Nop: {
-			Execute: nil,
-			GasCost: constGasFunc(0),
-		},
-		opcodes.Unreachable: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.Select: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Const: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Add: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Sub: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Mul: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32DivS: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32DivU: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32RemS: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32RemU: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32And: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Or: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Xor: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Shl: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32ShrS: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32ShrU: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Rotl: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Rotr: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Clz: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Ctz: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32PopCnt: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32EqZ: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Eq: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32Ne: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32LtS: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32LtU: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32LeS: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32LeU: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32GtS: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32GtU: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32GeS: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
-		opcodes.I32GeU: {
-			Execute: nil,
-			GasCost: constGasFunc(1),
-		},
+var GasTable = [256]Instruction{
+	opcodes.Nop: {
+		Execute: nil,
+		GasCost: constGasFunc(0),
+	},
+	opcodes.Unreachable: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.Select: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Const: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Add: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Sub: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Mul: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32DivS: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32DivU: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32RemS: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32RemU: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32And: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Or: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Xor: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Shl: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32ShrS: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32ShrU: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Rotl: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Rotr: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Clz: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Ctz: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32PopCnt: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32EqZ: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Eq: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32Ne: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32LtS: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32LtU: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32LeS: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32LeU: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32GtS: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32GtU: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32GeS: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
+	opcodes.I32GeU: {
+		Execute: nil,
+		GasCost: constGasFunc(1),
+	},
 
 		opcodes.I64Const: {
 			Execute: nil,
@@ -680,4 +679,4 @@ func NewGasTable() [256]Instruction {
 			GasCost: constGasFunc(1),
 		},
 	}
-}
+

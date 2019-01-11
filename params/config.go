@@ -127,8 +127,8 @@ var (
 			PposConfig: &PposConfig{
 				Candidate: &CandidateConfig{
 					DepositLimit: 	  	10,
-					MaxCount:          	25,
-					MaxChair:          	200,
+					MaxCount:          	10,
+					MaxChair:          	100,
 					RefundBlockNumber: 	512,
 				},
 			},
