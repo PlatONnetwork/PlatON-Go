@@ -81,12 +81,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// Election call(if match condition)
 		if p.bc.shouldElectionFn(block.Number()) {
-			log.Warn("---Election call when processing block:---", "number", block.Number(), "state", statedb)
+			log.Debug("---Election call when processing block:---", "number", block.Number())
 			cbftEngine.Election(statedb, block.Number())
 		}
 		// SwitchWitness call(if match condition)
 		if p.bc.shouldSwitchFn(block.Number()) {
-			log.Warn("---SwitchWitness call when processing block:---", "number", block.Number(), "state", statedb)
+			log.Debug("---SwitchWitness call when processing block:---", "number", block.Number())
 			cbftEngine.Switch(statedb)
 		}
 	}

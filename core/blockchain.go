@@ -1223,7 +1223,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 
 		if _, ok := bc.engine.(consensus.Bft); ok {
-			log.Debug("Attempt to connect the next round of consensus nodes when insertchain", "number", block.Number(), "state", state)
+			log.Debug("Attempt to connect the next round of consensus nodes when insertchain", "number", block.Number())
 			bc.attemptAddConsensusPeerFn(block.Number(), state)
 		}
 
