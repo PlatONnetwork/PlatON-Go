@@ -154,7 +154,6 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	// modify by platon
 	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, new(EthashConfig), nil, nil, ""}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
@@ -162,13 +161,10 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	// modify by platon
 	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}, nil, ""}
 
-	// modify by platon
 	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, new(EthashConfig), nil, nil, ""}
 
-	// modify by platon
 	AllCbftProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, nil, new(CbftConfig), ""}
 	TestRules              = TestChainConfig.Rules(new(big.Int))
 )
@@ -212,7 +208,6 @@ type ChainConfig struct {
 	// Various consensus engines
 	Ethash *EthashConfig `json:"ethash,omitempty"`
 	Clique *CliqueConfig `json:"clique,omitempty"`
-	// modify by platon
 	Cbft *CbftConfig `json:"cbft,omitempty"`
 
 	// Various vm interpreter
@@ -227,7 +222,6 @@ func (c *EthashConfig) String() string {
 	return "ethash"
 }
 
-// modify by platon
 type CbftConfig struct {
 	Period           uint64  `json:"period,omitempty"`           // Number of seconds between blocks to enforce
 	Epoch            uint64  `json:"epoch,omitempty"`            // Epoch length to reset votes and checkpoint
@@ -239,11 +233,9 @@ type CbftConfig struct {
 	NodeID       discover.NodeID   `json:"nodeID,omitempty"`
 	PrivateKey   *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 
-	// modify by ppos
 	PposConfig *PposConfig `json:"pposConfig,omitempty"`
 }
 
-// modify by platon
 type PposConfig struct {
 	Candidate *CandidateConfig
 	TicketConfig *TicketConfig

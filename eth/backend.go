@@ -63,7 +63,6 @@ type LesServer interface {
 	SetBloomBitsIndexer(bbIndexer *core.ChainIndexer)
 }
 
-// 以太坊协议的数据结构
 // Ethereum implements the Ethereum full node service.
 type Ethereum struct {
 	config      *Config
@@ -284,9 +283,12 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database,
 	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, cbftConfig *CbftConfig) consensus.Engine {
 	// If proof-of-authority is requested, set it up
-	// modify by platon
 	if chainConfig.Cbft != nil {
-		chainConfig.Cbft.Period = cbftConfig.Period
+		if cbftConfig.Period < 1 {
+			chainConfig.Cbft.Period = 1
+		} else {
+			chainConfig.Cbft.Period = cbftConfig.Period
+		}
 		chainConfig.Cbft.Epoch = cbftConfig.Epoch
 		chainConfig.Cbft.MaxLatency = cbftConfig.MaxLatency
 		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient

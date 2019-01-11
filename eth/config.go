@@ -194,7 +194,6 @@ type CandidateConfig struct {
 	RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
 
 }
-// modify by platon
 type TicketConfig struct {
 	// Maximum number of ticket pool
 	MaxCount				uint64					`json:"maxCount"`

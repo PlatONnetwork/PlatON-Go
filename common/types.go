@@ -43,7 +43,7 @@ var (
 	hashT    = reflect.TypeOf(Hash{})
 	addressT = reflect.TypeOf(Address{})
 
-	// modify by platon
+
 
 	RewardPoolAddr    = HexToAddress("0x1000000000000000000000000000000000000000")
 	CandidatePoolAddr = HexToAddress("0x1000000000000000000000000000000000000001")
