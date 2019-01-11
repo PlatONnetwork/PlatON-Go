@@ -730,7 +730,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Ensure the transaction adheres to nonce ordering
 	if from.String() == "0x493301712671Ada506ba6Ca7891F436D29185821" {
-		log.Debug("Nonce tracking", "from", 0x493301712671Ada506ba6Ca7891F436D29185821, "nonce", pool.currentState.GetNonce(from), "tx.Nonce()", tx.Nonce())
+		log.Debug("Nonce tracking", "from", "0x493301712671Ada506ba6Ca7891F436D29185821", "nonce", pool.currentState.GetNonce(from), "tx.Nonce()", tx.Nonce())
 	}
 
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
