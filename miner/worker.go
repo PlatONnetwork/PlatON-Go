@@ -828,6 +828,10 @@ func (w *worker) resultLoop() {
 			}
 			// Commit block and state to database.
 			block.ConfirmSigns = blockConfirmSigns
+
+			root := _state.IntermediateRoot(w.chain.Config().IsEIP158(block.Number()))
+			log.Debug("【共识节点同步】写链前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
 			if err != nil {
 				log.Error("Failed writing block to chain", "hash", block.Hash(), "number", block.NumberU64(), "err", err)
