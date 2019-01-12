@@ -1362,7 +1362,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
 
-	log.Debug("commitTransactionsWithHeader", "hash", tx.Hash(), "sender", from, "nonce", tx.Nonce())
 	root :=  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
 	log.Debug("【共识 打包出块】 commitTransactionsWithHeader 执行交易前", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "实时的state.root", root.Hex())
 
