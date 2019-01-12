@@ -213,14 +213,16 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	height := c.Evm.Context.BlockNumber
 	log.Info("Input to CandidateApplyWithdraw==> ", "nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
 	can, err := c.Evm.CandidatePool.GetCandidate(c.Evm.StateDB, nodeId)
-	if nil == can {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
-		return nil, ErrCandidateNotExist
-	}
 	if nil != err {
 		log.Error("Failed to CandidateApplyWithdraw==> ", "GetCandidate return err: ", err.Error())
 		return nil, err
 	}
+
+	if nil == can {
+		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
+		return nil, ErrCandidateNotExist
+	}
+
 	if can.Deposit.Cmp(big.NewInt(0)) < 1 {
 		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrWithdrawEmpyt: ", err.Error())
 		return nil, ErrWithdrawEmpyt
@@ -317,7 +319,7 @@ func (c *CandidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, er
 		return nil, err
 	}
 	if nil == candidate {
-		log.Error("Failed to CandidateDetails==> ", "The query does not exist")
+		log.Warn("Failed to CandidateDetails==> ", "The query does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(candidate)
@@ -336,7 +338,7 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 		return nil, err
 	}
 	if 0 == len(candidates) {
-		log.Error("Failed to GetBatchCandidateDetail==> ", "The query does not exist")
+		log.Warn("Failed to GetBatchCandidateDetail==> ", "The query does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(candidates)
@@ -349,7 +351,7 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 func (c *CandidateContract) CandidateList() ([]byte, error) {
 	arr := c.Evm.CandidatePool.GetChosens(c.Evm.StateDB)
 	if 0 == len(arr) {
-		log.Error("Failed to CandidateList==> ", "The query does not exist")
+		log.Warn("Failed to CandidateList==> ", "The query does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(arr)
@@ -362,7 +364,7 @@ func (c *CandidateContract) CandidateList() ([]byte, error) {
 func (c *CandidateContract) VerifiersList() ([]byte, error) {
 	arr := c.Evm.CandidatePool.GetChairpersons(c.Evm.StateDB)
 	if 0 == len(arr) {
-		log.Error("Failed to VerifiersList==> ", "The query does not exist")
+		log.Warn("Failed to VerifiersList==> ", "The query does not exist")
 		return nil, nil
 	}
 	data, _ := json.Marshal(arr)
