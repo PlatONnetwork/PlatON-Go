@@ -761,6 +761,7 @@ func (w *worker) resultLoop() {
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
 
 		case cbftResult := <-w.cbftResultCh:
+			log.Debug("cbftResult", "Number", cbftResult.Block.NumberU64(), "Hash", cbftResult.Block.Hash())
 			block := cbftResult.Block
 			blockConfirmSigns := cbftResult.BlockConfirmSigns
 			// Short circuit when receiving empty result.
@@ -768,8 +769,8 @@ func (w *worker) resultLoop() {
 				log.Error("cbft result error, block is nil")
 				continue
 			} else if blockConfirmSigns == nil || len(blockConfirmSigns) == 0 {
-				log.Error("cbft result error, blockConfirmSigns is nil")
-				continue
+				log.Warn("cbft result error, blockConfirmSigns is nil")
+				//continue
 			}
 			var (
 				hash = block.Hash()

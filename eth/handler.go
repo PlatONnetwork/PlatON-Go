@@ -709,7 +709,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		log.Warn("------------Received a broadcast message[PrepareBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
+		log.Debug("------------Received a broadcast message[PrepareBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
@@ -751,7 +751,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 
-		log.Warn("------------Received a broadcast message[BlockSignatureMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
+		log.Debug("------------Received a broadcast message[BlockSignatureMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
 		engineBlockSignature := &cbfttypes.BlockSignature{SignHash: request.SignHash, Hash: request.Hash, Number: request.Number, Signature: request.Signature}
 
 		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
