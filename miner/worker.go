@@ -198,7 +198,7 @@ type worker struct {
 	blockChainCache *core.BlockChainCache
 	commitWorkEnv   *commitWorkEnv
 	recommit        time.Duration
-	commitDuration  float64
+	commitDuration  int64 //in Millisecond
 
 	// Test hooks
 	newTaskHook  func(*task)                        // Method to call upon receiving a new sealing task.
@@ -255,8 +255,8 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 	}
 
 	worker.recommit = recommit
-	worker.commitDuration = float64(recommit.Nanoseconds()/1e6) * defaultCommitRatio
-	log.Info("commitDuration", "commitDuration", worker.commitDuration)
+	worker.commitDuration = int64((float64)(recommit.Nanoseconds()/1e6) * defaultCommitRatio)
+	log.Info("commitDuration in Millisecond", "commitDuration", worker.commitDuration)
 
 	go worker.mainLoop()
 	go worker.newWorkLoop(recommit)
@@ -343,7 +343,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 	var (
 		interrupt   *int32
 		minRecommit = recommit // minimal resubmit interval specified by user.
-		timestamp   int64      // timestamp for each round of mining.
+		timestamp   int64      // timestamp for each round of mining in Millisecond.
 	)
 
 	timer := time.NewTimer(0)
@@ -395,7 +395,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		select {
 		case <-w.startCh:
 			clearPending(w.chain.CurrentBlock().NumberU64())
-			timestamp = time.Now().Unix()
+			timestamp = time.Now().UnixNano() / 1e6
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				commit(false, commitInterruptNewHead, nil)
 			} else {
@@ -405,7 +405,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 		case head := <-w.chainHeadCh:
 			clearPending(head.Block.NumberU64())
-			timestamp = time.Now().Unix()
+			timestamp = time.Now().UnixNano() / 1e6
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
 			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash())
@@ -960,7 +960,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 	var bftEngine = w.config.Cbft != nil
 
 	for {
-		if bftEngine && (float64(time.Now().UnixNano()/1e6-timestamp) >= w.commitDuration) {
+		if bftEngine && (time.Now().UnixNano()/1e6-timestamp >= w.commitDuration) {
 			log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
 			break
 		}
@@ -1079,7 +1079,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	var bftEngine = w.config.Cbft != nil
 
 	for {
-		if bftEngine && (float64(time.Now().UnixNano()/1e6-timestamp) >= w.commitDuration) {
+		if bftEngine && (time.Now().UnixNano()/1e6-timestamp >= w.commitDuration) {
 			log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
 			break
 		}
@@ -1196,7 +1196,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	var parent *types.Block
 	if _, ok := w.engine.(consensus.Bft); ok {
 		parent = commitBlock
-		timestamp = time.Now().UnixNano() / 1e6
+		//timestamp = time.Now().UnixNano() / 1e6
 	} else {
 		parent = w.chain.CurrentBlock()
 		if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
@@ -1290,15 +1290,15 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	// Fill the block with all available pending transactions.
-	startTime := time.Now().UnixNano()
+	startTime := time.Now()
 	pending, err := w.eth.TxPool().PendingLimited()
 
 	if err != nil {
-		log.Error("Failed to fetch pending transactions", "time", time.Now().UnixNano()-startTime, "err", err)
+		log.Error("Failed to fetch pending transactions", "time", common.PrettyDuration(time.Since(startTime)), "err", err)
 		return
 	}
 
-	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", time.Now().UnixNano()-startTime)
+	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
@@ -1310,7 +1310,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		return
 	}
 
-	commitTxStartTime := time.Now().UnixNano()
 	txsCount := 0
 	for _, accTxs := range pending {
 		txsCount = txsCount + len(accTxs)
@@ -1323,28 +1322,28 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			localTxs[account] = txs
 		}
 	}
-
 	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
 
+	startTime = time.Now()
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
 		if w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp) {
 			return
 		}
 	}
-	commitLocalTxEndTime := time.Now().UnixNano()
-	commitLocalTxCount := w.current.tcount
-	log.Debug("local transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitLocalTxCount, "time", (commitLocalTxEndTime - commitTxStartTime))
 
+	commitLocalTxCount := w.current.tcount
+	log.Debug("local transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitLocalTxCount, "time", common.PrettyDuration(time.Since(startTime)))
+
+	startTime = time.Now()
 	if len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
 		if w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp) {
 			return
 		}
 	}
-	commitTxRemoteEndTime := time.Now().UnixNano()
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
-	log.Debug("remote transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", (commitTxRemoteEndTime - commitLocalTxEndTime))
+	log.Debug("remote transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
