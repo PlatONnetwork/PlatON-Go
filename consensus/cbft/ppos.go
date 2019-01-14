@@ -47,10 +47,10 @@ func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash,
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
-	log.Debug("BlockProducerIndex", "parentNumber", parentNumber, "parentHash", parentHash.String(), "blockNumber", blockNumber, "nodeID", nodeID.String(), "round", round)
+	log.Debug("CalTurn BlockProducerIndex", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash.String(), "blockNumber", blockNumber, "nodeID", nodeID.String(), "round", round)
 
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
-	d.printMapInfo("BlockProducerIndex", parentNumber.Uint64(), parentHash)
+	d.printMapInfo("CalTurn BlockProducerIndex", parentNumber.Uint64(), parentHash)
 	if nodeCache != nil {
 		_former := nodeCache.former
 		_current := nodeCache.current
