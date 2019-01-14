@@ -3,6 +3,7 @@ package vm
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -16,6 +17,12 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/life/exec"
 	"github.com/PlatONnetwork/PlatON-Go/life/resolver"
+)
+
+var (
+	errReturnInvalidRlpFormat = errors.New("interpreter_life: invalid rlp format.")
+	errReturnInsufficientParams = errors.New("interpreter_life: invalid input. ele must greater than 2")
+	errReturnInvalidAbi = errors.New("interpreter_life: invalid abi, encoded fail.")
 )
 
 const (
@@ -129,10 +136,13 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		// parse input.
 		txType, funcName, params, returnType, err = parseInputFromAbi(lvm, input, abi)
 		if err != nil {
-			if len(input) < 8 { // transfer to contract address.
+			if err == errReturnInsufficientParams && txType == 0 { // transfer to contract address.
 				return nil, nil
 			}
 			return nil, err
+		}
+		if txType == 0 {
+			return nil, nil
 		}
 	}
 	entryID, ok := lvm.GetFunctionExport(funcName)
@@ -223,18 +233,25 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 	rlpList := reflect.ValueOf(ptr).Elem().Interface()
 
 	if _, ok := rlpList.([]interface{}); !ok {
-		return -1, "", nil, "", fmt.Errorf("invalid rlp format.")
+		return -1, "", nil, "", errReturnInvalidRlpFormat
 	}
 
 	iRlpList := rlpList.([]interface{})
 	if len(iRlpList) < 2 {
-		return -1, "", nil, "", fmt.Errorf("invalid input. ele must greater than 2")
+		if len(iRlpList) != 0 {
+			if v, ok := iRlpList[0].([]byte); ok {
+				txType = int(common.BytesToInt64(v))
+			}
+		} else {
+			txType = -1
+		}
+		return txType, "", nil, "", errReturnInsufficientParams
 	}
 
 	wasmabi := new(utils.WasmAbi)
 	err = wasmabi.FromJson(abi)
 	if err != nil {
-		return -1, "", nil, "", fmt.Errorf("invalid abi, encoded fail.")
+		return -1, "", nil, "", errReturnInvalidAbi
 	}
 
 	params = make([]int64, 0)
