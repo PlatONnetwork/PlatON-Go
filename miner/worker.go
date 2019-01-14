@@ -961,7 +961,8 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 
 	for {
 		if bftEngine && (time.Now().UnixNano()/1e6-timestamp >= w.commitDuration) {
-			log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
+			log.Warn("interrupt current tx-executing", "now", time.Now().UnixNano()/1e6, "timestamp", timestamp, "commitDuration", w.commitDuration)
+			//log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
 			break
 		}
 		// In the following three cases, we will interrupt the execution of the transaction.
