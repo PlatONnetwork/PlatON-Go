@@ -396,7 +396,7 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 }
 
 func (pool *TxPool) ForkedReset(origTress, newTress []*types.Block) {
-	log.Debug("call ForkedReset()", "RoutineID", common.CurrentGoRoutineID())
+	log.Debug("call ForkedReset()", "RoutineID", common.CurrentGoRoutineID(), "len(origTress)", len(origTress), "len(newTress)", len(newTress))
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()

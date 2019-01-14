@@ -522,7 +522,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 // backTrackBlocks return blocks from start to end, these blocks are in a same tree branch.
 // The result is sorted by block number from lower to higher.
 func (cbft *Cbft) backTrackBlocks(start *BlockExt, end *BlockExt, includeEnd bool) []*BlockExt {
-	cbft.log.Trace("back track blocks", "startHash", start.block.Hash(), "startParentHash", end.block.ParentHash(), "endHash", start.block.Hash())
+	cbft.log.Trace("back track blocks", "startHash", start.block.Hash(), "startNumber", start.block.NumberU64(), "startParentHash", end.block.ParentHash(), "endHash", end.block.Hash())
 
 	result := make([]*BlockExt, 0)
 
@@ -1027,12 +1027,15 @@ func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
 	newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(newConfirmed)
 	if newHighestConfirmed != nil && newHighestConfirmed.block.Hash() != cbft.getHighestConfirmed().block.Hash() {
 		//fork
-		cbft.log.Debug("the block chain in memory forked", "newHighestConfirmedHash", newHighestConfirmed.block.Hash(), "newHighestConfirmedNumber", newHighestConfirmed.number)
 		newHighestLogical := cbft.findHighestLogical(newHighestConfirmed)
-		newPath := cbft.backTrackBlocks(newHighestLogical, cbft.getRootIrreversible(), true)
 
+		newPath := cbft.backTrackBlocks(newHighestLogical, cbft.getRootIrreversible(), true)
 		origPath := cbft.backTrackBlocks(cbft.getHighestLogical(), cbft.getRootIrreversible(), true)
 
+		cbft.log.Debug("the block chain in memory forked", "newHighestConfirmedHash", newHighestConfirmed.block.Hash(), "newHighestConfirmedNumber", newHighestConfirmed.number,
+			"newHighestLogicalHash", newHighestLogical.block.Hash(), "newHighestLogicalNumber", newHighestLogical.number,
+			"len(newPath)", len(newPath), "len(origPath)", len(origPath),
+		)
 		oldTress, newTress := cbft.forked(origPath, newPath)
 
 		cbft.txPool.ForkedReset(extraBlocks(oldTress), extraBlocks(newTress))
