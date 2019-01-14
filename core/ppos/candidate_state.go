@@ -1541,11 +1541,10 @@ func partition(arr []*types.Candidate, left, right int) int {
 }
 
 func ImmediateKey(nodeId discover.NodeID) []byte {
-	//key, _ := rlp.EncodeToBytes(nodeId)
 	return immediateKey(nodeId.Bytes())
 }
 func immediateKey(key []byte) []byte {
-	return append(ImmediateBtyePrefix, key...)
+	return append(append(common.CandidateAddr.Bytes(), ImmediateBtyePrefix...), key...)
 }
 
 func PreviousWitnessKey(nodeId discover.NodeID) []byte {
@@ -1553,48 +1552,46 @@ func PreviousWitnessKey(nodeId discover.NodeID) []byte {
 }
 
 func prewitnessKey(key []byte) []byte {
-	return append(PreWitnessBytePrefix, key...)
+	return append(append(common.CandidateAddr.Bytes(), PreWitnessBytePrefix...), key...)
 }
 
 func WitnessKey(nodeId discover.NodeID) []byte {
-	//key, _ := rlp.EncodeToBytes(nodeId)
 	return witnessKey(nodeId.Bytes())
 }
 func witnessKey(key []byte) []byte {
-	return append(WitnessBtyePrefix, key...)
+	return append(append(common.CandidateAddr.Bytes(), WitnessBtyePrefix...), key...)
 }
 
 func NextWitnessKey(nodeId discover.NodeID) []byte {
 	return nextWitnessKey(nodeId.Bytes())
 }
 func nextWitnessKey(key []byte) []byte {
-	return append(NextWitnessBtyePrefix, key...)
+	return append(append(common.CandidateAddr.Bytes(), NextWitnessBtyePrefix...), key...)
 }
 
 func DefeatKey(nodeId discover.NodeID) []byte {
-	//key, _ := rlp.EncodeToBytes(nodeId)
 	return defeatKey(nodeId.Bytes())
 }
 func defeatKey(key []byte) []byte {
-	return append(DefeatBtyePrefix, key...)
+	return append(append(common.CandidateAddr.Bytes(), DefeatBtyePrefix...), key...)
 }
 
 func ImmediateListKey() []byte {
-	return ImmediateListBtyePrefix
+	return append(common.CandidateAddr.Bytes(), ImmediateListBtyePrefix...)
 }
 
 func PreviousWitnessListKey() []byte {
-	return PreWitnessListBytePrefix
+	return append(common.CandidateAddr.Bytes(), PreWitnessListBytePrefix...)
 }
 
 func WitnessListKey() []byte {
-	return WitnessListBtyePrefix
+	return append(common.CandidateAddr.Bytes(), WitnessListBtyePrefix...)
 }
 
 func NextWitnessListKey() []byte {
-	return NextWitnessListBytePrefix
+	return append(common.CandidateAddr.Bytes(), NextWitnessListBytePrefix...)
 }
 
 func DefeatListKey() []byte {
-	return DefeatListBtyePrefix
+	return append(common.CandidateAddr.Bytes(), DefeatListBtyePrefix...)
 }
