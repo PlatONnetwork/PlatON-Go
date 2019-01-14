@@ -246,7 +246,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		chainHeadCh: make(chan *types.Block, chainHeadChanSize),
 		exitCh:      make(chan struct{}),
 		gasPrice:    new(big.Int).SetUint64(config.PriceLimit),
-		txExtBuffer: make(chan *txExt, 64),
+		txExtBuffer: make(chan *txExt, 1024),
 	}
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
