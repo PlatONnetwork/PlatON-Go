@@ -1065,9 +1065,9 @@ func (pool *TxPool) addTxExt(txExt *txExt) interface{} {
 		err := pool.addTxLocked(tx, txExt.local)
 		if txExt.local {
 			from, _ := types.Sender(pool.signer, tx)
-			if from.String() == "0x493301712671Ada506ba6Ca7891F436D29185821" {
-				log.Debug("Nonce tracking, add tx to pool", "from", "0x493301712671Ada506ba6Ca7891F436D29185821", "err", err, "nonce", pool.currentState.GetNonce(from), "tx.Nonce()", tx.Nonce())
-			}
+			//if from.String() == "0x493301712671Ada506ba6Ca7891F436D29185821" {
+			log.Debug("Nonce tracking, add tx to pool", "from", "0x493301712671Ada506ba6Ca7891F436D29185821", "err", err, "nonce", pool.currentState.GetNonce(from), "tx.Hash", tx.Hash(), "tx.Nonce()", tx.Nonce())
+			//}
 		}
 		return err
 	}

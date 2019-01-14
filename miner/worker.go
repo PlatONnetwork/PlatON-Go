@@ -1031,7 +1031,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 		case nil:
 
 			if from.String() == "0x493301712671Ada506ba6Ca7891F436D29185821" {
-				log.Debug("Nonce tracking, commit tx", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "hash", tx.Hash(), "from", "0x493301712671Ada506ba6Ca7891F436D29185821", "nonce", w.current.state.GetNonce(from), "tx.Nonce()", tx.Nonce())
+				log.Debug("Nonce tracking, commit tx", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.Hash", tx.Hash(), "from", "0x493301712671Ada506ba6Ca7891F436D29185821", "nonce", w.current.state.GetNonce(from), "tx.Nonce()", tx.Nonce())
 			}
 			// Everything ok, collect the logs and shift in the next transaction from the same account
 			coalescedLogs = append(coalescedLogs, logs...)
