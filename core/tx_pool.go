@@ -38,6 +38,9 @@ import (
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
 	chainHeadChanSize = 10
+
+	// txExtBufferSize is the size fo channel listening to txExt.
+	txExtBufferSize = 1024
 )
 
 var (
@@ -246,7 +249,7 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		chainHeadCh: make(chan *types.Block, chainHeadChanSize),
 		exitCh:      make(chan struct{}),
 		gasPrice:    new(big.Int).SetUint64(config.PriceLimit),
-		txExtBuffer: make(chan *txExt, 64),
+		txExtBuffer: make(chan *txExt, txExtBufferSize),
 	}
 	pool.locals = newAccountSet(pool.signer)
 	for _, addr := range config.Locals {
@@ -281,20 +284,15 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 }
 
 func (pool *TxPool) txExtBufferReadLoop() {
-	for txExt := range pool.txExtBuffer {
-		err := pool.addTxExt(txExt)
-		txExt.txErr <- err
+	for {
+		select {
+		case txExt := <-pool.txExtBuffer:
+			err := pool.addTxExt(txExt)
+			txExt.txErr <- err
+		case <-pool.exitCh:
+			return
+		}
 	}
-	/*
-		for {
-			select {
-			case txExt := <-pool.txExtBuffer:
-				err := pool.addTxExt(txExt)
-				txExt.txErr <- err
-			case <-pool.exitCh:
-				return
-			}
-		}*/
 }
 
 // loop is the transaction pool's main event loop, waiting for and reacting to
@@ -558,8 +556,7 @@ func (pool *TxPool) Stop() {
 	// Unsubscribe all subscriptions registered from txpool
 	pool.scope.Close()
 
-	pool.exitCh <- struct{}{}
-	close(pool.txExtBuffer)
+	close(pool.exitCh)
 
 	pool.wg.Wait()
 
@@ -930,15 +927,22 @@ func (pool *TxPool) AddLocal(tx *types.Transaction) error {
 // sender is not among the locally tracked ones, full pricing constraints will
 // apply.
 func (pool *TxPool) AddRemote(tx *types.Transaction) error {
-	errCh := make(chan interface{})
+	errCh := make(chan interface{}, 1)
 	txExt := &txExt{tx, false, errCh}
-	pool.txExtBuffer <- txExt
-	err := <-errCh
-	if e, ok := err.(error); ok {
-		return e
-	} else {
+	select {
+	case <-pool.exitCh:
+		return nil
+	case pool.txExtBuffer <- txExt:
 		return nil
 	}
+	/*
+		err := <-errCh
+		if e, ok := err.(error); ok {
+			return e
+		} else {
+			return nil
+		}
+	*/
 }
 
 // AddLocals enqueues a batch of transactions into the pool if they are valid,
@@ -960,15 +964,22 @@ func (pool *TxPool) AddLocals(txs []*types.Transaction) []error {
 // If the senders are not among the locally tracked ones, full pricing constraints
 // will apply.
 func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
-	errCh := make(chan interface{})
+	errCh := make(chan interface{}, 1)
 	txExt := &txExt{txs, false, errCh}
-	pool.txExtBuffer <- txExt
-	err := <-errCh
-	if e, ok := err.([]error); ok {
-		return e
-	} else {
+	select {
+	case <-pool.exitCh:
+		return nil
+	case pool.txExtBuffer <- txExt:
 		return nil
 	}
+	/*
+		err := <-errCh
+		if e, ok := err.([]error); ok {
+			return e
+		} else {
+			return nil
+		}
+	*/
 }
 
 func (pool *TxPool) RecoverTx(tx *types.Transaction) bool {
