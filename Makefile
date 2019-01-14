@@ -32,6 +32,10 @@ all:
 	build/build_deps.sh
 	build/env.sh go run build/ci.go install
 
+all-debug:
+	build/build_deps.sh
+	build/env.sh go run build/ci.go install -gcflags on
+
 all-with-mpc:
 	build/build_deps.sh
 	build/env.sh go run build/ci.go install -mpc on
