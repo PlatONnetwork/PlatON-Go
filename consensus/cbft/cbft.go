@@ -508,11 +508,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	if err == nil {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
-
-		addr := common.HexToAddress("0x493301712671Ada506ba6Ca7891F436D29185821")
-		nonce := state.GetNonce(addr)
-
-		cbft.log.Debug("execute block success", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "lenReceipts", len(receipts), "stateIsNil", stateIsNil, "root", ext.block.Root(), "Nonce tracking", nonce)
+		cbft.log.Debug("execute block success", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "lenReceipts", len(receipts), "stateIsNil", stateIsNil, "root", ext.block.Root())
 		sealHash := ext.block.Header().SealHash()
 		cbft.blockChainCache.WriteReceipts(sealHash, receipts, ext.block.NumberU64())
 		cbft.blockChainCache.WriteStateDB(sealHash, state, ext.block.NumberU64())
