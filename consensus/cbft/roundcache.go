@@ -4,7 +4,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"math/big"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	//"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 type roundCache map[uint64]map[common.Hash]*nodeCache
