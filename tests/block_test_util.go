@@ -224,9 +224,6 @@ func validateHeader(h *btHeader, h2 *types.Header) error {
 	if h.StateRoot != h2.Root {
 		return fmt.Errorf("State hash: want: %x have: %x", h.StateRoot, h2.Root)
 	}
-	if h.UncleHash != h2.UncleHash {
-		return fmt.Errorf("Uncle hash: want: %x have: %x", h.UncleHash, h2.UncleHash)
-	}
 	if !bytes.Equal(h.ExtraData, h2.Extra) {
 		return fmt.Errorf("Extra data: want: %x have: %x", h.ExtraData, h2.Extra)
 	}

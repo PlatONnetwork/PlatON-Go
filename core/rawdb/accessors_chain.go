@@ -188,7 +188,7 @@ func DeleteHeader(db DatabaseDeleter, hash common.Hash, number uint64) {
 	}
 }
 
-// ReadBodyRLP retrieves the block body (transactions and uncles) in RLP encoding.
+// ReadBodyRLP retrieves the block body (transactions) in RLP encoding.
 func ReadBodyRLP(db DatabaseReader, hash common.Hash, number uint64) rlp.RawValue {
 	data, _ := db.Get(blockBodyKey(number, hash))
 	return data
@@ -324,7 +324,7 @@ func ReadBlock(db DatabaseReader, hash common.Hash, number uint64) *types.Block 
 	if body == nil {
 		return nil
 	}
-	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles)
+	return types.NewBlockWithHeader(header).WithBody(body.Transactions)
 }
 
 // WriteBlock serializes a block into the database, header and body separately.

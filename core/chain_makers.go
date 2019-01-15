@@ -43,7 +43,6 @@ type BlockGen struct {
 	gasPool  *GasPool
 	txs      []*types.Transaction
 	receipts []*types.Receipt
-	uncles   []*types.Header
 
 	config *params.ChainConfig
 	engine consensus.Engine
@@ -128,11 +127,6 @@ func (b *BlockGen) TxNonce(addr common.Address) uint64 {
 	return b.statedb.GetNonce(addr)
 }
 
-// AddUncle adds an uncle header to the generated block.
-func (b *BlockGen) AddUncle(h *types.Header) {
-	b.uncles = append(b.uncles, h)
-}
-
 // PrevBlock returns a previously generated block by number. It panics if
 // num is greater or equal to the number of the block being generated.
 // For index -1, PrevBlock returns the parent block given to GenerateChain.
@@ -200,7 +194,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.uncles, b.receipts)
+			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.receipts)
 
 			// Write state changes to db
 			root, err := statedb.Commit(config.IsEIP158(b.header.Number))
