@@ -30,7 +30,7 @@ var (
 	ErrParamsLen          = errors.New("Params length does not match")
 	ErrUndefFunction      = errors.New("Undefined function")
 	ErrTxType             = errors.New("Transaction type does not match the function")
-	ErrCandidatePoolEmpyt = errors.New("CandidatePool is nil")
+	ErrCandidatePoolContextEmpyt = errors.New("CandidatePoolContext is nil")
 	ErrCandidateNotExist  = errors.New("The candidate is not exist")
 )
 
@@ -50,7 +50,8 @@ type ResultCommon struct {
 	ErrMsg string
 }
 
-type candidatePool interface {
+//type candidatePoolContext interface {
+type candidatePoolContext interface {
 	SetCandidate(state StateDB, nodeId discover.NodeID, can *types.Candidate) error
 	GetCandidate(state StateDB, nodeId discover.NodeID) (*types.Candidate, error)
 	GetCandidateArr(state StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error)
@@ -103,9 +104,9 @@ func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 		log.Error("Failed to Run==> ", "ErrParamsBaselen: ", ErrParamsBaselen.Error())
 		return nil, ErrParamsBaselen
 	}
-	if c.Evm.CandidatePool == nil {
-		log.Error("Failed to Run==> ", "ErrCandidateEmpyt: ", ErrCandidatePoolEmpyt.Error())
-		return nil, ErrCandidatePoolEmpyt
+	if c.Evm.CandidatePoolContext == nil {
+		log.Error("Failed to Run==> ", "ErrCandidateEmpyt: ", ErrCandidatePoolContextEmpyt.Error())
+		return nil, ErrCandidatePoolContextEmpyt
 	}
 	if _, ok := command[byteutil.BytesToString(source[1])]; !ok {
 		log.Error("Failed to Run==> ", "ErrUndefFunction: ", ErrUndefFunction.Error())
@@ -166,7 +167,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		log.Error("Failed to CandidateDeposit==> ", "ErrDepositEmpyt: ", ErrDepositEmpyt.Error())
 		return nil, ErrDepositEmpyt
 	}
-	can, err := c.Evm.CandidatePool.GetCandidate(c.Evm.StateDB, nodeId)
+	can, err := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("Failed to CandidateDeposit==> ", "GetCandidate return err: ", err.Error())
 		return nil, err
@@ -195,7 +196,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		fee,
 	}
 	log.Info("CandidateDeposit==> ", "canDeposit: ", canDeposit)
-	if err = c.Evm.CandidatePool.SetCandidate(c.Evm.StateDB, nodeId, &canDeposit); nil != err {
+	if err = c.Evm.CandidatePoolContext.SetCandidate(c.Evm.StateDB, nodeId, &canDeposit); nil != err {
 		log.Error("Failed to CandidateDeposit==> ", "SetCandidate return err: ", err.Error())
 		return nil, err
 	}
@@ -212,7 +213,7 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	from := c.Contract.caller.Address()
 	height := c.Evm.Context.BlockNumber
 	log.Info("Input to CandidateApplyWithdraw==> ", "nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
-	can, err := c.Evm.CandidatePool.GetCandidate(c.Evm.StateDB, nodeId)
+	can, err := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("Failed to CandidateApplyWithdraw==> ", "GetCandidate return err: ", err.Error())
 		return nil, err
@@ -234,7 +235,7 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	if withdraw.Cmp(can.Deposit) > 0 {
 		withdraw = can.Deposit
 	}
-	if err := c.Evm.CandidatePool.WithdrawCandidate(c.Evm.StateDB, nodeId, withdraw, height); nil != err {
+	if err := c.Evm.CandidatePoolContext.WithdrawCandidate(c.Evm.StateDB, nodeId, withdraw, height); nil != err {
 		log.Error("Failed to CandidateApplyWithdraw==> ", "WithdrawCandidate return err:", err.Error())
 		return nil, err
 	}
@@ -250,7 +251,7 @@ func (c *CandidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, e
 	txHash := c.Evm.StateDB.TxHash()
 	height := c.Evm.Context.BlockNumber
 	log.Info("Input to CandidateWithdraw==> ", "nodeId: ", nodeId.String(), " height: ", height, " txHash: ", txHash.Hex())
-	if err := c.Evm.CandidatePool.RefundBalance(c.Evm.StateDB, nodeId, height); nil != err {
+	if err := c.Evm.CandidatePoolContext.RefundBalance(c.Evm.StateDB, nodeId, height); nil != err {
 		log.Error("Failed to CandidateWithdraw==> ", "RefundBalance return err: ", err.Error())
 		return nil, err
 	}
@@ -264,7 +265,7 @@ func (c *CandidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, e
 // Get the refund history you have applied for.
 func (c *CandidateContract) CandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error) {
 	log.Info("Input to CandidateWithdrawInfos==> ", "nodeId: ", nodeId.String())
-	infos, err := c.Evm.CandidatePool.GetDefeat(c.Evm.StateDB, nodeId)
+	infos, err := c.Evm.CandidatePoolContext.GetDefeat(c.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("Failed to CandidateWithdrawInfos==> ", "GetDefeat return err: ", err.Error())
 		return nil, err
@@ -281,7 +282,7 @@ func (c *CandidateContract) CandidateWithdrawInfos(nodeId discover.NodeID) ([]by
 	}
 	r := WithdrawInfos{true, "success", make([]WithdrawInfo, len(infos))}
 	for i, v := range infos {
-		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, c.Evm.CandidatePool.GetRefundInterval()}
+		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, c.Evm.CandidatePoolContext.GetRefundInterval()}
 	}
 	data, _ := json.Marshal(r)
 	sdata := DecodeResultStr(string(data))
@@ -294,12 +295,12 @@ func (c *CandidateContract) SetCandidateExtra(nodeId discover.NodeID, extra stri
 	txHash := c.Evm.StateDB.TxHash()
 	from := c.Contract.caller.Address()
 	log.Info("Input to SetCandidateExtra==> ", "nodeId: ", nodeId.String(), " extra: ", extra, " from: ", from.Hex(), " txHash: ", txHash.Hex())
-	owner := c.Evm.CandidatePool.GetOwner(c.Evm.StateDB, nodeId)
+	owner := c.Evm.CandidatePoolContext.GetOwner(c.Evm.StateDB, nodeId)
 	if ok := bytes.Equal(owner.Bytes(), from.Bytes()); !ok {
 		log.Error("Failed to SetCandidateExtra==> ", "ErrPermissionDenied: ", ErrPermissionDenied.Error())
 		return nil, ErrPermissionDenied
 	}
-	if err := c.Evm.CandidatePool.SetCandidateExtra(c.Evm.StateDB, nodeId, extra); err != nil {
+	if err := c.Evm.CandidatePoolContext.SetCandidateExtra(c.Evm.StateDB, nodeId, extra); err != nil {
 		log.Error("Failed to SetCandidateExtra==> ", "SetCandidateExtra return err: ", err.Error())
 		return nil, err
 	}
@@ -313,7 +314,7 @@ func (c *CandidateContract) SetCandidateExtra(nodeId discover.NodeID, extra stri
 // Get candidate details.
 func (c *CandidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, error) {
 	log.Info("Input to CandidateDetails==> ", "nodeId: ", nodeId.String())
-	candidate, err := c.Evm.CandidatePool.GetCandidate(c.Evm.StateDB, nodeId)
+	candidate, err := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("Failed to CandidateDetails==> ", "GetCandidate return err: ", err.Error())
 		return nil, err
@@ -332,7 +333,7 @@ func (c *CandidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, er
 func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) ([]byte, error) {
 	input, _ := json.Marshal(nodeIds)
 	log.Info("Input to GetBatchCandidateDetail==>", "length: ", len(nodeIds), " nodeIds: ", string(input))
-	candidates, err := c.Evm.CandidatePool.GetCandidateArr(c.Evm.StateDB, nodeIds...)
+	candidates, err := c.Evm.CandidatePoolContext.GetCandidateArr(c.Evm.StateDB, nodeIds...)
 	if nil != err {
 		log.Error("Failed to GetBatchCandidateDetail==> ", "GetCandidateArr return err: ", err.Error())
 		return nil, err
@@ -349,7 +350,7 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 
 // Get the current block candidate list.
 func (c *CandidateContract) CandidateList() ([]byte, error) {
-	arr := c.Evm.CandidatePool.GetChosens(c.Evm.StateDB)
+	arr := c.Evm.CandidatePoolContext.GetChosens(c.Evm.StateDB)
 	if 0 == len(arr) {
 		log.Warn("Failed to CandidateList==> ", "The query does not exist")
 		return nil, nil
@@ -362,7 +363,7 @@ func (c *CandidateContract) CandidateList() ([]byte, error) {
 
 // Get the current block round certifier list.
 func (c *CandidateContract) VerifiersList() ([]byte, error) {
-	arr := c.Evm.CandidatePool.GetChairpersons(c.Evm.StateDB)
+	arr := c.Evm.CandidatePoolContext.GetChairpersons(c.Evm.StateDB)
 	if 0 == len(arr) {
 		log.Warn("Failed to VerifiersList==> ", "The query does not exist")
 		return nil, nil

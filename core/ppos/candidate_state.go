@@ -17,6 +17,8 @@ import (
 	"net"
 	"strconv"
 	"sync"
+	//"github.com/PlatONnetwork/PlatON-Go/trie"
+	//"bytes"
 )
 
 const (
@@ -91,11 +93,13 @@ type CandidatePool struct {
 	lock 				*sync.Mutex
 }
 
-var candidatePool *CandidatePool
+//var candidatePool *CandidatePool
 
 // Initialize the global candidate pool object
 func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
-	candidatePool = &CandidatePool{
+	log.Debug("Build a New CandidatePool Info ...")
+	/*candidatePool = */
+	return &CandidatePool{
 		depositLimit:         configs.Candidate.DepositLimit,
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
@@ -109,7 +113,7 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		//lock:                 &sync.RWMutex{},
 		lock:                 &sync.Mutex{},
 	}
-	return candidatePool
+	//return candidatePool
 }
 
 // flag:
@@ -340,7 +344,7 @@ func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (
 }
 
 // Getting immediate or reserve candidate info arr by nodeIds
-func (c *CandidatePool) GetCandidateArr(state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
+func (c *CandidatePool) GetCandidateArr (state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
 	return c.getCandidates(state, nodeIds...)
 }
 
@@ -1457,9 +1461,9 @@ func copyCandidateMapByIds(target, source map[discover.NodeID]*types.Candidate, 
 	}
 }
 
-func GetCandidatePtr() *CandidatePool {
-	return candidatePool
-}
+//func GetCandidatePtr() *CandidatePool {
+//	return candidatePool
+//}
 
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
@@ -1594,4 +1598,98 @@ func NextWitnessListKey() []byte {
 
 func DefeatListKey() []byte {
 	return append(common.CandidateAddr.Bytes(), DefeatListBtyePrefix...)
+}
+
+// DEBUG
+func TraversingStateDB (vmstate vm.StateDB) {
+	log.Debug("【TraversingStateDB】start ...")
+	/**
+	key 1fc17e601a8c10a8c32000358358ecca6001adcb7bdd416fbc397c7bc3e18111
+	value a045b3127bdb3fef53e3b1ef09af1be661288cfa7c2b0d09b5f27a6951375d6bc9
+	key 6067c3ebcf658f6dfd6bc198dbead3d07c388e30bbcb3fc4b351646527c34010
+	value a0725b3ebfd21899f174a09b1eef82e238e22b8c5de7254347fc9f94600e92aac7
+	key 98ec7e3bf55c72137281890d90e63bb2d51fc370562c0c386db74359bf1c61af
+	value a0b0ca14c4bd15393a0c14209c504886e428c2e4ca82698838e087a404ad985339
+	key e8b020f2af4d1e15a9de1c664bdec1fad91737837557afa501aac5a004bd260c
+	value a0b3e1f3803d057f97fad44a37599904c03962fb0aac2f0be5d6427c30ecd943b1
+	 */
+	if stateDB, ok := vmstate.(*state.StateDB); ok {
+
+		objTrie := stateDB.StorageTrie(common.CandidateAddr)
+		if objTrie == nil {
+			return
+		}
+
+
+
+
+		//storageIt := trie.NewIterator(objTrie.NodeIterator(nil))
+		//	for storageIt.Next() {
+		storageIt := objTrie.NodeIterator(nil)
+		for storageIt.Next(true) {
+			if storageIt.Leaf() {
+				//var key, val interface{}
+				//err1 := json.Unmarshal(storageIt.LeafKey(), &key)
+				//err2 := json.Unmarshal(storageIt.LeafBlob(), &val)
+				//fmt.Println("err1", err1.Error(), "err2", err2.Error())
+				//fmt.Println("key", fmt.Sprint(key), "val", fmt.Sprint(val))
+
+
+				fmt.Println("key", common.Bytes2Hex(storageIt.LeafKey()))
+				fmt.Println("value", common.Bytes2Hex(storageIt.LeafBlob()))
+
+				//var buffer bytes.Buffer
+				//buffer.WriteString(common.CandidateAddr.String())
+				//buffer.WriteString(string(key))
+				//keyTrie := buffer.String()
+
+				k := objTrie.GetKey(storageIt.LeafKey()) /*.TryGet([]byte(storageIt.LeafKey()))*/
+				//fmt.Println("err3", err3)
+				fmt.Println("key context:", string(k))
+
+
+				//val := objTrie.GetKey(storageIt.LeafBlob()) /*.TryGet([]byte(storageIt.LeafKey()))*/
+				////fmt.Println("err3", err3)
+				//fmt.Println("val context:", string(val))
+
+
+			/*	var keyBy [][]byte
+				if err := rlp.Decode(bytes.NewReader(storageIt.LeafKey()), &keyBy); nil != err {
+					fmt.Println("err3", err)
+				}
+				var valBy [][]byte
+				if err := rlp.Decode(bytes.NewReader(storageIt.LeafBlob()), &valBy); nil != err {
+					fmt.Println("err4", err)
+				}*/
+
+				//fmt.Println("key", string(storageIt.LeafKey()))
+				//fmt.Println("value", string(storageIt.LeafBlob()))
+			}
+
+			//fmt.Println("Key", common.Bytes2Hex(stateDB.GetTrie().GetKey(storageIt.Key)))
+			//fmt.Println("value", common.Bytes2Hex(storageIt.Value))
+		}
+
+		//it := objTrie.NodeIterator(nil)
+		//for it.Next(true) {
+		//	//key := common.BytesToHash(db.trie.GetKey(it.Key))
+		//	if it.Leaf() {
+		//		fmt.Println("key", common.Bytes2Hex(it.LeafKey()))
+		//		fmt.Println("value", common.Bytes2Hex(it.LeafBlob()))
+		//
+		//	}
+		//	//
+		//
+		//	stateDB.GetTrie().NodeIterator(nil)   .GetLogs()GetKey(it.Key)
+		//
+		//
+		//}
+	}
+
+	//handleFunc := func(valueKey common.Hash, value common.Hash) bool {
+	//	log.Debug("【TraversingStateDB】", "key", valueKey, "value", value)
+	//	return true
+	//}
+	//vmstate.ForEachStorage(common.CandidateAddr, handleFunc)
+
 }
