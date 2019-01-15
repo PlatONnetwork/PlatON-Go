@@ -1203,7 +1203,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return i, events, coalescedLogs, err
 		}
 		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-		log.Debug("【非共识节点同步】执行交易前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+		log.Debug("【节点同步：调用inserChain】执行交易前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
 
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
