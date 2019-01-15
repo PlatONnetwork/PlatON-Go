@@ -88,6 +88,6 @@ func (r roundCache) setNodeCache (blockNumber *big.Int, blockHash common.Hash, c
 	if baseIrrCountNum > 0 {
 		delete(r, baseIrrCountNum)
 	}
-	log.Debug("【Setting NodeCache】", "blocknumber", blockNumber.String(), "blockHash", blockHash)
+	//log.Debug("【Setting NodeCache】", "blocknumber", blockNumber.String(), "blockHash", blockHash)
 }
 

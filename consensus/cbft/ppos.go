@@ -49,7 +49,7 @@ func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash,
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
-	log.Debug("CalTurn BlockProducerIndex", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash.String(), "blockNumber", blockNumber, "nodeID", nodeID.String(), "round", round)
+	//log.Debug("CalTurn BlockProducerIndex", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash.String(), "blockNumber", blockNumber, "nodeID", nodeID.String(), "round", round)
 
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
 	d.printMapInfo("CalTurn BlockProducerIndex", parentNumber.Uint64(), parentHash)
@@ -328,7 +328,7 @@ func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes [
 }
 
 func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Hash){
-	res := d.nodeRound[blockNumber]
+	/*res := d.nodeRound[blockNumber]
 
 	log.Debug(title + ":Traversing out the RoundNodes，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
 
@@ -344,7 +344,7 @@ func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Ha
 		}
 	}else {
 		log.Error(title + ":Traversing out of the round is NOT EXIST !!!!!!!!，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-	}
+	}*/
 }
 
 /** Method provided to the built-in contract call */
