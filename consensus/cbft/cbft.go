@@ -1562,11 +1562,14 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 
 func (cbft *Cbft) inTurn(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	curTime := toMilliseconds(time.Now())
+	log.Debug("ShouldSeal InTurn: ", "parentNumber", parentNumber, "parentHash", parentHash, "commitNumber", commitNumber, "currentNodeID", cbft.config.NodeID)
 	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime-300, cbft.config.NodeID, current)
+	log.Debug("first inturn: ", "result", inturn)
 	if inturn {
 		inturn = cbft.calTurn(parentNumber, parentHash, commitNumber, curTime+600, cbft.config.NodeID, current)
+		log.Debug("second inturn: ", "result", inturn)
 	}
-	log.Debug("inTurn", "result", inturn)
+	log.Debug("ShouldSeal InTurn", "result", inturn)
 	return inturn
 }
 
@@ -1759,7 +1762,7 @@ func toMilliseconds(t time.Time) int64 {
 }
 
 func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
-	log.Trace("call ShouldSeal()")
+	log.Debug("Call ShouldSeal: ", "parentNumber", parentNumber, "parentHash", parentHash, "commitNumber", commitNumber)
 	return cbft.inTurn(parentNumber, parentHash, commitNumber)
 }
 

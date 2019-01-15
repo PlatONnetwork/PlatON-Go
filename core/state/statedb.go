@@ -634,7 +634,6 @@ func (s *StateDB) clearJournalAndRefund() {
 func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-
 	defer s.clearJournalAndRefund()
 
 	for addr := range s.journal.dirties {
