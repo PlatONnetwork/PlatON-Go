@@ -1635,10 +1635,45 @@ func TraversingStateDB (vmstate vm.StateDB) {
 	 */
 	if stateDB, ok := vmstate.(*state.StateDB); ok {
 
+		/**
+		obj
+		 */
+		/*so := stateDB.GetOrNewStateObject(common.CandidateAddr)
+		if so == nil {
+			return
+		}
+
+		// Otherwise load the valueKey from trie
+		enc, err := so.GetCommittedState().getTrie(db).TryGet([]byte(key))
+		if err != nil {
+			self.setError(err)
+			return []byte{}
+		}
+		if len(enc) > 0 {
+			_, content, _, err := rlp.Split(enc)
+			if err != nil {
+				self.setError(err)
+			}
+			valueKey.SetBytes(content)
+
+			//load value from db
+			value = self.db.trie.GetKey(valueKey.Bytes())
+			if err != nil {
+				self.setError(err)
+			}
+		}*/
+
+
+
+
+
+
+
 		objTrie := stateDB.StorageTrie(common.CandidateAddr)
 		if objTrie == nil {
 			return
 		}
+
 
 
 
@@ -1648,64 +1683,23 @@ func TraversingStateDB (vmstate vm.StateDB) {
 		storageIt := objTrie.NodeIterator(nil)
 		for storageIt.Next(true) {
 			if storageIt.Leaf() {
-				//var key, val interface{}
-				//err1 := json.Unmarshal(storageIt.LeafKey(), &key)
-				//err2 := json.Unmarshal(storageIt.LeafBlob(), &val)
-				//fmt.Println("err1", err1.Error(), "err2", err2.Error())
-				//fmt.Println("key", fmt.Sprint(key), "val", fmt.Sprint(val))
 
-				log.Debug("key", common.Bytes2Hex(storageIt.LeafKey()))
+				//log.Debug("key", common.Bytes2Hex(storageIt.LeafKey()))
+				//k := objTrie.GetKey(storageIt.LeafKey())
+				//log.Debug("key context Hash:", string(k))
+				//log.Debug("value", common.Bytes2Hex(storageIt.LeafBlob()))
+
+				fmt.Println("key", common.Bytes2Hex(storageIt.LeafKey()))
 				k := objTrie.GetKey(storageIt.LeafKey())
-				log.Debug("key context Hash:", string(k))
-				log.Debug("value", common.Bytes2Hex(storageIt.LeafBlob()))
+				fmt.Println("key context Hash:", string(k))
+				fmt.Println("value", common.Bytes2Hex(storageIt.LeafBlob()))
 
-				//fmt.Println("key2", common.Bytes2Hex(storageIt.LeafKey()))
-				//fmt.Println("value2", common.Bytes2Hex(storageIt.LeafBlob()))
-
-				//var buffer bytes.Buffer
-				//buffer.WriteString(common.CandidateAddr.String())
-				//buffer.WriteString(string(key))
-				//keyTrie := buffer.String()
-
-
-
-
-				//val := objTrie.GetKey(storageIt.LeafBlob()) /*.TryGet([]byte(storageIt.LeafKey()))*/
-				////fmt.Println("err3", err3)
-				//fmt.Println("val context:", string(val))
-
-
-			/*	var keyBy [][]byte
-				if err := rlp.Decode(bytes.NewReader(storageIt.LeafKey()), &keyBy); nil != err {
-					fmt.Println("err3", err)
-				}
-				var valBy [][]byte
-				if err := rlp.Decode(bytes.NewReader(storageIt.LeafBlob()), &valBy); nil != err {
-					fmt.Println("err4", err)
-				}*/
-
-				//fmt.Println("key", string(storageIt.LeafKey()))
-				//fmt.Println("value", string(storageIt.LeafBlob()))
+				vl, _ := objTrie.TryGet(storageIt.LeafKey())
+				fmt.Println("value2", common.Bytes2Hex(vl))
 			}
 
-			//fmt.Println("Key", common.Bytes2Hex(stateDB.GetTrie().GetKey(storageIt.Key)))
-			//fmt.Println("value", common.Bytes2Hex(storageIt.Value))
 		}
 
-		//it := objTrie.NodeIterator(nil)
-		//for it.Next(true) {
-		//	//key := common.BytesToHash(db.trie.GetKey(it.Key))
-		//	if it.Leaf() {
-		//		fmt.Println("key", common.Bytes2Hex(it.LeafKey()))
-		//		fmt.Println("value", common.Bytes2Hex(it.LeafBlob()))
-		//
-		//	}
-		//	//
-		//
-		//	stateDB.GetTrie().NodeIterator(nil)   .GetLogs()GetKey(it.Key)
-		//
-		//
-		//}
 	}
 
 	//handleFunc := func(valueKey common.Hash, value common.Hash) bool {

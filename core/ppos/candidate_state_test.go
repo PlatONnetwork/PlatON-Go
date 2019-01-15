@@ -729,5 +729,7 @@ func TestTraversingStateDB(t *testing.T) {
 	}
 	//state.Commit(true)
 
+	//state.Finalise(false)
+
 	pposm.TraversingStateDB(state)
 }
