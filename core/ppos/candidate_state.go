@@ -418,7 +418,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 		// The remaining candiate price to update current candidate info
 
 		if err := c.checkWithdraw(can.Deposit, price); nil != err {
-			log.Error("Failed to checkWithdraw price invalid", "nodeId", can.CandidateId.String(), " price", price.String(), "err", err)
+			log.Error("Failed to checkWithdraw price invalid", "nodeId", nodeId.String(), " price", price.String(), "err", err)
 			return err
 		}
 
@@ -639,7 +639,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 		can := canArr[index]
 
 		sub := new(big.Int).Sub(blockNumber, can.BlockNumber)
-		log.Info("Check defeat detail", "nodeId:", can.CandidateId.String(), "curr blocknumber:", blockNumber.String(), "setcandidate blocknumber:", can.BlockNumber.String(), " diff:", sub.String())
+		log.Info("Check defeat detail", "nodeId:", nodeId.String(), "curr blocknumber:", blockNumber.String(), "setcandidate blocknumber:", can.BlockNumber.String(), " diff:", sub.String())
 		if sub.Cmp(new(big.Int).SetUint64(c.RefundBlockNumber)) >= 0 { // allow refund
 			delCanArr = append(delCanArr, can)
 			canArr = append(canArr[:index], canArr[index+1:]...)
@@ -826,7 +826,7 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 	for _, id := range nextWitIds {
 		if can, ok := nextWits[id]; ok {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", id.String())
 				continue
 			} else {
 				arr = append(arr, node)
@@ -956,7 +956,7 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 	for _, id := range indexArr {
 		if can, ok := witness[id]; ok {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", id.String())
 				return nil, err
 			} else {
 				arr = append(arr, node)
@@ -1005,7 +1005,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	for _, id := range preIndex {
 		if can, ok := prewitness[id]; ok {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build pre Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build pre Node on GetAllWitness", "err", err, "nodeId", id.String())
 				//continue
 				return nil, nil, nil, err
 			} else {
@@ -1016,7 +1016,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	for _, id := range curIndex {
 		if can, ok := witness[id]; ok {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build cur Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build cur Node on GetAllWitness", "err", err, "nodeId", id.String())
 				//continue
 				return nil, nil, nil, err
 			} else {
@@ -1027,7 +1027,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	for _, id := range nextIndex {
 		if can, ok := nextwitness[id]; ok {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build next Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build next Node on GetAllWitness", "err", err, "nodeId", id.String())
 				//continue
 				return nil, nil, nil, err
 			} else {
