@@ -551,6 +551,25 @@ func TestRlpData(t *testing.T) {
 	} else {
 		fmt.Println("CandidateDetails data rlp: ", hexutil.Encode(bufDetails.Bytes()))
 	}
+
+	// GetBatchCandidateDetail(nodeIds []discover.NodeID)
+	nodeId1 := "0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeId2 := "0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeId3 := "0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeIds := nodeId1 + ":" + nodeId2 + ":" + nodeId3
+	var GetBatchCandidateDetail [][]byte
+	GetBatchCandidateDetail = make([][]byte, 0)
+	GetBatchCandidateDetail = append(GetBatchCandidateDetail, uint64ToBytes(0xf1))
+	GetBatchCandidateDetail = append(GetBatchCandidateDetail, []byte("GetBatchCandidateDetail"))
+	GetBatchCandidateDetail = append(GetBatchCandidateDetail, []byte(nodeIds))
+	bufGetBatchCandidateDetail := new(bytes.Buffer)
+	err = rlp.Encode(bufGetBatchCandidateDetail, GetBatchCandidateDetail)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetBatchCandidateDetail encode rlp data fail")
+	} else {
+		fmt.Println("GetBatchCandidateDetail data rlp: ", hexutil.Encode(bufGetBatchCandidateDetail.Bytes()))
+	}
 }
 
 func TestRlpDecode(t *testing.T) {
