@@ -51,6 +51,7 @@ var DefaultConfig = Config{
 		Duration:         10,
 		Ppos: 	&PposConfig{
 			Candidate: &CandidateConfig{
+				Threshold: 			"1000000000000000000000000",
 				DepositLimit: 	  	10,
 				MaxCount:          	7,
 				MaxChair:          	100,
@@ -176,6 +177,8 @@ type PposConfig struct {
 }
 
 type CandidateConfig struct {
+	// min deposit allow threshold
+	Threshold				string 					`json:"threshold"`
 	// min deposit limit percentage
 	DepositLimit 			uint64					`json:"depositLimit"`
 	// allow immediate elected max count

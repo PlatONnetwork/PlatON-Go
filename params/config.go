@@ -126,6 +126,7 @@ var (
 			Duration:  30,
 			PposConfig: &PposConfig{
 				Candidate: &CandidateConfig{
+					Threshold: 			"1000000000000000000000000",
 					DepositLimit: 	  	10,
 					MaxCount:          	7,
 					MaxChair:          	100,
@@ -234,6 +235,7 @@ type PposConfig struct {
 	Candidate *CandidateConfig
 }
 type CandidateConfig struct {
+	Threshold		  string
 	DepositLimit 	  uint64
 	MaxCount          uint64
 	MaxChair          uint64

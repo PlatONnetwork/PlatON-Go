@@ -162,6 +162,9 @@ func (d *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 /** Method provided to the cbft module call */
 // Announce witness
 func (d *ppos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover.Node, error) {
+	// TODO
+	return nil, nil
+
 	if nextNodes, err := d.candidateContext.Election(state, blocknumber); nil != err {
 		log.Error("Failed to call ppos election next witness", "err", err)
 		panic("Election error " + err.Error())
@@ -174,6 +177,9 @@ func (d *ppos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover
 
 // switch next witnesses to current witnesses
 func (d *ppos) Switch(state *state.StateDB) bool {
+	// TODO
+	return true
+
 	if !d.candidateContext.Switch(state) {
 		return false
 	}

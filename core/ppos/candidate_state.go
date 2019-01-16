@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"sync"
 	"sort"
+	"strings"
 )
 
 const (
@@ -66,6 +67,8 @@ var (
 )
 
 type CandidatePool struct {
+	// min deposit allow threshold
+	threshold *big.Int
 	// min deposit limit percentage
 	depositLimit uint64
 	// allow immediate elected max count
@@ -97,8 +100,17 @@ type CandidatePool struct {
 // Initialize the global candidate pool object
 func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 	log.Debug("Build a New CandidatePool Info ...")
-	/*candidatePool = */
+	if "" == strings.TrimSpace(configs.Candidate.Threshold) {
+		configs.Candidate.Threshold = "1000000000000000000000000"
+	}
+	var threshold *big.Int
+	if thd, ok := new(big.Int).SetString(configs.Candidate.Threshold, 10); !ok {
+		threshold, _ = new(big.Int).SetString("1000000000000000000000000", 10)
+	}else {
+		threshold = thd
+	}
 	return &CandidatePool{
+		threshold: 			  threshold,
 		depositLimit:         configs.Candidate.DepositLimit,
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
@@ -260,6 +272,12 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 	log.Info("Call SetCandidate start ...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.RefundBlockNumber)
 	PrintObject("Call SetCandidate Info:", *can)
+	// TODO
+	if !c.checkFirstThreshold(can) {
+		log.Info("Faided to SetCandidate", "err", DepositLowErr, "Deposit", can.Deposit.String(), "limit", c.threshold)
+		return DepositLowErr
+	}
+
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	defer func() {
@@ -1040,6 +1058,13 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 
 func (c *CandidatePool) GetRefundInterval() uint64 {
 	return c.RefundBlockNumber
+}
+
+func (c *CandidatePool) checkFirstThreshold (can *types.Candidate) (bool) {
+	if can.Deposit.Cmp(c.threshold) < 0 {
+		return false
+	}
+	return true
 }
 
 func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
