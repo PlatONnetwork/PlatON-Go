@@ -1345,11 +1345,14 @@ func (c *CandidatePool) MaxCount() uint64 {
 
 func getPreviousWitnessIdsState(state vm.StateDB) ([]discover.NodeID, error) {
 	var witnessIds []discover.NodeID
+	log.Debug("Call getPreviousWitnessIdsState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", PreviousWitnessListKey(), len(PreviousWitnessListKey()), common.Bytes2Hex(PreviousWitnessListKey())))
 	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessListKey()); nil != valByte && len(valByte) != 0 {
 		log.Debug("Call getPreviousWitnessIdsState DecodeBytes", "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return witnessIds, nil
 }
@@ -1362,11 +1365,14 @@ func setPreviosWitnessIdsState(state vm.StateDB, arrVal []byte) {
 
 func getPreviousWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
+	log.Debug("Call getPreviousWitnessByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", PreviousWitnessKey(id), len(PreviousWitnessKey(id)), common.Bytes2Hex(PreviousWitnessKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessKey(id)); nil != valByte && len(valByte) != 0 {
 		log.Debug("Call getPreviousWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return &can, nil
 }
@@ -1379,11 +1385,14 @@ func setPreviousWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
 
 func getWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var witnessIds []discover.NodeID
+	log.Debug("Call getWitnessIdsByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", WitnessListKey(), len(WitnessListKey()), common.Bytes2Hex(WitnessListKey())))
 	if valByte := state.GetState(common.CandidateAddr, WitnessListKey()); nil != valByte && len(valByte) != 0 {
 		log.Debug("Call getWitnessIdsByState DecodeBytes", "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return witnessIds, nil
 }
@@ -1396,11 +1405,14 @@ func setWitnessIdsState(state vm.StateDB, arrVal []byte) {
 
 func getWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
+	log.Debug("Call getWitnessByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", WitnessKey(id), len(WitnessKey(id)), common.Bytes2Hex(WitnessKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, WitnessKey(id)); nil != valByte && len(valByte) != 0 {
 		log.Debug("Call getWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return &can, nil
 }
@@ -1413,11 +1425,14 @@ func setWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
 
 func getNextWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var nextWitnessIds []discover.NodeID
+	log.Debug("Call getNextWitnessIdsByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", NextWitnessListKey(), len(NextWitnessListKey()), common.Bytes2Hex(NextWitnessListKey())))
 	if valByte := state.GetState(common.CandidateAddr, NextWitnessListKey()); nil != valByte && len(valByte) != 0 {
 		log.Debug("Call getNextWitnessIdsByState DecodeBytes", "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &nextWitnessIds); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return nextWitnessIds, nil
 }
@@ -1430,11 +1445,14 @@ func setNextWitnessIdsState(state vm.StateDB, arrVal []byte) {
 
 func getNextWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
+	log.Debug("Call getNextWitnessByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", NextWitnessKey(id), len(NextWitnessKey(id)), common.Bytes2Hex(NextWitnessKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, NextWitnessKey(id)); nil != valByte && len(valByte) != 0 {
 		log.Debug("Call getNextWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return &can, nil
 }
@@ -1447,11 +1465,14 @@ func setNextWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
 
 func getImmediateIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var immediateIds []discover.NodeID
+	log.Debug("Call getImmediateIdsByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", ImmediateListKey(), len(ImmediateListKey()), common.Bytes2Hex(ImmediateListKey())))
 	if valByte := state.GetState(common.CandidateAddr, ImmediateListKey()); nil != valByte && len(valByte) != 0 {
 		log.Debug("Call getImmediateIdsByState DecodeBytes", "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &immediateIds); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return immediateIds, nil
 }
@@ -1464,11 +1485,14 @@ func setImmediateIdsState(state vm.StateDB, arrVal []byte) {
 
 func getImmediateByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
+	log.Debug("Call getImmediateByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", ImmediateKey(id), len(ImmediateKey(id)), common.Bytes2Hex(ImmediateKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, ImmediateKey(id)); nil != valByte && len(valByte) != 0 {
 		log.Debug("Call getImmediateByState DecodeBytes", "nodeId", id.String(), "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return &can, nil
 }
@@ -1481,11 +1505,14 @@ func setImmediateState(state vm.StateDB, id discover.NodeID, val []byte) {
 
 func getDefeatIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var defeatIds []discover.NodeID
+	log.Debug("Call getDefeatIdsByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", DefeatListKey(), len(DefeatListKey()), common.Bytes2Hex(DefeatListKey())))
 	if valByte := state.GetState(common.CandidateAddr, DefeatListKey()); nil != valByte && len(valByte) != 0 {
 		log.Debug("Call getDefeatIdsByState DecodeBytes",  "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &defeatIds); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return defeatIds, nil
 }
@@ -1498,11 +1525,14 @@ func setDefeatIdsState(state vm.StateDB, arrVal []byte) {
 
 func getDefeatsByState(state vm.StateDB, id discover.NodeID) ([]*types.Candidate, error) {
 	var canArr []*types.Candidate
+	log.Debug("Call getDefeatsByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", DefeatKey(id), len(DefeatKey(id)), common.Bytes2Hex(DefeatKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, DefeatKey(id)); nil != valByte && len(valByte) != 0 {
 		log.Debug("Call getDefeatsByState DecodeBytes",  "nodeId", id.String(), "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &canArr); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return canArr, nil
 }
