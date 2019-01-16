@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -225,7 +226,7 @@ func (pool *VCPool) real_compute(tx *types.TransactionWrap) error {
 	vc_data["params"] = params
 	vc_data["id"] = 1
 
-	url := "http://localhost:6789"
+	url := "http://127.0.0.1:" + strconv.FormatUint(uint64(pool.config.LocalRpcPort), 10)
 	format := "application/json"
 	postres, err := pool.Post(url, vc_data, format)
 	if err != nil {
