@@ -172,14 +172,14 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		}
 		bigRes := new(big.Int)
 		bigRes.SetInt64(res)
-		byt := math.U256(bigRes).Bytes()
-		return byt, nil
+		finalRes := utils.Align32Bytes(math.U256(bigRes).Bytes())
+		return finalRes, nil
 	case "uint8", "uint16", "uint32", "uint64":
 		if txType == CALL_CANTRACT_FLAG {
 			return utils.Uint64ToBytes(uint64(res)), nil
 		}
-		hashRes := common.BytesToHash(utils.Uint64ToBytes((uint64(res))))
-		return hashRes.Bytes(), nil
+		finalRes := utils.Align32Bytes(utils.Uint64ToBytes((uint64(res))))
+		return finalRes, nil
 	case "string":
 		returnBytes := make([]byte, 0)
 		copyData := lvm.Memory.Memory[res:]
