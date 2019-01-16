@@ -830,7 +830,7 @@ func (w *worker) resultLoop() {
 			block.ConfirmSigns = blockConfirmSigns
 
 			root := _state.IntermediateRoot(w.chain.Config().IsEIP158(block.Number()))
-			log.Debug("【共识节点同步】写链前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+			log.Debug("【The Consensus node synchronization】Before Write BlockChain", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
 			if err != nil {
@@ -1161,12 +1161,12 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 
 		log.Debug("commitTransactions", "hash", tx.Hash(), "sender", from, "nonce", tx.Nonce())
 		root :=  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-		log.Debug("【共识 打包出块】 commitTransactions 执行交易前", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "实时的state.root", root.Hex())
+		log.Debug("【The Consensus packaging】 commitTransactions Before executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
 
 		logs, err := w.commitTransaction(tx, coinbase)
 
 		root =  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-		log.Debug("【共识 打包出块】commitTransactions 执行交易之后", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "实时的state.root", root.Hex())
+		log.Debug("【The Consensus packaging】commitTransactions After executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
 
 		switch err {
 		case core.ErrGasLimitReached:
@@ -1363,7 +1363,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
 
 	root :=  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【共识 打包出块】 commitTransactionsWithHeader 执行交易前", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "实时的state.root", root.Hex())
+	log.Debug("【The Consensus packaging】 commitTransactionsWithHeader Before executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
 
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
@@ -1383,14 +1383,14 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	root =  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【共识 打包出块】commitTransactionsWithHeader 执行交易之后", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "实时的state.root", root.Hex())
+	log.Debug("【The Consensus packaging】commitTransactionsWithHeader After executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
 
-	// 调试 []*types.Receipt
+	// Test []*types.Receipt
 	receipts := make(types.Receipts, 0)
 	for _, r := range w.current.receipts {
 		receipts = append(receipts, r)
 	}
-	log.Debug("【共识 打包出块】commitTransactionsWithHeader 执行交易之后，调用notify系列func前", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
+	log.Debug("【The Consensus packaging】commitTransactionsWithHeader After executing the transaction，Before calling notify series func", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
 
 	commitTxRemoteEndTime := time.Now().UnixNano()
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
@@ -1411,13 +1411,13 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 
 	s := w.current.state.Copy()
 	root :=  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【共识 打包出块】执行交易之后, commit 调notify系列func之前", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "实时的state.root", root.Hex())
-	// 调试 []*types.Receipt
+	log.Debug("【The Consensus packaging】After executing the transaction, Before the notify series func", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
+	// TODO debug []*types.Receipt
 	receiptArr := make(types.Receipts, 0)
 	for _, r := range w.current.receipts {
 		receiptArr = append(receiptArr, r)
 	}
-	log.Debug("【共识 打包出块】执行交易之后, commit 调notify系列func之前", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
+	log.Debug("【The Consensus packaging】After executing the transaction, Before the notify series func", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
 
 	if header != nil {
 		// Election call(if match condition)
@@ -1432,14 +1432,14 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		}
 	}
 	root =  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【共识 打包出块】执行交易之后, 调notify系列func之后， finalize之前", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "实时的state.root", root.Hex())
-	log.Debug("【共识 打包出块】执行交易之后, 调notify系列func之后， finalize之前", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
+	log.Debug("【The Consensus packaging】After executing the transaction, After adjusting the notify series func, And before finalize", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
+	log.Debug("【The Consensus packaging】After executing the transaction, After adjusting the notify series func, And before finalize", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
 
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 
 	root =  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【共识 打包出块】 finalize之后", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "实时的state.root", root.Hex())
-	log.Debug("【共识 打包出块】 finalize之后", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
+	log.Debug("【The Consensus packaging】 After call finalize", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
+	log.Debug("【The Consensus packaging】 After call finalize", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
 
 	log.Debug("worker: commit: Finalize", "blockNumber", block.Number(), "root", block.Root().String())
 	//root, _ := s.Commit(w.config.IsEIP158(w.current.header.Number))

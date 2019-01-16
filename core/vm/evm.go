@@ -139,7 +139,8 @@ type EVM struct {
 	callGasTemp uint64
 
 	//ppos add
-	CandidatePool candidatePool
+	//CandidatePool candidatePool
+	CandidatePoolContext candidatePoolContext
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should

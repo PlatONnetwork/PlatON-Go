@@ -92,11 +92,13 @@ type CandidatePool struct {
 	lock 				*sync.Mutex
 }
 
-var candidatePool *CandidatePool
+//var candidatePool *CandidatePool
 
 // Initialize the global candidate pool object
 func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
-	candidatePool = &CandidatePool{
+	log.Debug("Build a New CandidatePool Info ...")
+	/*candidatePool = */
+	return &CandidatePool{
 		depositLimit:         configs.Candidate.DepositLimit,
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
@@ -110,7 +112,7 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		//lock:                 &sync.RWMutex{},
 		lock:                 &sync.Mutex{},
 	}
-	return candidatePool
+	//return candidatePool
 }
 
 // flag:
@@ -260,6 +262,10 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	PrintObject("Call SetCandidate Info:", *can)
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	defer func() {
+		log.Debug("Call SetCandidate Success view state again ...")
+		c.initDataByState(state, 2)
+	}()
 	if err := c.initDataByState(state, 2); nil != err {
 		log.Error("Failed to initDataByState on SetCandidate", " err", err)
 		return err
@@ -331,7 +337,6 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	}
 
 	log.Debug("Call SetCandidate successfully...")
-	//c.initDataByState(state, 2)
 	return nil
 }
 
@@ -341,7 +346,7 @@ func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (
 }
 
 // Getting immediate or reserve candidate info arr by nodeIds
-func (c *CandidatePool) GetCandidateArr(state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
+func (c *CandidatePool) GetCandidateArr (state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
 	return c.getCandidates(state, nodeIds...)
 }
 
@@ -350,6 +355,10 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 	log.Info("Call WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String())
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	defer func() {
+		log.Debug("Call WithdrawCandidate SUCCESS VIEW state again ... ")
+		c.initDataByState(state, 2)
+	}()
 	if err := c.initDataByState(state, 2); nil != err {
 		log.Error("Failed to initDataByState on WithdrawCandidate", " err", err)
 		return err
@@ -409,7 +418,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 		// The remaining candiate price to update current candidate info
 
 		if err := c.checkWithdraw(can.Deposit, price); nil != err {
-			log.Error("Failed to checkWithdraw price invalid", "nodeId", can.CandidateId.String(), " price", price.String(), "err", err)
+			log.Error("Failed to checkWithdraw price invalid", "nodeId", nodeId.String(), " price", price.String(), "err", err)
 			return err
 		}
 
@@ -597,6 +606,10 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	log.Info("Call RefundBalance:  curr nodeId = " + nodeId.String() + ",curr blocknumber:" + blockNumber.String())
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	defer func() {
+		log.Debug("Call RefundBalance SUCCESS VIEW state again ... ")
+		c.initDataByState(state, 2)
+	}()
 	if err := c.initDataByState(state, 2); nil != err {
 		log.Error("Failed to initDataByState on RefundBalance", "err", err)
 		return err
@@ -626,7 +639,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 		can := canArr[index]
 
 		sub := new(big.Int).Sub(blockNumber, can.BlockNumber)
-		log.Info("Check defeat detail", "nodeId:", can.CandidateId.String(), "curr blocknumber:", blockNumber.String(), "setcandidate blocknumber:", can.BlockNumber.String(), " diff:", sub.String())
+		log.Info("Check defeat detail", "nodeId:", nodeId.String(), "curr blocknumber:", blockNumber.String(), "setcandidate blocknumber:", can.BlockNumber.String(), " diff:", sub.String())
 		if sub.Cmp(new(big.Int).SetUint64(c.RefundBlockNumber)) >= 0 { // allow refund
 			delCanArr = append(delCanArr, can)
 			canArr = append(canArr[:index], canArr[index+1:]...)
@@ -727,6 +740,10 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 	log.Info("Call SetCandidateExtra:", "nodeId", nodeId.String(), "extra", extra)
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	defer func() {
+		log.Debug("Call SetCandidateExtra Success view state again ...")
+		c.initDataByState(state, 2)
+	}()
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on SetCandidateExtra", "err", err)
 		return err
@@ -741,6 +758,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 	} else {
 		return CandidateEmptyErr
 	}
+	log.Debug("Call RefundBalance SUCCESS !!!!!! ")
 	return nil
 }
 
@@ -808,7 +826,7 @@ func (c *CandidatePool) Election(state *state.StateDB) ([]*discover.Node, error)
 	for _, id := range nextWitIds {
 		if can, ok := nextWits[id]; ok {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", id.String())
 				continue
 			} else {
 				arr = append(arr, node)
@@ -938,7 +956,7 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 	for _, id := range indexArr {
 		if can, ok := witness[id]; ok {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", id.String())
 				return nil, err
 			} else {
 				arr = append(arr, node)
@@ -987,7 +1005,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	for _, id := range preIndex {
 		if can, ok := prewitness[id]; ok {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build pre Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build pre Node on GetAllWitness", "err", err, "nodeId", id.String())
 				//continue
 				return nil, nil, nil, err
 			} else {
@@ -998,7 +1016,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	for _, id := range curIndex {
 		if can, ok := witness[id]; ok {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build cur Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build cur Node on GetAllWitness", "err", err, "nodeId", id.String())
 				//continue
 				return nil, nil, nil, err
 			} else {
@@ -1009,7 +1027,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	for _, id := range nextIndex {
 		if can, ok := nextwitness[id]; ok {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build next Node on GetAllWitness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build next Node on GetAllWitness", "err", err, "nodeId", id.String())
 				//continue
 				return nil, nil, nil, err
 			} else {
@@ -1283,6 +1301,7 @@ func (c *CandidatePool) getNextWitnessIndex(state vm.StateDB) ([]discover.NodeID
 func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	log.Debug("Call Get Candidate ... ")
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on getCandidate", "err", err)
 		return nil, err
@@ -1297,6 +1316,7 @@ func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (
 func (c *CandidatePool) getCandidates(state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	log.Debug("Call Get Candidate Arr ...")
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on getCandidates", "err", err)
 		return nil, err
@@ -1325,141 +1345,201 @@ func (c *CandidatePool) MaxCount() uint64 {
 
 func getPreviousWitnessIdsState(state vm.StateDB) ([]discover.NodeID, error) {
 	var witnessIds []discover.NodeID
+	log.Debug("Call getPreviousWitnessIdsState DecodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", PreviousWitnessListKey(), len(PreviousWitnessListKey()), common.Bytes2Hex(PreviousWitnessListKey())))
 	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessListKey()); nil != valByte && len(valByte) != 0 {
+		log.Debug("Call getPreviousWitnessIdsState DecodeBytes", "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return witnessIds, nil
 }
 
 func setPreviosWitnessIdsState(state vm.StateDB, arrVal []byte) {
+	log.Debug("SETTING Call  setPreviosWitnessIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", PreviousWitnessListKey(), len(PreviousWitnessListKey()), common.Bytes2Hex(PreviousWitnessListKey())))
+	log.Debug("SETTING Call  setPreviosWitnessIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, PreviousWitnessListKey(), arrVal)
 }
 
 func getPreviousWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
+	log.Debug("Call getPreviousWitnessByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", PreviousWitnessKey(id), len(PreviousWitnessKey(id)), common.Bytes2Hex(PreviousWitnessKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessKey(id)); nil != valByte && len(valByte) != 0 {
+		log.Debug("Call getPreviousWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return &can, nil
 }
 
 func setPreviousWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
+	log.Debug("SETTING Call  setPreviousWitnessState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", PreviousWitnessKey(id), len(PreviousWitnessKey(id)), common.Bytes2Hex(PreviousWitnessKey(id))))
+	log.Debug("SETTING Call  setPreviousWitnessState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, PreviousWitnessKey(id), val)
 }
 
 func getWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var witnessIds []discover.NodeID
+	log.Debug("Call getWitnessIdsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", WitnessListKey(), len(WitnessListKey()), common.Bytes2Hex(WitnessListKey())))
 	if valByte := state.GetState(common.CandidateAddr, WitnessListKey()); nil != valByte && len(valByte) != 0 {
+		log.Debug("Call getWitnessIdsByState DecodeBytes", "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return witnessIds, nil
 }
 
 func setWitnessIdsState(state vm.StateDB, arrVal []byte) {
+	log.Debug("SETTING Call  setWitnessIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", WitnessListKey(), len(WitnessListKey()), common.Bytes2Hex(WitnessListKey())))
+	log.Debug("SETTING Call  setWitnessIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, WitnessListKey(), arrVal)
 }
 
 func getWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
+	log.Debug("Call getWitnessByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", WitnessKey(id), len(WitnessKey(id)), common.Bytes2Hex(WitnessKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, WitnessKey(id)); nil != valByte && len(valByte) != 0 {
+		log.Debug("Call getWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return &can, nil
 }
 
 func setWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
+	log.Debug("SETTING Call  setWitnessState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", WitnessKey(id), len(WitnessKey(id)), common.Bytes2Hex(WitnessKey(id))))
+	log.Debug("SETTING Call  setWitnessState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, WitnessKey(id), val)
 }
 
 func getNextWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var nextWitnessIds []discover.NodeID
+	log.Debug("Call getNextWitnessIdsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", NextWitnessListKey(), len(NextWitnessListKey()), common.Bytes2Hex(NextWitnessListKey())))
 	if valByte := state.GetState(common.CandidateAddr, NextWitnessListKey()); nil != valByte && len(valByte) != 0 {
+		log.Debug("Call getNextWitnessIdsByState DecodeBytes", "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &nextWitnessIds); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return nextWitnessIds, nil
 }
 
 func setNextWitnessIdsState(state vm.StateDB, arrVal []byte) {
+	log.Debug("SETTING Call  setNextWitnessIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", NextWitnessListKey(), len(NextWitnessListKey()), common.Bytes2Hex(NextWitnessListKey())))
+	log.Debug("SETTING Call  setNextWitnessIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, NextWitnessListKey(), arrVal)
 }
 
 func getNextWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
+	log.Debug("Call getNextWitnessByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", NextWitnessKey(id), len(NextWitnessKey(id)), common.Bytes2Hex(NextWitnessKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, NextWitnessKey(id)); nil != valByte && len(valByte) != 0 {
+		log.Debug("Call getNextWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return &can, nil
 }
 
 func setNextWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
+	log.Debug("SETTING Call  setNextWitnessState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  NextWitnessKey(id), len( NextWitnessKey(id)), common.Bytes2Hex( NextWitnessKey(id))))
+	log.Debug("SETTING Call  setNextWitnessState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, NextWitnessKey(id), val)
 }
 
 func getImmediateIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var immediateIds []discover.NodeID
+	log.Debug("Call getImmediateIdsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", ImmediateListKey(), len(ImmediateListKey()), common.Bytes2Hex(ImmediateListKey())))
 	if valByte := state.GetState(common.CandidateAddr, ImmediateListKey()); nil != valByte && len(valByte) != 0 {
+		log.Debug("Call getImmediateIdsByState DecodeBytes", "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &immediateIds); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return immediateIds, nil
 }
 
 func setImmediateIdsState(state vm.StateDB, arrVal []byte) {
+	log.Debug("SETTING Call  setImmediateIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  ImmediateListKey(), len(ImmediateListKey()), common.Bytes2Hex(ImmediateListKey())))
+	log.Debug("SETTING Call  setImmediateIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, ImmediateListKey(), arrVal)
 }
 
 func getImmediateByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
+	log.Debug("Call getImmediateByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", ImmediateKey(id), len(ImmediateKey(id)), common.Bytes2Hex(ImmediateKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, ImmediateKey(id)); nil != valByte && len(valByte) != 0 {
+		log.Debug("Call getImmediateByState DecodeBytes", "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return &can, nil
 }
 
 func setImmediateState(state vm.StateDB, id discover.NodeID, val []byte) {
+	log.Debug("SETTING Call  setImmediateState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  ImmediateKey(id), len(ImmediateKey(id)), common.Bytes2Hex(ImmediateKey(id))))
+	log.Debug("SETTING Call  setImmediateState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, ImmediateKey(id), val)
 }
 
 func getDefeatIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var defeatIds []discover.NodeID
+	log.Debug("Call getDefeatIdsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", DefeatListKey(), len(DefeatListKey()), common.Bytes2Hex(DefeatListKey())))
 	if valByte := state.GetState(common.CandidateAddr, DefeatListKey()); nil != valByte && len(valByte) != 0 {
+		log.Debug("Call getDefeatIdsByState DecodeBytes",  "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &defeatIds); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return defeatIds, nil
 }
 
 func setDefeatIdsState(state vm.StateDB, arrVal []byte) {
+	log.Debug("SETTING Call  setDefeatIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", DefeatListKey(), len(DefeatListKey()), common.Bytes2Hex(DefeatListKey())))
+	log.Debug("SETTING Call  setDefeatIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, DefeatListKey(), arrVal)
 }
 
 func getDefeatsByState(state vm.StateDB, id discover.NodeID) ([]*types.Candidate, error) {
 	var canArr []*types.Candidate
+	log.Debug("Call getDefeatsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", DefeatKey(id), len(DefeatKey(id)), common.Bytes2Hex(DefeatKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, DefeatKey(id)); nil != valByte && len(valByte) != 0 {
+		log.Debug("Call getDefeatsByState DecodeBytes",  "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &canArr); nil != err {
 			return nil, err
 		}
+	}else {
+		return nil, nil
 	}
 	return canArr, nil
 }
 
 func setDefeatState(state vm.StateDB, id discover.NodeID, val []byte) {
+	log.Debug("SETTING Call  setDefeatState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  DefeatKey(id), len( DefeatKey(id)), common.Bytes2Hex( DefeatKey(id))))
+	log.Debug("SETTING Call  setDefeatState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, DefeatKey(id), val)
 }
 
@@ -1469,9 +1549,9 @@ func copyCandidateMapByIds(target, source map[discover.NodeID]*types.Candidate, 
 	}
 }
 
-func GetCandidatePtr() *CandidatePool {
-	return candidatePool
-}
+//func GetCandidatePtr() *CandidatePool {
+//	return candidatePool
+//}
 
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
@@ -1606,4 +1686,94 @@ func NextWitnessListKey() []byte {
 
 func DefeatListKey() []byte {
 	return append(common.CandidateAddr.Bytes(), DefeatListBtyePrefix...)
+}
+
+// DEBUG
+func TraversingStateDB (vmstate vm.StateDB) {
+	log.Debug("【TraversingStateDB】start ...")
+	/**
+	key 1fc17e601a8c10a8c32000358358ecca6001adcb7bdd416fbc397c7bc3e18111
+	value a045b3127bdb3fef53e3b1ef09af1be661288cfa7c2b0d09b5f27a6951375d6bc9
+	key 6067c3ebcf658f6dfd6bc198dbead3d07c388e30bbcb3fc4b351646527c34010
+	value a0725b3ebfd21899f174a09b1eef82e238e22b8c5de7254347fc9f94600e92aac7
+	key 98ec7e3bf55c72137281890d90e63bb2d51fc370562c0c386db74359bf1c61af
+	value a0b0ca14c4bd15393a0c14209c504886e428c2e4ca82698838e087a404ad985339
+	key e8b020f2af4d1e15a9de1c664bdec1fad91737837557afa501aac5a004bd260c
+	value a0b3e1f3803d057f97fad44a37599904c03962fb0aac2f0be5d6427c30ecd943b1
+	 */
+	if stateDB, ok := vmstate.(*state.StateDB); ok {
+
+		/**
+		obj
+		 */
+		/*so := stateDB.GetOrNewStateObject(common.CandidateAddr)
+		if so == nil {
+			return
+		}
+
+		// Otherwise load the valueKey from trie
+		enc, err := so.GetCommittedState().getTrie(db).TryGet([]byte(key))
+		if err != nil {
+			self.setError(err)
+			return []byte{}
+		}
+		if len(enc) > 0 {
+			_, content, _, err := rlp.Split(enc)
+			if err != nil {
+				self.setError(err)
+			}
+			valueKey.SetBytes(content)
+
+			//load value from db
+			value = self.db.trie.GetKey(valueKey.Bytes())
+			if err != nil {
+				self.setError(err)
+			}
+		}*/
+
+
+
+
+
+
+
+		objTrie := stateDB.StorageTrie(common.CandidateAddr)
+		if objTrie == nil {
+			return
+		}
+
+
+
+
+
+		//storageIt := trie.NewIterator(objTrie.NodeIterator(nil))
+		//	for storageIt.Next() {
+		storageIt := objTrie.NodeIterator(nil)
+		for storageIt.Next(true) {
+			if storageIt.Leaf() {
+
+				//log.Debug("key", common.Bytes2Hex(storageIt.LeafKey()))
+				//k := objTrie.GetKey(storageIt.LeafKey())
+				//log.Debug("key context Hash:", string(k))
+				//log.Debug("value", common.Bytes2Hex(storageIt.LeafBlob()))
+
+				fmt.Println("key", common.Bytes2Hex(storageIt.LeafKey()))
+				k := objTrie.GetKey(storageIt.LeafKey())
+				fmt.Println("key context Hash:", string(k))
+				fmt.Println("value", common.Bytes2Hex(storageIt.LeafBlob()))
+
+				vl, _ := objTrie.TryGet(storageIt.LeafKey())
+				fmt.Println("value2", common.Bytes2Hex(vl))
+			}
+
+		}
+
+	}
+
+	//handleFunc := func(valueKey common.Hash, value common.Hash) bool {
+	//	log.Debug("【TraversingStateDB】", "key", valueKey, "value", value)
+	//	return true
+	//}
+	//vmstate.ForEachStorage(common.CandidateAddr, handleFunc)
+
 }

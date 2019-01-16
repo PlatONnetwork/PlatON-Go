@@ -654,3 +654,82 @@ func TestGetDefeat(t *testing.T) {
 	nodeArr, _ := candidatePool.GetWitness(state, 0)
 	printObject("nodeArr", nodeArr, t)
 }
+
+func TestTraversingStateDB(t *testing.T) {
+	var candidatePool *pposm.CandidatePool
+	var state *state.StateDB
+	if st, err := newChainState(); nil != err {
+		t.Error("Getting stateDB err", err)
+	}else {state = st}
+	/** test init candidatePool */
+	candidatePool = newCandidatePool()
+
+	candidate := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(100),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		TxIndex:  		6,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x12"),
+
+	}
+	t.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+		t.Error("SetCandidate err:", err)
+	}
+
+	candidate2 := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(99),
+		BlockNumber:    new(big.Int).SetUint64(7),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		TxIndex:  		5,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x15"),
+
+	}
+	t.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate2.CandidateId, candidate2); nil != err {
+		t.Error("SetCandidate err:", err)
+	}
+
+	candidate3 := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(99),
+		BlockNumber:    new(big.Int).SetUint64(6),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
+		TxIndex:  		5,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x15"),
+
+	}
+	t.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate3.CandidateId, candidate3); nil != err {
+		t.Error("SetCandidate err:", err)
+	}
+
+	candidate4 := &types.Candidate{
+		Deposit: 		new(big.Int).SetUint64(99),
+		BlockNumber:    new(big.Int).SetUint64(6),
+		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
+		TxIndex:  		4,
+		Host:  			"10.0.0.1",
+		Port:  			"8548",
+		Owner: 			common.HexToAddress("0x15"),
+
+	}
+	t.Log("Set New Candidate ...")
+	/** test SetCandidate */
+	if err := candidatePool.SetCandidate(state, candidate4.CandidateId, candidate4); nil != err {
+		t.Error("SetCandidate err:", err)
+	}
+	//state.Commit(true)
+
+	//state.Finalise(false)
+
+	pposm.TraversingStateDB(state)
+}

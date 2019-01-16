@@ -586,7 +586,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 }
 
 func SetDopsOption(blockChain *core.BlockChain) {
-	cbft.ppos.SetCandidatePool(blockChain, cbft.config.InitialNodes)
+	cbft.ppos.SetCandidateContextOption(blockChain, cbft.config.InitialNodes)
 }
 
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.

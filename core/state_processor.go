@@ -79,8 +79,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 	root := statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.Debug("执行交易后，调用notify系列func前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
-	log.Debug("执行交易后，调用notify系列func前", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
+	log.Debug("After executing the transaction，Before calling notify series func", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+	log.Debug("After executing the transaction，Before calling notify series func", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
 
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// Election call(if match condition)
@@ -95,15 +95,15 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		}
 	}
 	root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.Debug("执行交易后，调用notify系列func后，finalize前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
-	log.Debug("执行交易后，调用notify系列func后，finalize前", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
+	log.Debug("After executing the transaction，After calling the notify series func, And before finalize", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+	log.Debug("After executing the transaction，After calling the notify series func, And before finalize", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 
 	root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.Debug("执行交易后，finalize之后", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
-	log.Debug("执行交易后，finalize之后", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
+	log.Debug("After executing the transaction，After call finalize", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+	log.Debug("After executing the transaction，After call finalize", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
 
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// SetNodeCache
@@ -156,8 +156,8 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs(tx.Hash())
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
-	log.Debug("执行交易中,查看实时的 收据信息", "txHash", tx.Hash().Hex(), "blocknumber", header.Number.Uint64(), "receipt.root", types.DeriveSha(types.Receipts{receipt}), "bloom", types.CreateBloom(types.Receipts{receipt}))
+	log.Debug("Execution transaction", "txHash", tx.Hash().Hex(), "blocknumber", header.Number.Uint64(), "receipt.root", types.DeriveSha(types.Receipts{receipt}), "bloom", types.CreateBloom(types.Receipts{receipt}))
 	logsByte, _ := json.Marshal(receipt.Logs)
-	log.Debug("执行交易中,查看实时的 收据信息", "txHash", tx.Hash().Hex(), "blocknumber", header.Number.Uint64(), "logs", string(logsByte))
+	log.Debug("Execution transaction", "txHash", tx.Hash().Hex(), "blocknumber", header.Number.Uint64(), "logs", string(logsByte))
 	return receipt, gas, err
 }

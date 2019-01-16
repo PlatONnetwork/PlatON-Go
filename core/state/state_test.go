@@ -275,7 +275,7 @@ func TestEmptyByte(t *testing.T) {
 	state.trie.NodeIterator(nil)
 	it := trie.NewIterator(so.trie.NodeIterator(nil))
 	for it.Next() {
-		fmt.Println(it.Key, it.Value)
+		fmt.Println("【A】", string(it.Key), string(it.Value))
 	}
 
 	pvalue = []byte{}
@@ -292,7 +292,7 @@ func TestEmptyByte(t *testing.T) {
 	state.trie.NodeIterator(nil)
 	it = trie.NewIterator(so.trie.NodeIterator(nil))
 	for it.Next() {
-		fmt.Println(it.Key, it.Value)
+		fmt.Println("【B】", it.Key, it.Value)
 	}
 
 	pvalue = []byte("bbb")
@@ -301,8 +301,9 @@ func TestEmptyByte(t *testing.T) {
 	state.trie.NodeIterator(nil)
 	it = trie.NewIterator(so.trie.NodeIterator(nil))
 	for it.Next() {
-		fmt.Println(it.Key, it.Value)
-		fmt.Println(so.db.trie.GetKey(it.Value))
+		fmt.Println("【C】", string(it.Key), string(it.Value))
+		fmt.Println("【D】", string(so.db.trie.GetKey(it.Value)))
 	}
 
+	fmt.Println("【stateDB Dump】", string(state.Dump()))
 }
