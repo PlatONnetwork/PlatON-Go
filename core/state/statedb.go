@@ -133,14 +133,14 @@ func (self *StateDB) Reset(root common.Hash) error {
 	return nil
 }
 
-func (self *StateDB) AddLog(log *types.Log) {
+func (self *StateDB) AddLog(logInfo *types.Log) {
 	self.journal.append(addLogChange{txhash: self.thash})
 	log.Debug("Call Add StateDB log", "txHash", self.thash.Hex())
-	log.TxHash = self.thash
-	log.BlockHash = self.bhash
-	log.TxIndex = uint(self.txIndex)
-	log.Index = self.logSize
-	self.logs[self.thash] = append(self.logs[self.thash], log)
+	logInfo.TxHash = self.thash
+	logInfo.BlockHash = self.bhash
+	logInfo.TxIndex = uint(self.txIndex)
+	logInfo.Index = self.logSize
+	self.logs[self.thash] = append(self.logs[self.thash], logInfo)
 	self.logSize++
 }
 
