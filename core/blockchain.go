@@ -938,6 +938,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		log.Error("check block is EIP158 error", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
 	}
+
+	log.Debug("【写链调用commit 之后的 root】", "blocknumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.Hex())
+
 	triedb := bc.stateCache.TrieDB()
 
 	// If we're running an archive node, always flush
