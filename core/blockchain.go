@@ -939,7 +939,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		return NonStatTy, err
 	}
 
-	log.Debug("【写链调用commit 之后的 root】", "blocknumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.Hex())
+	log.Debug("【The root when  the write chain after calls commit】", "blocknumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.Hex())
 
 	triedb := bc.stateCache.TrieDB()
 
@@ -1206,7 +1206,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return i, events, coalescedLogs, err
 		}
 		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-		log.Debug("【节点同步：调用inserChain】执行交易前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+		log.Debug("【Node synchronization: callinserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
@@ -1270,7 +1270,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
 	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-	log.Debug("【共识节点同步】执行交易前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+	log.Debug("【The Consensus node synchronization】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {

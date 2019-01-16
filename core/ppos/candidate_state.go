@@ -1345,9 +1345,9 @@ func (c *CandidatePool) MaxCount() uint64 {
 
 func getPreviousWitnessIdsState(state vm.StateDB) ([]discover.NodeID, error) {
 	var witnessIds []discover.NodeID
-	log.Debug("Call getPreviousWitnessIdsState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", PreviousWitnessListKey(), len(PreviousWitnessListKey()), common.Bytes2Hex(PreviousWitnessListKey())))
+	log.Debug("Call getPreviousWitnessIdsState DecodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", PreviousWitnessListKey(), len(PreviousWitnessListKey()), common.Bytes2Hex(PreviousWitnessListKey())))
 	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessListKey()); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getPreviousWitnessIdsState DecodeBytes", "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getPreviousWitnessIdsState DecodeBytes", "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
@@ -1358,16 +1358,16 @@ func getPreviousWitnessIdsState(state vm.StateDB) ([]discover.NodeID, error) {
 }
 
 func setPreviosWitnessIdsState(state vm.StateDB, arrVal []byte) {
-	log.Debug("SETTING Call  setPreviosWitnessIdsState EncodeBytes", "Key内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", PreviousWitnessListKey(), len(PreviousWitnessListKey()), common.Bytes2Hex(PreviousWitnessListKey())))
-	log.Debug("SETTING Call  setPreviosWitnessIdsState EncodeBytes", "Value内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v",arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
+	log.Debug("SETTING Call  setPreviosWitnessIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", PreviousWitnessListKey(), len(PreviousWitnessListKey()), common.Bytes2Hex(PreviousWitnessListKey())))
+	log.Debug("SETTING Call  setPreviosWitnessIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, PreviousWitnessListKey(), arrVal)
 }
 
 func getPreviousWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	log.Debug("Call getPreviousWitnessByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", PreviousWitnessKey(id), len(PreviousWitnessKey(id)), common.Bytes2Hex(PreviousWitnessKey(id))))
+	log.Debug("Call getPreviousWitnessByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", PreviousWitnessKey(id), len(PreviousWitnessKey(id)), common.Bytes2Hex(PreviousWitnessKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, PreviousWitnessKey(id)); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getPreviousWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getPreviousWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1378,16 +1378,16 @@ func getPreviousWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Can
 }
 
 func setPreviousWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
-	log.Debug("SETTING Call  setPreviousWitnessState EncodeBytes", "Key内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", PreviousWitnessKey(id), len(PreviousWitnessKey(id)), common.Bytes2Hex(PreviousWitnessKey(id))))
-	log.Debug("SETTING Call  setPreviousWitnessState EncodeBytes", "Value内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v",val, len(val), common.Bytes2Hex(val)))
+	log.Debug("SETTING Call  setPreviousWitnessState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", PreviousWitnessKey(id), len(PreviousWitnessKey(id)), common.Bytes2Hex(PreviousWitnessKey(id))))
+	log.Debug("SETTING Call  setPreviousWitnessState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, PreviousWitnessKey(id), val)
 }
 
 func getWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var witnessIds []discover.NodeID
-	log.Debug("Call getWitnessIdsByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", WitnessListKey(), len(WitnessListKey()), common.Bytes2Hex(WitnessListKey())))
+	log.Debug("Call getWitnessIdsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", WitnessListKey(), len(WitnessListKey()), common.Bytes2Hex(WitnessListKey())))
 	if valByte := state.GetState(common.CandidateAddr, WitnessListKey()); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getWitnessIdsByState DecodeBytes", "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getWitnessIdsByState DecodeBytes", "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
@@ -1398,16 +1398,16 @@ func getWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 }
 
 func setWitnessIdsState(state vm.StateDB, arrVal []byte) {
-	log.Debug("SETTING Call  setWitnessIdsState EncodeBytes", "Key内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", WitnessListKey(), len(WitnessListKey()), common.Bytes2Hex(WitnessListKey())))
-	log.Debug("SETTING Call  setWitnessIdsState EncodeBytes", "Value内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v",arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
+	log.Debug("SETTING Call  setWitnessIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", WitnessListKey(), len(WitnessListKey()), common.Bytes2Hex(WitnessListKey())))
+	log.Debug("SETTING Call  setWitnessIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, WitnessListKey(), arrVal)
 }
 
 func getWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	log.Debug("Call getWitnessByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", WitnessKey(id), len(WitnessKey(id)), common.Bytes2Hex(WitnessKey(id))))
+	log.Debug("Call getWitnessByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", WitnessKey(id), len(WitnessKey(id)), common.Bytes2Hex(WitnessKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, WitnessKey(id)); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1418,16 +1418,16 @@ func getWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, 
 }
 
 func setWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
-	log.Debug("SETTING Call  setWitnessState EncodeBytes", "Key内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", WitnessKey(id), len(WitnessKey(id)), common.Bytes2Hex(WitnessKey(id))))
-	log.Debug("SETTING Call  setWitnessState EncodeBytes", "Value内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", val, len(val), common.Bytes2Hex(val)))
+	log.Debug("SETTING Call  setWitnessState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", WitnessKey(id), len(WitnessKey(id)), common.Bytes2Hex(WitnessKey(id))))
+	log.Debug("SETTING Call  setWitnessState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, WitnessKey(id), val)
 }
 
 func getNextWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var nextWitnessIds []discover.NodeID
-	log.Debug("Call getNextWitnessIdsByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", NextWitnessListKey(), len(NextWitnessListKey()), common.Bytes2Hex(NextWitnessListKey())))
+	log.Debug("Call getNextWitnessIdsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", NextWitnessListKey(), len(NextWitnessListKey()), common.Bytes2Hex(NextWitnessListKey())))
 	if valByte := state.GetState(common.CandidateAddr, NextWitnessListKey()); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getNextWitnessIdsByState DecodeBytes", "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getNextWitnessIdsByState DecodeBytes", "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &nextWitnessIds); nil != err {
 			return nil, err
 		}
@@ -1438,16 +1438,16 @@ func getNextWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 }
 
 func setNextWitnessIdsState(state vm.StateDB, arrVal []byte) {
-	log.Debug("SETTING Call  setNextWitnessIdsState EncodeBytes", "Key内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", NextWitnessListKey(), len(NextWitnessListKey()), common.Bytes2Hex(NextWitnessListKey())))
-	log.Debug("SETTING Call  setNextWitnessIdsState EncodeBytes", "Value内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
+	log.Debug("SETTING Call  setNextWitnessIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", NextWitnessListKey(), len(NextWitnessListKey()), common.Bytes2Hex(NextWitnessListKey())))
+	log.Debug("SETTING Call  setNextWitnessIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, NextWitnessListKey(), arrVal)
 }
 
 func getNextWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	log.Debug("Call getNextWitnessByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", NextWitnessKey(id), len(NextWitnessKey(id)), common.Bytes2Hex(NextWitnessKey(id))))
+	log.Debug("Call getNextWitnessByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", NextWitnessKey(id), len(NextWitnessKey(id)), common.Bytes2Hex(NextWitnessKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, NextWitnessKey(id)); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getNextWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getNextWitnessByState DecodeBytes", "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1458,16 +1458,16 @@ func getNextWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candida
 }
 
 func setNextWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
-	log.Debug("SETTING Call  setNextWitnessState EncodeBytes", "Key内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v",  NextWitnessKey(id), len( NextWitnessKey(id)), common.Bytes2Hex( NextWitnessKey(id))))
-	log.Debug("SETTING Call  setNextWitnessState EncodeBytes", "Value内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", val, len(val), common.Bytes2Hex(val)))
+	log.Debug("SETTING Call  setNextWitnessState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  NextWitnessKey(id), len( NextWitnessKey(id)), common.Bytes2Hex( NextWitnessKey(id))))
+	log.Debug("SETTING Call  setNextWitnessState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, NextWitnessKey(id), val)
 }
 
 func getImmediateIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var immediateIds []discover.NodeID
-	log.Debug("Call getImmediateIdsByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", ImmediateListKey(), len(ImmediateListKey()), common.Bytes2Hex(ImmediateListKey())))
+	log.Debug("Call getImmediateIdsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", ImmediateListKey(), len(ImmediateListKey()), common.Bytes2Hex(ImmediateListKey())))
 	if valByte := state.GetState(common.CandidateAddr, ImmediateListKey()); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getImmediateIdsByState DecodeBytes", "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getImmediateIdsByState DecodeBytes", "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &immediateIds); nil != err {
 			return nil, err
 		}
@@ -1478,16 +1478,16 @@ func getImmediateIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 }
 
 func setImmediateIdsState(state vm.StateDB, arrVal []byte) {
-	log.Debug("SETTING Call  setImmediateIdsState EncodeBytes", "Key内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v",  ImmediateListKey(), len(ImmediateListKey()), common.Bytes2Hex(ImmediateListKey())))
-	log.Debug("SETTING Call  setImmediateIdsState EncodeBytes", "Value内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
+	log.Debug("SETTING Call  setImmediateIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  ImmediateListKey(), len(ImmediateListKey()), common.Bytes2Hex(ImmediateListKey())))
+	log.Debug("SETTING Call  setImmediateIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, ImmediateListKey(), arrVal)
 }
 
 func getImmediateByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, error) {
 	var can types.Candidate
-	log.Debug("Call getImmediateByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", ImmediateKey(id), len(ImmediateKey(id)), common.Bytes2Hex(ImmediateKey(id))))
+	log.Debug("Call getImmediateByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", ImmediateKey(id), len(ImmediateKey(id)), common.Bytes2Hex(ImmediateKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, ImmediateKey(id)); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getImmediateByState DecodeBytes", "nodeId", id.String(), "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getImmediateByState DecodeBytes", "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
@@ -1498,16 +1498,16 @@ func getImmediateByState(state vm.StateDB, id discover.NodeID) (*types.Candidate
 }
 
 func setImmediateState(state vm.StateDB, id discover.NodeID, val []byte) {
-	log.Debug("SETTING Call  setImmediateState EncodeBytes", "Key内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v",  ImmediateKey(id), len(ImmediateKey(id)), common.Bytes2Hex(ImmediateKey(id))))
-	log.Debug("SETTING Call  setImmediateState EncodeBytes", "Value内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", val, len(val), common.Bytes2Hex(val)))
+	log.Debug("SETTING Call  setImmediateState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  ImmediateKey(id), len(ImmediateKey(id)), common.Bytes2Hex(ImmediateKey(id))))
+	log.Debug("SETTING Call  setImmediateState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, ImmediateKey(id), val)
 }
 
 func getDefeatIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var defeatIds []discover.NodeID
-	log.Debug("Call getDefeatIdsByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", DefeatListKey(), len(DefeatListKey()), common.Bytes2Hex(DefeatListKey())))
+	log.Debug("Call getDefeatIdsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", DefeatListKey(), len(DefeatListKey()), common.Bytes2Hex(DefeatListKey())))
 	if valByte := state.GetState(common.CandidateAddr, DefeatListKey()); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getDefeatIdsByState DecodeBytes",  "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getDefeatIdsByState DecodeBytes",  "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &defeatIds); nil != err {
 			return nil, err
 		}
@@ -1518,16 +1518,16 @@ func getDefeatIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 }
 
 func setDefeatIdsState(state vm.StateDB, arrVal []byte) {
-	log.Debug("SETTING Call  setDefeatIdsState EncodeBytes", "Key内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", DefeatListKey(), len(DefeatListKey()), common.Bytes2Hex(DefeatListKey())))
-	log.Debug("SETTING Call  setDefeatIdsState EncodeBytes", "Value内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
+	log.Debug("SETTING Call  setDefeatIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", DefeatListKey(), len(DefeatListKey()), common.Bytes2Hex(DefeatListKey())))
+	log.Debug("SETTING Call  setDefeatIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, DefeatListKey(), arrVal)
 }
 
 func getDefeatsByState(state vm.StateDB, id discover.NodeID) ([]*types.Candidate, error) {
 	var canArr []*types.Candidate
-	log.Debug("Call getDefeatsByState DecodeBytes", "Key的内容", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", DefeatKey(id), len(DefeatKey(id)), common.Bytes2Hex(DefeatKey(id))))
+	log.Debug("Call getDefeatsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", DefeatKey(id), len(DefeatKey(id)), common.Bytes2Hex(DefeatKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, DefeatKey(id)); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getDefeatsByState DecodeBytes",  "nodeId", id.String(), "[]byte的内容", fmt.Sprintf(" 指针：%p ,值：%+v  ,长度：%d,内容Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getDefeatsByState DecodeBytes",  "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &canArr); nil != err {
 			return nil, err
 		}
@@ -1538,8 +1538,8 @@ func getDefeatsByState(state vm.StateDB, id discover.NodeID) ([]*types.Candidate
 }
 
 func setDefeatState(state vm.StateDB, id discover.NodeID, val []byte) {
-	log.Debug("SETTING Call  setDefeatState EncodeBytes", "Key内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v",  DefeatKey(id), len( DefeatKey(id)), common.Bytes2Hex( DefeatKey(id))))
-	log.Debug("SETTING Call  setDefeatState EncodeBytes", "Value内容:", fmt.Sprintf(" 值：%+v  ,长度：%d,内容Hash：%v", val, len(val), common.Bytes2Hex(val)))
+	log.Debug("SETTING Call  setDefeatState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  DefeatKey(id), len( DefeatKey(id)), common.Bytes2Hex( DefeatKey(id))))
+	log.Debug("SETTING Call  setDefeatState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, DefeatKey(id), val)
 }
 
