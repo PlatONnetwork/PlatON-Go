@@ -6,6 +6,10 @@ import (
 	"unsafe"
 )
 
+const (
+	ALIGN_LENGTH = 32
+)
+
 func String2bytes(str string) []byte {
 	x := (*[2]uintptr)(unsafe.Pointer(&str))
 	h := [3]uintptr{x[0], x[1], x[1]}
@@ -33,4 +37,13 @@ func Uint64ToBytes(n uint64) []byte {
 	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, n)
 	return buf
+}
+
+func Align32Bytes(b []byte) []byte {
+	tmp := make([]byte, ALIGN_LENGTH)
+	if len(b) > ALIGN_LENGTH {
+		b = b[len(b) - ALIGN_LENGTH:]
+	}
+	copy(tmp[ALIGN_LENGTH-len(b):], b)
+	return tmp
 }
