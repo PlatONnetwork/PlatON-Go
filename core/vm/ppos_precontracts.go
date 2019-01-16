@@ -342,14 +342,14 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 	candidates, err := c.Evm.CandidatePoolContext.GetCandidateArr(c.Evm.StateDB, nodeIds...)
 	if nil != err {
 		log.Error("Failed to GetBatchCandidateDetail==> ", "GetCandidateArr return err: ", err.Error())
-		candidates := types.Candidate{}
+		candidates := make([]types.Candidate, 0)
 		data, _ := json.Marshal(candidates)
 		sdata := DecodeResultStr(string(data))
 		return sdata, err
 	}
 	if 0 == len(candidates) {
 		log.Warn("Failed to GetBatchCandidateDetail==> ", "The query does not exist")
-		candidates := types.Candidate{}
+		candidates := make([]types.Candidate, 0)
 		data, _ := json.Marshal(candidates)
 		sdata := DecodeResultStr(string(data))
 		return sdata, nil
@@ -365,7 +365,7 @@ func (c *CandidateContract) CandidateList() ([]byte, error) {
 	candidates := c.Evm.CandidatePoolContext.GetChosens(c.Evm.StateDB)
 	if 0 == len(candidates) {
 		log.Warn("Failed to CandidateList==> ", "The query does not exist")
-		candidates := types.Candidate{}
+		candidates := make([]types.Candidate, 0)
 		data, _ := json.Marshal(candidates)
 		sdata := DecodeResultStr(string(data))
 		return sdata, nil
@@ -381,7 +381,7 @@ func (c *CandidateContract) VerifiersList() ([]byte, error) {
 	verifiers := c.Evm.CandidatePoolContext.GetChairpersons(c.Evm.StateDB)
 	if 0 == len(verifiers) {
 		log.Warn("Failed to VerifiersList==> ", "The query does not exist")
-		verifiers := types.Candidate{}
+		verifiers := make([]types.Candidate, 0)
 		data, _ := json.Marshal(verifiers)
 		sdata := DecodeResultStr(string(data))
 		return sdata, nil
