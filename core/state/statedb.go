@@ -18,9 +18,9 @@
 package state
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"math/big"
 	"sort"
 	"sync"
@@ -354,9 +354,12 @@ func getKeyValue(address common.Address, key []byte, value []byte) (string, comm
 
 	//if value != nil && !bytes.Equal(value,[]byte{}){
 	buffer.Reset()
-	buffer.WriteString(string(key))
 	buffer.WriteString(string(value))
-	valueKey := sha3.Sum256(buffer.Bytes())
+	valueKey := common.Hash{}
+	keccak := sha3.NewKeccak256()
+	keccak.Write(value)
+	keccak.Sum(valueKey[:0])
+
 	return keyTrie, valueKey, value
 	//}
 	//return keyTrie, common.Hash{}, value
