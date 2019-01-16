@@ -166,7 +166,7 @@ func (s *dialstate) removeStatic(n *discover.Node) {
 }
 
 func (s *dialstate) addConsensus(n *discover.Node) {
-	log.Warn("dial adding consensus node", "node", n)
+	log.Info("dial adding consensus node", "node", n)
 	//s.consensus[n.ID] = &dialTask{flags: consensusDialedConn, dest: n}
 	s.consensus.AddTask(&dialTask{flags: consensusDialedConn, dest: n})
 }
