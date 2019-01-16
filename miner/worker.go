@@ -535,10 +535,6 @@ func (w *worker) mainLoop() {
 		case <-w.chainSideCh:
 			// If our mining block contains less than 2 uncle blocks,
 			// add the new uncle block if valid and regenerate a mining block.
-			if w.isRunning() && w.current != nil {
-				start := time.Now()
-				w.commit(nil, true, start)
-			}
 		// removed by PlatON
 		/*
 			case  <-w.txsCh:
