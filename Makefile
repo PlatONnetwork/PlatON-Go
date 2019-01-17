@@ -43,8 +43,8 @@ all-with-mpc:
 	build/env.sh go run build/ci.go install -mpc on
 
 all-with-vc:
-    build/build_deps.sh
-    build/env.sh go run build/ci.go install -vc on
+	build/build_deps.sh
+	build/env.sh go run build/ci.go install -vc on
 
 android:
 	build/env.sh go run build/ci.go aar --local
