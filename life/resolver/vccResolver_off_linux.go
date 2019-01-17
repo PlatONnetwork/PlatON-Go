@@ -1,4 +1,4 @@
-// +build vcon
+// +build !vcon
 package resolver
 
 /*
