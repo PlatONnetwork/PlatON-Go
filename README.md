@@ -26,6 +26,14 @@ or:
 
     make all-with-mpc
 
+If you want to Building platon with VC function, run
+
+    make platon-with-vc
+
+or:
+
+    make all-with-vc
+
 ## Executables
 
 The project comes with several executables found in the `cmd` directory.
