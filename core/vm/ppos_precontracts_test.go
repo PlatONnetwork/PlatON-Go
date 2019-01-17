@@ -97,26 +97,6 @@ func TestPposOverAll(t *testing.T) {
 
 }
 
-func newContract() *vm.Contract {
-	callerAddress := vm.AccountRef(common.HexToAddress("0x12"))
-	contract := vm.NewContract(callerAddress, callerAddress, big.NewInt(1000), uint64(1))
-	return contract
-}
-
-func newEvm() *vm.EVM {
-	state, _ := newChainState()
-	candidatePool := newPool()
-	evm := &vm.EVM{
-		StateDB:       state,
-		CandidatePool: candidatePool,
-	}
-	context := vm.Context{
-		BlockNumber: big.NewInt(7),
-	}
-	evm.Context = context
-	return evm
-}
-
 func newChainState() (*state.StateDB, error) {
 	var (
 		db      = ethdb.NewMemDatabase()
@@ -135,15 +115,40 @@ func newChainState() (*state.StateDB, error) {
 	return state, nil
 }
 
-func newPool() *pposm.CandidatePool {
-	configs := params.PposConfig{
+func newPoolContext() *pposm.CandidatePoolContext {
+	configs := &params.PposConfig{
 		Candidate: &params.CandidateConfig{
+			Threshold:         "10",
+			DepositLimit:      10,
 			MaxChair:          1,
 			MaxCount:          3,
 			RefundBlockNumber: 1,
 		},
 	}
-	return pposm.NewCandidatePool(&configs)
+	cContext := &pposm.CandidatePoolContext{
+		configs,
+	}
+	return cContext
+}
+
+func newEvm() *vm.EVM {
+	state, _ := newChainState()
+	candidatePoolContext := newPoolContext()
+	evm := &vm.EVM{
+		StateDB:              state,
+		CandidatePoolContext: candidatePoolContext,
+	}
+	context := vm.Context{
+		BlockNumber: big.NewInt(7),
+	}
+	evm.Context = context
+	return evm
+}
+
+func newContract() *vm.Contract {
+	callerAddress := vm.AccountRef(common.HexToAddress("0x12"))
+	contract := vm.NewContract(callerAddress, callerAddress, big.NewInt(1000), uint64(1))
+	return contract
 }
 
 func TestCandidateDeposit(t *testing.T) {
