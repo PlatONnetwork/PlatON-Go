@@ -198,7 +198,7 @@ type worker struct {
 	blockChainCache *core.BlockChainCache
 	commitWorkEnv   *commitWorkEnv
 	recommit        time.Duration
-	commitDuration  float64
+	commitDuration  int64 //in Millisecond
 
 	// Test hooks
 	newTaskHook  func(*task)                        // Method to call upon receiving a new sealing task.
@@ -255,8 +255,8 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 	}
 
 	worker.recommit = recommit
-	worker.commitDuration = float64(recommit.Nanoseconds()/1e6) * defaultCommitRatio
-	log.Info("commitDuration", "commitDuration", worker.commitDuration)
+	worker.commitDuration = int64((float64)(recommit.Nanoseconds()/1e6) * defaultCommitRatio)
+	log.Info("commitDuration in Millisecond", "commitDuration", worker.commitDuration)
 
 	go worker.mainLoop()
 	go worker.newWorkLoop(recommit)
@@ -343,7 +343,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 	var (
 		interrupt   *int32
 		minRecommit = recommit // minimal resubmit interval specified by user.
-		timestamp   int64      // timestamp for each round of mining.
+		timestamp   int64      // timestamp for each round of mining in Millisecond.
 	)
 
 	timer := time.NewTimer(0)
@@ -395,7 +395,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		select {
 		case <-w.startCh:
 			clearPending(w.chain.CurrentBlock().NumberU64())
-			timestamp = time.Now().Unix()
+			timestamp = time.Now().UnixNano() / 1e6
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				commit(false, commitInterruptNewHead, nil)
 			} else {
@@ -405,7 +405,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 		case head := <-w.chainHeadCh:
 			clearPending(head.Block.NumberU64())
-			timestamp = time.Now().Unix()
+			timestamp = time.Now().UnixNano() / 1e6
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
 			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash())
@@ -757,7 +757,9 @@ func (w *worker) resultLoop() {
 			if block == nil {
 				log.Error("cbft result error, block is nil")
 				continue
-			} else if blockConfirmSigns == nil || len(blockConfirmSigns) == 0 {
+			}
+
+			if blockConfirmSigns == nil || len(blockConfirmSigns) == 0 {
 				log.Error("cbft result error, blockConfirmSigns is nil")
 				continue
 			}
@@ -766,9 +768,9 @@ func (w *worker) resultLoop() {
 				sealhash = w.engine.SealHash(block.Header())
 				number   = block.NumberU64()
 			)
-			// Short circuit when receiving duplicate result caused by resubmitting or P2P sync.
+			// Short circuit when receiving duplicated cbft result caused by resubmitting or P2P sync.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Error("duplicate result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
+				log.Warn("duplicated cbft result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
 				continue
 			}
 
@@ -791,10 +793,10 @@ func (w *worker) resultLoop() {
 			}
 
 			if _state == nil {
-				log.Error("cbft result error, state is nil", "hash", hash, "number", number)
+				log.Warn("handle cbft result error, state is nil, maybe block is synced from other peer", "hash", hash, "number", number)
 				continue
 			} else if len(block.Transactions()) > 0 && len(_receipts) == 0 {
-				log.Error("cbft result error, block has transactions but receipts is nil", "hash", hash, "number", number)
+				log.Warn("handle cbft result error, block has transactions but receipts is nil, maybe block is synced from other peer", "hash", hash, "number", number)
 				continue
 			}
 
@@ -946,10 +948,12 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 
 	return receipt.Logs, nil
 }
-func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64) bool {
+func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64) (bool, bool) {
 	// Short circuit if current is nil
+	timeout := false
+
 	if w.current == nil {
-		return true
+		return true, timeout
 	}
 
 	if w.current.gasPool == nil {
@@ -960,8 +964,10 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 	var bftEngine = w.config.Cbft != nil
 
 	for {
-		if bftEngine && (float64(time.Now().UnixNano()/1e6-timestamp) >= w.commitDuration) {
-			log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
+		if bftEngine && (time.Now().UnixNano()/1e6-timestamp >= w.commitDuration) {
+			log.Warn("interrupt current tx-executing", "now", time.Now().UnixNano()/1e6, "timestamp", timestamp, "commitDuration", w.commitDuration)
+			//log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
+			timeout = true
 			break
 		}
 		// In the following three cases, we will interrupt the execution of the transaction.
@@ -982,7 +988,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 					inc:   true,
 				}
 			}
-			return atomic.LoadInt32(interrupt) == commitInterruptNewHead
+			return atomic.LoadInt32(interrupt) == commitInterruptNewHead, timeout
 		}
 		// If we don't have enough gas for any further transactions then we're done
 		if w.current.gasPool.Gas() < params.TxGas {
@@ -1015,24 +1021,20 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 		switch err {
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
-			log.Warn("Gas limit exceeded for current block", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "hash", tx.Hash(), "sender", from, w.current.state)
+			log.Warn("Gas limit exceeded for current block", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, w.current.state)
 			txs.Pop()
 
 		case core.ErrNonceTooLow:
 			// New head notification data race between the transaction pool and miner, shift
-			log.Warn("Skipping transaction with low nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "txNonce", tx.Nonce())
+			log.Warn("Skipping transaction with low nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "tx.nonce", tx.Nonce())
 			txs.Shift()
 
 		case core.ErrNonceTooHigh:
 			// Reorg notification data race between the transaction pool and miner, skip account =
-			log.Warn("Skipping account with hight nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "txNonce", tx.Nonce())
+			log.Warn("Skipping account with hight nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "tx.nonce", tx.Nonce())
 			txs.Pop()
 
 		case nil:
-
-			if from.String() == "0x493301712671Ada506ba6Ca7891F436D29185821" {
-				log.Debug("Nonce tracking, commit tx", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "hash", tx.Hash(), "from", "0x493301712671Ada506ba6Ca7891F436D29185821", "nonce", w.current.state.GetNonce(from), "tx.Nonce()", tx.Nonce())
-			}
 			// Everything ok, collect the logs and shift in the next transaction from the same account
 			coalescedLogs = append(coalescedLogs, logs...)
 			w.current.tcount++
@@ -1066,7 +1068,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 	if interrupt != nil {
 		w.resubmitAdjustCh <- &intervalAdjust{inc: false}
 	}
-	return false
+	return false, timeout
 }
 
 func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64) bool {
@@ -1083,7 +1085,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	var bftEngine = w.config.Cbft != nil
 
 	for {
-		if bftEngine && (float64(time.Now().UnixNano()/1e6-timestamp) >= w.commitDuration) {
+		if bftEngine && (time.Now().UnixNano()/1e6-timestamp >= w.commitDuration) {
 			log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
 			break
 		}
@@ -1200,7 +1202,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	var parent *types.Block
 	if _, ok := w.engine.(consensus.Bft); ok {
 		parent = commitBlock
-		timestamp = time.Now().UnixNano() / 1e6
+		//timestamp = time.Now().UnixNano() / 1e6
 	} else {
 		parent = w.chain.CurrentBlock()
 		if parent.Time().Cmp(new(big.Int).SetInt64(timestamp)) >= 0 {
@@ -1294,15 +1296,15 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	// Fill the block with all available pending transactions.
-	startTime := time.Now().UnixNano()
+	startTime := time.Now()
 	pending, err := w.eth.TxPool().PendingLimited()
 
 	if err != nil {
-		log.Error("Failed to fetch pending transactions", "time", time.Now().UnixNano()-startTime, "err", err)
+		log.Error("Failed to fetch pending transactions", "time", common.PrettyDuration(time.Since(startTime)), "err", err)
 		return
 	}
 
-	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", time.Now().UnixNano()-startTime)
+	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
@@ -1314,7 +1316,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		return
 	}
 
-	commitTxStartTime := time.Now().UnixNano()
 	txsCount := 0
 	for _, accTxs := range pending {
 		txsCount = txsCount + len(accTxs)
@@ -1327,28 +1328,31 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			localTxs[account] = txs
 		}
 	}
-
 	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
 
+	startTime = time.Now()
+	var localTimeout = false
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp) {
+		if ok, timeout := w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp); ok {
 			return
+		} else {
+			localTimeout = timeout
 		}
 	}
-	commitLocalTxEndTime := time.Now().UnixNano()
-	commitLocalTxCount := w.current.tcount
-	log.Debug("local transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitLocalTxCount, "time", (commitLocalTxEndTime - commitTxStartTime))
 
-	if len(remoteTxs) > 0 {
+	commitLocalTxCount := w.current.tcount
+	log.Debug("local transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitLocalTxCount, "time", common.PrettyDuration(time.Since(startTime)))
+
+	startTime = time.Now()
+	if !localTimeout && len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
-		if w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp) {
+		if ok, _ := w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp); ok {
 			return
 		}
 	}
-	commitTxRemoteEndTime := time.Now().UnixNano()
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
-	log.Debug("remote transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", (commitTxRemoteEndTime - commitLocalTxEndTime))
+	log.Debug("remote transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitRemoteTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
 	w.commit(uncles, w.fullTaskHook, true, tstart)
 }
