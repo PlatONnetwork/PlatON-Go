@@ -946,10 +946,12 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 
 	return receipt.Logs, nil
 }
-func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64) bool {
+func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64) (bool, bool) {
 	// Short circuit if current is nil
+	timeout := false
+
 	if w.current == nil {
-		return true
+		return true, timeout
 	}
 
 	if w.current.gasPool == nil {
@@ -963,6 +965,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 		if bftEngine && (time.Now().UnixNano()/1e6-timestamp >= w.commitDuration) {
 			log.Warn("interrupt current tx-executing", "now", time.Now().UnixNano()/1e6, "timestamp", timestamp, "commitDuration", w.commitDuration)
 			//log.Warn("interrupt current tx-executing cause timeout, and continue the remainder package process", "timeout", w.commitDuration, "txCount", w.current.tcount)
+			timeout = true
 			break
 		}
 		// In the following three cases, we will interrupt the execution of the transaction.
@@ -983,7 +986,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 					inc:   true,
 				}
 			}
-			return atomic.LoadInt32(interrupt) == commitInterruptNewHead
+			return atomic.LoadInt32(interrupt) == commitInterruptNewHead, timeout
 		}
 		// If we don't have enough gas for any further transactions then we're done
 		if w.current.gasPool.Gas() < params.TxGas {
@@ -1063,7 +1066,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 	if interrupt != nil {
 		w.resubmitAdjustCh <- &intervalAdjust{inc: false}
 	}
-	return false
+	return false, timeout
 }
 
 func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coinbase common.Address, interrupt *int32, timestamp int64) bool {
@@ -1326,10 +1329,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
 
 	startTime = time.Now()
+	var localTimeout = false
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
-		if w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp) {
+		if ok, timeout := w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp); ok {
 			return
+		} else {
+			localTimeout = timeout
 		}
 	}
 
@@ -1337,9 +1343,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	log.Debug("local transactions executing stat", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "involvedTxCount", commitLocalTxCount, "time", common.PrettyDuration(time.Since(startTime)))
 
 	startTime = time.Now()
-	if len(remoteTxs) > 0 {
+	if !localTimeout && len(remoteTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs)
-		if w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp) {
+		if ok, _ := w.commitTransactionsWithHeader(header, txs, w.coinbase, interrupt, timestamp); ok {
 			return
 		}
 	}
