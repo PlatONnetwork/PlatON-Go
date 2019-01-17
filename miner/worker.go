@@ -768,9 +768,9 @@ func (w *worker) resultLoop() {
 				sealhash = w.engine.SealHash(block.Header())
 				number   = block.NumberU64()
 			)
-			// Short circuit when receiving duplicate result caused by resubmitting or P2P sync.
+			// Short circuit when receiving duplicated cbft result caused by resubmitting or P2P sync.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Error("duplicate result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
+				log.Warn("duplicated cbft result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
 				continue
 			}
 
@@ -793,10 +793,10 @@ func (w *worker) resultLoop() {
 			}
 
 			if _state == nil {
-				log.Error("cbft result error, state is nil", "hash", hash, "number", number)
+				log.Warn("handle cbft result error, state is nil, maybe block is synced from other peer", "hash", hash, "number", number)
 				continue
 			} else if len(block.Transactions()) > 0 && len(_receipts) == 0 {
-				log.Error("cbft result error, block has transactions but receipts is nil", "hash", hash, "number", number)
+				log.Warn("handle cbft result error, block has transactions but receipts is nil, maybe block is synced from other peer", "hash", hash, "number", number)
 				continue
 			}
 
