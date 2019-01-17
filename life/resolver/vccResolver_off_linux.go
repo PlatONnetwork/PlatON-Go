@@ -2,8 +2,6 @@
 package resolver
 
 /*
-#cgo CFLAGS:-I .
-#cgo LDFLAGS:-L ./libcsnark -lcsnark -lsnark -lff -lm -lgmp -lgmpxx -lcrypto -lprocps -lstdc++
 #include "goLayer.h"
 */
 import "C"
