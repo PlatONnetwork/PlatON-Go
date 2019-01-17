@@ -15,6 +15,7 @@ typedef unsigned long long	uint64;
 	unsigned char gadget_createGadget(int64 input0, int64 input1,
     							int64 input2, int64 res, int32 Type);
 	void gadget_setVar(int64 varAddr, int64 Val, unsigned char is_unsigned);
+	void gadget_setRetIndex(int64 RetAddr);
 	void gadget_generateWitness();
 	unsigned char GenerateProofAndResult(const char *pPKEY, char *pProof,
 										int prSize, char *pResult, int resSize);

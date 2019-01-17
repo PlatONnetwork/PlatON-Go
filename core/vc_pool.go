@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -68,10 +69,10 @@ type VCPool struct {
 	chainconfig *params.ChainConfig
 	chain       *BlockChain
 
-	mu    sync.RWMutex
-	all   *vcLookup // All transactions to allow lookups
-	queue *vcList   // All transactions sorted by price
-
+	mu        sync.RWMutex
+	all       *vcLookup // All transactions to allow lookups
+	queue     *vcList   // All transactions sorted by price
+	work_pool *GoroutinePool
 	quiteSign chan interface{}
 
 	wg sync.WaitGroup // for shutdown sync
@@ -83,12 +84,17 @@ func NewVCPool(config VCPoolConfig, chainconfig *params.ChainConfig, chain *Bloc
 		chainconfig: chainconfig,
 		chain:       chain,
 		all:         newVCLookup(),
+		work_pool:   new(GoroutinePool),
 	}
 
 	pool.queue = newVCList(pool.all)
+	pool.work_pool.Init(3, 10)
 
 	pool.wg.Add(1)
 	go pool.loop()
+
+	//start work pool
+	go pool.work_pool.Start()
 
 	// save to global attr
 	VC_POOL = pool
@@ -117,48 +123,118 @@ func genCompInput(taskid string) string {
 func genSetResultInput(taskid string, result []byte) string {
 	var input [][]byte
 	input = make([][]byte, 0)
-	// input = append(input, utils.Int64ToBytes(5))
-	// input = append(input, []byte("ListMsg"))
-	// input = append(input, []byte("extradata"))
-	log.Debug("VC genSetResultInput", "taskid", taskid)
 	input = append(input, utils.Int64ToBytes(2))
 	input = append(input, []byte("set_result"))
 	input = append(input, utils.String2bytes(taskid))
 	input = append(input, result)
 
-	// var result []byte
-	// input = append(input, result)
 	buffer := new(bytes.Buffer)
 	err := rlp.Encode(buffer, input)
 	if err != nil {
 		fmt.Println("geninput fail.", err)
+		return ""
 	}
 
-	log.Debug("VC genSetResultInput", "result", common.Bytes2Hex(buffer.Bytes()))
+	//log.Debug("VC genSetResultInput", "result", common.Bytes2Hex(buffer.Bytes()))
 	return common.Bytes2Hex(buffer.Bytes())
 }
 
 //send POST
-func (pool *VCPool) Post(url string, data interface{}, contentType string) (content string) {
+func (pool *VCPool) Post(url string, data interface{}, contentType string) (content string, err error) {
 	jsonStr, _ := json.Marshal(data)
 	fmt.Println(string(jsonStr))
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Add("content-type", contentType)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	defer req.Body.Close()
 
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, error := client.Do(req)
 	if error != nil {
-		panic(error)
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	result, _ := ioutil.ReadAll(resp.Body)
 	content = string(result)
-	return content
+	return content, nil
+}
+
+func (pool *VCPool) real_compute(tx *types.TransactionWrap) error {
+	pool.mu.Lock()
+	signer := types.MakeSigner(pool.chainconfig, big.NewInt(int64(tx.Bn)))
+	caller, _, err := signer.SignatureAndSender(tx.Transaction)
+	if err != nil {
+		log.Warn("Get sig fail", "hash", tx.Hash())
+		return err
+	}
+
+	bc := pool.chain
+	header := pool.chain.CurrentHeader()
+
+	state, err := bc.State()
+	if err != nil {
+		return err
+	}
+
+	gp := new(GasPool).AddGas(math.MaxUint64)
+
+	input := genCompInput(tx.TaskId)
+	msg := types.NewMessage(caller, tx.To(), 0, new(big.Int).SetInt64(0),
+		tx.Gas(), tx.GasPrice(), common.Hex2Bytes(input), false)
+	context := NewEVMContext(msg, header, bc, nil)
+	evm := vm.NewEVM(context, state, bc.chainConfig, bc.vmConfig)
+	log.Debug("start evm call real_compute")
+	ret, _, vmerr, err := ApplyMessage(evm, msg, gp)
+	if vmerr || err != nil {
+		log.Error("ApplyMessage real_compute wrong ", "vmerr", vmerr, "error", err)
+		return err
+	}
+	pool.mu.Unlock()
+
+	//fmt.Println(ret)
+	//TODO rm 64 bytes messy code
+	if len(ret) < 64 {
+		log.Error("ApplyMessage real_compute return error ")
+		return fmt.Errorf("return len error")
+	}
+
+	res := ret[64:len(ret)]
+	//fmt.Println(string(res))
+	//var a accounts.Account
+	fmt.Println("unlock: ", pool.config.VcActor.Hex())
+	//fmt.Println("password ", pool.config.VcPassword)
+	data := genSetResultInput(tx.TaskId, bytes.TrimLeft(res, "\x00"))
+	//a.Address = pool.config.VcActor
+	//ks := keystore.NewKeyStore(filepath.Join("./build/bin/data/", "keystore"), keystore.StandardScryptN, keystore.StandardScryptP)
+	//ks.Unlock(a, pool.config.VcPassword)
+
+	vc_data := make(map[string]interface{})
+	vc_data["jsonrpc"] = "2.0"
+	vc_data["method"] = "eth_sendTransaction"
+	params := make([]map[string]interface{}, 1)
+	param := make(map[string]interface{})
+	param["from"] = pool.config.VcActor.Hex()
+	param["to"] = (*(tx.To())).Hex()
+	param["gas"] = "0x166709"
+	param["gasPrice"] = "0x8250de00"
+	param["value"] = "0x0"
+	param["data"] = "0x" + data
+	params[0] = param
+	vc_data["params"] = params
+	vc_data["id"] = 1
+
+	url := "http://127.0.0.1:" + strconv.FormatUint(uint64(pool.config.LocalRpcPort), 10)
+	format := "application/json"
+	postres, err := pool.Post(url, vc_data, format)
+	if err != nil {
+		return err
+	}
+	fmt.Println(strings.ToLower(string(postres)))
+	//log.Debug("start evm call over")
+	return nil
 }
 
 func (pool *VCPool) loop() {
@@ -205,95 +281,9 @@ func (pool *VCPool) loop() {
 				pool.mu.Unlock()
 
 				if (bn - int64(tx.Bn)) >= MinBlockConfirms {
-					pool.mu.Lock()
-					signer := types.MakeSigner(pool.chainconfig, big.NewInt(int64(tx.Bn)))
-					caller, _, err := signer.SignatureAndSender(tx.Transaction)
-					if err != nil {
-						log.Warn("Get sig fail", "hash", tx.Hash())
-						break
-					}
-
-					log.Debug("start evm call")
-					bc := pool.chain
-
-					header := pool.chain.CurrentHeader()
-					pool.mu.Unlock()
-					state, err := bc.State()
-					gp := new(GasPool).AddGas(math.MaxUint64)
-
-					input := genCompInput(tx.TaskId)
-					msg := types.NewMessage(caller, tx.To(), 0, new(big.Int).SetInt64(0),
-						tx.Gas(), tx.GasPrice(), common.Hex2Bytes(input), false)
-					context := NewEVMContext(msg, header, bc, nil)
-					evm := vm.NewEVM(context, state, bc.chainConfig, bc.vmConfig)
-
-					ret, _, vmerr, err := ApplyMessage(evm, msg, gp)
-					if vmerr || err != nil {
-						log.Error("ApplyMessage real_compute wrong ", "vmerr", vmerr, "error", err)
-						break
-					}
-
-					fmt.Println(ret)
-					//TODO rm 64 bytes messy code
-					res := ret[64:len(ret)]
-					fmt.Println(string(res))
-
-					//fmt.Println("ApplyMessage ret:", bytes.TrimLeft(res, "\x00"))
-					//var a accounts.Account
-					fmt.Println("unlock: ", pool.config.VcActor.Hex())
-					//fmt.Println("password ", pool.config.VcPassword)
-
-					state, err = bc.State()
-					//a.Address = pool.config.VcActor
-					data := genSetResultInput(tx.TaskId, bytes.TrimLeft(res, "\x00"))
-					// resulttx := types.NewTransaction(state.GetNonce(a.Address), *(tx.To()), big.NewInt(0), 1000000,
-					// 	big.NewInt(2), common.Hex2Bytes(data))
-					//ks := keystore.NewKeyStore(filepath.Join("./build/bin/data/", "keystore"), keystore.StandardScryptN, keystore.StandardScryptP)
-					//ks.Unlock(a, pool.config.VcPassword)
-
-					vc_data := make(map[string]interface{})
-					vc_data["jsonrpc"] = "2.0"
-					vc_data["method"] = "eth_sendTransaction"
-					params := make([]map[string]interface{}, 1)
-					param := make(map[string]interface{})
-					param["from"] = pool.config.VcActor.Hex()
-					param["to"] = (*(tx.To())).Hex()
-					param["gas"] = "0x166709"
-					param["gasPrice"] = "0x8250de00"
-					param["value"] = "0x0"
-					param["data"] = "0x" + data
-					params[0] = param
-					vc_data["params"] = params
-					vc_data["id"] = 1
-
-					url := "http://localhost:6789"
-					format := "application/json"
-					postres := pool.Post(url, vc_data, format)
-					// signedTx, err := ks.SignTxWithPassphrase(a, pool.config.VcPassword, resulttx, pool.chainconfig.ChainID)
-					// if err != nil {
-					// 	log.Error("SignTxWithPassphrase---------------------------------- ", "error", err)
-					// 	break
-					// }
-
-					// msg, err = signedTx.AsMessage(types.MakeSigner(pool.chainconfig, big.NewInt(int64(tx.Bn))))
-					// if err != nil {
-					// 	log.Error("AsMessage---------------------------------- ", "error", err)
-					// 	break
-					// }
-
-					// fmt.Println("signedTx ", signedTx.Hash().Hex())
-
-					// context = NewEVMContext(msg, header, bc, nil)
-					// evm = vm.NewEVM(context, state, bc.chainConfig, bc.vmConfig)
-					// ret, _, vmerr, err = ApplyMessage(evm, msg, gp)
-					// fmt.Println("signedTx ", signedTx.Hash)
-					// if err != nil || vmerr {
-					// 	log.Error("ApplyMessage set_result wrong ", "vmerr", vmerr, "error", err)
-					// 	break
-					// }
-					fmt.Println(strings.ToLower(string(postres)))
-					log.Debug("start evm call over")
-					//returnk
+					pool.work_pool.AddTask(func() error {
+						return pool.real_compute(tx)
+					})
 				}
 
 			}
@@ -318,6 +308,7 @@ func (pool *VCPool) LoadActor() error {
 // Stop terminates the VC transaction pool.
 func (pool *VCPool) Stop() {
 	pool.quiteSign <- true
+	pool.work_pool.Stop()
 	pool.wg.Wait()
 
 	log.Info("Transaction pool stopped")
@@ -413,8 +404,6 @@ func (pool *VCPool) InjectTxs(block *types.Block, receipts types.Receipts, bc *B
 		return
 	}
 
-	log.Debug("Wow ~ VC -------------------------------------------able...")
-
 	for _, tx := range block.Transactions() {
 		isSave := false
 		var taskId string
@@ -450,7 +439,7 @@ func (pool *VCPool) InjectTxs(block *types.Block, receipts types.Receipts, bc *B
 			// if err := pool.validateActor(wrap, bc, state); err != nil {
 			// 	log.Trace("God ~ Discarding the actor not belong to current VC contract.", "hash", wrap.Hash(), "err", err)
 			// 	return
-                       log.Debug("Wow ~ VC add pool--------------------------------------...")
+			log.Debug("Wow ~ VC add pool--------------------------------------...")
 			// }
 			pool.add(wrap)
 		}

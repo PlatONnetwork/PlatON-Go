@@ -59,6 +59,15 @@ func envSetVarGasCost(vm *exec.VirtualMachine) (uint64, error) {
 	return 1, nil
 }
 
+// define: void vc_SetRetIndex(int64_t RetAddr);
+func envSetRetIndexEnv(vm *exec.VirtualMachine) int64 {
+	return 0
+}
+
+func envSetRetIndexGasCost(vm *exec.VirtualMachine) (uint64, error) {
+	return 1, nil
+}
+
 // define: void vc_GenerateWitness();
 func envGenWitnessEnv(vm *exec.VirtualMachine) int64 {
 	return 0
