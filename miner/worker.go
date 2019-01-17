@@ -757,7 +757,9 @@ func (w *worker) resultLoop() {
 			if block == nil {
 				log.Error("cbft result error, block is nil")
 				continue
-			} else if blockConfirmSigns == nil || len(blockConfirmSigns) == 0 {
+			}
+
+			if blockConfirmSigns == nil || len(blockConfirmSigns) == 0 {
 				log.Error("cbft result error, blockConfirmSigns is nil")
 				continue
 			}
