@@ -2,6 +2,11 @@
 package cbft
 
 import (
+	"bytes"
+	"container/list"
+	"crypto/ecdsa"
+	"encoding/hex"
+	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -17,11 +22,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"bytes"
-	"container/list"
-	"crypto/ecdsa"
-	"encoding/hex"
-	"errors"
 	"math"
 	"math/big"
 	"sync"
@@ -91,7 +91,7 @@ var cbft *Cbft
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
 	pposm.PrintObject("Get ppos config：", *config)
-	_ppos := newPpos(/*config.InitialNodes, */config)
+	_ppos := newPpos( /*config.InitialNodes, */ config)
 
 	cbft = &Cbft{
 		config:                config,
@@ -439,10 +439,10 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 
 		//send the BlockSignature to channel
 		blockSign := &cbfttypes.BlockSignature{
-			SignHash:  sealHash,
-			Hash:      blockHash,
-			Number:    ext.block.Number(),
-			Signature: sign,
+			SignHash:   sealHash,
+			Hash:       blockHash,
+			Number:     ext.block.Number(),
+			Signature:  sign,
 			ParentHash: ext.block.ParentHash(),
 		}
 		cbft.blockSignOutCh <- blockSign
@@ -749,10 +749,22 @@ func (cbft *Cbft) setDescendantInTree(child *BlockExt) {
 // removeBadBlock removes bad block executed error from the tree structure and cbft.blockExtMap.
 func (cbft *Cbft) removeBadBlock(badBlock *BlockExt) {
 	tailorTree(badBlock)
-	for _, child := range badBlock.children {
+	cbft.removeByTailored(badBlock)
+	/*for _, child := range badBlock.children {
 		child.parent = nil
 	}
-	delete(cbft.blockExtMap, badBlock.block.Hash())
+	delete(cbft.blockExtMap, badBlock.block.Hash())*/
+}
+
+func (cbft *Cbft) removeByTailored(badBlock *BlockExt) {
+	if len(badBlock.children) > 0 {
+		for _, child := range badBlock.children {
+			cbft.removeByTailored(child)
+			delete(cbft.blockExtMap, child.block.Hash())
+		}
+	} else {
+		delete(cbft.blockExtMap, badBlock.block.Hash())
+	}
 }
 
 // signReceiver handles the received block signature
@@ -1155,14 +1167,16 @@ func (cbft *Cbft) flushReadyBlock() bool {
 
 // tailorTree tailors the old tree from new root
 func tailorTree(newRoot *BlockExt) {
-	for i := 0; i < len(newRoot.parent.children); i++ {
-		//remove newRoot from its parent's children list
-		if newRoot.parent.children[i].block.Hash() == newRoot.block.Hash() {
-			newRoot.parent.children = append(newRoot.parent.children[:i], newRoot.parent.children[i+1:]...)
-			break
+	if newRoot.parent != nil && newRoot.parent.children != nil {
+		for i := 0; i < len(newRoot.parent.children); i++ {
+			//remove newRoot from its parent's children list
+			if newRoot.parent.children[i].block.Hash() == newRoot.block.Hash() {
+				newRoot.parent.children = append(newRoot.parent.children[:i], newRoot.parent.children[i+1:]...)
+				break
+			}
 		}
+		newRoot.parent = nil
 	}
-	newRoot.parent = nil
 }
 
 // cleanByTailoredTree removes all blocks in the tree which has been tailored.
