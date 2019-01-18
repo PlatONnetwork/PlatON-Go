@@ -18,9 +18,9 @@
 package miner
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"fmt"
+	"math/big"
 	"sync/atomic"
 	"time"
 
@@ -55,13 +55,13 @@ type Miner struct {
 }
 
 func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(block *types.Block) bool,
-	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, consensusCache *cbft.Cache) *Miner {
+	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, blockChainCache *core.BlockChainCache) *Miner {
 	miner := &Miner{
-		eth:    eth,
-		mux:    mux,
-		engine: engine,
-		exitCh: make(chan struct{}),
-		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil, isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache),
+		eth:      eth,
+		mux:      mux,
+		engine:   engine,
+		exitCh:   make(chan struct{}),
+		worker:   newWorker(config, engine, eth, mux, recommit, gasFloor, gasCeil, isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, blockChainCache),
 		canStart: 1,
 	}
 	go miner.update()
@@ -100,11 +100,9 @@ func (self *Miner) update() {
 					self.Start(self.coinbase)
 				}
 
-				go func() {
-					if _, ok := self.engine.(consensus.Bft); ok {
-						cbft.BlockSynchronisation()
-					}
-				}()
+				if cbft, ok := self.engine.(consensus.Bft); ok {
+					cbft.OnBlockSynced()
+				}
 				// stop immediately and ignore all further pending events
 				return
 			}
@@ -176,4 +174,20 @@ func (self *Miner) PendingBlock() *types.Block {
 func (self *Miner) SetEtherbase(addr common.Address) {
 	self.coinbase = addr
 	self.worker.setEtherbase(addr)
+}
+
+func (self *Miner) InitConsensusPeerFn(addFn addConsensusPeerFn) {
+	self.worker.InitConsensusPeerFn(addFn)
+}
+
+func (self *Miner) ShouldElection(blockNumber *big.Int) bool {
+	return self.worker.shouldElection(blockNumber)
+}
+
+func (self *Miner) ShouldSwitch(blockNumber *big.Int) bool {
+	return self.worker.shouldSwitch(blockNumber)
+}
+
+func (self *Miner) AttemptAddConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
+	self.worker.attemptAddConsensusPeer(blockNumber, state)
 }

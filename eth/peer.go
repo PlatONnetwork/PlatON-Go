@@ -17,10 +17,10 @@
 package eth
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"math/big"
 	"sync"
 	"time"
@@ -122,49 +122,52 @@ func newPeer(version int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 // and transaction broadcasts into the remote peer. The goal is to have an async
 // writer that does not lock up node internals.
 func (p *peer) broadcast() {
-	for {
-		select {
-		case prop := <-p.queuedProps:
-			if err := p.SendNewBlock(prop.block, prop.td); err != nil {
+	go func() {
+		for {
+			select {
+			case prop := <-p.queuedProps:
+				if err := p.SendNewBlock(prop.block, prop.td); err != nil {
+					return
+				}
+				p.Log().Trace("Propagated block", "number", prop.block.Number(), "hash", prop.block.Hash(), "td", prop.td)
+
+			case block := <-p.queuedAnns:
+				if err := p.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}); err != nil {
+					return
+				}
+				p.Log().Trace("Announced block", "number", block.Number(), "hash", block.Hash())
+
+			case prop := <-p.queuedPreBlock:
+				if err := p.SendPrepareBlock(prop.block); err != nil {
+					return
+				}
+				p.Log().Trace("Propagated prepare block", "number", prop.block.Number(), "hash", prop.block.Hash())
+
+			case prop := <-p.queuedSignature:
+				signature := &cbfttypes.BlockSignature{SignHash: prop.SignHash, Hash: prop.Hash, Number: prop.Number, Signature: prop.Signature}
+				if err := p.SendSignature(signature); err != nil {
+					return
+				}
+				p.Log().Trace("Propagated block signature", "hash", signature.Hash)
+
+			case <-p.term:
 				return
 			}
-			p.Log().Trace("Propagated block", "number", prop.block.Number(), "hash", prop.block.Hash(), "td", prop.td)
-
-		case block := <-p.queuedAnns:
-			if err := p.SendNewBlockHashes([]common.Hash{block.Hash()}, []uint64{block.NumberU64()}); err != nil {
-				return
-			}
-			p.Log().Trace("Announced block", "number", block.Number(), "hash", block.Hash())
-
-		case prop := <-p.queuedPreBlock:
-			if err := p.SendPrepareBlock(prop.block); err != nil {
-				return
-			}
-			p.Log().Trace("Propagated prepare block", "number", prop.block.Number(), "hash", prop.block.Hash())
-
-		case prop := <-p.queuedSignature:
-			signature := &cbfttypes.BlockSignature{prop.SignHash, prop.Hash, prop.Number, prop.Signature}
-			if err := p.SendSignature(signature); err != nil {
-				return
-			}
-			p.Log().Trace("Propagated block signature", "hash", signature.Hash)
-
-		case <-p.term:
-			return
 		}
-
-	}
+	}()
 
 	go func() {
-		select {
-		case txs := <-p.queuedTxs:
-			if err := p.SendTransactions(txs); err != nil {
+		for {
+			select {
+			case txs := <-p.queuedTxs:
+				if err := p.SendTransactions(txs); err != nil {
+					return
+				}
+				p.Log().Trace("Broadcast transactions", "count", len(txs))
+
+			case <-p.term:
 				return
 			}
-			p.Log().Trace("Broadcast transactions", "count", len(txs))
-
-		case <-p.term:
-			return
 		}
 	}()
 }
@@ -242,7 +245,7 @@ func (p *peer) AsyncSendTransactions(txs []*types.Transaction) {
 			p.knownTxs.Add(tx.Hash())
 		}
 	default:
-		p.Log().Debug("x transaction propagation", "count", len(txs))
+		p.Log().Debug("Dropping transaction propagation", "count", len(txs))
 	}
 }
 
@@ -523,6 +526,23 @@ func (ps *peerSet) PeersWithoutTx(hash common.Hash) []*peer {
 	return list
 }
 
+// ConsensusPeersWithoutTx retrieves a list of consensus peers that do not have a given transaction
+// in their set of known hashes.
+func (ps *peerSet) ConsensusPeersWithoutTx(csPeers []*peer, hash common.Hash) []*peer{
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+
+	list := make([]*peer, 0, len(csPeers))
+	for _, p := range csPeers {
+		if _, ok := ps.peers[p.id]; ok {
+			if !p.knownTxs.Contains(hash) {
+				list = append(list, p)
+			}
+		}
+	}
+	return list
+}
+
 // BestPeer retrieves the known peer with the currently highest total difficulty.
 func (ps *peerSet) BestPeer() *peer {
 	ps.lock.RLock()
@@ -552,48 +572,43 @@ func (ps *peerSet) Close() {
 	ps.closed = true
 }
 
-func (ps *peerSet) PeersWithConsensus(engine consensus.Engine) []*peer {
+func (ps *peerSet) PeersWithConsensus(consensusNodes []discover.NodeID) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
-	if cbftEngine, ok := engine.(consensus.Bft); ok {
-		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
-			list := make([]*peer, 0, len(consensusNodes))
-			for _, nodeID := range consensusNodes {
-				nodeID := fmt.Sprintf("%x", nodeID.Bytes()[:8])
-				if peer, ok := ps.peers[nodeID]; ok {
-					list = append(list, peer)
-				}
-			}
-			return list
-		}
-	}
-	return nil
-}
-
-func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
-	ps.lock.RLock()
-	defer ps.lock.RUnlock()
-
-	consensusNodeMap := make(map[string]string)
-	if cbftEngine, ok := engine.(consensus.Bft); ok {
-		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
-			for _, nodeID := range consensusNodes {
-				nodeID := fmt.Sprintf("%x", nodeID.Bytes()[:8])
-				consensusNodeMap[nodeID] = nodeID
-			}
-		}
-	}
-
-	list := make([]*peer, 0, len(ps.peers))
-	for nodeId, peer := range ps.peers {
-		if _, ok := consensusNodeMap[nodeId]; !ok {
+	list := make([]*peer, 0, len(consensusNodes))
+	for _, nodeID := range consensusNodes {
+		nodeID := fmt.Sprintf("%x", nodeID.Bytes()[:8])
+		if peer, ok := ps.peers[nodeID]; ok {
 			list = append(list, peer)
 		}
 	}
-
 	return list
 }
+
+//func (ps *peerSet) PeersWithoutConsensus(engine consensus.Engine) []*peer {
+//	ps.lock.RLock()
+//	defer ps.lock.RUnlock()
+//
+//	consensusNodeMap := make(map[string]string)
+//	if cbftEngine, ok := engine.(consensus.Bft); ok {
+//		if consensusNodes, err := cbftEngine.ConsensusNodes(); err == nil && len(consensusNodes) > 0 {
+//			for _, nodeID := range consensusNodes {
+//				nodeID := fmt.Sprintf("%x", nodeID.Bytes()[:8])
+//				consensusNodeMap[nodeID] = nodeID
+//			}
+//		}
+//	}
+//
+//	list := make([]*peer, 0, len(ps.peers))
+//	for nodeId, peer := range ps.peers {
+//		if _, ok := consensusNodeMap[nodeId]; !ok {
+//			list = append(list, peer)
+//		}
+//	}
+//
+//	return list
+//}
 
 type preBlockEvent struct {
 	block *types.Block

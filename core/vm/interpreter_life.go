@@ -1,14 +1,16 @@
 package vm
 
 import (
+	"bytes"
+	"encoding/binary"
+	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/core/lru"
 	"github.com/PlatONnetwork/PlatON-Go/life/utils"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"bytes"
-	"encoding/binary"
-	"fmt"
 	"math/big"
 	"reflect"
 	"strings"
@@ -17,24 +19,30 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/life/resolver"
 )
 
+var (
+	errReturnInvalidRlpFormat = errors.New("interpreter_life: invalid rlp format.")
+	errReturnInsufficientParams = errors.New("interpreter_life: invalid input. ele must greater than 2")
+	errReturnInvalidAbi = errors.New("interpreter_life: invalid abi, encoded fail.")
+)
+
 const (
 	CALL_CANTRACT_FLAG = 9
 )
 
-var DEFAULT_VM_CONFIG = exec.VMConfig {
+var DEFAULT_VM_CONFIG = exec.VMConfig{
 	EnableJIT:          false,
-	DefaultMemoryPages: 512,
-	DynamicMemoryPages: 10,
+	DefaultMemoryPages: exec.DefaultMemoryPages,
+	DynamicMemoryPages: exec.DynamicMemoryPages,
 }
 
 // WASMInterpreter represents an WASM interpreter
 type WASMInterpreter struct {
-	evm       *EVM
-	cfg       Config
+	evm         *EVM
+	cfg         Config
 	wasmStateDB *WasmStateDB
-	WasmLogger log.Logger
-	resolver   exec.ImportResolver
-	returnData []byte
+	WasmLogger  log.Logger
+	resolver    exec.ImportResolver
+	returnData  []byte
 }
 
 // NewWASMInterpreter returns a new instance of the Interpreter
@@ -46,9 +54,9 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 		cfg:     &cfg,
 	}
 	return &WASMInterpreter{
-		evm: evm,
-		cfg: cfg,
-		WasmLogger: NewWasmLogger(cfg, log.WasmRoot()),
+		evm:         evm,
+		cfg:         cfg,
+		WasmLogger:  NewWasmLogger(cfg, log.WasmRoot()),
 		wasmStateDB: wasmStateDB,
 		resolver:    resolver.NewResolver(0x01),
 	}
@@ -86,18 +94,33 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 	}
 
 	context := &exec.VMContext{
-		Config :  	DEFAULT_VM_CONFIG,
-		Addr :     	contract.Address(),
-		GasLimit : 	contract.Gas,
-		StateDB :  	NewWasmStateDB(in.wasmStateDB, contract),
-		Log :      	in.WasmLogger,
+		Config:   DEFAULT_VM_CONFIG,
+		Addr:     contract.Address(),
+		GasLimit: contract.Gas,
+		StateDB:  NewWasmStateDB(in.wasmStateDB, contract),
+		Log:      in.WasmLogger,
 	}
 
 	var lvm *exec.VirtualMachine
-	lvm, err = exec.NewVirtualMachine(code, context, in.resolver, nil)
+	var module *lru.WasmModule
+	module, ok := lru.WasmCache().Get(contract.Address())
+
+	if !ok {
+		module = &lru.WasmModule{}
+		module.Module, module.FunctionCode, err = exec.ParseModuleAndFunc(code, nil)
+		if err != nil {
+			return nil, err
+		}
+		lru.WasmCache().Add(contract.Address(), module)
+	}
+
+	lvm, err = exec.NewVirtualMachineWithModule(module.Module, module.FunctionCode, context, in.resolver, nil)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		lvm.Stop()
+	}()
 
 	contract.Input = input
 	var (
@@ -113,10 +136,13 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		// parse input.
 		txType, funcName, params, returnType, err = parseInputFromAbi(lvm, input, abi)
 		if err != nil {
-			if len(input) < 8 { // transfer to contract address.
+			if err == errReturnInsufficientParams && txType == 0 { // transfer to contract address.
 				return nil, nil
 			}
 			return nil, err
+		}
+		if txType == 0 {
+			return nil, nil
 		}
 	}
 	entryID, ok := lvm.GetFunctionExport(funcName)
@@ -146,14 +172,14 @@ func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) 
 		}
 		bigRes := new(big.Int)
 		bigRes.SetInt64(res)
-		byt := math.U256(bigRes).Bytes()
-		return byt, nil
+		finalRes := utils.Align32Bytes(math.U256(bigRes).Bytes())
+		return finalRes, nil
 	case "uint8", "uint16", "uint32", "uint64":
 		if txType == CALL_CANTRACT_FLAG {
 			return utils.Uint64ToBytes(uint64(res)), nil
 		}
-		hashRes := common.BytesToHash(utils.Uint64ToBytes((uint64(res))))
-		return hashRes.Bytes(), nil
+		finalRes := utils.Align32Bytes(utils.Uint64ToBytes((uint64(res))))
+		return finalRes, nil
 	case "string":
 		returnBytes := make([]byte, 0)
 		copyData := lvm.Memory.Memory[res:]
@@ -207,18 +233,25 @@ func parseInputFromAbi(vm *exec.VirtualMachine, input []byte, abi []byte) (txTyp
 	rlpList := reflect.ValueOf(ptr).Elem().Interface()
 
 	if _, ok := rlpList.([]interface{}); !ok {
-		return -1, "", nil, "", fmt.Errorf("invalid rlp format.")
+		return -1, "", nil, "", errReturnInvalidRlpFormat
 	}
 
 	iRlpList := rlpList.([]interface{})
 	if len(iRlpList) < 2 {
-		return -1, "", nil, "", fmt.Errorf("invalid input. ele must greater than 2")
+		if len(iRlpList) != 0 {
+			if v, ok := iRlpList[0].([]byte); ok {
+				txType = int(common.BytesToInt64(v))
+			}
+		} else {
+			txType = -1
+		}
+		return txType, "", nil, "", errReturnInsufficientParams
 	}
 
 	wasmabi := new(utils.WasmAbi)
 	err = wasmabi.FromJson(abi)
 	if err != nil {
-		return -1, "", nil, "", fmt.Errorf("invalid abi, encoded fail.")
+		return -1, "", nil, "", errReturnInvalidAbi
 	}
 
 	params = make([]int64, 0)

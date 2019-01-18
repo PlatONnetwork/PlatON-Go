@@ -25,6 +25,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"math/big"
+	"encoding/json"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -75,8 +78,40 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 	}
+	root := statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	log.Debug("After executing the transaction，Before calling notify series func", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+	log.Debug("After executing the transaction，Before calling notify series func", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
+
+	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
+		// Election call(if match condition)
+		if p.bc.shouldElectionFn(block.Number()) {
+			log.Debug("---Election call when processing block:---", "number", block.Number())
+			cbftEngine.Election(statedb, block.Number())
+		}
+		// SwitchWitness call(if match condition)
+		if p.bc.shouldSwitchFn(block.Number()) {
+			log.Debug("---SwitchWitness call when processing block:---", "number", block.Number())
+			cbftEngine.Switch(statedb)
+		}
+	}
+	root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	log.Debug("After executing the transaction，After calling the notify series func, And before finalize", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+	log.Debug("After executing the transaction，After calling the notify series func, And before finalize", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
+
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
+
+	root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	log.Debug("After executing the transaction，After call finalize", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+	log.Debug("After executing the transaction，After call finalize", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
+
+	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
+		// SetNodeCache
+		blockNumber := block.Number()
+		log.Warn("---SetNodeCache call when processing block---", "number", block.Number())
+		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+		cbftEngine.SetNodeCache(statedb, parentNumber, blockNumber, block.ParentHash(), block.Hash())
+	}
 
 	return receipts, allLogs, *usedGas, nil
 }
@@ -121,6 +156,8 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs(tx.Hash())
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
-
+	log.Debug("Execution transaction", "txHash", tx.Hash().Hex(), "blocknumber", header.Number.Uint64(), "receipt.root", types.DeriveSha(types.Receipts{receipt}), "bloom", types.CreateBloom(types.Receipts{receipt}))
+	logsByte, _ := json.Marshal(receipt.Logs)
+	log.Debug("Execution transaction", "txHash", tx.Hash().Hex(), "blocknumber", header.Number.Uint64(), "logs", string(logsByte))
 	return receipt, gas, err
 }

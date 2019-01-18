@@ -17,6 +17,7 @@
 package downloader
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -47,6 +48,7 @@ type bodyPack struct {
 	peerID       string
 	transactions [][]*types.Transaction
 	uncles       [][]*types.Header
+	signatures 	 [][]*common.BlockConfirmSign
 }
 
 func (p *bodyPack) PeerId() string { return p.peerID }

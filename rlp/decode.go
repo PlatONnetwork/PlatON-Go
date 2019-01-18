@@ -22,10 +22,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"math/big"
 	"reflect"
 	"strings"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 var (
@@ -137,9 +139,11 @@ func DecodeBytes(b []byte, val interface{}) error {
 	// TODO: this could use a Stream from a pool.
 	r := bytes.NewReader(b)
 	if err := NewStream(r, uint64(len(b))).Decode(val); err != nil {
+		log.Error("Failed to DecodeBytes", "err", err, "[]byte context", fmt.Sprintf(" pointer：%p ,value：%+v  ,len：,context's Hash：", b, b, len(b), common.Bytes2Hex(b)))
 		return err
 	}
 	if r.Len() > 0 {
+		log.Error("Failed to DecodeBytes", "err", ErrMoreThanOneValue, "[]bytecontext", fmt.Sprintf(" pointer：%p ,value：%+v  ,len：,context's Hash：", b, b, len(b), common.Bytes2Hex(b)))
 		return ErrMoreThanOneValue
 	}
 	return nil

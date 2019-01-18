@@ -248,7 +248,6 @@ func (p *Peer) pingLoop() {
 	for {
 		select {
 		case <-ping.C:
-			//modified by Joey
 			pingTime := strconv.FormatInt(time.Now().UnixNano(), 10)
 
 			if p.PingList.Len() > 5 {

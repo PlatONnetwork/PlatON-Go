@@ -102,6 +102,31 @@ func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
 }
 
+// SealHash returns the keccak256 seal hash of b's header.
+// The seal hash is computed on the first call and cached thereafter.
+func (header *Header) SealHash() (hash common.Hash) {
+	hasher := sha3.NewKeccak256()
+	rlp.Encode(hasher, []interface{}{
+		header.ParentHash,
+		header.UncleHash,
+		header.Coinbase,
+		header.Root,
+		header.TxHash,
+		header.ReceiptHash,
+		header.Bloom,
+		header.Difficulty,
+		header.Number,
+		header.GasLimit,
+		header.GasUsed,
+		header.Time,
+		header.Extra[0:32],
+		header.MixDigest,
+		header.Nonce,
+	})
+	hasher.Sum(hash[:0])
+	return hash
+}
+
 // Size returns the approximate memory used by all internal contents. It is used
 // to approximate and limit the memory consumption of various caches.
 func (h *Header) Size() common.StorageSize {
@@ -120,6 +145,7 @@ func rlpHash(x interface{}) (h common.Hash) {
 type Body struct {
 	Transactions []*Transaction
 	Uncles       []*Header
+	Signatures	 []*common.BlockConfirmSign
 }
 
 // Block represents an entire block in the Ethereum blockchain.
@@ -161,6 +187,7 @@ type extblock struct {
 	Header *Header
 	Txs    []*Transaction
 	Uncles []*Header
+	ConfirmSigns []*common.BlockConfirmSign
 }
 
 // [deprecated by eth/63]
@@ -245,7 +272,7 @@ func (b *Block) DecodeRLP(s *rlp.Stream) error {
 	if err := s.Decode(&eb); err != nil {
 		return err
 	}
-	b.header, b.uncles, b.transactions = eb.Header, eb.Uncles, eb.Txs
+	b.header, b.uncles, b.transactions, b.ConfirmSigns = eb.Header, eb.Uncles, eb.Txs, eb.ConfirmSigns
 	b.size.Store(common.StorageSize(rlp.ListSize(size)))
 	return nil
 }
@@ -256,6 +283,7 @@ func (b *Block) EncodeRLP(w io.Writer) error {
 		Header: b.header,
 		Txs:    b.transactions,
 		Uncles: b.uncles,
+		ConfirmSigns: b.ConfirmSigns,
 	})
 }
 
@@ -273,6 +301,7 @@ func (b *StorageBlock) DecodeRLP(s *rlp.Stream) error {
 
 func (b *Block) Uncles() []*Header          { return b.uncles }
 func (b *Block) Transactions() Transactions { return b.transactions }
+func (b *Block) Signatures() []*common.BlockConfirmSign { return b.ConfirmSigns }
 
 func (b *Block) Transaction(hash common.Hash) *Transaction {
 	for _, transaction := range b.transactions {
@@ -304,7 +333,7 @@ func (b *Block) Extra() []byte            { return common.CopyBytes(b.header.Ext
 func (b *Block) Header() *Header { return CopyHeader(b.header) }
 
 // Body returns the non-header content of the block.
-func (b *Block) Body() *Body { return &Body{b.transactions, b.uncles} }
+func (b *Block) Body() *Body { return &Body{b.transactions, b.uncles, b.ConfirmSigns} }
 
 // Size returns the true RLP encoded storage size of the block, either by encoding
 // and returning it, or returning a previsouly cached value.
@@ -342,13 +371,15 @@ func (b *Block) WithSeal(header *Header) *Block {
 }
 
 // WithBody returns a new block with the given transaction and uncle contents.
-func (b *Block) WithBody(transactions []*Transaction, uncles []*Header) *Block {
+func (b *Block) WithBody(transactions []*Transaction, uncles []*Header, signatures []*common.BlockConfirmSign) *Block {
 	block := &Block{
 		header:       CopyHeader(b.header),
 		transactions: make([]*Transaction, len(transactions)),
 		uncles:       make([]*Header, len(uncles)),
+		ConfirmSigns: make([]*common.BlockConfirmSign, len(signatures)),
 	}
 	copy(block.transactions, transactions)
+	copy(block.ConfirmSigns, signatures)
 	for i := range uncles {
 		block.uncles[i] = CopyHeader(uncles[i])
 	}

@@ -133,18 +133,19 @@ func (self *StateDB) Reset(root common.Hash) error {
 	return nil
 }
 
-func (self *StateDB) AddLog(log *types.Log) {
+func (self *StateDB) AddLog(logInfo *types.Log) {
 	self.journal.append(addLogChange{txhash: self.thash})
-
-	log.TxHash = self.thash
-	log.BlockHash = self.bhash
-	log.TxIndex = uint(self.txIndex)
-	log.Index = self.logSize
-	self.logs[self.thash] = append(self.logs[self.thash], log)
+	log.Debug("Call Add StateDB log", "txHash", self.thash.Hex())
+	logInfo.TxHash = self.thash
+	logInfo.BlockHash = self.bhash
+	logInfo.TxIndex = uint(self.txIndex)
+	logInfo.Index = self.logSize
+	self.logs[self.thash] = append(self.logs[self.thash], logInfo)
 	self.logSize++
 }
 
 func (self *StateDB) GetLogs(hash common.Hash) []*types.Log {
+	log.Debug("Call Get StateDB Log", "txHash", self.thash.Hex())
 	return self.logs[hash]
 }
 
@@ -476,6 +477,14 @@ func (self *StateDB) CreateAccount(addr common.Address) {
 	}
 }
 
+func (self *StateDB) TxHash() common.Hash  {
+	return self.thash
+}
+
+func (self *StateDB) TxIdx() uint32  {
+	return uint32(self.txIndex)
+}
+
 func (db *StateDB) ForEachStorage(addr common.Address, cb func(key, value common.Hash) bool) {
 	so := db.getStateObject(addr)
 	if so == nil {
@@ -626,7 +635,6 @@ func (s *StateDB) clearJournalAndRefund() {
 func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-
 	defer s.clearJournalAndRefund()
 
 	for addr := range s.journal.dirties {

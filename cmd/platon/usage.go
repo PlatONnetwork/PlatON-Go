@@ -33,7 +33,7 @@ import (
 var AppHelpTemplate = `NAME:
    {{.App.Name}} - {{.App.Usage}}
 
-   Copyright 2013-2018 The go-ethereum Authors
+   Copyright 2019 The PlatON-Go Authors
 
 USAGE:
    {{.App.HelpName}} [options]{{if .App.Commands}} command [command options]{{end}} {{if .App.ArgsUsage}}{{.App.ArgsUsage}}{{else}}[arguments...]{{end}}
@@ -124,6 +124,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.TxPoolGlobalSlotsFlag,
 			utils.TxPoolAccountQueueFlag,
 			utils.TxPoolGlobalQueueFlag,
+			utils.TxPoolGlobalTxCountFlag,
 			utils.TxPoolLifetimeFlag,
 		},
 	},
@@ -255,7 +256,6 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "MISC",
 	},
-
 }
 
 // byCategory sorts an array of flagGroup by Name in the order

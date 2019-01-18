@@ -19,4 +19,6 @@ type Config struct {
 	EWASMInterpreter string
 	// Type of the EVM interpreter
 	EVMInterpreter string
+
+	ConsoleOutput bool
 }
