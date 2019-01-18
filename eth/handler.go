@@ -932,8 +932,7 @@ func (pm *ProtocolManager) blockSignaturecastLoop() {
 }
 
 func (pm *ProtocolManager) txBroadcastLoop() {
-	timer := time.NewTimer(0)
-	<-timer.C
+	timer := time.NewTimer(defaultBroadcastInterval)
 
 	for {
 		select {
