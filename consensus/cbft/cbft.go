@@ -7,6 +7,13 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
+	"math/big"
+	"regexp"
+	"runtime/debug"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -19,12 +26,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"math/big"
-	"regexp"
-	"runtime/debug"
-	"sync"
-	"sync/atomic"
-	"time"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -51,6 +53,8 @@ var (
 
 	//maxAvgLatency is the time in milliseconds between two peers
 	maxAvgLatency = int64(2000)
+
+	maxResetCacheSize = 512
 )
 
 type Cbft struct {
@@ -74,6 +78,7 @@ type Cbft struct {
 	netLatencyMap         map[discover.NodeID]*list.List
 	netLatencyLock        sync.RWMutex
 	log                   log.Logger
+	resetCache            *lru.Cache
 }
 
 func (cbft *Cbft) getRootIrreversible() *BlockExt {
@@ -141,6 +146,8 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 			}
 		}}),
 	}
+
+	cbft.resetCache, _ = lru.New(maxResetCacheSize)
 
 	flowControl = NewFlowControl()
 
@@ -410,19 +417,21 @@ func (cbft *Cbft) findClosestConfirmedExcludingSelf(current *BlockExt) *BlockExt
 }
 
 // signLogicalAndDescendant signs logical block go along the logical path from current block, and will not sign the block if there's another same number block has been signed.
-func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
+func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) *BlockExt {
 	cbft.log.Debug("sign logical block and its descendant", "hash", current.block.Hash(), "number", current.block.NumberU64())
 	highestLogical := cbft.findHighestLogical(current)
 
 	logicalBlocks := cbft.backTrackBlocks(highestLogical, current, true)
 
-	//var highestConfirmed *BlockExt
+	var rstBlock *BlockExt
 	for _, logical := range logicalBlocks {
 		if logical.inTurn && !logical.isSigned {
 			if _, signed := cbft.signedSet[logical.block.NumberU64()]; !signed {
 				cbft.sign(logical)
 				cbft.log.Debug("reset TxPool after block signed", "hash", logical.block.Hash(), "number", logical.number)
-				cbft.txPool.Reset(logical.block)
+				//cbft.txPool.Reset(logical.block)
+				cbft.reset(logical.block)
+				rstBlock = logical
 			}
 		}
 
@@ -430,6 +439,7 @@ func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
 			highestConfirmed = logical
 		}*/
 	}
+	return rstBlock
 	/*cbft.log.Trace("reset highest logical", "hash", highestLogical.block.Hash(), "number", highestLogical.block.NumberU64())
 	cbft.setHighestLogical(highestLogical)
 	if highestConfirmed != nil {
@@ -512,6 +522,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 		sealHash := ext.block.Header().SealHash()
 		cbft.blockChainCache.WriteReceipts(sealHash, receipts, ext.block.NumberU64())
 		cbft.blockChainCache.WriteStateDB(sealHash, state, ext.block.NumberU64())
+
 	} else {
 		cbft.log.Error("execute block error", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return errors.New("execute block error")
@@ -522,7 +533,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 // backTrackBlocks return blocks from start to end, these blocks are in a same tree branch.
 // The result is sorted by block number from lower to higher.
 func (cbft *Cbft) backTrackBlocks(start *BlockExt, end *BlockExt, includeEnd bool) []*BlockExt {
-	cbft.log.Trace("back track blocks", "startHash", start.block.Hash(), "startParentHash", end.block.ParentHash(), "endHash", start.block.Hash())
+	cbft.log.Trace("back track blocks", "startHash", start.block.Hash(), "startNumber", start.block.NumberU64(), "startParentHash", end.block.ParentHash(), "endHash", end.block.Hash())
 
 	result := make([]*BlockExt, 0)
 
@@ -667,7 +678,7 @@ func (cbft *Cbft) blockSynced() {
 		}
 
 		//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
-		cbft.signLogicalAndDescendant(newRoot)
+		rstBlock := cbft.signLogicalAndDescendant(newRoot)
 
 		//reset logical path
 		highestLogical := cbft.findHighestLogical(newRoot)
@@ -688,7 +699,10 @@ func (cbft *Cbft) blockSynced() {
 		}
 
 		cbft.log.Debug("reset TxPool after block synced", "hash", newRoot.block.Hash(), "number", newRoot.number)
-		cbft.txPool.Reset(currentBlock)
+		if rstBlock == nil {
+			//cbft.txPool.Reset(currentBlock)
+			cbft.reset(currentBlock)
+		}
 	}
 
 	cbft.log.Debug("=== end of blockSynced() ===\n",
@@ -1027,12 +1041,15 @@ func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
 	newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(newConfirmed)
 	if newHighestConfirmed != nil && newHighestConfirmed.block.Hash() != cbft.getHighestConfirmed().block.Hash() {
 		//fork
-		cbft.log.Debug("the block chain in memory forked", "newHighestConfirmedHash", newHighestConfirmed.block.Hash(), "newHighestConfirmedNumber", newHighestConfirmed.number)
 		newHighestLogical := cbft.findHighestLogical(newHighestConfirmed)
-		newPath := cbft.backTrackBlocks(newHighestLogical, cbft.getRootIrreversible(), true)
 
+		newPath := cbft.backTrackBlocks(newHighestLogical, cbft.getRootIrreversible(), true)
 		origPath := cbft.backTrackBlocks(cbft.getHighestLogical(), cbft.getRootIrreversible(), true)
 
+		cbft.log.Debug("the block chain in memory forked", "newHighestConfirmedHash", newHighestConfirmed.block.Hash(), "newHighestConfirmedNumber", newHighestConfirmed.number,
+			"newHighestLogicalHash", newHighestLogical.block.Hash(), "newHighestLogicalNumber", newHighestLogical.number,
+			"len(newPath)", len(newPath), "len(origPath)", len(origPath),
+		)
 		oldTress, newTress := cbft.forked(origPath, newPath)
 
 		cbft.txPool.ForkedReset(extraBlocks(oldTress), extraBlocks(newTress))
@@ -1242,7 +1259,7 @@ func (cbft *Cbft) IsConsensusNode() (bool, error) {
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
-	cbft.log.Trace("call Author()", "hash", header.Hash(), "number", header.Number.Uint64())
+	//cbft.log.Trace("call Author()", "hash", header.Hash(), "number", header.Number.Uint64())
 	return header.Coinbase, nil
 }
 
@@ -1387,7 +1404,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		cbft.flushReadyBlock()
 
 		cbft.log.Debug("reset TxPool after block sealed", "hash", current.block.Hash(), "number", current.number)
-		cbft.txPool.Reset(current.block)
+		//cbft.txPool.Reset(current.block)
+		cbft.reset(current.block)
 		return nil
 	}
 
@@ -1405,7 +1423,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	}()
 
 	cbft.log.Debug("reset TxPool after block sealed", "hash", current.block.Hash(), "number", current.number)
-	cbft.txPool.Reset(current.block)
+	//cbft.txPool.Reset(current.block)
+	cbft.reset(current.block)
 	return nil
 }
 
@@ -1684,6 +1703,14 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 func (cbft *Cbft) getThreshold() int {
 	trunc := len(cbft.dpos.primaryNodeList) * 2 / 3
 	return int(trunc + 1)
+}
+
+func (cbft *Cbft) reset(block *types.Block) {
+	if _, ok := cbft.resetCache.Get(block.Hash()); !ok {
+		cbft.log.Trace("reset txpool", "hash", block.Hash(), "number", block.Number())
+		cbft.resetCache.Add(block.Hash(), struct{}{})
+		cbft.txPool.Reset(block)
+	}
 }
 
 func toMilliseconds(t time.Time) int64 {
