@@ -111,6 +111,9 @@ func (t *SecureTrie) TryUpdate(key, value []byte) error {
 }
 
 func (t *SecureTrie) TryUpdateValue(key, value []byte) error {
+	t.trie.db.lock.Lock()
+	t.trie.db.insertPreimage(common.BytesToHash(key), value)
+	t.trie.db.lock.Unlock()
 	t.getSecKeyCache()[string(key)] = common.CopyBytes(value)
 	return nil
 }

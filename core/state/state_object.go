@@ -333,7 +333,7 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		// Encoding []byte cannot fail, ok to ignore the error.
 		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
 		self.setError(tr.TryUpdate([]byte(key), v))
-		//self.setError(tr.TryUpdateValue(valueKey[:], value))
+		self.setError(tr.TryUpdateValue(valueKey[:], value))
 	}
 	return tr
 }
