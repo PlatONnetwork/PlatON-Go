@@ -664,7 +664,6 @@ func (cbft *Cbft) blockSynced() {
 		}
 
 		highestLogical := cbft.findHighestLogical(newRoot)
-		highestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(newRoot)
 
 		//rearrange new logical path, and sign block if necessary
 		logicals := cbft.backTrackBlocks(newRoot, highestLogical, true)
@@ -673,6 +672,7 @@ func (cbft *Cbft) blockSynced() {
 		//reset highest logical
 		cbft.setHighestLogical(highestLogical, false)
 
+		highestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(newRoot)
 		//reset highest confirmed block
 		cbft.highestConfirmed.Store(highestConfirmed)
 
@@ -964,8 +964,6 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 
 		if isLogical {
 			newHighestLogical := cbft.findHighestLogical(cbft.getHighestConfirmed())
-			newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(cbft.getHighestConfirmed())
-
 			//rearrange new logical path, and sign block if necessary
 			logicals := cbft.backTrackBlocks(blockExt, newHighestLogical, true)
 			cbft.signLogicals(logicals)
@@ -973,6 +971,8 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 			if newHighestLogical != nil {
 				cbft.setHighestLogical(newHighestLogical, false)
 			}
+
+			newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(cbft.getHighestConfirmed())
 			if newHighestConfirmed != nil {
 				cbft.highestConfirmed.Store(newHighestConfirmed)
 			}
