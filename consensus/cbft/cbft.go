@@ -1684,7 +1684,7 @@ func (cbft *Cbft) getThreshold() int {
 
 func (cbft *Cbft) reset(block *types.Block) {
 	if _, ok := cbft.resetCache.Get(block.Hash()); !ok {
-		cbft.log.Trace("reset txpool", "hash", block.Hash(), "number", block.Number())
+		cbft.log.Trace("reset txpool", "RoutineID", common.CurrentGoRoutineID(), "hash", block.Hash(), "number", block.NumberU64(), "parentHash", block.ParentHash())
 		cbft.resetCache.Add(block.Hash(), struct{}{})
 		cbft.txPool.Reset(block)
 	}
