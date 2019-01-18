@@ -15,10 +15,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"net"
-	"strconv"
-	"sync"
 	"sort"
+	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -92,7 +92,7 @@ type CandidatePool struct {
 	// cache
 	candidateCacheArr []*types.Candidate
 	//lock              *sync.RWMutex
-	lock 				*sync.Mutex
+	lock *sync.Mutex
 }
 
 //var candidatePool *CandidatePool
@@ -106,11 +106,11 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 	var threshold *big.Int
 	if thd, ok := new(big.Int).SetString(configs.Candidate.Threshold, 10); !ok {
 		threshold, _ = new(big.Int).SetString("1000000000000000000000000", 10)
-	}else {
+	} else {
 		threshold = thd
 	}
 	return &CandidatePool{
-		threshold: 			  threshold,
+		threshold:            threshold,
 		depositLimit:         configs.Candidate.DepositLimit,
 		maxCount:             configs.Candidate.MaxCount,
 		maxChair:             configs.Candidate.MaxChair,
@@ -122,7 +122,7 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		defeatCandidates:     make(map[discover.NodeID][]*types.Candidate, 0),
 		candidateCacheArr:    make([]*types.Candidate, 0),
 		//lock:                 &sync.RWMutex{},
-		lock:                 &sync.Mutex{},
+		lock: &sync.Mutex{},
 	}
 	//return candidatePool
 }
@@ -364,7 +364,7 @@ func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (
 }
 
 // Getting immediate or reserve candidate info arr by nodeIds
-func (c *CandidatePool) GetCandidateArr (state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
+func (c *CandidatePool) GetCandidateArr(state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
 	return c.getCandidates(state, nodeIds...)
 }
 
@@ -388,7 +388,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 	}
 	can, ok := c.immediateCandates[nodeId]
 	if !ok || nil == can {
-		log.Error("Failed to find current Candidate is empty", "nodeId", nodeId.String(), )
+		log.Error("Failed to find current Candidate is empty", "nodeId", nodeId.String())
 		return CandidateEmptyErr
 	}
 
@@ -1060,7 +1060,7 @@ func (c *CandidatePool) GetRefundInterval() uint64 {
 	return c.RefundBlockNumber
 }
 
-func (c *CandidatePool) checkFirstThreshold (can *types.Candidate) (bool) {
+func (c *CandidatePool) checkFirstThreshold(can *types.Candidate) bool {
 	if can.Deposit.Cmp(c.threshold) < 0 {
 		return false
 	}
@@ -1080,11 +1080,10 @@ func (c *CandidatePool) checkDeposit(can *types.Candidate) error {
 		log.Debug("【Compared candidate Deposit】：", "Second step:", tmp.String())
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
-		log.Debug("【Compared candidate Deposit】：", "Third step： config file's limit value:" , fmt.Sprint(c.depositLimit) ," current candidate Deposit ：" , can.Deposit.String() , "last's nodeId of Queue:" , last.CandidateId.String() ,  " last's Deposit of Queue:" , last.Deposit.String() , " Target Percentage Deposit:", tmp.String())
-
+		log.Debug("【Compared candidate Deposit】：", "Third step： config file's limit value:", fmt.Sprint(c.depositLimit), " current candidate Deposit ：", can.Deposit.String(), "last's nodeId of Queue:", last.CandidateId.String(), " last's Deposit of Queue:", last.Deposit.String(), " Target Percentage Deposit:", tmp.String())
 
 		if can.Deposit.Cmp(tmp) < 0 {
-			log.Error(DepositLowErr.Error(), "depositLimit:" , fmt.Sprint(c.depositLimit) ,"curr Deposit：" , can.Deposit.String() , " last Deposit：" , last.Deposit.String() , "target Deposit:", tmp.String())
+			log.Error(DepositLowErr.Error(), "depositLimit:", fmt.Sprint(c.depositLimit), "curr Deposit：", can.Deposit.String(), " last Deposit：", last.Deposit.String(), "target Deposit:", tmp.String())
 			return DepositLowErr
 		}
 	}
@@ -1097,11 +1096,10 @@ func (c *CandidatePool) checkWithdraw(source, price *big.Int) error {
 	log.Debug("【Compared candidate Deposit】：", "First step:", percentage.String())
 	// y/100 == old * (x/100) == old * x%
 	tmp := new(big.Int).Div(percentage, big.NewInt(100))
-	log.Debug("【Compared candidate Deposit】：", "Second step:  config file's limit value:" , fmt.Sprint(c.depositLimit) ," Current Refund's Origin Deposit:" , source.String() , " Current Refund Value：" , price.String() , " Target Percentage Deposit:", tmp.String())
-
+	log.Debug("【Compared candidate Deposit】：", "Second step:  config file's limit value:", fmt.Sprint(c.depositLimit), " Current Refund's Origin Deposit:", source.String(), " Current Refund Value：", price.String(), " Target Percentage Deposit:", tmp.String())
 
 	if price.Cmp(tmp) < 0 {
-		log.Error(WithdrawLowErr.Error(), "depositLimit:" , fmt.Sprint(c.depositLimit) ,"origin Deposit：" , source.String() , " curr price：" , price.String() , "target Deposit:", tmp.String())
+		log.Error(WithdrawLowErr.Error(), "depositLimit:", fmt.Sprint(c.depositLimit), "origin Deposit：", source.String(), " curr price：", price.String(), "target Deposit:", tmp.String())
 		return WithdrawLowErr
 	}
 	return nil
@@ -1376,7 +1374,7 @@ func getPreviousWitnessIdsState(state vm.StateDB) ([]discover.NodeID, error) {
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
-	}else {
+	} else {
 		return nil, nil
 	}
 	return witnessIds, nil
@@ -1384,7 +1382,7 @@ func getPreviousWitnessIdsState(state vm.StateDB) ([]discover.NodeID, error) {
 
 func setPreviosWitnessIdsState(state vm.StateDB, arrVal []byte) {
 	log.Debug("SETTING Call  setPreviosWitnessIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", PreviousWitnessListKey(), len(PreviousWitnessListKey()), common.Bytes2Hex(PreviousWitnessListKey())))
-	log.Debug("SETTING Call  setPreviosWitnessIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
+	log.Debug("SETTING Call  setPreviosWitnessIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, PreviousWitnessListKey(), arrVal)
 }
 
@@ -1396,7 +1394,7 @@ func getPreviousWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Can
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
-	}else {
+	} else {
 		return nil, nil
 	}
 	return &can, nil
@@ -1404,7 +1402,7 @@ func getPreviousWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Can
 
 func setPreviousWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
 	log.Debug("SETTING Call  setPreviousWitnessState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", PreviousWitnessKey(id), len(PreviousWitnessKey(id)), common.Bytes2Hex(PreviousWitnessKey(id))))
-	log.Debug("SETTING Call  setPreviousWitnessState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",val, len(val), common.Bytes2Hex(val)))
+	log.Debug("SETTING Call  setPreviousWitnessState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, PreviousWitnessKey(id), val)
 }
 
@@ -1416,7 +1414,7 @@ func getWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 		if err := rlp.DecodeBytes(valByte, &witnessIds); nil != err {
 			return nil, err
 		}
-	}else {
+	} else {
 		return nil, nil
 	}
 	return witnessIds, nil
@@ -1424,7 +1422,7 @@ func getWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 
 func setWitnessIdsState(state vm.StateDB, arrVal []byte) {
 	log.Debug("SETTING Call  setWitnessIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", WitnessListKey(), len(WitnessListKey()), common.Bytes2Hex(WitnessListKey())))
-	log.Debug("SETTING Call  setWitnessIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
+	log.Debug("SETTING Call  setWitnessIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, WitnessListKey(), arrVal)
 }
 
@@ -1436,7 +1434,7 @@ func getWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candidate, 
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
-	}else {
+	} else {
 		return nil, nil
 	}
 	return &can, nil
@@ -1456,7 +1454,7 @@ func getNextWitnessIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 		if err := rlp.DecodeBytes(valByte, &nextWitnessIds); nil != err {
 			return nil, err
 		}
-	}else {
+	} else {
 		return nil, nil
 	}
 	return nextWitnessIds, nil
@@ -1476,14 +1474,14 @@ func getNextWitnessByState(state vm.StateDB, id discover.NodeID) (*types.Candida
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
-	}else {
+	} else {
 		return nil, nil
 	}
 	return &can, nil
 }
 
 func setNextWitnessState(state vm.StateDB, id discover.NodeID, val []byte) {
-	log.Debug("SETTING Call  setNextWitnessState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  NextWitnessKey(id), len( NextWitnessKey(id)), common.Bytes2Hex( NextWitnessKey(id))))
+	log.Debug("SETTING Call  setNextWitnessState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", NextWitnessKey(id), len(NextWitnessKey(id)), common.Bytes2Hex(NextWitnessKey(id))))
 	log.Debug("SETTING Call  setNextWitnessState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, NextWitnessKey(id), val)
 }
@@ -1496,14 +1494,14 @@ func getImmediateIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 		if err := rlp.DecodeBytes(valByte, &immediateIds); nil != err {
 			return nil, err
 		}
-	}else {
+	} else {
 		return nil, nil
 	}
 	return immediateIds, nil
 }
 
 func setImmediateIdsState(state vm.StateDB, arrVal []byte) {
-	log.Debug("SETTING Call  setImmediateIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  ImmediateListKey(), len(ImmediateListKey()), common.Bytes2Hex(ImmediateListKey())))
+	log.Debug("SETTING Call  setImmediateIdsState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", ImmediateListKey(), len(ImmediateListKey()), common.Bytes2Hex(ImmediateListKey())))
 	log.Debug("SETTING Call  setImmediateIdsState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", arrVal, len(arrVal), common.Bytes2Hex(arrVal)))
 	state.SetState(common.CandidateAddr, ImmediateListKey(), arrVal)
 }
@@ -1516,14 +1514,14 @@ func getImmediateByState(state vm.StateDB, id discover.NodeID) (*types.Candidate
 		if err := rlp.DecodeBytes(valByte, &can); nil != err {
 			return nil, err
 		}
-	}else {
+	} else {
 		return nil, nil
 	}
 	return &can, nil
 }
 
 func setImmediateState(state vm.StateDB, id discover.NodeID, val []byte) {
-	log.Debug("SETTING Call  setImmediateState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  ImmediateKey(id), len(ImmediateKey(id)), common.Bytes2Hex(ImmediateKey(id))))
+	log.Debug("SETTING Call  setImmediateState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", ImmediateKey(id), len(ImmediateKey(id)), common.Bytes2Hex(ImmediateKey(id))))
 	log.Debug("SETTING Call  setImmediateState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, ImmediateKey(id), val)
 }
@@ -1532,11 +1530,11 @@ func getDefeatIdsByState(state vm.StateDB) ([]discover.NodeID, error) {
 	var defeatIds []discover.NodeID
 	log.Debug("Call getDefeatIdsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", DefeatListKey(), len(DefeatListKey()), common.Bytes2Hex(DefeatListKey())))
 	if valByte := state.GetState(common.CandidateAddr, DefeatListKey()); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getDefeatIdsByState DecodeBytes",  "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getDefeatIdsByState DecodeBytes", "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &defeatIds); nil != err {
 			return nil, err
 		}
-	}else {
+	} else {
 		return nil, nil
 	}
 	return defeatIds, nil
@@ -1552,18 +1550,18 @@ func getDefeatsByState(state vm.StateDB, id discover.NodeID) ([]*types.Candidate
 	var canArr []*types.Candidate
 	log.Debug("Call getDefeatsByState DecodeBytes", "Key's content", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", DefeatKey(id), len(DefeatKey(id)), common.Bytes2Hex(DefeatKey(id))))
 	if valByte := state.GetState(common.CandidateAddr, DefeatKey(id)); nil != valByte && len(valByte) != 0 {
-		log.Debug("Call getDefeatsByState DecodeBytes",  "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
+		log.Debug("Call getDefeatsByState DecodeBytes", "nodeId", id.String(), "[]byte context", fmt.Sprintf(" Pointer：%p ,Value：%+v  ,Len：%d,Content' Hash：%v", valByte, valByte, len(valByte), common.Bytes2Hex(valByte)))
 		if err := rlp.DecodeBytes(valByte, &canArr); nil != err {
 			return nil, err
 		}
-	}else {
+	} else {
 		return nil, nil
 	}
 	return canArr, nil
 }
 
 func setDefeatState(state vm.StateDB, id discover.NodeID, val []byte) {
-	log.Debug("SETTING Call  setDefeatState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v",  DefeatKey(id), len( DefeatKey(id)), common.Bytes2Hex( DefeatKey(id))))
+	log.Debug("SETTING Call  setDefeatState EncodeBytes", "Key's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", DefeatKey(id), len(DefeatKey(id)), common.Bytes2Hex(DefeatKey(id))))
 	log.Debug("SETTING Call  setDefeatState EncodeBytes", "Value's content:", fmt.Sprintf(" Value：%+v  ,Len：%d,Content' Hash：%v", val, len(val), common.Bytes2Hex(val)))
 	state.SetState(common.CandidateAddr, DefeatKey(id), val)
 }
@@ -1714,7 +1712,7 @@ func DefeatListKey() []byte {
 }
 
 // DEBUG
-func TraversingStateDB (vmstate vm.StateDB) {
+func TraversingStateDB(vmstate vm.StateDB) {
 	log.Debug("【TraversingStateDB】start ...")
 	/**
 	key 1fc17e601a8c10a8c32000358358ecca6001adcb7bdd416fbc397c7bc3e18111
@@ -1725,12 +1723,12 @@ func TraversingStateDB (vmstate vm.StateDB) {
 	value a0b0ca14c4bd15393a0c14209c504886e428c2e4ca82698838e087a404ad985339
 	key e8b020f2af4d1e15a9de1c664bdec1fad91737837557afa501aac5a004bd260c
 	value a0b3e1f3803d057f97fad44a37599904c03962fb0aac2f0be5d6427c30ecd943b1
-	 */
+	*/
 	if stateDB, ok := vmstate.(*state.StateDB); ok {
 
 		/**
 		obj
-		 */
+		*/
 		/*so := stateDB.GetOrNewStateObject(common.CandidateAddr)
 		if so == nil {
 			return
@@ -1756,20 +1754,10 @@ func TraversingStateDB (vmstate vm.StateDB) {
 			}
 		}*/
 
-
-
-
-
-
-
 		objTrie := stateDB.StorageTrie(common.CandidateAddr)
 		if objTrie == nil {
 			return
 		}
-
-
-
-
 
 		//storageIt := trie.NewIterator(objTrie.NodeIterator(nil))
 		//	for storageIt.Next() {
