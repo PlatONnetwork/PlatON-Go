@@ -433,7 +433,9 @@ func (pool *TxPool) lockedReset(oldHead, newHead *types.Header) {
 
 // added by PlatON
 func (pool *TxPool) Reset(newBlock *types.Block) {
-	log.Debug("call Reset()", "RoutineID", common.CurrentGoRoutineID(), "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash())
+	if pool == nil {
+		return
+	}
 	log.Debug("call Reset()", "RoutineID", common.CurrentGoRoutineID(), "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash(), "pool.chainHeadCh.len", len(pool.chainHeadCh))
 	pool.chainHeadCh <- newBlock
 	if newBlock.NumberU64() < pool.chain.CurrentBlock().NumberU64() {
