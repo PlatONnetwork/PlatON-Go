@@ -425,6 +425,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 				if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(); shouldSeal && error == nil {
 					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
 						log.Debug("begin to package new block in time after resetting a new highest logical block")
+						timestamp = time.Now().UnixNano() / 1e6
 						commit(false, commitInterruptResubmit, commitBlock)
 					}
 				}
@@ -439,6 +440,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						if shouldSeal {
 							if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
 								log.Debug("begin to package new block regularly ")
+								timestamp = time.Now().UnixNano() / 1e6
 								commit(false, commitInterruptResubmit, commitBlock)
 								continue
 							}
@@ -454,6 +456,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						timer.Reset(recommit)
 						continue
 					}
+					timestamp = time.Now().UnixNano() / 1e6
 					commit(true, commitInterruptResubmit, nil)
 				}
 			}
