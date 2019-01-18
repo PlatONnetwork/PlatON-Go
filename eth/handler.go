@@ -20,14 +20,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"math"
 	"math/big"
-	"math/rand"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -52,6 +52,9 @@ const (
 	// txChanSize is the size of channel listening to NewTxsEvent.
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
+
+	defaultTxsCacheSize      = 20
+	defaultBroadcastInterval = 100 * time.Millisecond
 )
 
 var (
@@ -85,6 +88,7 @@ type ProtocolManager struct {
 
 	eventMux      *event.TypeMux
 	txsCh         chan core.NewTxsEvent
+	txsCache      []*types.Transaction
 	txsSub        event.Subscription
 	minedBlockSub *event.TypeMuxSubscription
 
@@ -866,29 +870,13 @@ func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 	var txset = make(map[*peer]types.Transactions)
 
-	consensusPeers := pm.peers.PeersWithConsensus(pm.engine)
-	f := len(consensusPeers) / 3
-	if f <= 0 {
-		f = 1
-	}
-
 	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
-		peers := pm.peers.ConsensusPeersWithoutTx(consensusPeers, tx.Hash())
-		if len(peers) > 0 {
-			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			for i := 0; i < f && i < len(peers); i++ {
-				idx := r.Intn(len(peers))
-				txset[peers[idx]] = append(txset[peers[idx]], tx)
-				log.Trace("Broadcast transaction", "hash", tx.Hash(), "peer", peers[idx].id)
-			}
-		} else {
-			peers := pm.peers.PeersWithoutTx(tx.Hash())
-			for _, peer := range peers {
-				txset[peer] = append(txset[peer], tx)
-			}
-			log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
+		peers := pm.peers.PeersWithoutTx(tx.Hash())
+		for _, peer := range peers {
+			txset[peer] = append(txset[peer], tx)
 		}
+		log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 	}
 
 	// FIXME include this again: peers = peers[:int(math.Sqrt(float64(len(peers))))]
@@ -944,10 +932,25 @@ func (pm *ProtocolManager) blockSignaturecastLoop() {
 }
 
 func (pm *ProtocolManager) txBroadcastLoop() {
+	timer := time.NewTimer(defaultBroadcastInterval)
+
 	for {
 		select {
 		case event := <-pm.txsCh:
-			pm.BroadcastTxs(event.Txs)
+			pm.txsCache = append(pm.txsCache, event.Txs...)
+			if len(pm.txsCache) >= defaultTxsCacheSize {
+				log.Trace("broadcast txs", "count", len(pm.txsCache))
+				pm.BroadcastTxs(pm.txsCache)
+				pm.txsCache = make([]*types.Transaction, 0)
+				timer.Reset(defaultBroadcastInterval)
+			}
+		case <-timer.C:
+			if len(pm.txsCache) > 0 {
+				log.Trace("broadcast txs", "count", len(pm.txsCache))
+				pm.BroadcastTxs(pm.txsCache)
+				pm.txsCache = make([]*types.Transaction, 0)
+			}
+			timer.Reset(defaultBroadcastInterval)
 
 		// Err() channel will be closed when unsubscribing.
 		case <-pm.txsSub.Err():
