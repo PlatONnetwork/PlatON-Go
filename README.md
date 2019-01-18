@@ -135,4 +135,4 @@ Check the balance:
  
 OK, it seems that the chain is running correctly
 
-For more information, please visit our [wiki](https://github.com/PlatONnetwork/wiki/wiki)
+For more information, please visit our. [wiki](https://github.com/PlatONnetwork/wiki/wiki)
