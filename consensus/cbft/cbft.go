@@ -1188,7 +1188,7 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 		//可以在函数体内编写自己的代码，调用map中的k,v
 		hash := k.(common.Hash)
 		ext := v.(*BlockExt)
-		if ext.number < upperLimit-uint64(windowSize) {
+		if int64(ext.number) < int64(upperLimit-uint64(windowSize)) {
 			cbft.log.Debug("remove block in memory", "hash", hash, "number", ext.number)
 			cbft.blockExtMap.Delete(hash)
 		}
