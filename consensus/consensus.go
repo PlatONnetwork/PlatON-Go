@@ -120,14 +120,27 @@ type PoW interface {
 type Bft interface {
 	Engine
 
-	// Returns the current consensus node address list.
-	ConsensusNodes() ([]discover.NodeID, error)
+	// the former round of consensus node ids
+	//FormerNodeID() []discover.NodeID
 
-	// Returns whether the current node is out of the block
-	ShouldSeal() (bool, error)
+	// the former round of consensus nodes
+	//FormerNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
 
-	// Received a new block signature
-	// Need to verify if the signature is signed by nodeID
+	// the current round of consensus node ids
+	//CurrentNodeID() []discover.NodeID
+
+	// the current round of consensus nodes
+	CurrentNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
+
+	IsCurrentNode(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) bool
+
+	ConsensusNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []discover.NodeID
+
+	// whether the current node should packing
+	ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool
+
+	// received a new block signature
+	// verify if the signature is signed by nodeID
 	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error
 
 	// Process the BFT signatures
@@ -136,14 +149,27 @@ type Bft interface {
 	// Process the BFT signatures
 	OnPong(nodeID discover.NodeID, netLatency int64) error
 
-	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
+	// Send a signal if a block synced from other peer.
+	OnBlockSynced()
+	//CheckConsensusNode(nodeID discover.NodeID) (bool, error)
 
-	IsConsensusNode() (bool, error)
+	//IsConsensusNode() (bool, error)
 
 	// At present, the highest reasonable block, when the node is out of the block, it needs to generate the block based on the highest reasonable block.
 	HighestLogicalBlock() *types.Block
 
+	HighestConfirmedBlock() *types.Block
+
+	GetBlock(hash common.Hash, number uint64) *types.Block
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
-	//SetBlockChain(blockChain *core.BlockChain)
+	Election(state *state.StateDB, blockNumber *big.Int) ([]*discover.Node, error)
+
+	Switch(state *state.StateDB) bool
+
+	GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error)
+
+	GetOwnNodeID() discover.NodeID
+
+	SetNodeCache(state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash) error
 }

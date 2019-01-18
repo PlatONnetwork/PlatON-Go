@@ -17,6 +17,12 @@ platon:
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/platon\" to launch platon."
 
+platon-with-mpc:
+	build/build_deps.sh
+	build/env.sh go run build/ci.go install -mpc on ./cmd/platon
+	@echo "Done building platon with mpc."
+	@echo "Run \"$(GOBIN)/platon\" to launch platon."
+
 swarm:
 	build/env.sh go run build/ci.go install ./cmd/swarm
 	@echo "Done building."
@@ -25,6 +31,14 @@ swarm:
 all:
 	build/build_deps.sh
 	build/env.sh go run build/ci.go install
+
+all-debug:
+	build/build_deps.sh
+	build/env.sh go run build/ci.go install -gcflags on
+
+all-with-mpc:
+	build/build_deps.sh
+	build/env.sh go run build/ci.go install -mpc on
 
 android:
 	build/env.sh go run build/ci.go aar --local

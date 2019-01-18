@@ -192,6 +192,7 @@ type blockSignature struct {
 type blockBody struct {
 	Transactions []*types.Transaction // Transactions contained within a block
 	Uncles       []*types.Header      // Uncles contained within a block
+	Signatures	 []*common.BlockConfirmSign	// Signatures contained within a block
 }
 
 // blockBodiesData is the network packet for block content distribution.

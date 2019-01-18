@@ -5,16 +5,16 @@ import (
 )
 
 type rotating struct {
-	dpos         *dpos
+	ppos         *ppos
 	rotaList     []common.Address // This round of cyclic block node order list
 	startTime    int64            // The current cycle start timestamp, in milliseconds
 	endTime      int64            // The current cycle end timestamp, in milliseconds
 	timeInterval int64            // Block time per unit, in milliseconds
 }
 
-func newRotating(dpos *dpos, timeInterval int64) *rotating {
+func newRotating(ppos *ppos, timeInterval int64) *rotating {
 	rotating := &rotating{
-		dpos:         dpos,
+		ppos:         ppos,
 		timeInterval: timeInterval,
 	}
 	return rotating

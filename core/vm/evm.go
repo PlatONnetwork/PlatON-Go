@@ -24,6 +24,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -49,6 +50,15 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			precompiles = PrecompiledContractsByzantium
 		}
 		if p := precompiles[*contract.CodeAddr]; p != nil {
+			return RunPrecompiledContract(p, input, contract)
+		}
+		//ppos
+		if p := PrecompiledContractsPpos[*contract.CodeAddr]; p != nil {
+			if f, ok := p.(*CandidateContract); ok {
+				f.Contract = contract
+				f.Evm = evm
+			}
+			log.Info("IN PPOS PrecompiledContractsPpos ... ")
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}
@@ -127,6 +137,10 @@ type EVM struct {
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
 	callGasTemp uint64
+
+	//ppos add
+	//CandidatePool candidatePool
+	CandidatePoolContext candidatePoolContext
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should

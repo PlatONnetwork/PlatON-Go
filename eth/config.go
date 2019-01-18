@@ -49,6 +49,15 @@ var DefaultConfig = Config{
 		MaxLatency:       600,
 		LegalCoefficient: 1.0,
 		Duration:         10,
+		Ppos: 	&PposConfig{
+			Candidate: &CandidateConfig{
+				Threshold: 			"1000000000000000000000000",
+				DepositLimit: 	  	10,
+				MaxCount:          	7,
+				MaxChair:          	100,
+				RefundBlockNumber: 	512,
+			},
+		},
 	},
 	Ethash: ethash.Config{
 		CacheDir:       "ethash",
@@ -149,6 +158,8 @@ type Config struct {
 
 	// MPC pool options
 	MPCPool core.MPCPoolConfig
+
+	Debug bool
 }
 
 type CbftConfig struct {
@@ -157,10 +168,26 @@ type CbftConfig struct {
 	MaxLatency       int64   `json:"maxLatency"`
 	LegalCoefficient float64 `json:"legalCoefficient"`
 	Duration         int64   `json:"duration"`
-	//mock
-	//InitialNodes []discover.Node   `json:"initialNodes"`
-	//NodeID       discover.NodeID   `json:"nodeID,omitempty"`
-	//PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
+	Ppos 			*PposConfig 	`json:"ppos"`
+}
+
+
+type PposConfig struct {
+	Candidate 				*CandidateConfig 			`json:"candidate"`
+}
+
+type CandidateConfig struct {
+	// min deposit allow threshold
+	Threshold				string 					`json:"threshold"`
+	// min deposit limit percentage
+	DepositLimit 			uint64					`json:"depositLimit"`
+	// allow immediate elected max count
+	MaxCount				uint64					`json:"maxCount"`
+	// allow witness max count
+	MaxChair				uint64					`json:"maxChair"`
+	// allow block interval for refunds
+	RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
+
 }
 
 type configMarshaling struct {

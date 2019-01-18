@@ -63,6 +63,12 @@ const (
 	BlockChainVersion = 3
 )
 
+type shouldElectionFn func(blockNumber *big.Int) bool
+
+type shouldSwitchFn func(blockNumber *big.Int) bool
+
+type attemptAddConsensusPeerFn func(blockNumber *big.Int, state *state.StateDB)
+
 // CacheConfig contains the configuration values for the trie caching/pruning
 // that's resident in a blockchain.
 type CacheConfig struct {
@@ -129,6 +135,10 @@ type BlockChain struct {
 
 	badBlocks      *lru.Cache              // Bad block cache
 	shouldPreserve func(*types.Block) bool // Function used to determine whether should preserve the given block.
+
+	shouldElectionFn	shouldElectionFn
+	shouldSwitchFn	shouldSwitchFn
+	attemptAddConsensusPeerFn	attemptAddConsensusPeerFn
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -194,6 +204,12 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	// Take ownership of this particular state
 	go bc.update()
 	return bc, nil
+}
+
+func (bc *BlockChain) InitConsensusPeerFn(seFn shouldElectionFn, ssFn shouldSwitchFn, addFn attemptAddConsensusPeerFn) {
+	bc.shouldElectionFn = seFn
+	bc.shouldSwitchFn = ssFn
+	bc.attemptAddConsensusPeerFn = addFn
 }
 
 func (bc *BlockChain) getProcInterrupt() bool {
@@ -568,6 +584,11 @@ func (bc *BlockChain) HasBlockAndState(hash common.Hash, number uint64) bool {
 // GetBlock retrieves a block from the database by hash and number,
 // caching it if found.
 func (bc *BlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
+	return bc.getBlock(hash, number)
+}
+
+// modified by PlatON
+func (bc *BlockChain) getBlock(hash common.Hash, number uint64) *types.Block {
 	// Short circuit if the block's already in the cache, retrieve otherwise
 	if block, ok := bc.blockCache.Get(hash); ok {
 		return block.(*types.Block)
@@ -917,6 +938,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		log.Error("check block is EIP158 error", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
 	}
+
+	log.Debug("【The root when  the write chain after calls commit】", "blocknumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.Hex())
+
 	triedb := bc.stateCache.TrieDB()
 
 	// If we're running an archive node, always flush
@@ -970,9 +994,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Write other block data using a batch.
 	batch := bc.db.NewBatch()
 	rawdb.WriteReceipts(batch, block.Hash(), block.NumberU64(), receipts)
-	if block.ConfirmSigns != nil {
-		rawdb.WriteBlockConfirmSigns(batch, block.Hash(), block.NumberU64(), block.ConfirmSigns)
-	}
 
 	// If the total difficulty is higher than our known, add it to the canonical chain
 	// Second clause in the if statement reduces the vulnerability to selfish mining.
@@ -1016,14 +1037,14 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	if err := batch.Write(); err != nil {
 		return NonStatTy, err
 	}
-	log.Debug("insert into chain", "WriteStatus", status, "hash", block.Hash(), "number", block.NumberU64(), "signs", rawdb.ReadBlockConfirmSigns(bc.db, block.Hash(), block.NumberU64()))
+	log.Debug("Read block signatures", "WriteStatus", status, "hash", block.Hash(), "number", block.NumberU64(), "signs", rawdb.ReadBody(bc.db, block.Hash(), block.NumberU64()).Signatures)
 
 	// Set new head.
 	if status == CanonStatTy {
 		bc.insert(block)
 
 		// parse block and retrieves txs
-		receipts := bc.GetReceiptsByHash(block.Hash())
+		receipts:= bc.GetReceiptsByHash(block.Hash())
 		MPC_POOL.InjectTxs(block, receipts, bc, state)
 	}
 	bc.futureBlocks.Remove(block.Hash())
@@ -1184,6 +1205,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
+		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
+		log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+		
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 		if err != nil {
@@ -1203,6 +1227,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
+
+		if _, ok := bc.engine.(consensus.Bft); ok {
+			log.Debug("Attempt to connect the next round of consensus nodes when insertchain", "number", block.Number())
+			bc.attemptAddConsensusPeerFn(block.Number(), state)
+		}
+
 		switch status {
 		case CanonStatTy:
 			log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
@@ -1238,6 +1268,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 //joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
+	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
+	root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
+	log.Debug("【The Consensus node synchronization】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {
@@ -1255,7 +1288,6 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	if logs != nil {
 		bc.logsFeed.Send(logs)
 	}
-
 	return receipts, nil
 }
 
