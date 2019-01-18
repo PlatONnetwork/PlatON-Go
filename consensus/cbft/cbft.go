@@ -416,36 +416,16 @@ func (cbft *Cbft) findClosestConfirmedExcludingSelf(current *BlockExt) *BlockExt
 	return closest
 }
 
-// signLogicalAndDescendant signs logical block go along the logical path from current block, and will not sign the block if there's another same number block has been signed.
-func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) *BlockExt {
-	cbft.log.Debug("sign logical block and its descendant", "hash", current.block.Hash(), "number", current.block.NumberU64())
-	highestLogical := cbft.findHighestLogical(current)
-
-	logicalBlocks := cbft.backTrackBlocks(highestLogical, current, true)
-
-	var rstBlock *BlockExt
+// signLogicals signs block if there's no same number block has been signed.
+func (cbft *Cbft) signLogicals(logicalBlocks []*BlockExt) {
+	cbft.log.Debug("sign logical blocks", "logicalBlockCount", len(logicalBlocks))
 	for _, logical := range logicalBlocks {
 		if logical.inTurn && !logical.isSigned {
 			if _, signed := cbft.signedSet[logical.block.NumberU64()]; !signed {
 				cbft.sign(logical)
-				cbft.log.Debug("reset TxPool after block signed", "hash", logical.block.Hash(), "number", logical.number)
-				//cbft.txPool.Reset(logical.block)
-				cbft.reset(logical.block)
-				rstBlock = logical
 			}
 		}
-
-		/*if logical.isConfirmed {
-			highestConfirmed = logical
-		}*/
 	}
-	return rstBlock
-	/*cbft.log.Trace("reset highest logical", "hash", highestLogical.block.Hash(), "number", highestLogical.block.NumberU64())
-	cbft.setHighestLogical(highestLogical)
-	if highestConfirmed != nil {
-		cbft.log.Trace("reset highest confirmed", "hash", highestConfirmed.block.Hash(), "number", highestConfirmed.block.NumberU64())
-		cbft.highestConfirmed = highestConfirmed
-	}*/
 }
 
 // executeBlockAndDescendant executes the block's transactions and its descendant
@@ -590,9 +570,15 @@ func SetBlockChainCache(blockChainCache *core.BlockChainCache) {
 }
 
 // setHighestLogical sets highest logical block and send it to the highestLogicalBlockCh
-func (cbft *Cbft) setHighestLogical(highestLogical *BlockExt) {
-	cbft.highestLogical.Store(highestLogical)
-	cbft.highestLogicalBlockCh <- highestLogical.block
+func (cbft *Cbft) setHighestLogical(highestLogical *BlockExt, forked bool) {
+	cur := cbft.getHighestLogical()
+	if cur == nil || cur.block.Hash() != highestLogical.block.Hash() {
+		cbft.highestLogical.Store(highestLogical)
+		if !forked {
+			cbft.reset(highestLogical.block)
+		}
+		cbft.highestLogicalBlockCh <- highestLogical.block
+	}
 }
 
 // SetBackend sets blockChain and txPool into cbft
@@ -622,7 +608,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	cbft.highestConfirmed.Store(current)
 
 	//cbft.highestLogical = current
-	cbft.setHighestLogical(current)
+	cbft.setHighestLogical(current, false)
 
 	cbft.rootIrreversible.Store(current)
 
@@ -672,36 +658,33 @@ func (cbft *Cbft) blockSynced() {
 			if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
 				//remove bad block from tree and map
 				cbft.removeBadBlock(child)
-				cbft.log.Error("execute the block error, remove it", "err", err)
+				cbft.log.Warn("execute the block error, remove it", "err", err)
 				break
 			}
 		}
 
-		//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
-		rstBlock := cbft.signLogicalAndDescendant(newRoot)
-
-		//reset logical path
 		highestLogical := cbft.findHighestLogical(newRoot)
-		cbft.setHighestLogical(highestLogical)
+		highestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(newRoot)
+
+		//rearrange new logical path, and sign block if necessary
+		logicals := cbft.backTrackBlocks(newRoot, highestLogical, true)
+		cbft.signLogicals(logicals)
+
+		//reset highest logical
+		cbft.setHighestLogical(highestLogical, false)
 
 		//reset highest confirmed block
-		cbft.highestConfirmed.Store(cbft.findLastClosestConfirmedIncludingSelf(newRoot))
+		cbft.highestConfirmed.Store(highestConfirmed)
 
 		if cbft.getHighestConfirmed() != nil {
 			cbft.log.Debug("cbft.highestConfirmed", "hash", newRoot.block.Hash(), "number", newRoot.block.NumberU64())
 		} else {
-			cbft.log.Debug("cbft.highestConfirmed is null")
+			cbft.log.Warn("cbft.highestConfirmed is null")
 		}
 
 		if !cbft.flushReadyBlock() {
 			//remove all other blocks those their numbers are too low
 			cbft.cleanByNumber(cbft.getRootIrreversible().number)
-		}
-
-		cbft.log.Debug("reset TxPool after block synced", "hash", newRoot.block.Hash(), "number", newRoot.number)
-		if rstBlock == nil {
-			//cbft.txPool.Reset(currentBlock)
-			cbft.reset(currentBlock)
 		}
 	}
 
@@ -848,7 +831,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 		if current.number > cbft.getHighestConfirmed().number && cbft.getHighestConfirmed().isAncestor(current) {
 			cbft.highestConfirmed.Store(current)
 			newHighestLogical := cbft.findHighestLogical(current)
-			cbft.setHighestLogical(newHighestLogical)
+			cbft.setHighestLogical(newHighestLogical, false)
 		} else if current.number < cbft.getHighestConfirmed().number && !current.isAncestor(cbft.getHighestConfirmed()) {
 			//only this case may cause a new fork
 			cbft.checkFork(current)
@@ -980,14 +963,16 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 		*/
 
 		if isLogical {
-			cbft.signLogicalAndDescendant(blockExt)
-			//rearrange logical path
 			newHighestLogical := cbft.findHighestLogical(cbft.getHighestConfirmed())
-			if newHighestLogical != nil {
-				cbft.setHighestLogical(newHighestLogical)
-			}
-
 			newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(cbft.getHighestConfirmed())
+
+			//rearrange new logical path, and sign block if necessary
+			logicals := cbft.backTrackBlocks(blockExt, newHighestLogical, true)
+			cbft.signLogicals(logicals)
+
+			if newHighestLogical != nil {
+				cbft.setHighestLogical(newHighestLogical, false)
+			}
 			if newHighestConfirmed != nil {
 				cbft.highestConfirmed.Store(newHighestConfirmed)
 			}
@@ -1056,7 +1041,7 @@ func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
 
 		//forkFrom to lower block
 		cbft.highestConfirmed.Store(newHighestConfirmed)
-		cbft.setHighestLogical(newHighestLogical)
+		cbft.setHighestLogical(newHighestLogical, true)
 		cbft.log.Warn("chain is forked")
 	}
 }
@@ -1203,7 +1188,7 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 		//可以在函数体内编写自己的代码，调用map中的k,v
 		hash := k.(common.Hash)
 		ext := v.(*BlockExt)
-		if ext.number < upperLimit {
+		if ext.number < upperLimit-uint64(windowSize) {
 			cbft.log.Debug("remove block in memory", "hash", hash, "number", ext.number)
 			cbft.blockExtMap.Delete(hash)
 		}
@@ -1212,7 +1197,7 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 	cbft.blockExtMap.Range(f)
 
 	for number, _ := range cbft.signedSet {
-		if number < upperLimit {
+		if number < upperLimit-uint64(windowSize) {
 			delete(cbft.signedSet, number)
 		}
 	}
@@ -1358,7 +1343,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	}
 
 	if !cbft.getHighestLogical().isParent(block) {
-		cbft.log.Error("Futile block cause highest logical block changed", "parentHash", block.ParentHash())
+		cbft.log.Warn("Futile block cause highest logical block changed", "number", block.Number(), "parentHash", block.ParentHash(), "highestLogical.Number", cbft.getHighestLogical().number, "highestLogical.Hash", cbft.getHighestLogical().block.Hash())
 		return errFutileBlock
 	}
 
@@ -1399,18 +1384,14 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
 		current.isConfirmed = true
 		current.isSigned = true
-		cbft.setHighestLogical(current)
+		cbft.setHighestLogical(current, false)
 		cbft.highestConfirmed.Store(current)
 		cbft.flushReadyBlock()
-
-		cbft.log.Debug("reset TxPool after block sealed", "hash", current.block.Hash(), "number", current.number)
-		//cbft.txPool.Reset(current.block)
-		cbft.reset(current.block)
 		return nil
 	}
 
 	//reset cbft.highestLogicalBlockExt cause this block is produced by myself
-	cbft.setHighestLogical(current)
+	cbft.setHighestLogical(current, false)
 
 	go func() {
 		select {
@@ -1421,10 +1402,6 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 			cbft.log.Warn("Sealing result is not ready by miner", "sealHash", header.SealHash())
 		}
 	}()
-
-	cbft.log.Debug("reset TxPool after block sealed", "hash", current.block.Hash(), "number", current.number)
-	//cbft.txPool.Reset(current.block)
-	cbft.reset(current.block)
 	return nil
 }
 
