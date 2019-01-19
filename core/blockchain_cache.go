@@ -8,6 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"sync"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 var (
@@ -71,7 +72,20 @@ func (bcc *BlockChainCache) ReadReceipts(sealHash common.Hash) []*types.Receipt 
 	bcc.receiptsMu.RLock()
 	defer bcc.receiptsMu.RUnlock()
 	if obj, exist := bcc.receiptsCache[sealHash]; exist {
-		return obj.receipts
+		var reps []*types.Receipt
+		if repArr, err := rlp.EncodeToBytes(obj.receipts); nil != err {
+			log.Debug("Failed to  encoding receipts", "err", err)
+			return nil
+		}else {
+			if err := rlp.DecodeBytes(repArr, &reps); nil != err {
+				log.Debug("Failed to  dncoding receipts", "err", err)
+				return nil
+			}else {
+				return reps
+			}
+		}
+
+		//return obj.receipts
 	}
 	return nil
 }
