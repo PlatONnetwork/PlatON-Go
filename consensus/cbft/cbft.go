@@ -1317,8 +1317,10 @@ func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) 
 func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
 	cbft.log.Debug("call Prepare()", "hash", header.Hash(), "number", header.Number.Uint64())
 
-	if cbft.getHighestLogical().block == nil || header.ParentHash != cbft.getHighestLogical().block.Hash() || header.Number.Uint64()-1 != cbft.getHighestLogical().block.NumberU64() {
-		return consensus.ErrUnknownAncestor
+	if cbft.getHighestLogical().block == nil {
+		return errors.New("highest logical block is empty")
+	} else if header.ParentHash != cbft.getHighestLogical().block.Hash() || header.Number.Uint64()-1 != cbft.getHighestLogical().block.NumberU64() {
+		return errors.New("parent is not current highest logical block")
 	}
 
 	//header.Extra[0:31] to store block's version info etc. and right pad with 0x00;
