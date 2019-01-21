@@ -51,7 +51,6 @@ type Genesis struct {
 	Timestamp  uint64              `json:"timestamp"`
 	ExtraData  []byte              `json:"extraData"`
 	GasLimit   uint64              `json:"gasLimit"   gencodec:"required"`
-	Difficulty *big.Int            `json:"difficulty" gencodec:"required"`
 	Mixhash    common.Hash         `json:"mixHash"`
 	Coinbase   common.Address      `json:"coinbase"`
 	Alloc      GenesisAlloc        `json:"alloc"      gencodec:"required"`
@@ -63,19 +62,16 @@ type Genesis struct {
 	ParentHash common.Hash `json:"parentHash"`
 }
 
-
 // GenesisAlloc specifies the initial state that is part of the genesis block.
 type GenesisAlloc map[common.Address]GenesisAccount
 
 func (ga *GenesisAlloc) UnmarshalJSON(data []byte) error {
-
 	m := make(map[common.UnprefixedAddress]GenesisAccount)
 	if err := json.Unmarshal(data, &m); err != nil {
 		return err
 	}
 	*ga = make(GenesisAlloc)
 	for addr, a := range m {
-
 		(*ga)[common.Address(addr)] = a
 	}
 	return nil
@@ -98,7 +94,6 @@ type genesisSpecMarshaling struct {
 	GasLimit   math.HexOrDecimal64
 	GasUsed    math.HexOrDecimal64
 	Number     math.HexOrDecimal64
-	Difficulty *math.HexOrDecimal256
 	Alloc      map[common.UnprefixedAddress]GenesisAccount
 }
 
@@ -168,7 +163,6 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 		} else {
 			log.Info("Writing custom genesis block")
 		}
-
 		block, err := genesis.Commit(db)
 		return genesis.Config, block.Hash(), err
 	}
@@ -248,16 +242,12 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Extra:      g.ExtraData,
 		GasLimit:   g.GasLimit,
 		GasUsed:    g.GasUsed,
-		Difficulty: g.Difficulty,
 		MixDigest:  g.Mixhash,
 		Coinbase:   g.Coinbase,
 		Root:       root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
-	}
-	if g.Difficulty == nil {
-		head.Difficulty = params.GenesisDifficulty
 	}
 	statedb.Commit(false)
 	statedb.Database().TrieDB().Commit(root, true)
@@ -276,7 +266,6 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}
-	rawdb.WriteTd(db, block.Hash(), block.NumberU64(), g.Difficulty)
 	rawdb.WriteBlock(db, block)
 	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
 	rawdb.WriteCanonicalHash(db, block.Hash(), block.NumberU64())
@@ -314,7 +303,6 @@ func DefaultGenesisBlock() *Genesis {
 		Nonce:      0, // 66
 		ExtraData:  hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
 		GasLimit:   3150000000, //5000
-		Difficulty: big.NewInt(2),
 		Alloc:      decodePrealloc(mainnetAllocData),
 	}
 }
@@ -326,7 +314,6 @@ func DefaultTestnetGenesisBlock() *Genesis {
 		Nonce:      66,
 		ExtraData:  hexutil.MustDecode("0x3535353535353535353535353535353535353535353535353535353535353535"),
 		GasLimit:   16777216,
-		Difficulty: big.NewInt(1048576),
 		Alloc:      decodePrealloc(testnetAllocData),
 	}
 }
@@ -338,7 +325,6 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 		Timestamp:  1492009146,
 		ExtraData:  hexutil.MustDecode("0x52657370656374206d7920617574686f7269746168207e452e436172746d616e42eb768f2244c8811c63729a21a3569731535f067ffc57839b00206d1ad20c69a1981b489f772031b279182d99e65703f0076e4812653aab85fca0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:   4700000,
-		Difficulty: big.NewInt(1),
 		Alloc:      decodePrealloc(rinkebyAllocData),
 	}
 }
@@ -349,7 +335,6 @@ func DefaultGrapeGenesisBlock() *Genesis {
 		Timestamp:  1492009146,
 		ExtraData:  hexutil.MustDecode("0x52657370656374206d7920617574686f7269746168207e452e436172746d616e42eb768f2244c8811c63729a21a3569731535f067ffc57839b00206d1ad20c69a1981b489f772031b279182d99e65703f0076e4812653aab85fca0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:   3150000000,
-		Difficulty: big.NewInt(1),
 		Alloc:      decodePrealloc(testnetAllocData),
 	}
 }
@@ -365,7 +350,6 @@ func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 		Config:     &config,
 		ExtraData:  append(append(make([]byte, 32), faucet[:]...), make([]byte, 65)...),
 		GasLimit:   6283185,
-		Difficulty: big.NewInt(1),
 		Alloc: map[common.Address]GenesisAccount{
 			common.BytesToAddress([]byte{1}): {Balance: big.NewInt(1)}, // ECRecover
 			common.BytesToAddress([]byte{2}): {Balance: big.NewInt(1)}, // SHA256

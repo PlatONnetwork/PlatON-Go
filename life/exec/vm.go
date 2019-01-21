@@ -252,8 +252,8 @@ func NewVirtualMachineWithModule(m *compiler.Module, functionCode []compiler.Int
 		// Initialize empty memory.
 		memory.Memory = memPool.Get(capacity)
 		memory.Start = initialLimit * DefaultPageSize
-		memory.Size = len(memory.Memory) - memory.Start
 		memory.tree = treePool.GetTree(capacity - initialLimit)
+		memory.Size = (len(memory.tree) + 1) / 2
 
 		if m.Base.Data != nil && len(m.Base.Data.Entries) > 0 {
 			for _, e := range m.Base.Data.Entries {

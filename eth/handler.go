@@ -85,6 +85,7 @@ type ProtocolManager struct {
 
 	eventMux      *event.TypeMux
 	txsCh         chan core.NewTxsEvent
+	txsCache      []*types.Transaction
 	txsSub        event.Subscription
 	minedBlockSub *event.TypeMuxSubscription
 
@@ -275,10 +276,8 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		genesis = pm.blockchain.Genesis()
 		head    = pm.blockchain.CurrentHeader()
 		hash    = head.Hash()
-		number  = head.Number.Uint64()
-		td      = pm.blockchain.GetTd(hash, number)
 	)
-	if err := p.Handshake(pm.networkID, td, hash, genesis.Hash()); err != nil {
+	if err := p.Handshake(pm.networkID, head.Number, hash, genesis.Hash()); err != nil {
 		p.Log().Debug("Ethereum handshake failed", "err", err)
 		return err
 	}
@@ -450,7 +449,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// If we already have a DAO header, we can check the peer's TD against it. If
 			// the peer's ahead of this, it too must have a reply to the DAO check
 			if daoHeader := pm.blockchain.GetHeaderByNumber(pm.chainconfig.DAOForkBlock.Uint64()); daoHeader != nil {
-				if _, td := p.Head(); td.Cmp(pm.blockchain.GetTd(daoHeader.Hash(), daoHeader.Number.Uint64())) >= 0 {
+				if _, bn := p.Head(); bn.Cmp(daoHeader.Number) >= 0 {
 					verifyDAO = false
 				}
 			}
@@ -634,6 +633,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&announces); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
+
 		// Mark the hashes as present at the remote node
 		for _, block := range announces {
 			p.MarkBlock(block.Hash)
@@ -666,20 +666,21 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		pm.fetcher.Enqueue(p.id, request.Block)
 
 		// Assuming the block is importable by the peer, but possibly not yet done so,
-		// calculate the head hash and TD that the peer truly must have.
+		// calculate the head hash and block number that the peer truly must have.
 		var (
 			trueHead = request.Block.ParentHash()
-			trueTD   = new(big.Int).Sub(request.TD, request.Block.Difficulty())
+			trueBn   = new(big.Int).Sub(request.Block.Number(), big.NewInt(1))
 		)
-		// Update the peers total difficulty if better than the previous
-		if _, td := p.Head(); trueTD.Cmp(td) > 0 {
-			p.SetHead(trueHead, trueTD)
+		// Update the peers block number if better than the previous
+
+		if _, bn := p.Head(); trueBn.Cmp(bn) > 0 {
+			p.SetHead(trueHead, trueBn)
 
 			// Schedule a sync if above ours. Note, this will not fire a sync for a gap of
 			// a singe block (as the true TD is below the propagated block), however this
 			// scenario should easily be covered by the fetcher.
 			currentBlock := pm.blockchain.CurrentBlock()
-			if trueTD.Cmp(pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())) > 0 {
+			if trueBn.Cmp(currentBlock.Number()) > 0 {
 				go pm.synchronise(p)
 			}
 		}
@@ -701,7 +702,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			}
 			p.MarkTransaction(tx.Hash())
 		}
-		pm.txpool.AddRemotes(txs)
+
+		go pm.txpool.AddRemotes(txs)
 
 	case msg.Code == PrepareBlockMsg:
 		// Retrieve and decode the propagated block
@@ -709,7 +711,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		log.Warn("------------Received a broadcast message[PrepareBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
+		log.Warn("Received a broadcast message[PrepareBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
@@ -786,7 +788,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			for {
 				e := p.PingList.Front()
 				if e != nil {
-					log.Debug("Front element of p.PingList", "element", e)
+					log.Trace("Front element of p.PingList", "element", e)
 					if t, ok := p.PingList.Remove(e).(string); ok {
 						if t == pingTime[0] {
 
@@ -795,14 +797,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 								return errResp(ErrDecode, "%v: %v", msg, err)
 							}
 
-							log.Debug("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
+							log.Trace("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
 							latency := (curTime - tInt64) / 2 / 1000000
 							cbftEngine.OnPong(p.Peer.ID(), latency)
 							break
 						}
 					}
 				} else {
-					log.Debug("end of p.PingList")
+					log.Trace("end of p.PingList")
 					break
 				}
 			}
@@ -828,9 +830,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	// If propagation is requested, send to a subset of the peer
 	if propagate {
 		// Calculate the TD of the block (it's not imported yet, so block.Td is not valid)
-		var td *big.Int
 		if parent := pm.blockchain.GetBlock(block.ParentHash(), block.NumberU64()-1); parent != nil {
-			td = new(big.Int).Add(block.Difficulty(), pm.blockchain.GetTd(block.ParentHash(), block.NumberU64()-1))
 		} else {
 			log.Error("Propagating dangling block", "number", block.Number(), "hash", hash)
 			return
@@ -838,7 +838,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 		// Send the block to a subset of our peers
 		transfer := peers[:int(math.Sqrt(float64(len(peers))))]
 		for _, peer := range transfer {
-			peer.AsyncSendNewBlock(block, td)
+			peer.AsyncSendNewBlock(block)
 		}
 		log.Trace("Propagated block", "hash", hash, "recipients", len(transfer), "duration", common.PrettyDuration(time.Since(block.ReceivedAt)))
 		return
@@ -962,10 +962,25 @@ func (pm *ProtocolManager) blockSignaturecastLoop() {
 }
 
 func (pm *ProtocolManager) txBroadcastLoop() {
+	timer := time.NewTimer(defaultBroadcastInterval)
+
 	for {
 		select {
 		case event := <-pm.txsCh:
-			pm.BroadcastTxs(event.Txs)
+			pm.txsCache = append(pm.txsCache, event.Txs...)
+			if len(pm.txsCache) >= defaultTxsCacheSize {
+				log.Trace("broadcast txs", "count", len(pm.txsCache))
+				pm.BroadcastTxs(pm.txsCache)
+				pm.txsCache = make([]*types.Transaction, 0)
+				timer.Reset(defaultBroadcastInterval)
+			}
+		case <-timer.C:
+			if len(pm.txsCache) > 0 {
+				log.Trace("broadcast txs", "count", len(pm.txsCache))
+				pm.BroadcastTxs(pm.txsCache)
+				pm.txsCache = make([]*types.Transaction, 0)
+			}
+			timer.Reset(defaultBroadcastInterval)
 
 		// Err() channel will be closed when unsubscribing.
 		case <-pm.txsSub.Err():
@@ -977,21 +992,19 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 // NodeInfo represents a short summary of the Ethereum sub-protocol metadata
 // known about the host peer.
 type NodeInfo struct {
-	Network    uint64              `json:"network"`    // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
-	Difficulty *big.Int            `json:"difficulty"` // Total difficulty of the host's blockchain
-	Genesis    common.Hash         `json:"genesis"`    // SHA3 hash of the host's genesis block
-	Config     *params.ChainConfig `json:"config"`     // Chain configuration for the fork rules
-	Head       common.Hash         `json:"head"`       // SHA3 hash of the host's best owned block
+	Network uint64              `json:"network"` // Ethereum network ID (1=Frontier, 2=Morden, Ropsten=3, Rinkeby=4)
+	Genesis common.Hash         `json:"genesis"` // SHA3 hash of the host's genesis block
+	Config  *params.ChainConfig `json:"config"`  // Chain configuration for the fork rules
+	Head    common.Hash         `json:"head"`    // SHA3 hash of the host's best owned block
 }
 
 // NodeInfo retrieves some protocol metadata about the running host node.
 func (pm *ProtocolManager) NodeInfo() *NodeInfo {
 	currentBlock := pm.blockchain.CurrentBlock()
 	return &NodeInfo{
-		Network:    pm.networkID,
-		Difficulty: pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64()),
-		Genesis:    pm.blockchain.Genesis().Hash(),
-		Config:     pm.blockchain.Config(),
-		Head:       currentBlock.Hash(),
+		Network: pm.networkID,
+		Genesis: pm.blockchain.Genesis().Hash(),
+		Config:  pm.blockchain.Config(),
+		Head:    currentBlock.Hash(),
 	}
 }

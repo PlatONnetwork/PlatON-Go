@@ -52,7 +52,6 @@ func TestStreamKind(t *testing.T) {
 		// using plainReader to inhibit input limit errors.
 		s := NewStream(newPlainReader(unhex(test.input)), 0)
 		kind, len, err := s.Kind()
-		fmt.Println("i: ", i, "test: ", test, "s: ", s, "kind: ", kind)
 		if err != nil {
 			t.Errorf("test %d: Kind returned error: %v", i, err)
 			continue
@@ -68,7 +67,6 @@ func TestStreamKind(t *testing.T) {
 
 func TestNewListStream(t *testing.T) {
 	ls := NewListStream(bytes.NewReader(unhex("0101010101")), 3)
-	println(ls, "\n")
 	if k, size, err := ls.Kind(); k != List || size != 3 || err != nil {
 		t.Errorf("Kind() returned (%v, %d, %v), expected (List, 3, nil)", k, size, err)
 	}
@@ -230,6 +228,7 @@ testfor:
 
 func TestStreamList(t *testing.T) {
 	s := NewStream(bytes.NewReader(unhex("C80102030405060708")), 0)
+
 	len, err := s.List()
 	if err != nil {
 		t.Fatalf("List error: %v", err)
@@ -237,9 +236,9 @@ func TestStreamList(t *testing.T) {
 	if len != 8 {
 		t.Fatalf("List returned invalid length, got %d, want 8", len)
 	}
+
 	for i := uint64(1); i <= 8; i++ {
 		v, err := s.Uint()
-		println("i: ", i, " v: ", v)
 		if err != nil {
 			t.Fatalf("Uint error: %v", err)
 		}

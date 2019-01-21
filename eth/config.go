@@ -28,7 +28,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/eth/gasprice"
@@ -63,13 +62,6 @@ var DefaultConfig = Config{
 			},
 		},
 	},
-	Ethash: ethash.Config{
-		CacheDir:       "ethash",
-		CachesInMem:    2,
-		CachesOnDisk:   3,
-		DatasetsInMem:  1,
-		DatasetsOnDisk: 2,
-	},
 	NetworkId:     1,
 	LightPeers:    100,
 	DatabaseCache: 768,
@@ -86,8 +78,8 @@ var DefaultConfig = Config{
 		Percentile: 60,
 	},
 
-	MPCPool: core.DefaultMPCPoolConfig ,
-
+	MPCPool: core.DefaultMPCPoolConfig,
+	VCPool:  core.DefaultVCPoolConfig,
 }
 
 func init() {
@@ -98,9 +90,9 @@ func init() {
 		}
 	}
 	if runtime.GOOS == "windows" {
-		DefaultConfig.Ethash.DatasetDir = filepath.Join(home, "AppData", "Ethash")
+		//DefaultConfig.Ethash.DatasetDir = filepath.Join(home, "AppData", "Ethash")
 	} else {
-		DefaultConfig.Ethash.DatasetDir = filepath.Join(home, ".ethash")
+		//DefaultConfig.Ethash.DatasetDir = filepath.Join(home, ".ethash")
 	}
 }
 
@@ -111,7 +103,7 @@ type Config struct {
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
 
-	CbftConfig	CbftConfig `toml:",omitempty"`
+	CbftConfig CbftConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
@@ -139,9 +131,6 @@ type Config struct {
 	MinerRecommit  time.Duration
 	MinerNoverify  bool
 
-	// Ethash options
-	Ethash ethash.Config
-
 	// Transaction pool options
 	TxPool core.TxPoolConfig
 
@@ -162,7 +151,7 @@ type Config struct {
 
 	// MPC pool options
 	MPCPool core.MPCPoolConfig
-
+	VCPool  core.VCPoolConfig
 	Debug bool
 }
 

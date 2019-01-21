@@ -325,7 +325,7 @@ func (pm *ProtocolManager) blockLoop() {
 	headSub := pm.blockchain.SubscribeChainHeadEvent(headCh)
 	go func() {
 		var lastHead *types.Header
-		lastBroadcastTd := common.Big0
+		lastBroadcastBn := uint64(0)
 		for {
 			select {
 			case ev := <-headCh:
@@ -334,18 +334,17 @@ func (pm *ProtocolManager) blockLoop() {
 					header := ev.Block.Header()
 					hash := header.Hash()
 					number := header.Number.Uint64()
-					td := rawdb.ReadTd(pm.chainDb, hash, number)
-					if td != nil && td.Cmp(lastBroadcastTd) > 0 {
+					if number > lastBroadcastBn {
 						var reorg uint64
 						if lastHead != nil {
 							reorg = lastHead.Number.Uint64() - rawdb.FindCommonAncestor(pm.chainDb, header, lastHead).Number.Uint64()
 						}
 						lastHead = header
-						lastBroadcastTd = td
+						lastBroadcastBn = number
 
-						log.Debug("Announcing block to peers", "number", number, "hash", hash, "td", td, "reorg", reorg)
+						log.Debug("Announcing block to peers", "number", number, "hash", hash, "reorg", reorg)
 
-						announce := announceData{Hash: hash, Number: number, Td: td, ReorgDepth: reorg}
+						announce := announceData{Hash: hash, Number: number, ReorgDepth: reorg}
 						var (
 							signed         bool
 							signedAnnounce announceData

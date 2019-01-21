@@ -41,13 +41,17 @@ type revision struct {
 }
 
 var (
+	storagePrefix = "storage-value-"
 	// emptyState is the known hash of an empty state trie entry.
 	emptyState = crypto.Keccak256Hash(nil)
 
 	// emptyCode is the known hash of the empty EVM bytecode.
 	emptyCode = crypto.Keccak256Hash(nil)
+	emptyStorage = crypto.Keccak256Hash([]byte(storagePrefix))
+	
 	//ppos add
 	ErrNotfindFromNodeId = errors.New("Not find tickets from node id")
+	
 )
 
 // StateDBs within the ethereum protocol are used to store anything
@@ -367,9 +371,16 @@ func getKeyValue(address common.Address, key []byte, value []byte) (string, comm
 
 	//if value != nil && !bytes.Equal(value,[]byte{}){
 	buffer.Reset()
-	buffer.WriteString(string(key))
+	//buffer.WriteString(string(key))
+	buffer.WriteString(storagePrefix)
 	buffer.WriteString(string(value))
-	valueKey := sha3.Sum256(buffer.Bytes())
+	//valueKey := sha3.Sum256(buffer.Bytes())
+	
+	valueKey := common.Hash{}
+	keccak := sha3.NewKeccak256()
+	keccak.Write(buffer.Bytes())
+	keccak.Sum(valueKey[:0])
+
 	return keyTrie, valueKey, value
 	//}
 	//return keyTrie, common.Hash{}, value

@@ -29,8 +29,8 @@ const (
 	CallValueTransferGas  uint64 = 9000  // Paid for CALL when the value transfer is non-zero.
 	CallNewAccountGas     uint64 = 25000 // Paid for CALL when the destination address didn't exist prior.
 	TxGas                 uint64 = 21000 // Per transaction not creating a contract. NOTE: Not payable on data of calls between transactions.
-	// todo: 而已创建gas需要的值，此处需要处理 pre value: 53000
-	TxGasContractCreation uint64 = 453000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
+	// todo: pre value: 53000
+	TxGasContractCreation uint64 = 53000 // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
 	TxDataZeroGas         uint64 = 4     // Per byte of data attached to a transaction that equals zero. NOTE: Not payable on data of calls between transactions.
 	QuadCoeffDiv          uint64 = 512   // Divisor for the quadratic particle of the memory cost equation.
 	LogDataGas            uint64 = 8     // Per byte in a LOG* operation's data.
@@ -70,9 +70,8 @@ const (
 	MemoryGas        uint64 = 3     // Times the address of the (highest referenced byte in memory + 1). NOTE: referencing happens on read, write and in instructions such as RETURN and CALL.
 	TxDataNonZeroGas uint64 = 68    // Per byte of data attached to a transaction that is not equal to zero. NOTE: Not payable on data of calls between transactions.
 
-	// todo: 调整合约最大字节大小限制. pre value : 24576
-	// todo: 此处的调整直接影响gas的计费，需要处理
-	MaxCodeSize = 124576 // Maximum bytecode to permit for a contract
+	// todo: MAX CODE SIZE. pre value : 24576
+	MaxCodeSize = 524288 // Maximum bytecode to permit for a contract
 
 	// Precompiled contract gas prices
 
