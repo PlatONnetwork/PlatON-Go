@@ -135,7 +135,7 @@ func (t *TicketContract) GetBatchTicketDetail(ticketIds []common.Hash) ([]byte, 
 	log.Info("Input to GetBatchTicketDetail==>", "length: ", len(ticketIds), "ticketIds: ", string(input))
 	tickets, _ := t.Evm.TicketPool.GetTicketList(t.Evm.StateDB, ticketIds)
 	if 0 == len(tickets) {
-		log.Warn("Failed to GetBatchTicketDetail==> ", "The query does not exist")
+		log.Warn("Failed to GetBatchTicketDetail==> The query does not exist")
 		tickets := make([]types.Ticket, 0)
 		data, _ := json.Marshal(tickets)
 		sdata := DecodeResultStr(string(data))
@@ -170,7 +170,7 @@ func (t *TicketContract) GetBatchCandidateTicketIds(nodeIds []discover.NodeID) (
 	log.Info("Input to GetBatchCandidateTicketIds==> ", "length: ", len(nodeIds), "nodeIds: ", string(input))
 	candidatesTicketIds, _ := t.Evm.TicketPool.GetCandidatesTicketIds(t.Evm.StateDB, nodeIds)
 	if 0 == len(candidatesTicketIds) {
-		log.Warn("Failed to GetBatchCandidateTicketIds==> ", "The query does not exist")
+		log.Warn("Failed to GetBatchCandidateTicketIds==> The query does not exist")
 		candidatesTicketIds := make(map[discover.NodeID][]common.Hash, 0)
 		data, _ := json.Marshal(candidatesTicketIds)
 		sdata := DecodeResultStr(string(data))
