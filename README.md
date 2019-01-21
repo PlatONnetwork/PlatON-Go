@@ -85,7 +85,7 @@ then, edit the following content and save it as json file, such as genesis.json:
   "nonce": "0x0",
   "timestamp": "0x5c074288",
   "extraData": "0x00",
-  "gasLimit": "0x47b760",
+  "gasLimit": "0x99947b760",
   "difficulty": "0x40000",
   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "coinbase": "0x0000000000000000000000000000000000000000",
