@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"gopkg.in/urfave/cli.v1"

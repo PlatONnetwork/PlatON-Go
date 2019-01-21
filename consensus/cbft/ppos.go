@@ -49,7 +49,7 @@ func newPpos(config *params.CbftConfig) *ppos {
 }
 
 
-func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) int64 {
+func (d *ppos) NodeIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) int64 {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
