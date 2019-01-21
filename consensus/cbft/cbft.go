@@ -791,11 +791,23 @@ func (cbft *Cbft) setDescendantInTree(child *BlockExt) {
 // removeBadBlock removes bad block executed error from the tree structure and cbft.blockExtMap.
 func (cbft *Cbft) removeBadBlock(badBlock *BlockExt) {
 	tailorTree(badBlock)
-	for _, child := range badBlock.children {
+	cbft.removeByTailored(badBlock)
+	/*for _, child := range badBlock.children {
 		child.parent = nil
 	}
-	cbft.blockExtMap.Delete(badBlock.block.Hash())
+	cbft.blockExtMap.Delete(badBlock.block.Hash())*/
 	//delete(cbft.blockExtMap, badBlock.block.Hash())
+}
+
+func (cbft *Cbft) removeByTailored(badBlock *BlockExt) {
+	if len(badBlock.children) > 0 {
+		for _, child := range badBlock.children {
+			cbft.removeByTailored(child)
+			cbft.blockExtMap.Delete(child.block.Hash())
+		}
+	} else {
+		cbft.blockExtMap.Delete(badBlock.block.Hash())
+	}
 }
 
 // signReceiver handles the received block signature
@@ -1186,14 +1198,16 @@ func (cbft *Cbft) flushReadyBlock() bool {
 
 // tailorTree tailors the old tree from new root
 func tailorTree(newRoot *BlockExt) {
-	for i := 0; i < len(newRoot.parent.children); i++ {
-		//remove newRoot from its parent's children list
-		if newRoot.parent.children[i].block.Hash() == newRoot.block.Hash() {
-			newRoot.parent.children = append(newRoot.parent.children[:i], newRoot.parent.children[i+1:]...)
-			break
+	if newRoot.parent != nil && newRoot.parent.children != nil {
+		for i := 0; i < len(newRoot.parent.children); i++ {
+			//remove newRoot from its parent's children list
+			if newRoot.parent.children[i].block.Hash() == newRoot.block.Hash() {
+				newRoot.parent.children = append(newRoot.parent.children[:i], newRoot.parent.children[i+1:]...)
+				break
+			}
 		}
+		newRoot.parent = nil
 	}
-	newRoot.parent = nil
 }
 
 // cleanByTailoredTree removes all blocks in the tree which has been tailored.
