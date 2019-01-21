@@ -599,6 +599,7 @@ func (s *Ethereum) Stop() error {
 func setPposConfig (pposConfig *PposConfig) *params.PposConfig{
 	return &params.PposConfig{
 		Candidate: 	&params.CandidateConfig{
+					Threshold:				pposConfig.Candidate.Threshold,
 					DepositLimit:			pposConfig.Candidate.DepositLimit,
 					Allowed: 				pposConfig.Candidate.Allowed,
 					MaxChair:  				pposConfig.Candidate.MaxChair,
@@ -606,6 +607,7 @@ func setPposConfig (pposConfig *PposConfig) *params.PposConfig{
 					RefundBlockNumber: 		pposConfig.Candidate.RefundBlockNumber,
 		},
 		TicketConfig: &params.TicketConfig{
+			TicketPrice: 		pposConfig.Ticket.TicketPrice,
 			MaxCount:			pposConfig.Ticket.MaxCount,
 			ExpireBlockNumber: 	pposConfig.Ticket.ExpireBlockNumber,
 		},

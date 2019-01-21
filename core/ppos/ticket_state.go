@@ -16,6 +16,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"strings"
 )
 
 var (
@@ -40,11 +41,14 @@ var (
 )
 
 type TicketPool struct {
+
+	// Ticket price
+	TicketPrice *big.Int
 	// Maximum number of ticket pool
 	MaxCount uint64
 	// Reach expired quantity
 	ExpireBlockNumber uint64
-	lock              *sync.RWMutex
+	lock              *sync.Mutex
 }
 
 var ticketPool *TicketPool
@@ -54,10 +58,22 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 	if nil != ticketPool {
 		return ticketPool
 	}
+
+	if "" == strings.TrimSpace(configs.Candidate.Threshold) {
+		configs.Candidate.Threshold = "1000000000000000000"
+	}
+	var ticketPrice *big.Int
+	if price, ok := new(big.Int).SetString(configs.TicketConfig.TicketPrice, 10); !ok {
+		ticketPrice, _ = new(big.Int).SetString("1000000000000000000", 10)
+	}else {
+		ticketPrice = price
+	}
+
 	ticketPool = &TicketPool{
+		TicketPrice: 	   ticketPrice,
 		MaxCount:          configs.TicketConfig.MaxCount,
 		ExpireBlockNumber: configs.TicketConfig.ExpireBlockNumber,
-		lock:              &sync.RWMutex{},
+		lock:              &sync.Mutex{},
 	}
 	return ticketPool
 }

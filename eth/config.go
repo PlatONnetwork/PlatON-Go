@@ -50,6 +50,7 @@ var DefaultConfig = Config{
 		Duration:         10,
 		Ppos: &PposConfig{
 			Candidate: &CandidateConfig{
+				Threshold: 			"1000000000000000000",
 				DepositLimit: 	  	10,
 				Allowed: 			100,
 				MaxCount:          	10,
@@ -57,6 +58,7 @@ var DefaultConfig = Config{
 				RefundBlockNumber: 	512,
 			},
 			Ticket: &TicketConfig{
+				TicketPrice: 		"1000000000000000000",
 				MaxCount:			51200,
 				ExpireBlockNumber: 	1536000,
 			},
@@ -171,6 +173,8 @@ type PposConfig struct {
 }
 
 type CandidateConfig struct {
+	// min deposit allow threshold
+	Threshold				string 					`json:"threshold"`
 	// min deposit limit percentage
 	DepositLimit 			uint64					`json:"depositLimit"`
 	// allow put into immedidate condition
@@ -184,6 +188,7 @@ type CandidateConfig struct {
 
 }
 type TicketConfig struct {
+	TicketPrice 		string 						`json:"ticketPrice"`
 	// Maximum number of ticket pool
 	MaxCount				uint64					`json:"maxCount"`
 	// Reach expired quantity

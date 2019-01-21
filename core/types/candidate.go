@@ -6,13 +6,15 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
+type CanConditions map[discover.NodeID]*big.Int
+
 type CandidateQueue []*Candidate
 
-func compare(c, can *Candidate) int {
+func compare(cand CanConditions, c, can *Candidate) int {
 	// put the larger deposit in front
-	if c.Deposit.Cmp(can.Deposit) > 0 {
+	if  cand[c.CandidateId].Cmp(cand[can.CandidateId]) > 0 /* c.Deposit.Cmp(can.Deposit) > 0*/ {
 		return 1
-	} else if c.Deposit.Cmp(can.Deposit) == 0 {
+	} else if cand[c.CandidateId].Cmp(cand[can.CandidateId]) == 0 /* c.Deposit.Cmp(can.Deposit) == 0 */{
 		// put the smaller blocknumber in front
 		if c.BlockNumber.Cmp(can.BlockNumber) > 0 {
 			return -1
@@ -34,29 +36,29 @@ func compare(c, can *Candidate) int {
 }
 
 // sorted candidates
-func (arr CandidateQueue) CandidateSort() {
+func (arr CandidateQueue) CandidateSort(cand CanConditions) {
 	if len(arr) <= 1 {
 		return
 	}
-	arr.quickSort(0, len(arr)-1)
+	arr.quickSort(cand,0, len(arr)-1)
 }
-func (arr CandidateQueue) quickSort(left, right int) {
+func (arr CandidateQueue) quickSort(cand CanConditions, left, right int) {
 	if left < right {
-		pivot := arr.partition(left, right)
-		arr.quickSort(left, pivot-1)
-		arr.quickSort(pivot+1, right)
+		pivot := arr.partition(cand, left, right)
+		arr.quickSort(cand, left, pivot-1)
+		arr.quickSort(cand, pivot+1, right)
 	}
 }
-func (arr CandidateQueue) partition(left, right int) int {
+func (arr CandidateQueue) partition(cand CanConditions, left, right int) int {
 	for left < right {
-		for left < right && compare(arr[left], arr[right]) >= 0 {
+		for left < right && compare(cand, arr[left], arr[right]) >= 0 {
 			right--
 		}
 		if left < right {
 			arr[left], arr[right] = arr[right], arr[left]
 			left++
 		}
-		for left < right && compare(arr[left], arr[right]) >= 0 {
+		for left < right && compare(cand, arr[left], arr[right]) >= 0 {
 			left++
 		}
 		if left < right {

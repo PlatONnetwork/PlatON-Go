@@ -127,6 +127,7 @@ var (
 			Duration:  30,
 			PposConfig: &PposConfig{
 				Candidate: &CandidateConfig{
+					Threshold: 			"1000000000000000000",
 					DepositLimit: 	  	10,
 					Allowed: 			100,
 					MaxCount:          	10,
@@ -134,6 +135,7 @@ var (
 					RefundBlockNumber: 	512,
 				},
 				TicketConfig: &TicketConfig{
+					TicketPrice: 		"1000000000000000000",
 					MaxCount:			51200,
 					ExpireBlockNumber: 	1536000,
 				},
@@ -241,6 +243,7 @@ type PposConfig struct {
 	TicketConfig *TicketConfig
 }
 type CandidateConfig struct {
+	Threshold		  string
 	DepositLimit 	  uint64
 	Allowed 		  uint64
 	MaxCount          uint64
@@ -249,6 +252,7 @@ type CandidateConfig struct {
 }
 
 type TicketConfig struct {
+	TicketPrice 			string
 	MaxCount				uint64
 	ExpireBlockNumber		uint64
 }
