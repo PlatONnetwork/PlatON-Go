@@ -17,11 +17,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"math"
 	"math/big"
@@ -519,6 +517,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	//to execute
 	blockInterval := new(big.Int).Sub(ext.block.Number(), cbft.blockChain.CurrentBlock().Number())
 	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block, blockInterval)
+
 	if err == nil {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
@@ -910,7 +909,7 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 	//isLegal := cbft.isLegal(rcvTime, producerID)
 	blockNumber := block.Number()
 	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
-	isLegal := cbft.isLegal(parentNumber, block.ParentHash(), blockNumber, rcvTime, producerID)
+	isLegal := cbft.isLegal(rcvTime, parentNumber, block.ParentHash(), blockNumber, producerID)
 	cbft.log.Debug("check if block is legal",
 		"result", isLegal,
 		"hash", block.Hash(),
@@ -1604,9 +1603,9 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 
 func (cbft *Cbft) inTurn(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime-300, cbft.config.NodeID, current)
+	inturn := cbft.calTurn(curTime-300, parentNumber, parentHash, commitNumber, cbft.config.NodeID, current)
 	if inturn {
-		inturn = cbft.calTurn(parentNumber, parentHash, commitNumber, curTime+600, cbft.config.NodeID, current)
+		inturn = cbft.calTurn(curTime+600, parentNumber, parentHash, commitNumber, cbft.config.NodeID, current)
 	}
 	log.Debug("inTurn", "result", inturn)
 	return inturn
@@ -1629,7 +1628,7 @@ func (cbft *Cbft) inTurnVerify(parentNumber *big.Int, parentHash common.Hash, bl
 		cbft.log.Warn("check if peer's turn to commit block", "result", false, "peerID", nodeID, "high latency ", latency)
 		return false
 	}
-	inTurnVerify := cbft.calTurn(parentNumber, parentHash, blockNumber, rcvTime-latency, nodeID, all)
+	inTurnVerify := cbft.calTurn(rcvTime-latency, parentNumber, parentHash, blockNumber, nodeID, all)
 	cbft.log.Debug("check if peer's turn to commit block", "result", inTurnVerify, "peerID", nodeID, "latency", latency)
 	return inTurnVerify
 }
@@ -1643,11 +1642,11 @@ func (cbft *Cbft) inTurnVerify(parentNumber *big.Int, parentHash common.Hash, bl
 //	}
 //	return isLegal
 //}
-func (cbft *Cbft) isLegal(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, curTime int64, producerID discover.NodeID) bool {
+func (cbft *Cbft) isLegal(rcvTime int64, parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, producerID discover.NodeID) bool {
 	offset := 1000 * (cbft.config.Duration/2 - 1)
-	isLegal := cbft.calTurn(parentNumber, parentHash, blockNumber, rcvTime-offset, producerID, all)
+	isLegal := cbft.calTurn(rcvTime-offset, parentNumber, parentHash, blockNumber, producerID, all)
 	if !isLegal {
-		isLegal = cbft.calTurn(parentNumber, parentHash, blockNumber, rcvTime+offset, producerID, all)
+		isLegal = cbft.calTurn(rcvTime+offset, parentNumber, parentHash, blockNumber, producerID, all)
 	}
 	return isLegal
 }
@@ -1675,7 +1674,7 @@ func (cbft *Cbft) isLegal(parentNumber *big.Int, parentHash common.Hash, blockNu
 //	return false
 //}
 
-func (cbft *Cbft) calTurn(timePoint int64, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) bool {
+func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) bool {
 	nodeIdx := cbft.ppos.NodeIndex(parentNumber, parentHash, blockNumber, nodeID, round)
 	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
 
@@ -1743,32 +1742,6 @@ func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature 
 	return false, nil
 }
 
-// seal hash, only include from byte[0] to byte[32] of header.Extra
-func sealHash(header *types.Header) (hash common.Hash) {
-	hasher := sha3.NewKeccak256()
-
-	rlp.Encode(hasher, []interface{}{
-		header.ParentHash,
-		header.UncleHash,
-		header.Coinbase,
-		header.Root,
-		header.TxHash,
-		header.ReceiptHash,
-		header.Bloom,
-		header.Difficulty,
-		header.Number,
-		header.GasLimit,
-		header.GasUsed,
-		header.Time,
-		header.Extra[0:32],
-		header.MixDigest,
-		header.Nonce,
-	})
-	hasher.Sum(hash[:0])
-
-	return hash
-}
-
 func (cbft *Cbft) verifySeal(chain consensus.ChainReader, header *types.Header, parents []*types.Header) error {
 	// Verifying the genesis block is not supported
 	number := header.Number.Uint64()
@@ -1803,9 +1776,9 @@ func toMilliseconds(t time.Time) int64 {
 func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	cbft.log.Trace("call ShouldSeal()")
 	
-	consensusNodes := cbft.ConsensusNodes(parentNumber, current.block.ParentHash(), blockNumber)
+	consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, commitNumber)
 	if consensusNodes != nil && len(consensusNodes) == 1 {
-		return true, nil
+		return true
 	}
 	
 	inturn := cbft.inTurn(parentNumber, parentHash, commitNumber)
@@ -1813,13 +1786,13 @@ func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, comm
 		cbft.netLatencyLock.RLock()
 		defer cbft.netLatencyLock.RUnlock()
 		peersCount := len(cbft.netLatencyMap)
-		if peersCount < cbft.getThreshold()-1 {
+		if peersCount < cbft.getThreshold(parentNumber, parentHash, commitNumber)-1 {
 			cbft.log.Debug("connected peers not enough", "connectedPeersCount", peersCount)
 			inturn = false
 		}
 	}
 	cbft.log.Debug("end of ShouldSeal()", "result", inturn)
-	return inturn, nil
+	return inturn
 }
 
 

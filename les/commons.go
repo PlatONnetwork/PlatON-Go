@@ -18,7 +18,6 @@ package les
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"

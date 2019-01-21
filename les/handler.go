@@ -1183,7 +1183,7 @@ type peerConnection struct {
 }
 
 func (pc *peerConnection) Head() (common.Hash, *big.Int) {
-	return pc.peer.HeadAndTd()
+	return pc.peer.HeadAndNum()
 }
 
 func (pc *peerConnection) RequestHeadersByHash(origin common.Hash, amount int, skip int, reverse bool) error {
