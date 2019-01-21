@@ -140,11 +140,15 @@ func newChainState() (*state.StateDB, error) {
 func newPool() (*pposm.CandidatePool, *pposm.TicketPool) {
 	configs := params.PposConfig{
 		Candidate: &params.CandidateConfig{
+			Threshold:         "100",
+			DepositLimit:      10,
+			Allowed:           2,
 			MaxChair:          1,
 			MaxCount:          3,
 			RefundBlockNumber: 1,
 		},
 		TicketConfig: &params.TicketConfig{
+			TicketPrice:       "100",
 			MaxCount:          100,
 			ExpireBlockNumber: 2,
 		},
@@ -560,6 +564,25 @@ func TestCandidatePoolEncode(t *testing.T) {
 		fmt.Println("CandidateDetails data rlp: ", hexutil.Encode(bufDetails.Bytes()))
 	}
 
+	// GetBatchCandidateDetail(nodeIds []discover.NodeID)
+	nodeId1 := "0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeId2 := "0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeId3 := "0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeIds := nodeId1 + ":" + nodeId2 + ":" + nodeId3
+	var GetBatchCandidateDetail [][]byte
+	GetBatchCandidateDetail = make([][]byte, 0)
+	GetBatchCandidateDetail = append(GetBatchCandidateDetail, uint64ToBytes(0xf1))
+	GetBatchCandidateDetail = append(GetBatchCandidateDetail, []byte("GetBatchCandidateDetail"))
+	GetBatchCandidateDetail = append(GetBatchCandidateDetail, []byte(nodeIds))
+	bufGetBatchCandidateDetail := new(bytes.Buffer)
+	err = rlp.Encode(bufGetBatchCandidateDetail, GetBatchCandidateDetail)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetBatchCandidateDetail encode rlp data fail")
+	} else {
+		fmt.Println("GetBatchCandidateDetail data rlp: ", hexutil.Encode(bufGetBatchCandidateDetail.Bytes()))
+	}
+
 	// CandidateList()
 	var CandidateList [][]byte
 	CandidateList = make([][]byte, 0)
@@ -592,9 +615,8 @@ func TestCandidatePoolDecode(t *testing.T) {
 		case 4:
 			fmt.Println("i: ", i, " v: ", bigIntByteToStr(v))
 		default:
-			fmt.Println("i: ", i, " v: ",  string(v))
+			fmt.Println("i: ", i, " v: ", string(v))
 		}
-
 
 	}
 }
@@ -612,16 +634,11 @@ func uint64ToBytes(val uint64) []byte {
 	return buf[:]
 }
 
-func bytesToUint64 (by []byte) uint64 {
+func bytesToUint64(by []byte) uint64 {
 	return binary.BigEndian.Uint64(by)
 }
 
-func bigIntStrToBytes(str string) []byte {
-	a, _ := new(big.Int).SetString(str, 10)
-	return a.Bytes()
-}
-
-func bigIntByteToStr (by []byte) string {
+func bigIntByteToStr(by []byte) string {
 	a := new(big.Int).SetBytes(by)
 	return a.String()
 }

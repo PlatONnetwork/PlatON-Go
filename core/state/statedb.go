@@ -46,12 +46,11 @@ var (
 	emptyState = crypto.Keccak256Hash(nil)
 
 	// emptyCode is the known hash of the empty EVM bytecode.
-	emptyCode = crypto.Keccak256Hash(nil)
+	emptyCode    = crypto.Keccak256Hash(nil)
 	emptyStorage = crypto.Keccak256Hash([]byte(storagePrefix))
-	
+
 	//ppos add
 	ErrNotfindFromNodeId = errors.New("Not find tickets from node id")
-	
 )
 
 // StateDBs within the ethereum protocol are used to store anything
@@ -375,7 +374,7 @@ func getKeyValue(address common.Address, key []byte, value []byte) (string, comm
 	buffer.WriteString(storagePrefix)
 	buffer.WriteString(string(value))
 	//valueKey := sha3.Sum256(buffer.Bytes())
-	
+
 	valueKey := common.Hash{}
 	keccak := sha3.NewKeccak256()
 	keccak.Write(buffer.Bytes())
@@ -658,6 +657,9 @@ func (s *StateDB) clearJournalAndRefund() {
 
 // Commit writes the state to the underlying in-memory trie database.
 func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	defer s.clearJournalAndRefund()
 
 	for addr := range s.journal.dirties {
