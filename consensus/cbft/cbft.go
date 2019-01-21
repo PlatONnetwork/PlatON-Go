@@ -17,16 +17,15 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"math"
 	"math/big"
-	"regexp"
-	"runtime/debug"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -515,8 +514,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	}
 
 	//to execute
-	blockInterval := new(big.Int).Sub(ext.block.Number(), cbft.blockChain.CurrentBlock().Number())
-	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block, blockInterval)
+	receipts, err := cbft.blockChain.ProcessDirectly(ext.block, state, parent.block)
 	if err == nil {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
@@ -790,23 +788,11 @@ func (cbft *Cbft) setDescendantInTree(child *BlockExt) {
 // removeBadBlock removes bad block executed error from the tree structure and cbft.blockExtMap.
 func (cbft *Cbft) removeBadBlock(badBlock *BlockExt) {
 	tailorTree(badBlock)
-	cbft.removeByTailored(badBlock)
-	/*for _, child := range badBlock.children {
+	for _, child := range badBlock.children {
 		child.parent = nil
 	}
-	cbft.blockExtMap.Delete(badBlock.block.Hash())*/
+	cbft.blockExtMap.Delete(badBlock.block.Hash())
 	//delete(cbft.blockExtMap, badBlock.block.Hash())
-}
-
-func (cbft *Cbft) removeByTailored(badBlock *BlockExt) {
-	if len(badBlock.children) > 0 {
-		for _, child := range badBlock.children {
-			cbft.removeByTailored(child)
-			cbft.blockExtMap.Delete(child.block.Hash())
-		}
-	} else {
-		cbft.blockExtMap.Delete(badBlock.block.Hash())
-	}
 }
 
 // signReceiver handles the received block signature
@@ -971,6 +957,15 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 		blockNumber := block.Number()
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 		inTurn := cbft.inTurnVerify(parentNumber, block.ParentHash(), blockNumber, blockExt.rcvTime, producerID)
+		if !inTurn {
+			log.Warn("not in turn",
+				"RoutineID", common.CurrentGoRoutineID(),
+				"hash", block.Hash(),
+				"number", block.NumberU64(),
+				"parentHash", block.ParentHash(),
+				"curTime", curTime,
+				"producerID", producerID)
+		}
 
 		blockExt.inTurn = inTurn
 
@@ -1188,16 +1183,14 @@ func (cbft *Cbft) flushReadyBlock() bool {
 
 // tailorTree tailors the old tree from new root
 func tailorTree(newRoot *BlockExt) {
-	if newRoot.parent != nil && newRoot.parent.children != nil {
-		for i := 0; i < len(newRoot.parent.children); i++ {
-			//remove newRoot from its parent's children list
-			if newRoot.parent.children[i].block.Hash() == newRoot.block.Hash() {
-				newRoot.parent.children = append(newRoot.parent.children[:i], newRoot.parent.children[i+1:]...)
-				break
-			}
+	for i := 0; i < len(newRoot.parent.children); i++ {
+		//remove newRoot from its parent's children list
+		if newRoot.parent.children[i].block.Hash() == newRoot.block.Hash() {
+			newRoot.parent.children = append(newRoot.parent.children[:i], newRoot.parent.children[i+1:]...)
+			break
 		}
-		newRoot.parent = nil
 	}
+	newRoot.parent = nil
 }
 
 // cleanByTailoredTree removes all blocks in the tree which has been tailored.
@@ -1241,6 +1234,8 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 		}
 	}
 }
+
+
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
@@ -1605,9 +1600,9 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 
 func (cbft *Cbft) inTurn(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(curTime-300, parentNumber, parentHash, commitNumber, cbft.config.NodeID, current)
+	inturn := cbft.calTurn(parentNumber, parentHash, commitNumber, curTime-300, cbft.config.NodeID, current)
 	if inturn {
-		inturn = cbft.calTurn(curTime+600, parentNumber, parentHash, commitNumber, cbft.config.NodeID, current)
+		inturn = cbft.calTurn(parentNumber, parentHash, commitNumber, curTime+600, cbft.config.NodeID, current)
 	}
 	log.Debug("inTurn", "result", inturn)
 	return inturn
@@ -1630,7 +1625,7 @@ func (cbft *Cbft) inTurnVerify(parentNumber *big.Int, parentHash common.Hash, bl
 		cbft.log.Warn("check if peer's turn to commit block", "result", false, "peerID", nodeID, "high latency ", latency)
 		return false
 	}
-	inTurnVerify := cbft.calTurn(rcvTime-latency, parentNumber, parentHash, blockNumber, nodeID, all)
+	inTurnVerify := cbft.calTurn(parentNumber, parentHash, blockNumber, rcvTime-latency, nodeID, all)
 	cbft.log.Debug("check if peer's turn to commit block", "result", inTurnVerify, "peerID", nodeID, "latency", latency)
 	return inTurnVerify
 }
@@ -1646,9 +1641,9 @@ func (cbft *Cbft) inTurnVerify(parentNumber *big.Int, parentHash common.Hash, bl
 //}
 func (cbft *Cbft) isLegal(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, curTime int64, producerID discover.NodeID) bool {
 	offset := 1000 * (cbft.config.Duration/2 - 1)
-	isLegal := cbft.calTurn(curTime-offset, parentNumber, parentHash, blockNumber, producerID, all)
+	isLegal := cbft.calTurn(parentNumber, parentHash, blockNumber, rcvTime-offset, producerID, all)
 	if !isLegal {
-		isLegal = cbft.calTurn(curTime+offset, parentNumber, parentHash, blockNumber, producerID, all)
+		isLegal = cbft.calTurn(parentNumber, parentHash, blockNumber, rcvTime+offset, producerID, all)
 	}
 	return isLegal
 }
@@ -1676,7 +1671,7 @@ func (cbft *Cbft) isLegal(parentNumber *big.Int, parentHash common.Hash, blockNu
 //	return false
 //}
 
-func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) bool {
+func (cbft *Cbft) calTurn(timePoint int64, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) bool {
 	nodeIdx := cbft.ppos.NodeIndex(parentNumber, parentHash, blockNumber, nodeID, round)
 	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
 
@@ -1744,6 +1739,32 @@ func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature 
 	return false, nil
 }
 
+// seal hash, only include from byte[0] to byte[32] of header.Extra
+func sealHash(header *types.Header) (hash common.Hash) {
+	hasher := sha3.NewKeccak256()
+
+	rlp.Encode(hasher, []interface{}{
+		header.ParentHash,
+		header.UncleHash,
+		header.Coinbase,
+		header.Root,
+		header.TxHash,
+		header.ReceiptHash,
+		header.Bloom,
+		header.Difficulty,
+		header.Number,
+		header.GasLimit,
+		header.GasUsed,
+		header.Time,
+		header.Extra[0:32],
+		header.MixDigest,
+		header.Nonce,
+	})
+	hasher.Sum(hash[:0])
+
+	return hash
+}
+
 func (cbft *Cbft) verifySeal(chain consensus.ChainReader, header *types.Header, parents []*types.Header) error {
 	// Verifying the genesis block is not supported
 	number := header.Number.Uint64()
@@ -1777,25 +1798,26 @@ func toMilliseconds(t time.Time) int64 {
 
 func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	cbft.log.Trace("call ShouldSeal()")
-
-	consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, commitNumber)
+	
+	consensusNodes := cbft.ConsensusNodes(parentNumber, current.block.ParentHash(), blockNumber)
 	if consensusNodes != nil && len(consensusNodes) == 1 {
-		return true
+		return true, nil
 	}
-
+	
 	inturn := cbft.inTurn(parentNumber, parentHash, commitNumber)
 	if inturn {
 		cbft.netLatencyLock.RLock()
 		defer cbft.netLatencyLock.RUnlock()
 		peersCount := len(cbft.netLatencyMap)
-		if peersCount < cbft.getThreshold(parentNumber, parentHash, commitNumber)-1 {
+		if peersCount < cbft.getThreshold()-1 {
 			cbft.log.Debug("connected peers not enough", "connectedPeersCount", peersCount)
 			inturn = false
 		}
 	}
 	cbft.log.Debug("end of ShouldSeal()", "result", inturn)
-	return inturn
+	return inturn, nil
 }
+
 
 func (cbft *Cbft) CurrentNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node {
 	return cbft.ppos.getCurrentNodes(parentNumber, parentHash, blockNumber)
@@ -1872,7 +1894,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	if ok := bytes.Equal(header.Extra[32:96], make([]byte, 64)); ok {
 		nodeId = cbft.config.NodeID
 	} else {
-		if nodeId, _, err = ecrecover(header); err != nil {
+		if nodeId, _, err = ecrecover(header); err!=nil {
 			log.Error("Failed to Call accumulateRewards, ecrecover faile", " err: ", err)
 			return
 		}
@@ -1882,7 +1904,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	var can *types.Candidate
 	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(BaseSwitchWitness))) == 0 {
 		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, -1)
-	} else {
+	}else {
 		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, 0)
 	}
 	if err != nil {
