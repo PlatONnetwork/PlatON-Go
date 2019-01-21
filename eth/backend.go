@@ -74,7 +74,7 @@ type Ethereum struct {
 	lesServer       LesServer
 	// modify
 	mpcPool *core.MPCPool
-	vcPool 		    *core.VCPool
+	vcPool  *core.VCPool
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -130,7 +130,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	blockSignatureCh := make(chan *cbfttypes.BlockSignature, 20)
 	cbftResultCh := make(chan *cbfttypes.CbftResult)
-	highestLogicalBlockCh := make(chan *types.Block, 20)
+	highestLogicalBlockCh := make(chan *types.Block)
 
 	eth := &Ethereum{
 		config:         config,
@@ -274,7 +274,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		chainConfig.Cbft.Duration = cbftConfig.Duration
 		return cbft.New(chainConfig.Cbft, blockSignatureCh, cbftResultCh, highestLogicalBlockCh)
 	}
-	return nil;
+	return nil
 }
 
 // APIs return the collection of RPC services the ethereum package offers.
