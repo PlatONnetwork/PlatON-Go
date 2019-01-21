@@ -90,17 +90,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.DeveloperPeriodFlag,
 		},
 	},
-	{
-		Name: "ETHASH",
-		Flags: []cli.Flag{
-			utils.EthashCacheDirFlag,
-			utils.EthashCachesInMemoryFlag,
-			utils.EthashCachesOnDiskFlag,
-			utils.EthashDatasetDirFlag,
-			utils.EthashDatasetsInMemoryFlag,
-			utils.EthashDatasetsOnDiskFlag,
-		},
-	},
 	//{
 	//	Name: "DASHBOARD",
 	//	Flags: []cli.Flag{
@@ -251,6 +240,14 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.MPCEnabledFlag,
 			utils.MPCActorFlag,
 			utils.MPCIceFileFlag,
+		},
+	},
+	{
+		Name: "VC COMPUTE",
+		Flags: []cli.Flag{
+			utils.VCEnabledFlag,
+			utils.VCActorFlag,
+			utils.VCPasswordFlag,
 		},
 	},
 	{
