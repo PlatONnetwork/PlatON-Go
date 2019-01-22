@@ -209,7 +209,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 			return canCache, nil
 		}
 		type result struct {
-			Type int // 0: immediate; 1: reserve
+			Type int // 1: immediate; 2: reserve
 			Arr  types.CandidateQueue
 			Err  error
 		}
@@ -217,7 +217,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		wg.Add(2)
 		go func() {
 			res := new(result)
-			res.Type = 0
+			res.Type = IS_IMMEDIATE
 			c.immediateCandidates = make(candidateStorage, 0)
 			if arr, err := loadElectedFunc("immediate", c.immediateCandidates, getImmediateIdsByState, getImmediateByState); nil != err {
 				res.Err = err
@@ -230,7 +230,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		}()
 		go func() {
 			res := new(result)
-			res.Type = 1
+			res.Type = IS_RESERVE
 			c.reserveCandidates = make(candidateStorage, 0)
 			if arr, err := loadElectedFunc("reserve", c.reserveCandidates, getReserveIdsByState, getReserveByState); nil != err {
 				res.Err = err
@@ -248,9 +248,9 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				return res.Err
 			}
 			switch res.Type {
-			case 0:
+			case IS_IMMEDIATE:
 				c.immediateCacheArr = res.Arr
-			case 1:
+			case IS_RESERVE:
 				c.reserveCacheArr = res.Arr
 			default:
 				continue
