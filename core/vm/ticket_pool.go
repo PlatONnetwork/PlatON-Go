@@ -118,11 +118,10 @@ func (t *TicketContract) GetTicketDetail(ticketId common.Hash) ([]byte, error) {
 	ticket, err := t.Evm.TicketPool.GetTicket(t.Evm.StateDB, ticketId)
 	if nil != err {
 		log.Error("Failed to GetTicketDetail==> ", "GetTicket return err: ", err.Error())
-		return nil, err
-	}
-	if (common.Hash{}) == ticket.TicketId {
-		log.Error("Failed to GetTicketDetail==> ", "The query does not exist")
-		return nil, nil
+		ticket := types.Ticket{}
+		data, _ := json.Marshal(ticket)
+		sdata := DecodeResultStr(string(data))
+		return sdata, err
 	}
 	data, _ := json.Marshal(ticket)
 	sdata := DecodeResultStr(string(data))
@@ -134,16 +133,13 @@ func (t *TicketContract) GetTicketDetail(ticketId common.Hash) ([]byte, error) {
 func (t *TicketContract) GetBatchTicketDetail(ticketIds []common.Hash) ([]byte, error) {
 	input, _ := json.Marshal(ticketIds)
 	log.Info("Input to GetBatchTicketDetail==>", "length: ", len(ticketIds), "ticketIds: ", string(input))
-	tickets, err := t.Evm.TicketPool.GetTicketList(t.Evm.StateDB, ticketIds)
-	if nil != err {
-		if 0 == len(tickets) {
-			log.Error("Failed to GetBatchTicketDetail==> ", "GetTicketList return err: ", err.Error())
-			return nil, err
-		}
+	tickets, _ := t.Evm.TicketPool.GetTicketList(t.Evm.StateDB, ticketIds)
+	if 0 == len(tickets) {
+		log.Warn("Failed to GetBatchTicketDetail==> The query does not exist")
+		tickets := make([]types.Ticket, 0)
 		data, _ := json.Marshal(tickets)
 		sdata := DecodeResultStr(string(data))
-		log.Info("Result of GetBatchTicketDetail==> ", "json: ", string(data), "[]byte: ", sdata)
-		return sdata, err
+		return sdata, nil
 	}
 	data, _ := json.Marshal(tickets)
 	sdata := DecodeResultStr(string(data))
@@ -156,8 +152,11 @@ func (t *TicketContract) GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, 
 	log.Info("Input to GetCandidateTicketIds==> ", " nodeId: ", nodeId.String())
 	candidateTicketIds, err := t.Evm.TicketPool.GetCandidateTicketIds(t.Evm.StateDB, nodeId)
 	if nil != err {
-		log.Error("Failed to GetCandidateTicketIds==> ", "GetCandidateTicketIds return err: ", err.Error())
-		return nil, err
+		log.Warn("Failed to GetCandidateTicketIds==> ", "GetCandidateTicketIds return err: ", err.Error())
+		candidateTicketIds := make([]common.Hash, 0)
+		data, _ := json.Marshal(candidateTicketIds)
+		sdata := DecodeResultStr(string(data))
+		return sdata, err
 	}
 	data, _ := json.Marshal(candidateTicketIds)
 	sdata := DecodeResultStr(string(data))
@@ -169,16 +168,13 @@ func (t *TicketContract) GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, 
 func (t *TicketContract) GetBatchCandidateTicketIds(nodeIds []discover.NodeID) ([]byte, error) {
 	input, _ := json.Marshal(nodeIds)
 	log.Info("Input to GetBatchCandidateTicketIds==> ", "length: ", len(nodeIds), "nodeIds: ", string(input))
-	candidatesTicketIds, err := t.Evm.TicketPool.GetCandidatesTicketIds(t.Evm.StateDB, nodeIds)
-	if nil != err {
-		if 0 == len(candidatesTicketIds) {
-			log.Error("Failed to GetBatchCandidateTicketIds==> ", "GetCandidatesTicketIds return err: ", err.Error())
-			return nil, err
-		}
+	candidatesTicketIds, _ := t.Evm.TicketPool.GetCandidatesTicketIds(t.Evm.StateDB, nodeIds)
+	if 0 == len(candidatesTicketIds) {
+		log.Warn("Failed to GetBatchCandidateTicketIds==> The query does not exist")
+		candidatesTicketIds := make(map[discover.NodeID][]common.Hash, 0)
 		data, _ := json.Marshal(candidatesTicketIds)
 		sdata := DecodeResultStr(string(data))
-		log.Info("Result of GetBatchCandidateTicketIds==> ", "json: ", string(data), "[]byte: ", sdata)
-		return sdata, err
+		return sdata, nil
 	}
 	data, _ := json.Marshal(candidatesTicketIds)
 	sdata := DecodeResultStr(string(data))
@@ -192,7 +188,9 @@ func (t *TicketContract) GetCandidateEpoch(nodeId discover.NodeID) ([]byte, erro
 	epoch, err := t.Evm.TicketPool.GetCandidateEpoch(t.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("Failed to GetCandidateEpoch==> ", "GetCandidateEpoch return err: ", err.Error())
-		return nil, err
+		data, _ := json.Marshal(epoch)
+		sdata := DecodeResultStr(string(data))
+		return sdata, err
 	}
 	data, _ := json.Marshal(epoch)
 	sdata := DecodeResultStr(string(data))
@@ -205,7 +203,9 @@ func (t *TicketContract) GetPoolRemainder() ([]byte, error) {
 	remainder, err := t.Evm.TicketPool.GetPoolNumber(t.Evm.StateDB)
 	if nil != err {
 		log.Error("Failed to GetPoolRemainder==> ", "GetPoolNumber return err: ", err.Error())
-		return nil, err
+		data, _ := json.Marshal(remainder)
+		sdata := DecodeResultStr(string(data))
+		return sdata, err
 	}
 	data, _ := json.Marshal(remainder)
 	sdata := DecodeResultStr(string(data))
@@ -218,7 +218,9 @@ func (t *TicketContract) GetTicketPrice() ([]byte, error) {
 	price, err := t.Evm.TicketPool.GetTicketPrice(t.Evm.StateDB)
 	if nil != err {
 		log.Error("Failed to GetTicketPrice==> ", "GetTicketPrice return err: ", err.Error())
-		return nil, err
+		data, _ := json.Marshal(price)
+		sdata := DecodeResultStr(string(data))
+		return sdata, err
 	}
 	data, _ := json.Marshal(price)
 	sdata := DecodeResultStr(string(data))

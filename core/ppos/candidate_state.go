@@ -17,6 +17,7 @@ import (
 	"sync"
 	"fmt"
 	"strings"
+	"sort"
 )
 
 var (
@@ -1919,7 +1920,17 @@ func (c *CandidatePool) delDefeat(state vm.StateDB, nodeId discover.NodeID) {
 // update refund index
 func (c *CandidatePool) setDefeatIndex(state vm.StateDB) error {
 	newdefeatIds := make([]discover.NodeID, 0)
+	indexMap := make(map[string]discover.NodeID, 0)
+	index := make([]string, 0)
 	for id, _ := range c.defeatCandidates {
+		indexMap[id.String()] = id
+		index = append(index, id.String())
+	}
+	// sort id
+	sort.Strings(index)
+
+	for _, idStr := range index {
+		id := indexMap[idStr]
 		newdefeatIds = append(newdefeatIds, id)
 	}
 	if len(newdefeatIds) == 0 {
