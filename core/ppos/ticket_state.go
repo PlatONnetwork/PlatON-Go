@@ -1,6 +1,7 @@
 package pposm
 
 import (
+	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
@@ -11,12 +12,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"errors"
 	"math/big"
 	"sort"
 	"strconv"
-	"sync"
 	"strings"
+	"sync"
 )
 
 var (
@@ -65,12 +65,12 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 	var ticketPrice *big.Int
 	if price, ok := new(big.Int).SetString(configs.TicketConfig.TicketPrice, 10); !ok {
 		ticketPrice, _ = new(big.Int).SetString("1000000000000000000", 10)
-	}else {
+	} else {
 		ticketPrice = price
 	}
 
 	ticketPool = &TicketPool{
-		TicketPrice: 	   ticketPrice,
+		TicketPrice:       ticketPrice,
 		MaxCount:          configs.TicketConfig.MaxCount,
 		ExpireBlockNumber: configs.TicketConfig.ExpireBlockNumber,
 		lock:              &sync.Mutex{},
@@ -563,7 +563,7 @@ func (t *TicketPool) GetCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeI
 }
 
 func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) (*big.Int, error) {
-	return new(big.Int).SetUint64(1), nil
+	return t.TicketPrice, nil
 }
 
 // Save the hash value of the current state of the ticket pool
