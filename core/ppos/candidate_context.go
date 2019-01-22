@@ -106,6 +106,9 @@ func (c *CandidatePoolContext) SetCandidateExtra (state vm.StateDB, nodeId disco
 	return c.initCandidatePool().SetCandidateExtra(state, nodeId, extra)
 }
 
+func (c *CandidatePoolContext) UpdateElectedQueue (state vm.StateDB, currBlockNumber *big.Int, nodeIds ...discover.NodeID) error {
+	return c.initCandidatePool().UpdateElectedQueue(state, currBlockNumber, nodeIds ...)
+}
 
 func (c *CandidatePoolContext) ForEachStorage(state *state.StateDB, title string) {
 	c.initCandidatePool().ForEachStorage(state, title)

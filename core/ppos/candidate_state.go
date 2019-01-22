@@ -69,13 +69,15 @@ type CandidatePool struct {
 	lock 				*sync.Mutex
 }
 
-var candidatePool *CandidatePool
+//var candidatePool *CandidatePool
 
 // Initialize the global candidate pool object
 func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
-	if nil != candidatePool {
-		return candidatePool
-	}
+	//if nil != candidatePool {
+	//	return candidatePool
+	//}
+
+	log.Debug("Build a New CandidatePool Info ...")
 	if "" == strings.TrimSpace(configs.Candidate.Threshold) {
 		configs.Candidate.Threshold = "1000000000000000000000000"
 	}
@@ -85,7 +87,7 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 	}else {
 		threshold = thd
 	}
-	candidatePool = &CandidatePool{
+	return &CandidatePool{
 		threshold: 			  threshold,
 		depositLimit:         configs.Candidate.DepositLimit,
 		allowed:              configs.Candidate.Allowed,
@@ -103,7 +105,7 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		//lock:                 &sync.RWMutex{},
 		lock:                 &sync.Mutex{},
 	}
-	return candidatePool
+	//return candidatePool
 }
 
 // flag:
@@ -2348,9 +2350,9 @@ func copyCandidateMapByIds(target, source candidateStorage, ids []discover.NodeI
 	}
 }
 
-func GetCandidatePtr() *CandidatePool {
-	return candidatePool
-}
+//func GetCandidatePtr() *CandidatePool {
+//	return candidatePool
+//}
 
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
