@@ -153,7 +153,7 @@ func (t *TicketContract) GetBatchTicketDetail(ticketIds []common.Hash) ([]byte, 
 	}
 	data, _ := json.Marshal(tickets)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of GetBatchTicketDetail==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("Result of GetBatchTicketDetail==> ", "len(tickets): ", len(tickets), "json: ", string(data))
 	return sdata, nil
 }
 
@@ -170,7 +170,7 @@ func (t *TicketContract) GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, 
 	}
 	data, _ := json.Marshal(candidateTicketIds)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of GetCandidateTicketIds==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("Result of GetCandidateTicketIds==> ", "len(candidateTicketIds): ", len(candidateTicketIds), "json: ", string(data))
 	return sdata, nil
 }
 
@@ -188,7 +188,7 @@ func (t *TicketContract) GetBatchCandidateTicketIds(nodeIds []discover.NodeID) (
 	}
 	data, _ := json.Marshal(candidatesTicketIds)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of GetBatchCandidateTicketIds==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("Result of GetBatchCandidateTicketIds==> ", "len(candidatesTicketIds): ", len(candidatesTicketIds), "json: ", string(data))
 	return sdata, nil
 }
 

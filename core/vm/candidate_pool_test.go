@@ -475,8 +475,8 @@ func TestCandidatePoolEncode(t *testing.T) {
 	//"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.9.182:16789",
 	//"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.183:16789",
 	//"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.184:16789"
-	nodeId := []byte("0x97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0")
-	owner := []byte("0x740ce31b3fac20dac379db243021a51e80ad00d7")
+	nodeId := []byte("0x751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c")
+	owner := []byte("0x493301712671ada506ba6ca7891f436d29185821")
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
 	var CandidateDeposit [][]byte
@@ -550,6 +550,7 @@ func TestCandidatePoolEncode(t *testing.T) {
 	}
 
 	// CandidateDetails(nodeId discover.NodeID)
+	nodeId = []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
 	var CandidateDetails [][]byte
 	CandidateDetails = make([][]byte, 0)
 	CandidateDetails = append(CandidateDetails, uint64ToBytes(0xf1))
@@ -595,6 +596,20 @@ func TestCandidatePoolEncode(t *testing.T) {
 		t.Errorf("CandidateList encode rlp data fail")
 	} else {
 		fmt.Println("CandidateList data rlp: ", hexutil.Encode(bufCList.Bytes()))
+	}
+
+	// VerifiersList()
+	var VerifiersList [][]byte
+	VerifiersList = make([][]byte, 0)
+	VerifiersList = append(VerifiersList, uint64ToBytes(0xf1))
+	VerifiersList = append(VerifiersList, []byte("VerifiersList"))
+	bufVerifiersList := new(bytes.Buffer)
+	err = rlp.Encode(bufVerifiersList, VerifiersList)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("VerifiersList encode rlp data fail")
+	} else {
+		fmt.Println("VerifiersList data rlp: ", hexutil.Encode(bufVerifiersList.Bytes()))
 	}
 }
 

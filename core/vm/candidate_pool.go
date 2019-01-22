@@ -281,7 +281,7 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 	}
 	data, _ := json.Marshal(candidates)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of GetBatchCandidateDetail==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("Result of GetBatchCandidateDetail==> ", "len(candidates): ", len(candidates), "json: ", string(data))
 	return sdata, nil
 }
 
@@ -297,7 +297,7 @@ func (c *CandidateContract) CandidateList() ([]byte, error) {
 	}
 	data, _ := json.Marshal(candidates)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of CandidateList==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("Result of CandidateList==> ", "len(candidates): ", len(candidates), "json: ", string(data))
 	return sdata, nil
 }
 
@@ -313,7 +313,7 @@ func (c *CandidateContract) VerifiersList() ([]byte, error) {
 	}
 	data, _ := json.Marshal(verifiers)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of VerifiersList==> ", "json: ", string(data), "[]byte: ", sdata)
+	log.Info("Result of VerifiersList==> ", "len(verifiers): ", len(verifiers), "json: ", string(data))
 	return sdata, nil
 }
 
