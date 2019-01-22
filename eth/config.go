@@ -50,11 +50,11 @@ var DefaultConfig = Config{
 		Duration:         10,
 		Ppos: &PposConfig{
 			Candidate: &CandidateConfig{
-				Threshold: 			"1000000000000000000",
+				Threshold: 			"1000000000000000000000000",
 				DepositLimit: 	  	10,
 				Allowed: 			100,
-				MaxCount:          	10,
-				MaxChair:          	100,
+				MaxChair:          	10,
+				MaxCount:          	100,
 				RefundBlockNumber: 	512,
 			},
 			Ticket: &TicketConfig{
