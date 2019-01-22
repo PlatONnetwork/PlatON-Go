@@ -126,7 +126,7 @@ func newChainState() (*state.StateDB, error) {
 	)
 	fmt.Println("genesis", genesis)
 	// Initialize a fresh chain with only a genesis block
-	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, ethash.NewFaker(), vm.Config{}, nil)
+	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
 
 	var state *state.StateDB
 	if statedb, err := blockchain.State(); nil != err {
