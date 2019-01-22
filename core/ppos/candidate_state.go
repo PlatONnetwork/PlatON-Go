@@ -108,10 +108,10 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 
 // flag:
 // 0: only init previous witness and current witness and next witness
-// 1：init previous witness and current witness and next witness and immediate
+// 1：init previous witness and current witness and next witness and immediate and reserve
 // 2: init all information
 func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
-	log.Info("init data by stateDB...")
+	log.Info("init data by stateDB...", "flag", flag)
 	//loading  candidates func
 	loadWitFunc := func(title string, canMap candidateStorage,
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
@@ -310,10 +310,10 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	// 每次质押前都需要先校验 当前can的质押金是否 不小于 要放置的对应的队列是否已满时的最小can的质押金
 	if _, ok := c.checkDeposit(state, can); !ok {
 		c.lock.Unlock()
-		log.Error("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
+		log.Warn("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
 		return DepositLowErr
 	}
-	PrintObject("发生质押 SetCandidate", *can)
+	PrintObject("Call SetCandidate start ...", *can)
 	if arr, err := c.setCandidateInfo(state, nodeId, can); nil != err {
 		c.lock.Unlock()
 		log.Error("Failed to setCandidateInfo on SetCandidate", "nodeId", nodeId.String(), "err", err)
@@ -766,7 +766,7 @@ func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) (typ
 func (c *CandidatePool) IsDefeat(state vm.StateDB, nodeId discover.NodeID) (bool, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	if err := c.initDataByState(state, 1); nil != err {
+	if err := c.initDataByState(state, 2); nil != err {
 		log.Error("Failed to initDataByState on IsDefeat", "err", err)
 		return false, err
 	}
@@ -872,8 +872,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	for index := 0; index < len(canArr); index++ {
 		can := canArr[index]
 		sub := new(big.Int).Sub(blockNumber, can.BlockNumber)
-		log.Info("检查退款信息", "当前块高:", blockNumber.String(), "质押块高:", can.BlockNumber.String(), "相差:", sub.String())
-		log.Info("检查退款信息", "当前nodeId:", can.CandidateId.String())
+		log.Info("Check defeat detail", "nodeId:", nodeId.String(), "curr blocknumber:", blockNumber.String(), "setcandidate blocknumber:", can.BlockNumber.String(), " diff:", sub.String())
 		if sub.Cmp(new(big.Int).SetUint64(c.RefundBlockNumber)) >= 0 { // allow refund
 			delCanArr = append(delCanArr, can)
 			canArr = append(canArr[:index], canArr[index+1:]...)
@@ -882,8 +881,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 			amount = new(big.Int).Add(amount, can.Deposit)
 			//amount += can.Deposit.Uint64()
 		} else {
-			log.Error("block height number had mismatch, No refunds allowed", "current block height", blockNumber.String(), "deposit block height", can.BlockNumber.String(), "allowed block interval", c.RefundBlockNumber)
-			log.Info("块高不匹配，不给予退款...")
+			log.Warn("block height number had mismatch, No refunds allowed", "current block height", blockNumber.String(), "deposit block height", can.BlockNumber.String(), "nodeId", nodeId.String(), "allowed block interval", c.RefundBlockNumber)
 			continue
 		}
 
@@ -898,7 +896,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 					canArr = delCanArr
 				}
 				c.defeatCandidates[nodeId] = canArr
-				log.Info("Failed to refundbalance 发现抵押节点nodeId下有不同受益者地址", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", can.Owner)
+				log.Error("Failed to refundbalance Different beneficiary addresses under the same node", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", can.Owner)
 				return CandidateOwnerErr
 			}
 		}
@@ -906,7 +904,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 		// check contract account balance
 		//if (contractBalance.Cmp(new(big.Int).SetUint64(amount))) < 0 {
 		if (contractBalance.Cmp(amount)) < 0 {
-			log.Error("Failed to refundbalance constract account insufficient balance ", "contract's balance", contractBalance.String(), "amount", amount.String())
+			log.Error("Failed to refundbalance constract account insufficient balance ", "nodeId", nodeId.String(), "contract's balance", state.GetBalance(common.CandidatePoolAddr).String(), "amount", amount.String())
 			if len(canArr) != 0 {
 				canArr = append(delCanArr, canArr...)
 			} else {
@@ -954,13 +952,14 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 			c.defeatCandidates[nodeId] = canArr
 		}
 	}
-	log.Info("退款转账操作：", "nodeId", nodeId.String(), "contractAddr", common.CandidatePoolAddr.String(), "受益人addr", addr.String(), "退还需转账金额:", amount.String())
+	log.Info("Call RefundBalance to tansfer value：", "nodeId", nodeId.String(), "contractAddr", common.CandidatePoolAddr.String(),
+		"owner's addr", addr.String(), "Return the amount to be transferred:", amount.String())
 
 	// sub contract account balance
 	state.SubBalance(common.CandidatePoolAddr, amount)
 	// add owner balace
 	state.AddBalance(addr, amount)
-	log.Info("一键退款完成...")
+	log.Debug("Call RefundBalance success ...")
 	return nil
 }
 
@@ -969,7 +968,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 	defer func() {
 		c.ForEachStorage(state, "View State After SetCandidateExtra ...")
 	}()
-	log.Info("设置推展信息:", "nodeId", nodeId.String(), "extra", extra)
+	log.Info("Call SetCandidateExtra:", "nodeId", nodeId.String(), "extra", extra)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
@@ -994,6 +993,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 			return CandidateEmptyErr
 		}
 	}
+	log.Debug("Call SetCandidateExtra SUCCESS !!!!!! ")
 	return nil
 }
 
@@ -1064,7 +1064,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 }
 
 func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) ([]*discover.Node, types.CandidateQueue, error) {
-	log.Info("揭榜...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.RefundBlockNumber)
+	log.Info("Call Election start ...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.RefundBlockNumber)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
@@ -1152,7 +1152,8 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	log.Info("揭榜时，下一轮见证人node 个数:", "len", len(arr))
 	PrintObject("揭榜时，下一轮见证人node信息:", arr)
 	c.fixElection(state, nextWitIds)
-	log.Info("揭榜完成...")
+	log.Info("Election next witness's node count:", "len", len(arr))
+	log.Info("Call Election SUCCESS !!!!!!!")
 	return arr, caches, nil
 }
 
@@ -1189,7 +1190,7 @@ func (c *CandidatePool) fixElection (state vm.StateDB, nextWitIds []discover.Nod
 
 // switch next witnesses to current witnesses
 func (c *CandidatePool) Switch(state *state.StateDB) bool {
-	log.Info("替换见证人...")
+	log.Info("Call Switch start ...")
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 0); nil != err {
@@ -1247,14 +1248,14 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 	}
 	// clear next witness index
 	c.setNextWitnessIndex(state, make([]discover.NodeID, 0))
-	log.Info("替换完成...")
+	log.Info("Call Switch SUCCESS !!!!!!!")
 	return true
 }
 
 // Getting nodes of witnesses
 // flag：-1: the previous round of witnesses  0: the current round of witnesses   1: the next round of witnesses
 func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
-	log.Info("获取见证人: flag = " + strconv.Itoa(flag))
+	log.Debug("Call GetWitness: flag = " + strconv.Itoa(flag))
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 0); nil != err {
@@ -1294,7 +1295,7 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 	for _, id := range indexArr {
 		if can, ok := witness[id]; ok {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", id.String())
 				return nil, err
 			} else {
 				arr = append(arr, node)
@@ -1306,7 +1307,7 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 
 // Getting previous and current and next witnesses
 func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
-	log.Info("获取所有见证人...")
+	log.Debug("Call GetAllWitness ...")
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 0); nil != err {
@@ -1413,7 +1414,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 // -1: 		previous round
 // 0:		current round
 // 1: 		next round
-func (c *CandidatePool) GetWitnessCandidate(state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
+func (c *CandidatePool) GetWitnessCandidate (state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -1455,17 +1456,14 @@ func (c *CandidatePool) GetRefundInterval() uint64 {
 
 // 根据nodeId 去重新决定当前候选人的去留
 func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *big.Int, nodeIds ...discover.NodeID) error {
-	defer func() {
-		c.ForEachStorage(state, "View State After UpdateElectedQueue ...")
-	}()
+
 	var ids []discover.NodeID
 	if arr, err := c.updateQueue(state, nodeIds...); nil != err {
 		return err
 	} else {
 		ids = arr
 	}
-	log.Info("处理完 updateQueue 后再次查看 stateDB ...")
-	c.initDataByState(state, 1)
+	c.ForEachStorage(state, "View State After UpdateElectedQueue ...")
 	//go ticketPool.DropReturnTicket(state, ids...)
 	if len(ids) > 0 {
 		return ticketPool.DropReturnTicket(state, currBlockNumber, ids...)
@@ -1482,7 +1480,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		log.Debug("updateQueue finish !!!!!!!!!!")
 		return nil, nil
 	}
-	if err := c.initDataByState(state, 0); nil != err {
+	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on UpdateElectedQueue", "err", err)
 		return nil, err
 	}
@@ -1588,7 +1586,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 		setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
-		log.Debug("直接掉榜: 删除 "+title+" 中的can信息 on UpdateElectedQueue", "nodeId", can.CandidateId.String())
+		log.Debug("进入直接掉榜逻辑: 删除 "+title+" 中的can信息 on UpdateElectedQueue", "nodeId", can.CandidateId.String())
 		delInfoFn(state, can.CandidateId)
 
 		// append to refunds (defeat) trie
@@ -1628,9 +1626,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 
 	for _, nodeId := range nodeIds {
 
-		log.Info("判断当前nodeId原来属于哪个队列", "nodeId", nodeId.String())
 		switch c.checkExist(nodeId) {
 		case IS_IMMEDIATE:
+			log.Debug("当前nodeId原来在 Immediate中...")
 			can := c.immediateCandidates[nodeId]
 			//if !c.checkTicket(state.TCount(nodeId)) { // TODO
 			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
@@ -1652,6 +1650,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 				}
 			}
 		case IS_RESERVE:
+			log.Debug("当前nodeId原来在 Reserve 中...")
 			can := c.reserveCandidates[nodeId]
 			//if c.checkTicket(state.TCount(nodeId)) { // TODO
 			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
@@ -1700,6 +1699,7 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 			getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 			setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
+			log.Debug("进入直接掉榜逻辑,从" + title + ",中删除...")
 			delInfoFn(state, can.CandidateId)
 
 			// append to refunds (defeat) trie
@@ -1764,7 +1764,9 @@ func (c *CandidatePool) checkFirstThreshold (can *types.Candidate) (bool) {
 // true:  pass
 func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bool, bool) {
 	tcount := c.checkTicket(state.TCount(can.CandidateId))
-	// 如果当前得票数满足进入候选池，且候选池已满
+	/**
+	如果 当前得票数满足进入候选池，且候选池已满
+	 */
 	if tcount && uint64(len(c.immediateCandidates)) == c.maxCount {
 		last := c.immediateCacheArr[len(c.immediateCacheArr)-1]
 		lastDeposit := last.Deposit
@@ -1776,10 +1778,14 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bo
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
+			log.Debug("候选池已满，且当前can的Deposit 小于 候选池中最后一个can的 110% ", "当前 can的Deposit:", can.Deposit.String(), "候选池中最后一个can的 110%:", tmp.String(), "当前候选池长度:", len(c.immediateCandidates), "配置上限:", c.maxCount)
 			return tcount, false
 		}
 	}
 
+	/**
+	如果 当前不如 候选池 且备选池已满
+	 */
 	if !tcount && uint64(len(c.reserveCandidates)) == c.maxCount {
 		last := c.reserveCacheArr[len(c.reserveCacheArr)-1]
 		lastDeposit := last.Deposit
@@ -1791,6 +1797,7 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bo
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
+			log.Debug("备选池已满，且当前can的Deposit 小于 备选池中最后一个can的 110% ", "当前 can的Deposit:", can.Deposit.String(), "备选池总中最后一个can的 110%:", tmp.String(), "当前备选池长度:", len(c.reserveCandidates), "配置上限:", c.maxCount)
 			return tcount, false
 		}
 	}
@@ -1803,6 +1810,7 @@ func (c *CandidatePool) checkWithdraw(source, price *big.Int) error {
 	// y/100 == old * (x/100) == old * x%
 	tmp := new(big.Int).Div(percentage, big.NewInt(100))
 	if price.Cmp(tmp) < 0 {
+		log.Debug("提取退款,当前can的想退的金额小于自身质押剩余金额的 10%:", "can的当前想退的金额:", price.String(), "can自身质押剩余的金额:", tmp.String())
 		return WithdrawLowErr
 	}
 	return nil
@@ -1812,12 +1820,16 @@ func (c *CandidatePool) checkWithdraw(source, price *big.Int) error {
 // 1: in immediates
 // 2: in reserves
 func (c *CandidatePool) checkExist(nodeId discover.NodeID) int {
+	log.Info("判断当前nodeId原来属于哪个队列", "nodeId", nodeId.String())
 	if _, ok := c.immediateCandidates[nodeId]; ok {
+		log.Info("判断当前nodeId原来属于 immediate 队列 ...", "nodeId", nodeId.String())
 		return IS_IMMEDIATE
 	}
 	if _, ok := c.reserveCandidates[nodeId]; ok {
+		log.Info("判断当前nodeId原来属于 reserve 队列 ...", "nodeId", nodeId.String())
 		return IS_RESERVE
 	}
+	log.Info("判断当前nodeId原来不属于任意队列 ...", "nodeId", nodeId.String())
 	return IS_LOST
 }
 
@@ -2010,7 +2022,6 @@ func (c *CandidatePool) setWitness(state vm.StateDB, nodeId discover.NodeID, can
 		return err
 	} else {
 		setWitnessState(state, nodeId, val)
-		//PrintObject("设置 setWitness ", *can)
 	}
 	return nil
 }
@@ -2048,7 +2059,6 @@ func (c *CandidatePool) setNextWitness(state vm.StateDB, nodeId discover.NodeID,
 	} else {
 		// setting next witness information on trie
 		setNextWitnessState(state, nodeId, value)
-		PrintObject("设置 setNextWitness", *can)
 	}
 	return nil
 }
@@ -2070,7 +2080,6 @@ func (c *CandidatePool) setNextWitnessIndex(state vm.StateDB, nodeIds []discover
 		return CandidateEncodeErr
 	} else {
 		setNextWitnessIdsState(state, value)
-		//PrintObject("设置 setNextWitnessIndex:", nodeIds)
 	}
 	return nil
 }
@@ -2087,11 +2096,11 @@ func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (
 		return nil, err
 	}
 	if candidatePtr, ok := c.immediateCandidates[nodeId]; ok {
-		PrintObject("GetCandidate 返回 immediate：", *candidatePtr)
+		PrintObject("Call GetCandidate return immediate：", *candidatePtr)
 		return candidatePtr, nil
 	}
 	if candidatePtr, ok := c.reserveCandidates[nodeId]; ok {
-		PrintObject("GetCandidate 返回 reserve：", *candidatePtr)
+		PrintObject("Call GetCandidate return reserve：", *candidatePtr)
 		return candidatePtr, nil
 	}
 	return nil, nil

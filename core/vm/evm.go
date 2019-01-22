@@ -145,7 +145,7 @@ type EVM struct {
 	callGasTemp uint64
 
 	//ppos add
-	CandidatePool candidatePool
+	CandidatePoolContext candidatePoolContext
 	TicketPool    ticketPool
 }
 

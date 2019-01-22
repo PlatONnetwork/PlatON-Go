@@ -632,7 +632,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 }
 
 func SetPposOption(blockChain *core.BlockChain) {
-	cbft.ppos.setCandidatePool(blockChain, cbft.config.InitialNodes)
+	cbft.ppos.SetCandidateContextOption(blockChain, cbft.config.InitialNodes)
 	cbft.ppos.setTicketPoolCache()
 }
 

@@ -27,10 +27,10 @@ type ppos struct {
 	startTimeOfEpoch  int64
 	config            *params.PposConfig
 
-	// added by candidatepool module
+	// added by candidateContext module
 	lock 					sync.RWMutex
-	// the candidate pool object pointer
-	candidatePool 			*pposm.CandidatePool
+	// the candidateContext pool object pointer
+	candidateContext 	*pposm.CandidatePoolContext
 	// the ticket pool object pointer
 	ticketPool				*pposm.TicketPool
 	// the ticket id list cache
@@ -43,7 +43,7 @@ func newPpos(config *params.CbftConfig) *ppos {
 	return &ppos{
 		lastCycleBlockNum: 	0,
 		config:            	config.PposConfig,
-		candidatePool:     	pposm.NewCandidatePool(config.PposConfig),
+		candidateContext:   pposm.NewCandidatePoolContext(config.PposConfig),
 		ticketPool: 		pposm.NewTicketPool(config.PposConfig),
 	}
 }
@@ -170,12 +170,12 @@ func (d *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 // Announce witness
 func (d *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlocknumber *big.Int) ([]*discover.Node, error) {
 	// TODO
-	if nextNodes, err := d.candidatePool.Election(state, parentHash, currBlocknumber); nil != err {
+	if nextNodes, err := d.candidateContext.Election(state, parentHash, currBlocknumber); nil != err {
 		log.Error("ppos election next witness", " err: ", err)
 		panic("Election error " + err.Error())
 	} else {
 		log.Info("Election finish，view stateDB content again ...")
-		d.candidatePool.GetAllWitness(state)
+		d.candidateContext.GetAllWitness(state)
 
 		return nextNodes, nil
 	}
@@ -184,11 +184,11 @@ func (d *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlockn
 // switch next witnesses to current witnesses
 func (d *ppos) Switch(state *state.StateDB) bool {
 	log.Info("Switch begin...")
-	if !d.candidatePool.Switch(state) {
+	if !d.candidateContext.Switch(state) {
 		return false
 	}
 	log.Info("Switch success...")
-	d.candidatePool.GetAllWitness(state)
+	d.candidateContext.GetAllWitness(state)
 
 	return true
 }
@@ -196,11 +196,11 @@ func (d *ppos) Switch(state *state.StateDB) bool {
 // Getting nodes of witnesses
 // flag：-1: the previous round of witnesses  0: the current round of witnesses   1: the next round of witnesses
 func (d *ppos) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
-	return d.candidatePool.GetWitness(state, flag)
+	return d.candidateContext.GetWitness(state, flag)
 }
 
 func (d *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
-	return d.candidatePool.GetAllWitness(state)
+	return d.candidateContext.GetAllWitness(state)
 }
 
 // Getting can by witnesses
@@ -209,11 +209,11 @@ func (d *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discove
 // 0:		current round
 // 1: 		next round
 func (d *ppos) GetWitnessCandidate (state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
-	return d.candidatePool.GetWitnessCandidate(state, nodeId, flag)
+	return d.candidateContext.GetWitnessCandidate(state, nodeId, flag)
 }
 
 // setting candidate pool of ppos module
-func (d *ppos) setCandidatePool(blockChain *core.BlockChain, initialNodes []discover.Node) {
+func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNodes []discover.Node) {
 	log.Info("---start node，to update nodeRound---")
 	genesis := blockChain.Genesis()
 	// init roundCache by config
@@ -373,57 +373,57 @@ func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Ha
 /** Method provided to the built-in contract call */
 // pledge Candidate
 func (d *ppos) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
-	return d.candidatePool.SetCandidate(state, nodeId, can)
+	return d.candidateContext.SetCandidate(state, nodeId, can)
 }
 
 // Getting immediate or reserve candidate info by nodeId
 func (d *ppos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
-	return d.candidatePool.GetCandidate(state, nodeId)
+	return d.candidateContext.GetCandidate(state, nodeId)
 }
 
 // Getting immediate or reserve candidate info arr by nodeIds
 func (d *ppos) GetCandidateArr (state vm.StateDB, nodeIds ... discover.NodeID) (types.CandidateQueue, error) {
-	return d.candidatePool.GetCandidateArr(state, nodeIds...)
+	return d.candidateContext.GetCandidateArr(state, nodeIds...)
 }
 
 // candidate withdraw from  elected candidates
 func (d *ppos) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
-	return d.candidatePool.WithdrawCandidate(state, nodeId, price, blockNumber)
+	return d.candidateContext.WithdrawCandidate(state, nodeId, price, blockNumber)
 }
 
 // Getting all  elected candidates array
 func (d *ppos) GetChosens(state vm.StateDB, flag int) []*types.Candidate {
-	return d.candidatePool.GetChosens(state, flag)
+	return d.candidateContext.GetChosens(state, flag)
 }
 
 // Getting all witness array
 func (d *ppos) GetChairpersons(state vm.StateDB) []*types.Candidate {
-	return d.candidatePool.GetChairpersons(state)
+	return d.candidateContext.GetChairpersons(state)
 }
 
 // Getting all refund array by nodeId
 func (d *ppos) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*types.Candidate, error) {
-	return d.candidatePool.GetDefeat(state, nodeId)
+	return d.candidateContext.GetDefeat(state, nodeId)
 }
 
 // Checked current candidate was defeat by nodeId
 func (d *ppos) IsDefeat(state vm.StateDB, nodeId discover.NodeID) (bool, error) {
-	return d.candidatePool.IsDefeat(state, nodeId)
+	return d.candidateContext.IsDefeat(state, nodeId)
 }
 
 // refund once
 func (d *ppos) RefundBalance(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
-	return d.candidatePool.RefundBalance(state, nodeId, blockNumber)
+	return d.candidateContext.RefundBalance(state, nodeId, blockNumber)
 }
 
 // Getting owner's address of candidate info by nodeId
 func (d *ppos) GetOwner(state vm.StateDB, nodeId discover.NodeID) common.Address {
-	return d.candidatePool.GetOwner(state, nodeId)
+	return d.candidateContext.GetOwner(state, nodeId)
 }
 
 // Getting allow block interval for refunds
 func (d *ppos) GetRefundInterval() uint64 {
-	return d.candidatePool.GetRefundInterval()
+	return d.candidateContext.GetRefundInterval()
 }
 
 
@@ -625,7 +625,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 
 	log.Debug("【Setting current  block Node Cache】", "parentNumber", parentNumber, "ParentHash", parentHash.String(), "currentNumber:", currentNumber, "hash", currentHash.String(), "round:", round)
 
-	preNodes, curNodes, nextNodes, err := d.candidatePool.GetAllWitness(state)
+	preNodes, curNodes, nextNodes, err := d.candidateContext.GetAllWitness(state)
 
 	if nil != err {
 		log.Error("Failed to setting nodeCache on setGeneralNodeCache", "err", err)
@@ -773,14 +773,14 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 	round := calcurround(currentNumber)
 	log.Debug("【Set the farthest allowed cache reserved block】", "currentNumber:", currentNumber, "round:", round)
 
-	curr_preNodes, curr_curNodes, curr_nextNodes, err := d.candidatePool.GetAllWitness(currentState)
+	curr_preNodes, curr_curNodes, curr_nextNodes, err := d.candidateContext.GetAllWitness(currentState)
 
 	if nil != err {
 		log.Error("Failed to setting nodeCache by currentStateDB on setEarliestIrrNodeCache", "err", err)
 		return err
 	}
 
-	parent_preNodes, parent_curNodes, parent_nextNodes, err := d.candidatePool.GetAllWitness(parentState)
+	parent_preNodes, parent_curNodes, parent_nextNodes, err := d.candidateContext.GetAllWitness(parentState)
 	if nil != err {
 		log.Error("Failed to setting nodeCache by parentStateDB on setEarliestIrrNodeCache", "err", err)
 		return err
