@@ -9,9 +9,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
+	"strconv"
 	"testing"
 )
 
@@ -393,14 +395,14 @@ func TestGetTicketPrice(t *testing.T) {
 }
 
 func TestTicketPoolEncode(t *testing.T) {
-	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
+	nodeId := []byte("0x751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c")
 	// VoteTicket(count uint64, price *big.Int, nodeId discover.NodeID)
 	var VoteTicket [][]byte
 	VoteTicket = make([][]byte, 0)
 	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1000))
 	VoteTicket = append(VoteTicket, []byte("VoteTicket"))
-	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(5000))
-	VoteTicket = append(VoteTicket, big.NewInt(1).Bytes())
+	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(100))
+	VoteTicket = append(VoteTicket, big.NewInt(1000000000000000000).Bytes())
 	VoteTicket = append(VoteTicket, nodeId)
 	bufVoteTicket := new(bytes.Buffer)
 	err := rlp.Encode(bufVoteTicket, VoteTicket)
@@ -535,4 +537,17 @@ func TestTicketPoolDecode(t *testing.T) {
 	for i, v := range source {
 		fmt.Println("i: ", i, " v: ", hex.EncodeToString(v))
 	}
+}
+
+func generateTicketId(txHash common.Hash, index uint64) (common.Hash, error) {
+	// generate ticket id
+	value := append(txHash.Bytes(), []byte(strconv.Itoa(int(index)))...)
+	ticketId := sha3.Sum256(value[:])
+	return ticketId, nil
+}
+
+func TestGenerateTicketId(t *testing.T) {
+	txHash := []byte("2aeb176c6c90b55d59afaa56fcc0af0ede81dfa7a5c45ef89a46f7d3ea1fbaf6")
+	ticketId, _ := generateTicketId(byteutil.BytesToHash(txHash), 0)
+	fmt.Println(ticketId.String())
 }
