@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	ErrTicketPrice     = errors.New("Ticket Price is illegal")
 	ErrIllegalDeposit  = errors.New("Deposit balance not match or too low")
 	ErrTicketPoolEmpty = errors.New("Ticket Pool is null")
 )
@@ -71,6 +72,20 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 	from := t.Contract.caller.Address()
 	log.Info("Input to VoteTicket==>", " nodeId: ", nodeId.String(), " owner: ", from.Hex(), " txhash: ", txHash.Hex(),
 		" txIdx: ", txIdx, " blockNumber: ", blockNumber, " value: ", value, " count: ", count, " price: ", price)
+	if ticketPrice, err := t.Evm.TicketPool.GetTicketPrice(t.Evm.StateDB); nil == err {
+		if price.Cmp(ticketPrice) < 0 {
+			log.Error("Failed to VoteTicket==> ", "ErrTicketPrice: ", ErrTicketPrice.Error())
+			return nil, ErrTicketPrice
+		}
+	} else {
+		log.Error("Failed to VoteTicket==> ", "GetTicketPrice return err: ", err.Error())
+		return nil, err
+	}
+	totalPrice := new(big.Int).Mul(new(big.Int).SetUint64(count), price)
+	if value.Cmp(totalPrice) < 0 || totalPrice.Cmp(big.NewInt(0)) != 1 {
+		log.Error("Failed to VoteTicket==> ", "ErrIllegalDeposit: ", ErrIllegalDeposit.Error())
+		return nil, ErrIllegalDeposit
+	}
 	can, err := t.Evm.CandidatePool.GetCandidate(t.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("Failed to VoteTicket==> ", "GetCandidate return err: ", err.Error())
@@ -79,11 +94,6 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 	if nil == can {
 		log.Error("Failed to VoteTicket==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
 		return nil, ErrCandidateNotExist
-	}
-	totalPrice := new(big.Int).Mul(new(big.Int).SetUint64(count), price)
-	if value.Cmp(totalPrice) < 0 || totalPrice.Cmp(big.NewInt(0)) != 1 {
-		log.Error("Failed to VoteTicket==> ", "ErrIllegalDeposit: ", ErrIllegalDeposit.Error())
-		return nil, ErrIllegalDeposit
 	}
 	ticketIds, err := t.Evm.TicketPool.VoteTicket(t.Evm.StateDB, from, count, price, nodeId, blockNumber)
 	if nil == ticketIds {
