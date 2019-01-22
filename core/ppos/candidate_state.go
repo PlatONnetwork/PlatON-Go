@@ -77,11 +77,11 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		return candidatePool
 	}
 	if "" == strings.TrimSpace(configs.Candidate.Threshold) {
-		configs.Candidate.Threshold = "1000000000000000000"
+		configs.Candidate.Threshold = "1000000000000000000000000"
 	}
 	var threshold *big.Int
 	if thd, ok := new(big.Int).SetString(configs.Candidate.Threshold, 10); !ok {
-		threshold, _ = new(big.Int).SetString("1000000000000000000", 10)
+		threshold, _ = new(big.Int).SetString("1000000000000000000000000", 10)
 	}else {
 		threshold = thd
 	}
