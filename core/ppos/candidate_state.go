@@ -294,6 +294,8 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	}()
 	var nodeIds []discover.NodeID
 	c.lock.Lock()
+
+	PrintObject("Call SetCandidate start ...", *can)
 	if err := c.initDataByState(state, 2); nil != err {
 		c.lock.Unlock()
 		log.Error("Failed to initDataByState on SetCandidate", "nodeId", nodeId.String(), " err", err)
@@ -313,7 +315,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		log.Warn("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
 		return DepositLowErr
 	}
-	PrintObject("Call SetCandidate start ...", *can)
+
 	if arr, err := c.setCandidateInfo(state, nodeId, can); nil != err {
 		c.lock.Unlock()
 		log.Error("Failed to setCandidateInfo on SetCandidate", "nodeId", nodeId.String(), "err", err)
@@ -329,6 +331,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 			//return err
 		}
 	}
+	log.Debug("Call SetCandidate successfully...")
 	return nil
 }
 
@@ -676,6 +679,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			return nil, err
 		}
 	}
+	log.Info("Call WithdrawCandidate SUCCESS !!!!!!!!!!!!")
 	return nil, nil
 }
 
@@ -685,7 +689,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 // 1:  Getting all immediate elected candidates array
 // 2:  Getting all reserve elected candidates array
 func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.CandidateQueue {
-	log.Info("获取实时入围列表...")
+	log.Debug("Call GetChosens getting immediate candidates ...")
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	arr := make(types.CandidateQueue, 0)
@@ -723,7 +727,7 @@ func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.CandidateQu
 
 // Getting all witness array
 func (c *CandidatePool) GetChairpersons(state vm.StateDB) types.CandidateQueue {
-	log.Info("获取本轮见证人列表...")
+	log.Debug("Call GetChairpersons getting witnesses ...")
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 0); nil != err {
@@ -746,7 +750,7 @@ func (c *CandidatePool) GetChairpersons(state vm.StateDB) types.CandidateQueue {
 
 // Getting all refund array by nodeId
 func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) (types.CandidateQueue, error) {
-	log.Info("获取退款列表: nodeId = " + nodeId.String())
+	log.Debug("Call GetDefeat getting defeat arr: curr nodeId = " + nodeId.String())
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
@@ -800,7 +804,7 @@ func (c *CandidatePool) IsChosens(state vm.StateDB, nodeId discover.NodeID) (boo
 
 // Getting owner's address of candidate info by nodeId
 func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) common.Address {
-	log.Info("获取收益者地址: nodeId = " + nodeId.String())
+	log.Debug("Call GetOwner: curr nodeId = " + nodeId.String())
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
@@ -842,7 +846,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	defer func() {
 		c.ForEachStorage(state, "View State After RefundBalance ...")
 	}()
-	log.Info("一键退款: nodeId = " + nodeId.String() + ",当前块高:" + blockNumber.String())
+	log.Info("Call RefundBalance:  curr nodeId = " + nodeId.String() + ",curr blocknumber:" + blockNumber.String())
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
@@ -1456,13 +1460,14 @@ func (c *CandidatePool) GetRefundInterval() uint64 {
 
 // 根据nodeId 去重新决定当前候选人的去留
 func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *big.Int, nodeIds ...discover.NodeID) error {
-
+	log.Info("Call UpdateElectedQueue start ...")
 	var ids []discover.NodeID
 	if arr, err := c.updateQueue(state, nodeIds...); nil != err {
 		return err
 	} else {
 		ids = arr
 	}
+	log.Info("Call UpdateElectedQueue SUCCESS !!!!!!!!! ")
 	c.ForEachStorage(state, "View State After UpdateElectedQueue ...")
 	//go ticketPool.DropReturnTicket(state, ids...)
 	if len(ids) > 0 {
