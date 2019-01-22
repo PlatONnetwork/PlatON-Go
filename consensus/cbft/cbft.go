@@ -1959,3 +1959,7 @@ func GetAmount(number *big.Int) *big.Int {
 	ret := new(big.Int).Div(yearAmount, base)
 	return ret
 }
+
+func (cbft *Cbft) ForEachStorage(state *state.StateDB, title string) {
+	cbft.ppos.ForEachStorage(state, title)
+}

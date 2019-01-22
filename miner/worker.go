@@ -1313,15 +1313,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	commitUncles(w.localUncles)
 	commitUncles(w.remoteUncles)
 
-	// ppos Notify
-	/*if _, ok := w.engine.(consensus.Bft); ok {
-		if err := w.notify(w.current.state, header.Number); err != nil {
-			log.Error("ppos notify error", "err", err)
-			return
-		}
-		w.current.state.IntermediateRoot(w.config.IsEIP158(header.Number))
-	}*/
-
 	if !noempty {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
@@ -1366,6 +1357,11 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
 
+	root :=  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+	log.Debug("【The Consensus packaging】 commitTransactionsWithHeader Before executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
+
+	w.forEachStorage(w.current.state, "【The Consensus packaging】,执行交易前")
+
 	startTime = time.Now()
 	var localTimeout = false
 	if len(localTxs) > 0 {
@@ -1406,6 +1402,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	s := w.current.state.Copy()
 	root :=  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
 	log.Debug("【共识 打包出块】执行交易之后, 调notify系列func之前", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "实时的state.root", root.Hex())
+	w.forEachStorage(w.current.state, "【The Consensus packaging】,执行交易后，notify 之前")
 
 	if header != nil {
 		if err := w.notify(s, header.Number); err != nil {
@@ -1429,6 +1426,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 
 	root =  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
 	log.Debug("【共识 打包出块】 finalize之后", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "实时的state.root", root.Hex())
+	w.forEachStorage(w.current.state, "【The Consensus packaging】,finaly前")
 
 	log.Warn("worker: commit: Finalize", "blockNumber", block.Number(), "root", block.Root().String())
 	//root, _ := s.Commit(w.config.IsEIP158(w.current.header.Number))

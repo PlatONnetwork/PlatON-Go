@@ -134,6 +134,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				return CandidateDecodeErr
 			} else {
 				if nil != ca {
+					PrintObject(title+" Id:"+witnessId.String()+", can", ca)
 					canMap[witnessId] = ca
 				} else {
 					delete(canMap, witnessId)

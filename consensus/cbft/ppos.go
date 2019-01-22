@@ -174,8 +174,7 @@ func (d *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlockn
 		log.Error("ppos election next witness", " err: ", err)
 		panic("Election error " + err.Error())
 	} else {
-		log.Info("Election finish，view stateDB content again ...")
-		d.candidateContext.GetAllWitness(state)
+		d.candidateContext.ForEachStorage(state, "PPOS Election finish，view stateDB content again ...")
 
 		return nextNodes, nil
 	}
@@ -979,4 +978,8 @@ func cmpSwitch (round, currentNum uint64) int {
 
 func (d *ppos) setTicketPoolCache () {
 	d.ticketidsCache = ticketcache.GetTicketidsCachePtr()
+}
+
+func (p *ppos) ForEachStorage(state *state.StateDB, title string) {
+	p.candidateContext.ForEachStorage(state, title)
 }

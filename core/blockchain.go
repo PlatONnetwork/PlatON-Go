@@ -933,6 +933,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 			return NonStatTy, err
 		}
 		log.Info("archive node commit stateDB trie", "blockNumber", block.NumberU64(), "root", root.String())
+		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+			cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，写链之后：")
+		}
 	} else {
 		log.Info("non-archive node put stateDB trie", "blockNumber", block.NumberU64(), "root", root.String())
 		// Full but not archive node, do proper garbage collection
@@ -1191,18 +1194,11 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
-
-		/*// ppos Notify
-		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-			if err := cbftEngine.Notify(state, block.Number()); err != nil {
-				log.Error("ppos notify error", "err", err)
-				break
-			}
-			state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-		}*/
 		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-		log.Debug("【非共识节点同步】执行交易前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
-
+		log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+			cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， 执行交易前：")
+		}
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
 		if err != nil {
@@ -1264,16 +1260,12 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 //joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block, blockInterval *big.Int) (types.Receipts, error) {
 	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
-	/*// ppos Notify
-	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-		if err := cbftEngine.Notify(state, block.Number()); err != nil {
-			log.Error("ppos notify error", "err", err)
-			return nil, err
-		}
-		state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-	}*/
 	root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-	log.Debug("【共识节点同步】执行交易前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+	log.Debug("【The Consensus node synchronization】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+
+	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+		cbftEngine.ForEachStorage(state, "【ProcessDirectly】，执行交易前：")
+	}
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, blockInterval)
 	if err != nil {

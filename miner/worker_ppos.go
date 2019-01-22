@@ -143,3 +143,9 @@ func (w *worker) storeHash(state *state.StateDB) {
 func (w *worker) submit2cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash) {
 	w.engine.(consensus.Bft).Submit2Cache(state, currBlocknumber, blockInterval, currBlockhash)
 }
+
+func (w *worker) forEachStorage (state *state.StateDB, title string) {
+	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+		cbftEngine.ForEachStorage(state, title)
+	}
+}
