@@ -123,7 +123,7 @@ type Account struct {
 	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
-	AbiHash []byte
+	AbiHash  []byte
 }
 
 // newObject creates a state object.
@@ -304,37 +304,30 @@ func (self *stateObject) setState(key string, valueKey common.Hash, value []byte
 func (self *stateObject) updateTrie(db Database) Trie {
 	tr := self.getTrie(db)
 	for key, valueKey := range self.dirtyStorage {
+		delete(self.dirtyStorage, key)
 
-		value, dirty := self.dirtyValueStorage[valueKey]
-		if dirty {
-			// Skip noop changes, persist actual changes
-			originValue, dirty2 := self.originValueStorage[valueKey]
-			if dirty2 {
-				if bytes.Equal(value, originValue) {
-					continue
-				}
-			}
+		if valueKey == self.originStorage[key] {
+			continue
 		}
 
-		delete(self.dirtyStorage, key)
-		delete(self.dirtyValueStorage, valueKey)
-
-		// Delete the value corresponding to the original valueKey
-		delete(self.originValueStorage, self.originStorage[key])
-
 		self.originStorage[key] = valueKey
-		self.originValueStorage[valueKey] = value
 
-		if (valueKey == common.Hash{} || bytes.Equal(value, []byte{})) {
+		if valueKey == emptyStorage {
 			self.setError(tr.TryDelete([]byte(key)))
 			continue
 		}
 
-		// Encoding []byte cannot fail, ok to ignore the error.
 		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
 		self.setError(tr.TryUpdate([]byte(key), v))
-		//self.setError(tr.TryUpdateValue(valueKey[:], value))
+
+		//flush dirty value
+		if value, ok := self.dirtyValueStorage[valueKey]; ok {
+			delete(self.originValueStorage, valueKey)
+			self.originValueStorage[valueKey] = value
+			self.setError(tr.TryUpdateValue(valueKey.Bytes(), v))
+		}
 	}
+
 	return tr
 }
 
@@ -353,7 +346,7 @@ func (self *stateObject) CommitTrie(db Database) error {
 	}
 
 	for h, v := range self.originValueStorage {
-		if (h != common.Hash{} && !bytes.Equal(v, []byte{})) {
+		if h != emptyStorage && !bytes.Equal(v, []byte{}) {
 			self.trie.TryUpdateValue(h.Bytes(), v)
 		}
 	}
