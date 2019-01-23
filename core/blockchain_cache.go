@@ -162,7 +162,7 @@ func (bcc *BlockChainCache) MakeStateDB(block *types.Block) (*state.StateDB, err
 		return state, nil
 	}
 	// Read and copy the stateDB instance in the cache
-	sealHash := bcc.Engine().SealHash(block.Header())
+	sealHash := block.Header().SealHash()
 	log.Info("Read and copy the stateDB instance in the cache", "sealHash", sealHash, "blockHash", block.Hash(), "blockNum", block.NumberU64(), "stateRoot", block.Root())
 	if state := bcc.ReadStateDB(sealHash); state != nil {
 		//return state.Copy(), nil
@@ -174,7 +174,7 @@ func (bcc *BlockChainCache) MakeStateDB(block *types.Block) (*state.StateDB, err
 
 // Get the StateDB instance of the corresponding block
 func (bcc *BlockChainCache) ClearCache(block *types.Block) {
-	sealHash := bcc.Engine().SealHash(block.Header())
+	sealHash := block.Header().SealHash()
 	bcc.clearReceipts(sealHash)
 	bcc.clearStateDB(sealHash)
 }
