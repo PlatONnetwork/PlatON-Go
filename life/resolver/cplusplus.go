@@ -163,6 +163,7 @@ func newCfcSet() map[string]map[string]*exec.FunctionImport {
 			"vc_CreatePBVar":            &exec.FunctionImport{Execute: envCreatePBVarEnv, GasCost: envCreatePBVarGasCost},
 			"vc_CreateGadget":           &exec.FunctionImport{Execute: envCreateGadgetEnv, GasCost: envCreateGadgetGasCost},
 			"vc_SetVar":                 &exec.FunctionImport{Execute: envSetVarEnv, GasCost: envSetVarGasCost},
+			"vc_SetRetIndex":			 &exec.FunctionImport{Execute: envSetRetIndexEnv, GasCost: envSetRetIndexGasCost},
 			"vc_GenerateWitness":        &exec.FunctionImport{Execute: envGenWitnessEnv, GasCost: envGenWitnessGasCost},
 			"vc_GenerateProofAndResult": &exec.FunctionImport{Execute: envGenProofAndResultEnv, GasCost: envGenProofAndResultGasCost},
 			"vc_Verify":                 &exec.FunctionImport{Execute: envVerifyEnv, GasCost: envVerifyGasCost},
