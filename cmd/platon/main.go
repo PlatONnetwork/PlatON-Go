@@ -172,6 +172,11 @@ var (
 		utils.MPCIceFileFlag,
 		utils.MPCActorFlag,
 	}
+	vcFlags = []cli.Flag{
+		utils.VCEnabledFlag,
+		utils.VCActorFlag,
+		utils.VCPasswordFlag,
+	}
 )
 
 func init() {
@@ -218,6 +223,8 @@ func init() {
 
 	// for mpc
 	app.Flags = append(app.Flags, mpcFlags...)
+	// for vc
+	app.Flags = append(app.Flags, vcFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())

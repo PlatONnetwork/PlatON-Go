@@ -18,16 +18,17 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"errors"
 	"fmt"
 	"math/big"
 	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -76,7 +77,8 @@ type Ethereum struct {
 	protocolManager *ProtocolManager
 	lesServer       LesServer
 	// modify
-	mpcPool 		*core.MPCPool
+	mpcPool *core.MPCPool
+	vcPool  *core.VCPool
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -163,7 +165,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			EnablePreimageRecording: config.EnablePreimageRecording,
 			EWASMInterpreter:        config.EWASMInterpreter,
 			EVMInterpreter:          config.EVMInterpreter,
-			ConsoleOutput: config.Debug,
+			ConsoleOutput:           config.Debug,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
@@ -204,6 +206,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.MPCPool.Lifetime = core.DefaultMPCPoolConfig.Lifetime
 	}
 	eth.mpcPool = core.NewMPCPool(config.MPCPool, eth.chainConfig, eth.blockchain)
+	eth.vcPool = core.NewVCPool(config.VCPool, eth.chainConfig, eth.blockchain)
 
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
 		return nil, err
@@ -624,15 +627,14 @@ func (s *Ethereum) Stop() error {
 	return nil
 }
 
-
-func setPposConfig (pposConfig *PposConfig) *params.PposConfig{
+func setPposConfig(pposConfig *PposConfig) *params.PposConfig {
 	return &params.PposConfig{
-		Candidate: 	&params.CandidateConfig{
-					Threshold:				pposConfig.Candidate.Threshold,
-					DepositLimit:			pposConfig.Candidate.DepositLimit,
-					MaxChair:  				pposConfig.Candidate.MaxChair,
-					MaxCount:  				pposConfig.Candidate.MaxCount,
-					RefundBlockNumber: 		pposConfig.Candidate.RefundBlockNumber,
+		Candidate: &params.CandidateConfig{
+			Threshold:         pposConfig.Candidate.Threshold,
+			DepositLimit:      pposConfig.Candidate.DepositLimit,
+			MaxChair:          pposConfig.Candidate.MaxChair,
+			MaxCount:          pposConfig.Candidate.MaxCount,
+			RefundBlockNumber: pposConfig.Candidate.RefundBlockNumber,
 		},
 	}
 }
