@@ -301,7 +301,7 @@ func (self *stateObject) setState(key string, valueKey common.Hash, value []byte
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
-func (self *stateObject) updateTrie(db Database) Trie {
+/*func (self *stateObject) updateTrie(db Database) Trie {
 	tr := self.getTrie(db)
 	for key, valueKey := range self.dirtyStorage {
 
@@ -335,6 +335,36 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		self.setError(tr.TryUpdate([]byte(key), v))
 		//self.setError(tr.TryUpdateValue(valueKey[:], value))
 	}
+	return tr
+}*/
+
+func (self *stateObject) updateTrie(db Database) Trie {
+	tr := self.getTrie(db)
+	for key, valueKey := range self.dirtyStorage {
+		delete(self.dirtyStorage, key)
+
+		if valueKey == self.originStorage[key] {
+			continue
+		}
+
+		self.originStorage[key] = valueKey
+
+		if valueKey == emptyStorage {
+			self.setError(tr.TryDelete([]byte(key)))
+			continue
+		}
+
+		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
+		self.setError(tr.TryUpdate([]byte(key), v))
+
+		//flush dirty value
+		if value, ok := self.dirtyValueStorage[valueKey]; ok {
+			delete(self.originValueStorage, valueKey)
+			self.originValueStorage[valueKey] = value
+			self.setError(tr.TryUpdateValue(valueKey.Bytes(), v))
+		}
+	}
+
 	return tr
 }
 

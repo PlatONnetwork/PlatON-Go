@@ -1489,6 +1489,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		return nil, nil
 	}
 	if err := c.initDataByState(state, 1); nil != err {
+	//if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on UpdateElectedQueue", "err", err)
 		return nil, err
 	}
@@ -2445,7 +2446,7 @@ func ImmediateKey(nodeId discover.NodeID) []byte {
 	return immediateKey(nodeId.Bytes())
 }
 func immediateKey(key []byte) []byte {
-	return append(ImmediateBytePrefix, key...)
+	return append(append(common.CandidatePoolAddr.Bytes(), ImmediateBytePrefix...), key...)
 }
 
 func ReserveKey(nodeId discover.NodeID) []byte {
@@ -2453,7 +2454,7 @@ func ReserveKey(nodeId discover.NodeID) []byte {
 }
 
 func reserveKey(key []byte) []byte {
-	return append(ReserveBytePrefix, key...)
+	return append(append(common.CandidatePoolAddr.Bytes(), ReserveBytePrefix ...), key...)
 }
 
 func PreviousWitnessKey(nodeId discover.NodeID) []byte {
@@ -2461,52 +2462,52 @@ func PreviousWitnessKey(nodeId discover.NodeID) []byte {
 }
 
 func prewitnessKey(key []byte) []byte {
-	return append(PreWitnessBytePrefix, key...)
+	return append(append(common.CandidatePoolAddr.Bytes(), PreWitnessBytePrefix...), key...)
 }
 
 func WitnessKey(nodeId discover.NodeID) []byte {
 	return witnessKey(nodeId.Bytes())
 }
 func witnessKey(key []byte) []byte {
-	return append(WitnessBytePrefix, key...)
+	return append(append(common.CandidatePoolAddr.Bytes(), WitnessBytePrefix...), key...)
 }
 
 func NextWitnessKey(nodeId discover.NodeID) []byte {
 	return nextWitnessKey(nodeId.Bytes())
 }
 func nextWitnessKey(key []byte) []byte {
-	return append(NextWitnessBytePrefix, key...)
+	return append(append(common.CandidatePoolAddr.Bytes(), NextWitnessBytePrefix...), key...)
 }
 
 func DefeatKey(nodeId discover.NodeID) []byte {
 	return defeatKey(nodeId.Bytes())
 }
 func defeatKey(key []byte) []byte {
-	return append(DefeatBytePrefix, key...)
+	return append(append(common.CandidatePoolAddr.Bytes(), DefeatBytePrefix...), key...)
 }
 
 func ImmediateListKey() []byte {
-	return ImmediateListBytePrefix
+	return append(common.CandidatePoolAddr.Bytes(), ImmediateListBytePrefix...)
 }
 
 func ReserveListKey() []byte {
-	return ReserveListBytePrefix
+	return append(common.CandidatePoolAddr.Bytes(), ReserveListBytePrefix ...)
 }
 
 func PreviousWitnessListKey() []byte {
-	return PreWitnessListBytePrefix
+	return append(common.CandidatePoolAddr.Bytes(), PreWitnessListBytePrefix...)
 }
 
 func WitnessListKey() []byte {
-	return WitnessListBytePrefix
+	return append(common.CandidatePoolAddr.Bytes(), WitnessListBytePrefix...)
 }
 
 func NextWitnessListKey() []byte {
-	return NextWitnessListBytePrefix
+	return append(common.CandidatePoolAddr.Bytes(), NextWitnessListBytePrefix...)
 }
 
 func DefeatListKey() []byte {
-	return DefeatListBytePrefix
+	return append(common.CandidatePoolAddr.Bytes(), DefeatListBytePrefix...)
 }
 
 func (c *CandidatePool) ForEachStorage (state vm.StateDB, title string) {

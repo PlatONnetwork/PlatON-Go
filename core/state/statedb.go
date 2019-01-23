@@ -370,10 +370,8 @@ func getKeyValue(address common.Address, key []byte, value []byte) (string, comm
 
 	//if value != nil && !bytes.Equal(value,[]byte{}){
 	buffer.Reset()
-	//buffer.WriteString(string(key))
 	buffer.WriteString(storagePrefix)
 	buffer.WriteString(string(value))
-	//valueKey := sha3.Sum256(buffer.Bytes())
 
 	valueKey := common.Hash{}
 	keccak := sha3.NewKeccak256()
@@ -384,6 +382,24 @@ func getKeyValue(address common.Address, key []byte, value []byte) (string, comm
 	//}
 	//return keyTrie, common.Hash{}, value
 }
+
+
+/*func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
+	var buffer bytes.Buffer
+	buffer.WriteString(address.String())
+	buffer.WriteString(string(key))
+	keyTrie := buffer.String()
+
+	//if value != nil && !bytes.Equal(value,[]byte{}){
+	buffer.Reset()
+	buffer.WriteString(string(key))
+	buffer.WriteString(string(value))
+	valueKey := sha3.Sum256(buffer.Bytes())
+	return keyTrie, valueKey, value
+	//}
+	//return keyTrie, common.Hash{}, value
+}*/
+
 
 // Suicide marks the given account as suicided.
 // This clears the account balance.
