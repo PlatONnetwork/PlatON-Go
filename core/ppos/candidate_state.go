@@ -134,7 +134,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				return CandidateDecodeErr
 			} else {
 				if nil != ca {
-					PrintObject(title+" Id:"+witnessId.String()+", can", ca)
+					PrintObject(title+"Id:"+witnessId.String()+", can", ca)
 					canMap[witnessId] = ca
 				} else {
 					delete(canMap, witnessId)
@@ -201,7 +201,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 					return nil, CandidateDecodeErr
 				} else {
 					if nil != ca {
-						PrintObject(title+" Id:"+witnessId.String()+", can", ca)
+						PrintObject(title+"Id:"+witnessId.String()+", can", ca)
 						canMap[witnessId] = ca
 						canCache = append(canCache, ca)
 					} else {

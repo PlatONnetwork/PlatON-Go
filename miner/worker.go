@@ -1445,7 +1445,6 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	log.Debug("【The Consensus packaging】 finalize之后", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "实时的state.root", root.Hex())
 	w.forEachStorage(s, "【The Consensus packaging】 finalize之后")
 
-	log.Warn("worker: commit: Finalize", "blockNumber", block.Number(), "Block.root", block.Root().String())
 
 	if err != nil {
 		return err

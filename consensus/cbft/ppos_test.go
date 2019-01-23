@@ -128,7 +128,7 @@ func ppos_BlockProducerIndex(logger interface{}, logFn func (args ... interface{
 	ppos, bc := buildPpos()
 	curr := bc.CurrentBlock()
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342")
-	num := ppos.NodeIndex(curr.Number(), curr.Hash(), curr.Number(), nodeId, 1)
+	num := ppos.BlockProducerIndex(curr.Number(), curr.Hash(), curr.Number(), nodeId, 1)
 	logFn("BlockProducerIndex：", num)
 }
 func TestPpos_BlockProducerIndex(t *testing.T) {

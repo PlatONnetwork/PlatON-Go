@@ -49,11 +49,11 @@ func newPpos(config *params.CbftConfig) *ppos {
 }
 
 
-func (d *ppos) NodeIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) int64 {
+func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) int64 {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
-	log.Warn("BlockProducerIndex", "parentNumber", parentNumber, "parentHash", parentHash.String(), "blockNumber", blockNumber.String(), "nodeID", nodeID.String(), "round", round)
+	log.Info("BlockProducerIndex", "parentNumber", parentNumber, "parentHash", parentHash.String(), "blockNumber", blockNumber.String(), "nodeID", nodeID.String(), "round", round)
 
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
 	d.printMapInfo("BlockProducerIndex", parentNumber.Uint64(), parentHash)

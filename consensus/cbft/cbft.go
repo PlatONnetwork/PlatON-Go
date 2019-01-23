@@ -1692,7 +1692,7 @@ func (cbft *Cbft) isLegal(rcvTime int64, parentNumber *big.Int, parentHash commo
 //}
 
 func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) bool {
-	nodeIdx := cbft.ppos.NodeIndex(parentNumber, parentHash, blockNumber, nodeID, round)
+	nodeIdx := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, blockNumber, nodeID, round)
 	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
