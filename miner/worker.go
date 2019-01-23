@@ -418,7 +418,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			timestamp = time.Now().UnixNano() / 1e6
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
-			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash())
+			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash().Hex(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash().Hex())
 			w.blockChainCache.ClearCache(head.Block)
 
 			if cbft, ok := w.engine.(consensus.Bft); ok {
@@ -426,7 +426,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case highestLogicalBlock := <-w.highestLogicalBlockCh:
-			log.Debug("received a notify for new highest logical", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash())
+			log.Debug("received a notify for new highest logical", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash().Hex())
 			w.commitWorkEnv.highestLock.Lock()
 			w.commitWorkEnv.highestLogicalBlock = highestLogicalBlock
 			w.commitWorkEnv.highestLock.Unlock()
@@ -864,14 +864,20 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		err   error
 	)
 	if _, ok := w.engine.(consensus.Bft); ok {
+		log.Debug("【makeCurrent】New state by MakeStateDB ...")
 		state, err = w.blockChainCache.MakeStateDB(parent)
 	} else {
+		log.Debug("【makeCurrent】New state by chain StateAt ...")
 		state, err = w.chain.StateAt(parent.Root(), parent.Number(), parent.Hash())
 	}
 	log.Info("-----------Build statedb---------", "blockNumber", header.Number.Uint64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	if err != nil {
 		return err
 	}
+
+	// TODO
+	w.forEachStorage(state, "【makeCurrent】When new the current stateDB instance:")
+
 	env := &environment{
 		signer:    types.NewEIP155Signer(w.config.ChainID),
 		state:     state,
@@ -1317,6 +1323,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
 		if _, ok := w.engine.(consensus.Bft); !ok {
+			// TODO
+			w.forEachStorage(w.current.state, "【The Consensus packaging】,执行交易前")
 			w.commit(uncles, nil, false, tstart, nil)
 		}
 	}
@@ -1335,6 +1343,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
 		if _, ok := w.engine.(consensus.Bft); ok {
+			// TODO
+			w.forEachStorage(w.current.state, "【The Consensus packaging】,执行交易前")
 			w.commit(uncles, nil, true, tstart, header)
 		} else {
 			w.updateSnapshot()
@@ -1354,7 +1364,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			localTxs[account] = txs
 		}
 	}
-
+	// TODO
 	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
 
 	root :=  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
@@ -1416,22 +1426,27 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		if switchWitnessErr := w.switchWitness(s, header.Number); switchWitnessErr != nil {
 			return errors.New("switchWitness failure")
 		}
+		w.forEachStorage(s, "【The Consensus packaging】Election之后, 调storeHash之前")
 		// ppos Store Hash
 		w.storeHash(s)
+		w.forEachStorage(s, "【The Consensus packaging】Election之后, 调storeHash之后，finalize之前")
 	}
+
+	//root, _ = s.Commit(w.config.IsEIP158(w.current.header.Number))
+	//log.Warn("【The Consensus packaging】: Commit", "blockNumber", header.Number.String(), "State.root", root.String())
+
 	root =  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
 	log.Debug("【The Consensus packaging】执行交易之后, 调notify系列func之后， finalize之前", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "实时的state.root", root.Hex())
-	w.forEachStorage(w.current.state, "【The Consensus packaging】执行交易之后, 调notify系列func之后， finalize之前")
+	w.forEachStorage(s, "【The Consensus packaging】执行交易之后, 调notify系列func之后， finalize之前")
 
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 
 	root =  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
 	log.Debug("【The Consensus packaging】 finalize之后", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "实时的state.root", root.Hex())
-	w.forEachStorage(w.current.state, "【The Consensus packaging】 finalize之后")
+	w.forEachStorage(s, "【The Consensus packaging】 finalize之后")
 
-	log.Warn("worker: commit: Finalize", "blockNumber", block.Number(), "root", block.Root().String())
-	//root, _ := s.Commit(w.config.IsEIP158(w.current.header.Number))
-	//log.Warn("worker: commit: Commit", "blockNumber", header.Number.String(), "root", root.String())
+	log.Warn("worker: commit: Finalize", "blockNumber", block.Number(), "Block.root", block.Root().String())
+
 	if err != nil {
 		return err
 	}

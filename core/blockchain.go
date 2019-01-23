@@ -919,11 +919,26 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	rawdb.TicketCacheCommit(bc.db)
 	rawdb.WriteBlock(bc.db, block)
 
+	r := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
+	log.Debug("【WriteBlockWithState】，Before state.Commit：", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", r.String())
+	// TODO
+	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+		cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，Before state.Commit：")
+	}
+
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
 		log.Error("check block is EIP158 error", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
 	}
+
+	r = state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
+	log.Debug("【WriteBlockWithState】，After state.Commit：", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", r.String())
+	// TODO
+	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+		cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After state.Commit：")
+	}
+
 	triedb := bc.stateCache.TrieDB()
 
 	// If we're running an archive node, always flush
@@ -932,12 +947,12 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 			log.Error("Commit to triedb error", "root", root)
 			return NonStatTy, err
 		}
-		log.Info("archive node commit stateDB trie", "blockNumber", block.NumberU64(), "root", root.String())
+		log.Info("【archive node commit stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
 			cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，写链之后：")
 		}
 	} else {
-		log.Info("non-archive node put stateDB trie", "blockNumber", block.NumberU64(), "root", root.String())
+		log.Info("【non-archive node put stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 		// Full but not archive node, do proper garbage collection
 		triedb.Reference(root, common.Hash{}) // metadata reference to keep trie alive
 		bc.triegc.Push(root, -int64(block.NumberU64()))

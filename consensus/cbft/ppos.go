@@ -174,8 +174,7 @@ func (d *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlockn
 		log.Error("ppos election next witness", " err: ", err)
 		panic("Election error " + err.Error())
 	} else {
-		d.candidateContext.ForEachStorage(state, "PPOS Election finish，view stateDB content again ...")
-
+		//d.candidateContext.ForEachStorage(state, "PPOS Election finish，view stateDB content again ...")
 		return nextNodes, nil
 	}
 }

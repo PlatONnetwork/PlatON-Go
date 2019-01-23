@@ -941,7 +941,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 					setDefeatIdsState(state, value)
 				}
 			} else {
-				//setDefeatIdsState(state, []byte{})
+				setDefeatIdsState(state, []byte{})
 			}
 
 		}
@@ -1869,15 +1869,13 @@ func (c *CandidatePool) getImmediateIndex(state vm.StateDB) ([]discover.NodeID, 
 
 // deleted immediate candidate by nodeId (Automatically update the index)
 func (c *CandidatePool) delImmediate(state vm.StateDB, candidateId discover.NodeID) {
-	//// deleted immediate candidate by id on trie
-	//setImmediateState(state, candidateId, []byte{})
-	//// deleted immedidate candidate by id on map
-	//delete(c.immediateCandidates, candidateId)
+	setImmediateState(state, candidateId, []byte{})
+	delete(c.immediateCandidates, candidateId)
 }
 
 func (c *CandidatePool) setImmediateIndex(state vm.StateDB, nodeIds []discover.NodeID) error {
 	if len(nodeIds) == 0 {
-		//setImmediateIdsState(state, []byte{})
+		setImmediateIdsState(state, []byte{})
 		return nil
 	}
 	if val, err := rlp.EncodeToBytes(nodeIds); nil != err {
@@ -1903,10 +1901,8 @@ func (c *CandidatePool) setReserve(state vm.StateDB, candidateId discover.NodeID
 
 // deleted reserve candidate by nodeId (Automatically update the index)
 func (c *CandidatePool) delReserve(state vm.StateDB, candidateId discover.NodeID) {
-	//// deleted reserve candidate by id on trie
-	//setReserveState(state, candidateId, []byte{})
-	//// deleted reserve candidate by id on map
-	//delete(c.reserveCandidates, candidateId)
+	setReserveState(state, candidateId, []byte{})
+	delete(c.reserveCandidates, candidateId)
 }
 
 func (c *CandidatePool) getReserveIndex(state vm.StateDB) ([]discover.NodeID, error) {
@@ -1915,7 +1911,7 @@ func (c *CandidatePool) getReserveIndex(state vm.StateDB) ([]discover.NodeID, er
 
 func (c *CandidatePool) setReserveIndex(state vm.StateDB, nodeIds []discover.NodeID) error {
 	if len(nodeIds) == 0 {
-		//setReserveIdsState(state, []byte{})
+		setReserveIdsState(state, []byte{})
 		return nil
 	}
 	if val, err := rlp.EncodeToBytes(nodeIds); nil != err {
@@ -1954,8 +1950,8 @@ func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID,
 }
 
 func (c *CandidatePool) delDefeat(state vm.StateDB, nodeId discover.NodeID) {
-	//delete(c.defeatCandidates, nodeId)
-	//setDefeatState(state, nodeId, []byte{})
+	delete(c.defeatCandidates, nodeId)
+	setDefeatState(state, nodeId, []byte{})
 }
 
 // update refund index
@@ -1975,7 +1971,7 @@ func (c *CandidatePool) setDefeatIndex(state vm.StateDB) error {
 		newdefeatIds = append(newdefeatIds, id)
 	}
 	if len(newdefeatIds) == 0 {
-		//setDefeatIdsState(state, []byte{})
+		setDefeatIdsState(state, []byte{})
 		return nil
 	}
 	if value, err := rlp.EncodeToBytes(&newdefeatIds); nil != err {
@@ -1988,10 +1984,8 @@ func (c *CandidatePool) setDefeatIndex(state vm.StateDB) error {
 }
 
 func (c *CandidatePool) delPreviousWitness(state vm.StateDB, candidateId discover.NodeID) {
-	//// deleted previous witness by id on map
-	//delete(c.preOriginCandidates, candidateId)
-	//// delete previous witness by id on trie
-	//setPreviousWitnessState(state, candidateId, []byte{})
+	delete(c.preOriginCandidates, candidateId)
+	setPreviousWitnessState(state, candidateId, []byte{})
 }
 
 func (c *CandidatePool) setPreviousWitness(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
@@ -2007,7 +2001,7 @@ func (c *CandidatePool) setPreviousWitness(state vm.StateDB, nodeId discover.Nod
 
 func (c *CandidatePool) setPreviousWitnessindex(state vm.StateDB, nodeIds []discover.NodeID) error {
 	if len(nodeIds) == 0 {
-		//setPreviosWitnessIdsState(state, []byte{})
+		setPreviosWitnessIdsState(state, []byte{})
 		return nil
 	}
 	if val, err := rlp.EncodeToBytes(nodeIds); nil != err {
@@ -2036,7 +2030,7 @@ func (c *CandidatePool) setWitness(state vm.StateDB, nodeId discover.NodeID, can
 
 func (c *CandidatePool) setWitnessindex(state vm.StateDB, nodeIds []discover.NodeID) error {
 	if len(nodeIds) == 0 {
-		//setWitnessIdsState(state, []byte{})
+		setWitnessIdsState(state, []byte{})
 		return nil
 	}
 	if val, err := rlp.EncodeToBytes(nodeIds); nil != err {
@@ -2049,10 +2043,8 @@ func (c *CandidatePool) setWitnessindex(state vm.StateDB, nodeIds []discover.Nod
 }
 
 func (c *CandidatePool) delWitness(state vm.StateDB, candidateId discover.NodeID) {
-	//// deleted witness by id on map
-	//delete(c.originCandidates, candidateId)
-	//// delete witness by id on trie
-	//setWitnessState(state, candidateId, []byte{})
+	delete(c.originCandidates, candidateId)
+	setWitnessState(state, candidateId, []byte{})
 }
 
 func (c *CandidatePool) getWitnessIndex(state vm.StateDB) ([]discover.NodeID, error) {
@@ -2072,15 +2064,13 @@ func (c *CandidatePool) setNextWitness(state vm.StateDB, nodeId discover.NodeID,
 }
 
 func (c *CandidatePool) delNextWitness(state vm.StateDB, candidateId discover.NodeID) {
-	//// deleted next witness by id on map
-	//delete(c.nextOriginCandidates, candidateId)
-	//// deleted next witness by id on trie
-	//setNextWitnessState(state, candidateId, []byte{})
+	delete(c.nextOriginCandidates, candidateId)
+	setNextWitnessState(state, candidateId, []byte{})
 }
 
 func (c *CandidatePool) setNextWitnessIndex(state vm.StateDB, nodeIds []discover.NodeID) error {
 	if len(nodeIds) == 0 {
-		//setNextWitnessIdsState(state, []byte{})
+		setNextWitnessIdsState(state, []byte{})
 		return nil
 	}
 	if value, err := rlp.EncodeToBytes(&nodeIds); nil != err {

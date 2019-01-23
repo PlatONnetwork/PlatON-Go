@@ -8,6 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"sync"
+	"math/big"
 )
 
 var (
@@ -140,7 +141,6 @@ func (bcc *BlockChainCache) clearReceipts(sealHash common.Hash) {
 func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 	bcc.stateDBMu.Lock()
 	defer bcc.stateDBMu.Unlock()
-
 	var blockNum uint64
 	if obj, exist := bcc.stateDBCache[sealHash]; exist {
 		blockNum = obj.blockNum
@@ -148,6 +148,8 @@ func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 	}
 	for hash, obj := range bcc.stateDBCache {
 		if obj.blockNum <= blockNum {
+			root := obj.stateDB.IntermediateRoot(bcc.chainConfig.IsEIP158(big.NewInt(int64(obj.blockNum))))
+			log.Info("【Delete StateDB Cache】", "blockNumber", obj.blockNum, "sealHash", sealHash.String(), "stateDB root", root.String())
 			delete(bcc.stateDBCache, hash)
 		}
 	}
@@ -158,6 +160,8 @@ func (bcc *BlockChainCache) MakeStateDB(block *types.Block) (*state.StateDB, err
 	// Create a StateDB instance from the blockchain based on stateRoot
 	if state, err := bcc.StateAt(block.Root(), block.Number(), block.Hash()); err == nil && state != nil {
 		return state, nil
+	}else if nil != err {
+		log.Warn("Failed to StateAt on MakeStateDB ...", "err", err)
 	}
 	// Read and copy the stateDB instance in the cache
 	sealHash := bcc.Engine().SealHash(block.Header())
