@@ -567,7 +567,7 @@ func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) (*big.Int, error) {
 
 // Save the hash value of the current state of the ticket pool
 func (t *TicketPool) CommitHash(stateDB vm.StateDB) error {
-	hash, err := ticketcache.GetTicketidsCachePtr().Hash(stateDB.TicketCaceheSnapshot())
+	hash, err := ticketcache.Hash(stateDB.TicketCaceheSnapshot())
 	if nil != err {
 		return err
 	}

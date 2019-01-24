@@ -47,6 +47,7 @@ var (
 
 type TicketTempCache struct{
 	Cache 		*NumBlocks
+	RWlock 		*sync.RWMutex
 }
 
 var ticketTemp *TicketTempCache
@@ -67,56 +68,63 @@ func NewTicketIdsCache(db ethdb.Database) *TicketTempCache {
 		Cache: &NumBlocks{
 			NBlocks: make(map[string]*BlockNodes),
 		},
+
+		RWlock: &sync.RWMutex{},
 	}
 
-	cache, err := db.Get(ticketPoolCacheKey)
-	if err == nil {
-		log.Info("NewTicketIdsCache==> ", "Cachelen: ", len(cache))
+	if cache, err := db.Get(ticketPoolCacheKey); nil != err {
+		log.Error("Failed call ticketcache NewTicketIdsCache to get Global Cache by levelDB", "err", err)
+	}else {
+		log.Info("Call ticketcache NewTicketIdsCache to Unmarshal Global Cache", "Cachelen: ", len(cache))
 		//if err := proto.Unmarshal(cache, ticketidsCache); err != nil {
 		if err := proto.Unmarshal(cache, ticketTemp.Cache); err != nil {
-			log.Error("NewTicketIdsCache==> protocol buffer Unmarshal faile")
+			log.Error("Failed call NewTicketIdsCache to Unmarshal Global Cache", "err", err)
 		}
 	}
-	log.Info("NewTicketIdsCache==> ", "ms: ", timer.End())
-	return ticketidsCache
+	log.Info("Call ticketcache NewTicketIdsCache finish ...", "ms: ", timer.End())
+	return ticketTemp
 }
 
 func GetNodeTicketsCacheMap(blocknumber *big.Int, blockhash common.Hash) (ret TicketCache) {
-	log.Info("GetNodeTicketsCacheMap==> ", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
-	if ticketidsCache != nil {
-		ret = ticketidsCache.GetNodeTicketsMap(blocknumber, blockhash)
+	log.Info("Call ticketcache GetNodeTicketsCacheMap", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
+	if ticketTemp != nil {
+		ret = ticketTemp.GetNodeTicketsMap(blocknumber, blockhash)
 	} else {
-		log.Error("GetNodeTicketsCacheMap==> ticketidsCache instance is nil!")
+		log.Error("Failed call ticketcache GetNodeTicketsCacheMap, the Global ticketTemp instance is nil !!!!!!!!!!!!!!!")
 	}
 	return
 }
 
-func GetTicketidsCachePtr() *NumBlocks {
-	return ticketidsCache
+func GetTicketidsCachePtr() *TicketTempCache {
+	return ticketTemp
 }
 
 ////////////////////////////
-func (nb *NumBlocks) Hash(cache TicketCache) (common.Hash, error) {
+func /*(t *TicketTempCache)*/ Hash(cache TicketCache) (common.Hash, error) {
+
 	timer := Timer{}
 	timer.Begin()
 	out, err := proto.Marshal(cache.GetSortStruct())
-	log.Info("Hash==> ", "lenOut: ", len(out))
 	if err != nil {
-		log.Error("Hash==> ", "ErrProbufMarshal: ", ErrProbufMarshal.Error())
-		return common.Hash{}, ErrProbufMarshal
+		log.Error("Faile to call ticketcache Hash", ErrProbufMarshal.Error()+":err", err)
+		return common.Hash{}, err
 	}
+	log.Info("Call ticketcache Hash ...", "lenOut: ", len(out))
 	ret := crypto.Keccak256Hash(out)
-	log.Info("Hash==> ", "run time  ms: ", timer.End())
+	log.Info("Call ticketcache Hash finish...", "run time  ms: ", timer.End())
 	return ret, nil
 }
 
-func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Hash) TicketCache {
-	log.Info("GetNodeTicketsMap==> ", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
-	blockNodes, ok := nb.NBlocks[blocknumber.String()]
+func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Hash) TicketCache {
+	t.RWlock.Lock()
+	defer t.RWlock.Unlock()
+
+	log.Info("Call TicketTempCache GetNodeTicketsMap ...", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
+	blockNodes, ok := t.Cache.NBlocks[blocknumber.String()]
 	if !ok {
 		blockNodes = &BlockNodes{}
 		blockNodes.BNodes = make(map[string]*NodeTicketIds)
-		nb.NBlocks[blocknumber.String()] = blockNodes
+		t.Cache.NBlocks[blocknumber.String()] = blockNodes
 	}
 	nodeTicketIds, ok := blockNodes.BNodes[blockhash.String()]
 	if !ok {
@@ -124,7 +132,7 @@ func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Ha
 		nodeTicketIds.NTickets = make(map[string]*TicketIds)
 		blockNodes.BNodes[blockhash.String()] = nodeTicketIds
 	}
-	//go thread
+	//goroutine task
 	type result struct {
 		key  discover.NodeID
 		tids []common.Hash
@@ -147,7 +155,8 @@ func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Ha
 				wg.Done()
 			}(nid, v)
 		} else {
-			log.Error("GetNodeTicketsMap==> discover.HexID error ", "hex: ", k)
+			wg.Done()
+			log.Error("Failed to TicketTempCache GetNodeTicketsMap: discover.HexID error ", "hex: ", k)
 		}
 	}
 	wg.Wait()
@@ -159,9 +168,12 @@ func (nb *NumBlocks) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Ha
 	return out
 }
 
-func (nb *NumBlocks) Submit2Cache(blocknumber, blockInterval *big.Int, blockhash common.Hash, in map[discover.NodeID][]common.Hash) {
-	log.Info("Submit2Cache==> ", "blocknumber: ", blocknumber, " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " cachelen: ", len(nb.NBlocks))
-	blockNodes, ok := nb.NBlocks[blocknumber.String()]
+func (t *TicketTempCache) Submit2Cache(blocknumber, blockInterval *big.Int, blockhash common.Hash, in map[discover.NodeID][]common.Hash) {
+	t.RWlock.Lock()
+	defer t.RWlock.Unlock()
+
+	log.Info("Call TicketTempCache Submit2Cache ", "blocknumber: ", blocknumber, " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " cachelen: ", len(t.Cache.NBlocks))
+	blockNodes, ok := t.Cache.NBlocks[blocknumber.String()]
 	if !ok {
 		blockNodes = &BlockNodes{}
 		blockNodes.BNodes = make(map[string]*NodeTicketIds)
@@ -169,7 +181,7 @@ func (nb *NumBlocks) Submit2Cache(blocknumber, blockInterval *big.Int, blockhash
 	//The same block hash data will be overwritten
 	nodeTicketIds := &NodeTicketIds{}
 	nodeTicketIds.NTickets = make(map[string]*TicketIds)
-	//go thread
+	//goroutine task
 	type result struct {
 		key   discover.NodeID
 		value *TicketIds
@@ -196,35 +208,39 @@ func (nb *NumBlocks) Submit2Cache(blocknumber, blockInterval *big.Int, blockhash
 		nodeTicketIds.NTickets[res.key.String()] = res.value
 	}
 	blockNodes.BNodes[blockhash.String()] = nodeTicketIds
-	nb.NBlocks[blocknumber.String()] = blockNodes
+	t.Cache.NBlocks[blocknumber.String()] = blockNodes
 
 	//del old cache
 	number := new(big.Int).Sub(blocknumber, blockInterval)
-	for k := range nb.NBlocks {
+	for k := range t.Cache.NBlocks {
 		if n, b := new(big.Int).SetString(k, 0); b {
 			if n.Cmp(number) < 0 {
-				delete(nb.NBlocks, k)
+				delete(t.Cache.NBlocks, k)
 			}
 		}
 	}
-	log.Info("Submit2Cache==> run end ", "cachelen: ", len(nb.NBlocks))
+	log.Info("Call TicketTempCache Submit2Cache finish ", "cachelen: ", len(t.Cache.NBlocks))
 }
 
-func (nb *NumBlocks) Commit(db ethdb.Database) error {
+func (t *TicketTempCache) Commit(db ethdb.Database) error {
+	t.RWlock.RLock()
+	defer t.RWlock.RUnlock()
+	log.Info("Call TicketTempCache Commit ...")
+
 	timer := Timer{}
 	timer.Begin()
-	out, err := proto.Marshal(nb)
+	out, err := proto.Marshal(t.Cache)
 	if err != nil {
-		log.Error("TicketPoolCache Commit==> ", "ErrProbufMarshal: ", err.Error())
+		log.Error("Failted to TicketPoolCache Commit ", "ErrProbufMarshal: err", err.Error())
 		return ErrProbufMarshal
 	}
 	//logInfo("Marshal out: ", hexutil.Encode(out))
-	log.Info("TicketPoolCache Commit==> ", "cachelen: ", len(nb.NBlocks), " outlen: ", len(out))
+	log.Info("Call TicketPoolCache Commit ", "cachelen: ", len(t.Cache.NBlocks), " outlen: ", len(out))
 	if err := db.Put(ticketPoolCacheKey, out); err != nil {
-		log.Error("level db put faile: ", err.Error())
+		log.Error("Failed to call TicketPoolCache Commit: level db put faile: ", "err", err.Error())
 		return ErrLeveldbPut
 	}
-	log.Info("TicketPoolCache Commit==> run time ", "ms: ", timer.End())
+	log.Info("Call TicketPoolCache Commit run time ", "ms: ", timer.End())
 	return nil
 }
 
@@ -237,9 +253,6 @@ func (tc TicketCache) AppendTicketCache(nodeid discover.NodeID, tids []common.Ha
 	if !ok {
 		value = make([]common.Hash, 0)
 	}
-	//for _, id := range tids {
-	//	value = append(value, id)
-	//}
 	value = append(value, tids...)
 	tc[nodeid] = value
 }
@@ -278,8 +291,7 @@ func (tc TicketCache) RemoveTicketCache(nodeid discover.NodeID, tids []common.Ha
 }
 
 func (tc TicketCache) TCount(nodeid discover.NodeID) uint64 {
-	count := uint64(len(tc[nodeid]))
-	return count
+	return uint64(len(tc[nodeid]))
 }
 
 func (tc TicketCache) TicketCaceheSnapshot() TicketCache {
@@ -310,7 +322,7 @@ func (tc TicketCache) GetSortStruct() *SortCalcHash {
 			}
 			sc.Tids = append(sc.Tids, tids)
 		} else {
-			log.Error("GetSortStruct==> discover.HexID error ", "hex: ", k)
+			log.Error("Failed to TicketCache GetSortStruct: discover.HexID error ",  "err", err, "hex: ", k)
 		}
 	}
 	return sc

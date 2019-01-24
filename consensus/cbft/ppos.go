@@ -34,7 +34,7 @@ type ppos struct {
 	// the ticket pool object pointer
 	ticketPool				*pposm.TicketPool
 	// the ticket id list cache
-	ticketidsCache 			*ticketcache.NumBlocks
+	ticketidsCache 			*ticketcache.TicketTempCache
 }
 
 
