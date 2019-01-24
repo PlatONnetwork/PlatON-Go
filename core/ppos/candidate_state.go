@@ -280,6 +280,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				return CandidateDecodeErr
 			} else {
 				if nil != arr && len(arr) != 0 {
+					PrintObject("defeatId:"+defeatId.String()+", arr", arr)
 					c.defeatCandidates[defeatId] = arr
 				} else {
 					delete(c.defeatCandidates, defeatId)
