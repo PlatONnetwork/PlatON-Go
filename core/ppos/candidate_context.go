@@ -68,6 +68,10 @@ func (c *CandidatePoolContext) IsDefeat(state vm.StateDB, nodeId discover.NodeID
 	return c.initCandidatePool().IsDefeat(state, nodeId)
 }
 
+func (c *CandidatePoolContext) IsChosens(state vm.StateDB, nodeId discover.NodeID) (bool, error) {
+	return c.initCandidatePool().IsChosens(state, nodeId)
+}
+
 func (c *CandidatePoolContext) RefundBalance(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
 	return c.initCandidatePool().RefundBalance(state, nodeId, blockNumber)
 }
@@ -82,6 +86,10 @@ func (c *CandidatePoolContext) GetRefundInterval() uint64 {
 
 func (c *CandidatePoolContext) MaxCount() uint64 {
 	return c.initCandidatePool().MaxCount()
+}
+
+func (c *CandidatePoolContext) MaxChair() uint64 {
+	return c.initCandidatePool().MaxChair()
 }
 
 func (c *CandidatePoolContext) Election(state *state.StateDB, parentHash common.Hash, blocknumber *big.Int) ([]*discover.Node, error) {

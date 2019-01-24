@@ -127,8 +127,8 @@ func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPool) {
 		},
 		TicketConfig: &params.TicketConfig{
 			TicketPrice:       "1",
-			MaxCount:          100,
-			ExpireBlockNumber: 2,
+			MaxCount:          10000,
+			ExpireBlockNumber: 100,
 		},
 	}
 	cContext := &pposm.CandidatePoolContext{

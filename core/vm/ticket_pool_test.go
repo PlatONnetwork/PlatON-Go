@@ -47,20 +47,20 @@ func TestTicketPoolOverAll(t *testing.T) {
 	// VoteTicket(count uint64, price *big.Int, nodeId discover.NodeID) ([]byte, error)
 	count := uint64(1000)
 	price := big.NewInt(1)
+
+	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
 	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId: ", nodeId.String())
 	resByte, err := ticketContract.VoteTicket(count, price, nodeId)
 	if nil != err {
 		fmt.Println("VoteTicket fail", "err", err)
 	}
-	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
-
-	/*// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
+	// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
 	fmt.Println("GetCandidateTicketIds input==>", "nodeId: ", nodeId.String())
 	resByte, err = ticketContract.GetCandidateTicketIds(nodeId)
 	if nil != err {
 		fmt.Println("GetCandidateTicketIds fail", "err", err)
 	}
-	fmt.Println("The candidate's ticketId are: ", vm.ResultByte2Json(resByte))*/
+	fmt.Println("The candidate's ticketId are: ", vm.ResultByte2Json(resByte))
 
 	// GetTicketDetail(ticketId common.Hash) ([]byte, error)
 	ticketId := common.HexToHash("e69d8e6dbc1ee87d7fb20600f3fc6744f28b637d43b5a130b2904c30d12e9b30")

@@ -40,11 +40,13 @@ type candidatePoolContext interface {
 	GetChairpersons(state StateDB) types.CandidateQueue
 	GetDefeat(state StateDB, nodeId discover.NodeID) (types.CandidateQueue, error)
 	IsDefeat(state StateDB, nodeId discover.NodeID) (bool, error)
+	IsChosens(state StateDB, nodeId discover.NodeID) (bool, error)
 	RefundBalance(state StateDB, nodeId discover.NodeID, blockNumber *big.Int) error
 	GetOwner(state StateDB, nodeId discover.NodeID) common.Address
 	SetCandidateExtra(state StateDB, nodeId discover.NodeID, extra string) error
 	GetRefundInterval() uint64
 	MaxCount() uint64
+	MaxChair() uint64
 }
 
 type CandidateContract struct {
