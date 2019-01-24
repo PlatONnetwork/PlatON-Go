@@ -38,7 +38,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/deckarep/golang-set"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 const (
@@ -728,19 +727,7 @@ func (w *worker) resultLoop() {
 			)
 			for i, receipt := range task.receipts {
 				receipts[i] = new(types.Receipt)
-				//*receipts[i] = *receipt
-				var recp types.Receipt
-				if rep, err := rlp.EncodeToBytes(*receipt); nil != err {
-					log.Error("Failed to Encoding receipt", "err", err)
-					continue
-				}else {
-					if err := rlp.DecodeBytes(rep, &recp); nil != err {
-						log.Error("Failed to Dncoding receipt", "err", err)
-						continue
-					}else {
-						*receipts[i] = recp
-					}
-				}
+				*receipts[i] = *receipt
 				// Update the block hash in all logs since it is now available and not when the
 				// receipt/log of individual transactions were created.
 				for _, log := range receipt.Logs {
@@ -803,19 +790,7 @@ func (w *worker) resultLoop() {
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
 			if exist && cbft.IsSignedBySelf(sealhash, block.Extra()[32:]) {
-				//_receipts = task.receipts
-				var recps []*types.Receipt
-				if repArrs, err := rlp.EncodeToBytes(task.receipts); nil != err {
-					log.Error("Failed to Encoding receipt", "err", err)
-					continue
-				}else {
-					if err := rlp.DecodeBytes(repArrs, &recps); nil != err {
-						log.Error("Failed to Dncoding receipt", "err", err)
-						continue
-					}else {
-						_receipts = recps
-					}
-				}
+				_receipts = task.receipts
 				_state = task.state
 				stateIsNil := _state == nil
 				log.Debug("block is packaged by local", "hash", hash, "number", number, "len(Receipts)", len(_receipts), "stateIsNil", stateIsNil)
