@@ -1,17 +1,17 @@
 package pposm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"math/big"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"math/big"
 )
 
 type CandidatePoolContext struct {
-	configs *params.PposConfig
+	Configs *params.PposConfig
 }
 
 var cContext *CandidatePoolContext
@@ -19,7 +19,7 @@ var cContext *CandidatePoolContext
 // Initialize the global candidate pool context object
 func NewCandidatePoolContext(configs *params.PposConfig) *CandidatePoolContext {
 	cContext = &CandidatePoolContext{
-		configs: configs,
+		Configs: configs,
 	}
 	return cContext
 }
@@ -28,33 +28,31 @@ func GetCandidateContextPtr() *CandidatePoolContext {
 	return cContext
 }
 
-func (c *CandidatePoolContext)initCandidatePool () *CandidatePool {
-	return NewCandidatePool(c.configs)
+func (c *CandidatePoolContext) initCandidatePool() *CandidatePool {
+	return NewCandidatePool(c.Configs)
 }
-
-
 
 func (c *CandidatePoolContext) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 	return c.initCandidatePool().SetCandidate(state, nodeId, can)
 }
 
-func (c *CandidatePoolContext) GetCandidate (state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
+func (c *CandidatePoolContext) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
 	return c.initCandidatePool().GetCandidate(state, nodeId)
 }
 
-func (c *CandidatePoolContext) GetCandidateArr (state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
+func (c *CandidatePoolContext) GetCandidateArr(state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
 	return c.initCandidatePool().GetCandidateArr(state, nodeIds...)
 }
 
-func (c *CandidatePoolContext) GetWitnessCandidate (state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
+func (c *CandidatePoolContext) GetWitnessCandidate(state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
 	return c.initCandidatePool().GetWitnessCandidate(state, nodeId, flag)
 }
 
-func (c *CandidatePoolContext) WithdrawCandidate (state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
+func (c *CandidatePoolContext) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
 	return c.initCandidatePool().WithdrawCandidate(state, nodeId, price, blockNumber)
 }
 
-func (c *CandidatePoolContext) GetChosens (state vm.StateDB, flag int) types.CandidateQueue {
+func (c *CandidatePoolContext) GetChosens(state vm.StateDB, flag int) types.CandidateQueue {
 	return c.initCandidatePool().GetChosens(state, flag)
 }
 
@@ -90,7 +88,7 @@ func (c *CandidatePoolContext) Election(state *state.StateDB, parentHash common.
 	return c.initCandidatePool().Election(state, parentHash, blocknumber)
 }
 
-func (c *CandidatePoolContext)  Switch(state *state.StateDB) bool {
+func (c *CandidatePoolContext) Switch(state *state.StateDB) bool {
 	return c.initCandidatePool().Switch(state)
 }
 
@@ -102,12 +100,12 @@ func (c *CandidatePoolContext) GetAllWitness(state *state.StateDB) ([]*discover.
 	return c.initCandidatePool().GetAllWitness(state)
 }
 
-func (c *CandidatePoolContext) SetCandidateExtra (state vm.StateDB, nodeId discover.NodeID, extra string) error {
+func (c *CandidatePoolContext) SetCandidateExtra(state vm.StateDB, nodeId discover.NodeID, extra string) error {
 	return c.initCandidatePool().SetCandidateExtra(state, nodeId, extra)
 }
 
-func (c *CandidatePoolContext) UpdateElectedQueue (state vm.StateDB, currBlockNumber *big.Int, nodeIds ...discover.NodeID) error {
-	return c.initCandidatePool().UpdateElectedQueue(state, currBlockNumber, nodeIds ...)
+func (c *CandidatePoolContext) UpdateElectedQueue(state vm.StateDB, currBlockNumber *big.Int, nodeIds ...discover.NodeID) error {
+	return c.initCandidatePool().UpdateElectedQueue(state, currBlockNumber, nodeIds...)
 }
 
 func (c *CandidatePoolContext) ForEachStorage(state *state.StateDB, title string) {

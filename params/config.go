@@ -17,10 +17,10 @@
 package params
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 )
 
@@ -109,7 +109,6 @@ var (
 		},
 	}
 
-
 	GrapeChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(304),
 		HomesteadBlock:      big.NewInt(1),
@@ -122,22 +121,22 @@ var (
 		ByzantiumBlock:      big.NewInt(1035301),
 		ConstantinopleBlock: nil,
 		Cbft: &CbftConfig{
-			Period: 3,
-			Epoch:  30000,
-			Duration:  30,
+			Period:   3,
+			Epoch:    30000,
+			Duration: 30,
 			PposConfig: &PposConfig{
-				Candidate: &CandidateConfig{
-					Threshold: 			"1000000000000000000000000",
-					DepositLimit: 	  	10,
-					Allowed: 			100,
-					MaxChair:          	10,
-					MaxCount:          	100,
-					RefundBlockNumber: 	512,
+				CandidateConfig: &CandidateConfig{
+					Threshold:         "1000000000000000000000000",
+					DepositLimit:      10,
+					Allowed:           100,
+					MaxChair:          10,
+					MaxCount:          100,
+					RefundBlockNumber: 512,
 				},
 				TicketConfig: &TicketConfig{
-					TicketPrice: 		"1000000000000000000",
-					MaxCount:			51200,
-					ExpireBlockNumber: 	1536000,
+					TicketPrice:       "1000000000000000000",
+					MaxCount:          51200,
+					ExpireBlockNumber: 1536000,
 				},
 			},
 		},
@@ -210,7 +209,7 @@ type ChainConfig struct {
 	// Various consensus engines
 	Ethash *EthashConfig `json:"ethash,omitempty"`
 	Clique *CliqueConfig `json:"clique,omitempty"`
-	Cbft *CbftConfig `json:"cbft,omitempty"`
+	Cbft   *CbftConfig   `json:"cbft,omitempty"`
 
 	// Various vm interpreter
 	VMInterpreter string `json:"interpreter,omitempty"`
@@ -239,22 +238,22 @@ type CbftConfig struct {
 }
 
 type PposConfig struct {
-	Candidate *CandidateConfig
-	TicketConfig *TicketConfig
+	CandidateConfig *CandidateConfig
+	TicketConfig    *TicketConfig
 }
 type CandidateConfig struct {
-	Threshold		  string
-	DepositLimit 	  uint64
-	Allowed 		  uint64
+	Threshold         string
+	DepositLimit      uint64
+	Allowed           uint64
 	MaxCount          uint64
 	MaxChair          uint64
 	RefundBlockNumber uint64
 }
 
 type TicketConfig struct {
-	TicketPrice 			string
-	MaxCount				uint64
-	ExpireBlockNumber		uint64
+	TicketPrice       string
+	MaxCount          uint64
+	ExpireBlockNumber uint64
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
@@ -276,7 +275,7 @@ func (c *ChainConfig) String() string {
 		engine = c.Ethash
 	case c.Clique != nil:
 		engine = c.Clique
-	// joey.lyu
+		// joey.lyu
 	case c.Cbft != nil:
 		engine = c.Cbft
 	default:

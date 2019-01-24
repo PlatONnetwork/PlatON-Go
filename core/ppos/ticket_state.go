@@ -59,8 +59,8 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 		return ticketPool
 	}
 
-	if "" == strings.TrimSpace(configs.Candidate.Threshold) {
-		configs.Candidate.Threshold = "1000000000000000000"
+	if "" == strings.TrimSpace(configs.TicketConfig.TicketPrice) {
+		configs.TicketConfig.TicketPrice = "1000000000000000000"
 	}
 	var ticketPrice *big.Int
 	if price, ok := new(big.Int).SetString(configs.TicketConfig.TicketPrice, 10); !ok {

@@ -34,9 +34,9 @@ func TestTicketPoolOverAll(t *testing.T) {
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
 	fee := uint64(7000)
-	host := "10.0.0.1"
-	port := "8548"
-	extra := "extra data"
+	host := "192.168.9.184"
+	port := "16789"
+	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
 	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
 	if nil != err {
@@ -97,9 +97,9 @@ func TestVoteTicket(t *testing.T) {
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
 	fee := uint64(7000)
-	host := "10.0.0.1"
-	port := "8548"
-	extra := "extra data"
+	host := "192.168.9.184"
+	port := "16789"
+	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
 	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
 	if nil != err {
@@ -132,9 +132,9 @@ func TestGetTicketDetail(t *testing.T) {
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
 	fee := uint64(7000)
-	host := "10.0.0.1"
-	port := "8548"
-	extra := "extra data"
+	host := "192.168.9.184"
+	port := "16789"
+	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
 	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
 	if nil != err {
@@ -178,9 +178,9 @@ func TestGetBatchTicketDetail(t *testing.T) {
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
 	fee := uint64(1)
-	host := "10.0.0.1"
-	port := "8548"
-	extra := "extra data"
+	host := "192.168.9.184"
+	port := "16789"
+	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
 	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
 	if nil != err {
@@ -225,9 +225,9 @@ func TestGetCandidateTicketIds(t *testing.T) {
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
 	fee := uint64(7000)
-	host := "10.0.0.1"
-	port := "8548"
-	extra := "extra data"
+	host := "192.168.9.184"
+	port := "16789"
+	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
 	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
 	if nil != err {
@@ -269,10 +269,10 @@ func TestGetBatchCandidateTicketIds(t *testing.T) {
 	}
 	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(1)
-	host := "10.0.0.1"
-	port := "8548"
-	extra := "extra data"
+	fee := uint64(7000)
+	host := "192.168.9.184"
+	port := "16789"
+	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	fmt.Println("CandidateDeposit input==>", "nodeId1: ", nodeId1.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
 	_, err := candidateContract.CandidateDeposit(nodeId1, owner, fee, host, port, extra)
 	if nil != err {
@@ -282,10 +282,10 @@ func TestGetBatchCandidateTicketIds(t *testing.T) {
 
 	nodeId2 := discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner = common.HexToAddress("0x12")
-	fee = uint64(7000)
-	host = "10.0.0.2"
-	port = "8548"
-	extra = "extra data"
+	fee = uint64(8000)
+	host = "192.168.9.185"
+	port = "16789"
+	extra = "{\"nodeName\": \"Platon-Shenzhen\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-宇宙波\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/sz\",\"time\":1546503651190}"
 	fmt.Println("CandidateDeposit input==>", "nodeId2: ", nodeId2.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
 	_, err = candidateContract.CandidateDeposit(nodeId2, owner, fee, host, port, extra)
 	if nil != err {
@@ -354,9 +354,9 @@ func TestGetCandidateEpoch(t *testing.T) {
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
 	fee := uint64(7000)
-	host := "10.0.0.1"
-	port := "8548"
-	extra := "extra data"
+	host := "192.168.9.184"
+	port := "16789"
+	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-引力区\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
 	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
 	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
 	if nil != err {

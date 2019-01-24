@@ -76,7 +76,7 @@ type Ethereum struct {
 	lesServer       LesServer
 	// modify
 	mpcPool *core.MPCPool
-	vcPool 		    *core.VCPool
+	vcPool  *core.VCPool
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -168,7 +168,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			EnablePreimageRecording: config.EnablePreimageRecording,
 			EWASMInterpreter:        config.EWASMInterpreter,
 			EVMInterpreter:          config.EVMInterpreter,
-			ConsoleOutput: config.Debug,
+			ConsoleOutput:           config.Debug,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
@@ -177,7 +177,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
-
 
 	blockChainCache := core.NewBlockChainCache(eth.blockchain)
 
@@ -296,7 +295,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		chainConfig.Cbft.PposConfig = setPposConfig(cbftConfig.Ppos)
 		return cbft.New(chainConfig.Cbft, blockSignatureCh, cbftResultCh, highestLogicalBlockCh)
 	}
-	return nil;
+	return nil
 }
 
 // APIs return the collection of RPC services the ethereum package offers.
@@ -595,21 +594,20 @@ func (s *Ethereum) Stop() error {
 	return nil
 }
 
-
-func setPposConfig (pposConfig *PposConfig) *params.PposConfig{
+func setPposConfig(pposConfig *PposConfig) *params.PposConfig {
 	return &params.PposConfig{
-		Candidate: 	&params.CandidateConfig{
-					Threshold:				pposConfig.Candidate.Threshold,
-					DepositLimit:			pposConfig.Candidate.DepositLimit,
-					Allowed: 				pposConfig.Candidate.Allowed,
-					MaxChair:  				pposConfig.Candidate.MaxChair,
-					MaxCount:  				pposConfig.Candidate.MaxCount,
-					RefundBlockNumber: 		pposConfig.Candidate.RefundBlockNumber,
+		CandidateConfig: &params.CandidateConfig{
+			Threshold:         pposConfig.Candidate.Threshold,
+			DepositLimit:      pposConfig.Candidate.DepositLimit,
+			Allowed:           pposConfig.Candidate.Allowed,
+			MaxChair:          pposConfig.Candidate.MaxChair,
+			MaxCount:          pposConfig.Candidate.MaxCount,
+			RefundBlockNumber: pposConfig.Candidate.RefundBlockNumber,
 		},
 		TicketConfig: &params.TicketConfig{
-			TicketPrice: 		pposConfig.Ticket.TicketPrice,
-			MaxCount:			pposConfig.Ticket.MaxCount,
-			ExpireBlockNumber: 	pposConfig.Ticket.ExpireBlockNumber,
+			TicketPrice:       pposConfig.Ticket.TicketPrice,
+			MaxCount:          pposConfig.Ticket.MaxCount,
+			ExpireBlockNumber: pposConfig.Ticket.ExpireBlockNumber,
 		},
 	}
 }
