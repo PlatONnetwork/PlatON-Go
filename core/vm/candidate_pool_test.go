@@ -131,10 +131,7 @@ func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPool) {
 			ExpireBlockNumber: 100,
 		},
 	}
-	cContext := &pposm.CandidatePoolContext{
-		configs,
-	}
-	return cContext, pposm.NewTicketPool(configs)
+	return pposm.NewCandidatePoolContext(configs), pposm.NewTicketPool(configs)
 }
 
 func newEvm() *vm.EVM {

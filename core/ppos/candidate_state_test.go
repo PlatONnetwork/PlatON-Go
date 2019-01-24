@@ -55,10 +55,7 @@ func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPool) {
 			ExpireBlockNumber: 100,
 		},
 	}
-	cContext := &pposm.CandidatePoolContext{
-		configs,
-	}
-	return cContext, pposm.NewTicketPool(configs)
+	return pposm.NewCandidatePoolContext(configs), pposm.NewTicketPool(configs)
 }
 
 func printObject(title string, obj, logger interface{}) {
@@ -237,9 +234,11 @@ func candidate_SetCandidate(logFn func(args ...interface{}), errFn func(args ...
 		errFn("SetCandidate err:", err)
 	}
 }
+
 func TestCandidatePool_SetCandidate(t *testing.T) {
 	candidate_SetCandidate(t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_SetCandidate(b *testing.B) {
 	candidate_SetCandidate(b.Log, b.Error)
 }
@@ -279,9 +278,11 @@ func candidate_GetCandidate(logger interface{}, logFn func(args ...interface{}),
 	can, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("GetCandidate", can, logger)
 }
+
 func TestCandidatePool_GetCandidate(t *testing.T) {
 	candidate_GetCandidate(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_GetCandidate(b *testing.B) {
 	candidate_GetCandidate(b, b.Log, b.Error)
 }
@@ -317,7 +318,7 @@ func candidate_GetCandidateArr(logger interface{}, logFn func(args ...interface{
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -336,9 +337,11 @@ func candidate_GetCandidateArr(logger interface{}, logFn func(args ...interface{
 	canArr, _ := candidatePoolContext.GetCandidateArr(state, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
 	printObject("GetCandidateArr", canArr, logger)
 }
+
 func TestCandidatePool_GetCandidateArr(t *testing.T) {
 	candidate_GetCandidateArr(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_GetCandidateArr(b *testing.B) {
 	candidate_GetCandidateArr(b, b.Log, b.Error)
 }
@@ -385,9 +388,11 @@ func candidate_SetCandidateExtra(logger interface{}, logFn func(args ...interfac
 		logFn("candidate'extra:", can.Extra)
 	}
 }
+
 func TestCandidatePool_SetCandidateExtra(t *testing.T) {
 	candidate_SetCandidateExtra(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_SetCandidateExtra(b *testing.B) {
 	candidate_SetCandidateExtra(b, b.Log, b.Error)
 }
@@ -422,7 +427,7 @@ func candidate_WithdrawCandidate(logger interface{}, logFn func(args ...interfac
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -451,9 +456,11 @@ func candidate_WithdrawCandidate(logger interface{}, logFn func(args ...interfac
 	can2, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("GetCandidate", can2, logger)
 }
+
 func TestCandidatePool_WithdrawCandidate(t *testing.T) {
 	candidate_WithdrawCandidate(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_WithdrawCandidate(b *testing.B) {
 	candidate_WithdrawCandidate(b, b.Log, b.Error)
 }
@@ -488,7 +495,7 @@ func candidate_GetChosens(logger interface{}, logFn func(args ...interface{}), e
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -507,9 +514,11 @@ func candidate_GetChosens(logger interface{}, logFn func(args ...interface{}), e
 	canArr := candidatePoolContext.GetChosens(state, 0)
 	printObject("immediate elected candidates", canArr, logger)
 }
+
 func TestCandidatePool_GetChosens(t *testing.T) {
 	candidate_GetChosens(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_GetChosens(b *testing.B) {
 	candidate_GetChosens(b, b.Log, b.Error)
 }
@@ -548,7 +557,7 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -564,7 +573,7 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 	}
 
 	candidate3 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(102),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
 		TxIndex:     5,
@@ -580,7 +589,7 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(120), // 99
+		Deposit:     new(big.Int).SetUint64(120),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:     4,
@@ -651,9 +660,11 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 	canArr := candidatePoolContext.GetChairpersons(state)
 	printObject("Witnesses", canArr, logger)
 }
+
 func TestGet_Chairpersons(t *testing.T) {
 	candidate_GetChairpersons(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_GetChairpersons(b *testing.B) {
 	candidate_GetChairpersons(b, b.Log, b.Error)
 }
@@ -692,7 +703,7 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -708,7 +719,7 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 	}
 
 	candidate3 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(102),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
 		TxIndex:     5,
@@ -724,7 +735,7 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(120), // 99
+		Deposit:     new(big.Int).SetUint64(120),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:     4,
@@ -800,9 +811,11 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 	canArr, _ = candidatePoolContext.GetWitness(state, 0)
 	printObject(" current Witnesses", canArr, logger)
 }
+
 func TestCandidatePool_GetWitness(t *testing.T) {
 	candidate_GetWitness(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_GetWitness(b *testing.B) {
 	candidate_GetWitness(b, b.Log, b.Error)
 }
@@ -841,7 +854,7 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -857,7 +870,7 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 	}
 
 	candidate3 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(102),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
 		TxIndex:     5,
@@ -873,7 +886,7 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(120), // 99
+		Deposit:     new(big.Int).SetUint64(120),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:     4,
@@ -961,9 +974,11 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 	printObject(" current Witnesses", curArr, logger)
 	printObject(" next Witnesses", nextArr, logger)
 }
+
 func TestCandidatePool_GetAllWitness(t *testing.T) {
 	candidate_GetAllWitness(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_GetAllWitness(b *testing.B) {
 	candidate_GetAllWitness(b, b.Log, b.Error)
 }
@@ -1002,7 +1017,7 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -1018,7 +1033,7 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 	}
 
 	candidate3 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(102),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
 		TxIndex:     5,
@@ -1034,7 +1049,7 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(120), // 99
+		Deposit:     new(big.Int).SetUint64(120),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:     4,
@@ -1152,9 +1167,11 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 	nodeArr, _ := candidatePoolContext.GetWitness(state, 0)
 	printObject("nodeArr", nodeArr, logger)
 }
+
 func TestGetDefeat(t *testing.T) {
 	candidate_GetDefeat(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_GetDefeat(b *testing.B) {
 	candidate_GetDefeat(b, b.Log, b.Error)
 }
@@ -1196,9 +1213,11 @@ func candidate_GetOwner(logger interface{}, logFn func(args ...interface{}), err
 	ownerAddr := candidatePoolContext.GetOwner(state, candidate.CandidateId)
 	logFn("Getting Onwer's Address:", ownerAddr.String())
 }
+
 func TestCandidatePool_GetOwner(t *testing.T) {
 	candidate_GetOwner(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_GetOwner(b *testing.B) {
 	candidate_GetOwner(b, b.Log, b.Error)
 }
@@ -1222,9 +1241,11 @@ func candidate_GetRefundInterval(logger interface{}, logFn func(args ...interfac
 	logFn("RefundInterval:", num)
 	fmt.Println(state.Error())
 }
+
 func TestCandidatePool_GetRefundInterval(t *testing.T) {
 	candidate_GetRefundInterval(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_GetRefundInterval(b *testing.B) {
 	candidate_GetRefundInterval(b, b.Log, b.Error)
 }
@@ -1248,9 +1269,11 @@ func candidate_MaxChair(logger interface{}, logFn func(args ...interface{}), err
 	logFn("MaxChair:", num)
 	fmt.Println(state.Error())
 }
+
 func TestCandidatePool_MaxChair(t *testing.T) {
 	candidate_MaxChair(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_MaxChair(b *testing.B) {
 	candidate_MaxChair(b, b.Log, b.Error)
 }
@@ -1285,7 +1308,7 @@ func candidate_IsChosens(logger interface{}, logFn func(args ...interface{}), er
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -1307,9 +1330,11 @@ func candidate_IsChosens(logger interface{}, logFn func(args ...interface{}), er
 		logFn("IsChosens success", flag)
 	}
 }
+
 func TestCandidatePool_IsChosens(t *testing.T) {
 	candidate_IsChosens(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_IsChosens(b *testing.B) {
 	candidate_IsChosens(b, b.Log, b.Error)
 }
@@ -1348,7 +1373,7 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -1364,7 +1389,7 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 	}
 
 	candidate3 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(102),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
 		TxIndex:     5,
@@ -1380,7 +1405,7 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(120), // 99
+		Deposit:     new(big.Int).SetUint64(120),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:     4,
@@ -1478,9 +1503,11 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 	flag, _ = candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	logFn("isdefeat", flag)
 }
+
 func TestCandidatePool_IsDefeat(t *testing.T) {
 	candidate_IsDefeat(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_IsDefeat(b *testing.B) {
 	candidate_IsDefeat(b, b.Log, b.Error)
 }
@@ -1519,7 +1546,7 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -1535,7 +1562,7 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 	}
 
 	candidate3 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(102),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
 		TxIndex:     5,
@@ -1551,7 +1578,7 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(120), // 99
+		Deposit:     new(big.Int).SetUint64(120),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:     4,
@@ -1659,9 +1686,11 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 	err = candidatePoolContext.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(11)))
 	logFn("RefundBalance again err", err)
 }
+
 func TestCandidatePool_RefundBalance(t *testing.T) {
 	candidate_RefundBalance(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_RefundBalance(b *testing.B) {
 	candidate_RefundBalance(b, b.Log, b.Error)
 }
@@ -1700,7 +1729,7 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -1716,7 +1745,7 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 	}
 
 	candidate3 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(102),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
 		TxIndex:     5,
@@ -1732,7 +1761,7 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(120), // 99
+		Deposit:     new(big.Int).SetUint64(120),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:     4,
@@ -1800,9 +1829,11 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 		logFn("test UpdateElectedQueue success")
 	}
 }
+
 func TestCandidatePool_UpdateElectedQueue(t *testing.T) {
 	candidate_UpdateElectedQueue(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_UpdateElectedQueue(b *testing.B) {
 	candidate_UpdateElectedQueue(b, b.Log, b.Error)
 }
@@ -1841,7 +1872,7 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -1857,7 +1888,7 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 	}
 
 	candidate3 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(102),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
 		TxIndex:     5,
@@ -1873,7 +1904,7 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(120), // 99
+		Deposit:     new(big.Int).SetUint64(120),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:     4,
@@ -1937,9 +1968,11 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 	arr, _ := candidatePoolContext.GetWitness(state, 1)
 	fmt.Println(arr)
 }
+
 func TestCandidatePool_Election(t *testing.T) {
 	candidate_Election(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_Election(b *testing.B) {
 	candidate_Election(b, b.Log, b.Error)
 }
@@ -1978,7 +2011,7 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 	}
 
 	candidate2 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(101),
 		BlockNumber: new(big.Int).SetUint64(7),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
 		TxIndex:     5,
@@ -1994,7 +2027,7 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 	}
 
 	candidate3 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(99),
+		Deposit:     new(big.Int).SetUint64(102),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
 		TxIndex:     5,
@@ -2010,7 +2043,7 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 	}
 
 	candidate4 := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(120), // 99
+		Deposit:     new(big.Int).SetUint64(120),
 		BlockNumber: new(big.Int).SetUint64(6),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
 		TxIndex:     4,
@@ -2083,9 +2116,11 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 	flag := candidatePoolContext.Switch(state)
 	logFn("Switch was success ", flag)
 }
+
 func TestCandidatePool_Switch(t *testing.T) {
 	candidate_Switch(t, t.Log, t.Error)
 }
+
 func BenchmarkCandidatePool_Switch(b *testing.B) {
 	candidate_Switch(b, b.Log, b.Error)
 }
