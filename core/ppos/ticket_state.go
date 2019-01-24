@@ -41,7 +41,6 @@ var (
 )
 
 type TicketPool struct {
-
 	// Ticket price
 	TicketPrice *big.Int
 	// Maximum number of ticket pool

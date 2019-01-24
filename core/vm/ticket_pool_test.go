@@ -54,13 +54,13 @@ func TestTicketPoolOverAll(t *testing.T) {
 	}
 	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
 
-	/*// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
+	// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
 	fmt.Println("GetCandidateTicketIds input==>", "nodeId: ", nodeId.String())
 	resByte, err = ticketContract.GetCandidateTicketIds(nodeId)
 	if nil != err {
 		fmt.Println("GetCandidateTicketIds fail", "err", err)
 	}
-	fmt.Println("The candidate's ticketId are: ", vm.ResultByte2Json(resByte))*/
+	fmt.Println("The candidate's ticketId are: ", vm.ResultByte2Json(resByte))
 
 	// GetTicketDetail(ticketId common.Hash) ([]byte, error)
 	ticketId := common.HexToHash("e69d8e6dbc1ee87d7fb20600f3fc6744f28b637d43b5a130b2904c30d12e9b30")
