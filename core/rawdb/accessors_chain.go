@@ -303,6 +303,7 @@ func WriteBlockConfirmSigns(db DatabaseWriter, hash common.Hash, number uint64, 
 		log.Crit("Failed to store block confirmSigns", "err", err)
 	}
 }
+
 // DeleteReceipts removes all receipt data associated with a block hash.
 func DeleteReceipts(db DatabaseDeleter, hash common.Hash, number uint64) {
 	if err := db.Delete(blockReceiptsKey(number, hash)); err != nil {
@@ -369,6 +370,6 @@ func FindCommonAncestor(db DatabaseReader, a, b *types.Header) *types.Header {
 }
 
 //ppos add -> commit memory ticket cache to disk
-func TicketCacheCommit(db ethdb.Database)  {
+func TicketCacheCommit(db ethdb.Database) {
 	ticketcache.GetTicketidsCachePtr().Commit(db)
 }
