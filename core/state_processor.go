@@ -78,9 +78,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 	}
-	root := statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.Debug("After executing the transaction，Before calling notify series func", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
-	log.Debug("After executing the transaction，Before calling notify series func", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
+
+	// TODO
+	//root := statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	//log.Debug("After executing the transaction，Before calling notify series func", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+	//log.Debug("After executing the transaction，Before calling notify series func", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
 
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// Election call(if match condition)
@@ -94,16 +96,20 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			cbftEngine.Switch(statedb)
 		}
 	}
-	root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.Debug("After executing the transaction，After calling the notify series func, And before finalize", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
-	log.Debug("After executing the transaction，After calling the notify series func, And before finalize", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
+
+	// TODO
+	//root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	//log.Debug("After executing the transaction，After calling the notify series func, And before finalize", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+	//log.Debug("After executing the transaction，After calling the notify series func, And before finalize", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 
-	root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.Debug("After executing the transaction，After call finalize", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
-	log.Debug("After executing the transaction，After call finalize", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
+
+	// TODO
+	//root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	//log.Debug("After executing the transaction，After call finalize", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+	//log.Debug("After executing the transaction，After call finalize", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
 
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// SetNodeCache

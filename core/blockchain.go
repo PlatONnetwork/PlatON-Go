@@ -940,7 +940,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		return NonStatTy, err
 	}
 
-	log.Debug("【The root when  the write chain after calls commit】", "blocknumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.Hex())
+	// TODO
+	//log.Debug("【The root when  the write chain after calls commit】", "blocknumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.Hex())
 
 	triedb := bc.stateCache.TrieDB()
 
@@ -1207,8 +1208,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
-		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-		log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+
+		// TODO
+		//root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
+		//log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
@@ -1271,8 +1274,11 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 //joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
 	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
-	root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-	log.Debug("【The Consensus node synchronization】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+
+	// TODO
+	//root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
+	//log.Debug("【The Consensus node synchronization】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {
