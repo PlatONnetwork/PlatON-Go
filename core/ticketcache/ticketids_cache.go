@@ -43,9 +43,16 @@ var (
 	ticketPoolCacheKey = []byte("ticketPoolCache")
 )
 
-var ticketidsCache *NumBlocks
+//var ticketidsCache *NumBlocks
 
-func NewTicketIdsCache(db ethdb.Database) *NumBlocks {
+type TicketTempCache struct{
+	Cache 		*NumBlocks
+}
+
+var ticketTemp *TicketTempCache
+
+//func NewTicketIdsCache(db ethdb.Database) *NumBlocks {
+func NewTicketIdsCache(db ethdb.Database) *TicketTempCache {
 	/*
 		append: New votes for ticket purchases
 		Del: Node elimination，ticket expired，ticket release
@@ -53,15 +60,20 @@ func NewTicketIdsCache(db ethdb.Database) *NumBlocks {
 	//logInfo("NewTicketIdsCache==> Init ticketidsCache call NewTicketIdsCache func")
 	timer := Timer{}
 	timer.Begin()
-	if nil != ticketidsCache {
-		return ticketidsCache
+	if nil != ticketTemp {
+		return ticketTemp
 	}
-	ticketidsCache = &NumBlocks{}
-	ticketidsCache.NBlocks = make(map[string]*BlockNodes)
+	ticketTemp = &TicketTempCache{
+		Cache: &NumBlocks{
+			NBlocks: make(map[string]*BlockNodes),
+		},
+	}
+
 	cache, err := db.Get(ticketPoolCacheKey)
 	if err == nil {
 		log.Info("NewTicketIdsCache==> ", "Cachelen: ", len(cache))
-		if err := proto.Unmarshal(cache, ticketidsCache); err != nil {
+		//if err := proto.Unmarshal(cache, ticketidsCache); err != nil {
+		if err := proto.Unmarshal(cache, ticketTemp.Cache); err != nil {
 			log.Error("NewTicketIdsCache==> protocol buffer Unmarshal faile")
 		}
 	}
