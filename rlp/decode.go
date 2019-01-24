@@ -22,12 +22,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
+	//"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"math/big"
 	"reflect"
 	"strings"
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	//"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 var (
