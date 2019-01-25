@@ -167,6 +167,13 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		log.Error("Failed to CandidateDeposit==> ", "ErrDepositEmpyt: ", ErrDepositEmpyt.Error())
 		return nil, ErrDepositEmpyt
 	}
+	addr := c.Evm.CandidatePoolContext.GetOwner(c.Evm.StateDB, nodeId)
+	if common.ZeroAddr != addr {
+		if ok := bytes.Equal(addr.Bytes(), owner.Bytes()); !ok {
+			log.Error("Failed to CandidateDeposit==> ", "ErrOwnerNotonly: ", ErrOwnerNotonly.Error())
+			return nil, ErrOwnerNotonly
+		}
+	}
 	can, err := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil != err {
 		log.Error("Failed to CandidateDeposit==> ", "GetCandidate return err: ", err.Error())
@@ -174,10 +181,6 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	}
 	var alldeposit *big.Int
 	if nil != can {
-		if ok := bytes.Equal(can.Owner.Bytes(), owner.Bytes()); !ok {
-			log.Error("Failed to CandidateDeposit==> ", "ErrOwnerNotonly: ", ErrOwnerNotonly.Error())
-			return nil, ErrOwnerNotonly
-		}
 		alldeposit = new(big.Int).Add(can.Deposit, deposit)
 		log.Info("CandidateDeposit==> ", "alldeposit: ", alldeposit, " can.Deposit: ", can.Deposit, " deposit: ", deposit)
 	} else {
@@ -218,12 +221,10 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 		log.Error("Failed to CandidateApplyWithdraw==> ", "GetCandidate return err: ", err.Error())
 		return nil, err
 	}
-
 	if nil == can {
 		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
 		return nil, ErrCandidateNotExist
 	}
-
 	if can.Deposit.Cmp(big.NewInt(0)) < 1 {
 		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrWithdrawEmpyt: ", ErrWithdrawEmpyt.Error())
 		return nil, ErrWithdrawEmpyt
