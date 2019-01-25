@@ -1057,6 +1057,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 }
 
 func (c *CandidatePool) GetRefundInterval() uint64 {
+	log.Info("Call GetRefundInterval", "RefundBlockNumber", c.RefundBlockNumber)
 	return c.RefundBlockNumber
 }
 

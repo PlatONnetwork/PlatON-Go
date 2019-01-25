@@ -97,7 +97,7 @@ func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 	}
 	var source [][]byte
 	if err := rlp.Decode(bytes.NewReader(input), &source); nil != err {
-		log.Error("Failed to Run==> ", "ErrParamsRlpDecode: ", ErrParamsRlpDecode.Error())
+		log.Error("Failed to Run==> ", "ErrParamsRlpDecode: ", err.Error())
 		return nil, ErrParamsRlpDecode
 	}
 	if len(source) < 2 {
@@ -145,7 +145,7 @@ func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 	if _, errOk := result[1].Interface().(error); !errOk {
 		return result[0].Bytes(), nil
 	}
-	log.Error("Result of Run==> ", "result[1]: ", result[1].Interface().(error).Error())
+	log.Error("Result of Run==> ", "result[1]: err ", result[1].Interface().(error).Error())
 	return result[0].Bytes(), result[1].Interface().(error)
 }
 
@@ -225,11 +225,11 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	}
 
 	if can.Deposit.Cmp(big.NewInt(0)) < 1 {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrWithdrawEmpyt: ", err.Error())
+		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrWithdrawEmpyt: ", ErrWithdrawEmpyt.Error())
 		return nil, ErrWithdrawEmpyt
 	}
 	if ok := bytes.Equal(can.Owner.Bytes(), from.Bytes()); !ok {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrPermissionDenied: ", err.Error())
+		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrPermissionDenied: ", ErrPermissionDenied.Error())
 		return nil, ErrPermissionDenied
 	}
 	if withdraw.Cmp(can.Deposit) > 0 {
@@ -282,7 +282,9 @@ func (c *CandidateContract) CandidateWithdrawInfos(nodeId discover.NodeID) ([]by
 	}
 	r := WithdrawInfos{true, "success", make([]WithdrawInfo, len(infos))}
 	for i, v := range infos {
-		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, c.Evm.CandidatePoolContext.GetRefundInterval()}
+		refundBlockNumber := c.Evm.CandidatePoolContext.GetRefundInterval()
+		log.Debug("Call CandidateWithdrawInfos==> ", "Deposit", v.Deposit, "BlockNumber", v.BlockNumber, "RefundBlockNumber", refundBlockNumber)
+		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, refundBlockNumber}
 	}
 	data, _ := json.Marshal(r)
 	sdata := DecodeResultStr(string(data))
@@ -323,7 +325,7 @@ func (c *CandidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, er
 		return sdata, err
 	}
 	if nil == candidate {
-		log.Warn("Failed to CandidateDetails==> ", "The query does not exist")
+		log.Warn("Failed to CandidateDetails==> The query does not exist")
 		candidate := types.Candidate{}
 		data, _ := json.Marshal(candidate)
 		sdata := DecodeResultStr(string(data))
@@ -348,7 +350,7 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 		return sdata, err
 	}
 	if 0 == len(candidates) {
-		log.Warn("Failed to GetBatchCandidateDetail==> ", "The query does not exist")
+		log.Warn("Failed to GetBatchCandidateDetail==> The query does not exist")
 		candidates := make([]types.Candidate, 0)
 		data, _ := json.Marshal(candidates)
 		sdata := DecodeResultStr(string(data))
@@ -364,7 +366,7 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 func (c *CandidateContract) CandidateList() ([]byte, error) {
 	candidates := c.Evm.CandidatePoolContext.GetChosens(c.Evm.StateDB)
 	if 0 == len(candidates) {
-		log.Warn("Failed to CandidateList==> ", "The query does not exist")
+		log.Warn("Failed to CandidateList==> The query does not exist")
 		candidates := make([]types.Candidate, 0)
 		data, _ := json.Marshal(candidates)
 		sdata := DecodeResultStr(string(data))
@@ -380,7 +382,7 @@ func (c *CandidateContract) CandidateList() ([]byte, error) {
 func (c *CandidateContract) VerifiersList() ([]byte, error) {
 	verifiers := c.Evm.CandidatePoolContext.GetChairpersons(c.Evm.StateDB)
 	if 0 == len(verifiers) {
-		log.Warn("Failed to VerifiersList==> ", "The query does not exist")
+		log.Warn("Failed to VerifiersList==> The query does not exist")
 		verifiers := make([]types.Candidate, 0)
 		data, _ := json.Marshal(verifiers)
 		sdata := DecodeResultStr(string(data))
