@@ -52,12 +52,12 @@ all-with-mpc:
 
 all-with-vc:
 	build/build_deps.sh
-	build_snark.sh
+	build/build_snark.sh
 	build/env.sh go run build/ci.go install -vc on
 
 all-with-mv:
 	build/build_deps.sh
-	build_snark.sh
+	build/build_snark.sh
 	build/env.sh go run build/ci.go install -mv on
 
 android:
