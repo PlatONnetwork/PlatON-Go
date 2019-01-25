@@ -209,7 +209,9 @@ func (c *CandidateContract) CandidateWithdrawInfos(nodeId discover.NodeID) ([]by
 	}
 	r := WithdrawInfos{true, "success", make([]WithdrawInfo, len(infos))}
 	for i, v := range infos {
-		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, c.Evm.CandidatePoolContext.GetRefundInterval()}
+		refundBlockNumber := c.Evm.CandidatePoolContext.GetRefundInterval()
+		log.Debug("Call CandidateWithdrawInfos==> ", "Deposit", v.Deposit, "BlockNumber", v.BlockNumber, "RefundBlockNumber", refundBlockNumber)
+		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, refundBlockNumber}
 	}
 	data, _ := json.Marshal(r)
 	sdata := DecodeResultStr(string(data))

@@ -81,7 +81,7 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 	if _, err := result[1].Interface().(error); !err {
 		return result[0].Bytes(), nil
 	}
-	log.Error("Result of execute==> ", "result[1]: ", result[1].Interface().(error).Error())
+	log.Error("Result of execute==> ", "result[1]: err ", result[1].Interface().(error).Error())
 	return result[0].Bytes(), result[1].Interface().(error)
 }
 
