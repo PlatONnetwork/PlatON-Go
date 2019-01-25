@@ -20,17 +20,17 @@ import (
 )
 
 var (
-	ErrOwnerNotonly              = errors.New("Node ID cannot bind multiple owners")
+	ErrOwnerNotOnly              = errors.New("Node ID cannot bind multiple owners")
 	ErrPermissionDenied          = errors.New("Transaction from address permission denied")
 	ErrFeeIllegal                = errors.New("The fee is illegal")
-	ErrDepositEmpyt              = errors.New("Deposit balance not zero")
-	ErrWithdrawEmpyt             = errors.New("No withdrawal amount")
+	ErrDepositEmpty              = errors.New("Deposit balance not zero")
+	ErrWithdrawEmpty             = errors.New("No withdrawal amount")
 	ErrParamsRlpDecode           = errors.New("Rlp decode faile")
 	ErrParamsBaselen             = errors.New("Params Base length does not match")
 	ErrParamsLen                 = errors.New("Params length does not match")
 	ErrUndefFunction             = errors.New("Undefined function")
 	ErrTxType                    = errors.New("Transaction type does not match the function")
-	ErrCandidatePoolContextEmpyt = errors.New("CandidatePoolContext is nil")
+	ErrCandidatePoolContextEmpty = errors.New("CandidatePoolContext is nil")
 	ErrCandidateNotExist         = errors.New("The candidate is not exist")
 )
 
@@ -105,8 +105,8 @@ func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 		return nil, ErrParamsBaselen
 	}
 	if c.Evm.CandidatePoolContext == nil {
-		log.Error("Failed to Run==> ", "ErrCandidateEmpyt: ", ErrCandidatePoolContextEmpyt.Error())
-		return nil, ErrCandidatePoolContextEmpyt
+		log.Error("Failed to Run==> ", "ErrCandidateEmpty: ", ErrCandidatePoolContextEmpty.Error())
+		return nil, ErrCandidatePoolContextEmpty
 	}
 	if _, ok := command[byteutil.BytesToString(source[1])]; !ok {
 		log.Error("Failed to Run==> ", "ErrUndefFunction: ", ErrUndefFunction.Error())
@@ -164,14 +164,14 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		return nil, ErrFeeIllegal
 	}
 	if deposit.Cmp(big.NewInt(0)) < 1 {
-		log.Error("Failed to CandidateDeposit==> ", "ErrDepositEmpyt: ", ErrDepositEmpyt.Error())
-		return nil, ErrDepositEmpyt
+		log.Error("Failed to CandidateDeposit==> ", "ErrDepositEmpty: ", ErrDepositEmpty.Error())
+		return nil, ErrDepositEmpty
 	}
 	addr := c.Evm.CandidatePoolContext.GetOwner(c.Evm.StateDB, nodeId)
 	if common.ZeroAddr != addr {
 		if ok := bytes.Equal(addr.Bytes(), owner.Bytes()); !ok {
-			log.Error("Failed to CandidateDeposit==> ", "ErrOwnerNotonly: ", ErrOwnerNotonly.Error())
-			return nil, ErrOwnerNotonly
+			log.Error("Failed to CandidateDeposit==> ", "ErrOwnerNotOnly: ", ErrOwnerNotOnly.Error())
+			return nil, ErrOwnerNotOnly
 		}
 	}
 	can, err := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
@@ -226,8 +226,8 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 		return nil, ErrCandidateNotExist
 	}
 	if can.Deposit.Cmp(big.NewInt(0)) < 1 {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrWithdrawEmpyt: ", ErrWithdrawEmpyt.Error())
-		return nil, ErrWithdrawEmpyt
+		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrWithdrawEmpty: ", ErrWithdrawEmpty.Error())
+		return nil, ErrWithdrawEmpty
 	}
 	if ok := bytes.Equal(can.Owner.Bytes(), from.Bytes()); !ok {
 		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrPermissionDenied: ", ErrPermissionDenied.Error())
