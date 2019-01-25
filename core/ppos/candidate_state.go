@@ -150,6 +150,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 			return CandidateDecodeErr
 		} else {
 			if nil != ca {
+				PrintObject("Id:"+ witnessId.String()+", pre can", ca)
 				c.preOriginCandidates[witnessId] = ca
 			} else {
 				delete(c.preOriginCandidates, witnessId)
@@ -174,6 +175,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 			return CandidateDecodeErr
 		} else {
 			if nil != ca {
+				PrintObject("Id:"+ witnessId.String()+", cur can", ca)
 				c.originCandidates[witnessId] = ca
 			} else {
 				delete(c.originCandidates, witnessId)
@@ -199,6 +201,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 			return CandidateDecodeErr
 		} else {
 			if nil != ca {
+				PrintObject("Id:"+ witnessId.String()+", next can", ca)
 				c.nextOriginCandidates[witnessId] = ca
 			} else {
 				delete(c.nextOriginCandidates, witnessId)
@@ -229,6 +232,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				return CandidateDecodeErr
 			} else {
 				if nil != ca {
+					PrintObject("Id:"+ immediateId.String()+", im can", ca)
 					c.immediateCandates[immediateId] = ca
 					canCache = append(canCache, ca)
 				} else {
@@ -258,6 +262,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 				return CandidateDecodeErr
 			} else {
 				if nil != arr && len(arr) != 0 {
+					PrintObject("Id:"+ defeatId.String()+", defeat canArr", arr)
 					c.defeatCandidates[defeatId] = arr
 				} else {
 					delete(c.defeatCandidates, defeatId)
