@@ -4,3 +4,6 @@
 [submodule "life/resolver/softfloat"]
 	path = life/resolver/softfloat
 	url = https://github.com/ucb-bar/berkeley-softfloat-3.git
+[submodule "life/resolver/vc"]
+	path = life/resolver/vc
+	url = https://github.com/PlatONnetwork/libcsnark.git
