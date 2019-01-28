@@ -6,7 +6,7 @@ Welcome to the PlatON source code repository! This software is Ethereum-based an
 
 For prerequisites and detailed build instructions please read the
 [Installation Instructions](https://platonnetwork.github.io/Docs/#/en-us/basics/[English]-Installation-Instructions)
-on the wiki.
+on the Docs.
 
 Building platon requires both a Go (version 1.7 or later) and a C compiler.
 You can install them using your favourite package manager.
