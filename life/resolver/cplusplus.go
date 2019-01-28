@@ -9,16 +9,17 @@ package resolver
 // #include "print128.h"
 import "C"
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	inner "github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/life/compiler"
-	"github.com/PlatONnetwork/PlatON-Go/life/exec"
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	inner "github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/life/compiler"
+	"github.com/PlatONnetwork/PlatON-Go/life/exec"
 )
 
 var (
@@ -155,6 +156,17 @@ func newCfcSet() map[string]map[string]*exec.FunctionImport {
 			"setState":     &exec.FunctionImport{Execute: envSetState, GasCost: envSetStateGasCost},
 			"getState":     &exec.FunctionImport{Execute: envGetState, GasCost: envGetStateGasCost},
 			"getStateSize": &exec.FunctionImport{Execute: envGetStateSize, GasCost: envGetStateSizeGasCost},
+
+			// support for vc
+			"vc_InitGadgetEnv":          &exec.FunctionImport{Execute: envInitGadgetEnv, GasCost: envInitGadgetEnvGasCost},
+			"vc_UninitGadgetEnv":        &exec.FunctionImport{Execute: envUninitGadgetEnv, GasCost: envUninitGadgetEnvGasCost},
+			"vc_CreatePBVar":            &exec.FunctionImport{Execute: envCreatePBVarEnv, GasCost: envCreatePBVarGasCost},
+			"vc_CreateGadget":           &exec.FunctionImport{Execute: envCreateGadgetEnv, GasCost: envCreateGadgetGasCost},
+			"vc_SetVar":                 &exec.FunctionImport{Execute: envSetVarEnv, GasCost: envSetVarGasCost},
+			"vc_SetRetIndex":            &exec.FunctionImport{Execute: envSetRetIndexEnv, GasCost: envSetRetIndexGasCost},
+			"vc_GenerateWitness":        &exec.FunctionImport{Execute: envGenWitnessEnv, GasCost: envGenWitnessGasCost},
+			"vc_GenerateProofAndResult": &exec.FunctionImport{Execute: envGenProofAndResultEnv, GasCost: envGenProofAndResultGasCost},
+			"vc_Verify":                 &exec.FunctionImport{Execute: envVerifyEnv, GasCost: envVerifyGasCost},
 
 			// supplement
 			"getCallerNonce": &exec.FunctionImport{Execute: envGetCallerNonce, GasCost: constGasFunc(compiler.GasQuickStep)},
@@ -429,8 +441,6 @@ func envCalloc(vm *exec.VirtualMachine) int64 {
 	size := int(int32(vm.GetCurrentFrame().Locals[1]))
 	total := num * size
 
-
-
 	pos := mem.Malloc(total)
 
 	return int64(pos)
@@ -630,7 +640,7 @@ func envSetState(vm *exec.VirtualMachine) int64 {
 
 	copyKey := make([]byte, keyLen)
 	copyValue := make([]byte, valueLen)
-	copy(copyKey, vm.Memory.Memory[key : key+keyLen])
+	copy(copyKey, vm.Memory.Memory[key:key+keyLen])
 	copy(copyValue, vm.Memory.Memory[value:value+valueLen])
 	vm.Context.StateDB.SetState(copyKey, copyValue)
 	return 0

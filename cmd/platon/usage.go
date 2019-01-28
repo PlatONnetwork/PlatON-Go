@@ -254,6 +254,14 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "VC COMPUTE",
+		Flags: []cli.Flag{
+			utils.VCEnabledFlag,
+			utils.VCActorFlag,
+			utils.VCPasswordFlag,
+		},
+	},
+	{
 		Name: "MISC",
 	},
 }

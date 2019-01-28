@@ -128,8 +128,8 @@ var (
 				Candidate: &CandidateConfig{
 					Threshold: 			"1000000000000000000000000",
 					DepositLimit: 	  	10,
-					MaxCount:          	7,
-					MaxChair:          	100,
+					MaxChair:          7,
+					MaxCount:          100,
 					RefundBlockNumber: 	512,
 				},
 			},
