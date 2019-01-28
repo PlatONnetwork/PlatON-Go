@@ -436,6 +436,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// higher priced transactions. Disable this overhead for pending blocks.
 			if w.isRunning() {
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+					log.Debug("timer.C triggered per 100 ms")
 					if shouldSeal, error := cbftEngine.ShouldSeal(); error == nil {
 						if shouldSeal {
 							if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
