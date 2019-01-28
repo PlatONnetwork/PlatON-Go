@@ -60,7 +60,7 @@ func (c *CandidateContract) RequiredGas(input []byte) uint64 {
 
 func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 	if nil == c.Evm.CandidatePoolContext {
-		log.Error("Failed to Run==> ", "ErrCandidateEmpty: ", ErrCandidatePoolEmpty.Error())
+		log.Error("Failed to Run==> ", "ErrCandidatePoolEmpty: ", ErrCandidatePoolEmpty.Error())
 		return nil, ErrCandidatePoolEmpty
 	}
 	var command = map[string]interface{}{
@@ -98,7 +98,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	addr := c.Evm.CandidatePoolContext.GetOwner(c.Evm.StateDB, nodeId)
 	if common.ZeroAddr != addr {
 		if ok := bytes.Equal(addr.Bytes(), owner.Bytes()); !ok {
-			log.Error("Failed to CandidateDeposit==> ", "ErrOwnerNotonly: ", ErrOwnerNotOnly.Error())
+			log.Error("Failed to CandidateDeposit==> ", "ErrOwnerNotOnly: ", ErrOwnerNotOnly.Error())
 			return nil, ErrOwnerNotOnly
 		}
 	}

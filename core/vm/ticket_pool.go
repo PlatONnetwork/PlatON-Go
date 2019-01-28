@@ -96,11 +96,11 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 		return nil, ErrCandidateNotExist
 	}
 	ticketIds, err := t.Evm.TicketPool.VoteTicket(t.Evm.StateDB, from, count, price, nodeId, blockNumber)
-	if nil == ticketIds {
-		log.Error("Failed to VoteTicket==> ", "VoteTicket return err(nil == ticketIds): ", err.Error())
+	data := len(ticketIds)
+	if 0 == data {
+		log.Error("Failed to VoteTicket==> ", "VoteTicket return err(0 == len(ticketIds)): ", err.Error())
 		return nil, err
 	}
-	data := len(ticketIds)
 	// return the extra money
 	if uint64(data) < count {
 		failNum := count - uint64(data)
@@ -111,7 +111,7 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 	sdata := DecodeResultStr(strconv.Itoa(data))
 	log.Info("Result of VoteTicket==> ", "len(successTicketIds): ", strconv.Itoa(data), " []byte: ", sdata)
 	if nil != err {
-		log.Error("Failed to VoteTicket==> ", "VoteTicket return err: ", err.Error())
+		log.Warn("Failed to VoteTicket==> ", "VoteTicket return err: ", err.Error())
 		r := ResultCommon{true, strconv.Itoa(data), err.Error()}
 		event, _ := json.Marshal(r)
 		t.addLog(VoteTicketEvent, string(event))
