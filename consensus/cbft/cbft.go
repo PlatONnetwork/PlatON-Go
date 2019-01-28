@@ -575,6 +575,7 @@ func (cbft *Cbft) setHighestLogical(highestLogical *BlockExt, forked bool) {
 	if cur == nil || cur.block.Hash() != highestLogical.block.Hash() {
 		cbft.highestLogical.Store(highestLogical)
 		if !forked {
+			// if forked, there's a another entry to reset tx pool(txPool.ForkedReset())
 			cbft.reset(highestLogical.block)
 		}
 		cbft.highestLogicalBlockCh <- highestLogical.block
@@ -1357,7 +1358,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		return errUnknownBlock
 	}
 
-	if !cbft.getHighestLogical().isParent(block) {
+	if cbft.getHighestLogical() != nil && !cbft.getHighestLogical().isParent(block) {
 		cbft.log.Warn("Futile block cause highest logical block changed", "number", block.Number(), "parentHash", block.ParentHash(), "highestLogical.Number", cbft.getHighestLogical().number, "highestLogical.Hash", cbft.getHighestLogical().block.Hash())
 		return errFutileBlock
 	}

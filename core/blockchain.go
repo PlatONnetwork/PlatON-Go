@@ -992,11 +992,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		status = SideStatTy
 	}
 
-	// Write the positional metadata for transaction/receipt lookups and preimages
-	rawdb.WriteTxLookupEntries(batch, block)
-	rawdb.WritePreimages(batch, block.NumberU64(), state.Preimages())
-
-	status = CanonStatTy
 	if err := batch.Write(); err != nil {
 		return NonStatTy, err
 	}
