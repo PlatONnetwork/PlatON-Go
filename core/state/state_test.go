@@ -293,7 +293,7 @@ func TestEmptyByte(t *testing.T) {
 	for it.Next() {
 		var a Candidate
 		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
-		fmt.Println("初始化对比键值对", string(so.db.trie.GetKey(it.Key)), "== ", &a)
+		fmt.Println("Initialize comparison key-value pairs", string(so.db.trie.GetKey(it.Key)), "== ", &a)
 	}
 
 	can2 := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "OK", Host: "10.0.0.0"}
@@ -319,7 +319,7 @@ func TestEmptyByte(t *testing.T) {
 	for it.Next() {
 		var a Candidate
 		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
-		fmt.Println("添加后对比键值对", string(so.db.trie.GetKey(it.Key)), "== ", &a)
+		fmt.Println("Compare key-value pairs after adding", string(so.db.trie.GetKey(it.Key)), "== ", &a)
 	}
 
 
@@ -340,7 +340,7 @@ func TestEmptyByte(t *testing.T) {
 	for it.Next() {
 		var a Candidate
 		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
-		fmt.Println("删除后对比键值对", string(so.db.trie.GetKey(it.Key)), "==", &a)
+		fmt.Println("Compare key-value pairs after deletion", string(so.db.trie.GetKey(it.Key)), "==", &a)
 	}
 
 	// insert empty value
@@ -353,7 +353,7 @@ func TestEmptyByte(t *testing.T) {
 	}else {
 		var a Candidate
 		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
-		fmt.Println("插入空值后对比键值对", string(so.db.trie.GetKey(it.Key)), "==", &a)
+		fmt.Println("Compare key-value pairs after inserting null values", string(so.db.trie.GetKey(it.Key)), "==", &a)
 	}
 	//if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
 	//	t.Errorf("expected empty committed value, got %x", value)
@@ -364,7 +364,7 @@ func TestEmptyByte(t *testing.T) {
 	for it.Next() {
 		var a Candidate
 		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &a)
-		fmt.Println("插入空值后对比键值对", string(so.db.trie.GetKey(it.Key)), "==", &a)
+		fmt.Println("Compare key-value pairs after inserting null values", string(so.db.trie.GetKey(it.Key)), "==", &a)
 	}
 }
 
@@ -405,7 +405,7 @@ func TestSlice(t *testing.T){
 	for it.Next() {
 		var arr []*Candidate
 		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &arr)
-		fmt.Printf("初始化对比键值对 %v == &+v", string(so.db.trie.GetKey(it.Key)), &arr)
+		fmt.Printf("Initialize comparison key-value pairs %v == &+v", string(so.db.trie.GetKey(it.Key)), &arr)
 	}
 }
 
