@@ -5,7 +5,7 @@ Welcome to the PlatON source code repository! This software is Ethereum-based an
 ## Building the source
 
 For prerequisites and detailed build instructions please read the
-[Installation Instructions](https://github.com/PlatONnetwork/wiki/wiki)
+[Installation Instructions](https://platonnetwork.github.io/Docs/#/en-us/basics/[English]-Installation-Instructions)
 on the wiki.
 
 Building platon requires both a Go (version 1.7 or later) and a C compiler.
@@ -135,4 +135,4 @@ Check the balance:
  
 OK, it seems that the chain is running correctly
 
-For more information, please visit our. [wiki](https://github.com/PlatONnetwork/wiki/wiki)
+For more information, please visit our. [wiki](https://platonnetwork.github.io/Docs/#/en-us/basics/[English]-Getting-Started)
