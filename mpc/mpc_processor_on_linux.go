@@ -29,19 +29,18 @@ void notify_security_calculation(const char* taskid, const char* pubkey, const c
 import "C"
 
 import (
-	"unsafe"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"unsafe"
 )
 
 type MPCParams struct {
-	TaskId string
-	Pubkey string
-	From   common.Address
-	IRAddr common.Address
-	Method string
-	Extra  string
+	TaskId		string
+	Pubkey 		string
+	From 		common.Address
+	IRAddr		common.Address
+	Method 		string
+	Extra 		string
 }
 
 func InitVM(icepath string, httpEndpoint string) {
@@ -63,10 +62,10 @@ func ExecuteMPCTx(params MPCParams) error {
 
 	cTaskId := C.CString(params.TaskId)
 	cPubKey := C.CString(params.Pubkey)
-	cAddr := C.CString(params.From.Hex())
+	cAddr   := C.CString(params.From.Hex())
 	cIRAddr := C.CString(params.IRAddr.Hex())
 	cMethod := C.CString(params.Method)
-	cExtra := C.CString(params.Extra)
+	cExtra  := C.CString(params.Extra)
 
 	// call interface
 	C.notify_security_calculation(cTaskId, cPubKey, cAddr, cIRAddr, cMethod, cExtra)

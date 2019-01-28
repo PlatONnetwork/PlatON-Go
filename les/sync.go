@@ -20,9 +20,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/light"
+	"math/big"
 )
 
 // syncer is responsible for periodically synchronising with the network, both
@@ -56,8 +56,7 @@ func (pm *ProtocolManager) syncer() {
 
 func (pm *ProtocolManager) needToSync(peerHead blockInfo) bool {
 	head := pm.blockchain.CurrentHeader()
-	currentTd := rawdb.ReadTd(pm.chainDb, head.Hash(), head.Number.Uint64())
-	return currentTd != nil && peerHead.Td.Cmp(currentTd) > 0
+	return peerHead.Number > head.Number.Uint64()
 }
 
 // synchronise tries to sync up our local block chain with a remote peer.
@@ -75,5 +74,5 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	pm.blockchain.(*light.LightChain).SyncCht(ctx)
-	pm.downloader.Synchronise(peer.id, peer.Head(), peer.Td(), downloader.LightSync)
+	pm.downloader.Synchronise(peer.id, peer.Head(), new(big.Int).SetUint64(peer.headInfo.Number), downloader.LightSync)
 }

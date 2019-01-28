@@ -110,6 +110,7 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
 	//ppos
 	evm.CandidatePoolContext = pposm.GetCandidateContextPtr()
+	evm.TicketPool = pposm.GetTicketPtr()
 	return &StateTransition{
 		gp:       gp,
 		evm:      evm,
@@ -211,6 +212,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
+		//log.Debug("Nonce tracking: SetNonce", "from", msg.From(), "nonce", st.state.GetNonce(sender.Address()))
 		ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
 	}
 	if vmerr != nil {

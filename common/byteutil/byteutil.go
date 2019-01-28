@@ -17,8 +17,8 @@ var Command = map[string]interface{}{
 	"[32]uint8":         BytesTo32Bytes,
 	"int":               BytesToInt,
 	"*big.Int":          BytesToBigInt,
-	"uint32":            binary.BigEndian.Uint32,
-	"uint64":            binary.BigEndian.Uint64,
+	"uint32":            BytesTouint32,
+	"uint64":            BytesTouint64,
 	"int32":             common.BytesToInt32,
 	"int64":             common.BytesToInt64,
 	"float32":           common.BytesToFloat32,
@@ -26,6 +26,7 @@ var Command = map[string]interface{}{
 	"discover.NodeID":   BytesToNodeId,
 	"[]discover.NodeID": ArrBytesToNodeId,
 	"common.Hash":       BytesToHash,
+	"[]common.Hash":     ArrBytesToHash,
 	"common.Address":    BytesToAddress,
 }
 
@@ -40,6 +41,21 @@ func BytesToNodeId(curByte []byte) discover.NodeID {
 	return nodeId
 }
 
+func BytesToHash(curByte []byte) common.Hash {
+	str := BytesToString(curByte)
+	return common.HexToHash(str)
+}
+
+func ArrBytesToHash(curByte []byte) []common.Hash {
+	str := BytesToString(curByte)
+	strArr := strings.Split(str, ":")
+	var AHash []common.Hash
+	for i := 0; i < len(strArr); i++ {
+		AHash = append(AHash, common.HexToHash(strArr[i]))
+	}
+	return AHash
+}
+
 func ArrBytesToNodeId(curByte []byte) []discover.NodeID {
 	str := BytesToString(curByte)
 	strArr := strings.Split(str, ":")
@@ -49,11 +65,6 @@ func ArrBytesToNodeId(curByte []byte) []discover.NodeID {
 		ANodeID = append(ANodeID, nodeId)
 	}
 	return ANodeID
-}
-
-func BytesToHash(curByte []byte) common.Hash {
-	str := BytesToString(curByte)
-	return common.HexToHash(str)
 }
 
 func BytesTo32Bytes(curByte []byte) [32]byte {
@@ -86,4 +97,31 @@ func BytesToInt(curByte []byte) int {
 
 func BytesToString(curByte []byte) string {
 	return string(curByte)
+}
+
+func IntToBytes(curInt int) []byte {
+	x := int32(curInt)
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	binary.Write(bytesBuffer, binary.BigEndian, &x)
+	return bytesBuffer.Bytes()
+}
+
+func Uint64ToBytes(val uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, val)
+	return buf[:]
+}
+
+func HexToAddress(b []byte) common.Address {
+	return common.HexToAddress(string(b))
+}
+
+func BytesTouint32(b []byte) uint32 {
+	b = append(make([]byte, 8-len(b)), b...)
+	return binary.BigEndian.Uint32(b)
+}
+
+func BytesTouint64(b []byte) uint64 {
+	b = append(make([]byte, 8-len(b)), b...)
+	return binary.BigEndian.Uint64(b)
 }

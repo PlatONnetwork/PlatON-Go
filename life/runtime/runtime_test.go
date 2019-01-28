@@ -186,10 +186,10 @@ func genCodeInput() []byte {
 	var input [][]byte
 	input = make([][]byte, 0)
 	input = append(input, utils.Int64ToBytes(2))
-	code, _ := ioutil.ReadFile("./testdata/inputtest.wasm")
+	code, _ := ioutil.ReadFile("../contract/inputtest.wasm")
 	//fmt.Println("SrcCode:", common.Bytes2Hex(code))
 	input = append(input, code)
-	abi, _ := ioutil.ReadFile("./testdata/inputtest.cpp.abi.json")
+	abi, _ := ioutil.ReadFile("../contract/inputtest.cpp.abi.json")
 	//fmt.Println("SrcAbi:", common.Bytes2Hex(abi))
 	input = append(input, abi)
 	buffer := new(bytes.Buffer)

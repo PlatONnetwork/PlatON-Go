@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/life/exec"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 // define: void vc_InitGadgetEnv();
@@ -175,39 +174,37 @@ func envGenProofAndResultGasCost(vm *exec.VirtualMachine) (uint64, error) {
 // define: uint8_t vc_Verify(const char *pVKEY, int32_t pkSize, const char *pPoorf, int32_t prSize,
 //					const char *pInput, int32_t inSize, const char *pOutput, int32_t outSize);
 func envVerifyEnv(vm *exec.VirtualMachine) int64 {
-	// get parameters
-	vkOffset := int(int32(vm.GetCurrentFrame().Locals[0]))
-	vkSize := int(int32(vm.GetCurrentFrame().Locals[1]))
-	prOffset := int(int32(vm.GetCurrentFrame().Locals[2]))
-	prSize := int(int32(vm.GetCurrentFrame().Locals[3]))
-	inOffset := int(int32(vm.GetCurrentFrame().Locals[4]))
-	inSize := int(int32(vm.GetCurrentFrame().Locals[5]))
-	outOffset := int(int32(vm.GetCurrentFrame().Locals[6]))
-	outSize := int(int32(vm.GetCurrentFrame().Locals[7]))
-	vkData := vm.Memory.Memory[vkOffset : vkOffset+vkSize]
-	prData := vm.Memory.Memory[prOffset : prOffset+prSize]
-	inData := vm.Memory.Memory[inOffset : inOffset+inSize]
-	outData := vm.Memory.Memory[outOffset : outOffset+outSize]
-	go_vk := string(vkData[:])
-	go_pr := string(prData[:])
-	go_in := string(inData[:])
-	go_out := string(outData[:])
-	log.Debug("Vc Verify:", go_vk, go_pr, go_in, go_out)
+	//// get parameters
+	//vkOffset := int(int32(vm.GetCurrentFrame().Locals[0]))
+	//vkSize := int(int32(vm.GetCurrentFrame().Locals[1]))
+	//prOffset := int(int32(vm.GetCurrentFrame().Locals[2]))
+	//prSize := int(int32(vm.GetCurrentFrame().Locals[3]))
+	//inOffset := int(int32(vm.GetCurrentFrame().Locals[4]))
+	//inSize := int(int32(vm.GetCurrentFrame().Locals[5]))
+	//outOffset := int(int32(vm.GetCurrentFrame().Locals[6]))
+	//outSize := int(int32(vm.GetCurrentFrame().Locals[7]))
+	//vkData := vm.Memory.Memory[vkOffset : vkOffset+vkSize]
+	//prData := vm.Memory.Memory[prOffset : prOffset+prSize]
+	//inData := vm.Memory.Memory[inOffset : inOffset+inSize]
+	//outData := vm.Memory.Memory[outOffset : outOffset+outSize]
+	//go_vk := string(vkData[:])
+	//go_pr := string(prData[:])
+	//go_in := string(inData[:])
+	//go_out := string(outData[:])
 	//c_vk := C.CString(go_vk)
 	//c_pr := C.CString(go_pr)
 	//c_in := C.CString(go_in)
 	//c_out := C.CString(go_out)
-
-	// call c func
+	//
+	//// call c func
 	//retVal := uint8(C.Verify(c_vk, c_pr, c_in, c_out))
-	retVal := 1
-
-	// release memory
+	//
+	//// release memory
 	//defer C.free(unsafe.Pointer(c_vk))
 	//defer C.free(unsafe.Pointer(c_pr))
 	//defer C.free(unsafe.Pointer(c_in))
 	//defer C.free(unsafe.Pointer(c_out))
-	return int64(retVal)
+	return int64(0)
 }
 
 func envVerifyGasCost(vm *exec.VirtualMachine) (uint64, error) {

@@ -5,6 +5,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"errors"
@@ -34,11 +35,11 @@ func (w *worker) shouldRemoveFormerPeers(blockNumber *big.Int) bool {
 	return m.Cmp(big.NewInt(0)) == 0
 }
 */
-func (w *worker) election(state *state.StateDB, blockNumber *big.Int) error {
+func (w *worker) election(state *state.StateDB, parentHash common.Hash, blockNumber *big.Int) error {
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		if should := w.shouldElection(blockNumber); should {
 			log.Debug("Election call:", "blockNumber", blockNumber)
-			_, err := cbftEngine.Election(state, blockNumber)
+			_, err := cbftEngine.Election(state, parentHash, blockNumber)
 			if err != nil {
 				log.Error("Failed to election", "blockNumber", blockNumber, "error", err)
 				return errors.New("Failed to Election")
@@ -129,4 +130,22 @@ func (w *worker) getWitness(blockNumber *big.Int, state *state.StateDB, flag int
 
 func (w *worker) setNodeCache(state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash) error {
 	return w.engine.(consensus.Bft).SetNodeCache(state, parentNumber, currentNumber, parentHash, currentHash)
+}
+
+func (w *worker) notify(state vm.StateDB, blockNumber *big.Int) error {
+	return w.engine.(consensus.Bft).Notify(state, blockNumber)
+}
+
+func (w *worker) storeHash(state *state.StateDB) {
+	w.engine.(consensus.Bft).StoreHash(state)
+}
+
+func (w *worker) submit2cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash) {
+	w.engine.(consensus.Bft).Submit2Cache(state, currBlocknumber, blockInterval, currBlockhash)
+}
+
+func (w *worker) forEachStorage (state *state.StateDB, title string) {
+	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
+		cbftEngine.ForEachStorage(state, title)
+	}
 }

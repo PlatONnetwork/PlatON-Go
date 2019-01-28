@@ -121,7 +121,7 @@ func (journal *mpcJournal) rotate(all types.TransactionWraps) error {
 	}
 
 	// Generate a new journal with the contents of the current mpc pool
-	replacement, err := os.OpenFile(journal.path + ".new", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	replacement, err := os.OpenFile(journal.path+".new", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (journal *mpcJournal) rotate(all types.TransactionWraps) error {
 	replacement.Close()
 
 	// Replace the live journal with the newly generated one
-	if err = os.Rename(journal.path + ".new", journal.path); err != nil {
+	if err = os.Rename(journal.path+".new", journal.path); err != nil {
 		return err
 	}
 	sink, err := os.OpenFile(journal.path, os.O_WRONLY|os.O_APPEND, 0755)
@@ -145,7 +145,7 @@ func (journal *mpcJournal) rotate(all types.TransactionWraps) error {
 		return err
 	}
 	journal.writer = sink
-	log.Info("Regenerated local mpc transaction journal", "mpc transactions", journaled)
+	log.Trace("Regenerated local mpc transaction journal", "mpc transactions", journaled)
 	return nil
 }
 

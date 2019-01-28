@@ -28,6 +28,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"encoding/hex"
 )
 
 type testEncoder struct {
@@ -284,17 +285,59 @@ func boolToBytes(val bool) []byte {
 	return buf.Bytes()
 }
 
+func TestDecodeEncode(t *testing.T){
+
+	///////////////////////////////////////////////////////////////////////////////
+	nodeId, _ := hex.DecodeString("e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
+	owner, _ := hex.DecodeString("4FED1fC4144c223aE3C1553be203cDFcbD38C581")
+
+	var source [][]byte
+	source = make([][]byte, 0)
+	source = append(source, uint64ToBytes(0xf1))
+	source = append(source, []byte("CandidateDeposit"))
+	source = append(source, nodeId)
+	source = append(source, owner)
+	source = append(source, uint64ToBytes(500))	//10000
+	source = append(source, []byte("127.0.0.1"))
+	source = append(source, []byte("7890"))
+	source = append(source, []byte("extra data"))
+
+	//rlp Encode
+	buffer := new(bytes.Buffer)
+	err := Encode(buffer, source)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("fail")
+	} else {
+		fmt.Println("encode_hex_string: ", hexutil.Encode(buffer.Bytes()))
+		fmt.Println("encode_bytes: ", buffer.Bytes())
+	}
+
+	//rlp Decode
+	ptr := new(interface{})
+	if err := Decode(bytes.NewReader(buffer.Bytes()), &ptr); err!=nil {
+		fmt.Println(err)
+		t.Errorf("fail")
+	} else {
+		deref := reflect.ValueOf(ptr).Elem().Interface()
+		for i, v := range deref.([]interface{}) {
+			fmt.Println(i,": ",hex.EncodeToString(v.([]byte)))
+		}
+	}
+}
+
 func TestEncodeF03(t *testing.T) {
 
 	str := "e4babae6898de698afe4bda0e59097"
 	res, _ := hexutil.Decode(str)
+
 	fmt.Println(string(res))
 
 	//val :=  []interface{}{"transfer", uint(0xFFFFFF), []interface{}{[]uint{4, 5, 5}}, "abc"}
-	fmt.Println([]byte("Is talent you?"))
+	fmt.Println([]byte("Are you?"))
 	var source [][]byte
 	source = make([][]byte, 0)
-	source = append(source, []byte("Is talent you?"))
+	source = append(source, []byte("Are you?"))
 	source = append(source, uint64ToBytes(1000))
 	source = append(source, uint64ToBytes(2000))
 	source = append(source, boolToBytes(false))
@@ -306,18 +349,21 @@ func TestEncodeF03(t *testing.T) {
 		fmt.Println(err)
 		t.Errorf("fail")
 	}
-	// Encoded byte array
+	// the array after decode
 	encodedBytes := buffer.Bytes()
+	fmt.Println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+	fmt.Println("encode_string: ", hexutil.Encode(buffer.Bytes()))
 	fmt.Println(encodedBytes)
+
 
 	ptr := new(interface{})
 	Decode(bytes.NewReader(encodedBytes), &ptr)
-
 	deref := reflect.ValueOf(ptr).Elem().Interface()
 	fmt.Println(deref)
+
 	for i, v := range deref.([]interface{}) {
 		// fmt.Println(i,"    ",hex.EncodeToString(v.([]byte)))
-		// Type judgment, then convert.
+		// The type check, then convert
 		switch i {
 		case 0:
 			fmt.Println(string(v.([]byte)))

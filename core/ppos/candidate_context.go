@@ -44,24 +44,32 @@ func (c *CandidatePoolContext) GetCandidateArr(state vm.StateDB, nodeIds ...disc
 	return c.initCandidatePool().GetCandidateArr(state, nodeIds...)
 }
 
+func (c *CandidatePoolContext) GetWitnessCandidate(state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
+	return c.initCandidatePool().GetWitnessCandidate(state, nodeId, flag)
+}
+
 func (c *CandidatePoolContext) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
 	return c.initCandidatePool().WithdrawCandidate(state, nodeId, price, blockNumber)
 }
 
-func (c *CandidatePoolContext) GetChosens(state vm.StateDB) []*types.Candidate {
-	return c.initCandidatePool().GetChosens(state)
+func (c *CandidatePoolContext) GetChosens(state vm.StateDB, flag int) types.CandidateQueue {
+	return c.initCandidatePool().GetChosens(state, flag)
 }
 
-func (c *CandidatePoolContext) GetChairpersons(state vm.StateDB) []*types.Candidate {
+func (c *CandidatePoolContext) GetChairpersons(state vm.StateDB) types.CandidateQueue {
 	return c.initCandidatePool().GetChairpersons(state)
 }
 
-func (c *CandidatePoolContext) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*types.Candidate, error) {
+func (c *CandidatePoolContext) GetDefeat(state vm.StateDB, nodeId discover.NodeID) (types.CandidateQueue, error) {
 	return c.initCandidatePool().GetDefeat(state, nodeId)
 }
 
 func (c *CandidatePoolContext) IsDefeat(state vm.StateDB, nodeId discover.NodeID) (bool, error) {
 	return c.initCandidatePool().IsDefeat(state, nodeId)
+}
+
+func (c *CandidatePoolContext) IsChosens(state vm.StateDB, nodeId discover.NodeID) (bool, error) {
+	return c.initCandidatePool().IsChosens(state, nodeId)
 }
 
 func (c *CandidatePoolContext) RefundBalance(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
@@ -84,8 +92,8 @@ func (c *CandidatePoolContext) MaxChair() uint64 {
 	return c.initCandidatePool().MaxChair()
 }
 
-func (c *CandidatePoolContext) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover.Node, error) {
-	return c.initCandidatePool().Election(state)
+func (c *CandidatePoolContext) Election(state *state.StateDB, parentHash common.Hash, blocknumber *big.Int) ([]*discover.Node, error) {
+	return c.initCandidatePool().Election(state, parentHash, blocknumber)
 }
 
 func (c *CandidatePoolContext) Switch(state *state.StateDB) bool {
@@ -102,4 +110,12 @@ func (c *CandidatePoolContext) GetAllWitness(state *state.StateDB) ([]*discover.
 
 func (c *CandidatePoolContext) SetCandidateExtra(state vm.StateDB, nodeId discover.NodeID, extra string) error {
 	return c.initCandidatePool().SetCandidateExtra(state, nodeId, extra)
+}
+
+func (c *CandidatePoolContext) UpdateElectedQueue(state vm.StateDB, currBlockNumber *big.Int, nodeIds ...discover.NodeID) error {
+	return c.initCandidatePool().UpdateElectedQueue(state, currBlockNumber, nodeIds...)
+}
+
+func (c *CandidatePoolContext) ForEachStorage(state *state.StateDB, title string) {
+	c.initCandidatePool().ForEachStorage(state, title)
 }

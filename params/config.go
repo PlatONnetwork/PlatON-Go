@@ -17,10 +17,10 @@
 package params
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 )
 
@@ -33,9 +33,9 @@ var (
 
 var (
 	initialConsensusNodes = []string{
-		//"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.9.181:16789",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@192.168.9.181:16789",
 		"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.9.182:16789",
-		//"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.183:16789",
+		"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.183:16789",
 		//"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.184:16789",
 	}
 
@@ -121,16 +121,22 @@ var (
 		ByzantiumBlock:      big.NewInt(1035301),
 		ConstantinopleBlock: nil,
 		Cbft: &CbftConfig{
-			Period: 3,
-			Epoch:  30000,
-			Duration:  30,
+			Period:   3,
+			Epoch:    30000,
+			Duration: 30,
 			PposConfig: &PposConfig{
-				Candidate: &CandidateConfig{
-					Threshold: 			"1000000000000000000000000",
-					DepositLimit: 	  	10,
-					MaxChair:          7,
+				CandidateConfig: &CandidateConfig{
+					Threshold:         "1000000000000000000000000",
+					DepositLimit:      10,
+					Allowed:           100,
+					MaxChair:          10,
 					MaxCount:          100,
-					RefundBlockNumber: 	512,
+					RefundBlockNumber: 512,
+				},
+				TicketConfig: &TicketConfig{
+					TicketPrice:       "1000000000000000000",
+					MaxCount:          51200,
+					ExpireBlockNumber: 1536000,
 				},
 			},
 		},
@@ -225,21 +231,29 @@ type CbftConfig struct {
 	Duration         int64   `json:"duration,omitempty"`         // number of seconds for a node to produce blocks
 	//mock
 	InitialNodes []discover.Node   `json:"initialNodes,omitempty"`
-	NodeID       discover.NodeID   `json:"-"`
+	NodeID       discover.NodeID   `json:"nodeID,omitempty"`
 	PrivateKey   *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 
 	PposConfig *PposConfig `json:"pposConfig,omitempty"`
 }
 
 type PposConfig struct {
-	Candidate *CandidateConfig
+	CandidateConfig *CandidateConfig
+	TicketConfig    *TicketConfig
 }
 type CandidateConfig struct {
-	Threshold		  string
-	DepositLimit 	  uint64
+	Threshold         string
+	DepositLimit      uint64
+	Allowed           uint64
 	MaxCount          uint64
 	MaxChair          uint64
 	RefundBlockNumber uint64
+}
+
+type TicketConfig struct {
+	TicketPrice       string
+	MaxCount          uint64
+	ExpireBlockNumber uint64
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
@@ -261,7 +275,7 @@ func (c *ChainConfig) String() string {
 		engine = c.Ethash
 	case c.Clique != nil:
 		engine = c.Clique
-	// joey.lyu
+		// joey.lyu
 	case c.Cbft != nil:
 		engine = c.Cbft
 	default:

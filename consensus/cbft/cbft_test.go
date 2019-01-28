@@ -55,7 +55,7 @@ func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
 	cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
 
 	//reset the new root irreversible
-	cbft.rootIrreversible = newRoot
+	cbft.rootIrreversible.Store(newRoot)
 	//the new root's children should re-execute base on new state
 	for _, child := range newRoot.children {
 		if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
@@ -72,9 +72,9 @@ func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
 	//highestLogical := cbft.findHighestLogical(newRoot)
 	//cbft.setHighestLogical(highestLogical)
 	//reset highest confirmed block
-	cbft.highestConfirmed = cbft.findLastClosestConfirmedIncludingSelf(newRoot)
+	cbft.highestConfirmed.Store(cbft.findLastClosestConfirmedIncludingSelf(newRoot))
 
-	if cbft.highestConfirmed != nil {
+	if cbft.getHighestLogical() != nil {
 		t.Log("ok")
 	} else {
 		t.Log("cbft.highestConfirmed is null")
@@ -104,7 +104,7 @@ func TestExecuteBlockAndDescendant(t *testing.T) {
 	cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
 
 	//reset the new root irreversible
-	cbft.rootIrreversible = newRoot
+	cbft.rootIrreversible.Store(newRoot)
 	//reorg the block tree
 	cbft.buildChildNode(newRoot)
 
@@ -130,8 +130,8 @@ func TestBackTrackBlocksExcludingEnd(t *testing.T) {
 }
 
 func testBackTrackBlocks(t *testing.T, includeEnd bool) {
-	end := cbft.blockExtMap[rootBlock.Hash()]
-	exts := cbft.backTrackBlocks(cbft.highestLogical, end, includeEnd)
+	end, _ := cbft.blockExtMap.Load(rootBlock.Hash())
+	exts := cbft.backTrackBlocks(cbft.getHighestLogical(), end.(*BlockExt), includeEnd)
 
 	t.Log("len(exts)", len(exts))
 }
@@ -151,8 +151,8 @@ func initTest() {
 	}
 
 	cbft = &Cbft{
-		config:        cbftConfig,
-		blockExtMap:   make(map[common.Hash]*BlockExt),
+		config: cbftConfig,
+		//blockExtMap:   make(map[common.Hash]*BlockExt),
 		signedSet:     make(map[uint64]struct{}),
 		netLatencyMap: make(map[discover.NodeID]*list.List),
 	}
@@ -175,7 +175,6 @@ func buildFork(cbft *Cbft) {
 			ParentHash: parentHash,
 			Number:     big.NewInt(int64(i)),
 			TxHash:     hash(1, i),
-			Difficulty: big.NewInt(int64(i) * 2),
 		}
 		block := types.NewBlockWithHeader(header)
 
@@ -188,7 +187,7 @@ func buildFork(cbft *Cbft) {
 			number:      block.NumberU64(),
 			signs:       make([]*common.BlockConfirmSign, 0),
 		}
-		cbft.blockExtMap[block.Hash()] = ext
+		cbft.blockExtMap.Store(block.Hash(), ext)
 
 		parentHash = block.Hash()
 	}
@@ -205,7 +204,7 @@ func buildMain(cbft *Cbft) {
 
 	//sealhash := cbft.SealHash(header)
 
-	rootHeader := &types.Header{Number: big.NewInt(0), Difficulty: big.NewInt(0), TxHash: hash(1, 0)}
+	rootHeader := &types.Header{Number: big.NewInt(0), TxHash: hash(1, 0)}
 	rootBlock = types.NewBlockWithHeader(rootHeader)
 	rootNumber = 0
 
@@ -220,8 +219,8 @@ func buildMain(cbft *Cbft) {
 	}
 
 	//hashSet[uint64(0)] = rootBlock.Hash()
-	cbft.blockExtMap[rootBlock.Hash()] = rootExt
-	cbft.highestConfirmed = rootExt
+	cbft.blockExtMap.Store(rootBlock.Hash(), rootExt)
+	cbft.highestConfirmed.Store(rootExt)
 
 	parentHash := rootBlock.Hash()
 	for i := uint64(1); i <= 10; i++ {
@@ -229,7 +228,6 @@ func buildMain(cbft *Cbft) {
 			ParentHash: parentHash,
 			Number:     big.NewInt(int64(i)),
 			TxHash:     hash(1, i),
-			Difficulty: big.NewInt(int64(i) * 2),
 		}
 		block := types.NewBlockWithHeader(header)
 
@@ -243,9 +241,9 @@ func buildMain(cbft *Cbft) {
 			signs:       make([]*common.BlockConfirmSign, 0),
 		}
 		//hashSet[i] = rootBlock.Hash()
-		cbft.blockExtMap[block.Hash()] = ext
+		cbft.blockExtMap.Store(block.Hash(), ext)
 
-		cbft.highestLogical = ext
+		cbft.highestLogical.Store(ext)
 
 		parentHash = block.Hash()
 
