@@ -1633,7 +1633,10 @@ func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID) bool {
 		if value > min && value < max {
 			cbft.log.Debug("calTurn return true", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", timePoint, "startEpoch", startEpoch)
 			return true
+		} else {
+			cbft.log.Debug("calTurn return false", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", timePoint, "startEpoch", startEpoch)
 		}
+
 	}
 	return false
 }
