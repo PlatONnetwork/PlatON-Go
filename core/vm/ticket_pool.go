@@ -106,6 +106,7 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 		failNum := count - uint64(data)
 		backBalance := new(big.Int).Mul(new(big.Int).SetUint64(failNum), price)
 		t.Evm.StateDB.AddBalance(from, backBalance)
+		t.Evm.StateDB.SubBalance(common.TicketPoolAddr, backBalance)
 	}
 	sdata := DecodeResultStr(strconv.Itoa(data))
 	log.Info("Result of VoteTicket==> ", "len(successTicketIds): ", strconv.Itoa(data), " []byte: ", sdata)
