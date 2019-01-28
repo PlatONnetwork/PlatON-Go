@@ -216,7 +216,7 @@ func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 	genesis := blockChain.Genesis()
 	// init roundCache by config
 	d.buildGenesisRound(genesis.NumberU64(), genesis.Hash(), initialNodes)
-	d.printMapInfo("启动时读取创世块配置", genesis.NumberU64(), genesis.Hash())
+	d.printMapInfo("Read Genesis block configuration at startup:", genesis.NumberU64(), genesis.Hash())
 	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
 	if genesis.NumberU64() != blockChain.CurrentBlock().NumberU64() {
 
@@ -460,12 +460,10 @@ func (d *ppos) GetCandidateAttach (state vm.StateDB, nodeId discover.NodeID) (*t
 	return d.ticketPool.GetCandidateAttach(state, nodeId)
 }
 
-// TODO 每一个块执行交易之后，揭榜或替换之前 都会调用的方法
 func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
 	return d.ticketPool.Notify(state, blockNumber)
 }
 
-// TODO 添加一个方法， 每次finalize 之前，调用求Hash 加入 stateDB
 func (d *ppos) StoreHash (state *state.StateDB) {
 	if err := d.ticketPool.CommitHash(state); nil != err {
 		log.Error("Failed to StoreHash", "err", err)
@@ -473,7 +471,6 @@ func (d *ppos) StoreHash (state *state.StateDB) {
 	}
 }
 
-// TODO 添加一个方法，每 seal 完一个块之后，就调用该 Func
 func (d *ppos) Submit2Cache (state *state.StateDB, currBlocknumber,  blockInterval *big.Int, currBlockhash common.Hash) {
 	d.ticketidsCache.Submit2Cache(currBlocknumber,  blockInterval, currBlockhash, state.TicketCaceheSnapshot())
 }

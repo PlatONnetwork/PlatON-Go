@@ -306,14 +306,15 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		return err
 	}
 
-	// 如果是首次质押，判断质押门槛
+	// If it is the first pledge, judge the pledge threshold
 	if !c.checkFirstThreshold(can) {
 		c.lock.Unlock()
 		log.Warn("Failed to checkFirstThreshold on SetCandidate", "Deposit", can.Deposit.Uint64(), "threshold", c.threshold)
 		return errors.New(DepositLowErr.Error() + ", Current Deposit:" + can.Deposit.String() + ", target threshold:" + fmt.Sprint(c.threshold))
 	}
 
-	// 每次质押前都需要先校验 当前can的质押金是否 不小于 要放置的对应的队列是否已满时的最小can的质押金
+	// Before each pledge, we need to check whether the current can deposit is not less
+	// than the minimum can deposit when the corresponding queue to be placed is full.
 	if _, ok := c.checkDeposit(state, can); !ok {
 		c.lock.Unlock()
 		log.Warn("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
@@ -339,7 +340,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	return nil
 }
 
-// 还需要补上 如果TCout 小了，要先移到 reserves 中，不然才算落榜
+// If TCout is small, you must first move to reserves, otherwise it will be counted.
 func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) ([]discover.NodeID, error) {
 
 	var flag, delimmediate, delreserve bool
@@ -1019,15 +1020,15 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 
 	nodeIds := make([]discover.NodeID, 0)
 	for _, can := range cans {
-		// 释放幸运票 TODO
+		// Release lucky ticket TODO
 		if err := ticketPool.ReturnTicket(state, can.CandidateId, can.TicketId, currBlockNumber); nil != err {
 			log.Error("Failed to ReturnTicket on Election", "nodeId", can.CandidateId.String(), "ticketId", can.TicketId.String(), "err", err)
 			continue
 		}
 
 		/**
-		获取TCount
-		然后需要对入围候选人再次做排序
+		Getting TCount
+		Then we need to sort the candidates again.
 		*/
 		c.lock.Lock()
 		if err := c.initDataByState(state, 2); nil != err {
@@ -1036,7 +1037,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 			return nil, err
 		}
 		/**
-		重新质押前的处理
+		handing before  Re-pledging
 		*/
 		if flag, err := c.preElectionReset(state, can); nil != err {
 			c.lock.Unlock()
@@ -1048,8 +1049,8 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 			c.lock.Unlock()
 			continue
 		}
-		PrintObject("Election 更新质押 Candidate", *can)
-		// 因为需要先判断是否之前在 immediates 中，如果是则转移到 reserves 中
+		PrintObject("Election Update Candidate to SetCandidate again ...", *can)
+		// Because you need to first ensure if you are in immediates, and if so, move to reserves
 		if ids, err := c.setCandidateInfo(state, can.CandidateId, can); nil != err {
 			c.lock.Unlock()
 			log.Error("Failed to setCandidateInfo on Election", "nodeId", can.CandidateId.String(), "err", err)
@@ -1060,7 +1061,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 		c.lock.Unlock()
 
 	}
-	// 释放落榜的
+	// Release the lost list
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
 		if err := ticketPool.DropReturnTicket(state, currBlockNumber, nodeIds...); nil != err {
@@ -1084,15 +1085,15 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	//c.immediateCacheArr.CandidateSort()
 	makeCandidateSort(state, c.immediateCacheArr)
 
-	log.Info("揭榜时，排序的候选池数组长度:", "len", len(c.immediateCacheArr))
-	PrintObject("揭榜时，排序的候选池数组:", c.immediateCacheArr)
+	log.Info("When Election，Sorted candidate pool array length:", "len", len(c.immediateCacheArr))
+	PrintObject("When Election，Sorted the candidate array:", c.immediateCacheArr)
 	// cache ids
 	immediateIds := make([]discover.NodeID, 0)
 	for _, can := range c.immediateCacheArr {
 		immediateIds = append(immediateIds, can.CandidateId)
 	}
-	log.Info("揭榜时，当前入围者ids 长度：", "len", len(immediateIds))
-	PrintObject("揭榜时，当前入围者ids：", immediateIds)
+	log.Info("When Election，current immediate ids's len is：", "len", len(immediateIds))
+	PrintObject("When Election，current immediate is：", immediateIds)
 	// a certain number of witnesses in front of the cache
 	var nextWitIds []discover.NodeID
 	// If the number of candidate selected does not exceed the number of witnesses
@@ -1105,15 +1106,15 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 		nextWitIds = make([]discover.NodeID, c.maxChair)
 		copy(nextWitIds, immediateIds)
 	}
-	log.Info("揭榜时，选出来的下一轮见证人Ids 个数:", "len", len(nextWitIds))
-	PrintObject("揭榜时，选出来的下一轮见证人Ids:", nextWitIds)
+	log.Info("When Election，Selected next round of witnesses Ids's count:", "len", len(nextWitIds))
+	PrintObject("When Election，Selected next round of witnesses Ids:", nextWitIds)
 	// cache map
 	nextWits := make(candidateStorage, 0)
 
 	// copy witnesses information
 	copyCandidateMapByIds(nextWits, c.immediateCandidates, nextWitIds)
-	log.Info("揭榜时，从入围信息copy过来的见证人个数;", "len", len(nextWits))
-	PrintObject("揭榜时，从入围信息copy过来的见证人;", nextWits)
+	log.Info("When Election，the count of the copy the witness info from immediate:", "len", len(nextWits))
+	PrintObject("When Election，the information of the copy the witness info from immediate:", nextWits)
 	// clear all old nextwitnesses information （If it is forked, the next round is no empty.）
 	for nodeId, _ := range c.nextOriginCandidates {
 		c.delNextWitness(state, nodeId)
@@ -1126,14 +1127,13 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	for _, nodeId := range nextWitIds {
 		if can, ok := nextWits[nodeId]; ok {
 
-			// 揭榜后回去调 获取幸运票逻辑 TODO
+			// After election to call Selected LuckyTicket TODO
 			luckyId, err := ticketPool.SelectionLuckyTicket(state, nodeId, parentHash)
 			if nil != err {
 				log.Error("Failed to take luckyId on Election", "nodeId", nodeId.String(), "err", err)
 				return nil, nil, err
 			}
-			//luckyId := common.BytesToHash([]byte("1223"))
-			// 将幸运票ID 置入 next witness 详情中
+			// Put the lucky ticket ID in the next witness details
 			can.TicketId = luckyId
 			if err := c.setNextWitness(state, nodeId, can); nil != err {
 				log.Error("failed to setNextWitness on election", "err", err)
@@ -1156,8 +1156,8 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	// replace the next round of witnesses
 	//c.nextOriginCandidates = nextWits
 
-	log.Info("揭榜时，下一轮见证人node 个数:", "len", len(arr))
-	PrintObject("揭榜时，下一轮见证人node信息:", arr)
+	log.Info("When Election，next round witness node count is:", "len", len(arr))
+	PrintObject("When Election，next round witness node information is:", arr)
 	c.fixElection(state, nextWitIds)
 	log.Info("Election next witness's node count:", "len", len(arr))
 	log.Info("Call Election SUCCESS !!!!!!!")
@@ -1168,13 +1168,14 @@ func (c *CandidatePool) fixElection(state vm.StateDB, nextWitIds []discover.Node
 	if len(nextWitIds) != 0 && len(c.nextOriginCandidates) != 0 {
 		return
 	}
-	// 否则，表示当前揭榜出来的 next 为nil，则需要判断 当前 轮是否有 witness，
-	// 如果有，则使用当前轮的witness作为 next witness，
-	// 储备池的出块奖励需要用到 witness can info
+	// Otherwise, it means that the next witness is nil, then we need to check whether the current round has a witness.
+	// If had, use the current round of witness as the next witness,
+	// [remark]: The pool of rewards need to use the witness can info
 	/*if len(c.originCandidates) != 0 {
 
 	}*/
-	log.Info("揭榜时，揭出下轮见证人为 nil, 使用 当前轮作为下一轮...")
+	log.Info("When Election，Election the next round of witnesses as nil, using the current round as the next round...")
+	//
 	// set up new witnesses to next witnesses on trie by current witnesses
 	for nodeId, can := range c.originCandidates {
 		if err := c.setNextWitness(state, nodeId, can); nil != err {
@@ -1462,7 +1463,7 @@ func (c *CandidatePool) GetRefundInterval() uint64 {
 	return c.RefundBlockNumber
 }
 
-// 根据nodeId 去重新决定当前候选人的去留
+// According to the nodeId to ensure the current candidate's stay
 func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *big.Int, nodeIds ...discover.NodeID) error {
 	log.Info("Call UpdateElectedQueue start ...")
 	var ids []discover.NodeID
@@ -1483,8 +1484,8 @@ func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *bi
 func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID) ([]discover.NodeID, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	log.Info("开始更新竞选队列...")
-	PrintObject("入参的nodeIds:", nodeIds)
+	log.Info("Update the Campaign queue Start ...")
+	PrintObject("input param's nodeIds is:", nodeIds)
 	if len(nodeIds) == 0 {
 		log.Debug("updateQueue finish !!!!!!!!!!")
 		return nil, nil
@@ -1504,7 +1505,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		setNewIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error,
 	) ([]discover.NodeID, types.CandidateQueue, error) {
 
-		log.Warn("处理", "old", delTitle, "new", setTitle)
+		log.Debug("【Handing】...", "old", delTitle, "new", setTitle)
 		PrintObject("oldMap", oldMap)
 		PrintObject("newMap", newMap)
 		can := oldMap[nodeId]
@@ -1590,13 +1591,13 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		return cacheNodeIds, cacheArr, nil
 	}
 
-	// 直接落榜并产生退款信息
+	// directed to generate refund
 	directdropFunc := func(title string, can *types.Candidate,
 		delInfoFn func(state vm.StateDB, candidateId discover.NodeID),
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 		setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
-		log.Debug("进入直接掉榜逻辑: 删除 "+title+" 中的can信息 on UpdateElectedQueue", "nodeId", can.CandidateId.String())
+		log.Debug("【Enter the logic directly of generate defeat】: deleted "+title+"'s Can information in UpdateElectedQueue", "nodeId", can.CandidateId.String())
 		delInfoFn(state, can.CandidateId)
 
 		// append to refunds (defeat) trie
@@ -1636,17 +1637,17 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 
 		switch c.checkExist(nodeId) {
 		case IS_IMMEDIATE:
-			log.Debug("当前nodeId原来在 Immediate中...")
+			log.Debug("The current nodeId was originally in the Immediate ...")
 			can := c.immediateCandidates[nodeId]
 			//if !c.checkTicket(state.TCount(nodeId)) { // TODO
-			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
+			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // Direct drop
 				if err := directdropFunc("Immediate", can, c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
 					return nil, err
 				} else {
 					delNodeIds = append(delNodeIds, nodeId)
 				}
 			} else if noDrop && !tcount {
-				log.Info("原来在 im 中需要移到 re中", "nodeId", nodeId.String())
+				log.Info("Originally in im need to move to re", "nodeId", nodeId.String())
 				if delIds, canArr, err := handleFunc("Immediate", "Reserve", nodeId, c.immediateCandidates, c.reserveCandidates,
 					c.delImmediate, c.delReserve, c.setReserve, c.getImmediateIndex, c.setImmediateIndex, c.setReserveIndex); nil != err {
 					return nil, err
@@ -1658,17 +1659,17 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 				}
 			}
 		case IS_RESERVE:
-			log.Debug("当前nodeId原来在 Reserve 中...")
+			log.Debug("The current nodeId was originally in the Reserve ...")
 			can := c.reserveCandidates[nodeId]
 			//if c.checkTicket(state.TCount(nodeId)) { // TODO
-			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // 直接掉榜
+			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // Direct drop
 				if err := directdropFunc("Reserve", can, c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
 					return nil, err
 				} else {
 					delNodeIds = append(delNodeIds, nodeId)
 				}
 			} else if noDrop && tcount {
-				log.Info("原来在 re 中需要移到 im中", "nodeId", nodeId.String())
+				log.Info("Originally in re need to move to im", "nodeId", nodeId.String())
 				if delIds, canArr, err := handleFunc("Reserve", "Immediate", nodeId, c.reserveCandidates, c.immediateCandidates,
 					c.delReserve, c.delImmediate, c.setImmediate, c.getReserveIndex, c.setReserveIndex, c.setImmediateIndex); nil != err {
 					return nil, err
@@ -1687,11 +1688,14 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 	return delNodeIds, nil
 }
 
-// 揭榜后重新质押前的操作
+// The operation before re-setcandiate after election
 // false: direct get out
 // true: pass
 func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate) (bool, error) {
-	// 如果校验不通过的话，则直接掉榜，但掉榜前需要判断之前是在哪个队列的
+	// If the verification does not pass,
+	// it will drop the list directly,
+	// but before the list is dropped,
+	// it needs to determine which queue was in the queue.
 	if _, ok := c.checkDeposit(state, can); !ok {
 		log.Warn("Failed to checkDeposit on preElectionReset", "nodeId", can.CandidateId.String(), " err", DepositLowErr)
 		var del int // del: 1 del immiedate; 2  del reserve
@@ -1702,12 +1706,12 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 			del = IS_RESERVE
 		}
 
-		// 直接产生退款信息
+		// Generate refund information directly
 		delFunc := func(title string, delInfoFn func(state vm.StateDB, candidateId discover.NodeID),
 			getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 			setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
 
-			log.Debug("进入直接掉榜逻辑,从" + title + ",中删除...")
+			log.Debug("【Enter the logic directly of generate defeat】,delete the can form " + title + " ...")
 			delInfoFn(state, can.CandidateId)
 
 			// append to refunds (defeat) trie
@@ -1773,7 +1777,8 @@ func (c *CandidatePool) checkFirstThreshold(can *types.Candidate) bool {
 func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bool, bool) {
 	tcount := c.checkTicket(state.TCount(can.CandidateId))
 	/**
-	如果 当前得票数满足进入候选池，且候选池已满
+	If the current number of votes meets the entry immediate pool
+	and the immediate pool is full
 	*/
 	if tcount && uint64(len(c.immediateCandidates)) == c.maxCount {
 		last := c.immediateCacheArr[len(c.immediateCacheArr)-1]
@@ -1786,13 +1791,13 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bo
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
-			log.Debug("候选池已满，且当前can的Deposit 小于 候选池中最后一个can的 110% ", "当前 can的Deposit:", can.Deposit.String(), "候选池中最后一个can的 110%:", tmp.String(), "当前候选池长度:", len(c.immediateCandidates), "配置上限:", c.maxCount)
+			log.Debug("The immeidate pool is full, and the current can's Deposit is less than 110% of the last can in the immediate pool.", "current can's Deposit:", can.Deposit.String(), "110% of the last can in the immediate pool:", tmp.String(), "the length of current immediate pool:", len(c.immediateCandidates), "the limit of Configuration:", c.maxCount)
 			return tcount, false
 		}
 	}
 
 	/**
-	如果 当前不如 候选池 且备选池已满
+	If the can no enter the immediate pool  and the reserve pool is full
 	*/
 	if !tcount && uint64(len(c.reserveCandidates)) == c.maxCount {
 		last := c.reserveCacheArr[len(c.reserveCacheArr)-1]
@@ -1805,7 +1810,7 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bo
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
-			log.Debug("备选池已满，且当前can的Deposit 小于 备选池中最后一个can的 110% ", "当前 can的Deposit:", can.Deposit.String(), "备选池总中最后一个can的 110%:", tmp.String(), "当前备选池长度:", len(c.reserveCandidates), "配置上限:", c.maxCount)
+			log.Debug("The reserve pool is full，and the current can's Deposit is less than 110% of the last can in the reserve pool.", "current can's Deposit:", can.Deposit.String(), "110% of the last can in the reserve pool:", tmp.String(), "the length of current reserve pool:", len(c.reserveCandidates), "the limit of Configuration:", c.maxCount)
 			return tcount, false
 		}
 	}
@@ -1818,7 +1823,7 @@ func (c *CandidatePool) checkWithdraw(source, price *big.Int) error {
 	// y/100 == old * (x/100) == old * x%
 	tmp := new(big.Int).Div(percentage, big.NewInt(100))
 	if price.Cmp(tmp) < 0 {
-		log.Debug("提取退款,当前can的想退的金额小于自身质押剩余金额的 10%:", "can的当前想退的金额:", price.String(), "can自身质押剩余的金额:", tmp.String())
+		log.Debug("When withdrawing the refund, the amount of the current can't be refunded is less than 10% of the remaining amount of self:", "The current amount of can want to refund:", price.String(), "current Can own deposit remaining amount:", tmp.String())
 		return WithdrawLowErr
 	}
 	return nil
@@ -1828,26 +1833,26 @@ func (c *CandidatePool) checkWithdraw(source, price *big.Int) error {
 // 1: in immediates
 // 2: in reserves
 func (c *CandidatePool) checkExist(nodeId discover.NodeID) int {
-	log.Info("判断当前nodeId原来属于哪个队列", "nodeId", nodeId.String())
+	log.Info("Check which queue the current nodeId originally belongs to:", "nodeId", nodeId.String())
 	if _, ok := c.immediateCandidates[nodeId]; ok {
-		log.Info("判断当前nodeId原来属于 immediate 队列 ...", "nodeId", nodeId.String())
+		log.Info("The current nodeId originally belonged to the immediate queue ...", "nodeId", nodeId.String())
 		return IS_IMMEDIATE
 	}
 	if _, ok := c.reserveCandidates[nodeId]; ok {
-		log.Info("判断当前nodeId原来属于 reserve 队列 ...", "nodeId", nodeId.String())
+		log.Info("The current nodeId originally belonged to the reserve queue ...", "nodeId", nodeId.String())
 		return IS_RESERVE
 	}
-	log.Info("判断当前nodeId原来不属于任意队列 ...", "nodeId", nodeId.String())
+	log.Info("The current nodeId does not belong to any queue ...", "nodeId", nodeId.String())
 	return IS_LOST
 }
 
 func (c *CandidatePool) checkTicket(t_count uint64) bool {
-	log.Info("对比当前候选人得票数为:", "t_count", t_count, "入选门槛为:", c.allowed)
+	log.Info("Compare the current candidate’s votes to:", "t_count", t_count, "the allowed limit of config:", c.allowed)
 	if t_count >= c.allowed {
-		log.Info("当前候选人得票数符合进入候选池...")
+		log.Info(" The current candidate’s votes are in line with the immediate pool....")
 		return true
 	}
-	log.Info("不进候选池...")
+	log.Info("Not eligible to enter the immediate pool ...")
 	return false
 }
 
@@ -2509,7 +2514,7 @@ func DefeatListKey() []byte {
 
 func (c *CandidatePool) ForEachStorage(state vm.StateDB, title string) {
 	c.lock.Lock()
-	log.Debug(title + ":完全查看候选池中的数据 ...")
+	log.Debug(title + ":Full view of data in the candidate pool ...")
 	c.initDataByState(state, 2)
 	c.lock.Unlock()
 }

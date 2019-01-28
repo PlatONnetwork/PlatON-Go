@@ -269,7 +269,7 @@ func TestEmptyByte(t *testing.T) {
 		Host 			string
 		Port 			string
 	}
-	can := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "啦啦", Host: "10.0.0.0"}
+	can := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "AA", Host: "10.0.0.0"}
 	prefix := []byte("im")
 	pvalue, _ := rlp.EncodeToBytes(&can)
 	key := append(prefix, []byte("a")...)

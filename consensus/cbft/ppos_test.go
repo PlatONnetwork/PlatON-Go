@@ -10,7 +10,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"encoding/json"
 	"net"
@@ -71,7 +70,7 @@ func printObject(title string, obj, logger interface{}){
 
 func buildPpos() (*ppos, *core.BlockChain) {
 	configs := params.PposConfig{
-		Candidate: &params.CandidateConfig{
+		CandidateConfig: &params.CandidateConfig{
 			MaxChair: 1,
 			MaxCount: 3,
 			RefundBlockNumber: 	1,
@@ -82,7 +81,7 @@ func buildPpos() (*ppos, *core.BlockChain) {
 		},
 	}
 	ppos := &ppos{
-		candidatePool: pposm.NewCandidatePool(&configs),
+		candidateContext:  pposm.NewCandidatePoolContext(&configs),
 		ticketPool: pposm.NewTicketPool(&configs),
 	}
 
@@ -92,9 +91,9 @@ func buildPpos() (*ppos, *core.BlockChain) {
 	)
 	fmt.Println("genesis", genesis)
 	// Initialize a fresh chain with only a genesis block
-	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, ethash.NewFaker(), vm.Config{}, nil)
+	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
 
-	ppos.setCandidatePool(blockchain, buildInitialNodes())
+	ppos.SetCandidateContextOption(blockchain, buildInitialNodes())
 
 	return ppos, blockchain
 }
@@ -119,7 +118,7 @@ func buildInitialNodes() []discover.Node {
 
 func TestNewPpos (t *testing.T) {
 	ppos, _ := buildPpos()
-	printObject("ppos.candidatePool:", ppos.candidatePool, t)
+	printObject("ppos.candidatePoolText:", ppos.candidateContext, t)
 	printObject("ppos.ticketPool:", ppos.ticketPool, t)
 }
 
@@ -401,7 +400,7 @@ func ppos_Election (logger interface{}, logFn func (args ... interface{}), errFn
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
-		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", can.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 		_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
@@ -537,7 +536,7 @@ func ppos_Switch (logger interface{}, logFn func (args ... interface{}), errFn f
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
-		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", can.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 		_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
@@ -683,7 +682,7 @@ func ppos_GetWitness (logger interface{}, logFn func (args ... interface{}), err
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
-		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", can.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 		_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
@@ -834,7 +833,7 @@ func ppos_GetAllWitness (logger interface{}, logFn func (args ... interface{}), 
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
-		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", can.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 		_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
@@ -1147,7 +1146,7 @@ func ppos_GetChairpersons (logger interface{}, logFn func (args ... interface{})
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
-		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", can.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 		_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
@@ -1298,7 +1297,7 @@ func ppos_GetDefeat (logger interface{}, logFn func (args ... interface{}), errF
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
-		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", can.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 		_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
@@ -1447,7 +1446,7 @@ func ppos_IsDefeat (logger interface{}, logFn func (args ... interface{}), errFn
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
-		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", can.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 		_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
@@ -1591,7 +1590,7 @@ func ppos_RefundBalance (logger interface{}, logFn func (args ... interface{}), 
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
-		fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", can.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 		_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
@@ -1751,7 +1750,7 @@ func ppos_VoteTicket (logger interface{}, logFn func (args ... interface{}), err
 	state.SubBalance(voteOwner, deposit)
 	state.AddBalance(common.TicketPoolAddr, deposit)
 	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
-	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 	_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 	if nil != err {
 		errFn("vote ticket error:", err)
@@ -1809,7 +1808,7 @@ func ppos_GetTicket (logger interface{}, logFn func (args ... interface{}), errF
 	state.SubBalance(voteOwner, deposit)
 	state.AddBalance(common.TicketPoolAddr, deposit)
 	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
-	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 	tickList, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 	if nil != err {
 		errFn("vote ticket error:", err)
@@ -1874,7 +1873,7 @@ func ppos_GetTicketList (logger interface{}, logFn func (args ... interface{}), 
 	state.SubBalance(voteOwner, deposit)
 	state.AddBalance(common.TicketPoolAddr, deposit)
 	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
-	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 	tickIdList, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 	if nil != err {
 		errFn("vote ticket error:", err)
@@ -1939,7 +1938,7 @@ func ppos_GetCandidateTicketIds (logger interface{}, logFn func (args ... interf
 	state.SubBalance(voteOwner, deposit)
 	state.AddBalance(common.TicketPoolAddr, deposit)
 	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
-	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 	_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 	if nil != err {
 		errFn("vote ticket error:", err)
@@ -2004,7 +2003,7 @@ func ppos_GetCandidateEpoch  (logger interface{}, logFn func (args ... interface
 	state.SubBalance(voteOwner, deposit)
 	state.AddBalance(common.TicketPoolAddr, deposit)
 	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
-	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 	_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 	if nil != err {
 		errFn("vote ticket error:", err)
@@ -2095,7 +2094,7 @@ func ppos_GetCandidateAttach (logger interface{}, logFn func (args ... interface
 	state.SubBalance(voteOwner, deposit)
 	state.AddBalance(common.TicketPoolAddr, deposit)
 	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
-	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 	_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 	if nil != err {
 		errFn("vote ticket error:", err)
@@ -2160,7 +2159,7 @@ func ppos_Notify (logger interface{}, logFn func (args ... interface{}), errFn f
 	state.SubBalance(voteOwner, deposit)
 	state.AddBalance(common.TicketPoolAddr, deposit)
 	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
-	fmt.Println("给当前候选人投票为:", "投票人为:", voteOwner.String(), " ,投了1张票给:", candidate.CandidateId.String(), " ,投票时的块高为:", tempBlockNumber.String())
+	fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
 	_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 	if nil != err {
 		errFn("vote ticket error:", err)

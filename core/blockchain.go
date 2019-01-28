@@ -949,7 +949,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		}
 		log.Info("【archive node commit stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-			cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，写链之后：")
+			cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After writing the chain：")
 		}
 	} else {
 		log.Info("【non-archive node put stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
@@ -1212,7 +1212,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
 		log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-			cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， 执行交易前：")
+			cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， Before executing the transaction：")
 		}
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
@@ -1279,7 +1279,7 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	log.Debug("【The Consensus node synchronization】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 
 	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-		cbftEngine.ForEachStorage(state, "【ProcessDirectly】，执行交易前：")
+		cbftEngine.ForEachStorage(state, "【ProcessDirectly】，Before executing the transaction：")
 	}
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, blockInterval)

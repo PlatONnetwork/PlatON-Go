@@ -78,18 +78,18 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 }
 
 func (t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
-	log.Info("开始投票", "购票人：", owner.Hex(), "购票数量：", voteNumber, "购票单价：", deposit.Uint64(), "所投节点：", nodeId.String(), "块高：", blockNumber.Uint64())
+	log.Info("Voting Begin ... ", "Ticket holder：", owner.Hex(), "Number of tickets purchased：", voteNumber, "Purchase ticket price：", deposit.Uint64(), "Projected node：", nodeId.String(), "blocknum：", blockNumber.Uint64())
 	voteTicketIdList, err := t.voteTicket(stateDB, owner, voteNumber, deposit, nodeId, blockNumber)
 	if nil != err {
-		log.Error("投票失败", "所投节点：", nodeId.String(), "购票数量：", voteNumber, "成功数量：", len(voteTicketIdList), "err", err)
+		log.Error("Failed to voting", "Projected node：", nodeId.String(), "Number of tickets purchased：", voteNumber, "Number of successful votes：", len(voteTicketIdList), "err", err)
 		return voteTicketIdList, err
 	}
-	// 调用候选人重新排序接口
-	log.Info("投票成功，开始更新候选人榜单", "成功票数", len(voteTicketIdList))
+	// Call candidate reordering interface
+	log.Info("[Voting Successful]，Start updating the list of candidates", "Number of successful votes:", len(voteTicketIdList))
 	if err := cContext.UpdateElectedQueue(stateDB, blockNumber, nodeId); nil != err {
 		log.Error("Failed to Update candidate when voteTicket success", "err", err)
 	}
-	log.Info("投票成功，候选人榜单更新成功", "成功票数", len(voteTicketIdList))
+	log.Info("[Voting Successful]，Candidate list updated successfully", "Number of successful votes:", len(voteTicketIdList))
 	return voteTicketIdList, nil
 }
 
@@ -102,7 +102,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	if nil != err {
 		return voteTicketIdList, err
 	}
-	log.Info("票池", "剩余数量：", surplusQuantity, "购票数量：", voteNumber, "块高：", blockNumber.Uint64())
+	log.Info("[Ticket pool]", "The remaining amount：", surplusQuantity, "Number of tickets purchased：", voteNumber, "blocknum：", blockNumber.Uint64())
 	if surplusQuantity == 0 {
 		log.Error("Ticket Insufficient quantity")
 		return voteTicketIdList, TicketPoolNilErr
@@ -110,7 +110,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	if surplusQuantity < voteNumber {
 		voteNumber = surplusQuantity
 	}
-	log.Info("开始循环投票", "候选人：", nodeId.String())
+	log.Info("Start circular voting", "candidate info：", nodeId.String())
 	var i uint64 = 0
 	for ; i < voteNumber; i++ {
 		ticketId, err := generateTicketId(stateDB.TxHash(), i)
@@ -129,7 +129,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 		if err := t.setTicket(stateDB, ticketId, ticket); err != nil {
 			return voteTicketIdList, err
 		}
-		log.Info("setTicket成功，开始记录待过期票", "块高：", blockNumber.Uint64(), "票Id: ", ticketId.String())
+		log.Info("call setTicket succeeds, start recording tickets to expire", "blocknum：", blockNumber.Uint64(), "ticket Id: ", ticketId.String())
 		if err := t.recordExpireTicket(stateDB, blockNumber, ticketId); err != nil {
 			return voteTicketIdList, err
 		}
@@ -137,7 +137,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 		if nil != err {
 			return voteTicketIdList, err
 		}
-		log.Info("记录待过期票成功，开始减少票池数量", "剩余量：", surplusQuantity)
+		log.Info("Record the success of the ticket to expire, and start reducing the number of tickets", "Ticket remaining：", surplusQuantity)
 		if err := t.subPoolNumber(stateDB); err != nil {
 			return voteTicketIdList, err
 		}
@@ -145,9 +145,9 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 		if nil != err {
 			return voteTicketIdList, err
 		}
-		log.Info("减少票池剩余量成功", "剩余量：", surplusQuantity)
+		log.Info("Reduce the remaining amount of the ticket pool successfully", "Ticket remaining：", surplusQuantity)
 	}
-	log.Info("结束循环投票", "候选人：", nodeId.String())
+	log.Info("Voting finash ...", "candidate nodeId：", nodeId.String())
 	stateDB.AppendTicketCache(nodeId, voteTicketIdList)
 	return voteTicketIdList, nil
 }
@@ -169,7 +169,7 @@ func (t *TicketPool) GetExpireTicketIds(stateDB vm.StateDB, blockNumber *big.Int
 	return expireTicketIds, nil
 }
 
-// 在当前区块投入的票，则把票id放入，以块高为key的value切片中，以便查找过期票
+// In the current block, the ticket id is placed in the value slice with the block height as the key to find the expired ticket.
 func (t *TicketPool) recordExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, ticketId common.Hash) error {
 	expireTickets, err := t.GetExpireTicketIds(stateDB, blockNumber)
 	if err != nil {
@@ -191,7 +191,7 @@ func (t *TicketPool) setExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, e
 }
 
 func (t *TicketPool) removeExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, ticketId common.Hash) error {
-	log.Info("从待过期票记录中删除", "块高：", blockNumber.Uint64(), "票Id：", ticketId.Hex())
+	log.Info("Remove from pending ticket records", "blocknum：", blockNumber.Uint64(), "ticket Id：", ticketId.Hex())
 	ticketIdList, err := t.GetExpireTicketIds(stateDB, blockNumber)
 	if err != nil {
 		return err
@@ -210,7 +210,7 @@ func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, expireBlockNumber *b
 	if err != nil {
 		return nil, err
 	}
-	log.Info("待处理的过期票", "数量：", len(ticketIdList), "块高：", expireBlockNumber.Uint64())
+	log.Info("Pending ticket to be processed", "blocknum：", len(ticketIdList), "块高：", expireBlockNumber.Uint64())
 	candidateAttachMap := make(map[discover.NodeID]*types.CandidateAttach)
 	changeNodeIdList := make([]discover.NodeID, 0)
 	for _, ticketId := range ticketIdList {

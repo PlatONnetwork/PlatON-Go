@@ -68,7 +68,7 @@ func TestTicketProcess(t *testing.T) {
 		Owner:       common.HexToAddress("0x12"),
 	}
 
-	fmt.Println("设置新的k-v \n", candidate)
+	fmt.Println("seting new k-v \n", candidate)
 	/** test SetCandidate */
 	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
 		fmt.Println("SetCandidate err:", err)
@@ -172,7 +172,7 @@ func TestTicketProcess(t *testing.T) {
 	}
 	//selectedTicketIndex := rand.Intn(len(ticketList))
 	//selectedTicketId := ticketList[selectedTicketIndex].TicketId
-	t.Logf("-----------开始释放一张选票【%v】-----------\n", luckyTicketId.Hex())
+	t.Logf("-----------Start releasing a ticket 【%v】-----------\n", luckyTicketId.Hex())
 	tempTime := time.Now().UnixNano() / 1e6
 	err = ticketPool.ReturnTicket(state, candidate.CandidateId, luckyTicketId, blockNumber)
 	if nil != err {
@@ -180,7 +180,7 @@ func TestTicketProcess(t *testing.T) {
 	}
 	releaseTime = (time.Now().UnixNano() / 1e6) - tempTime
 	ticket, err := ticketPool.GetTicket(state, luckyTicketId)
-	t.Logf("幸运票:%+v", ticket)
+	t.Logf("lucky ticket :%+v", ticket)
 
 	expireTicketIds, err = ticketPool.GetExpireTicketIds(state, blockNumber)
 	if nil != err {
@@ -188,7 +188,7 @@ func TestTicketProcess(t *testing.T) {
 	}
 	surplusQuantity, err = ticketPool.GetPoolNumber(state)
 	candidateAttach, err = ticketPool.GetCandidateAttach(state, candidate.CandidateId)
-	t.Logf("处理完过期票块高为：[%d]", blockNumber)
+	t.Logf("After processing the expired ticket block height：[%d]", blockNumber)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
 		surplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId), candidateAttach.Epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
@@ -196,15 +196,15 @@ func TestTicketProcess(t *testing.T) {
 	temp = append(temp, "string")
 	fmt.Println(temp == nil, len(temp), cap(temp))
 
-	fmt.Println("释放一张选票耗时：", releaseTime, "ms")
-	fmt.Println("第10000张票时，投票所耗时：", timeMap[10000], "ms")
-	fmt.Println("第5000张票时，投票所耗时：", timeMap[5000], "ms")
-	fmt.Println("第1000张票时，投票所耗时：", timeMap[1000], "ms")
-	fmt.Println("第500张票时，投票所耗时：", timeMap[500], "ms")
-	fmt.Println("第100张票时，投票所耗时：", timeMap[100], "ms")
-	fmt.Println("第50张票时，投票所耗时：", timeMap[50], "ms")
-	fmt.Println("第10张票时，投票所耗时：", timeMap[10], "ms")
-	fmt.Println("第1张票时，投票所耗时：", timeMap[1], "ms")
+	fmt.Println("It takes time to release a vote：", releaseTime, "ms")
+	fmt.Println("When the 10,000th ticket is voted, it takes time：", timeMap[10000], "ms")
+	fmt.Println("When the 5000th ticket is used, the voting takes time：", timeMap[5000], "ms")
+	fmt.Println("When the 1000th ticket is taken, the time taken for voting：", timeMap[1000], "ms")
+	fmt.Println("When the 500th ticket is taken, the time taken for voting：", timeMap[500], "ms")
+	fmt.Println("When the 100th ticket is taken, the time taken for voting：", timeMap[100], "ms")
+	fmt.Println("When voting for the 50th ticket, it takes time to vote.：", timeMap[50], "ms")
+	fmt.Println("When the 10th ticket is taken, the voting takes time：", timeMap[10], "ms")
+	fmt.Println("When the first ticket is taken, the time taken for voting：", timeMap[1], "ms")
 }
 
 func initParam() (*state.StateDB, *pposm.CandidatePoolContext, *pposm.TicketPool) {

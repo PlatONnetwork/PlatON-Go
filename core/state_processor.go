@@ -78,7 +78,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 	root := statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.Debug("执行交易后，调用notify系列func前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+	log.Debug("After executing the transaction，Before calling notify series func", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// Notify call
 		if err := cbftEngine.Notify(statedb, block.Number()); err != nil {
@@ -103,11 +103,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		cbftEngine.StoreHash(statedb)
 	}
 	root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.Debug("执行交易后，调用notify系列func后，finalize前", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+	log.Debug("After executing the transaction, after calling the notify series func, before finalize", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 	root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	log.Debug("执行交易后，finalize之后", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+	log.Debug("After executing the transaction, after calling finalize", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// SetNodeCache
@@ -118,7 +118,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		// ppos Submit2Cache
 		cbftEngine.Submit2Cache(statedb, blockNumber, blockInterval, block.Hash())
 		root = statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-		log.Debug("执行交易后，Submit2Cache之后", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "实时的state.root", root.Hex())
+		log.Debug("After executing the transaction, after calling Submit2Cache", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 	}
 	return receipts, allLogs, *usedGas, nil
 }
@@ -153,7 +153,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.
-	log.Debug("执行完交易，开始创建回执", "root", root, "failed", failed, "usedGas", *usedGas)
+	log.Debug("After Execute the transaction and start creating a receipt", "root", root, "failed", failed, "usedGas", *usedGas)
 	receipt := types.NewReceipt(root, failed, *usedGas)
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = gas

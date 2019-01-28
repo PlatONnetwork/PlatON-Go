@@ -302,7 +302,7 @@ func TestDecodeEncode(t *testing.T){
 	source = append(source, []byte("7890"))
 	source = append(source, []byte("extra data"))
 
-	//rlp 编码
+	//rlp Encode
 	buffer := new(bytes.Buffer)
 	err := Encode(buffer, source)
 	if err != nil {
@@ -313,7 +313,7 @@ func TestDecodeEncode(t *testing.T){
 		fmt.Println("encode_bytes: ", buffer.Bytes())
 	}
 
-	//rlp 解码
+	//rlp Decode
 	ptr := new(interface{})
 	if err := Decode(bytes.NewReader(buffer.Bytes()), &ptr); err!=nil {
 		fmt.Println(err)
@@ -334,10 +334,10 @@ func TestEncodeF03(t *testing.T) {
 	fmt.Println(string(res))
 
 	//val :=  []interface{}{"transfer", uint(0xFFFFFF), []interface{}{[]uint{4, 5, 5}}, "abc"}
-	fmt.Println([]byte("人才是你吗"))
+	fmt.Println([]byte("Are you?"))
 	var source [][]byte
 	source = make([][]byte, 0)
-	source = append(source, []byte("人才是你吗"))
+	source = append(source, []byte("Are you?"))
 	source = append(source, uint64ToBytes(1000))
 	source = append(source, uint64ToBytes(2000))
 	source = append(source, boolToBytes(false))
@@ -349,7 +349,7 @@ func TestEncodeF03(t *testing.T) {
 		fmt.Println(err)
 		t.Errorf("fail")
 	}
-	// 编码后字节数组
+	// the array after decode
 	encodedBytes := buffer.Bytes()
 	fmt.Println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
 	fmt.Println("encode_string: ", hexutil.Encode(buffer.Bytes()))
@@ -363,7 +363,7 @@ func TestEncodeF03(t *testing.T) {
 
 	for i, v := range deref.([]interface{}) {
 		// fmt.Println(i,"    ",hex.EncodeToString(v.([]byte)))
-		// 类型判断，然后转换
+		// The type check, then convert
 		switch i {
 		case 0:
 			fmt.Println(string(v.([]byte)))

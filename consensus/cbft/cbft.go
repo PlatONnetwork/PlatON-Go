@@ -284,8 +284,8 @@ func (cbft *Cbft) findChildren(parent *BlockExt) []*BlockExt {
 	children := make([]*BlockExt, 0)
 
 	f := func(k, v interface{}) bool {
-		//这个函数的入参、出参的类型都已经固定，不能修改
-		//可以在函数体内编写自己的代码，调用map中的k,v
+		// The input and input types of this function are fixed and cannot be modified.
+		// You can write your own code in the body of the function, call k, v in the map
 		child := v.(*BlockExt)
 		if child.block != nil && child.block.ParentHash() == parent.block.Hash() {
 			if child.block.NumberU64()-1 == parent.block.NumberU64() {
@@ -1233,8 +1233,8 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 	cbft.log.Trace("call cleanByNumber()", "upperLimit", upperLimit)
 
 	f := func(k, v interface{}) bool {
-		//这个函数的入参、出参的类型都已经固定，不能修改
-		//可以在函数体内编写自己的代码，调用map中的k,v
+		// The input and input types of this function are fixed and cannot be modified.
+		// You can write your own code in the body of the function, call k, v in the map
 		hash := k.(common.Hash)
 		ext := v.(*BlockExt)
 		if ext.number < upperLimit {
@@ -1406,7 +1406,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		blockInterval := new(big.Int).Sub(current.block.Number(), cbft.blockChain.CurrentBlock().Number())
 		cbft.ppos.Submit2Cache(state, blockNumber, blockInterval, current.block.Hash())
 		root := state.IntermediateRoot(cbft.blockChain.Config().IsEIP158(current.block.Number()))
-		log.Debug("【共识 打包出块】最后在，Submit2Cache之后", "blockNumber", current.block.NumberU64(), "blockHash", current.block.Hash().Hex(), "block.root", current.block.Root().Hex(), "实时的state.root", root.Hex())
+		log.Debug("【Consensus packaged】Finally, after Submit2Cache", "blockNumber", current.block.NumberU64(), "blockHash", current.block.Hash().Hex(), "block.root", current.block.Root().Hex(), "Realt-time state.root", root.Hex())
 	} else {
 		log.Error("setNodeCache error")
 	}

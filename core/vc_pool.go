@@ -270,8 +270,12 @@ func (pool *VCPool) loop() {
 				pool.mu.Lock()
 				tx := pool.queue.Pop()
 				bn := pool.chain.CurrentBlock().Number().Int64()
-				// 最新区块小于当前存储的，表示发生了分叉，移除交易
-				// 如果交易所属块与最新区块未间隔20个确认区块，则不进行处理
+
+				// The latest block is smaller than the current store,
+				// indicating that a fork has occurred and the transaction is removed.
+				//
+				// If the block to which the transaction belongs is not separated
+				// from the latest block by 20 confirmation blocks, no processing is performed.
 				log.Debug("start evm ------------------------------------------------call ", "bn", bn)
 				if bn < int64(tx.Bn) || (bn-int64(tx.Bn)) >= MinBlockConfirms {
 					pool.all.Remove(tx.Hash())
@@ -479,7 +483,7 @@ func (pool *VCPool) enqueueTx(hash common.Hash, tx *types.TransactionWrap) (bool
 	return true, nil
 }
 
-// 写入文件
+// wirte in to file
 func (pool *VCPool) journalTx(tx *types.TransactionWrap) {
 
 }
