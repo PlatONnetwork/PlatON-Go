@@ -1362,8 +1362,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
 
-	root :=  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】 commitTransactionsWithHeader Before executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
+	// TODO
+	//root :=  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+	//log.Debug("【The Consensus packaging】 commitTransactionsWithHeader Before executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
 
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
@@ -1382,15 +1383,15 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		}
 	}
 
-	root =  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】commitTransactionsWithHeader After executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
-
-	// Test []*types.Receipt
-	receipts := make(types.Receipts, 0)
-	for _, r := range w.current.receipts {
-		receipts = append(receipts, r)
-	}
-	log.Debug("【The Consensus packaging】commitTransactionsWithHeader After executing the transaction，Before calling notify series func", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
+	//root =  w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+	//log.Debug("【The Consensus packaging】commitTransactionsWithHeader After executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
+	//
+	//// TODO Test []*types.Receipt
+	//receipts := make(types.Receipts, 0)
+	//for _, r := range w.current.receipts {
+	//	receipts = append(receipts, r)
+	//}
+	//log.Debug("【The Consensus packaging】commitTransactionsWithHeader After executing the transaction，Before calling notify series func", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
 
 	commitTxRemoteEndTime := time.Now().UnixNano()
 	commitRemoteTxCount := w.current.tcount - commitLocalTxCount
@@ -1410,14 +1411,16 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	}
 
 	s := w.current.state.Copy()
-	root :=  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】After executing the transaction, Before the notify series func", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
+
+	// TODO
+	//root :=  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+	//log.Debug("【The Consensus packaging】After executing the transaction, Before the notify series func", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
 	// TODO debug []*types.Receipt
-	receiptArr := make(types.Receipts, 0)
-	for _, r := range w.current.receipts {
-		receiptArr = append(receiptArr, r)
-	}
-	log.Debug("【The Consensus packaging】After executing the transaction, Before the notify series func", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
+	//receiptArr := make(types.Receipts, 0)
+	//for _, r := range w.current.receipts {
+	//	receiptArr = append(receiptArr, r)
+	//}
+	//log.Debug("【The Consensus packaging】After executing the transaction, Before the notify series func", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
 
 	if header != nil {
 		// Election call(if match condition)
@@ -1431,17 +1434,19 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			return errors.New("switchWitness failure")
 		}
 	}
-	root =  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】After executing the transaction, After adjusting the notify series func, And before finalize", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
-	log.Debug("【The Consensus packaging】After executing the transaction, After adjusting the notify series func, And before finalize", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
+
+	// TODO
+	//root =  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+	//log.Debug("【The Consensus packaging】After executing the transaction, After adjusting the notify series func, And before finalize", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
+	//log.Debug("【The Consensus packaging】After executing the transaction, After adjusting the notify series func, And before finalize", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
 
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 
-	root =  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】 After call finalize", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
-	log.Debug("【The Consensus packaging】 After call finalize", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
+	// TODO
+	//root =  s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+	//log.Debug("【The Consensus packaging】 After call finalize", "blockNumber",header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
+	//log.Debug("【The Consensus packaging】 After call finalize", "receipt.root", types.DeriveSha(receiptArr), "bloom", types.CreateBloom(receiptArr))
 
-	log.Debug("worker: commit: Finalize", "blockNumber", block.Number(), "root", block.Root().String())
 	//root, _ := s.Commit(w.config.IsEIP158(w.current.header.Number))
 	//log.Warn("worker: commit: Commit", "blockNumber", header.Number.String(), "root", root.String())
 	if err != nil {

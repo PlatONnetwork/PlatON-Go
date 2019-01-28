@@ -18,6 +18,15 @@
 package core
 
 import (
+	"errors"
+	"fmt"
+	"io"
+	"math/big"
+	mrand "math/rand"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -34,15 +43,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"errors"
-	"fmt"
 	"github.com/hashicorp/golang-lru"
-	"io"
-	"math/big"
-	mrand "math/rand"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 var (
@@ -136,9 +137,9 @@ type BlockChain struct {
 	badBlocks      *lru.Cache              // Bad block cache
 	shouldPreserve func(*types.Block) bool // Function used to determine whether should preserve the given block.
 
-	shouldElectionFn	shouldElectionFn
-	shouldSwitchFn	shouldSwitchFn
-	attemptAddConsensusPeerFn	attemptAddConsensusPeerFn
+	shouldElectionFn          shouldElectionFn
+	shouldSwitchFn            shouldSwitchFn
+	attemptAddConsensusPeerFn attemptAddConsensusPeerFn
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -939,7 +940,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		return NonStatTy, err
 	}
 
-	log.Debug("【The root when  the write chain after calls commit】", "blocknumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.Hex())
+	// TODO
+	//log.Debug("【The root when  the write chain after calls commit】", "blocknumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.Hex())
 
 	triedb := bc.stateCache.TrieDB()
 
@@ -1044,8 +1046,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.insert(block)
 
 		// parse block and retrieves txs
-		receipts:= bc.GetReceiptsByHash(block.Hash())
+		receipts := bc.GetReceiptsByHash(block.Hash())
 		MPC_POOL.InjectTxs(block, receipts, bc, state)
+		VC_POOL.InjectTxs(block, receipts, bc, state)
 	}
 	bc.futureBlocks.Remove(block.Hash())
 	return status, nil
@@ -1205,9 +1208,11 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
-		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-		log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
-		
+
+		// TODO
+		//root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
+		//log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 		if err != nil {
@@ -1269,8 +1274,11 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 //joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block) (types.Receipts, error) {
 	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
-	root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-	log.Debug("【The Consensus node synchronization】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+
+	// TODO
+	//root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
+	//log.Debug("【The Consensus node synchronization】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig)
 	if err != nil {

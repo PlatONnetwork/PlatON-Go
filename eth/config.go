@@ -17,8 +17,8 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/node"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"math/big"
 	"os"
 	"os/user"
@@ -49,13 +49,13 @@ var DefaultConfig = Config{
 		MaxLatency:       600,
 		LegalCoefficient: 1.0,
 		Duration:         10,
-		Ppos: 	&PposConfig{
+		Ppos: &PposConfig{
 			Candidate: &CandidateConfig{
-				Threshold: 			"1000000000000000000000000",
-				DepositLimit: 	  	10,
-				MaxCount:          	7,
-				MaxChair:          	100,
-				RefundBlockNumber: 	512,
+				Threshold:         "1000000000000000000000000",
+				DepositLimit:      10,
+				MaxChair:          7,
+				MaxCount:          100,
+				RefundBlockNumber: 512,
 			},
 		},
 	},
@@ -82,8 +82,8 @@ var DefaultConfig = Config{
 		Percentile: 60,
 	},
 
-	MPCPool: core.DefaultMPCPoolConfig ,
-
+	MPCPool: core.DefaultMPCPoolConfig,
+	VCPool:  core.DefaultVCPoolConfig,
 }
 
 func init() {
@@ -107,7 +107,7 @@ type Config struct {
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
 
-	CbftConfig	CbftConfig `toml:",omitempty"`
+	CbftConfig CbftConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to
@@ -155,39 +155,36 @@ type Config struct {
 	// Type of the EVM interpreter ("" for default)
 	EVMInterpreter string
 
-
 	// MPC pool options
 	MPCPool core.MPCPoolConfig
-
-	Debug bool
+	VCPool  core.VCPoolConfig
+	Debug   bool
 }
 
 type CbftConfig struct {
-	Period           uint64  `json:"period"`           // Number of seconds between blocks to enforce
-	Epoch            uint64  `json:"epoch"`            // Epoch length to reset votes and checkpoint
-	MaxLatency       int64   `json:"maxLatency"`
-	LegalCoefficient float64 `json:"legalCoefficient"`
-	Duration         int64   `json:"duration"`
-	Ppos 			*PposConfig 	`json:"ppos"`
+	Period           uint64      `json:"period"` // Number of seconds between blocks to enforce
+	Epoch            uint64      `json:"epoch"`  // Epoch length to reset votes and checkpoint
+	MaxLatency       int64       `json:"maxLatency"`
+	LegalCoefficient float64     `json:"legalCoefficient"`
+	Duration         int64       `json:"duration"`
+	Ppos             *PposConfig `json:"ppos"`
 }
 
-
 type PposConfig struct {
-	Candidate 				*CandidateConfig 			`json:"candidate"`
+	Candidate *CandidateConfig `json:"candidate"`
 }
 
 type CandidateConfig struct {
 	// min deposit allow threshold
-	Threshold				string 					`json:"threshold"`
+	Threshold string `json:"threshold"`
 	// min deposit limit percentage
-	DepositLimit 			uint64					`json:"depositLimit"`
+	DepositLimit uint64 `json:"depositLimit"`
 	// allow immediate elected max count
-	MaxCount				uint64					`json:"maxCount"`
+	MaxCount uint64 `json:"maxCount"`
 	// allow witness max count
-	MaxChair				uint64					`json:"maxChair"`
+	MaxChair uint64 `json:"maxChair"`
 	// allow block interval for refunds
-	RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
-
+	RefundBlockNumber uint64 `json:"refundBlockNumber"`
 }
 
 type configMarshaling struct {

@@ -71,6 +71,7 @@ func (bcc *BlockChainCache) ReadReceipts(sealHash common.Hash) []*types.Receipt 
 	bcc.receiptsMu.RLock()
 	defer bcc.receiptsMu.RUnlock()
 	if obj, exist := bcc.receiptsCache[sealHash]; exist {
+
 		return obj.receipts
 	}
 	return nil
