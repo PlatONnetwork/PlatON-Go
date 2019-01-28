@@ -1032,7 +1032,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 
 		case core.ErrNonceTooHigh:
 			// Reorg notification data race between the transaction pool and miner, skip account =
-			log.Warn("Skipping account with hight nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "tx.nonce", tx.Nonce())
+			log.Warn("Skipping account with high nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "tx.nonce", tx.Nonce())
 			txs.Pop()
 
 		case nil:
@@ -1431,14 +1431,16 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	baseBlock, commitTime := w.commitWorkEnv.commitBaseBlock, w.commitWorkEnv.commitTime
 	highestLogicalBlock := w.commitWorkEnv.getHighestLogicalBlock()
 	if baseBlock != nil {
-		log.Info("baseBlock", "number", baseBlock.NumberU64(), "hash", baseBlock.Hash(), "hashHex", baseBlock.Hash().Hex())
-		log.Info("commitTime", "commitTime", commitTime, "timestamp", timestamp)
-		log.Info("highestLogicalBlock", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash(), "hashHex", highestLogicalBlock.Hash().Hex())
+		log.Debug("baseBlock", "number", baseBlock.NumberU64(), "hash", baseBlock.Hash(), "hashHex", baseBlock.Hash().Hex())
+		log.Debug("commitTime", "commitTime", commitTime, "timestamp", timestamp)
+		log.Debug("highestLogicalBlock", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash(), "hashHex", highestLogicalBlock.Hash().Hex())
 	}
 
 	shouldCommit := baseBlock == nil || baseBlock.Hash().Hex() != highestLogicalBlock.Hash().Hex()
+	log.Debug("check if base block changed in shouldCommit()", "result", shouldCommit)
 	if shouldCommit && timestamp != 0 {
 		shouldCommit = shouldCommit && (timestamp-commitTime >= w.recommit.Nanoseconds()/1e6)
+		log.Debug("check if time's up in shouldCommit()", "result", shouldCommit)
 	}
 	if shouldCommit {
 		w.commitWorkEnv.commitBaseBlock = highestLogicalBlock

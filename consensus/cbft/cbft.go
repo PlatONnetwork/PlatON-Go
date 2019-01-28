@@ -1086,7 +1086,7 @@ func (cbft *Cbft) flushReadyBlock() bool {
 		cbft.storeBlocks(toFlushs)
 
 		for _, confirmed := range toFlushs {
-			cbft.log.Debug("blocks should be flushed to chain  ", "hash", confirmed.block.Hash(), "number", confirmed.number)
+			cbft.log.Debug("blocks should be flushed to chain", "hash", confirmed.block.Hash(), "number", confirmed.number)
 		}
 
 		newRoot = toFlushs[len(toFlushs)-1]
