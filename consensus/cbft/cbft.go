@@ -1793,10 +1793,10 @@ func toMilliseconds(t time.Time) int64 {
 func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	cbft.log.Trace("call ShouldSeal()")
 	
-	consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, commitNumber)
-	if consensusNodes != nil && len(consensusNodes) == 1 {
-		return true
-	}
+	//consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, commitNumber)
+	//if consensusNodes != nil && len(consensusNodes) == 1 {
+	//	return true
+	//}
 	
 	inturn := cbft.inTurn(parentNumber, parentHash, commitNumber)
 	if inturn {
