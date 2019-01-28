@@ -445,9 +445,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 								continue
 							}
 						}
-						timer.Reset(100 * time.Millisecond)
 					}
-
+					timer.Reset(100 * time.Millisecond)
 				} else if w.config.Clique == nil || w.config.Clique.Period > 0 {
 					// Short circuit if no new transaction arrives.
 					if atomic.LoadInt32(&w.newTxs) == 0 {
