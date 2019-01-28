@@ -17,13 +17,10 @@
 package tests
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
@@ -48,9 +45,8 @@ type difficultyTestMarshaling struct {
 }
 
 func (test *DifficultyTest) Run(config *params.ChainConfig) error {
-	parentNumber := big.NewInt(int64(test.CurrentBlockNumber - 1))
+	/*parentNumber := big.NewInt(int64(test.CurrentBlockNumber - 1))
 	parent := &types.Header{
-		Difficulty: test.ParentDifficulty,
 		Time:       test.ParentTimestamp,
 		Number:     parentNumber,
 		UncleHash:  test.UncleHash,
@@ -63,7 +59,7 @@ func (test *DifficultyTest) Run(config *params.ChainConfig) error {
 		return fmt.Errorf("parent[time %v diff %v unclehash:%x] child[time %v number %v] diff %v != expected %v",
 			test.ParentTimestamp, test.ParentDifficulty, test.UncleHash,
 			test.CurrentTimestamp, test.CurrentBlockNumber, actual, exp)
-	}
+	}*/
 	return nil
 
 }

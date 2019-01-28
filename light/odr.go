@@ -21,8 +21,6 @@ package light
 import (
 	"context"
 	"errors"
-	"math/big"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -141,7 +139,6 @@ type ChtRequest struct {
 	ChtNum, BlockNum uint64
 	ChtRoot          common.Hash
 	Header           *types.Header
-	Td               *big.Int
 	Proof            *NodeSet
 }
 
@@ -150,7 +147,6 @@ func (req *ChtRequest) StoreResult(db ethdb.Database) {
 	hash, num := req.Header.Hash(), req.Header.Number.Uint64()
 
 	rawdb.WriteHeader(db, req.Header)
-	rawdb.WriteTd(db, hash, num, req.Td)
 	rawdb.WriteCanonicalHash(db, hash, num)
 }
 

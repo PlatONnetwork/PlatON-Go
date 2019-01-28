@@ -7,12 +7,14 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	//"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"fmt"
 	"math/big"
 	"sync"
+	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 )
 
 type ppos struct {
@@ -24,35 +26,37 @@ type ppos struct {
 	// if it is the first round, it starts from 1970.1.1.0.0.0.0. Unit: second
 	startTimeOfEpoch  int64
 	config            *params.PposConfig
-	//initialNodes      []discover.Node
-	// added by candidateContext module
 
-	lock sync.RWMutex
-	// the candidate context object pointer
-	//candidateContext *pposm.candidateContext
+	// added by candidateContext module
+	lock 					sync.RWMutex
+	// the candidateContext pool object pointer
 	candidateContext 	*pposm.CandidatePoolContext
+	// the ticket pool object pointer
+	ticketPool				*pposm.TicketPool
+	// the ticket id list cache
+	ticketidsCache 			*ticketcache.TicketTempCache
 }
 
 
 
 func newPpos(config *params.CbftConfig) *ppos {
-
 	return &ppos{
-		lastCycleBlockNum: 0,
-		config:            config.PposConfig,
-		//candidateContext:     pposm.NewcandidateContext(config.PposConfig),
-		candidateContext: 	pposm.NewCandidatePoolContext(config.PposConfig),
+		lastCycleBlockNum: 	0,
+		config:            	config.PposConfig,
+		candidateContext:   pposm.NewCandidatePoolContext(config.PposConfig),
+		ticketPool: 		pposm.NewTicketPool(config.PposConfig),
 	}
 }
+
 
 func (d *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) int64 {
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
-	//log.Debug("CalTurn BlockProducerIndex", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash.String(), "blockNumber", blockNumber, "nodeID", nodeID.String(), "round", round)
+	log.Info("BlockProducerIndex", "parentNumber", parentNumber, "parentHash", parentHash.String(), "blockNumber", blockNumber.String(), "nodeID", nodeID.String(), "round", round)
 
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
-	d.printMapInfo("CalTurn BlockProducerIndex", parentNumber.Uint64(), parentHash)
+	d.printMapInfo("BlockProducerIndex", parentNumber.Uint64(), parentHash)
 	if nodeCache != nil {
 		_former := nodeCache.former
 		_current := nodeCache.current
@@ -96,6 +100,9 @@ func (d *ppos) roundIndex(nodeID discover.NodeID, round *pposRound) int64 {
 	return -1
 }
 
+func (d *ppos) NodeIndexInFuture(nodeID discover.NodeID) int64 {
+	return -1
+}
 
 func (d *ppos) getFormerNodes (parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node {
 	d.lock.RLock()
@@ -124,7 +131,7 @@ func (d *ppos) consensusNodes(parentNumber *big.Int, parentHash common.Hash, blo
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
-	log.Debug("call consensusNodes", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash, "blockNumber", blockNumber.Uint64())
+	log.Warn("call consensusNodes", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash, "blockNumber", blockNumber.Uint64())
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
 	d.printMapInfo("consensusNodes nodeCache", parentNumber.Uint64(), parentHash)
 	if nodeCache != nil {
@@ -161,30 +168,26 @@ func (d *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 /** ppos was added func */
 /** Method provided to the cbft module call */
 // Announce witness
-func (d *ppos) Election(state *state.StateDB, blocknumber *big.Int) ([]*discover.Node, error) {
+func (d *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlocknumber *big.Int) ([]*discover.Node, error) {
 	// TODO
-	return nil, nil
-
-	if nextNodes, err := d.candidateContext.Election(state, blocknumber); nil != err {
-		log.Error("Failed to call ppos election next witness", "err", err)
+	if nextNodes, err := d.candidateContext.Election(state, parentHash, currBlocknumber); nil != err {
+		log.Error("ppos election next witness", " err: ", err)
 		panic("Election error " + err.Error())
 	} else {
-		log.Info("Election finish，view stateDB content again ...")
-		d.candidateContext.GetAllWitness(state)
+		//d.candidateContext.ForEachStorage(state, "PPOS Election finish，view stateDB content again ...")
 		return nextNodes, nil
 	}
 }
 
 // switch next witnesses to current witnesses
 func (d *ppos) Switch(state *state.StateDB) bool {
-	// TODO
-	return true
-
+	log.Info("Switch begin...")
 	if !d.candidateContext.Switch(state) {
 		return false
 	}
-	log.Info("Switch finish，view stateDB content again ...")
+	log.Info("Switch success...")
 	d.candidateContext.GetAllWitness(state)
+
 	return true
 }
 
@@ -198,25 +201,34 @@ func (d *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discove
 	return d.candidateContext.GetAllWitness(state)
 }
 
+// Getting can by witnesses
+// flag:
+// -1: 		previous round
+// 0:		current round
+// 1: 		next round
+func (d *ppos) GetWitnessCandidate (state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
+	return d.candidateContext.GetWitnessCandidate(state, nodeId, flag)
+}
+
 // setting candidate pool of ppos module
 func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNodes []discover.Node) {
 	log.Info("---start node，to update nodeRound---")
 	genesis := blockChain.Genesis()
 	// init roundCache by config
-	d.nodeRound = buildGenesisRound(genesis.NumberU64(), genesis.Hash(), initialNodes)
-
+	d.buildGenesisRound(genesis.NumberU64(), genesis.Hash(), initialNodes)
+	d.printMapInfo("Read Genesis block configuration at startup:", genesis.NumberU64(), genesis.Hash())
 	// When the highest block in the chain is not a genesis block, Need to load witness nodeIdList from the stateDB.
 	if genesis.NumberU64() != blockChain.CurrentBlock().NumberU64() {
 
 		currentBlock := blockChain.CurrentBlock()
 		var currBlockNumber uint64
 		var currBlockHash common.Hash
+		var currentBigInt *big.Int
 
 		currBlockNumber = blockChain.CurrentBlock().NumberU64()
+		currentBigInt = blockChain.CurrentBlock().Number()
 		currBlockHash = blockChain.CurrentBlock().Hash()
 
-		//d.lock.Lock()
-		//defer d.lock.Unlock()
 
 
 		count := 0
@@ -227,10 +239,12 @@ func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 			}
 
 			parentNum := currBlockNumber - 1
+			parentBigInt := new(big.Int).Sub(currentBigInt, big.NewInt(1))
 			parentHash := currentBlock.ParentHash()
 			blockArr = append(blockArr, currentBlock)
 
 			currBlockNumber = parentNum
+			currentBigInt = parentBigInt
 			currBlockHash = parentHash
 			currentBlock = blockChain.GetBlock(currBlockHash, currBlockNumber)
 			count ++
@@ -240,9 +254,11 @@ func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 		for i := len(blockArr) - 1; 0 <= i; i-- {
 			currentBlock := blockArr[i]
 			currentNum := currentBlock.NumberU64()
+			currentBigInt := currentBlock.Number()
 			currentHash := currentBlock.Hash()
 
 			parentNum := currentNum - 1
+			parentBigInt := new(big.Int).Sub(currentBigInt, big.NewInt(1))
 			parentHash := currentBlock.ParentHash()
 
 			// Special processing of the last block of the array, that is,
@@ -254,9 +270,9 @@ func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 				// parentStateDB by block
 				parentStateRoot := blockChain.GetBlock(parentHash, parentNum).Root()
 				log.Debug("【Reload the oldest block at startup】 ", "parentNum", parentNum, "parentHash", parentHash, "parentStateRoot", parentStateRoot.String())
-				if parentState, err := blockChain.StateAt(parentStateRoot); nil != err {
+				if parentState, err := blockChain.StateAt(parentStateRoot, parentBigInt, parentHash); nil != err {
 					log.Error("Failed to load parentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "parentNum", parentNum, "Hash", parentHash.String(), "err", err)
-					panic("Failed to load parentStateDB by block parentNum" + fmt.Sprint(parentNum) + ", Hash" + parentHash.String() + "err" + err.Error())
+					//panic("Failed to load parentStateDB by block parentNum" + fmt.Sprint(parentNum) + ", Hash" + parentHash.String() + "err" + err.Error())
 				}else {
 					parent = parentState
 				}
@@ -264,9 +280,9 @@ func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 				// currentStateDB by block
 				stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
 				log.Debug("【Reload the oldest block at startup】", "currentNum", currentNum, "currentHash", currentHash, "stateRoot", stateRoot.String())
-				if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+				if currntState, err := blockChain.StateAt(stateRoot, currentBigInt, currentHash); nil != err {
 					log.Error("Failed to load currentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "err", err)
-					panic("Failed to load currentStateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
+					//panic("Failed to load currentStateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 				}else {
 					current = currntState
 				}
@@ -281,9 +297,9 @@ func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 			// stateDB by block
 			stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
 			log.Debug("【Reload the front normal fast at startup】", "currentNum", currentNum, "currentHash", currentHash, "stateRoot", stateRoot.String())
-			if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+			if currntState, err := blockChain.StateAt(stateRoot, currentBigInt, currentHash); nil != err {
 				log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
-				panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
+				//panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 			}else {
 				if err := d.setGeneralNodeCache(currntState, parentNum, currentNum, parentHash, currentHash); nil != err {
 					log.Error("Failed to setGeneralNodeCache", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
@@ -291,12 +307,11 @@ func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 				}
 			}
 		}
-
 	}
 }
 
 
-func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes []discover.Node) roundCache {
+func (d *ppos)buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes []discover.Node) {
 	initNodeArr := make([]*discover.Node, 0, len(initialNodes))
 	initialNodesIDs := make([]discover.NodeID, 0, len(initialNodes))
 	for _, n := range initialNodes {
@@ -330,14 +345,14 @@ func buildGenesisRound(blockNumber uint64, blockHash common.Hash, initialNodes [
 	hashRound := make(map[common.Hash]*nodeCache, 0)
 	hashRound[blockHash] = node
 	res[blockNumber] = hashRound
-	return res
+	/* set nodeRound ... */
+	d.nodeRound = res
 }
 
 func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Hash){
 	res := d.nodeRound[blockNumber]
 
 	log.Debug(title + ":Traversing out the RoundNodes，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-
 	if round, ok  := res[blockHash]; ok {
 		if nil != round.former{
 			pposm.PrintObject(title + ":Traversing out of the round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", previous round: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
@@ -359,19 +374,24 @@ func (d *ppos) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types
 	return d.candidateContext.SetCandidate(state, nodeId, can)
 }
 
-// Getting immediate candidate info by nodeId
+// Getting immediate or reserve candidate info by nodeId
 func (d *ppos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
 	return d.candidateContext.GetCandidate(state, nodeId)
 }
 
-// candidate withdraw from immediates elected candidates
+// Getting immediate or reserve candidate info arr by nodeIds
+func (d *ppos) GetCandidateArr (state vm.StateDB, nodeIds ... discover.NodeID) (types.CandidateQueue, error) {
+	return d.candidateContext.GetCandidateArr(state, nodeIds...)
+}
+
+// candidate withdraw from  elected candidates
 func (d *ppos) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
 	return d.candidateContext.WithdrawCandidate(state, nodeId, price, blockNumber)
 }
 
-// Getting all immediate elected candidates array
-func (d *ppos) GetChosens(state vm.StateDB) []*types.Candidate {
-	return d.candidateContext.GetChosens(state)
+// Getting all  elected candidates array
+func (d *ppos) GetChosens(state vm.StateDB, flag int) []*types.Candidate {
+	return d.candidateContext.GetChosens(state, flag)
 }
 
 // Getting all witness array
@@ -402,6 +422,57 @@ func (d *ppos) GetOwner(state vm.StateDB, nodeId discover.NodeID) common.Address
 // Getting allow block interval for refunds
 func (d *ppos) GetRefundInterval() uint64 {
 	return d.candidateContext.GetRefundInterval()
+}
+
+
+
+/** about ticketpool's method */
+
+func (d *ppos) GetPoolNumber (state vm.StateDB) (uint64, error) {
+	return d.ticketPool.GetPoolNumber(state)
+}
+
+func (d *ppos) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
+	return d.ticketPool.VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber)
+}
+
+func (d *ppos) GetTicket(state vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
+	return d.ticketPool.GetTicket(state, ticketId)
+}
+
+func (d *ppos) GetTicketList (state vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
+	return d.ticketPool.GetTicketList(state, ticketIds)
+}
+
+func (d *ppos) GetCandidateTicketIds (state vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
+	return d.ticketPool.GetCandidateTicketIds(state, nodeId)
+}
+
+func (d *ppos) GetCandidateEpoch (state vm.StateDB, nodeId discover.NodeID) (uint64, error) {
+	return d.ticketPool.GetCandidateEpoch(state, nodeId)
+}
+
+func (d *ppos) GetTicketPrice (state vm.StateDB) (*big.Int, error) {
+	return d.ticketPool.GetTicketPrice(state)
+}
+
+func (d *ppos) GetCandidateAttach (state vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
+	return d.ticketPool.GetCandidateAttach(state, nodeId)
+}
+
+func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
+	return d.ticketPool.Notify(state, blockNumber)
+}
+
+func (d *ppos) StoreHash (state *state.StateDB) {
+	if err := d.ticketPool.CommitHash(state); nil != err {
+		log.Error("Failed to StoreHash", "err", err)
+		panic("Failed to StoreHash err" + err.Error())
+	}
+}
+
+func (d *ppos) Submit2Cache (state *state.StateDB, currBlocknumber,  blockInterval *big.Int, currBlockhash common.Hash) {
+	d.ticketidsCache.Submit2Cache(currBlocknumber,  blockInterval, currBlockhash, state.TicketCaceheSnapshot())
 }
 
 // cbft consensus fork need to update  nodeRound
@@ -439,9 +510,11 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 	for i := len(blockArr) - 1; 0 <= i; i-- {
 		currentBlock := blockArr[i]
 		currentNum := currentBlock.NumberU64()
+		currentBigInt := currentBlock.Number()
 		currentHash := currentBlock.Hash()
 
 		parentNum := currentNum - 1
+		parentBigInt := new(big.Int).Sub(currentBigInt, big.NewInt(1))
 		parentHash := currentBlock.ParentHash()
 
 
@@ -453,7 +526,7 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 
 			// parentStateDB by block
 			parentStateRoot := blockChain.GetBlock(parentHash, parentNum).Root()
-			if parentState, err := blockChain.StateAt(parentStateRoot); nil != err {
+			if parentState, err := blockChain.StateAt(parentStateRoot, parentBigInt, parentHash); nil != err {
 				log.Error("Failed to load parentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "parentNum", parentNum, "Hash", parentHash.String(), "err", err)
 				panic("Failed to load parentStateDB by block parentNum" + fmt.Sprint(parentNum) + ", Hash" + parentHash.String() + "err" + err.Error())
 			}else {
@@ -462,7 +535,7 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 
 			// currentStateDB by block
 			stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
-			if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+			if currntState, err := blockChain.StateAt(stateRoot, currentBigInt, currentHash); nil != err {
 				log.Error("Failed to load currentStateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 				panic("Failed to load currentStateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 			}else {
@@ -479,7 +552,7 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 
 		// stateDB by block
 		stateRoot := blockChain.GetBlock(currentHash, currentNum).Root()
-		if currntState, err := blockChain.StateAt(stateRoot); nil != err {
+		if currntState, err := blockChain.StateAt(stateRoot, currentBigInt, currentHash); nil != err {
 			log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 			panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 		}else {
@@ -490,7 +563,6 @@ func (d *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 		}
 		d.printMapInfo("【Reload the previous normal block when forking】", currentNum, currentHash)
 	}
-
 }
 
 func convertNodeID(nodes []*discover.Node) []discover.NodeID {
@@ -545,6 +617,7 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	parentNumBigInt := big.NewInt(int64(parentNumber))
 	// current round
 	round := calcurround(currentNumber)
+
 	log.Debug("【Setting current  block Node Cache】", "parentNumber", parentNumber, "ParentHash", parentHash.String(), "currentNumber:", currentNumber, "hash", currentHash.String(), "round:", round)
 
 	preNodes, curNodes, nextNodes, err := d.candidateContext.GetAllWitness(state)
@@ -571,14 +644,16 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	// former
 	formerRound := &pposRound{}
 	// former start, end
-	if round != 1 {
+	if round != FirstRound {
 		formerRound.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 		formerRound.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 	}else {
 		formerRound.start = big.NewInt(0)
 		formerRound.end = big.NewInt(0)
 	}
+
 	log.Debug("【Setting current  block Node Cache】 Previous round ", "start",formerRound.start, "end", formerRound.end)
+
 	if len(preNodes) != 0 {
 		formerRound.nodeIds = convertNodeID(preNodes)
 		formerRound.nodes = make([]*discover.Node, len(preNodes))
@@ -609,7 +684,9 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	// current start, end
 	currentRound.start = start
 	currentRound.end = end
+
 	log.Debug("【Setting current  block Node Cache】 Current round ", "start", currentRound.start, "end",currentRound.end)
+
 	if len(curNodes) != 0 {
 		currentRound.nodeIds = convertNodeID(curNodes)
 		currentRound.nodes = make([]*discover.Node, len(curNodes))
@@ -641,7 +718,9 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	// next start, end
 	nextRound.start = new(big.Int).Add(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 	nextRound.end = new(big.Int).Add(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
+
 	log.Debug("【Setting current  block Node Cache】 Next round ", "start", nextRound.start, "end",nextRound.end)
+
 	if len(nextNodes) != 0 {
 		nextRound.nodeIds = convertNodeID(nextNodes)
 		nextRound.nodes = make([]*discover.Node, len(nextNodes))
@@ -676,8 +755,10 @@ func (d *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 		next: 		nextRound,
 	}
 	d.nodeRound.setNodeCache(big.NewInt(int64(currentNumber)), currentHash, cache)
+
 	log.Debug("【When setting the information of the current block】", "currentBlockNum", currentNumber, "parentNum", parentNumber, "currentHash", currentHash.String(), "parentHash", parentHash.String())
 	d.printMapInfo("【When setting the information of the current block】", currentNumber, currentHash)
+
 	return nil
 }
 
@@ -700,6 +781,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 		return err
 	}
 
+	genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash)
 
 	var start, end *big.Int
 
@@ -717,7 +799,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 	// former
 	formerRound := &pposRound{}
 	// former start, end
-	if round != 1 {
+	if round != FirstRound {
 		formerRound.start = new(big.Int).Sub(start, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 		formerRound.end = new(big.Int).Sub(end, new(big.Int).SetUint64(uint64(BaseSwitchWitness)))
 	}else {
@@ -742,7 +824,6 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 				formerRound.nodes = make([]*discover.Node, len(parent_curNodes))
 				copy(formerRound.nodes, parent_curNodes)
 			}else {
-				genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash)
 				if nil != genesisCurRound {
 					formerRound.nodeIds = make([]discover.NodeID, len(genesisCurRound.nodeIds))
 					copy(formerRound.nodeIds, genesisCurRound.nodeIds)
@@ -758,8 +839,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 				formerRound.nodes = make([]*discover.Node, len(parent_preNodes))
 				copy(formerRound.nodes, parent_preNodes)
 			}else {
-				genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash)
-				if nil != genesisCurRound {
+				if /*genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash);*/ nil != genesisCurRound {
 					formerRound.nodeIds = make([]discover.NodeID, len(genesisCurRound.nodeIds))
 					copy(formerRound.nodeIds, genesisCurRound.nodeIds)
 					formerRound.nodes = make([]*discover.Node, len(genesisCurRound.nodes))
@@ -787,8 +867,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 				currentRound.nodes = make([]*discover.Node, len(parent_nextNodes))
 				copy(currentRound.nodes, parent_nextNodes)
 			}else {
-				genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash)
-				if nil != genesisCurRound {
+				if /*genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash); */ nil != genesisCurRound {
 					currentRound.nodeIds = make([]discover.NodeID, len(genesisCurRound.nodeIds))
 					copy(currentRound.nodeIds, genesisCurRound.nodeIds)
 					currentRound.nodes = make([]*discover.Node, len(genesisCurRound.nodes))
@@ -802,8 +881,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 				currentRound.nodes = make([]*discover.Node, len(parent_curNodes))
 				copy(currentRound.nodes, parent_curNodes)
 			}else {
-				genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash)
-				if nil != genesisCurRound {
+				if /*genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash);*/ nil != genesisCurRound {
 					currentRound.nodeIds = make([]discover.NodeID, len(genesisCurRound.nodeIds))
 					copy(currentRound.nodeIds, genesisCurRound.nodeIds)
 					currentRound.nodes = make([]*discover.Node, len(genesisCurRound.nodes))
@@ -827,8 +905,7 @@ func (d *ppos) setEarliestIrrNodeCache (parentState, currentState *state.StateDB
 		// election index == cur index || election index < cur index < switch index
 		if cmpElection(round, currentNumber) == 0 || (cmpElection(round, currentNumber) > 0 && cmpSwitch(round, currentNumber) < 0)  {
 
-			genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash)
-			if nil != genesisCurRound {
+			if /*genesisCurRound := d.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash); */nil != genesisCurRound {
 				nextRound.nodeIds = make([]discover.NodeID, len(genesisCurRound.nodeIds))
 				copy(nextRound.nodeIds, genesisCurRound.nodeIds)
 				nextRound.nodes = make([]*discover.Node, len(genesisCurRound.nodes))
@@ -895,3 +972,10 @@ func cmpSwitch (round, currentNum uint64) int {
 	}
 }
 
+func (d *ppos) setTicketPoolCache () {
+	d.ticketidsCache = ticketcache.GetTicketidsCachePtr()
+}
+
+func (p *ppos) ForEachStorage(state *state.StateDB, title string) {
+	p.candidateContext.ForEachStorage(state, title)
+}

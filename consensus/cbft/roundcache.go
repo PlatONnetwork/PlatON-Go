@@ -4,7 +4,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"math/big"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 type roundCache map[uint64]map[common.Hash]*nodeCache
@@ -88,6 +87,5 @@ func (r roundCache) setNodeCache (blockNumber *big.Int, blockHash common.Hash, c
 	if baseIrrCountNum > 0 {
 		delete(r, baseIrrCountNum)
 	}
-	log.Debug("【Setting NodeCache】", "blocknumber", blockNumber.String(), "blockHash", blockHash)
 }
 

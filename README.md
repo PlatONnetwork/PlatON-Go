@@ -5,7 +5,7 @@ Welcome to the PlatON source code repository! This software is Ethereum-based an
 ## Building the source
 
 For prerequisites and detailed build instructions please read the
-[Installation Instructions](https://github.com/PlatONnetwork/wiki/wiki)
+[Installation Instructions](https://platonnetwork.github.io/Docs/#/en-us/basics/[English]-Installation-Instructions)
 on the wiki.
 
 Building platon requires both a Go (version 1.7 or later) and a C compiler.
@@ -25,6 +25,14 @@ If you want to Building platon with MPC function, run
 or:
 
     make all-with-mpc
+
+If you want to Building platon with VC function, run
+
+    make platon-with-vc
+
+or:
+
+    make all-with-vc
 
 ## Executables
 
@@ -77,7 +85,7 @@ then, edit the following content and save it as json file, such as genesis.json:
   "nonce": "0x0",
   "timestamp": "0x5c074288",
   "extraData": "0x00",
-  "gasLimit": "0x47b760",
+  "gasLimit": "0x99947b760",
   "difficulty": "0x40000",
   "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
   "coinbase": "0x0000000000000000000000000000000000000000",
@@ -127,4 +135,4 @@ Check the balance:
  
 OK, it seems that the chain is running correctly
 
-For more information, please visit our [wiki](https://github.com/PlatONnetwork/wiki/wiki)
+For more information, please visit our [Docs](https://platonnetwork.github.io/Docs/#/en-us/basics/[English]-Getting-Started).

@@ -25,15 +25,7 @@ platon-with-mpc:
 
 platon-with-vc:
 	build/build_deps.sh
-	build/build_snark.sh
 	build/env.sh go run build/ci.go install -vc on ./cmd/platon
-	@echo "Done building platon with vc."
-	@echo "Run \"$(GOBIN)/platon\" to launch platon."
-
-platon-with-mv:
-	build/build_deps.sh
-	build/build_snark.sh
-	build/env.sh go run build/ci.go install -mv on ./cmd/platon
 	@echo "Done building platon with vc."
 	@echo "Run \"$(GOBIN)/platon\" to launch platon."
 
@@ -56,13 +48,7 @@ all-with-mpc:
 
 all-with-vc:
 	build/build_deps.sh
-	build/build_snark.sh
 	build/env.sh go run build/ci.go install -vc on
-
-all-with-mv:
-	build/build_deps.sh
-	build/build_snark.sh
-	build/env.sh go run build/ci.go install -mv on
 
 android:
 	build/env.sh go run build/ci.go aar --local

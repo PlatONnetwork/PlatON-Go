@@ -52,11 +52,17 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
-		//ppos
+		// ppos
 		if p := PrecompiledContractsPpos[*contract.CodeAddr]; p != nil {
-			if f, ok := p.(*CandidateContract); ok {
-				f.Contract = contract
-				f.Evm = evm
+
+			if c, ok := p.(*CandidateContract); ok {
+				c.Contract = contract
+				c.Evm = evm
+			}
+			if t, ok := p.(*TicketContract); ok {
+				t.Contract = contract
+				t.Evm = evm
+
 			}
 			log.Info("IN PPOS PrecompiledContractsPpos ... ")
 			return RunPrecompiledContract(p, input, contract)
@@ -139,8 +145,8 @@ type EVM struct {
 	callGasTemp uint64
 
 	//ppos add
-	//CandidatePool candidatePool
 	CandidatePoolContext candidatePoolContext
+	TicketPool    ticketPool
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should

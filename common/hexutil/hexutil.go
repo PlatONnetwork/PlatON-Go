@@ -33,8 +33,10 @@ package hexutil
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
+	"strings"
 )
 
 const uintBits = 32 << (uint64(^uint(0)) >> 63)
@@ -237,4 +239,24 @@ func mapError(err error) error {
 		return ErrOddLength
 	}
 	return err
+}
+
+func HexDec(h string) (n float64) {
+	s := strings.Split(strings.ToUpper(h), "")
+	l := len(s)
+	i := 0
+	d := float64(0)
+	hex := map[string]string{"A": "10", "B": "11", "C": "12", "D": "13", "E": "14", "F": "15"}
+	for i = 0; i < l; i++ {
+		c := s[i]
+		if v, ok := hex[c]; ok {
+			c = v
+		}
+		f, err := strconv.ParseFloat(c, 10)
+		if err != nil {
+			return -1
+		}
+		d += f * math.Pow(16, float64(l-i-1))
+	}
+	return d
 }

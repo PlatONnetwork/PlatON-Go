@@ -19,6 +19,8 @@ package rawdb
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -239,38 +241,6 @@ func DeleteBody(db DatabaseDeleter, hash common.Hash, number uint64) {
 	}
 }
 
-// ReadTd retrieves a block's total difficulty corresponding to the hash.
-func ReadTd(db DatabaseReader, hash common.Hash, number uint64) *big.Int {
-	data, _ := db.Get(headerTDKey(number, hash))
-	if len(data) == 0 {
-		return nil
-	}
-	td := new(big.Int)
-	if err := rlp.Decode(bytes.NewReader(data), td); err != nil {
-		log.Error("Invalid block total difficulty RLP", "hash", hash, "err", err)
-		return nil
-	}
-	return td
-}
-
-// WriteTd stores the total difficulty of a block into the database.
-func WriteTd(db DatabaseWriter, hash common.Hash, number uint64, td *big.Int) {
-	data, err := rlp.EncodeToBytes(td)
-	if err != nil {
-		log.Crit("Failed to RLP encode block total difficulty", "err", err)
-	}
-	if err := db.Put(headerTDKey(number, hash), data); err != nil {
-		log.Crit("Failed to store block total difficulty", "err", err)
-	}
-}
-
-// DeleteTd removes all block total difficulty data associated with a hash.
-func DeleteTd(db DatabaseDeleter, hash common.Hash, number uint64) {
-	if err := db.Delete(headerTDKey(number, hash)); err != nil {
-		log.Crit("Failed to delete block total difficulty", "err", err)
-	}
-}
-
 // ReadReceipts retrieves all the transaction receipts belonging to a block.
 func ReadReceipts(db DatabaseReader, hash common.Hash, number uint64) types.Receipts {
 	// Retrieve the flattened receipt slice
@@ -308,38 +278,38 @@ func WriteReceipts(db DatabaseWriter, hash common.Hash, number uint64, receipts 
 	}
 }
 
+// ReadBlockConfirmSigns retrieves all the block confirmSigns belonging to a block.
+func ReadBlockConfirmSigns(db DatabaseReader, hash common.Hash, number uint64) []*common.BlockConfirmSign {
+	data, _ := db.Get(blockConfirmSignsKey(number, hash))
+	if len(data) == 0 {
+		return nil
+	}
+	blockConfirmSigns := []*common.BlockConfirmSign{}
+	if err := rlp.DecodeBytes(data, &blockConfirmSigns); err != nil {
+		log.Error("Invalid block confirmSign array RLP", "hash", hash, "err", err)
+		return nil
+	}
+	return blockConfirmSigns
+}
+
+// WriteBlockConfirmSigns stores all the block confirmSigns belonging to a block.
+func WriteBlockConfirmSigns(db DatabaseWriter, hash common.Hash, number uint64, blockConfirmSigns []*common.BlockConfirmSign) {
+	bytes, err := rlp.EncodeToBytes(blockConfirmSigns)
+	if err != nil {
+		log.Crit("Failed to encode block confirmSigns", "err", err)
+	}
+	// Store the flattened receipt slice
+	if err := db.Put(blockConfirmSignsKey(number, hash), bytes); err != nil {
+		log.Crit("Failed to store block confirmSigns", "err", err)
+	}
+}
+
 // DeleteReceipts removes all receipt data associated with a block hash.
 func DeleteReceipts(db DatabaseDeleter, hash common.Hash, number uint64) {
 	if err := db.Delete(blockReceiptsKey(number, hash)); err != nil {
 		log.Crit("Failed to delete block receipts", "err", err)
 	}
 }
-
-// ReadBlockConfirmSigns retrieves all the block confirmSigns belonging to a block.
-//func ReadBlockConfirmSigns(db DatabaseReader, hash common.Hash, number uint64) []*common.BlockConfirmSign {
-//	data, _ := db.Get(blockConfirmSignsKey(number, hash))
-//	if len(data) == 0 {
-//		return nil
-//	}
-//	blockConfirmSigns := []*common.BlockConfirmSign{}
-//	if err := rlp.DecodeBytes(data, &blockConfirmSigns); err != nil {
-//		log.Error("Invalid block confirmSign array RLP", "hash", hash, "err", err)
-//		return nil
-//	}
-//	return blockConfirmSigns
-//}
-
-// WriteBlockConfirmSigns stores all the block confirmSigns belonging to a block.
-//func WriteBlockConfirmSigns(db DatabaseWriter, hash common.Hash, number uint64, blockConfirmSigns []*common.BlockConfirmSign) {
-//	bytes, err := rlp.EncodeToBytes(blockConfirmSigns)
-//	if err != nil {
-//		log.Crit("Failed to encode block confirmSigns", "err", err)
-//	}
-//	// Store the flattened receipt slice
-//	if err := db.Put(blockConfirmSignsKey(number, hash), bytes); err != nil {
-//		log.Crit("Failed to store block confirmSigns", "err", err)
-//	}
-//}
 
 // ReadBlock retrieves an entire block corresponding to the hash, assembling it
 // back from the stored header and body. If either the header or body could not
@@ -370,7 +340,6 @@ func DeleteBlock(db DatabaseDeleter, hash common.Hash, number uint64) {
 	DeleteReceipts(db, hash, number)
 	DeleteHeader(db, hash, number)
 	DeleteBody(db, hash, number)
-	DeleteTd(db, hash, number)
 }
 
 // FindCommonAncestor returns the last common ancestor of two block headers
@@ -398,4 +367,9 @@ func FindCommonAncestor(db DatabaseReader, a, b *types.Header) *types.Header {
 		}
 	}
 	return a
+}
+
+//ppos add -> commit memory ticket cache to disk
+func TicketCacheCommit(db ethdb.Database) {
+	ticketcache.GetTicketidsCachePtr().Commit(db)
 }
