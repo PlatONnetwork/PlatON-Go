@@ -1220,9 +1220,6 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 // ShouldSeal checks if it's local's turn to package new block at current time.
 func (cbft *Cbft) ShouldSeal() (bool, error) {
 	cbft.log.Trace("call ShouldSeal()")
-	if len(cbft.dpos.primaryNodeList) == 1 {
-		return true, nil
-	}
 	inturn := cbft.inTurn()
 	if inturn {
 		cbft.netLatencyLock.RLock()
@@ -1581,7 +1578,7 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 			Block:             ext.block,
 			BlockConfirmSigns: ext.signs,
 		}
-		cbft.log.Debug("send consensus result to worker", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
+		cbft.log.Debug("send consensus result to worker", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "interval", ext.block.Time().Uint64()-ext.parent.block.Time().Uint64())
 		cbft.cbftResultOutCh <- cbftResult
 	}
 }
@@ -1589,9 +1586,9 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 // inTurn return if it is local's turn to package new block.
 func (cbft *Cbft) inTurn() bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(curTime-300, cbft.config.NodeID)
+	inturn := cbft.calTurn(curTime-50, cbft.config.NodeID)
 	if inturn {
-		inturn = cbft.calTurn(curTime+600, cbft.config.NodeID)
+		inturn = cbft.calTurn(curTime+450, cbft.config.NodeID)
 	}
 	return inturn
 

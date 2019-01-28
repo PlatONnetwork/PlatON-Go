@@ -444,10 +444,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 								commit(false, commitInterruptResubmit, commitBlock)
 								continue
 							}
-							timer.Reset(recommit)
-						} else {
-							timer.Reset(100 * time.Millisecond)
 						}
+						timer.Reset(100 * time.Millisecond)
 					}
 
 				} else if w.config.Clique == nil || w.config.Clique.Period > 0 {
