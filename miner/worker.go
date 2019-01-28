@@ -615,7 +615,7 @@ func (w *worker) mainLoop() {
 			w.mux.Post(core.PrepareMinedBlockEvent{Block: block})
 
 		case blockSignature := <-w.blockSignatureCh:
-			log.Debug("to receive blockSign from cbft", "blockSignature", blockSignature)
+			log.Debug("to receive blockSign from cbft", "hash", blockSignature.Hash, "number", blockSignature.Number.Uint64())
 			if blockSignature != nil {
 				// send blockSignatureMsg to consensus node peer
 				w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature})
