@@ -486,7 +486,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 // execute executes the block's transactions based on its parent
 // if success then save the receipts and state to consensusCache
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
-	cbft.log.Debug("execute block", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash())
+	cbft.log.Debug("execute block based on parent", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "parentRoot", parent.block.Root())
 	state, err := cbft.blockChainCache.MakeStateDB(parent.block)
 	if err != nil {
 		cbft.log.Error("execute block error, cannot make state based on parent", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
@@ -498,13 +498,13 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	if err == nil {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
-		cbft.log.Debug("execute block success", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "lenReceipts", len(receipts), "stateIsNil", stateIsNil, "root", ext.block.Root())
+		cbft.log.Debug("execute block success", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "parentRoot", parent.block.Root(), "lenReceipts", len(receipts), "stateIsNil", stateIsNil, "root", ext.block.Root())
 		sealHash := ext.block.Header().SealHash()
 		cbft.blockChainCache.WriteReceipts(sealHash, receipts, ext.block.NumberU64())
 		cbft.blockChainCache.WriteStateDB(sealHash, state, ext.block.NumberU64())
 
 	} else {
-		cbft.log.Error("execute block error", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
+		cbft.log.Error("execute block error", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "parentRoot", parent.block.Root(), "err", err)
 		return errors.New("execute block error")
 	}
 	return nil
