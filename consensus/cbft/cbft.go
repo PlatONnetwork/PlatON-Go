@@ -1885,12 +1885,16 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	}
 	var nodeId discover.NodeID
 	var err error
+	log.Info("Call accumulateRewards block header", " extra: ", hexutil.Encode(header.Extra))
 	if ok := bytes.Equal(header.Extra[32:96], make([]byte, 64)); ok {
+		log.Warn("Call accumulateRewards block header extra[32:96] is empty!")
 		nodeId = cbft.config.NodeID
 	} else {
 		if nodeId, _, err = ecrecover(header); err!=nil {
 			log.Error("Failed to Call accumulateRewards, ecrecover faile", " err: ", err)
 			return
+		} else {
+			log.Info("Success ecrecover", " nodeid: ", nodeId.String())
 		}
 	}
 
