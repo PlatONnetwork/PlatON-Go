@@ -384,8 +384,8 @@ func TestSlice(t *testing.T){
 		Host 			string
 		Port 			string
 	}
-	can1 := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "啦啦", Host: "10.0.0.0"}
-	can2 := Candidate{Deposit: 200, BlockNumber: new(big.Int).SetUint64(13), CandidateId: "哈哈", Host: "127.0.0.1"}
+	can1 := Candidate{Deposit: 100, BlockNumber: new(big.Int).SetUint64(12), CandidateId: "AA", Host: "10.0.0.0"}
+	can2 := Candidate{Deposit: 200, BlockNumber: new(big.Int).SetUint64(13), CandidateId: "AA", Host: "127.0.0.1"}
 	arr := []*Candidate{&can1, &can2}
 	prefix := []byte("im")
 	pvalue, _ := rlp.EncodeToBytes(&arr)

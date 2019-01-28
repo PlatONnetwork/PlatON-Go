@@ -1491,7 +1491,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		return nil, nil
 	}
 	if err := c.initDataByState(state, 1); nil != err {
-		//if err := c.initDataByState(state, 0); nil != err {
+	//	if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on UpdateElectedQueue", "err", err)
 		return nil, err
 	}
