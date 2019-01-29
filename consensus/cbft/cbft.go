@@ -1578,7 +1578,8 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 			Block:             ext.block,
 			BlockConfirmSigns: ext.signs,
 		}
-		cbft.log.Debug("send consensus result to worker", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "interval", ext.block.Time().Uint64()-ext.parent.block.Time().Uint64())
+		nodeID, _ := ecrecover(ext.block.Header())
+		cbft.log.Debug("send consensus result to worker", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "interval", ext.block.Time().Uint64()-ext.parent.block.Time().Uint64(), "nodeId", hex.EncodeToString(nodeID.Bytes()[:8]))
 		cbft.cbftResultOutCh <- cbftResult
 	}
 }
