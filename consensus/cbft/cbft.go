@@ -1588,7 +1588,7 @@ func (cbft *Cbft) inTurn() bool {
 	curTime := toMilliseconds(time.Now())
 	inturn := cbft.calTurn(curTime, cbft.config.NodeID)
 	if inturn {
-		inturn = cbft.calTurn(curTime+500, cbft.config.NodeID)
+		inturn = cbft.calTurn(curTime+300, cbft.config.NodeID)
 	}
 	return inturn
 
