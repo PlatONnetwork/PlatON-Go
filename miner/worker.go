@@ -415,10 +415,9 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 	}
 
 	for {
-		timestamp = time.Now().UnixNano() / 1e6
-
 		select {
 		case <-w.startCh:
+			timestamp = time.Now().UnixNano() / 1e6
 			clearPending(w.chain.CurrentBlock().NumberU64())
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				commit(false, commitInterruptNewHead, nil)
@@ -428,8 +427,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case head := <-w.chainHeadCh:
+			timestamp = time.Now().UnixNano() / 1e6
 			clearPending(head.Block.NumberU64())
-			//timestamp = time.Now().UnixNano() / 1e6
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
 			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash())
@@ -444,6 +443,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			/*w.commitWorkEnv.highestLock.Lock()
 			w.commitWorkEnv.nextBaseBlock = nextBaseBlock
 			w.commitWorkEnv.highestLock.Unlock()*/
+			timestamp = time.Now().UnixNano() / 1e6
 			w.commitWorkEnv.nextBaseBlock.Store(highestLogicalBlock)
 
 			if w.isRunning() {
@@ -459,6 +459,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
+			timestamp = time.Now().UnixNano() / 1e6
 			if w.isRunning() {
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 					log.Debug("timer.C triggered per 100 ms")
@@ -485,6 +486,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case interval := <-w.resubmitIntervalCh:
+			timestamp = time.Now().UnixNano() / 1e6
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				// Adjust resubmit interval explicitly by user.
 				if interval < minRecommitInterval {
@@ -500,6 +502,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			}
 
 		case adjust := <-w.resubmitAdjustCh:
+			timestamp = time.Now().UnixNano() / 1e6
+
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				// Adjust resubmit interval by feedback.
 				if adjust.inc {
@@ -1453,6 +1457,7 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	/*w.commitWorkEnv.baseLock.Lock()
 	defer w.commitWorkEnv.baseLock.Unlock()*/
 
+	log.Debug("shouldCommit", "timestamp", timestamp)
 	currentBaseBlock := w.commitWorkEnv.getCurrentBaseBlock()
 	nextBaseBlock := w.commitWorkEnv.getNextBaseBlock()
 	if currentBaseBlock != nil {
@@ -1464,7 +1469,7 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	log.Debug("check if base block changed in shouldCommit()", "result", shouldCommit)
 	if shouldCommit {
 		shouldCommit = shouldCommit && (nextBaseBlock == nil || (timestamp-int64(nextBaseBlock.Time().Uint64()) >= w.recommit.Nanoseconds()/1e6))
-		log.Debug("check if time's up in shouldCommit()", "result", shouldCommit)
+		log.Debug("check if time's up in shouldCommit()", "result", shouldCommit, "timestamp", timestamp, "lastBlockTime", nextBaseBlock.Time().Uint64())
 	}
 	if shouldCommit && nextBaseBlock != nil {
 		w.commitWorkEnv.currentBaseBlock.Store(nextBaseBlock)
