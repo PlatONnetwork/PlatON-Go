@@ -447,7 +447,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			w.commitWorkEnv.nextBaseBlock.Store(highestLogicalBlock)
 
 			if w.isRunning() {
-				if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(); shouldSeal && error == nil {
+				if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(timestamp); shouldSeal && error == nil {
 					if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
 						log.Debug("begin to package new block in time after resetting a new highest logical block")
 						//timestamp = time.Now().UnixNano() / 1e6
@@ -463,7 +463,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if w.isRunning() {
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 					log.Debug("timer.C triggered per 100 ms")
-					if shouldSeal, error := cbftEngine.ShouldSeal(); error == nil {
+					if shouldSeal, error := cbftEngine.ShouldSeal(timestamp); error == nil {
 						if shouldSeal {
 							if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
 								log.Debug("begin to package new block regularly ")

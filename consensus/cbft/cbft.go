@@ -1218,9 +1218,9 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 }
 
 // ShouldSeal checks if it's local's turn to package new block at current time.
-func (cbft *Cbft) ShouldSeal() (bool, error) {
+func (cbft *Cbft) ShouldSeal(curTime int64) (bool, error) {
 	cbft.log.Trace("call ShouldSeal()")
-	inturn := cbft.inTurn()
+	inturn := cbft.inTurn(curTime)
 	if inturn {
 		cbft.netLatencyLock.RLock()
 		defer cbft.netLatencyLock.RUnlock()
@@ -1585,8 +1585,8 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 }
 
 // inTurn return if it is local's turn to package new block.
-func (cbft *Cbft) inTurn() bool {
-	curTime := toMilliseconds(time.Now())
+func (cbft *Cbft) inTurn(curTime int64) bool {
+	//curTime := toMilliseconds(time.Now())
 	inturn := cbft.calTurn(curTime, cbft.config.NodeID)
 	if inturn {
 		inturn = cbft.calTurn(curTime+300, cbft.config.NodeID)

@@ -26,7 +26,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	)
+)
 
 // ChainReader defines a small collection of methods needed to access the local
 // blockchain during header and/or uncle verification.
@@ -119,7 +119,7 @@ type Bft interface {
 	ConsensusNodes() ([]discover.NodeID, error)
 
 	// Returns whether the current node is out of the block
-	ShouldSeal() (bool, error)
+	ShouldSeal(curTime int64) (bool, error)
 
 	// Received a new block signature
 	// Need to verify if the signature is signed by nodeID
