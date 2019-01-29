@@ -1586,9 +1586,9 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 // inTurn return if it is local's turn to package new block.
 func (cbft *Cbft) inTurn() bool {
 	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(curTime-50, cbft.config.NodeID)
+	inturn := cbft.calTurn(curTime, cbft.config.NodeID)
 	if inturn {
-		inturn = cbft.calTurn(curTime+450, cbft.config.NodeID)
+		inturn = cbft.calTurn(curTime+500, cbft.config.NodeID)
 	}
 	return inturn
 
