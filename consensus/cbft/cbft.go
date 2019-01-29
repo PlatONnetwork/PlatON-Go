@@ -1472,7 +1472,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
 	cbft.log.Debug("call OnNewBlock()", "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash(), "cbft.dataReceiveCh.len", len(cbft.dataReceiveCh))
 	tmp := NewBlockExt(rcvBlock, rcvBlock.NumberU64())
-	tmp.rcvTime = toMilliseconds(time.Now())
+	tmp.rcvTime = common.Millis(time.Now())
 	tmp.inTree = false
 	tmp.isExecuted = false
 	tmp.isSigned = false
