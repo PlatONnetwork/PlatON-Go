@@ -1587,7 +1587,7 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 // inTurn return if it is local's turn to package new block.
 func (cbft *Cbft) inTurn(curTime int64) bool {
 	//curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(curTime, cbft.config.NodeID)
+	inturn := cbft.calTurn(curTime-25, cbft.config.NodeID)
 	if inturn {
 		inturn = cbft.calTurn(curTime+300, cbft.config.NodeID)
 	}
@@ -1622,6 +1622,9 @@ func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID) bool {
 	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
+		if len(cbft.dpos.primaryNodeList) == 1 {
+			return true
+		}
 		durationPerNode := cbft.config.Duration * 1000
 		durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
 
@@ -1637,7 +1640,6 @@ func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID) bool {
 		} else {
 			cbft.log.Debug("calTurn return false", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", timePoint, "startEpoch", startEpoch)
 		}
-
 	}
 	return false
 }

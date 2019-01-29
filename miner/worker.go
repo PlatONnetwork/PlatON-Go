@@ -419,11 +419,11 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		case <-w.startCh:
 			timestamp = time.Now().UnixNano() / 1e6
 			clearPending(w.chain.CurrentBlock().NumberU64())
-			if _, ok := w.engine.(consensus.Bft); !ok {
-				commit(false, commitInterruptNewHead, nil)
-			} else {
+			if _, ok := w.engine.(consensus.Bft); ok {
 				//w.makePending()
-				timer.Reset(100 * time.Millisecond)
+				timer.Reset(50 * time.Millisecond)
+			} else {
+				commit(false, commitInterruptNewHead, nil)
 			}
 
 		case head := <-w.chainHeadCh:
@@ -473,7 +473,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 							}
 						}
 					}
-					timer.Reset(100 * time.Millisecond)
+					timer.Reset(50 * time.Millisecond)
 				} else if w.config.Clique == nil || w.config.Clique.Period > 0 {
 					// Short circuit if no new transaction arrives.
 					if atomic.LoadInt32(&w.newTxs) == 0 {
