@@ -1469,7 +1469,7 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	log.Debug("check if base block changed in shouldCommit()", "result", shouldCommit)
 	if shouldCommit {
 		shouldCommit = shouldCommit && (nextBaseBlock == nil || (timestamp-int64(nextBaseBlock.Time().Uint64()) >= w.recommit.Nanoseconds()/1e6))
-		log.Debug("check if time's up in shouldCommit()", "result", shouldCommit, "timestamp", timestamp, "lastBlockTime", nextBaseBlock.Time().Uint64())
+		log.Debug("check if time's up in shouldCommit()", "result", shouldCommit, "timestamp", timestamp, "lastBlockTime", nextBaseBlock.Time().Uint64(), "interval", timestamp-int64(nextBaseBlock.Time().Uint64()))
 	}
 	if shouldCommit && nextBaseBlock != nil {
 		w.commitWorkEnv.currentBaseBlock.Store(nextBaseBlock)
