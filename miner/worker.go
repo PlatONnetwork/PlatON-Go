@@ -1460,13 +1460,13 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 		log.Debug("nextBaseBlock", "number", nextBaseBlock.NumberU64(), "hash", nextBaseBlock.Hash(), "timestamp", nextBaseBlock.Time().Uint64())
 	}
 
-	shouldCommit := currentBaseBlock == nil || currentBaseBlock.Hash() != nextBaseBlock.Hash()
+	shouldCommit := currentBaseBlock == nil || (currentBaseBlock != nil && nextBaseBlock == nil) || currentBaseBlock.Hash() != nextBaseBlock.Hash()
 	log.Debug("check if base block changed in shouldCommit()", "result", shouldCommit)
-	if shouldCommit && timestamp != 0 {
-		shouldCommit = shouldCommit && (timestamp-int64(nextBaseBlock.Time().Uint64()) >= w.recommit.Nanoseconds()/1e6)
+	if shouldCommit {
+		shouldCommit = shouldCommit && (nextBaseBlock == nil || (timestamp-int64(nextBaseBlock.Time().Uint64()) >= w.recommit.Nanoseconds()/1e6))
 		log.Debug("check if time's up in shouldCommit()", "result", shouldCommit)
 	}
-	if shouldCommit {
+	if shouldCommit && nextBaseBlock != nil {
 		w.commitWorkEnv.currentBaseBlock.Store(nextBaseBlock)
 	}
 	return shouldCommit, nextBaseBlock
