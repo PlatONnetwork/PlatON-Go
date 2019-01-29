@@ -462,7 +462,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			timestamp = time.Now().UnixNano() / 1e6
 			if w.isRunning() {
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-					log.Debug("timer.C triggered per 100 ms")
+					log.Debug("timer.C triggered")
 					if shouldSeal, error := cbftEngine.ShouldSeal(timestamp); error == nil {
 						if shouldSeal {
 							if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
@@ -1263,7 +1263,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		header.Coinbase = w.coinbase
 	}
 
-	log.Debug("cbft begin to consensus for new block", "number", header.Number, "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", time.Now().UnixNano()/1e6)
+	log.Debug("cbft begin to consensus for new block", "number", header.Number, "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
@@ -1457,19 +1457,19 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	/*w.commitWorkEnv.baseLock.Lock()
 	defer w.commitWorkEnv.baseLock.Unlock()*/
 
-	log.Debug("shouldCommit", "timestamp", timestamp)
+	log.Debug("shouldCommit", "timestamp", common.MillisToString(timestamp))
 	currentBaseBlock := w.commitWorkEnv.getCurrentBaseBlock()
 	nextBaseBlock := w.commitWorkEnv.getNextBaseBlock()
 	if currentBaseBlock != nil {
-		log.Debug("currentBaseBlock", "number", currentBaseBlock.NumberU64(), "hash", currentBaseBlock.Hash(), "timestamp", currentBaseBlock.Time().Uint64())
-		log.Debug("nextBaseBlock", "number", nextBaseBlock.NumberU64(), "hash", nextBaseBlock.Hash(), "timestamp", nextBaseBlock.Time().Uint64())
+		log.Debug("currentBaseBlock", "number", currentBaseBlock.NumberU64(), "hash", currentBaseBlock.Hash(), "timestamp", common.MillisToString(currentBaseBlock.Time().Int64()))
+		log.Debug("nextBaseBlock", "number", nextBaseBlock.NumberU64(), "hash", nextBaseBlock.Hash(), "timestamp", common.MillisToString(nextBaseBlock.Time().Int64()))
 	}
 
 	shouldCommit := currentBaseBlock == nil || (currentBaseBlock != nil && nextBaseBlock == nil) || currentBaseBlock.Hash() != nextBaseBlock.Hash()
 	log.Debug("check if base block changed in shouldCommit()", "result", shouldCommit)
 	if shouldCommit {
 		shouldCommit = shouldCommit && (nextBaseBlock == nil || (timestamp-int64(nextBaseBlock.Time().Uint64()) >= w.recommit.Nanoseconds()/1e6))
-		log.Debug("check if time's up in shouldCommit()", "result", shouldCommit, "timestamp", timestamp, "lastBlockTime", nextBaseBlock.Time().Uint64(), "interval", timestamp-int64(nextBaseBlock.Time().Uint64()))
+		log.Debug("check if time's up in shouldCommit()", "result", shouldCommit, "timestamp", common.MillisToString(timestamp), "lastBlockTime", common.MillisToString(nextBaseBlock.Time().Int64()), "interval", timestamp-int64(nextBaseBlock.Time().Uint64()))
 	}
 	if shouldCommit && nextBaseBlock != nil {
 		w.commitWorkEnv.currentBaseBlock.Store(nextBaseBlock)

@@ -1635,10 +1635,10 @@ func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID) bool {
 		max := (nodeIdx + 1) * durationPerNode
 
 		if value > min && value < max {
-			cbft.log.Debug("calTurn return true", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", timePoint, "startEpoch", startEpoch)
+			cbft.log.Debug("calTurn return true", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", common.MillisToString(timePoint), "startEpoch", common.MillisToString(startEpoch))
 			return true
 		} else {
-			cbft.log.Debug("calTurn return false", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", timePoint, "startEpoch", startEpoch)
+			cbft.log.Debug("calTurn return false", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", common.MillisToString(timePoint), "startEpoch", common.MillisToString(startEpoch))
 		}
 	}
 	return false
@@ -1706,8 +1706,4 @@ func (cbft *Cbft) reset(block *types.Block) {
 		cbft.resetCache.Add(block.Hash(), struct{}{})
 		cbft.txPool.Reset(block)
 	}
-}
-
-func toMilliseconds(t time.Time) int64 {
-	return t.UnixNano() / 1e6
 }
