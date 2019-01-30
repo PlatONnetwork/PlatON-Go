@@ -157,13 +157,13 @@ func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 
 // Get the StateDB instance of the corresponding block
 func (bcc *BlockChainCache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
+	log.Info("make stateDB", "hash", block.Hash(), "number", block.NumberU64(), "root", block.Root())
 	// Create a StateDB instance from the blockchain based on stateRoot
 	if state, err := bcc.StateAt(block.Root()); err == nil && state != nil {
 		return state, nil
 	}
 	// Read and copy the stateDB instance in the cache
 	sealHash := block.Header().SealHash()
-	log.Info("Read and copy the stateDB instance in the cache", "sealHash", sealHash, "blockHash", block.Hash(), "blockNum", block.NumberU64(), "stateRoot", block.Root())
 	if state := bcc.ReadStateDB(sealHash); state != nil {
 		//return state.Copy(), nil
 		return state, nil

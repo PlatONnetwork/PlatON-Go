@@ -486,7 +486,7 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 // execute executes the block's transactions based on its parent
 // if success then save the receipts and state to consensusCache
 func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
-	cbft.log.Debug("execute block", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash())
+	cbft.log.Debug("execute block based on parent", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "parentRoot", parent.block.Root())
 	state, err := cbft.blockChainCache.MakeStateDB(parent.block)
 	if err != nil {
 		cbft.log.Error("execute block error, cannot make state based on parent", "hash", ext.block.Hash(), "Number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
@@ -498,13 +498,13 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	if err == nil {
 		//save the receipts and state to consensusCache
 		stateIsNil := state == nil
-		cbft.log.Debug("execute block success", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "lenReceipts", len(receipts), "stateIsNil", stateIsNil, "root", ext.block.Root())
+		cbft.log.Debug("execute block success", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "parentRoot", parent.block.Root(), "lenReceipts", len(receipts), "stateIsNil", stateIsNil, "root", ext.block.Root())
 		sealHash := ext.block.Header().SealHash()
 		cbft.blockChainCache.WriteReceipts(sealHash, receipts, ext.block.NumberU64())
 		cbft.blockChainCache.WriteStateDB(sealHash, state, ext.block.NumberU64())
 
 	} else {
-		cbft.log.Error("execute block error", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
+		cbft.log.Error("execute block error", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "parentRoot", parent.block.Root(), "err", err)
 		return errors.New("execute block error")
 	}
 	return nil
@@ -1086,7 +1086,7 @@ func (cbft *Cbft) flushReadyBlock() bool {
 		cbft.storeBlocks(toFlushs)
 
 		for _, confirmed := range toFlushs {
-			cbft.log.Debug("blocks should be flushed to chain  ", "hash", confirmed.block.Hash(), "number", confirmed.number)
+			cbft.log.Debug("blocks should be flushed to chain", "hash", confirmed.block.Hash(), "number", confirmed.number)
 		}
 
 		newRoot = toFlushs[len(toFlushs)-1]
@@ -1218,12 +1218,9 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 }
 
 // ShouldSeal checks if it's local's turn to package new block at current time.
-func (cbft *Cbft) ShouldSeal() (bool, error) {
+func (cbft *Cbft) ShouldSeal(curTime int64) (bool, error) {
 	cbft.log.Trace("call ShouldSeal()")
-	if len(cbft.dpos.primaryNodeList) == 1 {
-		return true, nil
-	}
-	inturn := cbft.inTurn()
+	inturn := cbft.inTurn(curTime)
 	if inturn {
 		cbft.netLatencyLock.RLock()
 		defer cbft.netLatencyLock.RUnlock()
@@ -1475,7 +1472,7 @@ func (cbft *Cbft) OnBlockSignature(chain consensus.ChainReader, nodeID discover.
 func (cbft *Cbft) OnNewBlock(chain consensus.ChainReader, rcvBlock *types.Block) error {
 	cbft.log.Debug("call OnNewBlock()", "hash", rcvBlock.Hash(), "number", rcvBlock.NumberU64(), "ParentHash", rcvBlock.ParentHash(), "cbft.dataReceiveCh.len", len(cbft.dataReceiveCh))
 	tmp := NewBlockExt(rcvBlock, rcvBlock.NumberU64())
-	tmp.rcvTime = toMilliseconds(time.Now())
+	tmp.rcvTime = common.Millis(time.Now())
 	tmp.inTree = false
 	tmp.isExecuted = false
 	tmp.isSigned = false
@@ -1581,17 +1578,18 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 			Block:             ext.block,
 			BlockConfirmSigns: ext.signs,
 		}
-		cbft.log.Debug("send consensus result to worker", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs))
+		nodeID, _, _ := ecrecover(ext.block.Header())
+		cbft.log.Debug("send consensus result to worker", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "signCount", len(ext.signs), "interval", ext.block.Time().Uint64()-ext.parent.block.Time().Uint64(), "nodeId", hex.EncodeToString(nodeID.Bytes()[:8]))
 		cbft.cbftResultOutCh <- cbftResult
 	}
 }
 
 // inTurn return if it is local's turn to package new block.
-func (cbft *Cbft) inTurn() bool {
-	curTime := toMilliseconds(time.Now())
-	inturn := cbft.calTurn(curTime-300, cbft.config.NodeID)
+func (cbft *Cbft) inTurn(curTime int64) bool {
+	//curTime := toMilliseconds(time.Now())
+	inturn := cbft.calTurn(curTime-25, cbft.config.NodeID)
 	if inturn {
-		inturn = cbft.calTurn(curTime+600, cbft.config.NodeID)
+		inturn = cbft.calTurn(curTime+300, cbft.config.NodeID)
 	}
 	return inturn
 
@@ -1624,6 +1622,9 @@ func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID) bool {
 	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
+		if len(cbft.dpos.primaryNodeList) == 1 {
+			return true
+		}
 		durationPerNode := cbft.config.Duration * 1000
 		durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
 
@@ -1633,10 +1634,11 @@ func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID) bool {
 
 		max := (nodeIdx + 1) * durationPerNode
 
-		//cbft.log.Debug("calTurn", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", timePoint, "startEpoch", startEpoch)
-
 		if value > min && value < max {
+			cbft.log.Debug("calTurn return true", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", common.MillisToString(timePoint), "startEpoch", common.MillisToString(startEpoch))
 			return true
+		} else {
+			cbft.log.Debug("calTurn return false", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", common.MillisToString(timePoint), "startEpoch", common.MillisToString(startEpoch))
 		}
 	}
 	return false
@@ -1704,8 +1706,4 @@ func (cbft *Cbft) reset(block *types.Block) {
 		cbft.resetCache.Add(block.Hash(), struct{}{})
 		cbft.txPool.Reset(block)
 	}
-}
-
-func toMilliseconds(t time.Time) int64 {
-	return t.UnixNano() / 1e6
 }
