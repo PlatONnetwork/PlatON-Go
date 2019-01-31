@@ -114,10 +114,8 @@ func testChainGen(i int, block *core.BlockGen) {
 		// Block 4 includes blocks 2 and 3 as uncle headers (with modified extra data).
 		b2 := block.PrevBlock(1).Header()
 		b2.Extra = []byte("foo")
-		block.AddUncle(b2)
 		b3 := block.PrevBlock(2).Header()
 		b3.Extra = []byte("foo")
-		block.AddUncle(b3)
 		data := common.Hex2Bytes("C16431B900000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002")
 		tx, _ := types.SignTx(types.NewTransaction(block.TxNonce(testBankAddress), testContractAddr, big.NewInt(0), 100000, nil, data), signer, testBankKey)
 		block.AddTx(tx)
@@ -246,9 +244,8 @@ func newTestPeer(t *testing.T, name string, version int, pm *ProtocolManager, sh
 		var (
 			genesis = pm.blockchain.Genesis()
 			head    = pm.blockchain.CurrentHeader()
-			td      = pm.blockchain.GetTd(head.Hash(), head.Number.Uint64())
 		)
-		tp.handshake(t, td, head.Hash(), head.Number.Uint64(), genesis.Hash())
+		tp.handshake(t, big.NewInt(0), head.Hash(), head.Number.Uint64(), genesis.Hash())
 	}
 	return tp, errc
 }
