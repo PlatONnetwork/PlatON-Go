@@ -31,6 +31,7 @@ type ticketPool interface {
 	GetTicketList(stateDB StateDB, ticketIds []common.Hash) ([]*types.Ticket, error)
 	GetCandidateTicketIds(stateDB StateDB, nodeId discover.NodeID) ([]common.Hash, error)
 	GetCandidatesTicketIds(stateDB StateDB, nodeIds []discover.NodeID) (map[discover.NodeID][]common.Hash, error)
+	GetCandidatesTicketCount(stateDB StateDB, nodeIds []discover.NodeID) (map[discover.NodeID]int, error)
 	GetCandidateEpoch(stateDB StateDB, nodeId discover.NodeID) (uint64, error)
 	GetPoolNumber(stateDB StateDB) (uint64, error)
 	GetTicketPrice(stateDB StateDB) (*big.Int, error)
@@ -51,14 +52,15 @@ func (t *TicketContract) Run(input []byte) ([]byte, error) {
 		return nil, ErrTicketPoolEmpty
 	}
 	var command = map[string]interface{}{
-		"VoteTicket":                 t.VoteTicket,
-		"GetTicketDetail":            t.GetTicketDetail,
-		"GetBatchTicketDetail":       t.GetBatchTicketDetail,
-		"GetCandidateTicketIds":      t.GetCandidateTicketIds,
-		"GetBatchCandidateTicketIds": t.GetBatchCandidateTicketIds,
-		"GetCandidateEpoch":          t.GetCandidateEpoch,
-		"GetPoolRemainder":           t.GetPoolRemainder,
-		"GetTicketPrice":             t.GetTicketPrice,
+		"VoteTicket":                   t.VoteTicket,
+		"GetTicketDetail":              t.GetTicketDetail,
+		"GetBatchTicketDetail":         t.GetBatchTicketDetail,
+		"GetCandidateTicketIds":        t.GetCandidateTicketIds,
+		"GetBatchCandidateTicketIds":   t.GetBatchCandidateTicketIds,
+		"GetBatchCandidateTicketCount": t.GetBatchCandidateTicketCount,
+		"GetCandidateEpoch":            t.GetCandidateEpoch,
+		"GetPoolRemainder":             t.GetPoolRemainder,
+		"GetTicketPrice":               t.GetTicketPrice,
 	}
 	return execute(input, command)
 }
@@ -190,6 +192,24 @@ func (t *TicketContract) GetBatchCandidateTicketIds(nodeIds []discover.NodeID) (
 	data, _ := json.Marshal(candidatesTicketIds)
 	sdata := DecodeResultStr(string(data))
 	log.Info("Result of GetBatchCandidateTicketIds==> ", "len(candidatesTicketIds): ", len(candidatesTicketIds), "json: ", string(data))
+	return sdata, nil
+}
+
+// GetBatchCandidateTicketCount returns the number of candidate's ticket.
+func (t *TicketContract) GetBatchCandidateTicketCount(nodeIds []discover.NodeID) ([]byte, error) {
+	input, _ := json.Marshal(nodeIds)
+	log.Info("Input to GetBatchCandidateTicketCount==> ", "length: ", len(nodeIds), "nodeIds: ", string(input))
+	candidatesTicketCount, _ := t.Evm.TicketPool.GetCandidatesTicketCount(t.Evm.StateDB, nodeIds)
+	if 0 == len(candidatesTicketCount) {
+		log.Warn("Failed to GetBatchCandidateTicketCount==> The query does not exist")
+		candidatesTicketCount := make(map[discover.NodeID]int, 0)
+		data, _ := json.Marshal(candidatesTicketCount)
+		sdata := DecodeResultStr(string(data))
+		return sdata, nil
+	}
+	data, _ := json.Marshal(candidatesTicketCount)
+	sdata := DecodeResultStr(string(data))
+	log.Info("Result of GetBatchCandidateTicketCount==> ", "len(candidatesTicketCount): ", len(candidatesTicketCount), "json: ", string(data))
 	return sdata, nil
 }
 
