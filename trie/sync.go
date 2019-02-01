@@ -19,6 +19,7 @@ package trie
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -278,10 +279,18 @@ func (s *Sync) children(req *request, object node) ([]*request, error) {
 	requests := make([]*request, 0, len(children))
 	for _, child := range children {
 		// Notify any external watcher of a new key/value node
-		if req.callback != nil {
-			if node, ok := (child.node).(valueNode); ok {
+		if node, ok := (child.node).(valueNode); ok {
+			if req.callback != nil {
 				if err := req.callback(node, req.hash); err != nil {
 					return nil, err
+				}
+			} else {
+				var hash common.Hash
+				if err := rlp.DecodeBytes(node, &hash); err != nil {
+					return nil, err
+				}
+				if hash != emptyStorage {
+					s.AddRawEntry(hash, 64, req.hash)
 				}
 			}
 		}
