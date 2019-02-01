@@ -238,7 +238,7 @@ func (self *stateObject) GetState(db Database, keyTree string) []byte {
 
 // GetCommittedState retrieves a value from the committed account storage trie.
 func (self *stateObject) GetCommittedState(db Database, key string) []byte {
-	var value []byte
+	value := make([]byte, 0)
 	// If we have the original value cached, return that
 	valueKey, cached := self.originStorage[key]
 	if cached {
@@ -268,8 +268,10 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 		}
 	}
 
-	self.originStorage[key] = valueKey
-	self.originValueStorage[valueKey] = value
+	if valueKey != (common.Hash{}) {
+		self.originStorage[key] = valueKey
+		self.originValueStorage[valueKey] = value
+	}
 	return value
 }
 
