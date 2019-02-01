@@ -71,7 +71,6 @@ func newCanonical(n int) (ethdb.Database, *LightChain, error) {
 func newTestLightChain() *LightChain {
 	db := ethdb.NewMemDatabase()
 	gspec := &core.Genesis{
-		Difficulty: big.NewInt(1),
 		Config:     params.TestChainConfig,
 	}
 	gspec.MustCommit(db)
@@ -102,15 +101,15 @@ func testFork(t *testing.T, LightChain *LightChain, i, n int, comparator func(td
 		t.Fatalf("failed to insert forking chain: %v", err)
 	}
 	// Sanity check that the forked chain can be imported into the original
-	var tdPre, tdPost *big.Int
+	var nbPre, nbPost *big.Int
 
-	tdPre = LightChain.GetTdByHash(LightChain.CurrentHeader().Hash())
+	nbPre = LightChain.CurrentHeader().Number
 	if err := testHeaderChainImport(headerChainB, LightChain); err != nil {
 		t.Fatalf("failed to import forked header chain: %v", err)
 	}
-	tdPost = LightChain.GetTdByHash(headerChainB[len(headerChainB)-1].Hash())
+	nbPost = headerChainB[len(headerChainB)-1].Number
 	// Compare the total difficulties of the chains
-	comparator(tdPre, tdPost)
+	comparator(nbPre, nbPost)
 }
 
 // testHeaderChainImport tries to process a chain of header, writing them into
@@ -123,7 +122,6 @@ func testHeaderChainImport(chain []*types.Header, lightchain *LightChain) error 
 		}
 		// Manually insert the header into the database, but don't reorganize (allows subsequent testing)
 		lightchain.mu.Lock()
-		rawdb.WriteTd(lightchain.chainDb, header.Hash(), header.Number.Uint64(), new(big.Int).Add(header.Difficulty, lightchain.GetTdByHash(header.ParentHash)))
 		rawdb.WriteHeader(lightchain.chainDb, header)
 		lightchain.mu.Unlock()
 	}
@@ -140,10 +138,10 @@ func TestExtendCanonicalHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to make new canonical chain: %v", err)
 	}
-	// Define the difficulty comparator
-	better := func(td1, td2 *big.Int) {
-		if td2.Cmp(td1) <= 0 {
-			t.Errorf("total difficulty mismatch: have %v, expected more than %v", td2, td1)
+	// Define the number comparator
+	better := func(nb1, nb2 *big.Int) {
+		if nb2.Cmp(nb1) <= 0 {
+			t.Errorf("block number mismatch: have %v, expected more than %v", nb2, nb1)
 		}
 	}
 	// Start fork from current height
@@ -163,10 +161,10 @@ func TestShorterForkHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to make new canonical chain: %v", err)
 	}
-	// Define the difficulty comparator
-	worse := func(td1, td2 *big.Int) {
-		if td2.Cmp(td1) >= 0 {
-			t.Errorf("total difficulty mismatch: have %v, expected less than %v", td2, td1)
+	// Define the number comparator
+	worse := func(nb1, nb2 *big.Int) {
+		if nb2.Cmp(nb1) >= 0 {
+			t.Errorf("block number mismatch: have %v, expected less than %v", nb2, nb1)
 		}
 	}
 	// Sum of numbers must be less than `length` for this to be a shorter fork
@@ -188,10 +186,10 @@ func TestLongerForkHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to make new canonical chain: %v", err)
 	}
-	// Define the difficulty comparator
-	better := func(td1, td2 *big.Int) {
-		if td2.Cmp(td1) <= 0 {
-			t.Errorf("total difficulty mismatch: have %v, expected more than %v", td2, td1)
+	// Define the number comparator
+	better := func(nb1, nb2 *big.Int) {
+		if nb2.Cmp(nb1) <= 0 {
+			t.Errorf("block number mismatch: have %v, expected more than %v", nb2, nb1)
 		}
 	}
 	// Sum of numbers must be greater than `length` for this to be a longer fork
@@ -213,10 +211,10 @@ func TestEqualForkHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to make new canonical chain: %v", err)
 	}
-	// Define the difficulty comparator
-	equal := func(td1, td2 *big.Int) {
-		if td2.Cmp(td1) != 0 {
-			t.Errorf("total difficulty mismatch: have %v, want %v", td2, td1)
+	// Define the number comparator
+	equal := func(nb1, nb2 *big.Int) {
+		if nb2.Cmp(nb1) != 0 {
+			t.Errorf("block number mismatch: have %v, want %v", nb2, nb1)
 		}
 	}
 	// Sum of numbers must be equal to `length` for this to be an equal fork
@@ -244,12 +242,10 @@ func TestBrokenHeaderChain(t *testing.T) {
 
 func makeHeaderChainWithDiff(genesis *types.Block, d []int, seed byte) []*types.Header {
 	var chain []*types.Header
-	for i, difficulty := range d {
+	for i, _ := range d {
 		header := &types.Header{
 			Coinbase:    common.Address{seed},
 			Number:      big.NewInt(int64(i + 1)),
-			Difficulty:  big.NewInt(int64(difficulty)),
-			UncleHash:   types.EmptyUncleHash,
 			TxHash:      types.EmptyRootHash,
 			ReceiptHash: types.EmptyRootHash,
 		}
@@ -305,11 +301,6 @@ func testReorg(t *testing.T, first, second []int, td int64) {
 		if prev.ParentHash != header.Hash() {
 			t.Errorf("parent header hash mismatch: have %x, want %x", prev.ParentHash, header.Hash())
 		}
-	}
-	// Make sure the chain total difficulty is the correct one
-	want := new(big.Int).Add(bc.genesisBlock.Difficulty(), big.NewInt(td))
-	if have := bc.GetTdByHash(bc.CurrentHeader().Hash()); have.Cmp(want) != 0 {
-		t.Errorf("total difficulty mismatch: have %v, want %v", have, want)
 	}
 }
 
