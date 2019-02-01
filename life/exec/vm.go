@@ -86,6 +86,7 @@ type VMConfig struct {
 	DefaultMemoryPages int
 	DefaultTableSize   int
 	GasLimit           uint64
+	DisableFree        bool
 }
 
 type VMContext struct {
