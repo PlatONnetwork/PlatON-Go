@@ -51,18 +51,12 @@ func (w *wizard) makeGenesis() {
 	// Figure out which consensus engine to choose
 	fmt.Println()
 	fmt.Println("Which consensus engine to use? (default = CBFT)")
-	fmt.Println(" 1. Ethash - proof-of-work")
-	fmt.Println(" 2. Clique - proof-of-authority")
-	fmt.Println(" 3. CBFT -   Concurrent Byzantine Fault Tolerance")
+	fmt.Println(" 1. Clique - proof-of-authority")
+	fmt.Println(" 2. CBFT -   Concurrent Byzantine Fault Tolerance")
 
 	choice := w.read()
 	switch {
 	case choice == "1":
-		// In case of ethash, we're pretty much done
-		genesis.Config.Ethash = new(params.EthashConfig)
-		genesis.ExtraData = make([]byte, 32)
-
-	case choice == "2":
 		// In the case of clique, configure the consensus parameters
 		genesis.Config.Clique = &params.CliqueConfig{
 			Period: 15,
@@ -99,7 +93,7 @@ func (w *wizard) makeGenesis() {
 			copy(genesis.ExtraData[32+i*common.AddressLength:], signer[:])
 		}
 
-	case choice == "" || choice == "3":
+	case choice == "" || choice == "2":
 		// In the case of cbft, configure the consensus parameters
 		genesis.Config.Cbft = &params.CbftConfig{}
 		// We also need the initial list of signers

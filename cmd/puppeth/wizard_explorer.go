@@ -16,14 +16,7 @@
 
 package main
 
-import (
-	"encoding/json"
-	"fmt"
-	"time"
-
-	"github.com/PlatONnetwork/PlatON-Go/log"
-)
-
+/*
 // deployExplorer creates a new block explorer based on some user input.
 func (w *wizard) deployExplorer() {
 	// Do some sanity check before the user wastes time on input
@@ -35,10 +28,7 @@ func (w *wizard) deployExplorer() {
 		log.Error("No ethstats server configured")
 		return
 	}
-	if w.conf.Genesis.Config.Ethash == nil {
-		log.Error("Only ethash network supported")
-		return
-	}
+
 	// Select the server to interact with
 	server := w.selectServer()
 	if server == "" {
@@ -114,4 +104,4 @@ func (w *wizard) deployExplorer() {
 	time.Sleep(3 * time.Second)
 
 	w.networkStats()
-}
+}*/
