@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
@@ -67,16 +66,7 @@ func (w *wizard) deployNode(boot bool) {
 		fmt.Printf("Where should data be stored on the remote machine? (default = %s)\n", infos.datadir)
 		infos.datadir = w.readDefaultString(infos.datadir)
 	}
-	if w.conf.Genesis.Config.Ethash != nil && !boot {
-		fmt.Println()
-		if infos.ethashdir == "" {
-			fmt.Printf("Where should the ethash mining DAGs be stored on the remote machine?\n")
-			infos.ethashdir = w.readString()
-		} else {
-			fmt.Printf("Where should the ethash mining DAGs be stored on the remote machine? (default = %s)\n", infos.ethashdir)
-			infos.ethashdir = w.readDefaultString(infos.ethashdir)
-		}
-	}
+
 	// Figure out which port to listen on
 	fmt.Println()
 	fmt.Printf("Which TCP/UDP port to listen on? (default = %d)\n", infos.port)
@@ -103,22 +93,7 @@ func (w *wizard) deployNode(boot bool) {
 	}
 	// If the node is a miner/signer, load up needed credentials
 	if !boot {
-		if w.conf.Genesis.Config.Ethash != nil {
-			// Ethash based miners only need an etherbase to mine against
-			fmt.Println()
-			if infos.etherbase == "" {
-				fmt.Printf("What address should the miner use?\n")
-				for {
-					if address := w.readAddress(); address != nil {
-						infos.etherbase = address.Hex()
-						break
-					}
-				}
-			} else {
-				fmt.Printf("What address should the miner use? (default = %s)\n", infos.etherbase)
-				infos.etherbase = w.readDefaultAddress(common.HexToAddress(infos.etherbase)).Hex()
-			}
-		} else if w.conf.Genesis.Config.Clique != nil {
+		if w.conf.Genesis.Config.Clique != nil {
 			// If a previous signer was already set, offer to reuse it
 			if infos.keyJSON != "" {
 				if key, err := keystore.DecryptKey([]byte(infos.keyJSON), infos.keyPass); err != nil {

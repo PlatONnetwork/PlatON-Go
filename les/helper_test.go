@@ -21,25 +21,19 @@ package les
 
 import (
 	"crypto/rand"
-	"math/big"
-	"sync"
-	"testing"
-	"time"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/les/flowcontrol"
 	"github.com/PlatONnetwork/PlatON-Go/light"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"math/big"
+	"testing"
 )
 
 var (
@@ -139,71 +133,6 @@ func testRCL() RequestCostList {
 		cl[i].ReqCost = 0
 	}
 	return cl
-}
-
-// newTestProtocolManager creates a new protocol manager for testing purposes,
-// with the given number of blocks already known, potential notification
-// channels for different events and relative chain indexers array.
-func newTestProtocolManager(lightSync bool, blocks int, generator func(int, *core.BlockGen), odr *LesOdr, peers *peerSet, db ethdb.Database) (*ProtocolManager, error) {
-	var (
-		evmux  = new(event.TypeMux)
-		engine = ethash.NewFaker()
-		gspec  = core.Genesis{
-			Config: params.TestChainConfig,
-			Alloc:  core.GenesisAlloc{testBankAddress: {Balance: testBankFunds}},
-		}
-		genesis = gspec.MustCommit(db)
-		chain   BlockChain
-	)
-	if peers == nil {
-		peers = newPeerSet()
-	}
-
-	if lightSync {
-		chain, _ = light.NewLightChain(odr, gspec.Config, engine)
-	} else {
-		blockchain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
-		gchain, _ := core.GenerateChain(gspec.Config, genesis, ethash.NewFaker(), db, blocks, generator)
-		if _, err := blockchain.InsertChain(gchain); err != nil {
-			panic(err)
-		}
-		chain = blockchain
-	}
-
-	indexConfig := light.TestServerIndexerConfig
-	if lightSync {
-		indexConfig = light.TestClientIndexerConfig
-	}
-	pm, err := NewProtocolManager(gspec.Config, indexConfig, lightSync, NetworkId, evmux, engine, peers, chain, nil, db, odr, nil, nil, make(chan struct{}), new(sync.WaitGroup))
-	if err != nil {
-		return nil, err
-	}
-	if !lightSync {
-		srv := &LesServer{lesCommons: lesCommons{protocolManager: pm}}
-		pm.server = srv
-
-		srv.defParams = &flowcontrol.ServerParams{
-			BufLimit:    testBufLimit,
-			MinRecharge: 1,
-		}
-
-		srv.fcManager = flowcontrol.NewClientManager(50, 10, 1000000000)
-		srv.fcCostStats = newCostStats(nil)
-	}
-	pm.Start(1000)
-	return pm, nil
-}
-
-// newTestProtocolManagerMust creates a new protocol manager for testing purposes,
-// with the given number of blocks already known, potential notification
-// channels for different events and relative chain indexers array. In case of an error, the constructor force-
-// fails the test.
-func newTestProtocolManagerMust(t *testing.T, lightSync bool, blocks int, generator func(int, *core.BlockGen), odr *LesOdr, peers *peerSet, db ethdb.Database) *ProtocolManager {
-	pm, err := newTestProtocolManager(lightSync, blocks, generator, odr, peers, db)
-	if err != nil {
-		t.Fatalf("Failed to create protocol manager: %v", err)
-	}
-	return pm
 }
 
 // testPeer is a simulated peer to allow testing direct network calls.
@@ -333,110 +262,4 @@ type TestEntity struct {
 	chtIndexer       *core.ChainIndexer
 	bloomIndexer     *core.ChainIndexer
 	bloomTrieIndexer *core.ChainIndexer
-}
-
-// newServerEnv creates a server testing environment with a connected test peer for testing purpose.
-func newServerEnv(t *testing.T, blocks int, protocol int, waitIndexers func(*core.ChainIndexer, *core.ChainIndexer, *core.ChainIndexer)) (*TestEntity, func()) {
-	db := ethdb.NewMemDatabase()
-	cIndexer, bIndexer, btIndexer := testIndexers(db, nil, light.TestServerIndexerConfig)
-
-	pm := newTestProtocolManagerMust(t, false, blocks, testChainGen, nil, nil, db)
-	peer, _ := newTestPeer(t, "peer", protocol, pm, true)
-
-	cIndexer.Start(pm.blockchain.(*core.BlockChain))
-	bIndexer.Start(pm.blockchain.(*core.BlockChain))
-
-	// Wait until indexers generate enough index data.
-	if waitIndexers != nil {
-		waitIndexers(cIndexer, bIndexer, btIndexer)
-	}
-
-	return &TestEntity{
-			db:               db,
-			tPeer:            peer,
-			pm:               pm,
-			chtIndexer:       cIndexer,
-			bloomIndexer:     bIndexer,
-			bloomTrieIndexer: btIndexer,
-		}, func() {
-			peer.close()
-			// Note bloom trie indexer will be closed by it parent recursively.
-			cIndexer.Close()
-			bIndexer.Close()
-		}
-}
-
-// newClientServerEnv creates a client/server arch environment with a connected les server and light client pair
-// for testing purpose.
-func newClientServerEnv(t *testing.T, blocks int, protocol int, waitIndexers func(*core.ChainIndexer, *core.ChainIndexer, *core.ChainIndexer), newPeer bool) (*TestEntity, *TestEntity, func()) {
-	db, ldb := ethdb.NewMemDatabase(), ethdb.NewMemDatabase()
-	peers, lPeers := newPeerSet(), newPeerSet()
-
-	dist := newRequestDistributor(lPeers, make(chan struct{}))
-	rm := newRetrieveManager(lPeers, dist, nil)
-	odr := NewLesOdr(ldb, light.TestClientIndexerConfig, rm)
-
-	cIndexer, bIndexer, btIndexer := testIndexers(db, nil, light.TestServerIndexerConfig)
-	lcIndexer, lbIndexer, lbtIndexer := testIndexers(ldb, odr, light.TestClientIndexerConfig)
-	odr.SetIndexers(lcIndexer, lbtIndexer, lbIndexer)
-
-	pm := newTestProtocolManagerMust(t, false, blocks, testChainGen, nil, peers, db)
-	lpm := newTestProtocolManagerMust(t, true, 0, nil, odr, lPeers, ldb)
-
-	startIndexers := func(clientMode bool, pm *ProtocolManager) {
-		if clientMode {
-			lcIndexer.Start(pm.blockchain.(*light.LightChain))
-			lbIndexer.Start(pm.blockchain.(*light.LightChain))
-		} else {
-			cIndexer.Start(pm.blockchain.(*core.BlockChain))
-			bIndexer.Start(pm.blockchain.(*core.BlockChain))
-		}
-	}
-
-	startIndexers(false, pm)
-	startIndexers(true, lpm)
-
-	// Execute wait until function if it is specified.
-	if waitIndexers != nil {
-		waitIndexers(cIndexer, bIndexer, btIndexer)
-	}
-
-	var (
-		peer, lPeer *peer
-		err1, err2  <-chan error
-	)
-	if newPeer {
-		peer, err1, lPeer, err2 = newTestPeerPair("peer", protocol, pm, lpm)
-		select {
-		case <-time.After(time.Millisecond * 100):
-		case err := <-err1:
-			t.Fatalf("peer 1 handshake error: %v", err)
-		case err := <-err2:
-			t.Fatalf("peer 2 handshake error: %v", err)
-		}
-	}
-
-	return &TestEntity{
-			db:               db,
-			pm:               pm,
-			rPeer:            peer,
-			peers:            peers,
-			chtIndexer:       cIndexer,
-			bloomIndexer:     bIndexer,
-			bloomTrieIndexer: btIndexer,
-		}, &TestEntity{
-			db:               ldb,
-			pm:               lpm,
-			rPeer:            lPeer,
-			peers:            lPeers,
-			chtIndexer:       lcIndexer,
-			bloomIndexer:     lbIndexer,
-			bloomTrieIndexer: lbtIndexer,
-		}, func() {
-			// Note bloom trie indexers will be closed by their parents recursively.
-			cIndexer.Close()
-			bIndexer.Close()
-			lcIndexer.Close()
-			lbIndexer.Close()
-		}
 }
