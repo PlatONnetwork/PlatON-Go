@@ -308,6 +308,9 @@ func (p *Peer) handle(msg Msg) error {
 	case msg.Code == pongMsg:
 		//added by Joey
 		proto := p.running["eth"]
+		if proto == nil {
+			return msg.Discard()
+		}
 
 		msg.Code = 0x0a + proto.offset
 
