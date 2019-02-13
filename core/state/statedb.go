@@ -368,7 +368,7 @@ func (self *StateDB) SetState(address common.Address, key, value []byte) {
 
 func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
 	var buffer bytes.Buffer
-	buffer.WriteString(address.String())
+	buffer.Write(address.Bytes())
 	buffer.WriteString(string(key))
 	keyTrie := buffer.String()
 

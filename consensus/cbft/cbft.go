@@ -525,6 +525,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 		sealHash := ext.block.Header().SealHash()
 		cbft.blockChainCache.WriteReceipts(sealHash, receipts, ext.block.NumberU64())
 		cbft.blockChainCache.WriteStateDB(sealHash, state, ext.block.NumberU64())
+		cbft.blockChainCache.MarkBlockHash(ext.block.Hash())
 	} else {
 		cbft.log.Error("execute block error", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return errors.New("execute block error")
@@ -1252,8 +1253,6 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 	}
 }
 
-
-
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
@@ -1792,12 +1791,12 @@ func toMilliseconds(t time.Time) int64 {
 
 func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	cbft.log.Trace("call ShouldSeal()")
-	
+
 	//consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, commitNumber)
 	//if consensusNodes != nil && len(consensusNodes) == 1 {
 	//	return true
 	//}
-	
+
 	inturn := cbft.inTurn(parentNumber, parentHash, commitNumber)
 	if inturn {
 		cbft.netLatencyLock.RLock()
@@ -1811,7 +1810,6 @@ func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, comm
 	cbft.log.Debug("end of ShouldSeal()", "result", inturn)
 	return inturn
 }
-
 
 func (cbft *Cbft) CurrentNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node {
 	return cbft.ppos.getCurrentNodes(parentNumber, parentHash, blockNumber)
@@ -1890,7 +1888,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		log.Warn("Call accumulateRewards block header extra[32:96] is empty!")
 		nodeId = cbft.config.NodeID
 	} else {
-		if nodeId, _, err = ecrecover(header); err!=nil {
+		if nodeId, _, err = ecrecover(header); err != nil {
 			log.Error("Failed to Call accumulateRewards, ecrecover faile", " err: ", err)
 			return
 		} else {
@@ -1902,7 +1900,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	var can *types.Candidate
 	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(BaseSwitchWitness))) == 0 {
 		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, -1)
-	}else {
+	} else {
 		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, 0)
 	}
 	if err != nil {

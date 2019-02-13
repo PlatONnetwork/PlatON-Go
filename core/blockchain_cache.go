@@ -8,8 +8,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"sync"
 	"math/big"
+	"sync"
 )
 
 var (
@@ -120,7 +120,6 @@ func (pbc *BlockChainCache) WriteReceipts(sealHash common.Hash, receipts []*type
 
 // Write a StateDB instance to the cache
 func (bcc *BlockChainCache) WriteStateDB(sealHash common.Hash, stateDB *state.StateDB, blockNum uint64) {
-	bcc.MarkBlockHash(sealHash)
 	bcc.stateDBMu.Lock()
 	defer bcc.stateDBMu.Unlock()
 	log.Info("Write a StateDB instance to the cache", "sealHash", sealHash, "blockNum", blockNum)
