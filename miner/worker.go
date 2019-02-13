@@ -1203,7 +1203,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		misc.ApplyDAOHardFork(env.state)
 	}
 
-	if !noempty {
+	if !noempty && "on" == w.EmptyBlock {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
 		if _, ok := w.engine.(consensus.Bft); !ok {
@@ -1226,7 +1226,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if len(pending) == 0 {
 		// No empty block
 		if "off" == w.EmptyBlock {
-			w.updateSnapshot()
 			return
 		}
 		if _, ok := w.engine.(consensus.Bft); ok {
@@ -1281,6 +1280,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 // commit runs any post-transaction state modifications, assembles the final block
 // and commits new work if consensus engine is running.
 func (w *worker) commit(interval func(), update bool, start time.Time) error {
+	if "off" == w.EmptyBlock && 0 == len(w.current.txs) {
+		return nil
+	}
 	// Deep copy receipts here to avoid interaction between different tasks.
 	receipts := make([]*types.Receipt, len(w.current.receipts))
 	for i, l := range w.current.receipts {
