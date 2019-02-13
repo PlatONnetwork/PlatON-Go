@@ -64,53 +64,10 @@ func InitVM(icepath string, httpEndpoint string) {
 
 // for test
 func ExecuteMPCTxForRedis(params MPCParams) (err error) {
-
-	myRedis, err := NewRedis("192.168.9.14:6379")
-	if err != nil {
-		log.Error("Create connection of redis not success.", "err", err.Error())
-		return err
-	}
-
-	var (
-		KEY_TASK_ID = "taskId"
-		KEY_PUB_KEY = "pubKey"
-		KEY_ADDRESS = "address"
-		KEY_IR_ADDRESS = "irAddress"
-		KEY_METHOD = "method"
-		KEY_EXTRA = "extra"
-	)
-
-	jsonMap := make(map[string]string)
-	jsonMap[KEY_TASK_ID] = params.TaskId
-	jsonMap[KEY_PUB_KEY] = params.Pubkey
-	jsonMap[KEY_ADDRESS] = params.From.Hex()
-	jsonMap[KEY_IR_ADDRESS] = params.IRAddr.Hex()
-	jsonMap[KEY_METHOD] = params.Method
-	jsonMap[KEY_EXTRA] = params.Extra
-
-	err = myRedis.RPush(MPC_TASK_KEY_ALICE, jsonMap)
-	if err != nil {
-		fmt.Println("add mpc task to queue fail : -> to Alice")
-		return err
-	}
-	myRedis.RPush(MPC_TASK_KEY_BOB, jsonMap)
-	if err != nil {
-		fmt.Println("add mpc task to queue fail : -> to Bob")
-		return err
-	}
-
-	log.Trace("Notify mvm success, ExecuteMPCTx method invoke success.",
-		"taskId", params.TaskId,
-		"pubkey", params.Pubkey,
-		"from", params.From.Hex(),
-		"irAddr", params.IRAddr.Hex(),
-		"method", params.Method)
 	return nil
 }
 
 func ExecuteMPCTx(params MPCParams) error {
-
-	ExecuteMPCTxForRedis(params)
 
 	cTaskId := C.CString(params.TaskId)
 	cPubKey := C.CString(params.Pubkey)
