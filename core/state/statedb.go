@@ -361,11 +361,13 @@ func (self *StateDB) SetCode(addr common.Address, code []byte) {
 }
 
 func (self *StateDB) SetState(address common.Address, key, value []byte) {
+	self.lock.Lock()
 	stateObject := self.GetOrNewStateObject(address)
 	keyTrie, valueKey, value := getKeyValue(address, key, value)
 	if stateObject != nil {
 		stateObject.SetState(self.db, keyTrie, valueKey, value)
 	}
+	self.lock.Unlock()
 }
 
 func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
