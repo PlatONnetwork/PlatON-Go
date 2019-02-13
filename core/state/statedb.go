@@ -21,18 +21,20 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"math/big"
+	"sort"
+	"sync"
+
+	"encoding/json"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"math/big"
-	"sort"
-	"sync"
 )
 
 type revision struct {
@@ -145,18 +147,24 @@ func (self *StateDB) Reset(root common.Hash) error {
 	return nil
 }
 
-func (self *StateDB) AddLog(log *types.Log) {
+func (self *StateDB) AddLog(logInfo *types.Log) {
 	self.journal.append(addLogChange{txhash: self.thash})
-
-	log.TxHash = self.thash
-	log.BlockHash = self.bhash
-	log.TxIndex = uint(self.txIndex)
-	log.Index = self.logSize
-	self.logs[self.thash] = append(self.logs[self.thash], log)
+	// TODO
+	logsByte, _ := json.Marshal(logInfo)
+	log.Debug("Call Add StateDB log", "txHash", self.thash.Hex(), "log:", string(logsByte))
+	logInfo.TxHash = self.thash
+	logInfo.BlockHash = self.bhash
+	logInfo.TxIndex = uint(self.txIndex)
+	logInfo.Index = self.logSize
+	self.logs[self.thash] = append(self.logs[self.thash], logInfo)
 	self.logSize++
 }
 
 func (self *StateDB) GetLogs(hash common.Hash) []*types.Log {
+	// TODO
+	logs := self.logs[hash]
+	logsByte, _ := json.Marshal(logs)
+	log.Debug("��Call Get StateDB Log��", "txHash", self.thash.Hex(), "logs:", string(logsByte))
 	return self.logs[hash]
 }
 
@@ -263,8 +271,6 @@ func (self *StateDB) GetCodeHash(addr common.Address) common.Hash {
 
 // GetState retrieves a value from the given account's storage trie.
 func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
-	self.lock.Lock()
-	defer self.lock.Unlock()
 	stateObject := self.getStateObject(addr)
 	keyTrie, _, _ := getKeyValue(addr, key, nil)
 	if stateObject != nil {
@@ -353,13 +359,11 @@ func (self *StateDB) SetCode(addr common.Address, code []byte) {
 }
 
 func (self *StateDB) SetState(address common.Address, key, value []byte) {
-	self.lock.Lock()
 	stateObject := self.GetOrNewStateObject(address)
 	keyTrie, valueKey, value := getKeyValue(address, key, value)
 	if stateObject != nil {
 		stateObject.SetState(self.db, keyTrie, valueKey, value)
 	}
-	self.lock.Unlock()
 }
 
 func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
@@ -382,24 +386,6 @@ func getKeyValue(address common.Address, key []byte, value []byte) (string, comm
 	//}
 	//return keyTrie, common.Hash{}, value
 }
-
-
-/*func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
-	var buffer bytes.Buffer
-	buffer.WriteString(address.String())
-	buffer.WriteString(string(key))
-	keyTrie := buffer.String()
-
-	//if value != nil && !bytes.Equal(value,[]byte{}){
-	buffer.Reset()
-	buffer.WriteString(string(key))
-	buffer.WriteString(string(value))
-	valueKey := sha3.Sum256(buffer.Bytes())
-	return keyTrie, valueKey, value
-	//}
-	//return keyTrie, common.Hash{}, value
-}*/
-
 
 // Suicide marks the given account as suicided.
 // This clears the account balance.
@@ -452,7 +438,7 @@ func (self *StateDB) getStateObject(addr common.Address) (stateObject *stateObje
 		}
 		return obj
 	}
-
+	log.Debug("getStateObject", "root addr", fmt.Sprintf("%p", self))
 	// Load the object from the database.
 	enc, err := self.trie.TryGet(addr[:])
 	if len(enc) == 0 {
@@ -476,6 +462,7 @@ func (self *StateDB) setStateObject(object *stateObject) {
 
 // Retrieve a state object or create a new state object if nil.
 func (self *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
+	log.Debug("GetOrNewStateObject", "root addr", fmt.Sprintf("%p", self))
 	stateObject := self.getStateObject(addr)
 	if stateObject == nil || stateObject.deleted {
 		stateObject, _ = self.createObject(addr)
@@ -657,9 +644,14 @@ func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
 	return s.trie.Hash()
 }
 
+func (s *StateDB) Root() common.Hash {
+	return s.trie.Hash()
+}
+
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the EVM emits new state logs.
 func (self *StateDB) Prepare(thash, bhash common.Hash, ti int) {
+	log.Debug("Prepare", "thash", thash.String())
 	self.thash = thash
 	self.bhash = bhash
 	self.txIndex = ti

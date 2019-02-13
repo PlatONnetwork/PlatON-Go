@@ -20,6 +20,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/deckarep/golang-set"
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"io"
 	"math/big"
@@ -141,6 +142,9 @@ type BlockChain struct {
 	shouldElectionFn	shouldElectionFn
 	shouldSwitchFn	shouldSwitchFn
 	attemptAddConsensusPeerFn	attemptAddConsensusPeerFn
+	// modify by niuxiaojie
+	knownBlockHashes     mapset.Set
+	knownBlockHashesLock sync.RWMutex
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -208,6 +212,21 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	return bc, nil
 }
 
+// modify by niuxiaojie
+func (bc *BlockChain) MarkBlockHash(hash common.Hash) bool {
+	bc.knownBlockHashesLock.Lock()
+	defer bc.knownBlockHashesLock.Unlock()
+
+	if bc.knownBlockHashes.Contains(hash) {
+		return false
+	}
+	for bc.knownBlockHashes.Cardinality() >= 2048 {
+		bc.knownBlockHashes.Pop()
+	}
+	log.Info("【BlockChain MarkBlockHash】", "hash", hash)
+	return bc.knownBlockHashes.Add(hash)
+}
+
 func (bc *BlockChain) InitConsensusPeerFn(seFn shouldElectionFn, ssFn shouldSwitchFn, addFn attemptAddConsensusPeerFn) {
 	bc.shouldElectionFn = seFn
 	bc.shouldSwitchFn = ssFn
@@ -262,13 +281,6 @@ func (bc *BlockChain) loadLastState() error {
 			bc.currentFastBlock.Store(block)
 		}
 	}
-
-	// Issue a status log for the user
-	currentFastBlock := bc.CurrentFastBlock()
-
-	log.Info("Loaded most recent local header", "number", currentHeader.Number, "hash", currentHeader.Hash(), "age", common.PrettyAge(time.Unix(currentHeader.Time.Int64(), 0)))
-	log.Info("Loaded most recent local full block", "number", currentBlock.Number(), "hash", currentBlock.Hash(), "age", common.PrettyAge(time.Unix(currentBlock.Time().Int64(), 0)))
-	log.Info("Loaded most recent local fast block", "number", currentFastBlock.Number(), "hash", currentFastBlock.Hash(), "age", common.PrettyAge(time.Unix(currentFastBlock.Time().Int64(), 0)))
 
 	return nil
 }
@@ -1197,73 +1209,80 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}
-		// Create a new statedb using the parent block and report an
-		// error if it fails.
-		var parent *types.Block
-		if i == 0 {
-			parent = bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
+
+		// modify by niuxiaojie
+		markFlag := bc.MarkBlockHash(block.Hash())
+		if !markFlag {
+			break
 		} else {
-			parent = chain[i-1]
-		}
-		state, err := state.New(parent.Root(), bc.stateCache, parent.Number(), parent.Hash())
-		if err != nil {
-			return i, events, coalescedLogs, err
-		}
-		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-		log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
-		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-			cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， Before executing the transaction：")
-		}
-		// Process block using the parent state as reference point.
-		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
-		if err != nil {
-			bc.reportBlock(block, receipts, err)
-			return i, events, coalescedLogs, err
-		}
-		// Validate the state using the default validator
-		err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
-		if err != nil {
-			bc.reportBlock(block, receipts, err)
-			return i, events, coalescedLogs, err
-		}
-		proctime := time.Since(bstart)
+			// Create a new statedb using the parent block and report an
+			// error if it fails.
+			var parent *types.Block
+			if i == 0 {
+				parent = bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
+			} else {
+				parent = chain[i-1]
+			}
+			state, err := state.New(parent.Root(), bc.stateCache, parent.Number(), parent.Hash())
+			if err != nil {
+				return i, events, coalescedLogs, err
+			}
+			root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
+			log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+			if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+				cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， Before executing the transaction：")
+			}
+			// Process block using the parent state as reference point.
+			receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
+			if err != nil {
+				bc.reportBlock(block, receipts, err)
+				return i, events, coalescedLogs, err
+			}
+			// Validate the state using the default validator
+			err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
+			if err != nil {
+				bc.reportBlock(block, receipts, err)
+				return i, events, coalescedLogs, err
+			}
+			proctime := time.Since(bstart)
 
-		// Write the block to the chain and get the status.
-		status, err := bc.WriteBlockWithState(block, receipts, state)
-		if err != nil {
-			return i, events, coalescedLogs, err
+			// Write the block to the chain and get the status.
+			status, err := bc.WriteBlockWithState(block, receipts, state)
+			if err != nil {
+				return i, events, coalescedLogs, err
+			}
+
+			if _, ok := bc.engine.(consensus.Bft); ok {
+				log.Debug("Attempt to connect the next round of consensus nodes when insertchain", "number", block.Number())
+				bc.attemptAddConsensusPeerFn(block.Number(), state)
+			}
+
+			switch status {
+			case CanonStatTy:
+				log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
+					"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)))
+
+				coalescedLogs = append(coalescedLogs, logs...)
+				blockInsertTimer.UpdateSince(bstart)
+				events = append(events, ChainEvent{block, block.Hash(), logs})
+				lastCanon = block
+
+				// Only count canonical blocks for GC processing time
+				bc.gcproc += proctime
+
+			case SideStatTy:
+				log.Debug("Inserted forked block", "number", block.Number(), "hash", block.Hash(), "elapsed",
+					common.PrettyDuration(time.Since(bstart)), "txs", len(block.Transactions()), "gas", block.GasUsed(), "uncles", len(block.Uncles()))
+
+				blockInsertTimer.UpdateSince(bstart)
+				events = append(events, ChainSideEvent{block})
+			}
+			stats.processed++
+			stats.usedGas += usedGas
+
+			cache, _ := bc.stateCache.TrieDB().Size()
+			stats.report(chain, i, cache)
 		}
-
-		if _, ok := bc.engine.(consensus.Bft); ok {
-			log.Debug("Attempt to connect the next round of consensus nodes when insertchain", "number", block.Number())
-			bc.attemptAddConsensusPeerFn(block.Number(), state)
-		}
-
-		switch status {
-		case CanonStatTy:
-			log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
-				"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)))
-
-			coalescedLogs = append(coalescedLogs, logs...)
-			blockInsertTimer.UpdateSince(bstart)
-			events = append(events, ChainEvent{block, block.Hash(), logs})
-			lastCanon = block
-
-			// Only count canonical blocks for GC processing time
-			bc.gcproc += proctime
-
-		case SideStatTy:
-			log.Debug("Inserted forked block", "number", block.Number(), "hash", block.Hash(), "elapsed",
-				common.PrettyDuration(time.Since(bstart)), "txs", len(block.Transactions()), "gas", block.GasUsed(), "uncles", len(block.Uncles()))
-
-			blockInsertTimer.UpdateSince(bstart)
-			events = append(events, ChainSideEvent{block})
-		}
-		stats.processed++
-		stats.usedGas += usedGas
-
-		cache, _ := bc.stateCache.TrieDB().Size()
-		stats.report(chain, i, cache)
 	}
 	// Append a single chain head event if we've progressed the chain
 	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {

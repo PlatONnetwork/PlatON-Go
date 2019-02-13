@@ -54,18 +54,21 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		}
 		// ppos
 		if p := PrecompiledContractsPpos[*contract.CodeAddr]; p != nil {
-
-			if c, ok := p.(*CandidateContract); ok {
-				c.Contract = contract
-				c.Evm = evm
-			}
-			if t, ok := p.(*TicketContract); ok {
-				t.Contract = contract
-				t.Evm = evm
-
-			}
 			log.Info("IN PPOS PrecompiledContractsPpos ... ")
-			return RunPrecompiledContract(p, input, contract)
+			switch r := p.(type) {
+			case *CandidateContract:
+				r = &CandidateContract{}
+				r.Contract = contract
+				r.Evm = evm
+				return RunPrecompiledContract(r, input, contract)
+			case *TicketContract:
+				r = &TicketContract{}
+				r.Contract = contract
+				r.Evm = evm
+				return RunPrecompiledContract(r, input, contract)
+			default:
+				log.Error("error type","contract.CodeAddr",*contract.CodeAddr)
+			}
 		}
 	}
 

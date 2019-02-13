@@ -19,9 +19,12 @@ package state
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"math/big"
+	"runtime/debug"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -128,6 +131,7 @@ type Account struct {
 
 // newObject creates a state object.
 func newObject(db *StateDB, address common.Address, data Account) *stateObject {
+	log.Debug("newObject", "state db addr", fmt.Sprintf("%p", db))
 	if data.Balance == nil {
 		data.Balance = new(big.Int)
 	}
@@ -247,7 +251,10 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 			return value
 		}
 	}
-
+	log.Info("GetCommittedState", "stateObject addr", fmt.Sprintf("%p", self), "statedb addr", fmt.Sprintf("%p", self.db), "root", self.data.Root, "key", hex.EncodeToString([]byte(key)))
+	if self.data.Root == (common.Hash{}) {
+		log.Info("GetCommittedState", "stack", string(debug.Stack()))
+	}
 	// Otherwise load the valueKey from trie
 	enc, err := self.getTrie(db).TryGet([]byte(key))
 	if err != nil {
@@ -268,6 +275,14 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 		}
 	}
 
+	if valueKey != emptyStorage && len(value) == 0 {
+		log.Error("invalid storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
+		return []byte{}
+	}
+	if len(value) == 0 && valueKey == emptyStorage {
+		log.Debug("empty storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
+	}
+	log.Info("GetCommittedState", "stateObject addr", fmt.Sprintf("%p", self), "statedb addr", fmt.Sprintf("%p", self.db), "root", self.data.Root, "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String(), "value", len(value))
 	self.originStorage[key] = valueKey
 	self.originValueStorage[valueKey] = value
 	return value
@@ -277,7 +292,7 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 // set [keyTrie,valueKey] to storage
 // set [valueKey,value] to db
 func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.Hash, value []byte) {
-
+	log.Debug("SetState ", "keyTrie", hex.EncodeToString([]byte(keyTrie)), "valueKey", valueKey, "value", hex.EncodeToString(value))
 	//if the new value is the same as old,don't set
 	preValue := self.GetState(db, keyTrie) // get value key
 	if bytes.Equal(preValue, value) {
@@ -296,48 +311,13 @@ func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.H
 }
 
 func (self *stateObject) setState(key string, valueKey common.Hash, value []byte) {
+	cpy := make([]byte, len(value))
+	copy(cpy, value)
 	self.dirtyStorage[key] = valueKey
-	self.dirtyValueStorage[valueKey] = value
+	self.dirtyValueStorage[valueKey] = cpy
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
-/*func (self *stateObject) updateTrie(db Database) Trie {
-	tr := self.getTrie(db)
-	for key, valueKey := range self.dirtyStorage {
-
-		value, dirty := self.dirtyValueStorage[valueKey]
-		if dirty {
-			// Skip noop changes, persist actual changes
-			originValue, dirty2 := self.originValueStorage[valueKey]
-			if dirty2 {
-				if bytes.Equal(value, originValue) {
-					continue
-				}
-			}
-		}
-
-		delete(self.dirtyStorage, key)
-		delete(self.dirtyValueStorage, valueKey)
-
-		// Delete the value corresponding to the original valueKey
-		delete(self.originValueStorage, self.originStorage[key])
-
-		self.originStorage[key] = valueKey
-		self.originValueStorage[valueKey] = value
-
-		if (valueKey == common.Hash{} || bytes.Equal(value, []byte{})) {
-			self.setError(tr.TryDelete([]byte(key)))
-			continue
-		}
-
-		// Encoding []byte cannot fail, ok to ignore the error.
-		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
-		self.setError(tr.TryUpdate([]byte(key), v))
-		//self.setError(tr.TryUpdateValue(valueKey[:], value))
-	}
-	return tr
-}*/
-
 func (self *stateObject) updateTrie(db Database) Trie {
 	tr := self.getTrie(db)
 	for key, valueKey := range self.dirtyStorage {
@@ -359,9 +339,9 @@ func (self *stateObject) updateTrie(db Database) Trie {
 
 		//flush dirty value
 		if value, ok := self.dirtyValueStorage[valueKey]; ok {
-			delete(self.originValueStorage, valueKey)
+			delete(self.dirtyValueStorage, valueKey)
 			self.originValueStorage[valueKey] = value
-			self.setError(tr.TryUpdateValue(valueKey.Bytes(), v))
+			self.setError(tr.TryUpdateValue(valueKey.Bytes(), value))
 		}
 	}
 
