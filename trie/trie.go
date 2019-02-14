@@ -33,8 +33,8 @@ var (
 
 	// emptyState is the known hash of an empty state trie entry.
 	emptyState    = crypto.Keccak256Hash(nil)
-	storagePrefix = "storage-value-"
-	emptyStorage  = crypto.Keccak256Hash([]byte(storagePrefix))
+	//storagePrefix = "storage-value-"
+	emptyStorage  = crypto.Keccak256Hash(nil)
 )
 
 var (
