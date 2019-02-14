@@ -525,7 +525,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 		sealHash := ext.block.Header().SealHash()
 		cbft.blockChainCache.WriteReceipts(sealHash, receipts, ext.block.NumberU64())
 		cbft.blockChainCache.WriteStateDB(sealHash, state, ext.block.NumberU64())
-		cbft.blockChainCache.MarkBlockHash(ext.block.Hash())
+		//cbft.blockChainCache.MarkBlockHash(ext.block.Hash())
 	} else {
 		cbft.log.Error("execute block error", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return errors.New("execute block error")

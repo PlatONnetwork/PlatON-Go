@@ -678,7 +678,7 @@ func (w *worker) taskLoop() {
 				// Save stateDB, receipts to blockChainCache
 				w.blockChainCache.WriteStateDB(sealHash, task.state, task.block.NumberU64())
 				w.blockChainCache.WriteReceipts(sealHash, task.receipts, task.block.NumberU64())
-				w.blockChainCache.MarkBlockHash(task.block.Hash())
+				//w.blockChainCache.MarkBlockHash(task.block.Hash())
 				if err := cbftEngine.Seal(w.chain, task.block, w.prepareResultCh, stopCh); err != nil {
 					log.Warn("【Bft engine】Block sealing failed", "err", err)
 				}
