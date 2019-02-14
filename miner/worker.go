@@ -373,7 +373,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		}
 		interrupt = new(int32)
 		w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp, commitBlock: baseBlock}
-		timer.Reset(recommit)
+		timer.Reset(recommit * 2)
 		atomic.StoreInt32(&w.newTxs, 0)
 	}
 	// recalcRecommit recalculates the resubmitting interval upon feedback.
@@ -446,6 +446,8 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 						log.Debug("begin to package new block in time after resetting a new highest logical block")
 						//timestamp = time.Now().UnixNano() / 1e6
 						commit(false, commitInterruptResubmit, commitBlock)
+					} else {
+						timer.Reset(50 * time.Millisecond)
 					}
 				}
 			}
