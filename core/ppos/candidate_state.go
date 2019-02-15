@@ -440,7 +440,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		delInfoFn(state, can.CandidateId)
 		// update reserve id index
 		if ids, err := getIndexFn(state); nil != err {
-			log.Error("withdraw failed get"+title+"Index on setCandidateInfo", "err", err)
+			log.Error("Failed to get"+title+"Index on setCandidateInfo", "err", err)
 			return err
 		} else {
 			//for i, id := range ids {
@@ -452,7 +452,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 				}
 			}
 			if err := setIndexFn(state, ids); nil != err {
-				log.Error("withdraw failed set"+title+"Index on setCandidateInfo", "err", err)
+				log.Error("Failed to set"+title+"Index on setCandidateInfo", "err", err)
 				return err
 			}
 		}
@@ -522,7 +522,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 	}
 
 	if price.Cmp(new(big.Int).SetUint64(0)) <= 0 {
-		log.Error("withdraw failed price invalid", " price", price.String())
+		log.Error("Failed to WithdrawCandidate price invalid", " price", price.String())
 		return nil, WithdrawPriceErr
 	}
 	// cache
@@ -532,7 +532,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 	if imCan, ok := c.immediateCandidates[nodeId]; !ok || nil == imCan {
 		reCan, ok := c.reserveCandidates[nodeId]
 		if !ok || nil == reCan {
-			log.Error("withdraw failed current Candidate is empty")
+			log.Error("Failed to WithdrawCandidate current Candidate is empty")
 			return nil, CandidateEmptyErr
 		} else {
 			can = reCan
@@ -544,7 +544,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 	// check withdraw price
 	if can.Deposit.Cmp(price) < 0 {
-		log.Error("withdraw failed refund price must less or equal deposit", "key", nodeId.String())
+		log.Error("Failed to WithdrawCandidate refund price must less or equal deposit", "key", nodeId.String())
 		return nil, WithdrawPriceErr
 	} else if can.Deposit.Cmp(price) == 0 { // full withdraw
 
@@ -556,7 +556,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			delInfoFn(state, nodeId)
 			// update this id index
 			if ids, err := getIndexFn(state); nil != err {
-				log.Error("withdraw failed get"+tiltle+"Index on full withdraw", "err", err)
+				log.Error("Failed to get"+tiltle+"Index on full withdraw on WithdrawCandidate", "err", err)
 				return err
 			} else {
 				for i := 0; i < len(ids); i++ {
@@ -567,7 +567,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 					}
 				}
 				if err := setIndexFn(state, ids); nil != err {
-					log.Error("withdraw failed set"+tiltle+"Index on full withdraw", "err", err)
+					log.Error("Failed to set"+tiltle+"Index on full withdraw on WithdrawCandidate", "err", err)
 					return err
 				}
 			}
@@ -587,12 +587,12 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 		// append to refund (defeat) trie
 		if err := c.setDefeat(state, nodeId, can); nil != err {
-			log.Error("withdraw failed setDefeat on full withdraw", "err", err)
+			log.Error("Failed to setDefeat on full withdraw on WithdrawCandidate", "err", err)
 			return nil, err
 		}
 		// update index of defeat on trie
 		if err := c.setDefeatIndex(state); nil != err {
-			log.Error("withdraw failed setDefeatIndex on full withdraw", "err", err)
+			log.Error("Failed to setDefeatIndex on full withdraw on WithdrawCandidate", "err", err)
 			return nil, err
 		}
 
@@ -603,7 +603,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 		// The remaining candiate price to update current candidate info
 
 		if err := c.checkWithdraw(can.Deposit, price); nil != err {
-			log.Error("withdraw failed price invalid", " price", price.String(), "err", err)
+			log.Error("Failed to price invalid on WithdrawCandidate", " price", price.String(), "err", err)
 			return nil, err
 		}
 
@@ -626,7 +626,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 			// update current candidate
 			if err := setInfoFn(state, nodeId, canNew); nil != err {
-				log.Error("withdraw failed set"+title+" on a few of withdraw", "err", err)
+				log.Error("Failed to set"+title+" on a few of withdraw on WithdrawCandidate", "err", err)
 				return nil, err
 			}
 
@@ -645,7 +645,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			}
 			// update new index
 			if err := setIndexFn(state, ids); nil != err {
-				log.Error("withdraw failed set"+title+"Index on a few of withdraw", "err", err)
+				log.Error("Failed to set"+title+"Index on a few of withdraw on WithdrawCandidate", "err", err)
 				return nil, err
 			}
 			return candidateArr, nil
@@ -680,12 +680,12 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 		}
 		// the withdraw
 		if err := c.setDefeat(state, nodeId, canDefeat); nil != err {
-			log.Error("withdraw failed setDefeat on a few of withdraw", "err", err)
+			log.Error("Failed to setDefeat on a few of withdraw on WithdrawCandidate", "err", err)
 			return nil, err
 		}
 		// update index of defeat on trie
 		if err := c.setDefeatIndex(state); nil != err {
-			log.Error("withdraw failed setDefeatIndex on a few of withdraw", "err", err)
+			log.Error("Failed to setDefeatIndex on a few of withdraw on WithdrawCandidate", "err", err)
 			return nil, err
 		}
 	}
@@ -770,7 +770,7 @@ func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) (typ
 
 	defeat, ok := c.defeatCandidates[nodeId]
 	if !ok {
-		log.Error("Candidate is empty")
+		log.Error("Failed to GetDefeat : Candidate is empty")
 		return nil, nil
 	}
 	return defeat, nil
@@ -1142,7 +1142,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 			// Put the lucky ticket ID in the next witness details
 			can.TicketId = luckyId
 			if err := c.setNextWitness(state, nodeId, can); nil != err {
-				log.Error("failed to setNextWitness on election", "nodeId", nodeId.String(), "err", err)
+				log.Error("Failed to setNextWitness on election", "nodeId", nodeId.String(), "err", err)
 				return nil, nil, errors.New(err.Error() + ", nodeId: " + nodeId.String())
 			}
 			caches = append(caches, can)
@@ -1156,7 +1156,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	}
 	// update new nextwitnesses index
 	if err := c.setNextWitnessIndex(state, nextWitIds); nil != err {
-		log.Error("failed to setNextWitnessIndex on election", "err", err)
+		log.Error("Failed to setNextWitnessIndex on election", "err", err)
 		return nil, nil, err
 	}
 	// replace the next round of witnesses
@@ -1562,7 +1562,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		delOldInfoFn(state, can.CandidateId)
 		// update can's ids index
 		if ids, err := getOldIndexFn(state); nil != err {
-			log.Error("withdraw failed get"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
+			log.Error("Failed to get"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
 			return nil, nil, err
 		} else {
 			//for i, id := range ids {
@@ -1574,7 +1574,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 				}
 			}
 			if err := setOldIndexFn(state, ids); nil != err {
-				log.Error("withdraw failed set"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
+				log.Error("Failed to set"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
 				return nil, nil, err
 			}
 		}
@@ -1621,7 +1621,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 
 		// update reserve id index
 		if ids, err := getIndexFn(state); nil != err {
-			log.Error("withdraw failed get"+title+"Index on UpdateElectedQueue", "err", err)
+			log.Error("Failed to get"+title+"Index on UpdateElectedQueue", "err", err)
 			return err
 		} else {
 			//for i, id := range ids {
@@ -1633,7 +1633,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 				}
 			}
 			if err := setIndexFn(state, ids); nil != err {
-				log.Error("withdraw failed set"+title+"Index on UpdateElectedQueue", "err", err)
+				log.Error("Failed to set"+title+"Index on UpdateElectedQueue", "err", err)
 				return err
 			}
 		}
@@ -1735,7 +1735,7 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 
 			// update reserve id index
 			if ids, err := getIndexFn(state); nil != err {
-				log.Error("withdraw failed get"+title+"Index on preElectionReset", "err", err)
+				log.Error("Failed to get"+title+"Index on preElectionReset", "err", err)
 				return err
 			} else {
 				//for i, id := range ids {
@@ -1747,7 +1747,7 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 					}
 				}
 				if err := setIndexFn(state, ids); nil != err {
-					log.Error("withdraw failed set"+title+"Index on preElectionReset", "err", err)
+					log.Error("Failed to set"+title+"Index on preElectionReset", "err", err)
 					return err
 				}
 			}
