@@ -56,6 +56,7 @@ func NewSecure(root common.Hash, db *Database, cachelimit uint16) (*SecureTrie, 
 	if db == nil {
 		panic("trie.NewSecure called without a database")
 	}
+	log.Debug("------NewSecure------", "GoRoutineID", common.CurrentGoRoutineID(), "root", root)
 	trie, err := New(root, db)
 	storageValue := make(map[common.Hash][]byte)
 	if err != nil {

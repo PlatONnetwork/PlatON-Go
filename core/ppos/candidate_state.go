@@ -1,7 +1,7 @@
 package pposm
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -113,7 +113,7 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 // 1：init previous witness and current witness and next witness and immediate and reserve
 // 2: init all information
 func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
-	log.Info("init data by stateDB...", "flag", flag)
+	log.Info("init data by stateDB...", "statedb addr", fmt.Sprintf("%p", state))
 	//loading  candidates func
 	loadWitFunc := func(title string, canMap candidateStorage,
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
@@ -1131,13 +1131,13 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 			luckyId, err := ticketPool.SelectionLuckyTicket(state, nodeId, parentHash)
 			if nil != err {
 				log.Error("Failed to take luckyId on Election", "nodeId", nodeId.String(), "err", err)
-				return nil, nil, err
+				return nil, nil, errors.New(err.Error() + ", nodeId: " + nodeId.String())
 			}
 			// Put the lucky ticket ID in the next witness details
 			can.TicketId = luckyId
 			if err := c.setNextWitness(state, nodeId, can); nil != err {
-				log.Error("failed to setNextWitness on election", "err", err)
-				return nil, nil, err
+				log.Error("failed to setNextWitness on election", "nodeId", nodeId.String(), "err", err)
+				return nil, nil, errors.New(err.Error() + ", nodeId: " + nodeId.String())
 			}
 			caches = append(caches, can)
 			if node, err := buildWitnessNode(can); nil != err {
@@ -2351,10 +2351,9 @@ func copyCandidateMapByIds(target, source candidateStorage, ids []discover.NodeI
 //}
 
 func PrintObject(s string, obj interface{}) {
-	objs, _ := json.Marshal(obj)
-
-	log.Debug(s, "==", string(objs))
-	//fmt.Println(s, string(objs))
+	//objs, _ := json.Marshal(obj)
+	//
+	//log.Debug(s, "==", string(objs))
 }
 
 func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {

@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"fmt"
 )
 
 var (
@@ -78,6 +79,7 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 }
 
 func (t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
+	log.Debug("Call Voting", "statedb addr", fmt.Sprintf("%p", stateDB))
 	log.Debug("Start voting", "owner", owner.Hex(), "voteNumber", voteNumber, "price", deposit.Uint64(), "nodeId", nodeId.String(), "blockNumber", blockNumber.Uint64())
 	voteTicketIdList, err := t.voteTicket(stateDB, owner, voteNumber, deposit, nodeId, blockNumber)
 	if nil != err {
@@ -162,6 +164,7 @@ func (t *TicketPool) calcExpireBlockNumber(stateDB vm.StateDB, blockNumber *big.
 }
 
 func (t *TicketPool) GetExpireTicketIds(stateDB vm.StateDB, blockNumber *big.Int) ([]common.Hash, error) {
+	log.Debug("Call GetExpireTicketIds", "statedb addr", fmt.Sprintf("%p", stateDB))
 	var expireTicketIds []common.Hash
 	if err := getTicketPoolState(stateDB, ExpireTicketKey((*blockNumber).Bytes()), &expireTicketIds); nil != err {
 		return nil, err
@@ -248,6 +251,7 @@ func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, expireBlockNumber *b
 
 // Get ticket list
 func (t *TicketPool) GetTicketList(stateDB vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
+	log.Debug("Call GetTickList", "statedb addr", fmt.Sprintf("%p", stateDB))
 	var tickets []*types.Ticket
 	for _, ticketId := range ticketIds {
 		ticket, err := t.GetTicket(stateDB, ticketId)
@@ -262,6 +266,7 @@ func (t *TicketPool) GetTicketList(stateDB vm.StateDB, ticketIds []common.Hash) 
 
 // Get ticket details based on TicketId
 func (t *TicketPool) GetTicket(stateDB vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
+	log.Debug("Call GetTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
 	var ticket = new(types.Ticket)
 	if err := getTicketPoolState(stateDB, ticketId.Bytes(), ticket); nil != err {
 		return nil, DecodeTicketErr
@@ -282,6 +287,7 @@ func (t *TicketPool) setTicket(stateDB vm.StateDB, ticketId common.Hash, ticket 
 func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, nodeIds ...discover.NodeID) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
+	log.Debug("Call DropReturnTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
 	log.Info("Start processing tickets for the drop list", "candidateNum", len(nodeIds))
 	for _, nodeId := range nodeIds {
 		candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
@@ -319,6 +325,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 }
 
 func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ticketId common.Hash, blockNumber *big.Int) error {
+	log.Debug("Call ReturnTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
 	log.Info("Release the selected ticket", "nodeId", nodeId.String(), "ticketId", ticketId.Hex(), "blockNumber", blockNumber.Uint64())
 	t.lock.Lock()
 	defer t.lock.Unlock()
@@ -377,6 +384,7 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.Node
 }
 
 func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int) error {
+	log.Debug("Call Notify", "statedb addr", fmt.Sprintf("%p", stateDB))
 	// Check expired tickets
 	expireBlockNumber, ok := t.calcExpireBlockNumber(stateDB, blockNumber)
 	log.Debug("Check expired tickets", "isOk", ok, "expireBlockNumber", expireBlockNumber.Uint64())
@@ -426,6 +434,7 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 // According to the previous block Hash,
 // find the first ticket Id which is larger than the Hash. If not found, the last ticket Id is taken.
 func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.NodeID, blockHash common.Hash) (common.Hash, error) {
+	log.Debug("Call SelectionLuckyTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
 	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
 	log.Debug("Start picking lucky tickets", "nodeId", nodeId.String(), "blockHash", blockHash.Hex(), "candidateTicketIds", len(candidateTicketIds))
 	luckyTicketId := common.Hash{}
@@ -510,6 +519,7 @@ func (t *TicketPool) GetPoolNumber(stateDB vm.StateDB) (uint64, error) {
 }
 
 func (t *TicketPool) GetCandidateTicketIds(stateDB vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
+	log.Debug("Call GetCandidaieTicketIds", "statedb addr", fmt.Sprintf("%p", stateDB))
 	candidateTicketIds, err := stateDB.GetTicketCache(nodeId)
 	if nil != err {
 		return nil, err
@@ -518,6 +528,7 @@ func (t *TicketPool) GetCandidateTicketIds(stateDB vm.StateDB, nodeId discover.N
 }
 
 func (t *TicketPool) GetCandidatesTicketIds(stateDB vm.StateDB, nodeIds []discover.NodeID) (map[discover.NodeID][]common.Hash, error) {
+	log.Debug("Call GetCandidateArrTicketIds", "statedb addr", fmt.Sprintf("%p", stateDB))
 	result := make(map[discover.NodeID][]common.Hash)
 	if nodeIds != nil {
 		for _, nodeId := range nodeIds {
@@ -532,6 +543,7 @@ func (t *TicketPool) GetCandidatesTicketIds(stateDB vm.StateDB, nodeIds []discov
 }
 
 func (t *TicketPool) GetCandidatesTicketCount(stateDB vm.StateDB, nodeIds []discover.NodeID) (map[discover.NodeID]int, error) {
+	log.Debug("Call GetCandidatesTicketCount", "statedb addr", fmt.Sprintf("%p", stateDB))
 	result := make(map[discover.NodeID]int)
 	if nil != nodeIds {
 		for _, nodeId := range nodeIds {
@@ -546,6 +558,7 @@ func (t *TicketPool) GetCandidatesTicketCount(stateDB vm.StateDB, nodeIds []disc
 }
 
 func (t *TicketPool) GetCandidateAttach(stateDB vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
+	log.Debug("Call GetCandidateAttach", "statedb addr", fmt.Sprintf("%p", stateDB))
 	candidateAttach := new(types.CandidateAttach)
 	candidateAttach.Epoch = new(big.Int)
 	if err := getTicketPoolState(stateDB, CandidateAttachKey(nodeId.Bytes()), candidateAttach); nil != err {
@@ -566,6 +579,7 @@ func (t *TicketPool) setCandidateAttach(stateDB vm.StateDB, nodeId discover.Node
 }
 
 func (t *TicketPool) GetCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeID) (uint64, error) {
+	log.Debug("Call GetCandidateEpoch", "statedb addr", fmt.Sprintf("%p", stateDB))
 	candidateAttach, err := t.GetCandidateAttach(stateDB, nodeId)
 	if nil != err {
 		return 0, err

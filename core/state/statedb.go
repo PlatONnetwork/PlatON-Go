@@ -19,7 +19,6 @@ package state
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"math/big"
@@ -51,8 +50,6 @@ var (
 	emptyCode    = crypto.Keccak256Hash(nil)
 	emptyStorage = crypto.Keccak256Hash([]byte(storagePrefix))
 
-	//ppos add
-	ErrNotfindFromNodeId = errors.New("Not find tickets from node id")
 )
 
 // StateDBs within the ethereum protocol are used to store anything
@@ -100,6 +97,7 @@ type StateDB struct {
 // Create a new state from a given trie.
 //func New(root common.Hash, db Database) (*StateDB, error) {
 func New(root common.Hash, db Database, blocknumber *big.Int, blockhash common.Hash) (*StateDB, error) {
+	log.Debug("------statedb new------", "GoRoutineID", common.CurrentGoRoutineID(), "root", root)
 	tr, err := db.OpenTrie(root)
 	if err != nil {
 		return nil, err
@@ -151,7 +149,7 @@ func (self *StateDB) AddLog(logInfo *types.Log) {
 	self.journal.append(addLogChange{txhash: self.thash})
 	// TODO
 	logsByte, _ := json.Marshal(logInfo)
-	log.Debug("Call Add StateDB log", "txHash", self.thash.Hex(), "log:", string(logsByte))
+	log.Debug("【Call Add StateDB log】", "txHash", self.thash.Hex(), "log:", string(logsByte))
 	logInfo.TxHash = self.thash
 	logInfo.BlockHash = self.bhash
 	logInfo.TxIndex = uint(self.txIndex)
@@ -164,7 +162,7 @@ func (self *StateDB) GetLogs(hash common.Hash) []*types.Log {
 	// TODO
 	logs := self.logs[hash]
 	logsByte, _ := json.Marshal(logs)
-	log.Debug("��Call Get StateDB Log��", "txHash", self.thash.Hex(), "logs:", string(logsByte))
+	log.Debug("【Call Get StateDB Log】", "txHash", self.thash.Hex(), "logs:", string(logsByte))
 	return self.logs[hash]
 }
 
