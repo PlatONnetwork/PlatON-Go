@@ -50,6 +50,7 @@ type TicketTempCache struct{
 	RWlock 		*sync.RWMutex
 }
 
+// global obj of ticket related
 var ticketTemp *TicketTempCache
 
 //func NewTicketIdsCache(db ethdb.Database) *NumBlocks {
@@ -85,9 +86,12 @@ func NewTicketIdsCache(db ethdb.Database) *TicketTempCache {
 	return ticketTemp
 }
 
+// Create a ticket cache by blocknumber and blockHash from global temp
 func GetNodeTicketsCacheMap(blocknumber *big.Int, blockhash common.Hash) (ret TicketCache) {
 	log.Info("Call ticketcache GetNodeTicketsCacheMap", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
 	if ticketTemp != nil {
+
+		// getting a ticket cache by blocknumber and blockHash from global temp
 		ret = ticketTemp.GetNodeTicketsMap(blocknumber, blockhash)
 	} else {
 		log.Warn("Failed call ticketcache GetNodeTicketsCacheMap, the Global ticketTemp instance is nil !!!!!!!!!!!!!!!")
@@ -120,19 +124,31 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 	defer t.RWlock.Unlock()
 
 	log.Info("Call TicketTempCache GetNodeTicketsMap ...", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
+
+	// a map （blocknumber => map[blockHash]map[nodeId][]ticketId）
 	blockNodes, ok := t.Cache.NBlocks[blocknumber.String()]
 	if !ok {
 		blockNodes = &BlockNodes{}
+		// create a new map （map[blockHash]map[nodeId][]ticketId）
 		blockNodes.BNodes = make(map[string]*NodeTicketIds)
+		// set to cache by current map （map[blockHash]map[nodeId][]ticketId）
 		t.Cache.NBlocks[blocknumber.String()] = blockNodes
 	}
+
+	// a map (blockHash => map[nodeId][]ticketId)
 	nodeTicketIds, ok := blockNodes.BNodes[blockhash.String()]
 	if !ok {
 		nodeTicketIds = &NodeTicketIds{}
+		// create a new map (map[nodeId][]ticketId)
 		nodeTicketIds.NTickets = make(map[string]*TicketIds)
+		// set to cache by current map (map[nodeId][]ticketId)
 		blockNodes.BNodes[blockhash.String()] = nodeTicketIds
 	}
-	//goroutine task
+
+	/**
+	goroutine task
+	build data by global cache （map[nodeId][]ticketId）
+	 */
 	type result struct {
 		key  discover.NodeID
 		tids []common.Hash
@@ -140,11 +156,18 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 	resCh := make(chan *result, len(nodeTicketIds.NTickets))
 	var wg sync.WaitGroup
 	wg.Add(len(nodeTicketIds.NTickets))
+
+	// key == nodeId
+	// value == []ticketId
 	for k, v := range nodeTicketIds.NTickets {
 		nid, err := discover.HexID(k)
 		if err == nil {
+			// copy nodeId => []tickId by routine task
 			go func(nodeid discover.NodeID, tidslice *TicketIds) {
+				// create a new []ticketId
 				tids := make([]common.Hash, 0, len(tidslice.TicketId))
+
+				// recursive to build ticketId  from global slice of ticketId
 				for _, tid := range tidslice.TicketId {
 					tids = append(tids, common.BytesToHash(tid))
 				}
@@ -163,6 +186,7 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 	close(resCh)
 	out := NewTicketCache()
 	for res := range resCh {
+		// a map type as nodeId => []ticketId
 		out[res.key] = res.tids
 	}
 	return out
@@ -294,9 +318,16 @@ func (tc TicketCache) TCount(nodeid discover.NodeID) uint64 {
 	return uint64(len(tc[nodeid]))
 }
 
+// copy a cache as (nodeId => []ticketId)
 func (tc TicketCache) TicketCaceheSnapshot() TicketCache {
+
+	// create a new cache
 	ret := NewTicketCache()
+
+	// copy data from origin cache
 	for nodeid, tids := range tc {
+
+		// []ticketId
 		arr := make([]common.Hash, len(tids))
 		copy(arr, tids)
 		ret[nodeid] = arr
