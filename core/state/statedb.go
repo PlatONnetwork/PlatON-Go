@@ -42,14 +42,13 @@ type revision struct {
 }
 
 var (
-	storagePrefix = "storage-value-"
 	// emptyState is the known hash of an empty state trie entry.
 	emptyState = crypto.Keccak256Hash(nil)
 
 	// emptyCode is the known hash of the empty EVM bytecode.
-	emptyCode    = crypto.Keccak256Hash(nil)
-	emptyStorage = crypto.Keccak256Hash([]byte(storagePrefix))
+	emptyCode = crypto.Keccak256Hash(nil)
 
+	emptyStorage = crypto.Keccak256Hash(nil)
 )
 
 // StateDBs within the ethereum protocol are used to store anything
@@ -269,6 +268,8 @@ func (self *StateDB) GetCodeHash(addr common.Address) common.Hash {
 
 // GetState retrieves a value from the given account's storage trie.
 func (self *StateDB) GetState(addr common.Address, key []byte) []byte {
+	self.lock.Lock()
+	defer self.lock.Unlock()
 	stateObject := self.getStateObject(addr)
 	keyTrie, _, _ := getKeyValue(addr, key, nil)
 	if stateObject != nil {
@@ -357,11 +358,13 @@ func (self *StateDB) SetCode(addr common.Address, code []byte) {
 }
 
 func (self *StateDB) SetState(address common.Address, key, value []byte) {
+	self.lock.Lock()
 	stateObject := self.GetOrNewStateObject(address)
 	keyTrie, valueKey, value := getKeyValue(address, key, value)
 	if stateObject != nil {
 		stateObject.SetState(self.db, keyTrie, valueKey, value)
 	}
+	self.lock.Unlock()
 }
 
 func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
@@ -372,7 +375,6 @@ func getKeyValue(address common.Address, key []byte, value []byte) (string, comm
 
 	//if value != nil && !bytes.Equal(value,[]byte{}){
 	buffer.Reset()
-	buffer.WriteString(storagePrefix)
 	buffer.WriteString(string(value))
 
 	valueKey := common.Hash{}

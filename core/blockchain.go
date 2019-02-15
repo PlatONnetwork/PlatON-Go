@@ -1211,79 +1211,73 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return i, events, coalescedLogs, err
 		}
 
-		// modify by niuxiaojie
-		markFlag := bc.MarkBlockHash(block.Hash())
-		if !markFlag {
-			break
+		// Create a new statedb using the parent block and report an
+		// error if it fails.
+		var parent *types.Block
+		if i == 0 {
+			parent = bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
 		} else {
-			// Create a new statedb using the parent block and report an
-			// error if it fails.
-			var parent *types.Block
-			if i == 0 {
-				parent = bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
-			} else {
-				parent = chain[i-1]
-			}
-			state, err := state.New(parent.Root(), bc.stateCache, parent.Number(), parent.Hash())
-			if err != nil {
-				return i, events, coalescedLogs, err
-			}
-			root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-			log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
-			if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-				cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， Before executing the transaction：")
-			}
-			// Process block using the parent state as reference point.
-			receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
-			if err != nil {
-				bc.reportBlock(block, receipts, err)
-				return i, events, coalescedLogs, err
-			}
-			// Validate the state using the default validator
-			err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
-			if err != nil {
-				bc.reportBlock(block, receipts, err)
-				return i, events, coalescedLogs, err
-			}
-			proctime := time.Since(bstart)
-
-			// Write the block to the chain and get the status.
-			status, err := bc.WriteBlockWithState(block, receipts, state)
-			if err != nil {
-				return i, events, coalescedLogs, err
-			}
-
-			if _, ok := bc.engine.(consensus.Bft); ok {
-				log.Debug("Attempt to connect the next round of consensus nodes when insertchain", "number", block.Number())
-				bc.attemptAddConsensusPeerFn(block.Number(), state)
-			}
-
-			switch status {
-			case CanonStatTy:
-				log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
-					"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)))
-
-				coalescedLogs = append(coalescedLogs, logs...)
-				blockInsertTimer.UpdateSince(bstart)
-				events = append(events, ChainEvent{block, block.Hash(), logs})
-				lastCanon = block
-
-				// Only count canonical blocks for GC processing time
-				bc.gcproc += proctime
-
-			case SideStatTy:
-				log.Debug("Inserted forked block", "number", block.Number(), "hash", block.Hash(), "elapsed",
-					common.PrettyDuration(time.Since(bstart)), "txs", len(block.Transactions()), "gas", block.GasUsed(), "uncles", len(block.Uncles()))
-
-				blockInsertTimer.UpdateSince(bstart)
-				events = append(events, ChainSideEvent{block})
-			}
-			stats.processed++
-			stats.usedGas += usedGas
-
-			cache, _ := bc.stateCache.TrieDB().Size()
-			stats.report(chain, i, cache)
+			parent = chain[i-1]
 		}
+		state, err := state.New(parent.Root(), bc.stateCache, parent.Number(), parent.Hash())
+		if err != nil {
+			return i, events, coalescedLogs, err
+		}
+		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
+		log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+			cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， Before executing the transaction：")
+		}
+		// Process block using the parent state as reference point.
+		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
+		if err != nil {
+			bc.reportBlock(block, receipts, err)
+			return i, events, coalescedLogs, err
+		}
+		// Validate the state using the default validator
+		err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
+		if err != nil {
+			bc.reportBlock(block, receipts, err)
+			return i, events, coalescedLogs, err
+		}
+		proctime := time.Since(bstart)
+
+		// Write the block to the chain and get the status.
+		status, err := bc.WriteBlockWithState(block, receipts, state)
+		if err != nil {
+			return i, events, coalescedLogs, err
+		}
+
+		if _, ok := bc.engine.(consensus.Bft); ok {
+			log.Debug("Attempt to connect the next round of consensus nodes when insertchain", "number", block.Number())
+			bc.attemptAddConsensusPeerFn(block.Number(), state)
+		}
+
+		switch status {
+		case CanonStatTy:
+			log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
+				"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)))
+
+			coalescedLogs = append(coalescedLogs, logs...)
+			blockInsertTimer.UpdateSince(bstart)
+			events = append(events, ChainEvent{block, block.Hash(), logs})
+			lastCanon = block
+
+			// Only count canonical blocks for GC processing time
+			bc.gcproc += proctime
+
+		case SideStatTy:
+			log.Debug("Inserted forked block", "number", block.Number(), "hash", block.Hash(), "elapsed",
+				common.PrettyDuration(time.Since(bstart)), "txs", len(block.Transactions()), "gas", block.GasUsed(), "uncles", len(block.Uncles()))
+
+			blockInsertTimer.UpdateSince(bstart)
+			events = append(events, ChainSideEvent{block})
+		}
+		stats.processed++
+		stats.usedGas += usedGas
+
+		cache, _ := bc.stateCache.TrieDB().Size()
+		stats.report(chain, i, cache)
 	}
 	// Append a single chain head event if we've progressed the chain
 	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {

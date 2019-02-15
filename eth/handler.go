@@ -716,41 +716,37 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		log.Debug("------------Received a broadcast message[PrepareBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 
-		// modify by niuxiaojie
-		markFlag := pm.blockchain.MarkBlockHash(request.Block.Hash())
-		if markFlag {
-			request.Block.ReceivedAt = msg.ReceivedAt
-			request.Block.ReceivedFrom = p
+		request.Block.ReceivedAt = msg.ReceivedAt
+		request.Block.ReceivedFrom = p
 
-			// Preliminary check block
-			if err := pm.engine.VerifyHeader(pm.blockchain, request.Block.Header(), true); err != nil {
-				log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
-				return nil
+		// Preliminary check block
+		if err := pm.engine.VerifyHeader(pm.blockchain, request.Block.Header(), true); err != nil {
+			log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
+			return nil
+		}
+		if pm.blockchain.HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
+			log.Warn("Block already in blockchain,discard this msg", "err", err)
+			return nil
+		}
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
+			//if pm.downloader.IsRunning() {
+			//	log.Warn("downloader is running,discard this msg")
+			//}
+			/*
+			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
+				log.Warn("local node is not consensus node,discard this msg")
+			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
+				log.Warn("remote node is not consensus node,discard this msg")
+			} else if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
+				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
 			}
-			if pm.blockchain.HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
-				log.Warn("Block already in blockchain,discard this msg", "err", err)
-				return nil
+			*/
+			if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
+				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
 			}
-			if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-				//if pm.downloader.IsRunning() {
-				//	log.Warn("downloader is running,discard this msg")
-				//}
-				/*
-				if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
-					log.Warn("local node is not consensus node,discard this msg")
-				} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
-					log.Warn("remote node is not consensus node,discard this msg")
-				} else if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
-					log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
-				}
-				*/
-				if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
-					log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
-				}
-				return nil
-			} else {
-				log.Warn("Consensus engine is not cbft", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
-			}
+			return nil
+		} else {
+			log.Warn("Consensus engine is not cbft", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 		}
 
 	case msg.Code == BlockSignatureMsg:
