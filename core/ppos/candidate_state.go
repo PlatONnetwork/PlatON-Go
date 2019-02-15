@@ -115,14 +115,14 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 	log.Info("init data by stateDB...", "statedb addr", fmt.Sprintf("%p", state))
 
-	parentRoutineID := fmt.Sprintf(" %s ", common.CurrentGoRoutineID())
+	parentRoutineID := fmt.Sprintf("%s", common.CurrentGoRoutineID())
 
 	//loading  candidates func
 	loadWitFunc := func(title string, canMap candidateStorage,
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 		getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) error {
 
-		log.Debug("initDataByState by Getting " + title, "parent routine", parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
+		log.Debug("initDataByState by Getting " + title+" parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 		var witnessIds []discover.NodeID
 		if ids, err := getIndexFn(state); nil != err {
 			log.Error("Failed to decode "+title+" witnessIds on initDataByState", " err", err)
@@ -189,7 +189,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 			getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) (types.CandidateQueue, error) {
 			var witnessIds []discover.NodeID
 
-			log.Debug("initDataByState by Getting " + title, "parent routine", parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
+			log.Debug("initDataByState by Getting " + title+" parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 			if ids, err := getIndexFn(state); nil != err {
 				log.Error("Failed to decode "+title+"Ids on initDataByState", " err", err)
 				return nil, err
@@ -1329,12 +1329,12 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 		return nil, nil, nil, err
 	}
 
-	parentRoutineID := fmt.Sprintf(" %s ", common.CurrentGoRoutineID())
+	parentRoutineID := fmt.Sprintf("%s", common.CurrentGoRoutineID())
 
 	fetchWitnessFunc := func(title string, witnesses candidateStorage,
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error)) ([]*discover.Node, error) {
 
-		log.Debug("GetAllWitness by Getting " + title, "parent routine", parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
+		log.Debug("GetAllWitness by Getting " + title+" parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 		nodes := make([]*discover.Node, 0)
 
 		// caches
