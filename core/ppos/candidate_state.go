@@ -337,7 +337,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	c.lock.Unlock()
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
-		if err := ticketPool.DropReturnTicket(state, can.BlockNumber, nodeIds...); nil != err {
+		if err := tContext.DropReturnTicket(state, can.BlockNumber, nodeIds...); nil != err {
 			log.Error("Failed to DropReturnTicket on SetCandidate ...")
 			//return err
 		}
@@ -505,7 +505,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 	}
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
-		if err := ticketPool.DropReturnTicket(state, blockNumber, nodeIds...); nil != err {
+		if err := tContext.DropReturnTicket(state, blockNumber, nodeIds...); nil != err {
 			log.Error("Failed to DropReturnTicket on WithdrawCandidate ...")
 		}
 	}
@@ -1027,7 +1027,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	nodeIds := make([]discover.NodeID, 0)
 	for _, can := range cans {
 		// Release lucky ticket TODO
-		if err := ticketPool.ReturnTicket(state, can.CandidateId, can.TicketId, currBlockNumber); nil != err {
+		if err := tContext.ReturnTicket(state, can.CandidateId, can.TicketId, currBlockNumber); nil != err {
 			log.Error("Failed to ReturnTicket on Election", "nodeId", can.CandidateId.String(), "ticketId", can.TicketId.String(), "err", err)
 			continue
 		}
@@ -1070,7 +1070,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	// Release the lost list
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
-		if err := ticketPool.DropReturnTicket(state, currBlockNumber, nodeIds...); nil != err {
+		if err := tContext.DropReturnTicket(state, currBlockNumber, nodeIds...); nil != err {
 			log.Error("Failed to DropReturnTicket on Election ...")
 		}
 	}
@@ -1134,7 +1134,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 		if can, ok := nextWits[nodeId]; ok {
 
 			// After election to call Selected LuckyTicket TODO
-			luckyId, err := ticketPool.SelectionLuckyTicket(state, nodeId, parentHash)
+			luckyId, err := tContext.SelectionLuckyTicket(state, nodeId, parentHash)
 			if nil != err {
 				log.Error("Failed to take luckyId on Election", "nodeId", nodeId.String(), "err", err)
 				return nil, nil, errors.New(err.Error() + ", nodeId: " + nodeId.String())
@@ -1485,7 +1485,7 @@ func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *bi
 	c.ForEachStorage(state, "View State After UpdateElectedQueue ...")
 	//go ticketPool.DropReturnTicket(state, ids...)
 	if len(ids) > 0 {
-		return ticketPool.DropReturnTicket(state, currBlockNumber, ids...)
+		return tContext.DropReturnTicket(state, currBlockNumber, ids...)
 	}
 	return nil
 }
@@ -2384,7 +2384,8 @@ func makeCandidateSort(state vm.StateDB, arr types.CandidateQueue) {
 	cand := make(types.CanConditions, 0)
 	for _, can := range arr {
 		tCount := state.TCount(can.CandidateId)
-		tprice := new(big.Int).Mul(big.NewInt(int64(tCount)), ticketPool.TicketPrice)
+		price, _ := tContext.GetTicketPrice(state)
+		tprice := new(big.Int).Mul(big.NewInt(int64(tCount)), price)
 
 		money := new(big.Int).Add(can.Deposit, tprice)
 

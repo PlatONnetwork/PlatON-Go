@@ -33,7 +33,7 @@ type ppos struct {
 	// the candidateContext pool object pointer
 	candidateContext 	*pposm.CandidatePoolContext
 	// the ticket pool object pointer
-	ticketPool				*pposm.TicketPool
+	ticketContext				*pposm.TicketPoolContext
 	// the ticket id list cache
 	ticketidsCache 			*ticketcache.TicketTempCache
 }
@@ -45,7 +45,7 @@ func newPpos(config *params.CbftConfig) *ppos {
 		lastCycleBlockNum: 	0,
 		config:            	config.PposConfig,
 		candidateContext:   pposm.NewCandidatePoolContext(config.PposConfig),
-		ticketPool: 		pposm.NewTicketPool(config.PposConfig),
+		ticketContext: 		pposm.NewTicketPoolContext(config.PposConfig),
 	}
 }
 
@@ -434,43 +434,43 @@ func (d *ppos) GetRefundInterval() uint64 {
 /** about ticketpool's method */
 
 func (d *ppos) GetPoolNumber (state vm.StateDB) (uint64, error) {
-	return d.ticketPool.GetPoolNumber(state)
+	return d.ticketContext.GetPoolNumber(state)
 }
 
 func (d *ppos) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
-	return d.ticketPool.VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber)
+	return d.ticketContext.VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber)
 }
 
 func (d *ppos) GetTicket(state vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
-	return d.ticketPool.GetTicket(state, ticketId)
+	return d.ticketContext.GetTicket(state, ticketId)
 }
 
 func (d *ppos) GetTicketList (state vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
-	return d.ticketPool.GetTicketList(state, ticketIds)
+	return d.ticketContext.GetTicketList(state, ticketIds)
 }
 
 func (d *ppos) GetCandidateTicketIds (state vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
-	return d.ticketPool.GetCandidateTicketIds(state, nodeId)
+	return d.ticketContext.GetCandidateTicketIds(state, nodeId)
 }
 
 func (d *ppos) GetCandidateEpoch (state vm.StateDB, nodeId discover.NodeID) (uint64, error) {
-	return d.ticketPool.GetCandidateEpoch(state, nodeId)
+	return d.ticketContext.GetCandidateEpoch(state, nodeId)
 }
 
 func (d *ppos) GetTicketPrice (state vm.StateDB) (*big.Int, error) {
-	return d.ticketPool.GetTicketPrice(state)
+	return d.ticketContext.GetTicketPrice(state)
 }
 
 func (d *ppos) GetCandidateAttach (state vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
-	return d.ticketPool.GetCandidateAttach(state, nodeId)
+	return d.ticketContext.GetCandidateAttach(state, nodeId)
 }
 
 func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
-	return d.ticketPool.Notify(state, blockNumber)
+	return d.ticketContext.Notify(state, blockNumber)
 }
 
 func (d *ppos) StoreHash (state *state.StateDB) {
-	if err := d.ticketPool.CommitHash(state); nil != err {
+	if err := d.ticketContext.StoreHash(state); nil != err {
 		log.Error("Failed to StoreHash", "err", err)
 		panic("Failed to StoreHash err" + err.Error())
 	}

@@ -1912,7 +1912,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		return
 	}
 	log.Info("Call accumulateRewards, GetTicket ", "TicketId: ", can.TicketId.Hex())
-	ticket, err := cbft.ppos.ticketPool.GetTicket(state, can.TicketId)
+	ticket, err := cbft.ppos.GetTicket(state, can.TicketId)
 	if nil != err {
 		log.Error("Failed to Call accumulateRewards, GetTicket faile ", " err: ", err.Error())
 		return

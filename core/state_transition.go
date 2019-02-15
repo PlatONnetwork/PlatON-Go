@@ -110,7 +110,7 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
 	//ppos
 	evm.CandidatePoolContext = pposm.GetCandidateContextPtr()
-	evm.TicketPool = pposm.GetTicketPtr()
+	evm.TicketPoolContext = pposm.GetTicketPoolContextPtr()
 	return &StateTransition{
 		gp:       gp,
 		evm:      evm,
