@@ -56,7 +56,7 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 	//if nil != ticketPool {
 	//	return ticketPool
 	//}
-
+	log.Debug("Build a New TicketPool Info ...")
 	if "" == strings.TrimSpace(configs.TicketConfig.TicketPrice) {
 		configs.TicketConfig.TicketPrice = "1000000000000000000"
 	}
@@ -78,7 +78,7 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 
 func (t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
 	log.Debug("Call Voting", "statedb addr", fmt.Sprintf("%p", stateDB))
-	log.Debug("Start voting", "owner", owner.Hex(), "voteNumber", voteNumber, "price", deposit.Uint64(), "nodeId", nodeId.String(), "blockNumber", blockNumber.Uint64())
+	log.Info("Start Voting", "owner", owner.Hex(), "voteNumber", voteNumber, "price", deposit.Uint64(), "nodeId", nodeId.String(), "blockNumber", blockNumber.Uint64())
 	voteTicketIdList, err := t.voteTicket(stateDB, owner, voteNumber, deposit, nodeId, blockNumber)
 	if nil != err {
 		log.Error("Voting failed", "nodeId", nodeId.String(), "voteNumber", voteNumber, "successNum", len(voteTicketIdList), "err", err)
@@ -111,6 +111,9 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 		voteNumber = surplusQuantity
 	}
 	log.Debug("Start circular voting", "nodeId", nodeId.String(), "voteNumber", voteNumber)
+
+	parentRoutineID := fmt.Sprintf("%s", common.CurrentGoRoutineID())
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	var wg sync.WaitGroup
 	wg.Add(int(voteNumber))
@@ -122,7 +125,11 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	var i uint64 = 0
 	for ; i < voteNumber; i++ {
 		go func(i uint64) {
+
 			ticketId, _ := generateTicketId(stateDB.TxHash(), i)
+
+			log.Debug("Call Voting parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", stateDB), "ticketId", ticketId.String())
+
 			ticket := &types.Ticket{
 				TicketId:    ticketId,
 				Owner:       owner,
