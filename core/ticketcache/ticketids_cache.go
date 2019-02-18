@@ -133,7 +133,7 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 		blockNodes.BNodes = make(map[string]*NodeTicketIds)
 		// set to cache by current map （map[blockHash]map[nodeId][]ticketId）
 		t.Cache.NBlocks[blocknumber.String()] = blockNodes
-		log.Error("Failed to GetNodeTicketsMap, TicketCache is empty by blocknumber", "blocknumber", blocknumber.String())
+		log.Error("Failed to GetNodeTicketsMap, TicketCache is empty by blocknumber", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
 	}
 
 	// a map (blockHash => map[nodeId][]ticketId)
@@ -185,7 +185,7 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 			}(nid, v)
 		} else {
 			wg.Done()
-			log.Error("Failed to TicketTempCache GetNodeTicketsMap: nodeId to discover.HexID error ", "NodeId: ", k)
+			log.Error("Failed to TicketTempCache GetNodeTicketsMap: nodeId to discover.HexID error ", "NodeId: ", k, "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
 		}
 	}
 	wg.Wait()
