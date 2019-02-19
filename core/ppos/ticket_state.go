@@ -184,9 +184,10 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	if nil != err {
 		return voteTicketIdList, err
 	}
-	log.Debug("Reduce the remaining amount of the ticket pool successfully", "surplusQuantity", surplusQuantity)
-	log.Debug("End loop voting", "nodeId", nodeId.String())
+
 	stateDB.AppendTicketCache(nodeId, voteTicketIdList[:])
+
+	log.Debug("Voting SUCCUESS !!!!!!  Reduce the remaining amount of the ticket pool successfully", "surplusQuantity", surplusQuantity, "nodeId", nodeId.String())
 	return voteTicketIdList, nil
 }
 
