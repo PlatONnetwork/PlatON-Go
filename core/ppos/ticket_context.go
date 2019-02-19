@@ -43,6 +43,10 @@ func (c *TicketPoolContext) GetTicket(state vm.StateDB, ticketId common.Hash) (*
 	return c.initTicketPool().GetTicket(state, ticketId)
 }
 
+func (c *TicketPoolContext) GetExpireTicketIds(state vm.StateDB, blockNumber *big.Int) ([]common.Hash, error) {
+	return c.initTicketPool().GetExpireTicketIds(state, blockNumber)
+}
+
 func (c *TicketPoolContext) GetTicketList (state vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
 	return c.initTicketPool().GetTicketList(state, ticketIds)
 }
