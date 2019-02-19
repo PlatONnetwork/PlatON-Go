@@ -122,7 +122,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 		getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) error {
 
-		log.Debug("initDataByState by Getting " + title+" parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
+		log.Debug("initDataByState by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 		var witnessIds []discover.NodeID
 		if ids, err := getIndexFn(state); nil != err {
 			log.Error("Failed to decode "+title+" witnessIds on initDataByState", " err", err)
@@ -189,7 +189,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 			getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) (types.CandidateQueue, error) {
 			var witnessIds []discover.NodeID
 
-			log.Debug("initDataByState by Getting " + title+" parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
+			log.Debug("initDataByState by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 			if ids, err := getIndexFn(state); nil != err {
 				log.Error("Failed to decode "+title+"Ids on initDataByState", " err", err)
 				return nil, err
@@ -1334,7 +1334,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	fetchWitnessFunc := func(title string, witnesses candidateStorage,
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error)) ([]*discover.Node, error) {
 
-		log.Debug("GetAllWitness by Getting " + title+" parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
+		log.Debug("GetAllWitness by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 		nodes := make([]*discover.Node, 0)
 
 		// caches
@@ -1467,6 +1467,28 @@ func (c *CandidatePool) GetWitnessCandidate(state vm.StateDB, nodeId discover.No
 	}
 }
 
+func (c *CandidatePool) GetLuckyTickets(state vm.StateDB, flag int) ([]common.Hash, error) {
+	var witnessIds []discover.NodeID
+	if arr, err := c.getWitnessIndex(state); nil != err {
+		log.Error("Failed to getWitnessIndex on GetLuckyTickets", "err: ", err)
+		return nil, err
+	} else {
+		witnessIds = arr
+	}
+	luckyTicketArr := make([]common.Hash, 0)
+	for _, witnessId := range witnessIds {
+		can, err := c.GetWitnessCandidate(state, witnessId, flag)
+		if nil != err {
+			log.Error("Failed to getWitnessCandidate on GetLuckyTickets", "err: ", err)
+			return nil, err
+		}
+		if (common.Hash{}) != can.TicketId {
+			luckyTicketArr = append(luckyTicketArr, can.TicketId)
+		}
+	}
+	return luckyTicketArr, nil
+}
+
 func (c *CandidatePool) GetRefundInterval() uint64 {
 	log.Info("Call GetRefundInterval", "RefundBlockNumber", c.RefundBlockNumber)
 	return c.RefundBlockNumber
@@ -1500,7 +1522,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		return nil, nil
 	}
 	if err := c.initDataByState(state, 1); nil != err {
-	//	if err := c.initDataByState(state, 0); nil != err {
+		//	if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on UpdateElectedQueue", "err", err)
 		return nil, err
 	}

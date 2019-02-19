@@ -47,6 +47,7 @@ type candidatePoolContext interface {
 	GetRefundInterval() uint64
 	MaxCount() uint64
 	MaxChair() uint64
+	GetLuckyTickets(state StateDB, flag int) ([]common.Hash, error)
 }
 
 type CandidateContract struct {
@@ -73,6 +74,7 @@ func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 		"CandidateWithdrawInfos":  c.CandidateWithdrawInfos,
 		"VerifiersList":           c.VerifiersList,
 		"GetBatchCandidateDetail": c.GetBatchCandidateDetail,
+		"GetCurrentRLuckyTickets": c.GetCurrentRLuckyTickets,
 	}
 	return execute(input, command)
 }
@@ -321,6 +323,18 @@ func (c *CandidateContract) VerifiersList() ([]byte, error) {
 	data, _ := json.Marshal(verifiers)
 	sdata := DecodeResultStr(string(data))
 	log.Info("Result of VerifiersList==> ", "len(verifiers): ", len(verifiers), "json: ", string(data))
+	return sdata, nil
+}
+
+// GetCurrentRLuckyTickets return the current round's lucky ticketIds.
+func (c *CandidateContract) GetCurrentRLuckyTickets() ([]byte, error) {
+	ticketIds, err := c.Evm.CandidatePoolContext.GetLuckyTickets(c.Evm.StateDB, 0)
+	if nil != err {
+		log.Error("Failed to GetCurrentRLuckyTickets==> ", "GetLuckyTickets return err: ", err.Error())
+	}
+	data, _ := json.Marshal(ticketIds)
+	sdata := DecodeResultStr(string(data))
+	log.Info("Result of GetCurrentRLuckyTickets==> ", "len(ticketIds): ", len(ticketIds), "json: ", string(data))
 	return sdata, nil
 }
 
