@@ -610,6 +610,20 @@ func TestCandidatePoolEncode(t *testing.T) {
 	} else {
 		fmt.Println("VerifiersList data rlp: ", hexutil.Encode(bufVerifiersList.Bytes()))
 	}
+
+	// GetCurrentRLuckyTickets()
+	var GetCurrentRLuckyTickets [][]byte
+	GetCurrentRLuckyTickets = make([][]byte, 0)
+	GetCurrentRLuckyTickets = append(GetCurrentRLuckyTickets, uint64ToBytes(0xf1))
+	GetCurrentRLuckyTickets = append(GetCurrentRLuckyTickets, []byte("GetCurrentRLuckyTickets"))
+	bufGetCurrentRLuckyTickets := new(bytes.Buffer)
+	err = rlp.Encode(bufGetCurrentRLuckyTickets, GetCurrentRLuckyTickets)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetCurrentRLuckyTickets encode rlp data fail")
+	} else {
+		fmt.Println("GetCurrentRLuckyTickets data rlp: ", hexutil.Encode(bufGetCurrentRLuckyTickets.Bytes()))
+	}
 }
 
 func TestCandidatePoolDecode(t *testing.T) {
