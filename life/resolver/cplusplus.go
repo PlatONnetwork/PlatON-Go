@@ -460,14 +460,14 @@ func envCallocGasCost(vm *exec.VirtualMachine) (uint64, error) {
 
 func envRealloc(vm *exec.VirtualMachine) int64 {
 	mem := vm.Memory
-	//ptr := int(int32(vm.GetCurrentFrame().Locals[0]))
+	ptr := int(int32(vm.GetCurrentFrame().Locals[0]))
 	size := int(int32(vm.GetCurrentFrame().Locals[1]))
 
 	if size == 0 {
 		return 0
 	}
 
-	pos := mem.Malloc(size)
+	pos := mem.Realloc(ptr, size)
 
 	return int64(pos)
 }
