@@ -343,12 +343,12 @@ func (lower *BlockExt) isAncestor(higher *BlockExt) bool {
 	return false
 }
 
-// findHighest finds the highest block from current start; If there are multiple highest blockExts, return the one that has most signs
+// findHighest finds the highest block from current start; If there are multiple highest blockExts, returns the one that singed by self; if none of blocks signed by self, returns the one that has most signs
 func (cbft *Cbft) findHighest(current *BlockExt) *BlockExt {
 	highest := current
 	for _, child := range current.children {
 		current := cbft.findHighest(child)
-		if current.block.NumberU64() > highest.block.NumberU64() || (current.block.NumberU64() == highest.block.NumberU64() && len(current.signs) > len(highest.signs)) {
+		if current.block.NumberU64() > highest.block.NumberU64() || (current.block.NumberU64() == highest.block.NumberU64() && (current.isSigned || len(current.signs) > len(highest.signs))) {
 			highest = current
 		}
 	}
@@ -1701,6 +1701,8 @@ func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash com
 		if consensusNodes == nil || len(consensusNodes) <= 0 {
 			log.Error("calTurn consensusNodes is emtpy~")
 			return false
+		} else if len(consensusNodes) == 1 {
+			return true
 		}
 
 		durationPerTurn := durationPerNode * int64(len(consensusNodes))
