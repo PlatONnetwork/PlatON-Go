@@ -310,11 +310,17 @@ func DefaultGenesisBlock() *Genesis {
 // DefaultTestnetGenesisBlock returns the Ropsten network genesis block.
 func DefaultTestnetGenesisBlock() *Genesis {
 
-	initAddress := new(big.Int)
-	initAddress.SetString("1000000000000000000000000000000000000000", 16)
+	initAddress1 := new(big.Int)
+	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
 
-	initBalance := new(big.Int)
-	initBalance.SetString("52b7d2dcc80cd400000000", 16)
+	initBalance1 := new(big.Int)
+	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
+
+	initAddress2 := new(big.Int)
+	initAddress2.SetString("2df267d02ef428af2455710d06a6028a5b3720b6", 16)
+
+	initBalance2 := new(big.Int)
+	initBalance2.SetString("295be96e640669720000000", 16)
 
 	return &Genesis{
 		Config:    params.TestnetChainConfig,
@@ -323,7 +329,8 @@ func DefaultTestnetGenesisBlock() *Genesis {
 		GasLimit:  16777216,
 		//Alloc:      decodePrealloc(testnetAllocData),
 		Alloc: map[common.Address]GenesisAccount{
-			common.BigToAddress(initAddress): {Balance: initBalance},
+			common.BigToAddress(initAddress1): {Balance: initBalance1},
+			common.BigToAddress(initAddress2): {Balance: initBalance2},
 		},
 	}
 }
