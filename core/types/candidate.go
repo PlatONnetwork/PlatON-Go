@@ -1,9 +1,9 @@
 package types
 
 import (
-	"math/big"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"math/big"
 )
 
 type CanConditions map[discover.NodeID]*big.Int
@@ -12,9 +12,9 @@ type CandidateQueue []*Candidate
 
 func compare(cand CanConditions, c, can *Candidate) int {
 	// put the larger deposit in front
-	if  cand[c.CandidateId].Cmp(cand[can.CandidateId]) > 0 /* c.Deposit.Cmp(can.Deposit) > 0*/ {
+	if cand[c.CandidateId].Cmp(cand[can.CandidateId]) > 0 /* c.Deposit.Cmp(can.Deposit) > 0*/ {
 		return 1
-	} else if cand[c.CandidateId].Cmp(cand[can.CandidateId]) == 0 /* c.Deposit.Cmp(can.Deposit) == 0 */{
+	} else if cand[c.CandidateId].Cmp(cand[can.CandidateId]) == 0 /* c.Deposit.Cmp(can.Deposit) == 0 */ {
 		// put the smaller blocknumber in front
 		if c.BlockNumber.Cmp(can.BlockNumber) > 0 {
 			return -1
@@ -40,7 +40,7 @@ func (arr CandidateQueue) CandidateSort(cand CanConditions) {
 	if len(arr) <= 1 {
 		return
 	}
-	arr.quickSort(cand,0, len(arr)-1)
+	arr.quickSort(cand, 0, len(arr)-1)
 }
 func (arr CandidateQueue) quickSort(cand CanConditions, left, right int) {
 	if left < right {
@@ -71,31 +71,30 @@ func (arr CandidateQueue) partition(cand CanConditions, left, right int) int {
 
 // candiate info
 type Candidate struct {
-
 	// Mortgage amount (margin)
-	Deposit			*big.Int
+	Deposit *big.Int
 	// Current block height number at the time of the mortgage
-	BlockNumber 	*big.Int
+	BlockNumber *big.Int
 	// Current tx'index at the time of the mortgage
-	TxIndex 		uint32
+	TxIndex uint32
 	// candidate's server nodeId
-	CandidateId 	discover.NodeID
-	Host 			string
-	Port 			string
+	CandidateId discover.NodeID
+	Host        string
+	Port        string
 	// Mortgage beneficiary's account address
-	Owner 			common.Address
+	Owner common.Address
 	// The account address of initiating a mortgaged
-	From 			common.Address
-	Extra 			string
+	From  common.Address
+	Extra string
 	// brokerage   example: (fee/10000) * 100% == x%
-	Fee 			uint64
+	Fee uint64
 	// Selected TicketId
-	TicketId		common.Hash
+	TicketId common.Hash
 }
 
 type CandidateAttach struct {
 	// Sum Ticket age
-	Epoch			*big.Int			`json:"epoch"`
+	Epoch *big.Int `json:"epoch"`
 }
 
 func (ca *CandidateAttach) AddEpoch(number *big.Int) {
@@ -107,4 +106,3 @@ func (ca *CandidateAttach) SubEpoch(number *big.Int) {
 		ca.Epoch.Sub(ca.Epoch, number)
 	}
 }
-

@@ -15,7 +15,7 @@ import (
 	"math/big"
 	"sync"
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
-	"runtime/debug"
+	//"runtime/debug"
 )
 
 type ppos struct {
@@ -171,10 +171,11 @@ func (d *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 // Announce witness
 func (d *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlocknumber *big.Int) ([]*discover.Node, error) {
 	// TODO
-	log.Debug("call stack", "Election stack", string(debug.Stack()))
+	//log.Debug("Call stack", "Election stack", string(debug.Stack()))
 	if nextNodes, err := d.candidateContext.Election(state, parentHash, currBlocknumber); nil != err {
-		log.Error("ppos election next witness", " err: ", err)
-		panic("Election error " + err.Error())
+		log.Error("PPOS Election next witness", " err: ", err)
+		/*panic("Election error " + err.Error())*/
+		return nil, err
 	} else {
 		//d.candidateContext.ForEachStorage(state, "PPOS Election finish，view stateDB content again ...")
 		return nextNodes, nil
@@ -185,7 +186,7 @@ func (d *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlockn
 func (d *ppos) Switch(state *state.StateDB) bool {
 	log.Info("Switch begin...")
 	// TODO
-	log.Debug("call stack", "Switch stack", string(debug.Stack()))
+	//log.Debug("Call stack", "Switch stack", string(debug.Stack()))
 	if !d.candidateContext.Switch(state) {
 		return false
 	}

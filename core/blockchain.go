@@ -935,9 +935,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	r := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
 	log.Debug("【WriteBlockWithState】，Before state.Commit：", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", r.String())
 	// TODO
-	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-		cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，Before state.Commit：")
-	}
+	//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+	//	cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，Before state.Commit：")
+	//}
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
@@ -948,9 +948,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	r = state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
 	log.Debug("【WriteBlockWithState】，After state.Commit：", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", r.String())
 	// TODO
-	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-		cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After state.Commit：")
-	}
+	//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+	//	cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After state.Commit：")
+	//}
 
 	triedb := bc.stateCache.TrieDB()
 
@@ -961,9 +961,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 			return NonStatTy, err
 		}
 		log.Info("【archive node commit stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
-		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-			cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After writing the chain：")
-		}
+		//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+		//	cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After writing the chain：")
+		//}
 	} else {
 		log.Info("【non-archive node put stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 		// Full but not archive node, do proper garbage collection
@@ -1225,9 +1225,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
 		log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
-		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-			cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， Before executing the transaction：")
-		}
+		//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+		//	cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， Before executing the transaction：")
+		//}
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
 		if err != nil {
@@ -1292,9 +1292,9 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
 	log.Debug("【The Consensus node synchronization】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 
-	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-		cbftEngine.ForEachStorage(state, "【ProcessDirectly】，Before executing the transaction：")
-	}
+	//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+	//	cbftEngine.ForEachStorage(state, "【ProcessDirectly】，Before executing the transaction：")
+	//}
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, blockInterval)
 	if err != nil {

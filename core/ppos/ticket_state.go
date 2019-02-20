@@ -78,18 +78,18 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 
 func (t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
 	log.Debug("Call Voting", "statedb addr", fmt.Sprintf("%p", stateDB))
-	log.Info("Start Voting", "owner", owner.Hex(), "voteNumber", voteNumber, "price", deposit.Uint64(), "nodeId", nodeId.String(), "blockNumber", blockNumber.Uint64())
+	log.Info("Start Voting,VoteTicket", "owner", owner.Hex(), "voteNumber", voteNumber, "price", deposit.Uint64(), "nodeId", nodeId.String(), "blockNumber", blockNumber.Uint64())
 	voteTicketIdList, err := t.voteTicket(stateDB, owner, voteNumber, deposit, nodeId, blockNumber)
 	if nil != err {
 		log.Error("Voting failed", "nodeId", nodeId.String(), "voteNumber", voteNumber, "successNum", len(voteTicketIdList), "err", err)
 		return voteTicketIdList, err
 	}
 	// Voting completed, candidates reordered
-	log.Debug("Successfully voted to start updating the list of candidates", "successNum", len(voteTicketIdList))
+	log.Debug("Successfully voted to start updating the list of candidates,VoteTicket", "successNum", len(voteTicketIdList))
 	if err := cContext.UpdateElectedQueue(stateDB, blockNumber, nodeId); nil != err {
 		log.Error("Failed to Update candidate when voteTicket success", "err", err)
 	}
-	log.Debug("Successful vote, candidate list updated successfully", "successNum", len(voteTicketIdList))
+	log.Debug("Successful vote, candidate list updated successfully,VoteTicket", "successNum", len(voteTicketIdList))
 	return voteTicketIdList, nil
 }
 
@@ -102,7 +102,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	if nil != err {
 		return voteTicketIdList, err
 	}
-	log.Debug("Ticket pool", "surplusQuantity", surplusQuantity, "voteNumber", voteNumber, "blockNumber", blockNumber.Uint64())
+	log.Debug("Execute voteTicket", "surplusQuantity", surplusQuantity, "voteNumber", voteNumber, "blockNumber", blockNumber.Uint64())
 	if surplusQuantity == 0 {
 		log.Error("Ticket Insufficient quantity")
 		return voteTicketIdList, TicketPoolNilErr
@@ -172,7 +172,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 		}
 		voteTicketIdList = list
 	}
-	log.Debug("setTicket succeeds, start recording tickets to expire", "blockNumber", blockNumber.Uint64(), "ticketAmount", len(voteTicketIdList))
+	log.Debug("SetTicket succeeds, start recording tickets to expire", "blockNumber", blockNumber.Uint64(), "ticketAmount", len(voteTicketIdList))
 	if err := t.recordExpireTicket(stateDB, blockNumber, voteTicketIdList); err != nil {
 		return voteTicketIdList, err
 	}
@@ -184,9 +184,10 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	if nil != err {
 		return voteTicketIdList, err
 	}
-	log.Debug("Reduce the remaining amount of the ticket pool successfully", "surplusQuantity", surplusQuantity)
-	log.Debug("End loop voting", "nodeId", nodeId.String())
+
 	stateDB.AppendTicketCache(nodeId, voteTicketIdList[:])
+
+	log.Debug("Voting SUCCUESS !!!!!!  Reduce the remaining amount of the ticket pool successfully", "surplusQuantity", surplusQuantity, "nodeId", nodeId.String())
 	return voteTicketIdList, nil
 }
 
@@ -330,7 +331,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	log.Debug("Call DropReturnTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
-	log.Info("Start processing tickets for the drop list", "candidateNum", len(nodeIds), "blockNumber", blockNumber.Uint64())
+	log.Info("Start processing tickets for the drop list on DropReturnTicket", "candidateNum", len(nodeIds), "blockNumber", blockNumber.Uint64())
 	for _, nodeId := range nodeIds {
 		if  nodeId == (discover.NodeID{}) {
 			continue
@@ -347,11 +348,11 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 			return err
 		}
 		candidateAttach.Epoch = new(big.Int).SetUint64(0)
-		log.Debug("Update candidate information", "nodeId", nodeId.String(), "epoch", candidateAttach.Epoch.Uint64())
+		log.Debug("Update candidate information on DropReturnTicket", "nodeId", nodeId.String(), "epoch", candidateAttach.Epoch.Uint64())
 		if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
 			return err
 		}
-		log.Debug("Delete candidate ticket collection", "nodeId", nodeId.String(), "ticketSize", len(candidateTicketIds))
+		log.Debug("Delete candidate ticket collection on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", len(candidateTicketIds))
 		if err := stateDB.RemoveTicketCache(nodeId, candidateTicketIds[:]); nil != err {
 			return err
 		}
@@ -359,11 +360,11 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 		if nil != err {
 			return err
 		}
-		log.Debug("Start reducing the number of tickets", "surplusQuantity", surplusQuantity, "candidateTicketIds", len(candidateTicketIds))
+		log.Debug("Start reducing the number of tickets on DropReturnTicket", "surplusQuantity", surplusQuantity, "candidateTicketIds", len(candidateTicketIds))
 		if err := t.setPoolNumber(stateDB, surplusQuantity+uint64(len(candidateTicketIds))); err != nil {
 			return err
 		}
-		log.Debug("Start processing each invalid ticket", "nodeId", nodeId.String(), "ticketSize", len(candidateTicketIds))
+		log.Debug("Start processing each invalid ticket on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", len(candidateTicketIds))
 		for _, ticketId := range candidateTicketIds {
 			ticket, err := t.GetTicket(stateDB, ticketId)
 			if nil != err {
@@ -382,13 +383,13 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 			t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
 		}
 	}
-	log.Debug("End processing the list")
+	log.Debug("End processing the list on DropReturnTicket")
 	return nil
 }
 
 func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ticketId common.Hash, blockNumber *big.Int) error {
 	log.Debug("Call ReturnTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
-	log.Info("Release the selected ticket", "nodeId", nodeId.String(), "ticketId", ticketId.Hex(), "blockNumber", blockNumber.Uint64())
+	log.Info("Release the selected ticket on ReturnTicket", "nodeId", nodeId.String(), "ticketId", ticketId.Hex(), "blockNumber", blockNumber.Uint64())
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	if ticketId == (common.Hash{}) {
@@ -406,11 +407,11 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 		return TicketIdNotFindErr
 	}
 	ticket.SetSelected(blockNumber)
-	log.Debug("Update ticket", "state", ticket.State, "blockNumber", blockNumber.Uint64())
+	log.Debug("Update ticket on ReturnTicket", "state", ticket.State, "blockNumber", blockNumber.Uint64())
 	if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
 		return err
 	}
-	log.Debug("Update candidate total epoch", "nodeId", nodeId.String(), "epoch", candidateAttach.Epoch.Uint64())
+	log.Debug("Update candidate total epoch on ReturnTicket", "nodeId", nodeId.String(), "epoch", candidateAttach.Epoch.Uint64())
 	if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
 		return err
 	}
@@ -457,21 +458,21 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int) error {
 	log.Debug("Call Notify", "statedb addr", fmt.Sprintf("%p", stateDB))
 	// Check expired tickets
 	expireBlockNumber, ok := t.calcExpireBlockNumber(stateDB, blockNumber)
-	log.Debug("Check expired tickets", "isOk", ok, "expireBlockNumber", expireBlockNumber.Uint64())
+	log.Debug("Check expired tickets on Notify", "isOk", ok, "expireBlockNumber", expireBlockNumber.Uint64())
 	if ok {
 		if nodeIdList, err := t.handleExpireTicket(stateDB, expireBlockNumber, blockNumber); nil != err {
 			log.Error("OutBlockNotice method handleExpireTicket error", "blockNumber", blockNumber.Uint64(), "err", err)
 			return HandleExpireTicketErr
 		} else {
 			// Notify the candidate to update the list information after processing the expired ticket
-			log.Debug("After processing the expired ticket, start updating the candidate list", "blockNumber", blockNumber.Uint64(), "nodeIdList", len(nodeIdList))
+			log.Debug("After processing the expired ticket, start updating the candidate list on Notify", "blockNumber", blockNumber.Uint64(), "nodeIdList", len(nodeIdList))
 			if err := cContext.UpdateElectedQueue(stateDB, blockNumber, nodeIdList...); nil != err {
 				log.Error("Failed to Update candidate when handleExpireTicket success on Notify", "err", err)
 			}
 		}
 	}
 	// Increase the total number of epoch for each candidate
-	log.Debug("Increase the total number of epoch for each candidate", "blockNumber", blockNumber.Uint64())
+	log.Debug("Increase the total number of epoch for each candidate on Notify", "blockNumber", blockNumber.Uint64())
 	if err := t.calcCandidateEpoch(stateDB, blockNumber); nil != err {
 		return err
 	}
@@ -506,7 +507,7 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.NodeID, blockHash common.Hash) (common.Hash, error) {
 	log.Debug("Call SelectionLuckyTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
 	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
-	log.Debug("Start picking lucky tickets", "nodeId", nodeId.String(), "blockHash", blockHash.Hex(), "candidateTicketIds", len(candidateTicketIds))
+	log.Debug("Start picking lucky tickets on SelectionLuckyTicket", "nodeId", nodeId.String(), "blockHash", blockHash.Hex(), "candidateTicketIds", len(candidateTicketIds))
 	luckyTicketId := common.Hash{}
 	if nil != err {
 		return luckyTicketId, err
@@ -523,9 +524,9 @@ func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.No
 	}
 	sort.Float64s(decList)
 	index := findFirstMatch(decList, hexutil.HexDec(blockHash.Hex()[2:]))
-	log.Debug("Pick out a lucky ticket", "index", index)
+	log.Debug("Pick out a lucky ticket on SelectionLuckyTicket", "index", index)
 	luckyTicketId = decMap[decList[index]]
-	log.Debug("End the selection of lucky tickets", "nodeId", nodeId.String(), "blockHash", blockHash.Hex(), "luckyTicketId", luckyTicketId.Hex(), "candidateTicketIds", len(candidateTicketIds))
+	log.Debug("End the selection of lucky tickets on SelectionLuckyTicket", "nodeId", nodeId.String(), "blockHash", blockHash.Hex(), "luckyTicketId", luckyTicketId.Hex(), "candidateTicketIds", len(candidateTicketIds))
 	return luckyTicketId, nil
 }
 

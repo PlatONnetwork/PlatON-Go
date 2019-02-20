@@ -122,7 +122,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 		getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) error {
 
-		log.Debug("initDataByState by Getting " + title+" parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
+		log.Debug("initDataByState by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 		var witnessIds []discover.NodeID
 		if ids, err := getIndexFn(state); nil != err {
 			log.Error("Failed to decode "+title+" witnessIds on initDataByState", " err", err)
@@ -189,7 +189,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 			getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) (types.CandidateQueue, error) {
 			var witnessIds []discover.NodeID
 
-			log.Debug("initDataByState by Getting " + title+" parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
+			log.Debug("initDataByState by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 			if ids, err := getIndexFn(state); nil != err {
 				log.Error("Failed to decode "+title+"Ids on initDataByState", " err", err)
 				return nil, err
@@ -299,9 +299,9 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 
 // pledge Candidate
 func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
-	defer func() {
-		c.ForEachStorage(state, "View State After SetCandidate ...")
-	}()
+	//defer func() {
+	//	c.ForEachStorage(state, "View State After SetCandidate ...")
+	//}()
 	var nodeIds []discover.NodeID
 	c.lock.Lock()
 
@@ -494,9 +494,9 @@ func (c *CandidatePool) GetCandidateArr(state vm.StateDB, nodeIds ...discover.No
 
 // candidate withdraw from immediates or reserve elected candidates
 func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
-	defer func() {
-		c.ForEachStorage(state, "View State After WithdrawCandidate ...")
-	}()
+	//defer func() {
+	//	c.ForEachStorage(state, "View State After WithdrawCandidate ...")
+	//}()
 	var nodeIds []discover.NodeID
 	if arr, err := c.withdrawCandidate(state, nodeId, price, blockNumber); nil != err {
 		return err
@@ -853,9 +853,9 @@ func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) commo
 
 // refund once
 func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
-	defer func() {
-		c.ForEachStorage(state, "View State After RefundBalance ...")
-	}()
+	//defer func() {
+	//	c.ForEachStorage(state, "View State After RefundBalance ...")
+	//}()
 	log.Info("Call RefundBalance:  curr nodeId = " + nodeId.String() + ",curr blocknumber:" + blockNumber.String())
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -979,9 +979,9 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 
 // set elected candidate extra value
 func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.NodeID, extra string) error {
-	defer func() {
-		c.ForEachStorage(state, "View State After SetCandidateExtra ...")
-	}()
+	//defer func() {
+	//	c.ForEachStorage(state, "View State After SetCandidateExtra ...")
+	//}()
 	log.Info("Call SetCandidateExtra:", "nodeId", nodeId.String(), "extra", extra)
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -1013,9 +1013,9 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 
 // Announce witness
 func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, currBlockNumber *big.Int) ([]*discover.Node, error) {
-	defer func() {
-		c.ForEachStorage(state, "View State After Election ...")
-	}()
+	//defer func() {
+	//	c.ForEachStorage(state, "View State After Election ...")
+	//}()
 	var nodes []*discover.Node
 	var cans types.CandidateQueue
 	if nodeArr, canArr, err := c.election(state, parentHash); nil != err {
@@ -1334,7 +1334,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	fetchWitnessFunc := func(title string, witnesses candidateStorage,
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error)) ([]*discover.Node, error) {
 
-		log.Debug("GetAllWitness by Getting " + title+" parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
+		log.Debug("GetAllWitness by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 		nodes := make([]*discover.Node, 0)
 
 		// caches
@@ -1467,6 +1467,28 @@ func (c *CandidatePool) GetWitnessCandidate(state vm.StateDB, nodeId discover.No
 	}
 }
 
+func (c *CandidatePool) GetLuckyTickets(state vm.StateDB, flag int) ([]common.Hash, error) {
+	var witnessIds []discover.NodeID
+	if arr, err := c.getWitnessIndex(state); nil != err {
+		log.Error("Failed to getWitnessIndex on GetLuckyTickets", "err: ", err)
+		return nil, err
+	} else {
+		witnessIds = arr
+	}
+	luckyTicketArr := make([]common.Hash, 0)
+	for _, witnessId := range witnessIds {
+		can, err := c.GetWitnessCandidate(state, witnessId, flag)
+		if nil != err {
+			log.Error("Failed to getWitnessCandidate on GetLuckyTickets", "err: ", err)
+			return nil, err
+		}
+		if (common.Hash{}) != can.TicketId {
+			luckyTicketArr = append(luckyTicketArr, can.TicketId)
+		}
+	}
+	return luckyTicketArr, nil
+}
+
 func (c *CandidatePool) GetRefundInterval() uint64 {
 	log.Info("Call GetRefundInterval", "RefundBlockNumber", c.RefundBlockNumber)
 	return c.RefundBlockNumber
@@ -1482,7 +1504,7 @@ func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *bi
 		ids = arr
 	}
 	log.Info("Call UpdateElectedQueue SUCCESS !!!!!!!!! ")
-	c.ForEachStorage(state, "View State After UpdateElectedQueue ...")
+	//c.ForEachStorage(state, "View State After UpdateElectedQueue ...")
 	//go ticketPool.DropReturnTicket(state, ids...)
 	if len(ids) > 0 {
 		return tContext.DropReturnTicket(state, currBlockNumber, ids...)
@@ -1500,7 +1522,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		return nil, nil
 	}
 	if err := c.initDataByState(state, 1); nil != err {
-	//	if err := c.initDataByState(state, 0); nil != err {
+		//	if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on UpdateElectedQueue", "err", err)
 		return nil, err
 	}

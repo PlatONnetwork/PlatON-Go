@@ -88,8 +88,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	}
 
 	// TODO
-	//root := statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
-	//log.Debug("After executing the transaction，Before calling notify series func", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
+	root := statedb.IntermediateRoot(p.bc.Config().IsEIP158(header.Number))
+	log.Debug("After executing the transaction，Before calling notify series func", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 	//log.Debug("After executing the transaction，Before calling notify series func", "receipt.root", types.DeriveSha(receipts), "bloom", types.CreateBloom(receipts))
 
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
