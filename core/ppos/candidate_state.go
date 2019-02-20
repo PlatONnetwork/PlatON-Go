@@ -321,7 +321,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 
 	// Before each pledge, we need to check whether the current can deposit is not less
 	// than the minimum can deposit when the corresponding queue to be placed is full.
-	if _, ok := c.checkDeposit(state, can); !ok {
+	if _, ok := c.checkDeposit(state, can, false); !ok {
 		c.lock.Unlock()
 		log.Warn("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
 		return DepositLowErr
@@ -1671,7 +1671,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 			log.Debug("The current nodeId was originally in the Immediate ...")
 			can := c.immediateCandidates[nodeId]
 			//if !c.checkTicket(state.TCount(nodeId)) { // TODO
-			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // Direct drop
+			if tcount, noDrop := c.checkDeposit(state, can, true); !noDrop { // Direct drop
 				if err := directdropFunc("Immediate", can, c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
 					return nil, err
 				} else {
@@ -1693,7 +1693,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 			log.Debug("The current nodeId was originally in the Reserve ...")
 			can := c.reserveCandidates[nodeId]
 			//if c.checkTicket(state.TCount(nodeId)) { // TODO
-			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // Direct drop
+			if tcount, noDrop := c.checkDeposit(state, can, true); !noDrop { // Direct drop
 				if err := directdropFunc("Reserve", can, c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
 					return nil, err
 				} else {
@@ -1727,7 +1727,7 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 	// it will drop the list directly,
 	// but before the list is dropped,
 	// it needs to determine which queue was in the queue.
-	if _, ok := c.checkDeposit(state, can); !ok {
+	if _, ok := c.checkDeposit(state, can, true); !ok {
 		log.Warn("Failed to checkDeposit on preElectionReset", "nodeId", can.CandidateId.String(), " err", DepositLowErr)
 		var del int // del: 1 del immiedate; 2  del reserve
 		if _, ok := c.immediateCandidates[can.CandidateId]; ok {
@@ -1805,7 +1805,7 @@ func (c *CandidatePool) checkFirstThreshold(can *types.Candidate) bool {
 
 // false: invalid deposit
 // true:  pass
-func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bool, bool) {
+func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, holdself bool) (bool, bool) {
 	tcount := c.checkTicket(state.TCount(can.CandidateId))
 	/**
 	If the current number of votes meets the entry immediate pool
@@ -1822,6 +1822,13 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bo
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
+			// If last is self and holdslef flag is true
+			// we must return true (Keep self on staying in the original queue)
+			if holdself && can.CandidateId == last.CandidateId {
+				log.Debug("The immeidate pool is full, and last is self and holdslef is true, Keep self on staying in the original queue", "current can nodeId", can.CandidateId.String(), "last can nodeId", last.CandidateId.String(),
+					"current can's Deposit:", can.Deposit.String(), "110% of the last can in the immediate pool:", tmp.String(), "the length of current immediate pool:", len(c.immediateCandidates), "the limit of Configuration:", c.maxCount)
+				return tcount, true
+			}
 			log.Debug("The immeidate pool is full, and the current can's Deposit is less than 110% of the last can in the immediate pool.", "current can's Deposit:", can.Deposit.String(), "110% of the last can in the immediate pool:", tmp.String(), "the length of current immediate pool:", len(c.immediateCandidates), "the limit of Configuration:", c.maxCount)
 			return tcount, false
 		}
@@ -1841,6 +1848,13 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bo
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
+			// If last is self and holdslef flag is true
+			// we must return true (Keep self on staying in the original queue)
+			if holdself && can.CandidateId == last.CandidateId {
+				log.Debug("The reserve pool is full, and last is self and holdslef is true, Keep self on staying in the original queue", "current can nodeId", can.CandidateId.String(), "last can nodeId", last.CandidateId.String(),
+					"current can's Deposit:", can.Deposit.String(), "110% of the last can in the reserve pool:", tmp.String(), "the length of current reserve pool:", len(c.reserveCandidates), "the limit of Configuration:", c.maxCount)
+				return tcount, true
+			}
 			log.Debug("The reserve pool is full，and the current can's Deposit is less than 110% of the last can in the reserve pool.", "current can's Deposit:", can.Deposit.String(), "110% of the last can in the reserve pool:", tmp.String(), "the length of current reserve pool:", len(c.reserveCandidates), "the limit of Configuration:", c.maxCount)
 			return tcount, false
 		}
