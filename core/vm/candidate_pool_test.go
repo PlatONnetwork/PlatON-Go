@@ -116,7 +116,7 @@ func newChainState() (*state.StateDB, error) {
 	return state, nil
 }
 
-func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPool) {
+func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPoolContext) {
 	configs := &params.PposConfig{
 		CandidateConfig: &params.CandidateConfig{
 			Threshold:         "100",
@@ -131,16 +131,16 @@ func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPool) {
 			ExpireBlockNumber: 100,
 		},
 	}
-	return pposm.NewCandidatePoolContext(configs), pposm.NewTicketPool(configs)
+	return pposm.NewCandidatePoolContext(configs), pposm.NewTicketPoolContext(configs)
 }
 
 func newEvm() *vm.EVM {
 	state, _ := newChainState()
-	candidatePoolContext, ticketPool := newPool()
+	candidatePoolContext, ticketPoolContext := newPool()
 	evm := &vm.EVM{
 		StateDB:              state,
 		CandidatePoolContext: candidatePoolContext,
-		TicketPool:           ticketPool,
+		TicketPoolContext:    ticketPoolContext,
 	}
 	context := vm.Context{
 		BlockNumber: big.NewInt(7),
