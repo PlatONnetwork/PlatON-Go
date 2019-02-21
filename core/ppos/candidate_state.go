@@ -1,7 +1,7 @@
 package pposm
 
 import (
-	//"encoding/json"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"bytes"
 )
 
 var (
@@ -513,7 +514,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 }
 
 func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) ([]discover.NodeID, error) {
-	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String())
+	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String(), "config.RefundBlockNumber", c.RefundBlockNumber)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
@@ -547,6 +548,8 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 		log.Error("Failed to WithdrawCandidate refund price must less or equal deposit", "key", nodeId.String())
 		return nil, WithdrawPriceErr
 	} else if can.Deposit.Cmp(price) == 0 { // full withdraw
+
+		log.Info("WithdrawCandidate into full withdraw", "canId", can.CandidateId.String(), "current can deposit", can.Deposit.String(), "withdraw price is", price.String())
 
 		handleFunc := func(tiltle string, delInfoFn func(state vm.StateDB, candidateId discover.NodeID),
 			getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
@@ -601,6 +604,8 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 	} else { // withdraw a few ...
 		// Only withdraw part of the refunds, need to reorder the immediate elected candidates
 		// The remaining candiate price to update current candidate info
+
+		log.Info("WithdrawCandidate into withdraw a few", "canId", can.CandidateId.String(), "current can deposit", can.Deposit.String(), "withdraw price is", price.String())
 
 		if err := c.checkWithdraw(can.Deposit, price); nil != err {
 			log.Error("Failed to price invalid on WithdrawCandidate", " price", price.String(), "err", err)
@@ -856,7 +861,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	//defer func() {
 	//	c.ForEachStorage(state, "View State After RefundBalance ...")
 	//}()
-	log.Info("Call RefundBalance:  curr nodeId = " + nodeId.String() + ",curr blocknumber:" + blockNumber.String())
+	log.Info("Call RefundBalance:  curr nodeId = " + nodeId.String() + ",curr blocknumber:" + blockNumber.String(), "config.RefundBlockNumber:", c.RefundBlockNumber)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
@@ -886,7 +891,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	for index := 0; index < len(canArr); index++ {
 		can := canArr[index]
 		sub := new(big.Int).Sub(blockNumber, can.BlockNumber)
-		log.Info("Check defeat detail", "nodeId:", nodeId.String(), "curr blocknumber:", blockNumber.String(), "setcandidate blocknumber:", can.BlockNumber.String(), " diff:", sub.String())
+		log.Info("Check defeat detail", "nodeId:", nodeId.String(), "curr blocknumber:", blockNumber.String(), "setcandidate blocknumber:", can.BlockNumber.String(), " diff:", sub.String(), "config.RefundBlockNumber", c.RefundBlockNumber)
 		if sub.Cmp(new(big.Int).SetUint64(c.RefundBlockNumber)) >= 0 { // allow refund
 			delCanArr = append(delCanArr, can)
 			canArr = append(canArr[:index], canArr[index+1:]...)
@@ -903,7 +908,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 			addr = can.Owner
 		} else {
 			if addr != can.Owner {
-				log.Info("Failed to refundbalance couse current nodeId had bind different owner address ", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", can.Owner)
+				//log.Error("Failed to refundbalance couse current nodeId had bind different owner address ", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", can.Owner)
 				if len(canArr) != 0 {
 					canArr = append(delCanArr, canArr...)
 				} else {
@@ -930,7 +935,8 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	}
 
 	// update the tire
-	if len(canArr) == 0 {
+	if len(canArr) == 0 { // full RefundBlockNumber
+		log.Info("Call RefundBalance Into full RefundBlockNumber ...", "nodeId", nodeId.String())
 		c.delDefeat(state, nodeId)
 		if ids, err := getDefeatIdsByState(state); nil != err {
 			for i := 0; i < len(ids); i++ {
@@ -948,11 +954,14 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 					setDefeatIdsState(state, value)
 				}
 			} else {
+				log.Debug("Current DefeatIndex is Empty, delete from state on RefundBalance ... ")
 				setDefeatIdsState(state, []byte{})
 			}
 
 		}
 	} else {
+		log.Info("Call RefundBalance Into a few RefundBlockNumber ...", "nodeId", nodeId.String())
+		PrintObject("Call RefundBalance Into a few RefundBlockNumber Remain Defeat Arr", canArr)
 		// If have some remaining, update that
 		if arrVal, err := rlp.EncodeToBytes(canArr); nil != err {
 			log.Error("Failed to encode candidate object on RefundBalance", "key", nodeId.String(), "err", err)
@@ -1988,6 +1997,9 @@ func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID,
 		//c.defeatCandidates[can.CandidateId] = defeatArrTmp
 		defeatArr = defeatArrTmp
 	}
+
+	PrintObject("SetDefeat Arr, nodeId:" + candidateId.String() + " ,defeatArr", defeatArr)
+
 	// setting refund information on trie
 	if value, err := rlp.EncodeToBytes(&defeatArr); nil != err {
 		log.Error("Failed to encode candidate object on setDefeat", "key", candidateId.String(), "err", err)
@@ -2016,10 +2028,15 @@ func (c *CandidatePool) setDefeatIndex(state vm.StateDB) error {
 	// sort id
 	sort.Strings(index)
 
+	PrintObject("SetDefeatIndex, After Sort defeat index String is", index)
+
 	for _, idStr := range index {
 		id := indexMap[idStr]
 		newdefeatIds = append(newdefeatIds, id)
 	}
+
+	PrintObject("SetDefeatIndex, After Sort defeat index is", newdefeatIds)
+
 	if len(newdefeatIds) == 0 {
 		setDefeatIdsState(state, []byte{})
 		return nil
@@ -2380,6 +2397,7 @@ func getDefeatsByState(state vm.StateDB, id discover.NodeID) (types.CandidateQue
 }
 
 func setDefeatState(state vm.StateDB, id discover.NodeID, val []byte) {
+	log.Debug("SetDefeatArr ... ...", "nodeId:", id.String(), "keyTrie:", buildKeyTrie(DefeatKey(id)))
 	state.SetState(common.CandidatePoolAddr, DefeatKey(id), val)
 }
 
@@ -2396,9 +2414,8 @@ func copyCandidateMapByIds(target, source candidateStorage, ids []discover.NodeI
 //}
 
 func PrintObject(s string, obj interface{}) {
-	//objs, _ := json.Marshal(obj)
-	//
-	//log.Debug(s, "==", string(objs))
+	objs, _ := json.Marshal(obj)
+	log.Debug(s, "==", string(objs))
 }
 
 func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
@@ -2562,4 +2579,11 @@ func (c *CandidatePool) ForEachStorage(state vm.StateDB, title string) {
 	log.Debug(title + ":Full view of data in the candidate pool ...")
 	c.initDataByState(state, 2)
 	c.lock.Unlock()
+}
+
+func buildKeyTrie (key []byte) string {
+	var buffer bytes.Buffer
+	buffer.Write(common.CandidatePoolAddr.Bytes())
+	buffer.WriteString(string(key))
+	return buffer.String()
 }
