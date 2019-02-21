@@ -104,7 +104,7 @@ func GetTicketidsCachePtr() *TicketTempCache {
 }
 
 ////////////////////////////
-func /*(t *TicketTempCache)*/ Hash(cache TicketCache) (common.Hash, error) {
+func  Hash(cache TicketCache) (common.Hash, error) {
 
 	timer := Timer{}
 	timer.Begin()
@@ -121,7 +121,7 @@ func /*(t *TicketTempCache)*/ Hash(cache TicketCache) (common.Hash, error) {
 
 func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Hash) TicketCache {
 	t.lock.Lock()
-	defer t.lock.Unlock()
+	//defer t.lock.Unlock()
 
 	log.Info("Call TicketTempCache GetNodeTicketsMap ...", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
 
@@ -191,6 +191,8 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 	wg.Wait()
 	close(resCh)
 
+	t.lock.Unlock()
+
 	/**
 	Build a new TicketCache
 	This TicketCache will be used in StateDB
@@ -205,7 +207,7 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 
 func (t *TicketTempCache) Submit2Cache(blocknumber, blockInterval *big.Int, blockhash common.Hash, in map[discover.NodeID][]common.Hash) {
 	t.lock.Lock()
-	defer t.lock.Unlock()
+	//defer t.lock.Unlock()
 
 	log.Info("Call TicketTempCache Submit2Cache ", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " Before Submit2Cache, then cachelen: ", len(t.Cache.NBlocks))
 	blockNodes, ok := t.Cache.NBlocks[blocknumber.String()]
@@ -262,13 +264,14 @@ func (t *TicketTempCache) Submit2Cache(blocknumber, blockInterval *big.Int, bloc
 	//		}
 	//	}
 	//}
-
 	log.Info("Call TicketTempCache Submit2Cache FINISH !!!!!! ", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " After Submit2Cache, then cachelen: ", len(t.Cache.NBlocks))
+
+	t.lock.Unlock()
 }
 
 func (t *TicketTempCache) Commit(db ethdb.Database, currentBlockNumber *big.Int) error {
 	t.lock.Lock()
-	defer t.lock.Unlock()
+	//defer t.lock.Unlock()
 	log.Info("Call TicketTempCache Commit ...")
 
 	timer := Timer{}
@@ -288,12 +291,15 @@ func (t *TicketTempCache) Commit(db ethdb.Database, currentBlockNumber *big.Int)
 	log.Info("Call TicketTempCache Commit, Delete Global TicketIdsTemp key FINISH !!!!", "currentBlockNumber", currentBlockNumber, "remian size after delete, then cachelen: ", len(t.Cache.NBlocks))
 
 	out, err := proto.Marshal(t.Cache)
+
 	if err != nil {
 		log.Error("Failted to TicketPoolCache Commit ", "ErrProbufMarshal: err", err.Error())
+		t.lock.Unlock()
 		return ErrProbufMarshal
 	}
-	//logInfo("Marshal out: ", hexutil.Encode(out))
 	log.Info("Call TicketPoolCache Commit ", "cachelen: ", len(t.Cache.NBlocks), " outlen: ", len(out))
+	t.lock.Unlock()
+
 	if err := db.Put(ticketPoolCacheKey, out); err != nil {
 		log.Error("Failed to call TicketPoolCache Commit: level db put faile: ", "err", err.Error())
 		return ErrLeveldbPut
