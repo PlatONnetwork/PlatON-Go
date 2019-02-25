@@ -443,10 +443,10 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
 			if w.isRunning() {
-				log.Debug("----------Interval " + recommit.String() + ",attempt to commitNewWork----------")
+				log.Debug("Interval " + recommit.String() + ",attempt to commitNewWork")
 				if _, ok := w.engine.(consensus.Bft); ok {
 					if shouldCommit, commitBlock := w.shouldCommit(time.Now().UnixNano() / 1e6); shouldCommit {
-						log.Debug("--------------node inTurn,Packing Start--------------")
+						log.Debug("node inTurn,Packing Start", "baseBlockNumber", commitBlock.NumberU64(), "baseBlockHash", commitBlock.Hash())
 						timestamp = time.Now().UnixNano() / 1e6
 						commit(false, commitInterruptResubmit, commitBlock)
 						continue
@@ -618,7 +618,7 @@ func (w *worker) mainLoop() {
 			}
 
 			// Broadcast the block and announce chain insertion event
-			log.Debug("Post PrepareMinedBlockEvent", "consensusNodes", task.consensusNodes)
+			log.Debug("Post PrepareMinedBlockEvent", "blockNumber", block.NumberU64(), "blockHash", block.Hash(), "consensusNodes", task.consensusNodes)
 			w.mux.Post(core.PrepareMinedBlockEvent{Block: block, ConsensusNodes: task.consensusNodes})
 
 		case blockSignature := <-w.blockSignatureCh:
