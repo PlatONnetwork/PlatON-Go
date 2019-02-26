@@ -370,6 +370,6 @@ func FindCommonAncestor(db DatabaseReader, a, b *types.Header) *types.Header {
 }
 
 //ppos add -> commit memory ticket cache to disk
-func TicketCacheCommit(db ethdb.Database) {
-	ticketcache.GetTicketidsCachePtr().Commit(db)
+func TicketCacheCommit(db ethdb.Database, currentBlockNumber *big.Int) {
+	ticketcache.GetTicketidsCachePtr().Commit(db, currentBlockNumber)
 }

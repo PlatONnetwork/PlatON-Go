@@ -694,7 +694,7 @@ func (bc *BlockChain) Stop() {
 	//  - HEAD-127: So we have a hard limit on the number of blocks reexecuted
 	if !bc.cacheConfig.Disabled {
 		//ppos add -> commit memory ticket cache to disk
-		ticketcache.GetTicketidsCachePtr().Commit(bc.db)
+		ticketcache.GetTicketidsCachePtr().Commit(bc.db, bc.CurrentBlock().Number())
 
 		//eth...
 		triedb := bc.stateCache.TrieDB()
@@ -929,7 +929,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	externBn := block.Number()
 
 	// Irrelevant of the canonical status, write the block itself to the database
-	rawdb.TicketCacheCommit(bc.db)
+	rawdb.TicketCacheCommit(bc.db, externBn)
 	rawdb.WriteBlock(bc.db, block)
 
 	r := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))

@@ -146,35 +146,35 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	txHash := c.Evm.StateDB.TxHash()
 	from := c.Contract.caller.Address()
 	height := c.Evm.Context.BlockNumber
-	log.Info("Input to CandidateApplyWithdraw==> ", "nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
+	log.Info("Input to CandidateApplyWithdraw on WithdrawCandidate==> ", "nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
 	can, err := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil != err {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "GetCandidate return err: ", err.Error())
+		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "GetCandidate return err: ", err.Error())
 		return nil, err
 	}
 	if nil == can {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
+		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
 		return nil, ErrCandidateNotExist
 	}
 	if can.Deposit.Cmp(big.NewInt(0)) < 1 {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrWithdrawEmpty: ", ErrWithdrawEmpty.Error())
+		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "ErrWithdrawEmpty: ", ErrWithdrawEmpty.Error())
 		return nil, ErrWithdrawEmpty
 	}
 	if ok := bytes.Equal(can.Owner.Bytes(), from.Bytes()); !ok {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrPermissionDenied: ", ErrPermissionDenied.Error())
+		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "ErrPermissionDenied: ", ErrPermissionDenied.Error())
 		return nil, ErrPermissionDenied
 	}
 	if withdraw.Cmp(can.Deposit) > 0 {
 		withdraw = can.Deposit
 	}
 	if err := c.Evm.CandidatePoolContext.WithdrawCandidate(c.Evm.StateDB, nodeId, withdraw, height); nil != err {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "WithdrawCandidate return err: ", err.Error())
+		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "WithdrawCandidate return err: ", err.Error())
 		return nil, err
 	}
 	r := ResultCommon{true, "", "success"}
 	event, _ := json.Marshal(r)
 	c.addLog(CandidateApplyWithdrawEvent, string(event))
-	log.Info("Result of CandidateApplyWithdraw==> ", "json: ", string(event))
+	log.Info("Result of CandidateApplyWithdraw on WithdrawCandidate==> ", "json: ", string(event))
 	return nil, nil
 }
 
@@ -182,15 +182,15 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 func (c *CandidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, error) {
 	txHash := c.Evm.StateDB.TxHash()
 	height := c.Evm.Context.BlockNumber
-	log.Info("Input to CandidateWithdraw==> ", "nodeId: ", nodeId.String(), " height: ", height, " txHash: ", txHash.Hex())
+	log.Info("Input to CandidateWithdraw to RefundBalance==> ", "nodeId: ", nodeId.String(), " height: ", height, " txHash: ", txHash.Hex())
 	if err := c.Evm.CandidatePoolContext.RefundBalance(c.Evm.StateDB, nodeId, height); nil != err {
-		log.Error("Failed to CandidateWithdraw==> ", "RefundBalance return err: ", err.Error())
+		log.Error("Failed to CandidateWithdraw to RefundBalance==> ", "RefundBalance return err: ", err.Error())
 		return nil, err
 	}
 	r := ResultCommon{true, "", "success"}
 	event, _ := json.Marshal(r)
 	c.addLog(CandidateWithdrawEvent, string(event))
-	log.Info("Result of CandidateWithdraw==> ", "json: ", string(event))
+	log.Info("Result of CandidateWithdraw to RefundBalance==> ", "json: ", string(event))
 	return nil, nil
 }
 
