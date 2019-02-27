@@ -317,7 +317,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
 
 	initAddress2 := new(big.Int)
-	initAddress2.SetString("2df267d02ef428af2455710d06a6028a5b3720b6", 16)
+	initAddress2.SetString("1fe1b73f7f592d6c054d62fad1cc55756c6949f9", 16)
 
 	initBalance2 := new(big.Int)
 	initBalance2.SetString("295be96e640669720000000", 16)
