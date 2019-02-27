@@ -58,11 +58,11 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 	//}
 	log.Debug("Build a New TicketPool Info ...")
 	if "" == strings.TrimSpace(configs.TicketConfig.TicketPrice) {
-		configs.TicketConfig.TicketPrice = "1000000000000000000"
+		configs.TicketConfig.TicketPrice = "100000000000000000000"
 	}
 	var ticketPrice *big.Int
 	if price, ok := new(big.Int).SetString(configs.TicketConfig.TicketPrice, 10); !ok {
-		ticketPrice, _ = new(big.Int).SetString("1000000000000000000", 10)
+		ticketPrice, _ = new(big.Int).SetString("100000000000000000000", 10)
 	} else {
 		ticketPrice = price
 	}
