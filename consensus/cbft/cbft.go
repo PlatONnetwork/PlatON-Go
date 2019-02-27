@@ -602,7 +602,7 @@ func (cbft *Cbft) setHighestLogical(highestLogical *BlockExt) {
 func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	cbft.log.Debug("call SetBackend()")
 	cbft.blockChain = blockChain
-	cbft.ppos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
+	cbft.ppos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64() / 1000)
 
 	currentBlock := blockChain.CurrentBlock()
 
