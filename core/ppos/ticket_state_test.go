@@ -47,9 +47,7 @@ func TestTicketProcess(t *testing.T) {
 
 	candidatePoolContext := pposm.NewCandidatePoolContext(&configs)
 
-	ticketPool := pposm.NewTicketPool(&configs)
-
-	t.Log("MaxCount", ticketPool.MaxCount, "ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	ticketPoolContext := pposm.NewTicketPoolContext(&configs)
 
 	var state *state.StateDB
 	if statedb, err := blockchain.State(); nil != err {
@@ -97,12 +95,12 @@ func TestTicketProcess(t *testing.T) {
 		if i == 2 {
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 		}
 
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -121,20 +119,20 @@ func TestTicketProcess(t *testing.T) {
 		return
 	}
 
-	ticketIds, err := ticketPool.GetCandidateTicketIds(state, candidate.CandidateId)
+	ticketIds, err := ticketPoolContext.GetCandidateTicketIds(state, candidate.CandidateId)
 	if nil != err {
 		t.Error("GetCandidateTicketIds error", err)
 	}
-	ticketList, err := ticketPool.GetTicketList(state, ticketIds)
+	ticketList, err := ticketPoolContext.GetTicketList(state, ticketIds)
 
-	expireTicketIds, err := ticketPool.GetExpireTicketIds(state, blockNumber)
+	expireTicketIds, err := ticketPoolContext.GetExpireTicketIds(state, blockNumber)
 	if nil != err {
 		t.Error("GetExpireTicketIds error", err)
 	}
 	//expireTickets, err := ticketPool.GetTicketList(state, expireTicketIds)
 
-	surplusQuantity, err := ticketPool.GetPoolNumber(state)
-	candidateAttach, err := ticketPool.GetCandidateAttach(state, candidate.CandidateId)
+	surplusQuantity, err := ticketPoolContext.GetPoolNumber(state)
+	candidateAttach, err := ticketPoolContext.GetCandidateAttach(state, candidate.CandidateId)
 
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
 		surplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId), candidateAttach.Epoch)
@@ -145,28 +143,28 @@ func TestTicketProcess(t *testing.T) {
 	}
 
 	candidate, err = candidatePoolContext.GetCandidate(state, candidate.CandidateId)
-	ticketIds, err = ticketPool.GetCandidateTicketIds(state, candidate.CandidateId)
+	ticketIds, err = ticketPoolContext.GetCandidateTicketIds(state, candidate.CandidateId)
 	if nil != err {
 		t.Error("GetCandidateTicketIds error", err)
 	}
 
-	expireTicketIds, err = ticketPool.GetExpireTicketIds(state, blockNumber)
+	expireTicketIds, err = ticketPoolContext.GetExpireTicketIds(state, blockNumber)
 	if nil != err {
 		t.Error("GetExpireTicketIds error", err)
 	}
-	surplusQuantity, err = ticketPool.GetPoolNumber(state)
-	candidateAttach, err = ticketPool.GetCandidateAttach(state, candidate.CandidateId)
+	surplusQuantity, err = ticketPoolContext.GetPoolNumber(state)
+	candidateAttach, err = ticketPoolContext.GetCandidateAttach(state, candidate.CandidateId)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
 		surplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId), candidateAttach.Epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 
-	if err := ticketPool.Notify(state, blockNumber); err != nil {
+	if err := ticketPoolContext.Notify(state, blockNumber); err != nil {
 		t.Error("Execute HandleExpireTicket error", err)
 	}
 
 	blockHash := common.Hash{}
 	blockHash.SetBytes([]byte("3b41e0aee38c1a1f959a6aaae678d86f1e6af59617d2f667bb2ef5527779c861"))
-	luckyTicketId, err := ticketPool.SelectionLuckyTicket(state, candidate.CandidateId, blockHash)
+	luckyTicketId, err := ticketPoolContext.SelectionLuckyTicket(state, candidate.CandidateId, blockHash)
 	if nil != err {
 		t.Error("SelectionLuckyTicket error", err)
 	}
@@ -174,20 +172,20 @@ func TestTicketProcess(t *testing.T) {
 	//selectedTicketId := ticketList[selectedTicketIndex].TicketId
 	t.Logf("-----------Start releasing a ticket 【%v】-----------\n", luckyTicketId.Hex())
 	tempTime := time.Now().UnixNano() / 1e6
-	err = ticketPool.ReturnTicket(state, candidate.CandidateId, luckyTicketId, blockNumber)
+	err = ticketPoolContext.ReturnTicket(state, candidate.CandidateId, luckyTicketId, blockNumber)
 	if nil != err {
 		t.Error("ReleaseSelectedTicket error", err)
 	}
 	releaseTime = (time.Now().UnixNano() / 1e6) - tempTime
-	ticket, err := ticketPool.GetTicket(state, luckyTicketId)
+	ticket, err := ticketPoolContext.GetTicket(state, luckyTicketId)
 	t.Logf("lucky ticket :%+v", ticket)
 
-	expireTicketIds, err = ticketPool.GetExpireTicketIds(state, blockNumber)
+	expireTicketIds, err = ticketPoolContext.GetExpireTicketIds(state, blockNumber)
 	if nil != err {
 		t.Error("GetExpireTicketIds error", err)
 	}
-	surplusQuantity, err = ticketPool.GetPoolNumber(state)
-	candidateAttach, err = ticketPool.GetCandidateAttach(state, candidate.CandidateId)
+	surplusQuantity, err = ticketPoolContext.GetPoolNumber(state)
+	candidateAttach, err = ticketPoolContext.GetCandidateAttach(state, candidate.CandidateId)
 	t.Logf("After processing the expired ticket block height：[%d]", blockNumber)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
 		surplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId), candidateAttach.Epoch)
@@ -207,7 +205,7 @@ func TestTicketProcess(t *testing.T) {
 	fmt.Println("When the first ticket is taken, the time taken for voting：", timeMap[1], "ms")
 }
 
-func initParam() (*state.StateDB, *pposm.CandidatePoolContext, *pposm.TicketPool) {
+func initParam() (*state.StateDB, *pposm.CandidatePoolContext, *pposm.TicketPoolContext) {
 	var (
 		db      = ethdb.NewMemDatabase()
 		genesis = new(core.Genesis).MustCommit(db)
@@ -233,7 +231,7 @@ func initParam() (*state.StateDB, *pposm.CandidatePoolContext, *pposm.TicketPool
 
 	candidatePoolContextContext := pposm.NewCandidatePoolContext(&configs)
 
-	ticketPool := pposm.NewTicketPool(&configs)
+	ticketPoolContext := pposm.NewTicketPoolContext(&configs)
 
 	var state *state.StateDB
 	if statedb, err := blockchain.State(); nil != err {
@@ -241,7 +239,7 @@ func initParam() (*state.StateDB, *pposm.CandidatePoolContext, *pposm.TicketPool
 	} else {
 		state = statedb
 	}
-	return state, candidatePoolContextContext, ticketPool
+	return state, candidatePoolContextContext, ticketPoolContext
 }
 
 func TestTicketPool_VoteTicket(t *testing.T) {

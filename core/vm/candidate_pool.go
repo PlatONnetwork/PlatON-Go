@@ -47,6 +47,7 @@ type candidatePoolContext interface {
 	GetRefundInterval() uint64
 	MaxCount() uint64
 	MaxChair() uint64
+	GetLuckyTickets(state StateDB, flag int) ([]common.Hash, error)
 }
 
 type CandidateContract struct {
@@ -60,7 +61,7 @@ func (c *CandidateContract) RequiredGas(input []byte) uint64 {
 
 func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 	if nil == c.Evm.CandidatePoolContext {
-		log.Error("Failed to Run==> ", "ErrCandidateEmpty: ", ErrCandidatePoolEmpty.Error())
+		log.Error("Failed to Run==> ", "ErrCandidatePoolEmpty: ", ErrCandidatePoolEmpty.Error())
 		return nil, ErrCandidatePoolEmpty
 	}
 	var command = map[string]interface{}{
@@ -73,6 +74,7 @@ func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 		"CandidateWithdrawInfos":  c.CandidateWithdrawInfos,
 		"VerifiersList":           c.VerifiersList,
 		"GetBatchCandidateDetail": c.GetBatchCandidateDetail,
+		"GetCurrentRLuckyTickets": c.GetCurrentRLuckyTickets,
 	}
 	return execute(input, command)
 }
@@ -98,7 +100,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	addr := c.Evm.CandidatePoolContext.GetOwner(c.Evm.StateDB, nodeId)
 	if common.ZeroAddr != addr {
 		if ok := bytes.Equal(addr.Bytes(), owner.Bytes()); !ok {
-			log.Error("Failed to CandidateDeposit==> ", "ErrOwnerNotonly: ", ErrOwnerNotOnly.Error())
+			log.Error("Failed to CandidateDeposit==> ", "ErrOwnerNotOnly: ", ErrOwnerNotOnly.Error())
 			return nil, ErrOwnerNotOnly
 		}
 	}
@@ -144,35 +146,35 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	txHash := c.Evm.StateDB.TxHash()
 	from := c.Contract.caller.Address()
 	height := c.Evm.Context.BlockNumber
-	log.Info("Input to CandidateApplyWithdraw==> ", "nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
+	log.Info("Input to CandidateApplyWithdraw on WithdrawCandidate==> ", "nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
 	can, err := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil != err {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "GetCandidate return err: ", err.Error())
+		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "GetCandidate return err: ", err.Error())
 		return nil, err
 	}
 	if nil == can {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
+		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
 		return nil, ErrCandidateNotExist
 	}
 	if can.Deposit.Cmp(big.NewInt(0)) < 1 {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrWithdrawEmpty: ", ErrWithdrawEmpty.Error())
+		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "ErrWithdrawEmpty: ", ErrWithdrawEmpty.Error())
 		return nil, ErrWithdrawEmpty
 	}
 	if ok := bytes.Equal(can.Owner.Bytes(), from.Bytes()); !ok {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "ErrPermissionDenied: ", ErrPermissionDenied.Error())
+		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "ErrPermissionDenied: ", ErrPermissionDenied.Error())
 		return nil, ErrPermissionDenied
 	}
 	if withdraw.Cmp(can.Deposit) > 0 {
 		withdraw = can.Deposit
 	}
 	if err := c.Evm.CandidatePoolContext.WithdrawCandidate(c.Evm.StateDB, nodeId, withdraw, height); nil != err {
-		log.Error("Failed to CandidateApplyWithdraw==> ", "WithdrawCandidate return err: ", err.Error())
+		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "WithdrawCandidate return err: ", err.Error())
 		return nil, err
 	}
 	r := ResultCommon{true, "", "success"}
 	event, _ := json.Marshal(r)
 	c.addLog(CandidateApplyWithdrawEvent, string(event))
-	log.Info("Result of CandidateApplyWithdraw==> ", "json: ", string(event))
+	log.Info("Result of CandidateApplyWithdraw on WithdrawCandidate==> ", "json: ", string(event))
 	return nil, nil
 }
 
@@ -180,15 +182,15 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 func (c *CandidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, error) {
 	txHash := c.Evm.StateDB.TxHash()
 	height := c.Evm.Context.BlockNumber
-	log.Info("Input to CandidateWithdraw==> ", "nodeId: ", nodeId.String(), " height: ", height, " txHash: ", txHash.Hex())
+	log.Info("Input to CandidateWithdraw to RefundBalance==> ", "nodeId: ", nodeId.String(), " height: ", height, " txHash: ", txHash.Hex())
 	if err := c.Evm.CandidatePoolContext.RefundBalance(c.Evm.StateDB, nodeId, height); nil != err {
-		log.Error("Failed to CandidateWithdraw==> ", "RefundBalance return err: ", err.Error())
+		log.Error("Failed to CandidateWithdraw to RefundBalance==> ", "RefundBalance return err: ", err.Error())
 		return nil, err
 	}
 	r := ResultCommon{true, "", "success"}
 	event, _ := json.Marshal(r)
 	c.addLog(CandidateWithdrawEvent, string(event))
-	log.Info("Result of CandidateWithdraw==> ", "json: ", string(event))
+	log.Info("Result of CandidateWithdraw to RefundBalance==> ", "json: ", string(event))
 	return nil, nil
 }
 
@@ -321,6 +323,18 @@ func (c *CandidateContract) VerifiersList() ([]byte, error) {
 	data, _ := json.Marshal(verifiers)
 	sdata := DecodeResultStr(string(data))
 	log.Info("Result of VerifiersList==> ", "len(verifiers): ", len(verifiers), "json: ", string(data))
+	return sdata, nil
+}
+
+// GetCurrentRLuckyTickets return the current round's lucky ticketIds.
+func (c *CandidateContract) GetCurrentRLuckyTickets() ([]byte, error) {
+	ticketIds, err := c.Evm.CandidatePoolContext.GetLuckyTickets(c.Evm.StateDB, 0)
+	if nil != err {
+		log.Error("Failed to GetCurrentRLuckyTickets==> ", "GetLuckyTickets return err: ", err.Error())
+	}
+	data, _ := json.Marshal(ticketIds)
+	sdata := DecodeResultStr(string(data))
+	log.Info("Result of GetCurrentRLuckyTickets==> ", "len(ticketIds): ", len(ticketIds), "json: ", string(data))
 	return sdata, nil
 }
 

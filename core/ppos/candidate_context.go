@@ -119,3 +119,7 @@ func (c *CandidatePoolContext) UpdateElectedQueue(state vm.StateDB, currBlockNum
 func (c *CandidatePoolContext) ForEachStorage(state *state.StateDB, title string) {
 	c.initCandidatePool().ForEachStorage(state, title)
 }
+
+func (c *CandidatePoolContext) GetLuckyTickets(state vm.StateDB, flag int) ([]common.Hash, error) {
+	return c.initCandidatePool().GetLuckyTickets(state, flag)
+}

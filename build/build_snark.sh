@@ -18,8 +18,11 @@ Get_Dist_Name()
     elif grep -Eqi "Debian" /etc/issue || grep -Eq "Debian" /etc/*-release; then
         DISTRO='Debian'
         PM='apt'
-    elif grep -Eqi "Ubuntu" /etc/issue || grep -Eq "Ubuntu" /etc/*-release; then
-        DISTRO='Ubuntu'
+    elif grep -Eqi "Ubuntu 18.04" /etc/issue || grep -Eq "Ubuntu 18.04" /etc/*-release; then
+        DISTRO='Ubuntu18'
+        PM='apt'
+    elif grep -Eqi "Ubuntu 16.04" /etc/issue || grep -Eq "Ubuntu 16.04" /etc/*-release; then
+        DISTRO='Ubuntu16'
         PM='apt'
     elif grep -Eqi "Raspbian" /etc/issue || grep -Eq "Raspbian" /etc/*-release; then
         DISTRO='Raspbian'
@@ -59,11 +62,18 @@ fi
 SF_BUILD=$root/vc/build
 MAKE="make"
 if [ `expr substr $(uname -s) 1 5` = "Linux" ]; then
-    if [ "$DISTRO" = "Ubuntu" ]; then
+    if [ "$DISTRO" = "Ubuntu16" ]; then
+        echo "Ubuntu 16.04 install lib"
         sudo apt-get install llvm-6.0-dev llvm-6.0 libclang-6.0-dev
         sudo apt-get install libgmpxx4ldbl libgmp-dev libprocps4-dev
+        sudo apt-get install libboost-all-dev libssl-dev
+    elif [ "$DISTRO" = "Ubuntu18" ]; then
+        echo "Ubuntu 18.04 install lib"
+        sudo apt-get install llvm-6.0-dev llvm-6.0 libclang-6.0-dev
+        sudo apt-get install libgmpxx4ldbl libgmp-dev libprocps-dev
+        sudo apt-get install libboost-all-dev libssl-dev
     elif [ "$DISTRO" = "CentOS" ]; then
-        sudo yum install -y llvm clang gmp procps
+            sudo yum install -y llvm clang gmp procps
     else
         echo "not support system $DISTRO"
     fi

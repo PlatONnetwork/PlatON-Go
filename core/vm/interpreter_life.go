@@ -13,6 +13,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"reflect"
+	"runtime"
 	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/life/exec"
@@ -71,6 +72,7 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 	defer func() {
 		if er := recover(); er != nil {
+			fmt.Println(stack())
 			ret, err = nil, fmt.Errorf("VM execute fail: %v", er)
 		}
 	}()
@@ -340,4 +342,9 @@ func parseRlpData(rlpData []byte) (int64, []byte, []byte, error) {
 		//fmt.Println("dstAbi:", common.Bytes2Hex(abi))
 	}
 	return txType, abi, code, nil
+}
+
+func stack() string {
+	var buf [2 << 10]byte
+	return string(buf[:runtime.Stack(buf[:], true)])
 }
