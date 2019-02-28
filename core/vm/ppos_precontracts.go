@@ -9,6 +9,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	gerr "github.com/go-errors/errors"
 	"reflect"
 )
 
@@ -32,7 +33,8 @@ func execute(input []byte, command map[string]interface{}) ([]byte, error) {
 	defer func() {
 		if err := recover(); nil != err {
 			// catch call panic
-			log.Error("Failed to execute==> ", "err: ", fmt.Sprint(err))
+			msg := fmt.Sprintf("panic: %v\n", gerr.Wrap(err, 2).ErrorStack())
+			log.Error("Failed to execute==> ", "err: ", fmt.Sprint(err), "\nstack: ", msg)
 		}
 	}()
 	var source [][]byte

@@ -1,8 +1,9 @@
 package core
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"container/heap"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
 type vcHeap []*types.TransactionWrap
@@ -30,14 +31,14 @@ func (h *vcHeap) Pop() interface{} {
 }
 
 type vcList struct {
-	all 	*vcLookup
-	items	*vcHeap
-	stales	int
+	all    *vcLookup
+	items  *vcHeap
+	stales int
 }
 
 func newVCList(all *vcLookup) *vcList {
 	return &vcList{
-		all : all,
+		all:   all,
 		items: new(vcHeap),
 	}
 }
@@ -49,20 +50,3 @@ func (l *vcList) Put(tx *types.TransactionWrap) {
 func (l *vcList) Pop() *types.TransactionWrap {
 	return heap.Pop(l.items).(*types.TransactionWrap)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

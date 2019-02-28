@@ -343,12 +343,12 @@ func (lower *BlockExt) isAncestor(higher *BlockExt) bool {
 	return false
 }
 
-// findHighest finds the highest block from current start; If there are multiple highest blockExts, return the one that has most signs
+// findHighest finds the highest block from current start; If there are multiple highest blockExts, returns the one that singed by self; if none of blocks signed by self, returns the one that has most signs
 func (cbft *Cbft) findHighest(current *BlockExt) *BlockExt {
 	highest := current
 	for _, child := range current.children {
 		current := cbft.findHighest(child)
-		if current.block.NumberU64() > highest.block.NumberU64() || (current.block.NumberU64() == highest.block.NumberU64() && len(current.signs) > len(highest.signs)) {
+		if current.block.NumberU64() > highest.block.NumberU64() || (current.block.NumberU64() == highest.block.NumberU64() && (current.isSigned || len(current.signs) > len(highest.signs))) {
 			highest = current
 		}
 	}
@@ -525,6 +525,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 		sealHash := ext.block.Header().SealHash()
 		cbft.blockChainCache.WriteReceipts(sealHash, receipts, ext.block.NumberU64())
 		cbft.blockChainCache.WriteStateDB(sealHash, state, ext.block.NumberU64())
+		//cbft.blockChainCache.MarkBlockHash(ext.block.Hash())
 	} else {
 		cbft.log.Error("execute block error", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "ParentHash", parent.block.Hash(), "err", err)
 		return errors.New("execute block error")
@@ -601,7 +602,7 @@ func (cbft *Cbft) setHighestLogical(highestLogical *BlockExt) {
 func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	cbft.log.Debug("call SetBackend()")
 	cbft.blockChain = blockChain
-	cbft.ppos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
+	cbft.ppos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64() / 1000)
 
 	currentBlock := blockChain.CurrentBlock()
 
@@ -1252,8 +1253,6 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 	}
 }
 
-
-
 // Author implements consensus.Engine, returning the Ethereum address recovered
 // from the signature in the header's extra-data section.
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
@@ -1702,6 +1701,8 @@ func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash com
 		if consensusNodes == nil || len(consensusNodes) <= 0 {
 			log.Error("calTurn consensusNodes is emtpy~")
 			return false
+		} else if len(consensusNodes) == 1 {
+			return true
 		}
 
 		durationPerTurn := durationPerNode * int64(len(consensusNodes))
@@ -1792,12 +1793,12 @@ func toMilliseconds(t time.Time) int64 {
 
 func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool {
 	cbft.log.Trace("call ShouldSeal()")
-	
-	consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, commitNumber)
-	if consensusNodes != nil && len(consensusNodes) == 1 {
-		return true
-	}
-	
+
+	//consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, commitNumber)
+	//if consensusNodes != nil && len(consensusNodes) == 1 {
+	//	return true
+	//}
+
 	inturn := cbft.inTurn(parentNumber, parentHash, commitNumber)
 	if inturn {
 		cbft.netLatencyLock.RLock()
@@ -1811,7 +1812,6 @@ func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, comm
 	cbft.log.Debug("end of ShouldSeal()", "result", inturn)
 	return inturn
 }
-
 
 func (cbft *Cbft) CurrentNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node {
 	return cbft.ppos.getCurrentNodes(parentNumber, parentHash, blockNumber)
@@ -1885,12 +1885,16 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	}
 	var nodeId discover.NodeID
 	var err error
+	log.Info("Call accumulateRewards block header", " extra: ", hexutil.Encode(header.Extra))
 	if ok := bytes.Equal(header.Extra[32:96], make([]byte, 64)); ok {
+		log.Warn("Call accumulateRewards block header extra[32:96] is empty!")
 		nodeId = cbft.config.NodeID
 	} else {
-		if nodeId, _, err = ecrecover(header); err!=nil {
+		if nodeId, _, err = ecrecover(header); err != nil {
 			log.Error("Failed to Call accumulateRewards, ecrecover faile", " err: ", err)
 			return
+		} else {
+			log.Info("Success ecrecover", " nodeid: ", nodeId.String())
 		}
 	}
 
@@ -1898,7 +1902,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	var can *types.Candidate
 	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(BaseSwitchWitness))) == 0 {
 		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, -1)
-	}else {
+	} else {
 		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, 0)
 	}
 	if err != nil {
@@ -1910,7 +1914,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		return
 	}
 	log.Info("Call accumulateRewards, GetTicket ", "TicketId: ", can.TicketId.Hex())
-	ticket, err := cbft.ppos.ticketPool.GetTicket(state, can.TicketId)
+	ticket, err := cbft.ppos.GetTicket(state, can.TicketId)
 	if nil != err {
 		log.Error("Failed to Call accumulateRewards, GetTicket faile ", " err: ", err.Error())
 		return

@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"bytes"
 )
 
 var (
@@ -113,11 +114,16 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 // 1：init previous witness and current witness and next witness and immediate and reserve
 // 2: init all information
 func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
-	log.Info("init data by stateDB...", "flag", flag)
+	log.Info("init data by stateDB...", "statedb addr", fmt.Sprintf("%p", state))
+
+	parentRoutineID := fmt.Sprintf("%s", common.CurrentGoRoutineID())
+
 	//loading  candidates func
 	loadWitFunc := func(title string, canMap candidateStorage,
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
 		getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) error {
+
+		log.Debug("initDataByState by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 		var witnessIds []discover.NodeID
 		if ids, err := getIndexFn(state); nil != err {
 			log.Error("Failed to decode "+title+" witnessIds on initDataByState", " err", err)
@@ -184,6 +190,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 			getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) (types.CandidateQueue, error) {
 			var witnessIds []discover.NodeID
 
+			log.Debug("initDataByState by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 			if ids, err := getIndexFn(state); nil != err {
 				log.Error("Failed to decode "+title+"Ids on initDataByState", " err", err)
 				return nil, err
@@ -293,9 +300,9 @@ func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
 
 // pledge Candidate
 func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
-	defer func() {
-		c.ForEachStorage(state, "View State After SetCandidate ...")
-	}()
+	//defer func() {
+	//	c.ForEachStorage(state, "View State After SetCandidate ...")
+	//}()
 	var nodeIds []discover.NodeID
 	c.lock.Lock()
 
@@ -315,7 +322,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 
 	// Before each pledge, we need to check whether the current can deposit is not less
 	// than the minimum can deposit when the corresponding queue to be placed is full.
-	if _, ok := c.checkDeposit(state, can); !ok {
+	if _, ok := c.checkDeposit(state, can, false); !ok {
 		c.lock.Unlock()
 		log.Warn("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
 		return DepositLowErr
@@ -331,7 +338,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	c.lock.Unlock()
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
-		if err := ticketPool.DropReturnTicket(state, can.BlockNumber, nodeIds...); nil != err {
+		if err := tContext.DropReturnTicket(state, can.BlockNumber, nodeIds...); nil != err {
 			log.Error("Failed to DropReturnTicket on SetCandidate ...")
 			//return err
 		}
@@ -434,7 +441,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		delInfoFn(state, can.CandidateId)
 		// update reserve id index
 		if ids, err := getIndexFn(state); nil != err {
-			log.Error("withdraw failed get"+title+"Index on setCandidateInfo", "err", err)
+			log.Error("Failed to get"+title+"Index on setCandidateInfo", "err", err)
 			return err
 		} else {
 			//for i, id := range ids {
@@ -446,7 +453,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 				}
 			}
 			if err := setIndexFn(state, ids); nil != err {
-				log.Error("withdraw failed set"+title+"Index on setCandidateInfo", "err", err)
+				log.Error("Failed to set"+title+"Index on setCandidateInfo", "err", err)
 				return err
 			}
 		}
@@ -488,9 +495,9 @@ func (c *CandidatePool) GetCandidateArr(state vm.StateDB, nodeIds ...discover.No
 
 // candidate withdraw from immediates or reserve elected candidates
 func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
-	defer func() {
-		c.ForEachStorage(state, "View State After WithdrawCandidate ...")
-	}()
+	//defer func() {
+	//	c.ForEachStorage(state, "View State After WithdrawCandidate ...")
+	//}()
 	var nodeIds []discover.NodeID
 	if arr, err := c.withdrawCandidate(state, nodeId, price, blockNumber); nil != err {
 		return err
@@ -499,7 +506,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 	}
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
-		if err := ticketPool.DropReturnTicket(state, blockNumber, nodeIds...); nil != err {
+		if err := tContext.DropReturnTicket(state, blockNumber, nodeIds...); nil != err {
 			log.Error("Failed to DropReturnTicket on WithdrawCandidate ...")
 		}
 	}
@@ -507,7 +514,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 }
 
 func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) ([]discover.NodeID, error) {
-	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String())
+	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String(), "config.RefundBlockNumber", c.RefundBlockNumber)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
@@ -516,7 +523,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 	}
 
 	if price.Cmp(new(big.Int).SetUint64(0)) <= 0 {
-		log.Error("withdraw failed price invalid", " price", price.String())
+		log.Error("Failed to WithdrawCandidate price invalid", " price", price.String())
 		return nil, WithdrawPriceErr
 	}
 	// cache
@@ -526,7 +533,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 	if imCan, ok := c.immediateCandidates[nodeId]; !ok || nil == imCan {
 		reCan, ok := c.reserveCandidates[nodeId]
 		if !ok || nil == reCan {
-			log.Error("withdraw failed current Candidate is empty")
+			log.Error("Failed to WithdrawCandidate current Candidate is empty")
 			return nil, CandidateEmptyErr
 		} else {
 			can = reCan
@@ -538,9 +545,11 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 	// check withdraw price
 	if can.Deposit.Cmp(price) < 0 {
-		log.Error("withdraw failed refund price must less or equal deposit", "key", nodeId.String())
+		log.Error("Failed to WithdrawCandidate refund price must less or equal deposit", "key", nodeId.String())
 		return nil, WithdrawPriceErr
 	} else if can.Deposit.Cmp(price) == 0 { // full withdraw
+
+		log.Info("WithdrawCandidate into full withdraw", "canId", can.CandidateId.String(), "current can deposit", can.Deposit.String(), "withdraw price is", price.String())
 
 		handleFunc := func(tiltle string, delInfoFn func(state vm.StateDB, candidateId discover.NodeID),
 			getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
@@ -550,7 +559,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			delInfoFn(state, nodeId)
 			// update this id index
 			if ids, err := getIndexFn(state); nil != err {
-				log.Error("withdraw failed get"+tiltle+"Index on full withdraw", "err", err)
+				log.Error("Failed to get"+tiltle+"Index on full withdraw on WithdrawCandidate", "err", err)
 				return err
 			} else {
 				for i := 0; i < len(ids); i++ {
@@ -561,7 +570,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 					}
 				}
 				if err := setIndexFn(state, ids); nil != err {
-					log.Error("withdraw failed set"+tiltle+"Index on full withdraw", "err", err)
+					log.Error("Failed to set"+tiltle+"Index on full withdraw on WithdrawCandidate", "err", err)
 					return err
 				}
 			}
@@ -581,12 +590,12 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 		// append to refund (defeat) trie
 		if err := c.setDefeat(state, nodeId, can); nil != err {
-			log.Error("withdraw failed setDefeat on full withdraw", "err", err)
+			log.Error("Failed to setDefeat on full withdraw on WithdrawCandidate", "err", err)
 			return nil, err
 		}
 		// update index of defeat on trie
 		if err := c.setDefeatIndex(state); nil != err {
-			log.Error("withdraw failed setDefeatIndex on full withdraw", "err", err)
+			log.Error("Failed to setDefeatIndex on full withdraw on WithdrawCandidate", "err", err)
 			return nil, err
 		}
 
@@ -596,8 +605,10 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 		// Only withdraw part of the refunds, need to reorder the immediate elected candidates
 		// The remaining candiate price to update current candidate info
 
+		log.Info("WithdrawCandidate into withdraw a few", "canId", can.CandidateId.String(), "current can deposit", can.Deposit.String(), "withdraw price is", price.String())
+
 		if err := c.checkWithdraw(can.Deposit, price); nil != err {
-			log.Error("withdraw failed price invalid", " price", price.String(), "err", err)
+			log.Error("Failed to price invalid on WithdrawCandidate", " price", price.String(), "err", err)
 			return nil, err
 		}
 
@@ -620,7 +631,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 			// update current candidate
 			if err := setInfoFn(state, nodeId, canNew); nil != err {
-				log.Error("withdraw failed set"+title+" on a few of withdraw", "err", err)
+				log.Error("Failed to set"+title+" on a few of withdraw on WithdrawCandidate", "err", err)
 				return nil, err
 			}
 
@@ -639,7 +650,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			}
 			// update new index
 			if err := setIndexFn(state, ids); nil != err {
-				log.Error("withdraw failed set"+title+"Index on a few of withdraw", "err", err)
+				log.Error("Failed to set"+title+"Index on a few of withdraw on WithdrawCandidate", "err", err)
 				return nil, err
 			}
 			return candidateArr, nil
@@ -674,12 +685,12 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 		}
 		// the withdraw
 		if err := c.setDefeat(state, nodeId, canDefeat); nil != err {
-			log.Error("withdraw failed setDefeat on a few of withdraw", "err", err)
+			log.Error("Failed to setDefeat on a few of withdraw on WithdrawCandidate", "err", err)
 			return nil, err
 		}
 		// update index of defeat on trie
 		if err := c.setDefeatIndex(state); nil != err {
-			log.Error("withdraw failed setDefeatIndex on a few of withdraw", "err", err)
+			log.Error("Failed to setDefeatIndex on a few of withdraw on WithdrawCandidate", "err", err)
 			return nil, err
 		}
 	}
@@ -764,7 +775,7 @@ func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) (typ
 
 	defeat, ok := c.defeatCandidates[nodeId]
 	if !ok {
-		log.Error("Candidate is empty")
+		log.Error("Failed to GetDefeat : Candidate is empty")
 		return nil, nil
 	}
 	return defeat, nil
@@ -847,10 +858,10 @@ func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) commo
 
 // refund once
 func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
-	defer func() {
-		c.ForEachStorage(state, "View State After RefundBalance ...")
-	}()
-	log.Info("Call RefundBalance:  curr nodeId = " + nodeId.String() + ",curr blocknumber:" + blockNumber.String())
+	//defer func() {
+	//	c.ForEachStorage(state, "View State After RefundBalance ...")
+	//}()
+	log.Info("Call RefundBalance:  curr nodeId = " + nodeId.String() + ",curr blocknumber:" + blockNumber.String(), "config.RefundBlockNumber:", c.RefundBlockNumber)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
@@ -880,7 +891,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	for index := 0; index < len(canArr); index++ {
 		can := canArr[index]
 		sub := new(big.Int).Sub(blockNumber, can.BlockNumber)
-		log.Info("Check defeat detail", "nodeId:", nodeId.String(), "curr blocknumber:", blockNumber.String(), "setcandidate blocknumber:", can.BlockNumber.String(), " diff:", sub.String())
+		log.Info("Check defeat detail", "nodeId:", nodeId.String(), "curr blocknumber:", blockNumber.String(), "setcandidate blocknumber:", can.BlockNumber.String(), " diff:", sub.String(), "config.RefundBlockNumber", c.RefundBlockNumber)
 		if sub.Cmp(new(big.Int).SetUint64(c.RefundBlockNumber)) >= 0 { // allow refund
 			delCanArr = append(delCanArr, can)
 			canArr = append(canArr[:index], canArr[index+1:]...)
@@ -897,7 +908,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 			addr = can.Owner
 		} else {
 			if addr != can.Owner {
-				log.Info("Failed to refundbalance couse current nodeId had bind different owner address ", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", can.Owner)
+				//log.Error("Failed to refundbalance couse current nodeId had bind different owner address ", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", can.Owner)
 				if len(canArr) != 0 {
 					canArr = append(delCanArr, canArr...)
 				} else {
@@ -924,7 +935,8 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	}
 
 	// update the tire
-	if len(canArr) == 0 {
+	if len(canArr) == 0 { // full RefundBlockNumber
+		log.Info("Call RefundBalance Into full RefundBlockNumber ...", "nodeId", nodeId.String())
 		c.delDefeat(state, nodeId)
 		if ids, err := getDefeatIdsByState(state); nil != err {
 			for i := 0; i < len(ids); i++ {
@@ -942,11 +954,14 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 					setDefeatIdsState(state, value)
 				}
 			} else {
+				log.Debug("Current DefeatIndex is Empty, delete from state on RefundBalance ... ")
 				setDefeatIdsState(state, []byte{})
 			}
 
 		}
 	} else {
+		log.Info("Call RefundBalance Into a few RefundBlockNumber ...", "nodeId", nodeId.String())
+		PrintObject("Call RefundBalance Into a few RefundBlockNumber Remain Defeat Arr", canArr)
 		// If have some remaining, update that
 		if arrVal, err := rlp.EncodeToBytes(canArr); nil != err {
 			log.Error("Failed to encode candidate object on RefundBalance", "key", nodeId.String(), "err", err)
@@ -973,9 +988,9 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 
 // set elected candidate extra value
 func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.NodeID, extra string) error {
-	defer func() {
-		c.ForEachStorage(state, "View State After SetCandidateExtra ...")
-	}()
+	//defer func() {
+	//	c.ForEachStorage(state, "View State After SetCandidateExtra ...")
+	//}()
 	log.Info("Call SetCandidateExtra:", "nodeId", nodeId.String(), "extra", extra)
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -1007,9 +1022,9 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 
 // Announce witness
 func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, currBlockNumber *big.Int) ([]*discover.Node, error) {
-	defer func() {
-		c.ForEachStorage(state, "View State After Election ...")
-	}()
+	//defer func() {
+	//	c.ForEachStorage(state, "View State After Election ...")
+	//}()
 	var nodes []*discover.Node
 	var cans types.CandidateQueue
 	if nodeArr, canArr, err := c.election(state, parentHash); nil != err {
@@ -1021,7 +1036,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	nodeIds := make([]discover.NodeID, 0)
 	for _, can := range cans {
 		// Release lucky ticket TODO
-		if err := ticketPool.ReturnTicket(state, can.CandidateId, can.TicketId, currBlockNumber); nil != err {
+		if err := tContext.ReturnTicket(state, can.CandidateId, can.TicketId, currBlockNumber); nil != err {
 			log.Error("Failed to ReturnTicket on Election", "nodeId", can.CandidateId.String(), "ticketId", can.TicketId.String(), "err", err)
 			continue
 		}
@@ -1064,7 +1079,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	// Release the lost list
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
-		if err := ticketPool.DropReturnTicket(state, currBlockNumber, nodeIds...); nil != err {
+		if err := tContext.DropReturnTicket(state, currBlockNumber, nodeIds...); nil != err {
 			log.Error("Failed to DropReturnTicket on Election ...")
 		}
 	}
@@ -1128,16 +1143,16 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 		if can, ok := nextWits[nodeId]; ok {
 
 			// After election to call Selected LuckyTicket TODO
-			luckyId, err := ticketPool.SelectionLuckyTicket(state, nodeId, parentHash)
+			luckyId, err := tContext.SelectionLuckyTicket(state, nodeId, parentHash)
 			if nil != err {
 				log.Error("Failed to take luckyId on Election", "nodeId", nodeId.String(), "err", err)
-				return nil, nil, err
+				return nil, nil, errors.New(err.Error() + ", nodeId: " + nodeId.String())
 			}
 			// Put the lucky ticket ID in the next witness details
 			can.TicketId = luckyId
 			if err := c.setNextWitness(state, nodeId, can); nil != err {
-				log.Error("failed to setNextWitness on election", "err", err)
-				return nil, nil, err
+				log.Error("Failed to setNextWitness on election", "nodeId", nodeId.String(), "err", err)
+				return nil, nil, errors.New(err.Error() + ", nodeId: " + nodeId.String())
 			}
 			caches = append(caches, can)
 			if node, err := buildWitnessNode(can); nil != err {
@@ -1150,7 +1165,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	}
 	// update new nextwitnesses index
 	if err := c.setNextWitnessIndex(state, nextWitIds); nil != err {
-		log.Error("failed to setNextWitnessIndex on election", "err", err)
+		log.Error("Failed to setNextWitnessIndex on election", "err", err)
 		return nil, nil, err
 	}
 	// replace the next round of witnesses
@@ -1323,9 +1338,12 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 		return nil, nil, nil, err
 	}
 
+	parentRoutineID := fmt.Sprintf("%s", common.CurrentGoRoutineID())
+
 	fetchWitnessFunc := func(title string, witnesses candidateStorage,
 		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error)) ([]*discover.Node, error) {
 
+		log.Debug("GetAllWitness by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
 		nodes := make([]*discover.Node, 0)
 
 		// caches
@@ -1458,6 +1476,28 @@ func (c *CandidatePool) GetWitnessCandidate(state vm.StateDB, nodeId discover.No
 	}
 }
 
+func (c *CandidatePool) GetLuckyTickets(state vm.StateDB, flag int) ([]common.Hash, error) {
+	var witnessIds []discover.NodeID
+	if arr, err := c.getWitnessIndex(state); nil != err {
+		log.Error("Failed to getWitnessIndex on GetLuckyTickets", "err: ", err)
+		return nil, err
+	} else {
+		witnessIds = arr
+	}
+	luckyTicketArr := make([]common.Hash, 0)
+	for _, witnessId := range witnessIds {
+		can, err := c.GetWitnessCandidate(state, witnessId, flag)
+		if nil != err {
+			log.Error("Failed to getWitnessCandidate on GetLuckyTickets", "err: ", err)
+			return nil, err
+		}
+		if (common.Hash{}) != can.TicketId {
+			luckyTicketArr = append(luckyTicketArr, can.TicketId)
+		}
+	}
+	return luckyTicketArr, nil
+}
+
 func (c *CandidatePool) GetRefundInterval() uint64 {
 	log.Info("Call GetRefundInterval", "RefundBlockNumber", c.RefundBlockNumber)
 	return c.RefundBlockNumber
@@ -1473,10 +1513,10 @@ func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *bi
 		ids = arr
 	}
 	log.Info("Call UpdateElectedQueue SUCCESS !!!!!!!!! ")
-	c.ForEachStorage(state, "View State After UpdateElectedQueue ...")
+	//c.ForEachStorage(state, "View State After UpdateElectedQueue ...")
 	//go ticketPool.DropReturnTicket(state, ids...)
 	if len(ids) > 0 {
-		return ticketPool.DropReturnTicket(state, currBlockNumber, ids...)
+		return tContext.DropReturnTicket(state, currBlockNumber, ids...)
 	}
 	return nil
 }
@@ -1491,7 +1531,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		return nil, nil
 	}
 	if err := c.initDataByState(state, 1); nil != err {
-	//	if err := c.initDataByState(state, 0); nil != err {
+		//	if err := c.initDataByState(state, 0); nil != err {
 		log.Error("Failed to initDataByState on UpdateElectedQueue", "err", err)
 		return nil, err
 	}
@@ -1553,7 +1593,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 		delOldInfoFn(state, can.CandidateId)
 		// update can's ids index
 		if ids, err := getOldIndexFn(state); nil != err {
-			log.Error("withdraw failed get"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
+			log.Error("Failed to get"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
 			return nil, nil, err
 		} else {
 			//for i, id := range ids {
@@ -1565,7 +1605,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 				}
 			}
 			if err := setOldIndexFn(state, ids); nil != err {
-				log.Error("withdraw failed set"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
+				log.Error("Failed to set"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
 				return nil, nil, err
 			}
 		}
@@ -1612,7 +1652,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 
 		// update reserve id index
 		if ids, err := getIndexFn(state); nil != err {
-			log.Error("withdraw failed get"+title+"Index on UpdateElectedQueue", "err", err)
+			log.Error("Failed to get"+title+"Index on UpdateElectedQueue", "err", err)
 			return err
 		} else {
 			//for i, id := range ids {
@@ -1624,7 +1664,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 				}
 			}
 			if err := setIndexFn(state, ids); nil != err {
-				log.Error("withdraw failed set"+title+"Index on UpdateElectedQueue", "err", err)
+				log.Error("Failed to set"+title+"Index on UpdateElectedQueue", "err", err)
 				return err
 			}
 		}
@@ -1640,7 +1680,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 			log.Debug("The current nodeId was originally in the Immediate ...")
 			can := c.immediateCandidates[nodeId]
 			//if !c.checkTicket(state.TCount(nodeId)) { // TODO
-			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // Direct drop
+			if tcount, noDrop := c.checkDeposit(state, can, true); !noDrop { // Direct drop
 				if err := directdropFunc("Immediate", can, c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
 					return nil, err
 				} else {
@@ -1662,7 +1702,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID
 			log.Debug("The current nodeId was originally in the Reserve ...")
 			can := c.reserveCandidates[nodeId]
 			//if c.checkTicket(state.TCount(nodeId)) { // TODO
-			if tcount, noDrop := c.checkDeposit(state, can); !noDrop { // Direct drop
+			if tcount, noDrop := c.checkDeposit(state, can, true); !noDrop { // Direct drop
 				if err := directdropFunc("Reserve", can, c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
 					return nil, err
 				} else {
@@ -1696,7 +1736,7 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 	// it will drop the list directly,
 	// but before the list is dropped,
 	// it needs to determine which queue was in the queue.
-	if _, ok := c.checkDeposit(state, can); !ok {
+	if _, ok := c.checkDeposit(state, can, true); !ok {
 		log.Warn("Failed to checkDeposit on preElectionReset", "nodeId", can.CandidateId.String(), " err", DepositLowErr)
 		var del int // del: 1 del immiedate; 2  del reserve
 		if _, ok := c.immediateCandidates[can.CandidateId]; ok {
@@ -1726,7 +1766,7 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 
 			// update reserve id index
 			if ids, err := getIndexFn(state); nil != err {
-				log.Error("withdraw failed get"+title+"Index on preElectionReset", "err", err)
+				log.Error("Failed to get"+title+"Index on preElectionReset", "err", err)
 				return err
 			} else {
 				//for i, id := range ids {
@@ -1738,7 +1778,7 @@ func (c *CandidatePool) preElectionReset(state vm.StateDB, can *types.Candidate)
 					}
 				}
 				if err := setIndexFn(state, ids); nil != err {
-					log.Error("withdraw failed set"+title+"Index on preElectionReset", "err", err)
+					log.Error("Failed to set"+title+"Index on preElectionReset", "err", err)
 					return err
 				}
 			}
@@ -1774,7 +1814,7 @@ func (c *CandidatePool) checkFirstThreshold(can *types.Candidate) bool {
 
 // false: invalid deposit
 // true:  pass
-func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bool, bool) {
+func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, holdself bool) (bool, bool) {
 	tcount := c.checkTicket(state.TCount(can.CandidateId))
 	/**
 	If the current number of votes meets the entry immediate pool
@@ -1791,6 +1831,13 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bo
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
+			// If last is self and holdslef flag is true
+			// we must return true (Keep self on staying in the original queue)
+			if holdself && can.CandidateId == last.CandidateId {
+				log.Debug("The immeidate pool is full, and last is self and holdslef is true, Keep self on staying in the original queue", "current can nodeId", can.CandidateId.String(), "last can nodeId", last.CandidateId.String(),
+					"current can's Deposit:", can.Deposit.String(), "110% of the last can in the immediate pool:", tmp.String(), "the length of current immediate pool:", len(c.immediateCandidates), "the limit of Configuration:", c.maxCount)
+				return tcount, true
+			}
 			log.Debug("The immeidate pool is full, and the current can's Deposit is less than 110% of the last can in the immediate pool.", "current can's Deposit:", can.Deposit.String(), "110% of the last can in the immediate pool:", tmp.String(), "the length of current immediate pool:", len(c.immediateCandidates), "the limit of Configuration:", c.maxCount)
 			return tcount, false
 		}
@@ -1810,6 +1857,13 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate) (bo
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
+			// If last is self and holdslef flag is true
+			// we must return true (Keep self on staying in the original queue)
+			if holdself && can.CandidateId == last.CandidateId {
+				log.Debug("The reserve pool is full, and last is self and holdslef is true, Keep self on staying in the original queue", "current can nodeId", can.CandidateId.String(), "last can nodeId", last.CandidateId.String(),
+					"current can's Deposit:", can.Deposit.String(), "110% of the last can in the reserve pool:", tmp.String(), "the length of current reserve pool:", len(c.reserveCandidates), "the limit of Configuration:", c.maxCount)
+				return tcount, true
+			}
 			log.Debug("The reserve pool is full，and the current can's Deposit is less than 110% of the last can in the reserve pool.", "current can's Deposit:", can.Deposit.String(), "110% of the last can in the reserve pool:", tmp.String(), "the length of current reserve pool:", len(c.reserveCandidates), "the limit of Configuration:", c.maxCount)
 			return tcount, false
 		}
@@ -1943,6 +1997,9 @@ func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID,
 		//c.defeatCandidates[can.CandidateId] = defeatArrTmp
 		defeatArr = defeatArrTmp
 	}
+
+	PrintObject("SetDefeat Arr, nodeId:" + candidateId.String() + " ,defeatArr", defeatArr)
+
 	// setting refund information on trie
 	if value, err := rlp.EncodeToBytes(&defeatArr); nil != err {
 		log.Error("Failed to encode candidate object on setDefeat", "key", candidateId.String(), "err", err)
@@ -1971,10 +2028,15 @@ func (c *CandidatePool) setDefeatIndex(state vm.StateDB) error {
 	// sort id
 	sort.Strings(index)
 
+	PrintObject("SetDefeatIndex, After Sort defeat index String is", index)
+
 	for _, idStr := range index {
 		id := indexMap[idStr]
 		newdefeatIds = append(newdefeatIds, id)
 	}
+
+	PrintObject("SetDefeatIndex, After Sort defeat index is", newdefeatIds)
+
 	if len(newdefeatIds) == 0 {
 		setDefeatIdsState(state, []byte{})
 		return nil
@@ -2335,6 +2397,7 @@ func getDefeatsByState(state vm.StateDB, id discover.NodeID) (types.CandidateQue
 }
 
 func setDefeatState(state vm.StateDB, id discover.NodeID, val []byte) {
+	log.Debug("SetDefeatArr ... ...", "nodeId:", id.String(), "keyTrie:", buildKeyTrie(DefeatKey(id)))
 	state.SetState(common.CandidatePoolAddr, DefeatKey(id), val)
 }
 
@@ -2352,9 +2415,7 @@ func copyCandidateMapByIds(target, source candidateStorage, ids []discover.NodeI
 
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
-
 	log.Debug(s, "==", string(objs))
-	//fmt.Println(s, string(objs))
 }
 
 func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
@@ -2376,7 +2437,8 @@ func makeCandidateSort(state vm.StateDB, arr types.CandidateQueue) {
 	cand := make(types.CanConditions, 0)
 	for _, can := range arr {
 		tCount := state.TCount(can.CandidateId)
-		tprice := new(big.Int).Mul(big.NewInt(int64(tCount)), ticketPool.TicketPrice)
+		price, _ := tContext.GetTicketPrice(state)
+		tprice := new(big.Int).Mul(big.NewInt(int64(tCount)), price)
 
 		money := new(big.Int).Add(can.Deposit, tprice)
 
@@ -2517,4 +2579,11 @@ func (c *CandidatePool) ForEachStorage(state vm.StateDB, title string) {
 	log.Debug(title + ":Full view of data in the candidate pool ...")
 	c.initDataByState(state, 2)
 	c.lock.Unlock()
+}
+
+func buildKeyTrie (key []byte) string {
+	var buffer bytes.Buffer
+	buffer.Write(common.CandidatePoolAddr.Bytes())
+	buffer.WriteString(string(key))
+	return buffer.String()
 }

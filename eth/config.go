@@ -52,13 +52,13 @@ var DefaultConfig = Config{
 			Candidate: &CandidateConfig{
 				Threshold: 			"1000000000000000000000000",
 				DepositLimit: 	  	10,
-				Allowed: 			100,
+				Allowed: 			512,
 				MaxChair:          	10,
 				MaxCount:          	100,
 				RefundBlockNumber: 	512,
 			},
 			Ticket: &TicketConfig{
-				TicketPrice: 		"1000000000000000000",
+				TicketPrice: 		"100000000000000000000",
 				MaxCount:			51200,
 				ExpireBlockNumber: 	1536000,
 			},

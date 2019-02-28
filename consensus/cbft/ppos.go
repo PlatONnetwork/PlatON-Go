@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"sync"
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
+	//"runtime/debug"
 )
 
 type ppos struct {
@@ -32,7 +33,7 @@ type ppos struct {
 	// the candidateContext pool object pointer
 	candidateContext 	*pposm.CandidatePoolContext
 	// the ticket pool object pointer
-	ticketPool				*pposm.TicketPool
+	ticketContext				*pposm.TicketPoolContext
 	// the ticket id list cache
 	ticketidsCache 			*ticketcache.TicketTempCache
 }
@@ -44,7 +45,7 @@ func newPpos(config *params.CbftConfig) *ppos {
 		lastCycleBlockNum: 	0,
 		config:            	config.PposConfig,
 		candidateContext:   pposm.NewCandidatePoolContext(config.PposConfig),
-		ticketPool: 		pposm.NewTicketPool(config.PposConfig),
+		ticketContext: 		pposm.NewTicketPoolContext(config.PposConfig),
 	}
 }
 
@@ -131,7 +132,7 @@ func (d *ppos) consensusNodes(parentNumber *big.Int, parentHash common.Hash, blo
 	d.lock.RLock()
 	defer d.lock.RUnlock()
 
-	log.Warn("call consensusNodes", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash, "blockNumber", blockNumber.Uint64())
+	log.Debug("call consensusNodes", "parentNumber", parentNumber.Uint64(), "parentHash", parentHash, "blockNumber", blockNumber.Uint64())
 	nodeCache := d.nodeRound.getNodeCache(parentNumber, parentHash)
 	d.printMapInfo("consensusNodes nodeCache", parentNumber.Uint64(), parentHash)
 	if nodeCache != nil {
@@ -170,9 +171,11 @@ func (d *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 // Announce witness
 func (d *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlocknumber *big.Int) ([]*discover.Node, error) {
 	// TODO
+	//log.Debug("Call stack", "Election stack", string(debug.Stack()))
 	if nextNodes, err := d.candidateContext.Election(state, parentHash, currBlocknumber); nil != err {
-		log.Error("ppos election next witness", " err: ", err)
-		panic("Election error " + err.Error())
+		log.Error("PPOS Election next witness", " err: ", err)
+		/*panic("Election error " + err.Error())*/
+		return nil, err
 	} else {
 		//d.candidateContext.ForEachStorage(state, "PPOS Election finish，view stateDB content again ...")
 		return nextNodes, nil
@@ -182,6 +185,8 @@ func (d *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlockn
 // switch next witnesses to current witnesses
 func (d *ppos) Switch(state *state.StateDB) bool {
 	log.Info("Switch begin...")
+	// TODO
+	//log.Debug("Call stack", "Switch stack", string(debug.Stack()))
 	if !d.candidateContext.Switch(state) {
 		return false
 	}
@@ -272,7 +277,7 @@ func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 				log.Debug("【Reload the oldest block at startup】 ", "parentNum", parentNum, "parentHash", parentHash, "parentStateRoot", parentStateRoot.String())
 				if parentState, err := blockChain.StateAt(parentStateRoot, parentBigInt, parentHash); nil != err {
 					log.Error("Failed to load parentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "parentNum", parentNum, "Hash", parentHash.String(), "err", err)
-					//panic("Failed to load parentStateDB by block parentNum" + fmt.Sprint(parentNum) + ", Hash" + parentHash.String() + "err" + err.Error())
+					panic("Failed to load parentStateDB by block parentNum" + fmt.Sprint(parentNum) + ", Hash" + parentHash.String() + "err" + err.Error())
 				}else {
 					parent = parentState
 				}
@@ -282,7 +287,7 @@ func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 				log.Debug("【Reload the oldest block at startup】", "currentNum", currentNum, "currentHash", currentHash, "stateRoot", stateRoot.String())
 				if currntState, err := blockChain.StateAt(stateRoot, currentBigInt, currentHash); nil != err {
 					log.Error("Failed to load currentStateDB by block", "currtenNum", currentNum, "Hash", currentHash.String(), "err", err)
-					//panic("Failed to load currentStateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
+					panic("Failed to load currentStateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 				}else {
 					current = currntState
 				}
@@ -299,7 +304,7 @@ func (d *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 			log.Debug("【Reload the front normal fast at startup】", "currentNum", currentNum, "currentHash", currentHash, "stateRoot", stateRoot.String())
 			if currntState, err := blockChain.StateAt(stateRoot, currentBigInt, currentHash); nil != err {
 				log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
-				//panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
+				panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 			}else {
 				if err := d.setGeneralNodeCache(currntState, parentNum, currentNum, parentHash, currentHash); nil != err {
 					log.Error("Failed to setGeneralNodeCache", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
@@ -350,9 +355,10 @@ func (d *ppos)buildGenesisRound(blockNumber uint64, blockHash common.Hash, initi
 }
 
 func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Hash){
-	res := d.nodeRound[blockNumber]
+	/*res := d.nodeRound[blockNumber]
 
 	log.Debug(title + ":Traversing out the RoundNodes，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
+
 	if round, ok  := res[blockHash]; ok {
 		if nil != round.former{
 			pposm.PrintObject(title + ":Traversing out of the round，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String() + ", previous round: start:" + round.former.start.String() + ", end:" + round.former.end.String() + ", nodes: ", round.former.nodes)
@@ -365,7 +371,7 @@ func (d *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Ha
 		}
 	}else {
 		log.Error(title + ":Traversing out of the round is NOT EXIST !!!!!!!!，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-	}
+	}*/
 }
 
 /** Method provided to the built-in contract call */
@@ -429,43 +435,43 @@ func (d *ppos) GetRefundInterval() uint64 {
 /** about ticketpool's method */
 
 func (d *ppos) GetPoolNumber (state vm.StateDB) (uint64, error) {
-	return d.ticketPool.GetPoolNumber(state)
+	return d.ticketContext.GetPoolNumber(state)
 }
 
 func (d *ppos) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
-	return d.ticketPool.VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber)
+	return d.ticketContext.VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber)
 }
 
 func (d *ppos) GetTicket(state vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
-	return d.ticketPool.GetTicket(state, ticketId)
+	return d.ticketContext.GetTicket(state, ticketId)
 }
 
 func (d *ppos) GetTicketList (state vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
-	return d.ticketPool.GetTicketList(state, ticketIds)
+	return d.ticketContext.GetTicketList(state, ticketIds)
 }
 
 func (d *ppos) GetCandidateTicketIds (state vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
-	return d.ticketPool.GetCandidateTicketIds(state, nodeId)
+	return d.ticketContext.GetCandidateTicketIds(state, nodeId)
 }
 
 func (d *ppos) GetCandidateEpoch (state vm.StateDB, nodeId discover.NodeID) (uint64, error) {
-	return d.ticketPool.GetCandidateEpoch(state, nodeId)
+	return d.ticketContext.GetCandidateEpoch(state, nodeId)
 }
 
 func (d *ppos) GetTicketPrice (state vm.StateDB) (*big.Int, error) {
-	return d.ticketPool.GetTicketPrice(state)
+	return d.ticketContext.GetTicketPrice(state)
 }
 
 func (d *ppos) GetCandidateAttach (state vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
-	return d.ticketPool.GetCandidateAttach(state, nodeId)
+	return d.ticketContext.GetCandidateAttach(state, nodeId)
 }
 
 func (d *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
-	return d.ticketPool.Notify(state, blockNumber)
+	return d.ticketContext.Notify(state, blockNumber)
 }
 
 func (d *ppos) StoreHash (state *state.StateDB) {
-	if err := d.ticketPool.CommitHash(state); nil != err {
+	if err := d.ticketContext.StoreHash(state); nil != err {
 		log.Error("Failed to StoreHash", "err", err)
 		panic("Failed to StoreHash err" + err.Error())
 	}

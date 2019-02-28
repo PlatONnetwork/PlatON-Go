@@ -20,6 +20,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/deckarep/golang-set"
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"io"
 	"math/big"
@@ -141,6 +142,9 @@ type BlockChain struct {
 	shouldElectionFn	shouldElectionFn
 	shouldSwitchFn	shouldSwitchFn
 	attemptAddConsensusPeerFn	attemptAddConsensusPeerFn
+	// modify by niuxiaojie
+	knownBlockHashes     mapset.Set
+	knownBlockHashesLock sync.RWMutex
 }
 
 // NewBlockChain returns a fully initialised block chain using information
@@ -174,6 +178,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		engine:         engine,
 		vmConfig:       vmConfig,
 		badBlocks:      badBlocks,
+		knownBlockHashes: mapset.NewSet(),
 	}
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
 	bc.SetProcessor(NewStateProcessor(chainConfig, bc, engine))
@@ -206,6 +211,21 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	// Take ownership of this particular state
 	go bc.update()
 	return bc, nil
+}
+
+// modify by niuxiaojie
+func (bc *BlockChain) MarkBlockHash(hash common.Hash) bool {
+	bc.knownBlockHashesLock.Lock()
+	defer bc.knownBlockHashesLock.Unlock()
+
+	if bc.knownBlockHashes.Contains(hash) {
+		return false
+	}
+	for bc.knownBlockHashes.Cardinality() >= 2048 {
+		bc.knownBlockHashes.Pop()
+	}
+	log.Info("【BlockChain MarkBlockHash】", "hash", hash)
+	return bc.knownBlockHashes.Add(hash)
 }
 
 func (bc *BlockChain) InitConsensusPeerFn(seFn shouldElectionFn, ssFn shouldSwitchFn, addFn attemptAddConsensusPeerFn) {
@@ -262,13 +282,6 @@ func (bc *BlockChain) loadLastState() error {
 			bc.currentFastBlock.Store(block)
 		}
 	}
-
-	// Issue a status log for the user
-	currentFastBlock := bc.CurrentFastBlock()
-
-	log.Info("Loaded most recent local header", "number", currentHeader.Number, "hash", currentHeader.Hash(), "age", common.PrettyAge(time.Unix(currentHeader.Time.Int64(), 0)))
-	log.Info("Loaded most recent local full block", "number", currentBlock.Number(), "hash", currentBlock.Hash(), "age", common.PrettyAge(time.Unix(currentBlock.Time().Int64(), 0)))
-	log.Info("Loaded most recent local fast block", "number", currentFastBlock.Number(), "hash", currentFastBlock.Hash(), "age", common.PrettyAge(time.Unix(currentFastBlock.Time().Int64(), 0)))
 
 	return nil
 }
@@ -681,7 +694,7 @@ func (bc *BlockChain) Stop() {
 	//  - HEAD-127: So we have a hard limit on the number of blocks reexecuted
 	if !bc.cacheConfig.Disabled {
 		//ppos add -> commit memory ticket cache to disk
-		ticketcache.GetTicketidsCachePtr().Commit(bc.db)
+		ticketcache.GetTicketidsCachePtr().Commit(bc.db, bc.CurrentBlock().Number())
 
 		//eth...
 		triedb := bc.stateCache.TrieDB()
@@ -916,15 +929,15 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	externBn := block.Number()
 
 	// Irrelevant of the canonical status, write the block itself to the database
-	rawdb.TicketCacheCommit(bc.db)
+	rawdb.TicketCacheCommit(bc.db, externBn)
 	rawdb.WriteBlock(bc.db, block)
 
 	r := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
 	log.Debug("【WriteBlockWithState】，Before state.Commit：", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", r.String())
 	// TODO
-	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-		cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，Before state.Commit：")
-	}
+	//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+	//	cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，Before state.Commit：")
+	//}
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
@@ -935,9 +948,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	r = state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
 	log.Debug("【WriteBlockWithState】，After state.Commit：", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", r.String())
 	// TODO
-	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-		cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After state.Commit：")
-	}
+	//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+	//	cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After state.Commit：")
+	//}
 
 	triedb := bc.stateCache.TrieDB()
 
@@ -948,9 +961,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 			return NonStatTy, err
 		}
 		log.Info("【archive node commit stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
-		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-			cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After writing the chain：")
-		}
+		//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+		//	cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After writing the chain：")
+		//}
 	} else {
 		log.Info("【non-archive node put stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 		// Full but not archive node, do proper garbage collection
@@ -1197,6 +1210,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}
+
 		// Create a new statedb using the parent block and report an
 		// error if it fails.
 		var parent *types.Block
@@ -1211,9 +1225,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		}
 		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
 		log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
-		if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-			cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， Before executing the transaction：")
-		}
+		//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+		//	cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， Before executing the transaction：")
+		//}
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
 		if err != nil {
@@ -1278,9 +1292,9 @@ func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, 
 	root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
 	log.Debug("【The Consensus node synchronization】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
 
-	if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-		cbftEngine.ForEachStorage(state, "【ProcessDirectly】，Before executing the transaction：")
-	}
+	//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
+	//	cbftEngine.ForEachStorage(state, "【ProcessDirectly】，Before executing the transaction：")
+	//}
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, blockInterval)
 	if err != nil {
