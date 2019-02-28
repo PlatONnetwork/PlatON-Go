@@ -45,9 +45,9 @@ var (
 
 //var ticketidsCache *NumBlocks
 
-type TicketTempCache struct{
-	Cache 		*NumBlocks
-	lock 		*sync.Mutex
+type TicketTempCache struct {
+	Cache *NumBlocks
+	lock  *sync.Mutex
 }
 
 // global obj of ticket related
@@ -75,7 +75,7 @@ func NewTicketIdsCache(db ethdb.Database) *TicketTempCache {
 
 	if cache, err := db.Get(ticketPoolCacheKey); nil != err {
 		log.Warn("Failed call ticketcache NewTicketIdsCache to get Global Cache by levelDB", "err", err)
-	}else {
+	} else {
 		log.Info("Call ticketcache NewTicketIdsCache to Unmarshal Global Cache", "Cachelen: ", len(cache))
 		//if err := proto.Unmarshal(cache, ticketidsCache); err != nil {
 		if err := proto.Unmarshal(cache, ticketTemp.Cache); err != nil {
@@ -104,7 +104,7 @@ func GetTicketidsCachePtr() *TicketTempCache {
 }
 
 ////////////////////////////
-func  Hash(cache TicketCache) (common.Hash, error) {
+func Hash(cache TicketCache) (common.Hash, error) {
 
 	timer := Timer{}
 	timer.Begin()
@@ -133,7 +133,8 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 		blockNodes.BNodes = make(map[string]*NodeTicketIds)
 		// set to cache by current map （map[blockHash]map[nodeId][]ticketId）
 		t.Cache.NBlocks[blocknumber.String()] = blockNodes
-		log.Error("Failed to GetNodeTicketsMap, TicketCache is empty by blocknumber", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+		log.Trace("Failed to GetNodeTicketsMap, TicketCache is empty by blocknumber", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+
 	}
 
 	// a map (blockHash => map[nodeId][]ticketId)
@@ -144,17 +145,17 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 		nodeTicketIds.NTickets = make(map[string]*TicketIds)
 		// set to cache by current map (map[nodeId][]ticketId)
 		blockNodes.BNodes[blockhash.String()] = nodeTicketIds
-		log.Error("Failed to GetNodeTicketsMap, TicketCache is empty by blockHash", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+		log.Trace("Failed to GetNodeTicketsMap, TicketCache is empty by blockHash", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
 	}
 
 	if nil == nodeTicketIds.NTickets || len(nodeTicketIds.NTickets) == 0 {
-		log.Warn("Warn to GetNodeTicketsMap, TicketCache'NTickets is empty", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+		log.Trace("Warn to GetNodeTicketsMap, TicketCache'NTickets is empty", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
 	}
 
 	/**
 	goroutine task
 	build data by global cache （map[nodeId][]ticketId）
-	 */
+	*/
 	type result struct {
 		key  discover.NodeID
 		tids []common.Hash
@@ -185,7 +186,7 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 			}(nid, v)
 		} else {
 			wg.Done()
-			log.Error("Failed to TicketTempCache GetNodeTicketsMap: nodeId to discover.HexID error ", "NodeId: ", k, "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+			log.Trace("Failed to TicketTempCache GetNodeTicketsMap: nodeId to discover.HexID error ", "NodeId: ", k, "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
 		}
 	}
 	wg.Wait()
@@ -196,7 +197,7 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 	/**
 	Build a new TicketCache
 	This TicketCache will be used in StateDB
-	 */
+	*/
 	out := NewTicketCache()
 	for res := range resCh {
 		// a map type as nodeId => []ticketId
@@ -325,7 +326,7 @@ func (tc TicketCache) AppendTicketCache(nodeid discover.NodeID, tids []common.Ha
 func (tc TicketCache) GetTicketCache(nodeid discover.NodeID) ([]common.Hash, error) {
 	tids, ok := tc[nodeid]
 	if !ok {
-		log.Error("Failed to GetTicketCache, the ticketIds is empty !!!!", "nodeId", nodeid.String())
+		log.Trace("Failed to GetTicketCache, the ticketIds is empty !!!!", "nodeId", nodeid.String())
 		return nil, ErrNotfindFromNodeId
 	}
 	ret := make([]common.Hash, len(tids))
@@ -336,7 +337,7 @@ func (tc TicketCache) GetTicketCache(nodeid discover.NodeID) ([]common.Hash, err
 func (tc TicketCache) RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) error {
 	cache, ok := tc[nodeid]
 	if !ok {
-		log.Error("Failed to RemoveTicketCache, the ticketIds is empty !!!!", "nodeId", nodeid.String())
+		log.Trace("Failed to RemoveTicketCache, the ticketIds is empty !!!!", "nodeId", nodeid.String())
 		return ErrNotfindFromNodeId
 	}
 	mapTIds := make(map[common.Hash]common.Hash)
@@ -396,7 +397,7 @@ func (tc TicketCache) GetSortStruct() *SortCalcHash {
 			}
 			sc.Tids = append(sc.Tids, tids)
 		} else {
-			log.Error("Failed to TicketCache GetSortStruct: discover.HexID error ",  "err", err, "hex: ", k)
+			log.Error("Failed to TicketCache GetSortStruct: discover.HexID error ", "err", err, "hex: ", k)
 		}
 	}
 	return sc
