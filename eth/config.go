@@ -52,7 +52,7 @@ var DefaultConfig = Config{
 			Candidate: &CandidateConfig{
 				Threshold: 			"1000000000000000000000000",
 				DepositLimit: 	  	10,
-				Allowed: 			512,
+				Allowed: 			100,
 				MaxChair:          	10,
 				MaxCount:          	100,
 				RefundBlockNumber: 	512,
