@@ -125,6 +125,8 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 
 	log.Info("Call TicketTempCache GetNodeTicketsMap ...", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
 
+	notGenesisBlock := blocknumber.Cmp(big.NewInt(0)) > 0
+
 	// a map （blocknumber => map[blockHash]map[nodeId][]ticketId）
 	blockNodes, ok := t.Cache.NBlocks[blocknumber.String()]
 	if !ok {
@@ -133,7 +135,9 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 		blockNodes.BNodes = make(map[string]*NodeTicketIds)
 		// set to cache by current map （map[blockHash]map[nodeId][]ticketId）
 		t.Cache.NBlocks[blocknumber.String()] = blockNodes
-		log.Trace("Failed to GetNodeTicketsMap, TicketCache is empty by blocknumber", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+		if notGenesisBlock {
+			log.Error("Failed to GetNodeTicketsMap, TicketCache is empty by blocknumber", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+		}
 
 	}
 
@@ -145,11 +149,17 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 		nodeTicketIds.NTickets = make(map[string]*TicketIds)
 		// set to cache by current map (map[nodeId][]ticketId)
 		blockNodes.BNodes[blockhash.String()] = nodeTicketIds
-		log.Trace("Failed to GetNodeTicketsMap, TicketCache is empty by blockHash", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+
+		if notGenesisBlock {
+			log.Error("Failed to GetNodeTicketsMap, TicketCache is empty by blockHash", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+		}
 	}
 
 	if nil == nodeTicketIds.NTickets || len(nodeTicketIds.NTickets) == 0 {
-		log.Trace("Warn to GetNodeTicketsMap, TicketCache'NTickets is empty", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+
+		if notGenesisBlock {
+			log.Error("Warn to GetNodeTicketsMap, TicketCache'NTickets is empty", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+		}
 	}
 
 	/**
@@ -326,7 +336,7 @@ func (tc TicketCache) AppendTicketCache(nodeid discover.NodeID, tids []common.Ha
 func (tc TicketCache) GetTicketCache(nodeid discover.NodeID) ([]common.Hash, error) {
 	tids, ok := tc[nodeid]
 	if !ok {
-		log.Trace("Failed to GetTicketCache, the ticketIds is empty !!!!", "nodeId", nodeid.String())
+		log.Warn("Warn to GetTicketCache, the ticketIds is empty !!!!", "nodeId", nodeid.String())
 		return nil, ErrNotfindFromNodeId
 	}
 	ret := make([]common.Hash, len(tids))
@@ -337,7 +347,7 @@ func (tc TicketCache) GetTicketCache(nodeid discover.NodeID) ([]common.Hash, err
 func (tc TicketCache) RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) error {
 	cache, ok := tc[nodeid]
 	if !ok {
-		log.Trace("Failed to RemoveTicketCache, the ticketIds is empty !!!!", "nodeId", nodeid.String())
+		log.Warn("Warn to RemoveTicketCache, the ticketIds is empty !!!!", "nodeId", nodeid.String())
 		return ErrNotfindFromNodeId
 	}
 	mapTIds := make(map[common.Hash]common.Hash)

@@ -1027,19 +1027,23 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	//}()
 	var nodes []*discover.Node
 	var cans types.CandidateQueue
-	if nodeArr, canArr, err := c.election(state, parentHash); nil != err {
+	var emptyElection bool
+	if nodeArr, canArr, flag, err := c.election(state, parentHash); nil != err {
 		return nil, err
 	} else {
-		nodes, cans = nodeArr, canArr
+		nodes, cans, emptyElection = nodeArr, canArr, flag
 	}
 
 	nodeIds := make([]discover.NodeID, 0)
 	for _, can := range cans {
 		// Release lucky ticket TODO
-		if err := tContext.ReturnTicket(state, can.CandidateId, can.TicketId, currBlockNumber); nil != err {
-			log.Error("Failed to ReturnTicket on Election", "nodeId", can.CandidateId.String(), "ticketId", can.TicketId.String(), "err", err)
-			continue
+		if !emptyElection {
+			if err := tContext.ReturnTicket(state, can.CandidateId, can.TicketId, currBlockNumber); nil != err {
+				log.Error("Failed to ReturnTicket on Election", "nodeId", can.CandidateId.String(), "ticketId", can.TicketId.String(), "err", err)
+				continue
+			}
 		}
+
 
 		/**
 		Getting TCount
@@ -1086,13 +1090,13 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	return nodes, nil
 }
 
-func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) ([]*discover.Node, types.CandidateQueue, error) {
+func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) ([]*discover.Node, types.CandidateQueue, bool, error) {
 	log.Info("Call Election start ...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.RefundBlockNumber)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on Election", "err", err)
-		return nil, nil, err
+		return nil, nil, false, err
 	}
 
 	// sort immediate candidates
@@ -1146,13 +1150,13 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 			luckyId, err := tContext.SelectionLuckyTicket(state, nodeId, parentHash)
 			if nil != err {
 				log.Error("Failed to take luckyId on Election", "nodeId", nodeId.String(), "err", err)
-				return nil, nil, errors.New(err.Error() + ", nodeId: " + nodeId.String())
+				return nil, nil, false, errors.New(err.Error() + ", nodeId: " + nodeId.String())
 			}
 			// Put the lucky ticket ID in the next witness details
 			can.TicketId = luckyId
 			if err := c.setNextWitness(state, nodeId, can); nil != err {
 				log.Error("Failed to setNextWitness on election", "nodeId", nodeId.String(), "err", err)
-				return nil, nil, errors.New(err.Error() + ", nodeId: " + nodeId.String())
+				return nil, nil, false, errors.New(err.Error() + ", nodeId: " + nodeId.String())
 			}
 			caches = append(caches, can)
 			if node, err := buildWitnessNode(can); nil != err {
@@ -1166,22 +1170,28 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	// update new nextwitnesses index
 	if err := c.setNextWitnessIndex(state, nextWitIds); nil != err {
 		log.Error("Failed to setNextWitnessIndex on election", "err", err)
-		return nil, nil, err
+		return nil, nil, false, err
 	}
 	// replace the next round of witnesses
 	//c.nextOriginCandidates = nextWits
 
 	log.Info("When Election，next round witness node count is:", "len", len(arr))
 	PrintObject("When Election，next round witness node information is:", arr)
-	c.fixElection(state, nextWitIds)
+	emptyElection, err := c.fixElection(state, nextWitIds)
+	if nil != err {
+		return nil, nil, false, err
+	}
 	log.Info("Election next witness's node count:", "len", len(arr))
 	log.Info("Call Election SUCCESS !!!!!!!")
-	return arr, caches, nil
+	return arr, caches, emptyElection, nil
 }
 
-func (c *CandidatePool) fixElection(state vm.StateDB, nextWitIds []discover.NodeID) {
+// return: bool Whether to continue using the previous round
+// true: yes
+// false: no
+func (c *CandidatePool) fixElection(state vm.StateDB, nextWitIds []discover.NodeID) (bool, error) {
 	if len(nextWitIds) != 0 && len(c.nextOriginCandidates) != 0 {
-		return
+		return false, nil
 	}
 	// Otherwise, it means that the next witness is nil, then we need to check whether the current round has a witness.
 	// If had, use the current round of witness as the next witness,
@@ -1195,20 +1205,21 @@ func (c *CandidatePool) fixElection(state vm.StateDB, nextWitIds []discover.Node
 	for nodeId, can := range c.originCandidates {
 		if err := c.setNextWitness(state, nodeId, can); nil != err {
 			log.Error("Failed to setNextWitness on fixElection", "err", err)
-			return
+			return false, err
 		}
 	}
 	// update next witness index by current witness index
 	if ids, err := c.getWitnessIndex(state); nil != err {
 		log.Error("Failed to getWitnessIndex on fixElection", "err", err)
-		return
+		return  false, err
 	} else {
 		// replace witnesses index
 		if err := c.setNextWitnessIndex(state, ids); nil != err {
 			log.Error("Failed to setNextWitnessIndex on fixElection", "err", err)
-			return
+			return false, err
 		}
 	}
+	return true, nil
 }
 
 // switch next witnesses to current witnesses
