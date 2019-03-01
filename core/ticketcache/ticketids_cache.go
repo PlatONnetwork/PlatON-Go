@@ -74,7 +74,7 @@ func NewTicketIdsCache(db ethdb.Database) *TicketTempCache {
 	}
 
 	if cache, err := db.Get(ticketPoolCacheKey); nil != err {
-		log.Warn("Failed call ticketcache NewTicketIdsCache to get Global Cache by levelDB", "err", err)
+		log.Warn("Warn call ticketcache NewTicketIdsCache to get Global Cache by levelDB", "err", err)
 	} else {
 		log.Info("Call ticketcache NewTicketIdsCache to Unmarshal Global Cache", "Cachelen: ", len(cache))
 		//if err := proto.Unmarshal(cache, ticketidsCache); err != nil {
@@ -94,7 +94,7 @@ func GetNodeTicketsCacheMap(blocknumber *big.Int, blockhash common.Hash) (ret Ti
 		// getting a ticket cache by blocknumber and blockHash from global temp
 		ret = ticketTemp.GetNodeTicketsMap(blocknumber, blockhash)
 	} else {
-		log.Warn("Failed call ticketcache GetNodeTicketsCacheMap, the Global ticketTemp instance is nil !!!!!!!!!!!!!!!")
+		log.Warn("Warn call ticketcache GetNodeTicketsCacheMap, the Global ticketTemp instance is nil !!!!!!!!!!!!!!!")
 	}
 	return
 }

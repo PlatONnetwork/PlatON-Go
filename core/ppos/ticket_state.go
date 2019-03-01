@@ -254,7 +254,7 @@ func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, expireBlockNumber *b
 	if err != nil {
 		return nil, err
 	}
-	log.Info("Pending ticket to be processed", "amount", len(ticketIdList), "blockNumber", expireBlockNumber.Uint64())
+	log.Info("Pending ticket to be processed", "amount", len(ticketIdList), "expireBlockNumber", expireBlockNumber.Uint64(), "currentBlockNumber", currentBlockNumber.Uint64())
 	candidateAttachMap := make(map[discover.NodeID]*types.CandidateAttach)
 	changeNodeIdList := make([]discover.NodeID, 0)
 	for _, ticketId := range ticketIdList {
