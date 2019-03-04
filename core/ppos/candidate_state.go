@@ -1,6 +1,7 @@
 package pposm
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,7 +19,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"bytes"
 )
 
 var (
@@ -69,7 +69,6 @@ type CandidatePool struct {
 
 	lock *sync.Mutex
 }
-
 
 // Initialize the global candidate pool object
 func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
@@ -689,11 +688,13 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 // 0:  Getting all elected candidates array
 // 1:  Getting all immediate elected candidates array
 // 2:  Getting all reserve elected candidates array
-func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.CandidateQueue {
+func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.KindCanQueue {
 	log.Debug("Call GetChosens getting immediate candidates ...")
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	arr := make(types.CandidateQueue, 0)
+	im := make(types.CandidateQueue, 0)
+	re := make(types.CandidateQueue, 0)
+	arr := make(types.KindCanQueue, 0)
 	if err := c.initDataByState(state, 1); nil != err {
 		log.Error("Failed to initDataByState on GetChosens", "err", err)
 		return arr
@@ -706,7 +707,7 @@ func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.CandidateQu
 		}
 		for _, id := range immediateIds {
 			if v, ok := c.immediateCandidates[id]; ok {
-				arr = append(arr, v)
+				im = append(im, v)
 			}
 		}
 	}
@@ -714,14 +715,15 @@ func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.CandidateQu
 		reserveIds, err := c.getReserveIndex(state)
 		if nil != err {
 			log.Error("Failed to getReserveIndex on GetChosens", "err", err)
-			return make(types.CandidateQueue, 0)
+			return arr
 		}
 		for _, id := range reserveIds {
 			if v, ok := c.reserveCandidates[id]; ok {
-				arr = append(arr, v)
+				re = append(re, v)
 			}
 		}
 	}
+	arr = append(arr, im, re)
 	PrintObject("GetChosens ==>", arr)
 	return arr
 }
@@ -845,7 +847,7 @@ func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) commo
 // refund once
 func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
 
-	log.Info("Call RefundBalance:  curr nodeId = " + nodeId.String() + ",curr blocknumber:" + blockNumber.String(), "config.RefundBlockNumber:", c.RefundBlockNumber)
+	log.Info("Call RefundBalance:  curr nodeId = "+nodeId.String()+",curr blocknumber:"+blockNumber.String(), "config.RefundBlockNumber:", c.RefundBlockNumber)
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.initDataByState(state, 2); nil != err {
@@ -1021,7 +1023,6 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 			}
 		}
 
-
 		/**
 		Getting TCount
 		Then we need to sort the candidates again.
@@ -1183,7 +1184,7 @@ func (c *CandidatePool) fixElection(state vm.StateDB, nextWitIds []discover.Node
 	// update next witness index by current witness index
 	if ids, err := c.getWitnessIndex(state); nil != err {
 		log.Error("Failed to getWitnessIndex on fixElection", "err", err)
-		return  false, err
+		return false, err
 	} else {
 		// replace witnesses index
 		if err := c.setNextWitnessIndex(state, ids); nil != err {
@@ -1978,7 +1979,7 @@ func (c *CandidatePool) setDefeat(state vm.StateDB, candidateId discover.NodeID,
 		defeatArr = defeatArrTmp
 	}
 
-	PrintObject("SetDefeat Arr, nodeId:" + candidateId.String() + " ,defeatArr", defeatArr)
+	PrintObject("SetDefeat Arr, nodeId:"+candidateId.String()+" ,defeatArr", defeatArr)
 
 	// setting refund information on trie
 	if value, err := rlp.EncodeToBytes(&defeatArr); nil != err {
@@ -2561,7 +2562,7 @@ func (c *CandidatePool) ForEachStorage(state vm.StateDB, title string) {
 	c.lock.Unlock()
 }
 
-func buildKeyTrie (key []byte) string {
+func buildKeyTrie(key []byte) string {
 	var buffer bytes.Buffer
 	buffer.Write(common.CandidatePoolAddr.Bytes())
 	buffer.WriteString(string(key))

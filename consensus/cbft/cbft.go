@@ -1344,7 +1344,7 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 	return types.NewBlock(header, txs, nil, receipts), nil
 }
 
-// to sign the block, and store the sign to header.Extra[32:96], send the sign to chanel to broadcast to other consensus nodes
+// to sign the block, and store the sign to header.Extra[32:97], send the sign to chanel to broadcast to other consensus nodes
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
 	cbft.log.Debug("call Seal()", "number", block.NumberU64(), "parentHash", block.ParentHash())
 	/*cbft.lock.Lock()
