@@ -929,7 +929,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	externBn := block.Number()
 
 	// Irrelevant of the canonical status, write the block itself to the database
-	rawdb.TicketCacheCommit(bc.db, externBn)
+	/*rawdb.TicketCacheCommit(bc.db, externBn)*/
+
 	rawdb.WriteBlock(bc.db, block)
 
 	r := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))

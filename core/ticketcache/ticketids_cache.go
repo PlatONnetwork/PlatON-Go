@@ -103,7 +103,6 @@ func GetTicketidsCachePtr() *TicketTempCache {
 	return ticketTemp
 }
 
-////////////////////////////
 func Hash(cache TicketCache) (common.Hash, error) {
 
 	timer := Timer{}
@@ -121,7 +120,6 @@ func Hash(cache TicketCache) (common.Hash, error) {
 
 func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash common.Hash) TicketCache {
 	t.lock.Lock()
-	//defer t.lock.Unlock()
 
 	log.Info("Call TicketTempCache GetNodeTicketsMap ...", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
 
@@ -218,7 +216,6 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 
 func (t *TicketTempCache) Submit2Cache(blocknumber, blockInterval *big.Int, blockhash common.Hash, in map[discover.NodeID][]common.Hash) {
 	t.lock.Lock()
-	//defer t.lock.Unlock()
 
 	log.Info("Call TicketTempCache Submit2Cache ", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " Before Submit2Cache, then cachelen: ", len(t.Cache.NBlocks))
 	blockNodes, ok := t.Cache.NBlocks[blocknumber.String()]
@@ -258,23 +255,28 @@ func (t *TicketTempCache) Submit2Cache(blocknumber, blockInterval *big.Int, bloc
 	blockNodes.BNodes[blockhash.String()] = nodeTicketIds
 	t.Cache.NBlocks[blocknumber.String()] = blockNodes
 
-	//// tmp fix TODO
-	//if big.NewInt(0).Cmp(blockInterval) > 0 {
-	//	log.Error("WARN WARN WARN !!! Call TicketTempCache Submit2Cache FINISH !!!!!! blockInterval is NEGATIVE NUMBER", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " After Submit2Cache, then cachelen: ", len(t.Cache.NBlocks))
-	//	return
-	//}
-	//
-	//interval := new(big.Int).Add(blockInterval, big.NewInt(20))
-	//
-	////del old cache
-	//number := new(big.Int).Sub(blocknumber, interval)
-	//for k := range t.Cache.NBlocks {
-	//	if n, b := new(big.Int).SetString(k, 0); b {
-	//		if n.Cmp(number) < 0 {
-	//			delete(t.Cache.NBlocks, k)
-	//		}
-	//	}
-	//}
+	// tmp fix TODO
+	if big.NewInt(0).Cmp(blockInterval) > 0 {
+		log.Error("WARN WARN WARN !!! Call TicketTempCache Submit2Cache FINISH !!!!!! blockInterval is NEGATIVE NUMBER", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " After Submit2Cache, then cachelen: ", len(t.Cache.NBlocks))
+		return
+	}
+
+	// blockInterval is the difference of block height between
+	// the highest block in memory and the highest block in the chain
+	interval := new(big.Int).Add(blockInterval, big.NewInt(30))
+
+	// del old cache
+	// blocknumber: current memory block
+	number := new(big.Int).Sub(blocknumber, interval)
+	for k := range t.Cache.NBlocks {
+		if n, b := new(big.Int).SetString(k, 0); b {
+			if n.Cmp(number) < 0 {
+				delete(t.Cache.NBlocks, k)
+			}
+		}
+	}
+
+
 	log.Info("Call TicketTempCache Submit2Cache FINISH !!!!!! ", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " After Submit2Cache, then cachelen: ", len(t.Cache.NBlocks))
 
 	t.lock.Unlock()
@@ -282,14 +284,14 @@ func (t *TicketTempCache) Submit2Cache(blocknumber, blockInterval *big.Int, bloc
 
 func (t *TicketTempCache) Commit(db ethdb.Database, currentBlockNumber *big.Int) error {
 	t.lock.Lock()
-	//defer t.lock.Unlock()
+
 	log.Info("Call TicketTempCache Commit ...")
 
 	timer := Timer{}
 	timer.Begin()
 
 	// TODO tmp fix
-	interval := new(big.Int).Sub(currentBlockNumber, big.NewInt(30))
+	/*interval := new(big.Int).Sub(currentBlockNumber, big.NewInt(30))
 	log.Info("Call TicketTempCache Commit, Delete Global TicketIdsTemp key by", "currentBlockNumber", currentBlockNumber, "after calc interval", interval)
 	for k := range t.Cache.NBlocks {
 		if n, b := new(big.Int).SetString(k, 0); b {
@@ -297,7 +299,7 @@ func (t *TicketTempCache) Commit(db ethdb.Database, currentBlockNumber *big.Int)
 				delete(t.Cache.NBlocks, k)
 			}
 		}
-	}
+	}*/
 
 	log.Info("Call TicketTempCache Commit, Delete Global TicketIdsTemp key FINISH !!!!", "currentBlockNumber", currentBlockNumber, "remian size after delete, then cachelen: ", len(t.Cache.NBlocks))
 
