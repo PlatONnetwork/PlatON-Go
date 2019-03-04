@@ -117,12 +117,6 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	switch  {
-	case s.address == common.CandidatePoolAddr && s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash):
-		log.Debug("The CandidatePool stateObject be regarded as Empty !!!!!!!")
-	case s.address == common.TicketPoolAddr && s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash):
-		log.Debug("The TicketPool stateObject be regarded as Empty !!!!!!!")
-	}
 	if _, ok := vm.PrecompiledContractsPpos[s.address]; ok {
 		return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash) && s.data.Root == (common.Hash{})
 	} else {
