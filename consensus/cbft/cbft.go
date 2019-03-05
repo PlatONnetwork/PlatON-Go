@@ -13,6 +13,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -1338,6 +1339,7 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 	log.Debug("call Finalize()", "RoutineID", common.CurrentGoRoutineID(), "hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts), " extra: ", hexutil.Encode(header.Extra))
 	cbft.accumulateRewards(chain.Config(), state, header, uncles)
 	cbft.IncreaseRewardPool(state, header.Number)
+	cbft.adjustTicketPrice(state, header)
 
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
@@ -1969,4 +1971,74 @@ func GetAmount(number *big.Int) *big.Int {
 
 func (cbft *Cbft) ForEachStorage(state *state.StateDB, title string) {
 	cbft.ppos.ForEachStorage(state, title)
+}
+
+func (cbft *Cbft) GetBlockReward(number *big.Int) *big.Int {
+	preYearNumber := new(big.Int).Sub(number, YearBlocks)
+	yearReward := new(big.Int).Set(FirstYearReward)
+	if preYearNumber.Cmp(YearBlocks) > 0 { // otherwise is 0 year and 1 year block reward
+		yearReward = new(big.Int).Sub(GetAmount(number), GetAmount(preYearNumber))
+	}
+	blockReward := new(big.Int).Div(yearReward, YearBlocks)
+	return blockReward
+}
+
+func (cbft *Cbft) GetAmountFromNumber(number *big.Int) *big.Int {
+	curAmount := new(big.Int).Add(InitAmount, new(big.Int).Mul(cbft.GetBlockReward(number), new(big.Int).Rem(number, YearBlocks)))
+	return curAmount
+}
+
+func (cbft *Cbft) adjustTicketPrice(state *state.StateDB, header *types.Header)  {
+
+	//should be adjust
+	cycle := cbft.ppos.GetAdjustCycle()
+	if new(big.Int).Rem(header.Number, cycle).Cmp(new(big.Int).SetUint64(0)) != 0 {
+		return
+	}
+	//const
+	Slb := cbft.ppos.GetLowestTicketPrice()
+	T := cbft.ppos.GetMaxPoolNumber()
+	B := T * BaseSwitchWitness / cbft.ppos.MaxChair()
+	Seb := new(big.Int).Div(cbft.GetAmountFromNumber(header.Number), new(big.Int).SetUint64(B))
+	log.Info("adjust ticket price const ", "Slb: ", Slb, " T: ", T, " B: ", B, " Seb: ", Seb)
+	//var
+	TicketPrice, err:= cbft.ppos.GetTicketPrice(state)
+	if err!=nil {
+		log.Error("adjust ticket price get old ticket price faile", " err: ",  err.Error())
+		return
+	}
+	Pn, err := cbft.ppos.GetPoolNumber(state)
+	if err!=nil {
+		log.Error("adjust ticket price get pool number faile", " err: ", err.Error())
+		return
+	}
+	Pn = T - Pn
+	PreCycleNumer := new(big.Int).Sub(new(big.Int).Sub(header.Number, cycle), new(big.Int).SetUint64(1))
+	PreCycleBlock := cbft.blockChain.GetBlockByNumber(PreCycleNumer.Uint64())
+	if PreCycleBlock==nil {
+		log.Error("adjust ticket price get pre cycle block is nil", " CurNumber: ", header.Number, " PreCycleNumer: ", PreCycleNumer)
+		return
+	}
+	PreCycleState, err := cbft.blockChain.StateAt(PreCycleBlock.Root(), PreCycleBlock.Number(), PreCycleBlock.Hash())
+	if err!=nil {
+		log.Error("adjust ticket price get state at faile", " err: ", err.Error(), " root: ", PreCycleBlock.Root().String(), " number: ", PreCycleBlock.Number(), " hash: ", PreCycleBlock.Hash().String())
+		return
+	}
+	Pn_1, err:= cbft.ppos.GetPoolNumber(PreCycleState)
+	if err!=nil {
+		log.Error("adjust ticket price get pre pool number faile", " err: ",  err.Error())
+		return
+	}
+	Pn_1 = T - Pn_1
+
+	//calc new price
+	NewTicketPrice := new(big.Int).Mul(TicketPrice, new(big.Int).SetUint64(Pn*Pn/(Pn_1*T)))
+	if NewTicketPrice.Cmp(Slb) != 1 {
+		NewTicketPrice = new(big.Int).Set(Slb)
+	}else {
+		if NewTicketPrice.Cmp(Seb) == 1 {
+			NewTicketPrice = new(big.Int).Set(Seb)
+		}
+	}
+	pposm.SetTicketPrice(state, NewTicketPrice)
 }

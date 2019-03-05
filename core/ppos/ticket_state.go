@@ -41,7 +41,9 @@ var (
 
 type TicketPool struct {
 	// Ticket price
-	TicketPrice *big.Int
+	LowestTicketPrice *big.Int
+	//adjust cycle
+	AdjustCycle *big.Int
 	// Maximum number of ticket pool
 	MaxCount uint64
 	// Reach expired quantity
@@ -60,15 +62,24 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 	if "" == strings.TrimSpace(configs.TicketConfig.TicketPrice) {
 		configs.TicketConfig.TicketPrice = "100000000000000000000"
 	}
-	var ticketPrice *big.Int
+	if "" == strings.TrimSpace(configs.TicketConfig.AdjustCycle) {
+		configs.TicketConfig.AdjustCycle = "10000"
+	}
+	var ticketPrice, adjustCycle *big.Int
 	if price, ok := new(big.Int).SetString(configs.TicketConfig.TicketPrice, 10); !ok {
 		ticketPrice, _ = new(big.Int).SetString("100000000000000000000", 10)
 	} else {
 		ticketPrice = price
 	}
+	if cycle, ok := new(big.Int).SetString(configs.TicketConfig.AdjustCycle, 10); !ok {
+		adjustCycle, _ = new(big.Int).SetString("10000", 10)
+	} else {
+		adjustCycle = cycle
+	}
 
 	ticketPool := &TicketPool{
-		TicketPrice:       ticketPrice,
+		LowestTicketPrice:       ticketPrice,
+		AdjustCycle:			adjustCycle,
 		MaxCount:          configs.TicketConfig.MaxCount,
 		ExpireBlockNumber: configs.TicketConfig.ExpireBlockNumber,
 		lock:              &sync.Mutex{},
@@ -655,7 +666,11 @@ func (t *TicketPool) GetCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeI
 }
 
 func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) (*big.Int, error) {
-	return t.TicketPrice, nil
+	price := new(big.Int)
+	if err := getTicketPoolState(stateDB, GetTicketPriceKey(), price); err!=nil {
+		return nil, err
+	}
+	return price, nil
 }
 
 // Save the hash value of the current state of the ticket pool
@@ -726,6 +741,10 @@ func GetSurplusQuantityKey() []byte {
 	return addCommonPrefix(SurplusQuantityKey)
 }
 
+func GetTicketPriceKey() []byte {
+	return addCommonPrefix(TicketPriceKey)
+}
+
 func addCommonPrefix(key []byte) []byte {
 	return append(common.TicketPoolAddr.Bytes(), key...)
 }
@@ -746,4 +765,23 @@ func findFirstMatch(list []float64, key float64) int {
 		return len(list) - 1
 	}
 	return left
+}
+
+
+func SetTicketPrice(stateDB vm.StateDB, price *big.Int) {
+	setTicketPoolState(stateDB, GetTicketPriceKey(), price.Bytes())
+}
+
+func (t *TicketPool) GetLowestTicketPrice() (*big.Int) {
+	//get from cbft.json if not 10000*1e7
+	return t.LowestTicketPrice
+}
+
+func (t *TicketPool) GetAdjustPriceCycle() (*big.Int){
+	//get from cbft.json if not 10000
+	return t.AdjustCycle
+}
+
+func (t *TicketPool) GetMaxPoolNumber() uint64 {
+	return t.MaxCount
 }

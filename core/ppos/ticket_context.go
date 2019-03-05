@@ -95,8 +95,18 @@ func (c *TicketPoolContext) SelectionLuckyTicket(stateDB vm.StateDB, nodeId disc
 	return c.initTicketPool().SelectionLuckyTicket(stateDB, nodeId, blockHash)
 }
 
+func (c *TicketPoolContext) GetLowestTicketPrice() *big.Int  {
+	return c.initTicketPool().GetLowestTicketPrice()
+}
 
+func (c *TicketPoolContext) GetAdjustCycle() *big.Int  {
+	return c.initTicketPool().GetAdjustPriceCycle()
+}
 
+func (c *TicketPoolContext) GetMaxPoolNumber() uint64 {
+	return c.initTicketPool().GetMaxPoolNumber()
+}
 
-
-
+func (c *TicketPoolContext) GetAdjustPriceCycle() (*big.Int){
+	return c.initTicketPool().GetAdjustPriceCycle()
+}

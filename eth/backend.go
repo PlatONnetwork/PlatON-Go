@@ -606,6 +606,7 @@ func setPposConfig(pposConfig *PposConfig) *params.PposConfig {
 		},
 		TicketConfig: &params.TicketConfig{
 			TicketPrice:       pposConfig.Ticket.TicketPrice,
+			AdjustCycle:	   pposConfig.Ticket.AdjustCycle,
 			MaxCount:          pposConfig.Ticket.MaxCount,
 			ExpireBlockNumber: pposConfig.Ticket.ExpireBlockNumber,
 		},
