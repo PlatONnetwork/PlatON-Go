@@ -94,7 +94,7 @@ func GetNodeTicketsCacheMap(blocknumber *big.Int, blockhash common.Hash) (ret Ti
 		// getting a ticket cache by blocknumber and blockHash from global temp
 		ret = ticketTemp.GetNodeTicketsMap(blocknumber, blockhash)
 	} else {
-		if big.NewInt(0).Cmp(blocknumber) > 0 {
+		if blocknumber.Cmp(big.NewInt(0)) > 0 {
 			log.Warn("Warn call ticketcache GetNodeTicketsCacheMap, the Global ticketTemp instance is nil !!!!!!!!!!!!!!!", "blocknumber", blocknumber.Uint64(), "blockHash", blockhash.Hex())
 		}
 	}
@@ -107,6 +107,10 @@ func GetTicketidsCachePtr() *TicketTempCache {
 
 func Hash(cache TicketCache) (common.Hash, error) {
 
+	if len(cache) == 0 {
+		return common.Hash{}, nil
+	}
+
 	timer := Timer{}
 	timer.Begin()
 	out, err := proto.Marshal(cache.GetSortStruct())
@@ -114,9 +118,8 @@ func Hash(cache TicketCache) (common.Hash, error) {
 		log.Error("Faile to call ticketcache Hash", ErrProbufMarshal.Error()+":err", err)
 		return common.Hash{}, err
 	}
-	log.Info("Call ticketcache Hash ...", "lenOut: ", len(out))
 	ret := crypto.Keccak256Hash(out)
-	log.Info("Call ticketcache Hash finish...", "run time  ms: ", timer.End())
+	log.Debug("Call ticketcache Hash finish...", "proto out len: ", len(out), "run time  ms: ", timer.End())
 	return ret, nil
 }
 
@@ -144,8 +147,10 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 		// set to cache by current map （map[blockHash]map[nodeId][]ticketId）
 		t.Cache.NBlocks[blocknumber.String()] = blockNodes*/
 		if notGenesisBlock {
-			log.Error("Failed to GetNodeTicketsMap, TicketCache is empty by blocknumber", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+			log.Warn("Warn to GetNodeTicketsMap, TicketCache is empty by blocknumber !!!!! Direct short-circuit", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
 		}
+
+		t.lock.Unlock()
 		return out
 	}
 
@@ -160,18 +165,21 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 		blockNodes.BNodes[blockhash.String()] = nodeTicketIds*/
 
 		if notGenesisBlock {
-			log.Error("Failed to GetNodeTicketsMap, TicketCache is empty by blockHash", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+			log.Warn("Warn to GetNodeTicketsMap, TicketCache is empty by blockHash !!!!! Direct short-circuit", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
 		}
 
+		t.lock.Unlock()
 		return out
 	}
 
 	// Direct short-circuit if empty
 	if nil == nodeTicketIds.NTickets || len(nodeTicketIds.NTickets) == 0 {
 
-		/*if notGenesisBlock {
-			log.Error("Warn to GetNodeTicketsMap, TicketCache'NTickets is empty", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
-		}*/
+		if notGenesisBlock {
+			log.Warn("Warn to GetNodeTicketsMap, TicketCache'NTickets is empty !!!!! Direct short-circuit", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
+		}
+
+		t.lock.Unlock()
 		return out
 	}
 
@@ -229,7 +237,8 @@ func (t *TicketTempCache) Submit2Cache(blocknumber, blockInterval *big.Int, bloc
 	t.lock.Lock()
 
 	if len(in) == 0 {
-		log.Debug("Call TicketTempCache Submit2Cache， map[nodeId][]ticketId is empty !!!!", "blockNumber", blocknumber.Uint64(), "blockHash", blockhash.Hex(), "blockInterval", blockInterval)
+		log.Debug("Call TicketTempCache Submit2Cache， map[nodeId][]ticketId is empty !!!! Direct short-circuit", "blockNumber", blocknumber.Uint64(), "blockHash", blockhash.Hex(), "blockInterval", blockInterval)
+		t.lock.Unlock()
 		return
 	}
 
@@ -285,6 +294,7 @@ func (t *TicketTempCache) Submit2Cache(blocknumber, blockInterval *big.Int, bloc
 	// tmp fix TODO
 	if big.NewInt(0).Cmp(blockInterval) > 0 {
 		log.Error("WARN WARN WARN !!! Call TicketTempCache Submit2Cache FINISH !!!!!! blockInterval is NEGATIVE NUMBER", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " After Submit2Cache, then cachelen: ", len(t.Cache.NBlocks), "block Count", t.Cache.BlockCount)
+		t.lock.Unlock()
 		return
 	}
 
