@@ -82,19 +82,21 @@ func NewTicketIdsCache(db ethdb.Database) *TicketTempCache {
 			log.Error("Failed call NewTicketIdsCache to Unmarshal Global Cache", "err", err)
 		}
 	}
-	log.Info("Call ticketcache NewTicketIdsCache finish ...", "ms: ", timer.End())
+	log.Debug("Call ticketcache NewTicketIdsCache finish ...", "ms: ", timer.End())
 	return ticketTemp
 }
 
 // Create a ticket cache by blocknumber and blockHash from global temp
 func GetNodeTicketsCacheMap(blocknumber *big.Int, blockhash common.Hash) (ret TicketCache) {
-	log.Info("Call ticketcache GetNodeTicketsCacheMap", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
+	log.Debug("Call ticketcache GetNodeTicketsCacheMap", "blocknumber: ", blocknumber, " blockhash: ", blockhash.Hex())
 	if ticketTemp != nil {
 
 		// getting a ticket cache by blocknumber and blockHash from global temp
 		ret = ticketTemp.GetNodeTicketsMap(blocknumber, blockhash)
 	} else {
-		log.Warn("Warn call ticketcache GetNodeTicketsCacheMap, the Global ticketTemp instance is nil !!!!!!!!!!!!!!!")
+		if big.NewInt(0).Cmp(blocknumber) > 0 {
+			log.Warn("Warn call ticketcache GetNodeTicketsCacheMap, the Global ticketTemp instance is nil !!!!!!!!!!!!!!!", "blocknumber", blocknumber.Uint64(), "blockHash", blockhash.Hex())
+		}
 	}
 	return
 }
@@ -125,39 +127,52 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 
 	notGenesisBlock := blocknumber.Cmp(big.NewInt(0)) > 0
 
+	/**
+	Build a new TicketCache
+	This TicketCache will be used in StateDB
+	*/
+	out := NewTicketCache()
+
+
 	// a map （blocknumber => map[blockHash]map[nodeId][]ticketId）
+	// Direct short-circuit if empty
 	blockNodes, ok := t.Cache.NBlocks[blocknumber.String()]
 	if !ok {
-		blockNodes = &BlockNodes{}
+		/*blockNodes = &BlockNodes{}
 		// create a new map （map[blockHash]map[nodeId][]ticketId）
 		blockNodes.BNodes = make(map[string]*NodeTicketIds)
 		// set to cache by current map （map[blockHash]map[nodeId][]ticketId）
-		t.Cache.NBlocks[blocknumber.String()] = blockNodes
+		t.Cache.NBlocks[blocknumber.String()] = blockNodes*/
 		if notGenesisBlock {
 			log.Error("Failed to GetNodeTicketsMap, TicketCache is empty by blocknumber", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
 		}
-
+		return out
 	}
 
 	// a map (blockHash => map[nodeId][]ticketId)
+	// Direct short-circuit if empty
 	nodeTicketIds, ok := blockNodes.BNodes[blockhash.String()]
 	if !ok {
-		nodeTicketIds = &NodeTicketIds{}
+		/*nodeTicketIds = &NodeTicketIds{}
 		// create a new map (map[nodeId][]ticketId)
 		nodeTicketIds.NTickets = make(map[string]*TicketIds)
 		// set to cache by current map (map[nodeId][]ticketId)
-		blockNodes.BNodes[blockhash.String()] = nodeTicketIds
+		blockNodes.BNodes[blockhash.String()] = nodeTicketIds*/
 
 		if notGenesisBlock {
 			log.Error("Failed to GetNodeTicketsMap, TicketCache is empty by blockHash", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
 		}
+
+		return out
 	}
 
+	// Direct short-circuit if empty
 	if nil == nodeTicketIds.NTickets || len(nodeTicketIds.NTickets) == 0 {
 
-		if notGenesisBlock {
+		/*if notGenesisBlock {
 			log.Error("Warn to GetNodeTicketsMap, TicketCache'NTickets is empty", "blocknumber", blocknumber.String(), "blockHash", blockhash.String())
-		}
+		}*/
+		return out
 	}
 
 	/**
@@ -202,11 +217,7 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 
 	t.lock.Unlock()
 
-	/**
-	Build a new TicketCache
-	This TicketCache will be used in StateDB
-	*/
-	out := NewTicketCache()
+
 	for res := range resCh {
 		// a map type as nodeId => []ticketId
 		out[res.key] = res.tids
@@ -217,13 +228,24 @@ func (t *TicketTempCache) GetNodeTicketsMap(blocknumber *big.Int, blockhash comm
 func (t *TicketTempCache) Submit2Cache(blocknumber, blockInterval *big.Int, blockhash common.Hash, in map[discover.NodeID][]common.Hash) {
 	t.lock.Lock()
 
-	log.Info("Call TicketTempCache Submit2Cache ", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " Before Submit2Cache, then cachelen: ", len(t.Cache.NBlocks))
+	if len(in) == 0 {
+		log.Debug("Call TicketTempCache Submit2Cache， map[nodeId][]ticketId is empty !!!!", "blockNumber", blocknumber.Uint64(), "blockHash", blockhash.Hex(), "blockInterval", blockInterval)
+		return
+	}
+
+	log.Info("Call TicketTempCache Submit2Cache ", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " Before Submit2Cache, then cachelen: ", len(t.Cache.NBlocks), "block Count", t.Cache.BlockCount)
 	blockNodes, ok := t.Cache.NBlocks[blocknumber.String()]
 	if !ok {
 		blockNodes = &BlockNodes{}
 		blockNodes.BNodes = make(map[string]*NodeTicketIds)
 	}
-	//The same block hash data will be overwritten
+
+	var exist bool
+	if _, ok := blockNodes.BNodes[blockhash.String()]; ok {
+		exist = true
+	}
+
+	/** The same block hash data will be overwritten */
 	nodeTicketIds := &NodeTicketIds{}
 	nodeTicketIds.NTickets = make(map[string]*TicketIds)
 	//goroutine task
@@ -255,9 +277,14 @@ func (t *TicketTempCache) Submit2Cache(blocknumber, blockInterval *big.Int, bloc
 	blockNodes.BNodes[blockhash.String()] = nodeTicketIds
 	t.Cache.NBlocks[blocknumber.String()] = blockNodes
 
+	// incr block count
+	if !exist {
+		t.Cache.BlockCount += 1
+	}
+
 	// tmp fix TODO
 	if big.NewInt(0).Cmp(blockInterval) > 0 {
-		log.Error("WARN WARN WARN !!! Call TicketTempCache Submit2Cache FINISH !!!!!! blockInterval is NEGATIVE NUMBER", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " After Submit2Cache, then cachelen: ", len(t.Cache.NBlocks))
+		log.Error("WARN WARN WARN !!! Call TicketTempCache Submit2Cache FINISH !!!!!! blockInterval is NEGATIVE NUMBER", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " After Submit2Cache, then cachelen: ", len(t.Cache.NBlocks), "block Count", t.Cache.BlockCount)
 		return
 	}
 
@@ -272,12 +299,14 @@ func (t *TicketTempCache) Submit2Cache(blocknumber, blockInterval *big.Int, bloc
 		if n, b := new(big.Int).SetString(k, 0); b {
 			if n.Cmp(number) < 0 {
 				delete(t.Cache.NBlocks, k)
+				// decr block count
+				t.Cache.BlockCount -= 1
 			}
 		}
 	}
 
 
-	log.Info("Call TicketTempCache Submit2Cache FINISH !!!!!! ", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " After Submit2Cache, then cachelen: ", len(t.Cache.NBlocks))
+	log.Info("Call TicketTempCache Submit2Cache FINISH !!!!!! ", "blocknumber: ", blocknumber.String(), " blockInterval: ", blockInterval, " blockhash: ", blockhash.Hex(), " After Submit2Cache, then cachelen: ", len(t.Cache.NBlocks), "block Count", t.Cache.BlockCount)
 
 	t.lock.Unlock()
 }
