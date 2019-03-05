@@ -1321,8 +1321,8 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 		return consensus.ErrUnknownAncestor
 	}
 
-	//header.Extra[0:31] to store block's version info etc. and right pad with 0x00;
-	//header.Extra[32:] to store block's sign of producer, the length of sign is 65.
+	// header.Extra[0:32] to store block's version info etc. and right pad with 0x00;
+	// header.Extra[32:97] to store block's sign of producer, the length of sign is 65.
 	if len(header.Extra) < 32 {
 		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
 	}
@@ -1337,7 +1337,7 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	log.Debug("call Finalize()", "RoutineID", common.CurrentGoRoutineID(), "hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts), " extra: ", hexutil.Encode(header.Extra))
-	cbft.accumulateRewards(chain.Config(), state, header, uncles)
+	cbft.accumulateRewards(chain.Config(), state, header)
 	cbft.IncreaseRewardPool(state, header.Number)
 	cbft.adjustTicketPrice(state, header)
 
@@ -1346,7 +1346,7 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 	return types.NewBlock(header, txs, nil, receipts), nil
 }
 
-//to sign the block, and store the sign to header.Extra[32:], send the sign to chanel to broadcast to other consensus nodes
+// to sign the block, and store the sign to header.Extra[32:97], send the sign to chanel to broadcast to other consensus nodes
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
 	cbft.log.Debug("call Seal()", "number", block.NumberU64(), "parentHash", block.ParentHash())
 	/*cbft.lock.Lock()
@@ -1370,8 +1370,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		return err
 	}
 
-	//store the sign in  header.Extra[32:]
-	copy(header.Extra[len(header.Extra)-extraSeal:], sign[:])
+	// store the sign into the header.Extra[32:97]
+	copy(header.Extra[32:97], sign[:])
 
 	sealedBlock := block.WithSeal(header)
 
@@ -1724,7 +1724,7 @@ func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash com
 	return false
 }
 
-// producer's signature = header.Extra[32:]
+// producer's signature = header.Extra[32:97]
 // public key can be recovered from signature, the length of public key is 65,
 // the length of NodeID is 64, nodeID = publicKey[1:]
 func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
@@ -1732,7 +1732,7 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	if len(header.Extra) < extraSeal {
 		return nodeID, []byte{}, errMissingSignature
 	}
-	signature := header.Extra[len(header.Extra)-extraSeal:]
+	signature := header.Extra[32:97]
 	sealHash := header.SealHash()
 
 	pubkey, err := crypto.Ecrecover(sealHash.Bytes(), signature)
@@ -1881,26 +1881,26 @@ func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, b
 
 // AccumulateRewards for lucky tickets
 // Adjust rewards every 3600*24*365 blocks
-func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
+func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header) {
 	if len(header.Extra) < 64 {
-		log.Error("Failed to Call accumulateRewards, header.Extra < 64", " extra: ", hexutil.Encode(header.Extra))
+		log.Error("Failed to Call accumulateRewards, header.Extra < 64", "blockNumber", header.Number, "blockHash", header.Hash(), " extra: ", hexutil.Encode(header.Extra))
 	}
 	var nodeId discover.NodeID
 	var err error
 	log.Info("Call accumulateRewards block header", " extra: ", hexutil.Encode(header.Extra))
-	if ok := bytes.Equal(header.Extra[32:96], make([]byte, 64)); ok {
-		log.Warn("Call accumulateRewards block header extra[32:96] is empty!")
+	if ok := bytes.Equal(header.Extra[32:97], make([]byte, 65)); ok {
+		log.Warn("Call accumulateRewards block header extra[32:97] is empty!", "blockNumber", header.Number, "blockHash", header.Hash())
 		nodeId = cbft.config.NodeID
 	} else {
 		if nodeId, _, err = ecrecover(header); err != nil {
-			log.Error("Failed to Call accumulateRewards, ecrecover faile", " err: ", err)
+			log.Error("Failed to Call accumulateRewards, ecrecover faile", " err: ", err, "blockNumber", header.Number, "blockHash", header.Hash())
 			return
 		} else {
-			log.Info("Success ecrecover", " nodeid: ", nodeId.String())
+			log.Info("Success ecrecover", "blockNumber", header.Number, "blockHash", header.Hash(), " nodeId: ", nodeId.String())
 		}
 	}
 
-	log.Info("Call accumulateRewards", "nodeid: ", nodeId.String())
+	//log.Info("Call accumulateRewards", "nodeid: ", nodeId.String())
 	var can *types.Candidate
 	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(BaseSwitchWitness))) == 0 {
 		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, -1)
@@ -1908,27 +1908,39 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, 0)
 	}
 	if err != nil {
-		log.Error("Failed to Call accumulateRewards, GetCandidate faile ", " err: ", err.Error())
+		log.Error("Failed to Call accumulateRewards, GetCandidate faile ", " err: ", err.Error(),
+			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String())
 		return
 	}
 	if can == nil {
-		log.Warn("Call accumulateRewards, Witness's can is Empty !!!!!!!!!!!!!!!!!!!!!!!!", "nodeId", nodeId)
+		log.Warn("Call accumulateRewards, Witness's can is Empty !!!!!!!!!!!!!!!!!!!!!!!!",
+			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String())
 		return
 	}
-	log.Info("Call accumulateRewards, GetTicket ", "TicketId: ", can.TicketId.Hex())
+	//log.Info("Call accumulateRewards, GetTicket ", "TicketId: ", can.TicketId.Hex())
 	ticket, err := cbft.ppos.GetTicket(state, can.TicketId)
 	if nil != err {
-		log.Error("Failed to Call accumulateRewards, GetTicket faile ", " err: ", err.Error())
+		log.Error("Failed to Call accumulateRewards, GetTicket faile ", " err: ", err.Error(),
+			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String(), "TicketId: ", can.TicketId.Hex())
 		return
 	}
 	if nil == ticket {
-		log.Warn("Call accumulateRewards, ticket info is Empty !!!!!!!!!!!!!!!!!!!!!!!!", "ticketId", can.TicketId.Hex())
+		log.Warn("Call accumulateRewards, ticket info is Empty !!!!!!!!!!!!!!!!!!!!!!!!",
+			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String(), "ticketId", can.TicketId.Hex())
 		return
 	}
 	if ticket.Owner == common.ZeroAddr {
-		log.Warn("Call accumulateRewards, ticket's owner addr is empty !!!!!!!!!!!!!!!!!!!!!!!!")
+		log.Warn("Call accumulateRewards, ticket's owner addr is empty !!!!!!!!!!!!!!!!!!!!!!!!",
+			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String(), "ticketId", can.TicketId.Hex())
 		return
 	}
+
+	// store the lucky ticket into the header.Extra[97:129]
+	var buffer bytes.Buffer
+	buffer.Write(header.Extra)
+	buffer.Write(ticket.TicketId.Bytes())
+	header.Extra = buffer.Bytes()
+	log.Info("Call accumulateRewards, set lucky ticket into header.Extra", "len(header.Extra): ", len(header.Extra))
 
 	//Calculate current block rewards
 	var blockReward *big.Int
@@ -1941,13 +1953,15 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	nodeReward := new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(can.Fee)), FeeBase)
 	ticketReward := new(big.Int).Sub(blockReward, nodeReward)
 
-	log.Info("Call accumulateRewards, Rewards detail", "blockReward: ", blockReward, "nodeReward: ", nodeReward, "ticketReward: ", ticketReward)
+	//log.Info("Call accumulateRewards, Rewards detail", "blockReward: ", blockReward, "nodeReward: ", nodeReward, "ticketReward: ", ticketReward)
 	state.SubBalance(common.RewardPoolAddr, blockReward)
 	state.AddBalance(header.Coinbase, nodeReward)
 	state.AddBalance(ticket.Owner, ticketReward)
-	log.Info("Call accumulateRewards SUCCESS !! ", " yearReward: ", yearReward, " blockReward:", blockReward, " nodeReward: ", nodeReward,
-		" ticketReward: ", ticketReward, " RewardPoolAddr address: ", common.RewardPoolAddr.Hex(), " balance: ", state.GetBalance(common.RewardPoolAddr), " Fee: ", can.Fee,
-		" Coinbase address: ", header.Coinbase.Hex(), " balance: ", state.GetBalance(header.Coinbase), " Ticket address: ", ticket.Owner.Hex(), " balance: ", state.GetBalance(ticket.Owner))
+	log.Info("Call accumulateRewards SUCCESS !! ", "blockNumber", header.Number, "blockHash", header.Hash(),
+		"nodeId", nodeId.String(), "ticketId", can.TicketId.Hex(), " yearReward: ", yearReward, " blockReward:", blockReward,
+		" nodeReward: ", nodeReward, " ticketReward: ", ticketReward, " RewardPoolAddr address: ", common.RewardPoolAddr.Hex(),
+		" balance: ", state.GetBalance(common.RewardPoolAddr), " Fee: ", can.Fee, " Coinbase address: ", header.Coinbase.Hex(),
+		" balance: ", state.GetBalance(header.Coinbase), " Ticket address: ", ticket.Owner.Hex(), " balance: ", state.GetBalance(ticket.Owner))
 }
 
 func (cbft *Cbft) IncreaseRewardPool(state *state.StateDB, number *big.Int) {
