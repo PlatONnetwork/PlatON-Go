@@ -2,6 +2,7 @@ package pposm
 
 import (
 	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
@@ -18,25 +19,24 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"fmt"
 )
 
 var (
-	TicketPoolNilErr          = errors.New("Ticket Insufficient quantity")
-	TicketPoolOverflowErr     = errors.New("Number of ticket pool overflow")
-	EncodeTicketErr           = errors.New("Encode Ticket error")
-	EncodePoolNumberErr       = errors.New("Encode SurplusQuantity error")
-	DecodeTicketErr           = errors.New("Decode Ticket error")
-	DecodePoolNumberErr       = errors.New("Decode SurplusQuantity error")
-	RecordExpireTicketErr     = errors.New("Record Expire Ticket error")
-	CandidateNotFindErr 	  = errors.New("The Candidate not find")
-	CandidateNilTicketErr     = errors.New("This candidate has no ticket")
-	TicketPoolBalanceErr      = errors.New("TicketPool not sufficient funds")
-	TicketIdNotFindErr        = errors.New("TicketId not find")
-	HandleExpireTicketErr     = errors.New("Failure to deal with expired tickets")
-	GetCandidateAttachErr     = errors.New("Get CandidateAttach error")
-	SetCandidateAttachErr     = errors.New("Update CandidateAttach error")
-	VoteTicketErr        	  = errors.New("Voting failed")
+	TicketPoolNilErr      = errors.New("Ticket Insufficient quantity")
+	TicketPoolOverflowErr = errors.New("Number of ticket pool overflow")
+	EncodeTicketErr       = errors.New("Encode Ticket error")
+	EncodePoolNumberErr   = errors.New("Encode SurplusQuantity error")
+	DecodeTicketErr       = errors.New("Decode Ticket error")
+	DecodePoolNumberErr   = errors.New("Decode SurplusQuantity error")
+	RecordExpireTicketErr = errors.New("Record Expire Ticket error")
+	CandidateNotFindErr   = errors.New("The Candidate not find")
+	CandidateNilTicketErr = errors.New("This candidate has no ticket")
+	TicketPoolBalanceErr  = errors.New("TicketPool not sufficient funds")
+	TicketIdNotFindErr    = errors.New("TicketId not find")
+	HandleExpireTicketErr = errors.New("Failure to deal with expired tickets")
+	GetCandidateAttachErr = errors.New("Get CandidateAttach error")
+	SetCandidateAttachErr = errors.New("Update CandidateAttach error")
+	VoteTicketErr         = errors.New("Voting failed")
 )
 
 type TicketPool struct {
@@ -139,7 +139,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 
 			ticketId, _ := generateTicketId(stateDB.TxHash(), i)
 
-			log.Debug("Call Voting parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", stateDB), "ticketId", ticketId.String())
+			log.Debug("Call Voting parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", stateDB), "ticketId", ticketId.String())
 
 			ticket := &types.Ticket{
 				TicketId:    ticketId,
@@ -265,7 +265,7 @@ func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, expireBlockNumber *b
 	if err != nil {
 		return nil, err
 	}
-	log.Info("Pending ticket to be processed", "amount", len(ticketIdList), "blockNumber", expireBlockNumber.Uint64())
+	log.Info("Pending ticket to be processed", "amount", len(ticketIdList), "expireBlockNumber", expireBlockNumber.Uint64(), "currentBlockNumber", currentBlockNumber.Uint64())
 	candidateAttachMap := make(map[discover.NodeID]*types.CandidateAttach)
 	changeNodeIdList := make([]discover.NodeID, 0)
 	for _, ticketId := range ticketIdList {
@@ -344,7 +344,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 	log.Debug("Call DropReturnTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
 	log.Info("Start processing tickets for the drop list on DropReturnTicket", "candidateNum", len(nodeIds), "blockNumber", blockNumber.Uint64())
 	for _, nodeId := range nodeIds {
-		if  nodeId == (discover.NodeID{}) {
+		if nodeId == (discover.NodeID{}) {
 			continue
 		}
 		candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
@@ -493,19 +493,21 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int) error {
 func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	candidateList := cContext.GetChosens(stateDB, 0)
-	for _, candidate := range candidateList {
-		candidateAttach, err := t.GetCandidateAttach(stateDB, candidate.CandidateId)
-		if nil != err {
-			return err
-		}
-		// Get the total number of votes, increase the total epoch
-		ticketCount := stateDB.TCount(candidate.CandidateId)
-		log.Debug("increase the total epoch", "candidateId", candidate.CandidateId.String(), "ticketCount", ticketCount)
-		if ticketCount > 0 {
-			candidateAttach.AddEpoch(new(big.Int).SetUint64(ticketCount))
-			if err := t.setCandidateAttach(stateDB, candidate.CandidateId, candidateAttach); nil != err {
+	kindCandidateList := cContext.GetChosens(stateDB, 0)
+	for _, candidateList := range kindCandidateList {
+		for _, candidate := range candidateList {
+			candidateAttach, err := t.GetCandidateAttach(stateDB, candidate.CandidateId)
+			if nil != err {
 				return err
+			}
+			// Get the total number of votes, increase the total epoch
+			ticketCount := stateDB.TCount(candidate.CandidateId)
+			log.Debug("increase the total epoch", "candidateId", candidate.CandidateId.String(), "ticketCount", ticketCount)
+			if ticketCount > 0 {
+				candidateAttach.AddEpoch(new(big.Int).SetUint64(ticketCount))
+				if err := t.setCandidateAttach(stateDB, candidate.CandidateId, candidateAttach); nil != err {
+					return err
+				}
 			}
 		}
 	}
