@@ -139,6 +139,7 @@ var (
 				},
 				TicketConfig: &TicketConfig{
 					TicketPrice:       "100000000000000000000",
+					AdjustCycle:		"10000",
 					MaxCount:          51200,
 					ExpireBlockNumber: 1536000,
 				},
@@ -256,6 +257,7 @@ type CandidateConfig struct {
 
 type TicketConfig struct {
 	TicketPrice       string
+	AdjustCycle		  string
 	MaxCount          uint64
 	ExpireBlockNumber uint64
 }

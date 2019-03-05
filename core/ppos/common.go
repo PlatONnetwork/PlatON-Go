@@ -32,6 +32,8 @@ const (
 	CandidateAttach	= "ca"
 	// Ticket pool hash
 	TicketPoolHash	= "tph"
+	//Ticket Price
+	TicketPrice = "tpr"
 
 )
 
@@ -77,5 +79,7 @@ var (
 	CandidateAttachPrefix		= []byte(CandidateAttach)
 
 	TicketPoolHashKey			= []byte(TicketPoolHash)
+
+	TicketPriceKey				= []byte(TicketPrice)
 
 )

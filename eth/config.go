@@ -59,6 +59,7 @@ var DefaultConfig = Config{
 			},
 			Ticket: &TicketConfig{
 				TicketPrice: 		"100000000000000000000",
+				AdjustCycle:		"10000",
 				MaxCount:			51200,
 				ExpireBlockNumber: 	1536000,
 			},
@@ -189,6 +190,7 @@ type CandidateConfig struct {
 }
 type TicketConfig struct {
 	TicketPrice 		string 						`json:"ticketPrice"`
+	AdjustCycle			string						`json:"adjustCycle"`
 	// Maximum number of ticket pool
 	MaxCount				uint64					`json:"maxCount"`
 	// Reach expired quantity

@@ -438,6 +438,10 @@ func (d *ppos) GetPoolNumber (state vm.StateDB) (uint64, error) {
 	return d.ticketContext.GetPoolNumber(state)
 }
 
+func (d *ppos) GetMaxPoolNumber() uint64  {
+	return d.ticketContext.GetMaxPoolNumber()
+}
+
 func (d *ppos) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
 	return d.ticketContext.VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber)
 }
@@ -460,6 +464,14 @@ func (d *ppos) GetCandidateEpoch (state vm.StateDB, nodeId discover.NodeID) (uin
 
 func (d *ppos) GetTicketPrice (state vm.StateDB) (*big.Int, error) {
 	return d.ticketContext.GetTicketPrice(state)
+}
+
+func (d *ppos) GetLowestTicketPrice() *big.Int {
+	return d.ticketContext.GetLowestTicketPrice()
+}
+
+func (d *ppos) GetAdjustCycle() *big.Int {
+	return d.ticketContext.GetAdjustPriceCycle()
 }
 
 func (d *ppos) GetCandidateAttach (state vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
@@ -984,4 +996,8 @@ func (d *ppos) setTicketPoolCache () {
 
 func (p *ppos) ForEachStorage(state *state.StateDB, title string) {
 	p.candidateContext.ForEachStorage(state, title)
+}
+
+func (p *ppos) MaxChair() uint64{
+	return p.candidateContext.MaxChair()
 }

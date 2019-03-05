@@ -2437,12 +2437,16 @@ func makeCandidateSort(state vm.StateDB, arr types.CandidateQueue) {
 	cand := make(types.CanConditions, 0)
 	for _, can := range arr {
 		tCount := state.TCount(can.CandidateId)
-		price, _ := tContext.GetTicketPrice(state)
-		tprice := new(big.Int).Mul(big.NewInt(int64(tCount)), price)
+		if tickeprice, err:= tContext.GetTicketPrice(state); err==nil {
+			tprice := new(big.Int).Mul(big.NewInt(int64(tCount)), tickeprice)
 
 		money := new(big.Int).Add(can.Deposit, tprice)
 
-		cand[can.CandidateId] = money
+			cand[can.CandidateId] = money
+		}else {
+			log.Error("ticketContext getTicketPrice fail!", " err: ", err.Error())
+			return
+		}
 	}
 	arr.CandidateSort(cand)
 }
