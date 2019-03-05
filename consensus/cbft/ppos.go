@@ -396,7 +396,7 @@ func (d *ppos) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price
 }
 
 // Getting all  elected candidates array
-func (d *ppos) GetChosens(state vm.StateDB, flag int) []*types.Candidate {
+func (d *ppos) GetChosens(state vm.StateDB, flag int) types.KindCanQueue {
 	return d.candidateContext.GetChosens(state, flag)
 }
 
