@@ -2014,7 +2014,7 @@ func (cbft *Cbft) adjustTicketPrice(state *state.StateDB, header *types.Header) 
 	T := cbft.ppos.GetMaxPoolNumber()
 	B := T * BaseSwitchWitness / cbft.ppos.MaxChair()
 	Seb := new(big.Int).Div(cbft.GetAmountFromNumber(header.Number), new(big.Int).SetUint64(B))
-	log.Info("adjust ticket price const ", "Slb: ", Slb, " T: ", T, " B: ", B, " Seb: ", Seb)
+	log.Info("adjust ticket price const ","number", header.Number, "Slb: ", Slb, " T: ", T, " B: ", B, " Seb: ", Seb)
 	//var
 	TicketPrice, err:= cbft.ppos.GetTicketPrice(state)
 	if err!=nil {
@@ -2028,23 +2028,34 @@ func (cbft *Cbft) adjustTicketPrice(state *state.StateDB, header *types.Header) 
 	}
 	Pn = T - Pn
 	PreCycleNumer := new(big.Int).Sub(new(big.Int).Sub(header.Number, cycle), new(big.Int).SetUint64(1))
-	PreCycleBlock := cbft.blockChain.GetBlockByNumber(PreCycleNumer.Uint64())
-	if PreCycleBlock==nil {
-		log.Error("adjust ticket price get pre cycle block is nil", " CurNumber: ", header.Number, " PreCycleNumer: ", PreCycleNumer)
+	cmp := PreCycleNumer.Cmp(new(big.Int).SetInt64(0))
+	var Pn_1 uint64
+	if cmp == 1 {
+		PreCycleBlock := cbft.blockChain.GetBlockByNumber(PreCycleNumer.Uint64())
+		if PreCycleBlock == nil {
+			log.Error("adjust ticket price get pre cycle block is nil", " CurNumber: ", header.Number, " PreCycleNumer: ", PreCycleNumer)
+			return
+		}
+		PreCycleState, err := cbft.blockChain.StateAt(PreCycleBlock.Root(), PreCycleBlock.Number(), PreCycleBlock.Hash())
+		if err != nil {
+			log.Error("adjust ticket price get state at faile", " err: ", err.Error(), " root: ", PreCycleBlock.Root().String(), " number: ", PreCycleBlock.Number(), " hash: ", PreCycleBlock.Hash().String())
+			return
+		}
+		Pn_1, err = cbft.ppos.GetPoolNumber(PreCycleState)
+		if err!=nil {
+			log.Error("adjust ticket price get pre pool number faile", " err: ",  err.Error())
+			return
+		}
+		Pn_1 = T - Pn_1
+	}else if cmp == -1 {
+		log.Info("First Cycle adjust ticket price ", " PreCycleNumer: ", PreCycleNumer)
+		Pn_1 = Pn
+	}else {
+		log.Error("PreCycleNumer is zero ", " PreCycleNumer: ", PreCycleNumer)
 		return
 	}
-	PreCycleState, err := cbft.blockChain.StateAt(PreCycleBlock.Root(), PreCycleBlock.Number(), PreCycleBlock.Hash())
-	if err!=nil {
-		log.Error("adjust ticket price get state at faile", " err: ", err.Error(), " root: ", PreCycleBlock.Root().String(), " number: ", PreCycleBlock.Number(), " hash: ", PreCycleBlock.Hash().String())
-		return
-	}
-	Pn_1, err:= cbft.ppos.GetPoolNumber(PreCycleState)
-	if err!=nil {
-		log.Error("adjust ticket price get pre pool number faile", " err: ",  err.Error())
-		return
-	}
-	Pn_1 = T - Pn_1
 
+	log.Info("adjust ticket price variable: ", " CurPrice: ", TicketPrice, " Pn: ", Pn, " Pn_1: ", Pn_1)
 	//calc new price
 	NewTicketPrice := new(big.Int).Mul(TicketPrice, new(big.Int).SetUint64(Pn*Pn/(Pn_1*T)))
 	if NewTicketPrice.Cmp(Slb) != 1 {
