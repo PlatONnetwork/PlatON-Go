@@ -49,12 +49,16 @@ type ticketDependency struct {
 }
 
 func (td *ticketDependency) AddAge(number *big.Int) {
-	td.Age.Add(td.Age, number)
+	if nil != td.Age {
+		td.Age.Add(td.Age, number)
+	}
 }
 
 func (td *ticketDependency) SubAge(number *big.Int) {
-	if td.Age.Cmp(number) >= 0 && number.Uint64() > 0 {
-		td.Age.Sub(td.Age, number)
+	if nil != td.Age {
+		if td.Age.Cmp(number) >= 0 && number.Uint64() > 0 {
+			td.Age.Sub(td.Age, number)
+		}
 	}
 }
 
@@ -411,6 +415,7 @@ func (p *Ppos_storage) AppendTicket(nodeId discover.NodeID, txHash common.Hash, 
 			value.tIds = make([]common.Hash, 0)
 		}
 		value.Num += ticket.Remaining
+		value.Age = new(big.Int)
 		value.tIds = append(value.tIds, txHash)
 		p.SetTicketDependency(nodeId, value)
 	}

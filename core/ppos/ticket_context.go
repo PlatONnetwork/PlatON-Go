@@ -71,6 +71,10 @@ func (c *TicketPoolContext) StoreHash (state vm.StateDB) error {
 	return c.initTicketPool().CommitHash(state)
 }
 
+func (c *TicketPoolContext) GetCandidateTicketCount (state vm.StateDB, nodeId discover.NodeID) uint64 {
+	return c.initTicketPool().GetCandidateTicketCount(state, nodeId)
+}
+
 func (c *TicketPoolContext) GetCandidatesTicketCount (state vm.StateDB, nodeIds []discover.NodeID) (map[discover.NodeID]int, error) {
 	return c.initTicketPool().GetCandidatesTicketCount(state, nodeIds)
 }

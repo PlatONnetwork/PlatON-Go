@@ -237,12 +237,11 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 		if len(candidateTicketIds) == 0 {
 			continue
 		}
-		dependency, err := stateDB.GetPPOSCache().GetTicketDependency(nodeId)
+		epoch, err := t.GetCandidateEpoch(stateDB, nodeId)
 		if nil != err {
 			return err
 		}
-		epoch := dependency.Age.Uint64()
-		ticketCount := dependency.Num
+		ticketCount := t.GetCandidateTicketCount(stateDB, nodeId)
 		log.Debug("Delete candidate ticket collection on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", ticketCount, "epoch", epoch)
 		if err := stateDB.GetPPOSCache().RemoveTicketDependency(nodeId); err != nil {
 			return err
@@ -426,12 +425,12 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 				return err
 			}
 			dependency.AddAge(new(big.Int).SetUint64(ticketCount))
+			epoch, err = t.GetCandidateEpoch(stateDB, candidate.CandidateId)
+			if nil != err {
+				return err
+			}
+			log.Debug("increase the total epoch success", "candidateId", candidate.CandidateId.String(), "blockNumber", blockNumber.Uint64(), "ticketCount", ticketCount, "epoch", epoch)
 		}
-		epoch, err = t.GetCandidateEpoch(stateDB, candidate.CandidateId)
-		if nil != err {
-			return err
-		}
-		log.Debug("increase the total epoch success", "candidateId", candidate.CandidateId.String(), "blockNumber", blockNumber.Uint64(), "ticketCount", ticketCount, "epoch", epoch)
 	}
 	return nil
 }
@@ -520,6 +519,10 @@ func (t *TicketPool) GetCandidatesTicketIds(stateDB vm.StateDB, nodeIds []discov
 	return result, nil
 }
 
+func (t *TicketPool) GetCandidateTicketCount(stateDB vm.StateDB, nodeId discover.NodeID) uint64 {
+	return stateDB.GetPPOSCache().GetCandidateTicketCount(nodeId)
+}
+
 func (t *TicketPool) GetCandidatesTicketCount(stateDB vm.StateDB, nodeIds []discover.NodeID) (map[discover.NodeID]int, error) {
 	log.Debug("Call GetCandidatesTicketCount", "statedb addr", fmt.Sprintf("%p", stateDB))
 	result := make(map[discover.NodeID]int)
@@ -541,7 +544,11 @@ func (t *TicketPool) GetCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeI
 		log.Error("GetCandidateEpoch error", "key", nodeId.String(), "err", err)
 		return 0, err
 	} else {
-		return value.Uint64(), nil
+		if value != nil {
+			return value.Uint64(), nil
+		} else {
+			return 0, nil
+		}
 	}
 }
 

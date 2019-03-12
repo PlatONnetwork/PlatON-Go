@@ -17,8 +17,6 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
