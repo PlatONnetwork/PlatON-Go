@@ -113,7 +113,7 @@ type Candidate struct {
 	// brokerage   example: (fee/10000) * 100% == x%
 	Fee uint32
 	// Selected TicketId
-	TicketId common.Hash
+	TxHash common.Hash
 }
 
 type RefundQueue []*CandidateRefund

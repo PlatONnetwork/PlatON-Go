@@ -43,7 +43,7 @@ type ticketDependency struct {
 	// ticket age
 	Age *big.Int
 	// ticket count
-	Num uint64
+	Num uint32
 	// ticketIds
 	Tids []common.Hash
 }
@@ -70,7 +70,7 @@ func (td *ticketDependency) SubNum() {
 
 type ticket_temp struct {
 	// total remian  k-v
-	Sq int
+	Sq int32
 	// ticketInfo  map[txHash]ticketInfo
 	Infos map[common.Hash]*types.Ticket
 	// ExpireTicket  map[blockNumber]txHash

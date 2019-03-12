@@ -40,10 +40,12 @@ This is a Global ppos data temp
 var  ppos_temp *PPOS_TEMP
 
 
-func NewPPosTemp() *PPOS_TEMP {
+func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 
 	timer := common.NewTimer()
 	timer.Begin()
+
+	log.Info("NewPPosTemp start ...")
 	if nil != ppos_temp {
 		return ppos_temp
 	}
@@ -52,6 +54,29 @@ func NewPPosTemp() *PPOS_TEMP {
 
 	ntemp := make(numTempMap, 0)
 	ppos_temp.TempMap = ntemp
+	ppos_temp.lock = &sync.Mutex{}
+
+
+	if ppos_storage, err := db.Get(PPOS_STORAGE_KEY); nil != err {
+		log.Warn("WARN Call NewPPosTemp to get Global ppos temp by levelDB", "err", err)
+	} else {
+		log.Debug("Call NewPPosTemp to Unmarshal Global ppos temp", "pb data len", len(ppos_storage))
+
+		pb_pposTemp := new(PB_PPosTemp)
+		if err := proto.Unmarshal(ppos_storage, pb_pposTemp); err != nil {
+			log.Error("Failed to Call NewPPosTemp to Unmarshal Global ppos temp", "err", err)
+			return ppos_temp
+		}else {
+			/**
+			build global ppos_temp
+			 */
+			hashMap := make(map[common.Hash]*Ppos_storage, 0)
+			hashMap[common.HexToHash(pb_pposTemp.BlockHash)] = unmarshalPBStorage(pb_pposTemp)
+			ppos_temp.TempMap[pb_pposTemp.BlockNumber] = hashMap
+		}
+	}
+
+	log.Debug("Call NewPPosTemp finish ...", "time long ms: ", timer.End())
 	return ppos_temp
 }
 
@@ -231,15 +256,17 @@ func (temp *PPOS_TEMP) Commit2DB(db ethdb.Database, blockNumber *big.Int, blockH
 
 
 
-func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storage) *PPOSTemp {
-	ppos_temp := new(PPOSTemp)
+func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storage) *PB_PPosTemp {
+	ppos_temp := new(PB_PPosTemp)
 	ppos_temp.BlockNumber = blockNumber.String()
 	ppos_temp.BlockHash = blockHash.Hex()
 
 	var empty int = 0  // 0: empty 1: no
 	var wg sync.WaitGroup
 
-	// candidate related
+	/**
+	candidate related
+	*/
 	if nil != ps.c_storage {
 
 		canTemp := new(CandidateTemp)
@@ -300,7 +327,9 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		ppos_temp.CanTmp = canTemp
 	}
 
-	// ticket related
+	/**
+	ticket related
+	*/
 	if nil != ps.t_storage {
 		tickTemp := new(TicketTemp)
 
@@ -349,6 +378,161 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 }
 
 
+func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
+
+	ppos_storage := new(Ppos_storage)
+
+	/**
+	candidate related
+	*/
+	canGlobalTemp := pb_temp.CanTmp
+	if nil !=  canGlobalTemp {
+
+		canTemp := new(candidate_temp)
+
+		buildQueueFunc := func(arr []*CandidateInfo) types.CandidateQueue {
+			if len(arr) == 0 {
+				return nil
+			}
+			queue := make(types.CandidateQueue, len(arr))
+			for _, can := range arr {
+				deposit, _ := new(big.Int).SetString(can.Deposit, 10)
+				num, _ := new(big.Int).SetString(can.BlockNumber, 10)
+				canInfo := &types.Candidate{
+					Deposit: 		deposit,
+					BlockNumber:	num,
+					TxIndex:		can.TxIndex,
+					CandidateId:	discover.MustBytesID(can.CandidateId),
+					Host:        	can.Host,
+					Port:         	can.Port,
+					Owner:  		common.BytesToAddress(can.Owner),
+					Extra:  		can.Extra,
+					Fee:  			can.Fee,
+					TxHash: 		common.BytesToHash(can.TxHash),
+				}
+				queue = append(queue, canInfo)
+			}
+			return queue
+		}
+
+		// previous witness
+		canTemp.pres = buildQueueFunc(canGlobalTemp.Pres)
+		// current witness
+		canTemp.currs = buildQueueFunc(canGlobalTemp.Currs)
+		// next witness
+		canTemp.nexts = buildQueueFunc(canGlobalTemp.Nexts)
+		// immediate
+		canTemp.imms = buildQueueFunc(canGlobalTemp.Imms)
+		// reserve
+		canTemp.res = buildQueueFunc(canGlobalTemp.Res)
+		// refund
+		if len(canGlobalTemp.Refunds) != 0 {
+
+			defeatMap := make(refundStorage, len(canGlobalTemp.Refunds))
+
+			for nodeId, refundArr := range canGlobalTemp.Refunds {
+
+				if len(refundArr.Defeats) == 0 {
+					continue
+				}
+
+				defeatArr := make(types.RefundQueue, len(refundArr.Defeats))
+				for _, defeat := range refundArr.Defeats {
+
+					deposit, _ := new(big.Int).SetString(defeat.Deposit, 10)
+					num, _ := new(big.Int).SetString(defeat.BlockNumber, 10)
+
+					refund := &types.CandidateRefund{
+						Deposit:  		deposit,
+						BlockNumber: 	num,
+						Owner: 			common.BytesToAddress(defeat.Owner),
+					}
+					defeatArr = append(defeatArr, refund)
+				}
+				defeatMap[discover.MustHexID(nodeId)] = defeatArr
+			}
+
+			canTemp.refunds = defeatMap
+		}
+		ppos_storage.c_storage = canTemp
+	}
+
+
+	/**
+	ticket related
+	 */
+	tickGlobalTemp := pb_temp.TickTmp
+	if nil != tickGlobalTemp {
+
+		tickTemp := new(ticket_temp)
+
+		// SQ
+		tickTemp.Sq = tickGlobalTemp.Sq
+
+		// ticketInfo map
+		if len(tickGlobalTemp.Infos) != 0 {
+
+			infoMap := make(map[common.Hash]*types.Ticket, len(tickGlobalTemp.Infos))
+			for tid, tinfo := range tickGlobalTemp.Infos {
+				deposit, _ := new(big.Int).SetString(tinfo.Deposit, 10)
+				num, _ := new(big.Int).SetString(tinfo.BlockNumber, 10)
+				ticketInfo := &types.Ticket{
+					Owner: 			common.BytesToAddress(tinfo.Owner),
+					Deposit:		deposit,
+					CandidateId: 	discover.MustBytesID(tinfo.CandidateId),
+					BlockNumber: 	num,
+					Remaining:		tinfo.Remaining,
+				}
+
+				infoMap[common.HexToHash(tid)] = ticketInfo
+			}
+			tickTemp.Infos = infoMap
+		}
+
+
+		// ExpireTicket map
+		if len(tickGlobalTemp.Ets) != 0 {
+			ets := make(map[string][]common.Hash, len(tickGlobalTemp.Ets))
+
+			for blockNum, ticketIdArr := range tickGlobalTemp.Ets {
+
+				if len(ticketIdArr.TxHashs) == 0 {
+					continue
+				}
+
+				ticketIds := make([]common.Hash, len(ticketIdArr.TxHashs))
+				for _, ticketId := range ticketIdArr.TxHashs {
+					ticketIds = append(ticketIds, common.BytesToHash(ticketId))
+				}
+				ets[blockNum] = ticketIds
+			}
+
+			tickTemp.Ets = ets
+		}
+
+		// ticket's attachment  of node
+		if len(tickGlobalTemp.Dependencys) != 0 {
+
+			dependencyMap := make(map[discover.NodeID]*ticketDependency, len(tickGlobalTemp.Dependencys))
+
+			for nodeIdStr, pb_dependency := range tickGlobalTemp.Dependencys {
+
+				dependencyInfo := new(ticketDependency)
+				age, _ := new(big.Int).SetString(pb_dependency.Age, 10)
+				dependencyInfo.Age = age
+				dependencyInfo.Num = pb_dependency.Num
+
+				dependencyMap[discover.MustHexID(nodeIdStr)] = dependencyInfo
+			}
+
+			tickTemp.Dependencys = dependencyMap
+		}
+		ppos_storage.t_storage = tickTemp
+	}
+
+	return ppos_storage
+}
+
 func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
 	if len(canQqueue) == 0 {
 		return nil
@@ -365,7 +549,7 @@ func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
 			Port:			can.Port,
 			Owner:			can.Owner.Bytes(),
 			Extra:			can.Extra,
-			TicketId: 		can.TicketId.Bytes(),
+			TxHash: 		can.TxHash.Bytes(),
 		}
 		pbQueue = append(pbQueue, canInfo)
 	}
@@ -468,7 +652,7 @@ func buildPBdependencys(dependencys map[discover.NodeID]*ticketDependency) map[s
 		}
 
 		depenInfo := &TicketDependency{
-			Age:  dependency.Age,
+			Age:  dependency.Age.String(),
 			Num:  dependency.Num,
 			Tids: tidArr,
 		}
