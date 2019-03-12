@@ -116,22 +116,6 @@ type Candidate struct {
 	TicketId common.Hash
 }
 
-type CandidateAttach struct {
-	// Sum Ticket age
-	Epoch *big.Int `json:"epoch"`
-}
-
-func (ca *CandidateAttach) AddEpoch(number *big.Int) {
-	ca.Epoch.Add(ca.Epoch, number)
-}
-
-func (ca *CandidateAttach) SubEpoch(number *big.Int) {
-	if ca.Epoch.Cmp(number) >= 0 && number.Uint64() > 0 {
-		ca.Epoch.Sub(ca.Epoch, number)
-	}
-}
-
-
 type RefundQueue []*CandidateRefund
 
 func (queue RefundQueue) DeepCopy() RefundQueue {

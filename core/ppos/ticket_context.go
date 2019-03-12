@@ -31,11 +31,11 @@ func (c *TicketPoolContext) initTicketPool() *TicketPool {
 	return NewTicketPool(c.Configs)
 }
 
-func (c *TicketPoolContext) GetPoolNumber (state vm.StateDB) (uint64, error) {
+func (c *TicketPoolContext) GetPoolNumber (state vm.StateDB) uint64 {
 	return c.initTicketPool().GetPoolNumber(state)
 }
 
-func (c *TicketPoolContext) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
+func (c *TicketPoolContext) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) (uint64, error) {
 	return c.initTicketPool().VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber)
 }
 
@@ -63,16 +63,16 @@ func (c *TicketPoolContext) GetTicketPrice (state vm.StateDB) (*big.Int, error) 
 	return c.initTicketPool().GetTicketPrice(state)
 }
 
-func (c *TicketPoolContext) GetCandidateAttach (state vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
-	return c.initTicketPool().GetCandidateAttach(state, nodeId)
-}
-
 func (c *TicketPoolContext) Notify (state vm.StateDB, blockNumber *big.Int) error {
 	return c.initTicketPool().Notify(state, blockNumber)
 }
 
 func (c *TicketPoolContext) StoreHash (state vm.StateDB) error {
 	return c.initTicketPool().CommitHash(state)
+}
+
+func (c *TicketPoolContext) GetCandidateTicketCount (state vm.StateDB, nodeId discover.NodeID) uint64 {
+	return c.initTicketPool().GetCandidateTicketCount(state, nodeId)
 }
 
 func (c *TicketPoolContext) GetCandidatesTicketCount (state vm.StateDB, nodeIds []discover.NodeID) (map[discover.NodeID]int, error) {

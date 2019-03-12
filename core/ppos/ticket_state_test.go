@@ -9,12 +9,14 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"math/rand"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -67,7 +69,7 @@ func TestTicketProcess(t *testing.T) {
 	}
 
 	fmt.Println("seting new k-v \n", candidate)
-	/** test SetCandidate */
+	// test SetCandidate
 	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
 		fmt.Println("SetCandidate err:", err)
 	}
@@ -99,6 +101,9 @@ func TestTicketProcess(t *testing.T) {
 				tempBlockNumber++
 			}
 		}
+		txHash := common.Hash{}
+		txHash.SetBytes(crypto.Keccak256([]byte(strconv.Itoa(time.Now().Nanosecond() + i))))
+		state.Prepare(txHash, common.Hash{}, 1)
 
 		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 		if nil != err {
@@ -124,23 +129,23 @@ func TestTicketProcess(t *testing.T) {
 		t.Error("GetCandidateTicketIds error", err)
 	}
 	ticketList, err := ticketPoolContext.GetTicketList(state, ticketIds)
-
+	t.Logf("ticketListSize=%d\n", len(ticketList))
 	expireTicketIds, err := ticketPoolContext.GetExpireTicketIds(state, blockNumber)
 	if nil != err {
 		t.Error("GetExpireTicketIds error", err)
 	}
 	//expireTickets, err := ticketPool.GetTicketList(state, expireTicketIds)
 
-	surplusQuantity, err := ticketPoolContext.GetPoolNumber(state)
-	candidateAttach, err := ticketPoolContext.GetCandidateAttach(state, candidate.CandidateId)
+	surplusQuantity := ticketPoolContext.GetPoolNumber(state)
+	epoch, err := ticketPoolContext.GetCandidateEpoch(state, candidate.CandidateId)
 
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		surplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId), candidateAttach.Epoch)
-	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
+		surplusQuantity, len(expireTicketIds), len(ticketIds), state.GetPPOSCache().GetCandidateTicketCount(candidate.CandidateId), epoch)
+	t.Logf("ticketPoolBalance[%v]", state.GetBalance(common.TicketPoolAddr))
 	fmt.Println("------all ticket-----")
-	for _, ticket := range ticketList {
-		fmt.Printf("ticket:%+v,ticketId:[%v]\n", ticket, ticket.TicketId.Hex())
-	}
+	//for _, ticket := range ticketList {
+	//	fmt.Printf("ticket:%+v,ticketId:[%v]\n", ticket, ticket.TicketId.Hex())
+	//}
 
 	candidate, err = candidatePoolContext.GetCandidate(state, candidate.CandidateId)
 	ticketIds, err = ticketPoolContext.GetCandidateTicketIds(state, candidate.CandidateId)
@@ -152,11 +157,11 @@ func TestTicketProcess(t *testing.T) {
 	if nil != err {
 		t.Error("GetExpireTicketIds error", err)
 	}
-	surplusQuantity, err = ticketPoolContext.GetPoolNumber(state)
-	candidateAttach, err = ticketPoolContext.GetCandidateAttach(state, candidate.CandidateId)
+	surplusQuantity = ticketPoolContext.GetPoolNumber(state)
+	epoch, err = ticketPoolContext.GetCandidateEpoch(state, candidate.CandidateId)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		surplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId), candidateAttach.Epoch)
-	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
+		surplusQuantity, len(expireTicketIds), len(ticketIds), ticketPoolContext.GetCandidateTicketCount(state, candidate.CandidateId), epoch)
+	t.Logf("ticketPoolBalance[%v]", state.GetBalance(common.TicketPoolAddr))
 
 	if err := ticketPoolContext.Notify(state, blockNumber); err != nil {
 		t.Error("Execute HandleExpireTicket error", err)
@@ -184,11 +189,11 @@ func TestTicketProcess(t *testing.T) {
 	if nil != err {
 		t.Error("GetExpireTicketIds error", err)
 	}
-	surplusQuantity, err = ticketPoolContext.GetPoolNumber(state)
-	candidateAttach, err = ticketPoolContext.GetCandidateAttach(state, candidate.CandidateId)
+	surplusQuantity = ticketPoolContext.GetPoolNumber(state)
+	epoch, err = ticketPoolContext.GetCandidateEpoch(state, candidate.CandidateId)
 	t.Logf("After processing the expired ticket block height：[%d]", blockNumber)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
-		surplusQuantity, len(expireTicketIds), len(ticketIds), state.TCount(candidate.CandidateId), candidateAttach.Epoch)
+		surplusQuantity, len(expireTicketIds), len(ticketIds), ticketPoolContext.GetCandidateTicketCount(state, candidate.CandidateId), epoch)
 	t.Logf("ticketPoolBalance[%v],ticketDetailBalance[%v]", state.GetBalance(common.TicketPoolAddr), state.GetBalance(common.TicketPoolAddr))
 	var temp []string
 	temp = append(temp, "string")
@@ -239,6 +244,9 @@ func initParam() (*state.StateDB, *pposm.CandidatePoolContext, *pposm.TicketPool
 	} else {
 		state = statedb
 	}
+	txHash := common.Hash{}
+	txHash.SetBytes(crypto.Keccak256([]byte(strconv.Itoa(time.Now().Second()))))
+	state.Prepare(txHash, common.Hash{}, 1)
 	return state, candidatePoolContextContext, ticketPoolContext
 }
 
@@ -259,9 +267,11 @@ func TestTicketPool_VoteTicket(t *testing.T) {
 		log.Error("SetCandidate fail", "err", err)
 	}
 
-	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
+	successNumber, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
 	if nil != err {
 		log.Error("vote ticket fail", "err", err)
+	} else {
+		log.Info("vote ticket success", "successNumber", successNumber)
 	}
 }
 
@@ -291,13 +301,13 @@ func TestTicketPool_GetTicketList(t *testing.T) {
 		log.Error("SetCandidate fail", "err", err)
 	}
 
-	ticketIdList, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
+	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
 	if nil != err {
 		log.Error("vote ticket fail", "err", err)
 	}
 
-	_, err = ticketPool.GetTicketList(state, ticketIdList)
-	if nil != err {
+	list, err := ticketPool.GetCandidateTicketIds(state, candidate.CandidateId)
+	if nil != err || len(list) == 0 {
 		log.Error("getTicketList fail", "err", err)
 	}
 }
@@ -319,13 +329,13 @@ func TestTicketPool_GetTicket(t *testing.T) {
 		log.Error("SetCandidate fail", "err", err)
 	}
 
-	ticketIdList, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
+	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
 	if nil != err {
 		log.Error("vote ticket fail", "err", err)
 	}
 
-	_, err = ticketPool.GetTicket(state, ticketIdList[0])
-	if nil != err {
+	ticket, err := ticketPool.GetTicket(state, state.TxHash())
+	if nil != err || ticket == nil {
 		log.Error("getTicket fail", "err", err)
 	}
 }
@@ -375,12 +385,12 @@ func TestTicketPool_ReturnTicket(t *testing.T) {
 		log.Error("SetCandidate fail", "err", err)
 	}
 
-	ticketIdList, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
+	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
 	if nil != err {
 		log.Error("vote ticket fail", "err", err)
 	}
 
-	err = ticketPool.ReturnTicket(state, candidate.CandidateId, ticketIdList[0], new(big.Int).SetUint64(10))
+	err = ticketPool.ReturnTicket(state, candidate.CandidateId, state.TxHash(), new(big.Int).SetUint64(10))
 	if nil != err {
 		log.Error("returnTicket fail", "err", err)
 	}
@@ -447,10 +457,8 @@ func TestTicketPool_SelectionLuckyTicket(t *testing.T) {
 func TestTicketPool_GetPoolNumber(t *testing.T) {
 	state, _, ticketPool := initParam()
 
-	_, err := ticketPool.GetPoolNumber(state)
-	if nil != err {
-		log.Error("getPoolNumber fail", "err", err)
-	}
+	sum := ticketPool.GetPoolNumber(state)
+	log.Info("getPoolNumber success", "sum", sum)
 }
 
 func TestTicketPool_GetCandidateTicketIds(t *testing.T) {
@@ -459,15 +467,6 @@ func TestTicketPool_GetCandidateTicketIds(t *testing.T) {
 	_, err := ticketPool.GetCandidateTicketIds(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	if nil != err {
 		log.Error("getCandidateTicketIds fail", "err", err)
-	}
-}
-
-func TestTicketPool_GetCandidateAttach(t *testing.T) {
-	state, _, ticketPool := initParam()
-
-	_, err := ticketPool.GetCandidateAttach(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
-	if nil != err {
-		log.Error("getCandidateAttach fail", "err", err)
 	}
 }
 

@@ -345,7 +345,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 
 	var flag, delimmediate, delreserve bool
 	// check ticket count
-	if c.checkTicket(state.TCount(nodeId)) { // TODO
+	if c.checkTicket(tContext.GetCandidateTicketCount(state, nodeId)) { // TODO
 		flag = true
 		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
 			delreserve = true
@@ -1795,7 +1795,7 @@ func (c *CandidatePool) checkFirstThreshold(can *types.Candidate) bool {
 // false: invalid deposit
 // true:  pass
 func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, holdself bool) (bool, bool) {
-	tcount := c.checkTicket(state.TCount(can.CandidateId))
+	tcount := c.checkTicket(tContext.GetCandidateTicketCount(state, can.CandidateId))
 	/**
 	If the current number of votes meets the entry immediate pool
 	and the immediate pool is full
@@ -2416,7 +2416,7 @@ func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
 func makeCandidateSort(state vm.StateDB, arr types.CandidateQueue) {
 	cand := make(types.CanConditions, 0)
 	for _, can := range arr {
-		tCount := state.TCount(can.CandidateId)
+		tCount := tContext.GetCandidateTicketCount(state, can.CandidateId)
 		price, _ := tContext.GetTicketPrice(state)
 		tprice := new(big.Int).Mul(big.NewInt(int64(tCount)), price)
 
