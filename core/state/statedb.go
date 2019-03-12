@@ -109,8 +109,8 @@ func New(root common.Hash, db Database, blocknumber *big.Int, blockhash common.H
 		logs:              make(map[common.Hash][]*types.Log),
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-		//tickeCache:        ticketcache.GetNodeTicketsCacheMap(blocknumber, blockhash),
-		pposCache:   	   ppos_storage.GetPPOS_storage(),
+		//tickeCache:        ticketcache.(blocknumber, blockhash),
+		pposCache:   	   ppos_storage.BuildPposCache(blocknumber, blockhash),
 	}, nil
 }
 
@@ -545,7 +545,7 @@ func (self *StateDB) Copy() *StateDB {
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
 		//tickeCache:        self.tickeCache.TicketCaceheSnapshot(),
-		pposCache:   	   ppos_storage.GetPPOS_storage(),
+		pposCache:   	   self.SnapShotPPOSCache(),
 	}
 	// Copy the dirty states, logs, and preimages
 	for addr := range self.journal.dirties {

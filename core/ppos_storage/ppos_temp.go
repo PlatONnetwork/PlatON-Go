@@ -34,11 +34,41 @@ type PPOS_TEMP struct {
 	lock  *sync.Mutex
 }
 
+/**
+This is a Global ppos data temp
+ */
+var  ppos_temp *PPOS_TEMP
+
+
+func NewPPosTemp() *PPOS_TEMP {
+
+	timer := common.NewTimer()
+	timer.Begin()
+	if nil != ppos_temp {
+		return ppos_temp
+	}
+	ppos_temp = new(PPOS_TEMP)
+	ppos_temp.BlockCount = 0
+
+	ntemp := make(numTempMap, 0)
+	ppos_temp.TempMap = ntemp
+	return ppos_temp
+}
+
+func GetPPosTempPtr() *PPOS_TEMP {
+	return ppos_temp
+}
+
+
+func BuildPposCache(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
+	return ppos_temp.GetPposCacheFromTemp(blockNumber, blockHash)
+}
+
 
 // Get ppos storage cache by same block
 func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
 
-	ppos_storage := GetPPOS_storage()
+	ppos_storage := NewPPOS_storage()
 
 	notGenesisBlock := blockNumber.Cmp(big.NewInt(0)) > 0
 
@@ -158,7 +188,7 @@ func (temp *PPOS_TEMP) SubmitPposCache2Temp(blockNumber, blockInterval *big.Int,
 }
 
 func (temp *PPOS_TEMP) Commit2DB(db ethdb.Database, blockNumber *big.Int, blockHash common.Hash) error {
-	timer := new(common.Timer)
+	timer := common.NewTimer()
 	timer.Begin()
 
 
@@ -197,6 +227,8 @@ func (temp *PPOS_TEMP) Commit2DB(db ethdb.Database, blockNumber *big.Int, blockH
 	}
 	return nil
 }
+
+
 
 
 func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storage) *PPOSTemp {

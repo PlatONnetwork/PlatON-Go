@@ -96,8 +96,9 @@ func (ps *Ppos_storage) Copy() *Ppos_storage {
 	}()
 
 	go func() {
-
-		// TICKET RELATED
+		if nil != ps.t_storage {
+			ppos_storage.t_storage = ps.CopyTicketStorage()
+		}
 		wg.Done()
 	}()
 	wg.Wait()
@@ -105,7 +106,7 @@ func (ps *Ppos_storage) Copy() *Ppos_storage {
 }
 
 
-func GetPPOS_storage () *Ppos_storage {
+func NewPPOS_storage () *Ppos_storage {
 
 	cache := new(Ppos_storage)
 
