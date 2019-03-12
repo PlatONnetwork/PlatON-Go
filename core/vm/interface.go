@@ -23,6 +23,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 )
 
 // StateDB is an EVM database for full state querying.
@@ -84,6 +85,7 @@ type StateDB interface {
 	RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) error
 	TCount(nodeid discover.NodeID) uint64
 	TicketCaceheSnapshot() ticketcache.TicketCache
+	GetPPOSCache() *ppos_storage.Ppos_storage
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM
