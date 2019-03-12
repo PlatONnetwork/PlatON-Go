@@ -17,7 +17,7 @@ type Ticket struct {
 	// current block height number when purchasing tickets
 	BlockNumber 	*big.Int
 	// The number of remaining tickets
-	remaining		uint64
+	Remaining		uint64
 }
 
 func (t *Ticket) CalcEpoch(blockNumber *big.Int) *big.Int {

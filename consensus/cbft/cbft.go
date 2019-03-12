@@ -1941,7 +1941,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		yearReward = new(big.Int).Sub(GetAmount(header.Number), GetAmount(preYearNumber))
 	}
 	blockReward = new(big.Int).Div(yearReward, YearBlocks)
-	nodeReward := new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(can.Fee)), FeeBase)
+	nodeReward := new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(uint64(can.Fee))), FeeBase)
 	ticketReward := new(big.Int).Sub(blockReward, nodeReward)
 
 	//log.Info("Call accumulateRewards, Rewards detail", "blockReward: ", blockReward, "nodeReward: ", nodeReward, "ticketReward: ", ticketReward)

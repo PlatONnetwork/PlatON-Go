@@ -24,7 +24,7 @@ func (queue CandidateQueue) DeepCopy() CandidateQueue {
 			Host:        can.Host,
 			Port:        can.Port,
 			Owner:       can.Owner,
-			From:        can.From,
+			//From:        can.From,
 			Extra:       can.Extra,
 			Fee:         can.Fee,
 			TicketId:    can.TicketId,
@@ -107,11 +107,11 @@ type Candidate struct {
 	Port        string
 	// Mortgage beneficiary's account address
 	Owner common.Address
-	// The account address of initiating a mortgaged
-	From  common.Address
+	//// The account address of initiating a mortgaged
+	//From  common.Address
 	Extra string
 	// brokerage   example: (fee/10000) * 100% == x%
-	Fee uint64
+	Fee uint32
 	// Selected TicketId
 	TicketId common.Hash
 }

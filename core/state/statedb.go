@@ -27,11 +27,11 @@ import (
 
 	"encoding/json"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
+	//"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	//"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
@@ -826,4 +826,8 @@ func (s *StateDB) SetAbi(addr common.Address, abi []byte) {
 
 func (self *StateDB) GetPPOSCache() *ppos_storage.Ppos_storage {
 	return self.pposCache
+}
+
+func (self *StateDB) SnapShotPPOSCache() *ppos_storage.Ppos_storage {
+	return self.pposCache.Copy()
 }

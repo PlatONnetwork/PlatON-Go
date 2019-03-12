@@ -80,14 +80,14 @@ func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 }
 
 // Candidate Application && Increase Quality Deposit
-func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error) {
+func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint32, host, port, extra string) ([]byte, error) {
 	deposit := c.Contract.value
 	txHash := c.Evm.StateDB.TxHash()
 	txIdx := c.Evm.StateDB.TxIdx()
 	height := c.Evm.Context.BlockNumber
-	from := c.Contract.caller.Address()
+	//from := c.Contract.caller.Address()
 	log.Info("Input to CandidateDeposit==> ", "nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
-		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " from: ", from.Hex(),
+		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, /*" from: ", from.Hex(),*/
 		" host: ", host, " port: ", port, " extra: ", extra)
 	if fee > 10000 {
 		log.Error("Failed to CandidateDeposit==> ", "ErrFeeIllegal: ", ErrFeeIllegal.Error())
@@ -124,7 +124,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		host,
 		port,
 		owner,
-		from,
+		//from,
 		extra,
 		fee,
 		common.Hash{},

@@ -48,7 +48,7 @@ type ticketDependency struct {
 	// ticket count
 	Num  uint32
 	// ticketIds
-	tIds []common.Hash
+	Tids []common.Hash
 }
 
 type ticket_temp struct {
@@ -66,6 +66,27 @@ type Ppos_storage struct {
 	c_storage *candidate_temp
 	t_storage *ticket_temp
 }
+
+func (ps *Ppos_storage) Copy() *Ppos_storage {
+	ppos_storage := &Ppos_storage{}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		if nil != ps.c_storage {
+			ppos_storage.c_storage = ps.CopyCandidateStorage()
+		}
+		wg.Done()
+	}()
+
+	go func() {
+
+		// TICKET RELATED
+		wg.Done()
+	}()
+	wg.Wait()
+	return ppos_storage
+}
+
 
 func GetPPOS_storage () *Ppos_storage {
 	cache := new(Ppos_storage)
@@ -90,7 +111,7 @@ func GetPPOS_storage () *Ppos_storage {
 /** candidate related func */
 
 
-func (p *Ppos_storage) CopyCandidateQueue ()  *candidate_temp {
+func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 	temp := new(candidate_temp)
 
 	type result struct {
