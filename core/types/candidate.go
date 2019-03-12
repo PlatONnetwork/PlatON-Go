@@ -10,6 +10,30 @@ type CanConditions map[discover.NodeID]*big.Int
 
 type CandidateQueue []*Candidate
 
+func (queue CandidateQueue) DeepCopy() CandidateQueue {
+	copyCandidateQueue := make(CandidateQueue, len(queue))
+	if len(queue) == 0 {
+		return copyCandidateQueue
+	}
+	for _, can := range queue {
+		canCopy := &Candidate{
+			Deposit:     big.NewInt(can.Deposit.Int64()),
+			BlockNumber: big.NewInt(can.BlockNumber.Int64()),
+			TxIndex:     can.TxIndex,
+			CandidateId: can.CandidateId,
+			Host:        can.Host,
+			Port:        can.Port,
+			Owner:       can.Owner,
+			From:        can.From,
+			Extra:       can.Extra,
+			Fee:         can.Fee,
+			TicketId:    can.TicketId,
+		}
+		copyCandidateQueue = append(copyCandidateQueue, canCopy)
+	}
+	return copyCandidateQueue
+}
+
 func compare(cand CanConditions, c, can *Candidate) int {
 	// put the larger deposit in front
 	if cand[c.CandidateId].Cmp(cand[can.CandidateId]) > 0 /* c.Deposit.Cmp(can.Deposit) > 0*/ {
@@ -105,4 +129,33 @@ func (ca *CandidateAttach) SubEpoch(number *big.Int) {
 	if ca.Epoch.Cmp(number) >= 0 && number.Uint64() > 0 {
 		ca.Epoch.Sub(ca.Epoch, number)
 	}
+}
+
+
+type RefundQueue []*CandidateRefund
+
+func (queue RefundQueue) DeepCopy() RefundQueue {
+	copyRefundQueue := make(RefundQueue, len(queue))
+	if len(queue) == 0 {
+		return copyRefundQueue
+	}
+	for _, can := range queue {
+		canCopy := &CandidateRefund{
+			Deposit:     big.NewInt(can.Deposit.Int64()),
+			BlockNumber: big.NewInt(can.BlockNumber.Int64()),
+			Owner:       can.Owner,
+		}
+		copyRefundQueue = append(copyRefundQueue, canCopy)
+	}
+	return copyRefundQueue
+}
+
+// Refund Info
+type CandidateRefund struct {
+	// Mortgage amount (margin)
+	Deposit *big.Int
+	// Current block height number at the time of the mortgage
+	BlockNumber *big.Int
+	// Mortgage beneficiary's account address
+	Owner common.Address
 }

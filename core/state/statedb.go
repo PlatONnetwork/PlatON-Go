@@ -34,6 +34,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 )
 
 type revision struct {
@@ -88,9 +89,10 @@ type StateDB struct {
 
 	lock sync.Mutex
 
-	//ppos add -> Current ticket pool cache object <nodeid.string(), ticketId>
-	tickeCache ticketcache.TicketCache
-	tclock     sync.RWMutex
+	//ppos add -> Current ppos cache object
+	//tickeCache ticketcache.TicketCache
+	pposCache *ppos_storage.Ppos_storage
+	tclock    sync.RWMutex
 }
 
 // Create a new state from a given trie.
@@ -109,7 +111,8 @@ func New(root common.Hash, db Database, blocknumber *big.Int, blockhash common.H
 		logs:              make(map[common.Hash][]*types.Log),
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-		tickeCache:        ticketcache.GetNodeTicketsCacheMap(blocknumber, blockhash),
+		//tickeCache:        ticketcache.GetNodeTicketsCacheMap(blocknumber, blockhash),
+		pposCache:   	   ppos_storage.GetPPOS_storage(),
 	}, nil
 }
 
@@ -543,7 +546,8 @@ func (self *StateDB) Copy() *StateDB {
 		logSize:           self.logSize,
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-		tickeCache:        self.tickeCache.TicketCaceheSnapshot(),
+		//tickeCache:        self.tickeCache.TicketCaceheSnapshot(),
+		pposCache:   	   ppos_storage.GetPPOS_storage(),
 	}
 	// Copy the dirty states, logs, and preimages
 	for addr := range self.journal.dirties {
@@ -817,4 +821,9 @@ func (self *StateDB) TicketCaceheSnapshot() (ret ticketcache.TicketCache) {
 	ret = self.tickeCache.TicketCaceheSnapshot()
 	self.tclock.RUnlock()
 	return
+}
+
+
+func (self *StateDB) GetPPOSCache() *ppos_storage.Ppos_storage {
+	return self.pposCache
 }
