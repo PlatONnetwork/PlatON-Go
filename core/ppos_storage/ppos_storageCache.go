@@ -259,46 +259,98 @@ func (p *Ppos_storage) DelRefund (nodeId discover.NodeID) {
 
 // Get total remian
 func (p *Ppos_storage) GetTotalRemian() uint32 {
-	return 0
+	return p.t_storage.Sq
 }
 
 // Set total remain
 func (p *Ppos_storage) SetTotalRemain (count uint32) error {
+	p.t_storage.Sq = count
 	return nil
 }
 
 
 // Get TicketInfo
 func(p *Ppos_storage) GetTicketInfo(txHash common.Hash) (*types.Ticket, error) {
+	ticket, ok := p.t_storage.Infos[txHash]
+	if ok {
+		return ticket, nil
+	}
 	return nil, nil
 }
 
 //Set TicketInfo
-func(p *Ppos_storage) SetTicketInfo(ticket *types.Ticket) error {
+func(p *Ppos_storage) SetTicketInfo(txHash common.Hash, ticket *types.Ticket) error {
+	p.t_storage.Infos[txHash] = ticket
 	return nil
 }
 
 //GetTiketArr
 func (p *Ppos_storage) GetTicketArr(txHashs ... common.Hash) ([]*types.Ticket, error) {
-	return nil, nil
+	tickets := make([]*types.Ticket, 0)
+	if len(txHashs) > 0 {
+		for index := range txHashs {
+			if ticket, err := p.GetTicketInfo(txHashs[index]); nil != err && ticket != nil {
+				newTicket := *ticket
+				tickets = append(tickets, &newTicket)
+			}
+		}
+	}
+	return tickets, nil
 }
 
 //Get ExpireTicket
 func (p *Ppos_storage) GetExpireTicket(blockNumber *big.Int) ([]common.Hash, error) {
+	ids, ok := p.t_storage.Ets[blockNumber.String()]
+	if ok {
+		return ids, nil
+	}
 	return nil, nil
 }
 
 // Set ExpireTicket
 func (p *Ppos_storage) SetExpireTicket (blockNumber *big.Int, txHash common.Hash) error {
+	ids, ok := p.t_storage.Ets[blockNumber.String()]
+	if !ok {
+		ids = make([]common.Hash, 0)
+	}
+	ids = append(ids, txHash)
+	p.t_storage.Ets[blockNumber.String()] = ids
+	return nil
+}
+
+func (p *Ppos_storage) RemoveExpireTicket (blockNumber *big.Int, txHash common.Hash) error {
+	ids, ok := p.t_storage.Ets[blockNumber.String()]
+	if ok {
+		ids = removeTicketId(txHash, ids)
+		if ids == nil {
+			delete(p.t_storage.Ets, blockNumber.String())
+		}
+		p.t_storage.Ets[blockNumber.String()] = ids
+	}
 	return nil
 }
 
 //Get ticket dependency
 func (p *Ppos_storage) GetTicketDependency (nodeId discover.NodeID) (*ticketDependency, error) {
-	return nil, nil
+	return p.t_storage.Dependencys[nodeId], nil
 }
 
 // Set ticket dependency
 func (p *Ppos_storage) SetTicketDependency (nodeId discover.NodeID, ependency *ticketDependency) error {
+	p.t_storage.Dependencys[nodeId] = ependency
 	return nil
+}
+
+func removeTicketId(hash common.Hash, hashs []common.Hash) []common.Hash {
+	for index, tempHash := range hashs {
+		if tempHash == hash {
+			if len(hashs) == 1 {
+				return nil
+			}
+			start := hashs[:index]
+			end := hashs[index+1:]
+			return append(start, end...)
+		}
+	}
+	return hashs
 }
