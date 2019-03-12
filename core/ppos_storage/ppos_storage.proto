@@ -14,7 +14,7 @@ message CandidateInfo {
     //  string    From          = 8;
     string Extra = 8;
     uint32 Fee = 9;
-    bytes TicketId = 10;
+    bytes TxHash = 10;
 }
 
 message Refund {
@@ -55,20 +55,20 @@ message TxHashArr {
 }
 
 message TicketDependency {
-    uint32  Age = 1;
+    string  Age = 1;
     uint32  Num = 2;
     repeated bytes  Tids = 3;
 }
 
 message TicketTemp {
-    uint32  Sq = 1;
+    int32  Sq = 1;
     map<string, TicketInfo> Infos = 2;
     map<string, TxHashArr> Ets  = 3;
     map<string, TicketDependency> Dependencys = 4;
 }
 
 
-message PPOSTemp {
+message PB_PPosTemp {
     CandidateTemp CanTmp = 1;
     TicketTemp TickTmp = 2;
     string BlockNumber = 3;
