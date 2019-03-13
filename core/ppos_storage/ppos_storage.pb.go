@@ -236,7 +236,7 @@ type TicketInfo struct {
 	Deposit     string `protobuf:"bytes,2,opt,name=Deposit" json:"Deposit,omitempty"`
 	CandidateId []byte `protobuf:"bytes,3,opt,name=CandidateId,proto3" json:"CandidateId,omitempty"`
 	BlockNumber string `protobuf:"bytes,4,opt,name=BlockNumber" json:"BlockNumber,omitempty"`
-	Remaining   uint64 `protobuf:"varint,5,opt,name=Remaining" json:"Remaining,omitempty"`
+	Remaining   uint32 `protobuf:"varint,5,opt,name=Remaining" json:"Remaining,omitempty"`
 }
 
 func (m *TicketInfo) Reset()                    { *m = TicketInfo{} }
@@ -272,7 +272,7 @@ func (m *TicketInfo) GetBlockNumber() string {
 	return ""
 }
 
-func (m *TicketInfo) GetRemaining() uint64 {
+func (m *TicketInfo) GetRemaining() uint32 {
 	if m != nil {
 		return m.Remaining
 	}
@@ -296,7 +296,7 @@ func (m *TxHashArr) GetTxHashs() [][]byte {
 }
 
 type TicketDependency struct {
-	Age  string   `protobuf:"bytes,1,opt,name=Age" json:"Age,omitempty"`
+	Age  uint64   `protobuf:"bytes,1,opt,name=Age" json:"Age,omitempty"`
 	Num  uint32   `protobuf:"varint,2,opt,name=Num" json:"Num,omitempty"`
 	Tids [][]byte `protobuf:"bytes,3,rep,name=Tids,proto3" json:"Tids,omitempty"`
 }
@@ -306,11 +306,11 @@ func (m *TicketDependency) String() string            { return proto.CompactText
 func (*TicketDependency) ProtoMessage()               {}
 func (*TicketDependency) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{6} }
 
-func (m *TicketDependency) GetAge() string {
+func (m *TicketDependency) GetAge() uint64 {
 	if m != nil {
 		return m.Age
 	}
-	return ""
+	return 0
 }
 
 func (m *TicketDependency) GetNum() uint32 {

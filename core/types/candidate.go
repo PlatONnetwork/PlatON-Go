@@ -27,7 +27,7 @@ func (queue CandidateQueue) DeepCopy() CandidateQueue {
 			//From:        can.From,
 			Extra:       can.Extra,
 			Fee:         can.Fee,
-			TicketId:    can.TicketId,
+			//TicketId:    can.TicketId,
 		}
 		copyCandidateQueue = append(copyCandidateQueue, canCopy)
 	}

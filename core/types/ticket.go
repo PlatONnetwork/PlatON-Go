@@ -17,13 +17,21 @@ type Ticket struct {
 	// current block height number when purchasing tickets
 	BlockNumber 	*big.Int
 	// The number of remaining tickets
-	Remaining		uint64
+	Remaining		uint32
 }
 
-func (t *Ticket) CalcEpoch(blockNumber *big.Int) *big.Int {
+func (t *Ticket) TotalDeposit() *big.Int {
+	return new(big.Int).Mul(t.Deposit, new(big.Int).SetUint64(uint64(t.Remaining)))
+}
+
+func (t *Ticket) TotalEpoch(blockNumber *big.Int) uint64 {
+	return t.CalcEpoch(blockNumber) * uint64(t.Remaining)
+}
+
+func (t *Ticket) CalcEpoch(blockNumber *big.Int) uint64 {
 	result := new(big.Int).SetUint64(0)
 	result.Sub(blockNumber, t.BlockNumber)
-	return result
+	return result.Uint64()
 }
 
 func (t *Ticket) SubRemaining() {
@@ -33,11 +41,15 @@ func (t *Ticket) SubRemaining() {
 }
 
 func (t *Ticket) DeepCopy() *Ticket {
+	newDeposit := new(big.Int)
+	newDeposit.Add(t.Deposit, newDeposit)
+	newBlockNumber := new(big.Int)
+	newBlockNumber.Add(t.BlockNumber, newBlockNumber)
 	ticket := &Ticket{
 		t.Owner,
-		new(big.Int).SetUint64(t.Deposit.Uint64()),
+		newDeposit,
 		t.CandidateId,
-		new(big.Int).SetUint64(t.BlockNumber.Uint64()),
+		newBlockNumber,
 		t.Remaining,
 	}
 	return ticket
