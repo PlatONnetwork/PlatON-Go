@@ -236,25 +236,25 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 // 2: next witness
 // 3: immediate
 // 4: reserve
-func (p *Ppos_storage) GetCandidateQueue(flag int) (types.CandidateQueue, error) {
+func (p *Ppos_storage) GetCandidateQueue(flag int) types.CandidateQueue {
 	switch flag {
 	case PREVIOUS:
-		return p.c_storage.pres, nil
+		return p.c_storage.pres
 	case CURRENT:
-		return p.c_storage.currs, nil
+		return p.c_storage.currs
 	case NEXT:
-		return p.c_storage.nexts, nil
+		return p.c_storage.nexts
 	case IMMEDIATE:
-		return p.c_storage.imms, nil
+		return p.c_storage.imms
 	case RESERVE:
-		return p.c_storage.res, nil
+		return p.c_storage.res
 	default:
-		return nil, ParamsIllegalErr
+		return nil
 	}
 }
 
 // Set CandidateQueue
-func (p *Ppos_storage) SetCandidateQueue(queue types.CandidateQueue, flag int) error {
+func (p *Ppos_storage) SetCandidateQueue(queue types.CandidateQueue, flag int) {
 	switch flag {
 	case PREVIOUS:
 		p.c_storage.pres = queue
@@ -266,15 +266,11 @@ func (p *Ppos_storage) SetCandidateQueue(queue types.CandidateQueue, flag int) e
 		p.c_storage.imms = queue
 	case RESERVE:
 		p.c_storage.res = queue
-	default:
-		return ParamsIllegalErr
-
 	}
-	return nil
 }
 
 // Delete CandidateQueue
-func (p *Ppos_storage) DelCandidateQueue(flag int) error {
+func (p *Ppos_storage) DelCandidateQueue(flag int)  {
 	switch flag {
 	case PREVIOUS:
 		p.c_storage.pres = nil
@@ -286,11 +282,7 @@ func (p *Ppos_storage) DelCandidateQueue(flag int) error {
 		p.c_storage.imms = nil
 	case RESERVE:
 		p.c_storage.res = nil
-	default:
-		return ParamsIllegalErr
-
 	}
-	return nil
 }
 
 // Get Refund
