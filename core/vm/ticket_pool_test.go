@@ -45,7 +45,7 @@ func TestTicketPoolOverAll(t *testing.T) {
 	fmt.Println("setcandidate successfully...")
 
 	// VoteTicket(count uint64, price *big.Int, nodeId discover.NodeID) ([]byte, error)
-	count := uint64(1000)
+	count := uint32(1000)
 	price := big.NewInt(1)
 	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId: ", nodeId.String())
 	resByte, err := ticketContract.VoteTicket(count, price, nodeId)
@@ -54,7 +54,7 @@ func TestTicketPoolOverAll(t *testing.T) {
 	}
 	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
 
-	// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
+	/*// GetCandidateTicketIds(nodeId discover.NodeID) ([]byte, error)
 	fmt.Println("GetCandidateTicketIds input==>", "nodeId: ", nodeId.String())
 	resByte, err = ticketContract.GetCandidateTicketIds(nodeId)
 	if nil != err {
@@ -79,7 +79,7 @@ func TestTicketPoolOverAll(t *testing.T) {
 	if nil != err {
 		fmt.Println("GetBatchTicketDetail fail", "err", err)
 	}
-	fmt.Println("ticketInfo is: ", vm.ResultByte2Json(resByte))
+	fmt.Println("ticketInfo is: ", vm.ResultByte2Json(resByte))*/
 }
 
 func TestVoteTicket(t *testing.T) {
@@ -96,7 +96,7 @@ func TestVoteTicket(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -107,7 +107,7 @@ func TestVoteTicket(t *testing.T) {
 	}
 
 	// VoteTicket(count uint64, price *big.Int, nodeId discover.NodeID) ([]byte, error)
-	count := uint64(1000)
+	count := uint32(1000)
 	price := big.NewInt(1)
 	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId: ", nodeId.String())
 	resByte, err := ticketContract.VoteTicket(count, price, nodeId)
@@ -117,7 +117,7 @@ func TestVoteTicket(t *testing.T) {
 	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
 }
 
-func TestGetTicketDetail(t *testing.T) {
+/*func TestGetTicketDetail(t *testing.T) {
 	contract := newContract()
 	evm := newEvm()
 
@@ -337,7 +337,7 @@ func TestGetBatchCandidateTicketIds(t *testing.T) {
 		return
 	}
 	fmt.Println("The candidate's ticketId are: ", vm.ResultByte2Json(resByte))
-}
+}*/
 
 func TestGetBatchCandidateTicketCount(t *testing.T) {
 	contract := newContract()
@@ -353,7 +353,7 @@ func TestGetBatchCandidateTicketCount(t *testing.T) {
 	}
 	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -366,7 +366,7 @@ func TestGetBatchCandidateTicketCount(t *testing.T) {
 
 	nodeId2 := discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner = common.HexToAddress("0x12")
-	fee = uint64(8000)
+	fee = uint32(8000)
 	host = "192.168.9.185"
 	port = "16789"
 	extra = "{\"nodeName\": \"Platon-Shenzhen\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Cosmic wave\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/sz\",\"time\":1546503651190}"
@@ -389,7 +389,7 @@ func TestGetBatchCandidateTicketCount(t *testing.T) {
 	fmt.Println("The candidate list is: ", vm.ResultByte2Json(resByte))
 
 	// Vote to Candidate1
-	count := uint64(100)
+	count := uint32(100)
 	price := big.NewInt(1)
 	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId1: ", nodeId1.String())
 	resByte, err = ticketContract.VoteTicket(count, price, nodeId1)
@@ -399,7 +399,7 @@ func TestGetBatchCandidateTicketCount(t *testing.T) {
 	fmt.Println("The list of generated ticketId is: ", vm.ResultByte2Json(resByte))
 
 	// Vote to Candidate2
-	count = uint64(101)
+	count = uint32(101)
 	price = big.NewInt(1)
 	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId2: ", nodeId2.String())
 	resByte, err = ticketContract.VoteTicket(count, price, nodeId2)
@@ -439,7 +439,7 @@ func TestGetCandidateEpoch(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -448,7 +448,7 @@ func TestGetCandidateEpoch(t *testing.T) {
 	if nil != err {
 		fmt.Println("CandidateDeposit fail", "err", err)
 	}
-	count := uint64(1000)
+	count := uint32(1000)
 	price := big.NewInt(1)
 	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId: ", nodeId.String())
 	resByte, err := ticketContract.VoteTicket(count, price, nodeId)
