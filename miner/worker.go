@@ -1324,8 +1324,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
 		if _, ok := w.engine.(consensus.Bft); !ok {
-			// TODO
-			//w.forEachStorage(w.current.state, "【The Consensus packaging】,Before executing the transaction")
 			w.commit(uncles, nil, false, tstart, nil)
 		}
 	}
@@ -1344,8 +1342,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
 		if _, ok := w.engine.(consensus.Bft); ok {
-			// TODO
-			//w.forEachStorage(w.current.state, "【The Consensus packaging】,Before executing the transaction")
 			w.commit(uncles, nil, true, tstart, header)
 		} else {
 			w.updateSnapshot()
@@ -1365,13 +1361,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			localTxs[account] = txs
 		}
 	}
-	// TODO
 	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
-
-	root := w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】 commitTransactionsWithHeader Before executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
-
-	//w.forEachStorage(w.current.state, "【The Consensus packaging】,Before executing the transaction")
 
 	startTime = time.Now()
 	var localTimeout = false
@@ -1411,9 +1401,6 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	}
 
 	s := w.current.state.Copy()
-	root := s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】After executing the transaction, Before call the notify series func", "blockNumber", header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
-	//w.forEachStorage(w.current.state, "【The Consensus packaging】,After executing the transaction，Before call the notify series func")
 
 	if header != nil {
 		if err := w.notify(s, header.Number); err != nil {
@@ -1427,24 +1414,11 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		if switchWitnessErr := w.switchWitness(s, header.Number); switchWitnessErr != nil {
 			return errors.New("switchWitness failure")
 		}
-		//w.forEachStorage(s, "【The Consensus packaging】After Election, before call storeHash")
 		// ppos Store Hash
 		w.storeHash(s)
-		//w.forEachStorage(s, "【The Consensus packaging】After Election, before tweaking storeHash，before call finalize")
 	}
 
-	//root, _ = s.Commit(w.config.IsEIP158(w.current.header.Number))
-	//log.Warn("【The Consensus packaging】: Commit", "blockNumber", header.Number.String(), "State.root", root.String())
-
-	root = s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】After executing the transaction, after call the notify series func, before finalize", "blockNumber", header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
-	//w.forEachStorage(s, "【The Consensus packaging】After executing the transaction, after call the notify series func, before finalize")
-
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
-
-	root = s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】After call finalize", "blockNumber", header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
-	//w.forEachStorage(s, "【The Consensus packaging】After call finalize")
 
 	if err != nil {
 		return err
