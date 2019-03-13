@@ -518,8 +518,7 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 			for nodeIdStr, pb_dependency := range tickGlobalTemp.Dependencys {
 
 				dependencyInfo := new(ticketDependency)
-				age, _ := new(big.Int).SetString(pb_dependency.Age, 10)
-				dependencyInfo.Age = age
+				dependencyInfo.Age = pb_dependency.Age
 				dependencyInfo.Num = pb_dependency.Num
 
 				dependencyMap[discover.MustHexID(nodeIdStr)] = dependencyInfo
@@ -652,7 +651,7 @@ func buildPBdependencys(dependencys map[discover.NodeID]*ticketDependency) map[s
 		}
 
 		depenInfo := &TicketDependency{
-			Age:  dependency.Age.String(),
+			Age:  dependency.Age,
 			Num:  dependency.Num,
 			Tids: tidArr,
 		}

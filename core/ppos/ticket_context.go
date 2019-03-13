@@ -31,31 +31,31 @@ func (c *TicketPoolContext) initTicketPool() *TicketPool {
 	return NewTicketPool(c.Configs)
 }
 
-func (c *TicketPoolContext) GetPoolNumber (state vm.StateDB) uint64 {
+func (c *TicketPoolContext) GetPoolNumber (state vm.StateDB) uint32 {
 	return c.initTicketPool().GetPoolNumber(state)
 }
 
-func (c *TicketPoolContext) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) (uint64, error) {
+func (c *TicketPoolContext) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint32, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) (uint32, error) {
 	return c.initTicketPool().VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber)
 }
 
-func (c *TicketPoolContext) GetTicket(state vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
+func (c *TicketPoolContext) GetTicket(state vm.StateDB, ticketId common.Hash) *types.Ticket {
 	return c.initTicketPool().GetTicket(state, ticketId)
 }
 
-func (c *TicketPoolContext) GetExpireTicketIds(state vm.StateDB, blockNumber *big.Int) ([]common.Hash, error) {
+func (c *TicketPoolContext) GetExpireTicketIds(state vm.StateDB, blockNumber *big.Int) []common.Hash {
 	return c.initTicketPool().GetExpireTicketIds(state, blockNumber)
 }
 
-func (c *TicketPoolContext) GetTicketList (state vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
+func (c *TicketPoolContext) GetTicketList (state vm.StateDB, ticketIds []common.Hash) []*types.Ticket {
 	return c.initTicketPool().GetTicketList(state, ticketIds)
 }
 
-func (c *TicketPoolContext) GetCandidateTicketIds (state vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
+func (c *TicketPoolContext) GetCandidateTicketIds (state vm.StateDB, nodeId discover.NodeID) []common.Hash {
 	return c.initTicketPool().GetCandidateTicketIds(state, nodeId)
 }
 
-func (c *TicketPoolContext) GetCandidateEpoch (state vm.StateDB, nodeId discover.NodeID) (uint64, error) {
+func (c *TicketPoolContext) GetCandidateEpoch (state vm.StateDB, nodeId discover.NodeID) uint64 {
 	return c.initTicketPool().GetCandidateEpoch(state, nodeId)
 }
 
@@ -71,15 +71,15 @@ func (c *TicketPoolContext) StoreHash (state vm.StateDB) error {
 	return c.initTicketPool().CommitHash(state)
 }
 
-func (c *TicketPoolContext) GetCandidateTicketCount (state vm.StateDB, nodeId discover.NodeID) uint64 {
+func (c *TicketPoolContext) GetCandidateTicketCount (state vm.StateDB, nodeId discover.NodeID) uint32 {
 	return c.initTicketPool().GetCandidateTicketCount(state, nodeId)
 }
 
-func (c *TicketPoolContext) GetCandidatesTicketCount (state vm.StateDB, nodeIds []discover.NodeID) (map[discover.NodeID]int, error) {
+func (c *TicketPoolContext) GetCandidatesTicketCount (state vm.StateDB, nodeIds []discover.NodeID) map[discover.NodeID]int {
 	return c.initTicketPool().GetCandidatesTicketCount(state, nodeIds)
 }
 
-func (c *TicketPoolContext) GetCandidatesTicketIds (state vm.StateDB, nodeIds []discover.NodeID) (map[discover.NodeID][]common.Hash, error) {
+func (c *TicketPoolContext) GetCandidatesTicketIds (state vm.StateDB, nodeIds []discover.NodeID) map[discover.NodeID][]common.Hash {
 	return c.initTicketPool().GetCandidatesTicketIds(state, nodeIds)
 }
 

@@ -256,8 +256,8 @@ type CandidateConfig struct {
 
 type TicketConfig struct {
 	TicketPrice       string
-	MaxCount          uint64
-	ExpireBlockNumber uint64
+	MaxCount          uint32
+	ExpireBlockNumber uint32
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.

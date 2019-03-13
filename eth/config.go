@@ -190,9 +190,9 @@ type CandidateConfig struct {
 type TicketConfig struct {
 	TicketPrice 		string 						`json:"ticketPrice"`
 	// Maximum number of ticket pool
-	MaxCount				uint64					`json:"maxCount"`
+	MaxCount				uint32					`json:"maxCount"`
 	// Reach expired quantity
-	ExpireBlockNumber		uint64					`json:"expireBlockNumber"`
+	ExpireBlockNumber		uint32					`json:"expireBlockNumber"`
 }
 
 type configMarshaling struct {

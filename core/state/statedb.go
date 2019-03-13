@@ -25,7 +25,6 @@ import (
 	"sort"
 	"sync"
 
-	"encoding/json"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"

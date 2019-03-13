@@ -19,8 +19,6 @@ package rawdb
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
