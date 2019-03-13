@@ -88,7 +88,6 @@ type StateDB struct {
 	lock sync.Mutex
 
 	//ppos add -> Current ppos cache object
-	//tickeCache ticketcache.TicketCache
 	pposCache *ppos_storage.Ppos_storage
 	tclock    sync.RWMutex
 }
@@ -109,7 +108,6 @@ func New(root common.Hash, db Database, blocknumber *big.Int, blockhash common.H
 		logs:              make(map[common.Hash][]*types.Log),
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-		//tickeCache:        ticketcache.(blocknumber, blockhash),
 		pposCache:   	   ppos_storage.BuildPposCache(blocknumber, blockhash),
 	}, nil
 }
@@ -147,9 +145,6 @@ func (self *StateDB) Reset(root common.Hash) error {
 
 func (self *StateDB) AddLog(logInfo *types.Log) {
 	self.journal.append(addLogChange{txhash: self.thash})
-	// TODO
-	logsByte, _ := json.Marshal(logInfo)
-	log.Debug("【Call Add StateDB log】", "txHash", self.thash.Hex(), "log:", string(logsByte))
 	logInfo.TxHash = self.thash
 	logInfo.BlockHash = self.bhash
 	logInfo.TxIndex = uint(self.txIndex)
@@ -159,10 +154,6 @@ func (self *StateDB) AddLog(logInfo *types.Log) {
 }
 
 func (self *StateDB) GetLogs(hash common.Hash) []*types.Log {
-	// TODO
-	logs := self.logs[hash]
-	logsByte, _ := json.Marshal(logs)
-	log.Debug("【Call Get StateDB Log】", "txHash", self.thash.Hex(), "logs:", string(logsByte))
 	return self.logs[hash]
 }
 
@@ -544,7 +535,6 @@ func (self *StateDB) Copy() *StateDB {
 		logSize:           self.logSize,
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-		//tickeCache:        self.tickeCache.TicketCaceheSnapshot(),
 		pposCache:   	   self.SnapShotPPOSCache(),
 	}
 	// Copy the dirty states, logs, and preimages
@@ -787,41 +777,6 @@ func (s *StateDB) SetAbi(addr common.Address, abi []byte) {
 }
 
 //ppos add
-//func (self *StateDB) AppendTicketCache(nodeid discover.NodeID, tids []common.Hash) {
-//	self.tclock.Lock()
-//	self.tickeCache.AppendTicketCache(nodeid, tids)
-//	self.tclock.Unlock()
-//}
-//
-//func (self *StateDB) GetTicketCache(nodeid discover.NodeID) (ret []common.Hash, err error) {
-//	self.tclock.RLock()
-//	ret, err = self.tickeCache.GetTicketCache(nodeid)
-//	defer self.tclock.RUnlock()
-//	return
-//}
-//
-//func (self *StateDB) RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) (err error) {
-//	self.tclock.Lock()
-//	err = self.tickeCache.RemoveTicketCache(nodeid, tids)
-//	self.tclock.Unlock()
-//	return
-//}
-//
-//func (self *StateDB) TCount(nodeid discover.NodeID) (ret uint64) {
-//	self.tclock.RLock()
-//	ret = self.tickeCache.TCount(nodeid)
-//	self.tclock.RUnlock()
-//	return ret
-//}
-//
-//func (self *StateDB) TicketCaceheSnapshot() (ret ticketcache.TicketCache) {
-//	self.tclock.RLock()
-//	ret = self.tickeCache.TicketCaceheSnapshot()
-//	self.tclock.RUnlock()
-//	return
-//}
-
-
 func (self *StateDB) GetPPOSCache() *ppos_storage.Ppos_storage {
 	return self.pposCache
 }

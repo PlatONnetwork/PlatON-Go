@@ -174,8 +174,6 @@ func (p *ppos) SetStartTimeOfEpoch(startTimeOfEpoch int64) {
 /** Method provided to the cbft module call */
 // Announce witness
 func (p *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlocknumber *big.Int) ([]*discover.Node, error) {
-	// TODO
-	//log.Debug("Call stack", "Election stack", string(debug.Stack()))
 	if nextNodes, err := p.candidateContext.Election(state, parentHash, currBlocknumber); nil != err {
 		log.Error("PPOS Election next witness", " err: ", err)
 		/*panic("Election error " + err.Error())*/
@@ -189,8 +187,6 @@ func (p *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlockn
 // switch next witnesses to current witnesses
 func (p *ppos) Switch(state *state.StateDB) bool {
 	log.Info("Switch begin...")
-	// TODO
-	//log.Debug("Call stack", "Switch stack", string(debug.Stack()))
 	if !p.candidateContext.Switch(state) {
 		return false
 	}
@@ -475,10 +471,10 @@ func (p *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
 }
 
 func (p *ppos) StoreHash (state *state.StateDB) {
-	if err := p.ticketContext.StoreHash(state); nil != err {
+	/*if err := p.ticketContext.StoreHash(state); nil != err {
 		log.Error("Failed to StoreHash", "err", err)
 		panic("Failed to StoreHash err" + err.Error())
-	}
+	}*/
 }
 
 func (p *ppos) Submit2Cache (state *state.StateDB, currBlocknumber,  blockInterval *big.Int, currBlockhash common.Hash) {

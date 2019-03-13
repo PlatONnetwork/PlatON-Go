@@ -369,7 +369,4 @@ func FindCommonAncestor(db DatabaseReader, a, b *types.Header) *types.Header {
 	return a
 }
 
-//ppos add -> commit memory ticket cache to disk
-func TicketCacheCommit(db ethdb.Database, currentBlockNumber *big.Int, currentBlockHash common.Hash) {
-	ticketcache.GetTicketidsCachePtr().Commit(db, currentBlockNumber, currentBlockHash)
-}
+
