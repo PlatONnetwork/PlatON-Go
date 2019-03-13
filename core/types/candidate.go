@@ -34,6 +34,10 @@ func (queue CandidateQueue) DeepCopy() CandidateQueue {
 	return copyCandidateQueue
 }
 
+func CompareCan(curr, target *Candidate, currMoney, targetMoney *big.Int) int {
+	return compare2(curr, target, currMoney, targetMoney)
+}
+
 func compare(cand CanConditions, c, can *Candidate) int {
 	// put the larger deposit in front
 	if cand[c.CandidateId].Cmp(cand[can.CandidateId]) > 0 /* c.Deposit.Cmp(can.Deposit) > 0*/ {
@@ -47,6 +51,32 @@ func compare(cand CanConditions, c, can *Candidate) int {
 			if c.TxIndex > can.TxIndex {
 				return -1
 			} else if c.TxIndex == can.TxIndex {
+				return 0
+			} else {
+				return 1
+			}
+		} else {
+			return 1
+		}
+	} else {
+		return -1
+	}
+}
+
+
+func compare2(curr, target *Candidate, currMoney, targetMoney *big.Int) int {
+	// put the larger deposit in front
+	if currMoney.Cmp(targetMoney) > 0  {
+		return 1
+	} else if currMoney.Cmp(targetMoney) == 0  {
+		// put the smaller blocknumber in front
+		if curr.BlockNumber.Cmp(target.BlockNumber) > 0 {
+			return -1
+		} else if curr.BlockNumber.Cmp(target.BlockNumber) == 0 {
+			// put the smaller tx'index in front
+			if curr.TxIndex > target.TxIndex {
+				return -1
+			} else if curr.TxIndex == target.TxIndex {
 				return 0
 			} else {
 				return 1
