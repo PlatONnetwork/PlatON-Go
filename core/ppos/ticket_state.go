@@ -18,21 +18,21 @@ import (
 )
 
 var (
-	TicketPoolNilErr          = errors.New("Ticket Insufficient quantity")
-	TicketPoolOverflowErr     = errors.New("Number of ticket pool overflow")
-	EncodeTicketErr           = errors.New("Encode Ticket error")
-	EncodePoolNumberErr       = errors.New("Encode SurplusQuantity error")
-	DecodeTicketErr           = errors.New("Decode Ticket error")
-	DecodePoolNumberErr       = errors.New("Decode SurplusQuantity error")
-	RecordExpireTicketErr     = errors.New("Record Expire Ticket error")
-	CandidateNotFindErr 	  = errors.New("The Candidate not find")
-	CandidateNilTicketErr     = errors.New("This candidate has no ticket")
-	TicketPoolBalanceErr      = errors.New("TicketPool not sufficient funds")
-	TicketNotFindErr          = errors.New("The Ticket not find")
-	HandleExpireTicketErr     = errors.New("Failure to deal with expired tickets")
-	GetCandidateAttachErr     = errors.New("Get CandidateAttach error")
-	SetCandidateAttachErr     = errors.New("Update CandidateAttach error")
-	VoteTicketErr        	  = errors.New("Voting failed")
+	TicketPoolNilErr      = errors.New("Ticket Insufficient quantity")
+	TicketPoolOverflowErr = errors.New("Number of ticket pool overflow")
+	EncodeTicketErr       = errors.New("Encode Ticket error")
+	EncodePoolNumberErr   = errors.New("Encode SurplusQuantity error")
+	DecodeTicketErr       = errors.New("Decode Ticket error")
+	DecodePoolNumberErr   = errors.New("Decode SurplusQuantity error")
+	RecordExpireTicketErr = errors.New("Record Expire Ticket error")
+	CandidateNotFindErr   = errors.New("The Candidate not find")
+	CandidateNilTicketErr = errors.New("This candidate has no ticket")
+	TicketPoolBalanceErr  = errors.New("TicketPool not sufficient funds")
+	TicketNotFindErr      = errors.New("The Ticket not find")
+	HandleExpireTicketErr = errors.New("Failure to deal with expired tickets")
+	GetCandidateAttachErr = errors.New("Get CandidateAttach error")
+	SetCandidateAttachErr = errors.New("Update CandidateAttach error")
+	VoteTicketErr         = errors.New("Voting failed")
 )
 
 type TicketPool struct {
@@ -202,7 +202,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 	log.Debug("Call DropReturnTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
 	log.Info("Start processing tickets for the drop list on DropReturnTicket", "candidateNum", len(nodeIds), "blockNumber", blockNumber.Uint64())
 	for _, nodeId := range nodeIds {
-		if  nodeId == (discover.NodeID{}) {
+		if nodeId == (discover.NodeID{}) {
 			continue
 		}
 		candidateTicketIds := t.GetCandidateTicketIds(stateDB, nodeId)
@@ -215,7 +215,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 		stateDB.GetPPOSCache().RemoveTicketDependency(nodeId)
 		surplusQuantity := t.GetPoolNumber(stateDB)
 		log.Debug("Start reducing the number of tickets on DropReturnTicket", "surplusQuantity", surplusQuantity, "candidateTicketIds", ticketCount)
-		t.setPoolNumber(stateDB, surplusQuantity + ticketCount)
+		t.setPoolNumber(stateDB, surplusQuantity+ticketCount)
 		log.Debug("Start processing each invalid ticket on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", ticketCount)
 		for _, ticketId := range candidateTicketIds {
 			ticket := t.GetTicket(stateDB, ticketId)
@@ -303,7 +303,7 @@ func (t *TicketPool) releaseTxTicket(stateDB vm.StateDB, candidateId discover.No
 	t.removeExpireTicket(stateDB, blockNumber, ticketId)
 	surplusQuantity := t.GetPoolNumber(stateDB)
 	log.Debug("releaseTicket, start to update the ticket pool", "surplusQuantity", surplusQuantity)
-	t.setPoolNumber(stateDB, surplusQuantity + ticket.Remaining)
+	t.setPoolNumber(stateDB, surplusQuantity+ticket.Remaining)
 	surplusQuantity = t.GetPoolNumber(stateDB)
 	log.Debug("releaseTicket, end the update ticket pool", "surplusQuantity", surplusQuantity)
 	epoch := t.GetCandidateEpoch(stateDB, candidateId)
@@ -485,8 +485,8 @@ func (t *TicketPool) GetCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeI
 	return stateDB.GetPPOSCache().GetCandidateTicketAge(nodeId)
 }
 
-func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) (*big.Int, error) {
-	return t.TicketPrice, nil
+func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) *big.Int {
+	return t.TicketPrice
 }
 
 // Save the hash value of the current state of the ticket pool
