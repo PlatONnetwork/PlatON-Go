@@ -78,11 +78,6 @@ type StateDB interface {
 	//ppos add
 	TxHash() common.Hash
 	TxIdx() uint32
-	//AppendTicketCache(nodeid discover.NodeID, tids []common.Hash)
-	//GetTicketCache(nodeid discover.NodeID) ([]common.Hash, error)
-	//RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) error
-	//TCount(nodeid discover.NodeID) uint64
-	//TicketCaceheSnapshot() ticketcache.TicketCache
 	GetPPOSCache() *ppos_storage.Ppos_storage
 }
 

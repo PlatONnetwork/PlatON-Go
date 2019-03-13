@@ -19,6 +19,13 @@ import (
 	"strings"
 	"sync"
 	"bytes"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
+)
+
+const (
+	GET_WITNESS = 1
+	GET_IM_RE = 2
+	GET_WIT_IM_RE = 3
 )
 
 var (
@@ -40,15 +47,15 @@ type CandidatePool struct {
 	// min deposit allow threshold
 	threshold *big.Int
 	// min deposit limit percentage
-	depositLimit uint64
+	depositLimit uint32
 	// allow put into immedidate condition
-	allowed uint64
+	allowed uint32
 	// allow immediate elected max count
-	maxCount uint64
+	maxCount uint32
 	// allow witness max count
-	maxChair uint64
+	maxChair uint32
 	// allow block interval for refunds
-	RefundBlockNumber uint64
+	RefundBlockNumber uint32
 
 	// previous witness
 	preOriginCandidates candidateStorage
@@ -64,10 +71,10 @@ type CandidatePool struct {
 	defeatCandidates refundStorage
 
 	// cache
-	immediateCacheArr types.CandidateQueue
-	reserveCacheArr   types.CandidateQueue
+	//immediateCacheArr types.CandidateQueue
+	//reserveCacheArr   types.CandidateQueue
 
-	lock *sync.Mutex
+	storage 	*ppos_storage.Ppos_storage
 }
 
 
@@ -97,10 +104,8 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		immediateCandidates:  make(candidateStorage, 0),
 		reserveCandidates:    make(candidateStorage, 0),
 		defeatCandidates:     make(refundStorage, 0),
-		immediateCacheArr:    make(types.CandidateQueue, 0),
-		reserveCacheArr:      make(types.CandidateQueue, 0),
-
-		lock: &sync.Mutex{},
+		//immediateCacheArr:    make(types.CandidateQueue, 0),
+		//reserveCacheArr:      make(types.CandidateQueue, 0),
 	}
 }
 
@@ -108,207 +113,265 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 // 0: only init previous witness and current witness and next witness
 // 1：init previous witness and current witness and next witness and immediate and reserve
 // 2: init all information
-func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
-	log.Info("init data by stateDB...", "statedb addr", fmt.Sprintf("%p", state))
+//func (c *CandidatePool) initDataByState(state vm.StateDB, flag int) error {
+//	log.Info("init data by stateDB...", "statedb addr", fmt.Sprintf("%p", state))
+//
+//	parentRoutineID := fmt.Sprintf("%s", common.CurrentGoRoutineID())
+//
+//	//loading  candidates func
+//	loadWitFunc := func(title string, canMap candidateStorage,
+//		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
+//		getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) error {
+//
+//		log.Debug("initDataByState by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
+//		var witnessIds []discover.NodeID
+//		if ids, err := getIndexFn(state); nil != err {
+//			log.Error("Failed to decode "+title+" witnessIds on initDataByState", " err", err)
+//			return err
+//		} else {
+//			witnessIds = ids
+//		}
+//
+//		PrintObject(title+" witnessIds", witnessIds)
+//		for _, witnessId := range witnessIds {
+//
+//			if ca, err := getInfoFn(state, witnessId); nil != err {
+//				log.Error("Failed to decode "+title+" witness Candidate on initDataByState", "err", err)
+//				return CandidateDecodeErr
+//			} else {
+//				if nil != ca {
+//					PrintObject(title+"Id:"+witnessId.String()+", can", ca)
+//					canMap[witnessId] = ca
+//				} else {
+//					delete(canMap, witnessId)
+//				}
+//			}
+//		}
+//		return nil
+//	}
+//
+//	witErrCh := make(chan error, 3)
+//	var wg sync.WaitGroup
+//	wg.Add(3)
+//
+//	// loading witnesses
+//	go func() {
+//		c.preOriginCandidates = make(candidateStorage, 0)
+//		witErrCh <- loadWitFunc("previous", c.preOriginCandidates, getPreviousWitnessIdsState, getPreviousWitnessByState)
+//		wg.Done()
+//	}()
+//	go func() {
+//		c.originCandidates = make(candidateStorage, 0)
+//		witErrCh <- loadWitFunc("current", c.originCandidates, getWitnessIdsByState, getWitnessByState)
+//		wg.Done()
+//	}()
+//	go func() {
+//		c.nextOriginCandidates = make(candidateStorage, 0)
+//		witErrCh <- loadWitFunc("next", c.nextOriginCandidates, getNextWitnessIdsByState, getNextWitnessByState)
+//		wg.Done()
+//	}()
+//	var err error
+//	for i := 1; i <= 3; i++ {
+//		if err = <-witErrCh; nil != err {
+//			break
+//		}
+//	}
+//	wg.Wait()
+//	close(witErrCh)
+//	if nil != err {
+//		return err
+//	}
+//
+//	// loading elected candidates
+//	if flag == 1 || flag == 2 {
+//
+//		loadElectedFunc := func(title string, canMap candidateStorage,
+//			getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
+//			getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) (types.CandidateQueue, error) {
+//			var witnessIds []discover.NodeID
+//
+//			log.Debug("initDataByState by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
+//			if ids, err := getIndexFn(state); nil != err {
+//				log.Error("Failed to decode "+title+"Ids on initDataByState", " err", err)
+//				return nil, err
+//			} else {
+//				witnessIds = ids
+//			}
+//			// cache
+//			canCache := make(types.CandidateQueue, 0)
+//
+//			PrintObject(title+" Ids", witnessIds)
+//			for _, witnessId := range witnessIds {
+//
+//				if ca, err := getInfoFn(state, witnessId); nil != err {
+//					log.Error("Failed to decode "+title+" Candidate on initDataByState", "err", err)
+//					return nil, CandidateDecodeErr
+//				} else {
+//					if nil != ca {
+//						PrintObject(title+"Id:"+witnessId.String()+", can", ca)
+//						canMap[witnessId] = ca
+//						canCache = append(canCache, ca)
+//					} else {
+//						delete(canMap, witnessId)
+//					}
+//				}
+//			}
+//			return canCache, nil
+//		}
+//		type result struct {
+//			Type int // 1: immediate; 2: reserve
+//			Arr  types.CandidateQueue
+//			Err  error
+//		}
+//		resCh := make(chan *result, 2)
+//		wg.Add(2)
+//		go func() {
+//			res := new(result)
+//			res.Type = IS_IMMEDIATE
+//			c.immediateCandidates = make(candidateStorage, 0)
+//			if arr, err := loadElectedFunc("immediate", c.immediateCandidates, getImmediateIdsByState, getImmediateByState); nil != err {
+//				res.Err = err
+//				resCh <- res
+//			} else {
+//				res.Arr = arr
+//				resCh <- res
+//			}
+//			wg.Done()
+//		}()
+//		go func() {
+//			res := new(result)
+//			res.Type = IS_RESERVE
+//			c.reserveCandidates = make(candidateStorage, 0)
+//			if arr, err := loadElectedFunc("reserve", c.reserveCandidates, getReserveIdsByState, getReserveByState); nil != err {
+//				res.Err = err
+//				resCh <- res
+//			} else {
+//				res.Arr = arr
+//				resCh <- res
+//			}
+//			wg.Done()
+//		}()
+//		wg.Wait()
+//		close(resCh)
+//		for res := range resCh {
+//			if nil != res.Err {
+//				return res.Err
+//			}
+//			switch res.Type {
+//			case IS_IMMEDIATE:
+//				c.immediateCacheArr = res.Arr
+//			case IS_RESERVE:
+//				c.reserveCacheArr = res.Arr
+//			default:
+//				continue
+//			}
+//		}
+//
+//	}
+//
+//	// load refunds
+//	if flag == 2 {
+//
+//		var defeatIds []discover.NodeID
+//		c.defeatCandidates = make(refundStorage, 0)
+//		if ids, err := getDefeatIdsByState(state); nil != err {
+//			log.Error("Failed to decode defeatIds on initDataByState", "err", err)
+//			return err
+//		} else {
+//			defeatIds = ids
+//		}
+//		PrintObject("defeatIds", defeatIds)
+//		for _, defeatId := range defeatIds {
+//			if arr, err := getDefeatsByState(state, defeatId); nil != err {
+//				log.Error("Failed to decode defeat CandidateArr on initDataByState", "err", err)
+//				return CandidateDecodeErr
+//			} else {
+//				if nil != arr && len(arr) != 0 {
+//					PrintObject("defeatId:"+defeatId.String()+", arr", arr)
+//					c.defeatCandidates[defeatId] = arr
+//				} else {
+//					delete(c.defeatCandidates, defeatId)
+//				}
+//			}
+//		}
+//	}
+//	return nil
+//}
 
-	parentRoutineID := fmt.Sprintf("%s", common.CurrentGoRoutineID())
-
-	//loading  candidates func
-	loadWitFunc := func(title string, canMap candidateStorage,
-		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
-		getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) error {
-
-		log.Debug("initDataByState by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
-		var witnessIds []discover.NodeID
-		if ids, err := getIndexFn(state); nil != err {
-			log.Error("Failed to decode "+title+" witnessIds on initDataByState", " err", err)
-			return err
-		} else {
-			witnessIds = ids
-		}
-
-		PrintObject(title+" witnessIds", witnessIds)
-		for _, witnessId := range witnessIds {
-
-			if ca, err := getInfoFn(state, witnessId); nil != err {
-				log.Error("Failed to decode "+title+" witness Candidate on initDataByState", "err", err)
-				return CandidateDecodeErr
-			} else {
-				if nil != ca {
-					PrintObject(title+"Id:"+witnessId.String()+", can", ca)
-					canMap[witnessId] = ca
-				} else {
-					delete(canMap, witnessId)
-				}
-			}
-		}
-		return nil
-	}
-
-	witErrCh := make(chan error, 3)
-	var wg sync.WaitGroup
-	wg.Add(3)
-
-	// loading witnesses
-	go func() {
-		c.preOriginCandidates = make(candidateStorage, 0)
-		witErrCh <- loadWitFunc("previous", c.preOriginCandidates, getPreviousWitnessIdsState, getPreviousWitnessByState)
-		wg.Done()
-	}()
-	go func() {
-		c.originCandidates = make(candidateStorage, 0)
-		witErrCh <- loadWitFunc("current", c.originCandidates, getWitnessIdsByState, getWitnessByState)
-		wg.Done()
-	}()
-	go func() {
-		c.nextOriginCandidates = make(candidateStorage, 0)
-		witErrCh <- loadWitFunc("next", c.nextOriginCandidates, getNextWitnessIdsByState, getNextWitnessByState)
-		wg.Done()
-	}()
-	var err error
-	for i := 1; i <= 3; i++ {
-		if err = <-witErrCh; nil != err {
-			break
-		}
-	}
-	wg.Wait()
-	close(witErrCh)
-	if nil != err {
-		return err
-	}
-
-	// loading elected candidates
-	if flag == 1 || flag == 2 {
-
-		loadElectedFunc := func(title string, canMap candidateStorage,
-			getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
-			getInfoFn func(state vm.StateDB, id discover.NodeID) (*types.Candidate, error)) (types.CandidateQueue, error) {
-			var witnessIds []discover.NodeID
-
-			log.Debug("initDataByState by Getting "+title+" parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", state))
-			if ids, err := getIndexFn(state); nil != err {
-				log.Error("Failed to decode "+title+"Ids on initDataByState", " err", err)
-				return nil, err
-			} else {
-				witnessIds = ids
-			}
-			// cache
-			canCache := make(types.CandidateQueue, 0)
-
-			PrintObject(title+" Ids", witnessIds)
-			for _, witnessId := range witnessIds {
-
-				if ca, err := getInfoFn(state, witnessId); nil != err {
-					log.Error("Failed to decode "+title+" Candidate on initDataByState", "err", err)
-					return nil, CandidateDecodeErr
-				} else {
-					if nil != ca {
-						PrintObject(title+"Id:"+witnessId.String()+", can", ca)
-						canMap[witnessId] = ca
-						canCache = append(canCache, ca)
-					} else {
-						delete(canMap, witnessId)
-					}
-				}
-			}
-			return canCache, nil
-		}
-		type result struct {
-			Type int // 1: immediate; 2: reserve
-			Arr  types.CandidateQueue
-			Err  error
-		}
-		resCh := make(chan *result, 2)
-		wg.Add(2)
-		go func() {
-			res := new(result)
-			res.Type = IS_IMMEDIATE
-			c.immediateCandidates = make(candidateStorage, 0)
-			if arr, err := loadElectedFunc("immediate", c.immediateCandidates, getImmediateIdsByState, getImmediateByState); nil != err {
-				res.Err = err
-				resCh <- res
-			} else {
-				res.Arr = arr
-				resCh <- res
-			}
-			wg.Done()
-		}()
-		go func() {
-			res := new(result)
-			res.Type = IS_RESERVE
-			c.reserveCandidates = make(candidateStorage, 0)
-			if arr, err := loadElectedFunc("reserve", c.reserveCandidates, getReserveIdsByState, getReserveByState); nil != err {
-				res.Err = err
-				resCh <- res
-			} else {
-				res.Arr = arr
-				resCh <- res
-			}
-			wg.Done()
-		}()
-		wg.Wait()
-		close(resCh)
-		for res := range resCh {
-			if nil != res.Err {
-				return res.Err
-			}
-			switch res.Type {
-			case IS_IMMEDIATE:
-				c.immediateCacheArr = res.Arr
-			case IS_RESERVE:
-				c.reserveCacheArr = res.Arr
-			default:
-				continue
-			}
-		}
-
-	}
-
-	// load refunds
-	if flag == 2 {
-
-		var defeatIds []discover.NodeID
-		c.defeatCandidates = make(refundStorage, 0)
-		if ids, err := getDefeatIdsByState(state); nil != err {
-			log.Error("Failed to decode defeatIds on initDataByState", "err", err)
-			return err
-		} else {
-			defeatIds = ids
-		}
-		PrintObject("defeatIds", defeatIds)
-		for _, defeatId := range defeatIds {
-			if arr, err := getDefeatsByState(state, defeatId); nil != err {
-				log.Error("Failed to decode defeat CandidateArr on initDataByState", "err", err)
-				return CandidateDecodeErr
-			} else {
-				if nil != arr && len(arr) != 0 {
-					PrintObject("defeatId:"+defeatId.String()+", arr", arr)
-					c.defeatCandidates[defeatId] = arr
-				} else {
-					delete(c.defeatCandidates, defeatId)
-				}
-			}
-		}
-	}
-	return nil
+func(c *CandidatePool) initDataByState(state vm.StateDB) {
+	c.storage = state.GetPPOSCache()
 }
+
+// flag:
+// 1: witness
+// 2: im and re (im/re)
+// 3 : wit + im/re
+func (c *CandidatePool) initData2Cache(state vm.StateDB, flag int) {
+	c.storage = state.GetPPOSCache()
+
+	loadQueueFunc := func(arr types.CandidateQueue, canMap candidateStorage) {
+		for _, can := range arr {
+			canMap[can.CandidateId] = can
+		}
+	}
+	var wg sync.WaitGroup
+
+	switch flag {
+	case GET_WITNESS:
+		wg.Add(3)
+		c.getWitnessMap(&wg, loadQueueFunc)
+		wg.Wait()
+	case GET_IM_RE:
+		wg.Add(2)
+		c.getImAndReMap(&wg, loadQueueFunc)
+		wg.Wait()
+	case GET_WIT_IM_RE:
+		wg.Add(5)
+		c.getWitnessMap(&wg, loadQueueFunc)
+		c.getImAndReMap(&wg, loadQueueFunc)
+		wg.Wait()
+	default:
+		return
+	}
+}
+
+func (c *CandidatePool) getWitnessMap(wg *sync.WaitGroup, loadQueueFunc func(arr types.CandidateQueue, canMap candidateStorage)){
+	go func() {
+		loadQueueFunc(c.storage.GetCandidateQueue(ppos_storage.PREVIOUS), c.preOriginCandidates)
+		wg.Done()
+	}()
+	go func() {
+		loadQueueFunc(c.storage.GetCandidateQueue(ppos_storage.CURRENT), c.originCandidates)
+		wg.Done()
+	}()
+	go func() {
+		loadQueueFunc(c.storage.GetCandidateQueue(ppos_storage.NEXT), c.nextOriginCandidates)
+		wg.Done()
+	}()
+}
+func (c *CandidatePool) getImAndReMap(wg *sync.WaitGroup, loadQueueFunc func(arr types.CandidateQueue, canMap candidateStorage)){
+	go func() {
+		loadQueueFunc(c.storage.GetCandidateQueue(ppos_storage.IMMEDIATE), c.immediateCandidates)
+		wg.Done()
+	}()
+	go func() {
+		loadQueueFunc(c.storage.GetCandidateQueue(ppos_storage.RESERVE), c.reserveCandidates)
+		wg.Done()
+	}()
+}
+
+
 
 // pledge Candidate
 func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
 
 	var nodeIds []discover.NodeID
-	c.lock.Lock()
 
 	PrintObject("Call SetCandidate start ...", *can)
-	if err := c.initDataByState(state, 2); nil != err {
-		c.lock.Unlock()
-		log.Error("Failed to initDataByState on SetCandidate", "nodeId", nodeId.String(), " err", err)
-		return err
-	}
+	c.initData2Cache(state, GET_IM_RE)
 
 	// If it is the first pledge, judge the pledge threshold
 	if !c.checkFirstThreshold(can) {
-		c.lock.Unlock()
 		log.Warn("Failed to checkFirstThreshold on SetCandidate", "Deposit", can.Deposit.Uint64(), "threshold", c.threshold)
 		return errors.New(DepositLowErr.Error() + ", Current Deposit:" + can.Deposit.String() + ", target threshold:" + fmt.Sprint(c.threshold))
 	}
@@ -316,19 +379,16 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	// Before each pledge, we need to check whether the current can deposit is not less
 	// than the minimum can deposit when the corresponding queue to be placed is full.
 	if _, ok := c.checkDeposit(state, can, false); !ok {
-		c.lock.Unlock()
 		log.Warn("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
 		return DepositLowErr
 	}
 
 	if arr, err := c.setCandidateInfo(state, nodeId, can); nil != err {
-		c.lock.Unlock()
 		log.Error("Failed to setCandidateInfo on SetCandidate", "nodeId", nodeId.String(), "err", err)
 		return err
 	} else {
 		nodeIds = arr
 	}
-	c.lock.Unlock()
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
 		if err := tContext.DropReturnTicket(state, can.BlockNumber, nodeIds...); nil != err {
@@ -345,7 +405,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 
 	var flag, delimmediate, delreserve bool
 	// check ticket count
-	if c.checkTicket(tContext.GetCandidateTicketCount(state, nodeId)) { // TODO
+	if c.checkTicket(tContext.GetCandidateTicketCount(state, nodeId)) {
 		flag = true
 		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
 			delreserve = true
@@ -1795,58 +1855,128 @@ func (c *CandidatePool) checkFirstThreshold(can *types.Candidate) bool {
 // false: invalid deposit
 // true:  pass
 func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, holdself bool) (bool, bool) {
-	tcount := c.checkTicket(tContext.GetCandidateTicketCount(state, can.CandidateId))
-	/**
-	If the current number of votes meets the entry immediate pool
-	and the immediate pool is full
-	*/
-	if tcount && uint64(len(c.immediateCandidates)) == c.maxCount {
-		last := c.immediateCacheArr[len(c.immediateCacheArr)-1]
-		lastDeposit := last.Deposit
 
-		// y = 100 + x
-		percentage := new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit)))
-		// z = old * y
-		tmp := new(big.Int).Mul(lastDeposit, percentage)
-		// z/100 == old * (100 + x) / 100 == old * (y%)
-		tmp = new(big.Int).Div(tmp, big.NewInt(100))
-		if can.Deposit.Cmp(tmp) < 0 {
-			// If last is self and holdslef flag is true
-			// we must return true (Keep self on staying in the original queue)
-			if holdself && can.CandidateId == last.CandidateId {
-				log.Debug("The immeidate pool is full, and last is self and holdslef is true, Keep self on staying in the original queue", "current can nodeId", can.CandidateId.String(), "last can nodeId", last.CandidateId.String(),
-					"current can's Deposit:", can.Deposit.String(), "110% of the last can in the immediate pool:", tmp.String(), "the length of current immediate pool:", len(c.immediateCandidates), "the limit of Configuration:", c.maxCount)
-				return tcount, true
+	// Number of vote ticket by nodes
+	tcount := c.checkTicket(tContext.GetCandidateTicketCount(state, can.CandidateId))
+
+	// if the pool is no full: (Only reserve pool)
+	// a、first pledge: x >=  threshold
+	// b、no first pledge: x >= self * 110%
+	//
+	// if the pool is full:
+	// c、x > last * 110 %
+
+	// TODO 有待思考 ： 未满，已满，自己在其中，不在其中
+	// 如果池子没满：
+	// 首次质押 > 100W
+	// 增持质押 > self * 110%
+
+	// 池子满了：
+	// 质押 > 最后一名 * 110%
+
+	/**
+	If the current number of votes achieving the conditions for entering the immediate queue
+	*/
+	if tcount{
+		immediateArr := c.storage.GetCandidateQueue(ppos_storage.IMMEDIATE)
+		/**  When the immediate pool is full */
+		if uint32(len(immediateArr)) == c.maxCount{
+			last := immediateArr[len(immediateArr)-1]
+			lastDeposit := last.Deposit
+
+			// y = 100 + x
+			percentage := new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit)))
+			// z = old * y
+			tmp := new(big.Int).Mul(lastDeposit, percentage)
+			// z/100 == old * (100 + x) / 100 == old * (y%)
+			tmp = new(big.Int).Div(tmp, big.NewInt(100))
+			if can.Deposit.Cmp(tmp) < 0 {
+				// If last is self and holdslef flag is true
+				// we must return true (Keep self on staying in the original queue)
+				if holdself && can.CandidateId == last.CandidateId {
+					log.Debug("The immeidate pool is full, and last is self and holdslef is true, Keep self on staying in the original queue", "current can nodeId", can.CandidateId.String(), "last can nodeId", last.CandidateId.String(),
+						"current can's Deposit:", can.Deposit.String(), "110% of the last can in the immediate pool:", tmp.String(), "the length of current immediate pool:", len(immediateArr), "the limit of Configuration:", c.maxCount)
+					return tcount, true
+				}
+				log.Debug("The immeidate pool is full, and the current can's Deposit is less than 110% of the last can in the immediate pool.", "current can's Deposit:", can.Deposit.String(), "110% of the last can in the immediate pool:", tmp.String(),
+					"the length of current immediate pool:", len(immediateArr), "the limit of Configuration:", c.maxCount)
+				return tcount, false
 			}
-			log.Debug("The immeidate pool is full, and the current can's Deposit is less than 110% of the last can in the immediate pool.", "current can's Deposit:", can.Deposit.String(), "110% of the last can in the immediate pool:", tmp.String(), "the length of current immediate pool:", len(c.immediateCandidates), "the limit of Configuration:", c.maxCount)
-			return tcount, false
 		}
 	}
 
 	/**
-	If the can no enter the immediate pool  and the reserve pool is full
+	If the can will enter the reserve pool
 	*/
-	if !tcount && uint64(len(c.reserveCandidates)) == c.maxCount {
-		last := c.reserveCacheArr[len(c.reserveCacheArr)-1]
-		lastDeposit := last.Deposit
-
-		// y = 100 + x
-		percentage := new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit)))
-		// z = old * y
-		tmp := new(big.Int).Mul(lastDeposit, percentage)
-		// z/100 == old * (100 + x) / 100 == old * (y%)
-		tmp = new(big.Int).Div(tmp, big.NewInt(100))
-		if can.Deposit.Cmp(tmp) < 0 {
-			// If last is self and holdslef flag is true
-			// we must return true (Keep self on staying in the original queue)
-			if holdself && can.CandidateId == last.CandidateId {
-				log.Debug("The reserve pool is full, and last is self and holdslef is true, Keep self on staying in the original queue", "current can nodeId", can.CandidateId.String(), "last can nodeId", last.CandidateId.String(),
-					"current can's Deposit:", can.Deposit.String(), "110% of the last can in the reserve pool:", tmp.String(), "the length of current reserve pool:", len(c.reserveCandidates), "the limit of Configuration:", c.maxCount)
-				return tcount, true
-			}
-			log.Debug("The reserve pool is full，and the current can's Deposit is less than 110% of the last can in the reserve pool.", "current can's Deposit:", can.Deposit.String(), "110% of the last can in the reserve pool:", tmp.String(), "the length of current reserve pool:", len(c.reserveCandidates), "the limit of Configuration:", c.maxCount)
-			return tcount, false
+	if !tcount  {
+		// if the can is first pledge ?
+		var flag int = 0
+		var hasRe bool
+		if _, ok := c.immediateCandidates[can.CandidateId]; ok {
+			flag |= 1
 		}
+		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
+			flag |= 1
+			hasRe = true
+		}
+
+		reserveArr := c.storage.GetCandidateQueue(ppos_storage.RESERVE)
+
+
+		// Is first pledge and the reserve pool is full
+		if flag == 0 && uint32(len(reserveArr)) == c.maxCount {
+			last := reserveArr[len(reserveArr)-1]
+			lastDeposit := last.Deposit
+
+			// y = 100 + x
+			percentage := new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit)))
+			// z = old * y
+			tmp := new(big.Int).Mul(lastDeposit, percentage)
+			// z/100 == old * (100 + x) / 100 == old * (y%)
+			tmp = new(big.Int).Div(tmp, big.NewInt(100))
+			if can.Deposit.Cmp(tmp) < 0 {
+				// If last is self and holdslef flag is true
+				// we must return true (Keep self on staying in the original queue)
+				if holdself && can.CandidateId == last.CandidateId {
+					log.Debug("The reserve pool is full, and last is self and holdslef is true, Keep self on staying in the original queue", "current can nodeId", can.CandidateId.String(), "last can nodeId", last.CandidateId.String(),
+						"current can's Deposit:", can.Deposit.String(), "110% of the last can in the reserve pool:", tmp.String(), "the length of current reserve pool:", len(reserveArr), "the limit of Configuration:", c.maxCount)
+					return tcount, true
+				}
+				log.Debug("The reserve pool is full，and the current can's Deposit is less than 110% of the last can in the reserve pool.", "current can's Deposit:", can.Deposit.String(),
+					"110% of the last can in the reserve pool:", tmp.String(), "the length of current reserve pool:", len(reserveArr), "the limit of Configuration:", c.maxCount)
+				return tcount, false
+			}
+		}else if flag != 0 { // Is'nt first pledge
+			if hasRe { // already exist in reserve pool
+				old_self := c.reserveCandidates[can.CandidateId]
+				lastDeposit := old_self.Deposit
+
+				// y = 100 + x
+				percentage := new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit)))
+				// z = old * y
+				tmp := new(big.Int).Mul(lastDeposit, percentage)
+				// z/100 == old * (100 + x) / 100 == old * (y%)
+				tmp = new(big.Int).Div(tmp, big.NewInt(100))
+
+				if can.Deposit.Cmp(tmp) < 0 {
+					// If last is self and holdslef flag is true
+					// we must return true (Keep self on staying in the original queue)
+					if holdself {
+						log.Debug("The can already exist in reserve, and holdslef is true, Keep self on staying in the original queue", "current can nodeId", can.CandidateId.String(),
+							"current can's Deposit:", can.Deposit.String(), "110% of the old self can in the reserve pool:", tmp.String(), "the length of current reserve pool:", len(reserveArr), "the limit of Configuration:", c.maxCount)
+						return tcount, true
+					}
+					log.Debug("The reserve pool is full，and the current can's Deposit is less than 110% of the last can in the reserve pool.", "current can's Deposit:", can.Deposit.String(),
+						"110% of the last can in the reserve pool:", tmp.String(), "the length of current reserve pool:", len(reserveArr), "the limit of Configuration:", c.maxCount)
+					return tcount, false
+				}
+			}
+		}
+
+
+
+
+
 	}
 	return tcount, true
 }
@@ -1881,12 +2011,12 @@ func (c *CandidatePool) checkExist(nodeId discover.NodeID) int {
 }
 
 func (c *CandidatePool) checkTicket(t_count uint64) bool {
-	log.Info("Compare the current candidate’s votes to:", "t_count", t_count, "the allowed limit of config:", c.allowed)
+	log.Debug("Compare the current candidate’s votes to:", "t_count", t_count, "the allowed limit of config:", c.allowed)
 	if t_count >= c.allowed {
-		log.Info(" The current candidate’s votes are in line with the immediate pool....")
+		log.Debug(" The current candidate’s votes are in line with the immediate pool....")
 		return true
 	}
-	log.Info("Not eligible to enter the immediate pool ...")
+	log.Debug("Not eligible to enter the immediate pool ...")
 	return false
 }
 
