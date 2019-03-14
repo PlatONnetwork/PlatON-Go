@@ -176,15 +176,15 @@ type CandidateConfig struct {
 	// min deposit allow threshold
 	Threshold				string 					`json:"threshold"`
 	// min deposit limit percentage
-	DepositLimit 			uint64					`json:"depositLimit"`
+	DepositLimit 			uint32					`json:"depositLimit"`
 	// allow put into immedidate condition
-	Allowed					uint64					`json:"allowed"`
+	Allowed					uint32					`json:"allowed"`
 	// allow immediate elected max count
-	MaxCount				uint64					`json:"maxCount"`
+	MaxCount				uint32					`json:"maxCount"`
 	// allow witness max count
-	MaxChair				uint64					`json:"maxChair"`
+	MaxChair				uint32					`json:"maxChair"`
 	// allow block interval for refunds
-	RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
+	RefundBlockNumber 		uint32 					`json:"refundBlockNumber"`
 
 }
 type TicketConfig struct {

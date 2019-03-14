@@ -286,13 +286,15 @@ func (p *Ppos_storage) DelCandidateQueue(flag int)  {
 }
 
 // Get Refund
-func (p *Ppos_storage) GetRefund(nodeId discover.NodeID) types.RefundQueue {
+func (p *Ppos_storage) GetRefunds(nodeId discover.NodeID) types.RefundQueue {
 	if queue, ok := p.c_storage.refunds[nodeId]; ok {
 		return queue
 	} else {
 		return make(types.RefundQueue, 0)
 	}
 }
+
+
 
 // Set Refund
 func (p *Ppos_storage) SetRefund(nodeId discover.NodeID, refund *types.CandidateRefund) {
@@ -307,8 +309,13 @@ func (p *Ppos_storage) SetRefund(nodeId discover.NodeID, refund *types.Candidate
 	}
 }
 
-// Delete Refund
-func (p *Ppos_storage) DelRefund(nodeId discover.NodeID) {
+func (p *Ppos_storage) SetRefunds(nodeId discover.NodeID, refundArr types.RefundQueue) {
+	p.c_storage.refunds[nodeId] = refundArr
+}
+
+
+// Delete RefundArr
+func (p *Ppos_storage) DelRefunds(nodeId discover.NodeID) {
 	delete(p.c_storage.refunds, nodeId)
 }
 

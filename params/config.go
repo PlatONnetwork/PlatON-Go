@@ -247,11 +247,11 @@ type PposConfig struct {
 }
 type CandidateConfig struct {
 	Threshold         string
-	DepositLimit      uint64
-	Allowed           uint64
-	MaxCount          uint64
-	MaxChair          uint64
-	RefundBlockNumber uint64
+	DepositLimit      uint32
+	Allowed           uint32
+	MaxCount          uint32
+	MaxChair          uint32
+	RefundBlockNumber uint32
 }
 
 type TicketConfig struct {
