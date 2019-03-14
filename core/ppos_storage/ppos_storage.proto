@@ -1,0 +1,91 @@
+syntax = "proto3";
+package ppos_storage;
+
+
+message CandidateInfo {
+
+    string Deposit = 1;
+    string BlockNumber = 2;
+    uint32 TxIndex = 3;
+    bytes CandidateId = 4;
+    string Host = 5;
+    string Port = 6;
+    bytes Owner = 7;
+    //  string    From          = 8;
+    string Extra = 8;
+    uint32 Fee = 9;
+    bytes TicketId = 10;
+}
+
+message Refund {
+    string Deposit = 1;
+    string BlockNumber = 2;
+    bytes Owner = 3;
+}
+
+message RefundArr {
+    repeated Refund  Defeats = 1;
+}
+
+message CandidateTemp {
+    //  three round witness
+    repeated CandidateInfo pres = 1;
+    repeated CandidateInfo currs = 2;
+    repeated CandidateInfo nexts = 3;
+
+    // can pool
+    repeated CandidateInfo imms = 4;
+    repeated CandidateInfo res = 5;
+
+    // refunds
+    map<string, RefundArr> refunds = 6;
+}
+
+
+message TicketInfo {
+    bytes   Owner 	    = 1;
+	string  Deposit	    =2;
+	bytes   CandidateId  = 3;
+	string  BlockNumber = 4;
+	uint64  Remaining	= 5;
+}
+
+message TxHashArr {
+    repeated bytes  TxHashs = 1;
+}
+
+message TicketDependency {
+    uint32  Age = 1;
+    uint32  Num = 2;
+    repeated bytes  Tids = 3;
+}
+
+message TicketTemp {
+    uint32  Sq = 1;
+    map<string, TicketInfo> Infos = 2;
+    map<string, TxHashArr> Ets  = 3;
+    map<string, TicketDependency> Dependencys = 4;
+}
+
+
+message PPOSTemp {
+    CandidateTemp CanTmp = 1;
+    TicketTemp TickTmp = 2;
+    string BlockNumber = 3;
+    string BlockHash = 4;
+}
+
+//
+//// k2 blockHash
+//message BlockHashPPOSTemp {
+//  map<string, PPOSTemp> PposStorage = 1;
+//}
+//
+//// k1 blockNumber
+//message BlockNumberPPOSTemp {
+//  uint32  BlockCount = 1;
+//  map<string, BlockHashPPOSTemp> HashTemp = 2;
+//}
+
+
+
