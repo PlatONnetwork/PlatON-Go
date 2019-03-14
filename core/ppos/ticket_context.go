@@ -75,7 +75,7 @@ func (c *TicketPoolContext) GetCandidateTicketCount (state vm.StateDB, nodeId di
 	return c.initTicketPool().GetCandidateTicketCount(state, nodeId)
 }
 
-func (c *TicketPoolContext) GetCandidatesTicketCount (state vm.StateDB, nodeIds []discover.NodeID) map[discover.NodeID]uint32 {
+func (c *TicketPoolContext) GetCandidatesTicketCount (state vm.StateDB, nodeIds []discover.NodeID) map[discover.NodeID]int {
 	return c.initTicketPool().GetCandidatesTicketCount(state, nodeIds)
 }
 
@@ -95,9 +95,6 @@ func (c *TicketPoolContext) SelectionLuckyTicket(stateDB vm.StateDB, nodeId disc
 	return c.initTicketPool().SelectionLuckyTicket(stateDB, nodeId, blockHash)
 }
 
-func (c *TicketPoolContext) GetBatchTicketRemaining(stateDB vm.StateDB, ticketIds []common.Hash) map[common.Hash]uint32 {
-	return c.initTicketPool().GetBatchTicketRemaining(stateDB, ticketIds)
-}
 
 
 
