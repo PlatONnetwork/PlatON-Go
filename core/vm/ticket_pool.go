@@ -119,13 +119,6 @@ func (t *TicketContract) GetCandidateTicketCount(nodeIds []discover.NodeID) ([]b
 	input, _ := json.Marshal(nodeIds)
 	log.Info("Input to GetCandidateTicketCount==> ", "length: ", len(nodeIds), "nodeIds: ", string(input))
 	candidatesTicketCount := t.Evm.TicketPoolContext.GetCandidatesTicketCount(t.Evm.StateDB, nodeIds)
-	if 0 == len(candidatesTicketCount) {
-		log.Warn("Failed to GetCandidateTicketCount==> The query does not exist")
-		candidatesTicketCount := make(map[discover.NodeID]uint32, 0)
-		data, _ := json.Marshal(candidatesTicketCount)
-		sdata := DecodeResultStr(string(data))
-		return sdata, nil
-	}
 	data, _ := json.Marshal(candidatesTicketCount)
 	sdata := DecodeResultStr(string(data))
 	log.Info("Result of GetCandidateTicketCount==> ", "len(candidatesTicketCount): ", len(candidatesTicketCount), "json: ", string(data))
@@ -137,13 +130,6 @@ func (t *TicketContract) GetTicketCountByTicketId(ticketIds []common.Hash) ([]by
 	input, _ := json.Marshal(ticketIds)
 	log.Info("Input to GetTicketCountByTicketId==> ", "length: ", len(ticketIds), "ticketIds: ", string(input))
 	ticketsRemaining := t.Evm.TicketPoolContext.GetBatchTicketRemaining(t.Evm.StateDB, ticketIds)
-	if 0 == len(ticketsRemaining) {
-		log.Warn("Failed to GetTicketCountByTicketId==> The query does not exist")
-		ticketsRemaining := make(map[common.Hash]uint32, 0)
-		data, _ := json.Marshal(ticketsRemaining)
-		sdata := DecodeResultStr(string(data))
-		return sdata, nil
-	}
 	data, _ := json.Marshal(ticketsRemaining)
 	sdata := DecodeResultStr(string(data))
 	log.Info("Result of GetTicketCountByTicketId==> ", "len(ticketsRemaining): ", len(ticketsRemaining), "json: ", string(data))
