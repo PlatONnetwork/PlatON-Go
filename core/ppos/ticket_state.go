@@ -441,6 +441,25 @@ func (t *TicketPool) addCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeI
 	return nil
 }
 
+// Get the remaining number of ticket
+func (t *TicketPool) GetTicketRemaining(stateDB vm.StateDB, ticketId common.Hash) uint32 {
+	ticket := t.GetTicket(stateDB, ticketId)
+	if nil == ticket {
+		return 0
+	}
+	return ticket.Remaining
+}
+
+// Get the batch remaining number of ticket
+func (t *TicketPool) GetBatchTicketRemaining(stateDB vm.StateDB, ticketIds []common.Hash) map[common.Hash]uint32 {
+	ticketsRemaining := make(map[common.Hash]uint32, 0)
+	for _, ticketId := range ticketIds {
+		remaining := t.GetTicketRemaining(stateDB, ticketId)
+		ticketsRemaining[ticketId] = remaining
+	}
+	return ticketsRemaining
+}
+
 func (t *TicketPool) GetCandidateTicketIds(stateDB vm.StateDB, nodeId discover.NodeID) []common.Hash {
 	log.Debug("Call GetCandidaieTicketIds", "statedb addr", fmt.Sprintf("%p", stateDB))
 	return stateDB.GetPPOSCache().GetCandidateTxHashs(nodeId)
@@ -465,12 +484,12 @@ func (t *TicketPool) GetCandidateTicketCount(stateDB vm.StateDB, nodeId discover
 	return stateDB.GetPPOSCache().GetCandidateTicketCount(nodeId)
 }
 
-func (t *TicketPool) GetCandidatesTicketCount(stateDB vm.StateDB, nodeIds []discover.NodeID) map[discover.NodeID]int {
+func (t *TicketPool) GetCandidatesTicketCount(stateDB vm.StateDB, nodeIds []discover.NodeID) map[discover.NodeID]uint32 {
 	log.Debug("Call GetCandidatesTicketCount", "statedb addr", fmt.Sprintf("%p", stateDB))
-	result := make(map[discover.NodeID]int)
+	result := make(map[discover.NodeID]uint32)
 	if nil != nodeIds {
 		for _, nodeId := range nodeIds {
-			result[nodeId] = int(stateDB.GetPPOSCache().GetCandidateTicketCount(nodeId))
+			result[nodeId] = stateDB.GetPPOSCache().GetCandidateTicketCount(nodeId)
 		}
 	}
 	return result
