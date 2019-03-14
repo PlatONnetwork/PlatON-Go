@@ -65,16 +65,14 @@ func (c *CandidateContract) Run(input []byte) ([]byte, error) {
 		return nil, ErrCandidatePoolEmpty
 	}
 	var command = map[string]interface{}{
-		"CandidateDetails":        c.CandidateDetails,
-		"CandidateApplyWithdraw":  c.CandidateApplyWithdraw,
-		"CandidateDeposit":        c.CandidateDeposit,
-		"CandidateList":           c.CandidateList,
-		"CandidateWithdraw":       c.CandidateWithdraw,
-		"SetCandidateExtra":       c.SetCandidateExtra,
-		"CandidateWithdrawInfos":  c.CandidateWithdrawInfos,
-		"VerifiersList":           c.VerifiersList,
-		"GetBatchCandidateDetail": c.GetBatchCandidateDetail,
-		"GetCurrentRLuckyTickets": c.GetCurrentRLuckyTickets,
+		"CandidateDeposit":          c.CandidateDeposit,
+		"CandidateApplyWithdraw":    c.CandidateApplyWithdraw,
+		"CandidateWithdraw":         c.CandidateWithdraw,
+		"SetCandidateExtra":         c.SetCandidateExtra,
+		"GetCandidateWithdrawInfos": c.GetCandidateWithdrawInfos,
+		"GetCandidateDetails":       c.GetCandidateDetails,
+		"GetCandidateList":          c.GetCandidateList,
+		"GetVerifiersList":          c.GetVerifiersList,
 	}
 	return execute(input, command)
 }
@@ -194,36 +192,6 @@ func (c *CandidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, e
 	return nil, nil
 }
 
-// Get the refund history you have applied for
-func (c *CandidateContract) CandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error) {
-	log.Info("Input to CandidateWithdrawInfos==> ", "nodeId: ", nodeId.String())
-	infos, err := c.Evm.CandidatePoolContext.GetDefeat(c.Evm.StateDB, nodeId)
-	if nil != err {
-		log.Error("Failed to CandidateWithdrawInfos==> ", "GetDefeat return err: ", err.Error())
-		return nil, err
-	}
-	type WithdrawInfo struct {
-		Balance        *big.Int
-		LockNumber     *big.Int
-		LockBlockCycle uint64
-	}
-	type WithdrawInfos struct {
-		Ret    bool
-		ErrMsg string
-		Infos  []WithdrawInfo
-	}
-	r := WithdrawInfos{true, "success", make([]WithdrawInfo, len(infos))}
-	for i, v := range infos {
-		refundBlockNumber := c.Evm.CandidatePoolContext.GetRefundInterval()
-		log.Debug("Call CandidateWithdrawInfos==> ", "Deposit", v.Deposit, "BlockNumber", v.BlockNumber, "RefundBlockNumber", refundBlockNumber)
-		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, refundBlockNumber}
-	}
-	data, _ := json.Marshal(r)
-	sdata := DecodeResultStr(string(data))
-	log.Info("Result of CandidateWithdrawInfos==> ", "json: ", string(data))
-	return sdata, nil
-}
-
 // Set up additional information
 func (c *CandidateContract) SetCandidateExtra(nodeId discover.NodeID, extra string) ([]byte, error) {
 	txHash := c.Evm.StateDB.TxHash()
@@ -245,44 +213,50 @@ func (c *CandidateContract) SetCandidateExtra(nodeId discover.NodeID, extra stri
 	return nil, nil
 }
 
-// Get candidate details
-func (c *CandidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, error) {
-	log.Info("Input to CandidateDetails==> ", "nodeId: ", nodeId.String())
-	candidate, err := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
+// Get the refund history you have applied for
+func (c *CandidateContract) GetCandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error) {
+	log.Info("Input to GetCandidateWithdrawInfos==> ", "nodeId: ", nodeId.String())
+	infos, err := c.Evm.CandidatePoolContext.GetDefeat(c.Evm.StateDB, nodeId)
 	if nil != err {
-		log.Error("Failed to CandidateDetails==> ", "GetCandidate return err: ", err.Error())
-		candidate := types.Candidate{}
-		data, _ := json.Marshal(candidate)
-		sdata := DecodeResultStr(string(data))
-		return sdata, err
+		log.Error("Failed to GetCandidateWithdrawInfos==> ", "GetDefeat return err: ", err.Error())
+		return nil, err
 	}
-	if nil == candidate {
-		log.Warn("Failed to CandidateDetails==> The query does not exist")
-		candidate := types.Candidate{}
-		data, _ := json.Marshal(candidate)
-		sdata := DecodeResultStr(string(data))
-		return sdata, nil
+	type WithdrawInfo struct {
+		Balance        *big.Int
+		LockNumber     *big.Int
+		LockBlockCycle uint64
 	}
-	data, _ := json.Marshal(candidate)
+	type WithdrawInfos struct {
+		Ret    bool
+		ErrMsg string
+		Infos  []WithdrawInfo
+	}
+	r := WithdrawInfos{true, "success", make([]WithdrawInfo, len(infos))}
+	for i, v := range infos {
+		refundBlockNumber := c.Evm.CandidatePoolContext.GetRefundInterval()
+		log.Debug("Call GetCandidateWithdrawInfos==> ", "Deposit", v.Deposit, "BlockNumber", v.BlockNumber, "RefundBlockNumber", refundBlockNumber)
+		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, refundBlockNumber}
+	}
+	data, _ := json.Marshal(r)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of CandidateDetails==> ", "json: ", string(data), " []byte: ", sdata)
+	log.Info("Result of GetCandidateWithdrawInfos==> ", "json: ", string(data))
 	return sdata, nil
 }
 
-// GetBatchCandidateDetail returns the batch of candidate info.
-func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) ([]byte, error) {
+// GetCandidateDetails returns the batch of candidate info.
+func (c *CandidateContract) GetCandidateDetails(nodeIds []discover.NodeID) ([]byte, error) {
 	input, _ := json.Marshal(nodeIds)
-	log.Info("Input to GetBatchCandidateDetail==>", "length: ", len(nodeIds), " nodeIds: ", string(input))
+	log.Info("Input to GetCandidateDetails==>", "length: ", len(nodeIds), " nodeIds: ", string(input))
 	candidates, err := c.Evm.CandidatePoolContext.GetCandidateArr(c.Evm.StateDB, nodeIds...)
 	if nil != err {
-		log.Error("Failed to GetBatchCandidateDetail==> ", "GetCandidateArr return err: ", err.Error())
+		log.Error("Failed to GetCandidateDetails==> ", "GetCandidateArr return err: ", err.Error())
 		candidates := make([]types.Candidate, 0)
 		data, _ := json.Marshal(candidates)
 		sdata := DecodeResultStr(string(data))
 		return sdata, err
 	}
 	if 0 == len(candidates) {
-		log.Warn("Failed to GetBatchCandidateDetail==> The query does not exist")
+		log.Warn("Failed to GetCandidateDetails==> The query does not exist")
 		candidates := make([]types.Candidate, 0)
 		data, _ := json.Marshal(candidates)
 		sdata := DecodeResultStr(string(data))
@@ -290,15 +264,15 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 	}
 	data, _ := json.Marshal(candidates)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of GetBatchCandidateDetail==> ", "len(candidates): ", len(candidates), "json: ", string(data))
+	log.Info("Result of GetCandidateDetails==> ", "len(candidates): ", len(candidates), "json: ", string(data))
 	return sdata, nil
 }
 
 // Get the current block candidate list
-func (c *CandidateContract) CandidateList() ([]byte, error) {
+func (c *CandidateContract) GetCandidateList() ([]byte, error) {
 	candidates := c.Evm.CandidatePoolContext.GetChosens(c.Evm.StateDB, 0)
 	if 0 == len(candidates) {
-		log.Warn("Failed to CandidateList==> The query does not exist")
+		log.Warn("Failed to GetCandidateList==> The query does not exist")
 		candidates := make([]types.Candidate, 0)
 		data, _ := json.Marshal(candidates)
 		sdata := DecodeResultStr(string(data))
@@ -306,15 +280,15 @@ func (c *CandidateContract) CandidateList() ([]byte, error) {
 	}
 	data, _ := json.Marshal(candidates)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of CandidateList==> ", "len(candidates): ", len(candidates), "json: ", string(data))
+	log.Info("Result of GetCandidateList==> ", "len(candidates): ", len(candidates), "json: ", string(data))
 	return sdata, nil
 }
 
 // Get the current block round certifier list
-func (c *CandidateContract) VerifiersList() ([]byte, error) {
+func (c *CandidateContract) GetVerifiersList() ([]byte, error) {
 	verifiers := c.Evm.CandidatePoolContext.GetChairpersons(c.Evm.StateDB)
 	if 0 == len(verifiers) {
-		log.Warn("Failed to VerifiersList==> The query does not exist")
+		log.Warn("Failed to GetVerifiersList==> The query does not exist")
 		verifiers := make([]types.Candidate, 0)
 		data, _ := json.Marshal(verifiers)
 		sdata := DecodeResultStr(string(data))
@@ -322,19 +296,7 @@ func (c *CandidateContract) VerifiersList() ([]byte, error) {
 	}
 	data, _ := json.Marshal(verifiers)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of VerifiersList==> ", "len(verifiers): ", len(verifiers), "json: ", string(data))
-	return sdata, nil
-}
-
-// GetCurrentRLuckyTickets return the current round's lucky ticketIds.
-func (c *CandidateContract) GetCurrentRLuckyTickets() ([]byte, error) {
-	ticketIds, err := c.Evm.CandidatePoolContext.GetLuckyTickets(c.Evm.StateDB, 0)
-	if nil != err {
-		log.Error("Failed to GetCurrentRLuckyTickets==> ", "GetLuckyTickets return err: ", err.Error())
-	}
-	data, _ := json.Marshal(ticketIds)
-	sdata := DecodeResultStr(string(data))
-	log.Info("Result of GetCurrentRLuckyTickets==> ", "len(ticketIds): ", len(ticketIds), "json: ", string(data))
+	log.Info("Result of GetVerifiersList==> ", "len(verifiers): ", len(verifiers), "json: ", string(data))
 	return sdata, nil
 }
 
