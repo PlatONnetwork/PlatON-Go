@@ -18,7 +18,6 @@ package core
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"

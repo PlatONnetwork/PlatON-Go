@@ -7,15 +7,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	//"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"fmt"
 	"math/big"
 	"sync"
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
-	//"runtime/debug"
 	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 )
 
@@ -35,11 +32,8 @@ type ppos struct {
 	candidateContext 	*pposm.CandidatePoolContext
 	// the ticket pool object pointer
 	ticketContext				*pposm.TicketPoolContext
-	// //the ticket id list cache
-	//ticketidsCache 			*ticketcache.TicketTempCache
 
-
-	pposTemp 			ppos_storage.PPOS_TEMP
+	pposTemp 			*ppos_storage.PPOS_TEMP
 }
 
 
@@ -211,7 +205,7 @@ func (p *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discove
 // -1: 		previous round
 // 0:		current round
 // 1: 		next round
-func (p *ppos) GetWitnessCandidate (state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
+func (p *ppos) GetWitnessCandidate (state vm.StateDB, nodeId discover.NodeID, flag int) *types.Candidate {
 	return p.candidateContext.GetWitnessCandidate(state, nodeId, flag)
 }
 
@@ -381,12 +375,12 @@ func (p *ppos) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types
 }
 
 // Getting immediate or reserve candidate info by nodeId
-func (p *ppos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
+func (p *ppos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) *types.Candidate {
 	return p.candidateContext.GetCandidate(state, nodeId)
 }
 
 // Getting immediate or reserve candidate info arr by nodeIds
-func (p *ppos) GetCandidateArr (state vm.StateDB, nodeIds ... discover.NodeID) (types.CandidateQueue, error) {
+func (p *ppos) GetCandidateArr (state vm.StateDB, nodeIds ... discover.NodeID) types.CandidateQueue {
 	return p.candidateContext.GetCandidateArr(state, nodeIds...)
 }
 
@@ -406,12 +400,12 @@ func (p *ppos) GetChairpersons(state vm.StateDB) []*types.Candidate {
 }
 
 // Getting all refund array by nodeId
-func (p *ppos) GetDefeat(state vm.StateDB, nodeId discover.NodeID) ([]*types.Candidate, error) {
+func (p *ppos) GetDefeat(state vm.StateDB, nodeId discover.NodeID) types.RefundQueue {
 	return p.candidateContext.GetDefeat(state, nodeId)
 }
 
 // Checked current candidate was defeat by nodeId
-func (p *ppos) IsDefeat(state vm.StateDB, nodeId discover.NodeID) (bool, error) {
+func (p *ppos) IsDefeat(state vm.StateDB, nodeId discover.NodeID) bool {
 	return p.candidateContext.IsDefeat(state, nodeId)
 }
 
@@ -426,7 +420,7 @@ func (p *ppos) GetOwner(state vm.StateDB, nodeId discover.NodeID) common.Address
 }
 
 // Getting allow block interval for refunds
-func (p *ppos) GetRefundInterval() uint64 {
+func (p *ppos) GetRefundInterval() uint32 {
 	return p.candidateContext.GetRefundInterval()
 }
 
@@ -434,36 +428,32 @@ func (p *ppos) GetRefundInterval() uint64 {
 
 /** about ticketpool's method */
 
-func (p *ppos) GetPoolNumber (state vm.StateDB) (uint64, error) {
+func (p *ppos) GetPoolNumber (state vm.StateDB) uint32 {
 	return p.ticketContext.GetPoolNumber(state)
 }
 
-func (p *ppos) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
+func (p *ppos) VoteTicket (state vm.StateDB, owner common.Address, voteNumber uint32, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) (uint32, error) {
 	return p.ticketContext.VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber)
 }
 
-func (d *ppos) GetTicket(state vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
+func (d *ppos) GetTicket(state vm.StateDB, ticketId common.Hash) *types.Ticket {
 	return d.ticketContext.GetTicket(state, ticketId)
 }
 
-func (p *ppos) GetTicketList (state vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
+func (p *ppos) GetTicketList (state vm.StateDB, ticketIds []common.Hash) []*types.Ticket {
 	return p.ticketContext.GetTicketList(state, ticketIds)
 }
 
-func (p *ppos) GetCandidateTicketIds (state vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
+func (p *ppos) GetCandidateTicketIds (state vm.StateDB, nodeId discover.NodeID) []common.Hash {
 	return p.ticketContext.GetCandidateTicketIds(state, nodeId)
 }
 
-func (p *ppos) GetCandidateEpoch (state vm.StateDB, nodeId discover.NodeID) (uint64, error) {
+func (p *ppos) GetCandidateEpoch (state vm.StateDB, nodeId discover.NodeID) uint64 {
 	return p.ticketContext.GetCandidateEpoch(state, nodeId)
 }
 
-func (p *ppos) GetTicketPrice (state vm.StateDB) (*big.Int, error) {
+func (p *ppos) GetTicketPrice (state vm.StateDB) *big.Int {
 	return p.ticketContext.GetTicketPrice(state)
-}
-
-func (p *ppos) GetCandidateAttach (state vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
-	return p.ticketContext.GetCandidateAttach(state, nodeId)
 }
 
 func (p *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
@@ -978,10 +968,7 @@ func cmpSwitch (round, currentNum uint64) int {
 	}
 }
 
-func (p *ppos) setTicketPoolCache () {
-	p.ticketidsCache = ticketcache.GetTicketidsCachePtr()
+func (p *ppos) setPPOS_Temp(){
+	p.pposTemp = ppos_storage.GetPPosTempPtr()
 }
 
-func (p *ppos) ForEachStorage(state *state.StateDB, title string) {
-	p.candidateContext.ForEachStorage(state, title)
-}

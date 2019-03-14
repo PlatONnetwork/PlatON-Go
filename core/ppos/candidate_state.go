@@ -11,16 +11,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"net"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
-	"bytes"
 	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
-	"github.com/hyperledger/fabric/common/tools/cryptogen/ca"
 )
 
 const (
@@ -502,12 +498,12 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 
 
 // Getting immediate or reserve candidate info by nodeId
-func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
+func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID) *types.Candidate {
 	return c.getCandidate(state, nodeId)
 }
 
 // Getting immediate or reserve candidate info arr by nodeIds
-func (c *CandidatePool) GetCandidateArr(state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
+func (c *CandidatePool) GetCandidateArr(state vm.StateDB, nodeIds ...discover.NodeID) types.CandidateQueue {
 	return c.getCandidates(state, nodeIds...)
 }
 
@@ -690,9 +686,11 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			}else {
 				handleFunc(can.CandidateId, ppos_storage.RESERVE)
 			}
-
+			nodeIdArr = append(nodeIdArr, nodeId)
 			// 需要重新变更 两个池子
-			nodeIdArr = c.shuffleQueue(state, blockNumber)
+			if arr := c.shuffleQueue(state, blockNumber); len(arr) != 0 {
+				nodeIdArr = append(nodeIdArr, arr...)
+			}
 		}
 	}
 	log.Info("Call WithdrawCandidate SUCCESS !!!!!!!!!!!!")
@@ -1095,11 +1093,11 @@ func(c *CandidatePool) repledgCheck (state vm.StateDB, can *types.Candidate, cur
 				Owner:       can.Owner,
 			}
 			c.setRefund(can.CandidateId, refund)
+			nodeIds = append(nodeIds, can.CandidateId)
 
 			// 需要重新变更 两个池子
 			nIds := c.shuffleQueue(state, currentBlockNumber)
 
-			nodeIds = append(nodeIds, can.CandidateId)
 			if len(nIds) != 0 {
 				nodeIds = append(nodeIds, nIds...)
 			}
@@ -1317,231 +1315,222 @@ func (c *CandidatePool) GetRefundInterval() uint32 {
 // According to the nodeId to ensure the current candidate's stay
 func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *big.Int, nodeIds ...discover.NodeID) error {
 	log.Info("Call UpdateElectedQueue start ...")
-	var ids []discover.NodeID
-	if arr, err := c.updateQueue(state, nodeIds...); nil != err {
-		return err
-	} else {
-		ids = arr
-	}
+	arr := c.updateQueue(state, currBlockNumber, nodeIds...)
 	log.Info("Call UpdateElectedQueue SUCCESS !!!!!!!!! ")
 	//go ticketPool.DropReturnTicket(state, ids...)
-	if len(ids) > 0 {
-		return tContext.DropReturnTicket(state, currBlockNumber, ids...)
+	if len(arr) > 0 {
+		return tContext.DropReturnTicket(state, currBlockNumber, arr...)
 	}
 	return nil
 }
 
-func (c *CandidatePool) updateQueue(state vm.StateDB, nodeIds ...discover.NodeID) ([]discover.NodeID, error) {
+func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.Int, nodeIds ...discover.NodeID) []discover.NodeID {
 	log.Info("Call UpdateElectedQueue Update the Campaign queue Start ...")
 	PrintObject("Call UpdateElectedQueue input param's nodeIds is:", nodeIds)
 	if len(nodeIds) == 0 {
 		log.Debug("UpdateElectedQueue FINISH, input param's nodeIds is empty !!!!!!!!!!")
-		return nil, nil
+		return nil
 	}
 
 
-	im_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
-	re_queue := c.getCandidateQueue(ppos_storage.RESERVE)
+	c.initData2Cache(state, GET_IM_RE)
 
-
-	// 流程为：
-	// 先判断身上的得票数 及 之前所在的池子
-	workFunc := func (oldQueue, newQueue int, can *types.Candidate){
-
-	}
-
-
-
-
-
-	handleFunc := func(delTitle, setTitle string, nodeId discover.NodeID, oldMap, newMap candidateStorage,
-		delOldInfoFn func(state vm.StateDB, candidateId discover.NodeID),
-		delNewInfoFn func(state vm.StateDB, candidateId discover.NodeID),
-		setNewInfoFn func(state vm.StateDB, candidateId discover.NodeID, can *types.Candidate) error,
-		getOldIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
-		setOldIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error,
-		setNewIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error,
-	) ([]discover.NodeID, types.CandidateQueue, error) {
-
-		log.Debug("Call UpdateElectedQueue 【Handing】...", "old", delTitle, "new", setTitle)
-		PrintObject("Call UpdateElectedQueue oldMap", oldMap)
-		PrintObject("Call UpdateElectedQueue newMap", newMap)
-		can := oldMap[nodeId]
-		newMap[nodeId] = can
-
-		// cache
-		cacheArr := make(types.CandidateQueue, 0)
-		for _, v := range newMap {
-			cacheArr = append(cacheArr, v)
+	delCanFromQueueFunc := func(nodeId discover.NodeID, queue types.CandidateQueue, flag int) {
+		for i, can := range queue {
+			if nodeId == can.CandidateId {
+				queue = append(queue[:i], queue[i+1:]...)
+				break
+			}
 		}
+		c.setCandidateQueue(queue, flag)
+	}
 
-		// sort cache array
-		makeCandidateSort(state, cacheArr)
 
-		// nodeIds cache for lost elected
-		cacheNodeIds := make([]discover.NodeID, 0)
+	handleReserveFunc := func(queue types.CandidateQueue) []discover.NodeID {
 
-		if len(cacheArr) > int(c.maxCount) {
+		makeCandidateSort(state, queue)
+		if len(queue) > int(c.maxCount) {
 			// Intercepting the lost candidates to tmpArr
-			tmpArr := (cacheArr)[c.maxCount:]
+			tmpArr := (queue)[c.maxCount:]
 			// qualified elected candidates
-			cacheArr = (cacheArr)[:c.maxCount]
+			queue = (queue)[:c.maxCount]
+
+			// cache
+			nodeIdQueue := make([]discover.NodeID, 0)
 
 			// handle tmpArr
 			for _, tmpCan := range tmpArr {
-				// delete the lost candidates from elected candidates of trie
-				delNewInfoFn(state, tmpCan.CandidateId)
-				// append to refunds (defeat) trie
-				if err := c.setDefeat(state, tmpCan.CandidateId, tmpCan); nil != err {
-					return nil, nil, err
+				refund := &types.CandidateRefund{
+					Deposit:     big.NewInt(tmpCan.Deposit.Int64()),
+					BlockNumber: big.NewInt(currentBlockNumber.Int64()),
+					Owner:       tmpCan.Owner,
 				}
-				cacheNodeIds = append(cacheNodeIds, tmpCan.CandidateId)
+
+				c.setRefund(tmpCan.CandidateId, refund)
+				nodeIdQueue = append(nodeIdQueue, tmpCan.CandidateId)
 			}
-
-			// update index of refund (defeat) on trie
-			if err := c.setDefeatIndex(state); nil != err {
-				return nil, nil, err
+			c.setCandidateQueue(queue, ppos_storage.RESERVE)
+			// shuffle queues
+			if arr := c.shuffleQueue(state, currentBlockNumber); len(arr) != 0 {
+				nodeIdQueue = append(nodeIdQueue, arr...)
 			}
-		}
-
-		/** delete ... */
-
-		delOldInfoFn(state, can.CandidateId)
-		// update can's ids index
-		if ids, err := getOldIndexFn(state); nil != err {
-			log.Error("Failed to get"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
-			return nil, nil, err
-		} else {
-			//for i, id := range ids {
-			for i := 0; i < len(ids); i++ {
-				id := ids[i]
-				if id == can.CandidateId {
-					ids = append(ids[:i], ids[i+1:]...)
-					i--
-				}
-			}
-			if err := setOldIndexFn(state, ids); nil != err {
-				log.Error("Failed to set"+delTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
-				return nil, nil, err
-			}
-		}
-
-		/** setting ... */
-
-		// cache id
-		sortIds := make([]discover.NodeID, 0)
-
-		// insert elected candidate to tire
-		for _, can := range cacheArr {
-			if err := setNewInfoFn(state, can.CandidateId, can); nil != err {
-				log.Error("Failed to set"+setTitle+" on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
-				return nil, nil, err
-			}
-			sortIds = append(sortIds, can.CandidateId)
-		}
-		// update index of elected candidates on trie
-		if err := setNewIndexFn(state, sortIds); nil != err {
-			log.Error("Failed to set"+setTitle+"Index on UpdateElectedQueue", "nodeId", can.CandidateId.String(), "err", err)
-			return nil, nil, err
-		}
-		return cacheNodeIds, cacheArr, nil
-	}
-
-	// directed to generate refund
-	directdropFunc := func(title string, can *types.Candidate,
-		delInfoFn func(state vm.StateDB, candidateId discover.NodeID),
-		getIndexFn func(state vm.StateDB) ([]discover.NodeID, error),
-		setIndexFn func(state vm.StateDB, nodeIds []discover.NodeID) error) error {
-
-		log.Debug("【Enter the logic directly of generate defeat】: deleted "+title+"'s Can information on UpdateElectedQueue", "nodeId", can.CandidateId.String())
-		delInfoFn(state, can.CandidateId)
-
-		// append to refunds (defeat) trie
-		if err := c.setDefeat(state, can.CandidateId, can); nil != err {
-			return err
-		}
-
-		// update index of refund (defeat) on trie
-		if err := c.setDefeatIndex(state); nil != err {
-			return err
-		}
-
-		// update reserve id index
-		if ids, err := getIndexFn(state); nil != err {
-			log.Error("Failed to get"+title+"Index on UpdateElectedQueue", "err", err)
-			return err
-		} else {
-			//for i, id := range ids {
-			for i := 0; i < len(ids); i++ {
-				id := ids[i]
-				if id == can.CandidateId {
-					ids = append(ids[:i], ids[i+1:]...)
-					i--
-				}
-			}
-			if err := setIndexFn(state, ids); nil != err {
-				log.Error("Failed to set"+title+"Index on UpdateElectedQueue", "err", err)
-				return err
-			}
+			return nodeIdQueue
 		}
 		return nil
 	}
 
-	delNodeIds := make([]discover.NodeID, 0)
+	/**
+	This function handles Immediate queues and Reserve queues
+	for moving into the opposing queue
+	 */
+	// 流程为：
+	// 先判断身上的得票数 及 之前所在的池子
+	workFunc := func (oldQueueFlag, newQueueFlag int, can *types.Candidate) []discover.NodeID {
+		old_queue := c.getCandidateQueue(oldQueueFlag)
+		new_queue := c.getCandidateQueue(newQueueFlag)
 
+		nodeIdQueue := make([]discover.NodeID, 0)
+
+		/**
+		immediate move to reserve
+		 */
+		if oldQueueFlag == ppos_storage.IMMEDIATE {
+			// delete immediate
+			delCanFromQueueFunc(can.CandidateId, old_queue, oldQueueFlag)
+			// input reserve
+			new_queue = append(new_queue, can)
+			if nodeIdArr := handleReserveFunc(new_queue); len(nodeIdArr) != 0 {
+				nodeIdQueue = append(nodeIdQueue, nodeIdArr...)
+			}
+			return nodeIdQueue
+		}else {
+			/**
+			reserve move to immediate
+			 */
+			// delete reserve
+			delCanFromQueueFunc(can.CandidateId, old_queue, oldQueueFlag)
+			// input immediate
+			new_queue = append(new_queue, can)
+			makeCandidateSort(state, new_queue)
+
+			var inRes bool
+			if len(new_queue) > int(c.maxCount) {
+				// Intercepting the lost candidates to tmpArr
+				tmpArr := (new_queue)[c.maxCount:]
+				// qualified elected candidates
+				new_queue = (new_queue)[:c.maxCount]
+
+				inRes = true
+				// reenter into reserve
+				old_queue = append(old_queue, tmpArr...)
+			}
+
+			// update immediate
+			c.setCandidateQueue(new_queue, ppos_storage.IMMEDIATE)
+			if inRes {
+				if nodeIdArr := handleReserveFunc(old_queue); len(nodeIdArr) != 0 {
+					nodeIdQueue = append(nodeIdQueue, nodeIdArr...)
+				}
+			}
+			return nodeIdQueue
+		}
+
+	}
+
+
+	/**
+	This function handles candidates who drop out of the list directly Cause  conditions are not met.
+	 */
+	directedOutFunc := func(flag int, can *types.Candidate) []discover.NodeID {
+
+		// cache
+		nodeIdQueue := make([]discover.NodeID, 0)
+
+		if flag == ppos_storage.IMMEDIATE {
+			im_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
+			re_queue := c.getCandidateQueue(ppos_storage.RESERVE)
+
+
+			var isRes bool
+			for i, im_Can := range im_queue {
+				if can.CandidateId == im_Can.CandidateId {
+					im_queue = append(im_queue[:i], im_queue[i+1:]...)
+					re_queue = append(re_queue, im_Can)
+					isRes = true
+					break
+				}
+			}
+			// update reserve queue
+			c.setCandidateQueue(im_queue, ppos_storage.IMMEDIATE)
+
+			if isRes {
+				if nodeIdArr := handleReserveFunc(re_queue); len(nodeIdArr) != 0 {
+					nodeIdQueue = append(nodeIdQueue, nodeIdArr...)
+				}
+			}
+
+			return nodeIdQueue
+
+		}else {
+			re_queue := c.getCandidateQueue(ppos_storage.RESERVE)
+			for i, re_Can := range re_queue {
+				if can.CandidateId == re_Can.CandidateId {
+					re_queue = append(re_queue[:i], re_queue[i+1:]...)
+					break
+				}
+			}
+			// update reserve queue
+			c.setCandidateQueue(re_queue, ppos_storage.RESERVE)
+
+			// refund
+			refund := &types.CandidateRefund{
+				Deposit:     big.NewInt(can.Deposit.Int64()),
+				BlockNumber: big.NewInt(currentBlockNumber.Int64()),
+				Owner:       can.Owner,
+			}
+
+			c.setRefund(can.CandidateId, refund)
+			nodeIdQueue = append(nodeIdQueue, can.CandidateId)
+			return nodeIdQueue
+		}
+	}
+
+
+	/**
+	Really Handle Can queue
+	 */
 	for _, nodeId := range nodeIds {
 
 		switch c.checkExist(nodeId) {
+
 		case IS_IMMEDIATE:
 			log.Debug("Call UpdateElectedQueue The current nodeId was originally in the Immediate ...")
 			can := c.immediateCandidates[nodeId]
 
-			if tcount, noDrop := c.checkDeposit(state, can, true); !noDrop { // Direct drop
-				if err := directdropFunc("Immediate", can, c.delImmediate, c.getImmediateIndex, c.setImmediateIndex); nil != err {
-					return nil, err
-				} else {
-					delNodeIds = append(delNodeIds, nodeId)
-				}
-			} else if noDrop && !tcount {
-				log.Info("Call UpdateElectedQueue Originally in im need to move to re", "nodeId", nodeId.String())
-				if delIds, canArr, err := handleFunc("Immediate", "Reserve", nodeId, c.immediateCandidates, c.reserveCandidates,
-					c.delImmediate, c.delReserve, c.setReserve, c.getImmediateIndex, c.setImmediateIndex, c.setReserveIndex); nil != err {
-					return nil, err
-				} else {
-					c.reserveCacheArr = append(c.reserveCacheArr, canArr...)
-					if len(delIds) != 0 {
-						delNodeIds = append(delNodeIds, delIds...)
-					}
-				}
+			if tCount, noDropFlag := c.checkDeposit(state, can, true); !noDropFlag { // Direct drop
+				log.Debug("Call UpdateElectedQueue The current nodeId was originally in the Immediate, Directed drop ...")
+				return directedOutFunc(ppos_storage.IMMEDIATE, can)
+			}else if noDropFlag && !tCount{
+				log.Debug("Call UpdateElectedQueue Originally in im need to move to re", "nodeId", nodeId.String())
+				return workFunc(ppos_storage.IMMEDIATE, ppos_storage.RESERVE, can)
 			}
 		case IS_RESERVE:
 			log.Debug("Call UpdateElectedQueue The current nodeId was originally in the Reserve ...")
 			can := c.reserveCandidates[nodeId]
 
-			if tcount, noDrop := c.checkDeposit(state, can, true); !noDrop { // Direct drop
-				if err := directdropFunc("Reserve", can, c.delReserve, c.getReserveIndex, c.setReserveIndex); nil != err {
-					return nil, err
-				} else {
-					delNodeIds = append(delNodeIds, nodeId)
-				}
-			} else if noDrop && tcount {
-				log.Info("Call UpdateElectedQueue Originally in re need to move to im", "nodeId", nodeId.String())
-				if delIds, canArr, err := handleFunc("Reserve", "Immediate", nodeId, c.reserveCandidates, c.immediateCandidates,
-					c.delReserve, c.delImmediate, c.setImmediate, c.getReserveIndex, c.setReserveIndex, c.setImmediateIndex); nil != err {
-					return nil, err
-				} else {
-					c.immediateCacheArr = append(c.immediateCacheArr, canArr...)
-					if len(delIds) != 0 {
-						delNodeIds = append(delNodeIds, delIds...)
-					}
-				}
+			if tcount, noDropFlag := c.checkDeposit(state, can, true); !noDropFlag { // Direct drop
+				log.Debug("Call UpdateElectedQueue The current nodeId was originally in the Reserve, Directed drop ...")
+				return directedOutFunc(ppos_storage.RESERVE, can)
+			}else if noDropFlag && tcount {
+				log.Debug("Call UpdateElectedQueue Originally in re need to move to im", "nodeId", nodeId.String())
+				return workFunc(ppos_storage.RESERVE, ppos_storage.IMMEDIATE, can)
+
 			}
 		default:
 			continue
 		}
 	}
-
-	return delNodeIds, nil
+	return nil
 }
 
 
@@ -1568,30 +1557,23 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, hol
 	// Number of vote ticket by nodes
 	tcount := c.checkTicket(tContext.GetCandidateTicketCount(state, can.CandidateId))
 
-	// if the pool is no full: (Only reserve pool)
-	// a、first pledge: x >=  threshold
+	// if self have already exist:
 	// b、no first pledge: x >= self * 110%
 	//
-	// if the pool is full:
+	// if the pool is full:(Only reserve pool)
 	// c、x > last * 110 %
 
 	// TODO 有待思考 ： 未满，已满，自己在其中，不在其中
-	// 如果池子没满：
-	// 首次质押 > 100W
+	// 如果自己原来就存在池子中：
 	// 增持质押 > self * 110%
 
 	// 池子满了：
 	// 质押 > 最后一名 * 110%
 
 
-	compareFunc := func(target, current *types.Candidate, logA, logB string, flag bool) (bool, bool) {
+	compareFunc := func(target, current *types.Candidate, logA, logB string) (bool, bool) {
 		lastDeposit := target.Deposit
-		var eq bool
-		if flag {
-			eq = can.CandidateId == target.CandidateId
-		}else {
-			eq = true
-		}
+
 
 		// y = 100 + x
 		percentage := new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit)))
@@ -1602,7 +1584,7 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, hol
 		if can.Deposit.Cmp(tmp) < 0 {
 			// If last is self and holdslef flag is true
 			// we must return true (Keep self on staying in the original queue)
-			if holdself &&  eq {
+			if holdself &&  can.CandidateId == target.CandidateId {
 				log.Debug(logA + tmp.String())
 				return tcount, true
 			}
@@ -1612,48 +1594,66 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, hol
 		return tcount, true
 	}
 
+	//var queueFlag int
+	var storageMap candidateStorage
 
+	if _, ok := c.immediateCandidates[can.CandidateId]; ok {
+		//queueFlag = IS_IMMEDIATE
+		storageMap = c.immediateCandidates
+	}
+	if _, ok := c.reserveCandidates[can.CandidateId]; ok {
+		//queueFlag = IS_RESERVE
+		storageMap = c.reserveCandidates
+	}
 
 	/**
 	If the current number of votes achieving the conditions for entering the immediate queue
 	*/
 	if tcount{
-		immediateArr := c.storage.GetCandidateQueue(ppos_storage.IMMEDIATE)
-		/**  When the immediate pool is full */
-		if uint32(len(immediateArr)) == c.maxCount{
-			last := immediateArr[len(immediateArr)-1]
-			logA := `The immeidate pool is full, and last is self and holdslef is true, Keep self on staying in the original queue, ` +
-					`current can nodeId:` + can.CandidateId.String() + ` last can nodeId:` + last.CandidateId.String() + ` the length of current immediate pool:` +
-					fmt.Sprint(len(immediateArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` +
-					can.Deposit.String() + ` 110% of the last can in the immediate pool: `
+		//immediateArr := c.storage.GetCandidateQueue(ppos_storage.IMMEDIATE)
+		///**  When the immediate pool is full */
+		//if uint32(len(immediateArr)) == c.maxCount{
+		//	last := immediateArr[len(immediateArr)-1]
+		//	logA := `The immeidate pool is full, and last is self and holdslef is true, Keep self on staying in the original queue, ` +
+		//			`current can nodeId:` + can.CandidateId.String() + ` last can nodeId:` + last.CandidateId.String() + ` the length of current immediate pool:` +
+		//			fmt.Sprint(len(immediateArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` +
+		//			can.Deposit.String() + ` 110% of the last can in the immediate pool: `
+		//
+		//	logB := `The immeidate pool is full, and the current can's Deposit is less than 110% of the last can in the immediate pool.` +
+		//			`the length of current immediate pool: ` + fmt.Sprint(len(immediateArr)) + ` the limit of Configuration: ` + fmt.Sprint(c.maxCount) +
+		//			` current can's Deposit:` + can.Deposit.String() + ` 110% of the last can in the immediate pool: `
+		//	return compareFunc(last, can, logA, logB, true)
+		//}
 
-			logB := `The immeidate pool is full, and the current can's Deposit is less than 110% of the last can in the immediate pool.` +
-					`the length of current immediate pool: ` + fmt.Sprint(len(immediateArr)) + ` the limit of Configuration: ` + fmt.Sprint(c.maxCount) +
-					` current can's Deposit:` + can.Deposit.String() + ` 110% of the last can in the immediate pool: `
-			return compareFunc(last, can, logA, logB, true)
+		// if it already exist immediate
+		// compare old self deposit
+		if old_self, ok := storageMap[can.CandidateId]; ok {
+
+			logA := `The can already exist in queue, and holdslef is true, Keep self on staying in the original queue, current can nodeId:` + can.CandidateId.String() +
+				` the length of current queue:` +  fmt.Sprint(len(storageMap)) + ` the limit of Configuration:` +  fmt.Sprint(c.maxCount) +
+				` current can's Deposit: ` + can.Deposit.String() + ` 110% of it old_self in the queue: `
+
+			logB := `The can already exist in queue, and holdslef is true，and the current can's Deposit is less than 110% of the it old self in the queue.` +
+				`the length of current queue:` +  fmt.Sprint(len(storageMap)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` +
+				can.Deposit.String() + ` 110% of it old_self in the queue: `
+
+			return compareFunc(old_self, can, logA, logB)
 		}
+
+
 	}
 
 	/**
 	If the can will enter the reserve pool
 	*/
 	if !tcount  {
-		// if the can is first pledge ?
-		var noFirst int = 0  // 0: first  1: no first
-		var hasRe bool
-		if _, ok := c.immediateCandidates[can.CandidateId]; ok {
-			noFirst |= 1
-		}
-		if _, ok := c.reserveCandidates[can.CandidateId]; ok {
-			noFirst |= 1
-			hasRe = true
-		}
+
 
 		reserveArr := c.storage.GetCandidateQueue(ppos_storage.RESERVE)
 
 
 		// Is first pledge and the reserve pool is full
-		if noFirst == 0 && uint32(len(reserveArr)) == c.maxCount {
+		if _, ok := storageMap[can.CandidateId]; !ok  && uint32(len(reserveArr)) == c.maxCount {
 			last := reserveArr[len(reserveArr)-1]
 
 			logA := `The reserve pool is full, and last is self and holdslef is true, Keep self on staying in the original queue, the length of current reserve pool: ` +
@@ -1664,39 +1664,19 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, hol
 					fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` +  fmt.Sprint(c.maxCount) + ` current can's Deposit:` + can.Deposit.String() +
 					`110% of the last can in the reserve pool:`
 
-			return compareFunc(last, can, logA, logB, true)
+			return compareFunc(last, can, logA, logB)
 
 
-		}else if noFirst != 0 { // Is'nt first pledge
-			if hasRe { // already exist in reserve pool
-				old_self := c.reserveCandidates[can.CandidateId]
-
+		}else if old_self, ok := storageMap[can.CandidateId]; ok { // Is'nt first pledge
 				logA := `The can already exist in reserve, and holdslef is true, Keep self on staying in the original queue, current can nodeId:` + can.CandidateId.String() +
 						` the length of current reserve pool:` +  fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` +  fmt.Sprint(c.maxCount) +
-						` current can's Deposit: ` + can.Deposit.String() + ` 110% of it old self in the reserve pool: `
+						` current can's Deposit: ` + can.Deposit.String() + ` 110% of it old_self in the reserve pool: `
 
 				logB := `The can already exist in reserve, and holdslef is true，and the current can's Deposit is less than 110% of the it old self in the reserve pool.` +
 					`the length of current reserve pool:` +  fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` +
-					can.Deposit.String() + ` 110% of it old self in the reserve pool: `
+					can.Deposit.String() + ` 110% of it old_self in the reserve pool: `
 
-				return compareFunc(old_self, can, logA, logB, false)
-			}
-
-			// If already exist in immediate pool and current reserve pool is full
-			// we will compare it and the last can
-			if !hasRe && uint32(len(reserveArr)) == c.maxCount {
-				last := reserveArr[len(reserveArr)-1]
-
-				logA := `The can already exist in immedidate, and holdslef is true, Keep self on staying in the original queue, current can nodeId:` + can.CandidateId.String() +
-						` the length of current reserve pool:` + fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` +  fmt.Sprint(c.maxCount) + ` current can's Deposit: ` +
-						can.Deposit.String() + ` 110% of the last can in the reserve pool: `
-
-				logB := `The can already exist in reserve, and holdslef is true，and the current can's Deposit is less than 110% of the last can in the reserve pool.` +
-				 `the length of current reserve pool:` +  fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` +
-				 can.Deposit.String() + `110% of the last can in the reserve pool:`
-				return compareFunc(last, can, logA, logB, false)
-
-			}
+				return compareFunc(old_self, can, logA, logB)
 		}
 	}
 	return tcount, true
@@ -1741,20 +1721,20 @@ func (c *CandidatePool) checkTicket(t_count uint32) bool {
 	return false
 }
 
-func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
+func (c *CandidatePool) getCandidate(state vm.StateDB, nodeId discover.NodeID) *types.Candidate {
 	c.initData2Cache(state, GET_IM_RE)
 	if candidatePtr, ok := c.immediateCandidates[nodeId]; ok {
 		PrintObject("Call GetCandidate return immediate：", *candidatePtr)
-		return candidatePtr, nil
+		return candidatePtr
 	}
 	if candidatePtr, ok := c.reserveCandidates[nodeId]; ok {
 		PrintObject("Call GetCandidate return reserve：", *candidatePtr)
-		return candidatePtr, nil
+		return candidatePtr
 	}
-	return nil, nil
+	return nil
 }
 
-func (c *CandidatePool) getCandidates(state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
+func (c *CandidatePool) getCandidates(state vm.StateDB, nodeIds ...discover.NodeID) types.CandidateQueue {
 	c.initData2Cache(state, GET_IM_RE)
 	canArr := make(types.CandidateQueue, 0)
 	tem := make(map[discover.NodeID]struct{}, 0)
@@ -1774,7 +1754,7 @@ func (c *CandidatePool) getCandidates(state vm.StateDB, nodeIds ...discover.Node
 			tem[nodeId] = struct{}{}
 		}
 	}
-	return canArr, nil
+	return canArr
 }
 
 func (c *CandidatePool) MaxChair() uint32 {
@@ -1784,7 +1764,7 @@ func (c *CandidatePool) MaxChair() uint32 {
 func (c *CandidatePool) MaxCount() uint32 {
 	return c.maxCount
 }
-
+// TODO 这个需要观察
 func (c *CandidatePool) shuffleQueue(state vm.StateDB, currentBlockNumber *big.Int) []discover.NodeID {
 	// 暴力遍历 备选池
 
@@ -1801,12 +1781,12 @@ func (c *CandidatePool) shuffleQueue(state vm.StateDB, currentBlockNumber *big.I
 		if uint32(len(im_queue)) == c.maxCount {
 			last := im_queue[len(im_queue) - 1]
 			tCount := tContext.GetCandidateTicketCount(state, last.CandidateId)
-			price, _ := tContext.GetTicketPrice(state)
+			price := tContext.GetTicketPrice(state)
 			tprice := new(big.Int).Mul(big.NewInt(int64(tCount)), price)
 			last_money := new(big.Int).Add(last.Deposit, tprice)
 
 			// current re can
-			curr_price, _ := tContext.GetTicketPrice(state)
+			curr_price := tContext.GetTicketPrice(state)
 			curr_tprice := new(big.Int).Mul(big.NewInt(int64(tCount)), curr_price)
 			curr_money := new(big.Int).Add(can.Deposit, curr_tprice)
 
@@ -1909,6 +1889,10 @@ func (c *CandidatePool) setRefund(nodeId discover.NodeID, refund *types.Candidat
 
 func (c *CandidatePool) setRefunds(nodeId discover.NodeID, refundArr types.RefundQueue) {
 	c.storage.SetRefunds(nodeId, refundArr)
+}
+
+func (c *CandidatePool) appendRefunds (nodeId discover.NodeID, refundArr types.RefundQueue) {
+	c.storage.AppendRefunds(nodeId, refundArr)
 }
 
 func (c *CandidatePool) getRefunds(nodeId discover.NodeID) types.RefundQueue {
@@ -2151,7 +2135,7 @@ func makeCandidateSort(state vm.StateDB, arr types.CandidateQueue) {
 	cand := make(types.CanConditions, 0)
 	for _, can := range arr {
 		tCount := tContext.GetCandidateTicketCount(state, can.CandidateId)
-		price, _ := tContext.GetTicketPrice(state)
+		price := tContext.GetTicketPrice(state)
 		tprice := new(big.Int).Mul(big.NewInt(int64(tCount)), price)
 
 		money := new(big.Int).Add(can.Deposit, tprice)
