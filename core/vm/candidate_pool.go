@@ -33,20 +33,20 @@ const (
 
 type candidatePoolContext interface {
 	SetCandidate(state StateDB, nodeId discover.NodeID, can *types.Candidate) error
-	GetCandidate(state StateDB, nodeId discover.NodeID) (*types.Candidate, error)
-	GetCandidateArr(state StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error)
+	GetCandidate(state StateDB, nodeId discover.NodeID) *types.Candidate
+	GetCandidateArr(state StateDB, nodeIds ...discover.NodeID) types.CandidateQueue
 	WithdrawCandidate(state StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error
 	GetChosens(state StateDB, flag int) types.CandidateQueue
 	GetChairpersons(state StateDB) types.CandidateQueue
-	GetDefeat(state StateDB, nodeId discover.NodeID) (types.CandidateQueue, error)
-	IsDefeat(state StateDB, nodeId discover.NodeID) (bool, error)
-	IsChosens(state StateDB, nodeId discover.NodeID) (bool, error)
+	GetDefeat(state StateDB, nodeId discover.NodeID) types.RefundQueue
+	IsDefeat(state StateDB, nodeId discover.NodeID) bool
+	IsChosens(state StateDB, nodeId discover.NodeID) bool
 	RefundBalance(state StateDB, nodeId discover.NodeID, blockNumber *big.Int) error
 	GetOwner(state StateDB, nodeId discover.NodeID) common.Address
 	SetCandidateExtra(state StateDB, nodeId discover.NodeID, extra string) error
-	GetRefundInterval() uint64
-	MaxCount() uint64
-	MaxChair() uint64
+	GetRefundInterval() uint32
+	MaxCount() uint32
+	MaxChair() uint32
 	GetLuckyTickets(state StateDB, flag int) ([]common.Hash, error)
 }
 
@@ -104,12 +104,10 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 			return nil, ErrOwnerNotOnly
 		}
 	}
-	can, err := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
-	if nil != err {
-		log.Error("Failed to CandidateDeposit==> ", "GetCandidate return err: ", err.Error())
-		return nil, err
-	}
+
 	var alldeposit *big.Int
+	can := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
+
 	if nil != can {
 		alldeposit = new(big.Int).Add(can.Deposit, deposit)
 		log.Info("CandidateDeposit==> ", "alldeposit: ", alldeposit, " can.Deposit: ", can.Deposit, " deposit: ", deposit)
@@ -124,13 +122,12 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		host,
 		port,
 		owner,
-		//from,
 		extra,
 		fee,
 		common.Hash{},
 	}
 	log.Info("CandidateDeposit==> ", "canDeposit: ", canDeposit)
-	if err = c.Evm.CandidatePoolContext.SetCandidate(c.Evm.StateDB, nodeId, &canDeposit); nil != err {
+	if err := c.Evm.CandidatePoolContext.SetCandidate(c.Evm.StateDB, nodeId, &canDeposit); nil != err {
 		log.Error("Failed to CandidateDeposit==> ", "SetCandidate return err: ", err.Error())
 		return nil, err
 	}
@@ -147,11 +144,8 @@ func (c *CandidateContract) CandidateApplyWithdraw(nodeId discover.NodeID, withd
 	from := c.Contract.caller.Address()
 	height := c.Evm.Context.BlockNumber
 	log.Info("Input to CandidateApplyWithdraw on WithdrawCandidate==> ", "nodeId: ", nodeId.String(), " from: ", from.Hex(), " txHash: ", txHash.Hex(), " withdraw: ", withdraw, " height: ", height)
-	can, err := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
-	if nil != err {
-		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "GetCandidate return err: ", err.Error())
-		return nil, err
-	}
+	can := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
+
 	if nil == can {
 		log.Error("Failed to CandidateApplyWithdraw on WithdrawCandidate==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
 		return nil, ErrCandidateNotExist
@@ -197,23 +191,20 @@ func (c *CandidateContract) CandidateWithdraw(nodeId discover.NodeID) ([]byte, e
 // Get the refund history you have applied for
 func (c *CandidateContract) CandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error) {
 	log.Info("Input to CandidateWithdrawInfos==> ", "nodeId: ", nodeId.String())
-	infos, err := c.Evm.CandidatePoolContext.GetDefeat(c.Evm.StateDB, nodeId)
-	if nil != err {
-		log.Error("Failed to CandidateWithdrawInfos==> ", "GetDefeat return err: ", err.Error())
-		return nil, err
-	}
+	refunds := c.Evm.CandidatePoolContext.GetDefeat(c.Evm.StateDB, nodeId)
+
 	type WithdrawInfo struct {
 		Balance        *big.Int
 		LockNumber     *big.Int
-		LockBlockCycle uint64
+		LockBlockCycle uint32
 	}
 	type WithdrawInfos struct {
 		Ret    bool
 		ErrMsg string
 		Infos  []WithdrawInfo
 	}
-	r := WithdrawInfos{true, "success", make([]WithdrawInfo, len(infos))}
-	for i, v := range infos {
+	r := WithdrawInfos{true, "success", make([]WithdrawInfo, len(refunds))}
+	for i, v := range refunds {
 		refundBlockNumber := c.Evm.CandidatePoolContext.GetRefundInterval()
 		log.Debug("Call CandidateWithdrawInfos==> ", "Deposit", v.Deposit, "BlockNumber", v.BlockNumber, "RefundBlockNumber", refundBlockNumber)
 		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, refundBlockNumber}
@@ -248,14 +239,7 @@ func (c *CandidateContract) SetCandidateExtra(nodeId discover.NodeID, extra stri
 // Get candidate details
 func (c *CandidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, error) {
 	log.Info("Input to CandidateDetails==> ", "nodeId: ", nodeId.String())
-	candidate, err := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
-	if nil != err {
-		log.Error("Failed to CandidateDetails==> ", "GetCandidate return err: ", err.Error())
-		candidate := types.Candidate{}
-		data, _ := json.Marshal(candidate)
-		sdata := DecodeResultStr(string(data))
-		return sdata, err
-	}
+	candidate:= c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil == candidate {
 		log.Warn("Failed to CandidateDetails==> The query does not exist")
 		candidate := types.Candidate{}
@@ -273,14 +257,8 @@ func (c *CandidateContract) CandidateDetails(nodeId discover.NodeID) ([]byte, er
 func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) ([]byte, error) {
 	input, _ := json.Marshal(nodeIds)
 	log.Info("Input to GetBatchCandidateDetail==>", "length: ", len(nodeIds), " nodeIds: ", string(input))
-	candidates, err := c.Evm.CandidatePoolContext.GetCandidateArr(c.Evm.StateDB, nodeIds...)
-	if nil != err {
-		log.Error("Failed to GetBatchCandidateDetail==> ", "GetCandidateArr return err: ", err.Error())
-		candidates := make([]types.Candidate, 0)
-		data, _ := json.Marshal(candidates)
-		sdata := DecodeResultStr(string(data))
-		return sdata, err
-	}
+	candidates := c.Evm.CandidatePoolContext.GetCandidateArr(c.Evm.StateDB, nodeIds...)
+
 	if 0 == len(candidates) {
 		log.Warn("Failed to GetBatchCandidateDetail==> The query does not exist")
 		candidates := make([]types.Candidate, 0)

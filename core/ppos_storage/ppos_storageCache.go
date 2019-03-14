@@ -85,22 +85,24 @@ type Ppos_storage struct {
 
 func (ps *Ppos_storage) Copy() *Ppos_storage {
 	ppos_storage := &Ppos_storage{}
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		if nil != ps.c_storage {
-			ppos_storage.c_storage = ps.CopyCandidateStorage()
-		}
-		wg.Done()
-	}()
+	//var wg sync.WaitGroup
+	//wg.Add(2)
+	//go func() {
+	//
+	//	wg.Done()
+	//}()
+	if nil != ps.c_storage {
+		ppos_storage.c_storage = ps.CopyCandidateStorage()
+	}
 
-	go func() {
-		if nil != ps.t_storage {
-			ppos_storage.t_storage = ps.CopyTicketStorage()
-		}
-		wg.Done()
-	}()
-	wg.Wait()
+	//go func() {
+	//
+	//	wg.Done()
+	//}()
+	//wg.Wait()
+	if nil != ps.t_storage {
+		ppos_storage.t_storage = ps.CopyTicketStorage()
+	}
 	return ppos_storage
 }
 
@@ -146,7 +148,7 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 	wg.Add(6)
 	resCh := make(chan *result, 5)
 
-	loadQueueFunc := func(flag int) {
+	loadQueueFunc := func(flag int, wgPtr *sync.WaitGroup) {
 		res := new(result)
 		switch flag {
 		case PREVIOUS:
@@ -169,11 +171,11 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 		wg.Done()
 	}
 
-	go loadQueueFunc(PREVIOUS)
-	go loadQueueFunc(CURRENT)
-	go loadQueueFunc(NEXT)
-	go loadQueueFunc(IMMEDIATE)
-	go loadQueueFunc(RESERVE)
+	go loadQueueFunc(PREVIOUS, &wg)
+	go loadQueueFunc(CURRENT, &wg)
+	go loadQueueFunc(NEXT, &wg)
+	go loadQueueFunc(IMMEDIATE, &wg)
+	go loadQueueFunc(RESERVE, &wg)
 
 	go func() {
 		res := new(result)
@@ -313,6 +315,14 @@ func (p *Ppos_storage) SetRefunds(nodeId discover.NodeID, refundArr types.Refund
 	p.c_storage.refunds[nodeId] = refundArr
 }
 
+func (p *Ppos_storage) AppendRefunds(nodeId discover.NodeID, refundArr types.RefundQueue) {
+	if queue, ok := p.c_storage.refunds[nodeId]; ok {
+		queue = append(queue, refundArr ...)
+		p.c_storage.refunds[nodeId] = queue
+	} else {
+		p.c_storage.refunds[nodeId] = refundArr
+	}
+}
 
 // Delete RefundArr
 func (p *Ppos_storage) DelRefunds(nodeId discover.NodeID) {

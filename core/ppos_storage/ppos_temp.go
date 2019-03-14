@@ -58,7 +58,7 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 
 
 	if ppos_storage, err := db.Get(PPOS_STORAGE_KEY); nil != err {
-		log.Warn("WARN Call NewPPosTemp to get Global ppos temp by levelDB", "err", err)
+		log.Trace("WARN Call NewPPosTemp to get Global ppos temp by levelDB", "err", err)
 	} else {
 		log.Debug("Call NewPPosTemp to Unmarshal Global ppos temp", "pb data len", len(ppos_storage))
 
@@ -121,9 +121,10 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 			return ppos_storage
 		}else {
 			storage = pposStorage.Copy()
-			temp.lock.Unlock()
+
 		}
 	}
+	temp.lock.Unlock()
 	return storage
 }
 

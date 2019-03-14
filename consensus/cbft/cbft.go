@@ -634,7 +634,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 
 func SetPposOption(blockChain *core.BlockChain) {
 	cbft.ppos.SetCandidateContextOption(blockChain, cbft.config.InitialNodes)
-	cbft.ppos.setTicketPoolCache()
+	cbft.ppos.setPPOS_Temp()
 }
 
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.
@@ -1901,9 +1901,9 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	//log.Info("Call accumulateRewards", "nodeid: ", nodeId.String())
 	var can *types.Candidate
 	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(BaseSwitchWitness))) == 0 {
-		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, -1)
+		can = cbft.ppos.GetWitnessCandidate(state, nodeId, -1)
 	} else {
-		can, err = cbft.ppos.GetWitnessCandidate(state, nodeId, 0)
+		can = cbft.ppos.GetWitnessCandidate(state, nodeId, 0)
 	}
 	if err != nil {
 		log.Error("Failed to Call accumulateRewards, GetCandidate faile ", " err: ", err.Error(),
@@ -1916,20 +1916,16 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		return
 	}
 	//log.Info("Call accumulateRewards, GetTicket ", "TicketId: ", can.TicketId.Hex())
-	ticket, err := cbft.ppos.GetTicket(state, can.TicketId)
-	if nil != err {
-		log.Error("Failed to Call accumulateRewards, GetTicket faile ", " err: ", err.Error(),
-			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String(), "TicketId: ", can.TicketId.Hex())
-		return
-	}
+	ticket := cbft.ppos.GetTicket(state, can.TxHash)
+
 	if nil == ticket {
 		log.Warn("Call accumulateRewards, ticket info is Empty !!!!!!!!!!!!!!!!!!!!!!!!",
-			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String(), "ticketId", can.TicketId.Hex())
+			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String(), "ticketId", can.TxHash.Hex())
 		return
 	}
 	if ticket.Owner == common.ZeroAddr {
 		log.Warn("Call accumulateRewards, ticket's owner addr is empty !!!!!!!!!!!!!!!!!!!!!!!!",
-			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String(), "ticketId", can.TicketId.Hex())
+			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String(), "ticketId", can.TxHash.Hex())
 		return
 	}
 
@@ -1949,7 +1945,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	state.AddBalance(header.Coinbase, nodeReward)
 	state.AddBalance(ticket.Owner, ticketReward)
 	log.Info("Call accumulateRewards SUCCESS !! ", "blockNumber", header.Number, "blockHash", header.Hash(),
-		"nodeId", nodeId.String(), "ticketId", can.TicketId.Hex(), " yearReward: ", yearReward, " blockReward:", blockReward,
+		"nodeId", nodeId.String(), "ticketId", can.TxHash.Hex(), " yearReward: ", yearReward, " blockReward:", blockReward,
 		" nodeReward: ", nodeReward, " ticketReward: ", ticketReward, " RewardPoolAddr address: ", common.RewardPoolAddr.Hex(),
 		" balance: ", state.GetBalance(common.RewardPoolAddr), " Fee: ", can.Fee, " Coinbase address: ", header.Coinbase.Hex(),
 		" balance: ", state.GetBalance(header.Coinbase), " Ticket address: ", ticket.Owner.Hex(), " balance: ", state.GetBalance(ticket.Owner))
@@ -1974,6 +1970,3 @@ func GetAmount(number *big.Int) *big.Int {
 	return ret
 }
 
-func (cbft *Cbft) ForEachStorage(state *state.StateDB, title string) {
-	cbft.ppos.ForEachStorage(state, title)
-}

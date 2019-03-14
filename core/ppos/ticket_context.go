@@ -59,7 +59,7 @@ func (c *TicketPoolContext) GetCandidateEpoch (state vm.StateDB, nodeId discover
 	return c.initTicketPool().GetCandidateEpoch(state, nodeId)
 }
 
-func (c *TicketPoolContext) GetTicketPrice (state vm.StateDB) (*big.Int, error) {
+func (c *TicketPoolContext) GetTicketPrice (state vm.StateDB) *big.Int {
 	return c.initTicketPool().GetTicketPrice(state)
 }
 

@@ -36,15 +36,15 @@ func (c *CandidatePoolContext) SetCandidate(state vm.StateDB, nodeId discover.No
 	return c.initCandidatePool().SetCandidate(state, nodeId, can)
 }
 
-func (c *CandidatePoolContext) GetCandidate(state vm.StateDB, nodeId discover.NodeID) (*types.Candidate, error) {
+func (c *CandidatePoolContext) GetCandidate(state vm.StateDB, nodeId discover.NodeID) *types.Candidate {
 	return c.initCandidatePool().GetCandidate(state, nodeId)
 }
 
-func (c *CandidatePoolContext) GetCandidateArr(state vm.StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error) {
+func (c *CandidatePoolContext) GetCandidateArr(state vm.StateDB, nodeIds ...discover.NodeID) types.CandidateQueue {
 	return c.initCandidatePool().GetCandidateArr(state, nodeIds...)
 }
 
-func (c *CandidatePoolContext) GetWitnessCandidate(state vm.StateDB, nodeId discover.NodeID, flag int) (*types.Candidate, error) {
+func (c *CandidatePoolContext) GetWitnessCandidate(state vm.StateDB, nodeId discover.NodeID, flag int) *types.Candidate {
 	return c.initCandidatePool().GetWitnessCandidate(state, nodeId, flag)
 }
 
@@ -60,15 +60,15 @@ func (c *CandidatePoolContext) GetChairpersons(state vm.StateDB) types.Candidate
 	return c.initCandidatePool().GetChairpersons(state)
 }
 
-func (c *CandidatePoolContext) GetDefeat(state vm.StateDB, nodeId discover.NodeID) (types.CandidateQueue, error) {
+func (c *CandidatePoolContext) GetDefeat(state vm.StateDB, nodeId discover.NodeID) types.RefundQueue {
 	return c.initCandidatePool().GetDefeat(state, nodeId)
 }
 
-func (c *CandidatePoolContext) IsDefeat(state vm.StateDB, nodeId discover.NodeID) (bool, error) {
+func (c *CandidatePoolContext) IsDefeat(state vm.StateDB, nodeId discover.NodeID) bool {
 	return c.initCandidatePool().IsDefeat(state, nodeId)
 }
 
-func (c *CandidatePoolContext) IsChosens(state vm.StateDB, nodeId discover.NodeID) (bool, error) {
+func (c *CandidatePoolContext) IsChosens(state vm.StateDB, nodeId discover.NodeID) bool {
 	return c.initCandidatePool().IsChosens(state, nodeId)
 }
 
@@ -80,15 +80,15 @@ func (c *CandidatePoolContext) GetOwner(state vm.StateDB, nodeId discover.NodeID
 	return c.initCandidatePool().GetOwner(state, nodeId)
 }
 
-func (c *CandidatePoolContext) GetRefundInterval() uint64 {
+func (c *CandidatePoolContext) GetRefundInterval() uint32 {
 	return c.initCandidatePool().GetRefundInterval()
 }
 
-func (c *CandidatePoolContext) MaxCount() uint64 {
+func (c *CandidatePoolContext) MaxCount() uint32 {
 	return c.initCandidatePool().MaxCount()
 }
 
-func (c *CandidatePoolContext) MaxChair() uint64 {
+func (c *CandidatePoolContext) MaxChair() uint32 {
 	return c.initCandidatePool().MaxChair()
 }
 
@@ -114,10 +114,6 @@ func (c *CandidatePoolContext) SetCandidateExtra(state vm.StateDB, nodeId discov
 
 func (c *CandidatePoolContext) UpdateElectedQueue(state vm.StateDB, currBlockNumber *big.Int, nodeIds ...discover.NodeID) error {
 	return c.initCandidatePool().UpdateElectedQueue(state, currBlockNumber, nodeIds...)
-}
-
-func (c *CandidatePoolContext) ForEachStorage(state *state.StateDB, title string) {
-	c.initCandidatePool().ForEachStorage(state, title)
 }
 
 func (c *CandidatePoolContext) GetLuckyTickets(state vm.StateDB, flag int) ([]common.Hash, error) {

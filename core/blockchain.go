@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/deckarep/golang-set"
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"io"
 	"math/big"
 	mrand "math/rand"
