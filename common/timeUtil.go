@@ -6,6 +6,10 @@ type Timer struct {
 	start time.Time
 }
 
+func NewTimer () *Timer {
+	return new(Timer)
+}
+
 func (t *Timer) Begin() {
 	t.start = time.Now()
 }
