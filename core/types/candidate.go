@@ -12,12 +12,12 @@ type CanConditions map[discover.NodeID]*big.Int
 type CandidateQueue []*Candidate
 
 func (queue CandidateQueue) DeepCopy() CandidateQueue {
-	copyCandidateQueue := make(CandidateQueue, 0)
+	copyCandidateQueue := make(CandidateQueue, len(queue))
 	if len(queue) == 0 {
 		fmt.Println("直接返回")
 		return copyCandidateQueue
 	}
-	for _, can := range queue {
+	for i, can := range queue {
 		canCopy := &Candidate{
 			Deposit:     big.NewInt(can.Deposit.Int64()),
 			BlockNumber: big.NewInt(can.BlockNumber.Int64()),
@@ -26,12 +26,11 @@ func (queue CandidateQueue) DeepCopy() CandidateQueue {
 			Host:        can.Host,
 			Port:        can.Port,
 			Owner:       can.Owner,
-			//From:        can.From,
 			Extra:       can.Extra,
 			Fee:         can.Fee,
-			//TicketId:    can.TicketId,
+			TxHash: 	 can.TxHash,
 		}
-		copyCandidateQueue = append(copyCandidateQueue, canCopy)
+		copyCandidateQueue[i] = canCopy
 	}
 	return copyCandidateQueue
 }

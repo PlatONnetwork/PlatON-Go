@@ -114,13 +114,13 @@ func NewPPOS_storage () *Ppos_storage {
 	ticket_cache.Dependencys = make(map[discover.NodeID]*ticketDependency)
 
 	queue := make(types.CandidateQueue, 0)
-	refund := make(refundStorage, 0)
+	refundMap := make(refundStorage, 0)
 	can_cache.pres = queue
 	can_cache.currs = queue
 	can_cache.nexts = queue
 	can_cache.imms = queue
 	can_cache.res = queue
-	can_cache.refunds = refund
+	can_cache.refunds = refundMap
 
 	cache.c_storage = can_cache
 	cache.t_storage = ticket_cache
