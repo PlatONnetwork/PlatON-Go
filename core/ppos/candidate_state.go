@@ -430,12 +430,6 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		// qualified elected candidates
 		cacheArr = (cacheArr)[:c.maxCount]
 
-		if allowed {
-			c.setCandidateQueue(cacheArr, ppos_storage.IMMEDIATE)
-		} else {
-			c.setCandidateQueue(cacheArr, ppos_storage.RESERVE)
-		}
-
 		// handle tmpArr
 		for _, tmpCan := range tempArr {
 
@@ -447,6 +441,12 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 			c.setRefund(tmpCan.CandidateId, refund)
 			nodeIds = append(nodeIds, tmpCan.CandidateId)
 		}
+	}
+
+	if allowed {
+		c.setCandidateQueue(cacheArr, ppos_storage.IMMEDIATE)
+	} else {
+		c.setCandidateQueue(cacheArr, ppos_storage.RESERVE)
 	}
 
 	delCandidateFunc := func(nodeId discover.NodeID, flag int) {

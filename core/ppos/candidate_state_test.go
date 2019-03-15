@@ -142,7 +142,7 @@ func TestCandidatePoolAllCircle(t *testing.T) {
 
 	/** test GetCandidate */
 	t.Log("test GetCandidate ...")
-	can, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"))
+	can := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"))
 	t.Log("GetCandidate", can)
 
 	/** test WithdrawCandidate */
@@ -167,12 +167,12 @@ func TestCandidatePoolAllCircle(t *testing.T) {
 
 	/** test GetDefeat */
 	t.Log("test GetDefeat ...")
-	defeatArr, _ := candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	defeatArr := candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("can be refund defeats", defeatArr, t)
 
 	/** test IsDefeat */
 	t.Log("test IsDefeat ...")
-	flag, _ := candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag := candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("isdefeat", flag, t)
 
 	/** test Election */
@@ -275,7 +275,7 @@ func candidate_GetCandidate(logger interface{}, logFn func(args ...interface{}),
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("GetCandidate", can, logger)
 }
 
@@ -334,7 +334,7 @@ func candidate_GetCandidateArr(logger interface{}, logFn func(args ...interface{
 
 	/** test GetCandidate */
 	logFn("test GetCandidateArr ...")
-	canArr, _ := candidatePoolContext.GetCandidateArr(state, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
+	canArr := candidatePoolContext.GetCandidateArr(state, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
 	printObject("GetCandidateArr", canArr, logger)
 }
 
@@ -382,8 +382,8 @@ func candidate_SetCandidateExtra(logger interface{}, logFn func(args ...interfac
 		errFn("SetCndidateExtra err:", err)
 	}
 	/** test GetCandidate  */
-	if can, err := candidatePoolContext.GetCandidate(state, candidate.CandidateId); nil != err {
-		errFn("GetCandidate err:", err)
+	if can := candidatePoolContext.GetCandidate(state, candidate.CandidateId); nil == can {
+		errFn("GetCandidate err:")
 	} else {
 		logFn("candidate'extra:", can.Extra)
 	}
@@ -443,7 +443,7 @@ func candidate_WithdrawCandidate(logger interface{}, logFn func(args ...interfac
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("GetCandidate", can, logger)
 
 	/** test WithdrawCandidate */
@@ -453,7 +453,7 @@ func candidate_WithdrawCandidate(logger interface{}, logFn func(args ...interfac
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can2, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can2 := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("GetCandidate", can2, logger)
 }
 
@@ -1134,17 +1134,17 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can2, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can2 := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("GetCandidate", can2, logger)
 
 	/** test GetDefeat */
 	logFn("test GetDefeat ...")
-	defeatArr, _ := candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	defeatArr:= candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("can be refund defeats", defeatArr, logger)
 
 	/** test IsDefeat */
 	logFn("test IsDefeat ...")
-	flag, _ = candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag = candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	logFn("isdefeat", flag)
 
 	/** test RefundBalance */
@@ -1324,11 +1324,8 @@ func candidate_IsChosens(logger interface{}, logFn func(args ...interface{}), er
 
 	/** test GetChosens */
 	logFn("test IsChosens ...")
-	if flag, err := candidatePoolContext.IsChosens(state, candidate2.CandidateId); nil != err {
-		errFn("IsChosens err:", err)
-	} else {
-		logFn("IsChosens success", flag)
-	}
+	flag := candidatePoolContext.IsChosens(state, candidate2.CandidateId)
+	logFn("IsChosens success", flag)
 }
 
 func TestCandidatePool_IsChosens(t *testing.T) {
@@ -1490,17 +1487,17 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can2, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can2 := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("GetCandidate", can2, logger)
 
 	/** test GetDefeat */
 	logFn("test GetDefeat ...")
-	defeatArr, _ := candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	defeatArr := candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("can be refund defeats", defeatArr, logger)
 
 	/** test IsDefeat */
 	logFn("test IsDefeat ...")
-	flag, _ = candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag = candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	logFn("isdefeat", flag)
 }
 
@@ -1663,17 +1660,17 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can2, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can2 := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("GetCandidate", can2, logger)
 
 	/** test GetDefeat */
 	logFn("test GetDefeat ...")
-	defeatArr, _ := candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	defeatArr := candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("can be refund defeats", defeatArr, logger)
 
 	/** test IsDefeat */
 	logFn("test IsDefeat ...")
-	flag, _ = candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag = candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	logFn("isdefeat", flag)
 
 	/** test RefundBalance */
@@ -1818,7 +1815,7 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 	fmt.Println("VOTING END .............................................................")
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"))
+	can := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"))
 	logFn("GetCandidate", can)
 
 	/** test UpdateElectedQueue */

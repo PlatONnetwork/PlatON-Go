@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"sync"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 const (
@@ -88,14 +89,14 @@ func (ps *Ppos_storage) Copy() *Ppos_storage {
 	ppos_storage := NewPPOS_storage()
 
 	if nil == ps {
-		fmt.Println("进入 ps == nil")
+		log.Debug("进入 ps == nil")
 		return ppos_storage
 	}
 
 	ppos_storage.c_storage = ps.CopyCandidateStorage()
 	ppos_storage.t_storage = ps.CopyTicketStorage()
 
-	fmt.Println(ppos_storage)
+	log.Debug(fmt.Sprintf("%+v", ppos_storage))
 
 	return ppos_storage
 }
@@ -172,31 +173,31 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 	go func() {
 		loadQueueFunc(PREVIOUS)
 		wg.Done()
-		fmt.Println("进入 previous")
+		log.Debug("进入 previous")
 	}()
 
 	go func() {
 		loadQueueFunc(CURRENT)
 		wg.Done()
-		fmt.Println("进入 current")
+		log.Debug("进入 current")
 	}()
 
 	go func() {
 		loadQueueFunc(NEXT)
 		wg.Done()
-		fmt.Println("进入 next")
+		log.Debug("进入 next")
 	}()
 
 	go func() {
 		loadQueueFunc(IMMEDIATE)
 		wg.Done()
-		fmt.Println("进入 immediate")
+		log.Debug("进入 immediate")
 	}()
 
 	go func() {
 		loadQueueFunc(RESERVE)
 		wg.Done()
-		fmt.Println("进入 reserve")
+		log.Debug("进入 reserve")
 	}()
 
 
@@ -216,12 +217,12 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 		res.Data = cache
 		resCh <- res
 		wg.Done()
-		fmt.Println("进入 refund")
+		log.Debug("进入 refund")
 	}()
 	wg.Wait()
 	close(resCh)
 	for res := range resCh {
-		fmt.Println("进入了 for")
+		log.Debug("进入了 for")
 		switch res.Status {
 		case PREVIOUS:
 			temp.pres = res.Data.(types.CandidateQueue)
@@ -237,7 +238,7 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 			temp.refunds = res.Data.(refundStorage)
 		}
 	}
-	fmt.Println("最后返回...")
+	log.Debug("最后返回...")
 	return temp
 }
 
@@ -260,7 +261,7 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 		temp := *p.t_storage.Dependencys[key]
 		ticket_cache.Dependencys[key] = &temp
 	}
-	fmt.Println("返回票相关...")
+	log.Debug("返回票相关...")
 	return ticket_cache
 }
 

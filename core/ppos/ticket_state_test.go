@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 )
 
 func TestTicketProcess(t *testing.T) {
@@ -28,7 +29,7 @@ func TestTicketProcess(t *testing.T) {
 	)
 	fmt.Println("genesis", genesis)
 	// Initialize a fresh chain with only a genesis block
-	ticketcache.NewTicketIdsCache(db)
+	ppos_storage.NewPPosTemp(db)
 	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
 
 	configs := params.PposConfig{
@@ -114,11 +115,8 @@ func TestTicketProcess(t *testing.T) {
 		//}()
 	}
 
-	candidate, err := candidatePoolContext.GetCandidate(state, candidate.CandidateId)
-	if err != nil {
-		fmt.Println("GetCandidate error")
-		return
-	}
+	candidate = candidatePoolContext.GetCandidate(state, candidate.CandidateId)
+
 
 	ticketIds := ticketPoolContext.GetCandidateTicketIds(state, candidate.CandidateId)
 	ticketList := ticketPoolContext.GetTicketList(state, ticketIds)
@@ -137,7 +135,7 @@ func TestTicketProcess(t *testing.T) {
 	//	fmt.Printf("ticket:%+v,ticketId:[%v]\n", ticket, ticket.TicketId.Hex())
 	//}
 
-	candidate, err = candidatePoolContext.GetCandidate(state, candidate.CandidateId)
+	candidate = candidatePoolContext.GetCandidate(state, candidate.CandidateId)
 	ticketIds = ticketPoolContext.GetCandidateTicketIds(state, candidate.CandidateId)
 
 	expireTicketIds = ticketPoolContext.GetExpireTicketIds(state, blockNumber)
@@ -453,8 +451,8 @@ func TestTicketPool_GetCandidateEpoch(t *testing.T) {
 func TestTicketPool_GetTicketPrice(t *testing.T) {
 	state, _, ticketPool := initParam()
 
-	_, err := ticketPool.GetTicketPrice(state)
-	if nil != err {
-		t.Error("getTicketPrice fail", "err", err)
+	price := ticketPool.GetTicketPrice(state)
+	if price.Cmp(big.NewInt(0)) <= 0 {
+		t.Error("getTicketPrice fail")
 	}
 }
