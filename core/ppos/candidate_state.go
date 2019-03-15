@@ -366,7 +366,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 
 	// If it is the first pledge, judge the pledge threshold
 	if !c.checkFirstThreshold(can) {
-		log.Warn("Failed to checkFirstThreshold on SetCandidate", "Deposit", can.Deposit.Uint64(), "threshold", c.threshold)
+		log.Warn("Failed to checkFirstThreshold on SetCandidate", "Deposit", can.Deposit.String(), "threshold", c.threshold)
 		return errors.New(DepositLowErr.Error() + ", Current Deposit:" + can.Deposit.String() + ", target threshold:" + fmt.Sprint(c.threshold))
 	}
 
@@ -377,8 +377,6 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 		return DepositLowErr
 	}
 	nodeIds = c.setCandidateInfo(state, nodeId, can, can.BlockNumber, nil)
-	ca := c.getCandidate(state, nodeId)
-	fmt.Println(ca.Deposit)
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
 		if err := tContext.DropReturnTicket(state, can.BlockNumber, nodeIds...); nil != err {
@@ -1155,9 +1153,9 @@ func (c *CandidatePool) repledgCheck(state vm.StateDB, can *types.Candidate, cur
 			}
 
 			c.setCandidateQueue(queue, flag)
-
+			deposit, _ := new(big.Int).SetString(can.Deposit.String(), 10)
 			refund := &types.CandidateRefund{
-				Deposit:     big.NewInt(can.Deposit.Int64()),
+				Deposit:     deposit,
 				BlockNumber: big.NewInt(currentBlockNumber.Int64()),
 				Owner:       can.Owner,
 			}
@@ -1411,8 +1409,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 
 			// handle tmpArr
 			for _, tmpCan := range tmpArr {
+				deposit, _ := new(big.Int).SetString(tmpCan.Deposit.String(), 10)
 				refund := &types.CandidateRefund{
-					Deposit:     big.NewInt(tmpCan.Deposit.Int64()),
+					Deposit:     deposit,
 					BlockNumber: big.NewInt(currentBlockNumber.Int64()),
 					Owner:       tmpCan.Owner,
 				}
@@ -1495,7 +1494,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 
 		// cache
 		nodeIdQueue := make([]discover.NodeID, 0)
-
+		deposit, _ := new(big.Int).SetString(can.Deposit.String(), 10)
 		if flag == ppos_storage.IMMEDIATE {
 			im_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
 			re_queue := c.getCandidateQueue(ppos_storage.RESERVE)
@@ -1533,7 +1532,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 
 			// refund
 			refund := &types.CandidateRefund{
-				Deposit:     big.NewInt(can.Deposit.Int64()),
+				Deposit:     deposit,
 				BlockNumber: big.NewInt(currentBlockNumber.Int64()),
 				Owner:       can.Owner,
 			}
@@ -1863,14 +1862,14 @@ func (c *CandidatePool) shuffleQueue(state vm.StateDB, currentBlockNumber *big.I
 		for _, tmpCan := range tempArr {
 
 			tCount := tContext.GetCandidateTicketCount(state, tmpCan.CandidateId)
-
+			deposit, _ := new(big.Int).SetString(tmpCan.Deposit.String(), 10)
 			if tCount >= c.allowed {
 				newRe_queue = append(newRe_queue, tmpCan)
 				continue
 			}
 
 			refund := &types.CandidateRefund{
-				Deposit:     big.NewInt(tmpCan.Deposit.Int64()),
+				Deposit:     deposit,
 				BlockNumber: big.NewInt(currentBlockNumber.Int64()),
 				Owner:       tmpCan.Owner,
 			}
@@ -1895,8 +1894,9 @@ func (c *CandidatePool) shuffleQueue(state vm.StateDB, currentBlockNumber *big.I
 
 			// handle tmpArr
 			for _, tmpCan := range tempArr {
+				deposit, _ := new(big.Int).SetString(tmpCan.Deposit.String(), 10)
 				refund := &types.CandidateRefund{
-					Deposit:     big.NewInt(tmpCan.Deposit.Int64()),
+					Deposit:     deposit,
 					BlockNumber: big.NewInt(currentBlockNumber.Int64()),
 					Owner:       tmpCan.Owner,
 				}
