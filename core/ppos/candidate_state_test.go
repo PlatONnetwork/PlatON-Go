@@ -40,7 +40,7 @@ func newChainState() (*state.StateDB, error) {
 	return state, nil
 }
 
-func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPool) {
+func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPoolContext) {
 	configs := &params.PposConfig{
 		CandidateConfig: &params.CandidateConfig{
 			Threshold:         "100",
@@ -55,7 +55,7 @@ func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPool) {
 			ExpireBlockNumber: 100,
 		},
 	}
-	return pposm.NewCandidatePoolContext(configs), pposm.NewTicketPool(configs)
+	return pposm.NewCandidatePoolContext(configs), pposm.NewTicketPoolContext(configs)
 }
 
 func printObject(title string, obj, logger interface{}) {
@@ -73,7 +73,7 @@ func printObject(title string, obj, logger interface{}) {
 func TestCandidatePoolAllCircle(t *testing.T) {
 
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
@@ -81,7 +81,7 @@ func TestCandidatePoolAllCircle(t *testing.T) {
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
+	candidatePoolContext, ticketPoolContext = newPool()
 
 	//state.Commit(false)
 
@@ -124,13 +124,13 @@ func TestCandidatePoolAllCircle(t *testing.T) {
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -206,7 +206,7 @@ func TestCandidatePoolAllCircle(t *testing.T) {
 // test SetCandidate
 func candidate_SetCandidate(logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -214,9 +214,7 @@ func candidate_SetCandidate(logFn func(args ...interface{}), errFn func(args ...
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
-	//state.Commit(false)
+	candidatePoolContext, _ = newPool()
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
@@ -246,7 +244,7 @@ func BenchmarkCandidatePool_SetCandidate(b *testing.B) {
 // test GetCandidate
 func candidate_GetCandidate(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -254,8 +252,7 @@ func candidate_GetCandidate(logger interface{}, logFn func(args ...interface{}),
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
@@ -290,7 +287,7 @@ func BenchmarkCandidatePool_GetCandidate(b *testing.B) {
 // test GetCandidateArr
 func candidate_GetCandidateArr(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -298,8 +295,7 @@ func candidate_GetCandidateArr(logger interface{}, logFn func(args ...interface{
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
@@ -349,7 +345,7 @@ func BenchmarkCandidatePool_GetCandidateArr(b *testing.B) {
 // test SetCandidateExtra
 func candidate_SetCandidateExtra(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -357,8 +353,7 @@ func candidate_SetCandidateExtra(logger interface{}, logFn func(args ...interfac
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 	//state.Commit(false)
 
 	candidate := &types.Candidate{
@@ -400,7 +395,7 @@ func BenchmarkCandidatePool_SetCandidateExtra(b *testing.B) {
 // test WithdrawCndidate
 func candidate_WithdrawCandidate(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -408,8 +403,7 @@ func candidate_WithdrawCandidate(logger interface{}, logFn func(args ...interfac
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
@@ -468,7 +462,7 @@ func BenchmarkCandidatePool_WithdrawCandidate(b *testing.B) {
 // test GetChosens
 func candidate_GetChosens(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -476,8 +470,7 @@ func candidate_GetChosens(logger interface{}, logFn func(args ...interface{}), e
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
@@ -526,7 +519,7 @@ func BenchmarkCandidatePool_GetChosens(b *testing.B) {
 // test GetChairpersons
 func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -534,8 +527,7 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
 
 	// cache
 	cans := make([]*types.Candidate, 0)
@@ -629,13 +621,13 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -672,7 +664,7 @@ func BenchmarkCandidatePool_GetChairpersons(b *testing.B) {
 // test GetWitness
 func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -680,8 +672,7 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
 
 	// cache
 	cans := make([]*types.Candidate, 0)
@@ -775,13 +766,13 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -823,7 +814,7 @@ func BenchmarkCandidatePool_GetWitness(b *testing.B) {
 // test GetAllWitness
 func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -831,8 +822,7 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
 
 	// cache
 	cans := make([]*types.Candidate, 0)
@@ -926,13 +916,13 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -986,7 +976,7 @@ func BenchmarkCandidatePool_GetAllWitness(b *testing.B) {
 // test GetDefeat
 func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -994,8 +984,7 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
 
 	// cache
 	cans := make([]*types.Candidate, 0)
@@ -1089,13 +1078,13 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -1179,7 +1168,7 @@ func BenchmarkCandidatePool_GetDefeat(b *testing.B) {
 // test GetOwner
 func candidate_GetOwner(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1187,8 +1176,7 @@ func candidate_GetOwner(logger interface{}, logFn func(args ...interface{}), err
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 
 	// cache
 	cans := make([]*types.Candidate, 0)
@@ -1225,7 +1213,7 @@ func BenchmarkCandidatePool_GetOwner(b *testing.B) {
 // test GetRefundInterval
 func candidate_GetRefundInterval(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1233,8 +1221,7 @@ func candidate_GetRefundInterval(logger interface{}, logFn func(args ...interfac
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 
 	/** test  GetRefundInterval*/
 	num := candidatePoolContext.GetRefundInterval()
@@ -1253,7 +1240,7 @@ func BenchmarkCandidatePool_GetRefundInterval(b *testing.B) {
 // test MaxChair
 func candidate_MaxChair(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1261,8 +1248,7 @@ func candidate_MaxChair(logger interface{}, logFn func(args ...interface{}), err
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 
 	/** test  MaxChair*/
 	num := candidatePoolContext.MaxChair()
@@ -1281,7 +1267,7 @@ func BenchmarkCandidatePool_MaxChair(b *testing.B) {
 // test IsChosens
 func candidate_IsChosens(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1289,8 +1275,7 @@ func candidate_IsChosens(logger interface{}, logFn func(args ...interface{}), er
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
@@ -1339,7 +1324,7 @@ func BenchmarkCandidatePool_IsChosens(b *testing.B) {
 // test IsDefeat
 func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1347,8 +1332,7 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
 
 	// cache
 	cans := make([]*types.Candidate, 0)
@@ -1442,13 +1426,13 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -1512,7 +1496,7 @@ func BenchmarkCandidatePool_IsDefeat(b *testing.B) {
 // test RefundBalance
 func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1520,8 +1504,7 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
 
 	// cache
 	cans := make([]*types.Candidate, 0)
@@ -1615,13 +1598,13 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -1695,7 +1678,7 @@ func BenchmarkCandidatePool_RefundBalance(b *testing.B) {
 // test UpdateElectedQueue
 func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1703,8 +1686,7 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
 
 	// cache
 	cans := make([]*types.Candidate, 0)
@@ -1798,13 +1780,13 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -1838,7 +1820,7 @@ func BenchmarkCandidatePool_UpdateElectedQueue(b *testing.B) {
 // test Election
 func candidate_Election(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1846,8 +1828,7 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
 
 	// cache
 	cans := make([]*types.Candidate, 0)
@@ -1941,13 +1922,13 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -1977,7 +1958,7 @@ func BenchmarkCandidatePool_Election(b *testing.B) {
 // test Switch
 func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1985,8 +1966,7 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
 
 	// cache
 	cans := make([]*types.Candidate, 0)
@@ -2080,13 +2060,13 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
