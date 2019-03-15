@@ -304,7 +304,7 @@ func (c *CandidatePool) initDataByState(state vm.StateDB) {
 // 2: im and re (im/re)
 // 3 : wit + im/re
 func (c *CandidatePool) initData2Cache(state vm.StateDB, flag int) {
-	c.storage = state.GetPPOSCache()
+	c.initDataByState(state)
 
 	loadQueueFunc := func(arr types.CandidateQueue, canMap candidateStorage) {
 		for _, can := range arr {
@@ -419,6 +419,33 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		}
 	}
 
+	handleReserveFunc := func(queue types.CandidateQueue) []discover.NodeID {
+
+		// sort reserve array
+		makeCandidateSort(state, queue)
+
+		nodeIds := make([]discover.NodeID, 0)
+
+		if len(queue) > int(c.maxCount) {
+			// Intercepting the lost candidates to tmpArr
+			tempArr := (cacheArr)[c.maxCount:]
+			// qualified elected candidates
+			cacheArr = (cacheArr)[:c.maxCount]
+
+			// handle tmpArr
+			for _, tmpCan := range tempArr {
+				refund := &types.CandidateRefund{
+					Deposit:     big.NewInt(tmpCan.Deposit.Int64()),
+					BlockNumber: big.NewInt(currentBlockNumber.Int64()),
+					Owner:       tmpCan.Owner,
+				}
+				c.setRefund(tmpCan.CandidateId, refund)
+				nodeIds = append(nodeIds, tmpCan.CandidateId)
+			}
+		}
+		return nodeIds
+	}
+
 	// sort cache array
 	makeCandidateSort(state, cacheArr)
 
@@ -430,16 +457,34 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		// qualified elected candidates
 		cacheArr = (cacheArr)[:c.maxCount]
 
-		// handle tmpArr
-		for _, tmpCan := range tempArr {
+		// add reserve queue cache
+		addreserveQueue := make(types.CandidateQueue, len(tempArr))
 
-			refund := &types.CandidateRefund{
-				Deposit:     big.NewInt(tmpCan.Deposit.Int64()),
-				BlockNumber: big.NewInt(currentBlockNumber.Int64()),
-				Owner:       tmpCan.Owner,
+		// handle tmpArr
+		for i, tmpCan := range tempArr {
+
+			// if ticket count great allowed && no need delete reserve
+			// so this can move to reserve from immediate now
+			if allowed {
+				addreserveQueue[i] = tmpCan
+			} else {
+				refund := &types.CandidateRefund{
+					Deposit:     big.NewInt(tmpCan.Deposit.Int64()),
+					BlockNumber: big.NewInt(currentBlockNumber.Int64()),
+					Owner:       tmpCan.Owner,
+				}
+				c.setRefund(tmpCan.CandidateId, refund)
+				nodeIds = append(nodeIds, tmpCan.CandidateId)
 			}
-			c.setRefund(tmpCan.CandidateId, refund)
-			nodeIds = append(nodeIds, tmpCan.CandidateId)
+
+			if len(addreserveQueue) != 0 {
+				re_queue := c.getCandidateQueue(ppos_storage.RESERVE)
+				re_queue = append(re_queue, addreserveQueue...)
+				if ids := handleReserveFunc(re_queue); len(ids) != 0 {
+					nodeIds = append(nodeIds, ids...)
+				}
+				c.setCandidateQueue(re_queue, ppos_storage.RESERVE)
+			}
 		}
 	}
 
@@ -698,14 +743,17 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.CandidateQueue {
 	log.Debug("Call GetChosens getting immediate candidates ...")
 	arr := make(types.CandidateQueue, 0)
+	c.initDataByState(state)
 
 	if flag == 0 || flag == 1 {
-		queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
-		arr = append(arr, queue...)
+		if queue := c.getCandidateQueue(ppos_storage.IMMEDIATE); len(queue) != 0 {
+			arr = append(arr, queue...)
+		}
 	}
 	if flag == 0 || flag == 2 {
-		queue := c.getCandidateQueue(ppos_storage.RESERVE)
-		arr = append(arr, queue...)
+		if queue := c.getCandidateQueue(ppos_storage.RESERVE); len(queue) != 0 {
+			arr = append(arr, queue...)
+		}
 	}
 	PrintObject("GetChosens ==>", arr)
 	return arr
@@ -714,12 +762,14 @@ func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.CandidateQu
 // Getting current witness array
 func (c *CandidatePool) GetChairpersons(state vm.StateDB) types.CandidateQueue {
 	log.Debug("Call GetChairpersons getting witnesses ...")
+	c.initDataByState(state)
 	return c.getCandidateQueue(ppos_storage.CURRENT)
 }
 
 // Getting all refund array by nodeId
 func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) types.RefundQueue {
 	log.Debug("Call GetDefeat getting defeat arr: curr nodeId = " + nodeId.String())
+	c.initDataByState(state)
 	return c.getRefunds(nodeId)
 }
 
@@ -792,7 +842,7 @@ func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) commo
 func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
 
 	log.Info("Call RefundBalance:  curr nodeId = "+nodeId.String()+",curr blocknumber:"+blockNumber.String(), "config.RefundBlockNumber:", c.RefundBlockNumber)
-
+	c.initDataByState(state)
 	queue := c.getRefunds(nodeId)
 
 	if len(queue) == 0 {
@@ -866,7 +916,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.NodeID, extra string) error {
 
 	log.Info("Call SetCandidateExtra:", "nodeId", nodeId.String(), "extra", extra)
-
+	c.initDataByState(state)
 	im_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
 
 	for i, can := range im_queue {
@@ -944,7 +994,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 
 func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) ([]*discover.Node, types.CandidateQueue, error) {
 	log.Info("Call Election start ...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.RefundBlockNumber)
-
+	c.initDataByState(state)
 	curr_queue := c.getCandidateQueue(ppos_storage.CURRENT)
 
 	// sort immediate candidates
@@ -977,7 +1027,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 
 	nextQueue := make(types.CandidateQueue, len(nextIdArr))
 
-retry:
+	retry:
 	for i, canId := range nextIdArr {
 		for k := 0; k < len(curr_queue); k++ {
 			can := curr_queue[k]
@@ -1106,7 +1156,7 @@ func (c *CandidatePool) repledgCheck(state vm.StateDB, can *types.Candidate, cur
 // switch next witnesses to current witnesses
 func (c *CandidatePool) Switch(state *state.StateDB) bool {
 	log.Info("Call Switch start ...")
-
+	c.initDataByState(state)
 	curr_queue := c.getCandidateQueue(ppos_storage.CURRENT)
 	next_queue := c.getCandidateQueue(ppos_storage.NEXT)
 
@@ -1130,7 +1180,7 @@ func (c *CandidatePool) Switch(state *state.StateDB) bool {
 // 1: the next round of witnesses
 func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
 	log.Debug("Call GetWitness: flag = " + strconv.Itoa(flag))
-
+	c.initDataByState(state)
 	var queue types.CandidateQueue
 
 	if flag == PREVIOUS_C {
@@ -1156,7 +1206,7 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 // Getting previous and current and next witnesses
 func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
 	log.Debug("Call GetAllWitness ...")
-
+	c.initDataByState(state)
 	loadFunc := func(title string, flag int) ([]*discover.Node, error) {
 		queue := c.getCandidateQueue(flag)
 		arr := make([]*discover.Node, 0)
@@ -1241,7 +1291,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 // 0:		current round
 // 1: 		next round
 func (c *CandidatePool) GetWitnessCandidate(state vm.StateDB, nodeId discover.NodeID, flag int) *types.Candidate {
-
+	c.initDataByState(state)
 	switch flag {
 	case PREVIOUS_C:
 
