@@ -138,16 +138,16 @@ func TestTicketProcess(t *testing.T) {
 	candidate = candidatePoolContext.GetCandidate(state, candidate.CandidateId)
 	ticketIds = ticketPoolContext.GetCandidateTicketIds(state, candidate.CandidateId)
 
+
+	if err := ticketPoolContext.Notify(state, blockNumber); err != nil {
+		t.Error("Execute HandleExpireTicket error", err)
+	}
 	expireTicketIds = ticketPoolContext.GetExpireTicketIds(state, blockNumber)
 	surplusQuantity = ticketPoolContext.GetPoolNumber(state)
 	epoch = ticketPoolContext.GetCandidateEpoch(state, candidate.CandidateId)
 	t.Logf("ticketPoolSize:[%d],expireTicketListSize:[%d],candidate.TicketPool:[%d],tcount:[%d],epoch:[%d]\n",
 		surplusQuantity, len(expireTicketIds), len(ticketIds), ticketPoolContext.GetCandidateTicketCount(state, candidate.CandidateId), epoch)
 	t.Logf("ticketPoolBalance[%v]", state.GetBalance(common.TicketPoolAddr))
-
-	if err := ticketPoolContext.Notify(state, blockNumber); err != nil {
-		t.Error("Execute HandleExpireTicket error", err)
-	}
 
 	blockHash := common.Hash{}
 	blockHash.SetBytes([]byte("3b41e0aee38c1a1f959a6aaae678d86f1e6af59617d2f667bb2ef5527779c861"))
