@@ -36,7 +36,7 @@ type candidatePoolContext interface {
 	GetCandidate(state StateDB, nodeId discover.NodeID) *types.Candidate
 	GetCandidateArr(state StateDB, nodeIds ...discover.NodeID) types.CandidateQueue
 	WithdrawCandidate(state StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error
-	GetChosens(state StateDB, flag int) types.CandidateQueue
+	GetChosens(state StateDB, flag int) types.KindCanQueue
 	GetChairpersons(state StateDB) types.CandidateQueue
 	GetDefeat(state StateDB, nodeId discover.NodeID) types.RefundQueue
 	IsDefeat(state StateDB, nodeId discover.NodeID) bool
@@ -102,9 +102,13 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		}
 	}
 	var alldeposit *big.Int
+	var txhash common.Hash
+	var towner common.Address
 	can := c.Evm.CandidatePoolContext.GetCandidate(c.Evm.StateDB, nodeId)
 	if nil != can {
 		alldeposit = new(big.Int).Add(can.Deposit, deposit)
+		txhash = can.TxHash
+		towner = can.TOwner
 		log.Info("CandidateDeposit==> ", "alldeposit: ", alldeposit, " can.Deposit: ", can.Deposit, " deposit: ", deposit)
 	} else {
 		alldeposit = deposit
@@ -119,7 +123,8 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		owner,
 		extra,
 		fee,
-		common.Hash{},
+		txhash,
+		towner,
 	}
 	log.Info("CandidateDeposit==> ", "canDeposit: ", canDeposit)
 	if err := c.Evm.CandidatePoolContext.SetCandidate(c.Evm.StateDB, nodeId, &canDeposit); nil != err {

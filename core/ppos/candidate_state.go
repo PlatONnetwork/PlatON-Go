@@ -740,11 +740,33 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 // 0:  Getting all elected candidates array
 // 1:  Getting all immediate elected candidates array
 // 2:  Getting all reserve elected candidates array
-func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.CandidateQueue {
+func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.KindCanQueue {
 	log.Debug("Call GetChosens getting immediate candidates ...")
-	arr := make(types.CandidateQueue, 0)
 	c.initDataByState(state)
+	im := make(types.CandidateQueue, 0)
+	re := make(types.CandidateQueue, 0)
+	arr := make(types.KindCanQueue, 0)
+	if flag == 0 || flag == 1 {
+		im = c.getCandidateQueue(ppos_storage.IMMEDIATE)
+	}
+	if flag == 0 || flag == 2 {
+		re = c.getCandidateQueue(ppos_storage.RESERVE)
 
+	}
+	arr = append(arr, im, re)
+	PrintObject("GetChosens ==>", arr)
+	return arr
+}
+
+// Getting elected candidates array
+// flag:
+// 0:  Getting all elected candidates array
+// 1:  Getting all immediate elected candidates array
+// 2:  Getting all reserve elected candidates array
+func (c *CandidatePool) GetCandidatePendArr(state vm.StateDB, flag int) types.CandidateQueue {
+	log.Debug("Call GetChosens getting immediate candidates ...")
+	c.initDataByState(state)
+	arr := make(types.CandidateQueue, 0)
 	if flag == 0 || flag == 1 {
 		if queue := c.getCandidateQueue(ppos_storage.IMMEDIATE); len(queue) != 0 {
 			arr = append(arr, queue...)
@@ -1059,7 +1081,11 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 			return nil, nil, errors.New(err.Error() + ", nodeId: " + can.CandidateId.String())
 		}
 
-		can.TxHash = luckyId
+		if can.TxHash != luckyId {
+			can.TxHash = luckyId
+			can.TOwner = tContext.GetTicket(state, luckyId).Owner
+		}
+
 		nextQueue[i] = can
 
 		if node, err := buildWitnessNode(can); nil != err {

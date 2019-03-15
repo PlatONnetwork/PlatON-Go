@@ -52,8 +52,12 @@ func (c *CandidatePoolContext) WithdrawCandidate(state vm.StateDB, nodeId discov
 	return c.initCandidatePool().WithdrawCandidate(state, nodeId, price, blockNumber)
 }
 
-func (c *CandidatePoolContext) GetChosens(state vm.StateDB, flag int) types.CandidateQueue {
+func (c *CandidatePoolContext) GetChosens(state vm.StateDB, flag int) types.KindCanQueue {
 	return c.initCandidatePool().GetChosens(state, flag)
+}
+
+func (c *CandidatePoolContext) GetCandidatePendArr (state vm.StateDB, flag int) types.CandidateQueue {
+	return c.initCandidatePool().GetCandidatePendArr(state, flag)
 }
 
 func (c *CandidatePoolContext) GetChairpersons(state vm.StateDB) types.CandidateQueue {

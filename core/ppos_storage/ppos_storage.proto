@@ -15,6 +15,7 @@ message CandidateInfo {
     string Extra = 8;
     uint32 Fee = 9;
     bytes TxHash = 10;
+    bytes TOwner = 11;
 }
 
 message Refund {
@@ -47,7 +48,7 @@ message TicketInfo {
 	string  Deposit	    =2;
 	bytes   CandidateId  = 3;
 	string  BlockNumber = 4;
-	uint64  Remaining	= 5;
+	uint32  Remaining	= 5;
 }
 
 message TxHashArr {
@@ -55,7 +56,7 @@ message TxHashArr {
 }
 
 message TicketDependency {
-    string  Age = 1;
+    uint64  Age = 1;
     uint32  Num = 2;
     repeated bytes  Tids = 3;
 }

@@ -9,6 +9,8 @@ import (
 
 type CanConditions map[discover.NodeID]*big.Int
 
+type KindCanQueue []CandidateQueue
+
 type CandidateQueue []*Candidate
 
 func (queue CandidateQueue) DeepCopy() CandidateQueue {
@@ -29,6 +31,7 @@ func (queue CandidateQueue) DeepCopy() CandidateQueue {
 			Extra:       can.Extra,
 			Fee:         can.Fee,
 			TxHash: 	 can.TxHash,
+			TOwner: 	 can.TOwner,
 		}
 		copyCandidateQueue[i] = canCopy
 	}
@@ -138,13 +141,12 @@ type Candidate struct {
 	Port        string
 	// Mortgage beneficiary's account address
 	Owner common.Address
-	//// The account address of initiating a mortgaged
-	//From  common.Address
 	Extra string
 	// brokerage   example: (fee/10000) * 100% == x%
 	Fee uint32
 	// Selected TicketId
 	TxHash common.Hash
+	TOwner common.Address
 }
 
 type RefundQueue []*CandidateRefund

@@ -346,7 +346,7 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int) error {
 func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	candidateList := cContext.GetChosens(stateDB, 0)
+	candidateList := cContext.GetCandidatePendArr(stateDB, 0)
 	for _, candidate := range candidateList {
 		epoch := t.GetCandidateEpoch(stateDB, candidate.CandidateId)
 		// Get the total number of votes, increase the total epoch

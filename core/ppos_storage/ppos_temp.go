@@ -94,7 +94,7 @@ func BuildPposCache(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
 // Get ppos storage cache by same block
 func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
 
-	log.Debug("進入由全局的temp获取 cache")
+	//log.Debug("進入由全局的temp获取 cache")
 	ppos_storage := NewPPOS_storage()
 
 	notGenesisBlock := blockNumber.Cmp(big.NewInt(0)) > 0
@@ -105,14 +105,14 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 	}
 
 	if !notGenesisBlock || (common.Hash{}) == blockHash {
-		log.Debug("创世块 直接退出了")
+		//log.Debug("创世块 直接退出了")
 		return ppos_storage
 	}
 
 	var storage *Ppos_storage
 
 	temp.lock.Lock()
-	log.Debug("上了锁")
+	//log.Debug("上了锁")
 	if hashTemp, ok := temp.TempMap[blockNumber.String()]; !ok {
 		log.Warn("Warn Call GetPposCacheByNumAndHash of PPOS_TEMP, the PPOS storage cache is empty by blockNumber !!!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
 		temp.lock.Unlock()
@@ -128,7 +128,7 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 			log.Debug(fmt.Sprintf("%+v", storage))
 		}
 	}
-	log.Debug("解锁")
+	//log.Debug("解锁")
 	temp.lock.Unlock()
 	return storage
 }
@@ -415,6 +415,7 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 					Extra:  		can.Extra,
 					Fee:  			can.Fee,
 					TxHash: 		common.BytesToHash(can.TxHash),
+					TOwner: 		common.BytesToAddress(can.TOwner),
 				}
 				queue = append(queue, canInfo)
 			}
@@ -555,6 +556,7 @@ func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
 			Owner:			can.Owner.Bytes(),
 			Extra:			can.Extra,
 			TxHash: 		can.TxHash.Bytes(),
+			TOwner: 		can.TOwner.Bytes(),
 		}
 		pbQueue = append(pbQueue, canInfo)
 	}
