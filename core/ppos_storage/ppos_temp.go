@@ -11,6 +11,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"fmt"
 )
 
 var (
@@ -93,6 +94,7 @@ func BuildPposCache(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
 // Get ppos storage cache by same block
 func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
 
+	fmt.Println("進入由全局的temp获取 cache")
 	ppos_storage := NewPPOS_storage()
 
 	notGenesisBlock := blockNumber.Cmp(big.NewInt(0)) > 0
@@ -103,12 +105,14 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 	}
 
 	if !notGenesisBlock || (common.Hash{}) == blockHash {
+		fmt.Println("创世块 直接退出了")
 		return ppos_storage
 	}
 
 	var storage *Ppos_storage
 
 	temp.lock.Lock()
+	fmt.Println("上了锁")
 	if hashTemp, ok := temp.TempMap[blockNumber.String()]; !ok {
 		log.Warn("Warn Call GetPposCacheByNumAndHash of PPOS_TEMP, the PPOS storage cache is empty by blockNumber !!!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
 		temp.lock.Unlock()
@@ -121,9 +125,10 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 			return ppos_storage
 		}else {
 			storage = pposStorage.Copy()
-
+			fmt.Println(storage)
 		}
 	}
+	fmt.Println("解锁")
 	temp.lock.Unlock()
 	return storage
 }

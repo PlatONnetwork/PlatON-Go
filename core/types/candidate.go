@@ -4,6 +4,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
+	"fmt"
 )
 
 type CanConditions map[discover.NodeID]*big.Int
@@ -11,8 +12,9 @@ type CanConditions map[discover.NodeID]*big.Int
 type CandidateQueue []*Candidate
 
 func (queue CandidateQueue) DeepCopy() CandidateQueue {
-	copyCandidateQueue := make(CandidateQueue, len(queue))
+	copyCandidateQueue := make(CandidateQueue, 0)
 	if len(queue) == 0 {
+		fmt.Println("直接返回")
 		return copyCandidateQueue
 	}
 	for _, can := range queue {
