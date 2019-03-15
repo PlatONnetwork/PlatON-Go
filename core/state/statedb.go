@@ -781,5 +781,6 @@ func (self *StateDB) GetPPOSCache() *ppos_storage.Ppos_storage {
 }
 
 func (self *StateDB) SnapShotPPOSCache() *ppos_storage.Ppos_storage {
+	fmt.Println("进入 state的快照 。。。")
 	return self.pposCache.Copy()
 }
