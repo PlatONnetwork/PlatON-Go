@@ -49,12 +49,12 @@ func (t *TicketContract) Run(input []byte) ([]byte, error) {
 		return nil, ErrTicketPoolEmpty
 	}
 	var command = map[string]interface{}{
-		"VoteTicket":               t.VoteTicket,
-		"GetCandidateTicketCount":  t.GetCandidateTicketCount,
-		"GetTicketCountByTicketId": t.GetTicketCountByTicketId,
-		"GetCandidateEpoch":        t.GetCandidateEpoch,
-		"GetPoolRemainder":         t.GetPoolRemainder,
-		"GetTicketPrice":           t.GetTicketPrice,
+		"VoteTicket":              t.VoteTicket,
+		"GetCandidateTicketCount": t.GetCandidateTicketCount,
+		"GetTicketCountByTxHash":  t.GetTicketCountByTxHash,
+		"GetCandidateEpoch":       t.GetCandidateEpoch,
+		"GetPoolRemainder":        t.GetPoolRemainder,
+		"GetTicketPrice":          t.GetTicketPrice,
 	}
 	return execute(input, command)
 }
@@ -121,14 +121,14 @@ func (t *TicketContract) GetCandidateTicketCount(nodeIds []discover.NodeID) ([]b
 	return sdata, nil
 }
 
-// GetTicketCountByTicketId returns the number of transaction's ticket.
-func (t *TicketContract) GetTicketCountByTicketId(ticketIds []common.Hash) ([]byte, error) {
+// GetTicketCountByTxHash returns the number of transaction's ticket.
+func (t *TicketContract) GetTicketCountByTxHash(ticketIds []common.Hash) ([]byte, error) {
 	input, _ := json.Marshal(ticketIds)
-	log.Info("Input to GetTicketCountByTicketId==> ", "length: ", len(ticketIds), "ticketIds: ", string(input))
+	log.Info("Input to GetTicketCountByTxHash==> ", "length: ", len(ticketIds), "ticketIds: ", string(input))
 	ticketsRemaining := t.Evm.TicketPoolContext.GetBatchTicketRemaining(t.Evm.StateDB, ticketIds)
 	data, _ := json.Marshal(ticketsRemaining)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of GetTicketCountByTicketId==> ", "len(ticketsRemaining): ", len(ticketsRemaining), "json: ", string(data))
+	log.Info("Result of GetTicketCountByTxHash==> ", "len(ticketsRemaining): ", len(ticketsRemaining), "json: ", string(data))
 	return sdata, nil
 }
 

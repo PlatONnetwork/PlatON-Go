@@ -115,7 +115,3 @@ func (c *CandidatePoolContext) SetCandidateExtra(state vm.StateDB, nodeId discov
 func (c *CandidatePoolContext) UpdateElectedQueue(state vm.StateDB, currBlockNumber *big.Int, nodeIds ...discover.NodeID) error {
 	return c.initCandidatePool().UpdateElectedQueue(state, currBlockNumber, nodeIds...)
 }
-
-func (c *CandidatePoolContext) GetLuckyTickets(state vm.StateDB, flag int) ([]common.Hash, error) {
-	return c.initCandidatePool().GetLuckyTickets(state, flag)
-}
