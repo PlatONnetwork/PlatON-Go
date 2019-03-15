@@ -254,10 +254,6 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 	if ticket == nil {
 		return TicketNotFindErr
 	}
-	if ticket.Remaining == 0 {
-		// Remove from pending expire tickets
-		t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
-	}
 	return nil
 }
 
@@ -270,6 +266,11 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.Node
 	log.Debug("releaseTicket,Start Update", "nodeId", candidateId.String(), "ticketId", ticketId.Hex())
 	if err := stateDB.GetPPOSCache().SubTicket(candidateId, ticketId); err != nil {
 		return ticket, err
+	}
+	if ticket.Remaining == 0 {
+		// Remove from pending expire tickets
+		log.Debug("releaseTicket, Ticket has been used, deleted from waiting for expiration", "ticketId", ticketId.Hex(), "candidateId", candidateId.String(), "blockNumber", blockNumber.Uint64())
+		t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
 	}
 	log.Debug("releaseTicket, end update", "nodeId", candidateId.String())
 	surplusQuantity := t.GetPoolNumber(stateDB)
@@ -300,7 +301,7 @@ func (t *TicketPool) releaseTxTicket(stateDB vm.StateDB, candidateId discover.No
 		return ticket, err
 	}
 	log.Debug("releaseTicket, end update", "nodeId", candidateId.String())
-	t.removeExpireTicket(stateDB, blockNumber, ticketId)
+	t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
 	surplusQuantity := t.GetPoolNumber(stateDB)
 	log.Debug("releaseTicket, start to update the ticket pool", "surplusQuantity", surplusQuantity)
 	t.setPoolNumber(stateDB, surplusQuantity+ticket.Remaining)

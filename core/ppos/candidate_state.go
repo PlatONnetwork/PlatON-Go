@@ -1083,7 +1083,11 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 
 		if can.TxHash != luckyId {
 			can.TxHash = luckyId
-			can.TOwner = tContext.GetTicket(state, luckyId).Owner
+			if luckyId == (common.Hash{}) {
+				can.TOwner = common.Address{}
+			} else {
+				can.TOwner = tContext.GetTicket(state, luckyId).Owner
+			}
 		}
 
 		nextQueue[i] = can

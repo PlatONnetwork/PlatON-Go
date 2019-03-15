@@ -512,7 +512,10 @@ func (w *worker) mainLoop() {
 	for {
 		select {
 		case req := <-w.newWorkCh:
+			start := time.Now().UnixNano()
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp, req.commitBlock)
+			end := time.Now().UnixNano()
+			log.Debug("Execute Time commitNewWork", "nano", end - start, "millisecond", end/1e6-start/1e6)
 
 		case ev := <-w.chainSideCh:
 			// Short circuit for duplicate side blocks
@@ -1403,17 +1406,24 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	s := w.current.state.Copy()
 
 	if header != nil {
+		startPpos := time.Now().UnixNano()
 		if err := w.notify(s, header.Number); err != nil {
 			return errors.New("notify failure")
 		}
+		endNotify := time.Now().UnixNano()
+		log.Debug("Execute Time notify", "nano", endNotify - startPpos, "millisecond", endNotify/1e6-startPpos/1e6)
 		// Election call(if match condition)
 		if electionErr := w.election(s, header.ParentHash, header.Number); electionErr != nil {
 			return errors.New("election failure")
 		}
+		endElection := time.Now().UnixNano()
+		log.Debug("Execute Time election", "nano", endElection - endNotify, "millisecond", endElection/1e6-endNotify/1e6)
 		// SwitchWitness call(if match condition)
 		if switchWitnessErr := w.switchWitness(s, header.Number); switchWitnessErr != nil {
 			return errors.New("switchWitness failure")
 		}
+		endSwitchWitness := time.Now().UnixNano()
+		log.Debug("Execute Time switchWitness", "nano", endSwitchWitness - endElection, "millisecond", endSwitchWitness/1e6-endElection/1e6)
 		// ppos Store Hash
 		w.storeHash(s)
 	}
