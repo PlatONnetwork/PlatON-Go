@@ -2088,10 +2088,18 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 	/**test Interval*/
 	logFn("test Interval:", candidatePoolContext.GetRefundInterval())
 
+	next, _ := candidatePoolContext.GetWitness(state, 1)
+	fmt.Println("next", next)
 	/** test switch */
 	logFn("test Switch ...")
 	flag := candidatePoolContext.Switch(state)
+
 	logFn("Switch was success ", flag)
+
+	curr, _ := candidatePoolContext.GetWitness(state, 0)
+	fmt.Println("curr", curr)
+	next, _ = candidatePoolContext.GetWitness(state, 1)
+	fmt.Println("next", next)
 }
 
 func TestCandidatePool_Switch(t *testing.T) {

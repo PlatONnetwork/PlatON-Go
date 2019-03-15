@@ -995,16 +995,16 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) ([]*discover.Node, types.CandidateQueue, error) {
 	log.Info("Call Election start ...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.RefundBlockNumber)
 	c.initDataByState(state)
-	curr_queue := c.getCandidateQueue(ppos_storage.CURRENT)
+	imm_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
 
 	// sort immediate candidates
-	makeCandidateSort(state, curr_queue)
+	makeCandidateSort(state, imm_queue)
 
-	log.Info("When Election，Sorted candidate pool array length:", "len", len(curr_queue))
-	PrintObject("When Election，Sorted the candidate array:", curr_queue)
+	log.Info("When Election，Sorted candidate pool array length:", "len", len(imm_queue))
+	PrintObject("When Election，Sorted the candidate array:", imm_queue)
 	// cache ids
 	immediateIds := make([]discover.NodeID, 0)
-	for _, can := range curr_queue {
+	for _, can := range imm_queue {
 		immediateIds = append(immediateIds, can.CandidateId)
 	}
 	PrintObject("When Election，current immediate is：", immediateIds)
@@ -1029,12 +1029,12 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 
 	retry:
 	for i, canId := range nextIdArr {
-		for k := 0; k < len(curr_queue); k++ {
-			can := curr_queue[k]
+		for k := 0; k < len(imm_queue); k++ {
+			can := imm_queue[k]
 			if canId == can.CandidateId {
 
 				nextQueue[i] = can
-				curr_queue = append(curr_queue[:k], curr_queue[k+1:]...)
+				imm_queue = append(imm_queue[:k], imm_queue[k+1:]...)
 				goto retry
 			}
 		}
