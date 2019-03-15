@@ -87,6 +87,11 @@ type Ppos_storage struct {
 func (ps *Ppos_storage) Copy() *Ppos_storage {
 	ppos_storage := NewPPOS_storage()
 
+	if nil == ps {
+		fmt.Println("进入 ps == nil")
+		return ppos_storage
+	}
+
 	ppos_storage.c_storage = ps.CopyCandidateStorage()
 	ppos_storage.t_storage = ps.CopyTicketStorage()
 
