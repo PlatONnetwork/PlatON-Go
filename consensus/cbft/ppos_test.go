@@ -82,7 +82,7 @@ func buildPpos() (*ppos, *core.BlockChain) {
 	}
 	ppos := &ppos{
 		candidateContext:  pposm.NewCandidatePoolContext(&configs),
-		ticketPool: pposm.NewTicketPool(&configs),
+		ticketContext: pposm.NewTicketPoolContext(&configs),
 	}
 
 	var (
@@ -119,7 +119,7 @@ func buildInitialNodes() []discover.Node {
 func TestNewPpos (t *testing.T) {
 	ppos, _ := buildPpos()
 	printObject("ppos.candidatePoolText:", ppos.candidateContext, t)
-	printObject("ppos.ticketPool:", ppos.ticketPool, t)
+	printObject("ppos.ticketPool:", ppos.ticketContext, t)
 }
 
 // test BlockProducerIndex
@@ -208,8 +208,8 @@ func ppos_GetCandidate (logger interface{}, logFn func (args ... interface{}), e
 	}
 
 	/** test GetCandidate ... */
-	if can, err := ppos.GetCandidate(state, candidate.CandidateId); nil != err {
-		errFn("GetCandidate err", err)
+	if can := ppos.GetCandidate(state, candidate.CandidateId); nil == can {
+		errFn("GetCandidate err")
 	}else {
 		printObject("GetCandidate can:", can, logger)
 	}
@@ -277,7 +277,7 @@ func ppos_GetCandidateArr (logger interface{}, logFn func (args ... interface{})
 
 	/** test GetCandidate */
 	logFn("test GetCandidateArr ...")
-	canArr, _ := ppos.GetCandidateArr(state, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
+	canArr := ppos.GetCandidateArr(state, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
 	printObject("GetCandidateArr", canArr, logger)
 }
 func TestPpos_GetCandidateArr(t *testing.T) {
@@ -957,7 +957,7 @@ func ppos_WithdrawCandidate (logger interface{}, logFn func (args ... interface{
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can, _ := ppos.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can := ppos.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("GetCandidate", can, logger)
 
 	/** test WithdrawCandidate */
@@ -967,7 +967,7 @@ func ppos_WithdrawCandidate (logger interface{}, logFn func (args ... interface{
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can2, _ := ppos.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can2 := ppos.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("GetCandidate", can2, logger)
 
 }
@@ -1318,12 +1318,12 @@ func ppos_GetDefeat (logger interface{}, logFn func (args ... interface{}), errF
 
 	/** test IsDefeat */
 	logFn("test IsDefeat ...")
-	flag, _ := ppos.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag := ppos.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	logFn("isdefeat", flag)
 
 	/** test GetDefeat */
 	logFn("test GetDefeat ...")
-	defeatArr, _ := ppos.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	defeatArr := ppos.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	printObject("can be refund defeats", defeatArr, logger)
 }
 func TestPpos_GetDefeat(t *testing.T) {
@@ -1467,7 +1467,7 @@ func ppos_IsDefeat (logger interface{}, logFn func (args ... interface{}), errFn
 
 	/** test IsDefeat */
 	logFn("test IsDefeat ...")
-	flag, _ := ppos.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag := ppos.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
 	logFn("isdefeat", flag)
 }
 func TestPpos_IsDefeat(t *testing.T) {
@@ -1695,11 +1695,8 @@ func ppos_GetPoolNumber (logger interface{}, logFn func (args ... interface{}), 
 
 	/** test  GetPoolNumber */
 	logFn("test GetPoolNumber ...")
-	if num, err := ppos.GetPoolNumber(state); nil != err {
-		errFn("GetPoolNumber err", err)
-	}else {
-		logFn("GetPoolNumber:", num)
-	}
+	num := ppos.GetPoolNumber(state)
+	logFn("GetPoolNumber:", num)
 }
 func TestPpos_GetPoolNumber(t *testing.T) {
 	ppos_GetPoolNumber(t, t.Log, t.Error)
@@ -1809,17 +1806,19 @@ func ppos_GetTicket (logger interface{}, logFn func (args ... interface{}), errF
 	state.AddBalance(common.TicketPoolAddr, deposit)
 	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
 	fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-	tickList, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+	num, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 	if nil != err {
 		errFn("vote ticket error:", err)
+	}else{
+		logFn("ticket success num", num)
 	}
 	atomic.AddUint32(&count, 1)
 	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
 	logFn("VOTING END .............................................................")
 
 	/** GetTicket */
-	if ticket, err := ppos.GetTicket(state, tickList[0]); nil != err {
-		errFn("GetTicket err", err)
+	if ticket := ppos.GetTicket(state, state.TxHash()); nil == ticket {
+		errFn("GetTicket err")
 	}else {
 		printObject("GetTicket ticketInfo:", ticket, logger)
 	}
@@ -1874,17 +1873,19 @@ func ppos_GetTicketList (logger interface{}, logFn func (args ... interface{}), 
 	state.AddBalance(common.TicketPoolAddr, deposit)
 	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
 	fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-	tickIdList, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+	num, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 	if nil != err {
 		errFn("vote ticket error:", err)
+	}else{
+		logFn("ticket success num", num)
 	}
 	atomic.AddUint32(&count, 1)
 	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
 	logFn("VOTING END .............................................................")
 
 	/** GetTicketList */
-	if tickets, err := ppos.GetTicketList(state, tickIdList); nil != err {
-		errFn("GetTicketList err", err)
+	if tickets := ppos.GetTicketList(state, []common.Hash{state.TxHash()}); len(tickets) == 0 {
+		errFn("GetTicketList err")
 	}else {
 		printObject("GetTicketList ticketArr:", tickets, logger)
 	}
@@ -1947,12 +1948,8 @@ func ppos_GetCandidateTicketIds (logger interface{}, logFn func (args ... interf
 	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
 	logFn("VOTING END .............................................................")
 
-	tickIds, err := ppos.GetCandidateTicketIds(state, candidate.CandidateId)
-	if nil != err {
-		errFn("GetCandidateTicketIds err", err)
-	}else {
-		printObject("GetCandidateTicketIds:", tickIds, logger)
-	}
+	tickIds := ppos.GetCandidateTicketIds(state, candidate.CandidateId)
+	printObject("GetCandidateTicketIds:", tickIds, logger)
 }
 func TestPpos_GetCandidateTicketIds(t *testing.T) {
 	ppos_GetCandidateTicketIds(t, t.Log, t.Error)
@@ -2012,12 +2009,8 @@ func ppos_GetCandidateEpoch  (logger interface{}, logFn func (args ... interface
 	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
 	logFn("VOTING END .............................................................")
 
-	epoch, err := ppos.GetCandidateEpoch(state, candidate.CandidateId)
-	if nil != err {
-		errFn("GetCandidateEpoch err", err)
-	}else {
-		logFn("GetCandidateEpoch:", epoch)
-	}
+	epoch := ppos.GetCandidateEpoch(state, candidate.CandidateId)
+	logFn("GetCandidateEpoch:", epoch)
 }
 func TestPpos_GetCandidateEpoch(t *testing.T) {
 	ppos_GetCandidateEpoch(t, t.Log, t.Error)
@@ -2039,11 +2032,8 @@ func ppos_GetTicketPrice (logger interface{}, logFn func (args ... interface{}),
 
 	/** test  GetTicketPrice */
 	logFn("test GetTicketPrice ...")
-	if num, err := ppos.GetTicketPrice(state); nil != err {
-		errFn("GetTicketPrice err", err)
-	}else {
-		logFn("GetTicketPrice:", num)
-	}
+	num := ppos.GetTicketPrice(state)
+	logFn("GetTicketPrice:", num)
 }
 func TestPpos_GetTicketPrice(t *testing.T) {
 	ppos_GetTicketPrice(t, t.Log, t.Error)
@@ -2052,70 +2042,6 @@ func BenchmarkPpos_GetTicketPrice(b *testing.B) {
 	ppos_GetTicketPrice(b, b.Log, b.Error)
 }
 
-// test GetCandidateAttach
-func ppos_GetCandidateAttach (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})) {
-	ppos, bc := buildPpos()
-	var state *state.StateDB
-	if st, err := bc.State(); nil != err {
-		errFn("test GetCandidateAttach getting state err", err)
-	}else {
-		state = st
-	}
-	logFn("test GetCandidateAttach ...")
-
-
-	candidate := &types.Candidate{
-		Deposit: 		new(big.Int).SetUint64(100),
-		BlockNumber:    new(big.Int).SetUint64(7),
-		CandidateId:   discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
-		TxIndex:  		6,
-		Host:  			"10.0.0.1",
-		Port:  			"8548",
-		Owner: 			common.HexToAddress("0x12"),
-
-	}
-	logFn("Set New Candidate ...")
-	/** test SetCandidate */
-	if err := ppos.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
-		errFn("SetCandidate err:", err)
-	}
-
-
-	/** vote ticket */
-	var count uint32 = 0
-	var blockNumber = new(big.Int).SetUint64(10)
-
-	timeMap := make(map[uint32]int64)
-	logFn("VOTING START .............................................................")
-
-	startTime := time.Now().UnixNano() / 1e6
-	voteOwner := common.HexToAddress("0x20")
-	deposit := new(big.Int).SetUint64(10)
-	state.SubBalance(voteOwner, deposit)
-	state.AddBalance(common.TicketPoolAddr, deposit)
-	tempBlockNumber := new(big.Int).SetUint64(blockNumber.Uint64())
-	fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-	_, err := ppos.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
-	if nil != err {
-		errFn("vote ticket error:", err)
-	}
-	atomic.AddUint32(&count, 1)
-	timeMap[count] = (time.Now().UnixNano() / 1e6) - startTime
-	logFn("VOTING END .............................................................")
-
-	attach, err := ppos.GetCandidateAttach(state, candidate.CandidateId)
-	if nil != err {
-		errFn("GetCandidateAttach err", err)
-	}else {
-		printObject("GetCandidateAttach:", attach, logger)
-	}
-}
-func TestPpos_GetCandidateAttach(t *testing.T) {
-	ppos_GetCandidateAttach(t, t.Log, t.Error)
-}
-func BenchmarkPpos_GetCandidateAttach(b *testing.B) {
-	ppos_GetCandidateAttach(b, b.Log, b.Error)
-}
 
 // test Notify
 func ppos_Notify (logger interface{}, logFn func (args ... interface{}), errFn func (args ... interface{})){
