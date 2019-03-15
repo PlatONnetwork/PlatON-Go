@@ -482,19 +482,19 @@ func TestCandidatePoolEncode(t *testing.T) {
 	//"enode://751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c@192.168.9.182:16789",
 	//"enode://b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6@192.168.9.183:16789",
 	//"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.9.184:16789"
-	nodeId := []byte("0x751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c")
-	owner := []byte("0x493301712671ada506ba6ca7891f436d29185821")
-	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
-	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
+	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
+	owner := []byte("0x740ce31b3fac20dac379db243021a51e80ad00d7")
+	extra := "{\"nodeName\": \"Platon-Shanghai\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-eastern area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/sz\",\"time\":1546503651100}"
+	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint32, host, port, extra string)
 	var CandidateDeposit [][]byte
 	CandidateDeposit = make([][]byte, 0)
 	CandidateDeposit = append(CandidateDeposit, byteutil.Uint64ToBytes(1001))
 	CandidateDeposit = append(CandidateDeposit, []byte("CandidateDeposit"))
 	CandidateDeposit = append(CandidateDeposit, nodeId)
 	CandidateDeposit = append(CandidateDeposit, owner)
-	CandidateDeposit = append(CandidateDeposit, byteutil.Uint32ToBytes(8000))
+	CandidateDeposit = append(CandidateDeposit, byteutil.Uint32ToBytes(7900))
 	//CandidateDeposit = append(CandidateDeposit, bigIntStrToBytes("130000000000000000000"))
-	CandidateDeposit = append(CandidateDeposit, []byte("192.168.9.184"))
+	CandidateDeposit = append(CandidateDeposit, []byte("192.168.8.8"))
 	CandidateDeposit = append(CandidateDeposit, []byte("16789"))
 	CandidateDeposit = append(CandidateDeposit, []byte(extra))
 	bufDeposit := new(bytes.Buffer)
@@ -530,7 +530,7 @@ func TestCandidatePoolEncode(t *testing.T) {
 	var CandidateWithdraw [][]byte
 	CandidateWithdraw = make([][]byte, 0)
 	CandidateWithdraw = append(CandidateWithdraw, byteutil.Uint64ToBytes(1003))
-	CandidateWithdraw = append(CandidateWithdraw, []byte("CandidateWithdraw1"))
+	CandidateWithdraw = append(CandidateWithdraw, []byte("CandidateWithdraw"))
 	CandidateWithdraw = append(CandidateWithdraw, nodeId)
 	bufWith := new(bytes.Buffer)
 	err = rlp.Encode(bufWith, CandidateWithdraw)
@@ -554,6 +554,25 @@ func TestCandidatePoolEncode(t *testing.T) {
 		t.Errorf("GetCandidateWithdrawInfos encode rlp data fail")
 	} else {
 		fmt.Println("GetCandidateWithdrawInfos data rlp: ", hexutil.Encode(bufGetCandidateWithdrawInfos.Bytes()))
+	}
+
+	// GetCandidateDetails(nodeIds []discover.NodeID)
+	var GetCandidateDetails [][]byte
+	nodeId1 := "0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeId2 := "0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeId3 := "0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
+	nodeIds := nodeId1 + ":" + nodeId2 + ":" + nodeId3
+	GetCandidateDetails = make([][]byte, 0)
+	GetCandidateDetails = append(GetCandidateDetails, byteutil.Uint64ToBytes(0xf1))
+	GetCandidateDetails = append(GetCandidateDetails, []byte("GetCandidateDetails"))
+	GetCandidateDetails = append(GetCandidateDetails, []byte(nodeIds))
+	bufGetCandidateDetails := new(bytes.Buffer)
+	err = rlp.Encode(bufGetCandidateDetails, GetCandidateDetails)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetCandidateDetails encode rlp data fail")
+	} else {
+		fmt.Println("GetCandidateDetails data rlp: ", hexutil.Encode(bufGetCandidateDetails.Bytes()))
 	}
 
 	// GetCandidateList()

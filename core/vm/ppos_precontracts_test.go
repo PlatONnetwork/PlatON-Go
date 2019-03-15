@@ -24,12 +24,11 @@ func TestExecute(t *testing.T) {
 
 func TestDecodeResultStr(t *testing.T) {
 	ticket := types.Ticket{
-		TicketId:    common.HexToHash("0x0123456789012345678901234567890123456789012345678901234567890123"),
 		Owner:       common.HexToAddress("0x0123456789012345678901234567890123456789"),
 		Deposit:     big.NewInt(1),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
 		BlockNumber: big.NewInt(100),
-		State:       1,
+		Remaining:   1000,
 	}
 	data, _ := json.Marshal(ticket)
 	sdata := DecodeResultStr(string(data))
