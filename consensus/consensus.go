@@ -176,5 +176,4 @@ type Bft interface {
 
 	Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash)
 
-	ForEachStorage(state *state.StateDB, title string)
 }

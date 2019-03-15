@@ -370,7 +370,7 @@ func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.No
 	log.Debug("Start picking lucky tickets on SelectionLuckyTicket", "nodeId", nodeId.String(), "blockHash", blockHash.Hex(), "candidateTicketIds", len(candidateTicketIds))
 	luckyTicketId := common.Hash{}
 	if len(candidateTicketIds) == 0 {
-		return luckyTicketId, CandidateNilTicketErr
+		return luckyTicketId, nil
 	}
 	if len(candidateTicketIds) == 1 {
 		return candidateTicketIds[0], nil
