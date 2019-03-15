@@ -2,12 +2,12 @@ package vm_test
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/ppos"
@@ -32,7 +32,7 @@ func TestCandidatePoolOverAll(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -43,11 +43,13 @@ func TestCandidatePoolOverAll(t *testing.T) {
 	}
 	fmt.Println("CandidateDeposit success")
 
-	// CandidateDetails(nodeId discover.NodeID) ([]byte, error)
-	fmt.Println("CandidateDetails input==>", "nodeId: ", nodeId.String())
-	resByte, err := candidateContract.CandidateDetails(nodeId)
+	// GetCandidateDetails(nodeIds []discover.NodeID) ([]byte, error)
+	fmt.Println("GetCandidateDetails input==>", "nodeIds: ", nodeId.String())
+	var nodeIds []discover.NodeID
+	nodeIds = append(nodeIds, nodeId)
+	resByte, err := candidateContract.GetCandidateDetails(nodeIds)
 	if nil != err {
-		fmt.Println("CandidateDetails fail", "err", err)
+		fmt.Println("GetCandidateDetails fail", "err", err)
 		return
 	}
 	if nil == resByte {
@@ -73,23 +75,23 @@ func TestCandidatePoolOverAll(t *testing.T) {
 	}
 	fmt.Println("CandidateWithdraw success")
 
-	// CandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error)
-	fmt.Println("CandidateWithdrawInfos input==>", "nodeId: ", nodeId.String())
-	resByte, err = candidateContract.CandidateWithdrawInfos(nodeId)
+	// GetCandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error)
+	fmt.Println("GetCandidateWithdrawInfos input==>", "nodeId: ", nodeId.String())
+	resByte, err = candidateContract.GetCandidateWithdrawInfos(nodeId)
 	if nil != err {
-		fmt.Println("CandidateWithdrawInfos fail", "err", err)
+		fmt.Println("GetCandidateWithdrawInfos fail", "err", err)
 		return
 	}
 	if nil == resByte {
-		fmt.Println("The CandidateWithdrawInfos is null")
+		fmt.Println("The GetCandidateWithdrawInfos is null")
 		return
 	}
-	fmt.Println("The CandidateWithdrawInfos is: ", vm.ResultByte2Json(resByte))
+	fmt.Println("The GetCandidateWithdrawInfos is: ", vm.ResultByte2Json(resByte))
 
-	// CandidateList() ([]byte, error)
-	resByte, err = candidateContract.CandidateList()
+	// GetCandidateList() ([]byte, error)
+	resByte, err = candidateContract.GetCandidateList()
 	if nil != err {
-		fmt.Println("CandidateList fail", "err", err)
+		fmt.Println("GetCandidateList fail", "err", err)
 	}
 	if nil == resByte {
 		fmt.Println("The candidate list is null")
@@ -161,10 +163,10 @@ func TestCandidateDeposit(t *testing.T) {
 		newEvm(),
 	}
 
-	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string) ([]byte, error)
+	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint32, host, port, extra string) ([]byte, error)
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -183,7 +185,7 @@ func TestCandidateDetails(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -194,12 +196,14 @@ func TestCandidateDetails(t *testing.T) {
 	}
 	fmt.Println("CandidateDeposit success")
 
-	// CandidateDetails(nodeId discover.NodeID) ([]byte, error)
+	// GetCandidateDetails(nodeIds []discover.NodeID) ([]byte, error)
 	// nodeId = discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
-	fmt.Println("CandidateDetails input==>", "nodeId: ", nodeId.String())
-	resByte, err := candidateContract.CandidateDetails(nodeId)
+	var nodeIds []discover.NodeID
+	nodeIds = append(nodeIds, nodeId)
+	fmt.Println("GetCandidateDetails input==>", "nodeIds: ", nodeId.String())
+	resByte, err := candidateContract.GetCandidateDetails(nodeIds)
 	if nil != err {
-		fmt.Println("CandidateDetails fail", "err", err)
+		fmt.Println("GetCandidateDetails fail", "err", err)
 		return
 	}
 	if nil == resByte {
@@ -216,7 +220,7 @@ func TestGetBatchCandidateDetail(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -229,7 +233,7 @@ func TestGetBatchCandidateDetail(t *testing.T) {
 
 	nodeId = discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner = common.HexToAddress("0x12")
-	fee = uint64(8000)
+	fee = uint32(8000)
 	host = "192.168.9.185"
 	port = "16789"
 	extra = "{\"nodeName\": \"Platon-Shenzhen\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Cosmic wave\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/sz\",\"time\":1546503651190}"
@@ -240,13 +244,13 @@ func TestGetBatchCandidateDetail(t *testing.T) {
 	}
 	fmt.Println("CandidateDeposit2 success")
 
-	// GetBatchCandidateDetail(nodeIds []discover.NodeID) ([]byte, error)
+	// GetCandidateDetails(nodeIds []discover.NodeID) ([]byte, error)
 	nodeIds := []discover.NodeID{discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")}
 	input, _ := json.Marshal(nodeIds)
 	fmt.Println("GetBatchCandidateDetail input==>", "nodeIds: ", string(input))
-	resByte, err := candidateContract.GetBatchCandidateDetail(nodeIds)
+	resByte, err := candidateContract.GetCandidateDetails(nodeIds)
 	if nil != err {
-		fmt.Println("GetBatchCandidateDetail fail", "err", err)
+		fmt.Println("GetCandidateDetails fail", "err", err)
 	}
 	if nil == resByte {
 		fmt.Println("The candidate info is null")
@@ -262,7 +266,7 @@ func TestCandidateList(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -275,7 +279,7 @@ func TestCandidateList(t *testing.T) {
 
 	nodeId = discover.MustHexID("0x11234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner = common.HexToAddress("0x12")
-	fee = uint64(8000)
+	fee = uint32(8000)
 	host = "192.168.9.185"
 	port = "16789"
 	extra = "{\"nodeName\": \"Platon-Shenzhen\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Cosmic wave\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/sz\",\"time\":1546503651190}"
@@ -286,10 +290,10 @@ func TestCandidateList(t *testing.T) {
 	}
 	fmt.Println("CandidateDeposit2 success")
 
-	// CandidateList() ([]byte, error)
-	resByte, err := candidateContract.CandidateList()
+	// GetCandidateList() ([]byte, error)
+	resByte, err := candidateContract.GetCandidateList()
 	if nil != err {
-		fmt.Println("CandidateList fail", "err", err)
+		fmt.Println("GetCandidateList fail", "err", err)
 	}
 	if nil == resByte {
 		fmt.Println("The candidate list is null")
@@ -305,7 +309,7 @@ func TestSetCandidateExtra(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -325,11 +329,13 @@ func TestSetCandidateExtra(t *testing.T) {
 	}
 	fmt.Println("SetCandidateExtra success")
 
-	// CandidateDetails(nodeId discover.NodeID) ([]byte, error)
-	fmt.Println("CandidateDetails input==>", "nodeId: ", nodeId.String())
-	resByte, err := candidateContract.CandidateDetails(nodeId)
+	// GetCandidateDetails(nodeIds []discover.NodeID) ([]byte, error)
+	fmt.Println("GetCandidateDetails input==>", "nodeIds: ", nodeId.String())
+	var nodeIds []discover.NodeID
+	nodeIds = append(nodeIds, nodeId)
+	resByte, err := candidateContract.GetCandidateDetails(nodeIds)
 	if nil != err {
-		fmt.Println("CandidateDetails fail", "err", err)
+		fmt.Println("GetCandidateDetails fail", "err", err)
 		return
 	}
 	if nil == resByte {
@@ -346,7 +352,7 @@ func TestCandidateApplyWithdraw(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -374,7 +380,7 @@ func TestCandidateWithdraw(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -402,11 +408,13 @@ func TestCandidateWithdraw(t *testing.T) {
 	}
 	fmt.Println("CandidateWithdraw success")
 
-	// CandidateDetails(nodeId discover.NodeID) ([]byte, error)
+	// GetCandidateDetails(nodeId discover.NodeID) ([]byte, error)
 	fmt.Println("CandidateDetails input==>", "nodeId: ", nodeId.String())
-	resByte, err := candidateContract.CandidateDetails(nodeId)
+	var nodeIds []discover.NodeID
+	nodeIds = append(nodeIds, nodeId)
+	resByte, err := candidateContract.GetCandidateDetails(nodeIds)
 	if nil != err {
-		fmt.Println("CandidateDetails fail", "err", err)
+		fmt.Println("GetCandidateDetails fail", "err", err)
 		return
 	}
 	if nil == resByte {
@@ -423,7 +431,7 @@ func TestCandidateWithdrawInfos(t *testing.T) {
 	}
 	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
 	owner := common.HexToAddress("0x12")
-	fee := uint64(7000)
+	fee := uint32(7000)
 	host := "192.168.9.184"
 	port := "16789"
 	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
@@ -451,18 +459,18 @@ func TestCandidateWithdrawInfos(t *testing.T) {
 	}
 	fmt.Println("CandidateWithdraw success")
 
-	// CandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error)
-	fmt.Println("CandidateWithdrawInfos input==>", "nodeId: ", nodeId.String())
-	resByte, err := candidateContract.CandidateWithdrawInfos(nodeId)
+	// GetCandidateWithdrawInfos(nodeId discover.NodeID) ([]byte, error)
+	fmt.Println("GetCandidateWithdrawInfos input==>", "nodeId: ", nodeId.String())
+	resByte, err := candidateContract.GetCandidateWithdrawInfos(nodeId)
 	if nil != err {
-		fmt.Println("CandidateWithdrawInfos fail", "err", err)
+		fmt.Println("GetCandidateWithdrawInfos fail", "err", err)
 		return
 	}
 	if nil == resByte {
-		fmt.Println("The CandidateWithdrawInfos is null")
+		fmt.Println("The GetCandidateWithdrawInfos is null")
 		return
 	}
-	fmt.Println("The CandidateWithdrawInfos is: ", vm.ResultByte2Json(resByte))
+	fmt.Println("The GetCandidateWithdrawInfos is: ", vm.ResultByte2Json(resByte))
 }
 
 func TestTime(t *testing.T) {
@@ -480,11 +488,11 @@ func TestCandidatePoolEncode(t *testing.T) {
 	// CandidateDeposit(nodeId discover.NodeID, owner common.Address, fee uint64, host, port, extra string)
 	var CandidateDeposit [][]byte
 	CandidateDeposit = make([][]byte, 0)
-	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(1001))
+	CandidateDeposit = append(CandidateDeposit, byteutil.Uint64ToBytes(1001))
 	CandidateDeposit = append(CandidateDeposit, []byte("CandidateDeposit"))
 	CandidateDeposit = append(CandidateDeposit, nodeId)
 	CandidateDeposit = append(CandidateDeposit, owner)
-	CandidateDeposit = append(CandidateDeposit, uint64ToBytes(8000))
+	CandidateDeposit = append(CandidateDeposit, byteutil.Uint32ToBytes(8000))
 	//CandidateDeposit = append(CandidateDeposit, bigIntStrToBytes("130000000000000000000"))
 	CandidateDeposit = append(CandidateDeposit, []byte("192.168.9.184"))
 	CandidateDeposit = append(CandidateDeposit, []byte("16789"))
@@ -501,7 +509,7 @@ func TestCandidatePoolEncode(t *testing.T) {
 	// CandidateApplyWithdraw(nodeId discover.NodeID, withdraw *big.Int)
 	var CandidateApplyWithdraw [][]byte
 	CandidateApplyWithdraw = make([][]byte, 0)
-	CandidateApplyWithdraw = append(CandidateApplyWithdraw, uint64ToBytes(1002))
+	CandidateApplyWithdraw = append(CandidateApplyWithdraw, byteutil.Uint64ToBytes(1002))
 	CandidateApplyWithdraw = append(CandidateApplyWithdraw, []byte("CandidateApplyWithdraw"))
 	CandidateApplyWithdraw = append(CandidateApplyWithdraw, nodeId)
 	withdraw, ok := new(big.Int).SetString("14d1120d7b160000", 16)
@@ -521,7 +529,7 @@ func TestCandidatePoolEncode(t *testing.T) {
 	// CandidateWithdraw(nodeId discover.NodeID)
 	var CandidateWithdraw [][]byte
 	CandidateWithdraw = make([][]byte, 0)
-	CandidateWithdraw = append(CandidateWithdraw, uint64ToBytes(1003))
+	CandidateWithdraw = append(CandidateWithdraw, byteutil.Uint64ToBytes(1003))
 	CandidateWithdraw = append(CandidateWithdraw, []byte("CandidateWithdraw1"))
 	CandidateWithdraw = append(CandidateWithdraw, nodeId)
 	bufWith := new(bytes.Buffer)
@@ -533,97 +541,49 @@ func TestCandidatePoolEncode(t *testing.T) {
 		fmt.Println("CandidateWithdraw data rlp: ", hexutil.Encode(bufWith.Bytes()))
 	}
 
-	// CandidateWithdrawInfos(nodeId discover.NodeID)
-	var CandidateWithdrawInfos [][]byte
-	CandidateWithdrawInfos = make([][]byte, 0)
-	CandidateWithdrawInfos = append(CandidateWithdrawInfos, uint64ToBytes(0xf1))
-	CandidateWithdrawInfos = append(CandidateWithdrawInfos, []byte("CandidateWithdrawInfos"))
-	CandidateWithdrawInfos = append(CandidateWithdrawInfos, nodeId)
-	bufWithInfos := new(bytes.Buffer)
-	err = rlp.Encode(bufWithInfos, CandidateWithdrawInfos)
+	// GetCandidateWithdrawInfos(nodeId discover.NodeID)
+	var GetCandidateWithdrawInfos [][]byte
+	GetCandidateWithdrawInfos = make([][]byte, 0)
+	GetCandidateWithdrawInfos = append(GetCandidateWithdrawInfos, byteutil.Uint64ToBytes(0xf1))
+	GetCandidateWithdrawInfos = append(GetCandidateWithdrawInfos, []byte("GetCandidateWithdrawInfos"))
+	GetCandidateWithdrawInfos = append(GetCandidateWithdrawInfos, nodeId)
+	bufGetCandidateWithdrawInfos := new(bytes.Buffer)
+	err = rlp.Encode(bufGetCandidateWithdrawInfos, GetCandidateWithdrawInfos)
 	if err != nil {
 		fmt.Println(err)
-		t.Errorf("CandidateWithdrawInfos encode rlp data fail")
+		t.Errorf("GetCandidateWithdrawInfos encode rlp data fail")
 	} else {
-		fmt.Println("CandidateWithdrawInfos data rlp: ", hexutil.Encode(bufWithInfos.Bytes()))
+		fmt.Println("GetCandidateWithdrawInfos data rlp: ", hexutil.Encode(bufGetCandidateWithdrawInfos.Bytes()))
 	}
 
-	// CandidateDetails(nodeId discover.NodeID)
-	nodeId = []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
-	var CandidateDetails [][]byte
-	CandidateDetails = make([][]byte, 0)
-	CandidateDetails = append(CandidateDetails, uint64ToBytes(0xf1))
-	CandidateDetails = append(CandidateDetails, []byte("CandidateDetails"))
-	CandidateDetails = append(CandidateDetails, nodeId)
-	bufDetails := new(bytes.Buffer)
-	err = rlp.Encode(bufDetails, CandidateDetails)
+	// GetCandidateList()
+	var GetCandidateList [][]byte
+	GetCandidateList = make([][]byte, 0)
+	GetCandidateList = append(GetCandidateList, byteutil.Uint64ToBytes(0xf1))
+	GetCandidateList = append(GetCandidateList, []byte("GetCandidateList"))
+	bufGetCandidateList := new(bytes.Buffer)
+	err = rlp.Encode(bufGetCandidateList, GetCandidateList)
 	if err != nil {
 		fmt.Println(err)
-		t.Errorf("CandidateDetails encode rlp data fail")
+		t.Errorf("GetCandidateList encode rlp data fail")
 	} else {
-		fmt.Println("CandidateDetails data rlp: ", hexutil.Encode(bufDetails.Bytes()))
+		fmt.Println("GetCandidateList data rlp: ", hexutil.Encode(bufGetCandidateList.Bytes()))
 	}
 
-	// GetBatchCandidateDetail(nodeIds []discover.NodeID)
-	nodeId1 := "0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
-	nodeId2 := "0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
-	nodeId3 := "0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"
-	nodeIds := nodeId1 + ":" + nodeId2 + ":" + nodeId3
-	var GetBatchCandidateDetail [][]byte
-	GetBatchCandidateDetail = make([][]byte, 0)
-	GetBatchCandidateDetail = append(GetBatchCandidateDetail, uint64ToBytes(0xf1))
-	GetBatchCandidateDetail = append(GetBatchCandidateDetail, []byte("GetBatchCandidateDetail"))
-	GetBatchCandidateDetail = append(GetBatchCandidateDetail, []byte(nodeIds))
-	bufGetBatchCandidateDetail := new(bytes.Buffer)
-	err = rlp.Encode(bufGetBatchCandidateDetail, GetBatchCandidateDetail)
+	// GetVerifiersList()
+	var GetVerifiersList [][]byte
+	GetVerifiersList = make([][]byte, 0)
+	GetVerifiersList = append(GetVerifiersList, byteutil.Uint64ToBytes(0xf1))
+	GetVerifiersList = append(GetVerifiersList, []byte("GetVerifiersList"))
+	bufGetVerifiersList := new(bytes.Buffer)
+	err = rlp.Encode(bufGetVerifiersList, GetVerifiersList)
 	if err != nil {
 		fmt.Println(err)
-		t.Errorf("GetBatchCandidateDetail encode rlp data fail")
+		t.Errorf("GetVerifiersList encode rlp data fail")
 	} else {
-		fmt.Println("GetBatchCandidateDetail data rlp: ", hexutil.Encode(bufGetBatchCandidateDetail.Bytes()))
+		fmt.Println("GetVerifiersList data rlp: ", hexutil.Encode(bufGetVerifiersList.Bytes()))
 	}
 
-	// CandidateList()
-	var CandidateList [][]byte
-	CandidateList = make([][]byte, 0)
-	CandidateList = append(CandidateList, uint64ToBytes(0xf1))
-	CandidateList = append(CandidateList, []byte("CandidateList"))
-	bufCList := new(bytes.Buffer)
-	err = rlp.Encode(bufCList, CandidateList)
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("CandidateList encode rlp data fail")
-	} else {
-		fmt.Println("CandidateList data rlp: ", hexutil.Encode(bufCList.Bytes()))
-	}
-
-	// VerifiersList()
-	var VerifiersList [][]byte
-	VerifiersList = make([][]byte, 0)
-	VerifiersList = append(VerifiersList, uint64ToBytes(0xf1))
-	VerifiersList = append(VerifiersList, []byte("VerifiersList"))
-	bufVerifiersList := new(bytes.Buffer)
-	err = rlp.Encode(bufVerifiersList, VerifiersList)
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("VerifiersList encode rlp data fail")
-	} else {
-		fmt.Println("VerifiersList data rlp: ", hexutil.Encode(bufVerifiersList.Bytes()))
-	}
-
-	// GetCurrentRLuckyTickets()
-	var GetCurrentRLuckyTickets [][]byte
-	GetCurrentRLuckyTickets = make([][]byte, 0)
-	GetCurrentRLuckyTickets = append(GetCurrentRLuckyTickets, uint64ToBytes(0xf1))
-	GetCurrentRLuckyTickets = append(GetCurrentRLuckyTickets, []byte("GetCurrentRLuckyTickets"))
-	bufGetCurrentRLuckyTickets := new(bytes.Buffer)
-	err = rlp.Encode(bufGetCurrentRLuckyTickets, GetCurrentRLuckyTickets)
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("GetCurrentRLuckyTickets encode rlp data fail")
-	} else {
-		fmt.Println("GetCurrentRLuckyTickets data rlp: ", hexutil.Encode(bufGetCurrentRLuckyTickets.Bytes()))
-	}
 }
 
 func TestCandidatePoolDecode(t *testing.T) {
@@ -639,34 +599,12 @@ func TestCandidatePoolDecode(t *testing.T) {
 	for i, v := range source {
 		switch i {
 		case 0:
-			fmt.Println("i: ", i, " v: ", bytesToUint64(v))
+			fmt.Println("i: ", i, " v: ", byteutil.BytesTouint64(v))
 		case 4:
-			fmt.Println("i: ", i, " v: ", bigIntByteToStr(v))
+			fmt.Println("i: ", i, " v: ", byteutil.BytesToString(v))
 		default:
 			fmt.Println("i: ", i, " v: ", string(v))
 		}
 
 	}
-}
-
-func TestAppendSlice(t *testing.T) {
-	a := []int{0, 1, 2, 3, 4}
-	i := 2
-	a = append(a[:i], a[i+1:]...)
-	fmt.Println(a)
-}
-
-func uint64ToBytes(val uint64) []byte {
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, val)
-	return buf[:]
-}
-
-func bytesToUint64(by []byte) uint64 {
-	return binary.BigEndian.Uint64(by)
-}
-
-func bigIntByteToStr(by []byte) string {
-	a := new(big.Int).SetBytes(by)
-	return a.String()
 }

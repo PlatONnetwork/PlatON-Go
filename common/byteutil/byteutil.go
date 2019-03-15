@@ -112,6 +112,12 @@ func Uint64ToBytes(val uint64) []byte {
 	return buf[:]
 }
 
+func Uint32ToBytes(val uint32) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint32(buf, val)
+	return buf[:]
+}
+
 func HexToAddress(b []byte) common.Address {
 	return common.HexToAddress(string(b))
 }
