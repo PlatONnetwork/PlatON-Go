@@ -127,86 +127,109 @@ func NewPPOS_storage () *Ppos_storage {
 
 /** candidate related func */
 
+//func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
+//	start := common.NewTimer()
+//	start.Begin()
+//
+//	temp := new(candidate_temp)
+//
+//	type result struct {
+//		Status int
+//		Data   interface{}
+//	}
+//	var wg sync.WaitGroup
+//	wg.Add(6)
+//	resCh := make(chan *result, 6)
+//
+//	loadQueueFunc := func(flag int) {
+//		res := new(result)
+//		switch flag {
+//		case PREVIOUS:
+//			res.Status = PREVIOUS
+//			res.Data = p.c_storage.pres.DeepCopy()
+//			resCh <- res
+//		case CURRENT:
+//			res.Status = CURRENT
+//			res.Data = p.c_storage.currs.DeepCopy()
+//			resCh <- res
+//		case NEXT:
+//			res.Status = NEXT
+//			res.Data = p.c_storage.nexts.DeepCopy()
+//			resCh <- res
+//		case IMMEDIATE:
+//			res.Status = IMMEDIATE
+//			res.Data = p.c_storage.imms.DeepCopy()
+//			resCh <- res
+//		case RESERVE:
+//			res.Status = RESERVE
+//			res.Data = p.c_storage.res.DeepCopy()
+//			resCh <- res
+//		}
+//		wg.Done()
+//	}
+//
+//	go loadQueueFunc(PREVIOUS)
+//	go loadQueueFunc(CURRENT)
+//	go loadQueueFunc(NEXT)
+//	go loadQueueFunc(IMMEDIATE)
+//	go loadQueueFunc(RESERVE)
+//
+//	go func() {
+//		res := new(result)
+//		cache := make(refundStorage, len(p.c_storage.refunds))
+//		for nodeId, queue := range p.c_storage.refunds {
+//			cache[nodeId] = queue.DeepCopy()
+//		}
+//		res.Status = REFUND
+//		res.Data = cache
+//		resCh <- res
+//		wg.Done()
+//	}()
+//	wg.Wait()
+//	close(resCh)
+//	for res := range resCh {
+//		switch res.Status {
+//		case PREVIOUS:
+//			temp.pres = res.Data.(types.CandidateQueue)
+//		case CURRENT:
+//			temp.currs = res.Data.(types.CandidateQueue)
+//		case NEXT:
+//			temp.nexts = res.Data.(types.CandidateQueue)
+//		case IMMEDIATE:
+//			temp.imms = res.Data.(types.CandidateQueue)
+//		case RESERVE:
+//			temp.res = res.Data.(types.CandidateQueue)
+//		case REFUND:
+//			temp.refunds = res.Data.(refundStorage)
+//		}
+//	}
+//	log.Debug("CopyCandidateStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
+//	return temp
+//}
+
 func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 	start := common.NewTimer()
 	start.Begin()
 
 	temp := new(candidate_temp)
 
-	type result struct {
-		Status int
-		Data   interface{}
-	}
-	var wg sync.WaitGroup
-	wg.Add(6)
-	resCh := make(chan *result, 6)
 
-	loadQueueFunc := func(flag int) {
-		res := new(result)
-		switch flag {
-		case PREVIOUS:
-			res.Status = PREVIOUS
-			res.Data = p.c_storage.pres.DeepCopy()
-			resCh <- res
-		case CURRENT:
-			res.Status = CURRENT
-			res.Data = p.c_storage.currs.DeepCopy()
-			resCh <- res
-		case NEXT:
-			res.Status = NEXT
-			res.Data = p.c_storage.nexts.DeepCopy()
-			resCh <- res
-		case IMMEDIATE:
-			res.Status = IMMEDIATE
-			res.Data = p.c_storage.imms.DeepCopy()
-			resCh <- res
-		case RESERVE:
-			res.Status = RESERVE
-			res.Data = p.c_storage.res.DeepCopy()
-			resCh <- res
-		}
-		wg.Done()
-	}
+	temp.pres = p.c_storage.pres.DeepCopy()
+	temp.currs = p.c_storage.currs.DeepCopy()
+	temp.nexts = p.c_storage.nexts.DeepCopy()
 
-	go loadQueueFunc(PREVIOUS)
-	go loadQueueFunc(CURRENT)
-	go loadQueueFunc(NEXT)
-	go loadQueueFunc(IMMEDIATE)
-	go loadQueueFunc(RESERVE)
+	temp.imms = p.c_storage.imms.DeepCopy()
+	temp.res = p.c_storage.res.DeepCopy()
 
-	go func() {
-		res := new(result)
-		cache := make(refundStorage, len(p.c_storage.refunds))
-		for nodeId, queue := range p.c_storage.refunds {
-			cache[nodeId] = queue.DeepCopy()
-		}
-		res.Status = REFUND
-		res.Data = cache
-		resCh <- res
-		wg.Done()
-	}()
-	wg.Wait()
-	close(resCh)
-	for res := range resCh {
-		switch res.Status {
-		case PREVIOUS:
-			temp.pres = res.Data.(types.CandidateQueue)
-		case CURRENT:
-			temp.currs = res.Data.(types.CandidateQueue)
-		case NEXT:
-			temp.nexts = res.Data.(types.CandidateQueue)
-		case IMMEDIATE:
-			temp.imms = res.Data.(types.CandidateQueue)
-		case RESERVE:
-			temp.res = res.Data.(types.CandidateQueue)
-		case REFUND:
-			temp.refunds = res.Data.(refundStorage)
-		}
+	cache := make(refundStorage, len(p.c_storage.refunds))
+	for nodeId, queue := range p.c_storage.refunds {
+		cache[nodeId] = queue.DeepCopy()
 	}
+	temp.refunds = cache
+
 	log.Debug("CopyCandidateStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return temp
 }
-
 
 func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 

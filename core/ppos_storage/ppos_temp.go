@@ -126,7 +126,7 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 			start := common.NewTimer()
 			start.Begin()
 			storage = pposStorage.Copy()
-			log.Debug("Call GetPposCacheByNumAndHash of PPOS_TEMP, Copy ppos_storage", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "Time spent", fmt.Sprintf("%v ms", start.End()))
+			log.Debug("Call GetPposCacheByNumAndHash of PPOS_TEMP, Copy ppos_storage FINISH !!!!!!", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "Time spent", fmt.Sprintf("%v ms", start.End()))
 		}
 	}
 	temp.lock.Unlock()
