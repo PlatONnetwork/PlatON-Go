@@ -6,7 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
-	"sync"
+	//"sync"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"fmt"
 )
