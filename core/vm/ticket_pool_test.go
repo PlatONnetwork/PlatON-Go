@@ -2,7 +2,6 @@ package vm_test
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
@@ -236,7 +235,7 @@ func TestTicketPoolEncode(t *testing.T) {
 	VoteTicket = make([][]byte, 0)
 	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1000))
 	VoteTicket = append(VoteTicket, []byte("VoteTicket"))
-	VoteTicket = append(VoteTicket, byteutil.Uint32ToBytes(1000))
+	VoteTicket = append(VoteTicket, byteutil.Uint32ToBytes(51200))
 	VoteTicket = append(VoteTicket, price.Bytes())
 	VoteTicket = append(VoteTicket, nodeId)
 	bufVoteTicket := new(bytes.Buffer)
@@ -268,7 +267,7 @@ func TestTicketPoolEncode(t *testing.T) {
 
 	// GetTicketCountByTxHash(ticketIds []common.Hash)
 	txHash1 := "0x3780eb19677a4c69add0fa8151abdac77d550f37585b3e1b06e73561f7197949"
-	txHash2 := "0x416e72f707100f3cb585ed6133a29118db787798e310277de050af1010849959"
+	txHash2 := "0xbf1145c872f38d50f53cbc15040c9131102a43d6895d239b97938cb1b109e03e"
 	txHashs := txHash1 + ":" + txHash2
 	var GetTicketCountByTxHash [][]byte
 	GetTicketCountByTxHash = make([][]byte, 0)
@@ -327,18 +326,4 @@ func TestTicketPoolEncode(t *testing.T) {
 		fmt.Println("GetTicketPrice data rlp: ", hexutil.Encode(bufGetTicketPrice.Bytes()))
 	}
 
-}
-
-func TestTicketPoolDecode(t *testing.T) {
-	//HexString -> []byte
-	rlpcode, _ := hex.DecodeString("f8c08800000000000003e88a566f74655469636b6574880000000000000001a00000000000000000000000000000000000000000000000000000000000000000b8803166336138363732333438666636623738396534313637363261643533653639303633313338623865623464383738303130313635386632346232333639663161386530393439393232366234363764386263306334653033653164633930336466383537656562336336373733336432316236616165653238343065343239")
-	var source [][]byte
-	if err := rlp.Decode(bytes.NewReader(rlpcode), &source); err != nil {
-		fmt.Println(err)
-		t.Errorf("TestRlpDecode decode rlp data fail")
-	}
-
-	for i, v := range source {
-		fmt.Println("i: ", i, " v: ", hex.EncodeToString(v))
-	}
 }
