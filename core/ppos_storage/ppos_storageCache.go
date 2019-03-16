@@ -7,8 +7,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"sync"
-	//"fmt"
-	//"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"fmt"
 )
 
 const (
@@ -89,14 +89,11 @@ func (ps *Ppos_storage) Copy() *Ppos_storage {
 	ppos_storage := NewPPOS_storage()
 
 	if nil == ps {
-		//log.Debug("进入 ps == nil")
 		return ppos_storage
 	}
 
 	ppos_storage.c_storage = ps.CopyCandidateStorage()
 	ppos_storage.t_storage = ps.CopyTicketStorage()
-
-	//log.Debug(fmt.Sprintf("%+v", ppos_storage))
 
 	return ppos_storage
 }
@@ -130,8 +127,9 @@ func NewPPOS_storage () *Ppos_storage {
 
 /** candidate related func */
 
-
 func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
+	start := common.NewTimer()
+	start.Begin()
 
 	temp := new(candidate_temp)
 
@@ -170,38 +168,6 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 		wg.Done()
 	}
 
-
-	//go func() {
-	//	loadQueueFunc(PREVIOUS)
-	//	wg.Done()
-	//	//log.Debug("进入 previous")
-	//}()
-	//
-	//go func() {
-	//	loadQueueFunc(CURRENT)
-	//	wg.Done()
-	//	//log.Debug("进入 current")
-	//}()
-	//
-	//go func() {
-	//	loadQueueFunc(NEXT)
-	//	wg.Done()
-	//	//log.Debug("进入 next")
-	//}()
-	//
-	//go func() {
-	//	loadQueueFunc(IMMEDIATE)
-	//	wg.Done()
-	//	//log.Debug("进入 immediate")
-	//}()
-	//
-	//go func() {
-	//	loadQueueFunc(RESERVE)
-	//	wg.Done()
-	//	//log.Debug("进入 reserve")
-	//}()
-
-
 	go loadQueueFunc(PREVIOUS)
 	go loadQueueFunc(CURRENT)
 	go loadQueueFunc(NEXT)
@@ -218,12 +184,10 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 		res.Data = cache
 		resCh <- res
 		wg.Done()
-		//log.Debug("进入 refund")
 	}()
 	wg.Wait()
 	close(resCh)
 	for res := range resCh {
-		//log.Debug("进入了 for")
 		switch res.Status {
 		case PREVIOUS:
 			temp.pres = res.Data.(types.CandidateQueue)
@@ -239,35 +203,16 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 			temp.refunds = res.Data.(refundStorage)
 		}
 	}
-	//log.Debug("最后返回...")
+	log.Debug("CopyCandidateStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return temp
 }
 
-//func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
-//
-//	temp := new(candidate_temp)
-//
-//
-//	temp.pres = p.c_storage.pres.DeepCopy()
-//	temp.currs = p.c_storage.currs.DeepCopy()
-//	temp.nexts = p.c_storage.nexts.DeepCopy()
-//	temp.imms = p.c_storage.imms.DeepCopy()
-//	temp.res = p.c_storage.res.DeepCopy()
-//
-//
-//	cache := make(refundStorage, len(p.c_storage.refunds))
-//	for nodeId, queue := range p.c_storage.refunds {
-//		cache[nodeId] = queue.DeepCopy()
-//	}
-//
-//	temp.refunds = cache
-//
-//	log.Debug("最后返回...")
-//	return temp
-//}
-
 
 func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
+
+	start := common.NewTimer()
+	start.Begin()
+
 	ticket_cache := new(ticket_temp)
 
 	ticket_cache.Sq = p.t_storage.Sq
@@ -286,7 +231,7 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 		temp := *p.t_storage.Dependencys[key]
 		ticket_cache.Dependencys[key] = &temp
 	}
-	//log.Debug("返回票相关...")
+	log.Debug("CopyTicketStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return ticket_cache
 }
 

@@ -931,8 +931,8 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 
 	// Irrelevant of the canonical status, write the block itself to the database
 
-	// flush ppos_cache into disk
-	/* TODO ppos_storage.GetPPosTempPtr().Commit2DB(bc.db, block.Number(), block.Hash()) */
+	// flush ppos_cache into disk TODO
+	/*ppos_storage.GetPPosTempPtr().Commit2DB(bc.db, block.Number(), block.Hash())*/
 
 	rawdb.WriteBlock(bc.db, block)
 

@@ -126,7 +126,7 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 			start := common.NewTimer()
 			start.Begin()
 			storage = pposStorage.Copy()
-			log.Debug("Call GetPposCacheByNumAndHash of PPOS_TEMP, Copy ppos_storage", "Time spent", fmt.Sprintf("%v ms", start.End()))
+			log.Debug("Call GetPposCacheByNumAndHash of PPOS_TEMP, Copy ppos_storage", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "Time spent", fmt.Sprintf("%v ms", start.End()))
 		}
 	}
 	temp.lock.Unlock()
@@ -256,7 +256,7 @@ func (temp *PPOS_TEMP) Commit2DB(db ethdb.Database, blockNumber *big.Int, blockH
 			return err
 		}else {
 			if err := db.Put(PPOS_STORAGE_KEY, data); err != nil {
-				log.Error("Failed to Call Commit2DB:" + WRITE_PPOS_ERR.Error(), "blockNumber", blockNumber, "blockHash", blockHash, "err", err, "Time spent", fmt.Sprintf("%v ms", start.End()))
+				log.Error("Failed to Call Commit2DB:" + WRITE_PPOS_ERR.Error(), "blockNumber", blockNumber, "blockHash", blockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()), "err", err)
 				return WRITE_PPOS_ERR
 			}
 			log.Info("Call Commit2DB, write ppos storage data to disk", "blockNumber", blockNumber, "blockHash", blockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
