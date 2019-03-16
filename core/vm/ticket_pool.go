@@ -69,11 +69,14 @@ func (t *TicketContract) VoteTicket(count uint32, price *big.Int, nodeId discove
 	log.Info("Input to VoteTicket==>", " nodeId: ", nodeId.String(), " owner: ", from.Hex(), " txhash: ", txHash.Hex(),
 		" txIdx: ", txIdx, " blockNumber: ", blockNumber, " value: ", value, " count: ", count, " price: ", price)
 	ticketPrice := t.Evm.TicketPoolContext.GetTicketPrice(t.Evm.StateDB)
+	var priceDiff *big.Int
 	if price.Cmp(ticketPrice) < 0 {
 		log.Error("Failed to VoteTicket==> ", "ErrTicketPrice: ", ErrTicketPrice.Error())
 		return nil, ErrTicketPrice
+	} else {
+		priceDiff = new(big.Int).Sub(price, ticketPrice)
 	}
-	totalPrice := new(big.Int).Mul(new(big.Int).SetUint64(uint64(count)), price)
+	totalPrice := new(big.Int).Mul(new(big.Int).SetUint64(uint64(count)), ticketPrice)
 	if value.Cmp(totalPrice) < 0 || totalPrice.Cmp(big.NewInt(0)) != 1 {
 		log.Error("Failed to VoteTicket==> ", "ErrIllegalDeposit: ", ErrIllegalDeposit.Error())
 		return nil, ErrIllegalDeposit
@@ -83,17 +86,23 @@ func (t *TicketContract) VoteTicket(count uint32, price *big.Int, nodeId discove
 		log.Error("Failed to VoteTicket==> ", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
 		return nil, ErrCandidateNotExist
 	}
-	successCount, err := t.Evm.TicketPoolContext.VoteTicket(t.Evm.StateDB, from, count, price, nodeId, blockNumber)
+	successCount, err := t.Evm.TicketPoolContext.VoteTicket(t.Evm.StateDB, from, count, ticketPrice, nodeId, blockNumber)
 	if 0 == successCount {
 		log.Error("Failed to VoteTicket==> ", "VoteTicket return err(0 == len(ticketIds)): ", err.Error())
 		return nil, err
 	}
-	// return the extra money
+	// return the balance of failed ticket
 	if successCount < count {
 		failCount := count - successCount
 		backBalance := new(big.Int).Mul(new(big.Int).SetUint64(uint64(failCount)), price)
 		t.Evm.StateDB.AddBalance(from, backBalance)
 		t.Evm.StateDB.SubBalance(common.TicketPoolAddr, backBalance)
+	}
+	// return the balance of different price
+	if priceDiff.Cmp(big.NewInt(0)) == 1 {
+		diffBalance := new(big.Int).Mul(new(big.Int).SetUint64(uint64(successCount)), priceDiff)
+		t.Evm.StateDB.AddBalance(from, diffBalance)
+		t.Evm.StateDB.SubBalance(common.TicketPoolAddr, diffBalance)
 	}
 	sdata := DecodeResultStr(strconv.FormatUint(uint64(successCount), 10))
 	log.Info("Result of VoteTicket==> ", "successCount: ", successCount, " []byte: ", sdata)
@@ -132,7 +141,7 @@ func (t *TicketContract) GetTicketCountByTxHash(ticketIds []common.Hash) ([]byte
 	return sdata, nil
 }
 
-// GetEpoch returns the current ticket age for the candidate.
+// GetCandidateEpoch returns the current ticket age for the candidate.
 func (t *TicketContract) GetCandidateEpoch(nodeId discover.NodeID) ([]byte, error) {
 	log.Info("Input to GetCandidateEpoch==> ", " nodeId: ", nodeId.String())
 	epoch := t.Evm.TicketPoolContext.GetCandidateEpoch(t.Evm.StateDB, nodeId)

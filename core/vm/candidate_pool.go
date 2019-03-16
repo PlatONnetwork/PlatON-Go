@@ -90,8 +90,6 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		log.Error("Failed to CandidateDeposit==> ", "ErrFeeIllegal: ", ErrFeeIllegal.Error())
 		return nil, ErrFeeIllegal
 	}
-	// 1200000000000000000000000
-	// 2404517046248275968
 	if deposit.Cmp(big.NewInt(0)) < 1 {
 		log.Error("Failed to CandidateDeposit==> ", "ErrDepositEmpty: ", ErrDepositEmpty.Error())
 		return nil, ErrDepositEmpty

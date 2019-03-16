@@ -231,14 +231,12 @@ func TestGetTicketPrice(t *testing.T) {
 func TestTicketPoolEncode(t *testing.T) {
 	nodeId := []byte("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429")
 	// VoteTicket(count uint32, price *big.Int, nodeId discover.NodeID)
-	price, _ := new(big.Int).SetString("1200000000000000000000000", 10)
-	a := price.String()
-	fmt.Println(a)
+	price, _ := new(big.Int).SetString("100000000000000000000", 10)
 	var VoteTicket [][]byte
 	VoteTicket = make([][]byte, 0)
 	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1000))
 	VoteTicket = append(VoteTicket, []byte("VoteTicket"))
-	VoteTicket = append(VoteTicket, byteutil.Uint32ToBytes(500))
+	VoteTicket = append(VoteTicket, byteutil.Uint32ToBytes(1000))
 	VoteTicket = append(VoteTicket, price.Bytes())
 	VoteTicket = append(VoteTicket, nodeId)
 	bufVoteTicket := new(bytes.Buffer)
@@ -270,7 +268,7 @@ func TestTicketPoolEncode(t *testing.T) {
 
 	// GetTicketCountByTxHash(ticketIds []common.Hash)
 	txHash1 := "0x3780eb19677a4c69add0fa8151abdac77d550f37585b3e1b06e73561f7197949"
-	txHash2 := "0x4780eb19677a4c69add0fa8151abdac77d550f37585b3e1b06e73561f7197949"
+	txHash2 := "0x416e72f707100f3cb585ed6133a29118db787798e310277de050af1010849959"
 	txHashs := txHash1 + ":" + txHash2
 	var GetTicketCountByTxHash [][]byte
 	GetTicketCountByTxHash = make([][]byte, 0)

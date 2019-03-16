@@ -1,6 +1,17 @@
 package vm
 
-/*func TestExecute(t *testing.T) {
+import (
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"math/big"
+	"testing"
+)
+
+func TestExecute(t *testing.T) {
 	var command = map[string]interface{}{
 		"recalled": recalled,
 	}
@@ -33,4 +44,4 @@ func recalled(nodeId discover.NodeID, owner common.Address, deposit *big.Int) ([
 func ResultByte2Json(origin []byte) string {
 	resultByte := origin[64:]
 	return string(resultByte)
-}*/
+}
