@@ -1,17 +1,6 @@
 package vm
 
-import (
-	"encoding/hex"
-	"encoding/json"
-	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"math/big"
-	"testing"
-)
-
-func TestExecute(t *testing.T) {
+/*func TestExecute(t *testing.T) {
 	var command = map[string]interface{}{
 		"recalled": recalled,
 	}
@@ -24,12 +13,11 @@ func TestExecute(t *testing.T) {
 
 func TestDecodeResultStr(t *testing.T) {
 	ticket := types.Ticket{
-		TicketId:    common.HexToHash("0x0123456789012345678901234567890123456789012345678901234567890123"),
 		Owner:       common.HexToAddress("0x0123456789012345678901234567890123456789"),
 		Deposit:     big.NewInt(1),
 		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
 		BlockNumber: big.NewInt(100),
-		State:       1,
+		Remaining:   1000,
 	}
 	data, _ := json.Marshal(ticket)
 	sdata := DecodeResultStr(string(data))
@@ -45,4 +33,4 @@ func recalled(nodeId discover.NodeID, owner common.Address, deposit *big.Int) ([
 func ResultByte2Json(origin []byte) string {
 	resultByte := origin[64:]
 	return string(resultByte)
-}
+}*/

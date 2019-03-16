@@ -1915,19 +1915,6 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String())
 		return
 	}
-	//log.Info("Call accumulateRewards, GetTicket ", "TicketId: ", can.TicketId.Hex())
-	ticket := cbft.ppos.GetTicket(state, can.TxHash)
-
-	if nil == ticket {
-		log.Warn("Call accumulateRewards, ticket info is Empty !!!!!!!!!!!!!!!!!!!!!!!!",
-			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String(), "ticketId", can.TxHash.Hex())
-		return
-	}
-	if ticket.Owner == common.ZeroAddr {
-		log.Warn("Call accumulateRewards, ticket's owner addr is empty !!!!!!!!!!!!!!!!!!!!!!!!",
-			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String(), "ticketId", can.TxHash.Hex())
-		return
-	}
 
 	//Calculate current block rewards
 	var blockReward *big.Int
@@ -1937,18 +1924,25 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 		yearReward = new(big.Int).Sub(GetAmount(header.Number), GetAmount(preYearNumber))
 	}
 	blockReward = new(big.Int).Div(yearReward, YearBlocks)
-	nodeReward := new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(uint64(can.Fee))), FeeBase)
-	ticketReward := new(big.Int).Sub(blockReward, nodeReward)
 
-	//log.Info("Call accumulateRewards, Rewards detail", "blockReward: ", blockReward, "nodeReward: ", nodeReward, "ticketReward: ", ticketReward)
-	state.SubBalance(common.RewardPoolAddr, blockReward)
+	nodeReward := blockReward
+	//log.Info("Call accumulateRewards, GetTicket ", "TicketId: ", can.TicketId.Hex())
+	if can.TOwner != (common.Address{}) {
+		nodeReward = new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(uint64(can.Fee))), FeeBase)
+		ticketReward := new(big.Int).Sub(blockReward, nodeReward)
+
+		//log.Info("Call accumulateRewards, Rewards detail", "blockReward: ", blockReward, "nodeReward: ", nodeReward, "ticketReward: ", ticketReward)
+		state.AddBalance(can.TOwner, ticketReward)
+		log.Info("Ticket accumulateRewards", "txHash", can.TxHash.Hex(), "ticketOwner", can.TOwner.Hex(), "ticketReward", ticketReward, "ticketOwnerBalance", state.GetBalance(can.TOwner))
+	}
 	state.AddBalance(header.Coinbase, nodeReward)
-	state.AddBalance(ticket.Owner, ticketReward)
+	state.SubBalance(common.RewardPoolAddr, blockReward)
+
 	log.Info("Call accumulateRewards SUCCESS !! ", "blockNumber", header.Number, "blockHash", header.Hash(),
 		"nodeId", nodeId.String(), "ticketId", can.TxHash.Hex(), " yearReward: ", yearReward, " blockReward:", blockReward,
-		" nodeReward: ", nodeReward, " ticketReward: ", ticketReward, " RewardPoolAddr address: ", common.RewardPoolAddr.Hex(),
+		" nodeReward: ", nodeReward, " RewardPoolAddr address: ", common.RewardPoolAddr.Hex(),
 		" balance: ", state.GetBalance(common.RewardPoolAddr), " Fee: ", can.Fee, " Coinbase address: ", header.Coinbase.Hex(),
-		" balance: ", state.GetBalance(header.Coinbase), " Ticket address: ", ticket.Owner.Hex(), " balance: ", state.GetBalance(ticket.Owner))
+		" balance: ", state.GetBalance(header.Coinbase))
 }
 
 func (cbft *Cbft) IncreaseRewardPool(state *state.StateDB, number *big.Int) {

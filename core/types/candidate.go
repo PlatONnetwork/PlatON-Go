@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
@@ -18,8 +19,9 @@ func (queue CandidateQueue) DeepCopy() CandidateQueue {
 		return copyCandidateQueue
 	}
 	for i, can := range queue {
+		deposit, _ := new(big.Int).SetString(can.Deposit.String(), 10)
 		canCopy := &Candidate{
-			Deposit:     big.NewInt(can.Deposit.Int64()),
+			Deposit:     deposit,
 			BlockNumber: big.NewInt(can.BlockNumber.Int64()),
 			TxIndex:     can.TxIndex,
 			CandidateId: can.CandidateId,
@@ -28,8 +30,8 @@ func (queue CandidateQueue) DeepCopy() CandidateQueue {
 			Owner:       can.Owner,
 			Extra:       can.Extra,
 			Fee:         can.Fee,
-			TxHash: 	 can.TxHash,
-			TOwner: 	 can.TOwner,
+			TxHash:      can.TxHash,
+			TOwner:      can.TOwner,
 		}
 		copyCandidateQueue[i] = canCopy
 	}
@@ -65,12 +67,11 @@ func compare(cand CanConditions, c, can *Candidate) int {
 	}
 }
 
-
 func compare2(curr, target *Candidate, currMoney, targetMoney *big.Int) int {
 	// put the larger deposit in front
-	if currMoney.Cmp(targetMoney) > 0  {
+	if currMoney.Cmp(targetMoney) > 0 {
 		return 1
-	} else if currMoney.Cmp(targetMoney) == 0  {
+	} else if currMoney.Cmp(targetMoney) == 0 {
 		// put the smaller blocknumber in front
 		if curr.BlockNumber.Cmp(target.BlockNumber) > 0 {
 			return -1
@@ -155,8 +156,9 @@ func (queue RefundQueue) DeepCopy() RefundQueue {
 		return copyRefundQueue
 	}
 	for _, can := range queue {
+		deposit, _ := new(big.Int).SetString(can.Deposit.String(), 10)
 		canCopy := &CandidateRefund{
-			Deposit:     big.NewInt(can.Deposit.Int64()),
+			Deposit:     deposit,
 			BlockNumber: big.NewInt(can.BlockNumber.Int64()),
 			Owner:       can.Owner,
 		}
