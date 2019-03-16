@@ -407,7 +407,7 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 				return nil
 			}
 			queue := make(types.CandidateQueue, len(arr))
-			for _, can := range arr {
+			for i, can := range arr {
 				deposit, _ := new(big.Int).SetString(can.Deposit, 10)
 				num, _ := new(big.Int).SetString(can.BlockNumber, 10)
 				canInfo := &types.Candidate{
@@ -423,7 +423,7 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 					TxHash: 		common.BytesToHash(can.TxHash),
 					TOwner: 		common.BytesToAddress(can.TOwner),
 				}
-				queue = append(queue, canInfo)
+				queue[i] = canInfo
 			}
 			return queue
 		}
@@ -450,7 +450,7 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 				}
 
 				defeatArr := make(types.RefundQueue, len(refundArr.Defeats))
-				for _, defeat := range refundArr.Defeats {
+				for i, defeat := range refundArr.Defeats {
 
 					deposit, _ := new(big.Int).SetString(defeat.Deposit, 10)
 					num, _ := new(big.Int).SetString(defeat.BlockNumber, 10)
@@ -460,7 +460,7 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 						BlockNumber: 	num,
 						Owner: 			common.BytesToAddress(defeat.Owner),
 					}
-					defeatArr = append(defeatArr, refund)
+					defeatArr[i] = refund
 				}
 				defeatMap[discover.MustHexID(nodeId)] = defeatArr
 			}
@@ -514,8 +514,8 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 				}
 
 				ticketIds := make([]common.Hash, len(ticketIdArr.TxHashs))
-				for _, ticketId := range ticketIdArr.TxHashs {
-					ticketIds = append(ticketIds, common.BytesToHash(ticketId))
+				for i, ticketId := range ticketIdArr.TxHashs {
+					ticketIds[i] = common.BytesToHash(ticketId)
 				}
 				ets[blockNum] = ticketIds
 			}
@@ -534,6 +534,15 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 				dependencyInfo.Age = pb_dependency.Age
 				dependencyInfo.Num = pb_dependency.Num
 
+
+				tidArr := make([]common.Hash, len(pb_dependency.Tids))
+
+				for i, ticketId := range pb_dependency.Tids {
+					tidArr[i] = common.BytesToHash(ticketId)
+				}
+
+				dependencyInfo.Tids = tidArr
+
 				dependencyMap[discover.MustHexID(nodeIdStr)] = dependencyInfo
 			}
 
@@ -551,7 +560,7 @@ func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
 	}
 
 	pbQueue := make([]*CandidateInfo, len(canQqueue))
-	for _, can := range canQqueue {
+	for i, can := range canQqueue {
 		canInfo := &CandidateInfo{
 			Deposit: 		can.Deposit.String(),
 			BlockNumber:	can.BlockNumber.String(),
@@ -564,7 +573,7 @@ func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
 			TxHash: 		can.TxHash.Bytes(),
 			TOwner: 		can.TOwner.Bytes(),
 		}
-		pbQueue = append(pbQueue, canInfo)
+		pbQueue[i] = canInfo
 	}
 	return pbQueue
 }
@@ -583,13 +592,13 @@ func buildPBrefunds(refunds refundStorage) map[string]*RefundArr {
 			continue
 		}
 		defeats := make([]*Refund, len(rs))
-		for _, refund := range rs {
+		for i, refund := range rs {
 			refundInfo := &Refund{
 				Deposit:     	refund.Deposit.String(),
 				BlockNumber:	refund.BlockNumber.String(),
 				Owner:			refund.Owner.Bytes(),
 			}
-			defeats = append(defeats, refundInfo)
+			defeats[i] = refundInfo
 		}
 
 		refundArr := &RefundArr{
@@ -637,8 +646,8 @@ func buildPBexpireTicket(ets map[string][]common.Hash) map[string]*TxHashArr  {
 
 		txHashs := make([][]byte, len(ticketIdArr))
 
-		for _, tid := range ticketIdArr {
-			txHashs = append(txHashs, tid.Bytes())
+		for i, tid := range ticketIdArr {
+			txHashs[i] = tid.Bytes()
 		}
 
 		txHashArr := new(TxHashArr)
@@ -660,8 +669,8 @@ func buildPBdependencys(dependencys map[discover.NodeID]*ticketDependency) map[s
 
 		tidArr := make([][]byte, len(dependency.Tids))
 
-		for _, ticketId := range dependency.Tids {
-			tidArr = append(tidArr, ticketId.Bytes())
+		for i, ticketId := range dependency.Tids {
+			tidArr[i] = ticketId.Bytes()
 		}
 
 		depenInfo := &TicketDependency{
