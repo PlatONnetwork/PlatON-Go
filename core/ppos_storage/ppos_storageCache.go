@@ -167,45 +167,46 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 			res.Data = p.c_storage.res.DeepCopy()
 			resCh <- res
 		}
+		wg.Done()
 	}
 
 
-	go func() {
-		loadQueueFunc(PREVIOUS)
-		wg.Done()
-		//log.Debug("进入 previous")
-	}()
+	//go func() {
+	//	loadQueueFunc(PREVIOUS)
+	//	wg.Done()
+	//	//log.Debug("进入 previous")
+	//}()
+	//
+	//go func() {
+	//	loadQueueFunc(CURRENT)
+	//	wg.Done()
+	//	//log.Debug("进入 current")
+	//}()
+	//
+	//go func() {
+	//	loadQueueFunc(NEXT)
+	//	wg.Done()
+	//	//log.Debug("进入 next")
+	//}()
+	//
+	//go func() {
+	//	loadQueueFunc(IMMEDIATE)
+	//	wg.Done()
+	//	//log.Debug("进入 immediate")
+	//}()
+	//
+	//go func() {
+	//	loadQueueFunc(RESERVE)
+	//	wg.Done()
+	//	//log.Debug("进入 reserve")
+	//}()
 
-	go func() {
-		loadQueueFunc(CURRENT)
-		wg.Done()
-		//log.Debug("进入 current")
-	}()
 
-	go func() {
-		loadQueueFunc(NEXT)
-		wg.Done()
-		//log.Debug("进入 next")
-	}()
-
-	go func() {
-		loadQueueFunc(IMMEDIATE)
-		wg.Done()
-		//log.Debug("进入 immediate")
-	}()
-
-	go func() {
-		loadQueueFunc(RESERVE)
-		wg.Done()
-		//log.Debug("进入 reserve")
-	}()
-
-
-	//go loadQueueFunc(PREVIOUS, &wg)
-	//go loadQueueFunc(CURRENT, &wg)
-	//go loadQueueFunc(NEXT, &wg)
-	//go loadQueueFunc(IMMEDIATE, &wg)
-	//go loadQueueFunc(RESERVE, &wg)
+	go loadQueueFunc(PREVIOUS)
+	go loadQueueFunc(CURRENT)
+	go loadQueueFunc(NEXT)
+	go loadQueueFunc(IMMEDIATE)
+	go loadQueueFunc(RESERVE)
 
 	go func() {
 		res := new(result)

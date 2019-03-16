@@ -112,7 +112,6 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 	var storage *Ppos_storage
 
 	temp.lock.Lock()
-	//log.Debug("上了锁")
 	if hashTemp, ok := temp.TempMap[blockNumber.String()]; !ok {
 		log.Warn("Warn Call GetPposCacheByNumAndHash of PPOS_TEMP, the PPOS storage cache is empty by blockNumber !!!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
 		temp.lock.Unlock()
@@ -124,11 +123,12 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 			temp.lock.Unlock()
 			return ppos_storage
 		}else {
+			start := common.NewTimer()
+			start.Begin()
 			storage = pposStorage.Copy()
-			log.Debug(fmt.Sprintf("%+v", storage))
+			log.Debug("Call GetPposCacheByNumAndHash of PPOS_TEMP, Copy ppos_storage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 		}
 	}
-	//log.Debug("解锁")
 	temp.lock.Unlock()
 	return storage
 }
@@ -137,6 +137,9 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 func (temp *PPOS_TEMP) SubmitPposCache2Temp(blockNumber, blockInterval *big.Int, blockHash common.Hash, storage *Ppos_storage)  {
 	log.Info("Call SubmitPposCache2Temp of PPOS_TEMP", "blockNumber", blockNumber.String(), "blockHash", blockHash.Hex(),
 		"blockInterval", blockInterval, "Before SubmitPposCache2Temp, THEN PPOS_TEMP len ", len(temp.TempMap), "Block Count", temp.BlockCount)
+
+	start := common.NewTimer()
+	start.Begin()
 
 	empty := verifyStorageEmpty(storage)
 
@@ -164,7 +167,7 @@ func (temp *PPOS_TEMP) SubmitPposCache2Temp(blockNumber, blockInterval *big.Int,
 		return
 	}else if  !hasNum && empty { // match 2a
 		log.Debug("Call SubmitPposCache2Temp of PPOS_TEMP， origin ppos_storage and input ppos_storage is empty by BlockNumber !!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(),
-			"blockHash", blockHash.Hex(), "blockInterval", blockInterval, " Before SubmitPposCache2Temp, THEN PPOS_TEMP len ", len(temp.TempMap), "Block Count", temp.BlockCount)
+			"blockHash", blockHash.Hex(), "blockInterval", blockInterval, " Before SubmitPposCache2Temp, THEN PPOS_TEMP len ", len(temp.TempMap), "Block Count", temp.BlockCount, "Time spent", fmt.Sprintf("%v ms", start.End()))
 		temp.lock.Unlock()
 		return
 	}
@@ -192,7 +195,7 @@ func (temp *PPOS_TEMP) SubmitPposCache2Temp(blockNumber, blockInterval *big.Int,
 		 return
 	 }else if  !hasHash && empty { // match 2b
 		 log.Debug("Call SubmitPposCache2Temp of PPOS_TEMP， origin ppos_storage and input ppos_storage is empty by BlockHash !!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(),
-			 "blockHash", blockHash.Hex(), "blockInterval", blockInterval, " Before SubmitPposCache2Temp, THEN PPOS_TEMP len ", len(temp.TempMap), "Block Count", temp.BlockCount)
+			 "blockHash", blockHash.Hex(), "blockInterval", blockInterval, " Before SubmitPposCache2Temp, THEN PPOS_TEMP len ", len(temp.TempMap), "Block Count", temp.BlockCount, "Time spent", fmt.Sprintf("%v ms", start.End()))
 		 temp.lock.Unlock()
 		 return
 	 }
@@ -206,21 +209,25 @@ func (temp *PPOS_TEMP) SubmitPposCache2Temp(blockNumber, blockInterval *big.Int,
 		}
 
 		temp.deleteAnyTemp(blockNumber, blockInterval, blockHash)
-		temp.lock.Unlock()
-		return
+		//temp.lock.Unlock()
+		//return
 	 }else if hasHash && !empty {
 		 originHashTemp[blockHash] = storage
 		 temp.TempMap[blockNumber.String()] = originHashTemp
 
 		 temp.deleteAnyTemp(blockNumber, blockInterval, blockHash)
-		 temp.lock.Unlock()
-		 return
+		 //temp.lock.Unlock()
+		 //return
 	 }
+	temp.lock.Unlock()
+	log.Debug("Call SubmitPposCache2Temp of PPOS_TEMP，SUCCESS !!!!!!", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),
+		"blockInterval", blockInterval, " Before SubmitPposCache2Temp, THEN PPOS_TEMP len ", len(temp.TempMap), "Block Count", temp.BlockCount, "Time spent", fmt.Sprintf("%v ms", start.End()))
+
 }
 
 func (temp *PPOS_TEMP) Commit2DB(db ethdb.Database, blockNumber *big.Int, blockHash common.Hash) error {
-	timer := common.NewTimer()
-	timer.Begin()
+	start := common.NewTimer()
+	start.Begin()
 
 
 	var ps *Ppos_storage
@@ -245,15 +252,14 @@ func (temp *PPOS_TEMP) Commit2DB(db ethdb.Database, blockNumber *big.Int, blockH
 	}else{
 		// write ppos_storage into disk with protobuf
 		if data, err := proto.Marshal(pposTemp); nil != err {
-			log.Error("Failed to Commit2DB", "proto err", err)
+			log.Error("Failed to Commit2DB", "proto err", err, "Time spent", fmt.Sprintf("%v ms", start.End()))
 			return err
 		}else {
 			if err := db.Put(PPOS_STORAGE_KEY, data); err != nil {
-				log.Error("Failed to Call Commit2DB:" + WRITE_PPOS_ERR.Error(), "blockNumber", blockNumber, "blockHash", blockHash, "err", err)
+				log.Error("Failed to Call Commit2DB:" + WRITE_PPOS_ERR.Error(), "blockNumber", blockNumber, "blockHash", blockHash, "err", err, "Time spent", fmt.Sprintf("%v ms", start.End()))
 				return WRITE_PPOS_ERR
 			}
-			log.Info("Call Commit2DB, run time long", "ms: ", timer.End())
-			log.Info("Call Commit2DB, write ppos storage data to disk", "blockNumber", blockNumber, "blockHash", blockHash, "data len", len(data))
+			log.Info("Call Commit2DB, write ppos storage data to disk", "blockNumber", blockNumber, "blockHash", blockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
 		}
 	}
 	return nil
