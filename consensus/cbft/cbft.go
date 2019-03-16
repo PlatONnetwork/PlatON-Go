@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	former  int32 = iota
+	former int32 = iota
 	current
 	next
 	all
@@ -1320,8 +1320,8 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 		return consensus.ErrUnknownAncestor
 	}
 
-	//header.Extra[0:31] to store block's version info etc. and right pad with 0x00;
-	//header.Extra[32:] to store block's sign of producer, the length of sign is 65.
+	// header.Extra[0:32] to store block's version info etc. and right pad with 0x00;
+	// header.Extra[32:97] to store block's sign of producer, the length of sign is 65.
 	if len(header.Extra) < 32 {
 		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
 	}
@@ -1344,7 +1344,7 @@ func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, st
 	return types.NewBlock(header, txs, nil, receipts), nil
 }
 
-//to sign the block, and store the sign to header.Extra[32:], send the sign to chanel to broadcast to other consensus nodes
+// to sign the block, and store the sign to header.Extra[32:97], send the sign to chanel to broadcast to other consensus nodes
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) error {
 	cbft.log.Debug("call Seal()", "number", block.NumberU64(), "parentHash", block.ParentHash())
 	/*cbft.lock.Lock()
@@ -1368,8 +1368,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		return err
 	}
 
-	//store the sign in  header.Extra[32:]
-	copy(header.Extra[len(header.Extra)-extraSeal:], sign[:])
+	// store the sign into the header.Extra[32:97]
+	copy(header.Extra[32:97], sign[:])
 
 	sealedBlock := block.WithSeal(header)
 
@@ -1722,7 +1722,7 @@ func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash com
 	return false
 }
 
-// producer's signature = header.Extra[32:]
+// producer's signature = header.Extra[32:97]
 // public key can be recovered from signature, the length of public key is 65,
 // the length of NodeID is 64, nodeID = publicKey[1:]
 func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
@@ -1730,7 +1730,7 @@ func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
 	if len(header.Extra) < extraSeal {
 		return nodeID, []byte{}, errMissingSignature
 	}
-	signature := header.Extra[len(header.Extra)-extraSeal:]
+	signature := header.Extra[32:97]
 	sealHash := header.SealHash()
 
 	pubkey, err := crypto.Ecrecover(sealHash.Bytes(), signature)
@@ -1886,8 +1886,8 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	var nodeId discover.NodeID
 	var err error
 	log.Info("Call accumulateRewards block header", " extra: ", hexutil.Encode(header.Extra))
-	if ok := bytes.Equal(header.Extra[32:96], make([]byte, 64)); ok {
-		log.Warn("Call accumulateRewards block header extra[32:96] is empty!", "blockNumber", header.Number, "blockHash", header.Hash())
+	if ok := bytes.Equal(header.Extra[32:97], make([]byte, 65)); ok {
+		log.Warn("Call accumulateRewards block header extra[32:97] is empty!", "blockNumber", header.Number, "blockHash", header.Hash())
 		nodeId = cbft.config.NodeID
 	} else {
 		if nodeId, _, err = ecrecover(header); err != nil {
@@ -1915,6 +1915,13 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String())
 		return
 	}
+
+	// store the lucky ticket into the header.Extra[97:129]
+	var buffer bytes.Buffer
+	buffer.Write(header.Extra)
+	buffer.Write(can.TxHash.Bytes())
+	header.Extra = buffer.Bytes()
+	log.Info("Call accumulateRewards, set lucky ticket into header.Extra", "len(header.Extra): ", len(header.Extra))
 
 	//Calculate current block rewards
 	var blockReward *big.Int
