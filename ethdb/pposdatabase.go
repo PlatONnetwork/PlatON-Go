@@ -16,18 +16,22 @@ import (
 
 func NewPPosDatabase (file string) (*LDBDatabase, error)  {
 
+
 	logger := log.New("database", file)
 
 	logger.Info("Allocated cache and file handles")
 
 	// Open the db and recover any potential corruptions
 	db, err := leveldb.OpenFile(file, &opt.Options{
-		OpenFilesCacheCapacity: -1,	// Use -1 for zero, this has same effect as specifying NoCacher to OpenFilesCacher.
-		BlockCacheCapacity:     -1, // Use -1 for zero, this has same effect as specifying NoCacher to BlockCacher.
-		DisableBlockCache:		true,
-		//CompactionL0Trigger: 	0,
-		DisableBufferPool:		true,
-		DisableLargeBatchTransaction: true,
+		//OpenFilesCacheCapacity: -1,	// Use -1 for zero, this has same effect as specifying NoCacher to OpenFilesCacher.
+		//BlockCacheCapacity:     -1, // Use -1 for zero, this has same effect as specifying NoCacher to BlockCacher.
+		//DisableBlockCache:		true,
+		////CompactionL0Trigger: 	0,
+		//DisableBufferPool:		true,
+		//DisableLargeBatchTransaction: true,
+		//NoWriteMerge: 		true,
+		//CompactionTotalSizeMultiplier: 0,
+		//WriteBuffer:	0,
 		Filter:                 filter.NewBloomFilter(10),
 	})
 
