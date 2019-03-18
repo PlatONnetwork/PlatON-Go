@@ -89,8 +89,8 @@ func TestData2(t *testing.T) {
 
 		deposit := new(big.Int).SetUint64(uint64(rand.Int63()))
 
-
 		for i := 0; i < 51200; i++ {
+
 			txHash := common.Hash{}
 			txHash.SetBytes(crypto.Keccak256([]byte(strconv.Itoa(time.Now().Nanosecond() + i))))
 			blockNumber := new(big.Int).SetUint64(uint64(i))

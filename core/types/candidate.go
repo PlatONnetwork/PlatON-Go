@@ -154,14 +154,14 @@ func (queue RefundQueue) DeepCopy() RefundQueue {
 	if len(queue) == 0 {
 		return copyRefundQueue
 	}
-	for _, can := range queue {
-		deposit, _ := new(big.Int).SetString(can.Deposit.String(), 10)
-		canCopy := &CandidateRefund{
+	for i, refund := range queue {
+		deposit, _ := new(big.Int).SetString(refund.Deposit.String(), 10)
+		refundCopy := &CandidateRefund{
 			Deposit:     deposit,
-			BlockNumber: big.NewInt(can.BlockNumber.Int64()),
-			Owner:       can.Owner,
+			BlockNumber: big.NewInt(refund.BlockNumber.Int64()),
+			Owner:       refund.Owner,
 		}
-		copyRefundQueue = append(copyRefundQueue, canCopy)
+		copyRefundQueue[i] = refundCopy
 	}
 	return copyRefundQueue
 }
