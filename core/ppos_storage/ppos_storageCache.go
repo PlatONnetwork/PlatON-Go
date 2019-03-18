@@ -248,11 +248,20 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 		ticket_cache.Infos[key] = ticket.DeepCopy()
 	}
 	for key := range p.t_storage.Ets {
-		ticket_cache.Ets[key] = p.t_storage.Ets[key][:]
+		value := p.t_storage.Ets[key]
+		list := make([]common.Hash, len(value))
+		copy(list, value)
+		ticket_cache.Ets[key] = list
 	}
 	for key := range p.t_storage.Dependencys {
-		temp := *p.t_storage.Dependencys[key]
-		ticket_cache.Dependencys[key] = &temp
+		temp := p.t_storage.Dependencys[key]
+		tids := make([]common.Hash, len(temp.Tids))
+		copy(tids, temp.Tids)
+		ticket_cache.Dependencys[key] = &ticketDependency{
+			temp.Age,
+			temp.Num,
+			tids,
+		}
 	}
 	log.Debug("CopyTicketStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return ticket_cache
@@ -423,7 +432,7 @@ func (p *Ppos_storage) RemoveExpireTicket(blockNumber *big.Int, txHash common.Ha
 	ids, ok := p.t_storage.Ets[blockNumber.String()]
 	if ok {
 		ids = removeTicketId(txHash, ids)
-		if ids == nil {
+		if len(ids) == 0 {
 			delete(p.t_storage.Ets, blockNumber.String())
 		} else {
 			p.t_storage.Ets[blockNumber.String()] = ids
@@ -481,7 +490,7 @@ func (p *Ppos_storage) SubTicket(nodeId discover.NodeID, txHash common.Hash) err
 		value.subNum()
 		if ticket.Remaining == 0 {
 			p.removeTicketInfo(txHash)
-			if list := removeTicketId(txHash, value.Tids); list != nil {
+			if list := removeTicketId(txHash, value.Tids); len(list) > 0 {
 				value.Tids = list
 			} else {
 				value.Tids = make([]common.Hash, 0)
@@ -501,7 +510,7 @@ func (p *Ppos_storage) RemoveTicket(nodeId discover.NodeID, txHash common.Hash) 
 	value := p.GetTicketDependency(nodeId)
 	if nil != value {
 		value.Num -= ticket.Remaining
-		if list := removeTicketId(txHash, value.Tids); list != nil {
+		if list := removeTicketId(txHash, value.Tids); len(list) > 0 {
 			value.Tids = list
 		} else {
 			value.Tids = make([]common.Hash, 0)
