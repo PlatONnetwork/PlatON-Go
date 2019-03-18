@@ -125,6 +125,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		return nil, err
 	}
 	// ppos add
+	//pposDB, err := CreateDB(ctx, config, "ppos_storage")
+	//if err != nil {
+	//	return nil, err
+	//}
 	if nil == ppos_storage.GetPPosTempPtr() {
 		ppos_storage.NewPPosTemp(chainDb)
 	}
@@ -276,6 +280,8 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 	}
 	return db, nil
 }
+
+
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
 

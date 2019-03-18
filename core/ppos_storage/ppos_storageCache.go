@@ -513,8 +513,10 @@ func (p *Ppos_storage) RemoveTicket(nodeId discover.NodeID, txHash common.Hash) 
 
 func (p *Ppos_storage) GetCandidateTicketCount(nodeId discover.NodeID) uint32 {
 	if value := p.GetTicketDependency(nodeId); value != nil {
+		log.Debug("获取当前node的得票数", "nodeId", nodeId.String(), "tcount", value.Num)
 		return value.Num
 	}
+	log.Debug("获取当前node的得票数", "nodeId", nodeId.String(), "tcount", 0)
 	return 0
 }
 

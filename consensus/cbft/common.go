@@ -3,23 +3,23 @@ package cbft
 import "math/big"
 
 const (
-	BaseElection = 30
+	BaseElection = 230
 	//
-	BaseSwitchWitness = 50
+	BaseSwitchWitness = 250
 	//
-	BaseAddNextPeers = 30
+	BaseAddNextPeers = 230
 	//
 	BaseIrrCount = 30
 
 	FirstRound = 1
 	/*
-		BaseElection = 50
-		//
-		BaseSwitchWitness = 60
-		//
-		BaseAddNextPeers = 50
-		//
-		BaseIrrCount = 20
+	BaseElection = 50
+	//
+	BaseSwitchWitness = 60
+	//
+	BaseAddNextPeers = 50
+	//
+	BaseIrrCount = 20
 	*/
 )
 
