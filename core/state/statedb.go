@@ -25,7 +25,6 @@ import (
 	"sort"
 	"sync"
 
-	"encoding/json"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -96,7 +95,6 @@ type StateDB struct {
 // Create a new state from a given trie.
 //func New(root common.Hash, db Database) (*StateDB, error) {
 func New(root common.Hash, db Database, blocknumber *big.Int, blockhash common.Hash) (*StateDB, error) {
-	log.Debug("------statedb new------", "GoRoutineID", common.CurrentGoRoutineID(), "root", root)
 	tr, err := db.OpenTrie(root)
 	if err != nil {
 		return nil, err
@@ -146,9 +144,6 @@ func (self *StateDB) Reset(root common.Hash) error {
 
 func (self *StateDB) AddLog(logInfo *types.Log) {
 	self.journal.append(addLogChange{txhash: self.thash})
-	// TODO
-	logsByte, _ := json.Marshal(logInfo)
-	log.Debug("【Call Add StateDB log】", "txHash", self.thash.Hex(), "log:", string(logsByte))
 	logInfo.TxHash = self.thash
 	logInfo.BlockHash = self.bhash
 	logInfo.TxIndex = uint(self.txIndex)
@@ -158,10 +153,6 @@ func (self *StateDB) AddLog(logInfo *types.Log) {
 }
 
 func (self *StateDB) GetLogs(hash common.Hash) []*types.Log {
-	// TODO
-	logs := self.logs[hash]
-	logsByte, _ := json.Marshal(logs)
-	log.Debug("【Call Get StateDB Log】", "txHash", self.thash.Hex(), "logs:", string(logsByte))
 	return self.logs[hash]
 }
 
@@ -438,7 +429,6 @@ func (self *StateDB) getStateObject(addr common.Address) (stateObject *stateObje
 		}
 		return obj
 	}
-	log.Debug("getStateObject", "root addr", fmt.Sprintf("%p", self))
 	// Load the object from the database.
 	enc, err := self.trie.TryGet(addr[:])
 	if len(enc) == 0 {
@@ -462,7 +452,6 @@ func (self *StateDB) setStateObject(object *stateObject) {
 
 // Retrieve a state object or create a new state object if nil.
 func (self *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
-	log.Debug("GetOrNewStateObject", "root addr", fmt.Sprintf("%p", self))
 	stateObject := self.getStateObject(addr)
 	if stateObject == nil || stateObject.deleted {
 		stateObject, _ = self.createObject(addr)

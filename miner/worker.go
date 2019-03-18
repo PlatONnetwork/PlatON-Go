@@ -876,9 +876,6 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		return err
 	}
 
-	// TODO
-	//w.forEachStorage(state, "【makeCurrent】When new the current stateDB instance:")
-
 	env := &environment{
 		signer:    types.NewEIP155Signer(w.config.ChainID),
 		state:     state,
@@ -1163,13 +1160,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
 
 		log.Debug("commit transaction", "hash", tx.Hash(), "sender", from, "nonce", tx.Nonce())
-		root := w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-		log.Debug("【The Consensus packaging】Before executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
-
 		logs, err := w.commitTransaction(tx, coinbase)
-		root = w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-		log.Debug("【The Consensus packaging】After executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
-
 		switch err {
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
@@ -1324,8 +1315,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
 		if _, ok := w.engine.(consensus.Bft); !ok {
-			// TODO
-			//w.forEachStorage(w.current.state, "【The Consensus packaging】,Before executing the transaction")
 			w.commit(uncles, nil, false, tstart, nil)
 		}
 	}
@@ -1365,13 +1354,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			localTxs[account] = txs
 		}
 	}
-	// TODO
-	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
-
-	root := w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】 commitTransactionsWithHeader Before executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
-
-	//w.forEachStorage(w.current.state, "【The Consensus packaging】,Before executing the transaction")
 
 	startTime = time.Now()
 	var localTimeout = false
@@ -1427,24 +1409,11 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		if switchWitnessErr := w.switchWitness(s, header.Number); switchWitnessErr != nil {
 			return errors.New("switchWitness failure")
 		}
-		//w.forEachStorage(s, "【The Consensus packaging】After Election, before call storeHash")
 		// ppos Store Hash
 		w.storeHash(s)
-		//w.forEachStorage(s, "【The Consensus packaging】After Election, before tweaking storeHash，before call finalize")
 	}
 
-	//root, _ = s.Commit(w.config.IsEIP158(w.current.header.Number))
-	//log.Warn("【The Consensus packaging】: Commit", "blockNumber", header.Number.String(), "State.root", root.String())
-
-	root = s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】After executing the transaction, after call the notify series func, before finalize", "blockNumber", header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
-	//w.forEachStorage(s, "【The Consensus packaging】After executing the transaction, after call the notify series func, before finalize")
-
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
-
-	root = s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-	log.Debug("【The Consensus packaging】After call finalize", "blockNumber", header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
-	//w.forEachStorage(s, "【The Consensus packaging】After call finalize")
 
 	if err != nil {
 		return err
