@@ -1406,8 +1406,6 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), current.block.Hash())
 		blockInterval := new(big.Int).Sub(current.block.Number(), cbft.blockChain.CurrentBlock().Number())
 		cbft.ppos.Submit2Cache(state, blockNumber, blockInterval, current.block.Hash())
-		root := state.IntermediateRoot(cbft.blockChain.Config().IsEIP158(current.block.Number()))
-		log.Debug("【Consensus packaged】Finally, after Submit2Cache", "blockNumber", current.block.NumberU64(), "blockHash", current.block.Hash().Hex(), "block.root", current.block.Root().Hex(), "Realt-time state.root", root.Hex())
 	} else {
 		log.Error("setNodeCache error")
 	}
@@ -2002,7 +2000,7 @@ func (cbft *Cbft) GetAmountFromNumber(number *big.Int) *big.Int {
 	return curAmount
 }
 
-func (cbft *Cbft) adjustTicketPrice(state *state.StateDB, header *types.Header)  {
+func (cbft *Cbft) adjustTicketPrice(state *state.StateDB, header *types.Header) {
 
 	//should be adjust
 	cycle := cbft.ppos.GetAdjustCycle()
@@ -2014,15 +2012,15 @@ func (cbft *Cbft) adjustTicketPrice(state *state.StateDB, header *types.Header) 
 	T := cbft.ppos.GetMaxPoolNumber()
 	B := T * BaseSwitchWitness / cbft.ppos.MaxChair()
 	Seb := new(big.Int).Div(cbft.GetAmountFromNumber(header.Number), new(big.Int).SetUint64(B))
-	log.Info("adjust ticket price const ","number", header.Number, "Slb: ", Slb, " T: ", T, " B: ", B, " Seb: ", Seb)
+	log.Info("adjust ticket price const ", "number", header.Number, "Slb: ", Slb, " T: ", T, " B: ", B, " Seb: ", Seb)
 	//var
-	TicketPrice, err:= cbft.ppos.GetTicketPrice(state)
-	if err!=nil {
-		log.Error("adjust ticket price get old ticket price faile", " err: ",  err.Error())
+	TicketPrice, err := cbft.ppos.GetTicketPrice(state)
+	if err != nil {
+		log.Error("adjust ticket price get old ticket price faile", " err: ", err.Error())
 		return
 	}
 	Pn, err := cbft.ppos.GetPoolNumber(state)
-	if err!=nil {
+	if err != nil {
 		log.Error("adjust ticket price get pool number faile", " err: ", err.Error())
 		return
 	}
@@ -2042,15 +2040,15 @@ func (cbft *Cbft) adjustTicketPrice(state *state.StateDB, header *types.Header) 
 			return
 		}
 		Pn_1, err = cbft.ppos.GetPoolNumber(PreCycleState)
-		if err!=nil {
-			log.Error("adjust ticket price get pre pool number faile", " err: ",  err.Error())
+		if err != nil {
+			log.Error("adjust ticket price get pre pool number faile", " err: ", err.Error())
 			return
 		}
 		Pn_1 = T - Pn_1
-	}else if cmp == -1 {
+	} else if cmp == -1 {
 		log.Info("First Cycle adjust ticket price ", " PreCycleNumer: ", PreCycleNumer)
 		Pn_1 = Pn
-	}else {
+	} else {
 		log.Error("PreCycleNumer is zero ", " PreCycleNumer: ", PreCycleNumer)
 		return
 	}
@@ -2060,7 +2058,7 @@ func (cbft *Cbft) adjustTicketPrice(state *state.StateDB, header *types.Header) 
 	NewTicketPrice := new(big.Int).Mul(TicketPrice, new(big.Int).SetUint64(Pn*Pn/(Pn_1*T)))
 	if NewTicketPrice.Cmp(Slb) != 1 {
 		NewTicketPrice = new(big.Int).Set(Slb)
-	}else {
+	} else {
 		if NewTicketPrice.Cmp(Seb) == 1 {
 			NewTicketPrice = new(big.Int).Set(Seb)
 		}

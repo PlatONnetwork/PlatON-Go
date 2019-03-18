@@ -20,8 +20,8 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/deckarep/golang-set"
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
+	"github.com/deckarep/golang-set"
 	"io"
 	"math/big"
 	mrand "math/rand"
@@ -139,9 +139,9 @@ type BlockChain struct {
 	badBlocks      *lru.Cache              // Bad block cache
 	shouldPreserve func(*types.Block) bool // Function used to determine whether should preserve the given block.
 
-	shouldElectionFn	shouldElectionFn
-	shouldSwitchFn	shouldSwitchFn
-	attemptAddConsensusPeerFn	attemptAddConsensusPeerFn
+	shouldElectionFn          shouldElectionFn
+	shouldSwitchFn            shouldSwitchFn
+	attemptAddConsensusPeerFn attemptAddConsensusPeerFn
 	// modify by niuxiaojie
 	knownBlockHashes     mapset.Set
 	knownBlockHashesLock sync.RWMutex
@@ -164,20 +164,20 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	badBlocks, _ := lru.New(badBlockLimit)
 
 	bc := &BlockChain{
-		chainConfig:    chainConfig,
-		cacheConfig:    cacheConfig,
-		db:             db,
-		triegc:         prque.New(nil),
-		stateCache:     state.NewDatabase(db),
-		quit:           make(chan struct{}),
-		shouldPreserve: shouldPreserve,
-		bodyCache:      bodyCache,
-		bodyRLPCache:   bodyRLPCache,
-		blockCache:     blockCache,
-		futureBlocks:   futureBlocks,
-		engine:         engine,
-		vmConfig:       vmConfig,
-		badBlocks:      badBlocks,
+		chainConfig:      chainConfig,
+		cacheConfig:      cacheConfig,
+		db:               db,
+		triegc:           prque.New(nil),
+		stateCache:       state.NewDatabase(db),
+		quit:             make(chan struct{}),
+		shouldPreserve:   shouldPreserve,
+		bodyCache:        bodyCache,
+		bodyRLPCache:     bodyRLPCache,
+		blockCache:       blockCache,
+		futureBlocks:     futureBlocks,
+		engine:           engine,
+		vmConfig:         vmConfig,
+		badBlocks:        badBlocks,
 		knownBlockHashes: mapset.NewSet(),
 	}
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
@@ -932,25 +932,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	rawdb.TicketCacheCommit(bc.db, externBn)
 	rawdb.WriteBlock(bc.db, block)
 
-	r := state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
-	log.Debug("【WriteBlockWithState】，Before state.Commit：", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", r.String())
-	// TODO
-	//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-	//	cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，Before state.Commit：")
-	//}
-
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
 		log.Error("check block is EIP158 error", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
 	}
-
-	r = state.IntermediateRoot(bc.chainConfig.IsEIP158(block.Number()))
-	log.Debug("【WriteBlockWithState】，After state.Commit：", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", r.String())
-	// TODO
-	//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-	//	cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After state.Commit：")
-	//}
 
 	triedb := bc.stateCache.TrieDB()
 
@@ -960,12 +946,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 			log.Error("Commit to triedb error", "root", root)
 			return NonStatTy, err
 		}
-		log.Info("【archive node commit stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
-		//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-		//	cbftEngine.ForEachStorage(state, "【WriteBlockWithState】，After writing the chain：")
-		//}
+		log.Debug("【archive node commit stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 	} else {
-		log.Info("【non-archive node put stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
+		log.Debug("【non-archive node put stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 		// Full but not archive node, do proper garbage collection
 		triedb.Reference(root, common.Hash{}) // metadata reference to keep trie alive
 		bc.triegc.Push(root, -int64(block.NumberU64()))
@@ -1060,7 +1043,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.insert(block)
 
 		// parse block and retrieves txs
-		receipts:= bc.GetReceiptsByHash(block.Hash())
+		receipts := bc.GetReceiptsByHash(block.Hash())
 		MPC_POOL.InjectTxs(block, receipts, bc, state)
 		VC_POOL.InjectTxs(block, receipts, bc, state)
 	}
@@ -1223,11 +1206,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
-		root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-		log.Debug("【Node synchronization: call inserChain】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
-		//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-		//	cbftEngine.ForEachStorage(state, "【Node synchronization: call inserChain】， Before executing the transaction：")
-		//}
 		// Process block using the parent state as reference point.
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
 		if err != nil {
@@ -1289,12 +1267,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 //joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block, blockInterval *big.Int) (types.Receipts, error) {
 	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
-	root := state.IntermediateRoot(bc.Config().IsEIP158(block.Number()))
-	log.Debug("【The Consensus node synchronization】Before executing the transaction", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "block.root", block.Root().Hex(), "Real-time state.root", root.Hex())
-
-	//if cbftEngine, ok := bc.engine.(consensus.Bft); ok {
-	//	cbftEngine.ForEachStorage(state, "【ProcessDirectly】，Before executing the transaction：")
-	//}
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, blockInterval)
 	if err != nil {
