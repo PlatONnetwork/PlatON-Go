@@ -794,7 +794,7 @@ func (w *worker) resultLoop() {
 			w.pendingMu.RUnlock()
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
-			if exist && cbft.IsSignedBySelf(sealhash, block.Extra()[32:]) {
+			if exist && cbft.IsSignedBySelf(sealhash, block.Sign()) {
 				_receipts = task.receipts
 				_state = task.state
 				stateIsNil := _state == nil

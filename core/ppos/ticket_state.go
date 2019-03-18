@@ -229,7 +229,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 			if err := stateDB.GetPPOSCache().RemoveTicket(nodeId, ticketId); nil != err {
 				return err
 			}
-			t.removeExpireTicket(stateDB, blockNumber, ticketId)
+			t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
 		}
 	}
 	log.Debug("End processing the list on DropReturnTicket")
@@ -247,12 +247,9 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 	if nodeId == (discover.NodeID{}) {
 		return CandidateNotFindErr
 	}
-	ticket, err := t.releaseTicket(stateDB, nodeId, ticketId, blockNumber)
+	_, err := t.releaseTicket(stateDB, nodeId, ticketId, blockNumber)
 	if nil != err {
 		return err
-	}
-	if ticket == nil {
-		return TicketNotFindErr
 	}
 	return nil
 }
