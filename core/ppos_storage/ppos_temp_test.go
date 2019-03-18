@@ -65,7 +65,8 @@ func TestData(t *testing.T) {
 
 
 func TestData2(t *testing.T) {
-	ldb, err := ethdb.NewLDBDatabase("E:/platon-data/platon/ppos_storage", 0, 0)
+	//ldb, err := ethdb.NewLDBDatabase("E:/platon-data/platon/ppos_storage", 0, 0)
+	ldb, err := ethdb.NewPPosDatabase("E:/platon-data/platon/ppos_storage")
 	if err!=nil {
 		t.Errorf("NewLDBDatabase faile")
 	}
