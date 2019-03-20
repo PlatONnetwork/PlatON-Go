@@ -84,8 +84,7 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 	height := c.Evm.Context.BlockNumber
 	//from := c.Contract.caller.Address()
 	log.Info("Input to CandidateDeposit==> ", "nodeId: ", nodeId.String(), " owner: ", owner.Hex(), " deposit: ", deposit,
-		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, /*" from: ", from.Hex(),*/
-		" host: ", host, " port: ", port, " extra: ", extra)
+		"  fee: ", fee, " txhash: ", txHash.Hex(), " txIdx: ", txIdx, " height: ", height, " host: ", host, " port: ", port, " extra: ", extra)
 	if fee > 10000 {
 		log.Error("Failed to CandidateDeposit==> ", "ErrFeeIllegal: ", ErrFeeIllegal.Error())
 		return nil, ErrFeeIllegal
@@ -240,13 +239,6 @@ func (c *CandidateContract) GetCandidateDetails(nodeIds []discover.NodeID) ([]by
 	input, _ := json.Marshal(nodeIds)
 	log.Info("Input to GetCandidateDetails==>", "length: ", len(nodeIds), " nodeIds: ", string(input))
 	candidates := c.Evm.CandidatePoolContext.GetCandidateArr(c.Evm.StateDB, nodeIds...)
-	if 0 == len(candidates) {
-		log.Warn("Failed to GetCandidateDetails==> The query does not exist")
-		candidates := make(types.CandidateQueue, 0)
-		data, _ := json.Marshal(candidates)
-		sdata := DecodeResultStr(string(data))
-		return sdata, nil
-	}
 	data, _ := json.Marshal(candidates)
 	sdata := DecodeResultStr(string(data))
 	log.Info("Result of GetCandidateDetails==> ", "len(candidates): ", len(candidates), "json: ", string(data))
@@ -256,29 +248,15 @@ func (c *CandidateContract) GetCandidateDetails(nodeIds []discover.NodeID) ([]by
 // Get the current block candidate list
 func (c *CandidateContract) GetCandidateList() ([]byte, error) {
 	candidates := c.Evm.CandidatePoolContext.GetChosens(c.Evm.StateDB, 0)
-	if 0 == len(candidates) {
-		log.Warn("Failed to GetCandidateList==> The query does not exist")
-		candidates := make(types.CandidateQueue, 0)
-		data, _ := json.Marshal(candidates)
-		sdata := DecodeResultStr(string(data))
-		return sdata, nil
-	}
 	data, _ := json.Marshal(candidates)
 	sdata := DecodeResultStr(string(data))
-	log.Info("Result of GetCandidateList==> ", "len(candidates): ", len(candidates), "json: ", string(data))
+	log.Info("Result of GetCandidateList==> ", "len(candidates): ", len(candidates[0])+len(candidates[1]), "json: ", string(data))
 	return sdata, nil
 }
 
 // Get the current block round certifier list
 func (c *CandidateContract) GetVerifiersList() ([]byte, error) {
 	verifiers := c.Evm.CandidatePoolContext.GetChairpersons(c.Evm.StateDB)
-	if 0 == len(verifiers) {
-		log.Warn("Failed to GetVerifiersList==> The query does not exist")
-		verifiers := make(types.CandidateQueue, 0)
-		data, _ := json.Marshal(verifiers)
-		sdata := DecodeResultStr(string(data))
-		return sdata, nil
-	}
 	data, _ := json.Marshal(verifiers)
 	sdata := DecodeResultStr(string(data))
 	log.Info("Result of GetVerifiersList==> ", "len(verifiers): ", len(verifiers), "json: ", string(data))
