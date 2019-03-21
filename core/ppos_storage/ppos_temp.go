@@ -420,7 +420,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 			empty |= 1
 		}
 
-		wg.Add(3)
+		//wg.Add(3)
 
 		// ticketInfos
 		/*go func() {
@@ -446,10 +446,10 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 				tickTemp.Dependencys = dependency
 				empty |= 1
 			}
-			wg.Done()
+			//wg.Done()
 		}()
 
-		wg.Wait()
+		//wg.Wait()
 		ppos_temp.TickTmp = tickTemp
 	}
 
