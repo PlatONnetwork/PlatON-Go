@@ -20,6 +20,7 @@ package downloader
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -90,6 +91,7 @@ var (
 	errCancelContentProcessing = errors.New("content processing canceled (requested)")
 	errNoSyncActive            = errors.New("no sync active")
 	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 62)")
+	errPushPPosStorageProto    = errors.New("push ppos storage proto error")
 )
 
 type Downloader struct {
@@ -620,7 +622,10 @@ func (d *Downloader) fetchLatestPposStorage(p *peerConnection) (*types.Header, u
 				p.log.Debug("pivotNumber is an incorrect pivot point", "pivotNumber", pivot.Number.Uint64(), "heightNumber", latest.Number.Uint64())
 				return nil, 0, errBadPeer
 			}
-			// TODO
+			if err := ppos_storage.GetPPosTempPtr().PushPPosStorageProto(packet.(*pposStoragePack).storage); err != nil {
+				p.log.Debug("pushPPosStorageProto error", "pivotNumber", pivot.Number.Uint64(), "heightNumber", latest.Number.Uint64(), "err", err)
+				return nil, 0, errPushPPosStorageProto
+			}
 
 			return latest, pivot.Number.Uint64(), nil
 
