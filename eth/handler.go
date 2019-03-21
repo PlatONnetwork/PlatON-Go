@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"math"
 	"math/big"
 	"math/rand"
@@ -353,9 +354,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Block header query, collect the requested headers and reply
 
 	case p.version >= eth63 && msg.Code == GetPposStorageMsg:
-		// Decode the retrieval message
-		// TODO
-		return nil
+		// deal the retrieval message
+		if pivotHash, data, err := ppos_storage.GetPPosTempPtr().GetPPosStorageProto(); pivotHash != (common.Hash{}) && len(data) > 0 && err == nil {
+			latest := pm.blockchain.CurrentHeader()
+			pivot := pm.blockchain.GetHeaderByHash(pivotHash)
+			if latest != nil && pivot != nil {
+				return p.SendPposStorage(latest, pivot, data)
+			}
+		}
 
 	case p.version >= eth63 && msg.Code == PposStorageMsg:
 		// node ppos storage data arrived to one of our previous requests

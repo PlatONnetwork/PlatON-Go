@@ -314,6 +314,10 @@ func (p *peer) SendNodeData(data [][]byte) error {
 	return p2p.Send(p.rw, NodeDataMsg, data)
 }
 
+func (p *peer) SendPposStorage(latest *types.Header, pivot *types.Header, data []byte) error {
+	return p2p.Send(p.rw, PposStorageMsg, []interface{}{latest, pivot, data})
+}
+
 // SendReceiptsRLP sends a batch of transaction receipts, corresponding to the
 // ones requested from an already RLP encoded format.
 func (p *peer) SendReceiptsRLP(receipts []rlp.RawValue) error {
