@@ -28,15 +28,22 @@ import (
 var (
 	MainnetGenesisHash = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
 	TestnetGenesisHash = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
-	RinkebyGenesisHash = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
+	BeatnetGenesisHash = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
 )
 
 var (
-	initialConsensusNodes = []string{
+	initialTestnetConsensusNodes = []string{
 		"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f2f@test-sea.platon.network:16789", //TEST-SEA
 		"enode://d124e660938dc3fd63d913ff753fafc262764b22294431e760b572b0b58d5e6b813b32ccbacc326c03171542ae0ff8ff6528625a2d612e0c49240f111eba3c22@test-sg.platon.network:16790",  //TEST-SG
 		"enode://24b0c456ae5cad46c4fb9bc02c867b997e22f30696e6e330926f785ca2e7410baf1eb34ffd9b5b07b5ba6e02b693faf57afb33f7c66cfbcf4c9186b4bfac737d@test-na.platon.network:16789",  //TEST-NA
 		"enode://c7fc34d6d8b3d894a35895aaf2f788ed445e03b7673f7ce820aa6fdc02908eeab6982b7eb97e983cc708bcec093b3bc512b0b1fbf668e6ab94cd91f2d642e591@test-us.platon.network:16790",  //TEST-US
+	}
+
+	initialBetanetConsensusNodes = []string{
+		"enode://bcb7e49461cdd5f3227bb6cc6c36675cd936c11b69c3fd366c36997d514beabc423f8dfee6f91330a96273988bb68b1785161631181fd738d0f46d263b3ce8b3@54.176.216.82:16789",
+		"enode://5449094bf985a688d378a90cf334d5a1abc55d694d6f2362899494d18048ef6b6bd724f4e51084bfe0563c732c481869c9da05d92e56f29f6880ad15ea851f13@54.176.216.82:16790",
+		"enode://c0f7ae43af0605b80e35a5469adaa142059eaaf41d152613d74d42feffd6871f059f9ac4d596bd134bb1d6bbfbcea5391adff6f005ea9042c21797d51d0b7697@3.1.59.5:16789",
+		"enode://b6883e86e833cec2405fb548405f7a1e693379f77ee8fc6bbf41b5c853d7ad654a2a3fb7ffbe57ae848509d1ed7e11acaf28666f8f81646eab575dafa8d51d0b@3.1.59.5:16790",
 	}
 
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
@@ -53,7 +60,7 @@ var (
 		ConstantinopleBlock: nil,
 		//Ethash:              new(EthashConfig),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialConsensusNodes),
+			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -67,7 +74,7 @@ var (
 		BloomRoot:    common.HexToHash("0xd38be1a06aabd568e10957fee4fcc523bc64996bcf31bae3f55f86e0a583919f"),
 	}
 
-	// TestnetChainConfig contains the chain parameters to run a node on the Ropsten test network.
+	// TestnetChainConfig contains the chain parameters to run a node on the Alpha test network.
 	TestnetChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(103),
 		HomesteadBlock:      big.NewInt(1),
@@ -81,12 +88,12 @@ var (
 		ConstantinopleBlock: nil,
 		//Ethash:              new(EthashConfig),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialConsensusNodes),
+			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
 
-	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Ropsten test network.
+	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Alpha test network.
 	TestnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "testnet",
 		SectionIndex: 123,
@@ -95,22 +102,32 @@ var (
 		BloomRoot:    common.HexToHash("0xf2d27490914968279d6377d42868928632573e823b5d1d4a944cba6009e16259"),
 	}
 
-	// RinkebyChainConfig contains the chain parameters to run a node on the Rinkeby test network.
-	RinkebyChainConfig = &ChainConfig{
+	// BetanetChainConfig contains the chain parameters to run a node on the Beta test network.
+	BetanetChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(104),
 		HomesteadBlock:      big.NewInt(1),
 		DAOForkBlock:        nil,
-		DAOForkSupport:      true,
+		DAOForkSupport:      false,
 		EIP150Block:         big.NewInt(2),
-		EIP150Hash:          common.HexToHash("0x9b095b36c15eaf13044373aef8ee0bd3a382a5abb92e402afa44b8249c3a90e9"),
+		EIP150Hash:          common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
 		EIP155Block:         big.NewInt(3),
 		EIP158Block:         big.NewInt(3),
-		ByzantiumBlock:      big.NewInt(1035301),
+		ByzantiumBlock:      big.NewInt(4),
 		ConstantinopleBlock: nil,
-		Clique: &CliqueConfig{
-			Period: 15,
-			Epoch:  30000,
+		//Ethash:              new(EthashConfig),
+		Cbft: &CbftConfig{
+			InitialNodes: convertNodeUrl(initialBetanetConsensusNodes),
 		},
+		VMInterpreter: "wasm",
+	}
+
+	// BetanetTrustedCheckpoint contains the light client trusted checkpoint for the Beta test network.
+	BetanetTrustedCheckpoint = &TrustedCheckpoint{
+		Name:         "betanet",
+		SectionIndex: 123,
+		SectionHead:  common.HexToHash("0xa372a53decb68ce453da12bea1c8ee7b568b276aa2aab94d9060aa7c81fc3dee"),
+		CHTRoot:      common.HexToHash("0x6b02e7fada79cd2a80d4b3623df9c44384d6647fc127462e1c188ccd09ece87b"),
+		BloomRoot:    common.HexToHash("0xf2d27490914968279d6377d42868928632573e823b5d1d4a944cba6009e16259"),
 	}
 
 	GrapeChainConfig = &ChainConfig{
@@ -144,14 +161,6 @@ var (
 				},
 			},
 		},
-	}
-	// RinkebyTrustedCheckpoint contains the light client trusted checkpoint for the Rinkeby test network.
-	RinkebyTrustedCheckpoint = &TrustedCheckpoint{
-		Name:         "rinkeby",
-		SectionIndex: 91,
-		SectionHead:  common.HexToHash("0x435b7b2d8a7922f3b9a522f2fb02730e95e0e1782f0f5443894d5415bba37154"),
-		CHTRoot:      common.HexToHash("0x0664bf7ecccfb6775c4eca6f0f264fb5282a22754a2135a1ac4bff2ef02898dd"),
-		BloomRoot:    common.HexToHash("0x2a64df2400c3a2cb6400639bb6ed29389abdb4d93e2e525aa7c21f38767cd96f"),
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
