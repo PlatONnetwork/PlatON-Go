@@ -257,6 +257,10 @@ func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ti
 	return nil
 }
 
+func (t *TicketPool) GetTicketRemainByTxHash (stateDB vm.StateDB, txHash common.Hash) uint32 {
+	return stateDB.GetPPOSCache().GetTicketRemainByTxHash(txHash)
+}
+
 //func (t *TicketPool) setTicket(stateDB vm.StateDB, ticketId common.Hash, ticket *types.Ticket) {
 //	stateDB.GetPPOSCache().SetTicketInfo(ticketId, ticket)
 //}
@@ -519,19 +523,38 @@ func (t *TicketPool) GetPoolNumber(stateDB vm.StateDB) uint32 {
 
 // Get the remaining number of ticket
 func (t *TicketPool) GetTicketRemaining(stateDB vm.StateDB, ticketId common.Hash) uint32 {
-	ticket := t.GetTicket(stateDB, ticketId)
-	if nil == ticket {
+	return t.GetTicketRemainByTxHash(stateDB, ticketId)
+	/*if nil == ticket {
 		return 0
 	}
-	return ticket.Remaining
+	return ticket.Remaining*/
 }
 
 // Get the batch remaining number of ticket
 func (t *TicketPool) GetBatchTicketRemaining(stateDB vm.StateDB, ticketIds []common.Hash) map[common.Hash]uint32 {
-	ticketsRemaining := make(map[common.Hash]uint32, 0)
+	ticketsRemaining := make(map[common.Hash]uint32, len(ticketIds))
+	var wg sync.WaitGroup
+	wg.Add(len(ticketIds))
+
+	type result struct {
+		id 		common.Hash
+		count 	uint32
+	}
+	resCh := make(chan result, len(ticketIds))
+
 	for _, ticketId := range ticketIds {
-		remaining := t.GetTicketRemaining(stateDB, ticketId)
-		ticketsRemaining[ticketId] = remaining
+		/*remaining := t.GetTicketRemaining(stateDB, ticketId)
+		ticketsRemaining[ticketId] = remaining*/
+		go func(txHash common.Hash) {
+			res := new(result)
+			res.id = txHash
+			res.count = t.GetTicketRemaining(stateDB, txHash)
+			wg.Done()
+		}(ticketId)
+	}
+	wg.Wait()
+	for res := range resCh {
+		ticketsRemaining[res.id] = res.count
 	}
 	return ticketsRemaining
 }

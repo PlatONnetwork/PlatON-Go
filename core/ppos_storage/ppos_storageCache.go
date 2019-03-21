@@ -99,42 +99,40 @@ type Ppos_storage struct {
 }
 
 func (ps *Ppos_storage) Copy() *Ppos_storage {
-	ppos_storage := NewPPOS_storage()
+
+	//if  verifyStorageEmpty(ps) {
+	//	return NewPPOS_storage()
+	//}
 
 	if nil == ps {
-		return ppos_storage
+		return NewPPOS_storage()
 	}
 
-	ppos_storage.c_storage = ps.CopyCandidateStorage()
-	ppos_storage.t_storage = ps.CopyTicketStorage()
-
+	ppos_storage := &Ppos_storage{
+		c_storage: ps.CopyCandidateStorage(),
+		t_storage: ps.CopyTicketStorage(),
+	}
 	return ppos_storage
 }
 
 
 func NewPPOS_storage () *Ppos_storage {
 
-	cache := new(Ppos_storage)
+	cache := &Ppos_storage{
+		c_storage: &candidate_temp{
+			pres: 	make(types.CandidateQueue, 0),
+			currs:  make(types.CandidateQueue, 0),
+			nexts: 	make(types.CandidateQueue, 0),
+			imms: 	make(types.CandidateQueue, 0),
+			res: 	make(types.CandidateQueue, 0),
+			refunds: make(refundStorage, 0),
+		},
 
-	can_cache := new(candidate_temp)
-	ticket_cache := new(ticket_temp)
-
-	ticket_cache.Sq = -1
-	//ticket_cache.Infos = make(map[common.Hash]*types.Ticket)
-	//ticket_cache.Ets = make(map[string][]common.Hash)
-	ticket_cache.Dependencys = make(map[discover.NodeID]*ticketDependency)
-
-	queue := make(types.CandidateQueue, 0)
-	refundMap := make(refundStorage, 0)
-	can_cache.pres = queue
-	can_cache.currs = queue
-	can_cache.nexts = queue
-	can_cache.imms = queue
-	can_cache.res = queue
-	can_cache.refunds = refundMap
-
-	cache.c_storage = can_cache
-	cache.t_storage = ticket_cache
+		t_storage: &ticket_temp{
+			Sq: 	-1,
+			Dependencys: 	make(map[discover.NodeID]*ticketDependency),
+		},
+	}
 	return cache
 }
 
@@ -224,21 +222,21 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 	start := common.NewTimer()
 	start.Begin()
 
-	temp := new(candidate_temp)
-
-
-	temp.pres = p.c_storage.pres.DeepCopy()
-	temp.currs = p.c_storage.currs.DeepCopy()
-	temp.nexts = p.c_storage.nexts.DeepCopy()
-
-	temp.imms = p.c_storage.imms.DeepCopy()
-	temp.res = p.c_storage.res.DeepCopy()
-
 	cache := make(refundStorage, len(p.c_storage.refunds))
 	for nodeId, queue := range p.c_storage.refunds {
 		cache[nodeId] = queue.DeepCopy()
 	}
-	temp.refunds = cache
+
+	temp := &candidate_temp{
+		pres: 		p.c_storage.pres.DeepCopy(),
+		currs: 		p.c_storage.currs.DeepCopy(),
+		nexts: 		p.c_storage.nexts.DeepCopy(),
+
+		imms: 		p.c_storage.imms.DeepCopy(),
+		res: 		p.c_storage.res.DeepCopy(),
+
+		refunds: 	cache,
+	}
 
 	log.Debug("CopyCandidateStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return temp
@@ -249,6 +247,36 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 	start := common.NewTimer()
 	start.Begin()
 
+	cache := make(map[discover.NodeID]*ticketDependency, len(p.t_storage.Dependencys))
+
+	for key := range p.t_storage.Dependencys {
+		temp := p.t_storage.Dependencys[key]
+		tinfos := make([]*ticketInfo, len(temp.Tinfo))
+
+		for j, tin := range temp.Tinfo {
+
+			t := &ticketInfo{
+				TxHash: 	tin.TxHash,
+				Remaining: 	tin.Remaining,
+				Price: 		tin.Price,
+			}
+			tinfos[j] = t
+
+		}
+
+		cache[key] = &ticketDependency{
+			temp.Num,
+			tinfos,
+		}
+	}
+
+	ticket_cache := &ticket_temp{
+		Sq: 	p.t_storage.Sq,
+		Dependencys: 	cache,
+	}
+
+
+/*
 	ticket_cache := new(ticket_temp)
 
 	ticket_cache.Sq = p.t_storage.Sq
@@ -266,7 +294,7 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 	//	copy(list, value)
 	//	ticket_cache.Ets[key] = list
 	//}
-	/*for key := range p.t_storage.Dependencys {
+	*//*for key := range p.t_storage.Dependencys {
 		temp := p.t_storage.Dependencys[key]
 		tids := make([]common.Hash, len(temp.Tids))
 		copy(tids, temp.Tids)
@@ -275,7 +303,7 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 			temp.Num,
 			tids,
 		}
-	}*/
+	}*//*
 	for key := range p.t_storage.Dependencys {
 		temp := p.t_storage.Dependencys[key]
 		tinfo := make([]*ticketInfo, len(temp.Tinfo))
@@ -285,7 +313,7 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 			temp.Num,
 			tinfo,
 		}
-	}
+	}*/
 	log.Debug("CopyTicketStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return ticket_cache
 }
@@ -647,6 +675,19 @@ func (p *Ppos_storage) SetCandidateTicketAge(nodeId discover.NodeID, age uint64)
 		value.Age = age
 	}*/
 }
+
+func (p *Ppos_storage) GetTicketRemainByTxHash(txHash common.Hash) uint32 {
+
+	for _, depen := range p.t_storage.Dependencys {
+		for _, field := range depen.Tinfo {
+			if txHash == field.TxHash {
+				return field.Remaining
+			}
+		}
+	}
+	return 0
+}
+
 
 func removeTicketId(hash common.Hash, hashs []common.Hash) []common.Hash {
 	for index, tempHash := range hashs {
