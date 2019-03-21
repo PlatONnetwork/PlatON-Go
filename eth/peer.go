@@ -361,6 +361,11 @@ func (p *peer) RequestReceipts(hashes []common.Hash) error {
 	return p2p.Send(p.rw, GetReceiptsMsg, hashes)
 }
 
+func (p *peer) RequestLatestPposStorage() error {
+	p.Log().Debug("Fetching latest ppos storage")
+	return p2p.Send(p.rw, GetPposStorageMsg, []interface{}{})
+}
+
 // Handshake executes the eth protocol handshake, negotiating version number,
 // network IDs, difficulties, head and genesis blocks.
 func (p *peer) Handshake(network uint64, bn *big.Int, head common.Hash, genesis common.Hash) error {

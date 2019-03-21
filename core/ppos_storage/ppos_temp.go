@@ -412,22 +412,22 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		wg.Add(3)
 
 		// ticketInfos
-		go func() {
+		/*go func() {
 			if ticketMap := buildPBticketMap(ps.t_storage.Infos); len(ticketMap) != 0 {
 				tickTemp.Infos = ticketMap
 				empty |= 1
 			}
 			wg.Done()
-		}()
+		}()*/
 
-		// ExpireTicket
-		go func() {
-			if ets := buildPBexpireTicket(ps.t_storage.Ets); len(ets) != 0 {
-				tickTemp.Ets = ets
-				empty |= 1
-			}
-			wg.Done()
-		}()
+		//// ExpireTicket
+		//go func() {
+		//	if ets := buildPBexpireTicket(ps.t_storage.Ets); len(ets) != 0 {
+		//		tickTemp.Ets = ets
+		//		empty |= 1
+		//	}
+		//	wg.Done()
+		//}()
 
 		// ticket's attachment  of node
 		go func() {
@@ -542,7 +542,7 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 		tickTemp.Sq = tickGlobalTemp.Sq
 
 		// ticketInfo map
-		if len(tickGlobalTemp.Infos) != 0 {
+		/*if len(tickGlobalTemp.Infos) != 0 {
 
 			infoMap := make(map[common.Hash]*types.Ticket, len(tickGlobalTemp.Infos))
 			for tid, tinfo := range tickGlobalTemp.Infos {
@@ -559,28 +559,28 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 				infoMap[common.HexToHash(tid)] = ticketInfo
 			}
 			tickTemp.Infos = infoMap
-		}
+		}*/
 
 
-		// ExpireTicket map
-		if len(tickGlobalTemp.Ets) != 0 {
-			ets := make(map[string][]common.Hash, len(tickGlobalTemp.Ets))
-
-			for blockNum, ticketIdArr := range tickGlobalTemp.Ets {
-
-				if len(ticketIdArr.TxHashs) == 0 {
-					continue
-				}
-
-				ticketIds := make([]common.Hash, len(ticketIdArr.TxHashs))
-				for i, ticketId := range ticketIdArr.TxHashs {
-					ticketIds[i] = common.BytesToHash(ticketId)
-				}
-				ets[blockNum] = ticketIds
-			}
-
-			tickTemp.Ets = ets
-		}
+		//// ExpireTicket map
+		//if len(tickGlobalTemp.Ets) != 0 {
+		//	ets := make(map[string][]common.Hash, len(tickGlobalTemp.Ets))
+		//
+		//	for blockNum, ticketIdArr := range tickGlobalTemp.Ets {
+		//
+		//		if len(ticketIdArr.TxHashs) == 0 {
+		//			continue
+		//		}
+		//
+		//		ticketIds := make([]common.Hash, len(ticketIdArr.TxHashs))
+		//		for i, ticketId := range ticketIdArr.TxHashs {
+		//			ticketIds[i] = common.BytesToHash(ticketId)
+		//		}
+		//		ets[blockNum] = ticketIds
+		//	}
+		//
+		//	tickTemp.Ets = ets
+		//}
 
 		// ticket's attachment  of node
 		if len(tickGlobalTemp.Dependencys) != 0 {
@@ -590,17 +590,35 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 			for nodeIdStr, pb_dependency := range tickGlobalTemp.Dependencys {
 
 				dependencyInfo := new(ticketDependency)
-				dependencyInfo.Age = pb_dependency.Age
+				//dependencyInfo.Age = pb_dependency.Age
 				dependencyInfo.Num = pb_dependency.Num
 
 
-				tidArr := make([]common.Hash, len(pb_dependency.Tids))
+				/*tidArr := make([]common.Hash, len(pb_dependency.Tids))
 
 				for i, ticketId := range pb_dependency.Tids {
 					tidArr[i] = common.BytesToHash(ticketId)
 				}
 
-				dependencyInfo.Tids = tidArr
+				dependencyInfo.Tids = tidArr*/
+
+
+
+				fieldArr := make([]*ticketInfo, len(pb_dependency.Tinfo))
+				for j, field := range pb_dependency.Tinfo {
+
+					price, _ := new(big.Int).SetString(field.Price, 10)
+					f := &ticketInfo{
+						TxHash: 	common.BytesToHash(field.TxHash),
+						Remaining: 	field.Remaining,
+						Price: 		price,
+					}
+
+					fieldArr[j] =  f
+				}
+				dependencyInfo.Tinfo = fieldArr
+
+
 
 				dependencyMap[discover.MustHexID(nodeIdStr)] = dependencyInfo
 			}
@@ -669,52 +687,52 @@ func buildPBrefunds(refunds refundStorage) map[string]*RefundArr {
 }
 
 
-func buildPBticketMap(tickets map[common.Hash]*types.Ticket) map[string]*TicketInfo {
-	if len(tickets) == 0 {
-		return nil
-	}
+//func buildPBticketMap(tickets map[common.Hash]*types.Ticket) map[string]*TicketInfo {
+//	if len(tickets) == 0 {
+//		return nil
+//	}
+//
+//	pb_ticketMap := make(map[string]*TicketInfo, len(tickets))
+//
+//	for tid, tinfo := range tickets {
+//		ticketInfo := &TicketInfo{
+//			Owner:       tinfo.Owner.Bytes(),
+//			Deposit:     tinfo.Deposit.String(),
+//			CandidateId: tinfo.CandidateId.Bytes(),
+//			BlockNumber: tinfo.BlockNumber.String(),
+//			Remaining:   tinfo.Remaining,
+//		}
+//		pb_ticketMap[tid.String()] = ticketInfo
+//	}
+//	return pb_ticketMap
+//}
 
-	pb_ticketMap := make(map[string]*TicketInfo, len(tickets))
 
-	for tid, tinfo := range tickets {
-		ticketInfo := &TicketInfo{
-			Owner:       tinfo.Owner.Bytes(),
-			Deposit:     tinfo.Deposit.String(),
-			CandidateId: tinfo.CandidateId.Bytes(),
-			BlockNumber: tinfo.BlockNumber.String(),
-			Remaining:   tinfo.Remaining,
-		}
-		pb_ticketMap[tid.String()] = ticketInfo
-	}
-	return pb_ticketMap
-}
-
-
-func buildPBexpireTicket(ets map[string][]common.Hash) map[string]*TxHashArr  {
-	if len(ets) == 0 {
-		return nil
-	}
-
-	pb_ets := make(map[string]*TxHashArr, len(ets))
-
-	for blockNumber, ticketIdArr := range ets {
-
-		if len(ticketIdArr) == 0 {
-			continue
-		}
-
-		txHashs := make([][]byte, len(ticketIdArr))
-
-		for i, tid := range ticketIdArr {
-			txHashs[i] = tid.Bytes()
-		}
-
-		txHashArr := new(TxHashArr)
-		txHashArr.TxHashs = txHashs
-		pb_ets[blockNumber] = txHashArr
-	}
-	return pb_ets
-}
+//func buildPBexpireTicket(ets map[string][]common.Hash) map[string]*TxHashArr  {
+//	if len(ets) == 0 {
+//		return nil
+//	}
+//
+//	pb_ets := make(map[string]*TxHashArr, len(ets))
+//
+//	for blockNumber, ticketIdArr := range ets {
+//
+//		if len(ticketIdArr) == 0 {
+//			continue
+//		}
+//
+//		txHashs := make([][]byte, len(ticketIdArr))
+//
+//		for i, tid := range ticketIdArr {
+//			txHashs[i] = tid.Bytes()
+//		}
+//
+//		txHashArr := new(TxHashArr)
+//		txHashArr.TxHashs = txHashs
+//		pb_ets[blockNumber] = txHashArr
+//	}
+//	return pb_ets
+//}
 
 
 func buildPBdependencys(dependencys map[discover.NodeID]*ticketDependency) map[string]*TicketDependency {
@@ -726,16 +744,30 @@ func buildPBdependencys(dependencys map[discover.NodeID]*ticketDependency) map[s
 
 	for nodeId, dependency := range dependencys {
 
-		tidArr := make([][]byte, len(dependency.Tids))
+		/*tidArr := make([][]byte, len(dependency.Tids))
 
 		for i, ticketId := range dependency.Tids {
 			tidArr[i] = ticketId.Bytes()
+		}*/
+
+		fieldArr := make([]*Field, len(dependency.Tinfo))
+
+
+		for i, field := range dependency.Tinfo {
+
+			f := &Field{
+				TxHash:		field.TxHash.Bytes(),
+				Remaining: 	field.Remaining,
+				Price: 		field.Price.String(),
+			}
+			fieldArr[i] = f
 		}
 
 		depenInfo := &TicketDependency{
-			Age:  dependency.Age,
+			//Age:  dependency.Age,
 			Num:  dependency.Num,
-			Tids: tidArr,
+			//Tids: tidArr,
+			Tinfo: 	fieldArr,
 		}
 
 		pb_dependency[nodeId.String()] = depenInfo
@@ -796,10 +828,10 @@ func verifyStorageEmpty(storage *Ppos_storage) bool {
 
 	tickStorage := storage.t_storage
 	if nil != tickStorage {
-		if tickStorage.Sq == -1 && len(tickStorage.Infos) == 0 &&
+		/*if tickStorage.Sq == -1 && len(tickStorage.Infos) == 0 &&
 			len(tickStorage.Ets) == 0 && len(tickStorage.Dependencys) == 0 {
 			tickEmpty = true
-		}
+		}*/
 	}
 	if canEmpty && tickEmpty {
 		return true

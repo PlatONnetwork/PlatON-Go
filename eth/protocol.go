@@ -66,6 +66,8 @@ const (
 	NodeDataMsg    = 0x0e
 	GetReceiptsMsg = 0x0f
 	ReceiptsMsg    = 0x10
+	GetPposStorageMsg = 0x11
+	PposStorageMsg    = 0x12
 )
 
 type errCode int
@@ -196,3 +198,9 @@ type blockBody struct {
 
 // blockBodiesData is the network packet for block content distribution.
 type blockBodiesData []*blockBody
+
+type pposStorageData struct {
+	Latest  	*types.Header
+	Pivot		*types.Header
+	PposStorage	[]byte
+}

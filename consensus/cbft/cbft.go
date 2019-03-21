@@ -114,6 +114,8 @@ func (cbft *Cbft) getHighestLogical() *BlockExt {
 
 var cbft *Cbft
 
+
+
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
 
@@ -149,6 +151,8 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 			}
 		}}),
 	}
+
+	_ppos.ticketContext.SetChainInfo(cbft)
 
 	flowControl = NewFlowControl()
 
@@ -603,6 +607,7 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	cbft.log.Debug("call SetBackend()")
 	cbft.blockChain = blockChain
 	cbft.ppos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64() / 1000)
+	cbft.ppos.ticketContext.SetChainConfig(blockChain.Config())
 
 	currentBlock := blockChain.CurrentBlock()
 
@@ -1971,3 +1976,18 @@ func GetAmount(number *big.Int) *big.Int {
 	return ret
 }
 
+func (cbft *Cbft) FindTransaction(txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64) {
+	return cbft.blockChain.GetTransactionByHash(txHash)
+}
+
+func (cbft *Cbft) GetHeader(blockHash common.Hash, blockNumber uint64) *types.Header {
+	return cbft.blockChain.GetHeader(blockHash, blockNumber)
+}
+
+func (cbft *Cbft) GetBody(blockNumber uint64) *types.Body {
+	return cbft.blockChain.GetBodyByNumber(blockNumber)
+}
+
+func (cbft *Cbft) GetNewStateDB(root common.Hash, blockNumber *big.Int, blockHash common.Hash) (*state.StateDB, error) {
+	return cbft.blockChain.GetNewStateDB(root, blockNumber, blockHash)
+}

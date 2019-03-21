@@ -350,7 +350,25 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 
-	// Block header query, collect the requested headers and reply
+		// Block header query, collect the requested headers and reply
+
+	case p.version >= eth63 && msg.Code == GetPposStorageMsg:
+		// Decode the retrieval message
+		// TODO
+		return nil
+
+	case p.version >= eth63 && msg.Code == PposStorageMsg:
+		// node ppos storage data arrived to one of our previous requests
+		var data pposStorageData
+		if err := msg.Decode(&data); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+
+		// Deliver all to the downloader
+		if err := pm.downloader.DeliverPposStorage(p.id, data.Latest, data.Pivot, data.PposStorage); err != nil {
+			log.Debug("Failed to deliver ppos storage data", "err", err)
+		}
+
 	case msg.Code == GetBlockHeadersMsg:
 		// Decode the complex header query
 		var query getBlockHeadersData
@@ -985,7 +1003,7 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 			}
 			timer.Reset(defaultBroadcastInterval)
 
-		// Err() channel will be closed when unsubscribing.
+			// Err() channel will be closed when unsubscribing.
 		case <-pm.txsSub.Err():
 			return
 		}
