@@ -3,7 +3,7 @@ package miner
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	//"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -13,19 +13,19 @@ import (
 )
 
 func (w *worker) shouldElection(blockNumber *big.Int) bool {
-	d := new(big.Int).Sub(blockNumber, big.NewInt(cbft.BaseElection))
-	_, m := new(big.Int).DivMod(d, big.NewInt(cbft.BaseSwitchWitness), new(big.Int))
+	d := new(big.Int).Sub(blockNumber, big.NewInt(common.BaseElection))
+	_, m := new(big.Int).DivMod(d, big.NewInt(common.BaseSwitchWitness), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
 
 func (w *worker) shouldSwitch(blockNumber *big.Int) bool {
-	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(cbft.BaseSwitchWitness), new(big.Int))
+	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(common.BaseSwitchWitness), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
 
 func (w *worker) shouldAddNextPeers(blockNumber *big.Int) bool {
-	d := new(big.Int).Sub(blockNumber, big.NewInt(cbft.BaseAddNextPeers))
-	_, m := new(big.Int).DivMod(d, big.NewInt(cbft.BaseSwitchWitness), new(big.Int))
+	d := new(big.Int).Sub(blockNumber, big.NewInt(common.BaseAddNextPeers))
+	_, m := new(big.Int).DivMod(d, big.NewInt(common.BaseSwitchWitness), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
 /*

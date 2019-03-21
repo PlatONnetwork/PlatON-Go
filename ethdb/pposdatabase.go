@@ -4,7 +4,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
-	//"github.com/syndtr/goleveldb/leveldb/filter"
+	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
@@ -12,6 +12,10 @@ import (
 //	db *leveldb.DB // LevelDB instance
 //}
 
+
+func NewPPosDatabaseSqlite(file string) {
+
+}
 
 
 func NewPPosDatabase (file string) (*LDBDatabase, error)  {
@@ -23,38 +27,43 @@ func NewPPosDatabase (file string) (*LDBDatabase, error)  {
 
 	// Open the db and recover any potential corruptions
 	db, err := leveldb.OpenFile(file, &opt.Options{
-		/*//OpenFilesCacheCapacity: -1,	// Use -1 for zero, this has same effect as specifying NoCacher to OpenFilesCacher.
-		//BlockCacheCapacity:     -1, // Use -1 for zero, this has same effect as specifying NoCacher to BlockCacher.
-		DisableBlockCache:		true,
-		DisableBufferPool: 		true,
-		//NoSync:		true,
-		////CompactionL0Trigger: 	0,
-		//DisableBufferPool:		true,
-		//DisableLargeBatchTransaction: true,
-		//NoWriteMerge: 		true,
-		//CompactionTotalSizeMultiplier: 0,
-		//WriteBuffer:	0,
-		BlockSize: 0 * opt.MiB,
-		BlockCacheCapacity: 0 * opt.MiB,
-		//CompactionTotalSizeMultiplier: 0,
-		Filter:                 filter.NewBloomFilter(10),*/
 
+		// 网上的优化版本 100块  45.1 M  45.2 M 200块 45.3 M  45.4 M  45.1 M
+		OpenFilesCacheCapacity: 1000,
+		BlockCacheCapacity:     500,
+		BlockSize:			1,
+		WriteBuffer:		64,
 
+		CompactionSourceLimitFactor: 1000,
+		Filter:                 filter.NewBloomFilter(10),
 
-		/*DisableBlockCache:      true,
+		//Compression:  opt.SnappyCompression,
+
+		/*// 100块 65.9 M 88.1 M 200块 73.5 M 88.2 M
+		DisableBlockCache:      true,
 		BlockRestartInterval:   5,
 		BlockSize:              80,
 		Compression:            opt.NoCompression,
 		OpenFilesCacheCapacity: -1,
 		Strict:                 opt.StrictAll,
 		WriteBuffer:            1000,
-		CompactionTableSize:    2000,*/
+		CompactionTableSize:    2000,
+		Filter:                 filter.NewBloomFilter(10),*/
+
+		/*// 自己定的 100块 42.9  M 45.7 45.8 M  200块 45.8M  45.9 M
+		CompactionSourceLimitFactor: 	1 * opt.MiB,
+		DisableLargeBatchTransaction: 	true,
+		CompactionTableSize:          	1 * opt.MiB,
+		WriteBuffer:                  	10 * opt.MiB,
+		Strict: 						opt.StrictCompaction,
+		Filter:                 		filter.NewBloomFilter(10),*/
 
 
-		DisableLargeBatchTransaction: true,
-		Compression:                  opt.NoCompression,
-		CompactionTableSize:          1 * opt.MiB,
-		WriteBuffer:                  1 * opt.MiB,
+		/*// ethdb config 100块 356 M 615 M 200块 586
+		OpenFilesCacheCapacity: 1024,
+		BlockCacheCapacity:     768 / 2 * opt.MiB,
+		WriteBuffer:            1024 / 4 * opt.MiB, // Two of these are used internally
+		Filter:                 filter.NewBloomFilter(10),*/
 	})
 
 	//db, err := leveldb.OpenFile(file,nil)

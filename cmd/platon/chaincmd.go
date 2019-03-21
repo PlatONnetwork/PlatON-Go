@@ -195,7 +195,13 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		_, hash, err := core.SetupGenesisBlock(chaindb, genesis)
+		// TODO ppos
+		pposdb, err := stack.OpenPPosDatebase(name)
+		if err != nil {
+			utils.Fatalf("Failed to open ppos database: %v", err)
+		}
+
+		_, hash, err := core.SetupGenesisBlock(chaindb, pposdb, genesis)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}

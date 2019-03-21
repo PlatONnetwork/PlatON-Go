@@ -14,6 +14,8 @@ import (
 	"fmt"
 )
 
+const ppos_empty_indb  = "leveldb: not found"
+
 var (
 	WRITE_PPOS_ERR = errors.New("Failed to Write ppos storage into disk")
 
@@ -26,6 +28,9 @@ type hashTempMap map[common.Hash]*Ppos_storage
 
 // Global PPOS Dependency TEMP
 type PPOS_TEMP struct {
+
+	db ethdb.Database
+
 	// Record block total count
 	BlockCount 	uint32
 
@@ -51,6 +56,9 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 		return ppos_temp
 	}
 	ppos_temp = new(PPOS_TEMP)
+
+	ppos_temp.db = db
+
 	ppos_temp.BlockCount = 0
 
 	ntemp := make(numTempMap, 0)
@@ -59,7 +67,9 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 
 
 	if ppos_storage, err := db.Get(PPOS_STORAGE_KEY); nil != err {
-		log.Trace("WARN Call NewPPosTemp to get Global ppos temp by levelDB", "err", err)
+		if ppos_empty_indb != err.Error() {
+			log.Error("Failed to Call NewPPosTemp to get Global ppos temp by levelDB", "err", err)
+		}
 	} else {
 		log.Debug("Call NewPPosTemp to Unmarshal Global ppos temp", "pb data len", len(ppos_storage))
 
@@ -225,7 +235,7 @@ func (temp *PPOS_TEMP) SubmitPposCache2Temp(blockNumber, blockInterval *big.Int,
 
 }
 
-func (temp *PPOS_TEMP) Commit2DB(db ethdb.Database, blockNumber *big.Int, blockHash common.Hash) error {
+func (temp *PPOS_TEMP) Commit2DB(blockNumber *big.Int, blockHash common.Hash) error {
 	start := common.NewTimer()
 	start.Begin()
 
@@ -255,17 +265,66 @@ func (temp *PPOS_TEMP) Commit2DB(db ethdb.Database, blockNumber *big.Int, blockH
 			log.Error("Failed to Commit2DB", "proto err", err, "Time spent", fmt.Sprintf("%v ms", start.End()))
 			return err
 		}else {
-			if err := db.Put(PPOS_STORAGE_KEY, data); err != nil {
-				log.Error("Failed to Call Commit2DB:" + WRITE_PPOS_ERR.Error(), "blockNumber", blockNumber, "blockHash", blockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()), "err", err)
+			if err := temp.db.Put(PPOS_STORAGE_KEY, data); err != nil {
+				log.Error("Failed to Call Commit2DB:" + WRITE_PPOS_ERR.Error(), "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()), "err", err)
 				return WRITE_PPOS_ERR
 			}
-			log.Info("Call Commit2DB, write ppos storage data to disk", "blockNumber", blockNumber, "blockHash", blockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
+			log.Info("Call Commit2DB, write ppos storage data to disk", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
 		}
 	}
 	return nil
 }
 
+// Gets ppos_storag pb from db
+func  (temp *PPOS_TEMP) GetPPosStorageProto() (common.Hash, []byte, error) {
+	start := common.NewTimer()
+	start.Begin()
+	if data, err := temp.db.Get(PPOS_STORAGE_KEY); nil != err {
+		if ppos_empty_indb == err.Error() {
+			return common.Hash{}, nil, nil
+		}else {
+			log.Warn("Failed to Call GetPPosStorageProto to get Global ppos temp by levelDB", "err", err)
+			return common.Hash{}, nil, err
+		}
+	} else {
+		log.Debug("Call GetPPosStorageProto to Unmarshal Global ppos temp", "pb data len", len(data))
 
+		pb_pposTemp := new(PB_PPosTemp)
+		if err := proto.Unmarshal(data, pb_pposTemp); err != nil {
+			log.Error("Failed to Call GetPPosStorageProto to Unmarshal Global ppos temp", "err", err)
+			return common.Hash{}, nil, err
+		}else {
+			log.Error("Call GetPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
+			return common.HexToHash(pb_pposTemp.BlockHash), data, nil
+		}
+	}
+}
+
+// Flush data into db
+func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
+	start := common.NewTimer()
+	start.Begin()
+	pb_pposTemp := new(PB_PPosTemp)
+	if err := proto.Unmarshal(data, pb_pposTemp); err != nil {
+		log.Error("Failed to Call PushPPosStorageProto to Unmarshal Global ppos temp", "err", err)
+		return err
+	}else {
+		/**
+		build global ppos_temp
+		 */
+		hashMap := make(map[common.Hash]*Ppos_storage, 0)
+		hashMap[common.HexToHash(pb_pposTemp.BlockHash)] = unmarshalPBStorage(pb_pposTemp)
+		ppos_temp.TempMap[pb_pposTemp.BlockNumber] = hashMap
+
+		// flush data into disk
+		if err := temp.db.Put(PPOS_STORAGE_KEY, data); err != nil {
+			log.Error("Failed to Call PushPPosStorageProto:" + WRITE_PPOS_ERR.Error(), "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()), "err", err)
+			return WRITE_PPOS_ERR
+		}
+	}
+	log.Error("Call PushPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
+	return nil
+}
 
 
 func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storage) *PB_PPosTemp {

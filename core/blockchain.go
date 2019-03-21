@@ -695,7 +695,7 @@ func (bc *BlockChain) Stop() {
 	if !bc.cacheConfig.Disabled {
 
 		// flush ppos_cache into disk
-		ppos_storage.GetPPosTempPtr().Commit2DB(bc.db, bc.CurrentBlock().Number(), bc.CurrentBlock().Hash())
+		ppos_storage.GetPPosTempPtr().Commit2DB(bc.CurrentBlock().Number(), bc.CurrentBlock().Hash())
 
 		//eth...
 		triedb := bc.stateCache.TrieDB()
@@ -932,6 +932,13 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Irrelevant of the canonical status, write the block itself to the database
 
 	// flush ppos_cache into disk TODO
+
+	targetNum := new(big.Int).Add(externBn, big.NewInt(int64(common.BaseSwitchWitness - common.BaseElection + 1)))
+
+	if _, m := new(big.Int).DivMod(targetNum, big.NewInt(common.BaseSwitchWitness), new(big.Int)); m.Cmp(big.NewInt(0)) == 0 {
+		log.Debug("Call WriteBlockWithState, write ppos_storage", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex())
+		ppos_storage.GetPPosTempPtr().Commit2DB(block.Number(), block.Hash())
+	}
 	/*ppos_storage.GetPPosTempPtr().Commit2DB(bc.db, block.Number(), block.Hash())*/
 
 	rawdb.WriteBlock(bc.db, block)

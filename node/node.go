@@ -575,6 +575,13 @@ func (n *Node) OpenDatabase(name string, cache, handles int) (ethdb.Database, er
 	}
 	return ethdb.NewLDBDatabase(n.config.ResolvePath(name), cache, handles)
 }
+// TODO ppos add
+func (n *Node) OpenPPosDatebase (name string) (ethdb.Database, error) {
+	if n.config.DataDir == "" {
+		return ethdb.NewMemDatabase(), nil
+	}
+	return ethdb.NewPPosDatabase(n.config.ResolvePath(name))
+}
 
 // ResolvePath returns the absolute path of a resource in the instance directory.
 func (n *Node) ResolvePath(x string) string {

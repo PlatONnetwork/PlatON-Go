@@ -633,8 +633,8 @@ func SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 }
 
 func SetPposOption(blockChain *core.BlockChain) {
-	cbft.ppos.SetCandidateContextOption(blockChain, cbft.config.InitialNodes)
 	cbft.ppos.setPPOS_Temp()
+	cbft.ppos.SetCandidateContextOption(blockChain, cbft.config.InitialNodes)
 }
 
 // BlockSynchronisation reset the cbft env, such as cbft.highestLogical, cbft.highestConfirmed.
@@ -1900,7 +1900,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 
 	//log.Info("Call accumulateRewards", "nodeid: ", nodeId.String())
 	var can *types.Candidate
-	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(BaseSwitchWitness))) == 0 {
+	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(common.BaseSwitchWitness))) == 0 {
 		can = cbft.ppos.GetWitnessCandidate(state, nodeId, -1)
 	} else {
 		can = cbft.ppos.GetWitnessCandidate(state, nodeId, 0)
@@ -1925,17 +1925,17 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 
 	//Calculate current block rewards
 	var blockReward *big.Int
-	preYearNumber := new(big.Int).Sub(header.Number, YearBlocks)
-	yearReward := new(big.Int).Set(FirstYearReward)
-	if preYearNumber.Cmp(YearBlocks) > 0 { // otherwise is 0 year and 1 year block reward
+	preYearNumber := new(big.Int).Sub(header.Number, common.YearBlocks)
+	yearReward := new(big.Int).Set(common.FirstYearReward)
+	if preYearNumber.Cmp(common.YearBlocks) > 0 { // otherwise is 0 year and 1 year block reward
 		yearReward = new(big.Int).Sub(GetAmount(header.Number), GetAmount(preYearNumber))
 	}
-	blockReward = new(big.Int).Div(yearReward, YearBlocks)
+	blockReward = new(big.Int).Div(yearReward, common.YearBlocks)
 
 	nodeReward := blockReward
 	//log.Info("Call accumulateRewards, GetTicket ", "TicketId: ", can.TicketId.Hex())
 	if can.TOwner != (common.Address{}) {
-		nodeReward = new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(uint64(can.Fee))), FeeBase)
+		nodeReward = new(big.Int).Div(new(big.Int).Mul(blockReward, new(big.Int).SetUint64(uint64(can.Fee))), common.FeeBase)
 		ticketReward := new(big.Int).Sub(blockReward, nodeReward)
 
 		//log.Info("Call accumulateRewards, Rewards detail", "blockReward: ", blockReward, "nodeReward: ", nodeReward, "ticketReward: ", ticketReward)
@@ -1954,7 +1954,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 
 func (cbft *Cbft) IncreaseRewardPool(state *state.StateDB, number *big.Int) {
 	//add balance to reward pool
-	if new(big.Int).Rem(number, YearBlocks).Cmp(big.NewInt(0)) == 0 {
+	if new(big.Int).Rem(number, common.YearBlocks).Cmp(big.NewInt(0)) == 0 {
 		num := GetAmount(number)
 		log.Info("Call IncreaseRewardPool SUCCESS !! ", "addr", common.RewardPoolAddr.Hex(), "num", num.String())
 		state.AddBalance(common.RewardPoolAddr, num)
@@ -1962,11 +1962,11 @@ func (cbft *Cbft) IncreaseRewardPool(state *state.StateDB, number *big.Int) {
 }
 
 func GetAmount(number *big.Int) *big.Int {
-	cycle := new(big.Int).Div(number, YearBlocks)
-	rate := math2.BigPow(Rate.Int64(), cycle.Int64())
-	base := math2.BigPow(Base.Int64(), cycle.Int64())
+	cycle := new(big.Int).Div(number, common.YearBlocks)
+	rate := math2.BigPow(common.Rate.Int64(), cycle.Int64())
+	base := math2.BigPow(common.Base.Int64(), cycle.Int64())
 	//fmt.Println("number: ", number, " cycle: ", cycle, " rate: ", rate, " base: ", base)
-	yearAmount := new(big.Int).Mul(InitAmount, rate)
+	yearAmount := new(big.Int).Mul(common.InitAmount, rate)
 	ret := new(big.Int).Div(yearAmount, base)
 	return ret
 }

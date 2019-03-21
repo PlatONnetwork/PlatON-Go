@@ -124,16 +124,16 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	// ppos add
-	//pposDB, err := CreateDB(ctx, config, "ppos_storage")
-	//if err != nil {
-	//	return nil, err
-	//}
+	// TODO ppos add
+	pposDB, err := CreatePPosDB(ctx, "ppos_storage")
+	if err != nil {
+		return nil, err
+	}
 	if nil == ppos_storage.GetPPosTempPtr() {
-		ppos_storage.NewPPosTemp(chainDb)
+		ppos_storage.NewPPosTemp(pposDB)
 	}
 
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, pposDB, config.Genesis)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
@@ -282,6 +282,16 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 }
 
 
+func CreatePPosDB(ctx *node.ServiceContext, name string) (ethdb.Database, error) {
+	db, err := ctx.OpenPPosDatabase(name)
+	if err != nil {
+		return nil, err
+	}
+	if db, ok := db.(*ethdb.LDBDatabase); ok {
+		db.Meter("eth/db/ppos_storage/")
+	}
+	return db, nil
+}
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
 

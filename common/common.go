@@ -1,4 +1,4 @@
-package cbft
+package common
 
 import "math/big"
 
@@ -21,6 +21,7 @@ const (
 	BaseAddNextPeers = 50
 	//
 	BaseIrrCount = 20
+
 )
 
 var (
