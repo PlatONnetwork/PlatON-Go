@@ -82,12 +82,7 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO ppos add
-	pposDB, err := eth.CreatePPosDB(ctx, "ppos_storage")
-	if err != nil {
-		return nil, err
-	}
-	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, pposDB, config.Genesis)
+	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
 	if _, isCompat := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !isCompat {
 		return nil, genesisErr
 	}

@@ -35,7 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -149,7 +148,7 @@ func (e *GenesisMismatchError) Error() string {
 // error is a *params.ConfigCompatError and the new, unwritten config is returned.
 //
 // The returned chain configuration is never nil.
-func SetupGenesisBlock(db, pposDB ethdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
+func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig, common.Hash, error) {
 	if genesis != nil && genesis.Config == nil {
 		return params.AllEthashProtocolChanges, common.Hash{}, errGenesisNoConfig
 	}
@@ -163,7 +162,8 @@ func SetupGenesisBlock(db, pposDB ethdb.Database, genesis *Genesis) (*params.Cha
 		} else {
 			log.Info("Writing custom genesis block")
 		}
-		block, err := genesis.Commit(db, pposDB)
+
+		block, err := genesis.Commit(db)
 		return genesis.Config, block.Hash(), err
 	}
 
@@ -257,11 +257,12 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
-func (g *Genesis) Commit(db, pposDB ethdb.Database) (*types.Block, error) {
-	// ppos add
+func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
+	/*// ppos pposDB
+	// TODO ppos add
 	if nil == ppos_storage.GetPPosTempPtr() {
-		ppos_storage.NewPPosTemp(pposDB)
-	}
+		ppos_storage.NewPPosTemp(pposdb)
+	}*/
 	block := g.ToBlock(db)
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
@@ -283,7 +284,7 @@ func (g *Genesis) Commit(db, pposDB ethdb.Database) (*types.Block, error) {
 // MustCommit writes the genesis block and state to db, panicking on error.
 // The block is committed as the canonical head block.
 func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
-	block, err := g.Commit(db, db)
+	block, err := g.Commit(db)
 	if err != nil {
 		panic(err)
 	}
