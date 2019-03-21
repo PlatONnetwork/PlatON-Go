@@ -355,6 +355,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 	case p.version >= eth63 && msg.Code == GetPposStorageMsg:
 		// deal the retrieval message
+		p.Log().Debug("Received a broadcast message[GetPposStorageMsg]")
 		if pivotHash, data, err := ppos_storage.GetPPosTempPtr().GetPPosStorageProto(); pivotHash != (common.Hash{}) && len(data) > 0 && err == nil {
 			latest := pm.blockchain.CurrentHeader()
 			pivot := pm.blockchain.GetHeaderByHash(pivotHash)
@@ -362,9 +363,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				return p.SendPposStorage(latest, pivot, data)
 			}
 		}
+		p.Log().Error("get ppos storageProto error")
 
 	case p.version >= eth63 && msg.Code == PposStorageMsg:
 		// node ppos storage data arrived to one of our previous requests
+		p.Log().Debug("Received a broadcast message[PposStorageMsg]")
 		var data pposStorageData
 		if err := msg.Decode(&data); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
@@ -372,7 +375,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverPposStorage(p.id, data.Latest, data.Pivot, data.PposStorage); err != nil {
-			log.Debug("Failed to deliver ppos storage data", "err", err)
+			p.Log().Debug("Failed to deliver ppos storage data", "err", err)
 		}
 
 	case msg.Code == GetBlockHeadersMsg:
