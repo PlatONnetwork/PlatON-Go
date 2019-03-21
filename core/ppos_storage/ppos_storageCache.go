@@ -44,24 +44,37 @@ type candidate_temp struct {
 
 type ticketDependency struct {
 	// ticket age
-	Age uint64
+	//Age uint64
 	// ticket count
 	Num uint32
 	// ticketIds
-	Tids []common.Hash
+	Tinfo []*ticketInfo
 }
 
-func (td *ticketDependency) AddAge(number uint64) {
-	if number > 0 {
-		td.Age += number
+type ticketInfo struct {
+	TxHash			common.Hash
+	// The number of remaining tickets
+	Remaining		uint32
+	Price 			*big.Int
+}
+
+func (t *ticketInfo) SubRemaining() {
+	if t.Remaining > 0 {
+		t.Remaining--
 	}
 }
 
-func (td *ticketDependency) SubAge(number uint64) {
-	if number > 0 && td.Age >= number {
-		td.Age -= number
-	}
-}
+//func (td *ticketDependency) AddAge(number uint64) {
+//	if number > 0 {
+//		td.Age += number
+//	}
+//}
+//
+//func (td *ticketDependency) SubAge(number uint64) {
+//	if number > 0 && td.Age >= number {
+//		td.Age -= number
+//	}
+//}
 
 func (td *ticketDependency) subNum() {
 	if td.Num > 0 {
@@ -73,7 +86,7 @@ type ticket_temp struct {
 	// total remian  k-v
 	Sq int32
 	// ticketInfo  map[txHash]ticketInfo
-	Infos map[common.Hash]*types.Ticket
+	//Infos map[common.Hash]*types.Ticket
 	// ExpireTicket  map[blockNumber]txHash
 	Ets map[string][]common.Hash
 	// ticket's attachment  of node
@@ -107,7 +120,7 @@ func NewPPOS_storage () *Ppos_storage {
 	ticket_cache := new(ticket_temp)
 
 	ticket_cache.Sq = -1
-	ticket_cache.Infos = make(map[common.Hash]*types.Ticket)
+	//ticket_cache.Infos = make(map[common.Hash]*types.Ticket)
 	ticket_cache.Ets = make(map[string][]common.Hash)
 	ticket_cache.Dependencys = make(map[discover.NodeID]*ticketDependency)
 
@@ -239,28 +252,38 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 	ticket_cache := new(ticket_temp)
 
 	ticket_cache.Sq = p.t_storage.Sq
-	ticket_cache.Infos = make(map[common.Hash]*types.Ticket)
-	ticket_cache.Ets = make(map[string][]common.Hash)
+	//ticket_cache.Infos = make(map[common.Hash]*types.Ticket)
+	//ticket_cache.Ets = make(map[string][]common.Hash)
 	ticket_cache.Dependencys = make(map[discover.NodeID]*ticketDependency)
 
-	for key := range p.t_storage.Infos {
-		ticket := p.t_storage.Infos[key]
-		ticket_cache.Infos[key] = ticket.DeepCopy()
-	}
-	for key := range p.t_storage.Ets {
-		value := p.t_storage.Ets[key]
-		list := make([]common.Hash, len(value))
-		copy(list, value)
-		ticket_cache.Ets[key] = list
-	}
-	for key := range p.t_storage.Dependencys {
+	//for key := range p.t_storage.Infos {
+	//	ticket := p.t_storage.Infos[key]
+	//	ticket_cache.Infos[key] = ticket.DeepCopy()
+	//}
+	//for key := range p.t_storage.Ets {
+	//	value := p.t_storage.Ets[key]
+	//	list := make([]common.Hash, len(value))
+	//	copy(list, value)
+	//	ticket_cache.Ets[key] = list
+	//}
+	/*for key := range p.t_storage.Dependencys {
 		temp := p.t_storage.Dependencys[key]
 		tids := make([]common.Hash, len(temp.Tids))
 		copy(tids, temp.Tids)
 		ticket_cache.Dependencys[key] = &ticketDependency{
-			temp.Age,
+			//temp.Age,
 			temp.Num,
 			tids,
+		}
+	}*/
+	for key := range p.t_storage.Dependencys {
+		temp := p.t_storage.Dependencys[key]
+		tinfo := make([]*ticketInfo, len(temp.Tinfo))
+		copy(tinfo, temp.Tinfo)
+		ticket_cache.Dependencys[key] = &ticketDependency{
+			//temp.Age,
+			temp.Num,
+			tinfo,
 		}
 	}
 	log.Debug("CopyTicketStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
@@ -378,36 +401,48 @@ func (p *Ppos_storage) SetTotalRemain(count int32) {
 }
 
 // Get TicketInfo
-func (p *Ppos_storage) GetTicketInfo(txHash common.Hash) *types.Ticket {
+/*func (p *Ppos_storage) GetTicketInfo(txHash common.Hash) *types.Ticket {
 	ticket, ok := p.t_storage.Infos[txHash]
 	if ok {
 		return ticket
 	}
 	return nil
-}
+}*/
 
-//Set TicketInfo
-func (p *Ppos_storage) SetTicketInfo(txHash common.Hash, ticket *types.Ticket) {
-	p.t_storage.Infos[txHash] = ticket
-}
-
-func (p *Ppos_storage) removeTicketInfo(txHash common.Hash) {
-	delete(p.t_storage.Infos, txHash)
-}
-
-//GetTiketArr
-func (p *Ppos_storage) GetTicketArr(txHashs ...common.Hash) []*types.Ticket {
-	tickets := make([]*types.Ticket, 0)
-	if len(txHashs) > 0 {
-		for index := range txHashs {
-			if ticket := p.GetTicketInfo(txHashs[index]); ticket != nil {
-				newTicket := *ticket
-				tickets = append(tickets, &newTicket)
+func (p *Ppos_storage) GetTicketInfo(txHash common.Hash) *ticketInfo {
+	for _, obj := range p.t_storage.Dependencys {
+		for index := range obj.Tinfo {
+			 tinfo := obj.Tinfo[index]
+			if tinfo.TxHash == txHash {
+				return tinfo
 			}
 		}
 	}
-	return tickets
+	return nil
 }
+
+//Set TicketInfo
+//func (p *Ppos_storage) SetTicketInfo(txHash common.Hash, ) {
+//	p.t_storage.Infos[txHash] = ticket
+//}
+//
+//func (p *Ppos_storage) removeTicketInfo(txHash common.Hash) {
+//	delete(p.t_storage.Infos, txHash)
+//}
+
+//GetTiketArr
+//func (p *Ppos_storage) GetTicketArr(txHashs ...common.Hash) []*types.Ticket {
+//	tickets := make([]*types.Ticket, 0)
+//	if len(txHashs) > 0 {
+//		for index := range txHashs {
+//			if ticket := p.GetTicketInfo(txHashs[index]); ticket != nil {
+//				newTicket := *ticket
+//				tickets = append(tickets, &newTicket)
+//			}
+//		}
+//	}
+//	return tickets
+//}
 
 //Get ExpireTicket
 func (p *Ppos_storage) GetExpireTicket(blockNumber *big.Int) []common.Hash {
@@ -458,15 +493,27 @@ func (p *Ppos_storage) RemoveTicketDependency(nodeId discover.NodeID) {
 	delete(p.t_storage.Dependencys, nodeId)
 }
 
-func (p *Ppos_storage) GetCandidateTxHashs(nodeId discover.NodeID) []common.Hash {
+/*func (p *Ppos_storage) GetCandidateTxHashs(nodeId discover.NodeID) []common.Hash {
 	value, ok := p.t_storage.Dependencys[nodeId]
 	if ok {
 		return value.Tids
 	}
 	return nil
+}*/
+
+func (p *Ppos_storage) GetCandidateTxHashs(nodeId discover.NodeID) []common.Hash {
+	value, ok := p.t_storage.Dependencys[nodeId]
+	if ok {
+		tids := make([]common.Hash, 0)
+		for index := range value.Tinfo {
+			tids = append(tids, value.Tinfo[index].TxHash)
+		}
+		return tids
+	}
+	return nil
 }
 
-func (p *Ppos_storage) AppendTicket(nodeId discover.NodeID, txHash common.Hash, ticket *types.Ticket) error {
+/*func (p *Ppos_storage) AppendTicket(nodeId discover.NodeID, txHash common.Hash, ticket *types.Ticket) error {
 	p.SetTicketInfo(txHash, ticket)
 	value := p.GetTicketDependency(nodeId)
 	if nil == value {
@@ -477,9 +524,27 @@ func (p *Ppos_storage) AppendTicket(nodeId discover.NodeID, txHash common.Hash, 
 	value.Tids = append(value.Tids, txHash)
 	p.SetTicketDependency(nodeId, value)
 	return nil
+}*/
+
+func (p *Ppos_storage) AppendTicket(nodeId discover.NodeID, txHash common.Hash, count uint32, price *big.Int) error {
+	value := p.GetTicketDependency(nodeId)
+	if nil == value {
+		value = new(ticketDependency)
+		value.Tinfo = make([]*ticketInfo, 0)
+	}
+	value.Num += count
+	tinfo := &ticketInfo{
+		txHash,
+		count,
+		price,
+	}
+	value.Tinfo = append(value.Tinfo, tinfo)
+	p.SetTicketDependency(nodeId, value)
+	return nil
 }
 
-func (p *Ppos_storage) SubTicket(nodeId discover.NodeID, txHash common.Hash) error {
+
+/*func (p *Ppos_storage) SubTicket(nodeId discover.NodeID, txHash common.Hash) error {
 	value := p.GetTicketDependency(nodeId)
 	if nil != value {
 		ticket := p.GetTicketInfo(txHash)
@@ -500,9 +565,30 @@ func (p *Ppos_storage) SubTicket(nodeId discover.NodeID, txHash common.Hash) err
 		}
 	}
 	return nil
+}*/
+
+func (p *Ppos_storage) SubTicket(nodeId discover.NodeID, txHash common.Hash) (*ticketInfo, error) {
+	value := p.GetTicketDependency(nodeId)
+	if nil != value {
+		ticket := p.GetTicketInfo(txHash)
+		if ticket == nil {
+			return nil, TicketNotFindErr
+		}
+		ticket.SubRemaining()
+		value.subNum()
+		if ticket.Remaining == 0 {
+			if list := removeTinfo(txHash, value.Tinfo); len(list) > 0 {
+				value.Tinfo = list
+			} else {
+				value.Tinfo = make([]*ticketInfo, 0)
+			}
+		}
+		return ticket, nil
+	}
+	return nil, nil
 }
 
-func (p *Ppos_storage) RemoveTicket(nodeId discover.NodeID, txHash common.Hash) error {
+/*func (p *Ppos_storage) RemoveTicket(nodeId discover.NodeID, txHash common.Hash) error {
 	ticket := p.GetTicketInfo(txHash)
 	if ticket == nil {
 		return TicketNotFindErr
@@ -518,6 +604,26 @@ func (p *Ppos_storage) RemoveTicket(nodeId discover.NodeID, txHash common.Hash) 
 	}
 	p.removeTicketInfo(txHash)
 	return nil
+}*/
+
+func (p *Ppos_storage) RemoveTicket(nodeId discover.NodeID, txHash common.Hash) (*ticketInfo, error) {
+	ticket := p.GetTicketInfo(txHash)
+	if ticket == nil {
+		return nil, TicketNotFindErr
+	}
+	value := p.GetTicketDependency(nodeId)
+	if nil != value {
+		value.Num -= ticket.Remaining
+		if list := removeTinfo(txHash, value.Tinfo); len(list) > 0 {
+			value.Tinfo = list
+		} else {
+			value.Tinfo = make([]*ticketInfo, 0)
+		}
+		if value.Num == 0 {
+			p.RemoveTicketDependency(nodeId)
+		}
+	}
+	return ticket, nil
 }
 
 func (p *Ppos_storage) GetCandidateTicketCount(nodeId discover.NodeID) uint32 {
@@ -530,16 +636,16 @@ func (p *Ppos_storage) GetCandidateTicketCount(nodeId discover.NodeID) uint32 {
 }
 
 func (p *Ppos_storage) GetCandidateTicketAge(nodeId discover.NodeID) uint64 {
-	if value := p.GetTicketDependency(nodeId); value != nil {
+	/*if value := p.GetTicketDependency(nodeId); value != nil {
 		return value.Age
-	}
+	}*/
 	return 0
 }
 
 func (p *Ppos_storage) SetCandidateTicketAge(nodeId discover.NodeID, age uint64) {
-	if value := p.GetTicketDependency(nodeId); value != nil {
+	/*if value := p.GetTicketDependency(nodeId); value != nil {
 		value.Age = age
-	}
+	}*/
 }
 
 func removeTicketId(hash common.Hash, hashs []common.Hash) []common.Hash {
@@ -554,4 +660,18 @@ func removeTicketId(hash common.Hash, hashs []common.Hash) []common.Hash {
 		}
 	}
 	return hashs
+}
+
+func removeTinfo(hash common.Hash, tinfos []*ticketInfo) []*ticketInfo {
+	for index, info := range tinfos {
+		if info.TxHash == hash {
+			if len(tinfos) == 1 {
+				return nil
+			}
+			start := tinfos[:index]
+			end := tinfos[index+1:]
+			return append(start, end...)
+		}
+	}
+	return tinfos
 }

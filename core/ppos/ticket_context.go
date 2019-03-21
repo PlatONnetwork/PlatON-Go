@@ -2,6 +2,7 @@ package pposm
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -9,8 +10,17 @@ import (
 	"math/big"
 )
 
+type ChainInfo interface {
+	FindTransaction(txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64)
+	GetHeader(blockHash common.Hash, blockNumber uint64) *types.Header
+	GetBody(blockNumber uint64) *types.Body
+	GetNewStateDB(root common.Hash, blockNumber *big.Int, blockHash common.Hash) (*state.StateDB, error)
+}
+
 type TicketPoolContext struct {
-	Configs *params.PposConfig
+	Configs 			*params.PposConfig
+	chainConfig 		*params.ChainConfig
+	ChainInfo
 }
 
 var tContext *TicketPoolContext
@@ -21,6 +31,14 @@ func NewTicketPoolContext(configs *params.PposConfig) *TicketPoolContext {
 		Configs: configs,
 	}
 	return tContext
+}
+
+func (c *TicketPoolContext) SetChainInfo(ci ChainInfo) {
+	c.ChainInfo = ci
+}
+
+func (c *TicketPoolContext) SetChainConfig(chainConfig *params.ChainConfig) {
+	c.chainConfig = chainConfig
 }
 
 func GetTicketPoolContextPtr() *TicketPoolContext {
