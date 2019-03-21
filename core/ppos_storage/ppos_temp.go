@@ -353,13 +353,13 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		wg.Add(3)
 
 		// ticketInfos
-		go func() {
+		/*go func() {
 			if ticketMap := buildPBticketMap(ps.t_storage.Infos); len(ticketMap) != 0 {
 				tickTemp.Infos = ticketMap
 				empty |= 1
 			}
 			wg.Done()
-		}()
+		}()*/
 
 		// ExpireTicket
 		go func() {
@@ -483,7 +483,7 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 		tickTemp.Sq = tickGlobalTemp.Sq
 
 		// ticketInfo map
-		if len(tickGlobalTemp.Infos) != 0 {
+		/*if len(tickGlobalTemp.Infos) != 0 {
 
 			infoMap := make(map[common.Hash]*types.Ticket, len(tickGlobalTemp.Infos))
 			for tid, tinfo := range tickGlobalTemp.Infos {
@@ -500,7 +500,7 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 				infoMap[common.HexToHash(tid)] = ticketInfo
 			}
 			tickTemp.Infos = infoMap
-		}
+		}*/
 
 
 		// ExpireTicket map
@@ -531,17 +531,17 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 			for nodeIdStr, pb_dependency := range tickGlobalTemp.Dependencys {
 
 				dependencyInfo := new(ticketDependency)
-				dependencyInfo.Age = pb_dependency.Age
+				//dependencyInfo.Age = pb_dependency.Age
 				dependencyInfo.Num = pb_dependency.Num
 
 
-				tidArr := make([]common.Hash, len(pb_dependency.Tids))
+				/*tidArr := make([]common.Hash, len(pb_dependency.Tids))
 
 				for i, ticketId := range pb_dependency.Tids {
 					tidArr[i] = common.BytesToHash(ticketId)
 				}
 
-				dependencyInfo.Tids = tidArr
+				dependencyInfo.Tids = tidArr*/
 
 				dependencyMap[discover.MustHexID(nodeIdStr)] = dependencyInfo
 			}
@@ -667,16 +667,16 @@ func buildPBdependencys(dependencys map[discover.NodeID]*ticketDependency) map[s
 
 	for nodeId, dependency := range dependencys {
 
-		tidArr := make([][]byte, len(dependency.Tids))
+		/*tidArr := make([][]byte, len(dependency.Tids))
 
 		for i, ticketId := range dependency.Tids {
 			tidArr[i] = ticketId.Bytes()
-		}
+		}*/
 
 		depenInfo := &TicketDependency{
-			Age:  dependency.Age,
+			//Age:  dependency.Age,
 			Num:  dependency.Num,
-			Tids: tidArr,
+			//Tids: tidArr,
 		}
 
 		pb_dependency[nodeId.String()] = depenInfo
@@ -737,10 +737,10 @@ func verifyStorageEmpty(storage *Ppos_storage) bool {
 
 	tickStorage := storage.t_storage
 	if nil != tickStorage {
-		if tickStorage.Sq == -1 && len(tickStorage.Infos) == 0 &&
+		/*if tickStorage.Sq == -1 && len(tickStorage.Infos) == 0 &&
 			len(tickStorage.Ets) == 0 && len(tickStorage.Dependencys) == 0 {
 			tickEmpty = true
-		}
+		}*/
 	}
 	if canEmpty && tickEmpty {
 		return true

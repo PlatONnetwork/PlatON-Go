@@ -544,6 +544,25 @@ func (bc *BlockChain) GetBody(hash common.Hash) *types.Body {
 	return body
 }
 
+func (bc *BlockChain) GetBodyByNumber(number uint64) *types.Body {
+	// Short circuit if the body's already in the cache, retrieve otherwise
+	hash := rawdb.ReadCanonicalHash(bc.db, number)
+	if hash == (common.Hash{}) {
+		return nil
+	}
+	if cached, ok := bc.bodyCache.Get(hash); ok {
+		body := cached.(*types.Body)
+		return body
+	}
+	body := rawdb.ReadBody(bc.db, hash, number)
+	if body == nil {
+		return nil
+	}
+	// Cache the found body for next time and return
+	bc.bodyCache.Add(hash, body)
+	return body
+}
+
 // GetBodyRLP retrieves a block body in RLP encoding from the database by hash,
 // caching it if found.
 func (bc *BlockChain) GetBodyRLP(hash common.Hash) rlp.RawValue {
@@ -655,6 +674,14 @@ func (bc *BlockChain) GetBlocksFromHash(hash common.Hash, n int) (blocks []*type
 		*number--
 	}
 	return
+}
+
+func (bc *BlockChain) GetTransactionByHash(hash common.Hash) (*types.Transaction, common.Hash, uint64, uint64) {
+	 return rawdb.ReadTransaction(bc.db, hash)
+}
+
+func (bc *BlockChain) GetNewStateDB(root common.Hash, blockNumber *big.Int, blockHash common.Hash) (*state.StateDB, error) {
+	return state.New(root, bc.stateCache, blockNumber, blockHash)
 }
 
 // GetUnclesInChain retrieves all the uncles from a given block backwards until
