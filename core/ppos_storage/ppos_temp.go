@@ -312,9 +312,20 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 		/**
 		build global ppos_temp
 		 */
-		hashMap := make(map[common.Hash]*Ppos_storage, 0)
+
+		var hashMap map[common.Hash]*Ppos_storage
+
+		ppos_temp.lock.Lock()
+
+		if hashData, ok := ppos_temp.TempMap[pb_pposTemp.BlockNumber]; ok {
+			hashMap = hashData
+		}else {
+			hashMap = make(map[common.Hash]*Ppos_storage, 1)
+		}
 		hashMap[common.HexToHash(pb_pposTemp.BlockHash)] = unmarshalPBStorage(pb_pposTemp)
 		ppos_temp.TempMap[pb_pposTemp.BlockNumber] = hashMap
+		ppos_temp.lock.Unlock()
+
 
 		// flush data into disk
 		if err := temp.db.Put(PPOS_STORAGE_KEY, data); err != nil {
