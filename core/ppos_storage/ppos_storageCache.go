@@ -118,7 +118,7 @@ func (ps *Ppos_storage) Copy() *Ppos_storage {
 
 func NewPPOS_storage () *Ppos_storage {
 
-	cache := &Ppos_storage{
+	/*cache := &Ppos_storage{
 		c_storage: &candidate_temp{
 			pres: 	make(types.CandidateQueue, 0),
 			currs:  make(types.CandidateQueue, 0),
@@ -132,7 +132,29 @@ func NewPPOS_storage () *Ppos_storage {
 			Sq: 	-1,
 			Dependencys: 	make(map[discover.NodeID]*ticketDependency),
 		},
-	}
+	}*/
+
+	cache := new(Ppos_storage)
+
+	c := new(candidate_temp)
+	t:= new(ticket_temp)
+
+	c.pres = make(types.CandidateQueue, 0)
+	c.currs = make(types.CandidateQueue, 0)
+	c.nexts = make(types.CandidateQueue, 0)
+
+	c.imms = make(types.CandidateQueue, 0)
+	c.res = make(types.CandidateQueue, 0)
+
+	c.refunds = make(refundStorage, 0)
+
+	t.Sq = -1
+	t.Dependencys = make(map[discover.NodeID]*ticketDependency)
+
+	cache.c_storage = c
+	cache.t_storage = t
+
+
 	return cache
 }
 
@@ -227,7 +249,7 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 		cache[nodeId] = queue.DeepCopy()
 	}
 
-	temp := &candidate_temp{
+	/*temp := &candidate_temp{
 		pres: 		p.c_storage.pres.DeepCopy(),
 		currs: 		p.c_storage.currs.DeepCopy(),
 		nexts: 		p.c_storage.nexts.DeepCopy(),
@@ -236,7 +258,19 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 		res: 		p.c_storage.res.DeepCopy(),
 
 		refunds: 	cache,
-	}
+	}*/
+
+	temp := new(candidate_temp)
+
+	temp.pres = p.c_storage.pres.DeepCopy()
+	temp.currs = p.c_storage.currs.DeepCopy()
+	temp.nexts = p.c_storage.nexts.DeepCopy()
+
+	temp.imms = p.c_storage.imms.DeepCopy()
+	temp.res = p.c_storage.res.DeepCopy()
+
+	temp.refunds = cache
+
 
 	log.Debug("CopyCandidateStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return temp
@@ -247,7 +281,7 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 	start := common.NewTimer()
 	start.Begin()
 
-	cache := make(map[discover.NodeID]*ticketDependency, len(p.t_storage.Dependencys))
+	/*cache := make(map[discover.NodeID]*ticketDependency, len(p.t_storage.Dependencys))
 
 	for key := range p.t_storage.Dependencys {
 		temp := p.t_storage.Dependencys[key]
@@ -273,10 +307,9 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 	ticket_cache := &ticket_temp{
 		Sq: 	p.t_storage.Sq,
 		Dependencys: 	cache,
-	}
+	}*/
 
 
-/*
 	ticket_cache := new(ticket_temp)
 
 	ticket_cache.Sq = p.t_storage.Sq
@@ -294,26 +327,37 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 	//	copy(list, value)
 	//	ticket_cache.Ets[key] = list
 	//}
-	*//*for key := range p.t_storage.Dependencys {
-		temp := p.t_storage.Dependencys[key]
-		tids := make([]common.Hash, len(temp.Tids))
-		copy(tids, temp.Tids)
-		ticket_cache.Dependencys[key] = &ticketDependency{
-			//temp.Age,
-			temp.Num,
-			tids,
-		}
-	}*//*
+	//for key := range p.t_storage.Dependencys {
+	//	temp := p.t_storage.Dependencys[key]
+	//	tids := make([]common.Hash, len(temp.Tids))
+	//	copy(tids, temp.Tids)
+	//	ticket_cache.Dependencys[key] = &ticketDependency{
+	//		//temp.Age,
+	//		temp.Num,
+	//		tids,
+	//	}
+	//}
 	for key := range p.t_storage.Dependencys {
 		temp := p.t_storage.Dependencys[key]
-		tinfo := make([]*ticketInfo, len(temp.Tinfo))
-		copy(tinfo, temp.Tinfo)
+
+		tinfos := make([]*ticketInfo, len(temp.Tinfo))
+
+		for j, tin := range temp.Tinfo {
+
+			t := &ticketInfo{
+				TxHash: 	tin.TxHash,
+				Remaining: 	tin.Remaining,
+				Price: 		tin.Price,
+			}
+			tinfos[j] = t
+
+		}
 		ticket_cache.Dependencys[key] = &ticketDependency{
 			//temp.Age,
 			temp.Num,
-			tinfo,
+			tinfos,
 		}
-	}*/
+	}
 	log.Debug("CopyTicketStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return ticket_cache
 }
