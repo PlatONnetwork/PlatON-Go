@@ -603,13 +603,13 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		//}()
 
 		// ticket's attachment  of node
-		go func() {
+		//go func() {
 			if dependency := buildPBdependencys(ps.t_storage.Dependencys); len(dependency) != 0 {
 				tickTemp.Dependencys = dependency
 				empty |= 1
 			}
 			//wg.Done()
-		}()
+		//}()
 
 		//wg.Wait()
 		ppos_temp.TickTmp = tickTemp
