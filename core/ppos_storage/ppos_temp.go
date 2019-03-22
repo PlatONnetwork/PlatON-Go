@@ -104,7 +104,6 @@ func BuildPposCache(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
 // Get ppos storage cache by same block
 func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
 
-	//log.Debug("進入由全局的temp获取 cache")
 	ppos_storage := NewPPOS_storage()
 
 	notGenesisBlock := blockNumber.Cmp(big.NewInt(0)) > 0
@@ -115,7 +114,6 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 	}
 
 	if !notGenesisBlock || (common.Hash{}) == blockHash {
-		//log.Debug("创世块 直接退出了")
 		return ppos_storage
 	}
 
