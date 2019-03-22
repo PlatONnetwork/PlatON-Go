@@ -18,6 +18,7 @@
 package downloader
 
 import (
+	"crypto/md5"
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
@@ -221,6 +222,7 @@ func New(mode SyncMode, stateDb ethdb.Database, mux *event.TypeMux, chain BlockC
 		bodyWakeCh:     make(chan bool, 1),
 		receiptWakeCh:  make(chan bool, 1),
 		headerProcCh:   make(chan []*types.Header, 1),
+		pposStorageCh:  make(chan dataPack, 1),
 		quitCh:         make(chan struct{}),
 		stateCh:        make(chan dataPack),
 		stateSyncStart: make(chan *stateSync),
@@ -366,7 +368,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, bn *big.Int, mode 
 		default:
 		}
 	}
-	for _, ch := range []chan dataPack{d.headerCh, d.bodyCh, d.receiptCh} {
+	for _, ch := range []chan dataPack{d.headerCh, d.bodyCh, d.receiptCh, d.pposStorageCh} {
 		for empty := false; !empty; {
 			select {
 			case <-ch:
@@ -614,17 +616,19 @@ func (d *Downloader) fetchLatestPposStorage(p *peerConnection) (*types.Header, u
 			// Make sure the peer actually gave something valid
 			latest := packet.(*pposStoragePack).latest
 			pivot := packet.(*pposStoragePack).pivot
+			data := packet.(*pposStoragePack).storage
+			p.log.Debug("sendPposStorage context", "latest", latest.Number.Uint64(), "pivot", pivot.Number.Uint64(), "data length", len(data), "data md5", md5.Sum(data))
 
 			if pivot.Number.Cmp(latest.Number) > 0 {
-				p.log.Debug("pivotNumber is larger than heightNumber", "pivotNumber", pivot.Number.Uint64(), "heightNumber", latest.Number.Uint64())
+				p.log.Debug("pivotNumber is larger than latestNumber", "pivotNumber", pivot.Number.Uint64(), "latestNumber", latest.Number.Uint64())
 				return nil, 0, errBadPeer
 			}
 			if !d.storagePposCachePoint(pivot.Number.Uint64()) {
-				p.log.Debug("pivotNumber is an incorrect pivot point", "pivotNumber", pivot.Number.Uint64(), "heightNumber", latest.Number.Uint64())
+				p.log.Debug("pivotNumber is an incorrect pivot point", "pivotNumber", pivot.Number.Uint64(), "latestNumber", latest.Number.Uint64())
 				return nil, 0, errBadPeer
 			}
-			if err := ppos_storage.GetPPosTempPtr().PushPPosStorageProto(packet.(*pposStoragePack).storage); err != nil {
-				p.log.Debug("pushPPosStorageProto error", "pivotNumber", pivot.Number.Uint64(), "heightNumber", latest.Number.Uint64(), "err", err)
+			if err := ppos_storage.GetPPosTempPtr().PushPPosStorageProto(data); err != nil {
+				p.log.Debug("pushPPosStorageProto error", "pivotNumber", pivot.Number.Uint64(), "latestNumber", latest.Number.Uint64(), "err", err)
 				return nil, 0, errPushPPosStorageProto
 			}
 

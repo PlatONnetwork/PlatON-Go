@@ -230,7 +230,7 @@ func TestGetTicketPrice(t *testing.T) {
 func TestTicketPoolEncode(t *testing.T) {
 	nodeId := []byte("0xb6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6")
 	// VoteTicket(count uint32, price *big.Int, nodeId discover.NodeID)
-	price, _ := new(big.Int).SetString("10000", 10)
+	price, _ := new(big.Int).SetString("100000000000000000000", 10)
 	var VoteTicket [][]byte
 	VoteTicket = make([][]byte, 0)
 	VoteTicket = append(VoteTicket, byteutil.Uint64ToBytes(1000))
