@@ -26,17 +26,31 @@ import (
 
 // Genesis hashes to enforce below configs on.
 var (
-	MainnetGenesisHash = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
-	TestnetGenesisHash = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
-	RinkebyGenesisHash = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
+	MainnetGenesisHash      = common.HexToHash("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3")
+	TestnetGenesisHash      = common.HexToHash("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d")
+	RinkebyGenesisHash      = common.HexToHash("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177")
+	InnerTestnetGenesisHash = common.HexToHash("0x4f2a0d2caed299677b865f9e4c4420512d1ab9a34b8abbaadc3983668f67c5da")
 )
 
 var (
-	initialConsensusNodes = []string{
+	initialTestnetConsensusNodes = []string{
 		"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f2f@test-sea.platon.network:16789", //TEST-SEA
 		"enode://d124e660938dc3fd63d913ff753fafc262764b22294431e760b572b0b58d5e6b813b32ccbacc326c03171542ae0ff8ff6528625a2d612e0c49240f111eba3c22@test-sg.platon.network:16790",  //TEST-SG
 		"enode://24b0c456ae5cad46c4fb9bc02c867b997e22f30696e6e330926f785ca2e7410baf1eb34ffd9b5b07b5ba6e02b693faf57afb33f7c66cfbcf4c9186b4bfac737d@test-na.platon.network:16789",  //TEST-NA
 		"enode://c7fc34d6d8b3d894a35895aaf2f788ed445e03b7673f7ce820aa6fdc02908eeab6982b7eb97e983cc708bcec093b3bc512b0b1fbf668e6ab94cd91f2d642e591@test-us.platon.network:16790",  //TEST-US
+	}
+
+	initialInnerTestnetConsensusNodes = []string{
+		"enode://97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0@192.168.120.81:16789",
+		"enode://3b53564afbc3aef1f6e0678171811f65a7caa27a927ddd036a46f817d075ef0a5198cd7f480829b53fe62bdb063bc6a17f800d2eebf7481b091225aabac2428d@192.168.120.82:16789",
+		"enode://858d6f6ae871e291d3b7b2b91f7369f46deb6334e9dacb66fa8ba6746ee1f025bd4c090b17d17e0d9d5c19fdf81eb8bde3d40a383c9eecbe7ebda9ca95a3fb94@192.168.120.83:16789",
+		"enode://e4556b211eb6712ab94d743990d995c0d3cd15e9d78ec0096bba24c48d34f9f79a52ca1f835cec589c5e7daff30620871ba37d6f5f722678af4b2554a24dd75c@192.168.120.84:16789",
+		"enode://114e48f21d4d83ec9ac39a62062a804a0566742d80b191de5ba23a4dc25f7beda0e78dd169352a7ad3b11584d06a01a09ce047ad88de9bdcb63885e81de00a4d@192.168.120.85:16789",
+		"enode://64ba18ce01172da6a95b0d5b0a93aee727d77e5b2f04255a532a9566edaee7808383812a860acf5e43efeca3d9321547bfcdefd89e9d0c605dcdb65ce0bbb617@192.168.120.86:16789",
+		"enode://d31b3a7714610bd8e03b2c74aca4be16de7fcc319a1e577d50e5e8796680221b4b679bf1c37966d1a158902b8686f3ca2f41a89a7176e538141082540c4f6d66@192.168.120.87:16789",
+		"enode://805b617b9d321a65d8936e758b5c60cd6e8c873b9f1e7c793ad5f887d26ce9667d0db2fe55a9aeb1cc81f9cf9a1e7c54473203473e3ebda89e63c03cbcfe5347@192.168.120.88:16789",
+		"enode://fa147bc3625acc846a9f0e1e89172ca7470baa0f86516994f70860c6fb904ddbb1849e3cf2b40c58255e38401f40d2c3e4a3bd5c2f2849b98465a5bdb80ed6a0@192.168.120.89:16789",
+		"enode://d8c4b58ae052ea9480577264bc1b2c09619757015849a4c92b71a4e4c8b5ede94f35d24107b1181d0711013ed7fdc068f21e6e6084b3e96750a571669715c0b1@192.168.120.90:16789",
 	}
 
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
@@ -53,7 +67,7 @@ var (
 		ConstantinopleBlock: nil,
 		//Ethash:              new(EthashConfig),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialConsensusNodes),
+			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -81,7 +95,26 @@ var (
 		ConstantinopleBlock: nil,
 		//Ethash:              new(EthashConfig),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialConsensusNodes),
+			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
+		},
+		VMInterpreter: "wasm",
+	}
+
+	// InnerTestnetChainConfig contains the chain parameters to run a node on the inner test network.
+	InnerTestnetChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(203),
+		HomesteadBlock:      big.NewInt(1),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(2),
+		EIP150Hash:          common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		EIP155Block:         big.NewInt(3),
+		EIP158Block:         big.NewInt(3),
+		ByzantiumBlock:      big.NewInt(4),
+		ConstantinopleBlock: nil,
+		//Ethash:              new(EthashConfig),
+		Cbft: &CbftConfig{
+			InitialNodes: convertNodeUrl(initialInnerTestnetConsensusNodes),
 		},
 		VMInterpreter: "wasm",
 	}
@@ -89,6 +122,15 @@ var (
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Ropsten test network.
 	TestnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "testnet",
+		SectionIndex: 123,
+		SectionHead:  common.HexToHash("0xa372a53decb68ce453da12bea1c8ee7b568b276aa2aab94d9060aa7c81fc3dee"),
+		CHTRoot:      common.HexToHash("0x6b02e7fada79cd2a80d4b3623df9c44384d6647fc127462e1c188ccd09ece87b"),
+		BloomRoot:    common.HexToHash("0xf2d27490914968279d6377d42868928632573e823b5d1d4a944cba6009e16259"),
+	}
+
+	// InnerTestnetTrustedCheckpoint contains the light client trusted checkpoint for the inner test network.
+	InnerTestnetTrustedCheckpoint = &TrustedCheckpoint{
+		Name:         "innertestnet",
 		SectionIndex: 123,
 		SectionHead:  common.HexToHash("0xa372a53decb68ce453da12bea1c8ee7b568b276aa2aab94d9060aa7c81fc3dee"),
 		CHTRoot:      common.HexToHash("0x6b02e7fada79cd2a80d4b3623df9c44384d6647fc127462e1c188ccd09ece87b"),
