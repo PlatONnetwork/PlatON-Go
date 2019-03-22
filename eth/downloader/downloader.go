@@ -456,7 +456,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		d.committed = 0
 	}
 
-	log.Debug("Synchronising with the network", "peer", p.id, "eth", p.version, "origin", origin, "pivot", pivot, "latest", latest, "mode", d.mode)
+	log.Debug("Synchronising with the network", "peer", p.id, "eth", p.version, "origin", origin, "pivot", pivot, "latest", latest.Number.Uint64(), "mode", d.mode)
 
 	d.syncStatsLock.Lock()
 	if d.syncStatsChainHeight <= origin || d.syncStatsChainOrigin > origin {
@@ -617,7 +617,7 @@ func (d *Downloader) fetchLatestPposStorage(p *peerConnection) (*types.Header, u
 			latest := packet.(*pposStoragePack).latest
 			pivot := packet.(*pposStoragePack).pivot
 			data := packet.(*pposStoragePack).storage
-			p.log.Debug("sendPposStorage context", "latest", latest.Number.Uint64(), "pivot", pivot.Number.Uint64(), "data length", len(data), "data md5", md5.Sum(data))
+			p.log.Debug("fetch pposStorage content", "latest", latest.Number.Uint64(), "pivot", pivot.Number.Uint64(), "data length", len(data), "data md5", md5.Sum(data))
 
 			if pivot.Number.Cmp(latest.Number) > 0 {
 				p.log.Debug("pivotNumber is larger than latestNumber", "pivotNumber", pivot.Number.Uint64(), "latestNumber", latest.Number.Uint64())
