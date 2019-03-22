@@ -126,6 +126,8 @@ func remoteConsole(ctx *cli.Context) error {
 				path = filepath.Join(path, "testnet")
 			} else if ctx.GlobalBool(utils.RinkebyFlag.Name) {
 				path = filepath.Join(path, "rinkeby")
+			} else if ctx.GlobalBool(utils.InnerTestnetFlag.Name) {
+				path = filepath.Join(path, "innertestnet")
 			}
 		}
 		endpoint = fmt.Sprintf("%s/platon.ipc", path)

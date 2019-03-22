@@ -347,6 +347,33 @@ func DefaultRinkebyGenesisBlock() *Genesis {
 	}
 }
 
+// DefaultInnerTestnetGenesisBlock returns the inner test network genesis block.
+func DefaultInnerTestnetGenesisBlock() *Genesis {
+	initAddress1 := new(big.Int)
+	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
+
+	initBalance1 := new(big.Int)
+	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
+
+	initAddress2 := new(big.Int)
+	initAddress2.SetString("1fe1b73f7f592d6c054d62fad1cc55756c6949f9", 16)
+
+	initBalance2 := new(big.Int)
+	initBalance2.SetString("295be96e640669720000000", 16)
+
+	return &Genesis{
+		Config:    params.InnerTestnetChainConfig,
+		Nonce:     0,
+		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  0x99947b760,
+		Timestamp: 1546300800000, //2019-01-01 00:00:00.000
+		Alloc: map[common.Address]GenesisAccount{
+			common.BigToAddress(initAddress1): {Balance: initBalance1},
+			common.BigToAddress(initAddress2): {Balance: initBalance2},
+		},
+	}
+}
+
 func DefaultGrapeGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:    params.GrapeChainConfig,
