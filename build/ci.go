@@ -248,19 +248,37 @@ func doInstall(cmdline []string) {
 	if *arch == "" || *arch == runtime.GOARCH {
 		goinstall := goTool("install", buildFlags(env)...)
 		goinstall.Args = append(goinstall.Args, "-v")
-		if *mpc == "on" {
-			goinstall.Args = append(goinstall.Args, "-tags=mpcon")
+		index := 0
+		packages2 := []string{}
+		for index < len(packages) {
+			if packages[index] == "github.com/PlatONnetwork/PlatON-Go/cmd/platon" || packages[index] == "./cmd/platon" {
+				goplatoninstall := goTool("install", buildFlags(env)...)
+				goplatoninstall.Args = append(goplatoninstall.Args, "-v")
+				if *mpc == "on" {
+					goplatoninstall.Args = append(goplatoninstall.Args, "-tags=mpcon")
+				}
+				if *gcflags == "on" {
+					goplatoninstall.Args = append(goplatoninstall.Args, "-gcflags=-N -l")
+				}
+				if *vc == "on" {
+					goplatoninstall.Args = append(goplatoninstall.Args, "-tags=vcon")
+				}
+				if *mv == "on" {
+					goplatoninstall.Args = append(goplatoninstall.Args, "-tags=mpcon vcon")
+				}
+				packages3 := []string{"./cmd/platon"}
+				goplatoninstall.Args = append(goplatoninstall.Args, packages3...)
+				build.MustRun(goplatoninstall)
+				if packages[index] == "./cmd/platon" {
+					return
+				}
+				index++
+				continue
+			}
+			packages2 = append(packages2, packages[index])
+			index++
 		}
-		if *gcflags == "on" {
-			goinstall.Args = append(goinstall.Args, "-gcflags=-N -l")
-		}
-		if *vc == "on" {
-			goinstall.Args = append(goinstall.Args, "-tags=vcon")
-		}
-		if *mv == "on" {
-			goinstall.Args = append(goinstall.Args, "-tags=mpcon vcon")
-		}
-		goinstall.Args = append(goinstall.Args, packages...)
+		goinstall.Args = append(goinstall.Args, packages2...)
 		build.MustRun(goinstall)
 		return
 	}
