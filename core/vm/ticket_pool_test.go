@@ -266,9 +266,9 @@ func TestTicketPoolEncode(t *testing.T) {
 	}
 
 	// GetTicketCountByTxHash(ticketIds []common.Hash)
-	txHash1 := "0x3780eb19677a4c69add0fa8151abdac77d550f37585b3e1b06e73561f7197949"
-	txHash2 := "0xbf1145c872f38d50f53cbc15040c9131102a43d6895d239b97938cb1b109e03e"
-	txHashs := txHash1 + ":" + txHash2
+	txHash1 := "0xb26d49ba1bc4246f2456ee03c947276b8a8d2c95f1207b8e7bfaa333246e98c6"
+	//txHash2 := "0xbf1145c872f38d50f53cbc15040c9131102a43d6895d239b97938cb1b109e03e"
+	txHashs := txHash1 /*+ ":" + txHash2*/
 	var GetTicketCountByTxHash [][]byte
 	GetTicketCountByTxHash = make([][]byte, 0)
 	GetTicketCountByTxHash = append(GetTicketCountByTxHash, byteutil.Uint64ToBytes(0xf1))

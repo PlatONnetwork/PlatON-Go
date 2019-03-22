@@ -7,21 +7,21 @@ message CandidateInfo {
     string Deposit = 1;
     string BlockNumber = 2;
     uint32 TxIndex = 3;
-    bytes CandidateId = 4;
+    string CandidateId = 4;
     string Host = 5;
     string Port = 6;
-    bytes Owner = 7;
+    string Owner = 7;
     //  string    From          = 8;
     string Extra = 8;
     uint32 Fee = 9;
-    bytes TxHash = 10;
-    bytes TOwner = 11;
+    string TxHash = 10;
+    string TOwner = 11;
 }
 
 message Refund {
     string Deposit = 1;
     string BlockNumber = 2;
-    bytes Owner = 3;
+    string Owner = 3;
 }
 
 message RefundArr {
@@ -51,13 +51,13 @@ message CandidateTemp {
 //	uint32  Remaining	= 5;
 //}
 
-message TxHashArr {
-    repeated bytes  TxHashs = 1;
-}
+//message TxHashArr {
+//    repeated string  TxHashs = 1;
+//}
 
 
 message Field {
-    bytes   TxHash = 1;
+    string   TxHash = 1;
     uint32  Remaining = 2;
     string  Price = 3;
 }
@@ -84,17 +84,6 @@ message PB_PPosTemp {
     string BlockHash = 4;
 }
 
-//
-//// k2 blockHash
-//message BlockHashPPOSTemp {
-//  map<string, PPOSTemp> PposStorage = 1;
-//}
-//
-//// k1 blockNumber
-//message BlockNumberPPOSTemp {
-//  uint32  BlockCount = 1;
-//  map<string, BlockHashPPOSTemp> HashTemp = 2;
-//}
 
 
 

@@ -88,24 +88,40 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 			 // TODO
 			log.Debug("NewPPosTemp 从disk加载出来的数据:", "data len", len(data), "dataMD5", md5.Sum(data))
 
+			PrintObject("NewPPosTemp 解析db中获取并反序列pb的数据:", pb_pposTemp)
 
-			d, _ := json.Marshal(pb_pposTemp)
-			log.Debug("NewPPosTemp 解析db中获取并反序列pb的数据:", "data", string(d))
+			//d, _ := json.Marshal(pb_pposTemp)
+			//log.Debug("NewPPosTemp 解析db中获取并反序列pb的数据:", "data", string(d))
 
 
 
 			pposStorage := unmarshalPBStorage(pb_pposTemp)
 
-			pposByte, _ := json.Marshal(pb_pposTemp)
-			log.Debug("NewPPosTemp unmarshalPBStorage 之后的数据:", "data", string(pposByte))
+
+			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据:", pposStorage)
+
+			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp:", pposStorage.c_storage)
+
+			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: tickTemp:", pposStorage.t_storage)
+
+
+			//pposByte, _ := json.Marshal(pposStorage)
+			//log.Debug("NewPPosTemp unmarshalPBStorage 之后的数据:", "data", string(pposByte))
 
 			hashMap := make(map[common.Hash]*Ppos_storage, 0)
 			hashMap[common.HexToHash(pb_pposTemp.BlockHash)] = pposStorage
 			ppos_temp.TempMap[pb_pposTemp.BlockNumber] = hashMap
 
 
-			tempByte, _ := json.Marshal(ppos_temp.TempMap)
-			log.Debug("NewPPosTemp 加载进内存中的数据:", "data", string(tempByte))
+
+			PrintObject("NewPPosTemp 加载进内存中的数据:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)])
+
+			PrintObject("NewPPosTemp 加载进内存中的数据: canTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage)
+
+			PrintObject("NewPPosTemp 加载进内存中的数据: tickTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].t_storage)
+
+			//tempByte, _ := json.Marshal((ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)])
+			//log.Debug("NewPPosTemp 加载进内存中的数据:", "data", string(tempByte))
 
 		}
 	}
@@ -279,8 +295,14 @@ func (temp *PPOS_TEMP) Commit2DB(blockNumber *big.Int, blockHash common.Hash) er
 
 	// TODO
 
-	d, _ := json.Marshal(ps)
-	log.Debug("Commit2DB 当前在内存中的数据", "data", string(d))
+	PrintObject("Commit2DB 读取到当前在内存中的数据:", ps)
+
+	PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp:", ps.c_storage)
+
+	PrintObject("Commit2DB 读取到当前在内存中的数据: tickTemp:", ps.t_storage)
+
+	//d, _ := json.Marshal(ps)
+	//log.Debug("Commit2DB 当前在内存中的数据", "data", string(d))
 
 	if pposTemp := buildPBStorage(blockNumber, blockHash, ps); nil == pposTemp {
 		log.Debug("Call Commit2DB FINISH !!!! , PPOS storage is Empty, do not write disk AND direct short-circuit ...")
@@ -294,8 +316,10 @@ func (temp *PPOS_TEMP) Commit2DB(blockNumber *big.Int, blockHash common.Hash) er
 			if len(data) != 0 {
 
 				// TODO
-				d, _ := json.Marshal(pposTemp)
-				log.Debug("Commit2DB 解析PB存入disk的数据:", "data", string(d))
+				PrintObject("Commit2DB 解析PB存入disk的数据:", pposTemp)
+
+				//d, _ := json.Marshal(pposTemp)
+				//log.Debug("Commit2DB 解析PB存入disk的数据:", "data", string(d))
 
 
 				if err := temp.db.Put(PPOS_STORAGE_KEY, data); err != nil {
@@ -329,8 +353,11 @@ func  (temp *PPOS_TEMP) GetPPosStorageProto() (common.Hash, []byte, error) {
 			return common.Hash{}, nil, err
 		}else {
 			// TODO
-			d, _ := json.Marshal(pb_pposTemp)
-			log.Debug("GetPPosStorageProto 解析PB的数据:", "data", string(d))
+
+			PrintObject("GetPPosStorageProto 解析PB的数据:", pb_pposTemp)
+
+			//d, _ := json.Marshal(pb_pposTemp)
+			//log.Debug("GetPPosStorageProto 解析PB的数据:", "data", string(d))
 
 
 			log.Debug("Call GetPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "dataMD5", md5.Sum(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
@@ -355,8 +382,10 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 
 		log.Debug("PushPPosStorageProto 入参的数据:", "data len", len(data), "dataMD5", md5.Sum(data))
 
-		d, _ := json.Marshal(pb_pposTemp)
-		log.Debug("PushPPosStorageProto 解析PB准备刷disk的数据:", "data", string(d))
+		PrintObject("PushPPosStorageProto 解析PB准备刷disk的数据:", pb_pposTemp)
+
+		//d, _ := json.Marshal(pb_pposTemp)
+		//log.Debug("PushPPosStorageProto 解析PB准备刷disk的数据:", "data", string(d))
 
 		var hashMap map[common.Hash]*Ppos_storage
 
@@ -370,15 +399,31 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 
 		pposStorage := unmarshalPBStorage(pb_pposTemp)
 
-		pposByte, _ := json.Marshal(pb_pposTemp)
-		log.Debug("PushPPosStorageProto unmarshalPBStorage 之后的数据:", "data", string(pposByte))
+
+		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据:", pposStorage)
+
+		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp:", pposStorage.c_storage)
+
+		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: tickTemp:", pposStorage.t_storage)
+
+
+		//pposByte, _ := json.Marshal(pposStorage)
+		//log.Debug("PushPPosStorageProto unmarshalPBStorage 之后的数据:", "data", string(pposByte))
 
 		hashMap[common.HexToHash(pb_pposTemp.BlockHash)] = pposStorage
 		ppos_temp.TempMap[pb_pposTemp.BlockNumber] = hashMap
 
 
-		tempByte, _ := json.Marshal(ppos_temp.TempMap)
-		log.Debug("PushPPosStorageProto 加载进内存中的数据:", "data", string(tempByte))
+		PrintObject("PushPPosStorageProto 加载进内存中的数据:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)])
+
+
+		PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage)
+
+		PrintObject("PushPPosStorageProto 加载进内存中的数据: tickTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].t_storage)
+
+
+		//tempByte, _ := json.Marshal((ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)])
+		//log.Debug("PushPPosStorageProto 加载进内存中的数据:", "data", string(tempByte))
 
 		ppos_temp.lock.Unlock()
 
@@ -544,14 +589,14 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 					Deposit: 		deposit,
 					BlockNumber:	num,
 					TxIndex:		can.TxIndex,
-					CandidateId:	discover.MustBytesID(can.CandidateId),
+					CandidateId:	discover.MustHexID(can.CandidateId),
 					Host:        	can.Host,
 					Port:         	can.Port,
-					Owner:  		common.BytesToAddress(can.Owner),
+					Owner:  		common.HexToAddress(can.Owner),
 					Extra:  		can.Extra,
 					Fee:  			can.Fee,
-					TxHash: 		common.BytesToHash(can.TxHash),
-					TOwner: 		common.BytesToAddress(can.TOwner),
+					TxHash: 		common.HexToHash(can.TxHash),
+					TOwner: 		common.HexToAddress(can.TOwner),
 				}
 				queue[i] = canInfo
 			}
@@ -569,34 +614,38 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 		// reserve
 		canTemp.res = buildQueueFunc(canGlobalTemp.Res)
 		// refund
-		if len(canGlobalTemp.Refunds) != 0 {
+		/*if len(canGlobalTemp.Refunds) != 0 {
 
-			defeatMap := make(refundStorage, len(canGlobalTemp.Refunds))
 
-			for nodeId, refundArr := range canGlobalTemp.Refunds {
+		}*/
 
-				if len(refundArr.Defeats) == 0 {
-					continue
-				}
 
-				defeatArr := make(types.RefundQueue, len(refundArr.Defeats))
-				for i, defeat := range refundArr.Defeats {
 
-					deposit, _ := new(big.Int).SetString(defeat.Deposit, 10)
-					num, _ := new(big.Int).SetString(defeat.BlockNumber, 10)
+		defeatMap := make(refundStorage, len(canGlobalTemp.Refunds))
 
-					refund := &types.CandidateRefund{
-						Deposit:  		deposit,
-						BlockNumber: 	num,
-						Owner: 			common.BytesToAddress(defeat.Owner),
-					}
-					defeatArr[i] = refund
-				}
-				defeatMap[discover.MustHexID(nodeId)] = defeatArr
+		for nodeId, refundArr := range canGlobalTemp.Refunds {
+
+			if len(refundArr.Defeats) == 0 {
+				continue
 			}
 
-			canTemp.refunds = defeatMap
+			defeatArr := make(types.RefundQueue, len(refundArr.Defeats))
+			for i, defeat := range refundArr.Defeats {
+
+				deposit, _ := new(big.Int).SetString(defeat.Deposit, 10)
+				num, _ := new(big.Int).SetString(defeat.BlockNumber, 10)
+
+				refund := &types.CandidateRefund{
+					Deposit:  		deposit,
+					BlockNumber: 	num,
+					Owner: 			common.HexToAddress(defeat.Owner),
+				}
+				defeatArr[i] = refund
+			}
+			defeatMap[discover.MustHexID(nodeId)] = defeatArr
 		}
+
+		canTemp.refunds = defeatMap
 		ppos_storage.c_storage = canTemp
 	}
 
@@ -654,48 +703,50 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 		//}
 
 		// ticket's attachment  of node
-		if len(tickGlobalTemp.Dependencys) != 0 {
-
-			dependencyMap := make(map[discover.NodeID]*ticketDependency, len(tickGlobalTemp.Dependencys))
-
-			for nodeIdStr, pb_dependency := range tickGlobalTemp.Dependencys {
-
-				dependencyInfo := new(ticketDependency)
-				//dependencyInfo.Age = pb_dependency.Age
-				dependencyInfo.Num = pb_dependency.Num
+		/*if len(tickGlobalTemp.Dependencys) != 0 {
 
 
-				/*tidArr := make([]common.Hash, len(pb_dependency.Tids))
-
-				for i, ticketId := range pb_dependency.Tids {
-					tidArr[i] = common.BytesToHash(ticketId)
-				}
-
-				dependencyInfo.Tids = tidArr*/
+		}*/
 
 
 
-				fieldArr := make([]*ticketInfo, len(pb_dependency.Tinfo))
-				for j, field := range pb_dependency.Tinfo {
+		dependencyMap := make(map[discover.NodeID]*ticketDependency, len(tickGlobalTemp.Dependencys))
 
-					price, _ := new(big.Int).SetString(field.Price, 10)
-					f := &ticketInfo{
-						TxHash: 	common.BytesToHash(field.TxHash),
-						Remaining: 	field.Remaining,
-						Price: 		price,
-					}
+		for nodeIdStr, pb_dependency := range tickGlobalTemp.Dependencys {
 
-					fieldArr[j] =  f
-				}
-				dependencyInfo.Tinfo = fieldArr
+			dependencyInfo := new(ticketDependency)
+			//dependencyInfo.Age = pb_dependency.Age
+			dependencyInfo.Num = pb_dependency.Num
 
 
+			/*tidArr := make([]common.Hash, len(pb_dependency.Tids))
 
-				dependencyMap[discover.MustHexID(nodeIdStr)] = dependencyInfo
+			for i, ticketId := range pb_dependency.Tids {
+				tidArr[i] = common.BytesToHash(ticketId)
 			}
 
-			tickTemp.Dependencys = dependencyMap
+			dependencyInfo.Tids = tidArr*/
+
+
+
+			fieldArr := make([]*ticketInfo, len(pb_dependency.Tinfo))
+			for j, field := range pb_dependency.Tinfo {
+
+				price, _ := new(big.Int).SetString(field.Price, 10)
+				f := &ticketInfo{
+					TxHash: 	common.HexToHash(field.TxHash),
+					Remaining: 	field.Remaining,
+					Price: 		price,
+				}
+
+				fieldArr[j] =  f
+			}
+			dependencyInfo.Tinfo = fieldArr
+
+			dependencyMap[discover.MustHexID(nodeIdStr)] = dependencyInfo
 		}
+
+		tickTemp.Dependencys = dependencyMap
 		ppos_storage.t_storage = tickTemp
 	}
 
@@ -713,14 +764,14 @@ func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
 			Deposit: 		can.Deposit.String(),
 			BlockNumber:	can.BlockNumber.String(),
 			TxIndex:		can.TxIndex,
-			CandidateId:	can.CandidateId.Bytes(),
+			CandidateId:	can.CandidateId.String(),
 			Host:			can.Host,
 			Port:			can.Port,
-			Owner:			can.Owner.Bytes(),
+			Owner:			can.Owner.String(),
 			Extra:			can.Extra,
 			Fee: 			can.Fee,
-			TxHash: 		can.TxHash.Bytes(),
-			TOwner: 		can.TOwner.Bytes(),
+			TxHash: 		can.TxHash.String(),
+			TOwner: 		can.TOwner.String(),
 		}
 		pbQueue[i] = canInfo
 	}
@@ -745,7 +796,7 @@ func buildPBrefunds(refunds refundStorage) map[string]*RefundArr {
 			refundInfo := &Refund{
 				Deposit:     	refund.Deposit.String(),
 				BlockNumber:	refund.BlockNumber.String(),
-				Owner:			refund.Owner.Bytes(),
+				Owner:			refund.Owner.String(),
 			}
 			defeats[i] = refundInfo
 		}
@@ -828,7 +879,7 @@ func buildPBdependencys(dependencys map[discover.NodeID]*ticketDependency) map[s
 		for i, field := range dependency.Tinfo {
 
 			f := &Field{
-				TxHash:		field.TxHash.Bytes(),
+				TxHash:		field.TxHash.String(),
 				Remaining: 	field.Remaining,
 				Price: 		field.Price.String(),
 			}
@@ -909,4 +960,11 @@ func verifyStorageEmpty(storage *Ppos_storage) bool {
 		return true
 	}
 	return false
+}
+
+
+
+func PrintObject(s string, obj interface{}) {
+	objs, _ := json.Marshal(obj)
+	log.Debug(s, "==", string(objs))
 }
