@@ -190,11 +190,14 @@ func (temp *PPOS_TEMP) SubmitPposCache2Temp(blockNumber, blockInterval *big.Int,
 
 	empty := verifyStorageEmpty(storage)
 
-	if !empty {
+	//if !empty {
+	//
+	//	PrintObject("SubmitPposCache2Temp 时, canTemp:", storage.c_storage)
+	//	PrintObject("SubmitPposCache2Temp 时, tickTemp:", storage.t_storage)
+	//}
 
-		PrintObject("SubmitPposCache2Temp 时, canTemp:", storage.c_storage)
-		PrintObject("SubmitPposCache2Temp 时, tickTemp:", storage.t_storage)
-	}
+	PrintObject("SubmitPposCache2Temp 时, canTemp:", storage.c_storage)
+	PrintObject("SubmitPposCache2Temp 时, tickTemp:", storage.t_storage)
 
 	temp.lock.Lock()
 	/**
