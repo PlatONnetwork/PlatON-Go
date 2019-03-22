@@ -272,9 +272,27 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 	temp.refunds = cache*/
 
 
-	PrintObject("CopyCandidateStorage前:", p.c_storage)
+	//PrintObject("CopyCandidateStorage前:", p.c_storage)
 
-	PrintObject("CopyCandidateStorage后:", temp)
+	PrintObject("CopyCandidateStorage前: pres", p.c_storage.pres)
+	PrintObject("CopyCandidateStorage前: currs", p.c_storage.currs)
+	PrintObject("CopyCandidateStorage前: nexts", p.c_storage.nexts)
+	PrintObject("CopyCandidateStorage前: imms", p.c_storage.imms)
+	PrintObject("CopyCandidateStorage前: res", p.c_storage.res)
+	PrintObject("CopyCandidateStorage前: refunds", p.c_storage.refunds)
+
+
+
+
+	//PrintObject("CopyCandidateStorage后:", temp)
+
+	PrintObject("CopyCandidateStorage后: pres", temp.pres)
+	PrintObject("CopyCandidateStorage后: currs", temp.currs)
+	PrintObject("CopyCandidateStorage后: nexts", temp.nexts)
+	PrintObject("CopyCandidateStorage后: imms", temp.imms)
+	PrintObject("CopyCandidateStorage后: res", temp.res)
+	PrintObject("CopyCandidateStorage后: refunds", temp.refunds)
+
 
 	log.Debug("CopyCandidateStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return temp

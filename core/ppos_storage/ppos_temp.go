@@ -100,7 +100,14 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 
 			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据:", pposStorage)
 
-			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp:", pposStorage.c_storage)
+			//PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp:", pposStorage.c_storage)
+
+			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp pres:", pposStorage.c_storage.pres)
+			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp currs:", pposStorage.c_storage.currs)
+			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp nexts:", pposStorage.c_storage.nexts)
+			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp imms:", pposStorage.c_storage.imms)
+			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp res:", pposStorage.c_storage.res)
+			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp refunds:", pposStorage.c_storage.refunds)
 
 			PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: tickTemp:", pposStorage.t_storage)
 
@@ -116,7 +123,15 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 
 			PrintObject("NewPPosTemp 加载进内存中的数据:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)])
 
-			PrintObject("NewPPosTemp 加载进内存中的数据: canTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage)
+			//PrintObject("NewPPosTemp 加载进内存中的数据: canTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage)
+
+			PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp pres:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.pres)
+			PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp currs:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.currs)
+			PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp nexts:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.nexts)
+			PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp imms:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.imms)
+			PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp res:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.res)
+			PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp refunds:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.refunds)
+
 
 			PrintObject("NewPPosTemp 加载进内存中的数据: tickTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].t_storage)
 
@@ -196,7 +211,14 @@ func (temp *PPOS_TEMP) SubmitPposCache2Temp(blockNumber, blockInterval *big.Int,
 	//	PrintObject("SubmitPposCache2Temp 时, tickTemp:", storage.t_storage)
 	//}
 
-	PrintObject("SubmitPposCache2Temp 时, canTemp:", storage.c_storage)
+	PrintObject("SubmitPposCache2Temp 时, canTemp pres:", storage.c_storage.pres)
+	PrintObject("SubmitPposCache2Temp 时, canTemp currs:", storage.c_storage.currs)
+	PrintObject("SubmitPposCache2Temp 时, canTemp nexts:", storage.c_storage.nexts)
+	PrintObject("SubmitPposCache2Temp 时, canTemp imms:", storage.c_storage.imms)
+	PrintObject("SubmitPposCache2Temp 时, canTemp res:", storage.c_storage.res)
+	PrintObject("SubmitPposCache2Temp 时, canTemp refunds:", storage.c_storage.refunds)
+
+
 	PrintObject("SubmitPposCache2Temp 时, tickTemp:", storage.t_storage)
 
 	temp.lock.Lock()
@@ -306,7 +328,15 @@ func (temp *PPOS_TEMP) Commit2DB(blockNumber *big.Int, blockHash common.Hash) er
 
 	PrintObject("Commit2DB 读取到当前在内存中的数据:", ps)
 
-	PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp:", ps.c_storage)
+	//PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp:", ps.c_storage)
+
+	PrintObject("Commit2DB 读取到当前在内存中的数据:canTemp pres:", ps.c_storage.pres)
+	PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp currs:", ps.c_storage.currs)
+	PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp nexts:", ps.c_storage.nexts)
+	PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp imms:", ps.c_storage.imms)
+	PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp res:", ps.c_storage.res)
+	PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp refunds:", ps.c_storage.refunds)
+
 
 	PrintObject("Commit2DB 读取到当前在内存中的数据: tickTemp:", ps.t_storage)
 
@@ -411,7 +441,14 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 
 		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据:", pposStorage)
 
-		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp:", pposStorage.c_storage)
+		//PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp:", pposStorage.c_storage)
+
+		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp pres:", pposStorage.c_storage.pres)
+		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp currs:", pposStorage.c_storage.currs)
+		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp nexts:", pposStorage.c_storage.nexts)
+		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp imms:", pposStorage.c_storage.imms)
+		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp res:", pposStorage.c_storage.res)
+		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp refunds:", pposStorage.c_storage.refunds)
 
 		PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: tickTemp:", pposStorage.t_storage)
 
@@ -426,7 +463,18 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 		PrintObject("PushPPosStorageProto 加载进内存中的数据:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)])
 
 
-		PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage)
+		//PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage)
+
+		PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp pres:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.pres)
+		PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp currs:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.currs)
+		PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp nexts:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.nexts)
+		PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp imms:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.imms)
+		PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp res:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.res)
+		PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp refunds:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.refunds)
+
+
+
+
 
 		PrintObject("PushPPosStorageProto 加载进内存中的数据: tickTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].t_storage)
 
