@@ -272,6 +272,10 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 	temp.refunds = cache*/
 
 
+	PrintObject("CopyCandidateStorage前:", p.c_storage)
+
+	PrintObject("CopyCandidateStorage后:", temp)
+
 	log.Debug("CopyCandidateStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return temp
 }
@@ -358,6 +362,12 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 			tinfos,
 		}
 	}*/
+
+
+	PrintObject("CopyTicketStorage前:", p.t_storage)
+
+	PrintObject("CopyTicketStorage后:", ticket_cache)
+
 	log.Debug("CopyTicketStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return ticket_cache
 }

@@ -190,6 +190,12 @@ func (temp *PPOS_TEMP) SubmitPposCache2Temp(blockNumber, blockInterval *big.Int,
 
 	empty := verifyStorageEmpty(storage)
 
+	if !empty {
+
+		PrintObject("SubmitPposCache2Temp 时, canTemp:", storage.c_storage)
+		PrintObject("SubmitPposCache2Temp 时, tickTemp:", storage.t_storage)
+	}
+
 	temp.lock.Lock()
 	/**
 	first condition blockNumber
@@ -951,10 +957,10 @@ func verifyStorageEmpty(storage *Ppos_storage) bool {
 
 	tickStorage := storage.t_storage
 	if nil != tickStorage {
-		/*if tickStorage.Sq == -1 && len(tickStorage.Infos) == 0 &&
-			len(tickStorage.Ets) == 0 && len(tickStorage.Dependencys) == 0 {
+		if tickStorage.Sq == -1 && /*len(tickStorage.Infos) == 0 &&
+			len(tickStorage.Ets) == 0 &&*/ len(tickStorage.Dependencys) == 0 {
 			tickEmpty = true
-		}*/
+		}
 	}
 	if canEmpty && tickEmpty {
 		return true
