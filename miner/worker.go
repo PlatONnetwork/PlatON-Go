@@ -868,10 +868,10 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		err   error
 	)
 	if _, ok := w.engine.(consensus.Bft); ok {
-		log.Debug("【makeCurrent】New state by MakeStateDB ...")
+		log.Debug("makeCurrent, New state by MakeStateDB ...")
 		state, err = w.blockChainCache.MakeStateDB(parent)
 	} else {
-		log.Debug("【makeCurrent】New state by chain StateAt ...")
+		log.Debug("makeCurrent, New state by chain StateAt ...")
 		state, err = w.chain.StateAt(parent.Root(), parent.Number(), parent.Hash())
 	}
 	log.Info("-----------Build statedb---------", "blockNumber", header.Number.Uint64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
@@ -880,7 +880,7 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 	}
 
 	// TODO
-	//w.forEachStorage(state, "【makeCurrent】When new the current stateDB instance:")
+	//w.forEachStorage(state, "makeCurrent, When new the current stateDB instance:")
 
 	env := &environment{
 		signer:    types.NewEIP155Signer(w.config.ChainID),

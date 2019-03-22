@@ -158,7 +158,7 @@ func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 	for hash, obj := range bcc.stateDBCache {
 		if obj.blockNum <= blockNum {
 			root := obj.stateDB.IntermediateRoot(bcc.chainConfig.IsEIP158(big.NewInt(int64(obj.blockNum))))
-			log.Info("【Delete StateDB Cache】", "blockNumber", obj.blockNum, "sealHash", sealHash.String(), "stateDB root", root.String())
+			log.Info("Delete StateDB Cache", "blockNumber", obj.blockNum, "sealHash", sealHash.String(), "stateDB root", root.String())
 			delete(bcc.stateDBCache, hash)
 		}
 	}

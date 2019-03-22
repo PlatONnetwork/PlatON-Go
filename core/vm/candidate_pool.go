@@ -276,7 +276,7 @@ func (c *CandidateContract) addLog(event, data string) {
 	logdata = append(logdata, []byte(data))
 	buf := new(bytes.Buffer)
 	if err := rlp.Encode(buf, logdata); nil != err {
-		log.Error("Failed to addlog", "rlp encode fail: ", err.Error())
+		log.Error("Failed to CandidateContract addlog", "rlp encode fail: ", err.Error())
 	}
 	c.Evm.StateDB.AddLog(&types.Log{
 		Address:     common.CandidatePoolAddr,

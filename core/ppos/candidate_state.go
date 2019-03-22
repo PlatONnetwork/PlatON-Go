@@ -637,7 +637,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 		nodeIdArr = nodeIds
 
 	} else { // withdraw a few ...
-		// Only withdraw part of the refunds, need to reorder the immediate elected candidates
+		/*// Only withdraw part of the refunds, need to reorder the immediate elected candidates
 		// The remaining candiate price to update current candidate info
 
 		log.Info("WithdrawCandidate into withdraw a few", "canId", can.CandidateId.String(), "current can deposit", can.Deposit.String(), "withdraw price is", price.String())
@@ -728,7 +728,9 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 			if arr := c.shuffleQueue(state, blockNumber); len(arr) != 0 {
 				nodeIdArr = append(nodeIdArr, arr...)
 			}
-		}
+		}*/
+		log.Error("Failed to WithdrawCandidate, must full withdraw", "the can deposit", can.Deposit.String(), "current will withdraw price", price.String())
+		return nil, WithdrawLowErr
 	}
 	log.Info("Call WithdrawCandidate SUCCESS !!!!!!!!!!!!")
 	return nodeIdArr, nil

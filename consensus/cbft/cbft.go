@@ -1410,7 +1410,7 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		blockInterval := new(big.Int).Sub(current.block.Number(), cbft.blockChain.CurrentBlock().Number())
 		cbft.ppos.Submit2Cache(state, blockNumber, blockInterval, current.block.Hash())
 		root := state.IntermediateRoot(cbft.blockChain.Config().IsEIP158(current.block.Number()))
-		log.Debug("【Consensus packaged】Finally, after Submit2Cache", "blockNumber", current.block.NumberU64(), "blockHash", current.block.Hash().Hex(), "block.root", current.block.Root().Hex(), "Realt-time state.root", root.Hex())
+		log.Debug("Consensus packaged, Finally, after Submit2Cache", "blockNumber", current.block.NumberU64(), "blockHash", current.block.Hash().Hex(), "block.root", current.block.Root().Hex(), "Realt-time state.root", root.Hex())
 	} else {
 		log.Error("setNodeCache error")
 	}

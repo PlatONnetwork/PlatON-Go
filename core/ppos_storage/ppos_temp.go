@@ -265,9 +265,11 @@ func (temp *PPOS_TEMP) Commit2DB(blockNumber *big.Int, blockHash common.Hash) er
 			log.Error("Failed to Commit2DB", "proto err", err, "Time spent", fmt.Sprintf("%v ms", start.End()))
 			return err
 		}else {
-			if err := temp.db.Put(PPOS_STORAGE_KEY, data); err != nil {
-				log.Error("Failed to Call Commit2DB:" + WRITE_PPOS_ERR.Error(), "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()), "err", err)
-				return WRITE_PPOS_ERR
+			if len(data) != 0 {
+				if err := temp.db.Put(PPOS_STORAGE_KEY, data); err != nil {
+					log.Error("Failed to Call Commit2DB:" + WRITE_PPOS_ERR.Error(), "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()), "err", err)
+					return WRITE_PPOS_ERR
+				}
 			}
 			log.Info("Call Commit2DB, write ppos storage data to disk", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
 		}
@@ -328,9 +330,11 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 
 
 		// flush data into disk
-		if err := temp.db.Put(PPOS_STORAGE_KEY, data); err != nil {
-			log.Error("Failed to Call PushPPosStorageProto:" + WRITE_PPOS_ERR.Error(), "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()), "err", err)
-			return WRITE_PPOS_ERR
+		if len(data) != 0 {
+			if err := temp.db.Put(PPOS_STORAGE_KEY, data); err != nil {
+				log.Error("Failed to Call PushPPosStorageProto:" + WRITE_PPOS_ERR.Error(), "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()), "err", err)
+				return WRITE_PPOS_ERR
+			}
 		}
 	}
 	log.Error("Call PushPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
