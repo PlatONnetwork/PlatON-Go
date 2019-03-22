@@ -12,6 +12,7 @@ import (
 	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"fmt"
+	"encoding/json"
 )
 
 const ppos_empty_indb  = "leveldb: not found"
@@ -69,6 +70,7 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 	if ppos_storage, err := db.Get(PPOS_STORAGE_KEY); nil != err {
 		if ppos_empty_indb != err.Error() {
 			log.Error("Failed to Call NewPPosTemp to get Global ppos temp by levelDB", "err", err)
+			return ppos_temp
 		}
 	} else {
 		log.Debug("Call NewPPosTemp to Unmarshal Global ppos temp", "pb data len", len(ppos_storage))
@@ -81,9 +83,25 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 			/**
 			build global ppos_temp
 			 */
+
+			d, _ := json.Marshal(pb_pposTemp)
+			log.Debug("NewPPosTemp 解析db中获取并反序列pb的数据:", "data", string(d))
+
+
+
+			pposStorage := unmarshalPBStorage(pb_pposTemp)
+
+			pposByte, _ := json.Marshal(pb_pposTemp)
+			log.Debug("NewPPosTemp unmarshalPBStorage 之后的数据:", "data", string(pposByte))
+
 			hashMap := make(map[common.Hash]*Ppos_storage, 0)
-			hashMap[common.HexToHash(pb_pposTemp.BlockHash)] = unmarshalPBStorage(pb_pposTemp)
+			hashMap[common.HexToHash(pb_pposTemp.BlockHash)] = pposStorage
 			ppos_temp.TempMap[pb_pposTemp.BlockNumber] = hashMap
+
+
+			tempByte, _ := json.Marshal(ppos_temp)
+			log.Debug("NewPPosTemp 加载进内存中的数据:", "data", string(tempByte))
+
 		}
 	}
 
@@ -313,6 +331,9 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 		build global ppos_temp
 		 */
 
+		d, _ := json.Marshal(pb_pposTemp)
+		log.Debug("PushPPosStorageProto 解析PB的数据:", "data", string(d))
+
 		var hashMap map[common.Hash]*Ppos_storage
 
 		ppos_temp.lock.Lock()
@@ -322,20 +343,32 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 		}else {
 			hashMap = make(map[common.Hash]*Ppos_storage, 1)
 		}
-		hashMap[common.HexToHash(pb_pposTemp.BlockHash)] = unmarshalPBStorage(pb_pposTemp)
+
+		pposStorage := unmarshalPBStorage(pb_pposTemp)
+
+		pposByte, _ := json.Marshal(pb_pposTemp)
+		log.Debug("PushPPosStorageProto unmarshalPBStorage 之后的数据:", "data", string(pposByte))
+
+		hashMap[common.HexToHash(pb_pposTemp.BlockHash)] = pposStorage
 		ppos_temp.TempMap[pb_pposTemp.BlockNumber] = hashMap
+
+
+		tempByte, _ := json.Marshal(ppos_temp)
+		log.Debug("PushPPosStorageProto 加载进内存中的数据:", "data", string(tempByte))
+
 		ppos_temp.lock.Unlock()
 
 
 		// flush data into disk
 		if len(data) != 0 {
+			log.Debug("Call PushPPosStorageProto flush data into disk start ...", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data))
 			if err := temp.db.Put(PPOS_STORAGE_KEY, data); err != nil {
 				log.Error("Failed to Call PushPPosStorageProto:" + WRITE_PPOS_ERR.Error(), "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()), "err", err)
 				return WRITE_PPOS_ERR
 			}
 		}
 	}
-	log.Error("Call PushPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
+	log.Debug("Call PushPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return nil
 }
 
