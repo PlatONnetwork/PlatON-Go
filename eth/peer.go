@@ -316,7 +316,7 @@ func (p *peer) SendNodeData(data [][]byte) error {
 }
 
 func (p *peer) SendPposStorage(latest *types.Header, pivot *types.Header, data []byte) error {
-	p.Log().Debug("sendPposStorage context", "latest", latest.Number.Uint64(), "pivot", pivot.Number.Uint64(), "data length", len(data), "data md5", md5.Sum(data))
+	p.Log().Debug("send pposStorage content", "latest", latest.Number.Uint64(), "pivot", pivot.Number.Uint64(), "data length", len(data), "data md5", md5.Sum(data))
 	return p2p.Send(p.rw, PposStorageMsg, []interface{}{latest, pivot, data})
 }
 
