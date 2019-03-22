@@ -553,6 +553,7 @@ func (t *TicketPool) GetBatchTicketRemaining(stateDB vm.StateDB, ticketIds []com
 		}(ticketId)
 	}
 	wg.Wait()
+	close(resCh)
 	for res := range resCh {
 		ticketsRemaining[res.id] = res.count
 	}

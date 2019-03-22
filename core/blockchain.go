@@ -962,7 +962,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	targetNum := new(big.Int).Add(externBn, big.NewInt(int64(common.BaseSwitchWitness - common.BaseElection + 1)))
 	if _, m := new(big.Int).DivMod(targetNum, big.NewInt(common.BaseSwitchWitness), new(big.Int)); m.Cmp(big.NewInt(0)) == 0 {
 		log.Debug("Call WriteBlockWithState, write ppos_storage", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex())
-		ppos_storage.GetPPosTempPtr().Commit2DB(block.Number(), block.Hash())
+		if err := ppos_storage.GetPPosTempPtr().Commit2DB(block.Number(), block.Hash()); nil != err {
+			return NonStatTy, err
+		}
 	}
 	/*ppos_storage.GetPPosTempPtr().Commit2DB(bc.db, block.Number(), block.Hash())*/
 
