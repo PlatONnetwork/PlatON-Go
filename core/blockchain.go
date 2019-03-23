@@ -729,7 +729,7 @@ func (bc *BlockChain) Stop() {
 
 
 	log.Debug("Call BlockChain Stop ...", "currentNum", bc.CurrentBlock().Number(), "currentHash", bc.CurrentBlock().Hash().Hex())
-	// flush ppos_cache into disk
+	// TODO PPOS ADD flush ppos_cache into disk
 	ppos_storage.GetPPosTempPtr().Commit2DB(bc.CurrentBlock().Number(), bc.CurrentBlock().Hash())
 
 	// Ensure the state of a recent block is also stored to disk before exiting.
