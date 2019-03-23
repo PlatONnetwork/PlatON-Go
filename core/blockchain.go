@@ -208,6 +208,15 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			}
 		}
 	}
+
+	// TODO PPOS ADD
+	currNum := bc.CurrentBlock().Number()
+	pposNum := ppos_storage.GetPPosTempPtr().BlockNumber
+	pposHash := ppos_storage.GetPPosTempPtr().BlockHash
+	if pposNum.Cmp(big.NewInt(0)) != 0 && pposNum.Cmp(currNum) < 0  && pposHash != (common.Hash{}){
+		bc.SetHead(pposNum.Uint64())
+	}
+
 	// Take ownership of this particular state
 	go bc.update()
 	return bc, nil
@@ -714,15 +723,17 @@ func (bc *BlockChain) Stop() {
 
 	bc.wg.Wait()
 
+
+	log.Debug("Call BlockChain Stop ...")
+	// flush ppos_cache into disk
+	ppos_storage.GetPPosTempPtr().Commit2DB(bc.CurrentBlock().Number(), bc.CurrentBlock().Hash())
+
 	// Ensure the state of a recent block is also stored to disk before exiting.
 	// We're writing three different states to catch different restart scenarios:
 	//  - HEAD:     So we don't need to reprocess any blocks in the general case
 	//  - HEAD-1:   So we don't do large reorgs if our HEAD becomes an uncle
 	//  - HEAD-127: So we have a hard limit on the number of blocks reexecuted
 	if !bc.cacheConfig.Disabled {
-		log.Debug("Call BlockChain Stop ...")
-		// flush ppos_cache into disk
-		ppos_storage.GetPPosTempPtr().Commit2DB(bc.CurrentBlock().Number(), bc.CurrentBlock().Hash())
 
 		//eth...
 		triedb := bc.stateCache.TrieDB()
@@ -957,7 +968,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	externBn := block.Number()
 
 	// Irrelevant of the canonical status, write the block itself to the database
-
 	// flush ppos_cache into disk TODO
 	targetNum := new(big.Int).Add(externBn, big.NewInt(int64(common.BaseSwitchWitness - common.BaseElection + 1)))
 	if _, m := new(big.Int).DivMod(targetNum, big.NewInt(common.BaseSwitchWitness), new(big.Int)); m.Cmp(big.NewInt(0)) == 0 {
@@ -967,7 +977,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		}
 	}
 	/*ppos_storage.GetPPosTempPtr().Commit2DB(bc.db, block.Number(), block.Hash())*/
-
 	rawdb.WriteBlock(bc.db, block)
 
 

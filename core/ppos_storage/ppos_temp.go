@@ -31,6 +31,9 @@ type hashTempMap map[common.Hash]*Ppos_storage
 // Global PPOS Dependency TEMP
 type PPOS_TEMP struct {
 
+	BlockNumber 	*big.Int
+	BlockHash 		common.Hash
+
 	db ethdb.Database
 
 	// Record block total count
@@ -67,6 +70,9 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 	ppos_temp.TempMap = ntemp
 	ppos_temp.lock = &sync.Mutex{}
 
+	// defualt value
+	ppos_temp.BlockNumber = big.NewInt(0)
+	ppos_temp.BlockHash = common.Hash{}
 
 	if data, err := db.Get(PPOS_STORAGE_KEY); nil != err {
 		if ppos_empty_indb != err.Error() {
@@ -116,7 +122,8 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 			//log.Debug("NewPPosTemp unmarshalPBStorage 之后的数据:", "data", string(pposByte))
 
 			hashMap := make(map[common.Hash]*Ppos_storage, 0)
-			hashMap[common.HexToHash(pb_pposTemp.BlockHash)] = pposStorage
+			blockHash := common.HexToHash(pb_pposTemp.BlockHash)
+			hashMap[blockHash] = pposStorage
 			ppos_temp.TempMap[pb_pposTemp.BlockNumber] = hashMap
 
 
@@ -137,6 +144,13 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 
 			//tempByte, _ := json.Marshal((ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)])
 			//log.Debug("NewPPosTemp 加载进内存中的数据:", "data", string(tempByte))
+
+			num, _ := new(big.Int).SetString(pb_pposTemp.BlockNumber, 10)
+
+			ppos_temp.BlockNumber = num
+			ppos_temp.BlockHash = blockHash
+
+			log.Debug("Call NewPPosTemp loading into memory data", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash)
 
 		}
 	}
@@ -365,6 +379,10 @@ func (temp *PPOS_TEMP) Commit2DB(blockNumber *big.Int, blockHash common.Hash) er
 					log.Error("Failed to Call Commit2DB:" + WRITE_PPOS_ERR.Error(), "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()), "err", err)
 					return WRITE_PPOS_ERR
 				}
+
+				temp.BlockNumber = blockNumber
+				temp.BlockHash = blockHash
+
 			}
 			log.Info("Call Commit2DB, write ppos storage data to disk", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "data len", len(data), "dataMD5", md5.Sum(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
 		}
@@ -456,7 +474,8 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 		//pposByte, _ := json.Marshal(pposStorage)
 		//log.Debug("PushPPosStorageProto unmarshalPBStorage 之后的数据:", "data", string(pposByte))
 
-		hashMap[common.HexToHash(pb_pposTemp.BlockHash)] = pposStorage
+		blockHash := common.HexToHash(pb_pposTemp.BlockHash)
+		hashMap[blockHash] = pposStorage
 		ppos_temp.TempMap[pb_pposTemp.BlockNumber] = hashMap
 
 
@@ -493,7 +512,15 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 				return WRITE_PPOS_ERR
 			}
 		}
+
+		num, _ := new(big.Int).SetString(pb_pposTemp.BlockNumber, 10)
+
+		temp.BlockNumber = num
+		temp.BlockHash = blockHash
 	}
+
+
+
 	log.Debug("Call PushPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return nil
 }

@@ -749,7 +749,8 @@ func (p *Ppos_storage) SetCandidateTicketAge(nodeId discover.NodeID, age uint64)
 }
 
 func (p *Ppos_storage) GetTicketRemainByTxHash(txHash common.Hash) uint32 {
-
+	PrintObject("Call GetTicketRemainByTxHash", p.t_storage.Dependencys)
+	log.Debug("Call GetTicketRemainByTxHash", "ticketId", txHash.Hex())
 	for _, depen := range p.t_storage.Dependencys {
 		for _, field := range depen.Tinfo {
 			if txHash == field.TxHash {
