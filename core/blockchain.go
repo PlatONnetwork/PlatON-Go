@@ -193,15 +193,6 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		return nil, ErrNoGenesis
 	}
 
-
-	// TODO PPOS ADD
-	currNum := bc.CurrentBlock().Number()
-	pposNum := ppos_storage.GetPPosTempPtr().BlockNumber
-	pposHash := ppos_storage.GetPPosTempPtr().BlockHash
-	if pposNum.Cmp(big.NewInt(0)) != 0 && pposNum.Cmp(currNum) < 0  && pposHash != (common.Hash{}){
-		bc.SetHead(pposNum.Uint64())
-	}
-
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
 	}
@@ -217,6 +208,16 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 				log.Error("Chain rewind was successful, resuming normal operation")
 			}
 		}
+	}
+
+	// TODO PPOS ADD
+	currNum := bc.CurrentBlock().Number()
+	pposNum := ppos_storage.GetPPosTempPtr().BlockNumber
+	pposHash := ppos_storage.GetPPosTempPtr().BlockHash
+	if pposNum.Cmp(big.NewInt(0)) != 0 && pposNum.Cmp(currNum) < 0  && pposHash != (common.Hash{}){
+
+		log.Debug("Call NewBlockChain, currentBlock is not equal ppostempBlock, Reset CurrentBlock on Chain")
+		bc.SetHead(pposNum.Uint64())
 	}
 
 	// Take ownership of this particular state
