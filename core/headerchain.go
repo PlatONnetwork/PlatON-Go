@@ -106,7 +106,8 @@ func NewHeaderChain(chainDb ethdb.Database, config *params.ChainConfig, engine c
 			lastNum := chead.Number
 			if pposNum.Cmp(big.NewInt(0)) != 0 &&  pposNum.Cmp(lastNum) < 0 && pposHash != (common.Hash{}) {
 				if pposhead := hc.GetHeaderByHash(pposHash); pposhead != nil {
-					log.Debug("Call NewHeaderChain, currentHeader is not equal ppostempHeader, Reset CurrentHeader on HeaderChain")
+					log.Debug("Call NewHeaderChain, currentHeader is not equal ppostempHeader, Reset CurrentHeader on HeaderChain", "currentNum", lastNum,
+						"currentHash", head.Hex(), "pposNum", pposNum, "pposHash", pposHash.Hex())
 					hc.currentHeader.Store(pposhead)
 				}
 			}else {

@@ -216,7 +216,8 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	pposHash := ppos_storage.GetPPosTempPtr().BlockHash
 	if pposNum.Cmp(big.NewInt(0)) != 0 && pposNum.Cmp(currNum) < 0  && pposHash != (common.Hash{}){
 
-		log.Debug("Call NewBlockChain, currentBlock is not equal ppostempBlock, Reset CurrentBlock on Chain")
+		log.Debug("Call NewBlockChain, currentBlock is not equal ppostempBlock, Reset CurrentBlock on Chain", "currentNumber",
+			currNum, "currentHash", bc.CurrentBlock().Hash().Hex(), "pposNum", pposNum, "pposHash", pposHash.Hex())
 		bc.SetHead(pposNum.Uint64())
 	}
 
@@ -236,7 +237,7 @@ func (bc *BlockChain) MarkBlockHash(hash common.Hash) bool {
 	for bc.knownBlockHashes.Cardinality() >= 2048 {
 		bc.knownBlockHashes.Pop()
 	}
-	log.Info("【BlockChain MarkBlockHash】", "hash", hash)
+	log.Info("BlockChain MarkBlockHash", "hash", hash)
 	return bc.knownBlockHashes.Add(hash)
 }
 
@@ -727,7 +728,7 @@ func (bc *BlockChain) Stop() {
 	bc.wg.Wait()
 
 
-	log.Debug("Call BlockChain Stop ...")
+	log.Debug("Call BlockChain Stop ...", "currentNum", bc.CurrentBlock().Number(), "currentHash", bc.CurrentBlock().Hash().Hex())
 	// flush ppos_cache into disk
 	ppos_storage.GetPPosTempPtr().Commit2DB(bc.CurrentBlock().Number(), bc.CurrentBlock().Hash())
 

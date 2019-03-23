@@ -540,7 +540,7 @@ func (t *TicketPool) GetBatchTicketRemaining(stateDB vm.StateDB, ticketIds []com
 		id 		common.Hash
 		count 	uint32
 	}
-	resCh := make(chan result, len(ticketIds))
+	resCh := make(chan *result, len(ticketIds))
 
 	for _, ticketId := range ticketIds {
 		/*remaining := t.GetTicketRemaining(stateDB, ticketId)
@@ -549,6 +549,7 @@ func (t *TicketPool) GetBatchTicketRemaining(stateDB vm.StateDB, ticketIds []com
 			res := new(result)
 			res.id = txHash
 			res.count = t.GetTicketRemaining(stateDB, txHash)
+			resCh <- res
 			wg.Done()
 		}(ticketId)
 	}

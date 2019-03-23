@@ -13,10 +13,10 @@ type KindCanQueue []CandidateQueue
 type CandidateQueue []*Candidate
 
 func (queue CandidateQueue) DeepCopy() CandidateQueue {
-	copyCandidateQueue := make(CandidateQueue, len(queue))
 	if len(queue) == 0 {
-		return copyCandidateQueue
+		return nil
 	}
+	copyCandidateQueue := make(CandidateQueue, len(queue))
 	for i, can := range queue {
 		deposit, _ := new(big.Int).SetString(can.Deposit.String(), 10)
 		canCopy := &Candidate{
