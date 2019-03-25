@@ -231,6 +231,7 @@ func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ti
 		startSigner.Begin()
 		signer := types.NewEIP155Signer(tContext.chainConfig.ChainID)
 		if addr, err := signer.Sender(tx); nil != err {
+			log.Error("Failed to GetTicket, get tx owner is empty !!!!", "tx", tx.Hash().Hex(), "err", err)
 			return nil
 		} else {
 			ticket.Owner = addr
@@ -253,6 +254,8 @@ func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ti
 		ticket.BlockNumber = new(big.Int).SetUint64(blockNumber)
 		log.Debug("GetTicket Time", "Time spent", fmt.Sprintf("%v ms", start.End()))
 		return ticket
+	}else {
+		log.Error("Failed to GetTicket, the tx is empty", "txHash", txHash.Hex())
 	}
 	return nil
 }
