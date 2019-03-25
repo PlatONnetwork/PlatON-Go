@@ -41,7 +41,7 @@ const (
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
-	SyncMode: downloader.FullSync,
+	SyncMode: downloader.FastSync,
 	CbftConfig: CbftConfig{
 		Period:           1,
 		Epoch:            250000,
