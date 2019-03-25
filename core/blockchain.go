@@ -730,7 +730,15 @@ func (bc *BlockChain) Stop() {
 
 	log.Debug("Call BlockChain Stop ...", "currentNum", bc.CurrentBlock().Number(), "currentHash", bc.CurrentBlock().Hash().Hex())
 	// TODO PPOS ADD flush ppos_cache into disk
-	ppos_storage.GetPPosTempPtr().Commit2DB(bc.CurrentBlock().Number(), bc.CurrentBlock().Hash())
+	// flush ppos_cache into disk TODO
+	targetNum := new(big.Int).Add(bc.CurrentBlock().Number(), big.NewInt(int64(common.BaseSwitchWitness - common.BaseElection + 1)))
+	if _, m := new(big.Int).DivMod(targetNum, big.NewInt(common.BaseSwitchWitness), new(big.Int)); m.Cmp(big.NewInt(0)) == 0 {
+		log.Debug("Call BlockChain Stop, write ppos_storage", "blockNumber", bc.CurrentBlock().NumberU64(), "blockHash", bc.CurrentBlock().Hash().Hex())
+		if err := ppos_storage.GetPPosTempPtr().Commit2DB(bc.CurrentBlock().Number(), bc.CurrentBlock().Hash()); nil != err {
+			log.Error("BlockChain Stop, Failed to write ppos_storage", "blockNumber", bc.CurrentBlock().NumberU64(), "blockHash", bc.CurrentBlock().Hash().Hex(), "err", err)
+		}
+	}
+	/*ppos_storage.GetPPosTempPtr().Commit2DB(bc.CurrentBlock().Number(), bc.CurrentBlock().Hash())*/
 
 	// Ensure the state of a recent block is also stored to disk before exiting.
 	// We're writing three different states to catch different restart scenarios:
