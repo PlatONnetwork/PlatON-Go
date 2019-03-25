@@ -356,9 +356,18 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	case p.version >= eth63 && msg.Code == GetPposStorageMsg:
 		// deal the retrieval message
 		p.Log().Debug("Received a broadcast message[GetPposStorageMsg]")
-		if pivotHash, data, err := ppos_storage.GetPPosTempPtr().GetPPosStorageProto(); pivotHash != (common.Hash{}) && len(data) > 0 && err == nil {
+		if pivotHash, data, err := ppos_storage.GetPPosTempPtr().GetPPosStorageProto(); err == nil {
 			latest := pm.blockchain.CurrentHeader()
-			pivot := pm.blockchain.GetHeaderByHash(pivotHash)
+			var pivot *types.Header
+			if pivotHash != (common.Hash{}) {
+				pivot = pm.blockchain.GetHeaderByHash(pivotHash)
+			} else {
+				pivotNumber := pm.downloader.CalStoragePposCachePoint(latest.Number.Uint64())
+				if pivotNumber > 0 {
+					pivot = pm.blockchain.GetHeaderByNumber(pivotNumber)
+				}
+			}
+
 			if latest != nil && pivot != nil {
 				return p.SendPposStorage(latest, pivot, data)
 			}

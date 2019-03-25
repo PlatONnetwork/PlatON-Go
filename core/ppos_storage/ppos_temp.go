@@ -397,6 +397,9 @@ func  (temp *PPOS_TEMP) GetPPosStorageProto() (common.Hash, []byte, error) {
 
 // Flush data into db
 func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
+	if len(data) == 0 {
+		return nil
+	}
 	start := common.NewTimer()
 	start.Begin()
 	pb_pposTemp := new(PB_PPosTemp)

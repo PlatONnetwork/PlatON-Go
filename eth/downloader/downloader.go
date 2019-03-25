@@ -646,6 +646,17 @@ func (d *Downloader) storagePposCachePoint(point uint64) bool {
 	return (point + p) % common.BaseSwitchWitness == 0
 }
 
+func (d *Downloader) CalStoragePposCachePoint(blockNumber uint64) uint64 {
+	if blockNumber < common.BaseElection {
+		return 0
+	} else if blockNumber == common.BaseElection {
+		return blockNumber - 1
+	} else {
+		d := (blockNumber - common.BaseElection) / common.BaseSwitchWitness
+		return common.BaseSwitchWitness * d + common.BaseElection - 1
+	}
+}
+
 // findAncestor tries to locate the common ancestor link of the local chain and
 // a remote peers blockchain. In the general case when our node was in sync and
 // on the correct chain, checking the top N links should already get us a match.
