@@ -1087,7 +1087,13 @@ retry:
 			if luckyId == (common.Hash{}) {
 				can.TOwner = common.Address{}
 			} else {
-				can.TOwner = tContext.GetTicket(state, luckyId).Owner
+				if tick := tContext.GetTicket(state, luckyId); nil != tick {
+					can.TOwner = tick.Owner
+				}else {
+					can.TOwner = common.Address{}
+					log.Error("Failed to Gets lucky ticketInfo on Election", "nodeId", can.CandidateId.String(), "lucky ticketId", luckyId.Hex())
+				}
+
 			}
 		}
 
