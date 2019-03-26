@@ -6,6 +6,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
+	"sync"
+
 	//"sync"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"fmt"
@@ -24,6 +26,23 @@ var (
 	ParamsIllegalErr 			= errors.New("Params illegal")
 	TicketNotFindErr        	= errors.New("The Ticket not find")
 )
+
+var ticketCache = sync.Map{}
+
+func PutTicket(txHash common.Hash, ticket *types.Ticket) {
+	ticketCache.Store(txHash, ticket)
+}
+
+func GetTicket(txHash common.Hash) *types.Ticket {
+	if value, ok := ticketCache.Load(txHash); ok {
+		return value.(*types.Ticket)
+	}
+	return nil
+}
+
+func RemoveTicket(txHash common.Hash) {
+	ticketCache.Delete(txHash)
+}
 
 type refundStorage map[discover.NodeID]types.RefundQueue
 

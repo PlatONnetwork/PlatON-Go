@@ -7,6 +7,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -86,6 +87,16 @@ func (t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	log.Debug("Successfully voted to start updating the list of candidates,VoteTicket", "successNum", successCount)
 	if err := cContext.UpdateElectedQueue(stateDB, blockNumber, nodeId); nil != err {
 		log.Error("Failed to Update candidate when voteTicket success", "err", err)
+	}
+	if successCount > 0 {
+		t := &types.Ticket{
+			owner,
+			deposit,
+			nodeId,
+			blockNumber,
+			0,
+		}
+		ppos_storage.PutTicket(stateDB.TxHash(), t)
 	}
 	log.Debug("Successful vote, candidate list updated successfully,VoteTicket", "successNum", successCount)
 	return successCount, nil
@@ -209,6 +220,10 @@ func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ti
 
 	start := common.NewTimer()
 	start.Begin()
+
+	if value := ppos_storage.GetTicket(txHash); nil != value {
+		return value
+	}
 
 	startTx := common.NewTimer()
 	startTx.Begin()
