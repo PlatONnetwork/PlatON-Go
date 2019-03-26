@@ -55,6 +55,8 @@ func WriteTxLookupEntries(db DatabaseWriter, block *types.Block) {
 		if err := db.Put(txLookupKey(tx.Hash()), data); err != nil {
 			log.Crit("Failed to store transaction lookup entry", "err", err)
 		}
+
+		// TODO ppos add
 		ppos_storage.RemoveTicket(tx.Hash())
 	}
 }
