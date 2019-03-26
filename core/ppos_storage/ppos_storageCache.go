@@ -1011,7 +1011,7 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 		}
 	}
 
-	PrintObject("Call CalculateHash build SortTemp: blockNumber:" + blockNumber.String() + ",blockHash:" + blockHash.Hex() + ", sortTemp", sortTemp)
+	//PrintObject("Call CalculateHash build SortTemp: blockNumber:" + blockNumber.String() + ",blockHash:" + blockHash.Hex() + ", sortTemp", sortTemp)
 
 	log.Debug("Call CalculateHash build SortTemp success ...","blockNumber", blockNumber, "blockHash", blockHash.Hex(), "Build data Time spent", start.End())
 
