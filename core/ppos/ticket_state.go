@@ -628,10 +628,14 @@ func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) *big.Int {
 }
 
 // Save the hash value of the current state of the ticket pool
-func (t *TicketPool) CommitHash(stateDB vm.StateDB) error {
-	hash := common.Hash{}
-	setTicketPoolState(stateDB, addCommonPrefix(TicketPoolHashKey), hash.Bytes())
-	return nil
+func (t *TicketPool) CommitHash(stateDB vm.StateDB, blockNumber *big.Int, blockHash common.Hash) error {
+	//hash := common.Hash{}
+	if hash, err := stateDB.GetPPOSCache().CalculateHash(blockNumber, blockHash); nil != err {
+		return err
+	}else {
+		setTicketPoolState(stateDB, addCommonPrefix(TicketPoolHashKey), hash.Bytes())
+		return nil
+	}
 }
 
 //func GetTicketPtr() *TicketPool {

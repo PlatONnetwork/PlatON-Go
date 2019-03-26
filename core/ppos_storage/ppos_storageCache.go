@@ -1,16 +1,17 @@
 package ppos_storage
 
 import (
-	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"math/big"
-	"sync"
-
-	//"sync"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/golang/protobuf/proto"
+	"math/big"
+	"errors"
 	"fmt"
+	"sort"
+	"sync"
 )
 
 const (
@@ -19,7 +20,6 @@ const (
 	NEXT
 	IMMEDIATE
 	RESERVE
-	REFUND
 )
 
 var (
@@ -488,10 +488,17 @@ func (p *Ppos_storage) SetRefund(nodeId discover.NodeID, refund *types.Candidate
 }
 
 func (p *Ppos_storage) SetRefunds(nodeId discover.NodeID, refundArr types.RefundQueue) {
+	if len(refundArr) == 0 {
+		delete(p.c_storage.refunds, nodeId)
+		return
+	}
 	p.c_storage.refunds[nodeId] = refundArr
 }
 
 func (p *Ppos_storage) AppendRefunds(nodeId discover.NodeID, refundArr types.RefundQueue) {
+	if len(refundArr) == 0 {
+		return
+	}
 	if queue, ok := p.c_storage.refunds[nodeId]; ok {
 		queue = append(queue, refundArr ...)
 		p.c_storage.refunds[nodeId] = queue
@@ -805,4 +812,202 @@ func removeTinfo(hash common.Hash, tinfos []*ticketInfo) []*ticketInfo {
 		}
 	}
 	return tinfos
+}
+
+
+func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash) (common.Hash, error) {
+	log.Debug("Call CalculateHash start ...", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+	start := common.NewTimer()
+	start.Begin()
+
+	if verifyStorageEmpty(p) {
+		return common.Hash{}, nil
+	}
+
+	// declare can refund func
+	RefundIdQueueFunc := func(refundMap refundStorage) ([]string, []*RefundArr) {
+
+		if len(refundMap) == 0 {
+			return nil, nil
+		}
+
+		nodeIdStrArr := make([]string, len(refundMap))
+
+		tempMap := make(map[string]discover.NodeID, len(refundMap))
+
+		for nodeId := range refundMap {
+
+			nodeIdStr := nodeId.String()
+
+			nodeIdStrArr = append(nodeIdStrArr, nodeIdStr)
+			tempMap[nodeIdStr] = nodeId
+
+		}
+
+		sort.Strings(nodeIdStrArr)
+
+		refundArrQueue := make([]*RefundArr, 0)
+
+		for _, nodeIdStr := range nodeIdStrArr {
+
+			nodeId := tempMap[nodeIdStr]
+
+			rs := refundMap[nodeId]
+
+			if len(rs) == 0 {
+				continue
+			}
+			defeats := make([]*Refund, len(rs))
+			for i, refund := range rs {
+				refundInfo := &Refund{
+					Deposit:     	refund.Deposit.String(),
+					BlockNumber:	refund.BlockNumber.String(),
+					Owner:			refund.Owner.String(),
+				}
+				defeats[i] = refundInfo
+			}
+
+			refundArr := &RefundArr{
+				Defeats: defeats,
+			}
+
+			refundArrQueue = append(refundArrQueue, refundArr)
+		}
+		return nodeIdStrArr, refundArrQueue
+	}
+
+	// declare can dependency func
+	DependencyFunc := func(dependencys map[discover.NodeID]*ticketDependency) ([]string, []*TicketDependency) {
+		if len(dependencys) == 0 {
+			return nil, nil
+		}
+
+		nodeIdStrArr := make([]string, len(dependencys))
+
+		tempMap := make(map[string]discover.NodeID, len(dependencys))
+
+		for nodeId := range dependencys {
+			nodeIdStr := nodeId.String()
+
+			nodeIdStrArr = append(nodeIdStrArr, nodeIdStr)
+			tempMap[nodeIdStr] = nodeId
+		}
+
+		sort.Strings(nodeIdStrArr)
+
+		dependencyArr := make([]*TicketDependency, 0)
+
+
+		for _, nodeIdStr := range nodeIdStrArr {
+			nodeId := tempMap[nodeIdStr]
+
+			depen := dependencys[nodeId]
+
+			if depen.Num == 0 && len(depen.Tinfo) == 0 {
+				continue
+			}
+
+			fieldArr := make([]*Field, len(depen.Tinfo))
+
+
+			for i, field := range depen.Tinfo {
+
+				f := &Field{
+					TxHash:		field.TxHash.String(),
+					Remaining: 	field.Remaining,
+					Price: 		field.Price.String(),
+				}
+				fieldArr[i] = f
+			}
+
+			depenInfo := &TicketDependency{
+				//Age:  dependency.Age,
+				Num:  depen.Num,
+				//Tids: tidArr,
+				Tinfo: 	fieldArr,
+			}
+
+			dependencyArr = append(dependencyArr, depenInfo)
+
+		}
+
+		return nodeIdStrArr, dependencyArr
+	}
+
+
+	sortTemp := new(SortTemp)
+
+	var wg sync.WaitGroup
+	wg.Add(7)
+
+	resqueue := make([][]*CandidateInfo, 5)
+
+	/**
+	calculate can dependency Hash
+	*/
+	go func() {
+		resqueue[0] = buildPBcanqueue(p.c_storage.pres)
+		wg.Done()
+	}()
+
+	go func() {
+		resqueue[1] = buildPBcanqueue(p.c_storage.currs)
+		wg.Done()
+	}()
+
+	go func() {
+		resqueue[2] = buildPBcanqueue(p.c_storage.nexts)
+		wg.Done()
+	}()
+
+	go func() {
+		resqueue[3] = buildPBcanqueue(p.c_storage.imms)
+		wg.Done()
+	}()
+
+	go func() {
+		resqueue[4] = buildPBcanqueue(p.c_storage.res)
+		wg.Done()
+	}()
+
+	go func() {
+		refundNodeIdArr, refundArr := RefundIdQueueFunc(p.c_storage.refunds)
+		sortTemp.ReIds = refundNodeIdArr
+		sortTemp.Refunds = refundArr
+		wg.Done()
+	}()
+
+	// calculate tick dependency Hash
+	go func() {
+		dependencyNodeIdArr, dependencyArr := DependencyFunc(p.t_storage.Dependencys)
+		sortTemp.NodeIds = dependencyNodeIdArr
+		sortTemp.Deps = dependencyArr
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	// assemble data
+	sortTemp.Sq = p.t_storage.Sq
+
+	for _, canArr := range resqueue {
+		if len(canArr) != 0 {
+			sortTemp.Cans = append(sortTemp.Cans, canArr...)
+		}
+	}
+
+	PrintObject("Call CalculateHash build SortTemp: + blockNumber:" + blockNumber.String() + ",blockHash:" + blockHash.Hex() + ", sortTemp", sortTemp)
+
+	log.Debug("Call CalculateHash build SortTemp success ...","blockNumber", blockNumber, "blockHash", blockHash.Hex(), "Build data Time spent", start.End())
+
+	data, err := proto.Marshal(sortTemp)
+	if err != nil {
+		log.Error("Failed to Call CalculateHash, protobuf is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),  "err", err)
+		return common.Hash{}, err
+	}
+	log.Debug("Call CalculateHash protobuf success ...", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),  "Made protobuf Time spent", start.End())
+	ret := crypto.Keccak256Hash(data)
+	log.Debug("Call CalculateHash finish ...", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "proto out len", len(data), "ppos storage Hash", ret.Hex(), "Total Time spent", start.End())
+	return ret, nil
+
 }
