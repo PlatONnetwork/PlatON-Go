@@ -380,11 +380,7 @@ func (d *ppos) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price
 }
 
 // Getting all  elected candidates array
-<<<<<<< HEAD
-func (d *ppos) GetChosens(state vm.StateDB, flag int) []*types.Candidate {
-=======
 func (d *ppos) GetChosens(state vm.StateDB, flag int) types.KindCanQueue {
->>>>>>> localdev/develop
 	return d.candidateContext.GetChosens(state, flag)
 }
 
@@ -424,13 +420,10 @@ func (d *ppos) GetPoolNumber(state vm.StateDB) (uint64, error) {
 	return d.ticketContext.GetPoolNumber(state)
 }
 
-<<<<<<< HEAD
-=======
 func (d *ppos) GetMaxPoolNumber() uint64 {
 	return d.ticketContext.GetMaxPoolNumber()
 }
 
->>>>>>> localdev/develop
 func (d *ppos) VoteTicket(state vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
 	return d.ticketContext.VoteTicket(state, owner, voteNumber, deposit, nodeId, blockNumber)
 }
@@ -455,8 +448,6 @@ func (d *ppos) GetTicketPrice(state vm.StateDB) (*big.Int, error) {
 	return d.ticketContext.GetTicketPrice(state)
 }
 
-<<<<<<< HEAD
-=======
 func (d *ppos) GetLowestTicketPrice() *big.Int {
 	return d.ticketContext.GetLowestTicketPrice()
 }
@@ -465,7 +456,6 @@ func (d *ppos) GetAdjustCycle() *big.Int {
 	return d.ticketContext.GetAdjustPriceCycle()
 }
 
->>>>>>> localdev/develop
 func (d *ppos) GetCandidateAttach(state vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
 	return d.ticketContext.GetCandidateAttach(state, nodeId)
 }
@@ -983,10 +973,7 @@ func (d *ppos) setTicketPoolCache() {
 func (p *ppos) ForEachStorage(state *state.StateDB, title string) {
 	p.candidateContext.ForEachStorage(state, title)
 }
-<<<<<<< HEAD
-=======
 
 func (p *ppos) MaxChair() uint64 {
 	return p.candidateContext.MaxChair()
 }
->>>>>>> localdev/develop

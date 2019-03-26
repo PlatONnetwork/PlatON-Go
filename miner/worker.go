@@ -1158,13 +1158,8 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		}
 		// Start executing the transaction
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
-<<<<<<< HEAD
-		log.Debug("commit transaction", "hash", tx.Hash(), "sender", from, "nonce", tx.Nonce())
-
-=======
 
 		log.Debug("commit transaction", "hash", tx.Hash(), "sender", from, "nonce", tx.Nonce())
->>>>>>> localdev/develop
 		logs, err := w.commitTransaction(tx, coinbase)
 		switch err {
 		case core.ErrGasLimitReached:
@@ -1320,11 +1315,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
 		if _, ok := w.engine.(consensus.Bft); !ok {
-<<<<<<< HEAD
-			// TODO
-			//w.forEachStorage(w.current.state, "【The Consensus packaging】,Before executing the transaction")
-=======
->>>>>>> localdev/develop
 			w.commit(uncles, nil, false, tstart, nil)
 		}
 	}
@@ -1343,11 +1333,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
 		if _, ok := w.engine.(consensus.Bft); ok {
-<<<<<<< HEAD
-=======
 			// TODO
 			//w.forEachStorage(w.current.state, "【The Consensus packaging】,Before executing the transaction")
->>>>>>> localdev/develop
 			w.commit(uncles, nil, true, tstart, header)
 		} else {
 			w.updateSnapshot()
@@ -1406,13 +1393,10 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	}
 
 	s := w.current.state.Copy()
-<<<<<<< HEAD
-=======
 	root := s.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
 	log.Debug("【The Consensus packaging】After executing the transaction, Before call the notify series func", "blockNumber", header.Number.Uint64(), "block.root", header.Root.Hex(), "Real-time state.root", root.Hex())
 	//w.forEachStorage(w.current.state, "【The Consensus packaging】,After executing the transaction，Before call the notify series func")
 
->>>>>>> localdev/develop
 	if header != nil {
 		if err := w.notify(s, header.Number); err != nil {
 			return errors.New("notify failure")
@@ -1428,10 +1412,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		// ppos Store Hash
 		w.storeHash(s)
 	}
-<<<<<<< HEAD
-=======
 
->>>>>>> localdev/develop
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 
 	if err != nil {

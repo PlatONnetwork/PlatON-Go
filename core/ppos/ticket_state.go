@@ -2,10 +2,7 @@ package pposm
 
 import (
 	"errors"
-<<<<<<< HEAD
-=======
 	"fmt"
->>>>>>> localdev/develop
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
@@ -22,27 +19,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-<<<<<<< HEAD
-	"fmt"
-)
-
-var (
-	TicketPoolNilErr          = errors.New("Ticket Insufficient quantity")
-	TicketPoolOverflowErr     = errors.New("Number of ticket pool overflow")
-	EncodeTicketErr           = errors.New("Encode Ticket error")
-	EncodePoolNumberErr       = errors.New("Encode SurplusQuantity error")
-	DecodeTicketErr           = errors.New("Decode Ticket error")
-	DecodePoolNumberErr       = errors.New("Decode SurplusQuantity error")
-	RecordExpireTicketErr     = errors.New("Record Expire Ticket error")
-	CandidateNotFindErr 	  = errors.New("The Candidate not find")
-	CandidateNilTicketErr     = errors.New("This candidate has no ticket")
-	TicketPoolBalanceErr      = errors.New("TicketPool not sufficient funds")
-	TicketIdNotFindErr        = errors.New("TicketId not find")
-	HandleExpireTicketErr     = errors.New("Failure to deal with expired tickets")
-	GetCandidateAttachErr     = errors.New("Get CandidateAttach error")
-	SetCandidateAttachErr     = errors.New("Update CandidateAttach error")
-	VoteTicketErr        	  = errors.New("Voting failed")
-=======
 )
 
 var (
@@ -61,18 +37,13 @@ var (
 	GetCandidateAttachErr = errors.New("Get CandidateAttach error")
 	SetCandidateAttachErr = errors.New("Update CandidateAttach error")
 	VoteTicketErr         = errors.New("Voting failed")
->>>>>>> localdev/develop
 )
 
 type TicketPool struct {
 	// Ticket price
-<<<<<<< HEAD
-	TicketPrice *big.Int
-=======
 	LowestTicketPrice *big.Int
 	//adjust cycle
 	AdjustCycle *big.Int
->>>>>>> localdev/develop
 	// Maximum number of ticket pool
 	MaxCount uint64
 	// Reach expired quantity
@@ -91,24 +62,15 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 	if "" == strings.TrimSpace(configs.TicketConfig.TicketPrice) {
 		configs.TicketConfig.TicketPrice = "100000000000000000000"
 	}
-<<<<<<< HEAD
-	var ticketPrice *big.Int
-=======
 	if "" == strings.TrimSpace(configs.TicketConfig.AdjustCycle) {
 		configs.TicketConfig.AdjustCycle = "10000"
 	}
 	var ticketPrice, adjustCycle *big.Int
->>>>>>> localdev/develop
 	if price, ok := new(big.Int).SetString(configs.TicketConfig.TicketPrice, 10); !ok {
 		ticketPrice, _ = new(big.Int).SetString("100000000000000000000", 10)
 	} else {
 		ticketPrice = price
 	}
-<<<<<<< HEAD
-
-	ticketPool := &TicketPool{
-		TicketPrice:       ticketPrice,
-=======
 	if cycle, ok := new(big.Int).SetString(configs.TicketConfig.AdjustCycle, 10); !ok {
 		adjustCycle, _ = new(big.Int).SetString("10000", 10)
 	} else {
@@ -118,7 +80,6 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 	ticketPool := &TicketPool{
 		LowestTicketPrice:       ticketPrice,
 		AdjustCycle:			adjustCycle,
->>>>>>> localdev/develop
 		MaxCount:          configs.TicketConfig.MaxCount,
 		ExpireBlockNumber: configs.TicketConfig.ExpireBlockNumber,
 		lock:              &sync.Mutex{},
@@ -178,11 +139,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 
 			ticketId, _ := generateTicketId(stateDB.TxHash(), i)
 
-<<<<<<< HEAD
-			log.Debug("Call Voting parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", stateDB), "ticketId", ticketId.String())
-=======
 			log.Debug("Call Voting parent routine "+parentRoutineID, "statedb addr", fmt.Sprintf("%p", stateDB), "ticketId", ticketId.String())
->>>>>>> localdev/develop
 
 			ticket := &types.Ticket{
 				TicketId:    ticketId,
@@ -308,11 +265,7 @@ func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, expireBlockNumber *b
 	if err != nil {
 		return nil, err
 	}
-<<<<<<< HEAD
-	log.Info("Pending ticket to be processed", "amount", len(ticketIdList), "blockNumber", expireBlockNumber.Uint64())
-=======
 	log.Info("Pending ticket to be processed", "amount", len(ticketIdList), "expireBlockNumber", expireBlockNumber.Uint64(), "currentBlockNumber", currentBlockNumber.Uint64())
->>>>>>> localdev/develop
 	candidateAttachMap := make(map[discover.NodeID]*types.CandidateAttach)
 	changeNodeIdList := make([]discover.NodeID, 0)
 	for _, ticketId := range ticketIdList {
@@ -391,11 +344,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 	log.Debug("Call DropReturnTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
 	log.Info("Start processing tickets for the drop list on DropReturnTicket", "candidateNum", len(nodeIds), "blockNumber", blockNumber.Uint64())
 	for _, nodeId := range nodeIds {
-<<<<<<< HEAD
-		if  nodeId == (discover.NodeID{}) {
-=======
 		if nodeId == (discover.NodeID{}) {
->>>>>>> localdev/develop
 			continue
 		}
 		candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
@@ -544,22 +493,6 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int) error {
 func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-<<<<<<< HEAD
-	candidateList := cContext.GetChosens(stateDB, 0)
-	for _, candidate := range candidateList {
-		candidateAttach, err := t.GetCandidateAttach(stateDB, candidate.CandidateId)
-		if nil != err {
-			return err
-		}
-		// Get the total number of votes, increase the total epoch
-		ticketCount := stateDB.TCount(candidate.CandidateId)
-		log.Debug("increase the total epoch", "candidateId", candidate.CandidateId.String(), "ticketCount", ticketCount)
-		if ticketCount > 0 {
-			candidateAttach.AddEpoch(new(big.Int).SetUint64(ticketCount))
-			if err := t.setCandidateAttach(stateDB, candidate.CandidateId, candidateAttach); nil != err {
-				return err
-			}
-=======
 	kindCandidateList := cContext.GetChosens(stateDB, 0)
 	for _, candidateList := range kindCandidateList {
 		for _, candidate := range candidateList {
@@ -576,7 +509,6 @@ func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int
 					return err
 				}
 			}
->>>>>>> localdev/develop
 		}
 	}
 	return nil
@@ -736,15 +668,11 @@ func (t *TicketPool) GetCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeI
 }
 
 func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) (*big.Int, error) {
-<<<<<<< HEAD
-	return t.TicketPrice, nil
-=======
 	price := new(big.Int)
 	if err := getTicketPoolState(stateDB, GetTicketPriceKey(), price); err!=nil {
 		return nil, err
 	}
 	return price, nil
->>>>>>> localdev/develop
 }
 
 // Save the hash value of the current state of the ticket pool
@@ -815,13 +743,10 @@ func GetSurplusQuantityKey() []byte {
 	return addCommonPrefix(SurplusQuantityKey)
 }
 
-<<<<<<< HEAD
-=======
 func GetTicketPriceKey() []byte {
 	return addCommonPrefix(TicketPriceKey)
 }
 
->>>>>>> localdev/develop
 func addCommonPrefix(key []byte) []byte {
 	return append(common.TicketPoolAddr.Bytes(), key...)
 }
@@ -843,8 +768,6 @@ func findFirstMatch(list []float64, key float64) int {
 	}
 	return left
 }
-<<<<<<< HEAD
-=======
 
 
 func SetTicketPrice(stateDB vm.StateDB, price *big.Int) {
@@ -864,4 +787,3 @@ func (t *TicketPool) GetAdjustPriceCycle() (*big.Int){
 func (t *TicketPool) GetMaxPoolNumber() uint64 {
 	return t.MaxCount
 }
->>>>>>> localdev/develop

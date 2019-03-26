@@ -10,11 +10,8 @@ type CanConditions map[discover.NodeID]*big.Int
 
 type CandidateQueue []*Candidate
 
-<<<<<<< HEAD
-=======
 type KindCanQueue []CandidateQueue
 
->>>>>>> localdev/develop
 func compare(cand CanConditions, c, can *Candidate) int {
 	// put the larger deposit in front
 	if cand[c.CandidateId].Cmp(cand[can.CandidateId]) > 0 /* c.Deposit.Cmp(can.Deposit) > 0*/ {

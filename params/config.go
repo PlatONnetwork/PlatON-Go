@@ -132,21 +132,14 @@ var (
 				CandidateConfig: &CandidateConfig{
 					Threshold:         "1000000000000000000000000",
 					DepositLimit:      10,
-<<<<<<< HEAD
-					Allowed:           512,
-=======
 					Allowed:           100,
->>>>>>> localdev/develop
 					MaxChair:          10,
 					MaxCount:          100,
 					RefundBlockNumber: 512,
 				},
 				TicketConfig: &TicketConfig{
 					TicketPrice:       "100000000000000000000",
-<<<<<<< HEAD
-=======
 					AdjustCycle:		"10000",
->>>>>>> localdev/develop
 					MaxCount:          51200,
 					ExpireBlockNumber: 1536000,
 				},
@@ -264,10 +257,7 @@ type CandidateConfig struct {
 
 type TicketConfig struct {
 	TicketPrice       string
-<<<<<<< HEAD
-=======
 	AdjustCycle		  string
->>>>>>> localdev/develop
 	MaxCount          uint64
 	ExpireBlockNumber uint64
 }

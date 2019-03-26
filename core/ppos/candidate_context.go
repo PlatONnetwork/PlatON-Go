@@ -52,11 +52,7 @@ func (c *CandidatePoolContext) WithdrawCandidate(state vm.StateDB, nodeId discov
 	return c.initCandidatePool().WithdrawCandidate(state, nodeId, price, blockNumber)
 }
 
-<<<<<<< HEAD
-func (c *CandidatePoolContext) GetChosens(state vm.StateDB, flag int) types.CandidateQueue {
-=======
 func (c *CandidatePoolContext) GetChosens(state vm.StateDB, flag int) types.KindCanQueue {
->>>>>>> localdev/develop
 	return c.initCandidatePool().GetChosens(state, flag)
 }
 

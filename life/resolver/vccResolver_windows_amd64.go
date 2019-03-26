@@ -8,10 +8,7 @@ package resolver
 import "C"
 import (
 	"github.com/PlatONnetwork/PlatON-Go/life/exec"
-<<<<<<< HEAD
-=======
 	"github.com/PlatONnetwork/PlatON-Go/log"
->>>>>>> localdev/develop
 )
 
 // define: void vc_InitGadgetEnv();
@@ -95,10 +92,6 @@ func envGenProofAndResultGasCost(vm *exec.VirtualMachine) (uint64, error) {
 // define: uint8_t vc_Verify(const char *pVKEY, int32_t pkSize, const char *pPoorf, int32_t prSize,
 //					const char *pInput, int32_t inSize, const char *pOutput, int32_t outSize);
 func envVerifyEnv(vm *exec.VirtualMachine) int64 {
-<<<<<<< HEAD
-
-	return int64(0)
-=======
 	// get parameters
 	vkOffset := int(int32(vm.GetCurrentFrame().Locals[0]))
 	vkSize := int(int32(vm.GetCurrentFrame().Locals[1]))
@@ -132,7 +125,6 @@ func envVerifyEnv(vm *exec.VirtualMachine) int64 {
 	//defer C.free(unsafe.Pointer(c_in))
 	//defer C.free(unsafe.Pointer(c_out))
 	return int64(retVal)
->>>>>>> localdev/develop
 }
 
 func envVerifyGasCost(vm *exec.VirtualMachine) (uint64, error) {

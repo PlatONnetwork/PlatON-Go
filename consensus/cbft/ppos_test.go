@@ -82,11 +82,7 @@ func buildPpos() (*ppos, *core.BlockChain) {
 	}
 	ppos := &ppos{
 		candidateContext:  pposm.NewCandidatePoolContext(&configs),
-<<<<<<< HEAD
-		ticketPool: pposm.NewTicketPool(&configs),
-=======
 		ticketContext: pposm.NewTicketPoolContext(&configs),
->>>>>>> localdev/develop
 	}
 
 	var (
@@ -123,11 +119,7 @@ func buildInitialNodes() []discover.Node {
 func TestNewPpos (t *testing.T) {
 	ppos, _ := buildPpos()
 	printObject("ppos.candidatePoolText:", ppos.candidateContext, t)
-<<<<<<< HEAD
-	printObject("ppos.ticketPool:", ppos.ticketPool, t)
-=======
 	printObject("ppos.ticketPool:", ppos.ticketContext, t)
->>>>>>> localdev/develop
 }
 
 // test BlockProducerIndex

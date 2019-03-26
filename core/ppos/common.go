@@ -32,11 +32,8 @@ const (
 	CandidateAttach	= "ca"
 	// Ticket pool hash
 	TicketPoolHash	= "tph"
-<<<<<<< HEAD
-=======
 	//Ticket Price
 	TicketPrice = "tpr"
->>>>>>> localdev/develop
 
 )
 
@@ -83,9 +80,6 @@ var (
 
 	TicketPoolHashKey			= []byte(TicketPoolHash)
 
-<<<<<<< HEAD
-=======
 	TicketPriceKey				= []byte(TicketPrice)
 
->>>>>>> localdev/develop
 )

@@ -17,10 +17,7 @@
 package core
 
 import (
-<<<<<<< HEAD
-=======
 	"encoding/hex"
->>>>>>> localdev/develop
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
@@ -77,13 +74,10 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	for i, tx := range block.Transactions() {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
-<<<<<<< HEAD
-=======
 		log.Debug("process tx receipt", "hash", tx.Hash(), "PostState", hex.EncodeToString(receipt.PostState), "bloom", hex.EncodeToString(receipt.Bloom.Bytes()))
 		for _, l := range receipt.Logs {
 			log.Debug("logs", "data", hex.EncodeToString(l.Data))
 		}
->>>>>>> localdev/develop
 		if err != nil {
 			return nil, nil, 0, err
 		}
