@@ -27,10 +27,17 @@ const (
 
 type ticketPoolContext interface {
 	VoteTicket(stateDB StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error)
+<<<<<<< HEAD
 	GetTicket(stateDB StateDB, ticketId common.Hash) (*types.Ticket, error)
 	GetTicketList(stateDB StateDB, ticketIds []common.Hash) ([]*types.Ticket, error)
 	GetCandidateTicketIds(stateDB StateDB, nodeId discover.NodeID) ([]common.Hash, error)
 	GetCandidatesTicketIds(stateDB StateDB, nodeIds []discover.NodeID) (map[discover.NodeID][]common.Hash, error)
+=======
+	/*GetTicket(stateDB StateDB, ticketId common.Hash) (*types.Ticket, error)
+	GetTicketList(stateDB StateDB, ticketIds []common.Hash) ([]*types.Ticket, error)
+	GetCandidateTicketIds(stateDB StateDB, nodeId discover.NodeID) ([]common.Hash, error)
+	GetCandidatesTicketIds(stateDB StateDB, nodeIds []discover.NodeID) (map[discover.NodeID][]common.Hash, error)*/
+>>>>>>> localdev/develop
 	GetCandidatesTicketCount(stateDB StateDB, nodeIds []discover.NodeID) (map[discover.NodeID]int, error)
 	GetCandidateEpoch(stateDB StateDB, nodeId discover.NodeID) (uint64, error)
 	GetPoolNumber(stateDB StateDB) (uint64, error)
@@ -52,11 +59,19 @@ func (t *TicketContract) Run(input []byte) ([]byte, error) {
 		return nil, ErrTicketPoolEmpty
 	}
 	var command = map[string]interface{}{
+<<<<<<< HEAD
 		"VoteTicket":                   t.VoteTicket,
 		"GetTicketDetail":              t.GetTicketDetail,
 		"GetBatchTicketDetail":         t.GetBatchTicketDetail,
 		"GetCandidateTicketIds":        t.GetCandidateTicketIds,
 		"GetBatchCandidateTicketIds":   t.GetBatchCandidateTicketIds,
+=======
+		"VoteTicket": t.VoteTicket,
+		/*"GetTicketDetail":              t.GetTicketDetail,
+		"GetBatchTicketDetail":         t.GetBatchTicketDetail,
+		"GetCandidateTicketIds":        t.GetCandidateTicketIds,
+		"GetBatchCandidateTicketIds":   t.GetBatchCandidateTicketIds,*/
+>>>>>>> localdev/develop
 		"GetBatchCandidateTicketCount": t.GetBatchCandidateTicketCount,
 		"GetCandidateEpoch":            t.GetCandidateEpoch,
 		"GetPoolRemainder":             t.GetPoolRemainder,
@@ -125,7 +140,11 @@ func (t *TicketContract) VoteTicket(count uint64, price *big.Int, nodeId discove
 	return sdata, nil
 }
 
+<<<<<<< HEAD
 // GetTicketDetail returns the ticket info.
+=======
+/*// GetTicketDetail returns the ticket info.
+>>>>>>> localdev/develop
 func (t *TicketContract) GetTicketDetail(ticketId common.Hash) ([]byte, error) {
 	log.Info("Input to GetTicketDetail==> ", "ticketId: ", ticketId.Hex())
 	ticket, err := t.Evm.TicketPoolContext.GetTicket(t.Evm.StateDB, ticketId)
@@ -193,7 +212,11 @@ func (t *TicketContract) GetBatchCandidateTicketIds(nodeIds []discover.NodeID) (
 	sdata := DecodeResultStr(string(data))
 	log.Info("Result of GetBatchCandidateTicketIds==> ", "len(candidatesTicketIds): ", len(candidatesTicketIds), "json: ", string(data))
 	return sdata, nil
+<<<<<<< HEAD
 }
+=======
+}*/
+>>>>>>> localdev/develop
 
 // GetBatchCandidateTicketCount returns the number of candidate's ticket.
 func (t *TicketContract) GetBatchCandidateTicketCount(nodeIds []discover.NodeID) ([]byte, error) {

@@ -1,20 +1,34 @@
 package consensus
 
 import (
+<<<<<<< HEAD
+=======
+	"errors"
+>>>>>>> localdev/develop
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+<<<<<<< HEAD
 	"errors"
 	"github.com/hashicorp/golang-lru"
 )
+=======
+	"github.com/hashicorp/golang-lru"
+)
+
+>>>>>>> localdev/develop
 var (
 	ExtraSeal = 65 // Fixed number of extra-data suffix bytes reserved for signer seal
 	// ErrMissingSignature is returned if a block's extra-data section doesn't seem
 	// to contain a 65 byte secp256k1 signature.
 	ErrMissingSignature = errors.New("extra-data 65 byte signature suffix missing")
 )
+<<<<<<< HEAD
+=======
+
+>>>>>>> localdev/develop
 // SigHash returns the hash which is used as input for the proof-of-authority
 // signing. It is the hash of the entire header apart from the 65 byte signature
 // contained at the end of the extra data.
@@ -56,7 +70,11 @@ func Ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	if len(header.Extra) < ExtraSeal {
 		return common.Address{}, ErrMissingSignature
 	}
+<<<<<<< HEAD
 	signature := header.Extra[len(header.Extra)-ExtraSeal:]
+=======
+	signature := header.Extra[32:97]
+>>>>>>> localdev/develop
 
 	// Recover the public key and the Ethereum address
 	pubkey, err := crypto.Ecrecover(SigHash(header).Bytes(), signature)

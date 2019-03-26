@@ -36,7 +36,11 @@ type candidatePoolContext interface {
 	GetCandidate(state StateDB, nodeId discover.NodeID) (*types.Candidate, error)
 	GetCandidateArr(state StateDB, nodeIds ...discover.NodeID) (types.CandidateQueue, error)
 	WithdrawCandidate(state StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error
+<<<<<<< HEAD
 	GetChosens(state StateDB, flag int) types.CandidateQueue
+=======
+	GetChosens(state StateDB, flag int) types.KindCanQueue
+>>>>>>> localdev/develop
 	GetChairpersons(state StateDB) types.CandidateQueue
 	GetDefeat(state StateDB, nodeId discover.NodeID) (types.CandidateQueue, error)
 	IsDefeat(state StateDB, nodeId discover.NodeID) (bool, error)
@@ -297,9 +301,15 @@ func (c *CandidateContract) GetBatchCandidateDetail(nodeIds []discover.NodeID) (
 // Get the current block candidate list
 func (c *CandidateContract) CandidateList() ([]byte, error) {
 	candidates := c.Evm.CandidatePoolContext.GetChosens(c.Evm.StateDB, 0)
+<<<<<<< HEAD
 	if 0 == len(candidates) {
 		log.Warn("Failed to CandidateList==> The query does not exist")
 		candidates := make([]types.Candidate, 0)
+=======
+	if 0 == len(candidates[0]) && 0 == len(candidates[1]) {
+		log.Warn("Failed to CandidateList==> The query does not exist")
+		candidates := make(types.KindCanQueue, 0)
+>>>>>>> localdev/develop
 		data, _ := json.Marshal(candidates)
 		sdata := DecodeResultStr(string(data))
 		return sdata, nil

@@ -52,13 +52,21 @@ var DefaultConfig = Config{
 			Candidate: &CandidateConfig{
 				Threshold: 			"1000000000000000000000000",
 				DepositLimit: 	  	10,
+<<<<<<< HEAD
 				Allowed: 			512,
+=======
+				Allowed: 			100,
+>>>>>>> localdev/develop
 				MaxChair:          	10,
 				MaxCount:          	100,
 				RefundBlockNumber: 	512,
 			},
 			Ticket: &TicketConfig{
 				TicketPrice: 		"100000000000000000000",
+<<<<<<< HEAD
+=======
+				AdjustCycle:		"10000",
+>>>>>>> localdev/develop
 				MaxCount:			51200,
 				ExpireBlockNumber: 	1536000,
 			},
@@ -189,6 +197,10 @@ type CandidateConfig struct {
 }
 type TicketConfig struct {
 	TicketPrice 		string 						`json:"ticketPrice"`
+<<<<<<< HEAD
+=======
+	AdjustCycle			string						`json:"adjustCycle"`
+>>>>>>> localdev/develop
 	// Maximum number of ticket pool
 	MaxCount				uint64					`json:"maxCount"`
 	// Reach expired quantity
