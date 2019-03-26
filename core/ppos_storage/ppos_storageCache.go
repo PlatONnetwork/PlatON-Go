@@ -827,6 +827,7 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 	// declare can refund func
 	RefundIdQueueFunc := func(refundMap refundStorage) ([]string, []*RefundArr) {
 
+
 		if len(refundMap) == 0 {
 			return nil, nil
 		}
@@ -835,13 +836,17 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 
 		tempMap := make(map[string]discover.NodeID, len(refundMap))
 
+		var i int = 0
+
 		for nodeId := range refundMap {
 
 			nodeIdStr := nodeId.String()
 
-			nodeIdStrArr = append(nodeIdStrArr, nodeIdStr)
-			tempMap[nodeIdStr] = nodeId
+			nodeIdStrArr[i]= nodeIdStr
 
+			tempMap[nodeIdStr] = nodeId
+			
+			i ++
 		}
 
 		sort.Strings(nodeIdStrArr)
@@ -878,6 +883,8 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 
 	// declare can dependency func
 	DependencyFunc := func(dependencys map[discover.NodeID]*ticketDependency) ([]string, []*TicketDependency) {
+
+
 		if len(dependencys) == 0 {
 			return nil, nil
 		}
@@ -886,11 +893,18 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 
 		tempMap := make(map[string]discover.NodeID, len(dependencys))
 
+
+		var i int = 0
 		for nodeId := range dependencys {
+
+
 			nodeIdStr := nodeId.String()
 
-			nodeIdStrArr = append(nodeIdStrArr, nodeIdStr)
+			nodeIdStrArr[i] = nodeIdStr
+
 			tempMap[nodeIdStr] = nodeId
+
+			i++
 		}
 
 		sort.Strings(nodeIdStrArr)
@@ -900,6 +914,7 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 
 		for _, nodeIdStr := range nodeIdStrArr {
 			nodeId := tempMap[nodeIdStr]
+
 
 			depen := dependencys[nodeId]
 
@@ -996,7 +1011,7 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 		}
 	}
 
-	PrintObject("Call CalculateHash build SortTemp: + blockNumber:" + blockNumber.String() + ",blockHash:" + blockHash.Hex() + ", sortTemp", sortTemp)
+	PrintObject("Call CalculateHash build SortTemp: blockNumber:" + blockNumber.String() + ",blockHash:" + blockHash.Hex() + ", sortTemp", sortTemp)
 
 	log.Debug("Call CalculateHash build SortTemp success ...","blockNumber", blockNumber, "blockHash", blockHash.Hex(), "Build data Time spent", start.End())
 
