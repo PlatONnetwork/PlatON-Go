@@ -15,13 +15,12 @@ import (
 )
 
 var (
-	ErrOwnerNotOnly       = errors.New("Node ID cannot bind multiple owners")
-	ErrPermissionDenied   = errors.New("Transaction from address permission denied")
-	ErrFeeIllegal         = errors.New("The fee is illegal")
-	ErrDepositEmpty       = errors.New("Deposit balance not zero")
-	ErrWithdrawEmpty      = errors.New("No withdrawal amount")
-	ErrCandidatePoolEmpty = errors.New("Candidate Pool is null")
-	ErrCandidateNotExist  = errors.New("The candidate is not exist")
+	ErrPermissionDenied      = errors.New("Transaction from address permission denied")
+	ErrFeeIllegal            = errors.New("The fee is illegal")
+	ErrDepositEmpty          = errors.New("Deposit balance not zero")
+	ErrWithdrawEmpty         = errors.New("No withdrawal amount")
+	ErrCandidatePoolEmpty    = errors.New("Candidate Pool is null")
+	ErrCandidateNotExist     = errors.New("The candidate is not exist")
 	ErrCandidateAlreadyExist = errors.New("The candidate is already exist")
 )
 
@@ -223,16 +222,11 @@ func (c *CandidateContract) GetCandidateWithdrawInfos(nodeId discover.NodeID) ([
 		LockNumber     *big.Int
 		LockBlockCycle uint32
 	}
-	type WithdrawInfos struct {
-		Ret    bool
-		ErrMsg string
-		Infos  []WithdrawInfo
-	}
-	r := WithdrawInfos{true, "success", make([]WithdrawInfo, len(refunds))}
+	r := make([]WithdrawInfo, len(refunds))
 	for i, v := range refunds {
 		refundBlockNumber := c.Evm.CandidatePoolContext.GetRefundInterval()
 		log.Debug("Call CandidateWithdrawInfos", "Deposit", v.Deposit, "BlockNumber", v.BlockNumber, "RefundBlockNumber", refundBlockNumber)
-		r.Infos[i] = WithdrawInfo{v.Deposit, v.BlockNumber, refundBlockNumber}
+		r[i] = WithdrawInfo{v.Deposit, v.BlockNumber, refundBlockNumber}
 	}
 	data, _ := json.Marshal(r)
 	sdata := DecodeResultStr(string(data))
