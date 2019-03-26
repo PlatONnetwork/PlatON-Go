@@ -1013,16 +1013,16 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 
 	//PrintObject("Call CalculateHash build SortTemp: blockNumber:" + blockNumber.String() + ",blockHash:" + blockHash.Hex() + ", sortTemp", sortTemp)
 
-	log.Debug("Call CalculateHash build SortTemp success ...","blockNumber", blockNumber, "blockHash", blockHash.Hex(), "Build data Time spent", start.End())
+	log.Debug("Call CalculateHash build SortTemp success ...","blockNumber", blockNumber, "blockHash", blockHash.Hex(), "Build data Time spent", fmt.Sprintf("%v ms", start.End()))
 
 	data, err := proto.Marshal(sortTemp)
 	if err != nil {
 		log.Error("Failed to Call CalculateHash, protobuf is failed", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),  "err", err)
 		return common.Hash{}, err
 	}
-	log.Debug("Call CalculateHash protobuf success ...", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),  "Made protobuf Time spent", start.End())
+	log.Debug("Call CalculateHash protobuf success ...", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),  "Made protobuf Time spent", fmt.Sprintf("%v ms", start.End()))
 	ret := crypto.Keccak256Hash(data)
-	log.Debug("Call CalculateHash finish ...", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "proto out len", len(data), "ppos storage Hash", ret.Hex(), "Total Time spent", start.End())
+	log.Debug("Call CalculateHash finish ...", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "proto out len", len(data), "ppos storage Hash", ret.Hex(), "Total Time spent", fmt.Sprintf("%v ms", start.End()))
 	return ret, nil
 
 }
