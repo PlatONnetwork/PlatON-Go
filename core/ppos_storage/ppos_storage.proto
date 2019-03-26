@@ -25,7 +25,7 @@ message Refund {
 }
 
 message RefundArr {
-    repeated Refund  Defeats = 1;
+    repeated Refund Defeats = 1;
 }
 
 message CandidateTemp {
@@ -42,7 +42,6 @@ message CandidateTemp {
     map<string, RefundArr> refunds = 6;
 }
 
-
 //message TicketInfo {
 //    bytes   Owner 	    = 1;
 //	string  Deposit	    =2;
@@ -57,22 +56,22 @@ message CandidateTemp {
 
 
 message Field {
-    string   TxHash = 1;
-    uint32  Remaining = 2;
-    string  Price = 3;
+    string TxHash = 1;
+    uint32 Remaining = 2;
+    string Price = 3;
 }
 
 message TicketDependency {
-//    uint64  Age = 1;
-    uint32  Num = 2;
-//    repeated bytes  Tids = 3;
-    repeated Field  Tinfo = 3;
+    //    uint64  Age = 1;
+    uint32 Num = 2;
+    //    repeated bytes  Tids = 3;
+    repeated Field Tinfo = 3;
 }
 
 message TicketTemp {
-    int32  Sq = 1;
-//    map<string, TicketInfo> Infos = 2;
-//    map<string, TxHashArr> Ets  = 3;
+    int32 Sq = 1;
+    //    map<string, TicketInfo> Infos = 2;
+    //    map<string, TxHashArr> Ets  = 3;
     map<string, TicketDependency> Dependencys = 4;
 }
 
@@ -84,6 +83,22 @@ message PB_PPosTemp {
     string BlockHash = 4;
 }
 
+// sort information
+
+message SortTemp {
+
+    // can dependency
+    repeated CandidateInfo cans = 1;
+    repeated string reIds = 2;
+    repeated RefundArr refunds = 3;
+
+    // tick dependency
+    int32 sq = 4;
+    repeated string nodeIds = 5;
+    repeated TicketDependency deps = 6;
+
+
+}
 
 
 

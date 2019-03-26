@@ -52,7 +52,7 @@ type CandidatePool struct {
 	// allow witness max count
 	maxChair uint32
 	// allow block interval for refunds
-	RefundBlockNumber uint32
+	refundBlockNumber uint32
 
 	// previous witness
 	preOriginCandidates candidateStorage
@@ -93,7 +93,7 @@ func NewCandidatePool(configs *params.PposConfig) *CandidatePool {
 		allowed:              configs.CandidateConfig.Allowed,
 		maxCount:             configs.CandidateConfig.MaxCount,
 		maxChair:             configs.CandidateConfig.MaxChair,
-		RefundBlockNumber:    configs.CandidateConfig.RefundBlockNumber,
+		refundBlockNumber:    configs.CandidateConfig.RefundBlockNumber,
 		preOriginCandidates:  make(candidateStorage, 0),
 		originCandidates:     make(candidateStorage, 0),
 		nextOriginCandidates: make(candidateStorage, 0),
@@ -567,7 +567,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 }
 
 func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) ([]discover.NodeID, error) {
-	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String(), "config.RefundBlockNumber", c.RefundBlockNumber)
+	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String(), "config.RefundBlockNumber", c.refundBlockNumber)
 	c.initData2Cache(state, GET_IM_RE)
 
 	if price.Cmp(new(big.Int).SetUint64(0)) <= 0 {
@@ -864,7 +864,7 @@ func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) commo
 // refund once
 func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
 
-	log.Info("Call RefundBalance:  curr nodeId = "+nodeId.String()+",curr blocknumber:"+blockNumber.String(), "config.RefundBlockNumber:", c.RefundBlockNumber)
+	log.Info("Call RefundBalance:  curr nodeId = "+nodeId.String()+",curr blocknumber:"+blockNumber.String(), "config.RefundBlockNumber:", c.refundBlockNumber)
 	c.initDataByState(state)
 	queue := c.getRefunds(nodeId)
 
@@ -885,8 +885,8 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	for index := 0; index < len(queue); index++ {
 		refund := queue[index]
 		sub := new(big.Int).Sub(blockNumber, refund.BlockNumber)
-		log.Info("Check defeat detail on RefundBalance", "nodeId:", nodeId.String(), "curr blocknumber:", blockNumber.String(), "setcandidate blocknumber:", refund.BlockNumber.String(), " diff:", sub.String(), "config.RefundBlockNumber", c.RefundBlockNumber)
-		if sub.Cmp(new(big.Int).SetUint64(uint64(c.RefundBlockNumber))) >= 0 { // allow refund
+		log.Info("Check defeat detail on RefundBalance", "nodeId:", nodeId.String(), "curr blocknumber:", blockNumber.String(), "setcandidate blocknumber:", refund.BlockNumber.String(), " diff:", sub.String(), "config.RefundBlockNumber", c.refundBlockNumber)
+		if sub.Cmp(new(big.Int).SetUint64(uint64(c.refundBlockNumber))) >= 0 { // allow refund
 
 			queue = append(queue[:index], queue[index+1:]...)
 			index--
@@ -894,7 +894,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 			amount = new(big.Int).Add(amount, refund.Deposit)
 
 		} else {
-			log.Warn("block height number had mismatch, No refunds allowed on RefundBalance", "current block height", blockNumber.String(), "deposit block height", refund.BlockNumber.String(), "nodeId", nodeId.String(), "allowed block interval", c.RefundBlockNumber)
+			log.Warn("block height number had mismatch, No refunds allowed on RefundBalance", "current block height", blockNumber.String(), "deposit block height", refund.BlockNumber.String(), "nodeId", nodeId.String(), "allowed block interval", c.refundBlockNumber)
 			continue
 		}
 
@@ -1016,7 +1016,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 }
 
 func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) ([]*discover.Node, types.CandidateQueue, error) {
-	log.Info("Call Election start ...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.RefundBlockNumber)
+	log.Info("Call Election start ...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.refundBlockNumber)
 	c.initDataByState(state)
 	imm_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
 
@@ -1367,8 +1367,8 @@ func (c *CandidatePool) GetWitnessCandidate(state vm.StateDB, nodeId discover.No
 }
 
 func (c *CandidatePool) GetRefundInterval() uint32 {
-	log.Info("Call GetRefundInterval", "RefundBlockNumber", c.RefundBlockNumber)
-	return c.RefundBlockNumber
+	log.Info("Call GetRefundInterval", "RefundBlockNumber", c.refundBlockNumber)
+	return c.refundBlockNumber
 }
 
 // According to the nodeId to ensure the current candidate's stay

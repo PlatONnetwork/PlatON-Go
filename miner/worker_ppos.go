@@ -136,8 +136,8 @@ func (w *worker) notify(state vm.StateDB, blockNumber *big.Int) error {
 	return w.engine.(consensus.Bft).Notify(state, blockNumber)
 }
 
-func (w *worker) storeHash(state *state.StateDB) {
-	w.engine.(consensus.Bft).StoreHash(state)
+func (w *worker) storeHash(state *state.StateDB, blockNumber *big.Int, blockHash common.Hash) {
+	w.engine.(consensus.Bft).StoreHash(state, blockNumber, blockHash)
 }
 
 func (w *worker) submit2cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash) {

@@ -371,6 +371,7 @@ func  (temp *PPOS_TEMP) GetPPosStorageProto() (common.Hash, []byte, error) {
 	start.Begin()
 	if data, err := temp.db.Get(PPOS_STORAGE_KEY); nil != err {
 		if ppos_empty_indb == err.Error() {
+			log.Debug("Call GetPPosStorageProto, ppos storage is empty in disk ...")
 			return common.Hash{}, nil, nil
 		}else {
 			log.Warn("Failed to Call GetPPosStorageProto to get Global ppos temp by levelDB", "err", err)
@@ -920,6 +921,11 @@ func buildPBdependencys(dependencys map[discover.NodeID]*ticketDependency) map[s
 		for i, ticketId := range dependency.Tids {
 			tidArr[i] = ticketId.Bytes()
 		}*/
+
+
+		if dependency.Num == 0 && len(dependency.Tinfo) == 0 {
+			continue
+		}
 
 		fieldArr := make([]*Field, len(dependency.Tinfo))
 

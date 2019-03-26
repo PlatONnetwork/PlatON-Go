@@ -172,7 +172,7 @@ type Bft interface {
 
 	Notify(state vm.StateDB, blockNumber *big.Int) error
 
-	StoreHash(state *state.StateDB)
+	StoreHash(state *state.StateDB, blockNumber *big.Int, blockHash common.Hash)
 
 	Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash)
 

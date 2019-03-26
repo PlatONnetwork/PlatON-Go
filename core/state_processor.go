@@ -117,7 +117,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		log.Warn("---结束调用Switch---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		// ppos Store Hash
 		log.Warn("---开始调用StoreHash---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
-		cbftEngine.StoreHash(statedb)
+		cbftEngine.StoreHash(statedb, block.Number(), block.Hash())
 		log.Warn("---结束调用StoreHash---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 	}
 

@@ -1874,8 +1874,8 @@ func (cbft *Cbft) Notify(state vm.StateDB, blockNumber *big.Int) error {
 	return cbft.ppos.Notify(state, blockNumber)
 }
 
-func (cbft *Cbft) StoreHash(state *state.StateDB) {
-	cbft.ppos.StoreHash(state)
+func (cbft *Cbft) StoreHash(state *state.StateDB, blockNumber *big.Int, blockHash common.Hash) {
+	cbft.ppos.StoreHash(state, blockNumber, blockHash)
 }
 
 func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash) {
@@ -1890,7 +1890,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	}
 	var nodeId discover.NodeID
 	var err error
-	log.Info("Call accumulateRewards block header", " extra: ", hexutil.Encode(header.Extra))
+	log.Debug("Call accumulateRewards block header", " extra: ", hexutil.Encode(header.Extra))
 	if ok := bytes.Equal(header.Extra[32:97], make([]byte, 65)); ok {
 		log.Warn("Call accumulateRewards block header extra[32:97] is empty!", "blockNumber", header.Number, "blockHash", header.Hash())
 		nodeId = cbft.config.NodeID

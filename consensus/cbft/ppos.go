@@ -464,11 +464,11 @@ func (p *ppos) Notify (state vm.StateDB, blockNumber *big.Int) error {
 	return p.ticketContext.Notify(state, blockNumber)
 }
 
-func (p *ppos) StoreHash (state *state.StateDB) {
-	/*if err := p.ticketContext.StoreHash(state); nil != err {
+func (p *ppos) StoreHash (state *state.StateDB, blockNumber *big.Int, blockHash common.Hash) {
+	if err := p.ticketContext.StoreHash(state, blockNumber, blockHash); nil != err {
 		log.Error("Failed to StoreHash", "err", err)
 		panic("Failed to StoreHash err" + err.Error())
-	}*/
+	}
 }
 
 func (p *ppos) Submit2Cache (state *state.StateDB, currBlocknumber,  blockInterval *big.Int, currBlockhash common.Hash) {

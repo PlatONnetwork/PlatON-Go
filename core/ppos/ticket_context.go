@@ -85,8 +85,8 @@ func (c *TicketPoolContext) Notify (state vm.StateDB, blockNumber *big.Int) erro
 	return c.initTicketPool().Notify(state, blockNumber)
 }
 
-func (c *TicketPoolContext) StoreHash (state vm.StateDB) error {
-	return c.initTicketPool().CommitHash(state)
+func (c *TicketPoolContext) StoreHash (state vm.StateDB, blockNumber *big.Int, blockHash common.Hash) error {
+	return c.initTicketPool().CommitHash(state, blockNumber, blockHash)
 }
 
 func (c *TicketPoolContext) GetCandidateTicketCount (state vm.StateDB, nodeId discover.NodeID) uint32 {

@@ -1403,32 +1403,32 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		*receipts[i] = *l
 	}
 
-	s := w.current.state.Copy()
+	st := w.current.state.Copy()
 
 	if header != nil {
 		startPpos := time.Now().UnixNano()
-		if err := w.notify(s, header.Number); err != nil {
+		if err := w.notify(st, header.Number); err != nil {
 			return errors.New("notify failure")
 		}
 		endNotify := time.Now().UnixNano()
 		log.Debug("Execute Time notify", "nano", endNotify - startPpos, "millisecond", endNotify/1e6-startPpos/1e6)
 		// Election call(if match condition)
-		if electionErr := w.election(s, header.ParentHash, header.Number); electionErr != nil {
+		if electionErr := w.election(st, header.ParentHash, header.Number); electionErr != nil {
 			return errors.New("election failure")
 		}
 		endElection := time.Now().UnixNano()
 		log.Debug("Execute Time election", "nano", endElection - endNotify, "millisecond", endElection/1e6-endNotify/1e6)
 		// SwitchWitness call(if match condition)
-		if switchWitnessErr := w.switchWitness(s, header.Number); switchWitnessErr != nil {
+		if switchWitnessErr := w.switchWitness(st, header.Number); switchWitnessErr != nil {
 			return errors.New("switchWitness failure")
 		}
 		endSwitchWitness := time.Now().UnixNano()
 		log.Debug("Execute Time switchWitness", "nano", endSwitchWitness - endElection, "millisecond", endSwitchWitness/1e6-endElection/1e6)
 		// ppos Store Hash
-		w.storeHash(s)
+		w.storeHash(st, header.Number, header.Hash())
 	}
 
-	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
+	block, err := w.engine.Finalize(w.chain, w.current.header, st, w.current.txs, uncles, w.current.receipts)
 
 	if err != nil {
 		return err
@@ -1438,7 +1438,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			interval()
 		}
 		select {
-		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now(), consensusNodes: w.current.consensusNodes}:
+		case w.taskCh <- &task{receipts: receipts, state: st, block: block, createdAt: time.Now(), consensusNodes: w.current.consensusNodes}:
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
 			feesWei := new(big.Int)
