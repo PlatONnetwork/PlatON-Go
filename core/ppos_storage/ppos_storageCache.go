@@ -451,15 +451,15 @@ func (p *Ppos_storage) SetCandidateQueue(queue types.CandidateQueue, flag int) {
 func (p *Ppos_storage) DelCandidateQueue(flag int)  {
 	switch flag {
 	case PREVIOUS:
-		p.c_storage.pres = nil
+		p.c_storage.pres = make(types.CandidateQueue, 0)
 	case CURRENT:
-		p.c_storage.currs = nil
+		p.c_storage.currs = make(types.CandidateQueue, 0)
 	case NEXT:
-		p.c_storage.nexts = nil
+		p.c_storage.nexts = make(types.CandidateQueue, 0)
 	case IMMEDIATE:
-		p.c_storage.imms = nil
+		p.c_storage.imms = make(types.CandidateQueue, 0)
 	case RESERVE:
-		p.c_storage.res = nil
+		p.c_storage.res = make(types.CandidateQueue, 0)
 	}
 }
 
