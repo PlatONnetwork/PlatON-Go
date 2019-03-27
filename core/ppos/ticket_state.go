@@ -387,9 +387,12 @@ func (t *TicketPool) releaseTxTicket(stateDB vm.StateDB, candidateId discover.No
 		return nil, TicketNotFindErr
 	}
 	log.Debug("releaseTicket,Start Update", "nodeId", candidateId.String(), "ticketId", ticketId.Hex())
-	if tinfo, err := stateDB.GetPPOSCache().RemoveTicket(candidateId, ticketId); err != nil {
+	if tinfo, err := stateDB.GetPPOSCache().RemoveTicket(candidateId, ticketId); err != nil && err != ppos_storage.TicketNotFindErr {
 		return ticket, err
 	} else {
+		if tinfo == nil {
+			return nil, nil
+		}
 		ticket.Remaining = tinfo.Remaining
 		ticket.Deposit = tinfo.Price
 	}
