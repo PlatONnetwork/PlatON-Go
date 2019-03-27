@@ -93,24 +93,24 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		// Notify call
 		log.Warn("---开始调用Notify---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		if err := cbftEngine.Notify(statedb, block.Number()); err != nil {
-			log.Error("---Failed to Notify call when processing block:---",  "err", err, "number", block.Number())
+			log.Error("---Failed to Notify call when processing block:---",  "err", err, "number", block.Number(), "hash", block.Hash())
 		}
 		log.Warn("---结束调用Notify---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		// Election call(if match condition)
 		log.Warn("---开始调用Election---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		if p.bc.shouldElectionFn(block.Number()) {
-			log.Info("---Election call when processing block:---", "number", block.Number())
+			log.Info("---Election call when processing block:---", "number", block.Number(), "hash", block.Hash())
 			if _, err := cbftEngine.Election(statedb, block.ParentHash(), block.Number()); nil != err {
-				log.Error("---Failed to Election call when processing block:---", "err", err, "number", block.Number())
+				log.Error("---Failed to Election call when processing block:---", "err", err, "number", block.Number(), "hash", block.Hash())
 			}
 		}
 		log.Warn("---结束调用Election---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		// SwitchWitness call(if match condition)
 		log.Warn("---开始调用Switch---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		if p.bc.shouldSwitchFn(block.Number()) {
-			log.Info("---SwitchWitness call when processing block:---", "number", block.Number())
+			log.Info("---SwitchWitness call when processing block:---", "number", block.Number(), "hash", block.Hash())
 			if !cbftEngine.Switch(statedb) {
-				log.Error("---Failed to SwitchWitness call when processing block:---", "number", block.Number())
+				log.Error("---Failed to SwitchWitness call when processing block:---", "number", block.Number(), "hash", block.Hash())
 			}
 
 		}
