@@ -358,11 +358,10 @@ func (c *CandidatePool) getImAndReMap(wg *sync.WaitGroup, loadQueueFunc func(arr
 
 // pledge Candidate
 func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types.Candidate) error {
-
-	var nodeIds []discover.NodeID
-
 	PrintObject("Call SetCandidate start ...", *can)
+
 	c.initData2Cache(state, GET_IM_RE)
+	var nodeIds []discover.NodeID
 
 	// If it is the first pledge, judge the pledge threshold
 	if !c.checkFirstThreshold(can) {
@@ -564,8 +563,11 @@ func (c *CandidatePool) GetCandidateArr(state vm.StateDB, nodeIds ...discover.No
 
 // candidate withdraw from immediates or reserve elected candidates
 func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
+	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String(), "config.RefundBlockNumber", c.refundBlockNumber)
 
+	c.initData2Cache(state, GET_IM_RE)
 	var nodeIds []discover.NodeID
+
 	if arr, err := c.withdrawCandidate(state, nodeId, price, blockNumber); nil != err {
 		return err
 	} else {
@@ -581,8 +583,6 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 }
 
 func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) ([]discover.NodeID, error) {
-	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String(), "config.RefundBlockNumber", c.refundBlockNumber)
-	c.initData2Cache(state, GET_IM_RE)
 
 	if price.Cmp(new(big.Int).SetUint64(0)) <= 0 {
 		log.Error("Failed to WithdrawCandidate price invalid", " price", price.String())
@@ -813,7 +813,7 @@ func (c *CandidatePool) GetDefeat(state vm.StateDB, nodeId discover.NodeID) type
 // Checked current candidate was defeat by nodeId
 func (c *CandidatePool) IsDefeat(state vm.StateDB, nodeId discover.NodeID) bool {
 
-	c.initData2Cache(state, GET_WIT_IM_RE)
+	c.initData2Cache(state, GET_IM_RE)
 
 	if _, ok := c.immediateCandidates[nodeId]; ok {
 		return false
@@ -879,6 +879,7 @@ func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) commo
 func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
 
 	log.Info("Call RefundBalance:  curr nodeId = "+nodeId.String()+",curr blocknumber:"+blockNumber.String(), "config.RefundBlockNumber:", c.refundBlockNumber)
+
 	c.initDataByState(state)
 	queue := c.getRefunds(nodeId)
 
@@ -953,6 +954,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.NodeID, extra string) error {
 
 	log.Info("Call SetCandidateExtra:", "nodeId", nodeId.String(), "extra", extra)
+
 	c.initDataByState(state)
 	im_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
 
@@ -982,16 +984,17 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 
 // Announce witness
 func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, currBlockNumber *big.Int) ([]*discover.Node, error) {
+	log.Info("Call Election start ...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.refundBlockNumber)
 
+	c.initData2Cache(state, GET_IM_RE)
 	var nodes []*discover.Node
 	var nextQueue types.CandidateQueue
+
 	if nodeArr, canArr, err := c.election(state, parentHash); nil != err {
 		return nil, err
 	} else {
 		nodes, nextQueue = nodeArr, canArr
 	}
-
-	c.initData2Cache(state, GET_IM_RE)
 
 	nodeIds := make([]discover.NodeID, 0)
 	for _, can := range nextQueue {
@@ -1032,10 +1035,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 }
 
 func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) ([]*discover.Node, types.CandidateQueue, error) {
-	log.Info("Call Election start ...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.refundBlockNumber)
-	//c.initDataByState(state)
 
-	c.initData2Cache(state, GET_IM_RE)
 	imm_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
 
 	// sort immediate candidates
