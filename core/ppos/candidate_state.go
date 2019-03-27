@@ -1044,9 +1044,9 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	log.Info("When Election，Sorted the immediate array length:", "len", len(imm_queue))
 	PrintObject("When Election，Sorted the immediate array:", imm_queue)
 	// cache ids
-	immediateIds := make([]discover.NodeID, 0)
-	for _, can := range imm_queue {
-		immediateIds = append(immediateIds, can.CandidateId)
+	immediateIds := make([]discover.NodeID, len(imm_queue))
+	for i, can := range imm_queue {
+		immediateIds[i] = can.CandidateId
 	}
 	PrintObject("When Election，current immediate is：", immediateIds)
 
@@ -1083,7 +1083,9 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 
 	for i, next_canId := range nextIdArr {
 		im_can := c.immediateCandidates[next_canId]
-		nextQueue[i] = im_can
+		// deepCopy
+		can := *im_can
+		nextQueue[i] = &can
 	}
 
 
