@@ -417,14 +417,19 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 func (p *Ppos_storage) GetCandidateQueue(flag int) types.CandidateQueue {
 	switch flag {
 	case PREVIOUS:
+		PrintObject("Pres queue", p.c_storage.pres)
 		return p.c_storage.pres
 	case CURRENT:
+		PrintObject("Curr queue", p.c_storage.currs)
 		return p.c_storage.currs
 	case NEXT:
+		PrintObject("Next queue", p.c_storage.nexts)
 		return p.c_storage.nexts
 	case IMMEDIATE:
+		PrintObject("Imms queue", p.c_storage.imms)
 		return p.c_storage.imms
 	case RESERVE:
+		PrintObject("Res queue", p.c_storage.res)
 		return p.c_storage.res
 	default:
 		return nil
