@@ -25,7 +25,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"math/big"
-	"runtime/debug"
+	//"runtime/debug"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -257,9 +257,9 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 		}
 	}
 	log.Debug("GetCommittedState", "stateObject addr", fmt.Sprintf("%p", self), "statedb addr", fmt.Sprintf("%p", self.db), "root", self.data.Root, "key", hex.EncodeToString([]byte(key)))
-	if self.data.Root == (common.Hash{}) {
-		log.Info("GetCommittedState", "stack", string(debug.Stack()))
-	}
+	//if self.data.Root == (common.Hash{}) {
+	//	log.Info("GetCommittedState", "stack", string(debug.Stack()))
+	//}
 	// Otherwise load the valueKey from trie
 	enc, err := self.getTrie(db).TryGet([]byte(key))
 	if err != nil {
