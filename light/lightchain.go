@@ -312,6 +312,7 @@ func (bc *LightChain) Stop() {
 // Rollback is designed to remove a chain of links from the database that aren't
 // certain enough to be valid.
 func (self *LightChain) Rollback(chain []common.Hash) {
+	log.Info("======LightChain Rollback======")
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
@@ -352,6 +353,7 @@ func (self *LightChain) postChainEvents(events []interface{}) {
 // In the case of a light chain, InsertHeaderChain also creates and posts light
 // chain events when necessary.
 func (self *LightChain) InsertHeaderChain(chain []*types.Header, checkFreq int) (int, error) {
+	log.Info("======LightChain InsertHeaderChain======")
 	start := time.Now()
 	if i, err := self.hc.ValidateHeaderChain(chain, checkFreq); err != nil {
 		return i, err
