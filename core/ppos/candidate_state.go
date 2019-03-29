@@ -708,7 +708,6 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 			c.setRefund(can.CandidateId, refund)
 
-			// 需要重新变更 两个池子
 			nIds := c.shuffleQueue(state, blockNumber)
 			nodeIds := []discover.NodeID{nodeId}
 
@@ -738,7 +737,6 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 				handleFunc(can.CandidateId, ppos_storage.RESERVE)
 			}
 			nodeIdArr = append(nodeIdArr, nodeId)
-			// 需要重新变更 两个池子
 			if arr := c.shuffleQueue(state, blockNumber); len(arr) != 0 {
 				nodeIdArr = append(nodeIdArr, arr...)
 			}
@@ -756,7 +754,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 // 1:  Getting all immediate elected candidates array
 // 2:  Getting all reserve elected candidates array
 func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.KindCanQueue {
-	log.Debug("Call GetChosens getting immediate candidates ...")
+	log.Debug("Call GetChosens getting immediate or reserve candidates ...")
 	c.initDataByState(state)
 	im := make(types.CandidateQueue, 0)
 	re := make(types.CandidateQueue, 0)
@@ -769,7 +767,7 @@ func (c *CandidatePool) GetChosens(state vm.StateDB, flag int) types.KindCanQueu
 
 	}
 	arr = append(arr, im, re)
-	PrintObject("GetChosens ==>", arr)
+	PrintObject("GetChosens return", arr)
 	return arr
 }
 
@@ -878,7 +876,7 @@ func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) commo
 // refund once
 func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) error {
 
-	log.Info("Call RefundBalance:  curr nodeId = "+nodeId.String()+",curr blocknumber:"+blockNumber.String(), "config.RefundBlockNumber:", c.refundBlockNumber)
+	log.Info("Call RefundBalance",  "curr blocknumber", blockNumber.String(), "curr nodeId", nodeId.String(), "config.RefundBlockNumber:", c.refundBlockNumber)
 
 	c.initDataByState(state)
 	queue := c.getRefunds(nodeId)
@@ -1311,7 +1309,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	go func() {
 		res := new(result)
 		res.Type = CURRENT_C
-		if nodes, err := loadFunc("current", ppos_storage.PREVIOUS); nil != err {
+		if nodes, err := loadFunc("current", ppos_storage.CURRENT); nil != err {
 			res.Err = err
 		} else {
 			res.nodes = nodes
@@ -1322,7 +1320,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 	go func() {
 		res := new(result)
 		res.Type = NEXT_C
-		if nodes, err := loadFunc("next", ppos_storage.PREVIOUS); nil != err {
+		if nodes, err := loadFunc("next", ppos_storage.NEXT); nil != err {
 			res.Err = err
 		} else {
 			res.nodes = nodes

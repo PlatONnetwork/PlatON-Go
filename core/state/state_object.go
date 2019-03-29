@@ -136,7 +136,7 @@ type Account struct {
 
 // newObject creates a state object.
 func newObject(db *StateDB, address common.Address, data Account) *stateObject {
-	log.Debug("newObject", "state db addr", fmt.Sprintf("%p", db))
+	log.Debug("newObject", "state db addr", fmt.Sprintf("%p", db), "state root", db.Root().Hex())
 	if data.Balance == nil {
 		data.Balance = new(big.Int)
 	}

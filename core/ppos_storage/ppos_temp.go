@@ -387,7 +387,7 @@ func  (temp *PPOS_TEMP) GetPPosStorageProto() (common.Hash, []byte, error) {
 		}else {
 			// TODO
 
-			//PrintObject("GetPPosStorageProto 解析PB的数据:", pb_pposTemp)
+			PrintObject("GetPPosStorageProto 解析PB的数据:", pb_pposTemp)
 
 
 			log.Debug("Call GetPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "dataMD5", md5.Sum(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
@@ -415,7 +415,7 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 
 		log.Debug("PushPPosStorageProto 入参的数据:", "data len", len(data), "dataMD5", md5.Sum(data))
 
-		//PrintObject("PushPPosStorageProto 解析PB准备刷disk的数据:", pb_pposTemp)
+		PrintObject("PushPPosStorageProto 解析PB准备刷disk的数据:", pb_pposTemp)
 
 		var hashMap map[common.Hash]*Ppos_storage
 
