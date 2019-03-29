@@ -156,19 +156,19 @@ func GetPPosTempPtr() *PPOS_TEMP {
 
 
 func BuildPposCache(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
-	return ppos_temp.GetPposCacheFromTemp(blockNumber, blockHash)
+	return ppos_temp.getPposCacheFromTemp(blockNumber, blockHash)
 }
 
 
 // Get ppos storage cache by same block
-func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
+func (temp *PPOS_TEMP) getPposCacheFromTemp(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
 
 	ppos_storage := NewPPOS_storage()
 
 	notGenesisBlock := blockNumber.Cmp(big.NewInt(0)) > 0
 
 	if nil == temp && notGenesisBlock {
-		log.Warn("Warn Call GetPposCacheByNumAndHash of PPOS_TEMP, the Global PPOS_TEMP instance is nil !!!!!!!!!!!!!!!", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
+		log.Warn("Warn Call getPposCacheFromTemp of PPOS_TEMP, the Global PPOS_TEMP instance is nil !!!!!!!!!!!!!!!", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
 		return ppos_storage
 	}
 
@@ -180,20 +180,20 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 
 	temp.lock.Lock()
 	if hashTemp, ok := temp.TempMap[blockNumber.String()]; !ok {
-		log.Warn("Warn Call GetPposCacheByNumAndHash of PPOS_TEMP, the PPOS storage cache is empty by blockNumber !!!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
+		log.Warn("Warn Call getPposCacheFromTemp of PPOS_TEMP, the PPOS storage cache is empty by blockNumber !!!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
 		temp.lock.Unlock()
 		return ppos_storage
 	}else {
 
 		if pposStorage, ok := hashTemp[blockHash]; !ok {
-			log.Warn("Warn Call GetPposCacheByNumAndHash of PPOS_TEMP, the PPOS storage cache is empty by blockHash !!!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
+			log.Warn("Warn Call getPposCacheFromTemp of PPOS_TEMP, the PPOS storage cache is empty by blockHash !!!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
 			temp.lock.Unlock()
 			return ppos_storage
 		}else {
 			start := common.NewTimer()
 			start.Begin()
 			storage = pposStorage.Copy()
-			log.Debug("Call GetPposCacheByNumAndHash of PPOS_TEMP, Copy ppos_storage FINISH !!!!!!", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "Time spent", fmt.Sprintf("%v ms", start.End()))
+			log.Debug("Call getPposCacheFromTemp of PPOS_TEMP, Copy ppos_storage FINISH !!!!!!", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "Time spent", fmt.Sprintf("%v ms", start.End()))
 		}
 	}
 	temp.lock.Unlock()
@@ -568,9 +568,10 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 	if nil != ps.t_storage {
 		tickTemp := new(TicketTemp)
 
+		tickTemp.Sq = ps.t_storage.Sq
+
 		// SQ
 		if ps.t_storage.Sq != -1 {
-			tickTemp.Sq = ps.t_storage.Sq
 			empty |= 1
 		}
 
@@ -803,11 +804,11 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 }
 
 func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
+	pbQueue := make([]*CandidateInfo, len(canQqueue))
 	if len(canQqueue) == 0 {
-		return nil
+		return pbQueue
 	}
 
-	pbQueue := make([]*CandidateInfo, len(canQqueue))
 	for i, can := range canQqueue {
 		canInfo := &CandidateInfo{
 			Deposit: 		can.Deposit.String(),
