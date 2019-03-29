@@ -381,25 +381,29 @@ func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.Node
 }
 
 func (t *TicketPool) releaseTxTicket(stateDB vm.StateDB, candidateId discover.NodeID, ticketId common.Hash, blockNumber *big.Int) (*types.Ticket, error) {
-	log.Debug("Start executing releaseTicket", "nodeId", candidateId.String(), "ticketId", ticketId.Hex(), "blockNumber", blockNumber.Uint64())
+	log.Debug("Start executing releaseTxTicket", "nodeId", candidateId.String(), "ticketId", ticketId.Hex(), "blockNumber", blockNumber.Uint64())
 	ticket := t.GetTicket(stateDB, ticketId)
 	if ticket == nil {
 		return nil, TicketNotFindErr
 	}
-	log.Debug("releaseTicket,Start Update", "nodeId", candidateId.String(), "ticketId", ticketId.Hex())
-	if tinfo, err := stateDB.GetPPOSCache().RemoveTicket(candidateId, ticketId); err != nil {
+	log.Debug("releaseTxTicket,Start Update", "nodeId", candidateId.String(), "ticketId", ticketId.Hex())
+	if tinfo, err := stateDB.GetPPOSCache().RemoveTicket(candidateId, ticketId); err != nil && err != ppos_storage.TicketNotFindErr {
 		return ticket, err
 	} else {
+		if tinfo == nil {
+			log.Warn("releaseTxTicket, Not find TicketId", "ticketId", ticketId.Hex(), "nodeId", candidateId.String(), "blockNumber", blockNumber.Uint64())
+			return nil, nil
+		}
 		ticket.Remaining = tinfo.Remaining
 		ticket.Deposit = tinfo.Price
 	}
-	log.Debug("releaseTicket, end update", "nodeId", candidateId.String())
+	log.Debug("releaseTxTicket, end update", "nodeId", candidateId.String())
 	//t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
 	surplusQuantity := t.GetPoolNumber(stateDB)
-	log.Debug("releaseTicket, start to update the ticket pool", "surplusQuantity", surplusQuantity)
+	log.Debug("releaseTxTicket, start to update the ticket pool", "surplusQuantity", surplusQuantity)
 	t.setPoolNumber(stateDB, surplusQuantity + ticket.Remaining)
 	surplusQuantity = t.GetPoolNumber(stateDB)
-	log.Debug("releaseTicket, end the update ticket pool", "surplusQuantity", surplusQuantity)
+	log.Debug("releaseTxTicket, end the update ticket pool", "surplusQuantity", surplusQuantity)
 	//epoch := t.GetCandidateEpoch(stateDB, candidateId)
 	//log.Debug("releaseTicket, start updating the total epoch of candidates", "nodeId", candidateId.String(), "totalEpoch", epoch, "blockNumber", blockNumber.Uint64(), "ticketBlockNumber", ticket.BlockNumber.Uint64())
 	//if err := t.subCandidateEpoch(stateDB, candidateId, ticket.TotalEpoch(blockNumber)); nil != err {
