@@ -153,7 +153,7 @@ func initTest() {
 	cbft = &Cbft{
 		config: cbftConfig,
 		//blockExtMap:   make(map[common.Hash]*BlockExt),
-		signedSet:     make(map[uint64]struct{}),
+		//signedSet:     make(map[uint64]struct{}),
 		netLatencyMap: make(map[discover.NodeID]*list.List),
 	}
 	buildMain(cbft)

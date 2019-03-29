@@ -456,7 +456,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 		d.committed = 0
 	}
 
-	log.Debug("Synchronising with the network begin", "peer", p.id, "eth", p.version, "origin", origin, "pivot", pivot, "latest", latest.Number.Uint64(), "mode", d.mode, "now time", time.Now())
+	log.Debug("Synchronising with the network begin", "peer", p.id, "eth", p.version, "origin", origin, "pivot", pivot, "latest", latest.Number.Uint64(), "mode", d.mode, "timestamp", time.Now().UnixNano() / 1e6)
 
 	d.syncStatsLock.Lock()
 	if d.syncStatsChainHeight <= origin || d.syncStatsChainOrigin > origin {
@@ -509,7 +509,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 	}
 	d.queue.Close()
 	d.Cancel()
-	log.Debug("Synchronising with the network end", "mode", d.mode, "headerNumber", d.blockchain.CurrentHeader().Number.Uint64(), "blockNumber", d.blockchain.CurrentBlock().NumberU64(), "fastNumber", d.blockchain.CurrentFastBlock().NumberU64(), "now time", time.Now())
+	log.Debug("Synchronising with the network end", "mode", d.mode, "headerNumber", d.blockchain.CurrentHeader().Number.Uint64(), "blockNumber", d.blockchain.CurrentBlock().NumberU64(), "fastNumber", d.blockchain.CurrentFastBlock().NumberU64(), "timestamp", time.Now().UnixNano() / 1e6)
 	return err
 }
 
