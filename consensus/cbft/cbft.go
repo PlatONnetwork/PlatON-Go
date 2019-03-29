@@ -73,17 +73,18 @@ type Cbft struct {
 	closeOnce             sync.Once
 	exitCh                chan struct{}
 	txPool                *core.TxPool
-	blockExtMap           sync.Map            //map[common.Hash]*BlockExt //store all received blocks and signs
-	dataReceiveCh         chan interface{}    //a channel to receive data from miner
-	blockChain            *core.BlockChain    //the block chain
-	highestLogical        atomic.Value        //highest block in logical path, local packages new block will base on it
-	highestConfirmed      atomic.Value        //highest confirmed block in logical path
-	rootIrreversible      atomic.Value        //the latest block has stored in chain
-	signedSet             map[uint64]struct{} //all block numbers signed by local node
-	blockChainCache       *core.BlockChainCache
-	netLatencyMap         map[discover.NodeID]*list.List
-	netLatencyLock        sync.RWMutex
-	log                   log.Logger
+	blockExtMap           sync.Map         //map[common.Hash]*BlockExt //store all received blocks and signs
+	dataReceiveCh         chan interface{} //a channel to receive data from miner
+	blockChain            *core.BlockChain //the block chain
+	highestLogical        atomic.Value     //highest block in logical path, local packages new block will base on it
+	highestConfirmed      atomic.Value     //highest confirmed block in logical path
+	rootIrreversible      atomic.Value     //the latest block has stored in chain
+	//signedSet             map[uint64]struct{} //all block numbers signed by local node
+	signedSet       sync.Map
+	blockChainCache *core.BlockChainCache
+	netLatencyMap   map[discover.NodeID]*list.List
+	netLatencyLock  sync.RWMutex
+	log             log.Logger
 }
 
 func (cbft *Cbft) getRootIrreversible() *BlockExt {
@@ -114,8 +115,6 @@ func (cbft *Cbft) getHighestLogical() *BlockExt {
 
 var cbft *Cbft
 
-
-
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block) *Cbft {
 
@@ -130,7 +129,7 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 		highestLogicalBlockCh: highestLogicalBlockCh,
 		exitCh:                make(chan struct{}),
 		//blockExtMap:         make(map[common.Hash]*BlockExt),
-		signedSet:     make(map[uint64]struct{}),
+		//signedSet:     make(map[uint64]struct{}),
 		dataReceiveCh: make(chan interface{}, 256),
 		netLatencyMap: make(map[discover.NodeID]*list.List),
 		log: log.New("cbft/RoutineID", log.Lazy{Fn: func() string {
@@ -433,7 +432,8 @@ func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
 	//var highestConfirmed *BlockExt
 	for _, logical := range logicalBlocks {
 		if logical.inTurn && !logical.isSigned {
-			if _, signed := cbft.signedSet[logical.block.NumberU64()]; !signed {
+			//if _, signed := cbft.signedSet[logical.block.NumberU64()]; !signed {
+			if _, signed := cbft.signedSet.Load(logical.block.NumberU64()); !signed {
 				cbft.sign(logical)
 				cbft.log.Debug("reset TxPool after block signed", "hash", logical.block.Hash(), "number", logical.number)
 				cbft.txPool.Reset(logical.block)
@@ -490,7 +490,8 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 		cbft.collectSign(ext, sign)
 
 		//save this block number
-		cbft.signedSet[ext.block.NumberU64()] = struct{}{}
+		//cbft.signedSet[ext.block.NumberU64()] = struct{}{}
+		cbft.signedSet.Store(ext.block.NumberU64(), struct{}{})
 
 		blockHash := ext.block.Hash()
 
@@ -1225,7 +1226,8 @@ func (cbft *Cbft) cleanByTailoredTree(root *BlockExt) {
 			cbft.log.Debug("remove block in memory", "hash", root.block.Hash(), "number", root.block.NumberU64())
 			cbft.blockExtMap.Delete(root.block.Hash())
 			//delete(cbft.blockExtMap, root.block.Hash())
-			delete(cbft.signedSet, root.block.NumberU64())
+			//delete(cbft.signedSet, root.block.NumberU64())
+			cbft.signedSet.Delete(root.block.NumberU64())
 		}
 	} else {
 		cbft.log.Debug("remove block in memory", "hash", root.block.Hash(), "number", root.block.NumberU64())
@@ -1251,11 +1253,20 @@ func (cbft *Cbft) cleanByNumber(upperLimit uint64) {
 	}
 	cbft.blockExtMap.Range(f)
 
-	for number, _ := range cbft.signedSet {
+	/*for number, _ := range cbft.signedSet {
 		if number < upperLimit {
 			delete(cbft.signedSet, number)
 		}
+	}*/
+	f2 := func(k, v interface{}) bool {
+		number := k.(uint64)
+		if number < upperLimit {
+			cbft.signedSet.Delete(number)
+		}
+		return true
 	}
+
+	cbft.signedSet.Range(f2)
 }
 
 // Author implements consensus.Engine, returning the Ethereum address recovered
@@ -1392,7 +1403,8 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	cbft.collectSign(current, common.NewBlockConfirmSign(sign))
 
 	//log this signed block's number
-	cbft.signedSet[sealedBlock.NumberU64()] = struct{}{}
+	//cbft.signedSet[sealedBlock.NumberU64()] = struct{}{}
+	cbft.signedSet.Store(sealedBlock.NumberU64(), struct{}{})
 
 	//build tree node
 	cbft.buildIntoTree(current)
