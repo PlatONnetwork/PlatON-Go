@@ -563,7 +563,7 @@ func (c *CandidatePool) GetCandidateArr(state vm.StateDB, nodeIds ...discover.No
 
 // candidate withdraw from immediates or reserve elected candidates
 func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) error {
-	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String(), "config.RefundBlockNumber", c.refundBlockNumber)
+	log.Info("WithdrawCandidate...", "nodeId", nodeId.String(), "price", price.String(), "blockNumber", blockNumber.String(), "config.RefundBlockNumber", c.refundBlockNumber)
 
 	c.initData2Cache(state, GET_IM_RE)
 	var nodeIds []discover.NodeID
@@ -576,7 +576,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
 		if err := tContext.DropReturnTicket(state, blockNumber, nodeIds...); nil != err {
-			log.Error("Failed to DropReturnTicket on WithdrawCandidate ...")
+			log.Error("Failed to DropReturnTicket on WithdrawCandidate ...", "blockNumber", blockNumber.String())
 		}
 	}
 	return nil
@@ -585,7 +585,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price, blockNumber *big.Int) ([]discover.NodeID, error) {
 
 	if price.Cmp(new(big.Int).SetUint64(0)) <= 0 {
-		log.Error("Failed to WithdrawCandidate price invalid", " price", price.String())
+		log.Error("Failed to WithdrawCandidate price invalid", "blockNumber", blockNumber.String(), "nodeId", nodeId.String(), " price", price.String())
 		return nil, WithdrawPriceErr
 	}
 
@@ -596,7 +596,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 	if imCan, ok := c.immediateCandidates[nodeId]; !ok {
 		reCan, ok := c.reserveCandidates[nodeId]
 		if !ok {
-			log.Error("Failed to WithdrawCandidate current Candidate is empty")
+			log.Error("Failed to WithdrawCandidate current Candidate is empty", "blockNumber", blockNumber.String(), "nodeId", nodeId.String(), "price", price.String())
 			return nil, CandidateEmptyErr
 		} else {
 			can = reCan
@@ -622,11 +622,11 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 	deposit, _ := new(big.Int).SetString(can.Deposit.String(), 10)
 	// check withdraw price
 	if can.Deposit.Cmp(price) < 0 {
-		log.Error("Failed to WithdrawCandidate refund price must less or equal deposit", "key", nodeId.String())
+		log.Error("Failed to WithdrawCandidate refund price must less or equal deposit", "blockNumber", blockNumber.String(), "nodeId", nodeId.String(), " price", price.String())
 		return nil, WithdrawPriceErr
 	} else if can.Deposit.Cmp(price) == 0 { // full withdraw
 
-		log.Info("WithdrawCandidate into full withdraw", "canId", can.CandidateId.String(), "current can deposit", can.Deposit.String(), "withdraw price is", price.String())
+		log.Info("WithdrawCandidate into full withdraw", "blockNumber", blockNumber.String(), "canId", can.CandidateId.String(), "current can deposit", can.Deposit.String(), "withdraw price is", price.String())
 
 		if isImmediate {
 			delCandidateFunc(can.CandidateId, ppos_storage.IMMEDIATE)
@@ -743,7 +743,7 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 				nodeIdArr = append(nodeIdArr, arr...)
 			}
 		}*/
-		log.Error("Failed to WithdrawCandidate, must full withdraw", "the can deposit", can.Deposit.String(), "current will withdraw price", price.String())
+		log.Error("Failed to WithdrawCandidate, must full withdraw", "blockNumber", blockNumber.String(), "nodeId", nodeId.String(), "the can deposit", can.Deposit.String(), "current will withdraw price", price.String())
 		return nil, WithdrawLowErr
 	}
 	log.Info("Call WithdrawCandidate SUCCESS !!!!!!!!!!!!")
@@ -909,7 +909,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 			amount = new(big.Int).Add(amount, refund.Deposit)
 
 		} else {
-			log.Warn("block height number had mismatch, No refunds allowed on RefundBalance", "current block height", blockNumber.String(), "deposit block height", refund.BlockNumber.String(), "nodeId", nodeId.String(), "allowed block interval", c.refundBlockNumber)
+			log.Warn("block height number had mismatch, No refunds allowed on RefundBalance", "curr blocknumber:", blockNumber.String(), "deposit block height", refund.BlockNumber.String(), "nodeId", nodeId.String(), "allowed block interval", c.refundBlockNumber)
 			continue
 		}
 
@@ -917,29 +917,29 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 			addr = refund.Owner
 		} else {
 			if addr != refund.Owner {
-				log.Error("Failed to RefundBalance Different beneficiary addresses under the same node", "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", refund.Owner)
+				log.Error("Failed to RefundBalance Different beneficiary addresses under the same node", "curr blocknumber:", blockNumber.String(), "nodeId", nodeId.String(), "addr1", addr.String(), "addr2", refund.Owner)
 				return CandidateOwnerErr
 			}
 		}
 
 		// check contract account balance
 		if (contractBalance.Cmp(amount)) < 0 {
-			log.Error("Failed to RefundBalance constract account insufficient balance ", "nodeId", nodeId.String(), "contract's balance", state.GetBalance(common.CandidatePoolAddr).String(), "amount", amount.String())
+			log.Error("Failed to RefundBalance constract account insufficient balance ", "curr blocknumber:", blockNumber.String(), "nodeId", nodeId.String(), "contract's balance", state.GetBalance(common.CandidatePoolAddr).String(), "amount", amount.String())
 			return ContractBalanceNotEnoughErr
 		}
 	}
 
 	// update the tire
 	if len(queue) == 0 { // full RefundBlockNumber
-		log.Info("Call RefundBalance Into full RefundBlockNumber ...", "nodeId", nodeId.String())
+		log.Info("Call RefundBalance Into full RefundBlockNumber ...", "curr blocknumber:", blockNumber.String(), "nodeId", nodeId.String())
 		c.delRefunds(nodeId)
 	} else {
-		log.Info("Call RefundBalance Into a few RefundBlockNumber ...", "nodeId", nodeId.String())
-		PrintObject("Call RefundBalance Into a few RefundBlockNumber Remain Refund Arr", queue)
+		log.Info("Call RefundBalance Into a few RefundBlockNumber ...", "curr blocknumber:", blockNumber.String(), "nodeId", nodeId.String())
+		PrintObject("Call RefundBalance Into a few RefundBlockNumber Remain Refund Arr ,curr blocknumber:"+blockNumber.String(), queue)
 		// If have some remaining, update that
 		c.setRefunds(nodeId, queue)
 	}
-	log.Info("Call RefundBalance to tansfer value：", "nodeId", nodeId.String(), "contractAddr", common.CandidatePoolAddr.String(),
+	log.Info("Call RefundBalance to tansfer value：", "curr blocknumber:", blockNumber.String(), "nodeId", nodeId.String(), "contractAddr", common.CandidatePoolAddr.String(),
 		"owner's addr", addr.String(), "Return the amount to be transferred:", amount.String())
 
 	// sub contract account balance
@@ -984,7 +984,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 
 // Announce witness
 func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, currBlockNumber *big.Int) ([]*discover.Node, error) {
-	log.Info("Call Election start ...", "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.refundBlockNumber)
+	log.Info("Call Election start ...", "current blockNumber", currBlockNumber.String(), "maxChair", c.maxChair, "maxCount", c.maxCount, "RefundBlockNumber", c.refundBlockNumber)
 
 	c.initData2Cache(state, GET_IM_RE)
 	var nodes []*discover.Node
@@ -1001,7 +1001,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 		// Release lucky ticket TODO
 		if (common.Hash{}) != can.TxHash {
 			if err := tContext.ReturnTicket(state, can.CandidateId, can.TxHash, currBlockNumber); nil != err {
-				log.Error("Failed to ReturnTicket on Election", "nodeId", can.CandidateId.String(), "ticketId", can.TxHash.String(), "err", err)
+				log.Error("Failed to ReturnTicket on Election", "current blockNumber", currBlockNumber.String(), "nodeId", can.CandidateId.String(), "ticketId", can.TxHash.String(), "err", err)
 				continue
 			}
 		}
@@ -1028,7 +1028,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
 		if err := tContext.DropReturnTicket(state, currBlockNumber, nodeIds...); nil != err {
-			log.Error("Failed to DropReturnTicket on Election ...")
+			log.Error("Failed to DropReturnTicket on Election ...", "current blockNumber", currBlockNumber.String())
 		}
 	}
 	return nodes, nil
@@ -1107,7 +1107,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 			log.Error("Failed to take luckyId on Election", "nodeId", can.CandidateId.String(), "err", err)
 			return nil, nil, errors.New(err.Error() + ", nodeId: " + can.CandidateId.String())
 		}
-
+		log.Debug("Call Election, select lucky ticket Id is", "lucky ticket Id", luckyId.Hex())
 		if can.TxHash != luckyId {
 			can.TxHash = luckyId
 			if luckyId == (common.Hash{}) {
@@ -1147,7 +1147,7 @@ func (c *CandidatePool) handleEmptyElection(nextQueue types.CandidateQueue) type
 	if len(nextQueue) != 0 {
 		return nextQueue
 	}
-
+	log.Info("Call Election, current is emptyElection, we take current witness become next witness ...")
 	// empty election
 	// Otherwise, it means that the next witness is nil, then we need to check whether the current round has a witness.
 	// If had, use the current round of witness as the next witness,
