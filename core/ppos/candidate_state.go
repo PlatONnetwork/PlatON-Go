@@ -1124,7 +1124,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 		nextQueue[i] = can
 
 		if node, err := buildWitnessNode(can); nil != err {
-			log.Error("Failed to build Node on Election", "err", err, "nodeId", can.CandidateId.String())
+			log.Error("Failed to build Node on Election", "nodeId", can.CandidateId.String(), "err", err)
 			continue
 		} else {
 			nodeIds = append(nodeIds, node)
@@ -1257,7 +1257,7 @@ func (c *CandidatePool) GetWitness(state *state.StateDB, flag int) ([]*discover.
 	arr := make([]*discover.Node, 0)
 	for _, can := range queue {
 		if node, err := buildWitnessNode(can); nil != err {
-			log.Error("Failed to build Node on GetWitness", "err", err, "nodeId", can.CandidateId.String())
+			log.Error("Failed to build Node on GetWitness", "nodeId", can.CandidateId.String(), "err", err)
 			return nil, err
 		} else {
 			arr = append(arr, node)
@@ -1275,7 +1275,7 @@ func (c *CandidatePool) GetAllWitness(state *state.StateDB) ([]*discover.Node, [
 		arr := make([]*discover.Node, 0)
 		for _, can := range queue {
 			if node, err := buildWitnessNode(can); nil != err {
-				log.Error("Failed to build Node on Get "+title+" Witness", "err", err, "nodeId", can.CandidateId.String())
+				log.Error("Failed to build Node on Get "+title+" Witness", "nodeId", can.CandidateId.String(), "err", err)
 				return nil, err
 			} else {
 				arr = append(arr, node)
