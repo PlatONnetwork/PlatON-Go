@@ -379,7 +379,7 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
 		if err := tContext.DropReturnTicket(state, can.BlockNumber, nodeIds...); nil != err {
-			log.Error("Failed to DropReturnTicket on SetCandidate ...")
+			log.Error("Failed to DropReturnTicket on SetCandidate ...",  "current blockNumber", can.BlockNumber, "err", err)
 			//return err
 		}
 	}
@@ -576,7 +576,7 @@ func (c *CandidatePool) WithdrawCandidate(state vm.StateDB, nodeId discover.Node
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
 		if err := tContext.DropReturnTicket(state, blockNumber, nodeIds...); nil != err {
-			log.Error("Failed to DropReturnTicket on WithdrawCandidate ...", "blockNumber", blockNumber.String())
+			log.Error("Failed to DropReturnTicket on WithdrawCandidate ...", "blockNumber", blockNumber.String(), "err", err)
 		}
 	}
 	return nil
@@ -1026,7 +1026,7 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
 		if err := tContext.DropReturnTicket(state, currBlockNumber, nodeIds...); nil != err {
-			log.Error("Failed to DropReturnTicket on Election ...", "current blockNumber", currBlockNumber.String())
+			log.Error("Failed to DropReturnTicket on Election ...", "current blockNumber", currBlockNumber.String(), "err", err)
 		}
 	}
 	return nodes, nil
