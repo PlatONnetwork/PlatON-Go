@@ -628,11 +628,10 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 		canTemp := new(candidate_temp)
 
 		buildQueueFunc := func(arr []*CandidateInfo) types.CandidateQueue {
-			queue := make(types.CandidateQueue, len(arr))
 			if len(arr) == 0 {
-				return queue
+				return nil
 			}
-			//queue := make(types.CandidateQueue, len(arr))
+			queue := make(types.CandidateQueue, len(arr))
 			for i, can := range arr {
 				deposit, _ := new(big.Int).SetString(can.Deposit, 10)
 				num, _ := new(big.Int).SetString(can.BlockNumber, 10)
