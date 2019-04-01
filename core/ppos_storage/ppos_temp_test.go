@@ -62,11 +62,11 @@ func TestData(t *testing.T) {
 		startTempTime := time.Now().UnixNano()
 		pposTemp.SubmitPposCache2Temp(blockNumber, new(big.Int).SetUint64(1), blockHash, pposStorage)
 		endTempTime := time.Now().UnixNano()
-		t.Log("测试Cache2Temp效率", "startTime", startTempTime, "endTime", endTempTime, "time", endTempTime/1e6-startTempTime/1e6)
+		t.Log("Testing Cache2Temp efficiency", "startTime", startTempTime, "endTime", endTempTime, "time", endTempTime/1e6-startTempTime/1e6)
 		startTime := time.Now().UnixNano()
 		pposTemp.Commit2DB(blockNumber, blockHash)
 		endTime := time.Now().UnixNano()
-		t.Log("测试Commit2DB效率", "startTime", startTime, "endTime", endTime, "time", endTime/1e6-startTime/1e6)
+		t.Log("Testing Cache2Temp efficiency", "startTime", startTime, "endTime", endTime, "time", endTime/1e6-startTime/1e6)
 	}
 }
 
@@ -126,11 +126,11 @@ func TestData2(t *testing.T) {
 		startTempTime := time.Now().UnixNano()
 		pposTemp.SubmitPposCache2Temp(new(big.Int).SetUint64(uint64(i)), new(big.Int).SetUint64(1), blockHash, pposStorage)
 		endTempTime := time.Now().UnixNano()
-		t.Log("测试Cache2Temp效率", "startTime", startTempTime, "endTime", endTempTime, "time", endTempTime/1e6-startTempTime/1e6)
+		t.Log("Testing Cache2Temp efficiency", "startTime", startTempTime, "endTime", endTempTime, "time", endTempTime/1e6-startTempTime/1e6)
 		startTime := time.Now().UnixNano()
 		pposTemp.Commit2DB(new(big.Int).SetUint64(uint64(i)), blockHash)
 		endTime := time.Now().UnixNano()
-		t.Log("测试Commit2DB效率", "startTime", startTime, "endTime", endTime, "time", endTime/1e6-startTime/1e6)
+		t.Log("Testing Cache2Temp efficiency", "startTime", startTime, "endTime", endTime, "time", endTime/1e6-startTime/1e6)
 	}
 }
 

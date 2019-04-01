@@ -1293,9 +1293,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return i, events, coalescedLogs, err
 		}
 		// Process block using the parent state as reference point.
-		log.Warn("---开始执行区块---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, common.Big1)
-		log.Warn("---结束执行区块---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
 			return i, events, coalescedLogs, err
