@@ -29,6 +29,7 @@ type ticketPoolContext interface {
 	VoteTicket(stateDB StateDB, owner common.Address, voteNumber uint32, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) (uint32, error)
 	GetCandidatesTicketCount(stateDB StateDB, nodeIds []discover.NodeID) map[discover.NodeID]uint32
 	GetBatchTicketRemaining(stateDB StateDB, ticketIds []common.Hash) map[common.Hash]uint32
+	GetCandidateEpoch(stateDB StateDB, nodeId discover.NodeID) uint64
 	GetPoolNumber(stateDB StateDB) uint32
 	GetTicketPrice(stateDB StateDB) *big.Int
 }
@@ -51,6 +52,7 @@ func (t *TicketContract) Run(input []byte) ([]byte, error) {
 		"VoteTicket":              t.VoteTicket,
 		"GetCandidateTicketCount": t.GetCandidateTicketCount,
 		"GetTicketCountByTxHash":  t.GetTicketCountByTxHash,
+		"GetCandidateEpoch":       t.GetCandidateEpoch,
 		"GetPoolRemainder":        t.GetPoolRemainder,
 		"GetTicketPrice":          t.GetTicketPrice,
 	}
@@ -137,6 +139,16 @@ func (t *TicketContract) GetTicketCountByTxHash(ticketIds []common.Hash) ([]byte
 	data, _ := json.Marshal(ticketsRemaining)
 	sdata := DecodeResultStr(string(data))
 	log.Info("Result of GetTicketCountByTxHash", "len(ticketsRemaining): ", len(ticketsRemaining), "json: ", string(data))
+	return sdata, nil
+}
+
+// GetCandidateEpoch returns the current ticket age for the candidate.
+func (t *TicketContract) GetCandidateEpoch(nodeId discover.NodeID) ([]byte, error) {
+	log.Info("Input to GetCandidateEpoch", " nodeId: ", nodeId.String())
+	epoch := t.Evm.TicketPoolContext.GetCandidateEpoch(t.Evm.StateDB, nodeId)
+	data, _ := json.Marshal(epoch)
+	sdata := DecodeResultStr(string(data))
+	log.Info("Result of GetCandidateEpoch", "json: ", string(data))
 	return sdata, nil
 }
 

@@ -172,6 +172,47 @@ func TestGetCandidateTicketCount(t *testing.T) {
 	fmt.Println("The number of candidate's ticket is: ", vm.ResultByte2Json(resByte))
 }
 
+func TestGetCandidateEpoch(t *testing.T) {
+	contract := newContract()
+	evm := newEvm()
+
+	ticketContract := vm.TicketContract{
+		contract,
+		evm,
+	}
+	candidateContract := vm.CandidateContract{
+		contract,
+		evm,
+	}
+	nodeId := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+	owner := common.HexToAddress("0x12")
+	fee := uint32(7000)
+	host := "192.168.9.184"
+	port := "16789"
+	extra := "{\"nodeName\": \"Platon-Beijing\", \"nodePortrait\": \"\",\"nodeDiscription\": \"PlatON-Gravitational area\",\"nodeDepartment\": \"JUZIX\",\"officialWebsite\": \"https://www.platon.network/\",\"time\":1546503651190}"
+	fmt.Println("CandidateDeposit input==>", "nodeId: ", nodeId.String(), "owner: ", owner.Hex(), "fee: ", fee, "host: ", host, "port: ", port, "extra: ", extra)
+	_, err := candidateContract.CandidateDeposit(nodeId, owner, fee, host, port, extra)
+	if nil != err {
+		fmt.Println("CandidateDeposit fail", "err", err)
+	}
+	count := uint32(1000)
+	price := big.NewInt(1)
+	fmt.Println("VoteTicket input==>", "count: ", count, "price: ", price, "nodeId: ", nodeId.String())
+	resByte, err := ticketContract.VoteTicket(count, price, nodeId)
+	if nil != err {
+		fmt.Println("VoteTicket fail", "err", err)
+	}
+
+	// GetCandidateEpoch(nodeId discover.NodeID) ([]byte, error)
+	fmt.Println("GetCandidateEpoch input==>", "nodeId: ", nodeId.String())
+	resByte, err = ticketContract.GetCandidateEpoch(nodeId)
+	if nil != err {
+		fmt.Println("GetCandidateEpoch fail", "err", err)
+	}
+	fmt.Println("The candidate's epoch is: ", vm.ResultByte2Json(resByte))
+
+}
+
 func TestGetTicketPrice(t *testing.T) {
 	ticketContract := vm.TicketContract{
 		newContract(),
@@ -240,6 +281,21 @@ func TestTicketPoolEncode(t *testing.T) {
 		t.Errorf("GetTicketCountByTxHash encode rlp data fail")
 	} else {
 		fmt.Println("GetTicketCountByTxHash data rlp: ", hexutil.Encode(bufGetTicketCountByTxHash.Bytes()))
+	}
+
+	// GetCandidateEpoch(nodeId discover.NodeID) ([]byte, error)G
+	var GetCandidateEpoch [][]byte
+	GetCandidateEpoch = make([][]byte, 0)
+	GetCandidateEpoch = append(GetCandidateEpoch, byteutil.Uint64ToBytes(0xf1))
+	GetCandidateEpoch = append(GetCandidateEpoch, []byte("GetCandidateEpoch"))
+	GetCandidateEpoch = append(GetCandidateEpoch, nodeId)
+	bufGetCandidateEpoch := new(bytes.Buffer)
+	err = rlp.Encode(bufGetCandidateEpoch, GetCandidateEpoch)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("GetCandidateEpoch encode rlp data fail")
+	} else {
+		fmt.Println("GetCandidateEpoch data rlp: ", hexutil.Encode(bufGetCandidateEpoch.Bytes()))
 	}
 
 	// GetPoolRemainder() ([]byte, error)

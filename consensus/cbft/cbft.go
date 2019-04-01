@@ -1903,7 +1903,8 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	var nodeId discover.NodeID
 	var err error
 	log.Debug("Call accumulateRewards block header", " extra: ", hexutil.Encode(header.Extra))
-	if ok := bytes.Equal(header.Extra[32:97], make([]byte, 65)); ok {
+	local := bytes.Equal(header.Extra[32:97], make([]byte, 65))
+	if local {
 		log.Warn("Call accumulateRewards block header extra[32:97] is empty!", "blockNumber", header.Number, "blockHash", header.Hash())
 		nodeId = cbft.config.NodeID
 	} else {
@@ -1934,11 +1935,13 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	}
 
 	// store the lucky ticket into the header.Extra[97:129]
-	var buffer bytes.Buffer
-	buffer.Write(header.Extra)
-	buffer.Write(can.TxHash.Bytes())
-	header.Extra = buffer.Bytes()
-	log.Info("Call accumulateRewards, set lucky ticket into header.Extra", "len(header.Extra): ", len(header.Extra))
+	if local {
+		var buffer bytes.Buffer
+		buffer.Write(header.Extra)
+		buffer.Write(can.TxHash.Bytes())
+		header.Extra = buffer.Bytes()
+		log.Info("Call accumulateRewards, set lucky ticket into header.Extra", "len(header.Extra): ", len(header.Extra))
+	}
 
 	//Calculate current block rewards
 	var blockReward *big.Int
