@@ -476,6 +476,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				query.Origin.Number += query.Skip + 1
 			}
 		}
+		p.Log().Info("===SendBlockHeaders===", "origin", query.Origin, "amount", query.Amount, "skip", query.Skip, "reverse", query.Reverse, "header from", headers[0].Number.Uint64(), "header end", headers[len(headers)-1].Number.Uint64())
 		return p.SendBlockHeaders(headers)
 
 	case msg.Code == BlockHeadersMsg:
