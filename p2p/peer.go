@@ -453,6 +453,7 @@ func (rw *protoRW) ReadMsg() (Msg, error) {
 		msg.Code -= rw.offset
 		return msg, nil
 	case <-rw.closed:
+		log.Error("ReadMsg from peer error, connection is closed")
 		return Msg{}, io.EOF
 	}
 }

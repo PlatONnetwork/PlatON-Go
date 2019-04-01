@@ -30,7 +30,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"sync"
-	"time"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -73,7 +72,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		misc.ApplyDAOHardFork(statedb)
 	}
 	// Iterate over and process the individual transactions
-	log.Warn("---开始执行交易---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 	for i, tx := range block.Transactions() {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
 		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, header, tx, usedGas, cfg)
@@ -87,26 +85,20 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		receipts = append(receipts, receipt)
 		allLogs = append(allLogs, receipt.Logs...)
 	}
-	log.Warn("---结束执行交易---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// Notify call
-		log.Warn("---开始调用Notify---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		if err := cbftEngine.Notify(statedb, block.Number()); err != nil {
 			log.Error("---Failed to Notify call when processing block:---",  "err", err, "number", block.Number(), "hash", block.Hash())
 		}
-		log.Warn("---结束调用Notify---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		// Election call(if match condition)
-		log.Warn("---开始调用Election---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		if p.bc.shouldElectionFn(block.Number()) {
 			log.Info("---Election call when processing block:---", "number", block.Number(), "hash", block.Hash())
 			if _, err := cbftEngine.Election(statedb, block.ParentHash(), block.Number()); nil != err {
 				log.Error("---Failed to Election call when processing block:---", "err", err, "number", block.Number(), "hash", block.Hash())
 			}
 		}
-		log.Warn("---结束调用Election---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		// SwitchWitness call(if match condition)
-		log.Warn("---开始调用Switch---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		if p.bc.shouldSwitchFn(block.Number()) {
 			log.Info("---SwitchWitness call when processing block:---", "number", block.Number(), "hash", block.Hash())
 			if !cbftEngine.Switch(statedb) {
@@ -114,30 +106,21 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 			}
 
 		}
-		log.Warn("---结束调用Switch---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		// ppos Store Hash
-		log.Warn("---开始调用StoreHash---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		cbftEngine.StoreHash(statedb, block.Number(), block.Hash())
-		log.Warn("---结束调用StoreHash---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 	}
 
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	log.Warn("---开始调用Finalize---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
-	log.Warn("---结束调用Finalize---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// SetNodeCache
 		blockNumber := block.Number()
-		log.Warn("---SetNodeCache call when processing block---", "number", block.Number())
+		log.Warn("---SetNodeCache call when processing block---", "number", block.Number(), "blockHash", block.Hash().Hex())
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
-		log.Warn("---开始调用SetNodeCache---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		cbftEngine.SetNodeCache(statedb, parentNumber, blockNumber, block.ParentHash(), block.Hash())
-		log.Warn("---结束调用SetNodeCache---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		// ppos Submit2Cache
-		log.Warn("---开始调用Submit2Cache---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		cbftEngine.Submit2Cache(statedb, blockNumber, blockInterval, block.Hash())
-		log.Warn("---结束调用Submit2Cache---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 	}
 	return receipts, allLogs, *usedGas, nil
 }

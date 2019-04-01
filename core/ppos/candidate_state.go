@@ -854,7 +854,7 @@ func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) commo
 
 	de_ok := len(queue) != 0
 
-	/*	
+	/*
 	if pre_ok {
 		return pre_can.Owner
 	}
@@ -1008,8 +1008,6 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 		}
 
 		/**
-		揭榜在释放完幸运票之后，重新质押之前，做的处理
-		这里主要检查 钱
 		handing before  Re-pledging
 		*/
 		/*if flag, nIds := c.repledgCheck(state, can, currBlockNumber); !flag {
