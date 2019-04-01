@@ -482,12 +482,12 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 	} else if d.mode == FullSync {
 		fetchers = append(fetchers, d.processFullSyncContent)
 	}
-	return d.spawnSync(fetchers)
+	return d.spawnSync(fetchers, d.mode)
 }
 
 // spawnSync runs d.process and all given fetcher functions to completion in
 // separate goroutines, returning the first error that appears.
-func (d *Downloader) spawnSync(fetchers []func() error) error {
+func (d *Downloader) spawnSync(fetchers []func() error, mode SyncMode) error {
 	errc := make(chan error, len(fetchers))
 	d.cancelWg.Add(len(fetchers))
 	for _, fn := range fetchers {
@@ -509,7 +509,7 @@ func (d *Downloader) spawnSync(fetchers []func() error) error {
 	}
 	d.queue.Close()
 	d.Cancel()
-	log.Debug("Synchronising with the network end", "mode", d.mode, "headerNumber", d.blockchain.CurrentHeader().Number.Uint64(), "blockNumber", d.blockchain.CurrentBlock().NumberU64(), "fastNumber", d.blockchain.CurrentFastBlock().NumberU64(), "timestamp", time.Now().UnixNano() / 1e6)
+	log.Debug("Synchronising with the network end", "mode", mode, "headerNumber", d.blockchain.CurrentHeader().Number.Uint64(), "blockNumber", d.blockchain.CurrentBlock().NumberU64(), "fastNumber", d.blockchain.CurrentFastBlock().NumberU64(), "timestamp", time.Now().UnixNano() / 1e6)
 	return err
 }
 

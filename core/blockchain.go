@@ -218,7 +218,31 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 
 		log.Debug("Call NewBlockChain, currentBlock is not equal ppostempBlock, Reset CurrentBlock on Chain", "currentNumber",
 			currNum, "currentHash", bc.CurrentBlock().Hash().Hex(), "pposNum", pposNum, "pposHash", pposHash.Hex())
-		bc.SetHead(pposNum.Uint64())
+		/*bc.SetHead(pposNum.Uint64())*/
+
+
+		currentBlock := bc.GetBlock(pposHash, pposNum.Uint64())
+		// Everything seems to be fine, set as the head block
+		bc.currentBlock.Store(currentBlock)
+
+		// Restore the last known head header
+		currentHeader := currentBlock.Header()
+		if head := rawdb.ReadHeadHeaderHash(bc.db); head != (common.Hash{}) {
+			if header := bc.GetHeaderByHash(head); header != nil {
+				currentHeader = header
+			}
+		}
+		bc.hc.SetCurrentHeader(currentHeader)
+
+		// Restore the last known head fast block
+		bc.currentFastBlock.Store(currentBlock)
+		/*if head := rawdb.ReadHeadFastBlockHash(bc.db); head != (common.Hash{}) {
+			if block := bc.GetBlockByHash(head); block != nil {
+				bc.currentFastBlock.Store(block)
+			}
+		}*/
+
+
 	}
 
 	// Take ownership of this particular state
@@ -1143,12 +1167,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return 0, nil, nil, fmt.Errorf("non contiguous insert: item %d is #%d [%x…], item %d is #%d [%x…] (parent [%x…])", i-1, chain[i-1].NumberU64(),
 				chain[i-1].Hash().Bytes()[:4], i, chain[i].NumberU64(), chain[i].Hash().Bytes()[:4], chain[i].ParentHash().Bytes()[:4])
 		}
-		// modify by niuxiaojie
-		if i == 1 {
-			beginBlock := chain[0]
-			endBlock := chain[len(chain) - 1]
-			log.Warn("---开始写入链---", "beginNumber", beginBlock.NumberU64(), "beginHash", beginBlock.Hash(), "endNumber", endBlock.NumberU64(), "endHash", endBlock.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
-		}
 	}
 	// Pre-checks passed, start the full block imports
 	bc.wg.Add(1)
@@ -1182,8 +1200,6 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 	// Iterate over the blocks and insert when the verifier permits
 	for i, block := range chain {
-		beginTimestamp := time.Now().UnixNano() / 1e6
-		log.Warn("---开始处理区块---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", beginTimestamp)
 		// If the chain is terminating, stop processing blocks
 		if atomic.LoadInt32(&bc.procInterrupt) == 1 {
 			log.Debug("Premature abort during blocks processing")
@@ -1285,9 +1301,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			return i, events, coalescedLogs, err
 		}
 		// Validate the state using the default validator
-		log.Warn("---开始验证区块---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		err = bc.Validator().ValidateState(block, parent, state, receipts, usedGas)
-		log.Warn("---结束验证区块---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
 			return i, events, coalescedLogs, err
@@ -1295,18 +1309,14 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 		proctime := time.Since(bstart)
 
 		// Write the block to the chain and get the status.
-		log.Warn("---开始写入区块---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		status, err := bc.WriteBlockWithState(block, receipts, state)
-		log.Warn("---结束写入区块---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6, "status", status)
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
 
 		if _, ok := bc.engine.(consensus.Bft); ok {
 			log.Debug("Attempt to connect the next round of consensus nodes when insertchain", "number", block.Number())
-			log.Warn("---开始attemptAddConsensusPeer---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 			bc.attemptAddConsensusPeerFn(block.Number(), state)
-			log.Warn("---结束attemptAddConsensusPeer---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", time.Now().UnixNano() / 1e6)
 		}
 
 		switch status {
@@ -1334,17 +1344,11 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 		cache, _ := bc.stateCache.TrieDB().Size()
 		stats.report(chain, i, cache)
-		endTimestamp := time.Now().UnixNano() / 1e6
-		log.Warn("---结束处理区块---", "number", block.NumberU64(), "hash", block.Hash(), "timestamp", endTimestamp)
-		if endTimestamp - beginTimestamp > 100 {
-			log.Warn("---处理区块超时---", "number", block.NumberU64(), "hash", block.Hash(), "timeout", endTimestamp - beginTimestamp)
-		}
 	}
 	// Append a single chain head event if we've progressed the chain
 	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
 		events = append(events, ChainHeadEvent{lastCanon})
 	}
-	log.Warn("---结束写入链---", "timestamp", time.Now().UnixNano() / 1e6)
 
 	return 0, events, coalescedLogs, nil
 }
