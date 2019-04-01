@@ -854,7 +854,7 @@ func (c *CandidatePool) GetOwner(state vm.StateDB, nodeId discover.NodeID) commo
 
 	de_ok := len(queue) != 0
 
-	/*	
+	/*
 	if pre_ok {
 		return pre_can.Owner
 	}
