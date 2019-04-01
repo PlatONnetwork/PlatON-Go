@@ -30,7 +30,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"sync"
-	"time"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
