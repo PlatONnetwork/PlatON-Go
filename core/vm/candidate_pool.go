@@ -15,6 +15,7 @@ import (
 )
 
 var (
+	ErrOwnerNotOnly          = errors.New("Node ID cannot bind multiple owners")
 	ErrPermissionDenied      = errors.New("Transaction from address permission denied")
 	ErrFeeIllegal            = errors.New("The fee is illegal")
 	ErrDepositEmpty          = errors.New("Deposit balance not zero")
@@ -93,13 +94,13 @@ func (c *CandidateContract) CandidateDeposit(nodeId discover.NodeID, owner commo
 		log.Error("Failed to CandidateDeposit", "ErrDepositEmpty: ", ErrDepositEmpty.Error())
 		return nil, ErrDepositEmpty
 	}
-	//addr := c.Evm.CandidatePoolContext.GetOwner(c.Evm.StateDB, nodeId)
-	//if common.ZeroAddr != addr {
-	//	if ok := bytes.Equal(addr.Bytes(), owner.Bytes()); !ok {
-	//		log.Error("Failed to CandidateDeposit==> ", "ErrOwnerNotOnly: ", ErrOwnerNotOnly.Error())
-	//		return nil, ErrOwnerNotOnly
-	//	}
-	//}
+	addr := c.Evm.CandidatePoolContext.GetOwner(c.Evm.StateDB, nodeId)
+	if common.ZeroAddr != addr {
+		if ok := bytes.Equal(addr.Bytes(), owner.Bytes()); !ok {
+			log.Error("Failed to CandidateDeposit==> ", "old owner", addr.Hex(), "new owner", owner, "ErrOwnerNotOnly: ", ErrOwnerNotOnly.Error())
+			return nil, ErrOwnerNotOnly
+		}
+	}
 	//var alldeposit *big.Int
 	var txhash common.Hash
 	var towner common.Address
