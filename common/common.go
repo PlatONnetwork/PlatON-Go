@@ -9,7 +9,7 @@ const (
 	//
 	BaseAddNextPeers = 230
 	//
-	BaseIrrCount = 30
+	BaseIrrCount = 1
 
 	FirstRound = 1
 

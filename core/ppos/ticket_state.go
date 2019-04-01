@@ -298,8 +298,6 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 		}
 		epoch := t.GetCandidateEpoch(stateDB, nodeId)
 		ticketCount := t.GetCandidateTicketCount(stateDB, nodeId)
-		log.Debug("Delete candidate ticket collection on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", ticketCount, "epoch", epoch)
-		stateDB.GetPPOSCache().RemoveTicketDependency(nodeId)
 		surplusQuantity := t.GetPoolNumber(stateDB)
 		log.Debug("Start reducing the number of tickets on DropReturnTicket", "surplusQuantity", surplusQuantity, "candidateTicketIds", ticketCount)
 		t.setPoolNumber(stateDB, surplusQuantity+ticketCount)
@@ -321,6 +319,8 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 			}
 			//t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
 		}
+		log.Debug("Delete candidate ticket collection on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", ticketCount, "epoch", epoch)
+		stateDB.GetPPOSCache().RemoveTicketDependency(nodeId)
 	}
 	log.Debug("End processing the list on DropReturnTicket")
 	return nil

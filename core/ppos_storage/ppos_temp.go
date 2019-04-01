@@ -92,49 +92,18 @@ func NewPPosTemp(db ethdb.Database) *PPOS_TEMP {
 			 */
 
 			 // TODO
-			log.Debug("NewPPosTemp 从disk加载出来的数据:", "data len", len(data), "dataMD5", md5.Sum(data))
+			log.Debug("NewPPosTemp  loading data from disk:", "data len", len(data), "dataMD5", md5.Sum(data))
 
-			//PrintObject("NewPPosTemp 解析db中获取并反序列pb的数据:", pb_pposTemp)
-
+			//PrintObject("NewPPosTemp  loading data from disk:", pb_pposTemp)
 
 
 			pposStorage := unmarshalPBStorage(pb_pposTemp)
-
-
-			//PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据:", pposStorage)
-			//
-			//
-			//PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp pres:", pposStorage.c_storage.pres)
-			//PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp currs:", pposStorage.c_storage.currs)
-			//PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp nexts:", pposStorage.c_storage.nexts)
-			//PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp imms:", pposStorage.c_storage.imms)
-			//PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp res:", pposStorage.c_storage.res)
-			//PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: canTemp refunds:", pposStorage.c_storage.refunds)
-			//
-			//PrintObject("NewPPosTemp unmarshalPBStorage 之后的数据: tickTemp:", pposStorage.t_storage)
-
 
 
 			hashMap := make(map[common.Hash]*Ppos_storage, 0)
 			blockHash := common.HexToHash(pb_pposTemp.BlockHash)
 			hashMap[blockHash] = pposStorage
 			ppos_temp.TempMap[pb_pposTemp.BlockNumber] = hashMap
-
-
-
-			//PrintObject("NewPPosTemp 加载进内存中的数据:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)])
-			//
-			//
-			//PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp pres:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.pres)
-			//PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp currs:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.currs)
-			//PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp nexts:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.nexts)
-			//PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp imms:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.imms)
-			//PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp res:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.res)
-			//PrintObject("NewPPosTemp 加载进内存中的数据:  canTemp refunds:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.refunds)
-			//
-			//
-			//PrintObject("NewPPosTemp 加载进内存中的数据: tickTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].t_storage)
-
 
 			num, _ := new(big.Int).SetString(pb_pposTemp.BlockNumber, 10)
 
@@ -156,19 +125,19 @@ func GetPPosTempPtr() *PPOS_TEMP {
 
 
 func BuildPposCache(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
-	return ppos_temp.GetPposCacheFromTemp(blockNumber, blockHash)
+	return ppos_temp.getPposCacheFromTemp(blockNumber, blockHash)
 }
 
 
 // Get ppos storage cache by same block
-func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
+func (temp *PPOS_TEMP) getPposCacheFromTemp(blockNumber *big.Int, blockHash common.Hash) *Ppos_storage {
 
 	ppos_storage := NewPPOS_storage()
 
 	notGenesisBlock := blockNumber.Cmp(big.NewInt(0)) > 0
 
 	if nil == temp && notGenesisBlock {
-		log.Warn("Warn Call GetPposCacheByNumAndHash of PPOS_TEMP, the Global PPOS_TEMP instance is nil !!!!!!!!!!!!!!!", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
+		log.Warn("Warn Call getPposCacheFromTemp of PPOS_TEMP, the Global PPOS_TEMP instance is nil !!!!!!!!!!!!!!!", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
 		return ppos_storage
 	}
 
@@ -180,20 +149,20 @@ func (temp *PPOS_TEMP) GetPposCacheFromTemp(blockNumber *big.Int, blockHash comm
 
 	temp.lock.Lock()
 	if hashTemp, ok := temp.TempMap[blockNumber.String()]; !ok {
-		log.Warn("Warn Call GetPposCacheByNumAndHash of PPOS_TEMP, the PPOS storage cache is empty by blockNumber !!!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
+		log.Warn("Warn Call getPposCacheFromTemp of PPOS_TEMP, the PPOS storage cache is empty by blockNumber !!!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
 		temp.lock.Unlock()
 		return ppos_storage
 	}else {
 
 		if pposStorage, ok := hashTemp[blockHash]; !ok {
-			log.Warn("Warn Call GetPposCacheByNumAndHash of PPOS_TEMP, the PPOS storage cache is empty by blockHash !!!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
+			log.Warn("Warn Call getPposCacheFromTemp of PPOS_TEMP, the PPOS storage cache is empty by blockHash !!!!! Direct short-circuit", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex())
 			temp.lock.Unlock()
 			return ppos_storage
 		}else {
 			start := common.NewTimer()
 			start.Begin()
 			storage = pposStorage.Copy()
-			log.Debug("Call GetPposCacheByNumAndHash of PPOS_TEMP, Copy ppos_storage FINISH !!!!!!", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "Time spent", fmt.Sprintf("%v ms", start.End()))
+			log.Debug("Call getPposCacheFromTemp of PPOS_TEMP, Copy ppos_storage FINISH !!!!!!", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "Time spent", fmt.Sprintf("%v ms", start.End()))
 		}
 	}
 	temp.lock.Unlock()
@@ -387,7 +356,7 @@ func  (temp *PPOS_TEMP) GetPPosStorageProto() (common.Hash, []byte, error) {
 		}else {
 			// TODO
 
-			//PrintObject("GetPPosStorageProto 解析PB的数据:", pb_pposTemp)
+			PrintObject("GetPPosStorageProto resolve the data of PB:", pb_pposTemp)
 
 
 			log.Debug("Call GetPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "dataMD5", md5.Sum(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
@@ -413,9 +382,9 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 		 */
 		 // TODO
 
-		log.Debug("PushPPosStorageProto 入参的数据:", "data len", len(data), "dataMD5", md5.Sum(data))
+		log.Debug("PushPPosStorageProto input params:", "data len", len(data), "dataMD5", md5.Sum(data))
 
-		//PrintObject("PushPPosStorageProto 解析PB准备刷disk的数据:", pb_pposTemp)
+		//PrintObject("PushPPosStorageProto resolve the data of PB, will flush disk:", pb_pposTemp)
 
 		var hashMap map[common.Hash]*Ppos_storage
 
@@ -568,9 +537,10 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 	if nil != ps.t_storage {
 		tickTemp := new(TicketTemp)
 
+		tickTemp.Sq = ps.t_storage.Sq
+
 		// SQ
 		if ps.t_storage.Sq != -1 {
-			tickTemp.Sq = ps.t_storage.Sq
 			empty |= 1
 		}
 
@@ -803,11 +773,11 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 }
 
 func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
+	pbQueue := make([]*CandidateInfo, len(canQqueue))
 	if len(canQqueue) == 0 {
-		return nil
+		return pbQueue
 	}
 
-	pbQueue := make([]*CandidateInfo, len(canQqueue))
 	for i, can := range canQqueue {
 		canInfo := &CandidateInfo{
 			Deposit: 		can.Deposit.String(),

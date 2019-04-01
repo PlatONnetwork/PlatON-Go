@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"crypto/md5"
 )
 
 const (
@@ -291,26 +292,6 @@ func (p *Ppos_storage) CopyCandidateStorage ()  *candidate_temp {
 	temp.refunds = cache*/
 
 
-
-	//PrintObject("CopyCandidateStorage前: pres", p.c_storage.pres)
-	//PrintObject("CopyCandidateStorage前: currs", p.c_storage.currs)
-	//PrintObject("CopyCandidateStorage前: nexts", p.c_storage.nexts)
-	//PrintObject("CopyCandidateStorage前: imms", p.c_storage.imms)
-	//PrintObject("CopyCandidateStorage前: res", p.c_storage.res)
-	//PrintObject("CopyCandidateStorage前: refunds", p.c_storage.refunds)
-
-
-
-
-
-	//PrintObject("CopyCandidateStorage后: pres", temp.pres)
-	//PrintObject("CopyCandidateStorage后: currs", temp.currs)
-	//PrintObject("CopyCandidateStorage后: nexts", temp.nexts)
-	//PrintObject("CopyCandidateStorage后: imms", temp.imms)
-	//PrintObject("CopyCandidateStorage后: res", temp.res)
-	//PrintObject("CopyCandidateStorage后: refunds", temp.refunds)
-
-
 	log.Debug("CopyCandidateStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return temp
 }
@@ -398,10 +379,6 @@ func (p *Ppos_storage) CopyTicketStorage() *ticket_temp {
 		}
 	}*/
 
-
-	//PrintObject("CopyTicketStorage前:", p.t_storage)
-
-	//PrintObject("CopyTicketStorage后:", ticket_cache)
 
 	log.Debug("CopyTicketStorage", "Time spent", fmt.Sprintf("%v ms", start.End()))
 	return ticket_cache
@@ -757,10 +734,10 @@ func (p *Ppos_storage) RemoveTicket(nodeId discover.NodeID, txHash common.Hash) 
 
 func (p *Ppos_storage) GetCandidateTicketCount(nodeId discover.NodeID) uint32 {
 	if value := p.GetTicketDependency(nodeId); value != nil {
-		log.Debug("获取当前node的得票数", "nodeId", nodeId.String(), "tcount", value.Num)
+		log.Debug("Gets the ticket count of node", "nodeId", nodeId.String(), "tcount", value.Num)
 		return value.Num
 	}
-	log.Debug("获取当前node的得票数", "nodeId", nodeId.String(), "tcount", 0)
+	log.Debug("Gets the ticket count of node", "nodeId", nodeId.String(), "tcount", 0)
 	return 0
 }
 
@@ -1027,7 +1004,15 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 	}
 	log.Debug("Call CalculateHash protobuf success ...", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),  "Made protobuf Time spent", fmt.Sprintf("%v ms", start.End()))
 	ret := crypto.Keccak256Hash(data)
-	log.Debug("Call CalculateHash finish ...", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "proto out len", len(data), "ppos storage Hash", ret.Hex(), "Total Time spent", fmt.Sprintf("%v ms", start.End()))
+	log.Debug("Call CalculateHash finish ...", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "proto out len", len(data), "Hash", string(ret[:]),"md5",  md5.Sum(data),  "ppos storage Hash", ret.Hex(), "Total Time spent", fmt.Sprintf("%v ms", start.End()))
+
+	PrintObject("Call CalculateHash Data Cans", sortTemp.Cans)
+	PrintObject("Call CalculateHash Data ReIds", sortTemp.ReIds)
+	PrintObject("Call CalculateHash Data Refunds", sortTemp.Refunds)
+	PrintObject("Call CalculateHash Data Sq", sortTemp.Sq)
+	PrintObject("Call CalculateHash Data NodeIds", sortTemp.NodeIds)
+	PrintObject("Call CalculateHash Data Deps", sortTemp.Deps)
+
 	return ret, nil
 
 }

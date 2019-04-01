@@ -429,7 +429,7 @@ func (self *StateDB) getStateObject(addr common.Address) (stateObject *stateObje
 		}
 		return obj
 	}
-	log.Debug("getStateObject", "root addr", fmt.Sprintf("%p", self))
+	log.Debug("getStateObject", "stateDB addr", fmt.Sprintf("%p", self), "state root", self.Root().Hex())
 	// Load the object from the database.
 	enc, err := self.trie.TryGet(addr[:])
 	if len(enc) == 0 {
@@ -453,7 +453,7 @@ func (self *StateDB) setStateObject(object *stateObject) {
 
 // Retrieve a state object or create a new state object if nil.
 func (self *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
-	log.Debug("GetOrNewStateObject", "root addr", fmt.Sprintf("%p", self))
+	log.Debug("GetOrNewStateObject", "stateDB addr", fmt.Sprintf("%p", self), "state root", self.Root().Hex())
 	stateObject := self.getStateObject(addr)
 	if stateObject == nil || stateObject.deleted {
 		stateObject, _ = self.createObject(addr)
