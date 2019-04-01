@@ -667,7 +667,7 @@ func (d *Downloader) findOrigin(p *peerConnection, height uint64, pivot uint64) 
 	}
 
 	currentNumber := current.NumberU64()
-	if currentNumber >= height || currentNumber >= pivot {
+	if currentNumber >= height || currentNumber > pivot {
 		p.log.Info("current block number is higher than remote peer,no need to sync", "currentNumber", currentNumber, "remoteHeight", height, "remotePivot", pivot)
 		return 0, errNoNeedSync
 	}
@@ -972,7 +972,7 @@ func (d *Downloader) fetchHeaders(p *peerConnection, from uint64, pivot uint64) 
 			}
 			// Insert all the new headers and fetch the next batch
 			if len(headers) > 0 {
-				p.log.Debug("Scheduling new headers", "count", len(headers), "from", from, "header from", headers[0].Number.Uint64(), "header end", headers[len(headers)-1].Number.Uint64())
+				p.log.Debug("Scheduling new headers", "count", len(headers), "from", from, "headerFrom", headers[0].Number.Uint64(), "headerEnd", headers[len(headers)-1].Number.Uint64())
 				select {
 				case d.headerProcCh <- headers:
 				case <-d.cancelCh:
