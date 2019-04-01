@@ -349,7 +349,7 @@ func (p *ppos)buildGenesisRound(blockNumber uint64, blockHash common.Hash, initi
 }
 
 func (p *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Hash){
-	/*res := p.nodeRound[blockNumber]
+	res := p.nodeRound[blockNumber]
 
 	log.Debug(title + ":Traversing out the RoundNodes，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
 
@@ -365,7 +365,7 @@ func (p *ppos)printMapInfo(title string, blockNumber uint64, blockHash common.Ha
 		}
 	}else {
 		log.Error(title + ":Traversing out of the round is NOT EXIST !!!!!!!!，num: " + fmt.Sprint(blockNumber) + ", hash: " + blockHash.String())
-	}*/
+	}
 }
 
 /** Method provided to the built-in contract call */
