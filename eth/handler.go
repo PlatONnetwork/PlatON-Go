@@ -421,7 +421,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 					origin = pm.blockchain.GetHeader(query.Origin.Hash, query.Origin.Number)
 				}
 			} else {
-				p.Log().Info("===GetHeaderByNumber===")
 				origin = pm.blockchain.GetHeaderByNumber(query.Origin.Number)
 			}
 			if origin == nil {
@@ -476,9 +475,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				// Number based traversal towards the leaf block
 				query.Origin.Number += query.Skip + 1
 			}
-		}
-		if len(headers) > 0 {
-			p.Log().Info("===SendBlockHeaders===", "origin", query.Origin.Number, "amount", query.Amount, "skip", query.Skip, "reverse", query.Reverse, "headerFrom", headers[0].Number.Uint64(), "headerEnd", headers[len(headers)-1].Number.Uint64())
 		}
 		return p.SendBlockHeaders(headers)
 
