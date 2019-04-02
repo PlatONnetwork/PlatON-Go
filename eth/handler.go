@@ -407,7 +407,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			headers []*types.Header
 			unknown bool
 		)
-		originNumber := query.Origin.Number
 		for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit && len(headers) < downloader.MaxHeaderFetch {
 			// Retrieve the next header satisfying the query
 			var origin *types.Header
@@ -476,9 +475,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				// Number based traversal towards the leaf block
 				query.Origin.Number += query.Skip + 1
 			}
-		}
-		if len(headers) > 0 {
-			p.Log().Info("===SendBlockHeaders===", "originNumber", originNumber, "changeOriginNumber", query.Origin.Number, "amount", query.Amount, "skip", query.Skip, "reverse", query.Reverse, "headerFrom", headers[0].Number.Uint64(), "headerEnd", headers[len(headers)-1].Number.Uint64())
 		}
 		return p.SendBlockHeaders(headers)
 
