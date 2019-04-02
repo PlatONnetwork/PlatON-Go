@@ -1865,12 +1865,12 @@ func (cbft *Cbft) Election(state *state.StateDB, parentHash common.Hash, blockNu
 	return cbft.ppos.Election(state, parentHash, blockNumber)
 }
 
-func (cbft *Cbft) Switch(state *state.StateDB) bool {
-	return cbft.ppos.Switch(state)
+func (cbft *Cbft) Switch(state *state.StateDB, blockNumber *big.Int) bool {
+	return cbft.ppos.Switch(state, blockNumber)
 }
 
-func (cbft *Cbft) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
-	return cbft.ppos.GetWitness(state, flag)
+func (cbft *Cbft) GetWitness(state *state.StateDB, flag int, blockNumber *big.Int) ([]*discover.Node, error) {
+	return cbft.ppos.GetWitness(state, flag, blockNumber)
 }
 
 func (cbft *Cbft) GetOwnNodeID() discover.NodeID {
@@ -1919,9 +1919,9 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	//log.Info("Call accumulateRewards", "nodeid: ", nodeId.String())
 	var can *types.Candidate
 	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(common.BaseSwitchWitness))) == 0 {
-		can = cbft.ppos.GetWitnessCandidate(state, nodeId, -1)
+		can = cbft.ppos.GetWitnessCandidate(state, nodeId, -1, header.Number)
 	} else {
-		can = cbft.ppos.GetWitnessCandidate(state, nodeId, 0)
+		can = cbft.ppos.GetWitnessCandidate(state, nodeId, 0, header.Number)
 	}
 	if err != nil {
 		log.Error("Failed to Call accumulateRewards, GetCandidate faile ", " err: ", err.Error(),
