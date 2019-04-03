@@ -832,6 +832,7 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 	// declare can refund func
 	RefundIdQueueFunc := func(refundMap refundStorage) ([]string, []*RefundArr) {
 
+		PrintObject("RefundIdQueueFunc, Refunds", refundMap)
 
 		if len(refundMap) == 0 {
 			return nil, nil
@@ -889,6 +890,7 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 	// declare can dependency func
 	DependencyFunc := func(dependencys map[discover.NodeID]*ticketDependency) ([]string, []*TicketDependency) {
 
+		PrintObject("DependencyFunc, dependencys", dependencys)
 
 		if len(dependencys) == 0 {
 			return nil, nil
@@ -966,27 +968,27 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 	calculate can dependency Hash
 	*/
 	go func() {
-		resqueue[0] = buildPBcanqueue(p.c_storage.pres)
+		resqueue[0] = buildPBcanqueue("pres", p.c_storage.pres)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[1] = buildPBcanqueue(p.c_storage.currs)
+		resqueue[1] = buildPBcanqueue("currs", p.c_storage.currs)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[2] = buildPBcanqueue(p.c_storage.nexts)
+		resqueue[2] = buildPBcanqueue("nexts", p.c_storage.nexts)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[3] = buildPBcanqueue(p.c_storage.imms)
+		resqueue[3] = buildPBcanqueue("imms", p.c_storage.imms)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[4] = buildPBcanqueue(p.c_storage.res)
+		resqueue[4] = buildPBcanqueue("res", p.c_storage.res)
 		wg.Done()
 	}()
 

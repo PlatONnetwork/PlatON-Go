@@ -425,7 +425,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		wg.Add(6)
 		// previous witness
 		go func() {
-			if queue := buildPBcanqueue(ps.c_storage.pres); len(queue) != 0 {
+			if queue := buildPBcanqueue("pres", ps.c_storage.pres); len(queue) != 0 {
 				canTemp.Pres = queue
 				empty |= 1
 			}
@@ -433,7 +433,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// current witness
 		go func() {
-			if queue := buildPBcanqueue(ps.c_storage.currs); len(queue) != 0 {
+			if queue := buildPBcanqueue("currs", ps.c_storage.currs); len(queue) != 0 {
 				canTemp.Currs = queue
 				empty |= 1
 			}
@@ -441,7 +441,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// next witness
 		go func() {
-			if queue := buildPBcanqueue(ps.c_storage.nexts); len(queue) != 0 {
+			if queue := buildPBcanqueue("nexts", ps.c_storage.nexts); len(queue) != 0 {
 				canTemp.Nexts = queue
 				empty |= 1
 			}
@@ -449,7 +449,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// immediate
 		go func() {
-			if queue := buildPBcanqueue(ps.c_storage.imms); len(queue) != 0 {
+			if queue := buildPBcanqueue("imms", ps.c_storage.imms); len(queue) != 0 {
 				canTemp.Imms = queue
 				empty |= 1
 			}
@@ -457,7 +457,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// reserve
 		go func() {
-			if queue := buildPBcanqueue(ps.c_storage.res); len(queue) != 0 {
+			if queue := buildPBcanqueue("res", ps.c_storage.res); len(queue) != 0 {
 				canTemp.Res = queue
 				empty |= 1
 			}
@@ -718,7 +718,10 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 	return ppos_storage
 }
 
-func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
+func buildPBcanqueue (title string, canQqueue types.CandidateQueue) []*CandidateInfo {
+
+	PrintObject("buildPBcanqueue," + title, canQqueue)
+
 	pbQueue := make([]*CandidateInfo, len(canQqueue))
 	if len(canQqueue) == 0 {
 		return pbQueue
@@ -745,6 +748,9 @@ func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
 
 
 func buildPBrefunds(refunds refundStorage) map[string]*RefundArr {
+
+	PrintObject("buildPBrefunds", refunds)
+
 	if len(refunds) == 0 {
 		return nil
 	}
