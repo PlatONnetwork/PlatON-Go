@@ -162,9 +162,9 @@ type Bft interface {
 
 	Election(state *state.StateDB, parentHash common.Hash, blockNumber *big.Int) ([]*discover.Node, error)
 
-	Switch(state *state.StateDB) bool
+	Switch(state *state.StateDB, blockNumber *big.Int) bool
 
-	GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error)
+	GetWitness(state *state.StateDB, flag int, blockNumber *big.Int) ([]*discover.Node, error)
 
 	GetOwnNodeID() discover.NodeID
 

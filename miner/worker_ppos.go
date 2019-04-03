@@ -54,7 +54,7 @@ func (w *worker) switchWitness(state *state.StateDB, blockNumber *big.Int) error
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		if should := w.shouldSwitch(blockNumber); should {
 			log.Debug("SwitchWitness call:", "blockNumber", blockNumber)
-			success := cbftEngine.Switch(state)
+			success := cbftEngine.Switch(state, blockNumber)
 			if !success {
 				log.Error("Failed to switchWitness", "blockNumber", blockNumber)
 				return errors.New("Failed to switchWitness")
@@ -119,7 +119,7 @@ func existsNode(nodeID discover.NodeID, nodes []*discover.Node) bool {
 
 func (w *worker) getWitness(blockNumber *big.Int, state *state.StateDB, flag int) ([]*discover.Node, error) {
 	log.Debug("GetWitness begin", "blockNumber", blockNumber, "flag", flag)
-	consensusNodes, err := w.engine.(consensus.Bft).GetWitness(state, flag)
+	consensusNodes, err := w.engine.(consensus.Bft).GetWitness(state, flag, blockNumber)
 	if err != nil {
 		log.Error("Failed to GetWitness", "blockNumber", blockNumber, "error", err)
 		return nil, errors.New("Failed to GetWitness")

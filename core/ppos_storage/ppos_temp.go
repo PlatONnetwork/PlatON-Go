@@ -179,16 +179,6 @@ func (temp *PPOS_TEMP) SubmitPposCache2Temp(blockNumber, blockInterval *big.Int,
 
 	empty := verifyStorageEmpty(storage)
 
-	//
-	//PrintObject("SubmitPposCache2Temp 时, canTemp pres:", storage.c_storage.pres)
-	//PrintObject("SubmitPposCache2Temp 时, canTemp currs:", storage.c_storage.currs)
-	//PrintObject("SubmitPposCache2Temp 时, canTemp nexts:", storage.c_storage.nexts)
-	//PrintObject("SubmitPposCache2Temp 时, canTemp imms:", storage.c_storage.imms)
-	//PrintObject("SubmitPposCache2Temp 时, canTemp res:", storage.c_storage.res)
-	//PrintObject("SubmitPposCache2Temp 时, canTemp refunds:", storage.c_storage.refunds)
-	//
-	//
-	//PrintObject("SubmitPposCache2Temp 时, tickTemp:", storage.t_storage)
 
 	temp.lock.Lock()
 	/**
@@ -289,19 +279,6 @@ func (temp *PPOS_TEMP) Commit2DB(blockNumber *big.Int, blockHash common.Hash) er
 	temp.lock.Unlock()
 
 
-	// TODO
-
-	//PrintObject("Commit2DB 读取到当前在内存中的数据:", ps)
-
-	//PrintObject("Commit2DB 读取到当前在内存中的数据:canTemp pres:", ps.c_storage.pres)
-	//PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp currs:", ps.c_storage.currs)
-	//PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp nexts:", ps.c_storage.nexts)
-	//PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp imms:", ps.c_storage.imms)
-	//PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp res:", ps.c_storage.res)
-	//PrintObject("Commit2DB 读取到当前在内存中的数据: canTemp refunds:", ps.c_storage.refunds)
-	//
-	//
-	//PrintObject("Commit2DB 读取到当前在内存中的数据: tickTemp:", ps.t_storage)
 
 
 	if pposTemp := buildPBStorage(blockNumber, blockHash, ps); nil == pposTemp {
@@ -316,8 +293,6 @@ func (temp *PPOS_TEMP) Commit2DB(blockNumber *big.Int, blockHash common.Hash) er
 			if len(data) != 0 {
 
 				// TODO
-				//PrintObject("Commit2DB 解析PB存入disk的数据:", pposTemp)
-
 
 				if err := temp.db.Put(PPOS_STORAGE_KEY, data); err != nil {
 					log.Error("Failed to Call Commit2DB:" + WRITE_PPOS_ERR.Error(), "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "data len", len(data), "Time spent", fmt.Sprintf("%v ms", start.End()), "err", err)
@@ -399,40 +374,11 @@ func (temp *PPOS_TEMP) PushPPosStorageProto(data []byte)  error {
 		pposStorage := unmarshalPBStorage(pb_pposTemp)
 
 
-		//PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据:", pposStorage)
-
-
-		//PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp pres:", pposStorage.c_storage.pres)
-		//PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp currs:", pposStorage.c_storage.currs)
-		//PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp nexts:", pposStorage.c_storage.nexts)
-		//PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp imms:", pposStorage.c_storage.imms)
-		//PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp res:", pposStorage.c_storage.res)
-		//PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: canTemp refunds:", pposStorage.c_storage.refunds)
-		//
-		//PrintObject("PushPPosStorageProto unmarshalPBStorage 之后的数据: tickTemp:", pposStorage.t_storage)
-
 
 		blockHash := common.HexToHash(pb_pposTemp.BlockHash)
 		hashMap[blockHash] = pposStorage
 		ppos_temp.TempMap[pb_pposTemp.BlockNumber] = hashMap
 
-
-		//PrintObject("PushPPosStorageProto 加载进内存中的数据:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)])
-		//
-		//
-		//
-		//PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp pres:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.pres)
-		//PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp currs:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.currs)
-		//PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp nexts:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.nexts)
-		//PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp imms:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.imms)
-		//PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp res:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.res)
-		//PrintObject("PushPPosStorageProto 加载进内存中的数据: canTemp refunds:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].c_storage.refunds)
-
-
-
-
-
-		//PrintObject("PushPPosStorageProto 加载进内存中的数据: tickTemp:", (ppos_temp.TempMap[pb_pposTemp.BlockNumber])[common.HexToHash(pb_pposTemp.BlockHash)].t_storage)
 
 
 		ppos_temp.lock.Unlock()
@@ -479,7 +425,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		wg.Add(6)
 		// previous witness
 		go func() {
-			if queue := buildPBcanqueue(ps.c_storage.pres); len(queue) != 0 {
+			if queue := buildPBcanqueue("pres", ps.c_storage.pres); len(queue) != 0 {
 				canTemp.Pres = queue
 				empty |= 1
 			}
@@ -487,7 +433,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// current witness
 		go func() {
-			if queue := buildPBcanqueue(ps.c_storage.currs); len(queue) != 0 {
+			if queue := buildPBcanqueue("currs", ps.c_storage.currs); len(queue) != 0 {
 				canTemp.Currs = queue
 				empty |= 1
 			}
@@ -495,7 +441,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// next witness
 		go func() {
-			if queue := buildPBcanqueue(ps.c_storage.nexts); len(queue) != 0 {
+			if queue := buildPBcanqueue("nexts", ps.c_storage.nexts); len(queue) != 0 {
 				canTemp.Nexts = queue
 				empty |= 1
 			}
@@ -503,7 +449,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// immediate
 		go func() {
-			if queue := buildPBcanqueue(ps.c_storage.imms); len(queue) != 0 {
+			if queue := buildPBcanqueue("imms", ps.c_storage.imms); len(queue) != 0 {
 				canTemp.Imms = queue
 				empty |= 1
 			}
@@ -511,7 +457,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// reserve
 		go func() {
-			if queue := buildPBcanqueue(ps.c_storage.res); len(queue) != 0 {
+			if queue := buildPBcanqueue("res", ps.c_storage.res); len(queue) != 0 {
 				canTemp.Res = queue
 				empty |= 1
 			}
@@ -772,7 +718,10 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 	return ppos_storage
 }
 
-func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
+func buildPBcanqueue (title string, canQqueue types.CandidateQueue) []*CandidateInfo {
+
+	PrintObject("buildPBcanqueue," + title, canQqueue)
+
 	pbQueue := make([]*CandidateInfo, len(canQqueue))
 	if len(canQqueue) == 0 {
 		return pbQueue
@@ -799,6 +748,9 @@ func buildPBcanqueue (canQqueue types.CandidateQueue) []*CandidateInfo {
 
 
 func buildPBrefunds(refunds refundStorage) map[string]*RefundArr {
+
+	PrintObject("buildPBrefunds", refunds)
+
 	if len(refunds) == 0 {
 		return nil
 	}

@@ -395,19 +395,39 @@ func (p *Ppos_storage) GetCandidateQueue(flag int) types.CandidateQueue {
 	switch flag {
 	case PREVIOUS:
 		PrintObject("Pres queue", p.c_storage.pres)
-		return p.c_storage.pres
+
+		queueCopy := make(types.CandidateQueue, len(p.c_storage.pres))
+		copy(queueCopy, p.c_storage.pres)
+
+		return queueCopy
 	case CURRENT:
 		PrintObject("Curr queue", p.c_storage.currs)
-		return p.c_storage.currs
+
+		queueCopy := make(types.CandidateQueue, len(p.c_storage.currs))
+		copy(queueCopy, p.c_storage.currs)
+
+		return queueCopy
 	case NEXT:
 		PrintObject("Next queue", p.c_storage.nexts)
-		return p.c_storage.nexts
+
+		queueCopy := make(types.CandidateQueue, len(p.c_storage.nexts))
+		copy(queueCopy, p.c_storage.nexts)
+
+		return queueCopy
 	case IMMEDIATE:
 		PrintObject("Imms queue", p.c_storage.imms)
-		return p.c_storage.imms
+
+		queueCopy := make(types.CandidateQueue, len(p.c_storage.imms))
+		copy(queueCopy, p.c_storage.imms)
+
+		return queueCopy
 	case RESERVE:
 		PrintObject("Res queue", p.c_storage.res)
-		return p.c_storage.res
+
+		queueCopy := make(types.CandidateQueue, len(p.c_storage.res))
+		copy(queueCopy, p.c_storage.res)
+
+		return queueCopy
 	default:
 		return nil
 	}
@@ -448,7 +468,9 @@ func (p *Ppos_storage) DelCandidateQueue(flag int)  {
 // Get Refund
 func (p *Ppos_storage) GetRefunds(nodeId discover.NodeID) types.RefundQueue {
 	if queue, ok := p.c_storage.refunds[nodeId]; ok {
-		return queue
+		queueCopy := make(types.RefundQueue, len(queue))
+		copy(queueCopy, queue)
+		return queueCopy
 	} else {
 		return make(types.RefundQueue, 0)
 	}
@@ -463,8 +485,9 @@ func (p *Ppos_storage) SetRefund(nodeId discover.NodeID, refund *types.Candidate
 		queue = append(queue, refund)
 		p.c_storage.refunds[nodeId] = queue
 	} else {
-		queue = make(types.RefundQueue, 1)
-		queue[0] = refund
+		queue = make(types.RefundQueue, 0)
+		//queue[0] = refund
+		queue = append(queue, refund)
 		p.c_storage.refunds[nodeId] = queue
 	}
 }
@@ -809,6 +832,7 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 	// declare can refund func
 	RefundIdQueueFunc := func(refundMap refundStorage) ([]string, []*RefundArr) {
 
+		PrintObject("RefundIdQueueFunc, Refunds", refundMap)
 
 		if len(refundMap) == 0 {
 			return nil, nil
@@ -866,6 +890,7 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 	// declare can dependency func
 	DependencyFunc := func(dependencys map[discover.NodeID]*ticketDependency) ([]string, []*TicketDependency) {
 
+		PrintObject("DependencyFunc, dependencys", dependencys)
 
 		if len(dependencys) == 0 {
 			return nil, nil
@@ -943,27 +968,27 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 	calculate can dependency Hash
 	*/
 	go func() {
-		resqueue[0] = buildPBcanqueue(p.c_storage.pres)
+		resqueue[0] = buildPBcanqueue("pres", p.c_storage.pres)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[1] = buildPBcanqueue(p.c_storage.currs)
+		resqueue[1] = buildPBcanqueue("currs", p.c_storage.currs)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[2] = buildPBcanqueue(p.c_storage.nexts)
+		resqueue[2] = buildPBcanqueue("nexts", p.c_storage.nexts)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[3] = buildPBcanqueue(p.c_storage.imms)
+		resqueue[3] = buildPBcanqueue("imms", p.c_storage.imms)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[4] = buildPBcanqueue(p.c_storage.res)
+		resqueue[4] = buildPBcanqueue("res", p.c_storage.res)
 		wg.Done()
 	}()
 
