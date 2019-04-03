@@ -326,7 +326,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, bn *big.Int, mode 
 
 	case errTimeout, errBadPeer, errStallingPeer,
 		errEmptyHeaderSet, errPeersUnavailable, errTooOld,
-		errInvalidAncestor, errInvalidChain:
+		errInvalidAncestor, errInvalidChain, errPushPPosStorageProto:
 		log.Warn("Synchronisation failed, dropping peer", "peer", id, "err", err)
 		if d.dropPeer == nil {
 			// The dropPeer method is nil when `--copydb` is used for a local copy.
