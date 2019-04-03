@@ -1004,17 +1004,18 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	c.initData2Cache(state, GET_IM_RE)
 	var nodes []*discover.Node
 	var nextQueue types.CandidateQueue
+	var isEmptyElection bool
 
-	if nodeArr, canArr, err := c.election(state, parentHash); nil != err {
+	if nodeArr, canArr, flag, err := c.election(state, parentHash, currBlockNumber); nil != err {
 		return nil, err
 	} else {
-		nodes, nextQueue = nodeArr, canArr
+		nodes, nextQueue, isEmptyElection = nodeArr, canArr, flag
 	}
 
 	nodeIds := make([]discover.NodeID, 0)
 	for _, can := range nextQueue {
 		// Release lucky ticket TODO
-		if (common.Hash{}) != can.TxHash {
+		if !isEmptyElection && (common.Hash{}) != can.TxHash {
 			if err := tContext.ReturnTicket(state, can.CandidateId, can.TxHash, currBlockNumber); nil != err {
 				log.Error("Failed to ReturnTicket on Election", "current blockNumber", currBlockNumber.String(), "nodeId", can.CandidateId.String(), "ticketId", can.TxHash.String(), "err", err)
 				continue
@@ -1030,10 +1031,12 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 			continue
 		}*/
 
-		PrintObject("Election Update Candidate to SetCandidate again ...", *can)
-		// Because you need to first ensure if you are in immediates, and if so, move to reserves
-		if ids := c.setCandidateInfo(state, can.CandidateId, can, currBlockNumber, c.promoteReserveQueue); len(ids) != 0 {
-			nodeIds = append(nodeIds, ids...)
+		if !isEmptyElection {
+			PrintObject("Election Update Candidate to SetCandidate again ...", *can)
+			// Because you need to first ensure if you are in immediates, and if so, move to reserves
+			if ids := c.setCandidateInfo(state, can.CandidateId, can, currBlockNumber, c.promoteReserveQueue); len(ids) != 0 {
+				nodeIds = append(nodeIds, ids...)
+			}
 		}
 
 	}
@@ -1047,21 +1050,26 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 	return nodes, nil
 }
 
-func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) ([]*discover.Node, types.CandidateQueue, error) {
+//return params
+// []*discover.Node:  		the cleaned nodeId
+// types.CandidateQueue:	the next witness
+// bool:					is empty election
+// error:					err
+func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash, blockNumber *big.Int) ([]*discover.Node, types.CandidateQueue, bool, error) {
 
 	imm_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
 
 	// sort immediate candidates
 	makeCandidateSort(state, imm_queue)
 
-	log.Info("When Election，Sorted the immediate array length:", "len", len(imm_queue))
-	PrintObject("When Election，Sorted the immediate array:", imm_queue)
+	log.Info("When Election, Sorted the immediate array length:", "current blockNumber", blockNumber.String(), "len", len(imm_queue))
+	PrintObject("When Election, Sorted the immediate array: current blockNumber:" + blockNumber.String() + ":", imm_queue)
 	// cache ids
 	immediateIds := make([]discover.NodeID, len(imm_queue))
 	for i, can := range imm_queue {
 		immediateIds[i] = can.CandidateId
 	}
-	PrintObject("When Election，current immediate is：", immediateIds)
+	PrintObject("When Election, current immediate is: current blockNumber:" + blockNumber.String() + ":", immediateIds)
 
 	// a certain number of witnesses in front of the cache
 	var nextIdArr []discover.NodeID
@@ -1076,8 +1084,8 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 		copy(nextIdArr, immediateIds)
 	}
 
-	log.Info("When Election，Selected next round of witnesses Ids's count:", "len", len(nextIdArr))
-	PrintObject("When Election，Selected next round of witnesses Ids:", nextIdArr)
+	log.Info("When Election, Selected next round of witnesses Ids's count:", "current blockNumber", blockNumber.String(), "len", len(nextIdArr))
+	PrintObject("When Election, Selected next round of witnesses Ids: current blockNumber:" + blockNumber.String() + ":", nextIdArr)
 
 	nextQueue := make(types.CandidateQueue, len(nextIdArr))
 
@@ -1090,25 +1098,25 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	}
 
 
-	log.Info("When Election，the count of the copy the witness info from immediate:", "len", len(nextQueue))
-	PrintObject("When Election，the information of the copy the witness info from immediate:", nextQueue)
+	log.Info("When Election, the count of the copy the witness info from immediate:", "current blockNumber", blockNumber.String(), "len", len(nextQueue))
+	PrintObject("When Election, the information of the copy the witness info from immediate: current blockNumber:" + blockNumber.String() + ":", nextQueue)
 
 	// clear all old nextwitnesses information （If it is forked, the next round is no empty.）
 	c.delCandidateQueue(ppos_storage.NEXT)
 
 	nodeIds := make([]*discover.Node, 0)
 	// Check election whether it's empty or not
-	nextQueue = c.handleEmptyElection(nextQueue)
+	nextQueue, isEmptyElection := c.handleEmptyElection(nextQueue)
 
 	// handle all next witness information
 	for i, can := range nextQueue {
 		// After election to call Selected LuckyTicket TODO
 		luckyId, err := tContext.SelectionLuckyTicket(state, can.CandidateId, parentHash)
 		if nil != err {
-			log.Error("Failed to take luckyId on Election", "nodeId", can.CandidateId.String(), "err", err)
-			return nil, nil, errors.New(err.Error() + ", nodeId: " + can.CandidateId.String())
+			log.Error("Failed to take luckyId on Election", "current blockNumber", blockNumber.String(), "nodeId", can.CandidateId.String(), "err", err)
+			return nil, nil, false, errors.New(err.Error() + ", nodeId: " + can.CandidateId.String())
 		}
-		log.Debug("Call Election, select lucky ticket Id is", "lucky ticket Id", luckyId.Hex())
+		log.Debug("Call Election, select lucky ticket Id is", "current blockNumber", blockNumber.String(), "lucky ticket Id", luckyId.Hex())
 		if can.TxHash != luckyId {
 			can.TxHash = luckyId
 			if luckyId == (common.Hash{}) {
@@ -1118,7 +1126,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 					can.TOwner = tick.Owner
 				}else {
 					can.TOwner = common.Address{}
-					log.Error("Failed to Gets lucky ticketInfo on Election", "nodeId", can.CandidateId.String(), "lucky ticketId", luckyId.Hex())
+					log.Error("Failed to Gets lucky ticketInfo on Election", "current blockNumber", blockNumber.String(), "nodeId", can.CandidateId.String(), "lucky ticketId", luckyId.Hex())
 				}
 
 			}
@@ -1127,7 +1135,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 		nextQueue[i] = can
 
 		if node, err := buildWitnessNode(can); nil != err {
-			log.Error("Failed to build Node on Election", "nodeId", can.CandidateId.String(), "err", err)
+			log.Error("Failed to build Node on Election", "current blockNumber", blockNumber.String(), "nodeId", can.CandidateId.String(), "err", err)
 			continue
 		} else {
 			nodeIds = append(nodeIds, node)
@@ -1137,23 +1145,26 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash) (
 	// set next witness
 	c.setCandidateQueue(nextQueue, ppos_storage.NEXT)
 
-	log.Info("When Election，next round witness node count is:", "len", len(nodeIds))
-	PrintObject("When Election，next round witness node information is:", nodeIds)
-	log.Info("Call Election SUCCESS !!!!!!!")
-	return nodeIds, nextQueue, nil
+	log.Info("When Election,next round witness node count is:", "current blockNumber", blockNumber.String(), "len", len(nodeIds))
+	PrintObject("When Election,next round witness node information is: current blockNumber:" + blockNumber.String() + ":", nodeIds)
+	log.Info("Call Election SUCCESS !!!!!!!", "current blockNumber", blockNumber.String())
+	return nodeIds, nextQueue, isEmptyElection, nil
 }
 
-func (c *CandidatePool) handleEmptyElection(nextQueue types.CandidateQueue) types.CandidateQueue {
+// return params
+// types.CandidateQueue：the next witness
+// bool: is empty election
+func (c *CandidatePool) handleEmptyElection(nextQueue types.CandidateQueue) (types.CandidateQueue, bool) {
 	// There is'nt empty election
 	if len(nextQueue) != 0 {
-		return nextQueue
+		return nextQueue, false
 	}
 	log.Info("Call Election, current is emptyElection, we take current witness become next witness ...")
 	// empty election
 	// Otherwise, it means that the next witness is nil, then we need to check whether the current round has a witness.
 	// If had, use the current round of witness as the next witness,
 	// [remark]: The pool of rewards need to use the witness can info
-	return c.getCandidateQueue(ppos_storage.CURRENT).DeepCopy()
+	return c.getCandidateQueue(ppos_storage.CURRENT).DeepCopy(), true
 }
 
 /*// The operation before re-setcandiate after election
@@ -1667,7 +1678,7 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, hol
 				` the length of current queue:` + fmt.Sprint(len(storageMap)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) +
 				` current can's Deposit: ` + can.Deposit.String() + ` 110% of it old_self in the queue: `
 
-			logB := `The can already exist in queue, and holdslef is true，and the current can's Deposit is less than 110% of the it old self in the queue.` +
+			logB := `The can already exist in queue, and holdslef is true,and the current can's Deposit is less than 110% of the it old self in the queue.` +
 				`the length of current queue:` + fmt.Sprint(len(storageMap)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` +
 				can.Deposit.String() + ` 110% of it old_self in the queue: `
 
@@ -1691,7 +1702,7 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, hol
 				fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can nodeId: ` + can.CandidateId.String() + ` last can nodeId: ` +
 				last.CandidateId.String() + ` current can's Deposit: ` + can.Deposit.String() + ` 110% of the last can in the reserve pool:`
 
-			logB := `The reserve pool is full，and the current can's Deposit is less than 110% of the last can in the reserve pool., the length of current reserve pool:` +
+			logB := `The reserve pool is full,and the current can's Deposit is less than 110% of the last can in the reserve pool., the length of current reserve pool:` +
 				fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` + can.Deposit.String() +
 				`110% of the last can in the reserve pool:`
 
@@ -1702,7 +1713,7 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, hol
 				` the length of current reserve pool:` + fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) +
 				` current can's Deposit: ` + can.Deposit.String() + ` 110% of it old_self in the reserve pool: `
 
-			logB := `The can already exist in reserve, and holdslef is true，and the current can's Deposit is less than 110% of the it old self in the reserve pool.` +
+			logB := `The can already exist in reserve, and holdslef is true,and the current can's Deposit is less than 110% of the it old self in the reserve pool.` +
 				`the length of current reserve pool:` + fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` +
 				can.Deposit.String() + ` 110% of it old_self in the reserve pool: `
 
@@ -1803,9 +1814,9 @@ func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber
 	im_queue := c.storage.GetCandidateQueue(ppos_storage.IMMEDIATE)
 	re_queue := c.storage.GetCandidateQueue(ppos_storage.RESERVE)
 
-	log.Debug("Call shuffleQueue Start ...")
-	PrintObject("Call shuffleQueue Before the immediate queue", im_queue)
-	PrintObject("Call shuffleQueue Before the reserve queue", re_queue)
+	log.Debug("Call promoteReserveQueue Start ...", "blockNumber", currentBlockNumber.String())
+	PrintObject("Call promoteReserveQueue Before the immediate queue", im_queue)
+	PrintObject("Call promoteReserveQueue Before the reserve queue", re_queue)
 
 
 	// current ticket price
@@ -1818,7 +1829,7 @@ func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber
 		// current re can
 		can := re_queue[i]
 
-		log.Debug("Call shuffleQueue Current reserve id", can.CandidateId.String())
+		log.Debug("Call promoteReserveQueue for range , Current reserve id", "blockNumber", currentBlockNumber.String(), "nodeId", can.CandidateId.String())
 		re_tCount := tContext.GetCandidateTicketCount(state, can.CandidateId)
 		if re_tCount < c.allowed {
 			continue
@@ -1901,6 +1912,10 @@ func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber
 
 	// Sets the new reserve queue
 	c.setCandidateQueue(re_queue, ppos_storage.RESERVE)
+
+	PrintObject("Call promoteReserveQueue Finish the immediate queue", im_queue)
+	PrintObject("Call promoteReserveQueue Finish the reserve queue", re_queue)
+	log.Debug("Call promoteReserveQueue Finish !!! ...", "blockNumber", currentBlockNumber.String())
 }
 
 /** builin function */
