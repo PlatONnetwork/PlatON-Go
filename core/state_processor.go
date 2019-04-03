@@ -101,7 +101,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		// SwitchWitness call(if match condition)
 		if p.bc.shouldSwitchFn(block.Number()) {
 			log.Info("---SwitchWitness call when processing block:---", "number", block.Number(), "hash", block.Hash())
-			if !cbftEngine.Switch(statedb) {
+			if !cbftEngine.Switch(statedb, block.Number()) {
 				log.Error("---Failed to SwitchWitness call when processing block:---", "number", block.Number(), "hash", block.Hash())
 			}
 

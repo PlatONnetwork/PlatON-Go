@@ -208,7 +208,7 @@ func ppos_GetCandidate (logger interface{}, logFn func (args ... interface{}), e
 	}
 
 	/** test GetCandidate ... */
-	if can := ppos.GetCandidate(state, candidate.CandidateId); nil == can {
+	if can := ppos.GetCandidate(state, candidate.CandidateId, big.NewInt(1)); nil == can {
 		errFn("GetCandidate err")
 	}else {
 		printObject("GetCandidate can:", can, logger)
@@ -277,7 +277,7 @@ func ppos_GetCandidateArr (logger interface{}, logFn func (args ... interface{})
 
 	/** test GetCandidate */
 	logFn("test GetCandidateArr ...")
-	canArr := ppos.GetCandidateArr(state, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
+	canArr := ppos.GetCandidateArr(state, big.NewInt(1), []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
 	printObject("GetCandidateArr", canArr, logger)
 }
 func TestPpos_GetCandidateArr(t *testing.T) {
@@ -554,12 +554,12 @@ func ppos_Switch (logger interface{}, logFn func (args ... interface{}), errFn f
 
 	/** test GetWitness */
 	logFn("test GetWitness ...")
-	canArr, _ := ppos.GetWitness(state, 1)
+	canArr, _ := ppos.GetWitness(state, 1, big.NewInt(1))
 	printObject("next Witnesses", canArr, logger)
 
 	/** test switch */
 	logFn("test Switch ...")
-	flag := ppos.Switch(state)
+	flag := ppos.Switch(state, big.NewInt(1))
 	logFn("Switch was success ", flag)
 }
 func TestPpos_Switch(t *testing.T) {
@@ -700,17 +700,17 @@ func ppos_GetWitness (logger interface{}, logFn func (args ... interface{}), err
 
 	/** test GetWitness */
 	logFn("test GetWitness ...")
-	canArr, _ := ppos.GetWitness(state, 1)
+	canArr, _ := ppos.GetWitness(state, 1, big.NewInt(1))
 	printObject("next Witnesses", canArr, logger)
 
 	/** test switch */
 	logFn("test Switch ...")
-	flag := ppos.Switch(state)
+	flag := ppos.Switch(state, big.NewInt(1))
 	logFn("Switch was success ", flag)
 
 	/** test GetWitness */
 	logFn("test GetWitness ...")
-	canArr, _ = ppos.GetWitness(state, 0)
+	canArr, _ = ppos.GetWitness(state, 0, big.NewInt(1))
 	printObject(" current Witnesses", canArr, logger)
 }
 func TestPpos_GetWitness(t *testing.T) {
@@ -851,12 +851,12 @@ func ppos_GetAllWitness (logger interface{}, logFn func (args ... interface{}), 
 
 	/** test GetWitness */
 	logFn("test GetWitness ...")
-	canArr, _ := ppos.GetWitness(state, 1)
+	canArr, _ := ppos.GetWitness(state, 1, big.NewInt(1))
 	printObject("next Witnesses", canArr, logger)
 
 	/** test switch */
 	logFn("test Switch ...")
-	flag := ppos.Switch(state)
+	flag := ppos.Switch(state, big.NewInt(1))
 	logFn("Switch was success ", flag)
 
 	/** test Election again */
@@ -866,7 +866,7 @@ func ppos_GetAllWitness (logger interface{}, logFn func (args ... interface{}), 
 
 	/** test GetAllWitness */
 	logFn("test GetAllWitness ...")
-	preArr, canArr, nextArr, _ := ppos.GetAllWitness(state)
+	preArr, canArr, nextArr, _ := ppos.GetAllWitness(state, big.NewInt(1))
 	printObject(" previous Witnesses", preArr, logger)
 	printObject(" current Witnesses", canArr, logger)
 	printObject(" next Witnesses", nextArr, logger)
@@ -957,7 +957,7 @@ func ppos_WithdrawCandidate (logger interface{}, logFn func (args ... interface{
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can := ppos.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can := ppos.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), big.NewInt(1))
 	printObject("GetCandidate", can, logger)
 
 	/** test WithdrawCandidate */
@@ -967,7 +967,7 @@ func ppos_WithdrawCandidate (logger interface{}, logFn func (args ... interface{
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can2 := ppos.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can2 := ppos.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), big.NewInt(1))
 	printObject("GetCandidate", can2, logger)
 
 }
@@ -1023,7 +1023,7 @@ func ppos_GetChosens (logger interface{}, logFn func (args ... interface{}), err
 
 	/** test GetChosens */
 	logFn("test GetChosens ...")
-	canArr := ppos.GetChosens(state, 0)
+	canArr := ppos.GetChosens(state, 0, big.NewInt(1))
 	printObject("elected candidates", canArr, logger)
 }
 func TestPpos_GetChosens(t *testing.T) {
@@ -1164,17 +1164,17 @@ func ppos_GetChairpersons (logger interface{}, logFn func (args ... interface{})
 
 	/** test GetWitness */
 	logFn("test GetWitness ...")
-	nodeIdArr, _ := ppos.GetWitness(state, 1)
+	nodeIdArr, _ := ppos.GetWitness(state, 1, big.NewInt(1))
 	printObject("next Witnesses", nodeIdArr, logger)
 
 	/** test switch */
 	logFn("test Switch ...")
-	flag := ppos.Switch(state)
+	flag := ppos.Switch(state, big.NewInt(1))
 	logFn("Switch was success ", flag)
 
 	/** test GetChairpersons */
 	logFn("test GetChairpersons ...")
-	canArr := ppos.GetChairpersons(state)
+	canArr := ppos.GetChairpersons(state, big.NewInt(1))
 	printObject("GetChairpersons canArr:", canArr, logger)
 }
 func TestPpos_GetChairpersons(t *testing.T) {
@@ -1318,12 +1318,12 @@ func ppos_GetDefeat (logger interface{}, logFn func (args ... interface{}), errF
 
 	/** test IsDefeat */
 	logFn("test IsDefeat ...")
-	flag := ppos.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag := ppos.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), big.NewInt(1))
 	logFn("isdefeat", flag)
 
 	/** test GetDefeat */
 	logFn("test GetDefeat ...")
-	defeatArr := ppos.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	defeatArr := ppos.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), big.NewInt(1))
 	printObject("can be refund defeats", defeatArr, logger)
 }
 func TestPpos_GetDefeat(t *testing.T) {
@@ -1467,7 +1467,7 @@ func ppos_IsDefeat (logger interface{}, logFn func (args ... interface{}), errFn
 
 	/** test IsDefeat */
 	logFn("test IsDefeat ...")
-	flag := ppos.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag := ppos.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), big.NewInt(1))
 	logFn("isdefeat", flag)
 }
 func TestPpos_IsDefeat(t *testing.T) {
@@ -1654,7 +1654,7 @@ func ppos_GetOwner (logger interface{}, logFn func (args ... interface{}), errFn
 	}
 
 	/** test GetOwner */
-	ownerAddr := ppos.GetOwner(state, candidate.CandidateId)
+	ownerAddr := ppos.GetOwner(state, candidate.CandidateId, big.NewInt(1))
 	logFn("Getting Onwer's Address:", ownerAddr.String())
 }
 func TestPpos_GetOwner(t *testing.T) {
@@ -1671,7 +1671,7 @@ func ppos_GetRefundInterval (logger interface{}, logFn func (args ... interface{
 	logFn("test GetRefundInterval ...")
 
 	/** test  GetRefundInterval*/
-	num := ppos.GetRefundInterval()
+	num := ppos.GetRefundInterval(big.NewInt(1))
 	logFn("RefundInterval:", num)
 }
 func TestPpos_GetRefundInterval(t *testing.T) {

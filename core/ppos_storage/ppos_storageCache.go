@@ -395,19 +395,39 @@ func (p *Ppos_storage) GetCandidateQueue(flag int) types.CandidateQueue {
 	switch flag {
 	case PREVIOUS:
 		PrintObject("Pres queue", p.c_storage.pres)
-		return p.c_storage.pres
+
+		queueCopy := make(types.CandidateQueue, len(p.c_storage.pres))
+		copy(queueCopy, p.c_storage.pres)
+
+		return queueCopy
 	case CURRENT:
 		PrintObject("Curr queue", p.c_storage.currs)
-		return p.c_storage.currs
+
+		queueCopy := make(types.CandidateQueue, len(p.c_storage.currs))
+		copy(queueCopy, p.c_storage.currs)
+
+		return queueCopy
 	case NEXT:
 		PrintObject("Next queue", p.c_storage.nexts)
-		return p.c_storage.nexts
+
+		queueCopy := make(types.CandidateQueue, len(p.c_storage.nexts))
+		copy(queueCopy, p.c_storage.nexts)
+
+		return queueCopy
 	case IMMEDIATE:
 		PrintObject("Imms queue", p.c_storage.imms)
-		return p.c_storage.imms
+
+		queueCopy := make(types.CandidateQueue, len(p.c_storage.imms))
+		copy(queueCopy, p.c_storage.imms)
+
+		return queueCopy
 	case RESERVE:
 		PrintObject("Res queue", p.c_storage.res)
-		return p.c_storage.res
+
+		queueCopy := make(types.CandidateQueue, len(p.c_storage.res))
+		copy(queueCopy, p.c_storage.res)
+
+		return queueCopy
 	default:
 		return nil
 	}
@@ -448,7 +468,9 @@ func (p *Ppos_storage) DelCandidateQueue(flag int)  {
 // Get Refund
 func (p *Ppos_storage) GetRefunds(nodeId discover.NodeID) types.RefundQueue {
 	if queue, ok := p.c_storage.refunds[nodeId]; ok {
-		return queue
+		queueCopy := make(types.RefundQueue, len(queue))
+		copy(queueCopy, queue)
+		return queueCopy
 	} else {
 		return make(types.RefundQueue, 0)
 	}
@@ -463,8 +485,9 @@ func (p *Ppos_storage) SetRefund(nodeId discover.NodeID, refund *types.Candidate
 		queue = append(queue, refund)
 		p.c_storage.refunds[nodeId] = queue
 	} else {
-		queue = make(types.RefundQueue, 1)
-		queue[0] = refund
+		queue = make(types.RefundQueue, 0)
+		//queue[0] = refund
+		queue = append(queue, refund)
 		p.c_storage.refunds[nodeId] = queue
 	}
 }

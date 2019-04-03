@@ -179,25 +179,25 @@ func (p *ppos) Election(state *state.StateDB, parentHash common.Hash, currBlockn
 }
 
 // switch next witnesses to current witnesses
-func (p *ppos) Switch(state *state.StateDB) bool {
+func (p *ppos) Switch(state *state.StateDB, blockNumber *big.Int) bool {
 	log.Info("Switch begin...")
-	if !p.candidateContext.Switch(state) {
+	if !p.candidateContext.Switch(state, blockNumber) {
 		return false
 	}
 	log.Info("Switch success...")
-	p.candidateContext.GetAllWitness(state)
+	p.candidateContext.GetAllWitness(state, blockNumber)
 
 	return true
 }
 
 // Getting nodes of witnesses
 // flag：-1: the previous round of witnesses  0: the current round of witnesses   1: the next round of witnesses
-func (p *ppos) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
-	return p.candidateContext.GetWitness(state, flag)
+func (p *ppos) GetWitness(state *state.StateDB, flag int, blockNumber *big.Int) ([]*discover.Node, error) {
+	return p.candidateContext.GetWitness(state, flag, blockNumber)
 }
 
-func (p *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
-	return p.candidateContext.GetAllWitness(state)
+func (p *ppos) GetAllWitness(state *state.StateDB, blockNumber *big.Int) ([]*discover.Node, []*discover.Node, []*discover.Node, error) {
+	return p.candidateContext.GetAllWitness(state, blockNumber)
 }
 
 // Getting can by witnesses
@@ -205,8 +205,8 @@ func (p *ppos) GetAllWitness(state *state.StateDB) ([]*discover.Node, []*discove
 // -1: 		previous round
 // 0:		current round
 // 1: 		next round
-func (p *ppos) GetWitnessCandidate (state vm.StateDB, nodeId discover.NodeID, flag int) *types.Candidate {
-	return p.candidateContext.GetWitnessCandidate(state, nodeId, flag)
+func (p *ppos) GetWitnessCandidate (state vm.StateDB, nodeId discover.NodeID, flag int, blockNumber *big.Int) *types.Candidate {
+	return p.candidateContext.GetWitnessCandidate(state, nodeId, flag, blockNumber)
 }
 
 // setting candidate pool of ppos module
@@ -382,13 +382,13 @@ func (p *ppos) SetCandidate(state vm.StateDB, nodeId discover.NodeID, can *types
 }
 
 // Getting immediate or reserve candidate info by nodeId
-func (p *ppos) GetCandidate(state vm.StateDB, nodeId discover.NodeID) *types.Candidate {
-	return p.candidateContext.GetCandidate(state, nodeId)
+func (p *ppos) GetCandidate(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) *types.Candidate {
+	return p.candidateContext.GetCandidate(state, nodeId, blockNumber)
 }
 
 // Getting immediate or reserve candidate info arr by nodeIds
-func (p *ppos) GetCandidateArr (state vm.StateDB, nodeIds ... discover.NodeID) types.CandidateQueue {
-	return p.candidateContext.GetCandidateArr(state, nodeIds...)
+func (p *ppos) GetCandidateArr (state vm.StateDB, blockNumber *big.Int, nodeIds ... discover.NodeID) types.CandidateQueue {
+	return p.candidateContext.GetCandidateArr(state, blockNumber, nodeIds...)
 }
 
 // candidate withdraw from  elected candidates
@@ -397,27 +397,27 @@ func (p *ppos) WithdrawCandidate(state vm.StateDB, nodeId discover.NodeID, price
 }
 
 // Getting all  elected candidates array
-func (p *ppos) GetChosens(state vm.StateDB, flag int) types.KindCanQueue {
-	return p.candidateContext.GetChosens(state, flag)
+func (p *ppos) GetChosens(state vm.StateDB, flag int, blockNumber *big.Int) types.KindCanQueue {
+	return p.candidateContext.GetChosens(state, flag, blockNumber)
 }
 
-func (p *ppos) GetCandidatePendArr (state vm.StateDB, flag int) types.CandidateQueue {
-	return p.candidateContext.GetCandidatePendArr(state, flag)
+func (p *ppos) GetCandidatePendArr (state vm.StateDB, flag int, blockNumber *big.Int) types.CandidateQueue {
+	return p.candidateContext.GetCandidatePendArr(state, flag,  blockNumber)
 }
 
 // Getting all witness array
-func (p *ppos) GetChairpersons(state vm.StateDB) []*types.Candidate {
-	return p.candidateContext.GetChairpersons(state)
+func (p *ppos) GetChairpersons(state vm.StateDB, blockNumber *big.Int) []*types.Candidate {
+	return p.candidateContext.GetChairpersons(state, blockNumber)
 }
 
 // Getting all refund array by nodeId
-func (p *ppos) GetDefeat(state vm.StateDB, nodeId discover.NodeID) types.RefundQueue {
-	return p.candidateContext.GetDefeat(state, nodeId)
+func (p *ppos) GetDefeat(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) types.RefundQueue {
+	return p.candidateContext.GetDefeat(state, nodeId, blockNumber)
 }
 
 // Checked current candidate was defeat by nodeId
-func (p *ppos) IsDefeat(state vm.StateDB, nodeId discover.NodeID) bool {
-	return p.candidateContext.IsDefeat(state, nodeId)
+func (p *ppos) IsDefeat(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) bool {
+	return p.candidateContext.IsDefeat(state, nodeId, blockNumber)
 }
 
 // refund once
@@ -426,13 +426,13 @@ func (p *ppos) RefundBalance(state vm.StateDB, nodeId discover.NodeID, blockNumb
 }
 
 // Getting owner's address of candidate info by nodeId
-func (p *ppos) GetOwner(state vm.StateDB, nodeId discover.NodeID) common.Address {
-	return p.candidateContext.GetOwner(state, nodeId)
+func (p *ppos) GetOwner(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) common.Address {
+	return p.candidateContext.GetOwner(state, nodeId, blockNumber)
 }
 
 // Getting allow block interval for refunds
-func (p *ppos) GetRefundInterval() uint32 {
-	return p.candidateContext.GetRefundInterval()
+func (p *ppos) GetRefundInterval(blockNumber *big.Int) uint32 {
+	return p.candidateContext.GetRefundInterval(blockNumber)
 }
 
 
@@ -627,7 +627,7 @@ func (p *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 
 	log.Debug("Setting current  block Node Cache", "parentNumber", parentNumber, "ParentHash", parentHash.String(), "currentNumber:", currentNumber, "hash", currentHash.String(), "round:", round)
 
-	preNodes, curNodes, nextNodes, err := p.candidateContext.GetAllWitness(state)
+	preNodes, curNodes, nextNodes, err := p.candidateContext.GetAllWitness(state, big.NewInt(int64(currentNumber)))
 
 	if nil != err {
 		log.Error("Failed to setting nodeCache on setGeneralNodeCache", "err", err)
@@ -775,7 +775,7 @@ func (p *ppos) setEarliestIrrNodeCache (/*parentState, */currentState *state.Sta
 	round := calcurround(currentNumber)
 	log.Debug("Set the farthest allowed cache reserved block", "currentNumber:", currentNumber, "round:", round)
 
-	curr_PRE_Nodes, curr_CURR_Nodes, curr_NEXT_Nodes, err := p.candidateContext.GetAllWitness(currentState)
+	curr_PRE_Nodes, curr_CURR_Nodes, curr_NEXT_Nodes, err := p.candidateContext.GetAllWitness(currentState, big.NewInt(int64(currentNumber)))
 
 	if nil != err {
 		log.Error("Failed to setting nodeCache by currentStateDB on setEarliestIrrNodeCache", "err", err)

@@ -8,15 +8,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
-//type PPosDatabase struct {
-//	db *leveldb.DB // LevelDB instance
-//}
-
-
-func NewPPosDatabaseSqlite(file string) {
-
-}
-
 
 func NewPPosDatabase (file string) (*LDBDatabase, error)  {
 
@@ -28,7 +19,7 @@ func NewPPosDatabase (file string) (*LDBDatabase, error)  {
 	// Open the db and recover any potential corruptions
 	db, err := leveldb.OpenFile(file, &opt.Options{
 
-		// 网上的优化版本 100块  45.1 M  45.2 M 200块 45.3 M  45.4 M  45.1 M
+		//  100 block  45.1 M  45.2 M; 200 block 45.3 M  45.4 M  45.1 M
 		OpenFilesCacheCapacity: 1000,
 		BlockCacheCapacity:     500,
 		BlockSize:			1,
@@ -39,7 +30,7 @@ func NewPPosDatabase (file string) (*LDBDatabase, error)  {
 
 		//Compression:  opt.SnappyCompression,
 
-		/*// 100块 65.9 M 88.1 M 200块 73.5 M 88.2 M
+		/*// 100 block 65.9 M 88.1 M； 200 block 73.5 M 88.2 M
 		DisableBlockCache:      true,
 		BlockRestartInterval:   5,
 		BlockSize:              80,
@@ -50,7 +41,7 @@ func NewPPosDatabase (file string) (*LDBDatabase, error)  {
 		CompactionTableSize:    2000,
 		Filter:                 filter.NewBloomFilter(10),*/
 
-		/*// 自己定的 100块 42.9  M 45.7 45.8 M  200块 45.8M  45.9 M
+		/*// myself 100 block 42.9  M 45.7 45.8 M ; 200 block 45.8M  45.9 M
 		CompactionSourceLimitFactor: 	1 * opt.MiB,
 		DisableLargeBatchTransaction: 	true,
 		CompactionTableSize:          	1 * opt.MiB,
@@ -59,7 +50,7 @@ func NewPPosDatabase (file string) (*LDBDatabase, error)  {
 		Filter:                 		filter.NewBloomFilter(10),*/
 
 
-		/*// ethdb config 100块 356 M 615 M 200块 586
+		/*// ethdb config 100 block 356 M 615 M ； 200 block 586
 		OpenFilesCacheCapacity: 1024,
 		BlockCacheCapacity:     768 / 2 * opt.MiB,
 		WriteBuffer:            1024 / 4 * opt.MiB, // Two of these are used internally

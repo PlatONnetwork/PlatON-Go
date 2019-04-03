@@ -1866,12 +1866,12 @@ func (cbft *Cbft) Election(state *state.StateDB, parentHash common.Hash, blockNu
 	return cbft.ppos.Election(state, parentHash, blockNumber)
 }
 
-func (cbft *Cbft) Switch(state *state.StateDB) bool {
-	return cbft.ppos.Switch(state)
+func (cbft *Cbft) Switch(state *state.StateDB, blockNumber *big.Int) bool {
+	return cbft.ppos.Switch(state, blockNumber)
 }
 
-func (cbft *Cbft) GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error) {
-	return cbft.ppos.GetWitness(state, flag)
+func (cbft *Cbft) GetWitness(state *state.StateDB, flag int, blockNumber *big.Int) ([]*discover.Node, error) {
+	return cbft.ppos.GetWitness(state, flag, blockNumber)
 }
 
 func (cbft *Cbft) GetOwnNodeID() discover.NodeID {
@@ -1899,17 +1899,35 @@ func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, b
 // Adjust rewards every 3600*24*365 blocks
 func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header) {
 	if len(header.Extra) < 64 {
-		log.Error("Failed to Call accumulateRewards, header.Extra < 64", "blockNumber", header.Number, "blockHash", header.Hash(), " extra: ", hexutil.Encode(header.Extra))
+		log.Error("Failed to Call accumulateRewards, header.Extra < 64", "blockNumber", header.Number, "blockHash", header.Hash(), "len(header.Extra):", len(header.Extra), "extra", hexutil.Encode(header.Extra))
 	}
+
+
+	appendEtraFunc := func(txHash common.Hash, isPackageNode bool) {
+		if isPackageNode {
+			var buffer bytes.Buffer
+			buffer.Write(header.Extra)
+			buffer.Write(txHash.Bytes())
+			header.Extra = buffer.Bytes()
+			log.Info("Call accumulateRewards, When After Sets the Maybe lucky ticket into header.Extra", "len(header.Extra):", len(header.Extra), "extra", hexutil.Encode(header.Extra))
+		}
+	}
+
+
 	var nodeId discover.NodeID
 	var err error
-	log.Debug("Call accumulateRewards block header", " extra: ", hexutil.Encode(header.Extra))
-	local := bytes.Equal(header.Extra[32:97], make([]byte, 65))
-	if local {
+	log.Debug("Call accumulateRewards block header", "len(header.Extra):", len(header.Extra), "extra", hexutil.Encode(header.Extra))
+
+	packageNodeFlag := bytes.Equal(header.Extra[32:97], make([]byte, 65))
+
+	if packageNodeFlag {
 		log.Warn("Call accumulateRewards block header extra[32:97] is empty!", "blockNumber", header.Number, "blockHash", header.Hash())
 		nodeId = cbft.config.NodeID
 	} else {
 		if nodeId, _, err = ecrecover(header); err != nil {
+
+			appendEtraFunc((common.Hash{}), packageNodeFlag)
+
 			log.Error("Failed to Call accumulateRewards, ecrecover faile", " err: ", err, "blockNumber", header.Number, "blockHash", header.Hash())
 			return
 		} else {
@@ -1920,29 +1938,29 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	//log.Info("Call accumulateRewards", "nodeid: ", nodeId.String())
 	var can *types.Candidate
 	if big.NewInt(0).Cmp(new(big.Int).Rem(header.Number, big.NewInt(common.BaseSwitchWitness))) == 0 {
-		can = cbft.ppos.GetWitnessCandidate(state, nodeId, -1)
+		can = cbft.ppos.GetWitnessCandidate(state, nodeId, -1, header.Number)
 	} else {
-		can = cbft.ppos.GetWitnessCandidate(state, nodeId, 0)
+		can = cbft.ppos.GetWitnessCandidate(state, nodeId, 0, header.Number)
 	}
 	if err != nil {
+
+		appendEtraFunc((common.Hash{}), packageNodeFlag)
+
 		log.Error("Failed to Call accumulateRewards, GetCandidate faile ", " err: ", err.Error(),
 			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String())
 		return
 	}
 	if can == nil {
+
+		appendEtraFunc((common.Hash{}), packageNodeFlag)
+
 		log.Warn("Call accumulateRewards, Witness's can is Empty !!!!!!!!!!!!!!!!!!!!!!!!",
 			"blockNumber", header.Number, "blockHash", header.Hash(), "nodeId", nodeId.String())
 		return
 	}
 
 	// store the lucky ticket into the header.Extra[97:129]
-	if local {
-		var buffer bytes.Buffer
-		buffer.Write(header.Extra)
-		buffer.Write(can.TxHash.Bytes())
-		header.Extra = buffer.Bytes()
-		log.Info("Call accumulateRewards, set lucky ticket into header.Extra", "len(header.Extra): ", len(header.Extra))
-	}
+	appendEtraFunc(can.TxHash, packageNodeFlag)
 
 	//Calculate current block rewards
 	var blockReward *big.Int

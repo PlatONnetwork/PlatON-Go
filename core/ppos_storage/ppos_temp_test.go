@@ -71,7 +71,7 @@ func TestData(t *testing.T) {
 }
 
 
-// 测试 levelDB 调优
+//
 func TestData2(t *testing.T) {
 	//ldb, err := ethdb.NewLDBDatabase("E:/platon-data/platon/ppos_storage", 0, 0)
 	ldb, err := ethdb.NewPPosDatabase("E:/platon-data/platon/ppos_storage")
@@ -136,7 +136,6 @@ func TestData2(t *testing.T) {
 
 
 func newSqliteDB(file, tableName string, t *testing.T) (*sql.DB, error) {
-	// 创建sqlite
 	db, err := sql.Open("sqlite3", file)
 	if err != nil {
 		t.Error("open database err: ", err)
@@ -154,11 +153,9 @@ func newSqliteDB(file, tableName string, t *testing.T) (*sql.DB, error) {
 }
 
 
-// 测试 sqlite
 func TestData3(t *testing.T) {
 
 
-	// 创建sqlite
 	db, err := newSqliteDB("E:/platon-data/platon/ppos_storage.db", "storage", t)
 
 	if nil != err {
@@ -255,7 +252,6 @@ func TestData3(t *testing.T) {
 	tx.Commit()
 }
 
-// 测试 rocksDB
 func TestData4(t *testing.T) {
 
 	opts := gorocksdb.NewDefaultOptions()
@@ -378,11 +374,11 @@ func TestData4(t *testing.T) {
 //		startTempTime := time.Now().UnixNano()
 //		pposTemp.SubmitPposCache2Temp(blockNumber, new(big.Int).SetUint64(1), blockHash, pposStorage)
 //		endTempTime := time.Now().UnixNano()
-//		t.Log("测试Cache2Temp效率", "startTime", startTempTime, "endTime", endTempTime, "time", endTempTime/1e6-startTempTime/1e6)
+//		t.Log("Test Cache2Temp efficiency", "startTime", startTempTime, "endTime", endTempTime, "time", endTempTime/1e6-startTempTime/1e6)
 //		startTime := time.Now().UnixNano()
 //		pposTemp.Commit2DB(ldb, blockNumber, blockHash)
 //		endTime := time.Now().UnixNano()
-//		t.Log("测试Commit2DB效率", "startTime", startTime, "endTime", endTime, "time", endTime/1e6-startTime/1e6)
+//		t.Log("Test Commit2DB efficiency", "startTime", startTime, "endTime", endTime, "time", endTime/1e6-startTime/1e6)
 //	}
 //}
 
@@ -438,10 +434,10 @@ func TestData4(t *testing.T) {
 //		startTempTime := time.Now().UnixNano()
 //		pposTemp.SubmitPposCache2Temp(new(big.Int).SetUint64(uint64(i)), new(big.Int).SetUint64(1), blockHash, pposStorage)
 //		endTempTime := time.Now().UnixNano()
-//		t.Log("测试Cache2Temp效率", "startTime", startTempTime, "endTime", endTempTime, "time", endTempTime/1e6-startTempTime/1e6)
+//		t.Log("Test Cache2Temp efficiency", "startTime", startTempTime, "endTime", endTempTime, "time", endTempTime/1e6-startTempTime/1e6)
 //		startTime := time.Now().UnixNano()
 //		pposTemp.Commit2DB(ldb, new(big.Int).SetUint64(uint64(i)), blockHash)
 //		endTime := time.Now().UnixNano()
-//		t.Log("测试Commit2DB效率", "startTime", startTime, "endTime", endTime, "time", endTime/1e6-startTime/1e6)
+//		t.Log("Test Commit2DB efficiency", "startTime", startTime, "endTime", endTime, "time", endTime/1e6-startTime/1e6)
 //	}
 //}

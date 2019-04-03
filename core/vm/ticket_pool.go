@@ -81,7 +81,7 @@ func (t *TicketContract) VoteTicket(count uint32, price *big.Int, nodeId discove
 		log.Error("Failed to VoteTicket", "ErrIllegalDeposit: ", ErrIllegalDeposit.Error())
 		return nil, ErrIllegalDeposit
 	}
-	can := t.Evm.CandidatePoolContext.GetCandidate(t.Evm.StateDB, nodeId)
+	can := t.Evm.CandidatePoolContext.GetCandidate(t.Evm.StateDB, nodeId, blockNumber)
 	if nil == can {
 		log.Error("Failed to VoteTicket", "ErrCandidateNotExist: ", ErrCandidateNotExist.Error())
 		return nil, ErrCandidateNotExist
