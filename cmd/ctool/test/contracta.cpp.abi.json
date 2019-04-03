@@ -1,0 +1,142 @@
+[
+    {
+        "name": "atransfer",
+        "inputs": [
+            {
+                "name": "from",
+                "type": "string"
+            },
+            {
+                "name": "to",
+                "type": "string"
+            },
+            {
+                "name": "asset",
+                "type": "int32"
+            }
+        ],
+        "outputs": [],
+        "constant": "false",
+        "type": "function"
+    },
+    {
+        "name": "atransfer1",
+        "inputs": [
+            {
+                "name": "from",
+                "type": "string"
+            },
+            {
+                "name": "to",
+                "type": "string"
+            },
+            {
+                "name": "asset",
+                "type": "int32"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "int32"
+            }
+        ],
+        "constant": "false",
+        "type": "function"
+    },
+    {
+        "name": "atransfer2",
+        "inputs": [
+            {
+                "name": "from",
+                "type": "string"
+            },
+            {
+                "name": "to",
+                "type": "string"
+            },
+            {
+                "name": "asset",
+                "type": "int32"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "constant": "false",
+        "type": "function"
+    },
+    {
+        "name": "adcall",
+        "inputs": [
+            {
+                "name": "from",
+                "type": "string"
+            },
+            {
+                "name": "to",
+                "type": "string"
+            },
+            {
+                "name": "asset",
+                "type": "int32"
+            }
+        ],
+        "outputs": [],
+        "constant": "false",
+        "type": "function"
+    },
+    {
+        "name": "adcallInt64",
+        "inputs": [
+            {
+                "name": "from",
+                "type": "string"
+            },
+            {
+                "name": "to",
+                "type": "string"
+            },
+            {
+                "name": "asset",
+                "type": "int32"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "int32"
+            }
+        ],
+        "constant": "false",
+        "type": "function"
+    },
+    {
+        "name": "adcallString",
+        "inputs": [
+            {
+                "name": "from",
+                "type": "string"
+            },
+            {
+                "name": "to",
+                "type": "string"
+            },
+            {
+                "name": "asset",
+                "type": "int32"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "constant": "false",
+        "type": "function"
+    }
+]
