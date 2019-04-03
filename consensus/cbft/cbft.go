@@ -709,7 +709,7 @@ func (cbft *Cbft) blockSynced() {
 			cbft.rootIrreversible.Store(newRoot)
 		}
 
-		log.Debug("reset TxPool after block synced", "hash", newRoot.block.Hash(), "number", newRoot.number)
+		log.Debug("reset TxPool after block synced", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 		cbft.txPool.Reset(currentBlock)
 	}
 
