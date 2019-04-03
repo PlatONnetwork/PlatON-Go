@@ -374,7 +374,7 @@ func (p *peer) RequestLatestPposStorage() error {
 
 // Handshake executes the eth protocol handshake, negotiating version number,
 // network IDs, difficulties, head and genesis blocks.
-func (p *peer) Handshake(network uint64, bn *big.Int, head common.Hash, genesis common.Hash) error {
+func (p *peer) Handshake(network uint64, bn *big.Int, head common.Hash, genesis common.Hash, pm *ProtocolManager) error {
 	// Send out own handshake in a new thread
 	errc := make(chan error, 2)
 	var status statusData // safe to read after two values have been received from errc
@@ -401,6 +401,15 @@ func (p *peer) Handshake(network uint64, bn *big.Int, head common.Hash, genesis 
 			}
 		case <-timeout.C:
 			return p2p.DiscReadTimeout
+		}
+	}
+	// A simple hash consistency check,but does not prevent malicious node connections
+	if bn == status.BN && head != status.CurrentBlock {
+		return errResp(ErrBlockMismatch, "blockNumber", head, "%x (!= %x)", head.String(), status.CurrentBlock.String())
+	} else if bn.Uint64() > status.BN.Uint64() {
+		lowHeader := pm.blockchain.GetHeaderByNumber(status.BN.Uint64())
+		if lowHeader.Hash() != status.CurrentBlock {
+			return errResp(ErrBlockMismatch, "blockNumber", status.BN.Uint64(), "%x (!= %x)", lowHeader.Hash().String(), status.CurrentBlock.String())
 		}
 	}
 	p.bn, p.head = status.BN, status.CurrentBlock
