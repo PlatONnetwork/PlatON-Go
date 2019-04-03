@@ -419,7 +419,7 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int) error {
 	// Check expired tickets
 
 	//ticket := t.GetTicket(stateDB, common.HexToHash("0xafdd2a272c9af265410369bba200960229e6c90e044d8241cbcd6abf8a1706f8"))
-	//log.Debug("票信息", "ticket", ticket.Owner.Hex())
+
 
 	expireBlockNumber, ok := t.calcExpireBlockNumber(stateDB, blockNumber)
 	log.Debug("Check expired tickets on Notify", "isOk", ok, "expireBlockNumber", expireBlockNumber.Uint64())
