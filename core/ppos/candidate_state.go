@@ -1838,7 +1838,7 @@ func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber
 		// check immediate
 		// if the immediate queue is full
 		// We can take the immediate last can and current reserve can compare
-		if uint32(len(im_queue)) == c.maxCount {
+		if uint32(len(im_queue)) >= c.maxCount {
 
 			// last im can
 			last := im_queue[len(im_queue)-1]
