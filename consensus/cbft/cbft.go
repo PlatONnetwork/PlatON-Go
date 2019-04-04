@@ -659,6 +659,9 @@ func (cbft *Cbft) blockSynced() {
 
 			cbft.buildChildNode(newRoot)
 
+			//reset the new root irreversible
+			cbft.rootIrreversible.Store(newRoot)
+
 			//the new root's children should re-execute base on new state
 			for _, child := range newRoot.children {
 				if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
