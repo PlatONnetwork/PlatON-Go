@@ -1157,7 +1157,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 // Announce witness
 func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, currBlockNumber *big.Int) ([]*discover.Node, error) {
 	log.Info("Call Election start ...", "current blockNumber", currBlockNumber.String(), "threshold", c.threshold.String(), "depositLimit", c.depositLimit, "allowed", c.allowed, "maxCount", c.maxCount, "maxChair", c.maxChair, "refundBlockNumber", c.refundBlockNumber)
-
+	c.initData2Cache(state, GET_IM_RE)
 
 	var nodes []*discover.Node
 	var nextQueue types.CandidateQueue
@@ -1204,7 +1204,6 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 
 	// finally update the double queue once
 	if !isEmptyElection && len(nodeIds) != 0 {
-		c.initData2Cache(state, GET_IM_RE)
 
 		nodeIds = c.electionUpdateCanById(state, currBlockNumber, nodeIds...)
 	}
