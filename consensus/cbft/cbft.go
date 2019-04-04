@@ -658,18 +658,19 @@ func (cbft *Cbft) blockSynced() {
 			cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
 
 			cbft.buildChildNode(newRoot)
-
-			//the new root's children should re-execute base on new state
-			for _, child := range newRoot.children {
-				if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
-					//remove bad block from tree and map
-					cbft.removeBadBlock(child)
-					log.Error("execute the block error, remove it", "err", err)
-					break
+			if len(newRoot.children) > 0{
+				//the new root's children should re-execute base on new state
+				for _, child := range newRoot.children {
+					if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
+						//remove bad block from tree and map
+						cbft.removeBadBlock(child)
+						log.Error("execute the block error, remove it", "err", err)
+						break
+					}
 				}
+				//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
+				cbft.signLogicalAndDescendant(newRoot)
 			}
-			//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
-			cbft.signLogicalAndDescendant(newRoot)
 
 		} else if newRoot.block != nil {
 			//the block synced from other peer exists in local peer
@@ -677,7 +678,7 @@ func (cbft *Cbft) blockSynced() {
 			newRoot.isExecuted = true
 			newRoot.isSigned = true
 			newRoot.isConfirmed = true
-
+			newRoot.number = currentBlock.NumberU64()
 			//cut off old tree from new root,
 			tailorTree(newRoot)
 
