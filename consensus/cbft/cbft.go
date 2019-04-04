@@ -643,7 +643,7 @@ func (cbft *Cbft) blockSynced() {
 	if currentBlock.NumberU64() > cbft.getRootIrreversible().number {
 		log.Debug("chain has a higher irreversible block", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 		newRoot := cbft.findBlockExt(currentBlock.Hash())
-		if newRoot == nil {
+		if newRoot == nil || newRoot.block == nil {
 			//the block synced from other peer is a new block in local peer
 			//remove all blocks referenced in old tree after being cut off
 			cbft.cleanByTailoredTree(cbft.getRootIrreversible())
@@ -659,9 +659,6 @@ func (cbft *Cbft) blockSynced() {
 
 			cbft.buildChildNode(newRoot)
 
-			//reset the new root irreversible
-			cbft.rootIrreversible.Store(newRoot)
-
 			//the new root's children should re-execute base on new state
 			for _, child := range newRoot.children {
 				if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
@@ -671,27 +668,8 @@ func (cbft *Cbft) blockSynced() {
 					break
 				}
 			}
-
 			//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
 			cbft.signLogicalAndDescendant(newRoot)
-
-			//reset logical path
-			highestLogical := cbft.findHighestLogical(newRoot)
-			cbft.setHighestLogical(highestLogical)
-
-			//reset highest confirmed block
-			cbft.highestConfirmed.Store(cbft.findLastClosestConfirmedIncludingSelf(newRoot))
-
-			if cbft.getHighestConfirmed() != nil {
-				log.Debug("cbft.highestConfirmed", "hash", newRoot.block.Hash(), "number", newRoot.block.NumberU64())
-			} else {
-				log.Debug("cbft.highestConfirmed is null")
-			}
-
-			if !cbft.flushReadyBlock() {
-				//remove all other blocks those their numbers are too low
-				cbft.cleanByNumber(cbft.getRootIrreversible().number)
-			}
 
 		} else if newRoot.block != nil {
 			//the block synced from other peer exists in local peer
@@ -705,11 +683,30 @@ func (cbft *Cbft) blockSynced() {
 
 			//remove all blocks referenced in old tree after being cut off
 			cbft.cleanByTailoredTree(cbft.getRootIrreversible())
-			//remove all other blocks those their numbers are too low
-			cbft.cleanByNumber(newRoot.number)
 
-			//set the new root as cbft.rootIrreversible
-			cbft.rootIrreversible.Store(newRoot)
+		}
+		//remove all other blocks those their numbers are too low
+		cbft.cleanByNumber(newRoot.number)
+
+		//reset the new root irreversible
+		cbft.rootIrreversible.Store(newRoot)
+
+		//reset logical path
+		highestLogical := cbft.findHighestLogical(newRoot)
+		cbft.setHighestLogical(highestLogical)
+
+		//reset highest confirmed block
+		cbft.highestConfirmed.Store(cbft.findLastClosestConfirmedIncludingSelf(newRoot))
+
+		if cbft.getHighestConfirmed() != nil {
+			log.Debug("cbft.highestConfirmed", "hash", newRoot.block.Hash(), "number", newRoot.block.NumberU64())
+		} else {
+			log.Debug("cbft.highestConfirmed is null")
+		}
+
+		if !cbft.flushReadyBlock() {
+			//remove all other blocks those their numbers are too low
+			cbft.cleanByNumber(cbft.getRootIrreversible().number)
 		}
 
 		log.Debug("reset TxPool after block synced", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
