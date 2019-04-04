@@ -648,7 +648,7 @@ func (cbft *Cbft) blockSynced() {
 			//remove all blocks referenced in old tree after being cut off
 			cbft.cleanByTailoredTree(cbft.getRootIrreversible())
 
-			newRoot := NewBlockExt(currentBlock, currentBlock.NumberU64())
+			newRoot = NewBlockExt(currentBlock, currentBlock.NumberU64())
 			newRoot.inTree = true
 			newRoot.isExecuted = true
 			newRoot.isSigned = true
@@ -658,6 +658,7 @@ func (cbft *Cbft) blockSynced() {
 			cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
 
 			cbft.buildChildNode(newRoot)
+
 			if len(newRoot.children) > 0{
 				//the new root's children should re-execute base on new state
 				for _, child := range newRoot.children {
@@ -686,11 +687,11 @@ func (cbft *Cbft) blockSynced() {
 			cbft.cleanByTailoredTree(cbft.getRootIrreversible())
 
 		}
-		//remove all other blocks those their numbers are too low
-		cbft.cleanByNumber(newRoot.number)
-
 		//reset the new root irreversible
 		cbft.rootIrreversible.Store(newRoot)
+
+		//remove all other blocks those their numbers are too low
+		cbft.cleanByNumber(newRoot.number)
 
 		//reset logical path
 		highestLogical := cbft.findHighestLogical(newRoot)
