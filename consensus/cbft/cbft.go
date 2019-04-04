@@ -1801,7 +1801,9 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 func (cbft *Cbft) getThreshold(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) int {
 	consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
 	if consensusNodes != nil {
-		trunc := len(consensusNodes) * 2 / 3
+		total := len(consensusNodes)
+		log.Debug("consensus node quantity", "total", total)
+		trunc := total * 2 / 3
 		return int(trunc + 1)
 	}
 	return math.MaxInt16
@@ -1824,8 +1826,9 @@ func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, comm
 		cbft.netLatencyLock.RLock()
 		defer cbft.netLatencyLock.RUnlock()
 		peersCount := len(cbft.netLatencyMap)
-		if peersCount < cbft.getThreshold(parentNumber, parentHash, commitNumber)-1 {
-			log.Debug("connected peers not enough", "connectedPeersCount", peersCount)
+		threshold := cbft.getThreshold(parentNumber, parentHash, commitNumber)
+		log.Debug("connected peers(including self)", "count", peersCount+1, "threshold", threshold)
+		if peersCount < threshold-1 {
 			inturn = false
 		}
 	}
