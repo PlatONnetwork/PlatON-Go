@@ -1626,7 +1626,6 @@ Error: %v
 // of the header retrieval mechanisms already need to verify nonces, as well as
 // because nonces can be verified sparsely, not needing to check each.
 func (bc *BlockChain) InsertHeaderChain(chain []*types.Header, checkFreq int) (int, error) {
-	log.Info("======BlockChain InsertHeaderChain======", "header from", chain[0].Number.Uint64(), "header end", chain[len(chain)-1].Number.Uint64())
 	start := time.Now()
 	if i, err := bc.hc.ValidateHeaderChain(chain, checkFreq); err != nil {
 		return i, err

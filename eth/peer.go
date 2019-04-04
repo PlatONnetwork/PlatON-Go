@@ -164,7 +164,7 @@ func (p *peer) broadcast() {
 				if err := p.SendTransactions(txs); err != nil {
 					return
 				}
-				p.Log().Trace("Broadcast transactions", "count", len(txs))
+				p.Log().Debug("Broadcast transactions", "count", len(txs))
 
 			case <-p.term:
 				return

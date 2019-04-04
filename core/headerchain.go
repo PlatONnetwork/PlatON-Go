@@ -176,7 +176,6 @@ func (hc *HeaderChain) WriteHeader(header *types.Header) (status WriteStatus, er
 			headNumber = header.Number.Uint64() - 1
 			headHeader = hc.GetHeader(headHash, headNumber)
 		)
-		log.Warn("HeaderChain WriteHeader", "number", header.Number.Uint64(), "hash", header.Hash(), "headHash", headHash, "headNumber", headNumber)
 		for rawdb.ReadCanonicalHash(hc.chainDb, headNumber) != headHash {
 			rawdb.WriteCanonicalHash(hc.chainDb, headHash, headNumber)
 

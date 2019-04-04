@@ -729,6 +729,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 
 	case msg.Code == TxMsg:
+		log.Debug("Received a broadcast message[TxMsg]", "acceptTxs", pm.acceptTxs)
 		// Transactions arrived, make sure we have a valid and fresh chain to handle them
 		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
 			break
@@ -941,14 +942,14 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 			for i := 0; i < f && i < len(peers); i++ {
 				idx := r.Intn(len(peers))
 				txset[peers[idx]] = append(txset[peers[idx]], tx)
-				log.Trace("Broadcast transaction", "hash", tx.Hash(), "peer", peers[idx].id)
+				log.Debug("Broadcast transaction", "hash", tx.Hash(), "peer", peers[idx].id)
 			}
 		} else {
 			peers := pm.peers.PeersWithoutTx(tx.Hash())
 			for _, peer := range peers {
 				txset[peer] = append(txset[peer], tx)
 			}
-			log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
+			log.Debug("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 		}
 	}
 
