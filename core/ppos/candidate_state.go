@@ -465,6 +465,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		re_queueCopy := make(types.CandidateQueue, len(re_queue))
 		copy(re_queueCopy, re_queue)
 
+		log.Debug("Call setCandidateInfo to handleReserveFunc to makeCandidateSort the reserve queue ...")
 
 		// sort reserve array
 		makeCandidateSort(state, re_queueCopy)
@@ -561,6 +562,155 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 	}
 	return nodeIds
 }
+
+
+
+// If TCout is small, you must first move to reserves, otherwise it will be counted.
+func (c *CandidatePool) electionUpdateCanById(state vm.StateDB, currentBlockNumber *big.Int, nodeIds ... discover.NodeID) []discover.NodeID {
+
+	im_del_temp := make(candidateStorage, 0)
+	re_del_temp := make(candidateStorage, 0)
+
+	for _, nodeId := range nodeIds {
+		// check ticket count
+		if c.checkTicket(tContext.GetCandidateTicketCount(state, nodeId)) {
+			if can, ok := c.reserveCandidates[nodeId]; ok {
+				re_del_temp[nodeId] = can
+			}
+
+		} else {
+			if can, ok := c.immediateCandidates[nodeId]; ok {
+				im_del_temp[nodeId] = can
+			}
+		}
+	}
+
+	if len(im_del_temp) == 0 && len(re_del_temp) == 0 {
+		log.Debug("Call Election to electionUpdateCanById, had not change on double queue ...")
+		return nil
+	}
+
+	im_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
+
+	re_queue := c.getCandidateQueue(ppos_storage.RESERVE)
+
+
+	PrintObject("Call Election to electionUpdateCanById, Before shuffle double queue the old immediate queue is", im_queue)
+
+	PrintObject("Call Election to electionUpdateCanById, Before shuffle double queue the old reserve queue is", re_queue)
+
+	// immediate queue
+	for _, can := range re_del_temp{
+		im_queue = append(im_queue, can)
+	}
+	// for i := 0; i < len(ids); i++ {
+	for i := 0; i < len(im_queue); i++ {
+		im := im_queue[i]
+		if _, ok := im_del_temp[im.CandidateId]; ok {
+			im_queue = append(im_queue[:i], im_queue[i+1:]...)
+			i--
+		}
+	}
+
+	// reserve  queue
+	for i := 0; i < len(re_queue); i++ {
+		re := re_queue[i]
+		if _, ok := re_del_temp[re.CandidateId]; ok {
+			re_queue = append(re_queue[:i], re_queue[i+1:]...)
+			i--
+		}
+	}
+	for _, can := range im_del_temp {
+		re_queue = append(re_queue, can)
+	}
+
+
+	PrintObject("Call Election to electionUpdateCanById, After shuffle double queue the old immediate queue is", im_queue)
+
+	PrintObject("Call Election to electionUpdateCanById, After shuffle double queue the old reserve queue is", re_queue)
+
+
+	/**
+	 handle the reserve queue func
+	 */
+	handleReserveFunc := func(re_queue types.CandidateQueue) []discover.NodeID {
+
+		re_queueCopy := make(types.CandidateQueue, len(re_queue))
+		copy(re_queueCopy, re_queue)
+
+		log.Debug("Call setCandidateInfo to handleReserveFunc to makeCandidateSort the reserve queue ...")
+
+		// sort reserve array
+		makeCandidateSort(state, re_queueCopy)
+
+		nodeIds := make([]discover.NodeID, 0)
+
+
+		if len(re_queueCopy) > int(c.maxCount) {
+			// Intercepting the lost candidates to tmpArr
+			tempArr := (re_queueCopy)[c.maxCount:]
+			// qualified elected candidates
+			re_queueCopy = (re_queueCopy)[:c.maxCount]
+
+			// handle tmpArr
+			for _, tmpCan := range tempArr {
+				deposit, _ := new(big.Int).SetString(tmpCan.Deposit.String(), 10)
+				refund := &types.CandidateRefund{
+					Deposit:     deposit,
+					BlockNumber: big.NewInt(currentBlockNumber.Int64()),
+					Owner:       tmpCan.Owner,
+				}
+				c.setRefund(tmpCan.CandidateId, refund)
+				nodeIds = append(nodeIds, tmpCan.CandidateId)
+			}
+		}
+
+		PrintObject("Call Election to electionUpdateCanById, Finally shuffle double queue the old reserve queue is", re_queueCopy)
+
+		c.setCandidateQueue(re_queueCopy, ppos_storage.RESERVE)
+
+		return nodeIds
+	}
+
+	// sort immediate array
+	makeCandidateSort(state, im_queue)
+
+	nodeIdArr := make([]discover.NodeID, 0)
+
+	if len(im_queue) > int(c.maxCount) {
+		// Intercepting the lost candidates to tmpArr
+		tempArr := (im_queue)[c.maxCount:]
+		// qualified elected candidates
+		im_queue = (im_queue)[:c.maxCount]
+
+		// add reserve queue cache
+		addreserveQueue := make(types.CandidateQueue, 0)
+
+		// handle tmpArr
+		for _, tmpCan := range tempArr {
+			addreserveQueue = append(addreserveQueue, tmpCan)
+		}
+
+		if len(addreserveQueue) != 0 {
+			// append into reserve queue
+			re_queue = append(re_queue, addreserveQueue...)
+			if ids := handleReserveFunc(re_queue); len(ids) != 0 {
+				nodeIdArr = append(nodeIdArr, ids...)
+			}
+		}
+
+	}
+
+	PrintObject("Call Election to electionUpdateCanById, Finally shuffle double queue the old immediate queue is", im_queue)
+
+	c.setCandidateQueue(im_queue, ppos_storage.IMMEDIATE)
+
+	c.promoteReserveQueue(state, currentBlockNumber)
+
+	return nodeIdArr
+}
+
+
 
 // Getting immediate or reserve candidate info by nodeId
 func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) *types.Candidate {
@@ -1007,7 +1157,7 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, currBlockNumber *big.Int) ([]*discover.Node, error) {
 	log.Info("Call Election start ...", "current blockNumber", currBlockNumber.String(), "threshold", c.threshold.String(), "depositLimit", c.depositLimit, "allowed", c.allowed, "maxCount", c.maxCount, "maxChair", c.maxChair, "refundBlockNumber", c.refundBlockNumber)
 
-	c.initData2Cache(state, GET_IM_RE)
+
 	var nodes []*discover.Node
 	var nextQueue types.CandidateQueue
 	var isEmptyElection bool
@@ -1018,7 +1168,9 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 		nodes, nextQueue, isEmptyElection = nodeArr, canArr, flag
 	}
 
+
 	nodeIds := make([]discover.NodeID, 0)
+
 	for _, can := range nextQueue {
 		// Release lucky ticket TODO
 		if !isEmptyElection && (common.Hash{}) != can.TxHash {
@@ -1038,14 +1190,24 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 		}*/
 
 		if !isEmptyElection {
-			PrintObject("Election Update Candidate to SetCandidate again ...", *can)
+			/*PrintObject("Election Update Candidate to SetCandidate again ...", *can)
 			// Because you need to first ensure if you are in immediates, and if so, move to reserves
 			if ids := c.setCandidateInfo(state, can.CandidateId, can, currBlockNumber, c.promoteReserveQueue); len(ids) != 0 {
 				nodeIds = append(nodeIds, ids...)
-			}
+			}*/
+
+			nodeIds = append(nodeIds, can.CandidateId)
 		}
 
 	}
+
+	// finally update the double queue once
+	if !isEmptyElection && len(nodeIds) != 0 {
+		c.initData2Cache(state, GET_IM_RE)
+
+		nodeIds = c.electionUpdateCanById(state, currBlockNumber, nodeIds...)
+	}
+
 	// Release the lost list
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
@@ -1848,11 +2010,13 @@ func (c *CandidatePool) MaxCount() uint32 {
 
 // TODO
 func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber *big.Int) /*[]discover.NodeID */ {
+
+	log.Debug("Call promoteReserveQueue Start ...", "blockNumber", currentBlockNumber.String())
+
 	// Violence traverses the pools
 	im_queue := c.storage.GetCandidateQueue(ppos_storage.IMMEDIATE)
 	re_queue := c.storage.GetCandidateQueue(ppos_storage.RESERVE)
 
-	log.Debug("Call promoteReserveQueue Start ...", "blockNumber", currentBlockNumber.String())
 	PrintObject("Call promoteReserveQueue Before the immediate queue", im_queue)
 	PrintObject("Call promoteReserveQueue Before the reserve queue", re_queue)
 
@@ -1910,6 +2074,8 @@ func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber
 		}
 	}
 
+
+	log.Debug("Call promoteReserveQueue to makeCandidateSort the new immediate queue ...")
 	// sort immediate
 	makeCandidateSort(state, im_queue)
 
@@ -1945,6 +2111,7 @@ func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber
 	if len(addRe_queue) > 0 {
 		re_queue = append(re_queue, addRe_queue...)
 
+		log.Debug("Call promoteReserveQueue to makeCandidateSort the new reserve queue ...")
 		makeCandidateSort(state, re_queue)
 
 	}
