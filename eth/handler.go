@@ -342,6 +342,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		p.Log().Error("read peer message error", "err", err)
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
+			cbftEngine.RemovePeer(p.Peer.ID())
+		}
 		return err
 	}
 	if msg.Size > ProtocolMaxMsgSize {

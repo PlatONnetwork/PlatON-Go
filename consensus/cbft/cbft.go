@@ -1553,6 +1553,14 @@ func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
 	return nil
 }
 
+// RemovePeer remove the net latency info from netLatencyMap.
+func (cbft *Cbft) RemovePeer(nodeID discover.NodeID){
+	log.Trace("call RemovePeer()", "nodeID", hex.EncodeToString(nodeID.Bytes()[:8]))
+	cbft.netLatencyLock.Lock()
+	defer cbft.netLatencyLock.Unlock()
+	delete(cbft.netLatencyMap, nodeID)
+}
+
 // avgLatency statistics the net latency between local and other peers.
 func (cbft *Cbft) avgLatency(nodeID discover.NodeID) int64 {
 	if latencyList, exist := cbft.netLatencyMap[nodeID]; exist {
@@ -1798,6 +1806,21 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 //	return int(trunc + 1)
 //}
 
+
+func (cbft *Cbft) getConnectedConsensusNodes(consensusNodes []discover.NodeID) int {
+	cbft.netLatencyLock.RLock()
+	defer cbft.netLatencyLock.RUnlock()
+
+	connected :=0
+	for _,nodeId :=range consensusNodes {
+		if _, exist := cbft.netLatencyMap[nodeId]; exist {
+			connected++
+		}
+	}
+	return connected
+}
+
+
 func (cbft *Cbft) getThreshold(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) int {
 	consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
 	if consensusNodes != nil {
@@ -1808,6 +1831,15 @@ func (cbft *Cbft) getThreshold(parentNumber *big.Int, parentHash common.Hash, bl
 	}
 	return math.MaxInt16
 }
+
+func (cbft *Cbft) calculateThreshold(consensusNodes []discover.NodeID) int {
+	if consensusNodes != nil {
+		trunc := len(consensusNodes) * 2 / 3
+		return int(trunc + 1)
+	}
+	return math.MaxInt16
+}
+
 
 func toMilliseconds(t time.Time) int64 {
 	return t.UnixNano() / 1e6
@@ -1822,13 +1854,14 @@ func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, comm
 	//}
 
 	inturn := cbft.inTurn(parentNumber, parentHash, commitNumber)
+
 	if inturn {
-		cbft.netLatencyLock.RLock()
-		defer cbft.netLatencyLock.RUnlock()
-		peersCount := len(cbft.netLatencyMap)
-		threshold := cbft.getThreshold(parentNumber, parentHash, commitNumber)
-		log.Debug("connected peers(including self)", "count", peersCount+1, "threshold", threshold)
-		if peersCount < threshold-1 {
+		consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, commitNumber)
+		threshold := cbft.calculateThreshold(consensusNodes)
+		connected := cbft.getConnectedConsensusNodes(consensusNodes)
+
+		log.Debug("connected consensus peers(including self)", "count", connected+1, "threshold", threshold)
+		if connected < threshold-1 {
 			inturn = false
 		}
 	}
