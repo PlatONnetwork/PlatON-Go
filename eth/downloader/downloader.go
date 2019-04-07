@@ -1544,6 +1544,7 @@ func (d *Downloader) processFastSyncContent(latest *types.Header, pivot uint64) 
 			return err
 		}
 		if P != nil {
+			log.Debug("pivot point is comming", "pivot", pivot, "P number", P.Header.Number.Uint64())
 			// If new pivot block found, cancel old state retrieval and restart
 			if oldPivot != P {
 				stateSync.Cancel()

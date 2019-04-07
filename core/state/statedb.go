@@ -26,12 +26,12 @@ import (
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 )
 
 type revision struct {
@@ -94,7 +94,6 @@ type StateDB struct {
 // Create a new state from a given trie.
 //func New(root common.Hash, db Database) (*StateDB, error) {
 func New(root common.Hash, db Database, blocknumber *big.Int, blockhash common.Hash) (*StateDB, error) {
-	log.Debug("------statedb new------", "GoRoutineID", common.CurrentGoRoutineID(), "root", root)
 	tr, err := db.OpenTrie(root)
 	if err != nil {
 		return nil, err
@@ -783,3 +782,4 @@ func (self *StateDB) GetPPOSCache() *ppos_storage.Ppos_storage {
 func (self *StateDB) SnapShotPPOSCache() *ppos_storage.Ppos_storage {
 	return self.pposCache.Copy()
 }
+
