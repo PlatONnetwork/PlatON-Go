@@ -21,10 +21,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"math/big"
-	"runtime/debug"
+	//"runtime/debug"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -116,7 +117,11 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
+	if _, ok := vm.PrecompiledContractsPpos[s.address]; ok {
+		return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash) && s.data.Root == (common.Hash{})
+	} else {
+		return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
+	}
 }
 
 // Account is the Ethereum consensus representation of accounts.
@@ -131,7 +136,7 @@ type Account struct {
 
 // newObject creates a state object.
 func newObject(db *StateDB, address common.Address, data Account) *stateObject {
-	log.Debug("newObject", "state db addr", fmt.Sprintf("%p", db))
+	log.Debug("newObject", "state db addr", fmt.Sprintf("%p", db), "state root", db.Root().Hex())
 	if data.Balance == nil {
 		data.Balance = new(big.Int)
 	}
@@ -252,9 +257,9 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 		}
 	}
 	log.Debug("GetCommittedState", "stateObject addr", fmt.Sprintf("%p", self), "statedb addr", fmt.Sprintf("%p", self.db), "root", self.data.Root, "key", hex.EncodeToString([]byte(key)))
-	if self.data.Root == (common.Hash{}) {
-		log.Info("GetCommittedState", "stack", string(debug.Stack()))
-	}
+	//if self.data.Root == (common.Hash{}) {
+	//	log.Info("GetCommittedState", "stack", string(debug.Stack()))
+	//}
 	// Otherwise load the valueKey from trie
 	enc, err := self.getTrie(db).TryGet([]byte(key))
 	if err != nil {
@@ -363,7 +368,7 @@ func (self *stateObject) CommitTrie(db Database) error {
 	}
 
 	for h, v := range self.originValueStorage {
-		if (h != common.Hash{} && !bytes.Equal(v, []byte{})) {
+		if h != emptyStorage && !bytes.Equal(v, []byte{}) {
 			self.trie.TryUpdateValue(h.Bytes(), v)
 		}
 	}

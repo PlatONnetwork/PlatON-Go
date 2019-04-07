@@ -305,7 +305,7 @@ func (pool *TxPool) txExtBufferReadLoop() {
 			pendingFlag := atomic.LoadInt32(&pool.pendingFlag)
 			if rstFlag == DoingRst || pendingFlag == DoingPending {
 				txExtBuf = append(txExtBuf, ext)
-				log.Trace("Doing reset or doing pending, cached txExt", "len", len(pool.txExtBuffer), "rstFlag", rstFlag, "pendingFlag", pendingFlag, "txExtBufSize", len(txExtBuf))
+				log.Debug("Doing reset or doing pending, cached txExt", "len", len(pool.txExtBuffer), "rstFlag", rstFlag, "pendingFlag", pendingFlag, "txExtBufSize", len(txExtBuf))
 				continue
 			} else {
 				for i, txExt := range txExtBuf {
@@ -316,8 +316,8 @@ func (pool *TxPool) txExtBufferReadLoop() {
 					if rstFlag == DoingRst || pendingFlag == DoingPending {
 						txExtBuf = txExtBuf[i+1:]
 						txExtBuf = append(txExtBuf, ext)
-						log.Trace("Process txExtBuffer", "txExtBufLen", len(txExtBuf), "txExtBufferLen", len(pool.txExtBuffer), "duration", time.Since(begin))
-						log.Trace("Doing reset, reinject txExt", "len", len(pool.txExtBuffer), "rstFlag", rstFlag, "pendingFlag", pendingFlag, "txExtBufSize", len(txExtBuf))
+						log.Debug("Process txExtBuffer", "txExtBufLen", len(txExtBuf), "txExtBufferLen", len(pool.txExtBuffer), "duration", time.Since(begin))
+						log.Debug("Doing reset, reinject txExt", "len", len(pool.txExtBuffer), "rstFlag", rstFlag, "pendingFlag", pendingFlag, "txExtBufSize", len(txExtBuf))
 						goto doTxExtBuf
 					}
 				}
@@ -325,14 +325,14 @@ func (pool *TxPool) txExtBufferReadLoop() {
 			}
 			tx, ok := ext.tx.(*types.Transaction)
 			if ok {
-				log.Trace("Get txExt", "len", len(pool.txExtBuffer), "hash", tx.Hash(), "nonce", tx.Nonce())
+				log.Debug("Get txExt", "len", len(pool.txExtBuffer), "hash", tx.Hash(), "nonce", tx.Nonce())
 			} else {
 				txs := ext.tx.([]*types.Transaction)
-				log.Trace("Get txExt", "len", len(pool.txExtBuffer), "txsSize", len(txs))
+				log.Debug("Get txExt", "len", len(pool.txExtBuffer), "txsSize", len(txs))
 			}
 			err := pool.addTxExt(ext)
 			ext.txErr <- err
-			log.Trace("Process txExtBuffer", "txExtBufLen", len(txExtBuf), "txExtBufferLen", len(pool.txExtBuffer), "duration", time.Since(begin))
+			log.Debug("Process txExtBuffer", "txExtBufLen", len(txExtBuf), "txExtBufferLen", len(pool.txExtBuffer), "duration", time.Since(begin))
 		case <-pool.exitCh:
 			return
 		}

@@ -1,51 +1,50 @@
 package pposm
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
-	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
-	"fmt"
 )
 
 var (
-	TicketPoolNilErr          = errors.New("Ticket Insufficient quantity")
-	TicketPoolOverflowErr     = errors.New("Number of ticket pool overflow")
-	EncodeTicketErr           = errors.New("Encode Ticket error")
-	EncodePoolNumberErr       = errors.New("Encode SurplusQuantity error")
-	DecodeTicketErr           = errors.New("Decode Ticket error")
-	DecodePoolNumberErr       = errors.New("Decode SurplusQuantity error")
-	RecordExpireTicketErr     = errors.New("Record Expire Ticket error")
-	CandidateNotFindErr 	  = errors.New("The Candidate not find")
-	CandidateNilTicketErr     = errors.New("This candidate has no ticket")
-	TicketPoolBalanceErr      = errors.New("TicketPool not sufficient funds")
-	TicketIdNotFindErr        = errors.New("TicketId not find")
-	HandleExpireTicketErr     = errors.New("Failure to deal with expired tickets")
-	GetCandidateAttachErr     = errors.New("Get CandidateAttach error")
-	SetCandidateAttachErr     = errors.New("Update CandidateAttach error")
-	VoteTicketErr        	  = errors.New("Voting failed")
+	TicketPoolNilErr      = errors.New("Ticket Insufficient quantity")
+	TicketPoolOverflowErr = errors.New("Number of ticket pool overflow")
+	EncodeTicketErr       = errors.New("Encode Ticket error")
+	EncodePoolNumberErr   = errors.New("Encode SurplusQuantity error")
+	DecodeTicketErr       = errors.New("Decode Ticket error")
+	DecodePoolNumberErr   = errors.New("Decode SurplusQuantity error")
+	RecordExpireTicketErr = errors.New("Record Expire Ticket error")
+	CandidateNotFindErr   = errors.New("The Candidate not find")
+	CandidateNilTicketErr = errors.New("This candidate has no ticket")
+	TicketPoolBalanceErr  = errors.New("TicketPool not sufficient funds")
+	TicketNotFindErr      = errors.New("The Ticket not find")
+	HandleExpireTicketErr = errors.New("Failure to deal with expired tickets")
+	GetCandidateAttachErr = errors.New("Get CandidateAttach error")
+	SetCandidateAttachErr = errors.New("Update CandidateAttach error")
+	VoteTicketErr         = errors.New("Voting failed")
 )
 
 type TicketPool struct {
 	// Ticket price
 	TicketPrice *big.Int
 	// Maximum number of ticket pool
-	MaxCount uint64
+	MaxCount uint32
 	// Reach expired quantity
-	ExpireBlockNumber uint64
+	ExpireBlockNumber uint32
 	lock              *sync.Mutex
 }
 
@@ -76,256 +75,213 @@ func NewTicketPool(configs *params.PposConfig) *TicketPool {
 	return ticketPool
 }
 
-func (t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
+func (t *TicketPool) VoteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint32, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) (uint32, error) {
 	log.Debug("Call Voting", "statedb addr", fmt.Sprintf("%p", stateDB))
 	log.Info("Start Voting,VoteTicket", "owner", owner.Hex(), "voteNumber", voteNumber, "price", deposit.Uint64(), "nodeId", nodeId.String(), "blockNumber", blockNumber.Uint64())
-	voteTicketIdList, err := t.voteTicket(stateDB, owner, voteNumber, deposit, nodeId, blockNumber)
+	successCount, err := t.voteTicket(stateDB, owner, voteNumber, deposit, nodeId, blockNumber)
 	if nil != err {
-		log.Error("Voting failed", "nodeId", nodeId.String(), "voteNumber", voteNumber, "successNum", len(voteTicketIdList), "err", err)
-		return voteTicketIdList, err
+		log.Error("Voting failed", "nodeId", nodeId.String(), "voteNumber", voteNumber, "successNum", successCount, "err", err)
+		return successCount, err
 	}
 	// Voting completed, candidates reordered
-	log.Debug("Successfully voted to start updating the list of candidates,VoteTicket", "successNum", len(voteTicketIdList))
+	log.Debug("Successfully voted to start updating the list of candidates,VoteTicket", "successNum", successCount)
 	if err := cContext.UpdateElectedQueue(stateDB, blockNumber, nodeId); nil != err {
 		log.Error("Failed to Update candidate when voteTicket success", "err", err)
 	}
-	log.Debug("Successful vote, candidate list updated successfully,VoteTicket", "successNum", len(voteTicketIdList))
-	return voteTicketIdList, nil
+	if successCount > 0 {
+		t := &types.Ticket{
+			owner,
+			deposit,
+			nodeId,
+			blockNumber,
+			0,
+		}
+		ppos_storage.PutTicket(stateDB.TxHash(), t)
+	}
+	log.Debug("Successful vote, candidate list updated successfully,VoteTicket", "successNum", successCount)
+	return successCount, nil
 }
 
-func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint64, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) ([]common.Hash, error) {
+func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNumber uint32, deposit *big.Int, nodeId discover.NodeID, blockNumber *big.Int) (uint32, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	voteTicketIdList := make([]common.Hash, 0)
 	// check ticket pool count
-	surplusQuantity, err := t.GetPoolNumber(stateDB)
-	if nil != err {
-		return voteTicketIdList, err
-	}
+	surplusQuantity := t.GetPoolNumber(stateDB)
 	log.Debug("Execute voteTicket", "surplusQuantity", surplusQuantity, "voteNumber", voteNumber, "blockNumber", blockNumber.Uint64())
 	if surplusQuantity == 0 {
 		log.Error("Ticket Insufficient quantity")
-		return voteTicketIdList, TicketPoolNilErr
+		return 0, TicketPoolNilErr
 	}
 	if surplusQuantity < voteNumber {
 		voteNumber = surplusQuantity
 	}
 	log.Debug("Start circular voting", "nodeId", nodeId.String(), "voteNumber", voteNumber)
 
-	parentRoutineID := fmt.Sprintf("%s", common.CurrentGoRoutineID())
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	var wg sync.WaitGroup
-	wg.Add(int(voteNumber))
-	type genTicket struct {
-		index    uint64
-		ticketId common.Hash
-	}
-	resultCh := make(chan genTicket, voteNumber)
-	var i uint64 = 0
-	for ; i < voteNumber; i++ {
-		go func(i uint64) {
-
-			ticketId, _ := generateTicketId(stateDB.TxHash(), i)
-
-			log.Debug("Call Voting parent routine " + parentRoutineID, "statedb addr", fmt.Sprintf("%p", stateDB), "ticketId", ticketId.String())
-
-			ticket := &types.Ticket{
-				TicketId:    ticketId,
-				Owner:       owner,
-				Deposit:     deposit,
-				CandidateId: nodeId,
-				BlockNumber: blockNumber,
-			}
-			ticket.SetNormal()
-			if err := t.setTicket(stateDB, ticketId, ticket); err != nil {
-				log.Error("Ticket information record failed", "ticketId", ticketId.Hex(), "err", err)
-				wg.Done()
-				return
-			}
-			genTicket := genTicket{
-				index:    i,
-				ticketId: ticketId,
-			}
-			resultCh <- genTicket
-			wg.Done()
-		}(i)
-	}
-	wg.Wait()
-	close(resultCh)
-	resultSize := len(resultCh)
-	if resultSize == 0 {
-		log.Error("Voting failed resultSize = 0", "err", err)
-		return voteTicketIdList, VoteTicketErr
-	}
-	voteTicketIdList = make([]common.Hash, voteNumber)
-	for result := range resultCh {
-		voteTicketIdList[result.index] = result.ticketId
-	}
-	if resultSize != int(voteNumber) {
-		list := make([]common.Hash, 0)
-		for i := 0; i < len(voteTicketIdList); i++ {
-			tid := voteTicketIdList[i]
-			if tid != (common.Hash{}) {
-				list = append(list, tid)
-			}
-		}
-		voteTicketIdList = list
-	}
-	log.Debug("SetTicket succeeds, start recording tickets to expire", "blockNumber", blockNumber.Uint64(), "ticketAmount", len(voteTicketIdList))
-	if err := t.recordExpireTicket(stateDB, blockNumber, voteTicketIdList); err != nil {
-		return voteTicketIdList, err
-	}
-	log.Debug("Record the success of the ticket to expire, and start reducing the number of tickets", "surplusQuantity", surplusQuantity)
-	if err := t.setPoolNumber(stateDB, surplusQuantity-uint64(len(voteTicketIdList))); err != nil {
-		return voteTicketIdList, err
-	}
-	surplusQuantity, err = t.GetPoolNumber(stateDB)
-	if nil != err {
-		return voteTicketIdList, err
-	}
-
-	stateDB.AppendTicketCache(nodeId, voteTicketIdList[:])
-
-	log.Debug("Voting SUCCUESS !!!!!!  Reduce the remaining amount of the ticket pool successfully", "surplusQuantity", surplusQuantity, "nodeId", nodeId.String())
-	return voteTicketIdList, nil
+	ticketId := stateDB.TxHash()
+	//ticket := &types.Ticket{
+	//	owner,
+	//	deposit,
+	//	nodeId,
+	//	blockNumber,
+	//	voteNumber,
+	//}
+	//t.recordExpireTicket(stateDB, blockNumber, ticketId)
+	log.Debug("Record the success of the ticket to expire, and start reducing the number of tickets", "blockNumber", blockNumber.Uint64(), "surplusQuantity", surplusQuantity, "ticketId", ticketId.Hex())
+	t.setPoolNumber(stateDB, surplusQuantity-voteNumber)
+	stateDB.GetPPOSCache().AppendTicket(nodeId, ticketId, voteNumber, deposit)
+	log.Debug("Voting SUCCUESS !!!!!!  Reduce the remaining amount of the ticket pool successfully", "surplusQuantity", t.GetPoolNumber(stateDB), "nodeId", nodeId.String(), "blockNumber", blockNumber.Uint64(), "ticketId", ticketId.Hex())
+	return voteNumber, nil
 }
 
 func (t *TicketPool) calcExpireBlockNumber(stateDB vm.StateDB, blockNumber *big.Int) (*big.Int, bool) {
 	num := new(big.Int).SetUint64(0)
-	if blockNumber.Cmp(new(big.Int).SetUint64(t.ExpireBlockNumber)) >= 0 {
-		num.Sub(blockNumber, new(big.Int).SetUint64(t.ExpireBlockNumber))
+	if blockNumber.Cmp(new(big.Int).SetUint64(uint64(t.ExpireBlockNumber))) >= 0 {
+		num.Sub(blockNumber, new(big.Int).SetUint64(uint64(t.ExpireBlockNumber)))
 		return num, true
 	}
 	return num, false
 }
 
-func (t *TicketPool) GetExpireTicketIds(stateDB vm.StateDB, blockNumber *big.Int) ([]common.Hash, error) {
+/*func (t *TicketPool) GetExpireTicketIds(stateDB vm.StateDB, blockNumber *big.Int) []common.Hash {
 	log.Debug("Call GetExpireTicketIds", "statedb addr", fmt.Sprintf("%p", stateDB))
-	var expireTicketIds []common.Hash
-	if err := getTicketPoolState(stateDB, ExpireTicketKey((*blockNumber).Bytes()), &expireTicketIds); nil != err {
-		return nil, err
+	return stateDB.GetPPOSCache().GetExpireTicket(blockNumber)
+}*/
+
+func (t *TicketPool) GetExpireTicketIds(stateDB vm.StateDB, blockNumber *big.Int) []common.Hash {
+	log.Debug("Call GetExpireTicketIds", "statedb addr", fmt.Sprintf("%p", stateDB))
+	start := common.NewTimer()
+	start.Begin()
+	body := tContext.GetBody(blockNumber.Uint64())
+	txs := make([]common.Hash, 0)
+	for _, tx := range body.Transactions {
+		if *tx.To() == common.TicketPoolAddr {
+			txs = append(txs, tx.Hash())
+		}
 	}
-	return expireTicketIds, nil
+	log.Debug("GetExpireTicketIds Time", "Time spent", fmt.Sprintf("%v ms", start.End()))
+	return txs
 }
 
 // In the current block,
 // the ticket id is placed in the value slice with the block height as the key to find the expired ticket.
-func (t *TicketPool) recordExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, ticketIds []common.Hash) error {
-	expireTickets, err := t.GetExpireTicketIds(stateDB, blockNumber)
-	if err != nil {
-		log.Error("recordExpireTicket error", "key", blockNumber.Uint64(), "ticketIdSize", len(ticketIds), "err", err)
-		return RecordExpireTicketErr
-	}
-	expireTickets = append(expireTickets, ticketIds...)
-	return t.setExpireTicket(stateDB, blockNumber, expireTickets)
+func (t *TicketPool) recordExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, ticketId common.Hash) {
+	//stateDB.GetPPOSCache().SetExpireTicket(blockNumber, ticketId)
 }
 
-func (t *TicketPool) setExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, expireTickets []common.Hash) error {
-	if value, err := rlp.EncodeToBytes(expireTickets); nil != err {
-		log.Error("Failed to encode ticketId object on setExpireTicket", "key", blockNumber.Uint64(), "err", err)
-		return EncodeTicketErr
-	} else {
-		setTicketPoolState(stateDB, ExpireTicketKey((*blockNumber).Bytes()), value)
-	}
-	return nil
-}
-
-func (t *TicketPool) removeExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, ticketId common.Hash) error {
-	log.Debug("Remove from pending expired tickets", "blockNumber", blockNumber.Uint64(), "ticketId", ticketId.Hex())
-	ticketIdList, err := t.GetExpireTicketIds(stateDB, blockNumber)
-	if err != nil {
-		return err
-	}
-	if len(ticketIdList) == 0 {
-		return nil
-	}
-	ticketIdList, success := removeTicketId(ticketId, ticketIdList)
-	if !success {
-		return TicketIdNotFindErr
-	}
-	return t.setExpireTicket(stateDB, blockNumber, ticketIdList)
+func (t *TicketPool) removeExpireTicket(stateDB vm.StateDB, blockNumber *big.Int, ticketId common.Hash) {
+	//stateDB.GetPPOSCache().RemoveExpireTicket(blockNumber, ticketId)
 }
 
 func (t *TicketPool) handleExpireTicket(stateDB vm.StateDB, expireBlockNumber *big.Int, currentBlockNumber *big.Int) ([]discover.NodeID, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	ticketIdList, err := t.GetExpireTicketIds(stateDB, expireBlockNumber)
-	if err != nil {
-		return nil, err
+	ticketIdList := t.GetExpireTicketIds(stateDB, expireBlockNumber)
+	if len(ticketIdList) == 0 {
+		return nil, nil
 	}
-	log.Info("Pending ticket to be processed", "amount", len(ticketIdList), "blockNumber", expireBlockNumber.Uint64())
-	candidateAttachMap := make(map[discover.NodeID]*types.CandidateAttach)
+	log.Info("Pending ticket to be processed", "amount", len(ticketIdList), "expireBlockNumber", expireBlockNumber.Uint64(), "currentBlockNumber", currentBlockNumber.Uint64())
+	candidateAttachMap := make(map[discover.NodeID]bool)
 	changeNodeIdList := make([]discover.NodeID, 0)
 	for _, ticketId := range ticketIdList {
-		ticket, err := t.GetTicket(stateDB, ticketId)
-		if err != nil {
-			return nil, err
-		}
-		if ticket.TicketId == (common.Hash{}) {
+		ticket := t.GetTicket(stateDB, ticketId)
+		if ticket == nil {
 			continue
 		}
-		candidateAttach, ok := candidateAttachMap[ticket.CandidateId]
+		_, ok := candidateAttachMap[ticket.CandidateId]
 		if !ok {
-			tempCandidateAttach, err := t.GetCandidateAttach(stateDB, ticket.CandidateId)
-			candidateAttach = tempCandidateAttach
-			if nil != err {
-				return changeNodeIdList, err
-			}
-			candidateAttachMap[ticket.CandidateId] = candidateAttach
+			candidateAttachMap[ticket.CandidateId] = true
 			changeNodeIdList = append(changeNodeIdList, ticket.CandidateId)
 		}
-		if _, err := t.releaseTicket(stateDB, ticket.CandidateId, candidateAttach, ticketId, currentBlockNumber); nil != err {
+		if _, err := t.releaseTxTicket(stateDB, ticket.CandidateId, ticketId, currentBlockNumber); nil != err {
 			return changeNodeIdList, err
 		}
-		// Set ticket state to expired
-		ticket.SetExpired(currentBlockNumber)
-		if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
-			return changeNodeIdList, err
-		}
-	}
-	log.Debug("After processing the expired ticket, update the candidate's total ticket age", "candidateNum", len(changeNodeIdList), "currentBlockNumber", currentBlockNumber.Uint64())
-	// Update CandidateAttach
-	for nodeId, ca := range candidateAttachMap {
-		t.setCandidateAttach(stateDB, nodeId, ca)
 	}
 	return changeNodeIdList, nil
 }
 
 // Get ticket list
-func (t *TicketPool) GetTicketList(stateDB vm.StateDB, ticketIds []common.Hash) ([]*types.Ticket, error) {
+func (t *TicketPool) GetTicketList(stateDB vm.StateDB, ticketIds []common.Hash) []*types.Ticket {
 	log.Debug("Call GetTickList", "statedb addr", fmt.Sprintf("%p", stateDB))
 	var tickets []*types.Ticket
 	for _, ticketId := range ticketIds {
-		ticket, err := t.GetTicket(stateDB, ticketId)
-		if nil != err || ticket.TicketId == (common.Hash{}) {
+		ticket := t.GetTicket(stateDB, ticketId)
+		if ticket == nil {
 			log.Error("find this ticket fail", "ticketId", ticketId.Hex())
 			continue
 		}
 		tickets = append(tickets, ticket)
 	}
-	return tickets, nil
+	return tickets
 }
 
 // Get ticket details based on TicketId
-func (t *TicketPool) GetTicket(stateDB vm.StateDB, ticketId common.Hash) (*types.Ticket, error) {
+func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ticket {
 	log.Debug("Call GetTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
-	var ticket = new(types.Ticket)
-	if err := getTicketPoolState(stateDB, ticketId.Bytes(), ticket); nil != err {
-		return nil, DecodeTicketErr
-	}
-	return ticket, nil
-}
 
-func (t *TicketPool) setTicket(stateDB vm.StateDB, ticketId common.Hash, ticket *types.Ticket) error {
-	if value, err := rlp.EncodeToBytes(ticket); nil != err {
-		log.Error("Failed to encode ticket object on setTicket", "key", ticketId.Hex(), "err", err)
-		return EncodeTicketErr
-	} else {
-		setTicketPoolState(stateDB, ticketId.Bytes(), value)
+	start := common.NewTimer()
+	start.Begin()
+
+	if value := ppos_storage.GetTicket(txHash); nil != value {
+		return value
+	}
+
+	startTx := common.NewTimer()
+	startTx.Begin()
+	tx, _, blockNumber,_ := tContext.FindTransaction(txHash)
+	log.Debug("GetTicket Time Tx", "Time spent", fmt.Sprintf("%v ms", startTx.End()))
+	if nil != tx {
+		startDecode := common.NewTimer()
+		startDecode.Begin()
+		var source [][]byte
+		if err := rlp.Decode(bytes.NewReader(tx.Data()), &source); nil != err {
+			log.Error("Failed to GetTicket", "txHash", txHash.Hex(), "err", err.Error())
+			return nil
+		}
+		if byteutil.BytesToString(source[1]) != "VoteTicket" {
+			return nil
+		}
+		log.Debug("GetTicket Time Decode", "Time spent", fmt.Sprintf("%v ms", startDecode.End()))
+		ticket := new(types.Ticket)
+		startSigner := common.NewTimer()
+		startSigner.Begin()
+		signer := types.NewEIP155Signer(tContext.chainConfig.ChainID)
+		if addr, err := signer.Sender(tx); nil != err {
+			log.Error("Failed to GetTicket, get tx owner is empty !!!!", "tx", tx.Hash().Hex(), "err", err)
+			return nil
+		} else {
+			ticket.Owner = addr
+		}
+		log.Debug("GetTicket Time startSigner", "Time spent", fmt.Sprintf("%v ms", startSigner.End()))
+		//startGetHeader := common.NewTimer()
+		//startGetHeader.Begin()
+		//block := tContext.GetHeader(blockHash, blockNumber)
+		//log.Debug("GetTicket Time startGetHeader", "Time spent", fmt.Sprintf("%v ms", startGetHeader.End()))
+		//startGetNewStateDB := common.NewTimer()
+		//startGetNewStateDB.Begin()
+		//if oldState, err := tContext.GetNewStateDB(block.Root, new(big.Int).SetUint64(blockNumber), blockHash); nil != err {
+		//	return nil
+		//} else {
+		//	ticket.Deposit = t.GetTicketPrice(oldState)
+		//}
+		//log.Debug("GetTicket Time startGetNewStateDB", "Time spent", fmt.Sprintf("%v ms", startGetNewStateDB.End()))
+		ticket.Deposit = t.GetTicketPrice(stateDB)
+		ticket.CandidateId = byteutil.BytesToNodeId(source[4])
+		ticket.BlockNumber = new(big.Int).SetUint64(blockNumber)
+		log.Debug("GetTicket Time", "Time spent", fmt.Sprintf("%v ms", start.End()))
+		return ticket
+	}else {
+		log.Error("Failed to GetTicket, the tx is empty", "txHash", txHash.Hex())
 	}
 	return nil
 }
+
+func (t *TicketPool) GetTicketRemainByTxHash (stateDB vm.StateDB, txHash common.Hash) uint32 {
+	return stateDB.GetPPOSCache().GetTicketRemainByTxHash(txHash)
+}
+
+//func (t *TicketPool) setTicket(stateDB vm.StateDB, ticketId common.Hash, ticket *types.Ticket) {
+//	stateDB.GetPPOSCache().SetTicketInfo(ticketId, ticket)
+//}
 
 func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, nodeIds ...discover.NodeID) error {
 	t.lock.Lock()
@@ -333,55 +289,38 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 	log.Debug("Call DropReturnTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
 	log.Info("Start processing tickets for the drop list on DropReturnTicket", "candidateNum", len(nodeIds), "blockNumber", blockNumber.Uint64())
 	for _, nodeId := range nodeIds {
-		if  nodeId == (discover.NodeID{}) {
+		if nodeId == (discover.NodeID{}) {
 			continue
 		}
-		candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
-		if nil != err {
-			return err
-		}
+		candidateTicketIds := t.GetCandidateTicketIds(stateDB, nodeId)
 		if len(candidateTicketIds) == 0 {
 			continue
 		}
-		candidateAttach, err := t.GetCandidateAttach(stateDB, nodeId)
-		if nil != err {
-			return err
-		}
-		candidateAttach.Epoch = new(big.Int).SetUint64(0)
-		log.Debug("Update candidate information on DropReturnTicket", "nodeId", nodeId.String(), "epoch", candidateAttach.Epoch.Uint64())
-		if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
-			return err
-		}
-		log.Debug("Delete candidate ticket collection on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", len(candidateTicketIds))
-		if err := stateDB.RemoveTicketCache(nodeId, candidateTicketIds[:]); nil != err {
-			return err
-		}
-		surplusQuantity, err := t.GetPoolNumber(stateDB)
-		if nil != err {
-			return err
-		}
-		log.Debug("Start reducing the number of tickets on DropReturnTicket", "surplusQuantity", surplusQuantity, "candidateTicketIds", len(candidateTicketIds))
-		if err := t.setPoolNumber(stateDB, surplusQuantity+uint64(len(candidateTicketIds))); err != nil {
-			return err
-		}
-		log.Debug("Start processing each invalid ticket on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", len(candidateTicketIds))
+		epoch := t.GetCandidateEpoch(stateDB, nodeId)
+		ticketCount := t.GetCandidateTicketCount(stateDB, nodeId)
+		surplusQuantity := t.GetPoolNumber(stateDB)
+		log.Debug("Start reducing the number of tickets on DropReturnTicket", "surplusQuantity", surplusQuantity, "candidateTicketIds", ticketCount)
+		t.setPoolNumber(stateDB, surplusQuantity+ticketCount)
+		log.Debug("Start processing each invalid ticket on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", ticketCount)
 		for _, ticketId := range candidateTicketIds {
-			ticket, err := t.GetTicket(stateDB, ticketId)
-			if nil != err {
-				return err
-			}
-			if ticket.TicketId == (common.Hash{}) {
+			ticket := t.GetTicket(stateDB, ticketId)
+			if ticket == nil {
 				continue
 			}
-			ticket.SetInvalid(blockNumber)
-			if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
+			if tinfo, err := stateDB.GetPPOSCache().RemoveTicket(nodeId, ticketId); err != nil {
+				return err
+			} else {
+				ticket.Remaining = tinfo.Remaining
+				ticket.Deposit = tinfo.Price
+			}
+			log.Debug("Start transfer on DropReturnTicket", "nodeId", nodeId.String(), "ticketId", ticketId.Hex(), "deposit", ticket.Deposit, "remaining", ticket.Remaining)
+			if err := transfer(stateDB, common.TicketPoolAddr, ticket.Owner, ticket.TotalDeposit()); nil != err {
 				return err
 			}
-			if err := transfer(stateDB, common.TicketPoolAddr, ticket.Owner, ticket.Deposit); nil != err {
-				return err
-			}
-			t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
+			//t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
 		}
+		log.Debug("Delete candidate ticket collection on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", ticketCount, "epoch", epoch)
+		stateDB.GetPPOSCache().RemoveTicketDependency(nodeId)
 	}
 	log.Debug("End processing the list on DropReturnTicket")
 	return nil
@@ -393,70 +332,95 @@ func (t *TicketPool) ReturnTicket(stateDB vm.StateDB, nodeId discover.NodeID, ti
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	if ticketId == (common.Hash{}) {
-		return TicketIdNotFindErr
+		return TicketNotFindErr
 	}
 	if nodeId == (discover.NodeID{}) {
 		return CandidateNotFindErr
 	}
-	candidateAttach, err := t.GetCandidateAttach(stateDB, nodeId)
+	_, err := t.releaseTicket(stateDB, nodeId, ticketId, blockNumber)
 	if nil != err {
 		return err
 	}
-	ticket, err := t.releaseTicket(stateDB, nodeId, candidateAttach, ticketId, blockNumber)
-	if ticket == nil {
-		return TicketIdNotFindErr
-	}
-	ticket.SetSelected(blockNumber)
-	log.Debug("Update ticket on ReturnTicket", "state", ticket.State, "blockNumber", blockNumber.Uint64())
-	if err := t.setTicket(stateDB, ticketId, ticket); nil != err {
-		return err
-	}
-	log.Debug("Update candidate total epoch on ReturnTicket", "nodeId", nodeId.String(), "epoch", candidateAttach.Epoch.Uint64())
-	if err := t.setCandidateAttach(stateDB, nodeId, candidateAttach); nil != err {
-		return err
-	}
-	// Remove from pending expire tickets
-	return t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
+	return nil
 }
 
-func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.NodeID, candidateAttach *types.CandidateAttach, ticketId common.Hash, blockNumber *big.Int) (*types.Ticket, error) {
-	log.Debug("Start executing releaseTicket", "nodeId", candidateId.String(), "ticketId", ticketId.Hex(), "epoch", candidateAttach.Epoch.Uint64(), "blockNumber", blockNumber.Uint64())
-	ticket, err := t.GetTicket(stateDB, ticketId)
-	if nil != err {
+func (t *TicketPool) releaseTicket(stateDB vm.StateDB, candidateId discover.NodeID, ticketId common.Hash, blockNumber *big.Int) (*types.Ticket, error) {
+	log.Debug("Start executing releaseTicket", "nodeId", candidateId.String(), "ticketId", ticketId.Hex(), "blockNumber", blockNumber.Uint64())
+	ticket := t.GetTicket(stateDB, ticketId)
+	if ticket == nil {
+		return nil, TicketNotFindErr
+	}
+	log.Debug("releaseTicket,Start Update", "nodeId", candidateId.String(), "ticketId", ticketId.Hex())
+	if tinfo, err := stateDB.GetPPOSCache().SubTicket(candidateId, ticketId); err != nil {
 		return ticket, err
+	} else {
+		ticket.Remaining = tinfo.Remaining
+		ticket.Deposit = tinfo.Price
 	}
-	if ticket.TicketId == (common.Hash{}) {
-		return nil, nil
-	}
-	log.Debug("releaseTicket,Start Update", "nodeId", candidateId.String())
-	candidateTicketIds := make([]common.Hash, 0)
-	candidateTicketIds = append(candidateTicketIds, ticketId)
-	if err := stateDB.RemoveTicketCache(candidateId, candidateTicketIds); err != nil {
-		return ticket, err
-	}
-	surplusQuantity, err := t.GetPoolNumber(stateDB)
-	if nil != err {
-		return ticket, err
-	}
+	/*if ticket.Remaining == 0 {
+		// Remove from pending expire tickets
+		log.Debug("releaseTicket, Ticket has been used, deleted from waiting for expiration", "ticketId", ticketId.Hex(), "candidateId", candidateId.String(), "blockNumber", blockNumber.Uint64())
+		t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
+	}*/
 	log.Debug("releaseTicket, end update", "nodeId", candidateId.String())
+	surplusQuantity := t.GetPoolNumber(stateDB)
 	log.Debug("releaseTicket, start to update the ticket pool", "surplusQuantity", surplusQuantity)
 	if err := t.addPoolNumber(stateDB); err != nil {
 		return ticket, err
 	}
-	surplusQuantity, err = t.GetPoolNumber(stateDB)
-	if nil != err {
-		return ticket, err
-	}
+	surplusQuantity = t.GetPoolNumber(stateDB)
 	log.Debug("releaseTicket, end the update ticket pool", "surplusQuantity", surplusQuantity)
-	log.Debug("releaseTicket, start updating the total epoch of candidates", "nodeId", candidateId.String(), "totalEpoch", candidateAttach.Epoch.Uint64(), "blockNumber", blockNumber.Uint64(), "ticketBlockNumber", ticket.BlockNumber.Uint64())
-	candidateAttach.SubEpoch(ticket.CalcEpoch(blockNumber))
-	log.Debug("releaseTicket, the end of the update candidate total epoch", "nodeId", candidateId.String(), "totalEpoch", candidateAttach.Epoch.Uint64(), "blockNumber", blockNumber.Uint64(), "ticketBlockNumber", ticket.BlockNumber.Uint64())
+	//epoch := t.GetCandidateEpoch(stateDB, candidateId)
+	//log.Debug("releaseTicket, start updating the total epoch of candidates", "nodeId", candidateId.String(), "totalEpoch", epoch, "blockNumber", blockNumber.Uint64(), "ticketBlockNumber", ticket.BlockNumber.Uint64())
+	//if err := t.subCandidateEpoch(stateDB, candidateId, ticket.CalcEpoch(blockNumber)); nil != err {
+	//	return ticket, err
+	//}
+	//epoch = t.GetCandidateEpoch(stateDB, candidateId)
+	//log.Debug("releaseTicket, the end of the update candidate total epoch", "nodeId", candidateId.String(), "totalEpoch", epoch, "blockNumber", blockNumber.Uint64(), "ticketBlockNumber", ticket.BlockNumber.Uint64())
 	return ticket, transfer(stateDB, common.TicketPoolAddr, ticket.Owner, ticket.Deposit)
+}
+
+func (t *TicketPool) releaseTxTicket(stateDB vm.StateDB, candidateId discover.NodeID, ticketId common.Hash, blockNumber *big.Int) (*types.Ticket, error) {
+	log.Debug("Start executing releaseTxTicket", "nodeId", candidateId.String(), "ticketId", ticketId.Hex(), "blockNumber", blockNumber.Uint64())
+	ticket := t.GetTicket(stateDB, ticketId)
+	if ticket == nil {
+		return nil, TicketNotFindErr
+	}
+	log.Debug("releaseTxTicket,Start Update", "nodeId", candidateId.String(), "ticketId", ticketId.Hex())
+	if tinfo, err := stateDB.GetPPOSCache().RemoveTicket(candidateId, ticketId); err != nil && err != ppos_storage.TicketNotFindErr {
+		return ticket, err
+	} else {
+		if tinfo == nil {
+			log.Warn("releaseTxTicket, Not find TicketId", "ticketId", ticketId.Hex(), "nodeId", candidateId.String(), "blockNumber", blockNumber.Uint64())
+			return nil, nil
+		}
+		ticket.Remaining = tinfo.Remaining
+		ticket.Deposit = tinfo.Price
+	}
+	log.Debug("releaseTxTicket, end update", "nodeId", candidateId.String())
+	//t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
+	surplusQuantity := t.GetPoolNumber(stateDB)
+	log.Debug("releaseTxTicket, start to update the ticket pool", "surplusQuantity", surplusQuantity)
+	t.setPoolNumber(stateDB, surplusQuantity + ticket.Remaining)
+	surplusQuantity = t.GetPoolNumber(stateDB)
+	log.Debug("releaseTxTicket, end the update ticket pool", "surplusQuantity", surplusQuantity)
+	//epoch := t.GetCandidateEpoch(stateDB, candidateId)
+	//log.Debug("releaseTicket, start updating the total epoch of candidates", "nodeId", candidateId.String(), "totalEpoch", epoch, "blockNumber", blockNumber.Uint64(), "ticketBlockNumber", ticket.BlockNumber.Uint64())
+	//if err := t.subCandidateEpoch(stateDB, candidateId, ticket.TotalEpoch(blockNumber)); nil != err {
+	//	return ticket, err
+	//}
+	//epoch = t.GetCandidateEpoch(stateDB, candidateId)
+	//log.Debug("releaseTicket, the end of the update candidate total epoch", "nodeId", candidateId.String(), "totalEpoch", epoch, "blockNumber", blockNumber.Uint64(), "ticketBlockNumber", ticket.BlockNumber.Uint64())
+	return ticket, transfer(stateDB, common.TicketPoolAddr, ticket.Owner, ticket.TotalDeposit())
 }
 
 func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int) error {
 	log.Debug("Call Notify", "statedb addr", fmt.Sprintf("%p", stateDB))
 	// Check expired tickets
+
+	//ticket := t.GetTicket(stateDB, common.HexToHash("0xafdd2a272c9af265410369bba200960229e6c90e044d8241cbcd6abf8a1706f8"))
+
+
 	expireBlockNumber, ok := t.calcExpireBlockNumber(stateDB, blockNumber)
 	log.Debug("Check expired tickets on Notify", "isOk", ok, "expireBlockNumber", expireBlockNumber.Uint64())
 	if ok {
@@ -466,54 +430,52 @@ func (t *TicketPool) Notify(stateDB vm.StateDB, blockNumber *big.Int) error {
 		} else {
 			// Notify the candidate to update the list information after processing the expired ticket
 			log.Debug("After processing the expired ticket, start updating the candidate list on Notify", "blockNumber", blockNumber.Uint64(), "nodeIdList", len(nodeIdList))
-			if err := cContext.UpdateElectedQueue(stateDB, blockNumber, nodeIdList...); nil != err {
-				log.Error("Failed to Update candidate when handleExpireTicket success on Notify", "err", err)
+			if len(nodeIdList) > 0 {
+				if err := cContext.UpdateElectedQueue(stateDB, blockNumber, nodeIdList...); nil != err {
+					log.Error("Failed to Update candidate when handleExpireTicket success on Notify", "err", err)
+				}
 			}
 		}
 	}
 	// Increase the total number of epoch for each candidate
-	log.Debug("Increase the total number of epoch for each candidate on Notify", "blockNumber", blockNumber.Uint64())
+	/*log.Debug("Increase the total number of epoch for each candidate on Notify", "blockNumber", blockNumber.Uint64())
 	if err := t.calcCandidateEpoch(stateDB, blockNumber); nil != err {
 		return err
-	}
+	}*/
 	return nil
 }
 
-func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int) error {
+/*func (t *TicketPool) calcCandidateEpoch(stateDB vm.StateDB, blockNumber *big.Int) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
-	candidateList := cContext.GetChosens(stateDB, 0)
+	candidateList := cContext.GetCandidatePendArr(stateDB, 0)
 	for _, candidate := range candidateList {
-		candidateAttach, err := t.GetCandidateAttach(stateDB, candidate.CandidateId)
-		if nil != err {
-			return err
-		}
+		epoch := t.GetCandidateEpoch(stateDB, candidate.CandidateId)
 		// Get the total number of votes, increase the total epoch
-		ticketCount := stateDB.TCount(candidate.CandidateId)
-		log.Debug("increase the total epoch", "candidateId", candidate.CandidateId.String(), "ticketCount", ticketCount)
+		ticketCount := stateDB.GetPPOSCache().GetCandidateTicketCount(candidate.CandidateId)
+		log.Debug("increase the total epoch", "candidateId", candidate.CandidateId.String(), "blockNumber", blockNumber.Uint64(), "ticketCount", ticketCount, "epoch", epoch)
 		if ticketCount > 0 {
-			candidateAttach.AddEpoch(new(big.Int).SetUint64(ticketCount))
-			if err := t.setCandidateAttach(stateDB, candidate.CandidateId, candidateAttach); nil != err {
-				return err
-			}
+			t.addCandidateEpoch(stateDB, candidate.CandidateId, uint64(ticketCount))
+			epoch = t.GetCandidateEpoch(stateDB, candidate.CandidateId)
+			log.Debug("increase the total epoch success", "candidateId", candidate.CandidateId.String(), "blockNumber", blockNumber.Uint64(), "ticketCount", ticketCount, "epoch", epoch)
 		}
 	}
 	return nil
-}
+}*/
 
 // Simple version of the lucky ticket algorithm
 // According to the previous block Hash,
 // find the first ticket Id which is larger than the Hash. If not found, the last ticket Id is taken.
 func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.NodeID, blockHash common.Hash) (common.Hash, error) {
 	log.Debug("Call SelectionLuckyTicket", "statedb addr", fmt.Sprintf("%p", stateDB))
-	candidateTicketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
+	candidateTicketIds := t.GetCandidateTicketIds(stateDB, nodeId)
 	log.Debug("Start picking lucky tickets on SelectionLuckyTicket", "nodeId", nodeId.String(), "blockHash", blockHash.Hex(), "candidateTicketIds", len(candidateTicketIds))
 	luckyTicketId := common.Hash{}
-	if nil != err {
-		return luckyTicketId, err
-	}
 	if len(candidateTicketIds) == 0 {
-		return luckyTicketId, CandidateNilTicketErr
+		return luckyTicketId, nil
+	}
+	if len(candidateTicketIds) == 1 {
+		return candidateTicketIds[0], nil
 	}
 	decList := make([]float64, 0)
 	decMap := make(map[float64]common.Hash, 0)
@@ -530,142 +492,154 @@ func (t *TicketPool) SelectionLuckyTicket(stateDB vm.StateDB, nodeId discover.No
 	return luckyTicketId, nil
 }
 
-func removeTicketId(ticketId common.Hash, ticketIds []common.Hash) ([]common.Hash, bool) {
-	for index, tempTicketId := range ticketIds {
-		if tempTicketId == ticketId {
-			start := ticketIds[:index]
-			end := ticketIds[index+1:]
-			return append(start, end...), true
-		}
-	}
-	return ticketIds, false
-}
-
 func (t *TicketPool) addPoolNumber(stateDB vm.StateDB) error {
-	surplusQuantity, err := t.GetPoolNumber(stateDB)
-	if nil != err {
-		return err
-	}
+	surplusQuantity := t.GetPoolNumber(stateDB)
 	if surplusQuantity == t.MaxCount {
 		return TicketPoolOverflowErr
 	}
 	surplusQuantity++
-	return t.setPoolNumber(stateDB, surplusQuantity)
+	t.setPoolNumber(stateDB, surplusQuantity)
+	return nil
 }
 
 func (t *TicketPool) subPoolNumber(stateDB vm.StateDB) error {
-	surplusQuantity, err := t.GetPoolNumber(stateDB)
-	if nil != err {
-		return err
-	}
+	surplusQuantity := t.GetPoolNumber(stateDB)
 	if surplusQuantity == 0 {
 		return TicketPoolNilErr
 	}
 	surplusQuantity--
-	return t.setPoolNumber(stateDB, surplusQuantity)
-}
-
-func (t *TicketPool) setPoolNumber(stateDB vm.StateDB, surplusQuantity uint64) error {
-	if value, err := rlp.EncodeToBytes(surplusQuantity); nil != err {
-		log.Error("Failed to encode surplusQuantity object on setPoolNumber", "key", GetSurplusQuantityKey(), "err", err)
-		return EncodePoolNumberErr
-	} else {
-		setTicketPoolState(stateDB, GetSurplusQuantityKey(), value)
-	}
+	t.setPoolNumber(stateDB, surplusQuantity)
 	return nil
 }
 
-func (t *TicketPool) GetPoolNumber(stateDB vm.StateDB) (uint64, error) {
-	var surplusQuantity uint64
-	if val := stateDB.GetState(common.TicketPoolAddr, GetSurplusQuantityKey()); len(val) > 0 {
-		if err := rlp.DecodeBytes(val, &surplusQuantity); nil != err {
-			log.Error("Decode PoolNumber error", "key", string(GetSurplusQuantityKey()), "err", err)
-			return surplusQuantity, DecodePoolNumberErr
-		}
+func (t *TicketPool) setPoolNumber(stateDB vm.StateDB, surplusQuantity uint32) {
+	stateDB.GetPPOSCache().SetTotalRemain(int32(surplusQuantity))
+}
+
+func (t *TicketPool) GetPoolNumber(stateDB vm.StateDB) uint32 {
+	if val := stateDB.GetPPOSCache().GetTotalRemian(); val >= 0 {
+		return uint32(val)
 	} else {
 		// Default initialization values
-		surplusQuantity = t.MaxCount
+		return t.MaxCount
 	}
-	return surplusQuantity, nil
 }
 
-func (t *TicketPool) GetCandidateTicketIds(stateDB vm.StateDB, nodeId discover.NodeID) ([]common.Hash, error) {
+/*func (t *TicketPool) subCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeID, epoch uint64) error {
+	dependency := stateDB.GetPPOSCache().GetTicketDependency(nodeId)
+	if nil == dependency {
+		return CandidateNotFindErr
+	}
+	dependency.SubAge(epoch)
+	return nil
+}*/
+
+/*func (t *TicketPool) addCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeID, epoch uint64) error {
+	dependency := stateDB.GetPPOSCache().GetTicketDependency(nodeId)
+	if nil == dependency {
+		return CandidateNotFindErr
+	}
+	dependency.AddAge(epoch)
+	return nil
+}*/
+
+// Get the remaining number of ticket
+func (t *TicketPool) GetTicketRemaining(stateDB vm.StateDB, ticketId common.Hash) uint32 {
+	return t.GetTicketRemainByTxHash(stateDB, ticketId)
+	/*if nil == ticket {
+		return 0
+	}
+	return ticket.Remaining*/
+}
+
+// Get the batch remaining number of ticket
+func (t *TicketPool) GetBatchTicketRemaining(stateDB vm.StateDB, ticketIds []common.Hash) map[common.Hash]uint32 {
+	ticketsRemaining := make(map[common.Hash]uint32, len(ticketIds))
+	var wg sync.WaitGroup
+	wg.Add(len(ticketIds))
+
+	type result struct {
+		id 		common.Hash
+		count 	uint32
+	}
+	resCh := make(chan *result, len(ticketIds))
+
+	for _, ticketId := range ticketIds {
+		/*remaining := t.GetTicketRemaining(stateDB, ticketId)
+		ticketsRemaining[ticketId] = remaining*/
+		go func(txHash common.Hash) {
+			res := new(result)
+			res.id = txHash
+			res.count = t.GetTicketRemaining(stateDB, txHash)
+			resCh <- res
+			wg.Done()
+		}(ticketId)
+	}
+	wg.Wait()
+	close(resCh)
+	for res := range resCh {
+		ticketsRemaining[res.id] = res.count
+	}
+	return ticketsRemaining
+}
+
+func (t *TicketPool) GetCandidateTicketIds(stateDB vm.StateDB, nodeId discover.NodeID) []common.Hash {
 	log.Debug("Call GetCandidaieTicketIds", "statedb addr", fmt.Sprintf("%p", stateDB))
-	candidateTicketIds, err := stateDB.GetTicketCache(nodeId)
-	if nil != err {
-		return nil, err
-	}
-	return candidateTicketIds, nil
+	return stateDB.GetPPOSCache().GetCandidateTxHashs(nodeId)
 }
 
-func (t *TicketPool) GetCandidatesTicketIds(stateDB vm.StateDB, nodeIds []discover.NodeID) (map[discover.NodeID][]common.Hash, error) {
+func (t *TicketPool) GetCandidatesTicketIds(stateDB vm.StateDB, nodeIds []discover.NodeID) map[discover.NodeID][]common.Hash {
 	log.Debug("Call GetCandidateArrTicketIds", "statedb addr", fmt.Sprintf("%p", stateDB))
 	result := make(map[discover.NodeID][]common.Hash)
 	if nodeIds != nil {
 		for _, nodeId := range nodeIds {
-			ticketIds, err := t.GetCandidateTicketIds(stateDB, nodeId)
-			if nil != err {
+			ticketIds := t.GetCandidateTicketIds(stateDB, nodeId)
+			if nil == ticketIds {
 				continue
 			}
 			result[nodeId] = ticketIds
 		}
 	}
-	return result, nil
+	return result
 }
 
-func (t *TicketPool) GetCandidatesTicketCount(stateDB vm.StateDB, nodeIds []discover.NodeID) (map[discover.NodeID]int, error) {
+func (t *TicketPool) GetCandidateTicketCount(stateDB vm.StateDB, nodeId discover.NodeID) uint32 {
+	return stateDB.GetPPOSCache().GetCandidateTicketCount(nodeId)
+}
+
+func (t *TicketPool) GetCandidatesTicketCount(stateDB vm.StateDB, nodeIds []discover.NodeID) map[discover.NodeID]uint32 {
 	log.Debug("Call GetCandidatesTicketCount", "statedb addr", fmt.Sprintf("%p", stateDB))
-	result := make(map[discover.NodeID]int)
+	result := make(map[discover.NodeID]uint32)
 	if nil != nodeIds {
 		for _, nodeId := range nodeIds {
-			result[nodeId] = int(stateDB.TCount(nodeId))
+			result[nodeId] = stateDB.GetPPOSCache().GetCandidateTicketCount(nodeId)
 		}
 	}
-	return result, nil
+	return result
 }
 
-func (t *TicketPool) GetCandidateAttach(stateDB vm.StateDB, nodeId discover.NodeID) (*types.CandidateAttach, error) {
-	log.Debug("Call GetCandidateAttach", "statedb addr", fmt.Sprintf("%p", stateDB))
-	candidateAttach := new(types.CandidateAttach)
-	candidateAttach.Epoch = new(big.Int)
-	if err := getTicketPoolState(stateDB, CandidateAttachKey(nodeId.Bytes()), candidateAttach); nil != err {
-		log.Error("GetCandidateAttach error", "key", string(nodeId.Bytes()), "err", err)
-		return nil, GetCandidateAttachErr
-	}
-	return candidateAttach, nil
+func (t *TicketPool) setCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeID, age uint64) {
+	stateDB.GetPPOSCache().SetCandidateTicketAge(nodeId, age)
 }
 
-func (t *TicketPool) setCandidateAttach(stateDB vm.StateDB, nodeId discover.NodeID, candidateAttach *types.CandidateAttach) error {
-	if value, err := rlp.EncodeToBytes(candidateAttach); nil != err {
-		log.Error("Failed to encode candidateAttach object on setCandidateAttach", "key", string(nodeId.Bytes()), "value", candidateAttach.Epoch.Uint64(), "err", err)
-		return SetCandidateAttachErr
-	} else {
-		setTicketPoolState(stateDB, CandidateAttachKey(nodeId.Bytes()), value)
-	}
-	return nil
-}
-
-func (t *TicketPool) GetCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeID) (uint64, error) {
+func (t *TicketPool) GetCandidateEpoch(stateDB vm.StateDB, nodeId discover.NodeID) uint64 {
 	log.Debug("Call GetCandidateEpoch", "statedb addr", fmt.Sprintf("%p", stateDB))
-	candidateAttach, err := t.GetCandidateAttach(stateDB, nodeId)
-	if nil != err {
-		return 0, err
-	}
-	return candidateAttach.Epoch.Uint64(), nil
+	return stateDB.GetPPOSCache().GetCandidateTicketAge(nodeId)
 }
 
-func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) (*big.Int, error) {
-	return t.TicketPrice, nil
+func (t *TicketPool) GetTicketPrice(stateDB vm.StateDB) *big.Int {
+	return t.TicketPrice
 }
 
 // Save the hash value of the current state of the ticket pool
-func (t *TicketPool) CommitHash(stateDB vm.StateDB) error {
-	hash, err := ticketcache.Hash(stateDB.TicketCaceheSnapshot())
-	if nil != err {
+func (t *TicketPool) CommitHash(stateDB vm.StateDB, blockNumber *big.Int, blockHash common.Hash) error {
+	//hash := common.Hash{}
+	if hash, err := stateDB.GetPPOSCache().CalculateHash(blockNumber, blockHash); nil != err {
 		return err
+	}else {
+		setTicketPoolState(stateDB, addCommonPrefix(TicketPoolHashKey), hash.Bytes())
+		return nil
 	}
-	setTicketPoolState(stateDB, addCommonPrefix(TicketPoolHashKey), hash.Bytes())
-	return nil
 }
 
 //func GetTicketPtr() *TicketPool {
@@ -705,25 +679,6 @@ func getState(addr common.Address, stateDB vm.StateDB, key []byte, result interf
 
 func setTicketPoolState(stateDB vm.StateDB, key []byte, val []byte) {
 	stateDB.SetState(common.TicketPoolAddr, key, val)
-}
-
-func generateTicketId(txHash common.Hash, index uint64) (common.Hash, error) {
-	// generate ticket id
-	value := append(txHash.Bytes(), []byte(strconv.Itoa(int(index)))...)
-	ticketId := sha3.Sum256(value[:])
-	return ticketId, nil
-}
-
-func ExpireTicketKey(key []byte) []byte {
-	return addCommonPrefix(append(ExpireTicketPrefix, key...))
-}
-
-func CandidateAttachKey(key []byte) []byte {
-	return addCommonPrefix(append(CandidateAttachPrefix, key...))
-}
-
-func GetSurplusQuantityKey() []byte {
-	return addCommonPrefix(SurplusQuantityKey)
 }
 
 func addCommonPrefix(key []byte) []byte {

@@ -8,7 +8,38 @@ import (
 
 type CanConditions map[discover.NodeID]*big.Int
 
+type KindCanQueue []CandidateQueue
+
 type CandidateQueue []*Candidate
+
+func (queue CandidateQueue) DeepCopy() CandidateQueue {
+	copyCandidateQueue := make(CandidateQueue, len(queue))
+	if len(queue) == 0 {
+		return copyCandidateQueue
+	}
+	for i, can := range queue {
+		deposit, _ := new(big.Int).SetString(can.Deposit.String(), 10)
+		canCopy := &Candidate{
+			Deposit:     deposit,
+			BlockNumber: big.NewInt(can.BlockNumber.Int64()),
+			TxIndex:     can.TxIndex,
+			CandidateId: can.CandidateId,
+			Host:        can.Host,
+			Port:        can.Port,
+			Owner:       can.Owner,
+			Extra:       can.Extra,
+			Fee:         can.Fee,
+			TxHash:      can.TxHash,
+			TOwner:      can.TOwner,
+		}
+		copyCandidateQueue[i] = canCopy
+	}
+	return copyCandidateQueue
+}
+
+func CompareCan(curr, target *Candidate, currMoney, targetMoney *big.Int) int {
+	return compare2(curr, target, currMoney, targetMoney)
+}
 
 func compare(cand CanConditions, c, can *Candidate) int {
 	// put the larger deposit in front
@@ -23,6 +54,31 @@ func compare(cand CanConditions, c, can *Candidate) int {
 			if c.TxIndex > can.TxIndex {
 				return -1
 			} else if c.TxIndex == can.TxIndex {
+				return 0
+			} else {
+				return 1
+			}
+		} else {
+			return 1
+		}
+	} else {
+		return -1
+	}
+}
+
+func compare2(curr, target *Candidate, currMoney, targetMoney *big.Int) int {
+	// put the larger deposit in front
+	if currMoney.Cmp(targetMoney) > 0 {
+		return 1
+	} else if currMoney.Cmp(targetMoney) == 0 {
+		// put the smaller blocknumber in front
+		if curr.BlockNumber.Cmp(target.BlockNumber) > 0 {
+			return -1
+		} else if curr.BlockNumber.Cmp(target.BlockNumber) == 0 {
+			// put the smaller tx'index in front
+			if curr.TxIndex > target.TxIndex {
+				return -1
+			} else if curr.TxIndex == target.TxIndex {
 				return 0
 			} else {
 				return 1
@@ -83,26 +139,39 @@ type Candidate struct {
 	Port        string
 	// Mortgage beneficiary's account address
 	Owner common.Address
-	// The account address of initiating a mortgaged
-	From  common.Address
 	Extra string
 	// brokerage   example: (fee/10000) * 100% == x%
-	Fee uint64
+	Fee uint32
 	// Selected TicketId
-	TicketId common.Hash
+	TxHash common.Hash
+	TOwner common.Address
 }
 
-type CandidateAttach struct {
-	// Sum Ticket age
-	Epoch *big.Int `json:"epoch"`
-}
+type RefundQueue []*CandidateRefund
 
-func (ca *CandidateAttach) AddEpoch(number *big.Int) {
-	ca.Epoch.Add(ca.Epoch, number)
-}
-
-func (ca *CandidateAttach) SubEpoch(number *big.Int) {
-	if ca.Epoch.Cmp(number) >= 0 && number.Uint64() > 0 {
-		ca.Epoch.Sub(ca.Epoch, number)
+func (queue RefundQueue) DeepCopy() RefundQueue {
+	copyRefundQueue := make(RefundQueue, len(queue))
+	if len(queue) == 0 {
+		return copyRefundQueue
 	}
+	for i, refund := range queue {
+		deposit, _ := new(big.Int).SetString(refund.Deposit.String(), 10)
+		refundCopy := &CandidateRefund{
+			Deposit:     deposit,
+			BlockNumber: big.NewInt(refund.BlockNumber.Int64()),
+			Owner:       refund.Owner,
+		}
+		copyRefundQueue[i] = refundCopy
+	}
+	return copyRefundQueue
+}
+
+// Refund Info
+type CandidateRefund struct {
+	// Mortgage amount (margin)
+	Deposit *big.Int
+	// Current block height number at the time of the mortgage
+	BlockNumber *big.Int
+	// Mortgage beneficiary's account address
+	Owner common.Address
 }

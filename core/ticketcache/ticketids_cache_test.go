@@ -114,13 +114,13 @@ func Test_Write(t *testing.T)  {
 
 		//Hash
 		timer.Begin()
-		chash, err:= tc.Hash(mapCache)
+		chash, err:= Hash(mapCache)
 		fmt.Printf("run hash time [index=%d][ms=%.3f][hash=%s]\n", i, timer.End(), chash.Hex())
 	}
 
 	//Commit
 	timer.Begin()
-	tc.Commit(ldb)
+	tc.Commit(ldb, big.NewInt(0), common.Hash{})
 	fmt.Printf("run Commit time [ms=%.3f]\n", timer.End())
 	ldb.Close()
 }

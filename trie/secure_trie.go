@@ -56,7 +56,6 @@ func NewSecure(root common.Hash, db *Database, cachelimit uint16) (*SecureTrie, 
 	if db == nil {
 		panic("trie.NewSecure called without a database")
 	}
-	log.Debug("------NewSecure------", "GoRoutineID", common.CurrentGoRoutineID(), "root", root)
 	trie, err := New(root, db)
 	storageValue := make(map[common.Hash][]byte)
 	if err != nil {
@@ -145,7 +144,7 @@ func (t *SecureTrie) GetKey(shaKey []byte) []byte {
 	if key, ok := t.storageValue[common.BytesToHash(shaKey)]; ok {
 		return key
 	}
-	key, _ := t.trie.db.preimage(common.BytesToHash(shaKey))
+	key, _ := t.trie.db.Preimage(common.BytesToHash(shaKey))
 	return key
 }
 

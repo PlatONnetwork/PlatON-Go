@@ -15,6 +15,7 @@ message BlockNodes {
 
 message NumBlocks {
   map<string, BlockNodes> NBlocks = 1;
+  uint32  BlockCount  = 2;
 }
 
 message SortCalcHash {

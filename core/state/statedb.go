@@ -26,11 +26,10 @@ import (
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
 )
@@ -87,9 +86,9 @@ type StateDB struct {
 
 	lock sync.Mutex
 
-	//ppos add -> Current ticket pool cache object <nodeid.string(), ticketId>
-	tickeCache ticketcache.TicketCache
-	tclock     sync.RWMutex
+	//ppos add -> Current ppos cache object
+	pposCache *ppos_storage.Ppos_storage
+	tclock    sync.RWMutex
 }
 
 // Create a new state from a given trie.
@@ -107,7 +106,7 @@ func New(root common.Hash, db Database, blocknumber *big.Int, blockhash common.H
 		logs:              make(map[common.Hash][]*types.Log),
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-		tickeCache:        ticketcache.GetNodeTicketsCacheMap(blocknumber, blockhash),
+		pposCache:   	   ppos_storage.BuildPposCache(blocknumber, blockhash),
 	}, nil
 }
 
@@ -429,6 +428,7 @@ func (self *StateDB) getStateObject(addr common.Address) (stateObject *stateObje
 		}
 		return obj
 	}
+	log.Debug("getStateObject", "stateDB addr", fmt.Sprintf("%p", self), "state root", self.Root().Hex())
 	// Load the object from the database.
 	enc, err := self.trie.TryGet(addr[:])
 	if len(enc) == 0 {
@@ -452,6 +452,7 @@ func (self *StateDB) setStateObject(object *stateObject) {
 
 // Retrieve a state object or create a new state object if nil.
 func (self *StateDB) GetOrNewStateObject(addr common.Address) *stateObject {
+	log.Debug("GetOrNewStateObject", "stateDB addr", fmt.Sprintf("%p", self), "state root", self.Root().Hex())
 	stateObject := self.getStateObject(addr)
 	if stateObject == nil || stateObject.deleted {
 		stateObject, _ = self.createObject(addr)
@@ -532,7 +533,7 @@ func (self *StateDB) Copy() *StateDB {
 		logSize:           self.logSize,
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-		tickeCache:        self.tickeCache.TicketCaceheSnapshot(),
+		pposCache:   	   self.SnapShotPPOSCache(),
 	}
 	// Copy the dirty states, logs, and preimages
 	for addr := range self.journal.dirties {
@@ -774,36 +775,11 @@ func (s *StateDB) SetAbi(addr common.Address, abi []byte) {
 }
 
 //ppos add
-func (self *StateDB) AppendTicketCache(nodeid discover.NodeID, tids []common.Hash) {
-	self.tclock.Lock()
-	self.tickeCache.AppendTicketCache(nodeid, tids)
-	self.tclock.Unlock()
+func (self *StateDB) GetPPOSCache() *ppos_storage.Ppos_storage {
+	return self.pposCache
 }
 
-func (self *StateDB) GetTicketCache(nodeid discover.NodeID) (ret []common.Hash, err error) {
-	self.tclock.RLock()
-	ret, err = self.tickeCache.GetTicketCache(nodeid)
-	defer self.tclock.RUnlock()
-	return
+func (self *StateDB) SnapShotPPOSCache() *ppos_storage.Ppos_storage {
+	return self.pposCache.Copy()
 }
 
-func (self *StateDB) RemoveTicketCache(nodeid discover.NodeID, tids []common.Hash) (err error) {
-	self.tclock.Lock()
-	err = self.tickeCache.RemoveTicketCache(nodeid, tids)
-	self.tclock.Unlock()
-	return
-}
-
-func (self *StateDB) TCount(nodeid discover.NodeID) (ret uint64) {
-	self.tclock.RLock()
-	ret = self.tickeCache.TCount(nodeid)
-	self.tclock.RUnlock()
-	return ret
-}
-
-func (self *StateDB) TicketCaceheSnapshot() (ret ticketcache.TicketCache) {
-	self.tclock.RLock()
-	ret = self.tickeCache.TicketCaceheSnapshot()
-	self.tclock.RUnlock()
-	return
-}

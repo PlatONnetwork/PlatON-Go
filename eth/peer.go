@@ -17,10 +17,11 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"crypto/md5"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"sync"
 	"time"
@@ -29,7 +30,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	mapset "github.com/deckarep/golang-set"
+	"github.com/deckarep/golang-set"
 )
 
 var (
@@ -163,7 +164,7 @@ func (p *peer) broadcast() {
 				if err := p.SendTransactions(txs); err != nil {
 					return
 				}
-				p.Log().Trace("Broadcast transactions", "count", len(txs))
+				p.Log().Debug("Broadcast transactions", "count", len(txs))
 
 			case <-p.term:
 				return
@@ -314,6 +315,11 @@ func (p *peer) SendNodeData(data [][]byte) error {
 	return p2p.Send(p.rw, NodeDataMsg, data)
 }
 
+func (p *peer) SendPposStorage(latest *types.Header, pivot *types.Header, data []byte) error {
+	p.Log().Debug("send pposStorage content", "latest", latest.Number.Uint64(), "pivot", pivot.Number.Uint64(), "data length", len(data), "data md5", md5.Sum(data))
+	return p2p.Send(p.rw, PposStorageMsg, []interface{}{latest, pivot, data})
+}
+
 // SendReceiptsRLP sends a batch of transaction receipts, corresponding to the
 // ones requested from an already RLP encoded format.
 func (p *peer) SendReceiptsRLP(receipts []rlp.RawValue) error {
@@ -361,9 +367,14 @@ func (p *peer) RequestReceipts(hashes []common.Hash) error {
 	return p2p.Send(p.rw, GetReceiptsMsg, hashes)
 }
 
+func (p *peer) RequestLatestPposStorage() error {
+	p.Log().Debug("Fetching latest ppos storage")
+	return p2p.Send(p.rw, GetPposStorageMsg, []interface{}{})
+}
+
 // Handshake executes the eth protocol handshake, negotiating version number,
 // network IDs, difficulties, head and genesis blocks.
-func (p *peer) Handshake(network uint64, bn *big.Int, head common.Hash, genesis common.Hash) error {
+func (p *peer) Handshake(network uint64, bn *big.Int, head common.Hash, genesis common.Hash, pm *ProtocolManager) error {
 	// Send out own handshake in a new thread
 	errc := make(chan error, 2)
 	var status statusData // safe to read after two values have been received from errc
@@ -390,6 +401,15 @@ func (p *peer) Handshake(network uint64, bn *big.Int, head common.Hash, genesis 
 			}
 		case <-timeout.C:
 			return p2p.DiscReadTimeout
+		}
+	}
+	// A simple hash consistency check,but does not prevent malicious node connections
+	if bn == status.BN && head != status.CurrentBlock {
+		return errResp(ErrBlockMismatch, "blockNumber", head, "%x (!= %x)", head.String(), status.CurrentBlock.String())
+	} else if bn.Uint64() > status.BN.Uint64() {
+		lowHeader := pm.blockchain.GetHeaderByNumber(status.BN.Uint64())
+		if lowHeader.Hash() != status.CurrentBlock {
+			return errResp(ErrBlockMismatch, "blockNumber", status.BN.Uint64(), "%x (!= %x)", lowHeader.Hash().String(), status.CurrentBlock.String())
 		}
 	}
 	p.bn, p.head = status.BN, status.CurrentBlock
