@@ -806,12 +806,10 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 		c.setRefund(can.CandidateId, refund)
 
-		/*nIds :=*/ c.promoteReserveQueue(state, blockNumber)
+		c.promoteReserveQueue(state, blockNumber)
+
 		nodeIds := []discover.NodeID{nodeId}
 
-		//if len(nIds) != 0 {
-		//	nodeIds = append(nodeIds, nIds...)
-		//}
 		nodeIdArr = nodeIds
 
 	} else { // withdraw a few ...
@@ -1094,7 +1092,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 
 		// check contract account balance
 		if (contractBalance.Cmp(amount)) < 0 {
-			PrintObject("Failed to RefundBalance constract account insufficient balance ,curr blocknumber:" + blockNumber.String(), queueCopy)
+			PrintObject("Failed to RefundBalance constract account insufficient balance ,curr blocknumber:" + blockNumber.String() + ", remain refunds", queueCopy)
 			log.Error("Failed to RefundBalance constract account insufficient balance ", "curr blocknumber:", blockNumber.String(), "nodeId", nodeId.String(), "contract's balance", state.GetBalance(common.CandidatePoolAddr).String(), "amount", amount.String())
 			return ContractBalanceNotEnoughErr
 		}
@@ -1174,10 +1172,14 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 
 	for _, can := range nextQueue {
 		// Release lucky ticket TODO
-		if !isEmptyElection && (common.Hash{}) != can.TxHash {
+		if (common.Hash{}) != can.TxHash {
 			if err := tContext.ReturnTicket(state, can.CandidateId, can.TxHash, currBlockNumber); nil != err {
 				log.Error("Failed to ReturnTicket on Election", "current blockNumber", currBlockNumber.String(), "nodeId", can.CandidateId.String(), "ticketId", can.TxHash.String(), "err", err)
 				continue
+			}
+
+			if !isEmptyElection {
+				nodeIds = append(nodeIds, can.CandidateId)
 			}
 		}
 
@@ -1190,17 +1192,18 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 			continue
 		}*/
 
-		if !isEmptyElection {
-			/*PrintObject("Election Update Candidate to SetCandidate again ...", *can)
+		/*if !isEmptyElection {
+			PrintObject("Election Update Candidate to SetCandidate again ...", *can)
 			// Because you need to first ensure if you are in immediates, and if so, move to reserves
 			if ids := c.setCandidateInfo(state, can.CandidateId, can, currBlockNumber, c.promoteReserveQueue); len(ids) != 0 {
 				nodeIds = append(nodeIds, ids...)
-			}*/
-
-			nodeIds = append(nodeIds, can.CandidateId)
-		}
+			}
+		}*/
 
 	}
+
+
+	//var dropTick_nodeIds []discover.NodeID
 
 	// finally update the double queue once
 	if !isEmptyElection && len(nodeIds) != 0 {
@@ -1665,6 +1668,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 
 				c.setRefund(tmpCan.CandidateId, refund)
 				nodeIdQueue = append(nodeIdQueue, tmpCan.CandidateId)
+
+				delete(c.reserveCandidates, tmpCan.CandidateId)
+
 			}
 
 
@@ -1672,8 +1678,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 			PrintObject("Call UpdateElectedQueue, handleReserveFunc, After update the reserve len is " + fmt.Sprint(len(queueCopy)) + " , the queue is", queueCopy)
 
 			c.setCandidateQueue(queueCopy, ppos_storage.RESERVE)
-			// promoteReserve queues
-			c.promoteReserveQueue(state, currentBlockNumber)
+
 			return nodeIdQueue
 		}else {
 
@@ -1706,6 +1711,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 
 			// delete immediate
 			delCanFromQueueFunc("imms", can.CandidateId, old_queue, oldQueueFlag)
+			delete(c.immediateCandidates, can.CandidateId)
+
+
 			// input reserve
 			new_queue = append(new_queue, can)
 			if nodeIdArr := handleReserveFunc(new_queue); len(nodeIdArr) != 0 {
@@ -1721,6 +1729,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 			*/
 			// delete reserve
 			old_queue = delCanFromQueueFunc("res", can.CandidateId, old_queue, oldQueueFlag)
+			delete(c.reserveCandidates, can.CandidateId)
+
+
 			// input immediate
 			new_queue = append(new_queue, can)
 			makeCandidateSort(state, new_queue)
@@ -1797,6 +1808,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 			continue
 		}
 	}
+
+	// promoteReserve queues
+	c.promoteReserveQueue(state, currentBlockNumber)
 
 	return resNodeIds
 }
