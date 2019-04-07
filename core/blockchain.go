@@ -20,6 +20,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/deckarep/golang-set"
 	"io"
 	"math/big"
@@ -736,6 +737,7 @@ func (bc *BlockChain) GetUnclesInChain(block *types.Block, length int) []*types.
 // either from ephemeral in-memory cache, or from persistent storage.
 func (bc *BlockChain) TrieNode(hash common.Hash) ([]byte, error) {
 	b, err := bc.stateCache.TrieDB().Node(hash)
+	log.Debug("TrieNode result", "hash", hash, "b", hexutil.Encode(b), "err", err)
 	if err != nil {
 		return bc.stateCache.TrieDB().Preimage(hash)
 	}

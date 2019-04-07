@@ -339,8 +339,8 @@ func (self *stateObject) updateTrie(db Database) Trie {
 			continue
 		}
 
-		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
-		self.setError(tr.TryUpdate([]byte(key), v))
+		//v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
+		self.setError(tr.TryUpdate([]byte(key), valueKey[:]))
 
 		//flush dirty value
 		if value, ok := self.dirtyValueStorage[valueKey]; ok {

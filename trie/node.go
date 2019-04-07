@@ -18,11 +18,13 @@ package trie
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"io"
 	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 )
 
 var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "[17]"}
@@ -136,6 +138,7 @@ func decodeNode(hash, buf []byte, cachegen uint16) (node, error) {
 	}
 	switch c, _ := rlp.CountValues(elems); c {
 	case 2:
+		log.Debug("decodeNode", "hash", hexutil.Encode(hash), "buf", hexutil.Encode(buf), "cachegen", cachegen)
 		n, err := decodeShort(hash, elems, cachegen)
 		return n, wrapError(err, "short")
 	case 17:
