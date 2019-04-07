@@ -368,7 +368,7 @@ func (self *stateObject) CommitTrie(db Database) error {
 	}
 
 	for h, v := range self.originValueStorage {
-		if (h != common.Hash{} && !bytes.Equal(v, []byte{})) {
+		if h != emptyStorage && !bytes.Equal(v, []byte{}) {
 			self.trie.TryUpdateValue(h.Bytes(), v)
 		}
 	}
