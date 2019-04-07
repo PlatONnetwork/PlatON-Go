@@ -376,7 +376,8 @@ func (c *CandidatePool) SetCandidate(state vm.StateDB, nodeId discover.NodeID, c
 
 	// Before each pledge, we need to check whether the current can deposit is not less
 	// than the minimum can deposit when the corresponding queue to be placed is full.
-	if _, ok := c.checkDeposit(state, can, false); !ok {
+	//if _, ok := c.checkDeposit(state, can, false); !ok {
+	if ok := c.checkDeposit(can); !ok {
 		log.Warn("Failed to checkDeposit on SetCandidate", "nodeId", nodeId.String(), " err", DepositLowErr)
 		return DepositLowErr
 	}
@@ -465,6 +466,7 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		re_queueCopy := make(types.CandidateQueue, len(re_queue))
 		copy(re_queueCopy, re_queue)
 
+		log.Debug("Call setCandidateInfo to handleReserveFunc to makeCandidateSort the reserve queue ...")
 
 		// sort reserve array
 		makeCandidateSort(state, re_queueCopy)
@@ -562,6 +564,155 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 	return nodeIds
 }
 
+
+
+// If TCout is small, you must first move to reserves, otherwise it will be counted.
+func (c *CandidatePool) electionUpdateCanById(state vm.StateDB, currentBlockNumber *big.Int, nodeIds ... discover.NodeID) []discover.NodeID {
+
+	im_del_temp := make(candidateStorage, 0)
+	re_del_temp := make(candidateStorage, 0)
+
+	for _, nodeId := range nodeIds {
+		// check ticket count
+		if c.checkTicket(tContext.GetCandidateTicketCount(state, nodeId)) {
+			if can, ok := c.reserveCandidates[nodeId]; ok {
+				re_del_temp[nodeId] = can
+			}
+
+		} else {
+			if can, ok := c.immediateCandidates[nodeId]; ok {
+				im_del_temp[nodeId] = can
+			}
+		}
+	}
+
+	if len(im_del_temp) == 0 && len(re_del_temp) == 0 {
+		log.Debug("Call Election to electionUpdateCanById, had not change on double queue ...")
+		return nil
+	}
+
+	im_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
+
+	re_queue := c.getCandidateQueue(ppos_storage.RESERVE)
+
+
+	PrintObject("Call Election to electionUpdateCanById, Before shuffle double queue the old immediate queue is", im_queue)
+
+	PrintObject("Call Election to electionUpdateCanById, Before shuffle double queue the old reserve queue is", re_queue)
+
+	// immediate queue
+	for _, can := range re_del_temp{
+		im_queue = append(im_queue, can)
+	}
+	// for i := 0; i < len(ids); i++ {
+	for i := 0; i < len(im_queue); i++ {
+		im := im_queue[i]
+		if _, ok := im_del_temp[im.CandidateId]; ok {
+			im_queue = append(im_queue[:i], im_queue[i+1:]...)
+			i--
+		}
+	}
+
+	// reserve  queue
+	for i := 0; i < len(re_queue); i++ {
+		re := re_queue[i]
+		if _, ok := re_del_temp[re.CandidateId]; ok {
+			re_queue = append(re_queue[:i], re_queue[i+1:]...)
+			i--
+		}
+	}
+	for _, can := range im_del_temp {
+		re_queue = append(re_queue, can)
+	}
+
+
+	PrintObject("Call Election to electionUpdateCanById, After shuffle double queue the old immediate queue is", im_queue)
+
+	PrintObject("Call Election to electionUpdateCanById, After shuffle double queue the old reserve queue is", re_queue)
+
+
+	/**
+	 handle the reserve queue func
+	 */
+	handleReserveFunc := func(re_queue types.CandidateQueue) []discover.NodeID {
+
+		re_queueCopy := make(types.CandidateQueue, len(re_queue))
+		copy(re_queueCopy, re_queue)
+
+		log.Debug("Call setCandidateInfo to handleReserveFunc to makeCandidateSort the reserve queue ...")
+
+		// sort reserve array
+		makeCandidateSort(state, re_queueCopy)
+
+		nodeIds := make([]discover.NodeID, 0)
+
+
+		if len(re_queueCopy) > int(c.maxCount) {
+			// Intercepting the lost candidates to tmpArr
+			tempArr := (re_queueCopy)[c.maxCount:]
+			// qualified elected candidates
+			re_queueCopy = (re_queueCopy)[:c.maxCount]
+
+			// handle tmpArr
+			for _, tmpCan := range tempArr {
+				deposit, _ := new(big.Int).SetString(tmpCan.Deposit.String(), 10)
+				refund := &types.CandidateRefund{
+					Deposit:     deposit,
+					BlockNumber: big.NewInt(currentBlockNumber.Int64()),
+					Owner:       tmpCan.Owner,
+				}
+				c.setRefund(tmpCan.CandidateId, refund)
+				nodeIds = append(nodeIds, tmpCan.CandidateId)
+			}
+		}
+
+		PrintObject("Call Election to electionUpdateCanById, Finally shuffle double queue the old reserve queue is", re_queueCopy)
+
+		c.setCandidateQueue(re_queueCopy, ppos_storage.RESERVE)
+
+		return nodeIds
+	}
+
+	// sort immediate array
+	makeCandidateSort(state, im_queue)
+
+	nodeIdArr := make([]discover.NodeID, 0)
+
+	if len(im_queue) > int(c.maxCount) {
+		// Intercepting the lost candidates to tmpArr
+		tempArr := (im_queue)[c.maxCount:]
+		// qualified elected candidates
+		im_queue = (im_queue)[:c.maxCount]
+
+		// add reserve queue cache
+		addreserveQueue := make(types.CandidateQueue, 0)
+
+		// handle tmpArr
+		for _, tmpCan := range tempArr {
+			addreserveQueue = append(addreserveQueue, tmpCan)
+		}
+
+		if len(addreserveQueue) != 0 {
+			// append into reserve queue
+			re_queue = append(re_queue, addreserveQueue...)
+			if ids := handleReserveFunc(re_queue); len(ids) != 0 {
+				nodeIdArr = append(nodeIdArr, ids...)
+			}
+		}
+
+	}
+
+	PrintObject("Call Election to electionUpdateCanById, Finally shuffle double queue the old immediate queue is", im_queue)
+
+	c.setCandidateQueue(im_queue, ppos_storage.IMMEDIATE)
+
+	c.promoteReserveQueue(state, currentBlockNumber)
+
+	return nodeIdArr
+}
+
+
+
 // Getting immediate or reserve candidate info by nodeId
 func (c *CandidatePool) GetCandidate(state vm.StateDB, nodeId discover.NodeID, blockNumber *big.Int) *types.Candidate {
 	return c.getCandidate(state, nodeId, blockNumber)
@@ -655,12 +806,10 @@ func (c *CandidatePool) withdrawCandidate(state vm.StateDB, nodeId discover.Node
 
 		c.setRefund(can.CandidateId, refund)
 
-		/*nIds :=*/ c.promoteReserveQueue(state, blockNumber)
+		c.promoteReserveQueue(state, blockNumber)
+
 		nodeIds := []discover.NodeID{nodeId}
 
-		//if len(nIds) != 0 {
-		//	nodeIds = append(nodeIds, nIds...)
-		//}
 		nodeIdArr = nodeIds
 
 	} else { // withdraw a few ...
@@ -943,7 +1092,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 
 		// check contract account balance
 		if (contractBalance.Cmp(amount)) < 0 {
-			PrintObject("Failed to RefundBalance constract account insufficient balance ,curr blocknumber:" + blockNumber.String(), queueCopy)
+			PrintObject("Failed to RefundBalance constract account insufficient balance ,curr blocknumber:" + blockNumber.String() + ", remain refunds", queueCopy)
 			log.Error("Failed to RefundBalance constract account insufficient balance ", "curr blocknumber:", blockNumber.String(), "nodeId", nodeId.String(), "contract's balance", state.GetBalance(common.CandidatePoolAddr).String(), "amount", amount.String())
 			return ContractBalanceNotEnoughErr
 		}
@@ -1006,8 +1155,8 @@ func (c *CandidatePool) SetCandidateExtra(state vm.StateDB, nodeId discover.Node
 // Announce witness
 func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, currBlockNumber *big.Int) ([]*discover.Node, error) {
 	log.Info("Call Election start ...", "current blockNumber", currBlockNumber.String(), "threshold", c.threshold.String(), "depositLimit", c.depositLimit, "allowed", c.allowed, "maxCount", c.maxCount, "maxChair", c.maxChair, "refundBlockNumber", c.refundBlockNumber)
-
 	c.initData2Cache(state, GET_IM_RE)
+
 	var nodes []*discover.Node
 	var nextQueue types.CandidateQueue
 	var isEmptyElection bool
@@ -1018,13 +1167,19 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 		nodes, nextQueue, isEmptyElection = nodeArr, canArr, flag
 	}
 
+
 	nodeIds := make([]discover.NodeID, 0)
+
 	for _, can := range nextQueue {
 		// Release lucky ticket TODO
-		if !isEmptyElection && (common.Hash{}) != can.TxHash {
+		if (common.Hash{}) != can.TxHash {
 			if err := tContext.ReturnTicket(state, can.CandidateId, can.TxHash, currBlockNumber); nil != err {
 				log.Error("Failed to ReturnTicket on Election", "current blockNumber", currBlockNumber.String(), "nodeId", can.CandidateId.String(), "ticketId", can.TxHash.String(), "err", err)
 				continue
+			}
+
+			if !isEmptyElection {
+				nodeIds = append(nodeIds, can.CandidateId)
 			}
 		}
 
@@ -1037,15 +1192,25 @@ func (c *CandidatePool) Election(state *state.StateDB, parentHash common.Hash, c
 			continue
 		}*/
 
-		if !isEmptyElection {
+		/*if !isEmptyElection {
 			PrintObject("Election Update Candidate to SetCandidate again ...", *can)
 			// Because you need to first ensure if you are in immediates, and if so, move to reserves
 			if ids := c.setCandidateInfo(state, can.CandidateId, can, currBlockNumber, c.promoteReserveQueue); len(ids) != 0 {
 				nodeIds = append(nodeIds, ids...)
 			}
-		}
+		}*/
 
 	}
+
+
+	//var dropTick_nodeIds []discover.NodeID
+
+	// finally update the double queue once
+	if !isEmptyElection && len(nodeIds) != 0 {
+
+		nodeIds = c.electionUpdateCanById(state, currBlockNumber, nodeIds...)
+	}
+
 	// Release the lost list
 	//go ticketPool.DropReturnTicket(state, nodeIds...)
 	if len(nodeIds) > 0 {
@@ -1503,6 +1668,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 
 				c.setRefund(tmpCan.CandidateId, refund)
 				nodeIdQueue = append(nodeIdQueue, tmpCan.CandidateId)
+
+				delete(c.reserveCandidates, tmpCan.CandidateId)
+
 			}
 
 
@@ -1510,8 +1678,7 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 			PrintObject("Call UpdateElectedQueue, handleReserveFunc, After update the reserve len is " + fmt.Sprint(len(queueCopy)) + " , the queue is", queueCopy)
 
 			c.setCandidateQueue(queueCopy, ppos_storage.RESERVE)
-			// promoteReserve queues
-			c.promoteReserveQueue(state, currentBlockNumber)
+
 			return nodeIdQueue
 		}else {
 
@@ -1544,6 +1711,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 
 			// delete immediate
 			delCanFromQueueFunc("imms", can.CandidateId, old_queue, oldQueueFlag)
+			delete(c.immediateCandidates, can.CandidateId)
+
+
 			// input reserve
 			new_queue = append(new_queue, can)
 			if nodeIdArr := handleReserveFunc(new_queue); len(nodeIdArr) != 0 {
@@ -1559,6 +1729,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 			*/
 			// delete reserve
 			old_queue = delCanFromQueueFunc("res", can.CandidateId, old_queue, oldQueueFlag)
+			delete(c.reserveCandidates, can.CandidateId)
+
+
 			// input immediate
 			new_queue = append(new_queue, can)
 			makeCandidateSort(state, new_queue)
@@ -1636,6 +1809,9 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 		}
 	}
 
+	// promoteReserve queues
+	c.promoteReserveQueue(state, currentBlockNumber)
+
 	return resNodeIds
 }
 
@@ -1657,20 +1833,126 @@ func (c *CandidatePool) checkFirstThreshold(can *types.Candidate) bool {
 
 // false: invalid deposit
 // true:  pass
-func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, holdself bool) (bool, bool) {
+//func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, holdself bool) (bool, bool) {
+//
+//
+//
+//
+//
+//	// Number of vote ticket by nodes
+//	tcount := c.checkTicket(tContext.GetCandidateTicketCount(state, can.CandidateId))
+//
+//	// if self have already exist:
+//	// b、no first pledge: x >= self * 110%
+//	//
+//	// if the pool is full:(Only reserve pool)
+//	// c、x > last * 110 %
+//
+//
+//	compareFunc := func(target, current *types.Candidate, logA, logB string) (bool, bool) {
+//		lastDeposit := target.Deposit
+//
+//		// y = 100 + x
+//		percentage := new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit)))
+//		// z = old * y
+//		tmp := new(big.Int).Mul(lastDeposit, percentage)
+//		// z/100 == old * (100 + x) / 100 == old * (y%)
+//		tmp = new(big.Int).Div(tmp, big.NewInt(100))
+//		if can.Deposit.Cmp(tmp) < 0 {
+//			// If last is self and holdslef flag is true
+//			// we must return true (Keep self on staying in the original queue)
+//			if holdself && can.CandidateId == target.CandidateId {
+//				log.Debug(logA + tmp.String())
+//				return tcount, true
+//			}
+//			log.Debug(logB + tmp.String())
+//			return tcount, false
+//		}
+//		return tcount, true
+//	}
+//
+//
+//	//var queueFlag int
+//	var storageMap candidateStorage
+//
+//	if _, ok := c.immediateCandidates[can.CandidateId]; ok {
+//		//queueFlag = IS_IMMEDIATE
+//		storageMap = c.immediateCandidates
+//	}
+//	if _, ok := c.reserveCandidates[can.CandidateId]; ok {
+//		//queueFlag = IS_RESERVE
+//		storageMap = c.reserveCandidates
+//	}
+//
+//	/*
+//	If the current number of votes achieving the conditions for entering the immediate queue
+//	*/
+//	if tcount {
+//
+//		// if it already exist immediate
+//		// compare old self deposit
+//		if old_self, ok := storageMap[can.CandidateId]; ok {
+//
+//			logA := `The can already exist in queue, and holdslef is true, Keep self on staying in the original queue, current can nodeId:` + can.CandidateId.String() +
+//				` the length of current queue:` + fmt.Sprint(len(storageMap)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) +
+//				` current can's Deposit: ` + can.Deposit.String() + ` 110% of it old_self in the queue: `
+//
+//			logB := `The can already exist in queue, and holdslef is true,and the current can's Deposit is less than 110% of the it old self in the queue.` +
+//				`the length of current queue:` + fmt.Sprint(len(storageMap)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` +
+//				can.Deposit.String() + ` 110% of it old_self in the queue: `
+//
+//			return compareFunc(old_self, can, logA, logB)
+//		}
+//
+//	}
+//
+//	/**
+//	If the can will enter the reserve pool
+//	*/
+//
+//	if !tcount {
+//
+//		reserveArr := c.storage.GetCandidateQueue(ppos_storage.RESERVE)
+//
+//		// Is first pledge and the reserve pool is full
+//		if _, ok := storageMap[can.CandidateId]; !ok && uint32(len(reserveArr)) == c.maxCount {
+//			last := reserveArr[len(reserveArr)-1]
+//
+//			logA := `The reserve pool is full, and last is self and holdslef is true, Keep self on staying in the original queue, the length of current reserve pool: ` +
+//				fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can nodeId: ` + can.CandidateId.String() + ` last can nodeId: ` +
+//				last.CandidateId.String() + ` current can's Deposit: ` + can.Deposit.String() + ` 110% of the last can in the reserve pool:`
+//
+//			logB := `The reserve pool is full,and the current can's Deposit is less than 110% of the last can in the reserve pool., the length of current reserve pool:` +
+//				fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` + can.Deposit.String() +
+//				`110% of the last can in the reserve pool:`
+//
+//			return compareFunc(last, can, logA, logB)
+//
+//		} else if old_self, ok := storageMap[can.CandidateId]; ok { // Is'nt first pledge
+//			logA := `The can already exist in reserve, and holdslef is true, Keep self on staying in the original queue, current can nodeId:` + can.CandidateId.String() +
+//				` the length of current reserve pool:` + fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) +
+//				` current can's Deposit: ` + can.Deposit.String() + ` 110% of it old_self in the reserve pool: `
+//
+//			logB := `The can already exist in reserve, and holdslef is true,and the current can's Deposit is less than 110% of the it old self in the reserve pool.` +
+//				`the length of current reserve pool:` + fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` +
+//				can.Deposit.String() + ` 110% of it old_self in the reserve pool: `
+//
+//			return compareFunc(old_self, can, logA, logB)
+//		}
+//	}
+//	return tcount, true
+//}
 
-	// Number of vote ticket by nodes
-	tcount := c.checkTicket(tContext.GetCandidateTicketCount(state, can.CandidateId))
+func (c *CandidatePool) checkDeposit (can *types.Candidate) bool {
 
-	// if self have already exist:
-	// b、no first pledge: x >= self * 110%
-	//
-	// if the pool is full:(Only reserve pool)
-	// c、x > last * 110 %
+	im_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
 
+	re_queue := c.getCandidateQueue(ppos_storage.RESERVE)
 
-	compareFunc := func(target, current *types.Candidate, logA, logB string) (bool, bool) {
-		lastDeposit := target.Deposit
+	if len(im_queue) == int(c.maxCount) && len(re_queue) == int(c.maxCount) {
+		last := re_queue[len(re_queue)-1]
+
+		lastDeposit := last.Deposit
 
 		// y = 100 + x
 		percentage := new(big.Int).Add(big.NewInt(100), big.NewInt(int64(c.depositLimit)))
@@ -1679,87 +1961,13 @@ func (c *CandidatePool) checkDeposit(state vm.StateDB, can *types.Candidate, hol
 		// z/100 == old * (100 + x) / 100 == old * (y%)
 		tmp = new(big.Int).Div(tmp, big.NewInt(100))
 		if can.Deposit.Cmp(tmp) < 0 {
-			// If last is self and holdslef flag is true
-			// we must return true (Keep self on staying in the original queue)
-			if holdself && can.CandidateId == target.CandidateId {
-				log.Debug(logA + tmp.String())
-				return tcount, true
-			}
-			log.Debug(logB + tmp.String())
-			return tcount, false
-		}
-		return tcount, true
-	}
-
-	//var queueFlag int
-	var storageMap candidateStorage
-
-	if _, ok := c.immediateCandidates[can.CandidateId]; ok {
-		//queueFlag = IS_IMMEDIATE
-		storageMap = c.immediateCandidates
-	}
-	if _, ok := c.reserveCandidates[can.CandidateId]; ok {
-		//queueFlag = IS_RESERVE
-		storageMap = c.reserveCandidates
-	}
-
-	/**
-	If the current number of votes achieving the conditions for entering the immediate queue
-	*/
-	if tcount {
-
-		// if it already exist immediate
-		// compare old self deposit
-		if old_self, ok := storageMap[can.CandidateId]; ok {
-
-			logA := `The can already exist in queue, and holdslef is true, Keep self on staying in the original queue, current can nodeId:` + can.CandidateId.String() +
-				` the length of current queue:` + fmt.Sprint(len(storageMap)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) +
-				` current can's Deposit: ` + can.Deposit.String() + ` 110% of it old_self in the queue: `
-
-			logB := `The can already exist in queue, and holdslef is true,and the current can's Deposit is less than 110% of the it old self in the queue.` +
-				`the length of current queue:` + fmt.Sprint(len(storageMap)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` +
-				can.Deposit.String() + ` 110% of it old_self in the queue: `
-
-			return compareFunc(old_self, can, logA, logB)
-		}
-
-	}
-
-	/**
-	If the can will enter the reserve pool
-	*/
-	if !tcount {
-
-		reserveArr := c.storage.GetCandidateQueue(ppos_storage.RESERVE)
-
-		// Is first pledge and the reserve pool is full
-		if _, ok := storageMap[can.CandidateId]; !ok && uint32(len(reserveArr)) == c.maxCount {
-			last := reserveArr[len(reserveArr)-1]
-
-			logA := `The reserve pool is full, and last is self and holdslef is true, Keep self on staying in the original queue, the length of current reserve pool: ` +
-				fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can nodeId: ` + can.CandidateId.String() + ` last can nodeId: ` +
-				last.CandidateId.String() + ` current can's Deposit: ` + can.Deposit.String() + ` 110% of the last can in the reserve pool:`
-
-			logB := `The reserve pool is full,and the current can's Deposit is less than 110% of the last can in the reserve pool., the length of current reserve pool:` +
-				fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` + can.Deposit.String() +
-				`110% of the last can in the reserve pool:`
-
-			return compareFunc(last, can, logA, logB)
-
-		} else if old_self, ok := storageMap[can.CandidateId]; ok { // Is'nt first pledge
-			logA := `The can already exist in reserve, and holdslef is true, Keep self on staying in the original queue, current can nodeId:` + can.CandidateId.String() +
-				` the length of current reserve pool:` + fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) +
-				` current can's Deposit: ` + can.Deposit.String() + ` 110% of it old_self in the reserve pool: `
-
-			logB := `The can already exist in reserve, and holdslef is true,and the current can's Deposit is less than 110% of the it old self in the reserve pool.` +
-				`the length of current reserve pool:` + fmt.Sprint(len(reserveArr)) + ` the limit of Configuration:` + fmt.Sprint(c.maxCount) + ` current can's Deposit:` +
-				can.Deposit.String() + ` 110% of it old_self in the reserve pool: `
-
-			return compareFunc(old_self, can, logA, logB)
+			log.Debug("The current can's Deposit is less than 110% of the last can in the reserve queue.", "current can Deposit", can.Deposit.String(), "last can Deposit", last.Deposit.String(), "the target Deposit", tmp.String())
+			return false
 		}
 	}
-	return tcount, true
+	return true
 }
+
 
 func (c *CandidatePool) checkWithdraw(source, price *big.Int) error {
 	// y = old * x
@@ -1848,11 +2056,13 @@ func (c *CandidatePool) MaxCount() uint32 {
 
 // TODO
 func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber *big.Int) /*[]discover.NodeID */ {
+
+	log.Debug("Call promoteReserveQueue Start ...", "blockNumber", currentBlockNumber.String())
+
 	// Violence traverses the pools
 	im_queue := c.storage.GetCandidateQueue(ppos_storage.IMMEDIATE)
 	re_queue := c.storage.GetCandidateQueue(ppos_storage.RESERVE)
 
-	log.Debug("Call promoteReserveQueue Start ...", "blockNumber", currentBlockNumber.String())
 	PrintObject("Call promoteReserveQueue Before the immediate queue", im_queue)
 	PrintObject("Call promoteReserveQueue Before the reserve queue", re_queue)
 
@@ -1910,6 +2120,8 @@ func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber
 		}
 	}
 
+
+	log.Debug("Call promoteReserveQueue to makeCandidateSort the new immediate queue ...")
 	// sort immediate
 	makeCandidateSort(state, im_queue)
 
@@ -1945,6 +2157,7 @@ func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber
 	if len(addRe_queue) > 0 {
 		re_queue = append(re_queue, addRe_queue...)
 
+		log.Debug("Call promoteReserveQueue to makeCandidateSort the new reserve queue ...")
 		makeCandidateSort(state, re_queue)
 
 	}
