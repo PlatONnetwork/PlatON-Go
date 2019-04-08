@@ -21,7 +21,7 @@ package params
 var MainnetBootnodes = []string{}
 
 // TestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Ropsten test network.
+// Alpha test network.
 var TestnetBootnodes = []string{
 	"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f2f@test-sea.platon.network:16789",       //TEST-SEA
 	"enode://d124e660938dc3fd63d913ff753fafc262764b22294431e760b572b0b58d5e6b813b32ccbacc326c03171542ae0ff8ff6528625a2d612e0c49240f111eba3c22@test-sg.platon.network:16790",        //TEST-SG
@@ -32,9 +32,14 @@ var TestnetBootnodes = []string{
 	"enode://23aa343260d06e04107d1cd9a7d12c54cc238719a1523ffe42640210c913218b5940d41511c5adb716da38844a85cdab8b7db0600d242e24168d7df10aebd324@test-si-syde.platon.network:16789",   //TEST-SI-SYDE
 }
 
-// RinkebyBootnodes are the enode URLs of the P2P bootstrap nodes running on the
-// Rinkeby test network.
-var RinkebyBootnodes = []string{}
+// BetanetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// Beta test network.
+var BetanetBootnodes = []string{
+	"enode://bcb7e49461cdd5f3227bb6cc6c36675cd936c11b69c3fd366c36997d514beabc423f8dfee6f91330a96273988bb68b1785161631181fd738d0f46d263b3ce8b3@54.176.216.82:16789",
+	"enode://5449094bf985a688d378a90cf334d5a1abc55d694d6f2362899494d18048ef6b6bd724f4e51084bfe0563c732c481869c9da05d92e56f29f6880ad15ea851f13@54.176.216.82:16790",
+	"enode://c0f7ae43af0605b80e35a5469adaa142059eaaf41d152613d74d42feffd6871f059f9ac4d596bd134bb1d6bbfbcea5391adff6f005ea9042c21797d51d0b7697@3.1.59.5:16789",
+	"enode://b6883e86e833cec2405fb548405f7a1e693379f77ee8fc6bbf41b5c853d7ad654a2a3fb7ffbe57ae848509d1ed7e11acaf28666f8f81646eab575dafa8d51d0b@3.1.59.5:16790",
+}
 
 // InnerTestnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
 // Inner test network.

@@ -32,9 +32,18 @@ func MainnetGenesis() string {
 	return ""
 }
 
-// TestnetGenesis returns the JSON spec to use for the Ethereum test network.
+// TestnetGenesis returns the JSON spec to use for the Alpha test network.
 func TestnetGenesis() string {
 	enc, err := json.Marshal(core.DefaultTestnetGenesisBlock())
+	if err != nil {
+		panic(err)
+	}
+	return string(enc)
+}
+
+// BetanetGenesis returns the JSON spec to use for the Beta test network
+func BetanetGenesis() string {
+	enc, err := json.Marshal(core.DefaultBetanetGenesisBlock())
 	if err != nil {
 		panic(err)
 	}
@@ -50,14 +59,6 @@ func InnerTestnetGenesis() string {
 	return string(enc)
 }
 
-// RinkebyGenesis returns the JSON spec to use for the Rinkeby test network
-func RinkebyGenesis() string {
-	enc, err := json.Marshal(core.DefaultRinkebyGenesisBlock())
-	if err != nil {
-		panic(err)
-	}
-	return string(enc)
-}
 
 // FoundationBootnodes returns the enode URLs of the P2P bootstrap nodes operated
 // by the foundation running the V5 discovery protocol.

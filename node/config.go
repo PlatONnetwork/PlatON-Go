@@ -233,7 +233,7 @@ func DefaultWSEndpoint() string {
 func (c *Config) NodeName() string {
 	name := c.name()
 	// Backwards compatibility: previous versions used title-cased "Geth", keep that.
-	if name == "platon" || name == "platon-testnet" || name == "platon-innertestnet" {
+	if name == "platon" || name == "platon-testnet" || name == "platon-betanet" || name == "platon-innertestnet" {
 		name = "PlatONnetwork"
 	}
 	if c.UserIdent != "" {

@@ -308,7 +308,7 @@ func DefaultGenesisBlock() *Genesis {
 	}
 }
 
-// DefaultTestnetGenesisBlock returns the Ropsten network genesis block.
+// DefaultTestnetGenesisBlock returns the Alpha network genesis block.
 func DefaultTestnetGenesisBlock() *Genesis {
 
 	initAddress1 := new(big.Int)
@@ -336,14 +336,31 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	}
 }
 
-// DefaultRinkebyGenesisBlock returns the Rinkeby network genesis block.
-func DefaultRinkebyGenesisBlock() *Genesis {
+// DefaultBetanetGenesisBlock returns the Beta network genesis block.
+func DefaultBetanetGenesisBlock() *Genesis {
+
+	initAddress1 := new(big.Int)
+	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
+
+	initBalance1 := new(big.Int)
+	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
+
+	initAddress2 := new(big.Int)
+	initAddress2.SetString("1fe1b73f7f592d6c054d62fad1cc55756c6949f9", 16)
+
+	initBalance2 := new(big.Int)
+	initBalance2.SetString("295be96e640669720000000", 16)
+
 	return &Genesis{
-		Config:    params.RinkebyChainConfig,
-		Timestamp: 1492009146,
-		ExtraData: hexutil.MustDecode("0x52657370656374206d7920617574686f7269746168207e452e436172746d616e42eb768f2244c8811c63729a21a3569731535f067ffc57839b00206d1ad20c69a1981b489f772031b279182d99e65703f0076e4812653aab85fca0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  4700000,
-		Alloc:     decodePrealloc(rinkebyAllocData),
+		Config:    params.BetanetChainConfig,
+		Nonce:     0,
+		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  0x99947b760,
+		Timestamp: 1546300800000, //2019-01-01 00:00:00.000
+		Alloc: map[common.Address]GenesisAccount{
+			common.BigToAddress(initAddress1): {Balance: initBalance1},
+			common.BigToAddress(initAddress2): {Balance: initBalance2},
+		},
 	}
 }
 
