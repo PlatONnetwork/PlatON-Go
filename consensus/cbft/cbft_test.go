@@ -50,14 +50,34 @@ func TestMarshalJson(t *testing.T){
 	t.Log("cbft.highestConfirmed is null", "hash:", obj.Hash)
 	fmt.Println("cbft.highestConfirmed:" + obj.Hash)
 
-	jsons, errs := json.Marshal(obj) //转换成JSON返回的是byte[]
+	jsons, errs := json.Marshal(obj) //byte[] for json
 	if errs != nil {
 		fmt.Println(errs.Error())
 	}
-	fmt.Println("obj:" + string(jsons)) //byte[]转换成string 输出
+	fmt.Println("obj:" + string(jsons)) //byte[] to string
 }
 
+func TestNested(t *testing.T){
 
+	root := cbft.findBlockExt(rootBlock.Hash())
+
+	//reset logical path
+	highestLogical := cbft.findHighestLogical(root)
+
+	//cbft.setHighestLogical(highestLogical)
+	cbft.highestLogical.Store(highestLogical)
+
+	t.Log("root info", "number", root.Number)
+
+	//reset highest confirmed block
+	highestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(root)
+	if highestConfirmed != nil {
+		t.Log("cbft.highestConfirmed", "number", highestConfirmed.block.NumberU64())
+	} else {
+
+		t.Log("cbft.highestConfirmed is null")
+	}
+}
 func TestSyncDiscreteBlock(t *testing.T){
 
 	newRoot := NewBlockExt(discreteBlockForSynced, 103)
@@ -231,9 +251,13 @@ func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
 	//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
 	cbft.signLogicalAndDescendant(newRoot)
 
+	//reset logical path
+	//highestLogical := cbft.findHighestLogical(newRoot)
+	//cbft.setHighestLogical(highestLogical)
+	//reset highest confirmed block
 	cbft.highestConfirmed.Store(cbft.findLastClosestConfirmedIncludingSelf(newRoot))
 
-	if cbft.getHighestConfirmed() != nil {
+	if cbft.getHighestLogical() != nil {
 		t.Log("ok")
 	} else {
 		t.Log("cbft.highestConfirmed is null")
@@ -331,7 +355,7 @@ func buildFork(cbft *Cbft) {
 	//sealhash := cbft.SealHash(header)
 
 	parentHash := forkRoot
-	for i := uint64(4); i <= 9; i++ {
+	for i := uint64(3); i <= 5; i++ {
 		header := &types.Header{
 			ParentHash: parentHash,
 			Number:     big.NewInt(int64(i)),
@@ -339,15 +363,27 @@ func buildFork(cbft *Cbft) {
 		}
 		block := types.NewBlockWithHeader(header)
 
-		ext := NewBlockExt(block, block.NumberU64())
-		ext.inTree = true
-		ext.isExecuted = true
-		ext.isSigned = true
-		ext.isConfirmed = false
-
+		ext := &BlockExt{
+			block:       block,
+			inTree:      true,
+			isExecuted:  true,
+			isSigned:    true,
+			isConfirmed: true,
+			Number:      block.NumberU64(),
+			signs:       make([]*common.BlockConfirmSign, 0),
+		}
 		cbft.blockExtMap.Store(block.Hash(), ext)
 
 		parentHash = block.Hash()
+
+		if i == 3 {
+			ext.isConfirmed=true
+		} else if i == 4 {
+			ext.isConfirmed=false
+		} else if i == 5 {
+			ext.isConfirmed=true
+		}
+		cbft.buildIntoTree(ext)
 	}
 }
 
@@ -378,20 +414,22 @@ func buildMain(cbft *Cbft) {
 	rootBlock = types.NewBlockWithHeader(rootHeader)
 	rootNumber = 0
 
-	rootExt := NewBlockExt(rootBlock, rootNumber)
-	rootExt.inTree = true
-	rootExt.isExecuted = true
-	rootExt.isSigned = true
-	rootExt.isConfirmed = false
-
+	rootExt := &BlockExt{
+		block:       rootBlock,
+		inTree:      true,
+		isExecuted:  true,
+		isSigned:    true,
+		isConfirmed: true,
+		Number:      rootBlock.NumberU64(),
+		signs:       make([]*common.BlockConfirmSign, 0),
+	}
 
 	//hashSet[uint64(0)] = rootBlock.Hash()
 	cbft.blockExtMap.Store(rootBlock.Hash(), rootExt)
 	cbft.highestConfirmed.Store(rootExt)
-	cbft.rootIrreversible.Store(rootExt)
 
 	parentHash := rootBlock.Hash()
-	for i := uint64(1); i <= 10; i++ {
+	for i := uint64(1); i <= 5; i++ {
 		header := &types.Header{
 			ParentHash: parentHash,
 			Number:     big.NewInt(int64(i)),
@@ -399,13 +437,15 @@ func buildMain(cbft *Cbft) {
 		}
 		block := types.NewBlockWithHeader(header)
 
-		ext := NewBlockExt(block, block.NumberU64())
-		ext.inTree = true
-		ext.isExecuted = true
-		ext.isSigned = true
-		ext.isConfirmed = false
-
-
+		ext := &BlockExt{
+			block:       block,
+			inTree:      true,
+			isExecuted:  true,
+			isSigned:    true,
+			isConfirmed: false,
+			Number:      block.NumberU64(),
+			signs:       make([]*common.BlockConfirmSign, 0),
+		}
 		//hashSet[i] = rootBlock.Hash()
 		cbft.blockExtMap.Store(block.Hash(), ext)
 
@@ -413,22 +453,21 @@ func buildMain(cbft *Cbft) {
 
 		parentHash = block.Hash()
 
-		if i == 4 {
+		if i == 2 {
 			forkRoot = block.Hash()
-		} else if i== 9{
+		} else if i == 3 {
+			ext.isConfirmed=false
+		} else if i == 4 {
 			lastButOneMainBlock = block
-		} else if i==10 {
+			ext.isConfirmed=false
+		} else if i == 5 {
+			ext.isConfirmed=false
 			lastMainBlock = block
+
 		}
-
 		cbft.buildIntoTree(ext)
-	}
 
-	jsons, errs := json.Marshal(rootExt) //转换成JSON返回的是byte[]
-	if errs != nil {
-		fmt.Println(errs.Error())
 	}
-	fmt.Println("mainTree:" + string(jsons)) //byte[]转换成string 输出
 
 }
 

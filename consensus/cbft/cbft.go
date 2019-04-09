@@ -362,6 +362,7 @@ func (cbft *Cbft) findHighestLogical(current *BlockExt) *BlockExt {
 
 // findLastClosestConfirmedIncludingSelf return the last found block by call findClosestConfirmedExcludingSelf in a circular manner
 func (cbft *Cbft) findLastClosestConfirmedIncludingSelf(cur *BlockExt) *BlockExt {
+	log.Debug("findLastClosestConfirmedIncludingSelf", "cur.number", cur.Number, "cur.hash", cur.Hash, "cur.isConfirmed", cur.isConfirmed)
 	var lastClosestConfirmed *BlockExt
 	for {
 		lastClosestConfirmed = cbft.findClosestConfirmedExcludingSelf(cur)
@@ -376,6 +377,7 @@ func (cbft *Cbft) findLastClosestConfirmedIncludingSelf(cur *BlockExt) *BlockExt
 	} else if cur.isConfirmed {
 		return cur
 	} else {
+		log.Debug("findLastClosestConfirmedIncludingSelf return nil", "cur.number", cur.Number, "cur.hash", cur.Hash, "cur.isConfirmed", cur.isConfirmed)
 		return nil
 	}
 }
@@ -713,21 +715,20 @@ func (cbft *Cbft) blockSynced() {
 		log.Debug("reset the new root irreversible by synced", "hash", newRoot.block.Hash(), "number", newRoot.block.NumberU64())
 
 
+		//reset logical path
+		highestLogical := cbft.findHighestLogical(newRoot)
+		cbft.setHighestLogical(highestLogical)
+		log.Debug("reset the highestLogical by synced", "hash", highestLogical.block.Hash(), "number", highestLogical.block.NumberU64(), "newRoot.hash", newRoot.block.Hash(), "newRoot.number", newRoot.block.NumberU64() )
+
 		//reset highest confirmed block
 		highestConfirmed :=cbft.findLastClosestConfirmedIncludingSelf(newRoot)
 		cbft.highestConfirmed.Store(highestConfirmed)
 		if cbft.getHighestConfirmed() != nil {
 			log.Debug("reset the highestConfirmed by synced successful", "hash", highestConfirmed.block.Hash(), "number", highestConfirmed.block.NumberU64())
 		} else {
-			log.Debug("reset the highestConfirmed by synced failure because findLastClosestConfirmedIncludingSelf() returned nil")
+			log.Debug("reset the highestConfirmed by synced failure because findLastClosestConfirmedIncludingSelf() returned nil", "newRoot.hash", newRoot.block.Hash(), "newRoot.number", newRoot.block.NumberU64())
 			//cbft.highestConfirmed.Store(newRoot)
 		}
-
-		//reset logical path
-		highestLogical := cbft.findHighestLogical(highestConfirmed)
-		cbft.setHighestLogical(highestLogical)
-		log.Debug("reset the highestLogical by synced", "hash", highestLogical.block.Hash(), "number", highestLogical.block.NumberU64())
-
 
 		if !cbft.flushReadyBlock() {
 			//remove all other blocks those their numbers are too low
