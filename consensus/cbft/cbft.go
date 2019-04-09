@@ -444,17 +444,20 @@ func (cbft *Cbft) signLogicalAndDescendant(current *BlockExt) {
 				cbft.txPool.Reset(logical.block)
 			}
 		}
-
-		/*if logical.isConfirmed {
-			highestConfirmed = logical
-		}*/
 	}
-	/*log.Trace("reset highest logical", "hash", highestLogical.block.Hash(), "number", highestLogical.block.NumberU64())
-	cbft.setHighestLogical(highestLogical)
-	if highestConfirmed != nil {
-		log.Trace("reset highest confirmed", "hash", highestConfirmed.block.Hash(), "number", highestConfirmed.block.NumberU64())
-		cbft.highestConfirmed = highestConfirmed
-	}*/
+}
+
+func (cbft *Cbft) signLogicalAndDescendantMock(current *BlockExt) {
+	highestLogical := cbft.findHighestLogical(current)
+	logicalBlocks := cbft.backTrackBlocks(highestLogical, current, true)
+
+	for _, logical := range logicalBlocks {
+		if logical.inTurn && !logical.isSigned {
+			if _, signed := cbft.signedSet.Load(logical.block.NumberU64()); !signed {
+				cbft.signMock(logical)
+			}
+		}
+	}
 }
 
 // executeBlockAndDescendant executes the block's transactions and its descendant
@@ -466,7 +469,7 @@ func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt)
 			//remove bad block from tree and map
 			cbft.removeBadBlock(current)
 			//log.Error("execute block error", "hash", current.block.Hash(), "number", current.block.NumberU64())
-			return errors.New("execute block error")
+			return err
 		} else {
 			current.inTree = true
 			current.isExecuted = true
@@ -475,6 +478,23 @@ func (cbft *Cbft) executeBlockAndDescendant(current *BlockExt, parent *BlockExt)
 
 	for _, child := range current.Children {
 		if err := cbft.executeBlockAndDescendant(child, current); err != nil {
+			//remove bad block from tree and map
+			cbft.removeBadBlock(child)
+			return err
+		}
+	}
+	return nil
+}
+
+
+func (cbft *Cbft) executeBlockAndDescendantMock(current *BlockExt, parent *BlockExt) error {
+	if !current.isExecuted {
+		current.inTree = true
+		current.isExecuted = true
+	}
+
+	for _, child := range current.Children {
+		if err := cbft.executeBlockAndDescendantMock(child, current); err != nil {
 			//remove bad block from tree and map
 			cbft.removeBadBlock(child)
 			return err
@@ -509,6 +529,23 @@ func (cbft *Cbft) sign(ext *BlockExt) {
 			ParentHash: ext.block.ParentHash(),
 		}
 		cbft.blockSignOutCh <- blockSign
+	} else {
+		panic("sign block fatal error")
+	}
+}
+
+func (cbft *Cbft) signMock(ext *BlockExt) {
+	sealHash := ext.block.Header().SealHash()
+	if signature, err := cbft.signFn(sealHash.Bytes()); err == nil {
+		sign := common.NewBlockConfirmSign(signature)
+		ext.isSigned = true
+
+		cbft.collectSign(ext, sign)
+
+		//save this block number
+		//cbft.signedSet[ext.block.NumberU64()] = struct{}{}
+		cbft.signedSet.Store(ext.block.NumberU64(), struct{}{})
+
 	} else {
 		panic("sign block fatal error")
 	}
@@ -683,15 +720,14 @@ func (cbft *Cbft) blockSynced() {
 			newRoot.parent = nil
 			cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
 
+			//only need to build up child
 			cbft.buildChildNode(newRoot)
 
 			if len(newRoot.Children) > 0{
 				//the new root's children should re-execute base on new state
 				for _, child := range newRoot.Children {
 					if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
-						//remove bad block from tree and map
-						cbft.removeBadBlock(child)
-						log.Error("execute the block error, remove it", "err", err)
+						log.Error("execute the block error", "err", err)
 						break
 					}
 				}
@@ -701,19 +737,35 @@ func (cbft *Cbft) blockSynced() {
 
 		} else if newRoot.block != nil {
 			log.Debug("higher irreversible block is existing in memory","newTree", newRoot.toJson())
-
 			//the block synced from other peer exists in local peer
-			newRoot.inTree = true
 			newRoot.isExecuted = true
 			newRoot.isSigned = true
 			newRoot.isConfirmed = true
 			newRoot.Number = currentBlock.NumberU64()
-			//cut off old tree from new root,
-			tailorTree(newRoot)
 
-			//remove all blocks referenced in old tree after being cut off
+			if newRoot.inTree == false {
+				newRoot.inTree = true
+
+				cbft.setDescendantInTree(newRoot)
+
+				if len(newRoot.Children) > 0{
+					//the new root's children should re-execute base on new state
+					for _, child := range newRoot.Children {
+						if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
+							log.Error("execute the block error", "err", err)
+							break
+						}
+					}
+					//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
+					cbft.signLogicalAndDescendant(newRoot)
+				}
+			}else{
+				//cut off old tree from new root,
+				tailorTree(newRoot)
+			}
+
+			//remove all blocks referenced in old tree after been cut off
 			cbft.cleanByTailoredTree(cbft.getRootIrreversible())
-
 		}
 
 		//remove all other blocks those their numbers are too low
@@ -888,7 +940,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 	if current.block != nil {
 		hashLog = current.block.Hash()
 	} else {
-		hashLog = "hash is nil"
+		hashLog = "sign received before block,"
 	}
 
 	log.Debug("count signatures",
@@ -1033,28 +1085,6 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 		isLogical := inTurn && flowControl && highestConfirmedIsAncestor
 
 		log.Debug("check if block is logical", "result", isLogical, "hash", blockExt.block.Hash(), "number", blockExt.Number, "inTurn", inTurn, "flowControl", flowControl, "highestConfirmedIsAncestor", highestConfirmedIsAncestor)
-
-		/*
-			if isLogical {
-				cbft.signLogicalAndDescendant(ext)
-			}
-			//rearrange logical path from cbft.rootIrreversible each time
-			newHighestLogical := cbft.findHighestLogical(cbft.rootIrreversible)
-			if newHighestLogical != nil {
-				cbft.setHighestLogical(newHighestLogical)
-			}
-
-			newHighestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(cbft.rootIrreversible)
-			if newHighestConfirmed != nil && newHighestConfirmed.block.Hash() != cbft.highestConfirmed.block.Hash() {
-				//fork
-				if newHighestConfirmed.number < cbft.highestConfirmed.number  ||  (newHighestConfirmed.number > cbft.highestConfirmed.number && !cbft.highestConfirmed.isAncestor(newHighestConfirmed)) {
-					//only this case may cause a new fork
-					cbft.checkFork(closestConfirmed)
-				}
-
-				cbft.highestConfirmed = newHighestConfirmed
-			}
-		*/
 
 		if isLogical {
 			cbft.signLogicalAndDescendant(blockExt)
