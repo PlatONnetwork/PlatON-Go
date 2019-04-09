@@ -778,29 +778,29 @@ func (cbft *Cbft) blockSynced() {
 
 		log.Debug("reset the new root irreversible by synced", "hash", newRoot.block.Hash(), "number", newRoot.block.NumberU64())
 
-
-		//reset logical path
-		highestLogical := cbft.findHighestLogical(newRoot)
-		cbft.setHighestLogical(highestLogical)
-		log.Debug("reset the highestLogical by synced", "hash", highestLogical.block.Hash(), "number", highestLogical.block.NumberU64(), "newRoot.hash", newRoot.block.Hash(), "newRoot.number", newRoot.block.NumberU64() )
-
 		//reset highest confirmed block
 		highestConfirmed :=cbft.findLastClosestConfirmedIncludingSelf(newRoot)
 		cbft.highestConfirmed.Store(highestConfirmed)
 		if cbft.getHighestConfirmed() != nil {
 			log.Debug("reset the highestConfirmed by synced successful", "hash", highestConfirmed.block.Hash(), "number", highestConfirmed.block.NumberU64())
+
+			//reset logical path
+			highestLogical := cbft.findHighest(highestConfirmed)
+			cbft.setHighestLogical(highestLogical)
+			log.Debug("reset the highestLogical by synced", "hash", highestLogical.block.Hash(), "number", highestLogical.block.NumberU64(), "newRoot.hash", newRoot.block.Hash(), "newRoot.number", newRoot.block.NumberU64() )
+
+			if !cbft.flushReadyBlock() {
+				//remove all other blocks those their numbers are too low
+				cbft.cleanByNumber(cbft.getRootIrreversible().Number)
+			}
+
+			log.Debug("reset TxPool after block synced", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
+			cbft.txPool.Reset(currentBlock)
+
 		} else {
 			log.Debug("reset the highestConfirmed by synced failure because findLastClosestConfirmedIncludingSelf() returned nil", "newRoot.hash", newRoot.block.Hash(), "newRoot.number", newRoot.block.NumberU64())
 			//cbft.highestConfirmed.Store(newRoot)
 		}
-
-		if !cbft.flushReadyBlock() {
-			//remove all other blocks those their numbers are too low
-			cbft.cleanByNumber(cbft.getRootIrreversible().Number)
-		}
-
-		log.Debug("reset TxPool after block synced", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
-		cbft.txPool.Reset(currentBlock)
 	}
 
 	log.Debug("=== end of blockSynced() ===\n",
