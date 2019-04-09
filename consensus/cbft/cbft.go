@@ -348,16 +348,27 @@ func (lower *BlockExt) isAncestor(higher *BlockExt) bool {
 	return false
 }
 
-// findHighestLogical finds the highest block from current start; If there are multiple highest blockExts, returns the one that singed by self; if none of blocks signed by self, returns the one that has most signs
-func (cbft *Cbft) findHighestLogical(current *BlockExt) *BlockExt {
+// findHighest finds the highest block from current start; If there are multiple highest blockExts, returns the one that singed by self; if none of blocks signed by self, returns the one that has most signs
+func (cbft *Cbft) findHighest(current *BlockExt) *BlockExt {
 	highest := current
 	for _, child := range current.Children {
-		current := cbft.findHighestLogical(child)
+		current := cbft.findHighest(child)
 		if current.block.NumberU64() > highest.block.NumberU64() || (current.block.NumberU64() == highest.block.NumberU64() && (current.isSigned || len(current.signs) > len(highest.signs))) {
 			highest = current
 		}
 	}
 	return highest
+}
+
+// findHighestLogical finds a logical path and return the highest block.
+// the precondition is cur is a logical block, so, findHighestLogical will return cur if the path only has one block.
+func (cbft *Cbft) findHighestLogical(cur *BlockExt) *BlockExt {
+	lastClosestConfirmed := cbft.findLastClosestConfirmedIncludingSelf(cur)
+	if lastClosestConfirmed == nil {
+		return cbft.findHighest(cur)
+	} else {
+		return cbft.findHighest(lastClosestConfirmed)
+	}
 }
 
 // findLastClosestConfirmedIncludingSelf return the last found block by call findClosestConfirmedExcludingSelf in a circular manner
@@ -369,6 +380,7 @@ func (cbft *Cbft) findLastClosestConfirmedIncludingSelf(cur *BlockExt) *BlockExt
 		if lastClosestConfirmed == nil || lastClosestConfirmed.block.Hash() == cur.block.Hash() {
 			break
 		} else {
+			//fmt.Printf("lastClosestConfirmed, number=%d, rcvTime=%d\r\n", lastClosestConfirmed.Number, lastClosestConfirmed.rcvTime)
 			cur = lastClosestConfirmed
 		}
 	}
