@@ -1174,9 +1174,9 @@ func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
 
 // flushReadyBlock finds ready blocks and flush them to chain
 func (cbft *Cbft) flushReadyBlock() bool {
-	log.Debug("check if there's any block ready to flush to chain", "highestConfirmedNumber", cbft.getHighestConfirmed().Number, "rootIrreversibleNumber", cbft.getRootIrreversible().Number)
 	cbft.flushBlockLock.Lock()
 	defer cbft.flushBlockLock.Unlock()
+	log.Debug("check if there's any block ready to flush to chain", "highestConfirmedNumber", cbft.getHighestConfirmed().Number, "rootIrreversibleNumber", cbft.getRootIrreversible().Number)
 
 	fallCount := int(cbft.getHighestConfirmed().Number - cbft.getRootIrreversible().Number)
 	var newRoot *BlockExt
