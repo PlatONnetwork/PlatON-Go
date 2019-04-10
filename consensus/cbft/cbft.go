@@ -83,6 +83,7 @@ type Cbft struct {
 	blockChainCache *core.BlockChainCache
 	netLatencyMap   map[discover.NodeID]*list.List
 	netLatencyLock  sync.RWMutex
+	flushBlockLock	sync.Mutex
 }
 
 func (cbft *Cbft) getRootIrreversible() *BlockExt {
@@ -1174,6 +1175,8 @@ func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
 // flushReadyBlock finds ready blocks and flush them to chain
 func (cbft *Cbft) flushReadyBlock() bool {
 	log.Debug("check if there's any block ready to flush to chain", "highestConfirmedNumber", cbft.getHighestConfirmed().Number, "rootIrreversibleNumber", cbft.getRootIrreversible().Number)
+	cbft.flushBlockLock.Lock()
+	defer cbft.flushBlockLock.Unlock()
 
 	fallCount := int(cbft.getHighestConfirmed().Number - cbft.getRootIrreversible().Number)
 	var newRoot *BlockExt
