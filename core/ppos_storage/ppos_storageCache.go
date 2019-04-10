@@ -968,27 +968,27 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 	calculate can dependency Hash
 	*/
 	go func() {
-		resqueue[0] = buildPBcanqueue("pres", p.c_storage.pres)
+		resqueue[0] = buildPBcanqueue("DependencyFunc, pres", p.c_storage.pres)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[1] = buildPBcanqueue("currs", p.c_storage.currs)
+		resqueue[1] = buildPBcanqueue("DependencyFunc, currs", p.c_storage.currs)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[2] = buildPBcanqueue("nexts", p.c_storage.nexts)
+		resqueue[2] = buildPBcanqueue("DependencyFunc, nexts", p.c_storage.nexts)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[3] = buildPBcanqueue("imms", p.c_storage.imms)
+		resqueue[3] = buildPBcanqueue("DependencyFunc, imms", p.c_storage.imms)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[4] = buildPBcanqueue("res", p.c_storage.res)
+		resqueue[4] = buildPBcanqueue("DependencyFunc, res", p.c_storage.res)
 		wg.Done()
 	}()
 
