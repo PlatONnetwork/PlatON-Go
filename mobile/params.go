@@ -59,6 +59,15 @@ func InnerTestnetGenesis() string {
 	return string(enc)
 }
 
+// InnerDevnetGenesis returns the JSON spec to use for the inner test network.
+func InnerDevnetGenesis() string {
+	enc, err := json.Marshal(core.DefaultInnerDevnetGenesisBlock())
+	if err != nil {
+		panic(err)
+	}
+	return string(enc)
+}
+
 
 // FoundationBootnodes returns the enode URLs of the P2P bootstrap nodes operated
 // by the foundation running the V5 discovery protocol.

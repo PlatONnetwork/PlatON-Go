@@ -142,6 +142,10 @@ var (
 		Name:  "innertestnet",
 		Usage: "Ropsten network: pre-configured proof-of-work test network",
 	}
+	InnerDevnetFlag = cli.BoolFlag{
+		Name:  "innerdevnet",
+		Usage: "Ropsten network: pre-configured proof-of-work dev network",
+	}
 	DeveloperFlag = cli.BoolFlag{
 		Name:  "dev",
 		Usage: "Ephemeral proof-of-authority network with a pre-funded developer account, mining enabled",
@@ -650,6 +654,9 @@ func MakeDataDir(ctx *cli.Context) string {
 		if ctx.GlobalBool(InnerTestnetFlag.Name) {
 			return filepath.Join(path, "innertestnet")
 		}
+		if ctx.GlobalBool(InnerDevnetFlag.Name) {
+			return filepath.Join(path, "innerdevnet")
+		}
 		return path
 	}
 	Fatalf("Cannot determine default data directory, please set manually (--datadir)")
@@ -706,6 +713,8 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		urls = params.BetanetBootnodes
 	case ctx.GlobalBool(InnerTestnetFlag.Name):
 		urls = params.InnerTestnetBootnodes
+	case ctx.GlobalBool(InnerDevnetFlag.Name):
+		urls = params.InnerDevnetBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -1005,6 +1014,8 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "betanet")
 	case ctx.GlobalBool(InnerTestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "innertestnet")
+	case ctx.GlobalBool(InnerDevnetFlag.Name):
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "innerdevnet")
 	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
@@ -1167,7 +1178,7 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	checkExclusive(ctx, DeveloperFlag, TestnetFlag, BetanetFlag, InnerTestnetFlag)
+	checkExclusive(ctx, DeveloperFlag, TestnetFlag, BetanetFlag, InnerTestnetFlag, InnerDevnetFlag)
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
@@ -1267,6 +1278,11 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 			cfg.NetworkId = 203
 		}
 		cfg.Genesis = core.DefaultInnerTestnetGenesisBlock()
+	case ctx.GlobalBool(InnerDevnetFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 204
+		}
+		cfg.Genesis = core.DefaultInnerDevnetGenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -1409,6 +1425,8 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 		genesis = core.DefaultBetanetGenesisBlock()
 	case ctx.GlobalBool(InnerTestnetFlag.Name):
 		genesis = core.DefaultInnerTestnetGenesisBlock()
+	case ctx.GlobalBool(InnerDevnetFlag.Name):
+		genesis = core.DefaultInnerDevnetGenesisBlock()
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}
