@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -328,7 +329,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 		Nonce:     0,
 		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:  0x99947b760,
-		Timestamp: 1546300800000, //2019-01-01 00:00:00.000
+		Timestamp: HourTimestamp(),
 		Alloc: map[common.Address]GenesisAccount{
 			common.BigToAddress(initAddress1): {Balance: initBalance1},
 			common.BigToAddress(initAddress2): {Balance: initBalance2},
@@ -356,7 +357,7 @@ func DefaultBetanetGenesisBlock() *Genesis {
 		Nonce:     0,
 		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:  0x99947b760,
-		Timestamp: 1546300800000, //2019-01-01 00:00:00.000
+		Timestamp: HourTimestamp(),
 		Alloc: map[common.Address]GenesisAccount{
 			common.BigToAddress(initAddress1): {Balance: initBalance1},
 			common.BigToAddress(initAddress2): {Balance: initBalance2},
@@ -383,7 +384,34 @@ func DefaultInnerTestnetGenesisBlock() *Genesis {
 		Nonce:     0,
 		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:  0x99947b760,
-		Timestamp: 1546300800000, //2019-01-01 00:00:00.000
+		Timestamp: HourTimestamp(),
+		Alloc: map[common.Address]GenesisAccount{
+			common.BigToAddress(initAddress1): {Balance: initBalance1},
+			common.BigToAddress(initAddress2): {Balance: initBalance2},
+		},
+	}
+}
+
+// DefaultInnerDevnetGenesisBlock returns the inner test network genesis block.
+func DefaultInnerDevnetGenesisBlock() *Genesis {
+	initAddress1 := new(big.Int)
+	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
+
+	initBalance1 := new(big.Int)
+	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
+
+	initAddress2 := new(big.Int)
+	initAddress2.SetString("493301712671ada506ba6ca7891f436d29185821", 16)
+
+	initBalance2 := new(big.Int)
+	initBalance2.SetString("295be96e640669720000000", 16)
+
+	return &Genesis{
+		Config:    params.InnerDevnetChainConfig,
+		Nonce:     0,
+		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  0x99947b760,
+		Timestamp: HourTimestamp(),
 		Alloc: map[common.Address]GenesisAccount{
 			common.BigToAddress(initAddress1): {Balance: initBalance1},
 			common.BigToAddress(initAddress2): {Balance: initBalance2},
@@ -399,6 +427,12 @@ func DefaultGrapeGenesisBlock() *Genesis {
 		GasLimit:  3150000000,
 		Alloc:     decodePrealloc(testnetAllocData),
 	}
+}
+
+func HourTimestamp() uint64 {
+	now := time.Now()
+	timestamp := (now.Unix() - int64(now.Second()) - int64((60 * now.Minute()))) * 1000
+	return uint64(timestamp)
 }
 
 // DeveloperGenesisBlock returns the 'platon --dev' genesis block. Note, this must

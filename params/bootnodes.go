@@ -56,6 +56,15 @@ var InnerTestnetBootnodes = []string{
 	"enode://d8c4b58ae052ea9480577264bc1b2c09619757015849a4c92b71a4e4c8b5ede94f35d24107b1181d0711013ed7fdc068f21e6e6084b3e96750a571669715c0b1@192.168.120.90:16789",
 }
 
+// InnerDevnetBootnodes are the enode URLs of the P2P bootstrap nodes running on the
+// Inner dev network.
+var InnerDevnetBootnodes = []string{
+	"enode://0abaf3219f454f3d07b6cbcf3c10b6b4ccf605202868e2043b6f5db12b745df0604ef01ef4cb523adc6d9e14b83a76dd09f862e3fe77205d8ac83df707969b47@192.168.9.76:16789",
+	"enode://e0b6af6cc2e10b2b74540b87098083d48343805a3ff09c655eab0b20dba2b2851aea79ee75b6e150bde58ead0be03ee4a8619ea1dfaf529cbb8ff55ca23531ed@192.168.9.76:16790",
+	"enode://15245d4dceeb7552b52d70e56c53fc86aa030eab6b7b325e430179902884fca3d684b0e896ea421864a160e9c18418e4561e9a72f911e2511c29204a857de71a@192.168.120.76:16789",
+	"enode://fb886b3da4cf875f7d85e820a9b39df2170fd1966ffa0ddbcd738027f6f8e0256204e4873a2569ef299b324da3d0ed1afebb160d8ff401c2f09e20fb699e4005@192.168.120.76:16790",
+}
+
 // DiscoveryV5Bootnodes are the enode URLs of the P2P bootstrap nodes for the
 // experimental RLPx v5 topic-discovery network.
 var DiscoveryV5Bootnodes = []string{}
