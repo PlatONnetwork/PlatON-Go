@@ -116,7 +116,6 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// SetNodeCache
 		blockNumber := block.Number()
-		log.Warn("---SetNodeCache call when processing block---", "number", block.Number(), "blockHash", block.Hash().Hex())
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 		cbftEngine.SetNodeCache(statedb, parentNumber, blockNumber, block.ParentHash(), block.Hash())
 		// ppos Submit2Cache

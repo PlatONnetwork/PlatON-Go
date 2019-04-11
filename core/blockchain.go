@@ -1022,7 +1022,6 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	/*ppos_storage.GetPPosTempPtr().Commit2DB(bc.db, block.Number(), block.Hash())*/
 	rawdb.WriteBlock(bc.db, block)
 
-
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {
 		log.Error("check block is EIP158 error", "hash", block.Hash(), "number", block.NumberU64())
