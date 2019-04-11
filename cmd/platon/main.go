@@ -117,6 +117,7 @@ var (
 		utils.TestnetFlag,
 		utils.BetanetFlag,
 		utils.InnerTestnetFlag,
+		utils.InnerDevnetFlag,
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,

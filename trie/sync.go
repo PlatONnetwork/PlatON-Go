@@ -305,10 +305,11 @@ func (s *Sync) children(req *request, object node) ([]*request, error) {
 					return nil, err
 				}
 			} else {
-				var hash common.Hash
-				if err := rlp.DecodeBytes(node, &hash); err != nil {
+				var val []byte
+				if err := rlp.DecodeBytes(node, &val); err != nil {
 					return nil, err
 				}
+				hash := common.BytesToHash(val)
 				if hash != emptyStorage {
 					s.AddRawEntry(hash, 64, req.hash, true)
 				}
