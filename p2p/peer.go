@@ -215,6 +215,7 @@ loop:
 			// there was no error.
 			if err != nil {
 				reason = DiscNetworkError
+				log.Debug("network error while sending message to peer", "err", err)
 				break loop
 			}
 			writeStart <- struct{}{}
@@ -225,12 +226,15 @@ loop:
 			} else {
 				reason = DiscNetworkError
 			}
+			log.Debug("network error while reading message from peer", "err", err)
 			break loop
 		case err = <-p.protoErr:
 			reason = discReasonForError(err)
+			log.Debug("protoErr", "err", err)
 			break loop
 		case err = <-p.disc:
 			reason = discReasonForError(err)
+			log.Debug("disconnection", "err", err)
 			break loop
 		}
 	}
@@ -307,6 +311,9 @@ func (p *Peer) handle(msg Msg) error {
 	case msg.Code == pongMsg:
 		//added by Joey
 		proto := p.running["eth"]
+		if proto == nil {
+			return msg.Discard()
+		}
 
 		msg.Code = 0x0a + proto.offset
 
@@ -440,8 +447,10 @@ func (rw *protoRW) WriteMsg(msg Msg) (err error) {
 		// shutdown if the error is non-nil and unblock the next write
 		// otherwise. The calling protocol code should exit for errors
 		// as well but we don't want to rely on that.
+		log.Debug("send message to peer error", "err", err)
 		rw.werr <- err
 	case <-rw.closed:
+		log.Debug("send message to peer error cause peer is shutting down")
 		err = ErrShuttingDown
 	}
 	return err
