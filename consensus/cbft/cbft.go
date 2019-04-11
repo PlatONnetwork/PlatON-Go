@@ -83,7 +83,6 @@ type Cbft struct {
 	blockChainCache *core.BlockChainCache
 	netLatencyMap   map[discover.NodeID]*list.List
 	netLatencyLock  sync.RWMutex
-	flushBlockLock	sync.Mutex
 }
 
 func (cbft *Cbft) getRootIrreversible() *BlockExt {
@@ -703,6 +702,13 @@ func (cbft *Cbft) blockSynced() {
 		"rootIrreversibleNumber", cbft.getRootIrreversible().Number)
 
 	currentBlock := cbft.blockChain.CurrentBlock()
+	blockNumber := currentBlock.Number()
+	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+	consensusNodes := cbft.ConsensusNodes(parentNumber, currentBlock.ParentHash(), blockNumber)
+	if consensusNodes != nil && len(consensusNodes) == 1 {
+		log.Debug("single node mode, ignore the signal of block synced")
+		return
+	}
 	if currentBlock.NumberU64() > cbft.getRootIrreversible().Number {
 		log.Debug("chain has a higher irreversible block", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 		newRoot := cbft.findBlockExt(currentBlock.Hash())
@@ -1174,8 +1180,6 @@ func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
 
 // flushReadyBlock finds ready blocks and flush them to chain
 func (cbft *Cbft) flushReadyBlock() bool {
-	cbft.flushBlockLock.Lock()
-	defer cbft.flushBlockLock.Unlock()
 	log.Debug("check if there's any block ready to flush to chain", "highestConfirmedNumber", cbft.getHighestConfirmed().Number, "rootIrreversibleNumber", cbft.getRootIrreversible().Number)
 
 	fallCount := int(cbft.getHighestConfirmed().Number - cbft.getRootIrreversible().Number)
