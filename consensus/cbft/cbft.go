@@ -1809,7 +1809,7 @@ func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash com
 
 		//consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
 		if consensusNodes == nil || len(consensusNodes) <= 0 {
-			log.Error("calTurn consensusNodes is emtpy~")
+			log.Error("there is no consensus node",  "number", blockNumber)
 			return false
 		} else if len(consensusNodes) == 1 {
 			return true
@@ -1828,6 +1828,9 @@ func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash com
 		}
 	}else{
 		log.Debug("local is not a consensus node", "localNode", nodeID.String(), "number", blockNumber)
+		for idx, nid := range  consensusNodes{
+			log.Debug("consensus node list", "idx", idx, "nodeID", nid.String())
+		}
 	}
 	return false
 }
