@@ -1816,11 +1816,11 @@ func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash com
 
 		max := (nodeIdx + 1) * durationPerNode
 
-		//log.Debug("calTurn", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", timePoint, "startEpoch", startEpoch)
-
 		if value > min && value < max {
 			return true
 		}
+	}else{
+		log.Debug("local is not a consensus node", "localNode", nodeID.String(), "number", blockNumber)
 	}
 	return false
 }
