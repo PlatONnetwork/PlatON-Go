@@ -1800,34 +1800,45 @@ func (cbft *Cbft) isLegal(rcvTime int64, parentNumber *big.Int, parentHash commo
 //}
 
 func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) bool {
+	//nodeIdx := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, blockNumber, nodeID, round)
 
-	nodeIdx := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, blockNumber, nodeID, round)
+	consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
+	if consensusNodes == nil || len(consensusNodes) <= 0 {
+		log.Error("there is no consensus node",  "number", blockNumber)
+		return false
+	}
+
+	nodeIdx := -1
+	for idx, nid := range consensusNodes {
+		if nid == nodeID {
+			nodeIdx = idx
+		}
+	}
+
 	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
-
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
-
-		consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
-		if consensusNodes == nil || len(consensusNodes) <= 0 {
-			log.Error("calTurn consensusNodes is emtpy~")
-			return false
-		} else if len(consensusNodes) == 1 {
+		//consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
+		if len(consensusNodes) == 1 {
 			return true
 		}
 
 		durationPerTurn := durationPerNode * int64(len(consensusNodes))
 
-		min := nodeIdx * (durationPerNode)
+		min := int64(nodeIdx) * (durationPerNode)
 
 		value := (timePoint - startEpoch) % durationPerTurn
 
-		max := (nodeIdx + 1) * durationPerNode
+		max := int64(nodeIdx + 1) * durationPerNode
 
 		if value > min && value < max {
 			return true
 		}
 	}else{
 		log.Debug("local is not a consensus node", "localNode", nodeID.String(), "number", blockNumber)
+		for idx, nid := range  consensusNodes{
+			log.Debug("consensus node", "idx", idx, "nodeID", nid.String())
+		}
 	}
 	return false
 }
