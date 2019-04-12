@@ -1801,13 +1801,13 @@ func (cbft *Cbft) isLegal(rcvTime int64, parentNumber *big.Int, parentHash commo
 
 func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) bool {
 
-	nodeIdx := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, blockNumber, nodeID, round)
+	nodeIdx, consensusNodes := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, blockNumber, nodeID, round)
 	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
 
-		consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
+		//consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
 		if consensusNodes == nil || len(consensusNodes) <= 0 {
 			log.Error("calTurn consensusNodes is emtpy~")
 			return false
