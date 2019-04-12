@@ -1952,7 +1952,7 @@ func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, comm
 			inturn = false
 		}
 	}
-	log.Debug("end of ShouldSeal()", "result", inturn)
+	log.Debug("end of ShouldSeal()", "result", inturn, "number", commitNumber)
 	return inturn
 }
 
