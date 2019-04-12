@@ -694,10 +694,6 @@ func (cbft *Cbft) OnBlockSynced() {
 
 func (cbft *Cbft) blockSynced() {
 	currentBlock := cbft.blockChain.CurrentBlock()
-	blockNumber := currentBlock.Number()
-	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
-	consensusNodes := cbft.ConsensusNodes(parentNumber, currentBlock.ParentHash(), blockNumber)
-
 	log.Debug("=== call blockSynced() ===",
 		"highestLogicalHash", cbft.getHighestLogical().block.Hash(),
 		"highestLogicalNumber", cbft.getHighestLogical().Number,
@@ -708,11 +704,6 @@ func (cbft *Cbft) blockSynced() {
 		"number", currentBlock.Number(),
 		"hash", currentBlock.Hash())
 
-
-	if consensusNodes != nil && len(consensusNodes) == 1 {
-		log.Debug("single node mode, ignore the signal of block synced")
-		return
-	}
 	if currentBlock.NumberU64() > cbft.getRootIrreversible().Number {
 		log.Debug("chain has a higher irreversible block", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 		newRoot := cbft.findBlockExt(currentBlock.Hash())
@@ -993,10 +984,8 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 
 //blockReceiver handles the new block
 func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
-
 	block := tmp.block
 	rcvTime := tmp.rcvTime
-
 	log.Debug("=== call blockReceiver() ===",
 		"hash", block.Hash(),
 		"number", block.NumberU64(),
@@ -1008,6 +997,14 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 		"highestConfirmedNumber", cbft.getHighestConfirmed().Number,
 		"rootIrreversibleHash", cbft.getRootIrreversible().block.Hash(),
 		"rootIrreversibleNumber", cbft.getRootIrreversible().Number)
+
+	consensusNodes := cbft.ConsensusNodes(new(big.Int).Sub(block.Number(), common.Big1), block.ParentHash(), block.Number())
+	if consensusNodes != nil && len(consensusNodes) == 1 && cbft.config.NodeID==consensusNodes[0] {
+		log.Debug("single node Mode")
+		cbft.flushReadyBlock()
+		return nil
+	}
+
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
 	}
@@ -1513,14 +1510,20 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	consensusNodes := cbft.ConsensusNodes(parentNumber, current.block.ParentHash(), blockNumber)
 
-	if consensusNodes != nil && len(consensusNodes) == 1 {
+	if consensusNodes != nil && len(consensusNodes) == 1 && cbft.config.NodeID==consensusNodes[0]{
 		log.Debug("single node Mode")
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
-		current.isConfirmed = true
+		current.rcvTime = toMilliseconds(time.Now())
+		current.inTree = true
+		current.isExecuted = true
 		current.isSigned = true
-		cbft.setHighestLogical(current)
-		cbft.highestConfirmed.Store(current)
-		cbft.flushReadyBlock()
+		current.isConfirmed = true
+
+		cbft.dataReceiveCh <- current
+
+		// highestLogical and highestConfirmed will be reset in flushReadyBlock() immediately.
+		//cbft.setHighestLogical(current)
+		//cbft.highestConfirmed.Store(current)
 
 		log.Debug("reset TxPool after block sealed", "hash", current.block.Hash(), "number", current.Number)
 		cbft.txPool.Reset(current.block)
