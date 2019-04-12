@@ -693,18 +693,22 @@ func (cbft *Cbft) OnBlockSynced() {
 }
 
 func (cbft *Cbft) blockSynced() {
-	log.Debug("=== call blockSynced() ===\n",
+	currentBlock := cbft.blockChain.CurrentBlock()
+	blockNumber := currentBlock.Number()
+	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+	consensusNodes := cbft.ConsensusNodes(parentNumber, currentBlock.ParentHash(), blockNumber)
+
+	log.Debug("=== call blockSynced() ===",
 		"highestLogicalHash", cbft.getHighestLogical().block.Hash(),
 		"highestLogicalNumber", cbft.getHighestLogical().Number,
 		"highestConfirmedHash", cbft.getHighestConfirmed().block.Hash(),
 		"highestConfirmedNumber", cbft.getHighestConfirmed().Number,
 		"rootIrreversibleHash", cbft.getRootIrreversible().block.Hash(),
-		"rootIrreversibleNumber", cbft.getRootIrreversible().Number)
+		"rootIrreversibleNumber", cbft.getRootIrreversible().Number,
+		"number", currentBlock.Number(),
+		"hash", currentBlock.Hash())
 
-	currentBlock := cbft.blockChain.CurrentBlock()
-	blockNumber := currentBlock.Number()
-	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
-	consensusNodes := cbft.ConsensusNodes(parentNumber, currentBlock.ParentHash(), blockNumber)
+
 	if consensusNodes != nil && len(consensusNodes) == 1 {
 		log.Debug("single node mode, ignore the signal of block synced")
 		return
@@ -810,13 +814,15 @@ func (cbft *Cbft) blockSynced() {
 		}
 	}
 
-	log.Debug("=== end of blockSynced() ===\n",
+	log.Debug("=== end of blockSynced() ===",
 		"highestLogicalHash", cbft.getHighestLogical().block.Hash(),
 		"highestLogicalNumber", cbft.getHighestLogical().Number,
 		"highestConfirmedHash", cbft.getHighestConfirmed().block.Hash(),
 		"highestConfirmedNumber", cbft.getHighestConfirmed().Number,
 		"rootIrreversibleHash", cbft.getRootIrreversible().block.Hash(),
-		"rootIrreversibleNumber", cbft.getRootIrreversible().Number)
+		"rootIrreversibleNumber", cbft.getRootIrreversible().Number,
+		"number", currentBlock.Number(),
+		"hash", currentBlock.Hash())
 }
 
 // dataReceiverLoop is the main loop that handle the data from worker, or eth protocol's handler
@@ -913,7 +919,7 @@ func (cbft *Cbft) removeByTailored(badBlock *BlockExt) {
 
 // signReceiver handles the received block signature
 func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
-	log.Debug("=== call signReceiver() ===\n",
+	log.Debug("=== call signReceiver() ===",
 		"hash", sig.Hash,
 		"number", sig.Number.Uint64(),
 		"highestLogicalHash", cbft.getHighestLogical().block.Hash(),
@@ -973,7 +979,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 		cbft.flushReadyBlock()
 	}
 
-	log.Debug("=== end of signReceiver()  ===\n",
+	log.Debug("=== end of signReceiver()  ===",
 		"hash", hashLog,
 		"number", current.Number,
 		"highestLogicalHash", cbft.getHighestLogical().block.Hash(),
@@ -991,7 +997,7 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 	block := tmp.block
 	rcvTime := tmp.rcvTime
 
-	log.Debug("=== call blockReceiver() ===\n",
+	log.Debug("=== call blockReceiver() ===",
 		"hash", block.Hash(),
 		"number", block.NumberU64(),
 		"parentHash", block.ParentHash(),
@@ -1119,7 +1125,7 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 
 		cbft.flushReadyBlock()
 	}
-	log.Debug("=== end of blockReceiver() ===\n",
+	log.Debug("=== end of blockReceiver() ===",
 		"hash", block.Hash(),
 		"number", block.NumberU64(),
 		"parentHash", block.ParentHash(),
@@ -1794,6 +1800,7 @@ func (cbft *Cbft) isLegal(rcvTime int64, parentNumber *big.Int, parentHash commo
 //}
 
 func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) bool {
+
 	nodeIdx := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, blockNumber, nodeID, round)
 	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
 
