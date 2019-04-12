@@ -20,6 +20,7 @@ package geth
 
 import (
 	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
@@ -52,7 +53,7 @@ func BetanetGenesis() string {
 
 // InnerTestnetGenesis returns the JSON spec to use for the inner test network.
 func InnerTestnetGenesis() string {
-	enc, err := json.Marshal(core.DefaultInnerTestnetGenesisBlock())
+	enc, err := json.Marshal(core.DefaultInnerTestnetGenesisBlock(utils.InnerTimeFlag.Value))
 	if err != nil {
 		panic(err)
 	}
@@ -61,7 +62,7 @@ func InnerTestnetGenesis() string {
 
 // InnerDevnetGenesis returns the JSON spec to use for the inner test network.
 func InnerDevnetGenesis() string {
-	enc, err := json.Marshal(core.DefaultInnerDevnetGenesisBlock())
+	enc, err := json.Marshal(core.DefaultInnerDevnetGenesisBlock(utils.InnerTimeFlag.Value))
 	if err != nil {
 		panic(err)
 	}

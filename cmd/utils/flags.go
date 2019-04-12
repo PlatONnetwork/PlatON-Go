@@ -164,6 +164,11 @@ var (
 		Value: DirectoryString{homeDir()},
 	}
 	defaultSyncMode = eth.DefaultConfig.SyncMode
+	InnerTimeFlag = cli.Uint64Flag{
+		Name:  "innertime",
+		Usage: "inner time",
+		Value: 1546300800000,
+	}
 	SyncModeFlag    = TextMarshalerFlag{
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
@@ -1261,6 +1266,11 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.EVMInterpreter = ctx.GlobalString(EVMInterpreterFlag.Name)
 	}
 
+	// TODO inner time
+	if ctx.GlobalIsSet(InnerTimeFlag.Name) {
+		InnerTimeFlag.Value = ctx.GlobalUint64(InnerTimeFlag.Name)
+	}
+
 	// Override any default configs for hard coded networks.
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
@@ -1277,12 +1287,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 203
 		}
-		cfg.Genesis = core.DefaultInnerTestnetGenesisBlock()
+		cfg.Genesis = core.DefaultInnerTestnetGenesisBlock(InnerTimeFlag.Value)
 	case ctx.GlobalBool(InnerDevnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 204
 		}
-		cfg.Genesis = core.DefaultInnerDevnetGenesisBlock()
+		cfg.Genesis = core.DefaultInnerDevnetGenesisBlock(InnerTimeFlag.Value)
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -1424,9 +1434,9 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	case ctx.GlobalBool(BetanetFlag.Name):
 		genesis = core.DefaultBetanetGenesisBlock()
 	case ctx.GlobalBool(InnerTestnetFlag.Name):
-		genesis = core.DefaultInnerTestnetGenesisBlock()
+		genesis = core.DefaultInnerTestnetGenesisBlock(InnerTimeFlag.Value)
 	case ctx.GlobalBool(InnerDevnetFlag.Name):
-		genesis = core.DefaultInnerDevnetGenesisBlock()
+		genesis = core.DefaultInnerDevnetGenesisBlock(InnerTimeFlag.Value)
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}
