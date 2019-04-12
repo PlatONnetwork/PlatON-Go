@@ -1519,11 +1519,10 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 		current.isSigned = true
 		current.isConfirmed = true
 
-		cbft.dataReceiveCh <- current
+		cbft.setHighestLogical(current)
+		cbft.highestConfirmed.Store(current)
 
-		// highestLogical and highestConfirmed will be reset in flushReadyBlock() immediately.
-		//cbft.setHighestLogical(current)
-		//cbft.highestConfirmed.Store(current)
+		cbft.dataReceiveCh <- current
 
 		log.Debug("reset TxPool after block sealed", "hash", current.block.Hash(), "number", current.Number)
 		cbft.txPool.Reset(current.block)
