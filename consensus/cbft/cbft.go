@@ -693,22 +693,17 @@ func (cbft *Cbft) OnBlockSynced() {
 }
 
 func (cbft *Cbft) blockSynced() {
-	log.Debug("=== call blockSynced() ===\n",
+	currentBlock := cbft.blockChain.CurrentBlock()
+	log.Debug("=== call blockSynced() ===",
 		"highestLogicalHash", cbft.getHighestLogical().block.Hash(),
 		"highestLogicalNumber", cbft.getHighestLogical().Number,
 		"highestConfirmedHash", cbft.getHighestConfirmed().block.Hash(),
 		"highestConfirmedNumber", cbft.getHighestConfirmed().Number,
 		"rootIrreversibleHash", cbft.getRootIrreversible().block.Hash(),
-		"rootIrreversibleNumber", cbft.getRootIrreversible().Number)
+		"rootIrreversibleNumber", cbft.getRootIrreversible().Number,
+		"number", currentBlock.Number(),
+		"hash", currentBlock.Hash())
 
-	currentBlock := cbft.blockChain.CurrentBlock()
-	blockNumber := currentBlock.Number()
-	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
-	consensusNodes := cbft.ConsensusNodes(parentNumber, currentBlock.ParentHash(), blockNumber)
-	if consensusNodes != nil && len(consensusNodes) == 1 {
-		log.Debug("single node mode, ignore the signal of block synced")
-		return
-	}
 	if currentBlock.NumberU64() > cbft.getRootIrreversible().Number {
 		log.Debug("chain has a higher irreversible block", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 		newRoot := cbft.findBlockExt(currentBlock.Hash())
@@ -810,13 +805,15 @@ func (cbft *Cbft) blockSynced() {
 		}
 	}
 
-	log.Debug("=== end of blockSynced() ===\n",
+	log.Debug("=== end of blockSynced() ===",
 		"highestLogicalHash", cbft.getHighestLogical().block.Hash(),
 		"highestLogicalNumber", cbft.getHighestLogical().Number,
 		"highestConfirmedHash", cbft.getHighestConfirmed().block.Hash(),
 		"highestConfirmedNumber", cbft.getHighestConfirmed().Number,
 		"rootIrreversibleHash", cbft.getRootIrreversible().block.Hash(),
-		"rootIrreversibleNumber", cbft.getRootIrreversible().Number)
+		"rootIrreversibleNumber", cbft.getRootIrreversible().Number,
+		"number", currentBlock.Number(),
+		"hash", currentBlock.Hash())
 }
 
 // dataReceiverLoop is the main loop that handle the data from worker, or eth protocol's handler
@@ -913,7 +910,7 @@ func (cbft *Cbft) removeByTailored(badBlock *BlockExt) {
 
 // signReceiver handles the received block signature
 func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
-	log.Debug("=== call signReceiver() ===\n",
+	log.Debug("=== call signReceiver() ===",
 		"hash", sig.Hash,
 		"number", sig.Number.Uint64(),
 		"highestLogicalHash", cbft.getHighestLogical().block.Hash(),
@@ -973,7 +970,7 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 		cbft.flushReadyBlock()
 	}
 
-	log.Debug("=== end of signReceiver()  ===\n",
+	log.Debug("=== end of signReceiver()  ===",
 		"hash", hashLog,
 		"number", current.Number,
 		"highestLogicalHash", cbft.getHighestLogical().block.Hash(),
@@ -987,11 +984,9 @@ func (cbft *Cbft) signReceiver(sig *cbfttypes.BlockSignature) error {
 
 //blockReceiver handles the new block
 func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
-
 	block := tmp.block
 	rcvTime := tmp.rcvTime
-
-	log.Debug("=== call blockReceiver() ===\n",
+	log.Debug("=== call blockReceiver() ===",
 		"hash", block.Hash(),
 		"number", block.NumberU64(),
 		"parentHash", block.ParentHash(),
@@ -1002,6 +997,14 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 		"highestConfirmedNumber", cbft.getHighestConfirmed().Number,
 		"rootIrreversibleHash", cbft.getRootIrreversible().block.Hash(),
 		"rootIrreversibleNumber", cbft.getRootIrreversible().Number)
+
+	consensusNodes := cbft.ConsensusNodes(new(big.Int).Sub(block.Number(), common.Big1), block.ParentHash(), block.Number())
+	if consensusNodes != nil && len(consensusNodes) == 1 && cbft.config.NodeID==consensusNodes[0] {
+		log.Debug("single node Mode")
+		cbft.flushReadyBlock()
+		return nil
+	}
+
 	if block.NumberU64() <= 0 {
 		return errGenesisBlock
 	}
@@ -1119,7 +1122,7 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 
 		cbft.flushReadyBlock()
 	}
-	log.Debug("=== end of blockReceiver() ===\n",
+	log.Debug("=== end of blockReceiver() ===",
 		"hash", block.Hash(),
 		"number", block.NumberU64(),
 		"parentHash", block.ParentHash(),
@@ -1510,14 +1513,19 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 
 	consensusNodes := cbft.ConsensusNodes(parentNumber, current.block.ParentHash(), blockNumber)
 
-	if consensusNodes != nil && len(consensusNodes) == 1 {
+	if consensusNodes != nil && len(consensusNodes) == 1 && cbft.config.NodeID==consensusNodes[0]{
 		log.Debug("single node Mode")
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
-		current.isConfirmed = true
+		current.rcvTime = toMilliseconds(time.Now())
+		current.inTree = true
+		current.isExecuted = true
 		current.isSigned = true
+		current.isConfirmed = true
+
 		cbft.setHighestLogical(current)
 		cbft.highestConfirmed.Store(current)
-		cbft.flushReadyBlock()
+
+		cbft.dataReceiveCh <- current
 
 		log.Debug("reset TxPool after block sealed", "hash", current.block.Hash(), "number", current.Number)
 		cbft.txPool.Reset(current.block)
@@ -1797,15 +1805,16 @@ func (cbft *Cbft) isLegal(rcvTime int64, parentNumber *big.Int, parentHash commo
 //}
 
 func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) bool {
-	nodeIdx := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, blockNumber, nodeID, round)
+
+	nodeIdx, consensusNodes := cbft.ppos.BlockProducerIndex(parentNumber, parentHash, blockNumber, nodeID, round)
 	startEpoch := cbft.ppos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
 		durationPerNode := cbft.config.Duration * 1000
 
-		consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
+		//consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
 		if consensusNodes == nil || len(consensusNodes) <= 0 {
-			log.Error("calTurn consensusNodes is emtpy~")
+			log.Error("there is no consensus node",  "number", blockNumber)
 			return false
 		} else if len(consensusNodes) == 1 {
 			return true
@@ -1819,10 +1828,13 @@ func (cbft *Cbft) calTurn(timePoint int64, parentNumber *big.Int, parentHash com
 
 		max := (nodeIdx + 1) * durationPerNode
 
-		//log.Debug("calTurn", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", timePoint, "startEpoch", startEpoch)
-
 		if value > min && value < max {
 			return true
+		}
+	}else{
+		log.Debug("local is not a consensus node", "localNode", nodeID.String(), "number", blockNumber)
+		for idx, nid := range  consensusNodes{
+			log.Debug("consensus node list", "idx", idx, "nodeID", nid.String())
 		}
 	}
 	return false
@@ -1943,7 +1955,7 @@ func (cbft *Cbft) ShouldSeal(parentNumber *big.Int, parentHash common.Hash, comm
 			inturn = false
 		}
 	}
-	log.Debug("end of ShouldSeal()", "result", inturn)
+	log.Debug("end of ShouldSeal()", "result", inturn, "number", commitNumber)
 	return inturn
 }
 

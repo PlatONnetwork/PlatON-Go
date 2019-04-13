@@ -48,7 +48,7 @@ func newPpos(config *params.CbftConfig) *ppos {
 }
 
 
-func (p *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) int64 {
+func (p *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) (int64, []discover.NodeID) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
@@ -64,30 +64,30 @@ func (p *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash,
 		switch round {
 			case former:
 				if _former != nil && _former.start != nil && _former.end != nil && blockNumber.Cmp(_former.start) >= 0 && blockNumber.Cmp(_former.end) <= 0 {
-					return p.roundIndex(nodeID, _former)
+					return p.roundIndex(nodeID, _former), _former.nodeIds
 				}
 
 			case current:
 				if _current != nil && _current.start != nil && _current.end != nil && blockNumber.Cmp(_current.start) >= 0 && blockNumber.Cmp(_current.end) <= 0 {
-					return p.roundIndex(nodeID, _current)
+					return p.roundIndex(nodeID, _current), _current.nodeIds
 				}
 
 			case next:
 				if _next != nil && _next.start != nil && _next.end != nil && blockNumber.Cmp(_next.start) >= 0 && blockNumber.Cmp(_next.end) <= 0 {
-					return p.roundIndex(nodeID, _next)
+					return p.roundIndex(nodeID, _next), _next.nodeIds
 				}
 
 			default:
 				if _former != nil && _former.start != nil && _former.end != nil && blockNumber.Cmp(_former.start) >= 0 && blockNumber.Cmp(_former.end) <= 0 {
-					return p.roundIndex(nodeID, _former)
+					return p.roundIndex(nodeID, _former), _former.nodeIds
 				} else if _current != nil && _current.start != nil && _current.end != nil && blockNumber.Cmp(_current.start) >= 0 && blockNumber.Cmp(_current.end) <= 0 {
-					return p.roundIndex(nodeID, _current)
+					return p.roundIndex(nodeID, _current), _current.nodeIds
 				} else if _next != nil && _next.start != nil && _next.end != nil && blockNumber.Cmp(_next.start) >= 0 && blockNumber.Cmp(_next.end) <= 0 {
-					return p.roundIndex(nodeID, _next)
+					return p.roundIndex(nodeID, _next), _next.nodeIds
 				}
 		}
 	}
-	return -1
+	return -1, nil
 }
 
 func (p *ppos) roundIndex(nodeID discover.NodeID, round *pposRound) int64 {
