@@ -1166,14 +1166,14 @@ func (cbft *Cbft) checkFork(newConfirmed *BlockExt) {
 		origPath := cbft.backTrackBlocks(cbft.getHighestLogical(), cbft.getRootIrreversible(), true)
 
 		oldTress, newTress := cbft.forked(origPath, newPath)
-		
+
 		if len(newTress) > 0 {
 
 			//fork
 			log.Warn("the block chain in memory forked", "newHighestConfirmedHash", newHighestConfirmed.block.Hash(), "newHighestConfirmedNumber", newHighestConfirmed.Number)
-			
+
 			cbft.txPool.ForkedReset(extraBlocks(oldTress), extraBlocks(newTress))
-	
+
 			//forkFrom to lower block
 			cbft.highestConfirmed.Store(newHighestConfirmed)
 			cbft.setHighestLogical(newHighestLogical)
