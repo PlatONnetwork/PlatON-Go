@@ -331,7 +331,7 @@ func  (temp *PPOS_TEMP) GetPPosStorageProto() (common.Hash, []byte, error) {
 		}else {
 			// TODO
 
-			PrintObject("GetPPosStorageProto resolve the data of PB:", pb_pposTemp)
+			//PrintObject("GetPPosStorageProto resolve the data of PB:", pb_pposTemp)
 
 
 			log.Debug("Call GetPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "dataMD5", md5.Sum(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
