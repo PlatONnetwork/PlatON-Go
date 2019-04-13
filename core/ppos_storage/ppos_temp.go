@@ -332,7 +332,10 @@ func  (temp *PPOS_TEMP) GetPPosStorageProto() (common.Hash, []byte, error) {
 			// TODO
 
 			//PrintObject("GetPPosStorageProto resolve the data of PB:", pb_pposTemp)
-
+			curr_Num, _ := new(big.Int).SetString(pb_pposTemp.BlockNumber, 10)
+			if curr_Num.Cmp(big.NewInt(common.BaseElection - 1)) < 0 {
+				return common.Hash{}, nil, nil
+			}
 
 			log.Debug("Call GetPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "dataMD5", md5.Sum(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
 			return common.HexToHash(pb_pposTemp.BlockHash), data, nil
