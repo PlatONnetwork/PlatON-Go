@@ -1496,7 +1496,10 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	state := cbft.blockChainCache.ReadStateDB(sealhash)
 	log.Debug("setNodeCache", "parentNumber", parentNumber, "parentHash", current.block.ParentHash(), "blockNumber", blockNumber, "blockHash", current.block.Hash())
 	if state != nil {
-		cbft.ppos.SetNodeCache(state, parentNumber, blockNumber, block.ParentHash(), current.block.Hash())
+
+		genesis := cbft.blockChain.Genesis()
+
+		cbft.ppos.SetNodeCache(state, genesis.Number(), parentNumber, blockNumber, genesis.Hash(), block.ParentHash(), current.block.Hash())
 		blockInterval := new(big.Int).Sub(current.block.Number(), cbft.blockChain.CurrentBlock().Number())
 		cbft.ppos.Submit2Cache(state, blockNumber, blockInterval, current.block.Hash())
 		root := state.IntermediateRoot(cbft.blockChain.Config().IsEIP158(current.block.Number()))
@@ -1993,7 +1996,8 @@ func (cbft *Cbft) GetOwnNodeID() discover.NodeID {
 
 func (cbft *Cbft) SetNodeCache(state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash) error {
 	log.Info("cbft SetNodeCache", "parentNumber", parentNumber, "parentHash", parentHash, "currentNumber", currentNumber, "currentHash", currentHash)
-	return cbft.ppos.SetNodeCache(state, parentNumber, currentNumber, parentHash, currentHash)
+	genesis := cbft.blockChain.Genesis()
+	return cbft.ppos.SetNodeCache(state, genesis.Number(), parentNumber, currentNumber, genesis.Hash(), parentHash, currentHash)
 }
 
 func (cbft *Cbft) Notify(state vm.StateDB, blockNumber *big.Int) error {

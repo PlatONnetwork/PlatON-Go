@@ -84,6 +84,7 @@ func (r roundCache) setNodeCache (blockNumber *big.Int, blockHash common.Hash, c
 		r[num] = node
 	}
 	// delete index out of BaseIrrCount
+	// But doesn't delete genesis NodeCache
 	baseIrrCountNum := num - 2*common.BaseIrrCount
 	if baseIrrCountNum > 0 && baseIrrCountNum < num {
 		delete(r, baseIrrCountNum)
