@@ -968,27 +968,27 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 	calculate can dependency Hash
 	*/
 	go func() {
-		resqueue[0] = buildPBcanqueue("pres", p.c_storage.pres)
+		resqueue[0] = buildPBcanqueue("DependencyFunc, pres", p.c_storage.pres)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[1] = buildPBcanqueue("currs", p.c_storage.currs)
+		resqueue[1] = buildPBcanqueue("DependencyFunc, currs", p.c_storage.currs)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[2] = buildPBcanqueue("nexts", p.c_storage.nexts)
+		resqueue[2] = buildPBcanqueue("DependencyFunc, nexts", p.c_storage.nexts)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[3] = buildPBcanqueue("imms", p.c_storage.imms)
+		resqueue[3] = buildPBcanqueue("DependencyFunc, imms", p.c_storage.imms)
 		wg.Done()
 	}()
 
 	go func() {
-		resqueue[4] = buildPBcanqueue("res", p.c_storage.res)
+		resqueue[4] = buildPBcanqueue("DependencyFunc, res", p.c_storage.res)
 		wg.Done()
 	}()
 
@@ -1031,12 +1031,12 @@ func (p *Ppos_storage) CalculateHash(blockNumber *big.Int, blockHash common.Hash
 	ret := crypto.Keccak256Hash(data)
 	log.Debug("Call CalculateHash finish ...", "blockNumber", blockNumber, "blockHash", blockHash.Hex(), "proto out len", len(data), "Hash", string(ret[:]),"md5",  md5.Sum(data),  "ppos storage Hash", ret.Hex(), "Total Time spent", fmt.Sprintf("%v ms", start.End()))
 
-	PrintObject("Call CalculateHash Data Cans", sortTemp.Cans)
+	/*PrintObject("Call CalculateHash Data Cans", sortTemp.Cans)
 	PrintObject("Call CalculateHash Data ReIds", sortTemp.ReIds)
 	PrintObject("Call CalculateHash Data Refunds", sortTemp.Refunds)
 	PrintObject("Call CalculateHash Data Sq", sortTemp.Sq)
 	PrintObject("Call CalculateHash Data NodeIds", sortTemp.NodeIds)
-	PrintObject("Call CalculateHash Data Deps", sortTemp.Deps)
+	PrintObject("Call CalculateHash Data Deps", sortTemp.Deps)*/
 
 	return ret, nil
 

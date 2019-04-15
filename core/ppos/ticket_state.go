@@ -126,7 +126,7 @@ func (t *TicketPool) voteTicket(stateDB vm.StateDB, owner common.Address, voteNu
 	//	voteNumber,
 	//}
 	//t.recordExpireTicket(stateDB, blockNumber, ticketId)
-	log.Debug("Record the success of the ticket to expire, and start reducing the number of tickets", "blockNumber", blockNumber.Uint64(), "surplusQuantity", surplusQuantity, "ticketId", ticketId.Hex())
+	//log.Debug("Record the success of the ticket to expire, and start reducing the number of tickets", "blockNumber", blockNumber.Uint64(), "surplusQuantity", surplusQuantity, "ticketId", ticketId.Hex())
 	t.setPoolNumber(stateDB, surplusQuantity-voteNumber)
 	stateDB.GetPPOSCache().AppendTicket(nodeId, ticketId, voteNumber, deposit)
 	log.Debug("Voting SUCCUESS !!!!!!  Reduce the remaining amount of the ticket pool successfully", "surplusQuantity", t.GetPoolNumber(stateDB), "nodeId", nodeId.String(), "blockNumber", blockNumber.Uint64(), "ticketId", ticketId.Hex())
@@ -296,7 +296,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 		if len(candidateTicketIds) == 0 {
 			continue
 		}
-		epoch := t.GetCandidateEpoch(stateDB, nodeId)
+		//epoch := t.GetCandidateEpoch(stateDB, nodeId)
 		ticketCount := t.GetCandidateTicketCount(stateDB, nodeId)
 		surplusQuantity := t.GetPoolNumber(stateDB)
 		log.Debug("Start reducing the number of tickets on DropReturnTicket", "surplusQuantity", surplusQuantity, "candidateTicketIds", ticketCount)
@@ -319,7 +319,7 @@ func (t *TicketPool) DropReturnTicket(stateDB vm.StateDB, blockNumber *big.Int, 
 			}
 			//t.removeExpireTicket(stateDB, ticket.BlockNumber, ticketId)
 		}
-		log.Debug("Delete candidate ticket collection on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", ticketCount, "epoch", epoch)
+		log.Debug("Delete candidate ticket collection on DropReturnTicket", "nodeId", nodeId.String(), "ticketSize", ticketCount)
 		stateDB.GetPPOSCache().RemoveTicketDependency(nodeId)
 	}
 	log.Debug("End processing the list on DropReturnTicket")

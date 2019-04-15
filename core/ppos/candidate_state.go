@@ -431,45 +431,19 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		c.setCandidateQueue(queue, flag)
 	}
 
-	// firt, we must delete can in other queue
-	if allowed {
-		/** first delete this can on reserves */
-		if delreserve {
-			delCandidateFunc(can.CandidateId, ppos_storage.RESERVE)
-		}
-	}else {
-		/** first delete this can on immediates */
-		if delimmediate {
-			delCandidateFunc(can.CandidateId, ppos_storage.IMMEDIATE)
-		}
-	}
-
-
-
-	// using the cache handle current queue
-	cacheArr := make(types.CandidateQueue, 0)
-	if allowed {
-		for _, v := range c.immediateCandidates {
-			cacheArr = append(cacheArr, v)
-		}
-	} else {
-		for _, v := range c.reserveCandidates {
-			cacheArr = append(cacheArr, v)
-		}
-	}
 
 	/**
-	 handle the reserve queue func
-	 */
+	handle the reserve queue func
+	*/
 	handleReserveFunc := func(re_queue types.CandidateQueue) []discover.NodeID {
 
 		re_queueCopy := make(types.CandidateQueue, len(re_queue))
 		copy(re_queueCopy, re_queue)
 
-		log.Debug("Call setCandidateInfo to handleReserveFunc to makeCandidateSort the reserve queue ...")
+		str := "Call setCandidateInfo to handleReserveFunc to sort the reserve queue ..."
 
 		// sort reserve array
-		makeCandidateSort(state, re_queueCopy)
+		makeCandidateSort(str, state, re_queueCopy)
 
 		nodeIds := make([]discover.NodeID, 0)
 
@@ -498,8 +472,38 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		return nodeIds
 	}
 
+
+	var str string
+	// using the cache handle current queue
+	cacheArr := make(types.CandidateQueue, 0)
+	if allowed {
+
+		/** first delete this can on reserves */
+		if delreserve {
+			delCandidateFunc(can.CandidateId, ppos_storage.RESERVE)
+		}
+
+		str = "Call setCandidateInfo to sort the immediate queue ..."
+		for _, v := range c.immediateCandidates {
+			cacheArr = append(cacheArr, v)
+		}
+	} else {
+
+		/** first delete this can on immediates */
+		if delimmediate {
+			delCandidateFunc(can.CandidateId, ppos_storage.IMMEDIATE)
+		}
+
+
+		str = "Call setCandidateInfo to sort the reserve queue ..."
+		for _, v := range c.reserveCandidates {
+			cacheArr = append(cacheArr, v)
+		}
+	}
+
+
 	// sort cache array
-	makeCandidateSort(state, cacheArr)
+	makeCandidateSort(str, state, cacheArr)
 
 	nodeIds := make([]discover.NodeID, 0)
 
@@ -551,16 +555,10 @@ func (c *CandidatePool) setCandidateInfo(state vm.StateDB, nodeId discover.NodeI
 		c.setCandidateQueue(cacheArr, ppos_storage.RESERVE)
 	}
 
-	if allowed {
-		if nil != promoteReserveFunc {
-			promoteReserveFunc(state, currentBlockNumber)
-		}
-
-	} else {
-		if nil != promoteReserveFunc {
-			promoteReserveFunc(state, currentBlockNumber)
-		}
+	if nil != promoteReserveFunc {
+		promoteReserveFunc(state, currentBlockNumber)
 	}
+
 	return nodeIds
 }
 
@@ -596,9 +594,9 @@ func (c *CandidatePool) electionUpdateCanById(state vm.StateDB, currentBlockNumb
 	re_queue := c.getCandidateQueue(ppos_storage.RESERVE)
 
 
-	PrintObject("Call Election to electionUpdateCanById, Before shuffle double queue the old immediate queue is", im_queue)
+	PrintObject("Call Election to electionUpdateCanById, Before shuffle double queue the old immediate queue len:=" + fmt.Sprint(len(im_queue)) + " ,queue is", im_queue)
 
-	PrintObject("Call Election to electionUpdateCanById, Before shuffle double queue the old reserve queue is", re_queue)
+	PrintObject("Call Election to electionUpdateCanById, Before shuffle double queue the old reserve queue len:=" + fmt.Sprint(len(re_queue)) + " ,queue is", re_queue)
 
 	// immediate queue
 	for _, can := range re_del_temp{
@@ -626,9 +624,9 @@ func (c *CandidatePool) electionUpdateCanById(state vm.StateDB, currentBlockNumb
 	}
 
 
-	PrintObject("Call Election to electionUpdateCanById, After shuffle double queue the old immediate queue is", im_queue)
+	PrintObject("Call Election to electionUpdateCanById, After shuffle double queue the old immediate queue len:=" + fmt.Sprint(len(im_queue)) + " ,queue is", im_queue)
 
-	PrintObject("Call Election to electionUpdateCanById, After shuffle double queue the old reserve queue is", re_queue)
+	PrintObject("Call Election to electionUpdateCanById, After shuffle double queue the old reserve queue len:=" + fmt.Sprint(len(re_queue)) + " ,queue is", re_queue)
 
 
 	/**
@@ -639,10 +637,10 @@ func (c *CandidatePool) electionUpdateCanById(state vm.StateDB, currentBlockNumb
 		re_queueCopy := make(types.CandidateQueue, len(re_queue))
 		copy(re_queueCopy, re_queue)
 
-		log.Debug("Call setCandidateInfo to handleReserveFunc to makeCandidateSort the reserve queue ...")
+		str := "Call Election to handleReserveFunc to sort the reserve queue ..."
 
 		// sort reserve array
-		makeCandidateSort(state, re_queueCopy)
+		makeCandidateSort(str, state, re_queueCopy)
 
 		nodeIds := make([]discover.NodeID, 0)
 
@@ -666,15 +664,21 @@ func (c *CandidatePool) electionUpdateCanById(state vm.StateDB, currentBlockNumb
 			}
 		}
 
-		PrintObject("Call Election to electionUpdateCanById, Finally shuffle double queue the old reserve queue is", re_queueCopy)
+		PrintObject("Call Election to electionUpdateCanById to handleReserveFunc, Finally shuffle double queue the old reserve queue len:=" + fmt.Sprint(len(re_queueCopy)) + " ,queue is", re_queueCopy)
 
 		c.setCandidateQueue(re_queueCopy, ppos_storage.RESERVE)
 
 		return nodeIds
 	}
 
+
+
+
+
+	str := "Call Election to start sort immediate queue ..."
+
 	// sort immediate array
-	makeCandidateSort(state, im_queue)
+	makeCandidateSort(str, state, im_queue)
 
 	nodeIdArr := make([]discover.NodeID, 0)
 
@@ -695,15 +699,20 @@ func (c *CandidatePool) electionUpdateCanById(state vm.StateDB, currentBlockNumb
 		if len(addreserveQueue) != 0 {
 			// append into reserve queue
 			re_queue = append(re_queue, addreserveQueue...)
-			if ids := handleReserveFunc(re_queue); len(ids) != 0 {
-				nodeIdArr = append(nodeIdArr, ids...)
-			}
 		}
 
+	}/*else {
+		PrintObject("Call Election to electionUpdateCanById to direct, Finally shuffle double queue the old reserve queue is", re_queue)
+		c.setCandidateQueue(re_queue, ppos_storage.RESERVE)
+	}*/
+
+	// hanle and sets reserve queue
+	if ids := handleReserveFunc(re_queue); len(ids) != 0 {
+		nodeIdArr = append(nodeIdArr, ids...)
 	}
 
-	PrintObject("Call Election to electionUpdateCanById, Finally shuffle double queue the old immediate queue is", im_queue)
-
+	PrintObject("Call Election to electionUpdateCanById, Finally shuffle double queue the old immediate queue len:=" + fmt.Sprint(len(im_queue)) + " ,queue is", im_queue)
+	// set immediate queue
 	c.setCandidateQueue(im_queue, ppos_storage.IMMEDIATE)
 
 	c.promoteReserveQueue(state, currentBlockNumber)
@@ -1062,7 +1071,7 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 	contractBalance := state.GetBalance(common.CandidatePoolAddr)
 
 
-	PrintObject("Call RefundBalance Into a few RefundBlockNumber Remain Refund Arr ,Before  Calculate  curr blocknumber:" + blockNumber.String(), queueCopy)
+	PrintObject("Call RefundBalance Into a few RefundBlockNumber Remain Refund Arr ,Before  Calculate  curr blocknumber:" + blockNumber.String() + " ,len:=" + fmt.Sprint(len(queueCopy)) + " ,refunds is", queueCopy)
 
 	// Traverse all refund information belong to this nodeId
 	for index := 0; index < len(queueCopy); index++ {
@@ -1092,13 +1101,13 @@ func (c *CandidatePool) RefundBalance(state vm.StateDB, nodeId discover.NodeID, 
 
 		// check contract account balance
 		if (contractBalance.Cmp(amount)) < 0 {
-			PrintObject("Failed to RefundBalance constract account insufficient balance ,curr blocknumber:" + blockNumber.String() + ", remain refunds", queueCopy)
+			PrintObject("Failed to RefundBalance constract account insufficient balance ,curr blocknumber:" + blockNumber.String() + ",len:=" + fmt.Sprint(len(queueCopy)) + " ,remain refunds is", queueCopy)
 			log.Error("Failed to RefundBalance constract account insufficient balance ", "curr blocknumber:", blockNumber.String(), "nodeId", nodeId.String(), "contract's balance", state.GetBalance(common.CandidatePoolAddr).String(), "amount", amount.String())
 			return ContractBalanceNotEnoughErr
 		}
 	}
 
-	PrintObject("Call RefundBalance Into a few RefundBlockNumber Remain Refund Arr , After Calculate curr blocknumber:" + blockNumber.String(), queueCopy)
+	PrintObject("Call RefundBalance Into a few RefundBlockNumber Remain Refund Arr , After Calculate curr blocknumber:" + blockNumber.String() + " ,len:=" + fmt.Sprint(len(queueCopy)) + " ,refunds is", queueCopy)
 
 	// update the tire
 	if len(queueCopy) == 0 { // full RefundBlockNumber
@@ -1230,8 +1239,9 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash, b
 
 	imm_queue := c.getCandidateQueue(ppos_storage.IMMEDIATE)
 
+	str := "When Election, to election to sort immediate queue ..."
 	// sort immediate candidates
-	makeCandidateSort(state, imm_queue)
+	makeCandidateSort(str, state, imm_queue)
 
 	log.Info("When Election, Sorted the immediate array length:", "current blockNumber", blockNumber.String(), "len", len(imm_queue))
 	PrintObject("When Election, Sorted the immediate array: current blockNumber:" + blockNumber.String() + ":", imm_queue)
@@ -1240,7 +1250,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash, b
 	for i, can := range imm_queue {
 		immediateIds[i] = can.CandidateId
 	}
-	PrintObject("When Election, current immediate is: current blockNumber:" + blockNumber.String() + ":", immediateIds)
+	PrintObject("When Election, current immediate is: current blockNumber:" + blockNumber.String() + " ,len:=" + fmt.Sprint(len(immediateIds)) + " ,arr is:", immediateIds)
 
 	// a certain number of witnesses in front of the cache
 	var nextIdArr []discover.NodeID
@@ -1275,7 +1285,7 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash, b
 	// clear all old nextwitnesses information （If it is forked, the next round is no empty.）
 	c.delCandidateQueue(ppos_storage.NEXT)
 
-	nodeIds := make([]*discover.Node, 0)
+	nodeArr := make([]*discover.Node, 0)
 	// Check election whether it's empty or not
 	nextQueue, isEmptyElection := c.handleEmptyElection(nextQueue)
 
@@ -1309,17 +1319,17 @@ func (c *CandidatePool) election(state *state.StateDB, parentHash common.Hash, b
 			log.Error("Failed to build Node on Election", "current blockNumber", blockNumber.String(), "nodeId", can.CandidateId.String(), "err", err)
 			continue
 		} else {
-			nodeIds = append(nodeIds, node)
+			nodeArr = append(nodeArr, node)
 		}
 	}
 
 	// set next witness
 	c.setCandidateQueue(nextQueue, ppos_storage.NEXT)
 
-	log.Info("When Election,next round witness node count is:", "current blockNumber", blockNumber.String(), "len", len(nodeIds))
-	PrintObject("When Election,next round witness node information is: current blockNumber:" + blockNumber.String() + ":", nodeIds)
+	log.Info("When Election,next round witness node count is:", "current blockNumber", blockNumber.String(), "len", len(nodeArr))
+	PrintObject("When Election,next round witness node information is: current blockNumber:" + blockNumber.String() + ":", nodeArr)
 	log.Info("Call Election SUCCESS !!!!!!!", "current blockNumber", blockNumber.String())
-	return nodeIds, nextQueue, isEmptyElection, nil
+	return nodeArr, nextQueue, isEmptyElection, nil
 }
 
 // return params
@@ -1598,7 +1608,7 @@ func (c *CandidatePool) UpdateElectedQueue(state vm.StateDB, currBlockNumber *bi
 
 func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.Int, nodeIds ...discover.NodeID) []discover.NodeID {
 	log.Info("Call UpdateElectedQueue Update the Campaign queue Start ...")
-	PrintObject("Call UpdateElectedQueue input param's nodeIds is:", nodeIds)
+	PrintObject("Call UpdateElectedQueue input param's nodeIds len:= " + fmt.Sprint(len(nodeIds)) + " ,is:", nodeIds)
 	if len(nodeIds) == 0 {
 		log.Debug("UpdateElectedQueue FINISH, input param's nodeIds is empty !!!!!!!!!!")
 		return nil
@@ -1647,7 +1657,8 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 
 		PrintObject("Call UpdateElectedQueue, handleReserveFunc, Before update the reserve len is " + fmt.Sprint(len(queueCopy)) + ", config.maxCount:" + fmt.Sprint(c.maxCount) + " , the queue is", queueCopy)
 
-		makeCandidateSort(state, queueCopy)
+		str := "Call UpdateElectedQueue, handleReserveFunc, o sort reserve queue ..."
+		makeCandidateSort(str, state, queueCopy)
 		if len(queueCopy) > int(c.maxCount) {
 			// Intercepting the lost candidates to tmpArr
 			tmpArr := (queueCopy)[c.maxCount:]
@@ -1731,10 +1742,10 @@ func (c *CandidatePool) updateQueue(state vm.StateDB, currentBlockNumber *big.In
 			old_queue = delCanFromQueueFunc("res", can.CandidateId, old_queue, oldQueueFlag)
 			delete(c.reserveCandidates, can.CandidateId)
 
-
+			str := "Call UpdateElectedQueue, workFunc to sort immediate queue ..."
 			// input immediate
 			new_queue = append(new_queue, can)
-			makeCandidateSort(state, new_queue)
+			makeCandidateSort(str, state, new_queue)
 
 			var inRes bool
 			if len(new_queue) > int(c.maxCount) {
@@ -2063,8 +2074,8 @@ func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber
 	im_queue := c.storage.GetCandidateQueue(ppos_storage.IMMEDIATE)
 	re_queue := c.storage.GetCandidateQueue(ppos_storage.RESERVE)
 
-	PrintObject("Call promoteReserveQueue Before the immediate queue", im_queue)
-	PrintObject("Call promoteReserveQueue Before the reserve queue", re_queue)
+	PrintObject("Call promoteReserveQueue Before the immediate queue len:=" + fmt.Sprint(len(im_queue)) + " ,queue is", im_queue)
+	PrintObject("Call promoteReserveQueue Before the reserve queue len:=" + fmt.Sprint(len(re_queue)) + " ,queue is", re_queue)
 
 
 	// current ticket price
@@ -2121,9 +2132,9 @@ func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber
 	}
 
 
-	log.Debug("Call promoteReserveQueue to makeCandidateSort the new immediate queue ...")
+	str := "Call promoteReserveQueue to sort the new immediate queue ..."
 	// sort immediate
-	makeCandidateSort(state, im_queue)
+	makeCandidateSort(str, state, im_queue)
 
 	//nodeIds := make([]discover.NodeID, 0)
 
@@ -2157,16 +2168,16 @@ func (c *CandidatePool) promoteReserveQueue(state vm.StateDB, currentBlockNumber
 	if len(addRe_queue) > 0 {
 		re_queue = append(re_queue, addRe_queue...)
 
-		log.Debug("Call promoteReserveQueue to makeCandidateSort the new reserve queue ...")
-		makeCandidateSort(state, re_queue)
+		str := "Call promoteReserveQueue to sort the new reserve queue ..."
+		makeCandidateSort(str, state, re_queue)
 
 	}
 
 	// Sets the new reserve queue
 	c.setCandidateQueue(re_queue, ppos_storage.RESERVE)
 
-	PrintObject("Call promoteReserveQueue Finish the immediate queue", im_queue)
-	PrintObject("Call promoteReserveQueue Finish the reserve queue", re_queue)
+	PrintObject("Call promoteReserveQueue Finish the immediate queue len:=" + fmt.Sprint(len(im_queue)) + " ,queue is", im_queue)
+	PrintObject("Call promoteReserveQueue Finish the reserve queue len:=" + fmt.Sprint(len(re_queue)) + " ,queue is", re_queue)
 	log.Debug("Call promoteReserveQueue Finish !!! ...", "blockNumber", currentBlockNumber.String())
 }
 
@@ -2429,7 +2440,10 @@ func buildWitnessNode(can *types.Candidate) (*discover.Node, error) {
 	return discover.NewNode(can.CandidateId, ip, port, port), nil
 }
 
-func makeCandidateSort(state vm.StateDB, arr types.CandidateQueue) {
+func makeCandidateSort(logStr string, state vm.StateDB, arr types.CandidateQueue) {
+
+	log.Debug(logStr)
+
 	cand := make(types.CanConditions, 0)
 	for _, can := range arr {
 		tCount := tContext.GetCandidateTicketCount(state, can.CandidateId)

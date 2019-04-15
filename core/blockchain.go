@@ -20,6 +20,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/deckarep/golang-set"
 	"io"
 	"math/big"
@@ -735,7 +736,12 @@ func (bc *BlockChain) GetUnclesInChain(block *types.Block, length int) []*types.
 // TrieNode retrieves a blob of data associated with a trie node (or code hash)
 // either from ephemeral in-memory cache, or from persistent storage.
 func (bc *BlockChain) TrieNode(hash common.Hash) ([]byte, error) {
-	return bc.stateCache.TrieDB().Node(hash)
+	b, err := bc.stateCache.TrieDB().Node(hash)
+	log.Debug("TrieNode result", "hash", hash, "b", hexutil.Encode(b), "err", err)
+	if err != nil {
+		return bc.stateCache.TrieDB().Preimage(hash)
+	}
+	return b, err
 }
 
 // Stop stops the blockchain service. If any imports are currently in progress
@@ -756,7 +762,8 @@ func (bc *BlockChain) Stop() {
 	// TODO PPOS ADD flush ppos_cache into disk
 	// flush ppos_cache into disk TODO
 	targetNum := new(big.Int).Add(bc.CurrentBlock().Number(), big.NewInt(int64(common.BaseSwitchWitness - common.BaseElection + 1)))
-	if _, m := new(big.Int).DivMod(targetNum, big.NewInt(common.BaseSwitchWitness), new(big.Int)); m.Cmp(big.NewInt(0)) == 0 {
+	// When current block number equal N*BaseSwitchness -21 OR  current block number less than 1*BaseSwitchness -21
+	if _, m := new(big.Int).DivMod(targetNum, big.NewInt(common.BaseSwitchWitness), new(big.Int)); m.Cmp(big.NewInt(0)) == 0 || bc.CurrentBlock().Number().Cmp(big.NewInt(common.BaseSwitchWitness - ((common.BaseSwitchWitness - common.BaseElection) + 1))) < 0{
 		log.Debug("Call BlockChain Stop, write ppos_storage", "blockNumber", bc.CurrentBlock().NumberU64(), "blockHash", bc.CurrentBlock().Hash().Hex())
 		if err := ppos_storage.GetPPosTempPtr().Commit2DB(bc.CurrentBlock().Number(), bc.CurrentBlock().Hash()); nil != err {
 			log.Error("BlockChain Stop, Failed to write ppos_storage", "blockNumber", bc.CurrentBlock().NumberU64(), "blockHash", bc.CurrentBlock().Hash().Hex(), "err", err)
@@ -1007,15 +1014,15 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Irrelevant of the canonical status, write the block itself to the database
 	// flush ppos_cache into disk TODO
 	targetNum := new(big.Int).Add(externBn, big.NewInt(int64(common.BaseSwitchWitness - common.BaseElection + 1)))
-	if _, m := new(big.Int).DivMod(targetNum, big.NewInt(common.BaseSwitchWitness), new(big.Int)); m.Cmp(big.NewInt(0)) == 0 {
+	// When current block number equal N*BaseSwitchness -21 OR  current block number less than 1*BaseSwitchness -21
+	if _, m := new(big.Int).DivMod(targetNum, big.NewInt(common.BaseSwitchWitness), new(big.Int)); m.Cmp(big.NewInt(0)) == 0 || externBn.Cmp(big.NewInt(common.BaseSwitchWitness - ((common.BaseSwitchWitness - common.BaseElection) + 1))) < 0 {
 		log.Debug("Call WriteBlockWithState, write ppos_storage", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex())
 		if err := ppos_storage.GetPPosTempPtr().Commit2DB(block.Number(), block.Hash()); nil != err {
-			return NonStatTy, err
+			return NonStatTy, errors.New("Failed to call WriteBlockWithState to write ppos_storage, err:=" + err.Error())
 		}
 	}
 	/*ppos_storage.GetPPosTempPtr().Commit2DB(bc.db, block.Number(), block.Hash())*/
 	rawdb.WriteBlock(bc.db, block)
-
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
 	if err != nil {

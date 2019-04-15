@@ -331,8 +331,11 @@ func  (temp *PPOS_TEMP) GetPPosStorageProto() (common.Hash, []byte, error) {
 		}else {
 			// TODO
 
-			PrintObject("GetPPosStorageProto resolve the data of PB:", pb_pposTemp)
-
+			//PrintObject("GetPPosStorageProto resolve the data of PB:", pb_pposTemp)
+			curr_Num, _ := new(big.Int).SetString(pb_pposTemp.BlockNumber, 10)
+			if curr_Num.Cmp(big.NewInt(common.BaseElection - 1)) < 0 {
+				return common.Hash{}, nil, nil
+			}
 
 			log.Debug("Call GetPPosStorageProto FINISH !!!!", "blockNumber", pb_pposTemp.BlockNumber, "blockHash", pb_pposTemp.BlockHash, "data len", len(data), "dataMD5", md5.Sum(data), "Time spent", fmt.Sprintf("%v ms", start.End()))
 			return common.HexToHash(pb_pposTemp.BlockHash), data, nil
@@ -425,7 +428,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		wg.Add(6)
 		// previous witness
 		go func() {
-			if queue := buildPBcanqueue("pres", ps.c_storage.pres); len(queue) != 0 {
+			if queue := buildPBcanqueue("buildPBStorage pres", ps.c_storage.pres); len(queue) != 0 {
 				canTemp.Pres = queue
 				empty |= 1
 			}
@@ -433,7 +436,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// current witness
 		go func() {
-			if queue := buildPBcanqueue("currs", ps.c_storage.currs); len(queue) != 0 {
+			if queue := buildPBcanqueue("buildPBStorage currs", ps.c_storage.currs); len(queue) != 0 {
 				canTemp.Currs = queue
 				empty |= 1
 			}
@@ -441,7 +444,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// next witness
 		go func() {
-			if queue := buildPBcanqueue("nexts", ps.c_storage.nexts); len(queue) != 0 {
+			if queue := buildPBcanqueue("buildPBStorage nexts", ps.c_storage.nexts); len(queue) != 0 {
 				canTemp.Nexts = queue
 				empty |= 1
 			}
@@ -449,7 +452,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// immediate
 		go func() {
-			if queue := buildPBcanqueue("imms", ps.c_storage.imms); len(queue) != 0 {
+			if queue := buildPBcanqueue("buildPBStorage imms", ps.c_storage.imms); len(queue) != 0 {
 				canTemp.Imms = queue
 				empty |= 1
 			}
@@ -457,7 +460,7 @@ func buildPBStorage(blockNumber *big.Int, blockHash common.Hash, ps *Ppos_storag
 		}()
 		// reserve
 		go func() {
-			if queue := buildPBcanqueue("res", ps.c_storage.res); len(queue) != 0 {
+			if queue := buildPBcanqueue("buildPBStorage res", ps.c_storage.res); len(queue) != 0 {
 				canTemp.Res = queue
 				empty |= 1
 			}
@@ -720,7 +723,7 @@ func unmarshalPBStorage(pb_temp *PB_PPosTemp) *Ppos_storage {
 
 func buildPBcanqueue (title string, canQqueue types.CandidateQueue) []*CandidateInfo {
 
-	PrintObject("buildPBcanqueue," + title, canQqueue)
+	PrintObject(title + " ,buildPBcanqueue:", canQqueue)
 
 	pbQueue := make([]*CandidateInfo, len(canQqueue))
 	if len(canQqueue) == 0 {

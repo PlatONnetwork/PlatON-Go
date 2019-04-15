@@ -19,6 +19,7 @@ package trie
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -98,6 +99,7 @@ func NewSync(root common.Hash, database DatabaseReader, callback LeafCallback) *
 
 // AddSubTrie registers a new trie to the sync code, rooted at the designated parent.
 func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callback LeafCallback) {
+	log.Debug("sync AddSubTrie", "root", root, "depth", depth, "parent", parent)
 	// Short circuit if the trie is empty or already known
 	if root == emptyRoot {
 		return
@@ -107,6 +109,7 @@ func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callb
 	}
 	key := root.Bytes()
 	blob, _ := s.database.Get(key)
+	log.Debug("sync blob", "root", root, "depth", depth, "parent", parent)
 	if local, err := decodeNode(key, blob, 0); local != nil && err == nil {
 		return
 	}
@@ -133,6 +136,7 @@ func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callb
 // as is. This method's goal is to support misc state metadata retrievals (e.g.
 // contract code).
 func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash, storage bool) {
+	log.Debug("sync AddRawEntry", "hash", hash, "depth", depth, "parent", parent)
 	// Short circuit if the entry is empty or already known
 	if hash == emptyState {
 		return
@@ -301,10 +305,11 @@ func (s *Sync) children(req *request, object node) ([]*request, error) {
 					return nil, err
 				}
 			} else {
-				var hash common.Hash
-				if err := rlp.DecodeBytes(node, &hash); err != nil {
+				var val []byte
+				if err := rlp.DecodeBytes(node, &val); err != nil {
 					return nil, err
 				}
+				hash := common.BytesToHash(val)
 				if hash != emptyStorage {
 					s.AddRawEntry(hash, 64, req.hash, true)
 				}

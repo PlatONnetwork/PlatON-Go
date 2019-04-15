@@ -48,7 +48,7 @@ func newPpos(config *params.CbftConfig) *ppos {
 }
 
 
-func (p *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) int64 {
+func (p *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int, nodeID discover.NodeID, round int32) (int64, []discover.NodeID) {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
@@ -64,30 +64,30 @@ func (p *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash,
 		switch round {
 			case former:
 				if _former != nil && _former.start != nil && _former.end != nil && blockNumber.Cmp(_former.start) >= 0 && blockNumber.Cmp(_former.end) <= 0 {
-					return p.roundIndex(nodeID, _former)
+					return p.roundIndex(nodeID, _former), _former.nodeIds
 				}
 
 			case current:
 				if _current != nil && _current.start != nil && _current.end != nil && blockNumber.Cmp(_current.start) >= 0 && blockNumber.Cmp(_current.end) <= 0 {
-					return p.roundIndex(nodeID, _current)
+					return p.roundIndex(nodeID, _current), _current.nodeIds
 				}
 
 			case next:
 				if _next != nil && _next.start != nil && _next.end != nil && blockNumber.Cmp(_next.start) >= 0 && blockNumber.Cmp(_next.end) <= 0 {
-					return p.roundIndex(nodeID, _next)
+					return p.roundIndex(nodeID, _next), _next.nodeIds
 				}
 
 			default:
 				if _former != nil && _former.start != nil && _former.end != nil && blockNumber.Cmp(_former.start) >= 0 && blockNumber.Cmp(_former.end) <= 0 {
-					return p.roundIndex(nodeID, _former)
+					return p.roundIndex(nodeID, _former), _former.nodeIds
 				} else if _current != nil && _current.start != nil && _current.end != nil && blockNumber.Cmp(_current.start) >= 0 && blockNumber.Cmp(_current.end) <= 0 {
-					return p.roundIndex(nodeID, _current)
+					return p.roundIndex(nodeID, _current), _current.nodeIds
 				} else if _next != nil && _next.start != nil && _next.end != nil && blockNumber.Cmp(_next.start) >= 0 && blockNumber.Cmp(_next.end) <= 0 {
-					return p.roundIndex(nodeID, _next)
+					return p.roundIndex(nodeID, _next), _next.nodeIds
 				}
 		}
 	}
-	return -1
+	return -1, nil
 }
 
 func (p *ppos) roundIndex(nodeID discover.NodeID, round *pposRound) int64 {
@@ -236,7 +236,7 @@ func (p *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 		count := 0
 		blockArr := make([]*types.Block, 0)
 		for {
-			if currBlockNumber == genesis.NumberU64() || count == common.BaseIrrCount {
+			if currBlockNumber == genesis.NumberU64() || count == 2*common.BaseIrrCount {
 				break
 			}
 
@@ -303,7 +303,7 @@ func (p *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 				log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 				panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 			}else {
-				if err := p.setGeneralNodeCache(currntState, parentNum, currentNum, parentHash, currentHash); nil != err {
+				if err := p.setGeneralNodeCache(currntState, genesis.NumberU64(), parentNum, currentNum, genesis.Hash(), parentHash, currentHash); nil != err {
 					log.Error("Failed to setGeneralNodeCache", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 					panic("Failed to setGeneralNodeCache currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 				}
@@ -500,7 +500,7 @@ func (p *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 	count := 0
 	blockArr := make([]*types.Block, 0)
 	for {
-		if curBlockNumber == genesis.NumberU64() || count == common.BaseIrrCount {
+		if curBlockNumber == genesis.NumberU64() || count == 2*common.BaseIrrCount {
 			break
 		}
 		parentNum := curBlockNumber - 1
@@ -563,7 +563,7 @@ func (p *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 			log.Error("Failed to load stateDB by block", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 			panic("Failed to load stateDB by block currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 		}else {
-			if err := p.setGeneralNodeCache(currntState, parentNum, currentNum, parentHash, currentHash); nil != err {
+			if err := p.setGeneralNodeCache(currntState, genesis.NumberU64(), parentNum, currentNum, genesis.Hash(), parentHash, currentHash); nil != err {
 				log.Error("Failed to setGeneralNodeCache", "currentNum", currentNum, "Hash", currentHash.String(), "err", err)
 				panic("Failed to setGeneralNodeCache currentNum" + fmt.Sprint(currentNum) + ", Hash" + currentHash.String() + "err" + err.Error())
 			}
@@ -615,18 +615,19 @@ func (p *ppos)  GetNextRound (blockNumber *big.Int, blockHash common.Hash) *ppos
 	return p.nodeRound.getNextRound(blockNumber, blockHash)
 }
 
-func (p *ppos) SetNodeCache (state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash) error {
+func (p *ppos) SetNodeCache (state *state.StateDB, genesisNumber, parentNumber, currentNumber *big.Int, genesisHash, parentHash, currentHash common.Hash) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	return p.setGeneralNodeCache(state, parentNumber.Uint64(), currentNumber.Uint64(), parentHash, currentHash)
+	return p.setGeneralNodeCache(state, genesisNumber.Uint64(), parentNumber.Uint64(), currentNumber.Uint64(), genesisHash, parentHash, currentHash)
 }
-func (p *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentNumber uint64, parentHash, currentHash common.Hash) error {
+func (p *ppos) setGeneralNodeCache (state *state.StateDB, genesisNumber, parentNumber, currentNumber uint64, genesisHash, parentHash, currentHash common.Hash) error {
 	parentNumBigInt := big.NewInt(int64(parentNumber))
 	// current round
 	round := calcurround(currentNumber)
 
 	log.Debug("Setting current  block Node Cache", "parentNumber", parentNumber, "ParentHash", parentHash.String(), "currentNumber:", currentNumber, "hash", currentHash.String(), "round:", round)
 
+	/** ------------------------------ current ppos ------------------------------ **/
 	preNodes, curNodes, nextNodes, err := p.candidateContext.GetAllWitness(state, big.NewInt(int64(currentNumber)))
 
 	if nil != err {
@@ -634,6 +635,20 @@ func (p *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 		return err
 	}
 
+	/** ------------------------------    parent    ------------------------------ **/
+
+	parent_Former_Round := p.nodeRound.getFormerRound(parentNumBigInt, parentHash)
+
+	parent_Current_Round := p.nodeRound.getCurrentRound(parentNumBigInt, parentHash)
+
+	parent_Next_Round := p.nodeRound.getNextRound(parentNumBigInt, parentHash)
+
+	/** ------------------------------    genesis    ------------------------------ **/
+
+	genesisNumBigInt := big.NewInt(int64(genesisNumber))
+	genesis_Current_Round := p.nodeRound.getCurrentRound(genesisNumBigInt, genesisHash)
+
+	/** ------------------------------       end       ---------------------------- **/
 
 	var start, end *big.Int
 
@@ -668,20 +683,30 @@ func (p *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	}else { // Reference parent
 		// if last block of round
 		if cmpSwitch(round, currentNumber) == 0 {
-			parentCurRound := p.nodeRound.getCurrentRound(parentNumBigInt, parentHash)
-			if nil != parentCurRound {
-				formerRound.nodeIds = make([]discover.NodeID, len(parentCurRound.nodeIds))
-				copy(formerRound.nodeIds, parentCurRound.nodeIds)
-				formerRound.nodes = make([]*discover.Node, len(parentCurRound.nodes))
-				copy(formerRound.nodes, parentCurRound.nodes)
+			//parentCurRound := p.nodeRound.getCurrentRound(parentNumBigInt, parentHash)
+			if nil != parent_Current_Round {
+				formerRound.nodeIds = make([]discover.NodeID, len(parent_Current_Round.nodeIds))
+				copy(formerRound.nodeIds, parent_Current_Round.nodeIds)
+				formerRound.nodes = make([]*discover.Node, len(parent_Current_Round.nodes))
+				copy(formerRound.nodes, parent_Current_Round.nodes)
+			}else {
+				formerRound.nodeIds = make([]discover.NodeID, len(genesis_Current_Round.nodeIds))
+				copy(formerRound.nodeIds, genesis_Current_Round.nodeIds)
+				formerRound.nodes = make([]*discover.Node, len(genesis_Current_Round.nodes))
+				copy(formerRound.nodes, genesis_Current_Round.nodes)
 			}
 		}else { // Is'nt last block of round
-			parentFormerRound := p.nodeRound.getFormerRound(parentNumBigInt, parentHash)
-			if nil != parentFormerRound {
-				formerRound.nodeIds = make([]discover.NodeID, len(parentFormerRound.nodeIds))
-				copy(formerRound.nodeIds, parentFormerRound.nodeIds)
-				formerRound.nodes = make([]*discover.Node, len(parentFormerRound.nodes))
-				copy(formerRound.nodes, parentFormerRound.nodes)
+			//parentFormerRound := p.nodeRound.getFormerRound(parentNumBigInt, parentHash)
+			if nil != parent_Former_Round {
+				formerRound.nodeIds = make([]discover.NodeID, len(parent_Former_Round.nodeIds))
+				copy(formerRound.nodeIds, parent_Former_Round.nodeIds)
+				formerRound.nodes = make([]*discover.Node, len(parent_Former_Round.nodes))
+				copy(formerRound.nodes, parent_Former_Round.nodes)
+			}else {
+				formerRound.nodeIds = make([]discover.NodeID, len(genesis_Current_Round.nodeIds))
+				copy(formerRound.nodeIds, genesis_Current_Round.nodeIds)
+				formerRound.nodes = make([]*discover.Node, len(genesis_Current_Round.nodes))
+				copy(formerRound.nodes, genesis_Current_Round.nodes)
 			}
 		}
 	}
@@ -701,20 +726,31 @@ func (p *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	}else { // Reference parent
 		// if last block of round
 		if cmpSwitch(round, currentNumber) == 0 {
-			parentNextRound := p.nodeRound.getNextRound(parentNumBigInt, parentHash)
-			if nil != parentNextRound {
-				currentRound.nodeIds = make([]discover.NodeID, len(parentNextRound.nodeIds))
-				copy(currentRound.nodeIds, parentNextRound.nodeIds)
-				currentRound.nodes = make([]*discover.Node, len(parentNextRound.nodes))
-				copy(currentRound.nodes, parentNextRound.nodes)
+			//parentNextRound := p.nodeRound.getNextRound(parentNumBigInt, parentHash)
+			if nil != parent_Next_Round {
+				currentRound.nodeIds = make([]discover.NodeID, len(parent_Next_Round.nodeIds))
+				copy(currentRound.nodeIds, parent_Next_Round.nodeIds)
+				currentRound.nodes = make([]*discover.Node, len(parent_Next_Round.nodes))
+				copy(currentRound.nodes, parent_Next_Round.nodes)
+			}else {
+				currentRound.nodeIds = make([]discover.NodeID, len(genesis_Current_Round.nodeIds))
+				copy(currentRound.nodeIds, genesis_Current_Round.nodeIds)
+				currentRound.nodes = make([]*discover.Node, len(genesis_Current_Round.nodes))
+				copy(currentRound.nodes, genesis_Current_Round.nodes)
 			}
+
 		}else { // Is'nt last block of round
-			parentCurRound := p.nodeRound.getCurrentRound(parentNumBigInt, parentHash)
-			if nil != parentCurRound {
-				currentRound.nodeIds = make([]discover.NodeID, len(parentCurRound.nodeIds))
-				copy(currentRound.nodeIds, parentCurRound.nodeIds)
-				currentRound.nodes = make([]*discover.Node, len(parentCurRound.nodes))
-				copy(currentRound.nodes, parentCurRound.nodes)
+			//parentCurRound := p.nodeRound.getCurrentRound(parentNumBigInt, parentHash)
+			if nil != parent_Current_Round {
+				currentRound.nodeIds = make([]discover.NodeID, len(parent_Current_Round.nodeIds))
+				copy(currentRound.nodeIds, parent_Current_Round.nodeIds)
+				currentRound.nodes = make([]*discover.Node, len(parent_Current_Round.nodes))
+				copy(currentRound.nodes, parent_Current_Round.nodes)
+			}else {
+				currentRound.nodeIds = make([]discover.NodeID, len(genesis_Current_Round.nodeIds))
+				copy(currentRound.nodeIds, genesis_Current_Round.nodeIds)
+				currentRound.nodes = make([]*discover.Node, len(genesis_Current_Round.nodes))
+				copy(currentRound.nodes, genesis_Current_Round.nodes)
 			}
 		}
 	}
@@ -735,20 +771,30 @@ func (p *ppos) setGeneralNodeCache (state *state.StateDB, parentNumber, currentN
 	}else { // Reference parent
 
 		if cmpElection(round, currentNumber) == 0  { // election index == cur index
-			parentCurRound := p.nodeRound.getCurrentRound(parentNumBigInt, parentHash)
-			if nil != parentCurRound {
-				nextRound.nodeIds = make([]discover.NodeID, len(parentCurRound.nodeIds))
-				copy(nextRound.nodeIds, parentCurRound.nodeIds)
-				nextRound.nodes = make([]*discover.Node, len(parentCurRound.nodes))
-				copy(nextRound.nodes, parentCurRound.nodes)
+			//parentCurRound := p.nodeRound.getCurrentRound(parentNumBigInt, parentHash)
+			if nil != parent_Current_Round {
+				nextRound.nodeIds = make([]discover.NodeID, len(parent_Current_Round.nodeIds))
+				copy(nextRound.nodeIds, parent_Current_Round.nodeIds)
+				nextRound.nodes = make([]*discover.Node, len(parent_Current_Round.nodes))
+				copy(nextRound.nodes, parent_Current_Round.nodes)
+			}else {
+				nextRound.nodeIds = make([]discover.NodeID, len(genesis_Current_Round.nodeIds))
+				copy(nextRound.nodeIds, genesis_Current_Round.nodeIds)
+				nextRound.nodes = make([]*discover.Node, len(genesis_Current_Round.nodes))
+				copy(nextRound.nodes, genesis_Current_Round.nodes)
 			}
 		}else if cmpElection(round, currentNumber) > 0  &&  cmpSwitch(round, currentNumber) < 0 {  // election index < cur index < switch index
-			parentNextRound := p.nodeRound.getNextRound(parentNumBigInt, parentHash)
-			if nil != parentNextRound {
-				nextRound.nodeIds = make([]discover.NodeID, len(parentNextRound.nodeIds))
-				copy(nextRound.nodeIds, parentNextRound.nodeIds)
-				nextRound.nodes = make([]*discover.Node, len(parentNextRound.nodes))
-				copy(nextRound.nodes, parentNextRound.nodes)
+			//parentNextRound := p.nodeRound.getNextRound(parentNumBigInt, parentHash)
+			if nil != parent_Next_Round {
+				nextRound.nodeIds = make([]discover.NodeID, len(parent_Next_Round.nodeIds))
+				copy(nextRound.nodeIds, parent_Next_Round.nodeIds)
+				nextRound.nodes = make([]*discover.Node, len(parent_Next_Round.nodes))
+				copy(nextRound.nodes, parent_Next_Round.nodes)
+			}else {
+				nextRound.nodeIds = make([]discover.NodeID, len(genesis_Current_Round.nodeIds))
+				copy(nextRound.nodeIds, genesis_Current_Round.nodeIds)
+				nextRound.nodes = make([]*discover.Node, len(genesis_Current_Round.nodes))
+				copy(nextRound.nodes, genesis_Current_Round.nodes)
 			}
 		}else { // switch index <= cur index < next election index
 			nextRound.nodeIds = make([]discover.NodeID, 0)
@@ -827,7 +873,7 @@ func (p *ppos) setEarliestIrrNodeCache (/*parentState, */currentState *state.Sta
 		copy(formerRound.nodes, curr_PRE_Nodes)
 	}else {
 		// Reference parent
-		// if last block of round
+		// if last block of roundcurrentState
 		if cmpSwitch(round, currentNumber) == 0 {
 			// First take the stateDB from the previous block,
 			// the stateDB of the previous block is not,
