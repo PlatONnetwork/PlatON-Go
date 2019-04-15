@@ -1,6 +1,7 @@
 package cbft
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -90,6 +91,10 @@ func buildPpos() (*ppos, *core.BlockChain) {
 		genesis = new(core.Genesis).MustCommit(db)
 	)
 	fmt.Println("genesis", genesis)
+
+	// Initialize ppos storage
+	ppos_storage.NewPPosTemp(db)
+
 	// Initialize a fresh chain with only a genesis block
 	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
 
