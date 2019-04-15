@@ -20,7 +20,7 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/deckarep/golang-set"
 	"io"
 	"math/big"
@@ -33,6 +33,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -139,9 +140,9 @@ type BlockChain struct {
 	badBlocks      *lru.Cache              // Bad block cache
 	shouldPreserve func(*types.Block) bool // Function used to determine whether should preserve the given block.
 
-	shouldElectionFn          shouldElectionFn
-	shouldSwitchFn            shouldSwitchFn
-	attemptAddConsensusPeerFn attemptAddConsensusPeerFn
+	shouldElectionFn	shouldElectionFn
+	shouldSwitchFn	shouldSwitchFn
+	attemptAddConsensusPeerFn	attemptAddConsensusPeerFn
 	// modify by niuxiaojie
 	knownBlockHashes     mapset.Set
 	knownBlockHashesLock sync.RWMutex
@@ -164,20 +165,20 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	badBlocks, _ := lru.New(badBlockLimit)
 
 	bc := &BlockChain{
-		chainConfig:      chainConfig,
-		cacheConfig:      cacheConfig,
-		db:               db,
-		triegc:           prque.New(nil),
-		stateCache:       state.NewDatabase(db),
-		quit:             make(chan struct{}),
-		shouldPreserve:   shouldPreserve,
-		bodyCache:        bodyCache,
-		bodyRLPCache:     bodyRLPCache,
-		blockCache:       blockCache,
-		futureBlocks:     futureBlocks,
-		engine:           engine,
-		vmConfig:         vmConfig,
-		badBlocks:        badBlocks,
+		chainConfig:    chainConfig,
+		cacheConfig:    cacheConfig,
+		db:             db,
+		triegc:         prque.New(nil),
+		stateCache:     state.NewDatabase(db),
+		quit:           make(chan struct{}),
+		shouldPreserve: shouldPreserve,
+		bodyCache:      bodyCache,
+		bodyRLPCache:   bodyRLPCache,
+		blockCache:     blockCache,
+		futureBlocks:   futureBlocks,
+		engine:         engine,
+		vmConfig:       vmConfig,
+		badBlocks:      badBlocks,
 		knownBlockHashes: mapset.NewSet(),
 	}
 	bc.SetValidator(NewBlockValidator(chainConfig, bc, engine))
@@ -192,6 +193,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
 	}
+
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
 	}
@@ -208,6 +210,42 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			}
 		}
 	}
+
+	// TODO PPOS ADD
+	currNum := bc.CurrentBlock().Number()
+	pposNum := ppos_storage.GetPPosTempPtr().BlockNumber
+	pposHash := ppos_storage.GetPPosTempPtr().BlockHash
+	if pposNum.Cmp(big.NewInt(0)) != 0 && pposNum.Cmp(currNum) < 0  && pposHash != (common.Hash{}){
+
+		log.Debug("Call NewBlockChain, currentBlock is not equal ppostempBlock, Reset CurrentBlock on Chain", "currentNumber",
+			currNum, "currentHash", bc.CurrentBlock().Hash().Hex(), "pposNum", pposNum, "pposHash", pposHash.Hex())
+		/*bc.SetHead(pposNum.Uint64())*/
+
+
+		currentBlock := bc.GetBlock(pposHash, pposNum.Uint64())
+		// Everything seems to be fine, set as the head block
+		bc.currentBlock.Store(currentBlock)
+
+		// Restore the last known head header
+		currentHeader := currentBlock.Header()
+		if head := rawdb.ReadHeadHeaderHash(bc.db); head != (common.Hash{}) {
+			if header := bc.GetHeaderByHash(head); header != nil {
+				currentHeader = header
+			}
+		}
+		bc.hc.SetCurrentHeader(currentHeader)
+
+		// Restore the last known head fast block
+		bc.currentFastBlock.Store(currentBlock)
+		/*if head := rawdb.ReadHeadFastBlockHash(bc.db); head != (common.Hash{}) {
+			if block := bc.GetBlockByHash(head); block != nil {
+				bc.currentFastBlock.Store(block)
+			}
+		}*/
+
+
+	}
+
 	// Take ownership of this particular state
 	go bc.update()
 	return bc, nil
@@ -224,7 +262,7 @@ func (bc *BlockChain) MarkBlockHash(hash common.Hash) bool {
 	for bc.knownBlockHashes.Cardinality() >= 2048 {
 		bc.knownBlockHashes.Pop()
 	}
-	log.Info("【BlockChain MarkBlockHash】", "hash", hash)
+	log.Info("BlockChain MarkBlockHash", "hash", hash)
 	return bc.knownBlockHashes.Add(hash)
 }
 
@@ -544,6 +582,25 @@ func (bc *BlockChain) GetBody(hash common.Hash) *types.Body {
 	return body
 }
 
+func (bc *BlockChain) GetBodyByNumber(number uint64) *types.Body {
+	// Short circuit if the body's already in the cache, retrieve otherwise
+	hash := rawdb.ReadCanonicalHash(bc.db, number)
+	if hash == (common.Hash{}) {
+		return nil
+	}
+	if cached, ok := bc.bodyCache.Get(hash); ok {
+		body := cached.(*types.Body)
+		return body
+	}
+	body := rawdb.ReadBody(bc.db, hash, number)
+	if body == nil {
+		return nil
+	}
+	// Cache the found body for next time and return
+	bc.bodyCache.Add(hash, body)
+	return body
+}
+
 // GetBodyRLP retrieves a block body in RLP encoding from the database by hash,
 // caching it if found.
 func (bc *BlockChain) GetBodyRLP(hash common.Hash) rlp.RawValue {
@@ -657,6 +714,14 @@ func (bc *BlockChain) GetBlocksFromHash(hash common.Hash, n int) (blocks []*type
 	return
 }
 
+func (bc *BlockChain) GetTransactionByHash(hash common.Hash) (*types.Transaction, common.Hash, uint64, uint64) {
+	 return rawdb.ReadTransaction(bc.db, hash)
+}
+
+func (bc *BlockChain) GetNewStateDB(root common.Hash, blockNumber *big.Int, blockHash common.Hash) (*state.StateDB, error) {
+	return state.New(root, bc.stateCache, blockNumber, blockHash)
+}
+
 // GetUnclesInChain retrieves all the uncles from a given block backwards until
 // a specific distance is reached.
 func (bc *BlockChain) GetUnclesInChain(block *types.Block, length int) []*types.Header {
@@ -671,7 +736,12 @@ func (bc *BlockChain) GetUnclesInChain(block *types.Block, length int) []*types.
 // TrieNode retrieves a blob of data associated with a trie node (or code hash)
 // either from ephemeral in-memory cache, or from persistent storage.
 func (bc *BlockChain) TrieNode(hash common.Hash) ([]byte, error) {
-	return bc.stateCache.TrieDB().Node(hash)
+	b, err := bc.stateCache.TrieDB().Node(hash)
+	log.Debug("TrieNode result", "hash", hash, "b", hexutil.Encode(b), "err", err)
+	if err != nil {
+		return bc.stateCache.TrieDB().Preimage(hash)
+	}
+	return b, err
 }
 
 // Stop stops the blockchain service. If any imports are currently in progress
@@ -687,14 +757,26 @@ func (bc *BlockChain) Stop() {
 
 	bc.wg.Wait()
 
+
+	log.Debug("Call BlockChain Stop ...", "currentNum", bc.CurrentBlock().Number(), "currentHash", bc.CurrentBlock().Hash().Hex())
+	// TODO PPOS ADD flush ppos_cache into disk
+	// flush ppos_cache into disk TODO
+	targetNum := new(big.Int).Add(bc.CurrentBlock().Number(), big.NewInt(int64(common.BaseSwitchWitness - common.BaseElection + 1)))
+	// When current block number equal N*BaseSwitchness -21 OR  current block number less than 1*BaseSwitchness -21
+	if _, m := new(big.Int).DivMod(targetNum, big.NewInt(common.BaseSwitchWitness), new(big.Int)); m.Cmp(big.NewInt(0)) == 0 || bc.CurrentBlock().Number().Cmp(big.NewInt(common.BaseSwitchWitness - ((common.BaseSwitchWitness - common.BaseElection) + 1))) < 0{
+		log.Debug("Call BlockChain Stop, write ppos_storage", "blockNumber", bc.CurrentBlock().NumberU64(), "blockHash", bc.CurrentBlock().Hash().Hex())
+		if err := ppos_storage.GetPPosTempPtr().Commit2DB(bc.CurrentBlock().Number(), bc.CurrentBlock().Hash()); nil != err {
+			log.Error("BlockChain Stop, Failed to write ppos_storage", "blockNumber", bc.CurrentBlock().NumberU64(), "blockHash", bc.CurrentBlock().Hash().Hex(), "err", err)
+		}
+	}
+	/*ppos_storage.GetPPosTempPtr().Commit2DB(bc.CurrentBlock().Number(), bc.CurrentBlock().Hash())*/
+
 	// Ensure the state of a recent block is also stored to disk before exiting.
 	// We're writing three different states to catch different restart scenarios:
 	//  - HEAD:     So we don't need to reprocess any blocks in the general case
 	//  - HEAD-1:   So we don't do large reorgs if our HEAD becomes an uncle
 	//  - HEAD-127: So we have a hard limit on the number of blocks reexecuted
 	if !bc.cacheConfig.Disabled {
-		//ppos add -> commit memory ticket cache to disk
-		ticketcache.GetTicketidsCachePtr().Commit(bc.db, bc.CurrentBlock().Number())
 
 		//eth...
 		triedb := bc.stateCache.TrieDB()
@@ -748,6 +830,7 @@ const (
 // Rollback is designed to remove a chain of links from the database that aren't
 // certain enough to be valid.
 func (bc *BlockChain) Rollback(chain []common.Hash) {
+	log.Info("======BlockChain Rollback======")
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
 
@@ -929,7 +1012,16 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	externBn := block.Number()
 
 	// Irrelevant of the canonical status, write the block itself to the database
-	rawdb.TicketCacheCommit(bc.db, externBn)
+	// flush ppos_cache into disk TODO
+	targetNum := new(big.Int).Add(externBn, big.NewInt(int64(common.BaseSwitchWitness - common.BaseElection + 1)))
+	// When current block number equal N*BaseSwitchness -21 OR  current block number less than 1*BaseSwitchness -21
+	if _, m := new(big.Int).DivMod(targetNum, big.NewInt(common.BaseSwitchWitness), new(big.Int)); m.Cmp(big.NewInt(0)) == 0 || externBn.Cmp(big.NewInt(common.BaseSwitchWitness - ((common.BaseSwitchWitness - common.BaseElection) + 1))) < 0 {
+		log.Debug("Call WriteBlockWithState, write ppos_storage", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex())
+		if err := ppos_storage.GetPPosTempPtr().Commit2DB(block.Number(), block.Hash()); nil != err {
+			return NonStatTy, errors.New("Failed to call WriteBlockWithState to write ppos_storage, err:=" + err.Error())
+		}
+	}
+	/*ppos_storage.GetPPosTempPtr().Commit2DB(bc.db, block.Number(), block.Hash())*/
 	rawdb.WriteBlock(bc.db, block)
 
 	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
@@ -937,6 +1029,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		log.Error("check block is EIP158 error", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
 	}
+
 
 	triedb := bc.stateCache.TrieDB()
 
@@ -946,9 +1039,9 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 			log.Error("Commit to triedb error", "root", root)
 			return NonStatTy, err
 		}
-		log.Debug("【archive node commit stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
+		log.Debug("archive node commit stateDB trie", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 	} else {
-		log.Debug("【non-archive node put stateDB trie】", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
+		log.Debug("non-archive node put stateDB trie", "blockNumber", block.NumberU64(), "blockHash", block.Hash().Hex(), "root", root.String())
 		// Full but not archive node, do proper garbage collection
 		triedb.Reference(root, common.Hash{}) // metadata reference to keep trie alive
 		bc.triegc.Push(root, -int64(block.NumberU64()))
@@ -1043,7 +1136,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.insert(block)
 
 		// parse block and retrieves txs
-		receipts := bc.GetReceiptsByHash(block.Hash())
+		receipts:= bc.GetReceiptsByHash(block.Hash())
 		MPC_POOL.InjectTxs(block, receipts, bc, state)
 		VC_POOL.InjectTxs(block, receipts, bc, state)
 	}
@@ -1261,12 +1354,13 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	if lastCanon != nil && bc.CurrentBlock().Hash() == lastCanon.Hash() {
 		events = append(events, ChainHeadEvent{lastCanon})
 	}
+
 	return 0, events, coalescedLogs, nil
 }
 
 //joey.lyu
 func (bc *BlockChain) ProcessDirectly(block *types.Block, state *state.StateDB, parent *types.Block, blockInterval *big.Int) (types.Receipts, error) {
-	log.Info("-----------ProcessDirectly---------", "blockNumber", block.NumberU64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
+
 	// Process block using the parent state as reference point.
 	receipts, logs, usedGas, err := bc.processor.Process(block, state, bc.vmConfig, blockInterval)
 	if err != nil {

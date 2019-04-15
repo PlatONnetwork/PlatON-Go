@@ -162,9 +162,9 @@ type Bft interface {
 
 	Election(state *state.StateDB, parentHash common.Hash, blockNumber *big.Int) ([]*discover.Node, error)
 
-	Switch(state *state.StateDB) bool
+	Switch(state *state.StateDB, blockNumber *big.Int) bool
 
-	GetWitness(state *state.StateDB, flag int) ([]*discover.Node, error)
+	GetWitness(state *state.StateDB, flag int, blockNumber *big.Int) ([]*discover.Node, error)
 
 	GetOwnNodeID() discover.NodeID
 
@@ -172,9 +172,9 @@ type Bft interface {
 
 	Notify(state vm.StateDB, blockNumber *big.Int) error
 
-	StoreHash(state *state.StateDB)
+	StoreHash(state *state.StateDB, blockNumber *big.Int, blockHash common.Hash)
 
 	Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash)
 
-	ForEachStorage(state *state.StateDB, title string)
+	RemovePeer(nodeID discover.NodeID)
 }

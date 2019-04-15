@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"math"
 	"math/big"
 	"math/rand"
@@ -125,11 +126,15 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		quitSync:    make(chan struct{}),
 		engine:      engine,
 	}
+	// Temporarily remove by niuxiaojie
+	// Assume that the test network is not under attack
+	/*
 	// Figure out whether to allow fast sync or not
 	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() > 0 {
 		log.Warn("Blockchain not empty, fast sync disabled")
 		mode = downloader.FullSync
 	}
+	*/
 	if mode == downloader.FastSync {
 		manager.fastSync = uint32(1)
 	}
@@ -280,7 +285,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		head    = pm.blockchain.CurrentHeader()
 		hash    = head.Hash()
 	)
-	if err := p.Handshake(pm.networkID, head.Number, hash, genesis.Hash()); err != nil {
+	if err := p.Handshake(pm.networkID, head.Number, hash, genesis.Hash(), pm); err != nil {
 		p.Log().Debug("Ethereum handshake failed", "err", err)
 		return err
 	}
@@ -337,6 +342,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		p.Log().Error("read peer message error", "err", err)
+		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
+			cbftEngine.RemovePeer(p.Peer.ID())
+		}
 		return err
 	}
 	if msg.Size > ProtocolMaxMsgSize {
@@ -350,7 +358,42 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 
-	// Block header query, collect the requested headers and reply
+		// Block header query, collect the requested headers and reply
+
+	case p.version >= eth63 && msg.Code == GetPposStorageMsg:
+		// deal the retrieval message
+		p.Log().Debug("Received a broadcast message[GetPposStorageMsg]")
+		if pivotHash, data, err := ppos_storage.GetPPosTempPtr().GetPPosStorageProto(); err == nil {
+			latest := pm.blockchain.CurrentHeader()
+			var pivot *types.Header
+			if pivotHash != (common.Hash{}) {
+				pivot = pm.blockchain.GetHeaderByHash(pivotHash)
+			} else {
+				pivotNumber := pm.downloader.CalStoragePposCachePoint(latest.Number.Uint64())
+				if pivotNumber > 0 {
+					pivot = pm.blockchain.GetHeaderByNumber(pivotNumber)
+				}
+			}
+
+			if latest != nil && pivot != nil {
+				return p.SendPposStorage(latest, pivot, data)
+			}
+		}
+		p.Log().Error("get ppos storageProto error")
+
+	case p.version >= eth63 && msg.Code == PposStorageMsg:
+		// node ppos storage data arrived to one of our previous requests
+		p.Log().Debug("Received a broadcast message[PposStorageMsg]")
+		var data pposStorageData
+		if err := msg.Decode(&data); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+
+		// Deliver all to the downloader
+		if err := pm.downloader.DeliverPposStorage(p.id, data.Latest, data.Pivot, data.PposStorage); err != nil {
+			p.Log().Debug("Failed to deliver ppos storage data", "err", err)
+		}
+
 	case msg.Code == GetBlockHeadersMsg:
 		// Decode the complex header query
 		var query getBlockHeadersData
@@ -689,6 +732,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 
 	case msg.Code == TxMsg:
+		log.Debug("Received a broadcast message[TxMsg]", "acceptTxs", pm.acceptTxs)
 		// Transactions arrived, make sure we have a valid and fresh chain to handle them
 		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
 			break
@@ -901,14 +945,14 @@ func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 			for i := 0; i < f && i < len(peers); i++ {
 				idx := r.Intn(len(peers))
 				txset[peers[idx]] = append(txset[peers[idx]], tx)
-				log.Trace("Broadcast transaction", "hash", tx.Hash(), "peer", peers[idx].id)
+				log.Debug("Broadcast transaction", "hash", tx.Hash(), "peer", peers[idx].id)
 			}
 		} else {
 			peers := pm.peers.PeersWithoutTx(tx.Hash())
 			for _, peer := range peers {
 				txset[peer] = append(txset[peer], tx)
 			}
-			log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
+			log.Debug("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 		}
 	}
 
@@ -985,7 +1029,7 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 			}
 			timer.Reset(defaultBroadcastInterval)
 
-		// Err() channel will be closed when unsubscribing.
+			// Err() channel will be closed when unsubscribing.
 		case <-pm.txsSub.Err():
 			return
 		}

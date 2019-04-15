@@ -100,15 +100,15 @@ func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	log.Info("------database OpenTrie------", "GoRoutineID", common.CurrentGoRoutineID(), "root", root)
+	log.Debug("------database OpenTrie------", "GoRoutineID", common.CurrentGoRoutineID(), "root", root)
 	for i := len(db.pastTries) - 1; i >= 0; i-- {
 		if db.pastTries[i].Hash() == root {
-			log.Info("------database OpenTrie pastTries----", "GoRoutineID", common.CurrentGoRoutineID(), "root", root)
+			log.Debug("------database OpenTrie pastTries----", "GoRoutineID", common.CurrentGoRoutineID(), "root", root)
 			return cachedTrie{db.pastTries[i].Copy(), db}, nil
 		}
 	}
 
-	log.Info("------database OpenTrie new trie------", "GoRoutineID", common.CurrentGoRoutineID(), "root", root)
+	log.Debug("------database OpenTrie new trie------", "GoRoutineID", common.CurrentGoRoutineID(), "root", root)
 
 	tr, err := trie.NewSecure(root, db.db, MaxTrieCacheGen)
 	if err != nil {

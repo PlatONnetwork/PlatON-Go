@@ -18,9 +18,13 @@ package trie
 
 import (
 	"bytes"
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"testing"
 )
 
+func TestC(t *testing.T)  {
+	t.Log(hexutil.Encode(compactToHex(hexutil.MustDecode("0x30f692b256e24009bcb34d0ee84da73c298afacc0924e01105e2eb0f01a87fe2"))))
+}
 func TestHexCompact(t *testing.T) {
 	tests := []struct{ hex, compact []byte }{
 		// empty keys, with and without terminator.

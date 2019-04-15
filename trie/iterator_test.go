@@ -18,13 +18,31 @@ package trie
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/rand"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
+
+func TestDecodeNode2(t *testing.T)  {
+	val := common.Hex2Bytes("9fa1d0a5c3ba8a413015cbcc57c810d999b8046ca4ae2f0f734700a8679c615e")
+	var hash []byte
+
+	err := rlp.DecodeBytes(val, &hash)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(hex.EncodeToString(hash))
+
+	h := common.BytesToHash(hash)
+	t.Log(h.Hex())
+}
+
 
 func TestIterator(t *testing.T) {
 	trie := newEmpty()
@@ -49,7 +67,6 @@ func TestIterator(t *testing.T) {
 	for it.Next() {
 		found[string(it.Key)] = string(it.Value)
 	}
-
 	for k, v := range all {
 		if found[k] != v {
 			t.Errorf("iterator value mismatch for %s: got %q want %q", k, found[k], v)

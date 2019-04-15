@@ -512,7 +512,10 @@ func (w *worker) mainLoop() {
 	for {
 		select {
 		case req := <-w.newWorkCh:
+			start := time.Now().UnixNano()
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp, req.commitBlock)
+			end := time.Now().UnixNano()
+			log.Debug("Execute Time commitNewWork", "nano", end - start, "millisecond", end/1e6-start/1e6)
 
 		case ev := <-w.chainSideCh:
 			// Short circuit for duplicate side blocks
@@ -791,7 +794,7 @@ func (w *worker) resultLoop() {
 			w.pendingMu.RUnlock()
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
-			if exist && cbft.IsSignedBySelf(sealhash, block.Extra()[32:]) {
+			if exist && cbft.IsSignedBySelf(sealhash, block.Sign()) {
 				_receipts = task.receipts
 				_state = task.state
 				stateIsNil := _state == nil
@@ -865,16 +868,19 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		err   error
 	)
 	if _, ok := w.engine.(consensus.Bft); ok {
-		log.Debug("【makeCurrent】New state by MakeStateDB ...")
+		log.Debug("makeCurrent, New state by MakeStateDB ...")
 		state, err = w.blockChainCache.MakeStateDB(parent)
 	} else {
-		log.Debug("【makeCurrent】New state by chain StateAt ...")
+		log.Debug("makeCurrent, New state by chain StateAt ...")
 		state, err = w.chain.StateAt(parent.Root(), parent.Number(), parent.Hash())
 	}
 	log.Info("-----------Build statedb---------", "blockNumber", header.Number.Uint64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	if err != nil {
 		return err
 	}
+
+	// TODO
+	//w.forEachStorage(state, "makeCurrent, When new the current stateDB instance:")
 
 	env := &environment{
 		signer:    types.NewEIP155Signer(w.config.ChainID),
@@ -1158,9 +1164,15 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		}
 		// Start executing the transaction
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
+
 		log.Debug("commit transaction", "hash", tx.Hash(), "sender", from, "nonce", tx.Nonce())
+		root := w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+		log.Debug("【The Consensus packaging】Before executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
 
 		logs, err := w.commitTransaction(tx, coinbase)
+		root = w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
+		log.Debug("【The Consensus packaging】After executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
+
 		switch err {
 		case core.ErrGasLimitReached:
 			// Pop the current out-of-gas transaction without shifting in the next from the account
@@ -1315,8 +1327,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
 		if _, ok := w.engine.(consensus.Bft); !ok {
-			// TODO
-			//w.forEachStorage(w.current.state, "【The Consensus packaging】,Before executing the transaction")
 			w.commit(uncles, nil, false, tstart, nil)
 		}
 	}
@@ -1354,6 +1364,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			localTxs[account] = txs
 		}
 	}
+	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
 
 	startTime = time.Now()
 	var localTimeout = false
@@ -1392,23 +1403,35 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		*receipts[i] = *l
 	}
 
-	s := w.current.state.Copy()
+	st := w.current.state.Copy()
+
 	if header != nil {
-		if err := w.notify(s, header.Number); err != nil {
+		startPpos := time.Now().UnixNano()
+		if err := w.notify(st, header.Number); err != nil {
+			log.Error("Failed to woker commit, notify is failed", "err", err)
 			return errors.New("notify failure")
 		}
+		endNotify := time.Now().UnixNano()
+		log.Debug("Execute Time notify", "nano", endNotify - startPpos, "millisecond", endNotify/1e6-startPpos/1e6)
 		// Election call(if match condition)
-		if electionErr := w.election(s, header.ParentHash, header.Number); electionErr != nil {
+		if electionErr := w.election(st, header.ParentHash, header.Number); electionErr != nil {
+			log.Error("Failed to woker commit, election is failed", "err", electionErr)
 			return errors.New("election failure")
 		}
+		endElection := time.Now().UnixNano()
+		log.Debug("Execute Time election", "nano", endElection - endNotify, "millisecond", endElection/1e6-endNotify/1e6)
 		// SwitchWitness call(if match condition)
-		if switchWitnessErr := w.switchWitness(s, header.Number); switchWitnessErr != nil {
+		if switchWitnessErr := w.switchWitness(st, header.Number); switchWitnessErr != nil {
+			log.Error("Failed to woker commit, switchWitness is failed", "err", switchWitnessErr)
 			return errors.New("switchWitness failure")
 		}
+		endSwitchWitness := time.Now().UnixNano()
+		log.Debug("Execute Time switchWitness", "nano", endSwitchWitness - endElection, "millisecond", endSwitchWitness/1e6-endElection/1e6)
 		// ppos Store Hash
-		w.storeHash(s)
+		w.storeHash(st, header.Number, header.Hash())
 	}
-	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
+
+	block, err := w.engine.Finalize(w.chain, w.current.header, st, w.current.txs, uncles, w.current.receipts)
 
 	if err != nil {
 		return err
@@ -1418,7 +1441,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			interval()
 		}
 		select {
-		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now(), consensusNodes: w.current.consensusNodes}:
+		case w.taskCh <- &task{receipts: receipts, state: st, block: block, createdAt: time.Now(), consensusNodes: w.current.consensusNodes}:
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
 			feesWei := new(big.Int)
