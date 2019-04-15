@@ -2227,7 +2227,7 @@ func ppos_SetNodeCache (logger interface{}, logFn func (args ... interface{}), e
 	}
 	logFn("test SetNodeCache ...")
 	genesis := bc.Genesis()
-	if err := ppos.SetNodeCache(state, big.NewInt(0), genesis.Number(), common.Hash{}, genesis.Hash()); nil != err {
+	if err := ppos.SetNodeCache(state, genesis.Number(), big.NewInt(0), big.NewInt(1), genesis.Hash(), common.HexToHash("0xa1d63b9e5f36c9b12e6aed34612bc1f6e846d1e94a53f52673f2433a30e9ac51"), common.HexToHash("0xa1d63b9e5f36c9b12e6aed34612bc1f6e846d1e94a53f52673f2433a30e9bd62")); nil != err {
 		errFn("SetNodeCache err", err)
 	}else {
 		logFn("SetNodeCache success ... ")
