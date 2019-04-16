@@ -115,7 +115,7 @@ func TestTicketProcess(t *testing.T) {
 		//}()
 	}
 
-	candidate = candidatePoolContext.GetCandidate(state, candidate.CandidateId)
+	candidate = candidatePoolContext.GetCandidate(state, candidate.CandidateId, blockNumber)
 
 
 	ticketIds := ticketPoolContext.GetCandidateTicketIds(state, candidate.CandidateId)
@@ -135,7 +135,7 @@ func TestTicketProcess(t *testing.T) {
 	//	fmt.Printf("ticket:%+v,ticketId:[%v]\n", ticket, ticket.TicketId.Hex())
 	//}
 
-	candidate = candidatePoolContext.GetCandidate(state, candidate.CandidateId)
+	candidate = candidatePoolContext.GetCandidate(state, candidate.CandidateId, blockNumber)
 	ticketIds = ticketPoolContext.GetCandidateTicketIds(state, candidate.CandidateId)
 
 
