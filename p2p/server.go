@@ -21,6 +21,8 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -167,19 +169,19 @@ type Server struct {
 	peerOp     chan peerOpFunc
 	peerOpDone chan struct{}
 
-	quit          chan struct{}
-	addstatic     chan *discover.Node
-	removestatic  chan *discover.Node
-	addconsensus	chan *discover.Node
-	removeconsensus	chan *discover.Node
-	addtrusted    chan *discover.Node
-	removetrusted chan *discover.Node
-	posthandshake chan *conn
-	addpeer       chan *conn
-	delpeer       chan peerDrop
-	loopWG        sync.WaitGroup // loop, listenLoop
-	peerFeed      event.Feed
-	log           log.Logger
+	quit            chan struct{}
+	addstatic       chan *discover.Node
+	removestatic    chan *discover.Node
+	addconsensus    chan *discover.Node
+	removeconsensus chan *discover.Node
+	addtrusted      chan *discover.Node
+	removetrusted   chan *discover.Node
+	posthandshake   chan *conn
+	addpeer         chan *conn
+	delpeer         chan peerDrop
+	loopWG          sync.WaitGroup // loop, listenLoop
+	peerFeed        event.Feed
+	log             log.Logger
 }
 
 type peerOpFunc func(map[discover.NodeID]*Peer)
@@ -1058,4 +1060,42 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 		}
 	}
 	return infos
+}
+
+type mockTransport struct {
+	id discover.NodeID
+	*rlpx
+
+	closeErr error
+}
+
+func newMockTransport(id discover.NodeID, fd net.Conn) transport {
+	wrapped := newRLPX(fd).(*rlpx)
+	wrapped.rw = newRLPXFrameRW(fd, secrets{
+		MAC:        zero16,
+		AES:        zero16,
+		IngressMAC: sha3.NewKeccak256(),
+		EgressMAC:  sha3.NewKeccak256(),
+	})
+	return &mockTransport{id: id, rlpx: wrapped}
+}
+
+func (c *mockTransport) doEncHandshake(prv *ecdsa.PrivateKey, dialDest *discover.Node) (discover.NodeID, error) {
+	return c.id, nil
+}
+
+func (c *mockTransport) doProtoHandshake(our *protoHandshake) (*protoHandshake, error) {
+	return &protoHandshake{ID: c.id, Name: "test"}, nil
+}
+
+func (c *mockTransport) close(err error) {
+	c.rlpx.fd.Close()
+	c.closeErr = err
+}
+
+func randomID() (id discover.NodeID) {
+	for i := range id {
+		id[i] = byte(rand.Intn(255))
+	}
+	return id
 }

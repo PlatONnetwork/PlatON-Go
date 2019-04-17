@@ -225,11 +225,11 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	// broadcast mined blocks
 	pm.minedBlockSub = pm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	// broadcast prepare mined blocks
-	pm.prepareMinedBlockSub = pm.eventMux.Subscribe(core.PrepareMinedBlockEvent{})
-	pm.blockSignatureSub = pm.eventMux.Subscribe(core.BlockSignatureEvent{})
+	//pm.prepareMinedBlockSub = pm.eventMux.Subscribe(core.PrepareMinedBlockEvent{})
+	//pm.blockSignatureSub = pm.eventMux.Subscribe(core.BlockSignatureEvent{})
 	go pm.minedBroadcastLoop()
-	go pm.prepareMinedBlockcastLoop()
-	go pm.blockSignaturecastLoop()
+	//go pm.prepareMinedBlockcastLoop()
+	//go pm.blockSignaturecastLoop()
 
 	// start sync handlers
 	go pm.syncer()
@@ -514,11 +514,15 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if data := pm.blockchain.GetBodyRLP(hash); len(data) != 0 {
 				bodies = append(bodies, data)
 				bytes += len(data)
+			} else {
+				log.Debug(fmt.Sprintf("Block body empty peer:%s hash:%s", p.id, hash.TerminalString()))
 			}
 		}
+		log.Debug(fmt.Sprintf("Send block body peer:%s", p.id))
 		return p.SendBlockBodiesRLP(bodies)
 
 	case msg.Code == BlockBodiesMsg:
+		log.Debug("Receive BlockBodiesMsg", "peer", p.id)
 		// A batch of block bodies arrived to one of our previous requests
 		var request blockBodiesData
 		if err := msg.Decode(&request); err != nil {
@@ -526,19 +530,24 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver them all to the downloader for queuing
 		transactions := make([][]*types.Transaction, len(request))
+		extraData := make([][]byte, len(request))
 
 		for i, body := range request {
 			transactions[i] = body.Transactions
+			extraData[i] = body.ExtraData
 		}
 		// Filter out any explicitly requested bodies, deliver the rest to the downloader
-		filter := len(transactions) > 0
+		filter := len(transactions) > 0 || len(extraData) > 0
+		log.Debug("Receive BlockBodiesMsg", "peer", p.id, "txslen", len(transactions), "extradata", len(extraData))
 		if filter {
-			transactions = pm.fetcher.FilterBodies(p.id, transactions, time.Now())
+			transactions, extraData = pm.fetcher.FilterBodies(p.id, transactions, extraData, time.Now())
 		}
-		if len(transactions) > 0 || !filter {
-			err := pm.downloader.DeliverBodies(p.id, transactions)
+		log.Debug("Receive BlockBodiesMsg", "peer", p.id, "txslen", len(transactions), "extradata", len(extraData))
+
+		if len(transactions) > 0 || len(extraData) > 0 || !filter {
+			err := pm.downloader.DeliverBodies(p.id, transactions, extraData)
 			if err != nil {
-				log.Debug("Failed to deliver bodies", "err", err)
+				log.Debug("Failed to deliver bodies", "peer", p.id, "err", err)
 			}
 		}
 
@@ -641,11 +650,12 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Schedule all the unknown hashes for retrieval
 		unknown := make(newBlockHashesData, 0, len(announces))
 		for _, block := range announces {
-			if !pm.blockchain.HasBlock(block.Hash, block.Number) {
+			if !pm.blockchain.Engine().HasBlock(block.Hash, block.Number) {
 				unknown = append(unknown, block)
 			}
 		}
 		for _, block := range unknown {
+			log.Debug("Unknown block", "hash", block.Hash, "number", block.Number)
 			pm.fetcher.Notify(p.id, block.Hash, block.Number, time.Now(), p.RequestOneHeader, p.RequestBodies)
 		}
 
@@ -662,6 +672,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		// Mark the peer as owning the block and schedule it for import
 		p.MarkBlock(request.Block.Hash())
+		if pm.blockchain.Engine().HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
+			return nil
+		}
 		pm.fetcher.Enqueue(p.id, request.Block)
 
 		// Assuming the block is importable by the peer, but possibly not yet done so,
@@ -674,7 +687,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		if _, bn := p.Head(); trueBn.Cmp(bn) > 0 {
 			p.SetHead(trueHead, trueBn)
-
 			// Schedule a sync if above ours. Note, this will not fire a sync for a gap of
 			// a singe block (as the true TD is below the propagated block), however this
 			// scenario should easily be covered by the fetcher.
@@ -682,6 +694,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if trueBn.Cmp(currentBlock.Number()) > 0 {
 				go pm.synchronise(p)
 			}
+
 		}
 
 	case msg.Code == TxMsg:
@@ -703,66 +716,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 
 		go pm.txpool.AddRemotes(txs)
-
-	case msg.Code == PrepareBlockMsg:
-		// Retrieve and decode the propagated block
-		var request prepareBlockData
-		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		log.Debug("Received a broadcast message[PrepareBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
-
-		request.Block.ReceivedAt = msg.ReceivedAt
-		request.Block.ReceivedFrom = p
-
-		// Preliminary check block
-		if err := pm.engine.VerifyHeader(pm.blockchain, request.Block.Header(), true); err != nil {
-			log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
-			return nil
-		}
-		if pm.blockchain.HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
-			log.Warn("Block already in blockchain,discard this msg", "err", err)
-			return nil
-		}
-		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-			//if pm.downloader.IsRunning() {
-			//	log.Warn("downloader is running,discard this msg")
-			//}
-			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
-				log.Warn("local node is not consensus node,discard this msg")
-			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
-				log.Warn("remote node is not consensus node,discard this msg")
-			} else if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
-				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
-			}
-			return nil
-		} else {
-			log.Warn("Consensus engine is not cbft", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
-		}
-
-	case msg.Code == BlockSignatureMsg:
-		// Retrieve and decode the propagated block
-		var request blockSignature
-		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-
-		log.Debug("~ Received a broadcast message[BlockSignatureMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
-		engineBlockSignature := &cbfttypes.BlockSignature{request.SignHash, request.Hash, request.Number, request.Signature}
-
-		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-			//if pm.downloader.IsRunning() {
-			//	log.Warn("downloader is running,discard this msg")
-			//}
-			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
-				log.Warn("local node is not consensus node,discard this msg")
-			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
-				log.Warn("remote node is not consensus node,discard this msg")
-			} else if err := cbftEngine.OnBlockSignature(pm.blockchain, p.Peer.ID(), engineBlockSignature); err != nil {
-				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
-			}
-			return nil
-		}
 
 	case msg.Code == PongMsg:
 		curTime := time.Now().UnixNano()
@@ -892,41 +845,7 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 			pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
 		}
 	}
-	/*
-		for {
-			select {
-			case event :=  <- pm.minedBlockSub.Chan():
-				if ev, ok := event.Data.(core.NewMinedBlockEvent); ok {
-					pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
-					pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
-				}
-			case event :=  <- pm.prepareMinedBlockSub.Chan():
-				if ev, ok := event.Data.(core.PrepareMinedBlockEvent); ok {
-					pm.MulticastConsensus(ev.Block)  // propagate block to consensus peers
-				}
-			case event :=  <- pm.blockSignatureSub.Chan():
-				if ev, ok := event.Data.(core.BlockSignatureEvent); ok {
-					pm.MulticastConsensus(ev.BlockSignature)  // propagate blockSignature to consensus peers
-				}
-			}
-		}
-	*/
-}
 
-func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
-	for obj := range pm.prepareMinedBlockSub.Chan() {
-		if ev, ok := obj.Data.(core.PrepareMinedBlockEvent); ok {
-			pm.MulticastConsensus(ev.Block) // propagate block to consensus peers
-		}
-	}
-}
-
-func (pm *ProtocolManager) blockSignaturecastLoop() {
-	for obj := range pm.blockSignatureSub.Chan() {
-		if ev, ok := obj.Data.(core.BlockSignatureEvent); ok {
-			pm.MulticastConsensus(ev.BlockSignature) // propagate blockSignature to consensus peers
-		}
-	}
 }
 
 func (pm *ProtocolManager) txBroadcastLoop() {

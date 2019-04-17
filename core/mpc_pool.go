@@ -329,7 +329,7 @@ func (pool *MPCPool) validateTx(tx *types.TransactionWrap) (err error) {
 
 func (pool *MPCPool) InjectTxs(block *types.Block, receipts types.Receipts, bc *BlockChain, state *state.StateDB) {
 	if !pool.config.MPCEnable {
-		log.Info("Wow ~ MPC Disable...")
+		log.Debug("Wow ~ MPC Disable...")
 		return
 	}
 	for _, tx := range block.Transactions() {

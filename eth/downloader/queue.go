@@ -60,6 +60,7 @@ type fetchResult struct {
 	Header       *types.Header
 	Transactions types.Transactions
 	Receipts     types.Receipts
+	ExtraData    []byte
 }
 
 // queue represents hashes that are either need fetching or are being fetched
@@ -391,6 +392,7 @@ func (q *queue) Results(block bool) []*fetchResult {
 			for _, tx := range result.Transactions {
 				size += tx.Size()
 			}
+			size += common.StorageSize(len(result.ExtraData))
 			q.resultSize = common.StorageSize(blockCacheSizeWeight)*size + (1-common.StorageSize(blockCacheSizeWeight))*q.resultSize
 		}
 	}
@@ -452,7 +454,7 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int) *fetchRequest {
 // returns a flag whether empty blocks were queued requiring processing.
 func (q *queue) ReserveBodies(p *peerConnection, count int) (*fetchRequest, bool, error) {
 	isNoop := func(header *types.Header) bool {
-		return header.TxHash == types.EmptyRootHash
+		return false //header.TxHash == types.EmptyRootHash
 	}
 	q.lock.Lock()
 	defer q.lock.Unlock()
@@ -760,7 +762,7 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 // DeliverBodies injects a block body retrieval response into the results queue.
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
-func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction) (int, error) {
+func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraData [][]byte) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -769,6 +771,7 @@ func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction) (int, e
 			return errInvalidBody
 		}
 		result.Transactions = txLists[index]
+		result.ExtraData = extraData[index]
 		return nil
 	}
 	return q.deliver(id, q.blockTaskPool, q.blockTaskQueue, q.blockPendPool, q.blockDonePool, bodyReqTimer, len(txLists), reconstruct)
@@ -861,8 +864,10 @@ func (q *queue) deliver(id string, taskPool map[common.Hash]*types.Header, taskQ
 	case failure == nil || failure == errInvalidChain:
 		return accepted, failure
 	case useful:
+		log.Error(fmt.Sprintf("Partial failure: %v", failure))
 		return accepted, fmt.Errorf("partial failure: %v", failure)
 	default:
+		log.Debug("Stale delivery")
 		return accepted, errStaleDelivery
 	}
 }

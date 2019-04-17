@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -34,8 +35,8 @@ type receiptsCache struct {
 
 func (pbc *BlockChainCache) CurrentBlock() *types.Block {
 	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
-		if block := cbft.HighestLogicalBlock(); block != nil {
-			log.Debug("get CurrentBlock() in cbft")
+		if block := cbft.HighestConfirmedBlock(); block != nil {
+			log.Debug("get CurrentBlock() in cbft", "hash", block.Hash(), "number", block.NumberU64())
 			return block
 		}
 	}
@@ -150,6 +151,7 @@ func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 	}
 	for hash, obj := range bcc.stateDBCache {
 		if obj.blockNum <= blockNum {
+			log.Debug("Clear StateDB", "sealHash", hash, "number", obj.blockNum)
 			delete(bcc.stateDBCache, hash)
 		}
 	}
@@ -174,7 +176,17 @@ func (bcc *BlockChainCache) MakeStateDB(block *types.Block) (*state.StateDB, err
 
 // Get the StateDB instance of the corresponding block
 func (bcc *BlockChainCache) ClearCache(block *types.Block) {
+	log.Debug("Clear Cache block", "sealHash", block.Header().SealHash(), "blockHash", block.Hash())
 	sealHash := block.Header().SealHash()
 	bcc.clearReceipts(sealHash)
 	bcc.clearStateDB(sealHash)
+}
+
+func (bcc *BlockChainCache) StateDBString() string {
+	status := fmt.Sprintf("[")
+	for hash, obj := range bcc.stateDBCache {
+		status += fmt.Sprintf("[%s, %d]", hash, obj.blockNum)
+	}
+	status += fmt.Sprintf("]")
+	return status
 }

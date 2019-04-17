@@ -1,287 +1,391 @@
 package cbft
 
-import (
-	"container/list"
-	"crypto/md5"
-	"flag"
-	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"math/big"
-	"os"
-	"strconv"
-	"testing"
-)
-
-func TestMain(m *testing.M) {
-	fmt.Println("test begin ...")
-	initTest()
-
-	flag.Parse()
-	exitCode := m.Run()
-
-	destroyTest()
-	fmt.Println("test end ...")
-	// Exit
-	os.Exit(exitCode)
-}
-
-//var cbftConfig *params.CbftConfig
-var forkRoot common.Hash
-var rootBlock *types.Block
-var rootNumber uint64
-
-func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
-
-	newRoot := NewBlockExt(rootBlock, 0)
-	newRoot.inTree = true
-	newRoot.isExecuted = true
-	newRoot.isSigned = true
-	newRoot.isConfirmed = true
-	newRoot.number = rootBlock.NumberU64()
-
-	//reorg the block tree
-	children := cbft.findChildren(newRoot)
-	for _, child := range children {
-		child.parent = newRoot
-		child.inTree = true
-	}
-	newRoot.children = children
-
-	//save the root in BlockExtMap
-	cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
-
-	//reset the new root irreversible
-	cbft.rootIrreversible.Store(newRoot)
-	//the new root's children should re-execute base on new state
-	for _, child := range newRoot.children {
-		if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
-			//remove bad block from tree and map
-			cbft.removeBadBlock(child)
-			break
-		}
-	}
-
-	highestLogical := cbft.findHighestLogical(newRoot)
-
-	//rearrange new logical path, and sign block if necessary
-	logicals := cbft.backTrackBlocks(newRoot, highestLogical, true)
-	cbft.signLogicals(logicals)
-
-	//reset logical path
-	//highestLogical := cbft.findHighestLogical(newRoot)
-	//cbft.setHighestLogical(highestLogical)
-	//reset highest confirmed block
-	cbft.highestConfirmed.Store(cbft.findLastClosestConfirmedIncludingSelf(newRoot))
-
-	if cbft.getHighestConfirmed() != nil {
-		t.Log("ok")
-	} else {
-		t.Log("cbft.highestConfirmed is null")
-	}
-}
-func TestFindClosestConfirmedExcludingSelf(t *testing.T) {
-	newRoot := NewBlockExt(rootBlock, 0)
-	newRoot.inTree = true
-	newRoot.isExecuted = true
-	newRoot.isSigned = true
-	newRoot.isConfirmed = true
-	newRoot.number = rootBlock.NumberU64()
-
-	closest := cbft.findClosestConfirmedExcludingSelf(newRoot)
-	fmt.Println(closest)
-}
-
-func TestExecuteBlockAndDescendant(t *testing.T) {
-	newRoot := NewBlockExt(rootBlock, 0)
-	newRoot.inTree = true
-	newRoot.isExecuted = true
-	newRoot.isSigned = true
-	newRoot.isConfirmed = true
-	newRoot.number = rootBlock.NumberU64()
-
-	//save the root in BlockExtMap
-	cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
-
-	//reset the new root irreversible
-	cbft.rootIrreversible.Store(newRoot)
-	//reorg the block tree
-	cbft.buildChildNode(newRoot)
-
-	//the new root's children should re-execute base on new state
-	for _, child := range newRoot.children {
-		if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
-			//remove bad block from tree and map
-			cbft.removeBadBlock(child)
-			break
-		}
-	}
-
-	//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
-	//cbft.signLogicalAndDescendant(newRoot)
-}
-
-func TestBackTrackBlocksIncludingEnd(t *testing.T) {
-	testBackTrackBlocks(t, true)
-}
-
-func TestBackTrackBlocksExcludingEnd(t *testing.T) {
-	testBackTrackBlocks(t, false)
-}
-
-func testBackTrackBlocks(t *testing.T, includeEnd bool) {
-	end, _ := cbft.blockExtMap.Load(rootBlock.Hash())
-	exts := cbft.backTrackBlocks(cbft.getHighestLogical(), end.(*BlockExt), includeEnd)
-
-	t.Log("len(exts)", len(exts))
-}
-
-func initTest() {
-	nodes := initNodes()
-	priKey, _ := crypto.HexToECDSA("0x8b54398b67e656dcab213c1b5886845963a9ab0671786eefaf6e241ee9c8074f")
-
-	cbftConfig := &params.CbftConfig{
-		Period:       1,
-		Epoch:        250000,
-		MaxLatency:   600,
-		Duration:     10,
-		InitialNodes: nodes,
-		NodeID:       nodes[0].ID,
-		PrivateKey:   priKey,
-	}
-
-	cbft = &Cbft{
-		config: cbftConfig,
-		//blockExtMap:   make(map[common.Hash]*BlockExt),
-		signedSet:     make(map[uint64]struct{}),
-		netLatencyMap: make(map[discover.NodeID]*list.List),
-	}
-	buildMain(cbft)
-
-	buildFork(cbft)
-}
-
-func destroyTest() {
-	cbft.Close()
-}
-
-func buildFork(cbft *Cbft) {
-
-	//sealhash := cbft.SealHash(header)
-
-	parentHash := forkRoot
-	for i := uint64(4); i <= 9; i++ {
-		header := &types.Header{
-			ParentHash: parentHash,
-			Number:     big.NewInt(int64(i)),
-			TxHash:     hash(1, i),
-		}
-		block := types.NewBlockWithHeader(header)
-
-		ext := &BlockExt{
-			block:       block,
-			inTree:      true,
-			isExecuted:  true,
-			isSigned:    false,
-			isConfirmed: false,
-			number:      block.NumberU64(),
-			signs:       make([]*common.BlockConfirmSign, 0),
-		}
-		cbft.blockExtMap.Store(block.Hash(), ext)
-
-		parentHash = block.Hash()
-	}
-}
-
-func hash(branch uint64, number uint64) (hash common.Hash) {
-	s := "branch" + strconv.FormatUint(branch, 10) + "number" + strconv.FormatUint(number, 10)
-	signByte := []byte(s)
-	hasher := md5.New()
-	hasher.Write(signByte)
-	return common.BytesToHash(hasher.Sum(nil))
-}
-func buildMain(cbft *Cbft) {
-
-	//sealhash := cbft.SealHash(header)
-
-	rootHeader := &types.Header{Number: big.NewInt(0), TxHash: hash(1, 0)}
-	rootBlock = types.NewBlockWithHeader(rootHeader)
-	rootNumber = 0
-
-	rootExt := &BlockExt{
-		block:       rootBlock,
-		inTree:      true,
-		isExecuted:  true,
-		isSigned:    true,
-		isConfirmed: false,
-		number:      rootBlock.NumberU64(),
-		signs:       make([]*common.BlockConfirmSign, 0),
-	}
-
-	//hashSet[uint64(0)] = rootBlock.Hash()
-	cbft.blockExtMap.Store(rootBlock.Hash(), rootExt)
-	cbft.highestConfirmed.Store(rootExt)
-
-	parentHash := rootBlock.Hash()
-	for i := uint64(1); i <= 10; i++ {
-		header := &types.Header{
-			ParentHash: parentHash,
-			Number:     big.NewInt(int64(i)),
-			TxHash:     hash(1, i),
-		}
-		block := types.NewBlockWithHeader(header)
-
-		ext := &BlockExt{
-			block:       block,
-			inTree:      true,
-			isExecuted:  true,
-			isSigned:    true,
-			isConfirmed: false,
-			number:      block.NumberU64(),
-			signs:       make([]*common.BlockConfirmSign, 0),
-		}
-		//hashSet[i] = rootBlock.Hash()
-		cbft.blockExtMap.Store(block.Hash(), ext)
-
-		cbft.highestLogical.Store(ext)
-
-		parentHash = block.Hash()
-
-		if i == 4 {
-			forkRoot = block.Hash()
-		}
-
-		cbft.buildIntoTree(ext)
-
-	}
-
-}
-
-func initNodes() []discover.Node {
-	var nodes [3]discover.Node
-
-	initialNodes := [3]string{
-		"1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429",
-		"751f4f62fccee84fc290d0c68d673e4b0cc6975a5747d2baccb20f954d59ba3315d7bfb6d831523624d003c8c2d33451129e67c3eef3098f711ef3b3e268fd3c",
-		"b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6",
-	}
-	nodeIDs := convert(initialNodes[:])
-
-	for i, node := range nodes {
-		node.ID = nodeIDs[i]
-	}
-
-	return nodes[:]
-}
-func convert(initialNodes []string) []discover.NodeID {
-	NodeIDList := make([]discover.NodeID, 0, len(initialNodes))
-	for _, value := range initialNodes {
-		if nodeID, error := discover.HexID(value); error == nil {
-			NodeIDList = append(NodeIDList, nodeID)
-		}
-	}
-	return NodeIDList
-}
+//
+//import (
+//	"crypto/ecdsa"
+//	"github.com/PlatONnetwork/PlatON-Go/common"
+//	"github.com/PlatONnetwork/PlatON-Go/core"
+//	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+//	"github.com/PlatONnetwork/PlatON-Go/core/types"
+//	"github.com/PlatONnetwork/PlatON-Go/crypto"
+//	"github.com/PlatONnetwork/PlatON-Go/event"
+//	"github.com/PlatONnetwork/PlatON-Go/p2p"
+//	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+//	"github.com/PlatONnetwork/PlatON-Go/params"
+//	"github.com/go-errors/errors"
+//	"github.com/stretchr/testify/assert"
+//	"math/big"
+//	"testing"
+//	"time"
+//)
+//
+//type testCbftConfig struct {
+//	c     *params.CbftConfig
+//	nodes map[discover.NodeID]*ecdsa.PrivateKey
+//}
+//
+//type testCbft struct {
+//	testCbftConfig
+//	cbft *Cbft
+//}
+//
+//func (t *testCbft) init(c *testCbftConfig) {
+//	in := make([]discover.NodeID, 0)
+//
+//	for k, _ := range c.nodes {
+//		in = append(in, k)
+//	}
+//	t.cbft = &Cbft{}
+//	t.cbft.config = c.c
+//	t.nodes = c.nodes
+//	t.cbft.dpos = newDpos(in)
+//}
+//
+//func (t testCbftConfig) signs(msg []byte) []common.BlockConfirmSign {
+//	signs := make([]common.BlockConfirmSign, 0)
+//	for _, v := range t.nodes {
+//		s, _ := crypto.Sign(msg, v)
+//		signs = append(signs, *common.NewBlockConfirmSign(s))
+//	}
+//	return signs
+//}
+//
+//type nullConn struct {
+//	p2p.MsgReadWriter
+//}
+//
+//func (n nullConn) ReadMsg() (p2p.Msg, error) {
+//	return p2p.Msg{}, nil
+//}
+//
+//func (n nullConn) WriteMsg(p2p.Msg) error {
+//	return nil
+//}
+//
+//func newNodeId() (*ecdsa.PrivateKey, discover.NodeID) {
+//	key, err := crypto.GenerateKey()
+//	if err != nil {
+//		panic("new key failed")
+//	}
+//	nodeId := discover.PubkeyID(&key.PublicKey)
+//	return key, nodeId
+//}
+//
+//func newCbftConfig(nodes int) *testCbftConfig {
+//	config := &testCbftConfig{
+//		c: &params.CbftConfig{
+//			Period:           0,
+//			Epoch:            0,
+//			MaxLatency:       0,
+//			LegalCoefficient: 0,
+//			Duration:         0,
+//		},
+//	}
+//
+//	config.nodes = make(map[discover.NodeID]*ecdsa.PrivateKey)
+//
+//	for i := 0; i < nodes; i++ {
+//		k, n := newNodeId()
+//		config.nodes[n] = k
+//		config.c.NodeID = n
+//		config.c.PrivateKey = k
+//	}
+//	return config
+//}
+//
+//func newCbft() *testCbft {
+//	tc := newCbftConfig(4)
+//
+//	t := &testCbft{}
+//	t.init(tc)
+//
+//	t.cbft.clearViewChange()
+//	t.cbft.clearPending()
+//	t.cbft.handler = NewHandler(t.cbft)
+//	t.cbft.maxVotedBlockNum = big.NewInt(0)
+//	return t
+//}
+//func TestViewChangeConn(t *testing.T) {
+//	tc := newCbftConfig(4)
+//	in := make([]discover.NodeID, 0)
+//	for k, _ := range tc.nodes {
+//		in = append(in, k)
+//	}
+//
+//	ntc := newCbft()
+//	ntc.cbft.handler = NewHandler(ntc.cbft)
+//	ntc.cbft.maxVotedBlockNum = big.NewInt(0)
+//	hash := common.HexToHash("0x59f18af5b772a730d0fc3ba105d9343b0c9202d0a48d7f87c149d70aeb7d2ae2")
+//
+//	closer, rw, _, _ := p2p.NewMockPeerNodeID(in[0], ntc.cbft.Protocols())
+//	defer closer()
+//
+//	v := &viewChange{
+//		Timestamp:              big.NewInt(1),
+//		IrreversibleBlockNum:   big.NewInt(1),
+//		IrreversibleBlockHash:  hash,
+//		IrreversibleBlockSigns: tc.signs(hash[:]),
+//	}
+//	s, err := ntc.cbft.signFn(hash[:])
+//	if err != nil {
+//		t.Error(err)
+//	}
+//	v.Sign.Set(s)
+//	if err := p2p.Send(rw, 16+ViewChangeMsg, v); err != nil {
+//		t.Error(err)
+//	}
+//	time.Sleep(time.Second)
+//	assert.Equal(t, ntc.cbft.viewChange.Timestamp, v.Timestamp, "timestamp is not equal")
+//	assert.Equal(t, ntc.cbft.viewChange.IrreversibleBlockNum, v.IrreversibleBlockNum, "block number is not equal")
+//}
+//
+//func TestViewChange(t *testing.T) {
+//	ntc := newCbft()
+//	in := ntc.cbft.dpos.primaryNodeList
+//	p := p2p.NewPeer(in[0], "", nil)
+//	ntc.cbft.handler.peers.Register(newPeer(p, nullConn{}))
+//	hash := common.HexToHash("0x59f18af5b772a730d0fc3ba105d9343b0c9202d0a48d7f87c149d70aeb7d2ae2")
+//
+//	v := &viewChange{
+//		Timestamp:              big.NewInt(1),
+//		IrreversibleBlockNum:   big.NewInt(1),
+//		IrreversibleBlockHash:  hash,
+//		IrreversibleBlockSigns: ntc.signs(hash[:]),
+//	}
+//	if s, err := ntc.cbft.signFn(hash[:]); err != nil {
+//		t.Error(err)
+//	} else {
+//		v.Sign.Set(s)
+//	}
+//
+//	if err := ntc.cbft.OnViewChange(in[0], v); err != nil {
+//		t.Error(err)
+//	}
+//
+//	assert.Equal(t, ntc.cbft.viewChange.Timestamp, v.Timestamp, "timestamp is not equal")
+//	assert.Equal(t, ntc.cbft.viewChange.IrreversibleBlockNum, v.IrreversibleBlockNum, "block number is not equal")
+//
+//	ntc.cbft.viewChange = &viewChange{
+//		Timestamp:              big.NewInt(2),
+//		IrreversibleBlockNum:   big.NewInt(2),
+//		IrreversibleBlockHash:  hash,
+//		IrreversibleBlockSigns: nil,
+//	}
+//
+//	v2 := &viewChange{
+//		Timestamp:              big.NewInt(1),
+//		IrreversibleBlockNum:   big.NewInt(1),
+//		IrreversibleBlockHash:  hash,
+//		IrreversibleBlockSigns: ntc.signs(hash[:]),
+//	}
+//	if s, err := ntc.cbft.signFn(hash[:]); err != nil {
+//		t.Error(err)
+//	} else {
+//		v2.Sign.Set(s)
+//	}
+//
+//	assert.Equal(t, ntc.cbft.OnViewChange(in[0], v2), errTimestamp, "")
+//}
+//
+//func TestViewChangeResp(t *testing.T) {
+//	ntc := newCbft()
+//	in := ntc.cbft.dpos.primaryNodeList
+//	p := p2p.NewPeer(in[0], "", nil)
+//	ntc.cbft.handler.peers.Register(newPeer(p, nullConn{}))
+//	hash := common.HexToHash("0x59f18af5b772a730d0fc3ba105d9343b0c9202d0a48d7f87c149d70aeb7d2ae2")
+//
+//	v := &viewChange{
+//		Timestamp:              big.NewInt(1),
+//		IrreversibleBlockNum:   big.NewInt(1),
+//		IrreversibleBlockHash:  hash,
+//		IrreversibleBlockSigns: ntc.signs(hash[:]),
+//	}
+//
+//	if s, err := ntc.cbft.signFn(hash[:]); err != nil {
+//		t.Error(err)
+//	} else {
+//		v.Sign.Set(s)
+//	}
+//	ntc.cbft.viewChange = v
+//
+//	clearFunc := func() {
+//		ntc.cbft.clearViewChange()
+//		ntc.cbft.viewChange = v
+//	}
+//
+//	testCase := func(resp *viewChangeResp, expect error) error {
+//		if s, err := crypto.Sign(resp.BlockHash[:], ntc.nodes[resp.ID]); err != nil {
+//			t.Error(err)
+//		} else {
+//			resp.Sign.Set(s)
+//		}
+//
+//		if err := ntc.cbft.OnViewChangeResp(resp.ID, resp); err != expect {
+//			t.Error(err)
+//			return errors.New("expect error")
+//		} else {
+//			return err
+//		}
+//	}
+//
+//	resp := &viewChangeResp{
+//		ID:        in[0],
+//		Timestamp: v.Timestamp,
+//		BlockNum:  v.IrreversibleBlockNum,
+//		BlockHash: v.IrreversibleBlockHash,
+//	}
+//
+//	assert.Equal(t, testCase(resp, nil), nil, "")
+//
+//	clearFunc()
+//	resp = &viewChangeResp{
+//		ID:        in[0],
+//		Timestamp: big.NewInt(2),
+//		BlockNum:  v.IrreversibleBlockNum,
+//		BlockHash: v.IrreversibleBlockHash,
+//	}
+//
+//	assert.Equal(t, testCase(resp, errTimestampNotEqual), errTimestampNotEqual, "")
+//
+//	clearFunc()
+//	resp = &viewChangeResp{
+//		ID:        in[0],
+//		Timestamp: v.Timestamp,
+//		BlockNum:  v.IrreversibleBlockNum,
+//		BlockHash: common.HexToHash("0x59f18af5b772a730d0fc3ba105d9343b0c9202d0a48d7f87c149d70aeb7d2ae3"),
+//	}
+//
+//	assert.Equal(t, testCase(resp, errBlockHashNotEqual), errBlockHashNotEqual, "")
+//}
+//
+//func TestSendViewChange(t *testing.T) {
+//	ntc := newCbft()
+//
+//	block := types.NewBlock(&types.Header{
+//		GasLimit: 0,
+//		Number:   big.NewInt(1),
+//	}, nil, nil)
+//	ntc.cbft.rootIrreversible.Store(NewBlockExt(block, block.NumberU64()))
+//	if err := ntc.cbft.sendViewChange(); err != nil {
+//		t.Error(err)
+//		return
+//	}
+//	assert.True(t, ntc.cbft.hadSendViewChange())
+//}
+//
+//func TestSendViewChangeTimeout(t *testing.T) {
+//	ntc := newCbft()
+//
+//	block := types.NewBlock(&types.Header{
+//		GasLimit: 0,
+//		Number:   big.NewInt(1),
+//	}, nil, nil)
+//	ntc.cbft.rootIrreversible.Store(NewBlockExt(block, block.NumberU64()))
+//	if err := ntc.cbft.sendViewChange(); err != nil {
+//		t.Error(err)
+//		return
+//	}
+//	time.Sleep(time.Second * 2)
+//	assert.True(t, !ntc.cbft.hadSendViewChange())
+//}
+//
+//func TestBroadcastPrepareBlockPending(t *testing.T) {
+//	ntc := newCbft()
+//	in := ntc.cbft.dpos.primaryNodeList
+//	p := p2p.NewPeer(in[0], "", nil)
+//	ntc.cbft.handler.peers.Register(newPeer(p, nullConn{}))
+//	hash := common.HexToHash("0x59f18af5b772a730d0fc3ba105d9343b0c9202d0a48d7f87c149d70aeb7d2ae2")
+//
+//	v := &viewChange{
+//		Timestamp:              big.NewInt(1),
+//		IrreversibleBlockNum:   big.NewInt(1),
+//		IrreversibleBlockHash:  hash,
+//		IrreversibleBlockSigns: ntc.signs(hash[:]),
+//	}
+//
+//	if s, err := ntc.cbft.signFn(hash[:]); err != nil {
+//		t.Error(err)
+//	} else {
+//		v.Sign.Set(s)
+//	}
+//	ntc.cbft.viewChange = v
+//
+//	go ntc.cbft.broadcastPrepare()
+//	ntc.cbft.eventMux = new(event.TypeMux)
+//	ntc.cbft.prepareMinedBlockSub = ntc.cbft.eventMux.Subscribe(core.PrepareMinedBlockEvent{})
+//	if err := ntc.cbft.eventMux.Post(core.PrepareMinedBlockEvent{Block: types.NewBlock(&types.Header{
+//		GasLimit: 0,
+//		Number:   big.NewInt(2),
+//	}, nil, nil),
+//	}); err != nil {
+//		t.Error(err)
+//	}
+//
+//	if err := ntc.cbft.eventMux.Post(core.PrepareMinedBlockEvent{Block: types.NewBlock(&types.Header{
+//		GasLimit: 0,
+//		Number:   big.NewInt(3),
+//	}, nil, nil),
+//	}); err != nil {
+//		t.Error(err)
+//	}
+//
+//	time.Sleep(time.Second)
+//	ntc.cbft.mux.Lock()
+//	defer ntc.cbft.mux.Unlock()
+//
+//	assert.Equal(t, 2, len(ntc.cbft.pendingBlocks))
+//}
+//
+//func TestBroadcastBlockSigns(t *testing.T) {
+//	ntc := newCbft()
+//	in := ntc.cbft.dpos.primaryNodeList
+//	p := p2p.NewPeer(in[0], "", nil)
+//	ntc.cbft.handler.peers.Register(newPeer(p, nullConn{}))
+//	hash := common.HexToHash("0x59f18af5b772a730d0fc3ba105d9343b0c9202d0a48d7f87c149d70aeb7d2ae2")
+//
+//	v := &viewChange{
+//		Timestamp:              big.NewInt(1),
+//		IrreversibleBlockNum:   big.NewInt(1),
+//		IrreversibleBlockHash:  hash,
+//		IrreversibleBlockSigns: ntc.signs(hash[:]),
+//	}
+//
+//	if s, err := ntc.cbft.signFn(hash[:]); err != nil {
+//		t.Error(err)
+//	} else {
+//		v.Sign.Set(s)
+//	}
+//	ntc.cbft.viewChange = v
+//
+//	go ntc.cbft.broadcastSigns()
+//	ntc.cbft.eventMux = new(event.TypeMux)
+//	ntc.cbft.blockSignatureSub = ntc.cbft.eventMux.Subscribe(core.BlockSignatureEvent{})
+//
+//	sign2 := hash
+//	sign2[2] = 2
+//	if err := ntc.cbft.eventMux.Post(core.BlockSignatureEvent{BlockSignature: &cbfttypes.BlockSignature{
+//		SignHash:  sign2,
+//		Hash:      sign2,
+//		Number:    big.NewInt(2),
+//		Signature: new(common.BlockConfirmSign),
+//	}}); err != nil {
+//		t.Error(err)
+//	}
+//
+//	sign3 := hash
+//	sign3[3] = 3
+//	if err := ntc.cbft.eventMux.Post(core.BlockSignatureEvent{BlockSignature: &cbfttypes.BlockSignature{
+//		SignHash:  sign3,
+//		Hash:      sign3,
+//		Number:    big.NewInt(3),
+//		Signature: new(common.BlockConfirmSign),
+//	}}); err != nil {
+//		t.Error(err)
+//	}
+//
+//	time.Sleep(time.Second)
+//	ntc.cbft.mux.Lock()
+//	defer ntc.cbft.mux.Unlock()
+//
+//	assert.Equal(t, 2, len(ntc.cbft.pendingVotes))
+//}

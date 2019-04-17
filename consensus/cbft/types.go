@@ -1,0 +1,1147 @@
+package cbft
+
+import (
+	"context"
+	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/pkg/errors"
+	"time"
+)
+
+var (
+	errEmptyRootBlock             = errors.New("empty root block")
+	errExistViewChange            = errors.New("had viewchange")
+	errNotExistViewChange         = errors.New("not exist viewchange")
+	errTimestampNotEqual          = errors.New("timestamp not equal")
+	errBlockHashNotEqual          = errors.New("block hash not equal")
+	errViewChangeBlockNumTooLower = errors.New("block number too lower")
+	errTimestamp                  = errors.New("viewchange timestamp too low")
+	errInvalidViewChangeVote      = errors.New("invalid viewchange vote")
+)
+
+type AcceptStatus int
+
+const (
+	Accept = iota
+	Discard
+	Cache
+)
+
+type blockSynced struct {
+}
+
+type PendingVote map[common.Hash]*prepareVote
+type PendingBlock map[common.Hash]*prepareBlock
+type ProcessingVote map[common.Hash]map[discover.NodeID]*prepareVote
+type ViewChangeVotes map[common.Address]*viewChangeVote
+
+type RoundState struct {
+	//mux    sync.RWMutex // all about consensus round state run in same goroutine, mux is use on read
+	master bool
+
+	viewChange          *viewChange //current viewchange message
+	viewChangeResp      *viewChangeVote
+	viewChangeVotes     ViewChangeVotes //current viewchange response from other consensus nodes
+	lastViewChange      *viewChange     //last viewchange message
+	lastViewChangeVotes ViewChangeVotes //last viewchange response from other consensus nodes
+
+	pendingVotes    PendingVote    //pending prepareVotes sign
+	pendingBlocks   PendingBlock   //pending blocks
+	processingVotes ProcessingVote //to be processed prepareVotes sign
+
+	producerBlocks *ProducerBlocks
+	blockExtMap    *BlockExtMap
+}
+
+func (vv ViewChangeVotes) String() string {
+	if vv == nil {
+		return ""
+	}
+	s := "["
+	for k, v := range vv {
+		s += fmt.Sprintf("[addr:%s, vote:%s]", k.String(), v.String())
+	}
+	s += "]"
+	return ""
+}
+
+func (rs RoundState) String() string {
+
+	return fmt.Sprintf("[ master:%v, viewChange:%s, viewChangeResp:%s, viewChangeVotes:%s, lastViewChange:%s, lastViewChangeVotes:%s, pendingVotes:%s, pendingBlocks:%s, processingVotes:%s, blockExtMap:%s",
+		rs.master, rs.viewChange.String(), rs.viewChangeResp.String(), rs.viewChangeVotes.String(), rs.lastViewChange.String(), rs.lastViewChangeVotes.String(),
+		rs.pendingVotes.String(), rs.pendingBlocks.String(), rs.processingVotes.String(), rs.blockExtMap.BlockString())
+}
+
+func (pv PendingVote) Add(hash common.Hash, vote *prepareVote) {
+	pv[hash] = vote
+}
+func (pv PendingVote) String() string {
+	if pv == nil {
+		return ""
+	}
+	s := "["
+	for k, v := range pv {
+		s += fmt.Sprintf("[hash:%s, vote:%s]", k.TerminalString(), v.String())
+	}
+	s += "]"
+	return s
+}
+
+func (pv *PendingVote) Clear() {
+	*pv = make(map[common.Hash]*prepareVote)
+}
+
+func (pb PendingBlock) Add(hash common.Hash, ext *prepareBlock) {
+	pb[hash] = ext
+}
+
+func (pb PendingBlock) String() string {
+	if pb == nil {
+		return ""
+	}
+	s := "["
+	for _, v := range pb {
+		s += fmt.Sprintf("[block:%s]", v.String())
+	}
+	s += "]"
+	return s
+}
+
+func (pb *PendingBlock) Clear() {
+	*pb = make(map[common.Hash]*prepareBlock)
+}
+
+func (pv ProcessingVote) Add(hash common.Hash, nodeId discover.NodeID, vote *prepareVote) {
+	var votes map[discover.NodeID]*prepareVote
+	if v := pv[hash]; v != nil {
+		votes = v
+	} else {
+		votes = make(map[discover.NodeID]*prepareVote)
+	}
+	votes[nodeId] = vote
+	pv[hash] = votes
+}
+
+func (pv ProcessingVote) String() string {
+	if pv == nil {
+		return ""
+	}
+	s := "["
+	for h, votes := range pv {
+		s += fmt.Sprintf("hash:%s,[", h.TerminalString())
+		for k, v := range votes {
+			s += fmt.Sprintf("[nodeId:%s, vote:%s]", k.TerminalString(), v.String())
+		}
+		s += "]"
+	}
+	s += "]"
+	return s
+}
+
+func (pv *ProcessingVote) Clear() {
+	*pv = make(map[common.Hash]map[discover.NodeID]*prepareVote)
+}
+
+func (cbft *Cbft) init() {
+	log.Info("Current block", "number", cbft.blockChain.CurrentBlock().Number())
+	cbft.clear()
+}
+func (cbft *Cbft) checkViewChangeVotes(votes []*viewChangeVote) error {
+	if cbft.viewChange == nil {
+		log.Error("ViewChange is nil, check prepareVotes failed")
+		return errNotExistViewChange
+	}
+
+	for _, vote := range votes {
+		if vote.EqualViewChange(cbft.viewChange) {
+			if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote.BlockHash, vote.Signature[:]); err != nil {
+				log.Error("Verify validator failed", "vote", vote.String(), "err", err)
+				return errInvalideViewChangeVotes
+			}
+		} else {
+			log.Error("Invalid viewchange vote", "vote", vote.String(), "view", cbft.viewChange.String())
+			return errInvalidViewChangeVote
+		}
+	}
+
+	return nil
+}
+
+func (cbft *Cbft) verifyValidatorSign(validatorIndex uint32, validatorAddr common.Address, hash common.Hash, signature []byte) error {
+	return nil
+	if index, err := cbft.dpos.AddressIndex(validatorAddr); err == nil && uint32(index) == validatorIndex {
+		//todo verify sign
+		if err := verifySign(cbft.dpos.NodeID(index), hash, signature); err != nil {
+			return err
+		}
+	} else {
+		return err
+	}
+	return nil
+}
+func (cbft *Cbft) AgreeViewChange() bool {
+	//cbft.mux.Lock()
+	//defer cbft.mux.Unlock()
+	return cbft.agreeViewChange()
+}
+
+func (cbft *Cbft) addPrepareBlockVote(pbd *prepareBlock) {
+	if cbft.viewChange == nil {
+		return
+	}
+	except := cbft.viewChange.HighestBlockNum + 1
+	log.Info("add prepare block", "number", pbd.Block.NumberU64(), "except", except, "irr", cbft.viewChange.HighestBlockNum)
+	log.Info(fmt.Sprintf("master:%v prepareVotes:%d ", cbft.master, len(cbft.viewChangeVotes)))
+	if cbft.master && cbft.agreeViewChange() && except == pbd.Block.NumberU64() {
+		pbd.View = cbft.viewChange
+		pbd.ViewChangeVotes = make([]*viewChangeVote, 0)
+		for _, v := range cbft.viewChangeVotes {
+			pbd.ViewChangeVotes = append(pbd.ViewChangeVotes, v)
+		}
+		log.Debug("add prepareVotes in prepare block", "hash", pbd.Block.Hash(), "number", pbd.Block.NumberU64())
+	} else {
+		pbd.View = cbft.viewChange.CopyWithoutVotes()
+	}
+}
+func (cbft *Cbft) agreeViewChange() bool {
+	return len(cbft.viewChangeVotes) >= cbft.getThreshold()
+}
+
+func (cbft *Cbft) AgreeReceive(block *types.Block) bool {
+	//cbft.mux.Lock()
+	//defer cbft.mux.Unlock()
+	return cbft.agreeReceive(block)
+}
+
+func (cbft *Cbft) agreeReceive(block *types.Block) bool {
+	if cbft.viewChange == nil || cbft.hadSendViewChange() {
+		return true
+	}
+
+	if cbft.viewChange.HighestBlockNum < block.NumberU64() || cbft.viewChange.HighestBlockHash == block.Hash() {
+		return true
+	} else {
+		if cbft.producerBlocks != nil && cbft.producerBlocks.ExistBlock(block) {
+			return true
+		}
+	}
+
+	cbft.log.Warn("refuse receive block", "hash", block.Hash(), "number", block.NumberU64(), "view", cbft.viewChange.String())
+	return false
+}
+
+func (cbft *Cbft) viewVoteState() string {
+	var state string
+	for k, v := range cbft.viewChangeVotes {
+		state += k.String() + "=" + v.String()
+	}
+	return state
+}
+
+func (cbft *Cbft) HadSendViewChange() bool {
+	//cbft.mux.Lock()
+	//defer cbft.mux.Unlock()
+	return cbft.hadSendViewChange()
+}
+
+func (cbft *Cbft) hadSendViewChange() bool {
+	return cbft.viewChanging() && cbft.master
+}
+
+func (cbft *Cbft) viewChanging() bool {
+	return cbft.viewChange != nil
+}
+
+func (cbft *Cbft) AcceptBlock(hash common.Hash, number uint64) bool {
+	//cbft.mux.Lock()
+	//defer cbft.mux.Unlock()
+
+	//1. not in viewchanging
+	if cbft.viewChanging() && !cbft.agreeViewChange() {
+		// changing
+		if number <= cbft.viewChange.HighestBlockNum {
+			log.Debug("accept true", "number", number, "hash", hash, "irr num", cbft.viewChange.HighestBlockNum)
+			return true
+		}
+	} else {
+		log.Warn("accept true", "view", cbft.viewChange.String(), "view prepareVotes", cbft.viewVoteState())
+		return true
+	}
+
+	if cbft.viewChange != nil && cbft.viewChangeVotes != nil {
+		log.Warn("accept false", "view", cbft.viewChange.String(), "view prepareVotes", cbft.viewVoteState())
+	} else {
+		log.Warn("accept false", "has view change", cbft.viewChange != nil, "has view vote", cbft.viewChangeVotes != nil)
+	}
+
+	return false
+}
+
+func (cbft *Cbft) AcceptPrepareBlock(request *prepareBlock) AcceptStatus {
+	if cbft.viewChange == nil {
+		return Cache
+	}
+
+	if cbft.viewChange.HighestBlockNum > request.Block.NumberU64() {
+		return Accept
+	}
+
+	if request.ProposalIndex != cbft.viewChange.ProposalIndex {
+		if cbft.lastViewChange == nil {
+			return Discard
+		}
+		if request.ProposalIndex == cbft.lastViewChange.ProposalIndex {
+			return Cache
+		} else {
+			return Discard
+		}
+	}
+
+	if cbft.viewChanging() && !cbft.agreeViewChange() {
+		return Cache
+	}
+	return Accept
+}
+
+func (cbft *Cbft) AcceptPrepareVote(vote *prepareVote) AcceptStatus {
+
+	if (cbft.lastViewChange != nil && vote.Number < cbft.lastViewChange.HighestBlockNum) ||
+		(cbft.viewChange != nil && vote.Number < cbft.viewChange.HighestBlockNum) {
+		return Accept
+	}
+	//1. not in viewchanging
+	if cbft.viewChanging() && !cbft.agreeViewChange() {
+		// changing
+		if vote.Number <= cbft.viewChange.HighestBlockNum {
+			log.Debug("Accept vote", "hash", vote.Hash, "number", vote.Number, "irr num", cbft.viewChange.HighestBlockNum)
+			return Accept
+		}
+	} else {
+		//log.Warn("Accept vote", "view", cbft.viewChange.String(), "view prepareVotes", cbft.viewVoteState())
+		if cbft.viewChange == nil || (cbft.viewChange != nil && vote.Timestamp == cbft.viewChange.Timestamp) {
+			return Accept
+		}
+	}
+
+	if cbft.viewChange != nil && cbft.viewChangeVotes != nil {
+		log.Warn("Cache vote", "view", cbft.viewChange.String(), "view prepareVotes", cbft.viewVoteState())
+	} else {
+		log.Warn("Cache vote", "viewchange", cbft.viewChange != nil, "has view vote", cbft.viewChangeVotes != nil)
+	}
+
+	return Cache
+}
+
+func (cbft *Cbft) ClearPending() {
+	//cbft.mux.Lock()
+	//defer cbft.mux.Unlock()
+	cbft.clearPending()
+}
+
+func (cbft *Cbft) clearPending() {
+	cbft.pendingVotes.Clear()
+	cbft.pendingBlocks.Clear()
+	cbft.processingVotes.Clear()
+}
+
+func (cbft *Cbft) ClearViewChange() {
+	//cbft.mux.Lock()
+	//defer cbft.mux.Unlock()
+	cbft.clearViewChange()
+}
+
+func (cbft *Cbft) clearViewChange() {
+	cbft.viewChange = nil
+	cbft.viewChangeVotes = make(map[common.Address]*viewChangeVote)
+	cbft.lastViewChange = nil
+	cbft.lastViewChangeVotes = make(map[common.Address]*viewChangeVote)
+}
+
+func (cbft *Cbft) Clear() {
+	//cbft.mux.Lock()
+	//defer cbft.mux.Unlock()
+	cbft.clear()
+}
+
+func (cbft *Cbft) clear() {
+	cbft.clearPending()
+	cbft.clearViewChange()
+}
+
+func (cbft *Cbft) handleCache() {
+	go cbft.processing()
+	cbft.pendingProcess()
+}
+
+func (cbft *Cbft) processing() {
+	for _, v := range cbft.processingVotes {
+		for k, v := range v {
+			cbft.peerMsgCh <- &msgInfo{
+				msg:    v,
+				peerID: k,
+			}
+		}
+	}
+}
+
+func (cbft *Cbft) pendingProcess() {
+	var pendingVote PendingVote
+	var pendingBlock PendingBlock
+
+	if len(cbft.pendingVotes) != 0 {
+		pendingVote = cbft.pendingVotes
+		cbft.pendingVotes = make(map[common.Hash]*prepareVote)
+		cbft.log.Trace("Process pending vote", "total", len(pendingVote))
+
+	}
+	if len(cbft.pendingBlocks) != 0 {
+		pendingBlock = cbft.pendingBlocks
+		cbft.log.Trace("Process pending block", "total", len(pendingBlock))
+		cbft.pendingBlocks = make(map[common.Hash]*prepareBlock)
+	}
+
+	for _, pv := range pendingVote {
+		ext := cbft.blockExtMap.findBlock(pv.Hash, pv.Number)
+		if ext != nil {
+			ext.prepareVotes.Add(pv)
+			cbft.blockExtMap.Add(pv.Hash, pv.Number, ext)
+		}
+		cbft.handler.SendAllConsensusPeer(pv)
+	}
+
+	for _, v := range pendingBlock {
+		cbft.handler.SendAllConsensusPeer(v)
+	}
+
+}
+
+func (cbft *Cbft) AddProcessingVote(nodeId discover.NodeID, vote *prepareVote) {
+	//cbft.mux.Lock()
+	//defer cbft.mux.Unlock()
+	cbft.processingVotes.Add(vote.Hash, nodeId, vote)
+}
+
+func (cbft *Cbft) newViewChange() (*viewChange, error) {
+
+	ext := cbft.getHighestConfirmed()
+	index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
+	if err != nil {
+		return nil, errInvaliderCandidateAddress
+	}
+	view := &viewChange{
+		Timestamp:        uint64(time.Now().Unix()),
+		HighestBlockNum:  ext.block.NumberU64(),
+		HighestBlockHash: ext.block.Hash(),
+		ProposalIndex:    uint32(index),
+		ProposalAddr:     addr,
+	}
+
+	sign, err := cbft.signFn(view.HighestBlockHash[:])
+	if err != nil {
+		return nil, err
+	}
+
+	view.Signature.SetBytes(sign)
+	view.HighestBlockPrepareVotes = ext.Votes()
+	cbft.resetViewChange()
+	cbft.viewChange = view
+	cbft.master = true
+	log.Debug("Make new view change", "view", view.String())
+	return view, nil
+}
+
+func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
+
+	if cbft.viewChange != nil && cbft.viewChange.Timestamp > view.Timestamp {
+		cbft.log.Error("Verify view change failed", "local timestamp", cbft.viewChange.Timestamp, "remote", view.Timestamp)
+		return errTimestamp
+	}
+
+	if cbft.blockExtMap.findBlock(view.HighestBlockHash, view.HighestBlockNum) == nil {
+		cbft.log.Error(fmt.Sprintf("View's block is not found hash:%s, number:%s", view.HighestBlockHash.TerminalString(), view.HighestBlockNum))
+		return errNotFoundViewBlock
+	}
+	if view.HighestBlockNum != 0 && len(view.HighestBlockPrepareVotes) < cbft.getThreshold() {
+		cbft.log.Error("View's prepare vote < 2f", "view", view.String())
+		return errTwoThirdPrepareVotes
+	}
+
+	for _, vote := range view.HighestBlockPrepareVotes {
+		if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote.Hash, vote.Signature[:]); err != nil {
+			cbft.log.Error("Verify validator failed", "vote", vote.String(), "err", err)
+			return errInvalidePrepareVotes
+		}
+	}
+
+	if cbft.getHighestConfirmed().number > view.HighestBlockNum {
+		cbft.log.Warn(fmt.Sprintf("View change block too lower 2/3 block hash:%s num:%d, view irr block hash:%s num:%d", cbft.getHighestConfirmed().block.Hash().TerminalString(),
+			cbft.getHighestConfirmed().number, view.HighestBlockHash.TerminalString(), view.HighestBlockNum))
+		return errViewChangeBlockNumTooLower
+	}
+	return nil
+}
+
+func (cbft *Cbft) setViewChange(view *viewChange) {
+	log.Info("Make viewchange vote", "vote", view.String())
+
+	cbft.resetViewChange()
+	cbft.viewChange = view
+	cbft.master = false
+}
+
+func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote) error {
+	log.Debug("Receive view change vote", "peer", peerID, "vote", vote.String())
+	bpCtx := context.WithValue(context.Background(), "peer", peerID)
+
+	//cbft.mux.Lock()
+	//defer cbft.mux.Unlock()
+	hadAgree := cbft.agreeViewChange()
+	if cbft.viewChange != nil && vote.EqualViewChange(cbft.viewChange) {
+		if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote.BlockHash, vote.Signature[:]); err == nil {
+			cbft.viewChangeVotes[vote.ValidatorAddr] = vote
+			log.Info("Agree receive view change response", "peer", peerID, "prepareVotes", len(cbft.viewChangeVotes))
+		} else {
+			cbft.log.Warn("Verify sign failed", "peer", peerID, "vote", vote.String())
+			return errSign
+		}
+	} else {
+		switch {
+		case cbft.viewChange == nil:
+			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errNotExistViewChange, &cbft.RoundState)
+			return errNotExistViewChange
+		case vote.Timestamp != cbft.viewChange.Timestamp:
+			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errTimestampNotEqual, &cbft.RoundState)
+			return errTimestampNotEqual
+		case vote.BlockHash != cbft.viewChange.HighestBlockHash:
+			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errBlockHashNotEqual, &cbft.RoundState)
+			return errBlockHashNotEqual
+		}
+	}
+	if !hadAgree && cbft.agreeViewChange() {
+		cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, &cbft.RoundState)
+		cbft.flushReadyBlock()
+		cbft.producerBlocks = NewProducerBlocks(cbft.config.NodeID, cbft.viewChange.HighestBlockNum)
+		cbft.clearPending()
+		cbft.blockExtMap.ClearChildren(cbft.viewChange.HighestBlockHash, cbft.viewChange.HighestBlockNum)
+
+	}
+	log.Info("Receive viewchange vote", "msg", vote.String(), "had votes", len(cbft.viewChangeVotes))
+	return nil
+}
+
+func (cbft *Cbft) SendViewChangeVote(id *discover.NodeID) error {
+	//cbft.mux.Lock()
+	//defer cbft.mux.Unlock()
+	log.Info("Send view change response", "msg", cbft.viewChangeResp.String())
+	return cbft.handler.sendViewChangeVote(id, cbft.viewChangeResp)
+}
+
+func (cbft *Cbft) resetViewChange() {
+	cbft.lastViewChange, cbft.lastViewChangeVotes = cbft.viewChange, cbft.viewChangeVotes
+	cbft.viewChange, cbft.viewChangeVotes = nil, make(map[common.Address]*viewChangeVote)
+}
+
+func (cbft *Cbft) broadcastBlock(ext *BlockExt) {
+	index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
+	if err != nil {
+		return
+	}
+	ext.proposalIndex, ext.proposalAddr = uint32(index), addr
+	p := &prepareBlock{Block: ext.block, ProposalIndex: uint32(index), ProposalAddr: addr}
+
+	cbft.addPrepareBlockVote(p)
+	if cbft.viewChange != nil && !cbft.agreeViewChange() && cbft.viewChange.HighestBlockNum < ext.block.NumberU64() {
+		log.Debug("Pending block", "number", ext.block.Number())
+		cbft.pendingBlocks[ext.block.Hash()] = p
+		return
+	} else {
+		log.Debug("Send block", "number", ext.block.Number())
+		cbft.handler.SendAllConsensusPeer(p)
+	}
+}
+
+func (cbft *Cbft) AddPrepareBlock(block *types.Block) {
+	//cbft.mux.Lock()
+	//defer cbft.mux.Unlock()
+	if cbft.hadSendViewChange() {
+		if block.NumberU64() > cbft.viewChange.HighestBlockNum {
+			if cbft.producerBlocks == nil {
+				cbft.producerBlocks = NewProducerBlocks(cbft.config.NodeID, cbft.viewChange.HighestBlockNum)
+			}
+			cbft.producerBlocks.AddBlock(block)
+		}
+	}
+}
+
+type GetBlock struct {
+	hash   common.Hash
+	number uint64
+	ch     chan *types.Block
+}
+
+type prepareVoteSet struct {
+	votes    map[uint32]*prepareVote
+	voteBits *BitArray
+}
+
+func NewPrepareVoteSet(threshold uint32) *prepareVoteSet {
+	return &prepareVoteSet{
+		votes:    make(map[uint32]*prepareVote),
+		voteBits: NewBitArray(threshold),
+	}
+}
+
+func (pv *prepareVoteSet) Add(vote *prepareVote) {
+	pv.votes[vote.ValidatorIndex] = vote
+	pv.voteBits.setIndex(vote.ValidatorIndex, true)
+}
+func (pv *prepareVoteSet) Get(index uint32) *prepareVote {
+	if pv.voteBits.GetIndex(index) {
+		return pv.votes[index]
+	}
+	return nil
+}
+func (pv *prepareVoteSet) Merge(v *prepareVoteSet) {
+	for k, v := range pv.votes {
+		pv.votes[k] = v
+		pv.voteBits.setIndex(k, true)
+	}
+}
+
+func (pv *prepareVoteSet) Signs() []common.BlockConfirmSign {
+	signs := make([]common.BlockConfirmSign, 0)
+
+	for _, v := range pv.votes {
+		signs = append(signs, v.Signature)
+	}
+	return signs
+}
+
+func (pv *prepareVoteSet) Votes() []*prepareVote {
+	votes := make([]*prepareVote, 0)
+	for _, v := range pv.votes {
+		votes = append(votes, v)
+	}
+	return votes
+}
+
+func (pv *prepareVoteSet) Len() int {
+	return len(pv.votes)
+}
+
+// BlockExt is an extension from Block
+type BlockExt struct {
+	block           *types.Block
+	inTree          bool
+	inTurn          bool
+	executing       bool
+	isExecuted      bool
+	isSigned        bool
+	isConfirmed     bool
+	number          uint64
+	rcvTime         int64
+	timestamp       uint64
+	proposalIndex   uint32
+	proposalAddr    common.Address
+	prepareVotes    *prepareVoteSet //all prepareVotes for block
+	view            *viewChange
+	viewChangeVotes []*viewChangeVote
+	parent          *BlockExt
+	children        map[common.Hash]*BlockExt
+	syncState       chan error
+}
+
+func (b BlockExt) String() string {
+	if b.block == nil {
+		return fmt.Sprintf("number:%d inTree:%v inTurn:%v isExecuted:%v, isSigned:%v isConfirmed:%v rcvTime:%d prepareVotes:%d children:%d",
+			b.number, b.inTree, b.inTurn, b.isExecuted, b.isSigned, b.isConfirmed, b.rcvTime, b.prepareVotes.Len(), len(b.children))
+	}
+	return fmt.Sprintf("hash:%s number:%d inTree:%v inTurn:%v isExecuted:%v, isSigned:%v isConfirmed:%v rcvTime:%d prepareVotes:%d children:%d",
+		b.block.Hash().TerminalString(), b.block.NumberU64(), b.inTree, b.inTurn, b.isExecuted, b.isSigned, b.isConfirmed, b.rcvTime, b.prepareVotes.Len(), len(b.children))
+}
+
+func (b *BlockExt) SetSyncState(err error) {
+	if b.syncState != nil {
+		b.syncState <- err
+		b.syncState = nil
+	}
+}
+func (b *BlockExt) PrepareBlock() (*prepareBlock, error) {
+	if b.block == nil {
+		return nil, errors.Errorf("empty block")
+	}
+	return &prepareBlock{
+		Timestamp:       b.timestamp,
+		ProposalIndex:   b.proposalIndex,
+		ProposalAddr:    b.proposalAddr,
+		Block:           b.block,
+		View:            b.view,
+		ViewChangeVotes: b.viewChangeVotes,
+	}, nil
+}
+
+func (b *BlockExt) IsParent(hash common.Hash) bool {
+	return b.block.Hash() == hash
+}
+func (b *BlockExt) Merge(ext *BlockExt) {
+	if b.number == ext.number {
+		if b.block == nil && ext.block != nil {
+			//receive PrepareVote before receive PrepareBlock, so view is need set
+			b.block = ext.block
+			b.view = ext.view
+		}
+		b.prepareVotes.Merge(ext.prepareVotes)
+	}
+}
+func (b BlockExt) Signs() []common.BlockConfirmSign {
+	return b.prepareVotes.Signs()
+}
+
+func (b BlockExt) Votes() []*prepareVote {
+	return b.prepareVotes.Votes()
+}
+
+func (b BlockExt) BlockExtra() *BlockExtra {
+	return &BlockExtra{
+		Prepare:         b.Votes(),
+		ViewChange:      b.view,
+		ViewChangeVotes: b.viewChangeVotes,
+	}
+}
+
+// New creates a BlockExt object
+func NewBlockExt(block *types.Block, blockNum uint64, threshold int) *BlockExt {
+	return &BlockExt{
+		block:        block,
+		number:       blockNum,
+		prepareVotes: NewPrepareVoteSet(uint32(threshold)),
+		children:     make(map[common.Hash]*BlockExt),
+	}
+}
+
+func NewBlockExtBySeal(block *types.Block, blockNum uint64, threshold int) *BlockExt {
+	return &BlockExt{
+		block:        block,
+		number:       blockNum,
+		prepareVotes: NewPrepareVoteSet(uint32(threshold)),
+		children:     make(map[common.Hash]*BlockExt),
+		rcvTime:      common.Millis(time.Now()),
+		inTree:       true,
+		executing:    true,
+		isExecuted:   true,
+		isSigned:     true,
+		isConfirmed:  true,
+	}
+}
+
+func NewBlockExtByPeer(block *types.Block, blockNum uint64, threshold int) *BlockExt {
+	return &BlockExt{
+		block:        block,
+		number:       blockNum,
+		prepareVotes: NewPrepareVoteSet(uint32(threshold)),
+		children:     make(map[common.Hash]*BlockExt),
+		rcvTime:      common.Millis(time.Now()),
+		inTree:       false,
+		executing:    false,
+		isExecuted:   false,
+		isSigned:     false,
+		isConfirmed:  false,
+	}
+}
+
+func NewBlockExtByPrepareBlock(pb *prepareBlock, threshold int) *BlockExt {
+	return &BlockExt{
+		block:         pb.Block,
+		view:          pb.View,
+		number:        pb.Block.NumberU64(),
+		prepareVotes:  NewPrepareVoteSet(uint32(threshold)),
+		children:      make(map[common.Hash]*BlockExt),
+		rcvTime:       common.Millis(time.Now()),
+		timestamp:     pb.Timestamp,
+		proposalIndex: pb.ProposalIndex,
+		proposalAddr:  pb.ProposalAddr,
+		inTree:        false,
+		executing:     false,
+		isExecuted:    false,
+		isSigned:      false,
+		isConfirmed:   false,
+	}
+}
+
+type BlockExtra struct {
+	Prepare         []*prepareVote
+	ViewChange      *viewChange
+	ViewChangeVotes []*viewChangeVote
+}
+
+type ExecuteBlockStatus struct {
+	block *BlockExt
+	err   error
+}
+
+type SealBlock struct {
+	block        *types.Block
+	sealResultCh chan<- *types.Block
+	stopCh       <-chan struct{}
+}
+
+func NewSealBlock(block *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) *SealBlock {
+	return &SealBlock{
+		block:        block,
+		sealResultCh: sealResultCh,
+		stopCh:       stopCh,
+	}
+}
+
+type BlockExtMap struct {
+	baseBlockNum uint64
+	head         *BlockExt
+	blocks       map[uint64]map[common.Hash]*BlockExt
+	threshold    int
+}
+
+func NewBlockExtMap(baseBlock *BlockExt, threshold int) *BlockExtMap {
+	extMap := &BlockExtMap{
+		head:      baseBlock,
+		blocks:    make(map[uint64]map[common.Hash]*BlockExt),
+		threshold: threshold,
+	}
+	extMap.Add(baseBlock.block.Hash(), baseBlock.number, baseBlock)
+	return extMap
+}
+
+func (bm *BlockExtMap) Add(hash common.Hash, number uint64, blockExt *BlockExt) {
+	if extMap, ok := bm.blocks[number]; ok {
+		log.Debug(fmt.Sprintf("hash:%s, number:%d", hash.TerminalString(), number))
+		if ext, ok := extMap[hash]; ok {
+			log.Debug(fmt.Sprintf("hash:%s, number:%d", hash.TerminalString(), number))
+			ext.Merge(blockExt)
+			if ext.block != nil {
+				bm.fixChain(ext)
+			}
+		} else {
+			log.Debug(fmt.Sprintf("hash:%s, number:%d", hash.TerminalString(), number))
+			extMap[hash] = blockExt
+			if blockExt.block != nil {
+				bm.fixChain(blockExt)
+			}
+		}
+	} else {
+		log.Debug(fmt.Sprintf("hash:%s, number:%d", hash.TerminalString(), number))
+
+		extMap := make(map[common.Hash]*BlockExt)
+		extMap[hash] = blockExt
+		bm.blocks[number] = extMap
+		if blockExt.block != nil {
+			bm.fixChain(blockExt)
+		}
+	}
+}
+
+func (bm *BlockExtMap) fixChain(blockExt *BlockExt) {
+	if bm.baseBlockNum > blockExt.number {
+		panic(fmt.Sprintf("Insert invalid block base number is %d, insert chain is %d", bm.baseBlockNum, blockExt.number))
+		return
+	}
+
+	if blockExt.prepareVotes.Len() >= bm.threshold {
+		log.Debug("Block is confirmed", "hash", blockExt.block.Hash(), "number", blockExt.number)
+		blockExt.isConfirmed = true
+	}
+
+	parent := bm.findParent(blockExt.block.ParentHash(), blockExt.number)
+	child := bm.findChild(blockExt.block.Hash(), blockExt.number)
+
+	if parent != nil {
+		parent.children[blockExt.block.Hash()] = blockExt
+		blockExt.parent = parent
+	}
+
+	if child != nil {
+		child.parent = blockExt
+		blockExt.children[child.block.Hash()] = child
+	}
+
+}
+func (bm *BlockExtMap) BlockString() string {
+	var blockStr string
+	for _, v := range bm.blocks {
+		for _, ext := range v {
+			if ext.block != nil {
+				blockStr += fmt.Sprintf("[Hash:%s, Number:%d PrepareVotes:%d, Execute:%v ", ext.block.Hash().TerminalString(), ext.block.NumberU64(), ext.prepareVotes.Len(), ext.isExecuted)
+				for _, v := range ext.children {
+					blockStr += fmt.Sprintf("child[%s,%d]", v.block.Hash().TerminalString(), v.block.NumberU64())
+				}
+				blockStr += fmt.Sprintf("]")
+			} else {
+				blockStr += fmt.Sprintf("[Hash:{}, Number:%d PrepareVotes:%d, Execute:%v ", ext.number, ext.prepareVotes.Len(), ext.isExecuted)
+				for _, v := range ext.children {
+					blockStr += fmt.Sprintf("child[%s,%d]", v.block.Hash().TerminalString(), v.block.NumberU64())
+				}
+				blockStr += fmt.Sprintf("]")
+			}
+		}
+	}
+	return blockStr
+}
+
+func (bm *BlockExtMap) Len() int {
+	return len(bm.blocks)
+}
+
+func (bm *BlockExtMap) Total() int {
+	total := 0
+	for _, v := range bm.blocks {
+		total += len(v)
+	}
+	return total
+}
+func (bm *BlockExtMap) GetSubChainWithTwoThirdVotes(hash common.Hash, number uint64) []*BlockExt {
+	base := bm.findBlock(hash, number)
+	if base == nil || base.prepareVotes.Len() < bm.threshold {
+		return nil
+	}
+
+	blockExts := make([]*BlockExt, 0)
+
+	hash = bm.head.block.Hash()
+	number = bm.head.number
+
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && be.isExecuted && be.number <= base.number; be = bm.findChild(hash, number) {
+		blockExts = append(blockExts, be)
+		hash = be.block.Hash()
+		number = be.number
+		log.Debug("GetSubChainWithTwoThirdVotes", "hash", hash.TerminalString(), "number", number)
+	}
+	if number != base.number {
+		log.Error("GetSubChainWithTwoThirdVotesError", "number", number, "basenumber", base.number)
+		return nil
+	}
+
+	return blockExts
+}
+
+func (bm *BlockExtMap) GetHasVoteWithoutBlock(highest uint64) []*HashNumberBits {
+	wb := make([]*HashNumberBits, 0)
+	for i := uint64(bm.head.number); i < highest; i++ {
+		blocks := bm.blocks[i]
+		if blocks != nil {
+			for h, b := range blocks {
+				if b.block == nil {
+					wb = append(wb, &HashNumberBits{hash: h, number: b.number, bits: nil})
+				}
+			}
+		}
+	}
+	return wb
+}
+
+func (bm *BlockExtMap) GetWithoutTwoThirdVotes(highest uint64) []*HashNumberBits {
+	wb := make([]*HashNumberBits, 0)
+	for i := uint64(bm.head.number); i < highest; i++ {
+		blocks := bm.blocks[i]
+		if blocks != nil {
+			for h, b := range blocks {
+				if b.prepareVotes.Len() < bm.threshold {
+					wb = append(wb, &HashNumberBits{hash: h, number: b.number, bits: b.prepareVotes.voteBits})
+				}
+			}
+		}
+	}
+	return wb
+}
+
+func (bm *BlockExtMap) GetSubChainUnExecuted() []*BlockExt {
+	blockExts := make([]*BlockExt, 0)
+	hash := bm.head.block.Hash()
+	number := bm.head.number
+
+	for be := bm.findChild(hash, number); be != nil && be.executing; be = bm.findChild(hash, number) {
+		hash = be.block.Hash()
+		number = be.number
+	}
+
+	for be := bm.findChild(hash, number); be != nil && !be.executing; be = bm.findChild(hash, number) {
+		blockExts = append(blockExts, be)
+		hash = be.block.Hash()
+		number = be.number
+	}
+
+	log.Debug("subunexecuted", "head", bm.head.block.Hash(), "number", bm.head.number, "blocks", bm.BlockString())
+
+	return blockExts
+}
+
+func (bm *BlockExtMap) ClearParents(hash common.Hash, number uint64) {
+	base := bm.findBlock(hash, number)
+	if base == nil {
+		return
+	}
+
+	if number > 1 {
+		for i := number - 1; i > 0; i-- {
+			//log.Debug("clear block", "number", i)
+			if blocks := bm.blocks[i]; blocks != nil {
+				for _, b := range blocks {
+					if b.children != nil {
+						for _, p := range b.children {
+							p.parent = nil
+						}
+					}
+					b.children = nil
+					b.parent = nil
+				}
+				delete(bm.blocks, i)
+			}
+		}
+	}
+	delete(bm.blocks, bm.head.number)
+	//log.Debug("clear block", "number", number)
+	//parentHash := base.block.ParentHash()
+	//for be := bm.findParent(parentHash, number); be != nil && bm.head.block.Hash() != parentHash && be.prepareVotes.Len() >= bm.threshold; be = bm.findParent(parentHash, number) {
+	//	delete(bm.blocks, be.number)
+	//	parentHash = be.block.ParentHash()
+	//	number = be.number
+	//}
+}
+
+func (bm *BlockExtMap) ClearChildren(hash common.Hash, number uint64) {
+	for i := number + 1; bm.blocks[i] != nil; i++ {
+		log.Debug("clear block", "number", i)
+		for hash, ext := range bm.blocks[i] {
+			if ext.parent != nil {
+				delete(ext.parent.children, hash)
+			}
+		}
+		delete(bm.blocks, i)
+	}
+}
+
+func (bm *BlockExtMap) RemoveBlock(block *BlockExt) {
+
+}
+
+func (bm *BlockExtMap) FindHighestConfirmed(hash common.Hash, number uint64) *BlockExt {
+	var highest *BlockExt
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold; be = bm.findChild(hash, number) {
+		highest = be
+		hash = be.block.Hash()
+		number = be.number
+	}
+	return highest
+}
+
+func (bm *BlockExtMap) FindHighestConfirmedWithHeader() *BlockExt {
+	var highest *BlockExt
+	hash := bm.head.block.Hash()
+	number := bm.head.block.NumberU64()
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold; be = bm.findChild(hash, number) {
+		highest = be
+		hash = be.block.Hash()
+		number = be.number
+	}
+	return highest
+}
+
+func (bm *BlockExtMap) FindHighestLogical(hash common.Hash, number uint64) *BlockExt {
+	var highest *BlockExt
+	for be := bm.findChild(hash, number); be != nil && be.block != nil; be = bm.findChild(hash, number) {
+		highest = be
+		hash = be.block.Hash()
+		number = be.number
+	}
+	return highest
+}
+
+func (bm *BlockExtMap) BaseBlock(hash common.Hash, number uint64) *BlockExt {
+	if b := bm.findBlock(hash, number); b != nil {
+		bm.head = b
+	} else {
+		//it's impossible
+		panic("New base block is none")
+	}
+	return bm.head
+}
+
+func (bm *BlockExtMap) findBlock(hash common.Hash, number uint64) *BlockExt {
+	if extMap, ok := bm.blocks[number]; ok {
+		for _, v := range extMap {
+			if v.block != nil {
+				if v.block.Hash() == hash {
+					return v
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (bm *BlockExtMap) findParent(hash common.Hash, number uint64) *BlockExt {
+	if extMap, ok := bm.blocks[number-1]; ok {
+		for _, v := range extMap {
+			if v.block != nil {
+				if v.block.Hash() == hash {
+					return v
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (bm *BlockExtMap) findChild(hash common.Hash, number uint64) *BlockExt {
+	if extMap, ok := bm.blocks[number+1]; ok {
+		for _, v := range extMap {
+			if v.block != nil {
+				if v.block.ParentHash() == hash {
+					return v
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (bm *BlockExtMap) findBlockByNumber(low, high uint64) types.Blocks {
+	blocks := make([]*types.Block, 0)
+	for i := low; i <= high; i++ {
+		if extMap, ok := bm.blocks[i]; ok {
+			for _, v := range extMap {
+				if v.block != nil {
+					blocks = append(blocks, v.block)
+				}
+			}
+		}
+	}
+	return blocks
+}
+
+func (bm *BlockExtMap) findBlockExtByNumber(low, high uint64) []*BlockExt {
+	blocks := make([]*BlockExt, 0)
+	for i := low; i <= high; i++ {
+		if extMap, ok := bm.blocks[i]; ok {
+			for _, v := range extMap {
+				if v.block != nil {
+					blocks = append(blocks, v)
+				}
+			}
+		}
+	}
+	return blocks
+}
+
+type HashNumberBits struct {
+	hash   common.Hash
+	number uint64
+	bits   *BitArray
+}
+
+type HasBlock struct {
+	hash   common.Hash
+	number uint64
+	hasCh  chan bool
+}

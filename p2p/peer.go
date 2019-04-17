@@ -118,6 +118,60 @@ type Peer struct {
 	PingList *list.List
 }
 
+func NewPeerByNodeID(nodeId1 discover.NodeID, nodeId2 discover.NodeID, protos []Protocol) (*Peer, MsgReadWriter, *Peer, MsgReadWriter) {
+	fd1, fd2 := net.Pipe()
+	c1 := &conn{fd: fd1, transport: newMockTransport(nodeId1, fd1), id: nodeId1}
+	c2 := &conn{fd: fd2, transport: newMockTransport(nodeId2, fd2), id: nodeId2}
+	for _, p := range protos {
+		c1.caps = append(c1.caps, p.cap())
+		c2.caps = append(c2.caps, p.cap())
+	}
+
+	peer1 := newPeer(c1, protos)
+	peer2 := newPeer(c1, protos)
+	return peer1, c1, peer2, c2
+}
+
+func NewMockPeerNodeID(nodeId discover.NodeID, protos []Protocol) (func(), MsgReadWriter, *Peer, <-chan error) {
+	fd1, fd2 := net.Pipe()
+	c1 := &conn{fd: fd1, transport: newMockTransport(nodeId, fd1), id: nodeId}
+	c2 := &conn{fd: fd2, transport: newMockTransport(nodeId, fd2)}
+	for _, p := range protos {
+		c1.caps = append(c1.caps, p.cap())
+		c2.caps = append(c2.caps, p.cap())
+	}
+
+	peer := newPeer(c1, protos)
+	errc := make(chan error, 1)
+	go func() {
+		_, err := peer.run()
+		errc <- err
+	}()
+
+	closer := func() { c2.close(errors.New("close func called")) }
+	return closer, c2, peer, errc
+}
+
+func NewMockPeer(protos []Protocol) (func(), MsgWriter, *Peer, <-chan error) {
+	fd1, fd2 := net.Pipe()
+	c1 := &conn{fd: fd1, transport: newMockTransport(randomID(), fd1)}
+	c2 := &conn{fd: fd2, transport: newMockTransport(randomID(), fd2)}
+	for _, p := range protos {
+		c1.caps = append(c1.caps, p.cap())
+		c2.caps = append(c2.caps, p.cap())
+	}
+
+	peer := newPeer(c1, protos)
+	errc := make(chan error, 1)
+	go func() {
+		_, err := peer.run()
+		errc <- err
+	}()
+
+	closer := func() { c2.close(errors.New("close func called")) }
+	return closer, c2, peer, errc
+}
+
 // NewPeer returns a peer for testing purposes.
 func NewPeer(id discover.NodeID, name string, caps []Cap) *Peer {
 	pipe, _ := net.Pipe()

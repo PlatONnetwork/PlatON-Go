@@ -19,6 +19,7 @@ package types
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math/big"
 	"sort"
@@ -33,7 +34,7 @@ import (
 )
 
 var (
-	EmptyRootHash  = DeriveSha(Transactions{})
+	EmptyRootHash = DeriveSha(Transactions{})
 )
 
 // A BlockNonce is a 64-bit hash which proves (combined with the
@@ -156,6 +157,7 @@ func rlpHash(x interface{}) (h common.Hash) {
 // a block's data contents (transactions) together.
 type Body struct {
 	Transactions []*Transaction
+	ExtraData    []byte
 }
 
 // Block represents an entire block in the Ethereum blockchain.
@@ -171,7 +173,7 @@ type Block struct {
 	// inter-peer block relay.
 	ReceivedAt   time.Time
 	ReceivedFrom interface{}
-	ConfirmSigns []*common.BlockConfirmSign
+	extraData    []byte
 }
 
 // [deprecated by eth/63]
@@ -182,8 +184,9 @@ type StorageBlock Block
 
 // "external" block encoding. used for eth protocol, etc.
 type extblock struct {
-	Header *Header
-	Txs    []*Transaction
+	Header    *Header
+	Txs       []*Transaction
+	ExtraData []byte
 }
 
 // [deprecated by eth/63]
@@ -253,7 +256,7 @@ func (b *Block) DecodeRLP(s *rlp.Stream) error {
 	if err := s.Decode(&eb); err != nil {
 		return err
 	}
-	b.header, b.transactions = eb.Header, eb.Txs
+	b.header, b.transactions, b.extraData = eb.Header, eb.Txs, eb.ExtraData
 	b.size.Store(common.StorageSize(rlp.ListSize(size)))
 	return nil
 }
@@ -261,8 +264,9 @@ func (b *Block) DecodeRLP(s *rlp.Stream) error {
 // EncodeRLP serializes b into the Ethereum RLP block format.
 func (b *Block) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, extblock{
-		Header: b.header,
-		Txs:    b.transactions,
+		Header:    b.header,
+		Txs:       b.transactions,
+		ExtraData: b.extraData,
 	})
 }
 
@@ -288,11 +292,12 @@ func (b *Block) Transaction(hash common.Hash) *Transaction {
 	}
 	return nil
 }
-
-func (b *Block) Number() *big.Int { return new(big.Int).Set(b.header.Number) }
-func (b *Block) GasLimit() uint64 { return b.header.GasLimit }
-func (b *Block) GasUsed() uint64  { return b.header.GasUsed }
-func (b *Block) Time() *big.Int   { return new(big.Int).Set(b.header.Time) }
+func (b *Block) SetExtraData(extraData []byte) { b.extraData = extraData }
+func (b *Block) ExtraData() []byte             { return b.extraData }
+func (b *Block) Number() *big.Int              { return new(big.Int).Set(b.header.Number) }
+func (b *Block) GasLimit() uint64              { return b.header.GasLimit }
+func (b *Block) GasUsed() uint64               { return b.header.GasUsed }
+func (b *Block) Time() *big.Int                { return new(big.Int).Set(b.header.Time) }
 
 func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
 func (b *Block) MixDigest() common.Hash   { return b.header.MixDigest }
@@ -308,7 +313,7 @@ func (b *Block) Extra() []byte            { return common.CopyBytes(b.header.Ext
 func (b *Block) Header() *Header { return CopyHeader(b.header) }
 
 // Body returns the non-header content of the block.
-func (b *Block) Body() *Body { return &Body{b.transactions} }
+func (b *Block) Body() *Body { return &Body{b.transactions, b.extraData} }
 
 // Size returns the true RLP encoded storage size of the block, either by encoding
 // and returning it, or returning a previsouly cached value.
@@ -341,12 +346,14 @@ func (b *Block) WithSeal(header *Header) *Block {
 }
 
 // WithBody returns a new block with the given transaction.
-func (b *Block) WithBody(transactions []*Transaction) *Block {
+func (b *Block) WithBody(transactions []*Transaction, extraData []byte) *Block {
 	block := &Block{
 		header:       CopyHeader(b.header),
 		transactions: make([]*Transaction, len(transactions)),
+		extraData:    make([]byte, len(extraData)),
 	}
 	copy(block.transactions, transactions)
+	copy(block.extraData, extraData)
 	return block
 }
 
@@ -362,6 +369,15 @@ func (b *Block) Hash() common.Hash {
 }
 
 type Blocks []*Block
+
+func (b Blocks) String() string {
+	s := "["
+	for _, v := range b {
+		s += fmt.Sprintf("[hash:%s, number:%d]", v.Hash().TerminalString(), v.NumberU64())
+	}
+	s += "]"
+	return s
+}
 
 type BlockBy func(b1, b2 *Block) bool
 

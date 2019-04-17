@@ -19,6 +19,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"math"
 	"math/big"
 	"sort"
@@ -128,6 +129,34 @@ type txPoolBlockChain interface {
 	GetBlock(hash common.Hash, number uint64) *types.Block
 	//StateAt(root common.Hash) (*state.StateDB, error)
 	GetState(header *types.Header) (*state.StateDB, error)
+}
+
+//TxPoolBlockChain most different with blockchain is CurrentBlock function. TxPoolBlockChain need get current block from highest logical block when engine is BFT
+type TxPoolBlockChain struct {
+	chain *BlockChainCache
+}
+
+func NewTxPoolBlockChain(chain *BlockChainCache) *TxPoolBlockChain {
+	return &TxPoolBlockChain{
+		chain: chain,
+	}
+}
+func (tx *TxPoolBlockChain) CurrentBlock() *types.Block {
+	if cbft, ok := tx.chain.Engine().(consensus.Bft); ok {
+		if block := cbft.HighestLogicalBlock(); block != nil {
+			log.Debug("get logical block as current block in cbft", "hash", block.Hash(), "number", block.NumberU64())
+			return block
+		}
+	}
+	return tx.chain.currentBlock.Load().(*types.Block)
+}
+func (tx *TxPoolBlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
+	return tx.chain.GetBlock(hash, number)
+}
+
+//StateAt(root common.Hash) (*state.StateDB, error)
+func (tx *TxPoolBlockChain) GetState(header *types.Header) (*state.StateDB, error) {
+	return tx.chain.GetState(header)
 }
 
 // TxPoolConfig are the configuration parameters of the transaction pool.
@@ -470,35 +499,30 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 	}
 }
 
-func (pool *TxPool) ForkedReset(origTress, newTress []*types.Block) {
-	log.Debug("call ForkedReset()", "RoutineID", common.CurrentGoRoutineID(), "len(origTress)", len(origTress), "len(newTress)", len(newTress))
-
+func (pool *TxPool) ForkedReset(newHeader *types.Header, rollback []*types.Block) {
+	log.Debug("Reset rollback block", "hash", newHeader.Hash(), "number", newHeader.Number.Uint64(), "rollback", len(rollback))
+	if len(rollback) == 0 {
+		return
+	}
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 
 	var reinject types.Transactions
-	// Reorg seems shallow enough to pull in all transactions into memory
-	var discarded, included types.Transactions
 
-	for _, orig := range origTress {
-		discarded = append(discarded, orig.Transactions()...)
+	for _, block := range rollback {
+		reinject = append(reinject, block.Transactions()...)
 	}
-	for _, new := range newTress {
-		included = append(included, new.Transactions()...)
-	}
-
-	reinject = types.TxDifference(discarded, included)
 
 	// Initialize the internal state to the current head
 	//
-	statedb, err := pool.chain.GetState(newTress[len(newTress)-1].Header())
+	statedb, err := pool.chain.GetState(newHeader)
 	if err != nil {
 		log.Error("Failed to reset txpool state", "err", err)
 		return
 	}
 	pool.currentState = statedb
 	pool.pendingState = state.ManageState(statedb)
-	pool.currentMaxGas = newTress[len(newTress)-1].Header().GasLimit
+	pool.currentMaxGas = newHeader.GasLimit
 
 	// Inject any transactions discarded due to reorgs
 	t := time.Now()
@@ -614,7 +638,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	t := time.Now()
 	senderCacher.recover(pool.signer, reinject)
 	pool.addTxsLocked(reinject, false)
-	log.Debug("Reinjecting stale transactions", "oldNumber", oldNumber, "oldHash", oldHash ,"newNumber", newHead.Number.Uint64(), "newHash", newHead.Hash(), "count", len(reinject), "elapsed", time.Since(t))
+	log.Debug("Reinjecting stale transactions", "oldNumber", oldNumber, "oldHash", oldHash, "newNumber", newHead.Number.Uint64(), "newHash", newHead.Hash(), "count", len(reinject), "elapsed", time.Since(t))
 
 	// validate the pool of pending transactions, this will remove
 	// any transactions that have been included in the block or

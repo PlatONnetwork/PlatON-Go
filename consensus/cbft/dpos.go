@@ -1,12 +1,18 @@
 package cbft
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"bytes"
+)
+
+var (
+	errInvaliderCandidateAddress = errors.New("invalid address")
 )
 
 type dpos struct {
@@ -14,7 +20,7 @@ type dpos struct {
 	chain             *core.BlockChain
 	lastCycleBlockNum uint64
 	startTimeOfEpoch  int64 // A round of consensus start time is usually the block time of the last block at the end of the last round of consensus;
-							// if it is the first round, it starts from 1970.1.1.0.0.0.0. Unit: second
+	// if it is the first round, it starts from 1970.1.1.0.0.0.0. Unit: second
 
 }
 
@@ -39,13 +45,45 @@ func (d *dpos) IsPrimary(addr common.Address) bool {
 	return false
 }
 
-func (d *dpos) NodeIndex(nodeID discover.NodeID) int64 {
-	for idx, node := range d.primaryNodeList {
-		if node == nodeID {
-			return int64(idx)
+func (d *dpos) NodeID(index int) discover.NodeID {
+	return d.primaryNodeList[index]
+}
+func (d *dpos) AddressIndex(addr common.Address) (int, error) {
+	// Determine whether the current node is a consensus node
+	for i, node := range d.primaryNodeList {
+		pub, err := node.Pubkey()
+		if err != nil || pub == nil {
+			log.Error(fmt.Sprintf("NodeID Pubkey error!"))
+		}
+		address := crypto.PubkeyToAddress(*pub)
+
+		if bytes.Equal(address[:], addr[:]) {
+			return i, nil
 		}
 	}
-	return int64(-1)
+	return -1, errInvaliderCandidateAddress
+}
+
+func (d *dpos) NodeIndex(nodeID discover.NodeID) (int, error) {
+	for idx, node := range d.primaryNodeList {
+		if node == nodeID {
+			return idx, nil
+		}
+	}
+	return -1, errInvaliderCandidateAddress
+}
+
+func (d *dpos) NodeIndexAddress(nodeID discover.NodeID) (int, common.Address, error) {
+	for idx, node := range d.primaryNodeList {
+		if node == nodeID {
+			pubkey, err := nodeID.Pubkey()
+			if err != nil {
+				break
+			}
+			return idx, crypto.PubkeyToAddress(*pubkey), nil
+		}
+	}
+	return -1, common.Address{}, errInvaliderCandidateAddress
 }
 
 func (d *dpos) LastCycleBlockNum() uint64 {
@@ -56,6 +94,10 @@ func (d *dpos) LastCycleBlockNum() uint64 {
 func (d *dpos) SetLastCycleBlockNum(blockNumber uint64) {
 	// Set the block height at the end of the last round of consensus
 	d.lastCycleBlockNum = blockNumber
+}
+
+func (d *dpos) Total() int {
+	return len(d.primaryNodeList)
 }
 
 // Returns the current consensus node address list

@@ -20,9 +20,9 @@ package consensus
 import (
 	"crypto/ecdsa"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
@@ -97,6 +97,14 @@ type Engine interface {
 	// APIs returns the RPC APIs this consensus engine provides.
 	APIs(chain ChainReader) []rpc.API
 
+	Protocols() []p2p.Protocol
+
+	NextBaseBlock() *types.Block
+
+	InsertChain(block *types.Block) <-chan error
+
+	HasBlock(hash common.Hash, number uint64) bool
+
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
 }
@@ -121,22 +129,18 @@ type Bft interface {
 	CalcBlockDeadline() time.Time
 	CalcNextBlockTime() time.Time
 
-	// Received a new block signature
-	// Need to verify if the signature is signed by nodeID
-	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error
-
 	// Process the BFT signatures
-	OnNewBlock(chain ChainReader, block *types.Block) error
+	//OnNewBlock(chain ChainReader, block *types.Block) error
 
 	// Process the BFT signatures
 	OnPong(nodeID discover.NodeID, netLatency int64) error
+	//
+	//// Send a signal if a block synced from other peer.
+	//OnBlockSynced()
 
-	// Send a signal if a block synced from other peer.
-	OnBlockSynced()
+	CheckConsensusNode(address common.Address) bool
 
-	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
-
-	IsConsensusNode() (bool, error)
+	IsConsensusNode() bool
 
 	// At present, the highest reasonable block, when the node is out of the block, it needs to generate the block based on the highest reasonable block.
 	HighestLogicalBlock() *types.Block
@@ -147,5 +151,5 @@ type Bft interface {
 
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
-	//SetBlockChain(blockChain *core.BlockChain)
+	IsSignedBySelf(sealHash common.Hash, signature []byte) bool
 }

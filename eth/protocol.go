@@ -56,8 +56,8 @@ const (
 	GetBlockBodiesMsg  = 0x05
 	BlockBodiesMsg     = 0x06
 	NewBlockMsg        = 0x07
-	PrepareBlockMsg   = 0x08
-	BlockSignatureMsg = 0x09
+	PrepareBlockMsg    = 0x08
+	BlockSignatureMsg  = 0x09
 
 	PongMsg = 0x0a
 
@@ -190,6 +190,7 @@ type blockSignature struct {
 // blockBody represents the data content of a single block.
 type blockBody struct {
 	Transactions []*types.Transaction // Transactions contained within a block
+	ExtraData    []byte
 }
 
 // blockBodiesData is the network packet for block content distribution.

@@ -6,6 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"math/big"
@@ -91,6 +92,10 @@ func (bm *BftMock) APIs(chain ChainReader) []rpc.API {
 	return nil
 }
 
+func (bm *BftMock) Protocols() []p2p.Protocol {
+	return []p2p.Protocol{}
+}
+
 // Close terminates any background threads maintained by the consensus engine.
 func (bm *BftMock) Close() error {
 	return nil
@@ -102,7 +107,7 @@ func (bm *BftMock) ConsensusNodes() ([]discover.NodeID, error) {
 }
 
 // Returns whether the current node is out of the block
-func (bm *BftMock) ShouldSeal() (bool, error) {
+func (bm *BftMock) ShouldSeal(curTime int64) (bool, error) {
 	return true, nil
 }
 

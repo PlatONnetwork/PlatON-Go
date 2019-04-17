@@ -376,6 +376,10 @@ func (sig *BlockConfirmSign) String() string {
 	return fmt.Sprintf("%x", sig[:])
 }
 
+func (sig *BlockConfirmSign) SetBytes(signSlice []byte) {
+	copy(sig[:], signSlice[:])
+}
+
 func NewBlockConfirmSign(signSlice []byte) *BlockConfirmSign {
 	var sign BlockConfirmSign
 	copy(sign[:], signSlice[:])
