@@ -310,7 +310,10 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 	// our endpoint proof and reject findnode. Solicit a ping first.
 	if time.Since(t.db.lastPingReceived(toid)) > nodeDBNodeExpiration {
 		t.ping(toid, toaddr)
-		t.waitping(toid)
+		err := t.waitping(toid)
+		if err!=nil {
+			log.Warn("Cannot ping", "addr", toaddr, "err", err)
+		}
 	}
 
 	nodes := make([]*Node, 0, bucketSize)
