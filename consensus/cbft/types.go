@@ -462,7 +462,7 @@ func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
 	}
 
 	if cbft.blockExtMap.findBlock(view.HighestBlockHash, view.HighestBlockNum) == nil {
-		cbft.log.Error(fmt.Sprintf("View's block is not found hash:%s, number:%s", view.HighestBlockHash.TerminalString(), view.HighestBlockNum))
+		cbft.log.Error(fmt.Sprintf("View's block is not found hash:%s, number:%d", view.HighestBlockHash.TerminalString(), view.HighestBlockNum))
 		return errNotFoundViewBlock
 	}
 	if view.HighestBlockNum != 0 && len(view.HighestBlockPrepareVotes) < cbft.getThreshold() {
