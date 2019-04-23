@@ -18,14 +18,14 @@ import (
 //WAL: write consensus message to log file before handle it.
 //Execute message from WAL before start cbft state machine
 // WAL format:
-//| CRC | Length | Type | Data |
-//| ------ | ------ | ------ |------ |
-//| 4byte | 4byte | 1byte | n byte |
+//| CRC | Length |  Data |
+//| ------ | ------ | ------ |
+//| 4byte | 4byte |  n byte |
 
 // WAL Meta (need fsync)
 // MinLogFileID uint64
 // MaxLogFileID uint64
-// CommitedBlockNumber (FileID, FileSequence)
+// ViewChange (FileID, FileSequence)
 var (
 	metaDBName = "wal-meta"
 	walPrefix  = "wal"
