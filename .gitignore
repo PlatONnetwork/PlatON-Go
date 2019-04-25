@@ -64,3 +64,4 @@ mpc.rlp
 consensus/cbft/data/
 
 core/ppos_storage/data/
+consensus/cbft/test/
