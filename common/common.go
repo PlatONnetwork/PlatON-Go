@@ -13,6 +13,8 @@ const (
 
 	FirstRound = 1
 
+	PPosNodeCacheSize = 30
+
 
 	/*BaseElection = 50
 	//
