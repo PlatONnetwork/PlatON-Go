@@ -20,8 +20,6 @@ import (
 	"bytes"
 	"container/list"
 	"crypto/ecdsa"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
@@ -48,7 +46,7 @@ var (
 
 // Timeouts
 const (
-	respTimeout = 1000 * time.Millisecond
+	respTimeout = 500 * time.Millisecond
 	expiration  = 20 * time.Second
 
 	ntpFailureThreshold = 32               // Continuous timeouts after which to check NTP
@@ -67,7 +65,6 @@ const (
 // RPC request structures
 type (
 	ping struct {
-		Key        string
 		Version    uint
 		From, To   rpcEndpoint
 		Expiration uint64
@@ -77,11 +74,11 @@ type (
 
 	// pong is the reply to ping.
 	pong struct {
-		Key        string
 		// This field should mirror the UDP envelope address
 		// of the ping packet, which provides a way to discover the
 		// the external address (after NAT).
 		To rpcEndpoint
+
 		ReplyTok   []byte // This contains the hash of the ping packet.
 		Expiration uint64 // Absolute timestamp at which the packet becomes invalid.
 		// Ignore additional fields (for forward compatibility).
@@ -90,7 +87,6 @@ type (
 
 	// findnode is a query for nodes close to the given target.
 	findnode struct {
-		Key        string
 		Target     NodeID // doesn't need to be an actual public key
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
@@ -99,7 +95,6 @@ type (
 
 	// reply to findnode
 	neighbors struct {
-		Key        string
 		Nodes      []rpcNode
 		Expiration uint64
 		// Ignore additional fields (for forward compatibility).
@@ -119,17 +114,6 @@ type (
 		TCP uint16 // for RLPx protocol
 	}
 )
-
-func randomString(length int) (string) {
-	b := make([]byte, length)
-	_, err := rand.Read(b)
-	if err != nil {
-		return ""
-	}
-	return hex.EncodeToString(b)
-}
-
-
 
 func makeEndpoint(addr *net.UDPAddr, tcpPort uint16) rpcEndpoint {
 	ip := addr.IP.To4()
@@ -196,7 +180,6 @@ type udp struct {
 // each pending reply. incoming packets from a node are dispatched
 // to all the callback functions for that node.
 type pending struct {
-	Key        string
 	// these fields must match in the reply.
 	from  NodeID
 	ptype byte
@@ -216,7 +199,6 @@ type pending struct {
 }
 
 type reply struct {
-	Key   string
 	from  NodeID
 	ptype byte
 	data  interface{}
@@ -294,16 +276,11 @@ func (t *udp) ping(toid NodeID, toaddr *net.UDPAddr) error {
 // sendPing sends a ping message to the given node and invokes the callback
 // when the reply arrives.
 func (t *udp) sendPing(toid NodeID, toaddr *net.UDPAddr, callback func()) <-chan error {
-
-	reqKey := randomString(16)
-	log.Debug("Send ping", "req.Key", reqKey, "nodeIP", toaddr, "nodeID", toid)
-
 	req := &ping{
 		Version:    4,
 		From:       t.ourEndpoint,
 		To:         makeEndpoint(toaddr, 0), // TODO: maybe use known TCP port from DB
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
-		Key:	    reqKey,
 	}
 	packet, hash, err := encodePacket(t.priv, pingPacket, req)
 	if err != nil {
@@ -311,7 +288,7 @@ func (t *udp) sendPing(toid NodeID, toaddr *net.UDPAddr, callback func()) <-chan
 		errc <- err
 		return errc
 	}
-	errc := t.pending(reqKey, toid, pongPacket, func(p interface{}) bool {
+	errc := t.pending(toid, pongPacket, func(p interface{}) bool {
 		ok := bytes.Equal(p.(*pong).ReplyTok, hash)
 		if ok && callback != nil {
 			callback()
@@ -322,25 +299,23 @@ func (t *udp) sendPing(toid NodeID, toaddr *net.UDPAddr, callback func()) <-chan
 	return errc
 }
 
-func (t *udp) waitping(reqKey string, from NodeID) error {
-	return <-t.pending(reqKey, from, pingPacket, func(interface{}) bool { return true })
+func (t *udp) waitping(from NodeID) error {
+	return <-t.pending(from, pingPacket, func(interface{}) bool { return true })
 }
 
 // findnode sends a findnode request to the given node and waits until
 // the node has sent up to k neighbors.
 func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node, error) {
-	reqKey := randomString(16)
-
 	// If we haven't seen a ping from the destination node for a while, it won't remember
 	// our endpoint proof and reject findnode. Solicit a ping first.
 	if time.Since(t.db.lastPingReceived(toid)) > nodeDBNodeExpiration {
 		t.ping(toid, toaddr)
-		time.Sleep(respTimeout)
+		t.waitping(toid)
 	}
 
 	nodes := make([]*Node, 0, bucketSize)
 	nreceived := 0
-	errc := t.pending(reqKey, toid, neighborsPacket, func(r interface{}) bool {
+	errc := t.pending(toid, neighborsPacket, func(r interface{}) bool {
 		reply := r.(*neighbors)
 		for _, rn := range reply.Nodes {
 			nreceived++
@@ -353,22 +328,18 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 		}
 		return nreceived >= bucketSize
 	})
-
-	log.Debug("send findnode request start", "req.Key", reqKey, "nodeIP", toaddr, "nodeID", toid, "target", target, "startTime", time.Now().Format("2006-02-01 15:04:05.000"))
 	t.send(toaddr, findnodePacket, &findnode{
 		Target:     target,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
-		Key: reqKey,
 	})
-	log.Debug("send findnode request end", "req.Key", reqKey, "nodeIP", toaddr, "nodeID", toid, "target", target, "endTime", time.Now().Format("2006-02-01 15:04:05.000"))
 	return nodes, <-errc
 }
 
 // pending adds a reply callback to the pending reply queue.
 // see the documentation of type pending for a detailed explanation.
-func (t *udp) pending(key string, id NodeID, ptype byte, callback func(interface{}) bool) <-chan error {
+func (t *udp) pending(id NodeID, ptype byte, callback func(interface{}) bool) <-chan error {
 	ch := make(chan error, 1)
-	p := &pending{Key: key, from: id, ptype: ptype, callback: callback, errc: ch}
+	p := &pending{from: id, ptype: ptype, callback: callback, errc: ch}
 	select {
 	case t.addpending <- p:
 		// loop will handle it
@@ -378,28 +349,14 @@ func (t *udp) pending(key string, id NodeID, ptype byte, callback func(interface
 	return ch
 }
 
-func (t *udp) handleReply(reqKey string, from NodeID, ptype byte, req packet) bool {
+func (t *udp) handleReply(from NodeID, ptype byte, req packet) bool {
 	matched := make(chan bool, 1)
 	select {
-	case t.gotreply <- reply{reqKey, from, ptype, req, matched}:
+	case t.gotreply <- reply{from, ptype, req, matched}:
 		// loop will handle it
 		return <-matched
 	case <-t.closing:
 		return false
-	}
-}
-
-func ptypeName(ptype byte) string{
-	if ptype == 1 {
-		return "ping"
-	}else if ptype == 2{
-		return "pong"
-	}else if ptype == 3{
-		return "findnode"
-	}else if ptype == 4{
-		return "neighbors"
-	}else {
-		return "unknown"
 	}
 }
 
@@ -423,19 +380,20 @@ func (t *udp) loop() {
 		// Start the timer so it fires when the next pending reply has expired.
 		now := time.Now()
 		var next *list.Element
-		for el := plist.Front(); el != nil; el = next {
-			next = el.Next()
+		for el := plist.Front(); el != nil; {
 			nextTimeout = el.Value.(*pending)
 			if dist := nextTimeout.deadline.Sub(now); dist < 2*respTimeout {
 				timeout.Reset(dist)
-				log.Debug("pending timeout reset", "req.Key", nextTimeout.Key, "name", ptypeName(nextTimeout.ptype), "nodeID", nextTimeout.from, "p.dealine", nextTimeout.deadline, "dist", dist)
 				return
 			}
 			// Remove pending replies whose deadline is too far in the
 			// future. These can occur if the system clock jumped
 			// backwards after the deadline was assigned.
 			nextTimeout.errc <- errClockWarp
+
+			next = el.Next()
 			plist.Remove(el)
+			el = next
 		}
 		nextTimeout = nil
 		timeout.Stop()
@@ -453,31 +411,29 @@ func (t *udp) loop() {
 
 		case p := <-t.addpending:
 			p.deadline = time.Now().Add(respTimeout)
-			log.Debug("pending added", "req.Key", p.Key, "name", ptypeName(p.ptype), "nodeID", p.from, "p.dealine", p.deadline)
-
+			log.Debug("udp loop add pending ", "p.from", p.from, "p.ptype", p.ptype, "p.dealine", p.deadline)
 			plist.PushBack(p)
 
-			for e := plist.Front(); e != nil; e = e.Next() {
-				pending := e.Value.(*pending)
-				log.Debug("pending list after a new added", "req.Key", pending.Key, "name", ptypeName(pending.ptype), "nodeID", pending.from, "p.dealine", pending.deadline)
-			}
 		case r := <-t.gotreply:
 			var matched bool
 
 			var next *list.Element
-			for el := plist.Front(); el != nil; el = next {
-				next = el.Next()
+			for el := plist.Front(); el != nil; {
 				p := el.Value.(*pending)
-				if p.from == r.from && p.ptype == r.ptype && p.Key == r.Key{
+				if p.from == r.from && p.ptype == r.ptype {
 					matched = true
-					log.Debug("pending replied", "req.Key", p.Key, "name", ptypeName(p.ptype), "nodeID", p.from, "p.dealine", p.deadline)
+
+					log.Debug("udp loop got pending reply", "p.from", p.from, "p.ptype", p.ptype, "p.dealine", p.deadline)
+
 					// Remove the matcher if its callback indicates
 					// that all replies have been received. This is
 					// required for packet types that expect multiple
 					// reply packets.
 					if p.callback(r.data) {
 						p.errc <- nil
+
 						plist.Remove(el)
+						el = next
 					}
 					// Reset the continuous timeout counter (time drift detection)
 					contTimeouts = 0
@@ -485,32 +441,22 @@ func (t *udp) loop() {
 			}
 			r.matched <- matched
 
-			for e := plist.Front(); e != nil; e = e.Next() {
-				pending := e.Value.(*pending)
-				log.Debug("pending list after replied", "req.Key", pending.Key, "name", ptypeName(pending.ptype), "nodeID", pending.from, "p.dealine", pending.deadline)
-			}
-
 		case now := <-timeout.C:
 			nextTimeout = nil
 
 			// Notify and remove callbacks whose deadline is in the past.
 			var next *list.Element
-			for el := plist.Front(); el != nil; el = next {
-				next = el.Next()
+			for el := plist.Front(); el != nil; {
 				p := el.Value.(*pending)
-				log.Debug("pending timeout", "req.Key", p.Key, "name", ptypeName(p.ptype), "nodeID", p.from, "p.dealine", p.deadline)
+				log.Debug("udp loop pending timeout", "p.from", p.from, "p.ptype", p.ptype, "p.dealine", p.deadline)
 				if now.After(p.deadline) || now.Equal(p.deadline) {
-					p.errc <- errors.New("RPC timeout, req.Key=" + p.Key)
+					p.errc <- errTimeout
+					next = el.Next()
 					plist.Remove(el)
+					el = next
 					contTimeouts++
 				}
 			}
-
-			for e := plist.Front(); e != nil; e = e.Next() {
-				pending := e.Value.(*pending)
-				log.Debug("pending list after timeout", "req.Key", pending.Key, "name", ptypeName(pending.ptype), "nodeID", pending.from, "p.dealine", pending.deadline)
-			}
-
 			// If we've accumulated too many timeouts, do an NTP time sync check
 			if contTimeouts > ntpFailureThreshold {
 				if time.Since(ntpWarnTime) >= ntpWarningCooldown {
@@ -665,18 +611,15 @@ func decodePacket(buf []byte) (packet, NodeID, []byte, error) {
 }
 
 func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
-	log.Debug("Received ping", "req.Key", req.Key, "nodeIP", from, "nodeID", fromID)
 	if expired(req.Expiration) {
 		return errExpired
 	}
-	log.Debug("Send pong", "req.Key", req.Key, "nodeIP", from, "nodeID", fromID)
 	t.send(from, pongPacket, &pong{
 		To:         makeEndpoint(from, req.From.TCP),
 		ReplyTok:   mac,
 		Expiration: uint64(time.Now().Add(expiration).Unix()),
-		Key:	    req.Key,
 	})
-	t.handleReply(req.Key, fromID, pingPacket, req)
+	t.handleReply(fromID, pingPacket, req)
 
 	// Add the node to the table. Before doing so, ensure that we have a recent enough pong
 	// recorded in the database so their findnode requests will be accepted later.
@@ -693,11 +636,10 @@ func (req *ping) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 func (req *ping) name() string { return "PING/v4" }
 
 func (req *pong) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
-	log.Debug("Received pong", "req.Key", req.Key, "nodeIP", from, "nodeID", fromID)
 	if expired(req.Expiration) {
 		return errExpired
 	}
-	if !t.handleReply(req.Key, fromID, pongPacket, req) {
+	if !t.handleReply(fromID, pongPacket, req) {
 		return errUnsolicitedReply
 	}
 	t.db.updateLastPongReceived(fromID, time.Now())
@@ -707,8 +649,6 @@ func (req *pong) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) er
 func (req *pong) name() string { return "PONG/v4" }
 
 func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
-	log.Debug("Received findnode", "req.Key", req.Key, "nodeIP", from, "nodeID", fromID)
-
 	if expired(req.Expiration) {
 		return errExpired
 	}
@@ -726,8 +666,7 @@ func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte
 	closest := t.closest(target, bucketSize).entries
 	t.mutex.Unlock()
 
-
-	p := neighbors{Expiration: uint64(time.Now().Add(expiration).Unix()), Key: req.Key}
+	p := neighbors{Expiration: uint64(time.Now().Add(expiration).Unix())}
 	var sent bool
 	// Send neighbors in chunks with at most maxNeighbors per packet
 	// to stay below the 1280 byte limit.
@@ -742,7 +681,6 @@ func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte
 		}
 	}
 	if len(p.Nodes) > 0 || !sent {
-		log.Debug("Send neighbors", "req.Key", req.Key, "nodeIP", from, "nodeID", fromID, "neighborsCount", len(p.Nodes), "allDone", sent)
 		t.send(from, neighborsPacket, &p)
 	}
 	return nil
@@ -751,11 +689,10 @@ func (req *findnode) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte
 func (req *findnode) name() string { return "FINDNODE/v4" }
 
 func (req *neighbors) handle(t *udp, from *net.UDPAddr, fromID NodeID, mac []byte) error {
-	log.Debug("Received neighbors", "req.Key", req.Key, "nodeIP", from, "nodeID", fromID)
 	if expired(req.Expiration) {
 		return errExpired
 	}
-	if !t.handleReply(req.Key, fromID, neighborsPacket, req) {
+	if !t.handleReply(fromID, neighborsPacket, req) {
 		return errUnsolicitedReply
 	}
 	return nil

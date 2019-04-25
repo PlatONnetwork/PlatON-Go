@@ -318,8 +318,6 @@ func (tab *Table) lookup(targetID NodeID, refreshIfEmpty bool) []*Node {
 func (tab *Table) findnode(n *Node, targetID NodeID, reply chan<- []*Node) {
 	fails := tab.db.findFails(n.ID)
 	r, err := tab.net.findnode(n.ID, n.addr(), targetID)
-
-
 	if err != nil || len(r) == 0 {
 		fails++
 		tab.db.updateFindFails(n.ID, fails)
@@ -331,7 +329,7 @@ func (tab *Table) findnode(n *Node, targetID NodeID, reply chan<- []*Node) {
 	} else if fails > 0 {
 		tab.db.updateFindFails(n.ID, fails-1)
 	}
-	log.Debug("findnode returned", "count", len(r))
+
 	// Grab as many nodes as possible. Some of them might not be alive anymore, but we'll
 	// just remove those again during revalidation.
 	for _, n := range r {
