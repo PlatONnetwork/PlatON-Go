@@ -46,7 +46,7 @@ var (
 
 // Timeouts
 const (
-	respTimeout = 1000 * time.Millisecond
+	respTimeout = 500 * time.Millisecond
 	expiration  = 20 * time.Second
 
 	ntpFailureThreshold = 32               // Continuous timeouts after which to check NTP
