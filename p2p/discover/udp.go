@@ -379,8 +379,7 @@ func (t *udp) loop() {
 		}
 		// Start the timer so it fires when the next pending reply has expired.
 		now := time.Now()
-		var next *list.Element
-		for el := plist.Front(); el != nil; {
+		for el := plist.Front(); el != nil; el = el.Next() {
 			nextTimeout = el.Value.(*pending)
 			if dist := nextTimeout.deadline.Sub(now); dist < 2*respTimeout {
 				timeout.Reset(dist)
@@ -390,10 +389,7 @@ func (t *udp) loop() {
 			// future. These can occur if the system clock jumped
 			// backwards after the deadline was assigned.
 			nextTimeout.errc <- errClockWarp
-
-			next = el.Next()
 			plist.Remove(el)
-			el = next
 		}
 		nextTimeout = nil
 		timeout.Stop()
@@ -411,29 +407,21 @@ func (t *udp) loop() {
 
 		case p := <-t.addpending:
 			p.deadline = time.Now().Add(respTimeout)
-			log.Debug("udp loop add pending ", "p.from", p.from, "p.ptype", p.ptype, "p.dealine", p.deadline)
 			plist.PushBack(p)
 
 		case r := <-t.gotreply:
 			var matched bool
-
-			var next *list.Element
-			for el := plist.Front(); el != nil; {
+			for el := plist.Front(); el != nil; el = el.Next() {
 				p := el.Value.(*pending)
 				if p.from == r.from && p.ptype == r.ptype {
 					matched = true
-
-					log.Debug("udp loop got pending reply", "p.from", p.from, "p.ptype", p.ptype, "p.dealine", p.deadline)
-
 					// Remove the matcher if its callback indicates
 					// that all replies have been received. This is
 					// required for packet types that expect multiple
 					// reply packets.
 					if p.callback(r.data) {
 						p.errc <- nil
-
 						plist.Remove(el)
-						el = next
 					}
 					// Reset the continuous timeout counter (time drift detection)
 					contTimeouts = 0
@@ -445,15 +433,11 @@ func (t *udp) loop() {
 			nextTimeout = nil
 
 			// Notify and remove callbacks whose deadline is in the past.
-			var next *list.Element
-			for el := plist.Front(); el != nil; {
+			for el := plist.Front(); el != nil; el = el.Next() {
 				p := el.Value.(*pending)
-				log.Debug("udp loop pending timeout", "p.from", p.from, "p.ptype", p.ptype, "p.dealine", p.deadline)
 				if now.After(p.deadline) || now.Equal(p.deadline) {
 					p.errc <- errTimeout
-					next = el.Next()
 					plist.Remove(el)
-					el = next
 					contTimeouts++
 				}
 			}
