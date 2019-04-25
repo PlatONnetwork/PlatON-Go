@@ -1915,11 +1915,13 @@ func (cbft *Cbft) getConnectedConsensusNodes(consensusNodes []discover.NodeID) i
 
 func (cbft *Cbft) getThreshold(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) int {
 	consensusNodes := cbft.ConsensusNodes(parentNumber, parentHash, blockNumber)
-	if consensusNodes != nil {
+	if consensusNodes != nil && len(consensusNodes) > 0 {
 		total := len(consensusNodes)
 		log.Debug("consensus node quantity", "total", total)
 		trunc := total * 2 / 3
 		return int(trunc + 1)
+	}else{
+		log.Warn("consensus node list is empty")
 	}
 	return math.MaxInt16
 }
