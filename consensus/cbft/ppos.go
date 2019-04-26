@@ -236,7 +236,7 @@ func (p *ppos) SetCandidateContextOption(blockChain *core.BlockChain, initialNod
 		count := 0
 		blockArr := make([]*types.Block, 0)
 		for {
-			if currBlockNumber == genesis.NumberU64() || count == 2*common.BaseIrrCount {
+			if currBlockNumber == genesis.NumberU64() || count == common.BaseIrrCount {
 				break
 			}
 
@@ -500,7 +500,7 @@ func (p *ppos) UpdateNodeList(blockChain *core.BlockChain, blocknumber *big.Int,
 	count := 0
 	blockArr := make([]*types.Block, 0)
 	for {
-		if curBlockNumber == genesis.NumberU64() || count == 2*common.BaseIrrCount {
+		if curBlockNumber == genesis.NumberU64() || count == common.BaseIrrCount {
 			break
 		}
 		parentNum := curBlockNumber - 1
