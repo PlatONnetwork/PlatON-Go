@@ -1023,7 +1023,8 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 
 	// TODO
 	//isLegal := cbft.isLegal(rcvTime, producerID)
-	blockNumber := block.Number()
+	// TODO: the code that check if legal is commented temporarily.
+	/*blockNumber := block.Number()
 	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 	isLegal := cbft.isLegal(rcvTime, parentNumber, block.ParentHash(), blockNumber, producerID)
 	log.Debug("check if block is legal",
@@ -1035,7 +1036,8 @@ func (cbft *Cbft) blockReceiver(tmp *BlockExt) error {
 		"producerID", producerID)
 	if !isLegal {
 		return errIllegalBlock
-	}
+	}*/
+
 	//to check if there's a existing blockExt for received block
 	//sometime we'll receive the block's sign before the block self.
 	blockExt := cbft.findBlockExt(block.Hash())
