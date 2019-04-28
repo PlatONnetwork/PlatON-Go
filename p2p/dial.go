@@ -47,6 +47,8 @@ const (
 	maxResolveDelay     = time.Hour
 )
 
+type removeConsensusPeerFn func(node *discover.Node)
+
 // NodeDialer is used to connect to nodes in the network, typically by using
 // an underlying net.Dialer but also using net.Pipe in tests
 type NodeDialer interface {
@@ -78,7 +80,7 @@ type dialstate struct {
 	lookupBuf     []*discover.Node // current discovery lookup results
 	randomNodes   []*discover.Node // filled from Table
 	static        map[discover.NodeID]*dialTask
-	consensus     map[discover.NodeID]*dialTask
+	consensus	  *consensusDial
 	hist          *dialHistory
 
 	start     time.Time        // time when the dialer was first used
@@ -128,13 +130,13 @@ type waitExpireTask struct {
 	time.Duration
 }
 
-func newDialState(static []*discover.Node, bootnodes []*discover.Node, ntab discoverTable, maxdyn int, netrestrict *netutil.Netlist) *dialstate {
+func newDialState(static []*discover.Node, bootnodes []*discover.Node, ntab discoverTable, maxdyn int, netrestrict *netutil.Netlist, maxConsensusPeers int) *dialstate {
 	s := &dialstate{
 		maxDynDials: maxdyn,
 		ntab:        ntab,
 		netrestrict: netrestrict,
 		static:      make(map[discover.NodeID]*dialTask),
-		consensus:   make(map[discover.NodeID]*dialTask),
+		consensus:   NewConsensusDial(maxConsensusPeers),
 		dialing:     make(map[discover.NodeID]connFlag),
 		bootnodes:   make([]*discover.Node, len(bootnodes)),
 		randomNodes: make([]*discover.Node, maxdyn/2),
@@ -162,13 +164,17 @@ func (s *dialstate) removeStatic(n *discover.Node) {
 }
 
 func (s *dialstate) addConsensus(n *discover.Node) {
-	log.Warn("dial adding consensus node", "node", n)
-	s.consensus[n.ID] = &dialTask{flags: consensusDialedConn, dest: n}
+	log.Debug("adding consensus node on dial", "node", n)
+	s.consensus.AddTask(&dialTask{flags: consensusDialedConn, dest: n})
 }
 
 func (s *dialstate) removeConsensus(n *discover.Node) {
-	delete(s.consensus, n.ID)
+	s.consensus.RemoveTask(n.ID)
 	s.hist.remove(n.ID)
+}
+
+func (s *dialstate) initRemoveConsensusPeerFn(removeConsensusPeerFn removeConsensusPeerFn) {
+	s.consensus.InitRemoveConsensusPeerFn(removeConsensusPeerFn)
 }
 
 func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now time.Time) []task {
@@ -217,14 +223,13 @@ func (s *dialstate) newTasks(nRunning int, peers map[discover.NodeID]*Peer, now 
 	}
 
 	// Create dials for consensus nodes if they are not connected.
-	for id, t := range s.consensus {
+	for _, t := range s.consensus.ListTask() {
 		err := s.checkDial(t.dest, peers)
 		switch err {
 		case errNotWhitelisted, errSelf:
-			log.Warn("Removing consensus dial candidate", "id", t.dest.ID, "addr", &net.TCPAddr{IP: t.dest.IP, Port: int(t.dest.TCP)}, "err", err)
-			delete(s.consensus, t.dest.ID)
+			s.consensus.RemoveTask(t.dest.ID)
 		case nil:
-			s.dialing[id] = t.flags
+			s.dialing[t.dest.ID] = t.flags
 			newtasks = append(newtasks, t)
 		}
 	}

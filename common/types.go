@@ -380,6 +380,12 @@ func (sig *BlockConfirmSign) SetBytes(signSlice []byte) {
 	copy(sig[:], signSlice[:])
 }
 
+func (sig *BlockConfirmSign) Bytes() []byte {
+	target := make([]byte, len(sig))
+	copy(target[:], sig[:])
+	return target
+}
+
 func NewBlockConfirmSign(signSlice []byte) *BlockConfirmSign {
 	var sign BlockConfirmSign
 	copy(sign[:], signSlice[:])

@@ -14,7 +14,7 @@ const (
 
 type MsgPackage struct {
 	peerID string
-	msg    interface{}
+	msg 	Message
 }
 
 type handler struct {
@@ -52,16 +52,12 @@ func (h *handler) sendLoop() {
 }
 
 func (h *handler) broadcast(m *MsgPackage) {
-	for _, peer := range h.peers.AllConsensusPeer() {
-		log.Debug("broadcast ", "type", reflect.TypeOf(m.msg), "peer", peer.id)
-		if err := p2p.Send(peer.rw, MessageType(m.msg), m.msg); err != nil {
-			log.Error("Send message failed", "peer", peer.id, "err", err)
-		}
-	}
+	h.cbft.router.gossip(m)
 }
+
 func (h *handler) sendPeer(m *MsgPackage) {
 	if peer, err := h.peers.Get(m.peerID); err == nil {
-		log.Debug("Send message", "type", reflect.TypeOf(m.msg))
+		log.Debug("Send message", "targetPeer",m.peerID, "type", reflect.TypeOf(m.msg), "msgHash", m.msg.MsgHash().TerminalString())
 		if err := p2p.Send(peer.rw, MessageType(m.msg), m.msg); err != nil {
 			log.Error("Send Peer error")
 			h.peers.Unregister(m.peerID)
@@ -69,15 +65,26 @@ func (h *handler) sendPeer(m *MsgPackage) {
 	}
 }
 
-func (h *handler) SendAllConsensusPeer(msg interface{}) {
+func (h *handler) SendAllConsensusPeer(msg Message) {
 	h.sendQueue <- &MsgPackage{
 		msg: msg,
 	}
 }
-func (h *handler) Send(peerID discover.NodeID, msg interface{}) {
+
+func (h *handler) Send(peerID discover.NodeID, msg Message) {
 	h.sendQueue <- &MsgPackage{
 		peerID: fmt.Sprintf("%x", peerID.Bytes()[:8]),
 		msg:    msg,
+	}
+}
+
+func (h *handler) SendBroadcast(msg Message) {
+	msgPkg := &MsgPackage{
+		msg: msg,
+	}
+	select {
+	case h.sendQueue <- msgPkg:
+		h.cbft.log.Trace("Send message to broadcast queue", "msgHash", msg.MsgHash().TerminalString())
 	}
 }
 
@@ -104,6 +111,22 @@ func (h *handler) Protocols() []p2p.Protocol {
 
 func (h *handler) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	peer := newPeer(p, rw)
+
+	// Execute the CBFT handshake
+	var (
+		head 			= h.cbft.blockChain.CurrentHeader()
+		hash			= head.Hash()
+	)
+	p.Log().Debug("CBFT peer connected, do handshake","name", peer. Name())
+	if err := peer.Handshake(head.Number, hash); err != nil {
+		p.Log().Debug("CBFT handshake failed", "err", err)
+		return err
+	} else {
+		p.Log().Debug("CBFT consensus handshake success","hash", hash.TerminalString(), "number", head.Number)
+	}
+
+	// todo: there is something to be done.
+
 	h.peers.Register(peer)
 	defer h.peers.Unregister(peer.id)
 	for {
@@ -115,114 +138,132 @@ func (h *handler) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 }
 
 func (h *handler) handleMsg(p *peer) error {
-	for {
-		msg, err := p.rw.ReadMsg()
-		if err != nil {
-			p.Log().Error("read peer message error", "err", err)
-			return err
-		}
-
-		switch {
-		case msg.Code == PrepareBlockMsg:
-			// Retrieve and decode the propagated block
-			var request prepareBlock
-			if err := msg.Decode(&request); err != nil {
-				return errResp(ErrDecode, "%v: %v", msg, err)
-			}
-			log.Info("Received a PrepareBlockMsg", "peer", p.id, "prepare", request.String())
-
-			request.Block.ReceivedAt = msg.ReceivedAt
-			request.Block.ReceivedFrom = p
-			h.cbft.ReceivePeerMsg(&msgInfo{
-				msg:    &request,
-				peerID: p.ID(),
-			})
-			return nil
-		case msg.Code == PrepareVoteMsg:
-			// Retrieve and decode the propagated block
-			var request prepareVote
-			if err := msg.Decode(&request); err != nil {
-				return errResp(ErrDecode, "%v: %v", msg, err)
-			}
-			h.cbft.ReceivePeerMsg(&msgInfo{
-				msg:    &request,
-				peerID: p.ID(),
-			})
-			return nil
-
-		case msg.Code == ViewChangeMsg:
-			var request viewChange
-			if err := msg.Decode(&request); err != nil {
-				return errResp(ErrDecode, "%v: %v", msg, err)
-			}
-			h.cbft.ReceivePeerMsg(&msgInfo{
-				msg:    &request,
-				peerID: p.ID(),
-			})
-			return nil
-
-		case msg.Code == ViewChangeVoteMsg:
-			var request viewChangeVote
-			if err := msg.Decode(&request); err != nil {
-				return errResp(ErrDecode, "%v: %v", msg, err)
-			}
-			h.cbft.ReceivePeerMsg(&msgInfo{
-				msg:    &request,
-				peerID: p.ID(),
-			})
-			return nil
-
-		case msg.Code == ConfirmedPrepareBlockMsg:
-			var request confirmedPrepareBlock
-			if err := msg.Decode(&request); err != nil {
-				return errResp(ErrDecode, "%v: %v", msg, err)
-			}
-			h.cbft.ReceivePeerMsg(&msgInfo{
-				msg:    &request,
-				peerID: p.ID(),
-			})
-			return nil
-		case msg.Code == GetPrepareVoteMsg:
-			var request getPrepareVote
-			if err := msg.Decode(&request); err != nil {
-				return errResp(ErrDecode, "%v: %v", msg, err)
-			}
-			h.cbft.ReceivePeerMsg(&msgInfo{
-				msg:    &request,
-				peerID: p.ID(),
-			})
-			return nil
-		case msg.Code == PrepareVotesMsg:
-			var request prepareVotes
-			if err := msg.Decode(&request); err != nil {
-				return errResp(ErrDecode, "%v: %v", msg, err)
-			}
-			h.cbft.ReceivePeerMsg(&msgInfo{
-				msg:    &request,
-				peerID: p.ID(),
-			})
-			return nil
-		case msg.Code == GetHighestPrepareBlockMsg:
-			var request getHighestPrepareBlock
-			if err := msg.Decode(&request); err != nil {
-				return errResp(ErrDecode, "%v: %v", msg, err)
-			}
-			h.cbft.ReceivePeerMsg(&msgInfo{
-				msg:    &request,
-				peerID: p.ID(),
-			})
-			return nil
-		case msg.Code == HighestPrepareBlockMsg:
-			var request highestPrepareBlock
-			if err := msg.Decode(&request); err != nil {
-				return errResp(ErrDecode, "%v: %v", msg, err)
-			}
-			h.cbft.ReceivePeerMsg(&msgInfo{
-				msg:    &request,
-				peerID: p.ID(),
-			})
-			return nil
-		default:
-		}
+	msg, err := p.rw.ReadMsg()
+	if err != nil {
+		p.Log().Error("read peer message error", "err", err)
+		return err
 	}
+
+	switch {
+	case msg.Code == CBFTStatusMsg:
+		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
+	case msg.Code == PrepareBlockMsg:
+		// Retrieve and decode the propagated block
+		var request prepareBlock
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		p.MarkMessageHash((&request).MsgHash())
+		log.Info("Received a PrepareBlockMsg", "peer", p.id, "prepare", request.String())
+
+		request.Block.ReceivedAt = msg.ReceivedAt
+		request.Block.ReceivedFrom = p
+		h.cbft.ReceivePeerMsg(&msgInfo{
+			msg:    &request,
+			peerID: p.ID(),
+		})
+		return nil
+	case msg.Code == PrepareVoteMsg:
+		// Retrieve and decode the propagated block
+		var request prepareVote
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		p.MarkMessageHash((&request).MsgHash())
+		h.cbft.ReceivePeerMsg(&msgInfo{
+			msg:    &request,
+			peerID: p.ID(),
+		})
+		return nil
+
+	case msg.Code == ViewChangeMsg:
+		var request viewChange
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		//p.MarkMessageHash((&request).MsgHash())
+		h.cbft.ReceivePeerMsg(&msgInfo{
+			msg:    &request,
+			peerID: p.ID(),
+		})
+		return nil
+
+	case msg.Code == ViewChangeVoteMsg:
+		var request viewChangeVote
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		//p.MarkMessageHash((&request).MsgHash())
+		h.cbft.ReceivePeerMsg(&msgInfo{
+			msg:    &request,
+			peerID: p.ID(),
+		})
+		return nil
+
+	case msg.Code == ConfirmedPrepareBlockMsg:
+		var request confirmedPrepareBlock
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		p.MarkMessageHash((&request).MsgHash())
+		h.cbft.ReceivePeerMsg(&msgInfo{
+			msg:    &request,
+			peerID: p.ID(),
+		})
+		return nil
+	case msg.Code == GetPrepareVoteMsg:
+		var request getPrepareVote
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		h.cbft.ReceivePeerMsg(&msgInfo{
+			msg:    &request,
+			peerID: p.ID(),
+		})
+		return nil
+	case msg.Code == PrepareVotesMsg:
+		var request prepareVotes
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		h.cbft.ReceivePeerMsg(&msgInfo{
+			msg:    &request,
+			peerID: p.ID(),
+		})
+		return nil
+	case msg.Code == GetHighestPrepareBlockMsg:
+		var request getHighestPrepareBlock
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		h.cbft.ReceivePeerMsg(&msgInfo{
+			msg:    &request,
+			peerID: p.ID(),
+		})
+		return nil
+	case msg.Code == HighestPrepareBlockMsg:
+		var request highestPrepareBlock
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		h.cbft.ReceivePeerMsg(&msgInfo{
+			msg:    &request,
+			peerID: p.ID(),
+		})
+		return nil
+	case msg.Code == PrepareBlockHashMsg:
+		var request prepareBlockHash
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		p.MarkMessageHash((&request).MsgHash())
+		h.cbft.ReceivePeerMsg(&msgInfo{
+			msg:    &request,
+			peerID: p.ID(),
+		})
+		return nil
+	default:
+	}
+
+	return nil
 }

@@ -121,6 +121,8 @@ type Cbft struct {
 	log        log.Logger
 	resetCache *lru.Cache
 	bp         Breakpoint
+	// router
+	router *router
 }
 
 // New creates a concurrent BFT consensus engine
@@ -158,7 +160,7 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux) *Cbft {
 	}
 	cbft.bp = logBP
 	cbft.handler = NewHandler(cbft)
-
+	cbft.router = NewRouter(cbft.handler)
 	cbft.resetCache, _ = lru.New(maxResetCacheSize)
 
 	go cbft.receiveLoop()
@@ -193,7 +195,12 @@ func (cbft *Cbft) getHighestLogical() *BlockExt {
 }
 
 func (cbft *Cbft) ReceivePeerMsg(msg *msgInfo) {
-	cbft.peerMsgCh <- msg
+	select {
+	case cbft.peerMsgCh <- msg:
+		cbft.log.Debug("[Method:ReceivePeerMsg] received message from peer", "peer", msg.peerID.TerminalString(), "msgHash", msg.msg.MsgHash().TerminalString())
+	case <-cbft.exitCh:
+		cbft.log.Error("[Method:ReceivePeerMsg] cbft exit")
+	}
 }
 
 func (cbft *Cbft) InsertChain(block *types.Block) <-chan error {
@@ -304,9 +311,9 @@ func (cbft *Cbft) handleMsg(info *msgInfo) {
 
 	switch msg := msg.(type) {
 	case *prepareBlock:
-		err = cbft.OnNewPrepareBlock(peerID, msg)
+		err = cbft.OnNewPrepareBlock(peerID, msg, true)
 	case *prepareVote:
-		err = cbft.OnPrepareVote(peerID, msg)
+		err = cbft.OnPrepareVote(peerID, msg, true)
 	case *viewChange:
 		err = cbft.OnViewChange(peerID, msg)
 	case *viewChangeVote:
@@ -323,8 +330,9 @@ func (cbft *Cbft) handleMsg(info *msgInfo) {
 		err = cbft.OnGetHighestPrepareBlock(peerID, msg)
 	case *highestPrepareBlock:
 		err = cbft.OnHighestPrepareBlock(peerID, msg)
+	case *prepareBlockHash:
+		err = cbft.OnPrepareBlockHash(peerID, msg)
 	}
-
 	if err != nil {
 		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
 	}
@@ -402,6 +410,11 @@ func (cbft *Cbft) OnConfirmedPrepareBlock(peerID discover.NodeID, pb *confirmedP
 	}
 
 	cbft.syncMissingBlock(peerID, pb.Number)
+
+	if cbft.needBroadcast(peerID, pb) {
+		go cbft.handler.SendBroadcast(pb)
+	}
+
 	return nil
 }
 
@@ -460,7 +473,7 @@ func (cbft *Cbft) OnGetPrepareVote(peerID discover.NodeID, pv *getPrepareVote) e
 
 func (cbft *Cbft) OnPrepareVotes(peerID discover.NodeID, view *prepareVotes) error {
 	for _, vote := range view.Votes {
-		if err := cbft.OnPrepareVote(peerID, vote); err != nil {
+		if err := cbft.OnPrepareVote(peerID, vote, false); err != nil {
 			cbft.log.Error("Handle PrepareVotes failed", "peer", peerID, "err", err)
 			return err
 		}
@@ -507,7 +520,7 @@ func (cbft *Cbft) OnHighestPrepareBlock(peerID discover.NodeID, msg *highestPrep
 
 	for _, prepare := range msg.UnconfirmedBlock {
 		cbft.log.Debug("Sync Highest Block", "number", prepare.Block.NumberU64())
-		cbft.OnNewPrepareBlock(peerID, prepare)
+		cbft.OnNewPrepareBlock(peerID, prepare, false)
 	}
 	for _, votes := range msg.Votes {
 		cbft.log.Debug("Sync Highest Block", "number", votes.Number)
@@ -546,6 +559,20 @@ func (cbft *Cbft) OnViewChangeVoteTimeout(view *viewChangeVote) {
 			cbft.needPending = true
 		}
 	}
+}
+
+func (cbft *Cbft) OnPrepareBlockHash(peerID discover.NodeID, msg *prepareBlockHash) error {
+	cbft.log.Debug("[Method:OnPrepareBlockHash] Received message of prepareBlockHash", "FromPeerId", peerID.String(),
+		"BlockHash", msg.Hash.Hex(), "Number", msg.Number)
+	// Prerequisite: Nodes with PrepareBlock data can forward Hash
+	cbft.handler.Send(peerID, &getPrepareBlock{Hash: msg.Hash, Number: msg.Number})
+
+	// then: to forward msg
+	if ok := cbft.needBroadcast(peerID, msg); ok {
+		go cbft.handler.SendBroadcast(msg)
+	}
+
+	return nil
 }
 
 func (cbft *Cbft) NextBaseBlock() *types.Block {
@@ -646,9 +673,9 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 			return
 		case sealResultCh <- sealedBlock:
 			//reset pool when seal block
-			start := time.Now()
+			//start := time.Now()
 			cbft.reset(sealedBlock)
-			cbft.bp.InternalBP().ResetTxPool(context.TODO(), current, time.Now().Sub(start), &cbft.RoundState)
+			//cbft.bp.InternalBP().ResetTxPool(context.TODO(), current, time.Now().Sub(start), &cbft.RoundState)
 
 			cbft.broadcastBlock(current)
 		default:
@@ -791,7 +818,7 @@ func (cbft *Cbft) flushReadyBlock() bool {
 
 // Receive prepare block from the other consensus node.
 // Need check something ,such as validator index, address, view is equal local view , and last verify signature
-func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBlock) error {
+func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBlock, propagation bool) error {
 	bpCtx := context.WithValue(context.TODO(), "peer", nodeId)
 	cbft.bp.PrepareBP().ReceiveBlock(bpCtx, request, &cbft.RoundState)
 	if err := cbft.VerifyHeader(cbft.blockChain, request.Block.Header(), false); err != nil {
@@ -883,6 +910,12 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 			cbft.producerBlocks.AddBlock(ext.block)
 			cbft.log.Debug("Add producer block", "hash", ext.block.Hash(), "number", ext.block.Number(), "producer", cbft.producerBlocks.String())
 		}
+
+		// if accept the block then forward the message
+		if propagation && cbft.needBroadcast(nodeId, request) {
+			go cbft.handler.SendBroadcast(&prepareBlockHash{Hash: request.Block.Hash(), Number: request.Block.NumberU64()})
+		}
+
 		return cbft.OnNewBlock(ext)
 	case Cache:
 		cbft.bp.PrepareBP().CacheBlock(bpCtx, request, &cbft.RoundState)
@@ -1388,7 +1421,7 @@ func (cbft *Cbft) Protocols() []p2p.Protocol {
 }
 
 // OnBlockSignature is called by by protocol handler when it received a new block signature by P2P.
-func (cbft *Cbft) OnPrepareVote(peerID discover.NodeID, vote *prepareVote) error {
+func (cbft *Cbft) OnPrepareVote(peerID discover.NodeID, vote *prepareVote, propagation bool) error {
 	cbft.log.Debug("Receive prepare vote", "peer", peerID, "vote", vote.String())
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	cbft.bp.PrepareBP().ReceiveVote(bpCtx, vote, &cbft.RoundState)
@@ -1414,6 +1447,13 @@ func (cbft *Cbft) OnPrepareVote(peerID discover.NodeID, vote *prepareVote) error
 		cbft.log.Debug("Discard PrepareVote", "vote", vote.String())
 	}
 	cbft.log.Trace("Processing vote end", "hash", vote.Hash, "number", vote.Number)
+
+	// rule:
+	if propagation && cbft.needBroadcast(peerID, vote) {
+		cbft.log.Debug("[Method:OnPrepareVote] broadcast the message of prepareVote", "FromPeerId", peerID.String())
+		go cbft.handler.SendBroadcast(vote)
+	}
+
 	return nil
 }
 
@@ -1685,4 +1725,15 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 		cbft.log.Debug("Without block", "hash", hash, "number", number, "highestConfirm", cbft.getHighestConfirmed().number, "highestLogical", cbft.getHighestLogical().number, "root", cbft.getRootIrreversible().number)
 	}
 	return has
+}
+
+func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {
+	//isCsusNode := cbft.IsConsensusNode() fmt.Sprintf("%x", p.ID().Bytes()[:8]),
+	peers := cbft.handler.peers.Peers()
+	for _, peer := range peers {
+		if peer.knownMessageHash.Contains(msg.MsgHash()) {
+			return false
+		}
+	}
+	return true
 }
