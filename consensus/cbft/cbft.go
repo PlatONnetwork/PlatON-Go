@@ -2112,15 +2112,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	// store the lucky ticket into the header.Extra[97:129]
 	appendEtraFunc(can.TxHash, packageNodeFlag)
 
-	//Calculate current block rewards
-	var blockReward *big.Int
-	preYearNumber := new(big.Int).Sub(header.Number, common.YearBlocks)
-	yearReward := new(big.Int).Set(common.FirstYearReward)
-	if preYearNumber.Cmp(common.YearBlocks) > 0 { // otherwise is 0 year and 1 year block reward
-		yearReward = new(big.Int).Sub(GetAmount(header.Number), GetAmount(preYearNumber))
-	}
-	blockReward = new(big.Int).Div(yearReward, common.YearBlocks)
-
+	blockReward := cbft.GetBlockReward(header.Number)
 	nodeReward := blockReward
 	//log.Info("Call accumulateRewards, GetTicket ", "TicketId: ", can.TicketId.Hex())
 	if can.TOwner != (common.Address{}) {
@@ -2135,7 +2127,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 	state.SubBalance(common.RewardPoolAddr, blockReward)
 
 	log.Info("Call accumulateRewards SUCCESS !! ", "blockNumber", header.Number, "blockHash", header.Hash(),
-		"nodeId", nodeId.String(), "ticketId", can.TxHash.Hex(), " yearReward: ", yearReward, " blockReward:", blockReward,
+		"nodeId", nodeId.String(), "ticketId", can.TxHash.Hex(), " blockReward:", blockReward,
 		" nodeReward: ", nodeReward, " RewardPoolAddr address: ", common.RewardPoolAddr.Hex(),
 		" balance: ", state.GetBalance(common.RewardPoolAddr), " Fee: ", can.Fee, " Coinbase address: ", header.Coinbase.Hex(),
 		" balance: ", state.GetBalance(header.Coinbase))
@@ -2143,21 +2135,50 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 
 func (cbft *Cbft) IncreaseRewardPool(state *state.StateDB, number *big.Int) {
 	//add balance to reward pool
+	cbft.GetBlockReward(number)
 	if new(big.Int).Rem(number, common.YearBlocks).Cmp(big.NewInt(0)) == 0 {
-		num := GetAmount(number)
-		log.Info("Call IncreaseRewardPool SUCCESS !! ", "addr", common.RewardPoolAddr.Hex(), "num", num.String())
+		num := GetIncreaseAmount(new(big.Int).Add(number, new(big.Int).SetUint64(1)))
 		state.AddBalance(common.RewardPoolAddr, num)
+		log.Info("Call IncreaseRewardPool SUCCESS !! ", "addr", common.RewardPoolAddr.Hex(), "rewardPoolBalance", state.GetBalance(common.RewardPoolAddr), "num", num)
 	}
 }
 
-func GetAmount(number *big.Int) *big.Int {
-	cycle := new(big.Int).Div(number, common.YearBlocks)
+// Calculate which cycle the current block belongs to
+func GetCycle(number *big.Int) *big.Int {
+	return new(big.Int).Div(new(big.Int).Sub(number, new(big.Int).SetUint64(1)), common.YearBlocks)
+}
+
+func GetSumAmount(number *big.Int) *big.Int {
+	cycle := GetCycle(number)
 	rate := math2.BigPow(common.Rate.Int64(), cycle.Int64())
 	base := math2.BigPow(common.Base.Int64(), cycle.Int64())
 	//fmt.Println("number: ", number, " cycle: ", cycle, " rate: ", rate, " base: ", base)
-	yearAmount := new(big.Int).Mul(common.InitAmount, rate)
-	ret := new(big.Int).Div(yearAmount, base)
+	sumAmount := new(big.Int).Mul(common.InitAmount, rate)
+	ret := new(big.Int).Div(sumAmount, base)
+	log.Info("GetAmount Success", "initAmount", common.InitAmount, "blockNumber", number.Uint64(),
+		"cycle", cycle.Uint64(), "rate", rate.Uint64(), "base", base.Uint64(), "sumAmount", ret)
 	return ret
+}
+
+func GetIncreaseAmount(number *big.Int) *big.Int {
+	preYearNumber := new(big.Int).Sub(number, common.YearBlocks)
+	currentAmount := GetSumAmount(number)
+	beforeAmount := GetSumAmount(preYearNumber)
+	increaseAmount := new(big.Int).Sub(currentAmount, beforeAmount)
+	log.Info("GetIncreaseAmount Success", "blockNumber", number.Uint64(), "preYearNumber", preYearNumber.Uint64(),
+		"currentAmount", currentAmount, "beforeAmount", beforeAmount, "increaseAmount", increaseAmount)
+	return increaseAmount
+}
+
+// Get rewards for the specified block height
+func (cbft *Cbft) GetBlockReward(number *big.Int) *big.Int {
+	yearReward := new(big.Int).Set(common.FirstYearReward)
+	if GetCycle(number).Uint64() > 0 {
+		yearReward = GetIncreaseAmount(number)
+	}
+	blockReward := new(big.Int).Div(yearReward, common.YearBlocks)
+	log.Info("GetBlockReward Success", "blockNumber", number.Uint64(), "yearReward", yearReward, "blockReward", blockReward)
+	return blockReward
 }
 
 func (cbft *Cbft) FindTransaction(txHash common.Hash) (*types.Transaction, common.Hash, uint64, uint64) {
