@@ -197,7 +197,7 @@ func (cbft *Cbft) getHighestLogical() *BlockExt {
 func (cbft *Cbft) ReceivePeerMsg(msg *msgInfo) {
 	select {
 	case cbft.peerMsgCh <- msg:
-		cbft.log.Debug("[Method:ReceivePeerMsg] received message from peer", "peer", msg.peerID.TerminalString(), "msgHash", msg.msg.MsgHash().TerminalString())
+		cbft.log.Debug("[Method:ReceivePeerMsg] received message from peer", "peer", msg.peerID.TerminalString(), "msgType", reflect.TypeOf(msg.msg), "msgHash", msg.msg.MsgHash().TerminalString())
 	case <-cbft.exitCh:
 		cbft.log.Error("[Method:ReceivePeerMsg] cbft exit")
 	}

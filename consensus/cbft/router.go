@@ -90,8 +90,9 @@ func (r *router) kConsensusRandomNodes(msgType uint64, condition interface{}) ([
 			}
 		}
 	}
-	kConsensusNodes := kRandomNodes(DEFAULT_FANOUT_VALUE, consensusPeers, msgType, condition, r.filter)
-	return kConsensusNodes, nil
+	//kConsensusNodes := kRandomNodes(len(consensusPeers), consensusPeers, msgType, condition, r.filter)
+	return consensusPeers, nil
+
 }
 
 // Return the nodes of consensus and non-consensus.
