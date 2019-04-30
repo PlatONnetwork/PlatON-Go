@@ -141,6 +141,23 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 	return cbft
 }
 
+
+func NewFaker() *Cbft {
+	blockSignatureCh := make(chan *cbfttypes.BlockSignature, 20)
+	cbftResultCh := make(chan *cbfttypes.CbftResult)
+	highestLogicalBlockCh := make(chan *types.Block, 20)
+	return New(params.TestnetChainConfig.Cbft, blockSignatureCh, cbftResultCh, highestLogicalBlockCh)
+}
+func (cbft *Cbft) BlockSignOutCh() chan *cbfttypes.BlockSignature{
+	return cbft.blockSignOutCh;
+}
+func (cbft *Cbft) CbftResultCh() chan *cbfttypes.CbftResult{
+	return cbft.cbftResultOutCh;
+}
+func (cbft *Cbft) HighestLogicalBlockCh() chan *types.Block{
+	return cbft.highestLogicalBlockCh;
+}
+
 // BlockExt is an extension from Block
 type BlockExt struct {
 	block       *types.Block	`json:"-"`
