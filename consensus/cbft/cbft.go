@@ -75,6 +75,8 @@ var (
 
 	peerMsgQueueSize = 1024
 	cbftVersion      = byte(0x01)
+
+	maxBlockDist = uint64(192)
 )
 
 type Cbft struct {
@@ -744,9 +746,14 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	cbft.bp.ViewChangeBP().ReceiveViewChange(bpCtx, view, &cbft.RoundState)
 	if err := cbft.VerifyAndViewChange(view); err != nil {
-		if view.BaseBlockNum > cbft.getHighestConfirmed().number {
-			cbft.handler.SendAllConsensusPeer(&getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
+		if view.BaseBlockNum > cbft.getHighestConfirmed().number  {
+			if view.BaseBlockNum - cbft.getHighestConfirmed().number > maxBlockDist {
+				atomic.StoreInt32(&cbft.running, 0)
+			} else {
+				cbft.handler.SendAllConsensusPeer(&getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
+			}
 		}
+
 		cbft.bp.ViewChangeBP().InvalidViewChange(bpCtx, view, err, &cbft.RoundState)
 		cbft.log.Error("Verify view failed", "err", err, "peer", peerID, "view", view.String())
 		return err

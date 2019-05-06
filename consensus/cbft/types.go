@@ -308,7 +308,9 @@ func (cbft *Cbft) AcceptPrepareBlock(request *prepareBlock) AcceptStatus {
 }
 
 func (cbft *Cbft) AcceptPrepareVote(vote *prepareVote) AcceptStatus {
-
+	if vote.Number < cbft.getHighestConfirmed().number  {
+		return Discard
+	}
 	if (cbft.lastViewChange != nil && vote.Number < cbft.lastViewChange.BaseBlockNum) ||
 		(cbft.viewChange != nil && vote.Number < cbft.viewChange.BaseBlockNum) {
 		return Accept
