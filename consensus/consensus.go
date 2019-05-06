@@ -101,7 +101,7 @@ type Engine interface {
 
 	NextBaseBlock() *types.Block
 
-	InsertChain(block *types.Block) <-chan error
+	InsertChain(block *types.Block, errCh chan error)
 
 	HasBlock(hash common.Hash, number uint64) bool
 

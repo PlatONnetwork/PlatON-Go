@@ -203,14 +203,15 @@ func (cbft *Cbft) ReceivePeerMsg(msg *msgInfo) {
 	}
 }
 
-func (cbft *Cbft) InsertChain(block *types.Block) <-chan error {
+func (cbft *Cbft) InsertChain(block *types.Block, syncState chan error) {
 	var extra *BlockExtra
 	var err error
-	syncState := make(chan error, 1)
 
 	if _, extra, err = cbft.decodeExtra(block.ExtraData()); err != nil {
-		syncState <- err
-		return syncState
+		if syncState != nil {
+			syncState <- err
+		}
+		return
 	}
 	ext := NewBlockExt(block, block.NumberU64(), cbft.getThreshold())
 	for _, vote := range extra.Prepare {
@@ -223,7 +224,6 @@ func (cbft *Cbft) InsertChain(block *types.Block) <-chan error {
 	cbft.log.Debug("Insert new block", "hash", block.Hash(), "number", block.NumberU64(), "view", ext.view.String())
 
 	cbft.syncBlockCh <- ext
-	return ext.syncState
 }
 
 // SetPrivateKey sets local's private key by the backend.go
@@ -521,7 +521,7 @@ func (cbft *Cbft) OnHighestPrepareBlock(peerID discover.NodeID, msg *highestPrep
 	cbft.log.Debug("Receive HighestPrepareBlock", "peer", peerID.TerminalString(), "msg", msg.String())
 	for _, block := range msg.CommitedBlock {
 		cbft.log.Debug("Sync Highest Block", "number", block.NumberU64())
-		cbft.InsertChain(block)
+		cbft.InsertChain(block, nil)
 	}
 
 	for _, prepare := range msg.UnconfirmedBlock {
