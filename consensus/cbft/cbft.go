@@ -392,7 +392,7 @@ func (cbft *Cbft) OnSyncBlock(ext *BlockExt) {
 		}
 
 		cbft.clearPending()
-		cbft.blockExtMap.ClearChildren(cbft.viewChange.HighestBlockHash, cbft.viewChange.HighestBlockNum)
+		cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)
 		cbft.producerBlocks = NewProducerBlocks(cbft.dpos.NodeID(int(ext.view.ProposalIndex)), ext.block.NumberU64())
 		if cbft.producerBlocks != nil {
 			cbft.producerBlocks.AddBlock(ext.block)
@@ -744,7 +744,7 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	cbft.bp.ViewChangeBP().ReceiveViewChange(bpCtx, view, &cbft.RoundState)
 	if err := cbft.VerifyAndViewChange(view); err != nil {
-		if view.HighestBlockNum > cbft.getHighestConfirmed().number {
+		if view.BaseBlockNum > cbft.getHighestConfirmed().number {
 			cbft.handler.SendAllConsensusPeer(&getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
 		}
 		cbft.bp.ViewChangeBP().InvalidViewChange(bpCtx, view, err, &cbft.RoundState)
@@ -762,8 +762,8 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 		ValidatorIndex: uint32(index),
 		ValidatorAddr:  addr,
 		Timestamp:      view.Timestamp,
-		BlockHash:      view.HighestBlockHash,
-		BlockNum:       view.HighestBlockNum,
+		BlockHash:      view.BaseBlockHash,
+		BlockNum:       view.BaseBlockNum,
 		ProposalIndex:  view.ProposalIndex,
 		ProposalAddr:   view.ProposalAddr,
 	}
@@ -796,12 +796,12 @@ func (cbft *Cbft) flushReadyBlock() bool {
 	}
 	//todo verify state
 	//todo direct flush block if node is no-consensus node
-	if ext := cbft.blockExtMap.findChild(cbft.viewChange.HighestBlockHash, cbft.viewChange.HighestBlockNum); ext == nil || !ext.isConfirmed {
+	if ext := cbft.blockExtMap.findChild(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum); ext == nil || !ext.isConfirmed {
 		cbft.log.Debug("No block need flush db")
 		return false
 	}
 
-	flush := cbft.blockExtMap.GetSubChainWithTwoThirdVotes(cbft.viewChange.HighestBlockHash, cbft.viewChange.HighestBlockNum)
+	flush := cbft.blockExtMap.GetSubChainWithTwoThirdVotes(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)
 
 	if flush == nil {
 		cbft.log.Error("Flush block error")
@@ -814,7 +814,7 @@ func (cbft *Cbft) flushReadyBlock() bool {
 	highestBlockHash, highestBlockNum := chainBlock.Hash(), chainBlock.NumberU64()
 
 	cbft.blockExtMap.ClearParents(highestBlockHash, highestBlockNum)
-	newRoot := cbft.blockExtMap.BaseBlock(cbft.viewChange.HighestBlockHash, cbft.viewChange.HighestBlockNum)
+	newRoot := cbft.blockExtMap.BaseBlock(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)
 	cbft.log.Debug("Set new root", "hash", newRoot.block.Hash(), "number", newRoot.block.NumberU64())
 	cbft.rootIrreversible.Store(newRoot)
 	cbft.bp.InternalBP().NewHighestRootBlock(context.TODO(), newRoot, &cbft.RoundState)
@@ -885,17 +885,17 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 		if cbft.agreeViewChange() {
 			cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, &cbft.RoundState)
 			var newHeader *types.Header
-			viewBlock := cbft.blockExtMap.findBlock(cbft.viewChange.HighestBlockHash, cbft.viewChange.HighestBlockNum)
+			viewBlock := cbft.blockExtMap.findBlock(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)
 
 			if viewBlock == nil {
 				cbft.bp.ViewChangeBP().InvalidViewChangeBlock(bpCtx, cbft.viewChange, &cbft.RoundState)
-				log.Error("ViewChange block find error", "HighestBlockHash", cbft.viewChange.HighestBlockHash,
-					"HighestBlockNum", cbft.viewChange.HighestBlockNum, "blockMap", cbft.blockExtMap.BlockString())
-				cbft.handler.Send(nodeId, &getPrepareBlock{Hash: cbft.viewChange.HighestBlockHash, Number: cbft.viewChange.HighestBlockNum})
+				log.Error("ViewChange block find error", "BaseBlockHash", cbft.viewChange.BaseBlockHash,
+					"BaseBlockNum", cbft.viewChange.BaseBlockNum, "blockMap", cbft.blockExtMap.BlockString())
+				cbft.handler.Send(nodeId, &getPrepareBlock{Hash: cbft.viewChange.BaseBlockHash, Number: cbft.viewChange.BaseBlockNum})
 				//panic("Find nil block")
 			} else {
 				newHeader = viewBlock.block.Header()
-				injectBlock := cbft.blockExtMap.findBlockByNumber(cbft.viewChange.HighestBlockNum+1, cbft.getHighestLogical().number)
+				injectBlock := cbft.blockExtMap.findBlockByNumber(cbft.viewChange.BaseBlockNum+1, cbft.getHighestLogical().number)
 				start := time.Now()
 				cbft.txPool.ForkedReset(newHeader, injectBlock)
 				cbft.bp.InternalBP().ForkedResetTxPool(bpCtx, newHeader, injectBlock, time.Now().Sub(start), &cbft.RoundState)
@@ -903,7 +903,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 			}
 
 			cbft.clearPending()
-			cbft.blockExtMap.ClearChildren(cbft.viewChange.HighestBlockHash, cbft.viewChange.HighestBlockNum)
+			cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)
 		}
 		ext.view = cbft.viewChange
 		ext.viewChangeVotes = request.ViewChangeVotes
@@ -1028,7 +1028,7 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 				cbft.handler.SendAllConsensusPeer(&confirmedPrepareBlock{Hash: bs.block.block.Hash(), Number: bs.block.block.NumberU64(), VoteBits: bs.block.prepareVotes.voteBits})
 			}
 
-			if cbft.viewChange != nil && len(cbft.viewChangeVotes) >= cbft.getThreshold() && cbft.blockExtMap.head.number != cbft.viewChange.HighestBlockNum {
+			if cbft.viewChange != nil && len(cbft.viewChangeVotes) >= cbft.getThreshold() && cbft.blockExtMap.head.number != cbft.viewChange.BaseBlockNum {
 				cbft.flushReadyBlock()
 			}
 			cbft.log.Debug("Execute block success", "block", bs.block.String())
@@ -1054,7 +1054,7 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 		sign, err := cbft.signFn(pv.Hash[:])
 		if err == nil {
 			pv.Signature.SetBytes(sign)
-			if cbft.viewChange != nil && !cbft.agreeViewChange() && cbft.viewChange.HighestBlockNum < ext.block.NumberU64() {
+			if cbft.viewChange != nil && !cbft.agreeViewChange() && cbft.viewChange.BaseBlockNum < ext.block.NumberU64() {
 				cbft.pendingVotes.Add(pv.Hash, pv)
 			} else {
 				ext.prepareVotes.Add(pv)

@@ -135,21 +135,21 @@ func (pv *prepareVote) MsgHash() common.Hash {
 }
 
 type viewChange struct {
-	Timestamp                uint64                  `json:"timestamp"`
-	ProposalIndex            uint32                  `json:"proposal_index"`
-	ProposalAddr             common.Address          `json:"proposal_address"`
-	HighestBlockNum          uint64                  `json:"highest_block_number"`
-	HighestBlockHash         common.Hash             `json:"highest_block_hash"`
-	HighestBlockPrepareVotes []*prepareVote          `json:"highest_block_prepare_votes"`
-	Signature                common.BlockConfirmSign `json:"-"`
+	Timestamp            uint64                  `json:"timestamp"`
+	ProposalIndex        uint32                  `json:"proposal_index"`
+	ProposalAddr         common.Address          `json:"proposal_address"`
+	BaseBlockNum         uint64                  `json:"base_block_number"`
+	BaseBlockHash        common.Hash             `json:"base_block_hash"`
+	BaseBlockPrepareVote []*prepareVote          `json:"base_block_prepare_votes"`
+	Signature            common.BlockConfirmSign `json:"-"`
 }
 
 func (v *viewChange) String() string {
 	if v == nil {
 		return ""
 	}
-	return fmt.Sprintf("[Timestamp:%d ProposalIndex:%d ProposalAddr:%s HighestBlockNum:%d HighestBlockHash:%s]",
-		v.Timestamp, v.ProposalIndex, v.ProposalAddr.String(), v.HighestBlockNum, v.HighestBlockHash.TerminalString())
+	return fmt.Sprintf("[Timestamp:%d ProposalIndex:%d ProposalAddr:%s BaseBlockNum:%d BaseBlockHash:%s]",
+		v.Timestamp, v.ProposalIndex, v.ProposalAddr.String(), v.BaseBlockNum, v.BaseBlockHash.TerminalString())
 }
 
 func (v *viewChange) MsgHash() common.Hash {
@@ -161,32 +161,32 @@ func (v *viewChange) MsgHash() common.Hash {
 
 func (v *viewChange) Equal(view *viewChange) bool {
 	return v.Timestamp == view.Timestamp &&
-		v.HighestBlockNum == view.HighestBlockNum &&
-		v.HighestBlockHash == view.HighestBlockHash
+		v.BaseBlockNum == view.BaseBlockNum &&
+		v.BaseBlockHash == view.BaseBlockHash
 }
 
 func (v *viewChange) CopyWithoutVotes() *viewChange {
 	return &viewChange{
-		Timestamp:        v.Timestamp,
-		ProposalIndex:    v.ProposalIndex,
-		ProposalAddr:     v.ProposalAddr,
-		HighestBlockNum:  v.HighestBlockNum,
-		HighestBlockHash: v.HighestBlockHash,
-		Signature:        v.Signature,
+		Timestamp:     v.Timestamp,
+		ProposalIndex: v.ProposalIndex,
+		ProposalAddr:  v.ProposalAddr,
+		BaseBlockNum:  v.BaseBlockNum,
+		BaseBlockHash: v.BaseBlockHash,
+		Signature:     v.Signature,
 	}
 }
 func (v *viewChange) Copy() *viewChange {
 	view := &viewChange{
-		Timestamp:                v.Timestamp,
-		ProposalIndex:            v.ProposalIndex,
-		ProposalAddr:             v.ProposalAddr,
-		HighestBlockNum:          v.HighestBlockNum,
-		HighestBlockHash:         v.HighestBlockHash,
-		HighestBlockPrepareVotes: make([]*prepareVote, len(v.HighestBlockPrepareVotes)),
-		Signature:                v.Signature,
+		Timestamp:            v.Timestamp,
+		ProposalIndex:        v.ProposalIndex,
+		ProposalAddr:         v.ProposalAddr,
+		BaseBlockNum:         v.BaseBlockNum,
+		BaseBlockHash:        v.BaseBlockHash,
+		BaseBlockPrepareVote: make([]*prepareVote, len(v.BaseBlockPrepareVote)),
+		Signature:            v.Signature,
 	}
-	for i, pv := range v.HighestBlockPrepareVotes {
-		view.HighestBlockPrepareVotes[i] = pv
+	for i, pv := range v.BaseBlockPrepareVote {
+		view.BaseBlockPrepareVote[i] = pv
 	}
 	return view
 }
@@ -219,19 +219,19 @@ func (v *viewChangeVote) MsgHash() common.Hash {
 
 func (v *viewChangeVote) EqualViewChange(vote *viewChange) bool {
 	return v.Timestamp == vote.Timestamp &&
-		v.BlockNum == vote.HighestBlockNum &&
-		v.BlockHash == vote.HighestBlockHash &&
+		v.BlockNum == vote.BaseBlockNum &&
+		v.BlockHash == vote.BaseBlockHash &&
 		v.ProposalIndex == vote.ProposalIndex &&
 		v.ProposalAddr == vote.ProposalAddr
 }
 
 func (v *viewChangeVote) ViewChangeWithSignature() *viewChange {
 	return &viewChange{
-		Timestamp:        v.Timestamp,
-		HighestBlockNum:  v.BlockNum,
-		HighestBlockHash: v.BlockHash,
-		ProposalIndex:    v.ProposalIndex,
-		ProposalAddr:     v.ProposalAddr,
+		Timestamp:     v.Timestamp,
+		BaseBlockNum:  v.BlockNum,
+		BaseBlockHash: v.BlockHash,
+		ProposalIndex: v.ProposalIndex,
+		ProposalAddr:  v.ProposalAddr,
 	}
 }
 
