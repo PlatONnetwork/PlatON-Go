@@ -745,6 +745,10 @@ func (w *worker) resultLoop() {
 		//w.unconfirmed.Insert(block.NumberU64(), block.Hash())
 
 		case obj := <-w.bftResultSub.Chan():
+			if obj == nil {
+				log.Error("receive nil maybe channel is closed")
+				continue
+			}
 			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
 			if !ok {
 				log.Error("receive bft result type error")

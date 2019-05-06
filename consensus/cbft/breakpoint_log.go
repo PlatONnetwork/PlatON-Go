@@ -130,7 +130,7 @@ type logInternalBP struct {
 }
 
 func (bp logInternalBP) ExecuteBlock(ctx context.Context, hash common.Hash, number uint64, elapse time.Duration) {
-	log.Debug("ExecuteBlock", "hash", hash, number, number, "elapse", elapse.Seconds())
+	log.Debug("ExecuteBlock", "hash", hash, "number", number, "elapse", elapse.Seconds())
 }
 
 func (bp logInternalBP) InvalidBlock(ctx context.Context, hash common.Hash, number uint64, err error) {

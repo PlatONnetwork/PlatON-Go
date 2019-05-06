@@ -373,12 +373,13 @@ func (cbft *Cbft) clear() {
 }
 
 func (cbft *Cbft) handleCache() {
-	go cbft.processing()
+	votes := cbft.processingVotes
+	go cbft.processing(votes)
 	cbft.pendingProcess()
 }
 
-func (cbft *Cbft) processing() {
-	for _, v := range cbft.processingVotes {
+func (cbft *Cbft) processing(votes ProcessingVote) {
+	for _, v := range votes {
 		for k, v := range v {
 			cbft.peerMsgCh <- &msgInfo{
 				msg:    v,
@@ -695,6 +696,14 @@ func (b *BlockExt) Merge(ext *BlockExt) {
 			b.view = ext.view
 		}
 		b.prepareVotes.Merge(ext.prepareVotes)
+
+		if ext.syncState != nil && b.syncState != nil {
+			panic("invalid syncState: double state channel")
+		}
+
+		if ext.syncState != nil {
+			b.syncState = ext.syncState
+		}
 	}
 }
 func (b BlockExt) Signs() []common.BlockConfirmSign {

@@ -370,6 +370,13 @@ func (cbft *Cbft) OnSyncBlock(ext *BlockExt) {
 		cbft.bp.SyncBlockBP().InvalidBlock(context.TODO(), ext, fmt.Errorf("sync block too lower"), &cbft.RoundState)
 		return
 	}
+
+	if cbft.blockExtMap.findBlock(ext.block.Hash(), ext.block.NumberU64()) != nil {
+		cbft.log.Debug("Sync block had exist", "hash", ext.block.Hash(), "number", ext.number, "highest", cbft.getHighestConfirmed().number, "root", cbft.getRootIrreversible().number)
+		ext.SetSyncState(nil)
+		cbft.bp.SyncBlockBP().InvalidBlock(context.TODO(), ext, fmt.Errorf("sync block had exist"), &cbft.RoundState)
+	}
+
 	cbft.log.Debug("Sync block success", "hash", ext.block.Hash(), "number", ext.number)
 
 	cbft.viewChange = ext.view
@@ -392,7 +399,6 @@ func (cbft *Cbft) OnSyncBlock(ext *BlockExt) {
 			cbft.log.Debug("Add producer block", "hash", ext.block.Hash(), "number", ext.block.Number(), "producer", cbft.producerBlocks.String())
 		}
 	}
-	ext.SetSyncState(nil)
 	cbft.OnNewBlock(ext)
 }
 
@@ -1075,7 +1081,7 @@ func (cbft *Cbft) executeBlock(blocks []*BlockExt) {
 		}
 		cbft.bp.InternalBP().ExecuteBlock(context.TODO(), ext.block.Hash(), ext.block.NumberU64(), time.Now().Sub(start))
 		//send syncState after execute block
-		//ext.SetSyncState(err)
+		ext.SetSyncState(err)
 
 		cbft.executeBlockCh <- &ExecuteBlockStatus{
 			block: ext,
