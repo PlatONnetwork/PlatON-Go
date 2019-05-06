@@ -2135,8 +2135,7 @@ func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.Sta
 
 func (cbft *Cbft) IncreaseRewardPool(state *state.StateDB, number *big.Int) {
 	//add balance to reward pool
-	cbft.GetBlockReward(number)
-	if new(big.Int).Rem(number, common.YearBlocks).Cmp(big.NewInt(0)) == 0 {
+	if new(big.Int).Rem(number, cbft.ppos.GetYearBlockNumber()).Cmp(big.NewInt(0)) == 0 {
 		num := GetIncreaseAmount(new(big.Int).Add(number, new(big.Int).SetUint64(1)))
 		state.AddBalance(common.RewardPoolAddr, num)
 		log.Info("Call IncreaseRewardPool SUCCESS !! ", "addr", common.RewardPoolAddr.Hex(), "rewardPoolBalance", state.GetBalance(common.RewardPoolAddr), "num", num)
@@ -2145,7 +2144,7 @@ func (cbft *Cbft) IncreaseRewardPool(state *state.StateDB, number *big.Int) {
 
 // Calculate which cycle the current block belongs to
 func GetCycle(number *big.Int) *big.Int {
-	return new(big.Int).Div(new(big.Int).Sub(number, new(big.Int).SetUint64(1)), common.YearBlocks)
+	return new(big.Int).Div(new(big.Int).Sub(number, new(big.Int).SetUint64(1)), cbft.ppos.GetYearBlockNumber())
 }
 
 func GetSumAmount(number *big.Int) *big.Int {
@@ -2161,7 +2160,7 @@ func GetSumAmount(number *big.Int) *big.Int {
 }
 
 func GetIncreaseAmount(number *big.Int) *big.Int {
-	preYearNumber := new(big.Int).Sub(number, common.YearBlocks)
+	preYearNumber := new(big.Int).Sub(number, cbft.ppos.GetYearBlockNumber())
 	currentAmount := GetSumAmount(number)
 	beforeAmount := GetSumAmount(preYearNumber)
 	increaseAmount := new(big.Int).Sub(currentAmount, beforeAmount)
@@ -2176,7 +2175,7 @@ func (cbft *Cbft) GetBlockReward(number *big.Int) *big.Int {
 	if GetCycle(number).Uint64() > 0 {
 		yearReward = GetIncreaseAmount(number)
 	}
-	blockReward := new(big.Int).Div(yearReward, common.YearBlocks)
+	blockReward := new(big.Int).Div(yearReward, cbft.ppos.GetYearBlockNumber())
 	log.Info("GetBlockReward Success", "blockNumber", number.Uint64(), "yearReward", yearReward, "blockReward", blockReward)
 	return blockReward
 }

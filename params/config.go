@@ -331,7 +331,9 @@ type CbftConfig struct {
 type PposConfig struct {
 	CandidateConfig *CandidateConfig
 	TicketConfig    *TicketConfig
+	YearBlocks		uint32
 }
+
 type CandidateConfig struct {
 	Threshold         string
 	DepositLimit      uint32

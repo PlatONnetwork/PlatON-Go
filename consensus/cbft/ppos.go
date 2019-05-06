@@ -1080,3 +1080,10 @@ func (p *ppos) setPPOS_Temp(){
 	p.pposTemp = ppos_storage.GetPPosTempPtr()
 }
 
+func (p *ppos) GetYearBlockNumber() *big.Int {
+	if p.config.YearBlocks == 0 {
+		return common.YearBlocks
+	} else {
+		return new(big.Int).SetUint64(uint64(p.config.YearBlocks))
+	}
+}
