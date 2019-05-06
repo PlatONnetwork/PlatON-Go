@@ -306,3 +306,29 @@ func MessageType(msg interface{}) uint64 {
 	}
 	panic(fmt.Sprintf("invalid msg type %v", reflect.TypeOf(msg)))
 }
+
+func GetMessageType(msgType int) (msg interface{}) {
+	switch msgType {
+	case PrepareBlockMsg:
+		return new(*prepareBlock)
+	case PrepareVoteMsg:
+		return new(*prepareVote)
+	case ViewChangeMsg:
+		return new(*viewChange)
+	case ViewChangeVoteMsg:
+		return new(*viewChangeVote)
+	case ConfirmedPrepareBlockMsg:
+		return new(*confirmedPrepareBlock)
+	case GetPrepareVoteMsg:
+		return new(*getPrepareVote)
+	case PrepareVotesMsg:
+		return new(*prepareVotes)
+	case GetPrepareBlockMsg:
+		return new(*getPrepareBlock)
+	case GetHighestPrepareBlockMsg:
+		return new(*getHighestPrepareBlock)
+	case HighestPrepareBlockMsg:
+		return new(*highestPrepareBlock)
+	}
+	panic(fmt.Sprintf("invalid msg type %v", msgType))
+}

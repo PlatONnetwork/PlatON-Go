@@ -9,7 +9,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
@@ -118,13 +120,15 @@ type Cbft struct {
 	//maybe
 	signedSet map[uint64]struct{} //all block numbers signed by local node
 
-	log        log.Logger
-	resetCache *lru.Cache
-	bp         Breakpoint
+	log                log.Logger
+	resetCache         *lru.Cache
+	bp                 Breakpoint
+	nodeServiceContext *node.ServiceContext
+	wal                *cbft.Wal
 }
 
 // New creates a concurrent BFT consensus engine
-func New(config *params.CbftConfig, eventMux *event.TypeMux) *Cbft {
+func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
 	//todo need dynamic change consensus nodes
 	initialNodesID := make([]discover.NodeID, 0, len(config.InitialNodes))
 	for _, n := range config.InitialNodes {
@@ -155,6 +159,7 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux) *Cbft {
 		hasBlockCh:              make(chan *HasBlock, peerMsgQueueSize),
 		netLatencyMap:           make(map[discover.NodeID]*list.List),
 		log:                     log.New(),
+		nodeServiceContext:      ctx,
 	}
 	cbft.bp = logBP
 	cbft.handler = NewHandler(cbft)
@@ -230,9 +235,9 @@ func (cbft *Cbft) SetBlockChainCache(blockChainCache *core.BlockChainCache) {
 }
 
 // SetBackend sets blockChain and txPool into cbft
-func (cbft *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
-	cbft.blockChain = blockChain
-	cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
+func (c *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) error {
+	c.blockChain = blockChain
+	c.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
 
 	currentBlock := blockChain.CurrentBlock()
 
@@ -241,21 +246,27 @@ func (cbft *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 		currentBlock.Header().Number = big.NewInt(0)
 	}
 
-	cbft.log.Debug("Init highestLogicalBlock", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
+	c.log.Debug("Init highestLogicalBlock", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 
-	current := NewBlockExtBySeal(currentBlock, currentBlock.NumberU64(), cbft.getThreshold())
+	current := NewBlockExtBySeal(currentBlock, currentBlock.NumberU64(), c.getThreshold())
 	current.number = currentBlock.NumberU64()
 
-	cbft.blockExtMap = NewBlockExtMap(current, cbft.getThreshold())
-	cbft.saveBlockExt(currentBlock.Hash(), current)
+	c.blockExtMap = NewBlockExtMap(current, c.getThreshold())
+	c.saveBlockExt(currentBlock.Hash(), current)
 
-	cbft.highestConfirmed.Store(current)
-	cbft.highestLogical.Store(current)
+	c.highestConfirmed.Store(current)
+	c.highestLogical.Store(current)
 
-	cbft.rootIrreversible.Store(current)
+	c.rootIrreversible.Store(current)
 
-	cbft.txPool = txPool
-	cbft.init()
+	c.txPool = txPool
+	c.init()
+
+	var err error
+	if c.wal, err = cbft.NewWal(c.nodeServiceContext); err != nil {
+		return err
+	}
+	return c.wal.Load(c.AddJournal)
 }
 
 func (cbft *Cbft) receiveLoop() {
@@ -294,13 +305,16 @@ func (cbft *Cbft) handleMsg(info *msgInfo) {
 	if !cbft.isRunning() {
 		switch msg.(type) {
 		case *prepareBlock,
-			*prepareVote,
-			*viewChange,
-			*viewChangeVote:
+		*prepareVote,
+		*viewChange,
+		*viewChangeVote:
 			cbft.log.Debug("Cbft is not running, discard consensus message")
 			return
 		}
 	}
+
+	// write journal info
+	cbft.wal.Write(info)
 
 	switch msg := msg.(type) {
 	case *prepareBlock:
@@ -1647,6 +1661,7 @@ func (cbft *Cbft) reset(block *types.Block) {
 		cbft.txPool.Reset(block)
 	}
 }
+
 func (cbft *Cbft) OnGetBlock(hash common.Hash, number uint64, ch chan *types.Block) {
 	if ext := cbft.blockExtMap.findBlock(hash, number); ext != nil {
 		ch <- ext.block
@@ -1654,6 +1669,7 @@ func (cbft *Cbft) OnGetBlock(hash common.Hash, number uint64, ch chan *types.Blo
 		ch <- nil
 	}
 }
+
 func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 	ch := make(chan *types.Block)
 	cbft.getBlockCh <- &GetBlock{hash: hash, number: number, ch: ch}
@@ -1663,6 +1679,7 @@ func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 func (cbft *Cbft) IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
 	return verifySign(cbft.config.NodeID, sealHash, signature) == nil
 }
+
 func (cbft *Cbft) OnHasBlock(block *HasBlock) {
 	if cbft.getHighestConfirmed().number > block.number {
 		block.hasCh <- true
@@ -1670,6 +1687,7 @@ func (cbft *Cbft) OnHasBlock(block *HasBlock) {
 		block.hasCh <- false
 	}
 }
+
 func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 	if cbft.getHighestLogical().number >= number {
 		return true
@@ -1685,4 +1703,9 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 		cbft.log.Debug("Without block", "hash", hash, "number", number, "highestConfirm", cbft.getHighestConfirmed().number, "highestLogical", cbft.getHighestLogical().number, "root", cbft.getRootIrreversible().number)
 	}
 	return has
+}
+
+func (c *Cbft) AddJournal(msg cbft.WALMessage) {
+	// TODO
+	c.ReceivePeerMsg(nil)
 }
