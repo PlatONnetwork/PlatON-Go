@@ -126,8 +126,8 @@ type Bft interface {
 	// Returns whether the current node is out of the block
 	ShouldSeal(curTime int64) (bool, error)
 
-	CalcBlockDeadline() time.Time
-	CalcNextBlockTime() time.Time
+	CalcBlockDeadline() (time.Time, error)
+	CalcNextBlockTime() (time.Time, error)
 
 	// Process the BFT signatures
 	//OnNewBlock(chain ChainReader, block *types.Block) error
