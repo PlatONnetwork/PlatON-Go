@@ -2,103 +2,168 @@ package cbft
 
 import (
 	"bufio"
+	"encoding/binary"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
+	"hash/crc32"
 	"io"
-	"io/ioutil"
 	"os"
-	"regexp"
-	"sort"
-	"strconv"
-	"sync"
 	"testing"
-	"time"
 )
 
-type WALLog struct {
-	log string
-	seq int
+type msgInfoa struct {
+	Msg    *prepareBlock
+	PeerID discover.NodeID
 }
 
-type WALLogs []WALLog
-
-func (w WALLogs) Len() int {
-	return len(w)
+type JournalMessagev struct {
+	Timestamp uint64
+	Data      *msgInfoa
 }
 
-func (w WALLogs) Less(i, j int) bool {
-	return w[i].seq < w[j].seq
-}
+func TestWal(t *testing.T) {
+	wal, _ := NewWal(nil)
 
-func (w WALLogs) Swap(i, j int) { w[i], w[j] = w[j], w[i] }
-
-func TestWalFile(t *testing.T) {
-	reg := regexp.MustCompile("^wal.([1-9][0-9]*)$")
-	regNum := regexp.MustCompile("([1-9][0-9]*)$")
-	files := make(WALLogs, 0)
-	for _, f := range []string{"wal.1", "wal.4555", "wal.2", "wal.4", "wal.10", "wal.8", "wal."} {
-		if reg.MatchString(f) {
-			seq, _ := strconv.Atoi(regNum.FindString(f))
-			files = append(files, WALLog{
-				log: f,
-				seq: seq,
+	// test rotate
+	//time.Sleep(6 * time.Second)
+/*
+	// WriteJournal
+	for i := 0; i < 1000000; i++ {
+		peerId, _ := discover.HexID("b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6")
+		if i%2 == 0 {
+			viewChangeVotes := make([]*viewChangeVote, 0)
+			viewChangeVotes = append(viewChangeVotes, &viewChangeVote{
+				Timestamp:      uint64(time.Now().UnixNano()),
+				BlockNum:       111,
+				BlockHash:      common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065747"),
+				ProposalIndex:  1111,
+				ProposalAddr:   common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185822"),
+				ValidatorIndex: 11111,
+				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185822"),
+			})
+			viewChangeVotes = append(viewChangeVotes, &viewChangeVote{
+				Timestamp:      uint64(time.Now().UnixNano()),
+				BlockNum:       222,
+				BlockHash:      common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065749"),
+				ProposalIndex:  2222,
+				ProposalAddr:   common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185829"),
+				ValidatorIndex: 22222,
+				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185829"),
+			})
+			wal.Write(&MsgInfo{
+				Msg: &prepareBlock{
+					Timestamp:     uint64(time.Now().UnixNano()),
+					ProposalIndex: 666,
+					View: &viewChange{
+						Timestamp:     uint64(time.Now().UnixNano()),
+						ProposalIndex: 12,
+						ProposalAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185822"),
+						BaseBlockNum:  10086,
+						BaseBlockHash: common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
+					},
+					ViewChangeVotes: viewChangeVotes,
+				},
+				PeerID: peerId,
+			})
+		} else if i%3 == 0 {
+			//wal.Write(&MsgInfo{
+			//	Msg: &prepareBlockHash{
+			//		Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065747"),
+			//		Number: 13333,
+			//	},
+			//	PeerID: peerId,
+			//})
+			pvs := make([]*prepareVote, 0)
+			pvs = append(pvs, &prepareVote{
+				Timestamp:      uint64(time.Now().UnixNano()),
+				Number:7777,
+			})
+			votes := make([]*prepareVotes, 0)
+			votes = append(votes, &prepareVotes{
+				Hash:common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
+				Number:5678,
+				Votes:pvs,
+			})
+			votes = append(votes,  &prepareVotes{
+				Hash:common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
+				Number:6789,
+				Votes:pvs,
+			})
+			wal.Write(&MsgInfo{
+				Msg: &highestPrepareBlock{
+					Votes: votes,
+				},
+				PeerID: peerId,
+			})
+		} else if i%5 == 0 {
+			wal.Write(&MsgInfo{
+				Msg: &prepareVote{
+					Timestamp:      uint64(time.Now().UnixNano()),
+					Hash:           common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066326"),
+					Number:         16666,
+					ValidatorIndex: 1,
+					ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
+				},
+				PeerID: peerId,
+			})
+		} else if i%7 == 0 {
+			votes := make([]*prepareVote, 0)
+			votes = append(votes, &prepareVote{
+				Timestamp:      uint64(time.Now().UnixNano()),
+				Hash:           common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
+				Number:         8877,
+				ValidatorIndex: 9900,
+				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185827"),
+			})
+			votes = append(votes, &prepareVote{
+				Timestamp:      uint64(time.Now().UnixNano()),
+				Hash:           common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
+				Number:         8878,
+				ValidatorIndex: 9901,
+				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185828"),
+			})
+			wal.Write(&MsgInfo{
+				Msg: &prepareVotes{
+					Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
+					Number: 7788,
+					Votes:  votes,
+				},
+				PeerID: peerId,
+			})
+		} else {
+			wal.Write(&MsgInfo{
+				Msg: &viewChange{
+					Timestamp:     uint64(time.Now().UnixNano()),
+					ProposalIndex: 12,
+					ProposalAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185822"),
+					BaseBlockNum:  10086,
+					BaseBlockHash: common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
+				},
+				PeerID: peerId,
 			})
 		}
 	}
-	sort.Sort(files)
 
-	for _, i := range files {
-		t.Log(i.log)
-	}
-}
-
-func TestS(t *testing.T) {
-	l := make([][]uint64, 0)
-	d := []uint64{1, 2, 3}
-	l = append(l, d)
-	l = append(l, []uint64{4, 5, 6})
-	b, err := rlp.EncodeToBytes(l)
-	if err != nil {
-		t.Error(err)
-	}
-	t.Log(hexutil.Encode(b))
-
-	content, rest, _ := rlp.SplitList(b)
-	t.Log(hexutil.Encode(content))
-	t.Log(hexutil.Encode(rest))
-
-	content1, rest1, _ := rlp.SplitList(content)
-	t.Log(hexutil.Encode(content1))
-	t.Log(hexutil.Encode(rest1))
-	content2, rest2, _ := rlp.SplitList(content1)
-	t.Log(hexutil.Encode(content2))
-	t.Log(hexutil.Encode(rest2))
-}
-
-type viewChangeMeta struct {
-	Number uint64
-	Hash   common.Hash
-	FileID uint32
-	Seq    uint64
+	// UpdateViewChange
+	wal.UpdateViewChange(&ViewChangeMessage{
+		Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065747"),
+		Number: 110,
+	})
+*/
+	// LoadJournal
+	wal.Load(func(info *MsgInfo) {
+		fmt.Printf("info=%#v\n", info)
+	})
 }
 
 func TestLevelDB(t *testing.T) {
 	db, err := leveldb.OpenFile("D://data/platon/wal/wal_meta", nil)
 	if err == nil {
-		//encode, err := rlp.EncodeToBytes(&viewChangeMeta{
-		//	Number: 111,
-		//	Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065747"),
-		//	FileID: 222,
-		//	Seq:    9,
-		//})
-		//db.Put([]byte("view-change"), encode, &opt.WriteOptions{Sync:true})
-
 		data, err := db.Get([]byte("view-change"), nil)
 		if err == nil {
-			var v viewChangeMeta
+			var v ViewChangeMeta
 			if err := rlp.DecodeBytes(data, &v); err == nil {
 				fmt.Println(v.Number)
 				fmt.Println(v.Hash.Hex())
@@ -109,72 +174,60 @@ func TestLevelDB(t *testing.T) {
 	}
 }
 
-func TestJournal(t *testing.T) {
-	path := "D://data/platon/wala"
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		err := os.MkdirAll(path, 0700)
-		if err != nil {
-			fmt.Println("could not create directory")
-		}
+func TestBufferRead(t *testing.T) {
+	file, err := os.Open("D://data/platon/wal/wal.1")
+	if err != nil {
+		fmt.Println(err)
 	}
 
-	file, err := os.OpenFile("D://data/platon/wala/wal.1", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
+	bufReader := bufio.NewReaderSize(file, 1024)
+	fmt.Printf("%d \n", bufReader.Buffered())
+	//bufReader.Discard(400)
 
-	if err == nil {
-		buf := bufio.NewWriterSize(file, 1024)
-		fmt.Println(buf.Available(), buf.Buffered()) // 1024 0	Available 返回缓存中的可以空间 / Buffered 返回缓存中未提交的数据长度
+	for {
+		index, _ := bufReader.Peek(12)
+		fmt.Printf("%d \n", bufReader.Buffered())
+		crc := binary.BigEndian.Uint32(index[0:4])
+		length := binary.BigEndian.Uint32(index[4:8])
+		msgType := binary.BigEndian.Uint32(index[8:12])
+		fmt.Println(msgType)
 
-		writeWrapper := &writeWrapper{
-			writer: buf,
+		pack := make([]byte, length+12)
+		var (
+			totalNum = 0
+			readNum  = 0
+		)
+		for totalNum, err = 0, error(nil); err == nil && uint32(totalNum) < length+12; {
+			readNum, err = bufReader.Read(pack[totalNum:])
+			totalNum = totalNum + readNum
 		}
-		for i := 0; i < 10000; i++ {
-			go func() {
-				writeWrapper.write([]byte("hello world "))
-				//buf.Write([]byte("hello world "))
-			}()
+
+		fmt.Printf("%d \n", bufReader.Buffered())
+		if 0 == readNum {
+			break
 		}
-		time.Sleep(5 * time.Second)
-		buf.Flush()
 
-		//buf.Write([]byte("hello world "))
-		//fmt.Println(buf.Available(), buf.Buffered()) // 1012 12
-		//input, _ := os.Open("D://data/platon/wala/wal.1")
-		//contentByte, _ := ioutil.ReadAll(input)
-		//fmt.Println(string(contentByte))
-		//buf.Write([]byte("hello world2 "))
-		//buf.Flush()
+		crcc := crc32.Checksum(pack[12:], crc32c)
+		if crc != crcc {
+			panic("check crc error")
+		}
+
+		var v JournalMessagev
+		if err := rlp.DecodeBytes(pack[12:], &v); err == nil {
+			fmt.Println("Timestamp", v.Timestamp)
+			fmt.Println("Data", v.Data)
+			dd := &MsgInfo{
+				Msg:    v.Data.Msg,
+				PeerID: v.Data.PeerID,
+			}
+			fmt.Println("", dd.Msg.(*prepareBlock).Timestamp)
+		} else {
+			panic(err)
+		}
+
+		fmt.Printf("%d \n", bufReader.Buffered())
+		if err != nil && err != io.EOF {
+			panic(err)
+		}
 	}
-
-	//if err := journal.load(pool.AddLocals); err != nil {
-	//	log.Warn("Failed to load transaction journal", "err", err)
-	//}
-	//if err := pool.journal.rotate(pool.local()); err != nil {
-	//	log.Warn("Failed to rotate transaction journal", "err", err)
-	//}
-}
-
-type writeWrapper struct {
-	writer io.Writer
-	mu     sync.RWMutex
-}
-
-func (w *writeWrapper) write(b []byte) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	w.writer.Write(b)
-}
-
-func TestListDir(t *testing.T) {
-	// 不递归遍历指定目录下的文件列表
-	files, _ := ioutil.ReadDir("D://data/platon/wala")
-	for _, f := range files {
-		fmt.Println(f.Name())
-	}
-
-	fmt.Println(fmt.Sprintf("wal.%d", uint32(789)))
-
-	// 查询指定文件的大小
-	fileInfo, _ := os.Stat("D://data/platon/wala/wal.3")
-	fmt.Println(fileInfo.Size()) // byte
 }

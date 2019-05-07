@@ -35,18 +35,15 @@ const (
 
 var crc32c = crc32.MakeTable(crc32.Castagnoli)
 
-// errNoActiveJournal is returned if a transaction is attempted to be inserted
-// into the journal, but no such file is currently open.
 var (
 	errNoActiveJournal = errors.New("no active journal")
 	errOpenNewJournal  = errors.New("Failed to open new journal file")
-	errLoadJournal  = errors.New("Failed to load journal")
+	errLoadJournal     = errors.New("Failed to load journal")
 )
 
-//
 type JournalMessage struct {
 	Timestamp uint64
-	Msg       interface{}
+	Data      *MsgInfo
 }
 
 type sortFile struct {
@@ -66,17 +63,14 @@ func (s sortFiles) Less(i, j int) bool {
 
 func (s sortFiles) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
-// txJournal is a rotating log of transactions with the aim of storing locally
-// created transactions to allow non-executed ones to survive node restarts.
-type cbftJournal struct {
-	path   string         // Filesystem path to store the transactions at
-	writer *WriterWrapper // Output stream to write new transactions into
+type journal struct {
+	path   string         // Filesystem path to store the msgInfo at
+	writer *WriterWrapper // Output stream to write new msgInfo into
 	fileID uint32
 	mu     sync.Mutex
 	exitCh chan struct{}
 }
 
-// 扫描wal目录,遍历所有journal文件并按文件下标排序
 func listJournalFiles(path string) sortFiles {
 	files, err := ioutil.ReadDir(path)
 
@@ -105,9 +99,9 @@ func listJournalFiles(path string) sortFiles {
 	return nil
 }
 
-// newTxJournal creates a new transaction journal to
-func NewCbftJournal(path string) (*cbftJournal, error) {
-	journal := &cbftJournal{
+// newTxJournal creates journal object
+func NewJournal(path string) (*journal, error) {
+	journal := &journal{
 		path:   path,
 		exitCh: make(chan struct{}),
 		fileID: 1,
@@ -115,12 +109,12 @@ func NewCbftJournal(path string) (*cbftJournal, error) {
 	if files := listJournalFiles(path); files != nil && files.Len() > 0 {
 		journal.fileID = files[len(files)-1].num
 	}
-	// 2 重新开辟一个journal文件
+	// open the corresponding journal file
 	newFileID, newWriter, err := journal.newJournalFile(journal.fileID)
 	if err != nil {
 		return nil, err
 	}
-	// 3 更新fileID，writer
+	// update field fileID and writer
 	journal.fileID = newFileID
 	journal.writer = newWriter
 
@@ -129,7 +123,7 @@ func NewCbftJournal(path string) (*cbftJournal, error) {
 	return journal, nil
 }
 
-func (journal *cbftJournal) mainLoop(syncLoopDuration time.Duration) {
+func (journal *journal) mainLoop(syncLoopDuration time.Duration) {
 	ticker := time.NewTicker(syncLoopDuration)
 	<-ticker.C // discard the initial tick
 
@@ -150,11 +144,11 @@ func (journal *cbftJournal) mainLoop(syncLoopDuration time.Duration) {
 }
 
 // currentJournal retrieves the current fileID and fileSeq of the cbft journal.
-func (journal *cbftJournal) CurrentJournal() (uint32, uint64, error) {
+func (journal *journal) CurrentJournal() (uint32, uint64, error) {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
-	// 刷一次磁盘，更新journal信息
+	// Forced to flush
 	journal.writer.Flush()
 	fileSeq, err := journal.currentFileSize()
 	if err != nil {
@@ -165,8 +159,8 @@ func (journal *cbftJournal) CurrentJournal() (uint32, uint64, error) {
 	return journal.fileID, fileSeq, nil
 }
 
-// insert adds the specified consensus message to the local disk journal.
-func (journal *cbftJournal) insert(msg *JournalMessage) error {
+// insert adds the specified JournalMessage to the local disk journal.
+func (journal *journal) insert(msg *JournalMessage) error {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
@@ -195,29 +189,30 @@ func encodeJournal(msg *JournalMessage) ([]byte, error) {
 
 	crc := crc32.Checksum(data, crc32c)
 	length := uint32(len(data))
-	totalLength := 8 + int(length)
+	totalLength := 12 + int(length)
 
-	buf := make([]byte, totalLength)
-	binary.BigEndian.PutUint32(buf[0:4], crc)
-	binary.BigEndian.PutUint32(buf[4:8], length)
-	copy(buf[8:], data)
-	return buf, nil
+	pack := make([]byte, totalLength)
+	binary.BigEndian.PutUint32(pack[0:4], crc)
+	binary.BigEndian.PutUint32(pack[4:8], length)
+	binary.BigEndian.PutUint32(pack[8:12], uint32(MessageType(msg.Data.Msg)))
+
+	copy(pack[12:], data)
+	return pack, nil
 }
 
-// close flushes the transaction journal contents to disk and closes the file.
-func (journal *cbftJournal) close() {
+// close flushes the journal contents to disk and closes the file.
+func (journal *journal) close() {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
 	if journal.writer != nil {
-		// 将缓存数据输入磁盘，关闭writer
 		journal.writer.FlushAndClose()
 		journal.writer = nil
 	}
 	close(journal.exitCh)
 }
 
-func (journal *cbftJournal) rotate(journalLimitSize uint64) error {
+func (journal *journal) rotate(journalLimitSize uint64) error {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
@@ -227,16 +222,16 @@ func (journal *cbftJournal) rotate(journalLimitSize uint64) error {
 			return errNoActiveJournal
 		}
 
-		// 1 将缓存数据输入磁盘
+		// Forced to flush
 		journalWriter.FlushAndClose()
 		journal.writer = nil
 
-		// 2 重新开辟一个journal文件
+		// open another new journal file
 		newFileID, newWriter, err := journal.newJournalFile(journal.fileID + 1)
 		if err != nil {
 			return err
 		}
-		// 3 更新fileID，writer
+		// update field fileID and writer
 		journal.fileID = newFileID
 		journal.writer = newWriter
 
@@ -245,12 +240,12 @@ func (journal *cbftJournal) rotate(journalLimitSize uint64) error {
 	return nil
 }
 
-func (journal *cbftJournal) checkFileSize(journalLimitSize uint64) bool {
+func (journal *journal) checkFileSize(journalLimitSize uint64) bool {
 	fileSize, err := journal.currentFileSize()
 	return err == nil && fileSize >= journalLimitSize
 }
 
-func (journal *cbftJournal) currentFileSize() (uint64, error) {
+func (journal *journal) currentFileSize() (uint64, error) {
 	currentFile := filepath.Join(journal.path, fmt.Sprintf("wal.%d", journal.fileID))
 	if fileInfo, err := os.Stat(currentFile); err != nil {
 		log.Error("Get the current journal file size error", "err", err)
@@ -260,7 +255,7 @@ func (journal *cbftJournal) currentFileSize() (uint64, error) {
 	}
 }
 
-func (journal *cbftJournal) newJournalFile(fileID uint32) (uint32, *WriterWrapper, error) {
+func (journal *journal) newJournalFile(fileID uint32) (uint32, *WriterWrapper, error) {
 	newJournalFilePath := filepath.Join(journal.path, fmt.Sprintf("wal.%d", fileID))
 	file, err := os.OpenFile(newJournalFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
 	if err != nil {
@@ -271,10 +266,10 @@ func (journal *cbftJournal) newJournalFile(fileID uint32) (uint32, *WriterWrappe
 	return fileID, NewWriterWrapper(file, writeBufferLimitSize), nil
 }
 
-func (journal *cbftJournal) ExpireJournalFile(fileID uint32) error {
+func (journal *journal) ExpireJournalFile(fileID uint32) error {
 	if files := listJournalFiles(journal.path); files != nil && files.Len() > 0 {
 		for _, file := range files {
-			if file.num != journal.fileID && file.num <  fileID {
+			if file.num != journal.fileID && file.num < fileID {
 				os.Remove(filepath.Join(journal.path, fmt.Sprintf("wal.%d", file.num)))
 			}
 		}
@@ -282,14 +277,12 @@ func (journal *cbftJournal) ExpireJournalFile(fileID uint32) error {
 	return nil
 }
 
-func (journal *cbftJournal) LoadJournal(fromFileID uint32, fromSeq uint64, add func(j *JournalMessage)) error {
+func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, add func(info *MsgInfo)) error {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
 	if files := listJournalFiles(journal.path); files != nil && files.Len() > 0 {
-		for i:= files.Len(); i >= 0; i-- {
-			file := files[i]
-
+		for _, file := range files {
 			if file.num == fromFileID {
 				journal.loadJournal(file.num, fromSeq, add)
 			} else if file.num > fromFileID {
@@ -303,7 +296,7 @@ func (journal *cbftJournal) LoadJournal(fromFileID uint32, fromSeq uint64, add f
 	return nil
 }
 
-func (journal *cbftJournal) loadJournal(fileID uint32, seq uint64, add func(j *JournalMessage) error) error {
+func (journal *journal) loadJournal(fileID uint32, seq uint64, add func(info *MsgInfo)) error {
 	file, err := os.Open(filepath.Join(journal.path, fmt.Sprintf("wal.%d", fileID)))
 	if err != nil {
 		return err
@@ -316,16 +309,17 @@ func (journal *cbftJournal) loadJournal(fileID uint32, seq uint64, add func(j *J
 	}
 
 	for {
-		index, _ := bufReader.Peek(8)
+		index, _ := bufReader.Peek(12)
 		crc := binary.BigEndian.Uint32(index[0:4])
 		length := binary.BigEndian.Uint32(index[4:8])
+		msgType := binary.BigEndian.Uint32(index[8:12])
 
-		pack := make([]byte, length+8)
+		pack := make([]byte, length+12)
 		var (
 			totalNum = 0
 			readNum  = 0
 		)
-		for totalNum, err = 0, error(nil); err == nil && uint32(totalNum) < length+8; {
+		for totalNum, err = 0, error(nil); err == nil && uint32(totalNum) < length+12; {
 			readNum, err = bufReader.Read(pack[totalNum:])
 			totalNum = totalNum + readNum
 		}
@@ -334,15 +328,16 @@ func (journal *cbftJournal) loadJournal(fileID uint32, seq uint64, add func(j *J
 			break
 		}
 
-		_crc := crc32.Checksum(index[8:], crc32c)
+		// check crc
+		_crc := crc32.Checksum(pack[12:], crc32c)
 		if crc != _crc {
 			log.Error("crc is invalid", "crc", crc, "_crc", _crc)
 			return errLoadJournal
 		}
-		var j JournalMessage
-		if err := rlp.DecodeBytes(pack[8:], &j); err == nil {
-			fmt.Println("Timestamp", j.Timestamp)
-			// TODO
+
+		// decode journal message
+		if msgInfo, err := WALDecode(pack[12:], msgType); err == nil {
+			add(msgInfo)
 		} else {
 			log.Error("Failed to decode journal msg", "err", err)
 			return errLoadJournal
