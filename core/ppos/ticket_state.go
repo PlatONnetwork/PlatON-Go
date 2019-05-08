@@ -154,7 +154,7 @@ func (t *TicketPool) GetExpireTicketIds(stateDB vm.StateDB, blockNumber *big.Int
 	body := tContext.GetBody(blockNumber.Uint64())
 	txs := make([]common.Hash, 0)
 	for _, tx := range body.Transactions {
-		if *tx.To() == common.TicketPoolAddr {
+		if tx.To() !=nil && *tx.To() == common.TicketPoolAddr {
 			txs = append(txs, tx.Hash())
 		}
 	}
