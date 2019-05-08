@@ -1131,6 +1131,17 @@ func (bm *BlockExtMap) findBlockByNumber(low, high uint64) types.Blocks {
 	return blocks
 }
 
+func (bm *BlockExtMap) findBlockByHash(hash common.Hash) *types.Block {
+	for _, extMap := range bm.blocks {
+		for existHash, ext := range extMap {
+			if existHash == hash {
+				return ext.block
+			}
+		}
+	}
+	return nil
+}
+
 func (bm *BlockExtMap) findBlockExtByNumber(low, high uint64) []*BlockExt {
 	blocks := make([]*BlockExt, 0)
 	for i := low; i <= high; i++ {

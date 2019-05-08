@@ -9,16 +9,18 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"math/big"
 	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -31,7 +33,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -108,6 +110,7 @@ type Cbft struct {
 	viewChangeVoteTimeoutCh chan *viewChangeVote
 	blockChainCache         *core.BlockChainCache
 	hasBlockCh              chan *HasBlock
+	getBlockByHashCh        chan *GetBlock
 	needPending             bool
 	RoundState
 	Syncing
@@ -157,6 +160,7 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux) *Cbft {
 		viewChangeTimeoutCh:     make(chan *viewChange),
 		viewChangeVoteTimeoutCh: make(chan *viewChangeVote),
 		hasBlockCh:              make(chan *HasBlock, peerMsgQueueSize),
+		getBlockByHashCh:        make(chan *GetBlock),
 		netLatencyMap:           make(map[discover.NodeID]*list.List),
 		log:                     log.New(),
 	}
@@ -255,6 +259,18 @@ func (cbft *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	current := NewBlockExtBySeal(currentBlock, currentBlock.NumberU64(), cbft.getThreshold())
 	current.number = currentBlock.NumberU64()
 
+	if current.number > 0 {
+		var extra *BlockExtra
+		var err error
+
+		if _, extra, err = cbft.decodeExtra(current.block.ExtraData()); err != nil {
+			return
+		}
+		for _, vote := range extra.Prepare {
+			current.prepareVotes.Add(vote)
+		}
+	}
+
 	cbft.blockExtMap = NewBlockExtMap(current, cbft.getThreshold())
 	cbft.saveBlockExt(currentBlock.Hash(), current)
 
@@ -292,6 +308,8 @@ func (cbft *Cbft) receiveLoop() {
 			cbft.OnBaseBlock(baseBlock)
 		case hasBlock := <-cbft.hasBlockCh:
 			cbft.OnHasBlock(hasBlock)
+		case block := <-cbft.getBlockByHashCh:
+			cbft.OnGetBlockByHash(block.hash, block.ch)
 		}
 	}
 }
@@ -345,7 +363,16 @@ func (cbft *Cbft) isRunning() bool {
 
 func (cbft *Cbft) OnShouldSeal(shouldSeal chan error) {
 	if cbft.hadSendViewChange() {
-		if cbft.agreeViewChange() {
+		index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
+		if err != nil {
+			log.Debug("Get node index and address failed", "error", err)
+			shouldSeal <- err
+			return
+		}
+
+		if cbft.agreeViewChange() &&
+			cbft.viewChange.ProposalAddr == addr &&
+			uint32(index) == cbft.viewChange.ProposalIndex {
 			// do something check
 			shouldSeal <- nil
 		} else {
@@ -377,6 +404,7 @@ func (cbft *Cbft) OnSyncBlock(ext *BlockExt) {
 		cbft.log.Debug("Sync block had exist", "hash", ext.block.Hash(), "number", ext.number, "highest", cbft.getHighestConfirmed().number, "root", cbft.getRootIrreversible().number)
 		ext.SetSyncState(nil)
 		cbft.bp.SyncBlockBP().InvalidBlock(context.TODO(), ext, fmt.Errorf("sync block had exist"), &cbft.RoundState)
+		return
 	}
 
 	cbft.log.Debug("Sync block success", "hash", ext.block.Hash(), "number", ext.number)
@@ -713,8 +741,12 @@ func (cbft *Cbft) ShouldSeal(curTime int64) (bool, error) {
 		//defer cbft.mux.Unlock()
 		shouldSeal := make(chan error)
 		cbft.shouldSealCh <- shouldSeal
-		err := <-shouldSeal
-		return err == nil, err
+		select {
+		case err := <-shouldSeal:
+			return err == nil, err
+		case <- time.After(2 * time.Millisecond):
+			return false, fmt.Errorf("waiting for ShouldSeal timeout")
+		}
 	}
 
 	return inturn, nil
@@ -746,8 +778,8 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	cbft.bp.ViewChangeBP().ReceiveViewChange(bpCtx, view, &cbft.RoundState)
 	if err := cbft.VerifyAndViewChange(view); err != nil {
-		if view.BaseBlockNum > cbft.getHighestConfirmed().number  {
-			if view.BaseBlockNum - cbft.getHighestConfirmed().number > maxBlockDist {
+		if view.BaseBlockNum > cbft.getHighestConfirmed().number {
+			if view.BaseBlockNum-cbft.getHighestConfirmed().number > maxBlockDist {
 				atomic.StoreInt32(&cbft.running, 0)
 			} else {
 				cbft.handler.SendAllConsensusPeer(&getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
@@ -1235,7 +1267,7 @@ func (cbft *Cbft) CalcBlockDeadline() (time.Time, error) {
 
 		min := int64(nodeIdx) * (durationPerNode)
 		value := (timePoint - startEpoch) % durationPerTurn
-		max := int64(nodeIdx + 1) * durationPerNode
+		max := int64(nodeIdx+1) * durationPerNode
 
 		cnt := int64(cbft.config.Duration) / int64(cbft.config.Period)
 		slots := make([]int64, cnt)
@@ -1282,7 +1314,7 @@ func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
 
 		min := int64(nodeIdx) * (durationPerNode)
 		value := (timePoint - startEpoch) % durationPerTurn
-		max := int64(nodeIdx + 1) * durationPerNode
+		max := int64(nodeIdx+1) * durationPerNode
 
 		cnt := int64(cbft.config.Duration) / int64(cbft.config.Period)
 		slots := make([]int64, cnt)
@@ -1291,7 +1323,7 @@ func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
 			slots[i] = min + (i*1000)*int64(cbft.config.Period)
 		}
 		curIdx := (value % durationPerNode) / (1000 * int64(cbft.config.Period))
-		lastBlock := int(curIdx + 1) == len(slots)
+		lastBlock := int(curIdx+1) == len(slots)
 		nextSlotValue := max
 		if !lastBlock {
 			nextSlotValue = slots[curIdx+1]
@@ -1748,6 +1780,20 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 		cbft.log.Debug("Without block", "hash", hash, "number", number, "highestConfirm", cbft.getHighestConfirmed().number, "highestLogical", cbft.getHighestLogical().number, "root", cbft.getRootIrreversible().number)
 	}
 	return has
+}
+
+func (cbft *Cbft) OnGetBlockByHash(hash common.Hash, ch chan *types.Block) {
+	ch <- cbft.blockExtMap.findBlockByHash(hash)
+}
+
+func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
+	ch := make(chan *types.Block)
+	cbft.getBlockByHashCh <- &GetBlock{hash: hash, ch: ch}
+	return <-ch
+}
+
+func (cbft *Cbft) CurrentBlock() *types.Block {
+	return cbft.getHighestConfirmed().block
 }
 
 func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {

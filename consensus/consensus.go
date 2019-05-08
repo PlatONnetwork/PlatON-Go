@@ -105,6 +105,10 @@ type Engine interface {
 
 	HasBlock(hash common.Hash, number uint64) bool
 
+	GetBlockByHash(hash common.Hash) *types.Block
+
+	CurrentBlock() *types.Block
+
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
 }

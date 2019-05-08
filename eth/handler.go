@@ -172,13 +172,14 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return nil, errIncompatibleConfig
 	}
 	// Construct the different synchronisation mechanisms
-	manager.downloader = downloader.New(mode, chaindb, manager.eventMux, blockchain, nil, manager.removePeer)
+	manager.downloader = downloader.New(mode, chaindb, manager.eventMux, downloader.NewBlockChainWrapper(blockchain, engine), nil, manager.removePeer)
 
 	validator := func(header *types.Header) error {
 		return engine.VerifyHeader(blockchain, header, true)
 	}
 	heighter := func() uint64 {
-		return blockchain.CurrentBlock().NumberU64()
+		//return blockchain.CurrentBlock().NumberU64()
+		return engine.CurrentBlock().NumberU64()
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
 		// If fast sync is running, deny importing weird blocks
@@ -189,8 +190,12 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		atomic.StoreUint32(&manager.acceptTxs, 1) // Mark initial sync done on any fetcher import
 		return manager.blockchain.InsertChain(blocks)
 	}
+	getBlockByHash := func(hash common.Hash) *types.Block {
+		return engine.GetBlockByHash(hash)
+	}
 
-	manager.fetcher = fetcher.New(blockchain.GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
+	//manager.fetcher = fetcher.New(GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
+	manager.fetcher = fetcher.New(getBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
 
 	return manager, nil
 }
@@ -690,7 +695,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			// Schedule a sync if above ours. Note, this will not fire a sync for a gap of
 			// a singe block (as the true TD is below the propagated block), however this
 			// scenario should easily be covered by the fetcher.
-			currentBlock := pm.blockchain.CurrentBlock()
+			currentBlock := pm.engine.CurrentBlock()
 			if trueBn.Cmp(currentBlock.Number()) > 0 {
 				go pm.synchronise(p)
 			}
