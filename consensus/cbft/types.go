@@ -21,6 +21,10 @@ var (
 	errViewChangeBlockNumTooLower = errors.New("block number too lower")
 	errTimestamp                  = errors.New("viewchange timestamp too low")
 	errInvalidViewChangeVote      = errors.New("invalid viewchange vote")
+
+
+	emptyAddr  common.Address
+
 )
 
 type AcceptStatus int
@@ -29,6 +33,7 @@ const (
 	Accept = iota
 	Discard
 	Cache
+
 )
 
 type blockSynced struct {
@@ -696,6 +701,10 @@ func (b *BlockExt) Merge(ext *BlockExt) {
 			//receive PrepareVote before receive PrepareBlock, so view is need set
 			b.block = ext.block
 			b.view = ext.view
+		}
+		if b.proposalAddr == emptyAddr {
+			b.proposalAddr = ext.proposalAddr
+			b.proposalIndex = ext.proposalIndex
 		}
 		b.prepareVotes.Merge(ext.prepareVotes)
 
