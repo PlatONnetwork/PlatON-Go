@@ -359,7 +359,16 @@ func (cbft *Cbft) isRunning() bool {
 
 func (cbft *Cbft) OnShouldSeal(shouldSeal chan error) {
 	if cbft.hadSendViewChange() {
-		if cbft.agreeViewChange() {
+		index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
+		if err != nil {
+			log.Debug("Get node index and address failed", "error", err)
+			shouldSeal <- err
+			return
+		}
+
+		if cbft.agreeViewChange() &&
+			cbft.viewChange.ProposalAddr == addr &&
+			uint32(index) == cbft.viewChange.ProposalIndex {
 			// do something check
 			shouldSeal <- nil
 		} else {
@@ -729,8 +738,12 @@ func (cbft *Cbft) ShouldSeal(curTime int64) (bool, error) {
 		//defer cbft.mux.Unlock()
 		shouldSeal := make(chan error)
 		cbft.shouldSealCh <- shouldSeal
-		err := <-shouldSeal
-		return err == nil, err
+		select {
+		case err := <-shouldSeal:
+			return err == nil, err
+		case <-time.After(2 * time.Millisecond):
+			return false, fmt.Errorf("waiting for ShouldSeal timeout")
+		}
 	}
 
 	return inturn, nil
