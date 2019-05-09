@@ -736,7 +736,7 @@ func (cbft *Cbft) ShouldSeal(curTime int64) (bool, error) {
 		// if viewchange failed , wait timeout until re-send message
 		//cbft.mux.Lock()
 		//defer cbft.mux.Unlock()
-		shouldSeal := make(chan error)
+		shouldSeal := make(chan error, 1)
 		cbft.shouldSealCh <- shouldSeal
 		select {
 		case err := <-shouldSeal:

@@ -20,7 +20,7 @@ var (
 )
 
 const (
-	maxKnownMessageHash	    = 60000
+	maxKnownMessageHash = 60000
 
 	handshakeTimeout = 5 * time.Second
 )
@@ -31,15 +31,15 @@ type peer struct {
 	*p2p.Peer
 	rw p2p.MsgReadWriter
 
-	knownMessageHash				mapset.Set
+	knownMessageHash mapset.Set
 }
 
 func newPeer(p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
-		Peer: p,
-		rw:   rw,
-		id:   fmt.Sprintf("%x", p.ID().Bytes()[:8]),
-		term: make(chan struct{}),
+		Peer:             p,
+		rw:               rw,
+		id:               fmt.Sprintf("%x", p.ID().Bytes()[:8]),
+		term:             make(chan struct{}),
 		knownMessageHash: mapset.NewSet(),
 	}
 }
@@ -59,27 +59,27 @@ func (p *peer) MarkMessageHash(hash common.Hash) {
 func (p *peer) Handshake(bn *big.Int, head common.Hash) error {
 	errc := make(chan error, 2)
 	var status cbftStatusData
-	go func(){
+	go func() {
 		errc <- p2p.Send(p.rw, CBFTStatusMsg, &cbftStatusData{
-			BN: bn,
+			BN:           bn,
 			CurrentBlock: head,
 		})
 	}()
-	go func(){
+	go func() {
 		errc <- p.readStatus(&status)
 		if status.BN != nil {
-			p.Log().Debug("[Method:Handshake] Receive the cbftStatusData message","blockHash", status.CurrentBlock.TerminalString(), "blockNumber", status.BN.Int64())
+			p.Log().Debug("[Method:Handshake] Receive the cbftStatusData message", "blockHash", status.CurrentBlock.TerminalString(), "blockNumber", status.BN.Int64())
 		}
 	}()
 	timeout := time.NewTicker(handshakeTimeout)
 	defer timeout.Stop()
 	for i := 0; i < 2; i++ {
 		select {
-		case err := <- errc:
+		case err := <-errc:
 			if err != nil {
 				return err
 			}
-		case <- timeout.C:
+		case <-timeout.C:
 			return p2p.DiscReadTimeout
 		}
 	}
@@ -89,7 +89,7 @@ func (p *peer) Handshake(bn *big.Int, head common.Hash) error {
 
 func (p *peer) readStatus(status *cbftStatusData) error {
 	msg, err := p.rw.ReadMsg()
-	if err !=nil {
+	if err != nil {
 		return err
 	}
 	if msg.Code != CBFTStatusMsg {
@@ -99,7 +99,7 @@ func (p *peer) readStatus(status *cbftStatusData) error {
 		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, CbftProtocolMaxMsgSize)
 	}
 	if err := msg.Decode(&status); err != nil {
-		return errResp(ErrDecode,"msg %v: %v", msg, err)
+		return errResp(ErrDecode, "msg %v: %v", msg, err)
 	}
 	// todo: additional judgment.
 	return nil
@@ -122,7 +122,7 @@ func newPeerSet() *peerSet {
 
 func (ps *peerSet) Register(p *peer) {
 	ps.lock.Lock()
-	ps.lock.Unlock()
+	defer ps.lock.Unlock()
 	ps.peers[p.id] = p
 }
 
@@ -198,7 +198,7 @@ func (ps *peerSet) printPeers() {
 			var bf bytes.Buffer
 			for idx, peer := range peers {
 				bf.WriteString(peer.id)
-				if idx < len(peers) - 1 {
+				if idx < len(peers)-1 {
 					bf.WriteString(",")
 				}
 			}
@@ -207,4 +207,3 @@ func (ps *peerSet) printPeers() {
 		}
 	}
 }
-
