@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
@@ -746,8 +747,8 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	cbft.bp.ViewChangeBP().ReceiveViewChange(bpCtx, view, &cbft.RoundState)
 	if err := cbft.VerifyAndViewChange(view); err != nil {
-		if view.BaseBlockNum > cbft.getHighestConfirmed().number  {
-			if view.BaseBlockNum - cbft.getHighestConfirmed().number > maxBlockDist {
+		if view.BaseBlockNum > cbft.getHighestConfirmed().number {
+			if view.BaseBlockNum-cbft.getHighestConfirmed().number > maxBlockDist {
 				atomic.StoreInt32(&cbft.running, 0)
 			} else {
 				cbft.handler.SendAllConsensusPeer(&getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
@@ -1086,6 +1087,12 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlock(blocks []*BlockExt) {
 	for _, ext := range blocks {
+		//Execute blocks is async, clear all children block when new view change was confirmed.
+		if ext == nil || ext.parent == nil {
+			cbft.log.Warn("Block was cleared, block is invalid block. stop execute all children block")
+			return
+		}
+
 		start := time.Now()
 		err := cbft.execute(ext, ext.parent)
 
@@ -1241,7 +1248,7 @@ func (cbft *Cbft) CalcBlockDeadline() (time.Time, error) {
 
 		min := int64(nodeIdx) * (durationPerNode)
 		value := (timePoint - startEpoch) % durationPerTurn
-		max := int64(nodeIdx + 1) * durationPerNode
+		max := int64(nodeIdx+1) * durationPerNode
 
 		cnt := int64(cbft.config.Duration) / int64(cbft.config.Period)
 		slots := make([]int64, cnt)
@@ -1288,7 +1295,7 @@ func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
 
 		min := int64(nodeIdx) * (durationPerNode)
 		value := (timePoint - startEpoch) % durationPerTurn
-		max := int64(nodeIdx + 1) * durationPerNode
+		max := int64(nodeIdx+1) * durationPerNode
 
 		cnt := int64(cbft.config.Duration) / int64(cbft.config.Period)
 		slots := make([]int64, cnt)
@@ -1297,7 +1304,7 @@ func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
 			slots[i] = min + (i*1000)*int64(cbft.config.Period)
 		}
 		curIdx := (value % durationPerNode) / (1000 * int64(cbft.config.Period))
-		lastBlock := int(curIdx + 1) == len(slots)
+		lastBlock := int(curIdx+1) == len(slots)
 		nextSlotValue := max
 		if !lastBlock {
 			nextSlotValue = slots[curIdx+1]
