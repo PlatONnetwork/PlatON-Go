@@ -779,7 +779,7 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 			if view.BaseBlockNum-cbft.getHighestConfirmed().number > maxBlockDist {
 				atomic.StoreInt32(&cbft.running, 0)
 			} else {
-				cbft.handler.SendAllConsensusPeer(&getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
+				cbft.handler.Send(peerID, &getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
 			}
 		}
 
