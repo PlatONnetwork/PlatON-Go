@@ -5,8 +5,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"io"
 	"math/big"
 	"reflect"
 )
@@ -92,36 +90,6 @@ func (pb *prepareBlock) MsgHash() common.Hash {
 		return common.Hash{}
 	}
 	return pb.Block.Hash()
-}
-
-type extPrepareBlock struct {
-	Timestamp       uint64
-	Block           *types.Block
-	ProposalIndex   uint32
-	ProposalAddr    common.Address
-	View            *viewChange
-	ViewChangeVotes []*viewChangeVote
-}
-
-func (pb *prepareBlock) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, extPrepareBlock{
-		Timestamp:       pb.Timestamp,
-		Block:           pb.Block,
-		ProposalIndex:   pb.ProposalIndex,
-		ProposalAddr:    pb.ProposalAddr,
-		View:            pb.View,
-		ViewChangeVotes: pb.ViewChangeVotes,
-	})
-	return nil
-}
-
-func (pb *prepareBlock) DecodeRLP(s *rlp.Stream) error {
-	var sb extPrepareBlock
-	if err := s.Decode(&sb); err != nil {
-		return err
-	}
-	pb.Timestamp, pb.Block, pb.ProposalIndex, pb.ProposalAddr, pb.View, pb.ViewChangeVotes = sb.Timestamp, sb.Block, sb.ProposalIndex, sb.ProposalAddr, sb.View, sb.ViewChangeVotes
-	return nil
 }
 
 type prepareBlockHash struct {
@@ -221,38 +189,6 @@ func (v *viewChange) Copy() *viewChange {
 		view.BaseBlockPrepareVote[i] = pv
 	}
 	return view
-}
-
-type extViewChange struct {
-	Timestamp            uint64
-	ProposalIndex        uint32
-	ProposalAddr         common.Address
-	BaseBlockNum         uint64
-	BaseBlockHash        common.Hash
-	BaseBlockPrepareVote []*prepareVote
-	Signature            common.BlockConfirmSign
-}
-
-func (v *viewChange) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, extViewChange{
-		Timestamp:            v.Timestamp,
-		ProposalIndex:        v.ProposalIndex,
-		ProposalAddr:         v.ProposalAddr,
-		BaseBlockNum:         v.BaseBlockNum,
-		BaseBlockHash:        v.BaseBlockHash,
-		BaseBlockPrepareVote: v.BaseBlockPrepareVote,
-		Signature:            v.Signature,
-	})
-	return nil
-}
-
-func (v *viewChange) DecodeRLP(s *rlp.Stream) error {
-	var sb extViewChange
-	if err := s.Decode(&sb); err != nil {
-		return err
-	}
-	v.Timestamp, v.ProposalIndex, v.ProposalAddr, v.BaseBlockNum, v.BaseBlockHash, v.BaseBlockPrepareVote, v.Signature = sb.Timestamp, sb.ProposalIndex, sb.ProposalAddr, sb.BaseBlockNum, sb.BaseBlockHash, sb.BaseBlockPrepareVote, sb.Signature
-	return nil
 }
 
 type viewChangeVote struct {
@@ -357,30 +293,6 @@ func (pb *highestPrepareBlock) MsgHash() common.Hash {
 	return common.Hash{}
 }
 
-type extHighestPrepareBlock struct {
-	CommitedBlock    []*types.Block
-	UnconfirmedBlock []*prepareBlock
-	Votes            []*prepareVotes
-}
-
-func (pb *highestPrepareBlock) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, extHighestPrepareBlock{
-		CommitedBlock:    pb.CommitedBlock,
-		UnconfirmedBlock: pb.UnconfirmedBlock,
-		Votes:            pb.Votes,
-	})
-	return nil
-}
-
-func (pb *highestPrepareBlock) DecodeRLP(s *rlp.Stream) error {
-	var sb extHighestPrepareBlock
-	if err := s.Decode(&sb); err != nil {
-		return err
-	}
-	pb.CommitedBlock, pb.UnconfirmedBlock, pb.Votes = sb.CommitedBlock, sb.UnconfirmedBlock, sb.Votes
-	return nil
-}
-
 type getPrepareBlock struct {
 	Hash   common.Hash
 	Number uint64
@@ -438,30 +350,6 @@ func (pv *prepareVotes) MsgHash() common.Hash {
 		return common.Hash{}
 	}
 	return pv.Hash
-}
-
-type extPrepareVotes struct {
-	Hash   common.Hash
-	Number uint64
-	Votes  []*prepareVote
-}
-
-func (pv *prepareVotes) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, extPrepareVotes{
-		Hash:   pv.Hash,
-		Number: pv.Number,
-		Votes:  pv.Votes,
-	})
-	return nil
-}
-
-func (pv *prepareVotes) DecodeRLP(s *rlp.Stream) error {
-	var sb extPrepareVotes
-	if err := s.Decode(&sb); err != nil {
-		return err
-	}
-	pv.Hash, pv.Number, pv.Votes = sb.Hash, sb.Number, sb.Votes
-	return nil
 }
 
 //p2p sync message

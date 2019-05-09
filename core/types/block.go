@@ -251,23 +251,23 @@ func CopyHeader(h *Header) *Header {
 
 // DecodeRLP decodes the Ethereum
 func (b *Block) DecodeRLP(s *rlp.Stream) error {
-	//var eb extblock
-	//_, size, _ := s.Kind()
-	//if err := s.Decode(&eb); err != nil {
-	//	return err
-	//}
-	//b.header, b.transactions, b.extraData = eb.Header, eb.Txs, eb.ExtraData
-	//b.size.Store(common.StorageSize(rlp.ListSize(size)))
+	var eb extblock
+	_, size, _ := s.Kind()
+	if err := s.Decode(&eb); err != nil {
+		return err
+	}
+	b.header, b.transactions, b.extraData = eb.Header, eb.Txs, eb.ExtraData
+	b.size.Store(common.StorageSize(rlp.ListSize(size)))
 	return nil
 }
 
 // EncodeRLP serializes b into the Ethereum RLP block format.
 func (b *Block) EncodeRLP(w io.Writer) error {
-	//return rlp.Encode(w, extblock{
-	//	Header:    b.header,
-	//	Txs:       b.transactions,
-	//	ExtraData: b.extraData,
-	//})
+	return rlp.Encode(w, extblock{
+		Header:    b.header,
+		Txs:       b.transactions,
+		ExtraData: b.extraData,
+	})
 	return nil
 }
 
