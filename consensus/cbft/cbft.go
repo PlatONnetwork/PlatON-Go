@@ -422,7 +422,7 @@ func (cbft *Cbft) OnSyncBlock(ext *BlockExt) {
 		}
 
 		cbft.clearPending()
-		cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)
+		cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
 		cbft.producerBlocks = NewProducerBlocks(cbft.dpos.NodeID(int(ext.view.ProposalIndex)), ext.block.NumberU64())
 		if cbft.producerBlocks != nil {
 			cbft.producerBlocks.AddBlock(ext.block)
@@ -744,7 +744,7 @@ func (cbft *Cbft) ShouldSeal(curTime int64) (bool, error) {
 		select {
 		case err := <-shouldSeal:
 			return err == nil, err
-		case <- time.After(2 * time.Millisecond):
+		case <-time.After(2 * time.Millisecond):
 			return false, fmt.Errorf("waiting for ShouldSeal timeout")
 		}
 	}
@@ -950,7 +950,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 			}
 
 			cbft.clearPending()
-			cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)
+			cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
 		}
 		ext.view = cbft.viewChange
 		ext.viewChangeVotes = request.ViewChangeVotes
