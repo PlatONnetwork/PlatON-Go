@@ -775,6 +775,11 @@ func (cbft *Cbft) OnSendViewChange() {
 func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 	cbft.log.Debug("Receive view change", "peer", peerID, "view", view.String())
 
+	if cbft.viewChange != nil && cbft.viewChange.Equal(view) {
+		cbft.log.Debug("Duplication view change message, discard this")
+		return nil
+	}
+
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	cbft.bp.ViewChangeBP().ReceiveViewChange(bpCtx, view, &cbft.RoundState)
 	if err := cbft.VerifyAndViewChange(view); err != nil {
@@ -822,7 +827,10 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 	cbft.setViewChange(view)
 	cbft.bp.InternalBP().SwitchView(bpCtx, view)
 	cbft.bp.ViewChangeBP().SendViewChangeVote(bpCtx, resp, &cbft.RoundState)
-	cbft.handler.Send(peerID, cbft.viewChangeResp)
+	cbft.handler.SendAllConsensusPeer(view)
+	cbft.handler.SendAllConsensusPeer(resp)
+
+	//cbft.handler.Send(peerID, cbft.viewChangeResp)
 	return nil
 
 }
@@ -916,7 +924,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 		for _, v := range request.ViewChangeVotes {
 			cbft.viewChangeVotes[v.ValidatorAddr] = v
 		}
-		//todo check fork, clear all block larger than this request block
+		//todo check fork, clear all block larger than the request block
 		//change producer
 		cbft.producerBlocks = NewProducerBlocks(nodeId, request.Block.NumberU64())
 
