@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
@@ -216,7 +215,7 @@ func (cbft *Cbft) InsertChain(block *types.Block, syncState chan error) {
 		}
 		return
 	}
-	ext := NewBlockExt(block, block.NumberU64(), cbft.getThreshold())
+	ext := NewBlockExt(block, block.NumberU64(), cbft.nodeLength())
 	for _, vote := range extra.Prepare {
 		ext.prepareVotes.Add(vote)
 	}
@@ -253,7 +252,7 @@ func (cbft *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 
 	cbft.log.Debug("Init highestLogicalBlock", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 
-	current := NewBlockExtBySeal(currentBlock, currentBlock.NumberU64(), cbft.getThreshold())
+	current := NewBlockExtBySeal(currentBlock, currentBlock.NumberU64(), cbft.nodeLength())
 	current.number = currentBlock.NumberU64()
 
 	if current.number != 0 && len(cbft.dpos.primaryNodeList) > 1 {
@@ -657,7 +656,7 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 		return
 	}
 
-	current := NewBlockExt(sealedBlock, sealedBlock.NumberU64(), cbft.getThreshold())
+	current := NewBlockExt(sealedBlock, sealedBlock.NumberU64(), cbft.nodeLength())
 
 	//this block is produced by local node, so need not execute in cbft.
 	current.view = cbft.viewChange
@@ -880,7 +879,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	}
 
 	cbft.log.Debug("Receive prepare block", "number", request.Block.NumberU64(), "prepareVotes", len(request.ViewChangeVotes))
-	ext = NewBlockExtByPrepareBlock(request, cbft.getThreshold())
+	ext = NewBlockExtByPrepareBlock(request, cbft.nodeLength())
 
 	if len(request.ViewChangeVotes) != 0 && request.View != nil {
 		if len(request.ViewChangeVotes) < cbft.getThreshold() {
@@ -998,17 +997,17 @@ func (cbft *Cbft) executeBlockLoop() {
 }
 
 // signReceiver handles the received block signature
-func (cbft *Cbft) prepareVoteReceiver(vote *prepareVote) {
+func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote) {
 	cbft.log.Debug("Receive new vote",
 		"vote", vote.String(),
 		"state", cbft.blockState())
 
 	ext := cbft.blockExtMap.findBlock(vote.Hash, vote.Number)
 	if ext == nil {
-		cbft.handler.SendAllConsensusPeer(&getPrepareBlock{Hash: vote.Hash, Number: vote.Number})
+		cbft.handler.Send(peerID, &getPrepareBlock{Hash: vote.Hash, Number: vote.Number})
 		cbft.log.Warn("Have not received the corresponding block", "hash", vote.Hash, "number", vote.Number)
 		//the block is nil
-		ext = NewBlockExtByPeer(nil, vote.Number, cbft.getThreshold())
+		ext = NewBlockExtByPeer(nil, vote.Number, cbft.nodeLength())
 		ext.timestamp = vote.Timestamp
 	}
 
@@ -1489,7 +1488,7 @@ func (cbft *Cbft) OnPrepareVote(peerID discover.NodeID, vote *prepareVote, propa
 	case Accept:
 		cbft.log.Debug("Accept block vote", "vote", vote.String())
 		cbft.bp.PrepareBP().AcceptVote(bpCtx, vote, &cbft.RoundState)
-		cbft.prepareVoteReceiver(vote)
+		cbft.prepareVoteReceiver(peerID, vote)
 	case Cache:
 		cbft.log.Debug("View changing, add vote into process queue", "vote", vote.String())
 		cbft.bp.PrepareBP().CacheVote(bpCtx, vote, &cbft.RoundState)
@@ -1731,6 +1730,10 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 func (cbft *Cbft) getThreshold() int {
 	trunc := len(cbft.dpos.primaryNodeList) * 2 / 3
 	return trunc
+}
+
+func (cbft *Cbft) nodeLength() int {
+	return len(cbft.dpos.primaryNodeList)
 }
 
 func (cbft *Cbft) reset(block *types.Block) {
