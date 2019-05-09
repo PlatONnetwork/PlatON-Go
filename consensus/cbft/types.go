@@ -21,6 +21,9 @@ var (
 	errViewChangeBlockNumTooLower = errors.New("block number too lower")
 	errTimestamp                  = errors.New("viewchange timestamp too low")
 	errInvalidViewChangeVote      = errors.New("invalid viewchange vote")
+
+
+	emptyAddr = common.Address{}
 )
 
 type AcceptStatus int
@@ -691,7 +694,7 @@ func (b *BlockExt) IsParent(hash common.Hash) bool {
 	return b.block.Hash() == hash
 }
 func (b *BlockExt) Merge(ext *BlockExt) {
-	if b.number == ext.number {
+	if b != ext && b.number == ext.number {
 		if b.block == nil && ext.block != nil {
 			//receive PrepareVote before receive PrepareBlock, so view is need set
 			b.block = ext.block
@@ -699,6 +702,10 @@ func (b *BlockExt) Merge(ext *BlockExt) {
 		}
 		b.prepareVotes.Merge(ext.prepareVotes)
 
+		if b.proposalAddr == emptyAddr {
+			b.proposalAddr = ext.proposalAddr
+			b.proposalIndex = ext.proposalIndex
+		}
 		if ext.syncState != nil && b.syncState != nil {
 			panic("invalid syncState: double state channel")
 		}

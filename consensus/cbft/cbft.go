@@ -834,6 +834,12 @@ func (cbft *Cbft) flushReadyBlock() bool {
 func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBlock, propagation bool) error {
 	bpCtx := context.WithValue(context.TODO(), "peer", nodeId)
 	cbft.bp.PrepareBP().ReceiveBlock(bpCtx, request, &cbft.RoundState)
+
+	//discard block when view.Timestamp != request.Timestamp && request.BlockNum > view.BlockNum
+	if cbft.viewChange != nil && request.Timestamp != cbft.viewChange.Timestamp && request.Block.NumberU64() > cbft.viewChange.BaseBlockNum {
+		return errFutileBlock
+	}
+
 	if err := cbft.VerifyHeader(cbft.blockChain, request.Block.Header(), false); err != nil {
 		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, err, &cbft.RoundState)
 		log.Error("Failed to verify header in PrepareBlockMsg, discard this msg", "peer", nodeId, "err", err)
