@@ -256,6 +256,20 @@ func (cbft *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 	current := NewBlockExtBySeal(currentBlock, currentBlock.NumberU64(), cbft.getThreshold())
 	current.number = currentBlock.NumberU64()
 
+	if current.number != 0 && len(cbft.dpos.primaryNodeList) > 1 {
+		if _, extra, err := cbft.decodeExtra(currentBlock.ExtraData()); err != nil {
+			current.view = extra.ViewChange
+			current.viewChangeVotes = extra.ViewChangeVotes
+			for _, v := range extra.Prepare {
+				current.timestamp = v.Timestamp
+				current.prepareVotes.Add(v)
+			}
+		} else {
+			cbft.log.Error("extra decode error")
+			return
+		}
+	}
+
 	cbft.blockExtMap = NewBlockExtMap(current, cbft.getThreshold())
 	cbft.saveBlockExt(currentBlock.Hash(), current)
 
@@ -402,6 +416,7 @@ func (cbft *Cbft) OnSyncBlock(ext *BlockExt) {
 			cbft.log.Debug("Add producer block", "hash", ext.block.Hash(), "number", ext.block.Number(), "producer", cbft.producerBlocks.String())
 		}
 	}
+	ext.timestamp = cbft.viewChange.Timestamp
 	cbft.OnNewBlock(ext)
 }
 
@@ -646,6 +661,7 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 
 	//this block is produced by local node, so need not execute in cbft.
 	current.view = cbft.viewChange
+	current.timestamp = cbft.viewChange.Timestamp
 	current.inTree = true
 	current.executing = true
 	current.isExecuted = true
@@ -993,6 +1009,7 @@ func (cbft *Cbft) prepareVoteReceiver(vote *prepareVote) {
 		cbft.log.Warn("Have not received the corresponding block", "hash", vote.Hash, "number", vote.Number)
 		//the block is nil
 		ext = NewBlockExtByPeer(nil, vote.Number, cbft.getThreshold())
+		ext.timestamp = vote.Timestamp
 	}
 
 	ext.prepareVotes.Add(vote)
