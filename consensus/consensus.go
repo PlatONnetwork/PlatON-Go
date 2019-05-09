@@ -101,7 +101,7 @@ type Engine interface {
 
 	NextBaseBlock() *types.Block
 
-	InsertChain(block *types.Block) <-chan error
+	InsertChain(block *types.Block, errCh chan error)
 
 	HasBlock(hash common.Hash, number uint64) bool
 
@@ -126,8 +126,8 @@ type Bft interface {
 	// Returns whether the current node is out of the block
 	ShouldSeal(curTime int64) (bool, error)
 
-	CalcBlockDeadline() time.Time
-	CalcNextBlockTime() time.Time
+	CalcBlockDeadline() (time.Time, error)
+	CalcNextBlockTime() (time.Time, error)
 
 	// Process the BFT signatures
 	//OnNewBlock(chain ChainReader, block *types.Block) error

@@ -52,6 +52,7 @@ type Wal struct {
 
 func NewWal(ctx *node.ServiceContext) (*Wal, error) {
 	var (
+		// TODO
 		originPath  = ctx.ResolvePath(walDir)
 		//originPath = "D://data/platon/wal"
 		metaDB     IWALDatabase

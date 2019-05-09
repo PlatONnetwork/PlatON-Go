@@ -24,9 +24,9 @@ const (
 	GetPrepareBlockMsg        = 0x07
 	GetHighestPrepareBlockMsg = 0x08
 	HighestPrepareBlockMsg    = 0x09
+	CBFTStatusMsg			  = 0x0a
+	PrepareBlockHashMsg		  = 0x0b
 
-	CBFTStatusMsg       = 0x0a
-	PrepareBlockHashMsg = 0x0b
 )
 
 type errCode int
@@ -494,8 +494,8 @@ func (v *signBitArray) MsgHash() common.Hash {
 }
 
 type cbftStatusData struct {
-	BN           *big.Int
-	CurrentBlock common.Hash
+	BN              *big.Int
+	CurrentBlock    common.Hash
 }
 
 func (s *cbftStatusData) String() string {

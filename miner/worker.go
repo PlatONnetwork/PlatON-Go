@@ -466,8 +466,11 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 							if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
 								log.Debug("begin to package new block regularly ")
 								//timestamp = time.Now().UnixNano() / 1e6
-								blockDeadline := w.engine.(consensus.Bft).CalcBlockDeadline()
-								commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
+								if blockDeadline, err := w.engine.(consensus.Bft).CalcBlockDeadline(); err == nil {
+									commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
+								}else {
+									log.Error("Calc block deadline failed", "err", err)
+								}
 								continue
 							}
 						}
@@ -745,6 +748,10 @@ func (w *worker) resultLoop() {
 		//w.unconfirmed.Insert(block.NumberU64(), block.Hash())
 
 		case obj := <-w.bftResultSub.Chan():
+			if obj == nil {
+				log.Error("receive nil maybe channel is closed")
+				continue
+			}
 			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
 			if !ok {
 				log.Error("receive bft result type error")
@@ -1371,9 +1378,13 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 		"timestamp", common.MillisToString(timestamp))
 
 	if shouldCommit && nextBaseBlock != nil {
+		var err error
 		w.commitWorkEnv.currentBaseBlock.Store(nextBaseBlock)
-		w.commitWorkEnv.nextBlockTime = w.engine.(consensus.Bft).CalcNextBlockTime()
-
+		w.commitWorkEnv.nextBlockTime, err = w.engine.(consensus.Bft).CalcNextBlockTime()
+		if err != nil {
+			log.Error("Calc next block time failed", "err", err)
+			return false, nil
+		}
 		if currentBaseBlock == nil {
 			log.Debug("check if time's up in shouldCommit()", "result", shouldCommit,
 				"next.number", nextBaseBlock.Number(),

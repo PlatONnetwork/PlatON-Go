@@ -12,7 +12,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"math/big"
@@ -76,6 +75,8 @@ var (
 
 	peerMsgQueueSize = 1024
 	cbftVersion      = byte(0x01)
+
+	maxBlockDist = uint64(192)
 )
 
 type Cbft struct {
@@ -208,14 +209,15 @@ func (cbft *Cbft) ReceivePeerMsg(msg *MsgInfo) {
 	}
 }
 
-func (cbft *Cbft) InsertChain(block *types.Block) <-chan error {
+func (cbft *Cbft) InsertChain(block *types.Block, syncState chan error) {
 	var extra *BlockExtra
 	var err error
-	syncState := make(chan error, 1)
 
 	if _, extra, err = cbft.decodeExtra(block.ExtraData()); err != nil {
-		syncState <- err
-		return syncState
+		if syncState != nil {
+			syncState <- err
+		}
+		return
 	}
 	ext := NewBlockExt(block, block.NumberU64(), cbft.getThreshold())
 	for _, vote := range extra.Prepare {
@@ -228,7 +230,6 @@ func (cbft *Cbft) InsertChain(block *types.Block) <-chan error {
 	cbft.log.Debug("Insert new block", "hash", block.Hash(), "number", block.NumberU64(), "view", ext.view.String())
 
 	cbft.syncBlockCh <- ext
-	return ext.syncState
 }
 
 // SetPrivateKey sets local's private key by the backend.go
@@ -257,6 +258,20 @@ func (c *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) erro
 
 	current := NewBlockExtBySeal(currentBlock, currentBlock.NumberU64(), c.getThreshold())
 	current.number = currentBlock.NumberU64()
+
+	if current.number != 0 && len(c.dpos.primaryNodeList) > 1 {
+		if _, extra, err := c.decodeExtra(currentBlock.ExtraData()); err != nil {
+			current.view = extra.ViewChange
+			current.viewChangeVotes = extra.ViewChangeVotes
+			for _, v := range extra.Prepare {
+				current.timestamp = v.Timestamp
+				current.prepareVotes.Add(v)
+			}
+		} else {
+			c.log.Error("extra decode error")
+			return nil
+		}
+	}
 
 	c.blockExtMap = NewBlockExtMap(current, c.getThreshold())
 	c.saveBlockExt(currentBlock.Hash(), current)
@@ -414,6 +429,7 @@ func (cbft *Cbft) OnSyncBlock(ext *BlockExt) {
 			cbft.log.Debug("Add producer block", "hash", ext.block.Hash(), "number", ext.block.Number(), "producer", cbft.producerBlocks.String())
 		}
 	}
+	ext.timestamp = cbft.viewChange.Timestamp
 	cbft.OnNewBlock(ext)
 }
 
@@ -536,7 +552,7 @@ func (cbft *Cbft) OnHighestPrepareBlock(peerID discover.NodeID, msg *highestPrep
 	cbft.log.Debug("Receive HighestPrepareBlock", "peer", peerID.TerminalString(), "msg", msg.String())
 	for _, block := range msg.CommitedBlock {
 		cbft.log.Debug("Sync Highest Block", "number", block.NumberU64())
-		cbft.InsertChain(block)
+		cbft.InsertChain(block, nil)
 	}
 
 	for _, prepare := range msg.UnconfirmedBlock {
@@ -658,6 +674,7 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 
 	//this block is produced by local node, so need not execute in cbft.
 	current.view = cbft.viewChange
+	current.timestamp = cbft.viewChange.Timestamp
 	current.inTree = true
 	current.executing = true
 	current.isExecuted = true
@@ -760,8 +777,13 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 	cbft.bp.ViewChangeBP().ReceiveViewChange(bpCtx, view, &cbft.RoundState)
 	if err := cbft.VerifyAndViewChange(view); err != nil {
 		if view.BaseBlockNum > cbft.getHighestConfirmed().number {
-			cbft.handler.SendAllConsensusPeer(&getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
+			if view.BaseBlockNum-cbft.getHighestConfirmed().number > maxBlockDist {
+				atomic.StoreInt32(&cbft.running, 0)
+			} else {
+				cbft.handler.SendAllConsensusPeer(&getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
+			}
 		}
+
 		cbft.bp.ViewChangeBP().InvalidViewChange(bpCtx, view, err, &cbft.RoundState)
 		cbft.log.Error("Verify view failed", "err", err, "peer", peerID, "view", view.String())
 		return err
@@ -842,6 +864,12 @@ func (cbft *Cbft) flushReadyBlock() bool {
 func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBlock, propagation bool) error {
 	bpCtx := context.WithValue(context.TODO(), "peer", nodeId)
 	cbft.bp.PrepareBP().ReceiveBlock(bpCtx, request, &cbft.RoundState)
+
+	//discard block when view.Timestamp != request.Timestamp && request.BlockNum > view.BlockNum
+	if cbft.viewChange != nil && request.Timestamp != cbft.viewChange.Timestamp && request.Block.NumberU64() > cbft.viewChange.BaseBlockNum {
+		return errFutileBlock
+	}
+
 	if err := cbft.VerifyHeader(cbft.blockChain, request.Block.Header(), false); err != nil {
 		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, err, &cbft.RoundState)
 		log.Error("Failed to verify header in PrepareBlockMsg, discard this msg", "peer", nodeId, "err", err)
@@ -994,6 +1022,7 @@ func (cbft *Cbft) prepareVoteReceiver(vote *prepareVote) {
 		cbft.log.Warn("Have not received the corresponding block", "hash", vote.Hash, "number", vote.Number)
 		//the block is nil
 		ext = NewBlockExtByPeer(nil, vote.Number, cbft.getThreshold())
+		ext.timestamp = vote.Timestamp
 	}
 
 	ext.prepareVotes.Add(vote)
@@ -1088,6 +1117,12 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlock(blocks []*BlockExt) {
 	for _, ext := range blocks {
+		//Execute blocks is async, clear all children block when new view change was confirmed.
+		if ext == nil || ext.parent == nil {
+			cbft.log.Warn("Block was cleared, block is invalid block. stop execute all children block")
+			return
+		}
+
 		start := time.Now()
 		err := cbft.execute(ext, ext.parent)
 
@@ -1226,14 +1261,17 @@ func (cbft *Cbft) HasTwoThirdsMajorityViewChangeVotes() bool {
 	return cbft.agreeViewChange()
 }
 
-func (cbft *Cbft) CalcBlockDeadline() time.Time {
-	nodeIdx, _ := cbft.dpos.NodeIndex(cbft.config.NodeID)
+func (cbft *Cbft) CalcBlockDeadline() (time.Time, error) {
+	nodeIdx, err := cbft.dpos.NodeIndex(cbft.config.NodeID)
+	if err != nil {
+		return time.Time{}, err
+	}
 	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
 	timePoint := time.Now().UnixNano() / int64(time.Millisecond)
 
 	if nodeIdx >= 0 {
 		if len(cbft.dpos.primaryNodeList) == 1 {
-			return time.Now().Add(time.Second)
+			return time.Now().Add(time.Duration(cbft.config.Period) * time.Second), err
 		}
 		durationPerNode := cbft.config.Duration * 1000
 		durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
@@ -1242,13 +1280,14 @@ func (cbft *Cbft) CalcBlockDeadline() time.Time {
 		value := (timePoint - startEpoch) % durationPerTurn
 		max := int64(nodeIdx+1) * durationPerNode
 
-		slots := make([]int64, cbft.config.Duration)
+		cnt := int64(cbft.config.Duration) / int64(cbft.config.Period)
+		slots := make([]int64, cnt)
 		var i int64
-		for i = 0; i < cbft.config.Duration; i++ {
-			slots[i] = min + (i * 1000)
+		for i = 0; i < cnt; i++ {
+			slots[i] = min + (i*1000)*int64(cbft.config.Period)
 		}
 
-		curIdx := (value % durationPerNode) / 1000
+		curIdx := (value % durationPerNode) / (1000 * int64(cbft.config.Period))
 		lastBlock := int(curIdx+1) == len(slots)
 		nextSlotValue := max
 		if !lastBlock {
@@ -1263,19 +1302,23 @@ func (cbft *Cbft) CalcBlockDeadline() time.Time {
 				remaing = 50 * time.Millisecond // 50ms
 			}
 		}
-		return time.Now().Add(remaing)
+		return time.Now().Add(remaing), err
 	}
-	return time.Now().Add(50 * time.Millisecond) // 50ms
+	return time.Now().Add(50 * time.Millisecond), err // 50ms
+
 }
 
-func (cbft *Cbft) CalcNextBlockTime() time.Time {
-	nodeIdx, _ := cbft.dpos.NodeIndex(cbft.config.NodeID)
+func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
+	nodeIdx, err := cbft.dpos.NodeIndex(cbft.config.NodeID)
+	if err != nil {
+		return time.Time{}, err
+	}
 	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
 	timePoint := time.Now().UnixNano() / int64(time.Millisecond)
 
 	if nodeIdx >= 0 {
 		if len(cbft.dpos.primaryNodeList) == 1 {
-			return time.Now().Add(time.Second)
+			return time.Now().Add(time.Duration(cbft.config.Period) * time.Second), nil
 		}
 		durationPerNode := cbft.config.Duration * 1000
 		durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
@@ -1284,13 +1327,14 @@ func (cbft *Cbft) CalcNextBlockTime() time.Time {
 		value := (timePoint - startEpoch) % durationPerTurn
 		max := int64(nodeIdx+1) * durationPerNode
 
-		slots := make([]int64, cbft.config.Duration)
+		cnt := int64(cbft.config.Duration) / int64(cbft.config.Period)
+		slots := make([]int64, cnt)
 		var i int64
-		for i = 0; i < cbft.config.Duration; i++ {
-			slots[i] = min + (i * 1000)
+		for i = 0; i < cnt; i++ {
+			slots[i] = min + (i*1000)*int64(cbft.config.Period)
 		}
-		curIdx := (value % durationPerNode) / 1000
-		lastBlock := (curIdx + 1) == cbft.config.Duration
+		curIdx := (value % durationPerNode) / (1000 * int64(cbft.config.Period))
+		lastBlock := int(curIdx+1) == len(slots)
 		nextSlotValue := max
 		if !lastBlock {
 			nextSlotValue = slots[curIdx+1]
@@ -1300,9 +1344,10 @@ func (cbft *Cbft) CalcNextBlockTime() time.Time {
 		if !lastBlock {
 			offset = remaining
 		}
-		return time.Now().Add(time.Duration(offset) * time.Millisecond)
+		return time.Now().Add(time.Duration(offset) * time.Millisecond), nil
 	}
-	return time.Now().Add(time.Second) // 1s
+	return time.Now().Add(time.Duration(cbft.config.Period) * time.Second), nil // 1s
+
 }
 
 // ConsensusNodes returns all consensus nodes.

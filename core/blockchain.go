@@ -1145,7 +1145,9 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 			bc.reportBlock(block, nil, err)
 			return i, events, coalescedLogs, err
 		}
-		err = <-bc.engine.InsertChain(block)
+		errCh := make(chan error, 1)
+		bc.engine.InsertChain(block, errCh)
+		err = <-errCh
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}

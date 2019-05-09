@@ -65,6 +65,10 @@ type Config struct {
 	// connected. It must be greater than zero.
 	MaxPeers int
 
+	// MaxConsensusPeers is the maximum number of consensus peers that can be
+	// connected. It must be greater than zero.
+	MaxConsensusPeers int
+
 	// MaxPendingPeers is the maximum number of peers that can be pending in the
 	// handshake phase, counted separately for inbound and outbound connections.
 	// Zero defaults to preset values.
@@ -327,6 +331,9 @@ func (srv *Server) RemovePeer(node *discover.Node) {
 	}
 }
 
+// AddConsensusPeer connects to the given consensus node and maintains the connection until the
+// server is shut down. If the connection fails for any reason, the server will
+// attempt to reconnect the peer.
 func (srv *Server) AddConsensusPeer(node *discover.Node) {
 	select {
 	case srv.addconsensus <- node:
@@ -334,7 +341,7 @@ func (srv *Server) AddConsensusPeer(node *discover.Node) {
 	}
 }
 
-// RemovePeer disconnects from the given node
+// RemoveConsensusPeer disconnects from the given consensus node
 func (srv *Server) RemoveConsensusPeer(node *discover.Node) {
 	select {
 	case srv.removeconsensus <- node:
@@ -547,7 +554,7 @@ func (srv *Server) Start() (err error) {
 	}
 
 	dynPeers := srv.maxDialedConns()
-	dialer := newDialState(srv.StaticNodes, srv.BootstrapNodes, srv.ntab, dynPeers, srv.NetRestrict)
+	dialer := newDialState(srv.StaticNodes, srv.BootstrapNodes, srv.ntab, dynPeers, srv.NetRestrict, srv.MaxConsensusPeers)
 
 	// handshake
 	srv.ourHandshake = &protoHandshake{Version: baseProtocolVersion, Name: srv.Name, ID: discover.PubkeyID(&srv.PrivateKey.PublicKey)}
@@ -599,6 +606,7 @@ type dialer interface {
 	removeStatic(*discover.Node)
 	addConsensus(*discover.Node)
 	removeConsensus(*discover.Node)
+	initRemoveConsensusPeerFn(removeConsensusPeerFn removeConsensusPeerFn)
 }
 
 func (srv *Server) run(dialstate dialer) {
@@ -646,6 +654,14 @@ func (srv *Server) run(dialstate dialer) {
 			queuedTasks = append(queuedTasks, startTasks(nt)...)
 		}
 	}
+	dialstateRemoveConsensusPeerFn := func(node *discover.Node) {
+		srv.log.Trace("Removing consensus node from dialstate", "node", node)
+		dialstate.removeConsensus(node)
+		if p, ok := peers[node.ID]; ok {
+			p.Disconnect(DiscRequested)
+		}
+	}
+	dialstate.initRemoveConsensusPeerFn(dialstateRemoveConsensusPeerFn)
 
 running:
 	for {

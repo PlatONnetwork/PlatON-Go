@@ -132,9 +132,11 @@ func (journal *journal) mainLoop(syncLoopDuration time.Duration) {
 		case <-ticker.C:
 			if journal.writer != nil {
 				log.Trace("Rotate timer trigger")
+				journal.mu.Lock()
 				if err := journal.rotate(journalLimitSize); err != nil {
 					log.Error("Failed to rotate cbft journal", "err", err)
 				}
+				journal.mu.Unlock()
 			}
 
 		case <-journal.exitCh:
@@ -172,6 +174,11 @@ func (journal *journal) insert(msg *JournalMessage) error {
 	if err != nil {
 		return err
 	}
+	//
+	if err := journal.rotate(journalLimitSize); err != nil {
+		log.Error("Failed to rotate cbft journal", "err", err)
+	}
+
 	n, err := journal.writer.Write(buf)
 	if err == nil && n > 0 {
 		log.Trace("Successful to insert journal message", "n", n)
@@ -213,8 +220,8 @@ func (journal *journal) close() {
 }
 
 func (journal *journal) rotate(journalLimitSize uint64) error {
-	journal.mu.Lock()
-	defer journal.mu.Unlock()
+	//journal.mu.Lock()
+	//defer journal.mu.Unlock()
 
 	if journal.checkFileSize(journalLimitSize) {
 		journalWriter := journal.writer

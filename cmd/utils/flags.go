@@ -457,6 +457,11 @@ var (
 		Usage: "Maximum number of network peers (network disabled if set to 0)",
 		Value: 25,
 	}
+	MaxConsensusPeersFlag = cli.IntFlag{
+		Name:  "maxconsensuspeers",
+		Usage: "Maximum number of network consensus peers (network disabled if set to 0)",
+		Value: 75,
+	}
 	MaxPendingPeersFlag = cli.IntFlag{
 		Name:  "maxpendpeers",
 		Usage: "Maximum number of pending connection attempts (defaults used if set to 0)",
@@ -912,6 +917,10 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	lightClient := ctx.GlobalString(SyncModeFlag.Name) == "light"
 	lightServer := ctx.GlobalInt(LightServFlag.Name) != 0
 	lightPeers := ctx.GlobalInt(LightPeersFlag.Name)
+
+	if ctx.GlobalIsSet(MaxConsensusPeersFlag.Name) {
+		cfg.MaxConsensusPeers = ctx.GlobalInt(MaxConsensusPeersFlag.Name)
+	}
 
 	if ctx.GlobalIsSet(MaxPeersFlag.Name) {
 		cfg.MaxPeers = ctx.GlobalInt(MaxPeersFlag.Name)

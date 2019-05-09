@@ -89,6 +89,7 @@ var (
 		utils.TrieCacheGenFlag,
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
+		utils.MaxConsensusPeersFlag,
 		utils.MaxPendingPeersFlag,
 		utils.MiningEnabledFlag,
 		utils.MinerThreadsFlag,

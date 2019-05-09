@@ -21,6 +21,8 @@ var (
 	errViewChangeBlockNumTooLower = errors.New("block number too lower")
 	errTimestamp                  = errors.New("viewchange timestamp too low")
 	errInvalidViewChangeVote      = errors.New("invalid viewchange vote")
+
+	emptyAddr = common.Address{}
 )
 
 type AcceptStatus int
@@ -193,6 +195,7 @@ func (cbft *Cbft) addPrepareBlockVote(pbd *prepareBlock) {
 	if cbft.viewChange == nil {
 		return
 	}
+	pbd.Timestamp = cbft.viewChange.Timestamp
 	except := cbft.viewChange.BaseBlockNum + 1
 	log.Info("add prepare block", "number", pbd.Block.NumberU64(), "except", except, "irr", cbft.viewChange.BaseBlockNum)
 	log.Info(fmt.Sprintf("master:%v prepareVotes:%d ", cbft.master, len(cbft.viewChangeVotes)))
@@ -308,7 +311,9 @@ func (cbft *Cbft) AcceptPrepareBlock(request *prepareBlock) AcceptStatus {
 }
 
 func (cbft *Cbft) AcceptPrepareVote(vote *prepareVote) AcceptStatus {
-
+	if vote.Number < cbft.getHighestConfirmed().number {
+		return Discard
+	}
 	if (cbft.lastViewChange != nil && vote.Number < cbft.lastViewChange.BaseBlockNum) ||
 		(cbft.viewChange != nil && vote.Number < cbft.viewChange.BaseBlockNum) {
 		return Accept
@@ -523,6 +528,10 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 		}
 	}
 	if !hadAgree && cbft.agreeViewChange() {
+		cbft.wal.UpdateViewChange(&ViewChangeMessage{
+			Hash:   vote.BlockHash,
+			Number: vote.BlockNum,
+		})
 		cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, &cbft.RoundState)
 		cbft.flushReadyBlock()
 		cbft.producerBlocks = NewProducerBlocks(cbft.config.NodeID, cbft.viewChange.BaseBlockNum)
@@ -689,7 +698,7 @@ func (b *BlockExt) IsParent(hash common.Hash) bool {
 	return b.block.Hash() == hash
 }
 func (b *BlockExt) Merge(ext *BlockExt) {
-	if b.number == ext.number {
+	if b != ext && b.number == ext.number {
 		if b.block == nil && ext.block != nil {
 			//receive PrepareVote before receive PrepareBlock, so view is need set
 			b.block = ext.block
@@ -697,6 +706,10 @@ func (b *BlockExt) Merge(ext *BlockExt) {
 		}
 		b.prepareVotes.Merge(ext.prepareVotes)
 
+		if b.proposalAddr == emptyAddr {
+			b.proposalAddr = ext.proposalAddr
+			b.proposalIndex = ext.proposalIndex
+		}
 		if ext.syncState != nil && b.syncState != nil {
 			panic("invalid syncState: double state channel")
 		}
