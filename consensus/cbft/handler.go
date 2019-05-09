@@ -2,10 +2,11 @@ package cbft
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"reflect"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 
 type MsgPackage struct {
 	peerID string
-	msg 	Message
+	msg    Message
 }
 
 type handler struct {
@@ -57,7 +58,7 @@ func (h *handler) broadcast(m *MsgPackage) {
 
 func (h *handler) sendPeer(m *MsgPackage) {
 	if peer, err := h.peers.Get(m.peerID); err == nil {
-		log.Debug("Send message", "targetPeer",m.peerID, "type", reflect.TypeOf(m.msg), "msgHash", m.msg.MsgHash().TerminalString())
+		log.Debug("Send message", "targetPeer", m.peerID, "type", reflect.TypeOf(m.msg), "msgHash", m.msg.MsgHash().TerminalString())
 		if err := p2p.Send(peer.rw, MessageType(m.msg), m.msg); err != nil {
 			log.Error("Send Peer error")
 			h.peers.Unregister(m.peerID)
@@ -114,15 +115,15 @@ func (h *handler) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 
 	// Execute the CBFT handshake
 	var (
-		head 			= h.cbft.blockChain.CurrentHeader()
-		hash			= head.Hash()
+		head = h.cbft.blockChain.CurrentHeader()
+		hash = head.Hash()
 	)
-	p.Log().Debug("CBFT peer connected, do handshake","name", peer. Name())
+	p.Log().Debug("CBFT peer connected, do handshake", "name", peer.Name())
 	if err := peer.Handshake(head.Number, hash); err != nil {
 		p.Log().Debug("CBFT handshake failed", "err", err)
 		return err
 	} else {
-		p.Log().Debug("CBFT consensus handshake success","hash", hash.TerminalString(), "number", head.Number)
+		p.Log().Debug("CBFT consensus handshake success", "hash", hash.TerminalString(), "number", head.Number)
 	}
 
 	// todo: there is something to be done.
@@ -257,6 +258,16 @@ func (h *handler) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
+		h.cbft.ReceivePeerMsg(&msgInfo{
+			msg:    &request,
+			peerID: p.ID(),
+		})
+		return nil
+	case msg.Code == GetPrepareBlockMsg:
+		var request getPrepareBlock
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
 		h.cbft.ReceivePeerMsg(&msgInfo{
 			msg:    &request,
 			peerID: p.ID(),

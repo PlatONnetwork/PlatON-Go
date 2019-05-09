@@ -68,7 +68,7 @@ func (r *router) selectNodesByMsgType(msgType uint64, condition interface{}) ([]
 	case PrepareBlockMsg, PrepareVoteMsg, ConfirmedPrepareBlockMsg,
 		 PrepareBlockHashMsg:
 		return r.kMixingRandomNodes(msgType, condition)
-	case ViewChangeMsg, GetPrepareBlockMsg, GetHighestPrepareBlockMsg:
+	case ViewChangeMsg, GetPrepareBlockMsg, GetHighestPrepareBlockMsg, ViewChangeVoteMsg:
 		return r.kConsensusRandomNodes(msgType, condition)
 	}
 	return nil, fmt.Errorf("no found nodes")

@@ -122,7 +122,7 @@ func newPeerSet() *peerSet {
 
 func (ps *peerSet) Register(p *peer) {
 	ps.lock.Lock()
-	ps.lock.Unlock()
+	defer ps.lock.Unlock()
 	ps.peers[p.id] = p
 }
 
