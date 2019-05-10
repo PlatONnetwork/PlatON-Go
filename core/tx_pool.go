@@ -39,7 +39,8 @@ import (
 
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
-	chainHeadChanSize = 10
+	// size is setted max blocks of one epoch
+	chainHeadChanSize = 250
 
 	// txExtBufferSize is the size fo channel listening to txExt.
 	txExtBufferSize = 4096
