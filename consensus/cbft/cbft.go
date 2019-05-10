@@ -153,7 +153,7 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux) *Cbft {
 		getBlockCh:              make(chan *GetBlock),
 		sendViewChangeCh:        make(chan struct{}),
 		innerUnExecutedBlockCh:  make(chan []*BlockExt, peerMsgQueueSize),
-		shouldSealCh:            make(chan chan error),
+		shouldSealCh:            make(chan chan error, peerMsgQueueSize),
 		viewChangeTimeoutCh:     make(chan *viewChange),
 		viewChangeVoteTimeoutCh: make(chan *viewChangeVote),
 		hasBlockCh:              make(chan *HasBlock, peerMsgQueueSize),
@@ -358,6 +358,17 @@ func (cbft *Cbft) isRunning() bool {
 }
 
 func (cbft *Cbft) OnShouldSeal(shouldSeal chan error) {
+	//clear all invalid data
+	if len(cbft.shouldSealCh) > 0 {
+		for len(cbft.shouldSealCh) != 1 {
+			select {
+			case shouldSeal = <-cbft.shouldSealCh:
+			default:
+				goto END
+			}
+		}
+	}
+END:
 	if cbft.hadSendViewChange() {
 		index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
 		if err != nil {
