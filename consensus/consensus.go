@@ -149,6 +149,8 @@ type Bft interface {
 
 	GetBlock(hash common.Hash, number uint64) *types.Block
 
+	GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block
+
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
 	IsSignedBySelf(sealHash common.Hash, signature []byte) bool

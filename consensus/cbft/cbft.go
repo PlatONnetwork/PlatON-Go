@@ -1777,6 +1777,14 @@ func (cbft *Cbft) OnGetBlock(hash common.Hash, number uint64, ch chan *types.Blo
 		ch <- nil
 	}
 }
+
+func (cbft *Cbft) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
+	ext := cbft.blockExtMap.findBlock(hash, number)
+	if ext != nil {
+		return ext.block
+	}
+	return nil
+}
 func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
 	ch := make(chan *types.Block, 1)
 	cbft.getBlockCh <- &GetBlock{hash: hash, number: number, ch: ch}
