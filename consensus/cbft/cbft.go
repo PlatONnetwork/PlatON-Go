@@ -360,7 +360,7 @@ func (cbft *Cbft) isRunning() bool {
 func (cbft *Cbft) OnShouldSeal(shouldSeal chan error) {
 	//clear all invalid data
 	if len(cbft.shouldSealCh) > 0 {
-		for len(cbft.shouldSealCh) != 1 {
+		for {
 			select {
 			case shouldSeal = <-cbft.shouldSealCh:
 			default:
