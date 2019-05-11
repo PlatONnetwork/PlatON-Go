@@ -19,6 +19,7 @@ package ethapi
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -39,6 +40,7 @@ import (
 type Backend interface {
 	// General Ethereum API
 	Downloader() *downloader.Downloader
+	Engine() consensus.Engine
 	ProtocolVersion() int
 	SuggestPrice(ctx context.Context) (*big.Int, error)
 	ChainDb() ethdb.Database
@@ -112,6 +114,11 @@ func GetAPIs(apiBackend Backend) []rpc.API {
 			Version:   "1.0",
 			Service:   NewPrivateAccountAPI(apiBackend, nonceLock),
 			Public:    false,
+		}, {
+			Namespace: "debug",
+			Version:   "1.0",
+			Service:   NewPublicConsensusAPI(apiBackend),
+			Public:    true,
 		},
 	}
 }

@@ -5431,6 +5431,12 @@ var methods = function () {
         params: 0
     });
 
+    var consensusStatus = new Method({
+      name: 'consensusStatus',
+      call: 'debug_consensusStatus',
+      params: 0
+    });
+
     return [
         getBalance,
         getStorageAt,
@@ -5454,7 +5460,8 @@ var methods = function () {
         compileLLL,
         compileSerpent,
         submitWork,
-        getWork
+        getWork,
+        consensusStatus
     ];
 };
 
