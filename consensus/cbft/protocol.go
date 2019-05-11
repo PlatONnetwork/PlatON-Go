@@ -61,6 +61,7 @@ var errorToString = map[int]string{
 type Message interface {
 	String() string
 	MsgHash() common.Hash
+	BHash() common.Hash
 }
 
 type msgInfo struct {
@@ -89,6 +90,13 @@ func (pb *prepareBlock) MsgHash() common.Hash {
 	if pb == nil {
 		return common.Hash{}
 	}
+	return produceHash(PrepareBlockMsg, pb.Block.Hash())
+}
+
+func (pb *prepareBlock) BHash() common.Hash {
+	if pb == nil {
+		return common.Hash{}
+	}
 	return pb.Block.Hash()
 }
 
@@ -105,6 +113,13 @@ func (pbh *prepareBlockHash) String() string {
 }
 
 func (pbh *prepareBlockHash) MsgHash() common.Hash {
+	if pbh == nil {
+		return common.Hash{}
+	}
+	return produceHash(PrepareBlockHashMsg, pbh.Hash)
+}
+
+func (pbh *prepareBlockHash) BHash() common.Hash {
 	if pbh == nil {
 		return common.Hash{}
 	}
@@ -131,6 +146,13 @@ func (pv *prepareVote) MsgHash() common.Hash {
 	if pv == nil {
 		return common.Hash{}
 	}
+	return produceHash(PrepareVoteMsg, pv.Hash)
+}
+
+func (pv *prepareVote) BHash() common.Hash {
+	if pv == nil {
+		return common.Hash{}
+	}
 	return pv.Hash
 }
 
@@ -153,6 +175,13 @@ func (v *viewChange) String() string {
 }
 
 func (v *viewChange) MsgHash() common.Hash {
+	if v == nil {
+		return common.Hash{}
+	}
+	return produceHash(ViewChangeMsg, common.BytesToHash(v.Signature.Bytes()))
+}
+
+func (v *viewChange) BHash() common.Hash {
 	if v == nil {
 		return common.Hash{}
 	}
@@ -214,6 +243,13 @@ func (v *viewChangeVote) MsgHash() common.Hash {
 	if v == nil {
 		return common.Hash{}
 	}
+	return produceHash(ViewChangeVoteMsg, common.BytesToHash(v.Signature.Bytes()))
+}
+
+func (v *viewChangeVote) BHash() common.Hash {
+	if v == nil {
+		return common.Hash{}
+	}
 	return common.BytesToHash(v.Signature.Bytes())
 }
 
@@ -252,6 +288,13 @@ func (cpb *confirmedPrepareBlock) MsgHash() common.Hash {
 	if cpb == nil {
 		return common.Hash{}
 	}
+	return produceHash(ConfirmedPrepareBlockMsg, cpb.Hash)
+}
+
+func (cpb *confirmedPrepareBlock) BHash() common.Hash {
+	if cpb == nil {
+		return common.Hash{}
+	}
 	return cpb.Hash
 }
 
@@ -267,6 +310,13 @@ func (gpb *getHighestPrepareBlock) String() string {
 }
 
 func (gpb *getHighestPrepareBlock) MsgHash() common.Hash {
+	if gpb == nil {
+		return common.Hash{}
+	}
+	return produceHash(GetHighestPrepareBlockMsg, common.BigToHash(new(big.Int).SetUint64(gpb.Lowest)))
+}
+
+func (gpb *getHighestPrepareBlock) BHash() common.Hash {
 	if gpb == nil {
 		return common.Hash{}
 	}
@@ -290,6 +340,13 @@ func (pb *highestPrepareBlock) MsgHash() common.Hash {
 	if pb == nil {
 		return common.Hash{}
 	}
+	return produceHash(HighestPrepareBlockMsg, common.Hash{})
+}
+
+func (pb *highestPrepareBlock) BHash() common.Hash {
+	if pb == nil {
+		return common.Hash{}
+	}
 	return common.Hash{}
 }
 
@@ -306,6 +363,13 @@ func (gpb *getPrepareBlock) String() string {
 }
 
 func (gpb *getPrepareBlock) MsgHash() common.Hash {
+	if gpb == nil {
+		return common.Hash{}
+	}
+	return produceHash(GetPrepareBlockMsg, gpb.Hash)
+}
+
+func (gpb *getPrepareBlock) BHash() common.Hash {
 	if gpb == nil {
 		return common.Hash{}
 	}
@@ -329,6 +393,13 @@ func (pv *getPrepareVote) MsgHash() common.Hash {
 	if pv == nil {
 		return common.Hash{}
 	}
+	return produceHash(GetPrepareVoteMsg, pv.Hash)
+}
+
+func (pv *getPrepareVote) BHash() common.Hash {
+	if pv == nil {
+		return common.Hash{}
+	}
 	return pv.Hash
 }
 
@@ -346,6 +417,13 @@ func (pv *prepareVotes) String() string {
 }
 
 func (pv *prepareVotes) MsgHash() common.Hash {
+	if pv == nil {
+		return common.Hash{}
+	}
+	return produceHash(PrepareVotesMsg, pv.Hash)
+}
+
+func (pv *prepareVotes) BHash() common.Hash {
 	if pv == nil {
 		return common.Hash{}
 	}
@@ -381,6 +459,13 @@ func (v *signBitArray) MsgHash() common.Hash {
 	return v.BlockHash
 }
 
+func (v *signBitArray) BHash() common.Hash {
+	if v == nil {
+		return common.Hash{}
+	}
+	return v.BlockHash
+}
+
 type cbftStatusData struct {
 	BN              *big.Int
 	CurrentBlock    common.Hash
@@ -394,6 +479,13 @@ func (s *cbftStatusData) String() string {
 }
 
 func (s *cbftStatusData) MsgHash() common.Hash {
+	if s == nil {
+		return common.Hash{}
+	}
+	return produceHash(CBFTStatusMsg, s.CurrentBlock)
+}
+
+func (s *cbftStatusData) BHash() common.Hash {
 	if s == nil {
 		return common.Hash{}
 	}
