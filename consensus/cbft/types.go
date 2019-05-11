@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	sort2 "sort"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -888,8 +889,15 @@ func (bm *BlockExtMap) fixChain(blockExt *BlockExt) {
 }
 func (bm *BlockExtMap) BlockString() string {
 	var blockStr string
-	for _, v := range bm.blocks {
-		for _, ext := range v {
+
+	var keys []float64
+	for k, _ := range bm.blocks {
+		keys = append(keys, float64(k))
+	}
+	sort2.Float64s(keys)
+
+	for _, k := range keys {
+		for _, ext := range bm.blocks[uint64(k)] {
 			if ext.block != nil {
 				blockStr += fmt.Sprintf("[Hash:%s, Number:%d PrepareVotes:%d, Execute:%v ", ext.block.Hash().TerminalString(), ext.block.NumberU64(), ext.prepareVotes.Len(), ext.isExecuted)
 				for _, v := range ext.children {

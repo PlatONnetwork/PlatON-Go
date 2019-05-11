@@ -105,6 +105,7 @@ type Engine interface {
 
 	HasBlock(hash common.Hash, number uint64) bool
 
+	Status() string
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
 }

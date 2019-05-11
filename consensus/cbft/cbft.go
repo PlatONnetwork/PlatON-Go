@@ -108,6 +108,7 @@ type Cbft struct {
 	viewChangeVoteTimeoutCh chan *viewChangeVote
 	blockChainCache         *core.BlockChainCache
 	hasBlockCh              chan *HasBlock
+	statusCh                chan chan string
 	needPending             bool
 	RoundState
 	Syncing
@@ -157,6 +158,7 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux) *Cbft {
 		viewChangeTimeoutCh:     make(chan *viewChange),
 		viewChangeVoteTimeoutCh: make(chan *viewChangeVote),
 		hasBlockCh:              make(chan *HasBlock, peerMsgQueueSize),
+		statusCh:                make(chan chan string, peerMsgQueueSize),
 		netLatencyMap:           make(map[discover.NodeID]*list.List),
 		log:                     log.New(),
 	}
@@ -306,6 +308,8 @@ func (cbft *Cbft) receiveLoop() {
 			cbft.OnBaseBlock(baseBlock)
 		case hasBlock := <-cbft.hasBlockCh:
 			cbft.OnHasBlock(hasBlock)
+		case status := <-cbft.statusCh:
+			cbft.OnStatus(status)
 		}
 	}
 }
@@ -1818,6 +1822,15 @@ func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
 	return has
 }
 
+func (cbft *Cbft) Status() string {
+	status := make(chan string, 1)
+	cbft.statusCh <- status
+	return <-status
+}
+
+func (cbft *Cbft) OnStatus(status chan string) {
+	status <- cbft.RoundState.String()
+}
 func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {
 	//isCsusNode := cbft.IsConsensusNode() fmt.Sprintf("%x", p.ID().Bytes()[:8]),
 	peers := cbft.handler.peers.Peers()
