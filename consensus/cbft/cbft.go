@@ -162,7 +162,7 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux) *Cbft {
 		netLatencyMap:           make(map[discover.NodeID]*list.List),
 		log:                     log.New(),
 	}
-	cbft.bp = logBP
+	cbft.bp = defaultBP
 	cbft.handler = NewHandler(cbft)
 	cbft.router = NewRouter(cbft.handler)
 	cbft.resetCache, _ = lru.New(maxResetCacheSize)
@@ -780,7 +780,7 @@ func (cbft *Cbft) OnSendViewChange() {
 	cbft.log.Debug("Send new view", "view", view.String())
 	cbft.handler.SendAllConsensusPeer(view)
 
-	time.AfterFunc(time.Second, func() {
+	time.AfterFunc(time.Duration(cbft.config.Period)*time.Second, func() {
 		cbft.viewChangeTimeoutCh <- view
 	})
 }
@@ -831,7 +831,7 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 	resp.Signature.SetBytes(sign)
 	cbft.viewChangeResp = resp
 
-	time.AfterFunc(time.Second*2, func() {
+	time.AfterFunc(time.Duration(cbft.config.Period)*time.Second*2, func() {
 		cbft.viewChangeVoteTimeoutCh <- resp
 	})
 	cbft.setViewChange(view)
