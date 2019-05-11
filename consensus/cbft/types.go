@@ -468,7 +468,7 @@ func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
 		return errTimestamp
 	}
 
-	if cbft.blockExtMap.findBlock(view.BaseBlockHash, view.BaseBlockNum) == nil {
+	if cbft.getHighestConfirmed().number != view.BaseBlockNum {
 		cbft.log.Error(fmt.Sprintf("View's block is not found hash:%s, number:%d", view.BaseBlockHash.TerminalString(), view.BaseBlockNum))
 		return errNotFoundViewBlock
 	}
