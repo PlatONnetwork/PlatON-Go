@@ -1,6 +1,9 @@
 package cbft
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/deckarep/golang-set"
+	"math/big"
 	"testing"
 )
 
@@ -35,5 +38,20 @@ func TestRandomOffset_Zero(t *testing.T) {
 	offset := randomOffset(0)
 	if offset != 0 {
 		t.Fatalf("bad offset")
+	}
+}
+
+func TestSetHash(t *testing.T) {
+	var hashes mapset.Set
+	hashes = mapset.NewSet()
+	hashes.Add(common.BigToHash(big.NewInt(10)))
+	hashes.Add(common.BigToHash(big.NewInt(11)))
+	hashes.Add(common.BigToHash(big.NewInt(12)))
+
+	var con interface{} = common.BigToHash(big.NewInt(10))
+	if hashes.Contains(con) {
+		t.Log("exists")
+	} else {
+		t.Error("not exists")
 	}
 }
