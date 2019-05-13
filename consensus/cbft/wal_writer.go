@@ -30,7 +30,11 @@ func (w *WriterWrapper) Flush() (err error) {
 	//cw.mu.Lock()
 	//defer cw.mu.Unlock()
 
-	return w.writer.Flush()
+	err = w.writer.Flush()
+	if err != nil {
+		return err
+	}
+	return w.file.Sync()
 }
 
 func (w *WriterWrapper) Close() (err error) {
@@ -45,6 +49,10 @@ func (w *WriterWrapper) FlushAndClose() (err error) {
 	//defer cw.mu.Unlock()
 
 	err = w.writer.Flush()
+	if err != nil {
+		return err
+	}
+	err = w.file.Sync()
 	if err != nil {
 		return err
 	}

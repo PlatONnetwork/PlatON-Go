@@ -60,6 +60,22 @@ func (pbc *BlockChainCache) GetBlock(hash common.Hash, number uint64) *types.Blo
 	return block
 }
 
+func (pbc *BlockChainCache) GetBlockInMemory(hash common.Hash, number uint64) *types.Block {
+	var block *types.Block
+	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
+		log.Trace("find block in cbft", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		block = cbft.GetBlockWithoutLock(hash, number)
+	}
+	if block == nil {
+		log.Trace("cannot find block in cbft, try to find it in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		block = pbc.getBlock(hash, number)
+		if block == nil {
+			log.Trace("cannot find block in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		}
+	}
+	return block
+}
+
 func NewBlockChainCache(blockChain *BlockChain) *BlockChainCache {
 	pbc := &BlockChainCache{}
 	pbc.BlockChain = blockChain

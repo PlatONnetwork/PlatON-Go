@@ -39,7 +39,8 @@ import (
 
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
-	chainHeadChanSize = 10
+	// size is setted max blocks of one epoch
+	chainHeadChanSize = 250
 
 	// txExtBufferSize is the size fo channel listening to txExt.
 	txExtBufferSize = 4096
@@ -151,7 +152,7 @@ func (tx *TxPoolBlockChain) CurrentBlock() *types.Block {
 	return tx.chain.currentBlock.Load().(*types.Block)
 }
 func (tx *TxPoolBlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
-	return tx.chain.GetBlock(hash, number)
+	return tx.chain.GetBlockInMemory(hash, number)
 }
 
 //StateAt(root common.Hash) (*state.StateDB, error)
@@ -414,23 +415,9 @@ func (pool *TxPool) loop() {
 
 	// Track the previous head headers for transaction reorgs
 
-	head := pool.chain.CurrentBlock()
-
 	// Keep waiting for and reacting to the various events
 	for {
 		select {
-		// Handle block
-		case block := <-pool.chainHeadCh:
-			if block != nil {
-				pool.mu.Lock()
-				if pool.chainconfig.IsHomestead(block.Number()) {
-					pool.homestead = true
-				}
-				pool.reset(head.Header(), block.Header())
-				head = block
-
-				pool.mu.Unlock()
-			}
 
 		case <-pool.exitCh:
 			return
@@ -493,7 +480,19 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 		return
 	}
 	log.Debug("call Reset()", "RoutineID", common.CurrentGoRoutineID(), "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash(), "pool.chainHeadCh.len", len(pool.chainHeadCh))
-	pool.chainHeadCh <- newBlock
+	head := pool.chain.CurrentBlock()
+
+	if newBlock != nil {
+		pool.mu.Lock()
+		if pool.chainconfig.IsHomestead(newBlock.Number()) {
+			pool.homestead = true
+		}
+		pool.reset(head.Header(), newBlock.Header())
+		head = newBlock
+
+		pool.mu.Unlock()
+	}
+
 	if newBlock.NumberU64() < pool.chain.CurrentBlock().NumberU64() {
 		atomic.StoreInt32(&pool.rstFlag, DoingRst)
 	}

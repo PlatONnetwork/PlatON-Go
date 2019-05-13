@@ -64,11 +64,12 @@ func (s sortFiles) Less(i, j int) bool {
 func (s sortFiles) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
 type journal struct {
-	path   string         // Filesystem path to store the msgInfo at
-	writer *WriterWrapper // Output stream to write new msgInfo into
-	fileID uint32
-	mu     sync.Mutex
-	exitCh chan struct{}
+	path         string         // Filesystem path to store the msgInfo at
+	writer       *WriterWrapper // Output stream to write new msgInfo into
+	fileID       uint32
+	mu           sync.Mutex
+	exitCh       chan struct{}
+	successWrite int
 }
 
 func listJournalFiles(path string) sortFiles {
@@ -102,9 +103,10 @@ func listJournalFiles(path string) sortFiles {
 // newTxJournal creates journal object
 func NewJournal(path string) (*journal, error) {
 	journal := &journal{
-		path:   path,
-		exitCh: make(chan struct{}),
-		fileID: 1,
+		path:         path,
+		exitCh:       make(chan struct{}),
+		fileID:       1,
+		successWrite: 0,
 	}
 	if files := listJournalFiles(path); files != nil && files.Len() > 0 {
 		journal.fileID = files[len(files)-1].num
@@ -177,11 +179,13 @@ func (journal *journal) insert(msg *JournalMessage) error {
 	//
 	if err := journal.rotate(journalLimitSize); err != nil {
 		log.Error("Failed to rotate cbft journal", "err", err)
+		return err
 	}
 
 	n, err := journal.writer.Write(buf)
 	if err == nil && n > 0 {
 		log.Trace("Successful to insert journal message", "n", n)
+		journal.successWrite ++
 		return nil
 	}
 	return err
@@ -253,8 +257,15 @@ func (journal *journal) checkFileSize(journalLimitSize uint64) bool {
 }
 
 func (journal *journal) currentFileSize() (uint64, error) {
-	currentFile := filepath.Join(journal.path, fmt.Sprintf("wal.%d", journal.fileID))
-	if fileInfo, err := os.Stat(currentFile); err != nil {
+	//currentFile := filepath.Join(journal.path, fmt.Sprintf("wal.%d", journal.fileID))
+	//if fileInfo, err := os.Stat(currentFile); err != nil {
+	//	log.Error("Get the current journal file size error", "err", err)
+	//	return 0, err
+	//} else {
+	//	return uint64(fileInfo.Size()), nil
+	//}
+
+	if fileInfo, err := journal.writer.file.Stat(); err != nil {
 		log.Error("Get the current journal file size error", "err", err)
 		return 0, err
 	} else {
@@ -284,16 +295,19 @@ func (journal *journal) ExpireJournalFile(fileID uint32) error {
 	return nil
 }
 
-func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, add func(info *MsgInfo)) error {
+func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, add func(info *MsgInfo)) (err error) {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
 	if files := listJournalFiles(journal.path); files != nil && files.Len() > 0 {
 		for _, file := range files {
 			if file.num == fromFileID {
-				journal.loadJournal(file.num, fromSeq, add)
+				err = journal.loadJournal(file.num, fromSeq, add)
 			} else if file.num > fromFileID {
-				journal.loadJournal(file.num, 0, add)
+				err = journal.loadJournal(file.num, 0, add)
+			}
+			if err != nil {
+				return err
 			}
 		}
 	} else {

@@ -122,7 +122,7 @@ func newPeerSet() *peerSet {
 
 func (ps *peerSet) Register(p *peer) {
 	ps.lock.Lock()
-	ps.lock.Unlock()
+	defer ps.lock.Unlock()
 	ps.peers[p.id] = p
 }
 
@@ -141,8 +141,8 @@ func (ps *peerSet) Unregister(id string) error {
 }
 
 func (ps *peerSet) Get(id string) (*peer, error) {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
 
 	p, ok := ps.peers[id]
 	if !ok {
@@ -153,8 +153,8 @@ func (ps *peerSet) Get(id string) (*peer, error) {
 }
 
 func (ps *peerSet) AllConsensusPeer() []*peer {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
 
 	list := make([]*peer, 0, len(ps.peers))
 	for _, p := range ps.peers {
@@ -175,8 +175,8 @@ func (ps *peerSet) Close() {
 
 // Return all peer.
 func (ps *peerSet) Peers() []*peer {
-	ps.lock.Lock()
-	defer ps.lock.Unlock()
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
 
 	list := make([]*peer, 0, len(ps.peers))
 	for _, p := range ps.peers {

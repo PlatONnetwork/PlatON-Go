@@ -105,6 +105,7 @@ type Engine interface {
 
 	HasBlock(hash common.Hash, number uint64) bool
 
+	Status() string
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
 }
@@ -148,6 +149,8 @@ type Bft interface {
 	HighestConfirmedBlock() *types.Block
 
 	GetBlock(hash common.Hash, number uint64) *types.Block
+
+	GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block
 
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 

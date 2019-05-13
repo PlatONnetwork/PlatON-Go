@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"testing"
+	"time"
 )
 
 type msgInfoa struct {
@@ -25,9 +26,11 @@ type JournalMessagev struct {
 
 func TestWal(t *testing.T) {
 	wal, _ := NewWal(nil)
+	var err error
 
 	// test rotate
 	//time.Sleep(6 * time.Second)
+
 /*
 	// UpdateViewChange
 	wal.UpdateViewChange(&ViewChangeMessage{
@@ -36,7 +39,8 @@ func TestWal(t *testing.T) {
 	})
 
 	// WriteJournal
-	for i := 0; i < 1000000; i++ {
+	beginTime1 := uint64(time.Now().UnixNano())
+	for i := 0; i < 3000000; i++ {
 		peerId, _ := discover.HexID("b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6")
 		if i%2 == 0 {
 			viewChangeVotes := make([]*viewChangeVote, 0)
@@ -58,7 +62,7 @@ func TestWal(t *testing.T) {
 				ValidatorIndex: 22222,
 				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185829"),
 			})
-			wal.Write(&MsgInfo{
+			err = wal.Write(&MsgInfo{
 				Msg: &prepareBlock{
 					Timestamp:     uint64(time.Now().UnixNano()),
 					ProposalIndex: 666,
@@ -97,14 +101,14 @@ func TestWal(t *testing.T) {
 				Number:6789,
 				Votes:pvs,
 			})
-			wal.Write(&MsgInfo{
+			err = wal.Write(&MsgInfo{
 				Msg: &highestPrepareBlock{
 					Votes: votes,
 				},
 				PeerID: peerId,
 			})
 		} else if i%5 == 0 {
-			wal.Write(&MsgInfo{
+			err = wal.Write(&MsgInfo{
 				Msg: &prepareVote{
 					Timestamp:      uint64(time.Now().UnixNano()),
 					Hash:           common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066326"),
@@ -130,7 +134,7 @@ func TestWal(t *testing.T) {
 				ValidatorIndex: 9901,
 				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185828"),
 			})
-			wal.Write(&MsgInfo{
+			err = wal.Write(&MsgInfo{
 				Msg: &prepareVotes{
 					Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
 					Number: 7788,
@@ -139,7 +143,7 @@ func TestWal(t *testing.T) {
 				PeerID: peerId,
 			})
 		} else {
-			wal.Write(&MsgInfo{
+			err = wal.Write(&MsgInfo{
 				Msg: &viewChange{
 					Timestamp:     uint64(time.Now().UnixNano()),
 					ProposalIndex: 12,
@@ -150,12 +154,33 @@ func TestWal(t *testing.T) {
 				PeerID: peerId,
 			})
 		}
+		if err != nil {
+			fmt.Println("write error", err)
+			panic(err)
+		}
 	}
+	wal.Close()		// force flush
+	count := wal.journal.successWrite
+	fmt.Println("write total msg info", count)
+	endTime1 := uint64(time.Now().UnixNano())
+	fmt.Println("write elapsed time", endTime1 - beginTime1)
 */
+
 	// LoadJournal
-	wal.Load(func(info *MsgInfo) {
-		fmt.Printf("info=%#v\n", info)
+	beginTime2 := uint64(time.Now().UnixNano())
+	count := 0
+	err = wal.Load(func(info *MsgInfo) {
+		count ++
+		//fmt.Printf("info=%#v\n", info)
 	})
+	if err != nil {
+		fmt.Println("load error", err)
+		//panic(err)
+	}
+	endTime2 := uint64(time.Now().UnixNano())
+	fmt.Println("total msg info", count)
+	fmt.Println("load elapsed time", endTime2 - beginTime2)
+
 }
 
 func TestLevelDB(t *testing.T) {

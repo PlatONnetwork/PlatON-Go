@@ -57,7 +57,7 @@ func (h *handler) broadcast(m *MsgPackage) {
 
 func (h *handler) sendPeer(m *MsgPackage) {
 	if peer, err := h.peers.Get(m.peerID); err == nil {
-		log.Debug("Send message", "targetPeer",m.peerID, "type", reflect.TypeOf(m.msg), "msgHash", m.msg.MsgHash().TerminalString())
+		log.Debug("Send message", "targetPeer",m.peerID, "type", reflect.TypeOf(m.msg), "msgHash", m.msg.MsgHash().TerminalString(), "BHash", m.msg.BHash().TerminalString())
 		if err := p2p.Send(peer.rw, MessageType(m.msg), m.msg); err != nil {
 			log.Error("Send Peer error")
 			h.peers.Unregister(m.peerID)
@@ -66,6 +66,7 @@ func (h *handler) sendPeer(m *MsgPackage) {
 }
 
 func (h *handler) SendAllConsensusPeer(msg Message) {
+	log.Debug("SendAllConsensusPeer Invoke", "hash", msg.MsgHash(), "type", reflect.TypeOf(msg), "BHash", msg.BHash().TerminalString())
 	h.sendQueue <- &MsgPackage{
 		msg: msg,
 	}
@@ -84,7 +85,7 @@ func (h *handler) SendBroadcast(msg Message) {
 	}
 	select {
 	case h.sendQueue <- msgPkg:
-		h.cbft.log.Trace("Send message to broadcast queue", "msgHash", msg.MsgHash().TerminalString())
+		h.cbft.log.Debug("Send message to broadcast queue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
 	}
 }
 
@@ -147,6 +148,16 @@ func (h *handler) handleMsg(p *peer) error {
 	switch {
 	case msg.Code == CBFTStatusMsg:
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
+	case msg.Code == GetPrepareBlockMsg :
+		var request getPrepareBlock
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		h.cbft.ReceivePeerMsg(&MsgInfo{
+			Msg:    &request,
+			PeerID: p.ID(),
+		})
+		return nil
 	case msg.Code == PrepareBlockMsg:
 		// Retrieve and decode the propagated block
 		var request prepareBlock

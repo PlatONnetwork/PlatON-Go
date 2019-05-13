@@ -18,6 +18,7 @@ package eth
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -46,6 +47,9 @@ type EthAPIBackend struct {
 // ChainConfig returns the active chain configuration.
 func (b *EthAPIBackend) ChainConfig() *params.ChainConfig {
 	return b.eth.chainConfig
+}
+func (b *EthAPIBackend) Engine() consensus.Engine {
+	return b.eth.engine
 }
 
 func (b *EthAPIBackend) CurrentBlock() *types.Block {

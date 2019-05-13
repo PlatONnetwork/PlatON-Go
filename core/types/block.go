@@ -268,7 +268,6 @@ func (b *Block) EncodeRLP(w io.Writer) error {
 		Txs:       b.transactions,
 		ExtraData: b.extraData,
 	})
-	return nil
 }
 
 // [deprecated by eth/63]
