@@ -171,11 +171,6 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceCo
 	cbft.router = NewRouter(cbft.handler)
 	cbft.resetCache, _ = lru.New(maxResetCacheSize)
 
-	go cbft.receiveLoop()
-	go cbft.executeBlockLoop()
-	//start receive cbft message
-	go cbft.handler.Start()
-	go cbft.update()
 	return cbft
 }
 
@@ -244,10 +239,10 @@ func (cbft *Cbft) SetBlockChainCache(blockChainCache *core.BlockChainCache) {
 	cbft.blockChainCache = blockChainCache
 }
 
-// SetBackend sets blockChain and txPool into cbft
-func (c *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) error {
-	c.blockChain = blockChain
-	c.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
+// Start sets blockChain and txPool into cbft
+func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool) error {
+	cbft.blockChain = blockChain
+	cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
 
 	currentBlock := blockChain.CurrentBlock()
 
@@ -256,13 +251,13 @@ func (c *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) erro
 		currentBlock.Header().Number = big.NewInt(0)
 	}
 
-	c.log.Debug("Init highestLogicalBlock", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
+	cbft.log.Debug("Init highestLogicalBlock", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
 
-	current := NewBlockExtBySeal(currentBlock, currentBlock.NumberU64(), c.nodeLength())
+	current := NewBlockExtBySeal(currentBlock, currentBlock.NumberU64(), cbft.nodeLength())
 	current.number = currentBlock.NumberU64()
 
-	if current.number != 0 && len(c.dpos.primaryNodeList) > 1 {
-		if _, extra, err := c.decodeExtra(currentBlock.ExtraData()); err != nil {
+	if current.number != 0 && len(cbft.dpos.primaryNodeList) > 1 {
+		if _, extra, err := cbft.decodeExtra(currentBlock.ExtraData()); err != nil {
 			current.view = extra.ViewChange
 			current.viewChangeVotes = extra.ViewChangeVotes
 			for _, v := range extra.Prepare {
@@ -270,28 +265,38 @@ func (c *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) erro
 				current.prepareVotes.Add(v)
 			}
 		} else {
-			c.log.Error("extra decode error")
+			cbft.log.Error("extra decode error")
 			return nil
 		}
 	}
 
-	c.blockExtMap = NewBlockExtMap(current, c.getThreshold())
-	c.saveBlockExt(currentBlock.Hash(), current)
+	cbft.blockExtMap = NewBlockExtMap(current, cbft.getThreshold())
+	cbft.saveBlockExt(currentBlock.Hash(), current)
 
-	c.highestConfirmed.Store(current)
-	c.highestLogical.Store(current)
+	cbft.highestConfirmed.Store(current)
+	cbft.highestLogical.Store(current)
 
-	c.rootIrreversible.Store(current)
+	cbft.rootIrreversible.Store(current)
 
-	c.txPool = txPool
-	c.init()
+	cbft.txPool = txPool
+	cbft.init()
 
 	// init wal and load wal journal
 	var err error
-	if c.wal, err = NewWal(c.nodeServiceContext); err != nil {
+	if cbft.wal, err = NewWal(cbft.nodeServiceContext); err != nil {
 		return err
 	}
-	return c.wal.Load(c.AddJournal)
+	if err = cbft.wal.Load(cbft.AddJournal); err != nil {
+		return err
+	}
+
+	go cbft.receiveLoop()
+	go cbft.executeBlockLoop()
+	//start receive cbft message
+	go cbft.handler.Start()
+	go cbft.update()
+
+	return nil
 }
 
 func (cbft *Cbft) receiveLoop() {
@@ -1862,6 +1867,7 @@ func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {
 	return true
 }
 
-func (c *Cbft) AddJournal(info *MsgInfo) {
-	c.ReceivePeerMsg(info)
+func (cbft *Cbft) AddJournal(info *MsgInfo) {
+	cbft.log.Debug("load msg info success,info=%#v\n", info)
+	cbft.ReceivePeerMsg(info)
 }

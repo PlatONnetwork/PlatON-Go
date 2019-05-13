@@ -21,7 +21,7 @@ import (
 
 const (
 	// The limit size of a single journal file
-	journalLimitSize = 100 * 1024 * 1024
+	journalLimitSize = 1 * 1024 * 1024
 
 	// A new Writer whose buffer has at least the specified size
 	writeBufferLimitSize = 16 * 1024

@@ -30,7 +30,6 @@ func TestWal(t *testing.T) {
 
 	// test rotate
 	//time.Sleep(6 * time.Second)
-
 /*
 	// UpdateViewChange
 	wal.UpdateViewChange(&ViewChangeMessage{
@@ -87,19 +86,19 @@ func TestWal(t *testing.T) {
 			//})
 			pvs := make([]*prepareVote, 0)
 			pvs = append(pvs, &prepareVote{
-				Timestamp:      uint64(time.Now().UnixNano()),
-				Number:7777,
+				Timestamp: uint64(time.Now().UnixNano()),
+				Number:    7777,
 			})
 			votes := make([]*prepareVotes, 0)
 			votes = append(votes, &prepareVotes{
-				Hash:common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
-				Number:5678,
-				Votes:pvs,
+				Hash:   common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
+				Number: 5678,
+				Votes:  pvs,
 			})
-			votes = append(votes,  &prepareVotes{
-				Hash:common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
-				Number:6789,
-				Votes:pvs,
+			votes = append(votes, &prepareVotes{
+				Hash:   common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
+				Number: 6789,
+				Votes:  pvs,
 			})
 			err = wal.Write(&MsgInfo{
 				Msg: &highestPrepareBlock{
@@ -159,12 +158,13 @@ func TestWal(t *testing.T) {
 			panic(err)
 		}
 	}
-	wal.Close()		// force flush
+	wal.Close() // force flush
 	count := wal.journal.successWrite
 	fmt.Println("write total msg info", count)
 	endTime1 := uint64(time.Now().UnixNano())
-	fmt.Println("write elapsed time", endTime1 - beginTime1)
+	fmt.Println("write elapsed time", endTime1-beginTime1)
 */
+
 
 	// LoadJournal
 	beginTime2 := uint64(time.Now().UnixNano())
@@ -179,7 +179,7 @@ func TestWal(t *testing.T) {
 	}
 	endTime2 := uint64(time.Now().UnixNano())
 	fmt.Println("total msg info", count)
-	fmt.Println("load elapsed time", endTime2 - beginTime2)
+	fmt.Println("load elapsed time", endTime2-beginTime2)
 
 }
 

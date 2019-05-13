@@ -153,6 +153,7 @@ func (wal *Wal) updateViewChangeMeta(vc *ViewChangeMessage) error {
 	if err != nil {
 		return err
 	}
+	log.Debug("success to update viewChange meta", "number", vc.Number, "hash", vc.Hash, "fileID", fileID, "seq", seq)
 	// Delete previous journal logs
 	return wal.journal.ExpireJournalFile(fileID)
 }

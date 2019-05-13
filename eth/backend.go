@@ -206,7 +206,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbft, ok := bft.(*cbft.Cbft); ok {
 			cbft.SetBlockChainCache(blockChainCache)
-			if err := cbft.SetBackend(eth.blockchain, eth.txPool); err != nil {
+			if err := cbft.Start(eth.blockchain, eth.txPool); err != nil {
 				return nil, errors.New("Failed to init cbft consensus engine")
 			}
 		}
