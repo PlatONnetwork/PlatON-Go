@@ -267,7 +267,7 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool) error 
 			}
 		} else {
 			cbft.log.Error("extra decode error")
-			return nil
+			return err
 		}
 	}
 
