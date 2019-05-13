@@ -921,10 +921,10 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 		}
 
 		if cbft.getHighestLogical().number < request.View.BaseBlockNum ||
-			cbft.blockExtMap.findBlock(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum) == nil {
+			cbft.blockExtMap.findBlock(request.View.BaseBlockHash, request.View.BaseBlockNum) == nil {
 			cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, errNotFoundViewBlock, &cbft.RoundState)
 			cbft.handler.Send(nodeId, &getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
-			cbft.log.Error(fmt.Sprintf("View Block is not found, hash:%s, number:%d", cbft.viewChange.BaseBlockHash.TerminalString(), cbft.viewChange.BaseBlockNum))
+			cbft.log.Error(fmt.Sprintf("View Block is not found, hash:%s, number:%d", request.View.BaseBlockHash.TerminalString(), request.View.BaseBlockNum))
 			return errNotFoundViewBlock
 		}
 
