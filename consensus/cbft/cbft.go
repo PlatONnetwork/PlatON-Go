@@ -797,6 +797,7 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 			if view.BaseBlockNum-cbft.getHighestConfirmed().number > maxBlockDist {
 				atomic.StoreInt32(&cbft.running, 0)
 			} else {
+				cbft.log.Warn(fmt.Sprintf("Local is too slower, need to sync block to %s", peerID.TerminalString()))
 				cbft.handler.Send(peerID, &getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
 			}
 		}
@@ -881,7 +882,6 @@ func (cbft *Cbft) flushReadyBlock() bool {
 func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBlock, propagation bool) error {
 	bpCtx := context.WithValue(context.TODO(), "peer", nodeId)
 	cbft.bp.PrepareBP().ReceiveBlock(bpCtx, request, &cbft.RoundState)
-
 	//discard block when view.Timestamp != request.Timestamp && request.BlockNum > view.BlockNum
 	if cbft.viewChange != nil && request.Timestamp != cbft.viewChange.Timestamp && request.Block.NumberU64() > cbft.viewChange.BaseBlockNum {
 		return errFutileBlock
@@ -915,8 +915,16 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	if len(request.ViewChangeVotes) != 0 && request.View != nil {
 		if len(request.ViewChangeVotes) < cbft.getThreshold() {
 			cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, errTwoThirdPrepareVotes, &cbft.RoundState)
-			log.Error(fmt.Sprintf("Receive not enough prepareVotes %d threshold %d", len(request.ViewChangeVotes), cbft.getThreshold()))
+			cbft.log.Error(fmt.Sprintf("Receive not enough prepareVotes %d threshold %d", len(request.ViewChangeVotes), cbft.getThreshold()))
 			return errTwoThirdViewchangeVotes
+		}
+
+		if cbft.getHighestLogical().number < request.View.BaseBlockNum ||
+			cbft.blockExtMap.findBlock(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum) == nil {
+			cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, errNotFoundViewBlock, &cbft.RoundState)
+			cbft.handler.Send(nodeId, &getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
+			cbft.log.Error(fmt.Sprintf("View Block is not found, hash:%s, number:%d", cbft.viewChange.BaseBlockHash.TerminalString(), cbft.viewChange.BaseBlockNum))
+			return errNotFoundViewBlock
 		}
 
 		oldViewChange := cbft.viewChange
@@ -928,7 +936,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 		if err := cbft.checkViewChangeVotes(request.ViewChangeVotes); err != nil {
 			cbft.bp.PrepareBP().InvalidViewChangeVote(bpCtx, request, err, &cbft.RoundState)
 			cbft.viewChange = oldViewChange
-			log.Error("Receive prepare invalid block", "err", err)
+			cbft.log.Error("Receive prepare invalid block", "err", err)
 			return err
 		}
 
