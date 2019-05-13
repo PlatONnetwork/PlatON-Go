@@ -21,7 +21,7 @@ import (
 
 const (
 	// The limit size of a single journal file
-	journalLimitSize = 1 * 1024 * 1024
+	journalLimitSize = 100 * 1024 * 1024
 
 	// A new Writer whose buffer has at least the specified size
 	writeBufferLimitSize = 16 * 1024
@@ -300,6 +300,7 @@ func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, add func(
 	defer journal.mu.Unlock()
 
 	if files := listJournalFiles(journal.path); files != nil && files.Len() > 0 {
+		log.Debug("begin to load journal", "fromFileID", fromFileID, "fromSeq", fromSeq)
 		for _, file := range files {
 			if file.num == fromFileID {
 				err = journal.loadJournal(file.num, fromSeq, add)

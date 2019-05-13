@@ -9,11 +9,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"reflect"
 	"sync"
@@ -129,6 +129,7 @@ type Cbft struct {
 	// wal
 	nodeServiceContext *node.ServiceContext
 	wal                *Wal
+	loading            int32
 }
 
 // New creates a concurrent BFT consensus engine
@@ -286,9 +287,11 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool) error 
 	if cbft.wal, err = NewWal(cbft.nodeServiceContext); err != nil {
 		return err
 	}
+	atomic.StoreInt32(&cbft.loading, 1)
 	if err = cbft.wal.Load(cbft.AddJournal); err != nil {
 		return err
 	}
+	atomic.StoreInt32(&cbft.loading, 0)
 
 	go cbft.receiveLoop()
 	go cbft.executeBlockLoop()
@@ -346,7 +349,9 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 	}
 
 	// write journal info
-	cbft.wal.Write(info)
+	if !cbft.isLoading() {
+		cbft.wal.Write(info)
+	}
 
 	switch msg := msg.(type) {
 	case *prepareBlock:
@@ -378,6 +383,10 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 }
 func (cbft *Cbft) isRunning() bool {
 	return atomic.LoadInt32(&cbft.running) == 1
+}
+
+func (cbft *Cbft) isLoading() bool {
+	return atomic.LoadInt32(&cbft.loading) == 1
 }
 
 func (cbft *Cbft) OnShouldSeal(shouldSeal chan error) {
@@ -1867,7 +1876,7 @@ func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {
 	return true
 }
 
-func (cbft *Cbft) AddJournal(info *MsgInfo) {
-	cbft.log.Debug("load msg info success,info=%#v\n", info)
-	cbft.ReceivePeerMsg(info)
+func (cbft *Cbft) AddJournal(msg *MsgInfo) {
+	cbft.log.Debug("[Method:LoadPeerMsg] received message from peer", "peer", msg.PeerID.TerminalString(), "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString())
+	cbft.handleMsg(msg)
 }

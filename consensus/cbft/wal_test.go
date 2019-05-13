@@ -30,6 +30,7 @@ func TestWal(t *testing.T) {
 
 	// test rotate
 	//time.Sleep(6 * time.Second)
+
 /*
 	// UpdateViewChange
 	wal.UpdateViewChange(&ViewChangeMessage{
@@ -164,7 +165,6 @@ func TestWal(t *testing.T) {
 	endTime1 := uint64(time.Now().UnixNano())
 	fmt.Println("write elapsed time", endTime1-beginTime1)
 */
-
 
 	// LoadJournal
 	beginTime2 := uint64(time.Now().UnixNano())
