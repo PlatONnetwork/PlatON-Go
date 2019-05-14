@@ -206,7 +206,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbft, ok := bft.(*cbft.Cbft); ok {
 			cbft.SetBlockChainCache(blockChainCache)
-			cbft.SetBackend(eth.blockchain, eth.txPool)
+			if err := cbft.Start(eth.blockchain, eth.txPool); err != nil {
+				return nil, errors.New("Failed to init cbft consensus engine")
+			}
 		}
 	}
 
@@ -267,7 +269,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		chainConfig.Cbft.MaxLatency = cbftConfig.MaxLatency
 		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
 		chainConfig.Cbft.Duration = cbftConfig.Duration
-		return cbft.New(chainConfig.Cbft, eventMux)
+		return cbft.New(chainConfig.Cbft, eventMux, ctx)
 	}
 	return nil
 }
