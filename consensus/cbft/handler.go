@@ -2,10 +2,11 @@ package cbft
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"reflect"
 )
 
 const (
@@ -58,6 +59,7 @@ func (h *handler) broadcast(m *MsgPackage) {
 func (h *handler) sendPeer(m *MsgPackage) {
 	if peer, err := h.peers.Get(m.peerID); err == nil {
 		log.Debug("Send message", "targetPeer", m.peerID, "type", reflect.TypeOf(m.msg), "msgHash", m.msg.MsgHash().TerminalString(), "BHash", m.msg.BHash().TerminalString())
+
 		if err := p2p.Send(peer.rw, MessageType(m.msg), m.msg); err != nil {
 			log.Error("Send Peer error")
 			h.peers.Unregister(m.peerID)
@@ -279,6 +281,16 @@ func (h *handler) handleMsg(p *peer) error {
 		}
 		p.MarkMessageHash((&request).MsgHash())
 
+		h.cbft.ReceivePeerMsg(&MsgInfo{
+			Msg:    &request,
+			PeerID: p.ID(),
+		})
+		return nil
+	case msg.Code == GetPrepareBlockMsg:
+		var request getPrepareBlock
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
 		h.cbft.ReceivePeerMsg(&MsgInfo{
 			Msg:    &request,
 			PeerID: p.ID(),

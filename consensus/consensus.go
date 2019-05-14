@@ -19,6 +19,8 @@ package consensus
 
 import (
 	"crypto/ecdsa"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -26,7 +28,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"time"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -106,6 +107,12 @@ type Engine interface {
 	HasBlock(hash common.Hash, number uint64) bool
 
 	Status() string
+	GetBlockByHash(hash common.Hash) *types.Block
+
+	CurrentBlock() *types.Block
+
+	FastSyncCommitHead() <-chan error
+
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
 }
