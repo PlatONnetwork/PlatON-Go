@@ -9,11 +9,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/event"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"reflect"
 	"sync"
@@ -90,7 +90,7 @@ type Cbft struct {
 	txPool      *core.TxPool
 	blockChain  *core.BlockChain //the block chain
 	running     int32
-	peerMsgCh   chan *msgInfo
+	peerMsgCh   chan *MsgInfo
 	syncBlockCh chan *BlockExt
 
 	highestLogical   atomic.Value //highest block in logical path, local packages new block will base on it
@@ -126,10 +126,15 @@ type Cbft struct {
 	bp         Breakpoint
 	// router
 	router *router
+
+	// wal
+	nodeServiceContext *node.ServiceContext
+	wal                *Wal
+	loading            int32
 }
 
 // New creates a concurrent BFT consensus engine
-func New(config *params.CbftConfig, eventMux *event.TypeMux) *Cbft {
+func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
 	//todo need dynamic change consensus nodes
 	initialNodesID := make([]discover.NodeID, 0, len(config.InitialNodes))
 	for _, n := range config.InitialNodes {
@@ -147,7 +152,7 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux) *Cbft {
 		exitCh:                  make(chan struct{}),
 		signedSet:               make(map[uint64]struct{}),
 		syncBlockCh:             make(chan *BlockExt, peerMsgQueueSize),
-		peerMsgCh:               make(chan *msgInfo, peerMsgQueueSize),
+		peerMsgCh:               make(chan *MsgInfo, peerMsgQueueSize),
 		executeBlockCh:          make(chan *ExecuteBlockStatus),
 		baseBlockCh:             make(chan chan *types.Block),
 		sealBlockCh:             make(chan *SealBlock),
@@ -161,17 +166,13 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux) *Cbft {
 		statusCh:                make(chan chan string, peerMsgQueueSize),
 		netLatencyMap:           make(map[discover.NodeID]*list.List),
 		log:                     log.New(),
+		nodeServiceContext:      ctx,
 	}
 	cbft.bp = defaultBP
 	cbft.handler = NewHandler(cbft)
 	cbft.router = NewRouter(cbft.handler)
 	cbft.resetCache, _ = lru.New(maxResetCacheSize)
 
-	go cbft.receiveLoop()
-	go cbft.executeBlockLoop()
-	//start receive cbft message
-	go cbft.handler.Start()
-	go cbft.update()
 	return cbft
 }
 
@@ -198,10 +199,10 @@ func (cbft *Cbft) getHighestLogical() *BlockExt {
 	}
 }
 
-func (cbft *Cbft) ReceivePeerMsg(msg *msgInfo) {
+func (cbft *Cbft) ReceivePeerMsg(msg *MsgInfo) {
 	select {
 	case cbft.peerMsgCh <- msg:
-		cbft.log.Debug("[Method:ReceivePeerMsg] received message from peer", "peer", msg.peerID.TerminalString(), "msgType", reflect.TypeOf(msg.msg), "msgHash", msg.msg.MsgHash().TerminalString(), "BHash", msg.msg.BHash().TerminalString())
+		cbft.log.Debug("[Method:ReceivePeerMsg] received message from peer", "peer", msg.PeerID.TerminalString(), "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString())
 	case <-cbft.exitCh:
 		cbft.log.Error("[Method:ReceivePeerMsg] cbft exit")
 	}
@@ -240,8 +241,8 @@ func (cbft *Cbft) SetBlockChainCache(blockChainCache *core.BlockChainCache) {
 	cbft.blockChainCache = blockChainCache
 }
 
-// SetBackend sets blockChain and txPool into cbft
-func (cbft *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
+// Start sets blockChain and txPool into cbft
+func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool) error {
 	cbft.blockChain = blockChain
 	cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
 
@@ -267,7 +268,8 @@ func (cbft *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 			}
 		} else {
 			cbft.log.Error("extra decode error")
-			return
+
+			return err
 		}
 	}
 
@@ -281,6 +283,25 @@ func (cbft *Cbft) SetBackend(blockChain *core.BlockChain, txPool *core.TxPool) {
 
 	cbft.txPool = txPool
 	cbft.init()
+
+	// init wal and load wal journal
+	var err error
+	if cbft.wal, err = NewWal(cbft.nodeServiceContext); err != nil {
+		return err
+	}
+	atomic.StoreInt32(&cbft.loading, 1)
+	if err = cbft.wal.Load(cbft.AddJournal); err != nil {
+		return err
+	}
+	atomic.StoreInt32(&cbft.loading, 0)
+
+	go cbft.receiveLoop()
+	go cbft.executeBlockLoop()
+	//start receive cbft message
+	go cbft.handler.Start()
+	go cbft.update()
+
+	return nil
 }
 
 func (cbft *Cbft) receiveLoop() {
@@ -314,8 +335,8 @@ func (cbft *Cbft) receiveLoop() {
 	}
 }
 
-func (cbft *Cbft) handleMsg(info *msgInfo) {
-	msg, peerID := info.msg, info.peerID
+func (cbft *Cbft) handleMsg(info *MsgInfo) {
+	msg, peerID := info.Msg, info.PeerID
 	var err error
 
 	if !cbft.isRunning() {
@@ -327,6 +348,11 @@ func (cbft *Cbft) handleMsg(info *msgInfo) {
 			cbft.log.Debug("Cbft is not running, discard consensus message")
 			return
 		}
+	}
+
+	// write journal info
+	if !cbft.isLoading() {
+		cbft.wal.Write(info)
 	}
 
 	switch msg := msg.(type) {
@@ -359,6 +385,10 @@ func (cbft *Cbft) handleMsg(info *msgInfo) {
 }
 func (cbft *Cbft) isRunning() bool {
 	return atomic.LoadInt32(&cbft.running) == 1
+}
+
+func (cbft *Cbft) isLoading() bool {
+	return atomic.LoadInt32(&cbft.loading) == 1
 }
 
 func (cbft *Cbft) OnShouldSeal(shouldSeal chan error) {
@@ -799,6 +829,7 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 				atomic.StoreInt32(&cbft.running, 0)
 			} else {
 				cbft.log.Warn(fmt.Sprintf("Local is too slower, need to sync block to %s", peerID.TerminalString()))
+
 				cbft.handler.Send(peerID, &getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
 			}
 		}
@@ -883,6 +914,7 @@ func (cbft *Cbft) flushReadyBlock() bool {
 func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBlock, propagation bool) error {
 	bpCtx := context.WithValue(context.TODO(), "peer", nodeId)
 	cbft.bp.PrepareBP().ReceiveBlock(bpCtx, request, &cbft.RoundState)
+
 	//discard block when view.Timestamp != request.Timestamp && request.BlockNum > view.BlockNum
 	if cbft.viewChange != nil && request.Timestamp != cbft.viewChange.Timestamp && request.Block.NumberU64() > cbft.viewChange.BaseBlockNum {
 		return errFutileBlock
@@ -1460,6 +1492,9 @@ func (cbft *Cbft) Close() error {
 		cbft.exitCh <- struct{}{}
 		close(cbft.exitCh)
 	})
+	if cbft.wal != nil {
+		cbft.wal.Close()
+	}
 	return nil
 }
 
@@ -1851,4 +1886,9 @@ func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {
 	}
 	cbft.log.Debug("need to broadcast", "type", reflect.TypeOf(msg), "hash", msg.MsgHash(), "BHash", msg.BHash().TerminalString())
 	return true
+}
+
+func (cbft *Cbft) AddJournal(msg *MsgInfo) {
+	cbft.log.Debug("[Method:LoadPeerMsg] received message from peer", "peer", msg.PeerID.TerminalString(), "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString())
+	cbft.handleMsg(msg)
 }

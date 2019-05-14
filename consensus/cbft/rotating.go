@@ -20,10 +20,10 @@ func newRotating(dpos *dpos, timeInterval int64) *rotating {
 	return rotating
 }
 
-func sort() {
-	// New round of consensus sorting function
-	// xor(Last block last block hash + node public key address)
-}
+//func sort() {
+//	// New round of consensus sorting function
+//	// xor(Last block last block hash + node public key address)
+//}
 
 func (r *rotating) IsRotating(common.Address) bool {
 	// Determine whether the current node is out of order

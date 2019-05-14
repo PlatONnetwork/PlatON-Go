@@ -36,6 +36,7 @@ type peer struct {
 
 func newPeer(p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
+
 		Peer:             p,
 		rw:               rw,
 		id:               fmt.Sprintf("%x", p.ID().Bytes()[:8]),
@@ -59,6 +60,7 @@ func (p *peer) MarkMessageHash(hash common.Hash) {
 func (p *peer) Handshake(bn *big.Int, head common.Hash) error {
 	errc := make(chan error, 2)
 	var status cbftStatusData
+
 	go func() {
 		errc <- p2p.Send(p.rw, CBFTStatusMsg, &cbftStatusData{
 			BN:           bn,
@@ -75,6 +77,7 @@ func (p *peer) Handshake(bn *big.Int, head common.Hash) error {
 	defer timeout.Stop()
 	for i := 0; i < 2; i++ {
 		select {
+
 		case err := <-errc:
 			if err != nil {
 				return err
@@ -89,6 +92,7 @@ func (p *peer) Handshake(bn *big.Int, head common.Hash) error {
 
 func (p *peer) readStatus(status *cbftStatusData) error {
 	msg, err := p.rw.ReadMsg()
+
 	if err != nil {
 		return err
 	}
@@ -99,6 +103,7 @@ func (p *peer) readStatus(status *cbftStatusData) error {
 		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, CbftProtocolMaxMsgSize)
 	}
 	if err := msg.Decode(&status); err != nil {
+
 		return errResp(ErrDecode, "msg %v: %v", msg, err)
 	}
 	// todo: additional judgment.
@@ -198,6 +203,7 @@ func (ps *peerSet) printPeers() {
 			var bf bytes.Buffer
 			for idx, peer := range peers {
 				bf.WriteString(peer.id)
+
 				if idx < len(peers)-1 {
 					bf.WriteString(",")
 				}

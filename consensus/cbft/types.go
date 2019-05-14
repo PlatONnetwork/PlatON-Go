@@ -387,9 +387,9 @@ func (cbft *Cbft) handleCache() {
 func (cbft *Cbft) processing(votes ProcessingVote) {
 	for _, v := range votes {
 		for k, v := range v {
-			cbft.peerMsgCh <- &msgInfo{
-				msg:    v,
-				peerID: k,
+			cbft.peerMsgCh <- &MsgInfo{
+				Msg:    v,
+				PeerID: k,
 			}
 		}
 	}
@@ -529,6 +529,10 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 		}
 	}
 	if !hadAgree && cbft.agreeViewChange() {
+		cbft.wal.UpdateViewChange(&ViewChangeMessage{
+			Hash:   vote.BlockHash,
+			Number: vote.BlockNum,
+		})
 		cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, &cbft.RoundState)
 		cbft.flushReadyBlock()
 		cbft.producerBlocks = NewProducerBlocks(cbft.config.NodeID, cbft.viewChange.BaseBlockNum)

@@ -35,7 +35,7 @@ func newTestRouter() *router {
 	return &router{
 		msgHandler: &handler{
 			peers: TestPeerSet,
-			cbft: newCbft(),
+			cbft:  newCbft(),
 		},
 	}
 }
@@ -43,12 +43,13 @@ func newTestRouter() *router {
 func newCbft() *Cbft {
 	config := &params.CbftConfig{
 		InitialNodes: []discover.Node{
-			{ID : StringID("test1")},
-			{ID : StringID("test2")},
-			{ID : StringID("test5")},
+			{ID: StringID("test1")},
+			{ID: StringID("test2")},
+			{ID: StringID("test5")},
 		},
 	}
-	return New(config, &event.TypeMux{})
+
+	return New(config, &event.TypeMux{}, nil)
 }
 
 func TestSelectNodesByMsgType(t *testing.T) {

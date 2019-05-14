@@ -9,7 +9,7 @@ import (
 	"reflect"
 )
 
-const CbftProtocolMaxMsgSize	= 10 * 1024 * 1024
+const CbftProtocolMaxMsgSize = 10 * 1024 * 1024
 
 const (
 	PrepareBlockMsg           = 0x00
@@ -23,8 +23,8 @@ const (
 	GetHighestPrepareBlockMsg = 0x08
 	HighestPrepareBlockMsg    = 0x09
 
-	CBFTStatusMsg			  = 0x0a
-	PrepareBlockHashMsg		  = 0x0b
+	CBFTStatusMsg       = 0x0a
+	PrepareBlockHashMsg = 0x0b
 )
 
 type errCode int
@@ -64,9 +64,9 @@ type Message interface {
 	BHash() common.Hash
 }
 
-type msgInfo struct {
-	msg    Message
-	peerID discover.NodeID
+type MsgInfo struct {
+	Msg    Message
+	PeerID discover.NodeID
 }
 
 // CBFT consensus message
@@ -467,8 +467,8 @@ func (v *signBitArray) BHash() common.Hash {
 }
 
 type cbftStatusData struct {
-	BN              *big.Int
-	CurrentBlock    common.Hash
+	BN           *big.Int
+	CurrentBlock common.Hash
 }
 
 func (s *cbftStatusData) String() string {
