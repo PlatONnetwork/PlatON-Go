@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -81,11 +82,11 @@ var (
 )
 
 type Cbft struct {
-	config      *params.CbftConfig
-	eventMux    *event.TypeMux
-	handler     *handler
-	dpos        *dpos
-	rotating    *rotating
+	config   *params.CbftConfig
+	eventMux *event.TypeMux
+	handler  *handler
+	//dpos        *dpos
+	//rotating    *rotating
 	closeOnce   sync.Once
 	exitCh      chan struct{}
 	txPool      *core.TxPool
@@ -134,6 +135,10 @@ type Cbft struct {
 	nodeServiceContext *node.ServiceContext
 	wal                *Wal
 	loading            int32
+
+	// validator
+	validator  Validator
+	validators *Validators
 }
 
 // New creates a concurrent BFT consensus engine
@@ -144,13 +149,13 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceCo
 		initialNodesID = append(initialNodesID, n.ID)
 	}
 
-	dpos := newDpos(initialNodesID)
+	//dpos := newDpos(initialNodesID)
 
 	cbft := &Cbft{
-		config:                  config,
-		eventMux:                eventMux,
-		dpos:                    dpos,
-		rotating:                newRotating(dpos, config.Duration),
+		config:   config,
+		eventMux: eventMux,
+		//dpos:                    dpos,
+		//rotating:                newRotating(dpos, config.Duration),
 		running:                 1,
 		exitCh:                  make(chan struct{}),
 		signedSet:               make(map[uint64]struct{}),
@@ -247,9 +252,19 @@ func (cbft *Cbft) SetBlockChainCache(blockChainCache *core.BlockChainCache) {
 }
 
 // Start sets blockChain and txPool into cbft
-func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool) error {
+func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool, validator Validator) error {
 	cbft.blockChain = blockChain
-	cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
+	//cbft.dpos.SetStartTimeOfEpoch(blockChain.Genesis().Time().Int64())
+	//
+
+	cbft.validator = validator
+
+	var err error
+	cbft.validators, err = cbft.validator.GetValidator()
+	if err != nil {
+		cbft.log.Error("Get validator fail", "error", err)
+		return err
+	}
 
 	currentBlock := blockChain.CurrentBlock()
 
@@ -263,9 +278,8 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool) error 
 	current := NewBlockExtBySeal(currentBlock, currentBlock.NumberU64(), cbft.nodeLength())
 	current.number = currentBlock.NumberU64()
 
-	if current.number > 0 && len(cbft.dpos.primaryNodeList) > 1 {
+	if current.number > 0 && len(cbft.validators.nodes) > 1 {
 		var extra *BlockExtra
-		var err error
 
 		if _, extra, err = cbft.decodeExtra(current.block.ExtraData()); err != nil {
 			return err
@@ -291,7 +305,6 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool) error 
 	cbft.init()
 
 	// init wal and load wal journal
-	var err error
 	if cbft.wal, err = NewWal(cbft.nodeServiceContext); err != nil {
 		return err
 	}
@@ -414,7 +427,7 @@ func (cbft *Cbft) OnShouldSeal(shouldSeal chan error) {
 	}
 END:
 	if cbft.hadSendViewChange() {
-		index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
+		index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 		if err != nil {
 			log.Debug("Get node index and address failed", "error", err)
 			shouldSeal <- err
@@ -474,7 +487,7 @@ func (cbft *Cbft) OnSyncBlock(ext *BlockExt) {
 
 		cbft.clearPending()
 		cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
-		cbft.producerBlocks = NewProducerBlocks(cbft.dpos.NodeID(int(ext.view.ProposalIndex)), ext.block.NumberU64())
+		cbft.producerBlocks = NewProducerBlocks(cbft.validators.NodeID(int(ext.view.ProposalIndex)), ext.block.NumberU64())
 		if cbft.producerBlocks != nil {
 			cbft.producerBlocks.AddBlock(ext.block)
 			cbft.log.Debug("Add producer block", "hash", ext.block.Hash(), "number", ext.block.Number(), "producer", cbft.producerBlocks.String())
@@ -754,7 +767,7 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 
 	cbft.bp.InternalBP().Seal(context.TODO(), current, &cbft.RoundState)
 	cbft.bp.InternalBP().NewHighestLogicalBlock(context.TODO(), current, &cbft.RoundState)
-	if len(cbft.dpos.primaryNodeList) == 1 {
+	if len(cbft.validators.nodes) == 1 {
 		cbft.log.Debug("Single node mode, confirm now")
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
 		current.isConfirmed = true
@@ -865,7 +878,7 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 		return err
 	}
 
-	index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
+	index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
 		cbft.bp.ViewChangeBP().InvalidViewChange(bpCtx, view, errInvalidatorCandidateAddress, &cbft.RoundState)
 		return errInvalidatorCandidateAddress
@@ -1172,7 +1185,7 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 	cbft.log.Debug("Need send prepare vote", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 
-	index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
+	index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 
 	if err == nil {
 		pv := &prepareVote{
@@ -1236,13 +1249,13 @@ func (cbft *Cbft) saveBlockExt(hash common.Hash, ext *BlockExt) {
 
 // CheckConsensusNode check if the nodeID is a consensus node.
 func (cbft *Cbft) CheckConsensusNode(address common.Address) bool {
-	_, err := cbft.dpos.AddressIndex(address)
+	_, err := cbft.validators.AddressIndex(address)
 	return err == nil
 }
 
 // IsConsensusNode check if local is a consensus node.
 func (cbft *Cbft) IsConsensusNode() bool {
-	_, err := cbft.dpos.NodeIndex(cbft.config.NodeID)
+	_, err := cbft.validators.NodeIndex(cbft.config.NodeID)
 	return err == nil
 }
 
@@ -1350,19 +1363,19 @@ func (cbft *Cbft) HasTwoThirdsMajorityViewChangeVotes() bool {
 }
 
 func (cbft *Cbft) CalcBlockDeadline() (time.Time, error) {
-	nodeIdx, err := cbft.dpos.NodeIndex(cbft.config.NodeID)
+	nodeIdx, err := cbft.validators.NodeIndex(cbft.config.NodeID)
 	if err != nil {
 		return time.Time{}, err
 	}
-	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
+	startEpoch := cbft.validators.StartTimeOfEpoch() * 1000
 	timePoint := time.Now().UnixNano() / int64(time.Millisecond)
 
 	if nodeIdx >= 0 {
-		if len(cbft.dpos.primaryNodeList) == 1 {
+		if len(cbft.validators.nodes) == 1 {
 			return time.Now().Add(time.Duration(cbft.config.Period) * time.Second), err
 		}
 		durationPerNode := cbft.config.Duration * 1000
-		durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
+		durationPerTurn := durationPerNode * int64(len(cbft.validators.nodes))
 
 		min := int64(nodeIdx) * (durationPerNode)
 		value := (timePoint - startEpoch) % durationPerTurn
@@ -1397,19 +1410,19 @@ func (cbft *Cbft) CalcBlockDeadline() (time.Time, error) {
 }
 
 func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
-	nodeIdx, err := cbft.dpos.NodeIndex(cbft.config.NodeID)
+	nodeIdx, err := cbft.validators.NodeIndex(cbft.config.NodeID)
 	if err != nil {
 		return time.Time{}, err
 	}
-	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
+	startEpoch := cbft.validators.StartTimeOfEpoch() * 1000
 	timePoint := time.Now().UnixNano() / int64(time.Millisecond)
 
 	if nodeIdx >= 0 {
-		if len(cbft.dpos.primaryNodeList) == 1 {
+		if len(cbft.validators.nodes) == 1 {
 			return time.Now().Add(time.Duration(cbft.config.Period) * time.Second), nil
 		}
 		durationPerNode := cbft.config.Duration * 1000
-		durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
+		durationPerTurn := durationPerNode * int64(len(cbft.validators.nodes))
 
 		min := int64(nodeIdx) * (durationPerNode)
 		value := (timePoint - startEpoch) % durationPerTurn
@@ -1440,8 +1453,8 @@ func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
 
 // ConsensusNodes returns all consensus nodes.
 func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
-	cbft.log.Trace(fmt.Sprintf("dposNodeCount:%d", len(cbft.dpos.primaryNodeList)))
-	return cbft.dpos.primaryNodeList, nil
+	cbft.log.Trace(fmt.Sprintf("dposNodeCount:%d", len(cbft.validators.nodes)))
+	return cbft.validators.NodeList(), nil
 }
 
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers. The
@@ -1751,18 +1764,18 @@ func (cbft *Cbft) isLegal(rcvTime int64, producerID discover.NodeID) bool {
 }
 
 func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID) bool {
-	nodeIdx, err := cbft.dpos.NodeIndex(nodeID)
+	nodeIdx, err := cbft.validators.NodeIndex(nodeID)
 	if err != nil {
 		return false
 	}
-	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
+	startEpoch := cbft.validators.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
-		if len(cbft.dpos.primaryNodeList) == 1 {
+		if len(cbft.validators.nodes) == 1 {
 			return true
 		}
 		durationPerNode := cbft.config.Duration * 1000
-		durationPerTurn := durationPerNode * int64(len(cbft.dpos.primaryNodeList))
+		durationPerTurn := durationPerNode * int64(len(cbft.validators.nodes))
 
 		min := int64(nodeIdx) * (durationPerNode)
 
@@ -1833,12 +1846,12 @@ func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
 }
 
 func (cbft *Cbft) getThreshold() int {
-	trunc := len(cbft.dpos.primaryNodeList) * 2 / 3
+	trunc := len(cbft.validators.nodes) * 2 / 3
 	return trunc
 }
 
 func (cbft *Cbft) nodeLength() int {
-	return len(cbft.dpos.primaryNodeList)
+	return len(cbft.validators.nodes)
 }
 
 func (cbft *Cbft) reset(block *types.Block) {
@@ -1931,7 +1944,7 @@ func (cbft *Cbft) OnFastSyncCommitHead(errCh chan error) {
 	current := NewBlockExtBySeal(currentBlock, currentBlock.NumberU64(), cbft.getThreshold())
 	current.number = currentBlock.NumberU64()
 
-	if current.number > 0 && len(cbft.dpos.primaryNodeList) > 1 {
+	if current.number > 0 && len(cbft.validators.nodes) > 1 {
 		var extra *BlockExtra
 		var err error
 

@@ -175,9 +175,9 @@ func (cbft *Cbft) checkViewChangeVotes(votes []*viewChangeVote) error {
 
 func (cbft *Cbft) verifyValidatorSign(validatorIndex uint32, validatorAddr common.Address, hash common.Hash, signature []byte) error {
 	return nil
-	if index, err := cbft.dpos.AddressIndex(validatorAddr); err == nil && uint32(index) == validatorIndex {
+	if index, err := cbft.validators.AddressIndex(validatorAddr); err == nil && uint32(index) == validatorIndex {
 		//todo verify sign
-		if err := verifySign(cbft.dpos.NodeID(index), hash, signature); err != nil {
+		if err := verifySign(cbft.validators.NodeID(index), hash, signature); err != nil {
 			return err
 		}
 	} else {
@@ -435,7 +435,7 @@ func (cbft *Cbft) AddProcessingVote(nodeId discover.NodeID, vote *prepareVote) {
 func (cbft *Cbft) newViewChange() (*viewChange, error) {
 
 	ext := cbft.getHighestConfirmed()
-	index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
+	index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
 		return nil, errInvalidatorCandidateAddress
 	}
@@ -557,7 +557,7 @@ func (cbft *Cbft) resetViewChange() {
 }
 
 func (cbft *Cbft) broadcastBlock(ext *BlockExt) {
-	index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
+	index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
 		return
 	}
