@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	errInvaliderCandidateAddress = errors.New("invalid address")
+	errInvalidatorCandidateAddress = errors.New("invalid address")
 )
 
 type dpos struct {
@@ -61,7 +61,7 @@ func (d *dpos) AddressIndex(addr common.Address) (int, error) {
 			return i, nil
 		}
 	}
-	return -1, errInvaliderCandidateAddress
+	return -1, errInvalidatorCandidateAddress
 }
 
 func (d *dpos) NodeIndex(nodeID discover.NodeID) (int, error) {
@@ -70,7 +70,7 @@ func (d *dpos) NodeIndex(nodeID discover.NodeID) (int, error) {
 			return idx, nil
 		}
 	}
-	return -1, errInvaliderCandidateAddress
+	return -1, errInvalidatorCandidateAddress
 }
 
 func (d *dpos) NodeIndexAddress(nodeID discover.NodeID) (int, common.Address, error) {
@@ -83,7 +83,7 @@ func (d *dpos) NodeIndexAddress(nodeID discover.NodeID) (int, common.Address, er
 			return idx, crypto.PubkeyToAddress(*pubkey), nil
 		}
 	}
-	return -1, common.Address{}, errInvaliderCandidateAddress
+	return -1, common.Address{}, errInvalidatorCandidateAddress
 }
 
 func (d *dpos) LastCycleBlockNum() uint64 {

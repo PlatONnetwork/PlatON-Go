@@ -421,7 +421,7 @@ END:
 			return
 		}
 
-		if cbft.agreeViewChange() &&
+		if cbft.isRunning() && cbft.agreeViewChange() &&
 			cbft.viewChange.ProposalAddr == addr &&
 			uint32(index) == cbft.viewChange.ProposalIndex {
 			// do something check
@@ -612,9 +612,11 @@ func (cbft *Cbft) OnHighestPrepareBlock(peerID discover.NodeID, msg *highestPrep
 		return errors.New("exceeded allowance")
 	}
 
-	for _, block := range msg.CommitedBlock {
-		cbft.log.Debug("Sync Highest Block", "number", block.NumberU64())
-		cbft.InsertChain(block, nil)
+	if len(msg.CommitedBlock)+len(cbft.syncBlockCh) < cap(cbft.syncBlockCh) {
+		for _, block := range msg.CommitedBlock {
+			cbft.log.Debug("Sync Highest Block", "number", block.NumberU64())
+			cbft.InsertChain(block, nil)
+		}
 	}
 
 	for _, prepare := range msg.UnconfirmedBlock {
@@ -865,8 +867,8 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 
 	index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
-		cbft.bp.ViewChangeBP().InvalidViewChange(bpCtx, view, errInvaliderCandidateAddress, &cbft.RoundState)
-		return errInvaliderCandidateAddress
+		cbft.bp.ViewChangeBP().InvalidViewChange(bpCtx, view, errInvalidatorCandidateAddress, &cbft.RoundState)
+		return errInvalidatorCandidateAddress
 	}
 
 	resp := &viewChangeVote{
@@ -961,12 +963,12 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 
 	if !cbft.IsConsensusNode() {
 		log.Warn("Local node is not consensus node,discard this msg")
-		return errInvaliderCandidateAddress
+		return errInvalidatorCandidateAddress
 	} else if !cbft.CheckConsensusNode(request.ProposalAddr) {
 		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request,
 			fmt.Errorf("remote node is not consensus node addr:%s", request.ProposalAddr.String()), &cbft.RoundState)
 		log.Warn("Remote node is not consensus node,discard this msg", "addr", request.ProposalAddr)
-		return errInvaliderCandidateAddress
+		return errInvalidatorCandidateAddress
 	}
 
 	cbft.log.Debug("Receive prepare block", "number", request.Block.NumberU64(), "prepareVotes", len(request.ViewChangeVotes))

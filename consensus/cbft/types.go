@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	sort2 "sort"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/pkg/errors"
+	sort2 "sort"
 	"time"
 )
 
@@ -437,7 +437,7 @@ func (cbft *Cbft) newViewChange() (*viewChange, error) {
 	ext := cbft.getHighestConfirmed()
 	index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
-		return nil, errInvaliderCandidateAddress
+		return nil, errInvalidatorCandidateAddress
 	}
 	view := &viewChange{
 		Timestamp:     uint64(time.Now().Unix()),
