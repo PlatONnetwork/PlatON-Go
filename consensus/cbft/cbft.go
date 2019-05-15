@@ -53,8 +53,8 @@ var (
 	errTwoThirdViewchangeVotes = errors.New("lower two third viewchange prepareVotes")
 	errTwoThirdPrepareVotes    = errors.New("lower two third prepare prepareVotes")
 	errNotFoundViewBlock       = errors.New("not found block")
-	errInvalideViewChangeVotes = errors.New("invalid prepare prepareVotes")
-	errInvalidePrepareVotes    = errors.New("invalid prepare prepareVotes")
+	errInvalidViewChangeVotes  = errors.New("invalid prepare prepareVotes")
+	errInvalidPrepareVotes     = errors.New("invalid prepare prepareVotes")
 
 	extraSeal  = 65
 	windowSize = 10
@@ -473,7 +473,7 @@ func (cbft *Cbft) OnSyncBlock(ext *BlockExt) {
 		}
 
 		cbft.clearPending()
-		cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
+		cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
 		cbft.producerBlocks = NewProducerBlocks(cbft.dpos.NodeID(int(ext.view.ProposalIndex)), ext.block.NumberU64())
 		if cbft.producerBlocks != nil {
 			cbft.producerBlocks.AddBlock(ext.block)
@@ -1033,7 +1033,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 			}
 
 			cbft.clearPending()
-			cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
+			cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
 		}
 		ext.view = cbft.viewChange
 		ext.viewChangeVotes = request.ViewChangeVotes

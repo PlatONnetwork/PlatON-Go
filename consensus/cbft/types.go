@@ -19,6 +19,7 @@ var (
 	errTimestampNotEqual          = errors.New("timestamp not equal")
 	errBlockHashNotEqual          = errors.New("block hash not equal")
 	errViewChangeBlockNumTooLower = errors.New("block number too lower")
+	errInvalidProposalAddr        = errors.New("invalid proposal address")
 	errTimestamp                  = errors.New("viewchange timestamp too low")
 	errInvalidViewChangeVote      = errors.New("invalid viewchange vote")
 
@@ -162,7 +163,7 @@ func (cbft *Cbft) checkViewChangeVotes(votes []*viewChangeVote) error {
 		if vote.EqualViewChange(cbft.viewChange) {
 			if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote.BlockHash, vote.Signature[:]); err != nil {
 				log.Error("Verify validator failed", "vote", vote.String(), "err", err)
-				return errInvalideViewChangeVotes
+				return errInvalidViewChangeVotes
 			}
 		} else {
 			log.Error("Invalid viewchange vote", "vote", vote.String(), "view", cbft.viewChange.String())
@@ -480,7 +481,7 @@ func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
 	for _, vote := range view.BaseBlockPrepareVote {
 		if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote.Hash, vote.Signature[:]); err != nil {
 			cbft.log.Error("Verify validator failed", "vote", vote.String(), "err", err)
-			return errInvalidePrepareVotes
+			return errInvalidPrepareVotes
 		}
 	}
 
@@ -526,8 +527,14 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 		case vote.BlockHash != cbft.viewChange.BaseBlockHash:
 			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errBlockHashNotEqual, &cbft.RoundState)
 			return errBlockHashNotEqual
+		case vote.ProposalAddr != cbft.viewChange.ProposalAddr:
+			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errInvalidProposalAddr, &cbft.RoundState)
+			return errInvalidProposalAddr
+		default:
+			return errInvalidViewChangeVotes
 		}
 	}
+
 	if !hadAgree && cbft.agreeViewChange() {
 		cbft.wal.UpdateViewChange(&ViewChangeMessage{
 			Hash:   vote.BlockHash,
@@ -537,13 +544,21 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 		cbft.flushReadyBlock()
 		cbft.producerBlocks = NewProducerBlocks(cbft.config.NodeID, cbft.viewChange.BaseBlockNum)
 		cbft.clearPending()
-		cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
+		cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
 
 	}
 	log.Info("Receive viewchange vote", "msg", vote.String(), "had votes", len(cbft.viewChangeVotes))
 	return nil
 }
 
+func (cbft *Cbft) ClearChildren(baseBlockHash common.Hash, baseBlockNum uint64, Timestamp uint64) {
+	if cbft.getHighestLogical().number > baseBlockNum {
+		if ext := cbft.blockExtMap.findBlock(baseBlockHash, baseBlockNum); ext != nil {
+			cbft.highestLogical.Store(ext)
+		}
+	}
+	cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
+}
 func (cbft *Cbft) SendViewChangeVote(id *discover.NodeID) error {
 	//cbft.mux.Lock()
 	//defer cbft.mux.Unlock()
@@ -906,15 +921,15 @@ func (bm *BlockExtMap) BlockString() string {
 	for _, k := range keys {
 		for _, ext := range bm.blocks[uint64(k)] {
 			if ext.block != nil {
-				blockStr += fmt.Sprintf("[Hash:%s, Number:%d PrepareVotes:%d, Execute:%v ", ext.block.Hash().TerminalString(), ext.block.NumberU64(), ext.prepareVotes.Len(), ext.isExecuted)
+				blockStr += fmt.Sprintf("[Hash:%s, Number:%d PrepareVotes:%d, Execute:%v, %d ", ext.block.Hash().TerminalString(), ext.block.NumberU64(), ext.prepareVotes.Len(), ext.isExecuted, ext.timestamp)
 				for _, v := range ext.children {
 					blockStr += fmt.Sprintf("child[%s,%d]", v.block.Hash().TerminalString(), v.block.NumberU64())
 				}
 				blockStr += fmt.Sprintf("]")
 			} else {
-				blockStr += fmt.Sprintf("[Hash:{}, Number:%d PrepareVotes:%d, Execute:%v ", ext.number, ext.prepareVotes.Len(), ext.isExecuted)
+				blockStr += fmt.Sprintf("[Hash:{}, Number:%d PrepareVotes:%d, Execute:%v, %d", ext.number, ext.prepareVotes.Len(), ext.isExecuted, ext.timestamp)
 				for _, v := range ext.children {
-					blockStr += fmt.Sprintf("child[%s,%d]", v.block.Hash().TerminalString(), v.block.NumberU64())
+					blockStr += fmt.Sprintf("child[%s,%d,%d]", v.block.Hash().TerminalString(), v.block.NumberU64(), v.timestamp)
 				}
 				blockStr += fmt.Sprintf("]")
 			}
