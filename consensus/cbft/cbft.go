@@ -955,7 +955,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 		return nil
 	}
 
-	ext := cbft.blockExtMap.findChild(request.Block.Hash(), request.Block.NumberU64())
+	ext := cbft.blockExtMap.findBlock(request.Block.Hash(), request.Block.NumberU64())
 	if cbft.blockChain.HasBlock(request.Block.Hash(), request.Block.NumberU64()) || (ext != nil && ext.block != nil) {
 		log.Warn("Block already in blockchain, discard this msg", "prepare block", request.String())
 		return nil

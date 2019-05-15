@@ -631,8 +631,8 @@ func (pv *prepareVoteSet) Get(index uint32) *prepareVote {
 	}
 	return nil
 }
-func (pv *prepareVoteSet) Merge(v *prepareVoteSet) {
-	for k, v := range pv.votes {
+func (pv *prepareVoteSet) Merge(vs *prepareVoteSet) {
+	for k, v := range vs.votes {
 		pv.votes[k] = v
 		pv.voteBits.setIndex(k, true)
 	}
