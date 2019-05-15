@@ -132,7 +132,7 @@ type Cbft struct {
 
 	// wal
 	nodeServiceContext *node.ServiceContext
-	wal                *Wal
+	wal                Wal
 	loading            int32
 }
 
