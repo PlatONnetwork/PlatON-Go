@@ -2,11 +2,12 @@ package cbft
 
 import (
 	"fmt"
+	"math/big"
+	"reflect"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"math/big"
-	"reflect"
 )
 
 const CbftProtocolMaxMsgSize = 10 * 1024 * 1024
@@ -77,6 +78,7 @@ type prepareBlock struct {
 	ProposalAddr    common.Address    `json:"proposal_address"`
 	View            *viewChange       `json:"view"`
 	ViewChangeVotes []*viewChangeVote `json:"viewchange_votes"`
+	Extra           []byte
 }
 
 func (pb *prepareBlock) String() string {
@@ -133,6 +135,7 @@ type prepareVote struct {
 	ValidatorIndex uint32
 	ValidatorAddr  common.Address
 	Signature      common.BlockConfirmSign
+	Extra          []byte
 }
 
 func (pv *prepareVote) String() string {
@@ -164,6 +167,7 @@ type viewChange struct {
 	BaseBlockHash        common.Hash             `json:"base_block_hash"`
 	BaseBlockPrepareVote []*prepareVote          `json:"base_block_prepare_votes"`
 	Signature            common.BlockConfirmSign `json:"-"`
+	Extra                []byte
 }
 
 func (v *viewChange) String() string {
@@ -229,6 +233,7 @@ type viewChangeVote struct {
 	ValidatorIndex uint32                  `json:"validator_index"`
 	ValidatorAddr  common.Address          `json:"-"`
 	Signature      common.BlockConfirmSign `json:"-"`
+	Extra          []byte
 }
 
 func (v *viewChangeVote) String() string {
