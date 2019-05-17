@@ -20,12 +20,13 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -207,16 +208,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
 			cbftEngine.SetBlockChainCache(blockChainCache)
 
-			var validator cbft.Validator
+			var agency cbft.Agency
 			// validatorMode:
 			// - static (default)
+			// - inner (via inner contract)
 			// - ppos
 			log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
-			if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static"  {
-				validator = cbft.NewDefaultValidator(chainConfig.Cbft.InitialNodes, eth.blockchain.Genesis().Time().Uint64())
+			if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static" {
+				agency = cbft.NewStaticAgency(chainConfig.Cbft.InitialNodes, eth.blockchain.Genesis().Time().Uint64())
+			} else if chainConfig.Cbft.ValidatorMode == "inner" {
+				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain.Genesis().Time().Uint64())
 			}
 
-			if err := cbftEngine.Start(eth.blockchain, eth.txPool, validator); err != nil {
+			if err := cbftEngine.Start(eth.blockchain, eth.txPool, agency); err != nil {
+				log.Error("Init cbft consensus engine fail", "error", err)
 				return nil, errors.New("Failed to init cbft consensus engine")
 			}
 		}

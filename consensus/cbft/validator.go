@@ -2,21 +2,49 @@ package cbft
 
 import (
 	"errors"
+	"math/big"
+
+	"bytes"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"bytes"
 )
 
-type Node struct {
+// Valiadator event
+type UpdateValidatorEvent struct{}
+type StopConsensusEvent struct{}
+
+type ValidateNode struct {
 	Index   int
 	Address common.Address
 }
 
+type ValidateNodeMap map[discover.NodeID]*ValidateNode
+
 type Validators struct {
-	nodes            map[discover.NodeID]*Node
+	nodes            ValidateNodeMap
 	startTimeOfEpoch uint64 // second
+}
+
+func newValidators(nodes []discover.Node, startTime uint64) *Validators {
+	vds := &Validators{
+		nodes:            make(ValidateNodeMap, len(nodes)),
+		startTimeOfEpoch: startTime,
+	}
+
+	for i, node := range nodes {
+		pubkey, err := node.ID.Pubkey()
+		if err != nil {
+			panic(err)
+		}
+
+		vds.nodes[node.ID] = &ValidateNode{
+			Index:   i,
+			Address: crypto.PubkeyToAddress(*pubkey),
+		}
+	}
+	return vds
 }
 
 func (vs *Validators) NodeList() []discover.NodeID {
@@ -67,49 +95,70 @@ func (vs *Validators) StartTimeOfEpoch() int64 {
 	return int64(vs.startTimeOfEpoch)
 }
 
-// Validator
-type Validator interface {
+func (vs *Validators) Len() int {
+	return len(vs.nodes)
+}
+
+// Agency
+type Agency interface {
 	Sign(msg interface{}) error
 	VerifySign(msg interface{}) error
-	GetValidator() (*Validators, error)
+	GetValidator(blockNumber *big.Int) (*Validators, error)
 }
 
-type DefaultValidator struct {
-	Validator
+type StaticAgency struct {
+	Agency
 
-	validators Validators
+	validators *Validators
 }
 
-func NewDefaultValidator(nodes []discover.Node, startTime uint64) Validator {
-	validator := &DefaultValidator{
-		validators: Validators{
-			nodes:            make(map[discover.NodeID]*Node, len(nodes)),
-			startTimeOfEpoch: startTime,
-		},
+func NewStaticAgency(nodes []discover.Node, startTime uint64) Agency {
+	agency := &StaticAgency{
+		validators: newValidators(nodes, startTime),
 	}
-	for i, node := range nodes {
-		pubkey, err := node.ID.Pubkey()
-		if err != nil {
-			panic(err)
-		}
-
-		validator.validators.nodes[node.ID] = &Node{
-			Index:   i,
-			Address: crypto.PubkeyToAddress(*pubkey),
-		}
-	}
-
-	return validator
+	return agency
 }
 
-func (v *DefaultValidator) Sign(interface{}) error {
+func (d *StaticAgency) Sign(interface{}) error {
 	return nil
 }
 
-func (v *DefaultValidator) VerifySign(msg interface{}) error {
+func (d *StaticAgency) VerifySign(interface{}) error {
 	return nil
 }
 
-func (v *DefaultValidator) GetValidator() (*Validators, error) {
-	return &v.validators, nil
+func (d *StaticAgency) GetValidator(*big.Int) (*Validators, error) {
+	return d.validators, nil
+}
+
+type InnerAgency struct {
+	Agency
+
+	defaultValidators *Validators
+}
+
+func NewInnerAgency(nodes []discover.Node, startTime uint64) Agency {
+	agency := &InnerAgency{
+		defaultValidators: newValidators(nodes, startTime),
+	}
+
+	return agency
+}
+
+func (ia *InnerAgency) Sign(interface{}) error {
+	return nil
+}
+
+func (ia *InnerAgency) VerifySign(interface{}) error {
+	return nil
+}
+
+func (ia *InnerAgency) GetValidator(blockNumber *big.Int) (*Validators, error) {
+	if blockNumber.Cmp(big.NewInt(0)) == 0 {
+		return ia.defaultValidators, nil
+	}
+
+	// Otherwise, get validators from inner contract.
+	// TODO: Get validator from inner contract.
+	return nil, nil
 }
