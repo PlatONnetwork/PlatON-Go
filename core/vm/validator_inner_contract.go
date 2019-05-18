@@ -6,21 +6,25 @@ import (
 
 	"bytes"
 
+	"encoding/json"
+
+	"encoding/binary"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"encoding/json"
 )
 
 const (
-	currentValidatorKey = "current_validator"
-	nextValidatorKey    = "next_validator"
+	CurrentValidatorKey = "current_validator"
+	NextValidatorKey    = "next_validator"
 
 	txTypeUpdate  = 2000
 	txTypeCurrent = 2001
 	txTypeNext    = 2002
+	txTypeSwitch  = 2003
 )
 
 type ValidateNode struct {
@@ -31,13 +35,14 @@ type ValidateNode struct {
 type VNode map[discover.NodeID]*ValidateNode
 type Validators struct {
 	ValidatNodes     VNode  `json:"validateNodes"`
-	StartTimeOfEpoch uint64 `json:"startTimeOfEpoch"`
+	ValidBlockNumber uint64 `json:"currentBlockNumber"`
 }
 
 type ValidatorInnerContractBase interface {
 	UpdateValidators(validators *Validators) error
 	CurrentValidators() (*Validators, error)
 	NextValidators() (*Validators, error)
+	SwitchValidators(validBlockNumber uint64) error
 }
 
 type validatorInnerContract struct {
@@ -56,6 +61,7 @@ func (vic *validatorInnerContract) Run(input []byte) ([]byte, error) {
 		"UpdateValidators":  vic.UpdateValidators,
 		"CurrentValidatros": vic.CurrentValidators,
 		"NextValidators":    vic.NextValidators,
+		"SwitchValidators":  vic.SwitchValidators,
 	}
 	return vic.execute(input, cmd)
 }
@@ -66,18 +72,19 @@ func (vic *validatorInnerContract) UpdateValidators(validators *Validators) erro
 		return errors.New("Empty validator nodes")
 	}
 
+	// TODO: calc validBlockNumber
 	vs, err := rlp.EncodeToBytes(validators)
 	if err != nil {
 		log.Error("RLP encode error", "validators", validators, "error", err)
 		return err
 	}
-	vic.Evm.StateDB.SetState(vic.Contract.Address(), []byte(nextValidatorKey), vs)
+	vic.Evm.StateDB.SetState(vic.Contract.Address(), []byte(NextValidatorKey), vs)
 	return nil
 }
 
 func (vic *validatorInnerContract) CurrentValidators() (*Validators, error) {
 	state := vic.Evm.StateDB
-	b := state.GetState(vic.Contract.Address(), []byte(currentValidatorKey))
+	b := state.GetState(vic.Contract.Address(), []byte(CurrentValidatorKey))
 
 	var vds Validators
 	err := rlp.DecodeBytes(b, &vds)
@@ -86,11 +93,39 @@ func (vic *validatorInnerContract) CurrentValidators() (*Validators, error) {
 
 func (vic *validatorInnerContract) NextValidators() (*Validators, error) {
 	state := vic.Evm.StateDB
-	b := state.GetState(vic.Contract.Address(), []byte(nextValidatorKey))
+	b := state.GetState(vic.Contract.Address(), []byte(NextValidatorKey))
 
 	var vds Validators
 	err := rlp.DecodeBytes(b, &vds)
 	return &vds, err
+}
+
+func (vic *validatorInnerContract) SwitchValidators(validBlockNumber uint64) error {
+	state := vic.Evm.StateDB
+	b := state.GetState(vic.Contract.Address(), []byte(NextValidatorKey))
+	var nvs Validators
+	err := rlp.DecodeBytes(b, &nvs)
+	if err == nil {
+		nvs.ValidBlockNumber = validBlockNumber
+		b, _ = rlp.EncodeToBytes(nvs)
+		state.SetState(vic.Contract.Address(), []byte(CurrentValidatorKey), b)
+		return nil
+	}
+
+	log.Warn("Get next validators fail, try to get current validators", "error", err, "validBlockNumber", validBlockNumber)
+	// Try to get current validators.
+	b = state.GetState(vic.Contract.Address(), []byte(CurrentValidatorKey))
+	err = rlp.DecodeBytes(b, &nvs)
+	if err != nil {
+		log.Error("RLP decode current Validators fail", "validBlockNumber", validBlockNumber, "error", err)
+		return err
+	}
+
+	// There not next validators, so update ValidBlockNumber and setting current as next.
+	nvs.ValidBlockNumber = validBlockNumber
+	b, _ = rlp.EncodeToBytes(nvs)
+	state.SetState(vic.Contract.Address(), []byte(CurrentValidatorKey), b)
+	return nil
 }
 
 func (vic *validatorInnerContract) execute(input []byte, cmd map[string]interface{}) (ret []byte, err error) {
@@ -119,7 +154,7 @@ func (vic *validatorInnerContract) execute(input []byte, cmd map[string]interfac
 	}
 
 	txType := common.BytesToInt64(source[0])
-	switch (txType) {
+	switch txType {
 	case txTypeUpdate:
 		var vds Validators
 		err = json.Unmarshal(source[2], &vds)
@@ -149,6 +184,10 @@ func (vic *validatorInnerContract) execute(input []byte, cmd map[string]interfac
 		}
 		b, _ := json.Marshal(&vds)
 		return b, nil
+	case txTypeSwitch:
+		log.Debug("Switch validators", "source", len(source))
+		validBlockNumber := binary.BigEndian.Uint64(source[2])
+		return nil, vic.SwitchValidators(validBlockNumber)
 	default:
 		log.Error("Unexpected transaction type", "txType", txType)
 		return nil, errors.New("unexpected transaction type")

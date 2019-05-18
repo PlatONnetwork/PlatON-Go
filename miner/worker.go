@@ -468,7 +468,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 								//timestamp = time.Now().UnixNano() / 1e6
 								if blockDeadline, err := w.engine.(consensus.Bft).CalcBlockDeadline(); err == nil {
 									commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
-								}else {
+								} else {
 									log.Error("Calc block deadline failed", "err", err)
 								}
 								continue
@@ -1242,6 +1242,16 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
+
+	log.Trace("Validator mode", "mode", w.config.Cbft.ValidatorMode)
+	if w.config.Cbft.ValidatorMode == "inner" {
+		// Check if need to switch validators.
+		// If needed, make a inner contract transaction
+		// and pack into pending block.
+		if w.shouldSwitch() && w.commitInnerTransaction(timestamp, blockDeadline) != nil {
+			return
+		}
+	}
 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {

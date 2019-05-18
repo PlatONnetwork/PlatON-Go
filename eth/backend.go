@@ -215,9 +215,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			// - ppos
 			log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
 			if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static" {
-				agency = cbft.NewStaticAgency(chainConfig.Cbft.InitialNodes, eth.blockchain.Genesis().Time().Uint64())
+				agency = cbft.NewStaticAgency(chainConfig.Cbft.InitialNodes)
 			} else if chainConfig.Cbft.ValidatorMode == "inner" {
-				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain.Genesis().Time().Uint64())
+				blocksPerNode := int(int64(chainConfig.Cbft.Duration) / int64(chainConfig.Cbft.Period))
+				offset := blocksPerNode * 2
+				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
 			}
 
 			if err := cbftEngine.Start(eth.blockchain, eth.txPool, agency); err != nil {

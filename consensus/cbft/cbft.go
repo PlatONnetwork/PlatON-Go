@@ -82,11 +82,9 @@ var (
 )
 
 type Cbft struct {
-	config   *params.CbftConfig
-	eventMux *event.TypeMux
-	handler  *handler
-	//dpos        *dpos
-	//rotating    *rotating
+	config      *params.CbftConfig
+	eventMux    *event.TypeMux
+	handler     *handler
 	closeOnce   sync.Once
 	exitCh      chan struct{}
 	txPool      *core.TxPool
@@ -137,8 +135,10 @@ type Cbft struct {
 	loading            int32
 
 	// validator
-	agency Agency
+	agency     Agency
 	validators *Validators
+
+	startTimeOfEpoch int64
 }
 
 // New creates a concurrent BFT consensus engine
@@ -254,13 +254,14 @@ func (cbft *Cbft) SetBlockChainCache(blockChainCache *core.BlockChainCache) {
 // Start sets blockChain and txPool into cbft
 func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool, agency Agency) error {
 	cbft.blockChain = blockChain
+	cbft.startTimeOfEpoch = int64(blockChain.Genesis().Time().Uint64())
 
 	cbft.agency = agency
 
 	currentBlock := blockChain.CurrentBlock()
 
 	var err error
-	cbft.validators, err = cbft.agency.GetValidator(currentBlock.Number())
+	cbft.validators, err = cbft.agency.GetValidator(currentBlock.NumberU64())
 	if err != nil {
 		cbft.log.Error("Get validator fail", "error", err)
 		return err
@@ -1135,6 +1136,7 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 		if h := cbft.blockExtMap.FindHighestConfirmedWithHeader(); h != nil {
 			cbft.bp.InternalBP().NewHighestConfirmedBlock(context.TODO(), ext, &cbft.RoundState)
 			cbft.highestConfirmed.Store(h)
+			cbft.updateValidator()
 		}
 		cbft.log.Debug("Send Confirmed Block", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 		cbft.handler.SendAllConsensusPeer(&confirmedPrepareBlock{Hash: ext.block.Hash(), Number: ext.block.NumberU64(), VoteBits: ext.prepareVotes.voteBits})
@@ -1167,6 +1169,7 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 
 			if bs.block.isConfirmed {
 				cbft.highestConfirmed.Store(bs.block)
+				cbft.updateValidator()
 				cbft.bp.InternalBP().NewHighestConfirmedBlock(context.TODO(), bs.block, &cbft.RoundState)
 				cbft.log.Debug("Send Confirmed Block", "hash", bs.block.block.Hash(), "number", bs.block.block.NumberU64())
 				cbft.handler.SendAllConsensusPeer(&confirmedPrepareBlock{Hash: bs.block.block.Hash(), Number: bs.block.block.NumberU64(), VoteBits: bs.block.prepareVotes.voteBits})
@@ -1366,7 +1369,7 @@ func (cbft *Cbft) CalcBlockDeadline() (time.Time, error) {
 	if err != nil {
 		return time.Time{}, err
 	}
-	startEpoch := cbft.validators.StartTimeOfEpoch() * 1000
+	startEpoch := cbft.startTimeOfEpoch * 1000
 	timePoint := time.Now().UnixNano() / int64(time.Millisecond)
 
 	if nodeIdx >= 0 {
@@ -1413,7 +1416,7 @@ func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
 	if err != nil {
 		return time.Time{}, err
 	}
-	startEpoch := cbft.validators.StartTimeOfEpoch() * 1000
+	startEpoch := cbft.startTimeOfEpoch * 1000
 	timePoint := time.Now().UnixNano() / int64(time.Millisecond)
 
 	if nodeIdx >= 0 {
@@ -1767,7 +1770,7 @@ func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID) bool {
 	if err != nil {
 		return false
 	}
-	startEpoch := cbft.validators.StartTimeOfEpoch() * 1000
+	startEpoch := cbft.startTimeOfEpoch * 1000
 
 	if nodeIdx >= 0 {
 		if cbft.validators.Len() == 1 {
@@ -1967,6 +1970,25 @@ func (cbft *Cbft) OnFastSyncCommitHead(errCh chan error) {
 	cbft.rootIrreversible.Store(current)
 
 	errCh <- nil
+}
+
+func (cbft *Cbft) updateValidator() {
+	hc := cbft.getHighestConfirmed()
+	if hc.number != cbft.agency.GetLastNumber(hc.number) {
+		return
+	}
+
+	cbft.log.Info("Update validators", "highestConfirmed", hc.number, "hash", hc.block.Hash())
+	newVds, err := cbft.agency.GetValidator(hc.number)
+	if err != nil {
+		cbft.log.Error("Get validators fail", "number", hc.number, "hash", hc.block.Hash())
+		return
+	}
+	if newVds.Len() <= 0 {
+		cbft.log.Error("Empty validators")
+		return
+	}
+	cbft.validators = newVds
 }
 
 func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {
