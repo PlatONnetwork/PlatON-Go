@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
+	"time"
 )
 
 func newTestBlockExt(number uint64, parent common.Hash, threshold int) *BlockExt {
@@ -48,7 +49,7 @@ func TestBlockExtMap(t *testing.T) {
 	assert.Equal(t, m.FindHighestConfirmedWithHeader().number, uint64(99))
 	m.ClearParents(extList[2].block.Hash(), extList[2].block.NumberU64())
 	assert.Equal(t, m.Len(), 98)
-	m.ClearChildren(extList[2].block.Hash(), extList[2].block.NumberU64())
+	m.ClearChildren(extList[2].block.Hash(), extList[2].block.NumberU64(), uint64(time.Now().UnixNano()))
 	assert.Equal(t, m.Len(), 1)
 	m.BaseBlock(extList[2].block.Hash(), extList[2].block.NumberU64())
 	assert.Equal(t, extList[2].block.Hash(), m.head.block.Hash())

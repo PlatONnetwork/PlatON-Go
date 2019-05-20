@@ -461,7 +461,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			timestamp = time.Now().UnixNano() / 1e6
 			if w.isRunning() {
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-					if shouldSeal, error := cbftEngine.ShouldSeal(timestamp); error == nil {
+					if shouldSeal, err := cbftEngine.ShouldSeal(timestamp); err == nil {
 						if shouldSeal {
 							if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
 								log.Debug("begin to package new block regularly ")

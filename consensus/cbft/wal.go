@@ -30,8 +30,6 @@ var (
 	errGetViewChangeMeta    = errors.New("Failed to get viewChange meta")
 )
 
-type WALMessage interface{}
-
 type ViewChangeMessage struct {
 	Hash   common.Hash
 	Number uint64
@@ -44,21 +42,42 @@ type ViewChangeMeta struct {
 	Seq    uint64
 }
 
-type Wal struct {
+type Wal interface {
+	Write(info *MsgInfo) error
+	UpdateViewChange(info *ViewChangeMessage) error
+	Load(add func(info *MsgInfo)) error
+	Close()
+}
+
+type emptyWal struct {
+}
+
+func (w *emptyWal) Write(info *MsgInfo) error {
+	return nil
+}
+func (w *emptyWal) UpdateViewChange(info *ViewChangeMessage) error {
+	return nil
+}
+func (w *emptyWal) Load(add func(info *MsgInfo)) error {
+	return nil
+}
+func (w *emptyWal) Close() {
+}
+
+type baseWal struct {
 	path    string // WAL working directory
 	metaDB  IWALDatabase
 	journal *journal
 }
 
-func NewWal(ctx *node.ServiceContext) (*Wal, error) {
+func NewWal(ctx *node.ServiceContext) (Wal, error) {
 	var (
-		// TODO
 		originPath  = ctx.ResolvePath(walDir)
 		//originPath = "D://data/platon/wal"
-		metaDB     IWALDatabase
-		walPath    string
-		journal    *journal
-		err        error
+		metaDB  IWALDatabase
+		walPath string
+		journal *journal
+		err     error
 	)
 
 	// Make sure the wal directory exists,If not exist create it.
@@ -92,7 +111,7 @@ func NewWal(ctx *node.ServiceContext) (*Wal, error) {
 		return nil, err
 	}
 
-	wal := &Wal{
+	wal := &baseWal{
 		path:    walPath,
 		metaDB:  metaDB,
 		journal: journal,
@@ -102,18 +121,18 @@ func NewWal(ctx *node.ServiceContext) (*Wal, error) {
 }
 
 // insert adds the specified MsgInfo to the local disk journal.
-func (wal *Wal) Write(info *MsgInfo) error {
-	return wal.journal.insert(&JournalMessage{
+func (wal *baseWal) Write(info *MsgInfo) error {
+	return wal.journal.Insert(&JournalMessage{
 		Timestamp: uint64(time.Now().UnixNano()),
 		Data:      info,
 	})
 }
 
-func (wal *Wal) UpdateViewChange(info *ViewChangeMessage) error {
+func (wal *baseWal) UpdateViewChange(info *ViewChangeMessage) error {
 	return wal.updateViewChangeMeta(info)
 }
 
-func (wal *Wal) Load(add func(info *MsgInfo)) error {
+func (wal *baseWal) Load(add func(info *MsgInfo)) error {
 	// open wal database
 	data, err := wal.metaDB.Get(viewChangeKey)
 	if err != nil {
@@ -131,7 +150,7 @@ func (wal *Wal) Load(add func(info *MsgInfo)) error {
 }
 
 // Update the ViewChange Meta Data to the database.
-func (wal *Wal) updateViewChangeMeta(vc *ViewChangeMessage) error {
+func (wal *baseWal) updateViewChangeMeta(vc *ViewChangeMessage) error {
 	fileID, seq, err := wal.journal.CurrentJournal()
 	if err != nil {
 		log.Error("Failed to update viewChange meta", "number", vc.Number, "hash", vc.Hash, "err", err)
@@ -155,10 +174,11 @@ func (wal *Wal) updateViewChangeMeta(vc *ViewChangeMessage) error {
 	}
 	log.Debug("success to update viewChange meta", "number", vc.Number, "hash", vc.Hash, "fileID", fileID, "seq", seq)
 	// Delete previous journal logs
-	return wal.journal.ExpireJournalFile(fileID)
+	go wal.journal.ExpireJournalFile(fileID)
+	return nil
 }
 
-func (wal *Wal) Close() {
+func (wal *baseWal) Close() {
 	wal.metaDB.Close()
-	wal.journal.close()
+	wal.journal.Close()
 }

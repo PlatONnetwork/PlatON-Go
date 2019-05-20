@@ -19,10 +19,13 @@ var (
 	errTimestampNotEqual          = errors.New("timestamp not equal")
 	errBlockHashNotEqual          = errors.New("block hash not equal")
 	errViewChangeBlockNumTooLower = errors.New("block number too lower")
+	errInvalidProposalAddr        = errors.New("invalid proposal address")
 	errTimestamp                  = errors.New("viewchange timestamp too low")
 	errInvalidViewChangeVote      = errors.New("invalid viewchange vote")
-
-	emptyAddr = common.Address{}
+	errInvalidConfirmNumTooLow    = errors.New("confirm block number lower than local prepare")
+	errViewChangeForked           = errors.New("view change's baseblock is forked")
+	errViewChangeBaseTooLow       = errors.New("local PrepareVote that have been signed higher than BaseBlockNum of view")
+	emptyAddr                     = common.Address{}
 )
 
 type AcceptStatus int
@@ -57,6 +60,8 @@ type RoundState struct {
 
 	producerBlocks *ProducerBlocks
 	blockExtMap    *BlockExtMap
+
+	localHighestPrepareVoteNum uint64
 }
 
 func (vv ViewChangeVotes) String() string {
@@ -73,9 +78,9 @@ func (vv ViewChangeVotes) String() string {
 
 func (rs RoundState) String() string {
 
-	return fmt.Sprintf("[ master:%v, viewChange:%s, viewChangeResp:%s, viewChangeVotes:%s, lastViewChange:%s, lastViewChangeVotes:%s, pendingVotes:%s, pendingBlocks:%s, processingVotes:%s, blockExtMap:%s",
+	return fmt.Sprintf("[ master:%v, viewChange:%s, viewChangeResp:%s, viewChangeVotes:%s, lastViewChange:%s, lastViewChangeVotes:%s, pendingVotes:%s, pendingBlocks:%s, processingVotes:%s, localHighestPrepareVoteNum:%d, blockExtMap:%s",
 		rs.master, rs.viewChange.String(), rs.viewChangeResp.String(), rs.viewChangeVotes.String(), rs.lastViewChange.String(), rs.lastViewChangeVotes.String(),
-		rs.pendingVotes.String(), rs.pendingBlocks.String(), rs.processingVotes.String(), rs.blockExtMap.BlockString())
+		rs.pendingVotes.String(), rs.pendingBlocks.String(), rs.processingVotes.String(), rs.localHighestPrepareVoteNum, rs.blockExtMap.BlockString())
 }
 
 func (pv PendingVote) Add(hash common.Hash, vote *prepareVote) {
@@ -152,6 +157,15 @@ func (cbft *Cbft) init() {
 	log.Info("Current block", "number", cbft.blockChain.CurrentBlock().Number())
 	cbft.clear()
 }
+
+func (cbft *Cbft) SetLocalHighestPrepareNum(num uint64) {
+	if cbft.localHighestPrepareVoteNum < num {
+		cbft.localHighestPrepareVoteNum = num
+	}
+	cbft.log.Debug("SetLocalHighestPrepareNum", "l", cbft.localHighestPrepareVoteNum, "n", num)
+
+}
+
 func (cbft *Cbft) checkViewChangeVotes(votes []*viewChangeVote) error {
 	if cbft.viewChange == nil {
 		log.Error("ViewChange is nil, check prepareVotes failed")
@@ -162,7 +176,7 @@ func (cbft *Cbft) checkViewChangeVotes(votes []*viewChangeVote) error {
 		if vote.EqualViewChange(cbft.viewChange) {
 			if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote.BlockHash, vote.Signature[:]); err != nil {
 				log.Error("Verify validator failed", "vote", vote.String(), "err", err)
-				return errInvalideViewChangeVotes
+				return errInvalidViewChangeVotes
 			}
 		} else {
 			log.Error("Invalid viewchange vote", "vote", vote.String(), "view", cbft.viewChange.String())
@@ -435,6 +449,13 @@ func (cbft *Cbft) AddProcessingVote(nodeId discover.NodeID, vote *prepareVote) {
 func (cbft *Cbft) newViewChange() (*viewChange, error) {
 
 	ext := cbft.getHighestConfirmed()
+
+	if ext.number != cbft.localHighestPrepareVoteNum {
+		//todo ask prepare vote to other, need optimize
+		cbft.handler.SendAllConsensusPeer(&getHighestPrepareBlock{Lowest: cbft.localHighestPrepareVoteNum})
+
+		return nil, errInvalidConfirmNumTooLow
+	}
 	index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
 		return nil, errInvalidatorCandidateAddress
@@ -468,10 +489,31 @@ func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
 		return errTimestamp
 	}
 
-	if cbft.getHighestConfirmed().number != view.BaseBlockNum {
-		cbft.log.Error(fmt.Sprintf("View's block is not found hash:%s, number:%d", view.BaseBlockHash.TerminalString(), view.BaseBlockNum))
+	if cbft.localHighestPrepareVoteNum > view.BaseBlockNum {
+		cbft.log.Error(fmt.Sprintf("Local highest PrepareVote's blocknum higher than view's BaseBlockNum hash:%s, number:%d localHighest:%d",
+			view.BaseBlockHash.TerminalString(), view.BaseBlockNum, cbft.localHighestPrepareVoteNum))
+		return errViewChangeBaseTooLow
+	}
+
+	ext := cbft.getHighestConfirmed()
+
+	if ext.number == view.BaseBlockNum {
+		if ext.block.Hash() != view.BaseBlockHash {
+			cbft.log.Error(fmt.Sprintf("View's block is forked hash:%s, number:%d confirmed hash:%s, number %d localHighest:%d",
+				view.BaseBlockHash.TerminalString(), view.BaseBlockNum, ext.block.Hash(), ext.number, cbft.localHighestPrepareVoteNum))
+			return errViewChangeForked
+		}
+	} else if ext.number > view.BaseBlockNum {
+		cbft.log.Warn(fmt.Sprintf("View change block too lower 2/3 block hash:%s num:%d, view irr block hash:%s num:%d",
+			ext.block.Hash().TerminalString(),
+			ext.number, view.BaseBlockHash.TerminalString(), view.BaseBlockNum))
+		return errViewChangeBlockNumTooLower
+	} else {
+		cbft.log.Error(fmt.Sprintf("View's block is not found hash:%s, number:%d confirmed:%d, localHighest:%d",
+			view.BaseBlockHash.TerminalString(), view.BaseBlockNum, ext.number, cbft.localHighestPrepareVoteNum))
 		return errNotFoundViewBlock
 	}
+
 	if view.BaseBlockNum != 0 && len(view.BaseBlockPrepareVote) < cbft.getThreshold() {
 		cbft.log.Error("View's prepare vote < 2f", "view", view.String())
 		return errTwoThirdPrepareVotes
@@ -480,15 +522,10 @@ func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
 	for _, vote := range view.BaseBlockPrepareVote {
 		if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote.Hash, vote.Signature[:]); err != nil {
 			cbft.log.Error("Verify validator failed", "vote", vote.String(), "err", err)
-			return errInvalidePrepareVotes
+			return errInvalidPrepareVotes
 		}
 	}
 
-	if cbft.getHighestConfirmed().number > view.BaseBlockNum {
-		cbft.log.Warn(fmt.Sprintf("View change block too lower 2/3 block hash:%s num:%d, view irr block hash:%s num:%d", cbft.getHighestConfirmed().block.Hash().TerminalString(),
-			cbft.getHighestConfirmed().number, view.BaseBlockHash.TerminalString(), view.BaseBlockNum))
-		return errViewChangeBlockNumTooLower
-	}
 	return nil
 }
 
@@ -526,8 +563,14 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 		case vote.BlockHash != cbft.viewChange.BaseBlockHash:
 			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errBlockHashNotEqual, &cbft.RoundState)
 			return errBlockHashNotEqual
+		case vote.ProposalAddr != cbft.viewChange.ProposalAddr:
+			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errInvalidProposalAddr, &cbft.RoundState)
+			return errInvalidProposalAddr
+		default:
+			return errInvalidViewChangeVotes
 		}
 	}
+
 	if !hadAgree && cbft.agreeViewChange() {
 		cbft.wal.UpdateViewChange(&ViewChangeMessage{
 			Hash:   vote.BlockHash,
@@ -537,13 +580,21 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 		cbft.flushReadyBlock()
 		cbft.producerBlocks = NewProducerBlocks(cbft.config.NodeID, cbft.viewChange.BaseBlockNum)
 		cbft.clearPending()
-		cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
+		cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
 
 	}
 	log.Info("Receive viewchange vote", "msg", vote.String(), "had votes", len(cbft.viewChangeVotes))
 	return nil
 }
 
+func (cbft *Cbft) ClearChildren(baseBlockHash common.Hash, baseBlockNum uint64, Timestamp uint64) {
+	if cbft.getHighestLogical().number > baseBlockNum {
+		if ext := cbft.blockExtMap.findBlock(baseBlockHash, baseBlockNum); ext != nil {
+			cbft.highestLogical.Store(ext)
+		}
+	}
+	cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
+}
 func (cbft *Cbft) SendViewChangeVote(id *discover.NodeID) error {
 	//cbft.mux.Lock()
 	//defer cbft.mux.Unlock()
@@ -616,8 +667,8 @@ func (pv *prepareVoteSet) Get(index uint32) *prepareVote {
 	}
 	return nil
 }
-func (pv *prepareVoteSet) Merge(v *prepareVoteSet) {
-	for k, v := range pv.votes {
+func (pv *prepareVoteSet) Merge(vs *prepareVoteSet) {
+	for k, v := range vs.votes {
 		pv.votes[k] = v
 		pv.voteBits.setIndex(k, true)
 	}
@@ -906,15 +957,15 @@ func (bm *BlockExtMap) BlockString() string {
 	for _, k := range keys {
 		for _, ext := range bm.blocks[uint64(k)] {
 			if ext.block != nil {
-				blockStr += fmt.Sprintf("[Hash:%s, Number:%d PrepareVotes:%d, Execute:%v ", ext.block.Hash().TerminalString(), ext.block.NumberU64(), ext.prepareVotes.Len(), ext.isExecuted)
+				blockStr += fmt.Sprintf("[Hash:%s, Number:%d PrepareVotes:%d, Execute:%v, %d ", ext.block.Hash().TerminalString(), ext.block.NumberU64(), ext.prepareVotes.Len(), ext.isExecuted, ext.timestamp)
 				for _, v := range ext.children {
 					blockStr += fmt.Sprintf("child[%s,%d]", v.block.Hash().TerminalString(), v.block.NumberU64())
 				}
 				blockStr += fmt.Sprintf("]")
 			} else {
-				blockStr += fmt.Sprintf("[Hash:{}, Number:%d PrepareVotes:%d, Execute:%v ", ext.number, ext.prepareVotes.Len(), ext.isExecuted)
+				blockStr += fmt.Sprintf("[Hash:{}, Number:%d PrepareVotes:%d, Execute:%v, %d", ext.number, ext.prepareVotes.Len(), ext.isExecuted, ext.timestamp)
 				for _, v := range ext.children {
-					blockStr += fmt.Sprintf("child[%s,%d]", v.block.Hash().TerminalString(), v.block.NumberU64())
+					blockStr += fmt.Sprintf("child[%s,%d,%d]", v.block.Hash().TerminalString(), v.block.NumberU64(), v.timestamp)
 				}
 				blockStr += fmt.Sprintf("]")
 			}
