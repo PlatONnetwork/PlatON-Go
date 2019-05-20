@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -28,14 +29,28 @@ const (
 )
 
 type ValidateNode struct {
-	Index   int            `json:"index"`
-	Address common.Address `json:"address"`
+	Index   uint            `json:"index"`
+	NodeID  discover.NodeID `json:"nodeID"`
+	Address common.Address  `json:"-"`
 }
 
-type VNode map[discover.NodeID]*ValidateNode
+type NodeList []*ValidateNode
+
+func (nl *NodeList) String() string {
+	s := ""
+	for _, v := range *nl {
+		s = s + fmt.Sprintf("{Index: %d NodeID: %s Address: %s},", v.Index, v.NodeID, v.Address.String())
+	}
+	return s
+}
+
 type Validators struct {
-	ValidatNodes     VNode  `json:"validateNodes"`
-	ValidBlockNumber uint64 `json:"currentBlockNumber"`
+	ValidateNodes    NodeList `json:"validateNodes"`
+	ValidBlockNumber uint64   `json:"-"`
+}
+
+func (vds *Validators) String() string {
+	return fmt.Sprintf("{validateNodes: [%s] validBlockNumber: %d}", vds.ValidateNodes.String(), vds.ValidBlockNumber)
 }
 
 type ValidatorInnerContractBase interface {
@@ -67,15 +82,26 @@ func (vic *validatorInnerContract) Run(input []byte) ([]byte, error) {
 }
 
 func (vic *validatorInnerContract) UpdateValidators(validators *Validators) error {
-	if len(validators.ValidatNodes) <= 0 {
+	if len(validators.ValidateNodes) <= 0 {
 		log.Error("Empty validator nodes")
 		return errors.New("Empty validator nodes")
 	}
 
-	// TODO: calc validBlockNumber
-	vs, err := rlp.EncodeToBytes(validators)
+	var newVds Validators
+	for _, node := range validators.ValidateNodes {
+		pubkey, err := node.NodeID.Pubkey()
+		if err != nil {
+			log.Error("Get pubkey from nodeID fail", "error", err)
+			return err
+		}
+		node.Address = crypto.PubkeyToAddress(*pubkey)
+		newVds.ValidateNodes = append(newVds.ValidateNodes, node)
+	}
+	log.Debug("Update validators", "validators", newVds.String(), "address", vic.Contract.Address())
+
+	vs, err := rlp.EncodeToBytes(newVds)
 	if err != nil {
-		log.Error("RLP encode error", "validators", validators, "error", err)
+		log.Error("RLP encode error", "validators", newVds.String(), "error", err)
 		return err
 	}
 	vic.Evm.StateDB.SetState(vic.Contract.Address(), []byte(NextValidatorKey), vs)

@@ -5,8 +5,6 @@ import (
 
 	"bytes"
 
-	"encoding/json"
-
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -19,8 +17,8 @@ import (
 )
 
 type ValidateNode struct {
-	Index   int            `json:"index"`
-	Address common.Address `json:"address"`
+	Index   int           `json:"index"`
+	Address common.Address `json:"-"`
 }
 
 func (vn *ValidateNode) String() string {
@@ -39,7 +37,7 @@ func (vnm ValidateNodeMap) String() string {
 
 type Validators struct {
 	Nodes            ValidateNodeMap `json:"validateNodes"`
-	ValidBlockNumber uint64          `json:"validBlockNumber"`
+	ValidBlockNumber uint64          `json:"-"`
 }
 
 func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
@@ -63,7 +61,7 @@ func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
 }
 
 func (vs *Validators) String() string {
-	return fmt.Sprintf("Nodes[%s] ValidBlockNumber:%d", vs.Nodes, vs.ValidBlockNumber)
+	return fmt.Sprintf("{Nodes[%s] ValidBlockNumber:%d}", vs.Nodes, vs.ValidBlockNumber)
 }
 
 func (vs *Validators) NodeList() []discover.NodeID {
@@ -158,8 +156,6 @@ type InnerAgency struct {
 	offset                uint64
 	blockchain            *core.BlockChain
 	defaultValidators     *Validators
-
-	lastBlockNumber uint64
 }
 
 func NewInnerAgency(nodes []discover.Node, chain *core.BlockChain, blocksPerNode, offset int) Agency {
@@ -181,8 +177,9 @@ func (ia *InnerAgency) VerifySign(interface{}) error {
 }
 
 func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
+	var lastBlockNumber uint64
 	if blockNumber <= ia.defaultBlocksPerRound {
-		ia.lastBlockNumber = ia.defaultBlocksPerRound
+		lastBlockNumber = ia.defaultBlocksPerRound
 	} else {
 		vdsCfgNum := blockNumber - ia.offset
 		vds, err := ia.GetValidator(vdsCfgNum)
@@ -192,24 +189,25 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 		}
 
 		// lastNumber = vds.ValidBlockNumber + ia.blocksPerNode * vds.Len() - 1
-		ia.lastBlockNumber = vds.ValidBlockNumber + ia.blocksPerNode*uint64(vds.Len()) - 1
+		lastBlockNumber = vds.ValidBlockNumber + ia.blocksPerNode*uint64(vds.Len()) - 1
 
 		// May be `CurrentValidators ` had not updated, so we need to calcuate `lastBlockNumber`
 		// via `blockNumber`.
-		if ia.lastBlockNumber < blockNumber {
+		if lastBlockNumber < blockNumber {
 			blocksPerRound := ia.blocksPerNode * uint64(vds.Len())
 			baseNum := blockNumber - (blockNumber % blocksPerRound)
-			ia.lastBlockNumber = baseNum + blocksPerRound
+			lastBlockNumber = baseNum + blocksPerRound
 		}
 	}
-	log.Debug("Get last block number", "blockNumber", blockNumber, "lastBlockNumber", ia.lastBlockNumber)
-	return ia.lastBlockNumber
+	log.Debug("Get last block number", "blockNumber", blockNumber, "lastBlockNumber", lastBlockNumber)
+	return lastBlockNumber
 }
 
 func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err error) {
+	var lastBlockNumber uint64
 	defer func() {
 		log.Trace("Get validator",
-			"lastBlockNumber", ia.lastBlockNumber,
+			"lastBlockNumber", lastBlockNumber,
 			"blocksPerNode", ia.blocksPerNode,
 			"blockNumber", blockNumber,
 			"validators", v,
@@ -227,9 +225,9 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err erro
 		log.Error("Get the block fail, use default validators", "number", vdsCftNum)
 		return ia.defaultValidators, nil
 	}
-	state, err := ia.blockchain.StateAt(block.Hash())
+	state, err := ia.blockchain.StateAt(block.Root())
 	if err != nil {
-		log.Error("Get the state fail, use default validators", "number", block.Number(), "hash", block.Hash())
+		log.Error("Get the state fail, use default validators", "number", block.Number(), "hash", block.Hash(), "error", err)
 		return ia.defaultValidators, nil
 	}
 	b := state.GetState(vm.ValidatorInnerContractAddr, []byte(vm.CurrentValidatorKey))
@@ -239,9 +237,15 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err erro
 		log.Error("RLP decode fail, use default validators", "number", block.Number(), "error", err)
 		return ia.defaultValidators, nil
 	}
-	b, _ = json.Marshal(vds)
 	var validators Validators
-	json.Unmarshal(b, &validators)
-	ia.lastBlockNumber = validators.ValidBlockNumber + ia.blocksPerNode*uint64(validators.Len()) - 1
+	validators.Nodes = make(ValidateNodeMap, len(vds.ValidateNodes))
+	for _, node := range vds.ValidateNodes {
+		validators.Nodes[node.NodeID] = &ValidateNode{
+			Index:   int(node.Index),
+			Address: node.Address,
+		}
+	}
+	validators.ValidBlockNumber = vds.ValidBlockNumber
+	lastBlockNumber = vds.ValidBlockNumber + ia.blocksPerNode*uint64(validators.Len()) - 1
 	return &validators, nil
 }
