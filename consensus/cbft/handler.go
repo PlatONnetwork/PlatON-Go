@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	sendQueueSize = 1024
+	sendQueueSize = 10240
 )
 
 type MsgPackage struct {
@@ -46,8 +46,9 @@ func (h *handler) sendLoop() {
 		case m := <-h.sendQueue:
 			if len(m.peerID) == 0 {
 				h.broadcast(m)
+			} else {
+				h.sendPeer(m)
 			}
-			h.sendPeer(m)
 		}
 	}
 }
@@ -69,15 +70,21 @@ func (h *handler) sendPeer(m *MsgPackage) {
 
 func (h *handler) SendAllConsensusPeer(msg Message) {
 	log.Debug("SendAllConsensusPeer Invoke", "hash", msg.MsgHash(), "type", reflect.TypeOf(msg), "BHash", msg.BHash().TerminalString())
-	h.sendQueue <- &MsgPackage{
+	select {
+	case h.sendQueue <- &MsgPackage{
 		msg: msg,
+	}:
+	default:
 	}
 }
 
 func (h *handler) Send(peerID discover.NodeID, msg Message) {
-	h.sendQueue <- &MsgPackage{
+	select {
+	case h.sendQueue <- &MsgPackage{
 		peerID: fmt.Sprintf("%x", peerID.Bytes()[:8]),
 		msg:    msg,
+	}:
+	default:
 	}
 }
 
@@ -88,6 +95,7 @@ func (h *handler) SendBroadcast(msg Message) {
 	select {
 	case h.sendQueue <- msgPkg:
 		h.cbft.log.Debug("Send message to broadcast queue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+	default:
 	}
 }
 
