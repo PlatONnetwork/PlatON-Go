@@ -279,6 +279,8 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool) error 
 
 	}
 
+	cbft.localHighestPrepareVoteNum = current.number
+
 	cbft.blockExtMap = NewBlockExtMap(current, cbft.getThreshold())
 	cbft.saveBlockExt(currentBlock.Hash(), current)
 
@@ -754,6 +756,7 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 
 	cbft.bp.InternalBP().Seal(context.TODO(), current, &cbft.RoundState)
 	cbft.bp.InternalBP().NewHighestLogicalBlock(context.TODO(), current, &cbft.RoundState)
+	cbft.SetLocalHighestPrepareNum(current.number)
 	if len(cbft.dpos.primaryNodeList) == 1 {
 		cbft.log.Debug("Single node mode, confirm now")
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
@@ -991,7 +994,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 
 		oldViewChange := cbft.viewChange
 		viewChange := request.View
-		if cbft.viewChange == nil || cbft.viewChange.Timestamp != viewChange.Timestamp {
+		if cbft.viewChange == nil || cbft.viewChange.Timestamp <= viewChange.Timestamp {
 			cbft.log.Debug("New PrepareBlock is not match current view, need change")
 			cbft.viewChange = viewChange
 		}
@@ -1173,7 +1176,10 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 	cbft.log.Debug("Need send prepare vote", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 
 	index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
-
+	if ext.number <= cbft.localHighestPrepareVoteNum {
+		cbft.log.Warn("May happen double prepare vote")
+		return
+	}
 	if err == nil {
 		pv := &prepareVote{
 			Timestamp:      ext.view.Timestamp,
@@ -1185,6 +1191,7 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 
 		sign, err := cbft.signFn(pv.Hash[:])
 		if err == nil {
+			cbft.SetLocalHighestPrepareNum(pv.Number)
 			pv.Signature.SetBytes(sign)
 			if cbft.viewChange != nil && !cbft.agreeViewChange() && cbft.viewChange.BaseBlockNum < ext.block.NumberU64() {
 				cbft.pendingVotes.Add(pv.Hash, pv)
