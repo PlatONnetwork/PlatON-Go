@@ -64,12 +64,11 @@ func (s sortFiles) Less(i, j int) bool {
 func (s sortFiles) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
 type journal struct {
-	path         string         // Filesystem path to store the msgInfo at
-	writer       *WriterWrapper // Output stream to write new msgInfo into
-	fileID       uint32
-	mu           sync.Mutex
-	exitCh       chan struct{}
-	successWrite int
+	path   string         // Filesystem path to store the msgInfo at
+	writer *WriterWrapper // Output stream to write new msgInfo into
+	fileID uint32
+	mu     sync.Mutex
+	exitCh chan struct{}
 }
 
 func listJournalFiles(path string) sortFiles {
@@ -103,10 +102,9 @@ func listJournalFiles(path string) sortFiles {
 // newTxJournal creates journal object
 func NewJournal(path string) (*journal, error) {
 	journal := &journal{
-		path:         path,
-		exitCh:       make(chan struct{}),
-		fileID:       1,
-		successWrite: 0,
+		path:   path,
+		exitCh: make(chan struct{}),
+		fileID: 1,
 	}
 	if files := listJournalFiles(path); files != nil && files.Len() > 0 {
 		journal.fileID = files[len(files)-1].num
@@ -164,7 +162,7 @@ func (journal *journal) CurrentJournal() (uint32, uint64, error) {
 }
 
 // insert adds the specified JournalMessage to the local disk journal.
-func (journal *journal) insert(msg *JournalMessage) error {
+func (journal *journal) Insert(msg *JournalMessage) error {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
@@ -185,7 +183,6 @@ func (journal *journal) insert(msg *JournalMessage) error {
 	n, err := journal.writer.Write(buf)
 	if err == nil && n > 0 {
 		log.Trace("Successful to insert journal message", "n", n)
-		journal.successWrite ++
 		return nil
 	}
 	return err
@@ -200,19 +197,19 @@ func encodeJournal(msg *JournalMessage) ([]byte, error) {
 
 	crc := crc32.Checksum(data, crc32c)
 	length := uint32(len(data))
-	totalLength := 12 + int(length)
+	totalLength := 10 + int(length)
 
 	pack := make([]byte, totalLength)
-	binary.BigEndian.PutUint32(pack[0:4], crc)
-	binary.BigEndian.PutUint32(pack[4:8], length)
-	binary.BigEndian.PutUint32(pack[8:12], uint32(MessageType(msg.Data.Msg)))
+	binary.BigEndian.PutUint32(pack[0:4], crc)                                // 4 byte
+	binary.BigEndian.PutUint32(pack[4:8], length)                             // 4 byte
+	binary.BigEndian.PutUint16(pack[8:10], uint16(MessageType(msg.Data.Msg))) // 2 byte
 
-	copy(pack[12:], data)
+	copy(pack[10:], data)
 	return pack, nil
 }
 
 // close flushes the journal contents to disk and closes the file.
-func (journal *journal) close() {
+func (journal *journal) Close() {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
@@ -331,17 +328,17 @@ func (journal *journal) loadJournal(fileID uint32, seq uint64, add func(info *Ms
 	}
 
 	for {
-		index, _ := bufReader.Peek(12)
-		crc := binary.BigEndian.Uint32(index[0:4])
-		length := binary.BigEndian.Uint32(index[4:8])
-		msgType := binary.BigEndian.Uint32(index[8:12])
+		index, _ := bufReader.Peek(10)
+		crc := binary.BigEndian.Uint32(index[0:4])      // 4 byte
+		length := binary.BigEndian.Uint32(index[4:8])   // 4 byte
+		msgType := binary.BigEndian.Uint16(index[8:10]) // 2 byte
 
-		pack := make([]byte, length+12)
+		pack := make([]byte, length+10)
 		var (
 			totalNum = 0
 			readNum  = 0
 		)
-		for totalNum, err = 0, error(nil); err == nil && uint32(totalNum) < length+12; {
+		for totalNum, err = 0, error(nil); err == nil && uint32(totalNum) < length+10; {
 			readNum, err = bufReader.Read(pack[totalNum:])
 			totalNum = totalNum + readNum
 		}
@@ -351,14 +348,14 @@ func (journal *journal) loadJournal(fileID uint32, seq uint64, add func(info *Ms
 		}
 
 		// check crc
-		_crc := crc32.Checksum(pack[12:], crc32c)
+		_crc := crc32.Checksum(pack[10:], crc32c)
 		if crc != _crc {
 			log.Error("crc is invalid", "crc", crc, "_crc", _crc)
 			return errLoadJournal
 		}
 
 		// decode journal message
-		if msgInfo, err := WALDecode(pack[12:], msgType); err == nil {
+		if msgInfo, err := WALDecode(pack[10:], msgType); err == nil {
 			add(msgInfo)
 		} else {
 			log.Error("Failed to decode journal msg", "err", err)

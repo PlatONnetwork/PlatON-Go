@@ -30,8 +30,6 @@ var (
 	errGetViewChangeMeta    = errors.New("Failed to get viewChange meta")
 )
 
-type WALMessage interface{}
-
 type ViewChangeMessage struct {
 	Hash   common.Hash
 	Number uint64
@@ -74,8 +72,7 @@ type baseWal struct {
 
 func NewWal(ctx *node.ServiceContext) (Wal, error) {
 	var (
-		// TODO
-		originPath = ctx.ResolvePath(walDir)
+		originPath  = ctx.ResolvePath(walDir)
 		//originPath = "D://data/platon/wal"
 		metaDB  IWALDatabase
 		walPath string
@@ -125,7 +122,7 @@ func NewWal(ctx *node.ServiceContext) (Wal, error) {
 
 // insert adds the specified MsgInfo to the local disk journal.
 func (wal *baseWal) Write(info *MsgInfo) error {
-	return wal.journal.insert(&JournalMessage{
+	return wal.journal.Insert(&JournalMessage{
 		Timestamp: uint64(time.Now().UnixNano()),
 		Data:      info,
 	})
@@ -177,10 +174,11 @@ func (wal *baseWal) updateViewChangeMeta(vc *ViewChangeMessage) error {
 	}
 	log.Debug("success to update viewChange meta", "number", vc.Number, "hash", vc.Hash, "fileID", fileID, "seq", seq)
 	// Delete previous journal logs
-	return wal.journal.ExpireJournalFile(fileID)
+	go wal.journal.ExpireJournalFile(fileID)
+	return nil
 }
 
 func (wal *baseWal) Close() {
 	wal.metaDB.Close()
-	wal.journal.close()
+	wal.journal.Close()
 }

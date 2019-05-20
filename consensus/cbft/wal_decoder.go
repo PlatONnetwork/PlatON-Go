@@ -126,7 +126,7 @@ type JournalMessagePrepareBlockHash struct {
 	Data      *MsgInfoPrepareBlockHash
 }
 
-func WALDecode(pack []byte, msgType uint32) (*MsgInfo, error) {
+func WALDecode(pack []byte, msgType uint16) (*MsgInfo, error) {
 	switch msgType {
 	case PrepareBlockMsg:
 		var j JournalMessagePrepareBlock

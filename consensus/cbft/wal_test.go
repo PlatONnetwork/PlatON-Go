@@ -25,7 +25,7 @@ type JournalMessagev struct {
 	Data      *msgInfoa
 }
 
-func TestWal(t *testing.T) {
+func TestWalWrite(t *testing.T) {
 	wal, _ := NewWal(nil)
 	var err error
 
@@ -37,9 +37,9 @@ func TestWal(t *testing.T) {
 		Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065747"),
 		Number: 110,
 	})
-
 	// WriteJournal
-	beginTime1 := uint64(time.Now().UnixNano())
+	beginTime := uint64(time.Now().UnixNano())
+	countW := 0
 	for i := 0; i < 3000000; i++ {
 		peerId, _ := discover.HexID("b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6")
 		if i%2 == 0 {
@@ -158,27 +158,32 @@ func TestWal(t *testing.T) {
 			fmt.Println("write error", err)
 			panic(err)
 		}
+		countW ++
 	}
 	wal.Close() // force flush
-	countW := wal.(*baseWal).journal.successWrite
 	fmt.Println("write total msg info", countW)
-	endTime1 := uint64(time.Now().UnixNano())
-	fmt.Println("write elapsed time", endTime1-beginTime1)
+	endTime := uint64(time.Now().UnixNano())
+	fmt.Println("write elapsed time", endTime-beginTime)
+}
+
+func TestWalLoad(t *testing.T) {
+	wal, _ := NewWal(nil)
+	var err error
 
 	// LoadJournal
-	beginTime2 := uint64(time.Now().UnixNano())
+	beginTime := uint64(time.Now().UnixNano())
 	countR := 0
 	err = wal.Load(func(info *MsgInfo) {
-		countR++
+		countR ++
 		//fmt.Printf("info=%#v\n", info)
 	})
 	if err != nil {
 		fmt.Println("load error", err)
 		//panic(err)
 	}
-	endTime2 := uint64(time.Now().UnixNano())
+	endTime := uint64(time.Now().UnixNano())
 	fmt.Println("total msg info", countR)
-	fmt.Println("load elapsed time", endTime2-beginTime2)
+	fmt.Println("load elapsed time", endTime-beginTime)
 
 }
 
