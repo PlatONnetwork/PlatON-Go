@@ -228,8 +228,8 @@ func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ti
 	startTx := common.NewTimer()
 	startTx.Begin()
 	tx, _, blockNumber,_ := tContext.FindTransaction(txHash)
-	log.Debug("GetTicket Time Tx", "Time spent", fmt.Sprintf("%v ms", startTx.End()))
-	if nil != tx {
+	log.Debug("GetTicket Time Tx",  "txHash", tx.Hash(), "Time spent", fmt.Sprintf("%v ms", startTx.End()))
+	if nil != tx && len(tx.Data()) > 0 {
 		startDecode := common.NewTimer()
 		startDecode.Begin()
 		var source [][]byte
@@ -237,7 +237,7 @@ func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ti
 			log.Error("Failed to GetTicket", "txHash", txHash.Hex(), "err", err.Error())
 			return nil
 		}
-		if byteutil.BytesToString(source[1]) != "VoteTicket" {
+		if len(source) > 1 && len(source[1]) > 0 && byteutil.BytesToString(source[1]) != "VoteTicket" {
 			return nil
 		}
 		log.Debug("GetTicket Time Decode", "Time spent", fmt.Sprintf("%v ms", startDecode.End()))
