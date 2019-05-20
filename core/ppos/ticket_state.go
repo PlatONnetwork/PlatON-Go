@@ -237,7 +237,7 @@ func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ti
 			log.Error("Failed to GetTicket", "txHash", txHash.Hex(), "err", err.Error())
 			return nil
 		}
-		if len(source) > 1 && len(source[1]) > 0 && byteutil.BytesToString(source[1]) != "VoteTicket" {
+		if len(source) !=5  || len(source[1]) == 0 || len(source[4]) == 0 || byteutil.BytesToString(source[1]) != "VoteTicket" {
 			return nil
 		}
 		log.Debug("GetTicket Time Decode", "Time spent", fmt.Sprintf("%v ms", startDecode.End()))
@@ -265,6 +265,10 @@ func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ti
 		//}
 		//log.Debug("GetTicket Time startGetNewStateDB", "Time spent", fmt.Sprintf("%v ms", startGetNewStateDB.End()))
 		ticket.Deposit = t.GetTicketPrice(stateDB)
+		if (discover.NodeID{}) == byteutil.BytesToNodeId(source[4]) {
+			log.Error("Parse candidate ID error from Tx", "txHash", tx.Hash())
+			return nil
+		}
 		ticket.CandidateId = byteutil.BytesToNodeId(source[4])
 		ticket.BlockNumber = new(big.Int).SetUint64(blockNumber)
 		log.Debug("GetTicket Time", "Time spent", fmt.Sprintf("%v ms", start.End()))
