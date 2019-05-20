@@ -307,9 +307,10 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool, agency
 	cbft.init()
 
 	// init wal and load wal journal
-	if cbft.wal, err = NewWal(cbft.nodeServiceContext); err != nil {
-		return err
-	}
+	//if cbft.wal, err = NewWal(cbft.nodeServiceContext); err != nil {
+	//	return err
+	//}
+	cbft.wal = &emptyWal{}
 	atomic.StoreInt32(&cbft.loading, 1)
 
 	go cbft.receiveLoop()
@@ -769,8 +770,8 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 
 	cbft.bp.InternalBP().Seal(context.TODO(), current, &cbft.RoundState)
 	cbft.bp.InternalBP().NewHighestLogicalBlock(context.TODO(), current, &cbft.RoundState)
-	if cbft.validators.Len() == 1 {
 	cbft.SetLocalHighestPrepareNum(current.number)
+	if cbft.validators.Len() == 1 {
 		cbft.log.Debug("Single node mode, confirm now")
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
 		current.isConfirmed = true
@@ -961,7 +962,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	cbft.bp.PrepareBP().ReceiveBlock(bpCtx, request, &cbft.RoundState)
 
 	//discard block when view.Timestamp != request.Timestamp && request.BlockNum > view.BlockNum
-	if cbft.viewChange != nil && request.Timestamp != cbft.viewChange.Timestamp && request.Block.NumberU64() > cbft.viewChange.BaseBlockNum {
+	if cbft.viewChange != nil && len(request.ViewChangeVotes) < cbft.getThreshold() && request.Timestamp != cbft.viewChange.Timestamp && request.Block.NumberU64() > cbft.viewChange.BaseBlockNum {
 		return errFutileBlock
 	}
 

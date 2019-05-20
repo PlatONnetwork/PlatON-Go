@@ -3,13 +3,14 @@ package cbft
 import (
 	"context"
 	"fmt"
+	sort2 "sort"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/pkg/errors"
-	sort2 "sort"
-	"time"
 )
 
 var (
