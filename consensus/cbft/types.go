@@ -903,7 +903,7 @@ func (bm *BlockExtMap) Add(hash common.Hash, number uint64, blockExt *BlockExt) 
 		} else {
 			log.Debug(fmt.Sprintf("hash:%s, number:%d", hash.TerminalString(), number))
 			extMap[hash] = blockExt
-			if ext.prepareVotes.IsMaj23() {
+			if blockExt.prepareVotes.IsMaj23() {
 				bm.removeFork(number, hash)
 			}
 			if blockExt.block != nil {
