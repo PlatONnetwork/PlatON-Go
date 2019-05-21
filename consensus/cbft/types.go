@@ -36,9 +36,6 @@ const (
 	Cache
 )
 
-type blockSynced struct {
-}
-
 type PendingVote map[common.Hash]*prepareVote
 type PendingBlock map[common.Hash]*prepareBlock
 type ProcessingVote map[common.Hash]map[discover.NodeID]*prepareVote
@@ -73,7 +70,7 @@ func (vv ViewChangeVotes) String() string {
 		s += fmt.Sprintf("[addr:%s, vote:%s]", k.String(), v.String())
 	}
 	s += "]"
-	return ""
+	return s
 }
 
 func (rs RoundState) String() string {
@@ -162,8 +159,7 @@ func (cbft *Cbft) SetLocalHighestPrepareNum(num uint64) {
 	if cbft.localHighestPrepareVoteNum < num {
 		cbft.localHighestPrepareVoteNum = num
 	}
-	cbft.log.Debug("SetLocalHighestPrepareNum", "l", cbft.localHighestPrepareVoteNum, "n", num)
-
+	cbft.log.Debug("SetLocalHighestPrepareNum", "local", cbft.localHighestPrepareVoteNum, "number", num)
 }
 
 func (cbft *Cbft) checkViewChangeVotes(votes []*viewChangeVote) error {
@@ -188,7 +184,6 @@ func (cbft *Cbft) checkViewChangeVotes(votes []*viewChangeVote) error {
 }
 
 func (cbft *Cbft) verifyValidatorSign(validatorIndex uint32, validatorAddr common.Address, hash common.Hash, signature []byte) error {
-	return nil
 	if index, err := cbft.dpos.AddressIndex(validatorAddr); err == nil && uint32(index) == validatorIndex {
 		//todo verify sign
 		if err := verifySign(cbft.dpos.NodeID(index), hash, signature); err != nil {
@@ -356,8 +351,6 @@ func (cbft *Cbft) AcceptPrepareVote(vote *prepareVote) AcceptStatus {
 }
 
 func (cbft *Cbft) ClearPending() {
-	//cbft.mux.Lock()
-	//defer cbft.mux.Unlock()
 	cbft.clearPending()
 }
 
@@ -368,8 +361,6 @@ func (cbft *Cbft) clearPending() {
 }
 
 func (cbft *Cbft) ClearViewChange() {
-	//cbft.mux.Lock()
-	//defer cbft.mux.Unlock()
 	cbft.clearViewChange()
 }
 
@@ -381,8 +372,6 @@ func (cbft *Cbft) clearViewChange() {
 }
 
 func (cbft *Cbft) Clear() {
-	//cbft.mux.Lock()
-	//defer cbft.mux.Unlock()
 	cbft.clear()
 }
 

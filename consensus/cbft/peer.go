@@ -70,7 +70,7 @@ func (p *peer) Handshake(bn *big.Int, head common.Hash) error {
 	go func() {
 		errc <- p.readStatus(&status)
 		if status.BN != nil {
-			p.Log().Debug("[Method:Handshake] Receive the cbftStatusData message", "blockHash", status.CurrentBlock.TerminalString(), "blockNumber", status.BN.Int64())
+			p.Log().Debug("Receive the cbftStatusData message", "blockHash", status.CurrentBlock.TerminalString(), "blockNumber", status.BN.Int64())
 		}
 	}()
 	timeout := time.NewTicker(handshakeTimeout)
@@ -209,7 +209,7 @@ func (ps *peerSet) printPeers() {
 				}
 			}
 			pInfo := bf.String()
-			log.Debug(fmt.Sprintf("[Method:printPeers] The neighbor node owned by the current peer is : {%v}, size: {%d}", pInfo, len(peers)))
+			log.Debug(fmt.Sprintf("The neighbor node owned by the current peer is : {%v}, size: {%d}", pInfo, len(peers)))
 		}
 	}
 }
