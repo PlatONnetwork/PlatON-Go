@@ -1,11 +1,39 @@
 language: go
-go_import_path: github.com/platonnetwork/PlatON-Go
-sudo: false
+# go_import_path: github.com/platonnetwork/PlatON-Go
+# sudo: false
 matrix:
   include:
+    # This builder compile PlatON at Ubuntu xenial
     - os: linux
-      dist: trusty
+      dist: xenial
       sudo: required
-      go: 1.11.x
+      go: 1.12.x
+      script:
+        - chmod u+x ./build/*.sh
+        - make all
+
+    # This builder compile PlatON at Windows server 2016
+    - os: windows
+      go: 1.12.x
+      script:
+        - chmod u+x ./build/*.sh
+        - sh ./build/build_deps.sh
+        - go run build/ci.go install -mpc on
+
+    # This builder run the unit tests
+    - os: linux
+      dist: xenial
+      sudo: required
+      go: 1.12.x
       script:
         - go test ./...
+
+    # This builder run the code scans uses gometalinter
+    - os: linux
+      dist: xenial
+      go: 1.12.x
+      script:
+        - go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+        - golangci-lint run ./...
+
+    
