@@ -121,7 +121,7 @@ func (h *handler) Protocols() []p2p.Protocol {
 }
 
 func (h *handler) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-	peer := newPeer(p, rw)
+	peer := newPeer(p, newMeteredMsgWriter(rw))
 
 	// Execute the CBFT handshake
 	var (
