@@ -149,7 +149,7 @@ func (bcc *BlockChainCache) clearReceipts(sealHash common.Hash) {
 		//delete(pbc.receiptsCache, sealHash)
 	}
 	for hash, obj := range bcc.receiptsCache {
-		if obj.blockNum <= blockNum {
+		if obj.blockNum < blockNum {
 			delete(bcc.receiptsCache, hash)
 		}
 	}
@@ -166,7 +166,7 @@ func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 		//delete(pbc.stateDBCache, sealHash)
 	}
 	for hash, obj := range bcc.stateDBCache {
-		if obj.blockNum <= blockNum {
+		if obj.blockNum < blockNum {
 			log.Debug("Clear StateDB", "sealHash", hash, "number", obj.blockNum)
 			delete(bcc.stateDBCache, hash)
 		}

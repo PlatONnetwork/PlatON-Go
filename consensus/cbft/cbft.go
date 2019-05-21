@@ -1986,7 +1986,6 @@ func (cbft *Cbft) updateValidator() {
 		return
 	}
 
-	cbft.log.Info("Update validators", "highestConfirmed", hc.number, "hash", hc.block.Hash())
 	newVds, err := cbft.agency.GetValidator(hc.number)
 	if err != nil {
 		cbft.log.Error("Get validators fail", "number", hc.number, "hash", hc.block.Hash())
@@ -1996,6 +1995,7 @@ func (cbft *Cbft) updateValidator() {
 		cbft.log.Error("Empty validators")
 		return
 	}
+	cbft.log.Info("Update validators success", "highestConfirmed", hc.number, "hash", hc.block.Hash(), "validators", cbft.validators)
 	cbft.validators = newVds
 }
 
