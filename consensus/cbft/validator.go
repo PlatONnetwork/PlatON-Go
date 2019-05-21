@@ -7,6 +7,8 @@ import (
 
 	"fmt"
 
+	"crypto/ecdsa"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -17,8 +19,9 @@ import (
 )
 
 type ValidateNode struct {
-	Index   int           `json:"index"`
+	Index   int            `json:"index"`
 	Address common.Address `json:"-"`
+	PubKey  *ecdsa.PublicKey
 }
 
 func (vn *ValidateNode) String() string {
@@ -55,6 +58,7 @@ func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
 		vds.Nodes[node.ID] = &ValidateNode{
 			Index:   i,
 			Address: crypto.PubkeyToAddress(*pubkey),
+			PubKey: pubkey,
 		}
 	}
 	return vds
@@ -240,9 +244,11 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err erro
 	var validators Validators
 	validators.Nodes = make(ValidateNodeMap, len(vds.ValidateNodes))
 	for _, node := range vds.ValidateNodes {
+		pubkey, _ := node.NodeID.Pubkey()
 		validators.Nodes[node.NodeID] = &ValidateNode{
 			Index:   int(node.Index),
 			Address: node.Address,
+			PubKey: pubkey,
 		}
 	}
 	validators.ValidBlockNumber = vds.ValidBlockNumber
