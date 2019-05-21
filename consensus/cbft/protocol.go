@@ -2,6 +2,8 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"reflect"
 
@@ -59,6 +61,10 @@ var errorToString = map[int]string{
 	ErrSuspendedPeer:           "Suspended peer",
 }
 
+type ConsensusMsg interface {
+	CannibalizeBytes() ([]byte, error)
+}
+
 type Message interface {
 	String() string
 	MsgHash() common.Hash
@@ -78,7 +84,22 @@ type prepareBlock struct {
 	ProposalAddr    common.Address    `json:"proposal_address"`
 	View            *viewChange       `json:"view"`
 	ViewChangeVotes []*viewChangeVote `json:"viewchange_votes"`
+	Signature       common.BlockConfirmSign
 	Extra           []byte
+}
+
+func (pb *prepareBlock) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		pb.Timestamp,
+		pb.Block.Hash(),
+		pb.ProposalIndex,
+		pb.ProposalAddr,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.Keccak256(buf), nil
 }
 
 func (pb *prepareBlock) String() string {
@@ -138,6 +159,22 @@ type prepareVote struct {
 	Extra          []byte
 }
 
+func (pv *prepareVote) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		pv.Timestamp,
+		pv.Hash,
+		pv.Number,
+		pv.ValidatorIndex,
+		pv.ValidatorAddr,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.Keccak256(buf), nil
+}
+
 func (pv *prepareVote) String() string {
 	if pv == nil {
 		return ""
@@ -168,6 +205,22 @@ type viewChange struct {
 	BaseBlockPrepareVote []*prepareVote          `json:"base_block_prepare_votes"`
 	Signature            common.BlockConfirmSign `json:"-"`
 	Extra                []byte
+}
+
+func (v *viewChange) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		v.Timestamp,
+		v.ProposalIndex,
+		v.ProposalAddr,
+		v.BaseBlockNum,
+		v.BaseBlockHash,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.Keccak256(buf), nil
 }
 
 func (v *viewChange) String() string {
@@ -234,6 +287,24 @@ type viewChangeVote struct {
 	ValidatorAddr  common.Address          `json:"-"`
 	Signature      common.BlockConfirmSign `json:"-"`
 	Extra          []byte
+}
+
+func (v *viewChangeVote) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		v.Timestamp,
+		v.BlockNum,
+		v.BlockHash,
+		v.ProposalIndex,
+		v.ProposalAddr,
+		v.ValidatorIndex,
+		v.ValidatorAddr,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.Keccak256(buf), nil
 }
 
 func (v *viewChangeVote) String() string {

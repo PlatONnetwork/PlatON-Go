@@ -898,7 +898,7 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 		ProposalAddr:   view.ProposalAddr,
 	}
 
-	sign, err := cbft.signFn(resp.BlockHash[:])
+	sign, err := cbft.signMsg(resp)
 	if err != nil {
 		cbft.log.Error("Signature view vote failed", "err", err)
 		return err
@@ -1205,7 +1205,7 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 			ValidatorAddr:  addr,
 		}
 
-		sign, err := cbft.signFn(pv.Hash[:])
+		sign, err := cbft.signMsg(pv)
 		if err == nil {
 			cbft.SetLocalHighestPrepareNum(pv.Number)
 			pv.Signature.SetBytes(sign)
@@ -1373,10 +1373,11 @@ func (cbft *Cbft) HasTwoThirdsMajorityViewChangeVotes() bool {
 }
 
 func (cbft *Cbft) CalcBlockDeadline() (time.Time, error) {
-	nodeIdx, err := cbft.validators.NodeIndex(cbft.config.NodeID)
+	node, err := cbft.validators.NodeIndex(cbft.config.NodeID)
 	if err != nil {
 		return time.Time{}, err
 	}
+	nodeIdx := node.Index
 	startEpoch := cbft.startTimeOfEpoch * 1000
 	timePoint := time.Now().UnixNano() / int64(time.Millisecond)
 
@@ -1420,10 +1421,11 @@ func (cbft *Cbft) CalcBlockDeadline() (time.Time, error) {
 }
 
 func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
-	nodeIdx, err := cbft.validators.NodeIndex(cbft.config.NodeID)
+	vn, err := cbft.validators.NodeIndex(cbft.config.NodeID)
 	if err != nil {
 		return time.Time{}, err
 	}
+	nodeIdx := vn.Index
 	startEpoch := cbft.startTimeOfEpoch * 1000
 	timePoint := time.Now().UnixNano() / int64(time.Millisecond)
 
@@ -1605,7 +1607,7 @@ func (cbft *Cbft) OnPrepareVote(peerID discover.NodeID, vote *prepareVote, propa
 	cbft.log.Debug("Receive prepare vote", "peer", peerID, "vote", vote.String())
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	cbft.bp.PrepareBP().ReceiveVote(bpCtx, vote, &cbft.RoundState)
-	err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote.Hash, vote.Signature[:])
+	err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:])
 	if err != nil {
 		cbft.bp.PrepareBP().InvalidVote(bpCtx, vote, err, &cbft.RoundState)
 		cbft.log.Error("Verify vote error", "err", err)
@@ -1774,10 +1776,11 @@ func (cbft *Cbft) isLegal(rcvTime int64, producerID discover.NodeID) bool {
 }
 
 func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID) bool {
-	nodeIdx, err := cbft.validators.NodeIndex(nodeID)
+	vn, err := cbft.validators.NodeIndex(nodeID)
 	if err != nil {
 		return false
 	}
+	nodeIdx := vn.Index
 	startEpoch := cbft.startTimeOfEpoch * 1000
 
 	if nodeIdx >= 0 {
@@ -1849,6 +1852,14 @@ func (cbft *Cbft) verifySeal(chain consensus.ChainReader, header *types.Header, 
 		return errUnknownBlock
 	}
 	return nil
+}
+
+func (cbft *Cbft) signMsg(msg ConsensusMsg) (sign []byte, err error) {
+	buf, err := msg.CannibalizeBytes()
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Sign(buf, cbft.config.PrivateKey)
 }
 
 func (cbft *Cbft) signFn(headerHash []byte) (sign []byte, err error) {
