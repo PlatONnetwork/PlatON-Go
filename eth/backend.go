@@ -36,7 +36,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
@@ -52,6 +51,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 )
 
 type LesServer interface {
@@ -124,9 +124,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
-	// ppos add
-	if nil == ticketcache.GetTicketidsCachePtr() {
-		ticketcache.NewTicketIdsCache(chainDb)
+	// TODO ppos add
+	pposDB, err := CreatePPosDB(ctx, "ppos_storage")
+	if err != nil {
+		return nil, err
+	}
+	if nil == ppos_storage.GetPPosTempPtr() {
+		ppos_storage.NewPPosTemp(pposDB)
 	}
 
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
@@ -273,6 +277,18 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 	}
 	if db, ok := db.(*ethdb.LDBDatabase); ok {
 		db.Meter("eth/db/chaindata/")
+	}
+	return db, nil
+}
+
+
+func CreatePPosDB(ctx *node.ServiceContext, name string) (ethdb.Database, error) {
+	db, err := ctx.OpenPPosDatabase(name)
+	if err != nil {
+		return nil, err
+	}
+	if db, ok := db.(*ethdb.LDBDatabase); ok {
+		db.Meter("eth/db/ppos_storage/")
 	}
 	return db, nil
 }
@@ -606,7 +622,6 @@ func setPposConfig(pposConfig *PposConfig) *params.PposConfig {
 		},
 		TicketConfig: &params.TicketConfig{
 			TicketPrice:       pposConfig.Ticket.TicketPrice,
-			AdjustCycle:	   pposConfig.Ticket.AdjustCycle,
 			MaxCount:          pposConfig.Ticket.MaxCount,
 			ExpireBlockNumber: pposConfig.Ticket.ExpireBlockNumber,
 		},

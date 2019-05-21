@@ -22,20 +22,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
-	"strings"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"math/big"
+	"strings"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -163,6 +161,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 		} else {
 			log.Info("Writing custom genesis block")
 		}
+
 		block, err := genesis.Commit(db)
 		return genesis.Config, block.Hash(), err
 	}
@@ -258,10 +257,11 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
 func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
-	// ppos add
-	if nil == ticketcache.GetTicketidsCachePtr() {
-		ticketcache.NewTicketIdsCache(db)
-	}
+	/*// ppos pposDB
+	// TODO ppos add
+	if nil == ppos_storage.GetPPosTempPtr() {
+		ppos_storage.NewPPosTemp(pposdb)
+	}*/
 	block := g.ToBlock(db)
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
@@ -307,7 +307,7 @@ func DefaultGenesisBlock() *Genesis {
 	}
 }
 
-// DefaultTestnetGenesisBlock returns the Ropsten network genesis block.
+// DefaultTestnetGenesisBlock returns the Alpha network genesis block.
 func DefaultTestnetGenesisBlock() *Genesis {
 
 	initAddress1 := new(big.Int)
@@ -327,7 +327,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 		Nonce:     0,
 		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		GasLimit:  0x99947b760,
-		Timestamp: 1546300800000, //2019-01-01 00:00:00.000
+		Timestamp: 1546300800000,
 		Alloc: map[common.Address]GenesisAccount{
 			common.BigToAddress(initAddress1): {Balance: initBalance1},
 			common.BigToAddress(initAddress2): {Balance: initBalance2},
@@ -335,14 +335,85 @@ func DefaultTestnetGenesisBlock() *Genesis {
 	}
 }
 
-// DefaultRinkebyGenesisBlock returns the Rinkeby network genesis block.
-func DefaultRinkebyGenesisBlock() *Genesis {
+// DefaultBetanetGenesisBlock returns the Beta network genesis block.
+func DefaultBetanetGenesisBlock() *Genesis {
+
+	initAddress1 := new(big.Int)
+	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
+
+	initBalance1 := new(big.Int)
+	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
+
+	initAddress2 := new(big.Int)
+	initAddress2.SetString("1fe1b73f7f592d6c054d62fad1cc55756c6949f9", 16)
+
+	initBalance2 := new(big.Int)
+	initBalance2.SetString("295be96e640669720000000", 16)
+
 	return &Genesis{
-		Config:    params.RinkebyChainConfig,
-		Timestamp: 1492009146,
-		ExtraData: hexutil.MustDecode("0x52657370656374206d7920617574686f7269746168207e452e436172746d616e42eb768f2244c8811c63729a21a3569731535f067ffc57839b00206d1ad20c69a1981b489f772031b279182d99e65703f0076e4812653aab85fca0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
-		GasLimit:  4700000,
-		Alloc:     decodePrealloc(rinkebyAllocData),
+		Config:    params.BetanetChainConfig,
+		Nonce:     0,
+		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  0x99947b760,
+		Timestamp: 1546300800000,
+		Alloc: map[common.Address]GenesisAccount{
+			common.BigToAddress(initAddress1): {Balance: initBalance1},
+			common.BigToAddress(initAddress2): {Balance: initBalance2},
+		},
+	}
+}
+
+// DefaultInnerTestnetGenesisBlock returns the inner test network genesis block.
+func DefaultInnerTestnetGenesisBlock(time uint64) *Genesis {
+	initAddress1 := new(big.Int)
+	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
+
+	initBalance1 := new(big.Int)
+	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
+
+	initAddress2 := new(big.Int)
+	initAddress2.SetString("493301712671ada506ba6ca7891f436d29185821", 16)
+
+	initBalance2 := new(big.Int)
+	initBalance2.SetString("295be96e640669720000000", 16)
+
+	return &Genesis{
+		Config:    params.InnerTestnetChainConfig,
+		Nonce:     0,
+		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  0x99947b760,
+		Timestamp: time,
+		Alloc: map[common.Address]GenesisAccount{
+			common.BigToAddress(initAddress1): {Balance: initBalance1},
+			common.BigToAddress(initAddress2): {Balance: initBalance2},
+		},
+	}
+}
+
+// DefaultInnerDevnetGenesisBlock returns the inner test network genesis block.
+func DefaultInnerDevnetGenesisBlock(time uint64) *Genesis {
+	initAddress1 := new(big.Int)
+	initAddress1.SetString("1000000000000000000000000000000000000000", 16)
+
+	initBalance1 := new(big.Int)
+	initBalance1.SetString("52b7d2dcc80cd400000000", 16)
+
+	initAddress2 := new(big.Int)
+	initAddress2.SetString("493301712671ada506ba6ca7891f436d29185821", 16)
+
+	initBalance2 := new(big.Int)
+	initBalance2.SetString("295be96e640669720000000", 16)
+
+	return &Genesis{
+		Config:    params.InnerDevnetChainConfig,
+		Nonce:     0,
+		ExtraData: hexutil.MustDecode("0x00000000000000000000000000000000000000000000000000000000000000007a9ff113afc63a33d11de571a679f914983a085d1e08972dcb449a02319c1661b931b1962bce02dfc6583885512702952b57bba0e307d4ad66668c5fc48a45dfeed85a7e41f0bdee047063066eae02910000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		GasLimit:  0x99947b760,
+		Timestamp: time,
+		Alloc: map[common.Address]GenesisAccount{
+			common.BigToAddress(initAddress1): {Balance: initBalance1},
+			common.BigToAddress(initAddress2): {Balance: initBalance2},
+		},
 	}
 }
 

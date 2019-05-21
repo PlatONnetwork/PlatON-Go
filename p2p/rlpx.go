@@ -27,6 +27,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -623,6 +624,7 @@ func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 	// write header MAC
 	copy(headbuf[16:], updateMAC(rw.egressMAC, rw.macCipher, headbuf[:16]))
 	if _, err := rw.conn.Write(headbuf); err != nil {
+		log.Error("WriteMsg error1", "err", err)
 		return err
 	}
 
@@ -630,13 +632,16 @@ func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 	// the data written to conn.
 	tee := cipher.StreamWriter{S: rw.enc, W: io.MultiWriter(rw.conn, rw.egressMAC)}
 	if _, err := tee.Write(ptype); err != nil {
+		log.Error("WriteMsg error2", "err", err)
 		return err
 	}
 	if _, err := io.Copy(tee, msg.Payload); err != nil {
+		log.Error("WriteMsg error3", "err", err)
 		return err
 	}
 	if padding := fsize % 16; padding > 0 {
 		if _, err := tee.Write(zero16[:16-padding]); err != nil {
+			log.Error("WriteMsg error4", "err", err)
 			return err
 		}
 	}
@@ -646,6 +651,9 @@ func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 	fmacseed := rw.egressMAC.Sum(nil)
 	mac := updateMAC(rw.egressMAC, rw.macCipher, fmacseed)
 	_, err := rw.conn.Write(mac)
+	if err != nil {
+		log.Error("WriteMsg error5", "err", err)
+	}
 	return err
 }
 
@@ -653,6 +661,7 @@ func (rw *rlpxFrameRW) ReadMsg() (msg Msg, err error) {
 	// read the header
 	headbuf := make([]byte, 32)
 	if _, err := io.ReadFull(rw.conn, headbuf); err != nil {
+		log.Error("ReadMsg error1", "err", err)
 		return msg, err
 	}
 	// verify header mac
@@ -671,6 +680,7 @@ func (rw *rlpxFrameRW) ReadMsg() (msg Msg, err error) {
 	}
 	framebuf := make([]byte, rsize)
 	if _, err := io.ReadFull(rw.conn, framebuf); err != nil {
+		log.Error("ReadMsg error2", "err", err)
 		return msg, err
 	}
 
@@ -678,6 +688,7 @@ func (rw *rlpxFrameRW) ReadMsg() (msg Msg, err error) {
 	rw.ingressMAC.Write(framebuf)
 	fmacseed := rw.ingressMAC.Sum(nil)
 	if _, err := io.ReadFull(rw.conn, headbuf[:16]); err != nil {
+		log.Error("ReadMsg error3", "err", err)
 		return msg, err
 	}
 	shouldMAC = updateMAC(rw.ingressMAC, rw.macCipher, fmacseed)
@@ -691,6 +702,7 @@ func (rw *rlpxFrameRW) ReadMsg() (msg Msg, err error) {
 	// decode message code
 	content := bytes.NewReader(framebuf[:fsize])
 	if err := rlp.Decode(content, &msg.Code); err != nil {
+		log.Error("ReadMsg error4", "err", err)
 		return msg, err
 	}
 	msg.Size = uint32(content.Len())
@@ -700,17 +712,21 @@ func (rw *rlpxFrameRW) ReadMsg() (msg Msg, err error) {
 	if rw.snappy {
 		payload, err := ioutil.ReadAll(msg.Payload)
 		if err != nil {
+			log.Error("ReadMsg error5", "err", err)
 			return msg, err
 		}
 		size, err := snappy.DecodedLen(payload)
 		if err != nil {
+			log.Error("ReadMsg error6", "err", err)
 			return msg, err
 		}
 		if size > int(maxUint24) {
+			log.Error("ReadMsg error7", "err", errPlainMessageTooLarge)
 			return msg, errPlainMessageTooLarge
 		}
 		payload, err = snappy.Decode(nil, payload)
 		if err != nil {
+			log.Error("ReadMsg error8", "err", errPlainMessageTooLarge)
 			return msg, err
 		}
 		msg.Size, msg.Payload = uint32(size), bytes.NewReader(payload)

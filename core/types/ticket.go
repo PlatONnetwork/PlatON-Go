@@ -6,17 +6,8 @@ import (
 	"math/big"
 )
 
-const (
-	Normal uint8 = iota + 1
-	Selected
-	Expired
-	Invalid
-)
-
 // ticket info
 type Ticket struct {
-	// ticket id
-	TicketId 		common.Hash
 	// Current owner of tickets
 	Owner 			common.Address
 	// Mortgage amount (margin)
@@ -25,37 +16,41 @@ type Ticket struct {
 	CandidateId 	discover.NodeID
 	// current block height number when purchasing tickets
 	BlockNumber 	*big.Int
-	// Ticket state
-	// 1 -> Normal
-	// 2 -> Selected
-	// 3 -> Expired
-	// 4 -> Invalid
-	State 			uint8
-	// Block height when released
-	RBlockNumber	*big.Int
+	// The number of remaining tickets
+	Remaining		uint32
 }
 
-func (t *Ticket) CalcEpoch(blockNumber *big.Int) *big.Int {
+func (t *Ticket) TotalDeposit() *big.Int {
+	return new(big.Int).Mul(t.Deposit, new(big.Int).SetUint64(uint64(t.Remaining)))
+}
+
+func (t *Ticket) TotalEpoch(blockNumber *big.Int) uint64 {
+	return t.CalcEpoch(blockNumber) * uint64(t.Remaining)
+}
+
+func (t *Ticket) CalcEpoch(blockNumber *big.Int) uint64 {
 	result := new(big.Int).SetUint64(0)
 	result.Sub(blockNumber, t.BlockNumber)
-	return result
+	return result.Uint64()
 }
 
-func (t *Ticket) SetNormal() {
-	t.State = Normal
+func (t *Ticket) SubRemaining() {
+	if t.Remaining > 0 {
+		t.Remaining--
+	}
 }
 
-func (t *Ticket) SetSelected(blockNumber *big.Int) {
-	t.State = Selected
-	t.RBlockNumber = blockNumber
-}
-
-func (t *Ticket) SetExpired(blockNumber *big.Int) {
-	t.State = Expired
-	t.RBlockNumber = blockNumber
-}
-
-func (t *Ticket) SetInvalid(blockNumber *big.Int) {
-	t.State = Invalid
-	t.RBlockNumber = blockNumber
+func (t *Ticket) DeepCopy() *Ticket {
+	newDeposit := new(big.Int)
+	newDeposit.Add(t.Deposit, newDeposit)
+	newBlockNumber := new(big.Int)
+	newBlockNumber.Add(t.BlockNumber, newBlockNumber)
+	ticket := &Ticket{
+		t.Owner,
+		newDeposit,
+		t.CandidateId,
+		newBlockNumber,
+		t.Remaining,
+	}
+	return ticket
 }

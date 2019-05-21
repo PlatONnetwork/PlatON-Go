@@ -2,11 +2,13 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"math/big"
 	"sync"
 )
 
@@ -80,6 +82,7 @@ func (bcc *BlockChainCache) ReadReceipts(sealHash common.Hash) []*types.Receipt 
 func (bcc *BlockChainCache) GetState(header *types.Header) (*state.StateDB, error) {
 	state := bcc.ReadStateDB(header.SealHash())
 	if state != nil {
+		log.Info("BlockChainCache GetState", "addr", fmt.Sprintf("%p", state), "root", header.Root)
 		return state, nil
 	} else {
 		log.Info("BlockChainCache GetState", "root", header.Root)
@@ -154,6 +157,8 @@ func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 	}
 	for hash, obj := range bcc.stateDBCache {
 		if obj.blockNum <= blockNum {
+			root := obj.stateDB.IntermediateRoot(bcc.chainConfig.IsEIP158(big.NewInt(int64(obj.blockNum))))
+			log.Info("Delete StateDB Cache", "blockNumber", obj.blockNum, "sealHash", sealHash.String(), "stateDB root", root.String())
 			delete(bcc.stateDBCache, hash)
 		}
 	}
@@ -162,17 +167,23 @@ func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 // Get the StateDB instance of the corresponding block
 func (bcc *BlockChainCache) MakeStateDB(block *types.Block) (*state.StateDB, error) {
 	// Create a StateDB instance from the blockchain based on stateRoot
+	log.Info("------make StateDB------", "GoRoutineID", common.CurrentGoRoutineID(), "number", block.NumberU64(), "hash", block.Hash(), "stateRoot", block.Root())
 	curBlock := bcc.BlockChain.CurrentBlock()
 	if curBlock != nil {
 		log.Info("------current block------", "GoRoutineID", common.CurrentGoRoutineID(), "number", curBlock.NumberU64(), "hash", curBlock.Hash(), "stateRoot", curBlock.Root())
 	}
+	log.Info("---------recheck Block", "number", block.NumberU64(), "hash", block.Hash(), "root", block.Root())
+
 	// Read and copy the stateDB instance in the cache
 	sealHash := bcc.Engine().SealHash(block.Header())
+	log.Info("Read and copy the stateDB instance in the cache", "sealHash", sealHash, "blockHash", block.Hash(), "blockNum", block.NumberU64(), "stateRoot", block.Root())
 	if state := bcc.ReadStateDB(sealHash); state != nil {
+		log.Debug("MakeStateDB", "addr", fmt.Sprintf("%p", state))
 		//return state.Copy(), nil
 		return state, nil
 	}
 	if state, err := bcc.StateAt(block.Root(), block.Number(), block.Hash()); err == nil && state != nil {
+		log.Info("---------recheck check Block", "addr", fmt.Sprintf("%p", state), "number", block.NumberU64(), "hash", block.Hash(), "root", block.Root())
 		return state, nil
 	} else {
 		return nil, errMakeStateDB

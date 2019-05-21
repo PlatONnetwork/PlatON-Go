@@ -3,7 +3,7 @@ package miner
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	//"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -13,19 +13,19 @@ import (
 )
 
 func (w *worker) shouldElection(blockNumber *big.Int) bool {
-	d := new(big.Int).Sub(blockNumber, big.NewInt(cbft.BaseElection))
-	_, m := new(big.Int).DivMod(d, big.NewInt(cbft.BaseSwitchWitness), new(big.Int))
+	d := new(big.Int).Sub(blockNumber, big.NewInt(common.BaseElection))
+	_, m := new(big.Int).DivMod(d, big.NewInt(common.BaseSwitchWitness), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
 
 func (w *worker) shouldSwitch(blockNumber *big.Int) bool {
-	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(cbft.BaseSwitchWitness), new(big.Int))
+	_, m := new(big.Int).DivMod(blockNumber, big.NewInt(common.BaseSwitchWitness), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
 
 func (w *worker) shouldAddNextPeers(blockNumber *big.Int) bool {
-	d := new(big.Int).Sub(blockNumber, big.NewInt(cbft.BaseAddNextPeers))
-	_, m := new(big.Int).DivMod(d, big.NewInt(cbft.BaseSwitchWitness), new(big.Int))
+	d := new(big.Int).Sub(blockNumber, big.NewInt(common.BaseAddNextPeers))
+	_, m := new(big.Int).DivMod(d, big.NewInt(common.BaseSwitchWitness), new(big.Int))
 	return m.Cmp(big.NewInt(0)) == 0
 }
 /*
@@ -54,7 +54,7 @@ func (w *worker) switchWitness(state *state.StateDB, blockNumber *big.Int) error
 	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
 		if should := w.shouldSwitch(blockNumber); should {
 			log.Debug("SwitchWitness call:", "blockNumber", blockNumber)
-			success := cbftEngine.Switch(state)
+			success := cbftEngine.Switch(state, blockNumber)
 			if !success {
 				log.Error("Failed to switchWitness", "blockNumber", blockNumber)
 				return errors.New("Failed to switchWitness")
@@ -119,7 +119,7 @@ func existsNode(nodeID discover.NodeID, nodes []*discover.Node) bool {
 
 func (w *worker) getWitness(blockNumber *big.Int, state *state.StateDB, flag int) ([]*discover.Node, error) {
 	log.Debug("GetWitness begin", "blockNumber", blockNumber, "flag", flag)
-	consensusNodes, err := w.engine.(consensus.Bft).GetWitness(state, flag)
+	consensusNodes, err := w.engine.(consensus.Bft).GetWitness(state, flag, blockNumber)
 	if err != nil {
 		log.Error("Failed to GetWitness", "blockNumber", blockNumber, "error", err)
 		return nil, errors.New("Failed to GetWitness")
@@ -136,16 +136,10 @@ func (w *worker) notify(state vm.StateDB, blockNumber *big.Int) error {
 	return w.engine.(consensus.Bft).Notify(state, blockNumber)
 }
 
-func (w *worker) storeHash(state *state.StateDB) {
-	w.engine.(consensus.Bft).StoreHash(state)
+func (w *worker) storeHash(state *state.StateDB, blockNumber *big.Int, blockHash common.Hash) {
+	w.engine.(consensus.Bft).StoreHash(state, blockNumber, blockHash)
 }
 
 func (w *worker) submit2cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash) {
 	w.engine.(consensus.Bft).Submit2Cache(state, currBlocknumber, blockInterval, currBlockhash)
-}
-
-func (w *worker) forEachStorage (state *state.StateDB, title string) {
-	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-		cbftEngine.ForEachStorage(state, title)
-	}
 }

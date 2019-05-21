@@ -3,11 +3,13 @@ package cbft
 import (
 	"container/list"
 	"crypto/md5"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
@@ -30,9 +32,150 @@ func TestMain(m *testing.M) {
 }
 
 //var cbftConfig *params.CbftConfig
-var forkRoot common.Hash
+var forkRootHash common.Hash
 var rootBlock *types.Block
 var rootNumber uint64
+var hash23 common.Hash
+var lastMainBlockHash common.Hash
+
+var discreteBlock *types.Block
+var lastMainBlock *types.Block
+var lastButOneMainBlock *types.Block
+
+func TestMarshalJson(t *testing.T){
+	obj := NewBlockExt(lastButOneMainBlock, 0)
+	obj.inTree = true
+	obj.isExecuted = true
+	obj.isSigned = true
+	obj.isConfirmed = true
+	obj.parent = nil
+
+	t.Log("cbft.highestConfirmed is null", "hash:", obj.Hash)
+	fmt.Println("cbft.highestConfirmed:" + obj.Hash)
+
+	jsons, errs := json.Marshal(obj) //byte[] for json
+	if errs != nil {
+		fmt.Println(errs.Error())
+	}
+	fmt.Println("obj:" + string(jsons)) //byte[] to string
+}
+
+func TestBlockSynced_discreteBlock(t *testing.T) {
+	doBlockSynced(discreteBlock, t)
+}
+
+func TestBlockSynced_lastMainBlock(t *testing.T) {
+	doBlockSynced(lastMainBlock, t)
+}
+
+func TestBlockSynced_lastButOneMainBlock(t *testing.T) {
+	doBlockSynced(lastButOneMainBlock, t)
+}
+
+func TestBlockSynced_hash23(t *testing.T) {
+	doBlockSynced(cbft.findBlockExt(hash23).block, t)
+}
+
+
+func doBlockSynced(currentBlock *types.Block, t *testing.T){
+	if currentBlock.NumberU64() > cbft.getRootIrreversible().Number {
+		log.Debug("chain has a higher irreversible block", "hash", currentBlock.Hash(), "number", currentBlock.NumberU64())
+		newRoot := cbft.findBlockExt(currentBlock.Hash())
+		if newRoot == nil || newRoot.block == nil {
+			log.Debug("higher irreversible block is not existing in memory", "newTree", newRoot.toJson())
+			//the block synced from other peer is a new block in local peer
+			//remove all blocks referenced in old tree after being cut off
+			cbft.cleanByTailoredTree(cbft.getRootIrreversible())
+
+			newRoot = NewBlockExt(currentBlock, currentBlock.NumberU64())
+			newRoot.inTree = true
+			newRoot.isExecuted = true
+			newRoot.isSigned = true
+			newRoot.isConfirmed = true
+			newRoot.Number = currentBlock.NumberU64()
+			newRoot.parent = nil
+			cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
+
+			cbft.buildChildNode(newRoot)
+
+			if len(newRoot.Children) > 0{
+				//the new root's children should re-execute base on new state
+				for _, child := range newRoot.Children {
+					if err := cbft.executeBlockAndDescendantMock(child, newRoot); err != nil {
+						log.Error("execute the block error", "err", err)
+						break
+					}
+				}
+				//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
+				cbft.signLogicalAndDescendantMock(newRoot)
+			}
+
+		} else if newRoot.block != nil {
+			log.Debug("higher irreversible block is existing in memory","newTree", newRoot.toJson())
+
+			//the block synced from other peer exists in local peer
+			newRoot.isExecuted = true
+			newRoot.isSigned = true
+			newRoot.isConfirmed = true
+			newRoot.Number = currentBlock.NumberU64()
+
+			if newRoot.inTree == false {
+				newRoot.inTree = true
+
+				cbft.setDescendantInTree(newRoot)
+
+				if len(newRoot.Children) > 0{
+					//the new root's children should re-execute base on new state
+					for _, child := range newRoot.Children {
+						if err := cbft.executeBlockAndDescendantMock(child, newRoot); err != nil {
+							log.Error("execute the block error", "err", err)
+							break
+						}
+					}
+					//there are some redundancy code for newRoot, but these codes are necessary for other logical blocks
+					cbft.signLogicalAndDescendantMock(newRoot)
+				}
+			}else{
+				//cut off old tree from new root,
+				tailorTree(newRoot)
+			}
+
+			//remove all blocks referenced in old tree after being cut off
+			cbft.cleanByTailoredTree(cbft.getRootIrreversible())
+		}
+
+		//remove all other blocks those their numbers are too low
+		cbft.cleanByNumber(newRoot.Number)
+
+		log.Debug("the cleared new tree in memory", "json", newRoot.toJson())
+
+		//reset the new root irreversible
+		cbft.rootIrreversible.Store(newRoot)
+
+		log.Debug("reset the new root irreversible by synced", "hash", newRoot.block.Hash(), "number", newRoot.block.NumberU64())
+
+
+		//reset logical path
+		highestLogical := cbft.findHighestLogical(newRoot)
+		//cbft.setHighestLogical(highestLogical)
+		cbft.highestLogical.Store(highestLogical)
+
+		t.Log("reset the highestLogical by synced", "number", highestLogical.block.NumberU64(),  "newRoot.number", newRoot.block.NumberU64() )
+
+		//reset highest confirmed block
+		highestConfirmed :=cbft.findLastClosestConfirmedIncludingSelf(newRoot)
+		cbft.highestConfirmed.Store(highestConfirmed)
+		if highestConfirmed != nil {
+			t.Log("cbft.highestConfirmed", "number", highestConfirmed.block.NumberU64(),"rcvTime", highestConfirmed.rcvTime)
+		} else {
+
+			t.Log("reset the highestConfirmed by synced failure because findLastClosestConfirmedIncludingSelf() returned nil", "newRoot.number", newRoot.block.NumberU64())
+
+		}
+	}
+}
+
+
 
 func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
 
@@ -41,7 +184,7 @@ func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
 	newRoot.isExecuted = true
 	newRoot.isSigned = true
 	newRoot.isConfirmed = true
-	newRoot.number = rootBlock.NumberU64()
+	newRoot.Number = rootBlock.NumberU64()
 
 	//reorg the block tree
 	children := cbft.findChildren(newRoot)
@@ -49,7 +192,7 @@ func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
 		child.parent = newRoot
 		child.inTree = true
 	}
-	newRoot.children = children
+	newRoot.Children = children
 
 	//save the root in BlockExtMap
 	cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
@@ -57,7 +200,7 @@ func TestFindLastClosestConfirmedIncludingSelf(t *testing.T) {
 	//reset the new root irreversible
 	cbft.rootIrreversible.Store(newRoot)
 	//the new root's children should re-execute base on new state
-	for _, child := range newRoot.children {
+	for _, child := range newRoot.Children {
 		if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
 			//remove bad block from tree and map
 			cbft.removeBadBlock(child)
@@ -86,7 +229,7 @@ func TestFindClosestConfirmedExcludingSelf(t *testing.T) {
 	newRoot.isExecuted = true
 	newRoot.isSigned = true
 	newRoot.isConfirmed = true
-	newRoot.number = rootBlock.NumberU64()
+	newRoot.Number = rootBlock.NumberU64()
 
 	closest := cbft.findClosestConfirmedExcludingSelf(newRoot)
 	fmt.Println(closest)
@@ -98,7 +241,7 @@ func TestExecuteBlockAndDescendant(t *testing.T) {
 	newRoot.isExecuted = true
 	newRoot.isSigned = true
 	newRoot.isConfirmed = true
-	newRoot.number = rootBlock.NumberU64()
+	newRoot.Number = rootBlock.NumberU64()
 
 	//save the root in BlockExtMap
 	cbft.saveBlockExt(newRoot.block.Hash(), newRoot)
@@ -109,7 +252,7 @@ func TestExecuteBlockAndDescendant(t *testing.T) {
 	cbft.buildChildNode(newRoot)
 
 	//the new root's children should re-execute base on new state
-	for _, child := range newRoot.children {
+	for _, child := range newRoot.Children {
 		if err := cbft.executeBlockAndDescendant(child, newRoot); err != nil {
 			//remove bad block from tree and map
 			cbft.removeBadBlock(child)
@@ -153,7 +296,7 @@ func initTest() {
 	cbft = &Cbft{
 		config: cbftConfig,
 		//blockExtMap:   make(map[common.Hash]*BlockExt),
-		signedSet:     make(map[uint64]struct{}),
+		//signedSet:     make(map[uint64]struct{}),
 		netLatencyMap: make(map[discover.NodeID]*list.List),
 	}
 	buildMain(cbft)
@@ -169,12 +312,12 @@ func buildFork(cbft *Cbft) {
 
 	//sealhash := cbft.SealHash(header)
 
-	parentHash := forkRoot
-	for i := uint64(4); i <= 9; i++ {
+	parentHash := forkRootHash
+	for i := uint64(3); i <= 5; i++ {
 		header := &types.Header{
 			ParentHash: parentHash,
 			Number:     big.NewInt(int64(i)),
-			TxHash:     hash(1, i),
+			TxHash:     hash(2, i),
 		}
 		block := types.NewBlockWithHeader(header)
 
@@ -182,14 +325,27 @@ func buildFork(cbft *Cbft) {
 			block:       block,
 			inTree:      true,
 			isExecuted:  true,
-			isSigned:    false,
 			isConfirmed: false,
-			number:      block.NumberU64(),
+			rcvTime:    int64(20+i),
+			Number:      block.NumberU64(),
 			signs:       make([]*common.BlockConfirmSign, 0),
 		}
 		cbft.blockExtMap.Store(block.Hash(), ext)
 
 		parentHash = block.Hash()
+
+		if i == 3 {
+			ext.isSigned=false
+			ext.isConfirmed=false
+			hash23 = block.Hash()
+		} else if i == 4 {
+			ext.isSigned=true
+			ext.isConfirmed=false
+		} else if i == 5 {
+			ext.isSigned=false
+			ext.isConfirmed=false
+		}
+		cbft.buildIntoTree(ext)
 	}
 }
 
@@ -200,6 +356,10 @@ func hash(branch uint64, number uint64) (hash common.Hash) {
 	hasher.Write(signByte)
 	return common.BytesToHash(hasher.Sum(nil))
 }
+
+
+
+
 func buildMain(cbft *Cbft) {
 
 	//sealhash := cbft.SealHash(header)
@@ -213,17 +373,19 @@ func buildMain(cbft *Cbft) {
 		inTree:      true,
 		isExecuted:  true,
 		isSigned:    true,
-		isConfirmed: false,
-		number:      rootBlock.NumberU64(),
+		isConfirmed: true,
+		rcvTime:	 0,
+		Number:      rootBlock.NumberU64(),
 		signs:       make([]*common.BlockConfirmSign, 0),
 	}
 
 	//hashSet[uint64(0)] = rootBlock.Hash()
 	cbft.blockExtMap.Store(rootBlock.Hash(), rootExt)
 	cbft.highestConfirmed.Store(rootExt)
+	cbft.rootIrreversible.Store(rootExt)
 
 	parentHash := rootBlock.Hash()
-	for i := uint64(1); i <= 10; i++ {
+	for i := uint64(1); i <= 5; i++ {
 		header := &types.Header{
 			ParentHash: parentHash,
 			Number:     big.NewInt(int64(i)),
@@ -237,7 +399,8 @@ func buildMain(cbft *Cbft) {
 			isExecuted:  true,
 			isSigned:    true,
 			isConfirmed: false,
-			number:      block.NumberU64(),
+			rcvTime:    int64(i),
+			Number:      block.NumberU64(),
 			signs:       make([]*common.BlockConfirmSign, 0),
 		}
 		//hashSet[i] = rootBlock.Hash()
@@ -247,12 +410,77 @@ func buildMain(cbft *Cbft) {
 
 		parentHash = block.Hash()
 
-		if i == 4 {
-			forkRoot = block.Hash()
+		if i == 2 {
+			forkRootHash = block.Hash()
+			ext.isSigned=false
+			ext.isConfirmed=true
+		} else if i == 3 {
+			ext.isSigned=true
+			ext.isConfirmed=false
+		} else if i == 4 {
+			lastButOneMainBlock = block
+
+			ext.isSigned=false
+			ext.isConfirmed=false
+		} else if i == 5 {
+			lastMainBlock = block
+			ext.isSigned=false
+			ext.isConfirmed=false
+
 		}
-
 		cbft.buildIntoTree(ext)
+	}
 
+	notExistHeader := &types.Header{
+		ParentHash: parentHash,
+		Number:     big.NewInt(int64(20)),
+		TxHash:     hash(1, 20),
+	}
+	notExistBlock := types.NewBlockWithHeader(notExistHeader)
+
+
+	discreteHeader := &types.Header{
+		ParentHash: notExistBlock.Hash(),
+		Number:     big.NewInt(int64(6)),
+		TxHash:     hash(1, 6),
+	}
+	discreteBlock = types.NewBlockWithHeader(discreteHeader)
+
+	discreteExt := &BlockExt{
+		block:       discreteBlock,
+		inTree:      false,
+		isExecuted:  false,
+		isSigned:    false,
+		isConfirmed: false,
+		rcvTime:     int64(220),
+		Number:      discreteBlock.NumberU64(),
+		signs:       make([]*common.BlockConfirmSign, 0),
+	}
+	//hashSet[i] = rootBlock.Hash()
+	cbft.blockExtMap.Store(discreteBlock.Hash(), discreteExt)
+
+	parentHash = discreteBlock.Hash()
+	for i := 7; i <= 7; i++ {
+		header := &types.Header{
+			ParentHash: parentHash,
+			Number:     big.NewInt(int64(i)),
+			TxHash:     hash(1, uint64(i)),
+		}
+		block := types.NewBlockWithHeader(header)
+
+		ext := &BlockExt{
+			block:       block,
+			inTree:      false,
+			isExecuted:  false,
+			isSigned:    false,
+			isConfirmed: false,
+			rcvTime:    int64(i),
+			Number:      block.NumberU64(),
+			signs:       make([]*common.BlockConfirmSign, 0),
+		}
+		//hashSet[i] = rootBlock.Hash()
+		cbft.blockExtMap.Store(block.Hash(), ext)
+		parentHash = block.Hash()
 	}
 
 }

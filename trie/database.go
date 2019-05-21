@@ -308,7 +308,6 @@ func (db *Database) insert(hash common.Hash, blob []byte, node node) {
 		}
 	}
 	db.nodes[hash] = entry
-
 	// Update the flush-list endpoints
 	if db.oldest == (common.Hash{}) {
 		db.oldest, db.newest = hash, hash
@@ -352,6 +351,7 @@ func (db *Database) node(hash common.Hash, cachegen uint16) node {
 // Node retrieves an encoded cached trie node from memory. If it cannot be found
 // cached, the method queries the persistent database for the content.
 func (db *Database) Node(hash common.Hash) ([]byte, error) {
+	log.Debug("Database node", "hash", hash)
 	// Retrieve the node from cache if available
 	db.lock.RLock()
 	node := db.nodes[hash]
@@ -366,7 +366,8 @@ func (db *Database) Node(hash common.Hash) ([]byte, error) {
 
 // preimage retrieves a cached trie node pre-image from memory. If it cannot be
 // found cached, the method queries the persistent database for the content.
-func (db *Database) preimage(hash common.Hash) ([]byte, error) {
+func (db *Database) Preimage(hash common.Hash) ([]byte, error) {
+	log.Debug("Database Preimage", "hash", hash)
 	// Retrieve the node from cache if available
 	db.lock.RLock()
 	preimage := db.preimages[hash]

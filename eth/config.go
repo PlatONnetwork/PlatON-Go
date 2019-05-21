@@ -41,7 +41,7 @@ const (
 
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
-	SyncMode: downloader.FullSync,
+	SyncMode: downloader.FastSync,
 	CbftConfig: CbftConfig{
 		Period:           1,
 		Epoch:            250000,
@@ -52,14 +52,13 @@ var DefaultConfig = Config{
 			Candidate: &CandidateConfig{
 				Threshold: 			"1000000000000000000000000",
 				DepositLimit: 	  	10,
-				Allowed: 			100,
+				Allowed: 			512,
 				MaxChair:          	10,
 				MaxCount:          	100,
 				RefundBlockNumber: 	512,
 			},
 			Ticket: &TicketConfig{
 				TicketPrice: 		"100000000000000000000",
-				AdjustCycle:		"10000",
 				MaxCount:			51200,
 				ExpireBlockNumber: 	1536000,
 			},
@@ -177,24 +176,23 @@ type CandidateConfig struct {
 	// min deposit allow threshold
 	Threshold				string 					`json:"threshold"`
 	// min deposit limit percentage
-	DepositLimit 			uint64					`json:"depositLimit"`
+	DepositLimit 			uint32					`json:"depositLimit"`
 	// allow put into immedidate condition
-	Allowed					uint64					`json:"allowed"`
+	Allowed					uint32					`json:"allowed"`
 	// allow immediate elected max count
-	MaxCount				uint64					`json:"maxCount"`
+	MaxCount				uint32					`json:"maxCount"`
 	// allow witness max count
-	MaxChair				uint64					`json:"maxChair"`
+	MaxChair				uint32					`json:"maxChair"`
 	// allow block interval for refunds
-	RefundBlockNumber 		uint64 					`json:"refundBlockNumber"`
+	RefundBlockNumber 		uint32 					`json:"refundBlockNumber"`
 
 }
 type TicketConfig struct {
 	TicketPrice 		string 						`json:"ticketPrice"`
-	AdjustCycle			string						`json:"adjustCycle"`
 	// Maximum number of ticket pool
-	MaxCount				uint64					`json:"maxCount"`
+	MaxCount				uint32					`json:"maxCount"`
 	// Reach expired quantity
-	ExpireBlockNumber		uint64					`json:"expireBlockNumber"`
+	ExpireBlockNumber		uint32					`json:"expireBlockNumber"`
 }
 
 type configMarshaling struct {

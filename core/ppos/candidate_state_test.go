@@ -1,9 +1,13 @@
 package pposm_test
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -11,13 +15,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
-	"testing"
-
-	"encoding/json"
-	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/core/ppos"
 	"math/rand"
 	"sync/atomic"
+	"testing"
 	"time"
 	//"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
 )
@@ -28,6 +28,11 @@ func newChainState() (*state.StateDB, error) {
 		genesis = new(core.Genesis).MustCommit(db)
 	)
 	fmt.Println("genesis", genesis)
+	// Initialize ppos storage
+
+	ppos_storage.NewPPosTemp(db)
+
+
 	// Initialize a fresh chain with only a genesis block
 	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
 
@@ -40,7 +45,7 @@ func newChainState() (*state.StateDB, error) {
 	return state, nil
 }
 
-func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPool) {
+func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPoolContext) {
 	configs := &params.PposConfig{
 		CandidateConfig: &params.CandidateConfig{
 			Threshold:         "100",
@@ -55,7 +60,7 @@ func newPool() (*pposm.CandidatePoolContext, *pposm.TicketPool) {
 			ExpireBlockNumber: 100,
 		},
 	}
-	return pposm.NewCandidatePoolContext(configs), pposm.NewTicketPool(configs)
+	return pposm.NewCandidatePoolContext(configs), pposm.NewTicketPoolContext(configs)
 }
 
 func printObject(title string, obj, logger interface{}) {
@@ -73,7 +78,7 @@ func printObject(title string, obj, logger interface{}) {
 func TestCandidatePoolAllCircle(t *testing.T) {
 
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		t.Error("Getting stateDB err", err)
@@ -81,14 +86,21 @@ func TestCandidatePoolAllCircle(t *testing.T) {
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
+	candidatePoolContext, ticketPoolContext = newPool()
 
 	//state.Commit(false)
 
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+	nodeId3 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343")
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -104,6 +116,7 @@ func TestCandidatePoolAllCircle(t *testing.T) {
 	/** vote ticket */
 	var count uint32 = 0
 	ownerList := []common.Address{common.HexToAddress("0x20"), common.HexToAddress("0x21")}
+
 	var blockNumber = new(big.Int).SetUint64(10)
 	voteNum := 10
 	timeMap := make(map[uint32]int64)
@@ -124,13 +137,13 @@ func TestCandidatePoolAllCircle(t *testing.T) {
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, candidate.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -140,39 +153,40 @@ func TestCandidatePoolAllCircle(t *testing.T) {
 	}
 	fmt.Println("VOTING END .............................................................")
 
+
 	/** test GetCandidate */
 	t.Log("test GetCandidate ...")
-	can, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"))
+	can := candidatePoolContext.GetCandidate(state, nodeId1, blockNumber)
 	t.Log("GetCandidate", can)
 
 	/** test WithdrawCandidate */
 	t.Log("test WithdrawCandidate ...")
-	ok1 := candidatePoolContext.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
+	ok1 := candidatePoolContext.WithdrawCandidate(state, nodeId5, new(big.Int).SetUint64(uint64(99)), blockNumber)
 	t.Log("error", ok1)
 
 	/** test WithdrawCandidate again */
 	t.Log("test WithdrawCandidate again ...")
-	ok2 := candidatePoolContext.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(10)), new(big.Int).SetUint64(uint64(11)))
+	ok2 := candidatePoolContext.WithdrawCandidate(state, nodeId5, new(big.Int).SetUint64(uint64(10)), new(big.Int).SetUint64(uint64(11)))
 	t.Log("error", ok2)
 
 	/** test GetChosens */
 	t.Log("test GetChosens ...")
-	canArr := candidatePoolContext.GetChosens(state, 0)
+	canArr := candidatePoolContext.GetChosens(state, 0, blockNumber)
 	printObject("Elected candidates", canArr, t)
 
 	/** test GetChairpersons */
 	t.Log("test GetChairpersons ...")
-	canArr = candidatePoolContext.GetChairpersons(state)
-	printObject("Witnesses", canArr, t)
+	canQueue := candidatePoolContext.GetChairpersons(state, blockNumber)
+	printObject("Witnesses", canQueue, t)
 
 	/** test GetDefeat */
 	t.Log("test GetDefeat ...")
-	defeatArr, _ := candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	defeatArr := candidatePoolContext.GetDefeat(state, nodeId5, blockNumber)
 	printObject("can be refund defeats", defeatArr, t)
 
 	/** test IsDefeat */
 	t.Log("test IsDefeat ...")
-	flag, _ := candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag := candidatePoolContext.IsDefeat(state, nodeId5, blockNumber)
 	printObject("isdefeat", flag, t)
 
 	/** test Election */
@@ -182,22 +196,22 @@ func TestCandidatePoolAllCircle(t *testing.T) {
 
 	/** test RefundBalance */
 	t.Log("test RefundBalance ...")
-	err = candidatePoolContext.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(11)))
+	err = candidatePoolContext.RefundBalance(state, nodeId5, new(big.Int).SetUint64(uint64(11)))
 	t.Log("err", err)
 
 	/** test RefundBalance again */
 	t.Log("test RefundBalance again ...")
-	err = candidatePoolContext.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"), new(big.Int).SetUint64(uint64(11)))
+	err = candidatePoolContext.RefundBalance(state, nodeId3, new(big.Int).SetUint64(uint64(11)))
 	t.Log("err", err)
 
 	/** test GetOwner */
 	t.Log("test GetOwner ...")
-	addr := candidatePoolContext.GetOwner(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	addr := candidatePoolContext.GetOwner(state, nodeId5, blockNumber)
 	t.Log("Benefit address", addr.String())
 
 	/**  test GetWitness */
 	t.Log("test GetWitness ...")
-	nodeArr, _ := candidatePoolContext.GetWitness(state, 1)
+	nodeArr, _ := candidatePoolContext.GetWitness(state, 1, blockNumber)
 	printObject("nodeArr", nodeArr, t)
 }
 
@@ -206,7 +220,7 @@ func TestCandidatePoolAllCircle(t *testing.T) {
 // test SetCandidate
 func candidate_SetCandidate(logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -214,14 +228,18 @@ func candidate_SetCandidate(logFn func(args ...interface{}), errFn func(args ...
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
-	//state.Commit(false)
+	candidatePoolContext, _ = newPool()
+
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -246,7 +264,7 @@ func BenchmarkCandidatePool_SetCandidate(b *testing.B) {
 // test GetCandidate
 func candidate_GetCandidate(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -254,13 +272,17 @@ func candidate_GetCandidate(logger interface{}, logFn func(args ...interface{}),
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -275,7 +297,7 @@ func candidate_GetCandidate(logger interface{}, logFn func(args ...interface{}),
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can := candidatePoolContext.GetCandidate(state, nodeId5, curr_blockNumber)
 	printObject("GetCandidate", can, logger)
 }
 
@@ -290,7 +312,7 @@ func BenchmarkCandidatePool_GetCandidate(b *testing.B) {
 // test GetCandidateArr
 func candidate_GetCandidateArr(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -298,13 +320,19 @@ func candidate_GetCandidateArr(logger interface{}, logFn func(args ...interface{
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -319,8 +347,8 @@ func candidate_GetCandidateArr(logger interface{}, logFn func(args ...interface{
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -334,7 +362,7 @@ func candidate_GetCandidateArr(logger interface{}, logFn func(args ...interface{
 
 	/** test GetCandidate */
 	logFn("test GetCandidateArr ...")
-	canArr, _ := candidatePoolContext.GetCandidateArr(state, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
+	canArr := candidatePoolContext.GetCandidateArr(state, curr_blockNumber, []discover.NodeID{candidate.CandidateId, candidate2.CandidateId}...)
 	printObject("GetCandidateArr", canArr, logger)
 }
 
@@ -349,7 +377,7 @@ func BenchmarkCandidatePool_GetCandidateArr(b *testing.B) {
 // test SetCandidateExtra
 func candidate_SetCandidateExtra(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -357,14 +385,18 @@ func candidate_SetCandidateExtra(logger interface{}, logFn func(args ...interfac
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 	//state.Commit(false)
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -382,8 +414,8 @@ func candidate_SetCandidateExtra(logger interface{}, logFn func(args ...interfac
 		errFn("SetCndidateExtra err:", err)
 	}
 	/** test GetCandidate  */
-	if can, err := candidatePoolContext.GetCandidate(state, candidate.CandidateId); nil != err {
-		errFn("GetCandidate err:", err)
+	if can := candidatePoolContext.GetCandidate(state, candidate.CandidateId, curr_blockNumber); nil == can {
+		errFn("GetCandidate err:")
 	} else {
 		logFn("candidate'extra:", can.Extra)
 	}
@@ -400,7 +432,7 @@ func BenchmarkCandidatePool_SetCandidateExtra(b *testing.B) {
 // test WithdrawCndidate
 func candidate_WithdrawCandidate(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -408,13 +440,19 @@ func candidate_WithdrawCandidate(logger interface{}, logFn func(args ...interfac
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -428,8 +466,8 @@ func candidate_WithdrawCandidate(logger interface{}, logFn func(args ...interfac
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -443,17 +481,17 @@ func candidate_WithdrawCandidate(logger interface{}, logFn func(args ...interfac
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can := candidatePoolContext.GetCandidate(state, nodeId5, curr_blockNumber)
 	printObject("GetCandidate", can, logger)
 
 	/** test WithdrawCandidate */
 	logFn("test WithdrawCandidate ...")
-	ok1 := candidatePoolContext.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
+	ok1 := candidatePoolContext.WithdrawCandidate(state, nodeId5, new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
 	logFn("error", ok1)
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can2, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can2 := candidatePoolContext.GetCandidate(state, nodeId5, curr_blockNumber)
 	printObject("GetCandidate", can2, logger)
 }
 
@@ -468,7 +506,7 @@ func BenchmarkCandidatePool_WithdrawCandidate(b *testing.B) {
 // test GetChosens
 func candidate_GetChosens(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -476,13 +514,19 @@ func candidate_GetChosens(logger interface{}, logFn func(args ...interface{}), e
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -496,8 +540,8 @@ func candidate_GetChosens(logger interface{}, logFn func(args ...interface{}), e
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -511,7 +555,7 @@ func candidate_GetChosens(logger interface{}, logFn func(args ...interface{}), e
 
 	/** test GetChosens */
 	logFn("test GetChosens ...")
-	canArr := candidatePoolContext.GetChosens(state, 0)
+	canArr := candidatePoolContext.GetChosens(state, 0, curr_blockNumber)
 	printObject("immediate elected candidates", canArr, logger)
 }
 
@@ -526,7 +570,7 @@ func BenchmarkCandidatePool_GetChosens(b *testing.B) {
 // test GetChairpersons
 func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -534,16 +578,25 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+	nodeId2 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342")
+
+	nodeId3 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343")
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	// cache
 	cans := make([]*types.Candidate, 0)
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -558,8 +611,8 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -574,8 +627,8 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 
 	candidate3 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(102),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId2,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -590,8 +643,8 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 
 	candidate4 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(120),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId3,
 		TxIndex:     4,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -629,13 +682,13 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -652,12 +705,12 @@ func candidate_GetChairpersons(logger interface{}, logFn func(args ...interface{
 
 	/** test switch */
 	logFn("test Switch ...")
-	flag := candidatePoolContext.Switch(state)
+	flag := candidatePoolContext.Switch(state, blockNumber)
 	logFn("Switch was success ", flag)
 
 	/** test GetChairpersons */
 	logFn("test GetChairpersons ...")
-	canArr := candidatePoolContext.GetChairpersons(state)
+	canArr := candidatePoolContext.GetChairpersons(state, blockNumber)
 	printObject("Witnesses", canArr, logger)
 }
 
@@ -672,7 +725,7 @@ func BenchmarkCandidatePool_GetChairpersons(b *testing.B) {
 // test GetWitness
 func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -680,16 +733,25 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+	nodeId2 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342")
+
+	nodeId3 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343")
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	// cache
 	cans := make([]*types.Candidate, 0)
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -704,8 +766,8 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -720,8 +782,8 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 
 	candidate3 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(102),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId2,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -736,8 +798,8 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 
 	candidate4 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(120),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId3,
 		TxIndex:     4,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -775,13 +837,13 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -798,17 +860,17 @@ func candidate_GetWitness(logger interface{}, logFn func(args ...interface{}), e
 
 	/** test GetWitness */
 	logFn("test GetWitness ...")
-	canArr, _ := candidatePoolContext.GetWitness(state, 1)
+	canArr, _ := candidatePoolContext.GetWitness(state, 1, blockNumber)
 	printObject("next Witnesses", canArr, logger)
 
 	/** test switch */
 	logFn("test Switch ...")
-	flag := candidatePoolContext.Switch(state)
+	flag := candidatePoolContext.Switch(state, blockNumber)
 	logFn("Switch was success ", flag)
 
 	/** test GetWitness */
 	logFn("test GetWitness ...")
-	canArr, _ = candidatePoolContext.GetWitness(state, 0)
+	canArr, _ = candidatePoolContext.GetWitness(state, 0, blockNumber)
 	printObject(" current Witnesses", canArr, logger)
 }
 
@@ -823,7 +885,7 @@ func BenchmarkCandidatePool_GetWitness(b *testing.B) {
 // test GetAllWitness
 func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -831,16 +893,25 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+	nodeId2 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342")
+
+	nodeId3 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343")
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	// cache
 	cans := make([]*types.Candidate, 0)
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -855,8 +926,8 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -871,8 +942,8 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 
 	candidate3 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(102),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId2,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -887,8 +958,8 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 
 	candidate4 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(120),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId3,
 		TxIndex:     4,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -926,13 +997,13 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -949,17 +1020,17 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 
 	/** test GetWitness */
 	logFn("test GetWitness ...")
-	canArr, _ := candidatePoolContext.GetWitness(state, 1)
+	canArr, _ := candidatePoolContext.GetWitness(state, 1, blockNumber)
 	printObject("next Witnesses", canArr, logger)
 
 	/** test switch */
 	logFn("test Switch ...")
-	flag := candidatePoolContext.Switch(state)
+	flag := candidatePoolContext.Switch(state, blockNumber)
 	logFn("Switch was success ", flag)
 
 	/** test GetWitness */
 	logFn("test GetWitness ...")
-	canArr, _ = candidatePoolContext.GetWitness(state, 0)
+	canArr, _ = candidatePoolContext.GetWitness(state, 0, blockNumber)
 	printObject(" current Witnesses", canArr, logger)
 
 	/** test Election */
@@ -969,7 +1040,7 @@ func candidate_GetAllWitness(logger interface{}, logFn func(args ...interface{})
 
 	/** test GetAllWitness */
 	logFn("test GetAllWitness ...")
-	preArr, curArr, nextArr, _ := candidatePoolContext.GetAllWitness(state)
+	preArr, curArr, nextArr, _ := candidatePoolContext.GetAllWitness(state, blockNumber)
 	printObject("previous Witness", preArr, logger)
 	printObject(" current Witnesses", curArr, logger)
 	printObject(" next Witnesses", nextArr, logger)
@@ -986,7 +1057,7 @@ func BenchmarkCandidatePool_GetAllWitness(b *testing.B) {
 // test GetDefeat
 func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -994,16 +1065,25 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+	nodeId2 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342")
+
+	nodeId3 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343")
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	// cache
 	cans := make([]*types.Candidate, 0)
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1018,8 +1098,8 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1034,8 +1114,8 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 
 	candidate3 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(102),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId2,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1050,8 +1130,8 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 
 	candidate4 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(120),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId3,
 		TxIndex:     4,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1089,13 +1169,13 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -1115,56 +1195,56 @@ func candidate_GetDefeat(logger interface{}, logFn func(args ...interface{}), er
 	/** test MaxChair */
 	logFn("test MaxChair:", candidatePoolContext.MaxChair())
 	/**test Interval*/
-	logFn("test Interval:", candidatePoolContext.GetRefundInterval())
+	logFn("test Interval:", candidatePoolContext.GetRefundInterval(blockNumber))
 
 	/** test switch */
 	logFn("test Switch ...")
-	flag := candidatePoolContext.Switch(state)
+	flag := candidatePoolContext.Switch(state, blockNumber)
 	logFn("Switch was success ", flag)
 
 	/** test GetChairpersons */
 	logFn("test GetChairpersons ...")
-	canArr := candidatePoolContext.GetChairpersons(state)
+	canArr := candidatePoolContext.GetChairpersons(state, blockNumber)
 	printObject("Witnesses", canArr, logger)
 
 	/** test WithdrawCandidate */
 	logFn("test WithdrawCandidate ...")
-	ok1 := candidatePoolContext.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
+	ok1 := candidatePoolContext.WithdrawCandidate(state, nodeId5, new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
 	logFn("error", ok1)
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can2, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can2 := candidatePoolContext.GetCandidate(state, nodeId5, blockNumber)
 	printObject("GetCandidate", can2, logger)
 
 	/** test GetDefeat */
 	logFn("test GetDefeat ...")
-	defeatArr, _ := candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	defeatArr:= candidatePoolContext.GetDefeat(state, nodeId5, blockNumber)
 	printObject("can be refund defeats", defeatArr, logger)
 
 	/** test IsDefeat */
 	logFn("test IsDefeat ...")
-	flag, _ = candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag = candidatePoolContext.IsDefeat(state, nodeId5, blockNumber)
 	logFn("isdefeat", flag)
 
 	/** test RefundBalance */
 	logFn("test RefundBalance ...")
-	err = candidatePoolContext.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(11)))
+	err = candidatePoolContext.RefundBalance(state, nodeId5, new(big.Int).SetUint64(uint64(11)))
 	logFn("RefundBalance err", err)
 
 	/** test RefundBalance again */
 	logFn("test RefundBalance again ...")
-	err = candidatePoolContext.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(11)))
+	err = candidatePoolContext.RefundBalance(state, nodeId5, new(big.Int).SetUint64(uint64(11)))
 	logFn("RefundBalance again err", err)
 
 	/** test GetOwner */
 	logFn("test GetOwner ...")
-	addr := candidatePoolContext.GetOwner(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	addr := candidatePoolContext.GetOwner(state, nodeId5, blockNumber)
 	logFn("Benefit address", addr.String())
 
 	/**  test GetWitness */
 	logFn("test GetWitness ...")
-	nodeArr, _ := candidatePoolContext.GetWitness(state, 0)
+	nodeArr, _ := candidatePoolContext.GetWitness(state, 0, blockNumber)
 	printObject("nodeArr", nodeArr, logger)
 }
 
@@ -1179,7 +1259,7 @@ func BenchmarkCandidatePool_GetDefeat(b *testing.B) {
 // test GetOwner
 func candidate_GetOwner(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1187,16 +1267,20 @@ func candidate_GetOwner(logger interface{}, logFn func(args ...interface{}), err
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	// cache
 	cans := make([]*types.Candidate, 0)
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1210,7 +1294,7 @@ func candidate_GetOwner(logger interface{}, logFn func(args ...interface{}), err
 	}
 
 	/** test GetOwner */
-	ownerAddr := candidatePoolContext.GetOwner(state, candidate.CandidateId)
+	ownerAddr := candidatePoolContext.GetOwner(state, candidate.CandidateId, curr_blockNumber)
 	logFn("Getting Onwer's Address:", ownerAddr.String())
 }
 
@@ -1225,7 +1309,7 @@ func BenchmarkCandidatePool_GetOwner(b *testing.B) {
 // test GetRefundInterval
 func candidate_GetRefundInterval(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1233,11 +1317,10 @@ func candidate_GetRefundInterval(logger interface{}, logFn func(args ...interfac
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 
 	/** test  GetRefundInterval*/
-	num := candidatePoolContext.GetRefundInterval()
+	num := candidatePoolContext.GetRefundInterval(big.NewInt(10))
 	logFn("RefundInterval:", num)
 	fmt.Println(state.Error())
 }
@@ -1253,7 +1336,7 @@ func BenchmarkCandidatePool_GetRefundInterval(b *testing.B) {
 // test MaxChair
 func candidate_MaxChair(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1261,8 +1344,7 @@ func candidate_MaxChair(logger interface{}, logFn func(args ...interface{}), err
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
 
 	/** test  MaxChair*/
 	num := candidatePoolContext.MaxChair()
@@ -1281,7 +1363,7 @@ func BenchmarkCandidatePool_MaxChair(b *testing.B) {
 // test IsChosens
 func candidate_IsChosens(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	//var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1289,13 +1371,19 @@ func candidate_IsChosens(logger interface{}, logFn func(args ...interface{}), er
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, _ = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1309,8 +1397,8 @@ func candidate_IsChosens(logger interface{}, logFn func(args ...interface{}), er
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1324,11 +1412,8 @@ func candidate_IsChosens(logger interface{}, logFn func(args ...interface{}), er
 
 	/** test GetChosens */
 	logFn("test IsChosens ...")
-	if flag, err := candidatePoolContext.IsChosens(state, candidate2.CandidateId); nil != err {
-		errFn("IsChosens err:", err)
-	} else {
-		logFn("IsChosens success", flag)
-	}
+	flag := candidatePoolContext.IsChosens(state, candidate2.CandidateId, curr_blockNumber)
+	logFn("IsChosens success", flag)
 }
 
 func TestCandidatePool_IsChosens(t *testing.T) {
@@ -1342,7 +1427,7 @@ func BenchmarkCandidatePool_IsChosens(b *testing.B) {
 // test IsDefeat
 func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1350,16 +1435,25 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+	nodeId2 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342")
+
+	nodeId3 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343")
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	// cache
 	cans := make([]*types.Candidate, 0)
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1374,8 +1468,8 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1390,8 +1484,8 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 
 	candidate3 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(102),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId2,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1406,8 +1500,8 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 
 	candidate4 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(120),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId3,
 		TxIndex:     4,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1445,13 +1539,13 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -1471,36 +1565,36 @@ func candidate_IsDefeat(logger interface{}, logFn func(args ...interface{}), err
 	/** test MaxChair */
 	logFn("test MaxChair:", candidatePoolContext.MaxChair())
 	/**test Interval*/
-	logFn("test Interval:", candidatePoolContext.GetRefundInterval())
+	logFn("test Interval:", candidatePoolContext.GetRefundInterval(blockNumber))
 
 	/** test switch */
 	logFn("test Switch ...")
-	flag := candidatePoolContext.Switch(state)
+	flag := candidatePoolContext.Switch(state, blockNumber)
 	logFn("Switch was success ", flag)
 
 	/** test GetChairpersons */
 	logFn("test GetChairpersons ...")
-	canArr := candidatePoolContext.GetChairpersons(state)
+	canArr := candidatePoolContext.GetChairpersons(state, blockNumber)
 	printObject("Witnesses", canArr, logger)
 
 	/** test WithdrawCandidate */
 	logFn("test WithdrawCandidate ...")
-	ok1 := candidatePoolContext.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
+	ok1 := candidatePoolContext.WithdrawCandidate(state, nodeId5, new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
 	logFn("error", ok1)
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can2, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can2 := candidatePoolContext.GetCandidate(state, nodeId5, blockNumber)
 	printObject("GetCandidate", can2, logger)
 
 	/** test GetDefeat */
 	logFn("test GetDefeat ...")
-	defeatArr, _ := candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	defeatArr := candidatePoolContext.GetDefeat(state, nodeId5, blockNumber)
 	printObject("can be refund defeats", defeatArr, logger)
 
 	/** test IsDefeat */
 	logFn("test IsDefeat ...")
-	flag, _ = candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag = candidatePoolContext.IsDefeat(state, nodeId5, blockNumber)
 	logFn("isdefeat", flag)
 }
 
@@ -1515,7 +1609,7 @@ func BenchmarkCandidatePool_IsDefeat(b *testing.B) {
 // test RefundBalance
 func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1523,16 +1617,25 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+	nodeId2 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342")
+
+	nodeId3 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343")
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	// cache
 	cans := make([]*types.Candidate, 0)
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1547,8 +1650,8 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1563,8 +1666,8 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 
 	candidate3 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(102),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId2,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1579,8 +1682,8 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 
 	candidate4 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(120),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId3,
 		TxIndex:     4,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1618,13 +1721,13 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -1644,46 +1747,46 @@ func candidate_RefundBalance(logger interface{}, logFn func(args ...interface{})
 	/** test MaxChair */
 	logFn("test MaxChair:", candidatePoolContext.MaxChair())
 	/**test Interval*/
-	logFn("test Interval:", candidatePoolContext.GetRefundInterval())
+	logFn("test Interval:", candidatePoolContext.GetRefundInterval(blockNumber))
 
 	/** test switch */
 	logFn("test Switch ...")
-	flag := candidatePoolContext.Switch(state)
+	flag := candidatePoolContext.Switch(state, blockNumber)
 	logFn("Switch was success ", flag)
 
 	/** test GetChairpersons */
 	logFn("test GetChairpersons ...")
-	canArr := candidatePoolContext.GetChairpersons(state)
+	canArr := candidatePoolContext.GetChairpersons(state, blockNumber)
 	printObject("Witnesses", canArr, logger)
 
 	/** test WithdrawCandidate */
 	logFn("test WithdrawCandidate ...")
-	ok1 := candidatePoolContext.WithdrawCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
+	ok1 := candidatePoolContext.WithdrawCandidate(state, nodeId5, new(big.Int).SetUint64(uint64(99)), new(big.Int).SetUint64(uint64(10)))
 	logFn("error", ok1)
 
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can2, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	can2 := candidatePoolContext.GetCandidate(state, nodeId5, blockNumber)
 	printObject("GetCandidate", can2, logger)
 
 	/** test GetDefeat */
 	logFn("test GetDefeat ...")
-	defeatArr, _ := candidatePoolContext.GetDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	defeatArr := candidatePoolContext.GetDefeat(state, nodeId5, blockNumber)
 	printObject("can be refund defeats", defeatArr, logger)
 
 	/** test IsDefeat */
 	logFn("test IsDefeat ...")
-	flag, _ = candidatePoolContext.IsDefeat(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+	flag = candidatePoolContext.IsDefeat(state, nodeId5, blockNumber)
 	logFn("isdefeat", flag)
 
 	/** test RefundBalance */
 	logFn("test RefundBalance ...")
-	err = candidatePoolContext.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(11)))
+	err = candidatePoolContext.RefundBalance(state, nodeId5, new(big.Int).SetUint64(uint64(11)))
 	logFn("RefundBalance err", err)
 
 	/** test RefundBalance again */
 	logFn("test RefundBalance again ...")
-	err = candidatePoolContext.RefundBalance(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"), new(big.Int).SetUint64(uint64(11)))
+	err = candidatePoolContext.RefundBalance(state, nodeId5, new(big.Int).SetUint64(uint64(11)))
 	logFn("RefundBalance again err", err)
 }
 
@@ -1698,7 +1801,7 @@ func BenchmarkCandidatePool_RefundBalance(b *testing.B) {
 // test UpdateElectedQueue
 func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1706,16 +1809,25 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+	nodeId2 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342")
+
+	nodeId3 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343")
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	// cache
 	cans := make([]*types.Candidate, 0)
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1730,8 +1842,8 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1746,8 +1858,8 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 
 	candidate3 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(102),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId2,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1762,8 +1874,8 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 
 	candidate4 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(120),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId3,
 		TxIndex:     4,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1801,13 +1913,13 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -1818,7 +1930,7 @@ func candidate_UpdateElectedQueue(logger interface{}, logFn func(args ...interfa
 	fmt.Println("VOTING END .............................................................")
 	/** test GetCandidate */
 	logFn("test GetCandidate ...")
-	can, _ := candidatePoolContext.GetCandidate(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"))
+	can := candidatePoolContext.GetCandidate(state, nodeId1, blockNumber)
 	logFn("GetCandidate", can)
 
 	/** test UpdateElectedQueue */
@@ -1841,7 +1953,7 @@ func BenchmarkCandidatePool_UpdateElectedQueue(b *testing.B) {
 // test Election
 func candidate_Election(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1849,16 +1961,25 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+	nodeId2 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342")
+
+	nodeId3 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343")
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	// cache
 	cans := make([]*types.Candidate, 0)
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1873,8 +1994,8 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1889,8 +2010,8 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 
 	candidate3 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(102),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId2,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1905,8 +2026,8 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 
 	candidate4 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(120),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId3,
 		TxIndex:     4,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -1944,13 +2065,13 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -1965,7 +2086,7 @@ func candidate_Election(logger interface{}, logFn func(args ...interface{}), err
 	_, err := candidatePoolContext.Election(state, common.Hash{}, big.NewInt(20))
 	logFn("Whether election was successful err", err)
 
-	arr, _ := candidatePoolContext.GetWitness(state, 1)
+	arr, _ := candidatePoolContext.GetWitness(state, 1, blockNumber)
 	fmt.Println(arr)
 }
 
@@ -1980,7 +2101,7 @@ func BenchmarkCandidatePool_Election(b *testing.B) {
 // test Switch
 func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn func(args ...interface{})) {
 	var candidatePoolContext *pposm.CandidatePoolContext
-	var ticketPool *pposm.TicketPool
+	var ticketPoolContext *pposm.TicketPoolContext
 	var state *state.StateDB
 	if st, err := newChainState(); nil != err {
 		errFn("Getting stateDB err", err)
@@ -1988,16 +2109,25 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 		state = st
 	}
 	/** test init candidatePool and ticketPool */
-	candidatePoolContext, ticketPool = newPool()
-	logFn("ticketPool.MaxCount", ticketPool.MaxCount, "ticketPool.ExpireBlockNumber", ticketPool.ExpireBlockNumber)
+	candidatePoolContext, ticketPoolContext = newPool()
+
+	curr_blockNumber := new(big.Int).SetUint64(7)
+	nodeId1 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341")
+
+	nodeId2 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342")
+
+	nodeId3 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343")
+
+	nodeId5 := discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345")
+
 
 	// cache
 	cans := make([]*types.Candidate, 0)
 
 	candidate := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId5,
 		TxIndex:     6,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -2012,8 +2142,8 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 
 	candidate2 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(101),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012341"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId1,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -2028,8 +2158,8 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 
 	candidate3 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(102),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012342"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId2,
 		TxIndex:     5,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -2044,8 +2174,8 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 
 	candidate4 := &types.Candidate{
 		Deposit:     new(big.Int).SetUint64(120),
-		BlockNumber: new(big.Int).SetUint64(6),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012343"),
+		BlockNumber: curr_blockNumber,
+		CandidateId: nodeId3,
 		TxIndex:     4,
 		Host:        "10.0.0.1",
 		Port:        "8548",
@@ -2083,13 +2213,13 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 			fmt.Println("release ticket,start ############################################################")
 			var tempBlockNumber uint64 = 6
 			for i := 0; i < 4; i++ {
-				ticketPool.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
+				ticketPoolContext.Notify(state, new(big.Int).SetUint64(tempBlockNumber))
 				tempBlockNumber++
 			}
 			fmt.Println("release ticket,end ############################################################")
 		}
 		fmt.Println("Voting Current Candidate:", "voter is:", voteOwner.String(), " ,ticket num:", candidate.CandidateId.String(), " ,blocknumber when voted:", tempBlockNumber.String())
-		_, err := ticketPool.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
+		_, err := ticketPoolContext.VoteTicket(state, voteOwner, 1, deposit, can.CandidateId, tempBlockNumber)
 		if nil != err {
 			fmt.Println("vote ticket error:", err)
 		}
@@ -2109,12 +2239,20 @@ func candidate_Switch(logger interface{}, logFn func(args ...interface{}), errFn
 	/** test MaxChair */
 	logFn("test MaxChair:", candidatePoolContext.MaxChair())
 	/**test Interval*/
-	logFn("test Interval:", candidatePoolContext.GetRefundInterval())
+	logFn("test Interval:", candidatePoolContext.GetRefundInterval(blockNumber))
 
+	next, _ := candidatePoolContext.GetWitness(state, 1, blockNumber)
+	fmt.Println("next", next)
 	/** test switch */
 	logFn("test Switch ...")
-	flag := candidatePoolContext.Switch(state)
+	flag := candidatePoolContext.Switch(state, blockNumber)
+
 	logFn("Switch was success ", flag)
+
+	curr, _ := candidatePoolContext.GetWitness(state, 0,  blockNumber)
+	fmt.Println("curr", curr)
+	next, _ = candidatePoolContext.GetWitness(state, 1, blockNumber)
+	fmt.Println("next", next)
 }
 
 func TestCandidatePool_Switch(t *testing.T) {

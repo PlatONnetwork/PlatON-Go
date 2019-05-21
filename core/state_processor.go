@@ -18,6 +18,7 @@ package core
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/misc"
@@ -25,8 +26,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
 	"sync"
 )
@@ -88,32 +89,33 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// Notify call
 		if err := cbftEngine.Notify(statedb, block.Number()); err != nil {
-			log.Error("---Failed to Notify call when processing block:---", "err", err, "number", block.Number())
+			log.Error("---Failed to Notify call when processing block:---",  "err", err, "number", block.Number(), "hash", block.Hash())
 		}
 		// Election call(if match condition)
 		if p.bc.shouldElectionFn(block.Number()) {
-			log.Info("---Election call when processing block:---", "number", block.Number())
+			log.Info("---Election call when processing block:---", "number", block.Number(), "hash", block.Hash())
 			if _, err := cbftEngine.Election(statedb, block.ParentHash(), block.Number()); nil != err {
-				log.Error("---Failed to Election call when processing block:---", "err", err, "number", block.Number())
+				log.Error("---Failed to Election call when processing block:---", "err", err, "number", block.Number(), "hash", block.Hash())
 			}
 		}
 		// SwitchWitness call(if match condition)
 		if p.bc.shouldSwitchFn(block.Number()) {
-			log.Info("---SwitchWitness call when processing block:---", "number", block.Number())
-			if !cbftEngine.Switch(statedb) {
-				log.Error("---Failed to SwitchWitness call when processing block:---", "number", block.Number())
+			log.Info("---SwitchWitness call when processing block:---", "number", block.Number(), "hash", block.Hash())
+			if !cbftEngine.Switch(statedb, block.Number()) {
+				log.Error("---Failed to SwitchWitness call when processing block:---", "number", block.Number(), "hash", block.Hash())
 			}
 
 		}
 		// ppos Store Hash
-		cbftEngine.StoreHash(statedb)
+		cbftEngine.StoreHash(statedb, block.Number(), block.Hash())
 	}
+
+	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), block.Uncles(), receipts)
 
 	if cbftEngine, ok := p.bc.engine.(consensus.Bft); ok {
 		// SetNodeCache
 		blockNumber := block.Number()
-		log.Warn("---SetNodeCache call when processing block---", "number", block.Number())
 		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
 		cbftEngine.SetNodeCache(statedb, parentNumber, blockNumber, block.ParentHash(), block.Hash())
 		// ppos Submit2Cache
@@ -136,6 +138,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Create a new environment which holds all relevant information
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
+	log.Debug("ApplyTransaction", "statedb addr", fmt.Sprintf("%p", vmenv.StateDB))
 	// Apply the transaction to the current state (included in the env)
 	_, gas, failed, err := ApplyMessage(vmenv, msg, gp)
 	if err != nil {

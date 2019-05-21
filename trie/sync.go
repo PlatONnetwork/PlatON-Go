@@ -19,6 +19,8 @@ package trie
 import (
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -38,7 +40,7 @@ type request struct {
 	hash common.Hash // Hash of the node data content to retrieve
 	data []byte      // Data content of the node, cached until all subtrees complete
 	raw  bool        // Whether this is a raw entry (code) or a trie node
-
+	storage bool
 	parents []*request // Parent state nodes referencing this entry (notify all upon completion)
 	depth   int        // Depth level within the trie the node is located to prioritise DFS
 	deps    int        // Number of dependencies before allowed to commit this node
@@ -53,17 +55,22 @@ type SyncResult struct {
 	Data []byte      // Data content of the retrieved node
 }
 
+type batchData struct {
+	data []byte
+	storage bool
+}
+
 // syncMemBatch is an in-memory buffer of successfully downloaded but not yet
 // persisted data items.
 type syncMemBatch struct {
-	batch map[common.Hash][]byte // In-memory membatch of recently completed items
+	batch map[common.Hash] *batchData // In-memory membatch of recently completed items
 	order []common.Hash          // Order of completion to prevent out-of-order data loss
 }
 
 // newSyncMemBatch allocates a new memory-buffer for not-yet persisted trie nodes.
 func newSyncMemBatch() *syncMemBatch {
 	return &syncMemBatch{
-		batch: make(map[common.Hash][]byte),
+		batch: make(map[common.Hash]*batchData),
 		order: make([]common.Hash, 0, 256),
 	}
 }
@@ -92,6 +99,7 @@ func NewSync(root common.Hash, database DatabaseReader, callback LeafCallback) *
 
 // AddSubTrie registers a new trie to the sync code, rooted at the designated parent.
 func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callback LeafCallback) {
+	log.Debug("sync AddSubTrie", "root", root, "depth", depth, "parent", parent)
 	// Short circuit if the trie is empty or already known
 	if root == emptyRoot {
 		return
@@ -101,6 +109,7 @@ func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callb
 	}
 	key := root.Bytes()
 	blob, _ := s.database.Get(key)
+	log.Debug("sync blob", "root", root, "depth", depth, "parent", parent)
 	if local, err := decodeNode(key, blob, 0); local != nil && err == nil {
 		return
 	}
@@ -126,7 +135,8 @@ func (s *Sync) AddSubTrie(root common.Hash, depth int, parent common.Hash, callb
 // interpreted as a trie node, but rather accepted and stored into the database
 // as is. This method's goal is to support misc state metadata retrievals (e.g.
 // contract code).
-func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash) {
+func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash, storage bool) {
+	log.Debug("sync AddRawEntry", "hash", hash, "depth", depth, "parent", parent)
 	// Short circuit if the entry is empty or already known
 	if hash == emptyState {
 		return
@@ -141,6 +151,7 @@ func (s *Sync) AddRawEntry(hash common.Hash, depth int, parent common.Hash) {
 	req := &request{
 		hash:  hash,
 		raw:   true,
+		storage:storage,
 		depth: depth,
 	}
 	// If this sub-trie has a designated parent, link them together
@@ -216,8 +227,18 @@ func (s *Sync) Process(results []SyncResult) (bool, int, error) {
 func (s *Sync) Commit(dbw ethdb.Putter) (int, error) {
 	// Dump the membatch into a database dbw
 	for i, key := range s.membatch.order {
-		if err := dbw.Put(key[:], s.membatch.batch[key]); err != nil {
-			return i, err
+		v, _ := s.membatch.batch[key]
+		if v.storage {
+			var seckeybuf [43]byte
+			buf := append(seckeybuf[:0], secureKeyPrefix...)
+			buf = append(buf, key[:]...)
+			if err := dbw.Put(buf, s.membatch.batch[key].data); err != nil {
+				return i, err
+			}
+		} else {
+			if err := dbw.Put(key[:], s.membatch.batch[key].data); err != nil {
+				return i, err
+			}
 		}
 	}
 	written := len(s.membatch.order)
@@ -278,10 +299,19 @@ func (s *Sync) children(req *request, object node) ([]*request, error) {
 	requests := make([]*request, 0, len(children))
 	for _, child := range children {
 		// Notify any external watcher of a new key/value node
-		if req.callback != nil {
-			if node, ok := (child.node).(valueNode); ok {
+		if node, ok := (child.node).(valueNode); ok {
+			if req.callback != nil {
 				if err := req.callback(node, req.hash); err != nil {
 					return nil, err
+				}
+			} else {
+				var val []byte
+				if err := rlp.DecodeBytes(node, &val); err != nil {
+					return nil, err
+				}
+				hash := common.BytesToHash(val)
+				if hash != emptyStorage {
+					s.AddRawEntry(hash, 64, req.hash, true)
 				}
 			}
 		}
@@ -312,7 +342,7 @@ func (s *Sync) children(req *request, object node) ([]*request, error) {
 // committed themselves.
 func (s *Sync) commit(req *request) (err error) {
 	// Write the node content to the membatch
-	s.membatch.batch[req.hash] = req.data
+	s.membatch.batch[req.hash] = &batchData{req.data, req.storage}
 	s.membatch.order = append(s.membatch.order, req.hash)
 
 	delete(s.requests, req.hash)
