@@ -29,7 +29,7 @@ matrix:
       sudo: required
       go: 1.12.x
       script:
-        - go get -v -u https://github.com/alecthomas/gometalinter
+        - go get -v -u github.com/alecthomas/gometalinter
         - gometalinter --install --update
         - gometalinter ./...
 
