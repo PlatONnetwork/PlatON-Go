@@ -1,11 +1,10 @@
 language: go
-go_import_path: github.com\PlatONnetwork\PlatON-Go
+go_import_path: github.com/PlatONnetwork/PlatON-Go
 # sudo: false
 matrix:
   include:
     # This builder compile PlatON at Ubuntu xenial
-    - stage: build
-      name: ubuntu build
+    - name: ubuntu compile
       os: linux
       dist: xenial
       sudo: required
@@ -15,8 +14,7 @@ matrix:
         - make all
 
     # This builder compile PlatON at Windows server 2016
-    - stage: build
-      name: windows build
+    - name: windows compile
       os: windows
       go: 1.12.x
       script:
@@ -25,8 +23,7 @@ matrix:
         - go run build/ci.go install -mpc on
 
     # This builder run the unit tests
-    - stage: test
-      name: unit test
+    - name: unit test
       os: linux
       dist: xenial
       sudo: required
@@ -36,8 +33,7 @@ matrix:
         - go test ./...
 
     # This builder run the code scans uses gometalinter
-    - stage: test
-      name: code scan
+    - name: code scan
       os: linux
       dist: xenial
       sudo: required
