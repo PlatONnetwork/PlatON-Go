@@ -663,6 +663,10 @@ func (pv *prepareVoteSet) Merge(vs *prepareVoteSet) {
 	}
 }
 
+func (pv *prepareVoteSet) IsMaj23() bool {
+	return uint32(len(pv.votes)) >= pv.voteBits.Size()
+}
+
 func (pv *prepareVoteSet) Signs() []common.BlockConfirmSign {
 	signs := make([]common.BlockConfirmSign, 0)
 
@@ -887,12 +891,18 @@ func (bm *BlockExtMap) Add(hash common.Hash, number uint64, blockExt *BlockExt) 
 		if ext, ok := extMap[hash]; ok {
 			log.Debug(fmt.Sprintf("hash:%s, number:%d", hash.TerminalString(), number))
 			ext.Merge(blockExt)
+			if ext.prepareVotes.IsMaj23() {
+				bm.removeFork(number, hash)
+			}
 			if ext.block != nil {
 				bm.fixChain(ext)
 			}
 		} else {
 			log.Debug(fmt.Sprintf("hash:%s, number:%d", hash.TerminalString(), number))
 			extMap[hash] = blockExt
+			if ext.prepareVotes.IsMaj23() {
+				bm.removeFork(number, hash)
+			}
 			if blockExt.block != nil {
 				bm.fixChain(blockExt)
 			}
@@ -903,8 +913,31 @@ func (bm *BlockExtMap) Add(hash common.Hash, number uint64, blockExt *BlockExt) 
 		extMap := make(map[common.Hash]*BlockExt)
 		extMap[hash] = blockExt
 		bm.blocks[number] = extMap
+		if blockExt.prepareVotes.IsMaj23() {
+			bm.removeFork(number, hash)
+		}
 		if blockExt.block != nil {
 			bm.fixChain(blockExt)
+		}
+	}
+}
+
+func (bm *BlockExtMap) removeFork(number uint64, hash common.Hash) {
+	if extMap, ok := bm.blocks[number]; ok {
+		for k, v := range extMap {
+			if k != hash {
+				if v.prepareVotes.IsMaj23() {
+					panic(fmt.Sprintf("forked block has 2f+1 prepare votes:%s", k.TerminalString()))
+				}
+				if v.parent != nil {
+					delete(v.parent.children, k)
+				}
+				if v.children != nil {
+					for _, p := range v.children {
+						p.parent = nil
+					}
+				}
+			}
 		}
 	}
 }
