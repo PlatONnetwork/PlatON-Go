@@ -625,6 +625,5 @@ func setPposConfig(pposConfig *PposConfig) *params.PposConfig {
 			MaxCount:          pposConfig.Ticket.MaxCount,
 			ExpireBlockNumber: pposConfig.Ticket.ExpireBlockNumber,
 		},
-		YearBlocks: pposConfig.YearBlocks,
 	}
 }
