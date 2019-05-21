@@ -188,7 +188,7 @@ func TestWalLoad(t *testing.T) {
 }
 
 func TestLevelDB(t *testing.T) {
-	db, err := leveldb.OpenFile("D://data/platon/wal/wal_meta", nil)
+	db, err := leveldb.OpenFile("C:\\Users\\jungle\\Desktop\\wal.tar\\wal\\wal_meta", nil)
 	if err == nil {
 		data, err := db.Get([]byte("view-change"), nil)
 		if err == nil {
