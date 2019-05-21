@@ -22,6 +22,17 @@ matrix:
         - sh ./build/build_deps.sh
         - go run build/ci.go install -mpc on
 
+    # This builder run the code scans uses gometalinter
+    - name: code scan
+      os: linux
+      dist: xenial
+      sudo: required
+      go: 1.12.x
+      script:
+        - go get -v -u https://github.com/alecthomas/gometalinter
+        - gometalinter --install --update
+        - gometalinter ./...
+
     # This builder run the unit tests
     - name: unit test
       os: linux
@@ -32,14 +43,6 @@ matrix:
         - pwd
         - go test ./...
 
-    # This builder run the code scans uses gometalinter
-    - name: code scan
-      os: linux
-      dist: xenial
-      sudo: required
-      go: 1.12.x
-      script:
-        - go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
-        - golangci-lint run ./...
+
 
     
