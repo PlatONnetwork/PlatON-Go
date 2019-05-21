@@ -15,7 +15,6 @@ const (
 
 	PPosNodeCacheSize = 30
 
-
 	/*BaseElection = 50
 	//
 	BaseSwitchWitness = 60
