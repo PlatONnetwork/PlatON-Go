@@ -154,7 +154,7 @@ func (t *TicketPool) GetExpireTicketIds(stateDB vm.StateDB, blockNumber *big.Int
 	body := tContext.GetBody(blockNumber.Uint64())
 	txs := make([]common.Hash, 0)
 	for _, tx := range body.Transactions {
-		if *tx.To() == common.TicketPoolAddr {
+		if tx.To() != nil && *tx.To() == common.TicketPoolAddr {
 			txs = append(txs, tx.Hash())
 		}
 	}
@@ -228,8 +228,8 @@ func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ti
 	startTx := common.NewTimer()
 	startTx.Begin()
 	tx, _, blockNumber,_ := tContext.FindTransaction(txHash)
-	log.Debug("GetTicket Time Tx", "Time spent", fmt.Sprintf("%v ms", startTx.End()))
-	if nil != tx {
+	log.Debug("GetTicket Time Tx",  "txHash", tx.Hash(), "Time spent", fmt.Sprintf("%v ms", startTx.End()))
+	if nil != tx && len(tx.Data()) > 0 {
 		startDecode := common.NewTimer()
 		startDecode.Begin()
 		var source [][]byte
@@ -237,7 +237,7 @@ func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ti
 			log.Error("Failed to GetTicket", "txHash", txHash.Hex(), "err", err.Error())
 			return nil
 		}
-		if byteutil.BytesToString(source[1]) != "VoteTicket" {
+		if len(source) !=5  || len(source[1]) == 0 || len(source[4]) == 0 || byteutil.BytesToString(source[1]) != "VoteTicket" {
 			return nil
 		}
 		log.Debug("GetTicket Time Decode", "Time spent", fmt.Sprintf("%v ms", startDecode.End()))
@@ -265,6 +265,10 @@ func (t *TicketPool) GetTicket(stateDB vm.StateDB, txHash common.Hash) *types.Ti
 		//}
 		//log.Debug("GetTicket Time startGetNewStateDB", "Time spent", fmt.Sprintf("%v ms", startGetNewStateDB.End()))
 		ticket.Deposit = t.GetTicketPrice(stateDB)
+		if (discover.NodeID{}) == byteutil.BytesToNodeId(source[4]) {
+			log.Error("Parse candidate ID error from Tx", "txHash", tx.Hash())
+			return nil
+		}
 		ticket.CandidateId = byteutil.BytesToNodeId(source[4])
 		ticket.BlockNumber = new(big.Int).SetUint64(blockNumber)
 		log.Debug("GetTicket Time", "Time spent", fmt.Sprintf("%v ms", start.End()))

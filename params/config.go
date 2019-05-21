@@ -153,6 +153,44 @@ var (
 		VMInterpreter: "wasm",
 	}
 
+	// InnerTestnetChainConfig contains the chain parameters to run a node on the inner test network.
+	InnerTestnetChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(203),
+		HomesteadBlock:      big.NewInt(1),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(2),
+		EIP150Hash:          common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		EIP155Block:         big.NewInt(3),
+		EIP158Block:         big.NewInt(3),
+		ByzantiumBlock:      big.NewInt(4),
+		ConstantinopleBlock: nil,
+		//Ethash:              new(EthashConfig),
+		Cbft: &CbftConfig{
+			InitialNodes: convertNodeUrl(initialInnerTestnetConsensusNodes),
+		},
+		VMInterpreter: "wasm",
+	}
+
+	// InnerDevnetChainConfig contains the chain parameters to run a node on the inner test network.
+	InnerDevnetChainConfig = &ChainConfig{
+		ChainID:             big.NewInt(204),
+		HomesteadBlock:      big.NewInt(1),
+		DAOForkBlock:        nil,
+		DAOForkSupport:      false,
+		EIP150Block:         big.NewInt(2),
+		EIP150Hash:          common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000"),
+		EIP155Block:         big.NewInt(3),
+		EIP158Block:         big.NewInt(3),
+		ByzantiumBlock:      big.NewInt(4),
+		ConstantinopleBlock: nil,
+		//Ethash:              new(EthashConfig),
+		Cbft: &CbftConfig{
+			InitialNodes: convertNodeUrl(initialInnerDevnetConsensusNodes),
+		},
+		VMInterpreter: "wasm",
+	}
+
 	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Alpha test network.
 	TestnetTrustedCheckpoint = &TrustedCheckpoint{
 		Name:         "testnet",
@@ -331,7 +369,9 @@ type CbftConfig struct {
 type PposConfig struct {
 	CandidateConfig *CandidateConfig
 	TicketConfig    *TicketConfig
+	YearBlocks		uint32
 }
+
 type CandidateConfig struct {
 	Threshold         string
 	DepositLimit      uint32

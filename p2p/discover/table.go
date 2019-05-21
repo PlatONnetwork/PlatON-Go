@@ -333,6 +333,7 @@ func (tab *Table) findnode(n *Node, targetID NodeID, reply chan<- []*Node) {
 	// Grab as many nodes as possible. Some of them might not be alive anymore, but we'll
 	// just remove those again during revalidation.
 	for _, n := range r {
+		log.Debug("Findnode list", "nodeIP", n.addr(), "nodeID", n.ID)
 		tab.add(n)
 	}
 	reply <- r
