@@ -664,6 +664,9 @@ func (pv *prepareVoteSet) Merge(vs *prepareVoteSet) {
 }
 
 func (pv *prepareVoteSet) IsMaj23() bool {
+	if pv == nil {
+		return false
+	}
 	return uint32(len(pv.votes)) >= pv.voteBits.Size()
 }
 
