@@ -62,29 +62,29 @@ func (p *ppos) BlockProducerIndex(parentNumber *big.Int, parentHash common.Hash,
 		_next := nodeCache.next
 
 		switch round {
-			case former:
-				if _former != nil && _former.start != nil && _former.end != nil && blockNumber.Cmp(_former.start) >= 0 && blockNumber.Cmp(_former.end) <= 0 {
-					return p.roundIndex(nodeID, _former), _former.nodeIds
-				}
+		case former:
+			if _former != nil && _former.start != nil && _former.end != nil && blockNumber.Cmp(_former.start) >= 0 && blockNumber.Cmp(_former.end) <= 0 {
+				return p.roundIndex(nodeID, _former), _former.nodeIds
+			}
 
-			case current:
-				if _current != nil && _current.start != nil && _current.end != nil && blockNumber.Cmp(_current.start) >= 0 && blockNumber.Cmp(_current.end) <= 0 {
-					return p.roundIndex(nodeID, _current), _current.nodeIds
-				}
+		case current:
+			if _current != nil && _current.start != nil && _current.end != nil && blockNumber.Cmp(_current.start) >= 0 && blockNumber.Cmp(_current.end) <= 0 {
+				return p.roundIndex(nodeID, _current), _current.nodeIds
+			}
 
-			case next:
-				if _next != nil && _next.start != nil && _next.end != nil && blockNumber.Cmp(_next.start) >= 0 && blockNumber.Cmp(_next.end) <= 0 {
-					return p.roundIndex(nodeID, _next), _next.nodeIds
-				}
+		case next:
+			if _next != nil && _next.start != nil && _next.end != nil && blockNumber.Cmp(_next.start) >= 0 && blockNumber.Cmp(_next.end) <= 0 {
+				return p.roundIndex(nodeID, _next), _next.nodeIds
+			}
 
-			default:
-				if _former != nil && _former.start != nil && _former.end != nil && blockNumber.Cmp(_former.start) >= 0 && blockNumber.Cmp(_former.end) <= 0 {
-					return p.roundIndex(nodeID, _former), _former.nodeIds
-				} else if _current != nil && _current.start != nil && _current.end != nil && blockNumber.Cmp(_current.start) >= 0 && blockNumber.Cmp(_current.end) <= 0 {
-					return p.roundIndex(nodeID, _current), _current.nodeIds
-				} else if _next != nil && _next.start != nil && _next.end != nil && blockNumber.Cmp(_next.start) >= 0 && blockNumber.Cmp(_next.end) <= 0 {
-					return p.roundIndex(nodeID, _next), _next.nodeIds
-				}
+		default:
+			if _former != nil && _former.start != nil && _former.end != nil && blockNumber.Cmp(_former.start) >= 0 && blockNumber.Cmp(_former.end) <= 0 {
+				return p.roundIndex(nodeID, _former), _former.nodeIds
+			} else if _current != nil && _current.start != nil && _current.end != nil && blockNumber.Cmp(_current.start) >= 0 && blockNumber.Cmp(_current.end) <= 0 {
+				return p.roundIndex(nodeID, _current), _current.nodeIds
+			} else if _next != nil && _next.start != nil && _next.end != nil && blockNumber.Cmp(_next.start) >= 0 && blockNumber.Cmp(_next.end) <= 0 {
+				return p.roundIndex(nodeID, _next), _next.nodeIds
+			}
 		}
 	}
 	return -1, nil
@@ -842,7 +842,7 @@ func (p *ppos) setEarliestIrrNodeCache (/*parentState, */currentState *state.Sta
 	Determine if it is the last block of the current round.
 	If it is, start is the start of the next round,
 	and end is the end of the next round.
-	 */
+	*/
 	if cmpSwitch(round, currentNumber) == 0 {
 		start = big.NewInt(int64(common.BaseSwitchWitness*round) + 1)
 		end = new(big.Int).Add(start, big.NewInt(int64(common.BaseSwitchWitness-1)))
@@ -853,7 +853,7 @@ func (p *ppos) setEarliestIrrNodeCache (/*parentState, */currentState *state.Sta
 
 	/**
 	Sets former info
-	 */
+	*/
 	formerRound := &pposRound{}
 	// former start, end
 	if round != common.FirstRound {
@@ -927,7 +927,7 @@ func (p *ppos) setEarliestIrrNodeCache (/*parentState, */currentState *state.Sta
 
 	/**
 	Sets current info
-	  */
+	*/
 	currentRound := &pposRound{}
 	// current start, end
 	currentRound.start = start
@@ -989,7 +989,7 @@ func (p *ppos) setEarliestIrrNodeCache (/*parentState, */currentState *state.Sta
 
 	/**
 	Sets next info
-	  */
+	*/
 	nextRound := &pposRound{}
 	// next start, end
 	nextRound.start = new(big.Int).Add(start, new(big.Int).SetUint64(uint64(common.BaseSwitchWitness)))
@@ -1019,8 +1019,8 @@ func (p *ppos) setEarliestIrrNodeCache (/*parentState, */currentState *state.Sta
 	}
 
 	/*
-	Sets nodeCache
-	 */
+		Sets nodeCache
+	*/
 	cache := &nodeCache{
 		former: 	formerRound,
 		current: 	currentRound,
