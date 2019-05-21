@@ -21,7 +21,7 @@ if [ "$(uname)" = "Darwin" ]; then
     SF_BUILD=$SF_BUILD/Linux-x86_64-GCC
 elif [ `expr substr $(uname -s) 1 5` = "Linux" ]; then
     SF_BUILD=$SF_BUILD/Linux-x86_64-GCC
-elif [ `expr substr $(uname -s) 1 10` = "MINGW64_NT" ]; then
+elif [ `expr substr $(uname -s) 1 10` = "MINGW64_NT" || `expr substr $(uname -s) 1 7` = "MSYS_NT" ]; then
     SF_BUILD=$SF_BUILD/Win64-MinGW-w64
     CMAKE_GEN="MinGW Makefiles"
     MAKE="mingw32-make.exe"
