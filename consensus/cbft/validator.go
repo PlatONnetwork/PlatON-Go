@@ -1,9 +1,9 @@
 package cbft
 
 import (
-	"errors"
-
 	"bytes"
+	"crypto/elliptic"
+	"errors"
 
 	"fmt"
 
@@ -26,6 +26,19 @@ type ValidateNode struct {
 
 func (vn *ValidateNode) String() string {
 	return fmt.Sprintf("{Index:%d Address:%s}", vn.Index, vn.Address.String())
+}
+
+func (vn *ValidateNode) Verify(data, sign []byte) bool {
+	recPubKey, err := crypto.Ecrecover(data, sign)
+	if err != nil {
+		return false
+	}
+
+	pbytes := elliptic.Marshal(vn.PubKey.Curve, vn.PubKey.X, vn.PubKey.Y)
+	if !bytes.Equal(pbytes, recPubKey) {
+		return false
+	}
+	return true
 }
 
 type ValidateNodeMap map[discover.NodeID]*ValidateNode
@@ -58,7 +71,7 @@ func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
 		vds.Nodes[node.ID] = &ValidateNode{
 			Index:   i,
 			Address: crypto.PubkeyToAddress(*pubkey),
-			PubKey: pubkey,
+			PubKey:  pubkey,
 		}
 	}
 	return vds
@@ -94,22 +107,22 @@ func (vs *Validators) NodeID(idx int) discover.NodeID {
 	return discover.NodeID{}
 }
 
-func (vs *Validators) AddressIndex(addr common.Address) (int, error) {
+func (vs *Validators) AddressIndex(addr common.Address) (*ValidateNode, error) {
 	for _, node := range vs.Nodes {
 		if bytes.Equal(node.Address[:], addr[:]) {
-			return node.Index, nil
+			return node, nil
 		}
 	}
-	return -1, errors.New("invalid address")
+	return nil, errors.New("invalid address")
 }
 
-func (vs *Validators) NodeIndex(id discover.NodeID) (int, error) {
+func (vs *Validators) NodeIndex(id discover.NodeID) (*ValidateNode, error) {
 	for nodeID, node := range vs.Nodes {
 		if nodeID == id {
-			return node.Index, nil
+			return node, nil
 		}
 	}
-	return -1, errors.New("not found the node")
+	return nil, errors.New("not found the node")
 }
 
 func (vs *Validators) Len() int {
@@ -248,7 +261,7 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err erro
 		validators.Nodes[node.NodeID] = &ValidateNode{
 			Index:   int(node.Index),
 			Address: node.Address,
-			PubKey: pubkey,
+			PubKey:  pubkey,
 		}
 	}
 	validators.ValidBlockNumber = vds.ValidBlockNumber
