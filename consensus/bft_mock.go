@@ -2,6 +2,8 @@ package consensus
 
 import (
 	"crypto/ecdsa"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -9,7 +11,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"math/big"
 )
 
 type BftMock struct {
@@ -156,4 +157,32 @@ func (bm *BftMock) GetBlock(hash common.Hash, number uint64) *types.Block {
 
 func (bm *BftMock) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 
+}
+
+func (bm *BftMock) NextBaseBlock() *types.Block {
+	return nil
+}
+
+func (bm *BftMock) InsertChain(block *types.Block, errCh chan error) {
+
+}
+
+func (bm *BftMock) HasBlock(hash common.Hash, number uint64) bool {
+	return true
+}
+
+func (bm *BftMock) GetBlockByHash(hash common.Hash) *types.Block {
+	return nil
+}
+
+func (bm *BftMock) Status() string {
+	return ""
+}
+
+func (bm *BftMock) CurrentBlock() *types.Block {
+	return nil
+}
+
+func (bm *BftMock) FastSyncCommitHead() <-chan error {
+	return nil
 }

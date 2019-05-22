@@ -78,11 +78,11 @@ func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
 }
 
 func (vs *Validators) String() string {
-	return fmt.Sprintf("{Nodes[%s] ValidBlockNumber:%d}", vs.Nodes, vs.ValidBlockNumber)
+	return fmt.Sprintf("{Nodes:[%s] ValidBlockNumber:%d}", vs.Nodes, vs.ValidBlockNumber)
 }
 
 func (vs *Validators) NodeList() []discover.NodeID {
-	nodeList := make([]discover.NodeID, len(vs.Nodes))
+	nodeList := make([]discover.NodeID, 0)
 	for id, _ := range vs.Nodes {
 		nodeList = append(nodeList, id)
 	}
