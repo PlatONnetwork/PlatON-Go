@@ -438,7 +438,7 @@ END:
 		cbft.OnSendViewChange()
 
 		oldCount := viewChangeGauage.Value()
-		viewChangeGauage.Update(oldCount+1)
+		viewChangeGauage.Update(oldCount + 1)
 		viewChangeCounter.Inc(1)
 
 		shouldSeal <- errTwoThirdViewchangeVotes
@@ -1777,13 +1777,12 @@ func (cbft *Cbft) inTurnVerify(rcvTime int64, nodeID discover.NodeID) bool {
 }
 
 //isLegal verifies the time is legal to package new block for the nodeID.
-func (cbft *Cbft) isLegal(rcvTime int64, producerID discover.NodeID) bool {
-	offset := 1000 * (cbft.config.Duration/2 - 1)
-	isLegal := cbft.calTurn(rcvTime-offset, producerID)
-	if !isLegal {
-		isLegal = cbft.calTurn(rcvTime+offset, producerID)
+func (cbft *Cbft) isLegal(rcvTime int64, addr common.Address) bool {
+	nodeIdx, err := cbft.dpos.AddressIndex(addr)
+	if err != nil {
+		return false
 	}
-	return isLegal
+	return cbft.calTurnIndex(rcvTime, nodeIdx)
 }
 
 func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID) bool {
@@ -1791,6 +1790,11 @@ func (cbft *Cbft) calTurn(timePoint int64, nodeID discover.NodeID) bool {
 	if err != nil {
 		return false
 	}
+	return cbft.calTurnIndex(timePoint, nodeIdx)
+}
+
+func (cbft *Cbft) calTurnIndex(timePoint int64, nodeIdx int) bool {
+
 	startEpoch := cbft.dpos.StartTimeOfEpoch() * 1000
 
 	if nodeIdx >= 0 {
