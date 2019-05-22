@@ -151,6 +151,7 @@ func (vic *validatorInnerContract) SwitchValidators(validBlockNumber uint64) err
 	nvs.ValidBlockNumber = validBlockNumber
 	b, _ = rlp.EncodeToBytes(nvs)
 	state.SetState(vic.Contract.Address(), []byte(CurrentValidatorKey), b)
+	log.Debug("Switch validators success", "validators", nvs)
 	return nil
 }
 
