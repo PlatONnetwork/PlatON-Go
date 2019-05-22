@@ -22,6 +22,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
@@ -98,10 +99,6 @@ type Engine interface {
 	// SealHash returns the hash of a block prior to it being sealed.
 	SealHash(header *types.Header) common.Hash
 
-	// CalcDifficulty is the difficulty adjustment algorithm. It returns the difficulty
-	// that a new block should have.
-	CalcDifficulty(chain ChainReader, time uint64, parent *types.Header) *big.Int
-
 	// APIs returns the RPC APIs this consensus engine provides.
 	APIs(chain ChainReader) []rpc.API
 
@@ -120,14 +117,27 @@ type PoW interface {
 type Bft interface {
 	Engine
 
-	// 返回当前共识节点地址列表
-	ConsensusNodes() ([]discover.NodeID, error)
+	// the former round of consensus node ids
+	//FormerNodeID() []discover.NodeID
 
-	// 返回当前节点是否轮值出块
-	ShouldSeal() (bool, error)
+	// the former round of consensus nodes
+	//FormerNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
 
-	//收到新的区块签名
-	//需要验证签名是否时nodeID签名的
+	// the current round of consensus node ids
+	//CurrentNodeID() []discover.NodeID
+
+	// the current round of consensus nodes
+	CurrentNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []*discover.Node
+
+	IsCurrentNode(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) bool
+
+	ConsensusNodes(parentNumber *big.Int, parentHash common.Hash, blockNumber *big.Int) []discover.NodeID
+
+	// whether the current node should packing
+	ShouldSeal(parentNumber *big.Int, parentHash common.Hash, commitNumber *big.Int) bool
+
+	// received a new block signature
+	// verify if the signature is signed by nodeID
 	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error
 
 	// Process the BFT signatures
@@ -136,14 +146,35 @@ type Bft interface {
 	// Process the BFT signatures
 	OnPong(nodeID discover.NodeID, netLatency int64) error
 
-	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
+	// Send a signal if a block synced from other peer.
+	OnBlockSynced()
+	//CheckConsensusNode(nodeID discover.NodeID) (bool, error)
 
-	IsConsensusNode() (bool, error)
+	//IsConsensusNode() (bool, error)
 
-	//目前最高的合理块，本节点出块时，需要基于最高合理块来生成区块。
+	// At present, the highest reasonable block, when the node is out of the block, it needs to generate the block based on the highest reasonable block.
 	HighestLogicalBlock() *types.Block
 
+	HighestConfirmedBlock() *types.Block
+
+	GetBlock(hash common.Hash, number uint64) *types.Block
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
-	//SetBlockChain(blockChain *core.BlockChain)
+	Election(state *state.StateDB, parentHash common.Hash, blockNumber *big.Int) ([]*discover.Node, error)
+
+	Switch(state *state.StateDB, blockNumber *big.Int) bool
+
+	GetWitness(state *state.StateDB, flag int, blockNumber *big.Int) ([]*discover.Node, error)
+
+	GetOwnNodeID() discover.NodeID
+
+	SetNodeCache(state *state.StateDB, parentNumber, currentNumber *big.Int, parentHash, currentHash common.Hash) error
+
+	Notify(state vm.StateDB, blockNumber *big.Int) error
+
+	StoreHash(state *state.StateDB, blockNumber *big.Int, blockHash common.Hash)
+
+	Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, blockInterval *big.Int, currBlockhash common.Hash)
+
+	RemovePeer(nodeID discover.NodeID)
 }

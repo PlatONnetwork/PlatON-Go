@@ -1,5 +1,5 @@
 language: go
-go_import_path: github.com/PlatONnetwork/PlatON-Go
+go_import_path: Platon-go
 sudo: false
 matrix:
   include:

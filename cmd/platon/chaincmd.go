@@ -135,7 +135,10 @@ The export-preimages command export hash preimages to an RLP encoded stream`,
 			utils.SyncModeFlag,
 			utils.FakePoWFlag,
 			utils.TestnetFlag,
-			utils.RinkebyFlag,
+			utils.BetanetFlag,
+			utils.InnerTestnetFlag,
+			utils.InnerDevnetFlag,
+			utils.InnerTimeFlag,
 		},
 		Category: "BLOCKCHAIN COMMANDS",
 		Description: `
@@ -391,7 +394,7 @@ func copyDb(ctx *cli.Context) error {
 	start := time.Now()
 
 	currentHeader := hc.CurrentHeader()
-	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), syncmode); err != nil {
+	if err = dl.Synchronise("local", currentHeader.Hash(), currentHeader.Number, syncmode); err != nil {
 		return err
 	}
 	for dl.Synchronising() {
@@ -454,7 +457,7 @@ func dump(ctx *cli.Context) error {
 			fmt.Println("{}")
 			utils.Fatalf("block not found")
 		} else {
-			state, err := state.New(block.Root(), state.NewDatabase(chainDb))
+			state, err := state.New(block.Root(), state.NewDatabase(chainDb), block.Number(), block.Hash())
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}

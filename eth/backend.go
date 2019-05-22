@@ -18,11 +18,12 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"runtime"
 	"sync"
@@ -32,8 +33,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/clique"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
@@ -52,6 +51,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 )
 
 type LesServer interface {
@@ -74,6 +74,9 @@ type Ethereum struct {
 	blockchain      *core.BlockChain
 	protocolManager *ProtocolManager
 	lesServer       LesServer
+	// modify
+	mpcPool *core.MPCPool
+	vcPool  *core.VCPool
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -121,15 +124,24 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO ppos add
+	pposDB, err := CreatePPosDB(ctx, "ppos_storage")
+	if err != nil {
+		return nil, err
+	}
+	if nil == ppos_storage.GetPPosTempPtr() {
+		ppos_storage.NewPPosTemp(pposDB)
+	}
+
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
 	}
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
-	blockSignatureCh := make(chan *cbfttypes.BlockSignature)
+	blockSignatureCh := make(chan *cbfttypes.BlockSignature, 20)
 	cbftResultCh := make(chan *cbfttypes.CbftResult)
-	highestLogicalBlockCh := make(chan *types.Block)
+	highestLogicalBlockCh := make(chan *types.Block, 20)
 
 	eth := &Ethereum{
 		config:         config,
@@ -137,7 +149,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		chainConfig:    chainConfig,
 		eventMux:       ctx.EventMux,
 		accountManager: ctx.AccountManager,
-		engine:         CreateConsensusEngine(ctx, chainConfig, &config.Ethash, config.MinerNotify, config.MinerNoverify, chainDb, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, &config.CbftConfig),
+		engine:         CreateConsensusEngine(ctx, chainConfig, config.MinerNotify, config.MinerNoverify, chainDb, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, &config.CbftConfig),
 		shutdownChan:   make(chan bool),
 		networkID:      config.NetworkId,
 		gasPrice:       config.MinerGasPrice,
@@ -160,6 +172,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			EnablePreimageRecording: config.EnablePreimageRecording,
 			EWASMInterpreter:        config.EWASMInterpreter,
 			EVMInterpreter:          config.EVMInterpreter,
+			ConsoleOutput:           config.Debug,
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
 	)
@@ -168,6 +181,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	blockChainCache := core.NewBlockChainCache(eth.blockchain)
+
 	// Rewind the chain in case of an incompatible config upgrade.
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok {
 		log.Warn("Rewinding chain to upgrade configuration", "err", compat)
@@ -179,20 +195,51 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if config.TxPool.Journal != "" {
 		config.TxPool.Journal = ctx.ResolvePath(config.TxPool.Journal)
 	}
-	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
+	//eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
+	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, blockChainCache)
+
+	log.Debug("eth.txPool:::::", "txPool", eth.txPool)
+	// mpcPool deal with mpc transactions
+	// modify By J
+	if config.MPCPool.Journal != "" {
+		config.MPCPool.Journal = ctx.ResolvePath(config.MPCPool.Journal)
+	} else {
+		config.MPCPool.Journal = ctx.ResolvePath(core.DefaultMPCPoolConfig.Journal)
+	}
+	if config.MPCPool.Rejournal == 0 {
+		config.MPCPool.Rejournal = core.DefaultMPCPoolConfig.Rejournal
+	}
+	if config.MPCPool.Lifetime == 0 {
+		config.MPCPool.Lifetime = core.DefaultMPCPoolConfig.Lifetime
+	}
+	eth.mpcPool = core.NewMPCPool(config.MPCPool, eth.chainConfig, eth.blockchain)
+	eth.vcPool = core.NewVCPool(config.VCPool, eth.chainConfig, eth.blockchain)
 
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
 		return nil, err
 	}
+	if _, ok := eth.engine.(consensus.Bft); ok {
+		cbft.SetPposOption(eth.blockchain)
+	}
 
-	// modify by platon remove consensusCache
-	var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
-	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, consensusCache)
+	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
+	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	if _, ok := eth.engine.(consensus.Bft); ok {
-		cbft.SetConsensusCache(consensusCache)
+		cbft.SetBlockChainCache(blockChainCache)
 		cbft.SetBackend(eth.blockchain, eth.txPool)
+
+		shouldElection := func(blockNumber *big.Int) bool {
+			return eth.miner.ShouldElection(blockNumber)
+		}
+		shouldSwitch := func(blockNumber *big.Int) bool {
+			return eth.miner.ShouldSwitch(blockNumber)
+		}
+		attemptAddConsensusPeer := func(blockNumber *big.Int, state *state.StateDB) {
+			eth.miner.AttemptAddConsensusPeer(blockNumber, state)
+		}
+		eth.blockchain.InitConsensusPeerFn(shouldElection, shouldSwitch, attemptAddConsensusPeer)
 	}
 
 	eth.APIBackend = &EthAPIBackend{eth, nil}
@@ -234,45 +281,37 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 	return db, nil
 }
 
+
+func CreatePPosDB(ctx *node.ServiceContext, name string) (ethdb.Database, error) {
+	db, err := ctx.OpenPPosDatabase(name)
+	if err != nil {
+		return nil, err
+	}
+	if db, ok := db.(*ethdb.LDBDatabase); ok {
+		db.Meter("eth/db/ppos_storage/")
+	}
+	return db, nil
+}
+
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
-func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, config *ethash.Config, notify []string, noverify bool, db ethdb.Database,
+
+func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, notify []string, noverify bool, db ethdb.Database,
 	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, cbftConfig *CbftConfig) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	if chainConfig.Cbft != nil {
-		chainConfig.Cbft.Period = cbftConfig.Period
+		if cbftConfig.Period < 1 {
+			chainConfig.Cbft.Period = 1
+		} else {
+			chainConfig.Cbft.Period = cbftConfig.Period
+		}
 		chainConfig.Cbft.Epoch = cbftConfig.Epoch
 		chainConfig.Cbft.MaxLatency = cbftConfig.MaxLatency
 		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
 		chainConfig.Cbft.Duration = cbftConfig.Duration
+		chainConfig.Cbft.PposConfig = setPposConfig(cbftConfig.Ppos)
 		return cbft.New(chainConfig.Cbft, blockSignatureCh, cbftResultCh, highestLogicalBlockCh)
 	}
-
-	if chainConfig.Clique != nil {
-		return clique.New(chainConfig.Clique, db)
-	}
-	// Otherwise assume proof-of-work
-	switch config.PowMode {
-	case ethash.ModeFake:
-		log.Warn("Ethash used in fake mode")
-		return ethash.NewFaker()
-	case ethash.ModeTest:
-		log.Warn("Ethash used in test mode")
-		return ethash.NewTester(nil, noverify)
-	case ethash.ModeShared:
-		log.Warn("Ethash used in shared mode")
-		return ethash.NewShared()
-	default:
-		engine := ethash.New(ethash.Config{
-			CacheDir:       ctx.ResolvePath(config.CacheDir),
-			CachesInMem:    config.CachesInMem,
-			CachesOnDisk:   config.CachesOnDisk,
-			DatasetDir:     config.DatasetDir,
-			DatasetsInMem:  config.DatasetsInMem,
-			DatasetsOnDisk: config.DatasetsOnDisk,
-		}, notify, noverify)
-		engine.SetThreads(-1) // Disable CPU mining
-		return engine
-	}
+	return nil
 }
 
 // APIs return the collection of RPC services the ethereum package offers.
@@ -407,9 +446,6 @@ func (s *Ethereum) shouldPreserve(block *types.Block) bool {
 	// is A, F and G sign the block of round5 and reject the block of opponents
 	// and in the round6, the last available signer B is offline, the whole
 	// network is stuck.
-	if _, ok := s.engine.(*clique.Clique); ok {
-		return false
-	}
 	return s.isLocalBlock(block)
 }
 
@@ -453,14 +489,6 @@ func (s *Ethereum) StartMining(threads int) error {
 				panic("Cannot start mining without etherbase")
 			}
 			return fmt.Errorf("etherbase missing: %v", err)
-		}
-		if clique, ok := s.engine.(*clique.Clique); ok {
-			wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
-			if wallet == nil || err != nil {
-				log.Error("Etherbase account unavailable locally", "err", err)
-				return fmt.Errorf("signer missing: %v", err)
-			}
-			clique.Authorize(eb, wallet.SignHash)
 		}
 		// If mining is started, we can disable the transaction rejection mechanism
 		// introduced to speed sync times.
@@ -529,9 +557,28 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	s.protocolManager.Start(maxPeers)
 
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
+		addConsensusPeer := func(nodes []*discover.Node) error {
+			for _, n := range nodes {
+				srvr.AddConsensusPeer(n)
+			}
+			return nil
+		}
+		s.miner.InitConsensusPeerFn(addConsensusPeer)
+
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
-		if flag, err := cbftEngine.IsConsensusNode(); flag && err == nil {
-			for _, n := range s.chainConfig.Cbft.InitialNodes {
+
+		currentBlock := s.blockchain.CurrentBlock()
+		blockNumber := currentBlock.Number()
+		parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
+		parentHash := currentBlock.ParentHash()
+		if currentBlock.NumberU64() == 0 {
+			parentNumber = common.Big0
+			blockNumber = common.Big1
+			parentHash = currentBlock.Hash()
+		}
+		if cbftEngine.IsCurrentNode(parentNumber, parentHash, blockNumber) {
+			currentNodes := cbftEngine.CurrentNodes(parentNumber, parentHash, blockNumber)
+			for _, n := range currentNodes {
 				srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
 			}
 		}
@@ -561,4 +608,22 @@ func (s *Ethereum) Stop() error {
 	s.chainDb.Close()
 	close(s.shutdownChan)
 	return nil
+}
+
+func setPposConfig(pposConfig *PposConfig) *params.PposConfig {
+	return &params.PposConfig{
+		CandidateConfig: &params.CandidateConfig{
+			Threshold:         pposConfig.Candidate.Threshold,
+			DepositLimit:      pposConfig.Candidate.DepositLimit,
+			Allowed:           pposConfig.Candidate.Allowed,
+			MaxChair:          pposConfig.Candidate.MaxChair,
+			MaxCount:          pposConfig.Candidate.MaxCount,
+			RefundBlockNumber: pposConfig.Candidate.RefundBlockNumber,
+		},
+		TicketConfig: &params.TicketConfig{
+			TicketPrice:       pposConfig.Ticket.TicketPrice,
+			MaxCount:          pposConfig.Ticket.MaxCount,
+			ExpireBlockNumber: pposConfig.Ticket.ExpireBlockNumber,
+		},
+	}
 }

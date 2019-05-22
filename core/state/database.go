@@ -23,7 +23,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 )
 
 // Trie cache generation limit after which to evict trie nodes from memory.
@@ -104,6 +104,7 @@ func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
 			return cachedTrie{db.pastTries[i].Copy(), db}, nil
 		}
 	}
+
 	tr, err := trie.NewSecure(root, db.db, MaxTrieCacheGen)
 	if err != nil {
 		return nil, err

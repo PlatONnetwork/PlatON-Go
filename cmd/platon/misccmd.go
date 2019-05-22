@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
 	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"gopkg.in/urfave/cli.v1"
@@ -82,11 +81,10 @@ func makecache(ctx *cli.Context) error {
 	if len(args) != 2 {
 		utils.Fatalf(`Usage: platon makecache <block number> <outputdir>`)
 	}
-	block, err := strconv.ParseUint(args[0], 0, 64)
+	_, err := strconv.ParseUint(args[0], 0, 64)
 	if err != nil {
 		utils.Fatalf("Invalid block number: %v", err)
 	}
-	ethash.MakeCache(block, args[1])
 
 	return nil
 }
@@ -97,11 +95,10 @@ func makedag(ctx *cli.Context) error {
 	if len(args) != 2 {
 		utils.Fatalf(`Usage: platon makedag <block number> <outputdir>`)
 	}
-	block, err := strconv.ParseUint(args[0], 0, 64)
+	_, err := strconv.ParseUint(args[0], 0, 64)
 	if err != nil {
 		utils.Fatalf("Invalid block number: %v", err)
 	}
-	ethash.MakeDataset(block, args[1])
 
 	return nil
 }

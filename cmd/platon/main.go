@@ -50,7 +50,7 @@ var (
 	// Git SHA1 commit hash of the release (set via linker flags)
 	gitCommit = ""
 	// The app that holds all commands and flags.
-	app = utils.NewApp(gitCommit, "the go-platon command line interface")
+	app = utils.NewApp(gitCommit, "the platon-go command line interface")
 	// flags that configure the node
 	nodeFlags = []cli.Flag{
 		utils.IdentityFlag,
@@ -66,12 +66,6 @@ var (
 		utils.DashboardAddrFlag,
 		utils.DashboardPortFlag,
 		utils.DashboardRefreshFlag,
-		utils.EthashCacheDirFlag,
-		utils.EthashCachesInMemoryFlag,
-		utils.EthashCachesOnDiskFlag,
-		utils.EthashDatasetDirFlag,
-		utils.EthashDatasetsInMemoryFlag,
-		utils.EthashDatasetsOnDiskFlag,
 		utils.TxPoolLocalsFlag,
 		utils.TxPoolNoLocalsFlag,
 		utils.TxPoolJournalFlag,
@@ -82,6 +76,7 @@ var (
 		utils.TxPoolGlobalSlotsFlag,
 		utils.TxPoolAccountQueueFlag,
 		utils.TxPoolGlobalQueueFlag,
+		utils.TxPoolGlobalTxCountFlag,
 		utils.TxPoolLifetimeFlag,
 		utils.SyncModeFlag,
 		utils.GCModeFlag,
@@ -94,6 +89,7 @@ var (
 		utils.TrieCacheGenFlag,
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
+		utils.MaxConsensusPeersFlag,
 		utils.MaxPendingPeersFlag,
 		utils.MiningEnabledFlag,
 		utils.MinerThreadsFlag,
@@ -119,7 +115,10 @@ var (
 		utils.DeveloperFlag,
 		utils.DeveloperPeriodFlag,
 		utils.TestnetFlag,
-		utils.RinkebyFlag,
+		utils.BetanetFlag,
+		utils.InnerTestnetFlag,
+		utils.InnerDevnetFlag,
+		utils.InnerTimeFlag,
 		utils.VMEnableDebugFlag,
 		utils.NetworkIdFlag,
 		utils.RPCCORSDomainFlag,
@@ -164,13 +163,24 @@ var (
 		utils.MetricsInfluxDBPasswordFlag,
 		utils.MetricsInfluxDBHostTagFlag,
 	}
+
+	mpcFlags = []cli.Flag{
+		utils.MPCEnabledFlag,
+		utils.MPCIceFileFlag,
+		utils.MPCActorFlag,
+	}
+	vcFlags = []cli.Flag{
+		utils.VCEnabledFlag,
+		utils.VCActorFlag,
+		utils.VCPasswordFlag,
+	}
 )
 
 func init() {
 	// Initialize the CLI app and start Geth
 	app.Action = geth
 	app.HideVersion = true // we have a command to print the version
-	app.Copyright = "Copyright 2013-2018 The go-ethereum Authors"
+	app.Copyright = "Copyright 2019 The PlatON-Go Authors"
 	app.Commands = []cli.Command{
 		// See chaincmd.go:
 		initCommand,
@@ -207,6 +217,11 @@ func init() {
 	app.Flags = append(app.Flags, debug.Flags...)
 	app.Flags = append(app.Flags, whisperFlags...)
 	app.Flags = append(app.Flags, metricsFlags...)
+
+	// for mpc
+	app.Flags = append(app.Flags, mpcFlags...)
+	// for vc
+	app.Flags = append(app.Flags, vcFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())

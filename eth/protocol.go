@@ -41,7 +41,7 @@ var ProtocolName = "eth"
 var ProtocolVersions = []uint{eth63, eth62}
 
 // ProtocolLengths are the number of implemented message corresponding to different protocol versions.
-var ProtocolLengths = []uint64{17, 8}
+var ProtocolLengths = []uint64{19, 8}
 
 const ProtocolMaxMsgSize = 10 * 1024 * 1024 // Maximum cap on the size of a protocol message
 
@@ -66,6 +66,8 @@ const (
 	NodeDataMsg    = 0x0e
 	GetReceiptsMsg = 0x0f
 	ReceiptsMsg    = 0x10
+	GetPposStorageMsg = 0x11
+	PposStorageMsg    = 0x12
 )
 
 type errCode int
@@ -77,6 +79,7 @@ const (
 	ErrProtocolVersionMismatch
 	ErrNetworkIdMismatch
 	ErrGenesisBlockMismatch
+	ErrBlockMismatch
 	ErrNoStatusMsg
 	ErrExtraStatusMsg
 	ErrSuspendedPeer
@@ -116,7 +119,7 @@ type txPool interface {
 type statusData struct {
 	ProtocolVersion uint32
 	NetworkId       uint64
-	TD              *big.Int
+	BN              *big.Int
 	CurrentBlock    common.Hash
 	GenesisBlock    common.Hash
 }
@@ -174,7 +177,6 @@ func (hn *hashOrNumber) DecodeRLP(s *rlp.Stream) error {
 // newBlockData is the network packet for the block propagation message.
 type newBlockData struct {
 	Block *types.Block
-	TD    *big.Int
 }
 
 type prepareBlockData struct {
@@ -182,8 +184,8 @@ type prepareBlockData struct {
 }
 
 type blockSignature struct {
-	SignHash  common.Hash //签名hash，header[0:32]
-	Hash      common.Hash //块hash，header[:]
+	SignHash  common.Hash // signature hash，header[0:32]
+	Hash      common.Hash // blokc hash，header[:]
 	Number    *big.Int
 	Signature *common.BlockConfirmSign
 }
@@ -192,7 +194,14 @@ type blockSignature struct {
 type blockBody struct {
 	Transactions []*types.Transaction // Transactions contained within a block
 	Uncles       []*types.Header      // Uncles contained within a block
+	Signatures	 []*common.BlockConfirmSign	// Signatures contained within a block
 }
 
 // blockBodiesData is the network packet for block content distribution.
 type blockBodiesData []*blockBody
+
+type pposStorageData struct {
+	Latest  	*types.Header
+	Pivot		*types.Header
+	PposStorage	[]byte
+}

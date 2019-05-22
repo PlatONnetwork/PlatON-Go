@@ -21,6 +21,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 )
 
 // StateDB is an EVM database for full state querying.
@@ -73,6 +74,11 @@ type StateDB interface {
 	AddPreimage(common.Hash, []byte)
 
 	ForEachStorage(common.Address, func(common.Hash, common.Hash) bool)
+
+	//ppos add
+	TxHash() common.Hash
+	TxIdx() uint32
+	GetPPOSCache() *ppos_storage.Ppos_storage
 }
 
 // CallContext provides a basic interface for the EVM calling conventions. The EVM

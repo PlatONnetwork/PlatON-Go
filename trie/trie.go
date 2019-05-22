@@ -32,7 +32,9 @@ var (
 	emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
 
 	// emptyState is the known hash of an empty state trie entry.
-	emptyState = crypto.Keccak256Hash(nil)
+	emptyState    = crypto.Keccak256Hash(nil)
+	//storagePrefix = "storage-value-"
+	emptyStorage  = crypto.Keccak256Hash(nil)
 )
 
 var (
@@ -101,7 +103,7 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 		db:           db,
 		originalRoot: root,
 	}
-	// 如果root不为空，则从DB中恢复出节点（整颗树）
+	// If root is not empty, restore the node from the DB (the whole tree)
 	if root != (common.Hash{}) && root != emptyRoot {
 		rootnode, err := trie.resolveHash(root[:], nil)
 		if err != nil {

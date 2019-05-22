@@ -18,7 +18,7 @@ package downloader
 
 import (
 	"fmt"
-
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
@@ -47,6 +47,7 @@ type bodyPack struct {
 	peerID       string
 	transactions [][]*types.Transaction
 	uncles       [][]*types.Header
+	signatures 	 [][]*common.BlockConfirmSign
 }
 
 func (p *bodyPack) PeerId() string { return p.peerID }
@@ -77,3 +78,16 @@ type statePack struct {
 func (p *statePack) PeerId() string { return p.peerID }
 func (p *statePack) Items() int     { return len(p.states) }
 func (p *statePack) Stats() string  { return fmt.Sprintf("%d", len(p.states)) }
+
+
+// pposStoragePack is a batch of ppos storage returned by a peer.
+type pposStoragePack struct {
+	peerID 	string
+	latest  *types.Header
+	pivot	*types.Header
+	storage	[]byte
+}
+
+func (p *pposStoragePack) PeerId() string { return p.peerID }
+func (p *pposStoragePack) Items() int     { return 1 }
+func (p *pposStoragePack) Stats() string  { return fmt.Sprintf("%d", 1) }

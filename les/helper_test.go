@@ -21,13 +21,13 @@ package les
 
 import (
 	"crypto/rand"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -149,7 +149,7 @@ func testRCL() RequestCostList {
 func newTestProtocolManager(lightSync bool, blocks int, generator func(int, *core.BlockGen), odr *LesOdr, peers *peerSet, db ethdb.Database) (*ProtocolManager, error) {
 	var (
 		evmux  = new(event.TypeMux)
-		engine = ethash.NewFaker()
+		engine = cbft.NewFaker()
 		gspec  = core.Genesis{
 			Config: params.TestChainConfig,
 			Alloc:  core.GenesisAlloc{testBankAddress: {Balance: testBankFunds}},
@@ -165,7 +165,7 @@ func newTestProtocolManager(lightSync bool, blocks int, generator func(int, *cor
 		chain, _ = light.NewLightChain(odr, gspec.Config, engine)
 	} else {
 		blockchain, _ := core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
-		gchain, _ := core.GenerateChain(gspec.Config, genesis, ethash.NewFaker(), db, blocks, generator)
+		gchain, _ := core.GenerateChain(gspec.Config, genesis, cbft.NewFaker(), db, blocks, generator)
 		if _, err := blockchain.InsertChain(gchain); err != nil {
 			panic(err)
 		}
@@ -246,9 +246,8 @@ func newTestPeer(t *testing.T, name string, version int, pm *ProtocolManager, sh
 		var (
 			genesis = pm.blockchain.Genesis()
 			head    = pm.blockchain.CurrentHeader()
-			td      = pm.blockchain.GetTd(head.Hash(), head.Number.Uint64())
 		)
-		tp.handshake(t, td, head.Hash(), head.Number.Uint64(), genesis.Hash())
+		tp.handshake(t, head.Hash(), head.Number.Uint64(), genesis.Hash())
 	}
 	return tp, errc
 }
@@ -288,11 +287,10 @@ func newTestPeerPair(name string, version int, pm, pm2 *ProtocolManager) (*peer,
 
 // handshake simulates a trivial handshake that expects the same state from the
 // remote side as we are simulating locally.
-func (p *testPeer) handshake(t *testing.T, td *big.Int, head common.Hash, headNum uint64, genesis common.Hash) {
+func (p *testPeer) handshake(t *testing.T, head common.Hash, headNum uint64, genesis common.Hash) {
 	var expList keyValueList
 	expList = expList.add("protocolVersion", uint64(p.version))
 	expList = expList.add("networkId", uint64(NetworkId))
-	expList = expList.add("headTd", td)
 	expList = expList.add("headHash", head)
 	expList = expList.add("headNum", headNum)
 	expList = expList.add("genesisHash", genesis)

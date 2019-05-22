@@ -33,8 +33,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/fdlimit"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/clique"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/ethash"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
@@ -134,11 +132,19 @@ var (
 	}
 	TestnetFlag = cli.BoolFlag{
 		Name:  "testnet",
+		Usage: "Testnet network: pre-configured alpha test network",
+	}
+	BetanetFlag = cli.BoolFlag{
+		Name:  "betanet",
+		Usage: "Betanet network: pre-configured beta test network",
+	}
+	InnerTestnetFlag = cli.BoolFlag{
+		Name:  "innertestnet",
 		Usage: "Ropsten network: pre-configured proof-of-work test network",
 	}
-	RinkebyFlag = cli.BoolFlag{
-		Name:  "rinkeby",
-		Usage: "Rinkeby network: pre-configured proof-of-authority test network",
+	InnerDevnetFlag = cli.BoolFlag{
+		Name:  "innerdevnet",
+		Usage: "Ropsten network: pre-configured proof-of-work dev network",
 	}
 	DeveloperFlag = cli.BoolFlag{
 		Name:  "dev",
@@ -158,6 +164,11 @@ var (
 		Value: DirectoryString{homeDir()},
 	}
 	defaultSyncMode = eth.DefaultConfig.SyncMode
+	InnerTimeFlag = cli.Uint64Flag{
+		Name:  "innertime",
+		Usage: "inner time",
+		Value: 1546300800000,
+	}
 	SyncModeFlag    = TextMarshalerFlag{
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
@@ -201,36 +212,6 @@ var (
 		Name:  "dashboard.refresh",
 		Usage: "Dashboard metrics collection refresh rate",
 		Value: dashboard.DefaultConfig.Refresh,
-	}
-	// Ethash settings
-	EthashCacheDirFlag = DirectoryFlag{
-		Name:  "ethash.cachedir",
-		Usage: "Directory to store the ethash verification caches (default = inside the datadir)",
-	}
-	EthashCachesInMemoryFlag = cli.IntFlag{
-		Name:  "ethash.cachesinmem",
-		Usage: "Number of recent ethash caches to keep in memory (16MB each)",
-		Value: eth.DefaultConfig.Ethash.CachesInMem,
-	}
-	EthashCachesOnDiskFlag = cli.IntFlag{
-		Name:  "ethash.cachesondisk",
-		Usage: "Number of recent ethash caches to keep on disk (16MB each)",
-		Value: eth.DefaultConfig.Ethash.CachesOnDisk,
-	}
-	EthashDatasetDirFlag = DirectoryFlag{
-		Name:  "ethash.dagdir",
-		Usage: "Directory to store the ethash mining DAGs (default = inside home folder)",
-		Value: DirectoryString{eth.DefaultConfig.Ethash.DatasetDir},
-	}
-	EthashDatasetsInMemoryFlag = cli.IntFlag{
-		Name:  "ethash.dagsinmem",
-		Usage: "Number of recent ethash mining DAGs to keep in memory (1+GB each)",
-		Value: eth.DefaultConfig.Ethash.DatasetsInMem,
-	}
-	EthashDatasetsOnDiskFlag = cli.IntFlag{
-		Name:  "ethash.dagsondisk",
-		Usage: "Number of recent ethash mining DAGs to keep on disk (1+GB each)",
-		Value: eth.DefaultConfig.Ethash.DatasetsOnDisk,
 	}
 	// Transaction pool settings
 	TxPoolLocalsFlag = cli.StringFlag{
@@ -280,6 +261,11 @@ var (
 		Name:  "txpool.globalqueue",
 		Usage: "Maximum number of non-executable transaction slots for all accounts",
 		Value: eth.DefaultConfig.TxPool.GlobalQueue,
+	}
+	TxPoolGlobalTxCountFlag = cli.Uint64Flag{
+		Name:  "txpool.globaltxcount",
+		Usage: "Maximum number of transactions for package",
+		Value: eth.DefaultConfig.TxPool.GlobalTxCount,
 	}
 	TxPoolLifetimeFlag = cli.DurationFlag{
 		Name:  "txpool.lifetime",
@@ -390,8 +376,6 @@ var (
 		Value: "",
 	}
 
-
-
 	VMEnableDebugFlag = cli.BoolFlag{
 		Name:  "vmdebug",
 		Usage: "Record information useful for VM and contract debugging",
@@ -484,7 +468,12 @@ var (
 	MaxPeersFlag = cli.IntFlag{
 		Name:  "maxpeers",
 		Usage: "Maximum number of network peers (network disabled if set to 0)",
-		Value: 25,
+		Value: 50,
+	}
+	MaxConsensusPeersFlag = cli.IntFlag{
+		Name:  "maxconsensuspeers",
+		Usage: "Maximum number of network consensus peers (network disabled if set to 0)",
+		Value: 75,
 	}
 	MaxPendingPeersFlag = cli.IntFlag{
 		Name:  "maxpendpeers",
@@ -494,7 +483,7 @@ var (
 	ListenPortFlag = cli.IntFlag{
 		Name:  "port",
 		Usage: "Network listening port",
-		Value: 30303,
+		Value: 16789,
 	}
 	BootnodesFlag = cli.StringFlag{
 		Name:  "bootnodes",
@@ -624,6 +613,36 @@ var (
 		Value: "",
 	}
 
+	// mpc compute
+	MPCIceFileFlag = cli.StringFlag{
+		Name:  "mpc.ice",
+		Usage: "Filename for ice to init mvm",
+		Value: "",
+	}
+	MPCActorFlag = cli.StringFlag{
+		Name:  "mpc.actor",
+		Usage: "The address of actor to exec mpc compute",
+		Value: "",
+	}
+	MPCEnabledFlag = cli.BoolFlag{
+		Name:  "mpc",
+		Usage: "Enable mpc compute",
+	}
+	VCEnabledFlag = cli.BoolFlag{
+		Name:  "vc",
+		Usage: "Enable vc compute",
+	}
+	VCActorFlag = cli.StringFlag{
+		Name:  "vc.actor",
+		Usage: "The address of vc to exec set result",
+		Value: "",
+	}
+
+	VCPasswordFlag = cli.StringFlag{
+		Name:  "vc.password",
+		Usage: "the pwd of unlock actor",
+		Value: "",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -634,8 +653,14 @@ func MakeDataDir(ctx *cli.Context) string {
 		if ctx.GlobalBool(TestnetFlag.Name) {
 			return filepath.Join(path, "testnet")
 		}
-		if ctx.GlobalBool(RinkebyFlag.Name) {
-			return filepath.Join(path, "rinkeby")
+		if ctx.GlobalBool(BetanetFlag.Name) {
+			return filepath.Join(path, "betanet")
+		}
+		if ctx.GlobalBool(InnerTestnetFlag.Name) {
+			return filepath.Join(path, "innertestnet")
+		}
+		if ctx.GlobalBool(InnerDevnetFlag.Name) {
+			return filepath.Join(path, "innerdevnet")
 		}
 		return path
 	}
@@ -689,8 +714,12 @@ func setBootstrapNodes(ctx *cli.Context, cfg *p2p.Config) {
 		}
 	case ctx.GlobalBool(TestnetFlag.Name):
 		urls = params.TestnetBootnodes
-	case ctx.GlobalBool(RinkebyFlag.Name):
-		urls = params.RinkebyBootnodes
+	case ctx.GlobalBool(BetanetFlag.Name):
+		urls = params.BetanetBootnodes
+	case ctx.GlobalBool(InnerTestnetFlag.Name):
+		urls = params.InnerTestnetBootnodes
+	case ctx.GlobalBool(InnerDevnetFlag.Name):
+		urls = params.InnerDevnetBootnodes
 	case cfg.BootstrapNodes != nil:
 		return // already set, don't apply defaults.
 	}
@@ -716,8 +745,8 @@ func setBootstrapNodesV5(ctx *cli.Context, cfg *p2p.Config) {
 		} else {
 			urls = strings.Split(ctx.GlobalString(BootnodesFlag.Name), ",")
 		}
-	case ctx.GlobalBool(RinkebyFlag.Name):
-		urls = params.RinkebyBootnodes
+	case ctx.GlobalBool(BetanetFlag.Name):
+		urls = params.BetanetBootnodes
 	case cfg.BootstrapNodesV5 != nil:
 		return // already set, don't apply defaults.
 	}
@@ -883,7 +912,6 @@ func setEtherbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *eth.Config) {
 	}
 }
 
-
 // MakePasswordList reads password lines from the file specified by the global --password flag.
 func MakePasswordList(ctx *cli.Context) []string {
 	path := ctx.GlobalString(PasswordFileFlag.Name)
@@ -913,6 +941,9 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	lightServer := ctx.GlobalInt(LightServFlag.Name) != 0
 	lightPeers := ctx.GlobalInt(LightPeersFlag.Name)
 
+	if ctx.GlobalIsSet(MaxConsensusPeersFlag.Name) {
+		cfg.MaxConsensusPeers = ctx.GlobalInt(MaxConsensusPeersFlag.Name)
+	}
 	if ctx.GlobalIsSet(MaxPeersFlag.Name) {
 		cfg.MaxPeers = ctx.GlobalInt(MaxPeersFlag.Name)
 		if lightServer && !ctx.GlobalIsSet(LightPeersFlag.Name) {
@@ -984,8 +1015,12 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 		cfg.DataDir = "" // unless explicitly requested, use memory databases
 	case ctx.GlobalBool(TestnetFlag.Name):
 		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "testnet")
-	case ctx.GlobalBool(RinkebyFlag.Name):
-		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "rinkeby")
+	case ctx.GlobalBool(BetanetFlag.Name):
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "betanet")
+	case ctx.GlobalBool(InnerTestnetFlag.Name):
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "innertestnet")
+	case ctx.GlobalBool(InnerDevnetFlag.Name):
+		cfg.DataDir = filepath.Join(node.DefaultDataDir(), "innerdevnet")
 	}
 
 	if ctx.GlobalIsSet(KeyStoreDirFlag.Name) {
@@ -1046,30 +1081,52 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	if ctx.GlobalIsSet(TxPoolGlobalQueueFlag.Name) {
 		cfg.GlobalQueue = ctx.GlobalUint64(TxPoolGlobalQueueFlag.Name)
 	}
+	if ctx.GlobalIsSet(TxPoolGlobalTxCountFlag.Name) {
+		cfg.GlobalTxCount = ctx.GlobalUint64(TxPoolGlobalTxCountFlag.Name)
+	}
 	if ctx.GlobalIsSet(TxPoolLifetimeFlag.Name) {
 		cfg.Lifetime = ctx.GlobalDuration(TxPoolLifetimeFlag.Name)
 	}
 }
 
-func setEthash(ctx *cli.Context, cfg *eth.Config) {
-	if ctx.GlobalIsSet(EthashCacheDirFlag.Name) {
-		cfg.Ethash.CacheDir = ctx.GlobalString(EthashCacheDirFlag.Name)
+func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
+	if ctx.GlobalIsSet(MPCEnabledFlag.Name) {
+		cfg.MPCEnable = ctx.GlobalBool(MPCEnabledFlag.Name)
 	}
-	if ctx.GlobalIsSet(EthashDatasetDirFlag.Name) {
-		cfg.Ethash.DatasetDir = ctx.GlobalString(EthashDatasetDirFlag.Name)
+	if ctx.GlobalIsSet(MPCActorFlag.Name) {
+		cfg.MpcActor = common.HexToAddress(ctx.GlobalString(MPCActorFlag.Name))
 	}
-	if ctx.GlobalIsSet(EthashCachesInMemoryFlag.Name) {
-		cfg.Ethash.CachesInMem = ctx.GlobalInt(EthashCachesInMemoryFlag.Name)
+	if file := ctx.GlobalString(MPCIceFileFlag.Name); file != "" {
+		if _, err := os.Stat(file); err != nil {
+			fmt.Println("ice conf not exists.")
+			return
+		}
+		if b := filepath.IsAbs(file); !b {
+			absPath, err := filepath.Abs(file)
+			if err != nil {
+				fmt.Println("Read abs path of ice conf fail: ", err.Error())
+				return
+			}
+			cfg.IceConf = absPath
+		} else {
+			cfg.IceConf = file
+		}
 	}
-	if ctx.GlobalIsSet(EthashCachesOnDiskFlag.Name) {
-		cfg.Ethash.CachesOnDisk = ctx.GlobalInt(EthashCachesOnDiskFlag.Name)
+}
+
+func setVcPool(ctx *cli.Context, cfg *core.VCPoolConfig) {
+	if ctx.GlobalIsSet(VCEnabledFlag.Name) {
+		cfg.VCEnable = ctx.GlobalBool(VCEnabledFlag.Name)
 	}
-	if ctx.GlobalIsSet(EthashDatasetsInMemoryFlag.Name) {
-		cfg.Ethash.DatasetsInMem = ctx.GlobalInt(EthashDatasetsInMemoryFlag.Name)
+	if ctx.GlobalIsSet(VCActorFlag.Name) {
+		cfg.VcActor = common.HexToAddress(ctx.GlobalString(VCActorFlag.Name))
+		fmt.Println("cfg.VcActor", cfg.VcActor)
 	}
-	if ctx.GlobalIsSet(EthashDatasetsOnDiskFlag.Name) {
-		cfg.Ethash.DatasetsOnDisk = ctx.GlobalInt(EthashDatasetsOnDiskFlag.Name)
+
+	if ctx.GlobalIsSet(VCPasswordFlag.Name) {
+		cfg.VcPassword = ctx.GlobalString(VCPasswordFlag.Name)
 	}
+
 }
 
 // checkExclusive verifies that only a single instance of the provided flags was
@@ -1126,14 +1183,16 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 // SetEthConfig applies eth-related command line flags to the config.
 func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// Avoid conflicting network flags
-	checkExclusive(ctx, DeveloperFlag, TestnetFlag, RinkebyFlag)
+	checkExclusive(ctx, DeveloperFlag, TestnetFlag, BetanetFlag, InnerTestnetFlag, InnerDevnetFlag)
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	setEtherbase(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
-	setEthash(ctx, cfg)
+	// for mpc compute
+	setMpcPool(ctx, &cfg.MPCPool)
+	setVcPool(ctx, &cfg.VCPool)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
@@ -1156,7 +1215,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
-	cfg.NoPruning = ctx.GlobalString(GCModeFlag.Name) == "archive"
+	cfg.NoPruning = /*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true
 
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cfg.TrieCache = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
@@ -1207,18 +1266,33 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 		cfg.EVMInterpreter = ctx.GlobalString(EVMInterpreterFlag.Name)
 	}
 
+	// TODO inner time
+	if ctx.GlobalIsSet(InnerTimeFlag.Name) {
+		InnerTimeFlag.Value = ctx.GlobalUint64(InnerTimeFlag.Name)
+	}
+
 	// Override any default configs for hard coded networks.
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 3
+			cfg.NetworkId = 103
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
-	case ctx.GlobalBool(RinkebyFlag.Name):
+	case ctx.GlobalBool(BetanetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
-			cfg.NetworkId = 4
+			cfg.NetworkId = 104
 		}
-		cfg.Genesis = core.DefaultRinkebyGenesisBlock()
+		cfg.Genesis = core.DefaultBetanetGenesisBlock()
+	case ctx.GlobalBool(InnerTestnetFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 203
+		}
+		cfg.Genesis = core.DefaultInnerTestnetGenesisBlock(InnerTimeFlag.Value)
+	case ctx.GlobalBool(InnerDevnetFlag.Name):
+		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
+			cfg.NetworkId = 204
+		}
+		cfg.Genesis = core.DefaultInnerDevnetGenesisBlock(InnerTimeFlag.Value)
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -1262,7 +1336,6 @@ func SetDashboardConfig(ctx *cli.Context, cfg *dashboard.Config) {
 // RegisterEthService adds an Ethereum client to the stack.
 func RegisterEthService(stack *node.Node, cfg *eth.Config) {
 	var err error
-	// 注册即为定义构造函数的实现方式
 	if cfg.SyncMode == downloader.LightSync {
 		err = stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 			return les.New(ctx, cfg)
@@ -1358,8 +1431,12 @@ func MakeGenesis(ctx *cli.Context) *core.Genesis {
 	switch {
 	case ctx.GlobalBool(TestnetFlag.Name):
 		genesis = core.DefaultTestnetGenesisBlock()
-	case ctx.GlobalBool(RinkebyFlag.Name):
-		genesis = core.DefaultRinkebyGenesisBlock()
+	case ctx.GlobalBool(BetanetFlag.Name):
+		genesis = core.DefaultBetanetGenesisBlock()
+	case ctx.GlobalBool(InnerTestnetFlag.Name):
+		genesis = core.DefaultInnerTestnetGenesisBlock(InnerTimeFlag.Value)
+	case ctx.GlobalBool(InnerDevnetFlag.Name):
+		genesis = core.DefaultInnerDevnetGenesisBlock(InnerTimeFlag.Value)
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		Fatalf("Developer chains are ephemeral")
 	}
@@ -1376,26 +1453,12 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("%v", err)
 	}
 	var engine consensus.Engine
-	if config.Clique != nil {
-		engine = clique.New(config.Clique, chainDb)
-	} else {
-		engine = ethash.NewFaker()
-		if !ctx.GlobalBool(FakePoWFlag.Name) {
-			engine = ethash.New(ethash.Config{
-				CacheDir:       stack.ResolvePath(eth.DefaultConfig.Ethash.CacheDir),
-				CachesInMem:    eth.DefaultConfig.Ethash.CachesInMem,
-				CachesOnDisk:   eth.DefaultConfig.Ethash.CachesOnDisk,
-				DatasetDir:     stack.ResolvePath(eth.DefaultConfig.Ethash.DatasetDir),
-				DatasetsInMem:  eth.DefaultConfig.Ethash.DatasetsInMem,
-				DatasetsOnDisk: eth.DefaultConfig.Ethash.DatasetsOnDisk,
-			}, nil, false)
-		}
-	}
+
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled:      ctx.GlobalString(GCModeFlag.Name) == "archive",
+		Disabled:/*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
 		TrieNodeLimit: eth.DefaultConfig.TrieCache,
 		TrieTimeLimit: eth.DefaultConfig.TrieTimeout,
 	}

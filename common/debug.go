@@ -19,6 +19,7 @@ package common
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -49,4 +50,22 @@ func PrintDepricationWarning(str string) {
 %s
 
 `, line, emptyLine, str, emptyLine, line)
+}
+
+func CurrentGoRoutineID() string {
+	bytes := debug.Stack()
+	for i, ch := range bytes {
+		if ch == '\n' || ch == '\r' {
+			bytes = bytes[0:i]
+			break
+		}
+	}
+	line := string(bytes)
+	var valid = regexp.MustCompile(`goroutine\s(\d+)\s+\[`)
+
+	if params := valid.FindAllStringSubmatch(line, -1); params != nil {
+		return params[0][1]
+	} else {
+		return ""
+	}
 }

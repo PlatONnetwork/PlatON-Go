@@ -215,6 +215,7 @@ loop:
 			// there was no error.
 			if err != nil {
 				reason = DiscNetworkError
+				log.Debug("network error while sending message to peer", "err", err)
 				break loop
 			}
 			writeStart <- struct{}{}
@@ -225,12 +226,15 @@ loop:
 			} else {
 				reason = DiscNetworkError
 			}
+			log.Debug("network error while reading message from peer", "err", err)
 			break loop
 		case err = <-p.protoErr:
 			reason = discReasonForError(err)
+			log.Debug("protoErr", "err", err)
 			break loop
 		case err = <-p.disc:
 			reason = discReasonForError(err)
+			log.Debug("disconnection", "err", err)
 			break loop
 		}
 	}
@@ -248,7 +252,6 @@ func (p *Peer) pingLoop() {
 	for {
 		select {
 		case <-ping.C:
-			//modified by Joey
 			pingTime := strconv.FormatInt(time.Now().UnixNano(), 10)
 
 			if p.PingList.Len() > 5 {
@@ -257,7 +260,7 @@ func (p *Peer) pingLoop() {
 			}
 			p.PingList.PushBack(pingTime)
 
-			log.Debug("send a Ping message", "pingTimeNano", pingTime, "PingList.Len", p.PingList.Len())
+			log.Trace("send a Ping message", "peerID", p.ID(), "pingTimeNano", pingTime, "PingList.Len", p.PingList.Len())
 			if err := SendItems(p.rw, pingMsg, pingTime); err != nil {
 				p.protoErr <- err
 				return
@@ -269,7 +272,7 @@ func (p *Peer) pingLoop() {
 			}*/
 			ping.Reset(pingInterval)
 		case <-p.closed:
-			log.Debug("Ping loop closed")
+			log.Trace("Ping loop closed", "peerID", p.ID())
 			return
 		}
 	}
@@ -308,6 +311,9 @@ func (p *Peer) handle(msg Msg) error {
 	case msg.Code == pongMsg:
 		//added by Joey
 		proto := p.running["eth"]
+		if proto == nil {
+			return msg.Discard()
+		}
 
 		msg.Code = 0x0a + proto.offset
 
@@ -443,6 +449,7 @@ func (rw *protoRW) WriteMsg(msg Msg) (err error) {
 		// as well but we don't want to rely on that.
 		rw.werr <- err
 	case <-rw.closed:
+		log.Debug("send message to peer error cause peer is shutting down")
 		err = ErrShuttingDown
 	}
 	return err
@@ -454,6 +461,7 @@ func (rw *protoRW) ReadMsg() (Msg, error) {
 		msg.Code -= rw.offset
 		return msg, nil
 	case <-rw.closed:
+		log.Error("ReadMsg from peer error, connection is closed")
 		return Msg{}, io.EOF
 	}
 }

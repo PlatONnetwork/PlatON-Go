@@ -17,6 +17,7 @@
 package eth
 
 import (
+	"math/big"
 	"math/rand"
 	"sync/atomic"
 	"time"
@@ -168,10 +169,12 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	}
 	// Make sure the peer's TD is higher than our own
 	currentBlock := pm.blockchain.CurrentBlock()
-	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
+	bn := currentBlock.Number()
 
-	pHead, pTd := peer.Head()
-	if pTd.Cmp(td) <= 0 {
+	pHead, pBn := peer.Head()
+	//modified by platon
+	diff := new(big.Int).Sub(pBn, bn)
+	if diff.Cmp(big.NewInt(5)) <= 0 {
 		return
 	}
 	// Otherwise try to sync with the downloader
@@ -192,14 +195,14 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	log.Info("sync mode", "mode", mode)
 	if mode == downloader.FastSync {
 		// Make sure the peer's total difficulty we are synchronizing is higher.
-		if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
+		if pm.blockchain.CurrentFastBlock().Number().Cmp(pBn) >= 0 {
 			return
 		}
 	}
 
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
-	if err := pm.downloader.Synchronise(peer.id, pHead, pTd, mode); err != nil {
-		log.Info("begin sync from peer", "peerID", peer.id, "pHead", pHead, "pTd", pTd, "mode", mode)
+	if err := pm.downloader.Synchronise(peer.id, pHead, pBn, mode); err != nil {
+		log.Info("begin sync from peer", "peerID", peer.id, "pHead", pHead, "pBn", pBn, "mode", mode)
 		return
 	}
 	if atomic.LoadUint32(&pm.fastSync) == 1 {

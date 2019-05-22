@@ -88,6 +88,7 @@ type Peer interface {
 	RequestBodies([]common.Hash) error
 	RequestReceipts([]common.Hash) error
 	RequestNodeData([]common.Hash) error
+	RequestLatestPposStorage() error
 }
 
 // lightPeerWrapper wraps a LightPeer struct, stubbing out the Peer-only methods.
@@ -110,6 +111,9 @@ func (w *lightPeerWrapper) RequestReceipts([]common.Hash) error {
 }
 func (w *lightPeerWrapper) RequestNodeData([]common.Hash) error {
 	panic("RequestNodeData not supported in light client mode sync")
+}
+func (p *lightPeerWrapper) RequestLatestPposStorage() error {
+	panic("RequestLatestPposStorage not supported in light client mode sync")
 }
 
 // newPeerConnection creates a new downloader peer.

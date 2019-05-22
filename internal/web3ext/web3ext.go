@@ -153,6 +153,16 @@ web3._extend({
 			params: 1
 		}),
 		new web3._extend.Method({
+			name: 'addConsensusPeer',
+			call: 'admin_addConsensusPeer',
+			params: 1
+		}),
+		new web3._extend.Method({
+			name: 'removeConsensusPeer',
+			call: 'admin_removeConsensusPeer',
+			params: 1
+		}),
+		new web3._extend.Method({
 			name: 'addTrustedPeer',
 			call: 'admin_addTrustedPeer',
 			params: 1
@@ -433,6 +443,12 @@ const Eth_JS = `
 web3._extend({
 	property: 'eth',
 	methods: [
+		new web3._extend.Method({
+			name: 'setActor',
+			call: 'eth_setActor',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputAddressFormatter]
+		}),
 		new web3._extend.Method({
 			name: 'sign',
 			call: 'eth_sign',

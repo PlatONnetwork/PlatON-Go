@@ -74,6 +74,7 @@ var (
 	allToolsArchiveFiles = []string{
 		"COPYING",
 		executablePath("abigen"),
+		executablePath("ctool"),
 		executablePath("bootnode"),
 		executablePath("evm"),
 		executablePath("platon"),
@@ -90,6 +91,10 @@ var (
 
 	// A debian package is created for all executables listed here.
 	debExecutables = []debExecutable{
+		{
+			BinaryName:  "ctool",
+			Description: "Tx Tool.",
+		},
 		{
 			BinaryName:  "abigen",
 			Description: "Source code generator to convert Ethereum contract definitions into easy to use, compile-time type-safe Go packages.",
@@ -209,8 +214,12 @@ func main() {
 func doInstall(cmdline []string) {
 	// ./cmd/platon
 	var (
-		arch = flag.String("arch", "", "Architecture to cross build for")
-		cc   = flag.String("cc", "", "C compiler to cross build with")
+		arch    = flag.String("arch", "", "Architecture to cross build for")
+		cc      = flag.String("cc", "", "C compiler to cross build with")
+		mpc     = flag.String("mpc", "off", "Switch of mpc , on for compiling MPC, off for without compiling")
+		gcflags = flag.String("gcflags", "", "Turn off compiler code optimization and function inlining")
+		vc      = flag.String("vc", "off", "Switch of vc , on for compiling VC, off for without compiling")
+		mv      = flag.String("mv", "off", "Switch of mv , on for compilingMPC and VC, off for without compiling")
 	)
 	flag.CommandLine.Parse(cmdline)
 	env := build.Env()
@@ -239,7 +248,37 @@ func doInstall(cmdline []string) {
 	if *arch == "" || *arch == runtime.GOARCH {
 		goinstall := goTool("install", buildFlags(env)...)
 		goinstall.Args = append(goinstall.Args, "-v")
-		goinstall.Args = append(goinstall.Args, packages...)
+		index := 0
+		packages2 := []string{}
+		for index < len(packages) {
+			if packages[index] == "github.com/PlatONnetwork/PlatON-Go/cmd/platon" || packages[index] == "./cmd/platon" {
+				goplatoninstall := goTool("install", buildFlags(env)...)
+				goplatoninstall.Args = append(goplatoninstall.Args, "-v")
+				if *mpc == "on" {
+					goplatoninstall.Args = append(goplatoninstall.Args, "-tags=mpcon")
+				}
+				if *gcflags == "on" {
+					goplatoninstall.Args = append(goplatoninstall.Args, "-gcflags=-N -l")
+				}
+				if *vc == "on" {
+					goplatoninstall.Args = append(goplatoninstall.Args, "-tags=vcon")
+				}
+				if *mv == "on" {
+					goplatoninstall.Args = append(goplatoninstall.Args, "-tags=mpcon vcon")
+				}
+				packages3 := []string{"./cmd/platon"}
+				goplatoninstall.Args = append(goplatoninstall.Args, packages3...)
+				build.MustRun(goplatoninstall)
+				if packages[index] == "./cmd/platon" {
+					return
+				}
+				index++
+				continue
+			}
+			packages2 = append(packages2, packages[index])
+			index++
+		}
+		goinstall.Args = append(goinstall.Args, packages2...)
 		build.MustRun(goinstall)
 		return
 	}
@@ -284,6 +323,9 @@ func buildFlags(env build.Environment) (flags []string) {
 	}
 	if runtime.GOOS == "darwin" {
 		ld = append(ld, "-s")
+	}
+	if runtime.GOOS == "windows" {
+		ld = append(ld, "-extldflags", "-static")
 	}
 
 	if len(ld) > 0 {

@@ -19,17 +19,18 @@ package state
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"math/big"
+	//"runtime/debug"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
-
-// account对象的抽象，提供了账户的一些功能。
-// 表示正在修改的以太坊账户
 
 var emptyCodeHash = crypto.Keccak256(nil)
 
@@ -43,20 +44,19 @@ func (self Code) String() string {
 type Storage map[string]common.Hash
 type ValueStorage map[common.Hash][]byte
 
-// 该结构：用于缓存智能合约中所有变量的值
 // Storage -> hash : hash , common.Hash ([32]byte)
 //type Storage map[common.Hash]common.Hash
 
 func (self Storage) String() (str string) {
 	for key, value := range self {
-		// %X -> 提供16进制
+		// %X -> Provide hexadecimal
 		str += fmt.Sprintf("%X : %X\n", key, value)
 	}
 
 	return
 }
 
-// 复制一份Storage
+// Copy a copy of Storage
 func (self Storage) Copy() Storage {
 	cpy := make(Storage)
 	for key, value := range self {
@@ -92,7 +92,6 @@ type stateObject struct {
 	// unable to deal with database-level errors. Any error that occurs
 	// during a database read is memoized here and will eventually be returned
 	// by StateDB.Commit.
-	// 当一个对象被标记为自杀时，它将在状态转换的“更新”阶段期间从树中删除。
 	dbErr error
 
 	// Write caches.
@@ -100,7 +99,6 @@ type stateObject struct {
 	// storage trie, which becomes non-nil on first access
 	code Code // contract bytecode, which gets set when code is loaded
 
-	// todo: 新增，此字段尚不明确是否需要进行使用
 	abi Abi
 
 	originStorage      Storage      // Storage cache of original entries to dedup rewrites
@@ -119,23 +117,26 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
+	if _, ok := vm.PrecompiledContractsPpos[s.address]; ok {
+		return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash) && s.data.Root == (common.Hash{})
+	} else {
+		return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
+	}
 }
 
 // Account is the Ethereum consensus representation of accounts.
 // These objects are stored in the main account trie.
-// 帐户是以太坊共识表示的帐户。 这些对象存储在main account trie。
 type Account struct {
 	Nonce    uint64
 	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
-	// todo: 新增AbiHash字段
 	AbiHash []byte
 }
 
 // newObject creates a state object.
 func newObject(db *StateDB, address common.Address, data Account) *stateObject {
+	log.Debug("newObject", "state db addr", fmt.Sprintf("%p", db), "state root", db.Root().Hex())
 	if data.Balance == nil {
 		data.Balance = new(big.Int)
 	}
@@ -255,7 +256,10 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 			return value
 		}
 	}
-
+	log.Debug("GetCommittedState", "stateObject addr", fmt.Sprintf("%p", self), "statedb addr", fmt.Sprintf("%p", self.db), "root", self.data.Root, "key", hex.EncodeToString([]byte(key)))
+	//if self.data.Root == (common.Hash{}) {
+	//	log.Info("GetCommittedState", "stack", string(debug.Stack()))
+	//}
 	// Otherwise load the valueKey from trie
 	enc, err := self.getTrie(db).TryGet([]byte(key))
 	if err != nil {
@@ -276,6 +280,14 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 		}
 	}
 
+	if valueKey != emptyStorage && len(value) == 0 {
+		log.Error("invalid storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
+		return []byte{}
+	}
+	if len(value) == 0 && valueKey == emptyStorage {
+		log.Debug("empty storage valuekey", "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String())
+	}
+	log.Info("GetCommittedState", "stateObject addr", fmt.Sprintf("%p", self), "statedb addr", fmt.Sprintf("%p", self.db), "root", self.data.Root, "key", hex.EncodeToString([]byte(key)), "valueKey", valueKey.String(), "value", len(value))
 	self.originStorage[key] = valueKey
 	self.originValueStorage[valueKey] = value
 	return value
@@ -285,9 +297,9 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 // set [keyTrie,valueKey] to storage
 // set [valueKey,value] to db
 func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.Hash, value []byte) {
-
+	log.Debug("SetState ", "keyTrie", hex.EncodeToString([]byte(keyTrie)), "valueKey", valueKey, "value", hex.EncodeToString(value))
 	//if the new value is the same as old,don't set
-	preValue := self.GetState(db, keyTrie) //获取value key
+	preValue := self.GetState(db, keyTrie) // get value key
 	if bytes.Equal(preValue, value) {
 		return
 	}
@@ -304,45 +316,40 @@ func (self *stateObject) SetState(db Database, keyTrie string, valueKey common.H
 }
 
 func (self *stateObject) setState(key string, valueKey common.Hash, value []byte) {
+	cpy := make([]byte, len(value))
+	copy(cpy, value)
 	self.dirtyStorage[key] = valueKey
-	self.dirtyValueStorage[valueKey] = value
+	self.dirtyValueStorage[valueKey] = cpy
 }
 
 // updateTrie writes cached storage modifications into the object's storage trie.
 func (self *stateObject) updateTrie(db Database) Trie {
 	tr := self.getTrie(db)
 	for key, valueKey := range self.dirtyStorage {
+		delete(self.dirtyStorage, key)
 
-		value, dirty := self.dirtyValueStorage[valueKey]
-		if dirty {
-			// Skip noop changes, persist actual changes
-			originValue, dirty2 := self.originValueStorage[valueKey]
-			if dirty2 {
-				if bytes.Equal(value, originValue) {
-					continue
-				}
-			}
+		if valueKey == self.originStorage[key] {
+			continue
 		}
 
-		delete(self.dirtyStorage, key)
-		delete(self.dirtyValueStorage, valueKey)
-
-		//删除原来valueKey 对应的value
-		delete(self.originValueStorage, self.originStorage[key])
-
 		self.originStorage[key] = valueKey
-		self.originValueStorage[valueKey] = value
 
-		if (valueKey == common.Hash{} || bytes.Equal(value, []byte{})) {
+		if valueKey == emptyStorage {
 			self.setError(tr.TryDelete([]byte(key)))
 			continue
 		}
 
-		// Encoding []byte cannot fail, ok to ignore the error.
 		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(valueKey[:], "\x00"))
 		self.setError(tr.TryUpdate([]byte(key), v))
-		//self.setError(tr.TryUpdateValue(valueKey[:], value))
+
+		//flush dirty value
+		if value, ok := self.dirtyValueStorage[valueKey]; ok {
+			delete(self.dirtyValueStorage, valueKey)
+			self.originValueStorage[valueKey] = value
+			self.setError(tr.TryUpdateValue(valueKey.Bytes(), value))
+		}
 	}
+
 	return tr
 }
 
@@ -361,7 +368,7 @@ func (self *stateObject) CommitTrie(db Database) error {
 	}
 
 	for h, v := range self.originValueStorage {
-		if (h != common.Hash{} && !bytes.Equal(v, []byte{})) {
+		if h != emptyStorage && !bytes.Equal(v, []byte{}) {
 			self.trie.TryUpdateValue(h.Bytes(), v)
 		}
 	}
@@ -499,8 +506,8 @@ func (self *stateObject) Value() *big.Int {
 	panic("Value on stateObject should never be called")
 }
 
-// todo: 新增方法
-// ======================================= 新增方法 ===============================
+// todo: New method
+// ======================================= New method ===============================
 
 // todo: new method -> AbiHash
 func (self *stateObject) AbiHash() []byte {
@@ -515,7 +522,7 @@ func (self *stateObject) Abi(db Database) []byte {
 	if bytes.Equal(self.AbiHash(), emptyCodeHash) {
 		return nil
 	}
-	// 从树中提取code，入参：地址及hash, 此处需要深入发现获取规则
+	// Extract the code from the tree, enter the parameters: address and hash, here you need to find the acquisition rules in depth
 	abi, err := db.ContractAbi(self.addrHash, common.BytesToHash(self.AbiHash()))
 	if err != nil {
 		self.setError(fmt.Errorf("can't load abi hash %x: %v", self.AbiHash(), err))

@@ -33,7 +33,7 @@ import (
 var AppHelpTemplate = `NAME:
    {{.App.Name}} - {{.App.Usage}}
 
-   Copyright 2013-2018 The go-ethereum Authors
+   Copyright 2019 The PlatON-Go Authors
 
 USAGE:
    {{.App.HelpName}} [options]{{if .App.Commands}} command [command options]{{end}} {{if .App.ArgsUsage}}{{.App.ArgsUsage}}{{else}}[arguments...]{{end}}
@@ -73,7 +73,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.NoUSBFlag,
 			utils.NetworkIdFlag,
 			utils.TestnetFlag,
-			utils.RinkebyFlag,
+			utils.BetanetFlag,
 			utils.SyncModeFlag,
 			utils.GCModeFlag,
 			utils.EthStatsURLFlag,
@@ -88,17 +88,6 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.DeveloperFlag,
 			utils.DeveloperPeriodFlag,
-		},
-	},
-	{
-		Name: "ETHASH",
-		Flags: []cli.Flag{
-			utils.EthashCacheDirFlag,
-			utils.EthashCachesInMemoryFlag,
-			utils.EthashCachesOnDiskFlag,
-			utils.EthashDatasetDirFlag,
-			utils.EthashDatasetsInMemoryFlag,
-			utils.EthashDatasetsOnDiskFlag,
 		},
 	},
 	//{
@@ -124,6 +113,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.TxPoolGlobalSlotsFlag,
 			utils.TxPoolAccountQueueFlag,
 			utils.TxPoolGlobalQueueFlag,
+			utils.TxPoolGlobalTxCountFlag,
 			utils.TxPoolLifetimeFlag,
 		},
 	},
@@ -245,9 +235,24 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "MPC COMPUTE",
+		Flags: []cli.Flag{
+			utils.MPCEnabledFlag,
+			utils.MPCActorFlag,
+			utils.MPCIceFileFlag,
+		},
+	},
+	{
+		Name: "VC COMPUTE",
+		Flags: []cli.Flag{
+			utils.VCEnabledFlag,
+			utils.VCActorFlag,
+			utils.VCPasswordFlag,
+		},
+	},
+	{
 		Name: "MISC",
 	},
-
 }
 
 // byCategory sorts an array of flagGroup by Name in the order
