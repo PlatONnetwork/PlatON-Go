@@ -782,6 +782,7 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 	cbft.highestLogical.Store(current)
 	cbft.AddPrepareBlock(sealedBlock)
 
+	cbft.broadcastBlock(current)
 	//todo change sign and block state
 	go func() {
 		select {
@@ -793,7 +794,6 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 			cbft.reset(sealedBlock)
 			//cbft.bp.InternalBP().ResetTxPool(context.TODO(), current, time.Now().Sub(start), &cbft.RoundState)
 
-			cbft.broadcastBlock(current)
 		default:
 			cbft.log.Warn("Sealing result is not ready by miner", "sealHash", sealedBlock.Header().SealHash())
 		}
