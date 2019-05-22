@@ -1780,6 +1780,7 @@ func (cbft *Cbft) inTurnVerify(rcvTime int64, nodeID discover.NodeID) bool {
 func (cbft *Cbft) isLegal(rcvTime int64, addr common.Address) bool {
 	nodeIdx, err := cbft.dpos.AddressIndex(addr)
 	if err != nil {
+		cbft.log.Error("Get address index failed", "err", err)
 		return false
 	}
 	return cbft.calTurnIndex(rcvTime, nodeIdx)
@@ -1810,7 +1811,7 @@ func (cbft *Cbft) calTurnIndex(timePoint int64, nodeIdx int) bool {
 
 		max := int64(nodeIdx+1) * durationPerNode
 
-		if value > min && value < max {
+		if value >= min && value < max {
 			//cbft.log.Debug("calTurn return true", "idx", nodeIdx, "min", min, "value", value, "max", max, "timePoint", common.MillisToString(timePoint), "startEpoch", common.MillisToString(startEpoch))
 			return true
 		} else {

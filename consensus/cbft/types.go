@@ -20,7 +20,7 @@ var (
 	errBlockHashNotEqual          = errors.New("block hash not equal")
 	errViewChangeBlockNumTooLower = errors.New("block number too lower")
 	errInvalidProposalAddr        = errors.New("invalid proposal address")
-	errRecvViewTimeout            = errors.New("receive viewchang timeout")
+	errRecvViewTimeout            = errors.New("receive viewchange timeout")
 	errTimestamp                  = errors.New("viewchange timestamp too low")
 	errInvalidViewChangeVote      = errors.New("invalid viewchange vote")
 	errInvalidConfirmNumTooLow    = errors.New("confirm block number lower than local prepare")
@@ -475,7 +475,7 @@ func (cbft *Cbft) newViewChange() (*viewChange, error) {
 func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
 
 	now := time.Now().UnixNano() / 1e6
-	if !cbft.isLegal(now, view.ProposalAddr) || !cbft.isLegal(int64(view.Timestamp), view.ProposalAddr) {
+	if !cbft.isLegal(now, view.ProposalAddr) {
 		cbft.log.Error("Receive view change timeout", "current", now, "remote", view.Timestamp)
 		return errRecvViewTimeout
 	}
