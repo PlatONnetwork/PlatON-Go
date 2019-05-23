@@ -1985,6 +1985,7 @@ func (cbft *Cbft) OnFastSyncCommitHead(errCh chan error) {
 	cbft.saveBlockExt(currentBlock.Hash(), current)
 
 	cbft.highestConfirmed.Store(current)
+	cbft.updateValidator()
 	cbft.highestLogical.Store(current)
 	cbft.rootIrreversible.Store(current)
 
@@ -1997,7 +1998,10 @@ func (cbft *Cbft) updateValidator() {
 		return
 	}
 
-	newVds, err := cbft.agency.GetValidator(hc.number)
+	// Check if we are a consensus node before updated.
+	isValidatorBefore := cbft.IsConsensusNode()
+
+	newVds, err := cbft.agency.GetValidator(hc.number + 1)
 	if err != nil {
 		cbft.log.Error("Get validators fail", "number", hc.number, "hash", hc.block.Hash())
 		return
@@ -2006,8 +2010,59 @@ func (cbft *Cbft) updateValidator() {
 		cbft.log.Error("Empty validators")
 		return
 	}
-	cbft.log.Info("Update validators success", "highestConfirmed", hc.number, "hash", hc.block.Hash(), "validators", cbft.validators)
+	oldVds := cbft.validators
 	cbft.validators = newVds
+	cbft.log.Info("Update validators success", "highestConfirmed", hc.number, "hash", hc.block.Hash(), "validators", cbft.validators)
+
+	// Check if we are become a consensus node after update.
+	isValidatorAfter := cbft.IsConsensusNode()
+
+	cbft.log.Trace("After update validators", "isValidatorBefore", isValidatorBefore, "isValidator", isValidatorAfter)
+	if isValidatorBefore {
+		// If we are still a consensus node, that adding
+		// new validators as consensus peer, and removing
+		// validators. Added as consensus peersis because
+		// we need to keep connect with other validators
+		// in the consensus stages. Also we are not needed
+		// to keep connect with old validators.
+		if isValidatorAfter {
+			for nodeID, _ := range cbft.validators.Nodes {
+				if _, ok := oldVds.Nodes[nodeID]; !ok {
+					cbft.eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: nodeID})
+					cbft.log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
+				}
+			}
+
+			for nodeID, _ := range oldVds.Nodes {
+				if _, ok := cbft.validators.Nodes[nodeID]; !ok {
+					cbft.eventMux.Post(cbfttypes.RemoveValidatorEvent{NodeID: nodeID})
+					cbft.log.Trace("Post RemoveValidatorEvent", "nodeID", nodeID.String())
+				}
+			}
+		} else {
+			for nodeID, _ := range oldVds.Nodes {
+				cbft.eventMux.Post(cbfttypes.RemoveValidatorEvent{NodeID: nodeID})
+				cbft.log.Trace("Post RemoveValidatorEvent", "nodeID", nodeID.String())
+			}
+		}
+	} else {
+		// We are become a consensus node, that adding all
+		// validators as consensus peer except us. Added as
+		// consensus peers is because we need to keep connecting
+		// with other validators in the consensus stages.
+		if isValidatorAfter {
+			for nodeID, _ := range cbft.validators.Nodes {
+				if cbft.config.NodeID == nodeID {
+					// Ignore myself
+					continue
+				}
+				cbft.eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: nodeID})
+				cbft.log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
+			}
+		}
+
+		// We are still not a consensus node, just update validator list.
+	}
 }
 
 func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {
