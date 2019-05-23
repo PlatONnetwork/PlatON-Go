@@ -3,12 +3,10 @@ package cbft
 import (
 	"bytes"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/gogo/protobuf/test/enumstringer"
 	"github.com/syndtr/goleveldb/leveldb"
 	"sort"
 )
@@ -35,14 +33,30 @@ type DuplicatePrepareVoteEvidence struct {
 	voteB *prepareVote
 }
 
+func (d DuplicatePrepareVoteEvidence) Error() string {
+	return fmt.Sprintf("DuplicatePrepareVoteEvidence ValidatorIndex:%d, ValidatorAddr:%s, blockNum:%d blockHashA:%s, blockHashB:%s",
+		d.voteA.ValidatorIndex, d.voteB.ValidatorAddr, d.voteA.Number, d.voteA.Hash.String(), d.voteB.Hash.String())
+}
+
 type DuplicateViewChangeVoteEvidence struct {
 	voteA *viewChangeVote
 	voteB *viewChangeVote
 }
 
+func (d DuplicateViewChangeVoteEvidence) Error() string {
+	return fmt.Sprintf("DuplicateViewChangeVoteEvidence timestamp:%d blockNumberA:%d, blockHashA:%s, blockNumberB:%d, blockHashB:%s",
+		d.voteA.Timestamp, d.voteA.BlockNum, d.voteA.BlockHash.String(), d.voteB.BlockNum, d.voteB.BlockHash.String())
+}
+
+//Evidence A.Timestamp < B.Timestamp but A.BlockNum > B.BlockNum
 type TimestampViewChangeVoteEvidence struct {
 	voteA *viewChangeVote
 	voteB *viewChangeVote
+}
+
+func (d TimestampViewChangeVoteEvidence) Error() string {
+	return fmt.Sprintf("TimestampViewChangeVoteEvidence timestamp:%d blockNumberA:%d, blockHashA:%s, blockNumberB:%d, blockHashB:%s",
+		d.voteA.Timestamp, d.voteA.BlockNum, d.voteA.BlockHash.String(), d.voteB.BlockNum, d.voteB.BlockHash.String())
 }
 
 type TimeOrderViewChange []*viewChangeVote
@@ -257,7 +271,7 @@ func (vt *PrepareEvidence) Add(v *prepareVote) error {
 	return nil
 }
 
-func (vt *PrepareEvidence) Clear(number uint64) error {
+func (vt *PrepareEvidence) Clear(number uint64) {
 	for k, v := range *vt {
 		v.Remove(number)
 		if v.Len() == 0 {
@@ -305,14 +319,13 @@ func (ev *EvidencePool) AddPrepareVote(p *prepareVote) error {
 	return nil
 }
 
-func (ev *EvidencePool) Clear(timestamp, blockNum uint64) error {
+func (ev *EvidencePool) Clear(timestamp, blockNum uint64) {
 	ev.vt.Clear(timestamp)
 	ev.vn.Clear(blockNum)
 	ev.pe.Clear(blockNum)
 }
 
-func (ev *EvidencePool) ClearDB() error {
-	return nil
+func (ev *EvidencePool) ClearDB() {
 }
 
 func (ev *EvidencePool) Close() {
@@ -339,4 +352,5 @@ func verifyAddr(msg ConsensusMsg, addr common.Address) error {
 	if !bytes.Equal(recAddr.Bytes(), addr.Bytes()) {
 		return fmt.Errorf("validator's address is not match signature")
 	}
+	return nil
 }
