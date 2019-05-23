@@ -198,7 +198,7 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 	if blockNumber <= ia.defaultBlocksPerRound {
 		lastBlockNumber = ia.defaultBlocksPerRound
 	} else {
-		vdsCfgNum := blockNumber - ia.offset
+		vdsCfgNum := blockNumber - ia.offset - 1
 		vds, err := ia.GetValidator(vdsCfgNum)
 		if err != nil {
 			log.Error("Get validator fail", "vdsCfgNum", vdsCfgNum, "blockNumber", blockNumber)
