@@ -17,10 +17,12 @@ matrix:
     - name: windows compile
       os: windows
       go: 1.12.x
+      addons:
+        
       script:
         - chmod u+x ./build/*.sh
         - sh ./build/build_deps.sh
-        - go run build/ci.go install -mpc on
+        - go run build/ci.go install
 
     # This builder run the code scans uses gometalinter
     - name: code scan
@@ -31,7 +33,7 @@ matrix:
       script:
         - go get -v -u github.com/alecthomas/gometalinter
         - gometalinter --install --update
-        - gometalinter ./...
+        - gometalinter --vendor --tests --deadline=10m --disable-all --enable=goimports --enable=varcheck --enable=vet --enable=gofmt --enable=misspell --enable=goconst --min-occurrences=6 ./...
 
     # This builder run the unit tests
     - name: unit test
@@ -40,9 +42,7 @@ matrix:
       sudo: required
       go: 1.12.x
       script:
-        - pwd
         - go test ./...
-
 
 
     
