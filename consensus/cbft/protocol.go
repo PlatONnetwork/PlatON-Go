@@ -63,6 +63,7 @@ var errorToString = map[int]string{
 
 type ConsensusMsg interface {
 	CannibalizeBytes() ([]byte, error)
+	Sign() []byte
 }
 
 type Message interface {
@@ -84,22 +85,15 @@ type prepareBlock struct {
 	ProposalAddr    common.Address    `json:"proposal_address"`
 	View            *viewChange       `json:"view"`
 	ViewChangeVotes []*viewChangeVote `json:"viewchange_votes"`
-	Signature       common.BlockConfirmSign
 	Extra           []byte
 }
 
 func (pb *prepareBlock) CannibalizeBytes() ([]byte, error) {
-	buf, err := rlp.EncodeToBytes([]interface{}{
-		pb.Timestamp,
-		pb.Block.Hash(),
-		pb.ProposalIndex,
-		pb.ProposalAddr,
-	})
-	if err != nil {
-		return nil, err
-	}
+	return pb.Block.Header().SealHash().Bytes(), nil
+}
 
-	return crypto.Keccak256(buf), nil
+func (pb *prepareBlock) Sign() []byte {
+	return pb.Block.Extra()[len(pb.Block.Extra())-extraSeal:]
 }
 
 func (pb *prepareBlock) String() string {
@@ -175,6 +169,10 @@ func (pv *prepareVote) CannibalizeBytes() ([]byte, error) {
 	return crypto.Keccak256(buf), nil
 }
 
+func (pv *prepareVote) Sign() []byte {
+	return pv.Signature.Bytes()
+}
+
 func (pv *prepareVote) String() string {
 	if pv == nil {
 		return ""
@@ -221,6 +219,10 @@ func (v *viewChange) CannibalizeBytes() ([]byte, error) {
 	}
 
 	return crypto.Keccak256(buf), nil
+}
+
+func (v *viewChange) Sign() []byte {
+	return v.Signature.Bytes()
 }
 
 func (v *viewChange) String() string {
@@ -305,6 +307,10 @@ func (v *viewChangeVote) CannibalizeBytes() ([]byte, error) {
 	}
 
 	return crypto.Keccak256(buf), nil
+}
+
+func (v *viewChangeVote) Sign() []byte {
+	return v.Signature.Bytes()
 }
 
 func (v *viewChangeVote) String() string {
