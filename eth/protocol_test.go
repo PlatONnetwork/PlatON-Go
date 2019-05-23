@@ -18,6 +18,7 @@ package eth
 
 import (
 	"fmt"
+	"math/big"
 	"sync"
 	"testing"
 	"time"
@@ -45,7 +46,7 @@ func testStatusMsgErrors(t *testing.T, protocol int) {
 	var (
 		genesis = pm.blockchain.Genesis()
 		head    = pm.blockchain.CurrentHeader()
-		td      = pm.blockchain.GetTd(head.Hash(), head.Number.Uint64())
+		td      = new(big.Int).SetUint64(99999999999999)
 	)
 	defer pm.Stop()
 

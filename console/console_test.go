@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -100,6 +101,8 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 		CbftConfig: eth.CbftConfig{
 		},
 	}
+	ethConf.Genesis.Config.Cbft = params.GrapeChainConfig.Cbft
+	ethConf.CbftConfig = eth.DefaultConfig.CbftConfig
 	if confOverride != nil {
 		confOverride(ethConf)
 	}

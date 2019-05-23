@@ -17,6 +17,8 @@
 package ens
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"math/big"
 	"testing"
 
@@ -35,6 +37,7 @@ var (
 )
 
 func TestENS(t *testing.T) {
+	ppos_storage.NewPPosTemp(ethdb.NewMemDatabase())
 	contractBackend := backends.NewSimulatedBackend(core.GenesisAlloc{addr: {Balance: big.NewInt(1000000000)}}, 10000000)
 	transactOpts := bind.NewKeyedTransactor(key)
 
