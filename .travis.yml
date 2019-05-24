@@ -50,7 +50,7 @@ matrix:
       go: 1.12.x
       before_install:
         - pyenv install --list
-        - pyenv install -f 3.6.7
+        - pyenv install -f 3.6.0
       install:
         - pwd
         - chmod u+x ./build/*.sh
@@ -61,5 +61,6 @@ matrix:
         - cd ./PlatON-Tests
         - cp -f ../build/bin/platon ./deploy/rely/bin/
         - whereis python
+        - whereis pip
         - pip3.6 install -r requirements.txt
         - python3 run.py --node ./deploy/node/travis_node.yml --type all
