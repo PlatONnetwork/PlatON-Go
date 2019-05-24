@@ -49,13 +49,13 @@ func (d DuplicatePrepareVoteEvidence) Verify(pub ecdsa.PublicKey) error {
 	return verifyAddr(d.VoteB, addr)
 }
 func (d DuplicatePrepareVoteEvidence) Equal(ev Evidence) bool {
-	pe, ok := ev.(*DuplicatePrepareVoteEvidence)
+	_, ok := ev.(*DuplicatePrepareVoteEvidence)
 	if !ok {
 		return false
 	}
-	dh := ev.Hash()
-	ph := pe.Hash()
-	return bytes.Equal(dh, ph)
+	dh := d.Hash()
+	eh := ev.Hash()
+	return bytes.Equal(dh, eh)
 }
 func (d DuplicatePrepareVoteEvidence) BlockNumber() uint64 {
 	return d.VoteA.Number
@@ -80,12 +80,6 @@ func (d DuplicatePrepareVoteEvidence) Hash() []byte {
 	return crypto.Keccak256(buf)
 }
 
-//	Timestamp      uint64
-//	Hash           common.Hash
-//	Number         uint64
-//	ValidatorIndex uint32
-//	ValidatorAddr  common.Address
-//	Signature      common.BlockConfirmSign
 func (d DuplicatePrepareVoteEvidence) Validate() error {
 	if d.VoteA.Number != d.VoteB.Number {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockNum is different, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
@@ -94,8 +88,8 @@ func (d DuplicatePrepareVoteEvidence) Validate() error {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockHash is equal, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
 	}
 
-	if d.VoteA.ValidatorIndex != d.VoteA.ValidatorIndex ||
-		d.VoteA.ValidatorAddr != d.VoteA.ValidatorAddr {
+	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
+		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
 		return fmt.Errorf("DuplicatePrepareVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
 	}
 
@@ -128,13 +122,13 @@ func (d DuplicateViewChangeVoteEvidence) Verify(pub ecdsa.PublicKey) error {
 }
 
 func (d DuplicateViewChangeVoteEvidence) Equal(ev Evidence) bool {
-	pe, ok := ev.(*DuplicatePrepareVoteEvidence)
+	_, ok := ev.(*DuplicateViewChangeVoteEvidence)
 	if !ok {
 		return false
 	}
-	dh := ev.Hash()
-	ph := pe.Hash()
-	return bytes.Equal(dh, ph)
+	dh := d.Hash()
+	eh := ev.Hash()
+	return bytes.Equal(dh, eh)
 }
 
 func (d DuplicateViewChangeVoteEvidence) BlockNumber() uint64 {
@@ -160,19 +154,11 @@ func (d DuplicateViewChangeVoteEvidence) Address() common.Address {
 	return d.VoteA.ValidatorAddr
 }
 
-//	Timestamp      uint64                  `json:"timestamp"`
-//	BlockNum       uint64                  `json:"block_number"`
-//	BlockHash      common.Hash             `json:"block_hash"`
-//	ProposalIndex  uint32                  `json:"proposal_index"`
-//	ProposalAddr   common.Address          `json:"proposal_address"`
-//	ValidatorIndex uint32                  `json:"validator_index"`
-//	ValidatorAddr  common.Address          `json:"-"`
-//	Signature      common.BlockConfirmSign `json:"-"`
 func (d DuplicateViewChangeVoteEvidence) Validate() error {
 	ba := new(big.Int).SetBytes(d.VoteA.BlockHash.Bytes())
-	bb := new(big.Int).SetBytes(d.VoteA.BlockHash.Bytes())
+	bb := new(big.Int).SetBytes(d.VoteB.BlockHash.Bytes())
 
-	if ba.Cmp(bb) > 0 {
+	if ba.Cmp(bb) >= 0 {
 		return fmt.Errorf("DuplicateViewChangeVoteEvidence BlockHash do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
 	}
 
@@ -180,8 +166,8 @@ func (d DuplicateViewChangeVoteEvidence) Validate() error {
 		return fmt.Errorf("DuplicateViewChangeVoteEvidence BlockNum is not equal, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
 	}
 
-	if d.VoteA.ValidatorIndex != d.VoteA.ValidatorIndex ||
-		d.VoteA.ValidatorAddr != d.VoteA.ValidatorAddr {
+	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
+		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
 		return fmt.Errorf("DuplicateViewChangeVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
 	}
 
@@ -214,13 +200,13 @@ func (d TimestampViewChangeVoteEvidence) Verify(pub ecdsa.PublicKey) error {
 }
 
 func (d TimestampViewChangeVoteEvidence) Equal(ev Evidence) bool {
-	pe, ok := ev.(*DuplicatePrepareVoteEvidence)
+	_, ok := ev.(*TimestampViewChangeVoteEvidence)
 	if !ok {
 		return false
 	}
-	dh := ev.Hash()
-	ph := pe.Hash()
-	return bytes.Equal(dh, ph)
+	dh := d.Hash()
+	eh := ev.Hash()
+	return bytes.Equal(dh, eh)
 }
 
 func (d TimestampViewChangeVoteEvidence) BlockNumber() uint64 {
@@ -247,7 +233,7 @@ func (d TimestampViewChangeVoteEvidence) Address() common.Address {
 }
 
 func (d TimestampViewChangeVoteEvidence) Validate() error {
-	if d.VoteA.Timestamp > d.VoteA.Timestamp {
+	if d.VoteA.Timestamp > d.VoteB.Timestamp {
 		return fmt.Errorf("DuplicateViewChangeVoteEvidence Timestamp do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
 	}
 
@@ -255,8 +241,8 @@ func (d TimestampViewChangeVoteEvidence) Validate() error {
 		return fmt.Errorf("DuplicateViewChangeVoteEvidence BlockNum do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
 	}
 
-	if d.VoteA.ValidatorIndex != d.VoteA.ValidatorIndex ||
-		d.VoteA.ValidatorAddr != d.VoteA.ValidatorAddr {
+	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
+		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
 		return fmt.Errorf("DuplicateViewChangeVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
 	}
 

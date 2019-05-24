@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/stretchr/testify/assert"
@@ -31,6 +32,39 @@ func createAccount(n int) []*ecdsa.PrivateKey {
 	}
 	return pris
 }
+
+func makeViewChangeVote(pri *ecdsa.PrivateKey, timestamp, blockNum uint64, blockHash common.Hash, proposalIndex uint32,
+	proposalAddr common.Address, validatorIndex uint32, validatorAddr common.Address) *viewChangeVote {
+	p := &viewChangeVote{
+		Timestamp:      timestamp,
+		BlockNum:       blockNum,
+		BlockHash:      blockHash,
+		ProposalIndex:  proposalIndex,
+		ProposalAddr:   proposalAddr,
+		ValidatorIndex: validatorIndex,
+		ValidatorAddr:  validatorAddr,
+	}
+
+	cb, _ := p.CannibalizeBytes()
+	sign, _ := crypto.Sign(cb, pri)
+	p.Signature.SetBytes(sign)
+	return p
+}
+
+func makePrepareVote(pri *ecdsa.PrivateKey, timestamp, blockNum uint64, blockHash common.Hash, validatorIndex uint32, validatorAddr common.Address) *prepareVote {
+	p := &prepareVote{
+		Timestamp:      timestamp,
+		Number:         blockNum,
+		Hash:           blockHash,
+		ValidatorIndex: validatorIndex,
+		ValidatorAddr:  validatorAddr,
+	}
+	cb, _ := p.CannibalizeBytes()
+	sign, _ := crypto.Sign(cb, pri)
+	p.Signature.SetBytes(sign)
+	return p
+}
+
 func TestTimeOrderViewChange_Add(t *testing.T) {
 	var p TimeOrderViewChange
 	p.Add(nil)
@@ -43,28 +77,6 @@ func TestNewEvidencePool(t *testing.T) {
 	_, err := NewEvidencePool(p)
 	assert.Nil(t, err)
 }
-
-//type viewChangeVote struct {
-//	Timestamp      uint64                  `json:"timestamp"`
-//	BlockNum       uint64                  `json:"block_number"`
-//	BlockHash      common.Hash             `json:"block_hash"`
-//	ProposalIndex  uint32                  `json:"proposal_index"`
-//	ProposalAddr   common.Address          `json:"proposal_address"`
-//	ValidatorIndex uint32                  `json:"validator_index"`
-//	ValidatorAddr  common.Address          `json:"-"`
-//	Signature      common.BlockConfirmSign `json:"-"`
-//	Extra          []byte
-//}
-
-//type prepareVote struct {
-//	Timestamp      uint64
-//	Hash           common.Hash
-//	Number         uint64
-//	ValidatorIndex uint32
-//	ValidatorAddr  common.Address
-//	Signature      common.BlockConfirmSign
-//	Extra          []byte
-//}
 
 func TestAdd(t *testing.T) {
 
@@ -82,34 +94,11 @@ func TestAdd(t *testing.T) {
 		hash := common.BytesToHash(Rand32Bytes(32))
 		timestamp := uint64(i)
 		address := crypto.PubkeyToAddress(a.PublicKey)
-		v := &viewChangeVote{
-			Timestamp:      timestamp,
-			BlockNum:       uint64(i),
-			BlockHash:      hash,
-			ProposalIndex:  0,
-			ProposalAddr:   proposer,
-			ValidatorIndex: uint32(i + 1),
-			ValidatorAddr:  address,
-		}
-		cb, _ := v.CannibalizeBytes()
-		sign, _ := crypto.Sign(cb, a)
-		v.Signature.SetBytes(sign)
-
+		v := makeViewChangeVote(a, timestamp, uint64(i), hash, 0, proposer, uint32(i+1), address)
 		assert.Nil(t, pool.AddViewChangeVote(v))
-
-		p := &prepareVote{
-			Timestamp:      timestamp,
-			Number:         uint64(i),
-			Hash:           hash,
-			ValidatorIndex: uint32(i + 1),
-			ValidatorAddr:  address,
-		}
-
-		cb, _ = p.CannibalizeBytes()
-		sign, _ = crypto.Sign(cb, a)
-		p.Signature.SetBytes(sign)
-
+		p := makePrepareVote(a, timestamp, uint64(i), hash, uint32(i+1), address)
 		assert.Nil(t, pool.AddPrepareVote(p))
+
 		assert.True(t, sort.IsSorted(pool.vt[address]))
 		assert.True(t, sort.IsSorted(pool.vn[address]))
 		assert.True(t, sort.IsSorted(pool.pe[address]))
@@ -139,34 +128,12 @@ func TestTimestampViewChangeVoteEvidence(t *testing.T) {
 	proposerAddr := crypto.PubkeyToAddress(account[0].PublicKey)
 	validatorAddr := crypto.PubkeyToAddress(account[1].PublicKey)
 
-	p := &viewChangeVote{
-		Timestamp:      0,
-		BlockNum:       1,
-		BlockHash:      common.BytesToHash(Rand32Bytes(32)),
-		ProposalIndex:  0,
-		ProposalAddr:   proposerAddr,
-		ValidatorIndex: uint32(2),
-		ValidatorAddr:  validatorAddr,
-	}
-
-	cb, _ := p.CannibalizeBytes()
-	sign, _ := crypto.Sign(cb, validator)
-	p.Signature.SetBytes(sign)
+	p := makeViewChangeVote(validator, 0, 1, common.BytesToHash(Rand32Bytes(32)), 0, proposerAddr, uint32(2), validatorAddr)
 
 	assert.Nil(t, pool.AddViewChangeVote(p))
-	p = &viewChangeVote{
-		Timestamp:      1,
-		BlockNum:       0,
-		BlockHash:      common.BytesToHash(Rand32Bytes(32)),
-		ProposalIndex:  0,
-		ProposalAddr:   proposerAddr,
-		ValidatorIndex: uint32(2),
-		ValidatorAddr:  validatorAddr,
-	}
 
-	cb, _ = p.CannibalizeBytes()
-	sign, _ = crypto.Sign(cb, validator)
-	p.Signature.SetBytes(sign)
+	p = makeViewChangeVote(validator, 1, 0, common.BytesToHash(Rand32Bytes(32)), 0, proposerAddr, uint32(2), validatorAddr)
+
 	assert.IsType(t, &TimestampViewChangeVoteEvidence{}, pool.AddViewChangeVote(p))
 	assert.Len(t, pool.Evidences(), 1)
 	for _, e := range pool.Evidences() {
@@ -188,34 +155,11 @@ func TestDuplicateViewChangeVoteEvidence(t *testing.T) {
 	proposerAddr := crypto.PubkeyToAddress(account[0].PublicKey)
 	validatorAddr := crypto.PubkeyToAddress(account[1].PublicKey)
 
-	p := &viewChangeVote{
-		Timestamp:      0,
-		BlockNum:       1,
-		BlockHash:      common.BytesToHash(Rand32Bytes(32)),
-		ProposalIndex:  0,
-		ProposalAddr:   proposerAddr,
-		ValidatorIndex: uint32(2),
-		ValidatorAddr:  validatorAddr,
-	}
-
-	cb, _ := p.CannibalizeBytes()
-	sign, _ := crypto.Sign(cb, validator)
-	p.Signature.SetBytes(sign)
+	p := makeViewChangeVote(validator, 0, 1, common.BytesToHash(Rand32Bytes(32)), 0, proposerAddr, uint32(2), validatorAddr)
 
 	assert.Nil(t, pool.AddViewChangeVote(p))
-	p = &viewChangeVote{
-		Timestamp:      1,
-		BlockNum:       1,
-		BlockHash:      common.BytesToHash(Rand32Bytes(32)),
-		ProposalIndex:  0,
-		ProposalAddr:   proposerAddr,
-		ValidatorIndex: uint32(2),
-		ValidatorAddr:  validatorAddr,
-	}
+	p = makeViewChangeVote(validator, 1, 1, common.BytesToHash(Rand32Bytes(32)), 0, proposerAddr, uint32(2), validatorAddr)
 
-	cb, _ = p.CannibalizeBytes()
-	sign, _ = crypto.Sign(cb, validator)
-	p.Signature.SetBytes(sign)
 	assert.IsType(t, &DuplicateViewChangeVoteEvidence{}, pool.AddViewChangeVote(p))
 	assert.Len(t, pool.Evidences(), 1)
 	for _, e := range pool.Evidences() {
@@ -237,30 +181,11 @@ func TestDuplicatePrepareVoteEvidence(t *testing.T) {
 
 	address := crypto.PubkeyToAddress(account.PublicKey)
 
-	p := &prepareVote{
-		Timestamp:      0,
-		Number:         uint64(1),
-		Hash:           common.BytesToHash(Rand32Bytes(32)),
-		ValidatorIndex: uint32(1),
-		ValidatorAddr:  address,
-	}
-
-	cb, _ := p.CannibalizeBytes()
-	sign, _ := crypto.Sign(cb, account)
-	p.Signature.SetBytes(sign)
+	p := makePrepareVote(account, 0, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(1), address)
 
 	assert.Nil(t, pool.AddPrepareVote(p))
-	p = &prepareVote{
-		Timestamp:      0,
-		Number:         uint64(1),
-		Hash:           common.BytesToHash(Rand32Bytes(32)),
-		ValidatorIndex: uint32(1),
-		ValidatorAddr:  address,
-	}
+	p = makePrepareVote(account, 0, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(1), address)
 
-	cb, _ = p.CannibalizeBytes()
-	sign, _ = crypto.Sign(cb, account)
-	p.Signature.SetBytes(sign)
 	assert.IsType(t, &DuplicatePrepareVoteEvidence{}, pool.AddPrepareVote(p))
 	assert.Len(t, pool.Evidences(), 1)
 	for _, e := range pool.Evidences() {
@@ -268,4 +193,173 @@ func TestDuplicatePrepareVoteEvidence(t *testing.T) {
 		assert.Nil(t, e.Verify(account.PublicKey))
 	}
 
+}
+
+type prepareVoteData struct {
+	voteA *prepareVote
+	voteB *prepareVote
+	valid bool
+}
+
+func TestDuplicatePrepareVoteEvidence_Validate(t *testing.T) {
+	priA := createAccount(1)[0]
+	addrA := crypto.PubkeyToAddress(priA.PublicKey)
+	priB := createAccount(1)[0]
+	addrB := crypto.PubkeyToAddress(priB.PublicKey)
+
+	voteA := makePrepareVote(priA, 0, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(1), addrA)
+	invalidVoteB := makePrepareVote(priA, 1, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(1), addrA)
+	invalidVoteB.Signature.SetBytes(Rand32Bytes(32))
+	testCases := []prepareVoteData{
+		{voteA, makePrepareVote(priA, 0, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(1), addrA), true},
+		{voteA, voteA, false},
+		{voteA, makePrepareVote(priA, 1, uint64(2), common.BytesToHash(Rand32Bytes(32)), uint32(1), addrA), false},
+		{voteA, makePrepareVote(priA, 1, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(2), addrA), false},
+		{voteA, invalidVoteB, false},
+		{voteA, makePrepareVote(priB, 1, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(2), addrB), false},
+	}
+
+	for i, p := range testCases {
+		d := DuplicatePrepareVoteEvidence{
+			p.voteA,
+			p.voteB,
+		}
+		if p.valid {
+			assert.Nil(t, d.Validate(), fmt.Sprintf("testcase:%d error", i))
+		} else {
+			assert.NotNil(t, d.Validate(), fmt.Sprintf("testcase:%d error", i))
+		}
+	}
+}
+
+func TestDuplicatePrepareVoteEvidence_Equal(t *testing.T) {
+	priA := createAccount(1)[0]
+	addrA := crypto.PubkeyToAddress(priA.PublicKey)
+	voteA := makePrepareVote(priA, 0, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(1), addrA)
+	voteB := makePrepareVote(priA, 0, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(1), addrA)
+	voteC := makePrepareVote(priA, 0, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(1), addrA)
+	p1 := &DuplicatePrepareVoteEvidence{
+		VoteA: voteA,
+		VoteB: voteB,
+	}
+
+	p2 := &DuplicatePrepareVoteEvidence{
+		VoteA: voteA,
+		VoteB: voteC,
+	}
+
+	assert.True(t, p1.Equal(p1))
+	assert.False(t, p1.Equal(p2))
+}
+
+func TestDuplicateViewChangeVoteEvidence_Equal(t *testing.T) {
+	priA := createAccount(1)[0]
+	addrA := crypto.PubkeyToAddress(priA.PublicKey)
+	voteA := makeViewChangeVote(priA, 0, 1, common.BytesToHash([]byte{1}), 0, addrA, uint32(2), addrA)
+	voteB := makeViewChangeVote(priA, 0, 1, common.BytesToHash([]byte{3}), 0, addrA, uint32(2), addrA)
+	voteC := makeViewChangeVote(priA, 0, 2, common.BytesToHash([]byte{1}), 0, addrA, uint32(2), addrA)
+	p1 := &DuplicateViewChangeVoteEvidence{
+		VoteA: voteA,
+		VoteB: voteB,
+	}
+
+	p2 := &DuplicateViewChangeVoteEvidence{
+		VoteA: voteA,
+		VoteB: voteC,
+	}
+
+	assert.True(t, p1.Equal(p1))
+	assert.False(t, p1.Equal(p2))
+}
+
+func TestTimestampViewChangeVoteEvidence_Equal(t *testing.T) {
+	priA := createAccount(1)[0]
+	addrA := crypto.PubkeyToAddress(priA.PublicKey)
+	voteA := makeViewChangeVote(priA, 0, 1, common.BytesToHash([]byte{1}), 0, addrA, uint32(2), addrA)
+	voteB := makeViewChangeVote(priA, 0, 1, common.BytesToHash([]byte{3}), 0, addrA, uint32(2), addrA)
+	voteC := makeViewChangeVote(priA, 0, 2, common.BytesToHash([]byte{1}), 0, addrA, uint32(2), addrA)
+	p1 := &TimestampViewChangeVoteEvidence{
+		VoteA: voteA,
+		VoteB: voteB,
+	}
+
+	p2 := &TimestampViewChangeVoteEvidence{
+		VoteA: voteA,
+		VoteB: voteC,
+	}
+
+	assert.True(t, p1.Equal(p1))
+	assert.False(t, p1.Equal(p2))
+}
+
+type viewChangeVoteData struct {
+	voteA *viewChangeVote
+	voteB *viewChangeVote
+	valid bool
+}
+
+func TestDuplicateViewChangeVoteEvidence_Validate(t *testing.T) {
+	priA := createAccount(1)[0]
+	addrA := crypto.PubkeyToAddress(priA.PublicKey)
+	priB := createAccount(1)[0]
+	addrB := crypto.PubkeyToAddress(priB.PublicKey)
+
+	voteA := makeViewChangeVote(priA, 0, 1, common.BytesToHash([]byte{1}), 0, addrA, uint32(2), addrA)
+
+	invalidVoteB := makeViewChangeVote(priA, 0, 1, common.BytesToHash(Rand32Bytes(32)), 0, addrA, uint32(2), addrA)
+	invalidVoteB.Signature.SetBytes(Rand32Bytes(32))
+
+	testCases := []viewChangeVoteData{
+		{voteA, makeViewChangeVote(priA, 0, 1, common.BytesToHash([]byte{4}), 0, addrA, uint32(2), addrA), true},
+		{voteA, voteA, false},
+		{voteA, makeViewChangeVote(priA, 0, 2, common.BytesToHash(Rand32Bytes(32)), 0, addrA, uint32(2), addrA), false},
+		{voteA, makeViewChangeVote(priA, 0, 1, common.BytesToHash(Rand32Bytes(32)), 0, addrA, uint32(3), addrA), false},
+		{voteA, invalidVoteB, false},
+		{voteA, makeViewChangeVote(priA, 0, 1, common.BytesToHash(Rand32Bytes(32)), 0, addrA, uint32(2), addrB), false},
+	}
+
+	for i, p := range testCases {
+		d := DuplicateViewChangeVoteEvidence{
+			p.voteA,
+			p.voteB,
+		}
+		if p.valid {
+			assert.Nil(t, d.Validate(), fmt.Sprintf("testcase:%d error", i))
+		} else {
+			assert.NotNil(t, d.Validate(), fmt.Sprintf("testcase:%d error", i))
+		}
+	}
+}
+
+func TestTimestampViewChangeVoteEvidence_Validate(t *testing.T) {
+	priA := createAccount(1)[0]
+	addrA := crypto.PubkeyToAddress(priA.PublicKey)
+	priB := createAccount(1)[0]
+	addrB := crypto.PubkeyToAddress(priB.PublicKey)
+
+	voteA := makeViewChangeVote(priA, 0, 5, common.BytesToHash([]byte{1}), 0, addrA, uint32(2), addrA)
+
+	invalidVoteB := makeViewChangeVote(priA, 0, 1, common.BytesToHash(Rand32Bytes(32)), 0, addrA, uint32(2), addrA)
+	invalidVoteB.Signature.SetBytes(Rand32Bytes(32))
+
+	testCases := []viewChangeVoteData{
+		{voteA, makeViewChangeVote(priA, 1, 4, common.BytesToHash([]byte{4}), 0, addrA, uint32(2), addrA), true},
+		{voteA, voteA, false},
+		{voteA, makeViewChangeVote(priA, 1, 7, common.BytesToHash(Rand32Bytes(32)), 0, addrA, uint32(2), addrA), false},
+		{voteA, makeViewChangeVote(priA, 0, 5, common.BytesToHash(Rand32Bytes(32)), 0, addrA, uint32(3), addrA), false},
+		{voteA, invalidVoteB, false},
+		{voteA, makeViewChangeVote(priA, 0, 5, common.BytesToHash(Rand32Bytes(32)), 0, addrA, uint32(2), addrB), false},
+	}
+
+	for i, p := range testCases {
+		d := TimestampViewChangeVoteEvidence{
+			p.voteA,
+			p.voteB,
+		}
+		if p.valid {
+			assert.Nil(t, d.Validate(), fmt.Sprintf("testcase:%d error", i))
+		} else {
+			assert.NotNil(t, d.Validate(), fmt.Sprintf("testcase:%d error", i))
+		}
+	}
 }
