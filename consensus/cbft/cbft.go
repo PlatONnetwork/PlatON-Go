@@ -139,6 +139,8 @@ type Cbft struct {
 	validators *Validators
 
 	startTimeOfEpoch int64
+
+	evPool *EvidencePool
 }
 
 // New creates a concurrent BFT consensus engine
@@ -178,6 +180,12 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceCo
 		log:                     log.New(),
 		nodeServiceContext:      ctx,
 	}
+
+	evPool, err := NewEvidencePool(ctx.ResolvePath(evidenceDir))
+	if err != nil {
+		return nil
+	}
+	cbft.evPool = evPool
 	cbft.bp = defaultBP
 	cbft.handler = NewHandler(cbft)
 	cbft.router = NewRouter(cbft.handler)
@@ -951,6 +959,8 @@ func (cbft *Cbft) flushReadyBlock() bool {
 	cbft.log.Debug("Set new root", "hash", newRoot.block.Hash(), "number", newRoot.block.NumberU64())
 	cbft.rootIrreversible.Store(newRoot)
 	cbft.bp.InternalBP().NewHighestRootBlock(context.TODO(), newRoot, &cbft.RoundState)
+
+	cbft.evPool.Clear(cbft.viewChange.Timestamp, cbft.viewChange.BaseBlockNum)
 	return true
 
 }
@@ -1119,7 +1129,6 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 	cbft.log.Debug("Receive new vote",
 		"vote", vote.String(),
 		"state", cbft.blockState())
-
 	ext := cbft.blockExtMap.findBlock(vote.Hash, vote.Number)
 	if ext == nil {
 		cbft.handler.Send(peerID, &getPrepareBlock{Hash: vote.Hash, Number: vote.Number})
@@ -1618,6 +1627,13 @@ func (cbft *Cbft) OnPrepareVote(peerID discover.NodeID, vote *prepareVote, propa
 	case Accept:
 		cbft.log.Debug("Accept block vote", "vote", vote.String())
 		cbft.bp.PrepareBP().AcceptVote(bpCtx, vote, &cbft.RoundState)
+		if err := cbft.evPool.AddPrepareVote(vote); err != nil {
+			if _, ok := err.(*DuplicatePrepareVoteEvidence); ok {
+				cbft.log.Warn("Receive DuplicatePrepareVoteEvidence msg", "err", err.Error())
+				return err
+			}
+		}
+
 		cbft.prepareVoteReceiver(peerID, vote)
 	case Cache:
 		cbft.log.Debug("View changing, add vote into process queue", "vote", vote.String())

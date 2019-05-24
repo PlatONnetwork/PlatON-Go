@@ -23,6 +23,8 @@ var (
 	errDuplicatePrepareVoteEvidence    = errors.New("duplicate prepare vote")
 	errDuplicateViewChangeVoteEvidence = errors.New("duplicate view change")
 	errTimestampViewChangeVoteEvidence = errors.New("view change timestamp out of order")
+
+	evidenceDir = "evidenceDir"
 )
 
 type Evidence interface {
@@ -524,11 +526,10 @@ func (vt PrepareEvidence) Clear(number uint64) {
 }
 
 type EvidencePool struct {
-	vt     ViewTimeEvidence
-	vn     ViewNumberEvidence
-	pe     PrepareEvidence
-	exitCh chan struct{}
-	db     *leveldb.DB
+	vt ViewTimeEvidence
+	vn ViewNumberEvidence
+	pe PrepareEvidence
+	db *leveldb.DB
 }
 
 func NewEvidencePool(path string) (*EvidencePool, error) {
@@ -538,11 +539,10 @@ func NewEvidencePool(path string) (*EvidencePool, error) {
 	}
 
 	return &EvidencePool{
-		vt:     make(ViewTimeEvidence),
-		vn:     make(ViewNumberEvidence),
-		pe:     make(PrepareEvidence),
-		exitCh: make(chan struct{}),
-		db:     db,
+		vt: make(ViewTimeEvidence),
+		vn: make(ViewNumberEvidence),
+		pe: make(PrepareEvidence),
+		db: db,
 	}, nil
 }
 
@@ -622,7 +622,7 @@ func (ev *EvidencePool) Clear(timestamp, blockNum uint64) {
 }
 
 func (ev *EvidencePool) Close() {
-	ev.exitCh <- struct{}{}
+	ev.db.Close()
 }
 
 func (ev *EvidencePool) Evidences() []Evidence {
