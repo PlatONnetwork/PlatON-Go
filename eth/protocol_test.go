@@ -18,6 +18,8 @@ package eth
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"math/big"
 	"sync"
 	"testing"
@@ -42,6 +44,8 @@ func TestStatusMsgErrors62(t *testing.T) { testStatusMsgErrors(t, 62) }
 func TestStatusMsgErrors63(t *testing.T) { testStatusMsgErrors(t, 63) }
 
 func testStatusMsgErrors(t *testing.T, protocol int) {
+	db := ethdb.NewMemDatabase()
+	ppos_storage.NewPPosTemp(db)
 	pm, _ := newTestProtocolManagerMust(t, downloader.FullSync, 0, nil, nil)
 	var (
 		genesis = pm.blockchain.Genesis()
