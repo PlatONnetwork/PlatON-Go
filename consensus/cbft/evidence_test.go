@@ -371,9 +371,24 @@ func TestJson(t *testing.T) {
 
 	voteA := makeViewChangeVote(priA, 0, 5, common.BytesToHash([]byte{1}), 0, addrA, uint32(2), addrA)
 
-	b, _ := json.Marshal(&DuplicateViewChangeVoteEvidence{
+	evs := []Evidence{&DuplicateViewChangeVoteEvidence{
 		VoteB: voteA,
 		VoteA: voteA,
-	})
+	},
+		&DuplicateViewChangeVoteEvidence{
+			VoteB: voteA,
+			VoteA: voteA,
+		},
+	}
+	eds := ClassifyEvidence(evs)
+	b, _ := json.MarshalIndent(eds, "", "")
 	t.Log(string(b))
+	var eds2 EvidenceData
+	err := json.Unmarshal(b, &eds2)
+	if err != nil {
+		t.Error(err)
+	}
+
+	b2, _ := json.MarshalIndent(eds2, "", "")
+	assert.Equal(t, b, b2)
 }

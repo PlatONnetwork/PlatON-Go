@@ -366,6 +366,7 @@ func (vt *TimeOrderViewChange) Remove(timestamp uint64) {
 		if (*vt)[i].Timestamp > timestamp {
 			break
 		}
+		(*vt)[i] = nil
 		i++
 	}
 	if i == len(*vt) {
@@ -426,6 +427,7 @@ func (vt *NumberOrderViewChange) Remove(blockNum uint64) {
 		if (*vt)[i].BlockNum > blockNum {
 			break
 		}
+		(*vt)[i] = nil
 		i++
 	}
 	if i == len(*vt) {
@@ -485,6 +487,7 @@ func (vt *NumberOrderPrepare) Remove(blockNum uint64) {
 		if (*vt)[i].Number > blockNum {
 			break
 		}
+		(*vt)[i] = nil
 		i++
 	}
 	if i == len(*vt) {
