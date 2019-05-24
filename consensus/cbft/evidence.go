@@ -3,19 +3,23 @@ package cbft
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	"math/big"
 	"sort"
 )
 
 var (
-	//prefix +[timestamp/number] + address
-	viewTimestampPrefix                = "vt"
-	viewDualPrefix                     = "vh"
-	prepareDualPrefix                  = "ph"
+	//prefix +[number] + address + hash
+	viewTimestampPrefix                = byte(0x1)
+	viewDualPrefix                     = byte(0x2)
+	prepareDualPrefix                  = byte(0x3)
 	errDuplicatePrepareVoteEvidence    = errors.New("duplicate prepare vote")
 	errDuplicateViewChangeVoteEvidence = errors.New("duplicate view change")
 	errTimestampViewChangeVoteEvidence = errors.New("view change timestamp out of order")
@@ -23,40 +27,237 @@ var (
 
 type Evidence interface {
 	Verify(ecdsa.PublicKey) error
-	Equal(Evidence) error
+	Equal(Evidence) bool
 	//return lowest number
 	BlockNumber() uint64
+	Hash() []byte
+	Address() common.Address
+	Validate() error
 }
 
+//Evidence A.Number == B.Number but A.Hash != B.Hash
 type DuplicatePrepareVoteEvidence struct {
-	voteA *prepareVote
-	voteB *prepareVote
+	VoteA *prepareVote
+	VoteB *prepareVote
+}
+
+func (d DuplicatePrepareVoteEvidence) Verify(pub ecdsa.PublicKey) error {
+	addr := crypto.PubkeyToAddress(pub)
+	if err := verifyAddr(d.VoteA, addr); err != nil {
+		return err
+	}
+	return verifyAddr(d.VoteB, addr)
+}
+func (d DuplicatePrepareVoteEvidence) Equal(ev Evidence) bool {
+	_, ok := ev.(*DuplicatePrepareVoteEvidence)
+	if !ok {
+		return false
+	}
+	dh := d.Hash()
+	eh := ev.Hash()
+	return bytes.Equal(dh, eh)
+}
+func (d DuplicatePrepareVoteEvidence) BlockNumber() uint64 {
+	return d.VoteA.Number
+}
+
+func (d DuplicatePrepareVoteEvidence) Address() common.Address {
+	return d.VoteA.ValidatorAddr
+}
+
+func (d DuplicatePrepareVoteEvidence) Hash() []byte {
+	var buf []byte
+	if ac, err := d.VoteA.CannibalizeBytes(); err == nil {
+		if bc, err := d.VoteB.CannibalizeBytes(); err == nil {
+			buf, err = rlp.EncodeToBytes([]interface{}{
+				ac,
+				d.VoteA.Sign(),
+				bc,
+				d.VoteB.Sign(),
+			})
+		}
+	}
+	return crypto.Keccak256(buf)
+}
+
+func (d DuplicatePrepareVoteEvidence) Validate() error {
+	if d.VoteA.Number != d.VoteB.Number {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockNum is different, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+	if d.VoteA.Hash == d.VoteB.Hash {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence BlockHash is equal, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
+		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if err := verifyAddr(d.VoteA, d.VoteA.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	if err := verifyAddr(d.VoteB, d.VoteB.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicatePrepareVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	return nil
 }
 
 func (d DuplicatePrepareVoteEvidence) Error() string {
 	return fmt.Sprintf("DuplicatePrepareVoteEvidence ValidatorIndex:%d, ValidatorAddr:%s, blockNum:%d blockHashA:%s, blockHashB:%s",
-		d.voteA.ValidatorIndex, d.voteB.ValidatorAddr, d.voteA.Number, d.voteA.Hash.String(), d.voteB.Hash.String())
+		d.VoteA.ValidatorIndex, d.VoteB.ValidatorAddr, d.VoteA.Number, d.VoteA.Hash.String(), d.VoteB.Hash.String())
 }
 
+//Evidence A.BlockNum == B.BlockNum but A.BlockHash != B.BlockHash
 type DuplicateViewChangeVoteEvidence struct {
-	voteA *viewChangeVote
-	voteB *viewChangeVote
+	VoteA *viewChangeVote
+	VoteB *viewChangeVote
+}
+
+func (d DuplicateViewChangeVoteEvidence) Verify(pub ecdsa.PublicKey) error {
+	addr := crypto.PubkeyToAddress(pub)
+	if err := verifyAddr(d.VoteA, addr); err != nil {
+		return err
+	}
+	return verifyAddr(d.VoteB, addr)
+}
+
+func (d DuplicateViewChangeVoteEvidence) Equal(ev Evidence) bool {
+	_, ok := ev.(*DuplicateViewChangeVoteEvidence)
+	if !ok {
+		return false
+	}
+	dh := d.Hash()
+	eh := ev.Hash()
+	return bytes.Equal(dh, eh)
+}
+
+func (d DuplicateViewChangeVoteEvidence) BlockNumber() uint64 {
+	return d.VoteA.BlockNum
+}
+
+func (d DuplicateViewChangeVoteEvidence) Hash() []byte {
+	var buf []byte
+	if ac, err := d.VoteA.CannibalizeBytes(); err == nil {
+		if bc, err := d.VoteB.CannibalizeBytes(); err == nil {
+			buf, err = rlp.EncodeToBytes([]interface{}{
+				ac,
+				d.VoteA.Sign(),
+				bc,
+				d.VoteB.Sign(),
+			})
+		}
+	}
+	return crypto.Keccak256(buf)
+}
+
+func (d DuplicateViewChangeVoteEvidence) Address() common.Address {
+	return d.VoteA.ValidatorAddr
+}
+
+func (d DuplicateViewChangeVoteEvidence) Validate() error {
+	ba := new(big.Int).SetBytes(d.VoteA.BlockHash.Bytes())
+	bb := new(big.Int).SetBytes(d.VoteB.BlockHash.Bytes())
+
+	if ba.Cmp(bb) >= 0 {
+		return fmt.Errorf("DuplicateViewChangeVoteEvidence BlockHash do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if d.VoteA.BlockNum != d.VoteB.BlockNum {
+		return fmt.Errorf("DuplicateViewChangeVoteEvidence BlockNum is not equal, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
+		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
+		return fmt.Errorf("DuplicateViewChangeVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if err := verifyAddr(d.VoteA, d.VoteA.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicateViewChangeVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	if err := verifyAddr(d.VoteB, d.VoteB.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicateViewChangeVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	return nil
 }
 
 func (d DuplicateViewChangeVoteEvidence) Error() string {
 	return fmt.Sprintf("DuplicateViewChangeVoteEvidence timestamp:%d blockNumberA:%d, blockHashA:%s, blockNumberB:%d, blockHashB:%s",
-		d.voteA.Timestamp, d.voteA.BlockNum, d.voteA.BlockHash.String(), d.voteB.BlockNum, d.voteB.BlockHash.String())
+		d.VoteA.Timestamp, d.VoteA.BlockNum, d.VoteA.BlockHash.String(), d.VoteB.BlockNum, d.VoteB.BlockHash.String())
 }
 
 //Evidence A.Timestamp < B.Timestamp but A.BlockNum > B.BlockNum
 type TimestampViewChangeVoteEvidence struct {
-	voteA *viewChangeVote
-	voteB *viewChangeVote
+	VoteA *viewChangeVote
+	VoteB *viewChangeVote
+}
+
+func (d TimestampViewChangeVoteEvidence) Verify(pub ecdsa.PublicKey) error {
+	addr := crypto.PubkeyToAddress(pub)
+	if err := verifyAddr(d.VoteA, addr); err != nil {
+		return err
+	}
+	return verifyAddr(d.VoteB, addr)
+}
+
+func (d TimestampViewChangeVoteEvidence) Equal(ev Evidence) bool {
+	_, ok := ev.(*TimestampViewChangeVoteEvidence)
+	if !ok {
+		return false
+	}
+	dh := d.Hash()
+	eh := ev.Hash()
+	return bytes.Equal(dh, eh)
+}
+
+func (d TimestampViewChangeVoteEvidence) BlockNumber() uint64 {
+	return d.VoteA.BlockNum
+}
+
+func (d TimestampViewChangeVoteEvidence) Hash() []byte {
+	var buf []byte
+	if ac, err := d.VoteA.CannibalizeBytes(); err == nil {
+		if bc, err := d.VoteB.CannibalizeBytes(); err == nil {
+			buf, err = rlp.EncodeToBytes([]interface{}{
+				ac,
+				d.VoteA.Sign(),
+				bc,
+				d.VoteB.Sign(),
+			})
+		}
+	}
+	return crypto.Keccak256(buf)
+}
+
+func (d TimestampViewChangeVoteEvidence) Address() common.Address {
+	return d.VoteA.ValidatorAddr
+}
+
+func (d TimestampViewChangeVoteEvidence) Validate() error {
+	if d.VoteA.Timestamp > d.VoteB.Timestamp {
+		return fmt.Errorf("DuplicateViewChangeVoteEvidence Timestamp do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if d.VoteA.BlockNum <= d.VoteB.BlockNum {
+		return fmt.Errorf("DuplicateViewChangeVoteEvidence BlockNum do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if d.VoteA.ValidatorIndex != d.VoteB.ValidatorIndex ||
+		d.VoteA.ValidatorAddr != d.VoteB.ValidatorAddr {
+		return fmt.Errorf("DuplicateViewChangeVoteEvidence Validator do not match, VoteA:%s, VoteB:%s", d.VoteA.String(), d.VoteB.String())
+	}
+
+	if err := verifyAddr(d.VoteA, d.VoteA.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicateViewChangeVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	if err := verifyAddr(d.VoteB, d.VoteB.ValidatorAddr); err != nil {
+		return fmt.Errorf("DuplicateViewChangeVoteEvidence Vote verify failed, VoteA:%s", d.VoteA.String())
+	}
+	return nil
 }
 
 func (d TimestampViewChangeVoteEvidence) Error() string {
 	return fmt.Sprintf("TimestampViewChangeVoteEvidence timestamp:%d blockNumberA:%d, blockHashA:%s, blockNumberB:%d, blockHashB:%s",
-		d.voteA.Timestamp, d.voteA.BlockNum, d.voteA.BlockHash.String(), d.voteB.BlockNum, d.voteB.BlockHash.String())
+		d.VoteA.Timestamp, d.VoteA.BlockNum, d.VoteA.BlockHash.String(), d.VoteB.BlockNum, d.VoteB.BlockHash.String())
 }
 
 type TimeOrderViewChange []*viewChangeVote
@@ -90,7 +291,7 @@ func (vt TimeOrderViewChange) findFrontAndBack(v *viewChangeVote) (*viewChangeVo
 		i++
 	}
 
-	if i != 0 {
+	if i == 0 {
 		front = nil
 	} else {
 		front = vt[i-1]
@@ -109,11 +310,17 @@ func (vt *TimeOrderViewChange) Add(v *viewChangeVote) error {
 		return nil
 	}
 	if front != nil && front.BlockNum > v.BlockNum {
-		return errTimestampViewChangeVoteEvidence
+		return &TimestampViewChangeVoteEvidence{
+			VoteA: front,
+			VoteB: v,
+		}
 	}
 
 	if back != nil && back.BlockNum < v.BlockNum {
-		return errTimestampViewChangeVoteEvidence
+		return &TimestampViewChangeVoteEvidence{
+			VoteA: v,
+			VoteB: back,
+		}
 	}
 
 	*vt = append(*vt, v)
@@ -158,10 +365,26 @@ func (vt NumberOrderViewChange) find(number uint64) *viewChangeVote {
 	}
 	return nil
 }
+
 func (vt *NumberOrderViewChange) Add(v *viewChangeVote) error {
-	ev := vt.find(v.BlockNum)
-	if ev.BlockHash != ev.BlockHash {
-		return errDuplicateViewChangeVoteEvidence
+	if ev := vt.find(v.BlockNum); ev != nil {
+
+		if ev.BlockHash != v.BlockHash {
+			a, b := v, ev
+			ha := new(big.Int).SetBytes(v.BlockHash.Bytes())
+			hb := new(big.Int).SetBytes(ev.BlockHash.Bytes())
+
+			if ha.Cmp(hb) > 0 {
+				a, b = ev, v
+			}
+			return &DuplicateViewChangeVoteEvidence{
+				VoteA: a,
+				VoteB: b,
+			}
+		}
+	} else {
+		*vt = append(*vt, v)
+		sort.Sort(*vt)
 	}
 	return nil
 }
@@ -203,9 +426,24 @@ func (vt NumberOrderPrepare) find(number uint64) *prepareVote {
 	return nil
 }
 func (vt *NumberOrderPrepare) Add(v *prepareVote) error {
-	ev := vt.find(v.Number)
-	if ev.Hash != ev.Hash {
-		return errDuplicatePrepareVoteEvidence
+	if ev := vt.find(v.Number); ev != nil {
+		if ev.Hash != v.Hash {
+			a, b := v, ev
+			ha := new(big.Int).SetBytes(v.Hash.Bytes())
+			hb := new(big.Int).SetBytes(ev.Hash.Bytes())
+
+			if ha.Cmp(hb) > 0 {
+				a, b = ev, v
+			}
+			return &DuplicatePrepareVoteEvidence{
+				VoteA: a,
+				VoteB: b,
+			}
+
+		}
+	} else {
+		*vt = append(*vt, v)
+		sort.Sort(*vt)
 	}
 	return nil
 }
@@ -226,56 +464,61 @@ func (vt *NumberOrderPrepare) Remove(blockNum uint64) {
 	}
 }
 
-func (vt *ViewTimeEvidence) Add(v *viewChangeVote) error {
-	if l := (*vt)[v.ValidatorAddr]; l != nil {
-		err := l.Add(v)
-		(*vt)[v.ValidatorAddr] = l
-		return err
+func (vt ViewTimeEvidence) Add(v *viewChangeVote) error {
+	var l TimeOrderViewChange
+	if l = vt[v.ValidatorAddr]; l == nil {
+		l = make(TimeOrderViewChange, 0)
 	}
-	return nil
+	err := l.Add(v)
+	vt[v.ValidatorAddr] = l
+	return err
 }
 
-func (vt *ViewTimeEvidence) Clear(timestamp uint64) {
-	for k, v := range *vt {
+func (vt ViewTimeEvidence) Clear(timestamp uint64) {
+	for k, v := range vt {
 		v.Remove(timestamp)
 		if v.Len() == 0 {
-			delete(*vt, k)
+			delete(vt, k)
 		}
 	}
 }
 
-func (vt *ViewNumberEvidence) Add(v *viewChangeVote) error {
-	if l := (*vt)[v.ValidatorAddr]; l != nil {
-		err := l.Add(v)
-		(*vt)[v.ValidatorAddr] = l
-		return err
+func (vt ViewNumberEvidence) Add(v *viewChangeVote) error {
+	var l NumberOrderViewChange
+
+	if l = vt[v.ValidatorAddr]; l == nil {
+		l = make(NumberOrderViewChange, 0)
 	}
-	return nil
+	err := l.Add(v)
+	vt[v.ValidatorAddr] = l
+	return err
 }
 
-func (vt *ViewNumberEvidence) Clear(number uint64) {
-	for k, v := range *vt {
+func (vt ViewNumberEvidence) Clear(number uint64) {
+	for k, v := range vt {
 		v.Remove(number)
 		if v.Len() == 0 {
-			delete(*vt, k)
+			delete(vt, k)
 		}
 	}
 }
 
-func (vt *PrepareEvidence) Add(v *prepareVote) error {
-	if l := (*vt)[v.ValidatorAddr]; l != nil {
-		err := l.Add(v)
-		(*vt)[v.ValidatorAddr] = l
-		return err
+func (vt PrepareEvidence) Add(v *prepareVote) error {
+	var l NumberOrderPrepare
+
+	if l = vt[v.ValidatorAddr]; l == nil {
+		l = make(NumberOrderPrepare, 0)
 	}
-	return nil
+	err := l.Add(v)
+	vt[v.ValidatorAddr] = l
+	return err
 }
 
-func (vt *PrepareEvidence) Clear(number uint64) {
-	for k, v := range *vt {
+func (vt PrepareEvidence) Clear(number uint64) {
+	for k, v := range vt {
 		v.Remove(number)
 		if v.Len() == 0 {
-			delete(*vt, k)
+			delete(vt, k)
 		}
 	}
 }
@@ -295,28 +538,81 @@ func NewEvidencePool(path string) (*EvidencePool, error) {
 	}
 
 	return &EvidencePool{
-			vt:     make(ViewTimeEvidence),
-			vn:     make(ViewNumberEvidence),
-			pe:     make(PrepareEvidence),
-			exitCh: make(chan struct{}), db: db},
-		nil
+		vt:     make(ViewTimeEvidence),
+		vn:     make(ViewNumberEvidence),
+		pe:     make(PrepareEvidence),
+		exitCh: make(chan struct{}),
+		db:     db,
+	}, nil
 }
 
 func (ev *EvidencePool) AddViewChangeVote(v *viewChangeVote) error {
 	if err := verifyAddr(v, v.ValidatorAddr); err != nil {
-		return nil
+		return err
 	}
-	ev.vt.Add(v)
-	ev.vn.Add(v)
+	if err := ev.vt.Add(v); err != nil {
+		if evidence, ok := err.(*TimestampViewChangeVoteEvidence); ok {
+			if err := ev.commit(evidence); err != nil {
+				return err
+			}
+			return err
+		}
+	}
+	if err := ev.vn.Add(v); err != nil {
+		if evidence, ok := err.(*DuplicateViewChangeVoteEvidence); ok {
+			if err := ev.commit(evidence); err != nil {
+				return err
+			}
+			return err
+		}
+	}
 	return nil
 }
 
 func (ev *EvidencePool) AddPrepareVote(p *prepareVote) error {
 	if err := verifyAddr(p, p.ValidatorAddr); err != nil {
-		return nil
+		return err
 	}
-	ev.pe.Add(p)
+	if err := ev.pe.Add(p); err != nil {
+		if evidence, ok := err.(*DuplicatePrepareVoteEvidence); ok {
+			if err := ev.commit(evidence); err != nil {
+				return err
+			}
+			return err
+		}
+	}
 	return nil
+}
+
+func encodeKey(e Evidence) []byte {
+	buf := bytes.NewBuffer(nil)
+	switch e.(type) {
+	case *DuplicatePrepareVoteEvidence:
+		buf.WriteByte(prepareDualPrefix)
+	case *DuplicateViewChangeVoteEvidence:
+		buf.WriteByte(viewDualPrefix)
+	case *TimestampViewChangeVoteEvidence:
+		buf.WriteByte(viewTimestampPrefix)
+	}
+
+	num := [8]byte{}
+	binary.BigEndian.PutUint64(num[:], e.BlockNumber())
+	buf.Write(num[:])
+	buf.Write(e.Address().Bytes())
+	buf.Write(e.Hash())
+	return buf.Bytes()
+}
+func (ev *EvidencePool) commit(e Evidence) error {
+	key := encodeKey(e)
+	var buf []byte
+	var err error
+	ok := false
+	if ok, err = ev.db.Has(key, nil); !ok {
+		if buf, err = rlp.EncodeToBytes(e); err == nil {
+			err = ev.db.Put(key, buf, &opt.WriteOptions{Sync: true})
+		}
+	}
+	return err
 }
 
 func (ev *EvidencePool) Clear(timestamp, blockNum uint64) {
@@ -325,15 +621,36 @@ func (ev *EvidencePool) Clear(timestamp, blockNum uint64) {
 	ev.pe.Clear(blockNum)
 }
 
-func (ev *EvidencePool) ClearDB() {
-}
-
 func (ev *EvidencePool) Close() {
 	ev.exitCh <- struct{}{}
 }
 
-func (ev *EvidencePool) Evidences() {
+func (ev *EvidencePool) Evidences() []Evidence {
+	var evds []Evidence
+	it := ev.db.NewIterator(nil, nil)
+	for it.Next() {
+		flag := it.Key()[0]
+		switch flag {
+		case prepareDualPrefix:
+			var e DuplicatePrepareVoteEvidence
+			if err := rlp.DecodeBytes(it.Value(), &e); err == nil {
+				evds = append(evds, e)
+			}
+		case viewDualPrefix:
+			var e DuplicateViewChangeVoteEvidence
+			if err := rlp.DecodeBytes(it.Value(), &e); err == nil {
+				evds = append(evds, e)
+			}
+		case viewTimestampPrefix:
+			var e TimestampViewChangeVoteEvidence
+			if err := rlp.DecodeBytes(it.Value(), &e); err == nil {
+				evds = append(evds, e)
+			}
+		}
+	}
 
+	it.Release()
+	return evds
 }
 
 func verifyAddr(msg ConsensusMsg, addr common.Address) error {
