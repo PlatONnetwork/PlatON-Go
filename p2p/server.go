@@ -21,12 +21,14 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"math/rand"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/mclock"
@@ -186,6 +188,8 @@ type Server struct {
 	loopWG          sync.WaitGroup // loop, listenLoop
 	peerFeed        event.Feed
 	log             log.Logger
+
+	eventMux *event.TypeMux
 }
 
 type peerOpFunc func(map[discover.NodeID]*Peer)
@@ -692,9 +696,11 @@ running:
 		case n := <-srv.removeconsensus:
 			srv.log.Trace("Removing consensus node", "node", n)
 			dialstate.removeConsensus(n)
-			if p, ok := peers[n.ID]; ok {
-				p.Disconnect(DiscRequested)
-			}
+			/*
+				if p, ok := peers[n.ID]; ok {
+					p.Disconnect(DiscRequested)
+				}
+			*/
 		case n := <-srv.addtrusted:
 			// This channel is used by AddTrustedPeer to add an enode
 			// to the trusted node set.
@@ -1076,6 +1082,52 @@ func (srv *Server) PeersInfo() []*PeerInfo {
 		}
 	}
 	return infos
+}
+
+func (srv *Server) StartWatching(eventMux *event.TypeMux) {
+	srv.eventMux = eventMux
+	go srv.watching()
+}
+
+func (srv *Server) watching() {
+	events := srv.eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{})
+	defer events.Unsubscribe()
+
+	for {
+		select {
+		case ev := <-events.Chan():
+			if ev == nil {
+				log.Warn("ev is nil, may be Server closing")
+				continue
+			}
+
+			switch ev.Data.(type) {
+			case cbfttypes.AddValidatorEvent:
+				addEv, ok := ev.Data.(cbfttypes.AddValidatorEvent)
+				if !ok {
+					log.Error("Received add validator event type error")
+					continue
+				}
+				log.Trace("Received AddValidatorEvent", "nodeID", addEv.NodeID.String())
+				node := discover.NewNode(addEv.NodeID, nil, 0, 0)
+				srv.AddConsensusPeer(node)
+			case cbfttypes.RemoveValidatorEvent:
+				removeEv, ok := ev.Data.(cbfttypes.RemoveValidatorEvent)
+				if !ok {
+					log.Error("Received remove validator event type error")
+					continue
+				}
+				log.Trace("Received RemoveValidatorEvent", "nodeID", removeEv.NodeID.String())
+				node := discover.NewNode(removeEv.NodeID, nil, 0, 0)
+				srv.RemoveConsensusPeer(node)
+			default:
+				log.Error("Received unexcepted event")
+			}
+
+		case <-srv.quit:
+			return
+		}
+	}
 }
 
 type mockTransport struct {

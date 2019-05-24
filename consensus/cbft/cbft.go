@@ -938,13 +938,13 @@ func (cbft *Cbft) flushReadyBlock() bool {
 	//todo verify state
 	//todo direct flush block if node is no-consensus node
 	if ext := cbft.blockExtMap.findChild(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum); ext == nil || !ext.isConfirmed {
-		cbft.log.Debug("No block need flush db")
+		cbft.log.Debug("No block need flush db", "ext", ext, "viewChange", cbft.viewChange)
 		return false
 	}
 
 	flush := cbft.blockExtMap.GetSubChainWithTwoThirdVotes(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)
 
-	if flush == nil {
+	if len(flush) == 0 {
 		cbft.log.Error("Flush block error")
 		return false
 	}
@@ -973,6 +973,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 
 	//discard block when view.Timestamp != request.Timestamp && request.BlockNum > view.BlockNum
 	if cbft.viewChange != nil && len(request.ViewChangeVotes) < cbft.getThreshold() && request.Timestamp != cbft.viewChange.Timestamp && request.Block.NumberU64() > cbft.viewChange.BaseBlockNum {
+		log.Debug("Invalid prepare block", "number", request.Block.NumberU64(), "hash", request.Block.Hash(), "view", cbft.viewChange)
 		return errFutileBlock
 	}
 
@@ -1149,6 +1150,7 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 		if h := cbft.blockExtMap.FindHighestConfirmedWithHeader(); h != nil {
 			cbft.bp.InternalBP().NewHighestConfirmedBlock(context.TODO(), ext, &cbft.RoundState)
 			cbft.highestConfirmed.Store(h)
+			cbft.flushReadyBlock()
 			cbft.updateValidator()
 		}
 		cbft.log.Debug("Send Confirmed Block", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
@@ -1182,7 +1184,6 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 
 			if bs.block.isConfirmed {
 				cbft.highestConfirmed.Store(bs.block)
-				cbft.updateValidator()
 				cbft.bp.InternalBP().NewHighestConfirmedBlock(context.TODO(), bs.block, &cbft.RoundState)
 				cbft.log.Debug("Send Confirmed Block", "hash", bs.block.block.Hash(), "number", bs.block.block.NumberU64())
 				cbft.handler.SendAllConsensusPeer(&confirmedPrepareBlock{Hash: bs.block.block.Hash(), Number: bs.block.block.NumberU64(), VoteBits: bs.block.prepareVotes.voteBits})
@@ -1190,6 +1191,10 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 
 			if cbft.viewChange != nil && len(cbft.viewChangeVotes) >= cbft.getThreshold() && cbft.blockExtMap.head.number != cbft.viewChange.BaseBlockNum {
 				cbft.flushReadyBlock()
+			}
+
+			if bs.block.isConfirmed {
+				cbft.updateValidator()
 			}
 			cbft.log.Debug("Execute block success", "block", bs.block.String())
 		}
@@ -2018,11 +2023,14 @@ func (cbft *Cbft) OnFastSyncCommitHead(errCh chan error) {
 
 func (cbft *Cbft) updateValidator() {
 	hc := cbft.getHighestConfirmed()
-	if hc.number != cbft.agency.GetLastNumber(hc.number) {
+	if hc.number != cbft.agency.GetLastNumber(hc.number-1) {
 		return
 	}
 
-	newVds, err := cbft.agency.GetValidator(hc.number)
+	// Check if we are a consensus node before updated.
+	isValidatorBefore := cbft.IsConsensusNode()
+
+	newVds, err := cbft.agency.GetValidator(hc.number + 1)
 	if err != nil {
 		cbft.log.Error("Get validators fail", "number", hc.number, "hash", hc.block.Hash())
 		return
@@ -2031,8 +2039,59 @@ func (cbft *Cbft) updateValidator() {
 		cbft.log.Error("Empty validators")
 		return
 	}
-	cbft.log.Info("Update validators success", "highestConfirmed", hc.number, "hash", hc.block.Hash(), "validators", cbft.validators)
+	oldVds := cbft.validators
 	cbft.validators = newVds
+	cbft.log.Info("Update validators success", "highestConfirmed", hc.number, "hash", hc.block.Hash(), "validators", cbft.validators)
+
+	// Check if we are become a consensus node after update.
+	isValidatorAfter := cbft.IsConsensusNode()
+
+	cbft.log.Trace("After update validators", "isValidatorBefore", isValidatorBefore, "isValidator", isValidatorAfter)
+	if isValidatorBefore {
+		// If we are still a consensus node, that adding
+		// new validators as consensus peer, and removing
+		// validators. Added as consensus peersis because
+		// we need to keep connect with other validators
+		// in the consensus stages. Also we are not needed
+		// to keep connect with old validators.
+		if isValidatorAfter {
+			for nodeID, _ := range cbft.validators.Nodes {
+				if _, ok := oldVds.Nodes[nodeID]; !ok {
+					cbft.eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: nodeID})
+					cbft.log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
+				}
+			}
+
+			for nodeID, _ := range oldVds.Nodes {
+				if _, ok := cbft.validators.Nodes[nodeID]; !ok {
+					cbft.eventMux.Post(cbfttypes.RemoveValidatorEvent{NodeID: nodeID})
+					cbft.log.Trace("Post RemoveValidatorEvent", "nodeID", nodeID.String())
+				}
+			}
+		} else {
+			for nodeID, _ := range oldVds.Nodes {
+				cbft.eventMux.Post(cbfttypes.RemoveValidatorEvent{NodeID: nodeID})
+				cbft.log.Trace("Post RemoveValidatorEvent", "nodeID", nodeID.String())
+			}
+		}
+	} else {
+		// We are become a consensus node, that adding all
+		// validators as consensus peer except us. Added as
+		// consensus peers is because we need to keep connecting
+		// with other validators in the consensus stages.
+		if isValidatorAfter {
+			for nodeID, _ := range cbft.validators.Nodes {
+				if cbft.config.NodeID == nodeID {
+					// Ignore myself
+					continue
+				}
+				cbft.eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: nodeID})
+				cbft.log.Trace("Post AddValidatorEvent", "nodeID", nodeID.String())
+			}
+		}
+
+		// We are still not a consensus node, just update validator list.
+	}
 }
 
 func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {

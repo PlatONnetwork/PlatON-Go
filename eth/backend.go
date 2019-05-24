@@ -548,6 +548,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 		}
 		s.StartMining(1)
 	}
+	srvr.StartWatching(s.eventMux)
 
 	if s.lesServer != nil {
 		s.lesServer.Start(srvr)
