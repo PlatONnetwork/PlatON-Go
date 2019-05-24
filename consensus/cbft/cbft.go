@@ -2018,6 +2018,11 @@ func (cbft *Cbft) updateValidator() {
 	cbft.validators = newVds
 	cbft.log.Info("Update validators success", "highestConfirmed", hc.number, "hash", hc.block.Hash(), "validators", cbft.validators)
 
+	if _, ok := cbft.validators.Nodes[cbft.config.NodeID]; ok {
+		cbft.eventMux.Post(cbfttypes.UpdateValidatorEvent{})
+		log.Trace("Post UpdateValidatorEvent", "nodeID", cbft.config.NodeID)
+	}
+
 	// Check if we are become a consensus node after update.
 	isValidatorAfter := cbft.IsConsensusNode()
 

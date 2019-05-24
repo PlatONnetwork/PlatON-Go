@@ -366,6 +366,9 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		timestamp   int64      // timestamp for each round of mining in Millisecond.
 	)
 
+	vdEvent := w.mux.Subscribe(cbfttypes.UpdateValidatorEvent{})
+	defer vdEvent.Unsubscribe()
+
 	timer := time.NewTimer(0)
 	<-timer.C // discard the initial tick
 
@@ -419,6 +422,20 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	for {
 		select {
+		case ev := <- vdEvent.Chan():
+			if ev == nil {
+				continue
+			}
+			switch ev.Data.(type) {
+			case cbfttypes.UpdateValidatorEvent:
+				nextBlockTime, err := w.engine.(consensus.Bft).CalcNextBlockTime()
+				if err != nil {
+					log.Error("Calc next block time fail", "err", err)
+					continue
+				}
+				w.commitWorkEnv.nextBlockTime = nextBlockTime
+				log.Debug("Update next block time", "nextBlockTime", nextBlockTime)
+			}
 		case <-w.startCh:
 			timestamp = time.Now().UnixNano() / 1e6
 			log.Debug("Clear Pending", "number", w.chain.CurrentBlock().NumberU64())
