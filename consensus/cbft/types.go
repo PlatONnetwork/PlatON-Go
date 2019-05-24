@@ -574,6 +574,15 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 		}
 	}
 
+	if err := cbft.evPool.AddViewChangeVote(vote); err != nil {
+		switch err.(type) {
+		case *DuplicateViewChangeVoteEvidence:
+		case *TimestampViewChangeVoteEvidence:
+			cbft.log.Warn("Receive TimestampViewChangeVoteEvidence msg", "err", err.Error())
+			return err
+		}
+	}
+
 	if !hadAgree && cbft.agreeViewChange() {
 		cbft.wal.UpdateViewChange(&ViewChangeMessage{
 			Hash:   vote.BlockHash,

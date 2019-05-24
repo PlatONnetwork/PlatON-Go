@@ -79,7 +79,7 @@ type MsgInfo struct {
 
 // CBFT consensus message
 type prepareBlock struct {
-	Timestamp       uint64
+	Timestamp       uint64 `json:"timestamp"`
 	Block           *types.Block
 	ProposalIndex   uint32            `json:"proposal_index"`
 	ProposalAddr    common.Address    `json:"proposal_address"`
@@ -144,13 +144,13 @@ func (pbh *prepareBlockHash) BHash() common.Hash {
 }
 
 type prepareVote struct {
-	Timestamp      uint64
-	Hash           common.Hash
-	Number         uint64
-	ValidatorIndex uint32
-	ValidatorAddr  common.Address
-	Signature      common.BlockConfirmSign
-	Extra          []byte
+	Timestamp      uint64                  `json:"timestamp"`
+	Hash           common.Hash             `json:"hash"`
+	Number         uint64                  `json:"number"`
+	ValidatorIndex uint32                  `json:"validator_index"`
+	ValidatorAddr  common.Address          `json:"validator_address"`
+	Signature      common.BlockConfirmSign `json:"signature"`
+	Extra          []byte                  `json:"-"`
 }
 
 func (pv *prepareVote) CannibalizeBytes() ([]byte, error) {
@@ -201,8 +201,8 @@ type viewChange struct {
 	BaseBlockNum         uint64                  `json:"base_block_number"`
 	BaseBlockHash        common.Hash             `json:"base_block_hash"`
 	BaseBlockPrepareVote []*prepareVote          `json:"base_block_prepare_votes"`
-	Signature            common.BlockConfirmSign `json:"-"`
-	Extra                []byte
+	Signature            common.BlockConfirmSign `json:"signature"`
+	Extra                []byte                  `json:"-"`
 }
 
 func (v *viewChange) CannibalizeBytes() ([]byte, error) {
@@ -286,9 +286,9 @@ type viewChangeVote struct {
 	ProposalIndex  uint32                  `json:"proposal_index"`
 	ProposalAddr   common.Address          `json:"proposal_address"`
 	ValidatorIndex uint32                  `json:"validator_index"`
-	ValidatorAddr  common.Address          `json:"-"`
-	Signature      common.BlockConfirmSign `json:"-"`
-	Extra          []byte
+	ValidatorAddr  common.Address          `json:"validator_address"`
+	Signature      common.BlockConfirmSign `json:"signature"`
+	Extra          []byte                  `json:"-"`
 }
 
 func (v *viewChangeVote) CannibalizeBytes() ([]byte, error) {

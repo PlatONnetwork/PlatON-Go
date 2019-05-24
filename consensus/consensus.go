@@ -162,4 +162,6 @@ type Bft interface {
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
 	IsSignedBySelf(sealHash common.Hash, signature []byte) bool
+
+	Evidences() string
 }

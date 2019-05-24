@@ -23,6 +23,8 @@ var (
 	errDuplicatePrepareVoteEvidence    = errors.New("duplicate prepare vote")
 	errDuplicateViewChangeVoteEvidence = errors.New("duplicate view change")
 	errTimestampViewChangeVoteEvidence = errors.New("view change timestamp out of order")
+
+	evidenceDir = "evidenceDir"
 )
 
 type Evidence interface {
@@ -33,6 +35,34 @@ type Evidence interface {
 	Hash() []byte
 	Address() common.Address
 	Validate() error
+}
+
+type EvidenceData struct {
+	DP []*DuplicatePrepareVoteEvidence    `json:"duplicate_prepare"`
+	DV []*DuplicateViewChangeVoteEvidence `json:"duplicate_viewchange"`
+	TV []*TimestampViewChangeVoteEvidence `json:"timestamp_viewchange"`
+}
+
+func NewEvidenceData() *EvidenceData {
+	return &EvidenceData{
+		DP: make([]*DuplicatePrepareVoteEvidence, 0),
+		DV: make([]*DuplicateViewChangeVoteEvidence, 0),
+		TV: make([]*TimestampViewChangeVoteEvidence, 0),
+	}
+}
+func ClassifyEvidence(evds []Evidence) *EvidenceData {
+	ed := NewEvidenceData()
+	for _, e := range evds {
+		switch e.(type) {
+		case *DuplicatePrepareVoteEvidence:
+			ed.DP = append(ed.DP, e.(*DuplicatePrepareVoteEvidence))
+		case *DuplicateViewChangeVoteEvidence:
+			ed.DV = append(ed.DV, e.(*DuplicateViewChangeVoteEvidence))
+		case *TimestampViewChangeVoteEvidence:
+			ed.TV = append(ed.TV, e.(*TimestampViewChangeVoteEvidence))
+		}
+	}
+	return ed
 }
 
 //Evidence A.Number == B.Number but A.Hash != B.Hash
@@ -524,11 +554,10 @@ func (vt PrepareEvidence) Clear(number uint64) {
 }
 
 type EvidencePool struct {
-	vt     ViewTimeEvidence
-	vn     ViewNumberEvidence
-	pe     PrepareEvidence
-	exitCh chan struct{}
-	db     *leveldb.DB
+	vt ViewTimeEvidence
+	vn ViewNumberEvidence
+	pe PrepareEvidence
+	db *leveldb.DB
 }
 
 func NewEvidencePool(path string) (*EvidencePool, error) {
@@ -538,11 +567,10 @@ func NewEvidencePool(path string) (*EvidencePool, error) {
 	}
 
 	return &EvidencePool{
-		vt:     make(ViewTimeEvidence),
-		vn:     make(ViewNumberEvidence),
-		pe:     make(PrepareEvidence),
-		exitCh: make(chan struct{}),
-		db:     db,
+		vt: make(ViewTimeEvidence),
+		vn: make(ViewNumberEvidence),
+		pe: make(PrepareEvidence),
+		db: db,
 	}, nil
 }
 
@@ -622,7 +650,7 @@ func (ev *EvidencePool) Clear(timestamp, blockNum uint64) {
 }
 
 func (ev *EvidencePool) Close() {
-	ev.exitCh <- struct{}{}
+	ev.db.Close()
 }
 
 func (ev *EvidencePool) Evidences() []Evidence {
