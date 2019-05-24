@@ -17,8 +17,6 @@ matrix:
     - name: windows compile
       os: windows
       go: 1.12.x
-      addons:
-        
       script:
         - chmod u+x ./build/*.sh
         - sh ./build/build_deps.sh
@@ -44,5 +42,22 @@ matrix:
       script:
         - go test ./...
 
-
-    
+    # This builder run the function tests
+    - name: function test
+      os: linux
+      dist: xenial
+      sudo: required
+      go: 1.12.x
+      before_install:
+        pyenv install 3.6
+      install:
+        - pwd
+        - chmod u+x ./build/*.sh
+        - make all
+      script:
+        - pwd
+        - git clone https://github.com/shinnng/PlatON-Tests.git
+        - cd ./PlatON-Tests
+        - cp -f ../build/bin/platon ./deploy/rely/bin/
+        - pip install -r requirements.txt
+        - python run.py --node ./deploy/node/travis_node.yml --type all
