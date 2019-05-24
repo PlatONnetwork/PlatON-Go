@@ -5437,6 +5437,12 @@ var methods = function () {
       params: 0
     });
 
+    var evidences = new Method({
+      name: 'evidences',
+      call: 'eth_evidences',
+      params: 0
+    });
+
     return [
         getBalance,
         getStorageAt,
@@ -5461,7 +5467,8 @@ var methods = function () {
         compileSerpent,
         submitWork,
         getWork,
-        consensusStatus
+        consensusStatus,
+        evidences,
     ];
 };
 

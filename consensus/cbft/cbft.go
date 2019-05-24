@@ -1955,6 +1955,15 @@ func (cbft *Cbft) Status() string {
 func (cbft *Cbft) OnStatus(status chan string) {
 	status <- cbft.RoundState.String()
 }
+
+func (cbft *Cbft) Evidences() string {
+	evds := cbft.evPool.Evidences()
+	if len(evds) == 0 {
+		return "{}"
+	}
+
+	return "{}"
+}
 func (cbft *Cbft) OnGetBlockByHash(hash common.Hash, ch chan *types.Block) {
 	ch <- cbft.blockExtMap.findBlockByHash(hash)
 }

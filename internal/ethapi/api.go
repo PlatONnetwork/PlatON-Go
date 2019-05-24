@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -1463,4 +1464,11 @@ func NewPublicConsensusAPI(b Backend) *PublicConsensusAPI {
 
 func (s *PublicConsensusAPI) ConsensusStatus() string {
 	return s.b.Engine().Status()
+}
+
+func (s *PublicConsensusAPI) Evidences() string {
+	if bft, ok := s.b.Engine().(consensus.Bft); ok {
+		return bft.Evidences()
+	}
+	return ""
 }
