@@ -60,4 +60,4 @@ matrix:
         - cd ./PlatON-Tests
         - cp -f ../build/bin/platon ./deploy/rely/bin/
         - pip3 install -r requirements.txt
-        - python run.py --node ./deploy/node/travis_node.yml --type all
+        - python3 run.py --node ./deploy/node/travis_node.yml --type all
