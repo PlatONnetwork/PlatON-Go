@@ -37,6 +37,34 @@ type Evidence interface {
 	Validate() error
 }
 
+type EvidenceData struct {
+	DP []*DuplicatePrepareVoteEvidence    `json:"duplicate_prepare"`
+	DV []*DuplicateViewChangeVoteEvidence `json:"duplicate_viewchange"`
+	TV []*TimestampViewChangeVoteEvidence `json:"timestamp_viewchange"`
+}
+
+func NewEvidenceData() *EvidenceData {
+	return &EvidenceData{
+		DP: make([]*DuplicatePrepareVoteEvidence, 0),
+		DV: make([]*DuplicateViewChangeVoteEvidence, 0),
+		TV: make([]*TimestampViewChangeVoteEvidence, 0),
+	}
+}
+func ClassifyEvidence(evds []Evidence) *EvidenceData {
+	ed := NewEvidenceData()
+	for _, e := range evds {
+		switch e.(type) {
+		case *DuplicatePrepareVoteEvidence:
+			ed.DP = append(ed.DP, e.(*DuplicatePrepareVoteEvidence))
+		case *DuplicateViewChangeVoteEvidence:
+			ed.DV = append(ed.DV, e.(*DuplicateViewChangeVoteEvidence))
+		case *TimestampViewChangeVoteEvidence:
+			ed.TV = append(ed.TV, e.(*TimestampViewChangeVoteEvidence))
+		}
+	}
+	return ed
+}
+
 //Evidence A.Number == B.Number but A.Hash != B.Hash
 type DuplicatePrepareVoteEvidence struct {
 	VoteA *prepareVote

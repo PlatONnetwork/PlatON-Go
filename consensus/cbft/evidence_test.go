@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -362,4 +363,17 @@ func TestTimestampViewChangeVoteEvidence_Validate(t *testing.T) {
 			assert.NotNil(t, d.Validate(), fmt.Sprintf("testcase:%d error", i))
 		}
 	}
+}
+
+func TestJson(t *testing.T) {
+	priA := createAccount(1)[0]
+	addrA := crypto.PubkeyToAddress(priA.PublicKey)
+
+	voteA := makeViewChangeVote(priA, 0, 5, common.BytesToHash([]byte{1}), 0, addrA, uint32(2), addrA)
+
+	b, _ := json.Marshal(&DuplicateViewChangeVoteEvidence{
+		VoteB: voteA,
+		VoteA: voteA,
+	})
+	t.Log(string(b))
 }
