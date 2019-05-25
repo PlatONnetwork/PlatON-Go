@@ -3,13 +3,14 @@ package cbft
 import (
 	"context"
 	"fmt"
+	sort2 "sort"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/pkg/errors"
-	sort2 "sort"
-	"time"
 )
 
 var (
@@ -171,7 +172,7 @@ func (cbft *Cbft) checkViewChangeVotes(votes []*viewChangeVote) error {
 
 	for _, vote := range votes {
 		if vote.EqualViewChange(cbft.viewChange) {
-			if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote.BlockHash, vote.Signature[:]); err != nil {
+			if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:]); err != nil {
 				log.Error("Verify validator failed", "vote", vote.String(), "err", err)
 				return errInvalidViewChangeVotes
 			}
@@ -184,11 +185,14 @@ func (cbft *Cbft) checkViewChangeVotes(votes []*viewChangeVote) error {
 	return nil
 }
 
-func (cbft *Cbft) verifyValidatorSign(validatorIndex uint32, validatorAddr common.Address, hash common.Hash, signature []byte) error {
-	if index, err := cbft.dpos.AddressIndex(validatorAddr); err == nil && uint32(index) == validatorIndex {
-		//todo verify sign
-		if err := verifySign(cbft.dpos.NodeID(index), hash, signature); err != nil {
+func (cbft *Cbft) verifyValidatorSign(validatorIndex uint32, validatorAddr common.Address, msg ConsensusMsg, signature []byte) error {
+	if vn, err := cbft.validators.AddressIndex(validatorAddr); err == nil && uint32(vn.Index) == validatorIndex {
+		buf, err := msg.CannibalizeBytes()
+		if err != nil {
 			return err
+		}
+		if !vn.Verify(buf, signature) {
+			return errSign
 		}
 	} else {
 		return err
@@ -446,7 +450,7 @@ func (cbft *Cbft) newViewChange() (*viewChange, error) {
 
 		return nil, errInvalidConfirmNumTooLow
 	}
-	index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
+	index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
 		return nil, errInvalidatorCandidateAddress
 	}
@@ -458,7 +462,7 @@ func (cbft *Cbft) newViewChange() (*viewChange, error) {
 		ProposalAddr:  addr,
 	}
 
-	sign, err := cbft.signFn(view.BaseBlockHash[:])
+	sign, err := cbft.signMsg(view)
 	if err != nil {
 		return nil, err
 	}
@@ -516,7 +520,7 @@ func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
 	}
 
 	for _, vote := range view.BaseBlockPrepareVote {
-		if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote.Hash, vote.Signature[:]); err != nil {
+		if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:]); err != nil {
 			cbft.log.Error("Verify validator failed", "vote", vote.String(), "err", err)
 			return errInvalidPrepareVotes
 		}
@@ -541,12 +545,12 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 	//defer cbft.mux.Unlock()
 	hadAgree := cbft.agreeViewChange()
 	if cbft.viewChange != nil && vote.EqualViewChange(cbft.viewChange) {
-		if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote.BlockHash, vote.Signature[:]); err == nil {
+		if err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:]); err == nil {
 			cbft.viewChangeVotes[vote.ValidatorAddr] = vote
 			log.Info("Agree receive view change response", "peer", peerID, "prepareVotes", len(cbft.viewChangeVotes))
 		} else {
 			cbft.log.Warn("Verify sign failed", "peer", peerID, "vote", vote.String())
-			return errSign
+			return err
 		}
 	} else {
 		switch {
@@ -564,6 +568,15 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 			return errInvalidProposalAddr
 		default:
 			return errInvalidViewChangeVotes
+		}
+	}
+
+	if err := cbft.evPool.AddViewChangeVote(vote); err != nil {
+		switch err.(type) {
+		case *DuplicateViewChangeVoteEvidence:
+		case *TimestampViewChangeVoteEvidence:
+			cbft.log.Warn("Receive TimestampViewChangeVoteEvidence msg", "err", err.Error())
+			return err
 		}
 	}
 
@@ -604,7 +617,7 @@ func (cbft *Cbft) resetViewChange() {
 }
 
 func (cbft *Cbft) broadcastBlock(ext *BlockExt) {
-	index, addr, err := cbft.dpos.NodeIndexAddress(cbft.config.NodeID)
+	index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
 		return
 	}

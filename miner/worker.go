@@ -366,6 +366,9 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		timestamp   int64      // timestamp for each round of mining in Millisecond.
 	)
 
+	vdEvent := w.mux.Subscribe(cbfttypes.UpdateValidatorEvent{})
+	defer vdEvent.Unsubscribe()
+
 	timer := time.NewTimer(0)
 	<-timer.C // discard the initial tick
 
@@ -419,6 +422,20 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	for {
 		select {
+		case ev := <- vdEvent.Chan():
+			if ev == nil {
+				continue
+			}
+			switch ev.Data.(type) {
+			case cbfttypes.UpdateValidatorEvent:
+				nextBlockTime, err := w.engine.(consensus.Bft).CalcNextBlockTime()
+				if err != nil {
+					log.Error("Calc next block time fail", "err", err)
+					continue
+				}
+				w.commitWorkEnv.nextBlockTime = nextBlockTime
+				log.Debug("Update next block time", "nextBlockTime", nextBlockTime)
+			}
 		case <-w.startCh:
 			timestamp = time.Now().UnixNano() / 1e6
 			log.Debug("Clear Pending", "number", w.chain.CurrentBlock().NumberU64())
@@ -1242,6 +1259,16 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
+
+	log.Trace("Validator mode", "mode", w.config.Cbft.ValidatorMode)
+	if w.config.Cbft.ValidatorMode == "inner" {
+		// Check if need to switch validators.
+		// If needed, make a inner contract transaction
+		// and pack into pending block.
+		if w.shouldSwitch() && w.commitInnerTransaction(timestamp, blockDeadline) != nil {
+			return
+		}
+	}
 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {

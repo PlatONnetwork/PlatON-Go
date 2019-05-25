@@ -20,12 +20,13 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -204,9 +205,25 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	if bft, ok := eth.engine.(consensus.Bft); ok {
-		if cbft, ok := bft.(*cbft.Cbft); ok {
-			cbft.SetBlockChainCache(blockChainCache)
-			if err := cbft.Start(eth.blockchain, eth.txPool); err != nil {
+		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
+			cbftEngine.SetBlockChainCache(blockChainCache)
+
+			var agency cbft.Agency
+			// validatorMode:
+			// - static (default)
+			// - inner (via inner contract)
+			// - ppos
+			log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
+			if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static" {
+				agency = cbft.NewStaticAgency(chainConfig.Cbft.InitialNodes)
+			} else if chainConfig.Cbft.ValidatorMode == "inner" {
+				blocksPerNode := int(int64(chainConfig.Cbft.Duration) / int64(chainConfig.Cbft.Period))
+				offset := blocksPerNode * 2
+				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
+			}
+
+			if err := cbftEngine.Start(eth.blockchain, eth.txPool, agency); err != nil {
+				log.Error("Init cbft consensus engine fail", "error", err)
 				return nil, errors.New("Failed to init cbft consensus engine")
 			}
 		}
@@ -269,6 +286,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		chainConfig.Cbft.MaxLatency = cbftConfig.MaxLatency
 		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
 		chainConfig.Cbft.Duration = cbftConfig.Duration
+
 		return cbft.New(chainConfig.Cbft, eventMux, ctx)
 	}
 	return nil
@@ -530,6 +548,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 		}
 		s.StartMining(1)
 	}
+	srvr.StartWatching(s.eventMux)
 
 	if s.lesServer != nil {
 		s.lesServer.Start(srvr)

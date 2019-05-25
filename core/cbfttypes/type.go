@@ -1,9 +1,11 @@
 package cbfttypes
 
 import (
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"math/big"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 // Block's Signature info
@@ -51,3 +53,13 @@ func (ps *ProducerState) Get() (common.Address, int) {
 func (ps *ProducerState) Validate(period int) bool {
 	return ps.count < period
 }
+
+type AddValidatorEvent struct {
+	NodeID discover.NodeID
+}
+
+type RemoveValidatorEvent struct {
+	NodeID discover.NodeID
+}
+
+type UpdateValidatorEvent struct{}

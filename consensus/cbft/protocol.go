@@ -2,11 +2,14 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"math/big"
+	"reflect"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"math/big"
-	"reflect"
 )
 
 const CbftProtocolMaxMsgSize = 10 * 1024 * 1024
@@ -58,6 +61,11 @@ var errorToString = map[int]string{
 	ErrSuspendedPeer:           "Suspended peer",
 }
 
+type ConsensusMsg interface {
+	CannibalizeBytes() ([]byte, error)
+	Sign() []byte
+}
+
 type Message interface {
 	String() string
 	MsgHash() common.Hash
@@ -71,12 +79,21 @@ type MsgInfo struct {
 
 // CBFT consensus message
 type prepareBlock struct {
-	Timestamp       uint64
+	Timestamp       uint64 `json:"timestamp"`
 	Block           *types.Block
 	ProposalIndex   uint32            `json:"proposal_index"`
 	ProposalAddr    common.Address    `json:"proposal_address"`
 	View            *viewChange       `json:"view"`
 	ViewChangeVotes []*viewChangeVote `json:"viewchange_votes"`
+	Extra           []byte
+}
+
+func (pb *prepareBlock) CannibalizeBytes() ([]byte, error) {
+	return pb.Block.Header().SealHash().Bytes(), nil
+}
+
+func (pb *prepareBlock) Sign() []byte {
+	return pb.Block.Extra()[len(pb.Block.Extra())-extraSeal:]
 }
 
 func (pb *prepareBlock) String() string {
@@ -127,12 +144,33 @@ func (pbh *prepareBlockHash) BHash() common.Hash {
 }
 
 type prepareVote struct {
-	Timestamp      uint64
-	Hash           common.Hash
-	Number         uint64
-	ValidatorIndex uint32
-	ValidatorAddr  common.Address
-	Signature      common.BlockConfirmSign
+	Timestamp      uint64                  `json:"timestamp"`
+	Hash           common.Hash             `json:"hash"`
+	Number         uint64                  `json:"number"`
+	ValidatorIndex uint32                  `json:"validator_index"`
+	ValidatorAddr  common.Address          `json:"validator_address"`
+	Signature      common.BlockConfirmSign `json:"signature"`
+	Extra          []byte                  `json:"-"`
+}
+
+func (pv *prepareVote) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		pv.Timestamp,
+		pv.Hash,
+		pv.Number,
+		pv.ValidatorIndex,
+		pv.ValidatorAddr,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.Keccak256(buf), nil
+}
+
+func (pv *prepareVote) Sign() []byte {
+	return pv.Signature.Bytes()
 }
 
 func (pv *prepareVote) String() string {
@@ -163,7 +201,28 @@ type viewChange struct {
 	BaseBlockNum         uint64                  `json:"base_block_number"`
 	BaseBlockHash        common.Hash             `json:"base_block_hash"`
 	BaseBlockPrepareVote []*prepareVote          `json:"base_block_prepare_votes"`
-	Signature            common.BlockConfirmSign `json:"-"`
+	Signature            common.BlockConfirmSign `json:"signature"`
+	Extra                []byte                  `json:"-"`
+}
+
+func (v *viewChange) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		v.Timestamp,
+		v.ProposalIndex,
+		v.ProposalAddr,
+		v.BaseBlockNum,
+		v.BaseBlockHash,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.Keccak256(buf), nil
+}
+
+func (v *viewChange) Sign() []byte {
+	return v.Signature.Bytes()
 }
 
 func (v *viewChange) String() string {
@@ -227,8 +286,31 @@ type viewChangeVote struct {
 	ProposalIndex  uint32                  `json:"proposal_index"`
 	ProposalAddr   common.Address          `json:"proposal_address"`
 	ValidatorIndex uint32                  `json:"validator_index"`
-	ValidatorAddr  common.Address          `json:"-"`
-	Signature      common.BlockConfirmSign `json:"-"`
+	ValidatorAddr  common.Address          `json:"validator_address"`
+	Signature      common.BlockConfirmSign `json:"signature"`
+	Extra          []byte                  `json:"-"`
+}
+
+func (v *viewChangeVote) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		v.Timestamp,
+		v.BlockNum,
+		v.BlockHash,
+		v.ProposalIndex,
+		v.ProposalAddr,
+		v.ValidatorIndex,
+		v.ValidatorAddr,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return crypto.Keccak256(buf), nil
+}
+
+func (v *viewChangeVote) Sign() []byte {
+	return v.Signature.Bytes()
 }
 
 func (v *viewChangeVote) String() string {
