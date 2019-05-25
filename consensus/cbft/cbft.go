@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -1962,13 +1963,18 @@ func (cbft *Cbft) OnStatus(status chan string) {
 }
 
 func (cbft *Cbft) Evidences() string {
-	evds := cbft.evPool.Evidences()
-	if len(evds) == 0 {
+	evs := cbft.evPool.Evidences()
+	if len(evs) == 0 {
 		return "{}"
 	}
-
-	return "{}"
+	evds := ClassifyEvidence(evs)
+	js, err := json.MarshalIndent(evds, "", "  ")
+	if err != nil {
+		return ""
+	}
+	return string(js)
 }
+
 func (cbft *Cbft) OnGetBlockByHash(hash common.Hash, ch chan *types.Block) {
 	ch <- cbft.blockExtMap.findBlockByHash(hash)
 }

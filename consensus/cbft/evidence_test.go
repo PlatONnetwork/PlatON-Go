@@ -370,25 +370,28 @@ func TestJson(t *testing.T) {
 	addrA := crypto.PubkeyToAddress(priA.PublicKey)
 
 	voteA := makeViewChangeVote(priA, 0, 5, common.BytesToHash([]byte{1}), 0, addrA, uint32(2), addrA)
+	voteB := makePrepareVote(priA, 0, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(1), addrA)
 
-	evs := []Evidence{&DuplicateViewChangeVoteEvidence{
-		VoteB: voteA,
-		VoteA: voteA,
-	},
+	evs := []Evidence{
 		&DuplicateViewChangeVoteEvidence{
 			VoteB: voteA,
 			VoteA: voteA,
 		},
+		&TimestampViewChangeVoteEvidence{
+			VoteB: voteA,
+			VoteA: voteA,
+		},
+		&DuplicatePrepareVoteEvidence{
+			VoteA: voteB,
+			VoteB: voteB,
+		},
 	}
 	eds := ClassifyEvidence(evs)
-	b, _ := json.MarshalIndent(eds, "", "")
+	b, _ := json.MarshalIndent(eds, "", "  ")
 	t.Log(string(b))
 	var eds2 EvidenceData
-	err := json.Unmarshal(b, &eds2)
-	if err != nil {
-		t.Error(err)
-	}
+	assert.Nil(t, json.Unmarshal(b, &eds2))
 
-	b2, _ := json.MarshalIndent(eds2, "", "")
+	b2, _ := json.MarshalIndent(eds2, "", "  ")
 	assert.Equal(t, b, b2)
 }
