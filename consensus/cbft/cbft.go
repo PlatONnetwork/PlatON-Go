@@ -1484,22 +1484,34 @@ func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
 		value := (timePoint - startEpoch) % durationPerTurn
 		max := int64(nodeIdx+1) * durationPerNode
 
-		cnt := int64(cbft.config.Duration) / int64(cbft.config.Period)
-		slots := make([]int64, cnt)
-		var i int64
-		for i = 0; i < cnt; i++ {
-			slots[i] = min + (i*1000)*int64(cbft.config.Period)
-		}
-		curIdx := (value % durationPerNode) / (1000 * int64(cbft.config.Period))
-		lastBlock := int(curIdx+1) == len(slots)
-		nextSlotValue := max
-		if !lastBlock {
-			nextSlotValue = slots[curIdx+1]
-		}
-		remaining := nextSlotValue - value
-		offset := remaining + durationPerTurn - durationPerNode
-		if !lastBlock {
-			offset = remaining
+		log.Trace("Calc next block time", "min", min, "value", value, "max", max)
+
+		var offset int64
+		if value >= min && value <= max {
+			cnt := int64(cbft.config.Duration) / int64(cbft.config.Period)
+			slots := make([]int64, cnt)
+			var i int64
+			for i = 0; i < cnt; i++ {
+				slots[i] = min + (i*1000)*int64(cbft.config.Period)
+			}
+			curIdx := (value % durationPerNode) / (1000 * int64(cbft.config.Period))
+			cbft.log.Trace("Calc next block time", "min", min, "value", value, "max", max, "curIdx", curIdx, "slots", len(slots))
+			lastBlock := int(curIdx+1) == len(slots)
+			nextSlotValue := max
+			if !lastBlock {
+				nextSlotValue = slots[curIdx+1]
+			}
+			remaining := nextSlotValue - value
+			offset = remaining + durationPerTurn - durationPerNode
+			if !lastBlock {
+				offset = remaining
+			}
+		} else if value < min {
+			offset = min - value
+		} else {
+			// value > max
+			last := int64(cbft.validators.Len()) * durationPerNode
+			offset = last - value + min
 		}
 		return time.Now().Add(time.Duration(offset) * time.Millisecond), nil
 	}
