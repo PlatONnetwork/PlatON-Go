@@ -9,6 +9,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -17,7 +18,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
-	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 )
 
 var (
@@ -50,40 +50,40 @@ func TestValidators(t *testing.T) {
 	assert.True(t, len(nodes) == vds.Len())
 	assert.Equal(t, vds.NodeID(0), nodes[0].ID)
 
-	idx, err := vds.NodeIndex(nodes[2].ID)
+	validator, err := vds.NodeIndex(nodes[2].ID)
 	assert.True(t, err == nil, "get node idex fail")
-	assert.True(t, idx == 2)
+	assert.True(t, validator.Index == 2)
 
 	pubkey, err := nodes[1].ID.Pubkey()
 	addrN1 := crypto.PubkeyToAddress(*pubkey)
 
-	idx, addr, err := vds.NodeIndexAddress(nodes[1].ID)
+	validator, err = vds.NodeIndexAddress(nodes[1].ID)
 	assert.True(t, err == nil, "get node index and address fail")
-	assert.Equal(t, addr, addrN1)
-	assert.Equal(t, idx, 1)
+	assert.Equal(t, validator.Address, addrN1)
+	assert.Equal(t, validator.Index, 1)
 
 	idxN1, err := vds.AddressIndex(addrN1)
 	assert.True(t, err == nil, "get index by address fail")
-	assert.Equal(t, idx, idxN1)
+	assert.Equal(t, validator.Index, idxN1.Index)
 
 	nl := vds.NodeList()
 	assert.True(t, len(nl) == vds.Len())
 
 	emptyNodeID := discover.NodeID{}
-	idx, _, err = vds.NodeIndexAddress(emptyNodeID)
-	assert.Equal(t, idx, -1)
+	validator, err = vds.NodeIndexAddress(emptyNodeID)
+	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
 
 	notFound := vds.NodeID(4)
 	assert.Equal(t, notFound, emptyNodeID)
 
 	emptyAddr := common.Address{}
-	idx, err = vds.AddressIndex(emptyAddr)
-	assert.Equal(t, idx, -1)
+	validator, err = vds.AddressIndex(emptyAddr)
+	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
 
-	idx, err = vds.NodeIndex(emptyNodeID)
-	assert.Equal(t, idx, -1)
+	validator, err = vds.NodeIndex(emptyNodeID)
+	assert.True(t, validator == nil)
 	assert.True(t, err != nil)
 }
 

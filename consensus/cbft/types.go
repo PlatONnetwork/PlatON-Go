@@ -450,7 +450,7 @@ func (cbft *Cbft) newViewChange() (*viewChange, error) {
 
 		return nil, errInvalidConfirmNumTooLow
 	}
-	index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
+	validator, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
 		return nil, errInvalidatorCandidateAddress
 	}
@@ -458,8 +458,8 @@ func (cbft *Cbft) newViewChange() (*viewChange, error) {
 		Timestamp:     uint64(time.Now().Unix()),
 		BaseBlockNum:  ext.block.NumberU64(),
 		BaseBlockHash: ext.block.Hash(),
-		ProposalIndex: uint32(index),
-		ProposalAddr:  addr,
+		ProposalIndex: uint32(validator.Index),
+		ProposalAddr:  validator.Address,
 	}
 
 	sign, err := cbft.signMsg(view)
@@ -617,12 +617,12 @@ func (cbft *Cbft) resetViewChange() {
 }
 
 func (cbft *Cbft) broadcastBlock(ext *BlockExt) {
-	index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
+	validator, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
 		return
 	}
-	ext.proposalIndex, ext.proposalAddr = uint32(index), addr
-	p := &prepareBlock{Block: ext.block, ProposalIndex: uint32(index), ProposalAddr: addr}
+	ext.proposalIndex, ext.proposalAddr = uint32(validator.Index), validator.Address
+	p := &prepareBlock{Block: ext.block, ProposalIndex: uint32(validator.Index), ProposalAddr: validator.Address}
 
 	cbft.addPrepareBlockVote(p)
 	if cbft.viewChange != nil && !cbft.agreeViewChange() && cbft.viewChange.BaseBlockNum < ext.block.NumberU64() {

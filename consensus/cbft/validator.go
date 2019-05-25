@@ -89,12 +89,12 @@ func (vs *Validators) NodeList() []discover.NodeID {
 	return nodeList
 }
 
-func (vs *Validators) NodeIndexAddress(id discover.NodeID) (int, common.Address, error) {
+func (vs *Validators) NodeIndexAddress(id discover.NodeID) (*ValidateNode, error) {
 	node, ok := vs.Nodes[id]
 	if ok {
-		return node.Index, node.Address, nil
+		return node, nil
 	}
-	return -1, common.Address{}, errors.New("not found the node")
+	return nil, errors.New("not found the node")
 }
 
 func (vs *Validators) NodeID(idx int) discover.NodeID {

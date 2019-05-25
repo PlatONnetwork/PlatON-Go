@@ -51,15 +51,15 @@ var (
 	errListConfirmedBlocks = errors.New("list confirmed blocks error")
 	errMissingSignature    = errors.New("extra-data 65 byte signature suffix missing")
 
-	errInitiateViewchange      = errors.New("not initiated viewchange")
-	errTwoThirdViewchangeVotes = errors.New("lower two third viewchange prepareVotes")
-	errTwoThirdPrepareVotes    = errors.New("lower two third prepare prepareVotes")
-	errNotFoundViewBlock       = errors.New("not found block")
-	errInvalidViewChangeVotes  = errors.New("invalid prepare prepareVotes")
-	errInvalidPrepareVotes     = errors.New("invalid prepare prepareVotes")
-
-	extraSeal  = 65
-	windowSize = 10
+	errInitiateViewchange          = errors.New("not initiated viewchange")
+	errTwoThirdViewchangeVotes     = errors.New("lower two third viewchange prepareVotes")
+	errTwoThirdPrepareVotes        = errors.New("lower two third prepare prepareVotes")
+	errNotFoundViewBlock           = errors.New("not found block")
+	errInvalidViewChangeVotes      = errors.New("invalid prepare prepareVotes")
+	errInvalidPrepareVotes         = errors.New("invalid prepare prepareVotes")
+	errInvalidatorCandidateAddress = errors.New("invalid address")
+	extraSeal                      = 65
+	windowSize                     = 10
 
 	//periodMargin is a percentum for period margin
 	periodMargin = uint64(20)
@@ -441,7 +441,8 @@ func (cbft *Cbft) OnShouldSeal(shouldSeal chan error) {
 	}
 END:
 	if cbft.hadSendViewChange() {
-		index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
+		validator, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
+
 		if err != nil {
 			log.Debug("Get node index and address failed", "error", err)
 			shouldSeal <- err
@@ -449,8 +450,8 @@ END:
 		}
 
 		if cbft.isRunning() && cbft.agreeViewChange() &&
-			cbft.viewChange.ProposalAddr == addr &&
-			uint32(index) == cbft.viewChange.ProposalIndex {
+			cbft.viewChange.ProposalAddr == validator.Address &&
+			uint32(validator.Index) == cbft.viewChange.ProposalIndex {
 			// do something check
 			shouldSeal <- nil
 		} else {
@@ -909,15 +910,15 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 		return err
 	}
 
-	index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
+	validator, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
 		cbft.bp.ViewChangeBP().InvalidViewChange(bpCtx, view, errInvalidatorCandidateAddress, &cbft.RoundState)
 		return errInvalidatorCandidateAddress
 	}
 
 	resp := &viewChangeVote{
-		ValidatorIndex: uint32(index),
-		ValidatorAddr:  addr,
+		ValidatorIndex: uint32(validator.Index),
+		ValidatorAddr:  validator.Address,
 		Timestamp:      view.Timestamp,
 		BlockHash:      view.BaseBlockHash,
 		BlockNum:       view.BaseBlockNum,
@@ -1232,7 +1233,7 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 	cbft.log.Debug("Need send prepare vote", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 
-	index, addr, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
+	validator, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
 	if ext.number <= cbft.localHighestPrepareVoteNum {
 		cbft.log.Warn("May happen double prepare vote")
 		return
@@ -1242,8 +1243,8 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 			Timestamp:      ext.view.Timestamp,
 			Hash:           ext.block.Hash(),
 			Number:         ext.block.NumberU64(),
-			ValidatorIndex: uint32(index),
-			ValidatorAddr:  addr,
+			ValidatorIndex: uint32(validator.Index),
+			ValidatorAddr:  validator.Address,
 		}
 
 		sign, err := cbft.signMsg(pv)
