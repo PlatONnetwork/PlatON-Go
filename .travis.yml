@@ -50,14 +50,18 @@ matrix:
       go: 1.12.x
       before_install:
         - pyenv install -f 3.6.0
+        
         - pyenv rehash
         - pyenv global 3.6.0
         - pyenv version
+        - python --version
+        - pip --version
       # install:
       #   - chmod u+x ./build/*.sh
       #   - make all
       script:
-        - python --version
+        - ls
+        # - python --version
         # - git clone https://github.com/shinnng/PlatON-Tests.git
         # - cd ./PlatON-Tests
         # - cp -f ../build/bin/platon ./deploy/rely/bin/
