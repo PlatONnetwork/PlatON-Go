@@ -57,7 +57,7 @@ matrix:
       #   - chmod u+x ./build/*.sh
       #   - make all
       script:
-        - python -v
+        - python --version
         # - git clone https://github.com/shinnng/PlatON-Tests.git
         # - cd ./PlatON-Tests
         # - cp -f ../build/bin/platon ./deploy/rely/bin/
