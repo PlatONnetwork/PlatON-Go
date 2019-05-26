@@ -49,18 +49,14 @@ matrix:
       sudo: required
       go: 1.12.x
       before_install:
-        - pyenv install --list
-        - pyenv install -f 3.7.0
+        - pyenv install -f 3.6.0
+        - python -v
       install:
-        - pwd
         - chmod u+x ./build/*.sh
         - make all
       script:
-        - pwd
         - git clone https://github.com/shinnng/PlatON-Tests.git
         - cd ./PlatON-Tests
         - cp -f ../build/bin/platon ./deploy/rely/bin/
-        - whereis python
-        - whereis pip
-        - pip3.7 install --user -r requirements.txt
+        - pip install --user -r requirements.txt
         - python3 run.py --node ./deploy/node/travis_node.yml --type all
