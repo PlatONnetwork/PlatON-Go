@@ -50,6 +50,7 @@ matrix:
       go: 1.12.x
       before_install:
         - pyenv install -f 3.6.0
+        - pyenv rehash
       # install:
       #   - chmod u+x ./build/*.sh
       #   - make all
