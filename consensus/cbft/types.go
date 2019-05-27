@@ -454,7 +454,7 @@ func (cbft *Cbft) newViewChange() (*viewChange, error) {
 
 		return nil, errInvalidConfirmNumTooLow
 	}
-	validator, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
+	validator, err := cbft.getValidators().NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
 		return nil, errInvalidatorCandidateAddress
 	}
@@ -542,7 +542,7 @@ func (cbft *Cbft) setViewChange(view *viewChange) {
 }
 
 func (cbft *Cbft) afterUpdateValidator() {
-	if _, err := cbft.validators.NodeIndex(cbft.config.NodeID); err != nil {
+	if _, err := cbft.getValidators().NodeIndex(cbft.config.NodeID); err != nil {
 		cbft.master = false
 	}
 }
@@ -627,7 +627,7 @@ func (cbft *Cbft) resetViewChange() {
 }
 
 func (cbft *Cbft) broadcastBlock(ext *BlockExt) {
-	validator, err := cbft.validators.NodeIndexAddress(cbft.config.NodeID)
+	validator, err := cbft.getValidators().NodeIndexAddress(cbft.config.NodeID)
 	if err != nil {
 		return
 	}
