@@ -18,7 +18,6 @@ package core
 
 import (
 	"crypto/ecdsa"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -28,7 +27,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -148,7 +146,8 @@ func genUncles(i int, gen *BlockGen) {
 
 func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 	// Create the database in memory or in a temporary directory.
-	var db ethdb.Database
+	// TODO test
+	/*var db ethdb.Database
 	if !disk {
 		db = ethdb.NewMemDatabase()
 	} else {
@@ -181,7 +180,7 @@ func benchInsertChain(b *testing.B, disk bool, gen func(int, *BlockGen)) {
 	b.ResetTimer()
 	if i, err := chainman.InsertChain(chain); err != nil {
 		b.Fatalf("insert error (block %d): %v\n", i, err)
-	}
+	}*/
 }
 
 func BenchmarkChainRead_header_10k(b *testing.B) {
@@ -264,7 +263,8 @@ func benchWriteChain(b *testing.B, full bool, count uint64) {
 }
 
 func benchReadChain(b *testing.B, full bool, count uint64) {
-	dir, err := ioutil.TempDir("", "eth-chain-bench")
+	// TODO test
+	/*dir, err := ioutil.TempDir("", "eth-chain-bench")
 	if err != nil {
 		b.Fatalf("cannot create temporary directory: %v", err)
 	}
@@ -300,5 +300,5 @@ func benchReadChain(b *testing.B, full bool, count uint64) {
 		}
 		chain.Stop()
 		db.Close()
-	}
+	}*/
 }
