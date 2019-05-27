@@ -81,3 +81,16 @@ func TestNewViewChange(t *testing.T) {
 	assert.Nil(t, engine.viewChange)
 	assert.Empty(t, engine.viewChangeVotes)
 }
+
+func TestCbft_OnSendViewChange(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+	engine, _, _ := randomCBFT(path, 4)
+
+	engine.OnSendViewChange()
+
+	assert.NotNil(t, engine.viewChange)
+	time.Sleep(time.Second * time.Duration(engine.config.Period*2))
+	assert.Nil(t, engine.viewChange)
+
+}

@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -138,11 +139,13 @@ func nodeIndexNow(validators *testValidator, startTimestamp int64) *NodeData {
 	//if distance%(duration*total)%duration != 0 {
 	//	index += 1
 	//}
-
+	if index > int64(len(validators.neibor)) {
+		panic(fmt.Sprintf("now:%d, distance:%d, duration:%d, total:%d, index:%d", now, distance, duration, total, index))
+	}
 	if index == 0 {
 		return validators.owner
 	}
-	return validators.neibor[index]
+	return validators.neibor[index-1]
 }
 
 func CreateCBFT(path string, pri *ecdsa.PrivateKey) *Cbft {
