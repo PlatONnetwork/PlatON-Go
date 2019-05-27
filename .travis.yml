@@ -50,8 +50,13 @@ matrix:
       go: 1.12.x
       before_install:
         - pyenv install -f 3.6.0
-        
+        - pyenv version
+        - python --version
+        - pip --version
         - pyenv rehash
+        - pyenv version
+        - python --version
+        - pip --version
         - pyenv global 3.6.0
         - pyenv version
         - python --version
@@ -60,10 +65,10 @@ matrix:
       #   - chmod u+x ./build/*.sh
       #   - make all
       script:
-        - ls
-        # - python --version
-        # - git clone https://github.com/shinnng/PlatON-Tests.git
-        # - cd ./PlatON-Tests
+        - python --version
+        - pip --version
+        - git clone https://github.com/shinnng/PlatON-Tests.git
+        - cd ./PlatON-Tests
+        - pip install --user -r requirements.txt
         # - cp -f ../build/bin/platon ./deploy/rely/bin/
-        # - pip install --user -r requirements.txt
         # - python3 run.py --node ./deploy/node/travis_node.yml --type all
