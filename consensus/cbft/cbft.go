@@ -1663,7 +1663,7 @@ func (cbft *Cbft) OnPrepareVote(peerID discover.NodeID, vote *prepareVote, propa
 	cbft.log.Debug("Receive prepare vote", "peer", peerID, "vote", vote.String())
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	cbft.bp.PrepareBP().ReceiveVote(bpCtx, vote, &cbft.RoundState)
-	err := cbft.verifyValidatorSign(vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:])
+	err := cbft.verifyValidatorSign(cbft.viewChange.BaseBlockNum, vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:])
 	if err != nil {
 		cbft.bp.PrepareBP().InvalidVote(bpCtx, vote, err, &cbft.RoundState)
 		cbft.log.Error("Verify vote error", "err", err)
@@ -2075,7 +2075,7 @@ func (cbft *Cbft) OnFastSyncCommitHead(errCh chan error) {
 
 func (cbft *Cbft) updateValidator() {
 	hc := cbft.getHighestConfirmed()
-	if hc.number != cbft.agency.GetLastNumber(hc.number-1) {
+	if hc.number != cbft.agency.GetLastNumber(hc.number) {
 		return
 	}
 

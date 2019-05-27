@@ -235,7 +235,7 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err erro
 	}
 
 	// Otherwise, get validators from inner contract.
-	vdsCftNum := blockNumber - ia.offset
+	vdsCftNum := blockNumber - ia.offset - 1
 	block := ia.blockchain.GetBlockByNumber(vdsCftNum)
 	if block == nil {
 		log.Error("Get the block fail, use default validators", "number", vdsCftNum)
