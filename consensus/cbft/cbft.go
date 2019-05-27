@@ -58,6 +58,7 @@ var (
 	errInvalidViewChangeVotes      = errors.New("invalid prepare prepareVotes")
 	errInvalidPrepareVotes         = errors.New("invalid prepare prepareVotes")
 	errInvalidatorCandidateAddress = errors.New("invalid address")
+	errDuplicationConsensusMsg     = errors.New("Duplication message")
 	extraSeal                      = 65
 	windowSize                     = 10
 
@@ -130,8 +131,8 @@ type Cbft struct {
 	resetCache *lru.Cache
 	bp         Breakpoint
 	// router
-	router *router
-	queues map[string]int
+	router  *router
+	queues  map[string]int
 	queueMu sync.RWMutex
 
 	// wal
@@ -691,7 +692,7 @@ func (cbft *Cbft) OnViewChangeVoteTimeout(view *viewChangeVote) {
 	//todo viewchange vote timeout
 	//cbft.mux.Lock()
 	//defer cbft.mux.Lock()
-	if cbft.viewChange != nil && !view.EqualViewChange(cbft.viewChange) {
+	if cbft.viewChange != nil && view.EqualViewChange(cbft.viewChange) {
 		if !cbft.agreeViewChange() {
 			cbft.log.Warn("Waiting master response timeout", "view", cbft.viewChange.String())
 			cbft.handleCache()
@@ -893,7 +894,7 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 
 	if cbft.viewChange != nil && cbft.viewChange.Equal(view) {
 		cbft.log.Debug("Duplication view change message, discard this")
-		return nil
+		return errDuplicationConsensusMsg
 	}
 
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
@@ -1069,7 +1070,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 
 		//receive 2f+1 view vote , clear last view state
 		if cbft.agreeViewChange() {
-			viewChangeConfirmedTimer.UpdateSince(time.Unix(int64(cbft.viewChange.Timestamp),0))
+			viewChangeConfirmedTimer.UpdateSince(time.Unix(int64(cbft.viewChange.Timestamp), 0))
 			cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, &cbft.RoundState)
 			var newHeader *types.Header
 			viewBlock := cbft.blockExtMap.findBlock(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)
