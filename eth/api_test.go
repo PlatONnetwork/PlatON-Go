@@ -48,7 +48,7 @@ func TestStorageRangeAt(t *testing.T) {
 		}
 	)
 	for _, entry := range storage {
-		state.SetState(addr, *entry.Key, entry.Value)
+		state.SetState(addr, entry.Key.Bytes(), entry.Value.Bytes())
 	}
 
 	// Check a few combinations of limit and start/end.

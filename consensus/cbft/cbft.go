@@ -2031,6 +2031,7 @@ func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, b
 func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header) {
 	if len(header.Extra) < 64 {
 		log.Error("Failed to Call accumulateRewards, header.Extra < 64", "blockNumber", header.Number, "blockHash", header.Hash(), "len(header.Extra):", len(header.Extra), "extra", hexutil.Encode(header.Extra))
+		return
 	}
 
 

@@ -57,7 +57,7 @@ func (s *StateSuite) TestDump(c *checker.C) {
 	// check that dump contains the state objects that are in trie
 	got := string(s.state.Dump())
 	want := `{
-    "root": "71edff0130dd2385947095001c73d9e28d862fc286fca2b922ca6f6f3cddfdd2",
+    "root": "1d75ab73e172edb7c3b3c0fd004d9896992fb96b617f6f954641d7618159e5e4",
     "accounts": {
         "0000000000000000000000000000000000000001": {
             "balance": "22",
@@ -98,19 +98,16 @@ func (s *StateSuite) SetUpTest(c *checker.C) {
 func (s *StateSuite) TestNull(c *checker.C) {
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
 	s.state.CreateAccount(address)
-	//value := common.FromHex("0x823140710bf13990e4500136726d8b55")
+	value := common.FromHex("0x823140710bf13990e4500136726d8b55")
 	//value := nil
-	key := []byte{}
+	key := common.FromHex("0x823140710bf13990e4500136726d8b55")
 
 	//s.state.SetState(address, common.Hash{}, value)
-	s.state.SetState(address, key, nil)
+	s.state.SetState(address, key, value)
 	s.state.Commit(false)
 
-	if value := s.state.GetState(address, common.Hash{}.Bytes()); bytes.Compare(value, common.Hash{}.Bytes()) != 0 {
-		c.Errorf("expected empty current value, got %x", value)
-	}
-	if value := s.state.GetCommittedState(address, key); !bytes.Equal(value, []byte{}) {
-		c.Errorf("expected empty committed value, got %x", value)
+	if value := s.state.GetState(address, key); bytes.Compare(value, value) != 0 {
+		c.Error("expected empty current value")
 	}
 }
 
@@ -131,13 +128,11 @@ func (s *StateSuite) TestSnapshot(c *checker.C) {
 	s.state.SetState(stateobjaddr, storageaddr.Bytes(), data2.Bytes())
 	s.state.RevertToSnapshot(snapshot)
 
-	c.Assert(s.state.GetState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, data1)
-	c.Assert(s.state.GetCommittedState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, common.Hash{})
+	c.Assert(common.BytesToHash(s.state.GetState(stateobjaddr, storageaddr.Bytes())), checker.DeepEquals, data1)
 
 	// revert up to the genesis state and ensure correct content
 	s.state.RevertToSnapshot(genesis)
-	c.Assert(s.state.GetState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, common.Hash{})
-	c.Assert(s.state.GetCommittedState(stateobjaddr, storageaddr.Bytes()), checker.DeepEquals, common.Hash{})
+	c.Assert(common.BytesToHash(s.state.GetState(stateobjaddr, storageaddr.Bytes())), checker.DeepEquals, common.Hash{})
 }
 
 func (s *StateSuite) TestSnapshotEmpty(c *checker.C) {
@@ -396,16 +391,13 @@ func TestSlice(t *testing.T){
 	if value := state.GetState(address, key); !bytes.Equal(value, pvalue) {
 		t.Errorf("expected empty current value, got %x", value)
 	}
-	if value := state.GetCommittedState(address, key); !bytes.Equal(value, pvalue) {
-		t.Errorf("expected empty committed value, got %x", value)
-	}
 
 	state.trie.NodeIterator(nil)
 	it := trie.NewIterator(so.trie.NodeIterator(nil))
 	for it.Next() {
 		var arr []*Candidate
 		rlp.DecodeBytes(so.db.trie.GetKey(it.Value), &arr)
-		fmt.Printf("Initialize comparison key-value pairs %v == &+v", string(so.db.trie.GetKey(it.Key)), &arr)
+		fmt.Printf("Initialize comparison key-value pairs %v == %+v", string(so.db.trie.GetKey(it.Key)), &arr)
 	}
 }
 

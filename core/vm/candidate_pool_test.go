@@ -11,6 +11,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/ppos"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -22,7 +23,7 @@ import (
 	"time"
 )
 
-func TestCandidatePoolOverAll(t *testing.T) {
+/*func TestCandidatePoolOverAll(t *testing.T) {
 
 	candidateContract := vm.CandidateContract{
 		newContract(),
@@ -96,7 +97,7 @@ func TestCandidatePoolOverAll(t *testing.T) {
 		return
 	}
 	fmt.Println("The candidate list is: ", vm.ResultByte2Json(resByte))
-}
+}*/
 
 func newChainState() (*state.StateDB, error) {
 	var (
@@ -104,6 +105,7 @@ func newChainState() (*state.StateDB, error) {
 		genesis = new(core.Genesis).MustCommit(db)
 	)
 	fmt.Println("genesis", genesis)
+	ppos_storage.NewPPosTemp(db)
 	// Initialize a fresh chain with only a genesis block
 	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
 

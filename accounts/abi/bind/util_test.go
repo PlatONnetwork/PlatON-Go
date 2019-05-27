@@ -18,16 +18,17 @@ package bind_test
 
 import (
 	"context"
-	"math/big"
-	"testing"
-	"time"
-
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/abi/bind/backends"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"math/big"
+	"testing"
+	"time"
 )
 
 var testKey, _ = crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
@@ -52,6 +53,8 @@ var waitDeployedTests = map[string]struct {
 }
 
 func TestWaitDeployed(t *testing.T) {
+	db := ethdb.NewMemDatabase()
+	ppos_storage.NewPPosTemp(db)
 	for name, test := range waitDeployedTests {
 		backend := backends.NewSimulatedBackend(
 			core.GenesisAlloc{
