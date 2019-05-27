@@ -9,7 +9,6 @@ package mpc
 import "C"
 
 import (
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"path/filepath"
@@ -52,7 +51,6 @@ func InitVM(icepath string, httpEndpoint string) {
 	urlUintPtr := uintptr(unsafe.Pointer(cUrl))
 	syscall.Syscall(securityInitProc.Addr(), 2, cfgUintPtr, urlUintPtr, 0)
 
-	fmt.Println("mpc_process initVM method...")
 	log.Info("Init mpc processor success", "osType", "window", "icepath", icepath, "httpEndpoint", httpEndpoint)
 	defer func() {
 		C.free(unsafe.Pointer(cCfg))

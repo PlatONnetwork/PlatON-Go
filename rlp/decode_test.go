@@ -255,32 +255,6 @@ func TestStreamList(t *testing.T) {
 	}
 }
 
-func TestStreamList2(t *testing.T) {
-	s := NewStream(bytes.NewReader(unhex("C90A1486666F6F626172")), 0)
-	len, err := s.List()
-	if err != nil {
-		t.Fatalf("List error: %v", err)
-	}
-	println("len: ", len)
-
-	for i := uint64(1); i <= 3; i++ {
-
-		size, err:= s.List()
-		s.Uint()
-		println("size: ", size)
-		if err != nil {
-			t.Fatalf("Uint error: %v", err)
-		}
-	}
-
-	/*if _, err := s.Uint(); err != EOL {
-		t.Errorf("Uint error mismatch, got %v, want %v", err, EOL)
-	}
-	if err = s.ListEnd(); err != nil {
-		t.Fatalf("ListEnd error: %v", err)
-	}*/
-}
-
 func TestStreamRaw(t *testing.T) {
 	tests := []struct {
 		input  string

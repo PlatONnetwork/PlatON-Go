@@ -58,7 +58,6 @@ func InitVM(icepath string, httpEndpoint string) {
 		C.free(unsafe.Pointer(cUrl))
 	}()
 	C.notify_security_init(cCfg, cUrl)
-	fmt.Println("mpc_process initVM method...")
 	log.Info("Init mpc processor success", "osType", "window", "icepath", icepath, "httpEndpoint", httpEndpoint)
 }
 

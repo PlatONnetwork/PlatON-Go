@@ -333,6 +333,14 @@ func (tg taskgen) addStatic(*discover.Node) {
 }
 func (tg taskgen) removeStatic(*discover.Node) {
 }
+func (tg taskgen) addConsensus (*discover.Node) {
+}
+func (tg taskgen) removeConsensus(*discover.Node) {
+}
+func (tg taskgen) removeConsensusFromQueue(*discover.Node) {
+}
+func (tg taskgen) initRemoveConsensusPeerFn(removeConsensusPeerFn removeConsensusPeerFn) {
+}
 
 type testTask struct {
 	index  int
