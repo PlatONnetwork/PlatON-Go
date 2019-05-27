@@ -630,6 +630,12 @@ var (
 		Usage: "the pwd of unlock actor",
 		Value: "",
 	}
+
+	CbftBlockIntervalFlag = cli.Uint64Flag{
+		Name:  "cbft.block_interval",
+		Usage: "This interval time use to broadcast block before mining next block",
+		Value: 100, // milliseconds
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1282,6 +1288,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
 		state.MaxTrieCacheGen = uint16(gen)
+	}
+}
+
+func SetCbft(ctx *cli.Context, cfg *eth.CbftConfig) {
+	if ctx.GlobalIsSet(CbftBlockIntervalFlag.Name) {
+		cfg.BlockInterval = ctx.GlobalUint64(CbftBlockIntervalFlag.Name)
 	}
 }
 

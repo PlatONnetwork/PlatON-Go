@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/elliptic"
 	"errors"
+	"sync"
 
 	"fmt"
 
@@ -54,6 +55,8 @@ func (vnm ValidateNodeMap) String() string {
 type Validators struct {
 	Nodes            ValidateNodeMap `json:"validateNodes"`
 	ValidBlockNumber uint64          `json:"-"`
+
+	mux sync.Mutex
 }
 
 func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
@@ -78,10 +81,16 @@ func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
 }
 
 func (vs *Validators) String() string {
+	vs.mux.Lock()
+	defer vs.mux.Unlock()
+
 	return fmt.Sprintf("{Nodes:[%s] ValidBlockNumber:%d}", vs.Nodes, vs.ValidBlockNumber)
 }
 
 func (vs *Validators) NodeList() []discover.NodeID {
+	vs.mux.Lock()
+	defer vs.mux.Unlock()
+
 	nodeList := make([]discover.NodeID, 0)
 	for id, _ := range vs.Nodes {
 		nodeList = append(nodeList, id)
@@ -90,6 +99,9 @@ func (vs *Validators) NodeList() []discover.NodeID {
 }
 
 func (vs *Validators) NodeIndexAddress(id discover.NodeID) (*ValidateNode, error) {
+	vs.mux.Lock()
+	defer vs.mux.Unlock()
+
 	node, ok := vs.Nodes[id]
 	if ok {
 		return node, nil
@@ -98,6 +110,9 @@ func (vs *Validators) NodeIndexAddress(id discover.NodeID) (*ValidateNode, error
 }
 
 func (vs *Validators) NodeID(idx int) discover.NodeID {
+	vs.mux.Lock()
+	defer vs.mux.Unlock()
+
 	for id, node := range vs.Nodes {
 		if node.Index == idx {
 			return id
@@ -108,6 +123,9 @@ func (vs *Validators) NodeID(idx int) discover.NodeID {
 }
 
 func (vs *Validators) AddressIndex(addr common.Address) (*ValidateNode, error) {
+	vs.mux.Lock()
+	defer vs.mux.Unlock()
+
 	for _, node := range vs.Nodes {
 		if bytes.Equal(node.Address[:], addr[:]) {
 			return node, nil
@@ -117,6 +135,9 @@ func (vs *Validators) AddressIndex(addr common.Address) (*ValidateNode, error) {
 }
 
 func (vs *Validators) NodeIndex(id discover.NodeID) (*ValidateNode, error) {
+	vs.mux.Lock()
+	defer vs.mux.Unlock()
+
 	for nodeID, node := range vs.Nodes {
 		if nodeID == id {
 			return node, nil
@@ -126,6 +147,9 @@ func (vs *Validators) NodeIndex(id discover.NodeID) (*ValidateNode, error) {
 }
 
 func (vs *Validators) Len() int {
+	vs.mux.Lock()
+	defer vs.mux.Unlock()
+
 	return len(vs.Nodes)
 }
 
@@ -235,7 +259,7 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err erro
 	}
 
 	// Otherwise, get validators from inner contract.
-	vdsCftNum := blockNumber - ia.offset
+	vdsCftNum := blockNumber - ia.offset - 1
 	block := ia.blockchain.GetBlockByNumber(vdsCftNum)
 	if block == nil {
 		log.Error("Get the block fail, use default validators", "number", vdsCftNum)
