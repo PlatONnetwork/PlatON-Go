@@ -1458,15 +1458,15 @@ func (cbft *Cbft) CalcBlockDeadline() (time.Time, error) {
 			nextSlotValue = slots[curIdx+1]
 		}
 
-		remaing := time.Duration(nextSlotValue-value) * time.Millisecond
-		if lastBlock {
-			if remaing > lastBlockOffsetMs {
-				remaing = remaing - lastBlockOffsetMs
-			} else {
-				remaing = 50 * time.Millisecond // 50ms
-			}
+		remaining := time.Duration(nextSlotValue-value) * time.Millisecond
+		interval := time.Duration(cbft.config.BlockInterval) * time.Millisecond
+		cbft.log.Trace("Calc block deadline", "remaining", remaining, "interval", interval, "curIdx", curIdx)
+		if remaining > interval {
+			remaining = remaining - interval
+		} else {
+			remaining = 50 * time.Millisecond // 50ms
 		}
-		return time.Now().Add(remaing), err
+		return time.Now().Add(remaining), err
 	}
 	return time.Now().Add(50 * time.Millisecond), err // 50ms
 

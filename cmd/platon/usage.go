@@ -252,6 +252,12 @@ var AppHelpFlagGroups = []flagGroup{
 		},
 	},
 	{
+		Name: "CBFT",
+		Flags: []cli.Flag{
+			utils.CbftBlockIntervalFlag,
+		},
+	},
+	{
 		Name: "MISC",
 	},
 }

@@ -17,7 +17,6 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/node"
 	"fmt"
 	"math/big"
 	"os"
@@ -25,6 +24,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/node"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -48,6 +49,7 @@ var DefaultConfig = Config{
 		MaxLatency:       600,
 		LegalCoefficient: 1.0,
 		Duration:         10,
+		BlockInterval:    100,
 	},
 	NetworkId:     1,
 	LightPeers:    100,
@@ -146,6 +148,8 @@ type CbftConfig struct {
 	MaxLatency       int64   `json:"maxLatency"`
 	LegalCoefficient float64 `json:"legalCoefficient"`
 	Duration         int64   `json:"duration"`
+
+	BlockInterval uint64 `json:"-"`
 	//mock
 	//InitialNodes []discover.Node   `json:"initialNodes"`
 	//NodeID       discover.NodeID   `json:"nodeID,omitempty"`

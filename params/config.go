@@ -221,6 +221,7 @@ type CbftConfig struct {
 	MaxLatency       int64   `json:"maxLatency,omitempty"`       // number of milliseconds of max net latency between the consensus nodes
 	LegalCoefficient float64 `json:"legalCoefficient,omitempty"` // coefficient for checking if a block is in it's turn
 	Duration         int64   `json:"duration,omitempty"`         // number of seconds for a node to produce blocks
+	BlockInterval    uint64  `json:"-"`
 	//mock
 	InitialNodes  []discover.Node   `json:"initialNodes,omitempty"`
 	NodeID        discover.NodeID   `json:"-"`
