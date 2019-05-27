@@ -192,7 +192,7 @@ func (ps *peerSet) Peers() []*peer {
 
 func (ps *peerSet) printPeers() {
 	// Output in 2 seconds
-	outTimer := time.NewTicker(time.Second * 2)
+	outTimer := time.NewTicker(time.Second * 5)
 	for {
 		if ps.closed {
 			break
@@ -209,7 +209,7 @@ func (ps *peerSet) printPeers() {
 				}
 			}
 			pInfo := bf.String()
-			log.Debug(fmt.Sprintf("The neighbor node owned by the current peer is : {%v}, size: {%d}", pInfo, len(peers)))
+			log.Info(fmt.Sprintf("The neighbor node owned by the current peer is : {%v}, size: {%d}", pInfo, len(peers)))
 		}
 	}
 }

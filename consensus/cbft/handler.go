@@ -10,12 +10,19 @@ import (
 )
 
 const (
+	MixMode = iota			// all consensus node
+	PartMode				// partial node
+	FullMode				// all node
+)
+
+const (
 	sendQueueSize = 10240
 )
 
 type MsgPackage struct {
 	peerID string
 	msg    Message
+	mode   uint64	// forwarding mode.
 }
 
 type handler struct {
@@ -73,6 +80,7 @@ func (h *handler) SendAllConsensusPeer(msg Message) {
 	select {
 	case h.sendQueue <- &MsgPackage{
 		msg: msg,
+		mode: FullMode,
 	}:
 	default:
 	}
@@ -91,10 +99,23 @@ func (h *handler) Send(peerID discover.NodeID, msg Message) {
 func (h *handler) SendBroadcast(msg Message) {
 	msgPkg := &MsgPackage{
 		msg: msg,
+		mode: MixMode,
 	}
 	select {
 	case h.sendQueue <- msgPkg:
 		h.cbft.log.Debug("Send message to broadcast queue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
+	default:
+	}
+}
+
+func (h *handler) SendPartBroadcast(msg Message) {
+	msgPkg := &MsgPackage{
+		msg: msg,
+		mode: PartMode,
+	}
+	select {
+	case h.sendQueue <- msgPkg:
+		h.cbft.log.Debug("Send message to broadcast queue to partial", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
 	default:
 	}
 }
@@ -205,8 +226,7 @@ func (h *handler) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		//p.MarkMessageHash((&request).MsgHash())
-
+		p.MarkMessageHash((&request).MsgHash())
 		h.cbft.ReceivePeerMsg(&MsgInfo{
 			Msg:    &request,
 			PeerID: p.ID(),
@@ -218,8 +238,7 @@ func (h *handler) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		//p.MarkMessageHash((&request).MsgHash())
-
+		p.MarkMessageHash((&request).MsgHash())
 		h.cbft.ReceivePeerMsg(&MsgInfo{
 			Msg:    &request,
 			PeerID: p.ID(),

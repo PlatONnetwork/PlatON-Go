@@ -81,7 +81,7 @@ var (
 
 	maxBlockDist = uint64(192)
 
-	msgQueuesLimit = 2048
+	maxQueuesLimit = 4096
 )
 
 type Cbft struct {
@@ -131,6 +131,8 @@ type Cbft struct {
 	bp         Breakpoint
 	// router
 	router *router
+	queues map[string]int
+	queueMu sync.RWMutex
 
 	// wal
 	nodeServiceContext *node.ServiceContext
@@ -192,8 +194,8 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceCo
 	cbft.bp = defaultBP
 	cbft.handler = NewHandler(cbft)
 	cbft.router = NewRouter(cbft.handler)
+	cbft.queues = make(map[string]int)
 	cbft.resetCache, _ = lru.New(maxResetCacheSize)
-
 	return cbft
 }
 
@@ -341,7 +343,19 @@ func (cbft *Cbft) receiveLoop() {
 	for {
 		select {
 		case msg := <-cbft.peerMsgCh:
+
+			count := cbft.queues[msg.PeerID.TerminalString()] + 1
+			if count > maxQueuesLimit {
+				cbft.log.Debug("Discarded msg, exceeded allowance", "peer", msg.PeerID.TerminalString(), "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash(), "limit", maxQueuesLimit)
+				break
+			}
+			cbft.queues[msg.PeerID.TerminalString()] = count
 			cbft.handleMsg(msg)
+			cbft.queues[msg.PeerID.TerminalString()]--
+			if cbft.queues[msg.PeerID.TerminalString()] == 0 {
+				delete(cbft.queues, msg.PeerID.TerminalString())
+			}
+
 		case bt := <-cbft.syncBlockCh:
 			cbft.OnSyncBlock(bt)
 		case bs := <-cbft.executeBlockCh:
@@ -669,11 +683,11 @@ func (cbft *Cbft) OnViewChangeTimeout(view *viewChange) {
 
 	//cbft.mux.Lock()
 	//defer cbft.mux.Lock()
-	cbft.log.Debug(fmt.Sprintf("Check view change timeout send:%v agree:%v", cbft.hadSendViewChange(), cbft.agreeViewChange()))
+	cbft.log.Debug(fmt.Sprintf("Check view change timeout send:%v agree:%v msgHash:%v", cbft.hadSendViewChange(), cbft.agreeViewChange(), view.MsgHash().TerminalString()))
 	if cbft.viewChange != nil && view.Equal(cbft.viewChange) {
 		if cbft.hadSendViewChange() && !cbft.agreeViewChange() {
 			cbft.handleCache()
-			cbft.log.Info("View change timeout", "current view", cbft.viewChange.String())
+			cbft.log.Info("View change timeout", "current view", cbft.viewChange.String(), "msgHash", view.MsgHash().TerminalString())
 			cbft.resetViewChange()
 		}
 	}
@@ -833,7 +847,7 @@ func (cbft *Cbft) ShouldSeal(curTime int64) (bool, error) {
 		peersCount := len(cbft.netLatencyMap)
 		cbft.netLatencyLock.RUnlock()
 		if peersCount < cbft.getThreshold() {
-			inturn = false
+			//inturn = false
 		}
 	}
 	//cbft.log.Debug("Should Seal", "time", curTime, "inturn", inturn, "peers", len(cbft.netLatencyMap))
@@ -870,7 +884,7 @@ func (cbft *Cbft) OnSendViewChange() {
 		cbft.log.Error("New view change failed", "err", err)
 		return
 	}
-	cbft.log.Debug("Send new view", "view", view.String())
+	cbft.log.Debug("Send new view", "view", view.String(), "msgHash", view.MsgHash().TerminalString())
 	cbft.handler.SendAllConsensusPeer(view)
 
 	// gauage
@@ -934,7 +948,7 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 
 	resp.Signature.SetBytes(sign)
 	cbft.viewChangeResp = resp
-
+	cbft.log.Info("Reply viewChangeVote", "msgHash", resp.MsgHash())
 	time.AfterFunc(time.Duration(cbft.config.Period)*time.Second*2, func() {
 		cbft.viewChangeVoteTimeoutCh <- resp
 	})
@@ -981,7 +995,7 @@ func (cbft *Cbft) flushReadyBlock() bool {
 	cbft.rootIrreversible.Store(newRoot)
 	cbft.bp.InternalBP().NewHighestRootBlock(context.TODO(), newRoot, &cbft.RoundState)
 
-	blockConfirmedTimer.UpdateSince(time.Unix(int64(newRoot.timestamp), 0))
+	blockConfirmedTimer.UpdateSince(common.MillisToTime(newRoot.rcvTime))
 
 	cbft.evPool.Clear(cbft.viewChange.Timestamp, cbft.viewChange.BaseBlockNum)
 	return true
@@ -1065,6 +1079,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 
 		//receive 2f+1 view vote , clear last view state
 		if cbft.agreeViewChange() {
+			viewChangeConfirmedTimer.UpdateSince(time.Unix(int64(cbft.viewChange.Timestamp),0))
 			cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, &cbft.RoundState)
 			var newHeader *types.Header
 			viewBlock := cbft.blockExtMap.findBlock(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)
@@ -1165,6 +1180,7 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 		ext.timestamp = vote.Timestamp
 	}
 
+	hadSend := (ext.inTree && ext.isExecuted && ext.isConfirmed)
 	ext.prepareVotes.Add(vote)
 
 	cbft.saveBlockExt(vote.Hash, ext)
@@ -1181,7 +1197,9 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 			cbft.updateValidator()
 		}
 		cbft.log.Debug("Send Confirmed Block", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
-		cbft.handler.SendAllConsensusPeer(&confirmedPrepareBlock{Hash: ext.block.Hash(), Number: ext.block.NumberU64(), VoteBits: ext.prepareVotes.voteBits})
+		if !hadSend {
+			cbft.handler.SendAllConsensusPeer(&confirmedPrepareBlock{Hash: ext.block.Hash(), Number: ext.block.NumberU64(), VoteBits: ext.prepareVotes.voteBits})
+		}
 	}
 
 }
@@ -2140,9 +2158,15 @@ func (cbft *Cbft) updateValidator() {
 }
 
 func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {
-	//isCsusNode := cbft.IsConsensusNode() fmt.Sprintf("%x", p.ID().Bytes()[:8]),
 	peers := cbft.handler.peers.Peers()
+	if len(peers) == 0 {
+		return false
+	}
 	for _, peer := range peers {
+		// exclude currently send peer.
+		if peer.id == nodeId.TerminalString() {
+			continue
+		}
 		if peer.knownMessageHash.Contains(msg.MsgHash()) {
 			cbft.log.Debug("needn't to broadcast", "type", reflect.TypeOf(msg), "hash", msg.MsgHash(), "BHash", msg.BHash().TerminalString())
 			messageRepeatMeter.Mark(1)
