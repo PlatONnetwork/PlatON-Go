@@ -148,19 +148,9 @@ type Cbft struct {
 
 // New creates a concurrent BFT consensus engine
 func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
-	//todo need dynamic change consensus nodes
-	initialNodesID := make([]discover.NodeID, 0, len(config.InitialNodes))
-	for _, n := range config.InitialNodes {
-		initialNodesID = append(initialNodesID, n.ID)
-	}
-
-	//dpos := newDpos(initialNodesID)
-
 	cbft := &Cbft{
-		config:   config,
-		eventMux: eventMux,
-		//dpos:                    dpos,
-		//rotating:                newRotating(dpos, config.Duration),
+		config:                  config,
+		eventMux:                eventMux,
 		running:                 1,
 		exitCh:                  make(chan struct{}),
 		signedSet:               make(map[uint64]struct{}),
@@ -1017,8 +1007,8 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 		return errInvalidatorCandidateAddress
 	} else if !cbft.CheckConsensusNode(request.ProposalAddr) {
 		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request,
-			fmt.Errorf("remote node is not consensus node addr:%s", request.ProposalAddr.String()), &cbft.RoundState)
-		log.Warn("Remote node is not consensus node,discard this msg", "addr", request.ProposalAddr)
+			fmt.Errorf("remote node is not consensus node address:%s", request.ProposalAddr.String()), &cbft.RoundState)
+		log.Warn("Remote node is not consensus node,discard this msg", "address", request.ProposalAddr)
 		return errInvalidatorCandidateAddress
 	}
 

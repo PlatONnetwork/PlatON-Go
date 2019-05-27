@@ -34,38 +34,6 @@ func createAccount(n int) []*ecdsa.PrivateKey {
 	return pris
 }
 
-func makeViewChangeVote(pri *ecdsa.PrivateKey, timestamp, blockNum uint64, blockHash common.Hash, proposalIndex uint32,
-	proposalAddr common.Address, validatorIndex uint32, validatorAddr common.Address) *viewChangeVote {
-	p := &viewChangeVote{
-		Timestamp:      timestamp,
-		BlockNum:       blockNum,
-		BlockHash:      blockHash,
-		ProposalIndex:  proposalIndex,
-		ProposalAddr:   proposalAddr,
-		ValidatorIndex: validatorIndex,
-		ValidatorAddr:  validatorAddr,
-	}
-
-	cb, _ := p.CannibalizeBytes()
-	sign, _ := crypto.Sign(cb, pri)
-	p.Signature.SetBytes(sign)
-	return p
-}
-
-func makePrepareVote(pri *ecdsa.PrivateKey, timestamp, blockNum uint64, blockHash common.Hash, validatorIndex uint32, validatorAddr common.Address) *prepareVote {
-	p := &prepareVote{
-		Timestamp:      timestamp,
-		Number:         blockNum,
-		Hash:           blockHash,
-		ValidatorIndex: validatorIndex,
-		ValidatorAddr:  validatorAddr,
-	}
-	cb, _ := p.CannibalizeBytes()
-	sign, _ := crypto.Sign(cb, pri)
-	p.Signature.SetBytes(sign)
-	return p
-}
-
 func TestTimeOrderViewChange_Add(t *testing.T) {
 	var p TimeOrderViewChange
 	p.Add(nil)
