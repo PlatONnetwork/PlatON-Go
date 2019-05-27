@@ -51,14 +51,14 @@ var (
 	errListConfirmedBlocks = errors.New("list confirmed blocks error")
 	errMissingSignature    = errors.New("extra-data 65 byte signature suffix missing")
 
-	errInitiateViewchange          = errors.New("not initiated viewchange")
-	errTwoThirdViewchangeVotes     = errors.New("lower two third viewchange prepareVotes")
+	errInitiateViewchange          = errors.New("not initiated viewChange")
+	errTwoThirdViewchangeVotes     = errors.New("lower two third viewChangeVotes")
 	errTwoThirdPrepareVotes        = errors.New("lower two third prepare prepareVotes")
 	errNotFoundViewBlock           = errors.New("not found block")
-	errInvalidViewChangeVotes      = errors.New("invalid prepare prepareVotes")
+	errInvalidViewChangeVotes      = errors.New("invalid prepare viewChangeVotes")
 	errInvalidPrepareVotes         = errors.New("invalid prepare prepareVotes")
 	errInvalidatorCandidateAddress = errors.New("invalid address")
-	errDuplicationConsensusMsg     = errors.New("Duplication message")
+	errDuplicationConsensusMsg     = errors.New("duplication message")
 	extraSeal                      = 65
 	windowSize                     = 10
 

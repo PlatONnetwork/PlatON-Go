@@ -15,7 +15,7 @@ func TestNewViewChange(t *testing.T) {
 
 	engine, backend, validators := randomCBFT(path, 4)
 
-	priA := validators.neibor[0]
+	priA := validators.neighbors[0]
 	//addrA := crypto.PubkeyToAddress(*priA.publicKey)
 
 	gen := backend.chain.Genesis()
@@ -92,5 +92,29 @@ func TestCbft_OnSendViewChange(t *testing.T) {
 	assert.NotNil(t, engine.viewChange)
 	time.Sleep(time.Second * time.Duration(engine.config.Period*2))
 	assert.Nil(t, engine.viewChange)
+}
 
+func TestCbft_ShouldSeal(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+	engine, _, validators := randomCBFT(path, 4)
+
+	seal , err := engine.ShouldSeal(100)
+	assert.False(t, seal)
+	assert.Equal(t, errTwoThirdViewchangeVotes, err)
+
+	time.Sleep(time.Second*time.Duration(engine.config.Period)*2)
+	assert.Nil(t, engine.viewChange)
+
+	seal , err = engine.ShouldSeal(100)
+	assert.False(t, seal)
+	assert.Equal(t, errTwoThirdViewchangeVotes, err)
+
+	for _, v := range validators.neighbors {
+		engine.viewChangeVotes[v.address] = nil
+	}
+
+	seal , err = engine.ShouldSeal(100)
+	assert.True(t, seal)
+	assert.Nil(t, err)
 }

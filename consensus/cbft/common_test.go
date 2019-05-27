@@ -42,8 +42,9 @@ type NodeData struct {
 
 type testValidator struct {
 	owner  *NodeData
-	neibor []*NodeData
+	neighbors []*NodeData
 }
+
 
 type mockWorker struct {
 	mux *event.TypeMux
@@ -132,20 +133,20 @@ func nodeIndexNow(validators *testValidator, startTimestamp int64) *NodeData {
 
 	distance := now - startTimestamp
 	duration := chainConfig.Cbft.Duration * 1000
-	total := int64(len(validators.neibor) + 1)
+	total := int64(len(validators.neighbors) + 1)
 
 	index := distance % (duration * total) / duration
 	//
 	//if distance%(duration*total)%duration != 0 {
 	//	index += 1
 	//}
-	if index > int64(len(validators.neibor)) {
+	if index > int64(len(validators.neighbors)) {
 		panic(fmt.Sprintf("now:%d, distance:%d, duration:%d, total:%d, index:%d", now, distance, duration, total, index))
 	}
 	if index == 0 {
 		return validators.owner
 	}
-	return validators.neibor[index-1]
+	return validators.neighbors[index-1]
 }
 
 func CreateCBFT(path string, pri *ecdsa.PrivateKey) *Cbft {
@@ -213,7 +214,7 @@ func createTestValidator(accounts []*ecdsa.PrivateKey) *testValidator {
 			}
 			continue
 		}
-		validators.neibor = append(validators.neibor, &NodeData{
+		validators.neighbors = append(validators.neighbors, &NodeData{
 			privateKey: pri,
 			publicKey:  &pri.PublicKey,
 			address:    crypto.PubkeyToAddress(pri.PublicKey),
@@ -227,7 +228,7 @@ func createTestValidator(accounts []*ecdsa.PrivateKey) *testValidator {
 func (v *testValidator) Nodes() []discover.Node {
 	var nodes []discover.Node
 	nodes = append(nodes, discover.Node{ID: v.owner.nodeID})
-	for _, n := range v.neibor {
+	for _, n := range v.neighbors {
 		nodes = append(nodes, discover.Node{ID: n.nodeID})
 	}
 	return nodes
