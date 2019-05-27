@@ -1,19 +1,16 @@
 package runtime
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/life/utils"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"bytes"
-	"fmt"
 	"io/ioutil"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 )
 
 func TestDefaults(t *testing.T) {
@@ -74,27 +71,6 @@ func TestExecute(t *testing.T) {
 		t.Error("Expected 10, got", big.Int(result))
 	}*/
 	fmt.Println("....", result)
-}
-
-func TestCall(t *testing.T) {
-	state, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
-	address := common.HexToAddress("0x0a")
-	code := genCodeInput()
-	state.SetCode(address, code)
-	input := genInput()
-	ret, _, err := Call(address, input, &Config{State: state})
-
-	callInput := genCallInput()
-	ret02, _, err := Call(address, callInput, &Config{State: state})
-	if err != nil {
-		t.Fatal("didn't expect error", err)
-	}
-	fmt.Println("CallResponse:", string(ret02))
-	num := string(ret)
-	expected := "x"
-	if !strings.EqualFold(num, expected) {
-		t.Error("Expected "+expected+", got", num)
-	}
 }
 
 func TestCallCode(t *testing.T){

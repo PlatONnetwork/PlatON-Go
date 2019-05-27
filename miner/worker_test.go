@@ -25,6 +25,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -134,13 +135,17 @@ func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, engine consens
 	backend := newTestWorkerBackend(t, chainConfig, engine, blocks)
 	backend.txPool.AddLocals(pendingTxs)
 
-	cbft, ok := engine.(*cbft.Cbft)
+	_, ok := engine.(*cbft.Cbft)
 	if !ok {
 		return nil,nil
 	}
 
+	blockSignatureCh := make(chan *cbfttypes.BlockSignature, 20)
+	cbftResultCh := make(chan *cbfttypes.CbftResult, 0)
+	highestLogicalBlockCh := make(chan *types.Block, 20)
 	blockChainCache := core.NewBlockChainCache(backend.chain)
-	w := newWorker(chainConfig, engine, backend, new(event.TypeMux), time.Second, params.GenesisGasLimit, params.GenesisGasLimit, nil, cbft.BlockSignOutCh(), cbft.CbftResultCh(), cbft.HighestLogicalBlockCh(), blockChainCache)
+	//w := newWorker(chainConfig, engine, backend, new(event.TypeMux), time.Second, params.GenesisGasLimit, params.GenesisGasLimit, nil, cbft.BlockSignOutCh(), cbft.CbftResultCh(), cbft.HighestLogicalBlockCh(), blockChainCache)
+	w := newWorker(chainConfig, engine, backend, new(event.TypeMux), time.Second, params.GenesisGasLimit, params.GenesisGasLimit, nil, blockSignatureCh, cbftResultCh, highestLogicalBlockCh, blockChainCache)
 	w.setEtherbase(testBankAddress)
 	return w, backend
 }
