@@ -72,10 +72,10 @@ func TestBlockSynced_lastButOneMainBlock(t *testing.T) {
 	doBlockSynced(lastButOneMainBlock, t)
 }
 
-func TestBlockSynced_hash23(t *testing.T) {
+/*func TestBlockSynced_hash23(t *testing.T) {
 	doBlockSynced(cbft.findBlockExt(hash23).block, t)
 }
-
+*/
 
 func doBlockSynced(currentBlock *types.Block, t *testing.T){
 	if currentBlock.NumberU64() > cbft.getRootIrreversible().Number {
