@@ -2095,6 +2095,8 @@ func (cbft *Cbft) updateValidator() {
 	cbft.validators = newVds
 	cbft.log.Info("Update validators success", "highestConfirmed", hc.number, "hash", hc.block.Hash(), "validators", cbft.validators)
 
+	cbft.afterUpdateValidator()
+
 	if _, ok := cbft.validators.Nodes[cbft.config.NodeID]; ok {
 		cbft.eventMux.Post(cbfttypes.UpdateValidatorEvent{})
 		log.Trace("Post UpdateValidatorEvent", "nodeID", cbft.config.NodeID)

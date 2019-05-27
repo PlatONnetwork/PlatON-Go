@@ -541,6 +541,12 @@ func (cbft *Cbft) setViewChange(view *viewChange) {
 	cbft.master = false
 }
 
+func (cbft *Cbft) afterUpdateValidator() {
+	if _, err := cbft.validators.NodeIndex(cbft.config.NodeID); err != nil {
+		cbft.master = false
+	}
+}
+
 func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote) error {
 	log.Debug("Receive view change vote", "peer", peerID, "vote", vote.String())
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
