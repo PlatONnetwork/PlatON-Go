@@ -80,7 +80,7 @@ var (
 
 	blockUnconfirmedGauage				= metrics.NewRegisteredGauge("cbft/gauage/blocks/unconfirmed", nil)
 	blockHighNumConfirmedGauage			= metrics.NewRegisteredGauge("cbft/gauage/blocks/height_num/confirmed",nil)
-	blockHighNumLogicGauage			= metrics.NewRegisteredGauge("cbft/gauage/blocks/height_num/logic",nil)
+	blockHighNumLogicGauage				= metrics.NewRegisteredGauge("cbft/gauage/blocks/height_num/logic",nil)
 	viewChangeGauage					= metrics.NewRegisteredGauge("cbft/gauage/views/viewchange",nil)
 )
 

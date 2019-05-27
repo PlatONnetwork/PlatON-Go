@@ -472,7 +472,7 @@ func (cbft *Cbft) newViewChange() (*viewChange, error) {
 	cbft.resetViewChange()
 	cbft.viewChange = view
 	cbft.master = true
-	log.Debug("Make new view change", "view", view.String())
+	log.Debug("Make new view change", "view", view.String(), "msgHash", view.MsgHash().TerminalString())
 	return view, nil
 }
 
@@ -540,7 +540,9 @@ func (cbft *Cbft) setViewChange(view *viewChange) {
 func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote) error {
 	log.Debug("Receive view change vote", "peer", peerID, "vote", vote.String())
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
-
+	if cbft.needBroadcast(peerID, vote) {
+		go cbft.handler.SendBroadcast(vote)
+	}
 	//cbft.mux.Lock()
 	//defer cbft.mux.Unlock()
 	hadAgree := cbft.agreeViewChange()
@@ -581,6 +583,7 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 	}
 
 	if !hadAgree && cbft.agreeViewChange() {
+		viewChangeVoteFulfillTimer.UpdateSince(time.Unix(int64(cbft.viewChange.Timestamp), 0))
 		cbft.wal.UpdateViewChange(&ViewChangeMessage{
 			Hash:   vote.BlockHash,
 			Number: vote.BlockNum,
@@ -590,8 +593,8 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 		cbft.producerBlocks = NewProducerBlocks(cbft.config.NodeID, cbft.viewChange.BaseBlockNum)
 		cbft.clearPending()
 		cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
-
 	}
+
 	log.Info("Receive viewchange vote", "msg", vote.String(), "had votes", len(cbft.viewChangeVotes))
 	return nil
 }
@@ -974,6 +977,7 @@ func (bm *BlockExtMap) fixChain(blockExt *BlockExt) {
 	if blockExt.prepareVotes.Len() >= bm.threshold {
 		log.Debug("Block is confirmed", "hash", blockExt.block.Hash(), "number", blockExt.number)
 		blockExt.isConfirmed = true
+		blockMinedTimer.UpdateSince(common.MillisToTime(blockExt.rcvTime))
 	}
 
 	parent := bm.findParent(blockExt.block.ParentHash(), blockExt.number)

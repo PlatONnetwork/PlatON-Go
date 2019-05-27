@@ -137,3 +137,20 @@ func StringID(s string) discover.NodeID {
 	copy(id[:], b)
 	return id
 }
+
+func TestFormatPeers(t *testing.T) {
+	peers := []*peer{
+		&peer{
+			id: "id01",
+		},
+		&peer{
+			id: "id02",
+		},
+	}
+	peersStr := formatPeers(peers)
+	if peersStr != "id01,id02" {
+		t.Error("error")
+	} else {
+		t.Log("test success")
+	}
+}
