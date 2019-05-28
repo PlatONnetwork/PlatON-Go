@@ -1664,12 +1664,7 @@ func (cbft *Cbft) update() {
 // APIs implements consensus.Engine, returning the user facing RPC API to allow
 // controlling the signer voting.
 func (cbft *Cbft) APIs(chain consensus.ChainReader) []rpc.API {
-	return []rpc.API{{
-		Namespace: "cbft",
-		Version:   "1.0",
-		Service:   &API{chain: chain, cbft: cbft},
-		Public:    false,
-	}}
+	return []rpc.API{}
 }
 
 func (cbft *Cbft) Protocols() []p2p.Protocol {
