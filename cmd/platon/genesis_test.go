@@ -16,13 +16,6 @@
 
 package main
 
-import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"testing"
-)
-
 var customGenesisTests = []struct {
 	genesis string
 	query   string
@@ -86,7 +79,7 @@ var customGenesisTests = []struct {
 
 // Tests that initializing Geth with a custom genesis block and chain definitions
 // work properly.
-func TestCustomGenesis(t *testing.T) {
+/*func TestCustomGenesis(t *testing.T) {
 	for i, tt := range customGenesisTests {
 		// Create a temporary data directory to use and inspect later
 		datadir := tmpdir(t)
@@ -107,4 +100,4 @@ func TestCustomGenesis(t *testing.T) {
 		geth.ExpectRegexp(tt.result)
 		geth.ExpectExit()
 	}
-}
+}*/
