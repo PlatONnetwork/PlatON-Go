@@ -18,8 +18,6 @@ matrix:
     - name: windows compile
       os: windows
       go: 1.12.x
-      addons:
-        
       script:
         - chmod u+x ./build/*.sh
         - sh ./build/build_deps.sh
