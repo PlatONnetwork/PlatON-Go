@@ -1,11 +1,6 @@
 package core
 
 import (
-	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"math/big"
-	"strconv"
-	"strings"
 	"testing"
 )
 
@@ -18,7 +13,7 @@ func TestGenerateAccount(t *testing.T) {
 }
 
 // TestGetNonce will send a request to remote node
-func TestGetNonce(t *testing.T) {
+/*func TestGetNonce(t *testing.T) {
 	parseConfigJson(configPath)
 	nonce := getNonce("0x60ceca9c1290ee56b98d4e160ef0453f7c40d219")
 	fmt.Println(nonce)
@@ -59,4 +54,4 @@ func TestSendRawTransaction(t *testing.T) {
 	}
 
 	fmt.Printf(hash)
-}
+}*/
