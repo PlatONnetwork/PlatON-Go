@@ -58,8 +58,11 @@ matrix:
         - chmod u+x ./build/*.sh
         - make all
       script:
+        - WORKSPACE=$(pwd)
         - git clone https://github.com/shinnng/PlatON-Tests.git
-        - cd ./PlatON-Tests
+        - cd ${WORKSPACE}/PlatON-Tests/deploy/node/
+        - unzip -P ${UNZIP_CODE} travis_node.zip
+        - cd ${WORKSPACE}/PlatON-Tests/
         - pip install --user -r requirements.txt
-        - cp -f ../build/bin/platon ./deploy/rely/bin/
+        - cp -f ${WORKSPACE}/build/bin/platon ${WORKSPACE}/PlatON-Tests/deploy/rely/bin/
         - python run.py --node ./deploy/node/travis_node.yml --type all
