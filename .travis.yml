@@ -1,6 +1,6 @@
 language: go
 go_import_path: github.com/PlatONnetwork/PlatON-Go
-sudo: false
+# sudo: false
 matrix:
   include:
     # This builder compile PlatON at Ubuntu xenial
@@ -13,7 +13,6 @@ matrix:
         - chmod u+x ./build/*.sh
         - make all
 
-    # This builder compile PlatON at Windows server 2016
     # This builder compile PlatON at Windows server 2016
     - name: windows compile
       os: windows
