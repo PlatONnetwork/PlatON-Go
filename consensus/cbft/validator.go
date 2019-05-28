@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/elliptic"
 	"errors"
-	"sync"
 
 	"fmt"
 
@@ -55,8 +54,6 @@ func (vnm ValidateNodeMap) String() string {
 type Validators struct {
 	Nodes            ValidateNodeMap `json:"validateNodes"`
 	ValidBlockNumber uint64          `json:"-"`
-
-	mux sync.Mutex
 }
 
 func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
@@ -81,16 +78,10 @@ func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
 }
 
 func (vs *Validators) String() string {
-	vs.mux.Lock()
-	defer vs.mux.Unlock()
-
 	return fmt.Sprintf("{Nodes:[%s] ValidBlockNumber:%d}", vs.Nodes, vs.ValidBlockNumber)
 }
 
 func (vs *Validators) NodeList() []discover.NodeID {
-	vs.mux.Lock()
-	defer vs.mux.Unlock()
-
 	nodeList := make([]discover.NodeID, 0)
 	for id, _ := range vs.Nodes {
 		nodeList = append(nodeList, id)
@@ -99,9 +90,6 @@ func (vs *Validators) NodeList() []discover.NodeID {
 }
 
 func (vs *Validators) NodeIndexAddress(id discover.NodeID) (*ValidateNode, error) {
-	vs.mux.Lock()
-	defer vs.mux.Unlock()
-
 	node, ok := vs.Nodes[id]
 	if ok {
 		return node, nil
@@ -110,9 +98,6 @@ func (vs *Validators) NodeIndexAddress(id discover.NodeID) (*ValidateNode, error
 }
 
 func (vs *Validators) NodeID(idx int) discover.NodeID {
-	vs.mux.Lock()
-	defer vs.mux.Unlock()
-
 	for id, node := range vs.Nodes {
 		if node.Index == idx {
 			return id
@@ -123,9 +108,6 @@ func (vs *Validators) NodeID(idx int) discover.NodeID {
 }
 
 func (vs *Validators) AddressIndex(addr common.Address) (*ValidateNode, error) {
-	vs.mux.Lock()
-	defer vs.mux.Unlock()
-
 	for _, node := range vs.Nodes {
 		if bytes.Equal(node.Address[:], addr[:]) {
 			return node, nil
@@ -135,9 +117,6 @@ func (vs *Validators) AddressIndex(addr common.Address) (*ValidateNode, error) {
 }
 
 func (vs *Validators) NodeIndex(id discover.NodeID) (*ValidateNode, error) {
-	vs.mux.Lock()
-	defer vs.mux.Unlock()
-
 	for nodeID, node := range vs.Nodes {
 		if nodeID == id {
 			return node, nil
@@ -147,10 +126,22 @@ func (vs *Validators) NodeIndex(id discover.NodeID) (*ValidateNode, error) {
 }
 
 func (vs *Validators) Len() int {
-	vs.mux.Lock()
-	defer vs.mux.Unlock()
-
 	return len(vs.Nodes)
+}
+
+func (vs *Validators) Equal(rsh *Validators) bool {
+	if vs.Len() != rsh.Len() {
+		return false
+	}
+
+	equal := true
+	for k, v := range vs.Nodes {
+		if vv, ok := rsh.Nodes[k]; !ok || vv.Index != v.Index {
+			equal = false
+			break
+		}
+	}
+	return equal
 }
 
 // Agency
@@ -228,6 +219,10 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 			return 0
 		}
 
+		if vds.ValidBlockNumber == 0 && blockNumber%ia.defaultBlocksPerRound == 0 {
+			return blockNumber
+		}
+
 		// lastNumber = vds.ValidBlockNumber + ia.blocksPerNode * vds.Len() - 1
 		lastBlockNumber = vds.ValidBlockNumber + ia.blocksPerNode*uint64(vds.Len()) - 1
 
@@ -244,7 +239,8 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 }
 
 func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err error) {
-	var lastBlockNumber uint64
+	//var lastBlockNumber uint64
+	/*
 	defer func() {
 		log.Trace("Get validator",
 			"lastBlockNumber", lastBlockNumber,
@@ -252,7 +248,7 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err erro
 			"blockNumber", blockNumber,
 			"validators", v,
 			"error", err)
-	}()
+	}()*/
 
 	if blockNumber <= ia.defaultBlocksPerRound {
 		return ia.defaultValidators, nil
@@ -288,6 +284,6 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err erro
 		}
 	}
 	validators.ValidBlockNumber = vds.ValidBlockNumber
-	lastBlockNumber = vds.ValidBlockNumber + ia.blocksPerNode*uint64(validators.Len()) - 1
+	//lastBlockNumber = vds.ValidBlockNumber + ia.blocksPerNode*uint64(validators.Len()) - 1
 	return &validators, nil
 }
