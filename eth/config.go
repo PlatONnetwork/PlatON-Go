@@ -170,7 +170,6 @@ type CbftConfig struct {
 type PposConfig struct {
 	Candidate 				*CandidateConfig 			`json:"candidate"`
 	Ticket 					*TicketConfig 				`json:"ticket"`
-	YearBlocks				uint32						`json:"yearBlocks"`
 }
 
 type CandidateConfig struct {
