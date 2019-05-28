@@ -206,5 +206,32 @@ func TestCbft_OnPrepareBlockHash(t *testing.T) {
 			Hash:   common.BytesToHash(Rand32Bytes(32)),
 			Number: 20,
 		}))
+}
+
+func TestCbft_InsertChain(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, v := randomCBFT(path, 4)
+
+	view := makeViewChange(v.validator(1).privateKey, uint64(engine.config.Duration*1000*1+100), 0, engine.blockChain.Genesis().Hash(), 1, v.validator(1).address, nil)
+
+	blocks := makeConfirmedBlock(v, engine.blockChain.Genesis().Root(), view, 2)
+
+	states := make([]chan error, 0)
+	for _, b := range blocks {
+		syncState := make(chan error, 1)
+		engine.InsertChain(b, syncState)
+		states = append(states, syncState)
+	}
+
+	for _, s := range states {
+		if err := <-s; err != nil {
+			t.Error(err)
+		}
+
+	}
+
+	time.Sleep(10 * time.Second)
 
 }
