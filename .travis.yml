@@ -41,7 +41,7 @@ matrix:
       go: 1.12.x
       script:
         - sh ./build/build_deps.sh
-        - go test ./accounts/... ./common/... ./console/... ./contracts/... ./crypto/... ./eth/... ./ethdb/... ./event/... ./internal/... ./life/... ./log/... ./metrics/... ./mobile/... ./node/... ./params/... ./rlp/... ./signer/... ./cmd/... ./consensus/... ./containers/... ./core/... ./dashboard/... ./ethclient/... ./ethstats/... ./les/... ./light/... ./miner/... ./mpc/... ./p2p/... ./rpc/... ./trie/...
+        - go test `go list ./... | grep -v swarm|grep -v tests|grep -v bn256`
 
     # This builder run the auto tests
     - name: auto test
