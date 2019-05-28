@@ -14,9 +14,12 @@ matrix:
         - make all
 
     # This builder compile PlatON at Windows server 2016
+    # This builder compile PlatON at Windows server 2016
     - name: windows compile
       os: windows
       go: 1.12.x
+      addons:
+        
       script:
         - chmod u+x ./build/*.sh
         - sh ./build/build_deps.sh
