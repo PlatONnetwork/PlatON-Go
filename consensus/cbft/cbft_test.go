@@ -3,6 +3,7 @@ package cbft
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -99,14 +100,14 @@ func TestCbft_ShouldSeal(t *testing.T) {
 	defer os.RemoveAll(path)
 	engine, _, validators := randomCBFT(path, 4)
 
-	seal , err := engine.ShouldSeal(100)
+	seal, err := engine.ShouldSeal(100)
 	assert.False(t, seal)
 	assert.Equal(t, errTwoThirdViewchangeVotes, err)
 
-	time.Sleep(time.Second*time.Duration(engine.config.Period)*2)
+	time.Sleep(time.Second * time.Duration(engine.config.Period) * 2)
 	assert.Nil(t, engine.viewChange)
 
-	seal , err = engine.ShouldSeal(100)
+	seal, err = engine.ShouldSeal(100)
 	assert.False(t, seal)
 	assert.Equal(t, errTwoThirdViewchangeVotes, err)
 
@@ -114,7 +115,96 @@ func TestCbft_ShouldSeal(t *testing.T) {
 		engine.viewChangeVotes[v.address] = nil
 	}
 
-	seal , err = engine.ShouldSeal(100)
+	seal, err = engine.ShouldSeal(100)
 	assert.True(t, seal)
 	assert.Nil(t, err)
+}
+
+func TestCbft_GetBlock(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, backend, validators := randomCBFT(path, 4)
+
+	priA := validators.neighbors[0]
+	gen := backend.chain.Genesis()
+
+	var blocks []*types.Block
+	blocks = append(blocks, gen)
+	for i := uint64(1); i < 10; i++ {
+		block := createBlock(priA.privateKey, blocks[i-1].Hash(), blocks[i-1].NumberU64()+1)
+		blocks = append(blocks, block)
+		ext := NewBlockExtByPeer(block, block.NumberU64(), len(validators.Nodes()))
+		engine.blockExtMap.Add(block.Hash(), block.NumberU64(), ext)
+		//t.Log(blocks[i].NumberU64(), blocks[i].Hash().TerminalString(), blocks[i].ParentHash().TerminalString())
+	}
+
+	res := engine.GetBlock(blocks[3].Hash(), blocks[3].NumberU64())
+	assert.Equal(t, blocks[3].Hash(), res.Hash())
+	assert.Equal(t, blocks[3].NumberU64(), res.NumberU64())
+
+	assert.True(t, engine.HasBlock(blocks[0].Hash(), blocks[0].NumberU64()))
+	assert.False(t, engine.HasBlock(common.BytesToHash(Rand32Bytes(32)), res.NumberU64()))
+	assert.NotNil(t, engine.GetBlockByHash(blocks[3].Hash()))
+}
+
+func TestCbft_IsSignedBySelf(t *testing.T) {
+
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, validators := randomCBFT(path, 4)
+	sealHash := common.BytesToHash(Rand32Bytes(32))
+
+	sign, _ := crypto.Sign(sealHash[:], validators.owner.privateKey)
+
+	assert.True(t, engine.IsSignedBySelf(sealHash, sign))
+
+	assert.False(t, engine.IsSignedBySelf(sealHash, sign[:20]))
+}
+
+func TestCbft_Seal(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, backend, validators := randomCBFT(path, 4)
+
+	node := validators.owner
+	genesis := backend.chain.Genesis()
+	block := createBlock(node.privateKey, genesis.Hash(), 1)
+
+	viewChange := makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, genesis.Hash(), uint32(node.index), node.address, nil)
+
+	engine.viewChange = viewChange
+
+	sealResultCh := make(chan *types.Block, 1)
+	stopCh := make(chan struct{}, 1)
+	assert.Nil(t, engine.Seal(backend.chain, block, sealResultCh, stopCh))
+
+}
+
+func TestCbft_NextBaseBlock(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, backend, _ := randomCBFT(path, 4)
+
+	block := engine.NextBaseBlock()
+	genesis := backend.chain.Genesis()
+	assert.Equal(t, block.Hash(), genesis.Hash())
+	assert.Equal(t, block.NumberU64(), genesis.NumberU64())
+}
+
+func TestCbft_OnPrepareBlockHash(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, validators := randomCBFT(path, 4)
+
+	assert.Nil(t, engine.OnPrepareBlockHash(validators.neighbors[0].nodeID,
+		&prepareBlockHash{
+			Hash:   common.BytesToHash(Rand32Bytes(32)),
+			Number: 20,
+		}))
+
 }

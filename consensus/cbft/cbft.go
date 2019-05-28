@@ -716,7 +716,9 @@ func (cbft *Cbft) OnPrepareBlockHash(peerID discover.NodeID, msg *prepareBlockHa
 	cbft.log.Debug("Received message of prepareBlockHash", "FromPeerId", peerID.String(),
 		"BlockHash", msg.Hash.Hex(), "Number", msg.Number)
 	// Prerequisite: Nodes with PrepareBlock data can forward Hash
-	cbft.handler.Send(peerID, &getPrepareBlock{Hash: msg.Hash, Number: msg.Number})
+	if cbft.blockExtMap.findBlock(msg.Hash, msg.Number) == nil {
+		cbft.handler.Send(peerID, &getPrepareBlock{Hash: msg.Hash, Number: msg.Number})
+	}
 
 	// then: to forward msg
 	if ok := cbft.needBroadcast(peerID, msg); ok {
@@ -752,7 +754,6 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 	number := block.NumberU64()
 
 	if number == 0 {
-
 		return errUnknownBlock
 	}
 
@@ -1897,25 +1898,25 @@ func (cbft *Cbft) calTurnIndex(timePoint int64, nodeIdx int) bool {
 // producer's signature = header.Extra[32:]
 // public key can be recovered from signature, the length of public key is 65,
 // the length of NodeID is 64, nodeID = publicKey[1:]
-func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
-	var nodeID discover.NodeID
-	if len(header.Extra) < extraSeal {
-		return nodeID, []byte{}, errMissingSignature
-	}
-	signature := header.Extra[len(header.Extra)-extraSeal:]
-	sealHash := header.SealHash()
-
-	pubkey, err := crypto.Ecrecover(sealHash.Bytes(), signature)
-	if err != nil {
-		return nodeID, []byte{}, err
-	}
-
-	nodeID, err = discover.BytesID(pubkey[1:])
-	if err != nil {
-		return nodeID, []byte{}, err
-	}
-	return nodeID, signature, nil
-}
+//func ecrecover(header *types.Header) (discover.NodeID, []byte, error) {
+//	var nodeID discover.NodeID
+//	if len(header.Extra) < extraSeal {
+//		return nodeID, []byte{}, errMissingSignature
+//	}
+//	signature := header.Extra[len(header.Extra)-extraSeal:]
+//	sealHash := header.SealHash()
+//
+//	pubkey, err := crypto.Ecrecover(sealHash.Bytes(), signature)
+//	if err != nil {
+//		return nodeID, []byte{}, err
+//	}
+//
+//	nodeID, err = discover.BytesID(pubkey[1:])
+//	if err != nil {
+//		return nodeID, []byte{}, err
+//	}
+//	return nodeID, signature, nil
+//}
 
 // verify sign, check the sign is from the right node.
 func verifySign(expectedNodeID discover.NodeID, sealHash common.Hash, signature []byte) error {
