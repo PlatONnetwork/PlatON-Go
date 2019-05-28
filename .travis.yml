@@ -65,4 +65,4 @@ matrix:
         - cd ${WORKSPACE}/PlatON-Tests/
         - pip install --user -r requirements.txt
         - cp -f ${WORKSPACE}/build/bin/platon ${WORKSPACE}/PlatON-Tests/deploy/rely/bin/
-        - python run.py --node ./deploy/node/travis_node.yml --type all
+        - python run.py --node ./deploy/node/travis_node.yml --type ppos
