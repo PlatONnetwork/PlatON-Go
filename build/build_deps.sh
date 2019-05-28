@@ -21,7 +21,7 @@ if [ "$(uname)" = "Darwin" ]; then
     SF_BUILD=$SF_BUILD/Linux-x86_64-GCC
 elif [ `expr substr $(uname -s) 1 5` = "Linux" ]; then
     SF_BUILD=$SF_BUILD/Linux-x86_64-GCC
-elif [ `expr substr $(uname -s) 1 10` = "MINGW64_NT" ]; then
+elif [ `expr substr $(uname -s) 1 10` = "MINGW64_NT" ] || [ `expr substr $(uname -s) 1 7` = "MSYS_NT" ]; then
     SF_BUILD=$SF_BUILD/Win64-MinGW-w64
     CMAKE_GEN="MinGW Makefiles"
     MAKE="mingw32-make.exe"
@@ -31,14 +31,16 @@ elif [ `expr substr $(uname -s) 1 10` = "MINGW64_NT" ]; then
         x86_64-w64-mingw32-gcc-ar V
         if [ $? -ne 0 ]; then
             echo 'not found x86_64-w64-mingw32-ar'
-            exit 127
+            exit 1
         fi
         sed -i "s/x86_64-w64-mingw32-ar/x86_64-w64-mingw32-gcc-ar/g" $SF_BUILD/Makefile
     fi
 else
     echo "not support system $(uname -s)"
-    exit 0
+    exit 1
 fi
+
+set -e
 
 cd $SF_BUILD
 #$MAKE clean

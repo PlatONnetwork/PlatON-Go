@@ -18,21 +18,13 @@ package light
 
 import (
 	"bytes"
-	"context"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"testing"
-
-	"github.com/davecgh/go-spew/spew"
-	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
+	"github.com/davecgh/go-spew/spew"
 )
 
-func TestNodeIterator(t *testing.T) {
+/*func TestNodeIterator(t *testing.T) {
 	var (
 		fulldb  = ethdb.NewMemDatabase()
 		lightdb = ethdb.NewMemDatabase()
@@ -54,7 +46,7 @@ func TestNodeIterator(t *testing.T) {
 	if err := diffTries(fullTrie, lightTrie); err != nil {
 		t.Fatal(err)
 	}
-}
+}*/
 
 func diffTries(t1, t2 state.Trie) error {
 	i1 := trie.NewIterator(t1.NodeIterator(nil))

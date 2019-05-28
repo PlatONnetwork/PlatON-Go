@@ -1,28 +1,7 @@
 package pposm_test
 
-import (
-	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/core/ppos"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/core/ticketcache"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"math/big"
-	"math/rand"
-	"strconv"
-	"sync/atomic"
-	"testing"
-	"time"
-	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
-)
-
-func TestTicketProcess(t *testing.T) {
+//
+/*func TestTicketProcess(t *testing.T) {
 	var (
 		db      = ethdb.NewMemDatabase()
 		genesis = new(core.Genesis).MustCommit(db)
@@ -185,274 +164,274 @@ func TestTicketProcess(t *testing.T) {
 	fmt.Println("When voting for the 50th ticket, it takes time to vote.：", timeMap[50], "ms")
 	fmt.Println("When the 10th ticket is taken, the voting takes time：", timeMap[10], "ms")
 	fmt.Println("When the first ticket is taken, the time taken for voting：", timeMap[1], "ms")
-}
-
-func initParam() (*state.StateDB, *pposm.CandidatePoolContext, *pposm.TicketPoolContext) {
-	var (
-		db      = ethdb.NewMemDatabase()
-		genesis = new(core.Genesis).MustCommit(db)
-	)
-	fmt.Println("genesis", genesis)
-	// Initialize a fresh chain with only a genesis block
-	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
-	ticketcache.NewTicketIdsCache(db)
-	configs := params.PposConfig{
-		CandidateConfig: &params.CandidateConfig{
-			Threshold:         "100",
-			DepositLimit:      10,
-			MaxChair:          1,
-			MaxCount:          3,
-			RefundBlockNumber: 1,
-		},
-		TicketConfig: &params.TicketConfig{
-			TicketPrice:       "1",
-			MaxCount:          10000,
-			ExpireBlockNumber: 100,
-		},
-	}
-
-	candidatePoolContextContext := pposm.NewCandidatePoolContext(&configs)
-
-	ticketPoolContext := pposm.NewTicketPoolContext(&configs)
-
-	var state *state.StateDB
-	if statedb, err := blockchain.State(); nil != err {
-		fmt.Println("reference statedb failed", "err", err)
-	} else {
-		state = statedb
-	}
-	txHash := common.Hash{}
-	txHash.SetBytes(crypto.Keccak256([]byte(strconv.Itoa(time.Now().Second()))))
-	state.Prepare(txHash, common.Hash{}, 1)
-	return state, candidatePoolContextContext, ticketPoolContext
-}
-
-func TestTicketPool_VoteTicket(t *testing.T) {
-	state, candidatePoolContext, ticketPool := initParam()
-
-	candidate := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
-		TxIndex:     6,
-		Host:        "10.0.0.1",
-		Port:        "8548",
-		Owner:       common.HexToAddress("0x12"),
-	}
-
-	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
-		t.Error("SetCandidate fail", "err", err)
-	}
-
-	successNumber, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
-	if nil != err {
-		t.Error("vote ticket fail", "err", err)
-	} else {
-		t.Log("vote ticket success", "successNumber", successNumber)
-	}
-}
-
-func TestTicketPool_GetExpireTicketIds(t *testing.T) {
-	state, _, ticketPool := initParam()
-
-	list := ticketPool.GetExpireTicketIds(state, new(big.Int).SetUint64(10))
-	t.Logf("Execute TestTicketPool_GetExpireTicketIds success, listSize=%d", len(list))
-}
-
-func TestTicketPool_GetTicketList(t *testing.T) {
-	state, candidatePoolContext, ticketPool := initParam()
-
-	candidate := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
-		TxIndex:     6,
-		Host:        "10.0.0.1",
-		Port:        "8548",
-		Owner:       common.HexToAddress("0x12"),
-	}
-
-	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
-		t.Error("SetCandidate fail", "err", err)
-	}
-
-	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
-	if nil != err {
-		t.Error("vote ticket fail", "err", err)
-	}
-
-	list := ticketPool.GetCandidateTicketIds(state, candidate.CandidateId)
-	t.Logf("Execute TestTicketPool_GetTicketList success, list=%d", len(list))
-}
-
-func TestTicketPool_GetTicket(t *testing.T) {
-	state, candidatePoolContext, ticketPool := initParam()
-
-	candidate := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
-		TxIndex:     6,
-		Host:        "10.0.0.1",
-		Port:        "8548",
-		Owner:       common.HexToAddress("0x12"),
-	}
-
-	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
-		t.Error("SetCandidate fail", "err", err)
-	}
-
-	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
-	if nil != err {
-		t.Error("vote ticket fail", "err", err)
-	}
-
-	ticket := ticketPool.GetTicket(state, state.TxHash())
-	if ticket == nil {
-		t.Error("getTicket fail", "err", err)
-	}
-}
-
-func TestTicketPool_DropReturnTicket(t *testing.T) {
-	state, candidatePoolContext, ticketPool := initParam()
-
-	candidate := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
-		TxIndex:     6,
-		Host:        "10.0.0.1",
-		Port:        "8548",
-		Owner:       common.HexToAddress("0x12"),
-	}
-
-	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
-		t.Error("SetCandidate fail", "err", err)
-	}
-
-	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(6))
-	if nil != err {
-		t.Error("vote ticket fail", "err", err)
-	}
-
-	err = ticketPool.DropReturnTicket(state, candidate.BlockNumber, candidate.CandidateId)
-	if nil != err {
-		t.Error("dropReturnTicket fail", "err", err)
-	}
-}
-
-func TestTicketPool_ReturnTicket(t *testing.T) {
-	state, candidatePoolContext, ticketPool := initParam()
-
-	candidate := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
-		TxIndex:     6,
-		Host:        "10.0.0.1",
-		Port:        "8548",
-		Owner:       common.HexToAddress("0x12"),
-	}
-
-	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
-		t.Error("SetCandidate fail", "err", err)
-	}
-
-	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
-	if nil != err {
-		t.Error("vote ticket fail", "err", err)
-	}
-
-	err = ticketPool.ReturnTicket(state, candidate.CandidateId, state.TxHash(), new(big.Int).SetUint64(10))
-	if nil != err {
-		t.Error("returnTicket fail", "err", err)
-	}
-}
-
-func TestTicketPool_Notify(t *testing.T) {
-	state, candidatePoolContext, ticketPool := initParam()
-
-	candidate := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
-		TxIndex:     6,
-		Host:        "10.0.0.1",
-		Port:        "8548",
-		Owner:       common.HexToAddress("0x12"),
-	}
-
-	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
-		t.Error("SetCandidate fail", "err", err)
-	}
-
-	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(6))
-	if nil != err {
-		t.Error("vote ticket fail", "err", err)
-	}
-
-	err = ticketPool.Notify(state, new(big.Int).SetUint64(10))
-	if nil != err {
-		t.Error("notify fail", "err", err)
-	}
-}
-
-func TestTicketPool_SelectionLuckyTicket(t *testing.T) {
-	state, candidatePoolContext, ticketPool := initParam()
-
-	candidate := &types.Candidate{
-		Deposit:     new(big.Int).SetUint64(100),
-		BlockNumber: new(big.Int).SetUint64(7),
-		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
-		TxIndex:     6,
-		Host:        "10.0.0.1",
-		Port:        "8548",
-		Owner:       common.HexToAddress("0x12"),
-	}
-
-	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
-		t.Error("SetCandidate fail", "err", err)
-	}
-
-	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(6))
-	if nil != err {
-		t.Error("vote ticket fail", "err", err)
-	}
-
-	blockHash := common.Hash{}
-	blockHash.SetBytes([]byte("3b41e0aee38c1a1f959a6aaae678d86f1e6af59617d2f667bb2ef5527779c861"))
-	_, err = ticketPool.SelectionLuckyTicket(state, candidate.CandidateId, blockHash)
-	if nil != err {
-		t.Error("selectionLuckyTicket fail", "err", err)
-	}
-}
-
-func TestTicketPool_GetPoolNumber(t *testing.T) {
-	state, _, ticketPool := initParam()
-
-	sum := ticketPool.GetPoolNumber(state)
-	t.Log("getPoolNumber success", "sum", sum)
-}
-
-func TestTicketPool_GetCandidateTicketIds(t *testing.T) {
-	state, _, ticketPool := initParam()
-
-	list := ticketPool.GetCandidateTicketIds(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
-	t.Logf("Execute TestTicketPool_GetCandidateTicketIds success, listSize=%d", len(list))
-}
-
-func TestTicketPool_GetCandidateEpoch(t *testing.T) {
-	state, _, ticketPool := initParam()
-
-	epoch := ticketPool.GetCandidateEpoch(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
-	t.Logf("Execute TestTicketPool_GetCandidateTicketIds success, epoch=%d", epoch)
-}
-
-func TestTicketPool_GetTicketPrice(t *testing.T) {
-	state, _, ticketPool := initParam()
-
-	price := ticketPool.GetTicketPrice(state)
-	if price.Cmp(big.NewInt(0)) <= 0 {
-		t.Error("getTicketPrice fail")
-	}
-}
+}*/
+//
+//func initParam() (*state.StateDB, *pposm.CandidatePoolContext, *pposm.TicketPoolContext) {
+//	var (
+//		db      = ethdb.NewMemDatabase()
+//		genesis = new(core.Genesis).MustCommit(db)
+//	)
+//	fmt.Println("genesis", genesis)
+//	// Initialize a fresh chain with only a genesis block
+//	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
+//	ticketcache.NewTicketIdsCache(db)
+//	configs := params.PposConfig{
+//		CandidateConfig: &params.CandidateConfig{
+//			Threshold:         "100",
+//			DepositLimit:      10,
+//			MaxChair:          1,
+//			MaxCount:          3,
+//			RefundBlockNumber: 1,
+//		},
+//		TicketConfig: &params.TicketConfig{
+//			TicketPrice:       "1",
+//			MaxCount:          10000,
+//			ExpireBlockNumber: 100,
+//		},
+//	}
+//
+//	candidatePoolContextContext := pposm.NewCandidatePoolContext(&configs)
+//
+//	ticketPoolContext := pposm.NewTicketPoolContext(&configs)
+//
+//	var state *state.StateDB
+//	if statedb, err := blockchain.State(); nil != err {
+//		fmt.Println("reference statedb failed", "err", err)
+//	} else {
+//		state = statedb
+//	}
+//	txHash := common.Hash{}
+//	txHash.SetBytes(crypto.Keccak256([]byte(strconv.Itoa(time.Now().Second()))))
+//	state.Prepare(txHash, common.Hash{}, 1)
+//	return state, candidatePoolContextContext, ticketPoolContext
+//}
+//
+//func TestTicketPool_VoteTicket(t *testing.T) {
+//	state, candidatePoolContext, ticketPool := initParam()
+//
+//	candidate := &types.Candidate{
+//		Deposit:     new(big.Int).SetUint64(100),
+//		BlockNumber: new(big.Int).SetUint64(7),
+//		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+//		TxIndex:     6,
+//		Host:        "10.0.0.1",
+//		Port:        "8548",
+//		Owner:       common.HexToAddress("0x12"),
+//	}
+//
+//	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+//		t.Error("SetCandidate fail", "err", err)
+//	}
+//
+//	successNumber, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
+//	if nil != err {
+//		t.Error("vote ticket fail", "err", err)
+//	} else {
+//		t.Log("vote ticket success", "successNumber", successNumber)
+//	}
+//}
+//
+///*func TestTicketPool_GetExpireTicketIds(t *testing.T) {
+//	state, _, ticketPool := initParam()
+//
+//	list := ticketPool.GetExpireTicketIds(state, new(big.Int).SetUint64(10))
+//	t.Logf("Execute TestTicketPool_GetExpireTicketIds success, listSize=%d", len(list))
+//}*/
+//
+//func TestTicketPool_GetTicketList(t *testing.T) {
+//	state, candidatePoolContext, ticketPool := initParam()
+//
+//	candidate := &types.Candidate{
+//		Deposit:     new(big.Int).SetUint64(100),
+//		BlockNumber: new(big.Int).SetUint64(7),
+//		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+//		TxIndex:     6,
+//		Host:        "10.0.0.1",
+//		Port:        "8548",
+//		Owner:       common.HexToAddress("0x12"),
+//	}
+//
+//	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+//		t.Error("SetCandidate fail", "err", err)
+//	}
+//
+//	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
+//	if nil != err {
+//		t.Error("vote ticket fail", "err", err)
+//	}
+//
+//	list := ticketPool.GetCandidateTicketIds(state, candidate.CandidateId)
+//	t.Logf("Execute TestTicketPool_GetTicketList success, list=%d", len(list))
+//}
+//
+//func TestTicketPool_GetTicket(t *testing.T) {
+//	state, candidatePoolContext, ticketPool := initParam()
+//
+//	candidate := &types.Candidate{
+//		Deposit:     new(big.Int).SetUint64(100),
+//		BlockNumber: new(big.Int).SetUint64(7),
+//		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+//		TxIndex:     6,
+//		Host:        "10.0.0.1",
+//		Port:        "8548",
+//		Owner:       common.HexToAddress("0x12"),
+//	}
+//
+//	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+//		t.Error("SetCandidate fail", "err", err)
+//	}
+//
+//	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
+//	if nil != err {
+//		t.Error("vote ticket fail", "err", err)
+//	}
+//
+//	ticket := ticketPool.GetTicket(state, state.TxHash())
+//	if ticket == nil {
+//		t.Error("getTicket fail", "err", err)
+//	}
+//}
+//
+//func TestTicketPool_DropReturnTicket(t *testing.T) {
+//	state, candidatePoolContext, ticketPool := initParam()
+//
+//	candidate := &types.Candidate{
+//		Deposit:     new(big.Int).SetUint64(100),
+//		BlockNumber: new(big.Int).SetUint64(7),
+//		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+//		TxIndex:     6,
+//		Host:        "10.0.0.1",
+//		Port:        "8548",
+//		Owner:       common.HexToAddress("0x12"),
+//	}
+//
+//	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+//		t.Error("SetCandidate fail", "err", err)
+//	}
+//
+//	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(6))
+//	if nil != err {
+//		t.Error("vote ticket fail", "err", err)
+//	}
+//
+//	err = ticketPool.DropReturnTicket(state, candidate.BlockNumber, candidate.CandidateId)
+//	if nil != err {
+//		t.Error("dropReturnTicket fail", "err", err)
+//	}
+//}
+//
+//func TestTicketPool_ReturnTicket(t *testing.T) {
+//	state, candidatePoolContext, ticketPool := initParam()
+//
+//	candidate := &types.Candidate{
+//		Deposit:     new(big.Int).SetUint64(100),
+//		BlockNumber: new(big.Int).SetUint64(7),
+//		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+//		TxIndex:     6,
+//		Host:        "10.0.0.1",
+//		Port:        "8548",
+//		Owner:       common.HexToAddress("0x12"),
+//	}
+//
+//	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+//		t.Error("SetCandidate fail", "err", err)
+//	}
+//
+//	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(10))
+//	if nil != err {
+//		t.Error("vote ticket fail", "err", err)
+//	}
+//
+//	err = ticketPool.ReturnTicket(state, candidate.CandidateId, state.TxHash(), new(big.Int).SetUint64(10))
+//	if nil != err {
+//		t.Error("returnTicket fail", "err", err)
+//	}
+//}
+//
+//func TestTicketPool_Notify(t *testing.T) {
+//	state, candidatePoolContext, ticketPool := initParam()
+//
+//	candidate := &types.Candidate{
+//		Deposit:     new(big.Int).SetUint64(100),
+//		BlockNumber: new(big.Int).SetUint64(7),
+//		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+//		TxIndex:     6,
+//		Host:        "10.0.0.1",
+//		Port:        "8548",
+//		Owner:       common.HexToAddress("0x12"),
+//	}
+//
+//	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+//		t.Error("SetCandidate fail", "err", err)
+//	}
+//
+//	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(6))
+//	if nil != err {
+//		t.Error("vote ticket fail", "err", err)
+//	}
+//
+//	err = ticketPool.Notify(state, new(big.Int).SetUint64(10))
+//	if nil != err {
+//		t.Error("notify fail", "err", err)
+//	}
+//}
+//
+//func TestTicketPool_SelectionLuckyTicket(t *testing.T) {
+//	state, candidatePoolContext, ticketPool := initParam()
+//
+//	candidate := &types.Candidate{
+//		Deposit:     new(big.Int).SetUint64(100),
+//		BlockNumber: new(big.Int).SetUint64(7),
+//		CandidateId: discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"),
+//		TxIndex:     6,
+//		Host:        "10.0.0.1",
+//		Port:        "8548",
+//		Owner:       common.HexToAddress("0x12"),
+//	}
+//
+//	if err := candidatePoolContext.SetCandidate(state, candidate.CandidateId, candidate); nil != err {
+//		t.Error("SetCandidate fail", "err", err)
+//	}
+//
+//	_, err := ticketPool.VoteTicket(state, common.HexToAddress("0x20"), 10, new(big.Int).SetUint64(100), candidate.CandidateId, new(big.Int).SetUint64(6))
+//	if nil != err {
+//		t.Error("vote ticket fail", "err", err)
+//	}
+//
+//	blockHash := common.Hash{}
+//	blockHash.SetBytes([]byte("3b41e0aee38c1a1f959a6aaae678d86f1e6af59617d2f667bb2ef5527779c861"))
+//	_, err = ticketPool.SelectionLuckyTicket(state, candidate.CandidateId, blockHash)
+//	if nil != err {
+//		t.Error("selectionLuckyTicket fail", "err", err)
+//	}
+//}
+//
+//func TestTicketPool_GetPoolNumber(t *testing.T) {
+//	state, _, ticketPool := initParam()
+//
+//	sum := ticketPool.GetPoolNumber(state)
+//	t.Log("getPoolNumber success", "sum", sum)
+//}
+//
+//func TestTicketPool_GetCandidateTicketIds(t *testing.T) {
+//	state, _, ticketPool := initParam()
+//
+//	list := ticketPool.GetCandidateTicketIds(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+//	t.Logf("Execute TestTicketPool_GetCandidateTicketIds success, listSize=%d", len(list))
+//}
+//
+//func TestTicketPool_GetCandidateEpoch(t *testing.T) {
+//	state, _, ticketPool := initParam()
+//
+//	epoch := ticketPool.GetCandidateEpoch(state, discover.MustHexID("0x01234567890121345678901123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"))
+//	t.Logf("Execute TestTicketPool_GetCandidateTicketIds success, epoch=%d", epoch)
+//}
+//
+//func TestTicketPool_GetTicketPrice(t *testing.T) {
+//	state, _, ticketPool := initParam()
+//
+//	price := ticketPool.GetTicketPrice(state)
+//	if price.Cmp(big.NewInt(0)) <= 0 {
+//		t.Error("getTicketPrice fail")
+//	}
+//}

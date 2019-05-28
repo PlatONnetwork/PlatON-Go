@@ -26,7 +26,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 // Genesis block for nodes which don't care about the DAO fork (i.e. not configured)
@@ -82,7 +81,7 @@ var daoGenesisForkBlock = big.NewInt(314)
 
 // TestDAOForkBlockNewChain tests that the DAO hard-fork number and the nodes support/opposition is correctly
 // set in the database after various initialization procedures and invocations.
-func TestDAOForkBlockNewChain(t *testing.T) {
+/*func TestDAOForkBlockNewChain(t *testing.T) {
 	for i, arg := range []struct {
 		genesis     string
 		expectBlock *big.Int
@@ -99,7 +98,7 @@ func TestDAOForkBlockNewChain(t *testing.T) {
 	} {
 		testDAOForkBlockNewChain(t, i, arg.genesis, arg.expectBlock, arg.expectVote)
 	}
-}
+}*/
 
 func testDAOForkBlockNewChain(t *testing.T, test int, genesis string, expectBlock *big.Int, expectVote bool) {
 	// Create a temporary data directory to use and inspect later

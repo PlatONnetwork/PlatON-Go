@@ -17,19 +17,10 @@
 package light
 
 import (
-	"context"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"math"
-	"math/big"
-	"testing"
-	"time"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"math"
 )
 
 type testTxRelay struct {
@@ -74,7 +65,7 @@ func txPoolTestChainGen(i int, block *core.BlockGen) {
 		block.AddTx(testTx[i])
 	}
 }
-
+/*
 func TestTxPool(t *testing.T) {
 	for i := range testTx {
 		testTx[i], _ = types.SignTx(types.NewTransaction(uint64(i), acc1Addr, big.NewInt(10000), params.TxGas, nil, nil), types.HomesteadSigner{}, testBankKey)
@@ -140,4 +131,4 @@ func TestTxPool(t *testing.T) {
 			}
 		}
 	}
-}
+}*/

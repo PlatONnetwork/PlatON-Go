@@ -141,6 +141,13 @@ func New(config *params.CbftConfig, blockSignatureCh chan *cbfttypes.BlockSignat
 	return cbft
 }
 
+func NewFaker() *Cbft {
+	blockSignatureCh := make(chan *cbfttypes.BlockSignature, 20)
+	cbftResultCh := make(chan *cbfttypes.CbftResult)
+	highestLogicalBlockCh := make(chan *types.Block, 20)
+	return New(params.TestnetChainConfig.Cbft, blockSignatureCh, cbftResultCh, highestLogicalBlockCh)
+}
+
 // BlockExt is an extension from Block
 type BlockExt struct {
 	block       *types.Block	`json:"-"`
@@ -2031,6 +2038,7 @@ func (cbft *Cbft) Submit2Cache(state *state.StateDB, currBlocknumber *big.Int, b
 func (cbft *Cbft) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header) {
 	if len(header.Extra) < 64 {
 		log.Error("Failed to Call accumulateRewards, header.Extra < 64", "blockNumber", header.Number, "blockHash", header.Hash(), "len(header.Extra):", len(header.Extra), "extra", hexutil.Encode(header.Extra))
+		return
 	}
 
 
