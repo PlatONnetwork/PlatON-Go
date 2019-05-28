@@ -17,8 +17,6 @@ matrix:
     - name: windows compile
       os: windows
       go: 1.12.x
-      addons:
-        
       script:
         - chmod u+x ./build/*.sh
         - sh ./build/build_deps.sh
@@ -42,7 +40,30 @@ matrix:
       sudo: required
       go: 1.12.x
       script:
-        - go test ./...
+        - sh ./build/build_deps.sh
+        - go test ./accounts/... ./common/... ./console/... ./contracts/... ./crypto/... ./eth/... ./ethdb/... ./event/... ./internal/... ./life/... ./log/... ./metrics/... ./mobile/... ./node/... ./params/... ./rlp/... ./signer/... ./cmd/... ./consensus/... ./containers/... ./core/... ./dashboard/... ./ethclient/... ./ethstats/... ./les/... ./light/... ./miner/... ./mpc/... ./p2p/... ./rpc/... ./trie/...
 
-
-    
+    # This builder run the auto tests
+    - name: auto test
+      os: linux
+      dist: xenial
+      sudo: required
+      go: 1.12.x
+      before_install:
+        - pyenv install -f 3.6.0
+        - pyenv rehash
+        - pyenv global 3.6.0
+        - python --version
+        - pip --version
+      install:
+        - chmod u+x ./build/*.sh
+        - make all
+      script:
+        - WORKSPACE=$(pwd)
+        - git clone https://github.com/shinnng/PlatON-Tests.git
+        - cd ${WORKSPACE}/PlatON-Tests/deploy/node/
+        - unzip -P ${UNZIP_CODE} travis_node.zip
+        - cd ${WORKSPACE}/PlatON-Tests/
+        - pip install --user -r requirements.txt
+        - cp -f ${WORKSPACE}/build/bin/platon ${WORKSPACE}/PlatON-Tests/deploy/rely/bin/
+        - python run.py --node ./deploy/node/travis_node.yml --type ppos
