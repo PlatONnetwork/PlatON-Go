@@ -506,24 +506,26 @@ func (cbft *Cbft) OnSyncBlock(ext *BlockExt) {
 
 	cbft.log.Debug("Sync block success", "hash", ext.block.Hash(), "number", ext.number)
 
-	cbft.viewChange = ext.view
-	if len(ext.viewChangeVotes) >= cbft.getThreshold() {
-		if err := cbft.checkViewChangeVotes(ext.viewChangeVotes); err != nil {
-			log.Error("Receive prepare invalid block", "err", err)
-			cbft.bp.SyncBlockBP().InvalidBlock(context.TODO(), ext, err, &cbft.RoundState)
-			ext.SetSyncState(err)
-			return
-		}
-		for _, v := range ext.viewChangeVotes {
-			cbft.viewChangeVotes[v.ValidatorAddr] = v
-		}
+	if (cbft.viewChange != nil && !cbft.viewChange.Equal(ext.view)) || !cbft.agreeViewChange() {
+		cbft.viewChange = ext.view
+		if len(ext.viewChangeVotes) >= cbft.getThreshold() {
+			if err := cbft.checkViewChangeVotes(ext.viewChangeVotes); err != nil {
+				log.Error("Receive prepare invalid block", "err", err)
+				cbft.bp.SyncBlockBP().InvalidBlock(context.TODO(), ext, err, &cbft.RoundState)
+				ext.SetSyncState(err)
+				return
+			}
+			for _, v := range ext.viewChangeVotes {
+				cbft.viewChangeVotes[v.ValidatorAddr] = v
+			}
 
-		cbft.clearPending()
-		cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
-		cbft.producerBlocks = NewProducerBlocks(cbft.getValidators().NodeID(int(ext.view.ProposalIndex)), ext.block.NumberU64())
-		if cbft.producerBlocks != nil {
-			cbft.producerBlocks.AddBlock(ext.block)
-			cbft.log.Debug("Add producer block", "hash", ext.block.Hash(), "number", ext.block.Number(), "producer", cbft.producerBlocks.String())
+			cbft.clearPending()
+			cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
+			cbft.producerBlocks = NewProducerBlocks(cbft.getValidators().NodeID(int(ext.view.ProposalIndex)), ext.block.NumberU64())
+			if cbft.producerBlocks != nil {
+				cbft.producerBlocks.AddBlock(ext.block)
+				cbft.log.Debug("Add producer block", "hash", ext.block.Hash(), "number", ext.block.Number(), "producer", cbft.producerBlocks.String())
+			}
 		}
 	}
 	ext.timestamp = cbft.viewChange.Timestamp
@@ -1503,7 +1505,6 @@ func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
 		max := int64(nodeIdx+1) * durationPerNode
 
 		log.Trace("Calc next block time", "min", min, "value", value, "max", max)
-
 		var offset int64
 		if value >= min && value <= max {
 			cnt := int64(cbft.config.Duration) / int64(cbft.config.Period)
@@ -2114,7 +2115,7 @@ func (cbft *Cbft) updateValidator() {
 
 	cbft.afterUpdateValidator()
 
-	if _, e := cbft.getValidators().NodeIndex(cbft.config.NodeID); e == nil {
+	if _, e := cbft.getValidators().NodeIndex(cbft.config.NodeID); e == nil && !newVds.Equal(oldVds) {
 		cbft.eventMux.Post(cbfttypes.UpdateValidatorEvent{})
 		log.Trace("Post UpdateValidatorEvent", "nodeID", cbft.config.NodeID)
 	}
