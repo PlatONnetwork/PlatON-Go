@@ -1,6 +1,6 @@
 language: go
 go_import_path: github.com/PlatONnetwork/PlatON-Go
-# sudo: false
+sudo: false
 matrix:
   include:
     # This builder compile PlatON at Ubuntu xenial
