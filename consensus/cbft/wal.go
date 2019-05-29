@@ -70,15 +70,17 @@ type baseWal struct {
 	journal *journal
 }
 
-func NewWal(ctx *node.ServiceContext) (Wal, error) {
+func NewWal(ctx *node.ServiceContext, specifiedPath string) (Wal, error) {
 	var (
-		originPath  = ctx.ResolvePath(walDir)
-		//originPath = "D://data/platon/wal"
+		originPath  = specifiedPath
 		metaDB  IWALDatabase
 		walPath string
 		journal *journal
 		err     error
 	)
+	if originPath == "" {
+		originPath = ctx.ResolvePath(walDir)
+	}
 
 	// Make sure the wal directory exists,If not exist create it.
 	ensureWalDir := func(path string) (string, error) {

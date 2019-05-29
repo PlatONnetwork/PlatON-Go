@@ -560,37 +560,37 @@ func (w *worker) mainLoop() {
 		case <-w.chainSideCh:
 			// If our mining block contains less than 2 uncle blocks,
 			// add the new uncle block if valid and regenerate a mining block.
-		// removed by PlatON
-		/*
-			case  <-w.txsCh:
+			// removed by PlatON
+			/*
+				case  <-w.txsCh:
 
-				// Apply transactions to the pending state if we're not mining.
-				// Note all transactions received may not be continuous with transactions
-				// already included in the current mining block. These transactions will
-				// be automatically eliminated.
-				if !w.isRunning() && w.current != nil {
-					w.mu.RLock()
-					coinbase := w.coinbase
-					w.mu.RUnlock()
+					// Apply transactions to the pending state if we're not mining.
+					// Note all transactions received may not be continuous with transactions
+					// already included in the current mining block. These transactions will
+					// be automatically eliminated.
+					if !w.isRunning() && w.current != nil {
+						w.mu.RLock()
+						coinbase := w.coinbase
+						w.mu.RUnlock()
 
-					txs := make(map[common.Address]types.Transactions)
-					for _, tx := range ev.Txs {
-						acc, _ := types.Sender(w.current.signer, tx)
-						txs[acc] = append(txs[acc], tx)
+						txs := make(map[common.Address]types.Transactions)
+						for _, tx := range ev.Txs {
+							acc, _ := types.Sender(w.current.signer, tx)
+							txs[acc] = append(txs[acc], tx)
+						}
+						txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
+						w.commitTransactions(txset, coinbase, nil, 0)
+						w.updateSnapshot()
+					} else {
+						// If we're mining, but nothing is being processed, wake on new transactions
+						if w.config.Clique != nil && w.config.Clique.Period == 0 {
+							w.commitNewWork(nil, false, time.Now().Unix(), nil)
+						}
 					}
-					txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
-					w.commitTransactions(txset, coinbase, nil, 0)
-					w.updateSnapshot()
-				} else {
-					// If we're mining, but nothing is being processed, wake on new transactions
-					if w.config.Clique != nil && w.config.Clique.Period == 0 {
-						w.commitNewWork(nil, false, time.Now().Unix(), nil)
-					}
-				}
-				atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
-		*/
+					atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
+			*/
 
-		// System stopped
+			// System stopped
 		case <-w.exitCh:
 			return
 
@@ -1408,6 +1408,7 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 		var err error
 		w.commitWorkEnv.currentBaseBlock.Store(nextBaseBlock)
 		w.commitWorkEnv.nextBlockTime, err = w.engine.(consensus.Bft).CalcNextBlockTime()
+		nextBlockTimeMs = common.Millis(w.commitWorkEnv.nextBlockTime)
 		if err != nil {
 			log.Error("Calc next block time failed", "err", err)
 			return false, nil

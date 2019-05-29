@@ -470,7 +470,6 @@ func (cbft *Cbft) newViewChange() (*viewChange, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	view.Signature.SetBytes(sign)
 	view.BaseBlockPrepareVote = ext.Votes()
 	cbft.resetViewChange()
