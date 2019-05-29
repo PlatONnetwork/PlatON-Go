@@ -1408,6 +1408,7 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 		var err error
 		w.commitWorkEnv.currentBaseBlock.Store(nextBaseBlock)
 		w.commitWorkEnv.nextBlockTime, err = w.engine.(consensus.Bft).CalcNextBlockTime()
+		nextBlockTimeMs = common.Millis(w.commitWorkEnv.nextBlockTime)
 		if err != nil {
 			log.Error("Calc next block time failed", "err", err)
 			return false, nil
