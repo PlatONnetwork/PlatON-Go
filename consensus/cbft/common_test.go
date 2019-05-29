@@ -113,25 +113,11 @@ func makeViewChange(pri *ecdsa.PrivateKey, timestamp, baseBlockNum uint64, baseB
 	return p
 }
 
-func makeConfirmedExt(v *testValidator, view *viewChange, num int) []*BlockExt {
-	exts := make([]*BlockExt, 0)
-	for i := uint64(1); i < uint64(num); i++ {
-		block := createBlock(v.validator(view.ProposalIndex).privateKey, view.BaseBlockHash, view.BaseBlockNum+i)
-		ext := NewBlockExt(block, block.NumberU64(), v.len())
-		for j := uint32(0); j < uint32(v.len()); j++ {
-			if j != view.ProposalIndex {
-				ext.prepareVotes.Add(makePrepareVote(v.validator(j).privateKey, view.Timestamp, block.NumberU64(), block.Hash(), j, v.validator(j).address))
-			}
-		}
-		exts = append(exts, ext)
-	}
-	return exts
-}
-
-func makeConfirmedBlock(v *testValidator, root common.Hash, view *viewChange, num int) []*types.Block {
-	blocks := make([]*types.Block, 0)
-	for i := uint64(1); i < uint64(num); i++ {
-		block := createBlock(v.validator(view.ProposalIndex).privateKey, view.BaseBlockHash, view.BaseBlockNum+i)
+func makeConfirmedBlock(v *testValidator, root common.Hash, view *viewChange, num int) []*BlockExt {
+	blocks := make([]*BlockExt, 0)
+	parentHash := view.BaseBlockHash
+	for i := uint64(1); i <= uint64(num); i++ {
+		block := createBlockWithRootHash(v.validator(view.ProposalIndex).privateKey, parentHash, root, view.BaseBlockNum+i)
 		ext := NewBlockExt(block, block.NumberU64(), v.len())
 		ext.view = view
 		for j := uint32(0); j < uint32(v.len()); j++ {
@@ -144,8 +130,8 @@ func makeConfirmedBlock(v *testValidator, root common.Hash, view *viewChange, nu
 		bxBytes, _ := rlp.EncodeToBytes(ext.BlockExtra())
 		extra = append(extra, bxBytes...)
 		block.SetExtraData(extra)
-
-		blocks = append(blocks, block)
+		parentHash = block.Hash()
+		blocks = append(blocks, ext)
 	}
 	return blocks
 }
@@ -157,7 +143,24 @@ func createBlock(pri *ecdsa.PrivateKey, parent common.Hash, number uint64) *type
 		ParentHash:  parent,
 		ReceiptHash: types.EmptyRootHash,
 		TxHash:      types.EmptyRootHash,
-		Root:        common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
+	}
+
+	sign, _ := crypto.Sign(header.SealHash().Bytes(), pri)
+	header.Extra = make([]byte, 32+65)
+	copy(header.Extra, sign)
+
+	block := types.NewBlockWithHeader(header)
+	return block
+}
+
+func createBlockWithRootHash(pri *ecdsa.PrivateKey, parent common.Hash, root common.Hash, number uint64) *types.Block {
+
+	header := &types.Header{
+		Number:      big.NewInt(int64(number)),
+		ParentHash:  parent,
+		ReceiptHash: types.EmptyRootHash,
+		TxHash:      types.EmptyRootHash,
+		Root:        root,
 	}
 
 	sign, _ := crypto.Sign(header.SealHash().Bytes(), pri)

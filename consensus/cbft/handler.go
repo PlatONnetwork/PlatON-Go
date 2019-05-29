@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	MixMode = iota			// all consensus node
-	PartMode				// partial node
-	FullMode				// all node
+	MixMode  = iota // all consensus node
+	PartMode        // partial node
+	FullMode        // all node
 )
 
 const (
@@ -22,7 +22,7 @@ const (
 type MsgPackage struct {
 	peerID string
 	msg    Message
-	mode   uint64	// forwarding mode.
+	mode   uint64 // forwarding mode.
 }
 
 type handler struct {
@@ -51,6 +51,10 @@ func (h *handler) sendLoop() {
 	for {
 		select {
 		case m := <-h.sendQueue:
+			if m == nil {
+				h.cbft.log.Info("sendQueue is closed")
+				return
+			}
 			if len(m.peerID) == 0 {
 				h.broadcast(m)
 			} else {
@@ -79,7 +83,7 @@ func (h *handler) SendAllConsensusPeer(msg Message) {
 	log.Debug("SendAllConsensusPeer Invoke", "hash", msg.MsgHash(), "type", reflect.TypeOf(msg), "BHash", msg.BHash().TerminalString())
 	select {
 	case h.sendQueue <- &MsgPackage{
-		msg: msg,
+		msg:  msg,
 		mode: FullMode,
 	}:
 	default:
@@ -87,18 +91,18 @@ func (h *handler) SendAllConsensusPeer(msg Message) {
 }
 
 func (h *handler) Send(peerID discover.NodeID, msg Message) {
+
 	select {
 	case h.sendQueue <- &MsgPackage{
 		peerID: fmt.Sprintf("%x", peerID.Bytes()[:8]),
 		msg:    msg,
 	}:
-	default:
 	}
 }
 
 func (h *handler) SendBroadcast(msg Message) {
 	msgPkg := &MsgPackage{
-		msg: msg,
+		msg:  msg,
 		mode: MixMode,
 	}
 	select {
@@ -110,7 +114,7 @@ func (h *handler) SendBroadcast(msg Message) {
 
 func (h *handler) SendPartBroadcast(msg Message) {
 	msgPkg := &MsgPackage{
-		msg: msg,
+		msg:  msg,
 		mode: PartMode,
 	}
 	select {

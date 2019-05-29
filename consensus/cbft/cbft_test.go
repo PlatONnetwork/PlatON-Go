@@ -1,11 +1,13 @@
 package cbft
 
 import (
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
@@ -208,30 +210,83 @@ func TestCbft_OnPrepareBlockHash(t *testing.T) {
 		}))
 }
 
+//create insert chain
 func TestCbft_InsertChain(t *testing.T) {
 	path := path()
 	defer os.RemoveAll(path)
 
 	engine, _, v := randomCBFT(path, 4)
 
+	// create view by validator 1
 	view := makeViewChange(v.validator(1).privateKey, uint64(engine.config.Duration*1000*1+100), 0, engine.blockChain.Genesis().Hash(), 1, v.validator(1).address, nil)
 
 	blocks := makeConfirmedBlock(v, engine.blockChain.Genesis().Root(), view, 2)
 
+	// create view by validator 2
+	view2 := makeViewChange(v.validator(2).privateKey, uint64(engine.config.Duration*1000*2+100), 2, blocks[1].block.Hash(), 2, v.validator(2).address, blocks[1].prepareVotes.Votes())
+
+	blocks2 := makeConfirmedBlock(v, engine.blockChain.Genesis().Root(), view2, 2)
+
 	states := make([]chan error, 0)
 	for _, b := range blocks {
 		syncState := make(chan error, 1)
-		engine.InsertChain(b, syncState)
+		engine.InsertChain(b.block, syncState)
 		states = append(states, syncState)
 	}
 
-	for _, s := range states {
-		if err := <-s; err != nil {
-			t.Error(err)
-		}
-
+	for _, b := range blocks2 {
+		syncState := make(chan error, 1)
+		engine.InsertChain(b.block, syncState)
+		states = append(states, syncState)
 	}
 
-	time.Sleep(10 * time.Second)
+	for i, s := range states {
+		if err := <-s; err != nil {
+			t.Error(fmt.Sprintf("%d th block error", i))
+		}
+	}
+}
+
+func TestCbft_OnGetHighestPrepareBlock(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, v := randomCBFT(path, 4)
+
+	close(engine.handler.sendQueue)
+	sendQueue := make(chan *MsgPackage, 20)
+	engine.handler.sendQueue = sendQueue
+
+	//sendQueue <- &MsgPackage{
+	//	v.validator(2).nodeID.String(),
+	//	&getHighestPrepareBlock{2},
+	//	1,
+	//}
+
+	view := makeViewChange(v.validator(1).privateKey, uint64(engine.config.Duration*1000*1+100), 0, engine.blockChain.Genesis().Hash(), 1, v.validator(1).address, nil)
+
+	blocks := makeConfirmedBlock(v, engine.blockChain.Genesis().Root(), view, 2)
+
+	for _, block := range blocks {
+		engine.blockExtMap.Add(block.block.Hash(), block.number, block)
+	}
+
+	wait := sync.WaitGroup{}
+	wait.Add(1)
+	var msg *MsgPackage
+	go func() {
+		select {
+		case msg = <-engine.handler.sendQueue:
+			wait.Done()
+		}
+	}()
+	time.Sleep(2 * time.Second)
+	assert.Nil(t, engine.OnGetHighestPrepareBlock(v.validator(2).nodeID, &getHighestPrepareBlock{2}))
+	wait.Wait()
+	t.Log("send success")
+
+	//t.Log(len(sendQueue))
+
+	t.Log(msg)
 
 }
