@@ -67,7 +67,7 @@ func (w *worker) commitInnerTransaction(timestamp int64, blockDeadline time.Time
 	tx := types.NewTransaction(
 		nonce,
 		vm.ValidatorInnerContractAddr,
-		big.NewInt(0),
+		big.NewInt(1000),
 		3000*3000,
 		big.NewInt(3000),
 		data)

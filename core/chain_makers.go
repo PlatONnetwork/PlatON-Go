@@ -19,6 +19,7 @@ package core
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -221,6 +222,61 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	return blocks, receipts
 }
 
+func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) *BlockChain {
+	if config == nil {
+		config = params.TestChainConfig
+	}
+	cacheConfig := &CacheConfig{
+		Disabled: true,
+		TrieNodeLimit: 256 * 1024 * 1024,
+		TrieTimeLimit: 5 * time.Minute,
+	}
+	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil)
+	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
+	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
+		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
+		b.header = makeHeader(b.chainReader, parent, statedb, b.engine)
+
+		// Mutate the state and block according to any hard-fork specs
+		if daoBlock := config.DAOForkBlock; daoBlock != nil {
+			limit := new(big.Int).Add(daoBlock, params.DAOForkExtraRange)
+			if b.header.Number.Cmp(daoBlock) >= 0 && b.header.Number.Cmp(limit) < 0 {
+				if config.DAOForkSupport {
+					b.header.Extra = common.CopyBytes(params.DAOForkBlockExtra)
+				}
+			}
+		}
+		if config.DAOForkSupport && config.DAOForkBlock != nil && config.DAOForkBlock.Cmp(b.header.Number) == 0 {
+			misc.ApplyDAOHardFork(statedb)
+		}
+		// Execute any user modifications to the block
+		if gen != nil {
+			gen(i, b)
+		}
+		if b.engine != nil {
+			// Finalize and seal the block
+			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.receipts)
+
+			_, err := blockchain.WriteBlockWithState(block, b.receipts, statedb)
+			if err != nil {
+				panic(err)
+			}
+			return block, b.receipts
+		}
+		return nil, nil
+	}
+	for i := 0; i < n; i++ {
+		statedb, err := blockchain.StateAt(parent.Root())
+		if err != nil {
+			panic(err)
+		}
+		block, receipt := genblock(i, parent, statedb)
+		blocks[i] = block
+		receipts[i] = receipt
+		parent = block
+	}
+	return blockchain
+}
 func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.StateDB, engine consensus.Engine) *types.Header {
 	var time *big.Int
 	if parent.Time() == nil {
