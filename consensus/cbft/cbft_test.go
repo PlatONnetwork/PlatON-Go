@@ -282,11 +282,39 @@ func TestCbft_OnGetHighestPrepareBlock(t *testing.T) {
 	}()
 	time.Sleep(2 * time.Second)
 	assert.Nil(t, engine.OnGetHighestPrepareBlock(v.validator(2).nodeID, &getHighestPrepareBlock{2}))
-	wait.Wait()
+	//wait.Wait()
 	t.Log("send success")
 
 	//t.Log(len(sendQueue))
 
 	t.Log(msg)
 
+}
+
+func TestCbft_OnHighestPrepareBlock(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, v := randomCBFT(path, 4)
+
+	view := makeViewChange(v.validator(1).privateKey, uint64(engine.config.Duration*1000*1+100), 0, engine.blockChain.Genesis().Hash(), 1, v.validator(1).address, nil)
+
+	blocksExt := makeConfirmedBlock(v, engine.blockChain.Genesis().Root(), view, 9)
+	var blocks []*types.Block
+	for _, ext := range blocksExt[0:3] {
+		blocks = append(blocks, ext.block)
+	}
+	var prepare []*prepareVotes
+	for _, ext := range blocksExt[3:9] {
+		prepare = append(prepare, &prepareVotes{
+			Hash:   ext.block.Hash(),
+			Number: ext.block.NumberU64(),
+			Votes:  ext.prepareVotes.Votes(),
+		})
+	}
+	hp := &highestPrepareBlock{
+		CommitedBlock: blocks,
+		Votes:         prepare,
+	}
+	engine.OnHighestPrepareBlock(v.validator(1).nodeID, hp)
 }
