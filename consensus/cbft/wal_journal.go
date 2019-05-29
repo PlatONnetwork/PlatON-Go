@@ -254,14 +254,6 @@ func (journal *journal) checkFileSize(journalLimitSize uint64) bool {
 }
 
 func (journal *journal) currentFileSize() (uint64, error) {
-	//currentFile := filepath.Join(journal.path, fmt.Sprintf("wal.%d", journal.fileID))
-	//if fileInfo, err := os.Stat(currentFile); err != nil {
-	//	log.Error("Get the current journal file size error", "err", err)
-	//	return 0, err
-	//} else {
-	//	return uint64(fileInfo.Size()), nil
-	//}
-
 	if fileInfo, err := journal.writer.file.Stat(); err != nil {
 		log.Error("Get the current journal file size error", "err", err)
 		return 0, err

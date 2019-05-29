@@ -319,7 +319,7 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool, agency
 	cbft.init()
 
 	// init wal and load wal journal
-	//if cbft.wal, err = NewWal(cbft.nodeServiceContext); err != nil {
+	//if cbft.wal, err = NewWal(cbft.nodeServiceContext, ""); err != nil {
 	//	return err
 	//}
 	cbft.wal = &emptyWal{}
@@ -392,17 +392,12 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 	if !cbft.isRunning() {
 		switch msg.(type) {
 		case *prepareBlock,
-			*prepareVote,
-			*viewChange,
-			*viewChangeVote:
+		*prepareVote,
+		*viewChange,
+		*viewChangeVote:
 			cbft.log.Debug("Cbft is not running, discard consensus message")
 			return
 		}
-	}
-
-	// write journal msg if cbft is not loading
-	if !cbft.isLoading() {
-		cbft.wal.Write(info)
 	}
 
 	switch msg := msg.(type) {
@@ -431,6 +426,9 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 	}
 	if err != nil {
 		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
+	} else if !cbft.isLoading() {
+		// write journal msg if cbft is not loading
+		cbft.wal.Write(info)
 	}
 }
 func (cbft *Cbft) isRunning() bool {
@@ -842,7 +840,6 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 
 // ShouldSeal checks if it's local's turn to package new block at current time.
 func (cbft *Cbft) ShouldSeal(curTime int64) (bool, error) {
-
 	inturn := cbft.inTurn(curTime)
 	if inturn {
 		cbft.netLatencyLock.RLock()
@@ -2198,5 +2195,6 @@ func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {
 
 func (cbft *Cbft) AddJournal(msg *MsgInfo) {
 	cbft.log.Debug("Method:LoadPeerMsg received message from peer", "peer", msg.PeerID.TerminalString(), "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString())
-	cbft.handleMsg(msg)
+	//cbft.handleMsg(msg)
+	cbft.ReceivePeerMsg(msg)
 }

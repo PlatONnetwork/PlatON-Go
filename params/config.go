@@ -246,7 +246,6 @@ func (c *ChainConfig) String() string {
 	switch {
 	case c.Clique != nil:
 		engine = c.Clique
-	// joey.lyu
 	case c.Cbft != nil:
 		engine = c.Cbft
 	default:

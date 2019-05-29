@@ -1,46 +1,61 @@
 package cbft
 
 import (
-	"bufio"
-	"encoding/binary"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
-	"hash/crc32"
-	"io"
+	"io/ioutil"
+	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
 
-type msgInfoa struct {
-	Msg    *prepareBlock
-	PeerID discover.NodeID
+var (
+	viewChangeNumber = uint64(100)
+	viewChangeHash   = common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065747")
+	times            = 3000000
+	tempDir          string
+	wal              Wal
+)
+
+func TestMain(m *testing.M) {
+	fmt.Println("begin test wal")
+	tempDir, _ = ioutil.TempDir("", "wal")
+	m.Run()
+	os.RemoveAll(tempDir)
+	fmt.Println("end test wal")
 }
 
-type JournalMessagev struct {
-	Timestamp uint64
-	Data      *msgInfoa
+func getWal() Wal {
+	if wal == nil {
+		wal, _ = NewWal(nil, tempDir)
+	}
+	return wal
+}
+
+func TestWalUpdateViewChange(t *testing.T) {
+	// UpdateViewChange
+	getWal().UpdateViewChange(&ViewChangeMessage{
+		Hash:   viewChangeHash,
+		Number: viewChangeNumber,
+	})
 }
 
 func TestWalWrite(t *testing.T) {
-	wal, _ := NewWal(nil)
 	var err error
-
-	// test rotate
-	//time.Sleep(6 * time.Second)
-
-	// UpdateViewChange
-	wal.UpdateViewChange(&ViewChangeMessage{
-		Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065747"),
-		Number: 110,
-	})
 	// WriteJournal
 	beginTime := uint64(time.Now().UnixNano())
-	countW := 0
-	for i := 0; i < 3000000; i++ {
+	count := 0
+	header := &types.Header{
+		Number: big.NewInt(1),
+	}
+	block := types.NewBlock(header, nil, nil)
+	for i := 0; i < times; i++ {
 		peerId, _ := discover.HexID("b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6")
 		if i%2 == 0 {
 			viewChangeVotes := make([]*viewChangeVote, 0)
@@ -62,9 +77,10 @@ func TestWalWrite(t *testing.T) {
 				ValidatorIndex: 22222,
 				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185829"),
 			})
-			err = wal.Write(&MsgInfo{
+			err = getWal().Write(&MsgInfo{
 				Msg: &prepareBlock{
 					Timestamp:     uint64(time.Now().UnixNano()),
+					Block:         block,
 					ProposalIndex: 666,
 					View: &viewChange{
 						Timestamp:     uint64(time.Now().UnixNano()),
@@ -78,7 +94,7 @@ func TestWalWrite(t *testing.T) {
 				PeerID: peerId,
 			})
 		} else if i%3 == 0 {
-			//wal.Write(&MsgInfo{
+			//getWal().Write(&MsgInfo{
 			//	Msg: &prepareBlockHash{
 			//		Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065747"),
 			//		Number: 13333,
@@ -101,14 +117,14 @@ func TestWalWrite(t *testing.T) {
 				Number: 6789,
 				Votes:  pvs,
 			})
-			err = wal.Write(&MsgInfo{
+			err = getWal().Write(&MsgInfo{
 				Msg: &highestPrepareBlock{
 					Votes: votes,
 				},
 				PeerID: peerId,
 			})
 		} else if i%5 == 0 {
-			err = wal.Write(&MsgInfo{
+			err = getWal().Write(&MsgInfo{
 				Msg: &prepareVote{
 					Timestamp:      uint64(time.Now().UnixNano()),
 					Hash:           common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066326"),
@@ -134,7 +150,7 @@ func TestWalWrite(t *testing.T) {
 				ValidatorIndex: 9901,
 				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185828"),
 			})
-			err = wal.Write(&MsgInfo{
+			err = getWal().Write(&MsgInfo{
 				Msg: &prepareVotes{
 					Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
 					Number: 7788,
@@ -143,7 +159,7 @@ func TestWalWrite(t *testing.T) {
 				PeerID: peerId,
 			})
 		} else {
-			err = wal.Write(&MsgInfo{
+			err = getWal().Write(&MsgInfo{
 				Msg: &viewChange{
 					Timestamp:     uint64(time.Now().UnixNano()),
 					ProposalIndex: 12,
@@ -156,40 +172,48 @@ func TestWalWrite(t *testing.T) {
 		}
 		if err != nil {
 			fmt.Println("write error", err)
-			panic(err)
+			t.Errorf("%s", "write error")
 		}
-		countW ++
+		count ++
 	}
-	wal.Close() // force flush
-	fmt.Println("write total msg info", countW)
+	getWal().Close() // force flush
+	wal = nil
+	fmt.Println("write total msg info", count)
+	if count != times {
+		t.Errorf("%s", "write error")
+	}
 	endTime := uint64(time.Now().UnixNano())
 	fmt.Println("write elapsed time", endTime-beginTime)
 }
 
 func TestWalLoad(t *testing.T) {
-	wal, _ := NewWal(nil)
 	var err error
-
 	// LoadJournal
 	beginTime := uint64(time.Now().UnixNano())
-	countR := 0
-	err = wal.Load(func(info *MsgInfo) {
-		countR ++
-		//fmt.Printf("info=%#v\n", info)
+	count := 0
+	err = getWal().Load(func(info *MsgInfo) {
+		count ++
 	})
 	if err != nil {
 		fmt.Println("load error", err)
-		//panic(err)
+		t.Errorf("%s", "load error")
+	}
+	getWal().Close() // force flush
+	wal = nil
+	fmt.Println("total msg info", count)
+	if count != times {
+		t.Errorf("%s", "load error")
 	}
 	endTime := uint64(time.Now().UnixNano())
-	fmt.Println("total msg info", countR)
 	fmt.Println("load elapsed time", endTime-beginTime)
 
 }
 
 func TestLevelDB(t *testing.T) {
-	db, err := leveldb.OpenFile("C:\\Users\\jungle\\Desktop\\wal.tar\\wal\\wal_meta", nil)
-	if err == nil {
+	path := filepath.Join(tempDir, "wal_meta")
+	if db, err := leveldb.OpenFile(path, nil); err != nil {
+		t.Errorf("%s", "TestLevelDB error")
+	} else {
 		data, err := db.Get([]byte("view-change"), nil)
 		if err == nil {
 			var v ViewChangeMeta
@@ -198,65 +222,14 @@ func TestLevelDB(t *testing.T) {
 				fmt.Println(v.Hash.Hex())
 				fmt.Println(v.FileID)
 				fmt.Println(v.Seq)
+				db.Close()
+				if v.Number != 100 || v.Hash.Hex() != viewChangeHash.Hex() {
+					t.Errorf("%s", "TestLevelDB error")
+				}
 			}
-		}
-	}
-}
-
-func TestBufferRead(t *testing.T) {
-	file, err := os.Open("D://data/platon/wal/wal.1")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	bufReader := bufio.NewReaderSize(file, 1024)
-	fmt.Printf("%d \n", bufReader.Buffered())
-	//bufReader.Discard(400)
-
-	for {
-		index, _ := bufReader.Peek(12)
-		fmt.Printf("%d \n", bufReader.Buffered())
-		crc := binary.BigEndian.Uint32(index[0:4])
-		length := binary.BigEndian.Uint32(index[4:8])
-		msgType := binary.BigEndian.Uint32(index[8:12])
-		fmt.Println(msgType)
-
-		pack := make([]byte, length+12)
-		var (
-			totalNum = 0
-			readNum  = 0
-		)
-		for totalNum, err = 0, error(nil); err == nil && uint32(totalNum) < length+12; {
-			readNum, err = bufReader.Read(pack[totalNum:])
-			totalNum = totalNum + readNum
-		}
-
-		fmt.Printf("%d \n", bufReader.Buffered())
-		if 0 == readNum {
-			break
-		}
-
-		crcc := crc32.Checksum(pack[12:], crc32c)
-		if crc != crcc {
-			panic("check crc error")
-		}
-
-		var v JournalMessagev
-		if err := rlp.DecodeBytes(pack[12:], &v); err == nil {
-			fmt.Println("Timestamp", v.Timestamp)
-			fmt.Println("Data", v.Data)
-			dd := &MsgInfo{
-				Msg:    v.Data.Msg,
-				PeerID: v.Data.PeerID,
-			}
-			fmt.Println("", dd.Msg.(*prepareBlock).Timestamp)
 		} else {
-			panic(err)
-		}
-
-		fmt.Printf("%d \n", bufReader.Buffered())
-		if err != nil && err != io.EOF {
-			panic(err)
+			db.Close()
+			t.Errorf("%s", "TestLevelDB error")
 		}
 	}
 }
