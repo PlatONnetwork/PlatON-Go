@@ -1377,7 +1377,7 @@ func (cbft *Cbft) execute(ext *BlockExt, parent *BlockExt) error {
 	} else {
 		cbft.log.Error("execute block error", "err", err, "block", ext.String(), "parent", parent.String())
 		blockVerifyFailMeter.Mark(1)
-		return errors.New("execute block error")
+		return fmt.Errorf("execute block error, err:%s", err.Error())
 	}
 	return nil
 }

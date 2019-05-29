@@ -14,6 +14,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 	"time"
 )
@@ -41,10 +42,9 @@ type NodeData struct {
 }
 
 type testValidator struct {
-	owner  *NodeData
+	owner     *NodeData
 	neighbors []*NodeData
 }
-
 
 type mockWorker struct {
 	mux *event.TypeMux
@@ -113,11 +113,51 @@ func makeViewChange(pri *ecdsa.PrivateKey, timestamp, baseBlockNum uint64, baseB
 	return p
 }
 
+func makeConfirmedExt(v *testValidator, view *viewChange, num int) []*BlockExt {
+	exts := make([]*BlockExt, 0)
+	for i := uint64(1); i < uint64(num); i++ {
+		block := createBlock(v.validator(view.ProposalIndex).privateKey, view.BaseBlockHash, view.BaseBlockNum+i)
+		ext := NewBlockExt(block, block.NumberU64(), v.len())
+		for j := uint32(0); j < uint32(v.len()); j++ {
+			if j != view.ProposalIndex {
+				ext.prepareVotes.Add(makePrepareVote(v.validator(j).privateKey, view.Timestamp, block.NumberU64(), block.Hash(), j, v.validator(j).address))
+			}
+		}
+		exts = append(exts, ext)
+	}
+	return exts
+}
+
+func makeConfirmedBlock(v *testValidator, root common.Hash, view *viewChange, num int) []*types.Block {
+	blocks := make([]*types.Block, 0)
+	for i := uint64(1); i < uint64(num); i++ {
+		block := createBlock(v.validator(view.ProposalIndex).privateKey, view.BaseBlockHash, view.BaseBlockNum+i)
+		ext := NewBlockExt(block, block.NumberU64(), v.len())
+		ext.view = view
+		for j := uint32(0); j < uint32(v.len()); j++ {
+			if j != view.ProposalIndex {
+				ext.prepareVotes.Add(makePrepareVote(v.validator(j).privateKey, view.Timestamp, block.NumberU64(), block.Hash(), j, v.validator(j).address))
+				ext.viewChangeVotes = append(ext.viewChangeVotes, makeViewChangeVote(v.validator(j).privateKey, view.Timestamp, view.BaseBlockNum, view.BaseBlockHash, view.ProposalIndex, view.ProposalAddr, j, v.validator(j).address))
+			}
+		}
+		extra := []byte{cbftVersion}
+		bxBytes, _ := rlp.EncodeToBytes(ext.BlockExtra())
+		extra = append(extra, bxBytes...)
+		block.SetExtraData(extra)
+
+		blocks = append(blocks, block)
+	}
+	return blocks
+}
+
 func createBlock(pri *ecdsa.PrivateKey, parent common.Hash, number uint64) *types.Block {
 
 	header := &types.Header{
-		Number:     big.NewInt(int64(number)),
-		ParentHash: parent,
+		Number:      big.NewInt(int64(number)),
+		ParentHash:  parent,
+		ReceiptHash: types.EmptyRootHash,
+		TxHash:      types.EmptyRootHash,
+		Root:        common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
 	}
 
 	sign, _ := crypto.Sign(header.SealHash().Bytes(), pri)
@@ -232,6 +272,16 @@ func (v *testValidator) Nodes() []discover.Node {
 		nodes = append(nodes, discover.Node{ID: n.nodeID})
 	}
 	return nodes
+}
+
+func (v *testValidator) validator(index uint32) *NodeData {
+	if index == 0 {
+		return v.owner
+	}
+	return v.neighbors[index-1]
+}
+func (v *testValidator) len() int {
+	return len(v.neighbors) + 1
 }
 
 func randomCBFT(path string, i int) (*Cbft, *testBackend, *testValidator) {
