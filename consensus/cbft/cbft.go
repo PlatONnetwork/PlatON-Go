@@ -131,8 +131,9 @@ type Cbft struct {
 	resetCache *lru.Cache
 	bp         Breakpoint
 	// router
-	router  *router
-	queues  map[string]int
+	router *router
+	queues map[string]int
+
 	queueMu sync.RWMutex
 
 	// wal
@@ -1078,7 +1079,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 
 		//receive 2f+1 view vote , clear last view state
 		if cbft.agreeViewChange() {
-			viewChangeConfirmedTimer.UpdateSince(time.Unix(int64(cbft.viewChange.Timestamp), 0))
+			viewChangeConfirmedTimer.UpdateSince(time.Unix(int64(cbft.viewChange.Timestamp),0))
 			cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, &cbft.RoundState)
 			var newHeader *types.Header
 			viewBlock := cbft.blockExtMap.findBlock(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)

@@ -62,7 +62,7 @@ var indexMock = map[int][]int{
 	7 : []int{},
 	8 : []int{20, 21, 22},
 	9 : []int{},
-	10 : []int{23, 25, 25},
+	10 : []int{23, 24, 25},
 }
 
 type LesServer interface {
