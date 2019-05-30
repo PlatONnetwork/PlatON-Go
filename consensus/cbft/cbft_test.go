@@ -375,3 +375,54 @@ func TestCbft_OnGetPrepareVote(t *testing.T) {
 	assert.Len(t, mockHandler.sendQueue, 1)
 
 }
+
+func TestCbft_OnConfirmedPrepareBlock(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, v := randomCBFT(path, 4)
+
+	mockHandler := NewMockHandler()
+	engine.handler = mockHandler
+
+	// create view by validator 1
+	view := makeViewChange(v.validator(1).privateKey, uint64(engine.config.Duration*1000*1+100), 0, engine.blockChain.Genesis().Hash(), 1, v.validator(1).address, nil)
+
+	blocks := makeConfirmedBlock(v, engine.blockChain.Genesis().Root(), view, 2)
+
+	states := make([]chan error, 0)
+	for _, b := range blocks {
+		syncState := make(chan error, 1)
+		engine.InsertChain(b.block, syncState)
+		states = append(states, syncState)
+	}
+
+	view2 := makeViewChange(v.validator(2).privateKey, uint64(engine.config.Duration*1000*2+100), 2, blocks[1].block.Hash(), 2, v.validator(2).address, blocks[1].prepareVotes.Votes())
+
+	blocks2 := makeConfirmedBlock(v, engine.blockChain.Genesis().Root(), view2, 2)
+
+	engine.blockExtMap.Add(blocks2[0].block.Hash(), blocks2[0].number, blocks2[0])
+
+	copyBits := blocks2[1].prepareVotes.voteBits.copy()
+	blocks2[1].prepareVotes = NewPrepareVoteSet(blocks2[1].prepareVotes.voteBits.Size())
+	engine.blockExtMap.Add(blocks2[1].block.Hash(), blocks2[1].number, blocks2[1])
+	c := &confirmedPrepareBlock{
+		Hash:     blocks2[1].block.Hash(),
+		Number:   blocks2[1].number,
+		VoteBits: copyBits,
+	}
+
+	assert.Nil(t, engine.OnConfirmedPrepareBlock(v.validator(1).nodeID, c))
+
+	assert.Len(t, mockHandler.sendQueue, 1)
+	mockHandler.clear()
+	c = &confirmedPrepareBlock{
+		Hash:     blocks2[0].block.Hash(),
+		Number:   blocks2[0].number,
+		VoteBits: blocks2[0].prepareVotes.voteBits,
+	}
+
+	assert.Nil(t, engine.OnConfirmedPrepareBlock(v.validator(1).nodeID, c))
+	assert.Len(t, mockHandler.sendQueue, 1)
+
+}

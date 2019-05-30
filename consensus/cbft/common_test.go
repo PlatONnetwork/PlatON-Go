@@ -12,6 +12,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -48,6 +49,48 @@ type testValidator struct {
 
 type mockWorker struct {
 	mux *event.TypeMux
+}
+
+type mockHandler struct {
+	sendQueue map[discover.NodeID]*MsgPackage
+	peerSet   *peerSet
+}
+
+func (m *mockHandler) clear() {
+	m.sendQueue = make(map[discover.NodeID]*MsgPackage)
+}
+
+func NewMockHandler() *mockHandler {
+	return &mockHandler{
+		sendQueue: make(map[discover.NodeID]*MsgPackage),
+		peerSet:   newPeerSet(),
+	}
+}
+func (mockHandler) Start() {
+}
+
+func (m *mockHandler) SendAllConsensusPeer(msg Message) {
+}
+
+func (m *mockHandler) Send(peerID discover.NodeID, msg Message) {
+	m.sendQueue[peerID] = &MsgPackage{
+		peerID: peerID.String(),
+		msg:    msg,
+	}
+}
+
+func (m *mockHandler) SendBroadcast(msg Message) {
+}
+
+func (m *mockHandler) SendPartBroadcast(msg Message) {
+}
+
+func (mockHandler) Protocols() []p2p.Protocol {
+	return []p2p.Protocol{}
+}
+
+func (m mockHandler) PeerSet() *peerSet {
+	return m.peerSet
 }
 
 func init() {
@@ -151,6 +194,20 @@ func createBlock(pri *ecdsa.PrivateKey, parent common.Hash, number uint64) *type
 
 	block := types.NewBlockWithHeader(header)
 	return block
+}
+
+func createEmptyBlocks(pri *ecdsa.PrivateKey, parentHash common.Hash, parentNumber uint64, number int) []*types.Block {
+	var blocks []*types.Block
+	blockHash := parentHash
+	blockNum := parentNumber
+
+	for i := 0; i < number; i++ {
+		block := createBlock(pri, blockHash, blockNum+1)
+		blockHash = block.Hash()
+		blockNum = block.NumberU64()
+		blocks = append(blocks, block)
+	}
+	return blocks
 }
 
 func createBlockWithRootHash(pri *ecdsa.PrivateKey, parent common.Hash, root common.Hash, number uint64) *types.Block {
