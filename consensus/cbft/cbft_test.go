@@ -318,3 +318,116 @@ func TestCbft_OnHighestPrepareBlock(t *testing.T) {
 	}
 	engine.OnHighestPrepareBlock(v.validator(1).nodeID, hp)
 }
+
+func TestCBFT_OnPrepareVote(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+	engine, backend, validators := randomCBFT(path, 4)
+	priA := validators.neighbors[0]
+	gen := backend.chain.Genesis()
+
+	// define block
+	var blocks []*types.Block
+	blocks = append(blocks, gen)
+	for i := uint64(1); i < 10; i++ {
+		blocks = append(blocks, createBlock(priA.privateKey, blocks[i-1].Hash(), blocks[i-1].NumberU64()+1))
+	}
+	node := nodeIndexNow(validators, engine.startTimeOfEpoch)
+	pvote := makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
+
+	var err error
+	testCases := []struct{
+		pid 		string
+		pga 		bool
+		msgHash 	common.Hash
+	}{
+		{pid: "peer id 01", pga: true, msgHash: common.BytesToHash([]byte("Invalid hash"))},
+		{pid: "peer id 02", pga: true, msgHash: pvote.MsgHash()},
+		{pid: node.nodeID.TerminalString(), pga: true, msgHash: pvote.MsgHash()},
+	}
+
+	for _, v := range testCases {
+		handler := makeHandler(engine, v.pid, v.msgHash)
+		engine.handler = handler
+		err = engine.OnPrepareVote(node.nodeID, pvote, v.pga)
+		assert.Nil(t, err)
+	}
+	// -------------------------------------------------------------------
+
+	// ext == nil
+	pvote = makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 1111, common.BytesToHash([]byte("Invalid block hash")), uint32(node.index), node.address)
+	viewChange := makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address, nil)
+	engine.setViewChange(viewChange)
+	err = engine.OnPrepareVote(node.nodeID, pvote, false)
+	assert.Nil(t, err)
+
+	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address, nil)
+	engine.setViewChange(viewChange)
+	err = engine.OnPrepareVote(node.nodeID, pvote, false)
+	assert.Nil(t, err)
+
+	// verify the sign of validator
+	pvote= makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
+	pvote.ValidatorAddr = common.BytesToAddress([]byte("fake address"))
+	err  = engine.OnPrepareVote(node.nodeID, pvote, false)
+	assert.NotNil(t, err)
+
+	// whether to accept: cache
+	pvote = makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 3, gen.Hash(), uint32(node.index), node.address)
+	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 1, gen.Hash(), uint32(node.index), node.address, nil)
+	engine.setViewChange(viewChange)
+	err = engine.OnPrepareVote(node.nodeID, pvote, false)
+	assert.Nil(t, err)
+
+	// lastViewChangeVotes is nil
+	engine.viewChangeVotes = nil
+	err = engine.OnPrepareVote(node.nodeID, pvote, false)
+	assert.Nil(t, err)
+
+	// whether to accept: accetp
+	pvote = makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
+	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 1, gen.Hash(), uint32(node.index), node.address, nil)
+	engine.setViewChange(viewChange)
+	err = engine.OnPrepareVote(node.nodeID, pvote, false)
+	assert.Nil(t, err)
+
+	// whether to accept: discard
+	higConfirmed := engine.getHighestConfirmed()
+	higConfirmed.number = 3
+	engine.highestConfirmed.Store(higConfirmed)
+	err = engine.OnPrepareVote(node.nodeID, pvote, false)
+	assert.Nil(t, err)
+}
+
+func TestCbft_OnGetPrepareVote(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+	engine, backend, validators := randomCBFT(path, 1)
+	gen := backend.chain.Genesis()
+	node := nodeIndexNow(validators, engine.startTimeOfEpoch)
+	gpv := makeGetPrepareVote(0, gen.Hash())
+
+	err := engine.OnGetPrepareVote(node.nodeID, gpv)
+	assert.Nil(t, err)
+
+	engine.blockExtMap = new(BlockExtMap)
+	err = engine.OnGetPrepareVote(node.nodeID, gpv)
+	assert.Nil(t, err)
+}
+
+func TestCbft_OnPrepareVotes(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+	engine, backend, validators := randomCBFT(path, 1)
+	gen := backend.chain.Genesis()
+	node := nodeIndexNow(validators, engine.startTimeOfEpoch)
+
+	pvs := makePrepareVotes(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
+
+	err := engine.OnPrepareVotes(node.nodeID, pvs)
+	assert.Nil(t, err)
+
+	pvs.Votes[0].ValidatorAddr = common.BytesToAddress([]byte("fake address"))
+	err = engine.OnPrepareVotes(node.nodeID, pvs)
+	assert.NotNil(t, err)
+}

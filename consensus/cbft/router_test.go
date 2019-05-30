@@ -2,54 +2,37 @@ package cbft
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/event"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/params"
+	"os"
 	"reflect"
 	"testing"
 )
 
-var peersData = map[string]*peer{
-	"test0": &peer{
-		id: "test0",
-	},
-	"test1": &peer{
-		id: "test1",
-	},
-	"test2": &peer{
-		id: "test2",
-	},
-	"test3": &peer{
-		id: "test3",
-	},
-	"test4": &peer{
-		id: "test4",
-	},
-}
-
 var TestPeerSet = &peerSet{
-	peers: peersData,
+	peers: map[string]*peer{
+		"test0": &peer{id: "test0",},
+		"test1": &peer{id: "test1",},
+		"test2": &peer{id: "test2",},
+		"test3": &peer{id: "test3",},
+		"test4": &peer{id: "test4",},
+	},
 }
 
 func newTestRouter() *router {
+	path := path()
+	defer os.RemoveAll(path)
+	engine, _, _ := randomCBFT(path, 1)
+	engine.config.InitialNodes = []discover.Node{
+		{ID: StringID("test1")},
+		{ID: StringID("test2")},
+		{ID: StringID("test5")},
+	}
+	//node := nodeIndexNow(validators, engine.startTimeOfEpoch)
+	handler := makeHandler(engine, "test1", common.Hash{})
 	return &router{
-		msgHandler: &handler{
-			peers: TestPeerSet,
-			cbft:  newCbft(),
-		},
+		msgHandler: handler,
 	}
-}
-
-func newCbft() *Cbft {
-	config := &params.CbftConfig{
-		InitialNodes: []discover.Node{
-			{ID: StringID("test1")},
-			{ID: StringID("test2")},
-			{ID: StringID("test5")},
-		},
-	}
-
-	return New(config, &event.TypeMux{}, nil)
 }
 
 func TestSelectNodesByMsgType(t *testing.T) {
