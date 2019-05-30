@@ -232,28 +232,29 @@ func (cbft *Cbft) agreeViewChange() bool {
 	return len(cbft.viewChangeVotes) >= cbft.getThreshold()
 }
 
-func (cbft *Cbft) AgreeReceive(block *types.Block) bool {
-	//cbft.mux.Lock()
-	//defer cbft.mux.Unlock()
-	return cbft.agreeReceive(block)
-}
+//
+//func (cbft *Cbft) AgreeReceive(block *types.Block) bool {
+//	//cbft.mux.Lock()
+//	//defer cbft.mux.Unlock()
+//	return cbft.agreeReceive(block)
+//}
 
-func (cbft *Cbft) agreeReceive(block *types.Block) bool {
-	if cbft.viewChange == nil || cbft.hadSendViewChange() {
-		return true
-	}
-
-	if cbft.viewChange.BaseBlockNum < block.NumberU64() || cbft.viewChange.BaseBlockHash == block.Hash() {
-		return true
-	} else {
-		if cbft.producerBlocks != nil && cbft.producerBlocks.ExistBlock(block) {
-			return true
-		}
-	}
-
-	cbft.log.Warn("refuse receive block", "hash", block.Hash(), "number", block.NumberU64(), "view", cbft.viewChange.String())
-	return false
-}
+//func (cbft *Cbft) agreeReceive(block *types.Block) bool {
+//	if cbft.viewChange == nil || cbft.hadSendViewChange() {
+//		return true
+//	}
+//
+//	if cbft.viewChange.BaseBlockNum < block.NumberU64() || cbft.viewChange.BaseBlockHash == block.Hash() {
+//		return true
+//	} else {
+//		if cbft.producerBlocks != nil && cbft.producerBlocks.ExistBlock(block) {
+//			return true
+//		}
+//	}
+//
+//	cbft.log.Warn("refuse receive block", "hash", block.Hash(), "number", block.NumberU64(), "view", cbft.viewChange.String())
+//	return false
+//}
 
 func (cbft *Cbft) viewVoteState() string {
 	var state string
@@ -277,30 +278,30 @@ func (cbft *Cbft) viewChanging() bool {
 	return cbft.viewChange != nil
 }
 
-func (cbft *Cbft) AcceptBlock(hash common.Hash, number uint64) bool {
-	//cbft.mux.Lock()
-	//defer cbft.mux.Unlock()
-
-	//1. not in viewchanging
-	if cbft.viewChanging() && !cbft.agreeViewChange() {
-		// changing
-		if number <= cbft.viewChange.BaseBlockNum {
-			log.Debug("accept true", "number", number, "hash", hash, "irr num", cbft.viewChange.BaseBlockNum)
-			return true
-		}
-	} else {
-		log.Warn("accept true", "view", cbft.viewChange.String(), "view prepareVotes", cbft.viewVoteState())
-		return true
-	}
-
-	if cbft.viewChange != nil && cbft.viewChangeVotes != nil {
-		log.Warn("accept false", "view", cbft.viewChange.String(), "view prepareVotes", cbft.viewVoteState())
-	} else {
-		log.Warn("accept false", "has view change", cbft.viewChange != nil, "has view vote", cbft.viewChangeVotes != nil)
-	}
-
-	return false
-}
+//func (cbft *Cbft) AcceptBlock(hash common.Hash, number uint64) bool {
+//	//cbft.mux.Lock()
+//	//defer cbft.mux.Unlock()
+//
+//	//1. not in viewchanging
+//	if cbft.viewChanging() && !cbft.agreeViewChange() {
+//		// changing
+//		if number <= cbft.viewChange.BaseBlockNum {
+//			log.Debug("accept true", "number", number, "hash", hash, "irr num", cbft.viewChange.BaseBlockNum)
+//			return true
+//		}
+//	} else {
+//		log.Warn("accept true", "view", cbft.viewChange.String(), "view prepareVotes", cbft.viewVoteState())
+//		return true
+//	}
+//
+//	if cbft.viewChange != nil && cbft.viewChangeVotes != nil {
+//		log.Warn("accept false", "view", cbft.viewChange.String(), "view prepareVotes", cbft.viewVoteState())
+//	} else {
+//		log.Warn("accept false", "has view change", cbft.viewChange != nil, "has view vote", cbft.viewChangeVotes != nil)
+//	}
+//
+//	return false
+//}
 
 func (cbft *Cbft) AcceptPrepareBlock(request *prepareBlock) AcceptStatus {
 	if cbft.viewChange == nil {
