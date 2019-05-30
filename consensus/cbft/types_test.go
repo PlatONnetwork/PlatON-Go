@@ -1,6 +1,7 @@
 package cbft
 
 import (
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -171,6 +172,11 @@ func TestBlockExtMap_GetWithoutTwoThirdVotes(t *testing.T) {
 }
 
 func TestSameNumberBlock(t *testing.T) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("catch panic.")
+		}
+	}()
 	extList, m := newChain(4, 0)
 	ext := newTestBlockExtExtra(uint64(3), extList[2].block.Hash(), []byte{0x01, 0x02}, 0)
 	assert.Panics(t, func() { m.Add(ext.block.Hash(), ext.number, ext) })
