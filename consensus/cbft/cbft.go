@@ -1337,13 +1337,12 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 
 // VerifyHeader checks whether a header conforms to the consensus rules.
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	cbft.log.Trace("Verify header", "hash", header.Hash(), "number", header.Number.Uint64(), "seal", seal)
-
 	if header.Number == nil {
 		cbft.log.Warn(fmt.Sprintf("Verify header failed, unknow block"))
 		return errUnknownBlock
 	}
 
+	cbft.log.Trace("Verify header", "hash", header.Hash(), "number", header.Number.Uint64(), "seal", seal)
 	if len(header.Extra) < extraSeal {
 		cbft.log.Warn(fmt.Sprintf("Verify header failed, miss sign  number:%d", header.Number.Uint64()))
 		return errMissingSignature
@@ -1434,18 +1433,19 @@ func (cbft *Cbft) HasTwoThirdsMajorityViewChangeVotes() bool {
 	return cbft.agreeViewChange()
 }
 
-func (cbft *Cbft) CalcBlockDeadline() (time.Time, error) {
+func (cbft *Cbft) CalcBlockDeadline(timePoint int64) (time.Time, error) {
 	node, err := cbft.getValidators().NodeIndex(cbft.config.NodeID)
 	if err != nil {
 		return time.Time{}, err
 	}
 	nodeIdx := node.Index
 	startEpoch := cbft.startTimeOfEpoch * 1000
-	timePoint := time.Now().UnixNano() / int64(time.Millisecond)
+
+	tm := common.MillisToTime(timePoint)
 
 	if nodeIdx >= 0 {
 		if cbft.getValidators().Len() == 1 {
-			return time.Now().Add(time.Duration(cbft.config.Period) * time.Second), err
+			return tm.Add(time.Duration(cbft.config.Period) * time.Second), err
 		}
 		durationPerNode := cbft.config.Duration * 1000
 		durationPerTurn := durationPerNode * int64(cbft.getValidators().Len())
@@ -1476,24 +1476,24 @@ func (cbft *Cbft) CalcBlockDeadline() (time.Time, error) {
 		} else {
 			remaining = 50 * time.Millisecond // 50ms
 		}
-		return time.Now().Add(remaining), err
+		return tm.Add(remaining), err
 	}
-	return time.Now().Add(50 * time.Millisecond), err // 50ms
+	return tm.Add(50 * time.Millisecond), err // 50ms
 
 }
 
-func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
+func (cbft *Cbft) CalcNextBlockTime(timePoint int64) (time.Time, error) {
 	vn, err := cbft.getValidators().NodeIndex(cbft.config.NodeID)
 	if err != nil {
 		return time.Time{}, err
 	}
 	nodeIdx := vn.Index
 	startEpoch := cbft.startTimeOfEpoch * 1000
-	timePoint := time.Now().UnixNano() / int64(time.Millisecond)
+	tm := common.MillisToTime(timePoint)
 
 	if nodeIdx >= 0 {
 		if cbft.getValidators().Len() == 1 {
-			return time.Now().Add(time.Duration(cbft.config.Period) * time.Second), nil
+			return tm.Add(time.Duration(cbft.config.Period) * time.Second), nil
 		}
 		durationPerNode := cbft.config.Duration * 1000
 		durationPerTurn := durationPerNode * int64(cbft.getValidators().Len())
@@ -1530,9 +1530,9 @@ func (cbft *Cbft) CalcNextBlockTime() (time.Time, error) {
 			last := int64(cbft.getValidators().Len()) * durationPerNode
 			offset = last - value + min
 		}
-		return time.Now().Add(time.Duration(offset) * time.Millisecond), nil
+		return tm.Add(time.Duration(offset) * time.Millisecond), nil
 	}
-	return time.Now().Add(time.Duration(cbft.config.Period) * time.Second), nil // 1s
+	return tm.Add(time.Duration(cbft.config.Period) * time.Second), nil // 1s
 
 }
 
