@@ -1157,6 +1157,9 @@ func (bm *BlockExtMap) ClearChildren(hash common.Hash, number uint64, timestamp 
 				ext.SetSyncState(nil)
 				delete(bm.blocks[i], hash)
 			}
+			if len(bm.blocks[i]) == 0 {
+				delete(bm.blocks, i)
+			}
 		}
 	}
 }
