@@ -117,7 +117,6 @@ type Cbft struct {
 	fastSyncCommitHeadCh    chan chan error
 	needPending             bool
 	RoundState
-	Syncing
 
 	netLatencyMap  map[discover.NodeID]*list.List
 	netLatencyLock sync.RWMutex
