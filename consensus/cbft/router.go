@@ -15,13 +15,15 @@ const (
 )
 
 type router struct {
-	msgHandler *handler                              // Used to send or receive logical processing of messages.
+	cbft       *Cbft
+	msgHandler handler                               // Used to send or receive logical processing of messages.
 	filter     func(*peer, uint64, interface{}) bool // Used for filtering node
 	routerLock sync.RWMutex
 }
 
-func NewRouter(hd *handler) *router {
+func NewRouter(cbft *Cbft, hd handler) *router {
 	return &router{
+		cbft:       cbft,
 		msgHandler: hd,
 		filter: func(p *peer, msgType uint64, condition interface{}) bool {
 			return p.knownMessageHash.Contains(condition)
@@ -84,11 +86,11 @@ func (r *router) selectNodesByMsgType(msgType uint64, condition interface{}) ([]
 
 // Return consensus nodes by random.
 func (r *router) kConsensusRandomNodes(msgType uint64, condition interface{}) ([]*peer, error) {
-	cNodes, err := r.msgHandler.cbft.ConsensusNodes()
+	cNodes, err := r.cbft.ConsensusNodes()
 	if err != nil {
 		return nil, err
 	}
-	existsPeers := r.msgHandler.peers.Peers()
+	existsPeers := r.msgHandler.PeerSet().Peers()
 	log.Debug("kConsensusRandomNodes select node", "msgHash", condition, "cNodesLen", len(cNodes), "peerSetLen", len(existsPeers))
 	consensusPeers := make([]*peer, 0)
 	for _, peer := range existsPeers {
@@ -110,11 +112,11 @@ func (r *router) kConsensusRandomNodes(msgType uint64, condition interface{}) ([
 // Return the nodes of consensus and non-consensus.
 func (r *router) kMixingRandomNodes(msgType uint64, condition interface{}) ([]*peer, error) {
 	// all consensus nodes + a number of k non-consensus nodes
-	cNodes, err := r.msgHandler.cbft.ConsensusNodes()
+	cNodes, err := r.cbft.ConsensusNodes()
 	if err != nil {
 		return nil, err
 	}
-	existsPeers := r.msgHandler.peers.Peers()
+	existsPeers := r.msgHandler.PeerSet().Peers()
 	consensusPeers := make([]*peer, 0)
 	nonconsensusPeers := make([]*peer, 0)
 	for _, peer := range existsPeers { //
@@ -139,7 +141,7 @@ func (r *router) kMixingRandomNodes(msgType uint64, condition interface{}) ([]*p
 
 // Return the completely random nodes.
 func (r *router) kPureRandomNodes(msgType uint64, condition interface{}) ([]*peer, error) {
-	existsPeers := r.msgHandler.peers.Peers()
+	existsPeers := r.msgHandler.PeerSet().Peers()
 	kConsensusNodes := kRandomNodes(DEFAULT_FANOUT_VALUE, existsPeers, msgType, condition, r.filter)
 	return kConsensusNodes, nil
 }

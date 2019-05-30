@@ -616,12 +616,6 @@ func (cbft *Cbft) ClearChildren(baseBlockHash common.Hash, baseBlockNum uint64, 
 	}
 	cbft.blockExtMap.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
 }
-func (cbft *Cbft) SendViewChangeVote(id *discover.NodeID) error {
-	//cbft.mux.Lock()
-	//defer cbft.mux.Unlock()
-	log.Info("Send view change response", "msg", cbft.viewChangeResp.String())
-	return cbft.handler.sendViewChangeVote(id, cbft.viewChangeResp)
-}
 
 func (cbft *Cbft) resetViewChange() {
 	cbft.lastViewChange, cbft.lastViewChangeVotes = cbft.viewChange, cbft.viewChangeVotes

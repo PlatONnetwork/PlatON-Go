@@ -25,14 +25,24 @@ type MsgPackage struct {
 	mode   uint64 // forwarding mode.
 }
 
-type handler struct {
+type handler interface {
+	Start()
+	SendAllConsensusPeer(msg Message)
+	Send(peerID discover.NodeID, msg Message)
+	SendBroadcast(msg Message)
+	SendPartBroadcast(msg Message)
+	Protocols() []p2p.Protocol
+	PeerSet() *peerSet
+}
+
+type baseHandler struct {
 	cbft      *Cbft
 	peers     *peerSet
 	sendQueue chan *MsgPackage
 }
 
-func NewHandler(cbft *Cbft) *handler {
-	return &handler{
+func NewHandler(cbft *Cbft) *baseHandler {
+	return &baseHandler{
 		cbft:      cbft,
 		peers:     newPeerSet(),
 		sendQueue: make(chan *MsgPackage, sendQueueSize),
@@ -43,16 +53,15 @@ func errResp(code errCode, format string, v ...interface{}) error {
 	return fmt.Errorf("%v - %v", code, fmt.Sprintf(format, v...))
 }
 
-func (h *handler) Start() {
+func (h *baseHandler) Start() {
 	go h.sendLoop()
 }
 
-func (h *handler) sendLoop() {
+func (h *baseHandler) sendLoop() {
 	for {
 		select {
 		case m := <-h.sendQueue:
 			if m == nil {
-				h.cbft.log.Info("sendQueue is closed")
 				return
 			}
 			if len(m.peerID) == 0 {
@@ -64,11 +73,11 @@ func (h *handler) sendLoop() {
 	}
 }
 
-func (h *handler) broadcast(m *MsgPackage) {
+func (h *baseHandler) broadcast(m *MsgPackage) {
 	h.cbft.router.gossip(m)
 }
 
-func (h *handler) sendPeer(m *MsgPackage) {
+func (h *baseHandler) sendPeer(m *MsgPackage) {
 	if peer, err := h.peers.Get(m.peerID); err == nil {
 		log.Debug("Send message", "targetPeer", m.peerID, "type", reflect.TypeOf(m.msg), "msgHash", m.msg.MsgHash().TerminalString(), "BHash", m.msg.BHash().TerminalString())
 
@@ -79,7 +88,7 @@ func (h *handler) sendPeer(m *MsgPackage) {
 	}
 }
 
-func (h *handler) SendAllConsensusPeer(msg Message) {
+func (h *baseHandler) SendAllConsensusPeer(msg Message) {
 	log.Debug("SendAllConsensusPeer Invoke", "hash", msg.MsgHash(), "type", reflect.TypeOf(msg), "BHash", msg.BHash().TerminalString())
 	select {
 	case h.sendQueue <- &MsgPackage{
@@ -90,7 +99,7 @@ func (h *handler) SendAllConsensusPeer(msg Message) {
 	}
 }
 
-func (h *handler) Send(peerID discover.NodeID, msg Message) {
+func (h *baseHandler) Send(peerID discover.NodeID, msg Message) {
 
 	select {
 	case h.sendQueue <- &MsgPackage{
@@ -100,7 +109,7 @@ func (h *handler) Send(peerID discover.NodeID, msg Message) {
 	}
 }
 
-func (h *handler) SendBroadcast(msg Message) {
+func (h *baseHandler) SendBroadcast(msg Message) {
 	msgPkg := &MsgPackage{
 		msg:  msg,
 		mode: MixMode,
@@ -112,7 +121,7 @@ func (h *handler) SendBroadcast(msg Message) {
 	}
 }
 
-func (h *handler) SendPartBroadcast(msg Message) {
+func (h *baseHandler) SendPartBroadcast(msg Message) {
 	msgPkg := &MsgPackage{
 		msg:  msg,
 		mode: PartMode,
@@ -124,7 +133,7 @@ func (h *handler) SendPartBroadcast(msg Message) {
 	}
 }
 
-func (h *handler) sendViewChangeVote(id *discover.NodeID, msg *viewChangeVote) error {
+func (h *baseHandler) sendViewChangeVote(id *discover.NodeID, msg *viewChangeVote) error {
 	if peer, err := h.peers.Get(fmt.Sprintf("%x", id.Bytes()[:8])); err != nil {
 		return err
 	} else {
@@ -132,7 +141,7 @@ func (h *handler) sendViewChangeVote(id *discover.NodeID, msg *viewChangeVote) e
 	}
 }
 
-func (h *handler) Protocols() []p2p.Protocol {
+func (h *baseHandler) Protocols() []p2p.Protocol {
 	return []p2p.Protocol{
 		{
 			Name:    "cbft",
@@ -145,7 +154,11 @@ func (h *handler) Protocols() []p2p.Protocol {
 	}
 }
 
-func (h *handler) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
+func (h *baseHandler) PeerSet() *peerSet {
+	return h.peers
+}
+
+func (h *baseHandler) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	peer := newPeer(p, newMeteredMsgWriter(rw))
 
 	// Execute the CBFT handshake
@@ -173,7 +186,7 @@ func (h *handler) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	}
 }
 
-func (h *handler) handleMsg(p *peer) error {
+func (h *baseHandler) handleMsg(p *peer) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		p.Log().Error("read peer message error", "err", err)

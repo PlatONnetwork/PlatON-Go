@@ -84,7 +84,6 @@ package cbft
 //	cbft := tc.cbft
 //	cbft.handler = NewHandler(cbft)
 //	_, rw1, p2, rw2 := p2p.NewPeerByNodeID(nodeId1, nodeId2, cbft.Protocols())
-//	go cbft.handler.handler(p2, rw2)
 //	p2p.Send(rw1, ConsensusStateMsg, &consensusState{IrreversibleBlockNum: big.NewInt(0), MemMaxBlockNum: big.NewInt(1)})
 //
 //	time.Sleep(time.Second * 3)

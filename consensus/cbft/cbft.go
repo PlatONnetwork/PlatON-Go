@@ -88,7 +88,7 @@ var (
 type Cbft struct {
 	config      *params.CbftConfig
 	eventMux    *event.TypeMux
-	handler     *handler
+	handler     handler
 	closeOnce   sync.Once
 	exitCh      chan struct{}
 	txPool      *core.TxPool
@@ -185,7 +185,7 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceCo
 	cbft.evPool = evPool
 	cbft.bp = defaultBP
 	cbft.handler = NewHandler(cbft)
-	cbft.router = NewRouter(cbft.handler)
+	cbft.router = NewRouter(cbft, cbft.handler)
 	cbft.queues = make(map[string]int)
 	cbft.resetCache, _ = lru.New(maxResetCacheSize)
 	return cbft
@@ -393,9 +393,9 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 	if !cbft.isRunning() {
 		switch msg.(type) {
 		case *prepareBlock,
-		*prepareVote,
-		*viewChange,
-		*viewChangeVote:
+			*prepareVote,
+			*viewChange,
+			*viewChangeVote:
 			cbft.log.Debug("Cbft is not running, discard consensus message")
 			return
 		}
@@ -583,7 +583,7 @@ func (cbft *Cbft) OnGetPrepareVote(peerID discover.NodeID, pv *getPrepareVote) e
 
 	if ext != nil {
 		for i := uint32(0); i < pv.VoteBits.Size(); i++ {
-			if pv.VoteBits.GetIndex(i) {
+			if !pv.VoteBits.GetIndex(i) {
 				if v := ext.prepareVotes.Get(i); v != nil {
 					votes = append(votes, v)
 				}
@@ -1079,7 +1079,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 
 		//receive 2f+1 view vote , clear last view state
 		if cbft.agreeViewChange() {
-			viewChangeConfirmedTimer.UpdateSince(time.Unix(int64(cbft.viewChange.Timestamp),0))
+			viewChangeConfirmedTimer.UpdateSince(time.Unix(int64(cbft.viewChange.Timestamp), 0))
 			cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, &cbft.RoundState)
 			var newHeader *types.Header
 			viewBlock := cbft.blockExtMap.findBlock(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum)
@@ -2174,7 +2174,7 @@ func (cbft *Cbft) updateValidator() {
 }
 
 func (cbft *Cbft) needBroadcast(nodeId discover.NodeID, msg Message) bool {
-	peers := cbft.handler.peers.Peers()
+	peers := cbft.handler.PeerSet().Peers()
 	if len(peers) == 0 {
 		return false
 	}

@@ -33,7 +33,7 @@ var TestPeerSet = &peerSet{
 
 func newTestRouter() *router {
 	return &router{
-		msgHandler: &handler{
+		msgHandler: &baseHandler{
 			peers: TestPeerSet,
 			cbft:  newCbft(),
 		},

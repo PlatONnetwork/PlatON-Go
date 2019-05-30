@@ -7,7 +7,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/stretchr/testify/assert"
 	"os"
-	"sync"
 	"testing"
 	"time"
 )
@@ -253,9 +252,8 @@ func TestCbft_OnGetHighestPrepareBlock(t *testing.T) {
 
 	engine, _, v := randomCBFT(path, 4)
 
-	close(engine.handler.sendQueue)
-	sendQueue := make(chan *MsgPackage, 20)
-	engine.handler.sendQueue = sendQueue
+	mockHandler := NewMockHandler()
+	engine.handler = mockHandler
 
 	//sendQueue <- &MsgPackage{
 	//	v.validator(2).nodeID.String(),
@@ -271,24 +269,9 @@ func TestCbft_OnGetHighestPrepareBlock(t *testing.T) {
 		engine.blockExtMap.Add(block.block.Hash(), block.number, block)
 	}
 
-	wait := sync.WaitGroup{}
-	wait.Add(1)
-	var msg *MsgPackage
-	go func() {
-		select {
-		case msg = <-engine.handler.sendQueue:
-			wait.Done()
-		}
-	}()
-	time.Sleep(2 * time.Second)
 	assert.Nil(t, engine.OnGetHighestPrepareBlock(v.validator(2).nodeID, &getHighestPrepareBlock{2}))
-	//wait.Wait()
-	t.Log("send success")
 
-	//t.Log(len(sendQueue))
-
-	t.Log(msg)
-
+	assert.Len(t, mockHandler.sendQueue, 1)
 }
 
 func TestCbft_OnHighestPrepareBlock(t *testing.T) {
@@ -296,6 +279,10 @@ func TestCbft_OnHighestPrepareBlock(t *testing.T) {
 	defer os.RemoveAll(path)
 
 	engine, _, v := randomCBFT(path, 4)
+
+	badBlocks := createEmptyBlocks(v.validator(1).privateKey, engine.blockChain.Genesis().Hash(), engine.blockChain.Genesis().NumberU64(), int(maxBlockDist+1))
+
+	assert.Error(t, engine.OnHighestPrepareBlock(v.validator(1).nodeID, &highestPrepareBlock{CommitedBlock: badBlocks}))
 
 	view := makeViewChange(v.validator(1).privateKey, uint64(engine.config.Duration*1000*1+100), 0, engine.blockChain.Genesis().Hash(), 1, v.validator(1).address, nil)
 
@@ -317,4 +304,74 @@ func TestCbft_OnHighestPrepareBlock(t *testing.T) {
 		Votes:         prepare,
 	}
 	engine.OnHighestPrepareBlock(v.validator(1).nodeID, hp)
+}
+
+func TestCbft_OnGetPrepareVote(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, v := randomCBFT(path, 4)
+
+	mockHandler := NewMockHandler()
+	engine.handler = mockHandler
+
+	// create view by validator 1
+	view := makeViewChange(v.validator(1).privateKey, uint64(engine.config.Duration*1000*1+100), 0, engine.blockChain.Genesis().Hash(), 1, v.validator(1).address, nil)
+
+	blocks := makeConfirmedBlock(v, engine.blockChain.Genesis().Root(), view, 2)
+
+	// create view by validator 2
+	view2 := makeViewChange(v.validator(2).privateKey, uint64(engine.config.Duration*1000*2+100), 2, blocks[1].block.Hash(), 2, v.validator(2).address, blocks[1].prepareVotes.Votes())
+
+	blocks2 := makeConfirmedBlock(v, engine.blockChain.Genesis().Root(), view2, 2)
+
+	states := make([]chan error, 0)
+	for _, b := range blocks {
+		syncState := make(chan error, 1)
+		engine.InsertChain(b.block, syncState)
+		states = append(states, syncState)
+	}
+
+	for _, b := range blocks2 {
+		engine.blockExtMap.Add(b.block.Hash(), b.number, b)
+	}
+
+	for i, s := range states {
+		if err := <-s; err != nil {
+			t.Error(fmt.Sprintf("%d th block error", i))
+		}
+	}
+
+	pv1 := &getPrepareVote{
+		Hash:     common.BytesToHash(Rand32Bytes(32)),
+		Number:   1000,
+		VoteBits: NewBitArray(4),
+	}
+
+	assert.Nil(t, engine.OnGetPrepareVote(v.validator(1).nodeID, pv1))
+
+	assert.Len(t, mockHandler.sendQueue, 0)
+
+	pv1 = &getPrepareVote{
+		Hash:     blocks[1].block.Hash(),
+		Number:   blocks[1].number,
+		VoteBits: NewBitArray(4),
+	}
+
+	assert.Nil(t, engine.OnGetPrepareVote(v.validator(1).nodeID, pv1))
+
+	assert.Len(t, mockHandler.sendQueue, 1)
+
+	mockHandler.clear()
+
+	pv1 = &getPrepareVote{
+		Hash:     blocks[1].block.Hash(),
+		Number:   blocks[1].number,
+		VoteBits: NewBitArray(4),
+	}
+
+	assert.Nil(t, engine.OnGetPrepareVote(v.validator(1).nodeID, pv1))
+
+	assert.Len(t, mockHandler.sendQueue, 1)
+
 }

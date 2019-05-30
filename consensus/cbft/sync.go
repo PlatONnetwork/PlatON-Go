@@ -181,7 +181,7 @@ func (cbft *Cbft) sendConsensusState() {
 	//	IrreversibleBlockNum: cbft.getRootIrreversible().block.Number(),
 	//	MemMaxBlockNum:       maxBlockNum,
 	//}
-	//cbft.handler.sendConsensusState(cs)
+	//cbft.baseHandler.sendConsensusState(cs)
 }
 
 //func (cbft *Cbft) startSync() {
@@ -233,13 +233,13 @@ func (cbft *Cbft) sendConsensusState() {
 //			Version: 1,
 //			Length:  uint64(len(messages)),
 //			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-//				return s.handler(p, rw)
+//				return s.baseHandler(p, rw)
 //			},
 //		},
 //	}
 //}
 //
-//func (s *Syncing) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
+//func (s *Syncing) baseHandler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 //	s.cbft.dpos.NodeIndex(p.ID())
 //	for {
 //		msg, err := rw.ReadMsg()
