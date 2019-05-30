@@ -352,12 +352,13 @@ func randomCBFT(path string, i int) (*Cbft, *testBackend, *testValidator) {
 	return engine, backend, validators
 }
 
-func makeHandler(cbft *Cbft, pid string, msgHash common.Hash) handler {
+func makeHandler(cbft *Cbft, pid string, msgHash common.Hash) (*baseHandler) {
 	handler := NewHandler(cbft)
 	peerSets := newPeerSet()
 	peer := &peer{
-		id:               pid,
+		id: pid,
 		knownMessageHash: mapset.NewSet(),
+		rw: &fakeRW{},
 	}
 	peer.MarkMessageHash(msgHash)
 	peerSets.Register(peer)
@@ -367,9 +368,9 @@ func makeHandler(cbft *Cbft, pid string, msgHash common.Hash) handler {
 
 func makeGetPrepareVote(blockNum uint64, blockHash common.Hash) *getPrepareVote {
 	p := &getPrepareVote{
-		Number:   blockNum,
-		Hash:     blockHash,
-		VoteBits: NewBitArray(32),
+		Number:         blockNum,
+		Hash:           blockHash,
+		VoteBits: 		NewBitArray(32),
 	}
 	return p
 }
@@ -377,9 +378,26 @@ func makeGetPrepareVote(blockNum uint64, blockHash common.Hash) *getPrepareVote 
 func makePrepareVotes(pri *ecdsa.PrivateKey, timestamp, blockNum uint64, blockHash common.Hash, validatorIndex uint32, validatorAddr common.Address) *prepareVotes {
 	pv := makePrepareVote(pri, timestamp, blockNum, blockHash, validatorIndex, validatorAddr)
 	pvs := &prepareVotes{
-		Hash:   blockHash,
+		Hash: blockHash,
 		Number: blockNum,
-		Votes:  []*prepareVote{pv},
+		Votes: []*prepareVote{ pv },
 	}
 	return pvs
 }
+
+type fakeRW struct {
+}
+
+func (rw *fakeRW) ReadMsg() (p2p.Msg, error) {
+	fmt.Println("Read msg.")
+	return p2p.Msg{}, nil
+}
+
+func (rw *fakeRW) WriteMsg(msg p2p.Msg) error {
+	fmt.Println("Write msg")
+	if msg.Code == CBFTStatusMsg {
+		return fmt.Errorf("invalid message type")
+	}
+	return nil
+}
+
