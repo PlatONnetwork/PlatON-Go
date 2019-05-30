@@ -16,6 +16,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/deckarep/golang-set"
 	"math/big"
 	"time"
 )
@@ -349,4 +350,36 @@ func randomCBFT(path string, i int) (*Cbft, *testBackend, *testValidator) {
 	engine := CreateCBFT(path, validators.owner.privateKey)
 	backend := CreateBackend(engine, validators.Nodes())
 	return engine, backend, validators
+}
+
+func makeHandler(cbft *Cbft, pid string, msgHash common.Hash) handler {
+	handler := NewHandler(cbft)
+	peerSets := newPeerSet()
+	peer := &peer{
+		id:               pid,
+		knownMessageHash: mapset.NewSet(),
+	}
+	peer.MarkMessageHash(msgHash)
+	peerSets.Register(peer)
+	handler.peers = peerSets
+	return handler
+}
+
+func makeGetPrepareVote(blockNum uint64, blockHash common.Hash) *getPrepareVote {
+	p := &getPrepareVote{
+		Number:   blockNum,
+		Hash:     blockHash,
+		VoteBits: NewBitArray(32),
+	}
+	return p
+}
+
+func makePrepareVotes(pri *ecdsa.PrivateKey, timestamp, blockNum uint64, blockHash common.Hash, validatorIndex uint32, validatorAddr common.Address) *prepareVotes {
+	pv := makePrepareVote(pri, timestamp, blockNum, blockHash, validatorIndex, validatorAddr)
+	pvs := &prepareVotes{
+		Hash:   blockHash,
+		Number: blockNum,
+		Votes:  []*prepareVote{pv},
+	}
+	return pvs
 }
