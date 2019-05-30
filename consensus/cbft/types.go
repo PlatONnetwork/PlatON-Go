@@ -928,10 +928,10 @@ func (bm *BlockExtMap) Add(hash common.Hash, number uint64, blockExt *BlockExt) 
 			}
 		} else {
 			log.Debug(fmt.Sprintf("hash:%s, number:%d", hash.TerminalString(), number))
-			extMap[hash] = blockExt
 			if blockExt.prepareVotes.IsMaj23() {
 				bm.removeFork(number, hash)
 			}
+			extMap[hash] = blockExt
 			if blockExt.block != nil {
 				bm.fixChain(blockExt)
 			}
@@ -1119,10 +1119,9 @@ func (bm *BlockExtMap) ClearParents(hash common.Hash, number uint64) {
 		return
 	}
 
-	if number > 1 {
-		for i := number - 1; i > 0; i-- {
-			//log.Debug("clear block", "number", i)
-			if blocks := bm.blocks[i]; blocks != nil {
+	for n, blocks := range bm.blocks {
+		if n < number {
+			if blocks != nil {
 				for _, b := range blocks {
 					if b.children != nil {
 						for _, p := range b.children {
@@ -1132,10 +1131,11 @@ func (bm *BlockExtMap) ClearParents(hash common.Hash, number uint64) {
 					b.children = nil
 					b.parent = nil
 				}
-				delete(bm.blocks, i)
 			}
+			delete(bm.blocks, n)
 		}
 	}
+
 	delete(bm.blocks, bm.head.number)
 	//log.Debug("clear block", "number", number)
 	//parentHash := base.block.ParentHash()
