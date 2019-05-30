@@ -536,10 +536,10 @@ func TestCBFT_OnPrepareVote(t *testing.T) {
 	pvote := makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
 
 	var err error
-	testCases := []struct {
-		pid     string
-		pga     bool
-		msgHash common.Hash
+	testCases := []struct{
+		pid 		string
+		pga 		bool
+		msgHash 	common.Hash
 	}{
 		{pid: "peer id 01", pga: true, msgHash: common.BytesToHash([]byte("Invalid hash"))},
 		{pid: "peer id 02", pga: true, msgHash: pvote.MsgHash()},
@@ -567,9 +567,10 @@ func TestCBFT_OnPrepareVote(t *testing.T) {
 	assert.Nil(t, err)
 
 	// verify the sign of validator
-	pvote = makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
+	pvote= makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
 	pvote.ValidatorAddr = common.BytesToAddress([]byte("fake address"))
-	err = engine.OnPrepareVote(node.nodeID, pvote, false)
+	err  = engine.OnPrepareVote(node.nodeID, pvote, false)
+
 	assert.NotNil(t, err)
 
 	// whether to accept: cache
@@ -631,3 +632,4 @@ func TestCbft_OnPrepareVotes(t *testing.T) {
 	err = engine.OnPrepareVotes(node.nodeID, pvs)
 	assert.NotNil(t, err)
 }
+

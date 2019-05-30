@@ -3,37 +3,118 @@ package cbft
 import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"math/big"
 	"os"
 	"reflect"
 	"testing"
+	"time"
 )
 
 var TestPeerSet = &peerSet{
 	peers: map[string]*peer{
-		"test0": &peer{id: "test0"},
-		"test1": &peer{id: "test1"},
-		"test2": &peer{id: "test2"},
-		"test3": &peer{id: "test3"},
-		"test4": &peer{id: "test4"},
+		"test0": &peer{id: "test0",},
+		"test1": &peer{id: "test1",},
+		"test2": &peer{id: "test2",},
+		"test3": &peer{id: "test3",},
+		"test4": &peer{id: "test4",},
 	},
 }
 
 func newTestRouter() *router {
-
 	path := path()
 	defer os.RemoveAll(path)
 	engine, _, _ := randomCBFT(path, 1)
-	engine.config.InitialNodes = []discover.Node{
-		{ID: StringID("test1")},
-		{ID: StringID("test2")},
-		{ID: StringID("test5")},
+	peerId := engine.getValidators().NodeList()[0].TerminalString()
+	handler := makeHandler(engine, peerId, common.Hash{})
+	return NewRouter(engine, handler)
+}
+
+func TestGossip(t *testing.T) {
+	router := newTestRouter()
+	testCases := []struct{
+		mode uint64
+		msg Message
+	}{
+		{ mode: FullMode, msg: &prepareBlockHash{}, },
+		{ mode: PartMode, msg: &prepareBlockHash{}, },
+		{ mode: MixMode, msg: &prepareBlockHash{}, },
+		{ mode: FullMode, msg: makeFakePrepareBlock(), },
+		{ mode: FullMode, msg: makeFakePrepareVote(), },
+		{ mode: FullMode, msg: &confirmedPrepareBlock{}, },
+		{ mode: FullMode, msg: makeFakeViewChange(), },
+		{ mode: FullMode, msg: makeFakeGetPrepareBlock(), },
+		{ mode: FullMode, msg: makeFakeGetHighestPrepareBlock(), },
+		{ mode: FullMode, msg: &cbftStatusData{}, },
 	}
-	//node := nodeIndexNow(validators, engine.startTimeOfEpoch)
-	handler := makeHandler(engine, "test1", common.Hash{})
-	return &router{
-		msgHandler: handler,
+	for _, v := range testCases {
+		router.gossip(&MsgPackage{ peerID: "peerid", mode: v.mode, msg: v.msg })
 	}
+}
+
+func makeFakePrepareBlock() *prepareBlock {
+	block := types.NewBlockWithHeader(&types.Header{
+		GasLimit: uint64(3141592),
+		GasUsed: uint64(21000),
+		Coinbase:  common.HexToAddress("8888f1f195afa192cfee860698584c030f4c9db1"),
+		MixDigest: common.HexToHash("bd4472abb6659ebe3ee06ee4d7b72a00a9f4d001caca51342001075469aff498"),
+		Root: common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
+		//Hash: common.HexToHash("0a5843ac1cb04865017cb35a57b50b07084e5fcee39b5acadade33149f4fff9e"),
+		Nonce: types.EncodeNonce(10),
+		Time: big.NewInt(1426516743),
+		Extra: make([]byte, 100),
+	})
+	pb := &prepareBlock{
+		Timestamp: uint64(time.Now().Unix()),
+		Block: block,
+		ProposalIndex: 1,
+		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
+		View: &viewChange{},
+	}
+	return pb
+}
+
+func makeFakeGetPrepareBlock() *getPrepareBlock {
+	return &getPrepareBlock{
+		Hash: common.BytesToHash([]byte("Empty block")),
+		Number: 1,
+	}
+}
+
+func makeFakeGetHighestPrepareBlock() *getHighestPrepareBlock {
+	return &getHighestPrepareBlock{
+		Lowest: 1,
+	}
+}
+
+func makeFakePrepareVote() *prepareVote {
+	pv := &prepareVote{
+		Timestamp: uint64(time.Now().Unix()),
+		Hash: common.BytesToHash([]byte("I'm hash")),
+		Number: 1,
+		ValidatorIndex: 0,
+		ValidatorAddr: common.BytesToAddress([]byte("I'm address")),
+	}
+	return pv
+}
+
+func makeFakeViewChange() *viewChange {
+	privateHex := "e4eb3e58ab7810984a0c77d432b07fe9f9897158dd4bb4f63d0a4366e6d949fa"
+	pri, _ := crypto.HexToECDSA(privateHex)
+	pv := &viewChange{
+		Timestamp: uint64(time.Now().Unix()),
+		ProposalIndex: 0,
+		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
+		BaseBlockHash: common.BytesToHash([]byte("I'm hash")),
+		BaseBlockNum: 1,
+		Extra: make([]byte, 100),
+	}
+	var consensusMsg ConsensusMsg = pv
+	cb, _ := consensusMsg.CannibalizeBytes()
+	sign, _ := crypto.Sign(cb, pri)
+	pv.Signature.SetBytes(sign)
+	return pv
 }
 
 func TestSelectNodesByMsgType(t *testing.T) {
@@ -69,7 +150,7 @@ func TestSelectNodesByMsgType(t *testing.T) {
 					exist = true
 				}
 			}
-			if !exist {
+			if exist {
 				t.Fatalf("Select fail, result:%v, wanted:%v", p.id, res.wantedId)
 			}
 		}
@@ -115,21 +196,10 @@ func TestKRandomNodes(t *testing.T) {
 	}
 }
 
-func StringID(s string) discover.NodeID {
-	var id discover.NodeID
-	b := []byte(s)
-	copy(id[:], b)
-	return id
-}
-
 func TestFormatPeers(t *testing.T) {
 	peers := []*peer{
-		&peer{
-			id: "id01",
-		},
-		&peer{
-			id: "id02",
-		},
+		&peer{ id: "id01", },
+		&peer{ id: "id02", },
 	}
 	peersStr := formatPeers(peers)
 	if peersStr != "id01,id02" {
