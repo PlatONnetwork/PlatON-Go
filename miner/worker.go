@@ -422,13 +422,13 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	for {
 		select {
-		case ev := <- vdEvent.Chan():
+		case ev := <-vdEvent.Chan():
 			if ev == nil {
 				continue
 			}
 			switch ev.Data.(type) {
 			case cbfttypes.UpdateValidatorEvent:
-				nextBlockTime, err := w.engine.(consensus.Bft).CalcNextBlockTime()
+				nextBlockTime, err := w.engine.(consensus.Bft).CalcNextBlockTime(common.Millis(time.Now()))
 				if err != nil {
 					log.Error("Calc next block time fail", "err", err)
 					continue
@@ -483,7 +483,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 							if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
 								log.Debug("begin to package new block regularly ")
 								//timestamp = time.Now().UnixNano() / 1e6
-								if blockDeadline, err := w.engine.(consensus.Bft).CalcBlockDeadline(); err == nil {
+								if blockDeadline, err := w.engine.(consensus.Bft).CalcBlockDeadline(timestamp); err == nil {
 									commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
 								} else {
 									log.Error("Calc block deadline failed", "err", err)
@@ -1407,7 +1407,7 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	if shouldCommit && nextBaseBlock != nil {
 		var err error
 		w.commitWorkEnv.currentBaseBlock.Store(nextBaseBlock)
-		w.commitWorkEnv.nextBlockTime, err = w.engine.(consensus.Bft).CalcNextBlockTime()
+		w.commitWorkEnv.nextBlockTime, err = w.engine.(consensus.Bft).CalcNextBlockTime(timestamp)
 		nextBlockTimeMs = common.Millis(w.commitWorkEnv.nextBlockTime)
 		if err != nil {
 			log.Error("Calc next block time failed", "err", err)
