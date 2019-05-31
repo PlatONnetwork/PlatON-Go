@@ -3,12 +3,10 @@ package cbft
 import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/stretchr/testify/assert"
 	"github.com/syndtr/goleveldb/leveldb"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,7 +16,7 @@ import (
 var (
 	viewChangeNumber = uint64(100)
 	viewChangeHash   = common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065747")
-	times            = 3000000
+	times            = 1000000
 	tempDir          string
 	wal              Wal
 )
@@ -51,116 +49,68 @@ func TestWalWrite(t *testing.T) {
 	// WriteJournal
 	beginTime := uint64(time.Now().UnixNano())
 	count := 0
-	header := &types.Header{
-		Number: big.NewInt(1),
-	}
-	block := types.NewBlock(header, nil, nil)
+
 	for i := 0; i < times; i++ {
-		peerId, _ := discover.HexID("b6c8c9f99bfebfa4fb174df720b9385dbd398de699ec36750af3f38f8e310d4f0b90447acbef64bdf924c4b59280f3d42bb256e6123b53e9a7e99e4c432549d6")
-		if i%2 == 0 {
-			viewChangeVotes := make([]*viewChangeVote, 0)
-			viewChangeVotes = append(viewChangeVotes, &viewChangeVote{
-				Timestamp:      uint64(time.Now().UnixNano()),
-				BlockNum:       111,
-				BlockHash:      common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065747"),
-				ProposalIndex:  1111,
-				ProposalAddr:   common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185822"),
-				ValidatorIndex: 11111,
-				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185822"),
-			})
-			viewChangeVotes = append(viewChangeVotes, &viewChangeVote{
-				Timestamp:      uint64(time.Now().UnixNano()),
-				BlockNum:       222,
-				BlockHash:      common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065749"),
-				ProposalIndex:  2222,
-				ProposalAddr:   common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185829"),
-				ValidatorIndex: 22222,
-				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185829"),
-			})
+		ordinal := ordinalMessages()
+		if ordinal == 0 {
 			err = getWal().Write(&MsgInfo{
-				Msg: &prepareBlock{
-					Timestamp:     uint64(time.Now().UnixNano()),
-					Block:         block,
-					ProposalIndex: 666,
-					View: &viewChange{
-						Timestamp:     uint64(time.Now().UnixNano()),
-						ProposalIndex: 12,
-						ProposalAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185822"),
-						BaseBlockNum:  10086,
-						BaseBlockHash: common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
-					},
-					ViewChangeVotes: viewChangeVotes,
-				},
-				PeerID: peerId,
+				Msg: buildPrepareBlock(),
+				PeerID: buildPeerId(),
 			})
-		} else if i%3 == 0 {
-			pvs := make([]*prepareVote, 0)
-			pvs = append(pvs, &prepareVote{
-				Timestamp: uint64(time.Now().UnixNano()),
-				Number:    7777,
-			})
-			votes := make([]*prepareVotes, 0)
-			votes = append(votes, &prepareVotes{
-				Hash:   common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
-				Number: 5678,
-				Votes:  pvs,
-			})
-			votes = append(votes, &prepareVotes{
-				Hash:   common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
-				Number: 6789,
-				Votes:  pvs,
-			})
+		} else if ordinal == 1 {
 			err = getWal().Write(&MsgInfo{
-				Msg: &highestPrepareBlock{
-					Votes: votes,
-				},
-				PeerID: peerId,
+				Msg: buildPrepareVote(),
+				PeerID: buildPeerId(),
 			})
-		} else if i%5 == 0 {
+		} else if ordinal == 2 {
 			err = getWal().Write(&MsgInfo{
-				Msg: &prepareVote{
-					Timestamp:      uint64(time.Now().UnixNano()),
-					Hash:           common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066326"),
-					Number:         16666,
-					ValidatorIndex: 1,
-					ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185821"),
-				},
-				PeerID: peerId,
+				Msg: buildViewChange(),
+				PeerID: buildPeerId(),
 			})
-		} else if i%7 == 0 {
-			votes := make([]*prepareVote, 0)
-			votes = append(votes, &prepareVote{
-				Timestamp:      uint64(time.Now().UnixNano()),
-				Hash:           common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
-				Number:         8877,
-				ValidatorIndex: 9900,
-				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185827"),
-			})
-			votes = append(votes, &prepareVote{
-				Timestamp:      uint64(time.Now().UnixNano()),
-				Hash:           common.HexToHash("0x76fded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
-				Number:         8878,
-				ValidatorIndex: 9901,
-				ValidatorAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185828"),
-			})
+		} else if ordinal == 3 {
 			err = getWal().Write(&MsgInfo{
-				Msg: &prepareVotes{
-					Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
-					Number: 7788,
-					Votes:  votes,
-				},
-				PeerID: peerId,
+				Msg: buildviewChangeVote(),
+				PeerID: buildPeerId(),
 			})
-		} else {
+		} else if ordinal == 4 {
 			err = getWal().Write(&MsgInfo{
-				Msg: &viewChange{
-					Timestamp:     uint64(time.Now().UnixNano()),
-					ProposalIndex: 12,
-					ProposalAddr:  common.HexToAddress("0x493301712671ada506ba6ca7891f436d29185822"),
-					BaseBlockNum:  10086,
-					BaseBlockHash: common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
-				},
-				PeerID: peerId,
+				Msg: buildConfirmedPrepareBlock(),
+				PeerID: buildPeerId(),
+			})
+		} else if ordinal == 5 {
+			err = getWal().Write(&MsgInfo{
+				Msg: buildGetPrepareVote(),
+				PeerID: buildPeerId(),
+			})
+		} else if ordinal == 6 {
+			err = getWal().Write(&MsgInfo{
+				Msg: buildPrepareVotes(),
+				PeerID: buildPeerId(),
+			})
+		} else if ordinal == 7 {
+			err = getWal().Write(&MsgInfo{
+				Msg: buildGetPrepareBlock(),
+				PeerID: buildPeerId(),
+			})
+		} else if ordinal == 8 {
+			err = getWal().Write(&MsgInfo{
+				Msg: buildGetHighestPrepareBlock(),
+				PeerID: buildPeerId(),
+			})
+		} else if ordinal == 9 {
+			err = getWal().Write(&MsgInfo{
+				Msg: buildHighestPrepareBlock(),
+				PeerID: buildPeerId(),
+			})
+		} else if ordinal == 10 {
+			err = getWal().Write(&MsgInfo{
+				Msg: buildCbftStatusData(),
+				PeerID: buildPeerId(),
+			})
+		} else if ordinal == 11 {
+			err = getWal().Write(&MsgInfo{
+				Msg: buildPrepareBlockHash(),
+				PeerID: buildPeerId(),
 			})
 		}
 		if err != nil {
@@ -225,4 +175,14 @@ func TestLevelDB(t *testing.T) {
 			t.Errorf("%s", "TestLevelDB error")
 		}
 	}
+}
+
+func TestEmptyWal(t *testing.T) {
+	wal := &emptyWal{}
+	assert.Nil(t, wal.Write(nil))
+	assert.Nil(t, wal.Load(func(info *MsgInfo) {
+
+	}))
+	assert.Nil(t, wal.UpdateViewChange(nil))
+	assert.Nil(t, wal.UpdateViewChange(nil))
 }
