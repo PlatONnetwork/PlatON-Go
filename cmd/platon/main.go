@@ -89,6 +89,7 @@ var (
 		utils.TrieCacheGenFlag,
 		utils.ListenPortFlag,
 		utils.MaxPeersFlag,
+		utils.MaxConsensusPeersFlag,
 		utils.MaxPendingPeersFlag,
 		utils.MiningEnabledFlag,
 		utils.MinerThreadsFlag,
@@ -170,6 +171,10 @@ var (
 		utils.VCActorFlag,
 		utils.VCPasswordFlag,
 	}
+
+	cbftFlags = []cli.Flag {
+		utils.CbftBlockIntervalFlag,
+	}
 )
 
 func init() {
@@ -212,6 +217,8 @@ func init() {
 	app.Flags = append(app.Flags, mpcFlags...)
 	// for vc
 	app.Flags = append(app.Flags, vcFlags...)
+	// for cbft
+	app.Flags = append(app.Flags, cbftFlags...)
 
 	app.Before = func(ctx *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())

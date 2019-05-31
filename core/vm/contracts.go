@@ -59,6 +59,12 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{8}): &bn256Pairing{},
 }
 
+var ValidatorInnerContractAddr = common.HexToAddress("0x2000000000000000000000000000000000000000")
+
+var PrecompiledContractsValidator = map[common.Address]PrecompiledContract{
+	ValidatorInnerContractAddr: &validatorInnerContract{},
+}
+
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
 func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
 	gas := p.RequiredGas(input)

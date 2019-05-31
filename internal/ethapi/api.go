@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -37,14 +38,14 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/syndtr/goleveldb/leveldb"
-	"strings"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"strings"
 )
 
 const (
@@ -1448,4 +1449,26 @@ func (s *PublicNetAPI) PeerCount() hexutil.Uint {
 // Version returns the current ethereum protocol version.
 func (s *PublicNetAPI) Version() string {
 	return fmt.Sprintf("%d", s.networkVersion)
+}
+
+// PublicBlockChainAPI provides an API to access the Ethereum blockchain.
+// It offers only methods that operate on public data that is freely available to anyone.
+type PublicConsensusAPI struct {
+	b Backend
+}
+
+// NewPublicBlockChainAPI creates a new Ethereum blockchain API.
+func NewPublicConsensusAPI(b Backend) *PublicConsensusAPI {
+	return &PublicConsensusAPI{b}
+}
+
+func (s *PublicConsensusAPI) ConsensusStatus() string {
+	return s.b.Engine().Status()
+}
+
+func (s *PublicConsensusAPI) Evidences() string {
+	if bft, ok := s.b.Engine().(consensus.Bft); ok {
+		return bft.Evidences()
+	}
+	return ""
 }

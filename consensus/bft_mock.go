@@ -2,13 +2,15 @@ package consensus
 
 import (
 	"crypto/ecdsa"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"math/big"
 )
 
 type BftMock struct {
@@ -91,6 +93,10 @@ func (bm *BftMock) APIs(chain ChainReader) []rpc.API {
 	return nil
 }
 
+func (bm *BftMock) Protocols() []p2p.Protocol {
+	return []p2p.Protocol{}
+}
+
 // Close terminates any background threads maintained by the consensus engine.
 func (bm *BftMock) Close() error {
 	return nil
@@ -102,7 +108,7 @@ func (bm *BftMock) ConsensusNodes() ([]discover.NodeID, error) {
 }
 
 // Returns whether the current node is out of the block
-func (bm *BftMock) ShouldSeal() (bool, error) {
+func (bm *BftMock) ShouldSeal(curTime int64) (bool, error) {
 	return true, nil
 }
 
@@ -151,4 +157,32 @@ func (bm *BftMock) GetBlock(hash common.Hash, number uint64) *types.Block {
 
 func (bm *BftMock) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 
+}
+
+func (bm *BftMock) NextBaseBlock() *types.Block {
+	return nil
+}
+
+func (bm *BftMock) InsertChain(block *types.Block, errCh chan error) {
+
+}
+
+func (bm *BftMock) HasBlock(hash common.Hash, number uint64) bool {
+	return true
+}
+
+func (bm *BftMock) GetBlockByHash(hash common.Hash) *types.Block {
+	return nil
+}
+
+func (bm *BftMock) Status() string {
+	return ""
+}
+
+func (bm *BftMock) CurrentBlock() *types.Block {
+	return nil
+}
+
+func (bm *BftMock) FastSyncCommitHead() <-chan error {
+	return nil
 }

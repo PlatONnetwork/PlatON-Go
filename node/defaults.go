@@ -47,6 +47,7 @@ var DefaultConfig = Config{
 		ListenAddr: ":16789",
 		MaxPeers:   50,
 		NAT:        nat.Any(),
+		MaxConsensusPeers: 75,
 	},
 }
 

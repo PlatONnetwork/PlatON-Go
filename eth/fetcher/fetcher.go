@@ -94,6 +94,7 @@ type bodyFilterTask struct {
 	peer         string                 // The source peer of block bodies
 	transactions [][]*types.Transaction // Collection of transactions per block bodies
 	time         time.Time              // Arrival time of the blocks' contents
+	extraData    [][]byte
 }
 
 // inject represents a schedules import operation.
@@ -252,7 +253,7 @@ func (f *Fetcher) FilterHeaders(peer string, headers []*types.Header, time time.
 
 // FilterBodies extracts all the block bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
-func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Transaction, time time.Time) ([][]*types.Transaction) {
+func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Transaction, extraData [][]byte, time time.Time) ([][]*types.Transaction, [][]byte) {
 	log.Trace("Filtering bodies", "peer", peer, "txs", len(transactions))
 
 	// Send the filter channel to the fetcher
@@ -261,20 +262,21 @@ func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Transaction,
 	select {
 	case f.bodyFilter <- filter:
 	case <-f.quit:
-		return nil
+		return nil, nil
 	}
 	// Request the filtering of the body list
 	select {
-	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, time: time}:
+	case filter <- &bodyFilterTask{peer: peer, transactions: transactions, extraData: extraData, time: time}:
 	case <-f.quit:
-		return nil
+		return nil, nil
 	}
 	// Retrieve the bodies remaining after filtering
 	select {
 	case task := <-filter:
-		return task.transactions
+		log.Debug("FilterBodies", "transactions", len(task.transactions), "extra", len(task.extraData))
+		return task.transactions, task.extraData
 	case <-f.quit:
-		return nil
+		return nil, nil
 	}
 }
 
@@ -463,17 +465,18 @@ func (f *Fetcher) loop() {
 						announce.header = header
 						announce.time = task.time
 
+						//ExtraData deleted
 						// If the block is empty (header only), short circuit into the final import queue
-						if header.TxHash == types.DeriveSha(types.Transactions{}) {
-							log.Trace("Block empty, skipping body retrieval", "peer", announce.origin, "number", header.Number, "hash", header.Hash())
-
-							block := types.NewBlockWithHeader(header)
-							block.ReceivedAt = task.time
-
-							complete = append(complete, block)
-							f.completing[hash] = announce
-							continue
-						}
+						//if header.TxHash == types.DeriveSha(types.Transactions{}) {
+						//	log.Trace("Block empty, skipping body retrieval", "peer", announce.origin, "number", header.Number, "hash", header.Hash())
+						//
+						//	block := types.NewBlockWithHeader(header)
+						//	block.ReceivedAt = task.time
+						//
+						//	complete = append(complete, block)
+						//	f.completing[hash] = announce
+						//	continue
+						//}
 						// Otherwise add to the list of blocks needing completion
 						incomplete = append(incomplete, announce)
 					} else {
@@ -520,7 +523,7 @@ func (f *Fetcher) loop() {
 			bodyFilterInMeter.Mark(int64(len(task.transactions)))
 
 			blocks := []*types.Block{}
-			for i := 0; i < len(task.transactions); i++ {
+			for i := 0; i < len(task.transactions) && i < len(task.extraData); i++ {
 				// Match up a body to any possible completion request
 				matched := false
 
@@ -533,7 +536,7 @@ func (f *Fetcher) loop() {
 							matched = true
 
 							if f.getBlock(hash) == nil {
-								block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i])
+								block := types.NewBlockWithHeader(announce.header).WithBody(task.transactions[i], task.extraData[i])
 								block.ReceivedAt = task.time
 
 								blocks = append(blocks, block)
@@ -545,6 +548,7 @@ func (f *Fetcher) loop() {
 				}
 				if matched {
 					task.transactions = append(task.transactions[:i], task.transactions[i+1:]...)
+					task.extraData = append(task.extraData[:i], task.extraData[i+1:]...)
 					i--
 					continue
 				}

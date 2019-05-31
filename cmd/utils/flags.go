@@ -457,6 +457,11 @@ var (
 		Usage: "Maximum number of network peers (network disabled if set to 0)",
 		Value: 25,
 	}
+	MaxConsensusPeersFlag = cli.IntFlag{
+		Name:  "maxconsensuspeers",
+		Usage: "Maximum number of network consensus peers (network disabled if set to 0)",
+		Value: 75,
+	}
 	MaxPendingPeersFlag = cli.IntFlag{
 		Name:  "maxpendpeers",
 		Usage: "Maximum number of pending connection attempts (defaults used if set to 0)",
@@ -624,6 +629,12 @@ var (
 		Name:  "vc.password",
 		Usage: "the pwd of unlock actor",
 		Value: "",
+	}
+
+	CbftBlockIntervalFlag = cli.Uint64Flag{
+		Name:  "cbft.block_interval",
+		Usage: "This interval time use to broadcast block before mining next block",
+		Value: 100, // milliseconds
 	}
 )
 
@@ -912,6 +923,10 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	lightClient := ctx.GlobalString(SyncModeFlag.Name) == "light"
 	lightServer := ctx.GlobalInt(LightServFlag.Name) != 0
 	lightPeers := ctx.GlobalInt(LightPeersFlag.Name)
+
+	if ctx.GlobalIsSet(MaxConsensusPeersFlag.Name) {
+		cfg.MaxConsensusPeers = ctx.GlobalInt(MaxConsensusPeersFlag.Name)
+	}
 
 	if ctx.GlobalIsSet(MaxPeersFlag.Name) {
 		cfg.MaxPeers = ctx.GlobalInt(MaxPeersFlag.Name)
@@ -1273,6 +1288,12 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
 		state.MaxTrieCacheGen = uint16(gen)
+	}
+}
+
+func SetCbft(ctx *cli.Context, cfg *eth.CbftConfig) {
+	if ctx.GlobalIsSet(CbftBlockIntervalFlag.Name) {
+		cfg.BlockInterval = ctx.GlobalUint64(CbftBlockIntervalFlag.Name)
 	}
 }
 

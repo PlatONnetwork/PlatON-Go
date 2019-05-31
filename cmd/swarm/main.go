@@ -530,6 +530,7 @@ pv(1) tool to get a progress bar:
 		utils.NodeKeyFileFlag,
 		utils.NodeKeyHexFlag,
 		utils.MaxPeersFlag,
+		utils.MaxConsensusPeersFlag,
 		utils.NATFlag,
 		utils.IPCDisabledFlag,
 		utils.IPCPathFlag,

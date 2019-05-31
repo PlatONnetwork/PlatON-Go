@@ -18,7 +18,6 @@ package miner
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -77,7 +76,6 @@ const (
 	staleThreshold = 7
 
 	defaultCommitRatio = 0.95
-
 )
 
 // environment is the worker's current environment and holds all of the current state information.
@@ -137,9 +135,9 @@ type intervalAdjust struct {
 
 type commitWorkEnv struct {
 	currentBaseBlock atomic.Value
-	nextBaseBlock    atomic.Value
-	nextBlockTime    time.Time
-	commitStatus     int32
+	//nextBaseBlock    atomic.Value
+	nextBlockTime time.Time
+	commitStatus  int32
 }
 
 func (e *commitWorkEnv) getCurrentBaseBlock() *types.Block {
@@ -151,14 +149,14 @@ func (e *commitWorkEnv) getCurrentBaseBlock() *types.Block {
 	}
 }
 
-func (e *commitWorkEnv) getNextBaseBlock() *types.Block {
-	v := e.nextBaseBlock.Load()
-	if v == nil {
-		return nil
-	} else {
-		return v.(*types.Block)
-	}
-}
+//func (e *commitWorkEnv) getNextBaseBlock() *types.Block {
+//	//v := e.nextBaseBlock.Load()
+//	//if v == nil {
+//	//	return nil
+//	//} else {
+//	//	return v.(*types.Block)
+//	//}
+//}
 
 /*func (e *commitWorkEnv) getNextBaseBlock() *types.Block {
 	e.highestLock.RLock()
@@ -192,8 +190,6 @@ type worker struct {
 	taskCh                chan *task
 	resultCh              chan *types.Block
 	prepareResultCh       chan *types.Block
-	blockSignatureCh      chan *cbfttypes.BlockSignature // signature
-	cbftResultCh          chan *cbfttypes.CbftResult     // Channel output after Seal is released
 	highestLogicalBlockCh chan *types.Block
 	startCh               chan struct{}
 	exitCh                chan struct{}
@@ -226,6 +222,7 @@ type worker struct {
 	recommit        time.Duration
 	commitDuration  int64 //in Millisecond
 
+	bftResultSub *event.TypeMuxSubscription
 	// Test hooks
 	newTaskHook  func(*task)                        // Method to call upon receiving a new sealing task.
 	skipSealHook func(*task) bool                   // Method to decide whether skipping the sealing.
@@ -234,41 +231,38 @@ type worker struct {
 }
 
 func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool,
-	blockSignatureCh chan *cbfttypes.BlockSignature, cbftResultCh chan *cbfttypes.CbftResult, highestLogicalBlockCh chan *types.Block, blockChainCache *core.BlockChainCache) *worker {
+	blockChainCache *core.BlockChainCache) *worker {
 	worker := &worker{
-		config:                config,
-		engine:                engine,
-		eth:                   eth,
-		mux:                   mux,
-		chain:                 eth.BlockChain(),
-		gasFloor:              gasFloor,
-		gasCeil:               gasCeil,
-		isLocalBlock:          isLocalBlock,
-		unconfirmed:           newUnconfirmedBlocks(eth.BlockChain(), miningLogAtDepth),
-		pendingTasks:          make(map[common.Hash]*task),
-		txsCh:                 make(chan core.NewTxsEvent, txChanSize),
-		chainHeadCh:           make(chan core.ChainHeadEvent, chainHeadChanSize),
-		chainSideCh:           make(chan core.ChainSideEvent, chainSideChanSize),
-		newWorkCh:             make(chan *newWorkReq),
-		taskCh:                make(chan *task),
-		resultCh:              make(chan *types.Block, resultQueueSize),
-		prepareResultCh:       make(chan *types.Block, resultQueueSize),
-		exitCh:                make(chan struct{}),
-		startCh:               make(chan struct{}, 1),
-		resubmitIntervalCh:    make(chan time.Duration),
-		resubmitAdjustCh:      make(chan *intervalAdjust, resubmitAdjustChanSize),
-		blockSignatureCh:      blockSignatureCh,
-		cbftResultCh:          cbftResultCh,
-		highestLogicalBlockCh: highestLogicalBlockCh,
-		blockChainCache:       blockChainCache,
-		commitWorkEnv:         &commitWorkEnv{},
+		config:             config,
+		engine:             engine,
+		eth:                eth,
+		mux:                mux,
+		chain:              eth.BlockChain(),
+		gasFloor:           gasFloor,
+		gasCeil:            gasCeil,
+		isLocalBlock:       isLocalBlock,
+		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningLogAtDepth),
+		pendingTasks:       make(map[common.Hash]*task),
+		txsCh:              make(chan core.NewTxsEvent, txChanSize),
+		chainHeadCh:        make(chan core.ChainHeadEvent, chainHeadChanSize),
+		chainSideCh:        make(chan core.ChainSideEvent, chainSideChanSize),
+		newWorkCh:          make(chan *newWorkReq),
+		taskCh:             make(chan *task),
+		resultCh:           make(chan *types.Block, resultQueueSize),
+		prepareResultCh:    make(chan *types.Block, resultQueueSize),
+		exitCh:             make(chan struct{}),
+		startCh:            make(chan struct{}, 1),
+		resubmitIntervalCh: make(chan time.Duration),
+		resubmitAdjustCh:   make(chan *intervalAdjust, resubmitAdjustChanSize),
+		blockChainCache:    blockChainCache,
+		commitWorkEnv:      &commitWorkEnv{},
 	}
 	// Subscribe NewTxsEvent for tx pool
 	// worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
 	// Subscribe events for blockchain
 	worker.chainHeadSub = eth.BlockChain().SubscribeChainHeadEvent(worker.chainHeadCh)
 	worker.chainSideSub = eth.BlockChain().SubscribeChainSideEvent(worker.chainSideCh)
-
+	worker.bftResultSub = worker.mux.Subscribe(cbfttypes.CbftResult{})
 	// Sanitize recommit interval if the user-specified one is too short.
 	if config.Cbft != nil {
 		recommit = time.Duration(config.Cbft.Period) * time.Second
@@ -372,6 +366,9 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		timestamp   int64      // timestamp for each round of mining in Millisecond.
 	)
 
+	vdEvent := w.mux.Subscribe(cbfttypes.UpdateValidatorEvent{})
+	defer vdEvent.Unsubscribe()
+
 	timer := time.NewTimer(0)
 	<-timer.C // discard the initial tick
 
@@ -388,7 +385,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 		deadline := blockDeadline.UnixNano() / int64(time.Millisecond)
 		log.Debug("Begin to commit new worker", "baseBlockHash", baseBlock.Hash(), "baseBlockNumber", baseBlock.Number(), "timestamp", timestamp, "deadline", deadline, "deadlineDuration", deadline-timestamp)
 		w.newWorkCh <- &newWorkReq{interrupt: interrupt, noempty: noempty, timestamp: timestamp, blockDeadline: blockDeadline, commitBlock: baseBlock}
-		timer.Reset(time.Duration(deadline-timestamp)*time.Millisecond)
+		timer.Reset(time.Duration(deadline-timestamp) * time.Millisecond)
 		atomic.StoreInt32(&w.newTxs, 0)
 	}
 	// recalcRecommit recalculates the resubmitting interval upon feedback.
@@ -425,8 +422,23 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	for {
 		select {
+		case ev := <-vdEvent.Chan():
+			if ev == nil {
+				continue
+			}
+			switch ev.Data.(type) {
+			case cbfttypes.UpdateValidatorEvent:
+				nextBlockTime, err := w.engine.(consensus.Bft).CalcNextBlockTime(common.Millis(time.Now()))
+				if err != nil {
+					log.Error("Calc next block time fail", "err", err)
+					continue
+				}
+				w.commitWorkEnv.nextBlockTime = nextBlockTime
+				log.Debug("Update next block time", "nextBlockTime", nextBlockTime)
+			}
 		case <-w.startCh:
 			timestamp = time.Now().UnixNano() / 1e6
+			log.Debug("Clear Pending", "number", w.chain.CurrentBlock().NumberU64())
 			clearPending(w.chain.CurrentBlock().NumberU64())
 			if _, ok := w.engine.(consensus.Bft); ok {
 				//w.makePending()
@@ -437,6 +449,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 		case head := <-w.chainHeadCh:
 			timestamp = time.Now().UnixNano() / 1e6
+			log.Debug("Clear Pending", "number", head.Block.NumberU64())
 			clearPending(head.Block.NumberU64())
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
@@ -459,45 +472,22 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 				commit(false, commitInterruptNewHead, nil, time.Now().Add(50*time.Millisecond))
 			}
 
-			if cbft, ok := w.engine.(consensus.Bft); ok {
-				cbft.OnBlockSynced()
-			}
-
-		case highestLogicalBlock := <-w.highestLogicalBlockCh:
-			log.Debug("received a notify for new highest logical", "number", highestLogicalBlock.NumberU64(), "hash", highestLogicalBlock.Hash())
-			/*w.commitWorkEnv.highestLock.Lock()
-			w.commitWorkEnv.nextBaseBlock = nextBaseBlock
-			w.commitWorkEnv.highestLock.Unlock()*/
-			timestamp = time.Now().UnixNano() / 1e6
-			w.commitWorkEnv.nextBaseBlock.Store(highestLogicalBlock)
-
-			if w.isRunning() {
-				if shouldSeal, error := w.engine.(consensus.Bft).ShouldSeal(timestamp); shouldSeal && error == nil {
-					if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
-						log.Debug("begin to package new block in time after resetting a new highest logical block")
-						//timestamp = time.Now().UnixNano() / 1e6
-						blockDeadline := w.engine.(consensus.Bft).CalcBlockDeadline()
-						commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
-					} else {
-						timer.Reset(50 * time.Millisecond)
-					}
-				}
-			}
-
 		case <-timer.C:
 			// If mining is running resubmit a new work cycle periodically to pull in
 			// higher priced transactions. Disable this overhead for pending blocks.
 			timestamp = time.Now().UnixNano() / 1e6
 			if w.isRunning() {
 				if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-					//log.Debug("timer.C triggered")
-					if shouldSeal, error := cbftEngine.ShouldSeal(timestamp); error == nil {
+					if shouldSeal, err := cbftEngine.ShouldSeal(timestamp); err == nil {
 						if shouldSeal {
 							if shouldCommit, commitBlock := w.shouldCommit(timestamp); shouldCommit {
 								log.Debug("begin to package new block regularly ")
 								//timestamp = time.Now().UnixNano() / 1e6
-								blockDeadline := w.engine.(consensus.Bft).CalcBlockDeadline()
-								commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
+								if blockDeadline, err := w.engine.(consensus.Bft).CalcBlockDeadline(timestamp); err == nil {
+									commit(false, commitInterruptResubmit, commitBlock, blockDeadline)
+								} else {
+									log.Error("Calc block deadline failed", "err", err)
+								}
 								continue
 							}
 						}
@@ -570,37 +560,37 @@ func (w *worker) mainLoop() {
 		case <-w.chainSideCh:
 			// If our mining block contains less than 2 uncle blocks,
 			// add the new uncle block if valid and regenerate a mining block.
-		// removed by PlatON
-		/*
-			case  <-w.txsCh:
+			// removed by PlatON
+			/*
+				case  <-w.txsCh:
 
-				// Apply transactions to the pending state if we're not mining.
-				// Note all transactions received may not be continuous with transactions
-				// already included in the current mining block. These transactions will
-				// be automatically eliminated.
-				if !w.isRunning() && w.current != nil {
-					w.mu.RLock()
-					coinbase := w.coinbase
-					w.mu.RUnlock()
+					// Apply transactions to the pending state if we're not mining.
+					// Note all transactions received may not be continuous with transactions
+					// already included in the current mining block. These transactions will
+					// be automatically eliminated.
+					if !w.isRunning() && w.current != nil {
+						w.mu.RLock()
+						coinbase := w.coinbase
+						w.mu.RUnlock()
 
-					txs := make(map[common.Address]types.Transactions)
-					for _, tx := range ev.Txs {
-						acc, _ := types.Sender(w.current.signer, tx)
-						txs[acc] = append(txs[acc], tx)
+						txs := make(map[common.Address]types.Transactions)
+						for _, tx := range ev.Txs {
+							acc, _ := types.Sender(w.current.signer, tx)
+							txs[acc] = append(txs[acc], tx)
+						}
+						txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
+						w.commitTransactions(txset, coinbase, nil, 0)
+						w.updateSnapshot()
+					} else {
+						// If we're mining, but nothing is being processed, wake on new transactions
+						if w.config.Clique != nil && w.config.Clique.Period == 0 {
+							w.commitNewWork(nil, false, time.Now().Unix(), nil)
+						}
 					}
-					txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs)
-					w.commitTransactions(txset, coinbase, nil, 0)
-					w.updateSnapshot()
-				} else {
-					// If we're mining, but nothing is being processed, wake on new transactions
-					if w.config.Clique != nil && w.config.Clique.Period == 0 {
-						w.commitNewWork(nil, false, time.Now().Unix(), nil)
-					}
-				}
-				atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
-		*/
+					atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
+			*/
 
-		// System stopped
+			// System stopped
 		case <-w.exitCh:
 			return
 
@@ -635,15 +625,14 @@ func (w *worker) mainLoop() {
 				continue
 			}
 			// Broadcast the block and announce chain insertion event
-			w.mux.Post(core.PrepareMinedBlockEvent{Block: block})
 
-		case blockSignature := <-w.blockSignatureCh:
-			log.Debug("to receive blockSign from cbft", "hash", blockSignature.Hash, "number", blockSignature.Number.Uint64())
-			if blockSignature != nil {
-				// send blockSignatureMsg to consensus node peer
-				w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature})
-				log.Debug("end to receive blockSign from cbft")
-			}
+			//case blockSignature := <-w.blockSignatureCh:
+			//	log.Debug("to receive blockSign from cbft", "hash", blockSignature.Hash, "number", blockSignature.Number.Uint64())
+			//	if blockSignature != nil {
+			//		// send blockSignatureMsg to consensus node peer
+			//		w.mux.Post(core.BlockSignatureEvent{BlockSignature: blockSignature})
+			//		log.Debug("end to receive blockSign from cbft")
+			//	}
 		}
 	}
 }
@@ -712,81 +701,89 @@ func (w *worker) taskLoop() {
 func (w *worker) resultLoop() {
 	for {
 		select {
-		case block := <-w.resultCh:
-			// Short circuit when receiving empty result.
-			if block == nil {
+		//case block := <-w.resultCh:
+		// Short circuit when receiving empty result.
+		//if block == nil {
+		//	continue
+		//}
+		//// Short circuit when receiving duplicate result caused by resubmitting.
+		//if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
+		//	continue
+		//}
+		//var (
+		//	sealhash = w.engine.SealHash(block.Header())
+		//	hash     = block.Hash()
+		//)
+		//w.pendingMu.RLock()
+		//task, exist := w.pendingTasks[sealhash]
+		//w.pendingMu.RUnlock()
+		//if !exist {
+		//	log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
+		//	continue
+		//}
+		// Different block could share same sealhash, deep copy here to prevent write-write conflict.
+		//var (
+		//	receipts = make([]*types.Receipt, len(task.receipts))
+		//	logs     []*types.Log
+		//)
+		//for i, receipt := range task.receipts {
+		//	receipts[i] = new(types.Receipt)
+		//	*receipts[i] = *receipt
+		//	// Update the block hash in all logs since it is now available and not when the
+		//	// receipt/log of individual transactions were created.
+		//	for _, log := range receipt.Logs {
+		//		log.BlockHash = hash
+		//	}
+		//	logs = append(logs, receipt.Logs...)
+		//}
+		// Commit block and state to database.
+		//stat, err := w.chain.WriteBlockWithState(block, receipts, task.state)
+		//if err != nil {
+		//	log.Error("Failed writing block to chain", "err", err)
+		//	continue
+		//}
+		//log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
+		//	"elapsed", common.PrettyDuration(time.Since(task.createdAt)))
+		//
+		//// Broadcast the block and announce chain insertion event
+		////don't send block by p2p , because new block doesn't have 2/3 signs
+		////w.mux.Post(core.NewMinedBlockEvent{Block: block})
+		//
+		//var events []interface{}
+		//switch stat {
+		//case core.CanonStatTy:
+		//	log.Debug("Prepare Events, WriteStatus=CanonStatTy")
+		//	events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
+		//	events = append(events, core.ChainHeadEvent{Block: block})
+		//case core.SideStatTy:
+		//	log.Debug("Prepare Events, WriteStatus=SideStatTy")
+		//	events = append(events, core.ChainSideEvent{Block: block})
+		//}
+		//w.chain.PostChainEvents(events, logs)
+		//
+		//// Insert the block into the set of pending ones to resultLoop for confirmations
+		//w.unconfirmed.Insert(block.NumberU64(), block.Hash())
+
+		case obj := <-w.bftResultSub.Chan():
+			if obj == nil {
+				log.Error("receive nil maybe channel is closed")
 				continue
 			}
-			// Short circuit when receiving duplicate result caused by resubmitting.
-			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
+			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
+			if !ok {
+				log.Error("receive bft result type error")
 				continue
 			}
-			var (
-				sealhash = w.engine.SealHash(block.Header())
-				hash     = block.Hash()
-			)
-			w.pendingMu.RLock()
-			task, exist := w.pendingTasks[sealhash]
-			w.pendingMu.RUnlock()
-			if !exist {
-				log.Error("Block found but no relative pending task", "number", block.Number(), "sealhash", sealhash, "hash", hash)
-				continue
-			}
-			// Different block could share same sealhash, deep copy here to prevent write-write conflict.
-			var (
-				receipts = make([]*types.Receipt, len(task.receipts))
-				logs     []*types.Log
-			)
-			for i, receipt := range task.receipts {
-				receipts[i] = new(types.Receipt)
-				*receipts[i] = *receipt
-				// Update the block hash in all logs since it is now available and not when the
-				// receipt/log of individual transactions were created.
-				for _, log := range receipt.Logs {
-					log.BlockHash = hash
-				}
-				logs = append(logs, receipt.Logs...)
-			}
-			// Commit block and state to database.
-			stat, err := w.chain.WriteBlockWithState(block, receipts, task.state)
-			if err != nil {
-				log.Error("Failed writing block to chain", "err", err)
-				continue
-			}
-			log.Info("Successfully sealed new block", "number", block.Number(), "sealhash", sealhash, "hash", hash,
-				"elapsed", common.PrettyDuration(time.Since(task.createdAt)))
-
-			// Broadcast the block and announce chain insertion event
-			w.mux.Post(core.NewMinedBlockEvent{Block: block})
-
-			var events []interface{}
-			switch stat {
-			case core.CanonStatTy:
-				log.Debug("Prepare Events, WriteStatus=CanonStatTy")
-				events = append(events, core.ChainEvent{Block: block, Hash: block.Hash(), Logs: logs})
-				events = append(events, core.ChainHeadEvent{Block: block})
-			case core.SideStatTy:
-				log.Debug("Prepare Events, WriteStatus=SideStatTy")
-				events = append(events, core.ChainSideEvent{Block: block})
-			}
-			w.chain.PostChainEvents(events, logs)
-
-			// Insert the block into the set of pending ones to resultLoop for confirmations
-			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
-
-		case cbftResult := <-w.cbftResultCh:
 			block := cbftResult.Block
-			blockConfirmSigns := cbftResult.BlockConfirmSigns
 			// Short circuit when receiving empty result.
 			if block == nil {
-				log.Error("cbft result error, block is nil")
+				log.Error("Cbft result error, block is nil")
 				continue
 			}
-
-			if blockConfirmSigns == nil || len(blockConfirmSigns) == 0 {
-				log.Error("cbft result error, blockConfirmSigns is nil")
-				continue
-			}
+			//if cbftResult.ExtraData == nil || len(cbftResult.ExtraData) == 0 {
+			//	log.Error("Cbft result error, blockConfirmSigns is nil")
+			//	continue
+			//}
 			var (
 				hash     = block.Hash()
 				sealhash = w.engine.SealHash(block.Header())
@@ -794,37 +791,35 @@ func (w *worker) resultLoop() {
 			)
 			// Short circuit when receiving duplicated cbft result caused by resubmitting or P2P sync.
 			if w.chain.HasBlock(block.Hash(), block.NumberU64()) {
-				log.Warn("duplicated cbft result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
+				log.Warn("Duplicated cbft result caused by resubmitting or P2P sync.", "hash", hash, "number", number)
 				continue
 			}
-
 			w.pendingMu.RLock()
 			task, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
 
+			log.Debug("Pending task", "exist", exist)
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
-			if exist && cbft.IsSignedBySelf(sealhash, block.Extra()[32:]) {
+			if exist && w.engine.(consensus.Bft).IsSignedBySelf(sealhash, block.Extra()[32:]) {
 				_receipts = task.receipts
 				_state = task.state
 				stateIsNil := _state == nil
-				log.Debug("block is packaged by local", "hash", hash, "number", number, "len(Receipts)", len(_receipts), "stateIsNil", stateIsNil)
+				log.Debug("Block is packaged by local", "hash", hash, "number", number, "len(Receipts)", len(_receipts), "stateIsNil", stateIsNil)
 			} else {
 				_receipts = w.blockChainCache.ReadReceipts(sealhash)
 				_state = w.blockChainCache.ReadStateDB(sealhash)
 				stateIsNil := _state == nil
-				log.Debug("block is packaged by other", "hash", hash, "number", number, "len(Receipts)", len(_receipts), "blockRoot", block.Root(), "stateIsNil", stateIsNil)
+				log.Debug("Block is packaged by other", "hash", hash, "number", number, "len(Receipts)", len(_receipts), "blockRoot", block.Root(), "stateIsNil", stateIsNil)
 			}
-
 			if _state == nil {
-				log.Warn("handle cbft result error, state is nil, maybe block is synced from other peer", "hash", hash, "number", number)
+				log.Warn("Handle cbft result error, state is nil, maybe block is synced from other peer", "hash", hash, "number", number)
 				continue
 			} else if len(block.Transactions()) > 0 && len(_receipts) == 0 {
-				log.Warn("handle cbft result error, block has transactions but receipts is nil, maybe block is synced from other peer", "hash", hash, "number", number)
+				log.Warn("Handle cbft result error, block has transactions but receipts is nil, maybe block is synced from other peer", "hash", hash, "number", number)
 				continue
 			}
-
-			log.Debug("cbft consensus successful", "hash", hash, "number", number, "timestamp", time.Now().UnixNano()/1e6)
+			log.Debug("Cbft consensus successful", "hash", hash, "number", number, "timestamp", time.Now().UnixNano()/1e6)
 
 			// Different block could share same sealhash, deep copy here to prevent write-write conflict.
 			var (
@@ -842,12 +837,17 @@ func (w *worker) resultLoop() {
 				logs = append(logs, receipt.Logs...)
 			}
 			// Commit block and state to database.
-			block.ConfirmSigns = blockConfirmSigns
+			block.SetExtraData(cbftResult.ExtraData)
+			log.Debug("Write extra data", "txs", len(block.Transactions()), "extra", len(block.ExtraData()))
 			stat, err := w.chain.WriteBlockWithState(block, receipts, _state)
 			if err != nil {
+				if cbftResult.SyncState != nil {
+					cbftResult.SyncState <- err
+				}
 				log.Error("Failed writing block to chain", "hash", block.Hash(), "number", block.NumberU64(), "err", err)
 				continue
 			}
+			//cbftResult.SyncState <- err
 			log.Info("Successfully write new block", "hash", block.Hash(), "number", block.NumberU64())
 
 			// Broadcast the block and announce chain insertion event
@@ -1001,7 +1001,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 
 		case core.ErrNonceTooLow:
 			// New head notification data race between the transaction pool and miner, shift
-			log.Warn("Skipping transaction with low nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "tx.nonce", tx.Nonce())
+			//log.Warn("Skipping transaction with low nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "tx.nonce", tx.Nonce())
 			txs.Shift()
 
 		case core.ErrNonceTooHigh:
@@ -1211,7 +1211,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		header.Coinbase = w.coinbase
 	}
 
-	log.Debug("cbft begin to consensus for new block", "number", header.Number, "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
+	log.Info("cbft begin to consensus for new block", "number", header.Number, "gasLimit", header.GasLimit, "parentHash", parent.Hash(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root(), "timestamp", common.MillisToString(timestamp))
 	if err := w.engine.Prepare(w.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
@@ -1259,6 +1259,16 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	}
 
 	log.Debug("Fetch pending transactions success", "pendingLength", len(pending), "time", common.PrettyDuration(time.Since(startTime)))
+
+	log.Trace("Validator mode", "mode", w.config.Cbft.ValidatorMode)
+	if w.config.Cbft.ValidatorMode == "inner" {
+		// Check if need to switch validators.
+		// If needed, make a inner contract transaction
+		// and pack into pending block.
+		if w.shouldSwitch() && w.commitInnerTransaction(timestamp, blockDeadline) != nil {
+			return
+		}
+	}
 
 	// Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
@@ -1360,7 +1370,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 }
 
 func (w *worker) makePending() (*types.Block, *state.StateDB) {
-	var parent = w.commitWorkEnv.getNextBaseBlock()
+	var parent = w.engine.NextBaseBlock()
 	var parentChain = w.chain.CurrentBlock()
 
 	if parentChain.NumberU64() >= parent.NumberU64() {
@@ -1385,7 +1395,7 @@ func (w *worker) makePending() (*types.Block, *state.StateDB) {
 
 func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 	currentBaseBlock := w.commitWorkEnv.getCurrentBaseBlock()
-	nextBaseBlock := w.commitWorkEnv.getNextBaseBlock()
+	nextBaseBlock := w.engine.NextBaseBlock()
 	nextBlockTimeMs := common.Millis(w.commitWorkEnv.nextBlockTime)
 
 	status := atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
@@ -1395,9 +1405,14 @@ func (w *worker) shouldCommit(timestamp int64) (bool, *types.Block) {
 		"timestamp", common.MillisToString(timestamp))
 
 	if shouldCommit && nextBaseBlock != nil {
+		var err error
 		w.commitWorkEnv.currentBaseBlock.Store(nextBaseBlock)
-		w.commitWorkEnv.nextBlockTime = w.engine.(consensus.Bft).CalcNextBlockTime()
-
+		w.commitWorkEnv.nextBlockTime, err = w.engine.(consensus.Bft).CalcNextBlockTime(timestamp)
+		nextBlockTimeMs = common.Millis(w.commitWorkEnv.nextBlockTime)
+		if err != nil {
+			log.Error("Calc next block time failed", "err", err)
+			return false, nil
+		}
 		if currentBaseBlock == nil {
 			log.Debug("check if time's up in shouldCommit()", "result", shouldCommit,
 				"next.number", nextBaseBlock.Number(),

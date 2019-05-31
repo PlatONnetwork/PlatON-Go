@@ -69,9 +69,9 @@ const (
 // PeerInfo represents a short summary of the Ethereum sub-protocol metadata known
 // about a connected peer.
 type PeerInfo struct {
-	Version    int      `json:"version"`    // Ethereum protocol version negotiated
-	BN         *big.Int `json:"number"`     // The block number of the peer's blockchain
-	Head       string   `json:"head"`       // SHA3 hash of the peer's best owned block
+	Version int      `json:"version"` // Ethereum protocol version negotiated
+	BN      *big.Int `json:"number"`  // The block number of the peer's blockchain
+	Head    string   `json:"head"`    // SHA3 hash of the peer's best owned block
 }
 
 // propEvent is a block propagation, waiting for its turn in the broadcast queue.
@@ -185,9 +185,9 @@ func (p *peer) Info() *PeerInfo {
 	hash, bn := p.Head()
 
 	return &PeerInfo{
-		Version:    p.version,
-		BN: bn,
-		Head:       hash.Hex(),
+		Version: p.version,
+		BN:      bn,
+		Head:    hash.Hex(),
 	}
 }
 
@@ -553,7 +553,7 @@ func (ps *peerSet) PeersWithoutTx(hash common.Hash) []*peer {
 
 // ConsensusPeersWithoutTx retrieves a list of consensus peers that do not have a given transaction
 // in their set of known hashes.
-func (ps *peerSet) ConsensusPeersWithoutTx(csPeers []*peer, hash common.Hash) []*peer{
+func (ps *peerSet) ConsensusPeersWithoutTx(csPeers []*peer, hash common.Hash) []*peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 

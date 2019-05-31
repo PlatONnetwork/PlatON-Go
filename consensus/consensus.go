@@ -19,14 +19,15 @@ package consensus
 
 import (
 	"crypto/ecdsa"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"time"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -97,6 +98,21 @@ type Engine interface {
 	// APIs returns the RPC APIs this consensus engine provides.
 	APIs(chain ChainReader) []rpc.API
 
+	Protocols() []p2p.Protocol
+
+	NextBaseBlock() *types.Block
+
+	InsertChain(block *types.Block, errCh chan error)
+
+	HasBlock(hash common.Hash, number uint64) bool
+
+	Status() string
+	GetBlockByHash(hash common.Hash) *types.Block
+
+	CurrentBlock() *types.Block
+
+	FastSyncCommitHead() <-chan error
+
 	// Close terminates any background threads maintained by the consensus engine.
 	Close() error
 }
@@ -118,25 +134,21 @@ type Bft interface {
 	// Returns whether the current node is out of the block
 	ShouldSeal(curTime int64) (bool, error)
 
-	CalcBlockDeadline() time.Time
-	CalcNextBlockTime() time.Time
-
-	// Received a new block signature
-	// Need to verify if the signature is signed by nodeID
-	OnBlockSignature(chain ChainReader, nodeID discover.NodeID, sig *cbfttypes.BlockSignature) error
+	CalcBlockDeadline(timePoint int64) (time.Time, error)
+	CalcNextBlockTime(timePoint int64) (time.Time, error)
 
 	// Process the BFT signatures
-	OnNewBlock(chain ChainReader, block *types.Block) error
+	//OnNewBlock(chain ChainReader, block *types.Block) error
 
 	// Process the BFT signatures
 	OnPong(nodeID discover.NodeID, netLatency int64) error
+	//
+	//// Send a signal if a block synced from other peer.
+	//OnBlockSynced()
 
-	// Send a signal if a block synced from other peer.
-	OnBlockSynced()
+	CheckConsensusNode(address common.Address) bool
 
-	CheckConsensusNode(nodeID discover.NodeID) (bool, error)
-
-	IsConsensusNode() (bool, error)
+	IsConsensusNode() bool
 
 	// At present, the highest reasonable block, when the node is out of the block, it needs to generate the block based on the highest reasonable block.
 	HighestLogicalBlock() *types.Block
@@ -145,7 +157,11 @@ type Bft interface {
 
 	GetBlock(hash common.Hash, number uint64) *types.Block
 
+	GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block
+
 	SetPrivateKey(privateKey *ecdsa.PrivateKey)
 
-	//SetBlockChain(blockChain *core.BlockChain)
+	IsSignedBySelf(sealHash common.Hash, signature []byte) bool
+
+	Evidences() string
 }

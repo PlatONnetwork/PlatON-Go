@@ -19,9 +19,10 @@ package params
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"math/big"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -220,10 +221,12 @@ type CbftConfig struct {
 	MaxLatency       int64   `json:"maxLatency,omitempty"`       // number of milliseconds of max net latency between the consensus nodes
 	LegalCoefficient float64 `json:"legalCoefficient,omitempty"` // coefficient for checking if a block is in it's turn
 	Duration         int64   `json:"duration,omitempty"`         // number of seconds for a node to produce blocks
+	BlockInterval    uint64  `json:"-"`
 	//mock
-	InitialNodes []discover.Node   `json:"initialNodes,omitempty"`
-	NodeID       discover.NodeID   `json:"-"`
-	PrivateKey   *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
+	InitialNodes  []discover.Node   `json:"initialNodes,omitempty"`
+	NodeID        discover.NodeID   `json:"-"`
+	PrivateKey    *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
+	ValidatorMode string            `json:"validatorMode,omitempty"`
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
@@ -243,7 +246,6 @@ func (c *ChainConfig) String() string {
 	switch {
 	case c.Clique != nil:
 		engine = c.Clique
-	// joey.lyu
 	case c.Cbft != nil:
 		engine = c.Cbft
 	default:

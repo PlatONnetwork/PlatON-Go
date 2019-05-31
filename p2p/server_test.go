@@ -19,7 +19,6 @@ package p2p
 import (
 	"crypto/ecdsa"
 	"errors"
-	"math/rand"
 	"net"
 	"reflect"
 	"testing"
@@ -334,6 +333,13 @@ func (tg taskgen) addStatic(*discover.Node) {
 func (tg taskgen) removeStatic(*discover.Node) {
 }
 
+func (tg taskgen) addConsensus(n *discover.Node) {
+
+}
+
+func (tg taskgen) removeConsensus(n *discover.Node) {
+}
+
 type testTask struct {
 	index  int
 	called bool
@@ -602,9 +608,9 @@ func newkey() *ecdsa.PrivateKey {
 	return key
 }
 
-func randomID() (id discover.NodeID) {
-	for i := range id {
-		id[i] = byte(rand.Intn(255))
-	}
-	return id
-}
+//func randomID() (id discover.NodeID) {
+//	for i := range id {
+//		id[i] = byte(rand.Intn(255))
+//	}
+//	return id
+//}

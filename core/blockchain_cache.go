@@ -2,6 +2,7 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -34,8 +35,8 @@ type receiptsCache struct {
 
 func (pbc *BlockChainCache) CurrentBlock() *types.Block {
 	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
-		if block := cbft.HighestLogicalBlock(); block != nil {
-			log.Debug("get CurrentBlock() in cbft")
+		if block := cbft.HighestConfirmedBlock(); block != nil {
+			log.Debug("get CurrentBlock() in cbft", "hash", block.Hash(), "number", block.NumberU64())
 			return block
 		}
 	}
@@ -48,6 +49,22 @@ func (pbc *BlockChainCache) GetBlock(hash common.Hash, number uint64) *types.Blo
 	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
 		log.Trace("find block in cbft", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
 		block = cbft.GetBlock(hash, number)
+	}
+	if block == nil {
+		log.Trace("cannot find block in cbft, try to find it in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		block = pbc.getBlock(hash, number)
+		if block == nil {
+			log.Trace("cannot find block in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		}
+	}
+	return block
+}
+
+func (pbc *BlockChainCache) GetBlockInMemory(hash common.Hash, number uint64) *types.Block {
+	var block *types.Block
+	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
+		log.Trace("find block in cbft", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
+		block = cbft.GetBlockWithoutLock(hash, number)
 	}
 	if block == nil {
 		log.Trace("cannot find block in cbft, try to find it in chain", "RoutineID", common.CurrentGoRoutineID(), "hash", hash, "number", number)
@@ -132,7 +149,7 @@ func (bcc *BlockChainCache) clearReceipts(sealHash common.Hash) {
 		//delete(pbc.receiptsCache, sealHash)
 	}
 	for hash, obj := range bcc.receiptsCache {
-		if obj.blockNum <= blockNum {
+		if obj.blockNum < blockNum {
 			delete(bcc.receiptsCache, hash)
 		}
 	}
@@ -149,7 +166,8 @@ func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 		//delete(pbc.stateDBCache, sealHash)
 	}
 	for hash, obj := range bcc.stateDBCache {
-		if obj.blockNum <= blockNum {
+		if obj.blockNum < blockNum {
+			log.Debug("Clear StateDB", "sealHash", hash, "number", obj.blockNum)
 			delete(bcc.stateDBCache, hash)
 		}
 	}
@@ -174,7 +192,17 @@ func (bcc *BlockChainCache) MakeStateDB(block *types.Block) (*state.StateDB, err
 
 // Get the StateDB instance of the corresponding block
 func (bcc *BlockChainCache) ClearCache(block *types.Block) {
+	log.Debug("Clear Cache block", "sealHash", block.Header().SealHash(), "blockHash", block.Hash())
 	sealHash := block.Header().SealHash()
 	bcc.clearReceipts(sealHash)
 	bcc.clearStateDB(sealHash)
+}
+
+func (bcc *BlockChainCache) StateDBString() string {
+	status := fmt.Sprintf("[")
+	for hash, obj := range bcc.stateDBCache {
+		status += fmt.Sprintf("[%s, %d]", hash, obj.blockNum)
+	}
+	status += fmt.Sprintf("]")
+	return status
 }
