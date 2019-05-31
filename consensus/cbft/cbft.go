@@ -1504,7 +1504,7 @@ func (cbft *Cbft) CalcNextBlockTime(timePoint int64) (time.Time, error) {
 
 		log.Trace("Calc next block time", "min", min, "value", value, "max", max)
 		var offset int64
-		if value >= min && value <= max {
+		if value >= min && value < max {
 			cnt := int64(cbft.config.Duration) / int64(cbft.config.Period)
 			slots := make([]int64, cnt)
 			var i int64
