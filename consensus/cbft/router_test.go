@@ -99,6 +99,24 @@ func makeFakePrepareVote() *prepareVote {
 	return pv
 }
 
+func makeFakeConfirmedPrepareBlock() *confirmedPrepareBlock {
+	pv := &confirmedPrepareBlock{
+		Hash: common.BytesToHash([]byte("I'm hash")),
+		Number: 1,
+		VoteBits:NewBitArray(12),
+	}
+	return pv
+}
+
+func makeFakeGetPrepareVote() *getPrepareVote {
+	pv := &getPrepareVote{
+		Hash: common.BytesToHash([]byte("I'm hash")),
+		Number: 1,
+		VoteBits:NewBitArray(12),
+	}
+	return pv
+}
+
 func makeFakeViewChange() *viewChange {
 	privateHex := "e4eb3e58ab7810984a0c77d432b07fe9f9897158dd4bb4f63d0a4366e6d949fa"
 	pri, _ := crypto.HexToECDSA(privateHex)
@@ -108,6 +126,24 @@ func makeFakeViewChange() *viewChange {
 		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
 		BaseBlockHash: common.BytesToHash([]byte("I'm hash")),
 		BaseBlockNum: 1,
+		Extra: make([]byte, 100),
+	}
+	var consensusMsg ConsensusMsg = pv
+	cb, _ := consensusMsg.CannibalizeBytes()
+	sign, _ := crypto.Sign(cb, pri)
+	pv.Signature.SetBytes(sign)
+	return pv
+}
+
+func makeFakeViewChangeVote() *viewChangeVote {
+	privateHex := "e4eb3e58ab7810984a0c77d432b07fe9f9897158dd4bb4f63d0a4366e6d949fa"
+	pri, _ := crypto.HexToECDSA(privateHex)
+	pv := &viewChangeVote{
+		Timestamp: uint64(time.Now().Unix()),
+		ProposalIndex: 0,
+		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
+		BlockHash: common.BytesToHash([]byte("I'm hash")),
+		BlockNum: 1,
 		Extra: make([]byte, 100),
 	}
 	var consensusMsg ConsensusMsg = pv

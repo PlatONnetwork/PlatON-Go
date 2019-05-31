@@ -133,13 +133,13 @@ func (h *baseHandler) SendPartBroadcast(msg Message) {
 	}
 }
 
-func (h *baseHandler) sendViewChangeVote(id *discover.NodeID, msg *viewChangeVote) error {
+/*func (h *baseHandler) sendViewChangeVote(id *discover.NodeID, msg *viewChangeVote) error {
 	if peer, err := h.peers.Get(fmt.Sprintf("%x", id.Bytes()[:8])); err != nil {
 		return err
 	} else {
 		return p2p.Send(peer.rw, ViewChangeVoteMsg, msg)
 	}
-}
+}*/
 
 func (h *baseHandler) Protocols() []p2p.Protocol {
 	return []p2p.Protocol{
@@ -192,7 +192,6 @@ func (h *baseHandler) handleMsg(p *peer) error {
 		p.Log().Error("read peer message error", "err", err)
 		return err
 	}
-
 	switch {
 	case msg.Code == CBFTStatusMsg:
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
@@ -325,16 +324,6 @@ func (h *baseHandler) handleMsg(p *peer) error {
 		}
 		p.MarkMessageHash((&request).MsgHash())
 
-		h.cbft.ReceivePeerMsg(&MsgInfo{
-			Msg:    &request,
-			PeerID: p.ID(),
-		})
-		return nil
-	case msg.Code == GetPrepareBlockMsg:
-		var request getPrepareBlock
-		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
 		h.cbft.ReceivePeerMsg(&MsgInfo{
 			Msg:    &request,
 			PeerID: p.ID(),
