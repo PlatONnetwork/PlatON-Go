@@ -117,7 +117,6 @@ type Cbft struct {
 	fastSyncCommitHeadCh    chan chan error
 	needPending             bool
 	RoundState
-	Syncing
 
 	netLatencyMap  map[discover.NodeID]*list.List
 	netLatencyLock sync.RWMutex
@@ -393,9 +392,9 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 	if !cbft.isRunning() {
 		switch msg.(type) {
 		case *prepareBlock,
-			*prepareVote,
-			*viewChange,
-			*viewChangeVote:
+		*prepareVote,
+		*viewChange,
+		*viewChangeVote:
 			cbft.log.Debug("Cbft is not running, discard consensus message")
 			return
 		}
@@ -1017,7 +1016,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	if err := cbft.VerifyHeader(cbft.blockChain, request.Block.Header(), false); err != nil {
 		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, err, &cbft.RoundState)
 		log.Error("Failed to verify header in PrepareBlockMsg, discard this msg", "peer", nodeId, "err", err)
-		return nil
+		return err
 	}
 
 	ext := cbft.blockExtMap.findBlock(request.Block.Hash(), request.Block.NumberU64())

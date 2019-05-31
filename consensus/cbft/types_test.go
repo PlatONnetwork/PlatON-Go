@@ -1,6 +1,7 @@
 package cbft
 
 import (
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -109,10 +110,9 @@ func newChain(len int, threshold int) ([]*BlockExt, *BlockExtMap) {
 }
 func TestBlockExtMap(t *testing.T) {
 	extList, m := newChain(100, 0)
-	//ext := extList[50]
+
 	assert.Equal(t, 99, len(m.GetSubChainUnExecuted()))
 
-	//assert.Equal(t, 50, len(m.GetSubChainWithTwoThirdVotes(ext.block.Hash(), ext.block.NumberU64())))
 	assert.Equal(t, uint64(99), m.FindHighestConfirmedWithHeader().number)
 	m.ClearParents(extList[2].block.Hash(), extList[2].block.NumberU64())
 	assert.Equal(t, 98, m.Len())
@@ -120,11 +120,90 @@ func TestBlockExtMap(t *testing.T) {
 	assert.Equal(t, 1, m.Len())
 	m.BaseBlock(extList[2].block.Hash(), extList[2].block.NumberU64())
 	assert.Equal(t, m.head.block.Hash(), extList[2].block.Hash())
+
+}
+func TestBlockExtMap_GetSubChainWithTwoThirdVotes(t *testing.T) {
+	extList, m := newChain(100, 0)
+	assert.Equal(t, 100, m.Total())
+
+	for _, b := range extList {
+		b.isExecuted = true
+	}
+
+	ext := extList[50]
+	assert.Equal(t, 50, len(m.GetSubChainWithTwoThirdVotes(ext.block.Hash(), ext.block.NumberU64())))
+
+}
+
+func TestBlockExtMap_GetHasVoteWithoutBlock(t *testing.T) {
+	extList, m := newChain(100, 0)
+	assert.Equal(t, 100, m.Total())
+
+	ext := m.FindHighestConfirmed(extList[0].block.Hash(), extList[0].number)
+	assert.Equal(t, ext.number, extList[99].number)
+	ext = m.FindHighestLogical(extList[0].block.Hash(), extList[0].number)
+	assert.Equal(t, ext.number, extList[99].number)
+
+	bs := m.findBlockByNumber(10, 20)
+	assert.Len(t, bs, 11)
+
+	bx := m.findBlockExtByNumber(10, 20)
+	assert.Len(t, bx, 11)
+
+	b := m.findBlockByHash(extList[30].block.Hash())
+	assert.Equal(t, b.Hash(), extList[30].block.Hash())
+
+	for _, b := range extList {
+		b.block = nil
+	}
+
+	assert.Len(t, m.GetHasVoteWithoutBlock(100), 100)
+}
+
+func TestBlockExtMap_GetWithoutTwoThirdVotes(t *testing.T) {
+	extList, m := newChain(100, 4)
+	assert.Equal(t, 100, m.Total())
+
+	for _, b := range extList {
+		b.block = nil
+	}
+
+	assert.Len(t, m.GetWithoutTwoThirdVotes(100), 100)
 }
 
 func TestSameNumberBlock(t *testing.T) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("catch panic.")
+		}
+	}()
 	extList, m := newChain(4, 0)
 	ext := newTestBlockExtExtra(uint64(3), extList[2].block.Hash(), []byte{0x01, 0x02}, 0)
-	m.Add(ext.block.Hash(), ext.number, ext)
+	assert.Panics(t, func() { m.Add(ext.block.Hash(), ext.number, ext) })
+
 	t.Log(m.BlockString())
+}
+
+func TestBlockExt(t *testing.T) {
+	v := createTestValidator(createAccount(4))
+	hash := common.BytesToHash(Rand32Bytes(32))
+
+	// create view by validator 1
+	view := makeViewChange(v.validator(1).privateKey, 1000*1+100, 0, hash, 1, v.validator(1).address, nil)
+	ext := makeConfirmedBlock(v, hash, view, 1)[0]
+	extSeal := NewBlockExtBySeal(ext.block, 20, 4)
+	extSeal.Merge(ext)
+	assert.Len(t, extSeal.Votes(), 0)
+	extSeal = NewBlockExtBySeal(ext.block, 1, 4)
+
+	extSeal.Merge(ext)
+
+	assert.Len(t, extSeal.Votes(), 3)
+
+	_, err := extSeal.PrepareBlock()
+
+	assert.Nil(t, err)
+
+	assert.NotEmpty(t, extSeal.String())
+
 }

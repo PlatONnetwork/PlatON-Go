@@ -48,6 +48,12 @@ type testValidator struct {
 	neighbors []*NodeData
 }
 
+func (v *testValidator) AllNodes() []*NodeData {
+	nodes := v.neighbors
+	nodes = append(nodes, v.owner)
+	return nodes
+}
+
 type mockWorker struct {
 	mux *event.TypeMux
 }
@@ -320,7 +326,7 @@ func createTestValidator(accounts []*ecdsa.PrivateKey) *testValidator {
 			publicKey:  &pri.PublicKey,
 			address:    crypto.PubkeyToAddress(pri.PublicKey),
 			nodeID:     discover.PubkeyID(&pri.PublicKey),
-			index:      1,
+			index:      i,
 		})
 	}
 	return &validators
@@ -352,12 +358,13 @@ func randomCBFT(path string, i int) (*Cbft, *testBackend, *testValidator) {
 	return engine, backend, validators
 }
 
-func makeHandler(cbft *Cbft, pid string, msgHash common.Hash) handler {
+func makeHandler(cbft *Cbft, pid string, msgHash common.Hash) (*baseHandler) {
 	handler := NewHandler(cbft)
 	peerSets := newPeerSet()
 	peer := &peer{
-		id:               pid,
+		id: pid,
 		knownMessageHash: mapset.NewSet(),
+		rw: &fakeRW{},
 	}
 	peer.MarkMessageHash(msgHash)
 	peerSets.Register(peer)
@@ -367,9 +374,9 @@ func makeHandler(cbft *Cbft, pid string, msgHash common.Hash) handler {
 
 func makeGetPrepareVote(blockNum uint64, blockHash common.Hash) *getPrepareVote {
 	p := &getPrepareVote{
-		Number:   blockNum,
-		Hash:     blockHash,
-		VoteBits: NewBitArray(32),
+		Number:         blockNum,
+		Hash:           blockHash,
+		VoteBits: 		NewBitArray(32),
 	}
 	return p
 }
@@ -377,9 +384,80 @@ func makeGetPrepareVote(blockNum uint64, blockHash common.Hash) *getPrepareVote 
 func makePrepareVotes(pri *ecdsa.PrivateKey, timestamp, blockNum uint64, blockHash common.Hash, validatorIndex uint32, validatorAddr common.Address) *prepareVotes {
 	pv := makePrepareVote(pri, timestamp, blockNum, blockHash, validatorIndex, validatorAddr)
 	pvs := &prepareVotes{
-		Hash:   blockHash,
+		Hash: blockHash,
 		Number: blockNum,
-		Votes:  []*prepareVote{pv},
+		Votes: []*prepareVote{ pv },
 	}
 	return pvs
+}
+
+type fakeRW struct {
+}
+
+func (rw *fakeRW) ReadMsg() (p2p.Msg, error) {
+	fmt.Println("Read msg.")
+	return p2p.Msg{}, nil
+}
+
+func (rw *fakeRW) WriteMsg(msg p2p.Msg) error {
+	fmt.Println("Write msg")
+	if msg.Code == CBFTStatusMsg {
+		return fmt.Errorf("invalid message type")
+	}
+	return nil
+}
+
+func buildViewChangeVote(view *viewChange, nodes []*NodeData) []*viewChangeVote {
+	viewChangeVotes := make([]*viewChangeVote, 0, len(nodes))
+	for _, node := range nodes {
+		resp := &viewChangeVote{
+			ValidatorIndex: uint32(node.index),
+			ValidatorAddr:  node.address,
+			Timestamp:      view.Timestamp,
+			BlockHash:      view.BaseBlockHash,
+			BlockNum:       view.BaseBlockNum,
+			ProposalIndex:  view.ProposalIndex,
+			ProposalAddr:   view.ProposalAddr,
+		}
+
+		buf, _ := resp.CannibalizeBytes()
+		sign, _ := crypto.Sign(buf, node.privateKey)
+		resp.Signature.SetBytes(sign)
+		viewChangeVotes = append(viewChangeVotes, resp)
+	}
+	return viewChangeVotes
+}
+
+func makePrepareBlock(block *types.Block, owner *NodeData, view *viewChange, viewChangeVotes []*viewChangeVote) *prepareBlock {
+	p := &prepareBlock{
+		Block:         block,
+		ProposalIndex: uint32(owner.index),
+		ProposalAddr:  owner.address,
+	}
+	if view != nil {
+		p.View = view
+		p.Timestamp = view.Timestamp
+	}
+	if len(viewChangeVotes) > 0 {
+		p.ViewChangeVotes = viewChangeVotes
+	}
+	return p
+}
+
+func forgeViewChangeVote(view *viewChange) *viewChangeVote{
+	pri, _ := crypto.GenerateKey()
+	resp := &viewChangeVote{
+		ValidatorIndex: uint32(5),
+		ValidatorAddr:  crypto.PubkeyToAddress(pri.PublicKey),
+		Timestamp:      view.Timestamp,
+		BlockHash:      view.BaseBlockHash,
+		BlockNum:       view.BaseBlockNum,
+		ProposalIndex:  view.ProposalIndex,
+		ProposalAddr:   view.ProposalAddr,
+	}
+
+	buf, _ := resp.CannibalizeBytes()
+	sign, _ := crypto.Sign(buf, pri)
+	resp.Signature.SetBytes(sign)
+	return resp
 }

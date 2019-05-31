@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"os"
 	"testing"
@@ -539,10 +540,10 @@ func TestCBFT_OnPrepareVote(t *testing.T) {
 	pvote := makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
 
 	var err error
-	testCases := []struct {
-		pid     string
-		pga     bool
-		msgHash common.Hash
+	testCases := []struct{
+		pid 		string
+		pga 		bool
+		msgHash 	common.Hash
 	}{
 		{pid: "peer id 01", pga: true, msgHash: common.BytesToHash([]byte("Invalid hash"))},
 		{pid: "peer id 02", pga: true, msgHash: pvote.MsgHash()},
@@ -570,9 +571,10 @@ func TestCBFT_OnPrepareVote(t *testing.T) {
 	assert.Nil(t, err)
 
 	// verify the sign of validator
-	pvote = makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
+	pvote= makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
 	pvote.ValidatorAddr = common.BytesToAddress([]byte("fake address"))
-	err = engine.OnPrepareVote(node.nodeID, pvote, false)
+	err  = engine.OnPrepareVote(node.nodeID, pvote, false)
+
 	assert.NotNil(t, err)
 
 	// whether to accept: cache
@@ -839,3 +841,117 @@ func TestCbft_OnFastSyncCommitHead(t *testing.T) {
 	assert.Equal(t, engine.getHighestConfirmed().block, block)
 	assert.Equal(t, engine.getRootIrreversible().block, block)
 }
+func TestCbft_OnNewPrepareBlock(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, backend, validators := randomCBFT(path, 4)
+	node := nodeIndexNow(validators, engine.startTimeOfEpoch)
+	gen := backend.chain.Genesis()
+	block := createBlock(node.privateKey, gen.Hash(), gen.NumberU64()+1)
+	propagation := true
+
+	// test Cache prepareBlock
+	p := makePrepareBlock(block, node, nil, nil)
+	assert.Nil(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation))
+
+	viewChange, _ := engine.newViewChange()	// build viewChange
+
+	// test errFutileBlock
+	t.Log(viewChange.BaseBlockNum, viewChange.BaseBlockHash.Hex(), viewChange.ProposalIndex, viewChange.ProposalAddr, viewChange.Timestamp)
+	assert.EqualError(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation), errFutileBlock.Error())
+
+	viewChangeVotes := buildViewChangeVote(viewChange, validators.neighbors)		// build viewChangeVotes
+
+	// test VerifyHeader
+	header := &types.Header{Number: big.NewInt(int64(gen.NumberU64() + 1)), ParentHash: gen.Hash()}
+	sign, _ := crypto.Sign(header.SealHash().Bytes(), node.privateKey)
+	header.Extra = make([]byte, 32)
+	copy(header.Extra, sign[0:32])
+	block = types.NewBlockWithHeader(header)
+	p = makePrepareBlock(block, node, viewChange, viewChangeVotes)
+	assert.EqualError(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation), errMissingSignature.Error())
+
+	// test errInvalidatorCandidateAddress
+	header = &types.Header{Number: big.NewInt(int64(gen.NumberU64() + 1)), ParentHash: gen.Hash()}
+	sign, _ = crypto.Sign(header.SealHash().Bytes(), node.privateKey)
+	header.Extra = make([]byte, 32+65)
+	copy(header.Extra, sign)
+	block = types.NewBlockWithHeader(header)
+	p = makePrepareBlock(block, node, viewChange, viewChangeVotes)
+	p.ProposalAddr = common.HexToAddress("0x27f7e1d4b9caab9d5b13803cff6da714c51de34e")
+	assert.EqualError(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation), errInvalidatorCandidateAddress.Error())
+
+	// test errInvalidatorCandidateAddress
+	p.ProposalAddr = node.address
+	pri, _ := crypto.GenerateKey()
+	engine.config.NodeID = discover.PubkeyID(&pri.PublicKey)
+	assert.EqualError(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation), errInvalidatorCandidateAddress.Error())
+
+	// test errTwoThirdViewchangeVotes
+	engine.config.NodeID = validators.owner.nodeID
+	p.ViewChangeVotes = p.ViewChangeVotes[0:1]
+	assert.EqualError(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation), errTwoThirdViewchangeVotes.Error())
+
+	// test errInvalidViewChangeVote
+	p = makePrepareBlock(block, node, viewChange, viewChangeVotes)
+	p.ViewChangeVotes[2] = forgeViewChangeVote(viewChange)
+	assert.EqualError(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation), errInvalidViewChangeVotes.Error())
+
+	// test Discard prepareBlock
+	viewChangeVotes = buildViewChangeVote(viewChange, validators.neighbors)
+	p = makePrepareBlock(block, node, viewChange, viewChangeVotes)
+	assert.Nil(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation))
+
+	// test Accept prepareBlock
+	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address, nil)
+	viewChangeVotes = buildViewChangeVote(viewChange, validators.AllNodes())
+	p = makePrepareBlock(block, node, viewChange, viewChangeVotes)
+	assert.Nil(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation))
+
+	// test exists block
+	assert.Nil(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation))
+}
+
+func TestCbft_AddPrepareBlock(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, backend, validators := randomCBFT(path, 4)
+	owner := validators.owner
+	gen := backend.chain.Genesis()
+	block := createBlock(owner.privateKey, gen.Hash(), gen.NumberU64()+1)
+	viewChange, _ := engine.newViewChange()
+	t.Log(viewChange.BaseBlockNum, viewChange.BaseBlockHash.Hex(), viewChange.ProposalIndex, viewChange.ProposalAddr, viewChange.Timestamp)
+	engine.AddPrepareBlock(block)
+}
+
+func TestCbft_OnGetPrepareBlock(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, backend, validators := randomCBFT(path, 4)
+	owner := validators.owner
+	gen := backend.chain.Genesis()
+	block := createBlock(owner.privateKey, gen.Hash(), gen.NumberU64()+1)
+	ext := NewBlockExtByPeer(block, block.NumberU64(), len(validators.Nodes()))
+	engine.blockExtMap.Add(block.Hash(), block.NumberU64(), ext)
+	assert.Nil(t, engine.OnGetPrepareBlock(validators.neighbors[0].nodeID, &getPrepareBlock{Hash: block.Hash(), Number: block.NumberU64()}))
+}
+
+func TestCbft_AddJournal(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, backend, validators := randomCBFT(path, 4)
+	owner := validators.owner
+	gen := backend.chain.Genesis()
+	block := createBlock(owner.privateKey, gen.Hash(), gen.NumberU64()+1)
+
+	getPrepareBlock := &getPrepareBlock{Hash: block.Hash(), Number: block.NumberU64()}
+	engine.AddJournal(&MsgInfo{getPrepareBlock, validators.neighbors[0].nodeID})
+}
+
+
+
+>>>>>>> pangu

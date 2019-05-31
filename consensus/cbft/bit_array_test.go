@@ -99,6 +99,7 @@ func TestSub(t *testing.T) {
 		subtractingBA string
 		expectedBA    string
 	}{
+		{"null", `null`, `null`},
 		{`null`, `null`, `null`},
 		{`"x"`, `null`, `null`},
 		{`null`, `"x"`, `null`},
@@ -244,4 +245,82 @@ func TestJSONMarshalUnmarshal(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetIndex(t *testing.T) {
+	var bit *BitArray
+	isExists := bit.GetIndex(0)
+	assert.True(t, !isExists)
+
+	// for: getIndex
+	bitArr := NewBitArray(3)
+	isExists = bitArr.GetIndex(100)
+	assert.False(t, isExists)
+}
+
+func TestNot(t *testing.T) {
+	bA1, _ := randBitArray(51)
+	//bA2, _ := randBitArray(31)
+
+	bNil := (*BitArray)(nil)
+	bA3 := bNil.Not()
+	assert.Nil(t, bA3)
+
+	bA4 := bA1.not()
+	assert.NotEqual(t, bA1, bA4)
+}
+
+func TestPickRandom(t *testing.T) {
+	bNil := (*BitArray)(nil)
+	i, isExists := bNil.PickRandom()
+	assert.Equal(t, i, uint32(0))
+	assert.Equal(t, isExists, false)
+
+	bA1, _ := randBitArray(51)
+	i, isExists = bA1.PickRandom()
+	assert.NotEqual(t, i , uint32(0))
+	assert.NotEqual(t, i, true)
+}
+
+func TestGetTrueIndices(t *testing.T) {
+	bA1, _ := randBitArray(51)
+	res := bA1.getTrueIndices()
+	assert.True(t, len(res) != 0)
+}
+
+func TestMinInt64(t *testing.T) {
+	testCase := []struct{
+		num1 int64
+		num2 int64
+		want int64
+	}{
+		{4, 5, 4},
+		{45, 30, 30},
+	}
+	for _, v := range testCase {
+		r := MinInt64(v.num1, v.num2)
+		if r != v.want {
+			t.Errorf("MinInt64 error, want: %v, current:%v", v.want, r)
+		}
+	}
+}
+
+func TestMinInt(t *testing.T) {
+	testCase := []struct{
+		num1 int
+		num2 int
+		want int
+	}{
+		{-4, 5, -4},
+		{45, 30, 30},
+	}
+	for _, v := range testCase {
+		r := MinInt(v.num1, v.num2)
+		if r != v.want {
+			t.Errorf("MinInt error, want: %v, current:%v", v.want, r)
+		}
+	}
+
+	randByt := RandBytes(10)
+	assert.True(t, len(randByt) == 10)
 }
