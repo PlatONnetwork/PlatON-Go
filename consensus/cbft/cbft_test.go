@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+	"math/big"
 	"os"
 	"testing"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -517,6 +519,7 @@ func TestCbft_OnViewChangeVote(t *testing.T) {
 	assert.Nil(t, engine.OnViewChangeVote(v.validator(2).nodeID, voteOk2))
 
 	assert.True(t, engine.agreeViewChange())
+	assert.True(t, engine.HasTwoThirdsMajorityViewChangeVotes())
 }
 
 func TestCBFT_OnPrepareVote(t *testing.T) {
@@ -630,4 +633,153 @@ func TestCbft_OnPrepareVotes(t *testing.T) {
 	pvs.Votes[0].ValidatorAddr = common.BytesToAddress([]byte("fake address"))
 	err = engine.OnPrepareVotes(node.nodeID, pvs)
 	assert.NotNil(t, err)
+}
+
+func TestCbft_OnPong(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, v := randomCBFT(path, 2)
+
+	assert.Equal(t, engine.avgLatency(v.validator(1).nodeID), engine.config.MaxLatency)
+
+	assert.Nil(t, engine.OnPong(v.validator(1).nodeID, 5001))
+	assert.Nil(t, engine.OnPong(v.validator(1).nodeID, 100))
+	assert.Equal(t, engine.avgLatency(v.validator(1).nodeID), int64(100))
+
+	assert.Nil(t, engine.OnPong(v.validator(1).nodeID, 65))
+	assert.Equal(t, engine.avgLatency(v.validator(1).nodeID), int64(82))
+
+	assert.Nil(t, engine.OnPong(v.validator(1).nodeID, 10))
+	assert.Nil(t, engine.OnPong(v.validator(1).nodeID, 10))
+	assert.Nil(t, engine.OnPong(v.validator(1).nodeID, 10))
+	assert.Nil(t, engine.OnPong(v.validator(1).nodeID, 10))
+	assert.Nil(t, engine.OnPong(v.validator(1).nodeID, 10))
+	assert.Equal(t, engine.avgLatency(v.validator(1).nodeID), int64(19))
+}
+
+func TestCbft_HighestConfirmedBlock(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, _ := randomCBFT(path, 1)
+	assert.Equal(t, engine.HighestConfirmedBlock(), engine.blockChain.Genesis())
+}
+
+func TestCbft_inTurnVerify(t *testing.T) {
+	path0 := path()
+	defer os.RemoveAll(path0)
+
+	engine, _, v := randomCBFT(path0, 4)
+	engine.OnPong(v.validator(0).nodeID, 2000)
+	assert.False(t, engine.inTurnVerify(0, v.validator(0).nodeID))
+
+	engine.OnPong(v.validator(1).nodeID, 100)
+	assert.False(t, engine.inTurnVerify(100, v.validator(1).nodeID))
+	assert.True(t, engine.inTurnVerify(10200, v.validator(1).nodeID))
+
+	path1 := path()
+	defer os.RemoveAll(path1)
+	engine1, _, v1 := randomCBFT(path1, 1)
+	engine.OnPong(v1.validator(0).nodeID, 100)
+	assert.True(t, engine1.inTurnVerify(100, v1.validator(0).nodeID))
+}
+
+func TestCbft_update(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, _ := randomCBFT(path, 1)
+
+	<-time.After(1000 * time.Millisecond)
+
+	assert.Nil(t, engine.eventMux.Post(downloader.StartEvent{}))
+	<-time.After(500 * time.Millisecond)
+	assert.False(t, engine.isRunning())
+
+	assert.Nil(t, engine.eventMux.Post(downloader.DoneEvent{}))
+	<-time.After(500 * time.Millisecond)
+	assert.True(t, engine.isRunning())
+}
+
+func TestCbft_Consensus(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, v := randomCBFT(path, 1)
+	assert.False(t, engine.CheckConsensusNode(common.Address{}))
+	assert.True(t, engine.CheckConsensusNode(v.validator(0).address))
+	assert.True(t, engine.IsConsensusNode())
+}
+
+func TestCbft_VerifyHeader(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, _ := randomCBFT(path, 1)
+
+	header := &types.Header{}
+	assert.Equal(t, engine.VerifyHeader(engine.blockChain, header, false), errUnknownBlock)
+
+	header.Number = big.NewInt(1)
+	assert.Equal(t, engine.VerifyHeader(engine.blockChain, header, false), errMissingSignature)
+
+	header.Extra = make([]byte, 65)
+	assert.Nil(t, engine.VerifyHeader(engine.blockChain, header, false))
+}
+
+func TestCbft_CalcBlockDeadline(t *testing.T) {
+	path1 := path()
+	defer os.RemoveAll(path1)
+
+	now := common.Millis(time.Now())
+	engine1, _, _ := randomCBFT(path1, 1)
+	tdl, err := engine1.CalcBlockDeadline(now)
+	assert.Nil(t, err)
+	assert.Equal(t, common.Millis(tdl), now+1000)
+
+	path2 := path()
+	defer os.RemoveAll(path2)
+
+	engine2, _, _ := randomCBFT(path2, 4)
+	ts := 0
+	tdl, err  = engine2.CalcBlockDeadline(int64(ts))
+	assert.Nil(t, err)
+	assert.Equal(t, tdl, common.MillisToTime(int64(ts)).Add(1000*time.Millisecond))
+
+	engine2.config.BlockInterval = 100
+	ts = 9900
+	tdl, err = engine2.CalcBlockDeadline(int64(ts))
+	assert.Nil(t, err)
+	assert.Equal(t, tdl, common.MillisToTime(int64(ts)).Add(50*time.Millisecond))
+}
+
+func TestCbft_CalcNextBlockTime(t *testing.T) {
+	path1 := path()
+	defer os.RemoveAll(path1)
+
+	engine1, _, _ := randomCBFT(path1, 1)
+	now := common.Millis(time.Now())
+	tdl, err := engine1.CalcNextBlockTime(now)
+	assert.Nil(t, err)
+	assert.Equal(t, common.Millis(tdl), now+1000)
+
+	path2 := path()
+	defer os.RemoveAll(path2)
+
+	engine2, _, _ := randomCBFT(path2, 4)
+	ts := 0
+	tdl, err = engine2.CalcNextBlockTime(int64(ts))
+	assert.Nil(t, err)
+	assert.Equal(t, tdl, common.MillisToTime(int64(ts)).Add(1000*time.Millisecond))
+
+	ts = 9000
+	tdl, err  = engine2.CalcNextBlockTime(int64(ts))
+	assert.Nil(t, err)
+	assert.Equal(t, tdl, common.MillisToTime(int64(ts)).Add(31000*time.Millisecond))
+
+	ts = 10000
+	tdl, err = engine2.CalcNextBlockTime(int64(ts))
+	assert.Nil(t, err)
+	assert.Equal(t, tdl, common.MillisToTime(int64(ts)).Add(30000*time.Millisecond))
 }
