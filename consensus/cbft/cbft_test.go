@@ -2,11 +2,12 @@ package cbft
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -540,10 +541,10 @@ func TestCBFT_OnPrepareVote(t *testing.T) {
 	pvote := makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
 
 	var err error
-	testCases := []struct{
-		pid 		string
-		pga 		bool
-		msgHash 	common.Hash
+	testCases := []struct {
+		pid     string
+		pga     bool
+		msgHash common.Hash
 	}{
 		{pid: "peer id 01", pga: true, msgHash: common.BytesToHash([]byte("Invalid hash"))},
 		{pid: "peer id 02", pga: true, msgHash: pvote.MsgHash()},
@@ -571,9 +572,9 @@ func TestCBFT_OnPrepareVote(t *testing.T) {
 	assert.Nil(t, err)
 
 	// verify the sign of validator
-	pvote= makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
+	pvote = makePrepareVote(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address)
 	pvote.ValidatorAddr = common.BytesToAddress([]byte("fake address"))
-	err  = engine.OnPrepareVote(node.nodeID, pvote, false)
+	err = engine.OnPrepareVote(node.nodeID, pvote, false)
 
 	assert.NotNil(t, err)
 
@@ -813,6 +814,14 @@ func TestCbft_OnFastSyncCommitHead(t *testing.T) {
 	defer os.RemoveAll(path)
 
 	engine, _, v := randomCBFT(path, 4)
+
+	assert.Equal(t, engine.CurrentBlock(), engine.blockChain.Genesis())
+
+	assert.Nil(t, <-engine.FastSyncCommitHead())
+	assert.Equal(t, engine.getHighestConfirmed().block, engine.blockChain.Genesis())
+	assert.Equal(t, engine.getHighestLogical().block, engine.blockChain.Genesis())
+	assert.Equal(t, engine.getRootIrreversible().block, engine.blockChain.Genesis())
+
 	ch := make(chan error, 1)
 	engine.OnFastSyncCommitHead(ch)
 	err := <-ch
@@ -833,7 +842,7 @@ func TestCbft_OnFastSyncCommitHead(t *testing.T) {
 		assert.Nil(t, err)
 	}
 	engine.OnFastSyncCommitHead(ch)
-	err = <- ch
+	err = <-ch
 	assert.Nil(t, err)
 
 	block := blocksExt[9].block
@@ -841,6 +850,7 @@ func TestCbft_OnFastSyncCommitHead(t *testing.T) {
 	assert.Equal(t, engine.getHighestConfirmed().block, block)
 	assert.Equal(t, engine.getRootIrreversible().block, block)
 }
+
 func TestCbft_OnNewPrepareBlock(t *testing.T) {
 	path := path()
 	defer os.RemoveAll(path)
@@ -855,13 +865,13 @@ func TestCbft_OnNewPrepareBlock(t *testing.T) {
 	p := makePrepareBlock(block, node, nil, nil)
 	assert.Nil(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation))
 
-	viewChange, _ := engine.newViewChange()	// build viewChange
+	viewChange, _ := engine.newViewChange() // build viewChange
 
 	// test errFutileBlock
 	t.Log(viewChange.BaseBlockNum, viewChange.BaseBlockHash.Hex(), viewChange.ProposalIndex, viewChange.ProposalAddr, viewChange.Timestamp)
 	assert.EqualError(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation), errFutileBlock.Error())
 
-	viewChangeVotes := buildViewChangeVote(viewChange, validators.neighbors)		// build viewChangeVotes
+	viewChangeVotes := buildViewChangeVote(viewChange, validators.neighbors) // build viewChangeVotes
 
 	// test VerifyHeader
 	header := &types.Header{Number: big.NewInt(int64(gen.NumberU64() + 1)), ParentHash: gen.Hash()}
@@ -952,6 +962,57 @@ func TestCbft_AddJournal(t *testing.T) {
 	engine.AddJournal(&MsgInfo{getPrepareBlock, validators.neighbors[0].nodeID})
 }
 
+func TestCbft_Prepare(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
 
+	engine, _, _ := randomCBFT(path, 1)
+	highestBlock := engine.getHighestLogical()
 
->>>>>>> pangu
+	header := &types.Header{
+		Number: big.NewInt(1),
+		Extra:  make([]byte, 60),
+	}
+
+	ext := &BlockExt{
+		block: nil,
+	}
+	engine.highestLogical.Store(ext)
+	assert.NotNil(t, engine.Prepare(engine.blockChain, header))
+
+	engine.highestLogical.Store(highestBlock)
+	assert.Nil(t, engine.Prepare(engine.blockChain, header))
+	assert.True(t, len(header.Extra) == 97)
+}
+
+func TestCbft_VerifySeal(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, _ := randomCBFT(path, 1)
+
+	header := &types.Header{
+		Number: big.NewInt(0),
+	}
+	assert.NotNil(t, engine.VerifySeal(engine.blockChain, header))
+
+	header.Number = big.NewInt(1)
+	assert.Nil(t, engine.VerifySeal(engine.blockChain, header))
+}
+
+func TestCbft_VerifyHeaders(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, _ := randomCBFT(path, 1)
+
+	header := &types.Header{
+		Number: big.NewInt(1),
+	}
+	_, results := engine.VerifyHeaders(engine.blockChain, []*types.Header{header}, []bool{false})
+	assert.NotNil(t, <-results)
+
+	header.Extra = make([]byte, 65)
+	_, results = engine.VerifyHeaders(engine.blockChain, []*types.Header{header}, []bool{false})
+	assert.Nil(t, <- results)
+}
