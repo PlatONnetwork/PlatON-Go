@@ -36,7 +36,6 @@ type peer struct {
 
 func newPeer(p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	return &peer{
-
 		Peer:             p,
 		rw:               rw,
 		id:               fmt.Sprintf("%x", p.ID().Bytes()[:8]),
