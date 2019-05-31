@@ -48,6 +48,12 @@ type testValidator struct {
 	neighbors []*NodeData
 }
 
+func (v *testValidator) AllNodes() []*NodeData {
+	nodes := v.neighbors
+	nodes = append(nodes, v.owner)
+	return nodes
+}
+
 type mockWorker struct {
 	mux *event.TypeMux
 }
@@ -320,7 +326,7 @@ func createTestValidator(accounts []*ecdsa.PrivateKey) *testValidator {
 			publicKey:  &pri.PublicKey,
 			address:    crypto.PubkeyToAddress(pri.PublicKey),
 			nodeID:     discover.PubkeyID(&pri.PublicKey),
-			index:      1,
+			index:      i,
 		})
 	}
 	return &validators
@@ -401,3 +407,57 @@ func (rw *fakeRW) WriteMsg(msg p2p.Msg) error {
 	return nil
 }
 
+func buildViewChangeVote(view *viewChange, nodes []*NodeData) []*viewChangeVote {
+	viewChangeVotes := make([]*viewChangeVote, 0, len(nodes))
+	for _, node := range nodes {
+		resp := &viewChangeVote{
+			ValidatorIndex: uint32(node.index),
+			ValidatorAddr:  node.address,
+			Timestamp:      view.Timestamp,
+			BlockHash:      view.BaseBlockHash,
+			BlockNum:       view.BaseBlockNum,
+			ProposalIndex:  view.ProposalIndex,
+			ProposalAddr:   view.ProposalAddr,
+		}
+
+		buf, _ := resp.CannibalizeBytes()
+		sign, _ := crypto.Sign(buf, node.privateKey)
+		resp.Signature.SetBytes(sign)
+		viewChangeVotes = append(viewChangeVotes, resp)
+	}
+	return viewChangeVotes
+}
+
+func makePrepareBlock(block *types.Block, owner *NodeData, view *viewChange, viewChangeVotes []*viewChangeVote) *prepareBlock {
+	p := &prepareBlock{
+		Block:         block,
+		ProposalIndex: uint32(owner.index),
+		ProposalAddr:  owner.address,
+	}
+	if view != nil {
+		p.View = view
+		p.Timestamp = view.Timestamp
+	}
+	if len(viewChangeVotes) > 0 {
+		p.ViewChangeVotes = viewChangeVotes
+	}
+	return p
+}
+
+func forgeViewChangeVote(view *viewChange) *viewChangeVote{
+	pri, _ := crypto.GenerateKey()
+	resp := &viewChangeVote{
+		ValidatorIndex: uint32(5),
+		ValidatorAddr:  crypto.PubkeyToAddress(pri.PublicKey),
+		Timestamp:      view.Timestamp,
+		BlockHash:      view.BaseBlockHash,
+		BlockNum:       view.BaseBlockNum,
+		ProposalIndex:  view.ProposalIndex,
+		ProposalAddr:   view.ProposalAddr,
+	}
+
+	buf, _ := resp.CannibalizeBytes()
+	sign, _ := crypto.Sign(buf, pri)
+	resp.Signature.SetBytes(sign)
+	return resp
+}
