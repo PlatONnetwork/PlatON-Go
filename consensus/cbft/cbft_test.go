@@ -743,7 +743,7 @@ func TestCbft_CalcBlockDeadline(t *testing.T) {
 
 	engine2, _, _ := randomCBFT(path2, 4)
 	ts := 0
-	tdl, err  = engine2.CalcBlockDeadline(int64(ts))
+	tdl, err = engine2.CalcBlockDeadline(int64(ts))
 	assert.Nil(t, err)
 	assert.Equal(t, tdl, common.MillisToTime(int64(ts)).Add(1000*time.Millisecond))
 
@@ -774,7 +774,7 @@ func TestCbft_CalcNextBlockTime(t *testing.T) {
 	assert.Equal(t, tdl, common.MillisToTime(int64(ts)).Add(1000*time.Millisecond))
 
 	ts = 9000
-	tdl, err  = engine2.CalcNextBlockTime(int64(ts))
+	tdl, err = engine2.CalcNextBlockTime(int64(ts))
 	assert.Nil(t, err)
 	assert.Equal(t, tdl, common.MillisToTime(int64(ts)).Add(31000*time.Millisecond))
 
@@ -782,4 +782,60 @@ func TestCbft_CalcNextBlockTime(t *testing.T) {
 	tdl, err = engine2.CalcNextBlockTime(int64(ts))
 	assert.Nil(t, err)
 	assert.Equal(t, tdl, common.MillisToTime(int64(ts)).Add(30000*time.Millisecond))
+}
+
+func TestCbft_updateValidator(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, v := randomCBFT(path, 4)
+	assert.True(t, engine.IsConsensusNode())
+	engine.updateValidator()
+	assert.True(t, engine.IsConsensusNode())
+	assert.Equal(t, v.validator(0).nodeID, engine.getValidators().NodeID(0))
+
+	tv := createTestValidator(createAccount(4))
+	newAgency := NewStaticAgency(tv.Nodes())
+	oldAgency := engine.agency
+	engine.agency = newAgency
+	engine.updateValidator()
+	assert.False(t, engine.IsConsensusNode())
+
+	engine.agency = oldAgency
+	engine.updateValidator()
+	assert.True(t, engine.IsConsensusNode())
+}
+
+func TestCbft_OnFastSyncCommitHead(t *testing.T) {
+	path := path()
+	defer os.RemoveAll(path)
+
+	engine, _, v := randomCBFT(path, 4)
+	ch := make(chan error, 1)
+	engine.OnFastSyncCommitHead(ch)
+	err := <-ch
+	assert.Nil(t, err)
+	assert.Equal(t, engine.getHighestConfirmed().block, engine.blockChain.Genesis())
+	assert.Equal(t, engine.getHighestLogical().block, engine.blockChain.Genesis())
+	assert.Equal(t, engine.getRootIrreversible().block, engine.blockChain.Genesis())
+
+	timestamp := uint64(common.Millis(time.Now()))
+	view := makeViewChange(v.validator(0).privateKey, timestamp, 0, engine.blockChain.Genesis().Hash(), 0, v.validator(0).address, nil)
+	engine.viewChange = view
+
+	blocksExt := makeConfirmedBlock(v, engine.blockChain.Genesis().Root(), view, 10)
+	for _, ext := range blocksExt {
+		statedb, err := engine.blockChain.StateAt(ext.block.Root())
+		assert.Nil(t, err)
+		_, err = engine.blockChain.WriteBlockWithState(ext.block, nil, statedb)
+		assert.Nil(t, err)
+	}
+	engine.OnFastSyncCommitHead(ch)
+	err = <- ch
+	assert.Nil(t, err)
+
+	block := blocksExt[9].block
+	assert.Equal(t, engine.getHighestLogical().block, block)
+	assert.Equal(t, engine.getHighestConfirmed().block, block)
+	assert.Equal(t, engine.getRootIrreversible().block, block)
 }
