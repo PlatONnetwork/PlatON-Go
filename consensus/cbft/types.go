@@ -305,6 +305,7 @@ func (cbft *Cbft) viewChanging() bool {
 
 func (cbft *Cbft) AcceptPrepareBlock(request *prepareBlock) AcceptStatus {
 	if cbft.viewChange == nil {
+		cbft.log.Debug("Cache block, viewchange is empty")
 		return Cache
 	}
 
@@ -314,16 +315,20 @@ func (cbft *Cbft) AcceptPrepareBlock(request *prepareBlock) AcceptStatus {
 
 	if request.ProposalIndex != cbft.viewChange.ProposalIndex {
 		if cbft.lastViewChange == nil {
+			cbft.log.Debug("Discard block, lastViewChange is empty")
 			return Discard
 		}
 		if request.ProposalIndex == cbft.lastViewChange.ProposalIndex {
+			cbft.log.Debug("Cache block, ProposalIndex is lastviewchange")
 			return Cache
 		} else {
+			cbft.log.Debug("Discard block, unknown block")
 			return Discard
 		}
 	}
 
 	if cbft.viewChanging() && !cbft.agreeViewChange() {
+		cbft.log.Debug("Cache block, is viewchanging")
 		return Cache
 	}
 	return Accept
@@ -779,12 +784,11 @@ func (b *BlockExt) Merge(ext *BlockExt) {
 			b.proposalAddr = ext.proposalAddr
 			b.proposalIndex = ext.proposalIndex
 		}
+		if b.prepareBlock == nil {
+			b.prepareBlock = ext.prepareBlock
+		}
 		b.prepareVotes.Merge(ext.prepareVotes)
 
-		if b.proposalAddr == emptyAddr {
-			b.proposalAddr = ext.proposalAddr
-			b.proposalIndex = ext.proposalIndex
-		}
 		if ext.syncState != nil && b.syncState != nil {
 			panic("invalid syncState: double state channel")
 		}
