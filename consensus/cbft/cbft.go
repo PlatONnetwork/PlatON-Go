@@ -1036,7 +1036,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 		return errInvalidatorCandidateAddress
 	}
 
-	cbft.log.Debug("Receive prepare block", "number", request.Block.NumberU64(), "prepareVotes", len(request.ViewChangeVotes))
+	cbft.log.Debug("Receive prepare block", "number", request.Block.NumberU64(), "ViewChangeVotes", len(request.ViewChangeVotes))
 	ext = NewBlockExtByPrepareBlock(request, cbft.nodeLength())
 
 	if len(request.ViewChangeVotes) != 0 && request.View != nil {

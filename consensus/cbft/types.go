@@ -632,6 +632,7 @@ func (cbft *Cbft) broadcastBlock(ext *BlockExt) {
 	p := &prepareBlock{Block: ext.block, ProposalIndex: uint32(validator.Index), ProposalAddr: validator.Address}
 
 	cbft.addPrepareBlockVote(p)
+	ext.prepareBlock = p
 	if cbft.viewChange != nil && !cbft.agreeViewChange() && cbft.viewChange.BaseBlockNum < ext.block.NumberU64() {
 		log.Debug("Pending block", "number", ext.block.Number())
 		cbft.pendingBlocks[ext.block.Hash()] = p
@@ -733,6 +734,7 @@ type BlockExt struct {
 	proposalIndex   uint32
 	proposalAddr    common.Address
 	prepareVotes    *prepareVoteSet //all prepareVotes for block
+	prepareBlock    *prepareBlock
 	view            *viewChange
 	viewChangeVotes []*viewChangeVote
 	parent          *BlockExt
@@ -756,17 +758,11 @@ func (b *BlockExt) SetSyncState(err error) {
 	}
 }
 func (b *BlockExt) PrepareBlock() (*prepareBlock, error) {
-	if b.block == nil {
+
+	if b.prepareBlock == nil {
 		return nil, errors.Errorf("empty block")
 	}
-	return &prepareBlock{
-		Timestamp:       b.timestamp,
-		ProposalIndex:   b.proposalIndex,
-		ProposalAddr:    b.proposalAddr,
-		Block:           b.block,
-		View:            b.view,
-		ViewChangeVotes: b.viewChangeVotes,
-	}, nil
+	return b.prepareBlock, nil
 }
 
 func (b *BlockExt) IsParent(hash common.Hash) bool {
@@ -865,6 +861,7 @@ func NewBlockExtByPrepareBlock(pb *prepareBlock, threshold int) *BlockExt {
 		timestamp:     pb.Timestamp,
 		proposalIndex: pb.ProposalIndex,
 		proposalAddr:  pb.ProposalAddr,
+		prepareBlock:  pb,
 		inTree:        false,
 		executing:     false,
 		isExecuted:    false,
