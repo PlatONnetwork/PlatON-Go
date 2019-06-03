@@ -548,7 +548,7 @@ func (cbft *Cbft) afterUpdateValidator() {
 }
 
 func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote) error {
-	log.Debug("Receive view change vote", "peer", peerID, "vote", vote.String())
+	log.Debug("Receive view change vote", "peer", peerID, "vote", vote.String(), "view", cbft.viewChange.String())
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	if cbft.needBroadcast(peerID, vote) {
 		go cbft.handler.SendBroadcast(vote)
@@ -559,7 +559,7 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 	if cbft.viewChange != nil && vote.EqualViewChange(cbft.viewChange) {
 		if err := cbft.verifyValidatorSign(cbft.viewChange.BaseBlockNum, vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:]); err == nil {
 			cbft.viewChangeVotes[vote.ValidatorAddr] = vote
-			log.Info("Agree receive view change response", "peer", peerID, "prepareVotes", len(cbft.viewChangeVotes))
+			log.Info("Agree receive view change response", "peer", peerID, "viewChangeVotes", len(cbft.viewChangeVotes))
 		} else {
 			cbft.log.Warn("Verify sign failed", "peer", peerID, "vote", vote.String())
 			return err
@@ -742,11 +742,11 @@ type BlockExt struct {
 
 func (b BlockExt) String() string {
 	if b.block == nil {
-		return fmt.Sprintf("number:%d inTree:%v inTurn:%v isExecuted:%v, isSigned:%v isConfirmed:%v rcvTime:%d prepareVotes:%d children:%d",
-			b.number, b.inTree, b.inTurn, b.isExecuted, b.isSigned, b.isConfirmed, b.rcvTime, b.prepareVotes.Len(), len(b.children))
+		return fmt.Sprintf("number:%d inTree:%v inTurn:%v isExecuted:%v, isSigned:%v isConfirmed:%v timestamp:%d rcvTime:%d prepareVotes:%d children:%d",
+			b.number, b.inTree, b.inTurn, b.isExecuted, b.isSigned, b.isConfirmed, b.timestamp, b.rcvTime, b.prepareVotes.Len(), len(b.children))
 	}
-	return fmt.Sprintf("hash:%s number:%d inTree:%v inTurn:%v isExecuted:%v, isSigned:%v isConfirmed:%v rcvTime:%d prepareVotes:%d children:%d",
-		b.block.Hash().TerminalString(), b.block.NumberU64(), b.inTree, b.inTurn, b.isExecuted, b.isSigned, b.isConfirmed, b.rcvTime, b.prepareVotes.Len(), len(b.children))
+	return fmt.Sprintf("hash:%s number:%d inTree:%v inTurn:%v isExecuted:%v, isSigned:%v isConfirmed:%v timestamp:%d rcvTime:%d prepareVotes:%d children:%d",
+		b.block.Hash().TerminalString(), b.block.NumberU64(), b.inTree, b.inTurn, b.isExecuted, b.isSigned, b.isConfirmed, b.timestamp, b.rcvTime, b.prepareVotes.Len(), len(b.children))
 }
 
 func (b *BlockExt) SetSyncState(err error) {
