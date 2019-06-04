@@ -460,9 +460,12 @@ END:
 			return
 		}
 
+		//check current timestamp match view's timestamp
+		now := time.Now().Unix()
 		if cbft.isRunning() && cbft.agreeViewChange() &&
 			cbft.viewChange.ProposalAddr == validator.Address &&
-			uint32(validator.Index) == cbft.viewChange.ProposalIndex {
+			uint32(validator.Index) == cbft.viewChange.ProposalIndex &&
+			now-int64(cbft.viewChange.Timestamp) > cbft.config.Duration {
 			// do something check
 			shouldSeal <- nil
 		} else {

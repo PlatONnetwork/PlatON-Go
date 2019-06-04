@@ -1,6 +1,7 @@
 package cbft
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -88,6 +89,30 @@ type prepareBlock struct {
 	Extra           []byte
 }
 
+func (pb prepareBlock) MarshalJSON() ([]byte, error) {
+	type prepareBlock struct {
+		Timestamp       uint64            `json:"timestamp"`
+		BlockHash       common.Hash       `json:"block_hash"`
+		BlockNumber     uint64            `json:"block_number"`
+		ProposalIndex   uint32            `json:"proposal_index"`
+		ProposalAddr    common.Address    `json:"proposal_address"`
+		View            *viewChange       `json:"view"`
+		ViewChangeVotes []*viewChangeVote `json:"viewchange_votes"`
+	}
+
+	var p prepareBlock
+
+	p.Timestamp = pb.Timestamp
+	p.BlockHash = pb.Block.Hash()
+	p.BlockNumber = pb.Block.NumberU64()
+	p.ProposalIndex = pb.ProposalIndex
+	p.ProposalAddr = pb.ProposalAddr
+	p.View = pb.View
+	p.ViewChangeVotes = pb.ViewChangeVotes
+
+	return json.Marshal(&p)
+}
+
 func (pb *prepareBlock) CannibalizeBytes() ([]byte, error) {
 	return pb.Block.Header().SealHash().Bytes(), nil
 }
@@ -149,8 +174,8 @@ func (pbh *prepareBlockHash) BHash() common.Hash {
 
 type prepareVote struct {
 	Timestamp      uint64                  `json:"timestamp"`
-	Hash           common.Hash             `json:"hash"`
-	Number         uint64                  `json:"number"`
+	Hash           common.Hash             `json:"block_hash"`
+	Number         uint64                  `json:"block_number"`
 	ValidatorIndex uint32                  `json:"validator_index"`
 	ValidatorAddr  common.Address          `json:"validator_address"`
 	Signature      common.BlockConfirmSign `json:"signature"`
