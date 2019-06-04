@@ -572,16 +572,16 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 	} else {
 		switch {
 		case cbft.viewChange == nil:
-			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errNotExistViewChange, &cbft.RoundState)
+			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errNotExistViewChange, cbft)
 			return errNotExistViewChange
 		case vote.Timestamp != cbft.viewChange.Timestamp:
-			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errTimestampNotEqual, &cbft.RoundState)
+			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errTimestampNotEqual, cbft)
 			return errTimestampNotEqual
 		case vote.BlockHash != cbft.viewChange.BaseBlockHash:
-			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errBlockHashNotEqual, &cbft.RoundState)
+			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errBlockHashNotEqual, cbft)
 			return errBlockHashNotEqual
 		case vote.ProposalAddr != cbft.viewChange.ProposalAddr:
-			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errInvalidProposalAddr, &cbft.RoundState)
+			cbft.bp.ViewChangeBP().InvalidViewChangeVote(bpCtx, vote, errInvalidProposalAddr, cbft)
 			return errInvalidProposalAddr
 		default:
 			return errInvalidViewChangeVotes
@@ -603,7 +603,7 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 			Hash:   vote.BlockHash,
 			Number: vote.BlockNum,
 		})
-		cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, &cbft.RoundState)
+		cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, cbft)
 		cbft.flushReadyBlock()
 		cbft.producerBlocks = NewProducerBlocks(cbft.config.NodeID, cbft.viewChange.BaseBlockNum)
 		cbft.clearPending()
