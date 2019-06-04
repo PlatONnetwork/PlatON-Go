@@ -217,21 +217,21 @@ func (bp elkSyncBlockBP) InvalidBlock(ctx context.Context, ext *BlockExt, err er
 type elkInternalBP struct {
 }
 
-func (bp elkInternalBP) ExecuteBlock(ctx context.Context, hash common.Hash, number uint64, elapse time.Duration) {
+func (bp elkInternalBP) ExecuteBlock(ctx context.Context, hash common.Hash, number uint64, timestamp uint64, elapse time.Duration) {
 	/*log.Debug("Reporting-ExecuteBlock", "from", NONE,
-		"mark", "executeBlock",
-		"msgHash", NONE,
-		"hash", hash.TerminalString(),
-		"number", number)*/
+	"mark", "executeBlock",
+	"msgHash", NONE,
+	"hash", hash.TerminalString(),
+	"number", number)*/
 	//log.Debug("ExecuteBlock", "hash", hash, "number", number, "elapse", elapse.Seconds())
 }
 
-func (bp elkInternalBP) InvalidBlock(ctx context.Context, hash common.Hash, number uint64, err error) {
+func (bp elkInternalBP) InvalidBlock(ctx context.Context, hash common.Hash, number uint64, timestamp uint64, err error) {
 	/*log.Debug("Reporting-InvalidBlock", "from", NONE,
-		"mark", "invalidBlock",
-		"msgHash", NONE,
-		"hash", hash.TerminalString(),
-		"number", number)*/
+	"mark", "invalidBlock",
+	"msgHash", NONE,
+	"hash", hash.TerminalString(),
+	"number", number)*/
 	//log.Debug("InvalidBlock", "hash", hash, number, number)
 }
 
@@ -247,72 +247,72 @@ func (bp elkInternalBP) ResetTxPool(ctx context.Context, ext *BlockExt, elapse t
 
 func (bp elkInternalBP) NewConfirmedBlock(ctx context.Context, ext *BlockExt, cbft *Cbft) {
 	/*log.Debug("Reporting-NewConfirmedBlock", "from", NONE,
-		"mark", "newConfirmedBlock",
-		"msgHash", NONE,
-		"hash", ext.block.Hash().TerminalString(),
-		"number", ext.block.Number())*/
+	"mark", "newConfirmedBlock",
+	"msgHash", NONE,
+	"hash", ext.block.Hash().TerminalString(),
+	"number", ext.block.Number())*/
 	//log.Debug("NewConfirmedBlock", "block", ext.String(), "state", state.String())
 }
 
 func (bp elkInternalBP) NewLogicalBlock(ctx context.Context, ext *BlockExt, cbft *Cbft) {
 	/*log.Debug("Reporting-NewLogicalBlock", "from", NONE,
-		"mark", "newLogicalBlock",
-		"msgHash", NONE,
-		"hash", ext.block.Hash().TerminalString(),
-		"number", ext.block.Number())*/
+	"mark", "newLogicalBlock",
+	"msgHash", NONE,
+	"hash", ext.block.Hash().TerminalString(),
+	"number", ext.block.Number())*/
 	//log.Debug("NewLogicalBlock", "block", ext.String(), "state", state.String())
 }
 
 func (bp elkInternalBP) NewRootBlock(ctx context.Context, ext *BlockExt, cbft *Cbft) {
 	/*log.Debug("Reporting-NewRootBlock", "from", NONE,
-		"mark", "newRootBlock",
-		"msgHash", NONE,
-		"hash", ext.block.Hash().TerminalString(),
-		"number", ext.block.Number())*/
+	"mark", "newRootBlock",
+	"msgHash", NONE,
+	"hash", ext.block.Hash().TerminalString(),
+	"number", ext.block.Number())*/
 	//log.Debug("NewRootBlock", "block", ext.String(), "state", state.String())
 }
 
 func (bp elkInternalBP) NewHighestConfirmedBlock(ctx context.Context, ext *BlockExt, cbft *Cbft) {
 	/*log.Debug("Reporting-NewHighestConfirmedBlock", "from", NONE,
-		"mark", "newHighestConfirmedBlock",
-		"msgHash", NONE,
-		"hash", ext.block.Hash().TerminalString(),
-		"number", ext.block.Number())*/
+	"mark", "newHighestConfirmedBlock",
+	"msgHash", NONE,
+	"hash", ext.block.Hash().TerminalString(),
+	"number", ext.block.Number())*/
 	//log.Debug("NewHighestConfirmedBlock", "block", ext.String(), "state", state.String())
 }
 
 func (bp elkInternalBP) NewHighestLogicalBlock(ctx context.Context, ext *BlockExt, cbft *Cbft) {
 	/*log.Debug("Reporting-NewHighestLogicalBlock", "from", NONE,
-		"mark", "newHighestLogicalBlock",
-		"msgHash", NONE,
-		"hash", ext.block.Hash().TerminalString(),
-		"number", ext.block.Number())*/
+	"mark", "newHighestLogicalBlock",
+	"msgHash", NONE,
+	"hash", ext.block.Hash().TerminalString(),
+	"number", ext.block.Number())*/
 	//log.Debug("NewHighestLogicalBlock", "block", ext.String(), "state", state.String())
 }
 
 func (bp elkInternalBP) NewHighestRootBlock(ctx context.Context, ext *BlockExt, cbft *Cbft) {
 	/*log.Debug("Reporting-NewHighestRootBlock", "from", NONE,
-		"mark", "newHighestRootBlock",
-		"msgHash", NONE,
-		"hash", ext.block.Hash().TerminalString(),
-		"number", ext.block.Number())*/
+	"mark", "newHighestRootBlock",
+	"msgHash", NONE,
+	"hash", ext.block.Hash().TerminalString(),
+	"number", ext.block.Number())*/
 	//log.Debug("NewHighestRootBlock", "block", ext.String(), "state", state.String())
 }
 
-func (bp elkInternalBP) SwitchView(ctx context.Context, view *viewChange) {
+func (bp elkInternalBP) SwitchView(ctx context.Context, view *viewChange, cbft *Cbft) {
 	/*log.Debug("Reporting-SwitchView", "from", NONE,
-		"mark", "switchView",
-		"msgHash", view.MsgHash().TerminalString(),
-		"hash", view.BaseBlockHash.TerminalString(),
-		"number", view.BaseBlockNum)*/
+	"mark", "switchView",
+	"msgHash", view.MsgHash().TerminalString(),
+	"hash", view.BaseBlockHash.TerminalString(),
+	"number", view.BaseBlockNum)*/
 	//log.Debug("SwitchView", "view", view.String())
 }
 
 func (bp elkInternalBP) Seal(ctx context.Context, ext *BlockExt, cbft *Cbft) {
 	/*log.Debug("Reporting-Seal", "from", NONE,
-		"mark", "seal",
-		"msgHash", NONE,
-		"hash", ext.block.Hash().TerminalString(),
-		"number", ext.block.Number())*/
+	"mark", "seal",
+	"msgHash", NONE,
+	"hash", ext.block.Hash().TerminalString(),
+	"number", ext.block.Number())*/
 	//log.Debug("SwitchView", "block", ext.String(), "state", state.String())
 }

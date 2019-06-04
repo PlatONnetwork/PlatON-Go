@@ -54,8 +54,8 @@ type SyncBlockBP interface {
 }
 
 type InternalBP interface {
-	ExecuteBlock(ctx context.Context, hash common.Hash, number uint64, elapse time.Duration)
-	InvalidBlock(ctx context.Context, hash common.Hash, number uint64, err error)
+	ExecuteBlock(ctx context.Context, hash common.Hash, number uint64, timestamp uint64, elapse time.Duration)
+	InvalidBlock(ctx context.Context, hash common.Hash, number uint64, timestamp uint64, err error)
 	ForkedResetTxPool(ctx context.Context, newHeader *types.Header, injectBlock types.Blocks, elapse time.Duration, cbft *Cbft)
 	ResetTxPool(ctx context.Context, ext *BlockExt, elapse time.Duration, cbft *Cbft)
 	NewConfirmedBlock(ctx context.Context, ext *BlockExt, cbft *Cbft)
@@ -65,7 +65,7 @@ type InternalBP interface {
 	NewHighestLogicalBlock(ctx context.Context, ext *BlockExt, cbft *Cbft)
 	NewHighestRootBlock(ctx context.Context, ext *BlockExt, cbft *Cbft)
 
-	SwitchView(ctx context.Context, view *viewChange)
+	SwitchView(ctx context.Context, view *viewChange, cbft *Cbft)
 	Seal(ctx context.Context, ext *BlockExt, cbft *Cbft)
 }
 
@@ -206,10 +206,10 @@ func (bp defaultSyncBlockBP) InvalidBlock(ctx context.Context, ext *BlockExt, er
 type defaultInternalBP struct {
 }
 
-func (bp defaultInternalBP) InvalidBlock(ctx context.Context, hash common.Hash, number uint64, err error) {
+func (bp defaultInternalBP) InvalidBlock(ctx context.Context, hash common.Hash, number uint64, timestamp uint64, err error) {
 
 }
-func (bp defaultInternalBP) ExecuteBlock(ctx context.Context, hash common.Hash, number uint64, elapse time.Duration) {
+func (bp defaultInternalBP) ExecuteBlock(ctx context.Context, hash common.Hash, number uint64, timestamp uint64, elapse time.Duration) {
 
 }
 
@@ -245,7 +245,7 @@ func (bp defaultInternalBP) NewHighestRootBlock(ctx context.Context, ext *BlockE
 
 }
 
-func (bp defaultInternalBP) SwitchView(ctx context.Context, view *viewChange) {
+func (bp defaultInternalBP) SwitchView(ctx context.Context, view *viewChange, cbft *Cbft) {
 
 }
 

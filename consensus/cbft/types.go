@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	sort2 "sort"
 	"time"
@@ -745,6 +746,39 @@ type BlockExt struct {
 	parent          *BlockExt
 	children        map[common.Hash]*BlockExt
 	syncState       chan error
+}
+
+func (b BlockExt) MarshalJSON() ([]byte, error) {
+	type BlockExt struct {
+		Timestamp       uint64      `json:"timestamp"`
+		InTree          bool        `json:"in_tree"`
+		InTurn          bool        `json:"in_turn"`
+		Executing       bool        `json:"executing"`
+		IsExecuted      bool        `json:"is_executed"`
+		IsSigned        bool        `json:"is_signed"`
+		IsConfirmed     bool        `json:"is_confirmed"`
+		Number          uint64      `json:"block_number"`
+		RcvTime         int64       `json:"receive_time"`
+		Hash            common.Hash `json:"block_hash"`
+		Parent          common.Hash `json:"parent_hash"`
+		ViewChangeVotes int         `json:"viewchange_votes"`
+		PrepareVotes    int         `json:"prepare_votes"`
+	}
+	ext := BlockExt{
+		Timestamp:       b.timestamp,
+		InTree:          b.inTree,
+		InTurn:          b.inTurn,
+		Executing:       b.executing,
+		IsExecuted:      b.isExecuted,
+		IsSigned:        b.isSigned,
+		IsConfirmed:     b.isConfirmed,
+		Number:          b.number,
+		RcvTime:         b.rcvTime,
+		ViewChangeVotes: len(b.viewChangeVotes),
+		PrepareVotes:    b.prepareVotes.Len(),
+	}
+
+	return json.Marshal(&ext)
 }
 
 func (b BlockExt) String() string {
