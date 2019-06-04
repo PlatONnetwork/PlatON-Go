@@ -1026,7 +1026,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 		return nil
 	}
 
-	if !cbft.IsConsensusNode() {
+	if !cbft.IsConsensusNode() && !cbft.agency.IsCandidateNode(cbft.config.NodeID) {
 		log.Warn("Local node is not consensus node,discard this msg")
 		return errInvalidatorCandidateAddress
 	} else if !cbft.CheckConsensusNode(request.ProposalAddr) {
@@ -1227,9 +1227,12 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 			cbft.sendPrepareVote(bs.block)
 			cbft.bp.PrepareBP().SendPrepareVote(context.TODO(), bs.block, cbft)
 
+			highest := cbft.blockExtMap.FindHighestConfirmed(cbft.getHighestConfirmed().block.Hash(), cbft.getHighestConfirmed().block.NumberU64())
 			if bs.block.isConfirmed {
-				cbft.highestConfirmed.Store(bs.block)
-				cbft.bp.InternalBP().NewHighestConfirmedBlock(context.TODO(), bs.block, cbft)
+				if highest != nil &&  highest.number > cbft.getHighestConfirmed().number {
+					cbft.highestConfirmed.Store(highest)
+					cbft.bp.InternalBP().NewHighestConfirmedBlock(context.TODO(), highest, cbft)
+				}
 				cbft.log.Debug("Send Confirmed Block", "hash", bs.block.block.Hash(), "number", bs.block.block.NumberU64())
 				cbft.handler.SendAllConsensusPeer(&confirmedPrepareBlock{Hash: bs.block.block.Hash(), Number: bs.block.block.NumberU64(), VoteBits: bs.block.prepareVotes.voteBits})
 				blockConfirmedMeter.Mark(1)

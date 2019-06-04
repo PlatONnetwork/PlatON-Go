@@ -150,6 +150,7 @@ type Agency interface {
 	VerifySign(msg interface{}) error
 	GetLastNumber(blockNumber uint64) uint64
 	GetValidator(blockNumber uint64) (*Validators, error)
+	IsCandidateNode(nodeID discover.NodeID) bool
 }
 
 type StaticAgency struct {
@@ -178,6 +179,10 @@ func (d *StaticAgency) GetLastNumber(blockNumber uint64) uint64 {
 
 func (d *StaticAgency) GetValidator(uint64) (*Validators, error) {
 	return d.validators, nil
+}
+
+func (d *StaticAgency) IsCandidateNode(nodeID discover.NodeID) bool {
+	return false
 }
 
 type InnerAgency struct {
@@ -241,14 +246,14 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err error) {
 	//var lastBlockNumber uint64
 	/*
-	defer func() {
-		log.Trace("Get validator",
-			"lastBlockNumber", lastBlockNumber,
-			"blocksPerNode", ia.blocksPerNode,
-			"blockNumber", blockNumber,
-			"validators", v,
-			"error", err)
-	}()*/
+		defer func() {
+			log.Trace("Get validator",
+				"lastBlockNumber", lastBlockNumber,
+				"blocksPerNode", ia.blocksPerNode,
+				"blockNumber", blockNumber,
+				"validators", v,
+				"error", err)
+		}()*/
 
 	if blockNumber <= ia.defaultBlocksPerRound {
 		return ia.defaultValidators, nil
@@ -286,4 +291,8 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err erro
 	validators.ValidBlockNumber = vds.ValidBlockNumber
 	//lastBlockNumber = vds.ValidBlockNumber + ia.blocksPerNode*uint64(validators.Len()) - 1
 	return &validators, nil
+}
+
+func (ia *InnerAgency) IsCandidateNode(nodeID discover.NodeID) bool {
+	return true
 }
