@@ -9,6 +9,52 @@ import (
 	"time"
 )
 
+const (
+	flagState = byte(1)
+	flagStat  = byte(2)
+)
+
+type Context struct {
+	//TraceID represents globally unique ID of the trace, such view's timestamp
+	TraceID uint64 `json:"trace_id"`
+
+	// SpanID represents span ID that must be unique within its trace, such as peerID, blockNum, baseBlock
+	// but does not have to be globally unique.
+	SpanID string `json:"span_id"`
+
+	// ParentID refers to the ID of the parent span.
+	// Should be "" if the current span is a root span.
+	ParentID string `json:"parent_id"`
+
+	// Log type such as "state", "stat"
+	Flags byte `json:"flags"`
+
+	//message signer
+	Creator string `json:"creator"`
+
+	//local node
+	Processor string `json:"processor"`
+}
+type Tag struct {
+	Key   string      `json:"key"`
+	Value interface{} `json:"value"`
+}
+
+type LogRecord struct {
+	Timestamp uint64      `json:"timestamp"`
+	Log       interface{} `json:"log"`
+}
+
+type Span struct {
+	Context      Context       `json:"context"`
+	StartTime    time.Time     `json:"start_time"`
+	DurationTime time.Duration `json:"duration_time"`
+	Tags         []Tag         `json:"tags"`
+	LogRecords   []LogRecord   `json:"log_records"`
+	//operation name, such as message type
+	OperationName string `json:"operation_time"`
+}
+
 var logBP Breakpoint
 
 func init() {
