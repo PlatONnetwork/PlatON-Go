@@ -108,11 +108,15 @@ func (bp logPrepareBP) ReceiveBlock(ctx context.Context, block *prepareBlock, cb
 			Processor: processor,
 		},
 		StartTime:     time.Now(),
-		OperationName: "receive_prepare_block",
+		OperationName: "prepare_block",
 		Tags: []Tag{
 			{
 				Key:   "peer_id",
 				Value: ctx.Value("peer"),
+			},
+			{
+				Key:   "action",
+				Value: "receive_block",
 			},
 		},
 		LogRecords: []LogRecord{
@@ -145,11 +149,15 @@ func (bp logPrepareBP) AcceptBlock(ctx context.Context, block *prepareBlock, cbf
 			Processor: processor,
 		},
 		StartTime:     time.Now(),
-		OperationName: "accept_prepare_block",
+		OperationName: "prepare_block",
 		Tags: []Tag{
 			{
 				Key:   "peer_id",
 				Value: ctx.Value("peer"),
+			},
+			{
+				Key:   "action",
+				Value: "accept_block",
 			},
 		},
 		LogRecords: []LogRecord{
@@ -177,11 +185,15 @@ func (bp logPrepareBP) CacheBlock(ctx context.Context, block *prepareBlock, cbft
 			Processor: processor,
 		},
 		StartTime:     time.Now(),
-		OperationName: "cache_prepare_block",
+		OperationName: "prepare_block",
 		Tags: []Tag{
 			{
 				Key:   "peer_id",
 				Value: ctx.Value("peer"),
+			},
+			{
+				Key:   "action",
+				Value: "cache_block",
 			},
 		},
 		LogRecords: []LogRecord{
@@ -214,6 +226,10 @@ func (bp logPrepareBP) DiscardBlock(ctx context.Context, block *prepareBlock, cb
 			{
 				Key:   "peer_id",
 				Value: ctx.Value("peer"),
+			},
+			{
+				Key:   "action",
+				Value: "discard_block",
 			},
 		},
 		LogRecords: []LogRecord{
@@ -257,11 +273,15 @@ func (bp logPrepareBP) InvalidBlock(ctx context.Context, block *prepareBlock, er
 			Processor: processor,
 		},
 		StartTime:     time.Now(),
-		OperationName: "invalid_prepare_block",
+		OperationName: "prepare_block",
 		Tags: []Tag{
 			{
 				Key:   "peer_id",
 				Value: ctx.Value("peer"),
+			},
+			{
+				Key:   "action",
+				Value: "invalid_block",
 			},
 		},
 		LogRecords: []LogRecord{
@@ -346,6 +366,12 @@ func (bp logSyncBlockBP) SyncBlock(ctx context.Context, ext *BlockExt, cbft *Cbf
 		},
 		StartTime:     time.Now(),
 		OperationName: "sync_block",
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "sync_block",
+			},
+		},
 		LogRecords: []LogRecord{
 			{
 				Timestamp: time.Now().UnixNano(),
@@ -376,7 +402,13 @@ func (bp logSyncBlockBP) InvalidBlock(ctx context.Context, ext *BlockExt, err er
 			Processor: processor,
 		},
 		StartTime:     time.Now(),
-		OperationName: "sync_invalid_block",
+		OperationName: "sync_block",
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "sync_invalid_block",
+			},
+		},
 		LogRecords: []LogRecord{
 			{
 				Timestamp: time.Now().UnixNano(),
@@ -411,6 +443,12 @@ func (bp logInternalBP) ExecuteBlock(ctx context.Context, hash common.Hash, numb
 		StartTime:     time.Now(),
 		DurationTime:  elapse,
 		OperationName: "execute_block",
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "execute_block",
+			},
+		},
 		LogRecords: []LogRecord{
 			{
 				Timestamp: time.Now().UnixNano(),
@@ -443,7 +481,13 @@ func (bp logInternalBP) InvalidBlock(ctx context.Context, hash common.Hash, numb
 			Processor: localAddress(nil),
 		},
 		StartTime:     time.Now(),
-		OperationName: "execute_invalid_block",
+		OperationName: "execute_block",
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "execute_invalid_block",
+			},
+		},
 		LogRecords: []LogRecord{
 			{
 				Timestamp: time.Now().UnixNano(),
@@ -485,7 +529,13 @@ func (bp logInternalBP) ForkedResetTxPool(ctx context.Context, newHeader *types.
 		},
 		StartTime:     time.Now(),
 		DurationTime:  elapse,
-		OperationName: "forked_reset_tx_pool",
+		OperationName: "tx_pool",
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "forked_reset_tx_pool",
+			},
+		},
 		LogRecords: []LogRecord{
 			{
 				Timestamp: time.Now().UnixNano(),
@@ -521,7 +571,13 @@ func (bp logInternalBP) ResetTxPool(ctx context.Context, ext *BlockExt, elapse t
 		},
 		StartTime:     time.Now(),
 		DurationTime:  elapse,
-		OperationName: "reset_tx_pool",
+		OperationName: "tx_pool",
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "reset_tx_pool",
+			},
+		},
 		LogRecords: []LogRecord{
 			{
 				Timestamp: time.Now().UnixNano(),
@@ -569,7 +625,13 @@ func (bp logInternalBP) NewHighestConfirmedBlock(ctx context.Context, ext *Block
 			Processor: processor,
 		},
 		StartTime:     time.Now(),
-		OperationName: "new_highest_confirmed_block",
+		OperationName: "chain_state",
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "new_highest_confirmed_block",
+			},
+		},
 		LogRecords: []LogRecord{
 			{
 				Timestamp: time.Now().UnixNano(),
@@ -602,7 +664,13 @@ func (bp logInternalBP) NewHighestLogicalBlock(ctx context.Context, ext *BlockEx
 			Processor: processor,
 		},
 		StartTime:     time.Now(),
-		OperationName: "new_highest_logical_block",
+		OperationName: "chain_state",
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "new_highest_logical_block",
+			},
+		},
 		LogRecords: []LogRecord{
 			{
 				Timestamp: time.Now().UnixNano(),
@@ -635,7 +703,13 @@ func (bp logInternalBP) NewHighestRootBlock(ctx context.Context, ext *BlockExt, 
 			Processor: processor,
 		},
 		StartTime:     time.Now(),
-		OperationName: "new_highest_root_block",
+		OperationName: "chain_state",
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "new_highest_root_block",
+			},
+		},
 		LogRecords: []LogRecord{
 			{
 				Timestamp: time.Now().UnixNano(),
@@ -664,7 +738,13 @@ func (bp logInternalBP) SwitchView(ctx context.Context, view *viewChange, cbft *
 			Processor: processor,
 		},
 		StartTime:     time.Now(),
-		OperationName: "switch_view",
+		OperationName: "view_state",
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "switch_view",
+			},
+		},
 		LogRecords: []LogRecord{
 			{
 				Timestamp: time.Now().UnixNano(),
@@ -692,6 +772,12 @@ func (bp logInternalBP) Seal(ctx context.Context, ext *BlockExt, cbft *Cbft) {
 		},
 		StartTime:     time.Now(),
 		OperationName: "seal_block",
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "new_highest_root_block",
+			},
+		},
 		LogRecords: []LogRecord{
 			{
 				Timestamp: time.Now().UnixNano(),
