@@ -188,7 +188,7 @@ func (bp elkViewChangeBP) InvalidViewChangeBlock(ctx context.Context, view *view
 	//log.Debug("InvalidViewChangeBlock", "view", view.String(), "state", state.String())
 }
 
-func (bp elkViewChangeBP) TwoThirdViewChangeVotes(ctx context.Context, cbft *Cbft) {
+func (bp elkViewChangeBP) TwoThirdViewChangeVotes(ctx context.Context, view *viewChange, votes ViewChangeVotes, cbft *Cbft) {
 	//log.Debug("TwoThirdViewChangeVotes", "state", state.String())
 }
 
