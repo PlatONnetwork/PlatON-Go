@@ -105,7 +105,6 @@ type Cbft struct {
 	baseBlockCh             chan chan *types.Block
 	sealBlockCh             chan *SealBlock
 	getBlockCh              chan *GetBlock
-	sendViewChangeCh        chan struct{}
 	innerUnExecutedBlockCh  chan []*BlockExt
 	shouldSealCh            chan chan error
 	viewChangeTimeoutCh     chan *viewChange
@@ -163,7 +162,6 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceCo
 		baseBlockCh:             make(chan chan *types.Block),
 		sealBlockCh:             make(chan *SealBlock),
 		getBlockCh:              make(chan *GetBlock),
-		sendViewChangeCh:        make(chan struct{}),
 		innerUnExecutedBlockCh:  make(chan []*BlockExt, peerMsgQueueSize),
 		shouldSealCh:            make(chan chan error, peerMsgQueueSize),
 		viewChangeTimeoutCh:     make(chan *viewChange),
@@ -374,8 +372,6 @@ func (cbft *Cbft) receiveLoop() {
 			cbft.OnShouldSeal(shouldSeal)
 		case view := <-cbft.viewChangeTimeoutCh:
 			cbft.OnViewChangeTimeout(view)
-		case <-cbft.sendViewChangeCh:
-			cbft.OnSendViewChange()
 		case viewVote := <-cbft.viewChangeVoteTimeoutCh:
 			cbft.OnViewChangeVoteTimeout(viewVote)
 		case sealBlock := <-cbft.sealBlockCh:
@@ -702,6 +698,7 @@ func (cbft *Cbft) OnViewChangeTimeout(view *viewChange) {
 			cbft.handleCache()
 			cbft.log.Info("View change timeout", "current view", cbft.viewChange.String(), "msgHash", view.MsgHash().TerminalString())
 			cbft.resetViewChange()
+			cbft.bp.ViewChangeBP().ViewChangeTimeout(context.TODO(), view, cbft)
 		}
 	}
 
@@ -888,10 +885,6 @@ func (cbft *Cbft) ShouldSeal(curTime int64) (bool, error) {
 	return inturn, nil
 }
 
-func (cbft *Cbft) sendViewChange() {
-	cbft.sendViewChangeCh <- struct{}{}
-}
-
 func (cbft *Cbft) OnSendViewChange() {
 	view, err := cbft.newViewChange()
 	if err != nil {
@@ -899,6 +892,7 @@ func (cbft *Cbft) OnSendViewChange() {
 		return
 	}
 	cbft.log.Debug("Send new view", "view", view.String(), "msgHash", view.MsgHash().TerminalString())
+	cbft.bp.ViewChangeBP().SendViewChange(context.TODO(), view, cbft)
 	cbft.handler.SendAllConsensusPeer(view)
 
 	// gauage

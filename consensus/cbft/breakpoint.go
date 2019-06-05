@@ -38,6 +38,7 @@ type PrepareBP interface {
 }
 
 type ViewChangeBP interface {
+	SendViewChange(ctx context.Context, view *viewChange, cbft *Cbft)
 	ReceiveViewChange(ctx context.Context, view *viewChange, cbft *Cbft)
 	ReceiveViewChangeVote(ctx context.Context, view *viewChangeVote, cbft *Cbft)
 	InvalidViewChange(ctx context.Context, view *viewChange, err error, cbft *Cbft)
@@ -45,7 +46,7 @@ type ViewChangeBP interface {
 	InvalidViewChangeBlock(ctx context.Context, view *viewChange, cbft *Cbft)
 	TwoThirdViewChangeVotes(ctx context.Context, cbft *Cbft)
 	SendViewChangeVote(ctx context.Context, view *viewChangeVote, cbft *Cbft)
-	ViewChangeTimeout(ctx context.Context, cbft *Cbft)
+	ViewChangeTimeout(ctx context.Context, view *viewChange, cbft *Cbft)
 }
 
 type SyncBlockBP interface {
@@ -160,6 +161,10 @@ func (bp defaultPrepareBP) TwoThirdVotes(ctx context.Context, ext *prepareVote, 
 type defaultViewChangeBP struct {
 }
 
+func (bp defaultViewChangeBP) SendViewChange(ctx context.Context, view *viewChange, cbft *Cbft) {
+
+}
+
 func (bp defaultViewChangeBP) ReceiveViewChange(ctx context.Context, view *viewChange, cbft *Cbft) {
 
 }
@@ -188,7 +193,7 @@ func (bp defaultViewChangeBP) SendViewChangeVote(ctx context.Context, view *view
 
 }
 
-func (bp defaultViewChangeBP) ViewChangeTimeout(ctx context.Context, cbft *Cbft) {
+func (bp defaultViewChangeBP) ViewChangeTimeout(ctx context.Context, view *viewChange, cbft *Cbft) {
 
 }
 
