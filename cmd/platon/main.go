@@ -172,8 +172,9 @@ var (
 		utils.VCPasswordFlag,
 	}
 
-	cbftFlags = []cli.Flag {
+	cbftFlags = []cli.Flag{
 		utils.CbftBlockIntervalFlag,
+		utils.CbftBreakpointFlag,
 	}
 )
 

@@ -53,16 +53,16 @@ import (
 )
 
 var indexMock = map[int][]int{
-	1 : []int{2, 3, 4},
-	2 : []int{5, 6, 7},
-	3 : []int{8, 9, 10},
-	4 : []int{11,12, 13},
-	5 : []int{14, 15, 16},
-	6 : []int{17, 18, 19},
-	7 : []int{},
-	8 : []int{20, 21, 22},
-	9 : []int{},
-	10 : []int{23, 24, 25},
+	1:  []int{2, 3, 4},
+	2:  []int{5, 6, 7},
+	3:  []int{8, 9, 10},
+	4:  []int{11, 12, 13},
+	5:  []int{14, 15, 16},
+	6:  []int{17, 18, 19},
+	7:  []int{},
+	8:  []int{20, 21, 22},
+	9:  []int{},
+	10: []int{23, 24, 25},
 }
 
 type LesServer interface {
@@ -219,8 +219,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
+			cbftEngine.SetBreakpoint(config.CbftConfig.BreakpointType)
 			cbftEngine.SetBlockChainCache(blockChainCache)
-
 			var agency cbft.Agency
 			// validatorMode:
 			// - static (default)

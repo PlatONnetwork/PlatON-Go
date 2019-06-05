@@ -76,6 +76,18 @@ type defaultBreakpoint struct {
 	internalBP   InternalBP
 }
 
+func getBreakpoint(t string) Breakpoint {
+	switch t {
+	case "tracing":
+		return logBP
+	case "default":
+		return defaultBP
+	case "elk":
+		return elkBP
+	}
+	return defaultBP
+}
+
 var defaultBP Breakpoint
 
 func init() {

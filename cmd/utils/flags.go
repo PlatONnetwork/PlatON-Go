@@ -636,6 +636,12 @@ var (
 		Usage: "This interval time use to broadcast block before mining next block",
 		Value: 100, // milliseconds
 	}
+
+	CbftBreakpointFlag = cli.StringFlag{
+		Name:  "cbft.breakpoint",
+		Usage: "breakpoint type:tracing",
+		Value: "",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -1173,6 +1179,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// for mpc compute
 	setMpcPool(ctx, &cfg.MPCPool)
 	setVcPool(ctx, &cfg.VCPool)
+	SetCbft(ctx, &cfg.CbftConfig)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
@@ -1294,6 +1301,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 func SetCbft(ctx *cli.Context, cfg *eth.CbftConfig) {
 	if ctx.GlobalIsSet(CbftBlockIntervalFlag.Name) {
 		cfg.BlockInterval = ctx.GlobalUint64(CbftBlockIntervalFlag.Name)
+	}
+	if ctx.GlobalIsSet(CbftBreakpointFlag.Name) {
+		cfg.BreakpointType = ctx.GlobalString(CbftBreakpointFlag.Name)
 	}
 }
 

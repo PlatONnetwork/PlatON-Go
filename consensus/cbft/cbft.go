@@ -263,6 +263,10 @@ func (cbft *Cbft) SetBlockChainCache(blockChainCache *core.BlockChainCache) {
 	cbft.blockChainCache = blockChainCache
 }
 
+func (cbft *Cbft) SetBreakpoint(t string) {
+	cbft.bp = getBreakpoint(t)
+}
+
 // Start sets blockChain and txPool into cbft
 func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool, agency Agency) error {
 	cbft.blockChain = blockChain
@@ -465,7 +469,7 @@ END:
 		if cbft.isRunning() && cbft.agreeViewChange() &&
 			cbft.viewChange.ProposalAddr == validator.Address &&
 			uint32(validator.Index) == cbft.viewChange.ProposalIndex &&
-			now-int64(cbft.viewChange.Timestamp) > cbft.config.Duration {
+			now-int64(cbft.viewChange.Timestamp) < cbft.config.Duration {
 			// do something check
 			shouldSeal <- nil
 		} else {
@@ -1232,7 +1236,7 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 
 			highest := cbft.blockExtMap.FindHighestConfirmed(cbft.getHighestConfirmed().block.Hash(), cbft.getHighestConfirmed().block.NumberU64())
 			if bs.block.isConfirmed {
-				if highest != nil &&  highest.number > cbft.getHighestConfirmed().number {
+				if highest != nil && highest.number > cbft.getHighestConfirmed().number {
 					cbft.highestConfirmed.Store(highest)
 					cbft.bp.InternalBP().NewHighestConfirmedBlock(context.TODO(), highest, cbft)
 				}

@@ -142,12 +142,15 @@ type Config struct {
 }
 
 type CbftConfig struct {
-	Period           uint64   `json:"period"` // Number of seconds between blocks to enforce
-	Epoch            uint64   `json:"epoch"`  // Epoch length to reset votes and checkpoint
-	MaxLatency       int64    `json:"maxLatency"`
-	LegalCoefficient float64  `json:"legalCoefficient"`
-	Duration         int64    `json:"duration"`
-	BlockInterval    uint64   `json:"-"`
+	Period           uint64  `json:"period"` // Number of seconds between blocks to enforce
+	Epoch            uint64  `json:"epoch"`  // Epoch length to reset votes and checkpoint
+	MaxLatency       int64   `json:"maxLatency"`
+	LegalCoefficient float64 `json:"legalCoefficient"`
+	Duration         int64   `json:"duration"`
+	BlockInterval    uint64  `json:"-"`
+
+	//breakpoint type:tracing
+	BreakpointType string
 }
 
 type configMarshaling struct {
