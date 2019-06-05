@@ -30,14 +30,15 @@ type PrepareBP interface {
 	CacheVote(ctx context.Context, block *prepareVote, cbft *Cbft)
 	DiscardVote(ctx context.Context, block *prepareVote, cbft *Cbft)
 
-	SendPrepareVote(ctx context.Context, ext *BlockExt, cbft *Cbft)
+	SendPrepareVote(ctx context.Context, ext *prepareVote, cbft *Cbft)
 	InvalidBlock(ctx context.Context, block *prepareBlock, err error, cbft *Cbft)
 	InvalidVote(ctx context.Context, block *prepareVote, err error, cbft *Cbft)
 	InvalidViewChangeVote(ctx context.Context, block *prepareBlock, err error, cbft *Cbft)
-	TwoThirdVotes(ctx context.Context, ext *BlockExt, cbft *Cbft)
+	TwoThirdVotes(ctx context.Context, ext *prepareVote, cbft *Cbft)
 }
 
 type ViewChangeBP interface {
+	SendViewChange(ctx context.Context, view *viewChange, cbft *Cbft)
 	ReceiveViewChange(ctx context.Context, view *viewChange, cbft *Cbft)
 	ReceiveViewChangeVote(ctx context.Context, view *viewChangeVote, cbft *Cbft)
 	InvalidViewChange(ctx context.Context, view *viewChange, err error, cbft *Cbft)
@@ -45,7 +46,7 @@ type ViewChangeBP interface {
 	InvalidViewChangeBlock(ctx context.Context, view *viewChange, cbft *Cbft)
 	TwoThirdViewChangeVotes(ctx context.Context, cbft *Cbft)
 	SendViewChangeVote(ctx context.Context, view *viewChangeVote, cbft *Cbft)
-	ViewChangeTimeout(ctx context.Context, cbft *Cbft)
+	ViewChangeTimeout(ctx context.Context, view *viewChange, cbft *Cbft)
 }
 
 type SyncBlockBP interface {
@@ -149,7 +150,7 @@ func (bp defaultPrepareBP) DiscardVote(ctx context.Context, block *prepareVote, 
 
 }
 
-func (bp defaultPrepareBP) SendPrepareVote(ctx context.Context, ext *BlockExt, cbft *Cbft) {
+func (bp defaultPrepareBP) SendPrepareVote(ctx context.Context, ext *prepareVote, cbft *Cbft) {
 
 }
 
@@ -165,11 +166,15 @@ func (bp defaultPrepareBP) InvalidViewChangeVote(ctx context.Context, block *pre
 
 }
 
-func (bp defaultPrepareBP) TwoThirdVotes(ctx context.Context, ext *BlockExt, cbft *Cbft) {
+func (bp defaultPrepareBP) TwoThirdVotes(ctx context.Context, ext *prepareVote, cbft *Cbft) {
 
 }
 
 type defaultViewChangeBP struct {
+}
+
+func (bp defaultViewChangeBP) SendViewChange(ctx context.Context, view *viewChange, cbft *Cbft) {
+
 }
 
 func (bp defaultViewChangeBP) ReceiveViewChange(ctx context.Context, view *viewChange, cbft *Cbft) {
@@ -200,7 +205,7 @@ func (bp defaultViewChangeBP) SendViewChangeVote(ctx context.Context, view *view
 
 }
 
-func (bp defaultViewChangeBP) ViewChangeTimeout(ctx context.Context, cbft *Cbft) {
+func (bp defaultViewChangeBP) ViewChangeTimeout(ctx context.Context, view *viewChange, cbft *Cbft) {
 
 }
 

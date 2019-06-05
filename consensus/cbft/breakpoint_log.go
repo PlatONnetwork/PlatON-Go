@@ -8,6 +8,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"math/big"
+	"reflect"
+	"strconv"
 	"sync/atomic"
 	"time"
 )
@@ -15,6 +17,8 @@ import (
 const (
 	flagState = byte(1)
 	flagStat  = byte(2)
+
+	LOG_PREFIX = "OPENTRACE"
 )
 
 type Context struct {
@@ -38,6 +42,7 @@ type Context struct {
 	//local node
 	Processor string `json:"processor"`
 }
+
 type Tag struct {
 	Key   string      `json:"key"`
 	Value interface{} `json:"value"`
@@ -55,7 +60,7 @@ type Span struct {
 	Tags         []Tag         `json:"tags"`
 	LogRecords   []LogRecord   `json:"log_records"`
 	//operation name, such as message type
-	OperationName string `json:"operation_time"`
+	OperationName string `json:"operation_name"`
 }
 
 var logBP Breakpoint
@@ -133,8 +138,20 @@ func (bp logPrepareBP) ReceiveBlock(ctx context.Context, block *prepareBlock, cb
 }
 
 func (bp logPrepareBP) ReceiveVote(ctx context.Context, vote *prepareVote, cbft *Cbft) {
-	log.Debug("ReceiveVote", "block", vote.String(), "cbft", cbft.String())
-
+	tags := []Tag{
+		{ Key: "action", Value: "receive_prepare_vote", },
+	}
+	span, err := makeSpan(ctx, cbft, vote, tags)
+	if err != nil {
+		log.Error("ReceiveVote make span fail", "err", err)
+		return
+	}
+	jsonSpan, err := json.Marshal(span)
+	if err != nil {
+		log.Error("ReceiveVote marshal span fail", "err", err)
+		return
+	}
+	log.Info(string(jsonSpan))
 }
 
 func (bp logPrepareBP) AcceptBlock(ctx context.Context, block *prepareBlock, cbft *Cbft) {
@@ -246,19 +263,71 @@ func (bp logPrepareBP) DiscardBlock(ctx context.Context, block *prepareBlock, cb
 }
 
 func (bp logPrepareBP) AcceptVote(ctx context.Context, vote *prepareVote, cbft *Cbft) {
-	log.Debug("AcceptVote", "block", vote.String(), "cbft", cbft.String())
+	tags := []Tag{
+		{ Key: "action", Value: "accept_prepare_vote", },
+	}
+	span, err := makeSpan(ctx, cbft, vote, tags)
+	if err != nil {
+		log.Error("AcceptVote make span fail", "err", err)
+		return
+	}
+	jsonSpan, err := json.Marshal(span)
+	if err != nil {
+		log.Error("AcceptVote marshal span to json fail", "err", err)
+		return
+	}
+	log.Info(string(jsonSpan))
 }
 
 func (bp logPrepareBP) CacheVote(ctx context.Context, vote *prepareVote, cbft *Cbft) {
-	log.Debug("CacheVote", "block", vote.String(), "cbft", cbft.String())
+	tags := []Tag{
+		{ Key: "action", Value: "cache_prepare_vote", },
+	}
+	span, err := makeSpan(ctx, cbft, vote, tags)
+	if err != nil {
+		log.Error("CacheVote make span fail", "err", err)
+		return
+	}
+	jsonSpan, err := json.Marshal(span)
+	if err != nil {
+		log.Error("CacheVote marshal span to json fail", "err", err)
+		return
+	}
+	log.Info(string(jsonSpan))
 }
 
 func (bp logPrepareBP) DiscardVote(ctx context.Context, vote *prepareVote, cbft *Cbft) {
-	log.Debug("DiscardVote", "block", vote.String(), "cbft", cbft.String())
+	tags := []Tag{
+		{ Key: "action", Value: "discard_prepare_vote", },
+	}
+	span, err := makeSpan(ctx, cbft, vote, tags)
+	if err != nil {
+		log.Error("DiscardVote make span fail", "err", err)
+		return
+	}
+	jsonSpan, err := json.Marshal(span)
+	if err != nil {
+		log.Error("DiscardVote marshal span to json fail", "err", err)
+		return
+	}
+	log.Info(string(jsonSpan))
 }
 
-func (bp logPrepareBP) SendPrepareVote(ctx context.Context, ext *BlockExt, cbft *Cbft) {
-	log.Debug("SendPrepareVote", "block", ext.String(), "cbft", cbft.String())
+func (bp logPrepareBP) SendPrepareVote(ctx context.Context, ext *prepareVote, cbft *Cbft) {
+	tags := []Tag{
+		{ Key: "action", Value: "send_prepare_vote", },
+	}
+	span, err := makeSpan(ctx, cbft, ext, tags)
+	if err != nil {
+		log.Error("SendPrepareVote make span fail", "err", err)
+		return
+	}
+	jsonSpan, err := json.Marshal(span)
+	if err != nil {
+		log.Error("SendPrepareVote marshal span to json fail", "err", err)
+		return
+	}
+	log.Info(string(jsonSpan))
 }
 
 func (bp logPrepareBP) InvalidBlock(ctx context.Context, block *prepareBlock, err error, cbft *Cbft) {
@@ -298,22 +367,112 @@ func (bp logPrepareBP) InvalidBlock(ctx context.Context, block *prepareBlock, er
 }
 
 func (bp logPrepareBP) InvalidVote(ctx context.Context, vote *prepareVote, err error, cbft *Cbft) {
-	log.Debug("InvalidVote", "block", vote.String(), "cbft", cbft.String())
+	tags := []Tag{
+		{ Key: "action", Value: "invalid_prepare_vote", },
+	}
+	span, err := makeSpan(ctx, cbft, vote, tags)
+	if err != nil {
+		log.Error("InvalidVote make span fail", "err", err)
+		return
+	}
+	jsonSpan, err := json.Marshal(span)
+	if err != nil {
+		log.Error("InvalidVote marshal span fail", "err", err)
+		return
+	}
+	log.Info(string(jsonSpan))
 }
 
 func (bp logPrepareBP) InvalidViewChangeVote(ctx context.Context, block *prepareBlock, err error, cbft *Cbft) {
 	log.Debug("InvalidViewChangeVote", "block", block.String(), "cbft", cbft.String())
 }
 
-func (bp logPrepareBP) TwoThirdVotes(ctx context.Context, ext *BlockExt, cbft *Cbft) {
-	log.Debug("TwoThirdVotes", "block", ext.String(), "cbft", cbft.String())
+func (bp logPrepareBP) TwoThirdVotes(ctx context.Context, ext *prepareVote, cbft *Cbft) {
+	tags := []Tag{
+		{ Key: "action", Value: "match_two_third_prepare_vote", },
+	}
+	span, err := makeSpan(ctx, cbft, ext, tags)
+	if err != nil {
+		log.Error("TwoThirdVotes make span fail", "err", err)
+		return
+	}
+	jsonSpan, err := json.Marshal(span)
+	if err != nil {
+		log.Error("TwoThirdVotes marshal span fail", "err", err)
+		return
+	}
+	log.Info(string(jsonSpan))
 }
 
 type logViewChangeBP struct {
 }
 
+func (bp logViewChangeBP) SendViewChange(ctx context.Context, view *viewChange, cbft *Cbft) {
+	processor := localAddress(cbft)
+	context := Context{
+		TraceID:   view.Timestamp,
+		SpanID:    strconv.FormatUint(view.BaseBlockNum, 10),
+		ParentID:  cbft.config.NodeID.String(),
+		Flags:     flagState,
+		Creator:   view.ProposalAddr.String(),
+		Processor: processor,
+	}
+	span := &Span{
+		Context:   context,
+		StartTime: time.Now(),
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "send_view_change",
+			},
+		},
+		LogRecords: []LogRecord{
+			{
+				Timestamp: time.Now().UnixNano(),
+				Log:       view,
+			},
+		},
+		OperationName: "view_change",
+	}
+	if data, err := json.Marshal(span); err == nil {
+		log.Info(string(data))
+	}
+}
+
 func (bp logViewChangeBP) ReceiveViewChange(ctx context.Context, view *viewChange, cbft *Cbft) {
-	log.Debug("ReceiveViewChange", "block", view.String(), "cbft", cbft.String())
+	processor := localAddress(cbft)
+	context := Context{
+		TraceID:   view.Timestamp,
+		SpanID:    strconv.FormatUint(view.BaseBlockNum, 10),
+		ParentID:  cbft.config.NodeID.String(),
+		Flags:     flagState,
+		Creator:   view.ProposalAddr.String(),
+		Processor: processor,
+	}
+	span := &Span{
+		Context:   context,
+		StartTime: time.Now(),
+		Tags: []Tag{
+			{
+				Key:   "peer_id",
+				Value: ctx.Value("peer"),
+			},
+			{
+				Key:   "action",
+				Value: "receive_view_change",
+			},
+		},
+		LogRecords: []LogRecord{
+			{
+				Timestamp: time.Now().UnixNano(),
+				Log:       view,
+			},
+		},
+		OperationName: "view_change",
+	}
+	if data, err := json.Marshal(span); err == nil {
+		log.Info(string(data))
+	}
 }
 
 func (bp logViewChangeBP) ReceiveViewChangeVote(ctx context.Context, vote *viewChangeVote, cbft *Cbft) {
@@ -321,7 +480,43 @@ func (bp logViewChangeBP) ReceiveViewChangeVote(ctx context.Context, vote *viewC
 }
 
 func (bp logViewChangeBP) InvalidViewChange(ctx context.Context, view *viewChange, err error, cbft *Cbft) {
-	log.Debug("InvalidViewChange", "view", view.String(), "cbft", cbft.String())
+	processor := localAddress(cbft)
+	context := Context{
+		TraceID:   view.Timestamp,
+		SpanID:    strconv.FormatUint(view.BaseBlockNum, 10),
+		ParentID:  cbft.config.NodeID.String(),
+		Flags:     flagState,
+		Creator:   view.ProposalAddr.String(),
+		Processor: processor,
+	}
+	span := &Span{
+		Context:   context,
+		StartTime: time.Now(),
+		Tags: []Tag{
+			{
+				Key:   "peer_id",
+				Value: ctx.Value("peer"),
+			},
+			{
+				Key:   "action",
+				Value: "invalid_view_change",
+			},
+		},
+		LogRecords: []LogRecord{
+			{
+				Timestamp: time.Now().UnixNano(),
+				Log:       view,
+			},
+			{
+				Timestamp: time.Now().UnixNano(),
+				Log:       err.Error(),
+			},
+		},
+		OperationName: "view_change",
+	}
+	if data, err := json.Marshal(span); err == nil {
+		log.Info(string(data))
+	}
 }
 
 func (bp logViewChangeBP) InvalidViewChangeVote(ctx context.Context, view *viewChangeVote, err error, cbft *Cbft) {
@@ -329,7 +524,39 @@ func (bp logViewChangeBP) InvalidViewChangeVote(ctx context.Context, view *viewC
 }
 
 func (bp logViewChangeBP) InvalidViewChangeBlock(ctx context.Context, view *viewChange, cbft *Cbft) {
-	log.Debug("InvalidViewChangeBlock", "view", view.String(), "cbft", cbft.String())
+	processor := localAddress(cbft)
+	context := Context{
+		TraceID:   view.Timestamp,
+		SpanID:    strconv.FormatUint(view.BaseBlockNum, 10),
+		ParentID:  cbft.config.NodeID.String(),
+		Flags:     flagState,
+		Creator:   view.ProposalAddr.String(),
+		Processor: processor,
+	}
+	span := &Span{
+		Context:   context,
+		StartTime: time.Now(),
+		Tags: []Tag{
+			{
+				Key:   "peer_id",
+				Value: ctx.Value("peer"),
+			},
+			{
+				Key:   "action",
+				Value: "invalid_view_change_block",
+			},
+		},
+		LogRecords: []LogRecord{
+			{
+				Timestamp: time.Now().UnixNano(),
+				Log:       view,
+			},
+		},
+		OperationName: "view_change",
+	}
+	if data, err := json.Marshal(span); err == nil {
+		log.Info(string(data))
+	}
 }
 
 func (bp logViewChangeBP) TwoThirdViewChangeVotes(ctx context.Context, cbft *Cbft) {
@@ -341,9 +568,36 @@ func (bp logViewChangeBP) SendViewChangeVote(ctx context.Context, vote *viewChan
 
 }
 
-func (bp logViewChangeBP) ViewChangeTimeout(ctx context.Context, cbft *Cbft) {
-	log.Debug("ViewChangeTimeout", "cbft", cbft.String())
-
+func (bp logViewChangeBP) ViewChangeTimeout(ctx context.Context, view *viewChange, cbft *Cbft) {
+	processor := localAddress(cbft)
+	context := Context{
+		TraceID:   view.Timestamp,
+		SpanID:    strconv.FormatUint(view.BaseBlockNum, 10),
+		ParentID:  cbft.config.NodeID.String(),
+		Flags:     flagState,
+		Creator:   view.ProposalAddr.String(),
+		Processor: processor,
+	}
+	span := &Span{
+		Context:   context,
+		StartTime: time.Now(),
+		Tags: []Tag{
+			{
+				Key:   "action",
+				Value: "timeout_view_change",
+			},
+		},
+		LogRecords: []LogRecord{
+			{
+				Timestamp: time.Now().UnixNano(),
+				Log:       view,
+			},
+		},
+		OperationName: "view_change",
+	}
+	if data, err := json.Marshal(span); err == nil {
+		log.Info(string(data))
+	}
 }
 
 type logSyncBlockBP struct {
@@ -383,7 +637,6 @@ func (bp logSyncBlockBP) SyncBlock(ctx context.Context, ext *BlockExt, cbft *Cbf
 	if err == nil {
 		log.Info(string(msg))
 	}
-
 }
 
 func (bp logSyncBlockBP) InvalidBlock(ctx context.Context, ext *BlockExt, err error, cbft *Cbft) {
@@ -420,7 +673,6 @@ func (bp logSyncBlockBP) InvalidBlock(ctx context.Context, ext *BlockExt, err er
 	if err == nil {
 		log.Info(string(msg))
 	}
-
 }
 
 type logInternalBP struct {
@@ -551,7 +803,6 @@ func (bp logInternalBP) ForkedResetTxPool(ctx context.Context, newHeader *types.
 	if err == nil {
 		log.Info(string(msg))
 	}
-
 }
 
 func (bp logInternalBP) ResetTxPool(ctx context.Context, ext *BlockExt, elapse time.Duration, cbft *Cbft) {
@@ -592,7 +843,6 @@ func (bp logInternalBP) ResetTxPool(ctx context.Context, ext *BlockExt, elapse t
 	if err == nil {
 		log.Info(string(msg))
 	}
-
 }
 
 func (bp logInternalBP) NewConfirmedBlock(ctx context.Context, ext *BlockExt, cbft *Cbft) {
@@ -789,4 +1039,38 @@ func (bp logInternalBP) Seal(ctx context.Context, ext *BlockExt, cbft *Cbft) {
 	if err == nil {
 		log.Info(string(msg))
 	}
+}
+
+func makeSpan(ctx context.Context, cbft *Cbft, message interface{}, tag []Tag) (*Span, error) {
+	processor := localAddress(cbft)
+	from := ctx.Value("peer")
+	if from != nil {
+		tag = append(tag, Tag{ Key:"peer_id", Value: from, })
+	}
+	context := Context{
+		ParentID: cbft.config.NodeID.String(),
+		Flags: flagState,
+		Processor: processor,
+	}
+	switch message.(type) {
+	case *prepareVote:
+		p := message.(*prepareVote)
+		context.TraceID = p.Timestamp
+		context.SpanID = strconv.FormatUint(p.Number, 10)
+		context.Creator = p.ValidatorAddr.String()
+	}
+	span := Span{
+		Context: context,
+		StartTime: time.Now(),
+		Tags: tag,
+		OperationName: reflect.TypeOf(message).String(),
+	}
+	span.LogRecords = []LogRecord{
+		{
+			Timestamp: time.Now().Unix(),
+			Log: message,
+		},
+	}
+	span.DurationTime = time.Since(span.StartTime)
+	return &span, nil
 }

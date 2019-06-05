@@ -105,7 +105,6 @@ type Cbft struct {
 	baseBlockCh             chan chan *types.Block
 	sealBlockCh             chan *SealBlock
 	getBlockCh              chan *GetBlock
-	sendViewChangeCh        chan struct{}
 	innerUnExecutedBlockCh  chan []*BlockExt
 	shouldSealCh            chan chan error
 	viewChangeTimeoutCh     chan *viewChange
@@ -163,7 +162,6 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceCo
 		baseBlockCh:             make(chan chan *types.Block),
 		sealBlockCh:             make(chan *SealBlock),
 		getBlockCh:              make(chan *GetBlock),
-		sendViewChangeCh:        make(chan struct{}),
 		innerUnExecutedBlockCh:  make(chan []*BlockExt, peerMsgQueueSize),
 		shouldSealCh:            make(chan chan error, peerMsgQueueSize),
 		viewChangeTimeoutCh:     make(chan *viewChange),
@@ -342,6 +340,17 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool, agency
 	return nil
 }
 
+// schedule is responsible for HighestPrepareBlock synchronization
+func (cbft *Cbft) scheduleHighestPrepareBlock() {
+	schedule := time.NewTicker(5 * time.Second)
+	for {
+		select {
+		case <- schedule.C:
+			cbft.handler.SendPartBroadcast(&getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
+		}
+	}
+}
+
 func (cbft *Cbft) receiveLoop() {
 	for {
 		select {
@@ -367,8 +376,6 @@ func (cbft *Cbft) receiveLoop() {
 			cbft.OnShouldSeal(shouldSeal)
 		case view := <-cbft.viewChangeTimeoutCh:
 			cbft.OnViewChangeTimeout(view)
-		case <-cbft.sendViewChangeCh:
-			cbft.OnSendViewChange()
 		case viewVote := <-cbft.viewChangeVoteTimeoutCh:
 			cbft.OnViewChangeVoteTimeout(viewVote)
 		case sealBlock := <-cbft.sealBlockCh:
@@ -695,6 +702,7 @@ func (cbft *Cbft) OnViewChangeTimeout(view *viewChange) {
 			cbft.handleCache()
 			cbft.log.Info("View change timeout", "current view", cbft.viewChange.String(), "msgHash", view.MsgHash().TerminalString())
 			cbft.resetViewChange()
+			cbft.bp.ViewChangeBP().ViewChangeTimeout(context.TODO(), view, cbft)
 		}
 	}
 
@@ -881,10 +889,6 @@ func (cbft *Cbft) ShouldSeal(curTime int64) (bool, error) {
 	return inturn, nil
 }
 
-func (cbft *Cbft) sendViewChange() {
-	cbft.sendViewChangeCh <- struct{}{}
-}
-
 func (cbft *Cbft) OnSendViewChange() {
 	view, err := cbft.newViewChange()
 	if err != nil {
@@ -892,6 +896,7 @@ func (cbft *Cbft) OnSendViewChange() {
 		return
 	}
 	cbft.log.Debug("Send new view", "view", view.String(), "msgHash", view.MsgHash().TerminalString())
+	cbft.bp.ViewChangeBP().SendViewChange(context.TODO(), view, cbft)
 	cbft.handler.SendAllConsensusPeer(view)
 
 	// gauage
@@ -908,6 +913,10 @@ func (cbft *Cbft) OnSendViewChange() {
 func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 	cbft.log.Debug("Receive view change", "peer", peerID, "view", view.String())
 
+	if view != nil {
+		// priority forwarding
+		cbft.handler.SendAllConsensusPeer(view)
+	}
 	if cbft.viewChange != nil && cbft.viewChange.Equal(view) {
 		cbft.log.Debug("Duplication view change message, discard this")
 		return errDuplicationConsensusMsg
@@ -962,7 +971,7 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 	cbft.setViewChange(view)
 	cbft.bp.InternalBP().SwitchView(bpCtx, view, cbft)
 	cbft.bp.ViewChangeBP().SendViewChangeVote(bpCtx, resp, cbft)
-	cbft.handler.SendAllConsensusPeer(view)
+	//cbft.handler.SendAllConsensusPeer(view)
 	cbft.handler.SendAllConsensusPeer(resp)
 
 	//cbft.handler.Send(peerID, cbft.viewChangeResp)
@@ -1194,7 +1203,7 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 
 	//receive enough signature broadcast
 	if ext.inTree && ext.isExecuted && ext.isConfirmed {
-		cbft.bp.PrepareBP().TwoThirdVotes(context.TODO(), ext, cbft)
+		cbft.bp.PrepareBP().TwoThirdVotes(context.TODO(), vote, cbft)
 		if h := cbft.blockExtMap.FindHighestConfirmedWithHeader(); h != nil {
 			cbft.bp.InternalBP().NewHighestConfirmedBlock(context.TODO(), ext, cbft)
 			cbft.highestConfirmed.Store(h)
@@ -1232,7 +1241,7 @@ func (cbft *Cbft) OnExecutedBlock(bs *ExecuteBlockStatus) {
 			cbft.highestLogical.Store(bs.block)
 			cbft.bp.InternalBP().NewHighestLogicalBlock(context.TODO(), bs.block, cbft)
 			cbft.sendPrepareVote(bs.block)
-			cbft.bp.PrepareBP().SendPrepareVote(context.TODO(), bs.block, cbft)
+			//cbft.bp.PrepareBP().SendPrepareVote(context.TODO(), bs.block, cbft)
 
 			highest := cbft.blockExtMap.FindHighestConfirmed(cbft.getHighestConfirmed().block.Hash(), cbft.getHighestConfirmed().block.NumberU64())
 			if bs.block.isConfirmed {
@@ -1286,6 +1295,7 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 				cbft.blockExtMap.Add(pv.Hash, pv.Number, ext)
 				cbft.log.Debug("Broadcast prepare vote", "vote", pv.String())
 				cbft.handler.SendAllConsensusPeer(pv)
+				cbft.bp.PrepareBP().SendPrepareVote(context.TODO(), pv, cbft)
 			}
 		} else {
 			log.Error("Signature failed", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "err", err)

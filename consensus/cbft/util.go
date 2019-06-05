@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"math/rand"
 )
@@ -33,4 +34,18 @@ func uint64ToBytes(n uint64) []byte {
 		byte(n >> 48),
 		byte(n >> 56),
 	}
+}
+
+func recoverAddr(msg ConsensusMsg) (common.Address, error) {
+	data, err := msg.CannibalizeBytes()
+	recPubKey, err := crypto.Ecrecover(data, msg.Sign())
+	if err != nil {
+		return common.Address{}, err
+	}
+	pub, err := crypto.UnmarshalPubkey(recPubKey)
+	if err != nil {
+		return common.Address{}, err
+	}
+	recAddr := crypto.PubkeyToAddress(*pub)
+	return recAddr, nil
 }
