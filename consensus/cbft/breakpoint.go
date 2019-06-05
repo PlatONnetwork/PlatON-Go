@@ -30,11 +30,11 @@ type PrepareBP interface {
 	CacheVote(ctx context.Context, block *prepareVote, cbft *Cbft)
 	DiscardVote(ctx context.Context, block *prepareVote, cbft *Cbft)
 
-	SendPrepareVote(ctx context.Context, ext *BlockExt, cbft *Cbft)
+	SendPrepareVote(ctx context.Context, ext *prepareVote, cbft *Cbft)
 	InvalidBlock(ctx context.Context, block *prepareBlock, err error, cbft *Cbft)
 	InvalidVote(ctx context.Context, block *prepareVote, err error, cbft *Cbft)
 	InvalidViewChangeVote(ctx context.Context, block *prepareBlock, err error, cbft *Cbft)
-	TwoThirdVotes(ctx context.Context, ext *BlockExt, cbft *Cbft)
+	TwoThirdVotes(ctx context.Context, ext *prepareVote, cbft *Cbft)
 }
 
 type ViewChangeBP interface {
@@ -137,7 +137,7 @@ func (bp defaultPrepareBP) DiscardVote(ctx context.Context, block *prepareVote, 
 
 }
 
-func (bp defaultPrepareBP) SendPrepareVote(ctx context.Context, ext *BlockExt, cbft *Cbft) {
+func (bp defaultPrepareBP) SendPrepareVote(ctx context.Context, ext *prepareVote, cbft *Cbft) {
 
 }
 
@@ -153,7 +153,7 @@ func (bp defaultPrepareBP) InvalidViewChangeVote(ctx context.Context, block *pre
 
 }
 
-func (bp defaultPrepareBP) TwoThirdVotes(ctx context.Context, ext *BlockExt, cbft *Cbft) {
+func (bp defaultPrepareBP) TwoThirdVotes(ctx context.Context, ext *prepareVote, cbft *Cbft) {
 
 }
 

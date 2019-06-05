@@ -208,8 +208,9 @@ func importChain(ctx *cli.Context) error {
 	if len(ctx.Args()) < 1 {
 		utils.Fatalf("This command requires an argument.")
 	}
-	stack := makeFullNode(ctx)
-	chain, chainDb := utils.MakeChain(ctx, stack)
+	// todo:
+	stack, gethConfig := makeFullNodeForCBFT(ctx)
+	chain, chainDb := utils.MakeChainForCBFT(ctx, stack, &gethConfig.Eth, &gethConfig.Node)
 	defer chainDb.Close()
 
 	// Start periodically gathering memory profiles

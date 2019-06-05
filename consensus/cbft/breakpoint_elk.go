@@ -93,7 +93,7 @@ func (bp elkPrepareBP) DiscardVote(ctx context.Context, vote *prepareVote, cbft 
 	//log.Debug("DiscardVote", "block", vote.String(), "state", state.String())
 }
 
-func (bp elkPrepareBP) SendPrepareVote(ctx context.Context, ext *BlockExt, cbft *Cbft) {
+func (bp elkPrepareBP) SendPrepareVote(ctx context.Context, ext *prepareVote, cbft *Cbft) {
 	//log.Debug("SendPrepareVote", "block", ext.String(), "state", state.String())
 }
 
@@ -127,7 +127,7 @@ func (bp elkPrepareBP) InvalidViewChangeVote(ctx context.Context, block *prepare
 	//log.Debug("InvalidViewChangeVote", "block", block.String(), "state", state.String())
 }
 
-func (bp elkPrepareBP) TwoThirdVotes(ctx context.Context, ext *BlockExt, cbft *Cbft) {
+func (bp elkPrepareBP) TwoThirdVotes(ctx context.Context, ext *prepareVote, cbft *Cbft) {
 	//log.Debug("TwoThirdVotes", "block", ext.String(), "state", state.String())
 }
 
