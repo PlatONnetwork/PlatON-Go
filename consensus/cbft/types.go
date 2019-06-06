@@ -472,6 +472,8 @@ func (cbft *Cbft) pendingProcess() {
 	}
 
 	for _, pv := range pendingVote {
+		cbft.log.Debug("Handle cache pending votes", "hash", pv.Hash, "number", pv.Number)
+		cbft.SetLocalHighestPrepareNum(pv.Number)
 		ext := cbft.blockExtMap.findBlock(pv.Hash, pv.Number)
 		if ext != nil {
 			ext.prepareVotes.Add(pv)
@@ -481,6 +483,7 @@ func (cbft *Cbft) pendingProcess() {
 	}
 
 	for _, v := range pendingBlock {
+		cbft.log.Debug("Handle cache pending votes", "hash", v.Block.Hash(), "number", v.Block.Number())
 		cbft.handler.SendAllConsensusPeer(v)
 	}
 

@@ -1288,9 +1288,9 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 
 		sign, err := cbft.signMsg(pv)
 		if err == nil {
-			cbft.SetLocalHighestPrepareNum(pv.Number)
 			pv.Signature.SetBytes(sign)
 			if cbft.viewChange != nil && !cbft.agreeViewChange() && cbft.viewChange.BaseBlockNum < ext.block.NumberU64() {
+				cbft.log.Debug("Cache prepareVote, view is changing", "prepareVote", pv.String(), "view", cbft.viewChange.String(), "len", len(cbft.viewChangeVotes))
 				cbft.pendingVotes.Add(pv.Hash, pv)
 			} else {
 				ext.prepareVotes.Add(pv)
@@ -1298,6 +1298,7 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 				cbft.log.Debug("Broadcast prepare vote", "vote", pv.String())
 				cbft.handler.SendAllConsensusPeer(pv)
 				cbft.bp.PrepareBP().SendPrepareVote(context.TODO(), pv, cbft)
+				cbft.SetLocalHighestPrepareNum(pv.Number)
 			}
 		} else {
 			log.Error("Signature failed", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "err", err)
