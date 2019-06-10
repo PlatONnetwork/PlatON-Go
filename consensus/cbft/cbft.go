@@ -1066,7 +1066,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 			cbft.blockExtMap.findBlock(request.View.BaseBlockHash, request.View.BaseBlockNum) == nil {
 			cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, errNotFoundViewBlock, cbft)
 			cbft.handler.Send(nodeId, &getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
-			cbft.log.Error(fmt.Sprintf("View Block is not found, hash:%s, number:%d", request.View.BaseBlockHash.TerminalString(), request.View.BaseBlockNum))
+			cbft.log.Error(fmt.Sprintf("View Block is not found, hash:%s, number:%d, logical:%d", request.View.BaseBlockHash.TerminalString(), request.View.BaseBlockNum, cbft.getHighestLogical().number))
 			return errNotFoundViewBlock
 		}
 
@@ -1199,7 +1199,7 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 	hadSend := (ext.inTree && ext.isExecuted && ext.isConfirmed)
 	ext.prepareVotes.Add(vote)
 
-	cbft.log.Trace("Add prepare vote", "number", ext.number, "votes", ext.prepareVotes.Len())
+	cbft.log.Debug("Add prepare vote", "number", ext.number, "votes", ext.prepareVotes.Len())
 
 	cbft.saveBlockExt(vote.Hash, ext)
 
@@ -1214,8 +1214,8 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 			cbft.flushReadyBlock()
 			cbft.updateValidator()
 		}
-		cbft.log.Debug("Send Confirmed Block", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 		if !hadSend {
+			cbft.log.Debug("Send Confirmed Block", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 			cbft.handler.SendAllConsensusPeer(&confirmedPrepareBlock{Hash: ext.block.Hash(), Number: ext.block.NumberU64(), VoteBits: ext.prepareVotes.voteBits})
 		}
 	}

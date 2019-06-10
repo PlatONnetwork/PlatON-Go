@@ -592,9 +592,7 @@ func (cbft *Cbft) setViewChange(view *viewChange) {
 }
 
 func (cbft *Cbft) afterUpdateValidator() {
-	if _, err := cbft.getValidators().NodeIndex(cbft.config.NodeID); err != nil {
-		cbft.master = false
-	}
+	cbft.master = false
 }
 
 func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote) error {
@@ -1251,7 +1249,7 @@ func (bm *BlockExtMap) RemoveBlock(block *BlockExt) {
 
 func (bm *BlockExtMap) FindHighestConfirmed(hash common.Hash, number uint64) *BlockExt {
 	var highest *BlockExt
-	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold; be = bm.findChild(hash, number) {
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && be.isExecuted; be = bm.findChild(hash, number) {
 		highest = be
 		hash = be.block.Hash()
 		number = be.number
@@ -1263,7 +1261,7 @@ func (bm *BlockExtMap) FindHighestConfirmedWithHeader() *BlockExt {
 	var highest *BlockExt
 	hash := bm.head.block.Hash()
 	number := bm.head.block.NumberU64()
-	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold; be = bm.findChild(hash, number) {
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && be.isExecuted; be = bm.findChild(hash, number) {
 		highest = be
 		hash = be.block.Hash()
 		number = be.number
@@ -1273,7 +1271,7 @@ func (bm *BlockExtMap) FindHighestConfirmedWithHeader() *BlockExt {
 
 func (bm *BlockExtMap) FindHighestLogical(hash common.Hash, number uint64) *BlockExt {
 	var highest *BlockExt
-	for be := bm.findChild(hash, number); be != nil && be.block != nil; be = bm.findChild(hash, number) {
+	for be := bm.findChild(hash, number); be != nil && be.block != nil && be.isExecuted; be = bm.findChild(hash, number) {
 		highest = be
 		hash = be.block.Hash()
 		number = be.number
