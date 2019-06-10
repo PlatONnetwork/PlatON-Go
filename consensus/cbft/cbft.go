@@ -1198,7 +1198,7 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 	hadSend := (ext.inTree && ext.isExecuted && ext.isConfirmed)
 	ext.prepareVotes.Add(vote)
 
-	cbft.log.Debug("Add prepare vote", "number", ext.number, "votes", ext.prepareVotes.Len())
+	cbft.log.Info("Add prepare vote success", "number", ext.number, "votes", ext.prepareVotes.Len())
 
 	cbft.saveBlockExt(vote.Hash, ext)
 
