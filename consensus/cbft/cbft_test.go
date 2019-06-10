@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -96,7 +96,7 @@ func TestCbft_OnSendViewChange(t *testing.T) {
 	engine.OnSendViewChange()
 
 	assert.NotNil(t, engine.viewChange)
-	time.Sleep(time.Second * time.Duration(engine.config.Period*2))
+	time.Sleep(time.Second * time.Duration(engine.config.Period*3))
 	assert.Nil(t, engine.viewChange)
 }
 
@@ -109,7 +109,7 @@ func TestCbft_ShouldSeal(t *testing.T) {
 	assert.False(t, seal)
 	assert.Equal(t, errTwoThirdViewchangeVotes, err)
 
-	time.Sleep(time.Second * time.Duration(engine.config.Period) * 2)
+	time.Sleep(time.Second * time.Duration(engine.config.Period) * 3)
 	assert.Nil(t, engine.viewChange)
 
 	seal, err = engine.ShouldSeal(100)
@@ -864,13 +864,13 @@ func TestCbft_OnNewPrepareBlock(t *testing.T) {
 	p := makePrepareBlock(block, node, nil, nil)
 	assert.Nil(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation))
 
-	viewChange, _ := engine.newViewChange()	// build viewChange
+	viewChange, _ := engine.newViewChange() // build viewChange
 
 	// test errFutileBlock
 	t.Log(viewChange.BaseBlockNum, viewChange.BaseBlockHash.Hex(), viewChange.ProposalIndex, viewChange.ProposalAddr, viewChange.Timestamp)
 	assert.EqualError(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation), errFutileBlock.Error())
 
-	viewChangeVotes := buildViewChangeVote(viewChange, validators.neighbors)		// build viewChangeVotes
+	viewChangeVotes := buildViewChangeVote(viewChange, validators.neighbors) // build viewChangeVotes
 
 	// test VerifyHeader
 	header := &types.Header{Number: big.NewInt(int64(gen.NumberU64() + 1)), ParentHash: gen.Hash()}
@@ -1013,5 +1013,5 @@ func TestCbft_VerifyHeaders(t *testing.T) {
 
 	header.Extra = make([]byte, 65)
 	_, results = engine.VerifyHeaders(engine.blockChain, []*types.Header{header}, []bool{false})
-	assert.Nil(t, <- results)
+	assert.Nil(t, <-results)
 }
