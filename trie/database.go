@@ -375,8 +375,13 @@ func (db *Database) Preimage(hash common.Hash) ([]byte, error) {
 	if preimage != nil {
 		return preimage, nil
 	}
+
+	secureKey := make([]byte, secureKeyLength)
+	secureKey = append(secureKey[:0], secureKeyPrefix...)
+	secureKey = append(secureKey, hash[:]...)
+
 	// Content unavailable in memory, attempt to retrieve from disk
-	return db.diskdb.Get(db.secureKey(hash[:]))
+	return db.diskdb.Get(secureKey)
 }
 
 // secureKey returns the database key for the preimage of key, as an ephemeral
