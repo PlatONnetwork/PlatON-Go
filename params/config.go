@@ -19,6 +19,7 @@ package params
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -227,6 +228,15 @@ type CbftConfig struct {
 	NodeID        discover.NodeID   `json:"-"`
 	PrivateKey    *ecdsa.PrivateKey `json:"PrivateKey,omitempty"`
 	ValidatorMode string            `json:"validatorMode,omitempty"`
+}
+
+func (c *CbftConfig) Hash() []byte {
+	var nodeBytes []byte
+	for _, n := range c.InitialNodes {
+		nodeBytes = append(nodeBytes, []byte(n.String())...)
+	}
+
+	return crypto.Keccak256(nodeBytes)
 }
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
