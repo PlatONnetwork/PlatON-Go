@@ -41,6 +41,8 @@ import (
 //go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
+var cbftConfigAddress = common.HexToAddress("0x0000000000000000000000000000000000000001")
+var cbftConfigPrefix = []byte("cbft")
 
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
@@ -232,6 +234,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 	}
+	statedb.SetState(cbftConfigAddress, cbftConfigPrefix, g.Config.Cbft.Hash())
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
 		Number:     new(big.Int).SetUint64(g.Number),
