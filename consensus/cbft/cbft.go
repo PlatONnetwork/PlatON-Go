@@ -435,6 +435,7 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 	case *prepareBlockHash:
 		err = cbft.OnPrepareBlockHash(peerID, msg)
 	}
+
 	if err != nil {
 		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
 	} else if !cbft.isLoading() {
@@ -442,6 +443,7 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 		cbft.wal.Write(info)
 	}
 }
+
 func (cbft *Cbft) isRunning() bool {
 	return atomic.LoadInt32(&cbft.running) == 1
 }
@@ -462,7 +464,7 @@ func (cbft *Cbft) OnShouldSeal(shouldSeal chan error) {
 		}
 	}
 END:
-	if cbft.hadSendViewChange() {
+	if cbft.hadSendViewChange() && cbft.validViewChange() {
 		validator, err := cbft.getValidators().NodeIndexAddress(cbft.config.NodeID)
 
 		if err != nil {
@@ -471,12 +473,9 @@ END:
 			return
 		}
 
-		//check current timestamp match view's timestamp
-		now := time.Now().Unix()
 		if cbft.isRunning() && cbft.agreeViewChange() &&
 			cbft.viewChange.ProposalAddr == validator.Address &&
-			uint32(validator.Index) == cbft.viewChange.ProposalIndex &&
-			now-int64(cbft.viewChange.Timestamp) < cbft.config.Duration {
+			uint32(validator.Index) == cbft.viewChange.ProposalIndex {
 			// do something check
 			shouldSeal <- nil
 		} else {
@@ -751,7 +750,7 @@ func (cbft *Cbft) NextBaseBlock() *types.Block {
 }
 
 func (cbft *Cbft) OnBaseBlock(ch chan *types.Block) {
-	if cbft.master && cbft.agreeViewChange() && (cbft.producerBlocks == nil || len(cbft.producerBlocks.blocks) == 0) {
+	if cbft.master && cbft.agreeViewChange() && (cbft.producerBlocks == nil || cbft.producerBlocks.Len() == 0) {
 		block := cbft.getHighestConfirmed().block
 		cbft.log.Debug("Base block", "hash", block.Hash(), "number", block.Number())
 		ch <- block
