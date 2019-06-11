@@ -1024,8 +1024,8 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	cbft.bp.PrepareBP().ReceiveBlock(bpCtx, request, cbft)
 
 	//discard block when view.Timestamp != request.Timestamp && request.BlockNum > view.BlockNum
-	if cbft.viewChange != nil && len(request.ViewChangeVotes) < cbft.getThreshold() && request.Timestamp != cbft.viewChange.Timestamp && request.Block.NumberU64() > cbft.viewChange.BaseBlockNum {
-		log.Debug("Invalid prepare block", "number", request.Block.NumberU64(), "hash", request.Block.Hash(), "view", cbft.viewChange)
+	if cbft.viewChange != nil && len(request.ViewChangeVotes) < cbft.getThreshold() && request.Timestamp > cbft.viewChange.Timestamp {
+		log.Debug("Invalid prepare block", "hash", request.Block.Hash(), "number", request.Block.NumberU64(), "timestamp", request.Timestamp, "view", cbft.viewChange)
 		return errFutileBlock
 	}
 
@@ -1139,6 +1139,10 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	case Cache:
 		cbft.bp.PrepareBP().CacheBlock(bpCtx, request, cbft)
 		cbft.log.Info("Cache block", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
+		// if cache the block then forward the message
+		if propagation && cbft.needBroadcast(nodeId, request) {
+			go cbft.handler.SendBroadcast(&prepareBlockHash{Hash: request.Block.Hash(), Number: request.Block.NumberU64()})
+		}
 	case Discard:
 		cbft.bp.PrepareBP().DiscardBlock(bpCtx, request, cbft)
 		//todo changing view discard block

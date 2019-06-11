@@ -358,6 +358,11 @@ func (cbft *Cbft) AcceptPrepareBlock(request *prepareBlock) AcceptStatus {
 		return Cache
 	}
 
+	if cbft.viewChange.Timestamp > request.Timestamp && cbft.viewChange.BaseBlockNum < request.Block.NumberU64() {
+		cbft.log.Debug("Cache block", "view", cbft.viewChange.String(), "prepareBlock", request.String())
+		return Cache
+	}
+
 	if cbft.viewChange.BaseBlockNum > request.Block.NumberU64() {
 		return Accept
 	}
