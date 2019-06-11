@@ -435,7 +435,6 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 	case *prepareBlockHash:
 		err = cbft.OnPrepareBlockHash(peerID, msg)
 	}
-
 	if err != nil {
 		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
 	} else if !cbft.isLoading() {
@@ -443,7 +442,6 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 		cbft.wal.Write(info)
 	}
 }
-
 func (cbft *Cbft) isRunning() bool {
 	return atomic.LoadInt32(&cbft.running) == 1
 }
@@ -464,7 +462,7 @@ func (cbft *Cbft) OnShouldSeal(shouldSeal chan error) {
 		}
 	}
 END:
-	if cbft.hadSendViewChange() && cbft.validViewChange() {
+	if cbft.hadSendViewChange() {
 		validator, err := cbft.getValidators().NodeIndexAddress(cbft.config.NodeID)
 
 		if err != nil {
@@ -473,9 +471,12 @@ END:
 			return
 		}
 
+		//check current timestamp match view's timestamp
+		now := time.Now().Unix()
 		if cbft.isRunning() && cbft.agreeViewChange() &&
 			cbft.viewChange.ProposalAddr == validator.Address &&
-			uint32(validator.Index) == cbft.viewChange.ProposalIndex {
+			uint32(validator.Index) == cbft.viewChange.ProposalIndex &&
+			now-int64(cbft.viewChange.Timestamp) < cbft.config.Duration {
 			// do something check
 			shouldSeal <- nil
 		} else {
@@ -750,7 +751,7 @@ func (cbft *Cbft) NextBaseBlock() *types.Block {
 }
 
 func (cbft *Cbft) OnBaseBlock(ch chan *types.Block) {
-	if cbft.master && cbft.agreeViewChange() && (cbft.producerBlocks == nil || cbft.producerBlocks.Len() == 0) {
+	if cbft.master && cbft.agreeViewChange() && (cbft.producerBlocks == nil || len(cbft.producerBlocks.blocks) == 0) {
 		block := cbft.getHighestConfirmed().block
 		cbft.log.Debug("Base block", "hash", block.Hash(), "number", block.Number())
 		ch <- block
@@ -1065,7 +1066,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 			cbft.blockExtMap.findBlock(request.View.BaseBlockHash, request.View.BaseBlockNum) == nil {
 			cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, errNotFoundViewBlock, cbft)
 			cbft.handler.Send(nodeId, &getHighestPrepareBlock{Lowest: cbft.getRootIrreversible().number + 1})
-			cbft.log.Error(fmt.Sprintf("View Block is not found, hash:%s, number:%d, logical:%d", request.View.BaseBlockHash.TerminalString(), request.View.BaseBlockNum, cbft.getHighestLogical().number))
+			cbft.log.Error(fmt.Sprintf("View Block is not found, hash:%s, number:%d", request.View.BaseBlockHash.TerminalString(), request.View.BaseBlockNum))
 			return errNotFoundViewBlock
 		}
 
@@ -1198,7 +1199,7 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 	hadSend := (ext.inTree && ext.isExecuted && ext.isConfirmed)
 	ext.prepareVotes.Add(vote)
 
-	cbft.log.Debug("Add prepare vote", "number", ext.number, "votes", ext.prepareVotes.Len())
+	cbft.log.Trace("Add prepare vote", "number", ext.number, "votes", ext.prepareVotes.Len())
 
 	cbft.saveBlockExt(vote.Hash, ext)
 
@@ -1213,8 +1214,8 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 			cbft.flushReadyBlock()
 			cbft.updateValidator()
 		}
+		cbft.log.Debug("Send Confirmed Block", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 		if !hadSend {
-			cbft.log.Debug("Send Confirmed Block", "hash", ext.block.Hash(), "number", ext.block.NumberU64())
 			cbft.handler.SendAllConsensusPeer(&confirmedPrepareBlock{Hash: ext.block.Hash(), Number: ext.block.NumberU64(), VoteBits: ext.prepareVotes.voteBits})
 		}
 	}
@@ -1287,9 +1288,9 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 
 		sign, err := cbft.signMsg(pv)
 		if err == nil {
+			cbft.SetLocalHighestPrepareNum(pv.Number)
 			pv.Signature.SetBytes(sign)
 			if cbft.viewChange != nil && !cbft.agreeViewChange() && cbft.viewChange.BaseBlockNum < ext.block.NumberU64() {
-				cbft.log.Debug("Cache prepareVote, view is changing", "prepareVote", pv.String(), "view", cbft.viewChange.String(), "len", len(cbft.viewChangeVotes))
 				cbft.pendingVotes.Add(pv.Hash, pv)
 			} else {
 				ext.prepareVotes.Add(pv)
@@ -1297,7 +1298,6 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 				cbft.log.Debug("Broadcast prepare vote", "vote", pv.String())
 				cbft.handler.SendAllConsensusPeer(pv)
 				cbft.bp.PrepareBP().SendPrepareVote(context.TODO(), pv, cbft)
-				cbft.SetLocalHighestPrepareNum(pv.Number)
 			}
 		} else {
 			log.Error("Signature failed", "hash", ext.block.Hash(), "number", ext.block.NumberU64(), "err", err)

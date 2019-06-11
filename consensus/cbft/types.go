@@ -479,8 +479,6 @@ func (cbft *Cbft) pendingProcess() {
 	}
 
 	for _, pv := range pendingVote {
-		cbft.log.Debug("Handle cache pending votes", "hash", pv.Hash, "number", pv.Number)
-		cbft.SetLocalHighestPrepareNum(pv.Number)
 		ext := cbft.blockExtMap.findBlock(pv.Hash, pv.Number)
 		if ext != nil {
 			ext.prepareVotes.Add(pv)
@@ -490,7 +488,6 @@ func (cbft *Cbft) pendingProcess() {
 	}
 
 	for _, v := range pendingBlock {
-		cbft.log.Debug("Handle cache pending votes", "hash", v.Block.Hash(), "number", v.Block.Number())
 		cbft.handler.SendAllConsensusPeer(v)
 	}
 
@@ -599,7 +596,9 @@ func (cbft *Cbft) setViewChange(view *viewChange) {
 }
 
 func (cbft *Cbft) afterUpdateValidator() {
-	cbft.master = false
+	if _, err := cbft.getValidators().NodeIndex(cbft.config.NodeID); err != nil {
+		cbft.master = false
+	}
 }
 
 func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote) error {
@@ -1256,7 +1255,7 @@ func (bm *BlockExtMap) RemoveBlock(block *BlockExt) {
 
 func (bm *BlockExtMap) FindHighestConfirmed(hash common.Hash, number uint64) *BlockExt {
 	var highest *BlockExt
-	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && be.isExecuted; be = bm.findChild(hash, number) {
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold; be = bm.findChild(hash, number) {
 		highest = be
 		hash = be.block.Hash()
 		number = be.number
@@ -1268,7 +1267,7 @@ func (bm *BlockExtMap) FindHighestConfirmedWithHeader() *BlockExt {
 	var highest *BlockExt
 	hash := bm.head.block.Hash()
 	number := bm.head.block.NumberU64()
-	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && be.isExecuted; be = bm.findChild(hash, number) {
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold; be = bm.findChild(hash, number) {
 		highest = be
 		hash = be.block.Hash()
 		number = be.number
@@ -1278,7 +1277,7 @@ func (bm *BlockExtMap) FindHighestConfirmedWithHeader() *BlockExt {
 
 func (bm *BlockExtMap) FindHighestLogical(hash common.Hash, number uint64) *BlockExt {
 	var highest *BlockExt
-	for be := bm.findChild(hash, number); be != nil && be.block != nil && be.isExecuted; be = bm.findChild(hash, number) {
+	for be := bm.findChild(hash, number); be != nil && be.block != nil; be = bm.findChild(hash, number) {
 		highest = be
 		hash = be.block.Hash()
 		number = be.number
