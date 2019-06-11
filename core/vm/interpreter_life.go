@@ -72,8 +72,7 @@ func NewWASMInterpreter(evm *EVM, cfg Config) *WASMInterpreter {
 func (in *WASMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (ret []byte, err error) {
 	defer func() {
 		if er := recover(); er != nil {
-			fmt.Println(stack())
-			ret, err = nil, fmt.Errorf("VM execute fail: %v", er)
+			ret, err = nil, fmt.Errorf("VM execute fail：%v", er)
 		}
 	}()
 	in.evm.depth++
