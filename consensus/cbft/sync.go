@@ -21,7 +21,7 @@ func NewProducerBlocks(author discover.NodeID, blockNum uint64) *ProducerBlocks 
 		blocks:       make(map[uint64]*types.Block),
 	}
 }
-func (pb ProducerBlocks) String() string {
+func (pb *ProducerBlocks) String() string {
 	pb.lock.Lock()
 	defer pb.lock.Unlock()
 	return fmt.Sprintf("author:%s base block:%d, total:%d", pb.author.String(), pb.baseBlockNum, len(pb.blocks))
