@@ -464,12 +464,26 @@ func (cbft *Cbft) OnShouldSeal(shouldSeal chan error) {
 		}
 	}
 END:
-	if cbft.hadSendViewChange() && cbft.validViewChange() {
+	if cbft.hadSendViewChange() {
 		validator, err := cbft.getValidators().NodeIndexAddress(cbft.config.NodeID)
 
 		if err != nil {
 			log.Debug("Get node index and address failed", "error", err)
 			shouldSeal <- err
+			return
+		}
+
+		// May be currently only me produce block, so current view
+		// should be invalid, making a new one.
+		if !cbft.validViewChange() && (time.Now().Unix()-int64(cbft.viewChange.Timestamp)) > cbft.config.Duration {
+			// need send viewchange
+			cbft.OnSendViewChange()
+
+			oldCount := viewChangeGauage.Value()
+			viewChangeGauage.Update(oldCount + 1)
+			viewChangeCounter.Inc(1)
+
+			shouldSeal <- errTwoThirdViewchangeVotes
 			return
 		}
 
@@ -816,12 +830,11 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 	//log this signed block's number
 	cbft.signedSet[sealedBlock.NumberU64()] = struct{}{}
 
-	cbft.log.Debug("Seal complete", "hash", sealedBlock.Hash(), "number", sealedBlock.NumberU64())
-
 	cbft.bp.InternalBP().Seal(context.TODO(), current, cbft)
 	cbft.bp.InternalBP().NewHighestLogicalBlock(context.TODO(), current, cbft)
 	cbft.SetLocalHighestPrepareNum(current.number)
 	if cbft.getValidators().Len() == 1 {
+		cbft.log.Debug("Seal complete", "hash", sealedBlock.Hash(), "number", sealedBlock.NumberU64())
 		cbft.log.Debug("Single node mode, confirm now")
 		//only one consensus node, so, each block is highestConfirmed. (lock is needless)
 		current.isConfirmed = true
@@ -834,6 +847,7 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 	//reset cbft.highestLogicalBlockExt cause this block is produced by myself
 	cbft.highestLogical.Store(current)
 	cbft.AddPrepareBlock(sealedBlock)
+	cbft.log.Debug("Seal complete", "nodeID", cbft.config.NodeID, "hash", sealedBlock.Hash(), "number", sealedBlock.NumberU64(), "timestamp", sealedBlock.Time(), "producerBlocks", cbft.producerBlocks.Len())
 
 	cbft.broadcastBlock(current)
 	//todo change sign and block state
@@ -894,7 +908,7 @@ func (cbft *Cbft) OnSendViewChange() {
 		cbft.log.Error("New view change failed", "err", err)
 		return
 	}
-	cbft.log.Debug("Send new view", "view", view.String(), "msgHash", view.MsgHash().TerminalString())
+	cbft.log.Debug("Send new view", "nodeID", cbft.config.NodeID, "view", view.String(), "msgHash", view.MsgHash().TerminalString())
 	cbft.bp.ViewChangeBP().SendViewChange(context.TODO(), view, cbft)
 	cbft.handler.SendAllConsensusPeer(view)
 
@@ -910,7 +924,7 @@ func (cbft *Cbft) OnSendViewChange() {
 // Receive view from other nodes
 // Need verify timestamp , signature, promise highest confirmed block
 func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
-	cbft.log.Debug("Receive view change", "peer", peerID, "view", view.String())
+	cbft.log.Debug("Receive view change", "peer", peerID, "nodeID", cbft.getValidators().NodeID(int(view.ProposalIndex)), "view", view.String())
 
 	if view != nil {
 		// priority forwarding
@@ -1202,7 +1216,7 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 	hadSend := (ext.inTree && ext.isExecuted && ext.isConfirmed)
 	ext.prepareVotes.Add(vote)
 
-	cbft.log.Info("Add prepare vote success", "number", ext.number, "votes", ext.prepareVotes.Len())
+	cbft.log.Info("Add prepare vote success", "number", ext.number, "hash", vote.Hash, "votes", ext.prepareVotes.Len(), "voteBits", ext.prepareVotes.voteBits.String())
 
 	cbft.saveBlockExt(vote.Hash, ext)
 
@@ -1701,11 +1715,7 @@ func (cbft *Cbft) OnPrepareVote(peerID discover.NodeID, vote *prepareVote, propa
 	cbft.log.Debug("Receive prepare vote", "peer", peerID, "vote", vote.String())
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	cbft.bp.PrepareBP().ReceiveVote(bpCtx, vote, cbft)
-	var baseBlockNum uint64
-	if cbft.viewChange != nil {
-		baseBlockNum = cbft.viewChange.BaseBlockNum
-	}
-	err := cbft.verifyValidatorSign(baseBlockNum, vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:])
+	err := cbft.verifyValidatorSign(vote.Number, vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:])
 	if err != nil {
 		cbft.bp.PrepareBP().InvalidVote(bpCtx, vote, err, cbft)
 		cbft.log.Error("Verify vote error", "err", err)
