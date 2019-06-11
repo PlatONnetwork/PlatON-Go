@@ -404,7 +404,7 @@ func (pool *VCPool) validateTx(tx *types.TransactionWrap) (err error) {
 
 func (pool *VCPool) InjectTxs(block *types.Block, receipts types.Receipts, bc *BlockChain, state *state.StateDB) {
 	if !pool.config.VCEnable {
-		log.Info("Wow ~ VC Disable...")
+		log.Debug("Wow ~ VC Disable...")
 		return
 	}
 

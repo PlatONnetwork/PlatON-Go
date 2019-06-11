@@ -247,7 +247,7 @@ func (self *stateObject) GetState(db Database, keyTree string) []byte {
 
 // GetCommittedState retrieves a value from the committed account storage trie.
 func (self *stateObject) GetCommittedState(db Database, key string) []byte {
-	var value []byte
+	value := make([]byte, 0)
 	// If we have the original value cached, return that
 	valueKey, cached := self.originStorage[key]
 	if cached {
@@ -256,10 +256,7 @@ func (self *stateObject) GetCommittedState(db Database, key string) []byte {
 			return value
 		}
 	}
-	log.Debug("GetCommittedState", "stateObject addr", fmt.Sprintf("%p", self), "statedb addr", fmt.Sprintf("%p", self.db), "root", self.data.Root, "key", hex.EncodeToString([]byte(key)))
-	//if self.data.Root == (common.Hash{}) {
-	//	log.Info("GetCommittedState", "stack", string(debug.Stack()))
-	//}
+
 	// Otherwise load the valueKey from trie
 	enc, err := self.getTrie(db).TryGet([]byte(key))
 	if err != nil {

@@ -26,7 +26,6 @@ import (
 	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -61,6 +60,7 @@ type StateDB struct {
 	// This map holds 'live' objects, which will get modified while processing a state transition.
 	stateObjects      map[common.Address]*stateObject
 	stateObjectsDirty map[common.Address]struct{}
+
 	// DB error.
 	// State objects are used by the consensus core and VM which are
 	// unable to deal with database-level errors. Any error that occurs
@@ -85,15 +85,10 @@ type StateDB struct {
 	nextRevisionId int
 
 	lock sync.Mutex
-
-	//ppos add -> Current ppos cache object
-	pposCache *ppos_storage.Ppos_storage
-	tclock    sync.RWMutex
 }
 
 // Create a new state from a given trie.
-//func New(root common.Hash, db Database) (*StateDB, error) {
-func New(root common.Hash, db Database, blocknumber *big.Int, blockhash common.Hash) (*StateDB, error) {
+func New(root common.Hash, db Database) (*StateDB, error) {
 	tr, err := db.OpenTrie(root)
 	if err != nil {
 		return nil, err
@@ -106,7 +101,6 @@ func New(root common.Hash, db Database, blocknumber *big.Int, blockhash common.H
 		logs:              make(map[common.Hash][]*types.Log),
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-		pposCache:   	   ppos_storage.BuildPposCache(blocknumber, blockhash),
 	}, nil
 }
 
@@ -143,6 +137,7 @@ func (self *StateDB) Reset(root common.Hash) error {
 
 func (self *StateDB) AddLog(logInfo *types.Log) {
 	self.journal.append(addLogChange{txhash: self.thash})
+
 	logInfo.TxHash = self.thash
 	logInfo.BlockHash = self.bhash
 	logInfo.TxIndex = uint(self.txIndex)
@@ -359,7 +354,7 @@ func (self *StateDB) SetState(address common.Address, key, value []byte) {
 
 func getKeyValue(address common.Address, key []byte, value []byte) (string, common.Hash, []byte) {
 	var buffer bytes.Buffer
-	buffer.Write(address.Bytes())
+	buffer.WriteString(address.String())
 	buffer.WriteString(string(key))
 	keyTrie := buffer.String()
 
@@ -533,7 +528,6 @@ func (self *StateDB) Copy() *StateDB {
 		logSize:           self.logSize,
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
-		pposCache:   	   self.SnapShotPPOSCache(),
 	}
 	// Copy the dirty states, logs, and preimages
 	for addr := range self.journal.dirties {
@@ -566,7 +560,6 @@ func (self *StateDB) Copy() *StateDB {
 	for hash, preimage := range self.preimages {
 		state.preimages[hash] = preimage
 	}
-
 	return state
 }
 
@@ -641,7 +634,6 @@ func (s *StateDB) Root() common.Hash {
 // Prepare sets the current transaction hash and index and block hash which is
 // used when the EVM emits new state logs.
 func (self *StateDB) Prepare(thash, bhash common.Hash, ti int) {
-	log.Debug("Prepare", "thash", thash.String())
 	self.thash = thash
 	self.bhash = bhash
 	self.txIndex = ti
@@ -773,13 +765,3 @@ func (s *StateDB) SetAbi(addr common.Address, abi []byte) {
 		stateObject.SetAbi(crypto.Keccak256Hash(abi), abi)
 	}
 }
-
-//ppos add
-func (self *StateDB) GetPPOSCache() *ppos_storage.Ppos_storage {
-	return self.pposCache
-}
-
-func (self *StateDB) SnapShotPPOSCache() *ppos_storage.Ppos_storage {
-	return self.pposCache.Copy()
-}
-

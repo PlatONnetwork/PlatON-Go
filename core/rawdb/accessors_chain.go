@@ -188,7 +188,7 @@ func DeleteHeader(db DatabaseDeleter, hash common.Hash, number uint64) {
 	}
 }
 
-// ReadBodyRLP retrieves the block body (transactions and uncles) in RLP encoding.
+// ReadBodyRLP retrieves the block body (transactions) in RLP encoding.
 func ReadBodyRLP(db DatabaseReader, hash common.Hash, number uint64) rlp.RawValue {
 	data, _ := db.Get(blockBodyKey(number, hash))
 	return data
@@ -291,16 +291,16 @@ func ReadBlockConfirmSigns(db DatabaseReader, hash common.Hash, number uint64) [
 }
 
 // WriteBlockConfirmSigns stores all the block confirmSigns belonging to a block.
-func WriteBlockConfirmSigns(db DatabaseWriter, hash common.Hash, number uint64, blockConfirmSigns []*common.BlockConfirmSign) {
-	bytes, err := rlp.EncodeToBytes(blockConfirmSigns)
-	if err != nil {
-		log.Crit("Failed to encode block confirmSigns", "err", err)
-	}
-	// Store the flattened receipt slice
-	if err := db.Put(blockConfirmSignsKey(number, hash), bytes); err != nil {
-		log.Crit("Failed to store block confirmSigns", "err", err)
-	}
-}
+//func WriteBlockConfirmSigns(db DatabaseWriter, hash common.Hash, number uint64, blockConfirmSigns []common.BlockConfirmSign) {
+//	bytes, err := rlp.EncodeToBytes(blockConfirmSigns)
+//	if err != nil {
+//		log.Crit("Failed to encode block confirmSigns", "err", err)
+//	}
+//	// Store the flattened receipt slice
+//	if err := db.Put(blockConfirmSignsKey(number, hash), bytes); err != nil {
+//		log.Crit("Failed to store block confirmSigns", "err", err)
+//	}
+//}
 
 // DeleteReceipts removes all receipt data associated with a block hash.
 func DeleteReceipts(db DatabaseDeleter, hash common.Hash, number uint64) {
@@ -324,7 +324,7 @@ func ReadBlock(db DatabaseReader, hash common.Hash, number uint64) *types.Block 
 	if body == nil {
 		return nil
 	}
-	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles, body.Signatures)
+	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.ExtraData)
 }
 
 // WriteBlock serializes a block into the database, header and body separately.
@@ -366,5 +366,3 @@ func FindCommonAncestor(db DatabaseReader, a, b *types.Header) *types.Header {
 	}
 	return a
 }
-
-

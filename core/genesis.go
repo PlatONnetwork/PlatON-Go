@@ -22,6 +22,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
+	"strings"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -32,8 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"math/big"
-	"strings"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -161,7 +162,6 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 		} else {
 			log.Info("Writing custom genesis block")
 		}
-
 		block, err := genesis.Commit(db)
 		return genesis.Config, block.Hash(), err
 	}
@@ -222,7 +222,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	if db == nil {
 		db = ethdb.NewMemDatabase()
 	}
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db), big.NewInt(0), common.Hash{})
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)
@@ -251,17 +251,12 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	statedb.Commit(false)
 	statedb.Database().TrieDB().Commit(root, true)
 
-	return types.NewBlock(head, nil, nil, nil)
+	return types.NewBlock(head, nil, nil)
 }
 
 // Commit writes the block and state of a genesis specification to the database.
 // The block is committed as the canonical head block.
 func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
-	/*// ppos pposDB
-	// TODO ppos add
-	if nil == ppos_storage.GetPPosTempPtr() {
-		ppos_storage.NewPPosTemp(pposdb)
-	}*/
 	block := g.ToBlock(db)
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")

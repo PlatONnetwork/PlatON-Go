@@ -83,7 +83,6 @@ func headerKey(number uint64, hash common.Hash) []byte {
 	return append(append(headerPrefix, encodeBlockNumber(number)...), hash.Bytes()...)
 }
 
-
 // headerHashKey = headerPrefix + num (uint64 big endian) + headerHashSuffix
 func headerHashKey(number uint64) []byte {
 	return append(append(headerPrefix, encodeBlockNumber(number)...), headerHashSuffix...)
