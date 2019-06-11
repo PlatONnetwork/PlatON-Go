@@ -15,8 +15,8 @@ import (
 
 // Ppos pre-compiled contract address
 var PrecompiledContractsPpos = map[common.Address]PrecompiledContract{
-	common.CandidatePoolAddr: &CandidateContract{},
-	common.TicketPoolAddr:    &TicketContract{},
+	//common.CandidatePoolAddr: &CandidateContract{},
+	//common.TicketPoolAddr:    &TicketContract{},
 }
 
 var (
