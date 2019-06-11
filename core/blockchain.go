@@ -175,7 +175,6 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
 	}
-
 	if err := bc.loadLastState(); err != nil {
 		return nil, err
 	}

@@ -159,6 +159,7 @@ func (bcc *BlockChainCache) clearReceipts(sealHash common.Hash) {
 func (bcc *BlockChainCache) clearStateDB(sealHash common.Hash) {
 	bcc.stateDBMu.Lock()
 	defer bcc.stateDBMu.Unlock()
+
 	var blockNum uint64
 	if obj, exist := bcc.stateDBCache[sealHash]; exist {
 		blockNum = obj.blockNum
