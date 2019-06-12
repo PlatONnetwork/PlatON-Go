@@ -362,8 +362,9 @@ func (cbft *Cbft) viewChanging() bool {
 
 func (cbft *Cbft) AcceptPrepareBlock(request *prepareBlock) AcceptStatus {
 	if cbft.viewChange == nil {
-		cbft.log.Debug("Cache block, viewchange is empty")
-		return Cache
+		//todo need check prepareblock is belong to last accepted viewchange
+		cbft.log.Debug("Accept block, viewchange is empty")
+		return Accept
 	}
 
 	if cbft.viewChange.Timestamp > request.Timestamp && cbft.viewChange.BaseBlockNum < request.Block.NumberU64() {
