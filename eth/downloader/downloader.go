@@ -21,7 +21,6 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -628,10 +627,11 @@ func (d *Downloader) fetchLatestPposStorage(p *peerConnection) (*types.Header, u
 				p.log.Debug("pivotNumber is an incorrect pivot point", "pivotNumber", pivot.Number.Uint64(), "latestNumber", latest.Number.Uint64())
 				return nil, 0, errBadPeer
 			}
+			/*
 			if err := ppos_storage.GetPPosTempPtr().PushPPosStorageProto(data); err != nil {
 				p.log.Debug("pushPPosStorageProto error", "pivotNumber", pivot.Number.Uint64(), "latestNumber", latest.Number.Uint64(), "err", err)
 				return nil, 0, errPushPPosStorageProto
-			}
+			}*/
 
 			return latest, pivot.Number.Uint64(), nil
 
@@ -772,7 +772,7 @@ func (d *Downloader) findAncestor(p *peerConnection, height uint64) (uint64, err
 			// Make sure the peer's reply conforms to the request
 			for i := 0; i < len(headers); i++ {
 				if number := headers[i].Number.Int64(); number != from+int64(i)*16 {
-					p.log.Warn("Head headers broke chain ordering", "index", i, "requested", from+int64(i)*16, "received", number)
+					p.log.Warn("Head headers broke chain ordering", "peer", p.id, "index", i, "requested", from+int64(i)*16, "received", number)
 					return 0, errInvalidChain
 				}
 			}
@@ -1064,7 +1064,7 @@ func (d *Downloader) fetchBodies(from uint64) error {
 	var (
 		deliver = func(packet dataPack) (int, error) {
 			pack := packet.(*bodyPack)
-			return d.queue.DeliverBodies(pack.peerID, pack.transactions, pack.uncles, pack.signatures)
+			return d.queue.DeliverBodies(pack.peerID, pack.transactions, pack.extraData)
 		}
 		expire   = func() map[string]int { return d.queue.ExpireBodies(d.requestTTL()) }
 		fetch    = func(p *peerConnection, req *fetchRequest) error { return p.FetchBodies(req) }
@@ -1490,7 +1490,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 	)
 	blocks := make([]*types.Block, len(results))
 	for i, result := range results {
-		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.Uncles, result.Signatures)
+		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.ExtraData)
 	}
 	if index, err := d.blockchain.InsertChain(blocks); err != nil {
 		log.Debug("Downloaded item processing failed", "number", results[index].Header.Number, "hash", results[index].Header.Hash(), "err", err)
@@ -1714,7 +1714,7 @@ func (d *Downloader) commitFastSyncData(results []*fetchResult, stateSync *state
 	blocks := make([]*types.Block, len(results))
 	receipts := make([]types.Receipts, len(results))
 	for i, result := range results {
-		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.Uncles, result.Signatures)
+		blocks[i] = types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.ExtraData)
 		receipts[i] = result.Receipts
 	}
 	if index, err := d.blockchain.InsertReceiptChain(blocks, receipts); err != nil {
@@ -1725,7 +1725,7 @@ func (d *Downloader) commitFastSyncData(results []*fetchResult, stateSync *state
 }
 
 func (d *Downloader) commitPivotBlock(result *fetchResult) error {
-	block := types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.Uncles, result.Signatures)
+	block := types.NewBlockWithHeader(result.Header).WithBody(result.Transactions, result.ExtraData)
 	log.Debug("Committing fast sync pivot as new head", "number", block.Number(), "hash", block.Hash())
 	if _, err := d.blockchain.InsertReceiptChain([]*types.Block{block}, []types.Receipts{result.Receipts}); err != nil {
 		return err
@@ -1744,8 +1744,8 @@ func (d *Downloader) DeliverHeaders(id string, headers []*types.Header) (err err
 }
 
 // DeliverBodies injects a new batch of block bodies received from a remote node.
-func (d *Downloader) DeliverBodies(id string, transactions [][]*types.Transaction, uncles [][]*types.Header, signatures [][]*common.BlockConfirmSign) (err error) {
-	return d.deliver(id, d.bodyCh, &bodyPack{id, transactions, uncles, signatures}, bodyInMeter, bodyDropMeter)
+func (d *Downloader) DeliverBodies(id string, transactions [][]*types.Transaction, extraData [][]byte) (err error) {
+	return d.deliver(id, d.bodyCh, &bodyPack{id, transactions, extraData}, bodyInMeter, bodyDropMeter)
 }
 
 // DeliverReceipts injects a new batch of receipts received from a remote node.

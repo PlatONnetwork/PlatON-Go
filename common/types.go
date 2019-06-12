@@ -382,6 +382,31 @@ func (sig *BlockConfirmSign) String() string {
 	return fmt.Sprintf("%x", sig[:])
 }
 
+func (sig *BlockConfirmSign) SetBytes(signSlice []byte) {
+	copy(sig[:], signSlice[:])
+}
+
+func (sig *BlockConfirmSign) Bytes() []byte {
+	target := make([]byte, len(sig))
+	copy(target[:], sig[:])
+	return target
+}
+
+// MarshalText returns the hex representation of a.
+func (a BlockConfirmSign) MarshalText() ([]byte, error) {
+	return hexutil.Bytes(a[:]).MarshalText()
+}
+
+// UnmarshalText parses a hash in hex syntax.
+func (a *BlockConfirmSign) UnmarshalText(input []byte) error {
+	return hexutil.UnmarshalFixedText("BlockConfirmSign", input, a[:])
+}
+
+// UnmarshalJSON parses a hash in hex syntax.
+func (a *BlockConfirmSign) UnmarshalJSON(input []byte) error {
+	return hexutil.UnmarshalFixedJSON(addressT, input, a[:])
+}
+
 func NewBlockConfirmSign(signSlice []byte) *BlockConfirmSign {
 	var sign BlockConfirmSign
 	copy(sign[:], signSlice[:])

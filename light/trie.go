@@ -30,7 +30,7 @@ import (
 )
 
 func NewState(ctx context.Context, head *types.Header, odr OdrBackend) *state.StateDB {
-	state, _ := state.New(head.Root, NewStateDatabase(ctx, head, odr), head.Number, head.Hash())
+	state, _ := state.New(head.Root, NewStateDatabase(ctx, head, odr))
 	return state
 }
 
