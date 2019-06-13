@@ -726,6 +726,8 @@ func (cbft *Cbft) broadcastBlock(ext *BlockExt) {
 		return
 	} else {
 		log.Debug("Send block", "nodeID", cbft.config.NodeID, "number", ext.block.Number(), "hash", ext.block.Hash())
+		cbft.bp.PrepareBP().SendBlock(context.TODO(), p, cbft)
+
 		cbft.handler.SendAllConsensusPeer(p)
 	}
 }

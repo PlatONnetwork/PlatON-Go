@@ -1296,7 +1296,15 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			localTxs[account] = txs
 		}
 	}
-	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
+	localTxsCount := 0
+	remoteTxsCount := 0
+	for _, laccTxs := range localTxs {
+		localTxsCount = localTxsCount + len(laccTxs)
+	}
+	for _, raccTxs := range remoteTxs {
+		remoteTxsCount = remoteTxsCount + len(raccTxs)
+	}
+	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", localTxsCount, "remoteTxCount", remoteTxsCount, "txsCount", txsCount)
 
 	startTime = time.Now()
 	var localTimeout = false
@@ -1358,6 +1366,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 
 			log.Debug("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()), "receiptHash", block.ReceiptHash(),
 				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)))
+			w.engine.(consensus.Bft).CommitBlockBP(block, w.current.tcount, block.GasUsed(), time.Since(start))
 
 		case <-w.exitCh:
 			log.Info("Worker has exited")
