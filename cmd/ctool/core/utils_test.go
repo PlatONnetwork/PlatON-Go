@@ -2,9 +2,13 @@ package core
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"os"
 	"testing"
+	"time"
 )
 
 func TestParseConfig(t *testing.T) {
@@ -17,7 +21,7 @@ func TestParseConfig(t *testing.T) {
 	fmt.Println(param.From)
 }
 
-/*func TestParseFuncFromAbi(t *testing.T) {
+func TestParseFuncFromAbi(t *testing.T) {
 
 	dir, _ := os.Getwd()
 	filePath := dir + "/demo01.cpp.abi.json"
@@ -63,9 +67,9 @@ func TestHttpPostTransfer(t *testing.T) {
 	}
 	fmt.Println(s)
 
-}*/
+}
 
-/*func TestHttpPostDeploy(t *testing.T) {
+func TestHttpPostDeploy(t *testing.T) {
 	deployParams := DeployParams{
 		From:     "0xfb8c2fa47e84fbde43c97a0859557a36a5fb285b",
 		Gas:      "0x400000",
@@ -141,7 +145,7 @@ func TestHttpCallContact(t *testing.T) {
 	}
 	fmt.Println(s)
 
-}*/
+}
 
 func TestGetFuncParam(t *testing.T) {
 	//f := "set(\"1\",\"b\",1.2)"

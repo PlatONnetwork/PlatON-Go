@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
 	"math/big"
 	"math/rand"
 	"reflect"
@@ -159,10 +158,10 @@ func (b *testBackend) ServiceFilter(ctx context.Context, session *bloombits.Matc
 // - one that is created after the second cutoff moment (blockHashes[cutoff2:])
 func TestBlockSubscription(t *testing.T) {
 	t.Parallel()
-	db := ethdb.NewMemDatabase()
-	ppos_storage.NewPPosTemp(db)
+
 	var (
 		mux         = new(event.TypeMux)
+		db          = ethdb.NewMemDatabase()
 		txFeed      = new(event.Feed)
 		rmLogsFeed  = new(event.Feed)
 		logsFeed    = new(event.Feed)
@@ -170,7 +169,7 @@ func TestBlockSubscription(t *testing.T) {
 		backend     = &testBackend{mux, db, 0, txFeed, rmLogsFeed, logsFeed, chainFeed}
 		api         = NewPublicFilterAPI(backend, false)
 		genesis     = new(core.Genesis).MustCommit(db)
-		chain, _    = core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.GrapeChainConfig.Cbft, nil, nil, nil), db, 10, func(i int, gen *core.BlockGen) {})
+		chain, _    = core.GenerateChain(params.TestChainConfig, genesis, cbft.New(params.GrapeChainConfig.Cbft, nil, nil), db, 10, func(i int, gen *core.BlockGen) {})
 		chainEvents = []core.ChainEvent{}
 	)
 

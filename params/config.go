@@ -109,7 +109,6 @@ var (
 		EIP158Block:         big.NewInt(3),
 		ByzantiumBlock:      big.NewInt(4),
 		ConstantinopleBlock: nil,
-		//Ethash:              new(EthashConfig),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
 		},
@@ -128,7 +127,6 @@ var (
 		EIP158Block:         big.NewInt(3),
 		ByzantiumBlock:      big.NewInt(4),
 		ConstantinopleBlock: nil,
-		//Ethash:              new(EthashConfig),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialInnerTestnetConsensusNodes),
 		},
@@ -147,7 +145,6 @@ var (
 		EIP158Block:         big.NewInt(3),
 		ByzantiumBlock:      big.NewInt(4),
 		ConstantinopleBlock: nil,
-		//Ethash:              new(EthashConfig),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialInnerDevnetConsensusNodes),
 		},
@@ -194,7 +191,6 @@ var (
 		EIP158Block:         big.NewInt(3),
 		ByzantiumBlock:      big.NewInt(4),
 		ConstantinopleBlock: nil,
-		//Ethash:              new(EthashConfig),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialBetanetConsensusNodes),
 		},
@@ -245,7 +241,6 @@ var (
 	}
 
 	// AllEthashProtocolChanges contains every protocol change (EIPs) introduced
-	// and accepted by the Ethereum core developers into the Ethash consensus.
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
@@ -306,14 +301,6 @@ type ChainConfig struct {
 
 	// Various vm interpreter
 	VMInterpreter string `json:"interpreter,omitempty"`
-}
-
-// EthashConfig is the consensus engine configs for proof-of-work based sealing.
-type EthashConfig struct{}
-
-// String implements the stringer interface, returning the consensus engine details.
-func (c *EthashConfig) String() string {
-	return "ethash"
 }
 
 type CbftConfig struct {

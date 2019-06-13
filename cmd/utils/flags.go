@@ -643,6 +643,18 @@ var (
 		Usage: "the pwd of unlock actor",
 		Value: "",
 	}
+
+	CbftBlockIntervalFlag = cli.Uint64Flag{
+		Name:  "cbft.block_interval",
+		Usage: "This interval time use to broadcast block before mining next block",
+		Value: 100, // milliseconds
+	}
+
+	CbftBreakpointFlag = cli.StringFlag{
+		Name:  "cbft.breakpoint",
+		Usage: "breakpoint type:tracing",
+		Value: "",
+	}
 )
 
 // MakeDataDir retrieves the currently requested data directory, terminating
@@ -944,6 +956,7 @@ func SetP2PConfig(ctx *cli.Context, cfg *p2p.Config) {
 	if ctx.GlobalIsSet(MaxConsensusPeersFlag.Name) {
 		cfg.MaxConsensusPeers = ctx.GlobalInt(MaxConsensusPeersFlag.Name)
 	}
+
 	if ctx.GlobalIsSet(MaxPeersFlag.Name) {
 		cfg.MaxPeers = ctx.GlobalInt(MaxPeersFlag.Name)
 		if lightServer && !ctx.GlobalIsSet(LightPeersFlag.Name) {
@@ -1193,6 +1206,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// for mpc compute
 	setMpcPool(ctx, &cfg.MPCPool)
 	setVcPool(ctx, &cfg.VCPool)
+	SetCbft(ctx, &cfg.CbftConfig)
 
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
@@ -1323,6 +1337,15 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	// TODO(fjl): move trie cache generations into config
 	if gen := ctx.GlobalInt(TrieCacheGenFlag.Name); gen > 0 {
 		state.MaxTrieCacheGen = uint16(gen)
+	}
+}
+
+func SetCbft(ctx *cli.Context, cfg *eth.CbftConfig) {
+	if ctx.GlobalIsSet(CbftBlockIntervalFlag.Name) {
+		cfg.BlockInterval = ctx.GlobalUint64(CbftBlockIntervalFlag.Name)
+	}
+	if ctx.GlobalIsSet(CbftBreakpointFlag.Name) {
+		cfg.BreakpointType = ctx.GlobalString(CbftBreakpointFlag.Name)
 	}
 }
 
@@ -1459,6 +1482,40 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	}
 	cache := &core.CacheConfig{
 		Disabled:/*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
+		TrieNodeLimit: eth.DefaultConfig.TrieCache,
+		TrieTimeLimit: eth.DefaultConfig.TrieTimeout,
+	}
+	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
+		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
+	}
+	vmcfg := vm.Config{EnablePreimageRecording: ctx.GlobalBool(VMEnableDebugFlag.Name)}
+	chain, err = core.NewBlockChain(chainDb, cache, config, engine, vmcfg, nil)
+	if err != nil {
+		Fatalf("Can't create BlockChain: %v", err)
+	}
+	return chain, chainDb
+}
+
+// MakeChain creates a chain manager from set command line flags.
+func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeCfg *node.Config) (chain *core.BlockChain, chainDb ethdb.Database) {
+	var err error
+	chainDb = MakeChainDatabase(ctx, stack)
+
+	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(ctx))
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	var engine consensus.Engine
+	if config.Cbft != nil {
+		ctx := node.NewServiceContext(nodeCfg, nil, stack.EventMux(), stack.AccountManager())
+		engine = eth.CreateConsensusEngine(ctx, config, nil, false, chainDb, &cfg.CbftConfig, ctx.EventMux);
+	}
+
+	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
+		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
+	}
+	cache := &core.CacheConfig{
+		Disabled:      ctx.GlobalString(GCModeFlag.Name) == "archive",
 		TrieNodeLimit: eth.DefaultConfig.TrieCache,
 		TrieTimeLimit: eth.DefaultConfig.TrieTimeout,
 	}
