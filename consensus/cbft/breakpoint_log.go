@@ -1199,7 +1199,7 @@ func (bp logInternalBP) Seal(ctx context.Context, ext *BlockExt, cbft *Cbft) {
 		Tags: []Tag{
 			{
 				Key:   "action",
-				Value: "new_highest_root_block",
+				Value: "seal_block",
 			},
 		},
 		LogRecords: []LogRecord{

@@ -858,6 +858,10 @@ func (b BlockExt) MarshalJSON() ([]byte, error) {
 		ViewChangeVotes: len(b.viewChangeVotes),
 		PrepareVotes:    b.prepareVotes.Len(),
 	}
+	if b.block != nil {
+		ext.Hash = b.block.Hash()
+		ext.Parent = b.block.ParentHash()
+	}
 
 	return json.Marshal(&ext)
 }
