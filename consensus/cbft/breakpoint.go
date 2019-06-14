@@ -17,6 +17,8 @@ type Breakpoint interface {
 }
 
 type PrepareBP interface {
+	CommitBlock(ctx context.Context, block *types.Block, txs int, gasUsed uint64, elapse time.Duration, cbft *Cbft)
+	SendBlock(ctx context.Context, block *prepareBlock, cbft *Cbft)
 	ReceiveBlock(ctx context.Context, block *prepareBlock, cbft *Cbft)
 	ReceiveVote(ctx context.Context, block *prepareVote, cbft *Cbft)
 
@@ -44,7 +46,7 @@ type ViewChangeBP interface {
 	InvalidViewChange(ctx context.Context, view *viewChange, err error, cbft *Cbft)
 	InvalidViewChangeVote(ctx context.Context, view *viewChangeVote, err error, cbft *Cbft)
 	InvalidViewChangeBlock(ctx context.Context, view *viewChange, cbft *Cbft)
-	TwoThirdViewChangeVotes(ctx context.Context, view *viewChange, votes ViewChangeVotes,  cbft *Cbft)
+	TwoThirdViewChangeVotes(ctx context.Context, view *viewChange, votes ViewChangeVotes, cbft *Cbft)
 	SendViewChangeVote(ctx context.Context, view *viewChangeVote, cbft *Cbft)
 	ViewChangeTimeout(ctx context.Context, view *viewChange, cbft *Cbft)
 }
@@ -68,6 +70,7 @@ type InternalBP interface {
 
 	SwitchView(ctx context.Context, view *viewChange, cbft *Cbft)
 	Seal(ctx context.Context, ext *BlockExt, cbft *Cbft)
+	StoreBlock(ctx context.Context, ext *BlockExt, cbft *Cbft)
 }
 
 type defaultBreakpoint struct {
@@ -117,6 +120,12 @@ func (bp defaultBreakpoint) SyncBlockBP() SyncBlockBP {
 }
 
 type defaultPrepareBP struct {
+}
+
+func (bp defaultPrepareBP) CommitBlock(ctx context.Context, block *types.Block, txs int, gasUsed uint64, elapse time.Duration, cbft *Cbft) {
+}
+
+func (bp defaultPrepareBP) SendBlock(ctx context.Context, block *prepareBlock, cbft *Cbft) {
 }
 
 func (bp defaultPrepareBP) ReceiveBlock(ctx context.Context, block *prepareBlock, cbft *Cbft) {
@@ -267,5 +276,9 @@ func (bp defaultInternalBP) SwitchView(ctx context.Context, view *viewChange, cb
 }
 
 func (bp defaultInternalBP) Seal(ctx context.Context, ext *BlockExt, cbft *Cbft) {
+
+}
+
+func (bp defaultInternalBP) StoreBlock(ctx context.Context, ext *BlockExt, cbft *Cbft) {
 
 }

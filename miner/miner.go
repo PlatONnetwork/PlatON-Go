@@ -170,19 +170,3 @@ func (self *Miner) SetEtherbase(addr common.Address) {
 	self.coinbase = addr
 	self.worker.setEtherbase(addr)
 }
-
-func (self *Miner) InitConsensusPeerFn(addFn addConsensusPeerFn) {
-	self.worker.InitConsensusPeerFn(addFn)
-}
-/*
-func (self *Miner) ShouldElection(blockNumber *big.Int) bool {
-	return self.worker.shouldElection(blockNumber)
-}
-
-func (self *Miner) ShouldSwitch(blockNumber *big.Int) bool {
-	return self.worker.shouldSwitch(blockNumber)
-}
-
-func (self *Miner) AttemptAddConsensusPeer(blockNumber *big.Int, state *state.StateDB) {
-	self.worker.attemptAddConsensusPeer(blockNumber, state)
-}*/
