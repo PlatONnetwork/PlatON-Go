@@ -17,14 +17,12 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/ppos_storage"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"math"
 	"math/big"
-	"math/rand"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -126,15 +124,11 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		quitSync:    make(chan struct{}),
 		engine:      engine,
 	}
-	// Temporarily remove by niuxiaojie
-	// Assume that the test network is not under attack
-	/*
 	// Figure out whether to allow fast sync or not
 	if mode == downloader.FastSync && blockchain.CurrentBlock().NumberU64() > 0 {
 		log.Warn("Blockchain not empty, fast sync disabled")
 		mode = downloader.FullSync
 	}
-	*/
 	if mode == downloader.FastSync {
 		manager.fastSync = uint32(1)
 	}
@@ -177,13 +171,14 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		return nil, errIncompatibleConfig
 	}
 	// Construct the different synchronisation mechanisms
-	manager.downloader = downloader.New(mode, chaindb, manager.eventMux, blockchain, nil, manager.removePeer)
+	manager.downloader = downloader.New(mode, chaindb, manager.eventMux, downloader.NewBlockChainWrapper(blockchain, engine), nil, manager.removePeer)
 
 	validator := func(header *types.Header) error {
 		return engine.VerifyHeader(blockchain, header, true)
 	}
 	heighter := func() uint64 {
-		return blockchain.CurrentBlock().NumberU64()
+		//return blockchain.CurrentBlock().NumberU64()
+		return engine.CurrentBlock().NumberU64()
 	}
 	inserter := func(blocks types.Blocks) (int, error) {
 		// If fast sync is running, deny importing weird blocks
@@ -194,8 +189,12 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 		atomic.StoreUint32(&manager.acceptTxs, 1) // Mark initial sync done on any fetcher import
 		return manager.blockchain.InsertChain(blocks)
 	}
+	getBlockByHash := func(hash common.Hash) *types.Block {
+		return engine.GetBlockByHash(hash)
+	}
 
-	manager.fetcher = fetcher.New(blockchain.GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
+	//manager.fetcher = fetcher.New(GetBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
+	manager.fetcher = fetcher.New(getBlockByHash, validator, manager.BroadcastBlock, heighter, inserter, manager.removePeer)
 
 	return manager, nil
 }
@@ -230,11 +229,11 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 	// broadcast mined blocks
 	pm.minedBlockSub = pm.eventMux.Subscribe(core.NewMinedBlockEvent{})
 	// broadcast prepare mined blocks
-	pm.prepareMinedBlockSub = pm.eventMux.Subscribe(core.PrepareMinedBlockEvent{})
-	pm.blockSignatureSub = pm.eventMux.Subscribe(core.BlockSignatureEvent{})
+	//pm.prepareMinedBlockSub = pm.eventMux.Subscribe(core.PrepareMinedBlockEvent{})
+	//pm.blockSignatureSub = pm.eventMux.Subscribe(core.BlockSignatureEvent{})
 	go pm.minedBroadcastLoop()
-	go pm.prepareMinedBlockcastLoop()
-	go pm.blockSignaturecastLoop()
+	//go pm.prepareMinedBlockcastLoop()
+	//go pm.blockSignaturecastLoop()
 
 	// start sync handlers
 	go pm.syncer()
@@ -342,9 +341,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		p.Log().Error("read peer message error", "err", err)
-		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-			cbftEngine.RemovePeer(p.Peer.ID())
-		}
 		return err
 	}
 	if msg.Size > ProtocolMaxMsgSize {
@@ -358,42 +354,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 
-		// Block header query, collect the requested headers and reply
-
-	case p.version >= eth63 && msg.Code == GetPposStorageMsg:
-		// deal the retrieval message
-		p.Log().Debug("Received a broadcast message[GetPposStorageMsg]")
-		if pivotHash, data, err := ppos_storage.GetPPosTempPtr().GetPPosStorageProto(); err == nil {
-			latest := pm.blockchain.CurrentHeader()
-			var pivot *types.Header
-			if pivotHash != (common.Hash{}) {
-				pivot = pm.blockchain.GetHeaderByHash(pivotHash)
-			} else {
-				pivotNumber := pm.downloader.CalStoragePposCachePoint(latest.Number.Uint64())
-				if pivotNumber > 0 {
-					pivot = pm.blockchain.GetHeaderByNumber(pivotNumber)
-				}
-			}
-
-			if latest != nil && pivot != nil {
-				return p.SendPposStorage(latest, pivot, data)
-			}
-		}
-		p.Log().Error("get ppos storageProto error")
-
-	case p.version >= eth63 && msg.Code == PposStorageMsg:
-		// node ppos storage data arrived to one of our previous requests
-		p.Log().Debug("Received a broadcast message[PposStorageMsg]")
-		var data pposStorageData
-		if err := msg.Decode(&data); err != nil {
-			return errResp(ErrDecode, "msg %v: %v", msg, err)
-		}
-
-		// Deliver all to the downloader
-		if err := pm.downloader.DeliverPposStorage(p.id, data.Latest, data.Pivot, data.PposStorage); err != nil {
-			p.Log().Debug("Failed to deliver ppos storage data", "err", err)
-		}
-
+	// Block header query, collect the requested headers and reply
 	case msg.Code == GetBlockHeadersMsg:
 		// Decode the complex header query
 		var query getBlockHeadersData
@@ -557,11 +518,15 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if data := pm.blockchain.GetBodyRLP(hash); len(data) != 0 {
 				bodies = append(bodies, data)
 				bytes += len(data)
+			} else {
+				log.Debug(fmt.Sprintf("Block body empty peer:%s hash:%s", p.id, hash.TerminalString()))
 			}
 		}
+		log.Debug(fmt.Sprintf("Send block body peer:%s", p.id))
 		return p.SendBlockBodiesRLP(bodies)
 
 	case msg.Code == BlockBodiesMsg:
+		log.Debug("Receive BlockBodiesMsg", "peer", p.id)
 		// A batch of block bodies arrived to one of our previous requests
 		var request blockBodiesData
 		if err := msg.Decode(&request); err != nil {
@@ -569,23 +534,24 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver them all to the downloader for queuing
 		transactions := make([][]*types.Transaction, len(request))
-		uncles := make([][]*types.Header, len(request))
-		signatures := make([][]*common.BlockConfirmSign, len(request))
+		extraData := make([][]byte, len(request))
 
 		for i, body := range request {
 			transactions[i] = body.Transactions
-			uncles[i] = body.Uncles
-			signatures[i] = body.Signatures
+			extraData[i] = body.ExtraData
 		}
 		// Filter out any explicitly requested bodies, deliver the rest to the downloader
-		filter := len(transactions) > 0 || len(uncles) > 0 || len(signatures) > 0
+		filter := len(transactions) > 0 || len(extraData) > 0
+		log.Debug("Receive BlockBodiesMsg", "peer", p.id, "txslen", len(transactions), "extradata", len(extraData))
 		if filter {
-			transactions, uncles, signatures = pm.fetcher.FilterBodies(p.id, transactions, uncles, signatures, time.Now())
+			transactions, extraData = pm.fetcher.FilterBodies(p.id, transactions, extraData, time.Now())
 		}
-		if len(transactions) > 0 || len(uncles) > 0 || len(signatures) > 0 || !filter {
-			err := pm.downloader.DeliverBodies(p.id, transactions, uncles, signatures)
+		log.Debug("Receive BlockBodiesMsg", "peer", p.id, "txslen", len(transactions), "extradata", len(extraData))
+
+		if len(transactions) > 0 || len(extraData) > 0 || !filter {
+			err := pm.downloader.DeliverBodies(p.id, transactions, extraData)
 			if err != nil {
-				log.Debug("Failed to deliver bodies", "err", err)
+				log.Debug("Failed to deliver bodies", "peer", p.id, "err", err)
 			}
 		}
 
@@ -683,16 +649,17 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Mark the hashes as present at the remote node
 		for _, block := range announces {
 			p.MarkBlock(block.Hash)
-			log.Debug("Received a message[NewBlockHashesMsg]", "GoRoutineID", common.CurrentGoRoutineID(), "receiveAt", msg.ReceivedAt.Unix(), "peerId", p.id, "hash", block.Hash, "number", block.Number)
+			log.Debug("Received a message[NewBlockHashesMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "receiveAt", msg.ReceivedAt.Unix(), "peerId", p.id, "hash", block.Hash, "number", block.Number)
 		}
 		// Schedule all the unknown hashes for retrieval
 		unknown := make(newBlockHashesData, 0, len(announces))
 		for _, block := range announces {
-			if !pm.blockchain.HasBlock(block.Hash, block.Number) {
+			if !pm.blockchain.Engine().HasBlock(block.Hash, block.Number) {
 				unknown = append(unknown, block)
 			}
 		}
 		for _, block := range unknown {
+			log.Debug("Unknown block", "hash", block.Hash, "number", block.Number)
 			pm.fetcher.Notify(p.id, block.Hash, block.Number, time.Now(), p.RequestOneHeader, p.RequestBodies)
 		}
 
@@ -705,10 +672,13 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
 
-		log.Debug("Received a message[NewBlockMsg]", "GoRoutineID", common.CurrentGoRoutineID(), "receiveAt", request.Block.ReceivedAt.Unix(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
+		log.Debug("Received a message[NewBlockMsg]------------", "GoRoutineID", common.CurrentGoRoutineID(), "receiveAt", request.Block.ReceivedAt.Unix(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
 
 		// Mark the peer as owning the block and schedule it for import
 		p.MarkBlock(request.Block.Hash())
+		if pm.blockchain.Engine().HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
+			return nil
+		}
 		pm.fetcher.Enqueue(p.id, request.Block)
 
 		// Assuming the block is importable by the peer, but possibly not yet done so,
@@ -721,18 +691,17 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		if _, bn := p.Head(); trueBn.Cmp(bn) > 0 {
 			p.SetHead(trueHead, trueBn)
-
 			// Schedule a sync if above ours. Note, this will not fire a sync for a gap of
 			// a singe block (as the true TD is below the propagated block), however this
 			// scenario should easily be covered by the fetcher.
-			currentBlock := pm.blockchain.CurrentBlock()
+			currentBlock := pm.engine.CurrentBlock()
 			if trueBn.Cmp(currentBlock.Number()) > 0 {
 				go pm.synchronise(p)
 			}
+
 		}
 
 	case msg.Code == TxMsg:
-		log.Debug("Received a broadcast message[TxMsg]", "acceptTxs", pm.acceptTxs)
 		// Transactions arrived, make sure we have a valid and fresh chain to handle them
 		if atomic.LoadUint32(&pm.acceptTxs) == 0 {
 			break
@@ -752,76 +721,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 
 		go pm.txpool.AddRemotes(txs)
 
-	case msg.Code == PrepareBlockMsg:
-		// Retrieve and decode the propagated block
-		var request prepareBlockData
-		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-		log.Debug("Received a broadcast message[PrepareBlockMsg]", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
-
-		request.Block.ReceivedAt = msg.ReceivedAt
-		request.Block.ReceivedFrom = p
-
-		// Preliminary check block
-		if err := pm.engine.VerifyHeader(pm.blockchain, request.Block.Header(), true); err != nil {
-			log.Error("Failed to VerifyHeader in PrepareBlockMsg,discard this msg", "err", err)
-			return nil
-		}
-		if pm.blockchain.HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
-			log.Warn("Block already in blockchain,discard this msg", "err", err)
-			return nil
-		}
-		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-			//if pm.downloader.IsRunning() {
-			//	log.Warn("downloader is running,discard this msg")
-			//}
-			/*
-			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
-				log.Warn("local node is not consensus node,discard this msg")
-			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
-				log.Warn("remote node is not consensus node,discard this msg")
-			} else if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
-				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
-			}
-			*/
-			if err := cbftEngine.OnNewBlock(pm.blockchain, request.Block); err != nil {
-				log.Error("deliver prepareBlockMsg data to cbft engine failed", "err", err)
-			}
-			return nil
-		} else {
-			log.Warn("Consensus engine is not cbft", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "hash", request.Block.Hash(), "number", request.Block.NumberU64())
-		}
-
-	case msg.Code == BlockSignatureMsg:
-		// Retrieve and decode the propagated block
-		var request blockSignature
-		if err := msg.Decode(&request); err != nil {
-			return errResp(ErrDecode, "%v: %v", msg, err)
-		}
-
-		log.Debug("Received a broadcast message[BlockSignatureMsg]", "GoRoutineID", common.CurrentGoRoutineID(), "peerId", p.id, "SignHash", request.SignHash, "Hash", request.Hash, "Number", request.Number, "Signature", request.Signature.String())
-		engineBlockSignature := &cbfttypes.BlockSignature{SignHash: request.SignHash, Hash: request.Hash, Number: request.Number, Signature: request.Signature}
-
-		if cbftEngine, ok := pm.engine.(consensus.Bft); ok {
-			//if pm.downloader.IsRunning() {
-			//	log.Warn("downloader is running,discard this msg")
-			//}
-			/*
-			if flag, err := cbftEngine.IsConsensusNode(); !flag || err != nil {
-				log.Warn("local node is not consensus node,discard this msg")
-			} else if flag, err := cbftEngine.CheckConsensusNode(p.Peer.ID()); !flag || err != nil {
-				log.Warn("remote node is not consensus node,discard this msg")
-			} else if err := cbftEngine.OnBlockSignature(pm.blockchain, p.Peer.ID(), engineBlockSignature); err != nil {
-				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
-			}
-			*/
-			if err := cbftEngine.OnBlockSignature(pm.blockchain, p.Peer.ID(), engineBlockSignature); err != nil {
-				log.Error("deliver blockSignatureMsg data to cbft engine failed", "blockHash", request.Hash, "err", err)
-			}
-			return nil
-		}
-
 	case msg.Code == PongMsg:
 		curTime := time.Now().UnixNano()
 		log.Debug("handle a eth Pong message", "curTime", curTime)
@@ -835,7 +734,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			for {
 				e := p.PingList.Front()
 				if e != nil {
-					log.Debug("Front element of p.PingList", "element", e)
+					log.Trace("Front element of p.PingList", "element", e)
 					if t, ok := p.PingList.Remove(e).(string); ok {
 						if t == pingTime[0] {
 
@@ -844,14 +743,14 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 								return errResp(ErrDecode, "%v: %v", msg, err)
 							}
 
-							log.Debug("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
+							log.Trace("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
 							latency := (curTime - tInt64) / 2 / 1000000
 							cbftEngine.OnPong(p.Peer.ID(), latency)
 							break
 						}
 					}
 				} else {
-					log.Debug("end of p.PingList")
+					log.Trace("end of p.PingList")
 					break
 				}
 			}
@@ -879,7 +778,7 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 		// Calculate the TD of the block (it's not imported yet, so block.Td is not valid)
 		if parent := pm.blockchain.GetBlock(block.ParentHash(), block.NumberU64()-1); parent != nil {
 		} else {
-			log.Error("Propagating dangling block", "number", block.Number(), "hash", hash)
+			log.Warn("Propagating dangling block", "number", block.Number(), "hash", hash)
 			return
 		}
 		// Send the block to a subset of our peers
@@ -899,22 +798,22 @@ func (pm *ProtocolManager) BroadcastBlock(block *types.Block, propagate bool) {
 	}
 }
 
-func (pm *ProtocolManager) MulticastConsensus(a interface{}, consensusNodes []discover.NodeID) {
+func (pm *ProtocolManager) MulticastConsensus(a interface{}) {
 	// Consensus node peer
-	peers := pm.peers.PeersWithConsensus(consensusNodes)
+	peers := pm.peers.PeersWithConsensus(pm.engine)
 	if peers == nil || len(peers) <= 0 {
-		log.Warn("consensus peers is empty")
+		log.Error("consensus peers is empty")
 	}
 
 	if block, ok := a.(*types.Block); ok {
 		for _, peer := range peers {
-			log.Debug("Send a broadcast message[PrepareBlockMsg]",
+			log.Warn("~ Send a broadcast message[PrepareBlockMsg]------------",
 				"peerId", peer.id, "Hash", block.Hash(), "Number", block.Number())
 			peer.AsyncSendPrepareBlock(block)
 		}
 	} else if signature, ok := a.(*cbfttypes.BlockSignature); ok {
 		for _, peer := range peers {
-			log.Debug("Send a broadcast message[BlockSignatureMsg]",
+			log.Warn("~ Send a broadcast message[BlockSignatureMsg]------------",
 				"peerId", peer.id, "SignHash", signature.SignHash, "Hash", signature.Hash, "Number", signature.Number, "SignHash", signature.SignHash)
 			peer.AsyncSendSignature(signature)
 		}
@@ -926,34 +825,13 @@ func (pm *ProtocolManager) MulticastConsensus(a interface{}, consensusNodes []di
 func (pm *ProtocolManager) BroadcastTxs(txs types.Transactions) {
 	var txset = make(map[*peer]types.Transactions)
 
-	currentBlock := pm.blockchain.CurrentBlock()
-	blockNumber := currentBlock.Number()
-	parentNumber := new(big.Int).Sub(blockNumber, common.Big1)
-	consensusNodes := pm.engine.(consensus.Bft).ConsensusNodes(parentNumber, currentBlock.ParentHash(), blockNumber)
-	log.Info("BroadcastTxs consensusNodes", "blockNumber", blockNumber, "consensusNodes", consensusNodes, "length consensusNodes", len(consensusNodes))
-	consensusPeers := pm.peers.PeersWithConsensus(consensusNodes)
-	f := len(consensusPeers) / 3
-	if f <= 0 {
-		f = 1
-	}
-
 	// Broadcast transactions to a batch of peers not knowing about it
 	for _, tx := range txs {
-		peers := pm.peers.ConsensusPeersWithoutTx(consensusPeers, tx.Hash())
-		if len(peers) > 0 {
-			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			for i := 0; i < f && i < len(peers); i++ {
-				idx := r.Intn(len(peers))
-				txset[peers[idx]] = append(txset[peers[idx]], tx)
-				log.Debug("Broadcast transaction", "hash", tx.Hash(), "peer", peers[idx].id)
-			}
-		} else {
-			peers := pm.peers.PeersWithoutTx(tx.Hash())
-			for _, peer := range peers {
-				txset[peer] = append(txset[peer], tx)
-			}
-			log.Debug("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
+		peers := pm.peers.PeersWithoutTx(tx.Hash())
+		for _, peer := range peers {
+			txset[peer] = append(txset[peer], tx)
 		}
+		log.Trace("Broadcast transaction", "hash", tx.Hash(), "recipients", len(peers))
 	}
 
 	// FIXME include this again: peers = peers[:int(math.Sqrt(float64(len(peers))))]
@@ -971,41 +849,7 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 			pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
 		}
 	}
-	/*
-		for {
-			select {
-			case event :=  <- pm.minedBlockSub.Chan():
-				if ev, ok := event.Data.(core.NewMinedBlockEvent); ok {
-					pm.BroadcastBlock(ev.Block, true)  // First propagate block to peers
-					pm.BroadcastBlock(ev.Block, false) // Only then announce to the rest
-				}
-			case event :=  <- pm.prepareMinedBlockSub.Chan():
-				if ev, ok := event.Data.(core.PrepareMinedBlockEvent); ok {
-					pm.MulticastConsensus(ev.Block)  // propagate block to consensus peers
-				}
-			case event :=  <- pm.blockSignatureSub.Chan():
-				if ev, ok := event.Data.(core.BlockSignatureEvent); ok {
-					pm.MulticastConsensus(ev.BlockSignature)  // propagate blockSignature to consensus peers
-				}
-			}
-		}
-	*/
-}
 
-func (pm *ProtocolManager) prepareMinedBlockcastLoop() {
-	for obj := range pm.prepareMinedBlockSub.Chan() {
-		if ev, ok := obj.Data.(core.PrepareMinedBlockEvent); ok {
-			pm.MulticastConsensus(ev.Block, ev.ConsensusNodes) // propagate block to consensus peers
-		}
-	}
-}
-
-func (pm *ProtocolManager) blockSignaturecastLoop() {
-	for obj := range pm.blockSignatureSub.Chan() {
-		if ev, ok := obj.Data.(core.BlockSignatureEvent); ok {
-			pm.MulticastConsensus(ev.BlockSignature, ev.ConsensusNodes) // propagate blockSignature to consensus peers
-		}
-	}
 }
 
 func (pm *ProtocolManager) txBroadcastLoop() {

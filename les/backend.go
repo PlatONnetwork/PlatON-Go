@@ -42,7 +42,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discv5"
 	"github.com/PlatONnetwork/PlatON-Go/params"
-	rpc "github.com/PlatONnetwork/PlatON-Go/rpc"
+	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
 type LightEthereum struct {
@@ -102,7 +102,7 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 		peers:          peers,
 		reqDist:        newRequestDistributor(peers, quitSync),
 		accountManager: ctx.AccountManager,
-		engine:         eth.CreateConsensusEngine(ctx, chainConfig, nil, false, chainDb, nil, nil, nil, nil),
+		engine:         eth.CreateConsensusEngine(ctx, chainConfig, nil, false, chainDb, &config.CbftConfig, ctx.EventMux),
 		shutdownChan:   make(chan bool),
 		networkId:      config.NetworkId,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),

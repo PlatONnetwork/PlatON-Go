@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"math/big"
@@ -117,11 +116,7 @@ type stateObject struct {
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	if _, ok := vm.PrecompiledContractsPpos[s.address]; ok {
-		return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash) && s.data.Root == (common.Hash{})
-	} else {
-		return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
-	}
+	return s.data.Nonce == 0 && s.data.Balance.Sign() == 0 && bytes.Equal(s.data.CodeHash, emptyCodeHash)
 }
 
 // Account is the Ethereum consensus representation of accounts.

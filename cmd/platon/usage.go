@@ -162,6 +162,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.BootnodesV5Flag,
 			utils.ListenPortFlag,
 			utils.MaxPeersFlag,
+			utils.MaxConsensusPeersFlag,
 			utils.MaxPendingPeersFlag,
 			utils.NATFlag,
 			utils.NoDiscoverFlag,
@@ -248,6 +249,13 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.VCEnabledFlag,
 			utils.VCActorFlag,
 			utils.VCPasswordFlag,
+		},
+	},
+	{
+		Name: "CBFT",
+		Flags: []cli.Flag{
+			utils.CbftBlockIntervalFlag,
+			utils.CbftBreakpointFlag,
 		},
 	},
 	{
