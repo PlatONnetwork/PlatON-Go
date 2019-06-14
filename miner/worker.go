@@ -18,8 +18,6 @@ package miner
 
 import (
 	"bytes"
-	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -80,8 +78,6 @@ const (
 	defaultCommitRatio = 0.95
 )
 
-type addConsensusPeerFn func(nodes []*discover.Node) error
-
 // environment is the worker's current environment and holds all of the current state information.
 type environment struct {
 	signer types.Signer
@@ -93,7 +89,6 @@ type environment struct {
 	header   *types.Header
 	txs      []*types.Transaction
 	receipts []*types.Receipt
-	consensusNodes []discover.NodeID
 }
 
 // task contains all information for consensus engine sealing and result submitting.
@@ -102,7 +97,6 @@ type task struct {
 	state     *state.StateDB
 	block     *types.Block
 	createdAt time.Time
-	consensusNodes []discover.NodeID
 }
 
 const (
@@ -118,11 +112,11 @@ const (
 
 // newWorkReq represents a request for new sealing work submitting with relative interrupt notifier.
 type newWorkReq struct {
-	interrupt   *int32
-	noempty     bool
-	timestamp   int64
+	interrupt     *int32
+	noempty       bool
+	timestamp     int64
 	blockDeadline time.Time
-	commitBlock *types.Block
+	commitBlock   *types.Block
 }
 
 // intervalAdjust represents a resubmitting interval adjustment.
@@ -223,11 +217,11 @@ type worker struct {
 	// External functions
 	isLocalBlock func(block *types.Block) bool // Function used to determine whether the specified block is mined by local miner.
 
-	blockChainCache    *core.BlockChainCache
-	commitWorkEnv      *commitWorkEnv
-	recommit           time.Duration
-	commitDuration     int64 //in Millisecond
-	addConsensusPeerFn addConsensusPeerFn
+	blockChainCache *core.BlockChainCache
+	commitWorkEnv   *commitWorkEnv
+	recommit        time.Duration
+	commitDuration  int64 //in Millisecond
+
 	bftResultSub *event.TypeMuxSubscription
 	// Test hooks
 	newTaskHook  func(*task)                        // Method to call upon receiving a new sealing task.
@@ -239,29 +233,29 @@ type worker struct {
 func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool,
 	blockChainCache *core.BlockChainCache) *worker {
 	worker := &worker{
-		config:                config,
-		engine:                engine,
-		eth:                   eth,
-		mux:                   mux,
-		chain:                 eth.BlockChain(),
-		gasFloor:              gasFloor,
-		gasCeil:               gasCeil,
-		isLocalBlock:          isLocalBlock,
-		unconfirmed:           newUnconfirmedBlocks(eth.BlockChain(), miningLogAtDepth),
-		pendingTasks:          make(map[common.Hash]*task),
-		txsCh:                 make(chan core.NewTxsEvent, txChanSize),
-		chainHeadCh:           make(chan core.ChainHeadEvent, chainHeadChanSize),
-		chainSideCh:           make(chan core.ChainSideEvent, chainSideChanSize),
-		newWorkCh:             make(chan *newWorkReq),
-		taskCh:                make(chan *task),
-		resultCh:              make(chan *types.Block, resultQueueSize),
-		prepareResultCh:       make(chan *types.Block, resultQueueSize),
-		exitCh:                make(chan struct{}),
-		startCh:               make(chan struct{}, 1),
-		resubmitIntervalCh:    make(chan time.Duration),
-		resubmitAdjustCh:      make(chan *intervalAdjust, resubmitAdjustChanSize),
-		blockChainCache:       blockChainCache,
-		commitWorkEnv:         &commitWorkEnv{},
+		config:             config,
+		engine:             engine,
+		eth:                eth,
+		mux:                mux,
+		chain:              eth.BlockChain(),
+		gasFloor:           gasFloor,
+		gasCeil:            gasCeil,
+		isLocalBlock:       isLocalBlock,
+		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningLogAtDepth),
+		pendingTasks:       make(map[common.Hash]*task),
+		txsCh:              make(chan core.NewTxsEvent, txChanSize),
+		chainHeadCh:        make(chan core.ChainHeadEvent, chainHeadChanSize),
+		chainSideCh:        make(chan core.ChainSideEvent, chainSideChanSize),
+		newWorkCh:          make(chan *newWorkReq),
+		taskCh:             make(chan *task),
+		resultCh:           make(chan *types.Block, resultQueueSize),
+		prepareResultCh:    make(chan *types.Block, resultQueueSize),
+		exitCh:             make(chan struct{}),
+		startCh:            make(chan struct{}, 1),
+		resubmitIntervalCh: make(chan time.Duration),
+		resubmitAdjustCh:   make(chan *intervalAdjust, resubmitAdjustChanSize),
+		blockChainCache:    blockChainCache,
+		commitWorkEnv:      &commitWorkEnv{},
 	}
 	// Subscribe NewTxsEvent for tx pool
 	// worker.txsSub = eth.TxPool().SubscribeNewTxsEvent(worker.txsCh)
@@ -293,10 +287,6 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 	worker.startCh <- struct{}{}
 
 	return worker
-}
-
-func (w *worker) InitConsensusPeerFn(addFn addConsensusPeerFn) {
-	w.addConsensusPeerFn = addFn
 }
 
 // setEtherbase sets the etherbase used to initialize the block coinbase field.
@@ -463,7 +453,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			clearPending(head.Block.NumberU64())
 			//commit(false, commitInterruptNewHead)
 			// clear consensus cache
-			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash().Hex(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash().Hex())
+			log.Debug("received a event of ChainHeadEvent", "hash", head.Block.Hash(), "number", head.Block.NumberU64(), "parentHash", head.Block.ParentHash())
 			w.blockChainCache.ClearCache(head.Block)
 
 			status := atomic.LoadInt32(&w.commitWorkEnv.commitStatus)
@@ -600,7 +590,7 @@ func (w *worker) mainLoop() {
 					atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
 			*/
 
-		// System stopped
+			// System stopped
 		case <-w.exitCh:
 			return
 
@@ -886,34 +876,17 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 		err   error
 	)
 	if _, ok := w.engine.(consensus.Bft); ok {
-		log.Debug("makeCurrent, New state by MakeStateDB ...")
 		state, err = w.blockChainCache.MakeStateDB(parent)
 	} else {
-		log.Debug("makeCurrent, New state by chain StateAt ...")
 		state, err = w.chain.StateAt(parent.Root())
 	}
-	log.Info("-----------Build statedb---------", "blockNumber", header.Number.Uint64(), "parentNumber", parent.NumberU64(), "parentStateRoot", parent.Root())
 	if err != nil {
 		return err
 	}
-
-	// TODO
-	//w.forEachStorage(state, "makeCurrent, When new the current stateDB instance:")
-
 	env := &environment{
 		signer: types.NewEIP155Signer(w.config.ChainID),
 		state:  state,
 		header: header,
-	}
-	if cbftEngine, ok := w.engine.(consensus.Bft); ok {
-		nodes, err := cbftEngine.ConsensusNodes()
-		if err != nil {
-			return err
-		}
-		if nodes == nil || len(nodes) <= 0 {
-			return errors.New("Failed to load consensus nodes")
-		}
-		env.consensusNodes = nodes
 	}
 
 	// Keep track of transactions which return errors so they can be removed
@@ -1033,7 +1006,7 @@ func (w *worker) commitTransactionsWithHeader(header *types.Header, txs *types.T
 
 		case core.ErrNonceTooHigh:
 			// Reorg notification data race between the transaction pool and miner, skip account =
-			log.Warn("Skipping account with hight nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "tx.nonce", tx.Nonce())
+			log.Warn("Skipping account with high nonce", "blockNumber", header.Number, "blockParentHash", header.ParentHash, "tx.hash", tx.Hash(), "sender", from, "senderCurNonce", w.current.state.GetNonce(from), "tx.nonce", tx.Nonce())
 			txs.Pop()
 
 		case nil:
@@ -1137,13 +1110,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		// Start executing the transaction
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
 
-		log.Debug("commit transaction", "hash", tx.Hash(), "sender", from, "nonce", tx.Nonce())
-		root := w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-		log.Debug("【The Consensus packaging】Before executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
-
 		logs, err := w.commitTransaction(tx, coinbase)
-		root = w.current.state.IntermediateRoot(w.config.IsEIP158(w.current.header.Number))
-		log.Debug("【The Consensus packaging】After executing the transaction", "blockNumber", w.current.header.Number.Uint64(), "block.root", w.current.header.Root.Hex(), "Real-time state.root", root.Hex())
 
 		switch err {
 		case core.ErrGasLimitReached:
@@ -1329,7 +1296,15 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			localTxs[account] = txs
 		}
 	}
-	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", len(localTxs), "remoteTxCount", len(remoteTxs), "txsCount", txsCount)
+	localTxsCount := 0
+	remoteTxsCount := 0
+	for _, laccTxs := range localTxs {
+		localTxsCount = localTxsCount + len(laccTxs)
+	}
+	for _, raccTxs := range remoteTxs {
+		remoteTxsCount = remoteTxsCount + len(raccTxs)
+	}
+	log.Debug("execute pending transactions", "hash", commitBlock.Hash(), "number", commitBlock.NumberU64(), "localTxCount", localTxsCount, "remoteTxCount", remoteTxsCount, "txsCount", txsCount)
 
 	startTime = time.Now()
 	var localTimeout = false
@@ -1370,8 +1345,8 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		receipts[i] = new(types.Receipt)
 		*receipts[i] = *l
 	}
-	st := w.current.state.Copy()
-	block, err := w.engine.Finalize(w.chain, w.current.header, st, w.current.txs, w.current.receipts)
+	s := w.current.state.Copy()
+	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {
 		return err
 	}
@@ -1380,7 +1355,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 			interval()
 		}
 		select {
-		case w.taskCh <- &task{receipts: receipts, state: st, block: block, createdAt: time.Now(), consensusNodes: w.current.consensusNodes}:
+		case w.taskCh <- &task{receipts: receipts, state: s, block: block, createdAt: time.Now()}:
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
 			feesWei := new(big.Int)
@@ -1391,6 +1366,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 
 			log.Debug("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()), "receiptHash", block.ReceiptHash(),
 				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)))
+			w.engine.(consensus.Bft).CommitBlockBP(block, w.current.tcount, block.GasUsed(), time.Since(start))
 
 		case <-w.exitCh:
 			log.Info("Worker has exited")
