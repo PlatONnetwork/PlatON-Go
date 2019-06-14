@@ -21,7 +21,6 @@ var Modules = map[string]string{
 	"admin":      Admin_JS,
 	"chequebook": Chequebook_JS,
 	"clique":     Clique_JS,
-	"ethash":     Ethash_JS,
 	"debug":      Debug_JS,
 	"eth":        Eth_JS,
 	"miner":      Miner_JS,
@@ -110,34 +109,6 @@ web3._extend({
 });
 `
 
-const Ethash_JS = `
-web3._extend({
-	property: 'ethash',
-	methods: [
-		new web3._extend.Method({
-			name: 'getWork',
-			call: 'ethash_getWork',
-			params: 0
-		}),
-		new web3._extend.Method({
-			name: 'getHashrate',
-			call: 'ethash_getHashrate',
-			params: 0
-		}),
-		new web3._extend.Method({
-			name: 'submitWork',
-			call: 'ethash_submitWork',
-			params: 3,
-		}),
-		new web3._extend.Method({
-			name: 'submitHashRate',
-			call: 'ethash_submitHashRate',
-			params: 2,
-		}),
-	]
-});
-`
-
 const Admin_JS = `
 web3._extend({
 	property: 'admin',
@@ -150,16 +121,6 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'removePeer',
 			call: 'admin_removePeer',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'addConsensusPeer',
-			call: 'admin_addConsensusPeer',
-			params: 1
-		}),
-		new web3._extend.Method({
-			name: 'removeConsensusPeer',
-			call: 'admin_removeConsensusPeer',
 			params: 1
 		}),
 		new web3._extend.Method({
@@ -434,6 +395,10 @@ web3._extend({
 			params: 2,
 			inputFormatter:[null, null],
 		}),
+		new web3._extend.Method({
+			name: 'consensusStatus',
+			call: 'debug_consensusStatus',
+		}),
 	],
 	properties: []
 });
@@ -485,6 +450,10 @@ web3._extend({
 			},
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, web3._extend.utils.toHex]
+		}),
+		new web3._extend.Method({
+			name: 'evidences',
+			call: 'eth_evidences',
 		}),
 	],
 	properties: [

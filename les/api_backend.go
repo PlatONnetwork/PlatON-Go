@@ -18,6 +18,7 @@ package les
 
 import (
 	"context"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -46,7 +47,9 @@ type LesApiBackend struct {
 func (b *LesApiBackend) ChainConfig() *params.ChainConfig {
 	return b.eth.chainConfig
 }
-
+func (b *LesApiBackend) Engine() consensus.Engine {
+	return b.eth.engine
+}
 func (b *LesApiBackend) CurrentBlock() *types.Block {
 	return types.NewBlockWithHeader(b.eth.BlockChain().CurrentHeader())
 }

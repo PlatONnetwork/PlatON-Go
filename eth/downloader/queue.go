@@ -57,10 +57,9 @@ type fetchResult struct {
 	Hash    common.Hash // Hash of the header to prevent recalculating
 
 	Header       *types.Header
-	Uncles       []*types.Header
 	Transactions types.Transactions
 	Receipts     types.Receipts
-	Signatures   []*common.BlockConfirmSign
+	ExtraData    []byte
 }
 
 // queue represents hashes that are either need fetching or are being fetched
@@ -386,17 +385,13 @@ func (q *queue) Results(block bool) []*fetchResult {
 		// Recalculate the result item weights to prevent memory exhaustion
 		for _, result := range results {
 			size := result.Header.Size()
-			for _, uncle := range result.Uncles {
-				size += uncle.Size()
-			}
 			for _, receipt := range result.Receipts {
 				size += receipt.Size()
 			}
 			for _, tx := range result.Transactions {
 				size += tx.Size()
 			}
-			// Recalculate the signatures result weights to prevent memory exhaustion
-			size += common.StorageSize(len(result.Signatures)*common.BlockConfirmSignLength)
+			size += common.StorageSize(len(result.ExtraData))
 			q.resultSize = common.StorageSize(blockCacheSizeWeight)*size + (1-common.StorageSize(blockCacheSizeWeight))*q.resultSize
 		}
 	}
@@ -458,8 +453,7 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int) *fetchRequest {
 // returns a flag whether empty blocks were queued requiring processing.
 func (q *queue) ReserveBodies(p *peerConnection, count int) (*fetchRequest, bool, error) {
 	isNoop := func(header *types.Header) bool {
-		return false
-		//return header.TxHash == types.EmptyRootHash && header.UncleHash == types.EmptyUncleHash
+		return false //header.TxHash == types.EmptyRootHash
 	}
 	q.lock.Lock()
 	defer q.lock.Unlock()
@@ -767,17 +761,16 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, headerProcCh 
 // DeliverBodies injects a block body retrieval response into the results queue.
 // The method returns the number of blocks bodies accepted from the delivery and
 // also wakes any threads waiting for data delivery.
-func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, uncleLists [][]*types.Header, signatureLists [][]*common.BlockConfirmSign) (int, error) {
+func (q *queue) DeliverBodies(id string, txLists [][]*types.Transaction, extraData [][]byte) (int, error) {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
 	reconstruct := func(header *types.Header, index int, result *fetchResult) error {
-		if types.DeriveSha(types.Transactions(txLists[index])) != header.TxHash || types.CalcUncleHash(uncleLists[index]) != header.UncleHash {
+		if types.DeriveSha(types.Transactions(txLists[index])) != header.TxHash {
 			return errInvalidBody
 		}
 		result.Transactions = txLists[index]
-		result.Uncles = uncleLists[index]
-		result.Signatures = signatureLists[index]
+		result.ExtraData = extraData[index]
 		return nil
 	}
 	return q.deliver(id, q.blockTaskPool, q.blockTaskQueue, q.blockPendPool, q.blockDonePool, bodyReqTimer, len(txLists), reconstruct)

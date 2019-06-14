@@ -212,7 +212,7 @@ func (bc *LightChain) State() (*state.StateDB, error) {
 	return nil, errors.New("not implemented, needs client/server interface split")
 }
 
-// GetBody retrieves a block body (transactions and uncles) from the database
+// GetBody retrieves a block body (transactions) from the database
 // or ODR service by hash, caching it if found.
 func (self *LightChain) GetBody(ctx context.Context, hash common.Hash) (*types.Body, error) {
 	// Short circuit if the body's already in the cache, retrieve otherwise
