@@ -1,4 +1,4 @@
-package plugin
+package core
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -7,6 +7,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/common"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 )
 
 type BlockChainReactor struct {
@@ -17,7 +18,7 @@ type BlockChainReactor struct {
 
 
 	// xxPlugin container
-	basePluginMap  	map[int]BasePlugin
+	basePluginMap  	map[int]plugin.BasePlugin
 	// Order rules for xxPlugins called in BeginBlocker
 	beginRule		[]int
 	// Order rules for xxPlugins called in EndBlocker
@@ -32,7 +33,7 @@ func New (mux *event.TypeMux) *BlockChainReactor {
 	if nil == bcr {
 		bcr = &BlockChainReactor{
 			eventMux: 		mux,
-			basePluginMap: 	make(map[int]BasePlugin, 0),
+			basePluginMap: 	make(map[int]plugin.BasePlugin, 0),
 			//beginRule:		make([]string, 0),
 			//endRule: 		make([]string, 0),
 		}
@@ -77,22 +78,19 @@ func (brc *BlockChainReactor) loop () {
 			 */
 
 			if plugin, ok := brc.basePluginMap[common.StakingRule]; ok {
-				if staking, ok := plugin.(*StakingPlugin); ok {
-					if err := staking.Confirmed(block); nil != err {
-						log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
-					}
+				if err := plugin.Confirmed(block); nil != err {
+					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
 
 			}
 
 			/*// TODO Slashing
-			if plugin, ok := brc.basePluginMap[common.StakingRule]; ok {
-				if slashing, ok := plugin.(*plugin.StakingPlugin); ok {
-					if err := slashing.Confirmed(block); nil != err {
-						log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
-					}
+			if plugin, ok := brc.basePluginMap[common.SlashingRule]; ok {
+				if err := plugin.Confirmed(block); nil != err {
+					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
 
+			}
 			}*/
 
 
@@ -105,7 +103,7 @@ func (brc *BlockChainReactor) loop () {
 }
 
 
-func (bcr *BlockChainReactor) RegisterPlugin (pluginRule int, plugin BasePlugin) {
+func (bcr *BlockChainReactor) RegisterPlugin (pluginRule int, plugin plugin.BasePlugin) {
 	bcr.basePluginMap[pluginRule] = plugin
 }
 func (bcr *BlockChainReactor) SetBeginRule(rule []int) {
