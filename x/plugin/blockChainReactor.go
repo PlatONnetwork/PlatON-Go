@@ -1,4 +1,4 @@
-package core
+package plugin
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -6,6 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/x/common"
 )
 
 type BlockChainReactor struct {
@@ -16,11 +17,11 @@ type BlockChainReactor struct {
 
 
 	// xxPlugin container
-	basePluginMap  	map[string]BasePlugin
+	basePluginMap  	map[int]BasePlugin
 	// Order rules for xxPlugins called in BeginBlocker
-	beginRule		[]string
+	beginRule		[]int
 	// Order rules for xxPlugins called in EndBlocker
-	endRule 		[]string
+	endRule 		[]int
 }
 
 
@@ -31,7 +32,7 @@ func New (mux *event.TypeMux) *BlockChainReactor {
 	if nil == bcr {
 		bcr = &BlockChainReactor{
 			eventMux: 		mux,
-			basePluginMap: 	make(map[string]BasePlugin, 0),
+			basePluginMap: 	make(map[int]BasePlugin, 0),
 			//beginRule:		make([]string, 0),
 			//endRule: 		make([]string, 0),
 		}
@@ -75,7 +76,27 @@ func (brc *BlockChainReactor) loop () {
 			TODO flush the seed and the package ratio
 			 */
 
-			default:
+			if plugin, ok := brc.basePluginMap[common.StakingRule]; ok {
+				if staking, ok := plugin.(*StakingPlugin); ok {
+					if err := staking.Confirmed(block); nil != err {
+						log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
+					}
+				}
+
+			}
+
+			/*// TODO Slashing
+			if plugin, ok := brc.basePluginMap[common.StakingRule]; ok {
+				if slashing, ok := plugin.(*plugin.StakingPlugin); ok {
+					if err := slashing.Confirmed(block); nil != err {
+						log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
+					}
+				}
+
+			}*/
+
+
+		default:
 				return
 
 		}
@@ -84,13 +105,13 @@ func (brc *BlockChainReactor) loop () {
 }
 
 
-func (bcr *BlockChainReactor) RegisterPlugin (pluginName string, plugin BasePlugin) {
-	bcr.basePluginMap[pluginName] = plugin
+func (bcr *BlockChainReactor) RegisterPlugin (pluginRule int, plugin BasePlugin) {
+	bcr.basePluginMap[pluginRule] = plugin
 }
-func (bcr *BlockChainReactor) SetBeginRule(rule []string) {
+func (bcr *BlockChainReactor) SetBeginRule(rule []int) {
 	bcr.beginRule = rule
 }
-func (bcr *BlockChainReactor) SetEndRule(rule []string) {
+func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 	bcr.endRule = rule
 }
 
