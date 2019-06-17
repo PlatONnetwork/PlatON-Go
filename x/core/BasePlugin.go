@@ -6,7 +6,6 @@ import (
 )
 
 type BasePlugin interface {
-	GetInstance() *BasePlugin
 	BeginBlock(header *types.Header, state *state.StateDB) (bool, error)
 	EndBlock(header *types.Header, state *state.StateDB) (bool, error)
 	Confirmed(block *types.Block) error
