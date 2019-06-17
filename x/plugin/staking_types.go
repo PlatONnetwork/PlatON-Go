@@ -1,4 +1,4 @@
-package core
+package plugin
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"

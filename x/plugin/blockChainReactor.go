@@ -1,4 +1,4 @@
-package core
+package plugin
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -7,7 +7,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/common"
-	"github.com/PlatONnetwork/PlatON-Go/x/core/staking"
 )
 
 type BlockChainReactor struct {
@@ -78,7 +77,7 @@ func (brc *BlockChainReactor) loop () {
 			 */
 
 			if plugin, ok := brc.basePluginMap[common.StakingRule]; ok {
-				if staking, ok := plugin.(*core.StakingPlugin); ok {
+				if staking, ok := plugin.(*StakingPlugin); ok {
 					if err := staking.Confirmed(block); nil != err {
 						log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 					}
@@ -88,7 +87,7 @@ func (brc *BlockChainReactor) loop () {
 
 			/*// TODO Slashing
 			if plugin, ok := brc.basePluginMap[common.StakingRule]; ok {
-				if slashing, ok := plugin.(*core.StakingPlugin); ok {
+				if slashing, ok := plugin.(*plugin.StakingPlugin); ok {
 					if err := slashing.Confirmed(block); nil != err {
 						log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 					}
