@@ -179,7 +179,7 @@ func (b *Block) GetGasUsed() int64              { return int64(b.block.GasUsed()
 func (b *Block) GetTime() int64                 { return b.block.Time().Int64() }
 func (b *Block) GetExtra() []byte               { return b.block.Extra() }
 func (b *Block) GetMixDigest() *Hash            { return &Hash{b.block.MixDigest()} }
-func (b *Block) GetNonce() int64                { return int64(b.block.Nonce()) }
+func (b *Block) GetNonce() []byte               { return b.block.Nonce() }
 func (b *Block) GetHash() *Hash                 { return &Hash{b.block.Hash()} }
 func (b *Block) GetHeader() *Header             { return &Header{b.block.Header()} }
 func (b *Block) GetTransactions() *Transactions { return &Transactions{b.block.Transactions()} }

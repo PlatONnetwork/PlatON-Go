@@ -17,7 +17,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"math"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -109,8 +108,7 @@ func newCppEthereumGenesisSpec(network string, genesis *core.Genesis) (*cppEther
 	spec.Params.DurationLimit = (*hexutil.Big)(params.DurationLimit)
 	//spec.Params.BlockReward = (*hexutil.Big)(ethash.FrontierBlockReward)
 
-	spec.Genesis.Nonce = (hexutil.Bytes)(make([]byte, 8))
-	binary.LittleEndian.PutUint64(spec.Genesis.Nonce[:], genesis.Nonce)
+	spec.Genesis.Nonce = genesis.Nonce
 
 	spec.Genesis.MixHash = genesis.Mixhash
 	//spec.Genesis.Difficulty = (*hexutil.Big)(genesis.Difficulty)
@@ -257,8 +255,7 @@ func newParityChainSpec(network string, genesis *core.Genesis, bootnodes []strin
 	spec.Params.EIP214Transition = genesis.Config.ByzantiumBlock.Uint64()
 	spec.Params.EIP658Transition = genesis.Config.ByzantiumBlock.Uint64()
 
-	spec.Genesis.Seal.Ethereum.Nonce = (hexutil.Bytes)(make([]byte, 8))
-	binary.LittleEndian.PutUint64(spec.Genesis.Seal.Ethereum.Nonce[:], genesis.Nonce)
+	spec.Genesis.Seal.Ethereum.Nonce = genesis.Nonce
 
 	spec.Genesis.Seal.Ethereum.MixHash = (hexutil.Bytes)(genesis.Mixhash[:])
 	//spec.Genesis.Difficulty = (*hexutil.Big)(genesis.Difficulty)
@@ -332,8 +329,7 @@ func newPyEthereumGenesisSpec(network string, genesis *core.Genesis) (*pyEthereu
 		Alloc:      genesis.Alloc,
 		ParentHash: genesis.ParentHash,
 	}
-	spec.Nonce = (hexutil.Bytes)(make([]byte, 8))
-	binary.LittleEndian.PutUint64(spec.Nonce[:], genesis.Nonce)
+	spec.Nonce = genesis.Nonce
 
 	return spec, nil
 }
