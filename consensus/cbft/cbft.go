@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/algorithm/vrf"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -59,6 +60,8 @@ var (
 	errInvalidPrepareVotes         = errors.New("invalid prepare prepareVotes")
 	errInvalidatorCandidateAddress = errors.New("invalid address")
 	errDuplicationConsensusMsg     = errors.New("duplication message")
+
+	errInvalidVrfProve			   = errors.New("Invalid vrf prove")
 	extraSeal                      = 65
 	windowSize                     = 10
 
@@ -1049,6 +1052,12 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	if err := cbft.VerifyHeader(cbft.blockChain, request.Block.Header(), false); err != nil {
 		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, err, cbft)
 		log.Error("Failed to verify header in PrepareBlockMsg, discard this msg", "peer", nodeId, "err", err)
+		return err
+	}
+
+	if err := cbft.VerifyVrf(request.Block); err != nil {
+		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, err, cbft)
+		log.Error("Vrf verification failure", "err", err)
 		return err
 	}
 
@@ -2242,4 +2251,35 @@ func (cbft *Cbft) AddJournal(msg *MsgInfo) {
 
 func (cbft *Cbft) CommitBlockBP(block *types.Block, txs int, gasUsed uint64, elapse time.Duration) {
 	cbft.bp.PrepareBP().CommitBlock(context.TODO(), block, txs, gasUsed, elapse, cbft)
+}
+
+func (cbft *Cbft) GenerateNonce(hash []byte) ([]byte, error) {
+	return vrf.Prove(cbft.config.PrivateKey, hash)
+}
+
+func (cbft *Cbft) VerifyVrf(block *types.Block) error {
+	// Verify VRF Proof
+	sign := block.Extra()[len(block.Extra())-extraSeal:]
+	pk, err := crypto.SigToPub(block.Header().SealHash().Bytes(), sign)
+	if nil != err {
+		return err
+	}
+	pext := cbft.blockExtMap.findBlockByHash(block.ParentHash())
+	if pext == nil {
+		pext = cbft.blockChain.GetBlockByHash(block.ParentHash())
+	}
+	if pext != nil {
+		parentNonce := pext.Nonce()
+		if value, err := vrf.Verify(pk, block.Nonce(), parentNonce); nil != err {
+			return err
+		} else if !value {
+			log.Error("Vrf proves verification failure", "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
+			return errInvalidVrfProve // 返回错误
+		}
+		log.Info("Vrf proves successful verification", "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
+	} else {
+		log.Error("Vrf proves verification failure, Cannot find parent block", "blockNumber", block.NumberU64(), "hash", block.Hash().TerminalString(), "parentHash", block.ParentHash().TerminalString())
+		return errNotFoundViewBlock // 返回错误
+	}
+	return nil
 }
