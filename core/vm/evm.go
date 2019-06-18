@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"math/big"
 	"strings"
 	"sync/atomic"
@@ -62,6 +63,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 				return RunPrecompiledContract(vic, input, contract)
 			case *stakingContract:
 				staking := &stakingContract{
+					plugin:   plugin.StakingInstance(nil),
 					Contract: contract,
 					Evm:      evm,
 				}

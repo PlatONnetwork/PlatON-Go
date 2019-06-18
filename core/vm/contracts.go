@@ -19,6 +19,7 @@ package vm
 import (
 	"crypto/sha256"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -59,17 +60,10 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{8}): &bn256Pairing{},
 }
 
-// the inner contract addr  table
-var (
-	LockRepoContractAddr = common.HexToAddress("0x1000000000000000000000000000000000000001")
-	StakingContractAddr = common.HexToAddress("0x1000000000000000000000000000000000000002")
-	AwardMgrContractAddr = common.HexToAddress("0x1000000000000000000000000000000000000003")
-	SlashingContractAddr = common.HexToAddress("0x1000000000000000000000000000000000000004")
-	ValidatorInnerContractAddr = common.HexToAddress("0x2000000000000000000000000000000000000000")
-)
+
 
 var PrecompiledContracts = map[common.Address]PrecompiledContract{
-	ValidatorInnerContractAddr: &validatorInnerContract{},
+	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
