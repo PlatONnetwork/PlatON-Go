@@ -52,12 +52,12 @@ func (sk *StakingPlugin) Verify_tx_data(source [][]byte) (err error)  {
 			err = errors.New(fmt.Sprintf("parse tx data is panic: %s, txHash: %s", gerr.Wrap(err, 2).ErrorStack()))
 		}
 	}()
-	
+
 
 	return nil
 }
 
 
 func (sk *StakingPlugin) GetVal(state StateDB) {
-
+	
 }

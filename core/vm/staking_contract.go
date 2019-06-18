@@ -4,14 +4,13 @@ import (
 	"errors"
 	xcommon "github.com/PlatONnetwork/PlatON-Go/x/common"
 	xcore "github.com/PlatONnetwork/PlatON-Go/x/core"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 )
 
-type pluginInter interface{
 
-}
 
 type stakingContract struct {
-	plugin 		pluginInter
+	plugin 		*plugin.StakingPlugin
 	Contract 	*Contract
 	Evm      	*EVM
 }
