@@ -10,6 +10,7 @@ import (
 	"crypto/ecdsa"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -271,7 +272,7 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err erro
 		log.Error("Get the state fail, use default validators", "number", block.Number(), "hash", block.Hash(), "error", err)
 		return ia.defaultValidators, nil
 	}
-	b := state.GetState(vm.ValidatorInnerContractAddr, []byte(vm.CurrentValidatorKey))
+	b := state.GetState(cvm.ValidatorInnerContractAddr, []byte(vm.CurrentValidatorKey))
 	var vds vm.Validators
 	err = rlp.DecodeBytes(b, &vds)
 	if err != nil {
