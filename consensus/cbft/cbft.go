@@ -1057,7 +1057,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 
 	if err := cbft.VerifyVrf(request.Block); err != nil {
 		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, err, cbft)
-		log.Error("Vrf verification failure", "err", err)
+		log.Error("Vrf verification failure", "blockNumber", request.Block.NumberU64(), "err", err)
 		return err
 	}
 
@@ -2273,13 +2273,13 @@ func (cbft *Cbft) VerifyVrf(block *types.Block) error {
 	if pext != nil {
 		parentNonce := pext.Nonce()
 		if value, err := vrf.Verify(pk, block.Nonce(), parentNonce); nil != err {
-			cbft.log.Error("Vrf proves verification failure", "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce), "err", err)
+			cbft.log.Error("Vrf proves verification failure", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce), "err", err)
 			return err
 		} else if !value {
-			cbft.log.Error("Vrf proves verification failure", "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
+			cbft.log.Error("Vrf proves verification failure", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
 			return errInvalidVrfProve // 返回错误
 		}
-		cbft.log.Info("Vrf proves successful verification", "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
+		cbft.log.Info("Vrf proves successful verification", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
 	} else {
 		cbft.log.Error("Vrf proves verification failure, Cannot find parent block", "blockNumber", block.NumberU64(), "hash", block.Hash().TerminalString(), "parentHash", block.ParentHash().TerminalString())
 		return errNotFoundViewBlock // 返回错误
