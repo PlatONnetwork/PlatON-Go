@@ -2277,12 +2277,12 @@ func (cbft *Cbft) VerifyVrf(block *types.Block) error {
 			return err
 		} else if !value {
 			cbft.log.Error("Vrf proves verification failure", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
-			return errInvalidVrfProve // 返回错误
+			return errInvalidVrfProve
 		}
 		cbft.log.Info("Vrf proves successful verification", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
 	} else {
 		cbft.log.Error("Vrf proves verification failure, Cannot find parent block", "blockNumber", block.NumberU64(), "hash", block.Hash().TerminalString(), "parentHash", block.ParentHash().TerminalString())
-		return errNotFoundViewBlock // 返回错误
+		return errNotFoundViewBlock
 	}
 	return nil
 }
