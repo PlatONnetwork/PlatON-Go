@@ -1,30 +1,34 @@
 package plugin
 
 import (
-	"errors"
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	gerr "github.com/go-errors/errors"
+	"sync"
 )
 
 type StakingPlugin struct {
 	skDB *StakingDB
+	once  sync.Once
 
 }
+
+
 
 var stk *StakingPlugin
 
 
+
 // Instance a global StakingPlugin
 func  StakingInstance (db interface{}) *StakingPlugin {
-
 	if nil == stk {
 		stk = &StakingPlugin{
 			skDB: NewStakingDB(db),
+
 		}
 	}
 	return stk
 }
+
+
 
 
 func (sk *StakingPlugin) BeginBlock (header *types.Header, state StateDB) (bool, error) {
@@ -45,17 +49,7 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 
 
 
-func (sk *StakingPlugin) Verify_tx_data(source [][]byte) (err error)  {
 
-	defer func() {
-		if errInr := recover(); nil != errInr {
-			err = errors.New(fmt.Sprintf("parse tx data is panic: %s, txHash: %s", gerr.Wrap(err, 2).ErrorStack()))
-		}
-	}()
-
-
-	return nil
-}
 
 
 func (sk *StakingPlugin) GetVal(state StateDB) {
