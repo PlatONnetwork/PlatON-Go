@@ -18,6 +18,7 @@ package miner
 
 import (
 	"bytes"
+	"encoding/hex"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math/big"
 	"sync"
@@ -1187,6 +1188,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 			log.Error("Failed to GenerateNonce", "err", err)
 			return
 		} else {
+			log.Info("Generate proof for the block", "parentNonce", hex.EncodeToString(parent.Nonce()), "newNonce", hex.EncodeToString(value))
 			nonce = value
 		}
 		//timestamp = time.Now().UnixNano() / 1e6

@@ -2254,11 +2254,13 @@ func (cbft *Cbft) CommitBlockBP(block *types.Block, txs int, gasUsed uint64, ela
 }
 
 func (cbft *Cbft) GenerateNonce(hash []byte) ([]byte, error) {
+	cbft.log.Debug("Generate proof based on input","hash", hex.EncodeToString(hash))
 	return vrf.Prove(cbft.config.PrivateKey, hash)
 }
 
 func (cbft *Cbft) VerifyVrf(block *types.Block) error {
 	// Verify VRF Proof
+	cbft.log.Debug("Verification block vrf prove", "blockNumber", block.NumberU64(), "hash", block.Hash().TerminalString(), "sealHash", block.Header().SealHash().TerminalString(), "prove", hex.EncodeToString(block.Nonce()))
 	sign := block.Extra()[len(block.Extra())-extraSeal:]
 	pk, err := crypto.SigToPub(block.Header().SealHash().Bytes(), sign)
 	if nil != err {
@@ -2271,14 +2273,15 @@ func (cbft *Cbft) VerifyVrf(block *types.Block) error {
 	if pext != nil {
 		parentNonce := pext.Nonce()
 		if value, err := vrf.Verify(pk, block.Nonce(), parentNonce); nil != err {
+			cbft.log.Error("Vrf proves verification failure", "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce), "err", err)
 			return err
 		} else if !value {
-			log.Error("Vrf proves verification failure", "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
+			cbft.log.Error("Vrf proves verification failure", "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
 			return errInvalidVrfProve // 返回错误
 		}
-		log.Info("Vrf proves successful verification", "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
+		cbft.log.Info("Vrf proves successful verification", "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
 	} else {
-		log.Error("Vrf proves verification failure, Cannot find parent block", "blockNumber", block.NumberU64(), "hash", block.Hash().TerminalString(), "parentHash", block.ParentHash().TerminalString())
+		cbft.log.Error("Vrf proves verification failure, Cannot find parent block", "blockNumber", block.NumberU64(), "hash", block.Hash().TerminalString(), "parentHash", block.ParentHash().TerminalString())
 		return errNotFoundViewBlock // 返回错误
 	}
 	return nil
