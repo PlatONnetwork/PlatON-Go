@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"math"
 	"math/big"
 	"sort"
@@ -856,6 +857,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.Gas() < intrGas {
 		return ErrIntrinsicGas
 	}
+
+
+	// TODO Verify inner contract tx
+	if _, ok := vm.PrecompiledContracts[from]; ok {
+
+	}
+
+
 	return nil
 }
 
