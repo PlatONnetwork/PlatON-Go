@@ -1,12 +1,17 @@
 package core
 
 import (
+	"bytes"
+	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/x/common"
+	xcommon "github.com/PlatONnetwork/PlatON-Go/x/common"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 )
 
@@ -24,6 +29,11 @@ type BlockChainReactor struct {
 	// Order rules for xxPlugins called in EndBlocker
 	endRule 		[]int
 }
+
+
+var (
+	DecodeTxDataErr = errors.New("decode tx data is err")
+)
 
 
 var bcr *BlockChainReactor
@@ -47,7 +57,7 @@ func New (mux *event.TypeMux) *BlockChainReactor {
 }
 
 // Getting the global bcr single instance
-func GetInstance () *BlockChainReactor {
+func GetReactorInstance () *BlockChainReactor {
 	return bcr
 }
 
@@ -77,7 +87,7 @@ func (brc *BlockChainReactor) loop () {
 			TODO flush the seed and the package ratio
 			 */
 
-			if plugin, ok := brc.basePluginMap[common.StakingRule]; ok {
+			if plugin, ok := brc.basePluginMap[xcommon.StakingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
@@ -115,7 +125,7 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 
 
 // Called before every block has not executed all txs
-func (bcr *BlockChainReactor) BeginBlocker (header *types.Header, state *state.StateDB) (bool, error) {
+func (bcr *BlockChainReactor) BeginBlocker (header *types.Header, state plugin.StateDB) (bool, error) {
 
 	for _, pluginName := range bcr.beginRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
@@ -128,7 +138,7 @@ func (bcr *BlockChainReactor) BeginBlocker (header *types.Header, state *state.S
 }
 
 // Called after every block had executed all txs
-func (bcr *BlockChainReactor) EndBlocker (header *types.Header, state *state.StateDB) (bool, error) {
+func (bcr *BlockChainReactor) EndBlocker (header *types.Header, state plugin.StateDB) (bool, error) {
 
 	for _, pluginName := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
@@ -141,3 +151,39 @@ func (bcr *BlockChainReactor) EndBlocker (header *types.Header, state *state.Sta
 }
 
 
+func (bcr *BlockChainReactor) Verify_tx (tx *types.Transaction, from common.Address) (err error) {
+
+	//if _, ok := vm.PrecompiledContracts[from]; !ok {
+	//	err = nil
+	//	return
+	//}
+
+	input := tx.Data()
+
+	var args [][]byte
+	if err := rlp.Decode(bytes.NewReader(input), &args); nil != err {
+		return DecodeTxDataErr
+	}
+
+	var plugin plugin.BasePlugin
+	switch from {
+	case vm.StakingContractAddr:
+		plugin = bcr.basePluginMap[xcommon.StakingRule]
+	case vm.LockRepoContractAddr:
+		plugin = bcr.basePluginMap[xcommon.LockrepoRule]
+	case vm.AwardMgrContractAddr:
+		plugin = bcr.basePluginMap[xcommon.AwardmgrRule]
+	case vm.SlashingContractAddr:
+		plugin = bcr.basePluginMap[xcommon.SlashingRule]
+	default:
+		return nil
+	}
+	err = plugin.Verify_tx_data(args)
+	return
+}
+
+
+func (bcr *BlockChainReactor) GetPlugin(pluginLabel int) plugin.StakingPlugin {
+	//return bcr.basePluginMap[pluginLabel]
+	return plugin.StakingPlugin{}
+}
