@@ -53,23 +53,25 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			return RunPrecompiledContract(p, input, contract)
 		}
 		if p := PrecompiledContracts[*contract.CodeAddr]; p != nil {
+			vic := &validatorInnerContract{
+				Contract: contract,
+				Evm:      evm,
+			}
+			return RunPrecompiledContract(vic, input, contract)
+		}
 
+		if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
 			switch p.(type) {
-			case *validatorInnerContract:
-				vic := &validatorInnerContract{
-					Contract: contract,
-					Evm:      evm,
-				}
-				return RunPrecompiledContract(vic, input, contract)
 			case *stakingContract:
 				staking := &stakingContract{
 					plugin:   plugin.StakingInstance(nil),
 					Contract: contract,
 					Evm:      evm,
 				}
-				return RunPrecompiledContract(staking, input, contract)
+				return RunPlatONPrecompiledContract(staking, input, contract)
 			}
 		}
+
 
 
 
@@ -213,7 +215,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {
 			precompiles = PrecompiledContractsByzantium
 		}
-		if precompiles[addr] == nil && PrecompiledContracts[addr] == nil && evm.ChainConfig().IsEIP158(evm.BlockNumber) && value.Sign() == 0 {
+		if precompiles[addr] == nil && PrecompiledContracts[addr] == nil && PlatONPrecompiledContracts[addr] == nil && evm.ChainConfig().IsEIP158(evm.BlockNumber) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
 				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)

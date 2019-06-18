@@ -1,11 +1,9 @@
 package core
 
 import (
-	"bytes"
-	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -31,9 +29,6 @@ type BlockChainReactor struct {
 }
 
 
-var (
-	DecodeTxDataErr = errors.New("decode tx data is err")
-)
 
 
 var bcr *BlockChainReactor
@@ -57,9 +52,9 @@ func New (mux *event.TypeMux) *BlockChainReactor {
 }
 
 // Getting the global bcr single instance
-func GetReactorInstance () *BlockChainReactor {
-	return bcr
-}
+//func GetReactorInstance () *BlockChainReactor {
+//	return bcr
+//}
 
 
 func (brc *BlockChainReactor) loop () {
@@ -153,37 +148,27 @@ func (bcr *BlockChainReactor) EndBlocker (header *types.Header, state plugin.Sta
 
 func (bcr *BlockChainReactor) Verify_tx (tx *types.Transaction, from common.Address) (err error) {
 
-	//if _, ok := vm.PrecompiledContracts[from]; !ok {
-	//	err = nil
-	//	return
-	//}
+	if _, ok := vm.PlatONPrecompiledContracts[from]; !ok {
+		return nil
+	}
 
 	input := tx.Data()
 
-	var args [][]byte
-	if err := rlp.Decode(bytes.NewReader(input), &args); nil != err {
-		return DecodeTxDataErr
-	}
-
-	var plugin plugin.BasePlugin
+	var contract vm.PlatONPrecompiledContract
 	switch from {
-	case vm.StakingContractAddr:
-		plugin = bcr.basePluginMap[xcommon.StakingRule]
-	case vm.LockRepoContractAddr:
-		plugin = bcr.basePluginMap[xcommon.LockrepoRule]
-	case vm.AwardMgrContractAddr:
-		plugin = bcr.basePluginMap[xcommon.AwardmgrRule]
-	case vm.SlashingContractAddr:
-		plugin = bcr.basePluginMap[xcommon.SlashingRule]
+	case cvm.StakingContractAddr:
+		contract = vm.PlatONPrecompiledContracts[cvm.StakingContractAddr]
+	case cvm.LockRepoContractAddr:
+		// TODO
+	case cvm.AwardMgrContractAddr:
+		// TODO
+	case cvm.SlashingContractAddr:
+		// TODO
 	default:
 		return nil
 	}
-	err = plugin.Verify_tx_data(args)
+	_, _, err = plugin.Verify_tx_data(input, contract.FnSigns())
 	return
 }
 
 
-func (bcr *BlockChainReactor) GetPlugin(pluginLabel int) plugin.StakingPlugin {
-	//return bcr.basePluginMap[pluginLabel]
-	return plugin.StakingPlugin{}
-}

@@ -2,10 +2,10 @@ package vm
 
 import (
 	"errors"
-	xcommon "github.com/PlatONnetwork/PlatON-Go/x/common"
-	xcore "github.com/PlatONnetwork/PlatON-Go/x/core"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"reflect"
 )
+
 
 
 
@@ -16,13 +16,11 @@ type stakingContract struct {
 }
 
 
-
-
-
-
 var (
 	DecodeStakingTxDataErr = errors.New("decode staking tx data is err")
 )
+
+
 
 
 func (stkc *stakingContract) RequiredGas(input []byte) uint64 {
@@ -30,24 +28,40 @@ func (stkc *stakingContract) RequiredGas(input []byte) uint64 {
 }
 
 func (stkc *stakingContract) Run(input []byte) ([]byte, error) {
+	return stkc.execute(input)
+}
 
-	reactor := xcore.GetReactorInstance()
-	plugin := reactor.GetPlugin(xcommon.SlashingRule)
-	plugin.GetVal(stkc.Evm.StateDB)
+func (stkc *stakingContract) FnSigns () map[uint16]interface{} {
+	return map[uint16]interface{}{
+		1000: stkc.CreateCandidate,
+		1001: stkc.EditorCandidate,
+	}
+}
+
+
+func (stkc *stakingContract) execute (input []byte) (ret []byte, err error) {
+
+	// verify the tx data by contracts method
+	fn, params, err := plugin.Verify_tx_data(input, stkc.FnSigns())
+	if nil != err {
+		return nil, err
+	}
+
+	// execute contracts method
+	result := reflect.ValueOf(fn).Call(params)
+	if _, err := result[1].Interface().(error); !err {
+		return result[0].Bytes(), nil
+	}
 	return nil, nil
 }
 
-//func execute (input []byte) (ret []byte, err error) {
-//
-//	var args [][]byte
-//	if err := rlp.Decode(bytes.NewReader(input), &args); nil != err {
-//		err = DecodeStakingTxDataErr
-//		return
-//	}
-//
-//
-//
-//	return nil, nil
-//}
 
 
+func (stkc *stakingContract) CreateCandidate(name string){
+
+}
+
+
+func (stkc *stakingContract) EditorCandidate () {
+
+}

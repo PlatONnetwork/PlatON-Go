@@ -17,8 +17,9 @@ var Command = map[string]interface{}{
 	"[32]uint8":         BytesTo32Bytes,
 	"int":               BytesToInt,
 	"*big.Int":          BytesToBigInt,
-	"uint32":            BytesTouint32,
-	"uint64":            BytesTouint64,
+	"uint16":			 BytesToUint16,
+	"uint32":            BytesToUint32,
+	"uint64":            BytesToUint64,
 	"int32":             common.BytesToInt32,
 	"int64":             common.BytesToInt64,
 	"float32":           common.BytesToFloat32,
@@ -118,16 +119,28 @@ func Uint32ToBytes(val uint32) []byte {
 	return buf[:]
 }
 
+func Uint16ToBytes(val uint16) []byte {
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, val)
+	return buf[:]
+}
+
+
 func HexToAddress(b []byte) common.Address {
 	return common.HexToAddress(string(b))
 }
 
-func BytesTouint32(b []byte) uint32 {
+func BytesToUint16 (b []byte) uint16 {
+	b = append(make([]byte, 2-len(b)), b...)
+	return binary.BigEndian.Uint16(b)
+}
+
+func BytesToUint32(b []byte) uint32 {
 	b = append(make([]byte, 4-len(b)), b...)
 	return binary.BigEndian.Uint32(b)
 }
 
-func BytesTouint64(b []byte) uint64 {
+func BytesToUint64(b []byte) uint64 {
 	b = append(make([]byte, 8-len(b)), b...)
 	return binary.BigEndian.Uint64(b)
 }
