@@ -43,11 +43,7 @@ var (
 	hashT    = reflect.TypeOf(Hash{})
 	addressT = reflect.TypeOf(Address{})
 
-
-
-	RewardPoolAddr    = HexToAddress("0x1000000000000000000000000000000000000000")
-	CandidatePoolAddr = HexToAddress("0x1000000000000000000000000000000000000001")
-	TicketPoolAddr    = HexToAddress("0x1000000000000000000000000000000000000002")
+	ZeroHash 		  = HexToHash(Hash{}.String())
 	ZeroAddr          = HexToAddress(Address{}.String())
 )
 

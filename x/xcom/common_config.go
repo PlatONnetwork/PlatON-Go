@@ -1,4 +1,4 @@
-package common
+package xcom
 
 
 // plugin rule key

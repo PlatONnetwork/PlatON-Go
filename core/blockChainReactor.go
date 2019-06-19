@@ -9,8 +9,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	xcommon "github.com/PlatONnetwork/PlatON-Go/x/common"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 type BlockChainReactor struct {
@@ -82,7 +82,7 @@ func (brc *BlockChainReactor) loop () {
 			TODO flush the seed and the package ratio
 			 */
 
-			if plugin, ok := brc.basePluginMap[xcommon.StakingRule]; ok {
+			if plugin, ok := brc.basePluginMap[xcom.StakingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
@@ -120,7 +120,7 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 
 
 // Called before every block has not executed all txs
-func (bcr *BlockChainReactor) BeginBlocker (header *types.Header, state plugin.StateDB) (bool, error) {
+func (bcr *BlockChainReactor) BeginBlocker (header *types.Header, state xcom.StateDB) (bool, error) {
 
 	for _, pluginName := range bcr.beginRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
@@ -133,7 +133,7 @@ func (bcr *BlockChainReactor) BeginBlocker (header *types.Header, state plugin.S
 }
 
 // Called after every block had executed all txs
-func (bcr *BlockChainReactor) EndBlocker (header *types.Header, state plugin.StateDB) (bool, error) {
+func (bcr *BlockChainReactor) EndBlocker (header *types.Header, state xcom.StateDB) (bool, error) {
 
 	for _, pluginName := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {

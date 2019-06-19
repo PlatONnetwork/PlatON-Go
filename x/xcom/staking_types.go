@@ -1,4 +1,4 @@
-package common
+package xcom
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -39,7 +39,7 @@ type Candidate struct {
 	Status 			uint32
 
 	// Node desc
-	*Description
+	Description
 }
 
 
