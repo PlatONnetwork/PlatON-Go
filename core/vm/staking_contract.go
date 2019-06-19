@@ -9,7 +9,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/common"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"reflect"
 )
@@ -105,7 +105,7 @@ func (stkc *stakingContract) CreateCandidate (typ uint16, benifitAddress common.
 	}
 
 	if nil != can {
-		res := common.Result{false, "", CanHasExistErr.Error()}
+		res := xcom.Result{false, "", CanHasExistErr.Error()}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateCandidateEvent, string(event))
 		return nil, nil
@@ -127,10 +127,10 @@ func (stkc *stakingContract) EditorCandidate (typ, amountType uint16, benifitAdd
 
 
 
-	state := stkc.Evm.StateDB
-
-
-	stkc.plugin.GetVal(state)
+	//state := stkc.Evm.StateDB
+	//
+	//
+	//stkc.plugin.GetVal(state)
 
 }
 
@@ -178,13 +178,13 @@ func (stkc *stakingContract) GetCandidateInfo (nodeId discover.NodeID) {
 }
 
 
-func (stkc *stakingContract) goodLog(state plugin.StateDB, blockNumber uint64, txHash, eventType, eventData string){
-	common.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
+func (stkc *stakingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData string){
+	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
 	log.Info("Successed to CreateCandidate", "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
 }
 
-func (stkc *stakingContract) badLog(state plugin.StateDB, blockNumber uint64, txHash, eventType, eventData string){
-	common.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
+func (stkc *stakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData string){
+	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
 	log.Error("Failed to CreateCandidate", "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
 }
 

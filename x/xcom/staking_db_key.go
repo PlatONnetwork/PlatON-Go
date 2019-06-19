@@ -59,6 +59,6 @@ var (
 //////// TODO
 
 func CandidateKey(nodeId discover.NodeID) []byte {
-	return append(xcom.CandidateKeyPrefix, nodeId.Bytes()...)
+	return append(CandidateKeyPrefix, nodeId.Bytes()...)
 }
 
