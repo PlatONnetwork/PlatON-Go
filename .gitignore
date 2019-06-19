@@ -62,5 +62,3 @@ life/resolver/builtins/build/
 mpc.rlp
 
 consensus/cbft/data/
-
-core/ppos_storage/data/

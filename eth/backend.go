@@ -49,6 +49,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 type LesServer interface {
@@ -239,6 +241,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		gpoParams.Default = config.MinerGasPrice
 	}
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
+
+
+	// TODO init reactor
+	reactor := core.New(eth.EventMux())
+	handlePlugin(reactor, nil)
 
 	return eth, nil
 }
@@ -588,4 +595,8 @@ func (s *Ethereum) Stop() error {
 	s.chainDb.Close()
 	close(s.shutdownChan)
 	return nil
+}
+// TODO RegisterPlugin one by one
+func handlePlugin (reactor *core.BlockChainReactor, db interface{}) {
+	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance(db))
 }

@@ -44,6 +44,12 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 	} else {
 		beneficiary = *author
 	}
+
+	currentHash := common.ZeroHash
+	if header.Root != common.ZeroHash && header.TxHash != common.ZeroHash && header.ReceiptHash != common.ZeroHash {
+		currentHash =  header.Hash()
+	}
+
 	return vm.Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
@@ -55,6 +61,8 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		//Difficulty:  new(big.Int).Set(header.Difficulty),
 		GasLimit:    header.GasLimit,
 		GasPrice:    new(big.Int).Set(msg.GasPrice()),
+
+		CurrentBlockHash: currentHash,
 	}
 }
 

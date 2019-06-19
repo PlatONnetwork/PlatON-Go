@@ -19,6 +19,7 @@ package vm
 import (
 	"crypto/sha256"
 	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -35,6 +36,11 @@ import (
 type PrecompiledContract interface {
 	RequiredGas(input []byte) uint64  // RequiredPrice calculates the contract gas use
 	Run(input []byte) ([]byte, error) // Run runs the precompiled contract
+}
+
+type PlatONPrecompiledContract interface {
+	PrecompiledContract
+	FnSigns() map[uint16]interface{}  // Return PlatON PrecompiledContract methods signs
 }
 
 // PrecompiledContractsHomestead contains the default set of pre-compiled Ethereum
@@ -59,14 +65,27 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{8}): &bn256Pairing{},
 }
 
-var ValidatorInnerContractAddr = common.HexToAddress("0x2000000000000000000000000000000000000000")
 
-var PrecompiledContractsValidator = map[common.Address]PrecompiledContract{
-	ValidatorInnerContractAddr: &validatorInnerContract{},
+
+var PrecompiledContracts = map[common.Address]PrecompiledContract{
+	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
+}
+
+// add by economic model
+var PlatONPrecompiledContracts = map[common.Address]PlatONPrecompiledContract{
+	vm.StakingContractAddr: &stakingContract{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
 func RunPrecompiledContract(p PrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
+	gas := p.RequiredGas(input)
+	if contract.UseGas(gas) {
+		return p.Run(input)
+	}
+	return nil, ErrOutOfGas
+}
+
+func RunPlatONPrecompiledContract(p PlatONPrecompiledContract, input []byte, contract *Contract) (ret []byte, err error) {
 	gas := p.RequiredGas(input)
 	if contract.UseGas(gas) {
 		return p.Run(input)

@@ -58,17 +58,6 @@ func (ctx *ServiceContext) OpenDatabase(name string, cache int, handles int) (et
 	}
 	return db, nil
 }
-// storage ppos data
-func (ctx *ServiceContext) OpenPPosDatabase (name string) (ethdb.Database, error) {
-	if ctx.config.DataDir == "" {
-		return ethdb.NewMemDatabase(), nil
-	}
-	db, err := ethdb.NewPPosDatabase(ctx.config.ResolvePath(name))
-	if err != nil {
-		return nil, err
-	}
-	return db, nil
-}
 
 // ResolvePath resolves a user path into the data directory if that was relative
 // and if the user actually uses persistent storage. It will return an empty string

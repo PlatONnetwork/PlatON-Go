@@ -18,7 +18,6 @@
 package types
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 	"math/big"
@@ -40,18 +39,13 @@ var (
 // A BlockNonce is a 64-bit hash which proves (combined with the
 // mix-hash) that a sufficient amount of computation has been carried
 // out on a block.
-type BlockNonce [8]byte
+type BlockNonce [81]byte
 
 // EncodeNonce converts the given integer to a block nonce.
-func EncodeNonce(i uint64) BlockNonce {
+func EncodeNonce(v []byte) BlockNonce {
 	var n BlockNonce
-	binary.BigEndian.PutUint64(n[:], i)
+	copy(n[:], v)
 	return n
-}
-
-// Uint64 returns the integer value of a block nonce.
-func (n BlockNonce) Uint64() uint64 {
-	return binary.BigEndian.Uint64(n[:])
 }
 
 // MarshalText encodes n as a hex string with 0x prefix.
@@ -301,7 +295,7 @@ func (b *Block) Time() *big.Int                { return new(big.Int).Set(b.heade
 
 func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
 func (b *Block) MixDigest() common.Hash   { return b.header.MixDigest }
-func (b *Block) Nonce() uint64            { return binary.BigEndian.Uint64(b.header.Nonce[:]) }
+func (b *Block) Nonce() []byte            { return b.header.Nonce[:] }
 func (b *Block) Bloom() Bloom             { return b.header.Bloom }
 func (b *Block) Coinbase() common.Address { return b.header.Coinbase }
 func (b *Block) Root() common.Hash        { return b.header.Root }

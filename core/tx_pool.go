@@ -856,6 +856,12 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.Gas() < intrGas {
 		return ErrIntrinsicGas
 	}
+
+
+	// TODO Verify inner contract tx
+	bcr.Verify_tx(tx, from)
+
+
 	return nil
 }
 
