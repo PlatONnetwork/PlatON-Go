@@ -49,8 +49,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	xcommon "github.com/PlatONnetwork/PlatON-Go/x/common"
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 type LesServer interface {
@@ -598,5 +598,5 @@ func (s *Ethereum) Stop() error {
 }
 // TODO RegisterPlugin one by one
 func handlePlugin (reactor *core.BlockChainReactor, db interface{}) {
-	reactor.RegisterPlugin(xcommon.StakingRule, xplugin.StakingInstance(db))
+	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance(db))
 }
