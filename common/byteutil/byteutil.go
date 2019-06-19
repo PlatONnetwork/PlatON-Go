@@ -107,9 +107,9 @@ func IntToBytes(curInt int) []byte {
 	return bytesBuffer.Bytes()
 }
 
-func Uint64ToBytes(val uint64) []byte {
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, val)
+func Uint16ToBytes(val uint16) []byte {
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, val)
 	return buf[:]
 }
 
@@ -119,12 +119,11 @@ func Uint32ToBytes(val uint32) []byte {
 	return buf[:]
 }
 
-func Uint16ToBytes(val uint16) []byte {
-	buf := make([]byte, 2)
-	binary.BigEndian.PutUint16(buf, val)
+func Uint64ToBytes(val uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, val)
 	return buf[:]
 }
-
 
 func HexToAddress(b []byte) common.Address {
 	return common.HexToAddress(string(b))

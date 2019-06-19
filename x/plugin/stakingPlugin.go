@@ -1,7 +1,11 @@
 package plugin
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	xcom "github.com/PlatONnetwork/PlatON-Go/x/common"
 	"sync"
 )
 
@@ -52,6 +56,29 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 
 
 
-func (sk *StakingPlugin) GetVal(state StateDB) {
-	
+func (sk *StakingPlugin) GetCandidateInfo(state StateDB, blockHash common.Hash,  nodeId discover.NodeID) (*xcom.Candidate, error) {
+
+	canByte, err := sk.skDB.Get(blockHash, xcom.CandidateKey(nodeId))
+	if nil != err {
+		return nil, err
+	}
+
+	var can xcom.Candidate
+
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+
+	return &can, nil
 }
+
+func (sk *StakingPlugin) CreateCandidate(can *xcom.Candidate) (bool, error) {
+
+
+
+
+	return false, nil
+}
+
+
+
