@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/algorithm/vrf"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -2255,7 +2255,7 @@ func (cbft *Cbft) CommitBlockBP(block *types.Block, txs int, gasUsed uint64, ela
 
 func (cbft *Cbft) GenerateNonce(hash []byte) ([]byte, error) {
 	cbft.log.Debug("Generate proof based on input","hash", hex.EncodeToString(hash))
-	return vrf.Prove(cbft.config.PrivateKey, hash)
+	return vrf.Prove(cbft.config.PrivateKey, vrf.ProofToHash(hash))
 }
 
 func (cbft *Cbft) VerifyVrf(block *types.Block) error {
@@ -2271,7 +2271,7 @@ func (cbft *Cbft) VerifyVrf(block *types.Block) error {
 		pext = cbft.blockChain.GetBlockByHash(block.ParentHash())
 	}
 	if pext != nil {
-		parentNonce := pext.Nonce()
+		parentNonce := vrf.ProofToHash(pext.Nonce())
 		if value, err := vrf.Verify(pk, block.Nonce(), parentNonce); nil != err {
 			cbft.log.Error("Vrf proves verification failure", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce), "err", err)
 			return err
