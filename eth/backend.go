@@ -206,6 +206,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
+
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
 			cbftEngine.SetBreakpoint(config.CbftConfig.BreakpointType)
@@ -222,6 +223,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 				blocksPerNode := int(int64(chainConfig.Cbft.Duration) / int64(chainConfig.Cbft.Period))
 				offset := blocksPerNode * 2
 				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
+			} else if chainConfig.Cbft.ValidatorMode == "ppos" {
+				// TODO init reactor
+				reactor := core.NewBlockChainReactor(eth.EventMux())
+				handlePlugin(reactor, nil)
+				agency = reactor
 			}
 
 			if err := cbftEngine.Start(eth.blockchain, eth.txPool, agency); err != nil {
@@ -243,9 +249,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
 
 
-	// TODO init reactor
-	reactor := core.New(eth.EventMux())
-	handlePlugin(reactor, nil)
+
 
 	return eth, nil
 }
@@ -597,6 +601,6 @@ func (s *Ethereum) Stop() error {
 	return nil
 }
 // TODO RegisterPlugin one by one
-func handlePlugin (reactor *core.BlockChainReactor, db interface{}) {
+func handlePlugin (reactor *core.BlockChainReactor, db xcom.SnapshotDB) {
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance(db))
 }

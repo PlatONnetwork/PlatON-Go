@@ -2,8 +2,6 @@ package vm
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -14,38 +12,35 @@ import (
 	"reflect"
 )
 
+const (
+	QueryCanErrStr         = "query candidate info err"
+	CanAlreadyExistsErrStr = "this candidate is already exists"
+	CanNotExistErrStr      = "this candidate is not exist"
+	CreateCanErrStr        = "create candidate failed"
+
+	CanStatusInvalidErrStr = "this candidate status was invalided"
+	StakingAddrNoSomeErrStr = "address must be the same as initiated staking"
+	EditCanErrStr 			= "edit candidate failed"
 
 
+	StakeVonToLowStr = "Staking deposit too low"
 
-
-
-var (
-	QueryCanErr = errors.New("query candidate info err")
-	CanHasExistErr = errors.New("this candidate is exist")
-	CreateCanErr = errors.New("create candidate err")
-	CreateCanFailed = errors.New("create candidate failed")
 )
 
 const (
-	CreateCandidateEvent       	= "1000"
-	EditorCandidateEvent 		= "1001"
-	WithdrewCandidateEvent      = "1002"
-	DelegateEvent     			= "1003"
-	WithdrewDelegateEvent 		= "1004"
-
+	CreateCandidateEvent   = "1000"
+	EditorCandidateEvent   = "1001"
+	WithdrewCandidateEvent = "1002"
+	DelegateEvent          = "1003"
+	WithdrewDelegateEvent  = "1004"
 )
 
-
-const (
-
-)
 
 type stakingContract struct {
-	plugin 		*plugin.StakingPlugin
-	Contract 	*Contract
-	Evm      	*EVM
+	plugin   *plugin.StakingPlugin
+	Contract *Contract
+	Evm      *EVM
 }
-
 
 func (stkc *stakingContract) RequiredGas(input []byte) uint64 {
 	return 0
@@ -55,27 +50,26 @@ func (stkc *stakingContract) Run(input []byte) ([]byte, error) {
 	return stkc.execute(input)
 }
 
-func (stkc *stakingContract) FnSigns () map[uint16]interface{} {
+func (stkc *stakingContract) FnSigns() map[uint16]interface{} {
 	return map[uint16]interface{}{
 		// Set
-		1000: stkc.CreateCandidate,
-		1001: stkc.EditorCandidate,
-		1002: stkc.WithdrewCandidate,
-		1003: stkc.Delegate,
-		1004: stkc.WithdrewDelegate,
+		1000: stkc.createCandidate,
+		1001: stkc.editorCandidate,
+		1002: stkc.withdrewCandidate,
+		1003: stkc.delegate,
+		1004: stkc.withdrewDelegate,
 
 		// Get
-		2000: stkc.GetVerifierList,
-		2001: stkc.GetValidatorList,
-		2002: stkc.GetCandidateList,
-		2003: stkc.GetDelegateListByAddr,
-		2004: stkc.GetDelegateInfo,
-		2005: stkc.GetCandidateInfo,
+		2000: stkc.getVerifierList,
+		2001: stkc.getValidatorList,
+		2002: stkc.getCandidateList,
+		2003: stkc.getDelegateListByAddr,
+		2004: stkc.getDelegateInfo,
+		2005: stkc.getCandidateInfo,
 	}
 }
 
-
-func (stkc *stakingContract) execute (input []byte) (ret []byte, err error) {
+func (stkc *stakingContract) execute(input []byte) (ret []byte, err error) {
 
 	// verify the tx data by contracts method
 	fn, params, err := plugin.Verify_tx_data(input, stkc.FnSigns())
@@ -91,9 +85,7 @@ func (stkc *stakingContract) execute (input []byte) (ret []byte, err error) {
 	return nil, result[1].Interface().(error)
 }
 
-
-
-func (stkc *stakingContract) CreateCandidate (typ uint16, benifitAddress common.Address, nodeId discover.NodeID, externalId, nodeName, website, details string, amount *big.Int) ([]byte, error) {
+func (stkc *stakingContract) createCandidate(typ uint16, benifitAddress common.Address, nodeId discover.NodeID, externalId, nodeName, website, details string, amount *big.Int) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
@@ -104,136 +96,220 @@ func (stkc *stakingContract) CreateCandidate (typ uint16, benifitAddress common.
 
 	state := stkc.Evm.StateDB
 
-	log.Info("Call CreateCandidate of stakingContract", "txHash", txHash.Hex(), "blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
+	log.Info("Call createCandidate of stakingContract", "txHash", txHash.Hex(), "blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
 
 	canOld, err := stkc.plugin.GetCandidateInfo(currentHash, nodeId)
 	if nil != err {
-		er := fmt.Errorf("Failed to CreateCandidate the reason is %s : %s", QueryCanErr.Error(), err.Error())
-		log.Error(er.Error(), "txHash", txHash.Hex(), "blockNumber", blockNumber.Uint64())
-		return nil, er
+		res := xcom.Result{false, "", QueryCanErrStr + ":" + err.Error()}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateCandidateEvent, string(event), "createCandidate")
+		return nil, nil
 	}
 
 	if nil != canOld {
-		res := xcom.Result{false, "", CanHasExistErr.Error()}
+		res := xcom.Result{false, "", CanAlreadyExistsErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateCandidateEvent, string(event))
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateCandidateEvent, string(event), "createCandidate")
+		return nil, nil
+	}
+
+	if !plugin.CheckStakeThreshold(amount) {
+		res := xcom.Result{false, "", StakeVonToLowStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateCandidateEvent, string(event), "createCandidate")
 		return nil, nil
 	}
 
 
-
-	// init candidate info
+	/**
+	init candidate info
+	*/
 	canTmp := &xcom.Candidate{
-		NodeId:  			nodeId,
-		StakingAddress:		from,
-		BenifitAddress:   	benifitAddress,
-		StakingBlockNum:    blockNumber.Uint64(),
-		StakingTxIndex:     txIndex,
-		Shares:				amount,
+		NodeId:          nodeId,
+		StakingAddress:  from,
+		BenifitAddress:  benifitAddress,
+		StakingBlockNum: blockNumber.Uint64(),
+		StakingTxIndex:  txIndex,
+		Shares:          amount,
 
-		Description: 		xcom.Description{
-								NodeName: 	nodeName,
-								ExternalId: externalId,
-								Website: 	website,
-								Details: 	details,
-							},
+		Description: xcom.Description{
+			NodeName:   nodeName,
+			ExternalId: externalId,
+			Website:    website,
+			Details:    details,
+		},
 	}
 
-	if typ == 0 {
+	if typ == plugin.FreeOrigin {
 		canTmp.ReleasedTmp = amount
-	}else if typ == 1 {
+	} else if typ == plugin.LockRepoOrigin {
 		canTmp.LockRepoTmp = amount
 	}
 
-	success, err := stkc.plugin.CreateCandidate(state, currentHash, typ, canTmp)
+	err = stkc.plugin.CreateCandidate(state, currentHash, blockNumber, typ, canTmp)
 	if nil != err {
-		res := xcom.Result{false, "", CreateCanErr.Error() + ":" + err.Error()}
+		res := xcom.Result{false, "", CreateCanErrStr + ":" + err.Error()}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateCandidateEvent, string(event))
-		return nil, nil
-	}
-	if !success {
-		res := xcom.Result{false, "", CreateCanFailed.Error()}
-		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateCandidateEvent, string(event))
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateCandidateEvent, string(event), "createCandidate")
 		return nil, nil
 	}
 
 	res := xcom.Result{true, "", ""}
 	event, _ := json.Marshal(res)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash.Hex(), CreateCandidateEvent, string(event))
+	stkc.goodLog(state, blockNumber.Uint64(), txHash.Hex(), CreateCandidateEvent, string(event), "createCandidate")
+	return nil, nil
+}
+
+func (stkc *stakingContract) editorCandidate(typ uint16, benifitAddress common.Address, nodeId discover.NodeID, externalId, nodeName, website, details string, amount *big.Int) ([]byte, error) {
+
+	txHash := stkc.Evm.StateDB.TxHash()
+	blockNumber := stkc.Evm.BlockNumber
+	currentHash := stkc.Evm.CurrentBlockHash
+
+	from := stkc.Contract.CallerAddress
+
+	state := stkc.Evm.StateDB
+
+	log.Info("Call editorCandidate of stakingContract", "txHash", txHash.Hex(), "blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
+
+	canOld, err := stkc.plugin.GetCandidateInfo(currentHash, nodeId)
+	if nil != err {
+		res := xcom.Result{false, "", QueryCanErrStr + ":" + err.Error()}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
+		return nil, nil
+	}
+
+	if nil == canOld {
+		res := xcom.Result{false, "", CanNotExistErrStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
+		return nil, nil
+	}
+
+	if !xcom.IsCan_Valid(canOld.Status) {
+		res := xcom.Result{false, "", CanStatusInvalidErrStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
+		return nil, nil
+	}
+
+	if from != canOld.StakingAddress {
+		res := xcom.Result{false, "", StakingAddrNoSomeErrStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
+		return nil, nil
+	}
+
+
+	canOld.BenifitAddress = benifitAddress
+
+	canOld.NodeName = nodeName
+	canOld.ExternalId = externalId
+	canOld.Website = website
+	canOld.Details = details
+
+
+	err = stkc.plugin.EditorCandidate(state, currentHash, blockNumber, canOld, typ, amount)
+
+	if nil != err {
+		res := xcom.Result{false, "", EditCanErrStr + ":" + err.Error()}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
+		return nil, nil
+	}
+	res := xcom.Result{true, "", ""}
+	event, _ := json.Marshal(res)
+	stkc.goodLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
 	return nil, nil
 }
 
 
-func (stkc *stakingContract) EditorCandidate (typ, amountType uint16, benifitAddress common.Address, nodeId discover.NodeID, externalId, nodeName, website, details string, amount *big.Int) {
-	//deposit := stkc.Contract.value
-	//txHash := stkc.Evm.StateDB.TxHash()
-	//txindex := stkc.Evm.StateDB.TxIdx()
-	//blockNumber := stkc.Evm.Context.BlockNumber
+func (stkc *stakingContract) withdrewCandidate(nodeId discover.NodeID)  ([]byte, error) {
+	txHash := stkc.Evm.StateDB.TxHash()
+	blockNumber := stkc.Evm.BlockNumber
+	currentHash := stkc.Evm.CurrentBlockHash
+
+	from := stkc.Contract.CallerAddress
+
+	state := stkc.Evm.StateDB
+
+	log.Info("Call withdrewCandidate of stakingContract", "txHash", txHash.Hex(), "blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
+
+	canOld, err := stkc.plugin.GetCandidateInfo(currentHash, nodeId)
+	if nil != err {
+		res := xcom.Result{false, "", QueryCanErrStr + ":" + err.Error()}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent, string(event), "withdrewCandidate")
+		return nil, nil
+	}
+
+	if nil == canOld {
+		res := xcom.Result{false, "", CanNotExistErrStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent, string(event), "withdrewCandidate")
+		return nil, nil
+	}
+
+	if !xcom.IsCan_Valid(canOld.Status) {
+		res := xcom.Result{false, "", CanStatusInvalidErrStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent, string(event), "withdrewCandidate")
+		return nil, nil
+	}
+
+	if from != canOld.StakingAddress {
+		res := xcom.Result{false, "", StakingAddrNoSomeErrStr}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent, string(event), "withdrewCandidate")
+		return nil, nil
+	}
 
 
 
-	//state := stkc.Evm.StateDB
-	//
-	//
-	//stkc.plugin.GetVal(state)
+
 
 }
 
-
-func (stkc *stakingContract) WithdrewCandidate (nodeId discover.NodeID) {
-	//txHash := stkc.Evm.StateDB.TxHash()
-	//txindex := stkc.Evm.StateDB.TxIdx()
-	//blockNumber := stkc.Evm.Context.BlockNumber
+func (stkc *stakingContract) delegate(typ uint16, stakingBlockNum uint64, nodeId discover.NodeID, amout *big.Int) {
 
 }
 
-
-func (stkc *stakingContract) Delegate (typ uint16, stakingBlockNum uint64, nodeId discover.NodeID, amout *big.Int) {
-
-}
-
-func (stkc *stakingContract) WithdrewDelegate (stakingBlockNum uint64, nodeId discover.NodeID, amout *big.Int)  {
+func (stkc *stakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId discover.NodeID, amout *big.Int) {
 
 }
 
-
-func (stkc *stakingContract) GetVerifierList () {
-
-}
-
-func (stkc *stakingContract) GetValidatorList () {
+func (stkc *stakingContract) getVerifierList() {
 
 }
 
-func (stkc *stakingContract) GetCandidateList () {
+func (stkc *stakingContract) getValidatorList() {
+
+}
+
+func (stkc *stakingContract) getCandidateList() {
 
 }
 
 // todo Maybe will implement
-func (stkc *stakingContract) GetDelegateListByAddr (addr common.Address) {
+func (stkc *stakingContract) getDelegateListByAddr(addr common.Address) {
 
 }
 
-func (stkc *stakingContract) GetDelegateInfo (stakingBlockNum uint64, addr common.Address, nodeId discover.NodeID) {
+func (stkc *stakingContract) getDelegateInfo(stakingBlockNum uint64, addr common.Address, nodeId discover.NodeID) {
 
 }
 
-func (stkc *stakingContract) GetCandidateInfo (nodeId discover.NodeID) {
+func (stkc *stakingContract) getCandidateInfo(nodeId discover.NodeID) {
 
 }
 
-
-func (stkc *stakingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData string){
+func (stkc *stakingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
 	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
-	log.Info("Successed to CreateCandidate", "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
+	log.Info("Successed to " + callFn, "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
 }
 
-func (stkc *stakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData string){
+func (stkc *stakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
 	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
-	log.Error("Failed to CreateCandidate", "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
+	log.Error("Failed to " + callFn, "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
 }
-
-
-

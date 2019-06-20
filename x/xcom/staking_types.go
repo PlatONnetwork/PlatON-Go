@@ -87,7 +87,7 @@ type Candidate struct {
 	LockRepoTmp *big.Int
 	// Positive and negative signs:
 	// Is it an increase or a decrease? 0: increase; 1: decrease
-	Signs uint8
+	Mark uint8
 
 	// The candiate status
 	Status uint32
@@ -138,7 +138,7 @@ type Delegation struct {
 
 	// Positive and negative signs:
 	// Is it an increase or a decrease? 0: increase; 1: decrease
-	Signs uint8
+	Mark uint8
 
 	// The delegate vons  is circulating for effective epoch (in effect)
 	Released *big.Int
