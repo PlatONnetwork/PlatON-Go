@@ -42,7 +42,7 @@ type journalHeader struct {
 	From        string
 }
 
-func (s *SnapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash common.Hash, comeFrom string) error {
+func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash common.Hash, comeFrom string) error {
 	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Int64(), BlockHash: hash}
 	file, err := s.storage.Create(fd)
 	if err != nil {
@@ -71,7 +71,7 @@ func (s *SnapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash c
 	return nil
 }
 
-func (s *SnapshotDB) writeJournalBody(hash common.Hash, value []byte) error {
+func (s *snapshotDB) writeJournalBody(hash common.Hash, value []byte) error {
 	var jw *jo.Writer
 	var ok bool
 	jw, ok = s.journalw[hash]
@@ -89,7 +89,7 @@ func (s *SnapshotDB) writeJournalBody(hash common.Hash, value []byte) error {
 	return nil
 }
 
-func (s *SnapshotDB) rmJournalFile(blockNumber *big.Int, hash common.Hash) error {
+func (s *snapshotDB) rmJournalFile(blockNumber *big.Int, hash common.Hash) error {
 	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Int64(), BlockHash: hash}
 	return s.storage.Remove(fd)
 }

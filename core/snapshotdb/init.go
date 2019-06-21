@@ -16,7 +16,7 @@ const (
 func init() {
 	if flag.Lookup("test.v") == nil {
 		if findCurrent(DBPath) {
-			db := new(SnapshotDB)
+			db := new(snapshotDB)
 			if err := db.recover(DBPath); err != nil {
 				panic(err)
 			}

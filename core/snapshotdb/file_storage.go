@@ -228,8 +228,8 @@ type fileWrap struct {
 	closed bool
 }
 
-func (f *fileWrap) Flush() error {
-	log.Printf("write to %s", f.fd.String())
+func (fw *fileWrap) Flush() error {
+	log.Printf("write to %s", fw.fd.String())
 	return nil
 }
 
@@ -248,7 +248,7 @@ func (fw *fileWrap) Close() error {
 	return err
 }
 
-func OpenFile(path string, readOnly bool) (Storage, error) {
+func openFile(path string, readOnly bool) (Storage, error) {
 	if fi, err := os.Stat(path); err == nil {
 		if !fi.IsDir() {
 			return nil, fmt.Errorf("leveldb/storage: open %s: not a directory", path)

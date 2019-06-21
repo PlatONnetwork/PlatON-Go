@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	CURRENT = "CURRENT"
-	KVLIMIT = 2000
+	kvLIMIT = 2000
 )
 
+//DB the main snapshotdb interface
 type DB interface {
 	Put(hash *common.Hash, key, value []byte) (bool, error)
 	NewBlock(blockNumber *big.Int, parentHash common.Hash, hash *common.Hash) (bool, error)
@@ -40,14 +40,14 @@ type DB interface {
 	Compaction() (bool, error)
 }
 
-var dbInstance *SnapshotDB
+var dbInstance *snapshotDB
 
 var (
+	//ErrorSnaphotLock when db is Lock
 	ErrorSnaphotLock = errors.New("can't create snapshot,snapshot is lock now")
 )
 
-//需要初始化一些纸
-type SnapshotDB struct {
+type snapshotDB struct {
 	path         string
 	mu           sync.RWMutex
 	snapshotLock bool
@@ -60,11 +60,12 @@ type SnapshotDB struct {
 	storage      Storage
 }
 
+//Instance return the Instanceof the db
 func Instance() DB {
 	return dbInstance
 }
 
-func (s *SnapshotDB) GetCommitedBlock(key []byte) ([]byte, error) {
+func (s *snapshotDB) GetCommitedBlock(key []byte) ([]byte, error) {
 	v, err := s.getFromCommited(nil, key)
 	if err == nil {
 		return v, nil
@@ -79,7 +80,7 @@ func (s *SnapshotDB) GetCommitedBlock(key []byte) ([]byte, error) {
 	return nil, err
 }
 
-func (s *SnapshotDB) PutBaseDB(key, value []byte) (bool, error) {
+func (s *snapshotDB) PutBaseDB(key, value []byte) (bool, error) {
 	err := s.baseDB.Put(key, value, nil)
 	if err != nil {
 		return false, err
@@ -87,7 +88,7 @@ func (s *SnapshotDB) PutBaseDB(key, value []byte) (bool, error) {
 	return true, nil
 }
 
-func (s *SnapshotDB) GetLastKVHash(blockHash *common.Hash) []byte {
+func (s *snapshotDB) GetLastKVHash(blockHash *common.Hash) []byte {
 	if blockHash == nil {
 		return s.unRecognized.kvHash.Bytes()
 	}
@@ -95,14 +96,14 @@ func (s *SnapshotDB) GetLastKVHash(blockHash *common.Hash) []byte {
 	return block.kvHash.Bytes()
 }
 
-func (s *SnapshotDB) Del(hash *common.Hash, key []byte) (bool, error) {
+func (s *snapshotDB) Del(hash *common.Hash, key []byte) (bool, error) {
 	if err := s.put(hash, key, nil, funcTypeDel); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (s *SnapshotDB) Compaction() (bool, error) {
+func (s *snapshotDB) Compaction() (bool, error) {
 	s.mu.Lock()
 	s.snapshotLock = true
 	defer func() {
@@ -113,7 +114,7 @@ func (s *SnapshotDB) Compaction() (bool, error) {
 	var writeBlockNum int
 	for i := 0; i < len(s.commited); i++ {
 		if i < 10 {
-			if size > KVLIMIT {
+			if size > kvLIMIT {
 				writeBlockNum = i - 1
 				break
 			}
@@ -147,7 +148,7 @@ func (s *SnapshotDB) Compaction() (bool, error) {
 //if hash nil ,new unRecognized data
 //if hash not nul,new Recognized data
 //todo parentHash是否在chain上，需要校验
-func (s *SnapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash *common.Hash) (bool, error) {
+func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash *common.Hash) (bool, error) {
 	if hash == nil {
 		if s.unRecognized != nil && s.unRecognized.readOnly {
 			return false, errors.New("[SnapshotDB]can't  new unRecognized block,it's readonly now")
@@ -172,7 +173,7 @@ func (s *SnapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	return true, nil
 }
 
-func (s *SnapshotDB) put(hash *common.Hash, key, value []byte, funcType uint64) error {
+func (s *snapshotDB) put(hash *common.Hash, key, value []byte, funcType uint64) error {
 	var (
 		block     *blockData
 		blockHash common.Hash
@@ -220,14 +221,14 @@ func (s *SnapshotDB) put(hash *common.Hash, key, value []byte, funcType uint64) 
 	return nil
 }
 
-func (s *SnapshotDB) Put(hash *common.Hash, key, value []byte) (bool, error) {
+func (s *snapshotDB) Put(hash *common.Hash, key, value []byte) (bool, error) {
 	if err := s.put(hash, key, value, funcTypePut); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (s *SnapshotDB) Get(hash *common.Hash, key []byte) ([]byte, error) {
+func (s *snapshotDB) Get(hash *common.Hash, key []byte) ([]byte, error) {
 	if hash == nil {
 		v, err := s.getFromUnRecognized(key)
 		if err == nil {
@@ -258,7 +259,7 @@ func (s *SnapshotDB) Get(hash *common.Hash, key []byte) ([]byte, error) {
 	return nil, err
 }
 
-func (s *SnapshotDB) Has(hash *common.Hash, key []byte) (bool, error) {
+func (s *snapshotDB) Has(hash *common.Hash, key []byte) (bool, error) {
 	if hash == nil {
 		_, err := s.getFromUnRecognized(key)
 		if err == nil {
@@ -286,7 +287,7 @@ func (s *SnapshotDB) Has(hash *common.Hash, key []byte) (bool, error) {
 }
 
 //move unRecognized to Recognized data
-func (s *SnapshotDB) Flush(hash common.Hash, blocknumber *big.Int) (bool, error) {
+func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) (bool, error) {
 	if blocknumber.Int64() != s.unRecognized.Number.Int64() {
 		return false, errors.New("[snapshotdb]blocknumber not compare the unRecognized blocknumber")
 	}
@@ -313,7 +314,7 @@ func (s *SnapshotDB) Flush(hash common.Hash, blocknumber *big.Int) (bool, error)
 	return true, nil
 }
 
-func (s *SnapshotDB) Commit(hash common.Hash) (bool, error) {
+func (s *snapshotDB) Commit(hash common.Hash) (bool, error) {
 	block, ok := s.recognized[hash]
 	if !ok {
 		return false, errors.New("[snapshotdb]not found form commit block:" + hash.String())
@@ -342,11 +343,11 @@ func (s *SnapshotDB) Commit(hash common.Hash) (bool, error) {
 	return true, nil
 }
 
-func (s *SnapshotDB) BaseNum() (*big.Int, error) {
+func (s *snapshotDB) BaseNum() (*big.Int, error) {
 	return s.current.BaseNum, nil
 }
 
-func (s *SnapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error {
+func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error {
 	if s.snapshotLock {
 		return errors.New("[snapshotdb] snapshot is lock now,can't get")
 	}
@@ -359,7 +360,7 @@ func (s *SnapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter ite
 }
 
 //todo 需要确认clear的执行流程
-func (s *SnapshotDB) Clear() (bool, error) {
+func (s *snapshotDB) Clear() (bool, error) {
 	if _, err := s.Close(); err != nil {
 		return false, err
 	}
@@ -381,11 +382,11 @@ func itrToMdb(itr iterator.Iterator, mdb *memdb.DB) error {
 }
 
 const (
-	HashLocationRecognized = 1
-	HashLocationCommited   = 2
+	hashLocationRecognized = 1
+	hashLocationCommited   = 2
 )
 
-func (s *SnapshotDB) checkHashChain(hash common.Hash) (int, bool) {
+func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 	lastblockNumber := big.NewInt(0)
 	//在recognized中找
 	for {
@@ -406,17 +407,16 @@ func (s *SnapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 			if commitBlock.BlockHash.String() != hash.String() {
 				return 0, false
 			}
-			return HashLocationRecognized, true
-		} else {
-			if s.current.HighestNum.Int64() == lastblockNumber.Int64()-1 {
-				return HashLocationRecognized, true
-			}
+			return hashLocationRecognized, true
+		}
+		if s.current.HighestNum.Int64() == lastblockNumber.Int64()-1 {
+			return hashLocationRecognized, true
 		}
 	}
 	//在recognized中没有找到,在commit中找
 	for _, value := range s.commited {
 		if *value.BlockHash == hash {
-			return HashLocationCommited, true
+			return hashLocationCommited, true
 		}
 	}
 	return 0, false
@@ -424,7 +424,7 @@ func (s *SnapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 
 //1.hash为空的时候，从unRecognized开始查（假设unRecognized的parentHash必为真），如果unRecognized也为空，从commited开始查
 //2.hash不为空时，从Recognized开始逐级网上查
-func (s *SnapshotDB) Ranking(hash *common.Hash, key []byte, rangeNumber int) iterator.Iterator {
+func (s *snapshotDB) Ranking(hash *common.Hash, key []byte, rangeNumber int) iterator.Iterator {
 	var itrs []iterator.Iterator
 	m := memdb.New(comparer.DefaultComparer, rangeNumber)
 	prefix := util.BytesPrefix(key)
@@ -436,7 +436,7 @@ func (s *SnapshotDB) Ranking(hash *common.Hash, key []byte, rangeNumber int) ite
 			return iterator.NewEmptyIterator(errors.New("this hash not in chain:" + parentHash.String()))
 		}
 		switch location {
-		case HashLocationRecognized:
+		case hashLocationRecognized:
 			for {
 				if block, ok := s.recognized[parentHash]; ok {
 					itrs = append(itrs, block.data.NewIterator(prefix))
@@ -448,7 +448,7 @@ func (s *SnapshotDB) Ranking(hash *common.Hash, key []byte, rangeNumber int) ite
 			for _, block := range s.commited {
 				itrs = append(itrs, block.data.NewIterator(prefix))
 			}
-		case HashLocationCommited:
+		case hashLocationCommited:
 			for i := len(s.commited) - 1; i >= 0; i-- {
 				block := s.commited[i]
 				if block.BlockHash == hash {
@@ -480,7 +480,7 @@ func (s *SnapshotDB) Ranking(hash *common.Hash, key []byte, rangeNumber int) ite
 	return m.NewIterator(nil)
 }
 
-func (s *SnapshotDB) Close() (bool, error) {
+func (s *snapshotDB) Close() (bool, error) {
 	if err := s.baseDB.Close(); err != nil {
 		return false, fmt.Errorf("[snapshotdb]close base db fail:%v", err)
 	}
@@ -491,7 +491,7 @@ func (s *SnapshotDB) Close() (bool, error) {
 		s.current.f.Close()
 	}
 
-	for key, _ := range s.journalw {
+	for key := range s.journalw {
 		if err := s.journalw[key].Close(); err != nil {
 			return false, fmt.Errorf("[snapshotdb]close journalw fail:%v", err)
 		}

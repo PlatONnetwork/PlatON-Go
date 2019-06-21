@@ -5,8 +5,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io"
-	"os"
-	"path/filepath"
 )
 
 func rlpHash(x interface{}) (h common.Hash) {
@@ -14,25 +12,6 @@ func rlpHash(x interface{}) (h common.Hash) {
 	rlp.Encode(hw, x)
 	hw.Sum(h[:0])
 	return h
-}
-
-func RemoveContents(dir string) error {
-	d, err := os.Open(dir)
-	if err != nil {
-		return err
-	}
-	defer d.Close()
-	names, err := d.Readdirnames(-1)
-	if err != nil {
-		return err
-	}
-	for _, name := range names {
-		err = os.RemoveAll(filepath.Join(dir, name))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func encode(x interface{}) ([]byte, error) {

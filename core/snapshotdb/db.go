@@ -23,8 +23,8 @@ func getBaseDBPath(dbpath string) string {
 	return path.Join(dbpath, DBBasePath)
 }
 
-func newDB(dbpath string) (*SnapshotDB, error) {
-	s, err := OpenFile(dbpath, false)
+func newDB(dbpath string) (*snapshotDB, error) {
+	s, err := openFile(dbpath, false)
 	if err != nil {
 		return nil, fmt.Errorf("[SnapshotDB]open db dir fail:%v", err)
 	}
@@ -32,7 +32,7 @@ func newDB(dbpath string) (*SnapshotDB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[SnapshotDB]open baseDB fail:%v", err)
 	}
-	return &SnapshotDB{
+	return &snapshotDB{
 		path:         dbpath,
 		storage:      s,
 		unRecognized: new(blockData),
@@ -44,12 +44,12 @@ func newDB(dbpath string) (*SnapshotDB, error) {
 	}, nil
 }
 
-func (s *SnapshotDB) findJournalFile() []string {
+func (s *snapshotDB) findJournalFile() []string {
 	matchs, _ := filepath.Glob(path.Join(s.path, "*.log"))
 	return matchs
 }
 
-func (s *SnapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
+func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 	reader, err := s.storage.Open(fd)
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (s *SnapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 }
 
 //todo 统一current 和 log
-func (s *SnapshotDB) recover(dbpath string) error {
+func (s *snapshotDB) recover(dbpath string) error {
 	c, err := loadCurrent(dbpath)
 	if err != nil {
 		return err
@@ -126,7 +126,7 @@ func (s *SnapshotDB) recover(dbpath string) error {
 	s.baseDB = baseDB
 
 	//storage
-	storage, err := OpenFile(dbpath, false)
+	storage, err := openFile(dbpath, false)
 	if err != nil {
 		return fmt.Errorf("[SnapshotDB]open db dir fail:%v", err)
 	}
@@ -137,11 +137,12 @@ func (s *SnapshotDB) recover(dbpath string) error {
 	var fds fileDescs
 	fds = make([]fileDesc, 0)
 	for _, value := range matchs {
-		if fd, err := fsParseName(value); err != nil {
+		var fd fileDesc
+		fd, err := fsParseName(value)
+		if err != nil {
 			return err
-		} else {
-			fds = append(fds, fd)
 		}
+		fds = append(fds, fd)
 	}
 	sort.Sort(fds)
 
@@ -191,7 +192,7 @@ func (s *SnapshotDB) recover(dbpath string) error {
 	return nil
 }
 
-func (s *SnapshotDB) removeJournalLessThanBaseNum() error {
+func (s *snapshotDB) removeJournalLessThanBaseNum() error {
 	m, err := filepath.Glob(filepath.Join(s.path, "*.log"))
 	if err != nil {
 		return err
@@ -212,7 +213,7 @@ func (s *SnapshotDB) removeJournalLessThanBaseNum() error {
 	return nil
 }
 
-func (s *SnapshotDB) schedule() {
+func (s *snapshotDB) schedule() {
 	if counter.get() == 60 || s.current.HighestNum.Int64()-s.current.BaseNum.Int64() >= 100 {
 		if _, err := s.Compaction(); err != nil {
 			log.Print("[SnapshotDB]compaction fail:", err)
@@ -223,7 +224,7 @@ func (s *SnapshotDB) schedule() {
 	}
 }
 
-func (s *SnapshotDB) generateKVHash(k, v []byte, hash common.Hash) common.Hash {
+func (s *snapshotDB) generateKVHash(k, v []byte, hash common.Hash) common.Hash {
 	var buf bytes.Buffer
 	buf.Write(k)
 	buf.Write(v)
@@ -231,11 +232,11 @@ func (s *SnapshotDB) generateKVHash(k, v []byte, hash common.Hash) common.Hash {
 	return rlpHash(buf.Bytes())
 }
 
-func (s *SnapshotDB) getFromUnRecognized(key []byte) ([]byte, error) {
+func (s *snapshotDB) getFromUnRecognized(key []byte) ([]byte, error) {
 	return s.unRecognized.data.Get(key)
 }
 
-func (s *SnapshotDB) getFromRecognized(hash *common.Hash, key []byte) ([]byte, error) {
+func (s *snapshotDB) getFromRecognized(hash *common.Hash, key []byte) ([]byte, error) {
 	if hash == nil {
 		for _, value := range s.recognized {
 			v, err := value.data.Get(key)
@@ -255,7 +256,7 @@ func (s *SnapshotDB) getFromRecognized(hash *common.Hash, key []byte) ([]byte, e
 	return nil, memdb.ErrNotFound
 }
 
-func (s *SnapshotDB) getFromCommited(hash *common.Hash, key []byte) ([]byte, error) {
+func (s *snapshotDB) getFromCommited(hash *common.Hash, key []byte) ([]byte, error) {
 	if hash == nil {
 		for _, value := range s.commited {
 			v, err := value.data.Get(key)
@@ -277,15 +278,15 @@ func (s *SnapshotDB) getFromCommited(hash *common.Hash, key []byte) ([]byte, err
 	return nil, memdb.ErrNotFound
 }
 
-func (s *SnapshotDB) getFromBaseDB(key []byte) ([]byte, error) {
+func (s *snapshotDB) getFromBaseDB(key []byte) ([]byte, error) {
 	return s.baseDB.Get(key, nil)
 }
 
-func (s *SnapshotDB) getUnRecognizedHash() common.Hash {
-	return rlpHash(CURRENT)
+func (s *snapshotDB) getUnRecognizedHash() common.Hash {
+	return rlpHash("CURRENT")
 }
 
-func (s *SnapshotDB) closeJournalWriter(hash common.Hash) error {
+func (s *snapshotDB) closeJournalWriter(hash common.Hash) error {
 	if j, ok := s.journalw[hash]; ok {
 		if err := j.Close(); err != nil {
 			return errors.New("[snapshotdb]close  journal writer fail:" + err.Error())
@@ -295,7 +296,7 @@ func (s *SnapshotDB) closeJournalWriter(hash common.Hash) error {
 	return nil
 }
 
-func (s *SnapshotDB) rmOldRecognizedBlockData() error {
+func (s *snapshotDB) rmOldRecognizedBlockData() error {
 	for key, value := range s.recognized {
 		if s.current.HighestNum.Cmp(value.Number) <= 0 {
 			delete(s.recognized, key)
