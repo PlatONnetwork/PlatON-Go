@@ -1,6 +1,8 @@
 package core
 
 import (
+	"bytes"
+	"crypto/ecdsa"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -15,33 +17,26 @@ import (
 )
 
 type BlockChainReactor struct {
+	privateKey *ecdsa.PrivateKey
 
-
-	eventMux      	*event.TypeMux
-	bftResultSub 	*event.TypeMuxSubscription
-
+	eventMux     *event.TypeMux
+	bftResultSub *event.TypeMuxSubscription
 
 	// xxPlugin container
-	basePluginMap  	map[int]plugin.BasePlugin
+	basePluginMap map[int]plugin.BasePlugin
 	// Order rules for xxPlugins called in BeginBlocker
-	beginRule		[]int
+	beginRule []int
 	// Order rules for xxPlugins called in EndBlocker
-	endRule 		[]int
+	endRule []int
 }
-
-
-
 
 var bcr *BlockChainReactor
 
-
-func NewBlockChainReactor (mux *event.TypeMux) *BlockChainReactor {
+func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChainReactor {
 	if nil == bcr {
 		bcr = &BlockChainReactor{
-			eventMux: 		mux,
-			basePluginMap: 	make(map[int]plugin.BasePlugin, 0),
-			//beginRule:		make([]string, 0),
-			//endRule: 		make([]string, 0),
+			eventMux:      mux,
+			basePluginMap: make(map[int]plugin.BasePlugin, 0),
 		}
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
@@ -57,8 +52,7 @@ func NewBlockChainReactor (mux *event.TypeMux) *BlockChainReactor {
 //	return bcr
 //}
 
-
-func (brc *BlockChainReactor) loop () {
+func (brc *BlockChainReactor) loop() {
 
 	for {
 		select {
@@ -81,7 +75,7 @@ func (brc *BlockChainReactor) loop () {
 
 			/**
 			TODO flush the seed and the package ratio
-			 */
+			*/
 
 			if plugin, ok := brc.basePluginMap[xcom.StakingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
@@ -101,15 +95,14 @@ func (brc *BlockChainReactor) loop () {
 
 
 		default:
-				return
+			return
 
 		}
 	}
 
 }
 
-
-func (bcr *BlockChainReactor) RegisterPlugin (pluginRule int, plugin plugin.BasePlugin) {
+func (bcr *BlockChainReactor) RegisterPlugin(pluginRule int, plugin plugin.BasePlugin) {
 	bcr.basePluginMap[pluginRule] = plugin
 }
 func (bcr *BlockChainReactor) SetBeginRule(rule []int) {
@@ -119,13 +112,21 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 	bcr.endRule = rule
 }
 
-
 // Called before every block has not executed all txs
-func (bcr *BlockChainReactor) BeginBlocker (header *types.Header, state xcom.StateDB) (bool, error) {
+func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) (bool, error) {
+
+	blockHash := common.ZeroHash
+
+	// store the sign in  header.Extra[32:97]
+	if len(header.Extra[32:]) == 65 && !bytes.Equal(header.Extra[32:97], make([]byte, 65)) {
+		blockHash = header.Hash()
+	}
+
+	// todo maybe vrf
 
 	for _, pluginName := range bcr.beginRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
-			if flag, err := plugin.BeginBlock(header, state); nil != err {
+			if flag, err := plugin.BeginBlock(blockHash, header, state); nil != err {
 				return flag, err
 			}
 		}
@@ -134,11 +135,20 @@ func (bcr *BlockChainReactor) BeginBlocker (header *types.Header, state xcom.Sta
 }
 
 // Called after every block had executed all txs
-func (bcr *BlockChainReactor) EndBlocker (header *types.Header, state xcom.StateDB) (bool, error) {
+func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateDB) (bool, error) {
+
+	blockHash := common.ZeroHash
+
+	// store the sign in  header.Extra[32:97]
+	if len(header.Extra[32:]) == 65 && !bytes.Equal(header.Extra[32:97], make([]byte, 65)) {
+		blockHash = header.Hash()
+	}
+
+	// todo maybe vrf
 
 	for _, pluginName := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
-			if flag, err := plugin.EndBlock(header, state); nil != err {
+			if flag, err := plugin.EndBlock(blockHash, header, state); nil != err {
 				return flag, err
 			}
 		}
@@ -146,8 +156,7 @@ func (bcr *BlockChainReactor) EndBlocker (header *types.Header, state xcom.State
 	return false, nil
 }
 
-
-func (bcr *BlockChainReactor) Verify_tx (tx *types.Transaction, from common.Address) (err error) {
+func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, from common.Address) (err error) {
 
 	if _, ok := vm.PlatONPrecompiledContracts[from]; !ok {
 		return nil
@@ -172,8 +181,7 @@ func (bcr *BlockChainReactor) Verify_tx (tx *types.Transaction, from common.Addr
 	return
 }
 
-
-func (bcr *BlockChainReactor) Sign (msg interface{}) error {
+func (bcr *BlockChainReactor) Sign(msg interface{}) error {
 	return nil
 }
 
@@ -181,11 +189,9 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 	return nil
 }
 
-
 func (bcr *BlockChainReactor) GetLastNumber(blockNumber uint64) uint64 {
 	return 0
 }
-
 
 func (brc *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
 	return nil, nil

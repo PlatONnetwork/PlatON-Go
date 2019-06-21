@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -14,8 +15,8 @@ import (
 )
 
 type BasePlugin interface {
-	BeginBlock(header *types.Header, state xcom.StateDB) (bool, error)
-	EndBlock(header *types.Header, state xcom.StateDB) (bool, error)
+	BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error)
+	EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error)
 	Confirmed(block *types.Block) error
 }
 
