@@ -17,6 +17,7 @@
 package core
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -45,9 +46,11 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		beneficiary = *author
 	}
 
-	currentHash := common.ZeroHash
-	if header.Root != common.ZeroHash && header.TxHash != common.ZeroHash && header.ReceiptHash != common.ZeroHash {
-		currentHash =  header.Hash()
+	blockHash := common.ZeroHash
+
+	// store the sign in  header.Extra[32:97]
+	if len(header.Extra[32:]) ==  65 && !bytes.Equal(header.Extra[32:97], make([]byte, 65)) {
+		blockHash =  header.Hash()
 	}
 
 	return vm.Context{
@@ -62,7 +65,7 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		GasLimit:    header.GasLimit,
 		GasPrice:    new(big.Int).Set(msg.GasPrice()),
 
-		CurrentBlockHash: currentHash,
+		BlockHash: blockHash,
 	}
 }
 

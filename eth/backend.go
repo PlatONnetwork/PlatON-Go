@@ -225,7 +225,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
 			} else if chainConfig.Cbft.ValidatorMode == "ppos" {
 				// TODO init reactor
-				reactor := core.NewBlockChainReactor(eth.EventMux())
+				reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
 				handlePlugin(reactor, nil)
 				agency = reactor
 			}
