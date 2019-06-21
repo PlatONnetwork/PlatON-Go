@@ -87,7 +87,7 @@ func TestPrepareBlock(t *testing.T) {
 		MixDigest: common.HexToHash("bd4472abb6659ebe3ee06ee4d7b72a00a9f4d001caca51342001075469aff498"),
 		Root: common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		//Hash: common.HexToHash("0a5843ac1cb04865017cb35a57b50b07084e5fcee39b5acadade33149f4fff9e"),
-		Nonce: types.EncodeNonce(10),
+		Nonce: types.EncodeNonce([]byte("10")),
 		Time: big.NewInt(1426516743),
 		Extra: make([]byte, 100),
 	})

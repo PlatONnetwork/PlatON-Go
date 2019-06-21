@@ -67,7 +67,7 @@ type Candidate struct {
 	NodeId discover.NodeID
 	// The account used to initiate the staking
 	StakingAddress common.Address
-	// The account recieve the block rewards and the staking rewards
+	// The account receive the block rewards and the staking rewards
 	BenifitAddress common.Address
 	// Block height at the time of staking
 	StakingBlockNum uint64
@@ -77,20 +77,20 @@ type Candidate struct {
 	StakingEpoch uint64
 	// All vons of staking and delegated
 	Shares *big.Int
-	// The staking vons  is circulating for effective epoch (in effect)
+	// The staking von  is circulating for effective epoch (in effect)
 	Released *big.Int
-	// The staking vons  is circulating for hesitant epoch (in hesitation)
+	// The staking von  is circulating for hesitant epoch (in hesitation)
 	ReleasedTmp *big.Int
-	// The staking vons  is locked for effective epoch (in effect)
+	// The staking von  is locked for effective epoch (in effect)
 	LockRepo *big.Int
-	// The staking vons  is locked for hesitant epoch (in hesitation)
+	// The staking von  is locked for hesitant epoch (in hesitation)
 	LockRepoTmp *big.Int
 	// Positive and negative signs:
-	// Is it an increase or a decrease? 0: increase; 1: decrease 2: valided
-	// `valided` means that the relevant information has been withdrewed
+	// Is it an increase or a decrease? 0: increase; 1: decrease 2: invalided
+	// `invalided` means that the relevant information has been withdrew
 	Mark uint8
 
-	// The candiate status
+	// The candidate status
 	// Reference `THE CANDIDATE  STATUS`
 	Status uint32
 
@@ -125,9 +125,9 @@ type Validator struct {
 
 // some consensus round validators or current epoch validators
 type Validator_array struct {
-	// the round start blocknumber or epoch start blocknumber
+	// the round start blockNumber or epoch start blockNumber
 	Start uint64
-	// the round end blocknumber or epoch blocknumber
+	// the round end blockNumber or epoch blockNumber
 	End uint64
 	// the round validators or epoch validators
 	Arr []*Validator
@@ -139,16 +139,16 @@ type Delegation struct {
 	DelegateEpoch uint64
 
 	// Positive and negative signs:
-	// Is it an increase or a decrease? 0: increase; 1: decrease 2: valided
-	// `valided` means that the relevant information has been withdrewed
+	// Is it an increase or a decrease? 0: increase; 1: decrease 2: invalided
+	// `invalided` means that the relevant information has been withdrew
 	Mark uint8
 
-	// The delegate vons  is circulating for effective epoch (in effect)
+	// The delegate von  is circulating for effective epoch (in effect)
 	Released *big.Int
-	// The delegate vons  is circulating for hesitant epoch (in hesitation)
+	// The delegate von  is circulating for hesitant epoch (in hesitation)
 	ReleasedTmp *big.Int
-	// The delegate vons  is locked for effective epoch (in effect)
+	// The delegate von  is locked for effective epoch (in effect)
 	LockRepo *big.Int
-	// The delegate vons  is locked for hesitant epoch (in hesitation)
+	// The delegate von  is locked for hesitant epoch (in hesitation)
 	LockRepoTmp *big.Int
 }
