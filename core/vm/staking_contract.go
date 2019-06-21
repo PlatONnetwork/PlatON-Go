@@ -25,6 +25,9 @@ const (
 
 	StakeVonToLowStr = "Staking deposit too low"
 
+
+	WithdrewCanErrStr = "withdrew candidate failed"
+
 )
 
 const (
@@ -274,9 +277,21 @@ func (stkc *stakingContract) withdrewCandidate(nodeId discover.NodeID)  ([]byte,
 	}
 
 
-	// TODO
+	success, err := stkc.plugin.WithdrewCandidate(state, currentHash, blockNumber, canOld)
 
+	if nil != err {
 
+		if success {
+			res := xcom.Result{false, "", WithdrewCanErrStr + ":" + err.Error()}
+			event, _ := json.Marshal(res)
+			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent, string(event), "withdrewCandidate")
+			return nil, nil
+		}else {
+			log.Error("Failed to withdrewCandidate by WithdrewCandidate", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			return nil, err
+		}
+
+	}
 
 	res := xcom.Result{true, "", ""}
 	event, _ := json.Marshal(res)
