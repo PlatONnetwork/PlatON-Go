@@ -93,7 +93,7 @@ func (stkc *stakingContract) createCandidate(typ uint16, benifitAddress common.A
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
 	blockNumber := stkc.Evm.BlockNumber
-	currentHash := stkc.Evm.CurrentBlockHash
+	currentHash := stkc.Evm.BlockHash
 
 	from := stkc.Contract.CallerAddress
 
@@ -170,7 +170,7 @@ func (stkc *stakingContract) editorCandidate(typ uint16, benifitAddress common.A
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
-	currentHash := stkc.Evm.CurrentBlockHash
+	currentHash := stkc.Evm.BlockHash
 
 	from := stkc.Contract.CallerAddress
 
@@ -239,7 +239,7 @@ func (stkc *stakingContract) editorCandidate(typ uint16, benifitAddress common.A
 func (stkc *stakingContract) withdrewCandidate(nodeId discover.NodeID)  ([]byte, error) {
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
-	currentHash := stkc.Evm.CurrentBlockHash
+	currentHash := stkc.Evm.BlockHash
 
 	from := stkc.Contract.CallerAddress
 

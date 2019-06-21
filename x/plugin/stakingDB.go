@@ -113,11 +113,11 @@ func (db *StakingDB) addUnStakeItemStore (blockHash common.Hash, epoch uint64, a
 func (db *StakingDB) getUnStakeCountStore (blockHash common.Hash, epoch uint64) (int, error) {
 
 
-	return nil, nil
+	return 0, nil
 }
 
 func (db *StakingDB) getUnStakeItemStore (blockHash common.Hash, epoch uint64) (common.Address, error) {
 
 
-	return nil, nil
+	return common.Address{}, nil
 }
