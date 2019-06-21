@@ -646,7 +646,7 @@ func (dlp *downloadTesterPeer) RequestLatestPposStorage() error {
 			n = value.Number.Uint64()
 		}
 	}
-	go dlp.dl.downloader.DeliverPposStorage(dlp.id, latest, pivot, make([]byte, 0))
+//	go dlp.dl.downloader.DeliverPposStorage(dlp.id, latest, pivot, make([]byte, 0))
 
 	return nil
 }
@@ -1748,7 +1748,7 @@ func (ftp *floodingTestPeer) RequestNodeData(hashes []common.Hash) error {
 	return ftp.peer.RequestNodeData(hashes)
 }
 func (ftp *floodingTestPeer) RequestLatestPposStorage() error {
-	return ftp.peer.RequestLatestPposStorage()
+	return nil; //ftp.peer.RequestLatestPposStorage()
 }
 
 func (ftp *floodingTestPeer) RequestHeadersByNumber(from uint64, count, skip int, reverse bool) error {
