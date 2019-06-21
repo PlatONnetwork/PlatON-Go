@@ -1214,6 +1214,9 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		Time:       big.NewInt(timestamp),
 		Nonce:		types.EncodeNonce(nonce),
 	}
+
+	// TODO begin()
+
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() { /*
 			if w.coinbase == (common.Address{}) {
@@ -1358,6 +1361,9 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 		*receipts[i] = *l
 	}
 	s := w.current.state.Copy()
+
+	// TODO end()
+
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {
 		return err

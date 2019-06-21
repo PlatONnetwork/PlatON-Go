@@ -45,7 +45,7 @@ func (db *StakingDB) del (blockHash common.Hash, key []byte) error {
 
 
 
-func (db *StakingDB) getCandidate (blockHash common.Hash, nodeId discover.NodeID) ([]byte, error) {
+func (db *StakingDB) getCandidateStore (blockHash common.Hash, nodeId discover.NodeID) ([]byte, error) {
 	key, err := xcom.CandidateKeyByNodeId(nodeId)
 	if nil != err {
 		return nil, err
@@ -82,7 +82,7 @@ func (db *StakingDB) delCanPowerStore (blockHash common.Hash, can *xcom.Candidat
 
 
 
-func (db *StakingDB) addUnStakeItem (blockHash common.Hash, epoch uint64, addr common.Address) error {
+func (db *StakingDB) addUnStakeItemStore (blockHash common.Hash, epoch uint64, addr common.Address) error {
 
 
 	count_key := xcom.GetUnStakeCountKey(epoch)
@@ -108,4 +108,16 @@ func (db *StakingDB) addUnStakeItem (blockHash common.Hash, epoch uint64, addr c
 	}
 	item_key := xcom.GetUnStakeItemKey(epoch, uint64(v))
 	return db.put(blockHash, item_key, addr.Bytes())
+}
+
+func (db *StakingDB) getUnStakeCountStore (blockHash common.Hash, epoch uint64) (int, error) {
+
+
+	return 0, nil
+}
+
+func (db *StakingDB) getUnStakeItemStore (blockHash common.Hash, epoch uint64) (common.Address, error) {
+
+
+	return common.Address{}, nil
 }

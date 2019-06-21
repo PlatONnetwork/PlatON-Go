@@ -19,7 +19,7 @@ func (m *Memory) Malloc(size int) int {
 		size = fixSize(size)
 	}
 	if size > m.tree[0] {
-		panic(fmt.Errorf("malloc Size=%d exceed avalable memory Size", size))
+		panic(fmt.Errorf("malloc Size=%d exceed available memory Size", size))
 	}
 
 	/*

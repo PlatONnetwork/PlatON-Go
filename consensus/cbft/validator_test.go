@@ -9,6 +9,7 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	vm2 "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -216,7 +217,7 @@ func TestInnerAgency(t *testing.T) {
 			tx, err := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),
-					vm.ValidatorInnerContractAddr,
+					vm2.ValidatorInnerContractAddr,
 					big.NewInt(1000),
 					3000*3000,
 					big.NewInt(3000),
@@ -240,7 +241,7 @@ func TestInnerAgency(t *testing.T) {
 			tx, err := types.SignTx(
 				types.NewTransaction(
 					block.TxNonce(testAddress),
-					vm.ValidatorInnerContractAddr,
+					vm2.ValidatorInnerContractAddr,
 					big.NewInt(1000),
 					3000*3000,
 					big.NewInt(3000),
