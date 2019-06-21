@@ -55,15 +55,26 @@ func  StakingInstance (db xcom.SnapshotDB) *StakingPlugin {
 
 
 
-func (sk *StakingPlugin) BeginBlock (header *types.Header, state xcom.StateDB) (bool, error) {
+func (sk *StakingPlugin) BeginBlock (blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
+
+	//currHash := common.ZeroHash
+	//
+	//if header.Root != common.ZeroHash && header.TxHash != common.ZeroHash && header.ReceiptHash != common.ZeroHash {
+	//	currHash = header.Hash()
+	//}
 
 	return false, nil
 }
 
-func (sk *StakingPlugin) EndBlock(header *types.Header, state xcom.StateDB) (bool, error) {
+func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
 
 
-	return false, nil
+	success, err := sk.HandleUnCandidateReq(state, blockHash, header.Number)
+	if nil != err {
+		log.Error("Failed to call HandleUnCandidateReq on stakingPlugin BeginBlock", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64(), "err", err)
+		return success, err
+	}
+	return success, err
 }
 
 func (sk *StakingPlugin) Confirmed(block *types.Block) error {
@@ -78,7 +89,7 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 
 func (sk *StakingPlugin) GetCandidateInfo(blockHash common.Hash,  nodeId discover.NodeID) (*xcom.Candidate, error) {
 
-	canByte, err := sk.db.getCandidate(blockHash, nodeId)
+	canByte, err := sk.db.getCandidateStore(blockHash, nodeId)
 	if nil != err {
 		return nil, err
 	}
@@ -225,11 +236,6 @@ func (sk *StakingPlugin) WithdrewCandidate (state xcom.StateDB, blockHash common
 	return true, nil
 }
 
-
-
-
-
-
 func (sk *StakingPlugin) withdrewStakeAmount (state xcom.StateDB, blockHash common.Hash, blockNumber uint64, addr common.Address, can *xcom.Candidate) (bool, error) {
 	curEpoch := xutil.CalculateEpoch(blockNumber)
 
@@ -248,7 +254,7 @@ func (sk *StakingPlugin) withdrewStakeAmount (state xcom.StateDB, blockHash comm
 	}
 
 	if can.Released.Cmp(common.Big0) > 0 || can.LockRepo.Cmp(common.Big0) > 0 {
-		if err := sk.db.addUnStakeItem(blockHash, curEpoch, addr); nil != err {
+		if err := sk.db.addUnStakeItemStore(blockHash, curEpoch, addr); nil != err {
 			return false, err
 		}
 	}
@@ -260,11 +266,32 @@ func (sk *StakingPlugin) withdrewStakeAmount (state xcom.StateDB, blockHash comm
 }
 
 
+func (sk *StakingPlugin) GetDelegateInfo (state xcom.StateDB, blockHash common.Hash, del common.Address, nodeId discover.NodeID) (*xcom.Delegation, error) {
+
+
+	return nil, nil
+}
+
+
+func (sk *StakingPlugin) Delegate (state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int, can *xcom.Candidate, del *xcom.Delegation) (bool, error){
+
+
+	return true, nil
+}
 
 
 
 
 
+
+
+
+func (sk *StakingPlugin) HandleUnCandidateReq(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int) (bool, error) {
+
+	//unStakeCount := sk.db.db
+
+	return false, nil
+}
 
 
 

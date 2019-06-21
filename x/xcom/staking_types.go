@@ -47,19 +47,19 @@ func IsCand_idatePureNotEnough(status uint32) bool {
 }
 
 func IsCan_Invalid_Slashed(status uint32) bool {
-	return status&(Invalided|Slashed) == (Invalided | Slashed)
+	return status&(Invalided|Slashed) == (Invalided|Slashed)
 }
 
 func IsCan_Invalid_NotEnough(status uint32) bool {
-	return status&(Invalided|NotEnough) == (Invalided | NotEnough)
+	return status&(Invalided|NotEnough) == (Invalided|NotEnough)
 }
 
 func IsCan_Invalid_Slashed_NotEnough(status uint32) bool {
-	return status&(Invalided|Slashed|NotEnough) == (Invalided | Slashed | NotEnough)
+	return status&(Invalided|Slashed|NotEnough) == (Invalided|Slashed|NotEnough)
 }
 
 func IsCan_Slashed_NotEnough(status uint32) bool {
-	return status&(Slashed|NotEnough) == (Slashed | NotEnough)
+	return status&(Slashed|NotEnough) == (Slashed|NotEnough)
 }
 
 // The Candidate info
