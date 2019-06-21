@@ -1,16 +1,9 @@
 package cbft
 
 import (
-	"bytes"
-	"crypto/elliptic"
-	"errors"
-
-	"fmt"
-
-	"crypto/ecdsa"
-
-	"github.com/PlatONnetwork/PlatON-Go/common"
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	types "github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -18,47 +11,14 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-type ValidateNode struct {
-	Index   int            `json:"index"`
-	Address common.Address `json:"-"`
-	PubKey  *ecdsa.PublicKey
-}
 
-func (vn *ValidateNode) String() string {
-	return fmt.Sprintf("{Index:%d Address:%s}", vn.Index, vn.Address.String())
-}
 
-func (vn *ValidateNode) Verify(data, sign []byte) bool {
-	recPubKey, err := crypto.Ecrecover(data, sign)
-	if err != nil {
-		return false
-	}
 
-	pbytes := elliptic.Marshal(vn.PubKey.Curve, vn.PubKey.X, vn.PubKey.Y)
-	if !bytes.Equal(pbytes, recPubKey) {
-		return false
-	}
-	return true
-}
 
-type ValidateNodeMap map[discover.NodeID]*ValidateNode
 
-func (vnm ValidateNodeMap) String() string {
-	s := ""
-	for k, v := range vnm {
-		s = s + fmt.Sprintf("{%s:%s},", k, v)
-	}
-	return s
-}
-
-type Validators struct {
-	Nodes            ValidateNodeMap `json:"validateNodes"`
-	ValidBlockNumber uint64          `json:"-"`
-}
-
-func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
-	vds := &Validators{
-		Nodes:            make(ValidateNodeMap, len(nodes)),
+func newValidators(nodes []discover.Node, validBlockNumber uint64) *types.Validators {
+	vds := &types.Validators{
+		Nodes:            make(types.ValidateNodeMap, len(nodes)),
 		ValidBlockNumber: validBlockNumber,
 	}
 
@@ -68,7 +28,7 @@ func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
 			panic(err)
 		}
 
-		vds.Nodes[node.ID] = &ValidateNode{
+		vds.Nodes[node.ID] = &types.ValidateNode{
 			Index:   i,
 			Address: crypto.PubkeyToAddress(*pubkey),
 			PubKey:  pubkey,
@@ -77,86 +37,21 @@ func newValidators(nodes []discover.Node, validBlockNumber uint64) *Validators {
 	return vds
 }
 
-func (vs *Validators) String() string {
-	return fmt.Sprintf("{Nodes:[%s] ValidBlockNumber:%d}", vs.Nodes, vs.ValidBlockNumber)
-}
 
-func (vs *Validators) NodeList() []discover.NodeID {
-	nodeList := make([]discover.NodeID, 0)
-	for id, _ := range vs.Nodes {
-		nodeList = append(nodeList, id)
-	}
-	return nodeList
-}
-
-func (vs *Validators) NodeIndexAddress(id discover.NodeID) (*ValidateNode, error) {
-	node, ok := vs.Nodes[id]
-	if ok {
-		return node, nil
-	}
-	return nil, errors.New("not found the node")
-}
-
-func (vs *Validators) NodeID(idx int) discover.NodeID {
-	for id, node := range vs.Nodes {
-		if node.Index == idx {
-			return id
-		}
-	}
-	// I think never run here ^_^
-	return discover.NodeID{}
-}
-
-func (vs *Validators) AddressIndex(addr common.Address) (*ValidateNode, error) {
-	for _, node := range vs.Nodes {
-		if bytes.Equal(node.Address[:], addr[:]) {
-			return node, nil
-		}
-	}
-	return nil, errors.New("invalid address")
-}
-
-func (vs *Validators) NodeIndex(id discover.NodeID) (*ValidateNode, error) {
-	for nodeID, node := range vs.Nodes {
-		if nodeID == id {
-			return node, nil
-		}
-	}
-	return nil, errors.New("not found the node")
-}
-
-func (vs *Validators) Len() int {
-	return len(vs.Nodes)
-}
-
-func (vs *Validators) Equal(rsh *Validators) bool {
-	if vs.Len() != rsh.Len() {
-		return false
-	}
-
-	equal := true
-	for k, v := range vs.Nodes {
-		if vv, ok := rsh.Nodes[k]; !ok || vv.Index != v.Index {
-			equal = false
-			break
-		}
-	}
-	return equal
-}
 
 // Agency
 type Agency interface {
 	Sign(msg interface{}) error
 	VerifySign(msg interface{}) error
 	GetLastNumber(blockNumber uint64) uint64
-	GetValidator(blockNumber uint64) (*Validators, error)
+	GetValidator(blockNumber uint64) (*types.Validators, error)
 	IsCandidateNode(nodeID discover.NodeID) bool
 }
 
 type StaticAgency struct {
 	Agency
 
-	validators *Validators
+	validators *types.Validators
 }
 
 func NewStaticAgency(nodes []discover.Node) Agency {
@@ -177,7 +72,7 @@ func (d *StaticAgency) GetLastNumber(blockNumber uint64) uint64 {
 	return 0
 }
 
-func (d *StaticAgency) GetValidator(uint64) (*Validators, error) {
+func (d *StaticAgency) GetValidator(uint64) (*types.Validators, error) {
 	return d.validators, nil
 }
 
@@ -192,7 +87,7 @@ type InnerAgency struct {
 	defaultBlocksPerRound uint64
 	offset                uint64
 	blockchain            *core.BlockChain
-	defaultValidators     *Validators
+	defaultValidators     *types.Validators
 }
 
 func NewInnerAgency(nodes []discover.Node, chain *core.BlockChain, blocksPerNode, offset int) Agency {
@@ -243,7 +138,7 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 	return lastBlockNumber
 }
 
-func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err error) {
+func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *types.Validators, err error) {
 	//var lastBlockNumber uint64
 	/*
 		defer func() {
@@ -271,18 +166,18 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *Validators, err erro
 		log.Error("Get the state fail, use default validators", "number", block.Number(), "hash", block.Hash(), "error", err)
 		return ia.defaultValidators, nil
 	}
-	b := state.GetState(vm.ValidatorInnerContractAddr, []byte(vm.CurrentValidatorKey))
+	b := state.GetState(cvm.ValidatorInnerContractAddr, []byte(vm.CurrentValidatorKey))
 	var vds vm.Validators
 	err = rlp.DecodeBytes(b, &vds)
 	if err != nil {
 		log.Error("RLP decode fail, use default validators", "number", block.Number(), "error", err)
 		return ia.defaultValidators, nil
 	}
-	var validators Validators
-	validators.Nodes = make(ValidateNodeMap, len(vds.ValidateNodes))
+	var validators types.Validators
+	validators.Nodes = make(types.ValidateNodeMap, len(vds.ValidateNodes))
 	for _, node := range vds.ValidateNodes {
 		pubkey, _ := node.NodeID.Pubkey()
-		validators.Nodes[node.NodeID] = &ValidateNode{
+		validators.Nodes[node.NodeID] = &types.ValidateNode{
 			Index:   int(node.Index),
 			Address: node.Address,
 			PubKey:  pubkey,

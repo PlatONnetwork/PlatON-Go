@@ -48,7 +48,7 @@ func (journal *mpcJournal) load(add func([]*types.TransactionWrap) []error) erro
 	}
 	defer func() { input.Close() }()
 
-	// Temporaily discard any journal additions(dont't double add on load)
+	// Temporally discard any journal additions(dont't double add on load)
 	journal.writer = new(devMPCNull)
 	defer func() { journal.writer = nil }()
 

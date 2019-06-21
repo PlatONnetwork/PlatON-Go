@@ -29,7 +29,7 @@ type testMpcBlockChain struct {
 func (bc *testMpcBlockChain) CurrentBlock() *types.Block {
 	return types.NewBlock(&types.Header{
 		GasLimit: bc.gasLimit,
-	}, nil, nil, nil)
+	}, nil, nil)
 }
 
 func (bc *testMpcBlockChain) GetBlock(hash common.Hash, number uint64) *types.Block {
@@ -60,7 +60,7 @@ func mpcPricedTransaction(nonce uint64, gaslimit uint64, gasprice *big.Int, key 
 
 // Configuring the MPCPool transaction pool.
 func setupMpcPool() (*MPCPool, *ecdsa.PrivateKey) {
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()), big.NewInt(0), common.Hash{})
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(ethdb.NewMemDatabase()))
 	blockchain := &testMpcBlockChain{statedb, 1000000, new(event.Feed)}
 
 	key, _ := crypto.GenerateKey()

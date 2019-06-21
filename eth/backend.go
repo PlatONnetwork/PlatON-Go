@@ -49,6 +49,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 type LesServer interface {
@@ -107,7 +109,7 @@ func (s *Ethereum) AddLesServer(ls LesServer) {
 func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	// Ensure configuration values are compatible and sane
 	if config.SyncMode == downloader.LightSync {
-		return nil, errors.New("can't run eth.Ethereum in light sync mode, use les.LightEthereum")
+		return nil, errors.New("can't run eth.PlatON in light sync mode, use les.LightPlatON")
 	}
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
@@ -204,6 +206,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
+
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
 			cbftEngine.SetBreakpoint(config.CbftConfig.BreakpointType)
@@ -220,6 +223,11 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 				blocksPerNode := int(int64(chainConfig.Cbft.Duration) / int64(chainConfig.Cbft.Period))
 				offset := blocksPerNode * 2
 				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
+			} else if chainConfig.Cbft.ValidatorMode == "ppos" {
+				// TODO init reactor
+				reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
+				handlePlugin(reactor, nil)
+				agency = reactor
 			}
 
 			if err := cbftEngine.Start(eth.blockchain, eth.txPool, agency); err != nil {
@@ -588,4 +596,8 @@ func (s *Ethereum) Stop() error {
 	s.chainDb.Close()
 	close(s.shutdownChan)
 	return nil
+}
+// TODO RegisterPlugin one by one
+func handlePlugin (reactor *core.BlockChainReactor, db xcom.SnapshotDB) {
+	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance(db))
 }
