@@ -86,10 +86,12 @@ type Candidate struct {
 	// The staking vons  is locked for hesitant epoch (in hesitation)
 	LockRepoTmp *big.Int
 	// Positive and negative signs:
-	// Is it an increase or a decrease? 0: increase; 1: decrease
+	// Is it an increase or a decrease? 0: increase; 1: decrease 2: valided
+	// `valided` means that the relevant information has been withdrewed
 	Mark uint8
 
 	// The candiate status
+	// Reference `THE CANDIDATE  STATUS`
 	Status uint32
 
 	// Node desc
@@ -137,7 +139,8 @@ type Delegation struct {
 	DelegateEpoch uint64
 
 	// Positive and negative signs:
-	// Is it an increase or a decrease? 0: increase; 1: decrease
+	// Is it an increase or a decrease? 0: increase; 1: decrease 2: valided
+	// `valided` means that the relevant information has been withdrewed
 	Mark uint8
 
 	// The delegate vons  is circulating for effective epoch (in effect)

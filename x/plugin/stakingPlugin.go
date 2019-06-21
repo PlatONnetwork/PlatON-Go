@@ -36,13 +36,15 @@ var (
 const (
 	FreeOrigin, increase = 0, uint8(0)
 	LockRepoOrigin, decrease = 1, uint8(1)
+
+	valided = uint8(2)
 )
 
 
 
 // Instance a global StakingPlugin
 func  StakingInstance (db xcom.SnapshotDB) *StakingPlugin {
-	if nil == stk {
+	if nil == stk && nil != db {
 		stk = &StakingPlugin{
 			db: NewStakingDB(db),
 		}
@@ -89,13 +91,13 @@ func (sk *StakingPlugin) GetCandidateInfo(blockHash common.Hash,  nodeId discove
 	return &can, nil
 }
 
-func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash,  blockNumber *big.Int, can *xcom.Candidate, typ uint16) error {
+func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash,  blockNumber *big.Int, can *xcom.Candidate, typ uint16) (bool, error) {
 
 	var pubKey ecdsa.PublicKey
 
 	if pk, err := can.NodeId.Pubkey(); nil != err {
 		log.Error("Failed to CreateCandidate on stakingPlugin: nodeId convert pubkey failed", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
-		return err
+		return false, err
 	}else {
 		pubKey = *pk
 	}
@@ -106,7 +108,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 		origin := state.GetBalance(can.StakingAddress)
 		if origin.Cmp(can.ReleasedTmp) < 0 {
 			log.Error("Failed to CreateCandidate on stakingPlugin: the account free von is not Enough", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "originVon", origin, "stakingVon", can.ReleasedTmp)
-			return AccountVonNotEnough
+			return true, AccountVonNotEnough
 		}
 		state.SubBalance(can.StakingAddress, can.ReleasedTmp)
 		state.AddBalance(vm.StakingContractAddr, can.ReleasedTmp)
@@ -121,20 +123,20 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 
 	addr := crypto.PubkeyToAddress(pubKey)
 
-	if err := sk.db.setCandidate2DB(blockHash, addr, can); nil != err {
+	if err := sk.db.setCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to CreateCandidate on stakingPlugin: Put Can info 2 db failed", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
-		return err
+		return false, err
 	}
 
-	if err := sk.db.setCanPower2DB(blockHash, addr, can); nil != err {
+	if err := sk.db.setCanPowerStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to CreateCandidate on stakingPlugin: Put Can power 2 db failed", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
-		return err
+		return false, err
 	}
-	return nil
+	return true, nil
 }
 
 
-func (sk *StakingPlugin) EditorCandidate (state xcom.StateDB, blockHash common.Hash,  blockNumber *big.Int, can *xcom.Candidate, typ uint16, amount *big.Int) error {
+func (sk *StakingPlugin) EditorCandidate (state xcom.StateDB, blockHash common.Hash,  blockNumber *big.Int, can *xcom.Candidate, typ uint16, amount *big.Int) (bool, error) {
 
 	pubKey, _ := can.NodeId.Pubkey()
 
@@ -149,7 +151,7 @@ func (sk *StakingPlugin) EditorCandidate (state xcom.StateDB, blockHash common.H
 			origin := state.GetBalance(can.StakingAddress)
 			if origin.Cmp(amount) < 0 {
 				log.Error("Failed to EditorCandidate on stakingPlugin: the account free von is not Enough", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "originVon", origin, "stakingVon", can.ReleasedTmp)
-				return AccountVonNotEnough
+				return true, AccountVonNotEnough
 			}
 			state.SubBalance(can.StakingAddress, amount)
 			state.AddBalance(vm.StakingContractAddr, amount)
@@ -165,31 +167,31 @@ func (sk *StakingPlugin) EditorCandidate (state xcom.StateDB, blockHash common.H
 		}
 
 		// delete old power of can
-		if err := sk.db.delCanPower2DB(blockHash, can); nil != err {
-			log.Error("Failed to EditorCandidate on stakingPlugin: del can old power failed", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
-			return err
+		if err := sk.db.delCanPowerStore(blockHash, can); nil != err {
+			log.Error("Failed to EditorCandidate on stakingPlugin: Del Can old power failed", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+			return false, err
 		}
 
 		can.Shares = new(big.Int).Add(can.Shares, amount)
 
-		if err := sk.db.setCanPower2DB(blockHash, addr, can); nil != err {
+		if err := sk.db.setCanPowerStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to EditorCandidate on stakingPlugin: Put Can power 2 db failed", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
-			return err
+			return false, err
 		}
 
 	}
 
-	if err := sk.db.setCandidate2DB(blockHash, addr, can); nil != err {
+	if err := sk.db.setCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to EditorCandidate on stakingPlugin: Put Can info 2 db failed", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
-		return err
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
 
 
-func (sk *StakingPlugin) WithdrewCandidate (state xcom.StateDB, blockHash common.Hash,  blockNumber *big.Int, can *xcom.Candidate) error {
+func (sk *StakingPlugin) WithdrewCandidate (state xcom.StateDB, blockHash common.Hash,  blockNumber *big.Int, can *xcom.Candidate) (bool, error) {
 	pubKey, _ := can.NodeId.Pubkey()
 
 	lazyCalcStakeAmount(blockNumber.Uint64(), can)
@@ -198,13 +200,29 @@ func (sk *StakingPlugin) WithdrewCandidate (state xcom.StateDB, blockHash common
 
 	addr := crypto.PubkeyToAddress(*pubKey)
 
-	if err := withdrewStakeAmount(state, blockNumber.Uint64(), can); nil != err {
-		return err
+
+	// delete old power of can
+	if err := sk.db.delCanPowerStore(blockHash, can); nil != err {
+		log.Error("Failed to WithdrewCandidate on stakingPlugin: Del Can old power failed", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+		return false, err
 	}
 
+	if success, err := sk.withdrewStakeAmount(state, blockHash, blockNumber.Uint64(), addr, can); nil != err {
+		return success, err
+	}
 
-
-	return nil
+	if can.Released.Cmp(common.Big0) > 0 || can.LockRepo.Cmp(common.Big0) > 0 {
+		if err := sk.db.setCandidateStore(blockHash, addr, can); nil != err {
+			log.Error("Failed to WithdrewCandidate on stakingPlugin: Put Can info 2 db failed", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+			return false, err
+		}
+	}else {
+		if err := sk.db.delCandidateStore(blockHash, addr); nil != err {
+			log.Error("Failed to WithdrewCandidate on stakingPlugin: Del Can info failed", "blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
+			return false, err
+		}
+	}
+	return true, nil
 }
 
 
@@ -212,12 +230,8 @@ func (sk *StakingPlugin) WithdrewCandidate (state xcom.StateDB, blockHash common
 
 
 
-func withdrewStakeAmount (state xcom.StateDB, blockNumber uint64, can *xcom.Candidate) error {
+func (sk *StakingPlugin) withdrewStakeAmount (state xcom.StateDB, blockHash common.Hash, blockNumber uint64, addr common.Address, can *xcom.Candidate) (bool, error) {
 	curEpoch := xutil.CalculateEpoch(blockNumber)
-
-	changeAmountEpoch := can.StakingEpoch
-
-	sub := curEpoch - changeAmountEpoch
 
 	// Direct return of money during the hesitation period
 	// Return according to the way of coming
@@ -233,15 +247,16 @@ func withdrewStakeAmount (state xcom.StateDB, blockNumber uint64, can *xcom.Cand
 		can.Shares = new(big.Int).Sub(can.Shares, can.LockRepoTmp)
 	}
 
-	if can.Released.Cmp(common.Big0) > 0 {
-
+	if can.Released.Cmp(common.Big0) > 0 || can.LockRepo.Cmp(common.Big0) > 0 {
+		if err := sk.db.addUnStakeItem(blockHash, curEpoch, addr); nil != err {
+			return false, err
+		}
 	}
 
+	can.Mark = valided
+	can.Status|= xcom.Invalided
 
-	if can.LockRepo.Cmp(common.Big0) > 0 {
-
-	}
-
+	return true, nil
 }
 
 
@@ -298,6 +313,7 @@ func  mergeAmount (mark uint8, target, tmp *big.Int) *big.Int {
 	}else if mark == decrease {
 		return  new(big.Int).Sub(target, tmp)
 	}
+	return target
 }
 
 

@@ -111,3 +111,9 @@ func GetUnStakeCountKey (epoch uint64) []byte {
 }
 
 
+func GetUnStakeItemKey (epoch, index uint64) []byte {
+	epochStr := strconv.Itoa(int(epoch))
+	indexStr := strconv.Itoa(int(index))
+	return append(UnStakeItemKey, append([]byte(epochStr), []byte(indexStr)...)...)
+}
+

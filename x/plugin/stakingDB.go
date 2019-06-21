@@ -54,7 +54,7 @@ func (db *StakingDB) getCandidate (blockHash common.Hash, nodeId discover.NodeID
 }
 
 
-func (db *StakingDB) setCandidate2DB(blockHash common.Hash, addr common.Address, can *xcom.Candidate) error {
+func (db *StakingDB) setCandidateStore (blockHash common.Hash, addr common.Address, can *xcom.Candidate) error {
 
 	key := xcom.CandidateKeyByAddr(addr)
 
@@ -65,22 +65,29 @@ func (db *StakingDB) setCandidate2DB(blockHash common.Hash, addr common.Address,
 	}
 }
 
-func (db *StakingDB) setCanPower2DB (blockHash common.Hash, addr common.Address, can *xcom.Candidate) error {
+func (db *StakingDB) delCandidateStore (blockHash common.Hash, addr common.Address) error {
+	key := xcom.CandidateKeyByAddr(addr)
+	return db.del(blockHash, key)
+}
+
+func (db *StakingDB) setCanPowerStore (blockHash common.Hash, addr common.Address, can *xcom.Candidate) error {
 	key := xcom.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex)
 	return db.put(blockHash, key, addr.Bytes())
 }
 
-func (db *StakingDB) delCanPower2DB (blockHash common.Hash, can *xcom.Candidate) error {
+func (db *StakingDB) delCanPowerStore (blockHash common.Hash, can *xcom.Candidate) error {
 	key := xcom.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex)
 	return db.del(blockHash, key)
 }
 
 
-func (db *StakingDB) increaseUnStakeCount (blockHash common.Hash, epoch uint64) error {
 
-	key := xcom.GetUnStakeCountKey(epoch)
+func (db *StakingDB) addUnStakeItem (blockHash common.Hash, epoch uint64, addr common.Address) error {
 
-	val, err := db.get(blockHash, key)
+
+	count_key := xcom.GetUnStakeCountKey(epoch)
+
+	val, err := db.get(blockHash, count_key)
 	if nil != err {
 		return err
 	}
@@ -96,5 +103,9 @@ func (db *StakingDB) increaseUnStakeCount (blockHash common.Hash, epoch uint64) 
 	v++
 
 	valNew := []byte(strconv.Itoa(v))
-	return db.put(blockHash, key, valNew)
+	if err := db.put(blockHash, count_key, valNew); nil != err {
+		return err
+	}
+	item_key := xcom.GetUnStakeItemKey(epoch, uint64(v))
+	return db.put(blockHash, item_key, addr.Bytes())
 }
