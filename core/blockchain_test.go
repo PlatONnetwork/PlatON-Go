@@ -126,11 +126,11 @@ func testBlockChainImport(chain types.Blocks, blockchain *BlockChain) error {
 			}
 			return err
 		}
-		statedb, err := state.New(blockchain.GetBlockByHash(block.ParentHash()).Root(), blockchain.stateCache, blockchain.GetBlockByHash(block.ParentHash()).Number(), blockchain.GetBlockByHash(block.ParentHash()).Hash())
+		statedb, err := state.New(blockchain.GetBlockByHash(block.ParentHash()).Root(), blockchain.stateCache)
 		if err != nil {
 			return err
 		}
-		receipts, _, usedGas, err := blockchain.Processor().Process(block, statedb, vm.Config{}, nil)
+		receipts, _, usedGas, err := blockchain.Processor().Process(block, statedb, vm.Config{})
 		if err != nil {
 			blockchain.reportBlock(block, receipts, err)
 			return err
