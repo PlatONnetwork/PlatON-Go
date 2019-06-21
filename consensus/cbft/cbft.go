@@ -214,11 +214,11 @@ func (cbft *Cbft) getHighestLogical() *BlockExt {
 	}
 }
 
-func (cbft *Cbft) getValidators() *Validators {
+func (cbft *Cbft) getValidators() *cbfttypes.Validators {
 	if v := cbft.validators.Load(); v == nil {
 		panic("Get validators fail")
 	} else {
-		return v.(*Validators)
+		return v.(*cbfttypes.Validators)
 	}
 }
 

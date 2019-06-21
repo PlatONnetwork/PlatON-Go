@@ -3,9 +3,10 @@ package core
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -34,7 +35,7 @@ type BlockChainReactor struct {
 var bcr *BlockChainReactor
 
 
-func New (mux *event.TypeMux) *BlockChainReactor {
+func NewBlockChainReactor (mux *event.TypeMux) *BlockChainReactor {
 	if nil == bcr {
 		bcr = &BlockChainReactor{
 			eventMux: 		mux,
@@ -172,3 +173,24 @@ func (bcr *BlockChainReactor) Verify_tx (tx *types.Transaction, from common.Addr
 }
 
 
+func (bcr *BlockChainReactor) Sign (msg interface{}) error {
+	return nil
+}
+
+func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
+	return nil
+}
+
+
+func (bcr *BlockChainReactor) GetLastNumber(blockNumber uint64) uint64 {
+	return 0
+}
+
+
+func (brc *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
+	return nil, nil
+}
+
+func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
+	return false
+}

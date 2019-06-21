@@ -6,6 +6,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	"math/big"
 )
 
@@ -91,4 +93,25 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 		BlockNumber: blockNumber,
 	})
 	return nil
+}
+
+
+
+
+type SnapshotDB interface {
+	NewBlock (blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error
+	Put (hash common.Hash, key, value []byte) error
+	Get (hash common.Hash, key []byte) ([]byte, error)
+	GetCommitedBlock (key []byte) ([]byte, error)
+	Del (hash common.Hash, key []byte) error
+	Has (hash common.Hash, key []byte) (bool, error)
+	Flush (hash common.Hash, blocknumber *big.Int) (bool, error)
+	Ranking (hash *common.Hash,key []byte, rangeInt int) iterator.Iterator
+	BaseNum () (big.Int, error)
+	WalkBaseDB (f func(num *big.Int, ran *util.Range))
+	Commit (hash common.Hash) error
+	Clear () error
+	PutBaseDB (key,value []byte)  error
+	GetLastKVHash (blockhash []byte) []byte
+	Close () error
 }

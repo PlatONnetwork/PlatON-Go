@@ -858,8 +858,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 
-	// TODO Verify inner contract tx
-	bcr.Verify_tx(tx, from)
+	// Verify inner contract tx
+	if err := bcr.Verify_tx(tx, from); nil != err {
+		return err
+	}
 
 
 	return nil

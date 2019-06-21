@@ -17,7 +17,6 @@ type BasePlugin interface {
 	BeginBlock(header *types.Header, state xcom.StateDB) (bool, error)
 	EndBlock(header *types.Header, state xcom.StateDB) (bool, error)
 	Confirmed(block *types.Block) error
-	//Verify_tx_data(source [][]byte) (fn interface{}, FnParams []reflect.Value, err error)
 }
 
 
