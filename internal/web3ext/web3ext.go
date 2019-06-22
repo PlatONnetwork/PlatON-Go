@@ -22,7 +22,7 @@ var Modules = map[string]string{
 	"chequebook": Chequebook_JS,
 	"clique":     Clique_JS,
 	"debug":      Debug_JS,
-	"eth":        Eth_JS,
+	"platon":     Platon_JS,
 	"miner":      Miner_JS,
 	"net":        Net_JS,
 	"personal":   Personal_JS,
@@ -404,62 +404,58 @@ web3._extend({
 });
 `
 
-const Eth_JS = `
+const Platon_JS = `
 web3._extend({
-	property: 'eth',
+	property: 'platon',
 	methods: [
 		new web3._extend.Method({
 			name: 'setActor',
-			call: 'eth_setActor',
+			call: 'platon_setActor',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputAddressFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'sign',
-			call: 'eth_sign',
+			call: 'platon_sign',
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputAddressFormatter, null]
 		}),
 		new web3._extend.Method({
 			name: 'resend',
-			call: 'eth_resend',
+			call: 'platon_resend',
 			params: 3,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter, web3._extend.utils.fromDecimal, web3._extend.utils.fromDecimal]
 		}),
 		new web3._extend.Method({
 			name: 'signTransaction',
-			call: 'eth_signTransaction',
+			call: 'platon_signTransaction',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'submitTransaction',
-			call: 'eth_submitTransaction',
+			call: 'platon_submitTransaction',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'getRawTransaction',
-			call: 'eth_getRawTransactionByHash',
+			call: 'platon_getRawTransactionByHash',
 			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'getRawTransactionFromBlock',
 			call: function(args) {
-				return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'eth_getRawTransactionByBlockHashAndIndex' : 'eth_getRawTransactionByBlockNumberAndIndex';
+				return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'platon_getRawTransactionByBlockHashAndIndex' : 'platon_getRawTransactionByBlockNumberAndIndex';
 			},
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, web3._extend.utils.toHex]
-		}),
-		new web3._extend.Method({
-			name: 'evidences',
-			call: 'eth_evidences',
 		}),
 	],
 	properties: [
 		new web3._extend.Property({
 			name: 'pendingTransactions',
-			getter: 'eth_pendingTransactions',
+			getter: 'platon_pendingTransactions',
 			outputFormatter: function(txs) {
 				var formatted = [];
 				for (var i = 0; i < txs.length; i++) {
@@ -478,40 +474,10 @@ web3._extend({
 	property: 'miner',
 	methods: [
 		new web3._extend.Method({
-			name: 'start',
-			call: 'miner_start',
-			params: 1,
-			inputFormatter: [null]
-		}),
-		new web3._extend.Method({
-			name: 'stop',
-			call: 'miner_stop'
-		}),
-		new web3._extend.Method({
-			name: 'setEtherbase',
-			call: 'miner_setEtherbase',
-			params: 1,
-			inputFormatter: [web3._extend.formatters.inputAddressFormatter]
-		}),
-		new web3._extend.Method({
-			name: 'setExtra',
-			call: 'miner_setExtra',
-			params: 1
-		}),
-		new web3._extend.Method({
 			name: 'setGasPrice',
 			call: 'miner_setGasPrice',
 			params: 1,
 			inputFormatter: [web3._extend.utils.fromDecimal]
-		}),
-		new web3._extend.Method({
-			name: 'setRecommitInterval',
-			call: 'miner_setRecommitInterval',
-			params: 1,
-		}),
-		new web3._extend.Method({
-			name: 'getHashrate',
-			call: 'miner_getHashrate'
 		}),
 	],
 	properties: []
