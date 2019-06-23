@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -33,7 +34,6 @@ type current struct {
 	sync.RWMutex `rlp:"-"`
 }
 
-//todo 需要加锁
 func (c *current) update() error {
 	c.Lock()
 	defer c.Unlock()
@@ -44,7 +44,7 @@ func (c *current) update() error {
 	if err := rlp.Encode(b, c); err != nil {
 		return err
 	}
-	c.f.Seek(0, 0)
+	c.f.Seek(io.SeekStart, io.SeekEnd)
 	_, err := c.f.Write(b.Bytes())
 	if err != nil {
 		return err
@@ -72,7 +72,6 @@ func findCurrent(dir string) bool {
 	return true
 }
 
-//todo	c.f.Seek(0, 0)
 func loadCurrent(dir string) (*current, error) {
 	f, err := os.OpenFile(getCurrentPath(dir), os.O_RDWR, 0666)
 	if err != nil {

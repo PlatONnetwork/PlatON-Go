@@ -1,8 +1,9 @@
 package snapshotdb
 
 import (
+	"bytes"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb/journal"
-	"log"
 	"math/big"
 	"testing"
 )
@@ -34,10 +35,18 @@ func TestPutToUnRecognized(t *testing.T) {
 	if _, err := db.NewBlock(big.NewInt(20), parentHash, nil); err != nil {
 		t.Fatal(err)
 	}
+	var lastkvHash common.Hash
+	var lastkvHashs []common.Hash
+
 	for _, value := range data {
 		if _, err := db.Put(nil, []byte(value[0]), []byte(value[1])); err != nil {
 			t.Fatal(err)
 		}
+		if bytes.Compare(db.GetLastKVHash(nil), db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash).Bytes()) != 0 {
+			t.Fatal("kv hash is wrong")
+		}
+		lastkvHash = db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash)
+		lastkvHashs = append(lastkvHashs, lastkvHash)
 	}
 	for _, value := range data {
 		v, err := db.unRecognized.data.Get([]byte(value[0]))
@@ -73,7 +82,7 @@ func TestPutToUnRecognized(t *testing.T) {
 	if header.BlockNumber.Int64() != 20 {
 		t.Fatal("header BlockNumber should same")
 	}
-
+	var i int
 	for _, value := range data {
 		reader, err := r.Next()
 		if err != nil {
@@ -92,8 +101,10 @@ func TestPutToUnRecognized(t *testing.T) {
 		if string(body.Value) != value[1] {
 			t.Fatal("body value should be same", string(body.Value), value)
 		}
-		log.Print(body.Hash)
-
+		if lastkvHashs[i] != body.Hash {
+			t.Fatal("kv hash is wrong")
+		}
+		i++
 	}
 }
 
@@ -119,10 +130,17 @@ func TestPutToRecognized(t *testing.T) {
 	if _, err := db.NewBlock(big.NewInt(20), parentHash, &currentHash); err != nil {
 		t.Fatal(err)
 	}
+	var lastkvHash common.Hash
+	var lastkvHashs []common.Hash
 	for _, value := range data {
 		if _, err := db.Put(&currentHash, []byte(value[0]), []byte(value[1])); err != nil {
 			t.Fatal(err)
 		}
+		if bytes.Compare(db.GetLastKVHash(&currentHash), db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash).Bytes()) != 0 {
+			t.Fatal("kv hash is wrong")
+		}
+		lastkvHash = db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash)
+		lastkvHashs = append(lastkvHashs, lastkvHash)
 	}
 	recognized, ok := db.recognized[currentHash]
 	if !ok {
@@ -162,6 +180,7 @@ func TestPutToRecognized(t *testing.T) {
 	if header.BlockNumber.Int64() != recognized.Number.Int64() {
 		t.Fatal("header BlockNumber should same")
 	}
+	var i int
 
 	for _, value := range data {
 		reader, err := r.Next()
@@ -181,7 +200,10 @@ func TestPutToRecognized(t *testing.T) {
 		if string(body.Value) != value[1] {
 			t.Fatal("body value should be same", string(body.Value), value)
 		}
-		log.Print(body.Hash)
+		if lastkvHashs[i] != body.Hash {
+			t.Fatal("kv hash is wrong")
+		}
+		i++
 	}
 }
 
@@ -352,10 +374,6 @@ func TestCommit(t *testing.T) {
 	if _, ok := db.recognized[currentHash]; ok {
 		t.Fatal("[SnapshotDB] should move to commit")
 	}
-
-}
-
-func TestKVHash(t *testing.T) {
 
 }
 

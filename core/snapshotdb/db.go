@@ -9,14 +9,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"io"
-	"log"
 	"math/big"
-	"os"
 	"path"
-	"path/filepath"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 func getBaseDBPath(dbpath string) string {
@@ -42,11 +36,6 @@ func newDB(dbpath string) (*snapshotDB, error) {
 		baseDB:       baseDB,
 		current:      newCurrent(dbpath),
 	}, nil
-}
-
-func (s *snapshotDB) findJournalFile() []string {
-	matchs, _ := filepath.Glob(path.Join(s.path, "*.log"))
-	return matchs
 }
 
 func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
@@ -131,21 +120,8 @@ func (s *snapshotDB) recover(dbpath string) error {
 		return fmt.Errorf("[SnapshotDB]open db dir fail:%v", err)
 	}
 	s.storage = storage
-
-	//find Journal
-	matchs := s.findJournalFile()
-	var fds fileDescs
-	fds = make([]fileDesc, 0)
-	for _, value := range matchs {
-		var fd fileDesc
-		fd, err := fsParseName(value)
-		if err != nil {
-			return err
-		}
-		fds = append(fds, fd)
-	}
-	sort.Sort(fds)
-
+	fds, err := s.storage.List(TypeJournal)
+	sortFds(fds)
 	//初始化一些变量
 	baseNum := s.current.BaseNum.Int64()
 	highestNum := s.current.HighestNum.Int64()
@@ -193,35 +169,18 @@ func (s *snapshotDB) recover(dbpath string) error {
 }
 
 func (s *snapshotDB) removeJournalLessThanBaseNum() error {
-	m, err := filepath.Glob(filepath.Join(s.path, "*.log"))
+	fds, err := s.storage.List(TypeJournal)
 	if err != nil {
 		return err
 	}
-	for _, value := range m {
-		ss := strings.Split(value, "-")
-		tmp2 := strings.Split(ss[0], "/")
-		i, err := strconv.ParseInt(tmp2[1], 10, 64)
-		if err != nil {
-			return err
-		}
-		if i <= s.current.BaseNum.Int64() {
-			if err := os.Remove(value); err != nil {
-				panic(err)
+	for _, fd := range fds {
+		if fd.Num <= s.current.BaseNum.Int64() {
+			if err := s.storage.Remove(fd); err != nil {
+				return err
 			}
 		}
 	}
 	return nil
-}
-
-func (s *snapshotDB) schedule() {
-	if counter.get() == 60 || s.current.HighestNum.Int64()-s.current.BaseNum.Int64() >= 100 {
-		if _, err := s.Compaction(); err != nil {
-			log.Print("[SnapshotDB]compaction fail:", err)
-		}
-		counter.reset()
-	} else {
-		counter.increment()
-	}
 }
 
 func (s *snapshotDB) generateKVHash(k, v []byte, hash common.Hash) common.Hash {
@@ -308,6 +267,100 @@ func (s *snapshotDB) rmOldRecognizedBlockData() error {
 				return err
 			}
 		}
+	}
+	return nil
+}
+
+const (
+	hashLocationRecognized = 1
+	hashLocationCommited   = 2
+)
+
+func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
+	lastblockNumber := big.NewInt(0)
+	//在recognized中找
+	for {
+		if data, ok := s.recognized[hash]; ok {
+			hash = data.ParentHash
+			lastblockNumber = data.Number
+		} else {
+			break
+		}
+	}
+	//在recognized中找到
+	if lastblockNumber.Int64() > 0 {
+		if len(s.commited) > 0 {
+			commitBlock := s.commited[len(s.commited)-1]
+			if lastblockNumber.Int64()-1 != commitBlock.Number.Int64() {
+				return 0, false
+			}
+			if commitBlock.BlockHash.String() != hash.String() {
+				return 0, false
+			}
+			return hashLocationRecognized, true
+		}
+		if s.current.HighestNum.Int64() == lastblockNumber.Int64()-1 {
+			return hashLocationRecognized, true
+		}
+	}
+	//在recognized中没有找到,在commit中找
+	for _, value := range s.commited {
+		if *value.BlockHash == hash {
+			return hashLocationCommited, true
+		}
+	}
+	return 0, false
+}
+
+func (s *snapshotDB) put(hash *common.Hash, key, value []byte, funcType uint64) error {
+	var (
+		block     blockData
+		blockHash common.Hash
+	)
+	if hash == nil {
+		block = *s.unRecognized
+		blockHash = s.getUnRecognizedHash()
+	} else {
+		bb, ok := s.recognized[*hash]
+		if !ok {
+			return errors.New("[SnapshotDB]get recognized block data by hash fail")
+		}
+		block = bb
+		blockHash = *hash
+	}
+
+	if block.readOnly {
+		return errors.New("[SnapshotDB]can't put read only block")
+	}
+
+	jData := journalData{
+		Key:      key,
+		Value:    value,
+		Hash:     s.generateKVHash(key, value, block.kvHash),
+		FuncType: funcType,
+	}
+	body, err := encode(jData)
+	if err != nil {
+		return errors.New("encode fail:" + err.Error())
+	}
+	if err := s.writeJournalBody(blockHash, body); err != nil {
+		return err
+	}
+	switch funcType {
+	case funcTypePut:
+		if err := block.data.Put(key, value); err != nil {
+			return err
+		}
+	case funcTypeDel:
+		if err := block.data.Delete(key); err != nil {
+			return err
+		}
+	}
+	block.kvHash = jData.Hash
+	if hash != nil {
+		s.recognized[*hash] = block
+	} else {
+		s.unRecognized = &block
 	}
 	return nil
 }

@@ -55,9 +55,12 @@ type snapshotDB struct {
 	baseDB       *leveldb.DB
 	unRecognized *blockData
 	recognized   map[common.Hash]blockData
-	commited     []blockData
-	journalw     map[common.Hash]*journal.Writer
-	storage      Storage
+
+	commited   []blockData
+	commitLock sync.RWMutex
+
+	journalw map[common.Hash]*journal.Writer
+	storage  Storage
 }
 
 //Instance return the Instanceof the db
@@ -88,11 +91,16 @@ func (s *snapshotDB) PutBaseDB(key, value []byte) (bool, error) {
 	return true, nil
 }
 
+//if hash is nil ,get unRecognized block lastkv hash,
+//else, get recognized block lastkv  hash
 func (s *snapshotDB) GetLastKVHash(blockHash *common.Hash) []byte {
 	if blockHash == nil {
 		return s.unRecognized.kvHash.Bytes()
 	}
-	block := s.recognized[*blockHash]
+	block, ok := s.recognized[*blockHash]
+	if !ok {
+		return nil
+	}
 	return block.kvHash.Bytes()
 }
 
@@ -103,12 +111,13 @@ func (s *snapshotDB) Del(hash *common.Hash, key []byte) (bool, error) {
 	return true, nil
 }
 
+//todo Compaction和commit之间是有冲突的，当commit的时候应该无法Compaction
 func (s *snapshotDB) Compaction() (bool, error) {
-	s.mu.Lock()
+	s.commitLock.Lock()
 	s.snapshotLock = true
 	defer func() {
 		s.snapshotLock = false
-		s.mu.Unlock()
+		s.commitLock.Unlock()
 	}()
 	var size int
 	var writeBlockNum int
@@ -171,54 +180,6 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 		s.recognized[*hash] = *block
 	}
 	return true, nil
-}
-
-func (s *snapshotDB) put(hash *common.Hash, key, value []byte, funcType uint64) error {
-	var (
-		block     *blockData
-		blockHash common.Hash
-	)
-	if hash == nil {
-		block = s.unRecognized
-		blockHash = s.getUnRecognizedHash()
-	} else {
-		bb, ok := s.recognized[*hash]
-		if !ok {
-			return errors.New("[SnapshotDB]get recognized block data by hash fail")
-		}
-		block = &bb
-		blockHash = *hash
-	}
-
-	if block.readOnly {
-		return errors.New("[SnapshotDB]can't put read only block")
-	}
-
-	jData := journalData{
-		Key:      key,
-		Value:    value,
-		Hash:     s.generateKVHash(key, value, block.kvHash),
-		FuncType: funcType,
-	}
-	body, err := encode(jData)
-	if err != nil {
-		return errors.New("encode fail:" + err.Error())
-	}
-	if err := s.writeJournalBody(blockHash, body); err != nil {
-		return err
-	}
-	switch funcType {
-	case funcTypePut:
-		if err := block.data.Put(key, value); err != nil {
-			return err
-		}
-	case funcTypeDel:
-		if err := block.data.Delete(key); err != nil {
-			return err
-		}
-	}
-	block.kvHash = jData.Hash
-	return nil
 }
 
 func (s *snapshotDB) Put(hash *common.Hash, key, value []byte) (bool, error) {
@@ -315,6 +276,8 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) (bool, error)
 }
 
 func (s *snapshotDB) Commit(hash common.Hash) (bool, error) {
+	s.commitLock.Lock()
+	defer s.commitLock.Unlock()
 	block, ok := s.recognized[hash]
 	if !ok {
 		return false, errors.New("[snapshotdb]not found form commit block:" + hash.String())
@@ -326,8 +289,6 @@ func (s *snapshotDB) Commit(hash common.Hash) (bool, error) {
 	if (block.Number.Int64() - s.current.HighestNum.Int64()) != 1 {
 		return false, fmt.Errorf("[snapshotdb]blockNum %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	block.readOnly = true
 	s.commited = append(s.commited, block)
 	s.current.HighestNum = block.Number
@@ -379,47 +340,6 @@ func itrToMdb(itr iterator.Iterator, mdb *memdb.DB) error {
 	}
 	itr.Release()
 	return nil
-}
-
-const (
-	hashLocationRecognized = 1
-	hashLocationCommited   = 2
-)
-
-func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
-	lastblockNumber := big.NewInt(0)
-	//在recognized中找
-	for {
-		if data, ok := s.recognized[hash]; ok {
-			hash = data.ParentHash
-			lastblockNumber = data.Number
-		} else {
-			break
-		}
-	}
-	//在recognized中找到
-	if lastblockNumber.Int64() > 0 {
-		if len(s.commited) > 0 {
-			commitBlock := s.commited[len(s.commited)-1]
-			if lastblockNumber.Int64()-1 != commitBlock.Number.Int64() {
-				return 0, false
-			}
-			if commitBlock.BlockHash.String() != hash.String() {
-				return 0, false
-			}
-			return hashLocationRecognized, true
-		}
-		if s.current.HighestNum.Int64() == lastblockNumber.Int64()-1 {
-			return hashLocationRecognized, true
-		}
-	}
-	//在recognized中没有找到,在commit中找
-	for _, value := range s.commited {
-		if *value.BlockHash == hash {
-			return hashLocationCommited, true
-		}
-	}
-	return 0, false
 }
 
 //1.hash为空的时候，从unRecognized开始查（假设unRecognized的parentHash必为真），如果unRecognized也为空，从commited开始查

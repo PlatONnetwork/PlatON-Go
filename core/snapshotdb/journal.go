@@ -8,17 +8,15 @@ import (
 	"math/big"
 )
 
-// FileType represent a file type.
-type FileType int
+// fileType represent a file type.
+type fileType int
 
 // File types.
 const (
-	TypeCurrent FileType = 1 << iota
+	TypeCurrent fileType = 1 << iota
 	TypeJournal
 	TypeAll = TypeCurrent | TypeJournal
-
-	DIR = "./snapshotdb"
-)
+	)
 
 const (
 	funcTypePut = iota

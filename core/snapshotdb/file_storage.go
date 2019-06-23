@@ -204,6 +204,32 @@ func (fs *fileStorage) Close() error {
 	return fs.flock.release()
 }
 
+
+func (fs *fileStorage) List(ft fileType) (fds []fileDesc, err error) {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	if fs.open < 0 {
+		return nil, ErrClosed
+	}
+	dir, err := os.Open(fs.path)
+	if err != nil {
+		return
+	}
+	names, err := dir.Readdirnames(0)
+	// Close the dir first before checking for Readdirnames error.
+	if cerr := dir.Close(); cerr != nil {
+		fs.log(fmt.Sprintf("close dir: %v", cerr))
+	}
+	if err == nil {
+		for _, name := range names {
+			if fd, ok := fsParseName(name); ok && fd.Type&ft != 0 {
+				fds = append(fds, fd)
+			}
+		}
+	}
+	return
+}
+
 func itoa(buf []byte, i int, wid int) []byte {
 	u := uint(i)
 	if u == 0 && wid <= 1 {
@@ -281,7 +307,7 @@ func openFile(path string, readOnly bool) (Storage, error) {
 		if err != nil {
 			return nil, err
 		}
-		logSize, err = logw.Seek(0, os.SEEK_END)
+		logSize, err = logw.Seek(io.SeekStart, io.SeekEnd)
 		if err != nil {
 			logw.Close()
 			return nil, err
@@ -299,16 +325,20 @@ func openFile(path string, readOnly bool) (Storage, error) {
 	return fs, nil
 }
 
-func fsParseName(name string) (fd fileDesc, ok error) {
+func fsParseName(name string) (fd fileDesc, ok bool) {
+	if name == "current"{
+		fd.Type = TypeCurrent
+		return fd,true
+	}
 	_, p := path.Split(name)
 	arr := strings.Split(p, "-")
-
 	i, err := strconv.ParseInt(arr[0], 10, 64)
 	if err != nil {
-		return fd, err
+		log.Print("invalid name,can't, parse to int",err)
+		return fd, false
 	}
 	fd.Num = i
 	fd.Type = TypeJournal
 	fd.BlockHash = common.HexToHash(strings.TrimRight(arr[1], ".log"))
-	return fd, nil
+	return fd, true
 }

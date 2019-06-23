@@ -5,7 +5,14 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"io"
+	"sort"
 )
+
+
+func sortFds(fds []fileDesc) {
+	sort.Sort(fileDescs(fds))
+}
+
 
 type fileDescs []fileDesc
 
@@ -24,7 +31,7 @@ func (f fileDescs) Swap(i, j int) {
 }
 
 type fileDesc struct {
-	Type      FileType
+	Type      fileType
 	Num       int64
 	BlockHash common.Hash
 }
@@ -34,9 +41,9 @@ func (fd fileDesc) String() string {
 	case TypeJournal:
 		return fmt.Sprintf("%010d-%s.log", fd.Num, fd.BlockHash.String())
 	case TypeCurrent:
-		return fmt.Sprintf("current.log")
+		return fmt.Sprintf("current")
 	default:
-		return fmt.Sprintf("%#x-%d", fd.Type, fd.Num)
+		return ""
 	}
 }
 
@@ -94,4 +101,8 @@ type Storage interface {
 	// Append append file with the given 'file descriptor', opens write-only.
 	// Returns ErrClosed if the underlying storage is closed.
 	Append(fd fileDesc) (io.WriteCloser, error)
+
+	// List returns file descriptors that match the given file types.
+	// The file types may be OR'ed together.
+	List(ft fileType) ([]fileDesc, error)
 }
