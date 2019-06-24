@@ -23,6 +23,7 @@ func newCurrent(dir string) *current {
 		panic(err)
 	}
 	c.f = f
+	c.update()
 	return c
 }
 

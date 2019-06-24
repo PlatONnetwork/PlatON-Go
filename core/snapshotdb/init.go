@@ -2,39 +2,44 @@ package snapshotdb
 
 import (
 	"flag"
-	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/robfig/cron"
+	"os"
+	"path"
 )
 
 //todo 需要确认文件路径与操作系统
 const (
-	DBPath      = "./snapshotdb"
+	DBPath      = "snapshotdb"
 	DBBasePath  = "base"
 	currentPath = "current"
+	DBTestPath  = "snapshotdb_test"
 )
 
-func init() {
+func initDB() {
+	var dbPath string
 	if flag.Lookup("test.v") == nil {
-		if findCurrent(DBPath) {
-			db := new(snapshotDB)
-			if err := db.recover(DBPath); err != nil {
-				panic(err)
-			}
-			dbInstance = db
-		} else {
-			db, err := newDB(DBPath)
-			if err != nil {
-				panic(err)
-			}
-			dbInstance = db
-		}
-		go func() {
-			c := cron.New()
-			c.AddFunc("@every 1s", dbInstance.schedule)
-			c.Start()
-		}()
+		dbPath = DBPath
 	} else {
-		fmt.Println("run under go test")
+		log.Debug("run under go test")
+		dbPath = path.Join(os.TempDir(), DBTestPath)
 	}
-
+	if findCurrent(dbPath) {
+		db := new(snapshotDB)
+		if err := db.recover(dbPath); err != nil {
+			panic(err)
+		}
+		dbInstance = db
+	} else {
+		db, err := newDB(dbPath)
+		if err != nil {
+			panic(err)
+		}
+		dbInstance = db
+	}
+	dbInstance.corn = cron.New()
+	if err := dbInstance.corn.AddFunc("@every 1s", dbInstance.schedule); err != nil {
+		log.Error("corn AddFunc fail", err)
+	}
+	dbInstance.corn.Start()
 }

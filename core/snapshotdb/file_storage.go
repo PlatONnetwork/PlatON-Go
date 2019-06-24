@@ -204,7 +204,6 @@ func (fs *fileStorage) Close() error {
 	return fs.flock.release()
 }
 
-
 func (fs *fileStorage) List(ft fileType) (fds []fileDesc, err error) {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
@@ -254,8 +253,9 @@ type fileWrap struct {
 	closed bool
 }
 
+//todo use log default
 func (fw *fileWrap) Flush() error {
-	log.Printf("write to %s", fw.fd.String())
+	//log.Printf("write to %s", fw.fd.String())
 	return nil
 }
 
@@ -274,7 +274,7 @@ func (fw *fileWrap) Close() error {
 	return err
 }
 
-func openFile(path string, readOnly bool) (Storage, error) {
+func openFile(path string, readOnly bool) (storage, error) {
 	if fi, err := os.Stat(path); err == nil {
 		if !fi.IsDir() {
 			return nil, fmt.Errorf("leveldb/storage: open %s: not a directory", path)
@@ -326,15 +326,15 @@ func openFile(path string, readOnly bool) (Storage, error) {
 }
 
 func fsParseName(name string) (fd fileDesc, ok bool) {
-	if name == "current"{
+	if name == "current" {
 		fd.Type = TypeCurrent
-		return fd,true
+		return fd, true
 	}
 	_, p := path.Split(name)
 	arr := strings.Split(p, "-")
 	i, err := strconv.ParseInt(arr[0], 10, 64)
 	if err != nil {
-		log.Print("invalid name,can't, parse to int",err)
+		log.Print("invalid name,can't, parse to int", err)
 		return fd, false
 	}
 	fd.Num = i

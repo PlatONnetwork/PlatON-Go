@@ -12,10 +12,8 @@ import (
 )
 
 func TestJournal(t *testing.T) {
-	db, err := newDB(TestDBPath)
-	if err != nil {
-		t.Fatal("new test db fail:", err)
-	}
+	initDB()
+	db := dbInstance
 	defer func() {
 		_, err := db.Clear()
 		if err != nil {

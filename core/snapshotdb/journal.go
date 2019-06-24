@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	jo "github.com/syndtr/goleveldb/leveldb/journal"
-	"log"
 	"math/big"
 )
 
@@ -16,7 +15,7 @@ const (
 	TypeCurrent fileType = 1 << iota
 	TypeJournal
 	TypeAll = TypeCurrent | TypeJournal
-	)
+)
 
 const (
 	funcTypePut = iota
@@ -60,7 +59,6 @@ func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash c
 	if err != nil {
 		return err
 	}
-	log.Print("write head ", h)
 	if _, err := writer.Write(h); err != nil {
 		return err
 	}

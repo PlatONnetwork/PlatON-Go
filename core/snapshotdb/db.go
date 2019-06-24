@@ -9,6 +9,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"io"
+	"log"
 	"math/big"
 	"path"
 )
@@ -68,7 +69,7 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 			block.readOnly = true
 		}
 	}
-
+	log.Print("recorver", header.From, block.readOnly)
 	var kvhash common.Hash
 	for {
 		j, err := journals.Next()
@@ -189,56 +190,6 @@ func (s *snapshotDB) generateKVHash(k, v []byte, hash common.Hash) common.Hash {
 	buf.Write(v)
 	buf.Write(hash.Bytes())
 	return rlpHash(buf.Bytes())
-}
-
-func (s *snapshotDB) getFromUnRecognized(key []byte) ([]byte, error) {
-	return s.unRecognized.data.Get(key)
-}
-
-func (s *snapshotDB) getFromRecognized(hash *common.Hash, key []byte) ([]byte, error) {
-	if hash == nil {
-		for _, value := range s.recognized {
-			v, err := value.data.Get(key)
-			if err == nil {
-				return v, nil
-			}
-			if err != memdb.ErrNotFound {
-				return nil, err
-			}
-		}
-	} else {
-		b, ok := s.recognized[*hash]
-		if ok {
-			return b.data.Get(key)
-		}
-	}
-	return nil, memdb.ErrNotFound
-}
-
-func (s *snapshotDB) getFromCommited(hash *common.Hash, key []byte) ([]byte, error) {
-	if hash == nil {
-		for _, value := range s.commited {
-			v, err := value.data.Get(key)
-			if err == nil {
-				return v, nil
-			}
-			if err != memdb.ErrNotFound {
-				return nil, err
-			}
-		}
-	} else {
-		for _, value := range s.commited {
-			if *hash == *value.BlockHash {
-				v, err := value.data.Get(key)
-				return v, err
-			}
-		}
-	}
-	return nil, memdb.ErrNotFound
-}
-
-func (s *snapshotDB) getFromBaseDB(key []byte) ([]byte, error) {
-	return s.baseDB.Get(key, nil)
 }
 
 func (s *snapshotDB) getUnRecognizedHash() common.Hash {

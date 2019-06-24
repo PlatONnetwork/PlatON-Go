@@ -8,11 +8,9 @@ import (
 	"sort"
 )
 
-
 func sortFds(fds []fileDesc) {
 	sort.Sort(fileDescs(fds))
 }
-
 
 type fileDescs []fileDesc
 
@@ -73,8 +71,8 @@ type fileLock interface {
 
 const logSizeThreshold = 1024 * 1024 // 1 MiB
 
-// Storage is the storage. A storage instance must be safe for concurrent use.
-type Storage interface {
+// storage is the storage. A storage instance must be safe for concurrent use.
+type storage interface {
 	// Create creates file with the given 'file descriptor', truncate if already
 	// exist and opens write-only.
 	// Returns ErrClosed if the underlying storage is closed.
