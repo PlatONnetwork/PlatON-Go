@@ -186,3 +186,7 @@ func (bm *BftMock) CurrentBlock() *types.Block {
 func (bm *BftMock) FastSyncCommitHead() <-chan error {
 	return nil
 }
+
+func (bm *BftMock)  TracingSwitch(flag int8) {
+
+}

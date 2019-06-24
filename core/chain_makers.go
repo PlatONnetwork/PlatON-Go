@@ -227,7 +227,7 @@ func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine 
 		config = params.TestChainConfig
 	}
 	cacheConfig := &CacheConfig{
-		Disabled: true,
+		Disabled:      true,
 		TrieNodeLimit: 256 * 1024 * 1024,
 		TrieTimeLimit: 5 * time.Minute,
 	}
@@ -289,9 +289,10 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		Root:       state.IntermediateRoot(chain.Config().IsEIP158(parent.Number())),
 		ParentHash: parent.Hash(),
 		Coinbase:   parent.Coinbase(),
-		GasLimit: CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
-		Number:   new(big.Int).Add(parent.Number(), common.Big1),
-		Time:     time,
+		GasLimit:   CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
+		Number:     new(big.Int).Add(parent.Number(), common.Big1),
+		Time:       time,
+		Extra:      make([]byte, 32),
 	}
 }
 

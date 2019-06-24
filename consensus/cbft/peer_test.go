@@ -50,12 +50,12 @@ func randomID() (id discover.NodeID) {
 func TestPeer_Handshake(t *testing.T) {
 	var id discover.NodeID
 	rand.Read(id[:])
-	exec := func(close chan<- struct{}, sNum *big.Int, sHash common.Hash, msg interface{}, rCode uint64) {
+	exec := func(close chan<- struct{}, sNum *big.Int, logicNum *big.Int, sHash common.Hash, msg interface{}, rCode uint64) {
 		in, out := p2p.MsgPipe()
 		p2pPeer := p2p.NewPeer(id, "pid", nil)
 		p := newPeer(p2pPeer, in)
 		go func() {
-			p.Handshake(sNum, sHash)
+			p.Handshake(sNum, sNum, sHash)
 			close <- struct{}{}
 			fmt.Println("handshake close")
 		}()
@@ -67,17 +67,18 @@ func TestPeer_Handshake(t *testing.T) {
 	}
 	testCases := []struct{
 		sNum *big.Int
+		logicNum *big.Int
 		sHash common.Hash
 		msg interface{}
 		rCode uint64
 	}{
-		{ big.NewInt(1), common.BytesToHash([]byte("I'm hash")), &cbftStatusData{big.NewInt(1), common.BytesToHash([]byte("I'm hash"))}, CBFTStatusMsg },
-		{ big.NewInt(1), common.BytesToHash([]byte("I'm hash")), &cbftStatusData{big.NewInt(1), common.BytesToHash([]byte("I'm hash"))}, PrepareBlockMsg },
-		{ big.NewInt(1), common.BytesToHash([]byte("I'm hash")), &prepareBlockHash{}, CBFTStatusMsg },
+		{ big.NewInt(1), big.NewInt(1), common.BytesToHash([]byte("I'm hash")), &cbftStatusData{big.NewInt(1),big.NewInt(1), common.BytesToHash([]byte("I'm hash"))}, CBFTStatusMsg },
+		{ big.NewInt(1), big.NewInt(1),common.BytesToHash([]byte("I'm hash")), &cbftStatusData{big.NewInt(1), big.NewInt(1), common.BytesToHash([]byte("I'm hash"))}, PrepareBlockMsg },
+		{ big.NewInt(1), big.NewInt(1),common.BytesToHash([]byte("I'm hash")), &prepareBlockHash{}, CBFTStatusMsg },
 	}
 	for _, v := range testCases {
 		close := make(chan struct{}, 2)
-		exec(close, v.sNum, v.sHash, v.msg, v.rCode)
+		exec(close, v.sNum, v.logicNum, v.sHash, v.msg, v.rCode)
 		if len(close) != 2 {
 			time.Sleep(1 * time.Second)
 		}
@@ -153,4 +154,22 @@ func TestPeer(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		peer.MarkMessageHash(common.BytesToHash(Rand32Bytes(32)))
 	}
+}
+
+func TestPeerSet_Highest(t *testing.T) {
+	id := randomID()
+	p := p2p.NewPeer(id, "test", nil)
+	peer := newPeer(p, &fakeRW{})
+	peer.SetConfirmedHighestBn(big.NewInt(2))
+	peer.SetLogicHighestBn(big.NewInt(2))
+	ps := newPeerSet()
+	ps.Register(peer)
+
+	// confirmed > highest
+	res := ps.ConfirmedHighestBnPeers(new(big.Int).SetUint64(1))
+	assert.NotNil(t, res)
+
+	//
+	res = ps.LogicHighestBnPeers(big.NewInt(1))
+	assert.NotNil(t, res)
 }

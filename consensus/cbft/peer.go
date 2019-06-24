@@ -20,7 +20,7 @@ var (
 )
 
 const (
-	maxKnownMessageHash = 60000
+	maxKnownMessageHash = 20000
 
 	handshakeTimeout = 5 * time.Second
 )
@@ -30,6 +30,12 @@ type peer struct {
 	term chan struct{} // Termination channel to stop the broadcaster
 	*p2p.Peer
 	rw p2p.MsgReadWriter
+
+	confirmedHigBn *big.Int
+	cLock          sync.RWMutex
+
+	logicHigBn *big.Int
+	lLock      sync.RWMutex
 
 	knownMessageHash mapset.Set
 }
@@ -41,6 +47,8 @@ func newPeer(p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		id:               fmt.Sprintf("%x", p.ID().Bytes()[:8]),
 		term:             make(chan struct{}),
 		knownMessageHash: mapset.NewSet(),
+		confirmedHigBn:   new(big.Int),
+		logicHigBn:       new(big.Int),
 	}
 }
 
@@ -56,27 +64,29 @@ func (p *peer) MarkMessageHash(hash common.Hash) {
 }
 
 // exchange node information with each other.
-func (p *peer) Handshake(bn *big.Int, head common.Hash) error {
+func (p *peer) Handshake(confirmedBn *big.Int, logicBn *big.Int, head common.Hash) error {
 	errc := make(chan error, 2)
 	var status cbftStatusData
 
 	go func() {
 		errc <- p2p.Send(p.rw, CBFTStatusMsg, &cbftStatusData{
-			BN:           bn,
+			ConfirmedBn:  confirmedBn,
+			LogicBn:      logicBn,
 			CurrentBlock: head,
 		})
 	}()
 	go func() {
 		errc <- p.readStatus(&status)
-		if status.BN != nil {
-			p.Log().Debug("Receive the cbftStatusData message", "blockHash", status.CurrentBlock.TerminalString(), "blockNumber", status.BN.Int64())
+		if status.ConfirmedBn != nil {
+			p.Log().Debug("Receive the cbftStatusData message", "blockHash", status.CurrentBlock.TerminalString(), "ConfirmedBn", status.ConfirmedBn.Int64(), "LogicBn", status.LogicBn.Int64())
+			p.SetConfirmedHighestBn(status.ConfirmedBn)
+			p.SetLogicHighestBn(status.LogicBn)
 		}
 	}()
 	timeout := time.NewTicker(handshakeTimeout)
 	defer timeout.Stop()
 	for i := 0; i < 2; i++ {
 		select {
-
 		case err := <-errc:
 			if err != nil {
 				return err
@@ -87,6 +97,37 @@ func (p *peer) Handshake(bn *big.Int, head common.Hash) error {
 	}
 	// todo: Maybe there is something to be done.
 	return nil
+}
+
+// SetHighest updates the highest number of the peer.
+func (p *peer) SetConfirmedHighestBn(highestBn *big.Int) {
+	if highestBn != nil {
+		p.cLock.Lock()
+		defer p.cLock.Unlock()
+		log.Debug("Set confirmed highest number", "peerID", p.id, "oldConfirmedHighest", p.confirmedHigBn.Uint64(), "newConfirmedHighest", highestBn.Uint64())
+		p.confirmedHigBn.Set(highestBn)
+	}
+}
+
+func (p *peer) ConfirmedHighestBn() (bn *big.Int) {
+	p.cLock.RLock()
+	defer p.cLock.RUnlock()
+	return new(big.Int).Set(p.confirmedHigBn)
+}
+
+func (p *peer) SetLogicHighestBn(highestBn *big.Int) {
+	if highestBn != nil {
+		p.cLock.Lock()
+		defer p.cLock.Unlock()
+		log.Debug("Set logic highest number", "peerID", p.id, "oldLogicHighest", p.logicHigBn.Uint64(), "newLogicHighest", highestBn.Uint64())
+		p.logicHigBn.Set(highestBn)
+	}
+}
+
+func (p *peer) LogicHighestBn() (bn *big.Int) {
+	p.lLock.RLock()
+	defer p.lLock.RUnlock()
+	return new(big.Int).Set(p.logicHigBn)
 }
 
 func (p *peer) readStatus(status *cbftStatusData) error {
@@ -186,6 +227,35 @@ func (ps *peerSet) Peers() []*peer {
 	for _, p := range ps.peers {
 		list = append(list, p)
 	}
+	return list
+}
+
+// Returns a list of nodes that are larger than the height of the highest confirmed block.
+func (ps *peerSet) ConfirmedHighestBnPeers(highest *big.Int) []*peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	list := make([]*peer, 0, len(ps.peers))
+	for _, p := range ps.peers {
+		//log.Debug("ConfirmedHighestBnPeers", "pHighest", p.ConfirmedHighestBn().Uint64(), "highest", highest.Uint64(), "peer", p.id)
+		if p.ConfirmedHighestBn().Cmp(highest) > 0 {
+			list = append(list, p)
+		}
+	}
+	log.Debug("Get confirmed highest peers", "count", len(list), "peers", formatPeers(list))
+	return list
+}
+
+func (ps *peerSet) LogicHighestBnPeers(highest *big.Int) []*peer {
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	list := make([]*peer, 0, len(ps.peers))
+	for _, p := range ps.peers {
+		//log.Debug("LogicHighestBnPeers", "pHighest", p.LogicHighestBn().Uint64(), "highest", highest.Uint64(), "peer", p.id)
+		if p.LogicHighestBn().Cmp(highest) > 0 {
+			list = append(list, p)
+		}
+	}
+	log.Debug("Get logic highest peers", "count", len(list), "peers", formatPeers(list))
 	return list
 }
 

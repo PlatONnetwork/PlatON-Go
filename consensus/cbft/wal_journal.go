@@ -162,7 +162,7 @@ func (journal *journal) CurrentJournal() (uint32, uint64, error) {
 }
 
 // insert adds the specified JournalMessage to the local disk journal.
-func (journal *journal) Insert(msg *JournalMessage) error {
+func (journal *journal) Insert(msg *JournalMessage, sync bool) error {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
@@ -180,12 +180,17 @@ func (journal *journal) Insert(msg *JournalMessage) error {
 		return err
 	}
 
-	n, err := journal.writer.Write(buf)
-	if err == nil && n > 0 {
-		log.Trace("Successful to insert journal message", "n", n)
-		return nil
+	n := 0
+	if n, err = journal.writer.Write(buf); (err != nil || n <= 0) {
+		return err
 	}
-	return err
+	if sync {
+		// Forced to flush
+		journal.writer.Flush()
+	}
+
+	log.Trace("Successful to insert journal message", "n", n)
+	return nil
 }
 
 func encodeJournal(msg *JournalMessage) ([]byte, error) {
@@ -200,9 +205,9 @@ func encodeJournal(msg *JournalMessage) ([]byte, error) {
 	totalLength := 10 + int(length)
 
 	pack := make([]byte, totalLength)
-	binary.BigEndian.PutUint32(pack[0:4], crc)                                // 4 byte
-	binary.BigEndian.PutUint32(pack[4:8], length)                             // 4 byte
-	binary.BigEndian.PutUint16(pack[8:10], uint16(MessageType(msg.Data.Msg))) // 2 byte
+	binary.BigEndian.PutUint32(pack[0:4], crc)                                   // 4 byte
+	binary.BigEndian.PutUint32(pack[4:8], length)                                // 4 byte
+	binary.BigEndian.PutUint16(pack[8:10], uint16(WalMessageType(msg.Data.Msg))) // 2 byte
 
 	copy(pack[10:], data)
 	return pack, nil
@@ -214,6 +219,7 @@ func (journal *journal) Close() {
 	defer journal.mu.Unlock()
 
 	if journal.writer != nil {
+		log.Debug("Close journal,flush data")
 		journal.writer.FlushAndClose()
 		journal.writer = nil
 	}
@@ -343,7 +349,7 @@ func (journal *journal) loadJournal(fileID uint32, seq uint64, add func(info *Ms
 		_crc := crc32.Checksum(pack[10:], crc32c)
 		if crc != _crc {
 			log.Error("crc is invalid", "crc", crc, "_crc", _crc)
-			return errLoadJournal
+			//return errLoadJournal
 		}
 
 		// decode journal message
