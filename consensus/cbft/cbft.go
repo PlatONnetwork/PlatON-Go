@@ -86,6 +86,10 @@ var (
 	maxQueuesLimit = 4096
 )
 
+func NewFaker() consensus.Engine {
+	return new(consensus.BftMock)
+}
+
 type Cbft struct {
 	config      *params.CbftConfig
 	eventMux    *event.TypeMux

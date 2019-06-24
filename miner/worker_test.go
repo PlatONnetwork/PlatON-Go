@@ -117,9 +117,9 @@ func newTestWorkerBackend(t *testing.T, chainConfig *params.ChainConfig, engine 
 	})
 
 	return &testWorkerBackend{
-		db:         db,
-		chain:      chain,
-		txPool:     txpool,
+		db:     db,
+		chain:  chain,
+		txPool: txpool,
 	}
 }
 
@@ -132,10 +132,11 @@ func (b *testWorkerBackend) PostChainEvents(events []interface{}) {
 func newTestWorker(t *testing.T, chainConfig *params.ChainConfig, engine consensus.Engine, blocks int) (*worker, *testWorkerBackend) {
 	backend := newTestWorkerBackend(t, chainConfig, engine, blocks)
 	backend.txPool.AddLocals(pendingTxs)
-	w := newWorker(chainConfig, engine, backend, new(event.TypeMux), time.Second, params.GenesisGasLimit, params.GenesisGasLimit, nil)
+	w := newWorker(chainConfig, engine, backend, new(event.TypeMux), time.Second, params.GenesisGasLimit, params.GenesisGasLimit, nil, nil)
 	w.setEtherbase(testBankAddress)
 	return w, backend
 }
+
 /*
 func TestPendingStateAndBlockCbft(t *testing.T) {
 	testPendingStateAndBlock(t, ethashChainConfig, cbft.NewFaker())
@@ -165,6 +166,7 @@ func testPendingStateAndBlock(t *testing.T, chainConfig *params.ChainConfig, eng
 		t.Errorf("account balance mismatch: have %d, want %d", balance, 2000)
 	}
 }
+
 /*
 func TestEmptyWorkCbft(t *testing.T) {
 	testEmptyWork(t, ethashChainConfig, cbft.NewFaker())
