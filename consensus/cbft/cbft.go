@@ -37,18 +37,18 @@ import (
 )
 
 var (
-	errSign                = errors.New("sign error")
-	errUnauthorizedSigner  = errors.New("unauthorized signer")
-	errIllegalBlock        = errors.New("illegal block")
-	lateBlock              = errors.New("block is late")
-	errDuplicatedBlock     = errors.New("duplicated block")
-	errBlockNumber         = errors.New("error block number")
-	errUnknownBlock        = errors.New("unknown block")
-	errFutileBlock         = errors.New("futile block")
-	errGenesisBlock        = errors.New("cannot handle genesis block")
-	errHighestLogicalBlock = errors.New("cannot find a logical block")
-	errListConfirmedBlocks = errors.New("list confirmed blocks error")
-	errMissingSignature    = errors.New("extra-data 65 byte signature suffix missing")
+	errSign = errors.New("sign error")
+	//errUnauthorizedSigner  = errors.New("unauthorized signer")
+	//errIllegalBlock        = errors.New("illegal block")
+	//lateBlock              = errors.New("block is late")
+	//errDuplicatedBlock     = errors.New("duplicated block")
+	//errBlockNumber         = errors.New("error block number")
+	errUnknownBlock = errors.New("unknown block")
+	errFutileBlock  = errors.New("futile block")
+	//errGenesisBlock        = errors.New("cannot handle genesis block")
+	//errHighestLogicalBlock = errors.New("cannot find a logical block")
+	//errListConfirmedBlocks = errors.New("list confirmed blocks error")
+	errMissingSignature = errors.New("extra-data 65 byte signature suffix missing")
 
 	errInitiateViewchange          = errors.New("not initiated viewChange")
 	errTwoThirdViewchangeVotes     = errors.New("lower two third viewChangeVotes")
@@ -59,12 +59,12 @@ var (
 	errInvalidatorCandidateAddress = errors.New("invalid address")
 	errDuplicationConsensusMsg     = errors.New("duplication message")
 
-	errInvalidVrfProve = errors.New("Invalid vrf prove")
-	extraSeal          = 65
-	windowSize         = 10
+	//errInvalidVrfProve = errors.New("Invalid vrf prove")
+	extraSeal = 65
+	//windowSize         = 10
 
 	//periodMargin is a percentum for period margin
-	periodMargin = uint64(20)
+	//periodMargin = uint64(20)
 
 	//maxPingLatency is the time in milliseconds between Ping and Pong
 	maxPingLatency = int64(5000)
@@ -76,7 +76,7 @@ var (
 
 	// lastBlockOffsetMs is the offset in milliseconds for the last block deadline
 	// calculate. (200ms)
-	lastBlockOffsetMs = 200 * time.Millisecond
+	//lastBlockOffsetMs = 200 * time.Millisecond
 
 	peerMsgQueueSize = 1024
 	cbftVersion      = byte(0x01)

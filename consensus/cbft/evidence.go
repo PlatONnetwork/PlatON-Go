@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -17,12 +16,12 @@ import (
 
 var (
 	//prefix +[number] + address + hash
-	viewTimestampPrefix                = byte(0x1)
-	viewDualPrefix                     = byte(0x2)
-	prepareDualPrefix                  = byte(0x3)
-	errDuplicatePrepareVoteEvidence    = errors.New("duplicate prepare vote")
-	errDuplicateViewChangeVoteEvidence = errors.New("duplicate view change")
-	errTimestampViewChangeVoteEvidence = errors.New("view change timestamp out of order")
+	viewTimestampPrefix = byte(0x1)
+	viewDualPrefix      = byte(0x2)
+	prepareDualPrefix   = byte(0x3)
+	//errDuplicatePrepareVoteEvidence    = errors.New("duplicate prepare vote")
+	//errDuplicateViewChangeVoteEvidence = errors.New("duplicate view change")
+	//errTimestampViewChangeVoteEvidence = errors.New("view change timestamp out of order")
 
 	evidenceDir = "evidenceDir"
 )
