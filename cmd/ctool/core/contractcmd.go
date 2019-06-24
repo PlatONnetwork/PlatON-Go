@@ -70,7 +70,7 @@ func DeployContract(abiFilePath string, codeFilePath string) error {
 	//paramJson, _ := json.Marshal(paramList)
 	//fmt.Printf("\n request json data：%s\n", string(paramJson))
 
-	r, err := Send(params, "eth_sendTransaction")
+	r, err := Send(params, "platon_sendTransaction")
 
 	//fmt.Printf("\nresponse json：%s\n", r)
 
@@ -191,14 +191,14 @@ func InvokeContract(contractAddr string, abiPath string, funcParams string, txTy
 
 		paramJson, _ := json.Marshal(params)
 		fmt.Printf("\n request json data：%s \n", string(paramJson))
-		r, err = Send(params, "eth_call")
+		r, err = Send(params, "platon_call")
 	} else {
 		params := make([]interface{}, 1)
 		params[0] = txParams
 
 		paramJson, _ := json.Marshal(params)
 		fmt.Printf("\n request json data：%s \n", string(paramJson))
-		r, err = Send(params, "eth_sendTransaction")
+		r, err = Send(params, "platon_sendTransaction")
 	}
 
 	fmt.Printf("\n response json：%s \n", r)
@@ -224,12 +224,12 @@ func InvokeContract(contractAddr string, abiPath string, funcParams string, txTy
 }
 
 /**
-  Judging whether a contract exists through eth_getCode
+  Judging whether a contract exists through platon_getCode
 */
 func getContractByAddress(addr string) bool {
 
 	params := []string{addr, "latest"}
-	r, err := Send(params, "eth_getCode")
+	r, err := Send(params, "platon_getCode")
 	if err != nil {
 		fmt.Printf("send http post to get contract address error ")
 		return false
@@ -238,12 +238,12 @@ func getContractByAddress(addr string) bool {
 	var resp = Response{}
 	err = json.Unmarshal([]byte(r), &resp)
 	if err != nil {
-		fmt.Printf("parse eth_getCode result error ! \n %s", err.Error())
+		fmt.Printf("parse platon_getCode result error ! \n %s", err.Error())
 		return false
 	}
 
 	if resp.Error.Code != 0 {
-		fmt.Printf("eth_getCode error ,error:%v", resp.Error.Message)
+		fmt.Printf("platon_getCode error ,error:%v", resp.Error.Message)
 		return false
 	}
 	//fmt.Printf("trasaction hash: %s\n", resp.Result)
@@ -262,7 +262,7 @@ func GetTransactionReceipt(txHash string, ch chan string) {
 	var receipt = Receipt{}
 	var contractAddr string
 	for {
-		res, _ := Send([]string{txHash}, "eth_getTransactionReceipt")
+		res, _ := Send([]string{txHash}, "platon_getTransactionReceipt")
 		e := json.Unmarshal([]byte(res), &receipt)
 		if e != nil {
 			panic(fmt.Sprintf("parse get receipt result error ! \n %s", e.Error()))

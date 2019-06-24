@@ -213,7 +213,7 @@ func (pool *VCPool) real_compute(tx *types.TransactionWrap) error {
 
 	vc_data := make(map[string]interface{})
 	vc_data["jsonrpc"] = "2.0"
-	vc_data["method"] = "eth_sendTransaction"
+	vc_data["method"] = "platon_sendTransaction"
 	params := make([]map[string]interface{}, 1)
 	param := make(map[string]interface{})
 	param["from"] = pool.config.VcActor.Hex()
