@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
@@ -14,45 +15,46 @@ import (
 var id = randomID()
 
 func TestNewHandler(t *testing.T) {
-	//cbft := &Cbft{
-	//	log: log.New(),
-	//}
-	//router := NewRouter(cbft, nil)
-	//cbft.router = router
-	//handler := NewHandler(cbft)
-	//
-	//pos := handler.Protocols()
-	//assert.Equal(t, 1, len(pos))
-	//
-	//ps := handler.PeerSet()
-	//assert.Equal(t, 0, len(ps.peers))
-	//
-	//p2pPeer := p2p.NewPeer(id, "pid", nil)
-	//fake := &fakeMessageRW{}
-	//peer := newPeer(p2pPeer, fake)
-	//ps.Register(peer)
-	//
-	//p, _ := handler.GetPeer("pid")
-	//assert.NotNil(t, p)
-	//p, _ = handler.GetPeer("")
-	//assert.Nil(t, p)
-	//
-	//handler.Send(id, &prepareBlockHash{})
-	//assert.Equal(t, 1, len(handler.sendQueue))
-	//
-	//handler.SendAllConsensusPeer(&cbftStatusData{})
-	//assert.Equal(t, 2, len(handler.sendQueue))
-	//
-	//handler.SendBroadcast(&cbftStatusData{})
-	//assert.Equal(t, 3, len(handler.sendQueue))
-	//
-	//handler.SendPartBroadcast(&cbftStatusData{})
-	//assert.Equal(t, 4, len(handler.sendQueue))
-	//
-	//handler.Start()
-	//time.Sleep(1 * time.Second)
-	//close(handler.sendQueue)
-	//handler.Close()
+	path := path()
+	defer os.RemoveAll(path)
+	cbft, _, _ := randomCBFT(path, 1)
+
+	router := NewRouter(cbft, nil)
+	cbft.router = router
+	handler := NewHandler(cbft)
+
+	pos := handler.Protocols()
+	assert.Equal(t, 1, len(pos))
+
+	ps := handler.PeerSet()
+	assert.Equal(t, 0, len(ps.peers))
+
+	p2pPeer := p2p.NewPeer(id, "pid", nil)
+	fake := &fakeMessageRW{}
+	peer := newPeer(p2pPeer, fake)
+	ps.Register(peer)
+
+	p, _ := handler.GetPeer(id.TerminalString())
+	assert.NotNil(t, p)
+	p, _ = handler.GetPeer("")
+	assert.Nil(t, p)
+
+	handler.Send(id, &prepareBlockHash{Hash: common.BytesToHash([]byte("hash")), Number: 1})
+	assert.Equal(t, 1, len(handler.sendQueue))
+
+	handler.SendAllConsensusPeer(&cbftStatusData{LogicBn: new(big.Int).SetInt64(1), ConfirmedBn: new(big.Int).SetInt64(1), CurrentBlock: common.BytesToHash([]byte("hash"))})
+	assert.Equal(t, 2, len(handler.sendQueue))
+
+	handler.SendBroadcast(&cbftStatusData{LogicBn: new(big.Int).SetInt64(1), ConfirmedBn: new(big.Int).SetInt64(1), CurrentBlock: common.BytesToHash([]byte("hash"))})
+	assert.Equal(t, 3, len(handler.sendQueue))
+
+	handler.SendPartBroadcast(&cbftStatusData{LogicBn: new(big.Int).SetInt64(1), ConfirmedBn: new(big.Int).SetInt64(1), CurrentBlock: common.BytesToHash([]byte("hash"))})
+	assert.Equal(t, 4, len(handler.sendQueue))
+
+	handler.Start()
+	time.Sleep(1 * time.Second)
+	close(handler.sendQueue)
+	handler.Close()
 }
 
 func TestBaseHandler(t *testing.T) {
