@@ -2,6 +2,8 @@
 
 Welcome to the PlatON source code repository! This software is Ethereum-based and it has changed some peculiarities according the PlatON's [whitepaper](https://www.platon.network/static/pdf/en/PlatON_A%20High-Efficiency%20Trustless%20Computing%20Network_Whitepaper_EN.pdf).
 
+[![Build Status](https://travis-ci.com/PlatONnetwork/PlatON-Go.svg?branch=master)](https://travis-ci.com/PlatONnetwork/PlatON-Go)
+
 ## Building the source
 
 For prerequisites and detailed build instructions please read the
