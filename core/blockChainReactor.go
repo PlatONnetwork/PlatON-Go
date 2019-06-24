@@ -3,10 +3,12 @@ package core
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -118,8 +120,13 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	blockHash := common.ZeroHash
 
 	// store the sign in  header.Extra[32:97]
-	if len(header.Extra[32:]) == 65 && !bytes.Equal(header.Extra[32:97], make([]byte, 65)) {
-		blockHash = header.Hash()
+	if len(header.Extra[32:]) >= 65 {
+		if bytes.Equal(header.Extra[32:97], make([]byte, 65)) {
+			// Generate vrf proof
+
+		} else {
+			blockHash = header.Hash()
+		}
 	}
 
 	// todo maybe vrf
@@ -199,4 +206,38 @@ func (brc *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Valid
 
 func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
 	return false
+}
+
+func GenerateNonce(proof []byte) ([]byte, error) {
+	log.Debug("Generate proof based on input","proof", hex.EncodeToString(proof))
+	return vrf.Prove(bcr.privateKey, vrf.ProofToHash(proof))
+}
+
+func VerifyVrf(header *types.Header) error {
+	// Verify VRF Proof
+	log.Debug("Verification block vrf prove", "blockNumber", header.Number.Uint64(), "hash", header.Hash().TerminalString(), "sealHash", header.SealHash().TerminalString(), "prove", hex.EncodeToString(header.Nonce[:]))
+	/*sign := header.Extra[32:common.ExtraSeal]
+	pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
+	if nil != err {
+		return err
+	}
+	pext := cbft.blockExtMap.findBlockByHash(block.ParentHash())
+	if pext == nil {
+		pext = cbft.blockChain.GetBlockByHash(block.ParentHash())
+	}
+	if pext != nil {
+		parentNonce := vrf.ProofToHash(pext.Nonce())
+		if value, err := vrf.Verify(pk, block.Nonce(), parentNonce); nil != err {
+			cbft.log.Error("Vrf proves verification failure", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce), "err", err)
+			return err
+		} else if !value {
+			cbft.log.Error("Vrf proves verification failure", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
+			return errInvalidVrfProve
+		}
+		cbft.log.Info("Vrf proves successful verification", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
+	} else {
+		cbft.log.Error("Vrf proves verification failure, Cannot find parent block", "blockNumber", block.NumberU64(), "hash", block.Hash().TerminalString(), "parentHash", block.ParentHash().TerminalString())
+		return errNotFoundViewBlock
+	}*/
+	return nil
 }

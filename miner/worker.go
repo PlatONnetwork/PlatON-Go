@@ -18,7 +18,6 @@ package miner
 
 import (
 	"bytes"
-	"encoding/hex"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"math/big"
 	"sync"
@@ -1180,17 +1179,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	tstart := time.Now()
 
 	var parent *types.Block
-	var nonce []byte
 	if _, ok := w.engine.(consensus.Bft); ok {
 		parent = commitBlock
-		// Execute VRF
-		if value, err := w.engine.(consensus.Bft).GenerateNonce(parent.Nonce()); err != nil {
-			log.Error("Failed to GenerateNonce", "err", err)
-			return
-		} else {
-			log.Info("Generate proof for the block", "parentNumber", parent.NumberU64(), "parentNonce", hex.EncodeToString(parent.Nonce()), "newNonce", hex.EncodeToString(value))
-			nonce = value
-		}
 		//timestamp = time.Now().UnixNano() / 1e6
 	} else {
 		parent = w.chain.CurrentBlock()
@@ -1212,7 +1202,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
 		Extra:      w.extra,
 		Time:       big.NewInt(timestamp),
-		Nonce:		types.EncodeNonce(nonce),
 	}
 
 	// TODO begin()
