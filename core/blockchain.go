@@ -1092,11 +1092,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 
 		err := <-results
 		if err == nil {
-			if bft, ok := bc.engine.(consensus.Bft); ok {
-				if err = bft.VerifyVrf(block); nil == err {
-					err = bc.Validator().ValidateBody(block)
-				}
-			}
+			err = bc.Validator().ValidateBody(block)
 		}
 		switch {
 		case err == ErrKnownBlock:
