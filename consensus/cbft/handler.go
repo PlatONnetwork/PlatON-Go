@@ -2,7 +2,9 @@ package cbft
 
 import (
 	"fmt"
+	"math/big"
 	"reflect"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
@@ -33,12 +35,15 @@ type handler interface {
 	SendPartBroadcast(msg Message)
 	Protocols() []p2p.Protocol
 	PeerSet() *peerSet
+	GetPeer(peerID string) (*peer, error)
 }
 
 type baseHandler struct {
 	cbft      *Cbft
 	peers     *peerSet
 	sendQueue chan *MsgPackage
+
+	quit chan struct{}
 }
 
 func NewHandler(cbft *Cbft) *baseHandler {
@@ -46,6 +51,7 @@ func NewHandler(cbft *Cbft) *baseHandler {
 		cbft:      cbft,
 		peers:     newPeerSet(),
 		sendQueue: make(chan *MsgPackage, sendQueueSize),
+		quit:      make(chan struct{}, 0),
 	}
 }
 
@@ -55,13 +61,20 @@ func errResp(code errCode, format string, v ...interface{}) error {
 
 func (h *baseHandler) Start() {
 	go h.sendLoop()
+	go h.syncHighestStatus()
+}
+
+func (h *baseHandler) Close() {
+	h.quit <- struct{}{}
+	close(h.quit)
 }
 
 func (h *baseHandler) sendLoop() {
 	for {
 		select {
 		case m := <-h.sendQueue:
-			if m == nil {
+			log.Debug("send msg to queue", "mode", m.mode, "", m.msg.String(), "isLoading", h.cbft.isLoading())
+			if m == nil || h.cbft.isLoading() {
 				return
 			}
 			if len(m.peerID) == 0 {
@@ -86,6 +99,13 @@ func (h *baseHandler) sendPeer(m *MsgPackage) {
 			h.peers.Unregister(m.peerID)
 		}
 	}
+}
+
+func (h *baseHandler) GetPeer(peerID string) (*peer, error) {
+	if peerID == "" {
+		return nil, fmt.Errorf("Invalid peer id : %v", peerID)
+	}
+	return h.peers.Get(peerID)
 }
 
 func (h *baseHandler) SendAllConsensusPeer(msg Message) {
@@ -167,7 +187,9 @@ func (h *baseHandler) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 		hash = head.Hash()
 	)
 	p.Log().Debug("CBFT peer connected, do handshake", "name", peer.Name())
-	if err := peer.Handshake(head.Number, hash); err != nil {
+	confirmedBn := h.cbft.getHighestConfirmed().number
+	logicBn := h.cbft.getHighestLogical().number
+	if err := peer.Handshake(new(big.Int).SetUint64(confirmedBn), new(big.Int).SetUint64(logicBn), hash); err != nil {
 		p.Log().Debug("CBFT handshake failed", "err", err)
 		return err
 	} else {
@@ -200,7 +222,7 @@ func (h *baseHandler) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-
+		p.MarkMessageHash((&request).MsgHash())
 		h.cbft.ReceivePeerMsg(&MsgInfo{
 			Msg:    &request,
 			PeerID: p.ID(),
@@ -213,8 +235,6 @@ func (h *baseHandler) handleMsg(p *peer) error {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 		p.MarkMessageHash((&request).MsgHash())
-		log.Info("Received a PrepareBlockMsg", "peer", p.id, "prepare", request.String())
-
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
 
@@ -229,6 +249,9 @@ func (h *baseHandler) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
+		if h.cbft.isForwarded(p.ID(), &request) {
+			return nil
+		}
 		p.MarkMessageHash((&request).MsgHash())
 
 		h.cbft.ReceivePeerMsg(&MsgInfo{
@@ -242,6 +265,9 @@ func (h *baseHandler) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
+		if h.cbft.isForwarded(p.ID(), &request) {
+			return nil
+		}
 		p.MarkMessageHash((&request).MsgHash())
 		h.cbft.ReceivePeerMsg(&MsgInfo{
 			Msg:    &request,
@@ -253,6 +279,9 @@ func (h *baseHandler) handleMsg(p *peer) error {
 		var request viewChangeVote
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		if h.cbft.isForwarded(p.ID(), &request) {
+			return nil
 		}
 		p.MarkMessageHash((&request).MsgHash())
 		h.cbft.ReceivePeerMsg(&MsgInfo{
@@ -266,8 +295,10 @@ func (h *baseHandler) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
+		if h.cbft.isForwarded(p.ID(), &request) {
+			return nil
+		}
 		p.MarkMessageHash((&request).MsgHash())
-
 		h.cbft.ReceivePeerMsg(&MsgInfo{
 			Msg:    &request,
 			PeerID: p.ID(),
@@ -322,8 +353,30 @@ func (h *baseHandler) handleMsg(p *peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
+		if h.cbft.isForwarded(p.ID(), &request) {
+			return nil
+		}
 		p.MarkMessageHash((&request).MsgHash())
-
+		h.cbft.ReceivePeerMsg(&MsgInfo{
+			Msg:    &request,
+			PeerID: p.ID(),
+		})
+		return nil
+	case msg.Code == GetLatestStatusMsg:
+		var request getLatestStatus
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		h.cbft.ReceivePeerMsg(&MsgInfo{
+			Msg:    &request,
+			PeerID: p.ID(),
+		})
+		return nil
+	case msg.Code == LatestStatusMsg:
+		var request latestStatus
+		if err := msg.Decode(&request); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
 		h.cbft.ReceivePeerMsg(&MsgInfo{
 			Msg:    &request,
 			PeerID: p.ID(),
@@ -333,4 +386,65 @@ func (h *baseHandler) handleMsg(p *peer) error {
 	}
 
 	return nil
+}
+
+// syncHighestStatus is responsible for HighestPrepareBlock synchronization
+func (h *baseHandler) syncHighestStatus() {
+	confirmedTicker := time.NewTicker(5 * time.Second)
+	logicTicker := time.NewTicker(4 * time.Second)
+	for {
+		select {
+		case <-confirmedTicker.C:
+			curHighestNum := h.cbft.getHighestConfirmed().number
+			peers := h.PeerSet().ConfirmedHighestBnPeers(new(big.Int).SetUint64(curHighestNum))
+			if peers != nil && len(peers) != 0 {
+				log.Debug("Sync confirmed highest status", "curHighestNum", curHighestNum, "peers", len(peers))
+				largerNum := curHighestNum
+				largerIndex := -1
+				for index, v := range peers {
+					pHighest := v.ConfirmedHighestBn().Uint64()
+					if pHighest > largerNum {
+						largerNum, largerIndex = pHighest, index
+					}
+				}
+				if largerIndex != -1 {
+					largerPeer := peers[largerIndex]
+					log.Debug("ConfirmedTicker, send getHighestConfirmedStatus message", "currentHighestBn", curHighestNum, "maxHighestPeer", largerPeer.id, "maxHighestBn", largerNum)
+					msg := &getLatestStatus{
+						Highest: curHighestNum,
+						Type:    HIGHEST_CONFIRMED_BLOCK,
+					}
+					log.Debug("Send getHighestConfirmedStatus message for confirmed number", "msg", msg.String())
+					h.Send(largerPeer.ID(), msg)
+				}
+			}
+		case <-logicTicker.C:
+			curLogicHighestNum := h.cbft.getHighestLogical().number
+			peers := h.PeerSet().LogicHighestBnPeers(new(big.Int).SetUint64(curLogicHighestNum))
+			if peers != nil && len(peers) != 0 {
+				log.Debug("Sync logic highest status", "curLogicHighestNum", curLogicHighestNum, "peers", len(peers))
+				largerNum := curLogicHighestNum
+				largerIndex := -1
+				for index, v := range peers {
+					pHighest := v.LogicHighestBn().Uint64()
+					if pHighest > largerNum {
+						largerNum, largerIndex = pHighest, index
+					}
+				}
+				if largerIndex != -1 {
+					largerPeer := peers[largerIndex]
+					log.Debug("LogicTicker, send getHighestConfirmedStatus message", "currentHighestBn", curLogicHighestNum, "maxLogicHighestPeer", largerPeer.id, "maxLogicHighestBn", largerNum)
+					msg := &getLatestStatus{
+						Highest: curLogicHighestNum,
+						Type:    HIGHEST_LOGIC_BLOCK,
+					}
+					log.Debug("Send getHighestConfirmedStatus message for logic number", "msg", msg.String())
+					h.Send(largerPeer.ID(), msg)
+				}
+			}
+		case <-h.quit:
+			log.Warn("Handler quit")
+			return
+		}
+	}
 }

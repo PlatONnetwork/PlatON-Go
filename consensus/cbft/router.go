@@ -3,6 +3,7 @@ package cbft
 import (
 	"bytes"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"math"
@@ -36,6 +37,15 @@ func (r *router) gossip(m *MsgPackage) {
 	// todo: need to check
 	msgType := MessageType(m.msg)
 	msgHash := m.msg.MsgHash()
+
+	switch msgType {
+	case ConfirmedPrepareBlockMsg, PrepareBlockHashMsg:
+		// check the message is repeated
+		if r.repeatedCheck(m.peerID, msgHash) {
+			log.Debug("The message is repeated, not to forward again", "msgType", reflect.TypeOf(m.msg), "msgHash", msgHash.TerminalString())
+			return
+		}
+	}
 	peers, err := r.selectNodesByMsgType(msgType, msgHash)
 	if err != nil {
 		log.Error("select nodes fail in the gossip method. gossip fail", "msgType", msgType)
@@ -48,13 +58,15 @@ func (r *router) gossip(m *MsgPackage) {
 		transfer := peers[:int(math.Sqrt(float64(len(peers))))]
 		peers = transfer
 	}
-	log.Debug("Gossip message", "msgHash", msgHash.TerminalString(), "msgType", reflect.TypeOf(m.msg), "targetPeer", formatPeers(peers))
+	pids := formatPeers(peers)
+	log.Debug("Gossip message", "msgHash", msgHash.TerminalString(), "msgType", reflect.TypeOf(m.msg), "targetPeer", pids)
 
+	r.cbft.tracing.RecordSend(r.cbft.config.NodeID.TerminalString(), msgHash.TerminalString(), fmt.Sprintf("%T", m.msg), pids)
 	for _, peer := range peers {
 		if err := p2p.Send(peer.rw, msgType, m.msg); err != nil {
 			log.Error("Send message failed", "peer", peer.id, "err", err)
 		} else {
-			peer.knownMessageHash.Add(msgHash)
+			peer.MarkMessageHash(msgHash)
 		}
 	}
 }
@@ -94,7 +106,7 @@ func (r *router) kConsensusRandomNodes(msgType uint64, condition interface{}) ([
 	log.Debug("kConsensusRandomNodes select node", "msgHash", condition, "cNodesLen", len(cNodes), "peerSetLen", len(existsPeers))
 	consensusPeers := make([]*peer, 0)
 	for _, peer := range existsPeers {
-		if peer.knownMessageHash.Contains(condition) {
+		if msgType != GetHighestPrepareBlockMsg && peer.knownMessageHash.Contains(condition) {
 			continue
 		}
 		for _, node := range cNodes {
@@ -175,4 +187,17 @@ OUTER:
 		kNodes = append(kNodes, node)
 	}
 	return kNodes
+}
+
+func (r *router) repeatedCheck(peerId string, msgHash common.Hash) bool {
+	peers := r.cbft.handler.PeerSet().Peers()
+	for _, peer := range peers {
+		if peer.id == peerId {
+			continue
+		}
+		if peer.knownMessageHash.Contains(msgHash) {
+			return true
+		}
+	}
+	return false
 }

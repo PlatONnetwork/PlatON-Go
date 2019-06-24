@@ -81,22 +81,22 @@ func TestErrorCode(t *testing.T) {
 func TestPrepareBlock(t *testing.T) {
 	// define block
 	block := types.NewBlockWithHeader(&types.Header{
-		GasLimit: uint64(3141592),
-		GasUsed: uint64(21000),
+		GasLimit:  uint64(3141592),
+		GasUsed:   uint64(21000),
 		Coinbase:  common.HexToAddress("8888f1f195afa192cfee860698584c030f4c9db1"),
 		MixDigest: common.HexToHash("bd4472abb6659ebe3ee06ee4d7b72a00a9f4d001caca51342001075469aff498"),
-		Root: common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
+		Root:      common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		//Hash: common.HexToHash("0a5843ac1cb04865017cb35a57b50b07084e5fcee39b5acadade33149f4fff9e"),
-		Nonce: types.EncodeNonce([]byte("10")),
-		Time: big.NewInt(1426516743),
+		Nonce: types.EncodeNonce(RandBytes(81)),
+		Time:  big.NewInt(1426516743),
 		Extra: make([]byte, 100),
 	})
 	pb := &prepareBlock{
-		Timestamp: uint64(time.Now().Unix()),
-		Block: block,
+		Timestamp:     uint64(time.Now().Unix()),
+		Block:         block,
 		ProposalIndex: 1,
-		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
-		View: &viewChange{},
+		ProposalAddr:  common.BytesToAddress([]byte("I'm address")),
+		View:          &viewChange{},
 	}
 	//
 	var consensusMsg ConsensusMsg = pb
@@ -113,7 +113,7 @@ func TestPrepareBlock(t *testing.T) {
 
 func TestPrepareBlockHash(t *testing.T) {
 	pbh := &prepareBlockHash{
-		Hash: common.BytesToHash([]byte("I'm hash")),
+		Hash:   common.BytesToHash([]byte("I'm hash")),
 		Number: 1,
 	}
 	var empty *prepareBlockHash
@@ -121,22 +121,22 @@ func TestPrepareBlockHash(t *testing.T) {
 }
 
 func TestMessageType(t *testing.T) {
-	testCases := []struct{
+	testCases := []struct {
 		msgType interface{}
-		want uint64
+		want    uint64
 	}{
-		{ msgType: &prepareBlock{}, want: PrepareBlockMsg, },
-		{ msgType: &prepareVote{}, want: PrepareVoteMsg, },
-		{ msgType: &viewChange{}, want: ViewChangeMsg, },
-		{ msgType: &viewChangeVote{}, want: ViewChangeVoteMsg, },
-		{ msgType: &confirmedPrepareBlock{}, want: ConfirmedPrepareBlockMsg, },
-		{ msgType: &getPrepareVote{}, want: GetPrepareVoteMsg, },
-		{ msgType: &prepareVotes{}, want: PrepareVotesMsg, },
-		{ msgType: &getPrepareBlock{}, want: GetPrepareBlockMsg, },
-		{ msgType: &getHighestPrepareBlock{}, want: GetHighestPrepareBlockMsg, },
-		{ msgType: &highestPrepareBlock{}, want: HighestPrepareBlockMsg, },
-		{ msgType: &cbftStatusData{}, want: CBFTStatusMsg, },
-		{ msgType: &prepareBlockHash{}, want: PrepareBlockHashMsg, },
+		{msgType: &prepareBlock{}, want: PrepareBlockMsg},
+		{msgType: &prepareVote{}, want: PrepareVoteMsg},
+		{msgType: &viewChange{}, want: ViewChangeMsg},
+		{msgType: &viewChangeVote{}, want: ViewChangeVoteMsg},
+		{msgType: &confirmedPrepareBlock{}, want: ConfirmedPrepareBlockMsg},
+		{msgType: &getPrepareVote{}, want: GetPrepareVoteMsg},
+		{msgType: &prepareVotes{}, want: PrepareVotesMsg},
+		{msgType: &getPrepareBlock{}, want: GetPrepareBlockMsg},
+		{msgType: &getHighestPrepareBlock{}, want: GetHighestPrepareBlockMsg},
+		{msgType: &highestPrepareBlock{}, want: HighestPrepareBlockMsg},
+		{msgType: &cbftStatusData{}, want: CBFTStatusMsg},
+		{msgType: &prepareBlockHash{}, want: PrepareBlockHashMsg},
 	}
 	for _, v := range testCases {
 		if MessageType(v.msgType) != uint64(v.want) {
@@ -149,11 +149,11 @@ func TestPrepareVote(t *testing.T) {
 	privateHex := "e4eb3e58ab7810984a0c77d432b07fe9f9897158dd4bb4f63d0a4366e6d949fa"
 	pri, _ := crypto.HexToECDSA(privateHex)
 	pv := &prepareVote{
-		Timestamp: uint64(time.Now().Unix()),
-		Hash: common.BytesToHash([]byte("I'm hash")),
-		Number: 1,
+		Timestamp:      uint64(time.Now().Unix()),
+		Hash:           common.BytesToHash([]byte("I'm hash")),
+		Number:         1,
 		ValidatorIndex: 0,
-		ValidatorAddr: common.BytesToAddress([]byte("I'm address")),
+		ValidatorAddr:  common.BytesToAddress([]byte("I'm address")),
 	}
 
 	var consensusMsg ConsensusMsg = pv
@@ -174,12 +174,12 @@ func TestViewChange(t *testing.T) {
 	privateHex := "e4eb3e58ab7810984a0c77d432b07fe9f9897158dd4bb4f63d0a4366e6d949fa"
 	pri, _ := crypto.HexToECDSA(privateHex)
 	pv := &viewChange{
-		Timestamp: uint64(time.Now().Unix()),
+		Timestamp:     uint64(time.Now().Unix()),
 		ProposalIndex: 0,
-		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
+		ProposalAddr:  common.BytesToAddress([]byte("I'm address")),
 		BaseBlockHash: common.BytesToHash([]byte("I'm hash")),
-		BaseBlockNum: 1,
-		Extra: make([]byte, 100),
+		BaseBlockNum:  1,
+		Extra:         make([]byte, 100),
 	}
 
 	var consensusMsg ConsensusMsg = pv
@@ -199,25 +199,25 @@ func TestViewChange(t *testing.T) {
 func TestViewChange_Equal(t *testing.T) {
 	now := time.Now().Unix()
 	vc1 := &viewChange{
-		Timestamp: uint64(now),
+		Timestamp:     uint64(now),
 		ProposalIndex: 0,
-		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
+		ProposalAddr:  common.BytesToAddress([]byte("I'm address")),
 		BaseBlockHash: common.BytesToHash([]byte("I'm hash")),
-		BaseBlockNum: 1,
+		BaseBlockNum:  1,
 	}
 	vc2 := &viewChange{
-		Timestamp: uint64(now),
+		Timestamp:     uint64(now),
 		ProposalIndex: 0,
-		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
+		ProposalAddr:  common.BytesToAddress([]byte("I'm address")),
 		BaseBlockHash: common.BytesToHash([]byte("I'm hash")),
-		BaseBlockNum: 1,
+		BaseBlockNum:  1,
 	}
 	vc3 := &viewChange{
-		Timestamp: uint64(now),
+		Timestamp:     uint64(now),
 		ProposalIndex: 0,
-		ProposalAddr: common.BytesToAddress([]byte("I'm address 3")),
+		ProposalAddr:  common.BytesToAddress([]byte("I'm address 3")),
 		BaseBlockHash: common.BytesToHash([]byte("I'm hash")),
-		BaseBlockNum: 1,
+		BaseBlockNum:  1,
 	}
 	if !reflect.DeepEqual(vc1, vc2) {
 		t.Error("must be equal")
@@ -228,8 +228,8 @@ func TestViewChange_Equal(t *testing.T) {
 
 	duplicate_vc4 := vc3.CopyWithoutVotes()
 	pvs := []*prepareVote{
-		{Timestamp:uint64(now), Hash: common.BytesToHash([]byte("v3 pv01"))},
-		{Timestamp:uint64(now), Hash: common.BytesToHash([]byte("v3 pv02"))},
+		{Timestamp: uint64(now), Hash: common.BytesToHash([]byte("v3 pv01"))},
+		{Timestamp: uint64(now), Hash: common.BytesToHash([]byte("v3 pv02"))},
 	}
 	vc3.BaseBlockPrepareVote = pvs
 	duplicate_vc5 := vc3.Copy()
@@ -242,14 +242,14 @@ func TestViewChangeVote(t *testing.T) {
 	privateHex := "e4eb3e58ab7810984a0c77d432b07fe9f9897158dd4bb4f63d0a4366e6d949fa"
 	pri, _ := crypto.HexToECDSA(privateHex)
 	pcv := &viewChangeVote{
-		Timestamp: uint64(time.Now().Unix()),
-		ProposalIndex: 0,
-		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
-		BlockHash: common.BytesToHash([]byte("I'm hash")),
-		BlockNum: 1,
-		ValidatorAddr: common.BytesToAddress([]byte("I'm validtor address")),
+		Timestamp:      uint64(time.Now().Unix()),
+		ProposalIndex:  0,
+		ProposalAddr:   common.BytesToAddress([]byte("I'm address")),
+		BlockHash:      common.BytesToHash([]byte("I'm hash")),
+		BlockNum:       1,
+		ValidatorAddr:  common.BytesToAddress([]byte("I'm validtor address")),
 		ValidatorIndex: 1,
-		Extra: make([]byte, 100),
+		Extra:          make([]byte, 100),
 	}
 
 	var consensusMsg ConsensusMsg = pcv
@@ -268,21 +268,21 @@ func TestViewChangeVote(t *testing.T) {
 
 func TestViewChangeVote_View(t *testing.T) {
 	pcv := &viewChangeVote{
-		Timestamp: uint64(time.Now().Unix()),
-		ProposalIndex: 0,
-		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
-		BlockHash: common.BytesToHash([]byte("I'm hash")),
-		BlockNum: 1,
-		ValidatorAddr: common.BytesToAddress([]byte("I'm validtor address")),
+		Timestamp:      uint64(time.Now().Unix()),
+		ProposalIndex:  0,
+		ProposalAddr:   common.BytesToAddress([]byte("I'm address")),
+		BlockHash:      common.BytesToHash([]byte("I'm hash")),
+		BlockNum:       1,
+		ValidatorAddr:  common.BytesToAddress([]byte("I'm validtor address")),
 		ValidatorIndex: 1,
-		Extra: make([]byte, 100),
+		Extra:          make([]byte, 100),
 	}
 	pc := &viewChange{
-		Timestamp: uint64(time.Now().Unix()),
+		Timestamp:     uint64(time.Now().Unix()),
 		ProposalIndex: 0,
-		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
+		ProposalAddr:  common.BytesToAddress([]byte("I'm address")),
 		BaseBlockHash: common.BytesToHash([]byte("I'm hash")),
-		BaseBlockNum: 1,
+		BaseBlockNum:  1,
 	}
 	if !pcv.EqualViewChange(pc) {
 		t.Error("should equal")
@@ -295,7 +295,7 @@ func TestViewChangeVote_View(t *testing.T) {
 }
 
 func check(t *testing.T, empty Message, message Message) {
-	str := message.String();
+	str := message.String()
 	if str == "" {
 		t.Error("error")
 	}
@@ -329,7 +329,7 @@ func emptyConfirmedPrepareBlock() *confirmedPrepareBlock {
 
 func TestConfirmedPrepareBlock(t *testing.T) {
 	pbh := &confirmedPrepareBlock{
-		Hash: common.BytesToHash([]byte("I'm hash")),
+		Hash:   common.BytesToHash([]byte("I'm hash")),
 		Number: 1,
 	}
 	check(t, emptyConfirmedPrepareBlock(), pbh)
@@ -349,7 +349,7 @@ func TestGetHighestPrepareBlock(t *testing.T) {
 func TestGetPrepareBlock(t *testing.T) {
 	var emptyGetPrepareBlock *getPrepareBlock
 	pbh := &getPrepareBlock{
-		Hash: common.BytesToHash([]byte("I'm hash")),
+		Hash:   common.BytesToHash([]byte("I'm hash")),
 		Number: 1,
 	}
 	check(t, emptyGetPrepareBlock, pbh)
@@ -358,7 +358,7 @@ func TestGetPrepareBlock(t *testing.T) {
 func TestGetPrepareVote(t *testing.T) {
 	var empty *getPrepareVote
 	pbh := &getPrepareVote{
-		Hash: common.BytesToHash([]byte("I'm hash")),
+		Hash:   common.BytesToHash([]byte("I'm hash")),
 		Number: 1,
 	}
 	check(t, empty, pbh)
@@ -367,7 +367,7 @@ func TestGetPrepareVote(t *testing.T) {
 func TestPrepareVotes(t *testing.T) {
 	var empty *prepareVotes
 	pbh := &prepareVotes{
-		Hash: common.BytesToHash([]byte("I'm hash")),
+		Hash:   common.BytesToHash([]byte("I'm hash")),
 		Number: 1,
 	}
 	check(t, empty, pbh)
@@ -377,7 +377,7 @@ func TestSignBitArray(t *testing.T) {
 	var empty *signBitArray
 	pbh := &signBitArray{
 		BlockHash: common.BytesToHash([]byte("I'm hash")),
-		BlockNum: 1,
+		BlockNum:  1,
 	}
 	check(t, empty, pbh)
 
@@ -391,13 +391,8 @@ func TestCbftStatusData(t *testing.T) {
 	var empty *cbftStatusData
 	pbh := &cbftStatusData{
 		CurrentBlock: common.BytesToHash([]byte("I'm hash")),
-		BN: big.NewInt(1),
+		ConfirmedBn:  big.NewInt(1),
+		LogicBn:      big.NewInt(1),
 	}
 	check(t, empty, pbh)
 }
-
-
-
-
-
-

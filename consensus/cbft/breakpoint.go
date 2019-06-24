@@ -14,10 +14,11 @@ type Breakpoint interface {
 	ViewChangeBP() ViewChangeBP
 	InternalBP() InternalBP
 	SyncBlockBP() SyncBlockBP
+	Close()
 }
 
 type PrepareBP interface {
-	CommitBlock(ctx context.Context, block *types.Block, txs int, gasUsed uint64, elapse time.Duration, cbft *Cbft)
+	CommitBlock(ctx context.Context, block *types.Block, txs int, gasUsed uint64, elapse time.Duration)
 	SendBlock(ctx context.Context, block *prepareBlock, cbft *Cbft)
 	ReceiveBlock(ctx context.Context, block *prepareBlock, cbft *Cbft)
 	ReceiveVote(ctx context.Context, block *prepareVote, cbft *Cbft)
@@ -43,6 +44,7 @@ type ViewChangeBP interface {
 	SendViewChange(ctx context.Context, view *viewChange, cbft *Cbft)
 	ReceiveViewChange(ctx context.Context, view *viewChange, cbft *Cbft)
 	ReceiveViewChangeVote(ctx context.Context, view *viewChangeVote, cbft *Cbft)
+	AcceptViewChangeVote(ctx context.Context, view *viewChangeVote, cbft *Cbft)
 	InvalidViewChange(ctx context.Context, view *viewChange, err error, cbft *Cbft)
 	InvalidViewChangeVote(ctx context.Context, view *viewChangeVote, err error, cbft *Cbft)
 	InvalidViewChangeBlock(ctx context.Context, view *viewChange, cbft *Cbft)
@@ -80,16 +82,16 @@ type defaultBreakpoint struct {
 	internalBP   InternalBP
 }
 
-func getBreakpoint(t string) Breakpoint {
+func getBreakpoint(t string, file string) (Breakpoint, error) {
 	switch t {
 	case "tracing":
-		return logBP
+		return NewLogBP(file)
 	case "default":
-		return defaultBP
+		return defaultBP, nil
 	case "elk":
-		return elkBP
+		return elkBP, nil
 	}
-	return defaultBP
+	return defaultBP, nil
 }
 
 var defaultBP Breakpoint
@@ -103,6 +105,9 @@ func init() {
 	}
 }
 
+func (bp defaultBreakpoint) Close() {
+
+}
 func (bp defaultBreakpoint) PrepareBP() PrepareBP {
 	return bp.prepareBP
 }
@@ -122,7 +127,7 @@ func (bp defaultBreakpoint) SyncBlockBP() SyncBlockBP {
 type defaultPrepareBP struct {
 }
 
-func (bp defaultPrepareBP) CommitBlock(ctx context.Context, block *types.Block, txs int, gasUsed uint64, elapse time.Duration, cbft *Cbft) {
+func (bp defaultPrepareBP) CommitBlock(ctx context.Context, block *types.Block, txs int, gasUsed uint64, elapse time.Duration) {
 }
 
 func (bp defaultPrepareBP) SendBlock(ctx context.Context, block *prepareBlock, cbft *Cbft) {
@@ -191,6 +196,10 @@ func (bp defaultViewChangeBP) ReceiveViewChange(ctx context.Context, view *viewC
 }
 
 func (bp defaultViewChangeBP) ReceiveViewChangeVote(ctx context.Context, view *viewChangeVote, cbft *Cbft) {
+
+}
+
+func (bp defaultViewChangeBP) AcceptViewChangeVote(ctx context.Context, view *viewChangeVote, cbft *Cbft) {
 
 }
 

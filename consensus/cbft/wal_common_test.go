@@ -125,16 +125,16 @@ func buildViewChange() *viewChange {
 
 func buildConfirmedPrepareBlock() *confirmedPrepareBlock {
 	return &confirmedPrepareBlock{
-		Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
-		Number: 7788,
+		Hash:     common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
+		Number:   7788,
 		VoteBits: NewBitArray(110),
 	}
 }
 
 func buildGetPrepareVote() *getPrepareVote {
 	return &getPrepareVote{
-		Hash:   common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
-		Number: 7788,
+		Hash:     common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
+		Number:   7788,
 		VoteBits: NewBitArray(110),
 	}
 }
@@ -154,7 +154,8 @@ func buildGetHighestPrepareBlock() *getHighestPrepareBlock {
 
 func buildCbftStatusData() *cbftStatusData {
 	return &cbftStatusData{
-		BN: big.NewInt(999),
+		LogicBn: big.NewInt(999),
+		ConfirmedBn: big.NewInt(999),
 		CurrentBlock: common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df066329"),
 	}
 }
@@ -178,8 +179,34 @@ func buildviewChangeVote() *viewChangeVote {
 	}
 }
 
+func buildSendPrepareBlock() *sendPrepareBlock {
+	return &sendPrepareBlock{
+		PrepareBlock: buildPrepareBlock(),
+	}
+}
+
+func buildSendViewChange() *sendViewChange {
+	return &sendViewChange{
+		ViewChange: buildViewChange(),
+		Master:     true,
+	}
+}
+
+func buildConfirmedViewChange() *confirmedViewChange {
+	votes := make([]*viewChangeVote, 0, 2)
+	votes = append(votes, buildviewChangeVote())
+	votes = append(votes, buildviewChangeVote())
+	return &confirmedViewChange{
+		ViewChange: buildViewChange(),
+		//ViewChangeResp:  buildviewChangeVote(),
+		ViewChangeResp:  nil,
+		ViewChangeVotes: votes,
+		Master:          true,
+	}
+}
+
 func ordinalMessages() int {
-	if ordinal == len(messages) {
+	if ordinal == len(wal_messages) {
 		ordinal = 0
 	}
 

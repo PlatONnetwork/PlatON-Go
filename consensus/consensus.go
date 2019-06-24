@@ -166,5 +166,5 @@ type Bft interface {
 	Evidences() string
 
 	CommitBlockBP(block *types.Block, txs int, gasUsed uint64, elapse time.Duration)
-
+	TracingSwitch(flag int8)
 }
