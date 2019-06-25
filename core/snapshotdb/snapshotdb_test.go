@@ -11,7 +11,6 @@ import (
 	"log"
 	"math/big"
 	"testing"
-	"time"
 )
 
 var (
@@ -482,39 +481,39 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	if err := dbInstance.WalkBaseDB(prefix, f); err != nil {
 		t.Error(err)
 	}
-	t.Run("compaction", func(t *testing.T) {
-		t.Parallel()
-		log.Print("a")
-		commitHash := rlpHash("RecongizedHash2")
-		if _, err := dbInstance.NewBlock(big.NewInt(2), parenthash, &commitHash); err != nil {
-			t.Fatal(err)
-		}
-		str := "a"
-		for i := 0; i < 4; i++ {
-			str += "b"
-			arr = append(arr, str)
-			if _, err := dbInstance.Put(&commitHash, []byte(str), []byte(str)); err != nil {
-				t.Fatal(err)
-			}
-		}
-		if _, err := dbInstance.Put(&commitHash, []byte("dd"), []byte("dd")); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := dbInstance.Commit(commitHash); err != nil {
-			t.Fatal(err)
-		}
-		parenthash = commitHash
-		dbInstance.Compaction()
-	})
-	t.Run("walkbasedb", func(t *testing.T) {
-		t.Parallel()
-		log.Print("b")
-
-		time.Sleep(time.Millisecond * 100)
-		if err := dbInstance.WalkBaseDB(prefix, f); err != nil {
-			t.Error(err)
-		}
-	})
+	//t.Run("compaction", func(t *testing.T) {
+	//	t.Parallel()
+	//	log.Print("a")
+	//	commitHash := rlpHash("RecongizedHash2")
+	//	if _, err := dbInstance.NewBlock(big.NewInt(2), parenthash, &commitHash); err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	str := "a"
+	//	for i := 0; i < 4; i++ {
+	//		str += "b"
+	//		arr = append(arr, str)
+	//		if _, err := dbInstance.Put(&commitHash, []byte(str), []byte(str)); err != nil {
+	//			t.Fatal(err)
+	//		}
+	//	}
+	//	if _, err := dbInstance.Put(&commitHash, []byte("dd"), []byte("dd")); err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	if _, err := dbInstance.Commit(commitHash); err != nil {
+	//		t.Fatal(err)
+	//	}
+	//	parenthash = commitHash
+	//	dbInstance.Compaction()
+	//})
+	//t.Run("walkbasedb", func(t *testing.T) {
+	//	t.Parallel()
+	//	log.Print("b")
+	//
+	//	time.Sleep(time.Millisecond * 100)
+	//	if err := dbInstance.WalkBaseDB(prefix, f); err != nil {
+	//		t.Error(err)
+	//	}
+	//})
 
 }
 
