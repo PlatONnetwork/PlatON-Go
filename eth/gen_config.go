@@ -131,9 +131,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.TrieTimeout != nil {
 		c.TrieTimeout = *dec.TrieTimeout
 	}
-	if dec.Etherbase != nil {
-		c.Etherbase = *dec.Etherbase
-	}
 	if dec.MinerNotify != nil {
 		c.MinerNotify = dec.MinerNotify
 	}
