@@ -102,10 +102,6 @@ type Cbft struct {
 	peerMsgCh   chan *MsgInfo
 	syncBlockCh chan *BlockExt
 
-	highestLogical   atomic.Value //highest block in logical path, local packages new block will base on it
-	highestConfirmed atomic.Value //highest confirmed block in logical path
-	rootIrreversible atomic.Value //the latest block has stored in chain
-
 	executeBlockCh          chan *ExecuteBlockStatus
 	baseBlockCh             chan chan *types.Block
 	sealBlockCh             chan *SealBlock
@@ -193,29 +189,6 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceCo
 	cbft.resetCache, _ = lru.New(maxResetCacheSize)
 	cbft.tracing = NewTracing()
 	return cbft
-}
-
-func (cbft *Cbft) getRootIrreversible() *BlockExt {
-	if v := cbft.rootIrreversible.Load(); v == nil {
-		panic("Get root block failed")
-	} else {
-		return v.(*BlockExt)
-	}
-}
-
-func (cbft *Cbft) getHighestConfirmed() *BlockExt {
-	if v := cbft.highestConfirmed.Load(); v == nil {
-		panic("Get highest confirmed block failed")
-	} else {
-		return v.(*BlockExt)
-	}
-}
-func (cbft *Cbft) getHighestLogical() *BlockExt {
-	if v := cbft.highestLogical.Load(); v == nil {
-		panic("Get highest logical block failed")
-	} else {
-		return v.(*BlockExt)
-	}
 }
 
 func (cbft *Cbft) getValidators() *cbfttypes.Validators {

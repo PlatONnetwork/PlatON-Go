@@ -25,26 +25,27 @@ var jsonIt *asyncLog
 var elog = log.Root()
 
 type asyncLog struct {
-	queue  chan *Span
+	queue  chan []byte
 	exitCh chan struct{}
 }
 
 func NewAsyncLog() *asyncLog {
 	a := &asyncLog{
-		queue: make(chan *Span, 100000),
+		queue: make(chan []byte, 100000),
 	}
 	go a.writeLoop()
 	return a
 }
 func (a *asyncLog) Marshal(span *Span) {
-	a.queue <- span
+	msg, _ := json.Marshal(span)
+	a.queue <- msg
 }
 
 func (a *asyncLog) writeLoop() {
 	for {
 		select {
-		case span := <-a.queue:
-			msg, _ := json.Marshal(span)
+		case msg := <-a.queue:
+
 			elog.Info(string(msg) + "\n")
 		case <-a.exitCh:
 			return

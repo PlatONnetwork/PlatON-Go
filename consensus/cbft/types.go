@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	sort2 "sort"
+	"sync/atomic"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -60,6 +61,10 @@ type RoundState struct {
 
 	producerBlocks *ProducerBlocks
 	blockExtMap    *BlockExtMap
+
+	highestLogical   atomic.Value //highest block in logical path, local packages new block will base on it
+	highestConfirmed atomic.Value //highest confirmed block in logical path
+	rootIrreversible atomic.Value //the latest block has stored in chain
 
 	localHighestPrepareVoteNum uint64
 }
@@ -141,9 +146,11 @@ func (vv ViewChangeVotes) Flatten() []*viewChangeVote {
 
 func (rs RoundState) String() string {
 
-	return fmt.Sprintf("[ master:%v, viewChange:%s, viewChangeResp:%s, viewChangeVotes:%s, lastViewChange:%s, lastViewChangeVotes:%s, pendingVotes:%s, pendingBlocks:%s, processingVotes:%s, localHighestPrepareVoteNum:%d, blockExtMap:%s",
+	return fmt.Sprintf("[ master:%v, viewChange:%s, viewChangeResp:%s, viewChangeVotes:%s, lastViewChange:%s, lastViewChangeVotes:%s, pendingVotes:%s, pendingBlocks:%s, processingVotes:%s, highestConfirm:%d, highestLogical:%d, rootIrreversible:%d, localHighestPrepareVoteNum:%d, blockExtMap:%s",
 		rs.master, rs.viewChange.String(), rs.viewChangeResp.String(), rs.viewChangeVotes.String(), rs.lastViewChange.String(), rs.lastViewChangeVotes.String(),
-		rs.pendingVotes.String(), rs.pendingBlocks.String(), rs.processingVotes.String(), rs.localHighestPrepareVoteNum, rs.blockExtMap.BlockString())
+		rs.pendingVotes.String(), rs.pendingBlocks.String(), rs.processingVotes.String(),
+		rs.getHighestConfirmed().number, rs.getHighestLogical().number, rs.getRootIrreversible().number,
+		rs.localHighestPrepareVoteNum, rs.blockExtMap.BlockString())
 }
 
 func (pv PendingVote) Add(hash common.Hash, vote *prepareVote) {
@@ -295,6 +302,29 @@ func (cbft *Cbft) addPrepareBlockVote(pbd *prepareBlock) {
 }
 func (cbft *Cbft) agreeViewChange() bool {
 	return len(cbft.viewChangeVotes) >= cbft.getThreshold()
+}
+
+func (cbft *RoundState) getRootIrreversible() *BlockExt {
+	if v := cbft.rootIrreversible.Load(); v == nil {
+		panic("Get root block failed")
+	} else {
+		return v.(*BlockExt)
+	}
+}
+
+func (cbft *RoundState) getHighestConfirmed() *BlockExt {
+	if v := cbft.highestConfirmed.Load(); v == nil {
+		panic("Get highest confirmed block failed")
+	} else {
+		return v.(*BlockExt)
+	}
+}
+func (cbft *RoundState) getHighestLogical() *BlockExt {
+	if v := cbft.highestLogical.Load(); v == nil {
+		panic("Get highest logical block failed")
+	} else {
+		return v.(*BlockExt)
+	}
 }
 
 //
