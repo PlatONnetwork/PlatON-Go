@@ -3,7 +3,6 @@ package gov
 import (
 	"bytes"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 var (
@@ -31,11 +30,10 @@ func KeyProposal(proposalID common.Hash) []byte {
 }
 
 // 投票的key
-func KeyVote(proposalID common.Hash, voter *discover.NodeID) []byte {
+func KeyVote(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixVote,
 		proposalID.Bytes(),
-		voter.Bytes(),
 	}, KeyDelimiter)
 }
 
@@ -59,7 +57,7 @@ func KeyPreActiveProposalID() []byte {
 
 
 // 所有操作均结束的提案列表的key
-func KeyEndProposalID() []byte {
+func KeyEndProposals() []byte {
 	return keyPrefixEndProposals
 }
 
