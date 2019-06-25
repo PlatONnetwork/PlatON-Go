@@ -27,14 +27,22 @@ func initDB() {
 		log.Debug("run under go test")
 		dbPath = path.Join(os.TempDir(), DBTestPath)
 	}
-	if findCurrent(dbPath) {
+	s, err := openFile(dbPath, false)
+	if err != nil {
+		panic(err)
+	}
+	fds, err := s.List(TypeCurrent)
+	if err != nil {
+		panic(err)
+	}
+	if len(fds) > 0 {
 		db := new(snapshotDB)
-		if err := db.recover(dbPath); err != nil {
+		if err := db.recover(s); err != nil {
 			panic(err)
 		}
 		dbInstance = db
 	} else {
-		db, err := newDB(dbPath)
+		db, err := newDB(s)
 		if err != nil {
 			panic(err)
 		}

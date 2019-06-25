@@ -36,6 +36,10 @@ type Reader interface {
 	io.Closer
 }
 
+func (fs *fileStorage) Path() string {
+	return fs.path
+}
+
 func (fs *fileStorage) Remove(fd fileDesc) error {
 	if !FileDescOk(fd) {
 		return ErrInvalidFile
@@ -337,16 +341,19 @@ func fsParseName(name string) (fd fileDesc, ok bool) {
 	case "base", "LOCK", "LOG":
 		return fd, false
 	default:
-		_, p := path.Split(name)
-		arr := strings.Split(p, "-")
-		i, err := strconv.ParseInt(arr[0], 10, 64)
-		if err != nil {
-			log.Print("invalid name,can't, parse to int,", err)
-			return fd, false
+		if strings.Contains(name, ".log") {
+			_, p := path.Split(name)
+			arr := strings.Split(p, "-")
+			i, err := strconv.ParseInt(arr[0], 10, 64)
+			if err != nil {
+				log.Printf("invalid name %s,can't, parse to int,%v", name, err)
+				return fd, false
+			}
+			fd.Num = i
+			fd.Type = TypeJournal
+			fd.BlockHash = common.HexToHash(strings.TrimRight(arr[1], ".log"))
+			return fd, true
 		}
-		fd.Num = i
-		fd.Type = TypeJournal
-		fd.BlockHash = common.HexToHash(strings.TrimRight(arr[1], ".log"))
-		return fd, true
+		return
 	}
 }

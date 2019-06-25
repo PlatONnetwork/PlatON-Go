@@ -58,11 +58,3 @@ func TestCurrentUpdate(t *testing.T) {
 		t.Fatal("BaseNum not compare")
 	}
 }
-
-func TestFindCurrent(t *testing.T) {
-	dir := os.TempDir()
-	newCurrent(dir)
-	if !findCurrent(dir) {
-		t.Error("must find current")
-	}
-}

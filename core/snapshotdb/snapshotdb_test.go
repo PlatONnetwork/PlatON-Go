@@ -8,7 +8,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"log"
 	"math/big"
 	"testing"
 )
@@ -416,25 +415,43 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 		}
 	}
 	t.Run("with hash", func(t *testing.T) {
-		commitHash := rlpHash("recognizedHash4")
-		itr := dbInstance.Ranking(&commitHash, []byte("a"), 100)
-		var i int
-		for itr.Next() {
-			if arr[i] != string(itr.Key()) {
-				t.Errorf("itr return wrong key :%s,should return:%s ,index:%d", string(itr.Key()), arr[i], i)
+		t.Run("form recognized", func(t *testing.T) {
+			commitHash := rlpHash("recognizedHash4")
+			itr := dbInstance.Ranking(&commitHash, []byte("a"), 100)
+			for _, value := range arr[0:15] {
+				if !itr.Next() {
+					t.Error("it's must can itr")
+				}
+				if value != string(itr.Key()) {
+					t.Errorf("itr return wrong key :%s,should return:%s ", string(itr.Key()), value)
+				}
 			}
-			i++
-		}
-		itr.Release()
+			itr.Release()
+		})
+		t.Run("form commit", func(t *testing.T) {
+			commitHash := rlpHash("recognizedHash3")
+			itr := dbInstance.Ranking(&commitHash, []byte("a"), 100)
+			for _, value := range arr[0:11] {
+				if !itr.Next() {
+					t.Error("it's must can itr")
+				}
+				if value != string(itr.Key()) {
+					t.Errorf("itr return wrong key :%s,should return:%s ", string(itr.Key()), value)
+				}
+			}
+			itr.Release()
+		})
+
 	})
 	t.Run("with out hash", func(t *testing.T) {
 		itr := dbInstance.Ranking(nil, []byte("a"), 100)
-		var i int
-		for itr.Next() {
-			if arr[i] != string(itr.Key()) {
-				t.Errorf("itr return wrong key :%s,should return:%s ,index:%d", string(itr.Key()), arr[i], i)
+		for _, value := range arr[0:19] {
+			if !itr.Next() {
+				t.Error("it's must can itr")
 			}
-			i++
+			if value != string(itr.Key()) {
+				t.Errorf("itr return wrong key :%s,should return:%s ", string(itr.Key()), value)
+			}
 		}
 		itr.Release()
 	})
@@ -622,7 +639,6 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 			}
 		}
 	}
-	log.Print(dbInstance.current.BaseNum.Int64(), dbInstance.current.HighestNum.Int64())
 	t.Run("a block kv>2000", func(t *testing.T) {
 		ok, err := dbInstance.Compaction()
 		if err != nil {
@@ -1045,13 +1061,5 @@ func TestCommit(t *testing.T) {
 	if _, ok := db.recognized[currentHash]; ok {
 		t.Fatal("[SnapshotDB] should move to commit")
 	}
-
-}
-
-func TestRMOldRecognizedBlockData(t *testing.T) {
-
-}
-
-func TestCron(t *testing.T) {
 
 }

@@ -18,18 +18,15 @@ func getBaseDBPath(dbpath string) string {
 	return path.Join(dbpath, DBBasePath)
 }
 
-func newDB(dbpath string) (*snapshotDB, error) {
-	s, err := openFile(dbpath, false)
-	if err != nil {
-		return nil, fmt.Errorf("[SnapshotDB]open db dir fail:%v", err)
-	}
+func newDB(stor storage) (*snapshotDB, error) {
+	dbpath := stor.Path()
 	baseDB, err := leveldb.OpenFile(getBaseDBPath(dbpath), nil)
 	if err != nil {
 		return nil, fmt.Errorf("[SnapshotDB]open baseDB fail:%v", err)
 	}
 	return &snapshotDB{
 		path:         dbpath,
-		storage:      s,
+		storage:      stor,
 		unRecognized: new(blockData),
 		recognized:   make(map[common.Hash]blockData),
 		committed:    make([]blockData, 0),
@@ -55,13 +52,17 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 	}
 	block := new(blockData)
 	block.ParentHash = header.ParentHash
-	block.BlockHash = &fd.BlockHash
+	if fd.BlockHash != s.getUnRecognizedHash() {
+		block.BlockHash = &fd.BlockHash
+	}
 	block.Number = big.NewInt(fd.Num)
 	block.data = memdb.New(DefaultComparer, 0)
 
 	switch header.From {
 	case journalHeaderFromUnRecognized:
 		if fd.BlockHash == s.getUnRecognizedHash() {
+			block.readOnly = false
+		} else {
 			block.readOnly = true
 		}
 	case journalHeaderFromRecognized:
@@ -99,7 +100,8 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 	return block, nil
 }
 
-func (s *snapshotDB) recover(dbpath string) error {
+func (s *snapshotDB) recover(stor storage) error {
+	dbpath := stor.Path()
 	c, err := loadCurrent(dbpath)
 	if err != nil {
 		return err
@@ -115,14 +117,9 @@ func (s *snapshotDB) recover(dbpath string) error {
 	s.baseDB = baseDB
 
 	//storage
-	storage, err := openFile(dbpath, false)
-	if err != nil {
-		return fmt.Errorf("[SnapshotDB]open db dir fail:%v", err)
-	}
-	s.storage = storage
+	s.storage = stor
 	fds, err := s.storage.List(TypeJournal)
 	sortFds(fds)
-	//初始化一些变量
 	baseNum := s.current.BaseNum.Int64()
 	highestNum := s.current.HighestNum.Int64()
 	UnRecognizedHash := s.getUnRecognizedHash()
@@ -132,7 +129,6 @@ func (s *snapshotDB) recover(dbpath string) error {
 
 	//read Journal
 	for _, fd := range fds {
-		//从日志读到内存
 		block, err := s.getBlockFromJournal(fd)
 		if err != nil {
 			return err
@@ -141,18 +137,18 @@ func (s *snapshotDB) recover(dbpath string) error {
 			s.committed = append(s.committed, *block)
 		} else if fd.Num > highestNum {
 			if UnRecognizedHash == fd.BlockHash {
-				//UnRecognized
+				//1. UnRecognized
 				s.unRecognized = block
-				//2.打开writer
+				//2. open writer
 				w, err := s.storage.Append(fd)
 				if err != nil {
 					return err
 				}
 				s.journalw[fd.BlockHash] = journal.NewWriter(w)
 			} else {
-				//Recognized
+				//1. Recognized
 				s.recognized[fd.BlockHash] = *block
-				//2.根据情况writer
+				//2. open writer
 				if !block.readOnly {
 					w, err := s.storage.Append(fd)
 					if err != nil {
@@ -213,7 +209,6 @@ func (s *snapshotDB) rmOldRecognizedBlockData() error {
 				return err
 			}
 			if err := s.rmJournalFile(value.Number, key); err != nil {
-				//todo 怎么一致性...
 				return err
 			}
 		}
@@ -264,53 +259,72 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 
 func (s *snapshotDB) put(hash *common.Hash, key, value []byte, funcType uint64) error {
 	var (
-		block     blockData
-		blockHash common.Hash
+		blockHash  common.Hash
+		kvhash     common.Hash
+		recognized blockData
 	)
 	if hash == nil {
-		block = *s.unRecognized
+		s.unRecognizedLock.Lock()
+		defer s.unRecognizedLock.Unlock()
+		if s.unRecognized == nil {
+			return errors.New("[SnapshotDB]can't put to unRecognized,it was nil")
+		}
+		if s.unRecognized.readOnly {
+			return errors.New("[SnapshotDB]can't put read only block")
+		}
 		blockHash = s.getUnRecognizedHash()
+		kvhash = s.unRecognized.kvHash
 	} else {
 		bb, ok := s.recognized[*hash]
 		if !ok {
 			return errors.New("[SnapshotDB]get recognized block data by hash fail")
 		}
-		block = bb
 		blockHash = *hash
-	}
-
-	if block.readOnly {
-		return errors.New("[SnapshotDB]can't put read only block")
+		if bb.readOnly {
+			return errors.New("[SnapshotDB]can't put read only block")
+		}
+		recognized = bb
+		kvhash = recognized.kvHash
 	}
 
 	jData := journalData{
 		Key:      key,
 		Value:    value,
-		Hash:     s.generateKVHash(key, value, block.kvHash),
+		Hash:     s.generateKVHash(key, value, kvhash),
 		FuncType: funcType,
 	}
 	body, err := encode(jData)
 	if err != nil {
-		return errors.New("encode fail:" + err.Error())
+		return errors.New("[SnapshotDB]encode fail:" + err.Error())
 	}
 	if err := s.writeJournalBody(blockHash, body); err != nil {
-		return err
+		return errors.New("[SnapshotDB]write journalBody fail:" + err.Error())
 	}
-	switch funcType {
-	case funcTypePut:
-		if err := block.data.Put(key, value); err != nil {
-			return err
-		}
-	case funcTypeDel:
-		if err := block.data.Delete(key); err != nil {
-			return err
-		}
-	}
-	block.kvHash = jData.Hash
 	if hash != nil {
-		s.recognized[*hash] = block
+		switch funcType {
+		case funcTypePut:
+			if err := recognized.data.Put(key, value); err != nil {
+				return err
+			}
+		case funcTypeDel:
+			if err := recognized.data.Delete(key); err != nil {
+				return err
+			}
+		}
+		recognized.kvHash = jData.Hash
+		s.recognized[*hash] = recognized
 	} else {
-		s.unRecognized = &block
+		switch funcType {
+		case funcTypePut:
+			if err := s.unRecognized.data.Put(key, value); err != nil {
+				return err
+			}
+		case funcTypeDel:
+			if err := s.unRecognized.data.Delete(key); err != nil {
+				return err
+			}
+		}
+		s.unRecognized.kvHash = jData.Hash
 	}
 	return nil
 }

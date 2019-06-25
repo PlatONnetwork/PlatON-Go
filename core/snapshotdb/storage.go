@@ -103,4 +103,7 @@ type storage interface {
 	// List returns file descriptors that match the given file types.
 	// The file types may be OR'ed together.
 	List(ft fileType) ([]fileDesc, error)
+
+	// Path return path of the storage
+	Path() string
 }
