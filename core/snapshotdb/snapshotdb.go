@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/robfig/cron"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/comparer"
@@ -11,7 +12,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"log"
 	"math/big"
 	"os"
 	"sync"
@@ -136,8 +136,8 @@ func (s *snapshotDB) GetLastKVHash(blockHash *common.Hash) []byte {
 }
 
 // Del del key,val from  snapshotDB
-// if hash is nil, unRecognizedBlockData > RecognizedBlockData
-// if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
+// if hash is nil, unRecognizedBlockData > recognizedBlockData
+// if hash is not nil,it will del in recognized BlockData
 func (s *snapshotDB) Del(hash *common.Hash, key []byte) (bool, error) {
 	if err := s.put(hash, key, nil, funcTypeDel); err != nil {
 		return false, err
@@ -184,15 +184,16 @@ func (s *snapshotDB) Compaction() (bool, error) {
 		}
 	}
 	if err := s.baseDB.Write(batch, nil); err != nil {
+		log.Error("[SnapshotDB]write to baseDB fail:", err)
 		return false, errors.New("[SnapshotDB]write to baseDB fail:" + err.Error())
 	}
 	s.current.BaseNum.Add(s.current.BaseNum, big.NewInt(int64(commitNum)))
 	if err := s.current.update(); err != nil {
-		return false, err
+		return false, errors.New("[SnapshotDB]update to current fail:" + err.Error())
 	}
 	s.committed = s.committed[commitNum:len(s.committed)]
 	if err := s.removeJournalLessThanBaseNum(); err != nil {
-		return false, err
+		return false, errors.New("[SnapshotDB]remove journal less than baseNum fail:" + err.Error())
 	}
 	return true, nil
 }
@@ -389,7 +390,7 @@ func (s *snapshotDB) Clear() (bool, error) {
 	if _, err := s.Close(); err != nil {
 		return false, err
 	}
-	log.Print("[snapshotdb] begin clear file", s.path)
+	log.Debug("[snapshotdb] begin clear file", s.path)
 	if err := os.RemoveAll(s.path); err != nil {
 		return false, err
 	}
@@ -439,7 +440,7 @@ func (s *snapshotDB) Ranking(hash *common.Hash, key []byte, rangeNumber int) ite
 		case hashLocationCommitted:
 			for i := len(s.committed) - 1; i >= 0; i-- {
 				block := s.committed[i]
-				if block.BlockHash == hash {
+				if *block.BlockHash == *hash {
 					itrs = append(itrs, block.data.NewIterator(prefix))
 					parentHash = *block.BlockHash
 				} else if block.ParentHash == parentHash {
@@ -475,10 +476,15 @@ func (s *snapshotDB) Ranking(hash *common.Hash, key []byte, rangeNumber int) ite
 }
 
 func (s *snapshotDB) Close() (bool, error) {
-	s.corn.Stop()
-	if err := s.baseDB.Close(); err != nil {
-		return false, fmt.Errorf("[snapshotdb]close base db fail:%v", err)
+	if s.corn != nil {
+		s.corn.Stop()
 	}
+	if s.baseDB != nil {
+		if err := s.baseDB.Close(); err != nil {
+			return false, fmt.Errorf("[snapshotdb]close base db fail:%v", err)
+		}
+	}
+
 	if err := s.storage.Close(); err != nil {
 		return false, fmt.Errorf("[snapshotdb]close storage fail:%v", err)
 	}
