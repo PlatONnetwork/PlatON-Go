@@ -37,7 +37,6 @@ import (
 
 const (
 	testInstance = "console-tester"
-	testAddress  = "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 )
 
 // hookedPrompter implements UserPrompter to simulate use input via channels.
@@ -98,7 +97,6 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 	}
 	//ethConf := &eth.Config{
 	//	Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
-	//	Etherbase: common.HexToAddress(testAddress),
 	//}
 	ethConf := &eth.DefaultConfig
 	ethConf.Genesis = core.DeveloperGenesisBlock(15, common.Address{})
@@ -109,7 +107,6 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 			*n,
 		},
 	}
-	ethConf.Etherbase = common.HexToAddress(testAddress)
 	if confOverride != nil {
 		confOverride(ethConf)
 	}
@@ -181,9 +178,6 @@ func TestWelcome(t *testing.T) {
 	}
 	if want := fmt.Sprintf("instance: %s", testInstance); !strings.Contains(output, want) {
 		t.Fatalf("console output missing instance: have\n%s\nwant also %s", output, want)
-	}
-	if want := fmt.Sprintf("coinbase: %s", testAddress); !strings.Contains(output, want) {
-		t.Fatalf("console output missing coinbase: have\n%s\nwant also %s", output, want)
 	}
 	if want := "at block: 0"; !strings.Contains(output, want) {
 		t.Fatalf("console output missing sync status: have\n%s\nwant also %s", output, want)
