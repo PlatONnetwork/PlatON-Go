@@ -26,7 +26,7 @@ type DB interface {
 	Put(hash *common.Hash, key, value []byte) (bool, error)
 	NewBlock(blockNumber *big.Int, parentHash common.Hash, hash *common.Hash) (bool, error)
 	Get(hash *common.Hash, key []byte) ([]byte, error)
-	GetFromCommitedBlock(key []byte) ([]byte, error)
+	GetFromCommittedBlock(key []byte) ([]byte, error)
 	Del(hash *common.Hash, key []byte) (bool, error)
 	Has(hash *common.Hash, key []byte) (bool, error)
 	Flush(hash common.Hash, blocknumber *big.Int) (bool, error)
@@ -54,14 +54,16 @@ var (
 
 type snapshotDB struct {
 	path         string
-	mu           sync.RWMutex
 	snapshotLock bool
 	current      *current
 	baseDB       *leveldb.DB
-	unRecognized *blockData
-	recognized   map[common.Hash]blockData
 
-	commited   []blockData
+	unRecognized     *blockData
+	unRecognizedLock sync.RWMutex
+
+	recognized map[common.Hash]blockData
+
+	committed  []blockData
 	commitLock sync.RWMutex
 
 	journalw map[common.Hash]*journal.Writer
@@ -83,9 +85,11 @@ func Instance() DB {
 	return dbInstance
 }
 
-//GetCommitedBlock    get value from commited blockdata > baseDB
-func (s *snapshotDB) GetFromCommitedBlock(key []byte) ([]byte, error) {
-	for _, value := range s.commited {
+// GetCommittedBlock    get value from committed blockdata > baseDB
+func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
+	s.commitLock.RLock()
+	defer s.commitLock.RUnlock()
+	for _, value := range s.committed {
 		if v, err := value.data.Get(key); err == nil {
 			return v, nil
 		} else if err != memdb.ErrNotFound {
@@ -131,6 +135,9 @@ func (s *snapshotDB) GetLastKVHash(blockHash *common.Hash) []byte {
 	return block.kvHash.Bytes()
 }
 
+// Del del key,val from  snapshotDB
+// if hash is nil, unRecognizedBlockData > RecognizedBlockData
+// if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
 func (s *snapshotDB) Del(hash *common.Hash, key []byte) (bool, error) {
 	if err := s.put(hash, key, nil, funcTypeDel); err != nil {
 		return false, err
@@ -154,13 +161,13 @@ func (s *snapshotDB) Compaction() (bool, error) {
 		kvsize    int
 		commitNum int
 	)
-	for i := 0; i < len(s.commited); i++ {
+	for i := 0; i < len(s.committed); i++ {
 		if i < 10 {
 			if kvsize > kvLIMIT {
 				commitNum = i - 1
 				break
 			}
-			kvsize += s.commited[i].data.Len()
+			kvsize += s.committed[i].data.Len()
 		} else {
 			commitNum = 9
 			break
@@ -171,7 +178,7 @@ func (s *snapshotDB) Compaction() (bool, error) {
 	}
 	batch := new(leveldb.Batch)
 	for i := 0; i < commitNum; i++ {
-		itr := s.commited[i].data.NewIterator(nil)
+		itr := s.committed[i].data.NewIterator(nil)
 		for itr.Next() {
 			batch.Put(itr.Key(), itr.Value())
 		}
@@ -183,7 +190,7 @@ func (s *snapshotDB) Compaction() (bool, error) {
 	if err := s.current.update(); err != nil {
 		return false, err
 	}
-	s.commited = s.commited[commitNum:len(s.commited)]
+	s.committed = s.committed[commitNum:len(s.committed)]
 	if err := s.removeJournalLessThanBaseNum(); err != nil {
 		return false, err
 	}
@@ -229,8 +236,8 @@ func (s *snapshotDB) Put(hash *common.Hash, key, value []byte) (bool, error) {
 }
 
 // Get get key,val from  snapshotDB
-// if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommitedBlockData > baseDB
-// if hash is not nil,it will find from the chain, RecognizedBlockData > CommitedBlockData > baseDB
+// if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommittedBlockData > baseDB
+// if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
 func (s *snapshotDB) Get(hash *common.Hash, key []byte) ([]byte, error) {
 	var parentHash common.Hash
 	if hash == nil {
@@ -261,14 +268,14 @@ func (s *snapshotDB) Get(hash *common.Hash, key []byte) ([]byte, error) {
 		}
 	}
 
-	//from commited
-	if len(s.commited) > 0 {
-		block := s.commited[len(s.commited)-1]
+	//from committed
+	if len(s.committed) > 0 {
+		block := s.committed[len(s.committed)-1]
 		if *block.BlockHash != parentHash {
 			return nil, ErrNotFound
 		}
-		for i := len(s.commited) - 1; i >= 0; i-- {
-			if v, err := s.commited[i].data.Get(key); err == nil {
+		for i := len(s.committed) - 1; i >= 0; i-- {
+			if v, err := s.committed[i].data.Get(key); err == nil {
 				return v, nil
 			} else if err != memdb.ErrNotFound {
 				return nil, err
@@ -311,23 +318,22 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) (bool, error)
 	currentHash := s.getUnRecognizedHash()
 	oldFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: currentHash}
 	newFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: hash}
-	s.unRecognized.mu.Lock()
+	s.unRecognizedLock.Lock()
+	defer s.unRecognizedLock.Unlock()
 	if err := s.storage.Rename(oldFd, newFd); err != nil {
-		s.unRecognized.mu.Unlock()
 		return false, errors.New("[snapshotdb]rename fiel fail:" + oldFd.String() + "," + newFd.String() + "," + err.Error())
 	}
 	s.unRecognized.BlockHash = &hash
 	s.unRecognized.readOnly = true
 	s.recognized[hash] = *s.unRecognized
 	if err := s.closeJournalWriter(currentHash); err != nil {
-		s.unRecognized.mu.Unlock()
 		return false, err
 	}
-	s.unRecognized.mu.Unlock()
 	s.unRecognized = nil
 	return true, nil
 }
 
+// Commit move blockdata from recognized to commit
 func (s *snapshotDB) Commit(hash common.Hash) (bool, error) {
 	s.commitLock.Lock()
 	defer s.commitLock.Unlock()
@@ -343,7 +349,7 @@ func (s *snapshotDB) Commit(hash common.Hash) (bool, error) {
 		return false, fmt.Errorf("[snapshotdb]the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
 	}
 	block.readOnly = true
-	s.commited = append(s.commited, block)
+	s.committed = append(s.committed, block)
 	s.current.HighestNum = block.Number
 	if err := s.current.update(); err != nil {
 		return false, errors.New("[snapshotdb]update current fail:" + err.Error())
@@ -427,12 +433,12 @@ func (s *snapshotDB) Ranking(hash *common.Hash, key []byte, rangeNumber int) ite
 					break
 				}
 			}
-			for _, block := range s.commited {
+			for _, block := range s.committed {
 				itrs = append(itrs, block.data.NewIterator(prefix))
 			}
-		case hashLocationCommited:
-			for i := len(s.commited) - 1; i >= 0; i-- {
-				block := s.commited[i]
+		case hashLocationCommitted:
+			for i := len(s.committed) - 1; i >= 0; i-- {
+				block := s.committed[i]
 				if block.BlockHash == hash {
 					itrs = append(itrs, block.data.NewIterator(prefix))
 					parentHash = *block.BlockHash
@@ -455,7 +461,7 @@ func (s *snapshotDB) Ranking(hash *common.Hash, key []byte, rangeNumber int) ite
 				break
 			}
 		}
-		for _, block := range s.commited {
+		for _, block := range s.committed {
 			itrs = append(itrs, block.data.NewIterator(prefix))
 		}
 	}

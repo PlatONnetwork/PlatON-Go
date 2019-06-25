@@ -61,8 +61,8 @@ var (
 	ErrInvalidFile = errors.New("snapshotdb/storage: invalid file for argument")
 	ErrLocked      = errors.New("snapshotdb/storage: already locked")
 	ErrClosed      = errors.New("snapshotdb/storage: closed")
-	errFileOpen    = errors.New("snapshotdb/storage: file still open")
-	errReadOnly    = errors.New("snapshotdb/storage: storage is read-only")
+	//errFileOpen    = errors.New("snapshotdb/storage: file still open")
+	errReadOnly = errors.New("snapshotdb/storage: storage is read-only")
 )
 
 type fileLock interface {

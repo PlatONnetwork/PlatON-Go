@@ -32,7 +32,7 @@ func newDB(dbpath string) (*snapshotDB, error) {
 		storage:      s,
 		unRecognized: new(blockData),
 		recognized:   make(map[common.Hash]blockData),
-		commited:     make([]blockData, 0),
+		committed:    make([]blockData, 0),
 		journalw:     make(map[common.Hash]*journal.Writer),
 		baseDB:       baseDB,
 		current:      newCurrent(dbpath),
@@ -99,7 +99,6 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 	return block, nil
 }
 
-//todo 统一current 和 log
 func (s *snapshotDB) recover(dbpath string) error {
 	c, err := loadCurrent(dbpath)
 	if err != nil {
@@ -127,7 +126,7 @@ func (s *snapshotDB) recover(dbpath string) error {
 	baseNum := s.current.BaseNum.Int64()
 	highestNum := s.current.HighestNum.Int64()
 	UnRecognizedHash := s.getUnRecognizedHash()
-	s.commited = make([]blockData, 0)
+	s.committed = make([]blockData, 0)
 	s.recognized = make(map[common.Hash]blockData)
 	s.journalw = make(map[common.Hash]*journal.Writer)
 
@@ -139,7 +138,7 @@ func (s *snapshotDB) recover(dbpath string) error {
 			return err
 		}
 		if baseNum < fd.Num && fd.Num <= highestNum {
-			s.commited = append(s.commited, *block)
+			s.committed = append(s.committed, *block)
 		} else if fd.Num > highestNum {
 			if UnRecognizedHash == fd.BlockHash {
 				//UnRecognized
@@ -224,7 +223,7 @@ func (s *snapshotDB) rmOldRecognizedBlockData() error {
 
 const (
 	hashLocationRecognized = 1
-	hashLocationCommited   = 2
+	hashLocationCommitted  = 2
 )
 
 func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
@@ -240,8 +239,8 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 	}
 	//check find from recognized is right
 	if lastblockNumber.Int64() > 0 {
-		if len(s.commited) > 0 {
-			commitBlock := s.commited[len(s.commited)-1]
+		if len(s.committed) > 0 {
+			commitBlock := s.committed[len(s.committed)-1]
 			if lastblockNumber.Int64()-1 != commitBlock.Number.Int64() {
 				return 0, false
 			}
@@ -254,10 +253,10 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 			return hashLocationRecognized, true
 		}
 	}
-	// find from commited
-	for _, value := range s.commited {
+	// find from committed
+	for _, value := range s.committed {
 		if *value.BlockHash == hash {
-			return hashLocationCommited, true
+			return hashLocationCommitted, true
 		}
 	}
 	return 0, false
