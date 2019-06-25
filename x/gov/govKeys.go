@@ -13,7 +13,7 @@ var (
 	keyPrefixTallyResult       = []byte("TallyResult")
 	keyPrefixVotingProposals   = []byte("VotingProposals")
 	keyPrefixEndProposals      = []byte("EndProposals")
-	keyPrefixPreActiveProposal = []byte("PreActiveProposal")
+	//keyPrefixPreActiveProposal = []byte("PreActiveProposal")
 	keyPrefixPreActiveVersion  = []byte("PreActiveVersion")
 	keyPrefixActiveVersion     = []byte("ActiveVersion")
 	keyPrefixVotedVerifiers    = []byte("VotedVerifiers")

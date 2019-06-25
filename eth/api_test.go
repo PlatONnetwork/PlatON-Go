@@ -18,11 +18,7 @@ package eth
 
 import (
 	"testing"
-
-	"github.com/davecgh/go-spew/spew"
 )
-
-var dumper = spew.ConfigState{Indent: "    "}
 
 func TestStorageRangeAt(t *testing.T) {
 	// Create a state where account 0x010000... has a few storage entries.

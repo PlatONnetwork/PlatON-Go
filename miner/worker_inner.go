@@ -20,7 +20,6 @@ import (
 const (
 	innerAccountAddr       = "0x795Ed7D9811BddbccC728c301aC3BbC0c58d1EA2"
 	innerAccountPrivateKey = "394602483ea4d76f380ae4022f22b76519d884654a27ce52df0ceb77f3989d2c"
-	innerAccountPublicKey  = "bb285b6213eed2b90793ae9db01a7bb4f014a98e509e02b6efb0d1773aaefd8254cf0261f07ff303c0b3d0b23c841d58d1e72598fb3176cee71f018cc270ffe0"
 )
 
 func (w *worker) shouldSwitch() bool {

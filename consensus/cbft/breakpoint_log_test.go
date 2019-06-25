@@ -38,7 +38,7 @@ func TestJsonLog(b *testing.T) {
 	pvote := makeFakePrepareVote()
 
 	start := time.Now()
-	n := 100000
+	n := 1000
 	for i := 0; i < n; i++ {
 		logBP.PrepareBP().ReceiveVote(ctx, pvote, engine)
 		logBP.PrepareBP().AcceptVote(ctx, pvote, engine)

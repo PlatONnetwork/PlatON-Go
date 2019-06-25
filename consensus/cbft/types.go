@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	errEmptyRootBlock             = errors.New("empty root block")
-	errExistViewChange            = errors.New("had viewchange")
+	//errEmptyRootBlock             = errors.New("empty root block")
+	//errExistViewChange            = errors.New("had viewchange")
 	errNotExistViewChange         = errors.New("not exist viewchange")
 	errTimestampNotEqual          = errors.New("timestamp not equal")
 	errBlockHashNotEqual          = errors.New("block hash not equal")
