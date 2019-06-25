@@ -8,7 +8,6 @@ import (
 	"path"
 )
 
-//todo 需要确认文件路径与操作系统
 const (
 	DBPath      = "snapshotdb"
 	DBBasePath  = "base"
@@ -21,6 +20,7 @@ func initDB() {
 	if flag.Lookup("test.v") == nil {
 		dbPath = DBPath
 	} else {
+		// for test
 		log.Debug("run under go test")
 		dbPath = path.Join(os.TempDir(), DBTestPath)
 	}

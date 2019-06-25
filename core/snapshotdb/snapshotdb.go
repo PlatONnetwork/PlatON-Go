@@ -35,6 +35,7 @@ type DB interface {
 	Commit(hash common.Hash) (bool, error)
 	Clear() (bool, error)
 	PutBaseDB(key, value []byte) (bool, error)
+	DelBaseDB(key []byte) (bool, error)
 	GetLastKVHash(blockHash *common.Hash) []byte
 	BaseNum() (*big.Int, error)
 	Close() (bool, error)
@@ -106,8 +107,17 @@ func (s *snapshotDB) PutBaseDB(key, value []byte) (bool, error) {
 	return true, nil
 }
 
-//if hash is nil ,get unRecognized block lastkv hash,
-//else, get recognized block lastkv  hash
+func (s *snapshotDB) DelBaseDB(key []byte) (bool, error) {
+	err := s.baseDB.Delete(key, nil)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// GetLastKVHash return the last kv hash
+// if hash is nil ,get unRecognized block lastkv hash,
+// else, get recognized block lastkv  hash
 func (s *snapshotDB) GetLastKVHash(blockHash *common.Hash) []byte {
 	if blockHash == nil {
 		return s.unRecognized.kvHash.Bytes()
@@ -126,7 +136,7 @@ func (s *snapshotDB) Del(hash *common.Hash, key []byte) (bool, error) {
 	return true, nil
 }
 
-//Compaction ,write commit to baseDB,and then removeJournal lessThan BaseNum
+// Compaction ,write commit to baseDB,and then removeJournal lessThan BaseNum
 // it will write to baseDB
 // case kv>2000 and block == 1
 // case kv<2000,block... <9
@@ -207,6 +217,8 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	return true, nil
 }
 
+// Put sets the value for the given key. It overwrites any previous value
+// for that key; a DB is not a multi-map.
 func (s *snapshotDB) Put(hash *common.Hash, key, value []byte) (bool, error) {
 	if err := s.put(hash, key, value, funcTypePut); err != nil {
 		return false, err
@@ -214,7 +226,7 @@ func (s *snapshotDB) Put(hash *common.Hash, key, value []byte) (bool, error) {
 	return true, nil
 }
 
-//Get get key,val from  snapshotDB
+// Get get key,val from  snapshotDB
 // if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommitedBlockData > baseDB
 // if hash is not nil,it will find from the chain, RecognizedBlockData > CommitedBlockData > baseDB
 func (s *snapshotDB) Get(hash *common.Hash, key []byte) ([]byte, error) {
@@ -286,7 +298,7 @@ func (s *snapshotDB) Has(hash *common.Hash, key []byte) (bool, error) {
 	}
 }
 
-//move unRecognized to Recognized data
+// Flush move unRecognized to Recognized data
 func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) (bool, error) {
 	if blocknumber.Int64() != s.unRecognized.Number.Int64() {
 		return false, errors.New("[snapshotdb]blocknumber not compare the unRecognized blocknumber")
@@ -347,6 +359,10 @@ func (s *snapshotDB) BaseNum() (*big.Int, error) {
 	return s.current.BaseNum, nil
 }
 
+// WalkBaseDB returns a latest snapshot of the underlying DB. A snapshot
+// is a frozen snapshot of a DB state at a particular point in time. The
+// content of snapshot are guaranteed to be consistent.
+// slice
 func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error {
 	if s.snapshotLock {
 		return errors.New("[snapshotdb] snapshot is lock now,can't get")
@@ -355,16 +371,17 @@ func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter ite
 	if err != nil {
 		return errors.New("[snapshotdb] get snapshot fail:" + err.Error())
 	}
+	defer snapshot.Release()
 	t := snapshot.NewIterator(slice, nil)
 	return f(s.current.BaseNum, t)
 }
 
-//todo 需要确认clear的执行流程
+// Clear close db , remove all db file
 func (s *snapshotDB) Clear() (bool, error) {
 	if _, err := s.Close(); err != nil {
 		return false, err
 	}
-	log.Print("begin remove", s.path)
+	log.Print("[snapshotdb] begin clear file", s.path)
 	if err := os.RemoveAll(s.path); err != nil {
 		return false, err
 	}
@@ -381,8 +398,12 @@ func itrToMdb(itr iterator.Iterator, mdb *memdb.DB) error {
 	return nil
 }
 
-//1.hash为空的时候，从unRecognized开始查（假设unRecognized的parentHash必为真），如果unRecognized也为空，从commited开始查
-//2.hash不为空时，从Recognized开始逐级往上查
+// Ranking return iterates  of the DB.
+// the key range that satisfy the given prefix
+// the hash means from  unRecognized or recognized
+// return iterates ,iterates over a DB's key/value pairs in key order.
+// The iterator must be released after use, by calling Release method.
+// Also read Iterator documentation of the leveldb/iterator package.
 func (s *snapshotDB) Ranking(hash *common.Hash, key []byte, rangeNumber int) iterator.Iterator {
 	var itrs []iterator.Iterator
 	m := memdb.New(comparer.DefaultComparer, rangeNumber)

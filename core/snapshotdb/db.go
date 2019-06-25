@@ -229,7 +229,7 @@ const (
 
 func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 	lastblockNumber := big.NewInt(0)
-	//在recognized中找
+	// find from recognized
 	for {
 		if data, ok := s.recognized[hash]; ok {
 			hash = data.ParentHash
@@ -238,7 +238,7 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 			break
 		}
 	}
-	//在recognized中找到
+	//check find from recognized is right
 	if lastblockNumber.Int64() > 0 {
 		if len(s.commited) > 0 {
 			commitBlock := s.commited[len(s.commited)-1]
@@ -254,7 +254,7 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 			return hashLocationRecognized, true
 		}
 	}
-	//在recognized中没有找到,在commit中找
+	// find from commited
 	for _, value := range s.commited {
 		if *value.BlockHash == hash {
 			return hashLocationCommited, true

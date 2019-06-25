@@ -330,15 +330,23 @@ func fsParseName(name string) (fd fileDesc, ok bool) {
 		fd.Type = TypeCurrent
 		return fd, true
 	}
-	_, p := path.Split(name)
-	arr := strings.Split(p, "-")
-	i, err := strconv.ParseInt(arr[0], 10, 64)
-	if err != nil {
-		log.Print("invalid name,can't, parse to int", err)
+	switch name {
+	case "current":
+		fd.Type = TypeCurrent
+		return fd, true
+	case "base", "LOCK", "LOG":
 		return fd, false
+	default:
+		_, p := path.Split(name)
+		arr := strings.Split(p, "-")
+		i, err := strconv.ParseInt(arr[0], 10, 64)
+		if err != nil {
+			log.Print("invalid name,can't, parse to int,", err)
+			return fd, false
+		}
+		fd.Num = i
+		fd.Type = TypeJournal
+		fd.BlockHash = common.HexToHash(strings.TrimRight(arr[1], ".log"))
+		return fd, true
 	}
-	fd.Num = i
-	fd.Type = TypeJournal
-	fd.BlockHash = common.HexToHash(strings.TrimRight(arr[1], ".log"))
-	return fd, true
 }

@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	"log"
 	"math/big"
 	"testing"
+	"time"
 )
 
 var (
@@ -413,7 +416,6 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	log.Print(arr)
 	t.Run("with hash", func(t *testing.T) {
 		commitHash := rlpHash("RecongizedHash4")
 		itr := dbInstance.Ranking(&commitHash, []byte("a"), 100)
@@ -424,6 +426,7 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 			}
 			i++
 		}
+		itr.Release()
 	})
 	t.Run("with out hash", func(t *testing.T) {
 		itr := dbInstance.Ranking(nil, []byte("a"), 100)
@@ -434,15 +437,102 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 			}
 			i++
 		}
+		itr.Release()
 	})
 }
 
 func TestSnapshotDB_WalkBaseDB(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
+	var (
+		RecongizedHash = rlpHash("RecongizedHash")
+		parenthash     common.Hash
+		arr            []string
+	)
+	{
+		commitHash := RecongizedHash
+		if _, err := dbInstance.NewBlock(big.NewInt(1), parenthash, &commitHash); err != nil {
+			t.Fatal(err)
+		}
+		var str string
+		for i := 0; i < 4; i++ {
+			str += "a"
+			arr = append(arr, str)
+			if _, err := dbInstance.Put(&commitHash, []byte(str), []byte(str)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := dbInstance.Put(&commitHash, []byte("d"), []byte("d")); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := dbInstance.Commit(commitHash); err != nil {
+			t.Fatal(err)
+		}
+		parenthash = commitHash
+		dbInstance.Compaction()
+	}
+	prefix := util.BytesPrefix([]byte("a"))
+	f := func(num *big.Int, iter iterator.Iterator) error {
+		log.Print("basenum:", num)
+		for iter.Next() {
+			log.Print(string(iter.Key()), "==", string(iter.Value()))
+		}
+		return nil
+	}
+	if err := dbInstance.WalkBaseDB(prefix, f); err != nil {
+		t.Error(err)
+	}
+	t.Run("compaction", func(t *testing.T) {
+		t.Parallel()
+		log.Print("a")
+		commitHash := rlpHash("RecongizedHash2")
+		if _, err := dbInstance.NewBlock(big.NewInt(2), parenthash, &commitHash); err != nil {
+			t.Fatal(err)
+		}
+		str := "a"
+		for i := 0; i < 4; i++ {
+			str += "b"
+			arr = append(arr, str)
+			if _, err := dbInstance.Put(&commitHash, []byte(str), []byte(str)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := dbInstance.Put(&commitHash, []byte("dd"), []byte("dd")); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := dbInstance.Commit(commitHash); err != nil {
+			t.Fatal(err)
+		}
+		parenthash = commitHash
+		dbInstance.Compaction()
+	})
+	t.Run("walkbasedb", func(t *testing.T) {
+		t.Parallel()
+		log.Print("b")
+
+		time.Sleep(time.Millisecond * 100)
+		if err := dbInstance.WalkBaseDB(prefix, f); err != nil {
+			t.Error(err)
+		}
+	})
 
 }
 
 func TestSnapshotDB_Clear(t *testing.T) {
+	t.Run("test1", func(t *testing.T) {
+		t.Parallel()
+		log.Print("test1")
+	})
+	t.Run("test2", func(t *testing.T) {
+		t.Parallel()
+		log.Print("test2")
 
+	})
+	t.Run("test3", func(t *testing.T) {
+		t.Parallel()
+		log.Print("test3")
+
+	})
 }
 
 func TestSnapshotDB_GetLastKVHash(t *testing.T) {
