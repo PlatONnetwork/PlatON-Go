@@ -9,10 +9,13 @@ import (
 )
 
 const (
-	DBPath      = "snapshotdb"
+	//DBPath path of db
+	DBPath = "snapshotdb"
+	//DBBasePath path of basedb
 	DBBasePath  = "base"
 	currentPath = "current"
-	DBTestPath  = "snapshotdb_test"
+	//DBTestPath path of testdb
+	DBTestPath = "snapshotdb_test"
 )
 
 func initDB() {

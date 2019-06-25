@@ -47,7 +47,9 @@ var dbInstance *snapshotDB
 var (
 	//ErrorSnaphotLock when db is Lock
 	ErrorSnaphotLock = errors.New("can't create snapshot,snapshot is lock now")
-	ErrNotFound      = errors.New("snapshotDB: not found")
+
+	//ErrNotFound when db not found
+	ErrNotFound = errors.New("snapshotDB: not found")
 )
 
 type snapshotDB struct {
