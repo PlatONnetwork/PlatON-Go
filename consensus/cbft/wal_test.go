@@ -16,7 +16,7 @@ import (
 var (
 	viewChangeNumber = uint64(100)
 	viewChangeHash   = common.HexToHash("0x8bfded8b3ccdd1d31bf049b4abf72415a0cc829cdcc0b750a73e0da5df065747")
-	times            = 10000
+	times            = 1000
 	tempDir          string
 	wal              Wal
 )

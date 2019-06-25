@@ -77,12 +77,15 @@ type baseWal struct {
 }
 
 func NewWal(ctx *node.ServiceContext, specifiedPath string) (Wal, error) {
+	if ctx == nil && len(specifiedPath) == 0 {
+		return &emptyWal{}, nil
+	}
 	var (
-		originPath  = specifiedPath
-		metaDB  IWALDatabase
-		walPath string
-		journal *journal
-		err     error
+		originPath = specifiedPath
+		metaDB     IWALDatabase
+		walPath    string
+		journal    *journal
+		err        error
 	)
 	if originPath == "" {
 		originPath = ctx.ResolvePath(walDir)

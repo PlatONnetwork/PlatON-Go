@@ -150,7 +150,7 @@ type Cbft struct {
 
 	startTimeOfEpoch int64
 
-	evPool  *EvidencePool
+	evPool  EvidencePool
 	tracing *tracing
 }
 
@@ -181,7 +181,7 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceCo
 		nodeServiceContext:      ctx,
 	}
 
-	evPool, err := NewEvidencePool(ctx.ResolvePath(evidenceDir))
+	evPool, err := NewEvidencePoolByCtx(ctx)
 	if err != nil {
 		return nil
 	}
