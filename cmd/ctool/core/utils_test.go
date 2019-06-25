@@ -57,7 +57,7 @@ func TestHttpPostTransfer(t *testing.T) {
 	//url := "http://localhost:8545"
 	param := JsonParam{
 		Jsonrpc: "2.0",
-		Method:  "eth_sendTransaction",
+		Method:  "platon_sendTransaction",
 		//Params:[]TxParams{},
 		Id: 1,
 	}
@@ -80,7 +80,7 @@ func TestHttpPostDeploy(t *testing.T) {
 	params[0] = deployParams
 	param := JsonParam{
 		Jsonrpc: "2.0",
-		Method:  "eth_sendTransaction",
+		Method:  "platon_sendTransaction",
 		Params:  params,
 		Id:      1,
 	}
@@ -133,7 +133,7 @@ func TestHttpCallContact(t *testing.T) {
 
 	param := JsonParam{
 		Jsonrpc: "2.0",
-		Method:  "eth_sendTransaction",
+		Method:  "platon_sendTransaction",
 		Params:  []TxParams{params},
 		Id:      1,
 	}

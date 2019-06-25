@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -98,6 +99,14 @@ func (mockHandler) Protocols() []p2p.Protocol {
 
 func (m mockHandler) PeerSet() *peerSet {
 	return m.peerSet
+}
+
+func (m mockHandler) GetPeer(peerID string) (*peer, error) {
+	if peerID == "" {
+		return nil, errors.New("Invalid peerId")
+	}
+	p := buildPeer()
+	return p, nil
 }
 
 func init() {
@@ -358,13 +367,13 @@ func randomCBFT(path string, i int) (*Cbft, *testBackend, *testValidator) {
 	return engine, backend, validators
 }
 
-func makeHandler(cbft *Cbft, pid string, msgHash common.Hash) (*baseHandler) {
+func makeHandler(cbft *Cbft, pid string, msgHash common.Hash) *baseHandler {
 	handler := NewHandler(cbft)
 	peerSets := newPeerSet()
 	peer := &peer{
-		id: pid,
+		id:               pid,
 		knownMessageHash: mapset.NewSet(),
-		rw: &fakeRW{},
+		rw:               &fakeRW{},
 	}
 	peer.MarkMessageHash(msgHash)
 	peerSets.Register(peer)
@@ -374,9 +383,9 @@ func makeHandler(cbft *Cbft, pid string, msgHash common.Hash) (*baseHandler) {
 
 func makeGetPrepareVote(blockNum uint64, blockHash common.Hash) *getPrepareVote {
 	p := &getPrepareVote{
-		Number:         blockNum,
-		Hash:           blockHash,
-		VoteBits: 		NewBitArray(32),
+		Number:   blockNum,
+		Hash:     blockHash,
+		VoteBits: NewBitArray(32),
 	}
 	return p
 }
@@ -384,9 +393,9 @@ func makeGetPrepareVote(blockNum uint64, blockHash common.Hash) *getPrepareVote 
 func makePrepareVotes(pri *ecdsa.PrivateKey, timestamp, blockNum uint64, blockHash common.Hash, validatorIndex uint32, validatorAddr common.Address) *prepareVotes {
 	pv := makePrepareVote(pri, timestamp, blockNum, blockHash, validatorIndex, validatorAddr)
 	pvs := &prepareVotes{
-		Hash: blockHash,
+		Hash:   blockHash,
 		Number: blockNum,
-		Votes: []*prepareVote{ pv },
+		Votes:  []*prepareVote{pv},
 	}
 	return pvs
 }
@@ -444,7 +453,7 @@ func makePrepareBlock(block *types.Block, owner *NodeData, view *viewChange, vie
 	return p
 }
 
-func forgeViewChangeVote(view *viewChange) *viewChangeVote{
+func forgeViewChangeVote(view *viewChange) *viewChangeVote {
 	pri, _ := crypto.GenerateKey()
 	resp := &viewChangeVote{
 		ValidatorIndex: uint32(5),

@@ -1,6 +1,7 @@
 package cbft
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
@@ -143,20 +144,41 @@ func (rw *meteredMsgReadWriter) WriteMsg(msg p2p.Msg) error {
 	switch {
 	case msg.Code == PrepareBlockMsg:
 		packets, traffic = propPrepareBlockOutPacketsMeter, propPrepareBlockOutTrafficMeter
+		common.PrepareBlockCBFTEgressTrafficMeter.Mark(int64(msg.Size))
 	case msg.Code == ViewChangeMsg:
 		packets, traffic = propViewChangeOutPacketsMeter, propViewChangeOutTrafficMeter
+		common.ViewChangeEgressTrafficMeter.Mark(int64(msg.Size))
 	case msg.Code == ViewChangeVoteMsg:
 		packets, traffic = propViewChangeVoteOutPacketsMeter, propViewChangeVoteOutTrafficMeter
+		common.ViewChangeVoteEgressTrafficMeter.Mark(int64(msg.Size))
 	case msg.Code == PrepareVoteMsg:
 		packets, traffic = propPrepareVoteOutPacketsMeter, propPrepareVoteOutTrafficMeter
+		common.PrepareVoteEgressTrafficMeter.Mark(int64(msg.Size))
 	case msg.Code == ConfirmedPrepareBlockMsg:
 		packets, traffic = propConfirmedPrepareBlockOutPacketsMeter, propConfirmedPrepareBlockOutTrafficMeter
+		common.ConfirmedPrepareBlockEgressTrafficMeter.Mark(int64(msg.Size))
 	case msg.Code == PrepareVotesMsg:
 		packets, traffic = reqPrepareVotesOutPacketsMeter, reqPrepareVotesOutTrafficMeter
+		common.PrepareVotesEgressTrafficMeter.Mark(int64(msg.Size))
 	case msg.Code == HighestPrepareBlockMsg:
 		packets, traffic = reqHighestPrepareBlockOutPacketsMeter, reqHighestPrepareBlockOutTrafficMeter
+		common.HighestPrepareBlockEgressTrafficMeter.Mark(int64(msg.Size))
 	case msg.Code == PrepareBlockHashMsg:
 		packets, traffic = propPrepareBlockHashOutPacketsMeter, propPrepareBlockHashOutTrafficMeter
+		common.PrepareBlockHashEgressTrafficMeter.Mark(int64(msg.Size))
+
+	case msg.Code == GetPrepareVoteMsg:
+		common.GetPrepareVoteEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == GetPrepareBlockMsg:
+		common.GetPrepareBlockEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == GetHighestPrepareBlockMsg:
+		common.GetHighestPrepareBlockEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == CBFTStatusMsg:
+		common.CBFTStatusEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == GetLatestStatusMsg:
+		common.GetLatestStatusEgressTrafficMeter.Mark(int64(msg.Size))
+	case msg.Code == LatestStatusMsg:
+		common.LatestStatusEgressTrafficMeter.Mark(int64(msg.Size))
 	}
 	packets.Mark(1)
 	traffic.Mark(int64(msg.Size))

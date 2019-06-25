@@ -37,6 +37,7 @@ const (
 	// AddressLength is the expected length of the address
 	AddressLength          = 20
 	BlockConfirmSignLength = 65
+	ExtraSeal = 65
 )
 
 var (

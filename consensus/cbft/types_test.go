@@ -71,7 +71,7 @@ func TestPendingBlock(t *testing.T) {
 	block := types.NewBlockWithHeader(header)
 	pb.Add(common.BytesToHash([]byte{1}), &prepareBlock{Block: block})
 	assert.Equal(t, 1, len(pb), "")
-	assert.Equal(t, "[[block:[Timestamp:0 Hash:5f688a…820372 Number:11111 ProposalAddr:0x0000000000000000000000000000000000000000, ProposalIndex:0]]]", pb.String())
+	assert.NotEmpty(t, pb.String())
 	pb.Clear()
 	assert.Equal(t, 0, len(pb), "")
 }
@@ -113,6 +113,12 @@ func TestBlockExtMap(t *testing.T) {
 
 	assert.Equal(t, 99, len(m.GetSubChainUnExecuted()))
 
+	assert.Nil(t, m.FindHighestConfirmedWithHeader())
+
+	unExeBlocks := m.GetSubChainUnExecuted()
+	for _, e := range unExeBlocks {
+		e.isExecuted = true
+	}
 	assert.Equal(t, uint64(99), m.FindHighestConfirmedWithHeader().number)
 	m.ClearParents(extList[2].block.Hash(), extList[2].block.NumberU64())
 	assert.Equal(t, 98, m.Len())
@@ -140,7 +146,15 @@ func TestBlockExtMap_GetHasVoteWithoutBlock(t *testing.T) {
 	assert.Equal(t, 100, m.Total())
 
 	ext := m.FindHighestConfirmed(extList[0].block.Hash(), extList[0].number)
+	assert.Nil(t, ext)
+
+	unExeBlocks := m.GetSubChainUnExecuted()
+	for _, e := range unExeBlocks {
+		e.isExecuted = true
+	}
+	ext = m.FindHighestConfirmed(extList[0].block.Hash(), extList[0].number)
 	assert.Equal(t, ext.number, extList[99].number)
+
 	ext = m.FindHighestLogical(extList[0].block.Hash(), extList[0].number)
 	assert.Equal(t, ext.number, extList[99].number)
 
@@ -202,7 +216,7 @@ func TestBlockExt(t *testing.T) {
 
 	_, err := extSeal.PrepareBlock()
 
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 
 	assert.NotEmpty(t, extSeal.String())
 

@@ -1,9 +1,10 @@
 package cbft
 
 import (
+	"bytes"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"io"
 	"math/rand"
 )
 
@@ -23,6 +24,24 @@ func produceHash(msgType byte, bytes []byte) common.Hash {
 	return result
 }
 
+func combineBytes(bts ...[]byte) []byte {
+	buffer := bytes.NewBuffer(make([]byte, 0, 128))
+	for _, v := range bts {
+		io.Copy(buffer, bytes.NewReader(v))
+	}
+	temp := buffer.Bytes()
+	length := len(temp)
+	var response []byte
+	//are we wasting more than 10% space?
+	if cap(temp) > (length + length / 10) {
+		response = make([]byte, length)
+		copy(response, temp)
+	} else {
+		response = temp
+	}
+	return response
+}
+
 func uint64ToBytes(n uint64) []byte {
 	return []byte{
 		byte(n),
@@ -36,7 +55,7 @@ func uint64ToBytes(n uint64) []byte {
 	}
 }
 
-func recoverAddr(msg ConsensusMsg) (common.Address, error) {
+/*func recoverAddr(msg ConsensusMsg) (common.Address, error) {
 	data, err := msg.CannibalizeBytes()
 	recPubKey, err := crypto.Ecrecover(data, msg.Sign())
 	if err != nil {
@@ -48,4 +67,4 @@ func recoverAddr(msg ConsensusMsg) (common.Address, error) {
 	}
 	recAddr := crypto.PubkeyToAddress(*pub)
 	return recAddr, nil
-}
+}*/

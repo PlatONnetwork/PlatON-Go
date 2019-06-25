@@ -53,6 +53,19 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
+var indexMock = map[int][]int{
+	1:  []int{2, 3, 4},
+	2:  []int{5, 6, 7},
+	3:  []int{8, 9, 10},
+	4:  []int{11, 12, 13},
+	5:  []int{14, 15, 16},
+	6:  []int{17, 18, 19},
+	7:  []int{},
+	8:  []int{20, 21, 22},
+	9:  []int{},
+	10: []int{23, 24, 25},
+}
+
 type LesServer interface {
 	Start(srvr *p2p.Server)
 	Stop()
@@ -209,7 +222,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
-			cbftEngine.SetBreakpoint(config.CbftConfig.BreakpointType)
+			if err := cbftEngine.SetBreakpoint(config.CbftConfig.BreakpointType, config.CbftConfig.BreakpointLog); err != nil {
+				return nil, err
+			}
 			cbftEngine.SetBlockChainCache(blockChainCache)
 			var agency cbft.Agency
 			// validatorMode:
@@ -311,17 +326,7 @@ func (s *Ethereum) APIs() []rpc.API {
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
 		{
-			Namespace: "eth",
-			Version:   "1.0",
-			Service:   NewPublicEthereumAPI(s),
-			Public:    true,
-		}, {
-			Namespace: "eth",
-			Version:   "1.0",
-			Service:   NewPublicMinerAPI(s),
-			Public:    true,
-		}, {
-			Namespace: "eth",
+			Namespace: "platon",
 			Version:   "1.0",
 			Service:   downloader.NewPublicDownloaderAPI(s.protocolManager.downloader, s.eventMux),
 			Public:    true,
@@ -331,7 +336,7 @@ func (s *Ethereum) APIs() []rpc.API {
 			Service:   NewPrivateMinerAPI(s),
 			Public:    false,
 		}, {
-			Namespace: "eth",
+			Namespace: "platon",
 			Version:   "1.0",
 			Service:   filters.NewPublicFilterAPI(s.APIBackend, false),
 			Public:    true,
@@ -577,6 +582,22 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 		s.lesServer.Start(srvr)
 	}
 	return nil
+}
+
+// mock
+func needAdd(self discover.NodeID, nodes []discover.Node) (bool, []int) {
+	selfIndex := -1
+	for idx, n := range nodes {
+		if n.ID.TerminalString() == self.TerminalString() {
+			selfIndex = idx
+			break
+		}
+	}
+	if selfIndex == -1 {
+		return false, nil
+	}
+	selfIndex++
+	return true, indexMock[selfIndex]
 }
 
 // Stop implements node.Service, terminating all internal goroutines used by the

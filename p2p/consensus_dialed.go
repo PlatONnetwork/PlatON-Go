@@ -1,15 +1,13 @@
 package p2p
 
 import (
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"fmt"
 	"strings"
-	"sync"
 )
 
 type dialedTasks struct {
-	lock                  sync.RWMutex
 	queue                 []*dialTask
 	maxPeers              int
 	removeConsensusPeerFn removeConsensusPeerFn
@@ -28,8 +26,6 @@ func (tasks *dialedTasks) InitRemoveConsensusPeerFn(removeConsensusPeerFn remove
 }
 
 func (tasks *dialedTasks) AddTask(task *dialTask) error {
-	tasks.lock.Lock()
-	defer tasks.lock.Unlock()
 
 	// whether the task is already in the queue
 	// 1 if exists,remove task to the end of the queue;
@@ -56,8 +52,6 @@ func (tasks *dialedTasks) AddTask(task *dialTask) error {
 }
 
 func (tasks *dialedTasks) RemoveTask(NodeID discover.NodeID) error {
-	tasks.lock.Lock()
-	defer tasks.lock.Unlock()
 
 	log.Info("[before remove]Consensus dialed task list before RemoveTask operation", "task queue", tasks.description())
 	if !tasks.isEmpty() {
@@ -73,8 +67,6 @@ func (tasks *dialedTasks) RemoveTask(NodeID discover.NodeID) error {
 }
 
 func (tasks *dialedTasks) ListTask() []*dialTask {
-	tasks.lock.RLock()
-	defer tasks.lock.RUnlock()
 
 	log.Info("[after list]Consensus dialed task list after ListTask operation", "task queue", tasks.description())
 	return tasks.queue
