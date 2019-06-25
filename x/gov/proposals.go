@@ -32,18 +32,18 @@ const (
 )
 
 type TallyResult struct {
-	proposalID    	common.Hash       	`json:"proposalID"`
-	yeas          	uint16            	`json:"yeas"`
-	nays          	uint64            	`json:"nays"`
-	abstentions   	uint16            	`json:"abstentions"`
-	accuVerifiers 	[]discover.NodeID 	`json:"accuVerifiers"`
-	status        	ProposalStatus    	`json:"status"`
+	ProposalID    	common.Hash       	`json:"proposalID"`
+	Yeas          	uint16            	`json:"yeas"`
+	Nays          	uint64            	`json:"nays"`
+	Abstentions   	uint16            	`json:"abstentions"`
+	AccuVerifiers 	uint16 				`json:"accuVerifiers"`
+	Status        	ProposalStatus    	`json:"status"`
 }
 
 type Vote struct {
-	proposalID 		common.Hash     	`json:"proposalID"`
-	voteNodeID 		discover.NodeID 	`json:"voteNodeID"`
-	voteOption 		VoteOption      	`json:"voteOption"`
+	ProposalID 		common.Hash     	`json:"proposalID"`
+	VoteNodeID 		discover.NodeID 	`json:"voteNodeID"`
+	VoteOption 		VoteOption      	`json:"voteOption"`
 }
 
 type Proposal interface {
@@ -83,96 +83,96 @@ type Proposal interface {
 }
 
 type TextProposal struct {
-	proposalID     common.Hash
-	githubID       string
-	proposalType   ProposalType
-	topic          string
-	desc           string
-	url            string
-	submitBlock    uint64
-	endVotingBlock uint64
-	proposer       discover.NodeID
-	result         TallyResult
+	ProposalID     common.Hash
+	GithubID       string
+	ProposalType   ProposalType
+	Topic          string
+	Desc           string
+	Url            string
+	SubmitBlock    uint64
+	EndVotingBlock uint64
+	Proposer       discover.NodeID
+	Result         TallyResult
 }
 
 func (tp TextProposal) SetProposalID(proposalID common.Hash) {
-	tp.proposalID = proposalID
+	tp.ProposalID = proposalID
 }
 
 func (tp TextProposal) GetProposalID() common.Hash {
-	return tp.proposalID
+	return tp.ProposalID
 }
 
 func (tp TextProposal) SetGithubID(githubID string) {
-	tp.githubID = githubID
+	tp.GithubID = githubID
 }
 
 func (tp TextProposal) GetGithubID() string {
-	return tp.githubID
+	return tp.GithubID
 }
 
 func (tp TextProposal) SetProposalType(proposalType ProposalType) {
-	tp.proposalType = proposalType
+	tp.ProposalType = proposalType
 }
 
 func (tp TextProposal) GetProposalType() ProposalType {
-	return tp.proposalType
+	return tp.ProposalType
 }
 
 func (tp TextProposal) SetTopic(topic string) {
-	tp.topic = topic
+	tp.Topic = topic
 }
 
 func (tp TextProposal) GetTopic() string {
-	return tp.topic
+	return tp.Topic
 }
 
 func (tp TextProposal) SetDesc(desc string) {
-	tp.desc = desc
+	tp.Desc = desc
 }
 
 func (tp TextProposal) GetDesc() string {
-	return tp.desc
+	return tp.Desc
 }
 
 func (tp TextProposal) SetUrl(url string) {
-	tp.url = url
+	tp.Url = url
 }
 
 func (tp TextProposal) GetUrl() string {
-	return tp.url
+	return tp.Url
 }
 
 func (tp TextProposal) SetSubmitBlock(blockNumber uint64) {
-	tp.submitBlock = blockNumber
+	tp.SubmitBlock = blockNumber
 }
 
 func (tp TextProposal) GetSubmitBlock() uint64 {
-	return tp.submitBlock
+	return tp.SubmitBlock
 }
 
 func (tp TextProposal) SetEndVotingBlock(blockNumber uint64) {
-	tp.endVotingBlock = blockNumber
+	tp.EndVotingBlock = blockNumber
 }
 
 func (tp TextProposal) GetEndVotingBlock() uint64 {
-	return tp.endVotingBlock
+	return tp.EndVotingBlock
 }
 
 func (tp TextProposal) SetProposer(proposer discover.NodeID) {
-	tp.proposer = proposer
+	tp.Proposer = proposer
 }
 
 func (tp TextProposal) GetProposer() discover.NodeID {
-	return tp.proposer
+	return tp.Proposer
 }
 
 func (tp TextProposal) SetTallyResult(result TallyResult) {
-	tp.result = result
+	tp.Result = result
 }
 
 func (tp TextProposal) GetTallyResult() TallyResult {
-	return tp.result
+	return tp.Result
 }
 
 func (tp TextProposal) Verify() bool {
@@ -186,30 +186,29 @@ func (tp TextProposal) String() string {
   Type:               	%x
   Proposer:            	%x
   SubmitBlock:        	%d
-  EndVotingBlock:   	%d`, tp.proposalID, tp.githubID, tp.topic, tp.proposalType, tp.proposer,
-		tp.submitBlock, tp.GetEndVotingBlock())
+  EndVotingBlock:   	%d`, tp.ProposalID, tp.GithubID, tp.Topic, tp.ProposalType, tp.Proposer, tp.SubmitBlock, tp.EndVotingBlock)
 }
 
 type VersionProposal struct {
 	TextProposal
-	newVersion  uint
-	activeBlock uint64
+	NewVersion  uint
+	ActiveBlock uint64
 }
 
 func (vp VersionProposal) SetNewVersion(newVersion uint) {
-	vp.newVersion = newVersion
+	vp.NewVersion = newVersion
 }
 
 func (vp VersionProposal) GetNewVersion() uint {
-	return vp.newVersion
+	return vp.NewVersion
 }
 
 func (vp VersionProposal) SetActiveBlock(activeBlock uint64) {
-	vp.activeBlock = activeBlock
+	vp.ActiveBlock = activeBlock
 }
 
 func (vp VersionProposal) GetActiveBlock() uint64 {
-	return vp.activeBlock
+	return vp.ActiveBlock
 }
 
 func (vp VersionProposal) Verify() bool {
@@ -224,7 +223,7 @@ func (vp VersionProposal) String() string {
   Proposer:            	%x
   SubmitBlock:        	%d
   EndVotingBlock:   	%d
-  ActiveBlock:   		%s
+  ActiveBlock:   		%d
   NewVersion:   		%d`,
-		vp.proposalID, vp.githubID, vp.topic, vp.proposalType, vp.proposer, vp.submitBlock, vp.GetEndVotingBlock(), vp.GetActiveBlock(), vp.GetNewVersion())
+		vp.ProposalID, vp.GithubID, vp.Topic, vp.ProposalType, vp.Proposer, vp.SubmitBlock, vp.EndVotingBlock, vp.ActiveBlock, vp.NewVersion)
 }

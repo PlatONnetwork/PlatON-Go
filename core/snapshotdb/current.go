@@ -2,14 +2,12 @@ package snapshotdb
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"path"
-	"path/filepath"
 	"sync"
 )
 
@@ -60,21 +58,9 @@ func getCurrentPath(dir string) string {
 	return path.Join(dir, currentPath)
 }
 
-func findCurrent(dir string) bool {
-	p := getCurrentPath(dir)
-	matches, err := filepath.Glob(p)
-	if err != nil {
-		log.Error("find current fail:", err)
-		return false
-	}
-	if len(matches) == 0 {
-		return false
-	}
-	return true
-}
-
 func loadCurrent(dir string) (*current, error) {
-	f, err := os.OpenFile(getCurrentPath(dir), os.O_RDWR, 0666)
+	cpath := getCurrentPath(dir)
+	f, err := os.OpenFile(cpath, os.O_RDWR, 0666)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +72,7 @@ func loadCurrent(dir string) (*current, error) {
 	if err := rlp.DecodeBytes(currentBytes, c); err != nil {
 		return nil, err
 	}
-	c.path = dir
+	c.path = cpath
 	c.f = f
 	return c, nil
 }
