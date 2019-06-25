@@ -44,6 +44,7 @@ type ViewChangeMeta struct {
 
 type Wal interface {
 	Write(info *MsgInfo) error
+	WriteSync(info *MsgInfo) error
 	UpdateViewChange(info *ViewChangeMessage) error
 	Load(add func(info *MsgInfo)) error
 	Close()
@@ -55,6 +56,11 @@ type emptyWal struct {
 func (w *emptyWal) Write(info *MsgInfo) error {
 	return nil
 }
+
+func (w *emptyWal) WriteSync(info *MsgInfo) error {
+	return nil
+}
+
 func (w *emptyWal) UpdateViewChange(info *ViewChangeMessage) error {
 	return nil
 }
@@ -71,12 +77,15 @@ type baseWal struct {
 }
 
 func NewWal(ctx *node.ServiceContext, specifiedPath string) (Wal, error) {
+	if ctx == nil && len(specifiedPath) == 0 {
+		return &emptyWal{}, nil
+	}
 	var (
-		originPath  = specifiedPath
-		metaDB  IWALDatabase
-		walPath string
-		journal *journal
-		err     error
+		originPath = specifiedPath
+		metaDB     IWALDatabase
+		walPath    string
+		journal    *journal
+		err        error
 	)
 	if originPath == "" {
 		originPath = ctx.ResolvePath(walDir)
@@ -127,7 +136,14 @@ func (wal *baseWal) Write(info *MsgInfo) error {
 	return wal.journal.Insert(&JournalMessage{
 		Timestamp: uint64(time.Now().UnixNano()),
 		Data:      info,
-	})
+	}, false)
+}
+
+func (wal *baseWal) WriteSync(info *MsgInfo) error {
+	return wal.journal.Insert(&JournalMessage{
+		Timestamp: uint64(time.Now().UnixNano()),
+		Data:      info,
+	}, true)
 }
 
 func (wal *baseWal) UpdateViewChange(info *ViewChangeMessage) error {

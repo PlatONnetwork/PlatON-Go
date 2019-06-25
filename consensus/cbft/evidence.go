@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -17,12 +17,12 @@ import (
 
 var (
 	//prefix +[number] + address + hash
-	viewTimestampPrefix                = byte(0x1)
-	viewDualPrefix                     = byte(0x2)
-	prepareDualPrefix                  = byte(0x3)
-	errDuplicatePrepareVoteEvidence    = errors.New("duplicate prepare vote")
-	errDuplicateViewChangeVoteEvidence = errors.New("duplicate view change")
-	errTimestampViewChangeVoteEvidence = errors.New("view change timestamp out of order")
+	viewTimestampPrefix = byte(0x1)
+	viewDualPrefix      = byte(0x2)
+	prepareDualPrefix   = byte(0x3)
+	//errDuplicatePrepareVoteEvidence    = errors.New("duplicate prepare vote")
+	//errDuplicateViewChangeVoteEvidence = errors.New("duplicate view change")
+	//errTimestampViewChangeVoteEvidence = errors.New("view change timestamp out of order")
 
 	evidenceDir = "evidenceDir"
 )
@@ -556,20 +556,63 @@ func (vt PrepareEvidence) Clear(number uint64) {
 	}
 }
 
-type EvidencePool struct {
+type EvidencePool interface {
+	AddViewChangeVote(v *viewChangeVote) error
+	AddPrepareVote(p *prepareVote) error
+	Evidences() []Evidence
+	Clear(timestamp, blockNum uint64)
+	Close()
+}
+type emptyEvidencePool struct {
+}
+
+func (emptyEvidencePool) AddViewChangeVote(v *viewChangeVote) error {
+	return nil
+}
+
+func (emptyEvidencePool) AddPrepareVote(p *prepareVote) error {
+	return nil
+}
+
+func (emptyEvidencePool) Evidences() []Evidence {
+	return nil
+}
+
+func (emptyEvidencePool) Clear(timestamp, blockNum uint64) {
+}
+
+func (emptyEvidencePool) Close() {
+}
+
+type baseEvidencePool struct {
 	vt ViewTimeEvidence
 	vn ViewNumberEvidence
 	pe PrepareEvidence
 	db *leveldb.DB
 }
 
-func NewEvidencePool(path string) (*EvidencePool, error) {
+func NewEvidencePoolByCtx(ctx *node.ServiceContext) (EvidencePool, error) {
+	path := ""
+	if ctx != nil {
+		path = ctx.ResolvePath(evidenceDir)
+	}
+	return NewEvidencePool(path)
+}
+func NewEvidencePool(path string) (EvidencePool, error) {
+	if len(path) == 0 {
+		return &emptyEvidencePool{}, nil
+	}
+
+	return NewBaseEvidencePool(path)
+}
+
+func NewBaseEvidencePool(path string) (*baseEvidencePool, error) {
 	db, err := leveldb.OpenFile(path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return &EvidencePool{
+	return &baseEvidencePool{
 		vt: make(ViewTimeEvidence),
 		vn: make(ViewNumberEvidence),
 		pe: make(PrepareEvidence),
@@ -577,7 +620,7 @@ func NewEvidencePool(path string) (*EvidencePool, error) {
 	}, nil
 }
 
-func (ev *EvidencePool) AddViewChangeVote(v *viewChangeVote) error {
+func (ev *baseEvidencePool) AddViewChangeVote(v *viewChangeVote) error {
 	if err := verifyAddr(v, v.ValidatorAddr); err != nil {
 		return err
 	}
@@ -600,7 +643,7 @@ func (ev *EvidencePool) AddViewChangeVote(v *viewChangeVote) error {
 	return nil
 }
 
-func (ev *EvidencePool) AddPrepareVote(p *prepareVote) error {
+func (ev *baseEvidencePool) AddPrepareVote(p *prepareVote) error {
 	if err := verifyAddr(p, p.ValidatorAddr); err != nil {
 		return err
 	}
@@ -633,7 +676,7 @@ func encodeKey(e Evidence) []byte {
 	buf.Write(e.Hash())
 	return buf.Bytes()
 }
-func (ev *EvidencePool) commit(e Evidence) error {
+func (ev *baseEvidencePool) commit(e Evidence) error {
 	key := encodeKey(e)
 	var buf []byte
 	var err error
@@ -646,17 +689,17 @@ func (ev *EvidencePool) commit(e Evidence) error {
 	return err
 }
 
-func (ev *EvidencePool) Clear(timestamp, blockNum uint64) {
+func (ev *baseEvidencePool) Clear(timestamp, blockNum uint64) {
 	ev.vt.Clear(timestamp)
 	ev.vn.Clear(blockNum)
 	ev.pe.Clear(blockNum)
 }
 
-func (ev *EvidencePool) Close() {
+func (ev *baseEvidencePool) Close() {
 	ev.db.Close()
 }
 
-func (ev *EvidencePool) Evidences() []Evidence {
+func (ev *baseEvidencePool) Evidences() []Evidence {
 	var evds []Evidence
 	it := ev.db.NewIterator(nil, nil)
 	for it.Next() {

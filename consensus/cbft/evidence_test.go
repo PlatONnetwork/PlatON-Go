@@ -40,10 +40,10 @@ func TestTimeOrderViewChange_Add(t *testing.T) {
 	assert.Len(t, p, 1)
 }
 
-func TestNewEvidencePool(t *testing.T) {
+func TestNewBaseEvidencePool(t *testing.T) {
 	p := path()
 	defer os.RemoveAll(p)
-	_, err := NewEvidencePool(p)
+	_, err := NewBaseEvidencePool(p)
 	assert.Nil(t, err)
 }
 
@@ -51,7 +51,7 @@ func TestAdd(t *testing.T) {
 
 	p := path()
 	defer os.RemoveAll(p)
-	pool, err := NewEvidencePool(p)
+	pool, err := NewBaseEvidencePool(p)
 	if err != nil {
 		t.Error(err)
 		return
@@ -87,7 +87,7 @@ func TestTimestampViewChangeVoteEvidence(t *testing.T) {
 
 	name := path()
 	defer os.RemoveAll(name)
-	pool, err := NewEvidencePool(name)
+	pool, err := NewBaseEvidencePool(name)
 	if err != nil {
 		t.Error(err)
 		return
@@ -114,7 +114,7 @@ func TestTimestampViewChangeVoteEvidence(t *testing.T) {
 func TestDuplicateViewChangeVoteEvidence(t *testing.T) {
 	name := path()
 	defer os.RemoveAll(name)
-	pool, err := NewEvidencePool(name)
+	pool, err := NewBaseEvidencePool(name)
 	if err != nil {
 		t.Error(err)
 		return
@@ -141,7 +141,7 @@ func TestDuplicatePrepareVoteEvidence(t *testing.T) {
 
 	name := path()
 	defer os.RemoveAll(name)
-	pool, err := NewEvidencePool(name)
+	pool, err := NewBaseEvidencePool(name)
 	if err != nil {
 		t.Error(err)
 		return

@@ -3,7 +3,6 @@ package cbft
 import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
@@ -15,11 +14,11 @@ import (
 
 var TestPeerSet = &peerSet{
 	peers: map[string]*peer{
-		"test0": &peer{id: "test0",},
-		"test1": &peer{id: "test1",},
-		"test2": &peer{id: "test2",},
-		"test3": &peer{id: "test3",},
-		"test4": &peer{id: "test4",},
+		"test0": &peer{id: "test0"},
+		"test1": &peer{id: "test1"},
+		"test2": &peer{id: "test2"},
+		"test3": &peer{id: "test3"},
+		"test4": &peer{id: "test4"},
 	},
 }
 
@@ -34,51 +33,51 @@ func newTestRouter() *router {
 
 func TestGossip(t *testing.T) {
 	router := newTestRouter()
-	testCases := []struct{
+	testCases := []struct {
 		mode uint64
-		msg Message
+		msg  Message
 	}{
-		{ mode: FullMode, msg: &prepareBlockHash{}, },
-		{ mode: PartMode, msg: &prepareBlockHash{}, },
-		{ mode: MixMode, msg: &prepareBlockHash{}, },
-		{ mode: FullMode, msg: makeFakePrepareBlock(), },
-		{ mode: FullMode, msg: makeFakePrepareVote(), },
-		{ mode: FullMode, msg: &confirmedPrepareBlock{}, },
-		{ mode: FullMode, msg: makeFakeViewChange(), },
-		{ mode: FullMode, msg: makeFakeGetPrepareBlock(), },
-		{ mode: FullMode, msg: makeFakeGetHighestPrepareBlock(), },
-		{ mode: FullMode, msg: &cbftStatusData{}, },
+		{mode: FullMode, msg: &prepareBlockHash{}},
+		{mode: PartMode, msg: &prepareBlockHash{}},
+		{mode: MixMode, msg: &prepareBlockHash{}},
+		{mode: FullMode, msg: makeFakePrepareBlock()},
+		{mode: FullMode, msg: makeFakePrepareVote()},
+		{mode: FullMode, msg: &confirmedPrepareBlock{}},
+		{mode: FullMode, msg: makeFakeViewChange()},
+		{mode: FullMode, msg: makeFakeGetPrepareBlock()},
+		{mode: FullMode, msg: makeFakeGetHighestPrepareBlock()},
+		{mode: FullMode, msg: &cbftStatusData{}},
 	}
 	for _, v := range testCases {
-		router.gossip(&MsgPackage{ peerID: "peerid", mode: v.mode, msg: v.msg })
+		router.gossip(&MsgPackage{peerID: "peerid", mode: v.mode, msg: v.msg})
 	}
 }
 
 func makeFakePrepareBlock() *prepareBlock {
 	block := types.NewBlockWithHeader(&types.Header{
-		GasLimit: uint64(3141592),
-		GasUsed: uint64(21000),
+		GasLimit:  uint64(3141592),
+		GasUsed:   uint64(21000),
 		Coinbase:  common.HexToAddress("8888f1f195afa192cfee860698584c030f4c9db1"),
 		MixDigest: common.HexToHash("bd4472abb6659ebe3ee06ee4d7b72a00a9f4d001caca51342001075469aff498"),
-		Root: common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
+		Root:      common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		//Hash: common.HexToHash("0a5843ac1cb04865017cb35a57b50b07084e5fcee39b5acadade33149f4fff9e"),
-		Nonce: types.EncodeNonce(hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa")),
-		Time: big.NewInt(1426516743),
+		Nonce: types.EncodeNonce(RandBytes(81)),
+		Time:  big.NewInt(1426516743),
 		Extra: make([]byte, 100),
 	})
 	pb := &prepareBlock{
-		Timestamp: uint64(time.Now().Unix()),
-		Block: block,
+		Timestamp:     uint64(time.Now().Unix()),
+		Block:         block,
 		ProposalIndex: 1,
-		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
-		View: &viewChange{},
+		ProposalAddr:  common.BytesToAddress([]byte("I'm address")),
+		View:          &viewChange{},
 	}
 	return pb
 }
 
 func makeFakeGetPrepareBlock() *getPrepareBlock {
 	return &getPrepareBlock{
-		Hash: common.BytesToHash([]byte("Empty block")),
+		Hash:   common.BytesToHash([]byte("Empty block")),
 		Number: 1,
 	}
 }
@@ -91,29 +90,29 @@ func makeFakeGetHighestPrepareBlock() *getHighestPrepareBlock {
 
 func makeFakePrepareVote() *prepareVote {
 	pv := &prepareVote{
-		Timestamp: uint64(time.Now().Unix()),
-		Hash: common.BytesToHash([]byte("I'm hash")),
-		Number: 1,
+		Timestamp:      uint64(time.Now().Unix()),
+		Hash:           common.BytesToHash([]byte("I'm hash")),
+		Number:         1,
 		ValidatorIndex: 0,
-		ValidatorAddr: common.BytesToAddress([]byte("I'm address")),
+		ValidatorAddr:  common.BytesToAddress([]byte("I'm address")),
 	}
 	return pv
 }
 
 func makeFakeConfirmedPrepareBlock() *confirmedPrepareBlock {
 	pv := &confirmedPrepareBlock{
-		Hash: common.BytesToHash([]byte("I'm hash")),
-		Number: 1,
-		VoteBits:NewBitArray(12),
+		Hash:     common.BytesToHash([]byte("I'm hash")),
+		Number:   1,
+		VoteBits: NewBitArray(12),
 	}
 	return pv
 }
 
 func makeFakeGetPrepareVote() *getPrepareVote {
 	pv := &getPrepareVote{
-		Hash: common.BytesToHash([]byte("I'm hash")),
-		Number: 1,
-		VoteBits:NewBitArray(12),
+		Hash:     common.BytesToHash([]byte("I'm hash")),
+		Number:   1,
+		VoteBits: NewBitArray(12),
 	}
 	return pv
 }
@@ -122,12 +121,12 @@ func makeFakeViewChange() *viewChange {
 	privateHex := "e4eb3e58ab7810984a0c77d432b07fe9f9897158dd4bb4f63d0a4366e6d949fa"
 	pri, _ := crypto.HexToECDSA(privateHex)
 	pv := &viewChange{
-		Timestamp: uint64(time.Now().Unix()),
+		Timestamp:     uint64(time.Now().Unix()),
 		ProposalIndex: 0,
-		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
+		ProposalAddr:  common.BytesToAddress([]byte("I'm address")),
 		BaseBlockHash: common.BytesToHash([]byte("I'm hash")),
-		BaseBlockNum: 1,
-		Extra: make([]byte, 100),
+		BaseBlockNum:  1,
+		Extra:         make([]byte, 100),
 	}
 	var consensusMsg ConsensusMsg = pv
 	cb, _ := consensusMsg.CannibalizeBytes()
@@ -140,12 +139,12 @@ func makeFakeViewChangeVote() *viewChangeVote {
 	privateHex := "e4eb3e58ab7810984a0c77d432b07fe9f9897158dd4bb4f63d0a4366e6d949fa"
 	pri, _ := crypto.HexToECDSA(privateHex)
 	pv := &viewChangeVote{
-		Timestamp: uint64(time.Now().Unix()),
+		Timestamp:     uint64(time.Now().Unix()),
 		ProposalIndex: 0,
-		ProposalAddr: common.BytesToAddress([]byte("I'm address")),
-		BlockHash: common.BytesToHash([]byte("I'm hash")),
-		BlockNum: 1,
-		Extra: make([]byte, 100),
+		ProposalAddr:  common.BytesToAddress([]byte("I'm address")),
+		BlockHash:     common.BytesToHash([]byte("I'm hash")),
+		BlockNum:      1,
+		Extra:         make([]byte, 100),
 	}
 	var consensusMsg ConsensusMsg = pv
 	cb, _ := consensusMsg.CannibalizeBytes()
@@ -235,8 +234,8 @@ func TestKRandomNodes(t *testing.T) {
 
 func TestFormatPeers(t *testing.T) {
 	peers := []*peer{
-		&peer{ id: "id01", },
-		&peer{ id: "id02", },
+		&peer{id: "id01"},
+		&peer{id: "id02"},
 	}
 	peersStr := formatPeers(peers)
 	if peersStr != "id01,id02" {

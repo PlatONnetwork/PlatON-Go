@@ -126,6 +126,36 @@ type JournalMessagePrepareBlockHash struct {
 	Data      *MsgInfoPrepareBlockHash
 }
 
+type MsgInfoSendPrepareBlock struct {
+	Msg    *sendPrepareBlock
+	PeerID discover.NodeID
+}
+
+type JournalMessageSendPrepareBlock struct {
+	Timestamp uint64
+	Data      *MsgInfoSendPrepareBlock
+}
+
+type MsgInfoSendViewChange struct {
+	Msg    *sendViewChange
+	PeerID discover.NodeID
+}
+
+type JournalMessageSendViewChange struct {
+	Timestamp uint64
+	Data      *MsgInfoSendViewChange
+}
+
+type MsgInfoConfirmedViewChange struct {
+	Msg    *confirmedViewChange
+	PeerID discover.NodeID
+}
+
+type JournalMessageConfirmedViewChange struct {
+	Timestamp uint64
+	Data      *MsgInfoConfirmedViewChange
+}
+
 func WALDecode(pack []byte, msgType uint16) (*MsgInfo, error) {
 	switch msgType {
 	case PrepareBlockMsg:
@@ -243,6 +273,36 @@ func WALDecode(pack []byte, msgType uint16) (*MsgInfo, error) {
 		}
 	case PrepareBlockHashMsg:
 		var j JournalMessagePrepareBlockHash
+		if err := rlp.DecodeBytes(pack, &j); err == nil {
+			return &MsgInfo{
+				Msg:    j.Data.Msg,
+				PeerID: j.Data.PeerID,
+			}, nil
+		} else {
+			return nil, err
+		}
+	case SendPrepareBlockMsg:
+		var j JournalMessageSendPrepareBlock
+		if err := rlp.DecodeBytes(pack, &j); err == nil {
+			return &MsgInfo{
+				Msg:    j.Data.Msg,
+				PeerID: j.Data.PeerID,
+			}, nil
+		} else {
+			return nil, err
+		}
+	case SendViewChangeMsg:
+		var j JournalMessageSendViewChange
+		if err := rlp.DecodeBytes(pack, &j); err == nil {
+			return &MsgInfo{
+				Msg:    j.Data.Msg,
+				PeerID: j.Data.PeerID,
+			}, nil
+		} else {
+			return nil, err
+		}
+	case ConfirmedViewChangeMsg:
+		var j JournalMessageConfirmedViewChange
 		if err := rlp.DecodeBytes(pack, &j); err == nil {
 			return &MsgInfo{
 				Msg:    j.Data.Msg,

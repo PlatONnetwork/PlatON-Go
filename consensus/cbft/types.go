@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	errEmptyRootBlock             = errors.New("empty root block")
-	errExistViewChange            = errors.New("had viewchange")
+	//errEmptyRootBlock             = errors.New("empty root block")
+	//errExistViewChange            = errors.New("had viewchange")
 	errNotExistViewChange         = errors.New("not exist viewchange")
 	errTimestampNotEqual          = errors.New("timestamp not equal")
 	errBlockHashNotEqual          = errors.New("block hash not equal")
@@ -85,6 +85,9 @@ func (vv ViewChangeVotes) Bits(cnt int) string {
 }
 
 func (vv ViewChangeVotes) MarshalJSON() ([]byte, error) {
+	if vv == nil {
+		return []byte("{}"), nil
+	}
 	type Vote struct {
 		Address common.Address  `json:"address"`
 		Vote    *viewChangeVote `json:"vote"`
@@ -123,6 +126,17 @@ func (vv ViewChangeVotes) UnmarshalJSON(b []byte) error {
 		vv[vote.Address] = vote.Vote
 	}
 	return nil
+}
+
+func (vv ViewChangeVotes) Flatten() []*viewChangeVote {
+	if vv == nil {
+		return nil
+	}
+	votes := make([]*viewChangeVote, 0, len(vv))
+	for _, v := range vv {
+		votes = append(votes, v)
+	}
+	return votes
 }
 
 func (rs RoundState) String() string {
@@ -253,6 +267,7 @@ func (cbft *Cbft) verifyValidatorSign(blockNumber uint64, validatorIndex uint32,
 	}
 	return nil
 }
+
 func (cbft *Cbft) AgreeViewChange() bool {
 	//cbft.mux.Lock()
 	//defer cbft.mux.Unlock()
@@ -312,12 +327,6 @@ func (cbft *Cbft) viewVoteState() string {
 		state += k.String() + "=" + v.String()
 	}
 	return state
-}
-
-func (cbft *Cbft) HadSendViewChange() bool {
-	//cbft.mux.Lock()
-	//defer cbft.mux.Unlock()
-	return cbft.hadSendViewChange()
 }
 
 func (cbft *Cbft) hadSendViewChange() bool {
@@ -421,7 +430,7 @@ func (cbft *Cbft) AcceptPrepareVote(vote *prepareVote) AcceptStatus {
 	}
 
 	if cbft.viewChange != nil && cbft.viewChangeVotes != nil {
-		log.Warn("Cache vote", "view", cbft.viewChange.String(), "view prepareVotes", cbft.viewVoteState())
+		log.Warn("Cache vote", "view", cbft.viewChange.String())
 	} else {
 		log.Warn("Cache vote", "viewchange", cbft.viewChange != nil, "has view vote", cbft.viewChangeVotes != nil)
 	}
@@ -508,7 +517,6 @@ func (cbft *Cbft) pendingProcess() {
 		cbft.log.Debug("Handle cache pending votes", "hash", v.Block.Hash(), "number", v.Block.Number())
 		cbft.handler.SendAllConsensusPeer(v)
 	}
-
 }
 
 func (cbft *Cbft) AddProcessingVote(nodeId discover.NodeID, vote *prepareVote) {
@@ -518,12 +526,10 @@ func (cbft *Cbft) AddProcessingVote(nodeId discover.NodeID, vote *prepareVote) {
 }
 
 func (cbft *Cbft) newViewChange() (*viewChange, error) {
-
 	ext := cbft.getHighestConfirmed()
-
 	if ext.number < cbft.localHighestPrepareVoteNum {
 		//todo ask prepare vote to other, need optimize
-		cbft.handler.SendAllConsensusPeer(&getHighestPrepareBlock{Lowest: ext.number})
+		cbft.handler.SendPartBroadcast(&getHighestPrepareBlock{Lowest: ext.number})
 
 		return nil, errInvalidConfirmNumTooLow
 	}
@@ -545,11 +551,15 @@ func (cbft *Cbft) newViewChange() (*viewChange, error) {
 	}
 	view.Signature.SetBytes(sign)
 	view.BaseBlockPrepareVote = ext.Votes()
+	cbft.newViewChangeProcess(view)
+	log.Debug("Make new view change", "view", view.String(), "msgHash", view.MsgHash().TerminalString())
+	return view, nil
+}
+
+func (cbft *Cbft) newViewChangeProcess(view *viewChange) {
 	cbft.resetViewChange()
 	cbft.viewChange = view
 	cbft.master = true
-	log.Debug("Make new view change", "view", view.String(), "msgHash", view.MsgHash().TerminalString())
-	return view, nil
 }
 
 func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
@@ -606,8 +616,7 @@ func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
 }
 
 func (cbft *Cbft) setViewChange(view *viewChange) {
-	log.Info("Make viewchange vote", "vote", view.String())
-
+	log.Info("Setting new viewChange", "view", view.String())
 	cbft.resetViewChange()
 	cbft.viewChange = view
 	cbft.master = false
@@ -622,7 +631,7 @@ func (cbft *Cbft) nextRoundValidator(blockNumber uint64) uint64 {
 }
 
 func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote) error {
-	log.Debug("Receive view change vote", "peer", peerID, "vote", vote.String(), "view", cbft.viewChange.String())
+	log.Debug("Receive view change vote", "peer", peerID, "vote", vote.String(), "view", cbft.viewChange.String(), "msgHash", vote.MsgHash())
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	cbft.bp.ViewChangeBP().ReceiveViewChangeVote(bpCtx, vote, cbft)
 	if cbft.needBroadcast(peerID, vote) {
@@ -633,6 +642,9 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 	hadAgree := cbft.agreeViewChange()
 	if cbft.viewChange != nil && vote.EqualViewChange(cbft.viewChange) {
 		if err := cbft.verifyValidatorSign(cbft.nextRoundValidator(cbft.viewChange.BaseBlockNum), vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:]); err == nil {
+			if v := cbft.viewChangeVotes[vote.ValidatorAddr]; v == nil {
+				cbft.bp.ViewChangeBP().AcceptViewChangeVote(bpCtx, vote, cbft)
+			}
 			cbft.viewChangeVotes[vote.ValidatorAddr] = vote
 			log.Info("Agree receive view change response", "peer", peerID, "viewChangeVotes", len(cbft.viewChangeVotes))
 		} else {
@@ -669,31 +681,61 @@ func (cbft *Cbft) OnViewChangeVote(peerID discover.NodeID, vote *viewChangeVote)
 
 	if !hadAgree && cbft.agreeViewChange() {
 		viewChangeVoteFulfillTimer.UpdateSince(time.Unix(int64(cbft.viewChange.Timestamp), 0))
-		cbft.wal.UpdateViewChange(&ViewChangeMessage{
-			Hash:   vote.BlockHash,
-			Number: vote.BlockNum,
-		})
-		cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, cbft.viewChange, cbft.viewChangeVotes, cbft)
-		cbft.flushReadyBlock()
-		cbft.producerBlocks = NewProducerBlocks(cbft.config.NodeID, cbft.viewChange.BaseBlockNum)
-		cbft.clearPending()
-		cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
+		if !cbft.isLoading() {
+			// update viewChange meta to wal db
+			cbft.wal.UpdateViewChange(&ViewChangeMessage{
+				Hash:   cbft.viewChange.BaseBlockHash,
+				Number: cbft.viewChange.BaseBlockNum,
+			})
+			// write confirmed viewChange info to wal journal
+			cbft.wal.WriteSync(&MsgInfo{
+				Msg:    &confirmedViewChange{ViewChange: cbft.viewChange, ViewChangeResp: cbft.viewChangeResp, ViewChangeVotes: cbft.viewChangeVotes.Flatten(), Master: cbft.master},
+				PeerID: cbft.config.NodeID,
+			})
+		}
 
-		cbft.log.Info("Previous round state",
-			"logicalNum", cbft.getHighestLogical().number,
-			"logicalHash", cbft.getHighestLogical().block.Hash(),
-			"logicalTimestamp", cbft.getHighestLogical().block.Time(),
-			"logicalVoteBits", cbft.getHighestLogical().prepareVotes.voteBits.String(),
-			"confirmedNum", cbft.getHighestConfirmed().number,
-			"confirmedHash", cbft.getHighestConfirmed().block.Hash(),
-			"confirmedTimestamp", cbft.getHighestConfirmed().block.Time(),
-			"confirmedVoteBits", cbft.getHighestConfirmed().prepareVotes.voteBits.String(),
-			"view", cbft.getHighestLogical().view.String(),
-		)
+		cbft.bp.ViewChangeBP().TwoThirdViewChangeVotes(bpCtx, cbft.viewChange, cbft.viewChangeVotes, cbft)
+		cbft.confirmedViewChangeProcess(cbft.viewChangeVotes)
+		//cbft.flushReadyBlock()
+		//cbft.producerBlocks = NewProducerBlocks(cbft.config.NodeID, cbft.viewChange.BaseBlockNum)
+		//cbft.clearPending()
+		//cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
+
+		//cbft.log.Info("Previous round state",
+		//	"logicalNum", cbft.getHighestLogical().number,
+		//	"logicalHash", cbft.getHighestLogical().block.Hash(),
+		//	"logicalTimestamp", cbft.getHighestLogical().block.Time(),
+		//	"logicalVoteBits", cbft.getHighestLogical().prepareVotes.voteBits.String(),
+		//	"confirmedNum", cbft.getHighestConfirmed().number,
+		//	"confirmedHash", cbft.getHighestConfirmed().block.Hash(),
+		//	"confirmedTimestamp", cbft.getHighestConfirmed().block.Time(),
+		//	"confirmedVoteBits", cbft.getHighestConfirmed().prepareVotes.voteBits.String(),
+		//	"view", cbft.getHighestLogical().view.String(),
+		//)
 	}
 
 	log.Info("Receive viewchange vote", "msg", vote.String(), "had votes", len(cbft.viewChangeVotes), "voteBits", cbft.viewChangeVotes.Bits(cbft.getValidators().Len()))
 	return nil
+}
+
+func (cbft *Cbft) confirmedViewChangeProcess(viewChangeVotes ViewChangeVotes) {
+	cbft.flushReadyBlock()
+	cbft.producerBlocks = NewProducerBlocks(cbft.config.NodeID, cbft.viewChange.BaseBlockNum)
+	cbft.clearPending()
+	cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
+	cbft.viewChangeVotes = viewChangeVotes
+
+	cbft.log.Info("Previous round state",
+		"logicalNum", cbft.getHighestLogical().number,
+		"logicalHash", cbft.getHighestLogical().block.Hash(),
+		"logicalTimestamp", cbft.getHighestLogical().block.Time(),
+		"logicalVoteBits", cbft.getHighestLogical().prepareVotes.voteBits.String(),
+		"confirmedNum", cbft.getHighestConfirmed().number,
+		"confirmedHash", cbft.getHighestConfirmed().block.Hash(),
+		"confirmedTimestamp", cbft.getHighestConfirmed().block.Time(),
+		"confirmedVoteBits", cbft.getHighestConfirmed().prepareVotes.voteBits.String(),
+		"view", cbft.getHighestLogical().view.String(),
+	)
 }
 
 func (cbft *Cbft) ClearChildren(baseBlockHash common.Hash, baseBlockNum uint64, Timestamp uint64) {
@@ -720,6 +762,12 @@ func (cbft *Cbft) broadcastBlock(ext *BlockExt) {
 
 	cbft.addPrepareBlockVote(p)
 	ext.prepareBlock = p
+
+	// write seal PrepareBlock info to wal journal
+	cbft.wal.WriteSync(&MsgInfo{
+		Msg:    &sendPrepareBlock{PrepareBlock: p},
+		PeerID: cbft.config.NodeID,
+	})
 	if cbft.viewChange != nil && !cbft.agreeViewChange() && cbft.viewChange.BaseBlockNum < ext.block.NumberU64() {
 		log.Debug("Pending block", "number", ext.block.Number())
 		cbft.pendingBlocks[ext.block.Hash()] = p
@@ -727,7 +775,6 @@ func (cbft *Cbft) broadcastBlock(ext *BlockExt) {
 	} else {
 		log.Debug("Send block", "nodeID", cbft.config.NodeID, "number", ext.block.Number(), "hash", ext.block.Hash())
 		cbft.bp.PrepareBP().SendBlock(context.TODO(), p, cbft)
-
 		cbft.handler.SendAllConsensusPeer(p)
 	}
 }
@@ -1089,6 +1136,7 @@ func (bm *BlockExtMap) removeFork(number uint64, hash common.Hash) {
 						p.parent = nil
 					}
 				}
+				delete(extMap, k)
 			}
 		}
 	}
@@ -1162,6 +1210,7 @@ func (bm *BlockExtMap) Total() int {
 }
 func (bm *BlockExtMap) GetSubChainWithTwoThirdVotes(hash common.Hash, number uint64) []*BlockExt {
 	base := bm.findBlock(hash, number)
+	log.Debug("GetSubChainWithTwoThirdVotes", "hash", hash, "number", number, "prepareVotes", base.prepareVotes.Len(), "threshold", bm.threshold, "headHash", bm.head.block.Hash(), "headNumber", bm.head.number)
 	if base == nil || base.prepareVotes.Len() < bm.threshold {
 		return nil
 	}

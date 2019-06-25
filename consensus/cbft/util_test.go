@@ -7,12 +7,12 @@ import (
 )
 
 func TestRandomOffset(t *testing.T) {
-	var expect = []struct{
-		end 	 int
-		wanted   bool
+	var expect = []struct {
+		end    int
+		wanted bool
 	}{
 		{end: 10, wanted: true},
-		{end: 0,  wanted: true},
+		{end: 0, wanted: true},
 	}
 	for _, data := range expect {
 		res := randomOffset(data.end)
@@ -41,25 +41,25 @@ func TestRandomOffset_Zero(t *testing.T) {
 }
 
 func TestProduceHash(t *testing.T) {
-	var data = []struct{
+	var data = []struct {
 		mType byte
 		bytes []byte
-		want string
+		want  string
 	}{
 		{
 			mType: 0x0,
 			bytes: []byte("This is test data in 1"),
-			want: "0xcabbb3ea7b964fb678accab3051cd0893f0e94bca1d34304e9129c7c339bbcb4",
+			want:  "0xcabbb3ea7b964fb678accab3051cd0893f0e94bca1d34304e9129c7c339bbcb4",
 		},
 		{
 			mType: 0x1,
 			bytes: []byte("This is test data in 2"),
-			want: "0xb4d9ca8710397e752c344724ea4d733473bb3f88afb94a7095c4dd2e4b61487a",
+			want:  "0xb4d9ca8710397e752c344724ea4d733473bb3f88afb94a7095c4dd2e4b61487a",
 		},
 		{
 			mType: 0x2,
 			bytes: []byte("This is test data in 3"),
-			want: "0xf449775f29162c3c63c740f93ab298a418145bac26ce120f5a16b55b0f7cb7d4",
+			want:  "0xf449775f29162c3c63c740f93ab298a418145bac26ce120f5a16b55b0f7cb7d4",
 		},
 	}
 	for _, v := range data {
@@ -72,20 +72,20 @@ func TestProduceHash(t *testing.T) {
 }
 
 func TestUint64ToBytes(t *testing.T) {
-	var wants = []struct{
-		src uint64
+	var wants = []struct {
+		src  uint64
 		want string
 	}{
 		{
-			src: 1558679713,
+			src:  1558679713,
 			want: "5fcb2251f5b31c73534c57718f0d60b23bc99898a0c4c4e69ae97b4a09f17205",
 		},
 		{
-			src: 1558679714,
+			src:  1558679714,
 			want: "2b83fe25cd31f504192d7e9fa725f8d4d334d724feaf35cd26d225050b825683",
 		},
 		{
-			src: 1558679715,
+			src:  1558679715,
 			want: "8ce02e5594c6da16f9c6d3958119c7ed6f0d25d3b45aeec10bcfdfe258aaf83f",
 		},
 	}
@@ -96,4 +96,12 @@ func TestUint64ToBytes(t *testing.T) {
 			t.Error("error")
 		}
 	}
+}
+
+func TestCombineBytes(t *testing.T) {
+	b1 := combineBytes([]byte("a"))
+	t.Log(produceHash(1, b1).Hex())
+	t.Log(produceHash(2, b1).Hex())
+	b2 := combineBytes([]byte("a"), []byte("b"))
+	t.Log(produceHash(1, b2).Hex())
 }
