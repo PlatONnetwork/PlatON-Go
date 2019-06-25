@@ -21,6 +21,14 @@ func NewGov(govDB *GovDB) *Gov {
 	return gov
 }
 
+
+func GovInstance() *Gov {
+	if gov == nil {
+		panic("Gov not initialized correctly")
+	}
+	return gov
+}
+
 //获取预生效版本，可以返回nil
 func (gov *Gov) GetPreActiveVersion(state xcom.StateDB) uint {
 	return govDB.GetPreActiveVersion(state)
@@ -40,17 +48,17 @@ func (gov *Gov) EndBlock(blockHash common.Hash, state xcom.StateDB) (bool, error
 }
 
 //提交提案，只有验证人才能提交提案
-func (gov *Gov) Submit(proposal Proposal, state xcom.StateDB) common.Hash {
+func (gov *Gov) Submit(from common.Address, proposal Proposal, state xcom.StateDB) common.Hash {
 	return state.TxHash()
 }
 
 //投票，只有验证人能投票
-func (gov *Gov) Vote(vote Vote, state *xcom.StateDB) bool {
+func (gov *Gov) Vote(from common.Address, vote Vote, state *xcom.StateDB) bool {
 	return true
 }
 
 //版本声明，验证人/候选人可以声明
-func (gov *Gov) DeclareVersion(declaredNodeID *discover.NodeID, version uint, state *xcom.StateDB) (bool, error) {
+func (gov *Gov) DeclareVersion(from common.Address, declaredNodeID *discover.NodeID, version uint, state *xcom.StateDB) (bool, error) {
 	return true, nil
 }
 

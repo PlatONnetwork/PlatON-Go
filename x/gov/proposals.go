@@ -9,41 +9,41 @@ import (
 type ProposalType byte
 
 const (
-	Text    ProposalType = 0x01
-	Version ProposalType = 0x02
+	Text    		ProposalType = 0x01
+	Version 		ProposalType = 0x02
 )
 
 type ProposalStatus byte
 
 const (
-	Voting    ProposalStatus = 0x01
-	Pass      ProposalStatus = 0x02
-	Failed    ProposalStatus = 0x03
-	PreActive ProposalStatus = 0x04
-	Active    ProposalStatus = 0x05
+	Voting    		ProposalStatus = 0x01
+	Pass      		ProposalStatus = 0x02
+	Failed    		ProposalStatus = 0x03
+	PreActive 		ProposalStatus = 0x04
+	Active    		ProposalStatus = 0x05
 )
 
 type VoteOption byte
 
 const (
-	Yeas VoteOption = iota + 1
+	Yeas 			VoteOption = iota + 1
 	Nays
 	Abstentions
 )
 
 type TallyResult struct {
-	proposalID    common.Hash       `json:"proposalID"`
-	yeas          uint16            `json:"yeas"`
-	nays          uint64            `json:"nays"`
-	abstentions   uint16            `json:"abstentions"`
-	accuVerifiers []discover.NodeID `json:"accuVerifiers"`
-	status        ProposalStatus    `json:"status"`
+	proposalID    	common.Hash       	`json:"proposalID"`
+	yeas          	uint16            	`json:"yeas"`
+	nays          	uint64            	`json:"nays"`
+	abstentions   	uint16            	`json:"abstentions"`
+	accuVerifiers 	[]discover.NodeID 	`json:"accuVerifiers"`
+	status        	ProposalStatus    	`json:"status"`
 }
 
 type Vote struct {
-	proposalID common.Hash     `json:"proposalID"`
-	voteNodeID discover.NodeID `json:"voteNodeID"`
-	voteOption VoteOption      `json:"voteOption"`
+	proposalID 		common.Hash     	`json:"proposalID"`
+	voteNodeID 		discover.NodeID 	`json:"voteNodeID"`
+	voteOption 		VoteOption      	`json:"voteOption"`
 }
 
 type Proposal interface {
