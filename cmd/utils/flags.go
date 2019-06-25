@@ -1507,8 +1507,8 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 	}
 	var engine consensus.Engine
 	if config.Cbft != nil {
-		ctx := node.NewServiceContext(nodeCfg, nil, stack.EventMux(), stack.AccountManager())
-		engine = eth.CreateConsensusEngine(ctx, config, nil, false, chainDb, &cfg.CbftConfig, ctx.EventMux);
+		sc := node.NewServiceContext(nodeCfg, nil, stack.EventMux(), stack.AccountManager())
+		engine = eth.CreateConsensusEngine(sc, config, nil, false, chainDb, &cfg.CbftConfig, stack.EventMux());
 	}
 
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
