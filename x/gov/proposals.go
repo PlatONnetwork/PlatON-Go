@@ -6,14 +6,14 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
-type ProposalType uint8
+type ProposalType byte
 
 const (
 	Text    ProposalType = 0x01
 	Version ProposalType = 0x02
 )
 
-type ProposalStatus uint8
+type ProposalStatus byte
 
 const (
 	Voting    ProposalStatus = 0x01
@@ -23,7 +23,7 @@ const (
 	Active    ProposalStatus = 0x05
 )
 
-type VoteOption uint8
+type VoteOption byte
 
 const (
 	Yeas VoteOption = iota + 1
@@ -180,13 +180,13 @@ func (tp TextProposal) Verify() bool {
 }
 
 func (tp TextProposal) String() string {
-	return fmt.Sprintf(`Proposal %d: 
+	return fmt.Sprintf(`Proposal %x: 
   GithubID:            	%s
   Topic:              	%s
-  Type:               	%s
-  Proposer:            	%s
-  SubmitBlock:        	%s
-  EndVotingBlock:   	%s`, tp.proposalID, tp.githubID, tp.topic, tp.proposalType, tp.proposer,
+  Type:               	%x
+  Proposer:            	%x
+  SubmitBlock:        	%d
+  EndVotingBlock:   	%d`, tp.proposalID, tp.githubID, tp.topic, tp.proposalType, tp.proposer,
 		tp.submitBlock, tp.GetEndVotingBlock())
 }
 
@@ -217,14 +217,14 @@ func (vp VersionProposal) Verify() bool {
 }
 
 func (vp VersionProposal) String() string {
-	return fmt.Sprintf(`Proposal %d: 
+	return fmt.Sprintf(`Proposal %x: 
   GithubID:            	%s
   Topic:              	%s
-  Type:               	%s
-  Proposer:            	%s
-  SubmitBlock:        	%s
-  EndVotingBlock:   	%s,
-  ActiveBlock:   		%s,
-  NewVersion:   		%s`,
+  Type:               	%x
+  Proposer:            	%x
+  SubmitBlock:        	%d
+  EndVotingBlock:   	%d
+  ActiveBlock:   		%s
+  NewVersion:   		%d`,
 		vp.proposalID, vp.githubID, vp.topic, vp.proposalType, vp.proposer, vp.submitBlock, vp.GetEndVotingBlock(), vp.GetActiveBlock(), vp.GetNewVersion())
 }

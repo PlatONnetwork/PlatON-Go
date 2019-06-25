@@ -56,10 +56,10 @@ func (govDB *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) Prop
 	if len(data) > 0 {
 		pType := data[0]
 		pData := data[1:]
-		if pType == uint8(Text) {
+		if pType == byte(Text) {
 			p = &TextProposal{}
 			MustDecoded(pData, p)
-		} else if pType == uint8(Version) {
+		} else if pType == byte(Version) {
 			p = &VersionProposal{}
 			MustDecoded(pData, p)
 		} else {
