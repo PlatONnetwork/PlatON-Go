@@ -60,13 +60,13 @@ func TestSnapshotDB_Get(t *testing.T) {
 	defer dbInstance.Clear()
 	var (
 		arr            = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d")}
-		RecongizedHash = rlpHash("RecongizedHash")
+		recognizedHash = rlpHash("recognizedHash")
 		commitHash     = rlpHash("commitHash")
 	)
 	{
 		//unRecognized
 		unRecognized := blockData{
-			ParentHash: RecongizedHash,
+			ParentHash: recognizedHash,
 			Number:     big.NewInt(50),
 			data:       memdb.New(DefaultComparer, 10),
 			readOnly:   false,
@@ -80,10 +80,10 @@ func TestSnapshotDB_Get(t *testing.T) {
 			Number:     big.NewInt(50),
 			data:       memdb.New(DefaultComparer, 10),
 			readOnly:   false,
-			BlockHash:  &RecongizedHash,
+			BlockHash:  &recognizedHash,
 		}
 		Recognized.data.Put(arr[1], arr[1])
-		dbInstance.recognized[RecongizedHash] = Recognized
+		dbInstance.recognized[recognizedHash] = Recognized
 
 		//commit
 		commit := blockData{
@@ -94,7 +94,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 			BlockHash:  &commitHash,
 		}
 		commit.data.Put(arr[2], arr[2])
-		dbInstance.commited = append(dbInstance.commited, commit)
+		dbInstance.committed = append(dbInstance.committed, commit)
 
 		//baseDB
 		dbInstance.baseDB.Put(arr[3], arr[3], nil)
@@ -120,15 +120,15 @@ func TestSnapshotDB_Get(t *testing.T) {
 		})
 	})
 	t.Run("with hash", func(t *testing.T) {
-		t.Run("can't get unRecongized BlockData", func(t *testing.T) {
-			_, err := dbInstance.Get(&RecongizedHash, []byte("a"))
+		t.Run("can't get unrecognized BlockData", func(t *testing.T) {
+			_, err := dbInstance.Get(&recognizedHash, []byte("a"))
 			if err == nil {
 				t.Error(err)
 			}
 		})
-		t.Run("get from recongized BlockData", func(t *testing.T) {
+		t.Run("get from recognized BlockData", func(t *testing.T) {
 			for _, key := range arr[1 : len(arr)-1] {
-				val, err := dbInstance.Get(&RecongizedHash, key)
+				val, err := dbInstance.Get(&recognizedHash, key)
 				if err != nil {
 					t.Error(err)
 				}
@@ -137,7 +137,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 				}
 			}
 		})
-		t.Run("get from commited blockData", func(t *testing.T) {
+		t.Run("get from committed blockData", func(t *testing.T) {
 			for _, key := range arr[2 : len(arr)-1] {
 				val, err := dbInstance.Get(&commitHash, key)
 				if err != nil {
@@ -169,7 +169,7 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 			BlockHash:  &commitHash,
 		}
 		commit.data.Put(arr[2], arr[2])
-		dbInstance.commited = append(dbInstance.commited, commit)
+		dbInstance.committed = append(dbInstance.committed, commit)
 
 		//baseDB
 		dbInstance.baseDB.Put(arr[3], arr[3], nil)
@@ -177,7 +177,7 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 
 	t.Run("should get", func(t *testing.T) {
 		for _, key := range arr[2:3] {
-			val, err := dbInstance.GetFromCommitedBlock(key)
+			val, err := dbInstance.GetFromCommittedBlock(key)
 			if err != nil {
 				t.Error(err)
 			}
@@ -187,7 +187,7 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 		}
 	})
 	t.Run("not found", func(t *testing.T) {
-		_, err := dbInstance.GetFromCommitedBlock(arr[1])
+		_, err := dbInstance.GetFromCommittedBlock(arr[1])
 		if err == nil {
 			t.Error(err)
 		}
@@ -202,14 +202,14 @@ func TestSnapshotDB_Del(t *testing.T) {
 	defer dbInstance.Clear()
 	var (
 		arr                   = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d"), []byte("e")}
-		RecongizedHash        = rlpHash("RecongizedHash")
-		RecongizedByFlushHash = rlpHash("RecongizedByFlush")
+		recognizedHash        = rlpHash("recognizedHash")
+		recognizedByFlushHash = rlpHash("recognizedByFlush")
 		commitHash            = rlpHash("commitHash")
 	)
 	{
 		//unRecognized
 		unRecognized := blockData{
-			ParentHash: RecongizedHash,
+			ParentHash: recognizedHash,
 			Number:     big.NewInt(50),
 			data:       memdb.New(DefaultComparer, 10),
 			readOnly:   false,
@@ -226,11 +226,11 @@ func TestSnapshotDB_Del(t *testing.T) {
 			Number:     big.NewInt(50),
 			data:       memdb.New(DefaultComparer, 10),
 			readOnly:   false,
-			BlockHash:  &RecongizedHash,
+			BlockHash:  &recognizedHash,
 		}
 		Recognized.data.Put(arr[1], arr[1])
-		dbInstance.recognized[RecongizedHash] = Recognized
-		dbInstance.journalw[RecongizedHash] = journal.NewWriter(new(bytes.Buffer))
+		dbInstance.recognized[recognizedHash] = Recognized
+		dbInstance.journalw[recognizedHash] = journal.NewWriter(new(bytes.Buffer))
 	}
 	{
 		//recognized by flush
@@ -239,11 +239,11 @@ func TestSnapshotDB_Del(t *testing.T) {
 			Number:     big.NewInt(50),
 			data:       memdb.New(DefaultComparer, 10),
 			readOnly:   true,
-			BlockHash:  &RecongizedByFlushHash,
+			BlockHash:  &recognizedByFlushHash,
 		}
 		Recognized2.data.Put(arr[4], arr[4])
-		dbInstance.recognized[RecongizedByFlushHash] = Recognized2
-		dbInstance.journalw[RecongizedByFlushHash] = journal.NewWriter(new(bytes.Buffer))
+		dbInstance.recognized[recognizedByFlushHash] = Recognized2
+		dbInstance.journalw[recognizedByFlushHash] = journal.NewWriter(new(bytes.Buffer))
 	}
 	{
 		//commit
@@ -255,7 +255,7 @@ func TestSnapshotDB_Del(t *testing.T) {
 			BlockHash:  &commitHash,
 		}
 		commit.data.Put(arr[2], arr[2])
-		dbInstance.commited = append(dbInstance.commited, commit)
+		dbInstance.committed = append(dbInstance.committed, commit)
 		dbInstance.journalw[commitHash] = journal.NewWriter(new(bytes.Buffer))
 	}
 	{
@@ -263,7 +263,7 @@ func TestSnapshotDB_Del(t *testing.T) {
 		dbInstance.baseDB.Put(arr[3], arr[3], nil)
 	}
 
-	t.Run("delete unrecongized", func(t *testing.T) {
+	t.Run("delete unrecognized", func(t *testing.T) {
 		ok, err := dbInstance.Del(nil, arr[0])
 		if !ok {
 			t.Error("return must be true")
@@ -272,8 +272,8 @@ func TestSnapshotDB_Del(t *testing.T) {
 			t.Error("err must be nil", err)
 		}
 	})
-	t.Run("delete recongized", func(t *testing.T) {
-		ok, err := dbInstance.Del(&RecongizedHash, arr[1])
+	t.Run("delete recognized", func(t *testing.T) {
+		ok, err := dbInstance.Del(&recognizedHash, arr[1])
 		if !ok {
 			t.Error("return must be true")
 		}
@@ -283,7 +283,7 @@ func TestSnapshotDB_Del(t *testing.T) {
 	})
 
 	t.Run("can't delete readonly", func(t *testing.T) {
-		ok, err := dbInstance.Del(&RecongizedByFlushHash, arr[4])
+		ok, err := dbInstance.Del(&recognizedByFlushHash, arr[4])
 		if ok {
 			t.Error("return must be false")
 		}
@@ -310,12 +310,12 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
 	var (
-		RecongizedHash = rlpHash("RecongizedHash")
+		recognizedHash = rlpHash("recognizedHash")
 		parenthash     common.Hash
 		arr            []string
 	)
 	{
-		commitHash := RecongizedHash
+		commitHash := recognizedHash
 		if _, err := dbInstance.NewBlock(big.NewInt(1), parenthash, &commitHash); err != nil {
 			t.Fatal(err)
 		}
@@ -338,7 +338,7 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 	}
 
 	{
-		commitHash := rlpHash("RecongizedHash2")
+		commitHash := rlpHash("recognizedHash2")
 		if _, err := dbInstance.NewBlock(big.NewInt(2), parenthash, &commitHash); err != nil {
 			t.Fatal(err)
 		}
@@ -361,7 +361,7 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 	}
 
 	{
-		commitHash := rlpHash("RecongizedHash3")
+		commitHash := rlpHash("recognizedHash3")
 		if _, err := dbInstance.NewBlock(big.NewInt(3), parenthash, &commitHash); err != nil {
 			t.Fatal(err)
 		}
@@ -382,7 +382,7 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 		parenthash = commitHash
 	}
 	{
-		commitHash := rlpHash("RecongizedHash4")
+		commitHash := rlpHash("recognizedHash4")
 		if _, err := dbInstance.NewBlock(big.NewInt(4), parenthash, &commitHash); err != nil {
 			t.Fatal(err)
 		}
@@ -416,7 +416,7 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 		}
 	}
 	t.Run("with hash", func(t *testing.T) {
-		commitHash := rlpHash("RecongizedHash4")
+		commitHash := rlpHash("recognizedHash4")
 		itr := dbInstance.Ranking(&commitHash, []byte("a"), 100)
 		var i int
 		for itr.Next() {
@@ -444,12 +444,12 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
 	var (
-		RecongizedHash = rlpHash("RecongizedHash")
+		recognizedHash = rlpHash("recognizedHash")
 		parenthash     common.Hash
 		arr            []string
 	)
 	{
-		commitHash := RecongizedHash
+		commitHash := recognizedHash
 		if _, err := dbInstance.NewBlock(big.NewInt(1), parenthash, &commitHash); err != nil {
 			t.Fatal(err)
 		}
@@ -472,66 +472,25 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	}
 	prefix := util.BytesPrefix([]byte("a"))
 	f := func(num *big.Int, iter iterator.Iterator) error {
-		log.Print("basenum:", num)
+		if num.Int64() != 1 {
+			return fmt.Errorf("basenum is wrong:%v,should be 1", num)
+		}
+		var i int
 		for iter.Next() {
-			log.Print(string(iter.Key()), "==", string(iter.Value()))
+			if arr[i] != string(iter.Key()) {
+				return fmt.Errorf("itr return wrong key :%s,should return:%s ,index:%d", string(iter.Key()), arr[i], i)
+			}
+			i++
 		}
 		return nil
 	}
 	if err := dbInstance.WalkBaseDB(prefix, f); err != nil {
 		t.Error(err)
 	}
-	//t.Run("compaction", func(t *testing.T) {
-	//	t.Parallel()
-	//	log.Print("a")
-	//	commitHash := rlpHash("RecongizedHash2")
-	//	if _, err := dbInstance.NewBlock(big.NewInt(2), parenthash, &commitHash); err != nil {
-	//		t.Fatal(err)
-	//	}
-	//	str := "a"
-	//	for i := 0; i < 4; i++ {
-	//		str += "b"
-	//		arr = append(arr, str)
-	//		if _, err := dbInstance.Put(&commitHash, []byte(str), []byte(str)); err != nil {
-	//			t.Fatal(err)
-	//		}
-	//	}
-	//	if _, err := dbInstance.Put(&commitHash, []byte("dd"), []byte("dd")); err != nil {
-	//		t.Fatal(err)
-	//	}
-	//	if _, err := dbInstance.Commit(commitHash); err != nil {
-	//		t.Fatal(err)
-	//	}
-	//	parenthash = commitHash
-	//	dbInstance.Compaction()
-	//})
-	//t.Run("walkbasedb", func(t *testing.T) {
-	//	t.Parallel()
-	//	log.Print("b")
-	//
-	//	time.Sleep(time.Millisecond * 100)
-	//	if err := dbInstance.WalkBaseDB(prefix, f); err != nil {
-	//		t.Error(err)
-	//	}
-	//})
-
 }
 
 func TestSnapshotDB_Clear(t *testing.T) {
-	t.Run("test1", func(t *testing.T) {
-		t.Parallel()
-		log.Print("test1")
-	})
-	t.Run("test2", func(t *testing.T) {
-		t.Parallel()
-		log.Print("test2")
 
-	})
-	t.Run("test3", func(t *testing.T) {
-		t.Parallel()
-		log.Print("test3")
-
-	})
 }
 
 func TestSnapshotDB_GetLastKVHash(t *testing.T) {
@@ -539,18 +498,18 @@ func TestSnapshotDB_GetLastKVHash(t *testing.T) {
 	defer dbInstance.Clear()
 	var (
 		arr            = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d"), []byte("e")}
-		RecongizedHash = rlpHash("RecongizedHash")
+		recognizedHash = rlpHash("recognizedHash")
 		commitHash     = rlpHash("commitHash")
 	)
 	{
-		dbInstance.NewBlock(big.NewInt(10), RecongizedHash, nil)
+		dbInstance.NewBlock(big.NewInt(10), recognizedHash, nil)
 		dbInstance.Put(nil, arr[0], arr[0])
 		dbInstance.Put(nil, arr[1], arr[1])
 	}
 	{
-		dbInstance.NewBlock(big.NewInt(10), commitHash, &RecongizedHash)
-		dbInstance.Put(&RecongizedHash, arr[2], arr[2])
-		dbInstance.Put(&RecongizedHash, arr[3], arr[3])
+		dbInstance.NewBlock(big.NewInt(10), commitHash, &recognizedHash)
+		dbInstance.Put(&recognizedHash, arr[2], arr[2])
+		dbInstance.Put(&recognizedHash, arr[3], arr[3])
 	}
 	t.Run("get from unRecognized", func(t *testing.T) {
 		var lastkvhash common.Hash
@@ -563,7 +522,7 @@ func TestSnapshotDB_GetLastKVHash(t *testing.T) {
 	})
 	t.Run("get from recognized", func(t *testing.T) {
 		var lastkvhash common.Hash
-		kvhash := dbInstance.GetLastKVHash(&RecongizedHash)
+		kvhash := dbInstance.GetLastKVHash(&recognizedHash)
 		lastkvhash = dbInstance.generateKVHash(arr[2], arr[2], lastkvhash)
 		lastkvhash = dbInstance.generateKVHash(arr[3], arr[3], lastkvhash)
 		if bytes.Compare(kvhash, lastkvhash.Bytes()) != 0 {
@@ -585,28 +544,28 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
 	var (
-		RecongizedHash = rlpHash("RecongizedHash")
+		recognizedHash = rlpHash("recognizedHash")
 		commitHash     common.Hash
 		parenthash     common.Hash
 	)
 	{
-		_, err := dbInstance.NewBlock(big.NewInt(1), commitHash, &RecongizedHash)
+		_, err := dbInstance.NewBlock(big.NewInt(1), commitHash, &recognizedHash)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for i := 0; i < 3000; i++ {
-			_, err := dbInstance.Put(&RecongizedHash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i)))
+			_, err := dbInstance.Put(&recognizedHash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i)))
 			if err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Commit(RecongizedHash); err != nil {
+		if _, err := dbInstance.Commit(recognizedHash); err != nil {
 			t.Fatal(err)
 		}
 	}
 	{
 		currenthash := rlpHash(fmt.Sprint(2))
-		if _, err := dbInstance.NewBlock(big.NewInt(int64(2)), RecongizedHash, &currenthash); err != nil {
+		if _, err := dbInstance.NewBlock(big.NewInt(int64(2)), recognizedHash, &currenthash); err != nil {
 			t.Fatal(err)
 		}
 		for i := 3000; i < 3100; i++ {
@@ -675,8 +634,8 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		if dbInstance.current.BaseNum.Int64() != 1 {
 			t.Error("must be 1", dbInstance.current.BaseNum)
 		}
-		if len(dbInstance.commited) != 14 {
-			t.Error("must be 14:", len(dbInstance.commited))
+		if len(dbInstance.committed) != 14 {
+			t.Error("must be 14:", len(dbInstance.committed))
 		}
 		for i := 0; i < 3000; i++ {
 			v, err := dbInstance.baseDB.Get([]byte(fmt.Sprint(i)), nil)
@@ -699,8 +658,8 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		if dbInstance.current.BaseNum.Int64() != 4 {
 			t.Error("must be 4", dbInstance.current.BaseNum)
 		}
-		if len(dbInstance.commited) != 11 {
-			t.Error("must be 11:", len(dbInstance.commited))
+		if len(dbInstance.committed) != 11 {
+			t.Error("must be 11:", len(dbInstance.committed))
 		}
 		for i := 3000; i < 4998; i++ {
 			v, err := dbInstance.baseDB.Get([]byte(fmt.Sprint(i)), nil)
@@ -723,8 +682,8 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		if dbInstance.current.BaseNum.Int64() != 13 {
 			t.Error("must be 14", dbInstance.current.BaseNum)
 		}
-		if len(dbInstance.commited) != 2 {
-			t.Error("must be 1:", len(dbInstance.commited))
+		if len(dbInstance.committed) != 2 {
+			t.Error("must be 1:", len(dbInstance.committed))
 		}
 	})
 }
@@ -1062,20 +1021,20 @@ func TestCommit(t *testing.T) {
 	if db.current.HighestNum.Cmp(blockNumber) != 0 {
 		t.Fatalf("current HighestNum must be :%v,but is%v", blockNumber.Int64(), db.current.HighestNum.Int64())
 	}
-	if db.commited[0].readOnly != true {
+	if db.committed[0].readOnly != true {
 		t.Fatal("read only must be true")
 	}
-	if db.commited[0].BlockHash.String() != currentHash.String() {
-		t.Fatal("BlockHash not cmp:", db.commited[0].BlockHash.String(), currentHash.String())
+	if db.committed[0].BlockHash.String() != currentHash.String() {
+		t.Fatal("BlockHash not cmp:", db.committed[0].BlockHash.String(), currentHash.String())
 	}
-	if db.commited[0].ParentHash.String() != parentHash.String() {
-		t.Fatal("ParentHash not cmp", db.commited[0].ParentHash.String(), parentHash.String())
+	if db.committed[0].ParentHash.String() != parentHash.String() {
+		t.Fatal("ParentHash not cmp", db.committed[0].ParentHash.String(), parentHash.String())
 	}
-	if db.commited[0].Number.Cmp(blockNumber) != 0 {
-		t.Fatal("block number not cmp", db.commited[0].Number, blockNumber)
+	if db.committed[0].Number.Cmp(blockNumber) != 0 {
+		t.Fatal("block number not cmp", db.committed[0].Number, blockNumber)
 	}
 	for _, value := range data {
-		v, err := db.commited[0].data.Get([]byte(value[0]))
+		v, err := db.committed[0].data.Get([]byte(value[0]))
 		if err != nil {
 			t.Fatal(err)
 		}
