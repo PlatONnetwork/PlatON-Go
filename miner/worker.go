@@ -18,9 +18,7 @@ package miner
 
 import (
 	"bytes"
-	"encoding/hex"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -620,15 +618,9 @@ func (w *worker) mainLoop() {
 				sealhash = w.engine.SealHash(block.Header())
 				hash     = block.Hash()
 			)
-<<<<<<< HEAD
 
 			core.GetReactorInstance().PrepareResult(block)
 
-=======
-			// TODO test snapshotdb
-			log.Debug("snapshotdb Flush", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(hash.Bytes()))
-			snapshotdb.Instance().Flush(hash, block.Number())
->>>>>>> update
 			w.pendingMu.RLock()
 			_, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
