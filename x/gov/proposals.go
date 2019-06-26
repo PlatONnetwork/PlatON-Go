@@ -4,46 +4,47 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"math/big"
 )
 
 type ProposalType byte
 
 const (
-	Text    		ProposalType = 0x01
-	Version 		ProposalType = 0x02
+	Text    ProposalType = 0x01
+	Version ProposalType = 0x02
 )
 
 type ProposalStatus byte
 
 const (
-	Voting    		ProposalStatus = 0x01
-	Pass      		ProposalStatus = 0x02
-	Failed    		ProposalStatus = 0x03
-	PreActive 		ProposalStatus = 0x04
-	Active    		ProposalStatus = 0x05
+	Voting    ProposalStatus = 0x01
+	Pass      ProposalStatus = 0x02
+	Failed    ProposalStatus = 0x03
+	PreActive ProposalStatus = 0x04
+	Active    ProposalStatus = 0x05
 )
 
 type VoteOption byte
 
 const (
-	Yeas 			VoteOption = iota + 1
-	Nays
-	Abstentions
+	Yes VoteOption = iota + 1
+	No
+	Abstention
 )
 
 type TallyResult struct {
-	ProposalID    	common.Hash       	`json:"proposalID"`
-	Yeas          	uint16            	`json:"yeas"`
-	Nays          	uint64            	`json:"nays"`
-	Abstentions   	uint16            	`json:"abstentions"`
-	AccuVerifiers 	uint16 				`json:"accuVerifiers"`
-	Status        	ProposalStatus    	`json:"status"`
+	ProposalID    common.Hash    `json:"proposalID"`
+	Yeas          uint16         `json:"yeas"`
+	Nays          uint64         `json:"nays"`
+	Abstentions   uint16         `json:"abstentions"`
+	AccuVerifiers uint16         `json:"accuVerifiers"`
+	Status        ProposalStatus `json:"status"`
 }
 
 type Vote struct {
-	ProposalID 		common.Hash     	`json:"proposalID"`
-	VoteNodeID 		discover.NodeID 	`json:"voteNodeID"`
-	VoteOption 		VoteOption      	`json:"voteOption"`
+	ProposalID common.Hash     `json:"proposalID"`
+	VoteNodeID discover.NodeID `json:"voteNodeID"`
+	VoteOption VoteOption      `json:"voteOption"`
 }
 
 type Proposal interface {
@@ -65,11 +66,11 @@ type Proposal interface {
 	SetUrl(url string)
 	GetUrl() string
 
-	SetSubmitBlock(blockNumber uint64)
-	GetSubmitBlock() uint64
+	SetSubmitBlock(blockNumber *big.Int)
+	GetSubmitBlock() *big.Int
 
-	SetEndVotingBlock(blockNumber uint64)
-	GetEndVotingBlock() uint64
+	SetEndVotingBlock(blockNumber *big.Int)
+	GetEndVotingBlock() *big.Int
 
 	SetProposer(proposer discover.NodeID)
 	GetProposer() discover.NodeID
@@ -89,8 +90,8 @@ type TextProposal struct {
 	Topic          string
 	Desc           string
 	Url            string
-	SubmitBlock    uint64
-	EndVotingBlock uint64
+	SubmitBlock    *big.Int
+	EndVotingBlock *big.Int
 	Proposer       discover.NodeID
 	Result         TallyResult
 }
@@ -143,19 +144,19 @@ func (tp TextProposal) GetUrl() string {
 	return tp.Url
 }
 
-func (tp TextProposal) SetSubmitBlock(blockNumber uint64) {
+func (tp TextProposal) SetSubmitBlock(blockNumber *big.Int) {
 	tp.SubmitBlock = blockNumber
 }
 
-func (tp TextProposal) GetSubmitBlock() uint64 {
+func (tp TextProposal) GetSubmitBlock() *big.Int {
 	return tp.SubmitBlock
 }
 
-func (tp TextProposal) SetEndVotingBlock(blockNumber uint64) {
+func (tp TextProposal) SetEndVotingBlock(blockNumber *big.Int) {
 	tp.EndVotingBlock = blockNumber
 }
 
-func (tp TextProposal) GetEndVotingBlock() uint64 {
+func (tp TextProposal) GetEndVotingBlock() *big.Int {
 	return tp.EndVotingBlock
 }
 
@@ -192,7 +193,7 @@ func (tp TextProposal) String() string {
 type VersionProposal struct {
 	TextProposal
 	NewVersion  uint
-	ActiveBlock uint64
+	ActiveBlock *big.Int
 }
 
 func (vp VersionProposal) SetNewVersion(newVersion uint) {
@@ -203,11 +204,11 @@ func (vp VersionProposal) GetNewVersion() uint {
 	return vp.NewVersion
 }
 
-func (vp VersionProposal) SetActiveBlock(activeBlock uint64) {
+func (vp VersionProposal) SetActiveBlock(activeBlock *big.Int) {
 	vp.ActiveBlock = activeBlock
 }
 
-func (vp VersionProposal) GetActiveBlock() uint64 {
+func (vp VersionProposal) GetActiveBlock() *big.Int {
 	return vp.ActiveBlock
 }
 
