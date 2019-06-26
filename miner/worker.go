@@ -18,7 +18,9 @@ package miner
 
 import (
 	"bytes"
+	"encoding/hex"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -618,6 +620,9 @@ func (w *worker) mainLoop() {
 				sealhash = w.engine.SealHash(block.Header())
 				hash     = block.Hash()
 			)
+			// TODO test snapshotdb
+			log.Debug("snapshotdb Flush", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(hash.Bytes()))
+			snapshotdb.Instance().Flush(hash, block.Number())
 			w.pendingMu.RLock()
 			_, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
@@ -1204,8 +1209,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		Time:       big.NewInt(timestamp),
 	}
 
-	// TODO begin()
-
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() { /*
 			if w.coinbase == (common.Address{}) {
@@ -1237,6 +1240,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	err := w.makeCurrent(parent, header)
 	if err != nil {
 		log.Error("Failed to create mining context", "err", err)
+		return
+	}
+	// TODO begin()
+	if success, err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err || !success {
 		return
 	}
 	// Create the current work task and check any fork transitions needed
@@ -1352,7 +1359,9 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	s := w.current.state.Copy()
 
 	// TODO end()
-
+	if success, err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err || !success {
+		return err
+	}
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {
 		return err

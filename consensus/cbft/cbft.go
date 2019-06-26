@@ -59,7 +59,6 @@ var (
 	errInvalidatorCandidateAddress = errors.New("invalid address")
 	errDuplicationConsensusMsg     = errors.New("duplication message")
 
-	//errInvalidVrfProve = errors.New("Invalid vrf prove")
 	extraSeal = 65
 	//windowSize         = 10
 

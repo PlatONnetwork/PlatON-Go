@@ -238,9 +238,14 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			} else if chainConfig.Cbft.ValidatorMode == "ppos" {
 				// TODO init reactor
 				reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-				handlePlugin(reactor, nil)
+				xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
+				handlePlugin(reactor, snapshotdb.Instance())
 				agency = reactor
 			}
+			// TODO test vrf
+			reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
+			xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
+			handlePlugin(reactor, snapshotdb.Instance())
 
 			if err := cbftEngine.Start(eth.blockchain, eth.txPool, agency); err != nil {
 				log.Error("Init cbft consensus engine fail", "error", err)
@@ -514,6 +519,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
+		xcom.GetVrfHandlerInstance().SetPrivateKey(srvr.Config.PrivateKey)
 		if flag := cbftEngine.IsConsensusNode(); flag {
 			// self: s.chainConfig.Cbft.NodeID
 			// list: s.chainConfig.Cbft.InitialNodes

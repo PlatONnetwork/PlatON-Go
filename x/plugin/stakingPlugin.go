@@ -63,7 +63,7 @@ func (sk *StakingPlugin) BeginBlock (blockHash common.Hash, header *types.Header
 	//	currHash = header.Hash()
 	//}
 
-	return false, nil
+	return true, nil
 }
 
 func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
@@ -290,7 +290,7 @@ func (sk *StakingPlugin) HandleUnCandidateReq(state xcom.StateDB, blockHash comm
 
 	//unStakeCount := sk.db.db
 
-	return false, nil
+	return true, nil
 }
 
 
