@@ -66,8 +66,8 @@ var DefaultConfig = Config{
 		Percentile: 60,
 	},
 
-	MPCPool: core.DefaultMPCPoolConfig,
-	VCPool:  core.DefaultVCPoolConfig,
+	//MPCPool: core.DefaultMPCPoolConfig,
+	//VCPool:  core.DefaultVCPoolConfig,
 }
 
 func init() {
@@ -131,8 +131,8 @@ type Config struct {
 	EVMInterpreter string
 
 	// MPC pool options
-	MPCPool core.MPCPoolConfig
-	VCPool  core.VCPoolConfig
+	//MPCPool core.MPCPoolConfig
+	//VCPool  core.VCPoolConfig
 	Debug   bool
 }
 
