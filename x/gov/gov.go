@@ -49,6 +49,61 @@ func (gov *Gov) EndBlock(blockHash common.Hash, state xcom.StateDB) (bool, error
 
 //提交提案，只有验证人才能提交提案
 func (gov *Gov) Submit(from common.Address, proposal Proposal, state xcom.StateDB) common.Hash {
+
+	//参数校验
+	if !proposal.Verify() {
+		log.Error("[GOV] Submit(): param error.")
+		return state.TxHash()
+	}
+
+	//判断proposer是否为Verifier
+	//TODO
+	verifierList, err := plugin.StakingInstance(nil).GetVerifierList(state)
+	if err != nil {
+		return state.TxHash()
+	}
+
+	if !isVerifier(proposal.GetProposer(), verifierList) {
+		log.Error("[GOV] Submit(): proposer is not verifier.")
+		return state.TxHash()
+	}
+
+	//1.文本提案处理
+	_, ok := proposal.(TextProposal)
+	if ok {
+		return state.TxHash()
+	}
+
+	//2. 版本提案处理
+	//判断是否有VersionProposal正在投票中，有则退出
+	votingProposalIDs := gov.govDB.ListVotingProposalID(state)
+	if len(votingProposalIDs) > 0 {
+		for _, votingProposalID := range votingProposalIDs {
+			votingProposal := gov.govDB.GetProposal(votingProposalID, state)
+			_, ok := votingProposal.(VersionProposal)
+			if ok {
+				log.Error("[GOV] Submit(): existing a voting version proposal.")
+				return state.TxHash()
+			}
+		}
+	}
+	//判断是否有VersionProposal正在Pre-active阶段，有则退出
+	if len(gov.govDB.GetPreActiveProsposalID(state)) > 0 {
+		log.Error("[GOV] Submit(): existing a pre-active version proposal.")
+		return state.TxHash()
+	}
+
+	//持久化相关
+	ok = gov.govDB.SetProposal(proposal, state)
+	if !ok {
+		log.Error("[GOV] Submit(): set proposal failed.")
+		return state.TxHash()
+	}
+	ok = gov.govDB.AddVotingProposalID(proposal.GetProposalID(), state)
+	if !ok {
+		log.Error("[GOV] Submit(): add VotingProposalID failed.")
+		return state.TxHash()
+	}
 	return state.TxHash()
 }
 
