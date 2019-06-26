@@ -337,16 +337,6 @@ var (
 		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
 		Value: eth.DefaultConfig.MinerGasPrice,
 	}
-	MinerEtherbaseFlag = cli.StringFlag{
-		Name:  "miner.etherbase",
-		Usage: "Public address for block mining rewards (default = first account)",
-		Value: "0",
-	}
-	MinerLegacyEtherbaseFlag = cli.StringFlag{
-		Name:  "etherbase",
-		Usage: "Public address for block mining rewards (default = first account, deprecated, use --miner.etherbase)",
-		Value: "0",
-	}
 	MinerExtraDataFlag = cli.StringFlag{
 		Name:  "miner.extradata",
 		Usage: "Block extra data set by the miner (default = client version)",
