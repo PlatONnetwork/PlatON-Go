@@ -23,7 +23,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/node"
 	"math/big"
 	"sort"
 	"sync"
@@ -53,18 +52,26 @@ var (
 func newTestProtocolManager(mode downloader.SyncMode, blocks int, generator func(int, *core.BlockGen), newtx chan<- []*types.Transaction) (*ProtocolManager, *ethdb.MemDatabase, error) {
 	var (
 		evmux  = new(event.TypeMux)
-		config = node.Config{DataDir: "evidenceDir"}
-		ctx = node.NewServiceContext(&config, nil, evmux, nil)
-		engine = cbft.New(params.GrapeChainConfig.Cbft, evmux, ctx)
-		db     = ethdb.NewMemDatabase()
-		gspec  = &core.Genesis{
+		engine = cbft.New(params.GrapeChainConfig.Cbft, evmux, nil)
+
+		db    = ethdb.NewMemDatabase()
+		gspec = &core.Genesis{
 			Config: params.TestChainConfig,
 			Alloc:  core.GenesisAlloc{testBank: {Balance: big.NewInt(1000000)}},
 		}
-		genesis       = gspec.MustCommit(db)
+		genesis = gspec.MustCommit(db)
+
 		blockchain, _ = core.NewBlockChain(db, nil, gspec.Config, engine, vm.Config{}, nil)
 	)
-	chain, _ := core.GenerateChain(gspec.Config, genesis, cbft.New(params.GrapeChainConfig.Cbft, evmux, ctx), db, blocks, generator)
+	cache := core.NewBlockChainCache(blockchain)
+
+	engine.SetBlockChainCache(cache)
+
+	txpool := core.NewTxPool(core.DefaultTxPoolConfig, gspec.Config, core.NewTxPoolBlockChain(cache))
+
+	engine.Start(blockchain, txpool, cbft.NewStaticAgency([]discover.Node{}))
+
+	chain, _ := core.GenerateChain(gspec.Config, genesis, engine, db, blocks, generator)
 	if _, err := blockchain.InsertChain(chain); err != nil {
 		panic(err)
 	}

@@ -310,12 +310,13 @@ type CbftConfig struct {
 	LegalCoefficient float64 `json:"legalCoefficient,omitempty"` // coefficient for checking if a block is in it's turn
 	Duration         int64   `json:"duration,omitempty"`         // number of seconds for a node to produce blocks
 	BlockInterval    uint64  `json:"-"`
+	WalEnabled       bool    `json:"-"`
 	//mock
-	InitialNodes []discover.Node   `json:"initialNodes,omitempty"`
-	NodeID       discover.NodeID   `json:"nodeID,omitempty"`
-	PrivateKey   *ecdsa.PrivateKey `json:"privateKey,omitempty"`
+	InitialNodes  []discover.Node   `json:"initialNodes,omitempty"`
+	NodeID        discover.NodeID   `json:"nodeID,omitempty"`
+	PrivateKey    *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 	ValidatorMode string            `json:"validatorMode,omitempty"`
-	PposConfig *PposConfig `json:"pposConfig,omitempty"`
+	PposConfig    *PposConfig       `json:"pposConfig,omitempty"`
 }
 
 type PposConfig struct {

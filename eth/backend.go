@@ -216,7 +216,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
-
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
 			if err := cbftEngine.SetBreakpoint(config.CbftConfig.BreakpointType, config.CbftConfig.BreakpointLog); err != nil {
@@ -307,6 +306,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
 		chainConfig.Cbft.Duration = cbftConfig.Duration
 		chainConfig.Cbft.BlockInterval = cbftConfig.BlockInterval
+		chainConfig.Cbft.WalEnabled = cbftConfig.WalMode
 		return cbft.New(chainConfig.Cbft, eventMux, ctx)
 	}
 	return nil
@@ -574,7 +574,8 @@ func (s *Ethereum) Stop() error {
 	close(s.shutdownChan)
 	return nil
 }
+
 // TODO RegisterPlugin one by one
-func handlePlugin (reactor *core.BlockChainReactor, db xcom.SnapshotDB) {
+func handlePlugin(reactor *core.BlockChainReactor, db xcom.SnapshotDB) {
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance(db))
 }

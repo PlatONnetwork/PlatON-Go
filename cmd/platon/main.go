@@ -176,6 +176,7 @@ var (
 	cbftFlags = []cli.Flag{
 		utils.CbftBlockIntervalFlag,
 		utils.CbftBreakpointFlag,
+		utils.WalEnabledFlag,
 	}
 )
 

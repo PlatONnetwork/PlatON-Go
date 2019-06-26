@@ -25,6 +25,12 @@ const (
 	handshakeTimeout = 5 * time.Second
 )
 
+type PeerInfo struct {
+	ConfirmedHigBN *big.Int `json:"confirmed_hig_bn"`
+	LogicHigBn     *big.Int `json:"logic_hig_bn"`
+	MsgCount       uint64   `json:"msg_count"`
+}
+
 type peer struct {
 	id   string
 	term chan struct{} // Termination channel to stop the broadcaster
@@ -148,6 +154,16 @@ func (p *peer) readStatus(status *cbftStatusData) error {
 	}
 	// todo: additional judgment.
 	return nil
+}
+
+func (p *peer) Info() *PeerInfo {
+	c, l, size := p.confirmedHigBn, p.logicHigBn, p.knownMessageHash.Cardinality()
+
+	return &PeerInfo{
+		ConfirmedHigBN: c,
+		LogicHigBn:     l,
+		MsgCount:       uint64(size),
+	}
 }
 
 type peerSet struct {
