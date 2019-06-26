@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"math/big"
 	"reflect"
 	"time"
@@ -169,6 +170,15 @@ func (h *baseHandler) Protocols() []p2p.Protocol {
 			Length:  uint64(len(messages)),
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 				return h.handler(p, rw)
+			},
+			NodeInfo: func() interface{} {
+				return h.NodeInfo()
+			},
+			PeerInfo: func(id discover.NodeID) interface{} {
+				if p, err := h.peers.Get(fmt.Sprintf("%5x", id[:8])); err == nil {
+					return p.Info()
+				}
+				return nil
 			},
 		},
 	}
@@ -446,5 +456,16 @@ func (h *baseHandler) syncHighestStatus() {
 			log.Warn("Handler quit")
 			return
 		}
+	}
+}
+
+type NodeInfo struct {
+	Config *params.CbftConfig `json:"config"`
+}
+
+func (h *baseHandler) NodeInfo() *NodeInfo {
+	cbftConfig := h.cbft.config
+	return &NodeInfo{
+		Config: cbftConfig,
 	}
 }

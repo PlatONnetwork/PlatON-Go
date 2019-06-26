@@ -31,7 +31,7 @@ matrix:
       script:
         - go get -v -u github.com/alecthomas/gometalinter
         - gometalinter --install --update
-        - gometalinter --vendor --tests --deadline=10m --disable-all --enable=varcheck --enable=vet --enable=misspell --enable=goconst --min-occurrences=6 ./...
+        - gometalinter --vendor --tests --deadline=10m --disable-all --enable=vet --enable=misspell --enable=goconst --min-occurrences=6 ./...
 
     # This builder run the unit tests
     - name: unit test
@@ -41,7 +41,7 @@ matrix:
       go: 1.12.x
       script:
         - sh ./build/build_deps.sh
-        - go test `go list ./... | grep -v swarm|grep -v tests|grep -v bn256`
+        - go test  -tags=test `go list ./... | grep -v swarm|grep -v tests|grep -v bn256`
 
     # This builder run the auto tests
     - name: auto test

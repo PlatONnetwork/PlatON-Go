@@ -37,7 +37,6 @@ import (
 
 const (
 	testInstance = "console-tester"
-	testAddress  = "0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"
 )
 
 // hookedPrompter implements UserPrompter to simulate use input via channels.
@@ -98,7 +97,6 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 	}
 	//ethConf := &eth.Config{
 	//	Genesis:   core.DeveloperGenesisBlock(15, common.Address{}),
-	//	Etherbase: common.HexToAddress(testAddress),
 	//}
 	ethConf := &eth.DefaultConfig
 	ethConf.Genesis = core.DeveloperGenesisBlock(15, common.Address{})
@@ -109,7 +107,6 @@ func newTester(t *testing.T, confOverride func(*eth.Config)) *tester {
 			*n,
 		},
 	}
-	ethConf.Etherbase = common.HexToAddress(testAddress)
 	if confOverride != nil {
 		confOverride(ethConf)
 	}
@@ -182,9 +179,6 @@ func TestWelcome(t *testing.T) {
 	if want := fmt.Sprintf("instance: %s", testInstance); !strings.Contains(output, want) {
 		t.Fatalf("console output missing instance: have\n%s\nwant also %s", output, want)
 	}
-	if want := fmt.Sprintf("coinbase: %s", testAddress); !strings.Contains(output, want) {
-		t.Fatalf("console output missing coinbase: have\n%s\nwant also %s", output, want)
-	}
 	if want := "at block: 0"; !strings.Contains(output, want) {
 		t.Fatalf("console output missing sync status: have\n%s\nwant also %s", output, want)
 	}
@@ -199,7 +193,6 @@ func TestApi(t *testing.T) {
 	fmt.Fprintf(tester.console.printer, "Welcome to the PlatON JavaScript console!\n\n")
 	_, err := tester.console.jsre.Run(`
 		console.log("instance: " + web3.version.node);
-		console.log("coinbase: " + platon.coinbase);
 		console.log("at block: " + platon.blockNumber + " (" + new Date(1000 * platon.getBlock(platon.blockNumber).timestamp) + ")");
 		console.log(" datadir: " + admin.datadir);
 		console.log(" protocolVersion: " + platon.protocolVersion);
@@ -213,15 +206,14 @@ func TestApi(t *testing.T) {
 		console.log("getStorageAt",platon.getStorageAt("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
 		console.log("getTransactionCount",platon.getTransactionCount("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
 		console.log("getBlockTransactionCountByHash or ByNumber",platon.getBlockTransactionCount("1234"))
-		console.log("getCode",platon.getCode("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
+		//console.log("getCode",platon.getCode("0x8605cdbbdb6d264aa742e77020dcbc58fcdce182"))
 		//adr = personal.newAccount("123456")
 		//personal.unlockAccount(adr,"123456",30)
 		//console.log("sign",platon.sign(adr, "0xdeadbeaf"))
 		//console.log("sendTransaction",platon.sendTransaction({from:adr,to:adr,value:0,gas:0,gasPrice:0}))
-		console.log("accounts",platon.accounts)
 		//console.log("sendRawTransaction",platon.sendRawTransaction({from:platon.accounts[0],to:platon.accounts[1],value:10,gas:88888,gasPrice:3333}))
-		console.log("call",platon.call({from:platon.accounts[0],to:platon.accounts[1],value:10,gas:88888,gasPrice:3333}))
-		console.log("estimateGas",platon.estimateGas({from:platon.accounts[0],to:platon.accounts[1],value:10,gas:88888,gasPrice:3333}))
+		//console.log("call",platon.call({from:platon.accounts[0],to:platon.accounts[1],value:10,gas:88888,gasPrice:3333}))
+		//console.log("estimateGas",platon.estimateGas({from:platon.accounts[0],to:platon.accounts[1],value:10,gas:88888,gasPrice:3333}))
 		//console.log("getBlockByHash or number",platon.getBlock("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
 		//console.log("getTransactionByHash",platon.getTransaction("0xe670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"))
 		//console.log("getTransactionByBlockHashAndIndex",platon.getTransactionFromBlock(["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "1"]))
