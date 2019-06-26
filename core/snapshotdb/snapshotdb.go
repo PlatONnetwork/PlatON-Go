@@ -92,6 +92,7 @@ func Instance() DB {
 	if dbInstance == nil || dbInstance.closed {
 		if err := initDB(); err != nil {
 			logger.Error(fmt.Sprint("init db fail"), err)
+			panic(err)
 			//return nil, errors.New("init db fail:" + err.Error())
 		}
 	}
