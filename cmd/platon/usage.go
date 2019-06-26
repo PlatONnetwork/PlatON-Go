@@ -256,6 +256,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.CbftBlockIntervalFlag,
 			utils.CbftBreakpointFlag,
+			utils.WalEnabledFlag,
 		},
 	},
 	{

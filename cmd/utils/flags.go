@@ -164,12 +164,16 @@ var (
 		Value: DirectoryString{homeDir()},
 	}
 	defaultSyncMode = eth.DefaultConfig.SyncMode
-	InnerTimeFlag = cli.Uint64Flag{
+	InnerTimeFlag   = cli.Uint64Flag{
 		Name:  "innertime",
 		Usage: "inner time",
 		Value: 1546300800000,
 	}
-	SyncModeFlag    = TextMarshalerFlag{
+	WalEnabledFlag = cli.BoolFlag{
+		Name:  "wal",
+		Usage: "Enable the Wal server",
+	}
+	SyncModeFlag = TextMarshalerFlag{
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
 		Value: &defaultSyncMode,
@@ -1208,6 +1212,9 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	setVcPool(ctx, &cfg.VCPool)
 	SetCbft(ctx, &cfg.CbftConfig)
 
+	if ctx.GlobalIsSet(WalEnabledFlag.Name) {
+		cfg.CbftConfig.WalMode = true
+	}
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
 	}
@@ -1481,9 +1488,9 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled:/*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
-		TrieNodeLimit: eth.DefaultConfig.TrieCache,
-		TrieTimeLimit: eth.DefaultConfig.TrieTimeout,
+		Disabled: /*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
+		TrieNodeLimit:                                               eth.DefaultConfig.TrieCache,
+		TrieTimeLimit:                                               eth.DefaultConfig.TrieTimeout,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
