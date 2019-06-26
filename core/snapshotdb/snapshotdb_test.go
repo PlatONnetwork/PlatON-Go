@@ -54,6 +54,38 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 	})
 }
 
+func TestSnapshotDB_Get2(t *testing.T) {
+	initDB()
+	//defer dbInstance.Clear()
+	if _, err := dbInstance.NewBlock(big.NewInt(1), rlpHash("commitHash"), common.ZeroHash); err != nil {
+		t.Error(err)
+	}
+	if _, err := dbInstance.Put(common.ZeroHash, []byte("a"), []byte("a")); err != nil {
+		t.Error(err)
+	}
+	if _, err := dbInstance.Put(common.ZeroHash, []byte("b"), []byte("b")); err != nil {
+		t.Error(err)
+	}
+	if _, err := dbInstance.Flush(rlpHash("commitHash2"), big.NewInt(1)); err != nil {
+		t.Error(err)
+	}
+
+	v, err := dbInstance.Get(rlpHash("commitHash2"), []byte("a"))
+	if err != nil {
+		t.Error(err)
+	}
+	if bytes.Compare(v, []byte("a")) != 0 {
+		t.Error("not compare", v)
+	}
+	v2, err := dbInstance.Get(rlpHash("commitHash2"), []byte("b"))
+	if err != nil {
+		t.Error(err)
+	}
+	if bytes.Compare(v2, []byte("b")) != 0 {
+		t.Error("not compare", v2)
+	}
+}
+
 func TestSnapshotDB_Get(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()

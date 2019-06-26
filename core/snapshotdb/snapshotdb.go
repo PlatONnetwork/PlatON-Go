@@ -92,6 +92,7 @@ func Instance() DB {
 	if dbInstance == nil || dbInstance.closed {
 		if err := initDB(); err != nil {
 			logger.Error(fmt.Sprint("init db fail"), err)
+			panic(err)
 			//return nil, errors.New("init db fail:" + err.Error())
 		}
 	}
@@ -372,15 +373,16 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) (bool, error)
 	newFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: hash}
 	s.unRecognizedLock.Lock()
 	defer s.unRecognizedLock.Unlock()
+	if err := s.closeJournalWriter(currentHash); err != nil {
+		return false, err
+	}
 	if err := s.storage.Rename(oldFd, newFd); err != nil {
 		return false, errors.New("[snapshotdb]rename fiel fail:" + oldFd.String() + "," + newFd.String() + "," + err.Error())
 	}
 	s.unRecognized.BlockHash = hash
 	s.unRecognized.readOnly = true
 	s.recognized[hash] = *s.unRecognized
-	if err := s.closeJournalWriter(currentHash); err != nil {
-		return false, err
-	}
+
 	s.unRecognized = nil
 	return true, nil
 }

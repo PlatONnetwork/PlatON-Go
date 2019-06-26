@@ -2,11 +2,6 @@
 
 package snapshotdb
 
-import (
-	"github.com/PlatONnetwork/PlatON-Go/node"
-	"path"
-)
-
 const (
 	//DBPath path of db
 	DBPath = "snapshotdb"
@@ -14,7 +9,3 @@ const (
 	DBBasePath  = "base"
 	currentPath = "current"
 )
-
-func init() {
-	dbpath = path.Join(node.DefaultDataDir(), "platon", DBPath)
-}

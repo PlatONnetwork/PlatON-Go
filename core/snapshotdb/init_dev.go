@@ -5,6 +5,7 @@ package snapshotdb
 import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"os"
+	"path"
 )
 
 const (
@@ -18,5 +19,5 @@ const (
 func init() {
 	logger.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	logger.Info("begin")
-	dbpath = DBPath
+	dbpath = path.Join(os.TempDir(), DBPath)
 }
