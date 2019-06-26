@@ -9,9 +9,9 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"io"
-	"log"
 	"math/big"
 	"path"
+	"sync"
 )
 
 func getBaseDBPath(dbpath string) string {
@@ -24,15 +24,18 @@ func newDB(stor storage) (*snapshotDB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[SnapshotDB]open baseDB fail:%v", err)
 	}
+	mu := sync.Mutex{}
 	return &snapshotDB{
-		path:         dbpath,
-		storage:      stor,
-		unRecognized: new(blockData),
-		recognized:   make(map[common.Hash]blockData),
-		committed:    make([]blockData, 0),
-		journalw:     make(map[common.Hash]*journal.Writer),
-		baseDB:       baseDB,
-		current:      newCurrent(dbpath),
+		path:          dbpath,
+		storage:       stor,
+		unRecognized:  new(blockData),
+		recognized:    make(map[common.Hash]blockData),
+		committed:     make([]blockData, 0),
+		journalw:      make(map[common.Hash]*journal.Writer),
+		baseDB:        baseDB,
+		current:       newCurrent(dbpath),
+		snapshotLock:  sync.NewCond(&mu),
+		snapshotLockC: false,
 	}, nil
 }
 
@@ -53,7 +56,7 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 	block := new(blockData)
 	block.ParentHash = header.ParentHash
 	if fd.BlockHash != s.getUnRecognizedHash() {
-		block.BlockHash = &fd.BlockHash
+		block.BlockHash = fd.BlockHash
 	}
 	block.Number = big.NewInt(fd.Num)
 	block.data = memdb.New(DefaultComparer, 0)
@@ -70,7 +73,6 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 			block.readOnly = true
 		}
 	}
-	log.Print("recorver", header.From, block.readOnly)
 	var kvhash common.Hash
 	for {
 		j, err := journals.Next()
@@ -126,6 +128,10 @@ func (s *snapshotDB) recover(stor storage) error {
 	s.committed = make([]blockData, 0)
 	s.recognized = make(map[common.Hash]blockData)
 	s.journalw = make(map[common.Hash]*journal.Writer)
+
+	mu := sync.Mutex{}
+	s.snapshotLock = sync.NewCond(&mu)
+	s.snapshotLockC = false
 
 	//read Journal
 	for _, fd := range fds {
@@ -250,20 +256,20 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 	}
 	// find from committed
 	for _, value := range s.committed {
-		if *value.BlockHash == hash {
+		if value.BlockHash == hash {
 			return hashLocationCommitted, true
 		}
 	}
 	return 0, false
 }
 
-func (s *snapshotDB) put(hash *common.Hash, key, value []byte, funcType uint64) error {
+func (s *snapshotDB) put(hash common.Hash, key, value []byte, funcType uint64) error {
 	var (
 		blockHash  common.Hash
 		kvhash     common.Hash
 		recognized blockData
 	)
-	if hash == nil {
+	if hash == common.ZeroHash {
 		s.unRecognizedLock.Lock()
 		defer s.unRecognizedLock.Unlock()
 		if s.unRecognized == nil {
@@ -275,11 +281,11 @@ func (s *snapshotDB) put(hash *common.Hash, key, value []byte, funcType uint64) 
 		blockHash = s.getUnRecognizedHash()
 		kvhash = s.unRecognized.kvHash
 	} else {
-		bb, ok := s.recognized[*hash]
+		bb, ok := s.recognized[hash]
 		if !ok {
 			return errors.New("[SnapshotDB]get recognized block data by hash fail")
 		}
-		blockHash = *hash
+		blockHash = hash
 		if bb.readOnly {
 			return errors.New("[SnapshotDB]can't put read only block")
 		}
@@ -300,7 +306,7 @@ func (s *snapshotDB) put(hash *common.Hash, key, value []byte, funcType uint64) 
 	if err := s.writeJournalBody(blockHash, body); err != nil {
 		return errors.New("[SnapshotDB]write journalBody fail:" + err.Error())
 	}
-	if hash != nil {
+	if hash != common.ZeroHash {
 		switch funcType {
 		case funcTypePut:
 			if err := recognized.data.Put(key, value); err != nil {
@@ -312,7 +318,7 @@ func (s *snapshotDB) put(hash *common.Hash, key, value []byte, funcType uint64) 
 			}
 		}
 		recognized.kvHash = jData.Hash
-		s.recognized[*hash] = recognized
+		s.recognized[hash] = recognized
 	} else {
 		switch funcType {
 		case funcTypePut:
