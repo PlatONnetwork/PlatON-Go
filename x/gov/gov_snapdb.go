@@ -87,7 +87,9 @@ func (self *GovSnapshotDB) getAllProposalIDList(blockHash common.Hash) ([]common
 	return total, nil
 }
 
+
 //
 func (self *GovSnapshotDB) addVotedVerifiers(blockHash common.Hash, key []byte, node discover.NodeID) error {
 	return nil
 }
+
