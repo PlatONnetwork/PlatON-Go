@@ -31,9 +31,12 @@ var Command = map[string]interface{}{
 	"common.Address":    BytesToAddress,
 }
 
+
 func BytesToAddress(curByte []byte) common.Address {
 	str := BytesToString(curByte)
 	return common.HexToAddress(str)
+	//var addr common.Address
+	//rlp.DecodeBytes(curByte, addr)
 }
 
 func BytesToNodeId(curByte []byte) discover.NodeID {
