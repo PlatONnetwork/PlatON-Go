@@ -622,7 +622,9 @@ func (w *worker) mainLoop() {
 			)
 			// TODO test snapshotdb
 			log.Debug("snapshotdb Flush", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(hash.Bytes()))
-			snapshotdb.Instance().Flush(hash, block.Number())
+			if _, err := snapshotdb.Instance().Flush(hash, block.Number()); nil != err {
+				log.Error("snapshotdb Flush failed", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(hash.Bytes()), "err", err)
+			}
 			w.pendingMu.RLock()
 			_, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
