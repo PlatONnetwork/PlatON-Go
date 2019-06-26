@@ -143,11 +143,11 @@ func (govDB *GovDB) SetPreActiveVersion(preActiveVersion uint, state xcom.StateD
 }
 
 // 查询生效版本记录
-func (govDB *GovDB) GetPreActiveVersion(state xcom.StateDB) uint {
+func (govDB *GovDB) GetPreActiveVersion(state xcom.StateDB) uint32 {
 
 	value := state.GetState(vm.GovContractAddr, KeyPreActiveVersion())
 
-	var preActiveVersion uint = 0
+	var preActiveVersion uint32 = 0
 
 	if len(value) > 0 {
 		MustDecoded(value, &preActiveVersion)
@@ -176,9 +176,9 @@ func (govDB *GovDB) SetActiveVersion(activeVersion uint, state xcom.StateDB) boo
 }
 
 // 查询生效版本记录
-func (govDB *GovDB) GetActiveVersion(state xcom.StateDB) uint {
+func (govDB *GovDB) GetActiveVersion(state xcom.StateDB) uint32 {
 	value := state.GetState(vm.GovContractAddr, KeyActiveVersion())
-	var version uint = 0
+	var version uint32 = 0
 	if len(value) > 0 {
 		MustDecoded(value, &version)
 	}
