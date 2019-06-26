@@ -404,7 +404,7 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 			return
 		}
 	}
-
+	isWriteWal := true
 	switch msg := msg.(type) {
 	case *prepareBlock:
 		err = cbft.OnNewPrepareBlock(peerID, msg, true)
@@ -430,13 +430,15 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 		err = cbft.OnPrepareBlockHash(peerID, msg)
 	case *getLatestStatus:
 		err = cbft.OnGetLatestStatus(peerID, msg)
+		isWriteWal = false
 	case *latestStatus:
 		err = cbft.OnLatestStatus(peerID, msg)
+		isWriteWal = false
 	}
 
 	if err != nil {
 		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
-	} else if !cbft.isLoading() {
+	} else if !cbft.isLoading() && isWriteWal {
 		// write journal msg if cbft is not loading
 		cbft.wal.Write(info)
 	}
