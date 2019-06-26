@@ -61,8 +61,8 @@ var (
 	ErrInvalidFile = errors.New("snapshotdb/storage: invalid file for argument")
 	ErrLocked      = errors.New("snapshotdb/storage: already locked")
 	ErrClosed      = errors.New("snapshotdb/storage: closed")
-	errFileOpen    = errors.New("snapshotdb/storage: file still open")
-	errReadOnly    = errors.New("snapshotdb/storage: storage is read-only")
+	//errFileOpen    = errors.New("snapshotdb/storage: file still open")
+	errReadOnly = errors.New("snapshotdb/storage: storage is read-only")
 )
 
 type fileLock interface {
@@ -103,4 +103,7 @@ type storage interface {
 	// List returns file descriptors that match the given file types.
 	// The file types may be OR'ed together.
 	List(ft fileType) ([]fileDesc, error)
+
+	// Path return path of the storage
+	Path() string
 }

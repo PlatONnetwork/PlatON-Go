@@ -164,12 +164,16 @@ var (
 		Value: DirectoryString{homeDir()},
 	}
 	defaultSyncMode = eth.DefaultConfig.SyncMode
-	InnerTimeFlag = cli.Uint64Flag{
+	InnerTimeFlag   = cli.Uint64Flag{
 		Name:  "innertime",
 		Usage: "inner time",
 		Value: 1546300800000,
 	}
-	SyncModeFlag    = TextMarshalerFlag{
+	WalEnabledFlag = cli.BoolFlag{
+		Name:  "wal",
+		Usage: "Enable the Wal server",
+	}
+	SyncModeFlag = TextMarshalerFlag{
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full", or "light")`,
 		Value: &defaultSyncMode,
@@ -336,16 +340,6 @@ var (
 		Name:  "gasprice",
 		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
 		Value: eth.DefaultConfig.MinerGasPrice,
-	}
-	MinerEtherbaseFlag = cli.StringFlag{
-		Name:  "miner.etherbase",
-		Usage: "Public address for block mining rewards (default = first account)",
-		Value: "0",
-	}
-	MinerLegacyEtherbaseFlag = cli.StringFlag{
-		Name:  "etherbase",
-		Usage: "Public address for block mining rewards (default = first account, deprecated, use --miner.etherbase)",
-		Value: "0",
 	}
 	MinerExtraDataFlag = cli.StringFlag{
 		Name:  "miner.extradata",
@@ -903,27 +897,6 @@ func MakeAddress(ks *keystore.KeyStore, account string) (accounts.Account, error
 	return accs[index], nil
 }
 
-// setEtherbase retrieves the etherbase either from the directly specified
-// command line flags or from the keystore if CLI indexed.
-func setEtherbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *eth.Config) {
-	// Extract the current etherbase, new flag overriding legacy one
-	var etherbase string
-	if ctx.GlobalIsSet(MinerLegacyEtherbaseFlag.Name) {
-		etherbase = ctx.GlobalString(MinerLegacyEtherbaseFlag.Name)
-	}
-	if ctx.GlobalIsSet(MinerEtherbaseFlag.Name) {
-		etherbase = ctx.GlobalString(MinerEtherbaseFlag.Name)
-	}
-	// Convert the etherbase into an address and configure it
-	if etherbase != "" {
-		account, err := MakeAddress(ks, etherbase)
-		if err != nil {
-			Fatalf("Invalid miner etherbase: %v", err)
-		}
-		cfg.Etherbase = account.Address
-	}
-}
-
 // MakePasswordList reads password lines from the file specified by the global --password flag.
 func MakePasswordList(ctx *cli.Context) []string {
 	path := ctx.GlobalString(PasswordFileFlag.Name)
@@ -1102,45 +1075,45 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 }
 
-func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
-	if ctx.GlobalIsSet(MPCEnabledFlag.Name) {
-		cfg.MPCEnable = ctx.GlobalBool(MPCEnabledFlag.Name)
-	}
-	if ctx.GlobalIsSet(MPCActorFlag.Name) {
-		cfg.MpcActor = common.HexToAddress(ctx.GlobalString(MPCActorFlag.Name))
-	}
-	if file := ctx.GlobalString(MPCIceFileFlag.Name); file != "" {
-		if _, err := os.Stat(file); err != nil {
-			fmt.Println("ice conf not exists.")
-			return
-		}
-		if b := filepath.IsAbs(file); !b {
-			absPath, err := filepath.Abs(file)
-			if err != nil {
-				fmt.Println("Read abs path of ice conf fail: ", err.Error())
-				return
-			}
-			cfg.IceConf = absPath
-		} else {
-			cfg.IceConf = file
-		}
-	}
-}
-
-func setVcPool(ctx *cli.Context, cfg *core.VCPoolConfig) {
-	if ctx.GlobalIsSet(VCEnabledFlag.Name) {
-		cfg.VCEnable = ctx.GlobalBool(VCEnabledFlag.Name)
-	}
-	if ctx.GlobalIsSet(VCActorFlag.Name) {
-		cfg.VcActor = common.HexToAddress(ctx.GlobalString(VCActorFlag.Name))
-		fmt.Println("cfg.VcActor", cfg.VcActor)
-	}
-
-	if ctx.GlobalIsSet(VCPasswordFlag.Name) {
-		cfg.VcPassword = ctx.GlobalString(VCPasswordFlag.Name)
-	}
-
-}
+//func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
+//	if ctx.GlobalIsSet(MPCEnabledFlag.Name) {
+//		cfg.MPCEnable = ctx.GlobalBool(MPCEnabledFlag.Name)
+//	}
+//	if ctx.GlobalIsSet(MPCActorFlag.Name) {
+//		cfg.MpcActor = common.HexToAddress(ctx.GlobalString(MPCActorFlag.Name))
+//	}
+//	if file := ctx.GlobalString(MPCIceFileFlag.Name); file != "" {
+//		if _, err := os.Stat(file); err != nil {
+//			fmt.Println("ice conf not exists.")
+//			return
+//		}
+//		if b := filepath.IsAbs(file); !b {
+//			absPath, err := filepath.Abs(file)
+//			if err != nil {
+//				fmt.Println("Read abs path of ice conf fail: ", err.Error())
+//				return
+//			}
+//			cfg.IceConf = absPath
+//		} else {
+//			cfg.IceConf = file
+//		}
+//	}
+//}
+//
+//func setVcPool(ctx *cli.Context, cfg *core.VCPoolConfig) {
+//	if ctx.GlobalIsSet(VCEnabledFlag.Name) {
+//		cfg.VCEnable = ctx.GlobalBool(VCEnabledFlag.Name)
+//	}
+//	if ctx.GlobalIsSet(VCActorFlag.Name) {
+//		cfg.VcActor = common.HexToAddress(ctx.GlobalString(VCActorFlag.Name))
+//		fmt.Println("cfg.VcActor", cfg.VcActor)
+//	}
+//
+//	if ctx.GlobalIsSet(VCPasswordFlag.Name) {
+//		cfg.VcPassword = ctx.GlobalString(VCPasswordFlag.Name)
+//	}
+//
+//}
 
 // checkExclusive verifies that only a single instance of the provided flags was
 // set by the user. Each flag might optionally be followed by a string type to
@@ -1200,14 +1173,16 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	setEtherbase(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	// for mpc compute
-	setMpcPool(ctx, &cfg.MPCPool)
-	setVcPool(ctx, &cfg.VCPool)
+	//setMpcPool(ctx, &cfg.MPCPool)
+	//setVcPool(ctx, &cfg.VCPool)
 	SetCbft(ctx, &cfg.CbftConfig)
 
+	if ctx.GlobalIsSet(WalEnabledFlag.Name) {
+		cfg.CbftConfig.WalMode = true
+	}
 	if ctx.GlobalIsSet(SyncModeFlag.Name) {
 		cfg.SyncMode = *GlobalTextMarshaler(ctx, SyncModeFlag.Name).(*downloader.SyncMode)
 	}
@@ -1481,9 +1456,9 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled:/*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
-		TrieNodeLimit: eth.DefaultConfig.TrieCache,
-		TrieTimeLimit: eth.DefaultConfig.TrieTimeout,
+		Disabled: /*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
+		TrieNodeLimit:                                               eth.DefaultConfig.TrieCache,
+		TrieTimeLimit:                                               eth.DefaultConfig.TrieTimeout,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
@@ -1507,8 +1482,8 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 	}
 	var engine consensus.Engine
 	if config.Cbft != nil {
-		ctx := node.NewServiceContext(nodeCfg, nil, stack.EventMux(), stack.AccountManager())
-		engine = eth.CreateConsensusEngine(ctx, config, nil, false, chainDb, &cfg.CbftConfig, ctx.EventMux);
+		sc := node.NewServiceContext(nodeCfg, nil, stack.EventMux(), stack.AccountManager())
+		engine = eth.CreateConsensusEngine(sc, config, nil, false, chainDb, &cfg.CbftConfig, stack.EventMux());
 	}
 
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {

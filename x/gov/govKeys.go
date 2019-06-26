@@ -3,7 +3,6 @@ package gov
 import (
 	"bytes"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 var (
@@ -21,7 +20,7 @@ var (
 	keyPrefixAccuVerifiers     = []byte("AccuVerifiers")
 )
 
-// 产生保存提案的key
+// 提案的key
 func KeyProposal(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixProposal,
@@ -30,16 +29,15 @@ func KeyProposal(proposalID common.Hash) []byte {
 
 }
 
-// 生成存储投票的key
-func KeyVote(proposalID common.Hash, voter *discover.NodeID) []byte {
+// 投票的key
+func KeyVote(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixVote,
 		proposalID.Bytes(),
-		voter.Bytes(),
 	}, KeyDelimiter)
 }
 
-// 生成投票结果的key
+// 投票结果的key
 func KeyTallyResult(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixTallyResult,
@@ -47,27 +45,33 @@ func KeyTallyResult(proposalID common.Hash) []byte {
 	}, KeyDelimiter)
 }
 
-// 生成正在投票的提案列表的key
+// 正在投票的提案列表的key
 func KeyVotingProposals() []byte {
 	return keyPrefixVotingProposals
 }
 
-// 生成投票结束的提案列表的key
-func KeyEndProposalID() []byte {
+// 预生效提案ID的key
+func KeyPreActiveProposalID() []byte {
 	return keyPrefixEndProposals
 }
 
-// 生成已激活版本列表的key
+
+// 所有操作均结束的提案列表的key
+func KeyEndProposals() []byte {
+	return keyPrefixEndProposals
+}
+
+// 生效版本的key
 func KeyActiveVersion() []byte {
 	return keyPrefixActiveVersion
 }
 
-// 生成已激活版本列表的key
+// 预生效版本的key
 func KeyPreActiveVersion() []byte {
 	return keyPrefixPreActiveVersion
 }
 
-// 生成已投票的验证人列表key
+// 已投票的验证人列表key
 func KeyVotedVerifier(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixVotedVerifiers,
@@ -75,7 +79,7 @@ func KeyVotedVerifier(proposalID common.Hash) []byte {
 	}, KeyDelimiter)
 }
 
-// 生成升级节点列表的key
+// 已升级节点列表的key
 func KeyActiveNodes(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixActiveNodes,
@@ -83,7 +87,7 @@ func KeyActiveNodes(proposalID common.Hash) []byte {
 	}, KeyDelimiter)
 }
 
-// 生成提案投票期内累计不同验证人的key
+// 提案投票期内累积的不同验证人的key
 func KeyAccuVerifiers(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
 		keyPrefixAccuVerifiers,

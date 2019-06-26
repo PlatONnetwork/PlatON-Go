@@ -138,10 +138,10 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	utils.SetEthConfig(ctx, stack, &cfg.Eth)
 
 	// pass on the rpc port to mpc pool conf.
-	cfg.Eth.MPCPool.LocalRpcPort = cfg.Node.HTTPPort
+	//cfg.Eth.MPCPool.LocalRpcPort = cfg.Node.HTTPPort
 
 	// pass on the rpc port to vc pool conf.
-	cfg.Eth.VCPool.LocalRpcPort = cfg.Node.HTTPPort
+	//cfg.Eth.VCPool.LocalRpcPort = cfg.Node.HTTPPort
 
 	// load cbft config file.
 	if cbftConfig := cfg.Eth.LoadCbftConfig(cfg.Node); cbftConfig != nil {
