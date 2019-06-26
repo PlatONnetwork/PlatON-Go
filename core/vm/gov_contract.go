@@ -68,7 +68,7 @@ func (gc *govContract) execute(input []byte) (ret []byte, err error) {
 }
 
 
-func (gc *govContract) submitText(funcType uint16, verifier discover.NodeID, githubID, topic, desc, url string, endVotingBlock uint64) ([]byte, error) {
+func (gc *govContract) submitText(verifier discover.NodeID, githubID, topic, desc, url string, endVotingBlock uint64) ([]byte, error) {
 	p := gov.TextProposal{}
 	p.SetGithubID(githubID)
 	p.SetTopic(topic)
@@ -86,27 +86,56 @@ func (gc *govContract) submitText(funcType uint16, verifier discover.NodeID, git
 	return nil, nil
 }
 
-func (gc *govContract) submitVersion(funcType uint16, verifier discover.NodeID, githubID, topic, desc, url string, newVersion uint, endVotingBlock, activeBlock uint64) ([]byte, error) {
+func (gc *govContract) submitVersion(verifier discover.NodeID, githubID, topic, desc, url string, newVersion uint, endVotingBlock, activeBlock uint64) ([]byte, error) {
+	p := gov.VersionProposal{}
+	p.SetGithubID(githubID)
+	p.SetTopic(topic)
+	p.SetDesc(desc)
+	p.SetUrl(url)
+	p.SetProposalType(gov.Text)
+	p.SetEndVotingBlock(endVotingBlock)
+	p.SetSubmitBlock(gc.Evm.BlockNumber.Uint64())
+	p.SetProposalID(gc.Evm.StateDB.TxHash())
+	p.SetProposer(verifier)
+
+	p.SetNewVersion(newVersion)
+	p.SetActiveBlock(activeBlock)
+
+	from := gc.Contract.CallerAddress
+
+	gov.GovInstance().Submit(from, p, gc.Evm.StateDB)
 	return nil, nil
 }
 
-func (gc *govContract) vote(funcType uint16, verifier discover.NodeID, proposalID common.Hash, option gov.VoteOption) ([]byte, error) {
+func (gc *govContract) vote(verifier discover.NodeID, proposalID common.Hash, option gov.VoteOption) ([]byte, error) {
+	v := gov.Vote{}
+	v.ProposalID = proposalID
+	v.VoteNodeID = verifier
+	v.VoteOption = option
+
+	from := gc.Contract.CallerAddress
+	gov.GovInstance().Vote(from, v, gc.Evm.StateDB)
 	return nil, nil
 }
 
-func (gc *govContract) declareVersion(funcType uint16, activeNode discover.NodeID, version uint) ([]byte, error) {
+func (gc *govContract) declareVersion(activeNode discover.NodeID, version uint) ([]byte, error) {
+	from := gc.Contract.CallerAddress
+	gov.GovInstance().DeclareVersion(from, &activeNode, version, gc.Evm.StateDB)
 	return nil, nil
 }
 
-func (gc *govContract) getProposal(funcType uint16, proposalID common.Hash) ([]byte, error) {
+func (gc *govContract) getProposal(proposalID common.Hash) ([]byte, error) {
+	gov.GovInstance().GetProposal(proposalID, gc.Evm.StateDB)
 	return nil, nil
 }
 
-func (gc *govContract) getTallyResult(funcType uint16, proposalID common.Hash) ([]byte, error) {
+func (gc *govContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
+	gov.GovInstance().GetTallyResult(proposalID, gc.Evm.StateDB)
 	return nil, nil
 }
 
-func (gc *govContract) listProposal(funcType uint16) ([]byte, error) {
+func (gc *govContract) listProposal() ([]byte, error) {
+	gov.GovInstance().ListProposal(gc.Evm.StateDB)
 	return nil, nil
 }
 
