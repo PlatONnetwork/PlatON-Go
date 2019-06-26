@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"runtime"
@@ -219,7 +220,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
-
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
 			if err := cbftEngine.SetBreakpoint(config.CbftConfig.BreakpointType, config.CbftConfig.BreakpointLog); err != nil {
@@ -262,6 +262,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		gpoParams.Default = config.MinerGasPrice
 	}
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
+
+	//set snapshotdb path
+	snapshotdb.SetDBPath(ctx)
 
 	return eth, nil
 }
@@ -618,7 +621,8 @@ func (s *Ethereum) Stop() error {
 	close(s.shutdownChan)
 	return nil
 }
+
 // TODO RegisterPlugin one by one
-func handlePlugin (reactor *core.BlockChainReactor, db xcom.SnapshotDB) {
+func handlePlugin(reactor *core.BlockChainReactor, db xcom.SnapshotDB) {
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance(db))
 }

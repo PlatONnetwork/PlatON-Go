@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"math/big"
-	"os"
-	"path"
 	"testing"
 )
 
@@ -21,18 +19,18 @@ func TestRecover(t *testing.T) {
 	)
 	{
 		commitHash := recognizedHash
-		if _, err := dbInstance.NewBlock(big.NewInt(1), parenthash, &commitHash); err != nil {
+		if _, err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
 		var str string
 		for i := 0; i < 4; i++ {
 			str += "a"
 			baseDBArr = append(baseDBArr, str)
-			if _, err := dbInstance.Put(&commitHash, []byte(str), []byte(str)); err != nil {
+			if _, err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(&commitHash, []byte("d"), []byte("d")); err != nil {
+		if _, err := dbInstance.Put(commitHash, []byte("d"), []byte("d")); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := dbInstance.Commit(commitHash); err != nil {
@@ -43,18 +41,18 @@ func TestRecover(t *testing.T) {
 	}
 	{
 		commitHash := rlpHash("recognizedHash3")
-		if _, err := dbInstance.NewBlock(big.NewInt(2), parenthash, &commitHash); err != nil {
+		if _, err := dbInstance.NewBlock(big.NewInt(2), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "c"
 			commitArr = append(commitArr, str)
-			if _, err := dbInstance.Put(&commitHash, []byte(str), []byte(str)); err != nil {
+			if _, err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(&commitHash, []byte("ddd"), []byte("ddd")); err != nil {
+		if _, err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := dbInstance.Commit(commitHash); err != nil {
@@ -65,36 +63,36 @@ func TestRecover(t *testing.T) {
 	}
 	{
 		commitHash := rlpHash("recognizedHash4")
-		if _, err := dbInstance.NewBlock(big.NewInt(3), parenthash, &commitHash); err != nil {
+		if _, err := dbInstance.NewBlock(big.NewInt(3), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "e"
 			recognizedArr = append(recognizedArr, str)
-			if _, err := dbInstance.Put(&commitHash, []byte(str), []byte(str)); err != nil {
+			if _, err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(&commitHash, []byte("ee"), []byte("ee")); err != nil {
+		if _, err := dbInstance.Put(commitHash, []byte("ee"), []byte("ee")); err != nil {
 			t.Fatal(err)
 		}
 		recognized = dbInstance.recognized[rlpHash("recognizedHash4")]
 		parenthash = commitHash
 	}
 	{
-		if _, err := dbInstance.NewBlock(big.NewInt(4), parenthash, nil); err != nil {
+		if _, err := dbInstance.NewBlock(big.NewInt(4), parenthash, common.ZeroHash); err != nil {
 			t.Fatal(err)
 		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "f"
 			unrecognizedArr = append(unrecognizedArr, str)
-			if _, err := dbInstance.Put(nil, []byte(str), []byte(str)); err != nil {
+			if _, err := dbInstance.Put(common.ZeroHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(nil, []byte("ff"), []byte("ff")); err != nil {
+		if _, err := dbInstance.Put(common.ZeroHash, []byte("ff"), []byte("ff")); err != nil {
 			t.Fatal(err)
 		}
 		unrecognized = *dbInstance.unRecognized
@@ -105,8 +103,7 @@ func TestRecover(t *testing.T) {
 		t.Error(err)
 	}
 	dbInstance = nil
-	dbPath := path.Join(os.TempDir(), DBTestPath)
-	s, err := openFile(dbPath, false)
+	s, err := openFile(dbpath, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,8 +120,8 @@ func TestRecover(t *testing.T) {
 		defer dbInstance.Clear()
 	}
 
-	if dbInstance.path != dbPath {
-		t.Error("path is wrong", dbInstance.path, dbPath)
+	if dbInstance.path != dbpath {
+		t.Error("path is wrong", dbInstance.path, dbpath)
 	}
 	if dbInstance.current.BaseNum.Int64() != base {
 		t.Error("BaseNum is wrong", dbInstance.current.BaseNum.Int64(), base)
@@ -132,8 +129,8 @@ func TestRecover(t *testing.T) {
 	if dbInstance.current.HighestNum.Int64() != high {
 		t.Error("HighestNum is wrong", dbInstance.current.HighestNum.Int64(), high)
 	}
-	if dbInstance.current.path != getCurrentPath(dbPath) {
-		t.Error("current path is wrong", dbInstance.current.path, getCurrentPath(dbPath))
+	if dbInstance.current.path != getCurrentPath(dbpath) {
+		t.Error("current path is wrong", dbInstance.current.path, getCurrentPath(dbpath))
 	}
 	for _, value := range baseDBArr {
 		v, err := dbInstance.baseDB.Get([]byte(value), nil)
@@ -157,11 +154,11 @@ func TestRecover(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		if i == 0 {
-			if newarr[i].BlockHash != nil {
+			if newarr[i].BlockHash != common.ZeroHash {
 				t.Error("unRecognized block hash must nil", i, newarr[i].BlockHash, oldarr[i].BlockHash)
 			}
 		} else {
-			if *oldarr[i].BlockHash != *newarr[i].BlockHash {
+			if oldarr[i].BlockHash != newarr[i].BlockHash {
 				t.Error("block hash must compare", i, oldarr[i].BlockHash.String(), newarr[i].BlockHash.String())
 			}
 		}
@@ -187,7 +184,7 @@ func TestRecover(t *testing.T) {
 		}
 	}
 
-	if _, err := dbInstance.Put(nil, []byte("dddd"), []byte("dddd")); err != nil {
+	if _, err := dbInstance.Put(common.ZeroHash, []byte("dddd"), []byte("dddd")); err != nil {
 		t.Error(err)
 	}
 	if _, err := dbInstance.Flush(rlpHash("flush"), big.NewInt(4)); err != nil {
@@ -201,14 +198,15 @@ func TestRecover(t *testing.T) {
 	}
 }
 
-func TestRMOldRecognizedBlockData(t *testing.T) {
-
-}
-
-func TestCron(t *testing.T) {
-
-}
-
-func TestCheckHashChain(t *testing.T) {
-
-}
+//
+//func TestRMOldRecognizedBlockData(t *testing.T) {
+//
+//}
+//
+//func TestCron(t *testing.T) {
+//
+//}
+//
+//func TestCheckHashChain(t *testing.T) {
+//
+//}
