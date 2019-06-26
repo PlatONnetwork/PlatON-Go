@@ -53,31 +53,31 @@ func (gov *Gov) Submit(from common.Address, proposal Proposal, state xcom.StateD
 }
 
 //投票，只有验证人能投票
-func (gov *Gov) Vote(from common.Address, vote Vote, state *xcom.StateDB) bool {
+func (gov *Gov) Vote(from common.Address, vote Vote, state xcom.StateDB) bool {
 	return true
 }
 
 //版本声明，验证人/候选人可以声明
-func (gov *Gov) DeclareVersion(from common.Address, declaredNodeID *discover.NodeID, version uint, state *xcom.StateDB) (bool, error) {
+func (gov *Gov) DeclareVersion(from common.Address, declaredNodeID *discover.NodeID, version uint, state xcom.StateDB) (bool, error) {
 	return true, nil
 }
 
 //查询提案
-func (gov *Gov) GetProposal(proposalID common.Hash, state *xcom.StateDB) *Proposal {
+func (gov *Gov) GetProposal(proposalID common.Hash, state xcom.StateDB) *Proposal {
 	return nil
 }
 
 //查询提案结果
-func (gov *Gov) GetTallyResult(proposalID common.Hash, state *xcom.StateDB) *TallyResult {
+func (gov *Gov) GetTallyResult(proposalID common.Hash, state xcom.StateDB) *TallyResult {
 	return nil
 }
 
 //查询提案列表
-func (gov *Gov) ListProposal(state *xcom.StateDB) []*Proposal {
+func (gov *Gov) ListProposal(state xcom.StateDB) []*Proposal {
 	return nil
 }
 
 //投票结束时，进行投票计算
-func (gov *Gov) tally(proposalID common.Hash, state *xcom.StateDB) bool {
+func (gov *Gov) tally(proposalID common.Hash, state xcom.StateDB) bool {
 	return true
 }

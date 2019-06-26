@@ -102,10 +102,6 @@ type Cbft struct {
 	peerMsgCh   chan *MsgInfo
 	syncBlockCh chan *BlockExt
 
-	highestLogical   atomic.Value //highest block in logical path, local packages new block will base on it
-	highestConfirmed atomic.Value //highest confirmed block in logical path
-	rootIrreversible atomic.Value //the latest block has stored in chain
-
 	executeBlockCh          chan *ExecuteBlockStatus
 	baseBlockCh             chan chan *types.Block
 	sealBlockCh             chan *SealBlock
@@ -193,29 +189,6 @@ func New(config *params.CbftConfig, eventMux *event.TypeMux, ctx *node.ServiceCo
 	cbft.resetCache, _ = lru.New(maxResetCacheSize)
 	cbft.tracing = NewTracing()
 	return cbft
-}
-
-func (cbft *Cbft) getRootIrreversible() *BlockExt {
-	if v := cbft.rootIrreversible.Load(); v == nil {
-		panic("Get root block failed")
-	} else {
-		return v.(*BlockExt)
-	}
-}
-
-func (cbft *Cbft) getHighestConfirmed() *BlockExt {
-	if v := cbft.highestConfirmed.Load(); v == nil {
-		panic("Get highest confirmed block failed")
-	} else {
-		return v.(*BlockExt)
-	}
-}
-func (cbft *Cbft) getHighestLogical() *BlockExt {
-	if v := cbft.highestLogical.Load(); v == nil {
-		panic("Get highest logical block failed")
-	} else {
-		return v.(*BlockExt)
-	}
 }
 
 func (cbft *Cbft) getValidators() *cbfttypes.Validators {
@@ -333,11 +306,12 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool, agency
 	cbft.init()
 
 	// init wal and load wal journal
-	//if cbft.wal, err = NewWal(cbft.nodeServiceContext, ""); err != nil {
-	//	return err
-	//}
 	cbft.wal = &emptyWal{}
-	cbft.wal, _ = NewWal(cbft.nodeServiceContext, "")
+	if cbft.config.WalEnabled {
+		if cbft.wal, err = NewWal(cbft.nodeServiceContext, ""); err != nil {
+			return err
+		}
+	}
 	atomic.StoreInt32(&cbft.loading, 1)
 
 	go cbft.receiveLoop()
@@ -422,15 +396,15 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 	if !cbft.isRunning() {
 		switch msg.(type) {
 		case *prepareBlock,
-			*prepareBlockHash,
-			*prepareVote,
-			*viewChange,
-			*viewChangeVote:
+		*prepareBlockHash,
+		*prepareVote,
+		*viewChange,
+		*viewChangeVote:
 			cbft.log.Debug("Cbft is not running, discard consensus message")
 			return
 		}
 	}
-
+	isWriteWal := true
 	switch msg := msg.(type) {
 	case *prepareBlock:
 		err = cbft.OnNewPrepareBlock(peerID, msg, true)
@@ -456,13 +430,15 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 		err = cbft.OnPrepareBlockHash(peerID, msg)
 	case *getLatestStatus:
 		err = cbft.OnGetLatestStatus(peerID, msg)
+		isWriteWal = false
 	case *latestStatus:
 		err = cbft.OnLatestStatus(peerID, msg)
+		isWriteWal = false
 	}
 
 	if err != nil {
 		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
-	} else if !cbft.isLoading() {
+	} else if !cbft.isLoading() && isWriteWal {
 		// write journal msg if cbft is not loading
 		cbft.wal.Write(info)
 	}
