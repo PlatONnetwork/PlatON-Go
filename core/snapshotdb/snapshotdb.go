@@ -91,6 +91,7 @@ func SetDBPath(ctx *node.ServiceContext) {
 func Instance() DB {
 	if dbInstance == nil || dbInstance.closed {
 		if err := initDB(); err != nil {
+			logger.Error(fmt.Sprint("init db fail"), err)
 			//return nil, errors.New("init db fail:" + err.Error())
 		}
 	}
