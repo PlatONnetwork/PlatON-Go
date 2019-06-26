@@ -23,8 +23,6 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"math/big"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
@@ -488,24 +486,24 @@ func NewPublicBlockChainAPI(b Backend) *PublicBlockChainAPI {
 }
 
 // SetActor set address for mpc compute.
-func (s *PublicBlockChainAPI) SetActor(address common.Address) error {
-	absPath, err := filepath.Abs(core.DEFAULT_ACTOR_FILE_NAME)
-	if err != nil {
-		return fmt.Errorf("File not exists : %v", err.Error())
-	}
-	f, err := os.OpenFile(absPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
-	if err != nil {
-		return fmt.Errorf("open file error : %v ", err.Error())
-	}
-	f.Write(address.Bytes())
-	f.Close()
-
-	if core.MPC_POOL != nil {
-		core.MPC_POOL.LoadActor()
-	}
-
-	return nil
-}
+//func (s *PublicBlockChainAPI) SetActor(address common.Address) error {
+//	absPath, err := filepath.Abs(core.DEFAULT_ACTOR_FILE_NAME)
+//	if err != nil {
+//		return fmt.Errorf("File not exists : %v", err.Error())
+//	}
+//	f, err := os.OpenFile(absPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.ModePerm)
+//	if err != nil {
+//		return fmt.Errorf("open file error : %v ", err.Error())
+//	}
+//	f.Write(address.Bytes())
+//	f.Close()
+//
+//	if core.MPC_POOL != nil {
+//		core.MPC_POOL.LoadActor()
+//	}
+//
+//	return nil
+//}
 
 // BlockNumber returns the block number of the chain head.
 func (s *PublicBlockChainAPI) BlockNumber() hexutil.Uint64 {

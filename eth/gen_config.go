@@ -42,8 +42,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		DocRoot                 string `toml:"-"`
 		EWASMInterpreter        string
 		EVMInterpreter          string
-		MPCPool                 core.MPCPoolConfig
-		VCPool                  core.VCPoolConfig
+		//MPCPool                 core.MPCPoolConfig
+		//VCPool                  core.VCPoolConfig
 		Debug                   bool
 	}
 	var enc Config
@@ -72,8 +72,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DocRoot = c.DocRoot
 	enc.EWASMInterpreter = c.EWASMInterpreter
 	enc.EVMInterpreter = c.EVMInterpreter
-	enc.MPCPool = c.MPCPool
-	enc.VCPool = c.VCPool
+	//enc.MPCPool = c.MPCPool
+	//enc.VCPool = c.VCPool
 	enc.Debug = c.Debug
 	return &enc, nil
 }
@@ -106,8 +106,8 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		DocRoot                 *string `toml:"-"`
 		EWASMInterpreter        *string
 		EVMInterpreter          *string
-		MPCPool                 *core.MPCPoolConfig
-		VCPool                  *core.VCPoolConfig
+		//MPCPool                 *core.MPCPoolConfig
+		//VCPool                  *core.VCPoolConfig
 		Debug                   *bool
 	}
 	var dec Config
@@ -189,12 +189,12 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	if dec.EVMInterpreter != nil {
 		c.EVMInterpreter = *dec.EVMInterpreter
 	}
-	if dec.MPCPool != nil {
-		c.MPCPool = *dec.MPCPool
-	}
-	if dec.VCPool != nil {
-		c.VCPool = *dec.VCPool
-	}
+	//if dec.MPCPool != nil {
+	//	c.MPCPool = *dec.MPCPool
+	//}
+	//if dec.VCPool != nil {
+	//	c.VCPool = *dec.VCPool
+	//}
 	if dec.Debug != nil {
 		c.Debug = *dec.Debug
 	}

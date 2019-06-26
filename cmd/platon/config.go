@@ -101,8 +101,8 @@ func defaultNodeConfig() node.Config {
 	cfg := node.DefaultConfig
 	cfg.Name = clientIdentifier
 	cfg.Version = params.VersionWithCommit(gitCommit)
-	cfg.HTTPModules = append(cfg.HTTPModules, "eth", "shh")
-	cfg.WSModules = append(cfg.WSModules, "eth", "shh")
+	cfg.HTTPModules = append(cfg.HTTPModules, "platon", "shh")
+	cfg.WSModules = append(cfg.WSModules, "platon", "shh")
 	cfg.IPCPath = "platon.ipc"
 	return cfg
 }
@@ -138,10 +138,10 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	utils.SetEthConfig(ctx, stack, &cfg.Eth)
 
 	// pass on the rpc port to mpc pool conf.
-	cfg.Eth.MPCPool.LocalRpcPort = cfg.Node.HTTPPort
+	//cfg.Eth.MPCPool.LocalRpcPort = cfg.Node.HTTPPort
 
 	// pass on the rpc port to vc pool conf.
-	cfg.Eth.VCPool.LocalRpcPort = cfg.Node.HTTPPort
+	//cfg.Eth.VCPool.LocalRpcPort = cfg.Node.HTTPPort
 
 	// load cbft config file.
 	if cbftConfig := cfg.Eth.LoadCbftConfig(cfg.Node); cbftConfig != nil {

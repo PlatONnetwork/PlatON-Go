@@ -1075,45 +1075,45 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 }
 
-func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
-	if ctx.GlobalIsSet(MPCEnabledFlag.Name) {
-		cfg.MPCEnable = ctx.GlobalBool(MPCEnabledFlag.Name)
-	}
-	if ctx.GlobalIsSet(MPCActorFlag.Name) {
-		cfg.MpcActor = common.HexToAddress(ctx.GlobalString(MPCActorFlag.Name))
-	}
-	if file := ctx.GlobalString(MPCIceFileFlag.Name); file != "" {
-		if _, err := os.Stat(file); err != nil {
-			fmt.Println("ice conf not exists.")
-			return
-		}
-		if b := filepath.IsAbs(file); !b {
-			absPath, err := filepath.Abs(file)
-			if err != nil {
-				fmt.Println("Read abs path of ice conf fail: ", err.Error())
-				return
-			}
-			cfg.IceConf = absPath
-		} else {
-			cfg.IceConf = file
-		}
-	}
-}
-
-func setVcPool(ctx *cli.Context, cfg *core.VCPoolConfig) {
-	if ctx.GlobalIsSet(VCEnabledFlag.Name) {
-		cfg.VCEnable = ctx.GlobalBool(VCEnabledFlag.Name)
-	}
-	if ctx.GlobalIsSet(VCActorFlag.Name) {
-		cfg.VcActor = common.HexToAddress(ctx.GlobalString(VCActorFlag.Name))
-		fmt.Println("cfg.VcActor", cfg.VcActor)
-	}
-
-	if ctx.GlobalIsSet(VCPasswordFlag.Name) {
-		cfg.VcPassword = ctx.GlobalString(VCPasswordFlag.Name)
-	}
-
-}
+//func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
+//	if ctx.GlobalIsSet(MPCEnabledFlag.Name) {
+//		cfg.MPCEnable = ctx.GlobalBool(MPCEnabledFlag.Name)
+//	}
+//	if ctx.GlobalIsSet(MPCActorFlag.Name) {
+//		cfg.MpcActor = common.HexToAddress(ctx.GlobalString(MPCActorFlag.Name))
+//	}
+//	if file := ctx.GlobalString(MPCIceFileFlag.Name); file != "" {
+//		if _, err := os.Stat(file); err != nil {
+//			fmt.Println("ice conf not exists.")
+//			return
+//		}
+//		if b := filepath.IsAbs(file); !b {
+//			absPath, err := filepath.Abs(file)
+//			if err != nil {
+//				fmt.Println("Read abs path of ice conf fail: ", err.Error())
+//				return
+//			}
+//			cfg.IceConf = absPath
+//		} else {
+//			cfg.IceConf = file
+//		}
+//	}
+//}
+//
+//func setVcPool(ctx *cli.Context, cfg *core.VCPoolConfig) {
+//	if ctx.GlobalIsSet(VCEnabledFlag.Name) {
+//		cfg.VCEnable = ctx.GlobalBool(VCEnabledFlag.Name)
+//	}
+//	if ctx.GlobalIsSet(VCActorFlag.Name) {
+//		cfg.VcActor = common.HexToAddress(ctx.GlobalString(VCActorFlag.Name))
+//		fmt.Println("cfg.VcActor", cfg.VcActor)
+//	}
+//
+//	if ctx.GlobalIsSet(VCPasswordFlag.Name) {
+//		cfg.VcPassword = ctx.GlobalString(VCPasswordFlag.Name)
+//	}
+//
+//}
 
 // checkExclusive verifies that only a single instance of the provided flags was
 // set by the user. Each flag might optionally be followed by a string type to
@@ -1176,8 +1176,8 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	// for mpc compute
-	setMpcPool(ctx, &cfg.MPCPool)
-	setVcPool(ctx, &cfg.VCPool)
+	//setMpcPool(ctx, &cfg.MPCPool)
+	//setVcPool(ctx, &cfg.VCPool)
 	SetCbft(ctx, &cfg.CbftConfig)
 
 	if ctx.GlobalIsSet(WalEnabledFlag.Name) {
