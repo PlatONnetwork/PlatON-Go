@@ -42,7 +42,7 @@ var customGenesisTests = []struct {
 			"timestamp"  : "0x00"
 		}`,
 		query:  "platon.getBlock(0).nonce",
-		result: "0x0000000000000042",
+		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
 	// Genesis file with an empty chain configuration (ensure missing fields work)
 	{
@@ -59,7 +59,7 @@ var customGenesisTests = []struct {
 			"config"     : {}
 		}`,
 		query:  "platon.getBlock(0).nonce",
-		result: "0x0000000000000042",
+		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
 	// Genesis file with specific chain configurations
 	{
@@ -80,7 +80,7 @@ var customGenesisTests = []struct {
 			}
 		}`,
 		query:  "platon.getBlock(0).nonce",
-		result: "0x0000000000000042",
+		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
 	},
 }
 
