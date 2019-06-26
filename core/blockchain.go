@@ -996,14 +996,14 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.insert(block)
 
 		// parse block and retrieves txs
-		receipts := bc.GetReceiptsByHash(block.Hash())
-		if MPC_POOL != nil{
-			MPC_POOL.InjectTxs(block, receipts, bc, state)
-		}
+		//receipts := bc.GetReceiptsByHash(block.Hash())
+		//if MPC_POOL != nil{
+		//	MPC_POOL.InjectTxs(block, receipts, bc, state)
+		//}
 
-		if VC_POOL != nil {
-			VC_POOL.InjectTxs(block, receipts, bc, state)
-		}
+		//if VC_POOL != nil {
+		//	VC_POOL.InjectTxs(block, receipts, bc, state)
+		//}
 
 	}
 	bc.futureBlocks.Remove(block.Hash())

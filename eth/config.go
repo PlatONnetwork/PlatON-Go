@@ -17,8 +17,8 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/node"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/node"
 	"math/big"
 	"os"
 	"os/user"
@@ -48,6 +48,7 @@ var DefaultConfig = Config{
 		LegalCoefficient: 1.0,
 		Duration:         10,
 		BlockInterval:    100,
+		WalMode:          false,
 	},
 	NetworkId:     1,
 	LightPeers:    100,
@@ -65,8 +66,8 @@ var DefaultConfig = Config{
 		Percentile: 60,
 	},
 
-	MPCPool: core.DefaultMPCPoolConfig,
-	VCPool:  core.DefaultVCPoolConfig,
+	//MPCPool: core.DefaultMPCPoolConfig,
+	//VCPool:  core.DefaultVCPoolConfig,
 }
 
 func init() {
@@ -130,9 +131,9 @@ type Config struct {
 	EVMInterpreter string
 
 	// MPC pool options
-	MPCPool core.MPCPoolConfig
-	VCPool  core.VCPoolConfig
-	Debug bool
+	//MPCPool core.MPCPoolConfig
+	//VCPool  core.VCPoolConfig
+	Debug   bool
 }
 
 type CbftConfig struct {
@@ -146,6 +147,7 @@ type CbftConfig struct {
 	//breakpoint type:tracing
 	BreakpointType string
 	BreakpointLog  string
+	WalMode        bool
 }
 
 type configMarshaling struct {

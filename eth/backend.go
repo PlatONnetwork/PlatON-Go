@@ -87,8 +87,8 @@ type Ethereum struct {
 	protocolManager *ProtocolManager
 	lesServer       LesServer
 	// modify
-	mpcPool *core.MPCPool
-	vcPool  *core.VCPool
+	//mpcPool *core.MPCPool
+	//vcPool  *core.VCPool
 
 	// DB interfaces
 	chainDb ethdb.Database // Block chain database
@@ -197,25 +197,24 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	log.Debug("eth.txPool:::::", "txPool", eth.txPool)
 	// mpcPool deal with mpc transactions
 	// modify By J
-	if config.MPCPool.Journal != "" {
-		config.MPCPool.Journal = ctx.ResolvePath(config.MPCPool.Journal)
-	} else {
-		config.MPCPool.Journal = ctx.ResolvePath(core.DefaultMPCPoolConfig.Journal)
-	}
-	if config.MPCPool.Rejournal == 0 {
-		config.MPCPool.Rejournal = core.DefaultMPCPoolConfig.Rejournal
-	}
-	if config.MPCPool.Lifetime == 0 {
-		config.MPCPool.Lifetime = core.DefaultMPCPoolConfig.Lifetime
-	}
-	eth.mpcPool = core.NewMPCPool(config.MPCPool, eth.chainConfig, eth.blockchain)
-	eth.vcPool = core.NewVCPool(config.VCPool, eth.chainConfig, eth.blockchain)
+	//if config.MPCPool.Journal != "" {
+	//	config.MPCPool.Journal = ctx.ResolvePath(config.MPCPool.Journal)
+	//} else {
+	//	config.MPCPool.Journal = ctx.ResolvePath(core.DefaultMPCPoolConfig.Journal)
+	//}
+	//if config.MPCPool.Rejournal == 0 {
+	//	config.MPCPool.Rejournal = core.DefaultMPCPoolConfig.Rejournal
+	//}
+	//if config.MPCPool.Lifetime == 0 {
+	//	config.MPCPool.Lifetime = core.DefaultMPCPoolConfig.Lifetime
+	//}
+	//eth.mpcPool = core.NewMPCPool(config.MPCPool, eth.chainConfig, eth.blockchain)
+	//eth.vcPool = core.NewVCPool(config.VCPool, eth.chainConfig, eth.blockchain)
 
 	// modify by platon remove consensusCache
 	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
 	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
-
 
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
@@ -307,6 +306,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
 		chainConfig.Cbft.Duration = cbftConfig.Duration
 		chainConfig.Cbft.BlockInterval = cbftConfig.BlockInterval
+		chainConfig.Cbft.WalEnabled = cbftConfig.WalMode
 		return cbft.New(chainConfig.Cbft, eventMux, ctx)
 	}
 	return nil
@@ -574,7 +574,8 @@ func (s *Ethereum) Stop() error {
 	close(s.shutdownChan)
 	return nil
 }
+
 // TODO RegisterPlugin one by one
-func handlePlugin (reactor *core.BlockChainReactor, db xcom.SnapshotDB) {
+func handlePlugin(reactor *core.BlockChainReactor, db xcom.SnapshotDB) {
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance(db))
 }

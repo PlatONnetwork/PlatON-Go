@@ -41,7 +41,7 @@ matrix:
       go: 1.12.x
       script:
         - sh ./build/build_deps.sh
-        - go test `go list ./... | grep -v swarm|grep -v tests|grep -v bn256`
+        - go test  -tags=test `go list ./... | grep -v swarm|grep -v tests|grep -v bn256`
 
     # This builder run the auto tests
     - name: auto test
