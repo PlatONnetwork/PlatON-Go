@@ -220,6 +220,7 @@ func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
 
 func isWorker(extra []byte) bool {
 	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
+<<<<<<< HEAD
 }
 
 func (bcr *BlockChainReactor) PrepareResult(block *types.Block) (bool, error) {
@@ -229,4 +230,6 @@ func (bcr *BlockChainReactor) PrepareResult(block *types.Block) (bool, error) {
 		return false, err
 	}
 	return true, nil
+=======
+>>>>>>> update
 }
