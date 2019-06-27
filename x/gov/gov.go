@@ -36,12 +36,12 @@ func GovInstance() *Gov {
 }
 
 //获取预生效版本，可以返回nil
-func (gov *Gov) GetPreActiveVersion(state xcom.StateDB) uint {
+func (gov *Gov) GetPreActiveVersion(state xcom.StateDB) uint32 {
 	return govDB.GetPreActiveVersion(state)
 }
 
 //获取当前生效版本，不会返回nil
-func (gov *Gov) GetActiveVersion(state xcom.StateDB) uint {
+func (gov *Gov) GetActiveVersion(state xcom.StateDB) uint32 {
 	return govDB.GetActiveVersion(state)
 }
 
@@ -145,7 +145,7 @@ func isVerifier(proposer discover.NodeID, vList []discover.NodeID) bool {
 }
 
 //提交提案，只有验证人才能提交提案
-func (gov *Gov) Submit(from common.Address, proposal Proposal, state xcom.StateDB) common.Hash {
+func (gov *Gov) Submit(from common.Address, proposal Proposal, blockHash common.Hash, state xcom.StateDB) common.Hash {
 
 	//参数校验
 	if !proposal.Verify() {
@@ -205,7 +205,7 @@ func (gov *Gov) Submit(from common.Address, proposal Proposal, state xcom.StateD
 }
 
 //投票，只有验证人能投票
-func (gov *Gov) Vote(from common.Address, vote Vote, state *xcom.StateDB) bool {
+func (gov *Gov) Vote(from common.Address, vote Vote, blockHash common.Hash, state *xcom.StateDB) bool {
 
 	//判断vote.voteNodeID是否为Verifier
 	proposer := gov.govDB.GetProposal(vote.ProposalID, state).GetProposer()
@@ -245,7 +245,6 @@ func (gov *Gov) Vote(from common.Address, vote Vote, state *xcom.StateDB) bool {
 	if !gov.govDB.AddVotedVerifier(vote.ProposalID, &vote.VoteNodeID, state) {
 		return false
 	}
-
 	return true
 }
 
@@ -254,7 +253,7 @@ func getLargeVersion(version uint) uint {
 }
 
 //版本声明，验证人/候选人可以声明
-func (gov *Gov) DeclareVersion(from common.Address, declaredNodeID *discover.NodeID, version uint, state *xcom.StateDB) (bool, error) {
+func (gov *Gov) DeclareVersion(from common.Address, declaredNodeID *discover.NodeID, version uint, blockHash common.Hash) (bool, error) {
 
 	activeVersion := gov.govDB.GetActiveVersion(state)
 	if activeVersion <= 0 {
@@ -311,12 +310,13 @@ func (gov *Gov) GetTallyResult(proposalID common.Hash, state *xcom.StateDB) *Tal
 }
 
 //查询提案列表
-func (gov *Gov) ListProposal(state *xcom.StateDB) []*Proposal {
+func (gov *Gov) ListProposal(blockHash common.Hash, state xcom.StateDB) []*Proposal {
 	return nil
 }
 
 //投票结束时，进行投票计算
-func (gov *Gov) tally(proposalID common.Hash, state *xcom.StateDB) (bool, ProposalStatus) {
+
+func (gov *Gov) tally(proposalID common.Hash, blockHash common.Hash, state *xcom.StateDB) (bool, ProposalStatus) {
 	accuVerifiersData := (*state).GetState(vm.GovContractAddr, KeyAccuVerifiers(proposalID))
 	accuVerifiers := []discover.NodeID{}
 	MustDecoded(accuVerifiersData, accuVerifiers)
@@ -347,4 +347,5 @@ func (gov *Gov) tally(proposalID common.Hash, state *xcom.StateDB) (bool, Propos
 		return false, status
 	}
 	return true, status
+
 }
