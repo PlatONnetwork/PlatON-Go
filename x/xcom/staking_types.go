@@ -12,53 +12,55 @@ const (
 	#	  THE CANDIDATE  STATUS     #
 	######   ######   ######   ######
 	*/
-	Invalided = 1 << iota // 0001: The current candidate withdraws from the staking qualification
+	Invalided = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
 	Slashed               // 0010: The candidate was slashed
 	NotEnough             // 0100: The current candidate's von does not meet the minimum staking threshold
 	Valided   = 0         // 0000: The current candidate is in force
+
+	NotExist = 1 << 31    // 1000,xxxx,... : The candidate is not exist
 )
 
-func IsCan_Valid(status uint32) bool {
+func Is_Valid(status uint32) bool {
 	return status&Valided == Valided
 }
 
-func IsCan_Invalid(status uint32) bool {
+func Is_Invalid(status uint32) bool {
 	return status&Invalided == Invalided
 }
 
-func IsCan_PureInvalid(status uint32) bool {
+func Is_PureInvalid(status uint32) bool {
 	return status&Invalided == status|Invalided
 }
 
-func IsCan_Slashed(status uint32) bool {
+func Is_Slashed(status uint32) bool {
 	return status&Slashed == Slashed
 }
 
-func IsCan_PureSlashed(status uint32) bool {
+func Is_PureSlashed(status uint32) bool {
 	return status&Slashed == status|Slashed
 }
 
-func IsCan_NotEnough(status uint32) bool {
+func Is_NotEnough(status uint32) bool {
 	return status&NotEnough == NotEnough
 }
 
-func IsCand_idatePureNotEnough(status uint32) bool {
+func Is_idatePureNotEnough(status uint32) bool {
 	return status&NotEnough == status|NotEnough
 }
 
-func IsCan_Invalid_Slashed(status uint32) bool {
+func Is_Invalid_Slashed(status uint32) bool {
 	return status&(Invalided|Slashed) == (Invalided|Slashed)
 }
 
-func IsCan_Invalid_NotEnough(status uint32) bool {
+func Is_Invalid_NotEnough(status uint32) bool {
 	return status&(Invalided|NotEnough) == (Invalided|NotEnough)
 }
 
-func IsCan_Invalid_Slashed_NotEnough(status uint32) bool {
+func Is_Invalid_Slashed_NotEnough(status uint32) bool {
 	return status&(Invalided|Slashed|NotEnough) == (Invalided|Slashed|NotEnough)
 }
 
-func IsCan_Slashed_NotEnough(status uint32) bool {
+func Is_Slashed_NotEnough(status uint32) bool {
 	return status&(Slashed|NotEnough) == (Slashed|NotEnough)
 }
 
@@ -69,14 +71,25 @@ type Candidate struct {
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
 	BenifitAddress common.Address
-	// Block height at the time of staking
-	StakingBlockNum uint64
+
 	// The tx index at the time of staking
 	StakingTxIndex uint32
+
+	// The version of the node process
+	ProcessVersion 	uint32
+
+	// The candidate status
+	// Reference `THE CANDIDATE  STATUS`
+	Status uint32
+
+	// Block height at the time of staking
+	StakingBlockNum uint64
+
 	// The epoch number at staking or edit
 	StakingEpoch uint64
 	// All vons of staking and delegated
 	Shares *big.Int
+
 	// The staking von  is circulating for effective epoch (in effect)
 	Released *big.Int
 	// The staking von  is circulating for hesitant epoch (in hesitation)
@@ -85,14 +98,7 @@ type Candidate struct {
 	LockRepo *big.Int
 	// The staking von  is locked for hesitant epoch (in hesitation)
 	LockRepoTmp *big.Int
-	// Positive and negative signs:
-	// Is it an increase or a decrease? 0: increase; 1: decrease 2: invalided
-	// `invalided` means that the relevant information has been withdrew
-	Mark uint8
 
-	// The candidate status
-	// Reference `THE CANDIDATE  STATUS`
-	Status uint32
 
 	// Node desc
 	Description
@@ -108,6 +114,9 @@ type Description struct {
 	// Description of the node (with a length limit)
 	Details string
 }
+
+type CandidateQueue = []*Candidate
+
 
 // the Validator info
 // They are Simplified Candidate
@@ -125,6 +134,8 @@ type Validator struct {
 
 // some consensus round validators or current epoch validators
 type Validator_array struct {
+
+
 	// the round start blockNumber or epoch start blockNumber
 	Start uint64
 	// the round end blockNumber or epoch blockNumber
@@ -133,15 +144,22 @@ type Validator_array struct {
 	Arr []*Validator
 }
 
+type ValidatorEx struct {
+	*Candidate
+	// this is the term of validator in consensus round
+	// [0, N]
+	ValidatorTerm uint32
+}
+
+type ValidatorExQueue = []*ValidatorEx
+
 // the Delegate information
 type Delegation struct {
 	// The epoch number at delegate or edit
 	DelegateEpoch uint64
 
-	// Positive and negative signs:
-	// Is it an increase or a decrease? 0: increase; 1: decrease 2: invalided
-	// `invalided` means that the relevant information has been withdrew
-	Mark uint8
+	// Total amount in all cancellation plans
+	Reduction *big.Int
 
 	// The delegate von  is circulating for effective epoch (in effect)
 	Released *big.Int
@@ -151,4 +169,17 @@ type Delegation struct {
 	LockRepo *big.Int
 	// The delegate von  is locked for hesitant epoch (in hesitation)
 	LockRepoTmp *big.Int
+}
+
+
+/*type UnStakeItem struct {
+	// this is the nodeAddress
+	KeySuffix  	[]byte
+	Amount 		*big.Int
+}*/
+
+type UnDelegateItem struct {
+	// this is the `delegateAddress` + `nodeAddress` + `stakeBlockNumber`
+	KeySuffix 	[]byte
+	Amount 		*big.Int
 }

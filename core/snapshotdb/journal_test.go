@@ -15,7 +15,7 @@ func TestJournal(t *testing.T) {
 	initDB()
 	db := dbInstance
 	defer func() {
-		_, err := db.Clear()
+		err := db.Clear()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -42,6 +42,7 @@ func TestJournal(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	defer file.Close()
 	journals := journal.NewReader(file, nil, true, true)
 	r, err := journals.Next()
 	if err != nil {
@@ -84,4 +85,28 @@ func TestJournal(t *testing.T) {
 		t.Error(err)
 	}
 
+}
+
+func TestCloseJournalWriter(t *testing.T) {
+	f, err := ioutil.TempFile(os.TempDir(), "test_close*.log")
+	if err != nil {
+		t.Error(err)
+	}
+	jw := newJournalWriter(f)
+	writer, err := jw.journal.Next()
+	if err != nil {
+		t.Error(err)
+	}
+	if _, err := writer.Write([]byte("a")); err != nil {
+		t.Error("should write", err)
+	}
+	if err := jw.Close(); err != nil {
+		t.Error("should can close", err)
+	}
+	if _, err := jw.journal.Next(); err == nil {
+		t.Fatal(err)
+	}
+	if err := jw.writer.Close(); err == nil {
+		t.Error("should have be closed")
+	}
 }

@@ -8,7 +8,9 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 )
 
@@ -21,7 +23,7 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
 	t.Run("new recognized block", func(t *testing.T) {
-		_, err := dbInstance.NewBlock(big.NewInt(30), parentHash, currentHash)
+		err := dbInstance.NewBlock(big.NewInt(30), parentHash, currentHash)
 		if err != nil {
 			t.Error(err)
 		}
@@ -40,7 +42,7 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 		}
 	})
 	t.Run("new unrecognized block", func(t *testing.T) {
-		_, err := dbInstance.NewBlock(big.NewInt(30), parentHash, common.ZeroHash)
+		err := dbInstance.NewBlock(big.NewInt(30), parentHash, common.ZeroHash)
 		if err != nil {
 			t.Error(err)
 		}
@@ -52,38 +54,6 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 			t.Fatal("block number must same:", bd.Number, big.NewInt(30))
 		}
 	})
-}
-
-func TestSnapshotDB_Get2(t *testing.T) {
-	initDB()
-	//defer dbInstance.Clear()
-	if _, err := dbInstance.NewBlock(big.NewInt(1), rlpHash("commitHash"), common.ZeroHash); err != nil {
-		t.Error(err)
-	}
-	if _, err := dbInstance.Put(common.ZeroHash, []byte("a"), []byte("a")); err != nil {
-		t.Error(err)
-	}
-	if _, err := dbInstance.Put(common.ZeroHash, []byte("b"), []byte("b")); err != nil {
-		t.Error(err)
-	}
-	if _, err := dbInstance.Flush(rlpHash("commitHash2"), big.NewInt(1)); err != nil {
-		t.Error(err)
-	}
-
-	v, err := dbInstance.Get(rlpHash("commitHash2"), []byte("a"))
-	if err != nil {
-		t.Error(err)
-	}
-	if bytes.Compare(v, []byte("a")) != 0 {
-		t.Error("not compare", v)
-	}
-	v2, err := dbInstance.Get(rlpHash("commitHash2"), []byte("b"))
-	if err != nil {
-		t.Error(err)
-	}
-	if bytes.Compare(v2, []byte("b")) != 0 {
-		t.Error("not compare", v2)
-	}
 }
 
 func TestSnapshotDB_Get(t *testing.T) {
@@ -247,8 +217,11 @@ func TestSnapshotDB_Del(t *testing.T) {
 		}
 		unRecognized.data.Put(arr[0], arr[0])
 		dbInstance.unRecognized = &unRecognized
-		buf := new(bytes.Buffer)
-		dbInstance.journalw[dbInstance.getUnRecognizedHash()] = journal.NewWriter(buf)
+		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
+		if err != nil {
+			t.Error(err)
+		}
+		dbInstance.journalw[dbInstance.getUnRecognizedHash()] = newJournalWriter(f)
 	}
 	{
 		//recognized
@@ -261,7 +234,11 @@ func TestSnapshotDB_Del(t *testing.T) {
 		}
 		Recognized.data.Put(arr[1], arr[1])
 		dbInstance.recognized[recognizedHash] = Recognized
-		dbInstance.journalw[recognizedHash] = journal.NewWriter(new(bytes.Buffer))
+		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
+		if err != nil {
+			t.Error(err)
+		}
+		dbInstance.journalw[recognizedHash] = newJournalWriter(f)
 	}
 	{
 		//recognized by flush
@@ -274,7 +251,11 @@ func TestSnapshotDB_Del(t *testing.T) {
 		}
 		Recognized2.data.Put(arr[4], arr[4])
 		dbInstance.recognized[recognizedByFlushHash] = Recognized2
-		dbInstance.journalw[recognizedByFlushHash] = journal.NewWriter(new(bytes.Buffer))
+		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
+		if err != nil {
+			t.Error(err)
+		}
+		dbInstance.journalw[recognizedByFlushHash] = newJournalWriter(f)
 	}
 	{
 		//commit
@@ -287,7 +268,11 @@ func TestSnapshotDB_Del(t *testing.T) {
 		}
 		commit.data.Put(arr[2], arr[2])
 		dbInstance.committed = append(dbInstance.committed, commit)
-		dbInstance.journalw[commitHash] = journal.NewWriter(new(bytes.Buffer))
+		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
+		if err != nil {
+			t.Error(err)
+		}
+		dbInstance.journalw[commitHash] = newJournalWriter(f)
 	}
 	{
 		//baseDB
@@ -295,38 +280,26 @@ func TestSnapshotDB_Del(t *testing.T) {
 	}
 
 	t.Run("delete unrecognized", func(t *testing.T) {
-		ok, err := dbInstance.Del(common.ZeroHash, arr[0])
-		if !ok {
-			t.Error("return must be true")
-		}
+		err := dbInstance.Del(common.ZeroHash, arr[0])
 		if err != nil {
 			t.Error("err must be nil", err)
 		}
 	})
 	t.Run("delete recognized", func(t *testing.T) {
-		ok, err := dbInstance.Del(recognizedHash, arr[1])
-		if !ok {
-			t.Error("return must be true")
-		}
+		err := dbInstance.Del(recognizedHash, arr[1])
 		if err != nil {
 			t.Error("err must be nil", err)
 		}
 	})
 
 	t.Run("can't delete readonly", func(t *testing.T) {
-		ok, err := dbInstance.Del(recognizedByFlushHash, arr[4])
-		if ok {
-			t.Error("return must be false")
-		}
+		err := dbInstance.Del(recognizedByFlushHash, arr[4])
 		if err == nil {
 			t.Error("err must not nil", err)
 		}
 	})
 	t.Run("can't delete commit", func(t *testing.T) {
-		ok, err := dbInstance.Del(commitHash, arr[2])
-		if ok {
-			t.Error("return must be false")
-		}
+		err := dbInstance.Del(commitHash, arr[2])
 		if err == nil {
 			t.Error("err must not nil", err)
 		}
@@ -347,21 +320,21 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 	)
 	{
 		commitHash := recognizedHash
-		if _, err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
 		var str string
 		for i := 0; i < 4; i++ {
 			str += "a"
 			arr = append(arr, str)
-			if _, err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(commitHash, []byte("d"), []byte("d")); err != nil {
+		if err := dbInstance.Put(commitHash, []byte("d"), []byte("d")); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := dbInstance.Commit(commitHash); err != nil {
+		if err := dbInstance.Commit(commitHash); err != nil {
 			t.Fatal(err)
 		}
 		parenthash = commitHash
@@ -370,21 +343,21 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 
 	{
 		commitHash := rlpHash("recognizedHash2")
-		if _, err := dbInstance.NewBlock(big.NewInt(2), parenthash, commitHash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(2), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "b"
 			arr = append(arr, str)
-			if _, err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(commitHash, []byte("dd"), []byte("dd")); err != nil {
+		if err := dbInstance.Put(commitHash, []byte("dd"), []byte("dd")); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := dbInstance.Commit(commitHash); err != nil {
+		if err := dbInstance.Commit(commitHash); err != nil {
 			t.Fatal(err)
 		}
 		parenthash = commitHash
@@ -393,56 +366,56 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 
 	{
 		commitHash := rlpHash("recognizedHash3")
-		if _, err := dbInstance.NewBlock(big.NewInt(3), parenthash, commitHash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(3), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "c"
 			arr = append(arr, str)
-			if _, err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
+		if err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := dbInstance.Commit(commitHash); err != nil {
+		if err := dbInstance.Commit(commitHash); err != nil {
 			t.Fatal(err)
 		}
 		parenthash = commitHash
 	}
 	{
 		commitHash := rlpHash("recognizedHash4")
-		if _, err := dbInstance.NewBlock(big.NewInt(4), parenthash, commitHash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(4), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "e"
 			arr = append(arr, str)
-			if _, err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(commitHash, []byte("ee"), []byte("ee")); err != nil {
+		if err := dbInstance.Put(commitHash, []byte("ee"), []byte("ee")); err != nil {
 			t.Fatal(err)
 		}
 		parenthash = commitHash
 	}
 	{
-		if _, err := dbInstance.NewBlock(big.NewInt(5), parenthash, common.ZeroHash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(5), parenthash, common.ZeroHash); err != nil {
 			t.Fatal(err)
 		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "f"
 			arr = append(arr, str)
-			if _, err := dbInstance.Put(common.ZeroHash, []byte(str), []byte(str)); err != nil {
+			if err := dbInstance.Put(common.ZeroHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(common.ZeroHash, []byte("ff"), []byte("ff")); err != nil {
+		if err := dbInstance.Put(common.ZeroHash, []byte("ff"), []byte("ff")); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -499,21 +472,21 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	)
 	{
 		commitHash := recognizedHash
-		if _, err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
 		var str string
 		for i := 0; i < 4; i++ {
 			str += "a"
 			arr = append(arr, str)
-			if _, err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(commitHash, []byte("d"), []byte("d")); err != nil {
+		if err := dbInstance.Put(commitHash, []byte("d"), []byte("d")); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := dbInstance.Commit(commitHash); err != nil {
+		if err := dbInstance.Commit(commitHash); err != nil {
 			t.Fatal(err)
 		}
 		parenthash = commitHash
@@ -597,60 +570,66 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		commitHash     common.Hash
 		parenthash     common.Hash
 	)
+	t.Run("0 commit block with Compaction", func(t *testing.T) {
+		err := dbInstance.Compaction()
+		if err != nil {
+			t.Error(err)
+		}
+	})
 	{
-		_, err := dbInstance.NewBlock(big.NewInt(1), commitHash, recognizedHash)
+		err := dbInstance.NewBlock(big.NewInt(1), commitHash, recognizedHash)
 		if err != nil {
 			t.Fatal(err)
 		}
 		for i := 0; i < 3000; i++ {
-			_, err := dbInstance.Put(recognizedHash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i)))
+			err := dbInstance.Put(recognizedHash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i)))
 			if err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Commit(recognizedHash); err != nil {
+		if err := dbInstance.Commit(recognizedHash); err != nil {
 			t.Fatal(err)
 		}
 	}
 	{
 		currenthash := rlpHash(fmt.Sprint(2))
-		if _, err := dbInstance.NewBlock(big.NewInt(int64(2)), recognizedHash, currenthash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(int64(2)), recognizedHash, currenthash); err != nil {
 			t.Fatal(err)
 		}
 		for i := 3000; i < 3100; i++ {
-			if _, err := dbInstance.Put(currenthash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
+			if err := dbInstance.Put(currenthash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Commit(currenthash); err != nil {
+		if err := dbInstance.Commit(currenthash); err != nil {
 			t.Fatal(err)
 		}
 		parenthash = currenthash
 
 		currenthash = rlpHash(fmt.Sprint(3))
-		if _, err := dbInstance.NewBlock(big.NewInt(int64(3)), parenthash, currenthash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(int64(3)), parenthash, currenthash); err != nil {
 			t.Fatal(err)
 		}
 		for i := 3100; i < 3200; i++ {
-			if _, err := dbInstance.Put(currenthash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
+			if err := dbInstance.Put(currenthash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Commit(currenthash); err != nil {
+		if err := dbInstance.Commit(currenthash); err != nil {
 			t.Fatal(err)
 		}
 		parenthash = currenthash
 
 		currenthash = rlpHash(fmt.Sprint(4))
-		if _, err := dbInstance.NewBlock(big.NewInt(int64(4)), parenthash, currenthash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(int64(4)), parenthash, currenthash); err != nil {
 			t.Fatal(err)
 		}
 		for i := 3200; i < 4998; i++ {
-			if _, err := dbInstance.Put(currenthash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
+			if err := dbInstance.Put(currenthash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Commit(currenthash); err != nil {
+		if err := dbInstance.Commit(currenthash); err != nil {
 			t.Fatal(err)
 		}
 		parenthash = currenthash
@@ -658,26 +637,23 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 	{
 		for i := 5; i < 16; i++ {
 			currenthash := rlpHash(fmt.Sprint(i))
-			if _, err := dbInstance.NewBlock(big.NewInt(int64(i)), parenthash, currenthash); err != nil {
+			if err := dbInstance.NewBlock(big.NewInt(int64(i)), parenthash, currenthash); err != nil {
 				t.Fatal(err)
 			}
 			for j := 0; j < 20; j++ {
-				if _, err := dbInstance.Put(currenthash, []byte(fmt.Sprint(j)), []byte(fmt.Sprint(j))); err != nil {
+				if err := dbInstance.Put(currenthash, []byte(fmt.Sprint(j)), []byte(fmt.Sprint(j))); err != nil {
 					t.Fatal(err)
 				}
 			}
-			if _, err := dbInstance.Commit(currenthash); err != nil {
+			if err := dbInstance.Commit(currenthash); err != nil {
 				t.Fatal(err)
 			}
 		}
 	}
 	t.Run("a block kv>2000", func(t *testing.T) {
-		ok, err := dbInstance.Compaction()
+		err := dbInstance.Compaction()
 		if err != nil {
 			t.Error(err)
-		}
-		if !ok {
-			t.Error("should be ok")
 		}
 		if dbInstance.current.BaseNum.Int64() != 1 {
 			t.Error("must be 1", dbInstance.current.BaseNum)
@@ -696,12 +672,9 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		}
 	})
 	t.Run("kv<2000,block<10", func(t *testing.T) {
-		ok, err := dbInstance.Compaction()
+		err := dbInstance.Compaction()
 		if err != nil {
 			t.Error(err)
-		}
-		if !ok {
-			t.Error("should be ok")
 		}
 		if dbInstance.current.BaseNum.Int64() != 4 {
 			t.Error("must be 4", dbInstance.current.BaseNum)
@@ -720,12 +693,9 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		}
 	})
 	t.Run("kv<2000,block=10", func(t *testing.T) {
-		ok, err := dbInstance.Compaction()
+		err := dbInstance.Compaction()
 		if err != nil {
 			t.Error(err)
-		}
-		if !ok {
-			t.Error("should be ok")
 		}
 		if dbInstance.current.BaseNum.Int64() != 13 {
 			t.Error("must be 14", dbInstance.current.BaseNum)
@@ -741,7 +711,7 @@ func TestPutToUnRecognized(t *testing.T) {
 	initDB()
 	db := dbInstance
 	defer func() {
-		_, err := db.Clear()
+		err := db.Clear()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -752,19 +722,19 @@ func TestPutToUnRecognized(t *testing.T) {
 		[2]string{"C", "2wgewbrw2"},
 	}
 
-	if _, err := db.Put(common.ZeroHash, []byte("a"), []byte("b")); err == nil {
+	if err := db.Put(common.ZeroHash, []byte("a"), []byte("b")); err == nil {
 		t.Error("new block must call before put to UnRecognized")
 	}
 
 	//	currentHash := rlpHash("b")
-	if _, err := db.NewBlock(big.NewInt(20), parentHash, common.ZeroHash); err != nil {
+	if err := db.NewBlock(big.NewInt(20), parentHash, common.ZeroHash); err != nil {
 		t.Fatal(err)
 	}
 	var lastkvHash common.Hash
 	var lastkvHashs []common.Hash
 
 	for _, value := range data {
-		if _, err := db.Put(common.ZeroHash, []byte(value[0]), []byte(value[1])); err != nil {
+		if err := db.Put(common.ZeroHash, []byte(value[0]), []byte(value[1])); err != nil {
 			t.Fatal(err)
 		}
 		if bytes.Compare(db.GetLastKVHash(common.ZeroHash), db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash).Bytes()) != 0 {
@@ -838,7 +808,7 @@ func TestPutToRecognized(t *testing.T) {
 	initDB()
 	db := dbInstance
 	defer func() {
-		_, err := db.Clear()
+		err := db.Clear()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -850,13 +820,13 @@ func TestPutToRecognized(t *testing.T) {
 		[2]string{"C", "2wgewbrw2"},
 	}
 	currentHash := rlpHash("b")
-	if _, err := db.NewBlock(big.NewInt(20), parentHash, currentHash); err != nil {
+	if err := db.NewBlock(big.NewInt(20), parentHash, currentHash); err != nil {
 		t.Fatal(err)
 	}
 	var lastkvHash common.Hash
 	var lastkvHashs []common.Hash
 	for _, value := range data {
-		if _, err := db.Put(currentHash, []byte(value[0]), []byte(value[1])); err != nil {
+		if err := db.Put(currentHash, []byte(value[0]), []byte(value[1])); err != nil {
 			t.Fatal(err)
 		}
 		if bytes.Compare(db.GetLastKVHash(currentHash), db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash).Bytes()) != 0 {
@@ -934,7 +904,7 @@ func TestFlush(t *testing.T) {
 	initDB()
 	db := dbInstance
 	defer func() {
-		_, err := db.Clear()
+		err := db.Clear()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -946,16 +916,16 @@ func TestFlush(t *testing.T) {
 		[2]string{"b", "4421ffwef"},
 		[2]string{"C", "2wgewbrw2"},
 	}
-	if _, err := db.NewBlock(blockNumber, parentHash, common.ZeroHash); err != nil {
+	if err := db.NewBlock(blockNumber, parentHash, common.ZeroHash); err != nil {
 		t.Fatal(err)
 	}
 	for _, value := range data {
-		if _, err := db.Put(common.ZeroHash, []byte(value[0]), []byte(value[1])); err != nil {
+		if err := db.Put(common.ZeroHash, []byte(value[0]), []byte(value[1])); err != nil {
 			t.Fatal(err)
 		}
 	}
 	currentHash := rlpHash("b")
-	if _, err := db.Flush(currentHash, blockNumber); err != nil {
+	if err := db.Flush(currentHash, blockNumber); err != nil {
 		t.Fatal(err)
 	}
 	recognized, ok := db.recognized[currentHash]
@@ -1023,17 +993,17 @@ func TestFlush(t *testing.T) {
 		t.Fatal("unRecognized must be nil")
 	}
 
-	if _, err := db.NewBlock(blockNumber.Add(blockNumber, big.NewInt(1)), parentHash, common.ZeroHash); err != nil {
+	if err := db.NewBlock(blockNumber.Add(blockNumber, big.NewInt(1)), parentHash, common.ZeroHash); err != nil {
 		t.Fatal(err)
 	}
 	for _, value := range data {
-		if _, err := db.Put(common.ZeroHash, []byte(value[0]), []byte(value[1])); err != nil {
+		if err := db.Put(common.ZeroHash, []byte(value[0]), []byte(value[1])); err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	//已经flush的block无法被写入
-	if _, err := db.Put(currentHash, []byte("cccccccccc"), []byte("mmmmmmmmmmmm")); err == nil {
+	if err := db.Put(currentHash, []byte("cccccccccc"), []byte("mmmmmmmmmmmm")); err == nil {
 		t.Fatal("[SnapshotDB] can't update the block after flush")
 	}
 }
@@ -1042,7 +1012,7 @@ func TestCommit(t *testing.T) {
 	initDB()
 	db := dbInstance
 	defer func() {
-		_, err := db.Clear()
+		err := db.Clear()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1055,15 +1025,15 @@ func TestCommit(t *testing.T) {
 		[2]string{"b", "4421ffwef"},
 		[2]string{"C", "2wgewbrw2"},
 	}
-	if _, err := db.NewBlock(blockNumber, parentHash, currentHash); err != nil {
+	if err := db.NewBlock(blockNumber, parentHash, currentHash); err != nil {
 		t.Fatal(err)
 	}
 	for _, value := range data {
-		if _, err := db.Put(currentHash, []byte(value[0]), []byte(value[1])); err != nil {
+		if err := db.Put(currentHash, []byte(value[0]), []byte(value[1])); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if _, err := db.Commit(currentHash); err != nil {
+	if err := db.Commit(currentHash); err != nil {
 		t.Fatal("commit fail:", err)
 	}
 	if db.current.HighestNum.Cmp(blockNumber) != 0 {

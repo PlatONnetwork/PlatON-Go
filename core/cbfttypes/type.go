@@ -6,8 +6,9 @@ import (
 	"crypto/elliptic"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"math/big"
+
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -70,7 +71,6 @@ type RemoveValidatorEvent struct {
 
 type UpdateValidatorEvent struct{}
 
-
 type ValidateNode struct {
 	Index   int            `json:"index"`
 	Address common.Address `json:"-"`
@@ -79,12 +79,10 @@ type ValidateNode struct {
 
 type ValidateNodeMap map[discover.NodeID]*ValidateNode
 
-
 type Validators struct {
 	Nodes            ValidateNodeMap `json:"validateNodes"`
 	ValidBlockNumber uint64          `json:"-"`
 }
-
 
 func (vn *ValidateNode) String() string {
 	return fmt.Sprintf("{Index:%d Address:%s}", vn.Index, vn.Address.String())
@@ -103,8 +101,6 @@ func (vn *ValidateNode) Verify(data, sign []byte) bool {
 	return true
 }
 
-
-
 func (vnm ValidateNodeMap) String() string {
 	s := ""
 	for k, v := range vnm {
@@ -112,7 +108,6 @@ func (vnm ValidateNodeMap) String() string {
 	}
 	return s
 }
-
 
 func (vs *Validators) String() string {
 	return fmt.Sprintf("{Nodes:[%s] ValidBlockNumber:%d}", vs.Nodes, vs.ValidBlockNumber)

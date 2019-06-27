@@ -14,6 +14,7 @@ import (
 
 var _ = (*btHeaderMarshaling)(nil)
 
+// MarshalJSON marshals as JSON.
 func (b btHeader) MarshalJSON() ([]byte, error) {
 	type btHeader struct {
 		Bloom            types.Bloom
@@ -53,6 +54,7 @@ func (b btHeader) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&enc)
 }
 
+// UnmarshalJSON unmarshals from JSON.
 func (b *btHeader) UnmarshalJSON(input []byte) error {
 	type btHeader struct {
 		Bloom            *types.Bloom

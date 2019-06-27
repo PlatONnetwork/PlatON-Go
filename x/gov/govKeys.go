@@ -6,18 +6,17 @@ import (
 )
 
 var (
-	KeyDelimiter               = []byte(":")
-	keyPrefixProposal          = []byte("Proposal")
-	keyPrefixVote              = []byte("Vote")
-	keyPrefixTallyResult       = []byte("TallyResult")
-	keyPrefixVotingProposals   = []byte("VotingProposals")
-	keyPrefixEndProposals      = []byte("EndProposals")
+	KeyDelimiter             = []byte(":")
+	keyPrefixProposal        = []byte("Proposal")
+	keyPrefixVote            = []byte("Vote")
+	keyPrefixTallyResult     = []byte("TallyResult")
+	keyPrefixVotingProposals = []byte("VotingProposals")
+	keyPrefixEndProposals    = []byte("EndProposals")
 	//keyPrefixPreActiveProposal = []byte("PreActiveProposal")
-	keyPrefixPreActiveVersion  = []byte("PreActiveVersion")
-	keyPrefixActiveVersion     = []byte("ActiveVersion")
-	keyPrefixVotedVerifiers    = []byte("VotedVerifiers")
-	keyPrefixActiveNodes       = []byte("ActiveNodes")
-	keyPrefixAccuVerifiers     = []byte("AccuVerifiers")
+	keyPrefixPreActiveVersion = []byte("PreActiveVersion")
+	keyPrefixActiveVersion    = []byte("ActiveVersion")
+	keyPrefixDeclaredNodes    = []byte("DeclaredNodes")
+	keyPrefixTotalVerifiers   = []byte("TotalVerifiers")
 )
 
 // 提案的key
@@ -51,10 +50,9 @@ func KeyVotingProposals() []byte {
 }
 
 // 预生效提案ID的key
-func KeyPreActiveProposalID() []byte {
+func KeyPreActiveProposals() []byte {
 	return keyPrefixEndProposals
 }
-
 
 // 所有操作均结束的提案列表的key
 func KeyEndProposals() []byte {
@@ -71,26 +69,18 @@ func KeyPreActiveVersion() []byte {
 	return keyPrefixPreActiveVersion
 }
 
-// 已投票的验证人列表key
-func KeyVotedVerifier(proposalID common.Hash) []byte {
-	return bytes.Join([][]byte{
-		keyPrefixVotedVerifiers,
-		proposalID.Bytes(),
-	}, KeyDelimiter)
-}
-
 // 已升级节点列表的key
-func KeyActiveNodes(proposalID common.Hash) []byte {
+func KeyDeclaredNodes(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
-		keyPrefixActiveNodes,
+		keyPrefixDeclaredNodes,
 		proposalID.Bytes(),
 	}, KeyDelimiter)
 }
 
 // 提案投票期内累积的不同验证人的key
-func KeyAccuVerifiers(proposalID common.Hash) []byte {
+func KeyTotalVerifiers(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
-		keyPrefixAccuVerifiers,
+		keyPrefixTotalVerifiers,
 		proposalID.Bytes(),
 	}, KeyDelimiter)
 }
