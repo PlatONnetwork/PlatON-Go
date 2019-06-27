@@ -72,6 +72,7 @@ func IsSettlementPeriod (blockNumber uint64) bool {
 
 
 func IsYearEnd (blockNumber uint64) bool {
+	size := 12 * 30 * 4 * xcom.ConsensusSize * xcom.EpochSize
 
-	return false
+	return blockNumber > 0 && blockNumber % size == 0
 }

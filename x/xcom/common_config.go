@@ -7,7 +7,7 @@ const (
 	DefualtRule = iota
 	StakingRule
 	SlashingRule
-	LockrepoRule
+	RestrictingRule
 	AwardmgrRule
 
 	// ......
