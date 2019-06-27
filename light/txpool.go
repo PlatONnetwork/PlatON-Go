@@ -310,7 +310,7 @@ func (pool *TxPool) setNewHead(head *types.Header) {
 	m, r := txc.getLists()
 	pool.relay.NewHead(pool.head, m, r)
 	pool.homestead = pool.config.IsHomestead(head.Number)
-	pool.signer = types.MakeSigner(pool.config, head.Number)
+	pool.signer = types.NewEIP155Signer(pool.config.ChainID)
 }
 
 // Stop stops the light transaction pool

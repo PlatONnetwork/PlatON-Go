@@ -79,7 +79,7 @@ contract test {
 */
 
 func testChainGen(i int, block *core.BlockGen) {
-	signer := types.HomesteadSigner{}
+	signer := types.NewEIP155Signer(new(big.Int))
 
 	switch i {
 	case 0:
