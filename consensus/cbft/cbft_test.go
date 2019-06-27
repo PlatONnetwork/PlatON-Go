@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/core"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -867,7 +865,7 @@ func TestCbft_OnNewPrepareBlock(t *testing.T) {
 	assert.Nil(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation))
 
 	// test verify prepareBlock sign
-	p = makePrepareBlock(createBlock(node.privateKey, block.Hash(), block.NumberU64()+1), node,nil, nil)
+	p = makePrepareBlock(createBlock(node.privateKey, block.Hash(), block.NumberU64()+1), node, nil, nil)
 	p.ProposalIndex = 3
 	p.ProposalAddr = validators.validator(3).address
 	assert.EqualError(t, engine.OnNewPrepareBlock(node.nodeID, p, propagation), "sign error")
