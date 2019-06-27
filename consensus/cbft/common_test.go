@@ -4,6 +4,9 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"math/big"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -17,9 +20,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/deckarep/golang-set"
-	"math/big"
-	"time"
+	mapset "github.com/deckarep/golang-set"
 )
 
 var (
@@ -443,6 +444,7 @@ func makePrepareBlock(block *types.Block, owner *NodeData, view *viewChange, vie
 		ProposalIndex: uint32(owner.index),
 		ProposalAddr:  owner.address,
 	}
+
 	if view != nil {
 		p.View = view
 		p.Timestamp = view.Timestamp
@@ -450,6 +452,10 @@ func makePrepareBlock(block *types.Block, owner *NodeData, view *viewChange, vie
 	if len(viewChangeVotes) > 0 {
 		p.ViewChangeVotes = viewChangeVotes
 	}
+
+	buf, _ := p.CannibalizeBytes()
+	sign, _ := crypto.Sign(buf, owner.privateKey)
+	p.Signature.SetBytes(sign)
 	return p
 }
 
