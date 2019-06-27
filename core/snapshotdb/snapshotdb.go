@@ -10,7 +10,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/comparer"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"math/big"
@@ -74,7 +73,7 @@ type snapshotDB struct {
 	committed  []blockData
 	commitLock sync.RWMutex
 
-	journalw map[common.Hash]*journal.Writer
+	journalw map[common.Hash]*journalWriter
 	storage  storage
 
 	corn *cron.Cron
@@ -377,7 +376,7 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) (bool, error)
 		return false, err
 	}
 	if err := s.storage.Rename(oldFd, newFd); err != nil {
-		return false, errors.New("[snapshotdb]rename fiel fail:" + oldFd.String() + "," + newFd.String() + "," + err.Error())
+		return false, errors.New("[snapshotdb]rename file fail:" + oldFd.String() + "," + newFd.String() + "," + err.Error())
 	}
 	s.unRecognized.BlockHash = hash
 	s.unRecognized.readOnly = true
