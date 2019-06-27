@@ -37,12 +37,12 @@ func GovInstance() *Gov {
 
 //获取预生效版本，可以返回nil
 func (gov *Gov) GetPreActiveVersion(state xcom.StateDB) uint32 {
-	return govDB.GetPreActiveVersion(state)
+	return govDB.getPreActiveVersion(state)
 }
 
 //获取当前生效版本，不会返回nil
 func (gov *Gov) GetActiveVersion(state xcom.StateDB) uint32 {
-	return govDB.GetActiveVersion(state)
+	return govDB.getActiveVersion(state)
 }
 
 //实现BasePlugin
