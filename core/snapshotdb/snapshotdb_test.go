@@ -8,7 +8,9 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 )
 
@@ -52,38 +54,6 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 			t.Fatal("block number must same:", bd.Number, big.NewInt(30))
 		}
 	})
-}
-
-func TestSnapshotDB_Get2(t *testing.T) {
-	initDB()
-	//defer dbInstance.Clear()
-	if _, err := dbInstance.NewBlock(big.NewInt(1), rlpHash("commitHash"), common.ZeroHash); err != nil {
-		t.Error(err)
-	}
-	if _, err := dbInstance.Put(common.ZeroHash, []byte("a"), []byte("a")); err != nil {
-		t.Error(err)
-	}
-	if _, err := dbInstance.Put(common.ZeroHash, []byte("b"), []byte("b")); err != nil {
-		t.Error(err)
-	}
-	if _, err := dbInstance.Flush(rlpHash("commitHash2"), big.NewInt(1)); err != nil {
-		t.Error(err)
-	}
-
-	v, err := dbInstance.Get(rlpHash("commitHash2"), []byte("a"))
-	if err != nil {
-		t.Error(err)
-	}
-	if bytes.Compare(v, []byte("a")) != 0 {
-		t.Error("not compare", v)
-	}
-	v2, err := dbInstance.Get(rlpHash("commitHash2"), []byte("b"))
-	if err != nil {
-		t.Error(err)
-	}
-	if bytes.Compare(v2, []byte("b")) != 0 {
-		t.Error("not compare", v2)
-	}
 }
 
 func TestSnapshotDB_Get(t *testing.T) {
@@ -247,8 +217,11 @@ func TestSnapshotDB_Del(t *testing.T) {
 		}
 		unRecognized.data.Put(arr[0], arr[0])
 		dbInstance.unRecognized = &unRecognized
-		buf := new(bytes.Buffer)
-		dbInstance.journalw[dbInstance.getUnRecognizedHash()] = journal.NewWriter(buf)
+		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
+		if err != nil {
+			t.Error(err)
+		}
+		dbInstance.journalw[dbInstance.getUnRecognizedHash()] = newJournalWriter(f)
 	}
 	{
 		//recognized
@@ -261,7 +234,11 @@ func TestSnapshotDB_Del(t *testing.T) {
 		}
 		Recognized.data.Put(arr[1], arr[1])
 		dbInstance.recognized[recognizedHash] = Recognized
-		dbInstance.journalw[recognizedHash] = journal.NewWriter(new(bytes.Buffer))
+		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
+		if err != nil {
+			t.Error(err)
+		}
+		dbInstance.journalw[recognizedHash] = newJournalWriter(f)
 	}
 	{
 		//recognized by flush
@@ -274,7 +251,11 @@ func TestSnapshotDB_Del(t *testing.T) {
 		}
 		Recognized2.data.Put(arr[4], arr[4])
 		dbInstance.recognized[recognizedByFlushHash] = Recognized2
-		dbInstance.journalw[recognizedByFlushHash] = journal.NewWriter(new(bytes.Buffer))
+		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
+		if err != nil {
+			t.Error(err)
+		}
+		dbInstance.journalw[recognizedByFlushHash] = newJournalWriter(f)
 	}
 	{
 		//commit
@@ -287,7 +268,11 @@ func TestSnapshotDB_Del(t *testing.T) {
 		}
 		commit.data.Put(arr[2], arr[2])
 		dbInstance.committed = append(dbInstance.committed, commit)
-		dbInstance.journalw[commitHash] = journal.NewWriter(new(bytes.Buffer))
+		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
+		if err != nil {
+			t.Error(err)
+		}
+		dbInstance.journalw[commitHash] = newJournalWriter(f)
 	}
 	{
 		//baseDB
