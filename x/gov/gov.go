@@ -328,9 +328,8 @@ func (gov *Gov) tally(proposalID common.Hash, state *xcom.StateDB) (bool, Propos
 	votedVerifierCnt := uint16(len(votedVerifier))
 
 	status := Voting
-	supportRate := votedVerifierCnt / accuVerifiersCnt
-	//TODO change 25 to config number
-	if supportRate > 25 {
+	supportRate := uint8(votedVerifierCnt / accuVerifiersCnt)
+	if supportRate > MinConsensusNodes {
 		status = PreActive
 	} else {
 		status = Failed
