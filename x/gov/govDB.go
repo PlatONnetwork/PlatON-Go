@@ -99,17 +99,17 @@ func (self *GovDB) getProposalList(blockHash common.Hash, state xcom.StateDB) ([
 }
 
 //保存投票记录
-func (self *GovDB) setVote(proposalID common.Hash, voter *discover.NodeID, option VoteOption, state xcom.StateDB) bool {
-	value := state.GetState(vm.GovContractAddr, KeyVote(proposalID))
-	var vvList []VoteValue
-
-	vv := VoteValue{*voter, option}
-
-	vvList = append(vvList, vv)
-
-	state.SetState(vm.GovContractAddr, KeyVote(proposalID), vvList)
-	return true
-}
+//func (self *GovDB) setVote(proposalID common.Hash, voter *discover.NodeID, option VoteOption, state xcom.StateDB) bool {
+//	value := state.GetState(vm.GovContractAddr, KeyVote(proposalID))
+//	var vvList []VoteValue
+//
+//	vv := VoteValue{*voter, option}
+//
+//	vvList = append(vvList, vv)
+//
+//	state.SetState(vm.GovContractAddr, KeyVote(proposalID), vvList)
+//	return true
+//}
 
 //// 查询投票记录
 //func (self *GovDB) ListVote(proposalID common.Hash, state xcom.StateDB) []*Vote {
