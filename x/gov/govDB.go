@@ -6,6 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -29,7 +30,7 @@ type GovDB struct {
 	snapdb   GovSnapshotDB
 }
 
-func NewGovDB(snapdb xcom.SnapshotDB) *GovDB {
+func NewGovDB(snapdb snapshotdb.DB) *GovDB {
 	dbOnce.Do(func() {
 		govDB = &GovDB{snapdb: GovSnapshotDB{snapdb}}
 	})
