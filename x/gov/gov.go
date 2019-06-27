@@ -8,7 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	vm2 "github.com/simonhsj/PlatON-Go/core/vm"
+	"math/big"
 	"sync"
 )
 
@@ -48,6 +48,7 @@ func (gov *Gov) GetActiveVersion(state xcom.StateDB) uint32 {
 //实现BasePlugin
 func (gov *Gov) BeginBlock(blockHash common.Hash, state xcom.StateDB) (bool, error) {
 	//是否当前结算的结束
+	//TODO
 	if plugin.StakingInstance.isEndofSettleCycle(blockHash) {
 		curVerifierList := plugin.StakingInstance(nil).GetVerifierList(state)
 		votingProposalIDs := gov.govDB.ListVotingProposalID(state)
@@ -64,13 +65,13 @@ func (gov *Gov) BeginBlock(blockHash common.Hash, state xcom.StateDB) (bool, err
 	return true, nil
 }
 
-func (gov *Gov) EndBlock(blockHash common.Hash, state xcom.StateDB, evm *vm2.EVM) (bool, error) {
+func (gov *Gov) EndBlock(blockHash common.Hash, state xcom.StateDB, curBlockNum *big.Int) (bool, error) {
 
 	votingProposalIDs := gov.govDB.ListVotingProposalID(state)
 	if len(votingProposalIDs) > 0 {
 		for _, votingProposalID := range votingProposalIDs {
 			votingProposal := gov.govDB.GetProposal(votingProposalID, state)
-			if votingProposal.GetEndVotingBlock() == evm.BlockNumber {
+			if votingProposal.GetEndVotingBlock() == curBlockNum {
 				if !staking.isEndofSettleCycle(blockHash) {
 					//TODO:
 					curVerifierList := plugin.StakingInstance(nil).GetVerifierList(state)
@@ -80,7 +81,7 @@ func (gov *Gov) EndBlock(blockHash common.Hash, state xcom.StateDB, evm *vm2.EVM
 						return false, err
 					}
 				}
-				ok, status := gov.tally(votingProposalID, &state)
+				ok, status := gov.tally(votingProposalID, blockHash, &state)
 				if !ok {
 					var err error = errors.New("[GOV] EndBlock(): tally failed.")
 					return false, err
@@ -145,30 +146,36 @@ func isVerifier(proposer discover.NodeID, vList []discover.NodeID) bool {
 }
 
 //提交提案，只有验证人才能提交提案
-func (gov *Gov) Submit(from common.Address, proposal Proposal, blockHash common.Hash, state xcom.StateDB) common.Hash {
+func (gov *Gov) Submit(curBlockNum *big.Int, from common.Address, proposal Proposal, blockHash common.Hash, state xcom.StateDB) (bool, error) {
+
+	//TODO 检查交易发起人的Address和NodeID是否对应；
+	if !plugin.StakingInstance(nil).isAdressCorrespondingToNodeID(from, proposal.GetProposer()) {
+		var err error = errors.New("[GOV] Submit(): tx sender is not the declare proposer.")
+		return false, err
+	}
 
 	//参数校验
-	if !proposal.Verify() {
-		log.Error("[GOV] Submit(): param error.")
-		return state.TxHash()
+	if !proposal.Verify(curBlockNum, state) {
+		var err error = errors.New("[GOV] Submit(): param error.")
+		return false, err
 	}
 
 	//判断proposer是否为Verifier
 	//TODO
 	verifierList, err := plugin.StakingInstance(nil).GetVerifierList(state)
 	if err != nil {
-		return state.TxHash()
+		var err error = errors.New("[GOV] Submit(): get verifier list failed.")
+		return false, err
 	}
-
 	if !isVerifier(proposal.GetProposer(), verifierList) {
-		log.Error("[GOV] Submit(): proposer is not verifier.")
-		return state.TxHash()
+		var err error = errors.New("[GOV] Submit(): proposer is not verifier.")
+		return false, err
 	}
 
 	//1.文本提案处理
 	_, ok := proposal.(TextProposal)
 	if ok {
-		return state.TxHash()
+		return true, nil
 	}
 
 	//2. 版本提案处理
@@ -179,45 +186,58 @@ func (gov *Gov) Submit(from common.Address, proposal Proposal, blockHash common.
 			votingProposal := gov.govDB.GetProposal(votingProposalID, state)
 			_, ok := votingProposal.(VersionProposal)
 			if ok {
-				log.Error("[GOV] Submit(): existing a voting version proposal.")
-				return state.TxHash()
+				var err error = errors.New("[GOV] Submit(): existing a voting version proposal.")
+				return false, err
 			}
 		}
 	}
 	//判断是否有VersionProposal正在Pre-active阶段，有则退出
 	if len(gov.govDB.GetPreActiveProposalID(state)) > 0 {
-		log.Error("[GOV] Submit(): existing a pre-active version proposal.")
-		return state.TxHash()
+		var err error = errors.New("[GOV] Submit(): existing a pre-active version proposal.")
+		return false, err
 	}
 
 	//持久化相关
 	ok = gov.govDB.SetProposal(proposal, state)
 	if !ok {
-		log.Error("[GOV] Submit(): set proposal failed.")
-		return state.TxHash()
+		var err error = errors.New("[GOV] Submit(): set proposal failed.")
+		return false, err
 	}
 	ok = gov.govDB.AddVotingProposalID(proposal.GetProposalID(), state)
 	if !ok {
-		log.Error("[GOV] Submit(): add VotingProposalID failed.")
-		return state.TxHash()
+		var err error = errors.New("[GOV] Submit(): add VotingProposalID failed.")
+		return false, err
 	}
-	return state.TxHash()
+	return true, nil
 }
 
 //投票，只有验证人能投票
-func (gov *Gov) Vote(from common.Address, vote Vote, blockHash common.Hash, state *xcom.StateDB) bool {
+func (gov *Gov) Vote(from common.Address, vote Vote, blockHash common.Hash, state *xcom.StateDB) (bool, error) {
+
+	if len(vote.ProposalID) == 0 || len(vote.VoteNodeID) == 0 || vote.VoteOption == 0 {
+		var err error = errors.New("[GOV] Vote(): empty parameter detected.")
+		return false, err
+	}
+
+	//TODO: Staking Plugin
+	//检查交易发起人的Address和NodeID是否对应；
+	if !plugin.StakingInstance(nil).isAdressCorrespondingToNodeID(from, proposal.GetProposer()) {
+		var err error = errors.New("[GOV] Vote(): tx sender is not the declare proposer.")
+		return false, err
+	}
 
 	//判断vote.voteNodeID是否为Verifier
 	proposer := gov.govDB.GetProposal(vote.ProposalID, state).GetProposer()
-	//TODO
+	//TODO: Staking Plugin
 	if !isVerifier(proposer, verifierList) {
-		return false
-
+		var err error = errors.New("[GOV] Vote(): proposer is not verifier.")
+		return false, err
 	}
 
 	//voteOption范围检查
 	if vote.VoteOption <= Yes && vote.VoteOption >= Abstention {
-		return false
+		var err error = errors.New("[GOV] Vote(): VoteOption invalid.")
+		return false, err
 	}
 
 	//判断vote.proposalID是否存在voting中
@@ -229,33 +249,36 @@ func (gov *Gov) Vote(from common.Address, vote Vote, blockHash common.Hash, stat
 		}
 		return false
 	}
-
 	votingProposalIDs := gov.govDB.ListVotingProposalID(state)
 	if !isVoting(vote.ProposalID, votingProposalIDs) {
-		return false
+		var err error = errors.New("[GOV] Vote(): vote.proposalID is not in voting.")
+		return false, err
 	}
 
 	//持久化相关
 	if !gov.govDB.SetVote(vote.ProposalID, &vote.VoteNodeID, vote.VoteOption, state) {
-		return false
+		var err error = errors.New("[GOV] Vote(): Set vote failed.")
+		return false, err
 	}
 	if !gov.govDB.AddActiveNode(&vote.VoteNodeID, state) {
-		return false
+		var err error = errors.New("[GOV] Vote(): Add activeNode failed.")
+		return false, err
 	}
 	if !gov.govDB.AddVotedVerifier(vote.ProposalID, &vote.VoteNodeID, state) {
-		return false
+		var err error = errors.New("[GOV] Vote(): Add VotedVerifier failed.")
+		return false, err
 	}
-	return true
+	return true, nil
 }
 
 func getLargeVersion(version uint) uint {
-	return version & 0
+	return version >> 8
 }
 
 //版本声明，验证人/候选人可以声明
-func (gov *Gov) DeclareVersion(from common.Address, declaredNodeID *discover.NodeID, version uint, blockHash common.Hash) (bool, error) {
+func (gov *Gov) DeclareVersion(from common.Address, declaredNodeID *discover.NodeID, version uint, blockHash common.Hash, state *xcom.StateDB) (bool, error) {
 
-	activeVersion := gov.govDB.GetActiveVersion(state)
+	activeVersion := uint(gov.govDB.GetActiveVersion(state))
 	if activeVersion <= 0 {
 		var err error = errors.New("[GOV] DeclareVersion(): add active version failed.")
 		return false, err

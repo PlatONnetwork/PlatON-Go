@@ -1,9 +1,11 @@
 package gov
 
 import (
+	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 )
 
@@ -78,7 +80,7 @@ type Proposal interface {
 	SetTallyResult(tallyResult TallyResult)
 	GetTallyResult() TallyResult
 
-	Verify() bool
+	Verify(curBlockNum *big.Int, state xcom.StateDB) bool
 
 	String() string
 }
@@ -176,7 +178,8 @@ func (tp TextProposal) GetTallyResult() TallyResult {
 	return tp.Result
 }
 
-func (tp TextProposal) Verify() bool {
+func (tp TextProposal) Verify(curBlockNum *big.Int, state xcom.StateDB) bool {
+
 	return true
 }
 
@@ -212,8 +215,51 @@ func (vp VersionProposal) GetActiveBlock() *big.Int {
 	return vp.ActiveBlock
 }
 
-func (vp VersionProposal) Verify() bool {
-	return true
+func (vp VersionProposal) Verify(curBlockNum *big.Int, state xcom.StateDB) (bool, error) {
+	if len(vp.ProposalID) == 0 || nil != gov.govDB.GetProposal(vp.ProposalID, state) {
+		var err error = errors.New("[GOV] Verify(): ProposalID is empty or ProposalID already used.")
+		return false, err
+	}
+	if len(vp.Proposer) == 0 {
+		var err error = errors.New("[GOV] Verify(): Proposer is empty.")
+		return false, err
+	}
+	if vp.ProposalType != 0x02 {
+		var err error = errors.New("[GOV] Verify(): Proposal Type error.")
+		return false, err
+	}
+	if len(vp.Topic) == 0 || len(vp.Topic) > 128 {
+		var err error = errors.New("[GOV] Verify(): Topic is empty or larger than 128.")
+		return false, err
+	}
+	if len(vp.Desc) > 512 {
+		var err error = errors.New("[GOV] Verify(): Description too long.")
+		return false, err
+	}
+	if len(vp.GithubID) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetGithubID() {
+		var err error = errors.New("[GOV] Verify(): GithubID empty or duplicated.")
+		return false, err
+	}
+	if len(vp.Url) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetUrl() {
+		var err error = errors.New("[GOV] Verify(): Github URL empty or duplicated.")
+		return false, err
+	}
+	//TODO
+	if vp.EndVotingBlock == big.NewInt(0) || vp.EndVotingBlock.Cmp(curBlockNum.Add(curBlockNum, twoWeek)) > 0 {
+		var err error = errors.New("[GOV] Verify(): Github URL empty or duplicated.")
+		return false, err
+	}
+	if vp.NewVersion>>8 <= uint(gov.govDB.GetActiveVersion(state))>>8 {
+		var err error = errors.New("[GOV] Verify(): NewVersion should larger than current version.")
+		return false, err
+	}
+	//TODO
+	if vp.ActiveBlock == big.NewInt(0) || vp.ActiveBlock.Cmp(fourRoundConsensus) <= 4 || vp.ActiveBlock.Cmp(fourRoundConsensus) >= 10 {
+		var err error = errors.New("[GOV] Verify(): invalid ActiveBlock.")
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (vp VersionProposal) String() string {
