@@ -146,7 +146,6 @@ func makeGenesis(faucets []*ecdsa.PrivateKey, sealers []*ecdsa.PrivateKey) *core
 	genesis.GasLimit = 3150000000
 
 	genesis.Config.ChainID = big.NewInt(304)
-	genesis.Config.EIP150Hash = common.Hash{}
 	genesis.Config.Cbft.Duration = 10
 
 	genesis.Alloc = core.GenesisAlloc{}
