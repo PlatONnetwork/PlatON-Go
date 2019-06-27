@@ -7,7 +7,7 @@ import (
 )
 
 type blockData struct {
-	BlockHash  *common.Hash
+	BlockHash  common.Hash
 	ParentHash common.Hash
 	Number     *big.Int
 	data       *memdb.DB
