@@ -2,147 +2,205 @@
 package byteutil
 
 import (
-	"bytes"
-	"encoding/binary"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
-	"strings"
 )
 
-var Command = map[string]interface{}{
-	"string":            BytesToString,
-	"[]uint8":           OriginBytes,
-	"[64]uint8":         BytesTo64Bytes,
-	"[32]uint8":         BytesTo32Bytes,
-	"int":               BytesToInt,
-	"*big.Int":          BytesToBigInt,
-	"uint16":			 BytesToUint16,
+var Bytes2X_CMD = map[string]interface{}{
+	"string":   		 BytesToString,
+	"[8]byte":  		 BytesTo8Bytes,
+	"[16]byte": 		 BytesTo16Bytes,
+	"[32]byte": 		 BytesTo32Bytes,
+	"[64]byte": 		 BytesTo64Bytes,
+
+	"uint8":             BytesToUint8,
+	"uint16":            BytesToUint16,
 	"uint32":            BytesToUint32,
 	"uint64":            BytesToUint64,
-	"int32":             common.BytesToInt32,
-	"int64":             common.BytesToInt64,
-	"float32":           common.BytesToFloat32,
-	"float64":           common.BytesToFloat64,
+
+	"*big.Int":          BytesToBigInt,
+	"[]*big.Int":        BytesToBigIntArr,
 	"discover.NodeID":   BytesToNodeId,
-	"[]discover.NodeID": ArrBytesToNodeId,
+	"[]discover.NodeID": BytesToNodeIdArr,
 	"common.Hash":       BytesToHash,
-	"[]common.Hash":     ArrBytesToHash,
+	"[]common.Hash":     BytesToHashArr,
 	"common.Address":    BytesToAddress,
+	"[]common.Address":  BytesToAddressArr,
 }
 
+func BytesToString(curByte []byte) string {
+	//return string(curByte)
+	var str string
+	if err := rlp.DecodeBytes(curByte, &str); nil != err {
+		panic("BytesToString:" + err.Error())
+	}
+	return str
+}
 
-func BytesToAddress(curByte []byte) common.Address {
-	str := BytesToString(curByte)
-	return common.HexToAddress(str)
-	//var addr common.Address
-	//rlp.DecodeBytes(curByte, addr)
+func BytesTo8Bytes(curByte []byte) [8]byte {
+	var arr [8]byte
+	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
+		panic("BytesTo8Bytes:" + err.Error())
+	}
+	return arr
+}
+
+func BytesTo16Bytes(curByte []byte) [16]byte {
+	var arr [16]byte
+	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
+		panic("BytesTo16Bytes:" + err.Error())
+	}
+	return arr
+}
+
+func BytesTo32Bytes(curByte []byte) [32]byte {
+	/*var arr [32]byte
+	copy(arr[:], curByte)
+	return arr*/
+	var arr [32]byte
+	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
+		panic("BytesTo32Bytes:" + err.Error())
+	}
+	return arr
+}
+
+func BytesTo64Bytes(curByte []byte) [64]byte {
+	/*var arr [64]byte
+	copy(arr[:], curByte)
+	return arr*/
+	var arr [64]byte
+	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
+		panic("BytesTo64Bytes:" + err.Error())
+	}
+	return arr
+}
+
+func BytesToUint8(b []byte) uint8 {
+	var x uint8
+	if err := rlp.DecodeBytes(b, &x); nil != err {
+		panic("BytesToUint8:" + err.Error())
+	}
+	return x
+}
+
+func BytesToUint16(b []byte) uint16 {
+	/*b = append(make([]byte, 2-len(b)), b...)
+	return binary.BigEndian.Uint16(b)*/
+	var x uint16
+	if err := rlp.DecodeBytes(b, &x); nil != err {
+		panic("BytesToUint16:" + err.Error())
+	}
+	return x
+}
+
+func BytesToUint32(b []byte) uint32 {
+	/*b = append(make([]byte, 4-len(b)), b...)
+	return binary.BigEndian.Uint32(b)*/
+	var x uint32
+	if err := rlp.DecodeBytes(b, &x); nil != err {
+		panic("BytesToUint32:" + err.Error())
+	}
+	return x
+}
+
+func BytesToUint64(b []byte) uint64 {
+	/*b = append(make([]byte, 8-len(b)), b...)
+	return binary.BigEndian.Uint64(b)*/
+	var x uint64
+	if err := rlp.DecodeBytes(b, &x); nil != err {
+		panic("BytesToUint64:" + err.Error())
+	}
+	return x
+}
+
+func BytesToBigInt(curByte []byte) *big.Int {
+	//return new(big.Int).SetBytes(curByte)
+	var bigInt *big.Int
+	if err := rlp.DecodeBytes(curByte, &bigInt); nil != err {
+		panic("BytesToBigInt:" + err.Error())
+	}
+	return bigInt
+}
+
+func BytesToBigIntArr(curByte []byte) []*big.Int {
+	var arr []*big.Int
+	if err := rlp.DecodeBytes(curByte, &arr); nil != err {
+		panic("BytesToBigIntArr:" + err.Error())
+	}
+	return arr
 }
 
 func BytesToNodeId(curByte []byte) discover.NodeID {
-	str := BytesToString(curByte)
-	nodeId, _ := discover.HexID(str)
+	//str := BytesToString(curByte)
+	//nodeId, _ := discover.HexID(str)
+	//return nodeId
+	var nodeId discover.NodeID
+	if err := rlp.DecodeBytes(curByte, &nodeId); nil != err {
+		panic("BytesToNodeId:" + err.Error())
+	}
 	return nodeId
 }
 
-func BytesToHash(curByte []byte) common.Hash {
-	str := BytesToString(curByte)
-	return common.HexToHash(str)
-}
-
-func ArrBytesToHash(curByte []byte) []common.Hash {
-	str := BytesToString(curByte)
-	strArr := strings.Split(str, ":")
-	var AHash []common.Hash
-	for i := 0; i < len(strArr); i++ {
-		AHash = append(AHash, common.HexToHash(strArr[i]))
-	}
-	return AHash
-}
-
-func ArrBytesToNodeId(curByte []byte) []discover.NodeID {
-	str := BytesToString(curByte)
+func BytesToNodeIdArr(curByte []byte) []discover.NodeID {
+	/*str := BytesToString(curByte)
 	strArr := strings.Split(str, ":")
 	var ANodeID []discover.NodeID
 	for i := 0; i < len(strArr); i++ {
 		nodeId, _ := discover.HexID(strArr[i])
 		ANodeID = append(ANodeID, nodeId)
 	}
-	return ANodeID
+	return ANodeID*/
+	var nodeIdArr []discover.NodeID
+	if err := rlp.DecodeBytes(curByte, &nodeIdArr); nil != err {
+		panic("BytesToNodeIdArr:" + err.Error())
+	}
+	return nodeIdArr
 }
 
-func BytesTo32Bytes(curByte []byte) [32]byte {
-	var arr [32]byte
-	copy(arr[:], curByte)
-	return arr
+func BytesToHash(curByte []byte) common.Hash {
+	//str := BytesToString(curByte)
+	//return common.HexToHash(str)
+	var hash common.Hash
+	if err := rlp.DecodeBytes(curByte, &hash); nil != err {
+		panic("BytesToHash:" + err.Error())
+	}
+	return hash
 }
 
-func BytesTo64Bytes(curByte []byte) [64]byte {
-	var arr [64]byte
-	copy(arr[:], curByte)
-	return arr
+func BytesToHashArr(curByte []byte) []common.Hash {
+	/*str := BytesToString(curByte)
+	strArr := strings.Split(str, ":")
+	var AHash []common.Hash
+	for i := 0; i < len(strArr); i++ {
+		AHash = append(AHash, common.HexToHash(strArr[i]))
+	}
+	return AHash*/
+
+	var hashArr []common.Hash
+	if err := rlp.DecodeBytes(curByte, &hashArr); nil != err {
+		panic("BytesToHashArr:" + err.Error())
+	}
+	return hashArr
 }
 
-func OriginBytes(curByte []byte) []byte {
-	return curByte
+func BytesToAddress(curByte []byte) common.Address {
+	//str := BytesToString(curByte)
+	//return common.HexToAddress(str)
+	var addr common.Address
+	if err := rlp.DecodeBytes(curByte, &addr); nil != err {
+		panic("BytesToAddress:" + err.Error())
+	}
+	return addr
 }
 
-func BytesToBigInt(curByte []byte) *big.Int {
-	return new(big.Int).SetBytes(curByte)
-}
-
-func BytesToInt(curByte []byte) int {
-	bytesBuffer := bytes.NewBuffer(curByte)
-	var x int32
-	binary.Read(bytesBuffer, binary.BigEndian, &x)
-	b := int(x)
-	return b
-}
-
-func BytesToString(curByte []byte) string {
-	return string(curByte)
-}
-
-func IntToBytes(curInt int) []byte {
-	x := int32(curInt)
-	bytesBuffer := bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.BigEndian, &x)
-	return bytesBuffer.Bytes()
-}
-
-func Uint16ToBytes(val uint16) []byte {
-	buf := make([]byte, 2)
-	binary.BigEndian.PutUint16(buf, val)
-	return buf[:]
-}
-
-func Uint32ToBytes(val uint32) []byte {
-	buf := make([]byte, 4)
-	binary.BigEndian.PutUint32(buf, val)
-	return buf[:]
-}
-
-func Uint64ToBytes(val uint64) []byte {
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, val)
-	return buf[:]
-}
-
-func HexToAddress(b []byte) common.Address {
-	return common.HexToAddress(string(b))
-}
-
-func BytesToUint16 (b []byte) uint16 {
-	b = append(make([]byte, 2-len(b)), b...)
-	return binary.BigEndian.Uint16(b)
-}
-
-func BytesToUint32(b []byte) uint32 {
-	b = append(make([]byte, 4-len(b)), b...)
-	return binary.BigEndian.Uint32(b)
-}
-
-func BytesToUint64(b []byte) uint64 {
-	b = append(make([]byte, 8-len(b)), b...)
-	return binary.BigEndian.Uint64(b)
+func BytesToAddressArr(curByte []byte) []common.Address {
+	//str := BytesToString(curByte)
+	//return common.HexToAddress(str)
+	var addrArr []common.Address
+	if err := rlp.DecodeBytes(curByte, &addrArr); nil != err {
+		panic("BytesToAddressArr:" + err.Error())
+	}
+	return addrArr
 }

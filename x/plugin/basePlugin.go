@@ -60,7 +60,7 @@ func  Verify_tx_data(input []byte, command map[uint16]interface{} ) (fn interfac
 		for i := 0; i < paramNum; i++ {
 			targetType := paramList.In(i).String()
 			inputByte := []reflect.Value{reflect.ValueOf(args[i+1])}
-			params[i] = reflect.ValueOf(byteutil.Command[targetType]).Call(inputByte)[0]
+			params[i] = reflect.ValueOf(byteutil.Bytes2X_CMD[targetType]).Call(inputByte)[0]
 		}
 
 		return fn, params, nil

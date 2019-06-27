@@ -2,9 +2,11 @@ package plugin
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"math/big"
 	"strconv"
 )
@@ -15,11 +17,11 @@ import (
 
 type StakingDB struct {
 	// todo the snapshotDB instance
-	db xcom.SnapshotDB
+	db snapshotdb.DB
 }
 
 
-func NewStakingDB (db xcom.SnapshotDB) *StakingDB{
+func NewStakingDB (db snapshotdb.DB) *StakingDB{
 	return &StakingDB {
 		db: db,
 	}
@@ -37,7 +39,9 @@ func (db *StakingDB) del (blockHash common.Hash, key []byte) error {
 	return db.db.Del(blockHash, key)
 }
 
-
+func (db *StakingDB) ranking (blockHash common.Hash, prefix []byte, ranges int) iterator.Iterator {
+	return db.db.Ranking(blockHash, prefix, ranges)
+}
 
 
 
@@ -295,4 +299,67 @@ func (db *StakingDB) getUnDelegateItemStore (blockHash common.Hash, epoch, index
 		return nil, err
 	}
 	return &unDelegateItem, nil
+}
+
+
+func (db *StakingDB) getVerifierList (blockHash common.Hash) (*xcom.Validator_array, error) {
+
+	arrByte, err := db.get(blockHash, xcom.GetEpochValidatorKey())
+	if nil != err {
+		return nil, err
+	}
+
+	var arr *xcom.Validator_array
+	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
+		return nil, err
+	}
+	return arr, nil
+}
+
+func (db *StakingDB) getPreviousValidatorList (blockHash common.Hash) (*xcom.Validator_array, error) {
+	arrByte, err := db.get(blockHash, xcom.GetPreRoundValidatorKey())
+	if nil != err {
+		return nil, err
+	}
+
+	var arr *xcom.Validator_array
+	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
+		return nil, err
+	}
+	return arr, nil
+}
+
+func (db *StakingDB) getCurrentValidatorList (blockHash common.Hash) (*xcom.Validator_array, error) {
+	arrByte, err := db.get(blockHash, xcom.GetCurRoundValidatorKey())
+	if nil != err {
+		return nil, err
+	}
+
+	var arr *xcom.Validator_array
+	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
+		return nil, err
+	}
+	return arr, nil
+}
+
+func (db *StakingDB) getNextValidatorList (blockHash common.Hash) (*xcom.Validator_array, error) {
+	arrByte, err := db.get(blockHash, xcom.GetNextRoundValidatorKey())
+	if nil != err {
+		return nil, err
+	}
+
+	var arr *xcom.Validator_array
+	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
+		return nil, err
+	}
+	return arr, nil
+}
+
+//func (db *StakingDB) IteratorCandidatePowerByIrr () iterator.Iterator {
+//
+//	db.ranking(xcom.CanPowerKeyPrefix, 0)
+//}
+
+func (db *StakingDB) IteratorCandidatePowerByBlockHash () iterator.Iterator {
+	return nil
 }

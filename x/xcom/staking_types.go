@@ -100,10 +100,6 @@ type Candidate struct {
 	LockRepoTmp *big.Int
 
 
-	/*// Positive and negative signs:
-	// Is it an increase or a decrease? 0: increase; 1: decrease
-	Mark uint8*/
-
 	// Node desc
 	Description
 }
@@ -118,6 +114,9 @@ type Description struct {
 	// Description of the node (with a length limit)
 	Details string
 }
+
+type CandidateQueue = []*Candidate
+
 
 // the Validator info
 // They are Simplified Candidate
@@ -135,6 +134,8 @@ type Validator struct {
 
 // some consensus round validators or current epoch validators
 type Validator_array struct {
+
+
 	// the round start blockNumber or epoch start blockNumber
 	Start uint64
 	// the round end blockNumber or epoch blockNumber
@@ -143,14 +144,19 @@ type Validator_array struct {
 	Arr []*Validator
 }
 
+type ValidatorEx struct {
+	*Candidate
+	// this is the term of validator in consensus round
+	// [0, N]
+	ValidatorTerm uint32
+}
+
+type ValidatorExQueue = []*ValidatorEx
+
 // the Delegate information
 type Delegation struct {
 	// The epoch number at delegate or edit
 	DelegateEpoch uint64
-
-	/*// Positive and negative signs:
-	// Is it an increase or a decrease? 0: increase; 1: decrease
-	Mark uint8*/
 
 	// Total amount in all cancellation plans
 	Reduction *big.Int

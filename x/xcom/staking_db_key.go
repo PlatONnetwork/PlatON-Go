@@ -140,3 +140,20 @@ func GetUnDelegateItemKey (epoch, index int) []byte {
 	indexStr := strconv.Itoa(index)
 	return append(UnDelegateItemKey, append([]byte(epochStr), []byte(indexStr)...)...)
 }
+
+func GetEpochValidatorKey () []byte {
+	return EpochValidatorKey
+}
+
+func GetPreRoundValidatorKey () []byte {
+	return PreRoundValidatorKey
+}
+
+func GetCurRoundValidatorKey () []byte {
+	return CurRoundValidatorKey
+}
+
+func GetNextRoundValidatorKey () []byte {
+	return NextRoundValidatorKey
+}
+
