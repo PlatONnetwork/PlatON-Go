@@ -10,6 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"strconv"
 
 	//"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -43,9 +44,12 @@ const (
 
 	//invalided = uint8(2)
 
-	PriviosRound = -1
-	CurrentRound = 0
-	NextRound = 1
+	PriviosRound = uint(0)
+	CurrentRound = uint(1)
+	NextRound = uint(2)
+
+	QueryStartIrr = true
+	QueryStartNotIrr = false
 
 )
 
@@ -692,15 +696,6 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 	lazyCalcDelegateAmount(epoch, del)
 
-	//can, err := sk.db.getCandidateStore(blockHash, canAddr)
-	//if nil != err {
-	//	return false, err
-	//}
-	//
-	//var canExist bool
-	//if nil != can && can.StakingBlockNum == num && xcom.Is_Valid(can.Status) {
-	//	canExist = true
-	//}
 
 	amount := unDel.Amount
 
@@ -767,16 +762,25 @@ func (sk *StakingPlugin) ElectNextVerifierList() {
 
 }
 
-func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint64) (xcom.CandidateQueue, bool, error) {
+func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint64, isCommit bool) (xcom.CandidateQueue, bool, error) {
 
-	verifierList, err := sk.db.getVerifierList(blockHash)
-	if nil != err {
-		return nil, false, err
+	var verifierList *xcom.Validator_array
+	if !isCommit {
+		arr, err := sk.db.getVerifierListByBlockHash(blockHash)
+		if nil != err {
+			return nil, false, err
+		}
+		verifierList = arr
+	}else {
+		arr, err := sk.db.getVerifierListByIrr()
+		if nil != err {
+			return nil, false, err
+		}
+		verifierList = arr
 	}
 
-	//epoch := xutil.CalculateEpoch(blockNumber)
 
-	if blockNumber < verifierList.Start || blockNumber > verifierList.End {
+	if !isCommit && (blockNumber < verifierList.Start || blockNumber > verifierList.End) {
 		return nil, true, fmt.Errorf("GetVerifierList failed: %s, start: %d, end: %d, currentNumer: %d",
 			BlockNumberDisordered.Error(), verifierList.Start, verifierList.End, blockNumber)
 	}
@@ -785,21 +789,45 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 
 	for _, v := range verifierList.Arr {
 
-		can, err := sk.db.getCandidateStore(blockHash, v.NodeAddress)
-		if nil != err {
-			return nil, false, err
+		var can *xcom.Candidate
+		if !isCommit {
+			c, err := sk.db.getCandidateStore(blockHash, v.NodeAddress)
+			if nil != err {
+				return nil, false, err
+			}
+			can = c
+		}else {
+			c, err := sk.db.getCandidateStoreByIrr(v.NodeAddress)
+			if nil != err {
+				return nil, false, err
+			}
+			can = c
 		}
+
 		resultArr = append(resultArr, can)
 	}
-
 
 	return resultArr, true, nil
 }
 
-func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, nodeId discover.NodeID) (bool, error) {
-	verifierList, err := sk.db.getVerifierList(blockHash)
-	if nil != err {
-		return false, err
+
+
+func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, nodeId discover.NodeID, isCommit bool) (bool, error) {
+
+	var verifierList *xcom.Validator_array
+
+	if !isCommit {
+		arr, err := sk.db.getVerifierListByBlockHash(blockHash)
+		if nil != err {
+			return false, err
+		}
+		verifierList = arr
+	}else {
+		arr, err := sk.db.getVerifierListByIrr()
+		if nil != err {
+			return false, err
+		}
+		verifierList = arr
 	}
 
 	var flag bool
@@ -813,43 +841,74 @@ func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, nodeId discover.N
 }
 
 // flag:NOTE
-// -1: Query previous round consensus validator
-// 0:  Query current round consensus validaor
-// 1:  Query next round consensus validator
-func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uint64, flag int) (xcom.ValidatorExQueue, bool, error) {
+// 1: Query previous round consensus validator
+// 2:  Query current round consensus validaor
+// 3:  Query next round consensus validator
+func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uint64, flag uint, isCommit bool) (
+	xcom.ValidatorExQueue, bool, error) {
 
 	var validatorArr *xcom.Validator_array
 
 	switch flag {
 	case PriviosRound:
-		validatorArr, err := sk.db.getPreviousValidatorList(blockHash)
-		if nil != err {
-			return nil, false, err
-		}
+		if !isCommit {
+			arr, err := sk.db.getPreviousValidatorListByBlockHash(blockHash)
+			if nil != err {
+				return nil, false, err
+			}
 
-		if blockNumber < validatorArr.Start || blockNumber > validatorArr.End {
-			return nil, true, fmt.Errorf("Get Previous ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
-				BlockNumberDisordered.Error(), validatorArr.Start, validatorArr.End, blockNumber)
+			if blockNumber < arr.Start || blockNumber > arr.End {
+				return nil, true, fmt.Errorf("Get Previous ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
+					BlockNumberDisordered.Error(), arr.Start, arr.End, blockNumber)
+			}
+			validatorArr = arr
+
+		}else {
+			arr, err := sk.db.getPreviousValidatorListByIrr()
+			if nil != err {
+				return nil, false, err
+			}
+
+			validatorArr = arr
 		}
 	case CurrentRound:
-		validatorArr, err := sk.db.getCurrentValidatorList(blockHash)
-		if nil != err {
-			return nil, false, err
-		}
+		if !isCommit {
+			arr, err := sk.db.getCurrentValidatorListByBlockHash(blockHash)
+			if nil != err {
+				return nil, false, err
+			}
 
-		if blockNumber < validatorArr.Start || blockNumber > validatorArr.End {
-			return nil, true, fmt.Errorf("Get Current ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
-				BlockNumberDisordered.Error(), validatorArr.Start, validatorArr.End, blockNumber)
+			if blockNumber < arr.Start || blockNumber > arr.End {
+				return nil, true, fmt.Errorf("Get Current ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
+					BlockNumberDisordered.Error(), arr.Start, arr.End, blockNumber)
+			}
+			validatorArr = arr
+		}else {
+			arr, err := sk.db.getCurrentValidatorListByIrr()
+			if nil != err {
+				return nil, false, err
+			}
+
+			validatorArr = arr
 		}
 	case NextRound:
-		validatorArr, err := sk.db.getNextValidatorList(blockHash)
-		if nil != err {
-			return nil, false, err
-		}
+		if !isCommit {
+			arr, err := sk.db.getNextValidatorListByBlockHash(blockHash)
+			if nil != err {
+				return nil, false, err
+			}
 
-		if blockNumber < validatorArr.Start || blockNumber > validatorArr.End {
-			return nil, true, fmt.Errorf("Get Next ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
-				BlockNumberDisordered.Error(), validatorArr.Start, validatorArr.End, blockNumber)
+			if blockNumber < arr.Start || blockNumber > arr.End {
+				return nil, true, fmt.Errorf("Get Next ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
+					BlockNumberDisordered.Error(), arr.Start, arr.End, blockNumber)
+			}
+			validatorArr = arr
+		}else {
+			arr, err := sk.db.getNextValidatorListByIrr()
+			if nil != err {
+				return nil, false, err
+			}
+			validatorArr = arr
 		}
 	default:
 		log.Error("Failed to call GetValidatorList", "err", ParamsErr, "flag", flag)
@@ -859,10 +918,23 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 	result := make(xcom.ValidatorExQueue, len(validatorArr.Arr))
 
 	for _, v := range validatorArr.Arr {
-		can, err := sk.db.getCandidateStore(blockHash, v.NodeAddress)
-		if nil != err {
-			return nil, false, err
+
+		var can *xcom.Candidate
+
+		if !isCommit {
+			c, err := sk.db.getCandidateStore(blockHash, v.NodeAddress)
+			if nil != err {
+				return nil, false, err
+			}
+			can = c
+		}else {
+			c, err := sk.db.getCandidateStoreByIrr(v.NodeAddress)
+			if nil != err {
+				return nil, false, err
+			}
+			can = c
 		}
+
 		canEx := &xcom.ValidatorEx{
 			Candidate: can,
 			ValidatorTerm: v.ValidatorTerm,
@@ -872,11 +944,22 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 	return result, true, nil
 }
 
-func (sk *StakingPlugin) IsCurrValidate(blockHash common.Hash, nodeId discover.NodeID) (bool, error) {
+func (sk *StakingPlugin) IsCurrValidate(blockHash common.Hash, nodeId discover.NodeID, isCommit bool) (bool, error) {
 
-	validatorArr, err := sk.db.getCurrentValidatorList(blockHash)
-	if nil != err {
-		return false, err
+	var validatorArr *xcom.Validator_array
+
+	if !isCommit {
+		arr, err := sk.db.getCurrentValidatorListByBlockHash(blockHash)
+		if nil != err {
+			return false, err
+		}
+		validatorArr = arr
+	}else {
+		arr, err := sk.db.getCurrentValidatorListByIrr()
+		if nil != err {
+			return false, err
+		}
+		validatorArr = arr
 	}
 
 	var flag bool
@@ -890,15 +973,72 @@ func (sk *StakingPlugin) IsCurrValidate(blockHash common.Hash, nodeId discover.N
 }
 
 
-func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (xcom.CandidateQueue, error) {
+func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, isCommit bool) (xcom.CandidateQueue, error) {
 
-	//candidateArr, err := sk.db.get()
 
+	var iter iterator.Iterator
+
+	if !isCommit {
+
+		itr := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
+		iter = itr
+	}else {
+		itr := sk.db.IteratorCandidatePowerByIrr(0)
+		iter = itr
+	}
+
+	queue := make(xcom.CandidateQueue, 0)
+
+	// for count := 0; iterator.Valid() && count < int(maxValidators); iterator.Next() {
+	for iter.Valid(); iter.Next(); {
+		addrSuffix := iter.Value()
+		var can *xcom.Candidate
+
+		if !isCommit {
+			c, err := sk.db.getCandidateStoreWithSuffix(blockHash, addrSuffix)
+			if nil != err {
+				return nil, err
+			}
+			can = c
+		}else {
+			c, err := sk.db.getCandidateStoreByIrrWithSuffix(addrSuffix)
+			if nil != err {
+				return nil, err
+			}
+			can = c
+		}
+		queue = append(queue, can)
+	}
 	return nil, nil
 }
 
-func (sk *StakingPlugin) IsCandidate() {
+func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.NodeID, isCommit bool) (bool, error) {
 
+	var can *xcom.Candidate
+
+	addr, err := xutil.NodeId2Addr(nodeId)
+	if nil != err {
+		return false, err
+	}
+
+	if !isCommit {
+		c, err := sk.db.getCandidateStore(blockHash, addr)
+		if nil != err {
+			return false, err
+		}
+		can = c
+	}else {
+		c, err := sk.db.getCandidateStoreByIrr(addr)
+		if nil != err {
+			return false, err
+		}
+		can = c
+	}
+
+	if nil == can {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bool, error) {

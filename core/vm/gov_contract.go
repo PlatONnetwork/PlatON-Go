@@ -91,7 +91,7 @@ func (gc *govContract) submitText(verifier discover.NodeID, githubID, topic, des
 	p.SetProposer(verifier)
 
 
-	gov.GovInstance().Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
+	//gov.GovInstance().Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -119,7 +119,7 @@ func (gc *govContract) submitVersion(verifier discover.NodeID, githubID, topic, 
 	p.SetActiveBlock(activeBlock)
 
 
-	gov.GovInstance().Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
+	//gov.GovInstance().Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -139,7 +139,7 @@ func (gc *govContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 	v.VoteOption = option
 
 
-	gov.GovInstance().Vote(from, v, gc.Evm.BlockHash, gc.Evm.StateDB)
+	//gov.GovInstance().Vote(from, v, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -152,7 +152,7 @@ func (gc *govContract) declareVersion(activeNode discover.NodeID, version uint) 
 		"blockNumber", gc.Evm.BlockNumber.Uint64(),
 		"activeNode", hex.EncodeToString(activeNode.Bytes()[:8]))
 
-	gov.GovInstance().DeclareVersion(from, &activeNode, version, gc.Evm.BlockHash)
+	//gov.GovInstance().DeclareVersion(from, &activeNode, version, gc.Evm.BlockHash)
 	return nil, nil
 }
 
@@ -165,7 +165,7 @@ func (gc *govContract) getProposal(proposalID common.Hash) ([]byte, error) {
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
-	gov.GovInstance().GetProposal(proposalID, gc.Evm.StateDB)
+	//gov.GovInstance().GetProposal(proposalID, gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -177,7 +177,7 @@ func (gc *govContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
-	gov.GovInstance().GetTallyResult(proposalID, gc.Evm.StateDB)
+	//gov.GovInstance().GetTallyResult(proposalID, gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -189,7 +189,7 @@ func (gc *govContract) listProposal() ([]byte, error) {
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
-	gov.GovInstance().ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
+	//gov.GovInstance().ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
 
 	return nil, nil
 }

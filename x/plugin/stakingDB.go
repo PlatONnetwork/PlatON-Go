@@ -31,6 +31,10 @@ func (db *StakingDB) get (blockHash common.Hash, key []byte) ([]byte, error) {
 	return db.db.Get(blockHash, key)
 }
 
+func (db *StakingDB) getFromCommitted (key []byte) ([]byte, error) {
+	return db.db.GetFromCommittedBlock(key)
+}
+
 func (db *StakingDB) put (blockHash common.Hash, key, value []byte) error {
 	return db.db.Put(blockHash, key, value)
 }
@@ -65,6 +69,52 @@ func (db *StakingDB) getCandidateStore (blockHash common.Hash, addr common.Addre
 	return &can, nil
 }
 
+func (db *StakingDB) getCandidateStoreByIrr (addr common.Address) (*xcom.Candidate, error) {
+	key := xcom.CandidateKeyByAddr(addr)
+	canByte, err := db.getFromCommitted(key)
+
+	if nil != err {
+		return nil, err
+	}
+	var can xcom.Candidate
+
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+	return &can, nil
+}
+
+
+
+func (db *StakingDB) getCandidateStoreWithSuffix (blockHash common.Hash, suffix []byte) (*xcom.Candidate, error) {
+	key := xcom.CandidateKeyBySuffix(suffix)
+	canByte, err := db.get(blockHash, key)
+
+	if nil != err {
+		return nil, err
+	}
+	var can xcom.Candidate
+
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+	return &can, nil
+}
+
+func (db *StakingDB) getCandidateStoreByIrrWithSuffix (suffix []byte) (*xcom.Candidate, error) {
+	key := xcom.CandidateKeyBySuffix(suffix)
+	canByte, err := db.getFromCommitted(key)
+
+	if nil != err {
+		return nil, err
+	}
+	var can xcom.Candidate
+
+	if err := rlp.DecodeBytes(canByte, &can); nil != err {
+		return nil, err
+	}
+	return &can, nil
+}
 
 func (db *StakingDB) setCandidateStore (blockHash common.Hash, addr common.Address, can *xcom.Candidate) error {
 
@@ -302,7 +352,21 @@ func (db *StakingDB) getUnDelegateItemStore (blockHash common.Hash, epoch, index
 }
 
 
-func (db *StakingDB) getVerifierList (blockHash common.Hash) (*xcom.Validator_array, error) {
+func (db *StakingDB) getVerifierListByIrr () (*xcom.Validator_array, error) {
+
+	arrByte, err := db.getFromCommitted(xcom.GetEpochValidatorKey())
+	if nil != err {
+		return nil, err
+	}
+
+	var arr *xcom.Validator_array
+	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
+		return nil, err
+	}
+	return arr, nil
+}
+
+func (db *StakingDB) getVerifierListByBlockHash (blockHash common.Hash) (*xcom.Validator_array, error) {
 
 	arrByte, err := db.get(blockHash, xcom.GetEpochValidatorKey())
 	if nil != err {
@@ -316,7 +380,21 @@ func (db *StakingDB) getVerifierList (blockHash common.Hash) (*xcom.Validator_ar
 	return arr, nil
 }
 
-func (db *StakingDB) getPreviousValidatorList (blockHash common.Hash) (*xcom.Validator_array, error) {
+
+func (db *StakingDB) getPreviousValidatorListByIrr () (*xcom.Validator_array, error) {
+	arrByte, err := db.getFromCommitted(xcom.GetPreRoundValidatorKey())
+	if nil != err {
+		return nil, err
+	}
+
+	var arr *xcom.Validator_array
+	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
+		return nil, err
+	}
+	return arr, nil
+}
+
+func (db *StakingDB) getPreviousValidatorListByBlockHash (blockHash common.Hash) (*xcom.Validator_array, error) {
 	arrByte, err := db.get(blockHash, xcom.GetPreRoundValidatorKey())
 	if nil != err {
 		return nil, err
@@ -329,7 +407,20 @@ func (db *StakingDB) getPreviousValidatorList (blockHash common.Hash) (*xcom.Val
 	return arr, nil
 }
 
-func (db *StakingDB) getCurrentValidatorList (blockHash common.Hash) (*xcom.Validator_array, error) {
+func (db *StakingDB) getCurrentValidatorListByIrr () (*xcom.Validator_array, error) {
+	arrByte, err := db.getFromCommitted(xcom.GetCurRoundValidatorKey())
+	if nil != err {
+		return nil, err
+	}
+
+	var arr *xcom.Validator_array
+	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
+		return nil, err
+	}
+	return arr, nil
+}
+
+func (db *StakingDB) getCurrentValidatorListByBlockHash (blockHash common.Hash) (*xcom.Validator_array, error) {
 	arrByte, err := db.get(blockHash, xcom.GetCurRoundValidatorKey())
 	if nil != err {
 		return nil, err
@@ -342,7 +433,20 @@ func (db *StakingDB) getCurrentValidatorList (blockHash common.Hash) (*xcom.Vali
 	return arr, nil
 }
 
-func (db *StakingDB) getNextValidatorList (blockHash common.Hash) (*xcom.Validator_array, error) {
+func (db *StakingDB) getNextValidatorListByIrr () (*xcom.Validator_array, error) {
+	arrByte, err := db.getFromCommitted(xcom.GetNextRoundValidatorKey())
+	if nil != err {
+		return nil, err
+	}
+
+	var arr *xcom.Validator_array
+	if err := rlp.DecodeBytes(arrByte, &arr); nil != err {
+		return nil, err
+	}
+	return arr, nil
+}
+
+func (db *StakingDB) getNextValidatorListByBlockHash (blockHash common.Hash) (*xcom.Validator_array, error) {
 	arrByte, err := db.get(blockHash, xcom.GetNextRoundValidatorKey())
 	if nil != err {
 		return nil, err
@@ -355,11 +459,10 @@ func (db *StakingDB) getNextValidatorList (blockHash common.Hash) (*xcom.Validat
 	return arr, nil
 }
 
-//func (db *StakingDB) IteratorCandidatePowerByIrr () iterator.Iterator {
-//
-//	db.ranking(xcom.CanPowerKeyPrefix, 0)
-//}
+func (db *StakingDB) IteratorCandidatePowerByBlockHash (blockHash common.Hash, ranges int) iterator.Iterator {
+	return db.ranking(blockHash, xcom.CanPowerKeyPrefix, ranges)
+}
 
-func (db *StakingDB) IteratorCandidatePowerByBlockHash () iterator.Iterator {
-	return nil
+func (db *StakingDB) IteratorCandidatePowerByIrr (ranges int) iterator.Iterator {
+	return db.ranking(common.ZeroHash, xcom.CanPowerKeyPrefix, ranges)
 }

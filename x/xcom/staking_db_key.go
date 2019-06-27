@@ -92,7 +92,7 @@ func CandidateKeyByAddr (addr common.Address) []byte {
 	return append(CandidateKeyPrefix, addr.Bytes()...)
 }
 
-func CandidateKeyByAddrByte (addr []byte) []byte {
+func CandidateKeyBySuffix (addr []byte) []byte {
 	return append(CandidateKeyPrefix, addr...)
 }
 
