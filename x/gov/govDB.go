@@ -219,6 +219,7 @@ func (self *GovDB) addVotingProposalID(blockHash common.Hash, proposalID common.
 
 // 把提案的ID从正在投票的提案队列中移动到预激活中
 func (self *GovDB) moveVotingProposalIDToPreActive(proposalID common.Hash, state xcom.StateDB) bool {
+
 	return true
 }
 
