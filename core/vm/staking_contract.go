@@ -6,6 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -37,6 +38,11 @@ const (
 
 
 	AmountIllegalErrStr = "this amount is illege"
+
+
+
+	GetVerifierListErrStr = "getting verifierList is failed"
+
 
 )
 
@@ -467,7 +473,7 @@ func (stkc *stakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return nil, nil
 	}
 
-	// todo the delegate caller is candidate stake addr ?? How to do that ??
+	// todo the delegate caller is candidate stake addr ?? How do that ??
 
 	del, err := stkc.plugin.GetDelegateInfo(blockHash, from, nodeId, canOld.StakingBlockNum)
 	if nil != err {
@@ -541,9 +547,9 @@ func (stkc *stakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		return nil, nil
 	}
 
-	sucess, er := stkc.plugin.WithdrewDelegate(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del)
+	success, er := stkc.plugin.WithdrewDelegate(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del)
 	if nil != er {
-		if sucess {
+		if success {
 			res := xcom.Result{false, "", WithdrewCanErrStr + ":" + er.Error()}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewDelegateEvent, string(event), "withdrewDelegate")
@@ -561,15 +567,48 @@ func (stkc *stakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	return nil, nil
 }
 
-func (stkc *stakingContract) getVerifierList() {
+func (stkc *stakingContract) getVerifierList() ([]byte, error) {
 
+	txHash := stkc.Evm.StateDB.TxHash()
+	blockNumber := stkc.Evm.BlockNumber
+	blockHash := stkc.Evm.BlockHash
+
+
+	log.Info("Call getVerifierList of stakingContract", "txHash", txHash.Hex(),
+		"blockNumber", blockNumber.Uint64())
+	arr, success, err := stkc.plugin.GetVerifierList(blockHash, blockNumber.Uint64())
+
+	if nil != err {
+		if success {
+			res := xcom.Result{false, "", GetVerifierListErrStr + ":" + err.Error()}
+			data, _ := rlp.EncodeToBytes(res)
+			return data, nil
+
+		} else {
+			log.Error("Failed to getVerifierList", "txHash", txHash, "blockNumber", blockNumber, "err", err)
+			return nil, err
+		}
+	}
+	arrByte, _ := json.Marshal(arr)
+	res := xcom.Result{true, string(arrByte), ""}
+	data, _ := rlp.EncodeToBytes(res)
+	return data, nil
 }
 
-func (stkc *stakingContract) getValidatorList() {
+func (stkc *stakingContract) getValidatorList() ([]byte, error) {
 
+	//txHash := stkc.Evm.StateDB.TxHash()
+	//blockNumber := stkc.Evm.BlockNumber
+	//blockHash := stkc.Evm.BlockHash
+
+	//stkc.plugin.GetValidatorList(blockHash, blockNumber.Uint64(), plugin.CurrentRound)
+
+	return nil, nil
 }
 
 func (stkc *stakingContract) getCandidateList() {
+
+
 
 }
 
