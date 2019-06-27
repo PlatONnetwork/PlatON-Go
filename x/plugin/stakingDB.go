@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -15,11 +16,11 @@ import (
 
 type StakingDB struct {
 	// todo the snapshotDB instance
-	db xcom.SnapshotDB
+	db snapshotdb.DB
 }
 
 
-func NewStakingDB (db xcom.SnapshotDB) *StakingDB{
+func NewStakingDB (db snapshotdb.DB) *StakingDB{
 	return &StakingDB {
 		db: db,
 	}
@@ -29,11 +30,11 @@ func (db *StakingDB) get (blockHash common.Hash, key []byte) ([]byte, error) {
 	return db.db.Get(blockHash, key)
 }
 
-func (db *StakingDB) put (blockHash common.Hash, key, value []byte) error {
+func (db *StakingDB) put (blockHash common.Hash, key, value []byte) (bool, error) {
 	return db.db.Put(blockHash, key, value)
 }
 
-func (db *StakingDB) del (blockHash common.Hash, key []byte) error {
+func (db *StakingDB) del (blockHash common.Hash, key []byte) (bool, error) {
 	return db.db.Del(blockHash, key)
 }
 
