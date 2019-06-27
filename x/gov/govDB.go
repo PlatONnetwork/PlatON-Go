@@ -198,13 +198,13 @@ func (self *GovDB) listEndProposalID(blockHash common.Hash, state xcom.StateDB) 
 }
 
 // 查询预生效的升级提案
-func (self *GovDB) getPreActiveProposalID(blockHash common.Hash, state xcom.StateDB) []common.Hash {
+func (self *GovDB) getPreActiveProposalID(blockHash common.Hash, state xcom.StateDB) common.Hash {
 	value, err := govDB.snapdb.getPreActiveIDList(blockHash)
 	if err != nil {
 		log.Error("Get pre-active proposal ID error")
-		return nil
+		return common.Hash{}
 	}
-	return value
+	return value[0]
 }
 
 // 把新增提案的ID增加到正在投票的提案队列中
@@ -218,42 +218,106 @@ func (self *GovDB) addVotingProposalID(blockHash common.Hash, proposalID common.
 }
 
 // 把提案的ID从正在投票的提案队列中移动到预激活中
-func (self *GovDB) moveVotingProposalIDToPreActive(proposalID common.Hash, state xcom.StateDB) bool {
+func (self *GovDB) moveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) bool {
+
+	voting, _ := self.snapdb.getVotingIDList(blockHash)
+	voting = remove(voting, proposalID)
+
+	pre, _ := self.snapdb.getPreActiveIDList(blockHash)
+	pre = append(pre, proposalID)
+
+	//重新写入
+	self.snapdb.addProposalByKey(blockHash, KeyVotingProposals(), proposalID)
+	self.snapdb.addProposalByKey(blockHash, KeyPreActiveProposals(), proposalID)
 
 	return true
 }
 
+func remove(list []common.Hash, item common.Hash) []common.Hash {
+	for i, id := range list {
+		if id == item {
+			list = append(list[:i], list[i+1:]...)
+		}
+	}
+	return list
+}
+
 // 把提案的ID从正在投票的提案队列中移动到投票结束的提案队列中
-func (self *GovDB) moveVotingProposalIDToEnd(proposalID common.Hash, state xcom.StateDB) bool {
+func (self *GovDB) moveVotingProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) bool {
+
+	voting, _ := self.snapdb.getVotingIDList(blockHash)
+	voting = remove(voting, proposalID)
+
+	end, _ := self.snapdb.getEndIDList(blockHash)
+	end = append(end, proposalID)
+
+	//重新写入
+	self.snapdb.addProposalByKey(blockHash, KeyVotingProposals(), proposalID)
+	self.snapdb.addProposalByKey(blockHash, KeyEndProposals(), proposalID)
+
 	return true
 }
 
 // 把提案的ID从预激活的提案队列中移动到投票结束的提案队列中
-func (self *GovDB) MovePreActiveProposalIDToEnd(proposalID common.Hash, state xcom.StateDB) bool {
-	return true
-}
+func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) bool {
 
-// 增加已投票验证人记录
-func (self *GovDB) addVotedVerifier(proposalID common.Hash, voter *discover.NodeID, state xcom.StateDB) bool {
+	pre, _ := self.snapdb.getPreActiveIDList(blockHash)
+	pre = remove(pre, proposalID)
+
+	end, _ := self.snapdb.getEndIDList(blockHash)
+	end = append(end, proposalID)
+
+	//重新写入
+	self.snapdb.addProposalByKey(blockHash, KeyPreActiveProposals(), proposalID)
+	self.snapdb.addProposalByKey(blockHash, KeyEndProposals(), proposalID)
+
 	return true
 }
 
 // 增加升级提案投票期间版本声明的验证人/候选人记录
-func (self *GovDB) addActiveNode(nodeID *discover.NodeID, state xcom.StateDB) bool {
+func (self *GovDB) addDeclaredNode(blockHash common.Hash, proposalID common.Hash, nodeID discover.NodeID) bool {
+	if err := self.snapdb.addDeclaredNode(blockHash, nodeID, proposalID); err != nil {
+		log.Error("add declared node to snapshot db error,", err)
+		return false
+	}
 	return true
 }
 
-// 返回升级提案投票期间版本声明的验证人/候选人记录，并清除原记录
-func (self *GovDB) clearActiveNodes(nodeID *discover.NodeID, state xcom.StateDB) []*discover.NodeID {
-	return nil
+// 获取升级提案投票期间版本升声明的节点列表
+func (self *GovDB) getDeclaredNodeList(blockHash common.Hash, proposalID common.Hash) []discover.NodeID {
+	nodes, err := self.snapdb.getDeclaredNodeList(blockHash, proposalID)
+	if err != nil {
+		log.Error("get declared node list from snapshot db error,", err)
+		return nil
+	}
+	return nodes
 }
 
-// 累积验证人记录
-func (self *GovDB) accuVerifiers(proposalID common.Hash, verifierList []*discover.NodeID, state xcom.StateDB) bool {
+// 升级后，清除做过版本声明的节点
+func (self *GovDB) clearDeclaredNodes(blockHash common.Hash, proposalID common.Hash, nodeID discover.NodeID) bool {
+	err := self.snapdb.deleteDeclaredNodeList(blockHash, proposalID)
+	if err != nil {
+		log.Error("delete declared node list from snapshot db error,", err)
+		return false
+	}
 	return true
 }
 
-// 累积验证人记录
-func (self *GovDB) accuVerifiersLength(proposalID common.Hash, verifierList []*discover.NodeID, state xcom.StateDB) uint16 {
-	return 0
+// 累计在结算周期内可投票的所有验证人
+func (self *GovDB) addVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList []discover.NodeID) bool {
+	if err := self.snapdb.addTotalVerifiers(blockHash, proposalID, verifierList); err != nil {
+		log.Error("add total verifier to  snapshot db error,", err)
+		return false
+	}
+	return true
+}
+
+// 获取所有可投票验证人总数
+func (self *GovDB) getVerifiersLength(blockHash common.Hash, proposalID common.Hash, verifierList []discover.NodeID) int {
+	if l, err := self.snapdb.getTotalVerifierLen(blockHash, proposalID); err != nil {
+		log.Error("add total verifier to  snapshot db error,", err)
+		return 0
+	} else {
+		return l
+	}
 }
