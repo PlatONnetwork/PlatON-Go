@@ -214,13 +214,14 @@ func (gov *Gov) Vote(from common.Address, vote Vote, blockHash common.Hash, stat
 
 	//TODO: Staking Plugin
 	//检查交易发起人的Address和NodeID是否对应；
+	proposal := gov.govDB.GetProposal(vote.ProposalID, state)
 	if !plugin.StakingInstance(nil).isAdressCorrespondingToNodeID(from, proposal.GetProposer()) {
 		var err error = errors.New("[GOV] Vote(): tx sender is not the declare proposer.")
 		return false, err
 	}
 
 	//判断vote.voteNodeID是否为Verifier
-	proposer := gov.govDB.GetProposal(vote.ProposalID, state).GetProposer()
+	proposer := proposal.GetProposer()
 	//TODO: Staking Plugin
 	if !isVerifier(proposer, verifierList) {
 		var err error = errors.New("[GOV] Vote(): proposer is not verifier.")
@@ -259,6 +260,11 @@ func (gov *Gov) Vote(from common.Address, vote Vote, blockHash common.Hash, stat
 	}
 	if !gov.govDB.AddVotedVerifier(vote.ProposalID, &vote.VoteNodeID, state) {
 		var err error = errors.New("[GOV] Vote(): Add VotedVerifier failed.")
+		return false, err
+	}
+	//存入AddActiveNode，等预生效再通知Staking
+	if !gov.govDB.AddActiveNode(&proposer, state) {
+		var err error = errors.New("[GOV] DeclareVersion(): add active node failed.")
 		return false, err
 	}
 	return true, nil
