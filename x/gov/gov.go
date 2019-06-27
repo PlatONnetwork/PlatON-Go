@@ -385,6 +385,7 @@ func (gov *Gov) tally(proposalID common.Hash, blockHash common.Hash, state *xcom
 
 	status := Voting
 	supportRate := voteCnt / accuVerifiersCnt
+	//TODO
 	if supportRate > n {
 		status = PreActive
 	} else {
