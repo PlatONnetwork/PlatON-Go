@@ -1,6 +1,9 @@
 package xutil
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
@@ -74,4 +77,13 @@ func IsSettlementPeriod (blockNumber uint64) bool {
 func IsYearEnd (blockNumber uint64) bool {
 
 	return false
+}
+
+func NodeId2Addr (nodeId discover.NodeID) (common.Address, error) {
+
+	if pk, err := nodeId.Pubkey(); nil != err {
+		return common.ZeroAddr, err
+	} else {
+		return crypto.PubkeyToAddress(*pk), nil
+	}
 }

@@ -299,6 +299,13 @@ func (cbft *Cbft) addPrepareBlockVote(pbd *prepareBlock) {
 	} else {
 		pbd.View = cbft.viewChange.CopyWithoutVotes()
 	}
+
+	sign, err := cbft.signMsg(pbd)
+	if err != nil {
+		cbft.log.Error("Signature prepare block failed", "err", err)
+		return
+	}
+	pbd.Signature.SetBytes(sign)
 }
 func (cbft *Cbft) agreeViewChange() bool {
 	return len(cbft.viewChangeVotes) >= cbft.getThreshold()
@@ -789,6 +796,8 @@ func (cbft *Cbft) broadcastBlock(ext *BlockExt) {
 	}
 	ext.proposalIndex, ext.proposalAddr = uint32(validator.Index), validator.Address
 	p := &prepareBlock{Block: ext.block, ProposalIndex: uint32(validator.Index), ProposalAddr: validator.Address}
+
+
 
 	cbft.addPrepareBlockVote(p)
 	ext.prepareBlock = p
