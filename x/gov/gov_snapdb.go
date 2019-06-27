@@ -2,6 +2,7 @@ package gov
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
@@ -84,4 +85,9 @@ func (self *GovSnapshotDB) getAllProposalIDList(blockHash common.Hash) ([]common
 	hashes, _ = self.getEndIDList(blockHash)
 	total = append(total, hashes...)
 	return total, nil
+}
+
+//
+func (self *GovSnapshotDB) addVotedVerifiers(blockHash common.Hash, key []byte, node discover.NodeID) error {
+	return nil
 }
