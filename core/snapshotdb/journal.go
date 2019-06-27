@@ -3,7 +3,8 @@ package snapshotdb
 import (
 	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	jo "github.com/syndtr/goleveldb/leveldb/journal"
+	"github.com/syndtr/goleveldb/leveldb/journal"
+	"io"
 	"math/big"
 )
 
@@ -39,13 +40,36 @@ type journalHeader struct {
 	From        string
 }
 
+func newJournalWriter(w io.WriteCloser) *journalWriter {
+	j := new(journalWriter)
+	j.writer = w
+	j.journal = journal.NewWriter(w)
+	return j
+}
+
+type journalWriter struct {
+	writer  io.WriteCloser
+	journal *journal.Writer
+}
+
+func (j *journalWriter) Close() error {
+	logger.Info("begin close journalWriter")
+	if err := j.journal.Close(); err != nil {
+		return err
+	}
+	if err := j.writer.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash common.Hash, comeFrom string) error {
 	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Int64(), BlockHash: hash}
 	file, err := s.storage.Create(fd)
 	if err != nil {
 		return err
 	}
-	writers := jo.NewWriter(file)
+	writers := newJournalWriter(file)
 	jHeader := journalHeader{
 		ParentHash:  parentHash,
 		BlockNumber: blockNumber,
@@ -55,33 +79,33 @@ func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash c
 	if err != nil {
 		return err
 	}
-	writer, err := writers.Next()
+	writer, err := writers.journal.Next()
 	if err != nil {
 		return err
 	}
 	if _, err := writer.Write(h); err != nil {
 		return err
 	}
-	writers.Flush()
+	writers.journal.Flush()
+
 	s.journalw[hash] = writers
 	return nil
 }
 
 func (s *snapshotDB) writeJournalBody(hash common.Hash, value []byte) error {
-	var jw *jo.Writer
-	var ok bool
-	jw, ok = s.journalw[hash]
+	jw, ok := s.journalw[hash]
 	if !ok {
 		return errors.New("not found journal writer")
 	}
-	toWrite, err := jw.Next()
+
+	toWrite, err := jw.journal.Next()
 	if err != nil {
 		return err
 	}
 	if _, err := toWrite.Write(value); err != nil {
 		return err
 	}
-	jw.Flush()
+	jw.journal.Flush()
 	return nil
 }
 
