@@ -2,7 +2,6 @@
 package byteutil
 
 import (
-	"encoding/binary"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -204,10 +203,4 @@ func BytesToAddressArr(curByte []byte) []common.Address {
 		panic("BytesToAddressArr:" + err.Error())
 	}
 	return addrArr
-}
-
-func Uint32ToBytes(val uint32) []byte {
-	buf := make([]byte, 4)
-	binary.BigEndian.PutUint32(buf, val)
-	return buf[:]
 }
