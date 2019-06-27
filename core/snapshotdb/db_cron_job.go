@@ -1,7 +1,7 @@
 package snapshotdb
 
 import (
-	"log"
+	"fmt"
 	"sync/atomic"
 )
 
@@ -24,7 +24,7 @@ func (c *count32) get() int32 {
 func (s *snapshotDB) schedule() {
 	if counter.get() == 60 || s.current.HighestNum.Int64()-s.current.BaseNum.Int64() >= 100 {
 		if _, err := s.Compaction(); err != nil {
-			log.Print("[SnapshotDB]compaction fail:", err)
+			logger.Error(fmt.Sprint("[SnapshotDB]compaction fail:", err))
 		}
 		counter.reset()
 	} else {

@@ -203,9 +203,6 @@ func TestRecover(t *testing.T) {
 //
 //}
 //
-//func TestCron(t *testing.T) {
-//
-//}
 //
 //func TestCheckHashChain(t *testing.T) {
 //
