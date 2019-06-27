@@ -256,3 +256,4 @@ func (self *GovDB) accuVerifiers(proposalID common.Hash, verifierList []*discove
 func (self *GovDB) accuVerifiersLength(proposalID common.Hash, verifierList []*discover.NodeID, state xcom.StateDB) uint16 {
 	return 0
 }
+
