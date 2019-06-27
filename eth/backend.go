@@ -581,6 +581,6 @@ func (s *Ethereum) Stop() error {
 }
 
 // TODO RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, db xcom.SnapshotDB) {
+func handlePlugin(reactor *core.BlockChainReactor, db snapshotdb.DB) {
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance(db))
 }
