@@ -52,15 +52,14 @@ func (gov *Gov) BeginBlock(blockHash common.Hash, state xcom.StateDB) (bool, err
 	if plugin.StakingInstance.isEndofSettleCycle(blockHash) {
 		curVerifierList := plugin.StakingInstance(nil).GetVerifierList(state)
 		votingProposalIDs := gov.govDB.ListVotingProposalID(state)
-		if len(votingProposalIDs) > 0 {
-			for _, votingProposalID := range votingProposalIDs {
-				length := gov.govDB.AddAccuVerifiersLength(votingProposalID, curVerifierList, state)
-				if 0 != length {
-					var err error = errors.New("[GOV] BeginBlock(): add accuVerifier failed.")
-					return false, err
-				}
+		for _, votingProposalID := range votingProposalIDs {
+			length := gov.govDB.AddAccuVerifiersLength(votingProposalID, curVerifierList, state)
+			if 0 != length {
+				var err error = errors.New("[GOV] BeginBlock(): add accuVerifier failed.")
+				return false, err
 			}
 		}
+
 	}
 	return true, nil
 }
@@ -68,71 +67,67 @@ func (gov *Gov) BeginBlock(blockHash common.Hash, state xcom.StateDB) (bool, err
 func (gov *Gov) EndBlock(blockHash common.Hash, state xcom.StateDB, curBlockNum *big.Int) (bool, error) {
 
 	votingProposalIDs := gov.govDB.ListVotingProposalID(state)
-	if len(votingProposalIDs) > 0 {
-		for _, votingProposalID := range votingProposalIDs {
-			votingProposal := gov.govDB.GetProposal(votingProposalID, state)
-			if votingProposal.GetEndVotingBlock() == curBlockNum {
-				if !staking.isEndofSettleCycle(blockHash) {
-					//TODO:
-					curVerifierList := plugin.StakingInstance(nil).GetVerifierList(state)
-					length := gov.govDB.AddAccuVerifiersLength(votingProposalID, curVerifierList, state)
-					if 0 != length {
-						var err error = errors.New("[GOV] EndBlock(): add accuVerifier failed.")
-						return false, err
-					}
-				}
-				ok, status := gov.tally(votingProposalID, blockHash, &state)
-				if !ok {
-					var err error = errors.New("[GOV] EndBlock(): tally failed.")
+	for _, votingProposalID := range votingProposalIDs {
+		votingProposal := gov.govDB.GetProposal(votingProposalID, state)
+		if votingProposal.GetEndVotingBlock() == curBlockNum {
+			if !staking.isEndofSettleCycle(blockHash) {
+				//TODO:
+				curVerifierList := plugin.StakingInstance(nil).GetVerifierList(state)
+				length := gov.govDB.AddAccuVerifiersLength(votingProposalID, curVerifierList, state)
+				if 0 != length {
+					var err error = errors.New("[GOV] EndBlock(): add accuVerifier failed.")
 					return false, err
 				}
-				if status == Pass {
-					_, ok := votingProposal.(VersionProposal)
-					if ok {
-						gov.govDB.MoveVotingProposalIDToPreActive(votingProposalID, state)
-					}
-					_, ok = votingProposal.(TextProposal)
-					if ok {
-						gov.govDB.MoveVotingProposalIDToEnd(votingProposalID, state)
-					}
+			}
+			ok, status := gov.tally(votingProposalID, blockHash, &state)
+			if !ok {
+				var err error = errors.New("[GOV] EndBlock(): tally failed.")
+				return false, err
+			}
+			if status == Pass {
+				_, ok := votingProposal.(VersionProposal)
+				if ok {
+					gov.govDB.MoveVotingProposalIDToPreActive(votingProposalID, state)
+				}
+				_, ok = votingProposal.(TextProposal)
+				if ok {
+					gov.govDB.MoveVotingProposalIDToEnd(votingProposalID, state)
 				}
 			}
 		}
-		preActiveProposalID := gov.govDB.GetPreActiveProposalID(state)
-		if len(preActiveProposalID) > 0 {
-			proposal := gov.govDB.GetProposal(preActiveProposalID, state)
-			versionProposal, ok := proposal.(VersionProposal)
-			if ok {
-				if versionProposal.GetActiveBlock() == evm.BlockNumber {
-					//TODO
-					curValidatorList := plugin.StakingInstance(nil).GetValidatorList(state)
-					var updatedNodes uint8 = 0
-					for val := range curValidatorList {
-						//TODO:
-						if val.version == versionProposal.NewVersion {
-							updatedNodes++
-						}
-					}
-					if updatedNodes == MinConsensusNodes {
-						tallyResult := gov.govDB.GetTallyResult(preActiveProposalID, state)
-						if nil != tallyResult {
-							tallyResult.Status = Active
-						}
-						if !gov.govDB.SetTallyResult(tallyResult, state) {
-							var err error = errors.New("[GOV] EndBlock(): Unable to set tallyResult.")
-							return false, err
-						}
-						gov.govDB.MovePreActiveProposalIDToEnd(preActiveProposalID, state)
-						staking.NotifyUpdated(versionProposal.NewVersion)
-						//TODO 把ActiveNode中的节点拿出来通知staking
-						staking.Notify()
-
-					}
-				}
-			}
-		}
-
 	}
+	preActiveProposalID := gov.govDB.GetPreActiveProposalID(state)
+	proposal := gov.govDB.GetProposal(preActiveProposalID, state)
+	versionProposal, ok := proposal.(VersionProposal)
+	if ok {
+		if versionProposal.GetActiveBlock() == evm.BlockNumber {
+			//TODO
+			curValidatorList := plugin.StakingInstance(nil).GetValidatorList(state)
+			var updatedNodes uint8 = 0
+			for val := range curValidatorList {
+				//TODO:
+				if val.version == versionProposal.NewVersion {
+					updatedNodes++
+				}
+			}
+			if updatedNodes == MinConsensusNodes {
+				tallyResult := gov.govDB.GetTallyResult(preActiveProposalID, state)
+				if nil != tallyResult {
+					tallyResult.Status = Active
+				}
+				if !gov.govDB.SetTallyResult(tallyResult, state) {
+					var err error = errors.New("[GOV] EndBlock(): Unable to set tallyResult.")
+					return false, err
+				}
+				gov.govDB.MovePreActiveProposalIDToEnd(preActiveProposalID, state)
+				staking.NotifyUpdated(versionProposal.NewVersion)
+				//TODO 把ActiveNode中的节点拿出来通知staking
+				staking.Notify()
+
+			}
+		}
+	}
+
 	return true, nil
 }
 
@@ -181,14 +176,12 @@ func (gov *Gov) Submit(curBlockNum *big.Int, from common.Address, proposal Propo
 	//2. 版本提案处理
 	//判断是否有VersionProposal正在投票中，有则退出
 	votingProposalIDs := gov.govDB.ListVotingProposalID(state)
-	if len(votingProposalIDs) > 0 {
-		for _, votingProposalID := range votingProposalIDs {
-			votingProposal := gov.govDB.GetProposal(votingProposalID, state)
-			_, ok := votingProposal.(VersionProposal)
-			if ok {
-				var err error = errors.New("[GOV] Submit(): existing a voting version proposal.")
-				return false, err
-			}
+	for _, votingProposalID := range votingProposalIDs {
+		votingProposal := gov.govDB.GetProposal(votingProposalID, state)
+		_, ok := votingProposal.(VersionProposal)
+		if ok {
+			var err error = errors.New("[GOV] Submit(): existing a voting version proposal.")
+			return false, err
 		}
 	}
 	//判断是否有VersionProposal正在Pre-active阶段，有则退出
@@ -289,26 +282,26 @@ func (gov *Gov) DeclareVersion(from common.Address, declaredNodeID *discover.Nod
 	}
 
 	votingProposalIDs := gov.govDB.ListVotingProposalID(state)
-	if len(votingProposalIDs) > 0 {
-		for _, votingProposalID := range votingProposalIDs {
-			votingProposal := gov.govDB.GetProposal(votingProposalID, state)
-			if nil == votingProposal {
-				continue
-			}
-			versionProposal, ok := votingProposal.(VersionProposal)
-			//在版本提案的投票周期内
-			if ok {
-				if getLargeVersion(versionProposal.GetNewVersion()) == getLargeVersion(version) {
-					proposer := versionProposal.GetProposer()
-					//存入AddActiveNode，等预生效再通知Staking
-					if !gov.govDB.AddActiveNode(&proposer, state) {
-						var err error = errors.New("[GOV] DeclareVersion(): add active node failed.")
-						return false, err
-					}
+
+	for _, votingProposalID := range votingProposalIDs {
+		votingProposal := gov.govDB.GetProposal(votingProposalID, state)
+		if nil == votingProposal {
+			continue
+		}
+		versionProposal, ok := votingProposal.(VersionProposal)
+		//在版本提案的投票周期内
+		if ok {
+			if getLargeVersion(versionProposal.GetNewVersion()) == getLargeVersion(version) {
+				proposer := versionProposal.GetProposer()
+				//存入AddActiveNode，等预生效再通知Staking
+				if !gov.govDB.AddActiveNode(&proposer, state) {
+					var err error = errors.New("[GOV] DeclareVersion(): add active node failed.")
+					return false, err
 				}
 			}
 		}
 	}
+
 	return true, nil
 }
 
