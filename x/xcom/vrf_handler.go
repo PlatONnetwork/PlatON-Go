@@ -6,10 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-<<<<<<< HEAD
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-=======
->>>>>>> update
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -24,22 +21,15 @@ var (
 )
 
 type vrfHandler struct {
-<<<<<<< HEAD
 	db 				snapshotdb.DB
-=======
-	db 				SnapshotDB
->>>>>>> update
 	privateKey 		*ecdsa.PrivateKey
 	genesisNonce  	[]byte
 }
 
 var vh *vrfHandler
 
-<<<<<<< HEAD
+
 func NewVrfHandler(db snapshotdb.DB, genesisNonce []byte) *vrfHandler {
-=======
-func NewVrfHandler(db SnapshotDB, genesisNonce []byte) *vrfHandler {
->>>>>>> update
 	if vh == nil {
 		vh = &vrfHandler{
 			db: db,
@@ -113,12 +103,9 @@ func (vh *vrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 		log.Error("Storage previous nonce failed", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "hash", hex.EncodeToString(hash.Bytes()), "key", string(nonceStorageKey), "valueLength", len(nonces), "nonce", hex.EncodeToString(nonce), "err", err)
 		return err
 	} else {
-		if success, err := vh.db.NewBlock(currentBlockNumber, parentHash, hash); nil != err {
+		if err := vh.db.NewBlock(currentBlockNumber, parentHash, hash); nil != err {
 			log.Error("Storage previous nonce failed", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "key", string(nonceStorageKey), "valueLength", len(nonces), "nonce", hex.EncodeToString(nonce), "err", err)
 			return err
-		} else if !success {
-			log.Error("Storage previous nonce failed", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "key", string(nonceStorageKey), "valueLength", len(nonces), "nonce", hex.EncodeToString(nonce))
-			return errStorageNonce
 		}
 		vh.db.Put(hash, nonceStorageKey, enValue)
 		log.Info("Storage previous nonce Success", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "hash", hex.EncodeToString(hash.Bytes()), "valueLength", len(nonces), "EpochValidatorNum", EpochValidatorNum, "nonce", hex.EncodeToString(nonce), "firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
@@ -132,11 +119,7 @@ func (vh *vrfHandler) Load(hash common.Hash) ([][]byte, error) {
 		return nil, err
 	} else {
 		nonces := make([][]byte, 0)
-<<<<<<< HEAD
 		if err := rlp.DecodeBytes(value, &nonces); nil != err {
-=======
-		if err := rlp.DecodeBytes(value, nonces); nil != err {
->>>>>>> update
 			log.Error("rlpDecode previous nonce failed","hash", hash, "key", string(nonceStorageKey), "err", err)
 			return nil, err
 		}

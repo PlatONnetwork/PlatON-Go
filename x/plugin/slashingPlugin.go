@@ -138,14 +138,11 @@ func (sp *slashingPlugin) setBlockAmount(blockHash common.Hash, header *types.He
 		if enValue, err := rlp.EncodeToBytes(value); nil != err {
 			return err
 		} else {
-			if success, err := sp.db.NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
+			if err := sp.db.NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
 				log.Error("slashingPlugin setBlockAmount NewBlock failed", "blockNumber", header.Number.Uint64(), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "hash", string(blockHash.Bytes()), "err", err)
 				return err
-			} else if !success {
-				log.Error("slashingPlugin setBlockAmount NewBlock failed", "blockNumber", header.Number.Uint64(), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "hash", string(blockHash.Bytes()))
-				return errSetBlockAmount
 			}
-			if _, err := sp.db.Put(blockHash, curKey(nodeId.Bytes()), enValue); nil != err {
+			if err := sp.db.Put(blockHash, curKey(nodeId.Bytes()), enValue); nil != err {
 				return err
 			}
 			log.Debug("slashingPlugin setBlockAmount success", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "value", value)
@@ -159,7 +156,7 @@ func (sp *slashingPlugin) switchEpoch(blockHash common.Hash) error {
 	it := sp.db.Ranking(blockHash, preAbnormalPrefix, 0)
 	preCount := 0
 	for end := true; end; end = it.Next() {
-		if _, err := sp.db.Del(blockHash, it.Key()); nil != err {
+		if err := sp.db.Del(blockHash, it.Key()); nil != err {
 			return err
 		}
 		preCount++
@@ -168,11 +165,11 @@ func (sp *slashingPlugin) switchEpoch(blockHash common.Hash) error {
 	it = sp.db.Ranking(blockHash, curAbnormalPrefix, 0)
 	for end := true; end; end = it.Next() {
 		key := it.Key()
-		if _, err := sp.db.Del(blockHash, key); nil != err {
+		if err := sp.db.Del(blockHash, key); nil != err {
 			return err
 		}
 		key = preKey(key[len(curAbnormalPrefix):])
-		if _, err := sp.db.Put(blockHash, key, it.Value()); nil != err {
+		if err := sp.db.Put(blockHash, key, it.Value()); nil != err {
 			return err
 		}
 		curCount++

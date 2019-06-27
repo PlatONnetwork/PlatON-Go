@@ -76,7 +76,7 @@ func (brc *BlockChainReactor) loop() {
 				continue
 			}
 
-			if _, err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
+			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
 				log.Error("snapshotdb Commit failed", "err", err)
 				continue
 			}
@@ -220,16 +220,13 @@ func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
 
 func isWorker(extra []byte) bool {
 	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
-<<<<<<< HEAD
 }
 
 func (bcr *BlockChainReactor) PrepareResult(block *types.Block) (bool, error) {
 	log.Debug("snapshotdb Flush", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(block.Hash().Bytes()))
-	if _, err := snapshotdb.Instance().Flush(block.Hash(), block.Number()); nil != err {
+	if err := snapshotdb.Instance().Flush(block.Hash(), block.Number()); nil != err {
 		log.Error("snapshotdb Flush failed", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
 		return false, err
 	}
 	return true, nil
-=======
->>>>>>> update
 }

@@ -110,21 +110,21 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 
 
 type SnapshotDB interface {
-	Put(hash common.Hash, key, value []byte) (bool, error)
-	NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) (bool, error)
+	Put(hash common.Hash, key, value []byte) error
+	NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error
 	Get(hash common.Hash, key []byte) ([]byte, error)
 	GetFromCommittedBlock(key []byte) ([]byte, error)
-	Del(hash common.Hash, key []byte) (bool, error)
+	Del(hash common.Hash, key []byte) error
 	Has(hash common.Hash, key []byte) (bool, error)
-	Flush(hash common.Hash, blocknumber *big.Int) (bool, error)
+	Flush(hash common.Hash, blocknumber *big.Int) error
 	Ranking(hash common.Hash, key []byte, ranges int) iterator.Iterator
 	WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error
-	Commit(hash common.Hash) (bool, error)
-	Clear() (bool, error)
-	PutBaseDB(key, value []byte) (bool, error)
-	DelBaseDB(key []byte) (bool, error)
+	Commit(hash common.Hash) error
+	Clear() error
+	PutBaseDB(key, value []byte) error
+	DelBaseDB(key []byte) error
 	GetLastKVHash(blockHash common.Hash) []byte
 	BaseNum() (*big.Int, error)
-	Close() (bool, error)
-	Compaction() (bool, error)
+	Close() error
+	Compaction() error
 }

@@ -110,7 +110,6 @@ func (self *GovDB) getProposalList(blockHash common.Hash, state xcom.StateDB) ([
 }
 
 //保存投票记录
-<<<<<<< HEAD
 func (self *GovDB) setVote(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) bool {
 	voteList := self.listVote(proposalID, state)
 	voteList = append(voteList, VoteValue{voter, option})
@@ -154,68 +153,12 @@ func (self *GovDB) getTallyResult(proposalID common.Hash, state xcom.StateDB) (*
 // 保存生效版本记录
 func (self *GovDB) setPreActiveVersion(preActiveVersion uint32, state xcom.StateDB) bool {
 	state.SetState(vm.GovContractAddr, KeyPreActiveVersion(), byteutil.Uint32ToBytes(preActiveVersion))
-=======
-func (self *GovDB) setVote(proposalID common.Hash, voter *discover.NodeID, option VoteOption, state xcom.StateDB) bool {
-	value := state.GetState(vm.GovContractAddr, KeyVote(proposalID))
-	var vvList []VoteValue
-
-	vv := VoteValue{*voter, option}
-
-	vvList = append(vvList, vv)
-
-	state.SetState(vm.GovContractAddr, KeyVote(proposalID), vvList)
-	return true
-}
-
-//// 查询投票记录
-//func (self *GovDB) ListVote(proposalID common.Hash, state xcom.StateDB) []*Vote {
-//	value := state.GetState(vm.GovContractAddr, KeyVote(proposalID))
-//	var vv []VoteValue
-//
-//	if len(value) > 0 {
-//		MustDecoded(value, vv)
-//	}
-//
-//	voteList := []*Vote{}
-//	if len(vv) > 0 {
-//		for _, v := range  vv {
-//			vote := &Vote{proposalID, v.voter, v.option}
-//			voteList = append(voteList, vote)
-//		}
-//	}
-//	return voteList
-//}
-//
-//// 保存投票结果
-//func (self *GovDB) SetTallyResult(tallyResult *TallyResult, state xcom.StateDB) bool {
-//	value := MustEncoded(*tallyResult)
-//	state.SetState(vm.GovContractAddr, KeyTallyResult(tallyResult.ProposalID), value)
-//	return true
-//}
-//
-//// 查询投票结果
-//func (self *GovDB) GetTallyResult(proposalID common.Hash, state xcom.StateDB) *TallyResult {
-//	value := state.GetState(vm.GovContractAddr, KeyTallyResult(proposalID))
-//
-//	var tallyResult TallyResult
-//	if len(value) > 0 {
-//		MustDecoded(value, tallyResult)
-//	}
-//
-//	return &tallyResult
-//}
-//
-// 保存生效版本记录
-func (self *GovDB) setPreActiveVersion(preActiveVersion uint, state xcom.StateDB) bool {
-	state.SetState(vm.GovContractAddr, KeyPreActiveVersion(), common.Int64ToBytes(int64(preActiveVersion)))
->>>>>>> Merge branch 'feature/bump-version-to-0.7' of https://github.com/PlatONnetwork/PlatON-Go
 	return true
 }
 
 // 查询生效版本记录
 func (self *GovDB) getPreActiveVersion(state xcom.StateDB) uint32 {
 
-<<<<<<< HEAD
 	value := state.GetState(vm.GovContractAddr, KeyPreActiveVersion())
 	return byteutil.BytesToUint32(value)
 }
@@ -224,41 +167,11 @@ func (self *GovDB) getPreActiveVersion(state xcom.StateDB) uint32 {
 func (self *GovDB) setActiveVersion(activeVersion uint, state xcom.StateDB) bool {
 
 	state.SetState(vm.GovContractAddr, KeyActiveVersion(), tobytes(activeVersion))
-=======
-	//value := state.GetState(vm.GovContractAddr, KeyPreActiveVersion())
-	//
-	//if len(value) > 0 {
-	//	preActiveVersion := common.BytesToInt64(value)
-	//}
-	//return preActiveVersio
-	return 0
-}
-
-///*
-//	data, err := govDB.local.Get(state.TxHash(), KeyPreActiveVersion())
-//	if err != nil {
-//		log.Error("Get PreActiveVersion error")
-//		return 0
-//	}
-//
-//	b_buf := bytes.NewBuffer(data)
-//	var x uint
-//	binary.Read(b_buf, binary.BigEndian, &x)
-//
-//	return x
-//*/
-//}
-//
-//// 保存生效版本记录
-func (self *GovDB) setActiveVersion(activeVersion uint, state xcom.StateDB) bool {
-	//state.SetState(vm.GovContractAddr, KeyActiveVersion(), MustEncoded(activeVersion))
->>>>>>> Merge branch 'feature/bump-version-to-0.7' of https://github.com/PlatONnetwork/PlatON-Go
 	return true
 }
 
 // 查询生效版本记录
 func (self *GovDB) getActiveVersion(state xcom.StateDB) uint32 {
-<<<<<<< HEAD
 	value := state.GetState(vm.GovContractAddr, KeyActiveVersion())
 	return byteutil.BytesToUint32(value)
 }
@@ -307,78 +220,6 @@ func (self *GovDB) addVotingProposalID(blockHash common.Hash, proposalID common.
 // 把提案的ID从正在投票的提案队列中移动到预激活中
 func (self *GovDB) moveVotingProposalIDToPreActive(proposalID common.Hash, state xcom.StateDB) bool {
 
-=======
-	//value := state.GetState(vm.GovContractAddr, KeyActiveVersion())
-	//var version uint = 0
-	//if len(value) > 0 {
-	//	MustDecoded(value, &version)
-	//}
-	return 0
-}
-
-//
-//// 查询正在投票的提案
-//func (self *GovDB) listVotingProposalID(state xcom.StateDB) []common.Hash {
-//	value, err := govDB.local.Get(state.TxHash(), KeyVotingProposals())
-//	if err != nil {
-//		log.Error("List voting proposal ID error")
-//		return nil
-//	}
-//
-//	var idList []common.Hash
-//	if len(value) > 0 {
-//		MustDecoded(value, &idList)
-//	}
-//
-//	return idList
-//}
-//
-//// 获取投票结束的提案
-//func (self *GovDB) listEndProposalID(state xcom.StateDB) []common.Hash {
-//	value, err := govDB.local.Get(state.TxHash(), KeyEndProposals())
-//	if err != nil {
-//		log.Error("List end proposal ID error")
-//		return nil
-//	}
-//
-//	var idList []common.Hash
-//	if len(value) > 0 {
-//		MustDecoded(value, &idList)
-//	}
-//
-//	return idList
-//}
-//
-//// 查询预生效的升级提案
-//func (self *GovDB) getPreActiveProposalID(state xcom.StateDB) common.Hash {
-//	value, err := govDB.local.Get(state.TxHash(), KeyPreActiveProposals())
-//	if err != nil {
-//		log.Error("Get pre-active proposal ID error")
-//		return common.Hash{}
-//	}
-//
-//	var id common.Hash
-//	if len(value) > 0 {
-//		MustDecoded(value, &id)
-//	}
-//	return id
-//}
-//
-//// 把新增提案的ID增加到正在投票的提案队列中
-//func (self *GovDB) addVotingProposalID(proposalID common.Hash, state xcom.StateDB) bool {
-//	idList := govDB.ListVotingProposalID(state)
-//
-//	idList = append(idList, proposalID)
-//
-//	govDB.local.Put(state.TxHash(), KeyVotingProposals(), MustEncoded(idList))
-//
-//	return true
-//
-//}
-
-// 把提案的ID从正在投票的提案队列中移动到预激活中
-func (self *GovDB) moveVotingProposalIDToPreActive(proposalID common.Hash, state xcom.StateDB) bool {
->>>>>>> Merge branch 'feature/bump-version-to-0.7' of https://github.com/PlatONnetwork/PlatON-Go
 	return true
 }
 
@@ -416,4 +257,3 @@ func (self *GovDB) accuVerifiers(proposalID common.Hash, verifierList []*discove
 func (self *GovDB) accuVerifiersLength(proposalID common.Hash, verifierList []*discover.NodeID, state xcom.StateDB) uint16 {
 	return 0
 }
-
