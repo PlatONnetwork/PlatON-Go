@@ -31,7 +31,7 @@ func newDB(stor storage) (*snapshotDB, error) {
 		unRecognized:  new(blockData),
 		recognized:    make(map[common.Hash]blockData),
 		committed:     make([]blockData, 0),
-		journalw:      make(map[common.Hash]*journal.Writer),
+		journalw:      make(map[common.Hash]*journalWriter),
 		baseDB:        baseDB,
 		current:       newCurrent(dbpath),
 		snapshotLock:  sync.NewCond(&mu),
@@ -44,6 +44,7 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer reader.Close()
 	journals := journal.NewReader(reader, nil, false, false)
 	j, err := journals.Next()
 	if err != nil {
@@ -84,7 +85,7 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 		}
 		var body journalData
 		if err := decode(j, &body); err != nil {
-			//
+			return nil, err
 		}
 		switch body.FuncType {
 		case funcTypePut:
@@ -127,7 +128,7 @@ func (s *snapshotDB) recover(stor storage) error {
 	UnRecognizedHash := s.getUnRecognizedHash()
 	s.committed = make([]blockData, 0)
 	s.recognized = make(map[common.Hash]blockData)
-	s.journalw = make(map[common.Hash]*journal.Writer)
+	s.journalw = make(map[common.Hash]*journalWriter)
 
 	mu := sync.Mutex{}
 	s.snapshotLock = sync.NewCond(&mu)
@@ -150,7 +151,7 @@ func (s *snapshotDB) recover(stor storage) error {
 				if err != nil {
 					return err
 				}
-				s.journalw[fd.BlockHash] = journal.NewWriter(w)
+				s.journalw[fd.BlockHash] = newJournalWriter(w)
 			} else {
 				//1. Recognized
 				s.recognized[fd.BlockHash] = *block
@@ -160,7 +161,7 @@ func (s *snapshotDB) recover(stor storage) error {
 					if err != nil {
 						return err
 					}
-					s.journalw[fd.BlockHash] = journal.NewWriter(w)
+					s.journalw[fd.BlockHash] = newJournalWriter(w)
 				}
 
 			}

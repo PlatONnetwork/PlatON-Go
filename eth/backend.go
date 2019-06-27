@@ -103,8 +103,8 @@ type Ethereum struct {
 
 	APIBackend *EthAPIBackend
 
-	miner     *miner.Miner
-	gasPrice  *big.Int
+	miner         *miner.Miner
+	gasPrice      *big.Int
 	networkID     uint64
 	netRPCService *ethapi.PublicNetAPI
 
@@ -135,6 +135,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//set snapshotdb path
+	snapshotdb.SetDBPath(ctx)
+
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
 		return nil, genesisErr
@@ -259,9 +263,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		gpoParams.Default = config.MinerGasPrice
 	}
 	eth.APIBackend.gpo = gasprice.NewOracle(eth.APIBackend, gpoParams)
-
-	//set snapshotdb path
-	snapshotdb.SetDBPath(ctx)
 
 	return eth, nil
 }
