@@ -7,7 +7,6 @@ import (
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -85,18 +84,12 @@ func (brc *BlockChainReactor) loop() {
 
 			}
 
-			/*// TODO Slashing
-			if plugin, ok := brc.basePluginMap[common.SlashingRule]; ok {
+			// TODO Slashing
+			if plugin, ok := brc.basePluginMap[xcom.SlashingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
-
 			}
-			}*/
-
-
-		default:
-			return
 
 		}
 	}
@@ -121,22 +114,22 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	// store the sign in  header.Extra[32:97]
 	if isWorker(header.Extra) {
 		// Generate vrf proof
-		if value, err := xcom.GetVrfHandlerInstance().GenerateNonce(header.Number, header.ParentHash); nil != err {
+		/*if value, err := xcom.GetVrfHandlerInstance().GenerateNonce(header.Number, header.ParentHash); nil != err {
 			return false, err
 		} else {
 			header.Nonce = types.EncodeNonce(value)
-		}
+		}*/
 	} else {
 		blockHash = header.Hash()
 		// Verify vrf proof
-		sign := header.Extra[32:97]
+		/*sign := header.Extra[32:97]
 		pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
 		if nil != err {
 			return false, err
 		}
 		if err := xcom.GetVrfHandlerInstance().VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 			return false, err
-		}
+		}*/
 	}
 
 	for _, pluginName := range bcr.beginRule {
@@ -158,9 +151,9 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 		blockHash = header.Hash()
 	}
 	// Store the previous vrf random number
-	if err := xcom.GetVrfHandlerInstance().Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
+	/*if err := xcom.GetVrfHandlerInstance().Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 		return false, err
-	}
+	}*/
 
 	for _, pluginName := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
