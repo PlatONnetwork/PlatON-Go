@@ -3,13 +3,14 @@ package cbft
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"reflect"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"math/big"
-	"reflect"
 )
 
 const CbftProtocolMaxMsgSize = 10 * 1024 * 1024
@@ -88,10 +89,11 @@ type MsgInfo struct {
 type prepareBlock struct {
 	Timestamp       uint64 `json:"timestamp"`
 	Block           *types.Block
-	ProposalIndex   uint32            `json:"proposal_index"`
-	ProposalAddr    common.Address    `json:"proposal_address"`
-	View            *viewChange       `json:"view"`
-	ViewChangeVotes []*viewChangeVote `json:"viewchange_votes"`
+	ProposalIndex   uint32                  `json:"proposal_index"`
+	ProposalAddr    common.Address          `json:"proposal_address"`
+	View            *viewChange             `json:"view"`
+	ViewChangeVotes []*viewChangeVote       `json:"viewchange_votes"`
+	Signature       common.BlockConfirmSign `json:"signature"`
 	Extra           []byte
 }
 
@@ -120,11 +122,21 @@ func (pb prepareBlock) MarshalJSON() ([]byte, error) {
 }
 
 func (pb *prepareBlock) CannibalizeBytes() ([]byte, error) {
-	return pb.Block.Header().SealHash().Bytes(), nil
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		pb.Timestamp,
+		pb.Block.Hash(),
+		pb.ProposalIndex,
+		pb.ProposalAddr,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
 }
 
 func (pb *prepareBlock) Sign() []byte {
-	return pb.Block.Extra()[len(pb.Block.Extra())-extraSeal:]
+	return pb.Signature.Bytes()
 }
 
 func (pb *prepareBlock) String() string {

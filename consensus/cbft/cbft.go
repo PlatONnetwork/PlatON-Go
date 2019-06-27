@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -33,7 +34,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -395,10 +396,10 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 	if !cbft.isRunning() {
 		switch msg.(type) {
 		case *prepareBlock,
-		*prepareBlockHash,
-		*prepareVote,
-		*viewChange,
-		*viewChangeVote:
+			*prepareBlockHash,
+			*prepareVote,
+			*viewChange,
+			*viewChangeVote:
 			cbft.log.Debug("Cbft is not running, discard consensus message")
 			return
 		}
@@ -896,39 +897,9 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 	}
 
 	current := cbft.sealBlockProcess(sealedBlock)
-	////this block is produced by local node, so need not execute in cbft.
-	//current.view = cbft.viewChange
-	//current.timestamp = cbft.viewChange.Timestamp
-	//current.inTree = true
-	//current.executing = true
-	//current.isExecuted = true
-	//current.isSigned = true
-	//
-	////save the block to cbft.blockExtMap
-	//cbft.saveBlockExt(sealedBlock.Hash(), current)
-	//
-	////log this signed block's number
-	//cbft.signedSet[sealedBlock.NumberU64()] = struct{}{}
 
 	cbft.bp.InternalBP().Seal(context.TODO(), current, cbft)
 	cbft.bp.InternalBP().NewHighestLogicalBlock(context.TODO(), current, cbft)
-	//cbft.SetLocalHighestPrepareNum(current.number)
-	//cbft.reset(sealedBlock)
-	//if cbft.getValidators().Len() == 1 {
-	//	cbft.log.Info("Seal complete", "hash", sealedBlock.Hash(), "number", sealedBlock.NumberU64())
-	//	cbft.log.Debug("Single node mode, confirm now")
-	//	//only one consensus node, so, each block is highestConfirmed. (lock is needless)
-	//	current.isConfirmed = true
-	//	cbft.highestLogical.Store(current)
-	//	cbft.highestConfirmed.Store(current)
-	//	cbft.flushReadyBlock()
-	//	return
-	//}
-	//
-	////reset cbft.highestLogicalBlockExt cause this block is produced by myself
-	//cbft.highestLogical.Store(current)
-	//cbft.AddPrepareBlock(sealedBlock)
-	//cbft.log.Info("Seal complete", "nodeID", cbft.config.NodeID, "hash", sealedBlock.Hash(), "number", sealedBlock.NumberU64(), "timestamp", sealedBlock.Time(), "producerBlocks", cbft.producerBlocks.Len())
 
 	cbft.broadcastBlock(current)
 	//todo change sign and block state
@@ -1186,6 +1157,13 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	if (ext != nil && ext.block != nil) || cbft.blockChain.HasBlock(request.Block.Hash(), request.Block.NumberU64()) {
 		log.Warn("Block already in blockchain, discard this msg", "prepare block", request.String())
 		return nil
+	}
+
+	err := cbft.verifyValidatorSign(request.Block.NumberU64(), request.ProposalIndex, request.ProposalAddr, request, request.Signature[:])
+	if err != nil {
+		cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, err, cbft)
+		cbft.log.Error("Verify prepareBlock signature fail", "number", request.Block.NumberU64(), "hash", request.Block.Hash())
+		return err
 	}
 
 	if !cbft.IsConsensusNode() && !cbft.agency.IsCandidateNode(cbft.config.NodeID) {
