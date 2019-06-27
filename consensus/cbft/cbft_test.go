@@ -2,8 +2,6 @@ package cbft
 
 import (
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
@@ -1027,7 +1025,7 @@ func TestCbft_OnGetHighestConfirmedStatus(t *testing.T) {
 	peerId := randomID()
 
 	testCases := []struct {
-		msg  *getLatestStatus
+		msg *getLatestStatus
 	}{
 		{msg: &getLatestStatus{Highest: 1, Type: 0}},
 		{msg: &getLatestStatus{Highest: 1, Type: 1}},
@@ -1049,32 +1047,16 @@ func TestCbft_OnHighestConfirmedStatus(t *testing.T) {
 	engine.handler = mockHandler
 	peerId := randomID()
 
-	testCases := []struct{
+	testCases := []struct {
 		msg *latestStatus
 	}{
-		{msg: &latestStatus{Highest: 1, Type:0,}},
-		{msg: &latestStatus{Highest: 1, Type:1,}},
-		{msg: &latestStatus{Highest: 0, Type:0,}},
-		{msg: &latestStatus{Highest: 0, Type:1,}},
+		{msg: &latestStatus{Highest: 1, Type: 0}},
+		{msg: &latestStatus{Highest: 1, Type: 1}},
+		{msg: &latestStatus{Highest: 0, Type: 0}},
+		{msg: &latestStatus{Highest: 0, Type: 1}},
 	}
 	for _, v := range testCases {
 		err := engine.OnLatestStatus(peerId, v.msg)
 		assert.Nil(t, err)
 	}
-}
-
-func TestGen(t *testing.T) {
-	buf, err := ioutil.ReadFile("/home/yangzhou/platon/node1/genesis.json")
-	if err != nil {
-		t.Log(err)
-	}
-
-	var gen core.Genesis
-	err = gen.UnmarshalJSON(buf)
-	if err != nil {
-		t.Log(err)
-	}
-
-	t.Log("success")
-
 }
