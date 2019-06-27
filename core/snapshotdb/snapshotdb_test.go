@@ -582,6 +582,12 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		commitHash     common.Hash
 		parenthash     common.Hash
 	)
+	t.Run("0 commit block with Compaction", func(t *testing.T) {
+		_, err := dbInstance.Compaction()
+		if err != nil {
+			t.Error(err)
+		}
+	})
 	{
 		_, err := dbInstance.NewBlock(big.NewInt(1), commitHash, recognizedHash)
 		if err != nil {

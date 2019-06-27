@@ -199,6 +199,9 @@ func (s *snapshotDB) Del(hash common.Hash, key []byte) (bool, error) {
 // case kv<2000,block... <9
 // case kv<2000,block...=9
 func (s *snapshotDB) Compaction() (bool, error) {
+	if len(s.committed) == 0 {
+		return true, nil
+	}
 	s.commitLock.Lock()
 	s.snapshotLock.L.Lock()
 	s.snapshotLockC = true
