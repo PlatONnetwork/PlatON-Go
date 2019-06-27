@@ -33,7 +33,6 @@ import (
 // So we can deterministically seed different blockchains
 var (
 	canonicalSeed = 1
-	forkSeed      = 2
 )
 
 // newCanonical creates a chain database, and injects a deterministic canonical

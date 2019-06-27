@@ -278,7 +278,6 @@ func (c *Console) Welcome() {
 	fmt.Fprintf(c.printer, "Welcome to the PlatON JavaScript console!\n\n")
 	c.jsre.Run(`
 		console.log("instance: " + web3.version.node);
-		console.log("coinbase: " + platon.coinbase);
 		console.log("at block: " + platon.blockNumber + " (" + new Date(1000 * platon.getBlock(platon.blockNumber).timestamp) + ")");
 		console.log(" datadir: " + admin.datadir);
 	`)

@@ -38,7 +38,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/metrics"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
@@ -46,8 +45,6 @@ import (
 )
 
 var (
-	blockInsertTimer = metrics.NewRegisteredTimer("chain/inserts", nil)
-
 	ErrNoGenesis = errors.New("Genesis not found in chain")
 )
 
@@ -55,7 +52,6 @@ const (
 	bodyCacheLimit      = 256
 	blockCacheLimit     = 256
 	maxFutureBlocks     = 256
-	maxTimeFutureBlocks = 30
 	badBlockLimit       = 10
 	triesInMemory       = 128
 
@@ -1000,14 +996,14 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		bc.insert(block)
 
 		// parse block and retrieves txs
-		receipts := bc.GetReceiptsByHash(block.Hash())
-		if MPC_POOL != nil{
-			MPC_POOL.InjectTxs(block, receipts, bc, state)
-		}
+		//receipts := bc.GetReceiptsByHash(block.Hash())
+		//if MPC_POOL != nil{
+		//	MPC_POOL.InjectTxs(block, receipts, bc, state)
+		//}
 
-		if VC_POOL != nil {
-			VC_POOL.InjectTxs(block, receipts, bc, state)
-		}
+		//if VC_POOL != nil {
+		//	VC_POOL.InjectTxs(block, receipts, bc, state)
+		//}
 
 	}
 	bc.futureBlocks.Remove(block.Hash())

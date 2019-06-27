@@ -66,8 +66,8 @@ var DefaultConfig = Config{
 		Percentile: 60,
 	},
 
-	MPCPool: core.DefaultMPCPoolConfig,
-	VCPool:  core.DefaultVCPoolConfig,
+	//MPCPool: core.DefaultMPCPoolConfig,
+	//VCPool:  core.DefaultVCPoolConfig,
 }
 
 func init() {
@@ -105,7 +105,6 @@ type Config struct {
 	TrieTimeout        time.Duration
 
 	// Mining-related options
-	Etherbase      common.Address `toml:",omitempty"`
 	MinerNotify    []string       `toml:",omitempty"`
 	MinerExtraData []byte         `toml:",omitempty"`
 	MinerGasFloor  uint64
@@ -132,8 +131,8 @@ type Config struct {
 	EVMInterpreter string
 
 	// MPC pool options
-	MPCPool core.MPCPoolConfig
-	VCPool  core.VCPoolConfig
+	//MPCPool core.MPCPoolConfig
+	//VCPool  core.VCPoolConfig
 	Debug   bool
 }
 

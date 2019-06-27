@@ -76,9 +76,6 @@ func NewLogBP(file string) (Breakpoint, error) {
 
 const (
 	flagState = byte(1)
-	flagStat  = byte(2)
-
-	LOG_PREFIX = "OPENTRACE"
 )
 
 type Context struct {

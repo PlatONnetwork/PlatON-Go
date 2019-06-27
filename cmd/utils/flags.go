@@ -341,16 +341,6 @@ var (
 		Usage: "Minimum gas price for mining a transaction (deprecated, use --miner.gasprice)",
 		Value: eth.DefaultConfig.MinerGasPrice,
 	}
-	MinerEtherbaseFlag = cli.StringFlag{
-		Name:  "miner.etherbase",
-		Usage: "Public address for block mining rewards (default = first account)",
-		Value: "0",
-	}
-	MinerLegacyEtherbaseFlag = cli.StringFlag{
-		Name:  "etherbase",
-		Usage: "Public address for block mining rewards (default = first account, deprecated, use --miner.etherbase)",
-		Value: "0",
-	}
 	MinerExtraDataFlag = cli.StringFlag{
 		Name:  "miner.extradata",
 		Usage: "Block extra data set by the miner (default = client version)",
@@ -907,27 +897,6 @@ func MakeAddress(ks *keystore.KeyStore, account string) (accounts.Account, error
 	return accs[index], nil
 }
 
-// setEtherbase retrieves the etherbase either from the directly specified
-// command line flags or from the keystore if CLI indexed.
-func setEtherbase(ctx *cli.Context, ks *keystore.KeyStore, cfg *eth.Config) {
-	// Extract the current etherbase, new flag overriding legacy one
-	var etherbase string
-	if ctx.GlobalIsSet(MinerLegacyEtherbaseFlag.Name) {
-		etherbase = ctx.GlobalString(MinerLegacyEtherbaseFlag.Name)
-	}
-	if ctx.GlobalIsSet(MinerEtherbaseFlag.Name) {
-		etherbase = ctx.GlobalString(MinerEtherbaseFlag.Name)
-	}
-	// Convert the etherbase into an address and configure it
-	if etherbase != "" {
-		account, err := MakeAddress(ks, etherbase)
-		if err != nil {
-			Fatalf("Invalid miner etherbase: %v", err)
-		}
-		cfg.Etherbase = account.Address
-	}
-}
-
 // MakePasswordList reads password lines from the file specified by the global --password flag.
 func MakePasswordList(ctx *cli.Context) []string {
 	path := ctx.GlobalString(PasswordFileFlag.Name)
@@ -1106,45 +1075,45 @@ func setTxPool(ctx *cli.Context, cfg *core.TxPoolConfig) {
 	}
 }
 
-func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
-	if ctx.GlobalIsSet(MPCEnabledFlag.Name) {
-		cfg.MPCEnable = ctx.GlobalBool(MPCEnabledFlag.Name)
-	}
-	if ctx.GlobalIsSet(MPCActorFlag.Name) {
-		cfg.MpcActor = common.HexToAddress(ctx.GlobalString(MPCActorFlag.Name))
-	}
-	if file := ctx.GlobalString(MPCIceFileFlag.Name); file != "" {
-		if _, err := os.Stat(file); err != nil {
-			fmt.Println("ice conf not exists.")
-			return
-		}
-		if b := filepath.IsAbs(file); !b {
-			absPath, err := filepath.Abs(file)
-			if err != nil {
-				fmt.Println("Read abs path of ice conf fail: ", err.Error())
-				return
-			}
-			cfg.IceConf = absPath
-		} else {
-			cfg.IceConf = file
-		}
-	}
-}
-
-func setVcPool(ctx *cli.Context, cfg *core.VCPoolConfig) {
-	if ctx.GlobalIsSet(VCEnabledFlag.Name) {
-		cfg.VCEnable = ctx.GlobalBool(VCEnabledFlag.Name)
-	}
-	if ctx.GlobalIsSet(VCActorFlag.Name) {
-		cfg.VcActor = common.HexToAddress(ctx.GlobalString(VCActorFlag.Name))
-		fmt.Println("cfg.VcActor", cfg.VcActor)
-	}
-
-	if ctx.GlobalIsSet(VCPasswordFlag.Name) {
-		cfg.VcPassword = ctx.GlobalString(VCPasswordFlag.Name)
-	}
-
-}
+//func setMpcPool(ctx *cli.Context, cfg *core.MPCPoolConfig) {
+//	if ctx.GlobalIsSet(MPCEnabledFlag.Name) {
+//		cfg.MPCEnable = ctx.GlobalBool(MPCEnabledFlag.Name)
+//	}
+//	if ctx.GlobalIsSet(MPCActorFlag.Name) {
+//		cfg.MpcActor = common.HexToAddress(ctx.GlobalString(MPCActorFlag.Name))
+//	}
+//	if file := ctx.GlobalString(MPCIceFileFlag.Name); file != "" {
+//		if _, err := os.Stat(file); err != nil {
+//			fmt.Println("ice conf not exists.")
+//			return
+//		}
+//		if b := filepath.IsAbs(file); !b {
+//			absPath, err := filepath.Abs(file)
+//			if err != nil {
+//				fmt.Println("Read abs path of ice conf fail: ", err.Error())
+//				return
+//			}
+//			cfg.IceConf = absPath
+//		} else {
+//			cfg.IceConf = file
+//		}
+//	}
+//}
+//
+//func setVcPool(ctx *cli.Context, cfg *core.VCPoolConfig) {
+//	if ctx.GlobalIsSet(VCEnabledFlag.Name) {
+//		cfg.VCEnable = ctx.GlobalBool(VCEnabledFlag.Name)
+//	}
+//	if ctx.GlobalIsSet(VCActorFlag.Name) {
+//		cfg.VcActor = common.HexToAddress(ctx.GlobalString(VCActorFlag.Name))
+//		fmt.Println("cfg.VcActor", cfg.VcActor)
+//	}
+//
+//	if ctx.GlobalIsSet(VCPasswordFlag.Name) {
+//		cfg.VcPassword = ctx.GlobalString(VCPasswordFlag.Name)
+//	}
+//
+//}
 
 // checkExclusive verifies that only a single instance of the provided flags was
 // set by the user. Each flag might optionally be followed by a string type to
@@ -1204,12 +1173,11 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	checkExclusive(ctx, LightServFlag, SyncModeFlag, "light")
 
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-	setEtherbase(ctx, ks, cfg)
 	setGPO(ctx, &cfg.GPO)
 	setTxPool(ctx, &cfg.TxPool)
 	// for mpc compute
-	setMpcPool(ctx, &cfg.MPCPool)
-	setVcPool(ctx, &cfg.VCPool)
+	//setMpcPool(ctx, &cfg.MPCPool)
+	//setVcPool(ctx, &cfg.VCPool)
 	SetCbft(ctx, &cfg.CbftConfig)
 
 	if ctx.GlobalIsSet(WalEnabledFlag.Name) {

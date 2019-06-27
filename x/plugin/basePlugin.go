@@ -32,7 +32,7 @@ func  Verify_tx_data(input []byte, command map[uint16]interface{} ) (fn interfac
 
 	defer func() {
 		if er := recover(); nil != er {
-			fn, FnParams, err = nil, nil,fmt.Errorf("parse tx data is panic: %s, txHash: %s", gerr.Wrap(er, 2).ErrorStack())
+			fn, FnParams, err = nil, nil,fmt.Errorf("parse tx data is panic: %s", gerr.Wrap(er, 2).ErrorStack())
 			log.Error("Failed to Verify Staking tx data", "error", err)
 		}
 	}()

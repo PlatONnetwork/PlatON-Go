@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
@@ -19,6 +18,7 @@ var _ = (*configMarshaling)(nil)
 func (c Config) MarshalTOML() (interface{}, error) {
 	type Config struct {
 		Genesis                 *core.Genesis `toml:",omitempty"`
+		CbftConfig              CbftConfig    `toml:",omitempty"`
 		NetworkId               uint64
 		SyncMode                downloader.SyncMode
 		NoPruning               bool
@@ -29,9 +29,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		DatabaseCache           int
 		TrieCache               int
 		TrieTimeout             time.Duration
-		Etherbase               common.Address `toml:",omitempty"`
-		MinerNotify             []string       `toml:",omitempty"`
-		MinerExtraData          hexutil.Bytes  `toml:",omitempty"`
+		MinerNotify             []string      `toml:",omitempty"`
+		MinerExtraData          hexutil.Bytes `toml:",omitempty"`
 		MinerGasFloor           uint64
 		MinerGasCeil            uint64
 		MinerGasPrice           *big.Int
@@ -41,9 +40,15 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		GPO                     gasprice.Config
 		EnablePreimageRecording bool
 		DocRoot                 string `toml:"-"`
+		EWASMInterpreter        string
+		EVMInterpreter          string
+		//MPCPool                 core.MPCPoolConfig
+		//VCPool                  core.VCPoolConfig
+		Debug                   bool
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
+	enc.CbftConfig = c.CbftConfig
 	enc.NetworkId = c.NetworkId
 	enc.SyncMode = c.SyncMode
 	enc.NoPruning = c.NoPruning
@@ -54,7 +59,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.DatabaseCache = c.DatabaseCache
 	enc.TrieCache = c.TrieCache
 	enc.TrieTimeout = c.TrieTimeout
-	enc.Etherbase = c.Etherbase
 	enc.MinerNotify = c.MinerNotify
 	enc.MinerExtraData = c.MinerExtraData
 	enc.MinerGasFloor = c.MinerGasFloor
@@ -66,6 +70,11 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.GPO = c.GPO
 	enc.EnablePreimageRecording = c.EnablePreimageRecording
 	enc.DocRoot = c.DocRoot
+	enc.EWASMInterpreter = c.EWASMInterpreter
+	enc.EVMInterpreter = c.EVMInterpreter
+	//enc.MPCPool = c.MPCPool
+	//enc.VCPool = c.VCPool
+	enc.Debug = c.Debug
 	return &enc, nil
 }
 
@@ -73,6 +82,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	type Config struct {
 		Genesis                 *core.Genesis `toml:",omitempty"`
+		CbftConfig              *CbftConfig   `toml:",omitempty"`
 		NetworkId               *uint64
 		SyncMode                *downloader.SyncMode
 		NoPruning               *bool
@@ -83,9 +93,8 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		DatabaseCache           *int
 		TrieCache               *int
 		TrieTimeout             *time.Duration
-		Etherbase               *common.Address `toml:",omitempty"`
-		MinerNotify             []string        `toml:",omitempty"`
-		MinerExtraData          *hexutil.Bytes  `toml:",omitempty"`
+		MinerNotify             []string       `toml:",omitempty"`
+		MinerExtraData          *hexutil.Bytes `toml:",omitempty"`
 		MinerGasFloor           *uint64
 		MinerGasCeil            *uint64
 		MinerGasPrice           *big.Int
@@ -95,6 +104,11 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		GPO                     *gasprice.Config
 		EnablePreimageRecording *bool
 		DocRoot                 *string `toml:"-"`
+		EWASMInterpreter        *string
+		EVMInterpreter          *string
+		//MPCPool                 *core.MPCPoolConfig
+		//VCPool                  *core.VCPoolConfig
+		Debug                   *bool
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -102,6 +116,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.Genesis != nil {
 		c.Genesis = dec.Genesis
+	}
+	if dec.CbftConfig != nil {
+		c.CbftConfig = *dec.CbftConfig
 	}
 	if dec.NetworkId != nil {
 		c.NetworkId = *dec.NetworkId
@@ -132,9 +149,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.TrieTimeout != nil {
 		c.TrieTimeout = *dec.TrieTimeout
-	}
-	if dec.Etherbase != nil {
-		c.Etherbase = *dec.Etherbase
 	}
 	if dec.MinerNotify != nil {
 		c.MinerNotify = dec.MinerNotify
@@ -168,6 +182,21 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.DocRoot != nil {
 		c.DocRoot = *dec.DocRoot
+	}
+	if dec.EWASMInterpreter != nil {
+		c.EWASMInterpreter = *dec.EWASMInterpreter
+	}
+	if dec.EVMInterpreter != nil {
+		c.EVMInterpreter = *dec.EVMInterpreter
+	}
+	//if dec.MPCPool != nil {
+	//	c.MPCPool = *dec.MPCPool
+	//}
+	//if dec.VCPool != nil {
+	//	c.VCPool = *dec.VCPool
+	//}
+	if dec.Debug != nil {
+		c.Debug = *dec.Debug
 	}
 	return nil
 }
