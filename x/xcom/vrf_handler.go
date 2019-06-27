@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -20,14 +21,14 @@ var (
 )
 
 type vrfHandler struct {
-	db 				SnapshotDB
+	db 				snapshotdb.DB
 	privateKey 		*ecdsa.PrivateKey
 	genesisNonce  	[]byte
 }
 
 var vh *vrfHandler
 
-func NewVrfHandler(db SnapshotDB, genesisNonce []byte) *vrfHandler {
+func NewVrfHandler(db snapshotdb.DB, genesisNonce []byte) *vrfHandler {
 	if vh == nil {
 		vh = &vrfHandler{
 			db: db,
@@ -120,7 +121,7 @@ func (vh *vrfHandler) Load(hash common.Hash) ([][]byte, error) {
 		return nil, err
 	} else {
 		nonces := make([][]byte, 0)
-		if err := rlp.DecodeBytes(value, nonces); nil != err {
+		if err := rlp.DecodeBytes(value, &nonces); nil != err {
 			log.Error("rlpDecode previous nonce failed","hash", hash, "key", string(nonceStorageKey), "err", err)
 			return nil, err
 		}

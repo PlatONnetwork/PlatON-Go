@@ -38,12 +38,12 @@ var (
 )
 
 type slashingPlugin struct {
-	db		xcom.SnapshotDB
+	db		snapshotdb.DB
 }
 
 var slashPlugin *slashingPlugin
 
-func SlashInstance(db xcom.SnapshotDB) *slashingPlugin {
+func SlashInstance(db snapshotdb.DB) *slashingPlugin {
 	if slashPlugin == nil {
 		slashPlugin = &slashingPlugin{
 			db:db,
@@ -118,7 +118,7 @@ func (sp *slashingPlugin) getBlockAmount(blockHash common.Hash, header *types.He
 	if err == snapshotdb.ErrNotFound {
 		amount = 0
 	} else {
-		if err := rlp.DecodeBytes(value, amount); nil != err {
+		if err := rlp.DecodeBytes(value, &amount); nil != err {
 			return 0, err
 		}
 	}
@@ -148,6 +148,7 @@ func (sp *slashingPlugin) setBlockAmount(blockHash common.Hash, header *types.He
 			if _, err := sp.db.Put(blockHash, curKey(nodeId.Bytes()), enValue); nil != err {
 				return err
 			}
+			log.Debug("slashingPlugin setBlockAmount success", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "value", value)
 		}
 	}
 	return nil

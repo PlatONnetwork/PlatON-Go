@@ -3,10 +3,13 @@ package core
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -73,6 +76,11 @@ func (brc *BlockChainReactor) loop() {
 				continue
 			}
 
+			if _, err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
+				log.Error("snapshotdb Commit failed", "err", err)
+				continue
+			}
+
 			/**
 			TODO flush the seed and the package ratio
 			*/
@@ -114,22 +122,22 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	// store the sign in  header.Extra[32:97]
 	if isWorker(header.Extra) {
 		// Generate vrf proof
-		/*if value, err := xcom.GetVrfHandlerInstance().GenerateNonce(header.Number, header.ParentHash); nil != err {
+		if value, err := xcom.GetVrfHandlerInstance().GenerateNonce(header.Number, header.ParentHash); nil != err {
 			return false, err
 		} else {
 			header.Nonce = types.EncodeNonce(value)
-		}*/
+		}
 	} else {
 		blockHash = header.Hash()
 		// Verify vrf proof
-		/*sign := header.Extra[32:97]
+		sign := header.Extra[32:97]
 		pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
 		if nil != err {
 			return false, err
 		}
 		if err := xcom.GetVrfHandlerInstance().VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 			return false, err
-		}*/
+		}
 	}
 
 	for _, pluginName := range bcr.beginRule {
@@ -151,9 +159,9 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 		blockHash = header.Hash()
 	}
 	// Store the previous vrf random number
-	/*if err := xcom.GetVrfHandlerInstance().Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
+	if err := xcom.GetVrfHandlerInstance().Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 		return false, err
-	}*/
+	}
 
 	for _, pluginName := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
@@ -212,4 +220,13 @@ func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
 
 func isWorker(extra []byte) bool {
 	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
+}
+
+func (bcr *BlockChainReactor) PrepareResult(block *types.Block) (bool, error) {
+	log.Debug("snapshotdb Flush", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(block.Hash().Bytes()))
+	if _, err := snapshotdb.Instance().Flush(block.Hash(), block.Number()); nil != err {
+		log.Error("snapshotdb Flush failed", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
+		return false, err
+	}
+	return true, nil
 }
