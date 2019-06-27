@@ -15,7 +15,7 @@ func TestJournal(t *testing.T) {
 	initDB()
 	db := dbInstance
 	defer func() {
-		_, err := db.Clear()
+		err := db.Clear()
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -1,7 +1,7 @@
 package snapshotdb
 
 import (
-	"log"
+	"fmt"
 	"sync/atomic"
 )
 
@@ -22,12 +22,15 @@ func (c *count32) get() int32 {
 }
 
 func (s *snapshotDB) schedule() {
-	if counter.get() == 60 || s.current.HighestNum.Int64()-s.current.BaseNum.Int64() >= 100 {
-		if _, err := s.Compaction(); err != nil {
-			log.Print("[SnapshotDB]compaction fail:", err)
+	if counter.get() >= 60 || s.current.HighestNum.Int64()-s.current.BaseNum.Int64() >= 100 {
+		if !s.snapshotLockC {
+			if err := s.Compaction(); err != nil {
+				logger.Error(fmt.Sprint("[SnapshotDB]compaction fail:", err))
+			}
+			counter.reset()
+			return
 		}
-		counter.reset()
-	} else {
-		counter.increment()
+		logger.Info("snapshotDB is still Compaction Lock,wait for next schedule")
 	}
+	counter.increment()
 }
