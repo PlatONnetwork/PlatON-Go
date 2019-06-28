@@ -15,8 +15,8 @@ import (
 )
 
 type GovPlugin struct {
-	govDB   *gov.GovDB
-	once sync.Once
+	govDB *gov.GovDB
+	once  sync.Once
 }
 
 var govPlugin *GovPlugin
@@ -30,11 +30,9 @@ func GovPluginInstance(db snapshotdb.DB) *StakingPlugin {
 	return stk
 }
 
-
 func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
 	return nil
 }
-
 
 //实现BasePlugin
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
@@ -160,9 +158,6 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	return true, nil
 }
 
-
-
-
 //获取预生效版本，可以返回nil
 func (govPlugin *GovPlugin) GetPreActiveVersion(state xcom.StateDB) uint32 {
 	return govPlugin.govDB.GetPreActiveVersion(state)
@@ -172,7 +167,6 @@ func (govPlugin *GovPlugin) GetPreActiveVersion(state xcom.StateDB) uint32 {
 func (govPlugin *GovPlugin) GetActiveVersion(state xcom.StateDB) uint32 {
 	return govPlugin.govDB.GetActiveVersion(state)
 }
-
 
 //提交提案，只有验证人才能提交提案
 func (govPlugin *GovPlugin) Submit(curBlockNum *big.Int, from common.Address, proposal gov.Proposal, blockHash common.Hash, state xcom.StateDB) (bool, error) {
@@ -273,7 +267,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	//TODO: Staking Plugin
 	success, err := stk.IsCurrVerifier(blockHash, vote.VoteNodeID)
 
-	if !success || err !=nil {
+	if !success || err != nil {
 		var err error = errors.New("[GOV] Vote(): proposer is not verifier.")
 		return false, err
 	}
@@ -355,7 +349,7 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID *
 			if getLargeVersion(versionProposal.GetNewVersion()) == getLargeVersion(version) {
 				proposer := versionProposal.GetProposer()
 				//存入AddActiveNode，等预生效再通知Staking
-				if !govPlugin.govDB.AddActiveNode(blockHash,votingProposalID, proposer) {
+				if !govPlugin.govDB.AddActiveNode(blockHash, votingProposalID, proposer) {
 					var err error = errors.New("[GOV] DeclareVersion(): add active node failed.")
 					return false, err
 				}
