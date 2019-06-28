@@ -77,13 +77,13 @@ func (self *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) (Prop
 	pData := value[0 : len(value)-1]
 	pType := value[len(value)-1]
 	if pType == byte(Text) {
-		proposal = &TextProposal{}
-		if e := json.Unmarshal(pData, proposal); e != nil {
+		proposal = TextProposal{}
+		if e := json.Unmarshal(pData, &proposal); e != nil {
 			return nil, e
 		}
 	} else if pType == byte(Version) {
-		proposal = &VersionProposal{}
-		if e := json.Unmarshal(pData, proposal); e != nil {
+		proposal = VersionProposal{}
+		if e := json.Unmarshal(pData, &proposal); e != nil {
 			return nil, e
 		}
 	} else {
@@ -125,7 +125,7 @@ func (self *GovDB) ListVote(proposalID common.Hash, state xcom.StateDB) []VoteVa
 	voteListBytes := state.GetState(vm.GovContractAddr, KeyVote(proposalID))
 
 	var voteList []VoteValue
-	if err := json.Unmarshal(voteListBytes, voteList); err != nil {
+	if err := json.Unmarshal(voteListBytes, &voteList); err != nil {
 		return nil
 	}
 	return voteList
