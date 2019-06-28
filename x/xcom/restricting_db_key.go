@@ -18,7 +18,7 @@ func GetRestrictingKey(account common.Address) []byte {
 
 // RestrictingKey used for search restricting entry info. key: prefix + account + blockNum
 func GetReleaseAmountKey(account common.Address, blockNum uint64) []byte {
-	release := append(account.Bytes(), byteutil.Uint64ToBytes(blockNum)...)
+	release := append(account.Bytes(), common.Uint64ToBytes(blockNum)...)
 	return append(RestrictingKeyPrefix, release...)
 }
 

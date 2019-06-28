@@ -19,13 +19,14 @@ package core
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"math"
 	"math/big"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
@@ -482,14 +483,14 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 
 	if newBlock != nil {
 		pool.mu.Lock()
+
+		if newBlock.NumberU64() < pool.chain.CurrentBlock().NumberU64() {
+			atomic.StoreInt32(&pool.rstFlag, DoingRst)
+		}
 		pool.reset(head.Header(), newBlock.Header())
 		head = newBlock
 
 		pool.mu.Unlock()
-	}
-
-	if newBlock.NumberU64() < pool.chain.CurrentBlock().NumberU64() {
-		atomic.StoreInt32(&pool.rstFlag, DoingRst)
 	}
 	log.Debug("call Reset elapse time", "RoutineID", common.CurrentGoRoutineID(), "hash", newBlock.Hash(), "number", newBlock.NumberU64(), "parentHash", newBlock.ParentHash(), "elapseTime", common.PrettyDuration(time.Since(startTime)))
 }
@@ -852,12 +853,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrIntrinsicGas
 	}
 
-
 	// Verify inner contract tx
 	if err := bcr.Verify_tx(tx, from); nil != err {
 		return err
 	}
-
 
 	return nil
 }

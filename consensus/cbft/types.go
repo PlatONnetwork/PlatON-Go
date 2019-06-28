@@ -797,8 +797,6 @@ func (cbft *Cbft) broadcastBlock(ext *BlockExt) {
 	ext.proposalIndex, ext.proposalAddr = uint32(validator.Index), validator.Address
 	p := &prepareBlock{Block: ext.block, ProposalIndex: uint32(validator.Index), ProposalAddr: validator.Address}
 
-
-
 	cbft.addPrepareBlockVote(p)
 	ext.prepareBlock = p
 
@@ -1249,7 +1247,6 @@ func (bm *BlockExtMap) Total() int {
 }
 func (bm *BlockExtMap) GetSubChainWithTwoThirdVotes(hash common.Hash, number uint64) []*BlockExt {
 	base := bm.findBlock(hash, number)
-	log.Debug("GetSubChainWithTwoThirdVotes", "hash", hash, "number", number, "prepareVotes", base.prepareVotes.Len(), "threshold", bm.threshold, "headHash", bm.head.block.Hash(), "headNumber", bm.head.number)
 	if base == nil || base.prepareVotes.Len() < bm.threshold {
 		return nil
 	}
