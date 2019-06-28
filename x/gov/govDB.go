@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -29,7 +29,7 @@ type GovDB struct {
 	snapdb   GovSnapshotDB
 }
 
-func NewGovDB(snapdb xcom.SnapshotDB) *GovDB {
+func NewGovDB(snapdb snapshotdb.DB) *GovDB {
 	dbOnce.Do(func() {
 		govDB = &GovDB{snapdb: GovSnapshotDB{snapdb}}
 	})
@@ -152,28 +152,26 @@ func (self *GovDB) getTallyResult(proposalID common.Hash, state xcom.StateDB) (*
 
 // 保存生效版本记录
 func (self *GovDB) setPreActiveVersion(preActiveVersion uint32, state xcom.StateDB) bool {
-	state.SetState(vm.GovContractAddr, KeyPreActiveVersion(), byteutil.Uint32ToBytes(preActiveVersion))
+	state.SetState(vm.GovContractAddr, KeyPreActiveVersion(), common.Uint32ToBytes(preActiveVersion))
 	return true
 }
 
 // 查询生效版本记录
 func (self *GovDB) getPreActiveVersion(state xcom.StateDB) uint32 {
-
 	value := state.GetState(vm.GovContractAddr, KeyPreActiveVersion())
-	return byteutil.BytesToUint32(value)
+	return common.BytesToUint32(value)
 }
 
 // 保存生效版本记录
-func (self *GovDB) setActiveVersion(activeVersion uint, state xcom.StateDB) bool {
-
-	state.SetState(vm.GovContractAddr, KeyActiveVersion(), tobytes(activeVersion))
+func (self *GovDB) setActiveVersion(activeVersion uint32, state xcom.StateDB) bool {
+	state.SetState(vm.GovContractAddr, KeyActiveVersion(), common.Uint32ToBytes(activeVersion))
 	return true
 }
 
 // 查询生效版本记录
 func (self *GovDB) getActiveVersion(state xcom.StateDB) uint32 {
 	value := state.GetState(vm.GovContractAddr, KeyActiveVersion())
-	return byteutil.BytesToUint32(value)
+	return common.BytesToUint32(value)
 }
 
 // 查询正在投票的提案
