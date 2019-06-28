@@ -20,8 +20,8 @@ func TestJournal(t *testing.T) {
 			t.Fatal(err)
 		}
 	}()
-	blockHash := rlpHash("a")
-	parentHash := rlpHash("b")
+	blockHash := generateHash("a")
+	parentHash := generateHash("b")
 	blockNumber := big.NewInt(100)
 	if err := db.writeJournalHeader(blockNumber, blockHash, parentHash, journalHeaderFromRecognized); err != nil {
 		t.Error(err)

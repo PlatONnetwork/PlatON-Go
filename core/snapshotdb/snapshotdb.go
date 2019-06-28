@@ -298,9 +298,14 @@ func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
 // if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommittedBlockData > baseDB
 // if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
 func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
-	var parentHash common.Hash
-	if hash == common.ZeroHash {
-		//from unRecognizedBlockData
+	//found from unRecognized
+	location, ok := s.checkHashChain(hash)
+	if !ok {
+		return nil, errors.New("[SnapshotDB]the hash not in chain" + hash.String())
+	}
+	//found from Recognized
+	switch location {
+	case hashLocationUnRecognized:
 		if s.unRecognized == nil {
 			return nil, errors.New("[SnapshotDB]unRecognized is not find now")
 		}
@@ -309,41 +314,62 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 		} else if err != memdb.ErrNotFound {
 			return nil, err
 		}
-		parentHash = s.unRecognized.ParentHash
-	} else {
-		parentHash = hash
+		return s.getFromRecognized(s.unRecognized.ParentHash, key)
+	case hashLocationRecognized:
+		return s.getFromRecognized(hash, key)
+	case hashLocationCommitted:
+		return s.getFromCommitted(hash, key)
+	default:
+		return s.GetBaseDB(key)
 	}
-	//from RecognizedBlockData
+}
+
+func (s *snapshotDB) getFromRecognized(hash common.Hash, key []byte) ([]byte, error) {
 	for {
-		if block, ok := s.recognized[parentHash]; ok {
+		if block, ok := s.recognized[hash]; ok {
+			if hash == block.ParentHash {
+				return nil, errors.New("getFromRecognized loop error")
+			}
 			if v, err := block.data.Get(key); err == nil {
 				return v, nil
 			} else if err != memdb.ErrNotFound {
 				return nil, err
 			}
-			parentHash = block.ParentHash
+			hash = block.ParentHash
 		} else {
 			break
 		}
 	}
-
-	//from committed
 	if len(s.committed) > 0 {
 		block := s.committed[len(s.committed)-1]
-		if block.BlockHash != parentHash {
+		if block.BlockHash != hash {
 			return nil, ErrNotFound
 		}
-		for i := len(s.committed) - 1; i >= 0; i-- {
+		v, err := s.getFromCommitted(hash, key)
+		if err == nil {
+			return v, nil
+		} else if err != ErrNotFound {
+			return nil, err
+		}
+	}
+	return s.GetBaseDB(key)
+}
+
+func (s *snapshotDB) getFromCommitted(hash common.Hash, key []byte) ([]byte, error) {
+	for i := len(s.committed) - 1; i >= 0; i-- {
+		if s.committed[i].BlockHash == hash {
 			if v, err := s.committed[i].data.Get(key); err == nil {
 				return v, nil
 			} else if err != memdb.ErrNotFound {
 				return nil, err
 			}
-			continue
+			hash = s.committed[i].ParentHash
 		}
 	}
+	return s.GetBaseDB(key)
+}
 
-	//from baseDB
+func (s *snapshotDB) GetBaseDB(key []byte) ([]byte, error) {
 	if v, err := s.baseDB.Get(key, nil); err == nil {
 		return v, nil
 	} else if err != leveldb.ErrNotFound {
@@ -408,9 +434,15 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	if (block.Number.Int64() - s.current.HighestNum.Int64()) != 1 {
 		return fmt.Errorf("[snapshotdb]the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
 	}
+	if s.current.LastHash != common.ZeroHash {
+		if block.ParentHash != s.current.LastHash {
+			return fmt.Errorf("[snapshotdb]the commit block ParentHash %v not eq LastHash of commit hash %v ", block.ParentHash, s.current.LastHash)
+		}
+	}
 	block.readOnly = true
 	s.committed = append(s.committed, block)
 	s.current.HighestNum = block.Number
+	s.current.LastHash = hash
 	if err := s.current.update(); err != nil {
 		return errors.New("[snapshotdb]update current fail:" + err.Error())
 	}
@@ -539,7 +571,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 }
 
 func (s *snapshotDB) Close() error {
-	logger.Info("db is closing")
+	logger.Info("db begin close")
 	//	runtime.SetFinalizer(s, nil)
 	if s.corn != nil {
 		s.corn.Stop()
@@ -557,6 +589,7 @@ func (s *snapshotDB) Close() error {
 		s.current.f.Close()
 	}
 
+	logger.Info("begin close journalWriter")
 	for key := range s.journalw {
 		if err := s.journalw[key].Close(); err != nil {
 			return fmt.Errorf("[snapshotdb]close journalw fail:%v", err)
