@@ -80,7 +80,7 @@ type Proposal interface {
 	SetTallyResult(tallyResult TallyResult)
 	GetTallyResult() TallyResult
 
-	Verify(curBlockNum *big.Int, state xcom.StateDB) bool
+	Verify(curBlockNum *big.Int, state xcom.StateDB) (bool, error)
 
 	String() string
 }
@@ -178,9 +178,39 @@ func (tp TextProposal) GetTallyResult() TallyResult {
 	return tp.Result
 }
 
-func (tp TextProposal) Verify(curBlockNum *big.Int, state xcom.StateDB) bool {
-
-	return true
+func (tp TextProposal) Verify(curBlockNum *big.Int, state xcom.StateDB) (bool, error) {
+	p, _ := gov.govDB.getProposal(tp.ProposalID, state);
+	if len(tp.ProposalID) == 0 || p != nil {
+		var err error = errors.New("[GOV] Verify(): ProposalID is empty or ProposalID already used.")
+		return false, err
+	}
+	if len(tp.Proposer) == 0 {
+		var err error = errors.New("[GOV] Verify(): Proposer is empty.")
+		return false, err
+	}
+	if tp.ProposalType != 0x02 {
+		var err error = errors.New("[GOV] Verify(): Proposal Type error.")
+		return false, err
+	}
+	if len(tp.Topic) == 0 || len(tp.Topic) > 128 {
+		var err error = errors.New("[GOV] Verify(): Topic is empty or larger than 128.")
+		return false, err
+	}
+	if len(tp.Desc) > 512 {
+		var err error = errors.New("[GOV] Verify(): Description too long.")
+		return false, err
+	}
+	//TODO： 重复检查
+	if len(tp.GithubID) == 0 {
+		var err error = errors.New("[GOV] Verify(): GithubID empty or duplicated.")
+		return false, err
+	}
+	//TODO： 重复检查
+	if len(tp.Url) == 0 {
+		var err error = errors.New("[GOV] Verify(): Github URL empty or duplicated.")
+		return false, err
+	}
+	return true, nil
 }
 
 func (tp TextProposal) String() string {
@@ -216,7 +246,8 @@ func (vp VersionProposal) GetActiveBlock() *big.Int {
 }
 
 func (vp VersionProposal) Verify(curBlockNum *big.Int, state xcom.StateDB) (bool, error) {
-	if len(vp.ProposalID) == 0 || nil != gov.govDB.GetProposal(vp.ProposalID, state) {
+	p, _ := gov.govDB.getProposal(vp.ProposalID, state);
+	if len(vp.ProposalID) == 0 || p != nil {
 		var err error = errors.New("[GOV] Verify(): ProposalID is empty or ProposalID already used.")
 		return false, err
 	}
@@ -236,29 +267,30 @@ func (vp VersionProposal) Verify(curBlockNum *big.Int, state xcom.StateDB) (bool
 		var err error = errors.New("[GOV] Verify(): Description too long.")
 		return false, err
 	}
-	if len(vp.GithubID) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetGithubID() {
+	//TODO： 重复检查
+	if len(vp.GithubID) == 0 {
 		var err error = errors.New("[GOV] Verify(): GithubID empty or duplicated.")
 		return false, err
 	}
-	if len(vp.Url) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetUrl() {
+	//TODO： 重复检查
+	if len(vp.Url) == 0 {
 		var err error = errors.New("[GOV] Verify(): Github URL empty or duplicated.")
 		return false, err
 	}
-	//TODO
-	if vp.EndVotingBlock == big.NewInt(0) || vp.EndVotingBlock.Cmp(curBlockNum.Add(curBlockNum, twoWeek)) > 0 {
-		var err error = errors.New("[GOV] Verify(): Github URL empty or duplicated.")
-		return false, err
-	}
-	if vp.NewVersion>>8 <= uint(gov.govDB.GetActiveVersion(state))>>8 {
+	////TODO
+	//if vp.EndVotingBlock == big.NewInt(0) || vp.EndVotingBlock.Cmp(curBlockNum.Add(curBlockNum, twoWeek)) > 0 {
+	//	var err error = errors.New("[GOV] Verify(): Github URL empty or duplicated.")
+	//	return false, err
+	//}
+	if vp.NewVersion>>8 <= uint(gov.govDB.getActiveVersion(state))>>8 {
 		var err error = errors.New("[GOV] Verify(): NewVersion should larger than current version.")
 		return false, err
 	}
 	//TODO
-	if vp.ActiveBlock == big.NewInt(0) || vp.ActiveBlock.Cmp(fourRoundConsensus) <= 4 || vp.ActiveBlock.Cmp(fourRoundConsensus) >= 10 {
-		var err error = errors.New("[GOV] Verify(): invalid ActiveBlock.")
-		return false, err
-	}
-
+	//if vp.ActiveBlock == big.NewInt(0) || vp.ActiveBlock.Cmp(fourRoundConsensus) <= 4 || vp.ActiveBlock.Cmp(fourRoundConsensus) >= 10 {
+	//	var err error = errors.New("[GOV] Verify(): invalid ActiveBlock.")
+	//	return false, err
+	//}
 	return true, nil
 }
 

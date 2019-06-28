@@ -8,7 +8,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"go/types"
 	"math/big"
 	"sync"
 )
@@ -176,7 +175,8 @@ func (gov *Gov) Submit(curBlockNum *big.Int, from common.Address, proposal Propo
 	}
 
 	//参数校验
-	if !proposal.Verify(curBlockNum, state) {
+	ok, err := proposal.Verify(curBlockNum, state)
+	if !ok {
 		var err error = errors.New("[GOV] Submit(): param error.")
 		return false, err
 	}
@@ -194,7 +194,7 @@ func (gov *Gov) Submit(curBlockNum *big.Int, from common.Address, proposal Propo
 	}
 
 	//升级提案的额外处理
-	_, ok := proposal.(VersionProposal)
+	_, ok = proposal.(VersionProposal)
 	if ok {
 		//判断是否有VersionProposal正在投票中，有则退出
 		votingProposalIDs := gov.govDB.listVotingProposal(blockHash, state)
@@ -399,7 +399,7 @@ func (gov *Gov) ListProposal(blockHash common.Hash, state xcom.StateDB) []*Propo
 	for _, proposalID := range proposalIDs {
 		proposal, err := gov.govDB.getProposal(proposalID, state)
 		if err != nil {
-			msg := fmt.Sprintf("[GOV] Submit(): Unable to get proposal: %s", votingProposalID)
+			msg := fmt.Sprintf("[GOV] ListProposal(): Unable to get proposal: %s", proposalID)
 			err = errors.New(msg)
 			return nil
 		}
@@ -433,7 +433,7 @@ func (gov *Gov) tally(proposalID common.Hash, blockHash common.Hash, state *xcom
 		}
 	}
 	status := Voting
-	sr := float32(passCnt) * 100 / float32(verifiersCnt)
+	sr := float32(passCnt) * 100.0 / float32(verifiersCnt)
 	//TODO
 	if sr > SupportRateThreshold {
 		status = PreActive
