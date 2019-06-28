@@ -7,6 +7,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"math/big"
 	"reflect"
 )
 
@@ -26,16 +27,17 @@ const (
 
 
 type govContract struct {
+	plugin 	   *plugin.GovPlugin
 	Contract   *Contract
 	Evm        *EVM
 }
 
-func (stkc *govContract) RequiredGas(input []byte) uint64 {
+func (gc *govContract) RequiredGas(input []byte) uint64 {
 	return 0
 }
 
-func (stkc *govContract) Run(input []byte) ([]byte, error) {
-	return stkc.execute(input)
+func (gc *govContract) Run(input []byte) ([]byte, error) {
+	return gc.execute(input)
 }
 
 func (gc *govContract) FnSigns() map[uint16]interface{} {
@@ -85,17 +87,18 @@ func (gc *govContract) submitText(verifier discover.NodeID, githubID, topic, des
 	p.SetDesc(desc)
 	p.SetUrl(url)
 	p.SetProposalType(gov.Text)
-	p.SetEndVotingBlock(endVotingBlock)
-	p.SetSubmitBlock(gc.Evm.BlockNumber.Uint64())
+
+	p.SetEndVotingBlock(new(big.Int).SetUint64(endVotingBlock))
+	p.SetSubmitBlock(gc.Evm.BlockNumber)
 	p.SetProposalID(gc.Evm.StateDB.TxHash())
 	p.SetProposer(verifier)
 
 
-	gov.GovInstance().Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
+	gc.plugin.Submit(gc.Evm.BlockNumber, from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return nil, nil
 }
 
-func (gc *govContract) submitVersion(verifier discover.NodeID, githubID, topic, desc, url string, newVersion uint, endVotingBlock, activeBlock uint64) ([]byte, error) {
+func (gc *govContract) submitVersion(verifier discover.NodeID, githubID, topic, desc, url string, newVersion uint32, endVotingBlock, activeBlock uint64) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 
 	log.Info("Call submitVersion of govContract",
@@ -110,16 +113,16 @@ func (gc *govContract) submitVersion(verifier discover.NodeID, githubID, topic, 
 	p.SetDesc(desc)
 	p.SetUrl(url)
 	p.SetProposalType(gov.Text)
-	p.SetEndVotingBlock(endVotingBlock)
-	p.SetSubmitBlock(gc.Evm.BlockNumber.Uint64())
+	p.SetEndVotingBlock(new(big.Int).SetUint64(endVotingBlock))
+	p.SetSubmitBlock(gc.Evm.BlockNumber)
 	p.SetProposalID(gc.Evm.StateDB.TxHash())
 	p.SetProposer(verifier)
 
 	p.SetNewVersion(newVersion)
-	p.SetActiveBlock(activeBlock)
+	p.SetActiveBlock(new(big.Int).SetUint64(activeBlock))
 
 
-	gov.GovInstance().Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
+	gc.plugin.Submit(gc.Evm.BlockNumber, from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -139,11 +142,11 @@ func (gc *govContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 	v.VoteOption = option
 
 
-	gov.GovInstance().Vote(from, v, gc.Evm.BlockHash, gc.Evm.StateDB)
+	gc.plugin.Vote(from, v, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return nil, nil
 }
 
-func (gc *govContract) declareVersion(activeNode discover.NodeID, version uint) ([]byte, error) {
+func (gc *govContract) declareVersion(activeNode discover.NodeID, version uint32) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 
 	log.Info("Call declareVersion of govContract",
@@ -152,7 +155,7 @@ func (gc *govContract) declareVersion(activeNode discover.NodeID, version uint) 
 		"blockNumber", gc.Evm.BlockNumber.Uint64(),
 		"activeNode", hex.EncodeToString(activeNode.Bytes()[:8]))
 
-	gov.GovInstance().DeclareVersion(from, &activeNode, version, gc.Evm.BlockHash)
+	gc.plugin.DeclareVersion(from, &activeNode, version, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -165,7 +168,7 @@ func (gc *govContract) getProposal(proposalID common.Hash) ([]byte, error) {
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
-	gov.GovInstance().GetProposal(proposalID, gc.Evm.StateDB)
+	gc.plugin.GetProposal(proposalID, gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -177,7 +180,7 @@ func (gc *govContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
-	gov.GovInstance().GetTallyResult(proposalID, gc.Evm.StateDB)
+	gc.plugin.GetTallyResult(proposalID, gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -189,7 +192,7 @@ func (gc *govContract) listProposal() ([]byte, error) {
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
-	gov.GovInstance().ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
+	gc.plugin.ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
 
 	return nil, nil
 }

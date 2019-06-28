@@ -2,7 +2,6 @@ package xcom
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 )
 
 var (
@@ -25,11 +24,11 @@ func GetReleaseAmountKey(account common.Address, blockNum uint64) []byte {
 
 // ReleaseNumberKey used for search records at target release blockNumber. key: prefix + blockNum
 func GetReleaseNumberKey(blockNum uint64) []byte {
-	return append(RestrictRecordKeyPrefix, byteutil.Uint64ToBytes(blockNum)...)
+	return append(RestrictRecordKeyPrefix, common.Uint64ToBytes(blockNum)...)
 }
 
 // ReleaseAccountKey used for search restricting account at target block index. key: prefix + blockNum + index
 func GetReleaseAccountKey(blockNum uint64, index uint32) []byte {
-	releaseIndex := append(byteutil.Uint64ToBytes(blockNum), byteutil.Uint32ToBytes(index)...)
+	releaseIndex := append(common.Uint64ToBytes(blockNum), common.Uint32ToBytes(index)...)
 	return append(RestrictRecordKeyPrefix, releaseIndex...)
 }
