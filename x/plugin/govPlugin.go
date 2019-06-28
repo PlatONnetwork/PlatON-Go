@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -20,6 +21,14 @@ type GovPlugin struct {
 
 var govPlugin *GovPlugin
 
+func GovPluginInstance(db snapshotdb.DB) *StakingPlugin {
+	if nil == govPlugin && nil != db {
+		govPlugin = &GovPlugin{
+			govDB: gov.NewGovDB(db),
+		}
+	}
+	return stk
+}
 
 
 func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
@@ -311,14 +320,14 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	return true, nil
 }
 
-func getLargeVersion(version uint) uint {
+func getLargeVersion(version uint32) uint32 {
 	return version >> 8
 }
 
 //版本声明，验证人/候选人可以声明
-func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID *discover.NodeID, version uint, blockHash common.Hash, state xcom.StateDB) (bool, error) {
+func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID *discover.NodeID, version uint32, blockHash common.Hash, state xcom.StateDB) (bool, error) {
 
-	activeVersion := uint(govPlugin.govDB.GetActiveVersion(state))
+	activeVersion := uint32(govPlugin.govDB.GetActiveVersion(state))
 	if activeVersion <= 0 {
 		var err error = errors.New("[GOV] DeclareVersion(): add active version failed.")
 		return false, err

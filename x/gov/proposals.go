@@ -195,15 +195,15 @@ func (tp TextProposal) String() string {
 
 type VersionProposal struct {
 	TextProposal
-	NewVersion  uint
+	NewVersion  uint32
 	ActiveBlock *big.Int
 }
 
-func (vp VersionProposal) SetNewVersion(newVersion uint) {
+func (vp VersionProposal) SetNewVersion(newVersion uint32) {
 	vp.NewVersion = newVersion
 }
 
-func (vp VersionProposal) GetNewVersion() uint {
+func (vp VersionProposal) GetNewVersion() uint32 {
 	return vp.NewVersion
 }
 
