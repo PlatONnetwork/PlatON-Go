@@ -1,6 +1,7 @@
 package snapshotdb
 
 import (
+	"bytes"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -20,4 +21,10 @@ func encode(x interface{}) ([]byte, error) {
 
 func decode(r io.Reader, val interface{}) error {
 	return rlp.Decode(r, val)
+}
+
+func generateHash(n string) common.Hash {
+	var buf bytes.Buffer
+	buf.Write([]byte(n))
+	return rlpHash(buf.Bytes())
 }

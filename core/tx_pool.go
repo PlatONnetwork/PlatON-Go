@@ -1090,6 +1090,7 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 			knowingTxCounter.Inc(1)
 			continue
 		}
+
 		newTxs = append(newTxs, tx)
 	}
 	if len(newTxs) == 0 {
@@ -1102,6 +1103,8 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	case <-pool.exitCh:
 		return nil
 	case pool.txExtBuffer <- txExt:
+		return nil
+	default:
 		return nil
 	}
 }

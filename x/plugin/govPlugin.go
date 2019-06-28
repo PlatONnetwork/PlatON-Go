@@ -14,6 +14,10 @@ import (
 	"sync"
 )
 
+
+var SupportRate_Threshold = 0.85
+
+
 type GovPlugin struct {
 	govDB   *gov.GovDB
 	once sync.Once
@@ -97,24 +101,28 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 					return false, err
 				}
 			}
-			ok, status := govPlugin.tally(votingProposalID, blockHash, state)
-			if !ok {
-				err = errors.New("[GOV] EndBlock(): tally failed.")
+
+			accuVerifiersCnt := uint16(govPlugin.govDB.AccuVerifiersLength(blockHash, votingProposal.GetProposalID()))
+
+			verifierList, err := govPlugin.govDB.ListVotedVerifier(blockHash, votingProposal.GetProposalID())
+			if err != nil {
 				return false, err
 			}
-			if status == gov.Pass {
-				_, ok := votingProposal.(gov.VersionProposal)
-				if ok {
-					govPlugin.govDB.MoveVotingProposalIDToPreActive(blockHash, votingProposalID, state)
-				}
-				_, ok = votingProposal.(gov.TextProposal)
-				if ok {
-					govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, votingProposalID, state)
-				}
+
+
+			if votingProposal.GetProposalType() == gov.Text {
+				govPlugin.tallyForTextProposal(verifierList, accuVerifiersCnt, votingProposal.(gov.TextProposal), blockHash, state)
+			}else if votingProposal.GetProposalType() == gov.Version {
+				govPlugin.tallyForVersionProposal(verifierList, accuVerifiersCnt, votingProposal.(gov.VersionProposal), blockHash, header.Number.Uint64(), state)
+			}else{
+
 			}
 		}
 	}
 	preActiveProposalID := govPlugin.govDB.GetPreActiveProposalID(blockHash, state)
+	if len(preActiveProposalID)>0 {
+		return true, nil
+	}
 	proposal, err := govPlugin.govDB.GetProposal(preActiveProposalID, state)
 	if err != nil {
 		msg := fmt.Sprintf("[GOV] EndBlock(): Unable to get proposal: %s", preActiveProposalID)
@@ -126,22 +134,22 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		return true, nil
 	}
 	if versionProposal.GetActiveBlock().Uint64() == header.Number.Uint64() {
-		verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
+		validatorList, err := stk.ListCurrentValidatorID(blockHash, header.Number.Uint64())
 		if err != nil {
-			err := errors.New("[GOV] BeginBlock(): ListVerifierNodeID failed.")
+			err := errors.New("[GOV] BeginBlock(): ListCurrentValidatorID failed.")
 			return false, err
 		}
 
-		var updatedNodes uint8 = 0
-		declareList := govPlugin.govDB.GetActiveNodeList(blockHash, preActiveProposalID)
-		for _, val := range verifierList {
-			if inNodeList(val, declareList) {
-				updatedNodes++
+		var activeCount uint8 = 0
+		activeNodeIDList := govPlugin.govDB.GetActiveNodeList(blockHash, preActiveProposalID)
+		for _, val := range validatorList {
+			if inNodeList(val, activeNodeIDList) {
+				activeCount++
 			}
 		}
-		if updatedNodes == 25 {
+		if activeCount == 25 {
 			tallyResult, err := govPlugin.govDB.GetTallyResult(preActiveProposalID, state)
-			if err != nil {
+			if err != nil || tallyResult == nil {
 				err = errors.New("[GOV] EndBlock(): get tallyResult failed.")
 				return false, err
 			}
@@ -154,7 +162,8 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 
 			govPlugin.govDB.ClearActiveNodes(blockHash, preActiveProposalID)
 
-			//stk.NotifyActive(versionProposal.NewVersion)
+			//todo:
+			//stk.NotifyActive(blockHash, blockNumber, proposal.NewVersion)
 		}
 	}
 	return true, nil
@@ -399,33 +408,63 @@ func (govPlugin *GovPlugin) ListProposal(blockHash common.Hash, state xcom.State
 	return nil
 }
 
-//投票结束时，进行投票计算
-
-func (govPlugin *GovPlugin) tally(proposalID common.Hash, blockHash common.Hash, state xcom.StateDB) (bool, gov.ProposalStatus) {
-
-	accuVerifiersCnt := uint16(govPlugin.govDB.AccuVerifiersLength(blockHash, proposalID))
-	voteCnt := uint16(len(govPlugin.govDB.ListVote(proposalID, state)))
-
+func (govPlugin *GovPlugin) tallyForTextProposal(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.TextProposal, blockHash common.Hash, state xcom.StateDB) (error) {
+	votedCnt := uint16(len(votedVerifierList))
 	status := gov.Voting
-	supportRate := voteCnt / accuVerifiersCnt
-	//TODO
-	if supportRate > accuVerifiersCnt {
-		status = gov.PreActive
+	supportRate := float64(votedCnt) / float64(accuCnt)
+
+	if supportRate >= SupportRate_Threshold {
+		status = gov.Pass
 	} else {
 		status = gov.Failed
 	}
 
-	tallyResult := &gov.TallyResult{
-		ProposalID:    proposalID,
-		Yeas:          voteCnt,
-		AccuVerifiers: accuVerifiersCnt,
+	tallyResult := gov.TallyResult{
+		ProposalID:    proposal.ProposalID,
+		Yeas:          votedCnt,
+		AccuVerifiers: accuCnt,
 		Status:        status,
 	}
 
-	if !govPlugin.govDB.SetTallyResult(*tallyResult, state) {
-		log.Error("[GOV] tally(): Unable to set tallyResult.")
-		return false, status
-	}
-	return true, status
+	govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposal.ProposalID, state)
 
+	if govPlugin.govDB.SetTallyResult(tallyResult, state) {
+		return  nil
+	}else{
+		log.Error("[GOV] tally(): Unable to save text proposal tally result.")
+		return errors.New("save text proposal tally result error")
+	}
+}
+
+func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.VersionProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) (error) {
+
+	votedCnt := uint16(len(votedVerifierList))
+
+	status := gov.Voting
+	supportRate := float64(votedCnt) / float64(accuCnt)
+
+	if supportRate >= SupportRate_Threshold {
+		status = gov.PreActive
+		//todo:
+		//stk.NotifyPreActive(blockHash, blockNumber, proposal.NewVersion, votedVerifierList)
+
+		govPlugin.govDB.MoveVotingProposalIDToPreActive(blockHash, proposal.ProposalID, state)
+	} else {
+		status = gov.Failed
+		govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposal.ProposalID, state)
+	}
+
+	tallyResult := gov.TallyResult{
+		ProposalID:    proposal.ProposalID,
+		Yeas:          votedCnt,
+		AccuVerifiers: accuCnt,
+		Status:        status,
+	}
+
+	if govPlugin.govDB.SetTallyResult(tallyResult, state) {
+		return nil
+	}else{
+		log.Error("[GOV] tally(): Unable to save version proposal tally result.")
+		return  errors.New("save version proposal tally result error")
+	}
 }

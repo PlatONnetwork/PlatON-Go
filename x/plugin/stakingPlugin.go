@@ -1111,6 +1111,28 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 	return result, nil
 }
 
+
+
+func (sk *StakingPlugin) ListCurrentValidatorID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
+
+	arr, err := sk.db.GetCurrentValidatorListByBlockHash(blockHash)
+	if nil != err {
+		return nil, err
+	}
+
+	if blockNumber < arr.Start || blockNumber > arr.End {
+		return nil, fmt.Errorf("Get Current ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
+			BlockNumberDisordered.Error(), arr.Start, arr.End, blockNumber)
+	}
+
+	queue := make([]discover.NodeID, len(arr.Arr))
+
+	for _, candidate := range arr.Arr {
+		queue = append(queue, candidate.NodeId)
+	}
+	return queue, err
+}
+
 func (sk *StakingPlugin) IsCurrValidate(blockHash common.Hash, nodeId discover.NodeID, isCommit bool) (bool, error) {
 
 	var validatorArr *xcom.Validator_array
