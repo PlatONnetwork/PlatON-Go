@@ -1251,6 +1251,11 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	case Accept:
 		cbft.bp.PrepareBP().AcceptBlock(bpCtx, request, cbft)
 		if cbft.producerBlocks != nil {
+			if cbft.producerBlocks.Limited(cbft) {
+				cbft.log.Error("The producer produce block has over limit", "hash", ext.block.Hash(), "number", ext.block.Number(), "proposalIndex", request.ProposalIndex, "proposalAddr", request.ProposalAddr)
+				return errors.New("over limit")
+			}
+
 			cbft.producerBlocks.AddBlock(ext.block)
 			cbft.log.Debug("Add producer block", "hash", ext.block.Hash(), "number", ext.block.Number(), "producer", cbft.producerBlocks.String())
 		}
