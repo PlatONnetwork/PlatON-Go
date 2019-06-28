@@ -64,9 +64,10 @@ func TestEIP155ChainId(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if tx.ChainId().Sign() != 0 {
-		t.Error("expected chain id to be 0 got", tx.ChainId())
+	if tx.ChainId().Sign() != 1 {
+		t.Error("expected chain id is not exist")
 	}
+
 }
 
 func TestEIP155SigningVitalik(t *testing.T) {

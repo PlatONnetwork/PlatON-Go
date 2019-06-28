@@ -53,10 +53,10 @@ var (
 
 func TestTransactionSigHash(t *testing.T) {
 	var eip155 EIP155Signer
-	if eip155.Hash(emptyTx) != common.HexToHash("c775b99e7ad12f50d819fcd602390467e28141316969f4b57f0626f74fe3b386") {
+	if eip155.Hash(emptyTx) != common.HexToHash("9044138c0fc609a18dcff53a0bb5b40b555362bbe0de85a2cd71b8a2ebf18068") {
 		t.Errorf("empty transaction hash mismatch, got %x", emptyTx.Hash())
 	}
-	if eip155.Hash(rightvrsTx) != common.HexToHash("fe7a79529ed5f7c3375d06b26b186a8644e0e16c373d7a12be41c62d6042b77a") {
+	if eip155.Hash(rightvrsTx) != common.HexToHash("47205c07c43ed26682dffedb77203b013cfcb08af54d1edf2cf3d651a7db43b0") {
 		t.Errorf("RightVRS transaction hash mismatch, got %x", rightvrsTx.Hash())
 	}
 }
@@ -66,7 +66,8 @@ func TestTransactionEncode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("encode error: %v", err)
 	}
-	should := common.FromHex("f86103018207d094b94f5374fce5edbc8e2a8697c15331677e6ebf0b0a8255441ca098ff921201554726367d2be8c804a7ff89ccf285ebc57dff8ae4c44b9c19ac4aa08887321be575c8095f789dd4c743dfe42c1820f9231f98a962b210e3ac2452a3")
+	should := common.FromHex("f86103018207d094b94f5374fce5edbc8e2a8697c15331677e6ebf0b0a82554424a098ff921201554726367d2be8c804a7ff89ccf285ebc57dff8ae4c44b9c19ac4aa08887321be575c8095f789dd4c743dfe42c1820f9231f98a962b210e3ac2452a3")
+
 	if !bytes.Equal(txb, should) {
 		t.Errorf("encoded RLP mismatch, got %x", txb)
 	}
@@ -93,6 +94,12 @@ func TestRecipientEmpty(t *testing.T) {
 		t.FailNow()
 	}
 
+	v := tx.data.V.Uint64()
+	if v == 27 || v == 28 {
+		v = v + 8
+		tx.data.V = big.NewInt(int64(v))
+	}
+
 	from, err := Sender(NewEIP155Signer(new(big.Int)), tx)
 	if err != nil {
 		t.Error(err)
@@ -110,6 +117,12 @@ func TestRecipientNormal(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
+	}
+
+	v := tx.data.V.Uint64()
+	if v == 27 || v == 28 {
+		v = v + 8
+		tx.data.V = big.NewInt(int64(v))
 	}
 
 	from, err := Sender(NewEIP155Signer(new(big.Int)), tx)
