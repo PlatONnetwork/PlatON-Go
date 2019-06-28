@@ -172,6 +172,18 @@ type Delegation struct {
 }
 
 
+type DelegationEx struct {
+	Delegation
+}
+
+type DelegateRelated struct {
+	Addr 	common.Address
+	NodeId  discover.NodeID
+	StakingBlockNum uint64
+}
+
+type DelRelatedQueue  = []*DelegateRelated
+
 /*type UnStakeItem struct {
 	// this is the nodeAddress
 	KeySuffix  	[]byte

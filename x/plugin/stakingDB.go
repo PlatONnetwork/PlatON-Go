@@ -466,3 +466,13 @@ func (db *StakingDB) IteratorCandidatePowerByBlockHash (blockHash common.Hash, r
 func (db *StakingDB) IteratorCandidatePowerByIrr (ranges int) iterator.Iterator {
 	return db.ranking(common.ZeroHash, xcom.CanPowerKeyPrefix, ranges)
 }
+
+func (db *StakingDB) IteratorDelegateByBlockHashWithAddr (blockHash common.Hash, addr common.Address, ranges int) iterator.Iterator {
+	prefix := append(xcom.DelegateKeyPrefix, addr.Bytes()...)
+	return db.ranking(blockHash, prefix, ranges)
+}
+
+func (db *StakingDB) IteratorDelegateByIrrWithAddr (addr common.Address, ranges int) iterator.Iterator {
+	prefix := append(xcom.DelegateKeyPrefix, addr.Bytes()...)
+	return db.ranking(common.ZeroHash, prefix, ranges)
+}
