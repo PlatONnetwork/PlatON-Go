@@ -74,6 +74,7 @@ var PrecompiledContracts = map[common.Address]PrecompiledContract{
 // add by economic model
 var PlatONPrecompiledContracts = map[common.Address]PlatONPrecompiledContract{
 	vm.StakingContractAddr: &stakingContract{},
+	vm.RestrictingContractAddr: &restrictingContract{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.

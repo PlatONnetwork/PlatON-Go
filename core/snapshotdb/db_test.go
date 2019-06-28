@@ -19,21 +19,21 @@ func TestRecover(t *testing.T) {
 	)
 	{
 		commitHash := recognizedHash
-		if _, err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
 		var str string
 		for i := 0; i < 4; i++ {
 			str += "a"
 			baseDBArr = append(baseDBArr, str)
-			if _, err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(commitHash, []byte("d"), []byte("d")); err != nil {
+		if err := dbInstance.Put(commitHash, []byte("d"), []byte("d")); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := dbInstance.Commit(commitHash); err != nil {
+		if err := dbInstance.Commit(commitHash); err != nil {
 			t.Fatal(err)
 		}
 		parenthash = commitHash
@@ -41,21 +41,21 @@ func TestRecover(t *testing.T) {
 	}
 	{
 		commitHash := rlpHash("recognizedHash3")
-		if _, err := dbInstance.NewBlock(big.NewInt(2), parenthash, commitHash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(2), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "c"
 			commitArr = append(commitArr, str)
-			if _, err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
+		if err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := dbInstance.Commit(commitHash); err != nil {
+		if err := dbInstance.Commit(commitHash); err != nil {
 			t.Fatal(err)
 		}
 		commit = dbInstance.committed[0]
@@ -63,43 +63,43 @@ func TestRecover(t *testing.T) {
 	}
 	{
 		commitHash := rlpHash("recognizedHash4")
-		if _, err := dbInstance.NewBlock(big.NewInt(3), parenthash, commitHash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(3), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "e"
 			recognizedArr = append(recognizedArr, str)
-			if _, err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(commitHash, []byte("ee"), []byte("ee")); err != nil {
+		if err := dbInstance.Put(commitHash, []byte("ee"), []byte("ee")); err != nil {
 			t.Fatal(err)
 		}
 		recognized = dbInstance.recognized[rlpHash("recognizedHash4")]
 		parenthash = commitHash
 	}
 	{
-		if _, err := dbInstance.NewBlock(big.NewInt(4), parenthash, common.ZeroHash); err != nil {
+		if err := dbInstance.NewBlock(big.NewInt(4), parenthash, common.ZeroHash); err != nil {
 			t.Fatal(err)
 		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "f"
 			unrecognizedArr = append(unrecognizedArr, str)
-			if _, err := dbInstance.Put(common.ZeroHash, []byte(str), []byte(str)); err != nil {
+			if err := dbInstance.Put(common.ZeroHash, []byte(str), []byte(str)); err != nil {
 				t.Fatal(err)
 			}
 		}
-		if _, err := dbInstance.Put(common.ZeroHash, []byte("ff"), []byte("ff")); err != nil {
+		if err := dbInstance.Put(common.ZeroHash, []byte("ff"), []byte("ff")); err != nil {
 			t.Fatal(err)
 		}
 		unrecognized = *dbInstance.unRecognized
 	}
 	base = dbInstance.current.BaseNum.Int64()
 	high = dbInstance.current.HighestNum.Int64()
-	if _, err := dbInstance.Close(); err != nil {
+	if err := dbInstance.Close(); err != nil {
 		t.Error(err)
 	}
 	dbInstance = nil
@@ -184,28 +184,114 @@ func TestRecover(t *testing.T) {
 		}
 	}
 
-	if _, err := dbInstance.Put(common.ZeroHash, []byte("dddd"), []byte("dddd")); err != nil {
+	if err := dbInstance.Put(common.ZeroHash, []byte("dddd"), []byte("dddd")); err != nil {
 		t.Error(err)
 	}
-	if _, err := dbInstance.Flush(rlpHash("flush"), big.NewInt(4)); err != nil {
+	if err := dbInstance.Flush(rlpHash("flush"), big.NewInt(4)); err != nil {
 		t.Error(err)
 	}
-	if _, err := dbInstance.Commit(rlpHash("recognizedHash4")); err != nil {
+	if err := dbInstance.Commit(rlpHash("recognizedHash4")); err != nil {
 		t.Error(err)
 	}
-	if _, err := dbInstance.Compaction(); err != nil {
+	if err := dbInstance.Compaction(); err != nil {
 		t.Error(err)
 	}
 }
 
+func TestRMOldRecognizedBlockData(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
+	var (
+		recognizedHash       = rlpHash("recognizedHash")
+		parenthash           common.Hash
+		baseDBArr, commitArr []string
+	)
+	{
+		commitHash := recognizedHash
+		if err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
+			t.Fatal(err)
+		}
+		var str string
+		for i := 0; i < 4; i++ {
+			str += "a"
+			baseDBArr = append(baseDBArr, str)
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := dbInstance.Put(commitHash, []byte("d"), []byte("d")); err != nil {
+			t.Fatal(err)
+		}
+		if err := dbInstance.Commit(commitHash); err != nil {
+			t.Fatal(err)
+		}
+		parenthash = commitHash
+		dbInstance.Compaction()
+	}
+	{
+		commitHash := rlpHash("recognizedHash3")
+		if err := dbInstance.NewBlock(big.NewInt(2), parenthash, commitHash); err != nil {
+			t.Fatal(err)
+		}
+		str := "a"
+		for i := 0; i < 4; i++ {
+			str += "c"
+			commitArr = append(commitArr, str)
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
+			t.Fatal(err)
+		}
+		if err := dbInstance.Commit(commitHash); err != nil {
+			t.Fatal(err)
+		}
+		parenthash = commitHash
+	}
+	{
+		commitHash := rlpHash("recognizedHash4")
+		if err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
+			t.Fatal(err)
+		}
+		str := "a"
+		for i := 0; i < 4; i++ {
+			str += "c"
+			commitArr = append(commitArr, str)
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	{
+		commitHash := rlpHash("recognizedHash5")
+		if err := dbInstance.NewBlock(big.NewInt(2), parenthash, commitHash); err != nil {
+			t.Fatal(err)
+		}
+		str := "a"
+		for i := 0; i < 4; i++ {
+			str += "c"
+			commitArr = append(commitArr, str)
+			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := dbInstance.rmOldRecognizedBlockData(); err != nil {
+		t.Error(err)
+	}
+	if len(dbInstance.recognized) != 0 {
+		t.Error("not rm old data")
+	}
+}
+
 //
-//func TestRMOldRecognizedBlockData(t *testing.T) {
-//
-//}
-//
-//func TestCron(t *testing.T) {
-//
-//}
 //
 //func TestCheckHashChain(t *testing.T) {
 //

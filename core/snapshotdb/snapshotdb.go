@@ -23,23 +23,23 @@ const (
 
 //DB the main snapshotdb interface
 type DB interface {
-	Put(hash common.Hash, key, value []byte) (bool, error)
-	NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) (bool, error)
+	Put(hash common.Hash, key, value []byte) error
+	NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error
 	Get(hash common.Hash, key []byte) ([]byte, error)
 	GetFromCommittedBlock(key []byte) ([]byte, error)
-	Del(hash common.Hash, key []byte) (bool, error)
+	Del(hash common.Hash, key []byte) error
 	Has(hash common.Hash, key []byte) (bool, error)
-	Flush(hash common.Hash, blocknumber *big.Int) (bool, error)
+	Flush(hash common.Hash, blocknumber *big.Int) error
 	Ranking(hash common.Hash, key []byte, ranges int) iterator.Iterator
 	WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error
-	Commit(hash common.Hash) (bool, error)
-	Clear() (bool, error)
-	PutBaseDB(key, value []byte) (bool, error)
-	DelBaseDB(key []byte) (bool, error)
+	Commit(hash common.Hash) error
+	Clear() error
+	PutBaseDB(key, value []byte) error
+	DelBaseDB(key []byte) error
 	GetLastKVHash(blockHash common.Hash) []byte
 	BaseNum() (*big.Int, error)
-	Close() (bool, error)
-	Compaction() (bool, error)
+	Close() error
+	Compaction() error
 }
 
 var (
@@ -141,6 +141,7 @@ func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 		if v, err := value.data.Get(key); err == nil {
 			return v, nil
 		} else if err != memdb.ErrNotFound {
+			logger.Error(fmt.Sprintf(" find from committed hash:%s fail,%v", string(key), err))
 			return nil, err
 		}
 	}
@@ -150,23 +151,24 @@ func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 	} else if err == leveldb.ErrNotFound {
 		return nil, ErrNotFound
 	}
+	logger.Error(fmt.Sprintf("hash:%s find from base fail,%v", string(key), err))
 	return nil, err
 }
 
-func (s *snapshotDB) PutBaseDB(key, value []byte) (bool, error) {
+func (s *snapshotDB) PutBaseDB(key, value []byte) error {
 	err := s.baseDB.Put(key, value, nil)
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
-func (s *snapshotDB) DelBaseDB(key []byte) (bool, error) {
+func (s *snapshotDB) DelBaseDB(key []byte) error {
 	err := s.baseDB.Delete(key, nil)
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 // GetLastKVHash return the last kv hash
@@ -186,11 +188,11 @@ func (s *snapshotDB) GetLastKVHash(blockHash common.Hash) []byte {
 // Del del key,val from  snapshotDB
 // if hash is nil, unRecognizedBlockData > recognizedBlockData
 // if hash is not nil,it will del in recognized BlockData
-func (s *snapshotDB) Del(hash common.Hash, key []byte) (bool, error) {
+func (s *snapshotDB) Del(hash common.Hash, key []byte) error {
 	if err := s.put(hash, key, nil, funcTypeDel); err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 // Compaction ,write commit to baseDB,and then removeJournal lessThan BaseNum
@@ -198,7 +200,10 @@ func (s *snapshotDB) Del(hash common.Hash, key []byte) (bool, error) {
 // case kv>2000 and block == 1
 // case kv<2000,block... <9
 // case kv<2000,block...=9
-func (s *snapshotDB) Compaction() (bool, error) {
+func (s *snapshotDB) Compaction() error {
+	if len(s.committed) == 0 {
+		return nil
+	}
 	s.commitLock.Lock()
 	s.snapshotLock.L.Lock()
 	s.snapshotLockC = true
@@ -235,28 +240,30 @@ func (s *snapshotDB) Compaction() (bool, error) {
 		}
 	}
 	if err := s.baseDB.Write(batch, nil); err != nil {
-		logger.Error(fmt.Sprint("[SnapshotDB]write to baseDB fail:", err))
-		return false, errors.New("[SnapshotDB]write to baseDB fail:" + err.Error())
+		logger.Error(fmt.Sprint("write to baseDB fail:", err))
+		return errors.New("[SnapshotDB]write to baseDB fail:" + err.Error())
 	}
 	s.current.BaseNum.Add(s.current.BaseNum, big.NewInt(int64(commitNum)))
 	if err := s.current.update(); err != nil {
-		return false, errors.New("[SnapshotDB]update to current fail:" + err.Error())
+		logger.Error(fmt.Sprint("update to current fail:", err))
+		return errors.New("[SnapshotDB]update to current fail:" + err.Error())
 	}
 	s.committed = s.committed[commitNum:len(s.committed)]
 	if err := s.removeJournalLessThanBaseNum(); err != nil {
-		return false, errors.New("[SnapshotDB]remove journal less than baseNum fail:" + err.Error())
+		logger.Error(fmt.Sprint("remove journal less than baseNum fail:", err))
+		return errors.New("[SnapshotDB]remove journal less than baseNum fail:" + err.Error())
 	}
-	return true, nil
+	return nil
 }
 
 //NewBlock call when you need a new unRecognized or recognized  block data
 //it will set JournalHeader for the block
 //if hash nil ,new unRecognized data
 //if hash not nul,new Recognized data
-func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) (bool, error) {
+func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error {
 	if hash == common.ZeroHash {
 		if s.unRecognized != nil && s.unRecognized.readOnly {
-			return false, errors.New("[SnapshotDB]can't  new unRecognized block,it's readonly now")
+			return errors.New("[SnapshotDB]can't  new unRecognized block,it's readonly now")
 		}
 	}
 	block := new(blockData)
@@ -266,25 +273,25 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 	block.data = memdb.New(DefaultComparer, 100)
 	if hash == common.ZeroHash {
 		if err := s.writeJournalHeader(blockNumber, s.getUnRecognizedHash(), parentHash, journalHeaderFromUnRecognized); err != nil {
-			return false, fmt.Errorf("[SnapshotDB] write Journal Header fail:%v", err)
+			return fmt.Errorf("[SnapshotDB] write Journal Header fail:%v", err)
 		}
 		s.unRecognized = block
 	} else {
 		if err := s.writeJournalHeader(blockNumber, hash, parentHash, journalHeaderFromRecognized); err != nil {
-			return false, fmt.Errorf("[SnapshotDB] write Journal body fail:%v", err)
+			return fmt.Errorf("[SnapshotDB] write Journal body fail:%v", err)
 		}
 		s.recognized[hash] = *block
 	}
-	return true, nil
+	return nil
 }
 
 // Put sets the value for the given key. It overwrites any previous value
 // for that key; a DB is not a multi-map.
-func (s *snapshotDB) Put(hash common.Hash, key, value []byte) (bool, error) {
+func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
 	if err := s.put(hash, key, value, funcTypePut); err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 // Get get key,val from  snapshotDB
@@ -295,7 +302,7 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 	if hash == common.ZeroHash {
 		//from unRecognizedBlockData
 		if s.unRecognized == nil {
-			return nil, errors.New("unRecognized is not find now")
+			return nil, errors.New("[SnapshotDB]unRecognized is not find now")
 		}
 		if v, err := s.unRecognized.data.Get(key); err == nil {
 			return v, nil
@@ -360,12 +367,12 @@ func (s *snapshotDB) Has(hash common.Hash, key []byte) (bool, error) {
 }
 
 // Flush move unRecognized to Recognized data
-func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) (bool, error) {
+func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	if blocknumber.Int64() != s.unRecognized.Number.Int64() {
-		return false, errors.New("[snapshotdb]blocknumber not compare the unRecognized blocknumber")
+		return errors.New("[snapshotdb]blocknumber not compare the unRecognized blocknumber")
 	}
 	if _, ok := s.recognized[hash]; ok {
-		return false, errors.New("the hash is exist in recognized data")
+		return errors.New("the hash is exist in recognized data")
 	}
 	currentHash := s.getUnRecognizedHash()
 	oldFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: currentHash}
@@ -373,47 +380,47 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) (bool, error)
 	s.unRecognizedLock.Lock()
 	defer s.unRecognizedLock.Unlock()
 	if err := s.closeJournalWriter(currentHash); err != nil {
-		return false, err
+		return err
 	}
 	if err := s.storage.Rename(oldFd, newFd); err != nil {
-		return false, errors.New("[snapshotdb]rename file fail:" + oldFd.String() + "," + newFd.String() + "," + err.Error())
+		return errors.New("[snapshotdb]rename file fail:" + oldFd.String() + "," + newFd.String() + "," + err.Error())
 	}
 	s.unRecognized.BlockHash = hash
 	s.unRecognized.readOnly = true
 	s.recognized[hash] = *s.unRecognized
 
 	s.unRecognized = nil
-	return true, nil
+	return nil
 }
 
 // Commit move blockdata from recognized to commit
-func (s *snapshotDB) Commit(hash common.Hash) (bool, error) {
+func (s *snapshotDB) Commit(hash common.Hash) error {
 	s.commitLock.Lock()
 	defer s.commitLock.Unlock()
 	block, ok := s.recognized[hash]
 	if !ok {
-		return false, errors.New("[snapshotdb]not found form commit block:" + hash.String())
+		return errors.New("[snapshotdb]not found f rom commit block:" + hash.String())
 
 	}
 	if s.current.HighestNum.Cmp(block.Number) >= 0 {
-		return false, fmt.Errorf("[snapshotdb]the commit block num  %v is less than HighestNum %v", block.Number, s.current.HighestNum)
+		return fmt.Errorf("[snapshotdb]the commit block num  %v is less than HighestNum %v", block.Number, s.current.HighestNum)
 	}
 	if (block.Number.Int64() - s.current.HighestNum.Int64()) != 1 {
-		return false, fmt.Errorf("[snapshotdb]the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
+		return fmt.Errorf("[snapshotdb]the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
 	}
 	block.readOnly = true
 	s.committed = append(s.committed, block)
 	s.current.HighestNum = block.Number
 	if err := s.current.update(); err != nil {
-		return false, errors.New("[snapshotdb]update current fail:" + err.Error())
+		return errors.New("[snapshotdb]update current fail:" + err.Error())
 	}
 
 	delete(s.recognized, hash)
 
 	if err := s.rmOldRecognizedBlockData(); err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 func (s *snapshotDB) BaseNum() (*big.Int, error) {
@@ -442,15 +449,15 @@ func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter ite
 }
 
 // Clear close db , remove all db file
-func (s *snapshotDB) Clear() (bool, error) {
-	if _, err := s.Close(); err != nil {
-		return false, err
+func (s *snapshotDB) Clear() error {
+	if err := s.Close(); err != nil {
+		return err
 	}
 	logger.Info(fmt.Sprint("begin clear file:", s.path))
 	if err := os.RemoveAll(s.path); err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 }
 
 func itrToMdb(itr iterator.Iterator, mdb *memdb.DB) error {
@@ -531,7 +538,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 	return m.NewIterator(nil)
 }
 
-func (s *snapshotDB) Close() (bool, error) {
+func (s *snapshotDB) Close() error {
 	logger.Info("db is closing")
 	//	runtime.SetFinalizer(s, nil)
 	if s.corn != nil {
@@ -539,12 +546,12 @@ func (s *snapshotDB) Close() (bool, error) {
 	}
 	if s.baseDB != nil {
 		if err := s.baseDB.Close(); err != nil {
-			return false, fmt.Errorf("[snapshotdb]close base db fail:%v", err)
+			return fmt.Errorf("[snapshotdb]close base db fail:%v", err)
 		}
 	}
 
 	if err := s.storage.Close(); err != nil {
-		return false, fmt.Errorf("[snapshotdb]close storage fail:%v", err)
+		return fmt.Errorf("[snapshotdb]close storage fail:%v", err)
 	}
 	if s.current != nil {
 		s.current.f.Close()
@@ -552,9 +559,9 @@ func (s *snapshotDB) Close() (bool, error) {
 
 	for key := range s.journalw {
 		if err := s.journalw[key].Close(); err != nil {
-			return false, fmt.Errorf("[snapshotdb]close journalw fail:%v", err)
+			return fmt.Errorf("[snapshotdb]close journalw fail:%v", err)
 		}
 	}
 	s.closed = true
-	return true, nil
+	return nil
 }

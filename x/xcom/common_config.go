@@ -7,7 +7,7 @@ const (
 	DefualtRule = iota
 	StakingRule
 	SlashingRule
-	LockrepoRule
+	RestrictingRule
 	AwardmgrRule
 
 	// ......
@@ -40,4 +40,15 @@ var (
 	ElectionDistance = uint64(20)
 	// Number of blocks per consensus round
 	ConsensusSize = uint64(250)
+
+	// The freeze period of the withdrew staking (unit is  epochs)
+	UnStakeFreezeRatio = uint64(1)
+
+	// The freeze period of the delegate was invalidated
+	// due to the withdrawal of the Stake (unit is  epochs)
+	PassiveUnDelegateFreezeRatio = uint64(0)
+
+	// The freeze period of the delegate was invalidated
+	// due to active withdrew delegate (unit is  epochs)
+	ActiveUnDelegateFreezeRatio = uint64(0)
 )

@@ -2,7 +2,6 @@ package xcom
 
 import (
 	"crypto/ecdsa"
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -23,9 +22,9 @@ const (
 
 	DelegatePrefixStr 	= "Del"
 
-	UndelegateCountKeyStr = "UnDelCount"
+	UnDelegateCountKeyStr = "UnDelCount"
 
-	UndelegateItemKeyStr = "UnDelItem"
+	UnDelegateItemKeyStr = "UnDelItem"
 
 
 	EpochValidatorKeyStr = "EpochValidator"
@@ -52,9 +51,9 @@ var (
 
 	DelegateKeyPrefix = []byte(DelegatePrefixStr)
 
-	UndelegateCountKey = []byte(UndelegateCountKeyStr)
+	UnDelegateCountKey = []byte(UnDelegateCountKeyStr)
 
-	UndelegateItemKey = []byte(UndelegateItemKeyStr)
+	UnDelegateItemKey = []byte(UnDelegateItemKeyStr)
 
 	EpochValidatorKey = []byte(EpochValidatorKeyStr)
 
@@ -93,27 +92,68 @@ func CandidateKeyByAddr (addr common.Address) []byte {
 	return append(CandidateKeyPrefix, addr.Bytes()...)
 }
 
+func CandidateKeyByAddrByte (addr []byte) []byte {
+	return append(CandidateKeyPrefix, addr...)
+}
 
-func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex uint32) []byte {
+
+func TallyPowerKey(shares *big.Int, stakeBlockNum, stakeTxIndex  int) []byte {
 
 	priority := new(big.Int).Sub(math.MaxBig256, shares)
 	prio := priority.String()
-	num := fmt.Sprint(stakeBlockNum)
-	index := fmt.Sprint(stakeTxIndex)
+	num := strconv.Itoa(stakeBlockNum)
+	index := strconv.Itoa(stakeTxIndex)
 	return append(CanPowerKeyPrefix, append([]byte(prio), append([]byte(num), []byte(index)...)...)...)
 }
 
 
 
-func GetUnStakeCountKey (epoch uint64) []byte {
-	epochStr := strconv.Itoa(int(epoch))
+func GetUnStakeCountKey (epoch int) []byte {
+	epochStr := strconv.Itoa(epoch)
 	return  append(UnStakeCountKey, []byte(epochStr)...)
 }
 
 
-func GetUnStakeItemKey (epoch, index uint64) []byte {
-	epochStr := strconv.Itoa(int(epoch))
-	indexStr := strconv.Itoa(int(index))
+func GetUnStakeItemKey (epoch, index int) []byte {
+	epochStr := strconv.Itoa(epoch)
+	indexStr := strconv.Itoa(index)
 	return append(UnStakeItemKey, append([]byte(epochStr), []byte(indexStr)...)...)
+}
+
+
+func GetDelegateKey(delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber int) []byte {
+	num := strconv.Itoa(stakeBlockNumber)
+	return append(DelegateKeyPrefix, append(delAddr.Bytes(), append(nodeId.Bytes(), []byte(num)...)...)...)
+}
+
+func GetDelegateKeyBySuffix(suffix []byte) []byte {
+	return append(DelegateKeyPrefix, suffix...)
+}
+
+func GetUnDelegateCountKey (epoch int) []byte {
+	epochStr := strconv.Itoa(epoch)
+	return  append(UnDelegateCountKey, []byte(epochStr)...)
+}
+
+func GetUnDelegateItemKey (epoch, index int) []byte {
+	epochStr := strconv.Itoa(epoch)
+	indexStr := strconv.Itoa(index)
+	return append(UnDelegateItemKey, append([]byte(epochStr), []byte(indexStr)...)...)
+}
+
+func GetEpochValidatorKey () []byte {
+	return EpochValidatorKey
+}
+
+func GetPreRoundValidatorKey () []byte {
+	return PreRoundValidatorKey
+}
+
+func GetCurRoundValidatorKey () []byte {
+	return CurRoundValidatorKey
+}
+
+func GetNextRoundValidatorKey () []byte {
+	return NextRoundValidatorKey
 }
 
