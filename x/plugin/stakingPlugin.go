@@ -11,11 +11,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"strconv"
-
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"math/big"
 	"sync"
 )
@@ -748,14 +746,12 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 	nodeIdLen := discover.NodeIDBits / 8
 
-	canAddrByte := unDel.KeySuffix[common.AddressLength : common.AddressLength + nodeIdLen]
-	canAddr := common.BytesToAddress(canAddrByte)
+	nodeIdByte := unDel.KeySuffix[common.AddressLength : common.AddressLength + nodeIdLen]
+	nodeId := discover.MustBytesID(nodeIdByte)
 
 	//
 	stakeBlockNum := unDel.KeySuffix[common.AddressLength + nodeIdLen:]
-	num_int, _ := strconv.Atoi(string(stakeBlockNum))
-	num := uint64(num_int)
-
+	num := common.BytesToUint64(stakeBlockNum)
 
 	lazyCalcDelegateAmount(epoch, del)
 
@@ -819,7 +815,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 		}
 
 		if remain.Cmp(common.Big0) > 0 {
-			log.Error("Failed to call handleUnDelegate", "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "canAddr", canAddr.Hex(), "stakeBlockNumber", num)
+			log.Error("Failed to call handleUnDelegate", "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakeBlockNumber", num)
 			return false, VonAmountNotRight
 		}
 
@@ -1263,11 +1259,8 @@ func (sk *StakingPlugin) GetRelatedListByDelAddr (blockHash common.Hash, addr co
 
 		// stakenum
 		stakeNumByte := key[prefixLen+common.AddressLength+nodeIdLen:]
-		numInt, err := strconv.Atoi(string(stakeNumByte))
-		if nil != err {
-			return nil, err
-		}
-		num := uint64(numInt)
+
+		num := common.BytesToUint64(stakeNumByte)
 
 		// related
 		related := &xcom.DelegateRelated{
