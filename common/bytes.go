@@ -215,3 +215,14 @@ func Uint32ToBytes(val uint32) []byte {
 	binary.BigEndian.PutUint32(buf, val)
 	return buf[:]
 }
+
+func Uint64ToBytes(val uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, val)
+	return buf[:]
+}
+
+func BytesToUint64(b []byte) uint64 {
+	b = append(make([]byte, 8-len(b)), b...)
+	return binary.BigEndian.Uint64(b)
+}
