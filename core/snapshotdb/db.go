@@ -210,7 +210,7 @@ func (s *snapshotDB) closeJournalWriter(hash common.Hash) error {
 
 func (s *snapshotDB) rmOldRecognizedBlockData() error {
 	for key, value := range s.recognized {
-		if s.current.HighestNum.Cmp(value.Number) <= 0 {
+		if s.current.HighestNum.Cmp(value.Number) >= 0 {
 			delete(s.recognized, key)
 			if err := s.closeJournalWriter(key); err != nil {
 				return err
