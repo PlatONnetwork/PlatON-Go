@@ -199,8 +199,19 @@ func PaddingLeft(src []byte, bytes int) []byte {
 }
 
 func reverse(s []byte) []byte {
-	for i, j := 0, len(s) - 1; i < j; i, j = i + 1, j - 1 {
+	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
 	return s
+}
+
+func BytesToUint32(b []byte) uint32 {
+	b = append(make([]byte, 4-len(b)), b...)
+	return binary.BigEndian.Uint32(b)
+}
+
+func Uint32ToBytes(val uint32) []byte {
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, val)
+	return buf[:]
 }
