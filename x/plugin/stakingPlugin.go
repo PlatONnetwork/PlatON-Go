@@ -107,17 +107,6 @@ func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 
 func (sk *StakingPlugin) GetCandidateInfo (blockHash common.Hash, addr common.Address) (*xcom.Candidate, error) {
 
-	/*var pubKey ecdsa.PublicKey
-
-	if pk, err := nodeId.Pubkey(); nil != err {
-		log.Error("Failed to GetCandidateInfo on stakingPlugin: nodeId convert pubkey failed",
-	"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-		return nil, err
-	} else {
-		pubKey = *pk
-	}
-
-	addr := crypto.PubkeyToAddress(pubKey)*/
 	return sk.db.GetCandidateStore(blockHash, addr)
 }
 
@@ -462,8 +451,12 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	} else if typ == LockRepoOrigin { //  from account lockRepo von
 
-		// TODO call RestrictingPlugin
-
+		flag, err := RestrictingPtr.PledgeLockFunds(delAddr, amount, state)
+		if nil != err {
+			log.Error("Failed to Delegate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
+				"err", err)
+			return flag, err
+		}
 
 		del.LockRepoTmp = new(big.Int).Add(del.LockRepoTmp, amount)
 
@@ -531,7 +524,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		return new(big.Int).Sub(source, sub), common.Big0
 	}
 
-	refundFn := func(remain, aboutRelease, aboutLockRepo *big.Int) (*big.Int, *big.Int, *big.Int) {
+	refundFn := func(remain, aboutRelease, aboutLockRepo *big.Int) (*big.Int, *big.Int, *big.Int, bool, error) {
 		// When remain is greater than or equal to del.ReleasedTmp/del.Released
 		if remain.Cmp(common.Big0) > 0 {
 			if remain.Cmp(aboutRelease) >= 0 && aboutRelease.Cmp(common.Big0) > 0 {
@@ -548,20 +541,34 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 			// When remain is greater than or equal to del.LockRepoTmp/del.LockRepo
 			if remain.Cmp(aboutLockRepo) >= 0 && aboutLockRepo.Cmp(common.Big0) > 0 {
-				// todo call Restricting for flush lockRepoTmp
+
+				flag, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, aboutLockRepo, state)
+				if nil != err {
+					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
+						"err", err)
+					return remain, aboutRelease, aboutLockRepo, flag, err
+				}
+
 
 				remain = new(big.Int).Sub(remain, aboutLockRepo)
 				aboutLockRepo = common.Big0
 			} else if remain.Cmp(aboutLockRepo) < 0 {
 				// When remain is less than or equal to del.LockRepoTmp/del.LockRepo
-				// todo call Restricting for sub lockRepoTmp
+
+
+				flag, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, remain, state)
+				if nil != err {
+					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
+						"err", err)
+					return remain, aboutRelease, aboutLockRepo, flag, err
+				}
 
 				aboutLockRepo = new(big.Int).Sub(aboutLockRepo, remain)
 				remain = common.Big0
 			}
 		}
 
-		return remain, aboutRelease, aboutLockRepo
+		return remain, aboutRelease, aboutLockRepo, true, nil
 	}
 
 	del.DelegateEpoch = epoch
@@ -582,13 +589,20 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		/**
 		handle delegate on HesitateRatio
 		*/
-		remain, del.ReleasedTmp, del.LockRepoTmp = refundFn(remain, del.ReleasedTmp, del.LockRepoTmp)
-
+		var flag bool
+		var er error
+		remain, del.ReleasedTmp, del.LockRepoTmp, flag, er = refundFn(remain, del.ReleasedTmp, del.LockRepoTmp)
+		if nil != er {
+			return flag, er
+		}
 		/**
 		handle delegate on EffectiveRatio
 		*/
 		if remain.Cmp(common.Big0) > 0 {
-			remain, del.Released, del.LockRepo = refundFn(remain, del.Released, del.LockRepo)
+			remain, del.Released, del.LockRepo, flag, er = refundFn(remain, del.Released, del.LockRepo)
+			if nil != er {
+				return flag, er
+			}
 		}
 
 		if remain.Cmp(common.Big0) != 0 {
@@ -636,8 +650,12 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		/**
 		handle delegate on HesitateRatio
 		*/
-		remain, del.ReleasedTmp, del.LockRepoTmp = refundFn(remain, del.ReleasedTmp, del.LockRepoTmp)
-
+		//var flag bool
+		//var er error
+		remain, del.ReleasedTmp, del.LockRepoTmp, flag, er := refundFn(remain, del.ReleasedTmp, del.LockRepoTmp)
+		if nil != er {
+			return flag, er
+		}
 		/**
 		handle delegate on EffectiveRatio
 		*/
