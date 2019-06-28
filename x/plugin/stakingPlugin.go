@@ -796,6 +796,18 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 	return resultArr, true, nil
 }
 
+func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
+	var verifierNodeIDList []discover.NodeID
+
+	candidateQueue, success, err := sk.GetVerifierList(blockHash, blockNumber)
+	if success && err == nil {
+		for _, candidate := range candidateQueue{
+			verifierNodeIDList = append(verifierNodeIDList, candidate.NodeId)
+		}
+	}
+	return verifierNodeIDList, err
+}
+
 func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, nodeId discover.NodeID) (bool, error) {
 	verifierList, err := sk.db.getVerifierList(blockHash)
 	if nil != err {
