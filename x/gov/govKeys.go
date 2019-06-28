@@ -18,6 +18,8 @@ var (
 	keyPrefixVotedVerifiers   = []byte("VotedVerifiers")
 	keyPrefixActiveNodes      = []byte("ActiveNodes")
 	keyPrefixAccuVerifiers    = []byte("AccuVerifiers")
+	keyPrefixDeclaredNodes    = []byte("DeclaredNodes")
+	keyPrefixTotalVerifiers   = []byte("TotalVerifiers")
 )
 
 // 提案的key
@@ -70,26 +72,18 @@ func KeyPreActiveVersion() []byte {
 	return keyPrefixPreActiveVersion
 }
 
-// 已投票的验证人列表key
-func KeyVotedVerifier(proposalID common.Hash) []byte {
-	return bytes.Join([][]byte{
-		keyPrefixVotedVerifiers,
-		proposalID.Bytes(),
-	}, KeyDelimiter)
-}
-
 // 已升级节点列表的key
-func KeyActiveNodes(proposalID common.Hash) []byte {
+func KeyDeclaredNodes(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
-		keyPrefixActiveNodes,
+		keyPrefixDeclaredNodes,
 		proposalID.Bytes(),
 	}, KeyDelimiter)
 }
 
 // 提案投票期内累积的不同验证人的key
-func KeyAccuVerifiers(proposalID common.Hash) []byte {
+func KeyTotalVerifiers(proposalID common.Hash) []byte {
 	return bytes.Join([][]byte{
-		keyPrefixAccuVerifiers,
+		keyPrefixTotalVerifiers,
 		proposalID.Bytes(),
 	}, KeyDelimiter)
 }

@@ -35,7 +35,7 @@ var customGenesisTests = []struct {
 			"coinbase"   : "0x0000000000000000000000000000000000000000",
 			"extraData"  : "",
 			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x000000000000000000000000000000000000000000000000000000000000000042",
+			"nonce"      : "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00"
 		}`,
@@ -49,7 +49,7 @@ var customGenesisTests = []struct {
 			"coinbase"   : "0x0000000000000000000000000000000000000000",
 			"extraData"  : "",
 			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x000000000000000000000000000000000000000000000000000000000000000042",
+			"nonce"      : "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
 			"config"     : {
@@ -72,7 +72,7 @@ var customGenesisTests = []struct {
 			"coinbase"   : "0x0000000000000000000000000000000000000000",
 			"extraData"  : "",
 			"gasLimit"   : "0x2fefd8",
-			"nonce"      : "0x000000000000000000000000000000000000000000000000000000000000000042",
+			"nonce"      : "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23",
 			"parentHash" : "0x0000000000000000000000000000000000000000000000000000000000000000",
 			"timestamp"  : "0x00",
 			"config"     : {
