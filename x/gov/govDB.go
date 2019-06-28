@@ -282,7 +282,7 @@ func (self *GovDB) AddActiveNode(blockHash common.Hash, proposalID common.Hash, 
 }
 
 // 增加已投票验证人记录
-func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Hash, voter discover.NodeID) (bool){
+func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Hash, voter discover.NodeID) bool {
 	if err := self.snapdb.addVotedVerifier(blockHash, voter, proposalID); err != nil {
 		log.Error("add voted node to snapshot db error,", err)
 		return false
