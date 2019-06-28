@@ -111,7 +111,7 @@ func (self *GovDB) getProposalList(blockHash common.Hash, state xcom.StateDB) ([
 
 //保存投票记录
 func (self *GovDB) setVote(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) bool {
-	voteList := self.listVote(proposalID, state)
+	voteList := self.getProposalVoteList(proposalID, state)
 	voteList = append(voteList, VoteValue{voter, option})
 
 	voteListBytes, _ := json.Marshal(voteList)
@@ -121,7 +121,7 @@ func (self *GovDB) setVote(proposalID common.Hash, voter discover.NodeID, option
 }
 
 // 查询投票记录
-func (self *GovDB) listVote(proposalID common.Hash, state xcom.StateDB) []VoteValue {
+func (self *GovDB) getProposalVoteList(proposalID common.Hash, state xcom.StateDB) []VoteValue {
 	voteListBytes := state.GetState(vm.GovContractAddr, KeyVote(proposalID))
 
 	var voteList []VoteValue
@@ -175,7 +175,7 @@ func (self *GovDB) getActiveVersion(state xcom.StateDB) uint32 {
 }
 
 // 查询正在投票的提案
-func (self *GovDB) listVotingProposal(blockHash common.Hash, state xcom.StateDB) []common.Hash {
+func (self *GovDB) getVotingProposalIdList(blockHash common.Hash, state xcom.StateDB) []common.Hash {
 	value, err := govDB.snapdb.getVotingIDList(blockHash)
 	if err != nil {
 		log.Error("List voting proposal ID error")
@@ -185,7 +185,7 @@ func (self *GovDB) listVotingProposal(blockHash common.Hash, state xcom.StateDB)
 }
 
 // 获取投票结束的提案
-func (self *GovDB) listEndProposalID(blockHash common.Hash, state xcom.StateDB) []common.Hash {
+func (self *GovDB) getEndProposalIdList(blockHash common.Hash, state xcom.StateDB) []common.Hash {
 	value, err := govDB.snapdb.getEndIDList(blockHash)
 	if err != nil {
 		log.Error("List end proposal ID error")
@@ -196,7 +196,7 @@ func (self *GovDB) listEndProposalID(blockHash common.Hash, state xcom.StateDB) 
 }
 
 // 查询预生效的升级提案
-func (self *GovDB) getPreActiveProposalID(blockHash common.Hash, state xcom.StateDB) common.Hash {
+func (self *GovDB) getPreActiveProposalId(blockHash common.Hash, state xcom.StateDB) common.Hash {
 	value, err := govDB.snapdb.getPreActiveIDList(blockHash)
 	if err != nil {
 		log.Error("Get pre-active proposal ID error")
