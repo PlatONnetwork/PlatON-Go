@@ -2,16 +2,16 @@ package gov
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 type GovSnapshotDB struct {
-	snapdb xcom.SnapshotDB
+	snapdb snapshotdb.DB
 }
 
-func NewGovSnapshotDB(snapdb xcom.SnapshotDB) *GovSnapshotDB {
+func NewGovSnapshotDB(snapdb snapshotdb.DB) *GovSnapshotDB {
 	return &GovSnapshotDB{snapdb: snapdb}
 }
 

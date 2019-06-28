@@ -9,16 +9,16 @@ import (
 )
 
 var Bytes2X_CMD = map[string]interface{}{
-	"string":   		 BytesToString,
-	"[8]byte":  		 BytesTo8Bytes,
-	"[16]byte": 		 BytesTo16Bytes,
-	"[32]byte": 		 BytesTo32Bytes,
-	"[64]byte": 		 BytesTo64Bytes,
+	"string":   BytesToString,
+	"[8]byte":  BytesTo8Bytes,
+	"[16]byte": BytesTo16Bytes,
+	"[32]byte": BytesTo32Bytes,
+	"[64]byte": BytesTo64Bytes,
 
-	"uint8":             BytesToUint8,
-	"uint16":            BytesToUint16,
-	"uint32":            BytesToUint32,
-	"uint64":            BytesToUint64,
+	"uint8":  BytesToUint8,
+	"uint16": BytesToUint16,
+	"uint32": BytesToUint32,
+	"uint64": BytesToUint64,
 
 	"*big.Int":          BytesToBigInt,
 	"[]*big.Int":        BytesToBigIntArr,

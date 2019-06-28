@@ -75,8 +75,8 @@ func IsSettlementPeriod (blockNumber uint64) bool {
 
 
 func IsYearEnd (blockNumber uint64) bool {
-
-	return false
+	size := 12 * 30 * 4 * xcom.ConsensusSize * xcom.EpochSize
+	return blockNumber > 0 && blockNumber % size == 0
 }
 
 func NodeId2Addr (nodeId discover.NodeID) (common.Address, error) {

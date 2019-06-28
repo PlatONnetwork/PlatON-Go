@@ -399,7 +399,7 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	defer s.commitLock.Unlock()
 	block, ok := s.recognized[hash]
 	if !ok {
-		return errors.New("[snapshotdb]not found form commit block:" + hash.String())
+		return errors.New("[snapshotdb]not found f rom commit block:" + hash.String())
 
 	}
 	if s.current.HighestNum.Cmp(block.Number) >= 0 {
