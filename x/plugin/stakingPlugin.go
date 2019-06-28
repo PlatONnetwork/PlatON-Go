@@ -589,20 +589,20 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		/**
 		handle delegate on HesitateRatio
 		*/
-		var flag bool
-		var er error
-		remain, del.ReleasedTmp, del.LockRepoTmp, flag, er = refundFn(remain, del.ReleasedTmp, del.LockRepoTmp)
-		if nil != er {
-			return flag, er
+		remain, rtmp, ltmp, flag, err := refundFn(remain, del.ReleasedTmp, del.LockRepoTmp)
+		if nil != err {
+			return flag, err
 		}
+		del.ReleasedTmp, del.LockRepoTmp =  rtmp, ltmp
 		/**
 		handle delegate on EffectiveRatio
 		*/
 		if remain.Cmp(common.Big0) > 0 {
-			remain, del.Released, del.LockRepo, flag, er = refundFn(remain, del.Released, del.LockRepo)
-			if nil != er {
-				return flag, er
+			remain, rtmp, ltmp, flag, err = refundFn(remain, del.Released, del.LockRepo)
+			if nil != err {
+				return flag, err
 			}
+			del.Released, del.LockRepo = rtmp, ltmp
 		}
 
 		if remain.Cmp(common.Big0) != 0 {
@@ -652,10 +652,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		*/
 		//var flag bool
 		//var er error
-		remain, del.ReleasedTmp, del.LockRepoTmp, flag, er := refundFn(remain, del.ReleasedTmp, del.LockRepoTmp)
-		if nil != er {
-			return flag, er
+		remain, rtmp, ltmp, flag, err := refundFn(remain, del.ReleasedTmp, del.LockRepoTmp)
+		if nil != err {
+			return flag, err
 		}
+		del.ReleasedTmp, del.LockRepoTmp = rtmp, ltmp
 		/**
 		handle delegate on EffectiveRatio
 		*/
