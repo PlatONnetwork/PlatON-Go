@@ -15,7 +15,6 @@ import (
 
 
 type StakingDB struct {
-	// todo the snapshotDB instance
 	db snapshotdb.DB
 }
 

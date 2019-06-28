@@ -93,7 +93,7 @@ func CandidateKeyBySuffix (addr []byte) []byte {
 	return append(CandidateKeyPrefix, addr...)
 }
 
-// TODO  need to add ProcessVersion
+// need to add ProcessVersion
 func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, processVersion uint32) []byte {
 	version := common.Uint32ToBytes(processVersion)
 	priority := new(big.Int).Sub(math.MaxBig256, shares)

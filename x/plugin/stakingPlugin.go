@@ -346,6 +346,9 @@ func (sk *StakingPlugin) HandleUnCandidateReq(state xcom.StateDB, blockHash comm
 		}
 
 		if _, ok := filterAddr[addr]; ok {
+			if err := sk.db.DelUnStakeItemStore(blockHash, epoch, uint64(index)); nil != err {
+				return false, err
+			}
 			continue
 		}
 
@@ -722,7 +725,7 @@ func (sk *StakingPlugin) HandleUnDelegateReq(state xcom.StateDB, blockHash commo
 		}
 
 		if nil == del {
-			// todo This maybe be nil
+			// This maybe be nil
 			continue
 		}
 
@@ -764,7 +767,12 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 		state.SubBalance(vm.StakingContractAddr, del.Released)
 		state.AddBalance(delAddr, del.Released)
 
-		// todo call Restricting for flush lockRepo
+		flag, err := RestrictingPtr.ReturnLockFunds(delAddr, del.LockRepo, state)
+		if nil != err {
+			log.Error("Failed to HandleUnDelegateReq on stakingPlugin: call Restricting ReturnLockFunds() is failed",
+				"err", err)
+			return flag, err
+		}
 
 		if err := sk.db.DelDelegateStoreBySuffix(blockHash, unDel.KeySuffix); nil != err {
 			return false, err
@@ -787,11 +795,24 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 		if remain.Cmp(common.Big0) > 0 {
 
 			if remain.Cmp(del.LockRepo) >= 0 {
-				// todo call Restricting for flush lockRepo
+
+				flag, err := RestrictingPtr.ReturnLockFunds(delAddr, del.LockRepo, state)
+				if nil != err {
+					log.Error("Failed to HandleUnDelegateReq on stakingPlugin: call Restricting ReturnLockFunds() is failed",
+						"err", err)
+					return flag, err
+				}
+
 
 				del.LockRepo = common.Big0; remain = new(big.Int).Sub(remain, del.LockRepo)
 			}else {
-				// todo call Restricting for flush remain
+
+				flag, err := RestrictingPtr.ReturnLockFunds(delAddr, remain, state)
+				if nil != err {
+					log.Error("Failed to HandleUnDelegateReq on stakingPlugin: call Restricting ReturnLockFunds() is failed",
+						"err", err)
+					return flag, err
+				}
 
 				del.LockRepo = new(big.Int).Sub(del.LockRepo, remain); remain = common.Big0
 			}
@@ -966,16 +987,23 @@ func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, nodeId discover.N
 
 
 func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
-	var verifierNodeIDList []discover.NodeID
 
-	candidateQueue, err := sk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
-	if nil != err{
+	verifierList, err := sk.db.GetVerifierListByBlockHash(blockHash)
+	if nil != err {
 		return nil, err
 	}
-	for _, candidate := range candidateQueue{
-		verifierNodeIDList = append(verifierNodeIDList, candidate.NodeId)
+
+	if blockNumber < verifierList.Start || blockNumber > verifierList.End  {
+		return nil, fmt.Errorf("ListVerifierNodeID failed: %s, start: %d, end: %d, currentNumer: %d",
+			BlockNumberDisordered.Error(), verifierList.Start, verifierList.End, blockNumber)
 	}
-	return verifierNodeIDList, nil
+
+	resultArr := make([]discover.NodeID, len(verifierList.Arr))
+
+	for _, v := range verifierList.Arr {
+		resultArr = append(resultArr, v.NodeId)
+	}
+	return resultArr, nil
 }
 
 // flag:NOTE
@@ -1267,12 +1295,12 @@ func (sk *StakingPlugin) Switch(blockHash common.Hash, blockNumber uint64) (bool
 	}
 
 	if err := sk.db.SetPreValidatorList(blockHash, current); nil != err {
-		// TODO log.Error("// todo")
+		log.Error("Failed to Switch: Set Current become to Previous failed", "err", err)
 		return false, err
 	}
 
-	if err := sk.db.SetCurrentValidatorList(blockHash, current); nil != err {
-		// TODO log.Error("// todo")
+	if err := sk.db.SetCurrentValidatorList(blockHash, next); nil != err {
+		log.Error("Failed to Switch: Set Next become to Current failed", "err", err)
 		return false, err
 	}
 
