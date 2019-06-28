@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	parentHash  = rlpHash("parentHash")
-	currentHash = rlpHash("currentHash")
+	parentHash  = generateHash("parentHash")
+	currentHash = generateHash("currentHash")
 )
 
 func TestSnapshotDB_NewBlock(t *testing.T) {
@@ -60,97 +60,128 @@ func TestSnapshotDB_Get(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
 	var (
-		arr            = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d")}
-		recognizedHash = rlpHash("recognizedHash")
-		commitHash     = rlpHash("commitHash")
+		arr = [][]kv{generatekv(10), generatekv(10), generatekv(10), generatekv(10), generatekv(10)}
 	)
 	{
-		//unRecognized
-		unRecognized := blockData{
-			ParentHash: recognizedHash,
-			Number:     big.NewInt(50),
-			data:       memdb.New(DefaultComparer, 10),
-			readOnly:   false,
+		//baseDB
+		if err := newBlockBaseDB(big.NewInt(1), generateHash(fmt.Sprint(0)), generateHash(fmt.Sprint(1)), arr[0]); err != nil {
+			t.Error(err)
 		}
-		unRecognized.data.Put(arr[0], arr[0])
-		dbInstance.unRecognized = &unRecognized
+		//commit
+		if err := newBlockCommited(big.NewInt(2), generateHash(fmt.Sprint(1)), generateHash(fmt.Sprint(2)), arr[1]); err != nil {
+			t.Error(err)
+		}
 
 		//recognized
-		Recognized := blockData{
-			ParentHash: commitHash,
-			Number:     big.NewInt(50),
-			data:       memdb.New(DefaultComparer, 10),
-			readOnly:   false,
-			BlockHash:  recognizedHash,
+		if err := newBlockRecognizedDirect(big.NewInt(3), generateHash(fmt.Sprint(2)), generateHash(fmt.Sprint(3)), arr[2]); err != nil {
+			t.Error(err)
 		}
-		Recognized.data.Put(arr[1], arr[1])
-		dbInstance.recognized[recognizedHash] = Recognized
 
-		//commit
-		commit := blockData{
-			ParentHash: parentHash,
-			Number:     big.NewInt(50),
-			data:       memdb.New(DefaultComparer, 10),
-			readOnly:   false,
-			BlockHash:  commitHash,
+		//recognized(unRecognized not in the chain)
+		if err := newBlockRecognizedDirect(big.NewInt(3), generateHash(fmt.Sprint(2)), generateHash(fmt.Sprint(5)), arr[4]); err != nil {
+			t.Error(err)
 		}
-		commit.data.Put(arr[2], arr[2])
-		dbInstance.committed = append(dbInstance.committed, commit)
 
-		//baseDB
-		dbInstance.baseDB.Put(arr[3], arr[3], nil)
+		//unRecognized
+		if err := newBlockUnRecognized(big.NewInt(4), generateHash(fmt.Sprint(3)), arr[3]); err != nil {
+			t.Error(err)
+		}
+
 	}
 
-	t.Run("with not hash", func(t *testing.T) {
-		t.Run("must find", func(t *testing.T) {
-			for _, key := range arr {
-				val, err := dbInstance.Get(common.ZeroHash, key)
-				if err != nil {
-					t.Error(err)
-				}
-				if bytes.Compare(key, val) != 0 {
-					t.Error("must find key")
+	t.Run("UnRecognized", func(t *testing.T) {
+		t.Run("must find all in the chain", func(t *testing.T) {
+			for _, a := range arr[0:3] {
+				for _, kv := range a {
+					val, err := dbInstance.Get(common.ZeroHash, kv.key)
+					if err != nil {
+						t.Error(err)
+					}
+					if bytes.Compare(kv.value, val) != 0 {
+						t.Error("must find key")
+					}
 				}
 			}
 		})
-		t.Run("not find", func(t *testing.T) {
+		t.Run("must not find key not exist", func(t *testing.T) {
 			_, err := dbInstance.Get(common.ZeroHash, []byte("e"))
 			if err == nil {
 				t.Error(err)
 			}
 		})
-	})
-	t.Run("with hash", func(t *testing.T) {
-		t.Run("can't get unrecognized BlockData", func(t *testing.T) {
-			_, err := dbInstance.Get(recognizedHash, []byte("a"))
-			if err == nil {
-				t.Error(err)
-			}
-		})
-		t.Run("get from recognized BlockData", func(t *testing.T) {
-			for _, key := range arr[1 : len(arr)-1] {
-				val, err := dbInstance.Get(recognizedHash, key)
-				if err != nil {
+		t.Run("not in the chain,must not find ", func(t *testing.T) {
+			for _, kv := range arr[4] {
+				_, err := dbInstance.Get(common.ZeroHash, kv.key)
+
+				if err == nil {
 					t.Error(err)
 				}
-				if bytes.Compare(key, val) != 0 {
-					t.Error("must find key")
-				}
-			}
-		})
-		t.Run("get from committed blockData", func(t *testing.T) {
-			for _, key := range arr[2 : len(arr)-1] {
-				val, err := dbInstance.Get(commitHash, key)
-				if err != nil {
-					t.Error(err)
-				}
-				if bytes.Compare(key, val) != 0 {
-					t.Error("must find key")
+				if err != ErrNotFound {
+					t.Error("must not find")
 				}
 			}
 		})
 	})
 
+	t.Run("Recognized", func(t *testing.T) {
+		t.Run("must find all in the chain", func(t *testing.T) {
+			for _, a := range arr[0:2] {
+				for _, kv := range a {
+					val, err := dbInstance.Get(generateHash(fmt.Sprint(3)), kv.key)
+					if err != nil {
+						t.Error(err)
+					}
+					if bytes.Compare(kv.value, val) != 0 {
+						t.Error("must find key")
+					}
+				}
+			}
+		})
+		t.Run("must not find", func(t *testing.T) {
+			for _, a := range arr[3:4] {
+				for _, kv := range a {
+					_, err := dbInstance.Get(generateHash(fmt.Sprint(3)), kv.key)
+					if err == nil {
+						t.Error(err)
+					}
+					if err != ErrNotFound {
+						t.Error("must not find")
+					}
+				}
+			}
+		})
+	})
+
+	t.Run("commited", func(t *testing.T) {
+		t.Run("must find all in the chain", func(t *testing.T) {
+			for _, a := range arr[0:1] {
+				for _, kv := range a {
+					val, err := dbInstance.Get(generateHash(fmt.Sprint(2)), kv.key)
+					if err != nil {
+						t.Error(err)
+					}
+					if bytes.Compare(kv.value, val) != 0 {
+						t.Error("must find key")
+					}
+				}
+			}
+		})
+	})
+
+	t.Run("baseDB", func(t *testing.T) {
+		t.Run("must find all in the chain", func(t *testing.T) {
+			for _, kv := range arr[0] {
+				val, err := dbInstance.Get(generateHash(fmt.Sprint(1)), kv.key)
+				if err != nil {
+					t.Error(err)
+				}
+				if bytes.Compare(kv.value, val) != 0 {
+					t.Error("must find key")
+				}
+			}
+
+		})
+	})
 }
 
 func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
@@ -158,7 +189,7 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 	defer dbInstance.Clear()
 	var (
 		arr        = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d")}
-		commitHash = rlpHash("commitHash")
+		commitHash = generateHash("commitHash")
 	)
 	{
 		//commit
@@ -203,9 +234,9 @@ func TestSnapshotDB_Del(t *testing.T) {
 	defer dbInstance.Clear()
 	var (
 		arr                   = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d"), []byte("e")}
-		recognizedHash        = rlpHash("recognizedHash")
-		recognizedByFlushHash = rlpHash("recognizedByFlush")
-		commitHash            = rlpHash("commitHash")
+		recognizedHash        = generateHash("recognizedHash")
+		recognizedByFlushHash = generateHash("recognizedByFlush")
+		commitHash            = generateHash("commitHash")
 	)
 	{
 		//unRecognized
@@ -314,7 +345,7 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
 	var (
-		recognizedHash = rlpHash("recognizedHash")
+		recognizedHash = generateHash("recognizedHash")
 		parenthash     common.Hash
 		arr            []string
 	)
@@ -342,7 +373,7 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 	}
 
 	{
-		commitHash := rlpHash("recognizedHash2")
+		commitHash := generateHash("recognizedHash2")
 		if err := dbInstance.NewBlock(big.NewInt(2), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
@@ -365,7 +396,7 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 	}
 
 	{
-		commitHash := rlpHash("recognizedHash3")
+		commitHash := generateHash("recognizedHash3")
 		if err := dbInstance.NewBlock(big.NewInt(3), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
@@ -386,7 +417,7 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 		parenthash = commitHash
 	}
 	{
-		commitHash := rlpHash("recognizedHash4")
+		commitHash := generateHash("recognizedHash4")
 		if err := dbInstance.NewBlock(big.NewInt(4), parenthash, commitHash); err != nil {
 			t.Fatal(err)
 		}
@@ -421,7 +452,7 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 	}
 	t.Run("with hash", func(t *testing.T) {
 		t.Run("form recognized", func(t *testing.T) {
-			commitHash := rlpHash("recognizedHash4")
+			commitHash := generateHash("recognizedHash4")
 			itr := dbInstance.Ranking(commitHash, []byte("a"), 100)
 			for _, value := range arr[0:15] {
 				if !itr.Next() {
@@ -434,7 +465,7 @@ func TestSnapshotDB_Ranking(t *testing.T) {
 			itr.Release()
 		})
 		t.Run("form commit", func(t *testing.T) {
-			commitHash := rlpHash("recognizedHash3")
+			commitHash := generateHash("recognizedHash3")
 			itr := dbInstance.Ranking(commitHash, []byte("a"), 100)
 			for _, value := range arr[0:11] {
 				if !itr.Next() {
@@ -466,7 +497,7 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
 	var (
-		recognizedHash = rlpHash("recognizedHash")
+		recognizedHash = generateHash("recognizedHash")
 		parenthash     common.Hash
 		arr            []string
 	)
@@ -520,8 +551,8 @@ func TestSnapshotDB_GetLastKVHash(t *testing.T) {
 	defer dbInstance.Clear()
 	var (
 		arr            = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d"), []byte("e")}
-		recognizedHash = rlpHash("recognizedHash")
-		commitHash     = rlpHash("commitHash")
+		recognizedHash = generateHash("recognizedHash")
+		commitHash     = generateHash("commitHash")
 	)
 	{
 		dbInstance.NewBlock(big.NewInt(10), recognizedHash, common.ZeroHash)
@@ -566,7 +597,7 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
 	var (
-		recognizedHash = rlpHash("recognizedHash")
+		recognizedHash = generateHash("recognizedHash")
 		commitHash     common.Hash
 		parenthash     common.Hash
 	)
@@ -592,7 +623,7 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		}
 	}
 	{
-		currenthash := rlpHash(fmt.Sprint(2))
+		currenthash := generateHash(fmt.Sprint(2))
 		if err := dbInstance.NewBlock(big.NewInt(int64(2)), recognizedHash, currenthash); err != nil {
 			t.Fatal(err)
 		}
@@ -606,7 +637,7 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		}
 		parenthash = currenthash
 
-		currenthash = rlpHash(fmt.Sprint(3))
+		currenthash = generateHash(fmt.Sprint(3))
 		if err := dbInstance.NewBlock(big.NewInt(int64(3)), parenthash, currenthash); err != nil {
 			t.Fatal(err)
 		}
@@ -620,7 +651,7 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		}
 		parenthash = currenthash
 
-		currenthash = rlpHash(fmt.Sprint(4))
+		currenthash = generateHash(fmt.Sprint(4))
 		if err := dbInstance.NewBlock(big.NewInt(int64(4)), parenthash, currenthash); err != nil {
 			t.Fatal(err)
 		}
@@ -636,7 +667,7 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 	}
 	{
 		for i := 5; i < 16; i++ {
-			currenthash := rlpHash(fmt.Sprint(i))
+			currenthash := generateHash(fmt.Sprint(i))
 			if err := dbInstance.NewBlock(big.NewInt(int64(i)), parenthash, currenthash); err != nil {
 				t.Fatal(err)
 			}
@@ -648,6 +679,7 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 			if err := dbInstance.Commit(currenthash); err != nil {
 				t.Fatal(err)
 			}
+			parenthash = currenthash
 		}
 	}
 	t.Run("a block kv>2000", func(t *testing.T) {
@@ -813,13 +845,13 @@ func TestPutToRecognized(t *testing.T) {
 			t.Fatal(err)
 		}
 	}()
-	parentHash := rlpHash("a")
+	parentHash := generateHash("a")
 	data := [][2]string{
 		[2]string{"a", "b"},
 		[2]string{"b", "4421ffwef"},
 		[2]string{"C", "2wgewbrw2"},
 	}
-	currentHash := rlpHash("b")
+	currentHash := generateHash("b")
 	if err := db.NewBlock(big.NewInt(20), parentHash, currentHash); err != nil {
 		t.Fatal(err)
 	}
@@ -909,7 +941,7 @@ func TestFlush(t *testing.T) {
 			t.Fatal(err)
 		}
 	}()
-	parentHash := rlpHash("a")
+	parentHash := generateHash("a")
 	blockNumber := big.NewInt(20)
 	data := [][2]string{
 		[2]string{"a", "b"},
@@ -924,7 +956,7 @@ func TestFlush(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	currentHash := rlpHash("b")
+	currentHash := generateHash("b")
 	if err := db.Flush(currentHash, blockNumber); err != nil {
 		t.Fatal(err)
 	}
@@ -1017,8 +1049,8 @@ func TestCommit(t *testing.T) {
 			t.Fatal(err)
 		}
 	}()
-	currentHash := rlpHash("currentHash")
-	parentHash := rlpHash("parentHash")
+	currentHash := generateHash("currentHash")
+	parentHash := generateHash("parentHash")
 	blockNumber := big.NewInt(1)
 	data := [][2]string{
 		[2]string{"a", "b"},
