@@ -3,9 +3,11 @@ package plugin
 import (
 	"encoding/hex"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/life/utils"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -38,8 +40,8 @@ var (
 	duplicateSignLowSlashing	uint32	= 10
 	duplicateSignHighSlashing	uint32	= 10
 
-	errSetBlockAmount	= errors.New("set block amount fail")
 	errMutiSignVerify	= errors.New("Multi-sign verification failed")
+	errSlashExist		= errors.New("Punishment has been implemented")
 )
 
 type SlashingPlugin struct {
@@ -227,16 +229,20 @@ func (sp *SlashingPlugin) Slash(mutiSignType uint8, evidence xcom.Evidence, stat
 	if err := evidence.Validate(); nil != err {
 		return err
 	}
-
+	if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), stateDB); nil != value {
+		log.Error("Execution slashing failed", "blockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()))
+		return errSlashExist
+	}
+	//
 	return nil
 }
 
-func (sp *SlashingPlugin) putSlashResult(addr common.Address, blockNumber uint64, stateDB xcom.StateDB)  {
-	//stateDB.SetState(vm.SlashingContractAddr, append(addr.Bytes(), ))
+func (sp *SlashingPlugin) putSlashResult(addr common.Address, blockNumber uint64, stateDB xcom.StateDB) {
+	stateDB.SetState(vm.SlashingContractAddr, append(addr.Bytes(), utils.Uint64ToBytes(blockNumber)...), stateDB.TxHash().Bytes())
 }
 
-func (sp *SlashingPlugin) getSlashResult(addr common.Address, blockNumber uint64, stateDB xcom.StateDB)  {
-	
+func (sp *SlashingPlugin) getSlashResult(addr common.Address, blockNumber uint64, stateDB xcom.StateDB) []byte {
+	return stateDB.GetState(vm.SlashingContractAddr, append(addr.Bytes(), utils.Uint64ToBytes(blockNumber)...))
 }
 
 func curKey(key []byte) []byte {

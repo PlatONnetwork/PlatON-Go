@@ -86,7 +86,8 @@ type GenesisAccount struct {
 
 // field type overrides for gencodec
 type genesisSpecMarshaling struct {
-	Nonce     math.HexOrDecimal64
+	//Nonce     math.HexOrDecimal64
+	Nonce 	  []byte
 	Timestamp math.HexOrDecimal64
 	ExtraData hexutil.Bytes
 	GasLimit  math.HexOrDecimal64

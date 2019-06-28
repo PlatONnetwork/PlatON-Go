@@ -5,6 +5,7 @@ package core
 import (
 	"encoding/json"
 	"errors"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
@@ -13,10 +14,11 @@ import (
 
 var _ = (*genesisSpecMarshaling)(nil)
 
+// MarshalJSON marshals as JSON.
 func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
 		Config     *params.ChainConfig                         `json:"config"`
-		Nonce      hexutil.Bytes                         `json:"nonce"`
+		Nonce      []byte                                      `json:"nonce"`
 		Timestamp  math.HexOrDecimal64                         `json:"timestamp"`
 		ExtraData  hexutil.Bytes                               `json:"extraData"`
 		GasLimit   math.HexOrDecimal64                         `json:"gasLimit"   gencodec:"required"`
@@ -45,10 +47,11 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&enc)
 }
 
+// UnmarshalJSON unmarshals from JSON.
 func (g *Genesis) UnmarshalJSON(input []byte) error {
 	type Genesis struct {
 		Config     *params.ChainConfig                         `json:"config"`
-		Nonce      *hexutil.Bytes                        		`json:"nonce"`
+		Nonce      []byte                                      `json:"nonce"`
 		Timestamp  *math.HexOrDecimal64                        `json:"timestamp"`
 		ExtraData  *hexutil.Bytes                              `json:"extraData"`
 		GasLimit   *math.HexOrDecimal64                        `json:"gasLimit"   gencodec:"required"`
@@ -66,7 +69,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		g.Config = dec.Config
 	}
 	if dec.Nonce != nil {
-		g.Nonce = *dec.Nonce
+		g.Nonce = dec.Nonce
 	}
 	if dec.Timestamp != nil {
 		g.Timestamp = uint64(*dec.Timestamp)
