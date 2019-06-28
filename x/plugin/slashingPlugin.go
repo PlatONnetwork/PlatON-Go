@@ -22,7 +22,9 @@ const (
 )
 
 var (
+	// Identifies the prefix of the current round
 	curAbnormalPrefix = []byte("SlashCb")
+	// Identifies the prefix of the previous round
 	preAbnormalPrefix = []byte("SlashPb")
 
 	// The number of low exceptions per consensus round
@@ -40,26 +42,26 @@ var (
 	errMutiSignVerify	= errors.New("Multi-sign verification failed")
 )
 
-type slashingPlugin struct {
+type SlashingPlugin struct {
 	db		snapshotdb.DB
 }
 
-var slashPlugin *slashingPlugin
+var slashPlugin *SlashingPlugin
 
-func SlashInstance(db snapshotdb.DB) *slashingPlugin {
+func SlashInstance(db snapshotdb.DB) *SlashingPlugin {
 	if slashPlugin == nil {
-		slashPlugin = &slashingPlugin{
+		slashPlugin = &SlashingPlugin{
 			db:db,
 		}
 	}
 	return slashPlugin
 }
 
-func (sp *slashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
+func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
 	return true, nil
 }
 
-func (sp *slashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
+func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
 	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
 	if (header.Number.Uint64() % (xcom.ConsensusSize - xcom.ElectionDistance) == 0) && header.Number.Uint64() > xcom.ConsensusSize {
 		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "consensusSize", xcom.ConsensusSize, "electionDistance", xcom.ElectionDistance)
@@ -96,7 +98,7 @@ func (sp *slashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 	return true, nil
 }
 
-func (sp *slashingPlugin) Confirmed(block *types.Block) error {
+func (sp *SlashingPlugin) Confirmed(block *types.Block) error {
 	// If it is the first block in each round, switch the number of blocks in the upper and lower rounds.
 	log.Debug("slashingPlugin Confirmed", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "consensusSize", xcom.ConsensusSize)
 	if (block.NumberU64() % xcom.ConsensusSize == 1) && block.NumberU64() > 1 {
@@ -112,7 +114,7 @@ func (sp *slashingPlugin) Confirmed(block *types.Block) error {
 	return nil
 }
 
-func (sp *slashingPlugin) getBlockAmount(blockHash common.Hash, header *types.Header) (uint16, error) {
+func (sp *SlashingPlugin) getBlockAmount(blockHash common.Hash, header *types.Header) (uint16, error) {
 	log.Debug("slashingPlugin getBlockAmount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()))
 	nodeId, err := parseNodeId(header)
 	if nil != err {
@@ -133,7 +135,7 @@ func (sp *slashingPlugin) getBlockAmount(blockHash common.Hash, header *types.He
 	return amount, nil
 }
 
-func (sp *slashingPlugin) setBlockAmount(blockHash common.Hash, header *types.Header) error {
+func (sp *SlashingPlugin) setBlockAmount(blockHash common.Hash, header *types.Header) error {
 	log.Debug("slashingPlugin setBlockAmount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()))
 	nodeId, err := parseNodeId(header)
 	if nil != err {
@@ -149,13 +151,13 @@ func (sp *slashingPlugin) setBlockAmount(blockHash common.Hash, header *types.He
 			if err := sp.db.PutBaseDB(curKey(nodeId.Bytes()), enValue); nil != err {
 				return err
 			}
-			log.Debug("slashingPlugin setBlockAmount success", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "value", value)
+			log.Debug("slashingPlugin setBlockAmount success", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "value", value)
 		}
 	}
 	return nil
 }
 
-func (sp *slashingPlugin) switchEpoch(blockHash common.Hash) error {
+func (sp *SlashingPlugin) switchEpoch(blockHash common.Hash) error {
 	log.Debug("slashingPlugin switchEpoch", "blockHash", hex.EncodeToString(blockHash.Bytes()))
 	preCount := 0
 	err := sp.db.WalkBaseDB(util.BytesPrefix(preAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
@@ -192,7 +194,8 @@ func (sp *slashingPlugin) switchEpoch(blockHash common.Hash) error {
 	return nil
 }
 
-func (sp *slashingPlugin) GetPreEpochAnomalyNode() (map[discover.NodeID]uint16,error) {
+// Get the consensus rate of all nodes in the previous round
+func (sp *SlashingPlugin) GetPreEpochAnomalyNode() (map[discover.NodeID]uint16,error) {
 	result := make(map[discover.NodeID]uint16)
 	err := sp.db.WalkBaseDB(util.BytesPrefix(preAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
 		for iter.Next() {
@@ -220,12 +223,20 @@ func (sp *slashingPlugin) GetPreEpochAnomalyNode() (map[discover.NodeID]uint16,e
 	return result, nil
 }
 
-func (sp *slashingPlugin) Slash(mutiSignType uint8, evidence xcom.Evidence) error {
+func (sp *SlashingPlugin) Slash(mutiSignType uint8, evidence xcom.Evidence, stateDB xcom.StateDB) error {
 	if err := evidence.Validate(); nil != err {
 		return err
 	}
 
 	return nil
+}
+
+func (sp *SlashingPlugin) putSlashResult(addr common.Address, blockNumber uint64, stateDB xcom.StateDB)  {
+	//stateDB.SetState(vm.SlashingContractAddr, append(addr.Bytes(), ))
+}
+
+func (sp *SlashingPlugin) getSlashResult(addr common.Address, blockNumber uint64, stateDB xcom.StateDB)  {
+	
 }
 
 func curKey(key []byte) []byte {

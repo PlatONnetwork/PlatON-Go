@@ -95,7 +95,7 @@ func (brc *BlockChainReactor) loop() {
 			}
 
 			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
-				log.Error("snapshotdb Commit failed", "err", err)
+				log.Error("snapshotDB Commit failed", "err", err)
 				continue
 			}
 		}
@@ -140,7 +140,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	}
 
 	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
-		log.Error("Storage previous nonce failed", "blockNumber", header.Number.Uint64(), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
+		log.Error("snapshotDB newBlock failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
 		return false, err
 	}
 
