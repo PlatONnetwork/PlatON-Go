@@ -271,7 +271,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 
 	//判断vote.voteNodeID是否为Verifier
 	//TODO: Staking Plugin
-	success, err := stk.IsCurrVerifier(blockHash, vote.VoteNodeID)
+	success, err := stk.IsCurrVerifier(blockHash, vote.VoteNodeID, QueryStartNotIrr)
 
 	if !success || err !=nil {
 		var err error = errors.New("[GOV] Vote(): proposer is not verifier.")
