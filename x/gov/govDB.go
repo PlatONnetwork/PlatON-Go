@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -29,7 +29,7 @@ type GovDB struct {
 	snapdb   GovSnapshotDB
 }
 
-func NewGovDB(snapdb xcom.SnapshotDB) *GovDB {
+func NewGovDB(snapdb snapshotdb.DB) *GovDB {
 	dbOnce.Do(func() {
 		govDB = &GovDB{snapdb: GovSnapshotDB{snapdb}}
 	})
@@ -111,7 +111,7 @@ func (self *GovDB) getProposalList(blockHash common.Hash, state xcom.StateDB) ([
 
 //保存投票记录
 func (self *GovDB) setVote(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) bool {
-	voteList := self.listVote(proposalID, state)
+	voteList := self.getProposalVoteList(proposalID, state)
 	voteList = append(voteList, VoteValue{voter, option})
 
 	voteListBytes, _ := json.Marshal(voteList)
@@ -121,7 +121,7 @@ func (self *GovDB) setVote(proposalID common.Hash, voter discover.NodeID, option
 }
 
 // 查询投票记录
-func (self *GovDB) listVote(proposalID common.Hash, state xcom.StateDB) []VoteValue {
+func (self *GovDB) getProposalVoteList(proposalID common.Hash, state xcom.StateDB) []VoteValue {
 	voteListBytes := state.GetState(vm.GovContractAddr, KeyVote(proposalID))
 
 	var voteList []VoteValue
@@ -152,32 +152,30 @@ func (self *GovDB) getTallyResult(proposalID common.Hash, state xcom.StateDB) (*
 
 // 保存生效版本记录
 func (self *GovDB) setPreActiveVersion(preActiveVersion uint32, state xcom.StateDB) bool {
-	state.SetState(vm.GovContractAddr, KeyPreActiveVersion(), byteutil.Uint32ToBytes(preActiveVersion))
+	state.SetState(vm.GovContractAddr, KeyPreActiveVersion(), common.Uint32ToBytes(preActiveVersion))
 	return true
 }
 
 // 查询生效版本记录
 func (self *GovDB) getPreActiveVersion(state xcom.StateDB) uint32 {
-
 	value := state.GetState(vm.GovContractAddr, KeyPreActiveVersion())
-	return byteutil.BytesToUint32(value)
+	return common.BytesToUint32(value)
 }
 
 // 保存生效版本记录
-func (self *GovDB) setActiveVersion(activeVersion uint, state xcom.StateDB) bool {
-
-	state.SetState(vm.GovContractAddr, KeyActiveVersion(), tobytes(activeVersion))
+func (self *GovDB) setActiveVersion(activeVersion uint32, state xcom.StateDB) bool {
+	state.SetState(vm.GovContractAddr, KeyActiveVersion(), common.Uint32ToBytes(activeVersion))
 	return true
 }
 
 // 查询生效版本记录
 func (self *GovDB) getActiveVersion(state xcom.StateDB) uint32 {
 	value := state.GetState(vm.GovContractAddr, KeyActiveVersion())
-	return byteutil.BytesToUint32(value)
+	return common.BytesToUint32(value)
 }
 
 // 查询正在投票的提案
-func (self *GovDB) listVotingProposal(blockHash common.Hash, state xcom.StateDB) []common.Hash {
+func (self *GovDB) getVotingProposalIdList(blockHash common.Hash, state xcom.StateDB) []common.Hash {
 	value, err := govDB.snapdb.getVotingIDList(blockHash)
 	if err != nil {
 		log.Error("List voting proposal ID error")
@@ -187,7 +185,7 @@ func (self *GovDB) listVotingProposal(blockHash common.Hash, state xcom.StateDB)
 }
 
 // 获取投票结束的提案
-func (self *GovDB) listEndProposalID(blockHash common.Hash, state xcom.StateDB) []common.Hash {
+func (self *GovDB) getEndProposalIdList(blockHash common.Hash, state xcom.StateDB) []common.Hash {
 	value, err := govDB.snapdb.getEndIDList(blockHash)
 	if err != nil {
 		log.Error("List end proposal ID error")
@@ -198,7 +196,7 @@ func (self *GovDB) listEndProposalID(blockHash common.Hash, state xcom.StateDB) 
 }
 
 // 查询预生效的升级提案
-func (self *GovDB) getPreActiveProposalID(blockHash common.Hash, state xcom.StateDB) common.Hash {
+func (self *GovDB) getPreActiveProposalId(blockHash common.Hash, state xcom.StateDB) common.Hash {
 	value, err := govDB.snapdb.getPreActiveIDList(blockHash)
 	if err != nil {
 		log.Error("Get pre-active proposal ID error")

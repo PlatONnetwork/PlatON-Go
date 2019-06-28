@@ -10,7 +10,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"strconv"
 
