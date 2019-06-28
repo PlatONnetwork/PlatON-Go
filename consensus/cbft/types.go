@@ -299,6 +299,13 @@ func (cbft *Cbft) addPrepareBlockVote(pbd *prepareBlock) {
 	} else {
 		pbd.View = cbft.viewChange.CopyWithoutVotes()
 	}
+
+	sign, err := cbft.signMsg(pbd)
+	if err != nil {
+		cbft.log.Error("Signature prepare block failed", "err", err)
+		return
+	}
+	pbd.Signature.SetBytes(sign)
 }
 func (cbft *Cbft) agreeViewChange() bool {
 	return len(cbft.viewChangeVotes) >= cbft.getThreshold()
@@ -1240,7 +1247,6 @@ func (bm *BlockExtMap) Total() int {
 }
 func (bm *BlockExtMap) GetSubChainWithTwoThirdVotes(hash common.Hash, number uint64) []*BlockExt {
 	base := bm.findBlock(hash, number)
-	log.Debug("GetSubChainWithTwoThirdVotes", "hash", hash, "number", number, "prepareVotes", base.prepareVotes.Len(), "threshold", bm.threshold, "headHash", bm.head.block.Hash(), "headNumber", bm.head.number)
 	if base == nil || base.prepareVotes.Len() < bm.threshold {
 		return nil
 	}

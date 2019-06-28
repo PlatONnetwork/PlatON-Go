@@ -175,7 +175,7 @@ func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, from common.Addre
 	switch from {
 	case cvm.StakingContractAddr:
 		contract = vm.PlatONPrecompiledContracts[cvm.StakingContractAddr]
-	case cvm.LockRepoContractAddr:
+	case cvm.RestrictingContractAddr:
 		// TODO
 	case cvm.AwardMgrContractAddr:
 		// TODO
