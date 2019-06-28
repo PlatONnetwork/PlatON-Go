@@ -112,16 +112,28 @@ func (p *dbBench) populate(n int) {
 func (p *dbBench) putsUnrecognized() {
 	b := p.b
 	db := p.db
-	if err := p.db.NewBlock(big.NewInt(1), generateHash("a"), common.ZeroHash); err != nil {
-		b.Fatal(err)
-	}
+	hash1 := generateHash("a")
+	hash2 := generateHash("hash2")
+	num := big.NewInt(1)
 	b.ResetTimer()
 	b.StartTimer()
+	if err := p.db.NewBlock(num, hash1, common.ZeroHash); err != nil {
+		b.Fatal(err)
+	}
 	for i := range p.unrecognizedkeys {
 		err := db.Put(common.ZeroHash, p.unrecognizedkeys[i], p.unrecognizedvalues[i])
 		if err != nil {
 			b.Fatal("put failed: ", err)
 		}
+	}
+	if err := db.Flush(hash2, num); err != nil {
+		b.Fatal("put failed: ", err)
+	}
+	if err := db.Commit(hash2); err != nil {
+		b.Fatal(err)
+	}
+	if err := db.Compaction(); err != nil {
+		b.Fatal(err)
 	}
 	b.StopTimer()
 	b.SetBytes(116)
@@ -131,16 +143,24 @@ func (p *dbBench) putsRecognized() {
 	b := p.b
 	db := p.db
 	hash2 := generateHash("hash2")
-	if err := p.db.NewBlock(big.NewInt(1), generateHash("a"), hash2); err != nil {
-		b.Fatal(err)
-	}
+	hash1 := generateHash("a")
+	num := big.NewInt(1)
 	b.ResetTimer()
 	b.StartTimer()
+	if err := p.db.NewBlock(num, hash1, hash2); err != nil {
+		b.Fatal(err)
+	}
 	for i := range p.recognizedkeys {
 		err := db.Put(hash2, p.recognizedkeys[i], p.recognizedvalues[i])
 		if err != nil {
 			b.Fatal("put failed: ", err)
 		}
+	}
+	if err := db.Commit(hash2); err != nil {
+		b.Fatal(err)
+	}
+	if err := db.Compaction(); err != nil {
+		b.Fatal(err)
 	}
 	b.StopTimer()
 	b.SetBytes(116)
@@ -179,12 +199,4 @@ func BenchmarkDBPutRecognized(b *testing.B) {
 	p.populate(b.N)
 	p.putsRecognized()
 	p.close()
-}
-
-func BenchmarkDBGet(b *testing.B) {
-	//p := openDBBench(b)
-	//p.populate(b.N)
-	//p.fill()
-	////p.gets()
-	//p.close()
 }
