@@ -146,7 +146,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 				index = byteutil.BytesToUint32(numbers)+1
 			}
 
-			state.SetState(vm.RestrictingContractAddr, releaseNumberKey, byteutil.Uint32ToBytes(recordsNum))
+			state.SetState(vm.RestrictingContractAddr, releaseNumberKey, common.Uint32ToBytes(recordsNum))
 
 			releaseAccountKey := xcom.GetReleaseAccountKey(height, index)
 			state.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
@@ -184,7 +184,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 				numbers := state.GetState(vm.RestrictingContractAddr, releaseNumberKey)
 
 				index = byteutil.BytesToUint32(numbers)+1
-				state.SetState(vm.RestrictingContractAddr, releaseNumberKey, byteutil.Uint32ToBytes(index))
+				state.SetState(vm.RestrictingContractAddr, releaseNumberKey, common.Uint32ToBytes(index))
 
 				releaseAccountKey := xcom.GetReleaseAccountKey(height, index)
 				state.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
