@@ -397,10 +397,10 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 	if !cbft.isRunning() {
 		switch msg.(type) {
 		case *prepareBlock,
-			*prepareBlockHash,
-			*prepareVote,
-			*viewChange,
-			*viewChangeVote:
+		*prepareBlockHash,
+		*prepareVote,
+		*viewChange,
+		*viewChangeVote:
 			cbft.log.Debug("Cbft is not running, discard consensus message")
 			return
 		}
