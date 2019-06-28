@@ -132,12 +132,12 @@ func (db *StakingDB) DelCandidateStore (blockHash common.Hash, addr common.Addre
 }
 
 func (db *StakingDB) SetCanPowerStore (blockHash common.Hash, addr common.Address, can *xcom.Candidate) error {
-	key := xcom.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex)
+	key := xcom.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProcessVersion)
 	return db.put(blockHash, key, addr.Bytes())
 }
 
 func (db *StakingDB) DelCanPowerStore (blockHash common.Hash, can *xcom.Candidate) error {
-	key := xcom.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex)
+	key := xcom.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProcessVersion)
 	return db.del(blockHash, key)
 }
 
@@ -358,8 +358,15 @@ func (db *StakingDB) GetVerifierListByBlockHash (blockHash common.Hash) (*xcom.V
 	return arr, nil
 }
 
+func (db *StakingDB) SetPreValidatorList (blockHash common.Hash, val_Arr *xcom.Validator_array) error {
+	value, err := rlp.EncodeToBytes(val_Arr)
+	if nil != err {
+		return err
+	}
+	return db.put(blockHash, xcom.GetPreRoundValidatorKey(), value)
+}
 
-func (db *StakingDB) GetPreviousValidatorListByIrr () (*xcom.Validator_array, error) {
+func (db *StakingDB) GetPreValidatorListByIrr () (*xcom.Validator_array, error) {
 	arrByte, err := db.getFromCommitted(xcom.GetPreRoundValidatorKey())
 	if nil != err {
 		return nil, err
@@ -372,7 +379,7 @@ func (db *StakingDB) GetPreviousValidatorListByIrr () (*xcom.Validator_array, er
 	return arr, nil
 }
 
-func (db *StakingDB) GetPreviousValidatorListByBlockHash (blockHash common.Hash) (*xcom.Validator_array, error) {
+func (db *StakingDB) GetPreValidatorListByBlockHash (blockHash common.Hash) (*xcom.Validator_array, error) {
 	arrByte, err := db.get(blockHash, xcom.GetPreRoundValidatorKey())
 	if nil != err {
 		return nil, err
@@ -383,6 +390,15 @@ func (db *StakingDB) GetPreviousValidatorListByBlockHash (blockHash common.Hash)
 		return nil, err
 	}
 	return arr, nil
+}
+
+
+func (db *StakingDB) SetCurrentValidatorList (blockHash common.Hash, val_Arr *xcom.Validator_array) error {
+	value, err := rlp.EncodeToBytes(val_Arr)
+	if nil != err {
+		return err
+	}
+	return db.put(blockHash, xcom.GetCurRoundValidatorKey(), value)
 }
 
 func (db *StakingDB) GetCurrentValidatorListByIrr () (*xcom.Validator_array, error) {
@@ -409,6 +425,14 @@ func (db *StakingDB) GetCurrentValidatorListByBlockHash (blockHash common.Hash) 
 		return nil, err
 	}
 	return arr, nil
+}
+
+func (db *StakingDB) SetNextValidatorList (blockHash common.Hash, val_Arr *xcom.Validator_array) error {
+	value, err := rlp.EncodeToBytes(val_Arr)
+	if nil != err {
+		return err
+	}
+	return db.put(blockHash, xcom.GetNextRoundValidatorKey(), value)
 }
 
 func (db *StakingDB) GetNextValidatorListByIrr () (*xcom.Validator_array, error) {

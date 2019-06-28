@@ -15,43 +15,29 @@ import (
 )
 
 const (
-	CanAlreadyExistsErrStr = "this candidate is already exists"
-	CanNotExistErrStr      = "this candidate is not exist"
-	CreateCanErrStr        = "create candidate failed"
-
-	CanStatusInvalidErrStr = "this candidate status was invalided"
-
-	DelegateNotExistErrStr = "this is delegate is not exist"
-	DelegateErrStr         = "Delegate failed"
-
-	StakingAddrNoSomeErrStr = "address must be the same as initiated staking"
-	EditCanErrStr           = "edit candidate failed"
-
-	IncreaseStakingErrStr   = "increaseStaking failed"
-
-	StakeVonTooLowStr = "Staking deposit too low"
-	DelegateVonTooLowStr = "Delegate deposit too low"
-
-	WithdrewCanErrStr = "withdrew candidate failed"
-
-	QueryCanErrStr = "query candidate info failed"
-	QueryDelErrSTr = "query delegate info failed"
-
-	AmountIllegalErrStr = "this amount is illege"
-
-
-
-	GetVerifierListErrStr = "getting verifierList is failed"
-
-	GetValidatorListErrStr = "getting validatorList is failed"
-
-	GetCandidateListErrStr = "getting candidateList is failed"
-
-	GetDelegateRelatedErrStr = "getting related of delegate is failed"
+	AmountIllegalErrStr      = "This amount is illege"
+	CanAlreadyExistsErrStr   = "This candidate is already exists"
+	CanNotExistErrStr        = "This candidate is not exist"
+	CreateCanErrStr          = "Create candidate failed"
+	CanStatusInvalidErrStr   = "This candidate status was invalided"
+	DelegateNotExistErrStr   = "This is delegate is not exist"
+	DelegateErrStr           = "Delegate failed"
+	DelegateVonTooLowStr     = "Delegate deposit too low"
+	EditCanErrStr            = "Edit candidate failed"
+	GetVerifierListErrStr    = "Getting verifierList is failed"
+	GetValidatorListErrStr   = "Getting validatorList is failed"
+	GetCandidateListErrStr   = "Getting candidateList is failed"
+	GetDelegateRelatedErrStr = "Getting related of delegate is failed"
+	IncreaseStakingErrStr    = "IncreaseStaking failed"
+	QueryCanErrStr           = "Query candidate info failed"
+	QueryDelErrSTr           = "Query delegate info failed"
+	StakeVonTooLowStr        = "Staking deposit too low"
+	StakingAddrNoSomeErrStr  = "Address must be the same as initiated staking"
+	WithdrewCanErrStr        = "Withdrew candidate failed"
 )
 
 const (
-	CreateStakingEvent   = "1000"
+	CreateStakingEvent     = "1000"
 	EditorCandidateEvent   = "1001"
 	IncreaseStakingEvent   = "1002"
 	WithdrewCandidateEvent = "1003"
@@ -109,7 +95,6 @@ func (stkc *stakingContract) execute(input []byte) (ret []byte, err error) {
 	return result[0].Bytes(), nil
 }
 
-
 func (stkc *stakingContract) createStaking(typ uint16, benifitAddress common.Address, nodeId discover.NodeID,
 	externalId, nodeName, website, details string, amount *big.Int, processVersion uint32) ([]byte, error) {
 
@@ -124,7 +109,6 @@ func (stkc *stakingContract) createStaking(typ uint16, benifitAddress common.Add
 
 	log.Info("Call createStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
-
 
 	if amount.Cmp(common.Big0) <= 0 {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
@@ -172,7 +156,7 @@ func (stkc *stakingContract) createStaking(typ uint16, benifitAddress common.Add
 		StakingTxIndex:  txIndex,
 		Shares:          amount,
 
-		Description: xcom.Description {
+		Description: xcom.Description{
 			NodeName:   nodeName,
 			ExternalId: externalId,
 			Website:    website,
@@ -213,7 +197,6 @@ func (stkc *stakingContract) editorCandidate(benifitAddress common.Address, node
 
 	log.Info("Call editorCandidate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
-
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -279,8 +262,7 @@ func (stkc *stakingContract) editorCandidate(benifitAddress common.Address, node
 	return nil, nil
 }
 
-
-func (stkc *stakingContract) increaseStaking (nodeId discover.NodeID, typ uint16, amount *big.Int) ([]byte, error) {
+func (stkc *stakingContract) increaseStaking(nodeId discover.NodeID, typ uint16, amount *big.Int) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
@@ -299,7 +281,6 @@ func (stkc *stakingContract) increaseStaking (nodeId discover.NodeID, typ uint16
 		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), IncreaseStakingEvent, string(event), "increaseStaking")
 		return nil, nil
 	}
-
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -369,7 +350,6 @@ func (stkc *stakingContract) withdrewCandidate(nodeId discover.NodeID) ([]byte, 
 
 	log.Info("Call withdrewCandidate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
-
 
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
@@ -441,7 +421,6 @@ func (stkc *stakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	log.Info("Call delegate of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "delAddr", from.Hex(), "nodeId", nodeId.String())
-
 
 	if amount.Cmp(common.Big0) <= 0 {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
@@ -536,7 +515,6 @@ func (stkc *stakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		return nil, nil
 	}
 
-
 	del, err := stkc.plugin.GetDelegateInfo(blockHash, from, nodeId, stakingBlockNum)
 	if nil != err {
 		log.Error("Failed to withdrewDelegate by GetDelegateInfo",
@@ -564,7 +542,6 @@ func (stkc *stakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		}
 	}
 
-
 	res := xcom.Result{true, "", ""}
 	event, _ := json.Marshal(res)
 	stkc.goodLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewDelegateEvent, string(event), "withdrewDelegate")
@@ -587,7 +564,6 @@ func (stkc *stakingContract) getVerifierList() ([]byte, error) {
 }
 
 func (stkc *stakingContract) getValidatorList() ([]byte, error) {
-
 
 	arr, err := stkc.plugin.GetValidatorList(common.ZeroHash, common.Big0.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
 	if nil != err {
@@ -651,7 +627,7 @@ func (stkc *stakingContract) getDelegateInfo(stakingBlockNum uint64, addr common
 	return data, nil
 }
 
-func (stkc *stakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, error){
+func (stkc *stakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, error) {
 
 	addr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {

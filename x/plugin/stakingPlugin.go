@@ -39,10 +39,8 @@ var (
 )
 
 const (
-	FreeOrigin, increase     = 0, uint8(0)
-	LockRepoOrigin, decrease = 1, uint8(1)
-
-	//invalided = uint8(2)
+	FreeOrigin     = 0
+	LockRepoOrigin = 1
 
 	PriviosRound = uint(0)
 	CurrentRound = uint(1)
@@ -157,8 +155,12 @@ func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.H
 
 	} else if typ == LockRepoOrigin { //  from account lockRepo von
 
-		// TODO call RestrictingPlugin
-
+		flag, err := RestrictingPtr.PledgeLockFunds(can.StakingAddress, amount, state)
+		if nil != err {
+			log.Error("Failed to CreateCandidate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
+				"err", err)
+			return flag, err
+		}
 		can.LockRepoTmp = amount
 	}
 
@@ -221,7 +223,12 @@ func (sk *StakingPlugin) IncreaseStaking (state xcom.StateDB, blockHash common.H
 		can.ReleasedTmp = new(big.Int).Add(can.ReleasedTmp, amount)
 	} else {
 
-		// TODO call RestrictingPlugin
+		flag, err := RestrictingPtr.PledgeLockFunds(can.StakingAddress, amount, state)
+		if nil != err {
+			log.Error("Failed to EditorCandidate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
+				"err", err)
+			return flag, err
+		}
 
 		can.LockRepoTmp = new(big.Int).Add(can.LockRepoTmp, amount)
 	}
@@ -302,12 +309,20 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 		state.AddBalance(can.StakingAddress, can.ReleasedTmp)
 		state.SubBalance(vm.StakingContractAddr, can.ReleasedTmp)
 		can.Shares = new(big.Int).Sub(can.Shares, can.ReleasedTmp)
+		can.ReleasedTmp = common.Big0
 	}
 
 	if can.LockRepoTmp.Cmp(common.Big0) > 0 {
-		// TODO call RestrictingPlugin
+
+		flag, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, can.LockRepoTmp, state)
+		if nil != err {
+			log.Error("Failed to WithdrewCandidate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
+				"err", err)
+			return flag, err
+		}
 
 		can.Shares = new(big.Int).Sub(can.Shares, can.LockRepoTmp)
+		can.LockRepoTmp = common.Big0
 	}
 
 	if can.Released.Cmp(common.Big0) > 0 || can.LockRepo.Cmp(common.Big0) > 0 {
@@ -351,7 +366,7 @@ func (sk *StakingPlugin) HandleUnCandidateReq(state xcom.StateDB, blockHash comm
 		}
 
 		if nil == can {
-			// todo This should not be nil
+			// This should not be nil
 			continue
 		}
 
@@ -393,8 +408,12 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 	}
 
 	if can.LockRepo.Cmp(common.Big0) > 0 {
-		// TODO call RestrictingPlugin
-
+		flag, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, can.LockRepo, state)
+		if nil != err {
+			log.Error("Failed to HandleUnCandidateReq on stakingPlugin: call Restricting ReturnLockFunds() is failed",
+				"err", err)
+			return flag, err
+		}
 	}
 
 	// delete can info
@@ -836,7 +855,8 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	}
 
 	if len(queue) == 0 {
-		return true, fmt.Errorf("Failed to ElectNextVerifierList: Select zero validators~")
+		panic(fmt.Errorf("Failed to ElectNextVerifierList: Select zero validators~"))
+		//return true, fmt.Errorf("Failed to ElectNextVerifierList: Select zero validators~")
 	}
 
 	new_verifierArr.Arr = queue
@@ -938,7 +958,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 	switch flag {
 	case PriviosRound:
 		if !isCommit {
-			arr, err := sk.db.GetPreviousValidatorListByBlockHash(blockHash)
+			arr, err := sk.db.GetPreValidatorListByBlockHash(blockHash)
 			if nil != err {
 				return nil, err
 			}
@@ -950,7 +970,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			validatorArr = arr
 
 		}else {
-			arr, err := sk.db.GetPreviousValidatorListByIrr()
+			arr, err := sk.db.GetPreValidatorListByIrr()
 			if nil != err {
 				return nil, err
 			}
@@ -1128,7 +1148,8 @@ func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.Node
 	return true, nil
 }
 
-func (sk *StakingPlugin) GetRelatedListByDelAddr (blockHash common.Hash, addr common.Address, isCommit bool) (xcom.DelRelatedQueue, error) {
+func (sk *StakingPlugin) GetRelatedListByDelAddr (blockHash common.Hash, addr common.Address,
+	isCommit bool) (xcom.DelRelatedQueue, error) {
 
 	var iter iterator.Iterator
 
@@ -1188,29 +1209,40 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 
 func (sk *StakingPlugin) Switch(blockHash common.Hash, blockNumber uint64) (bool, error) {
 
-	//current, err := sk.db.GetCurrentValidatorListByBlockHash(blockHash)
-	//if nil != err {
-	//	log.Error("Failed to Switch: Query Current round validator arr is failed", "blockNumber", blockNumber, "blockHash", blockHash)
-	//	return false, err
-	//}
-	//
-	//if blockNumber != current.End {
-	//	log.Error("Failed to Switch: this blockNumber invalid", "Current Round End blockNumber",
-	//		current.End, "Current blockNumber", blockNumber)
-	//	return true, fmt.Errorf("The BlockNumber invalid, Current Round End blockNumber: %d, Current blockNumber: %d",
-	//		current.End, blockNumber)
-	//}
-	//
-	//next, err := sk.db.GetNextValidatorListByBlockHash(blockHash)
-	//if nil != err {
-	//	log.Error("Failed to Switch: Query Next round validator arr is failed", "blockNumber", blockNumber, "blockHash", blockHash)
-	//	return false, err
-	//}
-	//
-	//sk.db.
+	current, err := sk.db.GetCurrentValidatorListByBlockHash(blockHash)
+	if nil != err {
+		log.Error("Failed to Switch: Query Current round validator arr is failed",
+			"blockNumber", blockNumber, "blockHash", blockHash)
+		return false, err
+	}
 
+	if blockNumber != current.End {
+		log.Error("Failed to Switch: this blockNumber invalid", "Current Round End blockNumber",
+			current.End, "Current blockNumber", blockNumber)
+		return true, fmt.Errorf("The BlockNumber invalid, Current Round End blockNumber: " +
+			"%d, Current blockNumber: %d", current.End, blockNumber)
+	}
 
-	// TODO event to P2P
+	next, err := sk.db.GetNextValidatorListByBlockHash(blockHash)
+	if nil != err {
+		log.Error("Failed to Switch: Query Next round validator arr is failed", "blockNumber",
+			blockNumber, "blockHash", blockHash)
+		return false, err
+	}
+
+	if len(next.Arr) == 0 {
+		panic(fmt.Errorf("Failed to Switch: next round validators is empty~"))
+	}
+
+	if err := sk.db.SetPreValidatorList(blockHash, current); nil != err {
+		// TODO log.Error("// todo")
+		return false, err
+	}
+
+	if err := sk.db.SetCurrentValidatorList(blockHash, current); nil != err {
+		// TODO log.Error("// todo")
+		return false, err
+	}
 
 	return true, nil
 }

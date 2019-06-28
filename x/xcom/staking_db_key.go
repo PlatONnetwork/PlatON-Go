@@ -70,8 +70,6 @@ var (
 
 
 
-//////// TODO
-
 func CandidateKeyByNodeId(nodeId discover.NodeID) ([]byte, error) {
 
 	if pk, err := nodeId.Pubkey(); nil != err {
@@ -96,12 +94,14 @@ func CandidateKeyBySuffix (addr []byte) []byte {
 }
 
 // TODO  need to add ProcessVersion
-func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex  uint32) []byte {
+func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, processVersion uint32) []byte {
+	version := common.Uint32ToBytes(processVersion)
 	priority := new(big.Int).Sub(math.MaxBig256, shares)
 	prio := priority.String()
 	num := common.Uint64ToBytes(stakeBlockNum)
 	txIndex := common.Uint32ToBytes(stakeTxIndex)
-	return append(CanPowerKeyPrefix, append([]byte(prio), append(num, txIndex...)...)...)
+	return append(version, append(CanPowerKeyPrefix, append([]byte(prio),
+		append(num, txIndex...)...)...)...)
 }
 
 
@@ -117,7 +117,8 @@ func GetUnStakeItemKey (epoch, index uint64) []byte {
 
 
 func GetDelegateKey(delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) []byte {
-	return append(DelegateKeyPrefix, append(delAddr.Bytes(), append(nodeId.Bytes(), common.Uint64ToBytes(stakeBlockNumber)...)...)...)
+	return append(DelegateKeyPrefix, append(delAddr.Bytes(), append(nodeId.Bytes(),
+		common.Uint64ToBytes(stakeBlockNumber)...)...)...)
 }
 
 func GetDelegateKeyBySuffix(suffix []byte) []byte {
