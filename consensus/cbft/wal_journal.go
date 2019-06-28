@@ -38,6 +38,7 @@ var crc32c = crc32.MakeTable(crc32.Castagnoli)
 var (
 	errNoActiveJournal = errors.New("no active journal")
 	errOpenNewJournal  = errors.New("Failed to open new journal file")
+	errWriteJournal    = errors.New("Failed to write journal")
 	errLoadJournal     = errors.New("Failed to load journal")
 )
 
@@ -181,12 +182,16 @@ func (journal *journal) Insert(msg *JournalMessage, sync bool) error {
 	}
 
 	n := 0
-	if n, err = journal.writer.Write(buf); (err != nil || n <= 0) {
-		return err
+	if n, err = journal.writer.Write(buf); err != nil || n <= 0 {
+		log.Error("Write data error", "err", err)
+		panic(errWriteJournal)
 	}
 	if sync {
 		// Forced to flush
-		journal.writer.Flush()
+		if err = journal.writer.Flush(); err != nil {
+			log.Error("Flush data error", "err", err)
+			panic(err)
+		}
 	}
 
 	log.Trace("Successful to insert journal message", "n", n)
@@ -243,7 +248,7 @@ func (journal *journal) rotate(journalLimitSize uint64) error {
 		// open another new journal file
 		newFileID, newWriter, err := journal.newJournalFile(journal.fileID + 1)
 		if err != nil {
-			return err
+			panic(err)
 		}
 		// update field fileID and writer
 		journal.fileID = newFileID
@@ -290,19 +295,27 @@ func (journal *journal) ExpireJournalFile(fileID uint32) error {
 	return nil
 }
 
-func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, add func(info *MsgInfo)) (err error) {
+func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, add func(info *MsgInfo)) error {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
 	if files := listJournalFiles(journal.path); files != nil && files.Len() > 0 {
 		log.Debug("begin to load journal", "fromFileID", fromFileID, "fromSeq", fromSeq)
-		for _, file := range files {
+
+		err, successBytes, totalBytes := error(nil), int64(0), int64(0)
+
+		for index, file := range files {
 			if file.num == fromFileID {
-				err = journal.loadJournal(file.num, fromSeq, add)
+				err, successBytes, totalBytes = journal.loadJournal(file.num, fromSeq, add)
 			} else if file.num > fromFileID {
-				err = journal.loadJournal(file.num, 0, add)
+				err, successBytes, totalBytes = journal.loadJournal(file.num, 0, add)
 			}
 			if err != nil {
+				if err == errLoadJournal && index == files.Len()-1 && successBytes+writeBufferLimitSize > totalBytes {
+					log.Warn("ignore this load journal error, ")
+					journal.rotate(0)
+					break
+				}
 				return err
 			}
 		}
@@ -313,16 +326,22 @@ func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, add func(
 	return nil
 }
 
-func (journal *journal) loadJournal(fileID uint32, seq uint64, add func(info *MsgInfo)) error {
+func (journal *journal) loadJournal(fileID uint32, seq uint64, add func(info *MsgInfo)) (error, int64, int64) {
 	file, err := os.Open(filepath.Join(journal.path, fmt.Sprintf("wal.%d", fileID)))
 	if err != nil {
-		return err
+		return err, 0, 0
+	}
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return err, 0, 0
 	}
 	defer file.Close()
 
+	successBytes, totalBytes := int64(0), fileInfo.Size()
 	bufReader := bufio.NewReaderSize(file, readBufferLimitSize)
 	if seq > 0 {
 		bufReader.Discard(int(seq))
+		successBytes = successBytes + int64(seq)
 	}
 
 	for {
@@ -342,23 +361,25 @@ func (journal *journal) loadJournal(fileID uint32, seq uint64, add func(info *Ms
 		}
 
 		if 0 == readNum {
+			log.Debug("load journal complete", "fileID", fileID, "fileSeq", seq, "successBytes", successBytes)
 			break
 		}
 
 		// check crc
 		_crc := crc32.Checksum(pack[10:], crc32c)
 		if crc != _crc {
-			log.Error("crc is invalid", "crc", crc, "_crc", _crc)
-			//return errLoadJournal
+			log.Error("crc is invalid", "crc", crc, "_crc", _crc, "msgType", msgType)
+			return errLoadJournal, successBytes, totalBytes
 		}
 
 		// decode journal message
 		if msgInfo, err := WALDecode(pack[10:], msgType); err == nil {
 			add(msgInfo)
+			successBytes = successBytes + int64(totalNum)
 		} else {
 			log.Error("Failed to decode journal msg", "err", err)
-			return errLoadJournal
+			return errLoadJournal, successBytes, totalBytes
 		}
 	}
-	return nil
+	return nil, successBytes, totalBytes
 }

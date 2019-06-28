@@ -2,9 +2,10 @@ package cbft
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"sync"
 )
 
 type ProducerBlocks struct {
@@ -93,4 +94,10 @@ func (pb *ProducerBlocks) Len() int {
 	defer pb.lock.Unlock()
 
 	return len(pb.blocks)
+}
+
+func (pb *ProducerBlocks) Limited(cbft *Cbft) bool {
+	curProduce := pb.MaxSequenceBlockNum() - pb.baseBlockNum
+	limit := uint64(cbft.config.Duration) / cbft.config.Period
+	return curProduce > limit
 }

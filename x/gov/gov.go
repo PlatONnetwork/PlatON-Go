@@ -8,7 +8,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"go/types"
 	"math/big"
 	"sync"
 )
@@ -53,7 +52,7 @@ func (gov *Gov) BeginBlock(blockHash common.Hash, state xcom.StateDB) (bool, err
 	//是否当前结算的结束
 	if plugin.StakingInstance.isEndofSettleCycle(state) {
 		curVerifierList := plugin.StakingInstance(nil).GetVerifierList(state)
-		votingProposalIDs := gov.govDB.listVotingProposal(blockHash, state)
+		votingProposalIDs := gov.govDB.getVotingProposalIdList(blockHash, state)
 		for _, votingProposalID := range votingProposalIDs {
 			ok := gov.govDB.addVerifiers(blockHash, votingProposalID, curVerifierList)
 			if !ok {
@@ -76,7 +75,7 @@ func inNodeList(proposer discover.NodeID, vList []discover.NodeID) bool {
 
 func (gov *Gov) EndBlock(blockHash common.Hash, state xcom.StateDB, curBlockNum *big.Int) (bool, error) {
 
-	votingProposalIDs := gov.govDB.listVotingProposal(blockHash, state)
+	votingProposalIDs := gov.govDB.getVotingProposalIdList(blockHash, state)
 	for _, votingProposalID := range votingProposalIDs {
 		votingProposal, err := gov.govDB.getProposal(votingProposalID, state)
 		if nil != err {
@@ -111,7 +110,7 @@ func (gov *Gov) EndBlock(blockHash common.Hash, state xcom.StateDB, curBlockNum 
 			}
 		}
 	}
-	preActiveProposalID := gov.govDB.getPreActiveProposalID(blockHash, state)
+	preActiveProposalID := gov.govDB.getPreActiveProposalId(blockHash, state)
 	proposal, err := gov.govDB.getProposal(preActiveProposalID, state)
 	if err != nil {
 		msg := fmt.Sprintf("[GOV] EndBlock(): Unable to get proposal: %s", preActiveProposalID)
@@ -126,7 +125,7 @@ func (gov *Gov) EndBlock(blockHash common.Hash, state xcom.StateDB, curBlockNum 
 		//TODO
 		curValidatorList := plugin.StakingInstance(nil).GetValidatorList(state)
 		var updatedNodes uint8 = 0
-		declareList := gov.govDB.getDeclareNodes(preActiveProposalID, state)
+		declareList := gov.govDB.getDeclaredNodeList(preActiveProposalID, state)
 		for val := range curValidatorList {
 			if inNodeList(val, declareList) {
 				updatedNodes++
@@ -188,7 +187,7 @@ func (gov *Gov) Submit(curBlockNum *big.Int, from common.Address, proposal Propo
 	_, ok := proposal.(VersionProposal)
 	if ok {
 		//判断是否有VersionProposal正在投票中，有则退出
-		votingProposalIDs := gov.govDB.listVotingProposal(blockHash, state)
+		votingProposalIDs := gov.govDB.getVotingProposalIdList(blockHash, state)
 		for _, votingProposalID := range votingProposalIDs {
 			votingProposal, err := gov.govDB.getProposal(votingProposalID, state)
 			if err != nil {
@@ -203,7 +202,7 @@ func (gov *Gov) Submit(curBlockNum *big.Int, from common.Address, proposal Propo
 			}
 		}
 		//判断是否有VersionProposal正在Pre-active阶段，有则退出
-		if len(gov.govDB.getPreActiveProposalID(blockHash, state)) > 0 {
+		if len(gov.govDB.getPreActiveProposalId(blockHash, state)) > 0 {
 			var err error = errors.New("[GOV] Submit(): existing a pre-active version proposal.")
 			return false, err
 		}
@@ -270,7 +269,7 @@ func (gov *Gov) Vote(from common.Address, vote Vote, blockHash common.Hash, stat
 		}
 		return false
 	}
-	votingProposalIDs := gov.govDB.listVotingProposal(blockHash, state)
+	votingProposalIDs := gov.govDB.getVotingProposalIdList(blockHash, state)
 	if !isVoting(vote.ProposalID, votingProposalIDs) {
 		var err error = errors.New("[GOV] Vote(): vote.proposalID is not in voting.")
 		return false, err
@@ -281,11 +280,11 @@ func (gov *Gov) Vote(from common.Address, vote Vote, blockHash common.Hash, stat
 		var err error = errors.New("[GOV] Vote(): Set vote failed.")
 		return false, err
 	}
-	if !gov.govDB.addActiveNode(&vote.VoteNodeID, state) {
+	if !gov.govDB.addDeclaredNode(&vote.VoteNodeID, state) {
 		var err error = errors.New("[GOV] Vote(): Add activeNode failed.")
 		return false, err
 	}
-	if !gov.govDB.addVotedVerifier(vote.ProposalID, &vote.VoteNodeID, state) {
+	if !gov.govDB.addVerifiers(vote.ProposalID, &vote.VoteNodeID, state) {
 		var err error = errors.New("[GOV] Vote(): Add VotedVerifier failed.")
 		return false, err
 	}
@@ -314,7 +313,7 @@ func (gov *Gov) DeclareVersion(from common.Address, declaredNodeID *discover.Nod
 		//TODO 通知staking
 	}
 
-	votingProposalIDs := gov.govDB.listVotingProposal(blockHash, state)
+	votingProposalIDs := gov.govDB.getVotingProposalIdList(blockHash, state)
 
 	for _, votingProposalID := range votingProposalIDs {
 		votingProposal, err := gov.govDB.getProposal(votingProposalID, state)
@@ -332,7 +331,7 @@ func (gov *Gov) DeclareVersion(from common.Address, declaredNodeID *discover.Nod
 			if getLargeVersion(versionProposal.GetNewVersion()) == getLargeVersion(version) {
 				proposer := versionProposal.GetProposer()
 				//存入AddActiveNode，等预生效再通知Staking
-				if !gov.govDB.addDeclaredNode(blockHash,votingProposalID, proposer) {
+				if !gov.govDB.addDeclaredNode(blockHash, votingProposalID, proposer) {
 					var err error = errors.New("[GOV] DeclareVersion(): add active node failed.")
 					return false, err
 				}
@@ -380,8 +379,8 @@ func (gov *Gov) ListProposal(blockHash common.Hash, state xcom.StateDB) []*Propo
 
 func (gov *Gov) tally(proposalID common.Hash, blockHash common.Hash, state *xcom.StateDB) (bool, ProposalStatus) {
 
-	accuVerifiersCnt := uint16(gov.govDB.getVerifiersLength(proposalID,state))
-	voteCnt := uint16(len(gov.govDB.listVote(proposalID, state)))
+	accuVerifiersCnt := uint16(gov.govDB.getVerifiersLength(proposalID, state))
+	voteCnt := uint16(len(gov.govDB.getProposalVoteList(proposalID, state)))
 
 	status := Voting
 	supportRate := voteCnt / accuVerifiersCnt

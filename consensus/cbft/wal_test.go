@@ -198,5 +198,4 @@ func TestEmptyWal(t *testing.T) {
 
 	}))
 	assert.Nil(t, wal.UpdateViewChange(nil))
-	assert.Nil(t, wal.UpdateViewChange(nil))
 }
