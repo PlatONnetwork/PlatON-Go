@@ -262,15 +262,13 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 			}
 			if s.current.LastHash == common.ZeroHash {
 				return hashLocationUnRecognized, true
-			} else {
-				if s.current.LastHash != lastParenthash {
-					return 0, false
-				}
+			}
+			if s.current.LastHash != lastParenthash {
+				return 0, false
 			}
 			return hashLocationUnRecognized, true
-		} else {
-			return 0, false
 		}
+		return 0, false
 	}
 	{
 		// find from recognized
@@ -295,10 +293,9 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 			}
 			if s.current.LastHash == common.ZeroHash {
 				return hashLocationRecognized, true
-			} else {
-				if s.current.LastHash != lastParenthash {
-					return 0, false
-				}
+			}
+			if s.current.LastHash != lastParenthash {
+				return 0, false
 			}
 			return hashLocationRecognized, true
 		}
