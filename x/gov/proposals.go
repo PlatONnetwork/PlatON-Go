@@ -80,7 +80,7 @@ type Proposal interface {
 	SetTallyResult(tallyResult TallyResult)
 	GetTallyResult() TallyResult
 
-	Verify(curBlockNum *big.Int, state xcom.StateDB) bool
+	Verify(curBlockNum *big.Int, state xcom.StateDB) (bool, error)
 
 	String() string
 }
@@ -178,9 +178,9 @@ func (tp TextProposal) GetTallyResult() TallyResult {
 	return tp.Result
 }
 
-func (tp TextProposal) Verify(curBlockNum *big.Int, state xcom.StateDB) bool {
+func (tp TextProposal) Verify(curBlockNum *big.Int, state xcom.StateDB) (bool, error) {
 
-	return true
+	return true, nil
 }
 
 func (tp TextProposal) String() string {
