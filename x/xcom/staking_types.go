@@ -127,10 +127,12 @@ type Validator struct {
 	// The weight
 	// NOTE:
 	// converted from the weight of Candidate is: (Int.Max - candidate.shares) + blocknum + txindex
-	StakingWeight string
+	StakingWeight [4]string
 	// Validator's term in the consensus round
 	ValidatorTerm uint32
 }
+
+type ValidatorQueue = []*Validator
 
 // some consensus round validators or current epoch validators
 type Validator_array struct {
@@ -141,7 +143,7 @@ type Validator_array struct {
 	// the round end blockNumber or epoch blockNumber
 	End uint64
 	// the round validators or epoch validators
-	Arr []*Validator
+	Arr ValidatorQueue
 }
 
 type ValidatorEx struct {
