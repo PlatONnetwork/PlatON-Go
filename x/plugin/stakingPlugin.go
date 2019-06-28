@@ -935,7 +935,6 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 }
 
 
-
 func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, nodeId discover.NodeID, isCommit bool) (bool, error) {
 
 	var verifierList *xcom.Validator_array
@@ -962,6 +961,20 @@ func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, nodeId discover.N
 		}
 	}
 	return flag, nil
+}
+
+
+func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
+	var verifierNodeIDList []discover.NodeID
+
+	candidateQueue, err := sk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
+	if nil != err{
+		return nil, err
+	}
+	for _, candidate := range candidateQueue{
+		verifierNodeIDList = append(verifierNodeIDList, candidate.NodeId)
+	}
+	return verifierNodeIDList, nil
 }
 
 // flag:NOTE
