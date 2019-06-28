@@ -76,11 +76,6 @@ func (brc *BlockChainReactor) loop() {
 				continue
 			}
 
-			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
-				log.Error("snapshotdb Commit failed", "err", err)
-				continue
-			}
-
 			/**
 			TODO flush the seed and the package ratio
 			*/
@@ -99,6 +94,10 @@ func (brc *BlockChainReactor) loop() {
 				}
 			}
 
+			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
+				log.Error("snapshotdb Commit failed", "err", err)
+				continue
+			}
 		}
 	}
 
