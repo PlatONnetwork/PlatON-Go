@@ -152,7 +152,7 @@ func TestSnapshotDB_Get(t *testing.T) {
 		})
 	})
 
-	t.Run("commited", func(t *testing.T) {
+	t.Run("committed", func(t *testing.T) {
 		t.Run("must find all in the chain", func(t *testing.T) {
 			for _, a := range arr[0:1] {
 				for _, kv := range a {
