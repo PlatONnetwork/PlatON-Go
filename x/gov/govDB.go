@@ -2,6 +2,7 @@ package gov
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -288,6 +289,16 @@ func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Has
 		return false
 	}
 	return true
+}
+
+// 增加已投票验证人记录
+func (self *GovDB) ListVotedVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error){
+	verifierList, err := self.snapdb.getVotedVerifierList(blockHash, proposalID)
+	if  err != nil {
+		log.Error("add voted node to snapshot db error,", err)
+		return nil, errors.New("list voted verifier error!")
+	}
+	return verifierList, nil
 }
 
 // 获取升级提案投票期间版本升声明的节点列表
