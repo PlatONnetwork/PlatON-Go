@@ -175,7 +175,8 @@ func (govPlugin *GovPlugin) Submit(curBlockNum *big.Int, from common.Address, pr
 	}*/
 
 	//参数校验
-	if !proposal.Verify(curBlockNum, state) {
+	success, err := proposal.Verify(curBlockNum, state)
+	if !success || err != nil {
 		var err error = errors.New("[GOV] Submit(): param error.")
 		return false, err
 	}
