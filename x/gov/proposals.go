@@ -216,10 +216,10 @@ func (vp VersionProposal) GetActiveBlock() *big.Int {
 }
 
 func (vp VersionProposal) Verify(curBlockNum *big.Int, state xcom.StateDB) (bool, error) {
-	if len(vp.ProposalID) == 0 || nil != gov.govDB.GetProposal(vp.ProposalID, state) {
+	/*if len(vp.ProposalID) == 0 || nil != gov.govDB.GetProposal(vp.ProposalID, state) {
 		var err error = errors.New("[GOV] Verify(): ProposalID is empty or ProposalID already used.")
 		return false, err
-	}
+	}*/
 	if len(vp.Proposer) == 0 {
 		var err error = errors.New("[GOV] Verify(): Proposer is empty.")
 		return false, err
@@ -236,28 +236,29 @@ func (vp VersionProposal) Verify(curBlockNum *big.Int, state xcom.StateDB) (bool
 		var err error = errors.New("[GOV] Verify(): Description too long.")
 		return false, err
 	}
-	if len(vp.GithubID) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetGithubID() {
+	/*if len(vp.GithubID) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetGithubID() {
 		var err error = errors.New("[GOV] Verify(): GithubID empty or duplicated.")
 		return false, err
 	}
 	if len(vp.Url) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetUrl() {
 		var err error = errors.New("[GOV] Verify(): Github URL empty or duplicated.")
 		return false, err
-	}
+	}*/
 	//TODO
-	if vp.EndVotingBlock == big.NewInt(0) || vp.EndVotingBlock.Cmp(curBlockNum.Add(curBlockNum, twoWeek)) > 0 {
+	/*if vp.EndVotingBlock == big.NewInt(0) || vp.EndVotingBlock.Cmp(curBlockNum.Add(curBlockNum, twoWeek)) > 0 {
 		var err error = errors.New("[GOV] Verify(): Github URL empty or duplicated.")
 		return false, err
-	}
-	if vp.NewVersion>>8 <= uint(gov.govDB.GetActiveVersion(state))>>8 {
+	}*/
+
+	/*if vp.NewVersion>>8 <= uint(gov.govDB.GetActiveVersion(state))>>8 {
 		var err error = errors.New("[GOV] Verify(): NewVersion should larger than current version.")
 		return false, err
-	}
+	}*/
 	//TODO
-	if vp.ActiveBlock == big.NewInt(0) || vp.ActiveBlock.Cmp(fourRoundConsensus) <= 4 || vp.ActiveBlock.Cmp(fourRoundConsensus) >= 10 {
+	/*if vp.ActiveBlock == big.NewInt(0) || vp.ActiveBlock.Cmp(fourRoundConsensus) <= 4 || vp.ActiveBlock.Cmp(fourRoundConsensus) >= 10 {
 		var err error = errors.New("[GOV] Verify(): invalid ActiveBlock.")
 		return false, err
-	}
+	}*/
 
 	return true, nil
 }
