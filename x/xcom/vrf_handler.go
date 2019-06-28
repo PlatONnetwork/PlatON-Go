@@ -103,10 +103,6 @@ func (vh *vrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 		log.Error("Storage previous nonce failed", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "hash", hex.EncodeToString(hash.Bytes()), "key", string(nonceStorageKey), "valueLength", len(nonces), "nonce", hex.EncodeToString(nonce), "err", err)
 		return err
 	} else {
-		if err := vh.db.NewBlock(currentBlockNumber, parentHash, hash); nil != err {
-			log.Error("Storage previous nonce failed", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "key", string(nonceStorageKey), "valueLength", len(nonces), "nonce", hex.EncodeToString(nonce), "err", err)
-			return err
-		}
 		vh.db.Put(hash, nonceStorageKey, enValue)
 		log.Info("Storage previous nonce Success", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "hash", hex.EncodeToString(hash.Bytes()), "valueLength", len(nonces), "EpochValidatorNum", EpochValidatorNum, "nonce", hex.EncodeToString(nonce), "firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
 	}

@@ -11,6 +11,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/go-errors/errors"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/util"
+	"math/big"
 )
 
 const (
@@ -58,32 +61,36 @@ func (sp *slashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 
 func (sp *slashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
 	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
-	if header.Number.Uint64() % (xcom.ConsensusSize - xcom.ElectionDistance) == 0 {
+	if (header.Number.Uint64() % (xcom.ConsensusSize - xcom.ElectionDistance) == 0) && header.Number.Uint64() > xcom.ConsensusSize {
 		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "consensusSize", xcom.ConsensusSize, "electionDistance", xcom.ElectionDistance)
-		it := sp.db.Ranking(blockHash, curAbnormalPrefix, 0)
-		for end := true; end; end = it.Next() {
-			key := it.Key()
-			value := it.Value()
-			var amount uint16
-			if err := rlp.DecodeBytes(value, amount); nil != err {
-				log.Error("slashingPlugin rlp block amount fail", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "value", value, "err", err)
-				return false, err
-			}
-			// Start to punish nodes with abnormal block rate
-			log.Debug("slashingPlugin node block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "key", hex.EncodeToString(key), "value", amount)
-			if uint64(amount) < (xcom.ConsensusSize / xcom.ConsValidatorNum) {
-				key = key[len(curAbnormalPrefix):]
-				nodeId, err := discover.BytesID(key)
-				if nil != err {
-					return false, err
+		err := sp.db.WalkBaseDB(util.BytesPrefix(preAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
+			for iter.Next() {
+				key := iter.Key()
+				value := iter.Value()
+				var amount uint16
+				if err := rlp.DecodeBytes(value, &amount); nil != err {
+					log.Error("slashingPlugin rlp block amount fail", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "value", value, "err", err)
+					return err
 				}
-				log.Debug("Slashing anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()))
-				if amount <= blockAmountLow && amount > blockAmountHigh {
+				// Start to punish nodes with abnormal block rate
+				log.Debug("slashingPlugin node block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "key", hex.EncodeToString(key), "value", amount)
+				if isAbnormal(amount) {
+					nodeId, err := getNodeId(preAbnormalPrefix, key)
+					if nil != err {
+						return err
+					}
+					log.Debug("Slashing anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()))
+					if amount <= blockAmountLow && amount > blockAmountHigh {
 
-				} else if amount <= blockAmountHigh {
+					} else if amount <= blockAmountHigh {
 
+					}
 				}
 			}
+			return nil
+		})
+		if nil != err {
+			return false, err
 		}
 	}
 	return true, nil
@@ -92,8 +99,9 @@ func (sp *slashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 func (sp *slashingPlugin) Confirmed(block *types.Block) error {
 	// If it is the first block in each round, switch the number of blocks in the upper and lower rounds.
 	log.Debug("slashingPlugin Confirmed", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "consensusSize", xcom.ConsensusSize)
-	if (block.NumberU64() % xcom.ConsensusSize == 1) && block.NumberU64() / xcom.ConsensusSize >= 2 {
+	if (block.NumberU64() % xcom.ConsensusSize == 1) && block.NumberU64() > 1 {
 		if err := sp.switchEpoch(block.Hash()); nil != err {
+			log.Error("slashingPlugin switchEpoch fail", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
 			return err
 		}
 	}
@@ -106,7 +114,7 @@ func (sp *slashingPlugin) Confirmed(block *types.Block) error {
 
 func (sp *slashingPlugin) getBlockAmount(blockHash common.Hash, header *types.Header) (uint16, error) {
 	log.Debug("slashingPlugin getBlockAmount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()))
-	nodeId, err := getNodeId(header)
+	nodeId, err := parseNodeId(header)
 	if nil != err {
 		return 0, err
 	}
@@ -127,7 +135,7 @@ func (sp *slashingPlugin) getBlockAmount(blockHash common.Hash, header *types.He
 
 func (sp *slashingPlugin) setBlockAmount(blockHash common.Hash, header *types.Header) error {
 	log.Debug("slashingPlugin setBlockAmount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()))
-	nodeId, err := getNodeId(header)
+	nodeId, err := parseNodeId(header)
 	if nil != err {
 		return err
 	}
@@ -149,29 +157,67 @@ func (sp *slashingPlugin) setBlockAmount(blockHash common.Hash, header *types.He
 
 func (sp *slashingPlugin) switchEpoch(blockHash common.Hash) error {
 	log.Debug("slashingPlugin switchEpoch", "blockHash", hex.EncodeToString(blockHash.Bytes()))
-	it := sp.db.Ranking(blockHash, preAbnormalPrefix, 0)
 	preCount := 0
-	for it.Next() {
-		if err := sp.db.DelBaseDB(it.Key()); nil != err {
-			return err
+	err := sp.db.WalkBaseDB(util.BytesPrefix(preAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
+		for iter.Next() {
+			if err := sp.db.DelBaseDB(iter.Key()); nil != err {
+				return err
+			}
+			preCount++
 		}
-		preCount++
+		return nil
+	})
+	if nil != err {
+		return err
 	}
 	curCount := 0
-	it = sp.db.Ranking(blockHash, curAbnormalPrefix, 0)
-	for it.Next() {
-		key := it.Key()
-		if err := sp.db.DelBaseDB(key); nil != err {
-			return err
+	err = sp.db.WalkBaseDB(util.BytesPrefix(curAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
+		for iter.Next() {
+			key := iter.Key()
+			if err := sp.db.DelBaseDB(key); nil != err {
+				return err
+			}
+			key = preKey(key[len(curAbnormalPrefix):])
+			if err := sp.db.PutBaseDB(key, iter.Value()); nil != err {
+				return err
+			}
+			curCount++
 		}
-		key = preKey(key[len(curAbnormalPrefix):])
-		if err := sp.db.PutBaseDB(key, it.Value()); nil != err {
-			return err
-		}
-		curCount++
+		return nil
+	})
+	if nil != err {
+		return err
 	}
 	log.Info("slashingPlugin switchEpoch success", "blockHash", hex.EncodeToString(blockHash.Bytes()), "preCount", preCount, "curCount", curCount)
 	return nil
+}
+
+func (sp *slashingPlugin) GetPreEpochAnomalyNode() (map[discover.NodeID]uint16,error) {
+	result := make(map[discover.NodeID]uint16)
+	err := sp.db.WalkBaseDB(util.BytesPrefix(preAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
+		for iter.Next() {
+			key := iter.Key()
+			value := iter.Value()
+			var amount uint16
+			if err := rlp.DecodeBytes(value, &amount); nil != err {
+				log.Error("slashingPlugin rlp block amount fail", "value", value, "err", err)
+				return err
+			}
+			log.Debug("slashingPlugin GetPreEpochAnomalyNode", "key", hex.EncodeToString(key), "value", amount)
+			if isAbnormal(amount) {
+				nodeId, err := getNodeId(preAbnormalPrefix, key)
+				if nil != err {
+					return err
+				}
+				result[nodeId] = amount
+			}
+		}
+		return nil
+	})
+	if nil != err {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (sp *slashingPlugin) Slash(mutiSignType uint8, evidence xcom.Evidence) error {
@@ -190,7 +236,23 @@ func preKey(key []byte) []byte {
 	return append(preAbnormalPrefix, key...)
 }
 
-func getNodeId(header *types.Header) (discover.NodeID, error) {
+func getNodeId(prefix []byte, key []byte) (discover.NodeID, error) {
+	key = key[len(prefix):]
+	nodeId, err := discover.BytesID(key)
+	if nil != err {
+		return discover.NodeID{}, err
+	}
+	return nodeId, nil
+}
+
+func isAbnormal(amount uint16) bool {
+	if uint64(amount) < (xcom.ConsensusSize / xcom.ConsValidatorNum) {
+		return true
+	}
+	return false
+}
+
+func parseNodeId(header *types.Header) (discover.NodeID, error) {
 	sign := header.Extra[32:97]
 	pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
 	if nil != err {

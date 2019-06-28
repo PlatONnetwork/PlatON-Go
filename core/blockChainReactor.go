@@ -139,6 +139,11 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		}
 	}
 
+	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
+		log.Error("Storage previous nonce failed", "blockNumber", header.Number.Uint64(), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
+		return false, err
+	}
+
 	for _, pluginName := range bcr.beginRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
 			if flag, err := plugin.BeginBlock(blockHash, header, state); nil != err {
@@ -159,6 +164,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	}
 	// Store the previous vrf random number
 	if err := xcom.GetVrfHandlerInstance().Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
+		log.Error("BlockChainReactor Storage proof failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "err", err)
 		return false, err
 	}
 
