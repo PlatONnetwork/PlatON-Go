@@ -34,6 +34,8 @@ var (
 	BlockNumberDisordered 	   = errors.New("The blockNumber is disordered")
 
 	VonAmountNotRight		   = errors.New("The amount of von is not right")
+
+	CandidateNotExist 		   = errors.New("The candidate is not exist")
 )
 
 const (
@@ -1322,19 +1324,243 @@ func (sk *StakingPlugin) Switch(blockHash common.Hash, blockNumber uint64) (bool
 	return true, nil
 }
 
-func (sk *StakingPlugin) GetAllPackageRatio() {
+func (sk *StakingPlugin) GetAllPackageRatio(blockHash common.Hash) (map[discover.NodeID]uint32, error) {
 
-}
-
-func (sk *StakingPlugin) GetPackageRatio() {
-
-}
-
-func (sk *StakingPlugin) SlashCandidates() {
-
+	return nil, nil
 }
 
 
+
+// nodeId is belonging to the previous round valitor
+func (sk *StakingPlugin) GetPackageRatio(blockHash common.Hash, nodeId discover.NodeID)  (uint32, error){
+
+
+	return 0, nil
+}
+
+
+func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64,
+	nodeId discover.NodeID, amount *big.Int, deleteCan bool) (bool, error) {
+
+	addr, _ := xutil.NodeId2Addr(nodeId)
+	can, err := sk.db.GetCandidateStore(blockHash, addr)
+	if nil != err {
+		return false, err
+	}
+
+	if nil != can {
+
+		log.Error("Call SlashCandidates: the can is empty", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "nodeId", nodeId.String())
+		return true, CandidateNotExist
+	}
+
+	epoch := xutil.CalculateEpoch(blockNumber)
+
+	lazyCalcStakeAmount(epoch, can)
+
+
+
+	aboutRelease := new(big.Int).Add(can.Released, can.ReleasedTmp)
+	aboutLockRepo := new(big.Int).Add(can.LockRepo, can.LockRepoTmp)
+	total := new(big.Int).Add(aboutRelease, aboutLockRepo)
+
+	if total.Cmp(amount) < 0 {
+		log.Error("Failed to SlashCandidates: the candidate total staking amount is not enough",
+			"candidate total amount", total, "slashing amount" , amount)
+		return true, fmt.Errorf("Failed to SlashCandidates: the candidate total staking amount is not enough"+
+			", candidate total amount:%s, slashing amount: %s", total , amount)
+	}
+
+
+	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
+		return false, err
+	}
+
+
+	remain := amount
+
+	slashFunc := func(remian, balance *big.Int, isNotify bool) (*big.Int, *big.Int, bool, error) {
+		if remain.Cmp(balance) >= 0 {
+			state.SubBalance(vm.StakingContractAddr, balance)
+			// TODO  to ReWard Account ?? state.AddBalance()
+
+			if isNotify {
+				flag, err := RestrictingPtr.SlashingNotify(can.StakingAddress, balance, state)
+				if nil != err {
+					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "flag", flag, "amount",
+						balance, "err", err)
+					return remian, balance, flag, err
+				}
+			}
+
+			balance = common.Big0; remain = new(big.Int).Sub(remain, balance)
+		}else {
+			state.SubBalance(vm.StakingContractAddr, remain)
+			// TODO  to ReWard Account ?? state.AddBalance()
+
+			if isNotify {
+				flag, err := RestrictingPtr.SlashingNotify(can.StakingAddress, remain, state)
+				if nil != err {
+					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "flag", flag, "amount",
+						remain, "err", err)
+					return remian, balance, flag, err
+				}
+			}
+			balance = new(big.Int).Sub(balance, remain); remain = common.Big0
+		}
+		return remian, balance, true, nil
+	}
+
+	if can.ReleasedTmp.Cmp(common.Big0) > 0 {
+
+		val, rval, flag, err := slashFunc(remain, can.ReleasedTmp, false)
+		if nil != err {
+			return flag, err
+		}
+		remain, can.ReleasedTmp = val, rval
+	}
+
+	if remain.Cmp(common.Big0) > 0 && can.LockRepoTmp.Cmp(common.Big0) > 0 {
+		val, rval, flag, err := slashFunc(remain, can.LockRepoTmp, true)
+		if nil != err {
+			return flag, err
+		}
+		remain, can.LockRepoTmp = val, rval
+	}
+
+	if remain.Cmp(common.Big0) > 0 && can.Released.Cmp(common.Big0) > 0 {
+		val, rval, flag, err := slashFunc(remain, can.Released, false)
+		if nil != err {
+			return flag, err
+		}
+		remain, can.Released = val, rval
+	}
+
+	if remain.Cmp(common.Big0) > 0 && can.LockRepo.Cmp(common.Big0) > 0 {
+		val, rval, flag, err := slashFunc(remain, can.LockRepo, true)
+		if nil != err {
+			return flag, err
+		}
+		remain, can.LockRepo = val, rval
+	}
+
+	if remain.Cmp(common.Big0) != 0 {
+		log.Error("Failed to SlashCandidates: the ramain is not zero", "remain", remain)
+		return true, fmt.Errorf("Failed to SlashCandidates: the ramain is not zero, remain:%s", remain)
+	}
+
+	remainRelease := new(big.Int).Add(can.Released, can.ReleasedTmp)
+	remainLockRepo := new(big.Int).Add(can.LockRepo, can.LockRepoTmp)
+	canRemain := new(big.Int).Add(remainRelease, remainLockRepo)
+
+
+
+	if !CheckStakeThreshold(canRemain) {
+		can.Status |= xcom.Slashed&xcom.NotEnough
+		deleteCan = true
+	}else {
+		can.Status |= xcom.Slashed
+	}
+
+
+	if !deleteCan {
+		sk.db.SetCanPowerStore(blockHash, addr, can)
+	}else {
+		validators, err := sk.db.GetVerifierListByBlockHash(blockHash)
+		if nil != err {
+			return false, err
+		}
+
+		for i, val := range validators.Arr {
+			if val.NodeId == nodeId {
+				validators.Arr = append(validators.Arr[:i], validators.Arr[i+1:]...)
+				break
+			}
+		}
+
+		if err := sk.db.SetVerfierList(blockHash, validators); nil != err {
+			return false, err
+		}
+	}
+
+	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
+		return false, err
+	}
+
+	return true, nil
+}
+
+
+func (sk *StakingPlugin) ProposalPassedNotify (blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID, processVersion unt32) (bool, error) {
+
+	log.Info("Call ProposalPassedNotify to promote candidate processVersion", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+		"version", processVersion, "nodeId num", len(nodeIds))
+	for _, nodeId := range nodeIds {
+
+
+		addr, _ := xutil.NodeId2Addr(nodeId)
+		can, err := sk.db.GetCandidateStore(blockHash, addr)
+		if nil != err {
+			return false, err
+		}
+
+		if nil != can {
+
+			log.Error("Call ProposalPassedNotify: Proremote candidate processVersion failed, the can is empty", "blockNumber", blockNumber,
+				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "version", processVersion)
+			continue
+		}
+
+		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
+			return false, err
+		}
+
+		can.ProcessVersion = processVersion
+
+		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
+			return false, err
+		}
+
+		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
+			return false, err
+		}
+	}
+
+	return true, nil
+}
+
+
+func (sk *StakingPlugin) DeclarePromoteNotify (blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, processVersion uint32) (bool, error) {
+	addr, _ := xutil.NodeId2Addr(nodeId)
+	can, err := sk.db.GetCandidateStore(blockHash, addr)
+	if nil != err {
+		return false, err
+	}
+
+	if nil != can {
+
+		log.Error("Call DeclarePromoteNotify: Proremote candidate processVersion failed, the can is empty", "blockNumber", blockNumber,
+			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "version", processVersion)
+		return false, nil
+	}
+
+	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
+		return false, err
+	}
+
+	can.ProcessVersion = processVersion
+
+	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
+		return false, err
+	}
+
+	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
+		return false, err
+	}
+
+	return true, nil
+}
 
 func lazyCalcStakeAmount(epoch uint64, can *xcom.Candidate) {
 
