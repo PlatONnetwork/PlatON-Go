@@ -18,6 +18,6 @@ const (
 
 func init() {
 	logger.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-	logger.Info("begin")
+	logger.Info("begin test")
 	dbpath = path.Join(os.TempDir(), DBPath)
 }
