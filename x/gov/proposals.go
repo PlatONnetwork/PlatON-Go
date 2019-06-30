@@ -37,7 +37,7 @@ const (
 type TallyResult struct {
 	ProposalID    common.Hash    `json:"proposalID"`
 	Yeas          uint16         `json:"yeas"`
-	Nays          uint64         `json:"nays"`
+	Nays          uint16         `json:"nays"`
 	Abstentions   uint16         `json:"abstentions"`
 	AccuVerifiers uint16         `json:"accuVerifiers"`
 	Status        ProposalStatus `json:"status"`
