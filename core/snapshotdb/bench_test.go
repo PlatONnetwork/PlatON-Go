@@ -112,12 +112,12 @@ func (p *dbBench) populate(n int) {
 func (p *dbBench) putsUnrecognized() {
 	b := p.b
 	db := p.db
-	hash1 := generateHash("a")
-	hash2 := generateHash("hash2")
+	recognizedHash := generateHash("recognizedHash")
+	parentHash := generateHash("parentHash")
 	num := big.NewInt(1)
 	b.ResetTimer()
 	b.StartTimer()
-	if err := p.db.NewBlock(num, hash1, common.ZeroHash); err != nil {
+	if err := p.db.NewBlock(num, parentHash, common.ZeroHash); err != nil {
 		b.Fatal(err)
 	}
 	for i := range p.unrecognizedkeys {
@@ -126,44 +126,42 @@ func (p *dbBench) putsUnrecognized() {
 			b.Fatal("put failed: ", err)
 		}
 	}
-	if err := db.Flush(hash2, num); err != nil {
+	if err := db.Flush(recognizedHash, num); err != nil {
 		b.Fatal("put failed: ", err)
 	}
-	if err := db.Commit(hash2); err != nil {
+	if err := db.Commit(recognizedHash); err != nil {
 		b.Fatal(err)
 	}
 	if err := db.Compaction(); err != nil {
 		b.Fatal(err)
 	}
 	b.StopTimer()
-	b.SetBytes(116)
 }
 
 func (p *dbBench) putsRecognized() {
 	b := p.b
 	db := p.db
-	hash2 := generateHash("hash2")
-	hash1 := generateHash("a")
+	recognizedHash := generateHash("recognizedHash")
+	parentHash := generateHash("parentHash")
 	num := big.NewInt(1)
 	b.ResetTimer()
 	b.StartTimer()
-	if err := p.db.NewBlock(num, hash1, hash2); err != nil {
+	if err := p.db.NewBlock(num, parentHash, recognizedHash); err != nil {
 		b.Fatal(err)
 	}
 	for i := range p.recognizedkeys {
-		err := db.Put(hash2, p.recognizedkeys[i], p.recognizedvalues[i])
+		err := db.Put(recognizedHash, p.recognizedkeys[i], p.recognizedvalues[i])
 		if err != nil {
 			b.Fatal("put failed: ", err)
 		}
 	}
-	if err := db.Commit(hash2); err != nil {
+	if err := db.Commit(recognizedHash); err != nil {
 		b.Fatal(err)
 	}
 	if err := db.Compaction(); err != nil {
 		b.Fatal(err)
 	}
 	b.StopTimer()
-	b.SetBytes(116)
 }
 
 func (p *dbBench) close() {
