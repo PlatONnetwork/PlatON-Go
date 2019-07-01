@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -27,15 +29,11 @@ var (
 	evidenceDir = "evidenceDir"
 )
 
-type Evidence interface {
-	Verify(ecdsa.PublicKey) error
-	Equal(Evidence) bool
-	//return lowest number
-	BlockNumber() uint64
-	Hash() []byte
-	Address() common.Address
-	Validate() error
-}
+const (
+	DuplicatePrepareType    = 1
+	DuplicateViewChangeType = 2
+	TimestampViewChangeType = 3
+)
 
 type EvidenceData struct {
 	DP []*DuplicatePrepareVoteEvidence    `json:"duplicate_prepare"`
@@ -50,7 +48,7 @@ func NewEvidenceData() *EvidenceData {
 		TV: make([]*TimestampViewChangeVoteEvidence, 0),
 	}
 }
-func ClassifyEvidence(evds []Evidence) *EvidenceData {
+func ClassifyEvidence(evds []consensus.Evidence) *EvidenceData {
 	ed := NewEvidenceData()
 	for _, e := range evds {
 		switch e.(type) {
@@ -63,6 +61,25 @@ func ClassifyEvidence(evds []Evidence) *EvidenceData {
 		}
 	}
 	return ed
+}
+
+func NewEvidences(data string) (consensus.Evidences, error) {
+	var eds EvidenceData
+	if err := json.Unmarshal([]byte(data), &eds); err != nil {
+		return nil, err
+	}
+
+	var res consensus.Evidences
+	for _, e := range eds.DP {
+		res = append(res, e)
+	}
+	for _, e := range eds.DV {
+		res = append(res, e)
+	}
+	for _, e := range eds.TV {
+		res = append(res, e)
+	}
+	return res, nil
 }
 
 //Evidence A.Number == B.Number but A.Hash != B.Hash
@@ -78,7 +95,7 @@ func (d DuplicatePrepareVoteEvidence) Verify(pub ecdsa.PublicKey) error {
 	}
 	return verifyAddr(d.VoteB, addr)
 }
-func (d DuplicatePrepareVoteEvidence) Equal(ev Evidence) bool {
+func (d DuplicatePrepareVoteEvidence) Equal(ev consensus.Evidence) bool {
 	_, ok := ev.(*DuplicatePrepareVoteEvidence)
 	if !ok {
 		return false
@@ -137,6 +154,10 @@ func (d DuplicatePrepareVoteEvidence) Error() string {
 		d.VoteA.ValidatorIndex, d.VoteB.ValidatorAddr, d.VoteA.Number, d.VoteA.Hash.String(), d.VoteB.Hash.String())
 }
 
+func (d DuplicatePrepareVoteEvidence) Type() consensus.EvidenceType {
+	return DuplicatePrepareType
+}
+
 //Evidence A.BlockNum == B.BlockNum but A.BlockHash != B.BlockHash
 type DuplicateViewChangeVoteEvidence struct {
 	VoteA *viewChangeVote
@@ -151,7 +172,7 @@ func (d DuplicateViewChangeVoteEvidence) Verify(pub ecdsa.PublicKey) error {
 	return verifyAddr(d.VoteB, addr)
 }
 
-func (d DuplicateViewChangeVoteEvidence) Equal(ev Evidence) bool {
+func (d DuplicateViewChangeVoteEvidence) Equal(ev consensus.Evidence) bool {
 	_, ok := ev.(*DuplicateViewChangeVoteEvidence)
 	if !ok {
 		return false
@@ -215,6 +236,10 @@ func (d DuplicateViewChangeVoteEvidence) Error() string {
 		d.VoteA.Timestamp, d.VoteA.BlockNum, d.VoteA.BlockHash.String(), d.VoteB.BlockNum, d.VoteB.BlockHash.String())
 }
 
+func (d DuplicateViewChangeVoteEvidence) Type() consensus.EvidenceType {
+	return DuplicateViewChangeType
+}
+
 //Evidence A.Timestamp < B.Timestamp but A.BlockNum > B.BlockNum
 type TimestampViewChangeVoteEvidence struct {
 	VoteA *viewChangeVote
@@ -229,7 +254,7 @@ func (d TimestampViewChangeVoteEvidence) Verify(pub ecdsa.PublicKey) error {
 	return verifyAddr(d.VoteB, addr)
 }
 
-func (d TimestampViewChangeVoteEvidence) Equal(ev Evidence) bool {
+func (d TimestampViewChangeVoteEvidence) Equal(ev consensus.Evidence) bool {
 	_, ok := ev.(*TimestampViewChangeVoteEvidence)
 	if !ok {
 		return false
@@ -288,6 +313,10 @@ func (d TimestampViewChangeVoteEvidence) Validate() error {
 func (d TimestampViewChangeVoteEvidence) Error() string {
 	return fmt.Sprintf("TimestampViewChangeVoteEvidence timestamp:%d blockNumberA:%d, blockHashA:%s, blockNumberB:%d, blockHashB:%s",
 		d.VoteA.Timestamp, d.VoteA.BlockNum, d.VoteA.BlockHash.String(), d.VoteB.BlockNum, d.VoteB.BlockHash.String())
+}
+
+func (d TimestampViewChangeVoteEvidence) Type() consensus.EvidenceType {
+	return TimestampViewChangeType
 }
 
 type TimeOrderViewChange []*viewChangeVote
@@ -559,7 +588,7 @@ func (vt PrepareEvidence) Clear(number uint64) {
 type EvidencePool interface {
 	AddViewChangeVote(v *viewChangeVote) error
 	AddPrepareVote(p *prepareVote) error
-	Evidences() []Evidence
+	Evidences() []consensus.Evidence
 	Clear(timestamp, blockNum uint64)
 	Close()
 }
@@ -574,7 +603,7 @@ func (emptyEvidencePool) AddPrepareVote(p *prepareVote) error {
 	return nil
 }
 
-func (emptyEvidencePool) Evidences() []Evidence {
+func (emptyEvidencePool) Evidences() []consensus.Evidence {
 	return nil
 }
 
@@ -658,7 +687,7 @@ func (ev *baseEvidencePool) AddPrepareVote(p *prepareVote) error {
 	return nil
 }
 
-func encodeKey(e Evidence) []byte {
+func encodeKey(e consensus.Evidence) []byte {
 	buf := bytes.NewBuffer(nil)
 	switch e.(type) {
 	case *DuplicatePrepareVoteEvidence:
@@ -676,7 +705,7 @@ func encodeKey(e Evidence) []byte {
 	buf.Write(e.Hash())
 	return buf.Bytes()
 }
-func (ev *baseEvidencePool) commit(e Evidence) error {
+func (ev *baseEvidencePool) commit(e consensus.Evidence) error {
 	key := encodeKey(e)
 	var buf []byte
 	var err error
@@ -699,8 +728,8 @@ func (ev *baseEvidencePool) Close() {
 	ev.db.Close()
 }
 
-func (ev *baseEvidencePool) Evidences() []Evidence {
-	var evds []Evidence
+func (ev *baseEvidencePool) Evidences() []consensus.Evidence {
+	var evds []consensus.Evidence
 	it := ev.db.NewIterator(nil, nil)
 	for it.Next() {
 		flag := it.Key()[0]
