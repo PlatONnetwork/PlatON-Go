@@ -61,8 +61,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		gp       = new(GasPool).AddGas(block.GasLimit())
 	)
 
-	// TODO begin()
-
+	if bcr != nil {
+		// TODO begin()
+		if success, err := bcr.BeginBlocker(block.Header(), statedb); nil != err || !success {
+			return nil, nil, 0, err
+		}
+	}
 	// Iterate over and process the individual transactions
 	for i, tx := range block.Transactions() {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
@@ -74,8 +78,12 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		allLogs = append(allLogs, receipt.Logs...)
 	}
 
-	// TODO end ()
-
+	if bcr != nil {
+		// TODO end ()
+		if success, err := bcr.EndBlocker(block.Header(), statedb); nil != err || !success {
+			return nil, nil, 0, err
+		}
+	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
 	p.engine.Finalize(p.bc, header, statedb, block.Transactions(), receipts)
 

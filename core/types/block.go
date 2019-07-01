@@ -48,6 +48,10 @@ func EncodeNonce(v []byte) BlockNonce {
 	return n
 }
 
+func (n BlockNonce) Bytes() []byte {
+	return n[:]
+}
+
 // MarshalText encodes n as a hex string with 0x prefix.
 func (n BlockNonce) MarshalText() ([]byte, error) {
 	return hexutil.Bytes(n[:]).MarshalText()
@@ -73,7 +77,6 @@ type Header struct {
 	GasUsed     uint64         `json:"gasUsed"          gencodec:"required"`
 	Time        *big.Int       `json:"timestamp"        gencodec:"required"`
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
-	MixDigest   common.Hash    `json:"mixHash"          gencodec:"required"`
 	Nonce       BlockNonce     `json:"nonce"            gencodec:"required"`
 
 	// caches
@@ -126,7 +129,6 @@ func (header *Header) _sealHash() (hash common.Hash) {
 		header.GasUsed,
 		header.Time,
 		extra,
-		header.MixDigest,
 		header.Nonce,
 	})
 
@@ -294,7 +296,6 @@ func (b *Block) GasUsed() uint64               { return b.header.GasUsed }
 func (b *Block) Time() *big.Int                { return new(big.Int).Set(b.header.Time) }
 
 func (b *Block) NumberU64() uint64        { return b.header.Number.Uint64() }
-func (b *Block) MixDigest() common.Hash   { return b.header.MixDigest }
 func (b *Block) Nonce() []byte            { return b.header.Nonce[:] }
 func (b *Block) Bloom() Bloom             { return b.header.Bloom }
 func (b *Block) Coinbase() common.Address { return b.header.Coinbase }

@@ -63,7 +63,7 @@ var customGenesisTests = []struct {
                }}
 		}`,
 		query:  "platon.getBlock(0).nonce",
-		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		result: "0xd31d37efa7b9e9d7df775d9a6f9ddb6f5e3d6dd6b87b471b71ed9be9a69b7b871c71cd1d7f46f96b7f5ed76f7bedad9f71ddb7000000000000000000000000000000000000000000000000000000000000",
 	},
 	//Genesis file with specific chain configurations
 	{
@@ -90,7 +90,7 @@ var customGenesisTests = []struct {
 			}
 		}`,
 		query:  "platon.getBlock(0).nonce",
-		result: "0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		result: "0xd31d37efa7b9e9d7df775d9a6f9ddb6f5e3d6dd6b87b471b71ed9be9a69b7b871c71cd1d7f46f96b7f5ed76f7bedad9f71ddb7000000000000000000000000000000000000000000000000000000000000",
 	},
 }
 
@@ -114,6 +114,7 @@ func TestCustomGenesis(t *testing.T) {
 			"--datadir", datadir, "--maxpeers", "0", "--port", "0",
 			"--nodiscover", "--nat", "none", "--ipcdisable",
 			"--exec", tt.query, "console")
+		t.Log("testi", i)
 		geth.ExpectRegexp(tt.result)
 		geth.ExpectExit()
 	}
