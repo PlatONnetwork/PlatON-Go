@@ -115,7 +115,8 @@ type Description struct {
 	Details string
 }
 
-type CandidateQueue = []*Candidate
+type CandidateQueue []*Candidate
+
 
 
 // the Validator info
@@ -127,10 +128,57 @@ type Validator struct {
 	// The weight
 	// NOTE:
 	// converted from the weight of Candidate is: (Int.Max - candidate.shares) + blocknum + txindex
-	StakingWeight string
+	StakingWeight [4]string
 	// Validator's term in the consensus round
 	ValidatorTerm uint32
 }
+
+type ValidatorQueue  []*Validator
+
+type SlashMark map[discover.NodeID]struct{}
+type PackageRatio map[discover.NodeID]uint32
+
+func (arr ValidatorQueue) ValidatorSort(slashs SlashMark, ratio PackageRatio) {
+	if len(arr) <= 1 {
+		return
+	}
+	arr.quickSort(slashs, ratio, 0, len(arr)-1)
+}
+func (arr ValidatorQueue) quickSort(slashs SlashMark, ratio PackageRatio, left, right int) {
+	if left < right {
+		pivot := arr.partition(slashs, ratio, left, right)
+		arr.quickSort(slashs, ratio, left, pivot-1)
+		arr.quickSort(slashs, ratio, pivot+1, right)
+	}
+}
+func (arr ValidatorQueue) partition(slashs SlashMark, ratio PackageRatio, left, right int) int {
+	for left < right {
+		for left < right && compare(slashs, ratio, arr[left], arr[right]) >= 0 {
+			right--
+		}
+		if left < right {
+			arr[left], arr[right] = arr[right], arr[left]
+			left++
+		}
+		for left < right && compare(slashs, ratio, arr[left], arr[right]) >= 0 {
+			left++
+		}
+		if left < right {
+			arr[left], arr[right] = arr[right], arr[left]
+			right--
+		}
+	}
+	return left
+}
+
+
+func compare(slashs SlashMark, ratio PackageRatio, c, can *Validator) int {
+	// TODO
+	return -1
+}
+
+
+
 
 // some consensus round validators or current epoch validators
 type Validator_array struct {
@@ -141,7 +189,7 @@ type Validator_array struct {
 	// the round end blockNumber or epoch blockNumber
 	End uint64
 	// the round validators or epoch validators
-	Arr []*Validator
+	Arr ValidatorQueue
 }
 
 type ValidatorEx struct {
@@ -171,6 +219,18 @@ type Delegation struct {
 	LockRepoTmp *big.Int
 }
 
+
+type DelegationEx struct {
+	Delegation
+}
+
+type DelegateRelated struct {
+	Addr 	common.Address
+	NodeId  discover.NodeID
+	StakingBlockNum uint64
+}
+
+type DelRelatedQueue  = []*DelegateRelated
 
 /*type UnStakeItem struct {
 	// this is the nodeAddress

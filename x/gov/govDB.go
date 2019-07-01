@@ -8,6 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/go-errors/errors"
 	"sync"
 )
 
@@ -15,10 +16,7 @@ var (
 	ValueDelimiter = []byte(":")
 )
 
-type VoteValue struct {
-	Voter  discover.NodeID
-	Option VoteOption
-}
+
 
 var dbOnce sync.Once
 var govDB *GovDB
@@ -28,7 +26,7 @@ type GovDB struct {
 	snapdb   GovSnapshotDB
 }
 
-func NewGovDB() *GovDB {
+func GovDBInstance() *GovDB {
 	dbOnce.Do(func() {
 		govDB = &GovDB{snapdb: GovSnapshotDB{}}
 	})
@@ -72,24 +70,27 @@ func (self *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) (Prop
 	if len(value) == 0 {
 		return nil, fmt.Errorf("no value found!")
 	}
-	var proposal Proposal
+	var p Proposal
 	pData := value[0 : len(value)-1]
 	pType := value[len(value)-1]
 	if pType == byte(Text) {
-		proposal = TextProposal{}
+		var proposal TextProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			return nil, e
 		}
+		p = proposal
 	} else if pType == byte(Version) {
-		proposal = VersionProposal{}
+		var proposal VersionProposal
+		//proposal = VersionProposal{TextProposal{},0,common.Big0}
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			return nil, e
 		}
+		p = proposal
 	} else {
 		return nil, fmt.Errorf("incorrect propsal type:%b!", pType)
 	}
 
-	return proposal, nil
+	return p, nil
 }
 
 // 从snapdb查询各个列表id,然后从逐条从statedb查询
@@ -109,25 +110,41 @@ func (self *GovDB) GetProposalList(blockHash common.Hash, state xcom.StateDB) ([
 }
 
 //保存投票记录
-func (self *GovDB) SetVote(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) bool {
-	voteList := self.ListVote(proposalID, state)
-	voteList = append(voteList, VoteValue{voter, option})
+func (self *GovDB) SetVote(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) (error) {
+	voteValueList, err := self.ListVoteValue(proposalID, state)
+	if err != nil {
+		return err
+	}
+	voteValueList = append(voteValueList, VoteValue{voter, option})
 
-	voteListBytes, _ := json.Marshal(voteList)
+	voteListBytes, _ := json.Marshal(voteValueList)
 
 	state.SetState(vm.GovContractAddr, KeyVote(proposalID), voteListBytes)
-	return true
+	return nil
 }
 
 // 查询投票记录
-func (self *GovDB) ListVote(proposalID common.Hash, state xcom.StateDB) []VoteValue {
+func (self *GovDB) ListVoteValue(proposalID common.Hash, state xcom.StateDB) ([]VoteValue, error) {
 	voteListBytes := state.GetState(vm.GovContractAddr, KeyVote(proposalID))
 
 	var voteList []VoteValue
 	if err := json.Unmarshal(voteListBytes, &voteList); err != nil {
-		return nil
+		return nil, errors.New("Unmarshal VoteValue error")
 	}
-	return voteList
+	return voteList,nil
+}
+
+func (self *GovDB) ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.NodeID, error) {
+	var voterList []discover.NodeID
+	valueList, err := self.ListVoteValue(proposalID, state)
+	if err != nil {
+		return nil, err
+	}
+	for _, value := range valueList {
+		voterList = append(voterList, value.VoteNodeID)
+	}
+
+	return voterList, nil
 }
 
 // 保存投票结果
@@ -326,7 +343,4 @@ func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.
 	} else {
 		return l
 	}
-}
-func (self *GovDB) ListVotedVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
-	return nil, nil
 }

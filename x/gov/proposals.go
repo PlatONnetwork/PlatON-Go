@@ -49,6 +49,12 @@ type Vote struct {
 	VoteOption VoteOption      `json:"voteOption"`
 }
 
+
+type VoteValue struct {
+	VoteNodeID discover.NodeID `json:"voteNodeID"`
+	VoteOption VoteOption      `json:"voteOption"`
+}
+
 var MaxVotingDuration = uint64(14 * 24 * 60 * 60) / xcom.ConsensusSize * xcom.ConsensusSize
 
 type Proposal interface {

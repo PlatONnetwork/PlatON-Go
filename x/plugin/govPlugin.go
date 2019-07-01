@@ -97,7 +97,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 
 			accuVerifiersCnt := uint16(govPlugin.govDB.AccuVerifiersLength(blockHash, votingProposal.GetProposalID()))
 
-			verifierList, err := govPlugin.govDB.ListVotedVerifier(blockHash, votingProposal.GetProposalID())
+			verifierList, err := govPlugin.govDB.ListVotedVerifier(votingProposal.GetProposalID(), state)
 			if err != nil {
 				return false, err
 			}
@@ -278,8 +278,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	}
 
 	//handle storage
-	if !govPlugin.govDB.SetVote(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state) {
-		err = errors.New("[GOV] Vote(): Set vote failed.")
+	if err != govPlugin.govDB.SetVote(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state), err != nil {
 		return false, err
 	}
 	if !govPlugin.govDB.AddVotedVerifier(vote.ProposalID, vote.ProposalID, vote.VoteNodeID) {
@@ -415,7 +414,14 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 
 	proposalID := proposal.ProposalID
 	verifiersCnt := uint16(govPlugin.govDB.AccuVerifiersLength(blockHash, proposalID))
-	voteCnt := uint16(len(govPlugin.govDB.ListVote(proposalID, state)))
+
+
+	voterList, err := govPlugin.govDB.ListVoteValue(proposalID, state)
+	if err!= nil {
+		return err
+	}
+
+	voteCnt := uint16(len(voterList))
 	yeas := voteCnt //`voteOption` can be ignored in version proposal, set voteCount to passCount as default.
 
 	status := gov.Voting
@@ -446,12 +452,12 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 
 
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
-	stk.GetVerifierList(blockHash, blockNumber)
+	stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	return true
 }
 
 func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
-	stk.GetCandidateList(blockHash)
+	stk.GetCandidateList(blockHash, QueryStartNotIrr)
 	return true
 }
 
