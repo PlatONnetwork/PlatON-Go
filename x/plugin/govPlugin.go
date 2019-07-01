@@ -205,7 +205,7 @@ func (govPlugin *GovPlugin) Submit(curBlockNum *big.Int, from common.Address, pr
 	}
 
 	//check if proposer is Verifier
-	success, err = stk.IsCurrVerifier(blockHash, proposal.GetProposer())
+	success, err = stk.IsCurrVerifier(blockHash, proposal.GetProposer(), QueryStartNotIrr)
 	if !success || err != nil {
 		err = errors.New("[GOV] Submit(): proposer is not verifier.")
 		return false, err
@@ -274,7 +274,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 		return false, err
 	}*/
 
-	success, err := stk.IsCurrVerifier(blockHash, vote.VoteNodeID)
+	success, err := stk.IsCurrVerifier(blockHash, vote.VoteNodeID, QueryStartNotIrr)
 
 	if !success || err != nil {
 		err = errors.New("[GOV] Vote(): proposer is not verifier.")
@@ -324,7 +324,7 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID *
 	//}
 
 	//check voteNodeID: Verifier or Candidate
-	isCurrVerifier, err := stk.IsCurrVerifier(blockHash, *declaredNodeID)
+	isCurrVerifier, err := stk.IsCurrVerifier(blockHash, *declaredNodeID, QueryStartNotIrr)
 	if err != nil {
 		var err = errors.New("[GOV] DeclareVersion(): run isCurrVerifier() failed.")
 		return false, err
