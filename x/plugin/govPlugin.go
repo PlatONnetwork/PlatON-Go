@@ -9,26 +9,28 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"math/big"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"sync"
 )
 
-var SupportRate_Threshold = 0.85
+var (
+	govPluginOnce  sync.Once
+	SupportRate_Threshold = 0.85
+
+)
 
 type GovPlugin struct {
 	govDB *gov.GovDB
-	once  sync.Once
+
 }
 
 var govPlugin *GovPlugin
 
-func GovPluginInstance() *StakingPlugin {
-	if nil == govPlugin {
-		govPlugin = &GovPlugin{
-			govDB: gov.NewGovDB(),
-		}
-	}
-	return stk
+func GovPluginInstance() *GovPlugin {
+	govPluginOnce.Do(func() {
+		govPlugin = &GovPlugin{govDB : gov.GovDBInstance()}
+	})
+	return govPlugin
 }
 
 func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
@@ -37,11 +39,7 @@ func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
 
 //implement BasePlugin
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
-
-	//TODO: Staking Plugin
-	//if is end of Settle Cycle
-	//TODO: if stk.IsEndofSettleCycle(state) {
-	if true {
+	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
 		verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
 
 		if err != nil {
@@ -81,9 +79,8 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 			err = errors.New(msg)
 			return false, err
 		}
-		if votingProposal.GetEndVotingBlock().Uint64() == header.Number.Uint64() {
-			//TODO: if !stk.isEndofSettleCycle(blockHash) {
-			if true {
+		if votingProposal.GetEndVotingBlock() == header.Number.Uint64() {
+			if xutil.IsSettlementPeriod(header.Number.Uint64()) {
 
 				verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
 				if err != nil {
@@ -127,34 +124,29 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	}
 	versionProposal, ok := proposal.(gov.VersionProposal)
 	if ok {
-		//TODO: condition 2 should be: if header blockNum corresponds to is a new consensus round.
-		if versionProposal.GetActiveBlock().Cmp(header.Number) >= 0 && true {
-			//TODO: Fix, should be validator
-			validatorList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
+
+		sub := header.Number.Uint64() - versionProposal.GetActiveBlock()
+
+		if sub >= 0 && sub % xcom.ConsensusSize == 0 {
+			validatorList, err := stk.ListCurrentValidatorID(blockHash, header.Number.Uint64())
 			if err != nil {
 				err := errors.New("[GOV] BeginBlock(): ListValidatorNodeID failed.")
 				return false, err
 			}
-			var updatedNodes uint8 = 0
+			var updatedNodes uint64 = 0
 
-			declareList := govPlugin.govDB.GetActiveNodeList(blockHash, preActiveProposalID)
+			//all active validators
+			activeList := govPlugin.govDB.GetActiveNodeList(blockHash, preActiveProposalID)
 
-			//voteList := govPlugin.govDB.ListVote(preActiveProposalID, state)
-			var voterList []discover.NodeID
-			//for _, vote := range voteList {
-			//	var voter discover.NodeID //vote.voter
-			//	voterList = append(voterList, voter)
-			//}
-
-			//check if validator has declared his version, or has voted for a version
+			//check if all validators are active
 			for _, val := range validatorList {
-				if inNodeList(val, declareList) {
-					if inNodeList(val, declareList) || inNodeList(val, voterList) {
+				if inNodeList(val, activeList) {
+					if inNodeList(val, activeList) {
 						updatedNodes++
 					}
 				}
 			}
-			if updatedNodes == 25 {
+			if updatedNodes == xcom.ConsValidatorNum {
 				tallyResult, err := govPlugin.govDB.GetTallyResult(preActiveProposalID, state)
 				if err != nil {
 					err = errors.New("[GOV] EndBlock(): get tallyResult failed.")
@@ -170,9 +162,8 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 
 				govPlugin.govDB.ClearActiveNodes(blockHash, preActiveProposalID)
 
+				//todo:
 				//stk.NotifyActive(blockHash, blockNumber, proposal.NewVersion)
-			} else {
-				//TODO inform staking of un-upgraded validators
 			}
 		}
 	}
@@ -189,13 +180,7 @@ func (govPlugin *GovPlugin) GetActiveVersion(state xcom.StateDB) uint32 {
 	return govPlugin.govDB.GetActiveVersion(state)
 }
 
-func (govPlugin *GovPlugin) Submit(curBlockNum *big.Int, from common.Address, proposal gov.Proposal, blockHash common.Hash, state xcom.StateDB) (bool, error) {
-
-	//TODO check if Address corresponds to NodeID
-	/*if !stk.isAdressCorrespondingToNodeID(from, proposal.GetProposer()) {
-		var err error = errors.New("[GOV] Submit(): tx sender is not the declare proposer.")
-		return false, err
-	}*/
+func (govPlugin *GovPlugin) Submit(curBlockNum uint64, from common.Address, proposal gov.Proposal, blockHash common.Hash, state xcom.StateDB) (bool, error) {
 
 	//param check
 	success, err := proposal.Verify(curBlockNum, state)
@@ -204,11 +189,9 @@ func (govPlugin *GovPlugin) Submit(curBlockNum *big.Int, from common.Address, pr
 		return false, err
 	}
 
-	//check if proposer is Verifier
-	success, err = stk.IsCurrVerifier(blockHash, proposal.GetProposer())
-	if !success || err != nil {
-		err = errors.New("[GOV] Submit(): proposer is not verifier.")
-		return false, err
+	//check caller and proposer
+	if !govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, curBlockNum) {
+		return false, errors.New("[GOV] Submit(): Tx sender is not a verifier.")
 	}
 
 	//handle version proposal
@@ -255,30 +238,22 @@ func (govPlugin *GovPlugin) Submit(curBlockNum *big.Int, from common.Address, pr
 	return true, nil
 }
 
-func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash common.Hash, state xcom.StateDB) (bool, error) {
+func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash common.Hash, curBlockNum uint64, state xcom.StateDB) (bool, error) {
 
 	if len(vote.ProposalID) == 0 || len(vote.VoteNodeID) == 0 || vote.VoteOption == 0 {
-		err := errors.New("[GOV] Vote(): empty parameter detected.")
-		return false, err
+		return false, errors.New("[GOV] Vote(): empty parameter detected.")
 	}
-	//TODO check if Address corresponds to NodeID
-	/*proposal, err := govPlugin.govDB.GetProposal(vote.ProposalID, state)
+
+	proposal, err := govPlugin.govDB.GetProposal(vote.ProposalID, state)
 	if err != nil {
 		msg := fmt.Sprintf("[GOV] Vote(): Unable to get proposal: %s", vote.ProposalID)
 		err = errors.New(msg)
 		return false, err
 	}
 
-	if !stk.isAdressCorrespondingToNodeID(from, proposal.GetProposer()) {
-		var err error = errors.New("[GOV] Vote(): tx sender is not the declare proposer.")
-		return false, err
-	}*/
-
-	success, err := stk.IsCurrVerifier(blockHash, vote.VoteNodeID)
-
-	if !success || err != nil {
-		err = errors.New("[GOV] Vote(): proposer is not verifier.")
-		return false, err
+	//check caller and voter
+	if !govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, curBlockNum) {
+		return false, errors.New("[GOV] Vote(): Tx sender is not a verifier.")
 	}
 
 	//voteOption range check
@@ -315,26 +290,15 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 }
 
 //Verifier or candidate can declare his version
-func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID *discover.NodeID, version uint32, blockHash common.Hash, state xcom.StateDB) (bool, error) {
+func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, version uint32, blockHash common.Hash, curBlockNum uint64, state xcom.StateDB) (bool, error) {
 
-	////check address
-	//if !plugin.StakingInstance(nil).isAdressCorrespondingToNodeID(from, declaredNodeID) {
-	//	var err error = errors.New("[GOV] Vote(): tx sender is not the declare proposer.")
-	//	return false, err
-	//}
-
-	//check voteNodeID: Verifier or Candidate
-	isCurrVerifier, err := stk.IsCurrVerifier(blockHash, *declaredNodeID)
-	if err != nil {
-		var err = errors.New("[GOV] DeclareVersion(): run isCurrVerifier() failed.")
-		return false, err
+	//check caller is a Verifier or Candidate
+	if !govPlugin.checkVerifier(from, declaredNodeID, blockHash, curBlockNum) {
+		return false, errors.New("[GOV] Vote(): Tx sender is not a verifier.")
 	}
 
-	//TODO: Replace to stk.IsCandidate()
-	var isCandidate bool
-
-	if !(isCurrVerifier || isCandidate) {
-		var err = errors.New("[GOV] DeclareVersion(): declared Node is not a verifier or candidate.")
+	if !govPlugin.checkCandidate(from, declaredNodeID, blockHash, curBlockNum) {
+		var err = errors.New("[GOV] DeclareVersion(): Tx sender is not a candidate.")
 		return false, err
 	}
 
@@ -344,35 +308,26 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID *
 		return false, err
 	}
 
-	if version>>8 == activeVersion>>8 {
-		//TODO inform staking
+	vp, err := govPlugin.findVotingVersionProposal(blockHash, state)
+	if err != nil {
+		return false, err
 	}
 
-	//in voting process, and is a versionProposal
-	votingProposalIDs := govPlugin.govDB.ListVotingProposal(blockHash, state)
-	for _, votingProposalID := range votingProposalIDs {
-		votingProposal, err := govPlugin.govDB.GetProposal(votingProposalID, state)
-		if err != nil {
-			msg := fmt.Sprintf("[GOV] DeclareVersion(): Unable to get proposal: %s", votingProposalID)
-			err = errors.New(msg)
-			return false, err
+	//there is a voting version proposal
+	if vp != nil {
+		if version>>8 == activeVersion>>8 && version>>8 == vp.GetNewVersion()>>8 {
+			govPlugin.govDB.AddActiveNode(blockHash, vp.ProposalID, declaredNodeID)
+		}else{
+			return false, errors.New(fmt.Sprintf("[GOV] DeclareVersion(): invalid declared version: %s", version))
 		}
-		if votingProposal == nil {
-			continue
-		}
-		versionProposal, ok := votingProposal.(gov.VersionProposal)
-		if !ok {
-			continue
-		}
-		if versionProposal.GetNewVersion()>>8 == version>>8 {
-			proposer := versionProposal.GetProposer()
-			//store vote to ActiveNode
-			if !govPlugin.govDB.AddActiveNode(blockHash, votingProposalID, proposer) {
-				var err error = errors.New("[GOV] DeclareVersion(): add active node failed.")
-				return false, err
-			}
+	}else {
+		if version>>8 == activeVersion>>8 {
+			//TODO inform staking
+		}else{
+			return false, errors.New(fmt.Sprintf("[GOV] DeclareVersion(): invalid declared version: %s", version))
 		}
 	}
+
 	return true, nil
 }
 
@@ -427,26 +382,10 @@ func (govPlugin *GovPlugin) ListProposal(blockHash common.Hash, state xcom.State
 }
 
 func (govPlugin *GovPlugin) tallyForTextProposal(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.TextProposal, blockHash common.Hash, state xcom.StateDB) error {
-	//votedCnt := uint16(len(votedVerifierList))
+
 	status := gov.Voting
-
 	yeas := uint16(0)
-	//nays := uint16(0)
-	//abstentions := uint16(0)
 
-	//voteList := govPlugin.govDB.ListVote(proposal.ProposalID, state)
-	//for _, v := range voteList {
-	//	//TODO
-	//	if v.option == gov.Yes {
-	//	yeas++
-	//	}
-	//	if v.option == gov.No {
-	//	nays++
-	//	}
-	//	if v.option == gov.Abstention {
-	//	abstentions++
-	//	}
-	//}
 	supportRate := float64(yeas) / float64(accuCnt)
 
 	if supportRate >= SupportRate_Threshold {
@@ -481,7 +420,6 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 
 	status := gov.Voting
 	supportRate := float64(yeas) * 100 / float64(verifiersCnt)
-	//TODO: define SupportRateThreshold
 	if supportRate > SupportRate_Threshold {
 		status = gov.Pass
 	} else {
@@ -505,3 +443,33 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 		return errors.New("save version proposal tally result error")
 	}
 }
+
+
+func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
+	stk.GetVerifierList(blockHash, blockNumber)
+	return true
+}
+
+func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
+	stk.GetCandidateList(blockHash)
+	return true
+}
+
+func  (govPlugin *GovPlugin) findVotingVersionProposal(blockHash common.Hash, state xcom.StateDB) (*gov.VersionProposal, error) {
+	idList := govPlugin.govDB.ListVotingProposal(blockHash, state)
+	for _, proposalID := range idList {
+		p, err := govPlugin.govDB.GetProposal(proposalID, state)
+		if err != nil {
+			return nil, err
+		}
+		if p == nil {
+			return nil, errors.New(fmt.Sprintf("cannot find specified proposal: %s", proposalID))
+		}
+		if p.GetProposalType() == gov.Version {
+			vp := p.(gov.VersionProposal)
+			return &vp, nil
+		}
+	}
+	return nil, nil
+}
+

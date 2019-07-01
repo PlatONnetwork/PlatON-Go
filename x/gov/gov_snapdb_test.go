@@ -5,7 +5,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"math/big"
 	"testing"
 )
 
@@ -17,8 +16,8 @@ func getTProposal() TextProposal {
 		"up,up,up....",
 		"哈哈哈哈哈哈",
 		"em。。。。",
-		big.NewInt(1000),
-		big.NewInt(1000000),
+		uint64(1000),
+		uint64(1000000),
 		discover.NodeID{},
 		TallyResult{},
 	}
@@ -28,7 +27,7 @@ func getVProposal() VersionProposal {
 	return VersionProposal{
 		getTProposal(),
 		100,
-		big.NewInt(1000),
+		uint64(1000),
 	}
 }
 

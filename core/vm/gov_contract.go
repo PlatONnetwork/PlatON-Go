@@ -5,9 +5,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"math/big"
 	"reflect"
 )
 
@@ -33,7 +33,7 @@ type govContract struct {
 }
 
 func (gc *govContract) RequiredGas(input []byte) uint64 {
-	return 0
+	return params.GovGas
 }
 
 func (gc *govContract) Run(input []byte) ([]byte, error) {
@@ -88,13 +88,13 @@ func (gc *govContract) submitText(verifier discover.NodeID, githubID, topic, des
 	p.SetUrl(url)
 	p.SetProposalType(gov.Text)
 
-	p.SetEndVotingBlock(new(big.Int).SetUint64(endVotingBlock))
-	p.SetSubmitBlock(gc.Evm.BlockNumber)
+	p.SetEndVotingBlock(endVotingBlock)
+	p.SetSubmitBlock(gc.Evm.BlockNumber.Uint64())
 	p.SetProposalID(gc.Evm.StateDB.TxHash())
 	p.SetProposer(verifier)
 
 
-	gc.plugin.Submit(gc.Evm.BlockNumber, from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
+	gc.plugin.Submit(gc.Evm.BlockNumber.Uint64(), from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -113,16 +113,16 @@ func (gc *govContract) submitVersion(verifier discover.NodeID, githubID, topic, 
 	p.SetDesc(desc)
 	p.SetUrl(url)
 	p.SetProposalType(gov.Text)
-	p.SetEndVotingBlock(new(big.Int).SetUint64(endVotingBlock))
-	p.SetSubmitBlock(gc.Evm.BlockNumber)
+	p.SetEndVotingBlock(endVotingBlock)
+	p.SetSubmitBlock(gc.Evm.BlockNumber.Uint64())
 	p.SetProposalID(gc.Evm.StateDB.TxHash())
 	p.SetProposer(verifier)
 
 	p.SetNewVersion(newVersion)
-	p.SetActiveBlock(new(big.Int).SetUint64(activeBlock))
+	p.SetActiveBlock(activeBlock)
 
 
-	gc.plugin.Submit(gc.Evm.BlockNumber, from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
+	gc.plugin.Submit(gc.Evm.BlockNumber.Uint64(), from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -142,7 +142,7 @@ func (gc *govContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 	v.VoteOption = option
 
 
-	gc.plugin.Vote(from, v, gc.Evm.BlockHash, gc.Evm.StateDB)
+	gc.plugin.Vote(from, v, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
 	return nil, nil
 }
 
@@ -155,7 +155,7 @@ func (gc *govContract) declareVersion(activeNode discover.NodeID, version uint32
 		"blockNumber", gc.Evm.BlockNumber.Uint64(),
 		"activeNode", hex.EncodeToString(activeNode.Bytes()[:8]))
 
-	gc.plugin.DeclareVersion(from, &activeNode, version, gc.Evm.BlockHash, gc.Evm.StateDB)
+	gc.plugin.DeclareVersion(from, activeNode, version, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(),  gc.Evm.StateDB)
 	return nil, nil
 }
 
