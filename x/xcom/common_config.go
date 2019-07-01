@@ -30,6 +30,17 @@ var (
 	// The number of elections and replacements for each of the consensus rounds
 	ShiftValidatorNum = uint64(8)
 	// Each epoch (billing cycle) is a multiple of the consensus rounds
+	// TODO NOTE：It should be calculated by that
+	//
+	//      	 /  eh * 3600  \
+	// C = floor|———————————————|
+	//           \	L * (u*vn) /
+	//
+	// C: 	the epoch (just be this)
+	// eh: 	the number of hours per epoch
+	// L： 	each block interval (uint: seconds)
+	// u: 	the consensus validators count
+	// vn:  each validator has a target number of blocks per view
 	EpochSize = uint64(88)
 	// Each hesitation period is a multiple of the epoch
 	HesitateRatio = uint64(1)
@@ -39,6 +50,10 @@ var (
 	// consensus round of the election block for each consensus round
 	ElectionDistance = uint64(20)
 	// Number of blocks per consensus round
+	// TODO NOTE: just like that
+	// this = u*vn
+	// u: 	the consensus validators count
+	// vn:  each validator has a target number of blocks per view
 	ConsensusSize = uint64(250)
 
 	// The freeze period of the withdrew staking (unit is  epochs)
@@ -51,4 +66,7 @@ var (
 	// The freeze period of the delegate was invalidated
 	// due to active withdrew delegate (unit is  epochs)
 	ActiveUnDelegateFreezeRatio = uint64(0)
+
+	//// The number of hours per epoch
+	//HoursPerEpoch = uint64(6)
 )

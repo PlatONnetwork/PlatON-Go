@@ -54,6 +54,30 @@ func CalculateRound (blockNumber uint64) uint64 {
 }
 
 
+func CalculateYears (blockNumber uint64) uint64 {
+	// !!!
+	// epochs := EpochsPerYear()
+	// !!!
+	epochs := uint64(1440)
+	size := epochs * xcom.EpochSize * xcom.ConsensusSize
+
+	var year uint64
+
+	div := blockNumber / size
+	mod := blockNumber % size
+
+	switch {
+	case div == 0 || (div == 1 && mod == 0):
+		year = 1
+	case div > 1 && mod == 0:
+		year = div
+	case div > 0 && mod > 0:
+		year = div +1
+	}
+
+	return year
+}
+
 func IsElection(blockNumber uint64) bool {
 	tmp := blockNumber + xcom.ElectionDistance
 	mod := tmp % xcom.ConsensusSize
