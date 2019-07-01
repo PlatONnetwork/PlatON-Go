@@ -140,13 +140,12 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 
 			declareList := govPlugin.govDB.GetActiveNodeList(blockHash, preActiveProposalID)
 
-			voteList := govPlugin.govDB.ListVote(preActiveProposalID, state)
+			//voteList := govPlugin.govDB.ListVote(preActiveProposalID, state)
 			var voterList []discover.NodeID
-			for _, vote := range voteList {
-				print(vote)
-				var voter discover.NodeID //vote.voter
-				voterList = append(voterList, voter)
-			}
+			//for _, vote := range voteList {
+			//	var voter discover.NodeID //vote.voter
+			//	voterList = append(voterList, voter)
+			//}
 
 			//check if validator has declared his version, or has voted for a version
 			for _, val := range validatorList {
@@ -433,23 +432,22 @@ func (govPlugin *GovPlugin) tallyForTextProposal(votedVerifierList []discover.No
 	status := gov.Voting
 
 	yeas := uint16(0)
-	nays := uint16(0)
-	abstentions := uint16(0)
+	//nays := uint16(0)
+	//abstentions := uint16(0)
 
-	voteList := govPlugin.govDB.ListVote(proposal.ProposalID, state)
-	for _, v := range voteList {
-		print(v)
-		//TODO
-		//if v.option == gov.Yes {
-		yeas++
-		//}
-		//if v.option == gov.No {
-		nays++
-		//}
-		//if v.option == gov.Abstention {
-		abstentions++
-		//}
-	}
+	//voteList := govPlugin.govDB.ListVote(proposal.ProposalID, state)
+	//for _, v := range voteList {
+	//	//TODO
+	//	if v.option == gov.Yes {
+	//	yeas++
+	//	}
+	//	if v.option == gov.No {
+	//	nays++
+	//	}
+	//	if v.option == gov.Abstention {
+	//	abstentions++
+	//	}
+	//}
 	supportRate := float64(yeas) / float64(accuCnt)
 
 	if supportRate >= SupportRate_Threshold {
