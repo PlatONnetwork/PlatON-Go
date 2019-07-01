@@ -5,9 +5,8 @@ import (
 )
 
 var (
-	RestrictingKeyPrefix = []byte("RestrictInfo")
-	RestrictRecordKeyPrefix = []byte("RestrictRecord" )
-
+	RestrictingKeyPrefix    = []byte("RestrictInfo")
+	RestrictRecordKeyPrefix = []byte("RestrictRecord")
 )
 
 // RestrictingKey used for search restricting info. key: prefix + account
@@ -20,7 +19,6 @@ func GetReleaseAmountKey(account common.Address, blockNum uint64) []byte {
 	release := append(account.Bytes(), common.Uint64ToBytes(blockNum)...)
 	return append(RestrictingKeyPrefix, release...)
 }
-
 
 // ReleaseNumberKey used for search records at target release blockNumber. key: prefix + blockNum
 func GetReleaseNumberKey(blockNum uint64) []byte {

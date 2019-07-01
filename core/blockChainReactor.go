@@ -7,8 +7,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -50,9 +51,9 @@ func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChain
 }
 
 // Getting the global bcr single instance
-//func GetReactorInstance () *BlockChainReactor {
-//	return bcr
-//}
+func GetReactorInstance () *BlockChainReactor {
+	return bcr
+}
 
 func (brc *BlockChainReactor) loop() {
 
@@ -86,19 +87,17 @@ func (brc *BlockChainReactor) loop() {
 
 			}
 
-			/*// TODO Slashing
-			if plugin, ok := brc.basePluginMap[common.SlashingRule]; ok {
+			// TODO Slashing
+			if plugin, ok := brc.basePluginMap[xcom.SlashingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
-
 			}
-			}*/
 
-
-		default:
-			return
-
+			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
+				log.Error("snapshotDB Commit failed", "err", err)
+				continue
+			}
 		}
 	}
 
@@ -120,16 +119,30 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	blockHash := common.ZeroHash
 
 	// store the sign in  header.Extra[32:97]
-	if len(header.Extra[32:]) >= 65 {
-		if bytes.Equal(header.Extra[32:97], make([]byte, 65)) {
-			// Generate vrf proof
-
+	if isWorker(header.Extra) {
+		// Generate vrf proof
+		if value, err := xcom.GetVrfHandlerInstance().GenerateNonce(header.Number, header.ParentHash); nil != err {
+			return false, err
 		} else {
-			blockHash = header.Hash()
+			header.Nonce = types.EncodeNonce(value)
+		}
+	} else {
+		blockHash = header.Hash()
+		// Verify vrf proof
+		sign := header.Extra[32:97]
+		pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
+		if nil != err {
+			return false, err
+		}
+		if err := xcom.GetVrfHandlerInstance().VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
+			return false, err
 		}
 	}
 
-	// todo maybe vrf
+	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
+		log.Error("snapshotDB newBlock failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
+		return false, err
+	}
 
 	for _, pluginName := range bcr.beginRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
@@ -138,7 +151,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 			}
 		}
 	}
-	return false, nil
+	return true, nil
 }
 
 // Called after every block had executed all txs
@@ -146,12 +159,14 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 
 	blockHash := common.ZeroHash
 
-	// store the sign in  header.Extra[32:97]
-	if len(header.Extra[32:]) == 65 && !bytes.Equal(header.Extra[32:97], make([]byte, 65)) {
+	if !isWorker(header.Extra) {
 		blockHash = header.Hash()
 	}
-
-	// todo maybe vrf
+	// Store the previous vrf random number
+	if err := xcom.GetVrfHandlerInstance().Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
+		log.Error("BlockChainReactor Storage proof failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "err", err)
+		return false, err
+	}
 
 	for _, pluginName := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
@@ -160,7 +175,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 			}
 		}
 	}
-	return false, nil
+	return true, nil
 }
 
 func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, from common.Address) (err error) {
@@ -208,36 +223,15 @@ func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
 	return false
 }
 
-func GenerateNonce(proof []byte) ([]byte, error) {
-	log.Debug("Generate proof based on input","proof", hex.EncodeToString(proof))
-	return vrf.Prove(bcr.privateKey, vrf.ProofToHash(proof))
+func isWorker(extra []byte) bool {
+	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
 }
 
-func VerifyVrf(header *types.Header) error {
-	// Verify VRF Proof
-	log.Debug("Verification block vrf prove", "blockNumber", header.Number.Uint64(), "hash", header.Hash().TerminalString(), "sealHash", header.SealHash().TerminalString(), "prove", hex.EncodeToString(header.Nonce[:]))
-	/*sign := header.Extra[32:common.ExtraSeal]
-	pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
-	if nil != err {
-		return err
+func (bcr *BlockChainReactor) PrepareResult(block *types.Block) (bool, error) {
+	log.Debug("snapshotdb Flush", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(block.Hash().Bytes()))
+	if err := snapshotdb.Instance().Flush(block.Hash(), block.Number()); nil != err {
+		log.Error("snapshotdb Flush failed", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
+		return false, err
 	}
-	pext := cbft.blockExtMap.findBlockByHash(block.ParentHash())
-	if pext == nil {
-		pext = cbft.blockChain.GetBlockByHash(block.ParentHash())
-	}
-	if pext != nil {
-		parentNonce := vrf.ProofToHash(pext.Nonce())
-		if value, err := vrf.Verify(pk, block.Nonce(), parentNonce); nil != err {
-			cbft.log.Error("Vrf proves verification failure", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce), "err", err)
-			return err
-		} else if !value {
-			cbft.log.Error("Vrf proves verification failure", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
-			return errInvalidVrfProve
-		}
-		cbft.log.Info("Vrf proves successful verification", "blockNumber", block.NumberU64(), "proof", hex.EncodeToString(block.Nonce()), "input", hex.EncodeToString(parentNonce))
-	} else {
-		cbft.log.Error("Vrf proves verification failure, Cannot find parent block", "blockNumber", block.NumberU64(), "hash", block.Hash().TerminalString(), "parentHash", block.ParentHash().TerminalString())
-		return errNotFoundViewBlock
-	}*/
-	return nil
+	return true, nil
 }

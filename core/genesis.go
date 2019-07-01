@@ -50,7 +50,6 @@ type Genesis struct {
 	Timestamp uint64              `json:"timestamp"`
 	ExtraData []byte              `json:"extraData"`
 	GasLimit  uint64              `json:"gasLimit"   gencodec:"required"`
-	Mixhash   common.Hash         `json:"mixHash"`
 	Coinbase  common.Address      `json:"coinbase"`
 	Alloc     GenesisAlloc        `json:"alloc"      gencodec:"required"`
 
@@ -87,7 +86,8 @@ type GenesisAccount struct {
 
 // field type overrides for gencodec
 type genesisSpecMarshaling struct {
-	Nonce     math.HexOrDecimal64
+	//Nonce     math.HexOrDecimal64
+	Nonce 	  []byte
 	Timestamp math.HexOrDecimal64
 	ExtraData hexutil.Bytes
 	GasLimit  math.HexOrDecimal64
@@ -241,7 +241,6 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Extra:      g.ExtraData,
 		GasLimit:   g.GasLimit,
 		GasUsed:    g.GasUsed,
-		MixDigest:  g.Mixhash,
 		Coinbase:   g.Coinbase,
 		Root:       root,
 	}

@@ -25,9 +25,9 @@ var (
 
 
 type restrictingInfo struct {
-	balance     *big.Int  `json:"balance"`  // balance representation all locked amount
-	debt        *big.Int  `json:"debt"`     // debt representation will released amount. Positive numbers can be used instead of release, 0 means no release, negative numbers indicate not enough to release
-	releaseList []uint64  `json:"list"`     // releaseList representation
+	balance     *big.Int `json:"balance"` // balance representation all locked amount
+	debt        *big.Int `json:"debt"`    // debt representation will released amount. Positive numbers can be used instead of release, 0 means no release, negative numbers indicate not enough to release
+	releaseList []uint64 `json:"list"`    // releaseList representation
 }
 
 type releaseAmountInfo struct {
@@ -119,16 +119,16 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	}
 
 	var (
-		recordsNum  uint32
-		index       uint32
-		heightList  []uint64
-		info		restrictingInfo
+		recordsNum uint32
+		index      uint32
+		heightList []uint64
+		info       restrictingInfo
 	)
 
 	restrictingKey := xcom.GetRestrictingKey(account)
 	bRecord := state.GetState(account, restrictingKey)
 
-	if len(bRecord) == 0 {  // restricting not exist
+	if len(bRecord) == 0 { // restricting not exist
 
 		log.Debug("restricting record not exist", "account", account.Bytes())
 
@@ -143,7 +143,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 				index = uint32(1)
 			} else {
 				recordsNum += 1
-				index = byteutil.BytesToUint32(numbers)+1
+				index = byteutil.BytesToUint32(numbers) + 1
 			}
 
 			state.SetState(vm.RestrictingContractAddr, releaseNumberKey, common.Uint32ToBytes(recordsNum))
@@ -161,7 +161,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		info.debt = big.NewInt(0)
 		info.releaseList = heightList
 
-	} else {  // restricting exist
+	} else { // restricting exist
 
 		log.Debug("restricting record exist", "account", account.Bytes())
 
@@ -183,7 +183,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 				releaseNumberKey := xcom.GetReleaseNumberKey(height)
 				numbers := state.GetState(vm.RestrictingContractAddr, releaseNumberKey)
 
-				index = byteutil.BytesToUint32(numbers)+1
+				index = byteutil.BytesToUint32(numbers) + 1
 				state.SetState(vm.RestrictingContractAddr, releaseNumberKey, common.Uint32ToBytes(index))
 
 				releaseAccountKey := xcom.GetReleaseAccountKey(height, index)
@@ -344,7 +344,7 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 }
 
 // releaseRestricting does nothing
-func (rp *RestrictingPlugin) releaseRestricting(head *types.Header, state xcom.StateDB)  (bool, error) {
+func (rp *RestrictingPlugin) releaseRestricting(head *types.Header, state xcom.StateDB) (bool, error) {
 
 	var blockNumber = head.Number.Uint64()
 
@@ -362,13 +362,13 @@ func (rp *RestrictingPlugin) releaseRestricting(head *types.Header, state xcom.S
 		release *big.Int
 	)
 
-	for index := numbers; index > 0 ; index++ {
+	for index := numbers; index > 0; index++ {
 
 		releaseAccountKey := xcom.GetReleaseAccountKey(blockNumber, index)
 		bAccount := state.GetState(vm.RestrictingContractAddr, releaseAccountKey)
 		account := byteutil.BytesToAddress(bAccount)
 
-		releaseAmountKey :=  xcom.GetReleaseAmountKey(account, blockNumber)
+		releaseAmountKey := xcom.GetReleaseAmountKey(account, blockNumber)
 		bRelease := state.GetState(account, releaseAmountKey)
 
 		if err := rlp.Decode(bytes.NewBuffer(bRelease), release); err != nil {
@@ -468,7 +468,7 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		return []byte{}, err
 	}
 
-	for i := 0; i < len(info.releaseList); i ++ {
+	for i := 0; i < len(info.releaseList); i++ {
 		blockNumber := info.releaseList[i]
 
 		releaseAmountKey = xcom.GetReleaseAmountKey(account, blockNumber)
