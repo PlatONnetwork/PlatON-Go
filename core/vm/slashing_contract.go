@@ -1,9 +1,8 @@
 package vm
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"reflect"
 )
 
@@ -46,15 +45,17 @@ func (sc *slashingContract) execute(input []byte) ([]byte, error) {
 }
 
 // Report the double signing behavior of the node
-func (sc *slashingContract) ReportMutiSign(mutiSignType uint8, evidence xcom.Evidence) ([]byte, error) {
-	if err := sc.plugin.Slash(mutiSignType, evidence, sc.Evm.StateDB); nil != err {
-
+func (sc *slashingContract) ReportMutiSign(data string) ([]byte, error) {
+	if err := sc.plugin.Slash(data, sc.Evm.StateDB); nil != err {
+		return nil, err
 	}
 	return nil, nil
 }
 
 // Check if the node has double sign behavior at a certain block height
-func (sc *slashingContract) CheckMutiSign(nodeId discover.NodeID, blockNumber uint64) ([]byte, error) {
-
+func (sc *slashingContract) CheckMutiSign(addr common.Address, blockNumber uint64, etype int32) ([]byte, error) {
+	if success, txHash, _ := sc.plugin.CheckMutiSign(addr, blockNumber, etype, sc.Evm.StateDB); success {
+		return txHash, nil
+	}
 	return nil, nil
 }

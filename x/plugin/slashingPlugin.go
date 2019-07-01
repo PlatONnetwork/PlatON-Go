@@ -3,6 +3,7 @@ package plugin
 import (
 	"encoding/hex"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -12,15 +13,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"github.com/go-errors/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"math/big"
-)
-
-const (
-	MutiSignPrepare		uint8 = iota+1
-	MutiSignViewChange
 )
 
 var (
@@ -45,7 +42,8 @@ var (
 )
 
 type SlashingPlugin struct {
-	db		snapshotdb.DB
+	db				snapshotdb.DB
+	decodeEvidence 	func(data string) (consensus.Evidences, error)
 }
 
 var slashPlugin *SlashingPlugin
@@ -59,13 +57,17 @@ func SlashInstance(db snapshotdb.DB) *SlashingPlugin {
 	return slashPlugin
 }
 
+func (sp *SlashingPlugin) SetDecodeEvidenceFun(f func(data string) (consensus.Evidences, error)) {
+	sp.decodeEvidence = f
+}
+
 func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
 	return true, nil
 }
 
 func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
 	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
-	if (header.Number.Uint64() % (xcom.ConsensusSize - xcom.ElectionDistance) == 0) && header.Number.Uint64() > xcom.ConsensusSize {
+	if xutil.IsElection(header.Number.Uint64()) && header.Number.Uint64() > xcom.ConsensusSize {
 		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "consensusSize", xcom.ConsensusSize, "electionDistance", xcom.ElectionDistance)
 		err := sp.db.WalkBaseDB(util.BytesPrefix(preAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
 			for iter.Next() {
@@ -225,24 +227,49 @@ func (sp *SlashingPlugin) GetPreEpochAnomalyNode() (map[discover.NodeID]uint16,e
 	return result, nil
 }
 
-func (sp *SlashingPlugin) Slash(mutiSignType uint8, evidence xcom.Evidence, stateDB xcom.StateDB) error {
-	if err := evidence.Validate(); nil != err {
+func (sp *SlashingPlugin) Slash(data string, stateDB xcom.StateDB) error {
+	evidences, err := sp.decodeEvidence(data)
+	if nil != err {
+		log.Error("Slash failed", "data", data, "err", err)
 		return err
 	}
-	if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), stateDB); nil != value {
-		log.Error("Execution slashing failed", "blockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()))
-		return errSlashExist
+	if len(evidences) > 0 {
+		for _, evidence := range evidences {
+			if err := evidence.Validate(); nil != err {
+				return err
+			}
+			if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), int32(evidence.Type()), stateDB); nil != value {
+				log.Error("Execution slashing failed", "blockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
+				return errSlashExist
+			}
+			sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), int32(evidence.Type()), stateDB)
+		}
 	}
-	//
 	return nil
 }
 
-func (sp *SlashingPlugin) putSlashResult(addr common.Address, blockNumber uint64, stateDB xcom.StateDB) {
-	stateDB.SetState(vm.SlashingContractAddr, append(addr.Bytes(), utils.Uint64ToBytes(blockNumber)...), stateDB.TxHash().Bytes())
+func (sp *SlashingPlugin) CheckMutiSign(addr common.Address, blockNumber uint64, etype int32, stateDB xcom.StateDB) (bool, []byte, error) {
+	if value := sp.getSlashResult(addr, blockNumber, etype, stateDB); nil != value {
+		log.Info("CheckMutiSign exist", "blockNumber", blockNumber, "addr", hex.EncodeToString(addr.Bytes()), "type", etype, "txHash", hex.EncodeToString(value))
+		return true, value, nil
+	}
+	return false, nil, nil
 }
 
-func (sp *SlashingPlugin) getSlashResult(addr common.Address, blockNumber uint64, stateDB xcom.StateDB) []byte {
-	return stateDB.GetState(vm.SlashingContractAddr, append(addr.Bytes(), utils.Uint64ToBytes(blockNumber)...))
+func (sp *SlashingPlugin) putSlashResult(addr common.Address, blockNumber uint64, etype int32, stateDB xcom.StateDB) {
+	stateDB.SetState(vm.SlashingContractAddr, mutiSignKey(addr, blockNumber, etype), stateDB.TxHash().Bytes())
+}
+
+func (sp *SlashingPlugin) getSlashResult(addr common.Address, blockNumber uint64, etype int32, stateDB xcom.StateDB) []byte {
+	return stateDB.GetState(vm.SlashingContractAddr, mutiSignKey(addr, blockNumber, etype))
+}
+
+// Multi-signed result key format addr+blockNumber+_+etype
+func mutiSignKey(addr common.Address, blockNumber uint64, etype int32) []byte {
+	value := append(addr.Bytes(), utils.Uint64ToBytes(blockNumber)...)
+	value = append(value, []byte("_")...)
+	value = append(value, utils.Uint64ToBytes(uint64(etype))...)
+	return value
 }
 
 func curKey(key []byte) []byte {
