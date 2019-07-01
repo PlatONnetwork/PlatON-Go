@@ -254,8 +254,6 @@ type TxPool struct {
 
 	wg sync.WaitGroup // for shutdown sync
 
-	homestead bool
-
 	txExtBuffer chan *txExt
 
 	rstFlag     int32
@@ -485,9 +483,7 @@ func (pool *TxPool) Reset(newBlock *types.Block) {
 
 	if newBlock != nil {
 		pool.mu.Lock()
-		if pool.chainconfig.IsHomestead(newBlock.Number()) {
-			pool.homestead = true
-		}
+
 		if newBlock.NumberU64() < pool.chain.CurrentBlock().NumberU64() {
 			atomic.StoreInt32(&pool.rstFlag, DoingRst)
 		}
@@ -849,7 +845,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 		return ErrInsufficientFunds
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
+	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, true)
 	if err != nil {
 		return err
 	}
@@ -1090,6 +1086,7 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 			knowingTxCounter.Inc(1)
 			continue
 		}
+
 		newTxs = append(newTxs, tx)
 	}
 	if len(newTxs) == 0 {
@@ -1102,6 +1099,8 @@ func (pool *TxPool) AddRemotes(txs []*types.Transaction) []error {
 	case <-pool.exitCh:
 		return nil
 	case pool.txExtBuffer <- txExt:
+		return nil
+	default:
 		return nil
 	}
 }

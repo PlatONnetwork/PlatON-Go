@@ -48,7 +48,6 @@ type cppEthereumGenesisSpec struct {
 	Genesis struct {
 		Nonce      hexutil.Bytes  `json:"nonce"`
 		Difficulty *hexutil.Big   `json:"difficulty"`
-		MixHash    common.Hash    `json:"mixHash"`
 		Author     common.Address `json:"author"`
 		Timestamp  hexutil.Uint64 `json:"timestamp"`
 		ParentHash common.Hash    `json:"parentHash"`
@@ -104,7 +103,6 @@ type parityChainSpec struct {
 		Seal struct {
 			Ethereum struct {
 				Nonce   hexutil.Bytes `json:"nonce"`
-				MixHash hexutil.Bytes `json:"mixHash"`
 			} `json:"ethereum"`
 		} `json:"seal"`
 
@@ -165,7 +163,6 @@ type pyEthereumGenesisSpec struct {
 	ExtraData  hexutil.Bytes     `json:"extraData"`
 	GasLimit   hexutil.Uint64    `json:"gasLimit"`
 	Difficulty *hexutil.Big      `json:"difficulty"`
-	Mixhash    common.Hash       `json:"mixhash"`
 	Coinbase   common.Address    `json:"coinbase"`
 	Alloc      core.GenesisAlloc `json:"alloc"`
 	ParentHash common.Hash       `json:"parentHash"`

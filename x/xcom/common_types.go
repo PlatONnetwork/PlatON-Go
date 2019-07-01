@@ -2,6 +2,7 @@ package xcom
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -66,6 +67,16 @@ type StateDB interface {
 	TxIdx() uint32
 }
 
+type Evidence interface {
+	Verify(ecdsa.PublicKey) error
+	Equal(Evidence) bool
+	//return lowest number
+	BlockNumber() uint64
+	Hash() []byte
+	Address() common.Address
+	Validate() error
+}
+
 
 // inner contract event data
 type Result struct {
@@ -92,6 +103,7 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 	})
 	return nil
 }
+
 
 
 

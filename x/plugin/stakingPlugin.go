@@ -881,6 +881,20 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 	return result, true, nil
 }
 
+
+func (sk *StakingPlugin) ListCurrentValidatorID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
+	var validatorNodeIDList []discover.NodeID
+
+	validatorQueue, success, err := sk.GetValidatorList(blockHash, blockNumber, 0)
+
+	if success && err == nil {
+		for _, candidate := range validatorQueue {
+			validatorNodeIDList = append(validatorNodeIDList, candidate.NodeId)
+		}
+	}
+	return validatorNodeIDList, err
+}
+
 func (sk *StakingPlugin) IsCurrValidate(blockHash common.Hash, nodeId discover.NodeID) (bool, error) {
 
 	validatorArr, err := sk.db.getCurrentValidatorList(blockHash)
