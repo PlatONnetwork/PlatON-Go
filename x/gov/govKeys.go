@@ -14,10 +14,10 @@ var (
 	keyPrefixEndProposals    = []byte("EndProposals")
 	//keyPrefixPreActiveProposal = []byte("PreActiveProposal")
 	keyPrefixPreActiveVersion = []byte("PreActiveVersion")
-	keyPrefixActiveVersion   = []byte("ActiveVersion")
-	keyPrefixVotedVerifiers  = []byte("VotedVerifiers")
-	keyPrefixActiveNodes     = []byte("ActiveNodes")
-	keyPrefixAccuVerifiers   = []byte("AccuVerifiers")
+	keyPrefixActiveVersion    = []byte("ActiveVersion")
+	keyPrefixVotedVerifiers   = []byte("VotedVerifiers")
+	keyPrefixActiveNodes      = []byte("ActiveNodes")
+	keyPrefixAccuVerifiers    = []byte("AccuVerifiers")
 )
 
 // 提案的key

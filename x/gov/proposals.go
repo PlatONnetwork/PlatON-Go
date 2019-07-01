@@ -37,7 +37,7 @@ const (
 type TallyResult struct {
 	ProposalID    common.Hash    `json:"proposalID"`
 	Yeas          uint16         `json:"yeas"`
-	Nays          uint64         `json:"nays"`
+	Nays          uint16         `json:"nays"`
 	Abstentions   uint16         `json:"abstentions"`
 	AccuVerifiers uint16         `json:"accuVerifiers"`
 	Status        ProposalStatus `json:"status"`
@@ -179,7 +179,37 @@ func (tp TextProposal) GetTallyResult() TallyResult {
 }
 
 func (tp TextProposal) Verify(curBlockNum *big.Int, state xcom.StateDB) (bool, error) {
-
+	//p, _ := gov.govDB.getProposal(tp.ProposalID, state);
+	//if len(tp.ProposalID) == 0 || p != nil {
+	//	var err error = errors.New("[GOV] Verify(): ProposalID is empty or ProposalID already used.")
+	//	return false, err
+	//}
+	if len(tp.Proposer) == 0 {
+		var err error = errors.New("[GOV] Verify(): Proposer is empty.")
+		return false, err
+	}
+	if tp.ProposalType != 0x02 {
+		var err error = errors.New("[GOV] Verify(): Proposal Type error.")
+		return false, err
+	}
+	if len(tp.Topic) == 0 || len(tp.Topic) > 128 {
+		var err error = errors.New("[GOV] Verify(): Topic is empty or larger than 128.")
+		return false, err
+	}
+	if len(tp.Desc) > 512 {
+		var err error = errors.New("[GOV] Verify(): Description too long.")
+		return false, err
+	}
+	//TODO： 重复检查
+	if len(tp.GithubID) == 0 {
+		var err error = errors.New("[GOV] Verify(): GithubID empty or duplicated.")
+		return false, err
+	}
+	//TODO： 重复检查
+	if len(tp.Url) == 0 {
+		var err error = errors.New("[GOV] Verify(): Github URL empty or duplicated.")
+		return false, err
+	}
 	return true, nil
 }
 
