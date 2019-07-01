@@ -28,7 +28,7 @@ type GovDB struct {
 	snapdb   GovSnapshotDB
 }
 
-func NewGovDB() *GovDB {
+func GovDBInstance() *GovDB {
 	dbOnce.Do(func() {
 		govDB = &GovDB{snapdb: GovSnapshotDB{}}
 	})
@@ -72,24 +72,27 @@ func (self *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) (Prop
 	if len(value) == 0 {
 		return nil, fmt.Errorf("no value found!")
 	}
-	var proposal Proposal
+	var p Proposal
 	pData := value[0 : len(value)-1]
 	pType := value[len(value)-1]
 	if pType == byte(Text) {
-		proposal = TextProposal{}
+		var proposal TextProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			return nil, e
 		}
+		p = proposal
 	} else if pType == byte(Version) {
-		proposal = VersionProposal{}
+		var proposal VersionProposal
+		//proposal = VersionProposal{TextProposal{},0,common.Big0}
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			return nil, e
 		}
+		p = proposal
 	} else {
 		return nil, fmt.Errorf("incorrect propsal type:%b!", pType)
 	}
 
-	return proposal, nil
+	return p, nil
 }
 
 // 从snapdb查询各个列表id,然后从逐条从statedb查询
@@ -128,6 +131,14 @@ func (self *GovDB) ListVote(proposalID common.Hash, state xcom.StateDB) []VoteVa
 		return nil
 	}
 	return voteList
+}
+
+func (self *GovDB) ListVotedVerifier(proposalID common.Hash, option VoteOption, state xcom.StateDB) ([]discover.NodeID, error) {
+	votedList := self.ListVote(proposalID, state)
+	if option != 0 {
+
+	}
+	return nil, nil
 }
 
 // 保存投票结果
@@ -326,7 +337,4 @@ func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.
 	} else {
 		return l
 	}
-}
-func (self *GovDB) ListVotedVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
-	return nil, nil
 }

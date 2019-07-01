@@ -25,7 +25,7 @@ var govPlugin *GovPlugin
 func GovPluginInstance() *StakingPlugin {
 	if nil == govPlugin {
 		govPlugin = &GovPlugin{
-			govDB: gov.NewGovDB(),
+			govDB: gov.GovDBInstance(),
 		}
 	}
 	return stk
