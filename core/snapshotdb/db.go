@@ -107,7 +107,7 @@ func (s *snapshotDB) recover(stor storage) error {
 	dbpath := stor.Path()
 	c, err := loadCurrent(dbpath)
 	if err != nil {
-		return err
+		return fmt.Errorf("[SnapshotDB.recover]load  current fail:%v", err)
 	}
 	s.path = dbpath
 	s.current = c
@@ -115,7 +115,7 @@ func (s *snapshotDB) recover(stor storage) error {
 	//baseDB
 	baseDB, err := leveldb.OpenFile(getBaseDBPath(dbpath), nil)
 	if err != nil {
-		return fmt.Errorf("[SnapshotDB]open baseDB fail:%v", err)
+		return fmt.Errorf("[SnapshotDB.recover]open baseDB fail:%v", err)
 	}
 	s.baseDB = baseDB
 
@@ -149,7 +149,7 @@ func (s *snapshotDB) recover(stor storage) error {
 				//2. open writer
 				w, err := s.storage.Append(fd)
 				if err != nil {
-					return err
+					return fmt.Errorf("[SnapshotDB.recover]unRecognizedHash open storage fail:%v", err)
 				}
 				s.journalw[fd.BlockHash] = newJournalWriter(w)
 			} else {
@@ -159,7 +159,7 @@ func (s *snapshotDB) recover(stor storage) error {
 				if !block.readOnly {
 					w, err := s.storage.Append(fd)
 					if err != nil {
-						return err
+						return fmt.Errorf("[SnapshotDB.recover]recognized open storage fail:%v", err)
 					}
 					s.journalw[fd.BlockHash] = newJournalWriter(w)
 				}
