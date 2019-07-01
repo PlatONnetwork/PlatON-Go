@@ -60,7 +60,7 @@ matrix:
         - make all
       script:
         - WORKSPACE=$(pwd)
-        - git clone https://github.com/shinnng/PlatON-Tests.git
+        - git clone https://github.com/PlatONnetwork/PlatON-Tests.git
         - cd ${WORKSPACE}/PlatON-Tests/deploy/node/
         - unzip -P ${UNZIP_CODE} travis_node.zip
         - cd ${WORKSPACE}/PlatON-Tests/
