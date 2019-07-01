@@ -154,7 +154,7 @@ func sendRawTransaction(transaction *types.Transaction) (string, error) {
 }
 
 func getSignedTransaction(from, to string, value int64, priv *ecdsa.PrivateKey, nonce uint64) *types.Transaction {
-	newTx, err := types.SignTx(types.NewTransaction(nonce, common.HexToAddress(to), big.NewInt(value), 100000, big.NewInt(90000), []byte{}), types.HomesteadSigner{}, priv)
+	newTx, err := types.SignTx(types.NewTransaction(nonce, common.HexToAddress(to), big.NewInt(value), 100000, big.NewInt(90000), []byte{}), types.NewEIP155Signer(new(big.Int)), priv)
 	if err != nil {
 		panic(fmt.Errorf("sign error,%s", err.Error()))
 	}

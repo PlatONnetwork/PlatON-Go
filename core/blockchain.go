@@ -728,8 +728,7 @@ func (bc *BlockChain) Rollback(chain []common.Hash) {
 
 // SetReceiptsData computes all the non-consensus fields of the receipts
 func SetReceiptsData(config *params.ChainConfig, block *types.Block, receipts types.Receipts) error {
-	signer := types.MakeSigner(config, block.Number())
-
+	signer := types.NewEIP155Signer(config.ChainID)
 	transactions, logIndex := block.Transactions(), uint(0)
 	if len(transactions) != len(receipts) {
 		return errors.New("transaction and receipt count mismatch")
@@ -886,7 +885,7 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	// Irrelevant of the canonical status, write the block itself to the database
 	rawdb.WriteBlock(bc.db, block)
 
-	root, err := state.Commit(bc.chainConfig.IsEIP158(block.Number()))
+	root, err := state.Commit(true)
 	if err != nil {
 		log.Error("check block is EIP158 error", "hash", block.Hash(), "number", block.NumberU64())
 		return NonStatTy, err
@@ -1069,7 +1068,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks) (int, []interface{}, []*ty
 	defer close(abort)
 
 	// Start a parallel signature recovery (signer will fluke on fork transition, minimal perf loss)
-	senderCacher.recoverFromBlocks(types.MakeSigner(bc.chainConfig, chain[0].Number()), chain)
+	senderCacher.recoverFromBlocks(types.NewEIP155Signer(bc.chainConfig.ChainID), chain)
 
 	// Iterate over the blocks and insert when the verifier permits
 	for i, block := range chain {

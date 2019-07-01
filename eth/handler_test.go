@@ -303,7 +303,7 @@ func testGetNodeData(t *testing.T, protocol int) {
 	acc1Addr := crypto.PubkeyToAddress(acc1Key.PublicKey)
 	acc2Addr := crypto.PubkeyToAddress(acc2Key.PublicKey)
 
-	signer := types.HomesteadSigner{}
+	signer := types.NewEIP155Signer(new(big.Int))
 	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_markets_test)
 	generator := func(i int, block *core.BlockGen) {
 		switch i {
@@ -393,7 +393,7 @@ func testGetReceipt(t *testing.T, protocol int) {
 	acc1Addr := crypto.PubkeyToAddress(acc1Key.PublicKey)
 	acc2Addr := crypto.PubkeyToAddress(acc2Key.PublicKey)
 
-	signer := types.HomesteadSigner{}
+	signer := types.NewEIP155Signer(new(big.Int))
 	// Create a chain generator with some simple transactions (blatantly stolen from @fjl/chain_markets_test)
 	generator := func(i int, block *core.BlockGen) {
 		switch i {
