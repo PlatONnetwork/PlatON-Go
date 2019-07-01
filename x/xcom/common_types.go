@@ -10,7 +10,6 @@ import (
 	"math/big"
 )
 
-
 // StateDB is an Plugin database for full state querying.
 type StateDB interface {
 	CreateAccount(common.Address)
@@ -42,7 +41,6 @@ type StateDB interface {
 	//SetState(common.Address, common.Hash, common.Hash)
 	GetState(common.Address, []byte) []byte
 	SetState(common.Address, []byte, []byte)
-
 
 	Suicide(common.Address) bool
 	HasSuicided(common.Address) bool
@@ -77,14 +75,12 @@ type Evidence interface {
 	Validate() error
 }
 
-
 // inner contract event data
 type Result struct {
 	Status bool
 	Data   string
 	ErrMsg string
 }
-
 
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) error {
@@ -103,10 +99,6 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 	})
 	return nil
 }
-
-
-
-
 
 //type SnapshotDB interface {
 //	NewBlock (blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error

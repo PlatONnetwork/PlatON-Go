@@ -32,9 +32,9 @@ var (
 	WithdrewDelegateVonCalcErr = errors.New("withdrew delegate von calculate err")
 	ParamsErr                  = errors.New("the fn params err")
 	ProcessVersionErr          = errors.New("The version of the relates node's process is too low")
-	BlockNumberDisordered 	   = errors.New("The blockNumber is disordered")
+	BlockNumberDisordered      = errors.New("The blockNumber is disordered")
 
-	VonAmountNotRight		   = errors.New("The amount of von is not right")
+	VonAmountNotRight = errors.New("The amount of von is not right")
 )
 
 const (
@@ -45,8 +45,7 @@ const (
 
 	PriviosRound = -1
 	CurrentRound = 0
-	NextRound = 1
-
+	NextRound    = 1
 )
 
 // Instance a global StakingPlugin
@@ -423,7 +422,6 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 		// TODO call RestrictingPlugin
 
-
 		del.LockRepoTmp = new(big.Int).Add(del.LockRepoTmp, amount)
 
 	}
@@ -480,8 +478,6 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	lazyCalcDelegateAmount(epoch, del)
 
-
-
 	/**
 	inner Fn
 	*/
@@ -530,7 +526,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	// When the related candidate info does not exist
 	case nil == can, nil != can && stakingBlockNum < can.StakingBlockNum,
-	nil != can && stakingBlockNum == can.StakingBlockNum && xcom.Is_Invalid(can.Status):
+		nil != can && stakingBlockNum == can.StakingBlockNum && xcom.Is_Invalid(can.Status):
 
 		if total.Cmp(amount) < 0 {
 			return true, fmt.Errorf("withdrewDelegate err: %s, delegate von: %s, withdrew von: %s",
@@ -562,7 +558,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				return false, err
 			}
 
-		}else {
+		} else {
 			sub := new(big.Int).Sub(total, del.Reduction)
 
 			if sub.Cmp(amount) < 0 {
@@ -689,7 +685,6 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 	num_int, _ := strconv.Atoi(string(stakeBlockNum))
 	num := uint64(num_int)
 
-
 	lazyCalcDelegateAmount(epoch, del)
 
 	//can, err := sk.db.getCandidateStore(blockHash, canAddr)
@@ -704,7 +699,6 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 	amount := unDel.Amount
 
-
 	if amount.Cmp(del.Reduction) >= 0 { // full withdrawal
 		state.SubBalance(vm.StakingContractAddr, del.Released)
 		state.AddBalance(delAddr, del.Released)
@@ -715,18 +709,20 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 			return false, err
 		}
 
-	}else { //few withdrawal
+	} else { //few withdrawal
 
 		remain := amount
 
 		if remain.Cmp(del.Released) >= 0 {
 			state.SubBalance(vm.StakingContractAddr, del.Released)
 			state.AddBalance(delAddr, del.Released)
-			del.Released = common.Big0; remain = new(big.Int).Sub(remain, del.Released)
-		}else {
+			del.Released = common.Big0
+			remain = new(big.Int).Sub(remain, del.Released)
+		} else {
 			state.SubBalance(vm.StakingContractAddr, amount)
 			state.AddBalance(delAddr, amount)
-			del.Released = new(big.Int).Sub(del.Released, remain); remain = common.Big0
+			del.Released = new(big.Int).Sub(del.Released, remain)
+			remain = common.Big0
 		}
 
 		if remain.Cmp(common.Big0) > 0 {
@@ -734,11 +730,13 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 			if remain.Cmp(del.LockRepo) >= 0 {
 				// todo call Restricting for flush lockRepo
 
-				del.LockRepo = common.Big0; remain = new(big.Int).Sub(remain, del.LockRepo)
-			}else {
+				del.LockRepo = common.Big0
+				remain = new(big.Int).Sub(remain, del.LockRepo)
+			} else {
 				// todo call Restricting for flush remain
 
-				del.LockRepo = new(big.Int).Sub(del.LockRepo, remain); remain = common.Big0
+				del.LockRepo = new(big.Int).Sub(del.LockRepo, remain)
+				remain = common.Big0
 			}
 		}
 
@@ -792,7 +790,6 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 		resultArr = append(resultArr, can)
 	}
 
-
 	return resultArr, true, nil
 }
 
@@ -801,7 +798,7 @@ func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber u
 
 	candidateQueue, success, err := sk.GetVerifierList(blockHash, blockNumber)
 	if success && err == nil {
-		for _, candidate := range candidateQueue{
+		for _, candidate := range candidateQueue {
 			verifierNodeIDList = append(verifierNodeIDList, candidate.NodeId)
 		}
 	}
@@ -876,14 +873,13 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			return nil, false, err
 		}
 		canEx := &xcom.ValidatorEx{
-			Candidate: can,
+			Candidate:     can,
 			ValidatorTerm: v.ValidatorTerm,
 		}
 		result = append(result, canEx)
 	}
 	return result, true, nil
 }
-
 
 func (sk *StakingPlugin) ListCurrentValidatorID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
 	var validatorNodeIDList []discover.NodeID
@@ -914,7 +910,6 @@ func (sk *StakingPlugin) IsCurrValidate(blockHash common.Hash, nodeId discover.N
 	}
 	return flag, nil
 }
-
 
 func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (xcom.CandidateQueue, error) {
 

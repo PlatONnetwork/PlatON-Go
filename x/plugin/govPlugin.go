@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -23,10 +22,10 @@ type GovPlugin struct {
 
 var govPlugin *GovPlugin
 
-func GovPluginInstance(db snapshotdb.DB) *StakingPlugin {
-	if nil == govPlugin && nil != db {
+func GovPluginInstance() *StakingPlugin {
+	if nil == govPlugin {
 		govPlugin = &GovPlugin{
-			govDB: gov.NewGovDB(db),
+			govDB: gov.NewGovDB(),
 		}
 	}
 	return stk
@@ -238,16 +237,16 @@ func (govPlugin *GovPlugin) Submit(curBlockNum *big.Int, from common.Address, pr
 	}
 
 	//handle storage
-	ok, err = govPlugin.govDB.SetProposal(proposal, state)
+	err = govPlugin.govDB.SetProposal(proposal, state)
 	if err != nil {
 		msg := fmt.Sprintf("[GOV] Submit(): Unable to set proposal: %s", proposal.GetProposalID())
 		err = errors.New(msg)
 		return false, err
 	}
-	if !ok {
-		err = errors.New("[GOV] Submit(): set proposal failed.")
-		return false, err
-	}
+	//if !ok {
+	//	err = errors.New("[GOV] Submit(): set proposal failed.")
+	//	return false, err
+	//}
 	ok = govPlugin.govDB.AddVotingProposalID(blockHash, proposal.GetProposalID(), state)
 	if !ok {
 		err = errors.New("[GOV] Submit(): add VotingProposalID failed.")
