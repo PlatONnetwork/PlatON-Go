@@ -17,10 +17,12 @@ import (
 )
 
 var (
-	errParamPeriodInvalid = errors.New("param period invalid")
-	errBalanceNotEnough   = errors.New("balance not enough to restrict")
-	errAccountNotFound    = errors.New("account is not found")
+	errParamPeriodInvalid = errors.New("param epoch invalid")
+	errBalanceNotEnough = errors.New("balance not enough to restrict")
+	errAccountNotFound = errors.New("account is not found")
 )
+
+
 
 type restrictingInfo struct {
 	balance     *big.Int `json:"balance"` // balance representation all locked amount
@@ -29,13 +31,13 @@ type restrictingInfo struct {
 }
 
 type releaseAmountInfo struct {
-	height uint64   `json:"blockNumber"` // blockNumber representation of the block number at the released lock-repo period
-	amount *big.Int `json:"amount"`      // amount representation of the released amount
+	height uint64 	 `json:"blockNumber"`  	// blockNumber representation of the block number at the released lock-repo epoch
+	amount *big.Int	 `json:"amount"`		// amount representation of the released amount
 }
 
 type restrictingPlan struct {
-	period uint64   `json:"period"` // period representation of the released period at the target blockNumber
-	amount *big.Int `json:"amount"` // amount representation of the released amount
+	epoch   uint64  `json:"epoch"`			// epoch representation of the released epoch at the target blockNumber
+	amount	*big.Int `json:"amount"`		// amount representation of the released amount
 }
 
 type Result struct {
@@ -100,11 +102,11 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	// pre-check
 	var totalLock = big.NewInt(0)
 	for i := 0; i < len(plans); i++ {
-		period := plans[i].period
+		epoch := plans[i].epoch
 		amount := plans[i].amount
 
-		if vm.RestrictingContractAddr == account && period%120 != 0 {
-			log.Error("param period invalid", "period", plans[i].period)
+		if vm.RestrictingContractAddr == account && epoch % 120 != 0 {
+			log.Error("param epoch invalid", "epoch", plans[i].epoch)
 			return false, errParamPeriodInvalid
 		}
 
@@ -131,7 +133,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		log.Debug("restricting record not exist", "account", account.Bytes())
 
 		for i := 0; i < len(plans); i++ {
-			height := plans[i].period * xcom.EpochSize * xcom.ConsensusSize
+			height := plans[i].epoch * xcom.EpochSize * xcom.ConsensusSize
 			amount := plans[i].amount
 
 			releaseNumberKey := xcom.GetReleaseNumberKey(height)
@@ -170,7 +172,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 
 		for i := 0; i < len(plans); i++ {
 			// release info
-			height := plans[i].period * xcom.EpochSize * xcom.ConsensusSize
+			height := plans[i].epoch * xcom.EpochSize * xcom.ConsensusSize
 			amount := plans[i].amount
 
 			releaseAmountKey := xcom.GetReleaseAmountKey(account, height)
@@ -258,6 +260,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 
 	return true, nil
 }
+
 
 // ReturnLockFunds does nothing
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) (bool, error) {
@@ -355,7 +358,7 @@ func (rp *RestrictingPlugin) releaseRestricting(head *types.Header, state xcom.S
 	numbers := byteutil.BytesToUint32(bNumbers)
 
 	var (
-		info    restrictingInfo
+		info restrictingInfo
 		release *big.Int
 	)
 
@@ -439,6 +442,7 @@ func (rp *RestrictingPlugin) releaseRestricting(head *types.Header, state xcom.S
 	return true, nil
 }
 
+
 func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) ([]byte, error) {
 
 	restrictingKey := xcom.GetRestrictingKey(account)
@@ -450,13 +454,13 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	}
 
 	var (
-		info             restrictingInfo
+		info restrictingInfo
 		releaseAmountKey []byte
-		bAmount          []byte
-		amount           *big.Int
-		plans            []releaseAmountInfo
-		plan             releaseAmountInfo
-		result           Result
+		bAmount []byte
+		amount *big.Int
+		plans []releaseAmountInfo
+		plan releaseAmountInfo
+		result Result
 	)
 
 	if err := rlp.Decode(bytes.NewReader(record), &info); err != nil {
