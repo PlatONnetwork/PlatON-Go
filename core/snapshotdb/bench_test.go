@@ -53,9 +53,13 @@ func randomString(r *rand.Rand, n int) []byte {
 }
 
 type dbBench struct {
-	b            *testing.B
-	db           *snapshotDB
-	keys, values [][]byte
+	b                                    *testing.B
+	db                                   *snapshotDB
+	baseDBkeys, baseDBvalues             [][]byte
+	recognizedkeys, recognizedvalues     [][]byte
+	unrecognizedkeys, unrecognizedvalues [][]byte
+	committedkeys, committedvalues       [][]byte
+	hashs                                []common.Hash
 }
 
 func openDBBench(b *testing.B) *dbBench {
@@ -76,24 +80,64 @@ func openDBBench(b *testing.B) *dbBench {
 }
 
 func (p *dbBench) populate(n int) {
-	p.keys, p.values = make([][]byte, n), make([][]byte, n)
+	p.baseDBkeys, p.baseDBvalues = make([][]byte, n), make([][]byte, n)
+	p.recognizedkeys, p.recognizedvalues = make([][]byte, n), make([][]byte, n)
+	p.unrecognizedkeys, p.unrecognizedvalues = make([][]byte, n), make([][]byte, n)
+	p.committedkeys, p.committedvalues = make([][]byte, n), make([][]byte, n)
+	p.hashs = make([]common.Hash, n)
 	v := newValueGen(0.5)
-	for i := range p.keys {
-		p.keys[i], p.values[i] = []byte(fmt.Sprintf("%016d", i)), v.get(100)
+	for i := range p.baseDBkeys {
+		p.baseDBkeys[i], p.baseDBvalues[i] = []byte(fmt.Sprintf("%016d", i)), v.get(100)
+	}
+
+	v2 := newValueGen(0.6)
+	for i := range p.baseDBkeys {
+		p.recognizedkeys[i], p.recognizedvalues[i] = []byte(fmt.Sprintf("%016d", i)), v2.get(100)
+	}
+
+	v3 := newValueGen(0.7)
+	for i := range p.baseDBkeys {
+		p.unrecognizedkeys[i], p.unrecognizedvalues[i] = []byte(fmt.Sprintf("%016d", i)), v3.get(100)
+	}
+
+	v4 := newValueGen(0.8)
+	for i := range p.baseDBkeys {
+		p.committedkeys[i], p.committedvalues[i] = []byte(fmt.Sprintf("%016d", i)), v4.get(100)
+	}
+	for i := range p.baseDBkeys {
+		p.hashs[i] = generateHash(fmt.Sprint(i))
 	}
 }
 
-func (p *dbBench) puts() {
+func (p *dbBench) putsUnrecognized() {
 	b := p.b
 	db := p.db
-	err := p.db.NewBlock(big.NewInt(1), rlpHash("a"), common.ZeroHash)
-	if err != nil {
+	if err := p.db.NewBlock(big.NewInt(1), generateHash("a"), common.ZeroHash); err != nil {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
 	b.StartTimer()
-	for i := range p.keys {
-		err := db.Put(common.ZeroHash, p.keys[i], p.values[i])
+	for i := range p.unrecognizedkeys {
+		err := db.Put(common.ZeroHash, p.unrecognizedkeys[i], p.unrecognizedvalues[i])
+		if err != nil {
+			b.Fatal("put failed: ", err)
+		}
+	}
+	b.StopTimer()
+	b.SetBytes(116)
+}
+
+func (p *dbBench) putsRecognized() {
+	b := p.b
+	db := p.db
+	hash2 := generateHash("hash2")
+	if err := p.db.NewBlock(big.NewInt(1), generateHash("a"), hash2); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	b.StartTimer()
+	for i := range p.recognizedkeys {
+		err := db.Put(hash2, p.recognizedkeys[i], p.recognizedvalues[i])
 		if err != nil {
 			b.Fatal("put failed: ", err)
 		}
@@ -105,42 +149,42 @@ func (p *dbBench) puts() {
 func (p *dbBench) close() {
 	p.db.Clear()
 	p.db = nil
-	p.keys = nil
-	p.values = nil
+	p.unrecognizedvalues = nil
+	p.unrecognizedkeys = nil
+	p.recognizedkeys = nil
+	p.recognizedvalues = nil
+	p.committedkeys = nil
+	p.committedvalues = nil
+	p.baseDBkeys = nil
+	p.baseDBvalues = nil
 	runtime.GC()
 }
 
 func (p *dbBench) fill() {
-	b := p.b
-	db := p.db
-	err := db.NewBlock(big.NewInt(1), rlpHash("a"), common.ZeroHash)
-	if err != nil {
-		b.Fatal(err)
-	}
-	perBatch := 10000
-	for i, n := 0, len(p.keys); i < n; {
-		first := true
-		for ; i < n && ((i+1)%perBatch != 0 || first); i++ {
-			first = false
-			err := db.Put(common.ZeroHash, p.keys[i], p.values[i])
-			if err != nil {
-				b.Fatal("write failed: ", err)
-			}
-		}
-	}
+
+	//commit 100
+	//recongized 100
+	//unreconized 1
 }
 
-func BenchmarkDBPut(b *testing.B) {
+func BenchmarkDBPutUnrecognized(b *testing.B) {
 	p := openDBBench(b)
 	p.populate(b.N)
-	p.puts()
+	p.putsUnrecognized()
+	p.close()
+}
+
+func BenchmarkDBPutRecognized(b *testing.B) {
+	p := openDBBench(b)
+	p.populate(b.N)
+	p.putsRecognized()
 	p.close()
 }
 
 func BenchmarkDBGet(b *testing.B) {
-	p := openDBBench(b)
-	p.populate(b.N)
-	p.fill()
-	//p.gets()
-	p.close()
+	//p := openDBBench(b)
+	//p.populate(b.N)
+	//p.fill()
+	////p.gets()
+	//p.close()
 }

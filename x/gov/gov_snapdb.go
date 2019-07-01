@@ -11,8 +11,8 @@ type GovSnapshotDB struct {
 	snapdb snapshotdb.DB
 }
 
-func NewGovSnapshotDB(snapdb snapshotdb.DB) *GovSnapshotDB {
-	return &GovSnapshotDB{snapdb: snapdb}
+func NewGovSnapshotDB() *GovSnapshotDB {
+	return &GovSnapshotDB{snapdb: snapshotdb.Instance()}
 }
 
 func (self *GovSnapshotDB) get(blockHash common.Hash, key []byte) ([]byte, error) {
@@ -27,9 +27,7 @@ func (self *GovSnapshotDB) del(blockHash common.Hash, key []byte) error {
 	return self.snapdb.Del(blockHash, key)
 }
 
-//传递进来的value是type+proposal的字节数组
 func (self *GovSnapshotDB) addProposalByKey(blockHash common.Hash, key []byte, proposalId common.Hash) error {
-	//获取的是rpl编码后的结果
 	hashes, err := self.getProposalIDListByKey(blockHash, key)
 	if err != nil {
 		return err
@@ -87,7 +85,6 @@ func (self *GovSnapshotDB) getAllProposalIDList(blockHash common.Hash) ([]common
 	return total, nil
 }
 
-//
 func (self *GovSnapshotDB) addVotedVerifier(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
 
 	nodes, err := self.getVotedVerifierList(blockHash, proposalId)
@@ -106,7 +103,6 @@ func (self *GovSnapshotDB) addVotedVerifier(blockHash common.Hash, node discover
 	return nil
 }
 
-//
 func (self *GovSnapshotDB) getVotedVerifierList(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
 	value, err := self.get(blockHash, KeyVotedVerifiers(proposalId))
 	if err != nil {
@@ -119,7 +115,6 @@ func (self *GovSnapshotDB) getVotedVerifierList(blockHash common.Hash, proposalI
 	return nodes, nil
 }
 
-//
 func (self *GovSnapshotDB) addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
 
 	nodes, err := self.getActiveNodeList(blockHash, proposalId)

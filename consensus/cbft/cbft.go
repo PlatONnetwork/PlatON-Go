@@ -60,7 +60,6 @@ var (
 	errInvalidatorCandidateAddress = errors.New("invalid address")
 	errDuplicationConsensusMsg     = errors.New("duplication message")
 
-	//errInvalidVrfProve = errors.New("Invalid vrf prove")
 	extraSeal = 65
 	//windowSize         = 10
 
@@ -397,10 +396,10 @@ func (cbft *Cbft) handleMsg(info *MsgInfo) {
 	if !cbft.isRunning() {
 		switch msg.(type) {
 		case *prepareBlock,
-		*prepareBlockHash,
-		*prepareVote,
-		*viewChange,
-		*viewChangeVote:
+			*prepareBlockHash,
+			*prepareVote,
+			*viewChange,
+			*viewChangeVote:
 			cbft.log.Debug("Cbft is not running, discard consensus message")
 			return
 		}
@@ -1756,7 +1755,7 @@ func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) err
 // rewards given, and returns the final block.
 func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error) {
 	cbft.log.Debug("finalize block", "hash", header.Hash(), "number", header.Number.Uint64(), "txs", len(txs), "receipts", len(receipts))
-	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
+	header.Root = state.IntermediateRoot(true)
 	return types.NewBlock(header, txs, receipts), nil
 }
 

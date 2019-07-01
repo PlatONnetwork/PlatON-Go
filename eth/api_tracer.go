@@ -192,8 +192,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 
 			// Fetch and execute the next block trace tasks
 			for task := range tasks {
-				signer := types.MakeSigner(api.config, task.block.Number())
-
+				signer := types.NewEIP155Signer(api.config.ChainID)
 				// Trace all the transactions contained within
 				for i, tx := range task.block.Transactions() {
 					msg, _ := tx.AsMessage(signer)
@@ -413,8 +412,7 @@ func (api *PrivateDebugAPI) traceBlock(ctx context.Context, block *types.Block, 
 	}
 	// Execute all the transaction contained within the block concurrently
 	var (
-		signer = types.MakeSigner(api.config, block.Number())
-
+		signer = types.NewEIP155Signer(api.config.ChainID)
 		txs     = block.Transactions()
 		results = make([]*txTraceResult, len(txs))
 
@@ -638,8 +636,7 @@ func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int, ree
 		return nil, vm.Context{}, nil, err
 	}
 	// Recompute transactions up to the target index.
-	signer := types.MakeSigner(api.config, block.Number())
-
+	signer := types.NewEIP155Signer(api.config.ChainID)
 	for idx, tx := range block.Transactions() {
 		// Assemble the transaction call message and return if the requested offset
 		msg, _ := tx.AsMessage(signer)

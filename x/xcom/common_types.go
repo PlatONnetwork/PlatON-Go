@@ -2,13 +2,13 @@ package xcom
 
 import (
 	"bytes"
+	"crypto/ecdsa"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 )
-
 
 // StateDB is an Plugin database for full state querying.
 type StateDB interface {
@@ -42,7 +42,6 @@ type StateDB interface {
 	GetState(common.Address, []byte) []byte
 	SetState(common.Address, []byte, []byte)
 
-
 	Suicide(common.Address) bool
 	HasSuicided(common.Address) bool
 
@@ -66,6 +65,15 @@ type StateDB interface {
 	TxIdx() uint32
 }
 
+type Evidence interface {
+	Verify(ecdsa.PublicKey) error
+	Equal(Evidence) bool
+	//return lowest number
+	BlockNumber() uint64
+	Hash() []byte
+	Address() common.Address
+	Validate() error
+}
 
 // inner contract event data
 type Result struct {
@@ -73,7 +81,6 @@ type Result struct {
 	Data   string
 	ErrMsg string
 }
-
 
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) error {
@@ -92,9 +99,6 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 	})
 	return nil
 }
-
-
-
 
 //type SnapshotDB interface {
 //	NewBlock (blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error

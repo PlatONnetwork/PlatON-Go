@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -17,8 +16,8 @@ var (
 )
 
 type VoteValue struct {
-	voter  discover.NodeID
-	option VoteOption
+	Voter  discover.NodeID
+	Option VoteOption
 }
 
 var dbOnce sync.Once
@@ -29,9 +28,9 @@ type GovDB struct {
 	snapdb   GovSnapshotDB
 }
 
-func NewGovDB(snapdb snapshotdb.DB) *GovDB {
+func NewGovDB() *GovDB {
 	dbOnce.Do(func() {
-		govDB = &GovDB{snapdb: GovSnapshotDB{snapdb}}
+		govDB = &GovDB{snapdb: GovSnapshotDB{}}
 	})
 	return govDB
 }
@@ -47,17 +46,17 @@ func tobytes(data interface{}) []byte {
 
 // 保存提案记录，value编码规则:
 //  value 为[]byte，其中byte[byte.len -2] 为type,byte[0:byte.len-2]为proposal
-func (self *GovDB) SetProposal(proposal Proposal, state xcom.StateDB) (bool, error) {
+func (self *GovDB) SetProposal(proposal Proposal, state xcom.StateDB) error {
 
 	bytes, e := json.Marshal(proposal)
 	if e != nil {
-		return false, e
+		return e
 	}
 
 	value := append(bytes, byte(proposal.GetProposalType()))
 	state.SetState(vm.GovContractAddr, KeyProposal(proposal.GetProposalID()), value)
 
-	return true, nil
+	return nil
 }
 
 func (self *GovDB) setError(err error) {
@@ -281,15 +280,6 @@ func (self *GovDB) AddActiveNode(blockHash common.Hash, proposalID common.Hash, 
 	return true
 }
 
-// 增加已投票验证人记录
-func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Hash, voter discover.NodeID) (bool){
-	if err := self.snapdb.addVotedVerifier(blockHash, voter, proposalID); err != nil {
-		log.Error("add voted node to snapshot db error,", err)
-		return false
-	}
-	return true
-}
-
 // 获取升级提案投票期间版本升声明的节点列表
 func (self *GovDB) GetActiveNodeList(blockHash common.Hash, proposalID common.Hash) []discover.NodeID {
 	nodes, err := self.snapdb.getActiveNodeList(blockHash, proposalID)
@@ -305,6 +295,15 @@ func (self *GovDB) ClearActiveNodes(blockHash common.Hash, proposalID common.Has
 	err := self.snapdb.deleteActiveNodeList(blockHash, proposalID)
 	if err != nil {
 		log.Error("delete declared node list from snapshot db error,", err)
+		return false
+	}
+	return true
+}
+
+// 增加已投票验证人记录
+func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Hash, voter discover.NodeID) bool {
+	if err := self.snapdb.addVotedVerifier(blockHash, voter, proposalID); err != nil {
+		log.Error("add voted node to snapshot db error,", err)
 		return false
 	}
 	return true
@@ -327,4 +326,7 @@ func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.
 	} else {
 		return l
 	}
+}
+func (self *GovDB) ListVotedVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error) {
+	return nil, nil
 }
