@@ -27,6 +27,13 @@ var (
 	evidenceDir = "evidenceDir"
 )
 
+const (
+	DuplicatePrepareType    = 1
+	DuplicateViewChangeType = 2
+	TimestampViewChangeType = 3
+)
+
+type EvidenceType int32
 type Evidence interface {
 	Verify(ecdsa.PublicKey) error
 	Equal(Evidence) bool
@@ -35,6 +42,7 @@ type Evidence interface {
 	Hash() []byte
 	Address() common.Address
 	Validate() error
+	Type() EvidenceType
 }
 
 type EvidenceData struct {
@@ -137,6 +145,10 @@ func (d DuplicatePrepareVoteEvidence) Error() string {
 		d.VoteA.ValidatorIndex, d.VoteB.ValidatorAddr, d.VoteA.Number, d.VoteA.Hash.String(), d.VoteB.Hash.String())
 }
 
+func (d DuplicatePrepareVoteEvidence) Type() EvidenceType {
+	return DuplicatePrepareType
+}
+
 //Evidence A.BlockNum == B.BlockNum but A.BlockHash != B.BlockHash
 type DuplicateViewChangeVoteEvidence struct {
 	VoteA *viewChangeVote
@@ -215,6 +227,10 @@ func (d DuplicateViewChangeVoteEvidence) Error() string {
 		d.VoteA.Timestamp, d.VoteA.BlockNum, d.VoteA.BlockHash.String(), d.VoteB.BlockNum, d.VoteB.BlockHash.String())
 }
 
+func (d DuplicateViewChangeVoteEvidence) Type() EvidenceType {
+	return DuplicateViewChangeType
+}
+
 //Evidence A.Timestamp < B.Timestamp but A.BlockNum > B.BlockNum
 type TimestampViewChangeVoteEvidence struct {
 	VoteA *viewChangeVote
@@ -288,6 +304,10 @@ func (d TimestampViewChangeVoteEvidence) Validate() error {
 func (d TimestampViewChangeVoteEvidence) Error() string {
 	return fmt.Sprintf("TimestampViewChangeVoteEvidence timestamp:%d blockNumberA:%d, blockHashA:%s, blockNumberB:%d, blockHashB:%s",
 		d.VoteA.Timestamp, d.VoteA.BlockNum, d.VoteA.BlockHash.String(), d.VoteB.BlockNum, d.VoteB.BlockHash.String())
+}
+
+func (d TimestampViewChangeVoteEvidence) Type() EvidenceType {
+	return TimestampViewChangeType
 }
 
 type TimeOrderViewChange []*viewChangeVote
