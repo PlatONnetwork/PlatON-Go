@@ -1,6 +1,7 @@
 package xutil
 
 import (
+	"bytes"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -86,4 +87,9 @@ func NodeId2Addr (nodeId discover.NodeID) (common.Address, error) {
 	} else {
 		return crypto.PubkeyToAddress(*pk), nil
 	}
+}
+
+
+func IsWorker(extra []byte) bool {
+	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
 }

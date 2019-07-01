@@ -136,7 +136,7 @@ type Validator struct {
 type ValidatorQueue  []*Validator
 
 type SlashMark map[discover.NodeID]struct{}
-type PackageRatio map[discover.NodeID]uint32
+type PackageRatio map[discover.NodeID]uint16
 
 func (arr ValidatorQueue) ValidatorSort(slashs SlashMark, ratio PackageRatio) {
 	if len(arr) <= 1 {
