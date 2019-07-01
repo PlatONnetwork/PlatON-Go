@@ -161,9 +161,6 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 				govPlugin.govDB.MovePreActiveProposalIDToEnd(blockHash, preActiveProposalID, state)
 
 				govPlugin.govDB.ClearActiveNodes(blockHash, preActiveProposalID)
-
-				//todo:
-				//stk.NotifyActive(blockHash, blockNumber, proposal.NewVersion)
 			}
 		}
 	}
@@ -308,21 +305,26 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 		return false, err
 	}
 
-	vp, err := govPlugin.findVotingVersionProposal(blockHash, state)
+	votingVP, err := govPlugin.findVotingVersionProposal(blockHash, state)
 	if err != nil {
 		return false, err
 	}
 
 	//there is a voting version proposal
-	if vp != nil {
-		if version>>8 == activeVersion>>8 && version>>8 == vp.GetNewVersion()>>8 {
-			govPlugin.govDB.AddActiveNode(blockHash, vp.ProposalID, declaredNodeID)
-		}else{
+	if votingVP != nil {
+		if version>>8 == activeVersion>>8 {
+			//the declared version is the current active version, notify staking immediately
+			stk.DeclarePromoteNotify(blockHash, curBlockNum, declaredNodeID, version)
+		}else if version>>8 == votingVP.GetNewVersion()>>8 {
+			//the declared version is the next version, will notify staking when the proposal is passed
+			govPlugin.govDB.AddActiveNode(blockHash, votingVP.ProposalID, declaredNodeID)
+		}else {
 			return false, errors.New(fmt.Sprintf("[GOV] DeclareVersion(): invalid declared version: %s", version))
 		}
 	}else {
 		if version>>8 == activeVersion>>8 {
-			//TODO inform staking
+			//the declared version is the current active version, notify staking immediately
+			stk.DeclarePromoteNotify(blockHash, curBlockNum, declaredNodeID, version)
 		}else{
 			return false, errors.New(fmt.Sprintf("[GOV] DeclareVersion(): invalid declared version: %s", version))
 		}
@@ -428,7 +430,11 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 	status := gov.Voting
 	supportRate := float64(yeas) * 100 / float64(verifiersCnt)
 	if supportRate > SupportRate_Threshold {
-		status = gov.Pass
+		status = gov.PreActive
+
+		activeList := govPlugin.govDB.GetActiveNodeList(blockHash, proposal.ProposalID)
+
+		stk.ProposalPassedNotify(blockHash, blockNumber, activeList, proposal.NewVersion)
 	} else {
 		status = gov.Failed
 		govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposal.ProposalID, state)
