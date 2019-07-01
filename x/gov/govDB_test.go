@@ -60,6 +60,11 @@ func TestGovDB_SetGetVerProposal(t *testing.T) {
 	}
 }
 
+func TestGovDB_ListProposalID(t *testing.T) {
+	//db, statedb := getGovDB()
+
+}
+
 func TestGovDB_SetVote(t *testing.T) {
 	db, statedb := getGovDB()
 	proposal := getVerProposal()
