@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	errParamPeriodInvalid = errors.New("param period invalid")
+	errParamPeriodInvalid = errors.New("param epoch invalid")
 	errBalanceNotEnough = errors.New("balance not enough to restrict")
 	errAccountNotFound = errors.New("account is not found")
 )
@@ -31,12 +31,12 @@ type restrictingInfo struct {
 }
 
 type releaseAmountInfo struct {
-	height uint64 	 `json:"blockNumber"`  	// blockNumber representation of the block number at the released lock-repo period
+	height uint64 	 `json:"blockNumber"`  	// blockNumber representation of the block number at the released lock-repo epoch
 	amount *big.Int	 `json:"amount"`		// amount representation of the released amount
 }
 
 type restrictingPlan struct {
-	period  uint64  `json:"period"`			// period representation of the released period at the target blockNumber
+	epoch   uint64  `json:"epoch"`			// epoch representation of the released epoch at the target blockNumber
 	amount	*big.Int `json:"amount"`		// amount representation of the released amount
 }
 
@@ -102,11 +102,11 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	// pre-check
 	var totalLock = big.NewInt(0)
 	for i := 0; i < len(plans); i++ {
-		period := plans[i].period
+		epoch := plans[i].epoch
 		amount := plans[i].amount
 
-		if vm.RestrictingContractAddr == account && period % 120 != 0 {
-			log.Error("param period invalid", "period", plans[i].period)
+		if vm.RestrictingContractAddr == account && epoch % 120 != 0 {
+			log.Error("param epoch invalid", "epoch", plans[i].epoch)
 			return false, errParamPeriodInvalid
 		}
 
@@ -133,7 +133,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		log.Debug("restricting record not exist", "account", account.Bytes())
 
 		for i := 0; i < len(plans); i++ {
-			height := plans[i].period * xcom.EpochSize * xcom.ConsensusSize
+			height := plans[i].epoch * xcom.EpochSize * xcom.ConsensusSize
 			amount := plans[i].amount
 
 			releaseNumberKey := xcom.GetReleaseNumberKey(height)
@@ -172,7 +172,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 
 		for i := 0; i < len(plans); i++ {
 			// release info
-			height := plans[i].period * xcom.EpochSize * xcom.ConsensusSize
+			height := plans[i].epoch * xcom.EpochSize * xcom.ConsensusSize
 			amount := plans[i].amount
 
 			releaseAmountKey := xcom.GetReleaseAmountKey(account, height)
