@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
@@ -340,7 +341,7 @@ func TestJson(t *testing.T) {
 	voteA := makeViewChangeVote(priA, 0, 5, common.BytesToHash([]byte{1}), 0, addrA, uint32(2), addrA)
 	voteB := makePrepareVote(priA, 0, uint64(1), common.BytesToHash(Rand32Bytes(32)), uint32(1), addrA)
 
-	evs := []Evidence{
+	evs := []consensus.Evidence{
 		&DuplicateViewChangeVoteEvidence{
 			VoteB: voteA,
 			VoteA: voteA,
@@ -362,4 +363,8 @@ func TestJson(t *testing.T) {
 
 	b2, _ := json.MarshalIndent(eds2, "", "  ")
 	assert.Equal(t, b, b2)
+
+	_, err := NewEvidences(string(b))
+	assert.Nil(t, err)
+
 }
