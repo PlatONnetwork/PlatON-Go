@@ -25,7 +25,7 @@ var govPlugin *GovPlugin
 func GovPluginInstance() *StakingPlugin {
 	if nil == govPlugin {
 		govPlugin = &GovPlugin{
-			govDB: gov.NewGovDB(),
+			govDB: gov.GovDBInstance(),
 		}
 	}
 	return stk
@@ -100,7 +100,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 
 			accuVerifiersCnt := uint16(govPlugin.govDB.AccuVerifiersLength(blockHash, votingProposal.GetProposalID()))
 
-			verifierList, err := govPlugin.govDB.ListVotedVerifier(blockHash, votingProposal.GetProposalID())
+			verifierList, err := govPlugin.govDB.ListVotedVerifier(votingProposal.GetProposalID(), state)
 			if err != nil {
 				return false, err
 			}
