@@ -36,6 +36,8 @@ var (
 	VonAmountNotRight		   = errors.New("The amount of von is not right")
 
 	CandidateNotExist 		   = errors.New("The candidate is not exist")
+
+	ValidatorNotExist 		   = errors.New("The validator is not exist")
 )
 
 const (
@@ -119,14 +121,14 @@ func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.H
 
 	// TODO Call gov Plugin
 
-	if processVersion < 10101010 {
+	/*if processVersion < version {
 		return true, ProcessVersionErr
-	} else if processVersion > 100000 {
+	} else if processVersion > version {
 
 		// TODO Call gov dclare ?
 	} else {
 		can.ProcessVersion = processVersion
-	}
+	}*/
 
 	// from account free von
 	if typ == FreeOrigin {
@@ -817,8 +819,9 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 		}
 
 		if remain.Cmp(common.Big0) > 0 {
-			log.Error("Failed to call handleUnDelegate", "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(), "nodeId", nodeId.String(), "stakeBlockNumber", num)
-			return false, VonAmountNotRight
+			log.Error("Failed to call handleUnDelegate", "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
+				"nodeId", nodeId.String(), "stakeBlockNumber", num)
+			return true, VonAmountNotRight
 		}
 
 		del.Reduction = new(big.Int).Sub(del.Reduction, amount)
@@ -847,13 +850,16 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		return false, err
 	}
 
+	/*if nil != old_verifierArr {
+
+	}*/
+
 	if old_verifierArr.End != blockNumber {
 		log.Error("Failed to ElectNextVerifierList: this blockNumber invalid", "Old Epoch End blockNumber",
 			old_verifierArr.End, "Current blockNumber", blockNumber)
 		return true, fmt.Errorf("The BlockNumber invalid, Old Epoch End blockNumber: %d, Current blockNumber: %d",
 			old_verifierArr.End, blockNumber)
 	}
-
 
 
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum))
@@ -1278,8 +1284,128 @@ func (sk *StakingPlugin) GetRelatedListByDelAddr (blockHash common.Hash, addr co
 
 func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bool, error) {
 
-	round := xutil.CalculateRound(blockNumber)
-	_ = round
+	//round := xutil.CalculateRound(blockNumber)
+	//_ = round
+
+
+	validators, err := sk.db.GetVerifierListByIrr()
+	if nil != err {
+		return false, err
+	}
+
+	curr, err := sk.db.GetCurrentValidatorListByIrr()
+	if nil != err {
+		log.Error("Failed to Election: No found the current round validators", "blockNumber",
+			blockNumber, "blockHash", blockHash.Hex())
+		return true, ValidatorNotExist
+	}
+
+	if blockNumber != (curr.End - xcom.ElectionDistance) {
+		log.Error("Failed to Election: this blockNumber invalid", "Target blockNumber",
+			curr.End - xcom.ElectionDistance, "Current blockNumber", blockNumber)
+		return true, fmt.Errorf("The BlockNumber invalid, Target blockNumber: %d, Current blockNumber: %d",
+			curr.End - xcom.ElectionDistance, blockNumber)
+	}
+
+	// caculate the next round start and end
+	curr.Start = curr.End + 1
+	curr.End = curr.End + xcom.ConsensusSize
+
+	proremoteCurr2NextFunc := func(curr *xcom.Validator_array) (bool, error) {
+
+		// Increase term of validator
+		for i, v := range curr.Arr {
+			v.ValidatorTerm++
+			curr.Arr[i] = v
+		}
+
+		if err := sk.db.SetNextValidatorList(blockHash, curr); nil != err {
+			return false, err
+		}
+		return true, nil
+	}
+
+	// Never like that
+	if nil == validators || len(validators.Arr) == 0  {
+		return proremoteCurr2NextFunc(curr)
+	}
+
+	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
+	for _, v := range curr.Arr {
+		currMap[v.NodeId] = struct{}{}
+	}
+
+	// Exclude the current consensus round validators from the validators of the Epoch
+	tmpQueue := make(xcom.ValidatorQueue, 0)
+	for _, v := range validators.Arr {
+		if _, ok := currMap[v.NodeId]; ok {
+			continue
+		}
+		tmpQueue = append(tmpQueue, v)
+	}
+
+
+	var shiftQueue xcom.ValidatorQueue
+
+	switch {
+	case len(tmpQueue) == 0:
+		return proremoteCurr2NextFunc(curr)
+	case len(tmpQueue) > 0 &&  len(tmpQueue) <= int(xcom.ShiftValidatorNum):
+		shiftQueue = tmpQueue
+	default:
+		// elect 8 validators by vrf
+		// TODO vrf
+
+
+	}
+
+	// TODO SlashingPlugin
+	//  GetPreSlashingNodes
+	slashNodeIds := make([]discover.NodeID, 0)
+
+	if len(slashNodeIds) > int(xcom.ShiftValidatorNum) {
+		log.Error("The PreSlashingNodes length greater than f of BFT", "f", xcom.ShiftValidatorNum,
+			"PreSlashingNodes length", len(slashNodeIds))
+		return true, fmt.Errorf("The PreSlashingNodes length greater than f of BFT, f:%d, PreSlashingNodes " +
+			"length: %d", xcom.ShiftValidatorNum, len(slashNodeIds))
+	}
+
+	var slashMark xcom.SlashMark
+	// Replace the slashing validators
+	if len(slashNodeIds) > 0 {
+		slashMark = make(xcom.SlashMark, len(slashNodeIds))
+		for _, nodeId := range slashNodeIds {
+			slashMark[nodeId] = struct{}{}
+		}
+	}
+
+	// TODO query the package Ratio of preRound validators
+	ratio := make(xcom.PackageRatio, 0)
+
+	curr.Arr.ValidatorSort(slashMark, ratio)
+
+	// Replace the validators that can be replaced
+	nextValidators := curr.Arr[len(shiftQueue):]
+
+	// Increase term of validator
+	for i,v := range nextValidators {
+		v.ValidatorTerm++
+		nextValidators[i] = v
+	}
+
+	nextValidators = append(nextValidators, shiftQueue...)
+
+	next := &xcom.Validator_array{
+		Start: curr.Start,
+		End: curr.End,
+		Arr: nextValidators,
+	}
+
+	if err := sk.db.SetNextValidatorList(blockHash, next); nil != err {
+		return false, err
+	}
+
+	// TODO Notice the P2P module
 
 	return true, nil
 }
@@ -1318,6 +1444,10 @@ func (sk *StakingPlugin) Switch(blockHash common.Hash, blockNumber uint64) (bool
 
 	if err := sk.db.SetCurrentValidatorList(blockHash, next); nil != err {
 		log.Error("Failed to Switch: Set Next become to Current failed", "err", err)
+		return false, err
+	}
+
+	if err := sk.db.DelNextValidatorListByBlockHash(blockHash); nil != err {
 		return false, err
 	}
 
@@ -1492,9 +1622,11 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 }
 
 
-func (sk *StakingPlugin) ProposalPassedNotify (blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID, processVersion unt32) (bool, error) {
+func (sk *StakingPlugin) ProposalPassedNotify (blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID,
+	processVersion uint32) (bool, error) {
 
-	log.Info("Call ProposalPassedNotify to promote candidate processVersion", "blockNumber", blockNumber, "blockHash", blockHash.Hex(),
+	log.Info("Call ProposalPassedNotify to promote candidate processVersion", "blockNumber", blockNumber,
+		"blockHash", blockHash.Hex(),
 		"version", processVersion, "nodeId num", len(nodeIds))
 	for _, nodeId := range nodeIds {
 
@@ -1507,7 +1639,8 @@ func (sk *StakingPlugin) ProposalPassedNotify (blockHash common.Hash, blockNumbe
 
 		if nil != can {
 
-			log.Error("Call ProposalPassedNotify: Proremote candidate processVersion failed, the can is empty", "blockNumber", blockNumber,
+			log.Error("Call ProposalPassedNotify: Proremote candidate processVersion failed, the can is empty",
+				"blockNumber", blockNumber,
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "version", processVersion)
 			continue
 		}
@@ -1531,7 +1664,8 @@ func (sk *StakingPlugin) ProposalPassedNotify (blockHash common.Hash, blockNumbe
 }
 
 
-func (sk *StakingPlugin) DeclarePromoteNotify (blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID, processVersion uint32) (bool, error) {
+func (sk *StakingPlugin) DeclarePromoteNotify (blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID,
+	processVersion uint32) (bool, error) {
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
 	if nil != err {
@@ -1540,8 +1674,9 @@ func (sk *StakingPlugin) DeclarePromoteNotify (blockHash common.Hash, blockNumbe
 
 	if nil != can {
 
-		log.Error("Call DeclarePromoteNotify: Proremote candidate processVersion failed, the can is empty", "blockNumber", blockNumber,
-			"blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "version", processVersion)
+		log.Error("Call DeclarePromoteNotify: Proremote candidate processVersion failed, the can is empty",
+			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
+			"version", processVersion)
 		return false, nil
 	}
 
@@ -1615,7 +1750,8 @@ func lazyCalcDelegateAmount(epoch uint64, del *xcom.Delegation) {
 		mergeFn()
 	case xcom.Is_Valid(canStatus):
 
-		if epoch - changeAmountEpoch < xcom.HesitateRatio || epoch - xcom.ActiveUnDelegateFreezeRatio <= changeAmountEpoch {
+		if epoch - changeAmountEpoch < xcom.HesitateRatio || epoch -
+	xcom.ActiveUnDelegateFreezeRatio <= changeAmountEpoch {
 			return
 		}
 

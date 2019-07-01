@@ -320,6 +320,18 @@ func (db *StakingDB) GetUnDelegateItemStore (blockHash common.Hash, epoch, index
 }
 
 
+
+
+func (db *StakingDB) SetVerfierList (blockHash common.Hash, val_Arr *xcom.Validator_array) error {
+
+	value, err := rlp.EncodeToBytes(val_Arr)
+	if nil != err {
+		return err
+	}
+	return db.put(blockHash, xcom.GetEpochValidatorKey(), value)
+}
+
+
 func (db *StakingDB) GetVerifierListByIrr () (*xcom.Validator_array, error) {
 
 	arrByte, err := db.getFromCommitted(xcom.GetEpochValidatorKey())
@@ -334,14 +346,6 @@ func (db *StakingDB) GetVerifierListByIrr () (*xcom.Validator_array, error) {
 	return arr, nil
 }
 
-func (db *StakingDB) SetVerfierList (blockHash common.Hash, val_Arr *xcom.Validator_array) error {
-
-	value, err := rlp.EncodeToBytes(val_Arr)
-	if nil != err {
-		return err
-	}
-	return db.put(blockHash, xcom.GetEpochValidatorKey(), value)
-}
 
 func (db *StakingDB) GetVerifierListByBlockHash (blockHash common.Hash) (*xcom.Validator_array, error) {
 
@@ -356,6 +360,8 @@ func (db *StakingDB) GetVerifierListByBlockHash (blockHash common.Hash) (*xcom.V
 	}
 	return arr, nil
 }
+
+
 
 func (db *StakingDB) SetPreValidatorList (blockHash common.Hash, val_Arr *xcom.Validator_array) error {
 	value, err := rlp.EncodeToBytes(val_Arr)
@@ -460,12 +466,23 @@ func (db *StakingDB) GetNextValidatorListByBlockHash (blockHash common.Hash) (*x
 	return arr, nil
 }
 
+func (db *StakingDB) DelNextValidatorListByBlockHash (blockHash common.Hash) error {
+	return db.del(blockHash, xcom.GetNextRoundValidatorKey())
+}
+
+
+func (db *StakingDB) IteratorCandidatePowerByIrr (ranges int) iterator.Iterator {
+	return db.ranking(common.ZeroHash, xcom.CanPowerKeyPrefix, ranges)
+}
+
 func (db *StakingDB) IteratorCandidatePowerByBlockHash (blockHash common.Hash, ranges int) iterator.Iterator {
 	return db.ranking(blockHash, xcom.CanPowerKeyPrefix, ranges)
 }
 
-func (db *StakingDB) IteratorCandidatePowerByIrr (ranges int) iterator.Iterator {
-	return db.ranking(common.ZeroHash, xcom.CanPowerKeyPrefix, ranges)
+
+func (db *StakingDB) IteratorDelegateByIrrWithAddr (addr common.Address, ranges int) iterator.Iterator {
+	prefix := append(xcom.DelegateKeyPrefix, addr.Bytes()...)
+	return db.ranking(common.ZeroHash, prefix, ranges)
 }
 
 func (db *StakingDB) IteratorDelegateByBlockHashWithAddr (blockHash common.Hash, addr common.Address, ranges int) iterator.Iterator {
@@ -473,7 +490,3 @@ func (db *StakingDB) IteratorDelegateByBlockHashWithAddr (blockHash common.Hash,
 	return db.ranking(blockHash, prefix, ranges)
 }
 
-func (db *StakingDB) IteratorDelegateByIrrWithAddr (addr common.Address, ranges int) iterator.Iterator {
-	prefix := append(xcom.DelegateKeyPrefix, addr.Bytes()...)
-	return db.ranking(common.ZeroHash, prefix, ranges)
-}
