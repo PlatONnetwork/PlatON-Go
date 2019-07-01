@@ -881,7 +881,6 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 	return result, true, nil
 }
 
-
 func (sk *StakingPlugin) ListCurrentValidatorID(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
 	var validatorNodeIDList []discover.NodeID
 

@@ -15,25 +15,24 @@ import (
 
 var (
 	errInvalidVrfProve = errors.New("invalid vrf prove")
-	errStorageNonce = errors.New("storage previous nonce failed")
+	errStorageNonce    = errors.New("storage previous nonce failed")
 
 	nonceStorageKey = []byte("nonceStorageKey")
 )
 
 type vrfHandler struct {
-	db 				snapshotdb.DB
-	privateKey 		*ecdsa.PrivateKey
-	genesisNonce  	[]byte
+	db           snapshotdb.DB
+	privateKey   *ecdsa.PrivateKey
+	genesisNonce []byte
 }
 
 var vh *vrfHandler
 
-
 func NewVrfHandler(db snapshotdb.DB, genesisNonce []byte) *vrfHandler {
 	if vh == nil {
 		vh = &vrfHandler{
-			db: db,
-			genesisNonce:genesisNonce,
+			db:           db,
+			genesisNonce: genesisNonce,
 		}
 	}
 	return vh
@@ -111,12 +110,12 @@ func (vh *vrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 
 func (vh *vrfHandler) Load(hash common.Hash) ([][]byte, error) {
 	if value, err := vh.db.Get(hash, nonceStorageKey); nil != err {
-		log.Error("Loading previous nonce failed","hash", hash, "key", string(nonceStorageKey), "err", err)
+		log.Error("Loading previous nonce failed", "hash", hash, "key", string(nonceStorageKey), "err", err)
 		return nil, err
 	} else {
 		nonces := make([][]byte, 0)
 		if err := rlp.DecodeBytes(value, &nonces); nil != err {
-			log.Error("rlpDecode previous nonce failed","hash", hash, "key", string(nonceStorageKey), "err", err)
+			log.Error("rlpDecode previous nonce failed", "hash", hash, "key", string(nonceStorageKey), "err", err)
 			return nil, err
 		}
 		return nonces, nil
@@ -140,4 +139,3 @@ func (vh *vrfHandler) getParentNonce(currentBlockNumber *big.Int, parentHash com
 	}
 	return nil, fmt.Errorf("nonce of the previous block could not be found, blockNumber：%v, parentHash：%x", currentBlockNumber.Uint64(), parentHash)
 }
-

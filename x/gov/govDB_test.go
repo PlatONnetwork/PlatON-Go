@@ -1,45 +1,69 @@
-package gov
+package gov_test
 
 import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"testing"
 )
 
-func getProposal() TextProposal {
-	return TextProposal{
+//var _ = checker.Suite(&StateSuite{})
+//
+//func TestGovDB_SetProposal(t *testing.T) {
+//	proposal:= getTProposal()
+//
+//
+//}
+
+func getGovDB() (*gov.GovDB, *state.StateDB) {
+	db := ethdb.NewMemDatabase()
+	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
+	return gov.NewGovDB(), statedb
+}
+
+func getProposal() gov.TextProposal {
+	return gov.TextProposal{
 		common.Hash{0x01},
 		"p#01",
-		Version,
+		gov.Version,
 		"up,up,up....",
 		"哈哈哈哈哈哈",
 		"em。。。。",
 		big.NewInt(1000),
 		big.NewInt(10000000),
 		discover.NodeID{},
-		TallyResult{},
+		gov.TallyResult{},
 	}
 }
 
-func TestMustDecoded(t *testing.T) {
+func TestGovDB_SetProposal(t *testing.T) {
+	db, statedb := getGovDB()
 
-	p := getProposal()
+	//db := ethdb.NewMemDatabase()
+	//statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 
-	println(p.GetUrl())
+	proposal := getProposal()
+	if e := db.SetProposal(proposal, statedb); e != nil {
+		t.Errorf("set proposal error", e)
+	}
 
-	encoded, _ := rlp.EncodeToBytes(p)
-	println(encoded)
+	//var proposalGet  Proposal
+	if proposalGet, e := db.GetProposal(proposal.ProposalID, statedb); e != nil {
+		t.Errorf("get proposal error", e)
+	} else {
+		fmt.Printf(proposalGet.GetUrl())
+	}
 
-	var txt TextProposal
+}
 
-	rlp.DecodeBytes(encoded, &txt)
+func TestGovDB_ListVote(t *testing.T) {
 
-	println(txt.Url)
 }
 
 func Test_Nothing(t *testing.T) {
@@ -51,7 +75,7 @@ func Test_Nothing(t *testing.T) {
 
 	fmt.Printf("%s \n", hex.EncodeToString(proposalBytes))
 
-	var txp TextProposal
+	var txp gov.TextProposal
 	json.Unmarshal(proposalBytes, &txp)
 	fmt.Println(txp.String())
 
