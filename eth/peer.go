@@ -86,7 +86,7 @@ type peer struct {
 	rw p2p.MsgReadWriter
 
 	version  int         // Protocol version negotiated
-	forkDrop *time.Timer // Timed connection dropper if forks aren't validated in time
+//	forkDrop *time.Timer // Timed connection dropper if forks aren't validated in time
 
 	head common.Hash
 	bn   *big.Int
