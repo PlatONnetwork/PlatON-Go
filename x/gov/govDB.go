@@ -134,10 +134,6 @@ func (self *GovDB) ListVote(proposalID common.Hash, state xcom.StateDB) []VoteVa
 }
 
 func (self *GovDB) ListVotedVerifier(proposalID common.Hash, option VoteOption, state xcom.StateDB) ([]discover.NodeID, error) {
-	votedList := self.ListVote(proposalID, state)
-	if option != 0 {
-
-	}
 	return nil, nil
 }
 
