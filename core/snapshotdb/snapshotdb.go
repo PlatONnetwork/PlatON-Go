@@ -112,7 +112,7 @@ func initDB() error {
 	if len(fds) > 0 {
 		db := new(snapshotDB)
 		if err := db.recover(s); err != nil {
-			logger.Error(fmt.Sprint("recover  db fail:", err))
+			logger.Error(fmt.Sprint("recover db fail:", err))
 			return err
 		}
 		dbInstance = db
@@ -225,7 +225,7 @@ func (s *snapshotDB) Compaction() error {
 			}
 			kvsize += s.committed[i].data.Len()
 		} else {
-			commitNum = 9
+			commitNum = i
 			break
 		}
 	}
@@ -278,7 +278,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 		s.unRecognized = block
 	} else {
 		if err := s.writeJournalHeader(blockNumber, hash, parentHash, journalHeaderFromRecognized); err != nil {
-			return fmt.Errorf("[SnapshotDB] write Journal body fail:%v", err)
+			return fmt.Errorf("[SnapshotDB] write Journal Header fail:%v", err)
 		}
 		s.recognized[hash] = *block
 	}
@@ -425,11 +425,11 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	defer s.commitLock.Unlock()
 	block, ok := s.recognized[hash]
 	if !ok {
-		return errors.New("[snapshotdb]not found f rom commit block:" + hash.String())
+		return errors.New("[snapshotdb]not found from commit block:" + hash.String())
 
 	}
 	if s.current.HighestNum.Cmp(block.Number) >= 0 {
-		return fmt.Errorf("[snapshotdb]the commit block num  %v is less than HighestNum %v", block.Number, s.current.HighestNum)
+		return fmt.Errorf("[snapshotdb]the commit block num  %v is less or eq than HighestNum %v", block.Number, s.current.HighestNum)
 	}
 	if (block.Number.Int64() - s.current.HighestNum.Int64()) != 1 {
 		return fmt.Errorf("[snapshotdb]the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
@@ -447,8 +447,10 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 		return errors.New("[snapshotdb]update current fail:" + err.Error())
 	}
 
+	if err := s.closeJournalWriter(hash); err != nil {
+		return err
+	}
 	delete(s.recognized, hash)
-
 	if err := s.rmOldRecognizedBlockData(); err != nil {
 		return err
 	}
@@ -482,6 +484,9 @@ func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter ite
 
 // Clear close db , remove all db file
 func (s *snapshotDB) Clear() error {
+	if s == nil {
+		return errors.New("snapshotDB is nil")
+	}
 	if err := s.Close(); err != nil {
 		return err
 	}
@@ -573,6 +578,9 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 func (s *snapshotDB) Close() error {
 	logger.Info("db begin close")
 	//	runtime.SetFinalizer(s, nil)
+	if s == nil {
+		return nil
+	}
 	if s.corn != nil {
 		s.corn.Stop()
 	}

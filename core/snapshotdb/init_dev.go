@@ -18,7 +18,8 @@ const (
 )
 
 func init() {
-	if flag.Lookup("test.bench") == nil {
+	t := flag.Lookup("test.bench")
+	if t.Value.String() == "" {
 		logger.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	} else {
 		logger.SetHandler(log.DiscardHandler())
