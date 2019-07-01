@@ -74,12 +74,7 @@ then, edit the following content and save it as json file, such as genesis.json:
 {
     "config": {
     "chainId": 300,
-    "homesteadBlock": 1,
-    "eip150Block": 2,
-    "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "eip155Block": 3,
-    "eip158Block": 3,
-    "byzantiumBlock": 4,
+    "eip155Block": 0,
     "cbft": {
       "initialNodes": ["enode://8917c748513c23db46d23f531cc083d2f6001b4cc2396eb8412d73a3e4450ffc5f5235757abf9873de469498d8cf45f5bb42c215da79d59940e17fcb22dfc127@127.0.0.1:16789"]
       }

@@ -63,16 +63,7 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 	// the jump table was initialised. If it was not
 	// we'll set the default jump table.
 	if !cfg.JumpTable[STOP].valid {
-		switch {
-		case evm.ChainConfig().IsConstantinople(evm.BlockNumber):
-			cfg.JumpTable = constantinopleInstructionSet
-		case evm.ChainConfig().IsByzantium(evm.BlockNumber):
-			cfg.JumpTable = byzantiumInstructionSet
-		case evm.ChainConfig().IsHomestead(evm.BlockNumber):
-			cfg.JumpTable = homesteadInstructionSet
-		default:
-			cfg.JumpTable = frontierInstructionSet
-		}
+		cfg.JumpTable = frontierInstructionSet
 	}
 
 	return &EVMInterpreter{
@@ -83,6 +74,7 @@ func NewEVMInterpreter(evm *EVM, cfg Config) *EVMInterpreter {
 }
 
 func (in *EVMInterpreter) enforceRestrictions(op OpCode, operation operation, stack *Stack) error {
+	/*
 	if in.evm.chainRules.IsByzantium {
 		if in.readOnly {
 			// If the interpreter is operating in readonly mode, make sure no
@@ -94,7 +86,7 @@ func (in *EVMInterpreter) enforceRestrictions(op OpCode, operation operation, st
 				return errWriteProtection
 			}
 		}
-	}
+	}*/
 	return nil
 }
 

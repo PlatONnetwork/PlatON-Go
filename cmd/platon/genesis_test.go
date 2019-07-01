@@ -77,12 +77,7 @@ var customGenesisTests = []struct {
 			"timestamp"  : "0x00",
 			"config"     : {
                "chainId": 101,
-               "homesteadBlock": 1,
-               "eip150Block": 2,
-               "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-               "eip155Block": 3,
-               "eip158Block": 3,
-               "byzantiumBlock": 4,
+               "eip155Block": 0,
                "interpreter":"wasm",
                "cbft": {
                        "initialNodes":  [
