@@ -24,7 +24,7 @@ var (
 	// The delegate minimum threshold allowed (10 LAT)
 	DelegateThreshold, _ = new(big.Int).SetString("10", 10)
 	// The consensus validators count
-	ConsValidatorNum = uint64(2)
+	ConsValidatorNum = uint64(25)
 	// The epoch (billing cycle) validators count
 	EpochValidatorNum = uint64(101)
 	// The number of elections and replacements for each of the consensus rounds
@@ -37,9 +37,9 @@ var (
 	EffectiveRatio = uint64(1)
 	// The interval of the last block of the high-distance
 	// consensus round of the election block for each consensus round
-	ElectionDistance = uint64(2)
+	ElectionDistance = uint64(20)
 	// Number of blocks per consensus round
-	ConsensusSize = uint64(10)
+	ConsensusSize = uint64(250)
 
 	// The freeze period of the withdrew staking (unit is  epochs)
 	UnStakeFreezeRatio = uint64(1)
