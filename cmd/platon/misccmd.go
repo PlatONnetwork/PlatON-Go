@@ -43,19 +43,6 @@ This command exists to support the system testing project.
 Regular users do not need to execute it.
 `,
 	}
-	makedagCommand = cli.Command{
-		Action:    utils.MigrateFlags(makedag),
-		Name:      "makedag",
-		Usage:     "Generate ethash mining DAG (for testing)",
-		ArgsUsage: "<blockNum> <outputDir>",
-		Category:  "MISCELLANEOUS COMMANDS",
-		Description: `
-The makedag command generates an ethash DAG in <outputDir>.
-
-This command exists to support the system testing project.
-Regular users do not need to execute it.
-`,
-	}
 	versionCommand = cli.Command{
 		Action:    utils.MigrateFlags(version),
 		Name:      "version",
@@ -120,12 +107,12 @@ func version(ctx *cli.Context) error {
 }
 
 func license(_ *cli.Context) error {
-	fmt.Println(`Geth is free software: you can redistribute it and/or modify
+	fmt.Println(`platon is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Geth is distributed in the hope that it will be useful,
+platon is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
