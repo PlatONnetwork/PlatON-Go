@@ -12,12 +12,12 @@ const (
 	#	  THE CANDIDATE  STATUS     #
 	######   ######   ######   ######
 	*/
-	Invalided = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
-	Slashed               // 0010: The candidate was slashed
-	NotEnough             // 0100: The current candidate's von does not meet the minimum staking threshold
-	Valided   = 0         // 0000: The current candidate is in force
-
-	NotExist = 1 << 31    // 1000,xxxx,... : The candidate is not exist
+	Invalided  = 1 << iota // 0001: The current candidate withdraws from the staking qualification (Active OR Passive)
+	LowRatio               // 0010: The candidate was low package ratio
+	NotEnough              // 0100: The current candidate's von does not meet the minimum staking threshold
+	DoubleSign             // 1000: The Double package or Double sign
+	Valided = 0 	 	   // 0000: The current candidate is in force
+	NotExist = 1 << 31     // 1000,xxxx,... : The candidate is not exist
 )
 
 func Is_Valid(status uint32) bool {
@@ -32,36 +32,44 @@ func Is_PureInvalid(status uint32) bool {
 	return status&Invalided == status|Invalided
 }
 
-func Is_Slashed(status uint32) bool {
-	return status&Slashed == Slashed
+func Is_LowRatio(status uint32) bool {
+	return status&LowRatio == LowRatio
 }
 
-func Is_PureSlashed(status uint32) bool {
-	return status&Slashed == status|Slashed
+func Is_PureLowRatio(status uint32) bool {
+	return status&LowRatio == status|LowRatio
 }
 
 func Is_NotEnough(status uint32) bool {
 	return status&NotEnough == NotEnough
 }
 
-func Is_idatePureNotEnough(status uint32) bool {
+func Is_PureNotEnough(status uint32) bool {
 	return status&NotEnough == status|NotEnough
 }
 
-func Is_Invalid_Slashed(status uint32) bool {
-	return status&(Invalided|Slashed) == (Invalided|Slashed)
+func Is_Invalid_LowRatio(status uint32) bool {
+	return status&(Invalided|LowRatio) == (Invalided|LowRatio)
 }
 
 func Is_Invalid_NotEnough(status uint32) bool {
 	return status&(Invalided|NotEnough) == (Invalided|NotEnough)
 }
 
-func Is_Invalid_Slashed_NotEnough(status uint32) bool {
-	return status&(Invalided|Slashed|NotEnough) == (Invalided|Slashed|NotEnough)
+func Is_Invalid_LowRatio_NotEnough(status uint32) bool {
+	return status&(Invalided|LowRatio|NotEnough) == (Invalided|LowRatio|NotEnough)
 }
 
-func Is_Slashed_NotEnough(status uint32) bool {
-	return status&(Slashed|NotEnough) == (Slashed|NotEnough)
+func Is_LowRatio_NotEnough(status uint32) bool {
+	return status&(LowRatio|NotEnough) == (LowRatio|NotEnough)
+}
+
+func Is_DoubleSign (status uint32) bool {
+	return status&DoubleSign == DoubleSign
+}
+
+func Is_DoubleSign_Invalid (status uint32) bool {
+	return status&(DoubleSign|Invalided) == (DoubleSign|Invalided)
 }
 
 // The Candidate info
@@ -76,7 +84,7 @@ type Candidate struct {
 	StakingTxIndex uint32
 
 	// The version of the node process
-	ProcessVersion 	uint32
+	ProcessVersion uint32
 
 	// The candidate status
 	// Reference `THE CANDIDATE  STATUS`
@@ -99,7 +107,6 @@ type Candidate struct {
 	// The staking von  is locked for hesitant epoch (in hesitation)
 	LockRepoTmp *big.Int
 
-
 	// Node desc
 	Description
 }
@@ -117,8 +124,6 @@ type Description struct {
 
 type CandidateQueue []*Candidate
 
-
-
 // the Validator info
 // They are Simplified Candidate
 // They are consensus nodes and Epoch nodes snapshot
@@ -133,9 +138,10 @@ type Validator struct {
 	ValidatorTerm uint32
 }
 
-type ValidatorQueue  []*Validator
+type ValidatorQueue []*Validator
 
 type SlashMark map[discover.NodeID]struct{}
+type SlashCandidate map[discover.NodeID]*Candidate
 type PackageRatio map[discover.NodeID]uint16
 
 func (arr ValidatorQueue) ValidatorSort(slashs SlashMark, ratio PackageRatio) {
@@ -171,19 +177,13 @@ func (arr ValidatorQueue) partition(slashs SlashMark, ratio PackageRatio, left, 
 	return left
 }
 
-
 func compare(slashs SlashMark, ratio PackageRatio, c, can *Validator) int {
 	// TODO
 	return -1
 }
 
-
-
-
 // some consensus round validators or current epoch validators
 type Validator_array struct {
-
-
 	// the round start blockNumber or epoch start blockNumber
 	Start uint64
 	// the round end blockNumber or epoch blockNumber
@@ -219,18 +219,17 @@ type Delegation struct {
 	LockRepoTmp *big.Int
 }
 
-
 type DelegationEx struct {
 	Delegation
 }
 
 type DelegateRelated struct {
-	Addr 	common.Address
-	NodeId  discover.NodeID
+	Addr            common.Address
+	NodeId          discover.NodeID
 	StakingBlockNum uint64
 }
 
-type DelRelatedQueue  = []*DelegateRelated
+type DelRelatedQueue = []*DelegateRelated
 
 /*type UnStakeItem struct {
 	// this is the nodeAddress
@@ -240,6 +239,6 @@ type DelRelatedQueue  = []*DelegateRelated
 
 type UnDelegateItem struct {
 	// this is the `delegateAddress` + `nodeAddress` + `stakeBlockNumber`
-	KeySuffix 	[]byte
-	Amount 		*big.Int
+	KeySuffix []byte
+	Amount    *big.Int
 }

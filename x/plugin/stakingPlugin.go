@@ -1380,23 +1380,30 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 
 	}
 
-	// TODO SlashingPlugin GetPreSlashingNodes
-	//slashPlugin.GetPreSlashingNodes()
-	slashNodeIds := make([]discover.NodeID, 0)
+	// TODO was Slashed node
 
-	if len(slashNodeIds) > int(xcom.ShiftValidatorNum) {
-		log.Error("The PreSlashingNodes length greater than f of BFT", "f", xcom.ShiftValidatorNum,
-			"PreSlashingNodes length", len(slashNodeIds),"blockNumber",  blockNumber, "blockHash", blockHash.Hex())
-		return true, fmt.Errorf("The PreSlashingNodes length greater than f of BFT, f:%d, PreSlashingNodes " +
-			"length: %d", xcom.ShiftValidatorNum, len(slashNodeIds))
+	pre, err := sk.db.GetPreValidatorListByIrr()
+	if nil != err {
+		log.Error("Failed to Election: No found the previous round validators", "blockNumber",
+			blockNumber, "blockHash", blockHash.Hex())
+		return true, ValidatorNotExist
 	}
 
-	var slashMark xcom.SlashMark
-	// Replace the slashing validators
-	if len(slashNodeIds) > 0 {
-		slashMark = make(xcom.SlashMark, len(slashNodeIds))
-		for _, nodeId := range slashNodeIds {
-			slashMark[nodeId] = struct{}{}
+
+
+	slashCans := make(xcom.SlashCandidate, 0)
+	slashMark := make(xcom.SlashMark, 0)
+	for _, v := range pre.Arr {
+
+		addr, _ := xutil.NodeId2Addr(v.NodeId)
+		can, err := sk.db.GetCandidateStore(blockHash, addr)
+		if nil != err {
+			return false, err
+		}
+
+		if xcom.Is_LowRatio(can.Status) {
+			slashCans[v.NodeId] = can
+			slashMark[v.NodeId] = struct {}{}
 		}
 	}
 
@@ -1430,6 +1437,15 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 	if err := sk.db.SetNextValidatorList(blockHash, next); nil != err {
 		return false, err
 	}
+
+	// TODO update candidate status
+	for _, can := range slashCans {
+		if xcom.Is_Valid(can.Status) && xcom.Is_LowRatio(can.Status) {
+			// clean the Slash status
+			can.Status &^= xcom.LowRatio
+		}
+	}
+
 
 	return true, nil
 }
@@ -1479,7 +1495,7 @@ func (sk *StakingPlugin) Switch(blockHash common.Hash, blockNumber uint64) (bool
 }
 
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64,
-	nodeId discover.NodeID, amount *big.Int, deleteCan bool) (bool, error) {
+	nodeId discover.NodeID, amount *big.Int, slashType int) (bool, error) {
 
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
@@ -1522,7 +1538,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	slashFunc := func(remian, balance *big.Int, isNotify bool) (*big.Int, *big.Int, bool, error) {
 		if remain.Cmp(balance) >= 0 {
 			state.SubBalance(vm.StakingContractAddr, balance)
-			// TODO  to ReWard Account ?? state.AddBalance()
+			state.AddBalance(vm.RewardManagerPoolAddr, balance)
 
 			if isNotify {
 				flag, err := RestrictingPtr.SlashingNotify(can.StakingAddress, balance, state)
@@ -1536,7 +1552,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			balance = common.Big0; remain = new(big.Int).Sub(remain, balance)
 		}else {
 			state.SubBalance(vm.StakingContractAddr, remain)
-			// TODO  to ReWard Account ?? state.AddBalance()
+			state.AddBalance(vm.RewardManagerPoolAddr, remain)
 
 			if isNotify {
 				flag, err := RestrictingPtr.SlashingNotify(can.StakingAddress, remain, state)
@@ -1596,15 +1612,16 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 
 	if !CheckStakeThreshold(canRemain) {
-		can.Status |= xcom.Slashed&xcom.NotEnough
-		deleteCan = true
+		can.Status |= xcom.LowRatio&xcom.NotEnough&xcom.Invalided
+		//deleteCan = true
 	}else {
-		can.Status |= xcom.Slashed
+		can.Status |= xcom.LowRatio
 	}
 
 
-	if !deleteCan {
+	if !false {
 		sk.db.SetCanPowerStore(blockHash, addr, can)
+		can.Status |= xcom.Invalided
 	}else {
 		validators, err := sk.db.GetVerifierListByBlockHash(blockHash)
 		if nil != err {
