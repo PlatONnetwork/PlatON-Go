@@ -45,7 +45,9 @@ func (db *StakingDB) ranking (blockHash common.Hash, prefix []byte, ranges int) 
 	return db.db.Ranking(blockHash, prefix, ranges)
 }
 
-
+func (db *StakingDB) GetLastKVHash (blockHash common.Hash) []byte {
+	return db.db.GetLastKVHash(blockHash)
+}
 
 
 

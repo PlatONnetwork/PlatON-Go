@@ -74,15 +74,22 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 	/*epoch := xutil.CalculateEpoch(header.Number.Uint64())
 
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
+		// handle UnStaking Item
 		success, err := sk.HandleUnCandidateReq(state, blockHash, epoch)
 		if nil != err {
 			log.Error("Failed to call HandleUnCandidateReq on stakingPlugin EndBlock", "blockHash",
 	blockHash.Hex(), "blockNumber", header.Number.Uint64(), "err", err)
 			return success, err
 		}
+
+		// Election next epoch validators
+		if flag, err := sk.ElectNextVerifierList(blockHash, header.Number.Uint64()); nil != err {
+			return flag, err
+		}
 	}
 
 	if xutil.IsElection(header.Number.Uint64()) {
+		// ELection next round validators
 		success, err := sk.Election(blockHash, header.Number.Uint64())
 		if nil != err {
 			log.Error("Failed to call Election on stakingPlugin EndBlock", "blockHash", blockHash.Hex(),
@@ -92,6 +99,7 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 	}
 
 	if xutil.IsSwitch(header.Number.Uint64()) {
+		// Switch previous, current and next round validators
 		success, err := sk.Switch(blockHash, header.Number.Uint64())
 		if nil != err {
 			log.Error("Failed to call Switch on stakingPlugin EndBlock", "blockHash", blockHash.Hex(),
@@ -99,7 +107,10 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 			return success, err
 		}
 	}
-	*/
+
+	// storage the ppos k-v Hash
+	pposHash := sk.db.GetLastKVHash(blockHash)
+	state.SetState(vm.StakingContractAddr, xcom.GetPPOSHASHKey(), pposHash)*/
 	return true, nil
 }
 
@@ -1515,7 +1526,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 	remain := amount
 
-	slashFunc := func(remian, balance *big.Int, isNotify bool) (*big.Int, *big.Int, bool, error) {
+	slashFunc := func (remian, balance *big.Int, isNotify bool) (*big.Int, *big.Int, bool, error) {
 		if remain.Cmp(balance) >= 0 {
 			state.SubBalance(vm.StakingContractAddr, balance)
 			state.AddBalance(vm.RewardManagerPoolAddr, balance)
@@ -1589,19 +1600,25 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	remainLockRepo := new(big.Int).Add(can.LockRepo, can.LockRepoTmp)
 	canRemain := new(big.Int).Add(remainRelease, remainLockRepo)
 
+	var isDelete bool
 
-
-	if !CheckStakeThreshold(canRemain) {
-		can.Status |= xcom.LowRatio&xcom.NotEnough&xcom.Invalided
-		//deleteCan = true
-	}else {
+	if slashType == xcom.LowRatio {
 		can.Status |= xcom.LowRatio
+		if !CheckStakeThreshold(canRemain) {
+			can.Status |= xcom.NotEnough&xcom.Invalided
+			isDelete = true
+		}
+	}else if slashType == xcom.DoubleSign {
+		can.Status |= xcom.DoubleSign
+		isDelete = true
+	}else {
+		log.Error("Failed to SlashCandidates: the slashType is wrong", "slashType", slashType)
+		return true, fmt.Errorf("Failed to SlashCandidates: the slashType is wrong, slashType: %d", slashType)
 	}
 
 
-	if !false {
+	if !isDelete {
 		sk.db.SetCanPowerStore(blockHash, addr, can)
-		can.Status |= xcom.Invalided
 	}else {
 		validators, err := sk.db.GetVerifierListByBlockHash(blockHash)
 		if nil != err {
