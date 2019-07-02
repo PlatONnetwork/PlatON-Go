@@ -22,6 +22,17 @@ const (
 )
 
 //DB the main snapshotdb interface
+//  example
+//  new a recognized blockData(sync from other peer)
+//  dbInstance.NewBlock(blockNumber, parentHash, hash)
+//  dbInstance.Put(hash, kv.key, kv.value)
+//  dbInstance.Commit(hash)
+//
+//  new a unrecognized blockData(a block produce by self)
+//  dbInstance.NewBlock(blockNumber, parentHash, common.ZeroHash)
+//  dbInstance.Put(hash, kv.key, kv.value)
+//  dbInstance.Flush(hash common.Hash, blockNumber *big.Int) error
+//  dbInstance.Commit(hash)
 type DB interface {
 	Put(hash common.Hash, key, value []byte) error
 	NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error
