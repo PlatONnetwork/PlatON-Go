@@ -23,7 +23,6 @@ var (
 )
 
 
-
 type restrictingInfo struct {
 	balance     *big.Int `json:"balance"` // balance representation all locked amount
 	debt        *big.Int `json:"debt"`    // debt representation will released amount. Positive numbers can be used instead of release, 0 means no release, negative numbers indicate not enough to release
@@ -35,10 +34,6 @@ type releaseAmountInfo struct {
 	amount *big.Int	 `json:"amount"`		// amount representation of the released amount
 }
 
-type restrictingPlan struct {
-	epoch   uint64  `json:"epoch"`			// epoch representation of the released epoch at the target blockNumber
-	amount	*big.Int `json:"amount"`		// amount representation of the released amount
-}
 
 type Result struct {
 	balance *big.Int
@@ -88,25 +83,17 @@ func (rp *RestrictingPlugin) Confirmed(block *types.Block) error {
 // ReleaseNumbers: the number of accounts to be released at the target block height
 // ReleaseAccount: the account on the index at the target block height
 // ReleaseAmount: the released account amount at the target block height
-func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account common.Address, plan string,
+func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account common.Address, plans []byteutil.RestrictingPlan,
 	state xcom.StateDB) (bool, error) {
-
-	// decode plan from input param
-	var plans []restrictingPlan
-
-	if err := rlp.Decode(bytes.NewBuffer([]byte(plan)), plans); err != nil {
-		log.Error("failed to rlp encode input plan", "plan", plan)
-		return false, err
-	}
 
 	// pre-check
 	var totalLock = big.NewInt(0)
 	for i := 0; i < len(plans); i++ {
-		epoch := plans[i].epoch
-		amount := plans[i].amount
+		epoch := plans[i].Epoch
+		amount := plans[i].Amount
 
 		if vm.RestrictingContractAddr == account && epoch % 120 != 0 {
-			log.Error("param epoch invalid", "epoch", plans[i].epoch)
+			log.Error("param epoch invalid", "epoch", plans[i].Epoch)
 			return false, errParamPeriodInvalid
 		}
 
@@ -133,8 +120,8 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		log.Debug("restricting record not exist", "account", account.Bytes())
 
 		for i := 0; i < len(plans); i++ {
-			height := plans[i].epoch * xcom.EpochSize * xcom.ConsensusSize
-			amount := plans[i].amount
+			height := plans[i].Epoch * xcom.EpochSize * xcom.ConsensusSize
+			amount := plans[i].Amount
 
 			releaseNumberKey := xcom.GetReleaseNumberKey(height)
 			numbers := state.GetState(vm.RestrictingContractAddr, releaseNumberKey)
@@ -172,8 +159,8 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 
 		for i := 0; i < len(plans); i++ {
 			// release info
-			height := plans[i].epoch * xcom.EpochSize * xcom.ConsensusSize
-			amount := plans[i].amount
+			height := plans[i].Epoch * xcom.EpochSize * xcom.ConsensusSize
+			amount := plans[i].Amount
 
 			releaseAmountKey := xcom.GetReleaseAmountKey(account, height)
 			bAmount := state.GetState(account, releaseAmountKey)
@@ -213,13 +200,11 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	}
 	state.SetState(account, restrictingKey, bInfo)
 
-	state.SubBalance(sender, totalLock)
-	state.AddBalance(vm.RestrictingContractAddr, totalLock)
-
 	return true, nil
 }
 
-// PledgeLockFunds does nothing, output[0] return true when business is success, else return false
+// PledgeLockFunds transfer the money from the restricting contract account to the staking contract account,
+// the first output returns true when business is success, else return false
 func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) (bool, error) {
 
 	restrictingKey := xcom.GetRestrictingKey(account)
@@ -262,7 +247,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 }
 
 
-// ReturnLockFunds does nothing
+// ReturnLockFunds transfer the money from the staking contract account  to the restricting contract account,
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) (bool, error) {
 
 	restrictingKey := xcom.GetRestrictingKey(account)
@@ -311,7 +296,7 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	return true, nil
 }
 
-// SlashingNotify does nothing
+// SlashingNotify modify debt of restrictingInfo
 func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.Int, state xcom.StateDB) (bool, error) {
 
 	restrictingKey := xcom.GetRestrictingKey(account)

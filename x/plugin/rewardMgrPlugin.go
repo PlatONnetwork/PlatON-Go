@@ -107,7 +107,7 @@ func (rmp *rewardMgrPlugin) increaseIssuance(head *types.Header, state xcom.Stat
 // rewardPledge does nothing
 func (rmp *rewardMgrPlugin) rewardPledge(head *types.Header, reward *big.Int, state xcom.StateDB) (bool, error) {
 
-	// stakingPlugin.GetVerifierList()  获取列表
+	// stakingPlugin.GetVerifierList()
 
 	var list []*xcom.Candidate
 
@@ -156,6 +156,8 @@ func (rmp *rewardMgrPlugin) computePeriodAward(head *types.Header) (*big.Int, *b
 		pledgeReward  *big.Int
 		newBlockReward *big.Int
 	)
+
+	//compute := uint64(1)
 
 
 	return pledgeReward, newBlockReward, nil
