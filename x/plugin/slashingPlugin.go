@@ -18,6 +18,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"math/big"
+	"sync"
 )
 
 var (
@@ -39,6 +40,8 @@ var (
 
 	errMutiSignVerify	= errors.New("Multi-sign verification failed")
 	errSlashExist		= errors.New("Punishment has been implemented")
+
+	once = sync.Once{}
 )
 
 type SlashingPlugin struct {
@@ -49,11 +52,11 @@ type SlashingPlugin struct {
 var slashPlugin *SlashingPlugin
 
 func SlashInstance(db snapshotdb.DB) *SlashingPlugin {
-	if slashPlugin == nil {
+	once.Do(func() {
 		slashPlugin = &SlashingPlugin{
 			db:db,
 		}
-	}
+	})
 	return slashPlugin
 }
 
@@ -245,7 +248,7 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 			if err := evidence.Validate(); nil != err {
 				return err
 			}
-			if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), int32(evidence.Type()), stateDB); nil != value {
+			if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), int32(evidence.Type()), stateDB); len(value) > 0 {
 				log.Error("Execution slashing failed", "blockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
 				return errSlashExist
 			}
@@ -257,6 +260,7 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 					return err
 				}
 				sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), int32(evidence.Type()), stateDB)
+				log.Info("Slash Multi-sign success", "currentBlockNumber", blockNumber, "mutiSignBlockNumber", evidence.BlockNumber(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "etype", evidence.Type(), "txHash", hex.EncodeToString(stateDB.TxHash().Bytes()))
 			}
 		}
 	}
@@ -312,6 +316,7 @@ func isAbnormal(amount uint16) bool {
 }
 
 func parseNodeId(header *types.Header) (discover.NodeID, error) {
+	log.Debug("extra parseNodeId", "extra", hex.EncodeToString(header.Extra), "sealHash", hex.EncodeToString(header.SealHash().Bytes()))
 	sign := header.Extra[32:97]
 	pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
 	if nil != err {
