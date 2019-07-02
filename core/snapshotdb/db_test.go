@@ -21,56 +21,33 @@ func TestRecover(t *testing.T) {
 	var (
 		recognizedHash                                       = generateHash("recognizedHash")
 		parenthash                                           common.Hash
-		baseDBArr, commitArr, recognizedArr, unrecognizedArr []string
+		baseDBArr, commitArr, recognizedArr, unrecognizedArr []kv
 		base, high                                           int64
 		commit, recognized, unrecognized                     blockData
 	)
 	{
 		commitHash := recognizedHash
-		if err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
-			t.Error(err)
-			return
-		}
 		var str string
 		for i := 0; i < 4; i++ {
 			str += "a"
-			baseDBArr = append(baseDBArr, str)
-			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
-				t.Error(err)
-				return
-			}
+			baseDBArr = append(baseDBArr, kv{key: []byte(str), value: []byte(str)})
 		}
-		if err := dbInstance.Put(commitHash, []byte("d"), []byte("d")); err != nil {
-			t.Error(err)
-			return
-		}
-		if err := dbInstance.Commit(commitHash); err != nil {
+		baseDBArr = append(baseDBArr, kv{key: []byte("d"), value: []byte("d")})
+		if err := newBlockBaseDB(big.NewInt(1), parenthash, commitHash, baseDBArr); err != nil {
 			t.Error(err)
 			return
 		}
 		parenthash = commitHash
-		dbInstance.Compaction()
 	}
 	{
 		commitHash := generateHash("recognizedHash3")
-		if err := dbInstance.NewBlock(big.NewInt(2), parenthash, commitHash); err != nil {
-			t.Error(err)
-			return
-		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "c"
-			commitArr = append(commitArr, str)
-			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
-				t.Error(err)
-				return
-			}
+			commitArr = append(commitArr, kv{key: []byte(str), value: []byte(str)})
 		}
-		if err := dbInstance.Put(commitHash, []byte("ddd"), []byte("ddd")); err != nil {
-			t.Error(err)
-			return
-		}
-		if err := dbInstance.Commit(commitHash); err != nil {
+		commitArr = append(commitArr, kv{key: []byte("ddd"), value: []byte("ddd")})
+		if err := newBlockCommited(big.NewInt(2), parenthash, commitHash, commitArr); err != nil {
 			t.Error(err)
 			return
 		}
@@ -79,20 +56,14 @@ func TestRecover(t *testing.T) {
 	}
 	{
 		commitHash := generateHash("recognizedHash4")
-		if err := dbInstance.NewBlock(big.NewInt(3), parenthash, commitHash); err != nil {
-			t.Error(err)
-			return
-		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "e"
-			recognizedArr = append(recognizedArr, str)
-			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
-				t.Error(err)
-				return
-			}
+			recognizedArr = append(recognizedArr, kv{key: []byte(str), value: []byte(str)})
 		}
-		if err := dbInstance.Put(commitHash, []byte("ee"), []byte("ee")); err != nil {
+		recognizedArr = append(recognizedArr, kv{key: []byte("ee"), value: []byte("ee")})
+
+		if err := newBlockRecognizedDirect(big.NewInt(3), parenthash, commitHash, recognizedArr); err != nil {
 			t.Error(err)
 			return
 		}
@@ -100,20 +71,14 @@ func TestRecover(t *testing.T) {
 		parenthash = commitHash
 	}
 	{
-		if err := dbInstance.NewBlock(big.NewInt(4), parenthash, common.ZeroHash); err != nil {
-			t.Error(err)
-			return
-		}
 		str := "a"
 		for i := 0; i < 4; i++ {
 			str += "f"
-			unrecognizedArr = append(unrecognizedArr, str)
-			if err := dbInstance.Put(common.ZeroHash, []byte(str), []byte(str)); err != nil {
-				t.Error(err)
-				return
-			}
+			unrecognizedArr = append(unrecognizedArr, kv{key: []byte(str), value: []byte(str)})
 		}
-		if err := dbInstance.Put(common.ZeroHash, []byte("ff"), []byte("ff")); err != nil {
+		unrecognizedArr = append(unrecognizedArr, kv{key: []byte("ff"), value: []byte("ff")})
+
+		if err := newBlockUnRecognized(big.NewInt(4), parenthash, unrecognizedArr); err != nil {
 			t.Error(err)
 			return
 		}
@@ -162,13 +127,13 @@ func TestRecover(t *testing.T) {
 		return
 	}
 	for _, value := range baseDBArr {
-		v, err := dbInstance.baseDB.Get([]byte(value), nil)
+		v, err := dbInstance.baseDB.Get(value.key, nil)
 		if err != nil {
 			t.Error("should be nil", err)
 			return
 		}
-		if bytes.Compare(v, []byte(value)) != 0 {
-			t.Error("should be equal", v, []byte(value))
+		if bytes.Compare(v, value.value) != 0 {
+			t.Error("should be equal", v, []byte(value.value))
 			return
 		}
 	}

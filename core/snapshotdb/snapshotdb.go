@@ -265,7 +265,7 @@ func (s *snapshotDB) Compaction() error {
 func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error {
 	if hash == common.ZeroHash {
 		if s.unRecognized != nil && s.unRecognized.readOnly {
-			return errors.New("[SnapshotDB]can't  new unRecognized block,it's readonly now")
+			return errors.New("[SnapshotDB]can't  new unRecognized block,it's have value,must flush it before NewBlock ")
 		}
 	}
 	block := new(blockData)
@@ -438,7 +438,7 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	}
 	if s.current.LastHash != common.ZeroHash {
 		if block.ParentHash != s.current.LastHash {
-			return fmt.Errorf("[snapshotdb]the commit block ParentHash %v not eq LastHash of commit hash %v ", block.ParentHash, s.current.LastHash)
+			return fmt.Errorf("[snapshotdb]the commit block ParentHash %v not eq LastHash of commit hash %v ", block.ParentHash.String(), s.current.LastHash.String())
 		}
 	}
 	block.readOnly = true
