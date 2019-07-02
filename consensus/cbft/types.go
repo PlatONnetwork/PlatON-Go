@@ -1132,18 +1132,15 @@ func (bm *BlockExtMap) Add(hash common.Hash, number uint64, blockExt *BlockExt) 
 		if ext, ok := extMap[hash]; ok {
 			log.Debug(fmt.Sprintf("hash:%s, number:%d", hash.TerminalString(), number))
 			ext.Merge(blockExt)
-			if ext.prepareVotes.IsMaj23() {
-				bm.removeFork(number, hash)
-			}
+			bm.removeFork(number)
+
 			if ext.block != nil {
 				bm.fixChain(ext)
 			}
 		} else {
 			log.Debug(fmt.Sprintf("hash:%s, number:%d", hash.TerminalString(), number))
-			if blockExt.prepareVotes.IsMaj23() {
-				bm.removeFork(number, hash)
-			}
 			extMap[hash] = blockExt
+			bm.removeFork(number)
 			if blockExt.block != nil {
 				bm.fixChain(blockExt)
 			}
@@ -1154,21 +1151,34 @@ func (bm *BlockExtMap) Add(hash common.Hash, number uint64, blockExt *BlockExt) 
 		extMap := make(map[common.Hash]*BlockExt)
 		extMap[hash] = blockExt
 		bm.blocks[number] = extMap
-		if blockExt.prepareVotes.IsMaj23() {
-			bm.removeFork(number, hash)
-		}
+		bm.removeFork(number)
+
 		if blockExt.block != nil {
 			bm.fixChain(blockExt)
 		}
 	}
 }
 
-func (bm *BlockExtMap) removeFork(number uint64, hash common.Hash) {
+func (bm *BlockExtMap) removeFork(number uint64) {
+	hash := common.Hash{}
 	if extMap, ok := bm.blocks[number]; ok {
+		//find confirmed
 		for k, v := range extMap {
 			if k != hash {
 				if v.prepareVotes.IsMaj23() {
-					panic(fmt.Sprintf("forked block has 2f+1 prepare votes:%s", k.TerminalString()))
+
+					if hash != (common.Hash{}) {
+						panic(fmt.Sprintf("forked block has 2f+1 prepare votes:%s", k.TerminalString()))
+					}
+					hash = k
+				}
+			}
+		}
+		//delete others
+		if hash != (common.Hash{}) {
+			for k, v := range extMap {
+				if k == hash {
+					continue
 				}
 				if v.parent != nil {
 					delete(v.parent.children, k)
