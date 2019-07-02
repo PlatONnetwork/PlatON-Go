@@ -41,22 +41,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/trie"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 )
 
 var (
 	ErrNoGenesis = errors.New("Genesis not found in chain")
-)
-
-const (
-	bodyCacheLimit      = 256
-	blockCacheLimit     = 256
-	maxFutureBlocks     = 256
-	badBlockLimit       = 10
-	triesInMemory       = 128
-
-	// BlockChainVersion ensures that an incompatible database forces a resync from scratch.
-	BlockChainVersion = 3
 )
 
 // CacheConfig contains the configuration values for the trie caching/pruning
@@ -65,6 +54,30 @@ type CacheConfig struct {
 	Disabled      bool          // Whether to disable trie write caching (archive node)
 	TrieNodeLimit int           // Memory limit (MB) at which to flush the current in-memory trie to disk
 	TrieTimeLimit time.Duration // Time limit after which to flush the current in-memory trie to disk
+
+	BodyCacheLimit 	 int
+	BlockCacheLimit  int
+	MaxFutureBlocks  int
+	BadBlockLimit 	 int
+	TriesInMemory	 int
+	DefaultTxsCacheSize int
+	DefaultBroadcastInterval time.Duration
+}
+
+// mining related configuration
+type MiningConfig struct {
+	MiningLogAtDepth  		uint
+	TxChanSize		  		int
+	ChainHeadChanSize 		int
+	ChainSideChanSize 		int
+	ResultQueueSize			int
+	ResubmitAdjustChanSize  int
+	MinRecommitInterval		time.Duration
+	MaxRecommitInterval		time.Duration
+	IntervalAdjustRatio		float64
+	IntervalAdjustBias		float64
+	StaleThreshold			uint64
+	DefaultCommitRatio		float64
 }
 
 // BlockChain represents the canonical chain given a database with a genesis
@@ -135,13 +148,20 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		cacheConfig = &CacheConfig{
 			TrieNodeLimit: 256 * 1024 * 1024,
 			TrieTimeLimit: 5 * time.Minute,
+			BodyCacheLimit:  256,
+			BlockCacheLimit: 256,
+			MaxFutureBlocks: 256,
+			BadBlockLimit:	 10,
+			TriesInMemory:	 128,
+			DefaultTxsCacheSize: 20,
+			DefaultBroadcastInterval: 100 * time.Millisecond,
 		}
 	}
-	bodyCache, _ := lru.New(bodyCacheLimit)
-	bodyRLPCache, _ := lru.New(bodyCacheLimit)
-	blockCache, _ := lru.New(blockCacheLimit)
-	futureBlocks, _ := lru.New(maxFutureBlocks)
-	badBlocks, _ := lru.New(badBlockLimit)
+	bodyCache, _ := lru.New(cacheConfig.BodyCacheLimit)
+	bodyRLPCache, _ := lru.New(cacheConfig.BodyCacheLimit)
+	blockCache, _ := lru.New(cacheConfig.BlockCacheLimit)
+	futureBlocks, _ := lru.New(cacheConfig.MaxFutureBlocks)
+	badBlocks, _ := lru.New(cacheConfig.BadBlockLimit)
 
 	bc := &BlockChain{
 		chainConfig:    chainConfig,
@@ -653,8 +673,11 @@ func (bc *BlockChain) Stop() {
 	//  - HEAD-127: So we have a hard limit on the number of blocks reexecuted
 	if !bc.cacheConfig.Disabled {
 		triedb := bc.stateCache.TrieDB()
+		if 0 >= bc.cacheConfig.TriesInMemory {
+			bc.cacheConfig.TriesInMemory = 128
+		}
 
-		for _, offset := range []uint64{0, 1, triesInMemory - 1} {
+		for _, offset := range []uint64{0, 1, (uint64)(bc.cacheConfig.TriesInMemory - 1)} {
 			if number := bc.CurrentBlock().NumberU64(); number > offset {
 				recent := bc.GetBlockByNumber(number - offset)
 
@@ -905,7 +928,11 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 		triedb.Reference(root, common.Hash{}) // metadata reference to keep trie alive
 		bc.triegc.Push(root, -int64(block.NumberU64()))
 
-		if current := block.NumberU64(); current > triesInMemory {
+		if 0 >= bc.cacheConfig.TriesInMemory {
+			bc.cacheConfig.TriesInMemory = 128
+		}
+
+		if current := block.NumberU64(); current > (uint64)(bc.cacheConfig.TriesInMemory) {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
 			var (
 				nodes, imgs = triedb.Size()
@@ -915,15 +942,16 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 				triedb.Cap(limit - ethdb.IdealBatchSize)
 			}
 			// Find the next state trie we need to commit
-			header := bc.GetHeaderByNumber(current - triesInMemory)
+			header := bc.GetHeaderByNumber(current - (uint64)(bc.cacheConfig.TriesInMemory))
 			chosen := header.Number.Uint64()
 
 			// If we exceeded out time allowance, flush an entire trie to disk
 			if bc.gcproc > bc.cacheConfig.TrieTimeLimit {
 				// If we're exceeding limits but haven't reached a large enough memory gap,
 				// warn the user that the system is becoming unstable.
-				if chosen < lastWrite+triesInMemory && bc.gcproc >= 2*bc.cacheConfig.TrieTimeLimit {
-					log.Info("State in memory for too long, committing", "time", bc.gcproc, "allowance", bc.cacheConfig.TrieTimeLimit, "optimum", float64(chosen-lastWrite)/triesInMemory)
+				if chosen < lastWrite+(uint64)(bc.cacheConfig.TriesInMemory) && bc.gcproc >= 2*bc.cacheConfig.TrieTimeLimit {
+					log.Info("State in memory for too long, committing", "time", bc.gcproc, "allowance", bc.cacheConfig.TrieTimeLimit, "optimum",
+						float64(chosen-lastWrite)/(float64)(bc.cacheConfig.TriesInMemory))
 				}
 				// Flush an entire trie and restart the counters
 				triedb.Commit(header.Root, true)
@@ -1589,6 +1617,9 @@ func (bc *BlockChain) GetHeaderByNumber(number uint64) *types.Header {
 
 // Config retrieves the blockchain's chain configuration.
 func (bc *BlockChain) Config() *params.ChainConfig { return bc.chainConfig }
+
+// Config retrieves the blockchain's chain configuration.
+func (bc *BlockChain) CacheConfig() *CacheConfig { return bc.cacheConfig }
 
 // Engine retrieves the blockchain's consensus engine.
 func (bc *BlockChain) Engine() consensus.Engine { return bc.engine }
