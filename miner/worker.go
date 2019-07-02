@@ -576,6 +576,9 @@ func (w *worker) mainLoop() {
 				sealhash = w.engine.SealHash(block.Header())
 				hash     = block.Hash()
 			)
+
+			core.GetReactorInstance().PrepareResult(block)
+
 			w.pendingMu.RLock()
 			_, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
@@ -1162,8 +1165,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		Time:       big.NewInt(timestamp),
 	}
 
-	// TODO begin()
-
 	// Only set the coinbase if our consensus engine is running (avoid spurious block rewards)
 	if w.isRunning() { /*
 			if w.coinbase == (common.Address{}) {
@@ -1185,7 +1186,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		log.Error("Failed to create mining context", "err", err)
 		return
 	}
-
+	// TODO begin()
+	if success, err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err || !success {
+		return
+	}
 	if !noempty && "on" == w.EmptyBlock {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
@@ -1293,7 +1297,9 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	s := w.current.state.Copy()
 
 	// TODO end()
-
+	if success, err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err || !success {
+		return err
+	}
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {
 		return err

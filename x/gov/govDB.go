@@ -2,11 +2,9 @@ package gov
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -18,8 +16,8 @@ var (
 )
 
 type VoteValue struct {
-	voter  discover.NodeID
-	option VoteOption
+	Voter  discover.NodeID
+	Option VoteOption
 }
 
 var dbOnce sync.Once
@@ -30,9 +28,9 @@ type GovDB struct {
 	snapdb   GovSnapshotDB
 }
 
-func NewGovDB(snapdb snapshotdb.DB) *GovDB {
+func GovDBInstance() *GovDB {
 	dbOnce.Do(func() {
-		govDB = &GovDB{snapdb: GovSnapshotDB{snapdb}}
+		govDB = &GovDB{snapdb: GovSnapshotDB{}}
 	})
 	return govDB
 }
@@ -48,17 +46,17 @@ func tobytes(data interface{}) []byte {
 
 // 保存提案记录，value编码规则:
 //  value 为[]byte，其中byte[byte.len -2] 为type,byte[0:byte.len-2]为proposal
-func (self *GovDB) SetProposal(proposal Proposal, state xcom.StateDB) (bool, error) {
+func (self *GovDB) SetProposal(proposal Proposal, state xcom.StateDB) error {
 
 	bytes, e := json.Marshal(proposal)
 	if e != nil {
-		return false, e
+		return e
 	}
 
 	value := append(bytes, byte(proposal.GetProposalType()))
 	state.SetState(vm.GovContractAddr, KeyProposal(proposal.GetProposalID()), value)
 
-	return true, nil
+	return nil
 }
 
 func (self *GovDB) setError(err error) {
@@ -74,24 +72,27 @@ func (self *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) (Prop
 	if len(value) == 0 {
 		return nil, fmt.Errorf("no value found!")
 	}
-	var proposal Proposal
+	var p Proposal
 	pData := value[0 : len(value)-1]
 	pType := value[len(value)-1]
 	if pType == byte(Text) {
-		proposal = TextProposal{}
+		var proposal TextProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			return nil, e
 		}
+		p = proposal
 	} else if pType == byte(Version) {
-		proposal = VersionProposal{}
+		var proposal VersionProposal
+		//proposal = VersionProposal{TextProposal{},0,common.Big0}
 		if e := json.Unmarshal(pData, &proposal); e != nil {
 			return nil, e
 		}
+		p = proposal
 	} else {
 		return nil, fmt.Errorf("incorrect propsal type:%b!", pType)
 	}
 
-	return proposal, nil
+	return p, nil
 }
 
 // 从snapdb查询各个列表id,然后从逐条从statedb查询
@@ -130,6 +131,10 @@ func (self *GovDB) ListVote(proposalID common.Hash, state xcom.StateDB) []VoteVa
 		return nil
 	}
 	return voteList
+}
+
+func (self *GovDB) ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.NodeID, error) {
+	return nil, nil
 }
 
 // 保存投票结果
@@ -282,25 +287,6 @@ func (self *GovDB) AddActiveNode(blockHash common.Hash, proposalID common.Hash, 
 	return true
 }
 
-// 增加已投票验证人记录
-func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Hash, voter discover.NodeID) (bool){
-	if err := self.snapdb.addVotedVerifier(blockHash, voter, proposalID); err != nil {
-		log.Error("add voted node to snapshot db error,", err)
-		return false
-	}
-	return true
-}
-
-// 增加已投票验证人记录
-func (self *GovDB) ListVotedVerifier(blockHash common.Hash, proposalID common.Hash) ([]discover.NodeID, error){
-	verifierList, err := self.snapdb.getVotedVerifierList(blockHash, proposalID)
-	if  err != nil {
-		log.Error("add voted node to snapshot db error,", err)
-		return nil, errors.New("list voted verifier error!")
-	}
-	return verifierList, nil
-}
-
 // 获取升级提案投票期间版本升声明的节点列表
 func (self *GovDB) GetActiveNodeList(blockHash common.Hash, proposalID common.Hash) []discover.NodeID {
 	nodes, err := self.snapdb.getActiveNodeList(blockHash, proposalID)
@@ -316,6 +302,15 @@ func (self *GovDB) ClearActiveNodes(blockHash common.Hash, proposalID common.Has
 	err := self.snapdb.deleteActiveNodeList(blockHash, proposalID)
 	if err != nil {
 		log.Error("delete declared node list from snapshot db error,", err)
+		return false
+	}
+	return true
+}
+
+// 增加已投票验证人记录
+func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Hash, voter discover.NodeID) bool {
+	if err := self.snapdb.addVotedVerifier(blockHash, voter, proposalID); err != nil {
+		log.Error("add voted node to snapshot db error,", err)
 		return false
 	}
 	return true

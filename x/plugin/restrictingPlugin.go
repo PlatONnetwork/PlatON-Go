@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	errParamPeriodInvalid = errors.New("param period invalid")
+	errParamPeriodInvalid = errors.New("param epoch invalid")
 	errBalanceNotEnough = errors.New("balance not enough to restrict")
 	errAccountNotFound = errors.New("account is not found")
 )
@@ -25,18 +25,18 @@ var (
 
 
 type restrictingInfo struct {
-	balance     *big.Int  `json:"balance"`  // balance representation all locked amount
-	debt        *big.Int  `json:"debt"`     // debt representation will released amount. Positive numbers can be used instead of release, 0 means no release, negative numbers indicate not enough to release
-	releaseList []uint64  `json:"list"`     // releaseList representation
+	balance     *big.Int `json:"balance"` // balance representation all locked amount
+	debt        *big.Int `json:"debt"`    // debt representation will released amount. Positive numbers can be used instead of release, 0 means no release, negative numbers indicate not enough to release
+	releaseList []uint64 `json:"list"`    // releaseList representation
 }
 
 type releaseAmountInfo struct {
-	height uint64 	 `json:"blockNumber"`  	// blockNumber representation of the block number at the released lock-repo period
+	height uint64 	 `json:"blockNumber"`  	// blockNumber representation of the block number at the released lock-repo epoch
 	amount *big.Int	 `json:"amount"`		// amount representation of the released amount
 }
 
 type restrictingPlan struct {
-	period  uint64  `json:"period"`			// period representation of the released period at the target blockNumber
+	epoch   uint64  `json:"epoch"`			// epoch representation of the released epoch at the target blockNumber
 	amount	*big.Int `json:"amount"`		// amount representation of the released amount
 }
 
@@ -102,11 +102,11 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	// pre-check
 	var totalLock = big.NewInt(0)
 	for i := 0; i < len(plans); i++ {
-		period := plans[i].period
+		epoch := plans[i].epoch
 		amount := plans[i].amount
 
-		if vm.RestrictingContractAddr == account && period % 120 != 0 {
-			log.Error("param period invalid", "period", plans[i].period)
+		if vm.RestrictingContractAddr == account && epoch % 120 != 0 {
+			log.Error("param epoch invalid", "epoch", plans[i].epoch)
 			return false, errParamPeriodInvalid
 		}
 
@@ -119,21 +119,21 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	}
 
 	var (
-		recordsNum  uint32
-		index       uint32
-		heightList  []uint64
-		info		restrictingInfo
+		recordsNum uint32
+		index      uint32
+		heightList []uint64
+		info       restrictingInfo
 	)
 
 	restrictingKey := xcom.GetRestrictingKey(account)
 	bRecord := state.GetState(account, restrictingKey)
 
-	if len(bRecord) == 0 {  // restricting not exist
+	if len(bRecord) == 0 { // restricting not exist
 
 		log.Debug("restricting record not exist", "account", account.Bytes())
 
 		for i := 0; i < len(plans); i++ {
-			height := plans[i].period * xcom.EpochSize * xcom.ConsensusSize
+			height := plans[i].epoch * xcom.EpochSize * xcom.ConsensusSize
 			amount := plans[i].amount
 
 			releaseNumberKey := xcom.GetReleaseNumberKey(height)
@@ -143,7 +143,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 				index = uint32(1)
 			} else {
 				recordsNum += 1
-				index = byteutil.BytesToUint32(numbers)+1
+				index = byteutil.BytesToUint32(numbers) + 1
 			}
 
 			state.SetState(vm.RestrictingContractAddr, releaseNumberKey, common.Uint32ToBytes(recordsNum))
@@ -161,7 +161,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		info.debt = big.NewInt(0)
 		info.releaseList = heightList
 
-	} else {  // restricting exist
+	} else { // restricting exist
 
 		log.Debug("restricting record exist", "account", account.Bytes())
 
@@ -172,7 +172,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 
 		for i := 0; i < len(plans); i++ {
 			// release info
-			height := plans[i].period * xcom.EpochSize * xcom.ConsensusSize
+			height := plans[i].epoch * xcom.EpochSize * xcom.ConsensusSize
 			amount := plans[i].amount
 
 			releaseAmountKey := xcom.GetReleaseAmountKey(account, height)
@@ -183,7 +183,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 				releaseNumberKey := xcom.GetReleaseNumberKey(height)
 				numbers := state.GetState(vm.RestrictingContractAddr, releaseNumberKey)
 
-				index = byteutil.BytesToUint32(numbers)+1
+				index = byteutil.BytesToUint32(numbers) + 1
 				state.SetState(vm.RestrictingContractAddr, releaseNumberKey, common.Uint32ToBytes(index))
 
 				releaseAccountKey := xcom.GetReleaseAccountKey(height, index)
@@ -344,7 +344,7 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 }
 
 // releaseRestricting does nothing
-func (rp *RestrictingPlugin) releaseRestricting(head *types.Header, state xcom.StateDB)  (bool, error) {
+func (rp *RestrictingPlugin) releaseRestricting(head *types.Header, state xcom.StateDB) (bool, error) {
 
 	var blockNumber = head.Number.Uint64()
 
@@ -362,13 +362,13 @@ func (rp *RestrictingPlugin) releaseRestricting(head *types.Header, state xcom.S
 		release *big.Int
 	)
 
-	for index := numbers; index > 0 ; index++ {
+	for index := numbers; index > 0; index++ {
 
 		releaseAccountKey := xcom.GetReleaseAccountKey(blockNumber, index)
 		bAccount := state.GetState(vm.RestrictingContractAddr, releaseAccountKey)
 		account := byteutil.BytesToAddress(bAccount)
 
-		releaseAmountKey :=  xcom.GetReleaseAmountKey(account, blockNumber)
+		releaseAmountKey := xcom.GetReleaseAmountKey(account, blockNumber)
 		bRelease := state.GetState(account, releaseAmountKey)
 
 		if err := rlp.Decode(bytes.NewBuffer(bRelease), release); err != nil {
@@ -468,7 +468,7 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		return []byte{}, err
 	}
 
-	for i := 0; i < len(info.releaseList); i ++ {
+	for i := 0; i < len(info.releaseList); i++ {
 		blockNumber := info.releaseList[i]
 
 		releaseAmountKey = xcom.GetReleaseAmountKey(account, blockNumber)

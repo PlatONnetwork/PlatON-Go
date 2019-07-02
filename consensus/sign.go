@@ -37,7 +37,6 @@ func SigHash(header *types.Header) (hash common.Hash) {
 		header.GasUsed,
 		header.Time,
 		header.Extra[:len(header.Extra)-65], // Yes, this will panic if extra is too short
-		header.MixDigest,
 		header.Nonce,
 	})
 	hasher.Sum(hash[:0])

@@ -58,7 +58,6 @@ func makeFakePrepareBlock() *prepareBlock {
 		GasLimit:  uint64(3141592),
 		GasUsed:   uint64(21000),
 		Coinbase:  common.HexToAddress("8888f1f195afa192cfee860698584c030f4c9db1"),
-		MixDigest: common.HexToHash("bd4472abb6659ebe3ee06ee4d7b72a00a9f4d001caca51342001075469aff498"),
 		Root:      common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		//Hash: common.HexToHash("0a5843ac1cb04865017cb35a57b50b07084e5fcee39b5acadade33149f4fff9e"),
 		Nonce: types.EncodeNonce(RandBytes(81)),
