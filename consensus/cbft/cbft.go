@@ -1450,9 +1450,15 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 
 // executeBlockAndDescendant executes the block's transactions and its descendant
 func (cbft *Cbft) executeBlock(blocks []*BlockExt) {
+	batchSetStatus := func(bs []*BlockExt) {
+		for _, v := range bs {
+			v.SetSyncState(fmt.Errorf("Invalid block"))
+		}
+	}
 	for _, ext := range blocks {
 		//Execute blocks is async, clear all children block when new view change was confirmed.
 		if ext == nil || ext.parent == nil {
+			batchSetStatus(blocks)
 			cbft.log.Warn("Block was cleared, block is invalid block. stop execute all children block")
 			return
 		}
