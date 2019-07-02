@@ -14,6 +14,43 @@ const (
 )
 
 // config  TODO Configuration is all here
+type EconomicModel struct {
+	Staking  	    StakingConfig
+	Slashing 	    SlashingConfig
+	EpochsPerYear   uint32
+}
+
+var DefaultConfig = EconomicModel{
+	Staking:  		DefaultStakingConfig,
+	Slashing: 		DefaultSlashingConfig,
+	EpochsPerYear:	1,
+}
+
+type StakingConfig struct {
+	StakeThreshold	  				*big.Int
+	DelegateThreshold 				*big.Int
+	ConsValidatorNum  				uint64
+	EpochValidatorNum 				uint64
+	ShiftValidatorNum 				uint64
+	EpochSize		  				uint64
+	HesitateRatio	  				uint64
+	EffectiveRatio	 				uint64
+	ElectionDistance  				uint64
+	ConsensusSize	  				uint64
+	UnStakeFreezeRatio 				uint64
+	PassiveUnDelegateFreezeRatio	uint64
+	ActiveUnDelegateFreezeRatio		uint64
+}
+
+type SlashingConfig struct {
+	BlockAmountLow				uint32
+	BlockAmountHigh				uint32
+	BlockAmountLowSlashing		uint32
+	BlockAmountHighSlashing		uint32
+	DuplicateSignNum			uint32
+	DuplicateSignLowSlashing	uint32
+	DuplicateSignHighSlashing	uint32
+}
 
 /**
 Staking config
@@ -52,3 +89,29 @@ var (
 	// due to active withdrew delegate (unit is  epochs)
 	ActiveUnDelegateFreezeRatio = uint64(0)
 )
+
+var DefaultStakingConfig = StakingConfig{
+	StakeThreshold: 	StakeThreshold,
+	DelegateThreshold:  DelegateThreshold,
+	ConsValidatorNum: 	uint64(25),
+	EpochValidatorNum:  uint64(101),
+	ShiftValidatorNum:  uint64(8),
+	EpochSize: 			uint64(88),
+	HesitateRatio: 		uint64(1),
+	EffectiveRatio: 	uint64(1),
+	ElectionDistance: 	uint64(20),
+	ConsensusSize: 		uint64(250),
+	UnStakeFreezeRatio: uint64(1),
+	PassiveUnDelegateFreezeRatio: uint64(0),
+	ActiveUnDelegateFreezeRatio: uint64(0),
+}
+
+var DefaultSlashingConfig = SlashingConfig{
+	BlockAmountLow:				0,
+	BlockAmountHigh:			0,
+	BlockAmountLowSlashing:		0,
+	BlockAmountHighSlashing:	0,
+	DuplicateSignNum:			0,
+	DuplicateSignLowSlashing:	0,
+	DuplicateSignHighSlashing:	0,
+}

@@ -22,6 +22,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
+	"time"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -255,6 +256,16 @@ type CbftConfig struct {
 	PrivateKey    *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 	ValidatorMode string            `json:"validatorMode,omitempty"`
 	PposConfig    *PposConfig       `json:"pposConfig,omitempty"`
+
+	PeerMsgQueueSize 	uint64
+	EvidenceDir		 	string
+	MaxResetCacheSize	int
+	MaxQueuesLimit		int
+	MaxBlockDist		uint64
+	MaxPingLatency		int64
+	MaxAvgLatency		int64
+	CbftVersion			uint8
+	Remaining			time.Duration
 }
 
 type PposConfig struct {
