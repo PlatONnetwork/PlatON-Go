@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -103,6 +104,18 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 }
 
 func (sk *StakingPlugin) Confirmed(block *types.Block) error {
+
+	if xutil.IsElection(block.NumberU64()) {
+
+		next, err := sk.db.GetNextValidatorListByBlockHash(block.Hash())
+		if nil != err {
+			return err
+		}
+
+		// TODO Notify P2P module
+		_ = next
+
+	}
 
 	return nil
 }
@@ -1284,9 +1297,6 @@ func (sk *StakingPlugin) GetRelatedListByDelAddr (blockHash common.Hash, addr co
 
 func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bool, error) {
 
-	//round := xutil.CalculateRound(blockNumber)
-	//_ = round
-
 
 	validators, err := sk.db.GetVerifierListByIrr()
 	if nil != err {
@@ -1308,18 +1318,25 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 	}
 
 	// caculate the next round start and end
-	curr.Start = curr.End + 1
-	curr.End = curr.End + xcom.ConsensusSize
+	start := curr.End + 1
+	end := curr.End + xcom.ConsensusSize
 
-	proremoteCurr2NextFunc := func(curr *xcom.Validator_array) (bool, error) {
+	proremoteCurr2NextFunc := func(start, end uint64, validators xcom.ValidatorQueue) (bool, error) {
 
 		// Increase term of validator
-		for i, v := range curr.Arr {
+		for i, v := range validators {
 			v.ValidatorTerm++
-			curr.Arr[i] = v
+			validators[i] = v
 		}
 
-		if err := sk.db.SetNextValidatorList(blockHash, curr); nil != err {
+
+		next := &xcom.Validator_array{
+			Start: start,
+			End: end,
+			Arr: validators,
+		}
+
+		if err := sk.db.SetNextValidatorList(blockHash, next); nil != err {
 			return false, err
 		}
 		return true, nil
@@ -1327,7 +1344,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 
 	// Never like that
 	if nil == validators || len(validators.Arr) == 0  {
-		return proremoteCurr2NextFunc(curr)
+		arr := make(xcom.ValidatorQueue, len(curr.Arr))
+		copy(arr, curr.Arr)
+		return proremoteCurr2NextFunc(start, end, arr)
 	}
 
 	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
@@ -1349,7 +1368,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 
 	switch {
 	case len(tmpQueue) == 0:
-		return proremoteCurr2NextFunc(curr)
+		arr := make(xcom.ValidatorQueue, len(curr.Arr))
+		copy(arr, curr.Arr)
+		return proremoteCurr2NextFunc(start, end, arr)
 	case len(tmpQueue) > 0 &&  len(tmpQueue) <= int(xcom.ShiftValidatorNum):
 		shiftQueue = tmpQueue
 	default:
@@ -1359,28 +1380,40 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 
 	}
 
-	// TODO SlashingPlugin
-	//  GetPreSlashingNodes
-	slashNodeIds := make([]discover.NodeID, 0)
+	// TODO was Slashed node
 
-	if len(slashNodeIds) > int(xcom.ShiftValidatorNum) {
-		log.Error("The PreSlashingNodes length greater than f of BFT", "f", xcom.ShiftValidatorNum,
-			"PreSlashingNodes length", len(slashNodeIds))
-		return true, fmt.Errorf("The PreSlashingNodes length greater than f of BFT, f:%d, PreSlashingNodes " +
-			"length: %d", xcom.ShiftValidatorNum, len(slashNodeIds))
+	pre, err := sk.db.GetPreValidatorListByIrr()
+	if nil != err {
+		log.Error("Failed to Election: No found the previous round validators", "blockNumber",
+			blockNumber, "blockHash", blockHash.Hex())
+		return true, ValidatorNotExist
 	}
 
-	var slashMark xcom.SlashMark
-	// Replace the slashing validators
-	if len(slashNodeIds) > 0 {
-		slashMark = make(xcom.SlashMark, len(slashNodeIds))
-		for _, nodeId := range slashNodeIds {
-			slashMark[nodeId] = struct{}{}
+
+
+	slashCans := make(xcom.SlashCandidate, 0)
+	slashMark := make(xcom.SlashMark, 0)
+	for _, v := range pre.Arr {
+
+		addr, _ := xutil.NodeId2Addr(v.NodeId)
+		can, err := sk.db.GetCandidateStore(blockHash, addr)
+		if nil != err {
+			return false, err
+		}
+
+		if xcom.Is_LowRatio(can.Status) {
+			slashCans[v.NodeId] = can
+			slashMark[v.NodeId] = struct {}{}
 		}
 	}
 
-	// TODO query the package Ratio of preRound validators
-	ratio := make(xcom.PackageRatio, 0)
+	// query the package Ratio of preRound validators
+	ratio, err := slashPlugin.GetPreEpochAnomalyNode()
+	if nil != err {
+		log.Error("Failed to Election: call slashingPlugin GetPreEpochAnomalyNode() failed", "blockNumber",
+			blockNumber, "blockHash", blockHash.Hex(), "err", err)
+		return false, err
+	}
 
 	curr.Arr.ValidatorSort(slashMark, ratio)
 
@@ -1396,8 +1429,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 	nextValidators = append(nextValidators, shiftQueue...)
 
 	next := &xcom.Validator_array{
-		Start: curr.Start,
-		End: curr.End,
+		Start: start,
+		End: end,
 		Arr: nextValidators,
 	}
 
@@ -1405,7 +1438,14 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 		return false, err
 	}
 
-	// TODO Notice the P2P module
+	// TODO update candidate status
+	for _, can := range slashCans {
+		if xcom.Is_Valid(can.Status) && xcom.Is_LowRatio(can.Status) {
+			// clean the Slash status
+			can.Status &^= xcom.LowRatio
+		}
+	}
+
 
 	return true, nil
 }
@@ -1454,23 +1494,8 @@ func (sk *StakingPlugin) Switch(blockHash common.Hash, blockNumber uint64) (bool
 	return true, nil
 }
 
-func (sk *StakingPlugin) GetAllPackageRatio(blockHash common.Hash) (map[discover.NodeID]uint32, error) {
-
-	return nil, nil
-}
-
-
-
-// nodeId is belonging to the previous round valitor
-func (sk *StakingPlugin) GetPackageRatio(blockHash common.Hash, nodeId discover.NodeID)  (uint32, error){
-
-
-	return 0, nil
-}
-
-
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64,
-	nodeId discover.NodeID, amount *big.Int, deleteCan bool) (bool, error) {
+	nodeId discover.NodeID, amount *big.Int, slashType int) (bool, error) {
 
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
@@ -1513,7 +1538,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	slashFunc := func(remian, balance *big.Int, isNotify bool) (*big.Int, *big.Int, bool, error) {
 		if remain.Cmp(balance) >= 0 {
 			state.SubBalance(vm.StakingContractAddr, balance)
-			// TODO  to ReWard Account ?? state.AddBalance()
+			state.AddBalance(vm.RewardManagerPoolAddr, balance)
 
 			if isNotify {
 				flag, err := RestrictingPtr.SlashingNotify(can.StakingAddress, balance, state)
@@ -1527,7 +1552,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			balance = common.Big0; remain = new(big.Int).Sub(remain, balance)
 		}else {
 			state.SubBalance(vm.StakingContractAddr, remain)
-			// TODO  to ReWard Account ?? state.AddBalance()
+			state.AddBalance(vm.RewardManagerPoolAddr, remain)
 
 			if isNotify {
 				flag, err := RestrictingPtr.SlashingNotify(can.StakingAddress, remain, state)
@@ -1587,15 +1612,16 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 
 	if !CheckStakeThreshold(canRemain) {
-		can.Status |= xcom.Slashed&xcom.NotEnough
-		deleteCan = true
+		can.Status |= xcom.LowRatio&xcom.NotEnough&xcom.Invalided
+		//deleteCan = true
 	}else {
-		can.Status |= xcom.Slashed
+		can.Status |= xcom.LowRatio
 	}
 
 
-	if !deleteCan {
+	if !false {
 		sk.db.SetCanPowerStore(blockHash, addr, can)
+		can.Status |= xcom.Invalided
 	}else {
 		validators, err := sk.db.GetVerifierListByBlockHash(blockHash)
 		if nil != err {
@@ -1695,6 +1721,111 @@ func (sk *StakingPlugin) DeclarePromoteNotify (blockHash common.Hash, blockNumbe
 	}
 
 	return true, nil
+}
+
+
+func (sk *StakingPlugin) GetLastNumber(blockNumber uint64) uint64 {
+
+	pre, err := sk.db.GetPreValidatorListByIrr()
+	if nil != err {
+		return 0
+	}
+
+	if nil != pre && pre.Start <= blockNumber && pre.End >= blockNumber {
+		return pre.End
+	}
+
+	curr, err := sk.db.GetCurrentValidatorListByIrr()
+	if nil != err {
+		return 0
+	}
+
+	if nil != curr && curr.Start <= blockNumber && curr.End >= blockNumber {
+		return curr.End
+	}
+
+	next, err := sk.db.GetNextValidatorListByIrr()
+	if nil != err {
+		return 0
+	}
+
+	if nil != next && next.Start <= blockNumber && next.End >= blockNumber {
+		return next.End
+	}
+	return 0
+}
+
+
+func (sk *StakingPlugin) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
+	pre, err := sk.db.GetPreValidatorListByIrr()
+	if nil != err {
+		return nil, err
+	}
+
+	if nil != pre && pre.Start <= blockNumber && pre.End >= blockNumber {
+		return build_CBFT_Validators(pre.Arr), nil
+	}
+
+	curr, err := sk.db.GetCurrentValidatorListByIrr()
+	if nil != err {
+		return nil, err
+	}
+
+	if nil != curr && curr.Start <= blockNumber && curr.End >= blockNumber {
+		return build_CBFT_Validators(curr.Arr), nil
+	}
+
+
+	next, err := sk.db.GetNextValidatorListByIrr()
+	if nil != err {
+		return nil, err
+	}
+
+	if nil != next && next.Start <= blockNumber && next.End >= blockNumber {
+		return build_CBFT_Validators(next.Arr), nil
+	}
+
+	return nil, fmt.Errorf("No Found Validators by blockNumber: %d", blockNumber)
+}
+
+
+// NOTE: Verify that it is the validator of the current Epoch
+func (sk *StakingPlugin) IsCandidateNode(nodeID discover.NodeID) bool {
+
+	val_arr, err := sk.db.GetVerifierListByIrr()
+	if nil != err {
+		log.Error("Failed to IsCandidateNode", "err", err)
+		return false
+	}
+	for _, v := range val_arr.Arr {
+		if v.NodeId == nodeID {
+			return true
+		}
+	}
+	return false
+}
+
+func build_CBFT_Validators (arr xcom.ValidatorQueue) *cbfttypes.Validators {
+
+	valMap := make(cbfttypes.ValidateNodeMap, len(arr))
+
+	for i, v := range arr {
+
+		pubKey, _ := v.NodeId.Pubkey()
+
+		vn := &cbfttypes.ValidateNode {
+			Index: i,
+			Address: v.NodeAddress,
+			PubKey: pubKey,
+		}
+
+		valMap[v.NodeId] = vn
+	}
+
+	res := &cbfttypes.Validators{
+		Nodes: 	valMap,
+	}
+	return res
 }
 
 func lazyCalcStakeAmount(epoch uint64, can *xcom.Candidate) {
