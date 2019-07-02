@@ -66,7 +66,7 @@ func (self *GovDB) setError(err error) {
 func (self *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, error) {
 	value := state.GetState(vm.GovContractAddr, KeyProposal(proposalID))
 	if len(value) == 0 {
-		return nil, common.BizErrorf("no value found!")
+		return nil, nil
 	}
 	var p Proposal
 	pData := value[0 : len(value)-1]
@@ -85,11 +85,24 @@ func (self *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) (Prop
 		}
 		p = proposal
 	} else {
-		return nil, common.BizErrorf("incorrect propsal type:%b!", pType)
+		return nil, common.NewSysError("Incorrect proposal type.")
 	}
 
 	return p, nil
 }
+
+func (self *GovDB) GetExistProposal(proposalID common.Hash, state xcom.StateDB) (Proposal, error) {
+	p, err := self.GetProposal(proposalID, state)
+	if err != nil {
+		return nil, err
+	}else if p == nil {
+		log.Error("Cannot find proposal.", "proposalID", proposalID)
+		return nil, common.NewSysError("Cannot find proposal.")
+	}else{
+		return p, nil
+	}
+}
+
 
 // 从snapdb查询各个列表id,然后从逐条从statedb查询
 func (self *GovDB) GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error) {
@@ -98,9 +111,11 @@ func (self *GovDB) GetProposalList(blockHash common.Hash, state xcom.StateDB) ([
 		return nil, common.NewSysError(err.Error())
 	}
 	var proposls []Proposal
-	for _, hash := range proposalIds {
-		proposal, _ := self.GetProposal(hash, state)
-		if proposal != nil {
+	for _, proposalId := range proposalIds {
+		proposal, err := self.GetExistProposal(proposalId, state)
+		if err != nil {
+			return nil, err
+		}else {
 			proposls = append(proposls, proposal)
 		}
 	}
@@ -124,7 +139,9 @@ func (self *GovDB) SetVote(proposalID common.Hash, voter discover.NodeID, option
 // 查询投票记录
 func (self *GovDB) ListVoteValue(proposalID common.Hash, state xcom.StateDB) ([]VoteValue, error) {
 	voteListBytes := state.GetState(vm.GovContractAddr, KeyVote(proposalID))
-
+	if len(voteListBytes) == 0 {
+		return nil, nil
+	}
 	var voteList []VoteValue
 	if err := json.Unmarshal(voteListBytes, &voteList); err != nil {
 		return nil, common.NewSysError(err.Error()) //errors.New("Unmarshal VoteValue error")
@@ -159,12 +176,16 @@ func (self *GovDB) SetTallyResult(tallyResult TallyResult, state xcom.StateDB) e
 func (self *GovDB) GetTallyResult(proposalID common.Hash, state xcom.StateDB) (*TallyResult, error) {
 	value := state.GetState(vm.GovContractAddr, KeyTallyResult(proposalID))
 
+	if len(value) == 0 {
+		return nil, nil
+	}
+
 	var tallyResult TallyResult
 	if err := json.Unmarshal(value, &tallyResult); err != nil {
 		return nil, common.NewSysError(err.Error())
 	}
-
 	return &tallyResult, nil
+
 }
 
 // 保存生效版本记录

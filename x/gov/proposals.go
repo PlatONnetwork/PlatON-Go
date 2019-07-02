@@ -224,7 +224,7 @@ func (vp VersionProposal) GetActiveBlock() uint64 {
 func verifyBasic(proposalID common.Hash, proposer discover.NodeID, proposalType ProposalType, topic, desc, githubID, url  string, endVotingBlock uint64, curBlockNum uint64, state xcom.StateDB) (error){
 	if len(proposalID) >0 {
 		p, err := GovDBInstance().GetProposal(proposalID, state);
-		if p == nil {
+		if err != nil {
 			return err
 		}
 		if nil != p {

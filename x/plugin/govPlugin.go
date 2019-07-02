@@ -78,7 +78,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	}
 
 	for _, votingProposalID := range votingProposalIDs {
-		votingProposal, err := govPlugin.govDB.GetProposal(votingProposalID, state)
+		votingProposal, err := govPlugin.govDB.GetExistProposal(votingProposalID, state)
 		if nil != err {
 			log.Error("[GOV] EndBlock(): get proposal by ID failed.", "proposalID", votingProposalID)
 			return false, err
@@ -274,6 +274,9 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	if err != nil {
 		log.Error("[GOV] Vote(): cannot find proposal by ID", "proposalID", vote.ProposalID)
 		return  err
+	}else if proposal == nil {
+		log.Error("[GOV] Vote(): incorrect proposal ID.", "proposalID", vote.ProposalID)
+		return common.NewBizError("Incorrect proposal ID.")
 	}
 
 	//check caller and voter
@@ -374,7 +377,7 @@ func (govPlugin *GovPlugin) GetProposal(proposalID common.Hash, state xcom.State
 		return nil, err
 	}
 	if proposal == nil {
-		return nil, common.NewBizError("Cannot find proposal.")
+		return nil, common.NewBizError("Incorrect proposal ID.")
 	}
 	return proposal, nil
 }
@@ -420,7 +423,7 @@ func (govPlugin *GovPlugin) ListProposal(blockHash common.Hash, state xcom.State
 	proposalIDs = append(proposalIDs, preActiveProposals)
 
 	for _, proposalID := range proposalIDs {
-		proposal, err := govPlugin.govDB.GetProposal(proposalID, state)
+		proposal, err := govPlugin.govDB.GetExistProposal(proposalID, state)
 		if err != nil {
 			log.Error("[GOV] ListProposal(): find proposal failed.", "proposalID", proposalID)
 			return nil, err
@@ -564,13 +567,9 @@ func  (govPlugin *GovPlugin) findVotingVersionProposal(blockHash common.Hash, st
 		return nil, err
 	}
 	for _, proposalID := range idList {
-		p, err := govPlugin.govDB.GetProposal(proposalID, state)
+		p, err := govPlugin.govDB.GetExistProposal(proposalID, state)
 		if err != nil {
 			return nil, err
-		}
-		if p == nil {
-			log.Error("cannot find the specified proposal", "proposalID)", proposalID)
-			return nil, common.NewBizError("cannot find the specified proposal.")
 		}
 		if p.GetProposalType() == gov.Version {
 			vp := p.(gov.VersionProposal)
