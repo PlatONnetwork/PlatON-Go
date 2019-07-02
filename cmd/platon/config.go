@@ -166,9 +166,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	//cfg.Eth.VCPool.LocalRpcPort = cfg.Node.HTTPPort
 
 	// load cbft config file.
-	if cbftConfig := cfg.Eth.LoadCbftConfig(cfg.Node); cbftConfig != nil {
-		cfg.Eth.CbftConfig = *cbftConfig
-	}
+	//if cbftConfig := cfg.Eth.LoadCbftConfig(cfg.Node); cbftConfig != nil {
+	//	cfg.Eth.CbftConfig = *cbftConfig
+	//}
 	utils.SetCbft(ctx, &cfg.Eth.CbftConfig)
 
 	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
