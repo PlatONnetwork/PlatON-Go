@@ -36,13 +36,14 @@ func TestJournal(t *testing.T) {
 	if err := db.writeJournalBody(blockHash, []byte(str[1])); err != nil {
 		t.Error(err)
 	}
-
+	if err := db.closeJournalWriter(blockHash); err != nil {
+		t.Error(err)
+	}
 	fd := fileDesc{Type: TypeJournal, Num: blockNumber.Int64(), BlockHash: blockHash}
 	file, err := db.storage.Open(fd)
 	if err != nil {
 		t.Error(err)
 	}
-	defer file.Close()
 	journals := journal.NewReader(file, nil, true, true)
 	r, err := journals.Next()
 	if err != nil {
@@ -76,6 +77,9 @@ func TestJournal(t *testing.T) {
 			t.Errorf("should eq:%v,%v", str[i], b)
 		}
 		i++
+	}
+	if err := file.Close(); err != nil {
+		t.Error(err)
 	}
 	if err := db.rmJournalFile(blockNumber, blockHash); err != nil {
 		t.Error(err)
