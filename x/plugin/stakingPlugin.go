@@ -1329,7 +1329,6 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 			validators[i] = v
 		}
 
-
 		next := &xcom.Validator_array{
 			Start: start,
 			End: end,
@@ -1342,7 +1341,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 		return true, nil
 	}
 
-	// Never like that
+	// Never match, maybe
 	if nil == validators || len(validators.Arr) == 0  {
 		arr := make(xcom.ValidatorQueue, len(curr.Arr))
 		copy(arr, curr.Arr)
@@ -1380,20 +1379,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 
 	}
 
-	// TODO was Slashed node
-
-	pre, err := sk.db.GetPreValidatorListByIrr()
-	if nil != err {
-		log.Error("Failed to Election: No found the previous round validators", "blockNumber",
-			blockNumber, "blockHash", blockHash.Hex())
-		return true, ValidatorNotExist
-	}
-
-
-
 	slashCans := make(xcom.SlashCandidate, 0)
-	slashMark := make(xcom.SlashMark, 0)
-	for _, v := range pre.Arr {
+	for _, v := range curr.Arr {
 
 		addr, _ := xutil.NodeId2Addr(v.NodeId)
 		can, err := sk.db.GetCandidateStore(blockHash, addr)
@@ -1401,21 +1388,13 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 			return false, err
 		}
 
-		if xcom.Is_LowRatio(can.Status) {
-			slashCans[v.NodeId] = can
-			slashMark[v.NodeId] = struct {}{}
+		if xcom.Is_LowRatio(can.Status) || xcom.Is_DoubleSign(can.Status) {
+			addr, _ := xutil.NodeId2Addr(v.NodeId)
+			slashCans[addr] = can
 		}
 	}
 
-	// query the package Ratio of preRound validators
-	ratio, err := slashPlugin.GetPreEpochAnomalyNode()
-	if nil != err {
-		log.Error("Failed to Election: call slashingPlugin GetPreEpochAnomalyNode() failed", "blockNumber",
-			blockNumber, "blockHash", blockHash.Hex(), "err", err)
-		return false, err
-	}
-
-	curr.Arr.ValidatorSort(slashMark, ratio)
+	curr.Arr.ValidatorSort(slashCans)
 
 	// Replace the validators that can be replaced
 	nextValidators := curr.Arr[len(shiftQueue):]
@@ -1438,15 +1417,16 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) (bo
 		return false, err
 	}
 
-	// TODO update candidate status
-	for _, can := range slashCans {
+	// update candidate status
+	for addr, can := range slashCans {
 		if xcom.Is_Valid(can.Status) && xcom.Is_LowRatio(can.Status) {
 			// clean the Slash status
 			can.Status &^= xcom.LowRatio
+			if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
+				return false, err
+			}
 		}
 	}
-
-
 	return true, nil
 }
 
@@ -1867,47 +1847,7 @@ func lazyCalcDelegateAmount(epoch uint64, del *xcom.Delegation) {
 		del.LockRepo = new(big.Int).Add(del.LockRepo, del.LockRepoTmp)
 	}
 
-	/*switch  {
-	case canStatus&xcom.NotExist == xcom.NotExist:
-
-		mergeFn()
-
-	case xcom.Is_Invalid_Slashed(canStatus),
-		xcom.Is_Invalid_NotEnough(canStatus):
-
-		if epoch - xcom.PassiveUnDelegateFreezeRatio <= changeAmountEpoch {
-			return
-		}
-		mergeFn()
-	case xcom.Is_Valid(canStatus):
-
-		if epoch - changeAmountEpoch < xcom.HesitateRatio || epoch -
-	xcom.ActiveUnDelegateFreezeRatio <= changeAmountEpoch {
-			return
-		}
-
-		mergeFn()
-
-	}*/
 }
-
-/*func mergeAmount(mark uint8, target, tmp *big.Int) *big.Int {
-	if mark == increase {
-		return new(big.Int).Add(target, tmp)
-	} else if mark == decrease {
-		return new(big.Int).Sub(target, tmp)
-	}
-	return target
-}*/
-
-//func (sk *StakingPlugin) sumStakeAmount (can *xcom.Candidate) *big.Int {
-//
-//	aoubt_release := new(big.Int).Add(can.Released, can.ReleasedTmp)
-//
-//	about_locked := new(big.Int).Add(can.L)
-//
-//	return
-//}
 
 func CheckStakeThreshold(stake *big.Int) bool {
 	return stake.Cmp(xcom.StakeThreshold) >= 0

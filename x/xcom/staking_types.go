@@ -140,33 +140,32 @@ type Validator struct {
 
 type ValidatorQueue []*Validator
 
-type SlashMark map[discover.NodeID]struct{}
-type SlashCandidate map[discover.NodeID]*Candidate
-type PackageRatio map[discover.NodeID]uint16
+//type SlashMark map[discover.NodeID]struct{}
+type SlashCandidate map[common.Address]*Candidate
 
-func (arr ValidatorQueue) ValidatorSort(slashs SlashMark, ratio PackageRatio) {
+func (arr ValidatorQueue) ValidatorSort(slashs SlashCandidate) {
 	if len(arr) <= 1 {
 		return
 	}
-	arr.quickSort(slashs, ratio, 0, len(arr)-1)
+	arr.quickSort(slashs, 0, len(arr)-1)
 }
-func (arr ValidatorQueue) quickSort(slashs SlashMark, ratio PackageRatio, left, right int) {
+func (arr ValidatorQueue) quickSort(slashs SlashCandidate, left, right int) {
 	if left < right {
-		pivot := arr.partition(slashs, ratio, left, right)
-		arr.quickSort(slashs, ratio, left, pivot-1)
-		arr.quickSort(slashs, ratio, pivot+1, right)
+		pivot := arr.partition(slashs, left, right)
+		arr.quickSort(slashs, left, pivot-1)
+		arr.quickSort(slashs, pivot+1, right)
 	}
 }
-func (arr ValidatorQueue) partition(slashs SlashMark, ratio PackageRatio, left, right int) int {
+func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int) int {
 	for left < right {
-		for left < right && compare(slashs, ratio, arr[left], arr[right]) >= 0 {
+		for left < right && compare(slashs, arr[left], arr[right]) >= 0 {
 			right--
 		}
 		if left < right {
 			arr[left], arr[right] = arr[right], arr[left]
 			left++
 		}
-		for left < right && compare(slashs, ratio, arr[left], arr[right]) >= 0 {
+		for left < right && compare(slashs, arr[left], arr[right]) >= 0 {
 			left++
 		}
 		if left < right {
@@ -177,7 +176,7 @@ func (arr ValidatorQueue) partition(slashs SlashMark, ratio PackageRatio, left, 
 	return left
 }
 
-func compare(slashs SlashMark, ratio PackageRatio, c, can *Validator) int {
+func compare(slashs SlashCandidate, c, can *Validator) int {
 	// TODO
 	return -1
 }
