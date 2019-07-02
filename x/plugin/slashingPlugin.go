@@ -69,34 +69,32 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
 	if xutil.IsElection(header.Number.Uint64()) && header.Number.Uint64() > xcom.ConsensusSize {
 		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "consensusSize", xcom.ConsensusSize, "electionDistance", xcom.ElectionDistance)
-		err := sp.db.WalkBaseDB(util.BytesPrefix(preAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
-			for iter.Next() {
-				key := iter.Key()
-				value := iter.Value()
-				var amount uint16
-				if err := rlp.DecodeBytes(value, &amount); nil != err {
-					log.Error("slashingPlugin rlp block amount fail", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "value", value, "err", err)
-					return err
-				}
-				// Start to punish nodes with abnormal block rate
-				log.Debug("slashingPlugin node block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "key", hex.EncodeToString(key), "value", amount)
-				if isAbnormal(amount) {
-					nodeId, err := getNodeId(preAbnormalPrefix, key)
-					if nil != err {
-						return err
-					}
-					log.Debug("Slashing anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()))
-					if amount <= blockAmountLow && amount > blockAmountHigh {
+		if result, err := sp.GetPreNodeAmount(); nil != err {
+			return false, err
+		} else {
+			validatorList, err := stk.GetValidatorList(blockHash, header.Number.Uint64(), 1, QueryStartIrr)
+			if nil != err {
+				return false, err
+			}
+			for _, validator := range validatorList {
+				nodeId := validator.NodeId
+				amount, success := result[nodeId]
+				if success {
+					// Start to punish nodes with abnormal block rate
+					log.Debug("slashingPlugin node block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "amount", amount)
+					if isAbnormal(amount) {
+						log.Debug("Slashing anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()))
+						if amount <= blockAmountLow && amount > blockAmountHigh {
 
-					} else if amount <= blockAmountHigh {
+						} else if amount <= blockAmountHigh {
 
+						}
 					}
+				} else {
+					// If there is no record of the node, it means that there is no block, then the penalty is directly
+					//stk.SlashCandidates(state, blockHash, nodeId, , )
 				}
 			}
-			return nil
-		})
-		if nil != err {
-			return false, err
 		}
 	}
 	return true, nil
@@ -199,7 +197,7 @@ func (sp *SlashingPlugin) switchEpoch(blockHash common.Hash) error {
 }
 
 // Get the consensus rate of all nodes in the previous round
-func (sp *SlashingPlugin) GetPreEpochAnomalyNode() (map[discover.NodeID]uint16,error) {
+func (sp *SlashingPlugin) GetPreNodeAmount() (map[discover.NodeID]uint16, error) {
 	result := make(map[discover.NodeID]uint16)
 	err := sp.db.WalkBaseDB(util.BytesPrefix(preAbnormalPrefix), func(num *big.Int, iter iterator.Iterator) error {
 		for iter.Next() {
@@ -211,13 +209,11 @@ func (sp *SlashingPlugin) GetPreEpochAnomalyNode() (map[discover.NodeID]uint16,e
 				return err
 			}
 			log.Debug("slashingPlugin GetPreEpochAnomalyNode", "key", hex.EncodeToString(key), "value", amount)
-			if isAbnormal(amount) {
-				nodeId, err := getNodeId(preAbnormalPrefix, key)
-				if nil != err {
-					return err
-				}
-				result[nodeId] = amount
+			nodeId, err := getNodeId(preAbnormalPrefix, key)
+			if nil != err {
+				return err
 			}
+			result[nodeId] = amount
 		}
 		return nil
 	})

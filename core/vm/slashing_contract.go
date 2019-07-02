@@ -53,7 +53,7 @@ func (sc *slashingContract) ReportMutiSign(data string) ([]byte, error) {
 }
 
 // Check if the node has double sign behavior at a certain block height
-func (sc *slashingContract) CheckMutiSign(addr common.Address, blockNumber uint64, etype int32) ([]byte, error) {
+func (sc *slashingContract) CheckMutiSign(etype int32, addr common.Address, blockNumber uint64) ([]byte, error) {
 	if success, txHash, _ := sc.plugin.CheckMutiSign(addr, blockNumber, etype, sc.Evm.StateDB); success {
 		return txHash, nil
 	}
