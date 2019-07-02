@@ -110,6 +110,7 @@ func initDB() error {
 		return err
 	}
 	if len(fds) > 0 {
+		logger.Info("begin recover")
 		db := new(snapshotDB)
 		if err := db.recover(s); err != nil {
 			logger.Error(fmt.Sprint("recover db fail:", err))
@@ -117,6 +118,7 @@ func initDB() error {
 		}
 		dbInstance = db
 	} else {
+		logger.Info("begin newDB")
 		db, err := newDB(s)
 		if err != nil {
 			logger.Error(fmt.Sprint("new db fail:", err))

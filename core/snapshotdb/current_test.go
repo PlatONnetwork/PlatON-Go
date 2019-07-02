@@ -1,17 +1,12 @@
 package snapshotdb
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
 )
-
-func init() {
-	log.Root().SetHandler(log.StdoutHandler)
-}
 
 func TestCurrentUpdate(t *testing.T) {
 	dir := os.TempDir()
@@ -57,4 +52,6 @@ func TestCurrentUpdate(t *testing.T) {
 	if cu2.BaseNum.Int64() != 10000 {
 		t.Fatal("BaseNum not compare")
 	}
+	c.f.Close()
+
 }
