@@ -257,12 +257,13 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 			}
 		}
 		if lastblockNumber.Int64() > 0 {
-			if s.current.HighestNum.Int64() != lastblockNumber.Int64()-1 {
-				return 0, false
-			}
 			if s.current.LastHash == common.ZeroHash {
 				return hashLocationUnRecognized, true
 			}
+			if s.current.HighestNum.Int64() != lastblockNumber.Int64()-1 {
+				return 0, false
+			}
+
 			if s.current.LastHash != lastParenthash {
 				return 0, false
 			}
