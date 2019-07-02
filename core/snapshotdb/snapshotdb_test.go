@@ -9,6 +9,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"io/ioutil"
+	"log"
 	"math/big"
 	"os"
 	"testing"
@@ -682,7 +683,7 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 			parenthash = currenthash
 		}
 	}
-	t.Run("a block kv>2000", func(t *testing.T) {
+	t.Run("a block kv>2000,commit 1", func(t *testing.T) {
 		err := dbInstance.Compaction()
 		if err != nil {
 			t.Error(err)
@@ -703,7 +704,7 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 			}
 		}
 	})
-	t.Run("kv<2000,block<10", func(t *testing.T) {
+	t.Run("kv<2000,block<10,commit 2,3,4", func(t *testing.T) {
 		err := dbInstance.Compaction()
 		if err != nil {
 			t.Error(err)
@@ -724,15 +725,15 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 			}
 		}
 	})
-	t.Run("kv<2000,block=10", func(t *testing.T) {
+	t.Run("kv<2000,block=10,commit 5-15", func(t *testing.T) {
 		err := dbInstance.Compaction()
 		if err != nil {
 			t.Error(err)
 		}
-		if dbInstance.current.BaseNum.Int64() != 13 {
+		if dbInstance.current.BaseNum.Int64() != 14 {
 			t.Error("must be 14", dbInstance.current.BaseNum)
 		}
-		if len(dbInstance.committed) != 2 {
+		if len(dbInstance.committed) != 1 {
 			t.Error("must be 1:", len(dbInstance.committed))
 		}
 	})
@@ -1096,4 +1097,33 @@ func TestCommit(t *testing.T) {
 		t.Fatal("[SnapshotDB] should move to commit")
 	}
 
+}
+
+func TestNewBlockOpenTooMany(t *testing.T) {
+	os.RemoveAll(dbpath)
+	initDB()
+	db := dbInstance
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
+	log.Print("pid:", os.Getpid())
+	for i := 0; i < 1000; i++ {
+		if err := db.NewBlock(big.NewInt(int64(i+1)), generateHash(fmt.Sprint(i)), generateHash(fmt.Sprint(i+1))); err != nil {
+			t.Fatal(err)
+			break
+		}
+		if err := db.Put(generateHash(fmt.Sprint(i+1)), []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
+			t.Fatal(err)
+			break
+		}
+	}
+	for i := 0; i < 1000; i++ {
+		if err := db.Commit(generateHash(fmt.Sprint(i + 1))); err != nil {
+			t.Fatal(err)
+			break
+		}
+	}
 }
