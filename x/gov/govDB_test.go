@@ -94,7 +94,7 @@ func TestGovDB_SetVote(t *testing.T) {
 		gov.Pass,
 	}
 
-	if !db.SetTallyResult(tallyResult, statedb) {
+	if err := db.SetTallyResult(tallyResult, statedb); err != nil{
 		t.Fatalf("set vote result error")
 	}
 
