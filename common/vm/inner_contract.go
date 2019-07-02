@@ -9,5 +9,6 @@ var (
 	RewardManagerPoolAddr = common.HexToAddress("0x1000000000000000000000000000000000000003")
 	SlashingContractAddr = common.HexToAddress("0x1000000000000000000000000000000000000004")
 	GovContractAddr = common.HexToAddress("0x1000000000000000000000000000000000000005")
+	CommunityDeveloperFoundation = common.HexToAddress("0x1000000000000000000000000000000000000006")
 	ValidatorInnerContractAddr = common.HexToAddress("0x2000000000000000000000000000000000000000")
 )
