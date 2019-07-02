@@ -59,6 +59,7 @@ var (
 	errInvalidPrepareVotes         = errors.New("invalid prepare prepareVotes")
 	errInvalidatorCandidateAddress = errors.New("invalid address")
 	errDuplicationConsensusMsg     = errors.New("duplication message")
+	errInvalidViewChange           = errors.New("invalid viewChange")
 
 	extraSeal = 65
 	//windowSize         = 10
@@ -997,6 +998,12 @@ func (cbft *Cbft) OnSendViewChange() {
 		cbft.log.Error("New view change failed", "err", err)
 		return
 	}
+
+	if cbft.checkViewChangeRealTimeout(view.ProposalIndex) {
+		cbft.log.Warn("View change really timeout, stopped change view", "view", view, "now", common.Millis(time.Now()))
+		return
+	}
+
 	cbft.log.Info("Send new view", "nodeID", cbft.config.NodeID, "view", view.String(), "msgHash", view.MsgHash().TerminalString())
 	cbft.bp.ViewChangeBP().SendViewChange(context.TODO(), view, cbft)
 
@@ -1074,7 +1081,7 @@ func (cbft *Cbft) OnViewChange(peerID discover.NodeID, view *viewChange) error {
 	resp.Signature.SetBytes(sign)
 	cbft.viewChangeResp = resp
 	cbft.log.Info("Response viewChangeVote", "viewChangeResp", resp, "msgHash", resp.MsgHash())
-	time.AfterFunc(time.Duration(cbft.config.Period)*time.Second, func() {
+	time.AfterFunc(time.Duration(cbft.config.Period)*2*time.Second, func() {
 		cbft.viewChangeVoteTimeoutCh <- resp
 	})
 	cbft.agreeViewChangeProcess(view, resp)
@@ -1690,6 +1697,22 @@ func (cbft *Cbft) CalcNextBlockTime(timePoint int64) (time.Time, error) {
 	}
 	return tm.Add(time.Duration(cbft.config.Period) * time.Second), nil // 1s
 
+}
+
+func (cbft *Cbft) checkViewChangeRealTimeout(proposalIndex uint32) bool {
+	if cbft.getValidators().Len() == 1 {
+		return false
+	}
+
+	timepoint := common.Millis(time.Now())
+	startEpoch := cbft.startTimeOfEpoch * 1000
+	durationPerNode := cbft.config.Duration * 1000
+	durationPerTurn := durationPerNode * int64(cbft.getValidators().Len())
+
+	min := int64(proposalIndex) * durationPerNode
+	cur := (timepoint - startEpoch) % durationPerTurn
+	cbft.log.Debug("Check view change real timeout", "min", min, "cur", cur, "timepoint", timepoint, "startEpoch", startEpoch)
+	return (cur - min) > int64(3*cbft.config.Period*1000)
 }
 
 // ConsensusNodes returns all consensus nodes.

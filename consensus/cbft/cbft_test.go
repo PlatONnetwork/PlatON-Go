@@ -34,6 +34,8 @@ func TestNewViewChange(t *testing.T) {
 	}
 
 	node := nodeIndexNow(validators, engine.startTimeOfEpoch)
+	time.Sleep(time.Millisecond * time.Duration(periodRemaining(node.index, validators, engine.startTimeOfEpoch)))
+	node = nodeIndexNow(validators, engine.startTimeOfEpoch)
 	viewChange := makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address, nil)
 
 	//create view base of genesis
@@ -44,7 +46,7 @@ func TestNewViewChange(t *testing.T) {
 	assert.Equal(t, errDuplicationConsensusMsg, err)
 
 	//wait switch next validator
-	time.Sleep(time.Second * time.Duration(engine.config.Duration+1))
+	time.Sleep(time.Duration(engine.config.Duration+1)*time.Second)
 
 	//last validator's timestamp doesn't match current timestamp
 	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address, nil)
@@ -52,7 +54,17 @@ func TestNewViewChange(t *testing.T) {
 	err = engine.OnViewChange(node.nodeID, viewChange)
 	assert.Equal(t, errRecvViewTimeout, err)
 
+	// viewChange really timeout
+	node = nodeIndexNow(validators, engine.startTimeOfEpoch)
+	time.Sleep(time.Duration(3*engine.config.Period)*time.Second)
+	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address, nil)
+
+	err = engine.OnViewChange(node.nodeID, viewChange)
+	assert.Equal(t, errRecvViewTimeout, err)
+
 	//create new viewchange base on current validator
+	node = nodeIndexNow(validators, engine.startTimeOfEpoch)
+	time.Sleep(time.Millisecond * time.Duration(periodRemaining(node.index, validators, engine.startTimeOfEpoch)))
 	node = nodeIndexNow(validators, engine.startTimeOfEpoch)
 	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address, nil)
 
@@ -84,6 +96,14 @@ func TestNewViewChange(t *testing.T) {
 	assert.Equal(t, errNotFoundViewBlock, err)
 	time.Sleep(time.Second * time.Duration(engine.config.Period*3))
 
+	// invalid signature
+	time.Sleep(time.Millisecond * time.Duration(periodRemaining(node.index, validators, engine.startTimeOfEpoch)))
+	node = nodeIndexNow(validators, engine.startTimeOfEpoch)
+	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address, nil)
+	viewChange.Signature.SetBytes(make([]byte, 64))
+	err = engine.OnViewChange(node.nodeID, viewChange)
+	assert.Equal(t, errInvalidViewChange, err)
+
 	assert.Nil(t, engine.viewChange)
 	assert.Empty(t, engine.viewChangeVotes)
 }
@@ -91,8 +111,9 @@ func TestNewViewChange(t *testing.T) {
 func TestCbft_OnSendViewChange(t *testing.T) {
 	path := path()
 	defer os.RemoveAll(path)
-	engine, _, _ := randomCBFT(path, 4)
+	engine, _, validators := randomCBFT(path, 4)
 
+	time.Sleep(time.Duration(nextRound(validators, engine.startTimeOfEpoch))*time.Millisecond)
 	engine.OnSendViewChange()
 
 	assert.NotNil(t, engine.viewChange)
@@ -105,7 +126,8 @@ func TestCbft_ShouldSeal(t *testing.T) {
 	defer os.RemoveAll(path)
 	engine, _, validators := randomCBFT(path, 4)
 
-	seal, err := engine.ShouldSeal(100)
+	time.Sleep(time.Duration(nextRound(validators, engine.startTimeOfEpoch)) * time.Millisecond)
+	seal, err := engine.ShouldSeal(common.Millis(time.Now()))
 	assert.False(t, seal)
 	assert.NotNil(t, err)
 

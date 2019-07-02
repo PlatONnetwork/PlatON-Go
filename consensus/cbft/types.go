@@ -602,7 +602,7 @@ func (cbft *Cbft) newViewChangeProcess(view *viewChange) {
 func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
 
 	now := time.Now().UnixNano() / 1e6
-	if !cbft.isLegal(now, view.ProposalAddr) {
+	if !cbft.isLegal(now, view.ProposalAddr) || cbft.checkViewChangeRealTimeout(view.ProposalIndex) {
 		cbft.log.Error("Receive view change timeout", "current", now, "remote", view.Timestamp)
 		return errRecvViewTimeout
 	}
@@ -640,6 +640,11 @@ func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
 	if view.BaseBlockNum != 0 && len(view.BaseBlockPrepareVote) < cbft.getThreshold() {
 		cbft.log.Error("View's prepare vote < 2f", "view", view.String())
 		return errTwoThirdPrepareVotes
+	}
+
+	if err := cbft.verifyValidatorSign(cbft.nextRoundValidator(view.BaseBlockNum), view.ProposalIndex, view.ProposalAddr, view, view.Signature[:]); err != nil {
+		cbft.log.Error("Verify viewChange signature fail", "view", view, "err", err)
+		return errInvalidViewChange
 	}
 
 	for _, vote := range view.BaseBlockPrepareVote {
