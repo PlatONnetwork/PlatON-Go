@@ -145,6 +145,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 		}
 	}
 
+	xcom.SetEconomicModel(&cfg.EconomicModel)
 	// Current version only supports full syncmode
 	//ctx.GlobalSet(utils.SyncModeFlag.Name, cfg.Eth.SyncMode.String())
 

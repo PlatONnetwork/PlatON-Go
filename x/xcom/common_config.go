@@ -20,6 +20,19 @@ type EconomicModel struct {
 	EpochsPerYear   uint32
 }
 
+var ec *EconomicModel
+
+func SetEconomicModel(ecParams *EconomicModel) {
+	if nil == ec {
+		ec = ecParams
+	}
+}
+
+// Getting the global EconomicModel single instance
+func GetEcModInstance () *EconomicModel {
+	return ec
+}
+
 var DefaultConfig = EconomicModel{
 	Staking:  		DefaultStakingConfig,
 	Slashing: 		DefaultSlashingConfig,
@@ -125,11 +138,11 @@ var DefaultStakingConfig = StakingConfig{
 }
 
 var DefaultSlashingConfig = SlashingConfig{
-	BlockAmountLow:				0,
-	BlockAmountHigh:			0,
-	BlockAmountLowSlashing:		0,
-	BlockAmountHighSlashing:	0,
-	DuplicateSignNum:			0,
-	DuplicateSignLowSlashing:	0,
-	DuplicateSignHighSlashing:	0,
+	BlockAmountLow:				8,
+	BlockAmountHigh:			5,
+	BlockAmountLowSlashing:		10,
+	BlockAmountHighSlashing:	20,
+	DuplicateSignNum:			2,
+	DuplicateSignLowSlashing:	10,
+	DuplicateSignHighSlashing:	10,
 }
