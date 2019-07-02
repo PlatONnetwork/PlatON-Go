@@ -16,8 +16,8 @@ const (
 	LowRatio               // 0010: The candidate was low package ratio
 	NotEnough              // 0100: The current candidate's von does not meet the minimum staking threshold
 	DoubleSign             // 1000: The Double package or Double sign
-	Valided = 0 	 	   // 0000: The current candidate is in force
-	NotExist = 1 << 31     // 1000,xxxx,... : The candidate is not exist
+	Valided    = 0         // 0000: The current candidate is in force
+	NotExist   = 1 << 31   // 1000,xxxx,... : The candidate is not exist
 )
 
 func Is_Valid(status uint32) bool {
@@ -49,27 +49,27 @@ func Is_PureNotEnough(status uint32) bool {
 }
 
 func Is_Invalid_LowRatio(status uint32) bool {
-	return status&(Invalided|LowRatio) == (Invalided|LowRatio)
+	return status&(Invalided|LowRatio) == (Invalided | LowRatio)
 }
 
 func Is_Invalid_NotEnough(status uint32) bool {
-	return status&(Invalided|NotEnough) == (Invalided|NotEnough)
+	return status&(Invalided|NotEnough) == (Invalided | NotEnough)
 }
 
 func Is_Invalid_LowRatio_NotEnough(status uint32) bool {
-	return status&(Invalided|LowRatio|NotEnough) == (Invalided|LowRatio|NotEnough)
+	return status&(Invalided|LowRatio|NotEnough) == (Invalided | LowRatio | NotEnough)
 }
 
 func Is_LowRatio_NotEnough(status uint32) bool {
-	return status&(LowRatio|NotEnough) == (LowRatio|NotEnough)
+	return status&(LowRatio|NotEnough) == (LowRatio | NotEnough)
 }
 
-func Is_DoubleSign (status uint32) bool {
+func Is_DoubleSign(status uint32) bool {
 	return status&DoubleSign == DoubleSign
 }
 
-func Is_DoubleSign_Invalid (status uint32) bool {
-	return status&(DoubleSign|Invalided) == (DoubleSign|Invalided)
+func Is_DoubleSign_Invalid(status uint32) bool {
+	return status&(DoubleSign|Invalided) == (DoubleSign | Invalided)
 }
 
 // The Candidate info
@@ -79,25 +79,19 @@ type Candidate struct {
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
 	BenifitAddress common.Address
-
 	// The tx index at the time of staking
 	StakingTxIndex uint32
-
 	// The version of the node process
 	ProcessVersion uint32
-
 	// The candidate status
 	// Reference `THE CANDIDATE  STATUS`
 	Status uint32
-
+	// The epoch number at staking or edit
+	StakingEpoch uint32
 	// Block height at the time of staking
 	StakingBlockNum uint64
-
-	// The epoch number at staking or edit
-	StakingEpoch uint64
 	// All vons of staking and delegated
 	Shares *big.Int
-
 	// The staking von  is circulating for effective epoch (in effect)
 	Released *big.Int
 	// The staking von  is circulating for hesitant epoch (in hesitation)
@@ -112,10 +106,10 @@ type Candidate struct {
 }
 
 type Description struct {
-	// The Candidate Node's Name  (with a length limit)
-	NodeName string
 	// External Id for the third party to pull the node description (with length limit)
 	ExternalId string
+	// The Candidate Node's Name  (with a length limit)
+	NodeName string
 	// The third-party home page of the node (with a length limit)
 	Website string
 	// Description of the node (with a length limit)
@@ -192,7 +186,21 @@ type Validator_array struct {
 }
 
 type ValidatorEx struct {
-	*Candidate
+	NodeId discover.NodeID
+	// The account used to initiate the staking
+	StakingAddress common.Address
+	// The account receive the block rewards and the staking rewards
+	BenifitAddress common.Address
+	// The tx index at the time of staking
+	StakingTxIndex uint32
+	// The version of the node process
+	ProcessVersion uint32
+	// Block height at the time of staking
+	StakingBlockNum uint64
+	// All vons of staking and delegated
+	Shares *big.Int
+	// Node desc
+	Description
 	// this is the term of validator in consensus round
 	// [0, N]
 	ValidatorTerm uint32
@@ -203,11 +211,7 @@ type ValidatorExQueue = []*ValidatorEx
 // the Delegate information
 type Delegation struct {
 	// The epoch number at delegate or edit
-	DelegateEpoch uint64
-
-	// Total amount in all cancellation plans
-	Reduction *big.Int
-
+	DelegateEpoch uint32
 	// The delegate von  is circulating for effective epoch (in effect)
 	Released *big.Int
 	// The delegate von  is circulating for hesitant epoch (in hesitation)
@@ -216,9 +220,14 @@ type Delegation struct {
 	LockRepo *big.Int
 	// The delegate von  is locked for hesitant epoch (in hesitation)
 	LockRepoTmp *big.Int
+	// Total amount in all cancellation plans
+	Reduction *big.Int
 }
 
 type DelegationEx struct {
+	Addr            common.Address
+	NodeId          discover.NodeID
+	StakingBlockNum uint64
 	Delegation
 }
 

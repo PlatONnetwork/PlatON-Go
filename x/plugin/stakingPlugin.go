@@ -179,7 +179,7 @@ func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.H
 		can.LockRepoTmp = amount
 	}
 
-	can.StakingEpoch = xutil.CalculateEpoch(blockNumber.Uint64())
+	can.StakingEpoch = uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to CreateCandidate on stakingPlugin: Put Can info 2 db failed",
@@ -248,7 +248,7 @@ func (sk *StakingPlugin) IncreaseStaking (state xcom.StateDB, blockHash common.H
 		can.LockRepoTmp = new(big.Int).Add(can.LockRepoTmp, amount)
 	}
 
-	can.StakingEpoch = epoch
+	can.StakingEpoch = uint32(epoch)
 
 	// delete old power of can
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
@@ -296,7 +296,7 @@ func (sk *StakingPlugin) WithdrewCandidate(state xcom.StateDB, blockHash common.
 		return success, err
 	}
 
-	can.StakingEpoch = epoch
+	can.StakingEpoch = uint32(epoch)
 
 	if can.Released.Cmp(common.Big0) > 0 || can.LockRepo.Cmp(common.Big0) > 0 {
 
@@ -491,7 +491,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	}
 
-	del.DelegateEpoch = epoch
+	del.DelegateEpoch = uint32(epoch)
 
 	// set new delegate info
 	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del); nil != err {
@@ -600,7 +600,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		return remain, aboutRelease, aboutLockRepo, true, nil
 	}
 
-	del.DelegateEpoch = epoch
+	del.DelegateEpoch = uint32(epoch)
 
 	switch {
 
@@ -850,7 +850,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 		del.Reduction = new(big.Int).Sub(del.Reduction, amount)
 
-		del.DelegateEpoch = epoch
+		del.DelegateEpoch = uint32(epoch)
 
 		if err := sk.db.SetDelegateStoreBySuffix(blockHash, unDel.KeySuffix, del); nil != err {
 			return false, err
@@ -1131,7 +1131,23 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 		}
 
 		canEx := &xcom.ValidatorEx{
-			Candidate: can,
+			NodeId: can.NodeId,
+			// The account used to
+			StakingAddress: can.StakingAddress,
+			// The account receive
+			BenifitAddress: can.BenifitAddress,
+			// The tx index at the
+			StakingTxIndex: can.StakingTxIndex,
+			// The version of the
+			ProcessVersion: can.ProcessVersion,
+			// Block height at the
+			StakingBlockNum: can.StakingBlockNum,
+			// All vons of staking
+			Shares: common.Big0, // todo Could be caculate out
+			// Node desc
+			Description: can.Description,
+			// this is the term of
+			// [0, N]
 			ValidatorTerm: v.ValidatorTerm,
 		}
 		result = append(result, canEx)
@@ -1829,7 +1845,7 @@ func lazyCalcStakeAmount(epoch uint64, can *xcom.Candidate) {
 
 	changeAmountEpoch := can.StakingEpoch
 
-	sub := epoch - changeAmountEpoch
+	sub := epoch - uint64(changeAmountEpoch)
 
 	// If it is during the same hesitation period, short circuit
 	if sub < xcom.HesitateRatio {
@@ -1849,7 +1865,7 @@ func lazyCalcDelegateAmount(epoch uint64, del *xcom.Delegation) {
 
 	changeAmountEpoch := del.DelegateEpoch
 
-	sub := epoch - changeAmountEpoch
+	sub := epoch - uint64(changeAmountEpoch)
 
 	// If it is during the same hesitation period, short circuit
 	if sub < xcom.HesitateRatio {
