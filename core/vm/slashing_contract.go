@@ -46,7 +46,7 @@ func (sc *slashingContract) execute(input []byte) ([]byte, error) {
 
 // Report the double signing behavior of the node
 func (sc *slashingContract) ReportMutiSign(data string) ([]byte, error) {
-	if err := sc.plugin.Slash(data, sc.Evm.StateDB); nil != err {
+	if err := sc.plugin.Slash(data, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB); nil != err {
 		return nil, err
 	}
 	return nil, nil

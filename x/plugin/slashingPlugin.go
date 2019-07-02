@@ -31,11 +31,11 @@ var (
 	// The number of high exceptions per consensus round
 	blockAmountHigh 			uint16 	= 5
 	//
-	blockAmountLowSlashing		uint32	= 10
-	blockAmountHighSlashing		uint32	= 20
-	duplicateSignNum			uint32	= 2
-	duplicateSignLowSlashing	uint32	= 10
-	duplicateSignHighSlashing	uint32	= 10
+	blockAmountLowSlashing		uint64	= 10
+	blockAmountHighSlashing		uint64	= 20
+	duplicateSignNum			uint16	= 2
+	duplicateSignLowSlashing	uint64	= 10
+	duplicateSignHighSlashing	uint64	= 20
 
 	errMutiSignVerify	= errors.New("Multi-sign verification failed")
 	errSlashExist		= errors.New("Punishment has been implemented")
@@ -79,20 +79,31 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 			for _, validator := range validatorList {
 				nodeId := validator.NodeId
 				amount, success := result[nodeId]
+				isSlash := false
+				var rate uint64
 				if success {
 					// Start to punish nodes with abnormal block rate
 					log.Debug("slashingPlugin node block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "amount", amount)
 					if isAbnormal(amount) {
 						log.Debug("Slashing anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()))
 						if amount <= blockAmountLow && amount > blockAmountHigh {
-
+							isSlash = true
+							rate = blockAmountLowSlashing
 						} else if amount <= blockAmountHigh {
-
+							isSlash = true
+							rate = blockAmountHighSlashing
 						}
 					}
 				} else {
+					isSlash = true
+					rate = blockAmountHighSlashing
+				}
+				if isSlash && rate > 0 {
 					// If there is no record of the node, it means that there is no block, then the penalty is directly
-					//stk.SlashCandidates(state, blockHash, nodeId, , )
+					if flag, err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, calcSlashAmount(validator.Candidate, rate), xcom.LowRatio); nil != err || !flag {
+						log.Error("slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "err", err)
+						return false, err
+					}
 				}
 			}
 		}
@@ -223,7 +234,7 @@ func (sp *SlashingPlugin) GetPreNodeAmount() (map[discover.NodeID]uint16, error)
 	return result, nil
 }
 
-func (sp *SlashingPlugin) Slash(data string, stateDB xcom.StateDB) error {
+func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber uint64, stateDB xcom.StateDB) error {
 	evidences, err := sp.decodeEvidence(data)
 	if nil != err {
 		log.Error("Slash failed", "data", data, "err", err)
@@ -238,7 +249,15 @@ func (sp *SlashingPlugin) Slash(data string, stateDB xcom.StateDB) error {
 				log.Error("Execution slashing failed", "blockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
 				return errSlashExist
 			}
-			sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), int32(evidence.Type()), stateDB)
+			if candidate, err := stk.GetCandidateInfo(blockHash, evidence.Address()); nil != err {
+				return err
+			} else {
+				if flag, err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, calcSlashAmount(candidate, duplicateSignLowSlashing), xcom.DoubleSign); nil != err || !flag {
+					log.Error("slashingPlugin SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
+					return err
+				}
+				sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), int32(evidence.Type()), stateDB)
+			}
 		}
 	}
 	return nil
@@ -299,4 +318,12 @@ func parseNodeId(header *types.Header) (discover.NodeID, error) {
 		return discover.NodeID{}, err
 	}
 	return discover.PubkeyID(pk), nil
+}
+
+func calcSlashAmount(candidate *xcom.Candidate, rate uint64) *big.Int {
+	sumAmount := new(big.Int)
+	sumAmount.Add(candidate.Released, candidate.ReleasedTmp)
+	sumAmount.Add(sumAmount, candidate.LockRepo)
+	sumAmount.Add(sumAmount, candidate.LockRepoTmp)
+	return sumAmount.Div(sumAmount, new(big.Int).SetUint64(rate))
 }
