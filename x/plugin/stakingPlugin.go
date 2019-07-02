@@ -1502,7 +1502,7 @@ func (sk *StakingPlugin) Switch(blockHash common.Hash, blockNumber uint64) (bool
 }
 
 func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Hash, blockNumber uint64,
-	nodeId discover.NodeID, amount *big.Int, slashType int) (bool, error) {
+	nodeId discover.NodeID, amount *big.Int, needDelete bool, slashType int) (bool, error) {
 
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
@@ -1616,25 +1616,24 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	remainLockRepo := new(big.Int).Add(can.LockRepo, can.LockRepoTmp)
 	canRemain := new(big.Int).Add(remainRelease, remainLockRepo)
 
-	var isDelete bool
-
 	if slashType == xcom.LowRatio {
 		can.Status |= xcom.LowRatio
 		if !CheckStakeThreshold(canRemain) {
-			can.Status |= xcom.NotEnough&xcom.Invalided
-			isDelete = true
+			can.Status |= xcom.NotEnough
+			needDelete = true
 		}
 	}else if slashType == xcom.DoubleSign {
 		can.Status |= xcom.DoubleSign
-		isDelete = true
+		needDelete = true
 	}else {
 		log.Error("Failed to SlashCandidates: the slashType is wrong", "slashType", slashType)
 		return true, fmt.Errorf("Failed to SlashCandidates: the slashType is wrong, slashType: %d", slashType)
 	}
 
 
-	if !isDelete {
+	if !needDelete {
 		sk.db.SetCanPowerStore(blockHash, addr, can)
+		can.Status |= xcom.Invalided
 	}else {
 		validators, err := sk.db.GetVerifierListByBlockHash(blockHash)
 		if nil != err {
