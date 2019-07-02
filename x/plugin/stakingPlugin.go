@@ -74,36 +74,36 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
 		// handle UnStaking Item
-		success, err := sk.HandleUnCandidateReq(state, blockHash, epoch)
+		err := sk.HandleUnCandidateReq(state, blockHash, epoch)
 		if nil != err {
 			log.Error("Failed to call HandleUnCandidateReq on stakingPlugin EndBlock", "blockHash",
 	blockHash.Hex(), "blockNumber", header.Number.Uint64(), "err", err)
-			return success, err
+			return false, err
 		}
 
 		// Election next epoch validators
-		if flag, err := sk.ElectNextVerifierList(blockHash, header.Number.Uint64()); nil != err {
-			return flag, err
+		if err := sk.ElectNextVerifierList(blockHash, header.Number.Uint64()); nil != err {
+			return false, err
 		}
 	}
 
 	if xutil.IsElection(header.Number.Uint64()) {
 		// ELection next round validators
-		success, err := sk.Election(blockHash, header.Number.Uint64())
+		err := sk.Election(blockHash, header.Number.Uint64())
 		if nil != err {
 			log.Error("Failed to call Election on stakingPlugin EndBlock", "blockHash", blockHash.Hex(),
 	"blockNumber", header.Number.Uint64(), "err", err)
-			return success, err
+			return false, err
 		}
 	}
 
 	if xutil.IsSwitch(header.Number.Uint64()) {
 		// Switch previous, current and next round validators
-		success, err := sk.Switch(blockHash, header.Number.Uint64())
+		err := sk.Switch(blockHash, header.Number.Uint64())
 		if nil != err {
 			log.Error("Failed to call Switch on stakingPlugin EndBlock", "blockHash", blockHash.Hex(),
 	"blockNumber", header.Number.Uint64(), "err", err)
-			return success, err
+			return false, err
 		}
 	}
 
@@ -142,16 +142,20 @@ func (sk *StakingPlugin) GetCandidateInfoByIrr (addr common.Address) (*xcom.Cand
 func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *xcom.Candidate) error {
 
-	// TODO Call gov Plugin
+	// Query current active version
+	curr_version := govPlugin.GetActiveVersion(state)
 
-	/*if processVersion < version {
-		return true, ProcessVersionErr
-	} else if processVersion > version {
 
-		// TODO Call gov dclare ?
-	} else {
-		can.ProcessVersion = processVersion
-	}*/
+	if processVersion < curr_version {
+		return ProcessVersionErr
+	} else if processVersion > curr_version {
+		// Declare new Version
+		err := govPlugin.DeclareVersion(can.StakingAddress, can.NodeId, processVersion, blockHash, blockNumber.Uint64(), state)
+		if nil != err {
+			return err
+		}
+	}
+	can.ProcessVersion = curr_version
 
 	// from account free von
 	if typ == FreeOrigin {
@@ -1590,7 +1594,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			if isNotify {
 				_, err := RestrictingPtr.SlashingNotify(can.StakingAddress, balance, state)
 				if nil != err {
-					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "flag", flag, "amount",
+					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "amount",
 						balance, "err", err)
 					return remian, balance, err
 				}
