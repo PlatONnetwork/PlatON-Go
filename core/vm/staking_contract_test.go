@@ -3,7 +3,6 @@ package vm
 import (
 	"bytes"
 	"fmt"
-	"github.com/GavinXu520/platon-go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"testing"
@@ -33,7 +32,7 @@ func TestRLP_encode (t *testing.T) {
 
 func TestRLP_2 (t *testing.T) {
 
-	var GetVerifiersList [][]byte
+	/*var GetVerifiersList [][]byte
 	GetVerifiersList = make([][]byte, 0)
 	GetVerifiersList = append(GetVerifiersList, byteutil.Uint64ToBytes(0xf1))
 	GetVerifiersList = append(GetVerifiersList, []byte("GetVerifiersList"))
@@ -44,5 +43,5 @@ func TestRLP_2 (t *testing.T) {
 		t.Errorf("GetVerifiersList encode rlp data fail")
 	} else {
 		fmt.Println("GetVerifiersList data rlp: ", hexutil.Encode(bufGetVerifiersList.Bytes()))
-	}
+	}*/
 }
