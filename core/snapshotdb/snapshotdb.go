@@ -396,6 +396,9 @@ func (s *snapshotDB) Has(hash common.Hash, key []byte) (bool, error) {
 
 // Flush move unRecognized to Recognized data
 func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
+	if s.unRecognized == nil {
+		return errors.New("[snapshotdb]the unRecognized is nil, can't flush")
+	}
 	if blocknumber.Int64() != s.unRecognized.Number.Int64() {
 		return errors.New("[snapshotdb]blocknumber not compare the unRecognized blocknumber")
 	}
