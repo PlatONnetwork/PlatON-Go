@@ -107,7 +107,7 @@ func main() {
 		if err := node.Service(&ethereum); err != nil {
 			panic(err)
 		}
-		if err := ethereum.StartMining(1); err != nil {
+		if err := ethereum.StartMining(); err != nil {
 			panic(err)
 		}
 	}
