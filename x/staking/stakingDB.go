@@ -19,9 +19,9 @@ type StakingDB struct {
 }
 
 
-func NewStakingDB (db snapshotdb.DB) *StakingDB{
+func NewStakingDB () *StakingDB{
 	return &StakingDB {
-		db: db,
+		db: snapshotdb.Instance(),
 	}
 }
 

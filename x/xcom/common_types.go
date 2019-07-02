@@ -78,7 +78,7 @@ type Evidence interface {
 // inner contract event data
 type Result struct {
 	Status bool
-	Data   string
+	Data   interface{}
 	ErrMsg string
 }
 

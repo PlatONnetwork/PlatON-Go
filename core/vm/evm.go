@@ -62,7 +62,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 			switch p.(type) {
 			case *stakingContract:
 				staking := &stakingContract{
-					plugin:   plugin.StakingInstance(nil),
+					plugin:   plugin.StakingInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}

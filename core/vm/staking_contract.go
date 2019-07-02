@@ -585,8 +585,8 @@ func (stkc *stakingContract) getCandidateList() ([]byte, error) {
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
-	arrByte, _ := json.Marshal(arr)
-	res := xcom.Result{true, string(arrByte), ""}
+
+	res := xcom.Result{true, arr, ""}
 	data, _ := rlp.EncodeToBytes(res)
 	return data, nil
 }
