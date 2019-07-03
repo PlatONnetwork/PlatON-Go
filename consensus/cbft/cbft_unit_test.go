@@ -86,20 +86,6 @@ func TestCbft_OnViewChange(t *testing.T) {
 		makeViewChange(node.privateKey, uint64(time.Now().Unix()+20000), 0, engine.blockChain.Genesis().Hash(), uint32(node.index), node.address, nil),
 		// The timestamp is less than the start time of the window period
 		makeViewChange(node.privateKey, uint64(time.Now().Unix()-20000), 0, engine.blockChain.Genesis().Hash(), uint32(node.index), node.address, nil),
-		// Block height is empty
-		func() *viewChange {
-			p := &viewChange{
-				Timestamp:            uint64(time.Now().Unix()),
-				BaseBlockHash:        engine.blockChain.Genesis().Hash(),
-				ProposalIndex:        uint32(node.index),
-				ProposalAddr:         node.address,
-				BaseBlockPrepareVote: nil,
-			}
-			cb, _ := p.CannibalizeBytes()
-			sign, _ := crypto.Sign(cb, node.privateKey)
-			p.Signature.SetBytes(sign)
-			return p
-		}(),
 		// Block hash is empty
 		func() *viewChange {
 			p := &viewChange{
@@ -176,6 +162,7 @@ func TestCbft_OnViewChange(t *testing.T) {
 	for i, view := range testCases {
 		err := engine.OnViewChange(node.nodeID, view)
 		assert.NotNil(t, err, "case:%d is fail", i)
+		engine.viewChange = nil
 	}
 }
 
