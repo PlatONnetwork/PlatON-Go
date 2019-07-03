@@ -209,15 +209,15 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 }
 
 func (bcr *BlockChainReactor) GetLastNumber(blockNumber uint64) uint64 {
-	return plugin.StakingInstance(nil).GetLastNumber(blockNumber)
+	return plugin.StakingInstance().GetLastNumber(blockNumber)
 }
 
 func (brc *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
-	return plugin.StakingInstance(nil).GetValidator(blockNumber)
+	return plugin.StakingInstance().GetValidator(blockNumber)
 }
 
 func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
-	return plugin.StakingInstance(nil).IsCandidateNode(nodeID)
+	return plugin.StakingInstance().IsCandidateNode(nodeID)
 }
 
 //func isWorker(extra []byte) bool {
