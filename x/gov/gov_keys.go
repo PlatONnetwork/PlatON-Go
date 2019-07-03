@@ -6,18 +6,18 @@ import (
 )
 
 var (
-	KeyDelimiter             = []byte(":")
-	keyPrefixProposal        = []byte("Proposal")
-	keyPrefixVote            = []byte("Vote")
-	keyPrefixTallyResult     = []byte("TallyResult")
-	keyPrefixVotingProposals = []byte("VotingProposals")
-	keyPrefixEndProposals    = []byte("EndProposals")
-	//keyPrefixPreActiveProposal = []byte("PreActiveProposal")
-	keyPrefixPreActiveVersion = []byte("PreActiveVersion")
-	keyPrefixActiveVersion    = []byte("ActiveVersion")
-	keyPrefixVotedVerifiers   = []byte("VotedVerifiers")
-	keyPrefixActiveNodes      = []byte("ActiveNodes")
-	keyPrefixAccuVerifiers    = []byte("AccuVerifiers")
+	KeyDelimiter               = []byte(":")
+	keyPrefixProposal          = []byte("Proposal")
+	keyPrefixVote              = []byte("Vote")
+	keyPrefixTallyResult       = []byte("TallyResult")
+	keyPrefixVotingProposals   = []byte("VotingProposals")
+	keyPrefixEndProposals      = []byte("EndProposals")
+	keyPrefixPreActiveProposal = []byte("PreActiveProposal")
+	keyPrefixPreActiveVersion  = []byte("PreActiveVersion")
+	keyPrefixActiveVersion     = []byte("ActiveVersion")
+	keyPrefixVotedVerifiers    = []byte("VotedVerifiers")
+	keyPrefixActiveNodes       = []byte("ActiveNodes")
+	keyPrefixAccuVerifiers     = []byte("AccuVerifiers")
 )
 
 // 提案的key
@@ -52,7 +52,7 @@ func KeyVotingProposals() []byte {
 
 // 预生效提案ID的key
 func KeyPreActiveProposals() []byte {
-	return keyPrefixEndProposals
+	return keyPrefixPreActiveProposal
 }
 
 // 所有操作均结束的提案列表的key
