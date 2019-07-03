@@ -545,7 +545,7 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 // check if the node a verifier, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
 	//verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
-	verifierList, err := stk.GetVerifierListFake(blockHash, blockNumber, QueryStartNotIrr)
+	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 
 	if err != nil {
 		log.Error("list verifiers failed", "blockHash", blockHash)
