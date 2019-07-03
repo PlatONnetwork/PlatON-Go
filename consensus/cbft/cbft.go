@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -34,7 +33,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -507,30 +506,48 @@ func (cbft *Cbft) OnSyncBlock(ext *BlockExt) {
 		return
 	}
 
-	cbft.log.Debug("Sync block success", "hash", ext.block.Hash(), "number", ext.number)
-
-	if (cbft.viewChange != nil && !cbft.viewChange.Equal(ext.view)) || !cbft.agreeViewChange() {
+	hadCheckPrepareVotes := false
+	oldViewChange := cbft.viewChange
+	invalidBlockProcess := func(err error) {
+		log.Error("Receive prepare invalid block", "err", err)
+		cbft.bp.SyncBlockBP().InvalidBlock(context.TODO(), ext, err, cbft)
+		ext.SetSyncState(err)
+	}
+	if (cbft.viewChange != nil && !cbft.viewChange.Equal(ext.view)) || !cbft.agreeViewChange() || cbft.getValidators().Len() == 1 {
 		cbft.viewChange = ext.view
-		if len(ext.viewChangeVotes) >= cbft.getThreshold() {
-			if err := cbft.checkViewChangeVotes(ext.viewChangeVotes); err != nil {
-				log.Error("Receive prepare invalid block", "err", err)
-				cbft.bp.SyncBlockBP().InvalidBlock(context.TODO(), ext, err, cbft)
-				ext.SetSyncState(err)
-				return
-			}
-			for _, v := range ext.viewChangeVotes {
-				cbft.viewChangeVotes[v.ValidatorAddr] = v
-			}
+		if err := cbft.checkViewChangeVotes(ext.viewChangeVotes); err != nil {
+			cbft.viewChange = oldViewChange
+			invalidBlockProcess(err)
+			return
+		}
+		// check prepareVotes
+		if err := cbft.checkPrepareVotes(ext.Votes()); err != nil {
+			cbft.viewChange = oldViewChange
+			invalidBlockProcess(err)
+			return
+		}
+		hadCheckPrepareVotes = true
+		for _, v := range ext.viewChangeVotes {
+			cbft.viewChangeVotes[v.ValidatorAddr] = v
+		}
 
-			cbft.clearPending()
-			cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
-			cbft.producerBlocks = NewProducerBlocks(cbft.getValidators().NodeID(int(ext.view.ProposalIndex)), ext.block.NumberU64())
-			if cbft.producerBlocks != nil {
-				cbft.producerBlocks.AddBlock(ext.block)
-				cbft.log.Debug("Add producer block", "hash", ext.block.Hash(), "number", ext.block.Number(), "producer", cbft.producerBlocks.String())
-			}
+		cbft.clearPending()
+		cbft.ClearChildren(cbft.viewChange.BaseBlockHash, cbft.viewChange.BaseBlockNum, cbft.viewChange.Timestamp)
+		cbft.producerBlocks = NewProducerBlocks(cbft.getValidators().NodeID(int(ext.view.ProposalIndex)), ext.block.NumberU64())
+		if cbft.producerBlocks != nil {
+			cbft.producerBlocks.AddBlock(ext.block)
+			cbft.log.Debug("Add producer block", "hash", ext.block.Hash(), "number", ext.block.Number(), "producer", cbft.producerBlocks.String())
 		}
 	}
+	// check prepareVotes
+	if !hadCheckPrepareVotes {
+		if err := cbft.checkPrepareVotes(ext.Votes()); err != nil {
+			invalidBlockProcess(err)
+			return
+		}
+	}
+
+	cbft.log.Debug("Sync block success", "hash", ext.block.Hash(), "number", ext.number)
 	ext.timestamp = cbft.viewChange.Timestamp
 	cbft.OnNewBlock(ext)
 }
@@ -907,6 +924,10 @@ func (cbft *Cbft) sealBlockProcess(sealedBlock *types.Block) *BlockExt {
 	current.executing = true
 	current.isExecuted = true
 	current.isSigned = true
+	current.viewChangeVotes = make([]*viewChangeVote, 0)
+	for _, v := range cbft.viewChangeVotes {
+		current.viewChangeVotes = append(current.viewChangeVotes, v)
+	}
 
 	//save the block to cbft.blockExtMap
 	cbft.saveBlockExt(sealedBlock.Hash(), current)
@@ -1115,7 +1136,6 @@ func (cbft *Cbft) flushReadyBlock() bool {
 
 	cbft.evPool.Clear(cbft.viewChange.Timestamp, cbft.viewChange.BaseBlockNum)
 	return true
-
 }
 
 // Receive prepare block from the other consensus node.
@@ -1166,7 +1186,7 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 	if len(request.ViewChangeVotes) != 0 && request.View != nil {
 		if len(request.ViewChangeVotes) < cbft.getThreshold() {
 			cbft.bp.PrepareBP().InvalidBlock(bpCtx, request, errTwoThirdPrepareVotes, cbft)
-			cbft.log.Error(fmt.Sprintf("Receive not enough prepareVotes %d threshold %d", len(request.ViewChangeVotes), cbft.getThreshold()))
+			cbft.log.Error(fmt.Sprintf("Receive not enough viewChangeVotes %d threshold %d", len(request.ViewChangeVotes), cbft.getThreshold()))
 			return errTwoThirdViewchangeVotes
 		}
 
@@ -1220,7 +1240,6 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 				start := time.Now()
 				cbft.txPool.ForkedReset(newHeader, injectBlock)
 				cbft.bp.InternalBP().ForkedResetTxPool(bpCtx, newHeader, injectBlock, time.Now().Sub(start), cbft)
-
 			}
 
 			cbft.clearPending()
@@ -1228,6 +1247,9 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 		}
 		ext.view = cbft.viewChange
 		ext.viewChangeVotes = request.ViewChangeVotes
+	} else {
+		ext.view = cbft.viewChange
+		ext.viewChangeVotes = cbft.viewChangeVotes.Flatten()
 	}
 
 	switch cbft.AcceptPrepareBlock(request) {
@@ -1277,7 +1299,6 @@ func (cbft *Cbft) OnNewBlock(ext *BlockExt) error {
 
 //blockReceiver handles the new block
 func (cbft *Cbft) blockReceiver(ext *BlockExt) {
-
 	cbft.blockExtMap.Add(ext.block.Hash(), ext.block.NumberU64(), ext)
 	blocks := cbft.blockExtMap.GetSubChainUnExecuted()
 	log.Debug("Receive block", "unexecuted", len(blocks), "block map", cbft.blockExtMap.Len())
@@ -1291,7 +1312,6 @@ func (cbft *Cbft) executeBlockLoop() {
 	for {
 		select {
 		case blocks := <-cbft.innerUnExecutedBlockCh:
-
 			//execute block from small to large
 			cbft.executeBlock(blocks)
 		}
@@ -1336,7 +1356,6 @@ func (cbft *Cbft) prepareVoteReceiver(peerID discover.NodeID, vote *prepareVote)
 			cbft.handler.SendAllConsensusPeer(&confirmedPrepareBlock{Hash: ext.block.Hash(), Number: ext.block.NumberU64(), VoteBits: ext.prepareVotes.voteBits})
 		}
 	}
-
 }
 
 //Receive executed block status, remove block if status is error
