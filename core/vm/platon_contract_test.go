@@ -79,7 +79,6 @@ func newContract() *vm.Contract {
 	return contract
 }
 
-
 func build_staking_data (){
 
 

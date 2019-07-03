@@ -2,7 +2,6 @@
 package byteutil
 
 import (
-	"encoding/binary"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -115,13 +114,13 @@ func BytesToUint32(b []byte) uint32 {
 }
 
 func BytesToUint64(b []byte) uint64 {
-	b = append(make([]byte, 8-len(b)), b...)
-	return binary.BigEndian.Uint64(b)
-	//var x uint64
-	//if err := rlp.DecodeBytes(b, &x); nil != err {
-	//	panic("BytesToUint64:" + err.Error())
-	//}
-	//return x
+	/*b = append(make([]byte, 8-len(b)), b...)
+	return binary.BigEndian.Uint64(b)*/
+	var x uint64
+	if err := rlp.DecodeBytes(b, &x); nil != err {
+		panic("BytesToUint64:" + err.Error())
+	}
+	return x
 }
 
 func BytesToBigInt(curByte []byte) *big.Int {

@@ -76,6 +76,7 @@ var PlatONPrecompiledContracts = map[common.Address]PlatONPrecompiledContract{
 	vm.StakingContractAddr: &StakingContract{},
 	vm.RestrictingContractAddr: &restrictingContract{},
 	vm.SlashingContractAddr: &slashingContract{},
+	vm.GovContractAddr: &GovContract{},
 }
 
 // RunPrecompiledContract runs and evaluates the output of a precompiled contract.
