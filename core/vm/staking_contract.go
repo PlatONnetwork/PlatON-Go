@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -126,7 +127,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	}
 
 	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to createStaking by GetCandidateInfo", "txHash", txHash,
 			"blockNumber", blockNumber, "err", err)
 		return nil, err
@@ -207,7 +208,7 @@ func (stkc *StakingContract) editorCandidate(benifitAddress common.Address, node
 	}
 
 	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to editorCandidate by GetCandidateInfo", "txHash", txHash,
 			"blockNumber", blockNumber, "err", err)
 		return nil, err
@@ -291,7 +292,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	}
 
 	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to increaseStaking by GetCandidateInfo", "txHash", txHash,
 			"blockNumber", blockNumber, "err", err)
 		return nil, err
@@ -360,7 +361,7 @@ func (stkc *StakingContract) withdrewCandidate(nodeId discover.NodeID) ([]byte, 
 	}
 
 	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to withdrewCandidate by GetCandidateInfo", "txHash", txHash,
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
 		return nil, err
@@ -438,7 +439,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	}
 
 	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to delegate by GetCandidateInfo", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 		return nil, err
 	}
@@ -460,7 +461,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	// todo the delegate caller is candidate stake addr ?? How do that ??
 
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, canOld.StakingBlockNum)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to delegate by GetDelegateInfo", "txHash", txHash, "blockNumber", blockNumber, "err", err)
 		return nil, err
 	}
@@ -517,7 +518,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	}
 
 	del, err := stkc.Plugin.GetDelegateInfo(blockHash, from, nodeId, stakingBlockNum)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		log.Error("Failed to withdrewDelegate by GetDelegateInfo",
 			"txHash", txHash.Hex(), "blockNumber", blockNumber, "err", err)
 		return nil, err
