@@ -29,7 +29,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
 
-var maxPrice = big.NewInt(500 * params.GWei)
+var maxPrice = big.NewInt(500 * params.GVon)
 
 type Config struct {
 	Blocks     int
