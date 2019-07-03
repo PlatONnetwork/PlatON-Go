@@ -95,11 +95,11 @@ type Candidate struct {
 	// The staking von  is circulating for effective epoch (in effect)
 	Released *big.Int
 	// The staking von  is circulating for hesitant epoch (in hesitation)
-	ReleasedTmp *big.Int
-	// The staking von  is locked for effective epoch (in effect)
+	ReleasedHes *big.Int
+	// The staking von  is RestrictingPlan for effective epoch (in effect)
 	RestrictingPlan *big.Int
-	// The staking von  is locked for hesitant epoch (in hesitation)
-	RestrictingPlanTmp *big.Int
+	// The staking von  is RestrictingPlan for hesitant epoch (in hesitation)
+	RestrictingPlanHes *big.Int
 
 	// Node desc
 	Description
@@ -215,11 +215,11 @@ type Delegation struct {
 	// The delegate von  is circulating for effective epoch (in effect)
 	Released *big.Int
 	// The delegate von  is circulating for hesitant epoch (in hesitation)
-	ReleasedTmp *big.Int
-	// The delegate von  is locked for effective epoch (in effect)
+	ReleasedHes *big.Int
+	// The delegate von  is RestrictingPlan for effective epoch (in effect)
 	RestrictingPlan *big.Int
-	// The delegate von  is locked for hesitant epoch (in hesitation)
-	RestrictingPlanTmp *big.Int
+	// The delegate von  is RestrictingPlan for hesitant epoch (in hesitation)
+	RestrictingPlanHes *big.Int
 	// Total amount in all cancellation plans
 	Reduction *big.Int
 }
