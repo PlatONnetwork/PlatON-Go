@@ -577,7 +577,7 @@ func (w *worker) mainLoop() {
 				hash     = block.Hash()
 			)
 
-			core.GetReactorInstance().PrepareResult(block)
+			//core.GetReactorInstance().PrepareResult(block)
 
 			w.pendingMu.RLock()
 			_, exist := w.pendingTasks[sealhash]
