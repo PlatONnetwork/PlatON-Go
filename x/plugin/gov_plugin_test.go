@@ -89,14 +89,22 @@ func GetGovDB() (*gov.GovDB, *state.StateDB) {
 	return gov.GovDBInstance(), statedb
 }
 
-//func TestGovPlugin_BeginBlock(t *testing.T) {
-//	_, statedb := GetGovDB()
-//	blockhash := common.HexToHash("11")
-//	header := getHeader()
-//	plugin.GovPluginInstance().BeginBlock(blockhash, &header, statedb)
-//
-//}
-//
+func TestGovPlugin_BeginBlock(t *testing.T) {
+	_, statedb := GetGovDB()
+	snapdb := snapshotdb.Instance()
+	defer snapdb.Clear()
+	//create block
+	blockhash, e := newblock(snapdb, big.NewInt(1))
+	if e != nil {
+		t.Fatalf("create block error ...%s", e)
+	}
+	header := getHeader()
+	_, err := plugin.GovPluginInstance().BeginBlock(blockhash, &header, statedb)
+	if err != nil {
+		t.Fatalf("begin block err... %s", err)
+	}
+}
+
 //func TestGovPlugin_EndBlock(t *testing.T) {
 //	_, statedb := GetGovDB()
 //	blockhash := common.HexToHash("11")
@@ -162,7 +170,29 @@ func TestGovPlugin_Vote(t *testing.T) {
 	db.Reset()
 }
 
-//
-//func TestGovPlugin_DeclareVersion(t *testing.T) {
-//
-//}
+func TestGovPlugin_DeclareVersion(t *testing.T) {
+	//func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, version uint32, blockHash common.Hash, curBlockNum uint64, state xcom.StateDB) error {
+	sender := common.HexToAddress("0x11")
+	node := discover.NodeID{0x11}
+	_, state := GetGovDB()
+	newVersion := uint32(1792)
+
+	snapdb := snapshotdb.Instance()
+	defer snapdb.Clear()
+	//create block
+	blockhash, e := newblock(snapdb, big.NewInt(1))
+	if e != nil {
+		t.Fatalf("create block error ...%s", e)
+	}
+
+	header := getHeader()
+	_, err := plugin.GovPluginInstance().BeginBlock(blockhash, &header, state)
+	if err != nil {
+		t.Fatalf("begin block err... %s", err)
+	}
+
+	err = plugin.GovPluginInstance().DeclareVersion(sender, node, newVersion, blockhash, 1, state)
+	if err != nil {
+		t.Fatalf("Declare Version err ...%s", e)
+	}
+}
