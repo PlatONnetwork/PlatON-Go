@@ -16,8 +16,8 @@ import (
 )
 
 func initInfo(t *testing.T) (*plugin.SlashingPlugin, xcom.StateDB) {
-	si := plugin.SlashInstance(snapshotdb.Instance())
-	plugin.StakingInstance(snapshotdb.Instance())
+	si := plugin.SlashInstance()
+	plugin.StakingInstance()
 	db := ethdb.NewMemDatabase()
 	stateDB, err := state.New(common.Hash{}, state.NewDatabase(db))
 	if nil != err {
