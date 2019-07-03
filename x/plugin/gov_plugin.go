@@ -248,6 +248,10 @@ func (govPlugin *GovPlugin) Submit(curBlockNum uint64, from common.Address, prop
 		log.Error("[GOV] Submit(): save proposal failed", "proposalID", proposal.GetProposalID())
 		return err
 	}
+	//if !ok {
+	//	err = errors.New("[GOV] Submit(): set proposal failed.")
+	//	return false, err
+	//}
 	if err := govPlugin.govDB.AddVotingProposalID(blockHash, proposal.GetProposalID(), state); err != nil {
 		log.Error("[GOV] Submit(): add proposal ID to voting proposal ID list failed", "proposalID", proposal.GetProposalID())
 		return err
@@ -545,7 +549,8 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 // check if the node a verifier, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
 	//verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
-	verifierList, err := stk.GetVerifierListFake(blockHash, blockNumber, QueryStartNotIrr)
+	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
+
 	if err != nil {
 		log.Error("list verifiers failed", "blockHash", blockHash)
 		return false

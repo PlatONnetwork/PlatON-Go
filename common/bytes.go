@@ -228,3 +228,13 @@ func Uint64ToBytes(val uint64) []byte {
 	return buf[:]
 }
 
+func Uint16ToBytes(val uint16) []byte {
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, val)
+	return buf[:]
+}
+
+func BytesToUint16(b []byte) uint16 {
+	b = append(make([]byte, 2-len(b)), b...)
+	return binary.BigEndian.Uint16(b)
+}

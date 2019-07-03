@@ -81,9 +81,9 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 					Evm: 		evm,
 				}
 				return RunPlatONPrecompiledContract(slashing, input, contract)
-			case *govContract:
-				govContract := &govContract{
-					plugin  : plugin.GovPluginInstance(),
+			case *GovContract:
+				govContract := &GovContract{
+					Plugin  : plugin.GovPluginInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}
