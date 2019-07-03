@@ -283,7 +283,7 @@ func TestCbft_OnHighestPrepareBlock(t *testing.T) {
 	defer os.RemoveAll(path)
 
 	engine, _, v := randomCBFT(path, 4)
-
+	maxBlockDist := uint64(192)
 	badBlocks := createEmptyBlocks(v.validator(1).privateKey, engine.blockChain.Genesis().Hash(), engine.blockChain.Genesis().NumberU64(), int(maxBlockDist+1))
 
 	assert.Error(t, engine.OnHighestPrepareBlock(v.validator(1).nodeID, &highestPrepareBlock{CommitedBlock: badBlocks}))

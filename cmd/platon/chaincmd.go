@@ -234,7 +234,17 @@ func importChain(ctx *cli.Context) error {
 		agency := cbft.NewStaticAgency(chain.Config().Cbft.InitialNodes)
 		// init worker
 		bc := &FakeBackend{bc: chain}
-		miner := miner.New(bc, chain.Config(), stack.EventMux(), c, gethConfig.Eth.MinerRecommit, gethConfig.Eth.MinerGasFloor, gethConfig.Eth.MinerGasCeil, nil, blockChainCache)
+
+		config := gethConfig.Eth
+		minningConfig := &core.MiningConfig{MiningLogAtDepth: config.MiningLogAtDepth, TxChanSize: config.TxChanSize,
+			ChainHeadChanSize: config.ChainHeadChanSize, ChainSideChanSize: config.ChainSideChanSize,
+			ResultQueueSize: config.ResultQueueSize, ResubmitAdjustChanSize: config.ResubmitAdjustChanSize,
+			MinRecommitInterval: config.MinRecommitInterval, MaxRecommitInterval: config.MaxRecommitInterval,
+			IntervalAdjustRatio: config.IntervalAdjustRatio, IntervalAdjustBias: config.IntervalAdjustBias,
+			StaleThreshold:	config.StaleThreshold, DefaultCommitRatio:	config.DefaultCommitRatio,
+		}
+
+		miner := miner.New(bc, chain.Config(), minningConfig, stack.EventMux(), c, gethConfig.Eth.MinerRecommit, gethConfig.Eth.MinerGasFloor, gethConfig.Eth.MinerGasCeil, nil, blockChainCache)
 		c.Start(chain, nil, agency)
 		defer c.Close()
 		defer miner.Stop()

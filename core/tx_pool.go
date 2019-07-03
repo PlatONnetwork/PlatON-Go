@@ -39,13 +39,6 @@ import (
 )
 
 const (
-	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
-	// size is setted max blocks of one epoch
-	chainHeadChanSize = 250
-
-	// txExtBufferSize is the size fo channel listening to txExt.
-	txExtBufferSize = 4096
-
 	DoneRst      = 0
 	DoingRst     = 1
 	DonePending  = 0
@@ -178,6 +171,9 @@ type TxPoolConfig struct {
 	GlobalTxCount uint64 // Maximum number of transactions for package
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
+
+	ChainHeadChanSize uint64 // chainHeadChanSize is the size of channel listening to ChainHeadEvent. size is setted max blocks of one epoch
+	TxExtBufferSize   uint64 // txExtBufferSize is the size fo channel listening to txExt.
 }
 
 // DefaultTxPoolConfig contains the default configurations for the transaction
@@ -196,6 +192,9 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	GlobalTxCount: 3000,
 
 	Lifetime: 3 * time.Hour,
+
+	ChainHeadChanSize: 250,
+	TxExtBufferSize:   4096,
 }
 
 // sanitize checks the provided user configurations and changes anything that's
@@ -285,10 +284,10 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain txPoo
 		all:         newTxLookup(),
 		// modified by PlatON
 		// chainHeadCh: make(chan ChainHeadEvent, chainHeadChanSize),
-		chainHeadCh: make(chan *types.Block, chainHeadChanSize),
+		chainHeadCh: make(chan *types.Block, config.ChainHeadChanSize),
 		exitCh:      make(chan struct{}),
 		gasPrice:    new(big.Int).SetUint64(config.PriceLimit),
-		txExtBuffer: make(chan *txExt, txExtBufferSize),
+		txExtBuffer: make(chan *txExt, config.TxExtBufferSize),
 		rstFlag:     DoneRst,
 		pendingFlag: DonePending,
 	}
