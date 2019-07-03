@@ -26,22 +26,19 @@ func getHeader() types.Header {
 
 func getVerProposal() gov.VersionProposal {
 	return gov.VersionProposal{
-		gov.TextProposal{
-			common.Hash{0x01},
-			"p#01",
-			gov.Version,
-			"up,up,up....",
-			"哈哈哈哈哈哈",
-			"em。。。。",
-			uint64(1000),
-			uint64(10000),
-			discover.NodeID{0x11},
-			gov.TallyResult{},
-		},
+		common.Hash{0x01},
+		"p#01",
+		gov.Version,
+		"up,up,up....",
+		"哈哈哈哈哈哈",
+		"em。。。。",
+		uint64(1000),
+		uint64(10000),
+		discover.NodeID{0x11},
+		gov.TallyResult{},
 		3200000,
 		uint64(11250),
 	}
-
 }
 
 func newblock(snapdb snapshotdb.DB, blockNumber *big.Int) (common.Hash, error) {
