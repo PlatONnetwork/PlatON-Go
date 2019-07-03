@@ -1006,9 +1006,9 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 	return queue, nil
 }
 
-func (sk *StakingPlugin) GetVerifierListFake(blockHash common.Hash, blockNumber uint64, isCommit bool) (xcom.CandidateQueue, error) {
+func (sk *StakingPlugin) GetVerifierListFake(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.CandidateQueue, error) {
 
-	cand := &xcom.Candidate{
+	cand := &staking.Candidate{
 		discover.NodeID{},
 		common.HexToAddress("0x11"),
 		common.HexToAddress("0x11"),
@@ -1022,16 +1022,12 @@ func (sk *StakingPlugin) GetVerifierListFake(blockHash common.Hash, blockNumber 
 		big.NewInt(100),
 		big.NewInt(100),
 		big.NewInt(100),
-		xcom.Description{"", "", "",""},
+		staking.Description{"", "", "",""},
 	}
-	que := xcom.CandidateQueue{cand}
+	que := staking.CandidateQueue{cand}
 
 	return que, nil
 }
-
-
-
-
 
 func (sk *StakingPlugin) IsCurrVerifier(blockHash common.Hash, nodeId discover.NodeID, isCommit bool) (bool, error) {
 
