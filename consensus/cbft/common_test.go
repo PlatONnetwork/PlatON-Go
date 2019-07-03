@@ -186,6 +186,7 @@ func makeConfirmedBlock(v *testValidator, root common.Hash, view *viewChange, nu
 				ext.viewChangeVotes = append(ext.viewChangeVotes, makeViewChangeVote(v.validator(j).privateKey, view.Timestamp, view.BaseBlockNum, view.BaseBlockHash, view.ProposalIndex, view.ProposalAddr, j, v.validator(j).address))
 			}
 		}
+		cbftVersion := byte(0x01)
 		extra := []byte{cbftVersion}
 		bxBytes, _ := rlp.EncodeToBytes(ext.BlockExtra())
 		extra = append(extra, bxBytes...)

@@ -165,11 +165,11 @@ func (self *GovSnapshotDB) addTotalVerifiers(blockHash common.Hash, proposalId c
 	return nil
 }
 
-func (self *GovSnapshotDB) getAccuVerifiersLength(blockHash common.Hash, proposalId common.Hash) (int, error) {
+func (self *GovSnapshotDB) getAccuVerifiersLength(blockHash common.Hash, proposalId common.Hash) (uint16, error) {
 	value, err := self.get(blockHash, KeyAccuVerifier(proposalId))
 	if err != nil {
 		return 0, err
 	}
 
-	return len(value), nil
+	return uint16(len(value)), nil
 }

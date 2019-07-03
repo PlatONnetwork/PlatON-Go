@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -11,6 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -77,9 +77,8 @@ func (brc *BlockChainReactor) loop() {
 			}
 
 			/**
-			TODO flush the seed and the package ratio
+			TODO Maybe notify P2P module the nodeId of the next round validator
 			*/
-
 			if plugin, ok := brc.basePluginMap[xcom.StakingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
@@ -119,7 +118,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	blockHash := common.ZeroHash
 
 	// store the sign in  header.Extra[32:97]
-	if isWorker(header.Extra) {
+	if xutil.IsWorker(header.Extra) {
 		// Generate vrf proof
 		if value, err := xcom.GetVrfHandlerInstance().GenerateNonce(header.Number, header.ParentHash); nil != err {
 			return false, err
@@ -159,7 +158,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 
 	blockHash := common.ZeroHash
 
-	if !isWorker(header.Extra) {
+	if !xutil.IsWorker(header.Extra) {
 		blockHash = header.Hash()
 	}
 	// Store the previous vrf random number
@@ -191,13 +190,11 @@ func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, from common.Addre
 	case cvm.StakingContractAddr:
 		contract = vm.PlatONPrecompiledContracts[cvm.StakingContractAddr]
 	case cvm.RestrictingContractAddr:
-		// TODO
+		contract = vm.PlatONPrecompiledContracts[cvm.RestrictingContractAddr]
 	case cvm.RewardManagerPoolAddr:
-		// TODO
+		contract = vm.PlatONPrecompiledContracts[cvm.RewardManagerPoolAddr]
 	case cvm.SlashingContractAddr:
-		// TODO
-	default:
-		return nil
+		contract = vm.PlatONPrecompiledContracts[cvm.SlashingContractAddr]
 	}
 	_, _, err = plugin.Verify_tx_data(input, contract.FnSigns())
 	return
@@ -212,20 +209,20 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 }
 
 func (bcr *BlockChainReactor) GetLastNumber(blockNumber uint64) uint64 {
-	return 0
+	return plugin.StakingInstance().GetLastNumber(blockNumber)
 }
 
 func (brc *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
-	return nil, nil
+	return plugin.StakingInstance().GetValidator(blockNumber)
 }
 
 func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
-	return false
+	return plugin.StakingInstance().IsCandidateNode(nodeID)
 }
 
-func isWorker(extra []byte) bool {
-	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
-}
+//func isWorker(extra []byte) bool {
+//	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
+//}
 
 func (bcr *BlockChainReactor) PrepareResult(block *types.Block) (bool, error) {
 	log.Debug("snapshotdb Flush", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(block.Hash().Bytes()))

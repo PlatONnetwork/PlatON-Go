@@ -178,7 +178,28 @@ func (s *snapshotDB) removeJournalLessThanBaseNum() error {
 	}
 	for _, fd := range fds {
 		if fd.Num <= s.current.BaseNum.Int64() {
+			if _, ok := s.recognized[fd.BlockHash]; ok {
+				delete(s.recognized, fd.BlockHash)
+			}
+			if err := s.closeJournalWriter(fd.BlockHash); err != nil {
+				return err
+			}
 			if err := s.storage.Remove(fd); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (s *snapshotDB) rmOldRecognizedBlockData() error {
+	for key, value := range s.recognized {
+		if s.current.HighestNum.Cmp(value.Number) >= 0 {
+			delete(s.recognized, key)
+			if err := s.closeJournalWriter(key); err != nil {
+				return err
+			}
+			if err := s.rmJournalFile(value.Number, key); err != nil {
 				return err
 			}
 		}
@@ -206,21 +227,6 @@ func (s *snapshotDB) closeJournalWriter(hash common.Hash) error {
 			return errors.New("[snapshotdb]close  journal writer fail:" + err.Error())
 		}
 		delete(s.journalw, hash)
-	}
-	return nil
-}
-
-func (s *snapshotDB) rmOldRecognizedBlockData() error {
-	for key, value := range s.recognized {
-		if s.current.HighestNum.Cmp(value.Number) >= 0 {
-			delete(s.recognized, key)
-			if err := s.closeJournalWriter(key); err != nil {
-				return err
-			}
-			if err := s.rmJournalFile(value.Number, key); err != nil {
-				return err
-			}
-		}
 	}
 	return nil
 }
@@ -257,12 +263,13 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 			}
 		}
 		if lastblockNumber.Int64() > 0 {
-			if s.current.HighestNum.Int64() != lastblockNumber.Int64()-1 {
-				return 0, false
-			}
 			if s.current.LastHash == common.ZeroHash {
 				return hashLocationUnRecognized, true
 			}
+			if s.current.HighestNum.Int64() != lastblockNumber.Int64()-1 {
+				return 0, false
+			}
+
 			if s.current.LastHash != lastParenthash {
 				return 0, false
 			}

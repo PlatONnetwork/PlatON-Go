@@ -18,13 +18,14 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"reflect"
 	"unicode"
-
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
@@ -34,6 +35,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 	"github.com/naoina/toml"
+
 )
 
 var (
@@ -80,6 +82,7 @@ type gethConfig struct {
 	Node      node.Config
 	Ethstats  ethstatsConfig
 	Dashboard dashboard.Config
+	EconomicModel xcom.EconomicModel
 }
 
 func loadConfig(file string, cfg *gethConfig) error {
@@ -93,6 +96,20 @@ func loadConfig(file string, cfg *gethConfig) error {
 	// Add file name to errors that have a line number.
 	if _, ok := err.(*toml.LineError); ok {
 		err = errors.New(file + ", " + err.Error())
+	}
+	return err
+}
+
+func loadConfigFile(filePath string, cfg *gethConfig) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		utils.Fatalf("Failed to read config file: %v", err)
+	}
+	defer file.Close()
+
+	err = json.NewDecoder(file).Decode(cfg)
+	if err != nil {
+		utils.Fatalf("invalid config file: %v", err)
 	}
 	return err
 }
@@ -111,19 +128,24 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 
 	// Load defaults.
 	cfg := gethConfig{
-		Eth:       eth.DefaultConfig,
-		Shh:       whisper.DefaultConfig,
-		Node:      defaultNodeConfig(),
-		Dashboard: dashboard.DefaultConfig,
+		Eth:       	   eth.DefaultConfig,
+		Shh:       	   whisper.DefaultConfig,
+		Node:      	   defaultNodeConfig(),
+		Dashboard: 	   dashboard.DefaultConfig,
+		EconomicModel: xcom.DefaultConfig,
 	}
 
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
-		if err := loadConfig(file, &cfg); err != nil {
+	/*	if err := loadConfig(file, &cfg); err != nil {
+			utils.Fatalf("%v", err)
+		}*/
+		if err := loadConfigFile(file, &cfg); err != nil {
 			utils.Fatalf("%v", err)
 		}
 	}
 
+	xcom.SetEconomicModel(&cfg.EconomicModel)
 	// Current version only supports full syncmode
 	//ctx.GlobalSet(utils.SyncModeFlag.Name, cfg.Eth.SyncMode.String())
 
@@ -144,9 +166,9 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 	//cfg.Eth.VCPool.LocalRpcPort = cfg.Node.HTTPPort
 
 	// load cbft config file.
-	if cbftConfig := cfg.Eth.LoadCbftConfig(cfg.Node); cbftConfig != nil {
-		cfg.Eth.CbftConfig = *cbftConfig
-	}
+	//if cbftConfig := cfg.Eth.LoadCbftConfig(cfg.Node); cbftConfig != nil {
+	//	cfg.Eth.CbftConfig = *cbftConfig
+	//}
 	utils.SetCbft(ctx, &cfg.Eth.CbftConfig)
 
 	if ctx.GlobalIsSet(utils.EthStatsURLFlag.Name) {
@@ -185,9 +207,6 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 		if ctx.GlobalIsSet(utils.WhisperMaxMessageSizeFlag.Name) {
 			cfg.Shh.MaxMessageSize = uint32(ctx.Int(utils.WhisperMaxMessageSizeFlag.Name))
 		}
-		if ctx.GlobalIsSet(utils.WhisperMinPOWFlag.Name) {
-			cfg.Shh.MinimumAcceptedPOW = ctx.Float64(utils.WhisperMinPOWFlag.Name)
-		}
 		if ctx.GlobalIsSet(utils.WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
 			cfg.Shh.RestrictConnectionBetweenLightClients = true
 		}
@@ -215,9 +234,6 @@ func makeFullNodeForCBFT(ctx *cli.Context) (*node.Node, gethConfig) {
 	if shhEnabled || shhAutoEnabled {
 		if ctx.GlobalIsSet(utils.WhisperMaxMessageSizeFlag.Name) {
 			cfg.Shh.MaxMessageSize = uint32(ctx.Int(utils.WhisperMaxMessageSizeFlag.Name))
-		}
-		if ctx.GlobalIsSet(utils.WhisperMinPOWFlag.Name) {
-			cfg.Shh.MinimumAcceptedPOW = ctx.Float64(utils.WhisperMinPOWFlag.Name)
 		}
 		if ctx.GlobalIsSet(utils.WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
 			cfg.Shh.RestrictConnectionBetweenLightClients = true

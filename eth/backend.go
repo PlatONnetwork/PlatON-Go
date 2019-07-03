@@ -20,21 +20,15 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"math/big"
-	"runtime"
-	"sync"
-	"sync/atomic"
-
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
@@ -47,11 +41,16 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"math/big"
+	"runtime"
+	"sync"
+	"sync/atomic"
 )
 
 var indexMock = map[int][]int{
@@ -165,10 +164,10 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	if !config.SkipBcVersionCheck {
 		bcVersion := rawdb.ReadDatabaseVersion(chainDb)
-		if bcVersion != core.BlockChainVersion && bcVersion != 0 {
-			return nil, fmt.Errorf("Blockchain DB version mismatch (%d / %d).\n", bcVersion, core.BlockChainVersion)
+		if bcVersion != config.BlockChainVersion && bcVersion != 0 {
+			return nil, fmt.Errorf("Blockchain DB version mismatch (%d / %d).\n", bcVersion, config.BlockChainVersion)
 		}
-		rawdb.WriteDatabaseVersion(chainDb, core.BlockChainVersion)
+		rawdb.WriteDatabaseVersion(chainDb, config.BlockChainVersion)
 	}
 	var (
 		vmConfig = vm.Config{
@@ -177,7 +176,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			EVMInterpreter:          config.EVMInterpreter,
 			ConsoleOutput:           config.Debug,
 		}
-		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout}
+		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
+			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
+			MaxFutureBlocks:config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
+			TriesInMemory: config.TriesInMemory, DefaultTxsCacheSize: config.DefaultTxsCacheSize,
+			DefaultBroadcastInterval:config.DefaultBroadcastInterval,
+		}
+
+		minningConfig = &core.MiningConfig{MiningLogAtDepth: config.MiningLogAtDepth, TxChanSize: config.TxChanSize,
+			ChainHeadChanSize: config.ChainHeadChanSize, ChainSideChanSize: config.ChainSideChanSize,
+			ResultQueueSize: config.ResultQueueSize, ResubmitAdjustChanSize: config.ResubmitAdjustChanSize,
+			MinRecommitInterval: config.MinRecommitInterval, MaxRecommitInterval: config.MaxRecommitInterval,
+			IntervalAdjustRatio: config.IntervalAdjustRatio, IntervalAdjustBias: config.IntervalAdjustBias,
+			StaleThreshold:	config.StaleThreshold, DefaultCommitRatio:	config.DefaultCommitRatio,
+		}
 	)
 
 	eth.blockchain, err = core.NewBlockChain(chainDb, cacheConfig, eth.chainConfig, eth.engine, vmConfig, eth.shouldPreserve)
@@ -220,7 +232,8 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 
 	// modify by platon remove consensusCache
 	//var consensusCache *cbft.Cache = cbft.NewCache(eth.blockchain)
-	eth.miner = miner.New(eth, eth.chainConfig, eth.EventMux(), eth.engine, config.MinerRecommit, config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
+	eth.miner = miner.New(eth, eth.chainConfig, minningConfig, eth.EventMux(), eth.engine, config.MinerRecommit,
+		config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	if bft, ok := eth.engine.(consensus.Bft); ok {
@@ -319,6 +332,16 @@ func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainCo
 		chainConfig.Cbft.Duration = cbftConfig.Duration
 		chainConfig.Cbft.BlockInterval = cbftConfig.BlockInterval
 		chainConfig.Cbft.WalEnabled = cbftConfig.WalMode
+
+		chainConfig.Cbft.PeerMsgQueueSize = cbftConfig.PeerMsgQueueSize
+		chainConfig.Cbft.EvidenceDir = cbftConfig.EvidenceDir
+		chainConfig.Cbft.MaxResetCacheSize = cbftConfig.MaxResetCacheSize
+		chainConfig.Cbft.MaxQueuesLimit = cbftConfig.MaxQueuesLimit
+		chainConfig.Cbft.MaxBlockDist = cbftConfig.MaxBlockDist
+		chainConfig.Cbft.MaxPingLatency = cbftConfig.MaxPingLatency
+		chainConfig.Cbft.MaxAvgLatency = cbftConfig.MaxAvgLatency
+		chainConfig.Cbft.CbftVersion = cbftConfig.CbftVersion
+		chainConfig.Cbft.Remaining = cbftConfig.Remaining
 		return cbft.New(chainConfig.Cbft, eventMux, ctx)
 	}
 	return nil
@@ -426,21 +449,8 @@ func (s *Ethereum) shouldPreserve(block *types.Block) bool {
 	return s.isLocalBlock(block)
 }
 
-// StartMining starts the miner with the given number of CPU threads. If mining
-// is already running, this method adjust the number of threads allowed to use
-// and updates the minimum price required by the transaction pool.
-func (s *Ethereum) StartMining(threads int) error {
-	// Update the thread count within the consensus engine
-	type threaded interface {
-		SetThreads(threads int)
-	}
-	if th, ok := s.engine.(threaded); ok {
-		log.Info("Updated mining threads", "threads", threads)
-		if threads == 0 {
-			threads = -1 // Disable the miner from within
-		}
-		th.SetThreads(threads)
-	}
+//start mining
+func (s *Ethereum) StartMining() error {
 	// If the miner was not running, initialize it
 	if !s.IsMining() {
 		// Propagate the initial price point to the transaction pool
@@ -461,14 +471,6 @@ func (s *Ethereum) StartMining(threads int) error {
 // StopMining terminates the miner, both at the consensus engine level as well as
 // at the block creation level.
 func (s *Ethereum) StopMining() {
-	// Update the thread count within the consensus engine
-	type threaded interface {
-		SetThreads(threads int)
-	}
-	if th, ok := s.engine.(threaded); ok {
-		th.SetThreads(-1)
-	}
-	// Stop the block creating itself
 	s.miner.Stop()
 }
 
@@ -543,7 +545,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 				srvr.AddConsensusPeer(discover.NewNode(n.ID, n.IP, n.UDP, n.TCP))
 			}
 		}
-		s.StartMining(1)
+		s.StartMining()
 	}
 	srvr.StartWatching(s.eventMux)
 
@@ -591,5 +593,5 @@ func (s *Ethereum) Stop() error {
 // TODO RegisterPlugin one by one
 func handlePlugin(reactor *core.BlockChainReactor, db snapshotdb.DB) {
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance(db))
-	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance(db))
+	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 }

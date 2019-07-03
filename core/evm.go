@@ -17,7 +17,7 @@
 package core
 
 import (
-	"bytes"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -49,7 +49,7 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 	blockHash := common.ZeroHash
 
 	// store the sign in  header.Extra[32:97]
-	if len(header.Extra[32:]) ==  65 && !bytes.Equal(header.Extra[32:97], make([]byte, 65)) {
+	if !xutil.IsWorker(header.Extra) {
 		blockHash =  header.Hash()
 	}
 

@@ -297,21 +297,6 @@ var (
 		Usage: "Number of trie node generations to keep in memory",
 		Value: int(state.MaxTrieCacheGen),
 	}
-	// Miner settings
-	MiningEnabledFlag = cli.BoolFlag{
-		Name:  "mine",
-		Usage: "Enable mining",
-	}
-	MinerThreadsFlag = cli.IntFlag{
-		Name:  "miner.threads",
-		Usage: "Number of CPU threads to use for mining",
-		Value: 0,
-	}
-	MinerLegacyThreadsFlag = cli.IntFlag{
-		Name:  "minerthreads",
-		Usage: "Number of CPU threads to use for mining (deprecated, use --miner.threads)",
-		Value: 0,
-	}
 	MinerNotifyFlag = cli.StringFlag{
 		Name:  "miner.notify",
 		Usage: "Comma separated HTTP URL list to notify of new work packages",
@@ -349,15 +334,6 @@ var (
 		Name:  "extradata",
 		Usage: "Block extra data set by the miner (default = client version, deprecated, use --miner.extradata)",
 	}
-	MinerRecommitIntervalFlag = cli.DurationFlag{
-		Name:  "miner.recommit",
-		Usage: "Time interval to recreate the block being mined",
-		Value: eth.DefaultConfig.MinerRecommit,
-	}
-	MinerNoVerfiyFlag = cli.BoolFlag{
-		Name:  "miner.noverify",
-		Usage: "Disable remote sealing verification",
-	}
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
 		Name:  "unlock",
@@ -378,10 +354,6 @@ var (
 	EthStatsURLFlag = cli.StringFlag{
 		Name:  "ethstats",
 		Usage: "Reporting URL of a ethstats service (nodename:secret@host:port)",
-	}
-	FakePoWFlag = cli.BoolFlag{
-		Name:  "fakepow",
-		Usage: "Disables proof-of-work verification",
 	}
 	NoCompactionFlag = cli.BoolFlag{
 		Name:  "nocompaction",
@@ -547,11 +519,6 @@ var (
 		Usage: "Max message size accepted",
 		Value: int(whisper.DefaultMaxMessageSize),
 	}
-	WhisperMinPOWFlag = cli.Float64Flag{
-		Name:  "shh.pow",
-		Usage: "Minimum POW accepted",
-		Value: whisper.DefaultMinimumPoW,
-	}
 	WhisperRestrictConnectionBetweenLightClientsFlag = cli.BoolFlag{
 		Name:  "shh.restrict-light",
 		Usage: "Restrict connection between two whisper light clients",
@@ -608,35 +575,35 @@ var (
 	}
 
 	// mpc compute
-	MPCIceFileFlag = cli.StringFlag{
-		Name:  "mpc.ice",
-		Usage: "Filename for ice to init mvm",
-		Value: "",
-	}
-	MPCActorFlag = cli.StringFlag{
-		Name:  "mpc.actor",
-		Usage: "The address of actor to exec mpc compute",
-		Value: "",
-	}
-	MPCEnabledFlag = cli.BoolFlag{
-		Name:  "mpc",
-		Usage: "Enable mpc compute",
-	}
-	VCEnabledFlag = cli.BoolFlag{
-		Name:  "vc",
-		Usage: "Enable vc compute",
-	}
-	VCActorFlag = cli.StringFlag{
-		Name:  "vc.actor",
-		Usage: "The address of vc to exec set result",
-		Value: "",
-	}
-
-	VCPasswordFlag = cli.StringFlag{
-		Name:  "vc.password",
-		Usage: "the pwd of unlock actor",
-		Value: "",
-	}
+	//MPCIceFileFlag = cli.StringFlag{
+	//	Name:  "mpc.ice",
+	//	Usage: "Filename for ice to init mvm",
+	//	Value: "",
+	//}
+	//MPCActorFlag = cli.StringFlag{
+	//	Name:  "mpc.actor",
+	//	Usage: "The address of actor to exec mpc compute",
+	//	Value: "",
+	//}
+	//MPCEnabledFlag = cli.BoolFlag{
+	//	Name:  "mpc",
+	//	Usage: "Enable mpc compute",
+	//}
+	//VCEnabledFlag = cli.BoolFlag{
+	//	Name:  "vc",
+	//	Usage: "Enable vc compute",
+	//}
+	//VCActorFlag = cli.StringFlag{
+	//	Name:  "vc.actor",
+	//	Usage: "The address of vc to exec set result",
+	//	Value: "",
+	//}
+	//
+	//VCPasswordFlag = cli.StringFlag{
+	//	Name:  "vc.password",
+	//	Usage: "the pwd of unlock actor",
+	//	Value: "",
+	//}
 
 	CbftBlockIntervalFlag = cli.Uint64Flag{
 		Name:  "cbft.block_interval",
@@ -1158,9 +1125,6 @@ func SetShhConfig(ctx *cli.Context, stack *node.Node, cfg *whisper.Config) {
 	if ctx.GlobalIsSet(WhisperMaxMessageSizeFlag.Name) {
 		cfg.MaxMessageSize = uint32(ctx.GlobalUint(WhisperMaxMessageSizeFlag.Name))
 	}
-	if ctx.GlobalIsSet(WhisperMinPOWFlag.Name) {
-		cfg.MinimumAcceptedPOW = ctx.GlobalFloat64(WhisperMinPOWFlag.Name)
-	}
 	if ctx.GlobalIsSet(WhisperRestrictConnectionBetweenLightClientsFlag.Name) {
 		cfg.RestrictConnectionBetweenLightClients = true
 	}
@@ -1235,12 +1199,6 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 	if ctx.GlobalIsSet(MinerGasPriceFlag.Name) {
 		cfg.MinerGasPrice = GlobalBig(ctx, MinerGasPriceFlag.Name)
-	}
-	if ctx.GlobalIsSet(MinerRecommitIntervalFlag.Name) {
-		cfg.MinerRecommit = ctx.Duration(MinerRecommitIntervalFlag.Name)
-	}
-	if ctx.GlobalIsSet(MinerNoVerfiyFlag.Name) {
-		cfg.MinerNoverify = ctx.Bool(MinerNoVerfiyFlag.Name)
 	}
 	if ctx.GlobalIsSet(VMEnableDebugFlag.Name) {
 		// TODO(fjl): force-enable this in --dev mode
@@ -1459,6 +1417,13 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Disabled: /*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
 		TrieNodeLimit:                                               eth.DefaultConfig.TrieCache,
 		TrieTimeLimit:                                               eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit: 	 										 eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit:  											 eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks:  											 eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit: 	 											 eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:	 											 eth.DefaultConfig.TriesInMemory,
+		DefaultTxsCacheSize: 										 eth.DefaultConfig.DefaultTxsCacheSize,
+		DefaultBroadcastInterval: 									 eth.DefaultConfig.DefaultBroadcastInterval,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
@@ -1493,6 +1458,13 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 		Disabled:      ctx.GlobalString(GCModeFlag.Name) == "archive",
 		TrieNodeLimit: eth.DefaultConfig.TrieCache,
 		TrieTimeLimit: eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit: eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit:eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks:eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit: 	eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:	eth.DefaultConfig.TriesInMemory,
+		DefaultTxsCacheSize: eth.DefaultConfig.DefaultTxsCacheSize,
+		DefaultBroadcastInterval: eth.DefaultConfig.DefaultBroadcastInterval,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
