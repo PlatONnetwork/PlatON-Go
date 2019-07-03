@@ -237,7 +237,8 @@ func (govPlugin *GovPlugin) Submit(curBlockNum uint64, from common.Address, prop
 			log.Error("[GOV] Submit(): to check if there's a pre-active version proposal failed.", "blockHash", blockHash)
 			return err
 		}
-		if len(proposalID) > 0 {
+		println("bbb", proposalID.String(), len(proposalID))
+		if proposalID !=  common.ZeroHash {
 			return common.NewBizError("existing a pre-active version proposal")
 		}
 	}
@@ -247,10 +248,6 @@ func (govPlugin *GovPlugin) Submit(curBlockNum uint64, from common.Address, prop
 		log.Error("[GOV] Submit(): save proposal failed", "proposalID", proposal.GetProposalID())
 		return err
 	}
-	//if !ok {
-	//	err = errors.New("[GOV] Submit(): set proposal failed.")
-	//	return false, err
-	//}
 	if err := govPlugin.govDB.AddVotingProposalID(blockHash, proposal.GetProposalID(), state); err != nil {
 		log.Error("[GOV] Submit(): add proposal ID to voting proposal ID list failed", "proposalID", proposal.GetProposalID())
 		return err
