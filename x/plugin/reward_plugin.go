@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -109,7 +110,7 @@ func (rmp *rewardMgrPlugin) rewardPledge(head *types.Header, reward *big.Int, st
 
 	// stakingPlugin.GetVerifierList()  获取列表
 
-	var list []*xcom.Candidate
+	var list []*staking.Candidate
 
 	for index := 0; index < len(list); index++ {
 		addr := list[index].BenifitAddress
@@ -138,7 +139,7 @@ func (rmp *rewardMgrPlugin) rewardNewBlock(head *types.Header, reward *big.Int, 
 
 	log.Debug("node", "NodeID", nodeID)
 
-	var can xcom.Candidate // stakingPlugin.GetCandidate(nodeID)
+	var can staking.Candidate // stakingPlugin.GetCandidate(nodeID)
 
 	rewardAddr := can.BenifitAddress
 
