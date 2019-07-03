@@ -1,4 +1,4 @@
-package xcom
+package staking
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"

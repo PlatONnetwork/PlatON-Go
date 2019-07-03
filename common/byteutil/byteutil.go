@@ -8,6 +8,12 @@ import (
 	"math/big"
 )
 
+
+type RestrictingPlan struct {
+	Epoch   uint64  `json:"epoch"`			// epoch representation of the released epoch at the target blockNumber
+	Amount	*big.Int `json:"amount"`		// amount representation of the released amount
+}
+
 var Bytes2X_CMD = map[string]interface{}{
 	"string":   BytesToString,
 	"[8]byte":  BytesTo8Bytes,
@@ -28,6 +34,8 @@ var Bytes2X_CMD = map[string]interface{}{
 	"[]common.Hash":     BytesToHashArr,
 	"common.Address":    BytesToAddress,
 	"[]common.Address":  BytesToAddressArr,
+
+	"[]RestrictingPlan": BytesToRestrictingPlanArr,
 }
 
 func BytesToString(curByte []byte) string {
@@ -203,4 +211,12 @@ func BytesToAddressArr(curByte []byte) []common.Address {
 		panic("BytesToAddressArr:" + err.Error())
 	}
 	return addrArr
+}
+
+func BytesToRestrictingPlanArr(curByte []byte) []RestrictingPlan {
+	var planArr []RestrictingPlan
+	if err := rlp.DecodeBytes(curByte, &planArr); nil != err {
+		panic("BytesToAddressArr:" + err.Error())
+	}
+	return planArr
 }

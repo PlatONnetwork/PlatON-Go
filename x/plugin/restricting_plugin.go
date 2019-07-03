@@ -3,7 +3,6 @@ package plugin
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -12,16 +11,15 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/restriting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 var (
-	errParamPeriodInvalid = errors.New("param epoch invalid")
-	errBalanceNotEnough = errors.New("balance not enough to restrict")
-	errAccountNotFound = errors.New("account is not found")
+	errParamPeriodInvalid = common.NewBizError("param epoch invalid")
+	errBalanceNotEnough = common.NewBizError("balance not enough to restrict")
+	errAccountNotFound = common.NewBizError("account is not found")
 )
-
 
 
 type restrictingInfo struct {
@@ -35,10 +33,6 @@ type releaseAmountInfo struct {
 	amount *big.Int	 `json:"amount"`		// amount representation of the released amount
 }
 
-type restrictingPlan struct {
-	epoch   uint64  `json:"epoch"`			// epoch representation of the released epoch at the target blockNumber
-	amount	*big.Int `json:"amount"`		// amount representation of the released amount
-}
 
 type Result struct {
 	balance *big.Int
@@ -62,20 +56,28 @@ func GetRestrictingInstance() *RestrictingPlugin {
 
 // BeginBlock does something like check input params before execute transactions,
 // in RestrictingPlugin it does nothing.
-func (rp *RestrictingPlugin) BeginBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) (bool, error) {
-	return false, nil
+func (rp *RestrictingPlugin) BeginBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
+	return nil
 }
 
 // EndBlock invoke releaseRestricting
-func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) (bool, error) {
+func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 
-	if xutil.IsSettlementPeriod(head.Number.Uint64()) {
+	// !!! get latest epoch
+	// epoch := getLatestEpoch()
+	// getBlockNumberByEpoch(epoch)
+	// !!!
 
-		log.Info("begin to release restricting", "curr", head.Number)
-		return rp.releaseRestricting(head, state)
+	epoch := uint64(0)
+	blockNumber := uint64(0)
+
+	if blockNumber < head.Number.Uint64() {
+		return nil
 	}
 
-	return true, nil
+	log.Info("begin to release restricting", "curr", head.Number)
+	return rp.releaseRestricting(epoch, state)
+
 }
 
 // Comfired is empty function
@@ -84,211 +86,220 @@ func (rp *RestrictingPlugin) Confirmed(block *types.Block) error {
 }
 
 // AddRestrictingRecord stores four K-V record in StateDB:
-// RestrictingInfo: the information released to the account
-// ReleaseNumbers: the number of accounts to be released at the target block height
-// ReleaseAccount: the account on the index at the target block height
-// ReleaseAmount: the released account amount at the target block height
-func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account common.Address, plan string,
-	state xcom.StateDB) (bool, error) {
-
-	// decode plan from input param
-	var plans []restrictingPlan
-
-	if err := rlp.Decode(bytes.NewBuffer([]byte(plan)), plans); err != nil {
-		log.Error("failed to rlp encode input plan", "plan", plan)
-		return false, err
-	}
-
-	// pre-check
-	var totalLock = big.NewInt(0)
-	for i := 0; i < len(plans); i++ {
-		epoch := plans[i].epoch
-		amount := plans[i].amount
-
-		if vm.RestrictingContractAddr == account && epoch % 120 != 0 {
-			log.Error("param epoch invalid", "epoch", plans[i].epoch)
-			return false, errParamPeriodInvalid
-		}
-
-		totalLock = totalLock.Add(totalLock, amount)
-	}
-
-	if state.GetBalance(sender).Cmp(totalLock) == -1 {
-		log.Error("sender's balance not enough", "lock", totalLock)
-		return false, errBalanceNotEnough
-	}
+// RestrictingInfo: the account info to be released
+// ReleaseEpoch:   the number of accounts to be released on the epoch corresponding to the target block height
+// ReleaseAccount: the account on the index on the target epoch
+// ReleaseAmount: the amount of the account to be released on the target epoch
+func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account common.Address, plans []byteutil.RestrictingPlan,
+	state xcom.StateDB) error {
 
 	var (
-		recordsNum uint32
-		index      uint32
-		heightList []uint64
-		info       restrictingInfo
+		err         error
+		totalAmount *big.Int
 	)
 
-	restrictingKey := xcom.GetRestrictingKey(account)
-	bRecord := state.GetState(account, restrictingKey)
+	// pre-check
+	// !!! get latest epoch
+	// latest := getLatestEpoch()
+	// !!!
+	latest := uint64(0)
+	for i := 0; i < len(plans); i++ {
+		epoch := plans[i].Epoch
+		amount := plans[i].Amount
 
-	if len(bRecord) == 0 { // restricting not exist
+		if epoch < latest {
+			log.Error("param epoch invalid", "epoch", epoch, "latest", latest)
+			return errParamPeriodInvalid
+		}
 
+		totalAmount = totalAmount.Add(totalAmount, amount)
+	}
+
+	if state.GetBalance(sender).Cmp(totalAmount) == -1 {
+		log.Error("sender's balance not enough", "total", totalAmount)
+		return errBalanceNotEnough
+	}
+
+	// TODO
+	var (
+		epochList  []uint64
+		index      uint32
+		info       restrictingInfo
+		accNumbers uint32
+	)
+
+	restrictingKey := restriting.GetRestrictingKey(account)
+	bAccInfo := state.GetState(account, restrictingKey)
+
+	if len(bAccInfo) == 0 {
 		log.Debug("restricting record not exist", "account", account.Bytes())
 
 		for i := 0; i < len(plans); i++ {
-			height := plans[i].epoch * xcom.EpochSize * xcom.ConsensusSize
-			amount := plans[i].amount
+			epoch := plans[i].Epoch
+			amount := plans[i].Amount
 
-			releaseNumberKey := xcom.GetReleaseNumberKey(height)
-			numbers := state.GetState(vm.RestrictingContractAddr, releaseNumberKey)
-			if len(numbers) == 0 {
-				recordsNum = uint32(1)
-				index = uint32(1)
+			// step1: get account numbers at target epoch
+			releaseEpochKey := restriting.GetReleaseEpochKey(epoch)
+			bAccNumbers := state.GetState(vm.RestrictingContractAddr, releaseEpochKey)
+
+			if len(bAccNumbers) == 0 {
+				accNumbers = uint32(1)
+
 			} else {
-				recordsNum += 1
-				index = byteutil.BytesToUint32(numbers) + 1
+				accNumbers = byteutil.BytesToUint32(bAccNumbers) + 1
 			}
+			index = accNumbers
 
-			state.SetState(vm.RestrictingContractAddr, releaseNumberKey, common.Uint32ToBytes(recordsNum))
+			// step2: save account numbers at target epoch
+			state.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(accNumbers))
 
-			releaseAccountKey := xcom.GetReleaseAccountKey(height, index)
+			// step3: save account at target index
+			releaseAccountKey := restriting.GetReleaseAccountKey(epoch, index)
 			state.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
-			releaseAmountKey := xcom.GetReleaseAmountKey(account, height)
+			// step4: save restricting amount at target epoch
+			releaseAmountKey := restriting.GetReleaseAmountKey(epoch, account)
+
 			state.SetState(account, releaseAmountKey, amount.Bytes())
 
-			heightList = append(heightList, height)
+			epochList = append(epochList, epoch)
 		}
 
-		info.balance = totalLock
+		info.balance = totalAmount
 		info.debt = big.NewInt(0)
-		info.releaseList = heightList
+		info.releaseList = epochList
 
-	} else { // restricting exist
-
+	} else {
 		log.Debug("restricting record exist", "account", account.Bytes())
 
-		if err := rlp.Decode(bytes.NewReader(bRecord), &info); err != nil {
-			log.Error("rlp decode failed", "err", err.Error())
-			return false, err
+		if err = rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
+			log.Error("failed to rlp decode the account of release to", "err", err.Error())
+			return common.NewSysError(err.Error())
 		}
 
 		for i := 0; i < len(plans); i++ {
-			// release info
-			height := plans[i].epoch * xcom.EpochSize * xcom.ConsensusSize
-			amount := plans[i].amount
+			epoch := plans[i].Epoch
+			amount := plans[i].Amount
 
-			releaseAmountKey := xcom.GetReleaseAmountKey(account, height)
+			// step1: get restricting amount at target epoch
+			releaseAmountKey := restriting.GetReleaseAmountKey(epoch, account)
 			bAmount := state.GetState(account, releaseAmountKey)
 
 			if len(bAmount) == 0 {
+				log.Trace("release record not exist on curr epoch ", "account", account, "epoch", epoch)
 
-				releaseNumberKey := xcom.GetReleaseNumberKey(height)
-				numbers := state.GetState(vm.RestrictingContractAddr, releaseNumberKey)
+				releaseEpochKey := restriting.GetReleaseEpochKey(epoch)
+				bAccNumbers := state.GetState(vm.RestrictingContractAddr, releaseEpochKey)
 
-				index = byteutil.BytesToUint32(numbers) + 1
-				state.SetState(vm.RestrictingContractAddr, releaseNumberKey, common.Uint32ToBytes(index))
+				if len(bAccNumbers) == 0 {
+					accNumbers = uint32(1)
+				} else {
+					accNumbers = byteutil.BytesToUint32(bAccNumbers) + 1
+				}
+				index = accNumbers
 
-				releaseAccountKey := xcom.GetReleaseAccountKey(height, index)
+				// step2: save account numbers at target epoch
+				state.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(accNumbers))
+
+				// step3: save account at target index
+				releaseAccountKey := restriting.GetReleaseAccountKey(epoch, index)
+
 				state.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
-				info.releaseList = append(info.releaseList, height)
+				info.releaseList = append(info.releaseList, epoch)
 
 			} else {
-				var tmpAmount *big.Int
-				if err := rlp.Decode(bytes.NewBuffer(bAmount), tmpAmount); err != nil {
-					log.Error("failed to rlp decode release amount", "error", err)
-					return false, err
-				}
-				amount = amount.Add(amount, tmpAmount)
+				log.Trace("release record exist at curr epoch", "account", account, "epoch", epoch)
+
+				var origAmount *big.Int
+				origAmount = origAmount.SetBytes(bAmount)
+				amount = amount.Add(amount, origAmount)
 			}
 
+			// step4: save restricting amount at target epoch
 			state.SetState(account, releaseAmountKey, amount.Bytes())
 		}
 
-		info.balance = info.balance.Add(info.balance, totalLock)
+		info.balance = info.balance.Add(info.balance, totalAmount)
 	}
 
-	bInfo, err := rlp.EncodeToBytes(info)
+	// step5: save restricting account info at target epoch
+	bAccInfo, err = rlp.EncodeToBytes(info)
 	if err != nil {
 		log.Error("failed to rlp encode restricting info", "account", account, "error", err)
-		return true, err
+		return common.NewSysError(err.Error())
 	}
-	state.SetState(account, restrictingKey, bInfo)
+	state.SetState(account, restrictingKey, bAccInfo)
 
-	state.SubBalance(sender, totalLock)
-	state.AddBalance(vm.RestrictingContractAddr, totalLock)
-
-	return true, nil
+	return nil
 }
 
-// PledgeLockFunds does nothing, output[0] return true when business is success, else return false
-func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) (bool, error) {
+// PledgeLockFunds transfer the money from the restricting contract account to the staking contract account,
+// the first output returns true when business is success, else return false
+func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
-	restrictingKey := xcom.GetRestrictingKey(account)
-	record := state.GetState(account, restrictingKey)
+	restrictingKey := restriting.GetRestrictingKey(account)
+	bAccInfo := state.GetState(account, restrictingKey)
 
-	if len(record) == 0 {
+	if len(bAccInfo) == 0 {
 		log.Error("record not found in PledgeLockFunds", "account", account, "funds", amount.Uint64())
-		return false, errAccountNotFound
+		return errAccountNotFound
 	}
 
 	var (
+		err  error
 		info restrictingInfo
 	)
 
-	if err := rlp.Decode(bytes.NewReader(record), &info); err != nil {
+	if err := rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
 		log.Error("rlp decode failed", "error", err.Error())
-		return false, err
+		return common.NewSysError(err.Error())
 	}
 
 	if info.balance.Cmp(amount) == -1 {
 		log.Error("restricting balance is not enough", "error", errBalanceNotEnough)
-		return false, errBalanceNotEnough
+		return errBalanceNotEnough
 	}
 
 	// sub balance
 	info.balance = info.balance.Sub(info.balance, amount)
 
-	// store user info
-	bInfo, err := rlp.EncodeToBytes(info)
-	if err != nil {
+	// save restricting account info
+	if bAccInfo, err = rlp.EncodeToBytes(info); err != nil {
 		log.Error("failed to encode restricting info", "account", account, "error", err)
-		return true, err
+		return common.NewSysError(err.Error())
 	}
-	state.SetState(account, restrictingKey, bInfo)
+	state.SetState(account, restrictingKey, bAccInfo)
 
 	state.SubBalance(vm.RestrictingContractAddr, amount)
 	state.AddBalance(vm.StakingContractAddr, amount)
 
-	return true, nil
+	return nil
 }
 
+// ReturnLockFunds transfer the money from the staking contract account  to the restricting contract account,
+func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
-// ReturnLockFunds does nothing
-func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) (bool, error) {
+	restrictingKey := restriting.GetRestrictingKey(account)
+	bAccInfo := state.GetState(account, restrictingKey)
 
-	restrictingKey := xcom.GetRestrictingKey(account)
-	record := state.GetState(account, restrictingKey)
-
-	if len(record) == 0 {
+	if len(bAccInfo) == 0 {
 		log.Error("record not found in ReturnLockFunds", "account", account, "funds", amount.Uint64())
-		return false, errAccountNotFound
+		return errAccountNotFound
 	}
 
 	var (
+		err  error
 		info restrictingInfo
 	)
 
-	if err := rlp.Decode(bytes.NewReader(record), &info); err != nil {
+	if err = rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
 		log.Error("rlp decode failed", "error", err.Error())
-		return false, err
+		return common.NewSysError(err.Error())
 	}
 
-	if info.debt.Sign() == 1 {
-		// add balance while debt is positive
-		log.Trace("debt is positive", "account", account, "debt", info.debt)
-		info.balance = info.balance.Add(info.balance, amount)
-
-	} else {
-		log.Trace("debt is not positive", "account", account, "debt", info.debt, "amount", amount)
+	if info.debt.Sign() == -1 {
+		log.Trace("debt is negative", "account", account, "debt", info.debt, "amount", amount)
 
 		if amount.CmpAbs(info.debt) < 1 {
 			info.debt = info.debt.Add(info.debt, amount)
@@ -296,96 +307,98 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 			info.balance.Add(info.balance, info.debt.Add(info.debt, amount))
 			info.debt = big.NewInt(0)
 		}
+
+	} else {
+		// directly add balance while debt ge 0
+		log.Trace("debt is not negative", "account", account, "debt", info.debt)
+		info.balance = info.balance.Add(info.balance, amount)
 	}
 
-	bInfo, err := rlp.EncodeToBytes(info)
-	if err != nil {
+	// save restricting account info
+	if bAccInfo, err = rlp.EncodeToBytes(info); err != nil {
 		log.Error("failed to encode restricting info", "account", account, "error", err)
-		return true, err
+		return common.NewSysError(err.Error())
 	}
-	state.SetState(account, restrictingKey, bInfo)
+	state.SetState(account, restrictingKey, bAccInfo)
 
 	state.SubBalance(vm.StakingContractAddr, amount)
 	state.AddBalance(vm.RestrictingContractAddr, amount)
 
-	return true, nil
+	return nil
 }
 
-// SlashingNotify does nothing
-func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.Int, state xcom.StateDB) (bool, error) {
+// SlashingNotify modify debt of restricting account
+func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
-	restrictingKey := xcom.GetRestrictingKey(account)
-	record := state.GetState(account, restrictingKey)
+	restrictingKey := restriting.GetRestrictingKey(account)
+	bAccInfo := state.GetState(account, restrictingKey)
 
-	if len(record) == 0 {
+	if len(bAccInfo) == 0 {
 		log.Error("record not found in SlashingNotify", "account", account, "funds", amount.Uint64())
-		return false, errAccountNotFound
+		return errAccountNotFound
 	}
 
 	var (
+		err  error
 		info restrictingInfo
 	)
 
-	if err := rlp.Decode(bytes.NewReader(record), &info); err != nil {
-		log.Error("rlp decode failed", "error", err.Error())
-		return false, err
+	if err = rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
+		log.Error("failed to rlp decode restricting info", "error", err.Error())
+		return common.NewSysError(err.Error())
 	}
 
 	info.debt = info.debt.Sub(info.debt, amount)
 
-	bInfo, err := rlp.EncodeToBytes(info)
-	if err != nil {
+	// save restricting account info
+	if bAccInfo, err = rlp.EncodeToBytes(info); err != nil {
 		log.Error("failed to encode restricting info", "account", account, "error", err)
-		return true, err
+		return common.NewSysError(err.Error())
 	}
-	state.SetState(account, restrictingKey, bInfo)
+	state.SetState(account, restrictingKey, bAccInfo)
 
-	return true, nil
+	return nil
 }
 
 // releaseRestricting does nothing
-func (rp *RestrictingPlugin) releaseRestricting(head *types.Header, state xcom.StateDB) (bool, error) {
+func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB) error {
 
-	var blockNumber = head.Number.Uint64()
+	releaseEpochKey := restriting.GetReleaseEpochKey(epoch)
+	bAccNumbers := state.GetState(vm.RestrictingContractAddr, releaseEpochKey)
 
-	releaseNumberKey := xcom.GetReleaseNumberKey(blockNumber)
-	bNumbers := state.GetState(vm.RestrictingContractAddr, releaseNumberKey)
-
-	if len(bNumbers) == 0 {
-		return true, nil
+	if len(bAccNumbers) == 0 {
+		log.Debug("there is no release record on curr epoch", "epoch", epoch)
+		return nil
 	}
 
-	numbers := byteutil.BytesToUint32(bNumbers)
+	numbers := byteutil.BytesToUint32(bAccNumbers)
 
+	// TODO
 	var (
-		info restrictingInfo
+		info    restrictingInfo
 		release *big.Int
 	)
 
-	for index := numbers; index > 0; index++ {
+	for index := numbers; index > 0; index-- {
 
-		releaseAccountKey := xcom.GetReleaseAccountKey(blockNumber, index)
+		releaseAccountKey := restriting.GetReleaseAccountKey(epoch, index)
 		bAccount := state.GetState(vm.RestrictingContractAddr, releaseAccountKey)
 		account := byteutil.BytesToAddress(bAccount)
 
-		releaseAmountKey := xcom.GetReleaseAmountKey(account, blockNumber)
+		restrictingKey := restriting.GetRestrictingKey(account)
+		bAccInfo := state.GetState(account, restrictingKey)
+
+		if err := rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
+			log.Error("failed to rlp decode restricting info", "error", err.Error())
+			return common.NewSysError(err.Error())
+		}
+
+		releaseAmountKey := restriting.GetReleaseAmountKey(epoch, account)
 		bRelease := state.GetState(account, releaseAmountKey)
-
-		if err := rlp.Decode(bytes.NewBuffer(bRelease), release); err != nil {
-			log.Error("rlp decode failed", "origin", bRelease)
-			return false, err
-		}
-
-		restrictingKey := xcom.GetRestrictingKey(account)
-		record := state.GetState(account, restrictingKey)
-
-		if err := rlp.Decode(bytes.NewReader(record), &info); err != nil {
-			log.Error("rlp decode failed", "error", err.Error())
-			return false, err
-		}
+		release = release.SetBytes(bRelease)
 
 		if info.balance.Uint64() == 0 {
-			log.Trace("balance of release account equals zero", "account", account, "blockNumber", blockNumber)
+			log.Trace("balance of release account equals zero", "account", account, "epoch", epoch)
 			info.debt = info.debt.Sub(info.debt, release)
 
 		} else {
@@ -405,13 +418,13 @@ func (rp *RestrictingPlugin) releaseRestricting(head *types.Header, state xcom.S
 					state.AddBalance(account, release)
 
 				} else {
+					tmpBalance := info.balance
 					release = release.Sub(release, info.balance)
-
-					state.SubBalance(vm.RestrictingContractAddr, info.balance)
-					state.AddBalance(account, info.balance)
-
 					info.balance = big.NewInt(0)
 					info.debt = info.debt.Sub(info.debt, release)
+
+					state.SubBalance(vm.RestrictingContractAddr, tmpBalance)
+					state.AddBalance(account, tmpBalance)
 				}
 
 			} else {
@@ -424,62 +437,62 @@ func (rp *RestrictingPlugin) releaseRestricting(head *types.Header, state xcom.S
 					state.AddBalance(account, release)
 
 				} else {
+					tmpBalance := info.balance
 					release = release.Sub(release, info.balance)
-
-					state.SubBalance(vm.RestrictingContractAddr, info.balance)
-					state.AddBalance(account, info.balance)
-
 					info.balance = big.NewInt(0)
 					info.debt = info.debt.Sub(info.debt, release)
+
+					state.SubBalance(vm.RestrictingContractAddr, tmpBalance)
+					state.AddBalance(account, tmpBalance)
+
 				}
 			}
 		}
 		// '''
-		// 删除记录
+		// delete record
 		// '''
 	}
 
-	return true, nil
+	return nil
 }
 
 
 func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) ([]byte, error) {
 
-	restrictingKey := xcom.GetRestrictingKey(account)
-	record := state.GetState(account, restrictingKey)
+	restrictingKey := restriting.GetRestrictingKey(account)
+	bAccInfo := state.GetState(account, restrictingKey)
 
-	if len(record) == 0 {
+	if len(bAccInfo) == 0 {
 		log.Error("record not found in GetRestrictingInfo", "account", account)
 		return []byte{}, errAccountNotFound
 	}
 
 	var (
-		info restrictingInfo
+		amount           *big.Int
+		bAmount          []byte
+		info             restrictingInfo
+		plan             releaseAmountInfo
+		plans            []releaseAmountInfo
 		releaseAmountKey []byte
-		bAmount []byte
-		amount *big.Int
-		plans []releaseAmountInfo
-		plan releaseAmountInfo
-		result Result
+		result           Result
 	)
 
-	if err := rlp.Decode(bytes.NewReader(record), &info); err != nil {
+	if err := rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
 		log.Error("rlp decode failed", "error", err.Error())
-		return []byte{}, err
+		return []byte{}, common.NewSysError(err.Error())
 	}
 
 	for i := 0; i < len(info.releaseList); i++ {
-		blockNumber := info.releaseList[i]
+		epoch := info.releaseList[i]
 
-		releaseAmountKey = xcom.GetReleaseAmountKey(account, blockNumber)
+		releaseAmountKey = restriting.GetReleaseAmountKey(epoch, account)
 		bAmount = state.GetState(account, releaseAmountKey)
+		amount = amount.SetBytes(bAmount)
 
-		if err := rlp.Encode(bytes.NewBuffer(bAmount), &amount); err != nil {
-			log.Error("failed to rlp decode amount in GetRestrictingInfo")
-			return []byte{}, err
-		}
-
-		plan.height = blockNumber
+		plan.height = epoch
+		// !!!
+		// plan.height = getBlockNumberByEpoch(epoch)
+		// !!!
 		plan.amount = amount
 
 		plans = append(plans, plan)
@@ -491,13 +504,18 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		return []byte{}, err
 	}
 
+	// !!!
+	// getslash
+	// getpledge
+	// !!!
+
 	result.balance = info.balance
 	result.debt = info.debt
 	result.slash = big.NewInt(0)
 	result.pledge = big.NewInt(0)
 	result.entry = bPlans
 
-	log.Trace("get restricting result", "result", result)
+	log.Trace("get restricting result", "account", account, "result", result)
 
 	return rlp.EncodeToBytes(result)
 }

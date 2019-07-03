@@ -286,7 +286,6 @@ func boolToBytes(val bool) []byte {
 }
 
 func TestDecodeEncode(t *testing.T){
-
 	///////////////////////////////////////////////////////////////////////////////
 	nodeId, _ := hex.DecodeString("e152be5f5f0167250592a12a197ab19b215c5295d5eb0bb1133673dc8607530db1bfa5415b2ec5e94113f2fce0c4a60e697d5d703a29609b197b836b020446c7")
 	owner, _ := hex.DecodeString("4FED1fC4144c223aE3C1553be203cDFcbD38C581")

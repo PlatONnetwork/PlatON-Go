@@ -1,15 +1,24 @@
-package vm
+package vm_test
 
 import (
 	"bytes"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"math/big"
 	"testing"
 )
+
+
+
+
+
+
+
 
 func TestRLP_encode (t *testing.T) {
 
@@ -37,35 +46,64 @@ func TestRLP_encode (t *testing.T) {
 }
 
 
-func TestRLP_2 (t *testing.T) {
+func TestStakingContract_createStaking(t *testing.T) {
+	stakingContract := vm.StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(),
+		Evm:	  newEvm(),
+	}
+
+	//var govPlugin *plugin.GovPlugin
+
+	plugin.GovPluginInstance()
+
+	sndb := snapshotdb.Instance()
+	sndb.NewBlock(big.NewInt(1), common.ZeroHash, blockHash)
+
 
 	var params [][]byte
 	params = make([][]byte, 0)
-	params = append(params, common.Uint64ToBytes(1102))
-	params = append(params, []byte("GetVerifiersList"))
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1000))
+	typ, _ := rlp.EncodeToBytes(uint16(0))
+	benifitAddress, _ := rlp.EncodeToBytes(addrArr[1])
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
+	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
+	nodeName, _ := rlp.EncodeToBytes("PlatON, China")
+	website, _ := rlp.EncodeToBytes("https://www.platon.network")
+	details, _ := rlp.EncodeToBytes("platon super node")
+	StakeThreshold, _ := new(big.Int).SetString("1000000000000000000000000", 10)
+	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	processVersion, _ := rlp.EncodeToBytes(uint32(456))
+
+
+
+
+	params = append(params, fnType)
+	params = append(params, typ)
+	params = append(params, benifitAddress)
+	params = append(params, nodeId)
+	params = append(params, externalId)
+	params = append(params, nodeName)
+	params = append(params, website)
+	params = append(params, details)
+	params = append(params, amount)
+	params = append(params, processVersion)
+
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		fmt.Println(err)
-		t.Errorf("GetVerifiersList encode rlp data fail")
+		t.Errorf("createStaking encode rlp data fail")
 	} else {
-		fmt.Println("GetVerifiersList data rlp: ", hexutil.Encode(buf.Bytes()))
+		fmt.Println("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-}
 
-func TestIsElection (t *testing.T) {
-
-	num230 := big.NewInt(230)
-	fmt.Println(xutil.IsElection(num230.Uint64()))
-
-	num1 := big.NewInt(1)
-	fmt.Println(xutil.IsElection(num1.Uint64()))
-
-
-	num480 := big.NewInt(480)
-	fmt.Println(xutil.IsElection(num480.Uint64()))
-
-	num231 := big.NewInt(231)
-	fmt.Println(xutil.IsElection(num231.Uint64()))
+	res, err := stakingContract.Run(buf.Bytes())
+	if nil != err {
+		t.Error(err)
+	}else {
+		t.Log(string(res))
+	}
 }

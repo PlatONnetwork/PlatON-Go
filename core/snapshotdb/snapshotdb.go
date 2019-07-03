@@ -314,7 +314,7 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 	//found from unRecognized
 	location, ok := s.checkHashChain(hash)
 	if !ok {
-		return nil, errors.New("[SnapshotDB]the hash not in chain" + hash.String())
+		return nil, errors.New("[SnapshotDB]the hash not in chain " + hash.String())
 	}
 	//found from Recognized
 	switch location {

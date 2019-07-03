@@ -60,9 +60,9 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 
 		if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
 			switch p.(type) {
-			case *stakingContract:
-				staking := &stakingContract{
-					plugin:   plugin.StakingInstance(),
+			case *StakingContract:
+				staking := &StakingContract{
+					Plugin:   plugin.StakingInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}
@@ -74,6 +74,13 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 					Evm:      evm,
 				}
 				return RunPlatONPrecompiledContract(restricting, input, contract)
+			case *slashingContract:
+				slashing := &slashingContract{
+					plugin: 	plugin.SlashInstance(),
+					Contract: 	contract,
+					Evm: 		evm,
+				}
+				return RunPlatONPrecompiledContract(slashing, input, contract)
 			case *GovContract:
 				govContract := &GovContract{
 					Plugin  : plugin.GovPluginInstance(),
