@@ -231,8 +231,7 @@ func  (gc *govContract) errHandler(funcName string, event string, err error, err
 	xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, SubmitTextEvent, string(result))
 
 	log.Info("Call govContract success.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash().Hex(), "json: ", string(result))
-
-	return nil, nil
+	return common.MustRlpEncode(res), nil
 }
 
 func  (gc *govContract) returnHandler(resultValue interface{}, err error, errorMsg string) ([]byte, error) {
@@ -243,6 +242,5 @@ func  (gc *govContract) returnHandler(resultValue interface{}, err error, errorM
 	}
 	bytes, _ := json.Marshal(resultValue)
 	res := xcom.Result{true, string(bytes), ""}
-	data, _ := rlp.EncodeToBytes(res)
-	return data, nil
+	return common.MustRlpEncode(res), nil
 }
