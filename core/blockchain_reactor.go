@@ -144,13 +144,14 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		return false, err
 	}
 
-	for _, pluginName := range bcr.beginRule {
+	/*for _, pluginName := range bcr.beginRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
 			if flag, err := plugin.BeginBlock(blockHash, header, state); nil != err {
 				return flag, err
 			}
 		}
-	}
+	}*/
+
 	return true, nil
 }
 
@@ -168,13 +169,13 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 		return false, err
 	}
 
-	for _, pluginName := range bcr.endRule {
+	/*for _, pluginName := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
 			if flag, err := plugin.EndBlock(blockHash, header, state); nil != err {
 				return flag, err
 			}
 		}
-	}
+	}*/
 
 	// storage the ppos k-v Hash
 	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)

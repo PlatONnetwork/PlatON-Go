@@ -1,15 +1,82 @@
-package vm
+package vm_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/eth"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/node"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"math/big"
 	"testing"
 )
+
+
+
+var (
+	nodeIdArr = []discover.NodeID{
+		discover.MustHexID("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28422334"),
+		discover.MustHexID("0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28435466"),
+		discover.MustHexID("0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28544878"),
+		discover.MustHexID("0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28564646"),
+	}
+	addrArr = []common.Address{
+		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80qeqqee"),
+		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80444555"),
+		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80wrwwwd"),
+		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80vvbbbb"),
+	}
+)
+
+
+func newChainState() (*state.StateDB, error) {
+	var (
+		db      = ethdb.NewMemDatabase()
+		genesis = new(core.Genesis).MustCommit(db)
+	)
+	fmt.Println("genesis", genesis)
+	// Initialize a fresh chain with only a genesis block
+	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
+
+	var state *state.StateDB
+	if statedb, err := blockchain.State(); nil != err {
+		return nil, errors.New("reference statedb failed" + err.Error())
+	} else {
+		state = statedb
+	}
+	return state, nil
+}
+
+
+func newEvm() *vm.EVM {
+	state, _ := newChainState()
+	evm := &vm.EVM{
+		StateDB:              state,
+	}
+	context := vm.Context{
+		BlockNumber: big.NewInt(7),
+	}
+	evm.Context = context
+	return evm
+}
+
+func newContract() *vm.Contract {
+	callerAddress := vm.AccountRef(common.HexToAddress("0x12"))
+	contract := vm.NewContract(callerAddress, callerAddress, big.NewInt(1000), uint64(1))
+	return contract
+}
+
+
 
 func TestRLP_encode (t *testing.T) {
 
@@ -37,35 +104,65 @@ func TestRLP_encode (t *testing.T) {
 }
 
 
-func TestRLP_2 (t *testing.T) {
+func TestStakingContract_createStaking(t *testing.T) {
+	stakingContract := vm.StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(),
+		Evm:	  newEvm(),
+	}
 
+	node_config := &node.Config{
+		DataDir: "./",
+	}
+
+	n, err := node.New(node_config)
+	if nil != err {
+
+	}
+	snapshotdb.SetDBPath(n.S)
+
+	//typ uint16, benifitAddress common.Address, nodeId discover.NodeID,
+	//	externalId, nodeName, website, details string, amount *big.Int, processVersion uint32
 	var params [][]byte
 	params = make([][]byte, 0)
-	params = append(params, common.Uint64ToBytes(1102))
-	params = append(params, []byte("GetVerifiersList"))
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1000))
+	benifitAddress, _ := rlp.EncodeToBytes(addrArr[1])
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
+	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
+	nodeName, _ := rlp.EncodeToBytes("PlatON, China")
+	website, _ := rlp.EncodeToBytes("https://www.platon.network")
+	details, _ := rlp.EncodeToBytes("platon super node")
+	amount, _ := rlp.EncodeToBytes(big.NewInt(1213))
+	processVersion, _ := rlp.EncodeToBytes(uint32(456))
+
+
+
+
+	params = append(params, fnType)
+	params = append(params, benifitAddress)
+	params = append(params, nodeId)
+	params = append(params, externalId)
+	params = append(params, nodeName)
+	params = append(params, website)
+	params = append(params, details)
+	params = append(params, amount)
+	params = append(params, processVersion)
+
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		fmt.Println(err)
-		t.Errorf("GetVerifiersList encode rlp data fail")
+		t.Errorf("CandidateDeposit encode rlp data fail")
 	} else {
-		fmt.Println("GetVerifiersList data rlp: ", hexutil.Encode(buf.Bytes()))
+		fmt.Println("CandidateDeposit data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-}
 
-func TestIsElection (t *testing.T) {
-
-	num230 := big.NewInt(230)
-	fmt.Println(xutil.IsElection(num230.Uint64()))
-
-	num1 := big.NewInt(1)
-	fmt.Println(xutil.IsElection(num1.Uint64()))
-
-
-	num480 := big.NewInt(480)
-	fmt.Println(xutil.IsElection(num480.Uint64()))
-
-	num231 := big.NewInt(231)
-	fmt.Println(xutil.IsElection(num231.Uint64()))
+	res, err := stakingContract.Run(buf.Bytes())
+	if nil != err {
+		t.Error(err)
+	}else {
+		t.Log(string(res))
+	}
 }
