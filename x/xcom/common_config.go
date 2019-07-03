@@ -8,7 +8,7 @@ const (
 	StakingRule
 	SlashingRule
 	RestrictingRule
-	AwardmgrRule
+	RewardRule
 
 	// ......
 )
