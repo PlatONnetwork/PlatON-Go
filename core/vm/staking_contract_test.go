@@ -10,9 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/eth"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -25,7 +23,7 @@ import (
 
 var (
 	nodeIdArr = []discover.NodeID{
-		discover.MustHexID("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28422334"),
+		discover.MustHexID("0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"),
 		discover.MustHexID("0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28435466"),
 		discover.MustHexID("0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28544878"),
 		discover.MustHexID("0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28564646"),
@@ -36,6 +34,10 @@ var (
 		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80wrwwwd"),
 		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80vvbbbb"),
 	}
+
+
+	blockNumer = big.NewInt(1)
+	blockHash = common.HexToHash("9d4fb5346abcf593ad80a0d3d5a371b22c962418ad34189d5b1b39065668d663")
 )
 
 
@@ -64,7 +66,8 @@ func newEvm() *vm.EVM {
 		StateDB:              state,
 	}
 	context := vm.Context{
-		BlockNumber: big.NewInt(7),
+		BlockNumber: blockNumer,
+		BlockHash: blockHash,
 	}
 	evm.Context = context
 	return evm
@@ -111,22 +114,17 @@ func TestStakingContract_createStaking(t *testing.T) {
 		Evm:	  newEvm(),
 	}
 
-	node_config := &node.Config{
-		DataDir: "./",
-	}
 
-	n, err := node.New(node_config)
-	if nil != err {
 
-	}
-	snapshotdb.SetDBPath(n.S)
+	sndb := snapshotdb.Instance()
+	sndb.NewBlock(big.NewInt(1), common.ZeroHash, blockHash)
 
-	//typ uint16, benifitAddress common.Address, nodeId discover.NodeID,
-	//	externalId, nodeName, website, details string, amount *big.Int, processVersion uint32
+
 	var params [][]byte
 	params = make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1000))
+	typ, _ := rlp.EncodeToBytes(uint16(0))
 	benifitAddress, _ := rlp.EncodeToBytes(addrArr[1])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
@@ -140,6 +138,7 @@ func TestStakingContract_createStaking(t *testing.T) {
 
 
 	params = append(params, fnType)
+	params = append(params, typ)
 	params = append(params, benifitAddress)
 	params = append(params, nodeId)
 	params = append(params, externalId)
@@ -153,9 +152,9 @@ func TestStakingContract_createStaking(t *testing.T) {
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		fmt.Println(err)
-		t.Errorf("CandidateDeposit encode rlp data fail")
+		t.Errorf("createStaking encode rlp data fail")
 	} else {
-		fmt.Println("CandidateDeposit data rlp: ", hexutil.Encode(buf.Bytes()))
+		fmt.Println("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
 
