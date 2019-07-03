@@ -1009,7 +1009,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 func (sk *StakingPlugin) GetVerifierListFake(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.CandidateQueue, error) {
 
 	cand := &staking.Candidate{
-		discover.NodeID{},
+		discover.NodeID{0x11},
 		common.HexToAddress("0x11"),
 		common.HexToAddress("0x11"),
 		1,
@@ -1482,6 +1482,10 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, isCommit bool) 
 		queue = append(queue, can)
 	}
 	return queue, nil
+}
+
+func (sk *StakingPlugin) GetCandidateListFake(blockHash common.Hash, isCommit bool) (staking.CandidateQueue, error) {
+	return staking.CandidateQueue{}, nil
 }
 
 func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.NodeID, isCommit bool) (bool, error) {
