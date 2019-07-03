@@ -131,8 +131,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	// Assemble the Ethereum object
 	chainDb, err := CreateDB(ctx, config, "chaindata")
-	//set snapshotdb path
-	snapshotdb.SetDBPath(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +255,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			} else if chainConfig.Cbft.ValidatorMode == "ppos" {
 				// TODO init reactor
 				reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-				xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
+				xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce())
 				handlePlugin(reactor, snapshotdb.Instance())
 				agency = reactor
 			}
@@ -594,6 +592,7 @@ func (s *Ethereum) Stop() error {
 
 // TODO RegisterPlugin one by one
 func handlePlugin(reactor *core.BlockChainReactor, db snapshotdb.DB) {
-	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance(db))
+	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
+	xplugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 }
