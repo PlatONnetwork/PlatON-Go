@@ -237,7 +237,8 @@ func (govPlugin *GovPlugin) Submit(curBlockNum uint64, from common.Address, prop
 			log.Error("[GOV] Submit(): to check if there's a pre-active version proposal failed.", "blockHash", blockHash)
 			return err
 		}
-		if len(proposalID) > 0 {
+		println("bbb", proposalID.String(), len(proposalID))
+		if proposalID != common.ZeroHash {
 			return common.NewBizError("existing a pre-active version proposal")
 		}
 	}
@@ -247,10 +248,6 @@ func (govPlugin *GovPlugin) Submit(curBlockNum uint64, from common.Address, prop
 		log.Error("[GOV] Submit(): save proposal failed", "proposalID", proposal.GetProposalID())
 		return err
 	}
-	//if !ok {
-	//	err = errors.New("[GOV] Submit(): set proposal failed.")
-	//	return false, err
-	//}
 	if err := govPlugin.govDB.AddVotingProposalID(blockHash, proposal.GetProposalID(), state); err != nil {
 		log.Error("[GOV] Submit(): add proposal ID to voting proposal ID list failed", "proposalID", proposal.GetProposalID())
 		return err
@@ -308,7 +305,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 		log.Error("[GOV] Vote(): save vote failed", "proposalID", vote.ProposalID)
 		return err
 	}
-	if err := govPlugin.govDB.AddVotedVerifier(vote.ProposalID, vote.ProposalID, vote.VoteNodeID); err != nil {
+	if err := govPlugin.govDB.AddVotedVerifier(blockHash, vote.ProposalID, vote.VoteNodeID); err != nil {
 		log.Error("[GOV] Vote(): Add nodeID to voted verifier list failed", "proposalID", vote.ProposalID, "voteNodeID", vote.VoteNodeID)
 		return err
 	}
@@ -548,8 +545,7 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 // check if the node a verifier, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
 	//verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
-	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
-
+	verifierList, err := stk.GetVerifierListFake(blockHash, blockNumber, QueryStartNotIrr)
 	if err != nil {
 		log.Error("list verifiers failed", "blockHash", blockHash)
 		return false

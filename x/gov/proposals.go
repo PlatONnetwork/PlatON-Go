@@ -48,13 +48,12 @@ type Vote struct {
 	VoteOption VoteOption      `json:"voteOption"`
 }
 
-
 type VoteValue struct {
 	VoteNodeID discover.NodeID `json:"voteNodeID"`
 	VoteOption VoteOption      `json:"voteOption"`
 }
 
-var MaxVotingDuration = uint64(14 * 24 * 60 * 60) / xcom.ConsensusSize * xcom.ConsensusSize
+var MaxVotingDuration = uint64(14*24*60*60) / xcom.ConsensusSize * xcom.ConsensusSize
 
 type Proposal interface {
 	SetProposalID(proposalID common.Hash)
@@ -87,7 +86,7 @@ type Proposal interface {
 	SetTallyResult(tallyResult TallyResult)
 	GetTallyResult() TallyResult
 
-	Verify(curBlockNum uint64, state xcom.StateDB) (error)
+	Verify(curBlockNum uint64, state xcom.StateDB) error
 
 	String() string
 }
@@ -185,7 +184,7 @@ func (tp TextProposal) GetTallyResult() TallyResult {
 	return tp.Result
 }
 
-func (tp TextProposal) Verify(curBlockNum uint64, state xcom.StateDB) (error) {
+func (tp TextProposal) Verify(curBlockNum uint64, state xcom.StateDB) error {
 	return verifyBasic(tp.ProposalID, tp.Proposer, tp.ProposalType, tp.Topic, tp.Desc, tp.GithubID, tp.Url, tp.EndVotingBlock, curBlockNum, state)
 }
 
@@ -221,16 +220,16 @@ func (vp VersionProposal) GetActiveBlock() uint64 {
 	return vp.ActiveBlock
 }
 
-func verifyBasic(proposalID common.Hash, proposer discover.NodeID, proposalType ProposalType, topic, desc, githubID, url  string, endVotingBlock uint64, curBlockNum uint64, state xcom.StateDB) (error){
-	if len(proposalID) >0 {
-		p, err := GovDBInstance().GetProposal(proposalID, state);
+func verifyBasic(proposalID common.Hash, proposer discover.NodeID, proposalType ProposalType, topic, desc, githubID, url string, endVotingBlock uint64, curBlockNum uint64, state xcom.StateDB) error {
+	if len(proposalID) > 0 {
+		p, err := GovDBInstance().GetProposal(proposalID, state)
 		if err != nil {
 			return err
 		}
 		if nil != p {
 			return common.NewBizError("ProposalID is already used.")
 		}
-	}else{
+	} else {
 		return common.NewBizError("ProposalID is empty.")
 	}
 
@@ -255,14 +254,14 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, proposalType 
 		return false, err
 	}*/
 
-	if xutil.CalculateRound(endVotingBlock) - xutil.CalculateRound(curBlockNum) <= 0 || endVotingBlock > curBlockNum + MaxVotingDuration {
+	if xutil.CalculateRound(endVotingBlock)-xutil.CalculateRound(curBlockNum) <= 0 || endVotingBlock > curBlockNum+MaxVotingDuration {
 		return common.NewBizError("end voting block number invalid.")
 	}
 
 	return nil
 }
 
-func (vp VersionProposal) Verify(curBlockNum uint64, state xcom.StateDB) (error) {
+func (vp VersionProposal) Verify(curBlockNum uint64, state xcom.StateDB) error {
 
 	if err := verifyBasic(vp.ProposalID, vp.Proposer, vp.ProposalType, vp.Topic, vp.Desc, vp.GithubID, vp.Url, vp.EndVotingBlock, curBlockNum, state); err != nil {
 		return err
