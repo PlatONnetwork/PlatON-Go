@@ -30,12 +30,12 @@ func GetAwardMgrInstance() *rewardMgrPlugin {
 }
 
 // BeginBlock does something like check input params before execute transactions,
-// in LockRepoPlugin it does nothing.
+// in RestrictingPlanPlugin it does nothing.
 func (rmp *rewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) (bool, error) {
 	return false, nil
 }
 
-// EndBlock invoke releaseLockRepo
+// EndBlock invoke releaseRestrictingPlan
 func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) (bool, error) {
 
 	blockNumber := head.Number.Uint64()
