@@ -12,6 +12,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"github.com/go-errors/errors"
@@ -51,10 +52,10 @@ type SlashingPlugin struct {
 
 var slashPlugin *SlashingPlugin
 
-func SlashInstance(db snapshotdb.DB) *SlashingPlugin {
+func SlashInstance() *SlashingPlugin {
 	once.Do(func() {
 		slashPlugin = &SlashingPlugin{
-			db:db,
+			db:snapshotdb.Instance(),
 		}
 	})
 	return slashPlugin
@@ -75,7 +76,7 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 		if result, err := sp.GetPreNodeAmount(); nil != err {
 			return false, err
 		} else {
-			validatorList, err := stk.GetValidatorList(blockHash, header.Number.Uint64(), 1, QueryStartIrr)
+			validatorList, err := stk.GetCandidateONRound(blockHash, header.Number.Uint64(), 1, QueryStartIrr)
 			if nil != err {
 				return false, err
 			}
@@ -84,6 +85,7 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 				amount, success := result[nodeId]
 				isSlash := false
 				var rate uint64
+				isDelete := false
 				if success {
 					// Start to punish nodes with abnormal block rate
 					log.Debug("slashingPlugin node block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "amount", amount)
@@ -94,6 +96,7 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 							rate = blockAmountLowSlashing
 						} else if amount <= blockAmountHigh {
 							isSlash = true
+							isDelete = true
 							rate = blockAmountHighSlashing
 						}
 					}
@@ -103,7 +106,8 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 				}
 				if isSlash && rate > 0 {
 					// If there is no record of the node, it means that there is no block, then the penalty is directly
-					if flag, err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, calcSlashAmount(validator.Candidate, rate), xcom.LowRatio); nil != err || !flag {
+					// TODO execute slash
+					if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, calcSlashAmount(validator, rate), isDelete, staking.LowRatio); nil != err {
 						log.Error("slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "err", err)
 						return false, err
 					}
@@ -250,12 +254,12 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 			}
 			if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), int32(evidence.Type()), stateDB); len(value) > 0 {
 				log.Error("Execution slashing failed", "blockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
-				return errSlashExist
+				return common.NewBizError(errSlashExist.Error())
 			}
 			if candidate, err := stk.GetCandidateInfo(blockHash, evidence.Address()); nil != err {
 				return err
 			} else {
-				if flag, err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, calcSlashAmount(candidate, duplicateSignLowSlashing), xcom.DoubleSign); nil != err || !flag {
+				if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, calcSlashAmount(candidate, duplicateSignLowSlashing), true, staking.DoubleSign); nil != err {
 					log.Error("slashingPlugin SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 					return err
 				}
@@ -325,10 +329,10 @@ func parseNodeId(header *types.Header) (discover.NodeID, error) {
 	return discover.PubkeyID(pk), nil
 }
 
-func calcSlashAmount(candidate *xcom.Candidate, rate uint64) *big.Int {
+func calcSlashAmount(candidate *staking.Candidate, rate uint64) *big.Int {
 	sumAmount := new(big.Int)
-	sumAmount.Add(candidate.Released, candidate.ReleasedTmp)
-	sumAmount.Add(sumAmount, candidate.LockRepo)
-	sumAmount.Add(sumAmount, candidate.LockRepoTmp)
+	sumAmount.Add(candidate.Released, candidate.ReleasedHes)
+	sumAmount.Add(sumAmount, candidate.RestrictingPlan)
+	sumAmount.Add(sumAmount, candidate.RestrictingPlanHes)
 	return sumAmount.Div(sumAmount, new(big.Int).SetUint64(rate))
 }
