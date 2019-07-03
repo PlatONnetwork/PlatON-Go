@@ -14,19 +14,16 @@ var (
 	ValueDelimiter = []byte(":")
 )
 
-
-
 var dbOnce sync.Once
 var govDB *GovDB
 
 type GovDB struct {
-	govdbErr error
-	snapdb   GovSnapshotDB
+	snapdb GovSnapshotDB
 }
 
 func GovDBInstance() *GovDB {
 	dbOnce.Do(func() {
-		govDB = &GovDB{snapdb: GovSnapshotDB{}}
+		govDB = &GovDB{snapdb: NewGovSnapshotDB()}
 	})
 	return govDB
 }
@@ -53,13 +50,6 @@ func (self *GovDB) SetProposal(proposal Proposal, state xcom.StateDB) error {
 	state.SetState(vm.GovContractAddr, KeyProposal(proposal.GetProposalID()), value)
 
 	return nil
-}
-
-func (self *GovDB) setError(err error) {
-	if err != nil {
-		self.govdbErr = err
-		panic(err)
-	}
 }
 
 // 查询提案记录，获取value后，解码
@@ -95,14 +85,13 @@ func (self *GovDB) GetExistProposal(proposalID common.Hash, state xcom.StateDB) 
 	p, err := self.GetProposal(proposalID, state)
 	if err != nil {
 		return nil, err
-	}else if p == nil {
+	} else if p == nil {
 		log.Error("Cannot find proposal.", "proposalID", proposalID)
 		return nil, common.NewSysError("Cannot find proposal.")
-	}else{
+	} else {
 		return p, nil
 	}
 }
-
 
 // 从snapdb查询各个列表id,然后从逐条从statedb查询
 func (self *GovDB) GetProposalList(blockHash common.Hash, state xcom.StateDB) ([]Proposal, error) {
@@ -115,7 +104,7 @@ func (self *GovDB) GetProposalList(blockHash common.Hash, state xcom.StateDB) ([
 		proposal, err := self.GetExistProposal(proposalId, state)
 		if err != nil {
 			return nil, err
-		}else {
+		} else {
 			proposls = append(proposls, proposal)
 		}
 	}
@@ -123,7 +112,7 @@ func (self *GovDB) GetProposalList(blockHash common.Hash, state xcom.StateDB) ([
 }
 
 //保存投票记录
-func (self *GovDB) SetVote(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) (error) {
+func (self *GovDB) SetVote(proposalID common.Hash, voter discover.NodeID, option VoteOption, state xcom.StateDB) error {
 	voteValueList, err := self.ListVoteValue(proposalID, state)
 	if err != nil {
 		return common.NewSysError(err.Error())
@@ -146,7 +135,7 @@ func (self *GovDB) ListVoteValue(proposalID common.Hash, state xcom.StateDB) ([]
 	if err := json.Unmarshal(voteListBytes, &voteList); err != nil {
 		return nil, common.NewSysError(err.Error()) //errors.New("Unmarshal VoteValue error")
 	}
-	return voteList,nil
+	return voteList, nil
 }
 
 func (self *GovDB) ListVotedVerifier(proposalID common.Hash, state xcom.StateDB) ([]discover.NodeID, error) {
@@ -219,7 +208,7 @@ func (self *GovDB) ListVotingProposal(blockHash common.Hash, state xcom.StateDB)
 		log.Error("List voting proposal ID error")
 		return nil, common.NewSysError(err.Error())
 	}
-	return value, common.NewSysError(err.Error())
+	return value, nil
 }
 
 // 获取投票结束的提案
@@ -241,7 +230,7 @@ func (self *GovDB) GetPreActiveProposalID(blockHash common.Hash, state xcom.Stat
 	}
 	if len(value) > 0 {
 		return value[0], nil
-	}else{
+	} else {
 		return common.Hash{}, nil
 	}
 }
@@ -273,7 +262,7 @@ func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, propos
 	pre = append(pre, proposalID)
 
 	//重新写入
-	err = self.snapdb.addProposalByKey(blockHash, KeyVotingProposals(), proposalID)
+	err = self.snapdb.put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -287,9 +276,17 @@ func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, propos
 }
 
 func remove(list []common.Hash, item common.Hash) []common.Hash {
+	if len(list) == 0 {
+		return list
+	}
+
 	for i, id := range list {
 		if id == item {
-			list = append(list[:i], list[i+1:]...)
+			if len(list) > 1 {
+				list = append(list[:i], list[i+1:]...)
+			} else {
+				list = []common.Hash{}
+			}
 		}
 	}
 	return list
@@ -313,7 +310,7 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 	end = append(end, proposalID)
 
 	//重新写入
-	err = self.snapdb.addProposalByKey(blockHash, KeyVotingProposals(), proposalID)
+	err = self.snapdb.put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
+	"time"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -75,6 +76,15 @@ var (
 		EIP155Block:         big.NewInt(2675000),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
+			PeerMsgQueueSize: 	1024,
+			EvidenceDir:	 	"evidenceDir",
+			MaxResetCacheSize:	512,
+			MaxQueuesLimit:		4096,
+			MaxBlockDist:		192,
+			MaxPingLatency:		5000,
+			MaxAvgLatency:		2000,
+			CbftVersion:		byte(0x01),
+			Remaining:			50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -95,6 +105,15 @@ var (
 		EIP155Block:         big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
+			PeerMsgQueueSize: 	1024,
+			EvidenceDir:	 	"evidenceDir",
+			MaxResetCacheSize:	512,
+			MaxQueuesLimit:		4096,
+			MaxBlockDist:		192,
+			MaxPingLatency:		5000,
+			MaxAvgLatency:		2000,
+			CbftVersion:		byte(0x01),
+			Remaining:			50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -105,6 +124,15 @@ var (
 		EIP155Block:         big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialInnerTestnetConsensusNodes),
+			PeerMsgQueueSize: 	1024,
+			EvidenceDir:	 	"evidenceDir",
+			MaxResetCacheSize:	512,
+			MaxQueuesLimit:		4096,
+			MaxBlockDist:		192,
+			MaxPingLatency:		5000,
+			MaxAvgLatency:		2000,
+			CbftVersion:		byte(0x01),
+			Remaining:			50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -115,6 +143,15 @@ var (
 		EIP155Block:         big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialInnerDevnetConsensusNodes),
+			PeerMsgQueueSize: 	1024,
+			EvidenceDir:	 	"evidenceDir",
+			MaxResetCacheSize:	512,
+			MaxQueuesLimit:		4096,
+			MaxBlockDist:		192,
+			MaxPingLatency:		5000,
+			MaxAvgLatency:		2000,
+			CbftVersion:		byte(0x01),
+			Remaining:			50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -153,6 +190,15 @@ var (
 		EIP155Block:         big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialBetanetConsensusNodes),
+			PeerMsgQueueSize: 	1024,
+			EvidenceDir:	 	"evidenceDir",
+			MaxResetCacheSize:	512,
+			MaxQueuesLimit:		4096,
+			MaxBlockDist:		192,
+			MaxPingLatency:		5000,
+			MaxAvgLatency:		2000,
+			CbftVersion:		byte(0x01),
+			Remaining:			50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -189,6 +235,15 @@ var (
 					ExpireBlockNumber: 1536000,
 				},
 			},
+			PeerMsgQueueSize: 	1024,
+			EvidenceDir:	 	"evidenceDir",
+			MaxResetCacheSize:	512,
+			MaxQueuesLimit:		4096,
+			MaxBlockDist:		192,
+			MaxPingLatency:		5000,
+			MaxAvgLatency:		2000,
+			CbftVersion:		byte(0x01),
+			Remaining:			50 * time.Millisecond,
 		},
 	}
 
@@ -255,6 +310,16 @@ type CbftConfig struct {
 	PrivateKey    *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 	ValidatorMode string            `json:"validatorMode,omitempty"`
 	PposConfig    *PposConfig       `json:"pposConfig,omitempty"`
+
+	PeerMsgQueueSize 	uint64
+	EvidenceDir		 	string
+	MaxResetCacheSize	int
+	MaxQueuesLimit		int
+	MaxBlockDist		uint64
+	MaxPingLatency		int64
+	MaxAvgLatency		int64
+	CbftVersion			uint8
+	Remaining			time.Duration
 }
 
 type PposConfig struct {
