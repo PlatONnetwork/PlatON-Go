@@ -35,7 +35,7 @@ func getVerProposal() gov.VersionProposal {
 			"em。。。。",
 			uint64(1000),
 			uint64(10000),
-			discover.NodeID{},
+			discover.NodeID{0x11},
 			gov.TallyResult{},
 		},
 		3200000,
