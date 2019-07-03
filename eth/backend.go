@@ -131,8 +131,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	// Assemble the Ethereum object
 	chainDb, err := CreateDB(ctx, config, "chaindata")
-	//set snapshotdb path
-	snapshotdb.SetDBPath(ctx)
 	if err != nil {
 		return nil, err
 	}
