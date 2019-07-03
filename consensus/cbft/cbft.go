@@ -1857,15 +1857,15 @@ func (cbft *Cbft) OnPrepareVote(peerID discover.NodeID, vote *prepareVote, propa
 	cbft.log.Debug("Receive prepare vote", "peer", peerID, "vote", vote.String())
 	bpCtx := context.WithValue(context.Background(), "peer", peerID)
 	cbft.bp.PrepareBP().ReceiveVote(bpCtx, vote, cbft)
-	err := cbft.verifyValidatorSign(vote.Number, vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:])
-	if err != nil {
-		cbft.bp.PrepareBP().InvalidVote(bpCtx, vote, err, cbft)
-		cbft.log.Error("Verify vote error", "err", err)
-		return err
-	}
 
 	switch cbft.AcceptPrepareVote(vote) {
 	case Accept:
+		err := cbft.verifyValidatorSign(vote.Number, vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:])
+		if err != nil {
+			cbft.bp.PrepareBP().InvalidVote(bpCtx, vote, err, cbft)
+			cbft.log.Error("Verify vote error", "err", err)
+			return err
+		}
 		cbft.log.Debug("Accept block vote", "vote", vote.String())
 		cbft.bp.PrepareBP().AcceptVote(bpCtx, vote, cbft)
 		if err := cbft.evPool.AddPrepareVote(vote); err != nil {

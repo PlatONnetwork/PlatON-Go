@@ -46,7 +46,7 @@ func TestNewViewChange(t *testing.T) {
 	assert.Equal(t, errDuplicationConsensusMsg, err)
 
 	//wait switch next validator
-	time.Sleep(time.Duration(engine.config.Duration+1)*time.Second)
+	time.Sleep(time.Duration(engine.config.Duration+1) * time.Second)
 
 	//last validator's timestamp doesn't match current timestamp
 	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address, nil)
@@ -56,7 +56,7 @@ func TestNewViewChange(t *testing.T) {
 
 	// viewChange really timeout
 	node = nodeIndexNow(validators, engine.startTimeOfEpoch)
-	time.Sleep(time.Duration(3*engine.config.Period)*time.Second)
+	time.Sleep(time.Duration(3*engine.config.Period) * time.Second)
 	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6), 0, gen.Hash(), uint32(node.index), node.address, nil)
 
 	err = engine.OnViewChange(node.nodeID, viewChange)
@@ -75,6 +75,11 @@ func TestNewViewChange(t *testing.T) {
 	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6-engine.config.Duration*1e3), 0, gen.Hash(), uint32(node.index), node.address, nil)
 
 	//newest viewchange is satisfied
+	err = engine.OnViewChange(node.nodeID, viewChange)
+	assert.Equal(t, errTimestamp, err)
+
+	// error timestamp
+	viewChange = makeViewChange(node.privateKey, uint64(time.Now().UnixNano()/1e6+engine.config.Duration*1e3*2), 0, gen.Hash(), uint32(node.index), node.address, nil)
 	err = engine.OnViewChange(node.nodeID, viewChange)
 	assert.Equal(t, errTimestamp, err)
 
@@ -113,7 +118,7 @@ func TestCbft_OnSendViewChange(t *testing.T) {
 	defer os.RemoveAll(path)
 	engine, _, validators := randomCBFT(path, 4)
 
-	time.Sleep(time.Duration(nextRound(validators, engine.startTimeOfEpoch))*time.Millisecond)
+	time.Sleep(time.Duration(nextRound(validators, engine.startTimeOfEpoch)) * time.Millisecond)
 	engine.OnSendViewChange()
 
 	assert.NotNil(t, engine.viewChange)
