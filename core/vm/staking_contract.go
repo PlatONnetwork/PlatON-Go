@@ -8,6 +8,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
@@ -148,7 +149,7 @@ func (stkc *stakingContract) createStaking(typ uint16, benifitAddress common.Add
 	/**
 	init candidate info
 	*/
-	canTmp := &xcom.Candidate{
+	canTmp := &staking.Candidate{
 		NodeId:          nodeId,
 		StakingAddress:  from,
 		BenifitAddress:  benifitAddress,
@@ -156,7 +157,7 @@ func (stkc *stakingContract) createStaking(typ uint16, benifitAddress common.Add
 		StakingTxIndex:  txIndex,
 		Shares:          amount,
 
-		Description: xcom.Description{
+		Description: staking.Description{
 			NodeName:   nodeName,
 			ExternalId: externalId,
 			Website:    website,
@@ -219,7 +220,7 @@ func (stkc *stakingContract) editorCandidate(benifitAddress common.Address, node
 		return nil, nil
 	}
 
-	if !xcom.Is_Valid(canOld.Status) {
+	if !staking.Is_Valid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
@@ -303,7 +304,7 @@ func (stkc *stakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		return nil, nil
 	}
 
-	if !xcom.Is_Valid(canOld.Status) {
+	if !staking.Is_Valid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), IncreaseStakingEvent, string(event), "increaseStaking")
@@ -372,7 +373,7 @@ func (stkc *stakingContract) withdrewCandidate(nodeId discover.NodeID) ([]byte, 
 		return nil, nil
 	}
 
-	if !xcom.Is_Valid(canOld.Status) {
+	if !staking.Is_Valid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent, string(event), "withdrewCandidate")
@@ -449,7 +450,7 @@ func (stkc *stakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		return nil, nil
 	}
 
-	if !xcom.Is_Valid(canOld.Status) {
+	if !staking.Is_Valid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), DelegateEvent, string(event), "delegate")
@@ -473,7 +474,7 @@ func (stkc *stakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 			return nil, nil
 		}
 
-		del = new(xcom.Delegation)
+		del = new(staking.Delegation)
 	}
 
 	err = stkc.plugin.Delegate(state, blockHash, blockNumber, from, del, canOld, typ, amount)

@@ -10,6 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -178,7 +179,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	// storage the ppos k-v Hash
 	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
 	if len(pposHash) != 0 {
-		state.SetState(cvm.UniversalAddr, xcom.GetPPOSHASHKey(), pposHash)
+		state.SetState(cvm.UniversalAddr, staking.GetPPOSHASHKey(), pposHash)
 	}
 
 	return true, nil
