@@ -14,6 +14,11 @@ type GovSnapshotDB struct {
 func NewGovSnapshotDB() GovSnapshotDB {
 	return GovSnapshotDB{snapdb: snapshotdb.Instance()}
 }
+func (self *GovSnapshotDB) reset() {
+	self.snapdb.Clear()
+	self.snapdb.Close()
+	self.snapdb = nil
+}
 
 func (self *GovSnapshotDB) get(blockHash common.Hash, key []byte) ([]byte, error) {
 	return self.snapdb.Get(blockHash, key)

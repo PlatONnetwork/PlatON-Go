@@ -16,6 +16,8 @@ import (
 )
 
 func getGovDB() (*gov.GovDB, *state.StateDB) {
+	gov.GovDBInstance()
+
 	db := ethdb.NewMemDatabase()
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	return gov.GovDBInstance(), statedb
@@ -40,6 +42,7 @@ func TestGovDB_SetGetTxtProposal(t *testing.T) {
 			t.Fatalf("get proposal error,expect %s,get %s", proposal.GetUrl(), proposalGet.GetUrl())
 		}
 	}
+	db.Reset()
 }
 
 func TestGovDB_SetGetVerProposal(t *testing.T) {
@@ -61,6 +64,7 @@ func TestGovDB_SetGetVerProposal(t *testing.T) {
 			t.Fatalf("get proposal error,expect %s,get %s", proposal.GetUrl(), proposalGet.GetUrl())
 		}
 	}
+	db.Reset()
 }
 
 func newblock(snapdb snapshotdb.DB, blockNumber *big.Int) (common.Hash, error) {
@@ -163,6 +167,7 @@ func TestGovDB_SetProposalT2Snapdb(t *testing.T) {
 	if err := commitBlock(snapdb, blockhash); err != nil {
 		t.Fatalf("commit block error..%s", err)
 	}
+	db.Reset()
 }
 
 func TestGovDB_SetVote(t *testing.T) {
@@ -207,6 +212,7 @@ func TestGovDB_SetVote(t *testing.T) {
 			t.Fatalf("get vote result error")
 		}
 	}
+	db.Reset()
 }
 
 func TestGovDB_AddActiveNode(t *testing.T) {
@@ -247,6 +253,7 @@ func TestGovDB_AddActiveNode(t *testing.T) {
 			}
 		}
 	}
+	db.Reset()
 }
 
 func TestGovDB_AddVotedVerifier(t *testing.T) {
@@ -299,7 +306,7 @@ func TestGovDB_AddVotedVerifier(t *testing.T) {
 			}
 		}
 	}
-
+	db.Reset()
 }
 
 func getTxtProposal() gov.TextProposal {

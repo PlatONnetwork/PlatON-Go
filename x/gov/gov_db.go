@@ -22,10 +22,18 @@ type GovDB struct {
 }
 
 func GovDBInstance() *GovDB {
-	dbOnce.Do(func() {
+	//dbOnce.Do(func() {
+	//	govDB = &GovDB{snapdb: NewGovSnapshotDB()}
+	//})
+	if govDB == nil {
 		govDB = &GovDB{snapdb: NewGovSnapshotDB()}
-	})
+	}
 	return govDB
+}
+
+func (self *GovDB) Reset() {
+	govDB = nil
+	self.snapdb.reset()
 }
 
 func tobytes(data interface{}) []byte {
