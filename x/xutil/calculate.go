@@ -100,7 +100,14 @@ func IsSettlementPeriod (blockNumber uint64) bool {
 
 
 func IsYearEnd (blockNumber uint64) bool {
-	size := 12 * 30 * 4 * xcom.ConsensusSize * xcom.EpochSize
+	// 计算结算周期
+	eh := uint64(6)
+	L := uint64(1)
+	u := uint64(25)
+	vn := uint64(10)
+	epoch := eh*3600/(L*u*vn)*xcom.ConsensusSize
+
+	size := uint64(365)*24*3600/(L*epoch)*epoch
 	return blockNumber > 0 && blockNumber % size == 0
 }
 

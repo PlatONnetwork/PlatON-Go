@@ -11,6 +11,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
+	"sync"
 )
 
 var (
@@ -18,6 +19,8 @@ var (
 	errStorageNonce    = errors.New("storage previous nonce failed")
 
 	nonceStorageKey = []byte("nonceStorageKey")
+
+	once = sync.Once{}
 )
 
 type vrfHandler struct {
@@ -28,13 +31,13 @@ type vrfHandler struct {
 
 var vh *vrfHandler
 
-func NewVrfHandler(db snapshotdb.DB, genesisNonce []byte) *vrfHandler {
-	if vh == nil {
+func NewVrfHandler(genesisNonce []byte) *vrfHandler {
+	once.Do(func() {
 		vh = &vrfHandler{
-			db:           db,
+			db:           snapshotdb.Instance(),
 			genesisNonce: genesisNonce,
 		}
-	}
+	})
 	return vh
 }
 

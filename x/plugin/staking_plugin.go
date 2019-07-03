@@ -170,7 +170,7 @@ func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.H
 
 	} else if typ == RestrictingPlanOrigin { //  from account RestrictingPlan von
 
-		_, err := RestrictingPtr.PledgeLockFunds(can.StakingAddress, amount, state)
+		err := RestrictingPtr.PledgeLockFunds(can.StakingAddress, amount, state)
 		if nil != err {
 			log.Error("Failed to CreateCandidate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
 				"err", err)
@@ -238,7 +238,7 @@ func (sk *StakingPlugin) IncreaseStaking (state xcom.StateDB, blockHash common.H
 		can.ReleasedHes = new(big.Int).Add(can.ReleasedHes, amount)
 	} else {
 
-		_, err := RestrictingPtr.PledgeLockFunds(can.StakingAddress, amount, state)
+		err := RestrictingPtr.PledgeLockFunds(can.StakingAddress, amount, state)
 		if nil != err {
 			log.Error("Failed to EditorCandidate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
 				"err", err)
@@ -329,7 +329,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 
 	if can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
 
-		_, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
+		err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 		if nil != err {
 			log.Error("Failed to WithdrewCandidate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 				"err", err)
@@ -426,7 +426,7 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 	}
 
 	if can.RestrictingPlan.Cmp(common.Big0) > 0 {
-		_, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, can.RestrictingPlan, state)
+		err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, can.RestrictingPlan, state)
 		if nil != err {
 			log.Error("Failed to HandleUnCandidateReq on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 				"err", err)
@@ -480,7 +480,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	} else if typ == RestrictingPlanOrigin { //  from account RestrictingPlan von
 
-		_, err := RestrictingPtr.PledgeLockFunds(delAddr, amount, state)
+		err := RestrictingPtr.PledgeLockFunds(delAddr, amount, state)
 		if nil != err {
 			log.Error("Failed to Delegate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
 				"err", err)
@@ -571,7 +571,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			// When remain is greater than or equal to del.RestrictingPlanHes/del.RestrictingPlan
 			if remain.Cmp(aboutRestrictingPlan) >= 0 && aboutRestrictingPlan.Cmp(common.Big0) > 0 {
 
-				_, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, aboutRestrictingPlan, state)
+				err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, aboutRestrictingPlan, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"err", err)
@@ -585,7 +585,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 				// When remain is less than or equal to del.RestrictingPlanHes/del.RestrictingPlan
 
 
-				_, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, remain, state)
+				err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, remain, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"err", err)
@@ -791,7 +791,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 		state.SubBalance(vm.StakingContractAddr, del.Released)
 		state.AddBalance(delAddr, del.Released)
 
-		_, err := RestrictingPtr.ReturnLockFunds(delAddr, del.RestrictingPlan, state)
+		err := RestrictingPtr.ReturnLockFunds(delAddr, del.RestrictingPlan, state)
 		if nil != err {
 			log.Error("Failed to HandleUnDelegateReq on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 				"err", err)
@@ -820,7 +820,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 			if remain.Cmp(del.RestrictingPlan) >= 0 {
 
-				_, err := RestrictingPtr.ReturnLockFunds(delAddr, del.RestrictingPlan, state)
+				err := RestrictingPtr.ReturnLockFunds(delAddr, del.RestrictingPlan, state)
 				if nil != err {
 					log.Error("Failed to HandleUnDelegateReq on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"err", err)
@@ -831,7 +831,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 				del.RestrictingPlan = common.Big0; remain = new(big.Int).Sub(remain, del.RestrictingPlan)
 			}else {
 
-				_, err := RestrictingPtr.ReturnLockFunds(delAddr, remain, state)
+				err := RestrictingPtr.ReturnLockFunds(delAddr, remain, state)
 				if nil != err {
 					log.Error("Failed to HandleUnDelegateReq on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"err", err)
@@ -1791,7 +1791,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			state.AddBalance(vm.RewardManagerPoolAddr, balance)
 
 			if isNotify {
-				_, err := RestrictingPtr.SlashingNotify(can.StakingAddress, balance, state)
+				err := RestrictingPtr.SlashingNotify(can.StakingAddress, balance, state)
 				if nil != err {
 					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "amount",
 						balance, "err", err)
@@ -1805,9 +1805,9 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			state.AddBalance(vm.RewardManagerPoolAddr, remain)
 
 			if isNotify {
-				flag, err := RestrictingPtr.SlashingNotify(can.StakingAddress, remain, state)
+				err := RestrictingPtr.SlashingNotify(can.StakingAddress, remain, state)
 				if nil != err {
-					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "flag", flag, "amount",
+					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "amount",
 						remain, "err", err)
 					return remian, balance, err
 				}
