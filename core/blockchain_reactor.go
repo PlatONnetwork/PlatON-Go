@@ -174,6 +174,13 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 			}
 		}
 	}
+
+	// storage the ppos k-v Hash
+	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
+	if len(pposHash) != 0 {
+		state.SetState(cvm.UniversalAddr, xcom.GetPPOSHASHKey(), pposHash)
+	}
+
 	return true, nil
 }
 
