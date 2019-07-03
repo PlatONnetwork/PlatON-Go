@@ -76,7 +76,7 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 				return RunPlatONPrecompiledContract(restricting, input, contract)
 			case *GovContract:
 				govContract := &GovContract{
-					plugin  : plugin.GovPluginInstance(),
+					Plugin  : plugin.GovPluginInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}

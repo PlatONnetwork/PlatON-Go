@@ -19,9 +19,11 @@ var (
 
 type GovPlugin struct {
 	govDB *gov.GovDB
+	TestMode bool
 }
 
 var govPlugin *GovPlugin
+
 
 func GovPluginInstance() *GovPlugin {
 	govPluginOnce.Do(func() {
@@ -205,7 +207,7 @@ func (govPlugin *GovPlugin) Submit(curBlockNum uint64, from common.Address, prop
 	}
 
 	//check caller and proposer
-	if !govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, curBlockNum) {
+	if !govPlugin.TestMode && !govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, curBlockNum) {
 		return common.NewBizError("[GOV] Submit(): Tx sender is not a verifier.")
 	}
 
@@ -548,8 +550,7 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 // check if the node a verifier, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
 	//verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
-	verifierList, err := stk.GetVerifierListFake(blockHash, blockNumber, QueryStartNotIrr)
-
+	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	if err != nil {
 		log.Error("list verifiers failed", "blockHash", blockHash)
 		return false

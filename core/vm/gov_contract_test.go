@@ -1,22 +1,27 @@
 package vm_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"testing"
 )
 
-
+var snapdb = snapshotdb.Instance()
 var nodeID = discover.MustHexID("bf5317e3a60a55e9c7d09cb20d4381f579c4318eb1031426612959ab5fa7a9d3f3e362b58887e83df8048115501f0b0390b4cdab4548b2728b6633ab692f9ca1")
 
 func buildSubmitTextInput() string {
@@ -29,6 +34,7 @@ func buildSubmitTextInput() string {
 	input = append(input, common.MustRlpEncode("textDesc"))
 	input = append(input, common.MustRlpEncode("textUrl"))
 	input = append(input, common.MustRlpEncode(uint64(1000)))
+
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
 
@@ -47,6 +53,13 @@ func testPlatONPrecompiled(addr common.Address, test vm.PrecompiledTest, t *test
 	gc, _ := p.(*vm.GovContract)
 	gc.Evm = newEvm()
 	gc.Contract = newContract()
+
+	govPlugin := plugin.GovPluginInstance()
+	govPlugin.TestMode = true
+	gc.Plugin = govPlugin
+
+	defer snapdb.Clear()
+
 
 	in := common.Hex2Bytes(test.Input)
 	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("0x12")),nil, new(big.Int), p.RequiredGas(in))
@@ -93,8 +106,12 @@ func newEvm() *vm.EVM {
 	evm := &vm.EVM{
 		StateDB:              state,
 	}
+
+	hash, _ := newblock(snapdb, big.NewInt(1))
+
 	context := vm.Context{
-		BlockNumber: big.NewInt(7),
+		BlockNumber: big.NewInt(1),
+		BlockHash:hash,
 	}
 	evm.Context = context
 	return evm
@@ -104,4 +121,39 @@ func newContract() *vm.Contract {
 	callerAddress := vm.AccountRef(common.HexToAddress("0x12"))
 	contract := vm.NewContract(callerAddress, callerAddress, big.NewInt(1000), uint64(1))
 	return contract
+}
+
+func newblock(snapdb snapshotdb.DB, blockNumber *big.Int) (common.Hash, error) {
+
+	recognizedHash := generateHash("recognizedHash")
+
+	commitHash := recognizedHash
+	if err := snapdb.NewBlock(blockNumber, common.Hash{}, commitHash); err != nil {
+		return common.Hash{}, err
+	}
+
+	if err := snapdb.Put(commitHash, []byte("wu"), []byte("wei")); err != nil {
+		return common.Hash{}, err
+	}
+
+	get, err := snapdb.Get(commitHash, []byte("wu"))
+	if err != nil {
+		return common.Hash{}, err
+	}
+	fmt.Printf("get result :%s", get)
+
+	return commitHash, nil
+}
+
+func generateHash(n string) common.Hash {
+	var buf bytes.Buffer
+	buf.Write([]byte(n))
+	return rlpHash(buf.Bytes())
+}
+
+func rlpHash(x interface{}) (h common.Hash) {
+	hw := sha3.NewKeccak256()
+	rlp.Encode(hw, x)
+	hw.Sum(h[:0])
+	return h
 }

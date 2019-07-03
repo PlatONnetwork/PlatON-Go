@@ -4,6 +4,7 @@ import "github.com/PlatONnetwork/PlatON-Go/common"
 
 // the inner contract addr  table
 var (
+	UniversalAddr = common.HexToAddress("0x1000000000000000000000000000000000000000")
 	RestrictingContractAddr = common.HexToAddress("0x1000000000000000000000000000000000000001")
 	StakingContractAddr = common.HexToAddress("0x1000000000000000000000000000000000000002")
 	RewardManagerPoolAddr = common.HexToAddress("0x1000000000000000000000000000000000000003")
