@@ -256,13 +256,13 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 				// TODO init reactor
 				reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
 				xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce())
-				handlePlugin(reactor, snapshotdb.Instance())
+				handlePlugin(reactor)
 				agency = reactor
 			}
 			// TODO test vrf
 			reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-			xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
-			handlePlugin(reactor, snapshotdb.Instance())
+			xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce())
+			handlePlugin(reactor)
 
 			if err := cbftEngine.Start(eth.blockchain, eth.txPool, agency); err != nil {
 				log.Error("Init cbft consensus engine fail", "error", err)
@@ -591,7 +591,7 @@ func (s *Ethereum) Stop() error {
 }
 
 // TODO RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, db snapshotdb.DB) {
+func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
 	xplugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
