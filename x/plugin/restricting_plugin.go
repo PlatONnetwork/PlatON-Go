@@ -3,18 +3,16 @@ package plugin
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/restriting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 var (
@@ -130,7 +128,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		accNumbers uint32
 	)
 
-	restrictingKey := xcom.GetRestrictingKey(account)
+	restrictingKey := restriting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
 
 	if len(bAccInfo) == 0 {
@@ -141,11 +139,12 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 			amount := plans[i].Amount
 
 			// step1: get account numbers at target epoch
-			releaseEpochKey := xcom.GetReleaseEpochKey(epoch)
+			releaseEpochKey := restriting.GetReleaseEpochKey(epoch)
 			bAccNumbers := state.GetState(vm.RestrictingContractAddr, releaseEpochKey)
 
 			if len(bAccNumbers) == 0 {
 				accNumbers = uint32(1)
+
 			} else {
 				accNumbers = byteutil.BytesToUint32(bAccNumbers) + 1
 			}
@@ -155,11 +154,12 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 			state.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(accNumbers))
 
 			// step3: save account at target index
-			releaseAccountKey := xcom.GetReleaseAccountKey(epoch, index)
+			releaseAccountKey := restriting.GetReleaseAccountKey(epoch, index)
 			state.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
 			// step4: save restricting amount at target epoch
-			releaseAmountKey := xcom.GetReleaseAmountKey(epoch, account)
+			releaseAmountKey := restriting.GetReleaseAmountKey(epoch, account)
+
 			state.SetState(account, releaseAmountKey, amount.Bytes())
 
 			epochList = append(epochList, epoch)
@@ -182,13 +182,13 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 			amount := plans[i].Amount
 
 			// step1: get restricting amount at target epoch
-			releaseAmountKey := xcom.GetReleaseAmountKey(epoch, account)
+			releaseAmountKey := restriting.GetReleaseAmountKey(epoch, account)
 			bAmount := state.GetState(account, releaseAmountKey)
 
 			if len(bAmount) == 0 {
 				log.Trace("release record not exist on curr epoch ", "account", account, "epoch", epoch)
 
-				releaseEpochKey := xcom.GetReleaseEpochKey(epoch)
+				releaseEpochKey := restriting.GetReleaseEpochKey(epoch)
 				bAccNumbers := state.GetState(vm.RestrictingContractAddr, releaseEpochKey)
 
 				if len(bAccNumbers) == 0 {
@@ -202,7 +202,8 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 				state.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(accNumbers))
 
 				// step3: save account at target index
-				releaseAccountKey := xcom.GetReleaseAccountKey(epoch, index)
+				releaseAccountKey := restriting.GetReleaseAccountKey(epoch, index)
+
 				state.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
 				info.releaseList = append(info.releaseList, epoch)
@@ -237,7 +238,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 // the first output returns true when business is success, else return false
 func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
-	restrictingKey := xcom.GetRestrictingKey(account)
+	restrictingKey := restriting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
 
 	if len(bAccInfo) == 0 {
@@ -276,11 +277,10 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	return nil
 }
 
-
 // ReturnLockFunds transfer the money from the staking contract account  to the restricting contract account,
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
-	restrictingKey := xcom.GetRestrictingKey(account)
+	restrictingKey := restriting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
 
 	if len(bAccInfo) == 0 {
@@ -330,7 +330,7 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 // SlashingNotify modify debt of restricting account
 func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
-	restrictingKey := xcom.GetRestrictingKey(account)
+	restrictingKey := restriting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
 
 	if len(bAccInfo) == 0 {
@@ -363,7 +363,7 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 // releaseRestricting does nothing
 func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB) error {
 
-	releaseEpochKey := xcom.GetReleaseEpochKey(epoch)
+	releaseEpochKey := restriting.GetReleaseEpochKey(epoch)
 	bAccNumbers := state.GetState(vm.RestrictingContractAddr, releaseEpochKey)
 
 	if len(bAccNumbers) == 0 {
@@ -381,11 +381,11 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 
 	for index := numbers; index > 0; index-- {
 
-		releaseAccountKey := xcom.GetReleaseAccountKey(epoch, index)
+		releaseAccountKey := restriting.GetReleaseAccountKey(epoch, index)
 		bAccount := state.GetState(vm.RestrictingContractAddr, releaseAccountKey)
 		account := byteutil.BytesToAddress(bAccount)
 
-		restrictingKey := xcom.GetRestrictingKey(account)
+		restrictingKey := restriting.GetRestrictingKey(account)
 		bAccInfo := state.GetState(account, restrictingKey)
 
 		if err := rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
@@ -393,7 +393,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 			return common.NewSysError(err.Error())
 		}
 
-		releaseAmountKey := xcom.GetReleaseAmountKey(epoch, account)
+		releaseAmountKey := restriting.GetReleaseAmountKey(epoch, account)
 		bRelease := state.GetState(account, releaseAmountKey)
 		release = release.SetBytes(bRelease)
 
@@ -449,7 +449,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 			}
 		}
 		// '''
-		// 删除记录
+		// delete record
 		// '''
 	}
 
@@ -459,7 +459,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 
 func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xcom.StateDB) ([]byte, error) {
 
-	restrictingKey := xcom.GetRestrictingKey(account)
+	restrictingKey := restriting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
 
 	if len(bAccInfo) == 0 {
@@ -485,7 +485,7 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	for i := 0; i < len(info.releaseList); i++ {
 		epoch := info.releaseList[i]
 
-		releaseAmountKey = xcom.GetReleaseAmountKey(epoch, account)
+		releaseAmountKey = restriting.GetReleaseAmountKey(epoch, account)
 		bAmount = state.GetState(account, releaseAmountKey)
 		amount = amount.SetBytes(bAmount)
 

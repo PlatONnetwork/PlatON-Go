@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -21,8 +22,7 @@ var (
 	RewardMgrPlugin *rewardMgrPlugin = nil
 )
 
-
-func GetAwardMgrInstance() *rewardMgrPlugin {
+func GetRewardMgrInstance() *rewardMgrPlugin {
 	if RewardMgrPlugin == nil {
 		RewardMgrPlugin = & rewardMgrPlugin {}
 	}
@@ -75,7 +75,7 @@ func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, 
 	return nil
 }
 
-// Comfired does nothing
+// Confirmed does nothing
 func (rmp *rewardMgrPlugin) Confirmed(block *types.Block) error {
 	return nil
 }
@@ -101,15 +101,15 @@ func (rmp *rewardMgrPlugin) increaseIssuance(head *types.Header, state xcom.Stat
 
 	}
 
-	return true, nil
+	return nil
 }
 
-// rewardPledge does nothing
+// rewardStaking does nothing
 func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, state xcom.StateDB) error {
 
 	// stakingPlugin.GetVerifierList()
 
-	var list []*xcom.Candidate
+	var list []*staking.Candidate
 
 	for index := 0; index < len(list); index++ {
 		addr := list[index].BenifitAddress
@@ -138,7 +138,7 @@ func (rmp *rewardMgrPlugin) rewardNewBlock(head *types.Header, reward *big.Int, 
 
 	log.Debug("node", "NodeID", nodeID)
 
-	var can xcom.Candidate // stakingPlugin.GetCandidate(nodeID)
+	var can staking.Candidate // stakingPlugin.GetCandidate(nodeID)
 
 	rewardAddr := can.BenifitAddress
 
@@ -156,24 +156,22 @@ func getLastBalance() *big.Int {
 	return last
 }
 
-// computePeriodAward does nothing
+// calculateExpectReward does nothing
 func (rmp *rewardMgrPlugin) calculateExpectReward(head *types.Header) (*big.Int, *big.Int, error) {
 	var (
 		stakingReward  *big.Int
 		newBlockReward *big.Int
 	)
 
-	balance := getLastBalance()
-
 	expectNewBlocks := int64(365) * 24 * 3600 / 1
 	expectEpochs := int64(365) * 24 * 3600 / int64(xcom.ConsensusSize * xcom.EpochSize)
 
-
+	balance := getLastBalance()
 	totalNewBlockReward := balance.Div(balance, big.NewInt(4))
-	totalstakingReward := balance.Sub(balance, totalNewBlockReward)
+	totalStakingReward := balance.Sub(balance, totalNewBlockReward)
 
 	newBlockReward = totalNewBlockReward.Div(totalNewBlockReward, big.NewInt(expectNewBlocks))
-	stakingReward = totalstakingReward.Div(totalNewBlockReward, big.NewInt(expectEpochs))
+	stakingReward = totalStakingReward.Div(totalNewBlockReward, big.NewInt(expectEpochs))
 
 	return stakingReward, newBlockReward, nil
 }

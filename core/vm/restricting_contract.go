@@ -63,8 +63,8 @@ func (rc *restrictingContract) createRestrictingPlan(account common.Address, pla
 
 	log.Info("Call createRestrictingPlan of restrictingContract", "txHash", txHash.Hex(), "blockNumber", blockNum.Uint64())
 
-	if success, err := rc.plugin.AddRestrictingRecord(sender, account, plans, state); err != nil {
-		if success {
+	if err := rc.plugin.AddRestrictingRecord(sender, account, plans, state); err != nil {
+		if _, ok := err.(common.SysError); ok {
 			res := xcom.Result{Status:false, Data:"", ErrMsg:"create lock repo plan:" + err.Error()}
 			event, _ := json.Marshal(res)
 			rc.badLog(state, blockNum.Uint64(), txHash.Hex(), "4000", string(event), "createRestrictingPlan")

@@ -35,48 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
-const (
-	// resultQueueSize is the size of channel listening to sealing result.
-	resultQueueSize = 10
-
-	// txChanSize is the size of channel listening to NewTxsEvent.
-	// The number is referenced from the size of tx pool.
-	txChanSize = 4096
-
-	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
-	chainHeadChanSize = 10
-
-	// chainSideChanSize is the size of channel listening to ChainSideEvent.
-	chainSideChanSize = 10
-
-	// resubmitAdjustChanSize is the size of resubmitting interval adjustment channel.
-	resubmitAdjustChanSize = 10
-
-	// miningLogAtDepth is the number of confirmations before logging successful mining.
-	miningLogAtDepth = 7
-
-	// minRecommitInterval is the minimal time interval to recreate the mining block with
-	// any newly arrived transactions.
-	minRecommitInterval = 1 * time.Second
-
-	// maxRecommitInterval is the maximum time interval to recreate the mining block with
-	// any newly arrived transactions.
-	maxRecommitInterval = 15 * time.Second
-
-	// intervalAdjustRatio is the impact a single interval adjustment has on sealing work
-	// resubmitting interval.
-	intervalAdjustRatio = 0.1
-
-	// intervalAdjustBias is applied during the new resubmit interval calculation in favor of
-	// increasing upper limit or decreasing lower limit so that the limit can be reachable.
-	intervalAdjustBias = 200 * 1000.0 * 1000.0
-
-	// staleThreshold is the maximum depth of the acceptable stale block.
-	staleThreshold = 7
-
-	defaultCommitRatio = 0.95
-)
-
 // environment is the worker's current environment and holds all of the current state information.
 type environment struct {
 	signer types.Signer
@@ -168,6 +126,7 @@ func (e *commitWorkEnv) getCurrentBaseBlock() *types.Block {
 type worker struct {
 	EmptyBlock string
 	config     *params.ChainConfig
+	miningConfig *core.MiningConfig
 	engine     consensus.Engine
 	eth        Backend
 	chain      *core.BlockChain
@@ -229,10 +188,11 @@ type worker struct {
 	resubmitHook func(time.Duration, time.Duration) // Method to call upon updating resubmitting interval.
 }
 
-func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool,
+func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engine consensus.Engine, eth Backend, mux *event.TypeMux, recommit time.Duration, gasFloor, gasCeil uint64, isLocalBlock func(*types.Block) bool,
 	blockChainCache *core.BlockChainCache) *worker {
 	worker := &worker{
 		config:             config,
+		miningConfig:		miningConfig,
 		engine:             engine,
 		eth:                eth,
 		mux:                mux,
@@ -240,19 +200,19 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 		gasFloor:           gasFloor,
 		gasCeil:            gasCeil,
 		isLocalBlock:       isLocalBlock,
-		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningLogAtDepth),
+		unconfirmed:        newUnconfirmedBlocks(eth.BlockChain(), miningConfig.MiningLogAtDepth),
 		pendingTasks:       make(map[common.Hash]*task),
-		txsCh:              make(chan core.NewTxsEvent, txChanSize),
-		chainHeadCh:        make(chan core.ChainHeadEvent, chainHeadChanSize),
-		chainSideCh:        make(chan core.ChainSideEvent, chainSideChanSize),
+		txsCh:              make(chan core.NewTxsEvent, miningConfig.TxChanSize),
+		chainHeadCh:        make(chan core.ChainHeadEvent, miningConfig.ChainHeadChanSize),
+		chainSideCh:        make(chan core.ChainSideEvent, miningConfig.ChainSideChanSize),
 		newWorkCh:          make(chan *newWorkReq),
 		taskCh:             make(chan *task),
-		resultCh:           make(chan *types.Block, resultQueueSize),
-		prepareResultCh:    make(chan *types.Block, resultQueueSize),
+		resultCh:           make(chan *types.Block, miningConfig.ResultQueueSize),
+		prepareResultCh:    make(chan *types.Block, miningConfig.ResultQueueSize),
 		exitCh:             make(chan struct{}),
 		startCh:            make(chan struct{}, 1),
 		resubmitIntervalCh: make(chan time.Duration),
-		resubmitAdjustCh:   make(chan *intervalAdjust, resubmitAdjustChanSize),
+		resubmitAdjustCh:   make(chan *intervalAdjust, miningConfig.ResubmitAdjustChanSize),
 		blockChainCache:    blockChainCache,
 		commitWorkEnv:      &commitWorkEnv{},
 	}
@@ -266,15 +226,15 @@ func newWorker(config *params.ChainConfig, engine consensus.Engine, eth Backend,
 	if config.Cbft != nil {
 		recommit = time.Duration(config.Cbft.Period) * time.Second
 	}
-	if recommit < minRecommitInterval {
-		log.Warn("Sanitizing miner recommit interval", "provided", recommit, "updated", minRecommitInterval)
-		recommit = minRecommitInterval
+	if recommit < miningConfig.MinRecommitInterval {
+		log.Warn("Sanitizing miner recommit interval", "provided", recommit, "updated", miningConfig.MinRecommitInterval)
+		recommit = miningConfig.MinRecommitInterval
 	}
 
 	worker.EmptyBlock = config.EmptyBlock
 
 	worker.recommit = recommit
-	worker.commitDuration = int64((float64)(recommit.Nanoseconds()/1e6) * defaultCommitRatio)
+	worker.commitDuration = int64((float64)(recommit.Nanoseconds()/1e6) * miningConfig.DefaultCommitRatio)
 	log.Info("commitDuration in Millisecond", "commitDuration", worker.commitDuration)
 
 	go worker.mainLoop()
@@ -394,13 +354,13 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			next float64
 		)
 		if inc {
-			next = prev*(1-intervalAdjustRatio) + intervalAdjustRatio*(target+intervalAdjustBias)
+			next = prev*(1-w.miningConfig.IntervalAdjustRatio) + w.miningConfig.IntervalAdjustRatio*(target+w.miningConfig.IntervalAdjustBias)
 			// Recap if interval is larger than the maximum time interval
-			if next > float64(maxRecommitInterval.Nanoseconds()) {
-				next = float64(maxRecommitInterval.Nanoseconds())
+			if next > float64(w.miningConfig.MaxRecommitInterval.Nanoseconds()) {
+				next = float64(w.miningConfig.MaxRecommitInterval.Nanoseconds())
 			}
 		} else {
-			next = prev*(1-intervalAdjustRatio) + intervalAdjustRatio*(target-intervalAdjustBias)
+			next = prev*(1-w.miningConfig.IntervalAdjustRatio) + w.miningConfig.IntervalAdjustRatio*(target-w.miningConfig.IntervalAdjustBias)
 			// Recap if interval is less than the user specified minimum
 			if next < float64(minRecommit.Nanoseconds()) {
 				next = float64(minRecommit.Nanoseconds())
@@ -412,7 +372,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 	clearPending := func(number uint64) {
 		w.pendingMu.Lock()
 		for h, t := range w.pendingTasks {
-			if t.block.NumberU64()+staleThreshold <= number {
+			if t.block.NumberU64()+w.miningConfig.StaleThreshold <= number {
 				delete(w.pendingTasks, h)
 			}
 		}
@@ -507,9 +467,9 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			timestamp = time.Now().UnixNano() / 1e6
 			if _, ok := w.engine.(consensus.Bft); !ok {
 				// Adjust resubmit interval explicitly by user.
-				if interval < minRecommitInterval {
-					log.Warn("Sanitizing miner recommit interval", "provided", interval, "updated", minRecommitInterval)
-					interval = minRecommitInterval
+				if interval < w.miningConfig.MinRecommitInterval {
+					log.Warn("Sanitizing miner recommit interval", "provided", interval, "updated", w.miningConfig.MinRecommitInterval)
+					interval = w.miningConfig.MinRecommitInterval
 				}
 				log.Info("Miner recommit interval update", "from", minRecommit, "to", interval)
 				minRecommit, recommit = interval, interval
@@ -1226,10 +1186,11 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		log.Error("Failed to create mining context", "err", err)
 		return
 	}
-	// TODO begin()
+	/*// TODO begin()
 	if success, err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err || !success {
 		return
-	}
+	}*/
+
 	if !noempty && "on" == w.EmptyBlock {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
@@ -1336,10 +1297,11 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	}
 	s := w.current.state.Copy()
 
-	// TODO end()
+	/*// TODO end()
 	if success, err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err || !success {
 		return err
-	}
+	}*/
+
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {
 		return err

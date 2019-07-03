@@ -1,4 +1,4 @@
-package xcom
+package restriting
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"

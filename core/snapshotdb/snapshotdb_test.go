@@ -9,7 +9,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"io/ioutil"
-	"log"
 	"math/big"
 	"os"
 	"testing"
@@ -57,7 +56,38 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 	})
 }
 
+func TestSnapshotDB_GetWithNoCommit(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
+	var (
+		arr = [][]kv{generatekv(10), generatekv(10)}
+	)
+	{
+
+		//recognized(unRecognized not in the chain)
+		if err := newBlockRecognizedDirect(big.NewInt(2), generateHash(fmt.Sprint(1)), generateHash(fmt.Sprint(2)), arr[0]); err != nil {
+			t.Error(err)
+		}
+		//unRecognized
+		if err := newBlockUnRecognized(big.NewInt(3), generateHash(fmt.Sprint(2)), arr[1]); err != nil {
+			t.Error(err)
+		}
+	}
+	for _, a := range arr {
+		for _, kv := range a {
+			val, err := dbInstance.Get(common.ZeroHash, kv.key)
+			if err != nil {
+				t.Error(err)
+			}
+			if bytes.Compare(kv.value, val) != 0 {
+				t.Error("must find key")
+			}
+		}
+	}
+}
+
 func TestSnapshotDB_Get(t *testing.T) {
+	os.RemoveAll(dbpath)
 	initDB()
 	defer dbInstance.Clear()
 	var (
@@ -1100,30 +1130,37 @@ func TestCommit(t *testing.T) {
 }
 
 func TestNewBlockOpenTooMany(t *testing.T) {
-	os.RemoveAll(dbpath)
-	initDB()
-	db := dbInstance
-	defer func() {
-		err := db.Close()
-		if err != nil {
-			t.Fatal(err)
-		}
-	}()
-	log.Print("pid:", os.Getpid())
-	for i := 0; i < 1000; i++ {
-		if err := db.NewBlock(big.NewInt(int64(i+1)), generateHash(fmt.Sprint(i)), generateHash(fmt.Sprint(i+1))); err != nil {
-			t.Fatal(err)
-			break
-		}
-		if err := db.Put(generateHash(fmt.Sprint(i+1)), []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
-			t.Fatal(err)
-			break
-		}
-	}
-	for i := 0; i < 1000; i++ {
-		if err := db.Commit(generateHash(fmt.Sprint(i + 1))); err != nil {
-			t.Fatal(err)
-			break
-		}
-	}
+	//os.RemoveAll(dbpath)
+	//initDB()
+	//db := dbInstance
+	//defer func() {
+	//	err := db.Close()
+	//	if err != nil {
+	//		t.Fatal(err)
+	//	}
+	//}()
+	//for i := 0; i < 110; i++ {
+	//	if err := db.NewBlock(big.NewInt(int64(i+1)), generateHash(fmt.Sprint(i)), generateHash(fmt.Sprint(i+1))); err != nil {
+	//		t.Fatal(err)
+	//		break
+	//	}
+	//	if err := db.Put(generateHash(fmt.Sprint(i+1)), []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
+	//		t.Fatal(err)
+	//		break
+	//	}
+	//}
+	//for i := 0; i < 110; i++ {
+	//	if err := db.Commit(generateHash(fmt.Sprint(i + 1))); err != nil {
+	//		t.Fatal(err)
+	//		break
+	//	}
+	//}
+	//for len(dbInstance.committed) > 90 {
+	//
+	//}
+	//b, err := exec.Command("bash", "-c", fmt.Sprintf("lsof -p %d | wc -l", os.Getpid())).Output()
+	//if err != nil {
+	//	t.Error(err)
+	//}
+	//log.Print("open file num:", string(b))
 }

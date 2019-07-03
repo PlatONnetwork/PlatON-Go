@@ -1417,6 +1417,13 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Disabled: /*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
 		TrieNodeLimit:                                               eth.DefaultConfig.TrieCache,
 		TrieTimeLimit:                                               eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit: 	 										 eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit:  											 eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks:  											 eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit: 	 											 eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:	 											 eth.DefaultConfig.TriesInMemory,
+		DefaultTxsCacheSize: 										 eth.DefaultConfig.DefaultTxsCacheSize,
+		DefaultBroadcastInterval: 									 eth.DefaultConfig.DefaultBroadcastInterval,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
@@ -1451,6 +1458,13 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 		Disabled:      ctx.GlobalString(GCModeFlag.Name) == "archive",
 		TrieNodeLimit: eth.DefaultConfig.TrieCache,
 		TrieTimeLimit: eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit: eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit:eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks:eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit: 	eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:	eth.DefaultConfig.TriesInMemory,
+		DefaultTxsCacheSize: eth.DefaultConfig.DefaultTxsCacheSize,
+		DefaultBroadcastInterval: eth.DefaultConfig.DefaultBroadcastInterval,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100

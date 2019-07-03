@@ -12,6 +12,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	gerr "github.com/go-errors/errors"
 	"reflect"
+	"runtime"
 )
 
 type BasePlugin interface {
@@ -42,10 +43,20 @@ func  Verify_tx_data(input []byte, command map[uint16]interface{} ) (fn interfac
 		return nil, nil, DecodeTxDataErr
 	}
 
+
+	//num := common.BytesToUint64(args[0])
+	//
+	//str := string(args[1])
+	//fmt.Println("this is ", num, str)
+
+	fmt.Println("fnType is", byteutil.BytesToUint16(args[0]))
+
 	if fn, ok := command[byteutil.BytesToUint16(args[0])]; !ok {
 			return nil, nil, FuncNotExistErr
 	}else {
 
+		funcName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
+		fmt.Println("The FuncName is", funcName)
 		// the func params type list
 		paramList := reflect.TypeOf(fn)
 		// the func params len

@@ -10,6 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -174,6 +175,13 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 			}
 		}
 	}
+
+	// storage the ppos k-v Hash
+	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
+	if len(pposHash) != 0 {
+		state.SetState(cvm.UniversalAddr, staking.GetPPOSHASHKey(), pposHash)
+	}
+
 	return true, nil
 }
 
@@ -209,15 +217,15 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 }
 
 func (bcr *BlockChainReactor) GetLastNumber(blockNumber uint64) uint64 {
-	return plugin.StakingInstance(nil).GetLastNumber(blockNumber)
+	return plugin.StakingInstance().GetLastNumber(blockNumber)
 }
 
 func (brc *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
-	return plugin.StakingInstance(nil).GetValidator(blockNumber)
+	return plugin.StakingInstance().GetValidator(blockNumber)
 }
 
 func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
-	return plugin.StakingInstance(nil).IsCandidateNode(nodeID)
+	return plugin.StakingInstance().IsCandidateNode(nodeID)
 }
 
 //func isWorker(extra []byte) bool {

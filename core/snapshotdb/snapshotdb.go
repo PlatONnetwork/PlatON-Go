@@ -22,6 +22,17 @@ const (
 )
 
 //DB the main snapshotdb interface
+//  example
+//  new a recognized blockData(sync from other peer)
+//  dbInstance.NewBlock(blockNumber, parentHash, hash)
+//  dbInstance.Put(hash, kv.key, kv.value)
+//  dbInstance.Commit(hash)
+//
+//  new a unrecognized blockData(a block produce by self)
+//  dbInstance.NewBlock(blockNumber, parentHash, common.ZeroHash)
+//  dbInstance.Put(hash, kv.key, kv.value)
+//  dbInstance.Flush(hash common.Hash, blockNumber *big.Int) error
+//  dbInstance.Commit(hash)
 type DB interface {
 	Put(hash common.Hash, key, value []byte) error
 	NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error
@@ -110,6 +121,7 @@ func initDB() error {
 		return err
 	}
 	if len(fds) > 0 {
+		logger.Info("begin recover")
 		db := new(snapshotDB)
 		if err := db.recover(s); err != nil {
 			logger.Error(fmt.Sprint("recover db fail:", err))
@@ -117,6 +129,7 @@ func initDB() error {
 		}
 		dbInstance = db
 	} else {
+		logger.Info("begin newDB")
 		db, err := newDB(s)
 		if err != nil {
 			logger.Error(fmt.Sprint("new db fail:", err))
@@ -263,7 +276,7 @@ func (s *snapshotDB) Compaction() error {
 func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error {
 	if hash == common.ZeroHash {
 		if s.unRecognized != nil && s.unRecognized.readOnly {
-			return errors.New("[SnapshotDB]can't  new unRecognized block,it's readonly now")
+			return errors.New("[SnapshotDB]can't  new unRecognized block,it's have value,must flush it before NewBlock ")
 		}
 	}
 	block := new(blockData)
@@ -394,6 +407,9 @@ func (s *snapshotDB) Has(hash common.Hash, key []byte) (bool, error) {
 
 // Flush move unRecognized to Recognized data
 func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
+	if s.unRecognized == nil {
+		return errors.New("[snapshotdb]the unRecognized is nil, can't flush")
+	}
 	if blocknumber.Int64() != s.unRecognized.Number.Int64() {
 		return errors.New("[snapshotdb]blocknumber not compare the unRecognized blocknumber")
 	}
@@ -436,7 +452,7 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	}
 	if s.current.LastHash != common.ZeroHash {
 		if block.ParentHash != s.current.LastHash {
-			return fmt.Errorf("[snapshotdb]the commit block ParentHash %v not eq LastHash of commit hash %v ", block.ParentHash, s.current.LastHash)
+			return fmt.Errorf("[snapshotdb]the commit block ParentHash %v not eq LastHash of commit hash %v ", block.ParentHash.String(), s.current.LastHash.String())
 		}
 	}
 	block.readOnly = true
