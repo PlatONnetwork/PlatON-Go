@@ -51,12 +51,8 @@ const (
 	// The number is referenced from the size of tx pool.
 	txChanSize = 4096
 
-	defaultTxsCacheSize      = 20
-	defaultBroadcastInterval = 100 * time.Millisecond
-)
-
-var (
-	daoChallengeTimeout = 15 * time.Second // Time allowance for a node to reply to the DAO handshake challenge
+//	defaultTxsCacheSize      = 20
+//	defaultBroadcastInterval = 100 * time.Millisecond
 )
 
 // errIncompatibleConfig is returned if the requested protocols and configs are
@@ -800,17 +796,35 @@ func (pm *ProtocolManager) minedBroadcastLoop() {
 }
 
 func (pm *ProtocolManager) txBroadcastLoop() {
-	timer := time.NewTimer(defaultBroadcastInterval)
+	DefaultTxsCacheSize := 20
+	DefaultBroadcastInterval := 100 * time.Millisecond
+	if pm.blockchain != nil {
+		if 0 >= pm.blockchain.CacheConfig().DefaultTxsCacheSize {
+			pm.blockchain.CacheConfig().DefaultTxsCacheSize = DefaultTxsCacheSize
+		} else {
+			DefaultTxsCacheSize = pm.blockchain.CacheConfig().DefaultTxsCacheSize
+		}
+	}
+
+	if pm.blockchain != nil {
+		if 0 >= pm.blockchain.CacheConfig().DefaultBroadcastInterval {
+			pm.blockchain.CacheConfig().DefaultBroadcastInterval = DefaultBroadcastInterval
+		} else {
+			DefaultBroadcastInterval = pm.blockchain.CacheConfig().DefaultBroadcastInterval
+		}
+	}
+
+	timer := time.NewTimer(DefaultBroadcastInterval)
 
 	for {
 		select {
 		case event := <-pm.txsCh:
 			pm.txsCache = append(pm.txsCache, event.Txs...)
-			if len(pm.txsCache) >= defaultTxsCacheSize {
+			if len(pm.txsCache) >= DefaultTxsCacheSize {
 				log.Trace("broadcast txs", "count", len(pm.txsCache))
 				pm.BroadcastTxs(pm.txsCache)
 				pm.txsCache = make([]*types.Transaction, 0)
-				timer.Reset(defaultBroadcastInterval)
+				timer.Reset(DefaultBroadcastInterval)
 			}
 		case <-timer.C:
 			if len(pm.txsCache) > 0 {
@@ -818,7 +832,7 @@ func (pm *ProtocolManager) txBroadcastLoop() {
 				pm.BroadcastTxs(pm.txsCache)
 				pm.txsCache = make([]*types.Transaction, 0)
 			}
-			timer.Reset(defaultBroadcastInterval)
+			timer.Reset(DefaultBroadcastInterval)
 
 			// Err() channel will be closed when unsubscribing.
 		case <-pm.txsSub.Err():
