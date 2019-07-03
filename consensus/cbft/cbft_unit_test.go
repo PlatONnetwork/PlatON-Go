@@ -82,9 +82,11 @@ func TestCbft_OnViewChange(t *testing.T) {
 	defer engine.Close()
 	node := nodeIndexNow(validators, engine.startTimeOfEpoch)
 	testCases := []*viewChange{
-		// 时间戳大于窗口期的结束时间
+		// The timestamp is greater than the end time of the window period
 		makeViewChange(node.privateKey, uint64(time.Now().Unix()+20000), 0, engine.blockChain.Genesis().Hash(), uint32(node.index), node.address, nil),
-		// 块高为空
+		// The timestamp is less than the start time of the window period
+		makeViewChange(node.privateKey, uint64(time.Now().Unix()-20000), 0, engine.blockChain.Genesis().Hash(), uint32(node.index), node.address, nil),
+		// Block height is empty
 		func() *viewChange {
 			p := &viewChange{
 				Timestamp:            uint64(time.Now().Unix()),
@@ -98,7 +100,7 @@ func TestCbft_OnViewChange(t *testing.T) {
 			p.Signature.SetBytes(sign)
 			return p
 		}(),
-		// 区块哈希为空
+		// Block hash is empty
 		func() *viewChange {
 			p := &viewChange{
 				Timestamp:            uint64(time.Now().Unix()),
@@ -112,7 +114,7 @@ func TestCbft_OnViewChange(t *testing.T) {
 			p.Signature.SetBytes(sign)
 			return p
 		}(),
-		// 提议人为空
+		// The proposed person is empty
 		func() *viewChange {
 			p := &viewChange{
 				Timestamp:            uint64(time.Now().Unix()),
@@ -126,7 +128,7 @@ func TestCbft_OnViewChange(t *testing.T) {
 			p.Signature.SetBytes(sign)
 			return p
 		}(),
-		// 提议人非窗口期节点
+		// Proposed non-window node
 		func() *viewChange {
 			nodeIndex := notProposalNodeIndex(4, uint32(node.index))
 			p := &viewChange{
@@ -142,7 +144,7 @@ func TestCbft_OnViewChange(t *testing.T) {
 			p.Signature.SetBytes(sign)
 			return p
 		}(),
-		// 提议与签名错误
+		// Proposal and signature error
 		func() *viewChange {
 			p := &viewChange{
 				Timestamp:            uint64(time.Now().Unix()),
@@ -158,7 +160,7 @@ func TestCbft_OnViewChange(t *testing.T) {
 			p.Signature.SetBytes(sign)
 			return p
 		}(),
-		// 消息未签名
+		// Message not signed
 		func() *viewChange {
 			p := &viewChange{
 				Timestamp:            uint64(time.Now().Unix()),
@@ -173,9 +175,7 @@ func TestCbft_OnViewChange(t *testing.T) {
 	}
 	for i, view := range testCases {
 		err := engine.OnViewChange(node.nodeID, view)
-		if err == nil {
-			t.Errorf("case:%d fail\n", i)
-		}
+		assert.NotNil(t, err, "case:%d is fail", i)
 	}
 }
 
@@ -222,5 +222,5 @@ func TestCbft_ViewChangeVote(t *testing.T) {
 		view.BaseBlockHash, view.ProposalIndex, view.ProposalAddr, nextNode, validators.validator(nextNode).address)
 	err = engines[viewNode.index].OnViewChangeVote(validators.validator(nextNode).nodeID, viewVote)
 	assert.Nil(t, err)
-	assert.Equal(t,1,len(engines[viewNode.index].viewChangeVotes))
+	assert.Equal(t, 1, len(engines[viewNode.index].viewChangeVotes))
 }
