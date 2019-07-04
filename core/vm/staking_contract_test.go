@@ -10,6 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"testing"
@@ -190,7 +191,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 		Evm:	  newEvm(),
 	}
 
-	//var govPlugin *plugin.GovPlugin
+	/*//var govPlugin *plugin.GovPlugin
 
 	plugin.GovPluginInstance()
 
@@ -247,20 +248,20 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 
 	sndb.Flush(blockHash, blockNumer)
 	sndb.Commit(blockHash)
-	sndb.Compaction()
+	sndb.Compaction()*/
 
 
 	// get candidate Info
-	params = make([][]byte, 0)
+	params := make([][]byte, 0)
 
-	fnType, _ = rlp.EncodeToBytes(uint16(1105))
-	nodeId, _ = rlp.EncodeToBytes(nodeIdArr[0])
+	fnType, _ := rlp.EncodeToBytes(uint16(1105))
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
 
 	params = append(params, fnType)
 	params = append(params, nodeId)
 
-	buf = new(bytes.Buffer)
-	err = rlp.Encode(buf, params)
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
 	if err != nil {
 		fmt.Println(err)
 		t.Errorf("createStaking encode rlp data fail")
@@ -268,7 +269,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 		fmt.Println("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-	res, err = stakingContract.Run(buf.Bytes())
+	res, err := stakingContract.Run(buf.Bytes())
 	if nil != err {
 		t.Error(err)
 	}else {
@@ -278,7 +279,11 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 		if nil != err {
 			fmt.Println(err)
 		}
-		rbyte, _ := json.Marshal(r)
+		can, ok := r.Data.(*staking.Candidate)
+		if !ok {
+
+		}
+		rbyte, _ := json.Marshal(can)
 
 		t.Log(string(rbyte))
 	}

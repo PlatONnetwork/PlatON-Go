@@ -961,7 +961,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 
 	queue := make(staking.ValidatorExQueue, len(verifierList.Arr))
 
-	for _, v := range verifierList.Arr {
+	for i, v := range verifierList.Arr {
 
 		var can *staking.Candidate
 		if !isCommit {
@@ -1000,7 +1000,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			// [0, N]
 			ValidatorTerm: v.ValidatorTerm,
 		}
-		queue = append(queue, valEx)
+		queue[i] = valEx
 	}
 
 	return queue, nil
@@ -1072,8 +1072,8 @@ func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber u
 
 	queue := make([]discover.NodeID, len(verifierList.Arr))
 
-	for _, v := range verifierList.Arr {
-		queue = append(queue, v.NodeId)
+	for i, v := range verifierList.Arr {
+		queue[i] = v.NodeId
 	}
 	return queue, nil
 }
@@ -1104,7 +1104,7 @@ func (sk *StakingPlugin) GetCandidateONEpoch(blockHash common.Hash, blockNumber 
 
 	queue := make(staking.CandidateQueue, len(verifierList.Arr))
 
-	for _, v := range verifierList.Arr {
+	for i, v := range verifierList.Arr {
 
 		var can *staking.Candidate
 		if !isCommit {
@@ -1120,7 +1120,7 @@ func (sk *StakingPlugin) GetCandidateONEpoch(blockHash common.Hash, blockNumber 
 			}
 			can = c
 		}
-		queue = append(queue, can)
+		queue[i] = can
 	}
 
 	return queue, nil
@@ -1209,7 +1209,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 
 	queue := make(staking.ValidatorExQueue, len(validatorArr.Arr))
 
-	for _, v := range validatorArr.Arr {
+	for i, v := range validatorArr.Arr {
 
 		var can *staking.Candidate
 
@@ -1242,7 +1242,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			Description: can.Description,
 			ValidatorTerm: v.ValidatorTerm,
 		}
-		queue = append(queue, valEx)
+		queue[i] = valEx
 	}
 	return queue, nil
 }
@@ -1320,7 +1320,7 @@ func (sk *StakingPlugin) GetCandidateONRound (blockHash common.Hash, blockNumber
 
 	queue := make(staking.CandidateQueue, len(validatorArr.Arr))
 
-	for _, v := range validatorArr.Arr {
+	for i, v := range validatorArr.Arr {
 
 		var can *staking.Candidate
 
@@ -1337,7 +1337,7 @@ func (sk *StakingPlugin) GetCandidateONRound (blockHash common.Hash, blockNumber
 			}
 			can = c
 		}
-		queue = append(queue, can)
+		queue[i] = can
 	}
 	return queue, nil
 }
@@ -1358,8 +1358,8 @@ func (sk *StakingPlugin) ListCurrentValidatorID(blockHash common.Hash, blockNumb
 
 	queue := make([]discover.NodeID, len(arr.Arr))
 
-	for _, candidate := range arr.Arr {
-		queue = append(queue, candidate.NodeId)
+	for i, candidate := range arr.Arr {
+		queue[i] = candidate.NodeId
 	}
 	return queue, err
 }
