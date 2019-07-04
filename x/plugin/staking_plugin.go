@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -26,18 +25,15 @@ type StakingPlugin struct {
 var stk *StakingPlugin
 
 var (
-	AccountVonNotEnough        = errors.New("The von of account is not enough")
-	DelegateVonNotEnough       = errors.New("The von of delegate is not enough")
-	WithdrewDelegateVonCalcErr = errors.New("withdrew delegate von calculate err")
-	ParamsErr                  = errors.New("the fn params err")
-	ProcessVersionErr          = errors.New("The version of the relates node's process is too low")
-	BlockNumberDisordered 	   = errors.New("The blockNumber is disordered")
-
-	VonAmountNotRight		   = errors.New("The amount of von is not right")
-
-	CandidateNotExist 		   = errors.New("The candidate is not exist")
-
-	ValidatorNotExist 		   = errors.New("The validator is not exist")
+	AccountVonNotEnough        = common.NewBizError("The von of account is not enough")
+	DelegateVonNotEnough       = common.NewBizError("The von of delegate is not enough")
+	WithdrewDelegateVonCalcErr = common.NewBizError("withdrew delegate von calculate err")
+	ParamsErr                  = common.NewBizError("the fn params err")
+	ProcessVersionErr          = common.NewBizError("The version of the relates node's process is too low")
+	BlockNumberDisordered 	   = common.NewBizError("The blockNumber is disordered")
+	VonAmountNotRight		   = common.NewBizError("The amount of von is not right")
+	CandidateNotExist 		   = common.NewBizError("The candidate is not exist")
+	ValidatorNotExist 		   = common.NewBizError("The validator is not exist")
 )
 
 const (
@@ -139,20 +135,17 @@ func (sk *StakingPlugin) GetCandidateInfoByIrr (addr common.Address) (*staking.C
 func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *staking.Candidate) error {
 
-	/*// Query current active version
+	// Query current active version
 	curr_version := govPlugin.GetActiveVersion(state)
 
+	var isDeclareVersion bool
 
 	if processVersion < curr_version {
 		return ProcessVersionErr
 	} else if processVersion > curr_version {
-		// Declare new Version
-		err := govPlugin.DeclareVersion(can.StakingAddress, can.NodeId, processVersion, blockHash, blockNumber.Uint64(), state)
-		if nil != err {
-			return err
-		}
+		isDeclareVersion = true
 	}
-	can.ProcessVersion = curr_version*/
+	can.ProcessVersion = curr_version
 
 	// from account free von
 	if typ == FreeOrigin {
@@ -162,7 +155,7 @@ func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.H
 			log.Error("Failed to CreateCandidate on stakingPlugin: the account free von is not Enough",
 				"blockNumber", blockNumber.Uint64(),
 				"blockHash", blockHash.Hex(), "originVon", origin, "stakingVon", amount)
-			return common.NewBizError(AccountVonNotEnough.Error())
+			return AccountVonNotEnough
 		}
 		state.SubBalance(can.StakingAddress, amount)
 		state.AddBalance(vm.StakingContractAddr, amount)
@@ -191,6 +184,14 @@ func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.H
 		log.Error("Failed to CreateCandidate on stakingPlugin: Put Can power 2 db failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 		return err
+	}
+
+	if isDeclareVersion {
+		// Declare new Version
+		err := govPlugin.DeclareVersion(can.StakingAddress, can.NodeId, processVersion, blockHash, blockNumber.Uint64(), state)
+		if nil != err {
+			log.Error("Call CreateCandidate with govplugin DelareVersion failed", "err", err)
+		}
 	}
 	return nil
 }
@@ -230,7 +231,7 @@ func (sk *StakingPlugin) IncreaseStaking (state xcom.StateDB, blockHash common.H
 			log.Error("Failed to EditorCandidate on stakingPlugin: the account free von is not Enough",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "account", can.StakingAddress.Hex(),
 				"originVon", origin, "stakingVon", can.ReleasedHes)
-			return common.NewBizError(AccountVonNotEnough.Error())
+			return AccountVonNotEnough
 		}
 		state.SubBalance(can.StakingAddress, amount)
 		state.AddBalance(vm.StakingContractAddr, amount)
@@ -471,7 +472,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 			log.Error("Failed to Delegate on stakingPlugin: the account free von is not Enough",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "originVon", origin,
 				"stakingVon", can.ReleasedHes)
-			return common.NewBizError(AccountVonNotEnough.Error())
+			return AccountVonNotEnough
 		}
 		state.SubBalance(delAddr, amount)
 		state.AddBalance(vm.StakingContractAddr, amount)
@@ -637,7 +638,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		if remain.Cmp(common.Big0) != 0 {
 			log.Error("Failed to WithdrewDelegate on stakingPlugin: sub delegate von calculation error",
 				"blockHash", blockHash.Hex(), "nodeId", nodeId.String())
-			return common.NewBizError(WithdrewDelegateVonCalcErr.Error())
+			return WithdrewDelegateVonCalcErr
 		}
 
 		if total.Cmp(amount) == 0 {
@@ -845,7 +846,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 		if remain.Cmp(common.Big0) > 0 {
 			log.Error("Failed to call handleUnDelegate", "blockHash", blockHash.Hex(), "delAddr", delAddr.Hex(),
 				"nodeId", nodeId.String(), "stakeBlockNumber", num)
-			return common.NewBizError(VonAmountNotRight.Error())
+			return VonAmountNotRight
 		}
 
 		del.Reduction = new(big.Int).Sub(del.Reduction, amount)
@@ -923,8 +924,8 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	}
 
 	if len(queue) == 0 {
-		panic(fmt.Errorf("Failed to ElectNextVerifierList: Select zero validators~"))
-		//return true, fmt.Errorf("Failed to ElectNextVerifierList: Select zero validators~")
+		panic(common.BizErrorf("Failed to ElectNextVerifierList: Select zero validators~"))
+		//return true, common.BizErrorf("Failed to ElectNextVerifierList: Select zero validators~")
 	}
 
 	new_verifierArr.Arr = queue
@@ -955,7 +956,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 
 
 	if !isCommit && (blockNumber < verifierList.Start || blockNumber > verifierList.End) {
-		return nil, fmt.Errorf("GetVerifierList failed: %s, start: %d, end: %d, currentNumer: %d",
+		return nil, common.BizErrorf("GetVerifierList failed: %s, start: %d, end: %d, currentNumer: %d",
 			BlockNumberDisordered.Error(), verifierList.Start, verifierList.End, blockNumber)
 	}
 
@@ -1066,7 +1067,7 @@ func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber u
 	}
 
 	if blockNumber < verifierList.Start || blockNumber > verifierList.End  {
-		return nil, fmt.Errorf("ListVerifierNodeID failed: %s, start: %d, end: %d, currentNumer: %d",
+		return nil, common.BizErrorf("ListVerifierNodeID failed: %s, start: %d, end: %d, currentNumer: %d",
 			BlockNumberDisordered.Error(), verifierList.Start, verifierList.End, blockNumber)
 	}
 
@@ -1106,7 +1107,7 @@ func (sk *StakingPlugin) GetCandidateONEpoch(blockHash common.Hash, blockNumber 
 
 
 	if !isCommit && (blockNumber < verifierList.Start || blockNumber > verifierList.End) {
-		return nil, fmt.Errorf("GetVerifierList failed: %s, start: %d, end: %d, currentNumer: %d",
+		return nil, common.BizErrorf("GetVerifierList failed: %s, start: %d, end: %d, currentNumer: %d",
 			BlockNumberDisordered.Error(), verifierList.Start, verifierList.End, blockNumber)
 	}
 
@@ -1157,7 +1158,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			}
 
 			if blockNumber < arr.Start || blockNumber > arr.End {
-				return nil, fmt.Errorf("Get Previous ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
+				return nil, common.BizErrorf("Get Previous ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
 					BlockNumberDisordered.Error(), arr.Start, arr.End, blockNumber)
 			}
 			validatorArr = arr
@@ -1178,7 +1179,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			}
 
 			if blockNumber < arr.Start || blockNumber > arr.End {
-				return nil, fmt.Errorf("Get Current ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
+				return nil, common.BizErrorf("Get Current ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
 					BlockNumberDisordered.Error(), arr.Start, arr.End, blockNumber)
 			}
 			validatorArr = arr
@@ -1198,7 +1199,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			}
 
 			if blockNumber < arr.Start || blockNumber > arr.End {
-				return nil, fmt.Errorf("Get Next ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
+				return nil, common.BizErrorf("Get Next ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
 					BlockNumberDisordered.Error(), arr.Start, arr.End, blockNumber)
 			}
 			validatorArr = arr
@@ -1212,7 +1213,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 	default:
 		log.Error("Failed to call GetValidatorList", "err", ParamsErr, "flag", flag)
 
-		return nil, fmt.Errorf(ParamsErr.Error() + ", flag:=" + fmt.Sprint(flag))
+		return nil, common.NewBizError(ParamsErr.Error() + ", flag:=" + fmt.Sprint(flag))
 	}
 
 	queue := make(staking.ValidatorExQueue, len(validatorArr.Arr))
@@ -1268,7 +1269,7 @@ func (sk *StakingPlugin) GetCandidateONRound (blockHash common.Hash, blockNumber
 			}
 
 			if blockNumber < arr.Start || blockNumber > arr.End {
-				return nil, fmt.Errorf("Get Previous ValidatorList on GetCandidateONRound failed: %s, start: %d, end: %d, currentNumer: %d",
+				return nil, common.BizErrorf("Get Previous ValidatorList on GetCandidateONRound failed: %s, start: %d, end: %d, currentNumer: %d",
 					BlockNumberDisordered.Error(), arr.Start, arr.End, blockNumber)
 			}
 			validatorArr = arr
@@ -1289,7 +1290,7 @@ func (sk *StakingPlugin) GetCandidateONRound (blockHash common.Hash, blockNumber
 			}
 
 			if blockNumber < arr.Start || blockNumber > arr.End {
-				return nil, fmt.Errorf("Get Current ValidatorList on GetCandidateONRound failed: %s, start: %d, end: %d, currentNumer: %d",
+				return nil, common.BizErrorf("Get Current ValidatorList on GetCandidateONRound failed: %s, start: %d, end: %d, currentNumer: %d",
 					BlockNumberDisordered.Error(), arr.Start, arr.End, blockNumber)
 			}
 			validatorArr = arr
@@ -1309,7 +1310,7 @@ func (sk *StakingPlugin) GetCandidateONRound (blockHash common.Hash, blockNumber
 			}
 
 			if blockNumber < arr.Start || blockNumber > arr.End {
-				return nil, fmt.Errorf("Get Next ValidatorList on GetCandidateONRound failed: %s, start: %d, end: %d, currentNumer: %d",
+				return nil, common.BizErrorf("Get Next ValidatorList on GetCandidateONRound failed: %s, start: %d, end: %d, currentNumer: %d",
 					BlockNumberDisordered.Error(), arr.Start, arr.End, blockNumber)
 			}
 			validatorArr = arr
@@ -1323,7 +1324,7 @@ func (sk *StakingPlugin) GetCandidateONRound (blockHash common.Hash, blockNumber
 	default:
 		log.Error("Failed to call GetCandidateONRound", "err", ParamsErr, "flag", flag)
 
-		return nil, fmt.Errorf(ParamsErr.Error() + ", flag:=" + fmt.Sprint(flag))
+		return nil, common.NewBizError(ParamsErr.Error() + ", flag:=" + fmt.Sprint(flag))
 	}
 
 	queue := make(staking.CandidateQueue, len(validatorArr.Arr))
@@ -1360,7 +1361,7 @@ func (sk *StakingPlugin) ListCurrentValidatorID(blockHash common.Hash, blockNumb
 	}
 
 	if blockNumber < arr.Start || blockNumber > arr.End {
-		return nil, fmt.Errorf("Get Current ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
+		return nil, common.BizErrorf("Get Current ValidatorList failed: %s, start: %d, end: %d, currentNumer: %d",
 			BlockNumberDisordered.Error(), arr.Start, arr.End, blockNumber)
 	}
 
@@ -1576,7 +1577,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) err
 	if nil != err {
 		log.Error("Failed to Election: No found the current round validators", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex())
-		return common.NewBizError(ValidatorNotExist.Error())
+		return ValidatorNotExist
 	}
 
 	if blockNumber != (curr.End - xcom.ElectionDistance) {
@@ -1723,7 +1724,7 @@ func (sk *StakingPlugin) Switch(blockHash common.Hash, blockNumber uint64) error
 	}
 
 	if len(next.Arr) == 0 {
-		panic(fmt.Errorf("Failed to Switch: next round validators is empty~"))
+		panic(common.BizErrorf("Failed to Switch: next round validators is empty~"))
 	}
 
 	if err := sk.db.SetPreValidatorList(blockHash, current); nil != err {
@@ -1756,7 +1757,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 		log.Error("Call SlashCandidates: the can is empty", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String())
-		return common.NewBizError(CandidateNotExist.Error())
+		return CandidateNotExist
 	}
 
 	epoch := xutil.CalculateEpoch(blockNumber)
@@ -2039,7 +2040,7 @@ func (sk *StakingPlugin) GetValidator(blockNumber uint64) (*cbfttypes.Validators
 		return build_CBFT_Validators(next.Arr), nil
 	}
 
-	return nil, fmt.Errorf("No Found Validators by blockNumber: %d", blockNumber)
+	return nil, common.BizErrorf("No Found Validators by blockNumber: %d", blockNumber)
 }
 
 

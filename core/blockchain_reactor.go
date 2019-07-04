@@ -67,13 +67,13 @@ func (brc *BlockChainReactor) loop() {
 			}
 			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
 			if !ok {
-				log.Error("receive bft result type error")
+				log.Error("BlockChainReactor receive bft result type error")
 				continue
 			}
 			block := cbftResult.Block
 			// Short circuit when receiving empty result.
 			if block == nil {
-				log.Error("Cbft result error, block is nil")
+				log.Error("BlockChainReactor receive Cbft result error, block is nil")
 				continue
 			}
 
@@ -90,7 +90,7 @@ func (brc *BlockChainReactor) loop() {
 			// TODO Slashing
 			if plugin, ok := brc.basePluginMap[xcom.SlashingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
-					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
+					log.Error("Failed to call Slashing Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
 			}
 

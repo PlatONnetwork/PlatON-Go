@@ -71,6 +71,41 @@ type Result struct {
 	ErrMsg string
 }
 
+
+
+
+/*// EncodeRLP implements rlp.Encoder
+func (r *Result) EncodeRLP(w io.Writer) error {
+	return rlp.Encode(w, Result{
+		Status:    	r.Status,
+		Data:       r.Data,
+		ErrMsg: 	r.ErrMsg,
+	})
+}
+
+
+// DecodeRLP implements rlp.Decoder
+func (r *Result) DecodeRLP(s *rlp.Stream) error {
+	var rs Result
+	if err := s.Decode(&rs); err != nil {
+		return err
+	}
+
+	ty := reflect.ValueOf(r.Data).Elem()
+
+	if dByte, err := rlp.EncodeToBytes(r.Data); nil != err {
+		return err
+	}else {
+		if err := rlp.DecodeBytes(dByte, &ty); nil != err {
+			return err
+		}
+	}
+	r.Status, r.Data, r.ErrMsg = rs.Status, ty, rs.ErrMsg
+	return nil
+}*/
+
+
+
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) error {
 	var logdata [][]byte

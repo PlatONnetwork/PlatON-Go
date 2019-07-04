@@ -25,11 +25,11 @@ var (
 type restrictingInfo struct {
 	balance     *big.Int `json:"balance"` // balance representation all locked amount
 	debt        *big.Int `json:"debt"`    // debt representation will released amount. Positive numbers can be used instead of release, 0 means no release, negative numbers indicate not enough to release
-	releaseList []uint64 `json:"list"`    // releaseList representation
+	releaseList []uint64 `json:"list"`    // releaseList representation which epoch will release restricting
 }
 
 type releaseAmountInfo struct {
-	height uint64 	 `json:"blockNumber"`  	// blockNumber representation of the block number at the released lock-repo epoch
+	height uint64 	 `json:"blockNumber"`  	// blockNumber representation of the block number at the released epoch
 	amount *big.Int	 `json:"amount"`		// amount representation of the released amount
 }
 
@@ -359,7 +359,7 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 	return nil
 }
 
-// releaseRestricting does nothing
+// releaseRestricting will release restricting plans on target epoch
 func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB) error {
 
 	releaseEpochKey := restriting.GetReleaseEpochKey(epoch)

@@ -204,6 +204,9 @@ func (govPlugin *GovPlugin) GetActiveVersion(state xcom.StateDB) uint32 {
 // submit a proposal
 func (govPlugin *GovPlugin) Submit(curBlockNum uint64, from common.Address, proposal gov.Proposal, blockHash common.Hash, state xcom.StateDB) error {
 
+	hex := common.Bytes2Hex(blockHash.Bytes())
+	log.Debug("check sender", "blockHash", hex, "blockNumber", curBlockNum )
+
 	//param check
 	if err := proposal.Verify(curBlockNum, state); err != nil {
 		log.Error("verify proposal parameters failed", "from", from)
@@ -337,8 +340,7 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 	} else {
 		if version>>8 == activeVersion>>8 {
 			//the declared version is the current active version, notify staking immediately
-			//TODO uncomment it
-			//stk.DeclarePromoteNotify(blockHash, curBlockNum, declaredNodeID, version)
+			stk.DeclarePromoteNotify(blockHash, curBlockNum, declaredNodeID, version)
 		} else {
 			log.Error("[GOV] DeclareVersion(): declared version invalid.", "version", version)
 			return common.NewBizError("declared version invalid.")
@@ -541,7 +543,7 @@ func (govPlugin *GovPlugin) TestTally(votedVerifierList []discover.NodeID, accuC
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
 	//TODO: replace it
 	//verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
-	verifierList, err := stk.GetVerifierListFake(blockHash, blockNumber, QueryStartNotIrr)
+	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 
 	if err != nil {
 		log.Error("list verifiers failed", "blockHash", blockHash)
@@ -549,7 +551,7 @@ func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.N
 	}
 
 	for _, verifier := range verifierList {
-		if verifier.NodeId == nodeID {
+		if verifier!= nil && verifier.NodeId == nodeID {
 			if verifier.StakingAddress == from {
 				return true
 			} else {

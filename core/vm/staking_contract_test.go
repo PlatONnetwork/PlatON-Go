@@ -185,18 +185,25 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 
 
 func TestStakingContract_getCandidateInfo (t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
 	stakingContract := vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
 		Evm:	  newEvm(),
 	}
 
-	/*//var govPlugin *plugin.GovPlugin
+	fmt.Println("sender:", sender.Hex())
+	//var govPlugin *plugin.GovPlugin
 
 	plugin.GovPluginInstance()
+	plugin.GetRestrictingInstance()
 
 	sndb := snapshotdb.Instance()
-	sndb.NewBlock(big.NewInt(1), common.ZeroHash, blockHash)
+	if err := sndb.NewBlock(blockNumer, common.ZeroHash, blockHash); nil != err {
+		fmt.Println("newBlock err", err)
+	}
 
 
 	// create
@@ -204,7 +211,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 	params = make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1000))
-	typ, _ := rlp.EncodeToBytes(uint16(0))
+	typ, _ := rlp.EncodeToBytes(uint16(1))
 	benifitAddress, _ := rlp.EncodeToBytes(addrArr[1])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
@@ -246,22 +253,21 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 		t.Log(string(res))
 	}
 
-	sndb.Flush(blockHash, blockNumer)
 	sndb.Commit(blockHash)
-	sndb.Compaction()*/
+	//sndb.Compaction()
 
 
 	// get candidate Info
-	params := make([][]byte, 0)
+	params = make([][]byte, 0)
 
-	fnType, _ := rlp.EncodeToBytes(uint16(1105))
-	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
+	fnType, _ = rlp.EncodeToBytes(uint16(1105))
+	nodeId, _ = rlp.EncodeToBytes(nodeIdArr[0])
 
 	params = append(params, fnType)
 	params = append(params, nodeId)
 
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
+	buf = new(bytes.Buffer)
+	err = rlp.Encode(buf, params)
 	if err != nil {
 		fmt.Println(err)
 		t.Errorf("createStaking encode rlp data fail")
@@ -269,7 +275,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 		fmt.Println("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-	res, err := stakingContract.Run(buf.Bytes())
+	res, err = stakingContract.Run(buf.Bytes())
 	if nil != err {
 		t.Error(err)
 	}else {
@@ -279,13 +285,54 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 		if nil != err {
 			fmt.Println(err)
 		}
-		can, ok := r.Data.(*staking.Candidate)
-		if !ok {
 
+		// interface{}
+		//
+		//ca := r.Data.(*staking.Candidate)
+		//fmt.Println(ca)
+
+		rr, _ := json.Marshal(r)
+
+		fmt.Println("Result:", string(rr))
+
+		dbyte, err := rlp.EncodeToBytes(r.Data)
+
+		if nil != err {
+			fmt.Println("rlp encode r.Data failed", err)
+		}else {
+
+			var c staking.Candidate
+
+			if err = rlp.DecodeBytes(dbyte, &c); nil!= err {
+				fmt.Println("decode failed", err)
+			}else {
+
+				rbyte, _ := json.Marshal(c)
+
+				t.Log(string(rbyte))
+
+			}
+
+		}
+
+
+		/*can, ok := r.Data.([]uint8)
+
+		if !ok {
+			fmt.Println("parse candidate failed")
 		}
 		rbyte, _ := json.Marshal(can)
 
-		t.Log(string(rbyte))
+		t.Log(string(rbyte))*/
+
 	}
 
+
+
+}
+
+
+func TestStakingContract_RequiredGas(t *testing.T) {
+	sndb := snapshotdb.Instance()
+	sndb.Clear()
 }
