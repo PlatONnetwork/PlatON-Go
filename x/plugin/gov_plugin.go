@@ -44,7 +44,7 @@ func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Head
 	}
 
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
-		verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
+		verifierList, err := stk.ListVerifierNodeIDFake(blockHash, header.Number.Uint64())
 		if err != nil {
 			return false, err
 		}
@@ -249,7 +249,6 @@ func (govPlugin *GovPlugin) Submit(curBlockNum uint64, from common.Address, prop
 			log.Error("[GOV] Submit(): to check if there's a pre-active version proposal failed.", "blockHash", blockHash)
 			return err
 		}
-		println("bbb", proposalID.String(), len(proposalID))
 		if proposalID != common.ZeroHash {
 			return common.NewBizError("existing a pre-active version proposal")
 		}
@@ -425,7 +424,9 @@ func (govPlugin *GovPlugin) ListProposal(blockHash common.Hash, state xcom.State
 
 	proposalIDs = append(proposalIDs, votingProposals...)
 	proposalIDs = append(proposalIDs, endProposals...)
-	proposalIDs = append(proposalIDs, preActiveProposals)
+	if preActiveProposals != common.ZeroHash {
+		proposalIDs = append(proposalIDs, preActiveProposals)
+	}
 
 	for _, proposalID := range proposalIDs {
 		proposal, err := govPlugin.govDB.GetExistProposal(proposalID, state)
@@ -501,6 +502,19 @@ func (govPlugin *GovPlugin) tallyForTextProposal(votedVerifierList []discover.No
 		return err
 	}
 	return nil
+}
+
+func (govPlugin *GovPlugin) TestTally(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.Proposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+	vp, ok := proposal.(gov.VersionProposal)
+	if ok {
+		return govPlugin.tallyForVersionProposal(votedVerifierList, accuCnt, vp, blockHash, blockNumber, state)
+	}
+	tp, ok := proposal.(gov.TextProposal)
+	if ok {
+		return govPlugin.tallyForTextProposal(votedVerifierList, accuCnt, tp, blockHash, state)
+	}
+	err := errors.New("[GOV] TestTally(): proposal type error")
+	return err
 }
 
 // tally for a version proposal

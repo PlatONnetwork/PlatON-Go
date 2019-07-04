@@ -1078,6 +1078,14 @@ func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber u
 	return queue, nil
 }
 
+func (sk *StakingPlugin) ListVerifierNodeIDFake(blockHash common.Hash, blockNumber uint64) ([]discover.NodeID, error) {
+
+	nodeId := discover.NodeID{0x11}
+	queue := make([]discover.NodeID, 0)
+	queue = append(queue, nodeId)
+	return queue, nil
+}
+
 
 func (sk *StakingPlugin) GetCandidateONEpoch(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.CandidateQueue, error) {
 

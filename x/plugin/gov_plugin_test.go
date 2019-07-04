@@ -15,12 +15,14 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 )
 
 func getHeader() types.Header {
+	size := int64(xcom.ConsensusSize * xcom.EpochSize)
 	return types.Header{
-		Number: big.NewInt(100),
+		Number: big.NewInt(size),
 	}
 }
 
@@ -102,12 +104,21 @@ func TestGovPlugin_BeginBlock(t *testing.T) {
 	}
 }
 
-//func TestGovPlugin_EndBlock(t *testing.T) {
-//	_, statedb := GetGovDB()
-//	blockhash := common.HexToHash("11")
-//	header := getHeader()
-//	plugin.GovPluginInstance().EndBlock(blockhash, &header, statedb)
-//}
+func TestGovPlugin_EndBlock(t *testing.T) {
+	_, statedb := GetGovDB()
+	snapdb := snapshotdb.Instance()
+	defer snapdb.Clear()
+	//create block
+	blockhash, e := newblock(snapdb, big.NewInt(1))
+	if e != nil {
+		t.Fatalf("create block error ...%s", e)
+	}
+	header := getHeader()
+	_, err := plugin.GovPluginInstance().EndBlock(blockhash, &header, statedb)
+	if err != nil {
+		t.Fatalf("end block err... %s", err)
+	}
+}
 
 func TestGovPlugin_Submit(t *testing.T) {
 
@@ -191,5 +202,77 @@ func TestGovPlugin_DeclareVersion(t *testing.T) {
 	err = plugin.GovPluginInstance().DeclareVersion(sender, node, newVersion, blockhash, 1, state)
 	if err != nil {
 		t.Fatalf("Declare Version err ...%s", e)
+	}
+}
+
+func TestGovPlugin_ListProposal(t *testing.T) {
+
+	_, statedb := GetGovDB()
+	sender := common.HexToAddress("0x11")
+
+	snapdb := snapshotdb.Instance()
+	defer snapdb.Clear()
+	//create block
+	blockHash, e := newblock(snapdb, big.NewInt(1))
+	if e != nil {
+		t.Fatalf("create block error ...%s", e)
+	}
+
+	err := plugin.GovPluginInstance().Submit(99, sender, getVerProposal(), blockHash, statedb)
+	if err != nil {
+		t.Fatalf("submit err: %s", err)
+	}
+
+	_, err = plugin.GovPluginInstance().ListProposal(blockHash, statedb)
+	if err != nil {
+		t.Fatalf("List Proposal err ...%s", e)
+	}
+}
+
+func TestGovPlugin_TestTally(t *testing.T) {
+
+	sender := common.HexToAddress("0x11")
+
+	db, statedb := GetGovDB()
+	proposalID := common.Hash{0x01}
+
+	vp := getVerProposal()
+
+	snapdb := snapshotdb.Instance()
+	defer snapdb.Clear()
+	//create block
+	blockHash, e := newblock(snapdb, big.NewInt(1))
+	if e != nil {
+		t.Fatalf("create block error ...%s", e)
+	}
+
+	node := discover.NodeID{0x11}
+	v := gov.Vote{
+		proposalID,
+		node,
+		gov.Yes,
+	}
+
+	header := getHeader()
+
+	//submit
+	err := plugin.GovPluginInstance().Submit(99, sender, getVerProposal(), blockHash, statedb)
+	if err != nil {
+		t.Fatalf("submit err: %s", err)
+	}
+
+	_, err = plugin.GovPluginInstance().BeginBlock(blockHash, &header, statedb)
+	if err != nil {
+		t.Fatalf("begin block err... %s", err)
+	}
+	err = plugin.GovPluginInstance().Vote(sender, v, blockHash, 1, statedb)
+	if err != nil {
+		t.Fatalf("vote err: %s.", err)
+	}
+	votedList, err := db.ListVotedVerifier(proposalID, statedb)
+	//tallyForVersionProposal(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.VersionProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+	err = plugin.GovPluginInstance().TestTally(votedList, 1, vp, blockHash, 1, statedb)
+	if err != nil {
+		t.Fatalf("Test Tally ...%s", err)
 	}
 }
