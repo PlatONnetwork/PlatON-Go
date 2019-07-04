@@ -59,12 +59,12 @@ func StakingInstance() *StakingPlugin {
 	return stk
 }
 
-func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
+func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
-	return true, nil
+	return nil
 }
 
-func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
+func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
 	epoch := xutil.CalculateEpoch(header.Number.Uint64())
 
@@ -74,12 +74,12 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		if nil != err {
 			log.Error("Failed to call HandleUnCandidateReq on stakingPlugin EndBlock", "blockHash",
 	blockHash.Hex(), "blockNumber", header.Number.Uint64(), "err", err)
-			return false, err //  TODO common.NewSysError(err.Error())
+			return err //  TODO common.NewSysError(err.Error())
 		}
 
 		// Election next epoch validators
 		if err := sk.ElectNextVerifierList(blockHash, header.Number.Uint64()); nil != err {
-			return false, err
+			return err
 		}
 	}
 
@@ -89,7 +89,7 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		if nil != err {
 			log.Error("Failed to call Election on stakingPlugin EndBlock", "blockHash", blockHash.Hex(),
 	"blockNumber", header.Number.Uint64(), "err", err)
-			return false, err
+			return err
 		}
 	}
 
@@ -99,11 +99,11 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		if nil != err {
 			log.Error("Failed to call Switch on stakingPlugin EndBlock", "blockHash", blockHash.Hex(),
 	"blockNumber", header.Number.Uint64(), "err", err)
-			return false, err
+			return err
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
 func (sk *StakingPlugin) Confirmed(block *types.Block) error {

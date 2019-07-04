@@ -113,9 +113,9 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	log.Info("Call createStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
 
-	//// MOCK
-	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
-	//	externalId, nodeName, website, details, amount, processVersion)
+	// MOCK
+	return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
+		externalId, nodeName, website, details, amount, processVersion)
 
 	if amount.Cmp(common.Big0) <= 0 {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
@@ -171,6 +171,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		},
 	}
 
+	// TODO  test
 	canJson, _ := json.Marshal(canTmp)
 	fmt.Println("Create Candidate canJson is:", string(canJson))
 
@@ -195,7 +196,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 }
 
 func (stkc *StakingContract) editorCandidate(benifitAddress common.Address, nodeId discover.NodeID,
-	externalId, nodeName, website, details string, amount *big.Int) ([]byte, error) {
+	externalId, nodeName, website, details string) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	blockNumber := stkc.Evm.BlockNumber
@@ -249,6 +250,10 @@ func (stkc *StakingContract) editorCandidate(benifitAddress common.Address, node
 	canOld.ExternalId = externalId
 	canOld.Website = website
 	canOld.Details = details
+
+	// TODO test
+	canJson, _ := json.Marshal(canOld)
+	fmt.Println("Edit Candidate canJson is:", string(canJson))
 
 	err = stkc.Plugin.EditorCandidate(blockHash, blockNumber, canOld)
 

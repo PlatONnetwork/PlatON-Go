@@ -47,7 +47,7 @@ type RestrictingPlugin struct {
 
 var RestrictingPtr *RestrictingPlugin = nil
 
-func GetRestrictingInstance() *RestrictingPlugin {
+func RestrictingInstance() *RestrictingPlugin {
 	if RestrictingPtr == nil {
 		RestrictingPtr = &RestrictingPlugin{}
 	}

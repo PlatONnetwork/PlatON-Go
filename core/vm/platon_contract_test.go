@@ -12,6 +12,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
@@ -70,8 +71,19 @@ var (
 	}
 
 
+	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536
+
 )
 
+func newPlugins() {
+	plugin.GovPluginInstance()
+	plugin.StakingInstance()
+	plugin.SlashInstance()
+	plugin.RestrictingInstance()
+	plugin.RewardMgrInstance()
+
+	snapshotdb.Instance()
+}
 
 func newChainState() (*state.StateDB, error) {
 	var (
@@ -108,7 +120,7 @@ func newEvm() *vm.EVM {
 
 	//set a default active version
 	govDB := gov.GovDBInstance()
-	govDB.SetActiveVersion(uint32(1<<16 | 0<<8 | 0), state)
+	govDB.SetActiveVersion(initProcessVersion, state)
 
 	return evm
 }

@@ -114,7 +114,7 @@ func TestGovPlugin_BeginBlock(t *testing.T) {
 		t.Fatalf("create block error ...%s", e)
 	}
 	header := getHeader()
-	_, err := plugin.GovPluginInstance().BeginBlock(blockhash, &header, statedb)
+	err := plugin.GovPluginInstance().BeginBlock(blockhash, &header, statedb)
 	if err != nil {
 		t.Fatalf("begin block err... %s", err)
 	}
@@ -131,7 +131,7 @@ func TestGovPlugin_EndBlock(t *testing.T) {
 		t.Fatalf("create block error ...%s", e)
 	}
 	header := getHeader()
-	_, err := plugin.GovPluginInstance().EndBlock(blockhash, &header, statedb)
+	err := plugin.GovPluginInstance().EndBlock(blockhash, &header, statedb)
 	if err != nil {
 		t.Fatalf("end block err... %s", err)
 	}
@@ -220,7 +220,7 @@ func TestGovPlugin_DeclareVersion(t *testing.T) {
 	}
 
 	header := getHeader()
-	_, err := plugin.GovPluginInstance().BeginBlock(blockhash, &header, state)
+	err := plugin.GovPluginInstance().BeginBlock(blockhash, &header, state)
 	if err != nil {
 		t.Fatalf("begin block err... %s", err)
 	}
@@ -297,7 +297,7 @@ func TestGovPlugin_TestVersionTally(t *testing.T) {
 		t.Fatalf("submit err: %s", err)
 	}
 
-	_, err = plugin.GovPluginInstance().BeginBlock(blockHash, &header, statedb)
+	err = plugin.GovPluginInstance().BeginBlock(blockHash, &header, statedb)
 	if err != nil {
 		t.Fatalf("begin block err... %s", err)
 	}
@@ -351,7 +351,7 @@ func TestGovPlugin_TestTextTally(t *testing.T) {
 		t.Fatalf("submit err: %s", err)
 	}
 
-	_, err = plugin.GovPluginInstance().BeginBlock(blockHash, &header, statedb)
+	err = plugin.GovPluginInstance().BeginBlock(blockHash, &header, statedb)
 	if err != nil {
 		t.Fatalf("begin block err... %s", err)
 	}

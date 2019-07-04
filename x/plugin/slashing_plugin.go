@@ -65,20 +65,20 @@ func (sp *SlashingPlugin) SetDecodeEvidenceFun(f func(data string) (consensus.Ev
 	sp.decodeEvidence = f
 }
 
-func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
-	return true, nil
+func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
+	return nil
 }
 
-func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
+func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
 	if xutil.IsElection(header.Number.Uint64()) && header.Number.Uint64() > xcom.ConsensusSize {
 		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "consensusSize", xcom.ConsensusSize, "electionDistance", xcom.ElectionDistance)
 		if result, err := sp.GetPreNodeAmount(); nil != err {
-			return false, err
+			return err
 		} else {
 			validatorList, err := stk.GetCandidateONRound(blockHash, header.Number.Uint64(), 1, QueryStartIrr)
 			if nil != err {
-				return false, err
+				return err
 			}
 			for _, validator := range validatorList {
 				nodeId := validator.NodeId
@@ -109,13 +109,13 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 					// TODO execute slash
 					if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, calcSlashAmount(validator, rate), isDelete, staking.LowRatio); nil != err {
 						log.Error("slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "err", err)
-						return false, err
+						return err
 					}
 				}
 			}
 		}
 	}
-	return true, nil
+	return nil
 }
 
 func (sp *SlashingPlugin) Confirmed(block *types.Block) error {

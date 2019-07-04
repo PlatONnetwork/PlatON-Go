@@ -63,7 +63,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 	if bcr != nil {
 		// TODO begin()
-		if success, err := bcr.BeginBlocker(block.Header(), statedb); nil != err || !success {
+		if err := bcr.BeginBlocker(block.Header(), statedb); nil != err {
 			return nil, nil, 0, err
 		}
 	}
@@ -81,7 +81,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 	if bcr != nil {
 		// TODO end ()
-		if success, err := bcr.EndBlocker(block.Header(), statedb); nil != err || !success {
+		if err := bcr.EndBlocker(block.Header(), statedb); nil != err {
 			return nil, nil, 0, err
 		}
 	}

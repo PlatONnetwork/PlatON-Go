@@ -16,8 +16,8 @@ import (
 )
 
 type BasePlugin interface {
-	BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error)
-	EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error)
+	BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error
+	EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error
 	Confirmed(block *types.Block) error
 }
 

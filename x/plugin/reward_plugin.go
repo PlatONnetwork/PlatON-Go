@@ -23,7 +23,7 @@ var (
 	RewardMgrPlugin *rewardMgrPlugin = nil
 )
 
-func GetRewardMgrInstance() *rewardMgrPlugin {
+func RewardMgrInstance() *rewardMgrPlugin {
 	if RewardMgrPlugin == nil {
 		RewardMgrPlugin = & rewardMgrPlugin {}
 	}
