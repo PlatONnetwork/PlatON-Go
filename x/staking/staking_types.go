@@ -105,6 +105,22 @@ type Candidate struct {
 	Description
 }
 
+//// EncodeRLP implements rlp.Encoder
+//func (c *Candidate) EncodeRLP(w io.Writer) error {
+//	return rlp.Encode(w, &c)
+//}
+//
+//
+//// DecodeRLP implements rlp.Decoder
+//func (c *Candidate) DecodeRLP(s *rlp.Stream) error {
+//	if err := s.Decode(&c); err != nil {
+//		return err
+//	}
+//	return nil
+//}
+
+
+
 type Description struct {
 	// External Id for the third party to pull the node description (with length limit)
 	ExternalId string

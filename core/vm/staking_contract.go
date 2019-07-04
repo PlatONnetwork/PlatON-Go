@@ -167,6 +167,10 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		},
 	}
 
+
+	canJson, _ := json.Marshal(canTmp)
+	fmt.Println("Create Candidate canJson is:", string(canJson))
+
 	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, processVersion, typ, canAddr, canTmp)
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
@@ -644,7 +648,7 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	res := xcom.Result{true, can, ""}
 	data, _ := rlp.EncodeToBytes(res)
 
-	var r xcom.Result
+	/*var r xcom.Result
 	err = rlp.DecodeBytes(data, &r)
 	if nil != err {
 		fmt.Println(err)
@@ -655,7 +659,7 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 
 
 	rbyte, _ := json.Marshal(r)
-	fmt.Println(string(rbyte))
+	fmt.Println(string(rbyte))*/
 	return data, nil
 
 }
