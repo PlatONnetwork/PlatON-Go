@@ -31,12 +31,13 @@ func GetRewardMgrInstance() *rewardMgrPlugin {
 }
 
 // BeginBlock does something like check input params before execute transactions,
-// in LockRepoPlugin it does nothing.
+// in rewardMgrPlugin it does nothing.
 func (rmp *rewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 	return nil
 }
 
-// EndBlock invoke releaseLockRepo
+// EndBlock will handle reward work, if current block is end of year, increase issuance; if it is time to settle,
+// reward staking. At last reward worker for create new block, this is necessary.
 func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 
 	blockNumber := head.Number.Uint64()
