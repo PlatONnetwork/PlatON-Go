@@ -24,7 +24,7 @@ var (
 	errViewChangeBlockNumTooLower = errors.New("block number too lower")
 	errInvalidProposalAddr        = errors.New("invalid proposal address")
 	errRecvViewTimeout            = errors.New("receive viewchange timeout")
-	errTimestamp                  = errors.New("viewchange timestamp too low")
+	errTimestamp                  = errors.New("invalid viewchange timestamp")
 	errInvalidViewChangeVote      = errors.New("invalid viewchange vote")
 	errInvalidConfirmNumTooLow    = errors.New("confirm block number lower than local prepare")
 	errViewChangeForked           = errors.New("view change's baseblock is forked")
@@ -240,6 +240,10 @@ func (cbft *Cbft) checkViewChangeVotes(votes []*viewChangeVote) error {
 		log.Error("ViewChange is nil, check prepareVotes failed")
 		return errNotExistViewChange
 	}
+	if len(votes) < cbft.getThreshold() {
+		log.Error("lower two third viewChangeVotes")
+		return errTwoThirdViewchangeVotes
+	}
 
 	for _, vote := range votes {
 		if vote.EqualViewChange(cbft.viewChange) {
@@ -252,7 +256,20 @@ func (cbft *Cbft) checkViewChangeVotes(votes []*viewChangeVote) error {
 			return errInvalidViewChangeVote
 		}
 	}
+	return nil
+}
 
+func (cbft *Cbft) checkPrepareVotes(votes []*prepareVote) error {
+	if len(votes) < cbft.getThreshold() {
+		log.Error("lower two third prepare prepareVotes")
+		return errTwoThirdPrepareVotes
+	}
+
+	for _, vote := range votes {
+		if err := cbft.verifyValidatorSign(vote.Number, vote.ValidatorIndex, vote.ValidatorAddr, vote, vote.Signature[:]); err != nil {
+			return errInvalidPrepareVotes
+		}
+	}
 	return nil
 }
 
@@ -307,6 +324,7 @@ func (cbft *Cbft) addPrepareBlockVote(pbd *prepareBlock) {
 	}
 	pbd.Signature.SetBytes(sign)
 }
+
 func (cbft *Cbft) agreeViewChange() bool {
 	return len(cbft.viewChangeVotes) >= cbft.getThreshold()
 }
@@ -600,14 +618,14 @@ func (cbft *Cbft) newViewChangeProcess(view *viewChange) {
 }
 
 func (cbft *Cbft) VerifyAndViewChange(view *viewChange) error {
-
 	now := time.Now().UnixNano() / 1e6
+
 	if !cbft.isLegal(now, view.ProposalAddr) || cbft.checkViewChangeRealTimeout(view.ProposalIndex) {
 		cbft.log.Error("Receive view change timeout", "current", now, "remote", view.Timestamp)
 		return errRecvViewTimeout
 	}
 
-	if cbft.viewChange != nil && cbft.viewChange.Timestamp > view.Timestamp {
+	if cbft.viewChange != nil && (cbft.viewChange.Timestamp > view.Timestamp || (int64(view.Timestamp)-now) >= cbft.config.Duration*1000) {
 		cbft.log.Error("Verify view change failed", "local timestamp", cbft.viewChange.Timestamp, "remote", view.Timestamp)
 		return errTimestamp
 	}
@@ -856,6 +874,7 @@ func (pv *prepareVoteSet) Add(vote *prepareVote) {
 	pv.votes[vote.ValidatorIndex] = vote
 	pv.voteBits.setIndex(vote.ValidatorIndex, true)
 }
+
 func (pv *prepareVoteSet) Get(index uint32) *prepareVote {
 	if pv.voteBits.GetIndex(index) {
 		return pv.votes[index]
@@ -972,6 +991,7 @@ func (b *BlockExt) SetSyncState(err error) {
 		b.syncState = nil
 	}
 }
+
 func (b *BlockExt) PrepareBlock() (*prepareBlock, error) {
 
 	if b.prepareBlock == nil {
@@ -983,6 +1003,7 @@ func (b *BlockExt) PrepareBlock() (*prepareBlock, error) {
 func (b *BlockExt) IsParent(hash common.Hash) bool {
 	return b.block.Hash() == hash
 }
+
 func (b *BlockExt) Merge(ext *BlockExt) {
 	if b != ext && b.number == ext.number {
 		if b.block == nil && ext.block != nil {
@@ -998,7 +1019,8 @@ func (b *BlockExt) Merge(ext *BlockExt) {
 			b.prepareBlock = ext.prepareBlock
 		}
 		b.prepareVotes.Merge(ext.prepareVotes)
-
+		// merge viewChangeVotes
+		b.MergeViewChangeVotes(ext)
 		if ext.syncState != nil && b.syncState != nil {
 			panic("invalid syncState: double state channel")
 		}
@@ -1008,6 +1030,23 @@ func (b *BlockExt) Merge(ext *BlockExt) {
 		}
 	}
 }
+
+func (b *BlockExt) MergeViewChangeVotes(ext *BlockExt) {
+	if b.viewChangeVotes == nil || len(b.viewChangeVotes) == 0 {
+		b.viewChangeVotes = ext.viewChangeVotes
+	} else {
+		votes := make(map[uint32]struct{})
+		for _, v := range b.viewChangeVotes {
+			votes[v.ValidatorIndex] = struct{}{}
+		}
+		for _, v := range ext.viewChangeVotes {
+			if _, ok := votes[v.ValidatorIndex]; !ok {
+				b.viewChangeVotes = append(b.viewChangeVotes, v)
+			}
+		}
+	}
+}
+
 func (b BlockExt) Signs() []common.BlockConfirmSign {
 	return b.prepareVotes.Signs()
 }
@@ -1260,6 +1299,7 @@ func (bm *BlockExtMap) Total() int {
 	}
 	return total
 }
+
 func (bm *BlockExtMap) GetSubChainWithTwoThirdVotes(hash common.Hash, number uint64) []*BlockExt {
 	base := bm.findBlock(hash, number)
 	if base == nil || base.prepareVotes.Len() < bm.threshold {
@@ -1273,7 +1313,7 @@ func (bm *BlockExtMap) GetSubChainWithTwoThirdVotes(hash common.Hash, number uin
 	hash = bm.head.block.Hash()
 	number = bm.head.number
 
-	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && be.isExecuted && be.number <= base.number; be = bm.findChild(hash, number) {
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && len(be.viewChangeVotes) >= bm.threshold && be.isExecuted && be.number <= base.number; be = bm.findChild(hash, number) {
 		blockExts = append(blockExts, be)
 		hash = be.block.Hash()
 		number = be.number
