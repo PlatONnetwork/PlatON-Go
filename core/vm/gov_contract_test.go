@@ -116,11 +116,11 @@ var govContractTests = []vm.PrecompiledTest{
 		Expected:	successExpected,
 		Name:		"vote1",
 	},
-	{
+/*	{
 		Input:		buildDeclareInput(),
 		Expected:	successExpected,
 		Name:		"declare1",
-	},
+	},*/
 /*	{
 		Input:		buildGetProposalInput(),
 		Expected:	successExpected,
@@ -144,7 +144,7 @@ func setup(t *testing.T) func() {
 	precompiledContract := vm.PlatONPrecompiledContracts[commonvm.GovContractAddr]
 	gc, _ = precompiledContract.(*vm.GovContract)
 	gc.Evm = newEvm()
-	gc.Contract = newContract()
+	gc.Contract = newContract(common.Big0)
 
 
 

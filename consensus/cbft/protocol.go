@@ -400,12 +400,12 @@ func (v *viewChangeVote) BHash() common.Hash {
 	return common.BytesToHash(v.Signature.Bytes())
 }
 
-func (v *viewChangeVote) EqualViewChange(vote *viewChange) bool {
-	return v.Timestamp == vote.Timestamp &&
-		v.BlockNum == vote.BaseBlockNum &&
-		v.BlockHash == vote.BaseBlockHash &&
-		v.ProposalIndex == vote.ProposalIndex &&
-		v.ProposalAddr == vote.ProposalAddr
+func (v *viewChangeVote) EqualViewChange(view *viewChange) bool {
+	return v.Timestamp == view.Timestamp &&
+		v.BlockNum == view.BaseBlockNum &&
+		v.BlockHash == view.BaseBlockHash &&
+		v.ProposalIndex == view.ProposalIndex &&
+		v.ProposalAddr == view.ProposalAddr
 }
 
 func (v *viewChangeVote) ViewChangeWithSignature() *viewChange {

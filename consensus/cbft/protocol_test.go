@@ -1,7 +1,6 @@
 package cbft
 
 import (
-	"bytes"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -81,10 +80,10 @@ func TestErrorCode(t *testing.T) {
 func TestPrepareBlock(t *testing.T) {
 	// define block
 	block := types.NewBlockWithHeader(&types.Header{
-		GasLimit:  uint64(3141592),
-		GasUsed:   uint64(21000),
-		Coinbase:  common.HexToAddress("8888f1f195afa192cfee860698584c030f4c9db1"),
-		Root:      common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
+		GasLimit: uint64(3141592),
+		GasUsed:  uint64(21000),
+		Coinbase: common.HexToAddress("8888f1f195afa192cfee860698584c030f4c9db1"),
+		Root:     common.HexToHash("ef1552a40b7165c3cd773806b9e0c165b75356e0314bf0706f279c729f51e017"),
 		//Hash: common.HexToHash("0a5843ac1cb04865017cb35a57b50b07084e5fcee39b5acadade33149f4fff9e"),
 		Nonce: types.EncodeNonce(RandBytes(81)),
 		Time:  big.NewInt(1426516743),
@@ -99,10 +98,6 @@ func TestPrepareBlock(t *testing.T) {
 	}
 	//
 	var consensusMsg ConsensusMsg = pb
-	cb, _ := consensusMsg.CannibalizeBytes()
-	if !bytes.Equal(block.Header().SealHash().Bytes(), cb) {
-		t.Error("hash not equal")
-	}
 
 	// check sign
 	consensusMsg.Sign()

@@ -25,11 +25,11 @@ var (
 type restrictingInfo struct {
 	balance     *big.Int `json:"balance"` // balance representation all locked amount
 	debt        *big.Int `json:"debt"`    // debt representation will released amount. Positive numbers can be used instead of release, 0 means no release, negative numbers indicate not enough to release
-	releaseList []uint64 `json:"list"`    // releaseList representation
+	releaseList []uint64 `json:"list"`    // releaseList representation which epoch will release restricting
 }
 
 type releaseAmountInfo struct {
-	height uint64 	 `json:"blockNumber"`  	// blockNumber representation of the block number at the released lock-repo epoch
+	height uint64 	 `json:"blockNumber"`  	// blockNumber representation of the block number at the released epoch
 	amount *big.Int	 `json:"amount"`		// amount representation of the released amount
 }
 
@@ -104,7 +104,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	// !!!
 	latest := uint64(0)
 	for i := 0; i < len(plans); i++ {
-		epoch := plans[i].Epoch
+		epoch  := plans[i].Epoch
 		amount := plans[i].Amount
 
 		if epoch < latest {
@@ -144,7 +144,6 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 
 			if len(bAccNumbers) == 0 {
 				accNumbers = uint32(1)
-
 			} else {
 				accNumbers = byteutil.BytesToUint32(bAccNumbers) + 1
 			}
@@ -360,7 +359,7 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 	return nil
 }
 
-// releaseRestricting does nothing
+// releaseRestricting will release restricting plans on target epoch
 func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB) error {
 
 	releaseEpochKey := restriting.GetReleaseEpochKey(epoch)
@@ -448,10 +447,25 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 				}
 			}
 		}
-		// '''
-		// delete record
-		// '''
+
+
+		// delete ReleaseAmount
+		state.SetState(account, releaseAmountKey, []byte{})
+
+		// delete ReleaseAccount
+		state.SetState(vm.RestrictingContractAddr, releaseAccountKey, []byte{})
+
+		// delete epoch in releaseList
+		for i, target := range info.releaseList {
+			if target == epoch {
+				info.releaseList = append(info.releaseList[:i], info.releaseList[i+1:]...)
+				break
+			}
+		}
 	}
+
+	// delete ReleaseEpoch
+	state.SetState(vm.RestrictingContractAddr, releaseEpochKey, []byte{})
 
 	return nil
 }

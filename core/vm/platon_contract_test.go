@@ -26,19 +26,22 @@ var (
 		discover.MustHexID("0x97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0"),
 	}
 	addrArr = []common.Address{
-		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80qeqqee"),
+		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80aadd24"),
 		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80444555"),
-		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80wrwwwd"),
-		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80vvbbbb"),
+		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80eeda12"),
+		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e8052234"),
 	}
 
 
 	blockNumer = big.NewInt(1)
 	blockHash = common.HexToHash("9d4fb5346abcf593ad80a0d3d5a371b22c962418ad34189d5b1b39065668d663")
 
-	sender = common.HexToAddress("0x120ce31b3fac20dac379db243021a52234vvbbbb")
+	sender = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
 
 	sndb = snapshotdb.Instance()
+
+	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
+
 
 
 	txHashArr = []common.Hash{
@@ -64,6 +67,8 @@ var (
 		common.HexToHash("0x00000000000054fa3d19eb57e98aa1dd69d216722054d8539ede4b89c5b77ee9"),
 
 	}
+
+
 )
 
 
@@ -82,7 +87,7 @@ func newChainState() (*state.StateDB, error) {
 	} else {
 		state = statedb
 	}
-
+	state.AddBalance(sender, sender_balance)
 	return state, nil
 }
 
@@ -97,13 +102,13 @@ func newEvm() *vm.EVM {
 		BlockHash: blockHash,
 	}
 	evm.Context = context
-
 	return evm
 }
 
-func newContract() *vm.Contract {
+func newContract(value *big.Int) *vm.Contract {
 	callerAddress := vm.AccountRef(sender)
-	contract := vm.NewContract(callerAddress, callerAddress, big.NewInt(1000), uint64(1))
+	fmt.Println("newContract sender :", callerAddress.Address().Hex())
+	contract := vm.NewContract(callerAddress, callerAddress, value, uint64(1))
 	return contract
 }
 

@@ -2,6 +2,7 @@ package vm
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -166,10 +167,14 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		},
 	}
 
+
+	canJson, _ := json.Marshal(canTmp)
+	fmt.Println("Create Candidate canJson is:", string(canJson))
+
 	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, processVersion, typ, canAddr, canTmp)
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
-			res := xcom.Result{false, "", CreateCanErrStr + ":" + err.Error()}
+			res := xcom.Result{false, "", CreateCanErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateStakingEvent, string(event), "createStaking")
 			return event, nil
@@ -247,7 +252,7 @@ func (stkc *StakingContract) editorCandidate(benifitAddress common.Address, node
 	if nil != err {
 
 		if _, ok := err.(*common.BizError); ok {
-			res := xcom.Result{false, "", EditCanErrStr + ":" + err.Error()}
+			res := xcom.Result{false, "", EditCanErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
 			return event, nil
@@ -324,7 +329,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	if nil != err {
 
 		if _, ok := err.(*common.BizError); ok {
-			res := xcom.Result{false, "", IncreaseStakingErrStr + ":" + err.Error()}
+			res := xcom.Result{false, "", IncreaseStakingErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), IncreaseStakingEvent, string(event), "increaseStaking")
 			return event, nil
@@ -392,7 +397,7 @@ func (stkc *StakingContract) withdrewCandidate(nodeId discover.NodeID) ([]byte, 
 	if nil != err {
 
 		if _, ok := err.(*common.BizError); ok {
-			res := xcom.Result{false, "", WithdrewCanErrStr + ":" + err.Error()}
+			res := xcom.Result{false, "", WithdrewCanErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent,
 				string(event), "withdrewCandidate")
@@ -481,7 +486,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	err = stkc.Plugin.Delegate(state, blockHash, blockNumber, from, del, canOld, typ, amount)
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
-			res := xcom.Result{false, "", DelegateErrStr + ":" + err.Error()}
+			res := xcom.Result{false, "", DelegateErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), DelegateEvent, string(event), "delegate")
 			return event, nil
@@ -534,7 +539,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	err = stkc.Plugin.WithdrewDelegate(state, blockHash, blockNumber, amount, from, nodeId, stakingBlockNum, del)
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
-			res := xcom.Result{false, "", WithdrewCanErrStr + ":" + err.Error()}
+			res := xcom.Result{false, "", WithdrewCanErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewDelegateEvent, string(event), "withdrewDelegate")
 			return event, nil
@@ -555,7 +560,7 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 	arr, err := stkc.Plugin.GetVerifierList(common.ZeroHash, common.Big0.Uint64(), plugin.QueryStartIrr)
 
 	if nil != err {
-		res := xcom.Result{false, "", GetVerifierListErrStr + ":" + err.Error()}
+		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
@@ -568,7 +573,7 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 
 	arr, err := stkc.Plugin.GetValidatorList(common.ZeroHash, common.Big0.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
 	if nil != err {
-		res := xcom.Result{false, "", GetValidatorListErrStr + ":" + err.Error()}
+		res := xcom.Result{false, "", GetValidatorListErrStr + ": " + err.Error()}
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
@@ -582,7 +587,7 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 
 	arr, err := stkc.Plugin.GetCandidateList(common.ZeroHash, plugin.QueryStartIrr)
 	if nil != err {
-		res := xcom.Result{false, "", GetCandidateListErrStr + ":" + err.Error()}
+		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
@@ -597,7 +602,7 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 
 	arr, err := stkc.Plugin.GetRelatedListByDelAddr(common.ZeroHash, addr, plugin.QueryStartIrr)
 	if nil != err {
-		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ":" + err.Error()}
+		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ": " + err.Error()}
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
@@ -611,13 +616,13 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, addr common
 
 	addr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
-		res := xcom.Result{false, "", QueryDelErrSTr + ":" + err.Error()}
+		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
 	del, err := stkc.Plugin.GetDelegateInfoByIrr(addr, nodeId, stakingBlockNum)
 	if nil != err {
-		res := xcom.Result{false, "", QueryDelErrSTr + ":" + err.Error()}
+		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
@@ -630,18 +635,31 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 
 	addr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
-		res := xcom.Result{false, "", QueryCanErrStr + ":" + err.Error()}
+		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
 	can, err := stkc.Plugin.GetCandidateInfoByIrr(addr)
 	if nil != err {
-		res := xcom.Result{false, "", QueryCanErrStr + ":" + err.Error()}
+		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
 	res := xcom.Result{true, can, ""}
 	data, _ := rlp.EncodeToBytes(res)
+
+	/*var r xcom.Result
+	err = rlp.DecodeBytes(data, &r)
+	if nil != err {
+		fmt.Println(err)
+	}
+
+	cbyte, _ := json.Marshal(r.Data)
+	fmt.Println(string(cbyte))
+
+
+	rbyte, _ := json.Marshal(r)
+	fmt.Println(string(rbyte))*/
 	return data, nil
 
 }

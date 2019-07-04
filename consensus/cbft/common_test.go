@@ -477,3 +477,28 @@ func forgeViewChangeVote(view *viewChange) *viewChangeVote {
 	resp.Signature.SetBytes(sign)
 	return resp
 }
+
+func periodRemaining(index int, validators *testValidator, startTimestamp int64) int {
+	timepoint := common.Millis(time.Now())
+	startEpoch := startTimestamp * 1000
+	durationPerNode := chainConfig.Cbft.Duration * 1000
+	durationPerTurn := durationPerNode * int64(validators.len())
+
+	min := int64(index) * durationPerNode
+	max := int64(index+1) * durationPerNode
+	cur := (timepoint - startEpoch) % durationPerTurn
+
+	if cur-min < int64(3*chainConfig.Cbft.Period*1000) {
+		return 0
+	}
+	return int(max - cur)
+}
+
+func nextRound(validators *testValidator, startTimestamp int64) int {
+	timepoint := common.Millis(time.Now())
+	startEpoch := startTimestamp * 1000
+	durationPerNode := chainConfig.Cbft.Duration * 1000
+	durationPerTurn := durationPerNode * int64(validators.len())
+	cur := (timepoint - startEpoch) % durationPerTurn
+	return int(durationPerTurn - cur)
+}

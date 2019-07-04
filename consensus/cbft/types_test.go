@@ -208,11 +208,17 @@ func TestBlockExt(t *testing.T) {
 	extSeal := NewBlockExtBySeal(ext.block, 20, 4)
 	extSeal.Merge(ext)
 	assert.Len(t, extSeal.Votes(), 0)
+	assert.Len(t, extSeal.viewChangeVotes, 0)
 	extSeal = NewBlockExtBySeal(ext.block, 1, 4)
 
 	extSeal.Merge(ext)
-
 	assert.Len(t, extSeal.Votes(), 3)
+	assert.Len(t, extSeal.viewChangeVotes, 3)
+
+	extSeal = NewBlockExtBySeal(ext.block, 1, 4)
+	extSeal.viewChangeVotes = append(extSeal.viewChangeVotes, makeViewChangeVote(v.validator(0).privateKey, view.Timestamp, view.BaseBlockNum, view.BaseBlockHash, view.ProposalIndex, view.ProposalAddr, 0, v.validator(0).address))
+	extSeal.Merge(ext)
+	assert.Len(t, extSeal.viewChangeVotes, 3)
 
 	_, err := extSeal.PrepareBlock()
 
