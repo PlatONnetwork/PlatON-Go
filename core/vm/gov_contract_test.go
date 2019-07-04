@@ -44,7 +44,7 @@ func testPlatONPrecompiled(addr common.Address, test vm.PrecompiledTest, t *test
 	p := vm.PlatONPrecompiledContracts[addr]
 	gc, _ := p.(*vm.GovContract)
 	gc.Evm = newEvm()
-	gc.Contract = newContract()
+	gc.Contract = newContract(common.Big0)
 
 	govPlugin := plugin.GovPluginInstance()
 	gc.Plugin = govPlugin

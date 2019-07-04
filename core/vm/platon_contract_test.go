@@ -39,6 +39,14 @@ var (
 	sender = common.HexToAddress("0x120ce31b3fac20dac379db243021a52234vvbbbb")
 
 	sndb = snapshotdb.Instance()
+
+	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
+
+
+
+
+
+
 )
 
 
@@ -57,6 +65,7 @@ func newChainState() (*state.StateDB, error) {
 	} else {
 		state = statedb
 	}
+	state.AddBalance(sender, sender_balance)
 	return state, nil
 }
 
@@ -74,9 +83,9 @@ func newEvm() *vm.EVM {
 	return evm
 }
 
-func newContract() *vm.Contract {
+func newContract(value *big.Int) *vm.Contract {
 	callerAddress := vm.AccountRef(sender)
-	contract := vm.NewContract(callerAddress, callerAddress, big.NewInt(1000), uint64(1))
+	contract := vm.NewContract(callerAddress, callerAddress, value, uint64(1))
 	return contract
 }
 

@@ -139,7 +139,7 @@ func (sk *StakingPlugin) GetCandidateInfoByIrr (addr common.Address) (*staking.C
 func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *staking.Candidate) error {
 
-	// Query current active version
+	/*// Query current active version
 	curr_version := govPlugin.GetActiveVersion(state)
 
 
@@ -152,7 +152,7 @@ func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.H
 			return err
 		}
 	}
-	can.ProcessVersion = curr_version
+	can.ProcessVersion = curr_version*/
 
 	// from account free von
 	if typ == FreeOrigin {
