@@ -55,7 +55,7 @@ func CalculateRound (blockNumber uint64) uint64 {
 }
 
 
-func CalculateYears (blockNumber uint64) uint64 {
+func CalculateYear (blockNumber uint64) uint64 {
 	// !!!
 	// epochs := EpochsPerYear()
 	// !!!
@@ -68,11 +68,9 @@ func CalculateYears (blockNumber uint64) uint64 {
 	mod := blockNumber % size
 
 	switch {
-	case div == 0 || (div == 1 && mod == 0):
-		year = 1
-	case div > 1 && mod == 0:
+	case mod == 0:
 		year = div
-	case div > 0 && mod > 0:
+	case mod > 0:
 		year = div +1
 	}
 
@@ -100,7 +98,7 @@ func IsSettlementPeriod (blockNumber uint64) bool {
 
 
 func IsYearEnd (blockNumber uint64) bool {
-	// 计算结算周期
+	// Calculate epoch
 	eh := uint64(6)
 	L := uint64(1)
 	u := uint64(25)

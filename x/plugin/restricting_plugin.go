@@ -104,7 +104,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	// !!!
 	latest := uint64(0)
 	for i := 0; i < len(plans); i++ {
-		epoch := plans[i].Epoch
+		epoch  := plans[i].Epoch
 		amount := plans[i].Amount
 
 		if epoch < latest {
@@ -144,7 +144,6 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 
 			if len(bAccNumbers) == 0 {
 				accNumbers = uint32(1)
-
 			} else {
 				accNumbers = byteutil.BytesToUint32(bAccNumbers) + 1
 			}
@@ -448,10 +447,25 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 				}
 			}
 		}
-		// '''
-		// delete record
-		// '''
+
+
+		// delete ReleaseAmount
+		state.SetState(account, releaseAmountKey, []byte{})
+
+		// delete ReleaseAccount
+		state.SetState(vm.RestrictingContractAddr, releaseAccountKey, []byte{})
+
+		// delete epoch in releaseList
+		for i, target := range info.releaseList {
+			if target == epoch {
+				info.releaseList = append(info.releaseList[:i], info.releaseList[i+1:]...)
+				break
+			}
+		}
 	}
+
+	// delete ReleaseEpoch
+	state.SetState(vm.RestrictingContractAddr, releaseEpochKey, []byte{})
 
 	return nil
 }
