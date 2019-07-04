@@ -1507,7 +1507,7 @@ func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.Node
 		can = c
 	}
 
-	if nil == can {
+	if nil == can || staking.Is_Invalid(can.Status) {
 		return false, nil
 	}
 	return true, nil
