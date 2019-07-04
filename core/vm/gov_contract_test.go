@@ -4,23 +4,27 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
+	commonvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"math/big"
 	"testing"
 )
 
-var snapdb = snapshotdb.Instance()
-var nodeID = discover.MustHexID("bf5317e3a60a55e9c7d09cb20d4381f579c4318eb1031426612959ab5fa7a9d3f3e362b58887e83df8048115501f0b0390b4cdab4548b2728b6633ab692f9ca1")
+var (
+	snapdb 		snapshotdb.DB
+	govPlugin	*plugin.GovPlugin
+	gc			*vm.GovContract
+)
+
 
 func buildSubmitTextInput() string {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2000)))			// func type code
-	input = append(input, common.MustRlpEncode(nodeID))				// param 1 ...
+	input = append(input, common.MustRlpEncode(uint16(2000)))				// func type code
+	input = append(input, common.MustRlpEncode(nodeIdArr[0]))				// param 1 ...
 	input = append(input, common.MustRlpEncode("githubID"))
 	input = append(input, common.MustRlpEncode("textTopic"))
 	input = append(input, common.MustRlpEncode("textDesc"))
@@ -30,37 +34,151 @@ func buildSubmitTextInput() string {
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
 
+
+func buildSubmitVersionInput() string {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2001)))				// func type code
+	input = append(input, common.MustRlpEncode(nodeIdArr[0]))				// param 1 ...
+	input = append(input, common.MustRlpEncode("githubID"))
+	input = append(input, common.MustRlpEncode("versionTopic"))
+	input = append(input, common.MustRlpEncode("versionDesc"))
+	input = append(input, common.MustRlpEncode("versionUrl"))
+	input = append(input, common.MustRlpEncode(uint32(1<<16 | 1<<8 | 1)))	//new version : 1.1.1
+	input = append(input, common.MustRlpEncode(uint64(1000)))
+	input = append(input, common.MustRlpEncode(uint64(2000)))
+
+	return common.Bytes2Hex(common.MustRlpEncode(input))
+}
+
+func buildVoteInput() string {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2002)))				// func type code
+	input = append(input, common.MustRlpEncode(nodeIdArr[0]))				// param 1 ...
+	input = append(input, common.MustRlpEncode(txHashArr[0]))
+	input = append(input, common.MustRlpEncode(uint8(1)))
+
+	return common.Bytes2Hex(common.MustRlpEncode(input))
+}
+
+func buildDeclareInput() string {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2003)))				// func type code
+	input = append(input, common.MustRlpEncode(nodeIdArr[0]))				// param 1 ...
+	input = append(input, common.MustRlpEncode(uint32(1<<16 | 1<<8 | 1)))	//new version : 1.1.1
+
+	return common.Bytes2Hex(common.MustRlpEncode(input))
+}
+
+func buildGetProposalInput() string {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2100)))				// func type code
+	input = append(input, common.MustRlpEncode(txHashArr[0]))				// param 1 ...
+
+	return common.Bytes2Hex(common.MustRlpEncode(input))
+}
+
+func buildGetTallyResultInput() string {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2101)))				// func type code
+	input = append(input, common.MustRlpEncode(txHashArr[0]))				// param 1 ...
+
+	return common.Bytes2Hex(common.MustRlpEncode(input))
+}
+
+func buildListProposalInput() string {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2102)))				// func type code
+	return common.Bytes2Hex(common.MustRlpEncode(input))
+}
+
+
 var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{true, "", ""}))
 
 var govContractTests = []vm.PrecompiledTest{
 	{
-		  	Input:		buildSubmitTextInput(),
-		 	Expected:	successExpected,
-		   	Name:		"submitText1",
+		Input:		buildSubmitTextInput(),
+		Expected:	successExpected,
+		Name:		"submitText1",
 	},
+	{
+		Input:		buildSubmitVersionInput(),
+		Expected:	successExpected,
+		Name:		"submitVersion1",
+	},
+	{
+		Input:		buildVoteInput(),
+		Expected:	successExpected,
+		Name:		"vote1",
+	},
+	{
+		Input:		buildDeclareInput(),
+		Expected:	successExpected,
+		Name:		"declare1",
+	},
+/*	{
+		Input:		buildGetProposalInput(),
+		Expected:	successExpected,
+		Name:		"getProposal1",
+	},
+	{
+		Input:		buildGetTallyResultInput(),
+		Expected:	successExpected,
+		Name:		"getTallyResult1",
+	},
+	{
+		Input:		buildListProposalInput(),
+		Expected:	successExpected,
+		Name:		"listProposal1",
+	},*/
 }
 
-func testPlatONPrecompiled(addr common.Address, test vm.PrecompiledTest, t *testing.T) {
-	p := vm.PlatONPrecompiledContracts[addr]
-	gc, _ := p.(*vm.GovContract)
+func setup(t *testing.T) func() {
+	t.Log("setup()......")
+
+	precompiledContract := vm.PlatONPrecompiledContracts[commonvm.GovContractAddr]
+	gc, _ = precompiledContract.(*vm.GovContract)
 	gc.Evm = newEvm()
 	gc.Contract = newContract()
 
-	govPlugin := plugin.GovPluginInstance()
+
+
+	govPlugin = plugin.GovPluginInstance()
 	gc.Plugin = govPlugin
+
+	build_staking_data()
+
+	snapdb = snapshotdb.Instance()
 
 	plugin.StakingInstance()
 
-	defer snapdb.Clear()
+	return func() {
+		t.Log("tear down()......")
+		snapdb.Clear()
+	}
+}
 
+func testPlatONPrecompiled(addr common.Address, idx int, t *testing.T) {
+
+	test := govContractTests[idx]
 
 	in := common.Hex2Bytes(test.Input)
-	contract := vm.NewContract(vm.AccountRef(common.HexToAddress("0x12")),nil, new(big.Int), p.RequiredGas(in))
-	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, contract.Gas), func(t *testing.T) {
-		if res, err := vm.RunPlatONPrecompiledContract(p, in, contract); err != nil {
+	gc.Contract.Gas = gc.RequiredGas(in)
+
+	state :=gc.Evm.StateDB.(*state.StateDB)
+
+	state.Prepare(txHashArr[idx], blockHash, idx)
+
+	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gc.Contract.Gas), func(t *testing.T) {
+		if res, err := vm.RunPlatONPrecompiledContract(gc, common.Hex2Bytes(test.Input), gc.Contract); err != nil {
 			t.Error(err)
-		} else if common.Bytes2Hex(res) != test.Expected {
-			t.Errorf("Expected %v, got %v", test.Expected, common.Bytes2Hex(res))
+		} else if  common.Bytes2Hex0x(res) != test.Expected {
+			t.Errorf("Expected %v, got %v", test.Expected, common.Bytes2Hex0x(res))
 		}
 	})
 }
@@ -68,11 +186,12 @@ func testPlatONPrecompiled(addr common.Address, test vm.PrecompiledTest, t *test
 
 // Tests the sample inputs from the elliptic curve pairing check EIP 197.
 func TestPrecompiledGovContract(t *testing.T) {
-	testPlatONPrecompiled(common.HexToAddress("0x1000000000000000000000000000000000000005"), govContractTests[0], t)
+	defer setup(t)()
 
-	/*for _, test := range govContractTests {
-		testPlatONPrecompiled(vm.GovContractAddr, test, t)
-	}*/
+
+	for i := 0; i < len(govContractTests); i++ {
+		testPlatONPrecompiled(commonvm.GovContractAddr, i, t)
+	}
 }
 
 

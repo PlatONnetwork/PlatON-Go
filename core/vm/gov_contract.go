@@ -87,6 +87,10 @@ func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, des
 	from := gc.Contract.CallerAddress
 
 	fmt.Printf("endVotingBlock %d", endVotingBlock)
+	log.Debug("submitText", "endVotingBlock", endVotingBlock)
+
+	txHash := gc.Evm.StateDB.TxHash().Hex()
+	log.Debug("submitText", "txHash", txHash)
 
 	log.Info("Call submitText of GovContract",
 		"from", from.Hex(),
@@ -106,6 +110,8 @@ func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, des
 		Proposer : 			verifier,
 	}
 
+
+
 	err := gc.Plugin.Submit(gc.Evm.BlockNumber.Uint64(), from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
 
 	return gc.errHandler("submitText", SubmitTextEvent, err, SubmitTextProposalErrorMsg)
@@ -113,6 +119,12 @@ func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, des
 
 func (gc *GovContract) submitVersion(verifier discover.NodeID, githubID, topic, desc, url string, newVersion uint32, endVotingBlock, activeBlock uint64) ([]byte, error) {
 	from := gc.Contract.CallerAddress
+
+	fmt.Printf("endVotingBlock %d", endVotingBlock)
+	log.Debug("submitText", "endVotingBlock", endVotingBlock)
+
+	txHash := gc.Evm.StateDB.TxHash().Hex()
+	log.Debug("submitText", "txHash", txHash)
 
 	log.Info("Call submitVersion of GovContract",
 		"from", from.Hex(),
@@ -141,7 +153,9 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, githubID, topic, 
 	return gc.errHandler("submitVersion", SubmitVersionEvent, err, SubmitVersionProposalErrorMsg)
 }
 
-func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, option gov.VoteOption) ([]byte, error) {
+func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8) ([]byte, error) {
+
+	option := gov.ParseVoteOption(op)
 
 	from := gc.Contract.CallerAddress
 
