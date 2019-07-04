@@ -207,7 +207,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 
 	// todo: shield contract to created in temporary
 	if contractCreation {
-		return nil, 0, false, fmt.Errorf("contract creation is not allowed")
+		return nil, params.TxGasContractCreation, false, fmt.Errorf("contract creation is not allowed")
 	}
 
 	if contractCreation {
