@@ -198,6 +198,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 	//var govPlugin *plugin.GovPlugin
 
 	plugin.GovPluginInstance()
+	plugin.GetRestrictingInstance()
 
 	sndb := snapshotdb.Instance()
 	if err := sndb.NewBlock(blockNumer, common.ZeroHash, blockHash); nil != err {
@@ -210,7 +211,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 	params = make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1000))
-	typ, _ := rlp.EncodeToBytes(uint16(0))
+	typ, _ := rlp.EncodeToBytes(uint16(1))
 	benifitAddress, _ := rlp.EncodeToBytes(addrArr[1])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
