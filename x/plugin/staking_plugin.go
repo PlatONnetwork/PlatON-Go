@@ -983,22 +983,13 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 
 		valEx := &staking.ValidatorEx{
 			NodeId: can.NodeId,
-			// The account used to
 			StakingAddress: can.StakingAddress,
-			// The account receive
 			BenifitAddress: can.BenifitAddress,
-			// The tx index at the
 			StakingTxIndex: can.StakingTxIndex,
-			// The version of the
 			ProcessVersion: can.ProcessVersion,
-			// Block height at the
 			StakingBlockNum: can.StakingBlockNum,
-			// All vons of staking
 			Shares: shares,
-			// Node desc
 			Description: can.Description,
-			// this is the term of
-			// [0, N]
 			ValidatorTerm: v.ValidatorTerm,
 		}
 		queue[i] = valEx
