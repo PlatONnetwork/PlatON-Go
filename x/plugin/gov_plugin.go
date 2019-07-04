@@ -470,15 +470,7 @@ func (govPlugin *GovPlugin) tallyForTextProposal(votedVerifierList []discover.No
 			abstentions++
 		}
 	}
-	supportRate := float64(yeas) / float64(accuCnt)
-
-	if supportRate >= SupportRate_Threshold {
-		status = gov.Pass
-	} else {
-		status = gov.Failed
-	}
-
-	supportRate = float64(yeas) / float64(accuCnt)
+	supportRate := float64(yeas) * 100 / float64(accuCnt)
 
 	if supportRate >= SupportRate_Threshold {
 		status = gov.Pass
@@ -502,19 +494,6 @@ func (govPlugin *GovPlugin) tallyForTextProposal(votedVerifierList []discover.No
 		return err
 	}
 	return nil
-}
-
-func (govPlugin *GovPlugin) TestTally(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.Proposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
-	vp, ok := proposal.(gov.VersionProposal)
-	if ok {
-		return govPlugin.tallyForVersionProposal(votedVerifierList, accuCnt, vp, blockHash, blockNumber, state)
-	}
-	tp, ok := proposal.(gov.TextProposal)
-	if ok {
-		return govPlugin.tallyForTextProposal(votedVerifierList, accuCnt, tp, blockHash, state)
-	}
-	err := errors.New("[GOV] TestTally(): proposal type error")
-	return err
 }
 
 // tally for a version proposal
@@ -568,6 +547,19 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 		return err
 	}
 	return nil
+}
+
+func (govPlugin *GovPlugin) TestTally(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.Proposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+	vp, ok := proposal.(gov.VersionProposal)
+	if ok {
+		return govPlugin.tallyForVersionProposal(votedVerifierList, accuCnt, vp, blockHash, blockNumber, state)
+	}
+	tp, ok := proposal.(gov.TextProposal)
+	if ok {
+		return govPlugin.tallyForTextProposal(votedVerifierList, accuCnt, tp, blockHash, state)
+	}
+	err := errors.New("[GOV] TestTally(): proposal type error")
+	return err
 }
 
 // check if the node a verifier, and the caller address is same as the staking address

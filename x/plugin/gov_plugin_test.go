@@ -43,6 +43,21 @@ func getVerProposal() gov.VersionProposal {
 	}
 }
 
+func getTxtProposal() gov.TextProposal {
+	return gov.TextProposal{
+		common.Hash{0x01},
+		"p#01",
+		gov.Text,
+		"up,up,up....",
+		"This is an example...",
+		"em。。。。",
+		uint64(1000),
+		uint64(10000000),
+		discover.NodeID{},
+		gov.TallyResult{},
+	}
+}
+
 func newblock(snapdb snapshotdb.DB, blockNumber *big.Int) (common.Hash, error) {
 
 	recognizedHash := generateHash("recognizedHash")
@@ -229,7 +244,7 @@ func TestGovPlugin_ListProposal(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_TestTally(t *testing.T) {
+func TestGovPlugin_TestVersionTally(t *testing.T) {
 
 	sender := common.HexToAddress("0x11")
 
@@ -272,6 +287,55 @@ func TestGovPlugin_TestTally(t *testing.T) {
 	votedList, err := db.ListVotedVerifier(proposalID, statedb)
 	//tallyForVersionProposal(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.VersionProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
 	err = plugin.GovPluginInstance().TestTally(votedList, 1, vp, blockHash, 1, statedb)
+	if err != nil {
+		t.Fatalf("Test Tally ...%s", err)
+	}
+}
+
+
+func TestGovPlugin_TestTextTally(t *testing.T) {
+
+	sender := common.HexToAddress("0x11")
+
+	db, statedb := GetGovDB()
+	proposalID := common.Hash{0x01}
+
+	tp := getTxtProposal()
+
+	snapdb := snapshotdb.Instance()
+	defer snapdb.Clear()
+	//create block
+	blockHash, e := newblock(snapdb, big.NewInt(1))
+	if e != nil {
+		t.Fatalf("create block error ...%s", e)
+	}
+
+	node := discover.NodeID{0x11}
+	v := gov.Vote{
+		proposalID,
+		node,
+		gov.No,
+	}
+
+	header := getHeader()
+
+	//submit
+	err := plugin.GovPluginInstance().Submit(99, sender, getVerProposal(), blockHash, statedb)
+	if err != nil {
+		t.Fatalf("submit err: %s", err)
+	}
+
+	_, err = plugin.GovPluginInstance().BeginBlock(blockHash, &header, statedb)
+	if err != nil {
+		t.Fatalf("begin block err... %s", err)
+	}
+	err = plugin.GovPluginInstance().Vote(sender, v, blockHash, 1, statedb)
+	if err != nil {
+		t.Fatalf("vote err: %s.", err)
+	}
+	votedList, err := db.ListVotedVerifier(proposalID, statedb)
+	//tallyForVersionProposal(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.VersionProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+	err = plugin.GovPluginInstance().TestTally(votedList, 1, tp, blockHash, 1, statedb)
 	if err != nil {
 		t.Fatalf("Test Tally ...%s", err)
 	}
