@@ -2,6 +2,7 @@ package vm
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -642,6 +643,19 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	}
 	res := xcom.Result{true, can, ""}
 	data, _ := rlp.EncodeToBytes(res)
+
+	var r xcom.Result
+	err = rlp.DecodeBytes(data, &r)
+	if nil != err {
+		fmt.Println(err)
+	}
+
+	cbyte, _ := json.Marshal(r.Data)
+	fmt.Println(string(cbyte))
+
+
+	rbyte, _ := json.Marshal(r)
+	fmt.Println(string(rbyte))
 	return data, nil
 
 }

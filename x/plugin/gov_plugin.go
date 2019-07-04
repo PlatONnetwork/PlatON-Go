@@ -6,6 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
@@ -36,6 +37,12 @@ func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
 
 //implement BasePlugin
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
+
+	if govPlugin.govDB.GetActiveVersion(state) == 0 {
+		defaultVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+		govPlugin.govDB.SetActiveVersion(defaultVersion, state)
+	}
+
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
 		verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
 		if err != nil {
@@ -179,6 +186,11 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 					log.Error("[GOV] EndBlock(): ClearActiveNodes() failed.", "blockHash", blockHash, "preActiveProposalID", preActiveProposalID)
 					return false, err
 				}
+				err = govPlugin.govDB.SetActiveVersion(versionProposal.NewVersion, state)
+				if err != nil {
+					log.Error("[GOV] EndBlock(): SetActiveVersion() failed.", "blockHash", blockHash, "preActiveProposalID", preActiveProposalID)
+					return false, err
+				}
 			}
 		}
 	}
@@ -320,12 +332,10 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, version uint32, blockHash common.Hash, curBlockNum uint64, state xcom.StateDB) error {
 
 	//check caller is a Verifier or Candidate
-	if !govPlugin.checkVerifier(from, declaredNodeID, blockHash, curBlockNum) {
-		return common.NewBizError("The sender is not a verifier.")
-	}
-
-	if !govPlugin.checkCandidate(from, declaredNodeID, blockHash, curBlockNum) {
-		return common.NewBizError("The sender is not a candidate.")
+	isVerifier := govPlugin.checkVerifier(from, declaredNodeID, blockHash, curBlockNum)
+	isCandidate := govPlugin.checkCandidate(from, declaredNodeID, blockHash, curBlockNum)
+	if !(isVerifier || isCandidate) {
+		return common.NewBizError("The sender is not a verifier or candidate.")
 	}
 
 	activeVersion := uint32(govPlugin.govDB.GetActiveVersion(state))
@@ -354,7 +364,7 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 	} else {
 		if version>>8 == activeVersion>>8 {
 			//the declared version is the current active version, notify staking immediately
-			stk.DeclarePromoteNotify(blockHash, curBlockNum, declaredNodeID, version)
+			//stk.DeclarePromoteNotify(blockHash, curBlockNum, declaredNodeID, version)
 		} else {
 			log.Error("[GOV] DeclareVersion(): declared version invalid.", "version", version)
 			return common.NewBizError("declared version invalid.")
@@ -549,7 +559,7 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 // check if the node a verifier, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
 	//verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
-	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
+	verifierList, err := stk.GetVerifierListFake(blockHash, blockNumber, QueryStartNotIrr)
 
 	if err != nil {
 		log.Error("list verifiers failed", "blockHash", blockHash)
@@ -566,13 +576,12 @@ func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.N
 			}
 		}
 	}
-
 	return false
 }
 
 // check if the node a candidate, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
-	candidateList, err := stk.GetCandidateList(blockHash, QueryStartNotIrr)
+	candidateList, err := stk.GetCandidateListFake(blockHash, QueryStartNotIrr)
 	if err != nil {
 		log.Error("list candidates failed", "blockHash", blockHash)
 		return false

@@ -139,7 +139,7 @@ func (sk *StakingPlugin) GetCandidateInfoByIrr (addr common.Address) (*staking.C
 func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *staking.Candidate) error {
 
-	// Query current active version
+	/*// Query current active version
 	curr_version := govPlugin.GetActiveVersion(state)
 
 
@@ -152,7 +152,7 @@ func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.H
 			return err
 		}
 	}
-	can.ProcessVersion = curr_version
+	can.ProcessVersion = curr_version*/
 
 	// from account free von
 	if typ == FreeOrigin {
@@ -961,7 +961,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 
 	queue := make(staking.ValidatorExQueue, len(verifierList.Arr))
 
-	for _, v := range verifierList.Arr {
+	for i, v := range verifierList.Arr {
 
 		var can *staking.Candidate
 		if !isCommit {
@@ -1000,7 +1000,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			// [0, N]
 			ValidatorTerm: v.ValidatorTerm,
 		}
-		queue = append(queue, valEx)
+		queue[i] = valEx
 	}
 
 	return queue, nil
@@ -1009,7 +1009,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 func (sk *StakingPlugin) GetVerifierListFake(blockHash common.Hash, blockNumber uint64, isCommit bool) (staking.CandidateQueue, error) {
 
 	cand := &staking.Candidate{
-		discover.NodeID{},
+		discover.NodeID{0x11},
 		common.HexToAddress("0x11"),
 		common.HexToAddress("0x11"),
 		1,
@@ -1072,8 +1072,8 @@ func (sk *StakingPlugin) ListVerifierNodeID(blockHash common.Hash, blockNumber u
 
 	queue := make([]discover.NodeID, len(verifierList.Arr))
 
-	for _, v := range verifierList.Arr {
-		queue = append(queue, v.NodeId)
+	for i, v := range verifierList.Arr {
+		queue[i] = v.NodeId
 	}
 	return queue, nil
 }
@@ -1104,7 +1104,7 @@ func (sk *StakingPlugin) GetCandidateONEpoch(blockHash common.Hash, blockNumber 
 
 	queue := make(staking.CandidateQueue, len(verifierList.Arr))
 
-	for _, v := range verifierList.Arr {
+	for i, v := range verifierList.Arr {
 
 		var can *staking.Candidate
 		if !isCommit {
@@ -1120,7 +1120,7 @@ func (sk *StakingPlugin) GetCandidateONEpoch(blockHash common.Hash, blockNumber 
 			}
 			can = c
 		}
-		queue = append(queue, can)
+		queue[i] = can
 	}
 
 	return queue, nil
@@ -1209,7 +1209,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 
 	queue := make(staking.ValidatorExQueue, len(validatorArr.Arr))
 
-	for _, v := range validatorArr.Arr {
+	for i, v := range validatorArr.Arr {
 
 		var can *staking.Candidate
 
@@ -1233,25 +1233,16 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 
 		valEx := &staking.ValidatorEx{
 			NodeId: can.NodeId,
-			// The account used to
 			StakingAddress: can.StakingAddress,
-			// The account receive
 			BenifitAddress: can.BenifitAddress,
-			// The tx index at the
 			StakingTxIndex: can.StakingTxIndex,
-			// The version of the
 			ProcessVersion: can.ProcessVersion,
-			// Block height at the
 			StakingBlockNum: can.StakingBlockNum,
-			// All vons of staking
 			Shares: shares,
-			// Node desc
 			Description: can.Description,
-			// this is the term of
-			// [0, N]
 			ValidatorTerm: v.ValidatorTerm,
 		}
-		queue = append(queue, valEx)
+		queue[i] = valEx
 	}
 	return queue, nil
 }
@@ -1329,7 +1320,7 @@ func (sk *StakingPlugin) GetCandidateONRound (blockHash common.Hash, blockNumber
 
 	queue := make(staking.CandidateQueue, len(validatorArr.Arr))
 
-	for _, v := range validatorArr.Arr {
+	for i, v := range validatorArr.Arr {
 
 		var can *staking.Candidate
 
@@ -1346,7 +1337,7 @@ func (sk *StakingPlugin) GetCandidateONRound (blockHash common.Hash, blockNumber
 			}
 			can = c
 		}
-		queue = append(queue, can)
+		queue[i] = can
 	}
 	return queue, nil
 }
@@ -1367,8 +1358,8 @@ func (sk *StakingPlugin) ListCurrentValidatorID(blockHash common.Hash, blockNumb
 
 	queue := make([]discover.NodeID, len(arr.Arr))
 
-	for _, candidate := range arr.Arr {
-		queue = append(queue, candidate.NodeId)
+	for i, candidate := range arr.Arr {
+		queue[i] = candidate.NodeId
 	}
 	return queue, err
 }
@@ -1484,6 +1475,10 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, isCommit bool) 
 	return queue, nil
 }
 
+func (sk *StakingPlugin) GetCandidateListFake(blockHash common.Hash, isCommit bool) (staking.CandidateQueue, error) {
+	return staking.CandidateQueue{}, nil
+}
+
 func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.NodeID, isCommit bool) (bool, error) {
 
 	var can *staking.Candidate
@@ -1507,7 +1502,7 @@ func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.Node
 		can = c
 	}
 
-	if nil == can {
+	if nil == can || staking.Is_Invalid(can.Status) {
 		return false, nil
 	}
 	return true, nil
