@@ -194,7 +194,7 @@ var DefaultTxPoolConfig = TxPoolConfig{
 	Lifetime: 3 * time.Hour,
 
 	ChainHeadChanSize: 250,
-	TxExtBufferSize:   4096,
+	TxExtBufferSize:   1024,
 }
 
 // sanitize checks the provided user configurations and changes anything that's
