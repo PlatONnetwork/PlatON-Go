@@ -11,6 +11,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
@@ -88,6 +89,8 @@ func newChainState() (*state.StateDB, error) {
 		state = statedb
 	}
 	state.AddBalance(sender, sender_balance)
+
+
 	return state, nil
 }
 
@@ -102,6 +105,11 @@ func newEvm() *vm.EVM {
 		BlockHash: blockHash,
 	}
 	evm.Context = context
+
+	//set a default active version
+	govDB := gov.GovDBInstance()
+	govDB.SetActiveVersion(uint32(1<<16 | 0<<8 | 0), state)
+
 	return evm
 }
 
