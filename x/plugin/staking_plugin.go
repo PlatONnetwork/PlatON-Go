@@ -42,7 +42,7 @@ var (
 
 const (
 	FreeOrigin     = 0
-	LockRepoOrigin = 1
+	RestrictingPlanOrigin = 1
 
 	PriviosRound = uint(0)
 	CurrentRound = uint(1)
@@ -107,11 +107,6 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		}
 	}
 
-	// storage the ppos k-v Hash
-	pposHash := sk.db.GetLastKVHash(blockHash)
-	if len(pposHash) != 0 {
-		state.SetState(vm.StakingContractAddr, xcom.GetPPOSHASHKey(), pposHash)
-	}
 	return true, nil
 }
 
@@ -171,9 +166,9 @@ func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.H
 		}
 		state.SubBalance(can.StakingAddress, amount)
 		state.AddBalance(vm.StakingContractAddr, amount)
-		can.ReleasedTmp = amount
+		can.ReleasedHes = amount
 
-	} else if typ == LockRepoOrigin { //  from account lockRepo von
+	} else if typ == RestrictingPlanOrigin { //  from account RestrictingPlan von
 
 		_, err := RestrictingPtr.PledgeLockFunds(can.StakingAddress, amount, state)
 		if nil != err {
@@ -181,7 +176,7 @@ func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.H
 				"err", err)
 			return err
 		}
-		can.LockRepoTmp = amount
+		can.RestrictingPlanHes = amount
 	}
 
 	can.StakingEpoch = uint32(xutil.CalculateEpoch(blockNumber.Uint64()))
@@ -234,13 +229,13 @@ func (sk *StakingPlugin) IncreaseStaking (state xcom.StateDB, blockHash common.H
 		if origin.Cmp(amount) < 0 {
 			log.Error("Failed to EditorCandidate on stakingPlugin: the account free von is not Enough",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "account", can.StakingAddress.Hex(),
-				"originVon", origin, "stakingVon", can.ReleasedTmp)
+				"originVon", origin, "stakingVon", can.ReleasedHes)
 			return common.NewBizError(AccountVonNotEnough.Error())
 		}
 		state.SubBalance(can.StakingAddress, amount)
 		state.AddBalance(vm.StakingContractAddr, amount)
 
-		can.ReleasedTmp = new(big.Int).Add(can.ReleasedTmp, amount)
+		can.ReleasedHes = new(big.Int).Add(can.ReleasedHes, amount)
 	} else {
 
 		_, err := RestrictingPtr.PledgeLockFunds(can.StakingAddress, amount, state)
@@ -250,7 +245,7 @@ func (sk *StakingPlugin) IncreaseStaking (state xcom.StateDB, blockHash common.H
 			return err
 		}
 
-		can.LockRepoTmp = new(big.Int).Add(can.LockRepoTmp, amount)
+		can.RestrictingPlanHes = new(big.Int).Add(can.RestrictingPlanHes, amount)
 	}
 
 	can.StakingEpoch = uint32(epoch)
@@ -303,7 +298,7 @@ func (sk *StakingPlugin) WithdrewCandidate(state xcom.StateDB, blockHash common.
 
 	can.StakingEpoch = uint32(epoch)
 
-	if can.Released.Cmp(common.Big0) > 0 || can.LockRepo.Cmp(common.Big0) > 0 {
+	if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
 
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 			log.Error("Failed to WithdrewCandidate on stakingPlugin: Put Can info 2 db failed",
@@ -325,27 +320,27 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 
 	// Direct return of money during the hesitation period
 	// Return according to the way of coming
-	if can.ReleasedTmp.Cmp(common.Big0) > 0 {
-		state.AddBalance(can.StakingAddress, can.ReleasedTmp)
-		state.SubBalance(vm.StakingContractAddr, can.ReleasedTmp)
-		can.Shares = new(big.Int).Sub(can.Shares, can.ReleasedTmp)
-		can.ReleasedTmp = common.Big0
+	if can.ReleasedHes.Cmp(common.Big0) > 0 {
+		state.AddBalance(can.StakingAddress, can.ReleasedHes)
+		state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
+		can.Shares = new(big.Int).Sub(can.Shares, can.ReleasedHes)
+		can.ReleasedHes = common.Big0
 	}
 
-	if can.LockRepoTmp.Cmp(common.Big0) > 0 {
+	if can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
 
-		_, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, can.LockRepoTmp, state)
+		_, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 		if nil != err {
 			log.Error("Failed to WithdrewCandidate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 				"err", err)
 			return err
 		}
 
-		can.Shares = new(big.Int).Sub(can.Shares, can.LockRepoTmp)
-		can.LockRepoTmp = common.Big0
+		can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlanHes)
+		can.RestrictingPlanHes = common.Big0
 	}
 
-	if can.Released.Cmp(common.Big0) > 0 || can.LockRepo.Cmp(common.Big0) > 0 {
+	if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
 		if err := sk.db.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
 			return err
 		}
@@ -430,8 +425,8 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 		state.SubBalance(vm.StakingContractAddr, can.Released)
 	}
 
-	if can.LockRepo.Cmp(common.Big0) > 0 {
-		_, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, can.LockRepo, state)
+	if can.RestrictingPlan.Cmp(common.Big0) > 0 {
+		_, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, can.RestrictingPlan, state)
 		if nil != err {
 			log.Error("Failed to HandleUnCandidateReq on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 				"err", err)
@@ -475,15 +470,15 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 		if origin.Cmp(amount) < 0 {
 			log.Error("Failed to Delegate on stakingPlugin: the account free von is not Enough",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "originVon", origin,
-				"stakingVon", can.ReleasedTmp)
+				"stakingVon", can.ReleasedHes)
 			return common.NewBizError(AccountVonNotEnough.Error())
 		}
 		state.SubBalance(delAddr, amount)
 		state.AddBalance(vm.StakingContractAddr, amount)
 
-		del.ReleasedTmp = new(big.Int).Add(del.ReleasedTmp, amount)
+		del.ReleasedHes = new(big.Int).Add(del.ReleasedHes, amount)
 
-	} else if typ == LockRepoOrigin { //  from account lockRepo von
+	} else if typ == RestrictingPlanOrigin { //  from account RestrictingPlan von
 
 		_, err := RestrictingPtr.PledgeLockFunds(delAddr, amount, state)
 		if nil != err {
@@ -492,7 +487,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 			return err
 		}
 
-		del.LockRepoTmp = new(big.Int).Add(del.LockRepoTmp, amount)
+		del.RestrictingPlanHes = new(big.Int).Add(del.RestrictingPlanHes, amount)
 
 	}
 
@@ -540,9 +535,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		return err
 	}
 
-	aboutRelease := new(big.Int).Add(del.Released, del.ReleasedTmp)
-	aboutLockRepo := new(big.Int).Add(del.LockRepo, del.LockRepoTmp)
-	total := new(big.Int).Add(aboutRelease, aboutLockRepo)
+	aboutRelease := new(big.Int).Add(del.Released, del.ReleasedHes)
+	aboutRestrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
+	total := new(big.Int).Add(aboutRelease, aboutRestrictingPlan)
 
 
 	lazyCalcDelegateAmount(epoch, del)
@@ -558,51 +553,51 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		return new(big.Int).Sub(source, sub), common.Big0
 	}
 
-	refundFn := func(remain, aboutRelease, aboutLockRepo *big.Int) (*big.Int, *big.Int, *big.Int, error) {
-		// When remain is greater than or equal to del.ReleasedTmp/del.Released
+	refundFn := func(remain, aboutRelease, aboutRestrictingPlan *big.Int) (*big.Int, *big.Int, *big.Int, error) {
+		// When remain is greater than or equal to del.ReleasedHes/del.Released
 		if remain.Cmp(common.Big0) > 0 {
 			if remain.Cmp(aboutRelease) >= 0 && aboutRelease.Cmp(common.Big0) > 0 {
 
 				remain, aboutRelease = subDelegateFn(remain, aboutRelease)
 
 			} else if remain.Cmp(aboutRelease) < 0 {
-				// When remain is less than or equal to del.ReleasedTmp/del.Released
+				// When remain is less than or equal to del.ReleasedHes/del.Released
 				aboutRelease, remain = subDelegateFn(aboutRelease, remain)
 			}
 		}
 
 		if remain.Cmp(common.Big0) > 0 {
 
-			// When remain is greater than or equal to del.LockRepoTmp/del.LockRepo
-			if remain.Cmp(aboutLockRepo) >= 0 && aboutLockRepo.Cmp(common.Big0) > 0 {
+			// When remain is greater than or equal to del.RestrictingPlanHes/del.RestrictingPlan
+			if remain.Cmp(aboutRestrictingPlan) >= 0 && aboutRestrictingPlan.Cmp(common.Big0) > 0 {
 
-				_, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, aboutLockRepo, state)
+				_, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, aboutRestrictingPlan, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"err", err)
-					return remain, aboutRelease, aboutLockRepo, err
+					return remain, aboutRelease, aboutRestrictingPlan, err
 				}
 
 
-				remain = new(big.Int).Sub(remain, aboutLockRepo)
-				aboutLockRepo = common.Big0
-			} else if remain.Cmp(aboutLockRepo) < 0 {
-				// When remain is less than or equal to del.LockRepoTmp/del.LockRepo
+				remain = new(big.Int).Sub(remain, aboutRestrictingPlan)
+				aboutRestrictingPlan = common.Big0
+			} else if remain.Cmp(aboutRestrictingPlan) < 0 {
+				// When remain is less than or equal to del.RestrictingPlanHes/del.RestrictingPlan
 
 
 				_, err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, remain, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"err", err)
-					return remain, aboutRelease, aboutLockRepo, err
+					return remain, aboutRelease, aboutRestrictingPlan, err
 				}
 
-				aboutLockRepo = new(big.Int).Sub(aboutLockRepo, remain)
+				aboutRestrictingPlan = new(big.Int).Sub(aboutRestrictingPlan, remain)
 				remain = common.Big0
 			}
 		}
 
-		return remain, aboutRelease, aboutLockRepo, nil
+		return remain, aboutRelease, aboutRestrictingPlan, nil
 	}
 
 	del.DelegateEpoch = uint32(epoch)
@@ -623,20 +618,20 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		/**
 		handle delegate on HesitateRatio
 		*/
-		remain, rtmp, ltmp, err := refundFn(remain, del.ReleasedTmp, del.LockRepoTmp)
+		remain, rtmp, ltmp, err := refundFn(remain, del.ReleasedHes, del.RestrictingPlanHes)
 		if nil != err {
 			return err
 		}
-		del.ReleasedTmp, del.LockRepoTmp =  rtmp, ltmp
+		del.ReleasedHes, del.RestrictingPlanHes =  rtmp, ltmp
 		/**
 		handle delegate on EffectiveRatio
 		*/
 		if remain.Cmp(common.Big0) > 0 {
-			remain, rtmp, ltmp, err = refundFn(remain, del.Released, del.LockRepo)
+			remain, rtmp, ltmp, err = refundFn(remain, del.Released, del.RestrictingPlan)
 			if nil != err {
 				return err
 			}
-			del.Released, del.LockRepo = rtmp, ltmp
+			del.Released, del.RestrictingPlan = rtmp, ltmp
 		}
 
 		if remain.Cmp(common.Big0) != 0 {
@@ -686,11 +681,11 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		*/
 		//var flag bool
 		//var er error
-		remain, rtmp, ltmp, err := refundFn(remain, del.ReleasedTmp, del.LockRepoTmp)
+		remain, rtmp, ltmp, err := refundFn(remain, del.ReleasedHes, del.RestrictingPlanHes)
 		if nil != err {
 			return err
 		}
-		del.ReleasedTmp, del.LockRepoTmp = rtmp, ltmp
+		del.ReleasedHes, del.RestrictingPlanHes = rtmp, ltmp
 		/**
 		handle delegate on EffectiveRatio
 		*/
@@ -796,7 +791,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 		state.SubBalance(vm.StakingContractAddr, del.Released)
 		state.AddBalance(delAddr, del.Released)
 
-		_, err := RestrictingPtr.ReturnLockFunds(delAddr, del.LockRepo, state)
+		_, err := RestrictingPtr.ReturnLockFunds(delAddr, del.RestrictingPlan, state)
 		if nil != err {
 			log.Error("Failed to HandleUnDelegateReq on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 				"err", err)
@@ -823,9 +818,9 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 		if remain.Cmp(common.Big0) > 0 {
 
-			if remain.Cmp(del.LockRepo) >= 0 {
+			if remain.Cmp(del.RestrictingPlan) >= 0 {
 
-				_, err := RestrictingPtr.ReturnLockFunds(delAddr, del.LockRepo, state)
+				_, err := RestrictingPtr.ReturnLockFunds(delAddr, del.RestrictingPlan, state)
 				if nil != err {
 					log.Error("Failed to HandleUnDelegateReq on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"err", err)
@@ -833,7 +828,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 				}
 
 
-				del.LockRepo = common.Big0; remain = new(big.Int).Sub(remain, del.LockRepo)
+				del.RestrictingPlan = common.Big0; remain = new(big.Int).Sub(remain, del.RestrictingPlan)
 			}else {
 
 				_, err := RestrictingPtr.ReturnLockFunds(delAddr, remain, state)
@@ -843,7 +838,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 					return err
 				}
 
-				del.LockRepo = new(big.Int).Sub(del.LockRepo, remain); remain = common.Big0
+				del.RestrictingPlan = new(big.Int).Sub(del.RestrictingPlan, remain); remain = common.Big0
 			}
 		}
 
@@ -1267,19 +1262,19 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, isCommit bool) 
 	queue = make(xcom.CandidateQueue, 0)
 	for i:= 0; i < 4; i++ {
 		can := &xcom.Candidate{
-			NodeId: discover.MustHexID(nodeIdArr[i]),
-			StakingAddress: common.HexToAddress(addrArr[i]),
-			BenifitAddress: vm.StakingContractAddr,
-			StakingTxIndex: uint32(i),
-			ProcessVersion: uint32(i*i),
-			Status: xcom.LowRatio,
-			StakingEpoch: uint32(1),
-			StakingBlockNum: uint64(i+2),
-			Shares: common.Big256,
-			Released: common.Big2,
-			ReleasedTmp: common.Big32,
-			LockRepo: common.Big1,
-			LockRepoTmp: common.Big257,
+			NodeId:             discover.MustHexID(nodeIdArr[i]),
+			StakingAddress:     common.HexToAddress(addrArr[i]),
+			BenifitAddress:     vm.StakingContractAddr,
+			StakingTxIndex:     uint32(i),
+			ProcessVersion:     uint32(i*i),
+			Status:             xcom.LowRatio,
+			StakingEpoch:       uint32(1),
+			StakingBlockNum:    uint64(i+2),
+			Shares:             common.Big256,
+			Released:           common.Big2,
+			ReleasedHes:        common.Big32,
+			RestrictingPlan:    common.Big1,
+			RestrictingPlanHes: common.Big257,
 
 			Description: xcom.Description{
 				ExternalId: "xxccccdddddddd",
@@ -1571,9 +1566,9 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 
 
-	aboutRelease := new(big.Int).Add(can.Released, can.ReleasedTmp)
-	aboutLockRepo := new(big.Int).Add(can.LockRepo, can.LockRepoTmp)
-	total := new(big.Int).Add(aboutRelease, aboutLockRepo)
+	aboutRelease := new(big.Int).Add(can.Released, can.ReleasedHes)
+	aboutRestrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
+	total := new(big.Int).Add(aboutRelease, aboutRestrictingPlan)
 
 	if total.Cmp(amount) < 0 {
 		log.Error("Failed to SlashCandidates: the candidate total staking amount is not enough",
@@ -1622,21 +1617,21 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		return remian, balance, nil
 	}
 
-	if can.ReleasedTmp.Cmp(common.Big0) > 0 {
+	if can.ReleasedHes.Cmp(common.Big0) > 0 {
 
-		val, rval, err := slashFunc(remain, can.ReleasedTmp, false)
+		val, rval, err := slashFunc(remain, can.ReleasedHes, false)
 		if nil != err {
 			return err
 		}
-		remain, can.ReleasedTmp = val, rval
+		remain, can.ReleasedHes = val, rval
 	}
 
-	if remain.Cmp(common.Big0) > 0 && can.LockRepoTmp.Cmp(common.Big0) > 0 {
-		val, rval, err := slashFunc(remain, can.LockRepoTmp, true)
+	if remain.Cmp(common.Big0) > 0 && can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
+		val, rval, err := slashFunc(remain, can.RestrictingPlanHes, true)
 		if nil != err {
 			return err
 		}
-		remain, can.LockRepoTmp = val, rval
+		remain, can.RestrictingPlanHes = val, rval
 	}
 
 	if remain.Cmp(common.Big0) > 0 && can.Released.Cmp(common.Big0) > 0 {
@@ -1647,12 +1642,12 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		remain, can.Released = val, rval
 	}
 
-	if remain.Cmp(common.Big0) > 0 && can.LockRepo.Cmp(common.Big0) > 0 {
-		val, rval, err := slashFunc(remain, can.LockRepo, true)
+	if remain.Cmp(common.Big0) > 0 && can.RestrictingPlan.Cmp(common.Big0) > 0 {
+		val, rval, err := slashFunc(remain, can.RestrictingPlan, true)
 		if nil != err {
 			return err
 		}
-		remain, can.LockRepo = val, rval
+		remain, can.RestrictingPlan = val, rval
 	}
 
 	if remain.Cmp(common.Big0) != 0 {
@@ -1660,9 +1655,9 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		return common.BizErrorf("Failed to SlashCandidates: the ramain is not zero, remain:%s", remain)
 	}
 
-	remainRelease := new(big.Int).Add(can.Released, can.ReleasedTmp)
-	remainLockRepo := new(big.Int).Add(can.LockRepo, can.LockRepoTmp)
-	canRemain := new(big.Int).Add(remainRelease, remainLockRepo)
+	remainRelease := new(big.Int).Add(can.Released, can.ReleasedHes)
+	remainRestrictingPlan := new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
+	canRemain := new(big.Int).Add(remainRelease, remainRestrictingPlan)
 
 	if slashType == xcom.LowRatio {
 		can.Status |= xcom.LowRatio
@@ -1899,12 +1894,12 @@ func lazyCalcStakeAmount(epoch uint64, can *xcom.Candidate) {
 		return
 	}
 
-	if can.ReleasedTmp.Cmp(common.Big0) > 0 {
-		can.Released = new(big.Int).Add(can.Released, can.ReleasedTmp)
+	if can.ReleasedHes.Cmp(common.Big0) > 0 {
+		can.Released = new(big.Int).Add(can.Released, can.ReleasedHes)
 	}
 
-	if can.LockRepoTmp.Cmp(common.Big0) > 0 {
-		can.LockRepo = new(big.Int).Add(can.LockRepo, can.LockRepoTmp)
+	if can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
+		can.RestrictingPlan = new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
 	}
 }
 
@@ -1919,12 +1914,12 @@ func lazyCalcDelegateAmount(epoch uint64, del *xcom.Delegation) {
 		return
 	}
 
-	if del.ReleasedTmp.Cmp(common.Big0) > 0 {
-		del.Released = new(big.Int).Add(del.Released, del.ReleasedTmp)
+	if del.ReleasedHes.Cmp(common.Big0) > 0 {
+		del.Released = new(big.Int).Add(del.Released, del.ReleasedHes)
 	}
 
-	if del.LockRepoTmp.Cmp(common.Big0) > 0 {
-		del.LockRepo = new(big.Int).Add(del.LockRepo, del.LockRepoTmp)
+	if del.RestrictingPlanHes.Cmp(common.Big0) > 0 {
+		del.RestrictingPlan = new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
 	}
 
 }

@@ -577,7 +577,7 @@ func (w *worker) mainLoop() {
 				hash     = block.Hash()
 			)
 
-			core.GetReactorInstance().PrepareResult(block)
+			//core.GetReactorInstance().PrepareResult(block)
 
 			w.pendingMu.RLock()
 			_, exist := w.pendingTasks[sealhash]
@@ -1186,10 +1186,11 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		log.Error("Failed to create mining context", "err", err)
 		return
 	}
-	// TODO begin()
+	/*// TODO begin()
 	if success, err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err || !success {
 		return
-	}
+	}*/
+
 	if !noempty && "on" == w.EmptyBlock {
 		// Create an empty block based on temporary copied state for sealing in advance without waiting block
 		// execution finished.
@@ -1296,10 +1297,11 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	}
 	s := w.current.state.Copy()
 
-	// TODO end()
+	/*// TODO end()
 	if success, err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err || !success {
 		return err
-	}
+	}*/
+
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, w.current.receipts)
 	if err != nil {
 		return err
@@ -1316,7 +1318,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 			for i, tx := range block.Transactions() {
 				feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
 			}
-			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
+			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.LAT)))
 
 			log.Debug("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()), "receiptHash", block.ReceiptHash(),
 				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)))

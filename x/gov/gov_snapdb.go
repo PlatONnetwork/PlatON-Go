@@ -11,16 +11,25 @@ type GovSnapshotDB struct {
 	snapdb snapshotdb.DB
 }
 
-func NewGovSnapshotDB() *GovSnapshotDB {
-	return &GovSnapshotDB{snapdb: snapshotdb.Instance()}
+func NewGovSnapshotDB() GovSnapshotDB {
+	return GovSnapshotDB{snapdb: snapshotdb.Instance()}
+}
+func (self *GovSnapshotDB) reset() {
+	self.snapdb.Clear()
+	self.snapdb.Close()
+	self.snapdb = nil
 }
 
 func (self *GovSnapshotDB) get(blockHash common.Hash, key []byte) ([]byte, error) {
 	return self.snapdb.Get(blockHash, key)
 }
 
-func (self *GovSnapshotDB) put(blockHash common.Hash, key, value []byte) error {
-	return self.snapdb.Put(blockHash, key, value)
+func (self *GovSnapshotDB) put(blockHash common.Hash, key []byte, value interface{}) error {
+	bytes, err := rlp.EncodeToBytes(value)
+	if err != nil {
+		return err
+	}
+	return self.snapdb.Put(blockHash, key, bytes)
 }
 
 func (self *GovSnapshotDB) del(blockHash common.Hash, key []byte) error {
@@ -35,13 +44,7 @@ func (self *GovSnapshotDB) addProposalByKey(blockHash common.Hash, key []byte, p
 
 	hashes = append(hashes, proposalId)
 
-	//重新设置,在编码
-	value, err := rlp.EncodeToBytes(hashes)
-	if err != nil {
-		return err
-	}
-
-	return self.put(blockHash, key, value)
+	return self.put(blockHash, key, hashes)
 }
 
 func (self *GovSnapshotDB) getVotingIDList(blockHash common.Hash) ([]common.Hash, error) {
@@ -58,16 +61,15 @@ func (self *GovSnapshotDB) getEndIDList(blockHash common.Hash) ([]common.Hash, e
 
 func (self *GovSnapshotDB) getProposalIDListByKey(blockHash common.Hash, key []byte) ([]common.Hash, error) {
 	bytes, err := self.get(blockHash, key)
-	if err != nil {
+	if err != nil && err != snapshotdb.ErrNotFound {
 		return nil, err
 	}
-
 	var idList []common.Hash
-
-	if err = rlp.DecodeBytes(bytes, &idList); err != nil {
-		return nil, err
+	if bytes != nil {
+		if err = rlp.DecodeBytes(bytes, &idList); err != nil {
+			return nil, err
+		}
 	}
-
 	return idList, nil
 }
 
@@ -91,26 +93,21 @@ func (self *GovSnapshotDB) addVotedVerifier(blockHash common.Hash, node discover
 	if err != nil {
 		return err
 	}
-
 	nodes = append(nodes, node)
 
-	value, err := rlp.EncodeToBytes(nodes)
-	if err != nil {
-		return err
-	}
-
-	self.put(blockHash, keyPrefixVotedVerifiers, value)
-	return nil
+	return self.put(blockHash, keyPrefixVotedVerifiers, nodes)
 }
 
 func (self *GovSnapshotDB) getVotedVerifierList(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
 	value, err := self.get(blockHash, KeyVotedVerifiers(proposalId))
-	if err != nil {
+	if err != nil && err != snapshotdb.ErrNotFound {
 		return nil, err
 	}
 	var nodes []discover.NodeID
-	if err := rlp.DecodeBytes(value, &nodes); err != nil {
-		return nil, err
+	if value != nil {
+		if err := rlp.DecodeBytes(value, &nodes); err != nil {
+			return nil, err
+		}
 	}
 	return nodes, nil
 }
@@ -118,29 +115,24 @@ func (self *GovSnapshotDB) getVotedVerifierList(blockHash common.Hash, proposalI
 func (self *GovSnapshotDB) addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
 
 	nodes, err := self.getActiveNodeList(blockHash, proposalId)
-	if err != nil {
+	if err != nil && err != snapshotdb.ErrNotFound {
 		return err
 	}
-
 	nodes = append(nodes, node)
 
-	value, err := rlp.EncodeToBytes(nodes)
-	if err != nil {
-		return err
-	}
-
-	self.put(blockHash, keyPrefixActiveNodes, value)
-	return nil
+	return self.put(blockHash, KeyActiveNodes(proposalId), nodes)
 }
 
 func (self *GovSnapshotDB) getActiveNodeList(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
 	value, err := self.get(blockHash, KeyActiveNodes(proposalId))
-	if err != nil {
+	if err != nil && err != snapshotdb.ErrNotFound {
 		return nil, err
 	}
 	var nodes []discover.NodeID
-	if err := rlp.DecodeBytes(value, &nodes); err != nil {
-		return nil, err
+	if value != nil {
+		if err := rlp.DecodeBytes(value, &nodes); err != nil {
+			return nil, err
+		}
 	}
 	return nodes, nil
 }
@@ -151,25 +143,34 @@ func (self *GovSnapshotDB) deleteActiveNodeList(blockHash common.Hash, proposalI
 
 func (self *GovSnapshotDB) addTotalVerifiers(blockHash common.Hash, proposalId common.Hash, nodes []discover.NodeID) error {
 	value, err := self.get(blockHash, KeyAccuVerifier(proposalId))
-	if err != nil {
+	if err != nil && err != snapshotdb.ErrNotFound {
 		return err
 	}
-
 	var verifiers []discover.NodeID
-	if err := rlp.DecodeBytes(value, &verifiers); err != nil {
-		return err
-	}
 
+	if value != nil {
+		if err := rlp.DecodeBytes(value, &verifiers); err != nil {
+			return err
+		}
+	}
 	verifiers = append(verifiers, nodes...)
 
-	return nil
+	return self.put(blockHash, KeyAccuVerifier(proposalId), verifiers)
 }
 
 func (self *GovSnapshotDB) getAccuVerifiersLength(blockHash common.Hash, proposalId common.Hash) (uint16, error) {
 	value, err := self.get(blockHash, KeyAccuVerifier(proposalId))
-	if err != nil {
+	if err != nil && err != snapshotdb.ErrNotFound {
 		return 0, err
 	}
 
-	return uint16(len(value)), nil
+	if value != nil {
+		var verifiers []discover.NodeID
+		if err := rlp.DecodeBytes(value, &verifiers); err != nil {
+			return 0, err
+		} else {
+			return uint16(len(verifiers)), nil
+		}
+	}
+	return 0, nil
 }
