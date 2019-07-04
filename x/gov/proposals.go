@@ -8,14 +8,16 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-type ProposalType byte
+type ProposalType uint8
 
 const (
 	Text    ProposalType = 0x01
 	Version ProposalType = 0x02
 )
 
-type ProposalStatus byte
+
+
+type ProposalStatus uint8
 
 const (
 	Voting    ProposalStatus = 0x01
@@ -25,13 +27,25 @@ const (
 	Active    ProposalStatus = 0x05
 )
 
-type VoteOption byte
-
+type VoteOption uint8
 const (
-	Yes VoteOption = iota + 1
-	No
-	Abstention
+	Yes 		VoteOption =  0x01
+	No			VoteOption =  0x02
+	Abstention 	VoteOption =  0x03
 )
+
+func ParseVoteOption(option uint8) VoteOption{
+	switch option {
+	case 0x01:
+		return Yes
+	case 0x02:
+		return No
+	case 0x03:
+		return Abstention
+	}
+	return Abstention
+}
+
 
 type TallyResult struct {
 	ProposalID    common.Hash    `json:"proposalID"`

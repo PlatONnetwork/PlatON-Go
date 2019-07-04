@@ -17,6 +17,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 )
 
 func getHeader() types.Header {
@@ -104,7 +105,7 @@ func GetGovDB() (*gov.GovDB, *state.StateDB) {
 }
 
 func TestGovPlugin_BeginBlock(t *testing.T) {
-	_, statedb := GetGovDB()
+	db, statedb := GetGovDB()
 	snapdb := snapshotdb.Instance()
 	defer snapdb.Clear()
 	//create block
@@ -117,10 +118,11 @@ func TestGovPlugin_BeginBlock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("begin block err... %s", err)
 	}
+	db.Reset()
 }
 
 func TestGovPlugin_EndBlock(t *testing.T) {
-	_, statedb := GetGovDB()
+	db, statedb := GetGovDB()
 	snapdb := snapshotdb.Instance()
 	defer snapdb.Clear()
 	//create block
@@ -133,6 +135,7 @@ func TestGovPlugin_EndBlock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("end block err... %s", err)
 	}
+	db.Reset()
 }
 
 func TestGovPlugin_Submit(t *testing.T) {
@@ -171,6 +174,10 @@ func TestGovPlugin_Vote(t *testing.T) {
 	snapdb := snapshotdb.Instance()
 	defer snapdb.Clear()
 	//create block
+	if plugin.GovPluginInstance().GetActiveVersion(statedb) == 0 {
+		defaultVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+		db.SetActiveVersion(defaultVersion, statedb)
+	}
 	blockhash, e := newblock(snapdb, big.NewInt(1))
 	if e != nil {
 		t.Fatalf("create block error ...%s", e)
@@ -197,12 +204,16 @@ func TestGovPlugin_DeclareVersion(t *testing.T) {
 	//func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, version uint32, blockHash common.Hash, curBlockNum uint64, state xcom.StateDB) error {
 	sender := common.HexToAddress("0x11")
 	node := discover.NodeID{0x11}
-	_, state := GetGovDB()
-	newVersion := uint32(1792)
+	db, state := GetGovDB()
+	//newVersion := uint32(1792)
 
 	snapdb := snapshotdb.Instance()
 	defer snapdb.Clear()
 	//create block
+	if plugin.GovPluginInstance().GetActiveVersion(state) == 0 {
+		defaultVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+		db.SetActiveVersion(defaultVersion, state)
+	}
 	blockhash, e := newblock(snapdb, big.NewInt(1))
 	if e != nil {
 		t.Fatalf("create block error ...%s", e)
@@ -213,16 +224,21 @@ func TestGovPlugin_DeclareVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("begin block err... %s", err)
 	}
+	err = plugin.GovPluginInstance().Submit(99, sender, getVerProposal(), blockhash, state)
+	if err != nil {
+		t.Fatalf("submit err: %s", err)
+	}
 
-	err = plugin.GovPluginInstance().DeclareVersion(sender, node, newVersion, blockhash, 1, state)
+	err = plugin.GovPluginInstance().DeclareVersion(sender, node, getVerProposal().NewVersion, blockhash, 1, state)
 	if err != nil {
 		t.Fatalf("Declare Version err ...%s", e)
 	}
+	db.Reset()
 }
 
 func TestGovPlugin_ListProposal(t *testing.T) {
 
-	_, statedb := GetGovDB()
+	db, statedb := GetGovDB()
 	sender := common.HexToAddress("0x11")
 
 	snapdb := snapshotdb.Instance()
@@ -242,6 +258,7 @@ func TestGovPlugin_ListProposal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List Proposal err ...%s", e)
 	}
+	db.Reset()
 }
 
 func TestGovPlugin_TestVersionTally(t *testing.T) {
@@ -256,6 +273,10 @@ func TestGovPlugin_TestVersionTally(t *testing.T) {
 	snapdb := snapshotdb.Instance()
 	defer snapdb.Clear()
 	//create block
+	if plugin.GovPluginInstance().GetActiveVersion(statedb) == 0 {
+		defaultVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+		db.SetActiveVersion(defaultVersion, statedb)
+	}
 	blockHash, e := newblock(snapdb, big.NewInt(1))
 	if e != nil {
 		t.Fatalf("create block error ...%s", e)
@@ -290,6 +311,7 @@ func TestGovPlugin_TestVersionTally(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Test Tally ...%s", err)
 	}
+	db.Reset()
 }
 
 
@@ -305,6 +327,10 @@ func TestGovPlugin_TestTextTally(t *testing.T) {
 	snapdb := snapshotdb.Instance()
 	defer snapdb.Clear()
 	//create block
+	if plugin.GovPluginInstance().GetActiveVersion(statedb) == 0 {
+		defaultVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+		db.SetActiveVersion(defaultVersion, statedb)
+	}
 	blockHash, e := newblock(snapdb, big.NewInt(1))
 	if e != nil {
 		t.Fatalf("create block error ...%s", e)
@@ -339,4 +365,5 @@ func TestGovPlugin_TestTextTally(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Test Tally ...%s", err)
 	}
+	db.Reset()
 }
