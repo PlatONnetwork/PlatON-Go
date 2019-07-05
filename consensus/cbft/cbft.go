@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -33,7 +34,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -1247,9 +1248,6 @@ func (cbft *Cbft) OnNewPrepareBlock(nodeId discover.NodeID, request *prepareBloc
 		}
 		ext.view = cbft.viewChange
 		ext.viewChangeVotes = request.ViewChangeVotes
-	} else {
-		ext.view = cbft.viewChange
-		ext.viewChangeVotes = cbft.viewChangeVotes.Flatten()
 	}
 
 	switch cbft.AcceptPrepareBlock(request) {
@@ -1415,7 +1413,7 @@ func (cbft *Cbft) sendPrepareVote(ext *BlockExt) {
 	}
 	if err == nil {
 		pv := &prepareVote{
-			Timestamp:      ext.view.Timestamp,
+			Timestamp:      ext.timestamp,
 			Hash:           ext.block.Hash(),
 			Number:         ext.block.NumberU64(),
 			ValidatorIndex: uint32(validator.Index),
