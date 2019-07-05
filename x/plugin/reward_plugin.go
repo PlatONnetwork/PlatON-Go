@@ -77,14 +77,14 @@ func (rmp *rewardMgrPlugin) Confirmed(block *types.Block) error {
 func (rmp *rewardMgrPlugin) increaseIssuance(year uint32, state xcom.StateDB) error {
 	var rate *big.Int
 
-	hisIssuance := GetLatestCumulativeIssue(state)
+	histIssuance := GetLatestCumulativeIssue(state)
 
-	currIssuance := hisIssuance.Div(hisIssuance, rate.SetUint64(40))
+	currIssuance := histIssuance.Div(histIssuance, rate.SetUint64(40))
 	develop := currIssuance.Div(currIssuance, rate.SetUint64(5))
 	rewards := currIssuance.Sub(currIssuance, develop)
 
-	hisIssuance = hisIssuance.Add(hisIssuance, currIssuance)
-	SetYearEndCumulativeIssue(state, year, hisIssuance)
+	histIssuance = histIssuance.Add(histIssuance, currIssuance)
+	SetYearEndCumulativeIssue(state, year, histIssuance)
 
 	state.AddBalance(vm.CommunityDeveloperFoundation, develop)
 	state.AddBalance(vm.RewardManagerPoolAddr, rewards)
@@ -94,10 +94,14 @@ func (rmp *rewardMgrPlugin) increaseIssuance(year uint32, state xcom.StateDB) er
 
 // rewardStaking used for reward staking at the settle block
 func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, state xcom.StateDB) error {
+	blockHash := head.Hash()
+	blockNumber := head.Number.Uint64()
 
-	// stakingPlugin.GetVerifierList()
-
-	var list []*staking.Candidate
+	list, err := StakingInstance().GetVerifierList(blockHash, blockNumber, false)
+	if err != nil {
+		log.Debug("get verifier list failed in rewardStaking", "hash", blockHash, "blockNumber", blockNumber)
+		return err
+	}
 
 	for index := 0; index < len(list); index++ {
 		addr := list[index].BenifitAddress
@@ -179,8 +183,8 @@ func GetLatestCumulativeIssue(state xcom.StateDB) *big.Int {
 func GetHistoryCumulativeIssue(state xcom.StateDB, year uint32) *big.Int {
 	var issue *big.Int
 
-	hisIncreaseKey := reward.GetHistoryIncreaseKey(year)
-	bIssue := state.GetState(vm.RewardManagerPoolAddr, hisIncreaseKey)
+	histIncreaseKey := reward.GetHistoryIncreaseKey(year)
+	bIssue := state.GetState(vm.RewardManagerPoolAddr, histIncreaseKey)
 
 	return issue.SetBytes(bIssue)
 }
