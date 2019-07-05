@@ -152,6 +152,8 @@ func setup(t *testing.T) func() {
 	gc.Evm = newEvm(blockNumber, blockHash, nil)
 	gc.Contract = newContract(common.Big0)
 
+	newPlugins()
+
 	govPlugin = plugin.GovPluginInstance()
 	gc.Plugin = govPlugin
 
@@ -159,7 +161,6 @@ func setup(t *testing.T) func() {
 
 	snapdb = snapshotdb.Instance()
 
-	plugin.StakingInstance()
 
 	return func() {
 		t.Log("tear down()......")
