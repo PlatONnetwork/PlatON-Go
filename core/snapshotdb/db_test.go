@@ -67,7 +67,11 @@ func TestRecover(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		recognized = dbInstance.recognized[generateHash("recognizedHash4")]
+		rg, ok := dbInstance.recognized.Load(generateHash("recognizedHash4"))
+		if !ok {
+			t.Error("not found recognizedHash4")
+		}
+		recognized = rg.(blockData)
 		parenthash = commitHash
 	}
 	{
@@ -142,9 +146,14 @@ func TestRecover(t *testing.T) {
 		recognized,
 		commit,
 	}
+	rg, ok := dbInstance.recognized.Load(generateHash("recognizedHash4"))
+	if !ok {
+		t.Error("recognizedHash4 not found")
+	}
+	rg2 := rg.(blockData)
 	newarr := []blockData{
 		*dbInstance.unRecognized,
-		dbInstance.recognized[generateHash("recognizedHash4")],
+		rg2,
 		dbInstance.committed[0],
 	}
 
@@ -293,7 +302,13 @@ func TestRMOldRecognizedBlockData(t *testing.T) {
 	if err := dbInstance.rmOldRecognizedBlockData(); err != nil {
 		t.Error(err)
 	}
-	if len(dbInstance.recognized) != 0 {
+	var i int
+	dbInstance.recognized.Range(
+		func(key, value interface{}) bool {
+			i++
+			return true
+		})
+	if i != 0 {
 		t.Error("not rm old data")
 	}
 }

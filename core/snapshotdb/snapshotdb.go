@@ -31,8 +31,12 @@ const (
 //  new a unrecognized blockData(a block produce by self)
 //  dbInstance.NewBlock(blockNumber, parentHash, common.ZeroHash)
 //  dbInstance.Put(hash, kv.key, kv.value)
-//  dbInstance.Flush(hash common.Hash, blockNumber *big.Int) error
+//  dbInstance.Flush(hash common.Hash, blockNumber *big.Int)
 //  dbInstance.Commit(hash)
+//  get a  blockData with hash
+//  dbInstance.Get(hash, key)
+//  get a  blockData without hash
+//  dbInstance.Get(common.zerohash, key)
 type DB interface {
 	Put(hash common.Hash, key, value []byte) error
 	NewBlock(blockNumber *big.Int, parentHash common.Hash, hash common.Hash) error
@@ -44,8 +48,18 @@ type DB interface {
 	Ranking(hash common.Hash, key []byte, ranges int) iterator.Iterator
 	WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error
 	Commit(hash common.Hash) error
+
+	// Clear close db , remove all db file,set dbInstance nil
 	Clear() error
+
 	PutBaseDB(key, value []byte) error
+
+	// WriteBaseDB apply the given [][2][]byte to the baseDB.
+	WriteBaseDB(kvs [][2][]byte) error
+
+	//SetCurrent use for fast sync
+	SetCurrent(highestHash common.Hash, base, height big.Int) error
+
 	DelBaseDB(key []byte) error
 	GetLastKVHash(blockHash common.Hash) []byte
 	BaseNum() (*big.Int, error)
@@ -65,6 +79,9 @@ var (
 
 	//ErrNotFound when db not found
 	ErrNotFound = errors.New("snapshotDB: not found")
+
+	//ErrDBNotInit when db  not init
+	ErrDBNotInit = errors.New("snapshotDB: not init")
 )
 
 type snapshotDB struct {
@@ -79,7 +96,7 @@ type snapshotDB struct {
 	unRecognized     *blockData
 	unRecognizedLock sync.RWMutex
 
-	recognized map[common.Hash]blockData
+	recognized sync.Map
 
 	committed  []blockData
 	commitLock sync.RWMutex
@@ -100,6 +117,7 @@ func SetDBPath(ctx *node.ServiceContext) {
 //Instance return the Instance of the db
 func Instance() DB {
 	if dbInstance == nil || dbInstance.closed {
+		logger.Debug("dbInstance is nil")
 		if err := initDB(); err != nil {
 			logger.Error(fmt.Sprint("init db fail"), err)
 			panic(err)
@@ -107,6 +125,19 @@ func Instance() DB {
 		}
 	}
 	return dbInstance
+}
+
+// New  create a new snapshotDB,will clear old snapshotDB data
+func New() (DB, error) {
+	if dbInstance != nil {
+		if err := dbInstance.Clear(); err != nil {
+			return nil, err
+		}
+	}
+	if err := initDB(); err != nil {
+		return nil, errors.New("init db fail:" + err.Error())
+	}
+	return dbInstance, nil
 }
 
 func initDB() error {
@@ -144,6 +175,27 @@ func initDB() error {
 	}
 	dbInstance.corn.Start()
 	return err
+}
+
+func (s *snapshotDB) WriteBaseDB(kvs [][2][]byte) error {
+	batch := new(leveldb.Batch)
+	for _, value := range kvs {
+		batch.Put(value[0], value[1])
+	}
+	if err := s.baseDB.Write(batch, nil); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *snapshotDB) SetCurrent(highestHash common.Hash, base, height big.Int) error {
+	s.current.HighestNum = &height
+	s.current.BaseNum = &base
+	s.current.HighestHash = highestHash
+	if err := s.current.update(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetCommittedBlock    get value from committed blockdata > baseDB
@@ -191,11 +243,12 @@ func (s *snapshotDB) GetLastKVHash(blockHash common.Hash) []byte {
 	if blockHash == common.ZeroHash {
 		return s.unRecognized.kvHash.Bytes()
 	}
-	block, ok := s.recognized[blockHash]
+	block, ok := s.recognized.Load(blockHash)
 	if !ok {
 		return nil
 	}
-	return block.kvHash.Bytes()
+	b := block.(blockData)
+	return b.kvHash.Bytes()
 }
 
 // Del del key,val from  snapshotDB
@@ -293,7 +346,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 		if err := s.writeJournalHeader(blockNumber, hash, parentHash, journalHeaderFromRecognized); err != nil {
 			return fmt.Errorf("[SnapshotDB] write Journal Header fail:%v", err)
 		}
-		s.recognized[hash] = *block
+		s.recognized.Store(hash, *block)
 	}
 	return nil
 }
@@ -339,7 +392,8 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 
 func (s *snapshotDB) getFromRecognized(hash common.Hash, key []byte) ([]byte, error) {
 	for {
-		if block, ok := s.recognized[hash]; ok {
+		if b, ok := s.recognized.Load(hash); ok {
+			block := b.(blockData)
 			if hash == block.ParentHash {
 				return nil, errors.New("getFromRecognized loop error")
 			}
@@ -410,10 +464,13 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	if s.unRecognized == nil {
 		return errors.New("[snapshotdb]the unRecognized is nil, can't flush")
 	}
+	if s.unRecognized.Number == nil {
+		return errors.New("[snapshotdb]the unRecognized Number is nil, can't flush")
+	}
 	if blocknumber.Int64() != s.unRecognized.Number.Int64() {
 		return errors.New("[snapshotdb]blocknumber not compare the unRecognized blocknumber")
 	}
-	if _, ok := s.recognized[hash]; ok {
+	if _, ok := s.recognized.Load(hash); ok {
 		return errors.New("the hash is exist in recognized data")
 	}
 	currentHash := s.getUnRecognizedHash()
@@ -429,7 +486,7 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	}
 	s.unRecognized.BlockHash = hash
 	s.unRecognized.readOnly = true
-	s.recognized[hash] = *s.unRecognized
+	s.recognized.Store(hash, *s.unRecognized)
 
 	s.unRecognized = nil
 	return nil
@@ -439,26 +496,26 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 func (s *snapshotDB) Commit(hash common.Hash) error {
 	s.commitLock.Lock()
 	defer s.commitLock.Unlock()
-	block, ok := s.recognized[hash]
+	b, ok := s.recognized.Load(hash)
 	if !ok {
 		return errors.New("[snapshotdb]not found from commit block:" + hash.String())
-
 	}
+	block := b.(blockData)
 	if s.current.HighestNum.Cmp(block.Number) >= 0 {
 		return fmt.Errorf("[snapshotdb]the commit block num  %v is less or eq than HighestNum %v", block.Number, s.current.HighestNum)
 	}
 	if (block.Number.Int64() - s.current.HighestNum.Int64()) != 1 {
 		return fmt.Errorf("[snapshotdb]the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
 	}
-	if s.current.LastHash != common.ZeroHash {
-		if block.ParentHash != s.current.LastHash {
-			return fmt.Errorf("[snapshotdb]the commit block ParentHash %v not eq LastHash of commit hash %v ", block.ParentHash.String(), s.current.LastHash.String())
+	if s.current.HighestHash != common.ZeroHash {
+		if block.ParentHash != s.current.HighestHash {
+			return fmt.Errorf("[snapshotdb]the commit block ParentHash %v not eq HighestHash of commit hash %v ", block.ParentHash.String(), s.current.HighestHash.String())
 		}
 	}
 	block.readOnly = true
 	s.committed = append(s.committed, block)
 	s.current.HighestNum = block.Number
-	s.current.LastHash = hash
+	s.current.HighestHash = hash
 	if err := s.current.update(); err != nil {
 		return errors.New("[snapshotdb]update current fail:" + err.Error())
 	}
@@ -466,7 +523,7 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	if err := s.closeJournalWriter(hash); err != nil {
 		return err
 	}
-	delete(s.recognized, hash)
+	s.recognized.Delete(hash)
 	if err := s.rmOldRecognizedBlockData(); err != nil {
 		return err
 	}
@@ -474,6 +531,9 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 }
 
 func (s *snapshotDB) BaseNum() (*big.Int, error) {
+	if s.current == nil {
+		return nil, errors.New("current is nil")
+	}
 	return s.current.BaseNum, nil
 }
 
@@ -510,6 +570,7 @@ func (s *snapshotDB) Clear() error {
 	if err := os.RemoveAll(s.path); err != nil {
 		return err
 	}
+	s = nil
 	return nil
 }
 
@@ -543,7 +604,8 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 		switch location {
 		case hashLocationRecognized:
 			for {
-				if block, ok := s.recognized[parentHash]; ok {
+				if b, ok := s.recognized.Load(parentHash); ok {
+					block := b.(blockData)
 					itrs = append(itrs, block.data.NewIterator(prefix))
 					parentHash = block.ParentHash
 				} else {
@@ -571,7 +633,8 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 			parentHash = s.unRecognized.ParentHash
 		}
 		for {
-			if block, ok := s.recognized[parentHash]; ok {
+			if b, ok := s.recognized.Load(parentHash); ok {
+				block := b.(blockData)
 				itrs = append(itrs, block.data.NewIterator(prefix))
 				parentHash = block.ParentHash
 			} else {
