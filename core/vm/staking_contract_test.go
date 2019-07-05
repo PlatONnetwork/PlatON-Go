@@ -2,6 +2,7 @@ package vm_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -226,7 +227,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 	}else {
 
 		var r xcom.Result
-		err = rlp.DecodeBytes(res, &r)
+		err = json.Unmarshal(res, &r)
 		if nil != err {
 			fmt.Println(err)
 		}
@@ -279,10 +280,11 @@ func TestStakingContract_getCandidaateList(t *testing.T) {
 
 
 	for i:= 0; i < 2; i++ {
-		create_staking(blockNumber, blockHash, state, 1, t)
+		create_staking(blockNumber, blockHash, state, i, t)
 	}
 
 	sndb.Commit(blockHash)
+	sndb.Compaction()
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
@@ -290,7 +292,7 @@ func TestStakingContract_getCandidaateList(t *testing.T) {
 
 
 	for i:= 2; i < 4; i++ {
-		create_staking(blockNumber2, blockHash2, state, 1, t)
+		create_staking(blockNumber2, blockHash2, state, i, t)
 	}
 
 
@@ -321,7 +323,7 @@ func TestStakingContract_getCandidaateList(t *testing.T) {
 	}else {
 
 		var r xcom.Result
-		err = rlp.DecodeBytes(res, &r)
+		err = json.Unmarshal(res, &r)
 		if nil != err {
 			fmt.Println(err)
 		}
