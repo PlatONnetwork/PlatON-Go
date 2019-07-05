@@ -692,13 +692,13 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 }
 
 func (stkc *StakingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash common.Hash, eventType, eventData, callFn string) {
-	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, txHash, eventType, eventData)
+	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
 	log.Info("flaged to "+callFn+" of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber, "json: ", eventData)
 }
 
 func (stkc *StakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash common.Hash, eventType, eventData, callFn string) {
-	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, txHash, eventType, eventData)
+	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
 	log.Debug("Failed to "+callFn+" of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber, "json: ", eventData)
 }
