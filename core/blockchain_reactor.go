@@ -80,19 +80,19 @@ func (brc *BlockChainReactor) loop() {
 			/**
 			TODO Maybe notify P2P module the nodeId of the next round validator
 			*/
-			if plugin, ok := brc.basePluginMap[xcom.StakingRule]; ok {
+			/*if plugin, ok := brc.basePluginMap[xcom.StakingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Staking Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
 
-			}
+			}*/
 
-			// TODO Slashing
+			/*// TODO Slashing
 			if plugin, ok := brc.basePluginMap[xcom.SlashingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Slashing Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
 				}
-			}
+			}*/
 
 			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
 				log.Error("snapshotDB Commit failed", "err", err)

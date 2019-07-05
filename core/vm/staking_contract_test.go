@@ -30,9 +30,9 @@ func create_staking (stakingContract *vm.StakingContract, staking, name string, 
 	benifitAddress, _ := rlp.EncodeToBytes(addrArr[index])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
-	nodeName, _ := rlp.EncodeToBytes("PlatON, China")
-	website, _ := rlp.EncodeToBytes("https://www.platon.network")
-	details, _ := rlp.EncodeToBytes("platon super node")
+	nodeName, _ := rlp.EncodeToBytes(name + ", China")
+	website, _ := rlp.EncodeToBytes("https://www."+name+".network")
+	details, _ := rlp.EncodeToBytes(name+" super node")
 	StakeThreshold, _ := new(big.Int).SetString(staking, 10) // "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	processVersion, _ := rlp.EncodeToBytes(initProcessVersion)
@@ -114,7 +114,7 @@ func TestStakingContract_createStaking(t *testing.T) {
 	if err := sndb.NewBlock(blockNumer, common.ZeroHash, blockHash); nil != err {
 		fmt.Println("newBlock err", err)
 	}
-	create_staking(stakingContract, t)
+	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
 }
 
 
@@ -139,7 +139,7 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 	if err := sndb.NewBlock(blockNumer, common.ZeroHash, blockHash); nil != err {
 		fmt.Println("newBlock err", err)
 	}
-	create_staking(stakingContract, t)
+	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
 
 	// edit
 	var params [][]byte
@@ -212,7 +212,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 	if err := sndb.NewBlock(blockNumer, common.ZeroHash, blockHash); nil != err {
 		fmt.Println("newBlock err", err)
 	}
-	create_staking(stakingContract, t)
+	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
 	sndb.Commit(blockHash)
 	//sndb.Compaction()
 
@@ -273,7 +273,9 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 
 
 
+func TestStakingContract_(t *testing.T) {
 
+}
 
 func TestStakingContract_cleanSnapshotDB(t *testing.T) {
 	sndb := snapshotdb.Instance()
