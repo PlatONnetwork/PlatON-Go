@@ -46,6 +46,8 @@ const (
 
 	QueryStartIrr = true
 	QueryStartNotIrr = false
+	
+
 
 )
 
@@ -911,7 +913,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [4]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{

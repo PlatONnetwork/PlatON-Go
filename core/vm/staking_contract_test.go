@@ -101,17 +101,15 @@ func TestStakingContract_createStaking(t *testing.T) {
 	stakingContract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	  newEvm(),
+		Evm:	  newEvm(blockNumber, blockHash, nil),
 	}
-
-	fmt.Println("sender:", sender.Hex())
-	//var govPlugin *plugin.GovPlugin
 
 	newPlugins()
 
+
 	sndb := snapshotdb.Instance()
 
-	if err := sndb.NewBlock(blockNumer, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		fmt.Println("newBlock err", err)
 	}
 	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
@@ -126,17 +124,14 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 	stakingContract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	  newEvm(),
+		Evm:	  newEvm(blockNumber, blockHash, nil),
 	}
-
-	fmt.Println("sender:", sender.Hex())
-	//var govPlugin *plugin.GovPlugin
 
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
 
-	if err := sndb.NewBlock(blockNumer, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		fmt.Println("newBlock err", err)
 	}
 	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
@@ -199,17 +194,14 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 	stakingContract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	  newEvm(),
+		Evm:	  newEvm(blockNumber, blockHash, nil),
 	}
-
-	fmt.Println("sender:", sender.Hex())
-	//var govPlugin *plugin.GovPlugin
 
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
 
-	if err := sndb.NewBlock(blockNumer, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		fmt.Println("newBlock err", err)
 	}
 	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
@@ -273,7 +265,58 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 
 
 
-func TestStakingContract_(t *testing.T) {
+func TestStakingContract_batchCreateStaking(t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+	stakingContract := &vm.StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0),
+		Evm:	  newEvm(blockNumber, blockHash, nil),
+	}
+
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		fmt.Println("newBlock err", err)
+	}
+
+	for i:= 0; i < 4; i++ {
+		create_staking(stakingContract, "1000000000000000000000000", "platon", i, t)
+	}
+
+}
+
+func TestStakingContract_getCandidaateList(t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+	stakingContract := &vm.StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0),
+		Evm:	 newEvm(blockNumber, blockHash, nil),
+	}
+
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
+	}
+
+	for i:= 0; i < 2; i++ {
+		create_staking(stakingContract, "1000000000000000000000000", "platon", i, t)
+	}
+
+	sndb.Commit(blockHash)
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
+	}
+
 
 }
 

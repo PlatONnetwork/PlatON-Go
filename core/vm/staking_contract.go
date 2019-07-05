@@ -113,7 +113,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	log.Info("Call createStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
 
-	// MOCK
+	//  TODO  MOCK
 	return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
 		externalId, nodeName, website, details, amount, processVersion)
 
@@ -565,7 +565,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 
 func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 
-	// MOCK
+	//  TODO  MOCK
 	return stkc.getVerifierListMock()
 
 	arr, err := stkc.Plugin.GetVerifierList(common.ZeroHash, common.Big0.Uint64(), plugin.QueryStartIrr)
@@ -644,7 +644,7 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, addr common
 
 func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, error) {
 
-	//// MOCK
+	////  TODO  MOCK
 	//return stkc.getCandidateInfoMock()
 
 	addr, err := xutil.NodeId2Addr(nodeId)
