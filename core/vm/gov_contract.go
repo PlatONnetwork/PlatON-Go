@@ -204,7 +204,7 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 
 	proposal, err := gc.Plugin.GetProposal(proposalID, gc.Evm.StateDB)
 
-	return gc.returnHandler(rlpEncodeProposal(proposal), err, GetProposalErrorMsg)
+	return gc.returnHandler(proposal, err, GetProposalErrorMsg)
 }
 
 
@@ -232,7 +232,7 @@ func (gc *GovContract) listProposal() ([]byte, error) {
 
 	proposalList, err := gc.Plugin.ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
 
-	return gc.returnHandler(rlpEncodeProposalList(proposalList), err, ListProposalErrorMsg)
+	return gc.returnHandler(proposalList, err, ListProposalErrorMsg)
 }
 
 
@@ -266,7 +266,7 @@ func  (gc *GovContract) returnHandler(resultValue interface{}, err error, errorM
 		res := xcom.Result{false, "", err.Error()}
 		return common.MustRlpEncode(res), nil
 	}
-	res := xcom.Result{true, string(jsonByte), "ok"}
+	res := xcom.Result{true, string(jsonByte), ""}
 	return common.MustRlpEncode(res), nil
 }
 
