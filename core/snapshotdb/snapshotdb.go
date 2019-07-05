@@ -127,19 +127,6 @@ func Instance() DB {
 	return dbInstance
 }
 
-// New  create a new snapshotDB,will clear old snapshotDB data
-func New() (DB, error) {
-	if dbInstance != nil {
-		if err := dbInstance.Clear(); err != nil {
-			return nil, err
-		}
-	}
-	if err := initDB(); err != nil {
-		return nil, errors.New("init db fail:" + err.Error())
-	}
-	return dbInstance, nil
-}
-
 func initDB() error {
 	s, err := openFile(dbpath, false)
 	if err != nil {
@@ -629,8 +616,10 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 		}
 	} else {
 		if s.unRecognized != nil {
-			itrs = append(itrs, s.unRecognized.data.NewIterator(prefix))
-			parentHash = s.unRecognized.ParentHash
+			if s.unRecognized.data != nil {
+				itrs = append(itrs, s.unRecognized.data.NewIterator(prefix))
+				parentHash = s.unRecognized.ParentHash
+			}
 		}
 		for {
 			if b, ok := s.recognized.Load(parentHash); ok {
