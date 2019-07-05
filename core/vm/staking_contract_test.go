@@ -2,7 +2,6 @@ package vm_test
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -10,7 +9,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 	"testing"
@@ -213,7 +211,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 	params := make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1105))
-	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[1])
 
 	params = append(params, fnType)
 	params = append(params, nodeId)
@@ -239,24 +237,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 		}
 
 		if r.Status {
-			dbyte, err := rlp.EncodeToBytes(r.Data)
-
-			if nil != err {
-				t.Error("rlp encode r.Data failed", err)
-			}else {
-
-				var c staking.Candidate
-
-				if err = rlp.DecodeBytes(dbyte, &c); nil!= err {
-					t.Error("decode failed", err)
-				}else {
-
-					rbyte, _ := json.Marshal(c)
-
-					t.Log("", string(rbyte))
-
-				}
-			}
+			t.Log("the Candidate info:", r.Data)
 		}else {
 			t.Error("getCandidate failed", r.ErrMsg)
 		}
@@ -293,12 +274,13 @@ func TestStakingContract_getCandidaateList(t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
+	state, _ := newChainState()
 	stakingContract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber, blockHash, nil),
+		Evm:	 newEvm(blockNumber, blockHash, state),
 	}
-
+	//state.Prepare(txHashArr[idx], blockHash, idx)
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -316,6 +298,13 @@ func TestStakingContract_getCandidaateList(t *testing.T) {
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 	}
+
+	//stakingContract2 := &vm.StakingContract{
+	//	Plugin:   plugin.StakingInstance(),
+	//	Contract: newContract(common.Big0),
+	//	Evm:	 newEvm(blockNumber2, blockHash2, state),
+	//}
+
 
 
 }

@@ -114,8 +114,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
 
 	//  TODO  MOCK
-	return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
-		externalId, nodeName, website, details, amount, processVersion)
+	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
+	//	externalId, nodeName, website, details, amount, processVersion)
 
 	if amount.Cmp(common.Big0) <= 0 {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
@@ -575,7 +575,13 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
-	res := xcom.Result{true, arr, "ok"}
+	jsonByte, err := json.Marshal(arr)
+	if nil != err {
+		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
+		data, _ := rlp.EncodeToBytes(res)
+		return data, nil
+	}
+	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := rlp.EncodeToBytes(res)
 	return data, nil
 }
@@ -603,7 +609,13 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 		return data, nil
 	}
 
-	res := xcom.Result{true, arr, "ok"}
+	jsonByte, err := json.Marshal(arr)
+	if nil != err {
+		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
+		data, _ := rlp.EncodeToBytes(res)
+		return data, nil
+	}
+	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := rlp.EncodeToBytes(res)
 	return data, nil
 }
@@ -617,7 +629,13 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
-	res := xcom.Result{true, arr, "ok"}
+	jsonByte, err := json.Marshal(arr)
+	if nil != err {
+		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ": " + err.Error()}
+		data, _ := rlp.EncodeToBytes(res)
+		return data, nil
+	}
+	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := rlp.EncodeToBytes(res)
 	return data, nil
 }
@@ -637,7 +655,13 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, addr common
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
-	res := xcom.Result{true, del, "ok"}
+	jsonByte, err := json.Marshal(del)
+	if nil != err {
+		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
+		data, _ := rlp.EncodeToBytes(res)
+		return data, nil
+	}
+	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := rlp.EncodeToBytes(res)
 	return data, nil
 }
@@ -659,7 +683,13 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 		data, _ := rlp.EncodeToBytes(res)
 		return data, nil
 	}
-	res := xcom.Result{true, can, "ok"}
+	jsonByte, err := json.Marshal(can)
+	if nil != err {
+		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
+		data, _ := rlp.EncodeToBytes(res)
+		return data, nil
+	}
+	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := rlp.EncodeToBytes(res)
 
 	return data, nil
@@ -747,7 +777,13 @@ func (stkc *StakingContract) getVerifierListMock() ([]byte, error) {
 		queue = append(queue, valEx)
 	}
 
-	res := xcom.Result{true, queue, "success"}
+	jsonByte, err := json.Marshal(queue)
+	if nil != err {
+		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
+		data, _ := rlp.EncodeToBytes(res)
+		return data, nil
+	}
+	res := xcom.Result{true, string(jsonByte), "ok"}
 	data, _ := rlp.EncodeToBytes(res)
 	return data, nil
 }

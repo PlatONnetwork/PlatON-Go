@@ -261,7 +261,12 @@ func  (gc *GovContract) returnHandler(resultValue interface{}, err error, errorM
 		res := xcom.Result{false, "", errorMsg + ":" + err.Error()}
 		return common.MustRlpEncode(res), nil
 	}
-	res := xcom.Result{true, resultValue, ""}
+	jsonByte, err := json.Marshal(resultValue)
+	if nil != err {
+		res := xcom.Result{false, "", err.Error()}
+		return common.MustRlpEncode(res), nil
+	}
+	res := xcom.Result{true, string(jsonByte), "ok"}
 	return common.MustRlpEncode(res), nil
 }
 

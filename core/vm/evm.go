@@ -50,16 +50,17 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 		if p := precompiles[*contract.CodeAddr]; p != nil {
 			return RunPrecompiledContract(p, input, contract)
 		}
-		if p := PrecompiledContracts[*contract.CodeAddr]; p != nil {
-			vic := &validatorInnerContract{
-				Contract: contract,
-				Evm:      evm,
-			}
-			return RunPrecompiledContract(vic, input, contract)
-		}
 
 		if p := PlatONPrecompiledContracts[*contract.CodeAddr]; p != nil {
 			switch p.(type) {
+
+			case *validatorInnerContract:
+				vic := &validatorInnerContract{
+					Contract: contract,
+					Evm:      evm,
+				}
+				return RunPrecompiledContract(vic, input, contract)
+
 			case *StakingContract:
 				staking := &StakingContract{
 					Plugin:   plugin.StakingInstance(),
@@ -69,30 +70,27 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 				return RunPlatONPrecompiledContract(staking, input, contract)
 			case *restrictingContract:
 				restricting := &restrictingContract{
-					plugin  : plugin.RestrictingInstance(),
+					plugin:   plugin.RestrictingInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}
 				return RunPlatONPrecompiledContract(restricting, input, contract)
 			case *slashingContract:
 				slashing := &slashingContract{
-					plugin: 	plugin.SlashInstance(),
-					Contract: 	contract,
-					Evm: 		evm,
+					plugin:   plugin.SlashInstance(),
+					Contract: contract,
+					Evm:      evm,
 				}
 				return RunPlatONPrecompiledContract(slashing, input, contract)
 			case *GovContract:
 				govContract := &GovContract{
-					Plugin  : plugin.GovPluginInstance(),
+					Plugin:   plugin.GovPluginInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}
 				return RunPlatONPrecompiledContract(govContract, input, contract)
 			}
 		}
-
-
-
 
 	}
 
@@ -134,7 +132,7 @@ type Context struct {
 	Time        *big.Int       // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY
 
-	BlockHash common.Hash  		// Only, the value will be available after the current block has been sealed.
+	BlockHash common.Hash // Only, the value will be available after the current block has been sealed.
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -234,7 +232,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	if !evm.StateDB.Exist(addr) {
 		precompiles := PrecompiledContractsHomestead
 
-		if precompiles[addr] == nil && PrecompiledContracts[addr] == nil && PlatONPrecompiledContracts[addr] == nil && value.Sign() == 0 {
+		if precompiles[addr] == nil && PlatONPrecompiledContracts[addr] == nil && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
 				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)

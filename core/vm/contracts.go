@@ -67,12 +67,9 @@ var PrecompiledContractsByzantium = map[common.Address]PrecompiledContract{
 
 
 
-var PrecompiledContracts = map[common.Address]PrecompiledContract{
+var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
 	vm.ValidatorInnerContractAddr: &validatorInnerContract{},
-}
-
-// add by economic model
-var PlatONPrecompiledContracts = map[common.Address]PlatONPrecompiledContract{
+	// add by economic model
 	vm.StakingContractAddr: &StakingContract{},
 	vm.RestrictingContractAddr: &restrictingContract{},
 	vm.SlashingContractAddr: &slashingContract{},

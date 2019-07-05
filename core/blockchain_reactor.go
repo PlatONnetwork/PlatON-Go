@@ -198,13 +198,17 @@ func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, from common.Addre
 	var contract vm.PlatONPrecompiledContract
 	switch from {
 	case cvm.StakingContractAddr:
-		contract = vm.PlatONPrecompiledContracts[cvm.StakingContractAddr]
+		c := vm.PlatONPrecompiledContracts[cvm.StakingContractAddr]
+		contract = c.(vm.PlatONPrecompiledContract)
 	case cvm.RestrictingContractAddr:
-		contract = vm.PlatONPrecompiledContracts[cvm.RestrictingContractAddr]
+		c := vm.PlatONPrecompiledContracts[cvm.RestrictingContractAddr]
+		contract = c.(vm.PlatONPrecompiledContract)
 	case cvm.RewardManagerPoolAddr:
-		contract = vm.PlatONPrecompiledContracts[cvm.RewardManagerPoolAddr]
+		c := vm.PlatONPrecompiledContracts[cvm.RewardManagerPoolAddr]
+		contract = c.(vm.PlatONPrecompiledContract)
 	case cvm.SlashingContractAddr:
-		contract = vm.PlatONPrecompiledContracts[cvm.SlashingContractAddr]
+		c := vm.PlatONPrecompiledContracts[cvm.SlashingContractAddr]
+		contract = c.(vm.PlatONPrecompiledContract)
 	}
 	_, _, err = plugin.Verify_tx_data(input, contract.FnSigns())
 	return
