@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -14,6 +15,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"math/big"
+	"sort"
+	"strconv"
 	"sync"
 )
 
@@ -34,6 +37,7 @@ var (
 	VonAmountNotRight		   = common.NewBizError("The amount of von is not right")
 	CandidateNotExist 		   = common.NewBizError("The candidate is not exist")
 	ValidatorNotExist 		   = common.NewBizError("The validator is not exist")
+	ElectionErr				   = common.NewBizError("Election failure")
 )
 
 const (
@@ -2123,4 +2127,107 @@ func CheckStakeThreshold(stake *big.Int) bool {
 
 func CheckDelegateThreshold(delegate *big.Int) bool {
 	return delegate.Cmp(xcom.DelegateThreshold) >= 0
+}
+
+type sortValidator struct {
+	v			*staking.Validator
+	x			int
+	weight		int
+	version		uint32
+	blockNumber	uint64
+	txIndex		uint32
+}
+
+type sortValidators []*sortValidator
+
+func (svs sortValidators) Len() int {
+	return len(svs)
+}
+
+func (svs sortValidators) Less(i, j int) bool {
+	if svs[i].version == svs[j].version {
+		if svs[i].x == svs[j].x {
+			if svs[i].blockNumber == svs[j].blockNumber {
+				if svs[i].txIndex == svs[j].txIndex {
+					return false
+				} else {
+					return svs[i].txIndex > svs[j].txIndex
+				}
+			} else {
+				return svs[i].blockNumber > svs[j].blockNumber
+			}
+		} else {
+			return svs[i].x > svs[j].x
+		}
+	} else {
+		return svs[i].version > svs[j].version
+	}
+}
+
+func (svs sortValidators) Swap(i, j int) {
+	svs[i], svs[j] = svs[j], svs[i]
+}
+
+func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueue, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
+	if len(currentNonce) == 0 || len(preNonces) == 0 || len(validatorList) != len(preNonces) {
+		log.Error("probabilityElection failed", "validatorListSize", len(validatorList), "currentNonceSize", len(preNonces), "preNoncesSize", len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum)
+		return nil, ParamsErr
+	}
+	sumWeights := new(big.Int)
+	svList := make(sortValidators, 0)
+	for _, validator := range validatorList {
+		weights, err := validator.GetShares()
+		if nil != err {
+			return nil, ElectionErr
+		}
+		sumWeights.Add(sumWeights, weights)
+		version, err := validator.GetProcessVersion()
+		if nil != err {
+			return nil, err
+		}
+		blockNumber, err := validator.GetStakingBlockNumber()
+		if nil != err {
+			return nil, err
+		}
+		txIndex, err := validator.GetStakingTxIndex()
+		sv := &sortValidator{
+			v:validator,
+			weight:int(weights.Uint64()),
+			version:version,
+			blockNumber:blockNumber,
+			txIndex:txIndex,
+		}
+		svList = append(svList, sv)
+	}
+	var maxValue float64 = (1 << 256) - 1
+	sumWeightsFloat, err := strconv.ParseFloat(sumWeights.Text(10), 64)
+	if nil != err {
+		return nil, err
+	}
+	p := float64(len(validatorList)) * float64(xcom.ShiftValidatorNum) / sumWeightsFloat
+	log.Info("probabilityElection Basic parameter", "validatorListSize", len(validatorList), "p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", xcom.ShiftValidatorNum, "epochValidatorNum", xcom.EpochValidatorNum)
+	for index, sv := range svList {
+		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(currentNonce), new(big.Int).SetBytes(preNonces[index])).Text(10)
+		target, err := strconv.ParseFloat(resultStr, 64)
+		if nil != err {
+			return nil, err
+		}
+		targetP := target / maxValue
+		bd :=  xcom.NewBinomialDistribution(sv.weight, p)
+		x, err := bd.InverseCumulativeProbability(targetP)
+		if nil != err {
+			return nil, err
+		}
+		sv.x = x
+		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()), "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce", hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]), "target", target, "targetP", targetP, "weight", sv.weight, "x", x, "version", sv.version, "bn", sv.blockNumber, "txIndex", sv.txIndex)
+	}
+	sort.Sort(svList)
+	resultValidatorList := make(staking.ValidatorQueue, 0)
+	for index, sv := range svList {
+		if index == int(xcom.ShiftValidatorNum) {
+			break
+		}
+		resultValidatorList = append(resultValidatorList, sv.v)
+	}
+	return resultValidatorList, nil
 }
