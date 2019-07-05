@@ -142,9 +142,13 @@ type CandidateQueue []*Candidate
 type Validator struct {
 	NodeAddress common.Address
 	NodeId      discover.NodeID
-	// The weight
+	// The weight snapshot
 	// NOTE:
-	// converted from the weight of Candidate is: (Int.Max - candidate.shares) + blocknum + txindex
+	// converted from the weight snapshot of Candidate, they array order is:
+	//
+	// processVersion, candidate.shares, stakingBlocknum, stakingTxindex
+	//
+	// They origin type is: uint32, *big.int, uint64, uint32
 	StakingWeight [SWeightItem]string
 	// Validator's term in the consensus round
 	ValidatorTerm uint32

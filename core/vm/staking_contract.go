@@ -117,10 +117,10 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
 	//	externalId, nodeName, website, details, amount, processVersion)
 
-	if amount.Cmp(common.Big0) <= 0 {
-		res := xcom.Result{false, "", AmountIllegalErrStr}
+	if !plugin.CheckStakeThreshold(amount) {
+		res := xcom.Result{false, "", StakeVonTooLowStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateStakingEvent, string(event), "createStaking")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 		return event, nil
 	}
 
@@ -141,16 +141,11 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	if nil != canOld {
 		res := xcom.Result{false, "", CanAlreadyExistsErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateStakingEvent, string(event), "createStaking")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 		return event, nil
 	}
 
-	if !plugin.CheckStakeThreshold(amount) {
-		res := xcom.Result{false, "", StakeVonTooLowStr}
-		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateStakingEvent, string(event), "createStaking")
-		return event, nil
-	}
+
 
 	/**
 	init candidate info
@@ -180,7 +175,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", CreateCanErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), CreateStakingEvent, string(event), "createStaking")
+			stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 			return event, nil
 		} else {
 			log.Error("Failed to createStaking by CreateCandidate", "txHash", txHash,
@@ -191,7 +186,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 
 	res := xcom.Result{true, "", "ok"}
 	event, _ := json.Marshal(res)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash.Hex(), CreateStakingEvent, string(event), "createStaking")
+	stkc.goodLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 	return event, nil
 }
 
@@ -226,21 +221,21 @@ func (stkc *StakingContract) editorCandidate(benifitAddress common.Address, node
 	if nil == canOld {
 		res := xcom.Result{false, "", CanNotExistErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, string(event), "editorCandidate")
 		return event, nil
 	}
 
 	if !staking.Is_Valid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, string(event), "editorCandidate")
 		return event, nil
 	}
 
 	if from != canOld.StakingAddress {
 		res := xcom.Result{false, "", StakingAddrNoSomeErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, string(event), "editorCandidate")
 		return event, nil
 	}
 
@@ -262,7 +257,7 @@ func (stkc *StakingContract) editorCandidate(benifitAddress common.Address, node
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", EditCanErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
+			stkc.badLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, string(event), "editorCandidate")
 			return event, nil
 		} else {
 			log.Error("Failed to editorCandidate by EditorCandidate", "txHash", txHash,
@@ -273,7 +268,7 @@ func (stkc *StakingContract) editorCandidate(benifitAddress common.Address, node
 	}
 	res := xcom.Result{true, "", "ok"}
 	event, _ := json.Marshal(res)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash.Hex(), EditorCandidateEvent, string(event), "editorCandidate")
+	stkc.goodLog(state, blockNumber.Uint64(), txHash, EditorCandidateEvent, string(event), "editorCandidate")
 	return event, nil
 }
 
@@ -293,7 +288,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	if amount.Cmp(common.Big0) <= 0 {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), IncreaseStakingEvent, string(event), "increaseStaking")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, string(event), "increaseStaking")
 		return event, nil
 	}
 
@@ -314,21 +309,21 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	if nil == canOld {
 		res := xcom.Result{false, "", CanNotExistErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), IncreaseStakingEvent, string(event), "increaseStaking")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, string(event), "increaseStaking")
 		return event, nil
 	}
 
 	if !staking.Is_Valid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), IncreaseStakingEvent, string(event), "increaseStaking")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, string(event), "increaseStaking")
 		return event, nil
 	}
 
 	if from != canOld.StakingAddress {
 		res := xcom.Result{false, "", StakingAddrNoSomeErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), IncreaseStakingEvent, string(event), "increaseStaking")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, string(event), "increaseStaking")
 		return event, nil
 	}
 
@@ -339,7 +334,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", IncreaseStakingErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), IncreaseStakingEvent, string(event), "increaseStaking")
+			stkc.badLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, string(event), "increaseStaking")
 			return event, nil
 		} else {
 			log.Error("Failed to increaseStaking by EditorCandidate", "txHash", txHash,
@@ -350,7 +345,7 @@ func (stkc *StakingContract) increaseStaking(nodeId discover.NodeID, typ uint16,
 	}
 	res := xcom.Result{true, "", "ok"}
 	event, _ := json.Marshal(res)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash.Hex(), IncreaseStakingEvent, string(event), "increaseStaking")
+	stkc.goodLog(state, blockNumber.Uint64(), txHash, IncreaseStakingEvent, string(event), "increaseStaking")
 	return event, nil
 }
 
@@ -383,21 +378,21 @@ func (stkc *StakingContract) withdrewCandidate(nodeId discover.NodeID) ([]byte, 
 	if nil == canOld {
 		res := xcom.Result{false, "", CanNotExistErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent, string(event), "withdrewCandidate")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent, string(event), "withdrewCandidate")
 		return event, nil
 	}
 
 	if !staking.Is_Valid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent, string(event), "withdrewCandidate")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent, string(event), "withdrewCandidate")
 		return event, nil
 	}
 
 	if from != canOld.StakingAddress {
 		res := xcom.Result{false, "", StakingAddrNoSomeErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent, string(event), "withdrewCandidate")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent, string(event), "withdrewCandidate")
 		return event, nil
 	}
 
@@ -407,7 +402,7 @@ func (stkc *StakingContract) withdrewCandidate(nodeId discover.NodeID) ([]byte, 
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", WithdrewCanErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent,
+			stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent,
 				string(event), "withdrewCandidate")
 			return event, nil
 		} else {
@@ -420,7 +415,7 @@ func (stkc *StakingContract) withdrewCandidate(nodeId discover.NodeID) ([]byte, 
 
 	res := xcom.Result{true, "", "ok"}
 	event, _ := json.Marshal(res)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewCandidateEvent,
+	stkc.goodLog(state, blockNumber.Uint64(), txHash, WithdrewCandidateEvent,
 		string(event), "withdrewCandidate")
 	return event, nil
 }
@@ -440,7 +435,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	if amount.Cmp(common.Big0) <= 0 {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), DelegateEvent, string(event), "delegate")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 		return event, nil
 	}
 
@@ -460,14 +455,14 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 	if nil == canOld {
 		res := xcom.Result{false, "", CanNotExistErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), DelegateEvent, string(event), "delegate")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 		return event, nil
 	}
 
 	if !staking.Is_Valid(canOld.Status) {
 		res := xcom.Result{false, "", CanStatusInvalidErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), DelegateEvent, string(event), "delegate")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 		return event, nil
 	}
 
@@ -484,7 +479,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		if !plugin.CheckDelegateThreshold(amount) {
 			res := xcom.Result{false, "", DelegateVonTooLowStr}
 			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), DelegateEvent, string(event), "delegate")
+			stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 			return event, nil
 		}
 
@@ -496,7 +491,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", DelegateErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), DelegateEvent, string(event), "delegate")
+			stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 			return event, nil
 		} else {
 			log.Error("Failed to delegate by Delegate", "txHash", txHash, "blockNumber", blockNumber, "err", err)
@@ -506,7 +501,7 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	res := xcom.Result{true, "", "ok"}
 	event, _ := json.Marshal(res)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash.Hex(), DelegateEvent, string(event), "delegate")
+	stkc.goodLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 	return event, nil
 }
 
@@ -526,7 +521,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	if amount.Cmp(common.Big0) <= 0 {
 		res := xcom.Result{false, "", AmountIllegalErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewDelegateEvent, string(event), "withdrewDelegate")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, string(event), "withdrewDelegate")
 		return event, nil
 	}
 
@@ -540,7 +535,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 	if nil == del {
 		res := xcom.Result{false, "", DelegateNotExistErrStr}
 		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewDelegateEvent, string(event), "withdrewDelegate")
+		stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, string(event), "withdrewDelegate")
 		return event, nil
 	}
 
@@ -549,7 +544,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", WithdrewCanErrStr + ": " + err.Error()}
 			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewDelegateEvent, string(event), "withdrewDelegate")
+			stkc.badLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, string(event), "withdrewDelegate")
 			return event, nil
 		} else {
 			log.Error("Failed to withdrewDelegate by WithdrewDelegate", "txHash", txHash, "blockNumber", blockNumber, "err", err)
@@ -559,7 +554,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 
 	res := xcom.Result{true, "", "ok"}
 	event, _ := json.Marshal(res)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash.Hex(), WithdrewDelegateEvent, string(event), "withdrewDelegate")
+	stkc.goodLog(state, blockNumber.Uint64(), txHash, WithdrewDelegateEvent, string(event), "withdrewDelegate")
 	return event, nil
 }
 
@@ -696,15 +691,15 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 
 }
 
-func (stkc *StakingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
+func (stkc *StakingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash common.Hash, eventType, eventData, callFn string) {
 	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
-	log.Info("flaged to "+callFn+" of stakingContract", "txHash", txHash,
+	log.Info("flaged to "+callFn+" of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber, "json: ", eventData)
 }
 
-func (stkc *StakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
+func (stkc *StakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash common.Hash, eventType, eventData, callFn string) {
 	xcom.AddLog(state, blockNumber, vm.StakingContractAddr, eventType, eventData)
-	log.Error("Failed to "+callFn+" of stakingContract", "txHash", txHash,
+	log.Debug("Failed to "+callFn+" of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber, "json: ", eventData)
 }
 
@@ -726,7 +721,7 @@ func (stkc *StakingContract) createMock(state xcom.StateDB, blockNumber uint64, 
 
 	res := xcom.Result{true, "", "ok"}
 	event, _ := json.Marshal(res)
-	stkc.goodLog(state, blockNumber, txHash.Hex(), CreateStakingEvent, string(event), "createStaking")
+	stkc.goodLog(state, blockNumber, txHash, CreateStakingEvent, string(event), "createStaking")
 	return event, nil
 
 }

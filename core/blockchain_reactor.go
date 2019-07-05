@@ -187,16 +187,16 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	return nil
 }
 
-func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, from common.Address) (err error) {
+func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address) (err error) {
 
-	if _, ok := vm.PlatONPrecompiledContracts[from]; !ok {
+	if _, ok := vm.PlatONPrecompiledContracts[to]; !ok {
 		return nil
 	}
 
 	input := tx.Data()
 
 	var contract vm.PlatONPrecompiledContract
-	switch from {
+	switch to {
 	case cvm.StakingContractAddr:
 		c := vm.PlatONPrecompiledContracts[cvm.StakingContractAddr]
 		contract = c.(vm.PlatONPrecompiledContract)

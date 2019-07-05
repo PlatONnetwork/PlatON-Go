@@ -90,7 +90,7 @@ func (rp *RestrictingPlugin) Confirmed(block *types.Block) error {
 // ReleaseEpoch:   the number of accounts to be released on the epoch corresponding to the target block height
 // ReleaseAccount: the account on the index on the target epoch
 // ReleaseAmount: the amount of the account to be released on the target epoch
-func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account common.Address, plans []byteutil.RestrictingPlan,
+func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account common.Address, plans []restriting.RestrictingPlan,
 	state xcom.StateDB) error {
 
 	var (

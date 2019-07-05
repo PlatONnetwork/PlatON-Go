@@ -5,14 +5,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/restriting"
 	"math/big"
 )
 
 
-type RestrictingPlan struct {
-	Epoch   uint64  `json:"epoch"`			// epoch representation of the released epoch at the target blockNumber
-	Amount	*big.Int `json:"amount"`		// amount representation of the released amount
-}
 
 var Bytes2X_CMD = map[string]interface{}{
 	"string":   BytesToString,
@@ -35,7 +32,7 @@ var Bytes2X_CMD = map[string]interface{}{
 	"common.Address":    BytesToAddress,
 	"[]common.Address":  BytesToAddressArr,
 
-	"[]RestrictingPlan": BytesToRestrictingPlanArr,
+	"[]restriting.RestrictingPlan": BytesToRestrictingPlanArr,
 }
 
 func BytesToString(curByte []byte) string {
@@ -213,8 +210,8 @@ func BytesToAddressArr(curByte []byte) []common.Address {
 	return addrArr
 }
 
-func BytesToRestrictingPlanArr(curByte []byte) []RestrictingPlan {
-	var planArr []RestrictingPlan
+func BytesToRestrictingPlanArr(curByte []byte) []restriting.RestrictingPlan {
+	var planArr []restriting.RestrictingPlan
 	if err := rlp.DecodeBytes(curByte, &planArr); nil != err {
 		panic("BytesToAddressArr:" + err.Error())
 	}
