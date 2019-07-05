@@ -174,7 +174,7 @@ func (val *Validator) GetShares () (*big.Int, error) {
 
 func (val *Validator) GetStakingBlockNumber () (uint64, error) {
 	stakingBlockNumber := val.StakingWeight[2]
-	num, err := strconv.Atoi(stakingBlockNumber)
+	num, err := strconv.ParseUint(stakingBlockNumber, 10, 64)
 	if nil != err {
 		return 0, err
 	}
