@@ -9,10 +9,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"reflect"
 	"testing"
 )
 
@@ -185,82 +183,11 @@ func testPlatONPrecompiled(idx int, t *testing.T) {
 		} else if  common.Bytes2Hex0x(res) != test.Expected {
 
 			t.Log(res)
-
 			var r xcom.Result
 			if err = rlp.DecodeBytes(res, &r); err != nil {
 				t.Error(err)
 			}else{
 				t.Log(r.Data)
-
-				fmt.Println("------ r.Data type--------")
-				fmt.Println(reflect.TypeOf(r.Data).String())
-				if reflect.TypeOf(r.Data).String() == "gov.TallyResult" {
-
-					coded, _ := rlp.EncodeToBytes(r.Data)
-
-					var tallyResulst gov.TallyResult
-					if err = rlp.DecodeBytes(coded, &tallyResulst); nil!= err {
-						fmt.Println("decode to TallyResulst error")
-					}else {
-						fmt.Println("decode to TallyResulst OK", tallyResulst)
-					}
-				}else if reflect.TypeOf(r.Data).String() == "[]uint8" {
-					data, ok := r.Data.([]uint8)
-					if ok {
-						pType := data[0]
-						pByte := data[1:]
-						coded, _ := rlp.EncodeToBytes(pByte)
-						var rlpData []byte
-						if err = rlp.DecodeBytes(coded, &rlpData); nil!= err {
-							fmt.Println("decode transfered data to []byte error")
-						}else {
-							if pType == uint8(gov.Text) {
-								var text gov.TextProposal
-								if err = rlp.DecodeBytes(rlpData, &text); err != nil {
-									fmt.Println("decode to text proposal failed", err)
-								}else {
-									fmt.Println("decode to text proposal OK", text)
-								}
-							}else if pType == uint8(gov.Version) {
-								var version gov.VersionProposal
-								if err = rlp.DecodeBytes(rlpData, &version); err != nil {
-									fmt.Println("decode to version proposal failed", err)
-								}else {
-									fmt.Println("decode to version proposal OK", version)
-								}
-							}
-						}
-					}
-				}else if reflect.TypeOf(r.Data).String() == "[]interface {}" {
-					pDataList, ok := r.Data.([]interface {})
-					if ok {
-						for _, eachP := range pDataList{
-							pType := eachP.([]uint8)[0]
-							pByte := eachP.([]uint8)[1:]
-							coded, _ := rlp.EncodeToBytes(pByte)
-							var rlpData []byte
-							if err = rlp.DecodeBytes(coded, &rlpData); nil!= err {
-								fmt.Println("decode transfered data to []byte error")
-							}else {
-								if pType == uint8(gov.Text) {
-									var text gov.TextProposal
-									if err = rlp.DecodeBytes(rlpData, &text); err != nil {
-										fmt.Println("decode to text proposal failed", err)
-									}else {
-										fmt.Println("decode to text proposal OK", text)
-									}
-								}else if pType == uint8(gov.Version) {
-									var version gov.VersionProposal
-									if err = rlp.DecodeBytes(rlpData, &version); err != nil {
-										fmt.Println("decode to version proposal failed", err)
-									}else {
-										fmt.Println("decode to version proposal OK", version)
-									}
-								}
-							}
-						}
-					}
-				}
 			}
 		}
 	})
@@ -270,7 +197,8 @@ func testPlatONPrecompiled(idx int, t *testing.T) {
 // Tests the sample inputs from the elliptic curve pairing check EIP 197.
 func TestPrecompiledGovContract(t *testing.T) {
 	defer setup(t)()
+
 	for i := 0; i < len(govContractCombinedTests); i++ {
-		testPlatONPrecompiled( i, t)
+		testPlatONPrecompiled(i, t)
 	}
 }
