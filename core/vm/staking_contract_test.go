@@ -294,6 +294,46 @@ func TestStakingContract_getCandidaateList(t *testing.T) {
 	}
 
 
+	// getCandidate List
+	stakingContract := &vm.StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0),
+		Evm:	 newEvm(blockNumber2, blockHash2, state),
+	}
+	params := make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1102))
+
+	params = append(params, fnType)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("getCandidateList encode rlp data fail")
+	} else {
+		fmt.Println("getCandidateList data rlp: ", hexutil.Encode(buf.Bytes()))
+	}
+
+	res, err := stakingContract.Run(buf.Bytes())
+	if nil != err {
+		t.Error("getCandidateList err", err)
+	}else {
+
+		var r xcom.Result
+		err = rlp.DecodeBytes(res, &r)
+		if nil != err {
+			fmt.Println(err)
+		}
+
+		if r.Status {
+			t.Log("the CandidateList info:", r.Data)
+		}else {
+			t.Error("CandidateList failed", r.ErrMsg)
+		}
+	}
+
+
 }
 
 

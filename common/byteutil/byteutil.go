@@ -5,7 +5,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/restriting"
+	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"math/big"
 )
 
@@ -32,7 +32,7 @@ var Bytes2X_CMD = map[string]interface{}{
 	"common.Address":    BytesToAddress,
 	"[]common.Address":  BytesToAddressArr,
 
-	"[]restriting.RestrictingPlan": BytesToRestrictingPlanArr,
+	"[]restricting.RestrictingPlan": BytesToRestrictingPlanArr,
 }
 
 func BytesToString(curByte []byte) string {
@@ -210,8 +210,8 @@ func BytesToAddressArr(curByte []byte) []common.Address {
 	return addrArr
 }
 
-func BytesToRestrictingPlanArr(curByte []byte) []restriting.RestrictingPlan {
-	var planArr []restriting.RestrictingPlan
+func BytesToRestrictingPlanArr(curByte []byte) []restricting.RestrictingPlan {
+	var planArr []restricting.RestrictingPlan
 	if err := rlp.DecodeBytes(curByte, &planArr); nil != err {
 		panic("BytesToAddressArr:" + err.Error())
 	}

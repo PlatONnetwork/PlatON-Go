@@ -1433,7 +1433,7 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, isCommit bool) 
 	}
 
 
-	// TODO MOCK
+	/*// TODO MOCK
 	nodeIdArr := []string{
 		"0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28422334",
 		"0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28435466",
@@ -1473,7 +1473,7 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, isCommit bool) 
 			},
 		}
 		queue = append(queue, can)
-	}
+	}*/
 	return queue, nil
 }
 

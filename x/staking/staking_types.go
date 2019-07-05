@@ -1,9 +1,11 @@
 package staking
 
 import (
+	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
+	"strconv"
 )
 
 const (
@@ -152,6 +154,41 @@ type Validator struct {
 	StakingWeight [SWeightItem]string
 	// Validator's term in the consensus round
 	ValidatorTerm uint32
+}
+
+func (val *Validator) GetProcessVersion () (uint32, error) {
+	version := val.StakingWeight[0]
+	v, err := strconv.Atoi(version)
+	if nil != err {
+		return 0, err
+	}
+	return uint32(v), nil
+}
+func (val *Validator) GetShares () (*big.Int, error) {
+	shares, ok := new(big.Int).SetString(val.StakingWeight[1], 10)
+	if ok {
+		return nil, errors.New("parse bigInt failed from validator's shares")
+	}
+	return shares, nil
+}
+
+func (val *Validator) GetStakingBlockNumber () (uint64, error) {
+	stakingBlockNumber := val.StakingWeight[2]
+	num, err := strconv.Atoi(stakingBlockNumber)
+	if nil != err {
+		return 0, err
+	}
+	return uint64(num), nil
+}
+
+
+func (val *Validator) GetStakingTxIndex () (uint32, error) {
+	txIndex := val.StakingWeight[3]
+	index, err := strconv.Atoi(txIndex)
+	if nil != err {
+		return 0, err
+	}
+	return uint32(index), nil
 }
 
 type ValidatorQueue []*Validator
