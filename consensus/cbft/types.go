@@ -1313,7 +1313,7 @@ func (bm *BlockExtMap) GetSubChainWithTwoThirdVotes(hash common.Hash, number uin
 	hash = bm.head.block.Hash()
 	number = bm.head.number
 
-	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && len(be.viewChangeVotes) >= bm.threshold && be.isExecuted && be.number <= base.number; be = bm.findChild(hash, number) {
+	for be := bm.findChild(hash, number); be != nil && be.prepareVotes.Len() >= bm.threshold && be.isExecuted && be.number <= base.number; be = bm.findChild(hash, number) {
 		blockExts = append(blockExts, be)
 		hash = be.block.Hash()
 		number = be.number
