@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -36,6 +37,9 @@ const (
 	ListProposalEvent 		= "2102"
 )
 
+var (
+	Delimiter               = []byte("")
+)
 
 type GovContract struct {
 	Plugin 	   *plugin.GovPlugin
@@ -200,8 +204,10 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 
 	proposal, err := gc.Plugin.GetProposal(proposalID, gc.Evm.StateDB)
 
-	return gc.returnHandler(proposal, err, GetProposalErrorMsg)
+	return gc.returnHandler(rlpEncodeProposal(proposal), err, GetProposalErrorMsg)
 }
+
+
 
 func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
@@ -226,7 +232,7 @@ func (gc *GovContract) listProposal() ([]byte, error) {
 
 	proposalList, err := gc.Plugin.ListProposal(gc.Evm.BlockHash, gc.Evm.StateDB)
 
-	return gc.returnHandler(proposalList, err, ListProposalErrorMsg)
+	return gc.returnHandler(rlpEncodeProposalList(proposalList), err, ListProposalErrorMsg)
 }
 
 
@@ -257,4 +263,50 @@ func  (gc *GovContract) returnHandler(resultValue interface{}, err error, errorM
 	}
 	res := xcom.Result{true, resultValue, ""}
 	return common.MustRlpEncode(res), nil
+}
+
+/*func rlpEncodeProposalList(proposals []gov.Proposal) []byte{
+	if len(proposals) == 0 {
+		return nil
+	}
+	var data []byte
+	for _, p := range proposals {
+		eachData := rlpEncodeProposal(p)
+		data = bytes.Join([][]byte{data, eachData}, Delimiter)
+	}
+	return data
+}*/
+
+func rlpEncodeProposalList(proposals []gov.Proposal) [][]byte{
+	if len(proposals) == 0 {
+		return nil
+	}
+	var data [][]byte
+	for _, p := range proposals {
+		eachData := rlpEncodeProposal(p)
+		data = append(data, eachData)
+	}
+	return data
+}
+
+func rlpEncodeProposal(proposal gov.Proposal) []byte{
+	if proposal == nil {
+		return nil
+	}
+
+	var data []byte
+	if proposal.GetProposalType() == gov.Text {
+		txt, _ := proposal.(gov.TextProposal)
+		encode := common.MustRlpEncode(txt)
+
+		data = []byte{byte(gov.Text)}
+		data = bytes.Join([][]byte{data, encode}, Delimiter)
+	}else if proposal.GetProposalType() == gov.Version{
+		version, _ := proposal.(gov.VersionProposal)
+		encode := common.MustRlpEncode(version)
+
+		data = []byte{byte(gov.Version)}
+		data = bytes.Join([][]byte{data, encode}, Delimiter)
+	}
+	return data
 }
