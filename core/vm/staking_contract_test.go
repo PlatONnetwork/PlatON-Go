@@ -6,6 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -19,7 +20,17 @@ import (
 
 
 
-func create_staking (stakingContract *vm.StakingContract, staking, name string, index int, t *testing.T) {
+func create_staking (blockNumber *big.Int, blockHash common.Hash, state *state.StateDB, index int, t *testing.T) *vm.StakingContract {
+
+	stakingContract := &vm.StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0),
+		Evm:	 newEvm(blockNumber, blockHash, state),
+	}
+
+	state.Prepare(txHashArr[index], blockHash, index)
+
+
 	var params [][]byte
 	params = make([][]byte, 0)
 
@@ -28,10 +39,10 @@ func create_staking (stakingContract *vm.StakingContract, staking, name string, 
 	benifitAddress, _ := rlp.EncodeToBytes(addrArr[index])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
-	nodeName, _ := rlp.EncodeToBytes(name + ", China")
-	website, _ := rlp.EncodeToBytes("https://www."+name+".network")
-	details, _ := rlp.EncodeToBytes(name+" super node")
-	StakeThreshold, _ := new(big.Int).SetString(staking, 10) // "1000000000000000000000000"
+	nodeName, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", China")
+	website, _ := rlp.EncodeToBytes("https://www."+nodeNameArr[index]+".network")
+	details, _ := rlp.EncodeToBytes(nodeNameArr[index]+" super node")
+	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	processVersion, _ := rlp.EncodeToBytes(initProcessVersion)
 
@@ -63,6 +74,8 @@ func create_staking (stakingContract *vm.StakingContract, staking, name string, 
 	}else {
 		t.Log(string(res))
 	}
+
+	return stakingContract
 }
 
 
@@ -96,12 +109,8 @@ func TestStakingContract_createStaking(t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-	stakingContract := &vm.StakingContract{
-		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
-		Evm:	  newEvm(blockNumber, blockHash, nil),
-	}
 
+	state, _ := newChainState()
 	newPlugins()
 
 
@@ -110,7 +119,7 @@ func TestStakingContract_createStaking(t *testing.T) {
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		fmt.Println("newBlock err", err)
 	}
-	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
+	create_staking(blockNumber, blockHash, state, 1, t)
 }
 
 
@@ -119,12 +128,8 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-	stakingContract := &vm.StakingContract{
-		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
-		Evm:	  newEvm(blockNumber, blockHash, nil),
-	}
 
+	state, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -132,21 +137,18 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		fmt.Println("newBlock err", err)
 	}
-	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
+
+	stakingContract := create_staking(blockNumber, blockHash, state, 1, t)
 
 	// edit
 	var params [][]byte
 	params = make([][]byte, 0)
 
-	/**
-	benifitAddress common.Address, nodeId discover.NodeID,
-	externalId, nodeName, website, details string, amount *big.Int
-	 */
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1001))
 
-	benifitAddress, _ := rlp.EncodeToBytes(addrArr[1])
-	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
+	benifitAddress, _ := rlp.EncodeToBytes(addrArr[0])
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[1])
 	externalId, _ := rlp.EncodeToBytes("I am Gavin !?")
 	nodeName, _ := rlp.EncodeToBytes("Gavin, China")
 	website, _ := rlp.EncodeToBytes("https://www.gavin.net")
@@ -179,9 +181,6 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 		t.Log(string(res))
 	}
 
-
-
-
 }
 
 
@@ -189,12 +188,8 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-	stakingContract := &vm.StakingContract{
-		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
-		Evm:	  newEvm(blockNumber, blockHash, nil),
-	}
 
+	state, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -202,7 +197,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		fmt.Println("newBlock err", err)
 	}
-	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
+	stakingContract := create_staking(blockNumber, blockHash, state, 1, t)
 	sndb.Commit(blockHash)
 	//sndb.Compaction()
 
@@ -250,12 +245,8 @@ func TestStakingContract_batchCreateStaking(t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-	stakingContract := &vm.StakingContract{
-		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
-		Evm:	  newEvm(blockNumber, blockHash, nil),
-	}
 
+	state, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -265,12 +256,48 @@ func TestStakingContract_batchCreateStaking(t *testing.T) {
 	}
 
 	for i:= 0; i < 4; i++ {
-		create_staking(stakingContract, "1000000000000000000000000", "platon", i, t)
+		create_staking(blockNumber, blockHash, state, 1, t)
 	}
 
 }
 
 func TestStakingContract_getCandidaateList(t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+
+	state, _ := newChainState()
+
+	//state.Prepare(txHashArr[idx], blockHash, idx)
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
+	}
+
+
+	for i:= 0; i < 2; i++ {
+		create_staking(blockNumber, blockHash, state, 1, t)
+	}
+
+	sndb.Commit(blockHash)
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
+	}
+
+
+	for i:= 2; i < 4; i++ {
+		create_staking(blockNumber2, blockHash2, state, 1, t)
+	}
+
+
+}
+
+
+func TestStakingContract_getVerifierList (t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
@@ -289,22 +316,39 @@ func TestStakingContract_getCandidaateList(t *testing.T) {
 		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
 	}
 
-	for i:= 0; i < 2; i++ {
-		create_staking(stakingContract, "1000000000000000000000000", "platon", i, t)
+
+	params := make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1100))
+
+	params = append(params, fnType)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("getVerifierList encode rlp data fail")
+	} else {
+		fmt.Println("getVerifierList data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-	sndb.Commit(blockHash)
+	res, err := stakingContract.Run(buf.Bytes())
+	if nil != err {
+		t.Error("getVerifierList err", err)
+	}else {
 
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
+		var r xcom.Result
+		err = rlp.DecodeBytes(res, &r)
+		if nil != err {
+			fmt.Println(err)
+		}
+
+		if r.Status {
+			t.Log("the VerifierList info:", r.Data)
+		}else {
+			t.Error("getVerifierList failed", r.ErrMsg)
+		}
 	}
-
-	//stakingContract2 := &vm.StakingContract{
-	//	Plugin:   plugin.StakingInstance(),
-	//	Contract: newContract(common.Big0),
-	//	Evm:	 newEvm(blockNumber2, blockHash2, state),
-	//}
-
 
 
 }

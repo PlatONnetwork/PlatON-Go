@@ -2,10 +2,10 @@ package vm
 
 import (
 	"encoding/json"
+	"github.com/PlatONnetwork/PlatON-Go/x/restriting"
 	"reflect"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -55,7 +55,7 @@ func (rc *restrictingContract) execute(input []byte) ([]byte, error) {
 	}
 }
 
-func (rc *restrictingContract) createRestrictingPlan(account common.Address, plans []byteutil.RestrictingPlan) ([]byte, error) {
+func (rc *restrictingContract) createRestrictingPlan(account common.Address, plans []restriting.RestrictingPlan) ([]byte, error) {
 	sender := rc.Contract.Caller()
 	txHash := rc.Evm.StateDB.TxHash()
 	blockNum := rc.Evm.BlockNumber

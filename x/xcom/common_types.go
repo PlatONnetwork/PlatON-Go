@@ -107,7 +107,7 @@ func (r *Result) DecodeRLP(s *rlp.Stream) error {
 
 
 // addLog let the result add to event.
-func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) error {
+func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, txHash common.Hash, event, data string) error {
 	var logdata [][]byte
 	logdata = make([][]byte, 0)
 	logdata = append(logdata, []byte(data))
@@ -117,7 +117,7 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 	}
 	state.AddLog(&types.Log{
 		Address:     contractAddr,
-		Topics:      []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
+		Topics:      []common.Hash{txHash, common.BytesToHash(crypto.Keccak256([]byte(event)))},
 		Data:        buf.Bytes(),
 		BlockNumber: blockNumber,
 	})

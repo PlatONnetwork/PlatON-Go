@@ -41,18 +41,10 @@ func  Verify_tx_data(input []byte, command map[uint16]interface{} ) (fn interfac
 
 	var args [][]byte
 	if err := rlp.Decode(bytes.NewReader(input), &args); nil != err {
-		fmt.Println("sss")
 		return nil, nil, DecodeTxDataErr
 	}
 
-
-	//num := common.BytesToUint64(args[0])
-	//
-	//str := string(args[1])
-	//fmt.Println("this is ", num, str)
-
-	fmt.Println("uint16:", args[0])
-	fmt.Println("fnType is", byteutil.BytesToUint16(args[0]))
+	fmt.Println("the Function Type:", byteutil.BytesToUint16(args[0]))
 
 	if fn, ok := command[byteutil.BytesToUint16(args[0])]; !ok {
 			return nil, nil, FuncNotExistErr
@@ -75,7 +67,6 @@ func  Verify_tx_data(input []byte, command map[uint16]interface{} ) (fn interfac
 			targetType := paramList.In(i).String()
 			inputByte := []reflect.Value{reflect.ValueOf(args[i+1])}
 			params[i] = reflect.ValueOf(byteutil.Bytes2X_CMD[targetType]).Call(inputByte)[0]
-			fmt.Println("成功解析第"+fmt.Sprint(i+1)+"个参数, Type:", targetType)
 		}
 
 		return fn, params, nil
