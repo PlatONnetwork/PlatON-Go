@@ -206,17 +206,26 @@ func testPlatONPrecompiled(idx int, t *testing.T) {
 				}else if reflect.TypeOf(r.Data).String() == "[]uint8" {
 					data, ok := r.Data.([]uint8)
 					if ok {
-						if data[0]== uint8(gov.Text) {
-							coded, _ := rlp.EncodeToBytes(data[1:])
-							var rlpData []byte
-							if err = rlp.DecodeBytes(coded, &rlpData); nil!= err {
-								fmt.Println("decode transfered data to []byte error")
-							}else {
+						pType := data[0]
+						pByte := data[1:]
+						coded, _ := rlp.EncodeToBytes(pByte)
+						var rlpData []byte
+						if err = rlp.DecodeBytes(coded, &rlpData); nil!= err {
+							fmt.Println("decode transfered data to []byte error")
+						}else {
+							if pType == uint8(gov.Text) {
 								var text gov.TextProposal
 								if err = rlp.DecodeBytes(rlpData, &text); err != nil {
 									fmt.Println("decode to text proposal failed", err)
 								}else {
 									fmt.Println("decode to text proposal OK", text)
+								}
+							}else if pType == uint8(gov.Version) {
+								var version gov.VersionProposal
+								if err = rlp.DecodeBytes(rlpData, &version); err != nil {
+									fmt.Println("decode to version proposal failed", err)
+								}else {
+									fmt.Println("decode to version proposal OK", version)
 								}
 							}
 						}
