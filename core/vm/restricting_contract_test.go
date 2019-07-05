@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 )
+
 
 type ResultTest struct {
 	balance *big.Int
@@ -22,6 +23,7 @@ type ResultTest struct {
 	entry   []byte
 }
 
+
 func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 	contract := &vm.RestrictingContract{
 		Plugin:  plugin.RestrictingInstance(),
@@ -29,8 +31,8 @@ func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 		Evm: newEvm(blockNumber, blockHash, nil),
 	}
 
-	var plan  byteutil.RestrictingPlan
-	var plans = make([]byteutil.RestrictingPlan, 5)
+	var plan  restricting.RestrictingPlan
+	var plans = make([]restricting.RestrictingPlan, 5)
 
 	for i := 0; i < 5; i++ {
 		plan.Epoch = uint64(i+1)
@@ -39,12 +41,9 @@ func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 	}
 
 	var params [][]byte
-	// function_type
-	param0, _ := rlp.EncodeToBytes(common.Uint32ToBytes(4000))
-	// account release to
-	param1 := addrArr[0].Bytes()
-	// restricting plan
-	param2, _ := rlp.EncodeToBytes(plans)
+	param0, _ := rlp.EncodeToBytes(common.Uint32ToBytes(4000))  // function_type
+	param1 := addrArr[0].Bytes()   	        // restricting account
+	param2, _ := rlp.EncodeToBytes(plans)   // restricting plan
 
 	params = append(params, param0)
 	params = append(params, param1)

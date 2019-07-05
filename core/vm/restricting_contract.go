@@ -55,7 +55,7 @@ func (rc *RestrictingContract) execute(input []byte) ([]byte, error) {
 	}
 }
 
-func (rc *restrictingContract) createRestrictingPlan(account common.Address, plans []restricting.RestrictingPlan) ([]byte, error) {
+func (rc *RestrictingContract) createRestrictingPlan(account common.Address, plans []restricting.RestrictingPlan) ([]byte, error) {
 	sender := rc.Contract.Caller()
 	txHash := rc.Evm.StateDB.TxHash()
 	blockNum := rc.Evm.BlockNumber

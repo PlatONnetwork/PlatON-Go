@@ -34,7 +34,6 @@ type releaseAmountInfo struct {
 	amount *big.Int	 `json:"amount"`		// amount representation of the released amount
 }
 
-
 type Result struct {
 	balance *big.Int
 	slash   *big.Int
