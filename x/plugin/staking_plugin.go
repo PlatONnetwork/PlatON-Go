@@ -46,6 +46,8 @@ const (
 
 	QueryStartIrr = true
 	QueryStartNotIrr = false
+	
+
 
 )
 
@@ -59,12 +61,12 @@ func StakingInstance() *StakingPlugin {
 	return stk
 }
 
-func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
+func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
-	return true, nil
+	return nil
 }
 
-func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) (bool, error) {
+func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
 	epoch := xutil.CalculateEpoch(header.Number.Uint64())
 
@@ -74,12 +76,12 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		if nil != err {
 			log.Error("Failed to call HandleUnCandidateReq on stakingPlugin EndBlock", "blockHash",
 	blockHash.Hex(), "blockNumber", header.Number.Uint64(), "err", err)
-			return false, err //  TODO common.NewSysError(err.Error())
+			return err //  TODO common.NewSysError(err.Error())
 		}
 
 		// Election next epoch validators
 		if err := sk.ElectNextVerifierList(blockHash, header.Number.Uint64()); nil != err {
-			return false, err
+			return err
 		}
 	}
 
@@ -89,7 +91,7 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		if nil != err {
 			log.Error("Failed to call Election on stakingPlugin EndBlock", "blockHash", blockHash.Hex(),
 	"blockNumber", header.Number.Uint64(), "err", err)
-			return false, err
+			return err
 		}
 	}
 
@@ -99,11 +101,11 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 		if nil != err {
 			log.Error("Failed to call Switch on stakingPlugin EndBlock", "blockHash", blockHash.Hex(),
 	"blockNumber", header.Number.Uint64(), "err", err)
-			return false, err
+			return err
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
 func (sk *StakingPlugin) Confirmed(block *types.Block) error {
@@ -911,7 +913,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [4]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -983,22 +985,13 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 
 		valEx := &staking.ValidatorEx{
 			NodeId: can.NodeId,
-			// The account used to
 			StakingAddress: can.StakingAddress,
-			// The account receive
 			BenifitAddress: can.BenifitAddress,
-			// The tx index at the
 			StakingTxIndex: can.StakingTxIndex,
-			// The version of the
 			ProcessVersion: can.ProcessVersion,
-			// Block height at the
 			StakingBlockNum: can.StakingBlockNum,
-			// All vons of staking
 			Shares: shares,
-			// Node desc
 			Description: can.Description,
-			// this is the term of
-			// [0, N]
 			ValidatorTerm: v.ValidatorTerm,
 		}
 		queue[i] = valEx

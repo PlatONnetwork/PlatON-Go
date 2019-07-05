@@ -1187,7 +1187,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		return
 	}
 	// TODO begin()
-	if success, err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err || !success {
+	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
 		return
 	}
 
@@ -1298,7 +1298,7 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 	s := w.current.state.Copy()
 
 	// TODO end()
-	if success, err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err || !success {
+	if err := core.GetReactorInstance().EndBlocker(w.current.header, s); nil != err {
 		return err
 	}
 

@@ -21,6 +21,51 @@ import (
 
 
 
+func create_staking (stakingContract *vm.StakingContract, staking, name string, index int, t *testing.T) {
+	var params [][]byte
+	params = make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1000))
+	typ, _ := rlp.EncodeToBytes(uint16(0))
+	benifitAddress, _ := rlp.EncodeToBytes(addrArr[index])
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
+	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
+	nodeName, _ := rlp.EncodeToBytes(name + ", China")
+	website, _ := rlp.EncodeToBytes("https://www."+name+".network")
+	details, _ := rlp.EncodeToBytes(name+" super node")
+	StakeThreshold, _ := new(big.Int).SetString(staking, 10) // "1000000000000000000000000"
+	amount, _ := rlp.EncodeToBytes(StakeThreshold)
+	processVersion, _ := rlp.EncodeToBytes(initProcessVersion)
+
+
+	params = append(params, fnType)
+	params = append(params, typ)
+	params = append(params, benifitAddress)
+	params = append(params, nodeId)
+	params = append(params, externalId)
+	params = append(params, nodeName)
+	params = append(params, website)
+	params = append(params, details)
+	params = append(params, amount)
+	params = append(params, processVersion)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("createStaking encode rlp data fail")
+	} else {
+		fmt.Println("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
+	}
+
+
+	res, err := stakingContract.Run(buf.Bytes())
+	if nil != err {
+		t.Error(err)
+	}else {
+		t.Log(string(res))
+	}
+}
 
 
 func TestRLP_encode (t *testing.T) {
@@ -28,7 +73,7 @@ func TestRLP_encode (t *testing.T) {
 	var params [][]byte
 	params = make([][]byte, 0)
 
-	fnType, err := rlp.EncodeToBytes(uint16(1102))
+	fnType, err := rlp.EncodeToBytes(uint16(1100))
 	if nil != err {
 		fmt.Println("fnType err", err)
 	}else {
@@ -42,129 +87,90 @@ func TestRLP_encode (t *testing.T) {
 	err = rlp.Encode(buf, params)
 	if err != nil {
 		fmt.Println(err)
-		t.Errorf("CandidateDeposit encode rlp data fail")
+		t.Errorf("rlp stakingContract encode rlp data fail")
 	} else {
-		fmt.Println("CandidateDeposit data rlp: ", hexutil.Encode(buf.Bytes()))
+		fmt.Println("rlp stakingContract data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 }
 
 
 func TestStakingContract_createStaking(t *testing.T) {
-	stakingContract := vm.StakingContract{
+	defer func() {
+		sndb.Clear()
+	}()
+	stakingContract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	  newEvm(),
+		Evm:	  newEvm(blockNumber, blockHash, nil),
 	}
 
-	//var govPlugin *plugin.GovPlugin
+	newPlugins()
 
-	plugin.GovPluginInstance()
 
 	sndb := snapshotdb.Instance()
-	sndb.NewBlock(big.NewInt(1), common.ZeroHash, blockHash)
 
-
-	var params [][]byte
-	params = make([][]byte, 0)
-
-	fnType, _ := rlp.EncodeToBytes(uint16(1000))
-	typ, _ := rlp.EncodeToBytes(uint16(0))
-	benifitAddress, _ := rlp.EncodeToBytes(addrArr[1])
-	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
-	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
-	nodeName, _ := rlp.EncodeToBytes("PlatON, China")
-	website, _ := rlp.EncodeToBytes("https://www.platon.network")
-	details, _ := rlp.EncodeToBytes("platon super node")
-	StakeThreshold, _ := new(big.Int).SetString("1000000000000000000000000", 10)
-	amount, _ := rlp.EncodeToBytes(StakeThreshold)
-	processVersion, _ := rlp.EncodeToBytes(uint32(456))
-
-
-
-
-	params = append(params, fnType)
-	params = append(params, typ)
-	params = append(params, benifitAddress)
-	params = append(params, nodeId)
-	params = append(params, externalId)
-	params = append(params, nodeName)
-	params = append(params, website)
-	params = append(params, details)
-	params = append(params, amount)
-	params = append(params, processVersion)
-
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("createStaking encode rlp data fail")
-	} else {
-		fmt.Println("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		fmt.Println("newBlock err", err)
 	}
-
-
-	res, err := stakingContract.Run(buf.Bytes())
-	if nil != err {
-		t.Error(err)
-	}else {
-		t.Log(string(res))
-	}
+	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
 }
 
 
 
 func TestStakingContract_editorCandidate(t *testing.T) {
-	stakingContract := vm.StakingContract{
+	defer func() {
+		sndb.Clear()
+	}()
+	stakingContract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	  newEvm(),
+		Evm:	  newEvm(blockNumber, blockHash, nil),
 	}
 
-	//var govPlugin *plugin.GovPlugin
-
-	plugin.GovPluginInstance()
+	newPlugins()
 
 	sndb := snapshotdb.Instance()
-	sndb.NewBlock(big.NewInt(1), common.ZeroHash, blockHash)
 
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		fmt.Println("newBlock err", err)
+	}
+	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
 
-	// create
+	// edit
 	var params [][]byte
 	params = make([][]byte, 0)
 
-	fnType, _ := rlp.EncodeToBytes(uint16(1000))
-	typ, _ := rlp.EncodeToBytes(uint16(0))
+	/**
+	benifitAddress common.Address, nodeId discover.NodeID,
+	externalId, nodeName, website, details string, amount *big.Int
+	 */
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1001))
+
 	benifitAddress, _ := rlp.EncodeToBytes(addrArr[1])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
-	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
-	nodeName, _ := rlp.EncodeToBytes("PlatON, China")
-	website, _ := rlp.EncodeToBytes("https://www.platon.network")
-	details, _ := rlp.EncodeToBytes("platon super node")
-	StakeThreshold, _ := new(big.Int).SetString("1000000000000000000000000", 10)
-	amount, _ := rlp.EncodeToBytes(StakeThreshold)
-	processVersion, _ := rlp.EncodeToBytes(uint32(456))
-
+	externalId, _ := rlp.EncodeToBytes("I am Gavin !?")
+	nodeName, _ := rlp.EncodeToBytes("Gavin, China")
+	website, _ := rlp.EncodeToBytes("https://www.gavin.net")
+	details, _ := rlp.EncodeToBytes("Gavin super node")
 
 
 
 	params = append(params, fnType)
-	params = append(params, typ)
 	params = append(params, benifitAddress)
 	params = append(params, nodeId)
 	params = append(params, externalId)
 	params = append(params, nodeName)
 	params = append(params, website)
 	params = append(params, details)
-	params = append(params, amount)
-	params = append(params, processVersion)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		fmt.Println(err)
-		t.Errorf("createStaking encode rlp data fail")
+		t.Errorf("edit candidate encode rlp data fail")
 	} else {
-		fmt.Println("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
+		fmt.Println("edit candidate data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
 
@@ -174,9 +180,6 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 	}else {
 		t.Log(string(res))
 	}
-
-	// edit
-
 
 
 
@@ -188,96 +191,45 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-	stakingContract := vm.StakingContract{
+	stakingContract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	  newEvm(),
+		Evm:	  newEvm(blockNumber, blockHash, nil),
 	}
 
-	fmt.Println("sender:", sender.Hex())
-	//var govPlugin *plugin.GovPlugin
-
-	plugin.GovPluginInstance()
-	plugin.GetRestrictingInstance()
+	newPlugins()
 
 	sndb := snapshotdb.Instance()
-	if err := sndb.NewBlock(blockNumer, common.ZeroHash, blockHash); nil != err {
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		fmt.Println("newBlock err", err)
 	}
-
-
-	// create
-	var params [][]byte
-	params = make([][]byte, 0)
-
-	fnType, _ := rlp.EncodeToBytes(uint16(1000))
-	typ, _ := rlp.EncodeToBytes(uint16(1))
-	benifitAddress, _ := rlp.EncodeToBytes(addrArr[1])
-	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
-	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
-	nodeName, _ := rlp.EncodeToBytes("PlatON, China")
-	website, _ := rlp.EncodeToBytes("https://www.platon.network")
-	details, _ := rlp.EncodeToBytes("platon super node")
-	StakeThreshold, _ := new(big.Int).SetString("1000000000000000000000000", 10)
-	amount, _ := rlp.EncodeToBytes(StakeThreshold)
-	processVersion, _ := rlp.EncodeToBytes(uint32(456))
-
-
-
-
-	params = append(params, fnType)
-	params = append(params, typ)
-	params = append(params, benifitAddress)
-	params = append(params, nodeId)
-	params = append(params, externalId)
-	params = append(params, nodeName)
-	params = append(params, website)
-	params = append(params, details)
-	params = append(params, amount)
-	params = append(params, processVersion)
-
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("createStaking encode rlp data fail")
-	} else {
-		fmt.Println("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-
-	res, err := stakingContract.Run(buf.Bytes())
-	if nil != err {
-		t.Error(err)
-	}else {
-		t.Log(string(res))
-	}
-
+	create_staking(stakingContract, "1000000000000000000000000", "platon", 1, t)
 	sndb.Commit(blockHash)
 	//sndb.Compaction()
 
 
 	// get candidate Info
-	params = make([][]byte, 0)
+	params := make([][]byte, 0)
 
-	fnType, _ = rlp.EncodeToBytes(uint16(1105))
-	nodeId, _ = rlp.EncodeToBytes(nodeIdArr[0])
+	fnType, _ := rlp.EncodeToBytes(uint16(1105))
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[0])
 
 	params = append(params, fnType)
 	params = append(params, nodeId)
 
-	buf = new(bytes.Buffer)
-	err = rlp.Encode(buf, params)
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
 	if err != nil {
 		fmt.Println(err)
-		t.Errorf("createStaking encode rlp data fail")
+		t.Errorf("getCandidate encode rlp data fail")
 	} else {
-		fmt.Println("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
+		fmt.Println("getCandidate data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-	res, err = stakingContract.Run(buf.Bytes())
+	res, err := stakingContract.Run(buf.Bytes())
 	if nil != err {
-		t.Error(err)
+		t.Error("getCandidate err", err)
 	}else {
 
 		var r xcom.Result
@@ -286,53 +238,89 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 			fmt.Println(err)
 		}
 
-		// interface{}
-		//
-		//ca := r.Data.(*staking.Candidate)
-		//fmt.Println(ca)
+		if r.Status {
+			dbyte, err := rlp.EncodeToBytes(r.Data)
 
-		rr, _ := json.Marshal(r)
-
-		fmt.Println("Result:", string(rr))
-
-		dbyte, err := rlp.EncodeToBytes(r.Data)
-
-		if nil != err {
-			fmt.Println("rlp encode r.Data failed", err)
-		}else {
-
-			var c staking.Candidate
-
-			if err = rlp.DecodeBytes(dbyte, &c); nil!= err {
-				fmt.Println("decode failed", err)
+			if nil != err {
+				t.Error("rlp encode r.Data failed", err)
 			}else {
 
-				rbyte, _ := json.Marshal(c)
+				var c staking.Candidate
 
-				t.Log(string(rbyte))
+				if err = rlp.DecodeBytes(dbyte, &c); nil!= err {
+					t.Error("decode failed", err)
+				}else {
 
+					rbyte, _ := json.Marshal(c)
+
+					t.Log("", string(rbyte))
+
+				}
 			}
-
+		}else {
+			t.Error("getCandidate failed", r.ErrMsg)
 		}
+	}
+}
 
 
-		/*can, ok := r.Data.([]uint8)
 
-		if !ok {
-			fmt.Println("parse candidate failed")
-		}
-		rbyte, _ := json.Marshal(can)
-
-		t.Log(string(rbyte))*/
-
+func TestStakingContract_batchCreateStaking(t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+	stakingContract := &vm.StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0),
+		Evm:	  newEvm(blockNumber, blockHash, nil),
 	}
 
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		fmt.Println("newBlock err", err)
+	}
+
+	for i:= 0; i < 4; i++ {
+		create_staking(stakingContract, "1000000000000000000000000", "platon", i, t)
+	}
+
+}
+
+func TestStakingContract_getCandidaateList(t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+	stakingContract := &vm.StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0),
+		Evm:	 newEvm(blockNumber, blockHash, nil),
+	}
+
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
+	}
+
+	for i:= 0; i < 2; i++ {
+		create_staking(stakingContract, "1000000000000000000000000", "platon", i, t)
+	}
+
+	sndb.Commit(blockHash)
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
+	}
 
 
 }
 
-
-func TestStakingContract_RequiredGas(t *testing.T) {
+func TestStakingContract_cleanSnapshotDB(t *testing.T) {
 	sndb := snapshotdb.Instance()
 	sndb.Clear()
 }

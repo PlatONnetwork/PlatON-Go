@@ -87,7 +87,7 @@ func (brc *BlockChainReactor) loop() {
 
 			}
 
-			// TODO Slashing
+			// Slashing
 			if plugin, ok := brc.basePluginMap[xcom.SlashingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
 					log.Error("Failed to call Slashing Confirmed", "blockNumber", block.Number(), "blockHash", block.Hash().Hex(), "err", err.Error())
@@ -114,7 +114,7 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 }
 
 // Called before every block has not executed all txs
-func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) (bool, error) {
+func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) error {
 
 	blockHash := common.ZeroHash
 
@@ -122,7 +122,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	if xutil.IsWorker(header.Extra) {
 		// Generate vrf proof
 		if value, err := xcom.GetVrfHandlerInstance().GenerateNonce(header.Number, header.ParentHash); nil != err {
-			return false, err
+			return err
 		} else {
 			header.Nonce = types.EncodeNonce(value)
 		}
@@ -132,16 +132,16 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		sign := header.Extra[32:97]
 		pk, err := crypto.SigToPub(header.SealHash().Bytes(), sign)
 		if nil != err {
-			return false, err
+			return err
 		}
 		if err := xcom.GetVrfHandlerInstance().VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
-			return false, err
+			return err
 		}
 	}
 
 	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
 		log.Error("snapshotDB newBlock failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
-		return false, err
+		return err
 	}
 
 	/*for _, pluginName := range bcr.beginRule {
@@ -152,11 +152,11 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		}
 	}*/
 
-	return true, nil
+	return nil
 }
 
 // Called after every block had executed all txs
-func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateDB) (bool, error) {
+func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateDB) error {
 
 	blockHash := common.ZeroHash
 
@@ -166,7 +166,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	// Store the previous vrf random number
 	if err := xcom.GetVrfHandlerInstance().Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 		log.Error("BlockChainReactor Storage proof failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "err", err)
-		return false, err
+		return err
 	}
 
 	/*for _, pluginName := range bcr.endRule {
@@ -180,10 +180,11 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	// storage the ppos k-v Hash
 	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
 	if len(pposHash) != 0 {
-		state.SetState(cvm.UniversalAddr, staking.GetPPOSHASHKey(), pposHash)
+		// store hash about ppos
+		state.SetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey(), pposHash)
 	}
 
-	return true, nil
+	return nil
 }
 
 func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, from common.Address) (err error) {

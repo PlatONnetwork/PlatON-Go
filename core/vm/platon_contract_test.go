@@ -12,6 +12,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
@@ -34,8 +35,11 @@ var (
 	}
 
 
-	blockNumer = big.NewInt(1)
+	blockNumber = big.NewInt(1)
 	blockHash = common.HexToHash("9d4fb5346abcf593ad80a0d3d5a371b22c962418ad34189d5b1b39065668d663")
+
+	blockNumber2 = big.NewInt(2)
+	blockHash2 = common.HexToHash("c95876b92443d652d7eb7d7a9c0e2c58a95e934c0c1197978c5445180cc60980")
 
 	sender = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
 
@@ -70,8 +74,19 @@ var (
 	}
 
 
+	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536
+
 )
 
+func newPlugins() {
+	plugin.GovPluginInstance()
+	plugin.StakingInstance()
+	plugin.SlashInstance()
+	plugin.RestrictingInstance()
+	plugin.RewardMgrInstance()
+
+	snapshotdb.Instance()
+}
 
 func newChainState() (*state.StateDB, error) {
 	var (
@@ -95,20 +110,22 @@ func newChainState() (*state.StateDB, error) {
 }
 
 
-func newEvm() *vm.EVM {
-	state, _ := newChainState()
+func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *vm.EVM {
+	if nil == state {
+		state, _ = newChainState()
+	}
 	evm := &vm.EVM{
-		StateDB:              state,
+		StateDB:  state,
 	}
 	context := vm.Context{
-		BlockNumber: blockNumer,
+		BlockNumber: blockNumber,
 		BlockHash: blockHash,
 	}
 	evm.Context = context
 
 	//set a default active version
 	govDB := gov.GovDBInstance()
-	govDB.SetActiveVersion(uint32(1<<16 | 0<<8 | 0), state)
+	govDB.SetActiveVersion(initProcessVersion, state)
 
 	return evm
 }
@@ -229,21 +246,21 @@ func build_staking_data (){
 	v1 := &staking.Validator{
 		NodeAddress: addr_A,
 		NodeId: c1.NodeId,
-		StakingWeight: [4]string{"1", common.Big256.String(), fmt.Sprint(c1.StakingBlockNum), fmt.Sprint(c1.StakingTxIndex)},
+		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c1.StakingBlockNum), fmt.Sprint(c1.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
 
 	v2 := &staking.Validator{
 		NodeAddress: addr_B,
 		NodeId: c2.NodeId,
-		StakingWeight: [4]string{"1", common.Big256.String(), fmt.Sprint(c2.StakingBlockNum), fmt.Sprint(c2.StakingTxIndex)},
+		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c2.StakingBlockNum), fmt.Sprint(c2.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
 
 	v3 := &staking.Validator{
 		NodeAddress: addr_C,
 		NodeId: c3.NodeId,
-		StakingWeight: [4]string{"1", common.Big256.String(), fmt.Sprint(c3.StakingBlockNum), fmt.Sprint(c3.StakingTxIndex)},
+		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c3.StakingBlockNum), fmt.Sprint(c3.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
 
@@ -262,6 +279,5 @@ func build_staking_data (){
 	stakingDB.SetPreValidatorList(blockHash, val_Arr)
 	stakingDB.SetCurrentValidatorList(blockHash, val_Arr)
 }
-
 
 

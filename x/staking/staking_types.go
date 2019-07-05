@@ -20,6 +20,8 @@ const (
 	NotExist   = 1 << 31   // 1000,xxxx,... : The candidate is not exist
 )
 
+const SWeightItem = 4
+
 func Is_Valid(status uint32) bool {
 	return status&Valided == Valided
 }
@@ -143,7 +145,7 @@ type Validator struct {
 	// The weight
 	// NOTE:
 	// converted from the weight of Candidate is: (Int.Max - candidate.shares) + blocknum + txindex
-	StakingWeight [4]string
+	StakingWeight [SWeightItem]string
 	// Validator's term in the consensus round
 	ValidatorTerm uint32
 }
