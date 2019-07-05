@@ -27,10 +27,11 @@ func TestSnapshotDB_NewBlock(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		bd, ok := dbInstance.recognized[currentHash]
+		b, ok := dbInstance.recognized.Load(currentHash)
 		if !ok {
 			t.Fatal("must find recognized")
 		}
+		bd := b.(blockData)
 		if bd.ParentHash != parentHash {
 			t.Fatal("parentHash must same:", bd.ParentHash, parentHash)
 		}
@@ -89,7 +90,6 @@ func TestSnapshotDB_GetWithNoCommit(t *testing.T) {
 func TestSnapshotDB_Get(t *testing.T) {
 	os.RemoveAll(dbpath)
 	initDB()
-	defer dbInstance.Clear()
 	var (
 		arr = [][]kv{generatekv(10), generatekv(10), generatekv(10), generatekv(10), generatekv(10)}
 	)
@@ -295,7 +295,7 @@ func TestSnapshotDB_Del(t *testing.T) {
 			BlockHash:  recognizedHash,
 		}
 		Recognized.data.Put(arr[1], arr[1])
-		dbInstance.recognized[recognizedHash] = Recognized
+		dbInstance.recognized.Store(recognizedHash, Recognized)
 		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
 		if err != nil {
 			t.Error(err)
@@ -312,7 +312,7 @@ func TestSnapshotDB_Del(t *testing.T) {
 			BlockHash:  recognizedByFlushHash,
 		}
 		Recognized2.data.Put(arr[4], arr[4])
-		dbInstance.recognized[recognizedByFlushHash] = Recognized2
+		dbInstance.recognized.Store(recognizedByFlushHash, Recognized2)
 		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
 		if err != nil {
 			t.Error(err)
@@ -898,10 +898,11 @@ func TestPutToRecognized(t *testing.T) {
 		lastkvHash = db.generateKVHash([]byte(value[0]), []byte(value[1]), lastkvHash)
 		lastkvHashs = append(lastkvHashs, lastkvHash)
 	}
-	recognized, ok := db.recognized[currentHash]
+	rg, ok := db.recognized.Load(currentHash)
 	if !ok {
 		t.Fatal("[SnapshotDB] recognized hash should be find")
 	}
+	recognized := rg.(blockData)
 	for _, value := range data {
 		v, err := recognized.data.Get([]byte(value[0]))
 		if err != nil {
@@ -991,10 +992,11 @@ func TestFlush(t *testing.T) {
 	if err := db.Flush(currentHash, blockNumber); err != nil {
 		t.Fatal(err)
 	}
-	recognized, ok := db.recognized[currentHash]
+	rg, ok := db.recognized.Load(currentHash)
 	if !ok {
 		t.Fatal("[SnapshotDB] recognized hash should be find")
 	}
+	recognized := rg.(blockData)
 	if !recognized.readOnly {
 		t.Fatal("[SnapshotDB] unrecognized flush to recognized , then the block must read only")
 	}
@@ -1123,7 +1125,7 @@ func TestCommit(t *testing.T) {
 			t.Fatal("[SnapshotDB] should equal")
 		}
 	}
-	if _, ok := db.recognized[currentHash]; ok {
+	if _, ok := db.recognized.Load(currentHash); ok {
 		t.Fatal("[SnapshotDB] should move to commit")
 	}
 
