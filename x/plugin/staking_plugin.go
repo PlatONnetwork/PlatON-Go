@@ -1636,7 +1636,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) err
 	case len(tmpQueue) > 0 &&  len(tmpQueue) <= int(xcom.ShiftValidatorNum):
 		shiftQueue = tmpQueue
 	default:
-		// elect 8 validators by vrf
+		// elect ShiftValidatorNum (default is 8) validators by vrf
 		// TODO vrf
 
 
@@ -1657,10 +1657,13 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) err
 		}
 	}
 
-	curr.Arr.ValidatorSort(slashCans)
+	// Sort before removal
+	curr.Arr.ValidatorSort(slashCans, staking.CompareForDel)
 
 	// Replace the validators that can be replaced
-	nextValidators := curr.Arr[len(shiftQueue):]
+	tmp := curr.Arr[len(shiftQueue):]
+	nextValidators := make(staking.ValidatorQueue, len(tmp))
+	copy(nextValidators, tmp)
 
 	// Increase term of validator
 	for i,v := range nextValidators {
@@ -1669,6 +1672,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) err
 	}
 
 	nextValidators = append(nextValidators, shiftQueue...)
+
+	// Sort before storage
+	nextValidators.ValidatorSort(slashCans, staking.CompareForStore)
 
 	next := &staking.Validator_array{
 		Start: start,
@@ -1683,7 +1689,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) err
 	// update candidate status
 	for addr, can := range slashCans {
 		if staking.Is_Valid(can.Status) && staking.Is_LowRatio(can.Status) {
-			// clean the Slash status
+			// clean the low package ratio status
 			can.Status &^= staking.LowRatio
 			if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 				return err
@@ -1854,7 +1860,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 	if slashType == staking.LowRatio {
 		can.Status |= staking.LowRatio
-		if !CheckStakeThreshold(canRemain) {
+		if !xutil.CheckStakeThreshold(canRemain) {
 			can.Status |= staking.NotEnough
 			needDelete = true
 		}
@@ -2117,10 +2123,4 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 
 }
 
-func CheckStakeThreshold(stake *big.Int) bool {
-	return stake.Cmp(xcom.StakeThreshold) >= 0
-}
 
-func CheckDelegateThreshold(delegate *big.Int) bool {
-	return delegate.Cmp(xcom.DelegateThreshold) >= 0
-}

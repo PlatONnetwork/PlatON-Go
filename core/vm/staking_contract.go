@@ -116,7 +116,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
 	//	externalId, nodeName, website, details, amount, processVersion)
 
-	if !plugin.CheckStakeThreshold(amount) {
+	if !xutil.CheckStakeThreshold(amount) {
 		res := xcom.Result{false, "", StakeVonTooLowStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
@@ -475,7 +475,8 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	if nil == del {
 
-		if !plugin.CheckDelegateThreshold(amount) {
+		// First delegate
+		if !xutil.CheckDelegateThreshold(amount) {
 			res := xcom.Result{false, "", DelegateVonTooLowStr}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")

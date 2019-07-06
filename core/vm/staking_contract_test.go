@@ -20,7 +20,7 @@ import (
 
 
 
-
+// Custom func
 func create_staking (blockNumber *big.Int, blockHash common.Hash, state *state.StateDB, index int, t *testing.T) *vm.StakingContract {
 
 	stakingContract := &vm.StakingContract{
@@ -29,7 +29,7 @@ func create_staking (blockNumber *big.Int, blockHash common.Hash, state *state.S
 		Evm:	 newEvm(blockNumber, blockHash, state),
 	}
 
-	state.Prepare(txHashArr[index], blockHash, index)
+	state.Prepare(txHashArr[index], blockHash, index + 1)
 
 
 	var params [][]byte
@@ -106,6 +106,10 @@ func TestRLP_encode (t *testing.T) {
 }
 
 
+/**
+Standard test cases
+ */
+
 func TestStakingContract_createStaking(t *testing.T) {
 	defer func() {
 		sndb.Clear()
@@ -122,7 +126,6 @@ func TestStakingContract_createStaking(t *testing.T) {
 	}
 	create_staking(blockNumber, blockHash, state, 1, t)
 }
-
 
 
 func TestStakingContract_editorCandidate(t *testing.T) {
@@ -185,6 +188,226 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 }
 
 
+func TestStakingContract_increaseStaking (t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+
+	state, _ := newChainState()
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		fmt.Println("newBlock err", err)
+	}
+
+	stakingContract := create_staking(blockNumber, blockHash, state, 1, t)
+
+	// increase
+	var params [][]byte
+	params = make([][]byte, 0)
+
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1001))
+
+	benifitAddress, _ := rlp.EncodeToBytes(addrArr[0])
+	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[1])
+	externalId, _ := rlp.EncodeToBytes("I am Gavin !?")
+	nodeName, _ := rlp.EncodeToBytes("Gavin, China")
+	website, _ := rlp.EncodeToBytes("https://www.gavin.net")
+	details, _ := rlp.EncodeToBytes("Gavin super node")
+
+
+
+	params = append(params, fnType)
+	params = append(params, benifitAddress)
+	params = append(params, nodeId)
+	params = append(params, externalId)
+	params = append(params, nodeName)
+	params = append(params, website)
+	params = append(params, details)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("edit candidate encode rlp data fail")
+	} else {
+		fmt.Println("edit candidate data rlp: ", hexutil.Encode(buf.Bytes()))
+	}
+
+
+	res, err := stakingContract.Run(buf.Bytes())
+	if nil != err {
+		t.Error(err)
+	}else {
+		t.Log(string(res))
+	}
+
+}
+
+func TestStakingContract_withdrewCandidate (t *testing.T) {
+
+}
+
+
+func TestStakingContract_delegate (t *testing.T) {
+
+}
+
+func TestStakingContract_withdrewDelegate (t *testing.T) {
+
+}
+
+
+func TestStakingContract_getVerifierList (t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+	state, _ := newChainState()
+	stakingContract := &vm.StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0),
+		Evm:	 newEvm(blockNumber, blockHash, state),
+	}
+	//state.Prepare(txHashArr[idx], blockHash, idx)
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
+	}
+
+
+	params := make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1100))
+
+	params = append(params, fnType)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("getVerifierList encode rlp data fail")
+	} else {
+		fmt.Println("getVerifierList data rlp: ", hexutil.Encode(buf.Bytes()))
+	}
+
+	res, err := stakingContract.Run(buf.Bytes())
+	if nil != err {
+		t.Error("getVerifierList err", err)
+	}else {
+
+		var r xcom.Result
+		err = json.Unmarshal(res, &r)
+		if nil != err {
+			fmt.Println(err)
+		}
+
+		if r.Status {
+			t.Log("the VerifierList info:", r.Data)
+		}else {
+			t.Error("getVerifierList failed", r.ErrMsg)
+		}
+	}
+
+
+}
+
+
+func TestStakingContract_getValidatorList (t *testing.T) {
+
+}
+
+
+func TestStakingContract_getCandidateList(t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+
+	state, _ := newChainState()
+
+	//state.Prepare(txHashArr[idx], blockHash, idx)
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
+	}
+
+
+	for i:= 0; i < 2; i++ {
+		create_staking(blockNumber, blockHash, state, i, t)
+	}
+
+	sndb.Commit(blockHash)
+	//sndb.Compaction()
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
+	}
+
+
+	for i:= 2; i < 4; i++ {
+		create_staking(blockNumber2, blockHash2, state, i, t)
+	}
+
+
+	// getCandidate List
+	stakingContract := &vm.StakingContract{
+		Plugin:   plugin.StakingInstance(),
+		Contract: newContract(common.Big0),
+		Evm:	 newEvm(blockNumber2, blockHash2, state),
+	}
+	params := make([][]byte, 0)
+
+	fnType, _ := rlp.EncodeToBytes(uint16(1102))
+
+	params = append(params, fnType)
+
+	buf := new(bytes.Buffer)
+	err := rlp.Encode(buf, params)
+	if err != nil {
+		fmt.Println(err)
+		t.Errorf("getCandidateList encode rlp data fail")
+	} else {
+		fmt.Println("getCandidateList data rlp: ", hexutil.Encode(buf.Bytes()))
+	}
+
+	res, err := stakingContract.Run(buf.Bytes())
+	if nil != err {
+		t.Error("getCandidateList err", err)
+	}else {
+
+		var r xcom.Result
+		err = json.Unmarshal(res, &r)
+		if nil != err {
+			fmt.Println(err)
+		}
+
+		if r.Status {
+			t.Log("the CandidateList info:", r.Data)
+		}else {
+			t.Error("CandidateList failed", r.ErrMsg)
+		}
+	}
+
+
+}
+
+func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
+
+}
+
+func TestStakingContract_getDelegateInfo (t *testing.T) {
+
+}
+
+
 func TestStakingContract_getCandidateInfo (t *testing.T) {
 	defer func() {
 		sndb.Clear()
@@ -241,6 +464,10 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 }
 
 
+/**
+Expand test cases
+ */
+
 
 func TestStakingContract_batchCreateStaking(t *testing.T) {
 	defer func() {
@@ -262,138 +489,8 @@ func TestStakingContract_batchCreateStaking(t *testing.T) {
 
 }
 
-func TestStakingContract_getCandidaateList(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
-
-	state, _ := newChainState()
-
-	//state.Prepare(txHashArr[idx], blockHash, idx)
-	newPlugins()
-
-	sndb := snapshotdb.Instance()
-
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
-		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
-	}
 
 
-	for i:= 0; i < 2; i++ {
-		create_staking(blockNumber, blockHash, state, i, t)
-	}
-
-	sndb.Commit(blockHash)
-	sndb.Compaction()
-
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
-	}
-
-
-	for i:= 2; i < 4; i++ {
-		create_staking(blockNumber2, blockHash2, state, i, t)
-	}
-
-
-	// getCandidate List
-	stakingContract := &vm.StakingContract{
-		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber2, blockHash2, state),
-	}
-	params := make([][]byte, 0)
-
-	fnType, _ := rlp.EncodeToBytes(uint16(1102))
-
-	params = append(params, fnType)
-
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("getCandidateList encode rlp data fail")
-	} else {
-		fmt.Println("getCandidateList data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := stakingContract.Run(buf.Bytes())
-	if nil != err {
-		t.Error("getCandidateList err", err)
-	}else {
-
-		var r xcom.Result
-		err = json.Unmarshal(res, &r)
-		if nil != err {
-			fmt.Println(err)
-		}
-
-		if r.Status {
-			t.Log("the CandidateList info:", r.Data)
-		}else {
-			t.Error("CandidateList failed", r.ErrMsg)
-		}
-	}
-
-
-}
-
-
-func TestStakingContract_getVerifierList (t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
-	state, _ := newChainState()
-	stakingContract := &vm.StakingContract{
-		Plugin:   plugin.StakingInstance(),
-		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber, blockHash, state),
-	}
-	//state.Prepare(txHashArr[idx], blockHash, idx)
-	newPlugins()
-
-	sndb := snapshotdb.Instance()
-
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
-		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
-	}
-
-
-	params := make([][]byte, 0)
-
-	fnType, _ := rlp.EncodeToBytes(uint16(1100))
-
-	params = append(params, fnType)
-
-	buf := new(bytes.Buffer)
-	err := rlp.Encode(buf, params)
-	if err != nil {
-		fmt.Println(err)
-		t.Errorf("getVerifierList encode rlp data fail")
-	} else {
-		fmt.Println("getVerifierList data rlp: ", hexutil.Encode(buf.Bytes()))
-	}
-
-	res, err := stakingContract.Run(buf.Bytes())
-	if nil != err {
-		t.Error("getVerifierList err", err)
-	}else {
-
-		var r xcom.Result
-		err = rlp.DecodeBytes(res, &r)
-		if nil != err {
-			fmt.Println(err)
-		}
-
-		if r.Status {
-			t.Log("the VerifierList info:", r.Data)
-		}else {
-			t.Error("getVerifierList failed", r.ErrMsg)
-		}
-	}
-
-
-}
 
 func TestStakingContract_cleanSnapshotDB(t *testing.T) {
 	sndb := snapshotdb.Instance()
