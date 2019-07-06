@@ -26,9 +26,9 @@ func newDB(stor storage) (*snapshotDB, error) {
 	}
 	mu := sync.Mutex{}
 	return &snapshotDB{
-		path:          dbpath,
-		storage:       stor,
-		unRecognized:  new(blockData),
+		path:    dbpath,
+		storage: stor,
+		//	unRecognized:  new(blockData),
 		committed:     make([]blockData, 0),
 		journalw:      make(map[common.Hash]*journalWriter),
 		baseDB:        baseDB,
