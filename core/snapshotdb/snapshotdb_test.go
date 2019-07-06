@@ -88,9 +88,62 @@ func TestSnapshotDB_GetWithNoCommit(t *testing.T) {
 	}
 }
 
-func TestSnapshotDB_Get(t *testing.T) {
-	os.RemoveAll(dbpath)
+func TestSnapshotDB_Get_after_del(t *testing.T) {
 	initDB()
+	defer dbInstance.Clear()
+	var (
+		arr = [][]kv{generatekv(10), generatekv(10), generatekv(10), generatekv(10), generatekv(10)}
+	)
+	{
+		//baseDB
+		if err := newBlockBaseDB(big.NewInt(1), generateHash(fmt.Sprint(0)), generateHash(fmt.Sprint(1)), arr[0]); err != nil {
+			t.Error(err)
+			return
+		}
+		//commit
+		if err := newBlockCommited(big.NewInt(2), generateHash(fmt.Sprint(1)), generateHash(fmt.Sprint(2)), arr[1]); err != nil {
+			t.Error(err)
+			return
+		}
+
+		//recognized
+		if err := newBlockRecognizedDirect(big.NewInt(3), generateHash(fmt.Sprint(2)), generateHash(fmt.Sprint(3)), arr[2]); err != nil {
+			t.Error(err)
+			return
+		}
+
+		//unRecognized
+		if err := newBlockUnRecognized(big.NewInt(4), generateHash(fmt.Sprint(3)), arr[3]); err != nil {
+			t.Error(err)
+		}
+
+		t.Run("delete commit", func(t *testing.T) {
+			key := arr[1][0].key
+			if err := dbInstance.Del(generateHash(fmt.Sprint(3)), key); err != nil {
+				t.Error(err)
+				return
+			}
+			_, err := dbInstance.Get(generateHash(fmt.Sprint(3)), key)
+			if err != ErrNotFound {
+				t.Error(err)
+				return
+			}
+			if err := dbInstance.Commit(generateHash(fmt.Sprint(3))); err != nil {
+				t.Error(err)
+				return
+			}
+			_, err = dbInstance.Get(common.ZeroHash, key)
+			if err != ErrNotFound {
+				t.Error(err)
+				return
+			}
+		})
+	}
+}
+
+func TestSnapshotDB_Get(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
 	var (
 		arr = [][]kv{generatekv(10), generatekv(10), generatekv(10), generatekv(10), generatekv(10)}
 	)
@@ -575,6 +628,52 @@ func TestSnapshotDB_BaseNum(t *testing.T) {
 	_, err := dbInstance.BaseNum()
 	if err != nil {
 		t.Error(err)
+	}
+}
+
+func TestSnapshotDB_Compaction_del(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
+	baseDBHash := generateHash("base")
+	baseDBkv := generatekv(10)
+	if err := newBlockBaseDB(big.NewInt(1), common.ZeroHash, baseDBHash, baseDBkv); err != nil {
+		t.Error(err)
+		return
+	}
+	delkey := baseDBkv[0].key
+	delVal := baseDBkv[0].value
+	v, err := dbInstance.GetBaseDB(delkey)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if bytes.Compare(v, delVal) != 0 {
+		t.Error("must same")
+		return
+	}
+
+	baseDBHash2 := generateHash("base2")
+	if err := dbInstance.NewBlock(big.NewInt(2), baseDBHash, baseDBHash2); err != nil {
+		t.Error(err)
+		return
+	}
+	if err := dbInstance.Del(baseDBHash2, delkey); err != nil {
+		t.Error(err)
+		return
+	}
+	if err := dbInstance.Commit(baseDBHash2); err != nil {
+		t.Error(err)
+		return
+	}
+	if err := dbInstance.Compaction(); err != nil {
+		t.Error(err)
+		return
+	}
+
+	_, err = dbInstance.GetBaseDB(delkey)
+	if err != ErrNotFound {
+		t.Error(err)
+		return
 	}
 }
 
