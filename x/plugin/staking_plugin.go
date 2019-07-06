@@ -460,12 +460,17 @@ func (sk *StakingPlugin) GetDelegateInfo(blockHash common.Hash, delAddr common.A
 
 func (sk *StakingPlugin) GetDelegateInfoByIrr (delAddr common.Address,
 	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.Delegation, error) {
-	return sk.GetDelegateInfoByIrr(delAddr, nodeId, stakeBlockNumber)
+
+	return sk.db.GetDelegateStoreByIrr(delAddr, nodeId, stakeBlockNumber)
 }
 
 
 func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	delAddr common.Address, del *staking.Delegation, can *staking.Candidate, typ uint16, amount *big.Int) error {
+
+
+	xcom.PrintObject("进来的can:", can)
+	xcom.PrintObject("进来的del:", del)
 
 	pubKey, _ := can.NodeId.Pubkey()
 	canAddr := crypto.PubkeyToAddress(*pubKey)
@@ -503,6 +508,8 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	del.DelegateEpoch = uint32(epoch)
 
+	xcom.PrintObject("修改完存储之前的del:", del)
+
 	// set new delegate info
 	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del); nil != err {
 		return err
@@ -515,6 +522,8 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	// add the candidate power
 	can.Shares = new(big.Int).Add(can.Shares, amount)
+
+	xcom.PrintObject("修改完存储之前的can:", can)
 
 	// set new power of can
 	if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
@@ -544,6 +553,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	if nil != err {
 		return err
 	}
+
+	xcom.PrintObject("进来时的can:", can)
+	xcom.PrintObject("进来时的del:", del)
 
 	aboutRelease := new(big.Int).Add(del.Released, del.ReleasedHes)
 	aboutRestrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
@@ -711,6 +723,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		}
 	}
 
+
+
+
 	// delete old can power
 	if nil != can && stakingBlockNum == can.StakingBlockNum && staking.Is_Valid(can.Status) {
 		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
@@ -727,7 +742,8 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			return err
 		}
 	}
-
+	xcom.PrintObject("撤销之后的can:", can)
+	xcom.PrintObject("撤销之后的del:", del)
 	return nil
 }
 
@@ -2110,6 +2126,11 @@ func lazyCalcStakeAmount(epoch uint64, can *staking.Candidate) {
 }
 
 func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
+
+	// When the first time, there was no previous changeAmountEpoch
+	if del.DelegateEpoch == 0 {
+		return
+	}
 
 	changeAmountEpoch := del.DelegateEpoch
 

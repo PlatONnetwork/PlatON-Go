@@ -213,6 +213,21 @@ func (db *StakingDB) GetDelegateStore (blockHash common.Hash, delAddr common.Add
 }
 
 
+func (db *StakingDB) GetDelegateStoreByIrr (delAddr common.Address, nodeId discover.NodeID, stakeBlockNumber uint64) (*Delegation, error) {
+	key := GetDelegateKey(delAddr, nodeId, stakeBlockNumber)
+
+	delByte, err := db.getFromCommitted(key)
+	if nil != err {
+		return nil, err
+	}
+
+	var del Delegation
+	if err := rlp.DecodeBytes(delByte, &del); nil != err {
+		return nil, err
+	}
+	return &del, nil
+}
+
 func (db *StakingDB) GetDelegateStoreBySuffix (blockHash common.Hash, keySuffix[]byte) (*Delegation, error) {
 	key := GetDelegateKeyBySuffix(keySuffix)
 	delByte, err := db.get(blockHash, key)
