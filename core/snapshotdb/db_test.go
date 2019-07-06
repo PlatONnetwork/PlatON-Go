@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"sort"
 	"testing"
 	"time"
 )
@@ -318,12 +319,33 @@ type kv struct {
 	value []byte
 }
 
-func randomString2() []byte {
+func randomString2(s string) []byte {
 	b := new(bytes.Buffer)
+	if s != "" {
+		b.Write([]byte(s))
+	}
 	for i := 0; i < 4; i++ {
 		b.WriteByte(' ' + byte(rand.Int()))
 	}
 	return b.Bytes()
+}
+
+type kvs []kv
+
+func (k kvs) Len() int {
+	return len(k)
+}
+
+func (k kvs) Less(i, j int) bool {
+	n := bytes.Compare(k[i].key, k[j].key)
+	if n == -1 {
+		return true
+	}
+	return false
+}
+
+func (k kvs) Swap(i, j int) {
+	k[i], k[j] = k[j], k[i]
 }
 
 func generatekv(n int) []kv {
@@ -331,10 +353,23 @@ func generatekv(n int) []kv {
 	kvs := make([]kv, n)
 	for i := 0; i < n; i++ {
 		kvs[i] = kv{
-			key:   randomString2(),
-			value: randomString2(),
+			key:   randomString2(""),
+			value: randomString2(""),
 		}
 	}
+	return kvs
+}
+
+func generatekvWithPrefix(n int, p string) kvs {
+	rand.Seed(time.Now().UnixNano())
+	kvs := make(kvs, n)
+	for i := 0; i < n; i++ {
+		kvs[i] = kv{
+			key:   randomString2(p),
+			value: randomString2(p),
+		}
+	}
+	sort.Sort(kvs)
 	return kvs
 }
 
