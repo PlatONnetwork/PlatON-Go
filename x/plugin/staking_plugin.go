@@ -219,6 +219,8 @@ func (sk *StakingPlugin) EditorCandidate (blockHash common.Hash, blockNumber *bi
 func (sk *StakingPlugin) IncreaseStaking (state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, typ uint16, can *staking.Candidate) error {
 
+	xcom.PrintObject("进来的时候can:", can)
+
 	pubKey, _ := can.NodeId.Pubkey()
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
@@ -239,6 +241,7 @@ func (sk *StakingPlugin) IncreaseStaking (state xcom.StateDB, blockHash common.H
 		state.AddBalance(vm.StakingContractAddr, amount)
 
 		can.ReleasedHes = new(big.Int).Add(can.ReleasedHes, amount)
+
 	} else {
 
 		err := RestrictingPtr.PledgeLockFunds(can.StakingAddress, amount, state)
@@ -268,6 +271,10 @@ func (sk *StakingPlugin) IncreaseStaking (state xcom.StateDB, blockHash common.H
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
+
+
+	xcom.PrintObject("存储之前can:", can)
+
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to EditorCandidate on stakingPlugin: Put Can info 2 db failed",
@@ -2122,5 +2129,6 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 	}
 
 }
+
 
 
