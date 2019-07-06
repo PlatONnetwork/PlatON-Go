@@ -18,15 +18,9 @@ const (
 	TypeAll = TypeCurrent | TypeJournal
 )
 
-const (
-	funcTypePut = iota
-	funcTypeDel
-)
-
 type journalData struct {
 	Key, Value []byte
 	Hash       common.Hash
-	FuncType   uint64
 }
 
 const (
