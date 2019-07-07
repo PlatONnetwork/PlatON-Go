@@ -660,7 +660,7 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, addr common
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
-	del, err := stkc.Plugin.GetDelegateInfoByIrr(addr, nodeId, stakingBlockNum)
+	del, err := stkc.Plugin.GetDelegateExInfoByIrr(addr, nodeId, stakingBlockNum)
 	if nil != err {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
 		data, _ := json.Marshal(res)

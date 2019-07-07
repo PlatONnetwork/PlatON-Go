@@ -3,7 +3,7 @@ package vm_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	_ "fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -62,10 +62,9 @@ func create_staking (blockNumber *big.Int, blockHash common.Hash, state *state.S
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
-		fmt.Println(err)
-		t.Errorf("createStaking encode rlp data fail")
+		t.Errorf("createStaking encode rlp data fail: %v", err)
 	} else {
-		fmt.Println("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
 
@@ -125,10 +124,9 @@ func getCandidate (contract *vm.StakingContract, index int, t *testing.T) {
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
-		fmt.Println(err)
-		t.Errorf("getCandidate encode rlp data fail")
+		t.Errorf("getCandidate encode rlp data fail: %v", err)
 	} else {
-		fmt.Println("getCandidate data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("getCandidate data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
 	res, err := contract.Run(buf.Bytes())
@@ -139,7 +137,7 @@ func getCandidate (contract *vm.StakingContract, index int, t *testing.T) {
 		var r xcom.Result
 		err = json.Unmarshal(res, &r)
 		if nil != err {
-			fmt.Println(err)
+			t.Error("Failed to parse result", err)
 		}
 
 		if r.Status {
@@ -157,21 +155,21 @@ func TestRLP_encode (t *testing.T) {
 
 	fnType, err := rlp.EncodeToBytes(uint16(1100))
 	if nil != err {
-		fmt.Println("fnType err", err)
+		t.Error("fnType err", err)
 	}else {
 		var num uint16
 		rlp.DecodeBytes(fnType, &num)
-		fmt.Println("num is ", num)
+		t.Log("num is ", num)
 	}
 	params = append(params, fnType)
 
 	buf := new(bytes.Buffer)
 	err = rlp.Encode(buf, params)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err)
 		t.Errorf("rlp stakingContract encode rlp data fail")
 	} else {
-		fmt.Println("rlp stakingContract data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("rlp stakingContract data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 }
 
@@ -192,7 +190,7 @@ func TestStakingContract_createStaking(t *testing.T) {
 	sndb := snapshotdb.Instance()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
-		fmt.Println("newBlock err", err)
+		t.Error("newBlock err", err)
 	}
 	create_staking(blockNumber, blockHash, state, 1, t)
 }
@@ -211,7 +209,7 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 	index := 1
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
-		fmt.Println("newBlock err", err)
+		t.Error("newBlock err", err)
 	}
 
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
@@ -264,10 +262,9 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
-		fmt.Println(err)
-		t.Errorf("edit candidate encode rlp data fail")
+		t.Errorf("edit candidate encode rlp data fail: %v", err)
 	} else {
-		fmt.Println("edit candidate data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("edit candidate data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
 
@@ -597,10 +594,9 @@ func TestStakingContract_getVerifierList (t *testing.T) {
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
-		fmt.Println(err)
-		t.Errorf("getVerifierList encode rlp data fail")
+		t.Errorf("getVerifierList encode rlp data fail:%v", err)
 	} else {
-		fmt.Println("getVerifierList data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("getVerifierList data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
 	res, err := contract.Run(buf.Bytes())
@@ -611,7 +607,7 @@ func TestStakingContract_getVerifierList (t *testing.T) {
 		var r xcom.Result
 		err = json.Unmarshal(res, &r)
 		if nil != err {
-			fmt.Println(err)
+			t.Error("Failed tp parse result", err)
 		}
 
 		if r.Status {
@@ -654,10 +650,9 @@ func TestStakingContract_getValidatorList (t *testing.T) {
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
-		fmt.Println(err)
-		t.Errorf("getValidatorList encode rlp data fail")
+		t.Errorf("getValidatorList encode rlp data fail:%v", err)
 	} else {
-		fmt.Println("getValidatorList data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("getValidatorList data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
 	res, err := contract.Run(buf.Bytes())
@@ -668,7 +663,7 @@ func TestStakingContract_getValidatorList (t *testing.T) {
 		var r xcom.Result
 		err = json.Unmarshal(res, &r)
 		if nil != err {
-			fmt.Println(err)
+			t.Error("Failed to parse result", err)
 		}
 
 		if r.Status {
@@ -730,10 +725,9 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
-		fmt.Println(err)
-		t.Errorf("getCandidateList encode rlp data fail")
+		t.Errorf("getCandidateList encode rlp data fail:%v", err)
 	} else {
-		fmt.Println("getCandidateList data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("getCandidateList data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
 	res, err := contract.Run(buf.Bytes())
@@ -744,7 +738,7 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 		var r xcom.Result
 		err = json.Unmarshal(res, &r)
 		if nil != err {
-			fmt.Println(err)
+			t.Error("Failed to parse result", err)
 		}
 
 		if r.Status {
@@ -913,7 +907,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 	sndb := snapshotdb.Instance()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
-		fmt.Println("newBlock err", err)
+		t.Error("Failed to newBlock", err)
 	}
 	contract := create_staking(blockNumber, blockHash, state, 1, t)
 	sndb.Commit(blockHash)
@@ -941,7 +935,7 @@ func TestStakingContract_batchCreateStaking(t *testing.T) {
 	sndb := snapshotdb.Instance()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
-		fmt.Println("newBlock err", err)
+		t.Error("Failed to newBlock", err)
 	}
 
 	for i:= 0; i < 4; i++ {

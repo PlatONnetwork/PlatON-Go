@@ -72,7 +72,7 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
 		// handle UnStaking Item
-		err := sk.HandleUnCandidateReq(state, blockHash, epoch)
+		err := sk.HandleUnCandidateItem(state, blockHash, epoch)
 		if nil != err {
 			log.Error("Failed to call HandleUnCandidateReq on stakingPlugin EndBlock", "blockHash",
 	blockHash.Hex(), "blockNumber", header.Number.Uint64(), "err", err)
@@ -360,7 +360,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 	return nil
 }
 
-func (sk *StakingPlugin) HandleUnCandidateReq(state xcom.StateDB, blockHash common.Hash, epoch uint64) error {
+func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockHash common.Hash, epoch uint64) error {
 
 	releaseEpoch := epoch - xcom.UnStakeFreezeRatio
 
@@ -454,8 +454,22 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 
 func (sk *StakingPlugin) GetDelegateInfo(blockHash common.Hash, delAddr common.Address,
 	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.Delegation, error) {
-
 	return sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
+}
+
+func (sk *StakingPlugin) GetDelegateExInfo (blockHash common.Hash, delAddr common.Address,
+	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
+
+	del, err := sk.db.GetDelegateStore(blockHash, delAddr, nodeId, stakeBlockNumber)
+	if nil != err {
+		return nil, err
+	}
+	return &staking.DelegationEx{
+		Addr: delAddr,
+		NodeId: nodeId,
+		StakingBlockNum: stakeBlockNumber,
+		Delegation: *del,
+	}, nil
 }
 
 func (sk *StakingPlugin) GetDelegateInfoByIrr (delAddr common.Address,
@@ -463,6 +477,22 @@ func (sk *StakingPlugin) GetDelegateInfoByIrr (delAddr common.Address,
 
 	return sk.db.GetDelegateStoreByIrr(delAddr, nodeId, stakeBlockNumber)
 }
+
+func (sk *StakingPlugin) GetDelegateExInfoByIrr (delAddr common.Address,
+	nodeId discover.NodeID, stakeBlockNumber uint64) (*staking.DelegationEx, error) {
+
+	del, err := sk.db.GetDelegateStoreByIrr(delAddr, nodeId, stakeBlockNumber)
+	if nil != err {
+		return nil, err
+	}
+	return &staking.DelegationEx{
+		Addr: delAddr,
+		NodeId: nodeId,
+		StakingBlockNum: stakeBlockNumber,
+		Delegation: *del,
+	}, nil
+}
+
 
 
 func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
