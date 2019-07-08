@@ -38,7 +38,7 @@ func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
-		verifierList, err := stk.ListVerifierNodeIDFake(blockHash, header.Number.Uint64())
+		verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
 		if err != nil {
 			return err
 		}
@@ -541,10 +541,7 @@ func (govPlugin *GovPlugin) TestTally(votedVerifierList []discover.NodeID, accuC
 
 // check if the node a verifier, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
-	//TODO: replace it
-	//verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
-
 	if err != nil {
 		log.Error("list verifiers failed", "blockHash", blockHash)
 		return false
@@ -565,9 +562,7 @@ func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.N
 
 // check if the node a candidate, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
-	//TODO: replace it
-	//candidateList, err := stk.GetCandidateList(blockHash, QueryStartNotIrr)
-	candidateList, err := stk.GetCandidateListFake(blockHash, QueryStartNotIrr)
+	candidateList, err := stk.GetCandidateList(blockHash, QueryStartNotIrr)
 	if err != nil {
 		log.Error("list candidates failed", "blockHash", blockHash)
 		return false
