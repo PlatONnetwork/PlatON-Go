@@ -1,27 +1,26 @@
 package plugin_test
 
 import (
-	"fmt"
-	"time"
-	"encoding/json"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/hex"
-	mrand "math/rand"
-	"strconv"
-	"testing"
-	"math/big"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"encoding/json"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-
+	"math/big"
+	mrand "math/rand"
+	"strconv"
+	"testing"
+	"time"
 )
 
 
