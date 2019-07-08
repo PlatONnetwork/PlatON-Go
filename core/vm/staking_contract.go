@@ -810,6 +810,10 @@ func (stkc *StakingContract) getVerifierListMock() ([]byte, error) {
 		"0x740ce31b3fac20dac379db243021a51e80vvbbbb",
 	}
 
+	specialCharList := []string{
+		"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "卍", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
+		"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
+
 	queue := make(staking.ValidatorExQueue, 0)
 	for i := 0; i < 4; i++ {
 
@@ -821,9 +825,15 @@ func (stkc *StakingContract) getVerifierListMock() ([]byte, error) {
 			ProcessVersion:  uint32(i * i),
 			StakingBlockNum: uint64(i + 2),
 			Shares:          common.Big256,
+			//Description: staking.Description{
+			//	ExternalId: "xxccccdddddddd",
+			//	NodeName:   "I Am " + fmt.Sprint(i),
+			//	Website:    "www.baidu.com",
+			//	Details:    "this is  baidu ~~",
+			//},
 			Description: staking.Description{
-				ExternalId: "xxccccdddddddd",
-				NodeName:   "I Am " + fmt.Sprint(i),
+				ExternalId: "中文，我是中文中文",
+				NodeName:   "我是  特殊符号： " + specialCharList[i],
 				Website:    "www.baidu.com",
 				Details:    "this is  baidu ~~",
 			},
