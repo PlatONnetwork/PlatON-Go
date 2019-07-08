@@ -44,7 +44,20 @@ func create_staking (blockNumber *big.Int, blockHash common.Hash, state *state.S
 	return plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, initProcessVersion, typ, canAddr, canTmp)
 }
 
+func getCandidate (blockHash common.Hash, index int, t *testing.T) *staking.Candidate {
+	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
 
+	var c *staking.Candidate
+	if can, err := plugin.StakingInstance().GetCandidateInfo(blockHash, addr); nil != err {
+		t.Error("Failed to Get Candidate info", err)
+	}else {
+
+		canByte, _ := json.Marshal(can)
+		t.Log("Get Candidate Info is:", string(canByte))
+		c = can
+	}
+	return c
+}
 
 /**
 Standard test cases
@@ -113,14 +126,7 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 	sndb.Commit(blockHash)
 
 	// Get Candidate Info
-	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
-	if can, err := plugin.StakingInstance().GetCandidateInfo(blockHash, addr); nil != err {
-		t.Error("Failed to GetCandidateInfoByIrr", err)
-	}else {
-
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-	}
+	getCandidate(blockHash, index, t)
 
 }
 
@@ -222,17 +228,7 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	}
 
 	// Get Candidate Info
-	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
-
-	var c *staking.Candidate
-	if can, err := plugin.StakingInstance().GetCandidateInfo(blockHash, addr); nil != err {
-		t.Error("Failed to Get Candidate info", err)
-	}else {
-
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
-	}
+	c := getCandidate(blockHash, index, t)
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -252,14 +248,7 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	}
 
 	// get Candidate info after edit
-	if can, err := plugin.StakingInstance().GetCandidateInfo(blockHash2, addr); nil != err {
-		t.Error("Failed to Get Candidate info After Edit", err)
-	}else {
-
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info After Edit is:", string(canByte))
-		c = can
-	}
+	getCandidate(blockHash2, index, t)
 
 }
 
@@ -291,17 +280,7 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 	}
 
 	// Get Candidate Info
-	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
-
-	var c *staking.Candidate
-	if can, err := plugin.StakingInstance().GetCandidateInfo(blockHash, addr); nil != err {
-		t.Error("Failed to Get Candidate info", err)
-	}else {
-
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
-	}
+	c := getCandidate(blockHash, index, t)
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -317,6 +296,7 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 	}
 
 	// get Candidate info
+	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
 	if can, err := plugin.StakingInstance().GetCandidateInfoByIrr(addr); nil != err {
 	//if can, err := plugin.StakingInstance().GetCandidateInfo(blockHash2, addr); nil != err {
 		t.Error("Failed to Get Candidate info After Increase", err)
@@ -348,24 +328,14 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 
 	index := 1
 
-	if err := create_staking(blockNumber, blockHash, state, index, 1, t); nil != err {
+	if err := create_staking(blockNumber, blockHash, state, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
 	}
 
 	sndb.Commit(blockHash)
 
 	// Get Candidate Info
-	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
-
-	var c *staking.Candidate
-	if can, err := plugin.StakingInstance().GetCandidateInfo(blockHash, addr); nil != err {
-		t.Error("Failed to Get Candidate info", err)
-	}else {
-
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
-	}
+	c := getCandidate(blockHash, index, t)
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
@@ -377,18 +347,48 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 	}
 
 	// get Candidate info
-	if can, err := plugin.StakingInstance().GetCandidateInfo(blockHash2, addr); nil != err {
-		t.Error("Failed to Get Candidate info", err)
-	}else {
-
-		canByte, _ := json.Marshal(can)
-		t.Log("Get Candidate Info is:", string(canByte))
-		c = can
-	}
+	getCandidate(blockHash2, index, t)
 
 }
 
 func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+
+	state, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+	}
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Error("newBlock err", err)
+	}
+
+	index := 1
+
+	if err := create_staking(blockNumber, blockHash, state, index, 0, t); nil != err {
+		t.Error("Failed to Create Staking", err)
+	}
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Commit 1 err: %v", err)
+	}
+
+	// Get Candidate Info
+	getCandidate(blockHash, index, t)
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock2 err", err)
+	}
+
+    // Add UNStakingItem
+
+
+
 
 }
 
