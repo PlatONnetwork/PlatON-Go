@@ -225,6 +225,9 @@ func (h *baseHandler) handleMsg(p *peer) error {
 		p.Log().Error("read peer message error", "err", err)
 		return err
 	}
+	if msg.Size > CbftProtocolMaxMsgSize {
+		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, CbftProtocolMaxMsgSize)
+	}
 	switch {
 	case msg.Code == CBFTStatusMsg:
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
