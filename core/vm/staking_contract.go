@@ -13,7 +13,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
-	"reflect"
 )
 
 const (
@@ -58,7 +57,7 @@ func (stkc *StakingContract) RequiredGas(input []byte) uint64 {
 }
 
 func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
-	return stkc.execute(input)
+	return exec_platon_contract(input, stkc.FnSigns())
 }
 
 func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
@@ -79,22 +78,6 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 		1104: stkc.getDelegateInfo,
 		1105: stkc.getCandidateInfo,
 	}
-}
-
-func (stkc *StakingContract) execute(input []byte) (ret []byte, err error) {
-
-	// verify the tx data by contracts method
-	fn, params, err := plugin.Verify_tx_data(input, stkc.FnSigns())
-	if nil != err {
-		return nil, err
-	}
-
-	// execute contracts method
-	result := reflect.ValueOf(fn).Call(params)
-	if err, ok := result[1].Interface().(error); ok {
-		return nil, err
-	}
-	return result[0].Bytes(), nil
 }
 
 func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Address, nodeId discover.NodeID,

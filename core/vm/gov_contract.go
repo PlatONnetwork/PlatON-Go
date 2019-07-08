@@ -13,7 +13,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"reflect"
 )
 
 const (
@@ -52,7 +51,7 @@ func (gc *GovContract) RequiredGas(input []byte) uint64 {
 }
 
 func (gc *GovContract) Run(input []byte) ([]byte, error) {
-	return gc.execute(input)
+	return exec_platon_contract(input, gc.FnSigns())
 }
 
 func (gc *GovContract) FnSigns() map[uint16]interface{} {
@@ -70,21 +69,6 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (gc *GovContract) execute(input []byte) (ret []byte, err error) {
-
-	// verify the tx data by contracts method
-	fn, params, err := plugin.Verify_tx_data(input, gc.FnSigns())
-	if nil != err {
-		return nil, err
-	}
-
-	// execute contracts method
-	result := reflect.ValueOf(fn).Call(params)
-	if _, ok := result[1].Interface().(error); !ok {
-		return result[0].Bytes(), nil
-	}
-	return nil, result[1].Interface().(error)
-}
 
 
 func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, desc, url string, endVotingBlock uint64) ([]byte, error) {

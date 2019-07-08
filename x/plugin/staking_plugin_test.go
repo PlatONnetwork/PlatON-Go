@@ -718,9 +718,6 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	}
 
 
-	//canArr1 := make(staking.CandidateQueue, 0)
-	//delArr1 := make([]*staking.Delegation, 0)
-
 	t.Log("First delegate ~~")
 	for i := 0; i < 2; i++ {
 		// 0, 1
@@ -731,17 +728,10 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 			t.Errorf("Failed to Delegate: Num: %d, error: %v", i, err)
 		}
 
-		t.Log("First: Del => Can:", addrArr[i+1].Hex(), c.NodeId.String(), c.StakingBlockNum)
+		//t.Log("First: Del => Can:", addrArr[i+1].Hex(), c.NodeId.String(), c.StakingBlockNum)
 
-		//canArr1 = append(canArr1, c)
-		//delArr1 = append(delArr1, d)
 	}
 
-	//can1, _ := json.Marshal(canArr1)
-	//del1, _ := json.Marshal(delArr1)
-	//
-	//t.Log("First Delegate of Candidate :", string(can1))
-	//t.Log("First Delegate of Delegate :", string(del1))
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
@@ -754,9 +744,6 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	}
 
 
-	//canArr2 := make(staking.CandidateQueue, 0)
-	//delArr2 := make([]*staking.Delegation, 0)
-
 	t.Log("Second delegate ~~")
 	for i := 1; i < 3; i++ {
 		// 0, 1
@@ -767,101 +754,89 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 			t.Errorf("Failed to Delegate: Num: %d, error: %v", i, err)
 		}
 
-		t.Log("Second: Del => Can:", addrArr[i+1].Hex(), c.NodeId.String(), c.StakingBlockNum)
+		//t.Log("Second: Del => Can:", addrArr[i+1].Hex(), c.NodeId.String(), c.StakingBlockNum)
 
-
-		//canArr2 = append(canArr2, c)
-		//delArr2 = append(delArr2, d)
 	}
 
-	//can2, _ := json.Marshal(canArr2)
-	//del2, _ := json.Marshal(delArr2)
 
-	//t.Log("Second Delegate of Candidate :", string(can2))
-	//t.Log("Second Delegate of Delegate :", string(del2))
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
 	}
 
-	//t.Log("Finished Delegate ~~")
-	//// get Delegate info
-	//rel, err := plugin.StakingInstance().GetRelatedListByDelAddr(blockHash2, addrArr[1+1])
-	//if nil != err {
-	//	t.Error("Failed to GetRelatedListByDelAddr:", err)
-	//	return
-	//}
-	//
-	//relByte, _ := json.Marshal(rel)d
-	//t.Log("Get RelatedList is:", string(relByte))
-
-
-
-
-	//  test  blockHash
-	prefix := staking.DelegateKeyPrefix
-	iter := sndb.Ranking(blockHash, prefix, 0)
-
-	for iter.Valid(); iter.Next(); {
-		key := iter.Key()
-
-		prefixLen := len(staking.DelegateKeyPrefix)
-
-		nodeIdLen := discover.NodeIDBits / 8
-
-		// delAddr
-		delAddrByte := key[prefixLen: prefixLen+common.AddressLength]
-		delAddr := common.BytesToAddress(delAddrByte)
-
-		// nodeId
-		nodeIdByte := key[prefixLen+common.AddressLength: prefixLen+common.AddressLength+nodeIdLen]
-		nodeId := discover.MustBytesID(nodeIdByte)
-
-		// stakenum
-		stakeNumByte := key[prefixLen+common.AddressLength+nodeIdLen:]
-
-		num := common.BytesToUint64(stakeNumByte)
-
-		// related
-		t.Log("blockHash Iter:", delAddr.Hex(), nodeId.String(), num)
+	t.Log("Finished Delegate ~~")
+	// get Delegate info
+	rel, err := plugin.StakingInstance().GetRelatedListByDelAddr(blockHash2, addrArr[1+1])
+	if nil != err {
+		t.Error("Failed to GetRelatedListByDelAddr:", err)
+		return
 	}
 
-
-
-	//  test  blockHash2
- 	prefix = staking.DelegateKeyPrefix
-	iter = sndb.Ranking(blockHash2, prefix, 0)
-
-	for iter.Valid(); iter.Next(); {
-		key := iter.Key()
-
-		prefixLen := len(staking.DelegateKeyPrefix)
-
-		nodeIdLen := discover.NodeIDBits / 8
-
-		// delAddr
-		delAddrByte := key[prefixLen: prefixLen+common.AddressLength]
-		delAddr := common.BytesToAddress(delAddrByte)
-
-		// nodeId
-		nodeIdByte := key[prefixLen+common.AddressLength: prefixLen+common.AddressLength+nodeIdLen]
-		nodeId := discover.MustBytesID(nodeIdByte)
-
-		// stakenum
-		stakeNumByte := key[prefixLen+common.AddressLength+nodeIdLen:]
-
-		num := common.BytesToUint64(stakeNumByte)
-
-		// related
-		t.Log("blockHash2 Iter:", delAddr.Hex(), nodeId.String(), num)
-	}
-
-
+	relByte, _ := json.Marshal(rel)
+	t.Log("Get RelatedList is:", string(relByte))
 }
 
 
 
 func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
+
+
+	defer func() {
+		sndb.Clear()
+	}()
+
+	state, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+	}
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Error("newBlock err", err)
+	}
+
+	index := 1
+
+	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
+		t.Error("Failed to Create Staking", err)
+	}
+
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+	}
+
+	t.Log("Finish delegate ~~")
+	c := getCandidate(blockHash, index, t)
+
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
+	}
+
+
+	// Delegate
+	_, err = delegate(state, blockHash2,  blockNumber2, c, 0, index, t)
+	if nil != err {
+		t.Error("Failed to Delegate:", err)
+		return
+	}
+
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Error("Commit 2 err", err)
+	}
+
+	t.Log("Finished Delegate ~~")
+	// get Delegate info
+	getDelegate(blockHash2, blockNumber.Uint64(), index, t)
+
+
+	// Add UnDelegateItem
+
+
+
 
 }
 
