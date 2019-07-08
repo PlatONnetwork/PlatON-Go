@@ -2208,7 +2208,6 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 	svList := make(sortValidators, 0)
 	for _, validator := range validatorList {
 		weights, err := validator.GetShares()
-		weights.Div(weights, xcom.StakeThreshold)
 		if nil != err {
 			return nil, ElectionErr
 		}
