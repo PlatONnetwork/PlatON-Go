@@ -430,6 +430,61 @@ func TestSnapshotDB_Has(t *testing.T) {
 	//same as get
 }
 
+func TestSnapshotDB_Ranking2(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
+
+	commitHash := generateHash("commitHash1")
+	commitDBkv := generatekvWithPrefix(30, "ab")
+	if err := newBlockCommited(big.NewInt(1), common.ZeroHash, commitHash, commitDBkv); err != nil {
+		t.Error(err)
+		return
+	}
+
+	commitHash1 := generateHash("commitHash2")
+	commitDBkv1 := generatekvWithPrefix(30, "ac")
+	if err := newBlockCommited(big.NewInt(2), commitHash, commitHash1, commitDBkv1); err != nil {
+		t.Error(err)
+		return
+	}
+
+	f := func(hash common.Hash, arr []kvs, num int) error {
+		itr := dbInstance.Ranking(hash, []byte("a"), 100)
+		var i int
+		for _, kvs := range arr {
+			for _, kv := range kvs {
+				if !itr.Next() {
+					return errors.New("it's must can itr")
+				}
+				if bytes.Compare(kv.value, itr.Value()) != 0 {
+					return fmt.Errorf("itr return wrong value :%v,should return:%v ", itr.Key(), kv.value)
+				}
+				if bytes.Compare(kv.key, itr.Key()) != 0 {
+					return fmt.Errorf("itr return wrong key :%v,should return:%v ", itr.Key(), kv.key)
+				}
+				i++
+			}
+		}
+		if num != i {
+			return fmt.Errorf("num not the same want %d,have %d", num, i)
+		}
+		itr.Release()
+		return nil
+	}
+	t.Run("commitHash", func(t *testing.T) {
+		if err := f(commitHash, []kvs{commitDBkv}, 30); err != nil {
+			t.Error(err)
+			return
+		}
+	})
+	t.Run("commitHash2", func(t *testing.T) {
+		if err := f(commitHash1, []kvs{commitDBkv, commitDBkv1}, 60); err != nil {
+			t.Error(err)
+			return
+		}
+	})
+}
+
 func TestSnapshotDB_Ranking(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
