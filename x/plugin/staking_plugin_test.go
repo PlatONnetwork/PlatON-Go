@@ -49,7 +49,7 @@ func getCandidate (blockHash common.Hash, index int, t *testing.T) *staking.Cand
 
 	var c *staking.Candidate
 	if can, err := plugin.StakingInstance().GetCandidateInfo(blockHash, addr); nil != err {
-		t.Error("Failed to Get Candidate info", err)
+		t.Log("Failed to Get Candidate info", err)
 	}else {
 
 		canByte, _ := json.Marshal(can)
@@ -57,6 +57,11 @@ func getCandidate (blockHash common.Hash, index int, t *testing.T) *staking.Cand
 		c = can
 	}
 	return c
+}
+
+
+func delegate (blockHash common.Hash, index int, t *testing.T) {
+
 }
 
 /**
@@ -123,7 +128,9 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 		t.Error("Failed to Create Staking", err)
 	}
 
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+	}
 
 	// Get Candidate Info
 	getCandidate(blockHash, index, t)
@@ -153,7 +160,9 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 		t.Error("Failed to Create Staking", err)
 	}
 
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+	}
 
 	// Get Candidate Info
 	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
@@ -190,7 +199,9 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 		}
 	}
 
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+	}
 
 	if queue, err := plugin.StakingInstance().GetCandidateList(blockHash); nil != err {
 		t.Error("Failed to GetCandidateList", err)
@@ -332,7 +343,9 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 		t.Error("Failed to Create Staking", err)
 	}
 
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+	}
 
 	// Get Candidate Info
 	c := getCandidate(blockHash, index, t)
@@ -346,6 +359,7 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 		t.Error("Failed to WithdrewCandidate", err)
 	}
 
+	t.Log("Finish WithdrewCandidate ~~")
 	// get Candidate info
 	getCandidate(blockHash2, index, t)
 
@@ -385,9 +399,92 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 		t.Error("newBlock2 err", err)
 	}
 
-    // Add UNStakingItem
+    // Add UNStakingItems
+	stakingDB := staking.NewStakingDB ()
+
+	epoch := xutil.CalculateEpoch(blockNumber2.Uint64())
+	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
+
+	if err := stakingDB.AddUnStakeItemStore(blockHash2, epoch, addr); nil != err {
+		t.Error("Failed to AddUnStakeItemStore:", err)
+		return
+	}
+
+	err = plugin.StakingInstance().HandleUnCandidateItem(state, blockHash2,  uint64(2))
+	if nil != err {
+		t.Error("Failed to HandleUnCandidateItem:", err)
+		return
+	}
+
+	t.Log("Finish HandleUnCandidateItem ~~")
+
+	// get Candidate
+	getCandidate(blockHash2, index, t)
 
 
+}
+
+func TestStakingPlugin_Delegate(t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+
+	state, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+	}
+	newPlugins()
+
+	sndb := snapshotdb.Instance()
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Error("newBlock err", err)
+	}
+
+	index := 1
+
+	if err := create_staking(blockNumber, blockHash, state, index, 0, t); nil != err {
+		t.Error("Failed to Create Staking", err)
+	}
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+	}
+
+	// Get Candidate Info
+	c := getCandidate(blockHash, index, t)
+
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
+	}
+
+	// Delegate
+	delAddr := addrArr[index+1]
+
+	// build delegate
+	del := new(staking.Delegation)
+
+	// Prevent null pointer initialization
+	del.Released = common.Big0
+	del.RestrictingPlan = common.Big0
+	del.ReleasedHes = common.Big0
+	del.RestrictingPlanHes = common.Big0
+	del.Reduction = common.Big0
+
+	//amount := common.Big257  // FAIL
+	amount, _ := new(big.Int).SetString(balanceStr[index+1], 10)  // PASS
+
+	err = plugin.StakingInstance().Delegate(state, blockHash2, blockNumber2, delAddr, del, c, 0, amount)
+	if nil != err {
+		t.Error("Failed to Delegate:", err)
+	}
+
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Error("Commit 2 err", err)
+	}
+
+	getCandidate(blockHash2, index, t)
 
 
 }
@@ -401,11 +498,6 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 }
 
 func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
-
-}
-
-
-func TestStakingPlugin_Delegate(t *testing.T) {
 
 }
 

@@ -436,6 +436,7 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 	if can.Released.Cmp(common.Big0) > 0 {
 		state.AddBalance(can.StakingAddress, can.Released)
 		state.SubBalance(vm.StakingContractAddr, can.Released)
+		can.Released = common.Big0
 	}
 
 	if can.RestrictingPlan.Cmp(common.Big0) > 0 {
@@ -445,6 +446,7 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 				"err", err)
 			return err
 		}
+		can.RestrictingPlan = common.Big0
 	}
 
 	// delete can info
@@ -849,6 +851,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 	if amount.Cmp(del.Reduction) >= 0 { // full withdrawal
 		state.SubBalance(vm.StakingContractAddr, del.Released)
 		state.AddBalance(delAddr, del.Released)
+		del.Released = common.Big0
 
 		err := RestrictingPtr.ReturnLockFunds(delAddr, del.RestrictingPlan, state)
 		if nil != err {
@@ -856,6 +859,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 				"err", err)
 			return err
 		}
+		del.RestrictingPlan = common.Big0
 
 		if err := sk.db.DelDelegateStoreBySuffix(blockHash, unDel.KeySuffix); nil != err {
 			return err
@@ -2122,10 +2126,12 @@ func lazyCalcStakeAmount(epoch uint64, can *staking.Candidate) {
 
 	if can.ReleasedHes.Cmp(common.Big0) > 0 {
 		can.Released = new(big.Int).Add(can.Released, can.ReleasedHes)
+		can.ReleasedHes = common.Big0
 	}
 
 	if can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
 		can.RestrictingPlan = new(big.Int).Add(can.RestrictingPlan, can.RestrictingPlanHes)
+		can.RestrictingPlanHes = common.Big0
 	}
 }
 
@@ -2147,10 +2153,12 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 
 	if del.ReleasedHes.Cmp(common.Big0) > 0 {
 		del.Released = new(big.Int).Add(del.Released, del.ReleasedHes)
+		del.ReleasedHes = common.Big0
 	}
 
 	if del.RestrictingPlanHes.Cmp(common.Big0) > 0 {
 		del.RestrictingPlan = new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
+		del.RestrictingPlanHes = common.Big0
 	}
 
 }
