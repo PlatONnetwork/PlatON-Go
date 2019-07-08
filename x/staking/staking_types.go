@@ -53,19 +53,19 @@ func Is_PureNotEnough(status uint32) bool {
 }
 
 func Is_Invalid_LowRatio(status uint32) bool {
-	return status&(Invalided|LowRatio) == (Invalided | LowRatio)
+	return status&(Invalided|LowRatio) == (Invalided|LowRatio)
 }
 
 func Is_Invalid_NotEnough(status uint32) bool {
-	return status&(Invalided|NotEnough) == (Invalided | NotEnough)
+	return status&(Invalided|NotEnough) == (Invalided|NotEnough)
 }
 
 func Is_Invalid_LowRatio_NotEnough(status uint32) bool {
-	return status&(Invalided|LowRatio|NotEnough) == (Invalided | LowRatio | NotEnough)
+	return status&(Invalided|LowRatio|NotEnough) == (Invalided|LowRatio|NotEnough)
 }
 
 func Is_LowRatio_NotEnough(status uint32) bool {
-	return status&(LowRatio|NotEnough) == (LowRatio | NotEnough)
+	return status&(LowRatio|NotEnough) == (LowRatio|NotEnough)
 }
 
 func Is_DoubleSign(status uint32) bool {
@@ -73,7 +73,7 @@ func Is_DoubleSign(status uint32) bool {
 }
 
 func Is_DoubleSign_Invalid(status uint32) bool {
-	return status&(DoubleSign|Invalided) == (DoubleSign | Invalided)
+	return status&(DoubleSign|Invalided) == (DoubleSign|Invalided)
 }
 
 // The Candidate info
@@ -196,20 +196,28 @@ type ValidatorQueue []*Validator
 //type SlashMark map[discover.NodeID]struct{}
 type SlashCandidate map[common.Address]*Candidate
 
-func (arr ValidatorQueue) ValidatorSort(slashs SlashCandidate) {
+func (arr ValidatorQueue) ValidatorSort(slashs SlashCandidate,
+	compare func (slashs SlashCandidate, c, can *Validator) int) {
 	if len(arr) <= 1 {
 		return
 	}
-	arr.quickSort(slashs, 0, len(arr)-1)
-}
-func (arr ValidatorQueue) quickSort(slashs SlashCandidate, left, right int) {
-	if left < right {
-		pivot := arr.partition(slashs, left, right)
-		arr.quickSort(slashs, left, pivot-1)
-		arr.quickSort(slashs, pivot+1, right)
+
+	if nil == compare {
+		arr.quickSort(slashs, 0, len(arr)-1, CompareDefault)
+	}else {
+		arr.quickSort(slashs, 0, len(arr)-1, compare)
 	}
 }
-func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int) int {
+func (arr ValidatorQueue) quickSort(slashs SlashCandidate, left, right int,
+	compare func (slashs SlashCandidate, c, can *Validator) int) {
+	if left < right {
+		pivot := arr.partition(slashs, left, right, compare)
+		arr.quickSort(slashs, left, pivot-1, compare)
+		arr.quickSort(slashs, pivot+1, right, compare)
+	}
+}
+func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
+	compare func (slashs SlashCandidate, c, can *Validator) int) int {
 	for left < right {
 		for left < right && compare(slashs, arr[left], arr[right]) >= 0 {
 			right--
@@ -229,10 +237,22 @@ func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int) int 
 	return left
 }
 
-func compare(slashs SlashCandidate, c, can *Validator) int {
+func CompareDefault (slashs SlashCandidate, c, can *Validator) int {
 	// TODO
 	return -1
 }
+
+func CompareForDel (slashs SlashCandidate, c, can *Validator) int {
+	// TODO
+	return -1
+}
+
+func CompareForStore (slashs SlashCandidate, c, can *Validator) int {
+	// TODO
+	return -1
+}
+
+
 
 // some consensus round validators or current epoch validators
 type Validator_array struct {

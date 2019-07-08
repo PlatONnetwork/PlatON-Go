@@ -13,6 +13,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 var (
@@ -33,11 +34,10 @@ type releaseAmountInfo struct {
 	amount *big.Int	 `json:"amount"`		// amount representation of the released amount
 }
 
-
 type Result struct {
 	balance *big.Int
 	slash   *big.Int
-	pledge  *big.Int
+	staking *big.Int
 	debt    *big.Int
 	entry   []byte
 }
@@ -68,16 +68,14 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 	// getBlockNumberByEpoch(epoch)
 	// !!!
 
-	epoch := uint64(0)
-	blockNumber := uint64(0)
-
-	if blockNumber < head.Number.Uint64() {
+	blockNumber := head.Number.Uint64()
+	if !xutil.IsSettlementPeriod(blockNumber) {
 		return nil
 	}
 
+	epoch := xutil.CalculateEpoch(blockNumber)
 	log.Info("begin to release restricting", "curr", head.Number)
 	return rp.releaseRestricting(epoch, state)
-
 }
 
 // Comfired is empty function
@@ -448,7 +446,6 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 			}
 		}
 
-
 		// delete ReleaseAmount
 		state.SetState(account, releaseAmountKey, []byte{})
 
@@ -526,7 +523,7 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	result.balance = info.balance
 	result.debt = info.debt
 	result.slash = big.NewInt(0)
-	result.pledge = big.NewInt(0)
+	result.staking = big.NewInt(0)
 	result.entry = bPlans
 
 	log.Trace("get restricting result", "account", account, "result", result)

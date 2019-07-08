@@ -157,3 +157,11 @@ func (p *FakePeer) RequestNodeData(hashes []common.Hash) error {
 	p.dl.DeliverNodeData(p.id, data)
 	return nil
 }
+
+//todo finish fast sync
+func (p *FakePeer) RequestPPOSStorage() error {
+	return nil
+}
+func (p *FakePeer) RequestOriginAndPivotByCurrent(uint64) error {
+	return nil
+}

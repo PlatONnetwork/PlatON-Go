@@ -26,9 +26,9 @@ func newDB(stor storage) (*snapshotDB, error) {
 	}
 	mu := sync.Mutex{}
 	return &snapshotDB{
-		path:          dbpath,
-		storage:       stor,
-		unRecognized:  new(blockData),
+		path:    dbpath,
+		storage: stor,
+		//	unRecognized:  new(blockData),
 		committed:     make([]blockData, 0),
 		journalw:      make(map[common.Hash]*journalWriter),
 		baseDB:        baseDB,
@@ -86,15 +86,8 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 		if err := decode(j, &body); err != nil {
 			return nil, err
 		}
-		switch body.FuncType {
-		case funcTypePut:
-			if err := block.data.Put(body.Key, body.Value); err != nil {
-				return nil, err
-			}
-		case funcTypeDel:
-			if err := block.data.Delete(body.Key); err != nil {
-				return nil, err
-			}
+		if err := block.data.Put(body.Key, body.Value); err != nil {
+			return nil, err
 		}
 		kvhash = body.Hash
 	}
@@ -327,7 +320,7 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 	return hashLocationNotFound, true
 }
 
-func (s *snapshotDB) put(hash common.Hash, key, value []byte, funcType uint64) error {
+func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	var (
 		blockHash  common.Hash
 		kvhash     common.Hash
@@ -359,10 +352,9 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte, funcType uint64) e
 	}
 
 	jData := journalData{
-		Key:      key,
-		Value:    value,
-		Hash:     s.generateKVHash(key, value, kvhash),
-		FuncType: funcType,
+		Key:   key,
+		Value: value,
+		Hash:  s.generateKVHash(key, value, kvhash),
 	}
 	body, err := encode(jData)
 	if err != nil {
@@ -372,28 +364,14 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte, funcType uint64) e
 		return errors.New("[SnapshotDB]write journalBody fail:" + err.Error())
 	}
 	if hash != common.ZeroHash {
-		switch funcType {
-		case funcTypePut:
-			if err := recognized.data.Put(key, value); err != nil {
-				return err
-			}
-		case funcTypeDel:
-			if err := recognized.data.Delete(key); err != nil {
-				return err
-			}
+		if err := recognized.data.Put(key, value); err != nil {
+			return err
 		}
 		recognized.kvHash = jData.Hash
 		s.recognized.Store(hash, recognized)
 	} else {
-		switch funcType {
-		case funcTypePut:
-			if err := s.unRecognized.data.Put(key, value); err != nil {
-				return err
-			}
-		case funcTypeDel:
-			if err := s.unRecognized.data.Delete(key); err != nil {
-				return err
-			}
+		if err := s.unRecognized.data.Put(key, value); err != nil {
+			return err
 		}
 		s.unRecognized.kvHash = jData.Hash
 	}

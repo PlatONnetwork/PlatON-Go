@@ -69,7 +69,7 @@ func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, processV
 	prio := priority.String()
 	num := common.Uint64ToBytes(stakeBlockNum)
 	txIndex := common.Uint32ToBytes(stakeTxIndex)
-	return append(version, append(CanPowerKeyPrefix, append([]byte(prio),
+	return append(CanPowerKeyPrefix, append(version, append([]byte(prio),
 		append(num, txIndex...)...)...)...)
 }
 

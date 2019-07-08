@@ -68,9 +68,9 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 					Evm:      evm,
 				}
 				return RunPlatONPrecompiledContract(staking, input, contract)
-			case *restrictingContract:
-				restricting := &restrictingContract{
-					plugin:   plugin.RestrictingInstance(),
+			case *RestrictingContract:
+				restricting := &RestrictingContract{
+					Plugin  : plugin.RestrictingInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}
