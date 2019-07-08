@@ -8,7 +8,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -117,7 +116,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
 	//	externalId, nodeName, website, details, amount, processVersion)
 
-	if !plugin.CheckStakeThreshold(amount) {
+	if !xutil.CheckStakeThreshold(amount) {
 		res := xcom.Result{false, "", StakeVonTooLowStr}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
@@ -157,6 +156,12 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  txIndex,
 		Shares:          amount,
+
+		// Prevent null pointer initialization
+		Released: common.Big0,
+		ReleasedHes: common.Big0,
+		RestrictingPlan: common.Big0,
+		RestrictingPlanHes: common.Big0,
 
 		Description: staking.Description{
 			NodeName:   nodeName,
@@ -476,14 +481,22 @@ func (stkc *StakingContract) delegate(typ uint16, nodeId discover.NodeID, amount
 
 	if nil == del {
 
-		if !plugin.CheckDelegateThreshold(amount) {
+		// First delegate
+		if !xutil.CheckDelegateThreshold(amount) {
 			res := xcom.Result{false, "", DelegateVonTooLowStr}
 			event, _ := json.Marshal(res)
 			stkc.badLog(state, blockNumber.Uint64(), txHash, DelegateEvent, string(event), "delegate")
 			return event, nil
 		}
-
+		// build delegate
 		del = new(staking.Delegation)
+
+		// Prevent null pointer initialization
+		del.Released = common.Big0
+		del.RestrictingPlan = common.Big0
+		del.ReleasedHes = common.Big0
+		del.RestrictingPlanHes = common.Big0
+		del.Reduction = common.Big0
 	}
 
 	err = stkc.Plugin.Delegate(state, blockHash, blockNumber, from, del, canOld, typ, amount)
@@ -567,71 +580,78 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 
 	if nil != err {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	jsonByte, err := json.Marshal(arr)
 	if nil != err {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
-	data, _ := rlp.EncodeToBytes(res)
+	data, _ := json.Marshal(res)
 	return data, nil
 }
 
 func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 
+	//  TODO  MOCK
+	return stkc.getValidatorListMock()
+
 	arr, err := stkc.Plugin.GetValidatorList(common.ZeroHash, common.Big0.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
 	if nil != err {
 		res := xcom.Result{false, "", GetValidatorListErrStr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	arrByte, _ := json.Marshal(arr)
 	res := xcom.Result{true, string(arrByte), "ok"}
-	data, _ := rlp.EncodeToBytes(res)
+	data, _ := json.Marshal(res)
 	return data, nil
 }
 
 func (stkc *StakingContract) getCandidateList() ([]byte, error) {
+	blockHash := stkc.Evm.BlockHash
 
-	arr, err := stkc.Plugin.GetCandidateList(common.ZeroHash, plugin.QueryStartIrr)
+	arr, err := stkc.Plugin.GetCandidateList(blockHash)
 	if nil != err {
 		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 
 	jsonByte, err := json.Marshal(arr)
 	if nil != err {
 		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
-	data, _ := rlp.EncodeToBytes(res)
+	data, _ := json.Marshal(res)
 	return data, nil
 }
 
 // todo Maybe will implement
 func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byte, error) {
 
-	arr, err := stkc.Plugin.GetRelatedListByDelAddr(common.ZeroHash, addr, plugin.QueryStartIrr)
+
+	blockHash := stkc.Evm.BlockHash
+
+	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
 	if nil != err {
 		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	jsonByte, err := json.Marshal(arr)
 	if nil != err {
 		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
-	data, _ := rlp.EncodeToBytes(res)
+	data, _ := json.Marshal(res)
 	return data, nil
 }
 
@@ -641,23 +661,23 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, addr common
 	addr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
-	del, err := stkc.Plugin.GetDelegateInfoByIrr(addr, nodeId, stakingBlockNum)
+	del, err := stkc.Plugin.GetDelegateExInfoByIrr(addr, nodeId, stakingBlockNum)
 	if nil != err {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	jsonByte, err := json.Marshal(del)
 	if nil != err {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
-	data, _ := rlp.EncodeToBytes(res)
+	data, _ := json.Marshal(res)
 	return data, nil
 }
 
@@ -669,23 +689,23 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	addr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	can, err := stkc.Plugin.GetCandidateInfoByIrr(addr)
 	if nil != err {
 		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	jsonByte, err := json.Marshal(can)
 	if nil != err {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
-	data, _ := rlp.EncodeToBytes(res)
+	data, _ := json.Marshal(res)
 
 	return data, nil
 
@@ -775,10 +795,63 @@ func (stkc *StakingContract) getVerifierListMock() ([]byte, error) {
 	jsonByte, err := json.Marshal(queue)
 	if nil != err {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
-		data, _ := rlp.EncodeToBytes(res)
+		data, _ := json.Marshal(res)
 		return data, nil
 	}
 	res := xcom.Result{true, string(jsonByte), "ok"}
-	data, _ := rlp.EncodeToBytes(res)
+	data, _ := json.Marshal(res)
+	return data, nil
+}
+
+
+func (stkc *StakingContract) getValidatorListMock () ([]byte, error){
+
+	fmt.Println("Call getValidatorList ~~~~~~~~~~~~~~")
+
+	nodeIdArr := []string{
+		"0x1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28422334",
+		"0x2f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28435466",
+		"0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28544878",
+		"0x3f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee28564646",
+	}
+
+	addrArr := []string{
+		"0x740ce31b3fac20dac379db243021a51e80qeqqee",
+		"0x740ce31b3fac20dac379db243021a51e80444555",
+		"0x740ce31b3fac20dac379db243021a51e80wrwwwd",
+		"0x740ce31b3fac20dac379db243021a51e80vvbbbb",
+	}
+
+	queue := make(staking.ValidatorExQueue, 0)
+	for i := 0; i < 4; i++ {
+
+		valEx := &staking.ValidatorEx{
+			NodeId:          discover.MustHexID(nodeIdArr[i]),
+			StakingAddress:  common.HexToAddress(addrArr[i]),
+			BenifitAddress:  vm.StakingContractAddr,
+			StakingTxIndex:  uint32(i),
+			ProcessVersion:  uint32(i * i),
+			StakingBlockNum: uint64(i + 2),
+			Shares:          common.Big256,
+			Description: staking.Description{
+				ExternalId: "xxccccdddddddd",
+				NodeName:   "I Am " + fmt.Sprint(i),
+				Website:    "www.baidu.com",
+				Details:    "this is  baidu ~~",
+			},
+			ValidatorTerm:   uint32(2),
+		}
+
+		queue = append(queue, valEx)
+	}
+
+	jsonByte, err := json.Marshal(queue)
+	if nil != err {
+		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+	res := xcom.Result{true, string(jsonByte), "ok"}
+	data, _ := json.Marshal(res)
 	return data, nil
 }

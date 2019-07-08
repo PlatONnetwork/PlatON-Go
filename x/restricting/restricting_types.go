@@ -1,4 +1,4 @@
-package restriting
+package restricting
 
 import "math/big"
 

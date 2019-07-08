@@ -127,19 +127,6 @@ func Instance() DB {
 	return dbInstance
 }
 
-// New  create a new snapshotDB,will clear old snapshotDB data
-func New() (DB, error) {
-	if dbInstance != nil {
-		if err := dbInstance.Clear(); err != nil {
-			return nil, err
-		}
-	}
-	if err := initDB(); err != nil {
-		return nil, errors.New("init db fail:" + err.Error())
-	}
-	return dbInstance, nil
-}
-
 func initDB() error {
 	s, err := openFile(dbpath, false)
 	if err != nil {
@@ -202,22 +189,34 @@ func (s *snapshotDB) SetCurrent(highestHash common.Hash, base, height big.Int) e
 func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 	s.commitLock.RLock()
 	defer s.commitLock.RUnlock()
-	for _, value := range s.committed {
-		if v, err := value.data.Get(key); err == nil {
-			return v, nil
+	var (
+		v   []byte
+		err error
+	)
+	for i := len(s.committed) - 1; i >= 0; i-- {
+		v, err = s.committed[i].data.Get(key)
+		if err == nil {
+			break
 		} else if err != memdb.ErrNotFound {
 			logger.Error(fmt.Sprintf(" find from committed hash:%s fail,%v", string(key), err))
 			return nil, err
 		}
 	}
-	v, err := s.baseDB.Get(key, nil)
-	if err == nil {
-		return v, nil
-	} else if err == leveldb.ErrNotFound {
-		return nil, ErrNotFound
+	if err != nil {
+		v, err = s.baseDB.Get(key, nil)
+		if err != nil {
+			if err == leveldb.ErrNotFound {
+				return nil, ErrNotFound
+			} else {
+				return nil, err
+			}
+		}
 	}
-	logger.Error(fmt.Sprintf("hash:%s find from base fail,%v", string(key), err))
-	return nil, err
+	if v == nil || len(v) == 0 {
+		return nil, ErrNotFound
+	} else {
+		return v, nil
+	}
 }
 
 func (s *snapshotDB) PutBaseDB(key, value []byte) error {
@@ -255,7 +254,7 @@ func (s *snapshotDB) GetLastKVHash(blockHash common.Hash) []byte {
 // if hash is nil, unRecognizedBlockData > recognizedBlockData
 // if hash is not nil,it will del in recognized BlockData
 func (s *snapshotDB) Del(hash common.Hash, key []byte) error {
-	if err := s.put(hash, key, nil, funcTypeDel); err != nil {
+	if err := s.put(hash, key, nil); err != nil {
 		return err
 	}
 	return nil
@@ -302,7 +301,11 @@ func (s *snapshotDB) Compaction() error {
 	for i := 0; i < commitNum; i++ {
 		itr := s.committed[i].data.NewIterator(nil)
 		for itr.Next() {
-			batch.Put(itr.Key(), itr.Value())
+			if itr.Value() == nil || len(itr.Value()) == 0 {
+				batch.Delete(itr.Key())
+			} else {
+				batch.Put(itr.Key(), itr.Value())
+			}
 		}
 	}
 	if err := s.baseDB.Write(batch, nil); err != nil {
@@ -354,7 +357,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 // Put sets the value for the given key. It overwrites any previous value
 // for that key; a DB is not a multi-map.
 func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
-	if err := s.put(hash, key, value, funcTypePut); err != nil {
+	if err := s.put(hash, key, value); err != nil {
 		return err
 	}
 	return nil
@@ -370,24 +373,37 @@ func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 		return nil, errors.New("[SnapshotDB]the hash not in chain " + hash.String())
 	}
 	//found from Recognized
+	var (
+		v   []byte
+		err error
+	)
+
 	switch location {
 	case hashLocationUnRecognized:
 		if s.unRecognized == nil {
 			return nil, errors.New("[SnapshotDB]unRecognized is not find now")
 		}
-		if v, err := s.unRecognized.data.Get(key); err == nil {
-			return v, nil
+		if v, err = s.unRecognized.data.Get(key); err == nil {
+
 		} else if err != memdb.ErrNotFound {
 			return nil, err
+		} else {
+			v, err = s.getFromRecognized(s.unRecognized.ParentHash, key)
 		}
-		return s.getFromRecognized(s.unRecognized.ParentHash, key)
 	case hashLocationRecognized:
-		return s.getFromRecognized(hash, key)
+		v, err = s.getFromRecognized(hash, key)
 	case hashLocationCommitted:
-		return s.getFromCommitted(hash, key)
+		v, err = s.getFromCommitted(hash, key)
 	default:
-		return s.GetBaseDB(key)
+		v, err = s.GetBaseDB(key)
 	}
+	if err != nil {
+		return nil, err
+	}
+	if v == nil || len(v) == 0 {
+		return v, ErrNotFound
+	}
+	return v, nil
 }
 
 func (s *snapshotDB) getFromRecognized(hash common.Hash, key []byte) ([]byte, error) {
@@ -407,6 +423,8 @@ func (s *snapshotDB) getFromRecognized(hash common.Hash, key []byte) ([]byte, er
 			break
 		}
 	}
+	s.commitLock.RLock()
+	defer s.commitLock.RUnlock()
 	if len(s.committed) > 0 {
 		block := s.committed[len(s.committed)-1]
 		if block.BlockHash != hash {
@@ -576,8 +594,14 @@ func (s *snapshotDB) Clear() error {
 
 func itrToMdb(itr iterator.Iterator, mdb *memdb.DB) error {
 	for itr.Next() {
-		if err := mdb.Put(itr.Key(), itr.Value()); err != nil {
-			return err
+		if itr.Value() == nil || len(itr.Value()) == 0 {
+			if err := mdb.Delete(itr.Key()); err != nil && err != memdb.ErrNotFound {
+				return err
+			}
+		} else {
+			if err := mdb.Put(itr.Key(), itr.Value()); err != nil {
+				return err
+			}
 		}
 	}
 	itr.Release()
@@ -591,44 +615,17 @@ func itrToMdb(itr iterator.Iterator, mdb *memdb.DB) error {
 // The iterator must be released after use, by calling Release method.
 // Also read Iterator documentation of the leveldb/iterator package.
 func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iterator.Iterator {
-	var itrs []iterator.Iterator
-	m := memdb.New(comparer.DefaultComparer, rangeNumber)
+	location, ok := s.checkHashChain(hash)
+	if !ok {
+		return iterator.NewEmptyIterator(errors.New("this hash not in chain:" + hash.String()))
+	}
 	prefix := util.BytesPrefix(key)
+	m := memdb.New(comparer.DefaultComparer, rangeNumber)
+	var itrs []iterator.Iterator
 	var parentHash common.Hash
-	if hash != common.ZeroHash {
-		parentHash = hash
-		location, ok := s.checkHashChain(parentHash)
-		if !ok {
-			return iterator.NewEmptyIterator(errors.New("this hash not in chain:" + parentHash.String()))
-		}
-		switch location {
-		case hashLocationRecognized:
-			for {
-				if b, ok := s.recognized.Load(parentHash); ok {
-					block := b.(blockData)
-					itrs = append(itrs, block.data.NewIterator(prefix))
-					parentHash = block.ParentHash
-				} else {
-					break
-				}
-			}
-			for _, block := range s.committed {
-				itrs = append(itrs, block.data.NewIterator(prefix))
-			}
-		case hashLocationCommitted:
-			for i := len(s.committed) - 1; i >= 0; i-- {
-				block := s.committed[i]
-				if block.BlockHash == hash {
-					itrs = append(itrs, block.data.NewIterator(prefix))
-					parentHash = block.BlockHash
-				} else if block.ParentHash == parentHash {
-					itrs = append(itrs, block.data.NewIterator(prefix))
-					parentHash = block.BlockHash
-				}
-			}
-		}
-	} else {
-		if s.unRecognized != nil {
+	switch location {
+	case hashLocationUnRecognized:
+		if s.unRecognized.data != nil {
 			itrs = append(itrs, s.unRecognized.data.NewIterator(prefix))
 			parentHash = s.unRecognized.ParentHash
 		}
@@ -644,10 +641,36 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 		for _, block := range s.committed {
 			itrs = append(itrs, block.data.NewIterator(prefix))
 		}
+	case hashLocationRecognized:
+		parentHash = hash
+		for {
+			if b, ok := s.recognized.Load(parentHash); ok {
+				block := b.(blockData)
+				itrs = append(itrs, block.data.NewIterator(prefix))
+				parentHash = block.ParentHash
+			} else {
+				break
+			}
+		}
+		for _, block := range s.committed {
+			itrs = append(itrs, block.data.NewIterator(prefix))
+		}
+	case hashLocationCommitted:
+		parentHash = hash
+		for i := len(s.committed) - 1; i >= 0; i-- {
+			block := s.committed[i]
+			if block.BlockHash == hash {
+				itrs = append(itrs, block.data.NewIterator(prefix))
+				parentHash = block.BlockHash
+			} else if block.ParentHash == parentHash {
+				itrs = append(itrs, block.data.NewIterator(prefix))
+				parentHash = block.BlockHash
+			}
+		}
 	}
 	itrs = append(itrs, s.baseDB.NewIterator(prefix, nil))
-	for _, value := range itrs {
-		if err := itrToMdb(value, m); err != nil {
+	for i := len(itrs) - 1; i >= 0; i-- {
+		if err := itrToMdb(itrs[i], m); err != nil {
 			return iterator.NewEmptyIterator(err)
 		}
 	}

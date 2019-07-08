@@ -1,10 +1,10 @@
-package vm_test
+package plugin_test
 
 import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	commonvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -17,7 +17,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
 	"testing"
@@ -109,6 +108,9 @@ var (
 		"Tencent",
 	}
 
+	chaList = []string{"A", "a", "B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "J", "j", "K", "k", "M", "m",
+						"N", "n", "P", "p", "Q", "q", "R", "r", "S", "s", "T", "t", "U", "u", "V", "v", "W", "w", "X", "x", "Y", "y", "Z", "z"}
+
 )
 
 func newPlugins() {
@@ -120,6 +122,7 @@ func newPlugins() {
 
 	snapshotdb.Instance()
 }
+
 
 func newChainState() (*state.StateDB, error) {
 	var (
@@ -140,34 +143,6 @@ func newChainState() (*state.StateDB, error) {
 
 
 	return state, nil
-}
-
-
-func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *vm.EVM {
-	if nil == state {
-		state, _ = newChainState()
-	}
-	evm := &vm.EVM{
-		StateDB:  state,
-	}
-	context := vm.Context{
-		BlockNumber: blockNumber,
-		BlockHash: blockHash,
-	}
-	evm.Context = context
-
-	//set a default active version
-	govDB := gov.GovDBInstance()
-	govDB.SetActiveVersion(initProcessVersion, state)
-
-	return evm
-}
-
-func newContract(value *big.Int) *vm.Contract {
-	callerAddress := vm.AccountRef(sender)
-	fmt.Println("newContract sender :", callerAddress.Address().Hex())
-	contract := vm.NewContract(callerAddress, callerAddress, value, uint64(1))
-	return contract
 }
 
 func build_staking_data (){
@@ -313,32 +288,33 @@ func build_staking_data (){
 	stakingDB.SetCurrentValidatorList(blockHash, val_Arr)
 }
 
-
-type restrictingInfo struct {
-	balance     *big.Int `json:"balance"` // balance representation all locked amount
-	debt        *big.Int `json:"debt"`    // debt representation will released amount. Positive numbers can be used instead of release, 0 means no release, negative numbers indicate not enough to release
-	releaseList []uint64 `json:"list"`    // releaseList representation which epoch will release restricting
+func build_gov_data (state *state.StateDB){
+	//set a default active version
+	govDB := gov.GovDBInstance()
+	govDB.SetActiveVersion(initProcessVersion, state)
 }
 
-func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
-	account := common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80aadd24")
+
+func buildDbRestrictingPlan(t *testing.T) {
+	state, _ := newChainState()
+	account := addrArr[0]
 
 	const Epochs = 5
 	var list = make([]uint64, Epochs)
 
-	for epoch := 1; epoch < Epochs+1; epoch++ {
+	for epoch := 0; epoch < Epochs; epoch++ {
 		// build release account record
 		releaseAccountKey := restricting.GetReleaseAccountKey(uint64(epoch), 1)
-		stateDB.SetState(commonvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
+		state.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
 		// build release amount record
 		releaseAmount := big.NewInt(10000000)
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(epoch), account)
-		stateDB.SetState(account, releaseAmountKey, releaseAmount.Bytes())
+		state.SetState(account, releaseAmountKey, releaseAmount.Bytes())
 
-		// build release epoch list record
+		// build release epoch record
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(epoch))
-		stateDB.SetState(commonvm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
+		state.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
 
 		list = append(list, uint64(epoch))
 	}
@@ -355,7 +331,7 @@ func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 	}
 
 	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDB.SetState(commonvm.RestrictingContractAddr, restrictingKey, bUser)
+	state.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
 
-	stateDB.AddBalance(commonvm.RestrictingContractAddr, big.NewInt(50000000))
+	state.AddBalance(cvm.RestrictingContractAddr, big.NewInt(50000000))
 }

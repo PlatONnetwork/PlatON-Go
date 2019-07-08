@@ -6,6 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"math/big"
 )
 
 // calculate the Epoch number by blocknumber
@@ -121,4 +122,14 @@ func NodeId2Addr (nodeId discover.NodeID) (common.Address, error) {
 
 func IsWorker(extra []byte) bool {
 	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
+}
+
+
+
+func CheckStakeThreshold(stake *big.Int) bool {
+	return stake.Cmp(xcom.StakeThreshold) >= 0
+}
+
+func CheckDelegateThreshold(delegate *big.Int) bool {
+	return delegate.Cmp(xcom.DelegateThreshold) >= 0
 }

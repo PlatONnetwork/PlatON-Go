@@ -2,6 +2,8 @@ package xcom
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
@@ -124,3 +126,8 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 	return nil
 }
 
+
+func PrintObject(s string, obj interface{}) {
+	objs, _ := json.Marshal(obj)
+	fmt.Println(s, "==", string(objs))
+}
