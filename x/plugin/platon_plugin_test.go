@@ -113,6 +113,8 @@ var (
 		"1000000000000000000000000",
 		"70000000000000000000000000",
 		"5550000000000000000000000",
+		"44488850000000000000000000000",
+		"650073899000000000000000000",
 
 	}
 
@@ -159,8 +161,15 @@ func newChainState() (*state.StateDB, error) {
 	} else {
 		state = statedb
 	}
-	state.AddBalance(sender, sender_balance)
 
+	// init account balance
+	state.AddBalance(sender, sender_balance)
+	for i, addr := range addrArr {
+
+		amount, _ := new(big.Int).SetString(balanceStr[len(addrArr) - 1 - i], 10)
+		amount = new(big.Int).Mul(common.Big257, amount)
+		state.AddBalance(addr, amount)
+	}
 
 	return state, nil
 }

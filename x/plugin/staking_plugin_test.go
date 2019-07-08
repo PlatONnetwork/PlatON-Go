@@ -484,6 +484,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 		t.Error("Commit 2 err", err)
 	}
 
+	t.Log("Finish Delegate ~~")
 	getCandidate(blockHash2, index, t)
 
 
