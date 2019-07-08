@@ -431,6 +431,19 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 		t.Error("Failed to Create Staking", err)
 	}
 
+
+
+	// Add UNStakingItems
+	stakingDB := staking.NewStakingDB ()
+
+	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
+	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
+
+	if err := stakingDB.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
+		t.Error("Failed to AddUnStakeItemStore:", err)
+		return
+	}
+
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Errorf("Commit 1 err: %v", err)
 	}
@@ -442,16 +455,6 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 		t.Error("newBlock2 err", err)
 	}
 
-    // Add UNStakingItems
-	stakingDB := staking.NewStakingDB ()
-
-	epoch := xutil.CalculateEpoch(blockNumber2.Uint64())
-	addr, _ := xutil.NodeId2Addr(nodeIdArr[index])
-
-	if err := stakingDB.AddUnStakeItemStore(blockHash2, epoch, addr); nil != err {
-		t.Error("Failed to AddUnStakeItemStore:", err)
-		return
-	}
 
 	err = plugin.StakingInstance().HandleUnCandidateItem(state, blockHash2,  uint64(2))
 	if nil != err {
@@ -804,38 +807,70 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 	}
 
 
-	if err := sndb.Commit(blockHash); nil != err {
-		t.Error("Commit 1 err", err)
-	}
-
-	t.Log("Finish delegate ~~")
 	c := getCandidate(blockHash, index, t)
-
-
-	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
-		t.Error("newBlock 2 err", err)
-	}
-
-
 	// Delegate
-	_, err = delegate(state, blockHash2,  blockNumber2, c, 0, index, t)
+	_, err = delegate(state, blockHash,  blockNumber, c, 0, index, t)
 	if nil != err {
 		t.Error("Failed to Delegate:", err)
 		return
 	}
 
-	if err := sndb.Commit(blockHash2); nil != err {
-		t.Error("Commit 2 err", err)
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+	}
+
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
 	}
 
 	t.Log("Finished Delegate ~~")
 	// get Delegate info
-	getDelegate(blockHash2, blockNumber.Uint64(), index, t)
+	del := getDelegate(blockHash2, blockNumber.Uint64(), index, t)
 
 
 	// Add UnDelegateItem
+	stakingDB := staking.NewStakingDB ()
+
+	epoch := xutil.CalculateEpoch(blockNumber2.Uint64())
+
+	amount := common.Big256
+
+	delAddr := addrArr[index+1]
+
+	err = stakingDB.AddUnDelegateItemStore(blockHash2, delAddr, c.NodeId, epoch, c.StakingBlockNum, amount)
+	if nil != err {
+		t.Error("Failed to AddUnDelegateItemStore:", err)
+		return
+	}
+	del.Reduction = new(big.Int).Add(del.Reduction, amount)
+	// update del
+	if err := stakingDB.SetDelegateStore(blockHash2, delAddr, c.NodeId, c.StakingBlockNum, del); nil != err {
+		t.Error("Failed to Update Delegate When AddUnDelegateItemStore:", err)
+		return
+	}
 
 
+
+
+	err = plugin.StakingInstance().HandleUnDelegateItem(state, blockHash2, epoch)
+	if nil != err {
+		t.Error("Failed to HandleUnDelegateItem:", err)
+		return
+	}
+
+
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Error("Commit 2 err", err)
+	}
+
+	t.Log("Finished HandleUnDelegateItem ~~")
+
+	// get Candiddate
+	c = getCandidate(blockHash2, index, t)
+
+	// get Delegate
+	getDelegate(blockHash2, c.StakingBlockNum, index, t)
 
 
 }

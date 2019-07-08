@@ -786,7 +786,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	return nil
 }
 
-func (sk *StakingPlugin) HandleUnDelegateReq(state xcom.StateDB, blockHash common.Hash, epoch uint64) error {
+func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockHash common.Hash, epoch uint64) error {
 	releaseEpoch := epoch - xcom.ActiveUnDelegateFreezeRatio
 
 	unDelegateCount, err := sk.db.GetUnDelegateCountStore(blockHash, releaseEpoch)
@@ -851,8 +851,13 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 	amount := unDel.Amount
 
+	aboutRelease := new(big.Int).Add(del.Released, del.ReleasedHes)
+	aboutRestrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
+	total := new(big.Int).Add(aboutRelease, aboutRestrictingPlan)
 
-	if amount.Cmp(del.Reduction) >= 0 { // full withdrawal
+
+	// TODO this is wrong
+	if amount.Cmp(del.Reduction) >= 0 &&  del.Reduction.Cmp(total) == 0 { // full withdrawal
 		state.SubBalance(vm.StakingContractAddr, del.Released)
 		state.AddBalance(delAddr, del.Released)
 		del.Released = common.Big0
