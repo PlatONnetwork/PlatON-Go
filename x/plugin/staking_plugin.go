@@ -2182,10 +2182,10 @@ func (svs sortValidators) Less(i, j int) bool {
 				if svs[i].txIndex == svs[j].txIndex {
 					return false
 				} else {
-					return svs[i].txIndex > svs[j].txIndex
+					return svs[i].txIndex < svs[j].txIndex
 				}
 			} else {
-				return svs[i].blockNumber > svs[j].blockNumber
+				return svs[i].blockNumber < svs[j].blockNumber
 			}
 		} else {
 			return svs[i].x > svs[j].x
@@ -2208,6 +2208,7 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 	svList := make(sortValidators, 0)
 	for _, validator := range validatorList {
 		weights, err := validator.GetShares()
+		weights.Div(weights, xcom.StakeThreshold)
 		if nil != err {
 			return nil, ElectionErr
 		}
@@ -2253,7 +2254,7 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 			return nil, err
 		}
 		sv.x = x
-		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()), "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce", hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]), "target", target, "targetP", targetP, "weight", sv.weight, "x", x, "version", sv.version, "bn", sv.blockNumber, "txIndex", sv.txIndex)
+		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()), "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce", hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]), "target", target, "targetP", targetP, "weight", sv.weight, "x", x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 	sort.Sort(svList)
 	resultValidatorList := make(staking.ValidatorQueue, 0)
@@ -2262,6 +2263,7 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 			break
 		}
 		resultValidatorList = append(resultValidatorList, sv.v)
+		log.Debug("sort validator", "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "weight", sv.weight, "x", sv.x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 	return resultValidatorList, nil
 }

@@ -159,7 +159,7 @@ func (beta *Beta) SimpleRegularizedBeta(x float64, a float64, b float64) (float6
 	return beta.RegularizedBeta(x, a, b, 1.0E-14, 2147483648)
 }
 
-func (beta *Beta) RegularizedBeta(x float64, a float64, b float64, epsilon float64, maxIterations int64) (float64, error) {
+func (beta *Beta) RegularizedBeta(x float64, a float64, b float64, epsilon float64, maxIterations int) (float64, error) {
 	ret := 0.0
 	if !math.IsNaN(x) && !math.IsNaN(a) && !math.IsNaN(b) && x >= 0.0 && x <= 1.0 && a > 0.0 && b > 0.0 {
 		if x > (a+1.0)/(2.0+b+a) && 1.0-x <= (b+1.0)/(2.0+b+a) {
@@ -464,11 +464,11 @@ func (beta *Beta) logBeta(p float64, q float64) (float64, error) {
 type ContinuedFraction struct {
 }
 
-func (cf *ContinuedFraction) getA(n int64, x float64) float64 {
+func (cf *ContinuedFraction) getA(n int, x float64) float64 {
 	return 1.0
 }
 
-func (cf *ContinuedFraction) getB(a float64, b float64, n int64, x float64) (ret float64) {
+func (cf *ContinuedFraction) getB(a float64, b float64, n int, x float64) (ret float64) {
 	var m float64
 	if n%2 == 0 {
 		m = float64(n) / 2.0
@@ -480,13 +480,13 @@ func (cf *ContinuedFraction) getB(a float64, b float64, n int64, x float64) (ret
 	return ret
 }
 
-func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon float64, maxIterations int64) (float64, error) {
+func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon float64, maxIterations int) (float64, error) {
 	hPrev := cf.getA(0, x)
 	if precisionEq(hPrev, 0.0, 1.0E-50) {
 		hPrev = 1.0E-50
 	}
 
-	var n int64 = 1
+	var n int = 1
 	dPrev := 0.0
 	cPrev := hPrev
 	hN := hPrev

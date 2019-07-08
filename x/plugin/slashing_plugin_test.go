@@ -1,10 +1,6 @@
 package plugin_test
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
@@ -13,15 +9,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
-	mrand "math/rand"
-	"strconv"
 	"testing"
-	"time"
 )
 
 func initInfo(t *testing.T) (*plugin.SlashingPlugin, xcom.StateDB) {
@@ -119,47 +110,5 @@ func TestSlashingPlugin_CheckMutiSign(t *testing.T) {
 	addr := common.ZeroAddr
 	if _,_, err := si.CheckMutiSign(addr, 1, 1, stateDB); nil != err {
 		t.Error(err)
-	}
-}
-
-func TestStakingPlugin_ProbabilityElection(t *testing.T) {
-	initInfo(t)
-	defer func() {
-		snapshotdb.Instance().Clear()
-	}()
-	curve := elliptic.P256()
-	vqList := make(staking.ValidatorQueue, 0)
-	preNonces := make([][]byte, 0)
-	curentNonce := crypto.Keccak256([]byte(string("nonce")))
-	for i := 0; i < int(xcom.EpochValidatorNum); i++ {
-		privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
-		nodeId := discover.PubkeyID(&privKey.PublicKey)
-		addr := crypto.PubkeyToAddress(privKey.PublicKey)
-		mrand.Seed(time.Now().UnixNano())
-		stakingWeight := [4]string{}
-		stakingWeight[0] = "1"
-		stakingWeight[1] = strconv.FormatUint(uint64(time.Now().Unix()), 10)
-		stakingWeight[2] = strconv.Itoa(mrand.Intn(230))
-		stakingWeight[3] = strconv.Itoa(mrand.Intn(1000))
-		v := &staking.Validator{
-			NodeAddress:addr,
-			NodeId:nodeId,
-			StakingWeight:stakingWeight,
-			ValidatorTerm:1,
-		}
-		vqList = append(vqList, v)
-		preNonces = append(preNonces, crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:])
-		time.Sleep(time.Microsecond * 10)
-	}
-	for _, v := range vqList {
-		t.Log("Generate Validator", "addr", hex.EncodeToString(v.NodeAddress.Bytes()), "stakingWeight", v.StakingWeight)
-	}
-	result, err := plugin.StakingInstance().ProbabilityElection(vqList, curentNonce, preNonces)
-	if nil != err {
-		t.Error(err)
-	}
-	t.Log("election success", result)
-	for _, v := range result {
-		t.Log("Validator", "addr", hex.EncodeToString(v.NodeAddress.Bytes()), "stakingWeight", v.StakingWeight)
 	}
 }
