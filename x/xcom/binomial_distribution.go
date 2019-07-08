@@ -60,8 +60,6 @@ func (bd *BinomialDistribution) InverseCumulativeProbability(p float64) (int, er
 					return 0, err
 				} else if value >= p {
 					return lower, nil
-				} else {
-					return 0, errors.New("calculation failed")
 				}
 			} else {
 				lower--
@@ -73,7 +71,7 @@ func (bd *BinomialDistribution) InverseCumulativeProbability(p float64) (int, er
 			} else {
 				mu := bd.getNumericalMean()
 				sigma := math.Sqrt(bd.getNumericalVariance())
-				chebyshevApplies := !math.IsInf(mu, 0) && !math.IsInf(sigma, 0) && sigma != 0.0
+				chebyshevApplies := !math.IsInf(mu, 0) && !math.IsNaN(mu) && !math.IsInf(sigma, 0) && !math.IsNaN(sigma) && sigma != 0.0
 				if chebyshevApplies {
 					k := math.Sqrt((1.0 - p) / p)
 					tmp := mu - k*sigma
@@ -96,7 +94,7 @@ func (bd *BinomialDistribution) InverseCumulativeProbability(p float64) (int, er
 }
 
 func (bd *BinomialDistribution) solveInverseCumulativeProbability(p float64, lower int, upper int) (int, error) {
-	for lower + 1 < upper {
+	for lower+1 < upper {
 		xm := (lower + upper) / 2
 		if xm < lower || xm > upper {
 			xm = lower + (upper-lower)/2
@@ -136,7 +134,7 @@ func (bd *BinomialDistribution) checkedCumulativeProbability(argument int) (floa
 	} else {
 		result = value
 	}
-	if result == 0 {
+	if math.IsNaN(result) {
 		return 0, errors.New(fmt.Sprintf("Discrete cumulative probability function returned NaN for argument %v", argument))
 	}
 	return result, nil
@@ -163,7 +161,7 @@ func (beta *Beta) SimpleRegularizedBeta(x float64, a float64, b float64) (float6
 
 func (beta *Beta) RegularizedBeta(x float64, a float64, b float64, epsilon float64, maxIterations int) (float64, error) {
 	ret := 0.0
-	if x >= 0.0 && x <= 1.0 && a > 0.0 && b > 0.0 {
+	if !math.IsNaN(x) && !math.IsNaN(a) && !math.IsNaN(b) && x >= 0.0 && x <= 1.0 && a > 0.0 && b > 0.0 {
 		if x > (a+1.0)/(2.0+b+a) && 1.0-x <= (b+1.0)/(2.0+b+a) {
 			value, err := beta.RegularizedBeta(1.0-x, b, a, epsilon, maxIterations)
 			if nil != err {
@@ -256,7 +254,7 @@ func (beta *Beta) deltaMinusDeltaSum(a float64, b float64) (float64, error) {
 			s[0] = 1.0
 
 			for i := 1; i < len(s); i++ {
-				s[i] = float64(float64(1.0) + float64(q) + float64(q2)*s[i-1])
+				s[i] = float64(1.0) + float64(q) + float64(q2)*s[i-1]
 			}
 
 			sqrtT := 10.0 / b
@@ -288,7 +286,7 @@ func (beta *Beta) logGammaSum(a float64, b float64) (float64, error) {
 						return value + math.Log1p(x), nil
 					}
 				} else {
-					if value, err := beta.gamma.logGamma1p(x-1.0); nil != err {
+					if value, err := beta.gamma.logGamma1p(x - 1.0); nil != err {
 						return 0, err
 					} else {
 						return value + math.Log(x*(1.0+x)), nil
@@ -304,7 +302,7 @@ func (beta *Beta) logGammaSum(a float64, b float64) (float64, error) {
 }
 
 func (beta *Beta) logBeta(p float64, q float64) (float64, error) {
-	if p > 0.0 && q > 0.0 {
+	if !math.IsNaN(p) && !math.IsNaN(q) && p > 0.0 && q > 0.0 {
 		a := math.Min(p, q)
 		b := math.Max(p, q)
 		var prod1 float64
@@ -332,7 +330,8 @@ func (beta *Beta) logBeta(p float64, q float64) (float64, error) {
 				prod := 1.0
 				ared := a
 
-				for i := 0; i < n; i++ {
+				var i int
+				for i = 0; i < n; i++ {
 					ared--
 					prod *= ared / (1.0 + ared/b)
 				}
@@ -344,7 +343,7 @@ func (beta *Beta) logBeta(p float64, q float64) (float64, error) {
 				if value, err := beta.gamma.logGamma(ared); nil != err {
 					return 0, err
 				} else {
-					return math.Log(prod) - float64(float64(n)*math.Log(b)) + value + gammaSumValue, nil
+					return math.Log(prod) - float64(n)*math.Log(b) + value + gammaSumValue, nil
 				}
 			} else {
 				prod1 = 1.0
@@ -406,7 +405,7 @@ func (beta *Beta) logBeta(p float64, q float64) (float64, error) {
 				if nil != err {
 					return 0, err
 				}
-				v3, err := beta.gamma.gamma(a+b)
+				v3, err := beta.gamma.gamma(a + b)
 				if nil != err {
 					return 0, err
 				}
@@ -482,13 +481,9 @@ func (cf *ContinuedFraction) getB(a float64, b float64, n int, x float64) (ret f
 }
 
 func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon float64, maxIterations int) (float64, error) {
-	small := 1.0E-50
 	hPrev := cf.getA(0, x)
-	if hPrev <= small {
-		hPrev = small
-	}
 
-	n := 1
+	var n int = 1
 	dPrev := 0.0
 	cPrev := hPrev
 	hN := hPrev
@@ -498,20 +493,18 @@ func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon
 			a := cf.getA(n, x)
 			b := cf.getB(av, bv, n, x)
 			dN := a + b*dPrev
-			if dN <= small {
-				dN = small
-			}
 
 			cN := a + b/cPrev
-			if cN <= small {
-				cN = small
-			}
 
 			dN = 1.0 / dN
 			deltaN := cN * dN
 			hN = hPrev * deltaN
 			if math.IsInf(hN, 0) {
 				return 0, errors.New(fmt.Sprintf("Continued fraction convergents diverged to +/- infinity for value %v", x))
+			}
+
+			if math.IsNaN(hN) {
+				return 0, errors.New(fmt.Sprintf("Continued fraction diverged to NaN for value %v", x))
 			}
 
 			if math.Abs(deltaN-1.0) >= epsilon {
@@ -536,7 +529,7 @@ type Gamma struct {
 
 func (g *Gamma) logGamma(x float64) (float64, error) {
 	ret := 0.0
-	if x > 0.0 {
+	if !math.IsNaN(x) && x > 0.0 {
 		if x < 0.5 {
 			if value, err := g.logGamma1p(x); nil != err {
 				return 0, err
@@ -553,11 +546,12 @@ func (g *Gamma) logGamma(x float64) (float64, error) {
 			n := int(math.Floor(x - 1.5))
 			prod := 1.0
 
-			for i := 1; i <= n; i++ {
+			var i int
+			for i = 1; i <= n; i++ {
 				prod *= x - float64(i)
 			}
 
-			if value, err := g.logGamma1p(x-float64(n+1)); nil != err {
+			if value, err := g.logGamma1p(x - float64(n+1)); nil != err {
 				return 0, err
 			} else {
 				return value + math.Log(prod), nil
@@ -670,7 +664,7 @@ func (g *Gamma) invGamma1pm1(x float64) (float64, error) {
 func (g *Gamma) lanczos(x float64) float64 {
 	sum := 0.0
 
-	for i := len(LANCZOS) - 1; i > 0; i++ {
+	for i := len(LANCZOS) - 1; i > 0; i-- {
 		sum += LANCZOS[i] / (x + float64(i))
 	}
 
@@ -693,7 +687,7 @@ func (g *Gamma) gamma(x float64) (float64, error) {
 					t--
 				}
 
-				if value, err := g.invGamma1pm1(t-1.0); nil != err {
+				if value, err := g.invGamma1pm1(t - 1.0); nil != err {
 					return 0, err
 				} else {
 					ret = prod / (1.0 + value)
