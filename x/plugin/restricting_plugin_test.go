@@ -53,22 +53,22 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		t.Errorf("endblock returns err: %s", err.Error())
 	}
 }
-
-func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
-	sender := common.HexToAddress("0x11")
-
-	// case1: account is new user to restricting
-
-	// case2: restricting account exist, but restricting epoch not intersect
-
-	// case3: restricting account exist, and restricting epoch intersect
-
-
-	if err := plugin.RestrictingInstance().AddRestrictingRecord(); err != nil {
-
-	}
-
-}
+//
+//func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
+//	sender := common.HexToAddress("0x11")
+//
+//	// case1: account is new user to restricting
+//
+//	// case2: restricting account exist, but restricting epoch not intersect
+//
+//	// case3: restricting account exist, and restricting epoch intersect
+//
+//
+//	if err := plugin.RestrictingInstance().AddRestrictingRecord(); err != nil {
+//
+//	}
+//
+//}
 
 func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 

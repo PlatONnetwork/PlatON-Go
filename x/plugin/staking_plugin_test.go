@@ -33,7 +33,7 @@ func create_staking (blockNumber *big.Int, blockHash common.Hash, state *state.S
 
 		Description: staking.Description{
 			NodeName:   nodeNameArr[index],
-			ExternalId: nodeNameArr[index] + chaList[len(chaList)%index] + "balabalala" + chaList[index],
+			ExternalId: nodeNameArr[index] + chaList[len(chaList)%(index+1)] + "balabalala" + chaList[index],
 			Website:    "www." + nodeNameArr[index] + ".org",
 			Details:    "This is " + nodeNameArr[index] + " Super Node",
 		},
@@ -177,11 +177,9 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 		t.Error("newBlock err", err)
 	}
 
-	index := 1
-
 
 	for i := 0; i < 4; i++ {
-		if err := create_staking(blockNumber, blockHash, state, index, 1, t); nil != err {
+		if err := create_staking(blockNumber, blockHash, state, i, 0, t); nil != err {
 			t.Error("Failed to Create num: " + fmt.Sprint(i) + " Staking", err)
 		}
 	}

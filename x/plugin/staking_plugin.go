@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -194,6 +195,9 @@ func (sk *StakingPlugin) CreateCandidate (state xcom.StateDB, blockHash common.H
 			log.Error("Call CreateCandidate with govplugin DelareVersion failed", "err", err)
 		}
 	}
+	// todo test
+	canJson, _ := json.Marshal(can)
+	fmt.Println("Created the can:", string(canJson))
 	return nil
 }
 
