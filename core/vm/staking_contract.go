@@ -578,11 +578,18 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 
 	arr, err := stkc.Plugin.GetVerifierList(common.ZeroHash, common.Big0.Uint64(), plugin.QueryStartIrr)
 
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
+
+	if nil == arr || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "ValidatorList info is not found"}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
 	jsonByte, err := json.Marshal(arr)
 	if nil != err {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
@@ -600,11 +607,18 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	return stkc.getValidatorListMock()
 
 	arr, err := stkc.Plugin.GetValidatorList(common.ZeroHash, common.Big0.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetValidatorListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
+
+	if nil == arr || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "ValidatorList info is not found"}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
 	arrByte, _ := json.Marshal(arr)
 	res := xcom.Result{true, string(arrByte), "ok"}
 	data, _ := json.Marshal(res)
@@ -615,8 +629,14 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 	blockHash := stkc.Evm.BlockHash
 
 	arr, err := stkc.Plugin.GetCandidateList(blockHash)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
+	if nil == arr || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "CandidateList info is not found"}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
@@ -639,11 +659,18 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 	blockHash := stkc.Evm.BlockHash
 
 	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
+
+	if nil == arr || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "RelatedList info is not found"}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
 	jsonByte, err := json.Marshal(arr)
 	if nil != err {
 		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ": " + err.Error()}
@@ -665,11 +692,18 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, addr common
 		return data, nil
 	}
 	del, err := stkc.Plugin.GetDelegateExInfoByIrr(addr, nodeId, stakingBlockNum)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
+
+	if nil == del || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "Delegate info is not found"}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
 	jsonByte, err := json.Marshal(del)
 	if nil != err {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
@@ -693,11 +727,18 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 		return data, nil
 	}
 	can, err := stkc.Plugin.GetCandidateInfoByIrr(addr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
+
+	if nil == can || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "Candidate info is not found"}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
 	jsonByte, err := json.Marshal(can)
 	if nil != err {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
