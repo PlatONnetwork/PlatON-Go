@@ -189,8 +189,8 @@ func (s *snapshotDB) SetCurrent(highestHash common.Hash, base, height big.Int) e
 func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 	s.commitLock.RLock()
 	defer s.commitLock.RUnlock()
-	for _, value := range s.committed {
-		if v, err := value.data.Get(key); err == nil {
+	for i := len(s.committed) - 1; i >= 0; i-- {
+		if v, err := s.committed[i].data.Get(key); err == nil {
 			return v, nil
 		} else if err != memdb.ErrNotFound {
 			logger.Error(fmt.Sprintf(" find from committed hash:%s fail,%v", string(key), err))
@@ -411,6 +411,8 @@ func (s *snapshotDB) getFromRecognized(hash common.Hash, key []byte) ([]byte, er
 			break
 		}
 	}
+	s.commitLock.RLock()
+	defer s.commitLock.RLock()
 	if len(s.committed) > 0 {
 		block := s.committed[len(s.committed)-1]
 		if block.BlockHash != hash {

@@ -273,43 +273,47 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
 	var (
-		arr        = [][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d")}
-		commitHash = generateHash("commitHash")
+		baseDBHash  = generateHash("hash1")
+		commit1hash = generateHash("hash2")
+		commit2hash = generateHash("hash3")
+		baseDBkv    = kv{key: []byte("a"), value: []byte("a")}
+		commit1KV   = kv{key: []byte("b"), value: []byte("b")}
+		commit2KV   = kv{key: []byte("b"), value: []byte("c")}
 	)
 	{
-		//commit
-		commit := blockData{
-			ParentHash: parentHash,
-			Number:     big.NewInt(50),
-			data:       memdb.New(DefaultComparer, 10),
-			readOnly:   false,
-			BlockHash:  commitHash,
+		if err := newBlockBaseDB(big.NewInt(1), common.ZeroHash, baseDBHash, []kv{baseDBkv}); err != nil {
+			t.Error(err)
+			return
 		}
-		commit.data.Put(arr[2], arr[2])
-		dbInstance.committed = append(dbInstance.committed, commit)
+		if err := newBlockCommited(big.NewInt(2), baseDBHash, commit1hash, []kv{commit1KV}); err != nil {
+			t.Error(err)
+			return
+		}
 
-		//baseDB
-		dbInstance.baseDB.Put(arr[3], arr[3], nil)
 	}
 
 	t.Run("should get", func(t *testing.T) {
-		for _, key := range arr[2:3] {
-			val, err := dbInstance.GetFromCommittedBlock(key)
+		for _, key := range []kv{commit1KV, baseDBkv} {
+			val, err := dbInstance.GetFromCommittedBlock(key.key)
 			if err != nil {
 				t.Error(err)
 			}
-			if bytes.Compare(key, val) != 0 {
-				t.Error("must find key")
+			if bytes.Compare(key.value, val) != 0 {
+				t.Error("val not compare", key.value, val)
 			}
 		}
 	})
-	t.Run("not found", func(t *testing.T) {
-		_, err := dbInstance.GetFromCommittedBlock(arr[1])
-		if err == nil {
+	t.Run("should change", func(t *testing.T) {
+		if err := newBlockCommited(big.NewInt(3), commit1hash, commit2hash, []kv{commit2KV}); err != nil {
+			t.Error(err)
+			return
+		}
+		val, err := dbInstance.GetFromCommittedBlock(commit2KV.key)
+		if err != nil {
 			t.Error(err)
 		}
-		if err != ErrNotFound {
-			t.Error("err should be ErrNotFound")
+		if bytes.Compare(commit2KV.value, val) != 0 {
+			t.Error("must find key")
 		}
 	})
 }
