@@ -2190,6 +2190,9 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 			return nil, err
 		}
 		txIndex, err := validator.GetStakingTxIndex()
+		if nil != err {
+			return nil, err
+		}
 		sv := &sortValidator{
 			v:validator,
 			weight:int(weights.Uint64()),

@@ -55,7 +55,7 @@ func (bd *BinomialDistribution) InverseCumulativeProbability(p float64) (int, er
 		if p == 0.0 {
 			return lower, nil
 		} else {
-			if lower == -2147483648 {
+			if lower == -2147483647 {
 				if value, err := bd.checkedCumulativeProbability(lower); nil != err {
 					return 0, err
 				} else if value >= p {
@@ -156,10 +156,10 @@ type Beta struct {
 }
 
 func (beta *Beta) SimpleRegularizedBeta(x float64, a float64, b float64) (float64, error) {
-	return beta.RegularizedBeta(x, a, b, 1.0E-14, 2147483647)
+	return beta.RegularizedBeta(x, a, b, 1.0E-14, 2147483648)
 }
 
-func (beta *Beta) RegularizedBeta(x float64, a float64, b float64, epsilon float64, maxIterations int) (float64, error) {
+func (beta *Beta) RegularizedBeta(x float64, a float64, b float64, epsilon float64, maxIterations int64) (float64, error) {
 	ret := 0.0
 	if !math.IsNaN(x) && !math.IsNaN(a) && !math.IsNaN(b) && x >= 0.0 && x <= 1.0 && a > 0.0 && b > 0.0 {
 		if x > (a+1.0)/(2.0+b+a) && 1.0-x <= (b+1.0)/(2.0+b+a) {
@@ -326,11 +326,11 @@ func (beta *Beta) logBeta(p float64, q float64) (float64, error) {
 			}
 		} else if a > 2.0 {
 			if b > 1000.0 {
-				n := int(math.Floor(a - 1.0))
+				n := int64(math.Floor(a - 1.0))
 				prod := 1.0
 				ared := a
 
-				var i int
+				var i int64
 				for i = 0; i < n; i++ {
 					ared--
 					prod *= ared / (1.0 + ared/b)
@@ -464,11 +464,11 @@ func (beta *Beta) logBeta(p float64, q float64) (float64, error) {
 type ContinuedFraction struct {
 }
 
-func (cf *ContinuedFraction) getA(n int, x float64) float64 {
+func (cf *ContinuedFraction) getA(n int64, x float64) float64 {
 	return 1.0
 }
 
-func (cf *ContinuedFraction) getB(a float64, b float64, n int, x float64) (ret float64) {
+func (cf *ContinuedFraction) getB(a float64, b float64, n int64, x float64) (ret float64) {
 	var m float64
 	if n%2 == 0 {
 		m = float64(n) / 2.0
@@ -480,10 +480,13 @@ func (cf *ContinuedFraction) getB(a float64, b float64, n int, x float64) (ret f
 	return ret
 }
 
-func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon float64, maxIterations int) (float64, error) {
+func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon float64, maxIterations int64) (float64, error) {
 	hPrev := cf.getA(0, x)
+	if precisionEq(hPrev, 0.0, 1.0E-50) {
+		hPrev = 1.0E-50
+	}
 
-	var n int = 1
+	var n int64 = 1
 	dPrev := 0.0
 	cPrev := hPrev
 	hN := hPrev
@@ -493,8 +496,14 @@ func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon
 			a := cf.getA(n, x)
 			b := cf.getB(av, bv, n, x)
 			dN := a + b*dPrev
+			if precisionEq(dN, 0.0, 1.0E-50) {
+				hPrev = 1.0E-50
+			}
 
 			cN := a + b/cPrev
+			if precisionEq(cN, 0.0, 1.0E-50) {
+				hPrev = 1.0E-50
+			}
 
 			dN = 1.0 / dN
 			deltaN := cN * dN
@@ -524,6 +533,37 @@ func (cf *ContinuedFraction) evaluate(av float64, bv float64, x float64, epsilon
 	}
 }
 
+func precisionEq(x float64, y float64, eps float64) bool {
+	return precisionEqs(x, y, 1) || math.Abs(y - x) <= eps
+}
+
+func precisionEqs(x float64, y float64, maxUlps float64) bool {
+	xInt := int64(math.Float64bits(x))
+	yInt := int64(math.Float64bits(y))
+	var isEqual bool
+	if ((xInt ^ yInt) & -9223372036854775808) == 0 {
+		isEqual = int64(math.Abs(float64(xInt) - float64(yInt))) <= int64(maxUlps)
+	} else {
+		var deltaPlus int64
+		var deltaMinus int64
+		if xInt < yInt {
+			deltaPlus = yInt - int64(math.Float64bits(0.0))
+			deltaMinus = xInt - int64(math.Float64bits(-0.0))
+		} else {
+			deltaPlus = xInt - int64(math.Float64bits(0.0))
+			deltaMinus = yInt - int64(math.Float64bits(-0.0))
+		}
+
+		if deltaPlus > int64(maxUlps) {
+			isEqual = false
+		} else {
+			isEqual = deltaMinus <= int64(maxUlps) - deltaPlus
+		}
+	}
+
+	return isEqual && !math.IsNaN(x) && !math.IsNaN(y)
+}
+
 type Gamma struct {
 }
 
@@ -543,10 +583,10 @@ func (g *Gamma) logGamma(x float64) (float64, error) {
 		}
 
 		if x <= 8.0 {
-			n := int(math.Floor(x - 1.5))
+			n := int64(math.Floor(x - 1.5))
 			prod := 1.0
 
-			var i int
+			var i int64
 			for i = 1; i <= n; i++ {
 				prod *= x - float64(i)
 			}

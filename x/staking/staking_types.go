@@ -166,7 +166,7 @@ func (val *Validator) GetProcessVersion () (uint32, error) {
 }
 func (val *Validator) GetShares () (*big.Int, error) {
 	shares, ok := new(big.Int).SetString(val.StakingWeight[1], 10)
-	if ok {
+	if !ok {
 		return nil, errors.New("parse bigInt failed from validator's shares")
 	}
 	return shares, nil

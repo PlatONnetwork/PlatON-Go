@@ -138,7 +138,7 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		mrand.Seed(time.Now().UnixNano())
 		stakingWeight := [4]string{}
 		stakingWeight[0] = "1"
-		stakingWeight[1] = strconv.Itoa(mrand.Intn(100000000))
+		stakingWeight[1] = strconv.FormatUint(uint64(time.Now().Unix()), 10)
 		stakingWeight[2] = strconv.Itoa(mrand.Intn(230))
 		stakingWeight[3] = strconv.Itoa(mrand.Intn(1000))
 		v := &staking.Validator{
