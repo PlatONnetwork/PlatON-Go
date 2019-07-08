@@ -72,6 +72,8 @@ var (
 
 	dbInstance *snapshotDB
 
+	instance sync.Mutex
+
 	logger = log.Root().New("package", "snapshotdb")
 
 	//ErrorSnaphotLock when db is Lock
@@ -116,8 +118,10 @@ func SetDBPath(ctx *node.ServiceContext) {
 
 //Instance return the Instance of the db
 func Instance() DB {
+	instance.Lock()
+	defer instance.Unlock()
 	if dbInstance == nil || dbInstance.closed {
-		logger.Debug("dbInstance is nil")
+		logger.Debug("dbInstance is nil", "path", dbpath)
 		if err := initDB(); err != nil {
 			logger.Error(fmt.Sprint("init db fail"), err)
 			panic(err)
@@ -130,7 +134,7 @@ func Instance() DB {
 func initDB() error {
 	s, err := openFile(dbpath, false)
 	if err != nil {
-		logger.Error(fmt.Sprint("open db file fail:", err))
+		logger.Error(fmt.Sprint("open db file fail:", err), "path", dbpath)
 		return err
 	}
 	fds, err := s.List(TypeCurrent)
@@ -656,7 +660,6 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 			itrs = append(itrs, block.data.NewIterator(prefix))
 		}
 	case hashLocationCommitted:
-		//parentHash = hash
 		for i := len(s.committed) - 1; i >= 0; i-- {
 			block := s.committed[i]
 			if block.BlockHash == hash {
