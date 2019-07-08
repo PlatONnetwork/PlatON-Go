@@ -24,6 +24,28 @@ type ResultTest struct {
 }
 
 
+func buildRestrictingPlanData() {
+	var plan  restricting.RestrictingPlan
+	var plans = make([]restricting.RestrictingPlan, 5)
+
+	for i := 0; i < 5; i++ {
+		plan.Epoch = uint64(i+1)
+		plan.Amount = big.NewInt(10000000)
+		plans = append(plans, plan)
+	}
+
+	var params [][]byte
+	param0, _ := rlp.EncodeToBytes(common.Uint32ToBytes(4000))  // function_type
+	param1 := addrArr[0].Bytes()   	        // restricting account
+	param2, _ := rlp.EncodeToBytes(plans)   // restricting plan
+
+	params = append(params, param0)
+	params = append(params, param1)
+	params = append(params, param2)
+
+	input, err := rlp.EncodeToBytes(params)
+}
+
 func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 	contract := &vm.RestrictingContract{
 		Plugin:  plugin.RestrictingInstance(),

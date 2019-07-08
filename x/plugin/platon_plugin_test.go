@@ -17,6 +17,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
 	"testing"
@@ -328,33 +329,32 @@ func build_gov_data (state *state.StateDB){
 }
 
 
-func buildDbRestrictingPlan(t *testing.T) {
-	state, _ := newChainState()
+func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 	account := addrArr[0]
 
-	const Epochs = 5
+	const Epochs = 6
 	var list = make([]uint64, Epochs)
 
-	for epoch := 0; epoch < Epochs; epoch++ {
+	for epoch := 1; epoch < Epochs; epoch++ {
 		// build release account record
 		releaseAccountKey := restricting.GetReleaseAccountKey(uint64(epoch), 1)
-		state.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
+		stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
 		// build release amount record
-		releaseAmount := big.NewInt(10000000)
+		releaseAmount := big.NewInt(int64(1E18))
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(epoch), account)
-		state.SetState(account, releaseAmountKey, releaseAmount.Bytes())
+		stateDB.SetState(account, releaseAmountKey, releaseAmount.Bytes())
 
 		// build release epoch record
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(epoch))
-		state.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
+		stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
 
 		list = append(list, uint64(epoch))
 	}
 
 	// build restricting user info
 	var user restrictingInfo
-	user.balance = big.NewInt(50000000)
+	user.balance = big.NewInt(int64(5E18))
 	user.debt = big.NewInt(0)
 	user.releaseList = list
 
@@ -364,7 +364,8 @@ func buildDbRestrictingPlan(t *testing.T) {
 	}
 
 	restrictingKey := restricting.GetRestrictingKey(account)
-	state.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
+	stateDB.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
 
-	state.AddBalance(cvm.RestrictingContractAddr, big.NewInt(50000000))
+	stateDB.AddBalance(sender, sender_balance.Sub(sender_balance, big.NewInt(int64(5E18))))
+	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
 }
