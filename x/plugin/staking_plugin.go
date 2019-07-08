@@ -12,7 +12,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"math/big"
 	"sync"
 )
@@ -219,7 +218,7 @@ func (sk *StakingPlugin) EditorCandidate (blockHash common.Hash, blockNumber *bi
 func (sk *StakingPlugin) IncreaseStaking (state xcom.StateDB, blockHash common.Hash, blockNumber,
 	amount *big.Int, typ uint16, can *staking.Candidate) error {
 
-	xcom.PrintObject("进来的时候can:", can)
+	xcom.PrintObject("IncreaseStaking 进来的时候can:", can)
 
 	pubKey, _ := can.NodeId.Pubkey()
 
@@ -273,7 +272,7 @@ func (sk *StakingPlugin) IncreaseStaking (state xcom.StateDB, blockHash common.H
 	}
 
 
-	xcom.PrintObject("存储之前can:", can)
+	xcom.PrintObject("IncreaseStaking 存储之前can:", can)
 
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
@@ -1448,39 +1447,19 @@ func (sk *StakingPlugin) IsCurrValidator(blockHash common.Hash, nodeId discover.
 }
 
 
-func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash, isCommit bool) (staking.CandidateQueue, error) {
+func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.CandidateQueue, error) {
 
 
-	var iter iterator.Iterator
-
-	if !isCommit {
-
-		itr := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
-		iter = itr
-	}else {
-		itr := sk.db.IteratorCandidatePowerByIrr(0)
-		iter = itr
-	}
+	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
 
 	queue := make(staking.CandidateQueue, 0)
 
 
 	for iter.Valid(); iter.Next(); {
 		addrSuffix := iter.Value()
-		var can *staking.Candidate
-
-		if !isCommit {
-			c, err := sk.db.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
-			if nil != err {
-				return nil, err
-			}
-			can = c
-		}else {
-			c, err := sk.db.GetCandidateStoreByIrrWithSuffix(addrSuffix)
-			if nil != err {
-				return nil, err
-			}
-			can = c
+		can, err := sk.db.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
+		if nil != err {
+			return nil, err
 		}
 		queue = append(queue, can)
 	}
@@ -1563,20 +1542,11 @@ func (sk *StakingPlugin) IsCandidate(blockHash common.Hash, nodeId discover.Node
 	return true, nil
 }
 
-func (sk *StakingPlugin) GetRelatedListByDelAddr (blockHash common.Hash, addr common.Address,
-	isCommit bool) (staking.DelRelatedQueue, error) {
+func (sk *StakingPlugin) GetRelatedListByDelAddr (blockHash common.Hash, addr common.Address) (staking.DelRelatedQueue, error) {
 
-	var iter iterator.Iterator
+	//var iter iterator.Iterator
 
-	if !isCommit {
-
-		itr := sk.db.IteratorDelegateByBlockHashWithAddr(blockHash, addr, 0)
-		iter = itr
-	}else {
-		itr := sk.db.IteratorDelegateByIrrWithAddr(addr, 0)
-		iter = itr
-	}
-
+	iter := sk.db.IteratorDelegateByBlockHashWithAddr(blockHash, addr, 0)
 	queue := make(staking.DelRelatedQueue, 0)
 
 	for iter.Valid(); iter.Next(); {

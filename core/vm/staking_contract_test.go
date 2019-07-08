@@ -352,7 +352,9 @@ func TestStakingContract_increaseStaking (t *testing.T) {
 		t.Log(string(res))
 	}
 
-	sndb.Commit(blockHash2)
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Errorf("Commit error: %v", err)
+	}
 
 
 	// get CandidateInfo

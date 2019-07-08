@@ -1,26 +1,25 @@
 package plugin_test
 
 import (
-	"fmt"
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"testing"
-	"math/big"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
-	"github.com/PlatONnetwork/PlatON-Go/core"
-	"github.com/PlatONnetwork/PlatON-Go/params"
-	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
-	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/params"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"math/big"
+	"testing"
 )
 
 

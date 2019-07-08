@@ -487,19 +487,19 @@ func (db *StakingDB) DelNextValidatorListByBlockHash (blockHash common.Hash) err
 }
 
 
-func (db *StakingDB) IteratorCandidatePowerByIrr (ranges int) iterator.Iterator {
-	return db.ranking(common.ZeroHash, CanPowerKeyPrefix, ranges)
-}
+//func (db *StakingDB) IteratorCandidatePowerByIrr (ranges int) iterator.Iterator {
+//	return db.ranking(common.ZeroHash, CanPowerKeyPrefix, ranges)
+//}
 
 func (db *StakingDB) IteratorCandidatePowerByBlockHash (blockHash common.Hash, ranges int) iterator.Iterator {
 	return db.ranking(blockHash, CanPowerKeyPrefix, ranges)
 }
 
 
-func (db *StakingDB) IteratorDelegateByIrrWithAddr (addr common.Address, ranges int) iterator.Iterator {
-	prefix := append(DelegateKeyPrefix, addr.Bytes()...)
-	return db.ranking(common.ZeroHash, prefix, ranges)
-}
+//func (db *StakingDB) IteratorDelegateByIrrWithAddr (addr common.Address, ranges int) iterator.Iterator {
+//	prefix := append(DelegateKeyPrefix, addr.Bytes()...)
+//	return db.ranking(common.ZeroHash, prefix, ranges)
+//}
 
 func (db *StakingDB) IteratorDelegateByBlockHashWithAddr (blockHash common.Hash, addr common.Address, ranges int) iterator.Iterator {
 	prefix := append(DelegateKeyPrefix, addr.Bytes()...)

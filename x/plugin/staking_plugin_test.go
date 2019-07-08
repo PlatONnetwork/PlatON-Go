@@ -188,7 +188,7 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 
 	sndb.Commit(blockHash)
 
-	if queue, err := plugin.StakingInstance().GetCandidateList(blockHash, plugin.QueryStartIrr); nil != err {
+	if queue, err := plugin.StakingInstance().GetCandidateList(blockHash); nil != err {
 		t.Error("Failed to GetCandidateList", err)
 	}else {
 		queueByte, _ := json.Marshal(queue)

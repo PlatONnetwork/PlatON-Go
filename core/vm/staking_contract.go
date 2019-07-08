@@ -612,8 +612,9 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 }
 
 func (stkc *StakingContract) getCandidateList() ([]byte, error) {
+	blockHash := stkc.Evm.BlockHash
 
-	arr, err := stkc.Plugin.GetCandidateList(common.ZeroHash, plugin.QueryStartIrr)
+	arr, err := stkc.Plugin.GetCandidateList(blockHash)
 	if nil != err {
 		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
@@ -634,7 +635,10 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 // todo Maybe will implement
 func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byte, error) {
 
-	arr, err := stkc.Plugin.GetRelatedListByDelAddr(common.ZeroHash, addr, plugin.QueryStartIrr)
+
+	blockHash := stkc.Evm.BlockHash
+
+	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
 	if nil != err {
 		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
