@@ -656,13 +656,13 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 			itrs = append(itrs, block.data.NewIterator(prefix))
 		}
 	case hashLocationCommitted:
-		parentHash = hash
+		//parentHash = hash
 		for i := len(s.committed) - 1; i >= 0; i-- {
 			block := s.committed[i]
 			if block.BlockHash == hash {
 				itrs = append(itrs, block.data.NewIterator(prefix))
-				parentHash = block.BlockHash
-			} else if block.ParentHash == parentHash {
+				parentHash = block.ParentHash
+			} else if block.BlockHash == parentHash {
 				itrs = append(itrs, block.data.NewIterator(prefix))
 				parentHash = block.BlockHash
 			}
