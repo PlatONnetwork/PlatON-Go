@@ -1,21 +1,26 @@
 package plugin_test
 
 import (
+	"fmt"
+	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"testing"
+	"math/big"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/core"
-	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"math/big"
+	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+
 )
 
 
@@ -288,4 +293,46 @@ func build_gov_data (state *state.StateDB){
 	//set a default active version
 	govDB := gov.GovDBInstance()
 	govDB.SetActiveVersion(initProcessVersion, state)
+}
+
+
+func buildDbRestrictingPlan(t *testing.T) {
+	state, _ := newChainState()
+	account := addrArr[0]
+
+	const Epochs = 5
+	var list = make([]uint64, Epochs)
+
+	for epoch := 0; epoch < Epochs; epoch++ {
+		// build release account record
+		releaseAccountKey := restricting.GetReleaseAccountKey(uint64(epoch), 1)
+		state.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
+
+		// build release amount record
+		releaseAmount := big.NewInt(10000000)
+		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(epoch), account)
+		state.SetState(account, releaseAmountKey, releaseAmount.Bytes())
+
+		// build release epoch record
+		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(epoch))
+		state.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
+
+		list = append(list, uint64(epoch))
+	}
+
+	// build restricting user info
+	var user restrictingInfo
+	user.balance = big.NewInt(50000000)
+	user.debt = big.NewInt(0)
+	user.releaseList = list
+
+	bUser, err := rlp.EncodeToBytes(user)
+	if err != nil {
+		t.Errorf("failed to rlp encode restricting info: %s", err.Error())
+	}
+
+	restrictingKey := restricting.GetRestrictingKey(account)
+	state.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
+
+	state.AddBalance(cvm.RestrictingContractAddr, big.NewInt(50000000))
 }
