@@ -367,9 +367,6 @@ func testGetProofs(t *testing.T, protocol int) {
 func testGetCHTProofs(t *testing.T, protocol int) {
 	config := light.TestServerIndexerConfig
 	frequency := config.ChtSize
-	if protocol == 2 {
-		frequency = config.PairChtSize
-	}
 
 	waitIndexers := func(cIndexer, bIndexer, btIndexer *core.ChainIndexer) {
 		expectSections := frequency / config.ChtSize
