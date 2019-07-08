@@ -412,7 +412,7 @@ func (s *snapshotDB) getFromRecognized(hash common.Hash, key []byte) ([]byte, er
 		}
 	}
 	s.commitLock.RLock()
-	defer s.commitLock.RLock()
+	defer s.commitLock.RUnlock()
 	if len(s.committed) > 0 {
 		block := s.committed[len(s.committed)-1]
 		if block.BlockHash != hash {
