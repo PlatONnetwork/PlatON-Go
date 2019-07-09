@@ -34,6 +34,15 @@ var (
 	InnerDevnetGenesisHash  = common.HexToHash("0xc2d90f565b3c6dc16234c48978da62c2c20e15875644e9843d26a871860fd736")
 )
 
+var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
+	MainnetGenesisHash:      MainnetTrustedCheckpoint,
+	TestnetGenesisHash:      TestnetTrustedCheckpoint,
+	BeatnetGenesisHash:      BetanetTrustedCheckpoint,
+	InnerTestnetGenesisHash: InnerTestnetTrustedCheckpoint,
+	InnerDevnetGenesisHash:  InnerDevnetTrustedCheckpoint,
+}
+
+
 var (
 	initialTestnetConsensusNodes = []string{
 		"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f2f@test-sea.platon.network:16791", //TEST-SEA

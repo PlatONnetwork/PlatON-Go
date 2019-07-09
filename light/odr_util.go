@@ -28,7 +28,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-var sha3_nil = crypto.Keccak256Hash(nil)
+var sha3Nil = crypto.Keccak256Hash(nil)
 
 func GetHeaderByNumber(ctx context.Context, odr OdrBackend, number uint64) (*types.Header, error) {
 	db := odr.Database()
@@ -157,13 +157,9 @@ func GetBlockReceipts(ctx context.Context, odr OdrBackend, hash common.Hash, num
 // block given by its hash.
 func GetBlockLogs(ctx context.Context, odr OdrBackend, hash common.Hash, number uint64) ([][]*types.Log, error) {
 	// Retrieve the potentially incomplete receipts from disk or network
-	receipts := rawdb.ReadReceipts(odr.Database(), hash, number)
-	if receipts == nil {
-		r := &ReceiptsRequest{Hash: hash, Number: number}
-		if err := odr.Retrieve(ctx, r); err != nil {
-			return nil, err
-		}
-		receipts = r.Receipts
+	receipts, err := GetBlockReceipts(ctx, odr, hash, number)
+	if err != nil {
+		return nil, err
 	}
 	// Return the logs without deriving any computed fields on the receipts
 	logs := make([][]*types.Log, len(receipts))
