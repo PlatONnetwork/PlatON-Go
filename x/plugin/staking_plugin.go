@@ -672,48 +672,55 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 	}
 
 	refundFn := func(remain, aboutRelease, aboutRestrictingPlan *big.Int) (*big.Int, *big.Int, *big.Int, error) {
+
+		remainTmp := remain
+		releaseTmp := aboutRelease
+		restrictingPlanTmp := aboutRestrictingPlan
+
+
 		// When remain is greater than or equal to del.ReleasedHes/del.Released
-		if remain.Cmp(common.Big0) > 0 {
-			if remain.Cmp(aboutRelease) >= 0 && aboutRelease.Cmp(common.Big0) > 0 {
+		if remainTmp.Cmp(common.Big0) > 0 {
+			if remainTmp.Cmp(releaseTmp) >= 0 && releaseTmp.Cmp(common.Big0) > 0 {
 
-				remain, aboutRelease = subDelegateFn(remain, aboutRelease)
+				remainTmp, releaseTmp = subDelegateFn(remainTmp, releaseTmp)
 
-			} else if remain.Cmp(aboutRelease) < 0 {
+			} else if remainTmp.Cmp(releaseTmp) < 0 {
 				// When remain is less than or equal to del.ReleasedHes/del.Released
-				aboutRelease, remain = subDelegateFn(aboutRelease, remain)
+				releaseTmp, remainTmp = subDelegateFn(releaseTmp, remainTmp)
 			}
 		}
 
-		if remain.Cmp(common.Big0) > 0 {
+		if remainTmp.Cmp(common.Big0) > 0 {
 
 			// When remain is greater than or equal to del.RestrictingPlanHes/del.RestrictingPlan
-			if remain.Cmp(aboutRestrictingPlan) >= 0 && aboutRestrictingPlan.Cmp(common.Big0) > 0 {
+			if remainTmp.Cmp(restrictingPlanTmp) >= 0 && restrictingPlanTmp.Cmp(common.Big0) > 0 {
 
-				err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, aboutRestrictingPlan, state)
+				err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, restrictingPlanTmp, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"err", err)
-					return remain, aboutRelease, aboutRestrictingPlan, err
+					return remainTmp, releaseTmp, restrictingPlanTmp, err
 				}
 
-				remain = new(big.Int).Sub(remain, aboutRestrictingPlan)
-				aboutRestrictingPlan = common.Big0
-			} else if remain.Cmp(aboutRestrictingPlan) < 0 {
+				remainTmp = new(big.Int).Sub(remainTmp, restrictingPlanTmp)
+				restrictingPlanTmp = common.Big0
+
+			} else if remainTmp.Cmp(restrictingPlanTmp) < 0 {
 				// When remain is less than or equal to del.RestrictingPlanHes/del.RestrictingPlan
 
-				err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, remain, state)
+				err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, remainTmp, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"err", err)
-					return remain, aboutRelease, aboutRestrictingPlan, err
+					return remainTmp, releaseTmp, restrictingPlanTmp, err
 				}
 
-				aboutRestrictingPlan = new(big.Int).Sub(aboutRestrictingPlan, remain)
-				remain = common.Big0
+				restrictingPlanTmp = new(big.Int).Sub(restrictingPlanTmp, remainTmp)
+				remainTmp = common.Big0
 			}
 		}
 
-		return remain, aboutRelease, aboutRestrictingPlan, nil
+		return remainTmp, releaseTmp, restrictingPlanTmp, nil
 	}
 
 	del.DelegateEpoch = uint32(epoch)
@@ -1896,7 +1903,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 		return err
 	}
 
-	if nil != can {
+	if nil == can {
 
 		log.Error("Call SlashCandidates: the can is empty", "blockNumber", blockNumber,
 			"blockHash", blockHash.Hex(), "nodeId", nodeId.String())
@@ -1924,7 +1931,14 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 	remain := amount
 
-	slashFunc := func(remian, balance *big.Int, isNotify bool) (*big.Int, *big.Int, error) {
+
+
+	slashFunc := func(title string, remain, balance *big.Int, isNotify bool) (*big.Int, *big.Int, error) {
+
+
+		remainTmp := common.Big0
+		balanceTmp := common.Big0
+
 		if remain.Cmp(balance) >= 0 {
 			state.SubBalance(vm.StakingContractAddr, balance)
 			state.AddBalance(vm.RewardManagerPoolAddr, balance)
@@ -1933,13 +1947,15 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 				err := RestrictingPtr.SlashingNotify(can.StakingAddress, balance, state)
 				if nil != err {
 					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "amount",
-						balance, "err", err)
-					return remian, balance, err
+						balance, "slash:", title, "err", err)
+					return remainTmp, balanceTmp, err
 				}
 			}
 
-			balance = common.Big0;
-			remain = new(big.Int).Sub(remain, balance)
+
+			remainTmp = new(big.Int).Sub(remain, balance)
+			balanceTmp = common.Big0
+
 		} else {
 			state.SubBalance(vm.StakingContractAddr, remain)
 			state.AddBalance(vm.RewardManagerPoolAddr, remain)
@@ -1948,27 +1964,30 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 				err := RestrictingPtr.SlashingNotify(can.StakingAddress, remain, state)
 				if nil != err {
 					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "amount",
-						remain, "err", err)
-					return remian, balance, err
+						remain, "slash:", title, "err", err)
+					return remainTmp, balanceTmp, err
 				}
 			}
-			balance = new(big.Int).Sub(balance, remain);
-			remain = common.Big0
+
+			remainTmp = common.Big0
+			balanceTmp = new(big.Int).Sub(balance, remain)
 		}
-		return remian, balance, nil
+
+		return remainTmp, balanceTmp, nil
 	}
 
 	if can.ReleasedHes.Cmp(common.Big0) > 0 {
 
-		val, rval, err := slashFunc(remain, can.ReleasedHes, false)
+		val, rval, err := slashFunc("ReleasedHes", remain, can.ReleasedHes, false)
 		if nil != err {
 			return err
 		}
 		remain, can.ReleasedHes = val, rval
+
 	}
 
 	if remain.Cmp(common.Big0) > 0 && can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
-		val, rval, err := slashFunc(remain, can.RestrictingPlanHes, true)
+		val, rval, err := slashFunc("RestrictingPlanHes", remain, can.RestrictingPlanHes, true)
 		if nil != err {
 			return err
 		}
@@ -1976,7 +1995,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	}
 
 	if remain.Cmp(common.Big0) > 0 && can.Released.Cmp(common.Big0) > 0 {
-		val, rval, err := slashFunc(remain, can.Released, false)
+		val, rval, err := slashFunc("Released", remain, can.Released, false)
 		if nil != err {
 			return err
 		}
@@ -1984,7 +2003,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 	}
 
 	if remain.Cmp(common.Big0) > 0 && can.RestrictingPlan.Cmp(common.Big0) > 0 {
-		val, rval, err := slashFunc(remain, can.RestrictingPlan, true)
+		val, rval, err := slashFunc("RestrictingPlan", remain, can.RestrictingPlan, true)
 		if nil != err {
 			return err
 		}
@@ -2023,15 +2042,21 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			return err
 		}
 
+		orginLen := len(validators.Arr)
 		for i, val := range validators.Arr {
 			if val.NodeId == nodeId {
+
+				log.Debug("Delete the validator when slash candidate on SlashCandidates", "nodeId", nodeId.String())
 				validators.Arr = append(validators.Arr[:i], validators.Arr[i+1:]...)
 				break
 			}
 		}
+		dirtyLen := len(validators.Arr)
 
-		if err := sk.db.SetVerfierList(blockHash, validators); nil != err {
-			return err
+		if dirtyLen != orginLen {
+			if err := sk.db.SetVerfierList(blockHash, validators); nil != err {
+				return err
+			}
 		}
 	}
 

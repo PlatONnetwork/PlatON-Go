@@ -92,6 +92,9 @@ var (
 	blockNumber2 = big.NewInt(2)
 	blockHash2 = common.HexToHash("c95876b92443d652d7eb7d7a9c0e2c58a95e934c0c1197978c5445180cc60980")
 
+	blockNumber3 = big.NewInt(3)
+	blockHash3 = common.HexToHash("3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e")
+
 	lastBlockNumber uint64
  	lastBlockHash common.Hash
 	lastHeader types.Header
