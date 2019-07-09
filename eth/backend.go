@@ -596,5 +596,9 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	xplugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RewardMgrInstance())
+	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
 	reactor.SetPluginEventMux()
+
+	// TODO set rule order
+
 }

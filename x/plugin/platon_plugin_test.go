@@ -132,7 +132,8 @@ var (
 	}
 
 
-	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536
+	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536, version: 1.0.0
+	promoteVersion = uint32(2<<16 | 0<<8 | 0)
 
 	balanceStr = []string {
 
@@ -201,6 +202,10 @@ var (
 		"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
 )
 
+func TestVersion (t *testing.T) {
+
+	t.Log("the version is:", promoteVersion)
+}
 
 func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *vm.EVM {
 	if nil == state {
