@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"encoding/json"
 	"encoding/hex"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -199,8 +198,8 @@ amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *st
 		}
 	}
 	// todo test
-	canJson, _ := json.Marshal(can)
-	fmt.Println("Created the can:", string(canJson))
+	//canJson, _ := json.Marshal(can)
+	//fmt.Println("Created the can:", string(canJson))
 	return nil
 }
 
@@ -225,7 +224,6 @@ func (sk *StakingPlugin) EditorCandidate(blockHash common.Hash, blockNumber *big
 func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Hash, blockNumber,
 amount *big.Int, typ uint16, can *staking.Candidate) error {
 
-	xcom.PrintObject("IncreaseStaking 进来的时候can:", can)
 
 	pubKey, _ := can.NodeId.Pubkey()
 
@@ -278,7 +276,6 @@ amount *big.Int, typ uint16, can *staking.Candidate) error {
 		return err
 	}
 
-	xcom.PrintObject("IncreaseStaking 存储之前can:", can)
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
 		log.Error("Failed to EditorCandidate on stakingPlugin: Put Can info 2 db failed",
@@ -526,8 +523,6 @@ func (sk *StakingPlugin) GetDelegateExInfoByIrr(delAddr common.Address,
 func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	delAddr common.Address, del *staking.Delegation, can *staking.Candidate, typ uint16, amount *big.Int) error {
 
-	xcom.PrintObject("进来的can:", can)
-	xcom.PrintObject("进来的del:", del)
 
 	pubKey, _ := can.NodeId.Pubkey()
 	canAddr := crypto.PubkeyToAddress(*pubKey)
@@ -565,7 +560,6 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	del.DelegateEpoch = uint32(epoch)
 
-	xcom.PrintObject("修改完存储之前的del:", del)
 
 	// set new delegate info
 	if err := sk.db.SetDelegateStore(blockHash, delAddr, can.NodeId, can.StakingBlockNum, del); nil != err {
@@ -580,7 +574,6 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 	// add the candidate power
 	can.Shares = new(big.Int).Add(can.Shares, amount)
 
-	xcom.PrintObject("修改完存储之前的can:", can)
 
 	// set new power of can
 	if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
@@ -611,8 +604,6 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		return err
 	}
 
-	xcom.PrintObject("进来时的can:", can)
-	xcom.PrintObject("进来时的del:", del)
 
 	aboutRelease := new(big.Int).Add(del.Released, del.ReleasedHes)
 	aboutRestrictingPlan := new(big.Int).Add(del.RestrictingPlan, del.RestrictingPlanHes)
@@ -791,8 +782,6 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 
 	}
 
-	xcom.PrintObject("撤销之后的can:", can)
-	xcom.PrintObject("撤销之后的del:", del)
 	return nil
 }
 
@@ -997,6 +986,8 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumber uint64) error {
 
+
+
 	log.Info("Call ElectNextVerifierList", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
 
 	old_verifierArr, err := sk.db.GetVerifierListByBlockHash(blockHash)
@@ -1017,7 +1008,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			old_verifierArr.End, blockNumber)
 	}
 
-	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum))
+
 
 	start := old_verifierArr.End + 1
 	end := old_verifierArr.End + xcom.EpochSize*xcom.ConsensusSize
@@ -1027,9 +1018,17 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		End:   end,
 	}
 
-	queue := make(staking.ValidatorQueue, 0)
 
-	for count := 0; iter.Valid() && count < int(xcom.EpochValidatorNum); iter.Next() {
+
+	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum))
+	if err := iter.Error(); nil != err {
+		return err
+	}
+	defer iter.Release()
+
+
+	queue := make(staking.ValidatorQueue, 0)
+	for iter.Valid(); iter.Next(); {
 		addrSuffix := iter.Value()
 		var can *staking.Candidate
 
@@ -1055,7 +1054,6 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 	if len(queue) == 0 {
 		panic(common.BizErrorf("Failed to ElectNextVerifierList: Select zero validators~"))
-		//return true, common.BizErrorf("Failed to ElectNextVerifierList: Select zero validators~")
 	}
 
 	new_verifierArr.Arr = queue
@@ -1511,6 +1509,10 @@ func (sk *StakingPlugin) IsCurrValidator(blockHash common.Hash, nodeId discover.
 func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.CandidateQueue, error) {
 
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, 0)
+	if err := iter.Error(); nil != err {
+		return nil, err
+	}
+	defer iter.Release()
 
 	queue := make(staking.CandidateQueue, 0)
 
@@ -1605,6 +1607,11 @@ func (sk *StakingPlugin) GetRelatedListByDelAddr(blockHash common.Hash, addr com
 	//var iter iterator.Iterator
 
 	iter := sk.db.IteratorDelegateByBlockHashWithAddr(blockHash, addr, 0)
+	if err := iter.Error(); nil != err {
+		return nil, err
+	}
+	defer iter.Release()
+
 	queue := make(staking.DelRelatedQueue, 0)
 
 	for iter.Valid(); iter.Next(); {

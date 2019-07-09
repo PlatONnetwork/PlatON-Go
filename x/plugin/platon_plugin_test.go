@@ -175,6 +175,18 @@ var (
 		"gang",
 		"guang",
 		"hua",
+		"PlatON_2",
+		"Gavin_2",
+		"Emma_2",
+		"Kally_2",
+		"Juzhen_2",
+		"Baidu_2",
+		"Alibaba_2",
+		"Tencent_2",
+		"ming_2",
+		"hong_2",
+		"gang_2",
+		"guang_2",
 	}
 
 	chaList = []string{"A", "a", "B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "J", "j", "K", "k", "M", "m",
