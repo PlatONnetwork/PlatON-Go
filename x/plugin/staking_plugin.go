@@ -7,6 +7,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -367,8 +368,11 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockHash com
 	releaseEpoch := epoch - xcom.UnStakeFreezeRatio
 
 	unStakeCount, err := sk.db.GetUnStakeCountStore(blockHash, releaseEpoch)
-	if nil != err {
+	switch {
+	case nil != err && err != snapshotdb.ErrNotFound:
 		return err
+	case nil != err && err == snapshotdb.ErrNotFound:
+		unStakeCount = 0
 	}
 
 	if unStakeCount == 0 {
@@ -768,14 +772,12 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		if err := sk.db.SetDelegateStore(blockHash, delAddr, nodeId, stakingBlockNum, del); nil != err {
 			return err
 		}
-	}
 
-	// delete old can power
-	if nil != can && stakingBlockNum == can.StakingBlockNum && staking.Is_Valid(can.Status) {
 		if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
 			return err
 		}
 
+		// change candidate shares
 		can.Shares = new(big.Int).Sub(can.Shares, amount)
 
 		if err := sk.db.SetCandidateStore(blockHash, canAddr, can); nil != err {
@@ -785,7 +787,9 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 		if err := sk.db.SetCanPowerStore(blockHash, canAddr, can); nil != err {
 			return err
 		}
+
 	}
+
 	xcom.PrintObject("撤销之后的can:", can)
 	xcom.PrintObject("撤销之后的del:", del)
 	return nil
@@ -795,8 +799,11 @@ func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockHash comm
 	releaseEpoch := epoch - xcom.ActiveUnDelegateFreezeRatio
 
 	unDelegateCount, err := sk.db.GetUnDelegateCountStore(blockHash, releaseEpoch)
-	if nil != err {
+	switch {
+	case nil != err && err != snapshotdb.ErrNotFound:
 		return err
+	case nil != err && err == snapshotdb.ErrNotFound:
+		unDelegateCount = 0
 	}
 
 	if unDelegateCount == 0 {
@@ -807,9 +814,11 @@ func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockHash comm
 
 	for index := 1; index <= int(unDelegateCount); index++ {
 		unDelegateItem, err := sk.db.GetUnDelegateItemStore(blockHash, releaseEpoch, uint64(index))
+
 		if nil != err {
 			return err
 		}
+
 
 		//if _, ok := filterAddr[fmt.Sprint(unDelegateItem.KeySuffix)]; ok {
 		//	continue
@@ -918,7 +927,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 				} else {
 					state.SubBalance(vm.StakingContractAddr, remain)
 					state.AddBalance(delAddr, remain)
-					return new(big.Int).Sub(del.Released, remain), common.Big0
+					return new(big.Int).Sub(balance, remain), common.Big0
 				}
 			}
 			return balance, remain
@@ -938,7 +947,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 							title, balance, "err", err)
 						return common.Big0, common.Big0, err
 					}
-					return common.Big0, new(big.Int).Sub(remain, del.RestrictingPlan), nil
+					return common.Big0, new(big.Int).Sub(remain, balance), nil
 				} else {
 
 					err := RestrictingPtr.ReturnLockFunds(delAddr, remain, state)
@@ -948,7 +957,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 						return common.Big0, common.Big0, err
 					}
 
-					return new(big.Int).Sub(del.RestrictingPlan, remain), common.Big0, nil
+					return new(big.Int).Sub(balance, remain), common.Big0, nil
 				}
 			}
 
@@ -1708,11 +1717,17 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) err
 	default:
 		// elect ShiftValidatorNum (default is 8) validators by vrf
 		// TODO vrf
-		//if queue, err := sk.ProbabilityElection(validators, "", ""); nil != err {
-		//	return err
-		//}else {
-		//	shiftQueue = queue
-		//}
+
+		/*nonceQueue, err := xcom.GetVrfHandlerInstance().Load(blockHash)
+		if nil != err {
+			return err
+		}
+
+		if queue, err := sk.ProbabilityElection(validators, nonceQueue[], ""); nil != err {
+			return err
+		}else {
+			shiftQueue = queue
+		}*/
 
 	}
 

@@ -129,6 +129,11 @@ var (
 		"Baidu",
 		"Alibaba",
 		"Tencent",
+		"ming",
+		"hong",
+		"gang",
+		"guang",
+		"hua",
 	}
 
 	chaList = []string{"A", "a", "B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "J", "j", "K", "k", "M", "m",

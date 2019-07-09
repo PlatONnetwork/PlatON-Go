@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -179,7 +180,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 
 	// storage the ppos k-v Hash
 	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
-	if len(pposHash) != 0 {
+	if len(pposHash) != 0 && bytes.Compare(pposHash, make([]byte, len(pposHash))) != 0 {
 		// store hash about ppos
 		state.SetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey(), pposHash)
 	}
