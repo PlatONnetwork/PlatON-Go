@@ -107,6 +107,11 @@ func (brc *BlockChainReactor) loop() {
 func (bcr *BlockChainReactor) RegisterPlugin(pluginRule int, plugin plugin.BasePlugin) {
 	bcr.basePluginMap[pluginRule] = plugin
 }
+
+func (bcr *BlockChainReactor) SetPluginEventMux() {
+	plugin.StakingInstance().SetEventMux(bcr.eventMux)
+}
+
 func (bcr *BlockChainReactor) SetBeginRule(rule []int) {
 	bcr.beginRule = rule
 }

@@ -18,7 +18,7 @@ var (
 	errInvalidVrfProve = errors.New("invalid vrf prove")
 	errStorageNonce    = errors.New("storage previous nonce failed")
 
-	nonceStorageKey = []byte("nonceStorageKey")
+	NonceStorageKey = []byte("nonceStorageKey")
 
 	once = sync.Once{}
 )
@@ -102,23 +102,23 @@ func (vh *vrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 	}
 	nonces = append(nonces, vrf.ProofToHash(nonce))
 	if enValue, err := rlp.EncodeToBytes(nonces); nil != err {
-		log.Error("Storage previous nonce failed", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "hash", hex.EncodeToString(hash.Bytes()), "key", string(nonceStorageKey), "valueLength", len(nonces), "nonce", hex.EncodeToString(nonce), "err", err)
+		log.Error("Storage previous nonce failed", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "hash", hex.EncodeToString(hash.Bytes()), "key", string(NonceStorageKey), "valueLength", len(nonces), "nonce", hex.EncodeToString(nonce), "err", err)
 		return err
 	} else {
-		vh.db.Put(hash, nonceStorageKey, enValue)
+		vh.db.Put(hash, NonceStorageKey, enValue)
 		log.Info("Storage previous nonce Success", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "hash", hex.EncodeToString(hash.Bytes()), "valueLength", len(nonces), "EpochValidatorNum", EpochValidatorNum, "nonce", hex.EncodeToString(nonce), "firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
 	}
 	return nil
 }
 
 func (vh *vrfHandler) Load(hash common.Hash) ([][]byte, error) {
-	if value, err := vh.db.Get(hash, nonceStorageKey); nil != err {
-		log.Error("Loading previous nonce failed", "hash", hash, "key", string(nonceStorageKey), "err", err)
+	if value, err := vh.db.Get(hash, NonceStorageKey); nil != err {
+		log.Error("Loading previous nonce failed", "hash", hash, "key", string(NonceStorageKey), "err", err)
 		return nil, err
 	} else {
 		nonces := make([][]byte, 0)
 		if err := rlp.DecodeBytes(value, &nonces); nil != err {
-			log.Error("rlpDecode previous nonce failed", "hash", hash, "key", string(nonceStorageKey), "err", err)
+			log.Error("rlpDecode previous nonce failed", "hash", hash, "key", string(NonceStorageKey), "err", err)
 			return nil, err
 		}
 		return nonces, nil

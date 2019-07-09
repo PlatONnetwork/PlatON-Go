@@ -10,6 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -22,7 +23,8 @@ import (
 )
 
 type StakingPlugin struct {
-	db   *staking.StakingDB
+	db   		*staking.StakingDB
+	eventMux	*event.TypeMux
 	once sync.Once
 }
 
@@ -61,6 +63,10 @@ func StakingInstance() *StakingPlugin {
 		}
 	}
 	return stk
+}
+
+func (sk *StakingPlugin) SetEventMux(eventMux *event.TypeMux) {
+	sk.eventMux = eventMux
 }
 
 func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
@@ -111,20 +117,65 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 }
 
 func (sk *StakingPlugin) Confirmed(block *types.Block) error {
-
 	if xutil.IsElection(block.NumberU64()) {
-
 		next, err := sk.db.GetNextValidatorListByBlockHash(block.Hash())
 		if nil != err {
 			return err
 		}
+		current, err := sk.db.GetCurrentValidatorListByBlockHash(block.Hash())
+		if nil != err {
+			return err
+		}
+		result := sk.distinct(next.Arr, current.Arr)
+		if len(result) > 0 {
+			sk.addConsensusNode(result)
+			log.Debug("stakingPlugin addConsensusNode success", "blockNumber", block.NumberU64(), "size", len(result))
+		}
+	}
 
-		// TODO Notify P2P module
-		_ = next
-
+	if xutil.IsSwitch(block.NumberU64()) {
+		pre, err := sk.db.GetPreValidatorListByBlockHash(block.Hash())
+		if nil != err {
+			return err
+		}
+		current, err := sk.db.GetCurrentValidatorListByBlockHash(block.Hash())
+		if nil != err {
+			return err
+		}
+		result := sk.distinct(pre.Arr, current.Arr)
+		if len(result) > 0 {
+			sk.removeConsensusNode(result)
+			log.Debug("stakingPlugin removeConsensusNode success", "blockNumber", block.NumberU64(), "size", len(result))
+		}
 	}
 
 	return nil
+}
+
+func (sk *StakingPlugin) distinct(list, target staking.ValidatorQueue) staking.ValidatorQueue {
+	currentMap := make(map[discover.NodeID]bool)
+	for _, v := range target {
+		currentMap[v.NodeId] = true
+	}
+	result := make(staking.ValidatorQueue, 0)
+	for _, v := range list {
+		if _, ok := currentMap[v.NodeId]; !ok {
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
+func (sk *StakingPlugin) addConsensusNode(nodes staking.ValidatorQueue) {
+	for _, node := range nodes {
+		sk.eventMux.Post(cbfttypes.AddValidatorEvent{NodeID: node.NodeId})
+	}
+}
+
+func (sk *StakingPlugin) removeConsensusNode(nodes staking.ValidatorQueue) {
+	for _, node := range nodes {
+		sk.eventMux.Post(cbfttypes.RemoveValidatorEvent{NodeID: node.NodeId})
+	}
 }
 
 func (sk *StakingPlugin) GetCandidateInfo(blockHash common.Hash, addr common.Address) (*staking.Candidate, error) {
@@ -1727,7 +1778,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	default:
 		// elect ShiftValidatorNum (default is 8) validators by vrf
 		// TODO vrf
-		if queue, err := sk.VrfElection(tmpQueue, header.Nonce.Bytes(),header.ParentHash); nil != err {
+		if queue, err := sk.VrfElection(tmpQueue, header.Nonce.Bytes(), header.ParentHash); nil != err {
 			return err
 		}else {
 			shiftQueue = queue
@@ -2263,12 +2314,19 @@ func (sk *StakingPlugin) VrfElection(validatorList staking.ValidatorQueue, nonce
 	if nil != err {
 		return nil, err
 	}
+	if len(preNonces) < len(validatorList) {
+		log.Error("vrfElection failed", "validatorListSize", len(validatorList), "nonceSize", len(nonce), "preNoncesSize", len(preNonces), "parentHash", hex.EncodeToString(parentHash.Bytes()))
+		return nil, ParamsErr
+	}
+	if len(preNonces) > len(validatorList) {
+		preNonces = preNonces[len(preNonces)-len(validatorList):]
+	}
 	return sk.ProbabilityElection(validatorList, vrf.ProofToHash(nonce), preNonces)
 }
 
 func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueue, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
 	if len(currentNonce) == 0 || len(preNonces) == 0 || len(validatorList) != len(preNonces) {
-		log.Error("probabilityElection failed", "validatorListSize", len(validatorList), "currentNonceSize", len(preNonces), "preNoncesSize", len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum)
+		log.Error("probabilityElection failed", "validatorListSize", len(validatorList), "currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum)
 		return nil, ParamsErr
 	}
 	sumWeights := new(big.Int)
