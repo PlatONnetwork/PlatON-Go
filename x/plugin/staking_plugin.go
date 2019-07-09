@@ -2200,7 +2200,7 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 type sortValidator struct {
 	v			*staking.Validator
 	x			int64
-	weight		int64
+	weights		int64
 	version		uint32
 	blockNumber	uint64
 	txIndex		uint32
@@ -2264,7 +2264,7 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 		}
 		sv := &sortValidator{
 			v:validator,
-			weight:int64(weights.Uint64()),
+			weights:int64(weights.Uint64()),
 			version:version,
 			blockNumber:blockNumber,
 			txIndex:txIndex,
@@ -2285,13 +2285,13 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 			return nil, err
 		}
 		targetP := target / maxValue
-		bd := xcom.NewBinomialDistribution(sv.weight, p)
+		bd := xcom.NewBinomialDistribution(sv.weights, p)
 		x, err := bd.InverseCumulativeProbability(targetP)
 		if nil != err {
 			return nil, err
 		}
 		sv.x = x
-		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()), "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce", hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]), "target", target, "targetP", targetP, "weight", sv.weight, "x", x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
+		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()), "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce", hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]), "target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 	sort.Sort(svList)
 	resultValidatorList := make(staking.ValidatorQueue, 0)
@@ -2300,7 +2300,7 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 			break
 		}
 		resultValidatorList = append(resultValidatorList, sv.v)
-		log.Debug("sort validator", "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "weight", sv.weight, "x", sv.x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
+		log.Debug("sort validator", "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "weight", sv.weights, "x", sv.x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 	return resultValidatorList, nil
 }
