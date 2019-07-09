@@ -2162,8 +2162,8 @@ func CheckDelegateThreshold(delegate *big.Int) bool {
 
 type sortValidator struct {
 	v			*staking.Validator
-	x			int
-	weight		int
+	x			int64
+	weight		int64
 	version		uint32
 	blockNumber	uint64
 	txIndex		uint32
@@ -2211,6 +2211,7 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 		if nil != err {
 			return nil, ElectionErr
 		}
+		weights.Div(weights, new(big.Int).SetUint64(1e18))
 		sumWeights.Add(sumWeights, weights)
 		version, err := validator.GetProcessVersion()
 		if nil != err {
@@ -2226,7 +2227,7 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 		}
 		sv := &sortValidator{
 			v:validator,
-			weight:int(weights.Uint64()),
+			weight:int64(weights.Uint64()),
 			version:version,
 			blockNumber:blockNumber,
 			txIndex:txIndex,
