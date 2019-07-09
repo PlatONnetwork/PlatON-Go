@@ -187,17 +187,19 @@ func (s *snapshotDB) removeJournalLessThanBaseNum() error {
 func (s *snapshotDB) rmOldRecognizedBlockData() error {
 	var err error
 	s.recognized.Range(func(key, value interface{}) bool {
-		s.recognized.Delete(key)
-		k := key.(common.Hash)
-		err = s.closeJournalWriter(k)
-		if err != nil {
-			return false
-		}
 		v := value.(blockData)
-		err := s.rmJournalFile(v.Number, k)
-		if err != nil {
-			return false
-		}
+		 if s.current.HighestNum.Int64()> v.Number.Int64(){
+			 s.recognized.Delete(key)
+			 k := key.(common.Hash)
+			 err = s.closeJournalWriter(k)
+			 if err != nil {
+				 return false
+			 }
+			 err := s.rmJournalFile(v.Number, k)
+			 if err != nil {
+				 return false
+			 }
+		 }
 		return true
 	})
 	if err != nil {
@@ -321,6 +323,7 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 }
 
 func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
+	logger.Debug("put","hash",hash.String(),"key",key,"val",value)
 	var (
 		blockHash  common.Hash
 		kvhash     common.Hash

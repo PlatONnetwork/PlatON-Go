@@ -1701,7 +1701,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	blockNumber := header.Number.Uint64()
 
 	// the validators of Current Epoch
-	validators, err := sk.db.GetVerifierListByIrr()
+	verifiers, err := sk.db.GetVerifierListByIrr()
 	if nil != err {
 		return err
 	}
@@ -1746,7 +1746,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	}
 
 	// Never match, maybe
-	if nil == validators || len(validators.Arr) == 0 {
+	if nil == verifiers || len(verifiers.Arr) == 0 {
 		arr := make(staking.ValidatorQueue, len(curr.Arr))
 		copy(arr, curr.Arr)
 		return proremoteCurr2NextFunc(start, end, arr)
@@ -1759,7 +1759,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	// Exclude the current consensus round validators from the validators of the Epoch
 	tmpQueue := make(staking.ValidatorQueue, 0)
-	for _, v := range validators.Arr {
+	for _, v := range verifiers.Arr {
 		if _, ok := currMap[v.NodeId]; ok {
 			continue
 		}
@@ -1803,16 +1803,17 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	// Sort before removal
 	curr.Arr.ValidatorSort(slashCans, staking.CompareForDel)
 
-	// Replace the validators that can be replaced
-	tmp := curr.Arr[len(shiftQueue):]
-	nextValidators := make(staking.ValidatorQueue, len(tmp))
-	copy(nextValidators, tmp)
-
 	// Increase term of validator
+	nextValidators := make(staking.ValidatorQueue, len(curr.Arr))
+	copy(nextValidators, curr.Arr)
 	for i, v := range nextValidators {
 		v.ValidatorTerm++
 		nextValidators[i] = v
 	}
+
+
+	// Replace the validators that can be replaced
+	nextValidators = nextValidators[len(shiftQueue):]
 
 	nextValidators = append(nextValidators, shiftQueue...)
 

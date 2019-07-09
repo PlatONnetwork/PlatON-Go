@@ -13,6 +13,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -32,11 +33,11 @@ func Test_CleanSnapshotDB (t *testing.T) {
 }
 
 
-func build_vrf_Nonce() ([]byte, []types.BlockNonce) {
-	preNonces := make([]types.BlockNonce, 0)
+func build_vrf_Nonce() ([]byte, [][]byte) {
+	preNonces := make([][]byte, 0)
 	curentNonce := crypto.Keccak256([]byte(string("nonce")))
 	for i := 0; i < int(xcom.EpochValidatorNum); i++ {
-		preNonces = append(preNonces, types.EncodeNonce(crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:]))
+		preNonces = append(preNonces, crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:])
 		time.Sleep(time.Microsecond * 10)
 	}
 	return curentNonce, preNonces
@@ -1096,6 +1097,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
+	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
@@ -1243,11 +1245,17 @@ func TestStakingPlugin_Election(t *testing.T) {
 	}
 
 
-	currNonce, _ := build_vrf_Nonce()
+
+
 
 	// build ancestor nonces
-	//xcom.GetVrfHandlerInstance().Storage(blockNumber, common.ZeroHash, blockHash, ancestorNonceQueue)
-
+	currNonce, nonces := build_vrf_Nonce()
+	if enValue, err := rlp.EncodeToBytes(nonces); nil != err {
+		t.Error("Storage previous nonce failed", "err", err)
+		return
+	} else {
+		sndb.Put(blockHash, xcom.NonceStorageKey, enValue)
+	}
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
@@ -1255,29 +1263,22 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 
 
-
-
-	header := &types.Header{
-		ParentHash:  blockHash,
-		Number: blockNumber2,
-		Nonce: types.EncodeNonce(currNonce),
-	}
-
-
-	plugin.StakingInstance().Election(blockHash2, header)
-
-	targetNum := xcom.EpochSize*xcom.ConsensusSize
-	fmt.Println("targetNum:", targetNum)
-
-	targetNumInt := big.NewInt(int64(targetNum))
-
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
 	}
 
-	err = plugin.StakingInstance().ElectNextVerifierList(blockHash2, targetNumInt.Uint64())
+
+
+	header := &types.Header{
+		ParentHash:  blockHash,
+		Number: big.NewInt(230),
+		Nonce: types.EncodeNonce(currNonce),
+	}
+
+
+	err = plugin.StakingInstance().Election(blockHash2, header)
 	if nil != err {
-		t.Errorf("Failed to ElectNextVerifierList, err: %v", err)
+		t.Errorf("Failed to Election, err: %v", err)
 	}
 
 
