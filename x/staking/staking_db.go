@@ -149,11 +149,13 @@ func (db *StakingDB) AddUnStakeItemStore (blockHash common.Hash, epoch uint64, a
 	count_key := GetUnStakeCountKey(epoch)
 
 	val, err := db.get(blockHash, count_key)
-	if nil != err {
+	var v uint64
+	switch  {
+	case nil != err && err != snapshotdb.ErrNotFound:
 		return err
+	case nil == err && len(val) != 0:
+		v = common.BytesToUint64(val)
 	}
-
-	v := common.BytesToUint64(val)
 
 	v++
 
@@ -280,11 +282,14 @@ func (db *StakingDB) AddUnDelegateItemStore (blockHash common.Hash, delAddr comm
 	count_key := GetUnDelegateCountKey(epoch)
 
 	val, err := db.get(blockHash, count_key)
-	if nil != err {
+	var v uint64
+	switch  {
+	case nil != err && err != snapshotdb.ErrNotFound:
 		return err
+	case nil == err && len(val) != 0:
+		v = common.BytesToUint64(val)
 	}
 
-	v := common.BytesToUint64(val)
 	v++
 
 

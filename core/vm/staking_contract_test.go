@@ -143,7 +143,7 @@ func getCandidate (contract *vm.StakingContract, index int, t *testing.T) {
 		if r.Status {
 			t.Log("the Candidate info:", r.Data)
 		}else {
-			t.Error("getCandidate failed", r.ErrMsg)
+			t.Log("getCandidate failed", r.ErrMsg)
 		}
 	}
 }
@@ -215,7 +215,9 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
 
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Commit 1 error: %v", err)
+	}
 
 
 	// get CandidateInfo
@@ -275,6 +277,10 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 		t.Log(string(res))
 	}
 
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Errorf("Commit 2 error: %v", err)
+	}
+
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
@@ -299,7 +305,9 @@ func TestStakingContract_increaseStaking (t *testing.T) {
 
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Commit 1 error: %v", err)
+	}
 
 
 	// get CandidateInfo
@@ -353,7 +361,7 @@ func TestStakingContract_increaseStaking (t *testing.T) {
 	}
 
 	if err := sndb.Commit(blockHash2); nil != err {
-		t.Errorf("Commit error: %v", err)
+		t.Errorf("Commit 2 error: %v", err)
 	}
 
 
@@ -752,7 +760,7 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 
 
 }
- // TODO
+
 func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 	defer func() {
 		sndb.Clear()
@@ -763,21 +771,20 @@ func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 
 	sndb := snapshotdb.Instance()
 
-	index := 1
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
 	}
 
-	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
-	// delegate
-	create_delegate(contract1, index, t)
+	for i := 0; i < 4; i++ {
+		create_staking(blockNumber, blockHash, state, i, t)
+	}
 
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Commit 1 err: %v", err)
+	}
 
-	// get CandidateInfo
-	getCandidate(contract1, index, t)
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
@@ -789,9 +796,16 @@ func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 		Evm:	 newEvm(blockNumber2, blockHash2, state),
 	}
 
+	// delegate
+	for i := 0; i < 3; i++ {
+		create_delegate(contract2, i, t)
+	}
 
-	// get CandidateInfo
-	getCandidate(contract2, index, t)
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Errorf("Commit 2 err: %v", err)
+	}
+
+
 
 	// get RelatedListByDelAddr
 	var params [][]byte
@@ -818,7 +832,13 @@ func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}else {
-		t.Log(string(res))
+
+		var r *xcom.Result
+		if err := json.Unmarshal(res, &r); nil != err {
+			t.Error("Failed to parse json", err)
+		}else {
+			t.Log("the Related list is:", r.Data)
+		}
 	}
 }
 

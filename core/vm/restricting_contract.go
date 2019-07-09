@@ -2,13 +2,11 @@ package vm
 
 import (
 	"encoding/json"
-	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
-	"reflect"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
@@ -25,7 +23,7 @@ func (rc *RestrictingContract) RequiredGas(input []byte) uint64 {
 }
 
 func (rc *RestrictingContract) Run(input []byte) ([]byte, error) {
-	return rc.execute(input)
+	return exec_platon_contract(input, rc.FnSigns())
 }
 
 func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
@@ -38,22 +36,6 @@ func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (rc *RestrictingContract) execute(input []byte) ([]byte, error) {
-	// verify the tx data by contracts method
-	var fn, params, err = plugin.Verify_tx_data(input, rc.FnSigns())
-	if nil != err {
-		return nil, err
-	}
-
-	// execute contracts function
-	result := reflect.ValueOf(fn).Call(params)
-	err, ok := result[1].Interface().(error)
-	if !ok {
-		return result[0].Bytes(), nil
-	} else {
-		return nil, err
-	}
-}
 
 func (rc *RestrictingContract) createRestrictingPlan(account common.Address, plans []restricting.RestrictingPlan) ([]byte, error) {
 	sender := rc.Contract.Caller()
