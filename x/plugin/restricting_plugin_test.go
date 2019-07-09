@@ -54,7 +54,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 	}
 }
 
-func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
+/*func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 	sender := common.HexToAddress("0x11")
 
 	// case1: account is new user to restricting
@@ -68,7 +68,7 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 
 	}
 
-}
+}*/
 
 func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 

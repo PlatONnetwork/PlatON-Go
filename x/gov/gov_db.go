@@ -224,16 +224,12 @@ func (self *GovDB) ListEndProposalID(blockHash common.Hash, state xcom.StateDB) 
 }
 
 func (self *GovDB) GetPreActiveProposalID(blockHash common.Hash, state xcom.StateDB) (common.Hash, error) {
-	value, err := govDB.snapdb.getPreActiveIDList(blockHash)
+	value, err := govDB.snapdb.getPreActiveProposalID(blockHash)
 	if err != nil {
 		//log.Error("Get pre-active proposal ID error")
-		return common.Hash{}, common.NewSysError(err.Error())
+		return common.ZeroHash, common.NewSysError(err.Error())
 	}
-	if len(value) > 0 {
-		return value[0], nil
-	} else {
-		return common.Hash{}, nil
-	}
+	return value, nil
 }
 
 func (self *GovDB) AddVotingProposalID(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
@@ -253,19 +249,20 @@ func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, propos
 	}
 	voting = remove(voting, proposalID)
 
-	pre, err := self.snapdb.getPreActiveIDList(blockHash)
+	/*pre, err := self.snapdb.getPreActiveProposalID(blockHash)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	pre = append(pre, proposalID)
+	pre = append(pre, proposalID)*/
 
 	err = self.snapdb.put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	err = self.snapdb.addProposalByKey(blockHash, KeyPreActiveProposals(), proposalID)
+
+	err = self.snapdb.put(blockHash, KeyPreActiveProposals(), proposalID)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -321,12 +318,14 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 
 func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
 
-	pre, err := self.snapdb.getPreActiveIDList(blockHash)
+	pre, err := self.snapdb.getPreActiveProposalID(blockHash)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	pre = remove(pre, proposalID)
+	//pre = remove(pre, proposalID)
+	pre = common.Hash{}
+
 
 	end, err := self.snapdb.getEndIDList(blockHash)
 	if err != nil {
@@ -335,7 +334,7 @@ func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalI
 
 	end = append(end, proposalID)
 
-	err = self.snapdb.addProposalByKey(blockHash, KeyPreActiveProposals(), proposalID)
+	err = self.snapdb.put(blockHash, KeyPreActiveProposals(), pre)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}

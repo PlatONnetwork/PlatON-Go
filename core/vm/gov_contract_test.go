@@ -145,9 +145,11 @@ var govContractCombinedTests = []vm.PrecompiledTest{
 func setup(t *testing.T) func() {
 	t.Log("setup()......")
 
+
 	precompiledContract := vm.PlatONPrecompiledContracts[commonvm.GovContractAddr]
 	gc, _ = precompiledContract.(*vm.GovContract)
-	gc.Evm = newEvm(blockNumber, blockHash, nil)
+	state, _ := newChainState()
+	gc.Evm = newEvm(blockNumber, blockHash, state)
 	gc.Contract = newContract(common.Big0)
 
 	newPlugins()

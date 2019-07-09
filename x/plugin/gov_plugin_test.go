@@ -3,6 +3,7 @@ package plugin_test
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
@@ -13,12 +14,39 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
-	"github.com/PlatONnetwork/PlatON-Go/params"
 )
+
+var (
+	snapdb 		snapshotdb.DB
+	govPlugin	*plugin.GovPlugin
+	evm			*vm.EVM
+)
+
+
+func setup(t *testing.T) func() {
+	t.Log("setup()......")
+
+	state, _ := newChainState()
+	evm = newEvm(blockNumber, blockHash, state)
+
+	newPlugins()
+
+	govPlugin = plugin.GovPluginInstance()
+
+	build_staking_data()
+
+	snapdb = snapshotdb.Instance()
+
+	return func() {
+		t.Log("tear down()......")
+		snapdb.Clear()
+	}
+}
 
 func getHeader() types.Header {
 	size := int64(xcom.ConsensusSize * xcom.EpochSize)
@@ -145,6 +173,7 @@ func TestGovPlugin_Submit(t *testing.T) {
 
 	snapdb := snapshotdb.Instance()
 	defer snapdb.Clear()
+
 	//create block
 	blockhash, e := newblock(snapdb, big.NewInt(1))
 	if e != nil {
@@ -157,6 +186,7 @@ func TestGovPlugin_Submit(t *testing.T) {
 	}
 	db.Reset()
 }
+
 
 func TestGovPlugin_Vote(t *testing.T) {
 
@@ -366,4 +396,97 @@ func TestGovPlugin_TestTextTally(t *testing.T) {
 		t.Fatalf("Test Tally ...%s", err)
 	}
 	db.Reset()
+}
+
+
+func submitVersion(t *testing.T) {
+	vp := gov.VersionProposal{
+		ProposalID:		txHashArr[0],
+		GithubID:		"githubID",
+		ProposalType:	gov.Version,
+		Topic:			"versionTopic",
+		Desc: 			"versionDesc",
+		Url:			"versionUrl",
+		EndVotingBlock:	uint64(22230),
+		Proposer:		nodeIdArr[0],
+		NewVersion:		uint32(1<<16 | 1<<8 | 1),
+		ActiveBlock:	uint64(23480),
+	}
+
+	state := evm.StateDB.(*state.StateDB)
+	state.Prepare(txHashArr[0], blockHash, 0)
+
+	err := plugin.GovPluginInstance().Submit(blockNumber.Uint64(), sender, vp, blockHash, evm.StateDB)
+	if err != nil {
+		t.Fatalf("submit err: %s", err)
+	}
+}
+
+func allVote(t *testing.T) {
+	for _, nodeID := range nodeIdArr {
+		vote := gov.Vote{
+			ProposalID:		txHashArr[0],
+			VoteNodeID:		nodeID,
+			VoteOption:		gov.Yes,
+		}
+		err := plugin.GovPluginInstance().Vote(sender, vote, blockHash, 1, evm.StateDB)
+		if err != nil {
+			t.Fatalf("vote err: %s.", err)
+		}
+	}
+}
+
+func beginBlock(t *testing.T) {
+	err := plugin.GovPluginInstance().BeginBlock(lastBlockHash, &lastHeader, evm.StateDB)
+	if err != nil {
+		t.Fatalf("begin block err... %s", err)
+	}
+}
+
+func endBlock(t *testing.T) {
+	err := plugin.GovPluginInstance().EndBlock(lastBlockHash, &lastHeader, evm.StateDB)
+	if err != nil {
+		t.Fatalf("end block err... %s", err)
+	}
+}
+
+func TestGovPlugin_activeSuccess(t *testing.T) {
+
+	defer setup(t)()
+
+	InitPlatONPluginTestData()
+
+	submitVersion(t)
+
+	allVote(t)
+
+	sndb.Commit(blockHash)
+
+	buildSnapDBDataCommitted(2, 19999)
+
+	buildSnapDBDataNoCommit(20000)
+
+	beginBlock(t)
+
+	sndb.Commit(lastBlockHash)
+
+	buildSnapDBDataCommitted(20001, 22229)
+
+	buildSnapDBDataNoCommit(22230)
+	endBlock(t)
+	sndb.Commit(lastBlockHash)
+
+	buildSnapDBDataCommitted(22231, 23479)
+
+	buildSnapDBDataNoCommit(23480)
+	endBlock(t)
+	sndb.Commit(lastBlockHash)
+
+	activeVersion := gov.GovDBInstance().GetActiveVersion(evm.StateDB)
+
+	if activeVersion == uint32(1<<16 | 1<<8 | 1) {
+		t.Log("SUCCESS")
+	}else{
+		t.Log("FALSE")
+	}
 }

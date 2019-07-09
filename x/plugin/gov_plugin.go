@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -67,6 +68,7 @@ func inNodeList(proposer discover.NodeID, vList []discover.NodeID) bool {
 
 //implement BasePlugin
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
+	fmt.Println("EndBlock blockHash:" + blockHash.Hex() + ", blockNumber:" + header.Number.String())
 	votingProposalIDs, err := govPlugin.govDB.ListVotingProposal(blockHash, state)
 	if err != nil {
 		log.Error("[GOV] EndBlock(): ListVerifierNodeID failed.")
@@ -115,15 +117,16 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 			}
 		}
 	}
+
 	preActiveProposalID, err := govPlugin.govDB.GetPreActiveProposalID(blockHash, state)
 	if err != nil {
 		log.Error("[GOV] EndBlock(): to check if there's a preactive proposal failed.", "blockHash", blockHash)
 		return err
 	}
-	if len(preActiveProposalID) <= 0 {
+	if preActiveProposalID == common.ZeroHash {
 		return nil
 	}
-	//exsits a PreActiveProposal
+	//handle a PreActiveProposal
 	proposal, err := govPlugin.govDB.GetProposal(preActiveProposalID, state)
 	if err != nil {
 		return err
@@ -279,17 +282,24 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	}
 
 	//check if vote.proposalID is in voting
-	vp, err := govPlugin.findVotingVersionProposal(blockHash, state)
+	votingIDs, err := govPlugin.listVotingProposalID(blockHash, state)
 	if err != nil {
-		log.Error("[GOV] Submit(): to find if there's a voting version proposal failed", "blockHash", blockHash)
+		log.Error("[GOV] Submit(): to list all voting proposal IDs failed", "blockHash", blockHash)
 		return err
-	} else if vp != nil {
-		log.Error("[GOV] Submit(): existing a voting version proposal.", "votingProposalID", vp.GetProposalID())
+	} else if votingIDs == nil {
+		log.Error("[GOV] Submit(): there's no voting proposal ID.", "blockHash", blockHash)
 		return err
-	}
-	if vp.GetProposalID() != vote.ProposalID {
-		log.Error("[GOV] Vote(): proposal is not voting", "proposalID", vote.ProposalID)
-		return common.NewBizError("Proposal is not voting.")
+	}else {
+		var isVoting = false
+		for _, votingID := range  votingIDs {
+			if votingID == vote.ProposalID {
+				isVoting = true
+			}
+		}
+		if !isVoting {
+			log.Error("[GOV] Vote(): proposal is not voting", "proposalID", vote.ProposalID)
+			return common.NewBizError("Proposal is not voting.")
+		}
 	}
 
 	//handle storage
@@ -301,6 +311,14 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 		log.Error("[GOV] Vote(): Add nodeID to voted verifier list failed", "proposalID", vote.ProposalID, "voteNodeID", vote.VoteNodeID)
 		return err
 	}
+	//the proposal is version type, so add the node ID to active node list.
+	if proposal.GetProposalType() == gov.Version {
+		if err := govPlugin.govDB.AddActiveNode(blockHash, vote.ProposalID, vote.VoteNodeID); err != nil {
+			log.Error("[GOV] Vote(): Add nodeID to active node list failed", "proposalID", vote.ProposalID, "voteNodeID", vote.VoteNodeID)
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -447,7 +465,7 @@ func (govPlugin *GovPlugin) tallyForTextProposal(votedVerifierList []discover.No
 			abstentions++
 		}
 	}
-	supportRate := float64(yeas) * 100 / float64(accuCnt)
+	supportRate := float64(yeas) / float64(accuCnt)
 
 	if supportRate >= SupportRate_Threshold {
 		status = gov.Pass
@@ -562,7 +580,7 @@ func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.N
 
 // check if the node a candidate, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
-	candidateList, err := stk.GetCandidateList(blockHash, QueryStartNotIrr)
+	candidateList, err := stk.GetCandidateList(blockHash)
 	if err != nil {
 		log.Error("list candidates failed", "blockHash", blockHash)
 		return false
@@ -580,6 +598,17 @@ func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.
 	}
 	return false
 }
+
+// list all proposal IDs at the voting stage
+func (govPlugin *GovPlugin) listVotingProposalID(blockHash common.Hash, state xcom.StateDB) ([]common.Hash, error) {
+	idList, err := govPlugin.govDB.ListVotingProposal(blockHash, state)
+	if err != nil {
+		log.Error("find voting version proposal failed", "blockHash", blockHash)
+		return nil, err
+	}
+	return idList, nil
+}
+
 
 // find a version proposal at the voting stage
 func (govPlugin *GovPlugin) findVotingVersionProposal(blockHash common.Hash, state xcom.StateDB) (*gov.VersionProposal, error) {
