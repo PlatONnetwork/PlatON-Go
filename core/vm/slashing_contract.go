@@ -3,7 +3,6 @@ package vm
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"reflect"
 )
 
 type slashingContract struct {
@@ -17,7 +16,7 @@ func (sc *slashingContract) RequiredGas(input []byte) uint64 {
 }
 
 func (sc *slashingContract) Run(input []byte) ([]byte, error) {
-	return sc.execute(input)
+	return exec_platon_contract(input, sc.FnSigns())
 }
 
 func (sc *slashingContract) FnSigns() map[uint16]interface{} {
@@ -27,22 +26,6 @@ func (sc *slashingContract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (sc *slashingContract) execute(input []byte) ([]byte, error) {
-	// verify the tx data by contracts method
-	var fn, params, err = plugin.Verify_tx_data(input, sc.FnSigns())
-	if nil != err {
-		return nil, err
-	}
-
-	// execute contracts function
-	result := reflect.ValueOf(fn).Call(params)
-	err, ok := result[1].Interface().(error)
-	if !ok {
-		return result[0].Bytes(), nil
-	} else {
-		return nil, err
-	}
-}
 
 // Report the double signing behavior of the node
 func (sc *slashingContract) ReportMutiSign(data string) ([]byte, error) {

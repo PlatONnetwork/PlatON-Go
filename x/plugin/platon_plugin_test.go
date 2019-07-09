@@ -18,6 +18,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
 	"testing"
@@ -59,7 +60,7 @@ var (
 		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80aadd24"),
 		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80444555"),
 		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80eeda12"),
-		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e8052234"),
+		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80522345"),
 
 		common.HexToAddress("0xf8136ba2aeDa08BD20239B85Fe0ecB53959605A4"),
 		common.HexToAddress("0x50c78829980342444A9eC7195188c8bbaD7F059F"),
@@ -143,7 +144,20 @@ var (
 		"1000000000000000000000000",
 		"70000000000000000000000000",
 		"5550000000000000000000000",
-
+		"9000000000000000000000000",
+		"60000000000000000000000000",
+		"1300000000000000000000000",
+		"1100000000000000000000000",
+		"1000000000000000000000000",
+		"4879000000000000000000000",
+		"1800000000000000000000000",
+		"1000000000000000000000000",
+		"1000000000000000000000000",
+		"70000000000000000000000000",
+		"5550000000000000000000000",
+		"1000000000000000000000000",
+		"70000000000000000000000000",
+		"5550000000000000000000000",
 	}
 
 
@@ -161,6 +175,10 @@ var (
 	chaList = []string{"A", "a", "B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "J", "j", "K", "k", "M", "m",
 						"N", "n", "P", "p", "Q", "q", "R", "r", "S", "s", "T", "t", "U", "u", "V", "v", "W", "w", "X", "x", "Y", "y", "Z", "z"}
 
+
+	specialCharList = []string{
+		"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "卍", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
+		"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
 )
 
 
@@ -211,8 +229,15 @@ func newChainState() (*state.StateDB, error) {
 	} else {
 		state = statedb
 	}
-	state.AddBalance(sender, sender_balance)
 
+	// init account balance
+	state.AddBalance(sender, sender_balance)
+	for i, addr := range addrArr {
+
+		amount, _ := new(big.Int).SetString(balanceStr[len(addrArr) - 1 - i], 10)
+		amount = new(big.Int).Mul(common.Big257, amount)
+		state.AddBalance(addr, amount)
+	}
 
 	return state, nil
 }
@@ -477,33 +502,32 @@ func build_gov_data (state *state.StateDB){
 }
 
 
-func buildDbRestrictingPlan(t *testing.T) {
-	state, _ := newChainState()
+func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 	account := addrArr[0]
 
-	const Epochs = 5
+	const Epochs = 6
 	var list = make([]uint64, Epochs)
 
-	for epoch := 0; epoch < Epochs; epoch++ {
+	for epoch := 1; epoch < Epochs; epoch++ {
 		// build release account record
 		releaseAccountKey := restricting.GetReleaseAccountKey(uint64(epoch), 1)
-		state.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
+		stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
 		// build release amount record
-		releaseAmount := big.NewInt(10000000)
+		releaseAmount := big.NewInt(int64(1E18))
 		releaseAmountKey := restricting.GetReleaseAmountKey(uint64(epoch), account)
-		state.SetState(account, releaseAmountKey, releaseAmount.Bytes())
+		stateDB.SetState(account, releaseAmountKey, releaseAmount.Bytes())
 
 		// build release epoch record
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(epoch))
-		state.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
+		stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
 
 		list = append(list, uint64(epoch))
 	}
 
 	// build restricting user info
 	var user restrictingInfo
-	user.balance = big.NewInt(50000000)
+	user.balance = big.NewInt(int64(5E18))
 	user.debt = big.NewInt(0)
 	user.releaseList = list
 
@@ -513,7 +537,8 @@ func buildDbRestrictingPlan(t *testing.T) {
 	}
 
 	restrictingKey := restricting.GetRestrictingKey(account)
-	state.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
+	stateDB.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
 
-	state.AddBalance(cvm.RestrictingContractAddr, big.NewInt(50000000))
+	stateDB.AddBalance(sender, sender_balance.Sub(sender_balance, big.NewInt(int64(5E18))))
+	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
 }

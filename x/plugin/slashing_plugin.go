@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"encoding/hex"
+	"errors"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -15,7 +16,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-	"github.com/go-errors/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"math/big"
@@ -39,8 +39,8 @@ var (
 	duplicateSignLowSlashing	uint64	= 10
 	duplicateSignHighSlashing	uint64	= 20
 
-	errMutiSignVerify	= errors.New("Multi-sign verification failed")
-	errSlashExist		= errors.New("Punishment has been implemented")
+	errMutiSignVerify	= errors.New("multi-sign verification failed")
+	errSlashExist		= errors.New("punishment has been implemented")
 
 	once = sync.Once{}
 )

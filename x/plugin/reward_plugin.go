@@ -6,11 +6,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/reward"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
@@ -36,33 +33,31 @@ func (rmp *rewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 	return nil
 }
 
-// EndBlock will handle reward work, if current block is end of year, increase issuance; if it is time to settle,
-// reward staking. At last reward worker for create new block, this is necessary.
+// EndBlock will handle reward work, if it's time to settle, reward staking. Then reward worker
+// for create new block, this is necessary. At last if current block is the last block at the end
+// of year, increasing issuance.
 func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
-
 	blockNumber := head.Number.Uint64()
 	year := xutil.CalculateYear(blockNumber)
+	stakingReward, newBlockReward, _ := rmp.calculateExpectReward(uint32(year), state)
 
-	if xutil.IsYearEnd(blockNumber) {
-		log.Info("last block at end of year", "year", year)
-		if err := rmp.increaseIssuance(uint32(year), state); err != nil {
+	if xutil.IsSettlementPeriod(blockNumber) {
+		log.Info("ready to reward staking", "period", xutil.CalculateRound(blockNumber))
+		if err:= rmp.rewardStaking(head, stakingReward, state); err != nil {
 			return err
 		}
 	}
 
-	stakingReward, newBlockReward, _ := rmp.calculateExpectReward(uint32(year), state)
-
-	if xutil.IsSettlementPeriod(blockNumber) {
-		log.Info("settle block", "period", xutil.CalculateRound(blockNumber))
-
-		_ = rmp.rewardStaking(head, stakingReward, state)
+	log.Debug("ready to reward new block", "blockNumber", blockNumber, "hash", head.Hash())
+	if err := rmp.rewardNewBlock(head, newBlockReward, state); err != nil {
+		return err
 	}
 
-	log.Info("rewardNewBlock at last", "blockNumber", blockNumber, "hash", head.Hash())
-	if addr, err := rmp.rewardNewBlock(head, newBlockReward, state); err != nil {
-		return err
-	} else {
-		head.Coinbase = addr
+	if xutil.IsYearEnd(blockNumber) {
+		log.Info("ready to increase issuance", "blockNumber", blockNumber, "hash", head.Hash(), "year", year)
+		if err := rmp.increaseIssuance(uint32(year), state); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -75,15 +70,21 @@ func (rmp *rewardMgrPlugin) Confirmed(block *types.Block) error {
 
 // increaseIssuance used for increase issuance at the end of each year
 func (rmp *rewardMgrPlugin) increaseIssuance(year uint32, state xcom.StateDB) error {
-	var rate *big.Int
+	var (
+		rate *big.Int
+		temp = new(big.Int)
+	)
 
+	// get historical issuance
 	histIssuance := GetLatestCumulativeIssue(state)
 
-	currIssuance := histIssuance.Div(histIssuance, rate.SetUint64(40))
-	develop := currIssuance.Div(currIssuance, rate.SetUint64(5))
-	rewards := currIssuance.Sub(currIssuance, develop)
+	// every year will increase 2.5 percent of historical issuance, and 1/5 send to
+	// community developer foundation, the left send to reward manage pool
+	currIssuance := temp.Div(histIssuance, rate.SetUint64(40))
+	develop := temp.Div(currIssuance, rate.SetUint64(5))
+	rewards := temp.Sub(currIssuance, develop)
 
-	histIssuance = histIssuance.Add(histIssuance, currIssuance)
+	histIssuance = temp.Add(histIssuance, currIssuance)
 	SetYearEndCumulativeIssue(state, year, histIssuance)
 
 	state.AddBalance(vm.CommunityDeveloperFoundation, develop)
@@ -116,27 +117,13 @@ func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, s
 }
 
 // rewardNewBlock used for reward new block. it returns coinbase and error
-func (rmp *rewardMgrPlugin) rewardNewBlock(head *types.Header, reward *big.Int, state xcom.StateDB) (common.Address, error) {
-
-	sign := head.Extra[32:97]
-
-	pubKey, err := crypto.SigToPub(head.Hash().Bytes(), sign)
-	if err != nil {
-		log.Error("failed to ecrecover sign to public key", "blockNumber", head.Number, "hash", head.Hash(), "sign", sign)
-		return  common.Address{0}, common.NewSysError(err.Error())
-	}
-
-	nodeID := discover.PubkeyID(pubKey)
-	log.Debug("node", "NodeID", nodeID)
-
-	var can staking.Candidate // stakingPlugin.GetCandidate(nodeID)
-	rewardAddr := can.BenifitAddress
+func (rmp *rewardMgrPlugin) rewardNewBlock(head *types.Header, reward *big.Int, state xcom.StateDB) error {
+	rewardAddr := head.Coinbase
 	if rewardAddr != vm.RewardManagerPoolAddr {
 		state.SubBalance(vm.RewardManagerPoolAddr, reward)
 		state.AddBalance(rewardAddr, reward)
 	}
-
-	return rewardAddr, nil
+	return nil
 }
 
 // calculateExpectReward used for calculate the stakingReward and newBlockReward that should be send in each corresponding period
@@ -144,17 +131,18 @@ func (rmp *rewardMgrPlugin) calculateExpectReward(year uint32, state xcom.StateD
 	var (
 		stakingReward  *big.Int
 		newBlockReward *big.Int
+		temp           *big.Int
 	)
 
 	expectNewBlocks := int64(365) * 24 * 3600 / 1
 	expectEpochs := int64(365) * 24 * 3600 / int64(xcom.ConsensusSize * xcom.EpochSize)
 
 	issuance := GetLatestCumulativeIssue(state)
-	totalNewBlockReward := issuance.Div(issuance, big.NewInt(4))
-	totalStakingReward := issuance.Sub(issuance, totalNewBlockReward)
+	totalNewBlockReward := temp.Div(issuance, big.NewInt(5))
+	totalStakingReward := temp.Sub(issuance, totalNewBlockReward)
 
-	newBlockReward = totalNewBlockReward.Div(totalNewBlockReward, big.NewInt(expectNewBlocks))
-	stakingReward = totalStakingReward.Div(totalStakingReward, big.NewInt(expectEpochs))
+	newBlockReward = temp.Div(totalNewBlockReward, big.NewInt(expectNewBlocks))
+	stakingReward = temp.Div(totalStakingReward, big.NewInt(expectEpochs))
 
 	return stakingReward, newBlockReward, nil
 }
@@ -168,23 +156,19 @@ func SetYearEndCumulativeIssue(state xcom.StateDB, year uint32, total *big.Int) 
 // GetLatestCumulativeIssue used for get the cumulative issuance in the most recent year
 func GetLatestCumulativeIssue(state xcom.StateDB) *big.Int {
 	var issue *big.Int
-
 	// !!!
 	// latestYear := getLastYear()
 	// !!!
 	latestYear := uint32(0)
 	LastYearIncreaseKey := reward.GetHistoryIncreaseKey(latestYear)
 	bIssue := state.GetState(vm.RewardManagerPoolAddr, LastYearIncreaseKey)
-
 	return issue.SetBytes(bIssue)
 }
 
 // GetHistoryCumulativeIssue used for get the cumulative issuance of a certain year in history
 func GetHistoryCumulativeIssue(state xcom.StateDB, year uint32) *big.Int {
 	var issue *big.Int
-
 	histIncreaseKey := reward.GetHistoryIncreaseKey(year)
 	bIssue := state.GetState(vm.RewardManagerPoolAddr, histIncreaseKey)
-
 	return issue.SetBytes(bIssue)
 }

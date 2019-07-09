@@ -13,7 +13,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
-	"reflect"
 )
 
 const (
@@ -58,7 +57,7 @@ func (stkc *StakingContract) RequiredGas(input []byte) uint64 {
 }
 
 func (stkc *StakingContract) Run(input []byte) ([]byte, error) {
-	return stkc.execute(input)
+	return exec_platon_contract(input, stkc.FnSigns())
 }
 
 func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
@@ -79,22 +78,6 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 		1104: stkc.getDelegateInfo,
 		1105: stkc.getCandidateInfo,
 	}
-}
-
-func (stkc *StakingContract) execute(input []byte) (ret []byte, err error) {
-
-	// verify the tx data by contracts method
-	fn, params, err := plugin.Verify_tx_data(input, stkc.FnSigns())
-	if nil != err {
-		return nil, err
-	}
-
-	// execute contracts method
-	result := reflect.ValueOf(fn).Call(params)
-	if err, ok := result[1].Interface().(error); ok {
-		return nil, err
-	}
-	return result[0].Bytes(), nil
 }
 
 func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Address, nodeId discover.NodeID,
@@ -578,11 +561,18 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 
 	arr, err := stkc.Plugin.GetVerifierList(common.ZeroHash, common.Big0.Uint64(), plugin.QueryStartIrr)
 
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
+
+	if nil == arr || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "ValidatorList info is not found"}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
 	jsonByte, err := json.Marshal(arr)
 	if nil != err {
 		res := xcom.Result{false, "", GetVerifierListErrStr + ": " + err.Error()}
@@ -600,11 +590,18 @@ func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 	return stkc.getValidatorListMock()
 
 	arr, err := stkc.Plugin.GetValidatorList(common.ZeroHash, common.Big0.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetValidatorListErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
+
+	if nil == arr || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "ValidatorList info is not found"}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
 	arrByte, _ := json.Marshal(arr)
 	res := xcom.Result{true, string(arrByte), "ok"}
 	data, _ := json.Marshal(res)
@@ -615,8 +612,14 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 	blockHash := stkc.Evm.BlockHash
 
 	arr, err := stkc.Plugin.GetCandidateList(blockHash)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetCandidateListErrStr + ": " + err.Error()}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
+	if nil == arr || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "CandidateList info is not found"}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
@@ -639,11 +642,18 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 	blockHash := stkc.Evm.BlockHash
 
 	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
+
+	if nil == arr || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "RelatedList info is not found"}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
 	jsonByte, err := json.Marshal(arr)
 	if nil != err {
 		res := xcom.Result{false, "", GetDelegateRelatedErrStr + ": " + err.Error()}
@@ -665,11 +675,18 @@ func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, addr common
 		return data, nil
 	}
 	del, err := stkc.Plugin.GetDelegateExInfoByIrr(addr, nodeId, stakingBlockNum)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
+
+	if nil == del || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "Delegate info is not found"}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
 	jsonByte, err := json.Marshal(del)
 	if nil != err {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
@@ -693,11 +710,18 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 		return data, nil
 	}
 	can, err := stkc.Plugin.GetCandidateInfoByIrr(addr)
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
+
+	if nil == can || err == snapshotdb.ErrNotFound {
+		res := xcom.Result{false, "", "Candidate info is not found"}
+		data, _ := json.Marshal(res)
+		return data, nil
+	}
+
 	jsonByte, err := json.Marshal(can)
 	if nil != err {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
@@ -769,6 +793,10 @@ func (stkc *StakingContract) getVerifierListMock() ([]byte, error) {
 		"0x740ce31b3fac20dac379db243021a51e80vvbbbb",
 	}
 
+	specialCharList := []string{
+		"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "卍", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
+		"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
+
 	queue := make(staking.ValidatorExQueue, 0)
 	for i := 0; i < 4; i++ {
 
@@ -780,9 +808,15 @@ func (stkc *StakingContract) getVerifierListMock() ([]byte, error) {
 			ProcessVersion:  uint32(i * i),
 			StakingBlockNum: uint64(i + 2),
 			Shares:          common.Big256,
+			//Description: staking.Description{
+			//	ExternalId: "xxccccdddddddd",
+			//	NodeName:   "I Am " + fmt.Sprint(i),
+			//	Website:    "www.baidu.com",
+			//	Details:    "this is  baidu ~~",
+			//},
 			Description: staking.Description{
-				ExternalId: "xxccccdddddddd",
-				NodeName:   "I Am " + fmt.Sprint(i),
+				ExternalId: "中文，我是中文中文",
+				NodeName:   "我是  特殊符号： " + specialCharList[i],
 				Website:    "www.baidu.com",
 				Details:    "this is  baidu ~~",
 			},
