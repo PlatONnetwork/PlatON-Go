@@ -111,10 +111,10 @@ func testHeaderChainImport(chain []*types.Header, lightchain *LightChain) error 
 			return err
 		}
 		// Manually insert the header into the database, but don't reorganize (allows subsequent testing)
-		lightchain.mu.Lock()
+		lightchain.chainmu.Lock()
 
 		rawdb.WriteHeader(lightchain.chainDb, header)
-		lightchain.mu.Unlock()
+		lightchain.chainmu.Unlock()
 	}
 	return nil
 }

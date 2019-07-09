@@ -375,21 +375,7 @@ func (r *ChtRequest) Request(reqID uint64, peer *peer) error {
 		Key:     encNum[:],
 		AuxReq:  auxHeader,
 	}
-	switch peer.version {
-	case lpv1:
-		var reqsV1 ChtReq
-		if req.Type != htCanonical || req.AuxReq != auxHeader || len(req.Key) != 8 {
-			return fmt.Errorf("Request invalid in LES/1 mode")
-		}
-		blockNum := binary.BigEndian.Uint64(req.Key)
-		// convert HelperTrie request to old CHT request
-		reqsV1 = ChtReq{ChtNum: (req.TrieIdx + 1) * (r.Config.ChtSize / r.Config.PairChtSize), BlockNum: blockNum, FromLevel: req.FromLevel}
-		return peer.RequestHelperTrieProofs(reqID, r.GetCost(peer), []ChtReq{reqsV1})
-	case lpv2:
-		return peer.RequestHelperTrieProofs(reqID, r.GetCost(peer), []HelperTrieReq{req})
-	default:
-		panic(nil)
-	}
+	return peer.RequestHelperTrieProofs(reqID, r.GetCost(peer), []HelperTrieReq{req})
 }
 
 // Valid processes an ODR request reply message from the LES network

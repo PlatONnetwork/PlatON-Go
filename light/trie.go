@@ -67,7 +67,7 @@ func (db *odrDatabase) CopyTrie(t state.Trie) state.Trie {
 }
 
 func (db *odrDatabase) ContractCode(addrHash, codeHash common.Hash) ([]byte, error) {
-	if codeHash == sha3_nil {
+	if codeHash == sha3Nil {
 		return nil, nil
 	}
 	if code, err := db.backend.Database().Get(codeHash[:]); err == nil {
@@ -86,7 +86,7 @@ func (db *odrDatabase) ContractCodeSize(addrHash, codeHash common.Hash) (int, er
 }
 
 func (db *odrDatabase) ContractAbi(addrHash, abiHash common.Hash) ([]byte, error) {
-	if abiHash == sha3_nil {
+	if abiHash == sha3Nil {
 		return nil, nil
 	}
 	if abi, err := db.backend.Database().Get(abiHash[:]); err == nil {
@@ -122,7 +122,7 @@ func (t *odrTrie) TryGet(key []byte) ([]byte, error) {
 func (t *odrTrie) TryUpdate(key, value []byte) error {
 	key = crypto.Keccak256(key)
 	return t.do(key, func() error {
-		return t.trie.TryDelete(key)
+		return t.trie.TryUpdate(key, value)
 	})
 }
 
