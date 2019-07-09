@@ -90,7 +90,7 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 
 	if xutil.IsElection(header.Number.Uint64()) {
 		// ELection next round validators
-		err := sk.Election(blockHash, header.Number.Uint64())
+		err := sk.Election(blockHash, header)
 		if nil != err {
 			log.Error("Failed to call Election on stakingPlugin EndBlock", "blockHash", blockHash.Hex(),
 				"blockNumber", header.Number.Uint64(), "err", err)
