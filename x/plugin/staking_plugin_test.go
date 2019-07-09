@@ -3544,7 +3544,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
 // for consensus
 func TestStakingPlugin_GetLastNumber(t *testing.T) {
-	
+
 }
 
 func TestStakingPlugin_GetValidator(t *testing.T) {
