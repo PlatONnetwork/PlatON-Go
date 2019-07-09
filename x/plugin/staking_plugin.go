@@ -9,6 +9,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -2234,6 +2235,18 @@ func (svs sortValidatorQueue) Less(i, j int) bool {
 
 func (svs sortValidatorQueue) Swap(i, j int) {
 	svs[i], svs[j] = svs[j], svs[i]
+}
+
+// Elected verifier by vrf random election
+// validatorList：Waiting for the elected node
+// nonce：Vrf proof of the current block
+// parentHash：Parent block hash
+func (sk *StakingPlugin) VrfElection(validatorList staking.ValidatorQueue, nonce []byte, parentHash common.Hash) (staking.ValidatorQueue, error) {
+	preNonces, err := xcom.GetVrfHandlerInstance().Load(parentHash)
+	if nil != err {
+		return nil, err
+	}
+	return sk.ProbabilityElection(validatorList, vrf.ProofToHash(nonce), preNonces)
 }
 
 func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueue, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
