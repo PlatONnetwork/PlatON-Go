@@ -417,7 +417,7 @@ func testGetCHTProofs(t *testing.T, protocol int) {
 	}}
 	requestsV2 := []HelperTrieReq{{
 		Type:    htCanonical,
-		TrieIdx: frequency/config.PairChtSize - 1,
+		TrieIdx: frequency/config.ChtSize - 1,
 		Key:     key,
 		AuxReq:  auxHeader,
 	}}
