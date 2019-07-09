@@ -10,6 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
@@ -1637,7 +1638,9 @@ func (sk *StakingPlugin) GetRelatedListByDelAddr(blockHash common.Hash, addr com
 	return queue, nil
 }
 
-func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) error {
+func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) error {
+
+	blockNumber := header.Number.Uint64()
 
 	// the validators of Current Epoch
 	validators, err := sk.db.GetVerifierListByIrr()
@@ -1717,18 +1720,11 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, blockNumber uint64) err
 	default:
 		// elect ShiftValidatorNum (default is 8) validators by vrf
 		// TODO vrf
-
-		/*nonceQueue, err := xcom.GetVrfHandlerInstance().Load(blockHash)
-		if nil != err {
-			return err
-		}
-
-		if queue, err := sk.ProbabilityElection(validators, nonceQueue[], ""); nil != err {
+		if queue, err := sk.VrfElection(tmpQueue, header.Nonce.Bytes(),header.ParentHash); nil != err {
 			return err
 		}else {
 			shiftQueue = queue
-		}*/
-
+		}
 	}
 
 	slashCans := make(staking.SlashCandidate, 0)
@@ -2213,12 +2209,12 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 
 
 type sortValidator struct {
-	v           *staking.Validator
-	x           int
-	weight      int
-	version     uint32
-	blockNumber uint64
-	txIndex     uint32
+	v			*staking.Validator
+	x			int64
+	weights		int64
+	version		uint32
+	blockNumber	uint64
+	txIndex		uint32
 }
 
 type sortValidatorQueue []*sortValidator
@@ -2251,6 +2247,18 @@ func (svs sortValidatorQueue) Swap(i, j int) {
 	svs[i], svs[j] = svs[j], svs[i]
 }
 
+// Elected verifier by vrf random election
+// validatorList：Waiting for the elected node
+// nonce：Vrf proof of the current block
+// parentHash：Parent block hash
+func (sk *StakingPlugin) VrfElection(validatorList staking.ValidatorQueue, nonce []byte, parentHash common.Hash) (staking.ValidatorQueue, error) {
+	preNonces, err := xcom.GetVrfHandlerInstance().Load(parentHash)
+	if nil != err {
+		return nil, err
+	}
+	return sk.ProbabilityElection(validatorList, vrf.ProofToHash(nonce), preNonces)
+}
+
 func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueue, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
 	if len(currentNonce) == 0 || len(preNonces) == 0 || len(validatorList) != len(preNonces) {
 		log.Error("probabilityElection failed", "validatorListSize", len(validatorList), "currentNonceSize", len(preNonces), "preNoncesSize", len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum)
@@ -2263,6 +2271,7 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 		if nil != err {
 			return nil, ElectionErr
 		}
+		weights.Div(weights, new(big.Int).SetUint64(1e18))
 		sumWeights.Add(sumWeights, weights)
 		version, err := validator.GetProcessVersion()
 		if nil != err {
@@ -2277,11 +2286,11 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 			return nil, err
 		}
 		sv := &sortValidator{
-			v:           validator,
-			weight:      int(weights.Uint64()),
-			version:     version,
-			blockNumber: blockNumber,
-			txIndex:     txIndex,
+			v:validator,
+			weights:int64(weights.Uint64()),
+			version:version,
+			blockNumber:blockNumber,
+			txIndex:txIndex,
 		}
 		svList = append(svList, sv)
 	}
@@ -2299,13 +2308,13 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 			return nil, err
 		}
 		targetP := target / maxValue
-		bd := xcom.NewBinomialDistribution(sv.weight, p)
+		bd := xcom.NewBinomialDistribution(sv.weights, p)
 		x, err := bd.InverseCumulativeProbability(targetP)
 		if nil != err {
 			return nil, err
 		}
 		sv.x = x
-		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()), "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce", hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]), "target", target, "targetP", targetP, "weight", sv.weight, "x", x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
+		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()), "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce", hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]), "target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 	sort.Sort(svList)
 	resultValidatorList := make(staking.ValidatorQueue, 0)
@@ -2314,7 +2323,7 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 			break
 		}
 		resultValidatorList = append(resultValidatorList, sv.v)
-		log.Debug("sort validator", "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "weight", sv.weight, "x", sv.x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
+		log.Debug("sort validator", "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "weight", sv.weights, "x", sv.x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 	return resultValidatorList, nil
 }

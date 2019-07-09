@@ -1140,8 +1140,11 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 		addr := crypto.PubkeyToAddress(privKey.PublicKey)
 		mrand.Seed(time.Now().UnixNano())
 		stakingWeight := [staking.SWeightItem]string{}
-		stakingWeight[0] = "1"
-		stakingWeight[1] = strconv.Itoa(mrand.Intn(1000000000))
+		stakingWeight[0] = strconv.Itoa(mrand.Intn(5)+1)
+		v1 := new(big.Int).SetInt64(time.Now().UnixNano())
+		v1.Mul(v1, new(big.Int).SetInt64(1e18))
+		v1.Add(v1, new(big.Int).SetInt64(int64(mrand.Intn(1000))))
+		stakingWeight[1] = v1.Text(10)
 		stakingWeight[2] = strconv.Itoa(mrand.Intn(230))
 		stakingWeight[3] = strconv.Itoa(mrand.Intn(1000))
 		v := &staking.Validator{
