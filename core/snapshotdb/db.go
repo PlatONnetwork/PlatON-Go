@@ -188,18 +188,18 @@ func (s *snapshotDB) rmOldRecognizedBlockData() error {
 	var err error
 	s.recognized.Range(func(key, value interface{}) bool {
 		v := value.(blockData)
-		 if s.current.HighestNum.Int64()> v.Number.Int64(){
-			 s.recognized.Delete(key)
-			 k := key.(common.Hash)
-			 err = s.closeJournalWriter(k)
-			 if err != nil {
-				 return false
-			 }
-			 err := s.rmJournalFile(v.Number, k)
-			 if err != nil {
-				 return false
-			 }
-		 }
+		if s.current.HighestNum.Int64() > v.Number.Int64() {
+			s.recognized.Delete(key)
+			k := key.(common.Hash)
+			err = s.closeJournalWriter(k)
+			if err != nil {
+				return false
+			}
+			err := s.rmJournalFile(v.Number, k)
+			if err != nil {
+				return false
+			}
+		}
 		return true
 	})
 	if err != nil {
@@ -323,7 +323,6 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 }
 
 func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
-	logger.Debug("put","hash",hash.String(),"key",key,"val",value)
 	var (
 		blockHash  common.Hash
 		kvhash     common.Hash
@@ -333,22 +332,22 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 		s.unRecognizedLock.Lock()
 		defer s.unRecognizedLock.Unlock()
 		if s.unRecognized == nil {
-			return errors.New("[SnapshotDB]can't put to unRecognized,it was nil")
+			return errors.New("can't put to unRecognized,it was nil")
 		}
 		if s.unRecognized.readOnly {
-			return errors.New("[SnapshotDB]can't put read only block")
+			return errors.New("can't put read only block")
 		}
 		blockHash = s.getUnRecognizedHash()
 		kvhash = s.unRecognized.kvHash
 	} else {
 		bb, ok := s.recognized.Load(hash)
 		if !ok {
-			return errors.New("[SnapshotDB]get recognized block data by hash fail")
+			return errors.New("get recognized block data by hash fail,the block may have commit")
 		}
 		rr := bb.(blockData)
 		blockHash = hash
 		if rr.readOnly {
-			return errors.New("[SnapshotDB]can't put read only block")
+			return errors.New("can't put read only block")
 		}
 		recognized = rr
 		kvhash = recognized.kvHash
@@ -361,10 +360,10 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	}
 	body, err := encode(jData)
 	if err != nil {
-		return errors.New("[SnapshotDB]encode fail:" + err.Error())
+		return errors.New("encode fail:" + err.Error())
 	}
 	if err := s.writeJournalBody(blockHash, body); err != nil {
-		return errors.New("[SnapshotDB]write journalBody fail:" + err.Error())
+		return errors.New("write journalBody fail:" + err.Error())
 	}
 	if hash != common.ZeroHash {
 		if err := recognized.data.Put(key, value); err != nil {
