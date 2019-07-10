@@ -54,13 +54,13 @@ func RestrictingInstance() *RestrictingPlugin {
 	return rt
 }
 
-func ClearRestricting() error {
-	if nil == rt {
-		return common.NewSysError("the RestrictingPlugin already be nil")
-	}
-	rt = nil
-	return nil
-}
+//func ClearRestricting() error {
+//	if nil == rt {
+//		return common.NewSysError("the RestrictingPlugin already be nil")
+//	}
+//	rt = nil
+//	return nil
+//}
 
 // BeginBlock does something like check input params before execute transactions,
 // in RestrictingPlugin it does nothing.

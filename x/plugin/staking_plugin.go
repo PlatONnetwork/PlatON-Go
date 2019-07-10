@@ -65,13 +65,13 @@ func StakingInstance() *StakingPlugin {
 	return stk
 }
 
-func ClearStakingPlugin() error {
-	if nil == stk {
-		return common.NewSysError("the StakingPlugin already be nil")
-	}
-	stk = nil
-	return nil
-}
+//func ClearStakingPlugin() error {
+//	if nil == stk {
+//		return common.NewSysError("the StakingPlugin already be nil")
+//	}
+//	stk = nil
+//	return nil
+//}
 
 func (sk *StakingPlugin) SetEventMux(eventMux *event.TypeMux) {
 	sk.eventMux = eventMux

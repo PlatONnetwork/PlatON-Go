@@ -61,13 +61,13 @@ func SlashInstance() *SlashingPlugin {
 	return slsh
 }
 
-func ClearSlashPlugin() error {
-	if nil == slsh {
-		return common.NewSysError("the SlashPlugin already be nil")
-	}
-	slsh = nil
-	return nil
-}
+//func ClearSlashPlugin() error {
+//	if nil == slsh {
+//		return common.NewSysError("the SlashPlugin already be nil")
+//	}
+//	slsh = nil
+//	return nil
+//}
 
 func (sp *SlashingPlugin) SetDecodeEvidenceFun(f func(data string) (consensus.Evidences, error)) {
 	sp.decodeEvidence = f

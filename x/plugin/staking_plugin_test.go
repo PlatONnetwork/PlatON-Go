@@ -145,8 +145,8 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 func TestStakingPlugin_CreateCandidate(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -179,8 +179,8 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 
 func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -222,8 +222,8 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 
 func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -273,8 +273,8 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 
 func TestStakingPlugin_GetCandidateList(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -321,8 +321,8 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 
 func TestStakingPlugin_EditorCandidate(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -387,8 +387,8 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 
 func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -458,8 +458,8 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 
 func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -516,8 +516,8 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 
 func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -589,8 +589,8 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 
 func TestStakingPlugin_Delegate(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -654,8 +654,8 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -725,8 +725,8 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 
 func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -788,8 +788,8 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 
 func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -862,8 +862,8 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 
 func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -963,8 +963,8 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -1088,8 +1088,8 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -1269,8 +1269,8 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 func TestStakingPlugin_Election(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -1473,8 +1473,8 @@ func TestStakingPlugin_Election(t *testing.T) {
 func TestStakingPlugin_Switch(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -1700,8 +1700,8 @@ func TestStakingPlugin_Switch(t *testing.T) {
 func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -1896,8 +1896,8 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -2019,8 +2019,8 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 
 func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -2139,8 +2139,8 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 
 func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -2325,8 +2325,8 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -2531,8 +2531,8 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 func TestStakingPlugin_GetValidatorList(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -2735,8 +2735,8 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -2921,8 +2921,8 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
 func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -3117,8 +3117,8 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -3294,8 +3294,8 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 
 func TestStakingPlugin_IsCandidate(t *testing.T) {
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -3420,8 +3420,8 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -3625,8 +3625,8 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -3820,8 +3820,8 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 func TestStakingPlugin_GetLastNumber(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -4012,8 +4012,8 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 func TestStakingPlugin_GetValidator(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -4207,8 +4207,8 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -4428,8 +4428,8 @@ Expand test cases
 func Test_IteratorCandidate (t *testing.T) {
 
 
-	defer plugin.ClearStakingPlugin()
-	defer plugin.ClearGovPlugin()
+	//defer plugin.ClearStakingPlugin()
+	//defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {

@@ -27,13 +27,13 @@ func RewardMgrInstance() *rewardMgrPlugin {
 	return rm
 }
 
-func ClearRewardPlugin() error {
-	if nil == rm {
-		return common.NewSysError("the RewardPlugin already be nil")
-	}
-	rm = nil
-	return nil
-}
+//func ClearRewardPlugin() error {
+//	if nil == rm {
+//		return common.NewSysError("the RewardPlugin already be nil")
+//	}
+//	rm = nil
+//	return nil
+//}
 
 // BeginBlock does something like check input params before execute transactions,
 // in rewardMgrPlugin it does nothing.
