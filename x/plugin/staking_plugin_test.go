@@ -131,15 +131,38 @@ Standard test cases
 */
 
 func TestStakingPlugin_BeginBlock(t *testing.T) {
-
+	// nothings in that
 }
 
 func TestStakingPlugin_EndBlock(t *testing.T) {
+	state, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+		return
+	}
+	newPlugins()
 
+	build_gov_data(state)
+
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
+	header := &types.Header{
+		ParentHash:  blockHash,
+		Number: big.NewInt(230),
+		Nonce: types.EncodeNonce(currNonce),
+	}
+
+	plugin.StakingInstance().EndBlock(blockHash, header, state)
 }
 
 func TestStakingPlugin_Confirmed(t *testing.T) {
 
+
+	plugin.StakingInstance().Confirmed()
 }
 
 

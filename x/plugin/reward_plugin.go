@@ -79,7 +79,7 @@ func (rmp *rewardMgrPlugin) Confirmed(block *types.Block) error {
 // increaseIssuance used for increase issuance at the end of each year
 func (rmp *rewardMgrPlugin) increaseIssuance(year uint32, state xcom.StateDB) error {
 	var (
-		rate *big.Int
+		rate = new(big.Int)
 		temp = new(big.Int)
 	)
 
@@ -137,9 +137,9 @@ func (rmp *rewardMgrPlugin) rewardNewBlock(head *types.Header, reward *big.Int, 
 // calculateExpectReward used for calculate the stakingReward and newBlockReward that should be send in each corresponding period
 func (rmp *rewardMgrPlugin) calculateExpectReward(year uint32, state xcom.StateDB) (*big.Int, *big.Int, error) {
 	var (
-		stakingReward  *big.Int
-		newBlockReward *big.Int
-		temp           *big.Int
+		stakingReward  = new(big.Int)
+		newBlockReward = new(big.Int)
+		temp           = new(big.Int)
 	)
 
 	expectNewBlocks := int64(365) * 24 * 3600 / 1
@@ -163,7 +163,7 @@ func SetYearEndCumulativeIssue(state xcom.StateDB, year uint32, total *big.Int) 
 
 // GetLatestCumulativeIssue used for get the cumulative issuance in the most recent year
 func GetLatestCumulativeIssue(state xcom.StateDB) *big.Int {
-	var issue *big.Int
+	var issue = new(big.Int)
 	// !!!
 	// latestYear := getLastYear()
 	// !!!
@@ -175,7 +175,7 @@ func GetLatestCumulativeIssue(state xcom.StateDB) *big.Int {
 
 // GetHistoryCumulativeIssue used for get the cumulative issuance of a certain year in history
 func GetHistoryCumulativeIssue(state xcom.StateDB, year uint32) *big.Int {
-	var issue *big.Int
+	var issue = new(big.Int)
 	histIncreaseKey := reward.GetHistoryIncreaseKey(year)
 	bIssue := state.GetState(vm.RewardManagerPoolAddr, histIncreaseKey)
 	return issue.SetBytes(bIssue)
