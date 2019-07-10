@@ -47,6 +47,8 @@ var (
 	testAddress = crypto.PubkeyToAddress(testKey.PublicKey)
 )
 
+const blockToFast = 100
+
 // Reduce some of the parameters to make the tester faster.
 func init() {
 	MaxForkAncestry = uint64(10000)
@@ -76,6 +78,7 @@ type downloadTester struct {
 	peerReceipts   map[string]map[common.Hash]types.Receipts // Receipts belonging to different test peers
 	peerChainTds   map[string]map[common.Hash]*big.Int       // Total difficulties of the blocks in the peer chains
 	signatureLists map[string]map[common.Hash][]*common.BlockConfirmSign
+	peerSnapshotDb map[string]snapshotdb.DB
 
 	peerMissingStates map[string]map[common.Hash]bool // State entries that fast sync should not return
 
@@ -126,6 +129,7 @@ func newTester() *downloadTester {
 		peerChainTds:      make(map[string]map[common.Hash]*big.Int),
 		peerMissingStates: make(map[string]map[common.Hash]bool),
 		signatureLists:    make(map[string]map[common.Hash][]*common.BlockConfirmSign),
+		peerSnapshotDb:    make(map[string]snapshotdb.DB),
 	}
 	tester.stateDb = ethdb.NewMemDatabase()
 	tester.stateDb.Put(genesis.Root().Bytes(), []byte{0x00})
@@ -220,6 +224,7 @@ func (dl *downloadTester) makeChainFork(n, f int, parent *types.Block, parentRec
 // terminate aborts any operations on the embedded downloader and releases all
 // held resources.
 func (dl *downloadTester) terminate() {
+	//snapshotdb.Instance().Clear()
 	dl.downloader.Terminate()
 }
 
@@ -309,6 +314,7 @@ func (dl *downloadTester) CurrentFastBlock() *types.Block {
 
 	for i := len(dl.ownHashes) - 1; i >= 0; i-- {
 		if block := dl.ownBlocks[dl.ownHashes[i]]; block != nil {
+			logger.Debug("ownBlocks", "num", block.Number(), "oweblockhash", block.Hash().String(), "ownHashes", dl.ownHashes[i].String())
 			return block
 		}
 	}
@@ -440,6 +446,11 @@ func (dl *downloadTester) newSlowPeer(id string, version int, hashes []common.Ha
 		dl.peerReceipts[id] = make(map[common.Hash]types.Receipts)
 		dl.peerChainTds[id] = make(map[common.Hash]*big.Int)
 		dl.peerMissingStates[id] = make(map[common.Hash]bool)
+		db, err := snapshotdb.New()
+		if err != nil {
+			return err
+		}
+		dl.peerSnapshotDb[id] = db
 
 		genesis := hashes[len(hashes)-1]
 		if header := headers[genesis]; header != nil {
@@ -472,10 +483,10 @@ func (dl *downloadTester) newSlowPeer(id string, version int, hashes []common.Ha
 				})
 			}
 		}
-		if err := dl.snapshotDb.WriteBaseDB(tmp); err != nil {
+		if err := dl.peerSnapshotDb[id].WriteBaseDB(tmp); err != nil {
 			return err
 		}
-		if err := dl.snapshotDb.SetCurrent(hashes[0], *headers[hashes[50-1]].Number, *headers[hashes[50-1]].Number); err != nil {
+		if err := dl.peerSnapshotDb[id].SetCurrent(hashes[0], *headers[hashes[blockToFast-1]].Number, *headers[hashes[blockToFast-1]].Number); err != nil {
 			return err
 		}
 	}
@@ -657,11 +668,11 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage() error {
 	dlp.dl.lock.RLock()
 	defer dlp.dl.lock.RUnlock()
 
-	if err := dlp.dl.snapshotDb.WalkBaseDB(nil, func(num *big.Int, iter iterator.Iterator) error {
+	if err := dlp.dl.peerSnapshotDb[dlp.id].WalkBaseDB(nil, func(num *big.Int, iter iterator.Iterator) error {
 		if num == nil {
 			return errors.New("num should not be nil")
 		}
-		Pivot := dlp.dl.peerHeaders[dlp.id][dlp.dl.peerHashes[dlp.id][50-1]]
+		Pivot := dlp.dl.peerHeaders[dlp.id][dlp.dl.peerHashes[dlp.id][blockToFast-1]]
 		Latest := dlp.dl.peerHeaders[dlp.id][dlp.dl.peerHashes[dlp.id][0]]
 		if err := dlp.dl.downloader.DeliverPposStorage(dlp.id, Latest, Pivot, nil, false, 0); err != nil {
 			logger.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
@@ -669,7 +680,7 @@ func (dlp *downloadTesterPeer) RequestPPOSStorage() error {
 		}
 		var count int
 		ps := make([]PPOSStorageKV, 0)
-		var KVNum int64
+		var KVNum uint64
 		for iter.Next() {
 			kv := [2][]byte{
 				iter.Key(),
@@ -702,9 +713,13 @@ func (dlp *downloadTesterPeer) RequestOriginAndPivotByCurrent(c uint64) error {
 	dlp.waitDelay()
 	dlp.dl.lock.RLock()
 	defer dlp.dl.lock.RUnlock()
+	headers := dlp.dl.peerHeaders[dlp.id]
+	Pivot := headers[dlp.dl.peerHashes[dlp.id][blockToFast-1]]
 
-	Pivot := dlp.dl.peerHeaders[dlp.id][dlp.dl.peerHashes[dlp.id][50-1]]
-	origin := dlp.dl.peerHeaders[dlp.id][dlp.dl.peerHashes[dlp.id][len(dlp.dl.peerHashes[dlp.id])-int(c)-1]]
+	hashs := dlp.dl.peerHashes[dlp.id]
+	origin := headers[hashs[len(dlp.dl.peerHashes[dlp.id])-int(c)-1]]
+
+	logger.Debug("hashs", "id", dlp.id, "len", len(dlp.dl.peerHashes[dlp.id])-int(c)-1, "c", c, "origin", origin.Number)
 	go dlp.dl.downloader.DeliverOriginAndPivot(dlp.id, []*types.Header{origin, Pivot})
 	return nil
 }
@@ -718,6 +733,8 @@ func assertOwnChain(t *testing.T, tester *downloadTester, length int) {
 // assertOwnForkedChain checks if the local forked chain contains the correct
 // number of items of the various chain components.
 func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, lengths []int) {
+	t.Helper()
+
 	// Initialize the counters for the first fork
 	headers, blocks, receipts := lengths[0], lengths[0], lengths[0]
 
@@ -730,10 +747,7 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 		blocks += length - common
 		receipts += length - common
 	}
-	switch tester.downloader.mode {
-	case FullSync:
-		receipts = 1
-	case LightSync:
+	if tester.downloader.mode == LightSync {
 		blocks, receipts = 1, 1
 	}
 	if hs := len(tester.ownHeaders); hs != headers {
@@ -746,21 +760,34 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 		t.Fatalf("synchronised receipts mismatch: have %v, want %v", rs, receipts)
 	}
 	//todo test ppos
+	if tester.downloader.mode == FastSync {
+		baseNum, err := tester.snapshotDb.BaseNum()
+		if err != nil {
+			t.Error(err)
+		}
+		if len(tester.ownBlocks)-int(baseNum.Int64()) != blockToFast {
+			t.Fatalf("synchronised baseNum mismatch have %v, want %v", len(tester.ownBlocks)-int(baseNum.Int64()), blockToFast)
+		}
+	}
 	// Verify the state trie too for fast syncs
-	/*if tester.downloader.mode == FastSync {
-		pivot := uint64(0)
-		var index int
-		if pivot := int(tester.downloader.queue.fastSyncPivot); pivot < common {
-			index = pivot
-		} else {
-			index = len(tester.ownHashes) - lengths[len(lengths)-1] + int(tester.downloader.queue.fastSyncPivot)
-		}
-		if index > 0 {
-			if statedb, err := state.New(tester.ownHeaders[tester.ownHashes[index]].Root, state.NewDatabase(trie.NewDatabase(tester.stateDb))); statedb == nil || err != nil {
-				t.Fatalf("state reconstruction failed: %v", err)
-			}
-		}
-	}*/
+	///*if tester.downloader.mode == FastSync {
+	//	pivot := uint64(0)
+	//	var index int
+	//	if pivot := int(tester.downloader.queue.fastSyncPivot); pivot < common {
+	//		index = pivot
+	//	} else {
+	//		index = len(tester.ownHashes) - lengths[len(lengths)-1] + int(tester.downloader.queue.fastSyncPivot)
+	//	}
+	//	if index > 0 {
+	//		if statedb, err := state.New(tester.ownHeaders[tester.ownHashes[index]].Root, state.NewDatabase(trie.NewDatabase(tester.stateDb))); statedb == nil || err != nil {
+	//			t.Fatalf("state reconstruction failed: %v", err)
+	//		}
+	//	}
+	//}*/
+}
+
+func init() {
+	logger.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 }
 
 // Tests that simple synchronization against a canonical chain works correctly.
@@ -770,12 +797,11 @@ func TestCanonicalSynchronisation63Full(t *testing.T) { testCanonicalSynchronisa
 
 func TestCanonicalSynchronisation63Fast(t *testing.T) { testCanonicalSynchronisation(t, 63, FastSync) }
 
-//func TestCanonicalSynchronisation64Full(t *testing.T)  { testCanonicalSynchronisation(t, 64, FullSync) }
-//func TestCanonicalSynchronisation64Fast(t *testing.T)  { testCanonicalSynchronisation(t, 64, FastSync) }
-//func TestCanonicalSynchronisation64Light(t *testing.T) { testCanonicalSynchronisation(t, 64, LightSync) }
+func TestCanonicalSynchronisation64Full(t *testing.T)  { testCanonicalSynchronisation(t, 64, FullSync) }
+func TestCanonicalSynchronisation64Fast(t *testing.T)  { testCanonicalSynchronisation(t, 64, FastSync) }
+func TestCanonicalSynchronisation64Light(t *testing.T) { testCanonicalSynchronisation(t, 64, LightSync) }
 
 func testCanonicalSynchronisation(t *testing.T, protocol int, mode SyncMode) {
-	logger.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	t.Parallel()
 	tester := newTester()
 	defer tester.terminate()
@@ -795,8 +821,9 @@ func testCanonicalSynchronisation(t *testing.T, protocol int, mode SyncMode) {
 // until the cached blocks are retrieved.
 //func TestThrottling62(t *testing.T)     { testThrottling(t, 62, FullSync) }
 //func TestThrottling63Full(t *testing.T) { testThrottling(t, 63, FullSync) }
-
+//
 //func TestThrottling63Fast(t *testing.T) { testThrottling(t, 63, FastSync) }
+//
 //func TestThrottling64Full(t *testing.T) { testThrottling(t, 64, FullSync) }
 //func TestThrottling64Fast(t *testing.T) { testThrottling(t, 64, FastSync) }
 
@@ -900,11 +927,14 @@ func testForkedSync(t *testing.T, protocol int, mode SyncMode) {
 	tester.newPeer("fork A", protocol, hashesA, headersA, blocksA, receiptsA)
 	tester.newPeer("fork B", protocol, hashesB, headersB, blocksB, receiptsB)
 
+	logger.Debug("fork A")
 	// Synchronise with the peer and make sure all blocks were retrieved
 	if err := tester.sync("fork A", nil, mode); err != nil {
 		t.Fatalf("failed to synchronise blocks: %v", err)
 	}
 	assertOwnChain(t, tester, common+fork+1)
+
+	logger.Debug("fork B")
 
 	// Synchronise with the second peer and make sure that fork is pulled too
 	if err := tester.sync("fork B", nil, mode); err != nil {

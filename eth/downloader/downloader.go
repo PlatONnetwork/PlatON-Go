@@ -493,13 +493,15 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 }
 
 func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header, error) {
-	var current *types.Block
+	var current *types.Header
 	if d.mode == FullSync {
-		current = d.blockchain.CurrentBlock()
+		current = d.blockchain.CurrentBlock().Header()
 	} else if d.mode == FastSync {
-		current = d.blockchain.CurrentFastBlock()
+		current = d.blockchain.CurrentFastBlock().Header()
+	} else {
+		current = d.lightchain.CurrentHeader()
 	}
-	currentNumber := current.NumberU64()
+	currentNumber := current.Number.Uint64()
 	go p.peer.RequestOriginAndPivotByCurrent(currentNumber)
 
 	ttl := d.requestTTL()
@@ -527,7 +529,7 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 			}
 			if headers[0] == nil {
 				p.log.Error("not find  current block")
-				return nil, nil, errInvalidChain
+				return nil, nil, errors.New("not find  current block")
 			}
 			if headers[0].Number.Uint64() != currentNumber || headers[0].Hash() != current.Hash() {
 				return nil, nil, errInvalidChain
@@ -547,17 +549,16 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 func (d *Downloader) fetchPPOSStorage(p *peerConnection) (latest *types.Header, pivot uint64, err error) {
 	p.log.Debug("Retrieving latest ppos storage cache from remote peer")
 	var current *types.Block
-	if d.mode == FullSync {
-		current = d.blockchain.CurrentBlock()
-	} else if d.mode == FastSync {
-		current = d.blockchain.CurrentFastBlock()
-	}
+	//if d.mode == FullSync {
+	//	current = d.blockchain.CurrentBlock()
+	//} else if d.mode == FastSync {
+	//}
+	current = d.blockchain.CurrentFastBlock()
 
 	timeout := time.NewTimer(0) // timer to dump a non-responsive active peer
 	<-timeout.C                 // timeout channel should be initially empty
 	defer timeout.Stop()
-
-	db, err := snapshotdb.New()
+	db := snapshotdb.Instance()
 	if err != nil {
 		return nil, 0, err
 	}
@@ -614,7 +615,7 @@ func (d *Downloader) fetchPPOSStorage(p *peerConnection) (latest *types.Header, 
 				continue
 			}
 			count += int64(len(pposDada.kvs))
-			if count != pposDada.kvNum {
+			if uint64(count) != pposDada.kvNum {
 				p.log.Error("received ppos storage from incorrect kvNum", "kvNum", pposDada.kvNum, "count", count)
 				return nil, 0, errors.New("received ppos storage from incorrect kvNum")
 			}
@@ -1667,7 +1668,7 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 }
 
 // DeliverPposStorage injects a new batch of ppos storage received from a remote node.
-func (d *Downloader) DeliverPposStorage(id string, latest, pivot *types.Header, kvs []PPOSStorageKV, last bool, kvNum int64) (err error) {
+func (d *Downloader) DeliverPposStorage(id string, latest, pivot *types.Header, kvs []PPOSStorageKV, last bool, kvNum uint64) (err error) {
 	return d.deliver(id, d.pposStorageCh, &pposStoragePack{id, latest, pivot, kvs, last, kvNum}, pposStorageInMeter, pposStorageDropMeter)
 }
 

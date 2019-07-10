@@ -65,7 +65,9 @@ var (
 )
 
 func NewFaker() consensus.Engine {
-	return new(consensus.BftMock)
+	c := new(consensus.BftMock)
+	c.Blocks = make([]*types.Block, 0)
+	return c
 }
 
 type Cbft struct {

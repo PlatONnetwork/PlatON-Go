@@ -419,16 +419,13 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			}
 		}
 		return p.SendBlockHeaders(headers)
-	case p.version > eth63 && msg.Code == GetOriginAndPivotMsg:
-		var query []uint64
+	case p.version >= eth63 && msg.Code == GetOriginAndPivotMsg:
+		log.Info("[GetOriginAndPivotMsg]Received a broadcast message")
+		var query uint64
 		if err := msg.Decode(&query); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
-		if len(query) != 1 {
-			p.Log().Error("GetOriginAndPivot get query length fail", "len", len(query))
-			return errors.New("GetOriginAndPivot get query length fail")
-		}
-		oHead := pm.blockchain.GetHeaderByNumber(query[0])
+		oHead := pm.blockchain.GetHeaderByNumber(query)
 		pivot, err := snapshotdb.Instance().BaseNum()
 		if err != nil {
 			p.Log().Error("GetOriginAndPivot get snapshotdb baseNum fail", "err", err)
@@ -446,8 +443,8 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Error("[GetOriginAndPivotMsg]send data meassage fail", "error", err)
 			return err
 		}
-	case p.version > eth63 && msg.Code == OriginAndPivotMsg:
-		p.Log().Debug("Received a broadcast message[OriginAndPivotMsg]")
+	case p.version >= eth63 && msg.Code == OriginAndPivotMsg:
+		p.Log().Debug("[OriginAndPivotMsg]Received a broadcast message")
 		var data []*types.Header
 		if err := msg.Decode(&data); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
@@ -457,8 +454,12 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Error("Failed to deliver ppos storage data", "err", err)
 			return err
 		}
-	case p.version > eth63 && msg.Code == GetPPOSStorageMsg:
-		log.Info("[GetPPOSStorageMsg]Received a broadcast message")
+	case p.version >= eth63 && msg.Code == GetPPOSStorageMsg:
+		log.Info("[GetPPOSStorageMsg]Received a broadcast message", "id", common.CurrentGoRoutineID())
+		var query []interface{}
+		if err := msg.Decode(&query); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
 		f := func(num *big.Int, iter iterator.Iterator) error {
 			var ps PPOSStorage
 			var count int
@@ -501,7 +502,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			log.Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
 		}
 
-	case p.version > eth63 && msg.Code == PPOSStorageMsg:
+	case p.version >= eth63 && msg.Code == PPOSStorageMsg:
 		log.Debug("Received a broadcast message[PposStorageMsg]")
 		var data PPOSStorage
 		if err := msg.Decode(&data); err != nil {
