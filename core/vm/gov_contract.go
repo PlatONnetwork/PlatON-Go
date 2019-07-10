@@ -23,6 +23,7 @@ const (
 	GetProposalErrorMsg        			= "Find a specified proposal error"
 	GetTallyResultErrorMsg				= "Find a specified proposal's tally result error"
 	ListProposalErrorMsg				= "List all proposals error"
+	GetActiveVersionErrorMsg			= "Get active version error"
 )
 
 
@@ -34,6 +35,7 @@ const (
 	GetProposalEvent 		= "2100"
 	GetResultEvent 			= "2101"
 	ListProposalEvent 		= "2102"
+	GetActiveVersionEvent 	= "2103"
 )
 
 var (
@@ -66,6 +68,7 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		2100: gc.getProposal,
 		2101: gc.getTallyResult,
 		2102: gc.listProposal,
+		2103: gc.getActiveVersion,
 	}
 }
 
@@ -219,6 +222,17 @@ func (gc *GovContract) listProposal() ([]byte, error) {
 	return gc.returnHandler(proposalList, err, ListProposalErrorMsg)
 }
 
+func (gc *GovContract) getActiveVersion() ([]byte, error) {
+	from := gc.Contract.CallerAddress
+	log.Info("Call getVersion of GovContract",
+		"from", from.Hex(),
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64())
+
+	activeVersion := gc.Plugin.GetActiveVersion(gc.Evm.StateDB)
+
+	return gc.returnHandler(activeVersion, nil, GetActiveVersionErrorMsg)
+}
 
 func  (gc *GovContract) errHandler(funcName string, event string, err error, errorMsg string) ([]byte, error) {
 	if err != nil {
