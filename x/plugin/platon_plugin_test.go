@@ -583,6 +583,7 @@ func buildSnapDBDataCommitted(start, end int){
 	stakingDB := staking.NewStakingDB ()
 
 	for i := start; i <= end; i++ {
+
 		no := int64(i)
 		header := types.Header{
 			Number: big.NewInt(no),
