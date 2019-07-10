@@ -146,17 +146,17 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	}
 
 	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
-		log.Error("snapshotDB newBlock failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
+		log.Error("BlockChainReactor call snapshotDB newBlock failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
 		return err
 	}
 
-	/*for _, pluginName := range bcr.beginRule {
-		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
-			if flag, err := plugin.BeginBlock(blockHash, header, state); nil != err {
-				return flag, err
+	for _, pluginRule := range bcr.beginRule {
+		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {
+			if err := plugin.BeginBlock(blockHash, header, state); nil != err {
+				return err
 			}
 		}
-	}*/
+	}
 
 	return nil
 }
@@ -175,17 +175,17 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 		return err
 	}
 
-	/*for _, pluginName := range bcr.endRule {
-		if plugin, ok := bcr.basePluginMap[pluginName]; ok {
-			if flag, err := plugin.EndBlock(blockHash, header, state); nil != err {
-				return flag, err
+	for _, pluginRule := range bcr.endRule {
+		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {
+			if err := plugin.EndBlock(blockHash, header, state); nil != err {
+				return err
 			}
 		}
-	}*/
+	}
 
 	// storage the ppos k-v Hash
 	pposHash := snapshotdb.Instance().GetLastKVHash(blockHash)
-	if len(pposHash) != 0 && bytes.Compare(pposHash, make([]byte, len(pposHash))) != 0 {
+	if len(pposHash) != 0 && !bytes.Equal(pposHash, make([]byte, len(pposHash))) {
 		// store hash about ppos
 		state.SetState(cvm.StakingContractAddr, staking.GetPPOSHASHKey(), pposHash)
 	}
@@ -209,8 +209,8 @@ func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address
 	case cvm.RestrictingContractAddr:
 		c := vm.PlatONPrecompiledContracts[cvm.RestrictingContractAddr]
 		contract = c.(vm.PlatONPrecompiledContract)
-	case cvm.RewardManagerPoolAddr:
-		c := vm.PlatONPrecompiledContracts[cvm.RewardManagerPoolAddr]
+	case cvm.GovContractAddr:
+		c := vm.PlatONPrecompiledContracts[cvm.GovContractAddr]
 		contract = c.(vm.PlatONPrecompiledContract)
 	case cvm.SlashingContractAddr:
 		c := vm.PlatONPrecompiledContracts[cvm.SlashingContractAddr]
@@ -239,10 +239,6 @@ func (brc *BlockChainReactor) GetValidator(blockNumber uint64) (*cbfttypes.Valid
 func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
 	return plugin.StakingInstance().IsCandidateNode(nodeID)
 }
-
-//func isWorker(extra []byte) bool {
-//	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
-//}
 
 func (bcr *BlockChainReactor) PrepareResult(block *types.Block) (bool, error) {
 	log.Debug("snapshotdb Flush", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(block.Hash().Bytes()))
