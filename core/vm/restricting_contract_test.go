@@ -24,12 +24,13 @@ type ResultTest struct {
 }
 
 
-func buildRestrictingPlanData() {
+// build input data
+func buildRestrictingPlanData() ([]byte, error) {
 	var plan  restricting.RestrictingPlan
 	var plans = make([]restricting.RestrictingPlan, 5)
 
-	for i := 0; i < 5; i++ {
-		plan.Epoch = uint64(i+1)
+	for epoch := 1; epoch < 6; epoch++ {
+		plan.Epoch = uint64(epoch)
 		plan.Amount = big.NewInt(10000000)
 		plans = append(plans, plan)
 	}
@@ -43,7 +44,7 @@ func buildRestrictingPlanData() {
 	params = append(params, param1)
 	params = append(params, param2)
 
-	input, err := rlp.EncodeToBytes(params)
+	return rlp.EncodeToBytes(params)
 }
 
 func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
@@ -53,25 +54,7 @@ func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 		Evm: newEvm(blockNumber, blockHash, nil),
 	}
 
-	var plan  restricting.RestrictingPlan
-	var plans = make([]restricting.RestrictingPlan, 5)
-
-	for i := 0; i < 5; i++ {
-		plan.Epoch = uint64(i+1)
-		plan.Amount = big.NewInt(10000000)
-		plans = append(plans, plan)
-	}
-
-	var params [][]byte
-	param0, _ := rlp.EncodeToBytes(common.Uint32ToBytes(4000))  // function_type
-	param1 := addrArr[0].Bytes()   	        // restricting account
-	param2, _ := rlp.EncodeToBytes(plans)   // restricting plan
-
-	params = append(params, param0)
-	params = append(params, param1)
-	params = append(params, param2)
-
-	input, err := rlp.EncodeToBytes(params)
+	input, err := buildRestrictingPlanData()
 	if err != nil {
 		fmt.Println(err)
 		t.Errorf("fail to rlp encode restricting input")

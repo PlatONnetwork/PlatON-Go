@@ -229,8 +229,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	return nil
 }
 
-// PledgeLockFunds transfer the money from the restricting contract account to the staking contract account,
-// the first output returns true when business is success, else return false
+// PledgeLockFunds transfer the money from the restricting contract account to the staking contract account
 func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
 	restrictingKey := restricting.GetRestrictingKey(account)
@@ -272,7 +271,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	return nil
 }
 
-// ReturnLockFunds transfer the money from the staking contract account  to the restricting contract account,
+// ReturnLockFunds transfer the money from the staking contract account to the restricting contract account
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
 	restrictingKey := restricting.GetRestrictingKey(account)
