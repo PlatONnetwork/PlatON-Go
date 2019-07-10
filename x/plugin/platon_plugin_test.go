@@ -496,11 +496,9 @@ func build_staking_data (){
 
 	lastBlockHash = blockHash
 	lastBlockNumber =  blockNumber.Uint64()
-
-
-
-
-
+	lastHeader = types.Header{
+		Number: blockNumber,
+	}
 }
 
 var (

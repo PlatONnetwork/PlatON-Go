@@ -305,7 +305,7 @@ type PPOSStorage struct {
 	KVs    []downloader.PPOSStorageKV
 	Latest *types.Header
 	Pivot  *types.Header
-	KVNum  int64
+	KVNum  uint64
 	Last   bool
 }
 
@@ -410,7 +410,7 @@ func (p *peer) RequestPPOSStorage() error {
 
 func (p *peer) RequestOriginAndPivotByCurrent(current uint64) error {
 	p.Log().Debug("Fetching Origin and  Pivot", "curremt", current)
-	return p2p.Send(p.rw, GetOriginAndPivotMsg, []uint64{current})
+	return p2p.Send(p.rw, GetOriginAndPivotMsg, current)
 }
 
 // Handshake executes the eth protocol handshake, negotiating version number,

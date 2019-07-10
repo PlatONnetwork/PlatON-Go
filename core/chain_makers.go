@@ -209,20 +209,74 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	return blocks, receipts
 }
 
+func GenerateBlockChain2(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) *BlockChain {
+	if config == nil {
+		config = params.TestChainConfig
+	}
+	cacheConfig := &CacheConfig{
+		Disabled:                 true,
+		TrieNodeLimit:            256 * 1024 * 1024,
+		TrieTimeLimit:            5 * time.Minute,
+		BodyCacheLimit:           256,
+		BlockCacheLimit:          256,
+		MaxFutureBlocks:          256,
+		BadBlockLimit:            10,
+		TriesInMemory:            128,
+		DefaultTxsCacheSize:      20,
+		DefaultBroadcastInterval: 100 * time.Millisecond,
+	}
+	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil)
+	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
+	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
+		b := &BlockGen{i: i, parent: parent, chain: blocks, chainReader: blockchain, statedb: statedb, config: config, engine: engine}
+		b.header = makeHeader(b.chainReader, parent, statedb, b.engine)
+
+		// Execute any user modifications to the block
+		if gen != nil {
+			gen(i, b)
+		}
+		if b.engine != nil {
+			// Finalize and seal the block
+			block, _ := b.engine.Finalize(b.chainReader, b.header, statedb, b.txs, b.receipts)
+
+			_, err := blockchain.WriteBlockWithState(block, b.receipts, statedb)
+			if err != nil {
+				panic(err)
+			}
+			return block, b.receipts
+		}
+		return nil, nil
+	}
+	for i := 0; i < n; i++ {
+		statedb, err := blockchain.StateAt(parent.Root())
+		if err != nil {
+			panic(err)
+		}
+		block, receipt := genblock(i, parent, statedb)
+		errCh := make(chan error, 1)
+		engine.InsertChain(block, errCh)
+		<-errCh
+		blocks[i] = block
+		receipts[i] = receipt
+		parent = block
+	}
+	return blockchain
+}
+
 func GenerateBlockChain(config *params.ChainConfig, parent *types.Block, engine consensus.Engine, db ethdb.Database, n int, gen func(int, *BlockGen)) *BlockChain {
 	if config == nil {
 		config = params.TestChainConfig
 	}
 	cacheConfig := &CacheConfig{
-		Disabled:      true,
-		TrieNodeLimit: 256 * 1024 * 1024,
-		TrieTimeLimit: 5 * time.Minute,
-		BodyCacheLimit:  256,
-		BlockCacheLimit: 256,
-		MaxFutureBlocks: 256,
-		BadBlockLimit:	 10,
-		TriesInMemory:	 128,
-		DefaultTxsCacheSize: 20,
+		Disabled:                 true,
+		TrieNodeLimit:            256 * 1024 * 1024,
+		TrieTimeLimit:            5 * time.Minute,
+		BodyCacheLimit:           256,
+		BlockCacheLimit:          256,
+		MaxFutureBlocks:          256,
+		BadBlockLimit:            10,
+		TriesInMemory:            128,
+		DefaultTxsCacheSize:      20,
 		DefaultBroadcastInterval: 100 * time.Millisecond,
 	}
 	blockchain, _ := NewBlockChain(db, cacheConfig, config, engine, vm.Config{}, nil)
@@ -274,7 +328,7 @@ func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.S
 		GasLimit:   CalcGasLimit(parent, parent.GasLimit(), parent.GasLimit()),
 		Number:     new(big.Int).Add(parent.Number(), common.Big1),
 		Time:       time,
-		Extra:      make([]byte, 32),
+		Extra:      make([]byte, 65),
 	}
 }
 
