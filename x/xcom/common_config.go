@@ -9,6 +9,7 @@ const (
 	SlashingRule
 	RestrictingRule
 	RewardRule
+	GovernanceRule
 
 	// ......
 )
