@@ -188,7 +188,7 @@ func (s *snapshotDB) rmOldRecognizedBlockData() error {
 	var err error
 	s.recognized.Range(func(key, value interface{}) bool {
 		v := value.(blockData)
-		if s.current.HighestNum.Int64() > v.Number.Int64() {
+		if s.current.HighestNum.Int64() >= v.Number.Int64() {
 			s.recognized.Delete(key)
 			k := key.(common.Hash)
 			err = s.closeJournalWriter(k)
@@ -223,6 +223,8 @@ func (s *snapshotDB) getUnRecognizedHash() common.Hash {
 }
 
 func (s *snapshotDB) closeJournalWriter(hash common.Hash) error {
+	s.journalWriterLock.Lock()
+	defer s.journalWriterLock.Unlock()
 	if j, ok := s.journalw[hash]; ok {
 		if err := j.Close(); err != nil {
 			return errors.New("[snapshotdb]close  journal writer fail:" + err.Error())

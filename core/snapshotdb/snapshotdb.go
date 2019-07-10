@@ -103,8 +103,10 @@ type snapshotDB struct {
 	committed  []blockData
 	commitLock sync.RWMutex
 
-	journalw map[common.Hash]*journalWriter
-	storage  storage
+	journalw          map[common.Hash]*journalWriter
+	journalWriterLock sync.RWMutex
+
+	storage storage
 
 	corn *cron.Cron
 
@@ -445,6 +447,8 @@ func (s *snapshotDB) getFromRecognized(hash common.Hash, key []byte) ([]byte, er
 }
 
 func (s *snapshotDB) getFromCommitted(hash common.Hash, key []byte) ([]byte, error) {
+	s.commitLock.RLock()
+	defer s.commitLock.RUnlock()
 	for i := len(s.committed) - 1; i >= 0; i-- {
 		if s.committed[i].BlockHash == hash {
 			if v, err := s.committed[i].data.Get(key); err == nil {
