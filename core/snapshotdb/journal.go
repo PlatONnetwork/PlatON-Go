@@ -83,7 +83,9 @@ func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash c
 	if err := s.closeJournalWriter(hash); err != nil {
 		return err
 	}
+	s.journalWriterLock.Lock()
 	s.journalw[hash] = writers
+	s.journalWriterLock.Unlock()
 	return nil
 }
 
