@@ -5,9 +5,7 @@ import (
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -23,18 +21,6 @@ type restrictingInfo struct {
 type releaseAmountInfo struct {
 	height uint64    `json:"blockNumber"`   // blockNumber representation of the block number at the released epoch
 	amount *big.Int	 `json:"amount"`		// amount representation of the released amount
-}
-
-
-func buildStateDB (t *testing.T) xcom.StateDB{
-	db := ethdb.NewMemDatabase()
-	stateDb, err := state.New(common.Hash{}, state.NewDatabase(db))
-
-	if err != nil {
-		t.Errorf("new state db failed: %s", err.Error())
-	}
-
-	return stateDb
 }
 
 

@@ -527,6 +527,18 @@ func build_gov_data (state *state.StateDB){
 }
 
 
+
+func buildStateDB (t *testing.T) xcom.StateDB{
+	db := ethdb.NewMemDatabase()
+	stateDb, err := state.New(common.Hash{}, state.NewDatabase(db))
+
+	if err != nil {
+		t.Errorf("new state db failed: %s", err.Error())
+	}
+
+	return stateDb
+}
+
 func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 	account := addrArr[0]
 
