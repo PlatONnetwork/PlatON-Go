@@ -555,18 +555,6 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 	return nil
 }
 
-func (govPlugin *GovPlugin) TestTally(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.Proposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
-	vp, ok := proposal.(gov.VersionProposal)
-	if ok {
-		return govPlugin.tallyForVersionProposal(votedVerifierList, accuCnt, vp, blockHash, blockNumber, state)
-	}
-	tp, ok := proposal.(gov.TextProposal)
-	if ok {
-		return govPlugin.tallyForTextProposal(votedVerifierList, accuCnt, tp, blockHash, state)
-	}
-	err := errors.New("[GOV] TestTally(): proposal type error")
-	return err
-}
 
 // check if the node a verifier, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
