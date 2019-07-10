@@ -133,6 +133,21 @@ func Instance() DB {
 	return dbInstance
 }
 
+func copyDB(from, to *snapshotDB) {
+	to.path = from.path
+	to.snapshotLockC = from.snapshotLockC
+	to.snapshotLock = from.snapshotLock
+	to.current = from.current
+	to.baseDB = from.baseDB
+	to.unRecognized = from.unRecognized
+	to.recognized = from.recognized
+	to.committed = from.committed
+	to.journalw = from.journalw
+	to.storage = from.storage
+	to.corn = from.corn
+	to.closed = from.closed
+}
+
 func initDB() error {
 	s, err := openFile(dbpath, false)
 	if err != nil {
@@ -144,6 +159,9 @@ func initDB() error {
 		logger.Error(fmt.Sprint("get current file fail:", err))
 		return err
 	}
+	if dbInstance == nil {
+		dbInstance = new(snapshotDB)
+	}
 	if len(fds) > 0 {
 		logger.Info("begin recover")
 		db := new(snapshotDB)
@@ -151,7 +169,7 @@ func initDB() error {
 			logger.Error(fmt.Sprint("recover db fail:", err))
 			return err
 		}
-		dbInstance = db
+		copyDB(db, dbInstance)
 	} else {
 		logger.Info("begin newDB")
 		db, err := newDB(s)
@@ -159,7 +177,7 @@ func initDB() error {
 			logger.Error(fmt.Sprint("new db fail:", err))
 			return err
 		}
-		dbInstance = db
+		copyDB(db, dbInstance)
 	}
 	dbInstance.corn = cron.New()
 	if err := dbInstance.corn.AddFunc("@every 1s", dbInstance.schedule); err != nil {
@@ -600,8 +618,12 @@ func (s *snapshotDB) Clear() error {
 	if err := os.RemoveAll(s.path); err != nil {
 		return err
 	}
-	s = nil
+	//	s = nil
 	return nil
+}
+
+func (s *snapshotDB) Reset() {
+
 }
 
 func itrToMdb(itr iterator.Iterator, mdb *memdb.DB) error {
@@ -689,7 +711,6 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 }
 
 func (s *snapshotDB) Close() error {
-	logger.Info("db begin close")
 	//	runtime.SetFinalizer(s, nil)
 	if s == nil {
 		return nil
