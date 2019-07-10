@@ -42,6 +42,9 @@ import (
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
+//init active version 1.0.0
+var initActiveVersion = uint32(1<<16 | 0<<8 | 0)
+
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
@@ -249,6 +252,9 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	}
 	statedb.Commit(false)
 	statedb.Database().TrieDB().Commit(root, true)
+
+	//write the init active version
+	//statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(initActiveVersion))
 
 	return types.NewBlock(head, nil, nil)
 }
