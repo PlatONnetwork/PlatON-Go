@@ -336,15 +336,28 @@ func build_staking_data (){
 	queue = append(queue, v3)
 
 
-	val_Arr :=  &staking.Validator_array{
+	epoch_Arr :=  &staking.Validator_array{
 		Start: 1,
 		End: 22000,
 		Arr: queue,
 	}
 
-	stakingDB.SetVerfierList(blockHash, val_Arr)
-	stakingDB.SetPreValidatorList(blockHash, val_Arr)
-	stakingDB.SetCurrentValidatorList(blockHash, val_Arr)
+	pre_Arr :=  &staking.Validator_array{
+		Start: 0,
+		End: 0,
+		Arr: queue,
+	}
+
+	curr_Arr :=  &staking.Validator_array{
+		Start: 1,
+		End: 250,
+		Arr: queue,
+	}
+
+
+	stakingDB.SetVerfierList(blockHash, epoch_Arr)
+	stakingDB.SetPreValidatorList(blockHash, pre_Arr)
+	stakingDB.SetCurrentValidatorList(blockHash, curr_Arr)
 }
 
 

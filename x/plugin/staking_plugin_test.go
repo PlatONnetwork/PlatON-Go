@@ -269,13 +269,26 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 						fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 					ValidatorTerm: 0,
 				}
-				validatorQueue = append(validatorQueue, v)
+				validatorQueue[j] = v
+			}
+
+
+			epoch_Arr :=  &staking.Validator_array{
+				Start: 1,
+				End: 22000,
+				Arr: validatorQueue,
+			}
+
+			curr_Arr :=  &staking.Validator_array{
+				Start: 1,
+				End: 250,
+				Arr: validatorQueue,
 			}
 
 			// add Current Validators And Epoch Validators
-			stakingDB.SetVerfierList(curr_Hash, val_Arr)
+			stakingDB.SetVerfierList(curr_Hash, epoch_Arr)
 			//stakingDB.SetPreValidatorList(blockHash, val_Arr)
-			stakingDB.SetCurrentValidatorList(curr_Hash, val_Arr)
+			stakingDB.SetCurrentValidatorList(curr_Hash, curr_Arr)
 
 		}else {
 
@@ -340,11 +353,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 		}
 
-		// SnapshotDB  Commit
-		if err := sndb.Commit(curr_Hash); nil != err {
-			t.Errorf("Failed to snapshotDB Commit, err: %v", err)
-			return
-		}
+
 
 
 		/**
@@ -355,6 +364,13 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			t.Errorf("Failed to Election, blockNumber: %d, err: %v", i+1, err)
 			return
 		}
+
+		// SnapshotDB  Commit
+		if err := sndb.Commit(curr_Hash); nil != err {
+			t.Errorf("Failed to snapshotDB Commit, err: %v", err)
+			return
+		}
+
 		parentHash = curr_Hash
 	}
 }
@@ -378,12 +394,12 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	stakingDB := staking.NewStakingDB ()
 
 
-	rlpHash := func (x interface{}) (h common.Hash) {
-		hw := sha3.NewKeccak256()
-		rlp.Encode(hw, x)
-		hw.Sum(h[:0])
-		return h
-	}
+	//rlpHash := func (x interface{}) (h common.Hash) {
+	//	hw := sha3.NewKeccak256()
+	//	rlp.Encode(hw, x)
+	//	hw.Sum(h[:0])
+	//	return h
+	//}
 
 	headerMap := make(map[int]*types.Header, 0)
 	parentHash := common.ZeroHash
@@ -408,7 +424,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			ParentHash: parentHash,
 			Coinbase: sender,
 			Root: root,
-			TxHash: rlpHash(&types.Transaction{}),
+			TxHash: root,
 			ReceiptHash: root,
 			Number: blockNum,
 			Time: big.NewInt(int64(121321213*i)),
@@ -492,13 +508,25 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 						fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 					ValidatorTerm: 0,
 				}
-				validatorQueue = append(validatorQueue, v)
+				validatorQueue[j] = v
+			}
+
+			epoch_Arr :=  &staking.Validator_array{
+				Start: 1,
+				End: 22000,
+				Arr: validatorQueue,
+			}
+
+			curr_Arr :=  &staking.Validator_array{
+				Start: 1,
+				End: 250,
+				Arr: validatorQueue,
 			}
 
 			// add Current Validators And Epoch Validators
-			stakingDB.SetVerfierList(curr_Hash, val_Arr)
+			stakingDB.SetVerfierList(curr_Hash, epoch_Arr)
 			//stakingDB.SetPreValidatorList(blockHash, val_Arr)
-			stakingDB.SetCurrentValidatorList(curr_Hash, val_Arr)
+			stakingDB.SetCurrentValidatorList(curr_Hash, curr_Arr)
 
 		}else {
 
@@ -570,6 +598,12 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		}
 
 		if i+1 == 230 || i+1 == 250 {
+			if i+1 == 230 {
+				t.Log("230:", header.Hash().String(), curr_Hash)
+			}
+			if i+1 == 250 {
+				t.Log("250:", header.Hash().String(), curr_Hash)
+			}
 			headerMap[i+1] = header
 		}
 
@@ -587,8 +621,30 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	plugin.StakingInstance().SetEventMux(eventMux)
 
+	//t.Log("外面230:", headerMap[230].Hash().String())
+	//t.Log("外面250:", headerMap[250].Hash().String())
+
+	json230, _ := json.Marshal(headerMap[230])
+	t.Log("230 json:", string(json230))
+
+	json250, _ := json.Marshal(headerMap[250])
+	t.Log("250 json:", string(json250))
+
 	block230 := types.NewBlock(headerMap[230], nil, nil)
 	block250 := types.NewBlock(headerMap[250], nil, nil)
+
+	//t.Log("计算230:", block230.Hash().String())
+	//t.Log("计算250:", block250.Hash().String())
+	//
+	//t.Log("头230:", block230.Header().Hash().String())
+	//t.Log("头250:", block250.Header().Hash().String())
+
+
+	blockJson230, _ := json.Marshal(block230.Header())
+	t.Log("block230 json:", string(blockJson230))
+
+	blockJson250, _ := json.Marshal(block250.Header())
+	t.Log("block250 json:", string(blockJson250))
 
 	err = plugin.StakingInstance().Confirmed(block230)
 	if nil != err {
