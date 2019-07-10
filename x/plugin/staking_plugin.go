@@ -65,6 +65,14 @@ func StakingInstance() *StakingPlugin {
 	return stk
 }
 
+func ClearStakingPlugin() error {
+	if nil == stk {
+		return common.NewSysError("the StakingPlugin already be nil")
+	}
+	stk = nil
+	return nil
+}
+
 func (sk *StakingPlugin) SetEventMux(eventMux *event.TypeMux) {
 	sk.eventMux = eventMux
 }
@@ -191,16 +199,22 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *staking.Candidate) error {
 
 	// Query current active version
-	curr_version := govPlugin.GetActiveVersion(state)
+	curr_version := govp.GetActiveVersion(state)
+
+	currLargeVersion := xutil.CalcLargeVersion(curr_version)
+	inputLargeVersion := xutil.CalcLargeVersion(processVersion)
 
 	var isDeclareVersion bool
 
-	if processVersion < curr_version {
+	// Compare Large version
+	// Just like that:
+	// 2.1.x == 2.1.x; 2.1.x > 2.0.x
+	if inputLargeVersion < currLargeVersion {
 		return ProcessVersionErr
-	} else if processVersion > curr_version {
+	} else if inputLargeVersion > currLargeVersion {
 		isDeclareVersion = true
 	}
-	can.ProcessVersion = curr_version
+	can.ProcessVersion = currLargeVersion
 
 	// from account free von
 	if typ == FreeOrigin {
@@ -218,7 +232,7 @@ amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *st
 
 	} else if typ == RestrictingPlanOrigin { //  from account RestrictingPlan von
 
-		err := RestrictingPtr.PledgeLockFunds(can.StakingAddress, amount, state)
+		err := rt.PledgeLockFunds(can.StakingAddress, amount, state)
 		if nil != err {
 			log.Error("Failed to CreateCandidate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
 				"err", err)
@@ -243,7 +257,7 @@ amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *st
 
 	if isDeclareVersion {
 		// Declare new Version
-		err := govPlugin.DeclareVersion(can.StakingAddress, can.NodeId, processVersion, blockHash, blockNumber.Uint64(), state)
+		err := govp.DeclareVersion(can.StakingAddress, can.NodeId, processVersion, blockHash, blockNumber.Uint64(), state)
 		if nil != err {
 			log.Error("Call CreateCandidate with govplugin DelareVersion failed", "err", err)
 		}
@@ -299,7 +313,7 @@ amount *big.Int, typ uint16, can *staking.Candidate) error {
 
 	} else {
 
-		err := RestrictingPtr.PledgeLockFunds(can.StakingAddress, amount, state)
+		err := rt.PledgeLockFunds(can.StakingAddress, amount, state)
 		if nil != err {
 			log.Error("Failed to EditorCandidate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
 				"err", err)
@@ -391,7 +405,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 
 	if can.RestrictingPlanHes.Cmp(common.Big0) > 0 {
 
-		err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
+		err := rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 		if nil != err {
 			log.Error("Failed to WithdrewCandidate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 				"err", err)
@@ -498,7 +512,7 @@ func (sk *StakingPlugin) handleUnStake(state xcom.StateDB, blockHash common.Hash
 	refundRestrictingPlanFn := func(title string, balance *big.Int) (*big.Int, error) {
 
 		if balance.Cmp(common.Big0) > 0 {
-			err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, balance, state)
+			err := rt.ReturnLockFunds(can.StakingAddress, balance, state)
 			if nil != err {
 				log.Error("Failed to HandleUnCandidateItem on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 					title, balance, "err", err)
@@ -598,7 +612,7 @@ func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blo
 
 	} else if typ == RestrictingPlanOrigin { //  from account RestrictingPlan von
 
-		err := RestrictingPtr.PledgeLockFunds(delAddr, amount, state)
+		err := rt.PledgeLockFunds(delAddr, amount, state)
 		if nil != err {
 			log.Error("Failed to Delegate on stakingPlugin: call Restricting PledgeLockFunds() is failed",
 				"err", err)
@@ -695,7 +709,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			// When remain is greater than or equal to del.RestrictingPlanHes/del.RestrictingPlan
 			if remainTmp.Cmp(restrictingPlanTmp) >= 0 && restrictingPlanTmp.Cmp(common.Big0) > 0 {
 
-				err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, restrictingPlanTmp, state)
+				err := rt.ReturnLockFunds(can.StakingAddress, restrictingPlanTmp, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"err", err)
@@ -708,7 +722,7 @@ func (sk *StakingPlugin) WithdrewDelegate(state xcom.StateDB, blockHash common.H
 			} else if remainTmp.Cmp(restrictingPlanTmp) < 0 {
 				// When remain is less than or equal to del.RestrictingPlanHes/del.RestrictingPlan
 
-				err := RestrictingPtr.ReturnLockFunds(can.StakingAddress, remainTmp, state)
+				err := rt.ReturnLockFunds(can.StakingAddress, remainTmp, state)
 				if nil != err {
 					log.Error("Failed to WithdrewDelegate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						"err", err)
@@ -934,7 +948,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 		refundRestrictingPlanFn := func(title string, balance *big.Int) (*big.Int, error) {
 
 			if balance.Cmp(common.Big0) > 0 {
-				err := RestrictingPtr.ReturnLockFunds(delAddr, balance, state)
+				err := rt.ReturnLockFunds(delAddr, balance, state)
 				if nil != err {
 					log.Error("Failed to HandleUnDelegateItem on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 						title, balance, "err", err)
@@ -989,7 +1003,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 				if remain.Cmp(balance) >= 0 {
 
-					err := RestrictingPtr.ReturnLockFunds(delAddr, balance, state)
+					err := rt.ReturnLockFunds(delAddr, balance, state)
 					if nil != err {
 						log.Error("Failed to HandleUnDelegateItem on stakingPlugin: call Restricting ReturnLockFunds() return "+title+" is failed",
 							title, balance, "err", err)
@@ -998,7 +1012,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 					return common.Big0, new(big.Int).Sub(remain, balance), nil
 				} else {
 
-					err := RestrictingPtr.ReturnLockFunds(delAddr, remain, state)
+					err := rt.ReturnLockFunds(delAddr, remain, state)
 					if nil != err {
 						log.Error("Failed to HandleUnDelegateItem on stakingPlugin: call Restricting ReturnLockFunds() return "+title+" is failed",
 							"remain", remain, "err", err)
@@ -1772,7 +1786,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		}
 		tmpQueue = append(tmpQueue, v)
 	}
-
+	// TODO
 	var shiftQueue staking.ValidatorQueue
 
 	switch {
@@ -1783,8 +1797,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	case len(tmpQueue) > 0 && len(tmpQueue) <= int(xcom.ShiftValidatorNum):
 		shiftQueue = tmpQueue
 	default:
-		// elect ShiftValidatorNum (default is 8) validators by vrf
-		// TODO vrf
+		/**
+		elect ShiftValidatorNum (default is 8) validators by vrf
+		 */
 		if queue, err := sk.VrfElection(tmpQueue, header.Nonce.Bytes(), header.ParentHash); nil != err {
 			return err
 		}else {
@@ -1944,7 +1959,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			state.AddBalance(vm.RewardManagerPoolAddr, balance)
 
 			if isNotify {
-				err := RestrictingPtr.SlashingNotify(can.StakingAddress, balance, state)
+				err := rt.SlashingNotify(can.StakingAddress, balance, state)
 				if nil != err {
 					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "amount",
 						balance, "slash:", title, "err", err)
@@ -1961,7 +1976,7 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 			state.AddBalance(vm.RewardManagerPoolAddr, remain)
 
 			if isNotify {
-				err := RestrictingPtr.SlashingNotify(can.StakingAddress, remain, state)
+				err := rt.SlashingNotify(can.StakingAddress, remain, state)
 				if nil != err {
 					log.Error("Failed to SlashCandidates: call restrictingPlugin SlashingNotify() failed", "amount",
 						remain, "slash:", title, "err", err)
@@ -2142,62 +2157,83 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 
 func (sk *StakingPlugin) GetLastNumber(blockNumber uint64) uint64 {
 
+	// Find from previous
 	pre, err := sk.db.GetPreValidatorListByIrr()
-	if nil != err {
+	if nil != err &&  err != snapshotdb.ErrNotFound {
 		return 0
 	}
 
-	if nil != pre && pre.Start <= blockNumber && pre.End >= blockNumber {
-		return pre.End
+	if nil == err {
+		if nil != pre && pre.Start <= blockNumber && pre.End >= blockNumber {
+			return pre.End
+		}
 	}
 
+	// Find from current
 	curr, err := sk.db.GetCurrentValidatorListByIrr()
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		return 0
 	}
 
-	if nil != curr && curr.Start <= blockNumber && curr.End >= blockNumber {
-		return curr.End
+	if nil == err {
+		if nil != curr && curr.Start <= blockNumber && curr.End >= blockNumber {
+			return curr.End
+		}
 	}
 
+	// Find from next
 	next, err := sk.db.GetNextValidatorListByIrr()
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		return 0
 	}
 
-	if nil != next && next.Start <= blockNumber && next.End >= blockNumber {
-		return next.End
+	if nil == err {
+		if nil != next && next.Start <= blockNumber && next.End >= blockNumber {
+			return next.End
+		}
 	}
+
 	return 0
 }
 
 func (sk *StakingPlugin) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
+
+	// Find from previous
 	pre, err := sk.db.GetPreValidatorListByIrr()
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		return nil, err
 	}
 
-	if nil != pre && pre.Start <= blockNumber && pre.End >= blockNumber {
-		return build_CBFT_Validators(pre.Arr), nil
+	if nil == err {
+		if nil != pre && pre.Start <= blockNumber && pre.End >= blockNumber {
+			return build_CBFT_Validators(pre.Arr), nil
+		}
 	}
 
+	// Find from current
 	curr, err := sk.db.GetCurrentValidatorListByIrr()
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		return nil, err
 	}
 
-	if nil != curr && curr.Start <= blockNumber && curr.End >= blockNumber {
-		return build_CBFT_Validators(curr.Arr), nil
+	if nil == err {
+		if nil != curr && curr.Start <= blockNumber && curr.End >= blockNumber {
+			return build_CBFT_Validators(curr.Arr), nil
+		}
 	}
 
+	// Find from next
 	next, err := sk.db.GetNextValidatorListByIrr()
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		return nil, err
 	}
 
-	if nil != next && next.Start <= blockNumber && next.End >= blockNumber {
-		return build_CBFT_Validators(next.Arr), nil
+	if nil == err {
+		if nil != next && next.Start <= blockNumber && next.End >= blockNumber {
+			return build_CBFT_Validators(next.Arr), nil
+		}
 	}
+
 
 	return nil, common.BizErrorf("No Found Validators by blockNumber: %d", blockNumber)
 }

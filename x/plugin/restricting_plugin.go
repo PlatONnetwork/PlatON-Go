@@ -45,13 +45,21 @@ type Result struct {
 type RestrictingPlugin struct {
 }
 
-var RestrictingPtr *RestrictingPlugin = nil
+var rt *RestrictingPlugin = nil
 
 func RestrictingInstance() *RestrictingPlugin {
-	if RestrictingPtr == nil {
-		RestrictingPtr = &RestrictingPlugin{}
+	if rt == nil {
+		rt = &RestrictingPlugin{}
 	}
-	return RestrictingPtr
+	return rt
+}
+
+func ClearRestricting() error {
+	if nil == rt {
+		return common.NewSysError("the RestrictingPlugin already be nil")
+	}
+	rt = nil
+	return nil
 }
 
 // BeginBlock does something like check input params before execute transactions,
@@ -229,8 +237,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	return nil
 }
 
-// PledgeLockFunds transfer the money from the restricting contract account to the staking contract account,
-// the first output returns true when business is success, else return false
+// PledgeLockFunds transfer the money from the restricting contract account to the staking contract account
 func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
 	restrictingKey := restricting.GetRestrictingKey(account)
@@ -272,7 +279,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	return nil
 }
 
-// ReturnLockFunds transfer the money from the staking contract account  to the restricting contract account,
+// ReturnLockFunds transfer the money from the staking contract account to the restricting contract account
 func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
 	restrictingKey := restricting.GetRestrictingKey(account)

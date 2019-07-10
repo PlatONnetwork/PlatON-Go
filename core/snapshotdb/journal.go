@@ -72,6 +72,7 @@ func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash c
 	if err != nil {
 		return err
 	}
+
 	writer, err := writers.journal.Next()
 	if err != nil {
 		return err
@@ -79,7 +80,9 @@ func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash c
 	if _, err := writer.Write(h); err != nil {
 		return err
 	}
-	writers.journal.Flush()
+	if err := writers.journal.Flush(); err != nil {
+		return err
+	}
 	if err := s.closeJournalWriter(hash); err != nil {
 		return err
 	}
@@ -94,15 +97,16 @@ func (s *snapshotDB) writeJournalBody(hash common.Hash, value []byte) error {
 	if !ok {
 		return errors.New("not found journal writer")
 	}
-
 	toWrite, err := jw.journal.Next()
 	if err != nil {
-		return err
+		return errors.New("next err:" + err.Error())
 	}
 	if _, err := toWrite.Write(value); err != nil {
-		return err
+		return errors.New("write err:" + err.Error())
 	}
-	jw.journal.Flush()
+	if err := jw.journal.Flush(); err != nil {
+		return errors.New("flush err:" + err.Error())
+	}
 	return nil
 }
 

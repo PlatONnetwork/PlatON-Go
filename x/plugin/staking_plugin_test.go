@@ -144,21 +144,28 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 
 func TestStakingPlugin_CreateCandidate(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
+	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	/**
@@ -167,33 +174,43 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 	if err := create_staking(state, blockNumber, blockHash, 1, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
 	}
+
 }
 
 func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
+	build_gov_data(state)
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
 
 	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
+		return
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	/**
@@ -204,30 +221,39 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 }
 
 func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
+	build_gov_data(state)
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
 
 	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
+		return
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	/**
@@ -246,31 +272,40 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 }
 
 func TestStakingPlugin_GetCandidateList(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
+	build_gov_data(state)
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 
 	for i := 0; i < 4; i++ {
 		if err := create_staking(state, blockNumber, blockHash, i, 0, t); nil != err {
 			t.Error("Failed to Create num: " + fmt.Sprint(i) + " Staking", err)
+			return
 		}
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	/**
@@ -285,30 +320,39 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 }
 
 func TestStakingPlugin_EditorCandidate(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
+	build_gov_data(state)
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
 
 	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
+		return
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Errorf("Commit 1 err: %v", err)
+		return
 	}
 
 	// Get Candidate Info
@@ -316,6 +360,7 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
+		return
 	}
 
 	/**
@@ -327,10 +372,12 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	c.Details = "This is buidu website ?"
 	if err := plugin.StakingInstance().EditorCandidate(blockHash2, blockNumber2, c); nil != err {
 		t.Error("Failed to EditorCandidate", err)
+		return
 	}
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Commit 2 err: %v", err)
+		return
 	}
 
 	// get Candidate info after edit
@@ -339,30 +386,39 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 }
 
 func TestStakingPlugin_IncreaseStaking(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
+	build_gov_data(state)
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
 
 	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
+		return
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Errorf("Commit 1 err: %v", err)
+		return
 	}
 
 	// Get Candidate Info
@@ -370,6 +426,7 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
+		return
 	}
 
 	/**
@@ -377,10 +434,12 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 	 */
 	if err := plugin.StakingInstance().IncreaseStaking(state, blockHash2, blockNumber2, common.Big256, uint16(0), c); nil != err {
 		t.Error("Failed to IncreaseStaking", err)
+		return
 	}
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Errorf("Commit 2 err: %v", err)
+		return
 	}
 
 	// get Candidate info
@@ -398,30 +457,39 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 }
 
 func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
+	build_gov_data(state)
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
 
 	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
+		return
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	// Get Candidate Info
@@ -429,6 +497,7 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
+		return
 	}
 
 	/**
@@ -436,6 +505,7 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 	 */
 	if err := plugin.StakingInstance().WithdrewCandidate(state, blockHash2, blockNumber2,  c); nil != err {
 		t.Error("Failed to WithdrewCandidate", err)
+		return
 	}
 
 	t.Log("Finish WithdrewCandidate ~~")
@@ -445,26 +515,33 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 }
 
 func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
+	build_gov_data(state)
 
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
 
 	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
+		return
 	}
 
 
@@ -482,6 +559,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Errorf("Commit 1 err: %v", err)
+		return
 	}
 
 	// Get Candidate Info
@@ -489,6 +567,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock2 err", err)
+		return
 	}
 
 	/**
@@ -509,30 +588,39 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 }
 
 func TestStakingPlugin_Delegate(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
+	build_gov_data(state)
+
 	sndb := snapshotdb.Instance()
 
+	defer func() {
+		sndb.Clear()
+	}()
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
 
 	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
+		return
 	}
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	// Get Candidate Info
@@ -541,6 +629,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 	/**
@@ -549,10 +638,12 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	_, err = delegate(state, blockHash2,  blockNumber2, c, 0, index, t)
 	if nil != err {
 		t.Error("Failed to Delegate:", err)
+		return
 	}
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
+
 	}
 	t.Log("Finish Delegate ~~")
 	getCandidate(blockHash2, index, t)
@@ -562,26 +653,33 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 
 func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
+	build_gov_data(state)
 
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
 
 	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
+		return
 	}
 
 	// Get Candidate Info
@@ -596,6 +694,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	t.Log("Finish delegate ~~")
@@ -604,6 +703,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 	/**
@@ -624,31 +724,39 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 }
 
 func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
+	build_gov_data(state)
 
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
 
 	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
+		return
 	}
 
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	t.Log("Finish delegate ~~")
@@ -657,6 +765,7 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -669,6 +778,7 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
+		return
 	}
 
 	t.Log("Finished Delegate ~~")
@@ -677,31 +787,40 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 }
 
 func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
+	build_gov_data(state)
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
 
 	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
+		return
 	}
 
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 
@@ -710,6 +829,7 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 	t.Log("Start delegate ~~")
@@ -722,6 +842,7 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
+		return
 	}
 
 	t.Log("Finished Delegate ~~")
@@ -740,20 +861,27 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 }
 
 func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
-	sndb := snapshotdb.Instance()
+	build_gov_data(state)
 
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 
@@ -761,6 +889,7 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	for i := 0; i < 4; i ++ {
 		if err := create_staking(state, blockNumber, blockHash, i, 0, t); nil != err {
 			t.Error("Failed to Create Staking", err)
+			return
 		}
 	}
 
@@ -773,6 +902,7 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 		_, err := delegate(state, blockHash,  blockNumber, c, 0, i, t)
 		if nil != err {
 			t.Errorf("Failed to Delegate: Num: %d, error: %v", i, err)
+			return
 		}
 
 		//t.Log("First: Del => Can:", addrArr[i+1].Hex(), c.NodeId.String(), c.StakingBlockNum)
@@ -782,12 +912,14 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -799,6 +931,7 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 		_, err := delegate(state, blockHash2,  blockNumber2, c, 0, i, t)
 		if nil != err {
 			t.Errorf("Failed to Delegate: Num: %d, error: %v", i, err)
+			return
 		}
 
 		//t.Log("Second: Del => Can:", addrArr[i+1].Hex(), c.NodeId.String(), c.StakingBlockNum)
@@ -809,6 +942,7 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
+		return
 	}
 
 	t.Log("Finished Delegate ~~")
@@ -829,26 +963,34 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 
 
-	defer func() {
-		sndb.Clear()
-	}()
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
+	build_gov_data(state)
+
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	index := 1
 
 	if err := create_staking(state, blockNumber, blockHash, index, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
+		return
 	}
 
 
@@ -863,10 +1005,12 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 	t.Log("Finished Delegate ~~")
@@ -927,6 +1071,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
+		return
 	}
 
 	t.Log("Finished HandleUnDelegateItem ~~")
@@ -941,22 +1086,28 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 }
 
 func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
-	sndb := snapshotdb.Instance()
 
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	for i := 0; i < 1000; i ++ {
@@ -1091,6 +1242,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 
@@ -1104,6 +1256,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 	err = plugin.StakingInstance().ElectNextVerifierList(blockHash2, targetNumInt.Uint64())
@@ -1115,23 +1268,30 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 func TestStakingPlugin_Election(t *testing.T) {
 
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	for i := 0; i < 1000; i ++ {
@@ -1286,6 +1446,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	/*
@@ -1293,6 +1454,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	*/
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 	header := &types.Header{
@@ -1309,23 +1471,31 @@ func TestStakingPlugin_Election(t *testing.T) {
 }
 
 func TestStakingPlugin_Switch(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	for i := 0; i < 1000; i ++ {
@@ -1482,10 +1652,12 @@ func TestStakingPlugin_Switch(t *testing.T) {
 	// Commit Block 1
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -1500,16 +1672,19 @@ func TestStakingPlugin_Switch(t *testing.T) {
 	err = plugin.StakingInstance().Election(blockHash2, header)
 	if nil != err {
 		t.Errorf("Failed to Election, err: %v", err)
+		return
 	}
 
 
 	// Commit Block 2
 	if err := sndb.Commit(blockHash2); nil != err {
 		t.Error("Commit 2 err", err)
+		return
 	}
 
 	if err := sndb.NewBlock(blockNumber3, blockHash2, blockHash3); nil != err {
 		t.Error("newBlock 3 err", err)
+		return
 	}
 
 	/**
@@ -1523,22 +1698,29 @@ func TestStakingPlugin_Switch(t *testing.T) {
 }
 
 func TestStakingPlugin_SlashCandidates(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	// Will be Slashing candidate
@@ -1680,6 +1862,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	/**
@@ -1712,23 +1895,30 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 
@@ -1806,10 +1996,12 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 	// Commit Block 1
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 	/**
@@ -1827,24 +2019,29 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 
 func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 
-
-	defer func() {
-		sndb.Clear()
-	}()
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 
@@ -1922,10 +2119,12 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	// Commit Block 1
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 	/**
@@ -1934,28 +2133,33 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	err = plugin.StakingInstance().ProposalPassedNotify(blockHash2, blockNumber2.Uint64(), nodeIdArr, promoteVersion)
 	if nil != err {
 		t.Errorf("Failed to ProposalPassedNotify, err: %v", err)
-		return
 	}
 }
 
 
 func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	for i := 0; i < 1000; i ++ {
@@ -2090,9 +2294,11 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -2111,7 +2317,6 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 	canQueue, err = plugin.StakingInstance().GetCandidateONEpoch(blockHash2, blockNumber2.Uint64(), plugin.QueryStartIrr)
 	if nil != err {
 		t.Errorf("Failed to GetCandidateONEpoch by QueryStartIrr, err: %v", err)
-		return
 	}
 	canArr, _ = json.Marshal(canQueue)
 	t.Log("GetCandidateONEpoch by QueryStartIrr:", string(canArr))
@@ -2120,23 +2325,29 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 
 
-	defer func() {
-		sndb.Clear()
-	}()
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	for i := 0; i < 1000; i ++ {
@@ -2284,9 +2495,11 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -2316,23 +2529,31 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 
 
 func TestStakingPlugin_GetValidatorList(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	for i := 0; i < 1000; i ++ {
@@ -2480,9 +2701,11 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -2511,23 +2734,30 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 
 func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	for i := 0; i < 1000; i ++ {
@@ -2659,9 +2889,11 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 	/**
@@ -2688,23 +2920,30 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
 
 func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	for i := 0; i < 1000; i ++ {
@@ -2852,9 +3091,11 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -2874,23 +3115,31 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 }
 
 func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	for i := 0; i < 1000; i ++ {
@@ -3022,9 +3271,11 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -3042,23 +3293,30 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 }
 
 func TestStakingPlugin_IsCandidate(t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	nodeIdArr := make([]discover.NodeID, 0)
@@ -3136,9 +3394,11 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -3160,24 +3420,29 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 
 
-
-	defer func() {
-		sndb.Clear()
-	}()
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	nodeIdArr := make([]discover.NodeID, 0)
@@ -3331,9 +3596,11 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -3358,24 +3625,29 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
 
-
-	defer func() {
-		sndb.Clear()
-	}()
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	nodeIdArr := make([]discover.NodeID, 0)
@@ -3517,9 +3789,11 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -3545,13 +3819,563 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 // for consensus
 func TestStakingPlugin_GetLastNumber(t *testing.T) {
 
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
+
+	state, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+		return
+	}
+	newPlugins()
+
+	build_gov_data(state)
+
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
+	xcom.NewVrfHandler(common.ZeroHash.Bytes())
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Error("newBlock err", err)
+		return
+	}
+
+	for i := 0; i < 1000; i ++ {
+
+		var index int
+		if i >= len(balanceStr) {
+			index = i%(len(balanceStr)-1)
+		}
+
+		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
+
+		mrand.Seed(time.Now().UnixNano())
+
+		weight := mrand.Intn(1000000000)
+
+		ii := mrand.Intn(len(chaList))
+
+		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
+
+		privateKey, err := crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			return
+		}
+
+		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+		privateKey, err = crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random Address private key: %v", err)
+			return
+		}
+
+		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+
+		canTmp := &staking.Candidate{
+			NodeId:          nodeId,
+			StakingAddress:  sender,
+			BenifitAddress:  addr,
+			StakingBlockNum: uint64(i),
+			StakingTxIndex:  uint32(index),
+			Shares:          balance,
+
+			// Prevent null pointer initialization
+			Released: common.Big0,
+			ReleasedHes: common.Big0,
+			RestrictingPlan: common.Big0,
+			RestrictingPlanHes: common.Big0,
+
+			Description: staking.Description{
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+			},
+		}
+
+		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
+			initProcessVersion, 0, canAddr, canTmp)
+
+		if nil != err {
+			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
+			return
+		}
+	}
+
+	stakingDB := staking.NewStakingDB()
+
+	// build genesis VerifierList
+
+	start := uint64(1)
+	end := xcom.EpochSize*xcom.ConsensusSize
+
+	new_verifierArr := &staking.Validator_array{
+		Start: start,
+		End:   end,
+	}
+
+
+	queue := make(staking.ValidatorQueue, 0)
+
+	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
+	if err := iter.Error(); nil != err {
+		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
+		return
+	}
+
+	defer iter.Release()
+
+	count := 0
+	for iter.Valid(); iter.Next(); {
+		if uint64(count) == xcom.EpochValidatorNum {
+			break
+		}
+		addrSuffix := iter.Value()
+		var can *staking.Candidate
+
+		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
+		if nil != err {
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			return
+		}
+
+		addr := common.BytesToAddress(addrSuffix)
+
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
+
+		val := &staking.Validator{
+			NodeAddress:   addr,
+			NodeId:        can.NodeId,
+			StakingWeight: powerStr,
+			ValidatorTerm: 0,
+		}
+		queue = append(queue, val)
+		count ++
+	}
+
+	new_verifierArr.Arr = queue
+
+
+	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		return
+	}
+
+	// build gensis current validatorList
+	new_validatorArr := &staking.Validator_array{
+		Start: start,
+		End:   xcom.ConsensusSize,
+	}
+
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+
+	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		return
+	}
+
+
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+		return
+	}
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
+		return
+	}
+
+
+	/**
+	Start  GetLastNumber
+	*/
+	endNumber := plugin.StakingInstance().GetLastNumber(blockNumber2.Uint64())
+
+	t.Log("GetLastNumber the endNumber is:", endNumber)
+
+
+
 }
 
 func TestStakingPlugin_GetValidator(t *testing.T) {
 
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
+
+	state, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+		return
+	}
+	newPlugins()
+
+	build_gov_data(state)
+
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
+	xcom.NewVrfHandler(common.ZeroHash.Bytes())
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Error("newBlock err", err)
+		return
+	}
+
+	for i := 0; i < 1000; i ++ {
+
+		var index int
+		if i >= len(balanceStr) {
+			index = i%(len(balanceStr)-1)
+		}
+
+		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
+
+		mrand.Seed(time.Now().UnixNano())
+
+		weight := mrand.Intn(1000000000)
+
+		ii := mrand.Intn(len(chaList))
+
+		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
+
+		privateKey, err := crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			return
+		}
+
+		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+		privateKey, err = crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random Address private key: %v", err)
+			return
+		}
+
+		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+
+		canTmp := &staking.Candidate{
+			NodeId:          nodeId,
+			StakingAddress:  sender,
+			BenifitAddress:  addr,
+			StakingBlockNum: uint64(i),
+			StakingTxIndex:  uint32(index),
+			Shares:          balance,
+
+			// Prevent null pointer initialization
+			Released: common.Big0,
+			ReleasedHes: common.Big0,
+			RestrictingPlan: common.Big0,
+			RestrictingPlanHes: common.Big0,
+
+			Description: staking.Description{
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+			},
+		}
+
+		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
+			initProcessVersion, 0, canAddr, canTmp)
+
+		if nil != err {
+			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
+			return
+		}
+	}
+
+	stakingDB := staking.NewStakingDB()
+
+	// build genesis VerifierList
+
+	start := uint64(1)
+	end := xcom.EpochSize*xcom.ConsensusSize
+
+	new_verifierArr := &staking.Validator_array{
+		Start: start,
+		End:   end,
+	}
+
+
+	queue := make(staking.ValidatorQueue, 0)
+
+	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
+	if err := iter.Error(); nil != err {
+		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
+		return
+	}
+
+	defer iter.Release()
+
+	count := 0
+	for iter.Valid(); iter.Next(); {
+		if uint64(count) == xcom.EpochValidatorNum {
+			break
+		}
+		addrSuffix := iter.Value()
+		var can *staking.Candidate
+
+		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
+		if nil != err {
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			return
+		}
+
+		addr := common.BytesToAddress(addrSuffix)
+
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
+
+		val := &staking.Validator{
+			NodeAddress:   addr,
+			NodeId:        can.NodeId,
+			StakingWeight: powerStr,
+			ValidatorTerm: 0,
+		}
+		queue = append(queue, val)
+		count ++
+	}
+
+	new_verifierArr.Arr = queue
+
+
+	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		return
+	}
+
+	// build gensis current validatorList
+	new_validatorArr := &staking.Validator_array{
+		Start: start,
+		End:   xcom.ConsensusSize,
+	}
+
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+
+	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		return
+	}
+
+
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+		return
+	}
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
+		return
+	}
+
+
+	/**
+	Start  GetValidator
+	*/
+	valArr, err := plugin.StakingInstance().GetValidator(blockNumber2.Uint64())
+	if nil != err {
+		t.Errorf("Failed to GetValidator, err: %v", err)
+	}
+
+	arrJson, _ := json.Marshal(valArr)
+	t.Log("GetValidator the validators is:", string(arrJson))
+
+
 }
 
 func TestStakingPlugin_IsCandidateNode(t *testing.T) {
+
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
+
+	state, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+		return
+	}
+	newPlugins()
+
+	build_gov_data(state)
+
+
+	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
+
+	xcom.NewVrfHandler(common.ZeroHash.Bytes())
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Error("newBlock err", err)
+		return
+	}
+
+	for i := 0; i < 1000; i ++ {
+
+		var index int
+		if i >= len(balanceStr) {
+			index = i%(len(balanceStr)-1)
+		}
+
+		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
+
+		mrand.Seed(time.Now().UnixNano())
+
+		weight := mrand.Intn(1000000000)
+
+		ii := mrand.Intn(len(chaList))
+
+		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
+
+		privateKey, err := crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			return
+		}
+
+		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+		privateKey, err = crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random Address private key: %v", err)
+			return
+		}
+
+		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+
+		canTmp := &staking.Candidate{
+			NodeId:          nodeId,
+			StakingAddress:  sender,
+			BenifitAddress:  addr,
+			StakingBlockNum: uint64(i),
+			StakingTxIndex:  uint32(index),
+			Shares:          balance,
+
+			// Prevent null pointer initialization
+			Released: common.Big0,
+			ReleasedHes: common.Big0,
+			RestrictingPlan: common.Big0,
+			RestrictingPlanHes: common.Big0,
+
+			Description: staking.Description{
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+			},
+		}
+
+		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
+			initProcessVersion, 0, canAddr, canTmp)
+
+		if nil != err {
+			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
+			return
+		}
+	}
+
+	stakingDB := staking.NewStakingDB()
+
+	// build genesis VerifierList
+
+	start := uint64(1)
+	end := xcom.EpochSize*xcom.ConsensusSize
+
+	new_verifierArr := &staking.Validator_array{
+		Start: start,
+		End:   end,
+	}
+
+
+	queue := make(staking.ValidatorQueue, 0)
+
+	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
+	if err := iter.Error(); nil != err {
+		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
+		return
+	}
+
+	defer iter.Release()
+
+	count := 0
+	for iter.Valid(); iter.Next(); {
+		if uint64(count) == xcom.EpochValidatorNum {
+			break
+		}
+		addrSuffix := iter.Value()
+		var can *staking.Candidate
+
+		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
+		if nil != err {
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			return
+		}
+
+		addr := common.BytesToAddress(addrSuffix)
+
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
+
+		val := &staking.Validator{
+			NodeAddress:   addr,
+			NodeId:        can.NodeId,
+			StakingWeight: powerStr,
+			ValidatorTerm: 0,
+		}
+		queue = append(queue, val)
+		count ++
+	}
+
+	new_verifierArr.Arr = queue
+
+
+	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		return
+	}
+
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+		return
+	}
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
+		return
+	}
+
+
+	/**
+	Start  IsCandidateNode
+	*/
+	yes := plugin.StakingInstance().IsCandidateNode(nodeIdArr[0])
+
+	t.Log("IsCandidateNode the flag is:", yes)
 
 }
 
@@ -3588,7 +4412,8 @@ func TestStakingPlugin_ProbabilityElection(t *testing.T) {
 	}
 	result, err := plugin.StakingInstance().ProbabilityElection(vqList, curentNonce, preNonces)
 	if nil != err {
-		t.Error(err)
+		t.Error("Failed to ProbabilityElection, err:", err)
+		return
 	}
 	t.Log("election success", result)
 	for _, v := range result {
@@ -3601,22 +4426,29 @@ Expand test cases
 */
 
 func Test_IteratorCandidate (t *testing.T) {
-	defer func() {
-		sndb.Clear()
-	}()
+
+
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
+		return
 	}
 	newPlugins()
 
 	build_gov_data(state)
 
+
 	sndb := snapshotdb.Instance()
+	defer func() {
+		sndb.Clear()
+	}()
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	for i := 0; i < 1000; i ++ {
@@ -3691,11 +4523,13 @@ func Test_IteratorCandidate (t *testing.T) {
 	// commit
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Error("Commit 1 err", err)
+		return
 	}
 
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Error("newBlock 2 err", err)
+		return
 	}
 
 
@@ -3727,15 +4561,17 @@ func Test_IteratorCandidate (t *testing.T) {
 
 func Test_Iterator (t *testing.T) {
 
+
+
+
+	sndb := snapshotdb.Instance()
 	defer func() {
 		sndb.Clear()
 	}()
 
-
-	sndb := snapshotdb.Instance()
-
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
 		t.Error("newBlock err", err)
+		return
 	}
 
 	initProcessVersion := uint32(1<<16 | 0<<8 | 0) // 65536

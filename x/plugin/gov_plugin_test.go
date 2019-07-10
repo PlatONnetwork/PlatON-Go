@@ -231,7 +231,7 @@ func TestGovPlugin_Vote(t *testing.T) {
 }
 
 func TestGovPlugin_DeclareVersion(t *testing.T) {
-	//func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, version uint32, blockHash common.Hash, curBlockNum uint64, state xcom.StateDB) error {
+	//func (govp *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, version uint32, blockHash common.Hash, curBlockNum uint64, state xcom.StateDB) error {
 	sender := common.HexToAddress("0x11")
 	node := discover.NodeID{0x11}
 	db, state := GetGovDB()

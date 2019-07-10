@@ -86,6 +86,7 @@ type Candidate struct {
 	// The tx index at the time of staking
 	StakingTxIndex uint32
 	// The version of the node process
+	// (Store Large Verson: the 2.1.x large version is 2.1)
 	ProcessVersion uint32
 	// The candidate status
 	// Reference `THE CANDIDATE  STATUS`
@@ -237,20 +238,159 @@ func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
 	return left
 }
 
-func CompareDefault (slashs SlashCandidate, c, can *Validator) int {
+/*
+func compare(cand CanConditions, c, can *Candidate) int {
+	// put the larger deposit in front
+	if cand[c.CandidateId].Cmp(cand[can.CandidateId]) > 0  {
+		return 1
+	} else if cand[c.CandidateId].Cmp(cand[can.CandidateId]) == 0  {
+		// put the smaller blocknumber in front
+		if c.BlockNumber.Cmp(can.BlockNumber) > 0 {
+			return -1
+		} else if c.BlockNumber.Cmp(can.BlockNumber) == 0 {
+			// put the smaller tx'index in front
+			if c.TxIndex > can.TxIndex {
+				return -1
+			} else if c.TxIndex == can.TxIndex {
+				return 0
+			} else {
+				return 1
+			}
+		} else {
+			return 1
+		}
+	} else {
+		return -1
+	}
+}
+*/
+
+// NOTE: Sort By Default
+//
+// When sorting is done by default,
+// it is slashed and is sorted to the end.
+//
+// The priorities just like that:
+// Slashing > Processversion > Shares > BlockNumber > TxIndex
+//
+// Slashing: From no to yes
+// Processversion: From big to small
+// Shares： From big to small
+// BlockNumber: From small to big
+// TxIndex: From small to big
+//
+// Compare Left And Right
+// 1: Left > Right
+// 0: Left == Right
+// -1:Left < Right
+func CompareDefault (slashs SlashCandidate, left, right *Validator) int {
+	_, leftOk := slashs[left.NodeAddress]
+	_, rightOk := slashs[right.NodeAddress]
+
+	compareTxIndexFunc := func() int {
+		leftTxIndex, _ := left.GetStakingTxIndex()
+		rightTxIndex, _ := right.GetStakingTxIndex()
+		switch  {
+		case leftTxIndex > rightTxIndex:
+			return -1
+		case leftTxIndex < rightTxIndex:
+			return 1
+		default:
+			return 0
+		}
+	}
+
+	compareBlockNumberFunc := func() int {
+		leftNum, _ := left.GetStakingBlockNumber()
+		rightNum, _ := right.GetStakingBlockNumber()
+		switch {
+		case leftNum > rightNum:
+			return -1
+		case leftNum < rightNum:
+			return 1
+		default:
+			return compareTxIndexFunc()
+		}
+	}
+
+	compareSharesFunc := func() int {
+		leftShares, _ := left.GetShares()
+		rightShares, _ := right.GetShares()
+
+		switch {
+		case leftShares.Cmp(rightShares) < 0:
+			return -1
+		case leftShares.Cmp(rightShares) > 0:
+			return 1
+		default:
+			return compareBlockNumberFunc()
+		}
+	}
+
+
+	if leftOk && !rightOk {
+		return -1
+	}else if !leftOk && rightOk {
+		return 1
+	}else {
+		leftVersion, _ := left.GetProcessVersion()
+		rightVersion, _ := right.GetProcessVersion()
+
+		switch {
+		case leftVersion < rightVersion:
+			return -1
+		case leftVersion > rightVersion:
+			return 1
+		default:
+			return compareSharesFunc()
+		}
+	}
+
+}
+
+// NOTE: These are sorted by priority that will be removed
+//
+// When sorting is done by delete slashing,
+// it is slashed and is sorted to the front.
+//
+// The priorities just like that:
+// DoubleSign > ProcessVersion > LowPackageRatio > validaotorTerm  > Shares > BlockNumber > TxIndex
+//
+// DoubleSign: From yes to no (When both are double-signed, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
+// Processversion: From small to big
+// validaotorTerm: From big to small
+// LowPackageRatio: From small to big (When both are zero package, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
+// Shares： From small to big
+// BlockNumber: From big to small
+// TxIndex: From big to small
+//
+// Compare Left And Right
+// 1: Left > Right
+// 0: Left == Right
+// -1:Left < Right
+func CompareForDel (slashs SlashCandidate, left, right *Validator) int {
+
+
 	// TODO
 	return -1
 }
 
-func CompareForDel (slashs SlashCandidate, c, can *Validator) int {
+// NOTE: Sort when doing storage
+//
+// The priorities just like that:
+// ProcessVersion > validaotorTerm > Shares > BlockNumber > TxIndex
+//
+// Compare Left And Right
+// 1: Left > Right
+// 0: Left == Right
+// -1:Left < Right
+func CompareForStore (slashs SlashCandidate, left, right *Validator) int {
+
+
 	// TODO
 	return -1
 }
 
-func CompareForStore (slashs SlashCandidate, c, can *Validator) int {
-	// TODO
-	return -1
-}
 
 
 

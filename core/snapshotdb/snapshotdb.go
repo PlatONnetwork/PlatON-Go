@@ -341,8 +341,11 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 			return errors.New("[SnapshotDB]can't  new unRecognized block,it's have value,must flush it before NewBlock ")
 		}
 	}
+	if blockNumber == nil {
+		return errors.New("[SnapshotDB]the blockNumber must not be nil ")
+	}
 	block := new(blockData)
-	block.Number = blockNumber
+	block.Number = big.NewInt(blockNumber.Int64())
 	block.ParentHash = parentHash
 	block.BlockHash = hash
 	block.data = memdb.New(DefaultComparer, 100)
@@ -363,7 +366,6 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 // Put sets the value for the given key. It overwrites any previous value
 // for that key; a DB is not a multi-map.
 func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
-	logger.Debug("put",)
 	if err := s.put(hash, key, value); err != nil {
 		return fmt.Errorf("[SnapshotDB]put fail:%v", err)
 	}
@@ -374,7 +376,6 @@ func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
 // if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommittedBlockData > baseDB
 // if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
 func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
-	logger.Debug("Get","hash",hash.String(),"key",key)
 	//found from unRecognized
 	location, ok := s.checkHashChain(hash)
 	if !ok {
@@ -489,7 +490,6 @@ func (s *snapshotDB) Has(hash common.Hash, key []byte) (bool, error) {
 
 // Flush move unRecognized to Recognized data
 func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
-	logger.Info("Flush:", "blockHash", hash.String(), "blockNumber", blocknumber)
 	if s.unRecognized == nil {
 		return errors.New("[snapshotdb]the unRecognized is nil, can't flush")
 	}
@@ -526,7 +526,6 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	s.commitLock.Lock()
 	defer s.commitLock.Unlock()
 
-	logger.Info("Commit:", "blockHash", hash.String())
 	b, ok := s.recognized.Load(hash)
 	if !ok {
 		return errors.New("[snapshotdb]commit fail, not found block from recognized :" + hash.String())
@@ -711,7 +710,6 @@ func (s *snapshotDB) Close() error {
 		s.current.f.Close()
 	}
 
-	logger.Info("begin close journalWriter")
 	for key := range s.journalw {
 		if err := s.journalw[key].Close(); err != nil {
 			return fmt.Errorf("[snapshotdb]close journalw fail:%v", err)

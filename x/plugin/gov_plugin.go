@@ -22,13 +22,24 @@ type GovPlugin struct {
 	govDB *gov.GovDB
 }
 
-var govPlugin *GovPlugin
+var govp *GovPlugin
 
 func GovPluginInstance() *GovPlugin {
-	govPluginOnce.Do(func() {
-		govPlugin = &GovPlugin{govDB: gov.GovDBInstance()}
-	})
-	return govPlugin
+	//govPluginOnce.Do(func() {
+	//	govp = &GovPlugin{govDB: gov.GovDBInstance()}
+	//})
+	if nil == govp {
+		govp = &GovPlugin{govDB: gov.GovDBInstance()}
+	}
+	return govp
+}
+
+func ClearGovPlugin() error {
+	if nil == govp {
+		return common.NewSysError("the GovPlugin already be nil")
+	}
+	govp = nil
+	return nil
 }
 
 func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {

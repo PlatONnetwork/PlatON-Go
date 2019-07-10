@@ -17,14 +17,22 @@ type rewardMgrPlugin struct {
 }
 
 var (
-	RewardMgrPlugin *rewardMgrPlugin = nil
+	rm *rewardMgrPlugin = nil
 )
 
 func RewardMgrInstance() *rewardMgrPlugin {
-	if RewardMgrPlugin == nil {
-		RewardMgrPlugin = & rewardMgrPlugin {}
+	if rm == nil {
+		rm = & rewardMgrPlugin {}
 	}
-	return RewardMgrPlugin
+	return rm
+}
+
+func ClearRewardPlugin() error {
+	if nil == rm {
+		return common.NewSysError("the RewardPlugin already be nil")
+	}
+	rm = nil
+	return nil
 }
 
 // BeginBlock does something like check input params before execute transactions,
