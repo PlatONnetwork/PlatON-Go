@@ -145,6 +145,8 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 func TestStakingPlugin_CreateCandidate(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -152,6 +154,8 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 
 	sndb := snapshotdb.Instance()
@@ -170,10 +174,13 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 	if err := create_staking(state, blockNumber, blockHash, 1, 0, t); nil != err {
 		t.Error("Failed to Create Staking", err)
 	}
+
 }
 
 func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -181,6 +188,8 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -213,6 +222,8 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 
 func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -220,6 +231,8 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -260,6 +273,8 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 
 func TestStakingPlugin_GetCandidateList(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -267,6 +282,8 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -304,6 +321,8 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 
 func TestStakingPlugin_EditorCandidate(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -311,6 +330,8 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -366,6 +387,8 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 
 func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -373,6 +396,8 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -433,6 +458,8 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 
 func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -440,6 +467,8 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -487,6 +516,8 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 
 func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -494,6 +525,8 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -556,6 +589,8 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 
 func TestStakingPlugin_Delegate(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -563,6 +598,8 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
 
@@ -617,6 +654,8 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 
 func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -624,6 +663,8 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -684,6 +725,8 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 
 func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -691,6 +734,8 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -743,6 +788,8 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 
 func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -750,6 +797,8 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -813,6 +862,8 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 
 func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -820,6 +871,9 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -909,7 +963,8 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 
 
-
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -917,6 +972,9 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 		return
 	}
 	newPlugins()
+
+	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -1030,6 +1088,9 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
+
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1038,6 +1099,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -1207,6 +1269,8 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 func TestStakingPlugin_Election(t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -1216,6 +1280,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -1408,6 +1473,9 @@ func TestStakingPlugin_Election(t *testing.T) {
 func TestStakingPlugin_Switch(t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
+
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1416,6 +1484,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -1631,6 +1700,9 @@ func TestStakingPlugin_Switch(t *testing.T) {
 func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
+
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -1639,6 +1711,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -1823,6 +1896,8 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -1832,6 +1907,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -1943,8 +2019,8 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 
 func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 
-
-
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -1954,6 +2030,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -2062,6 +2139,8 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 
 func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -2071,6 +2150,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -2245,7 +2325,8 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 
 
-
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -2255,6 +2336,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -2449,6 +2531,9 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 func TestStakingPlugin_GetValidatorList(t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
+
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -2457,6 +2542,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -2649,6 +2735,8 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -2658,6 +2746,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -2832,6 +2921,8 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
 func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -2841,6 +2932,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -3025,6 +3117,9 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
+
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -3033,6 +3128,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -3198,6 +3294,8 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 
 func TestStakingPlugin_IsCandidate(t *testing.T) {
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -3207,6 +3305,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -3321,8 +3420,8 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 
 
-
-
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -3332,6 +3431,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -3525,8 +3625,8 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
 
-
-
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -3536,6 +3636,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -3719,6 +3820,8 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 func TestStakingPlugin_GetLastNumber(t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
 
 	state, err := newChainState()
 	if nil != err {
@@ -3728,6 +3831,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -3908,6 +4012,9 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 func TestStakingPlugin_GetValidator(t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
+
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -3916,6 +4023,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -4099,6 +4207,9 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
+
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -4107,6 +4218,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -4316,6 +4428,9 @@ Expand test cases
 func Test_IteratorCandidate (t *testing.T) {
 
 
+	defer plugin.ClearStakingPlugin()
+	defer plugin.ClearGovPlugin()
+
 	state, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
@@ -4324,6 +4439,7 @@ func Test_IteratorCandidate (t *testing.T) {
 	newPlugins()
 
 	build_gov_data(state)
+
 
 	sndb := snapshotdb.Instance()
 	defer func() {

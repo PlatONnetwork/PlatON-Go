@@ -133,7 +133,7 @@ var (
 
 
 	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536, version: 1.0.0
-	promoteVersion = uint32(2<<16 | 0<<8 | 0)
+	promoteVersion = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
 
 	balanceStr = []string {
 
@@ -521,6 +521,7 @@ func buildSnapDBDataCommitted(start, end int){
 }
 
 func build_gov_data (state *state.StateDB){
+
 	//set a default active version
 	govDB := gov.GovDBInstance()
 	govDB.SetActiveVersion(initProcessVersion, state)

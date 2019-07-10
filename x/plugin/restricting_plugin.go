@@ -45,13 +45,21 @@ type Result struct {
 type RestrictingPlugin struct {
 }
 
-var RestrictingPtr *RestrictingPlugin = nil
+var rt *RestrictingPlugin = nil
 
 func RestrictingInstance() *RestrictingPlugin {
-	if RestrictingPtr == nil {
-		RestrictingPtr = &RestrictingPlugin{}
+	if rt == nil {
+		rt = &RestrictingPlugin{}
 	}
-	return RestrictingPtr
+	return rt
+}
+
+func ClearRestricting() error {
+	if nil == rt {
+		return common.NewSysError("the RestrictingPlugin already be nil")
+	}
+	rt = nil
+	return nil
 }
 
 // BeginBlock does something like check input params before execute transactions,

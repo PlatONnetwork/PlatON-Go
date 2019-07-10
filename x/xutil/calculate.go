@@ -133,3 +133,10 @@ func CheckStakeThreshold(stake *big.Int) bool {
 func CheckDelegateThreshold(delegate *big.Int) bool {
 	return delegate.Cmp(xcom.DelegateThreshold) >= 0
 }
+
+// The ProcessVersion: Major.Minor.Patch eg. 1.1.0
+// Calculate the LargeVersion
+// eg: 1.1.0 ==> 1.1
+func CalcLargeVersion (processVersion uint32) uint32 {
+	return processVersion>>8
+}
