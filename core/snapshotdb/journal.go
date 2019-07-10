@@ -47,7 +47,6 @@ type journalWriter struct {
 }
 
 func (j *journalWriter) Close() error {
-	logger.Debug("journalWriter close")
 	if err := j.journal.Close(); err != nil {
 		return err
 	}
