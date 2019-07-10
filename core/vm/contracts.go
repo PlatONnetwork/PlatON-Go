@@ -72,7 +72,7 @@ var PlatONPrecompiledContracts = map[common.Address]PrecompiledContract{
 	// add by economic model
 	vm.StakingContractAddr: &StakingContract{},
 	vm.RestrictingContractAddr: &RestrictingContract{},
-	vm.SlashingContractAddr: &slashingContract{},
+	vm.SlashingContractAddr: &SlashingContract{},
 	vm.GovContractAddr: &GovContract{},
 }
 
