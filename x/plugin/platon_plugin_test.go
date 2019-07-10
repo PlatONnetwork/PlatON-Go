@@ -10,6 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
@@ -21,7 +22,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"math/big"
+	"math/rand"
 	"testing"
+	"time"
 )
 
 
@@ -357,9 +360,6 @@ func build_staking_data (){
 	}
 
 
-	//canArr = append(canArr, c1)
-	//canArr = append(canArr, c2)
-	//canArr = append(canArr, c3)
 
 	stakingDB.SetCanPowerStore(blockHash, addr_A, c1)
 	stakingDB.SetCanPowerStore(blockHash, addr_B, c2)
@@ -371,26 +371,104 @@ func build_staking_data (){
 	stakingDB.SetCandidateStore(blockHash, addr_C, c3)
 
 
+	validatorArr := make(staking.ValidatorQueue, 0)
+
+	// build  more data
+	for i := 0; i < 1000; i ++ {
+
+		var index int
+		if i >= len(balanceStr) {
+			index = i%(len(balanceStr)-1)
+		}
+
+		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
+
+		rand.Seed(time.Now().UnixNano())
+
+		weight := rand.Intn(1000000000)
+
+		ii := rand.Intn(len(chaList))
+
+		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
+
+		privateKey, err := crypto.GenerateKey()
+		if nil != err {
+			fmt.Printf("Failed to generate random NodeId private key: %v", err)
+			return
+		}
+
+		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+		privateKey, err = crypto.GenerateKey()
+		if nil != err {
+			fmt.Printf("Failed to generate random Address private key: %v", err)
+			return
+		}
+
+		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+
+		canTmp := &staking.Candidate{
+			NodeId:          nodeId,
+			StakingAddress:  sender,
+			BenifitAddress:  addr,
+			StakingBlockNum: uint64(i),
+			StakingTxIndex:  uint32(index),
+			Shares:          balance,
+
+			// Prevent null pointer initialization
+			Released: common.Big0,
+			ReleasedHes: common.Big0,
+			RestrictingPlan: common.Big0,
+			RestrictingPlanHes: common.Big0,
+
+			Description: staking.Description{
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+			},
+		}
+
+		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
+
+
+		stakingDB.SetCanPowerStore(blockHash, canAddr, canTmp)
+		stakingDB.SetCandidateStore(blockHash, canAddr, canTmp)
+
+		v := &staking.Validator{
+			NodeAddress: canAddr,
+			NodeId: canTmp.NodeId,
+			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), canTmp.Shares.String(),
+				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+			ValidatorTerm: 0,
+		}
+		if i < 22 {
+			validatorArr = append(validatorArr, v)
+		}
+	}
+
+	//
 	queue := make(staking.ValidatorQueue, 0)
 
 	v1 := &staking.Validator{
 		NodeAddress: addr_A,
 		NodeId: c1.NodeId,
-		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c1.StakingBlockNum), fmt.Sprint(c1.StakingTxIndex)},
+		StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), common.Big256.String(), fmt.Sprint(c1.StakingBlockNum), fmt.Sprint(c1.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
 
 	v2 := &staking.Validator{
 		NodeAddress: addr_B,
 		NodeId: c2.NodeId,
-		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c2.StakingBlockNum), fmt.Sprint(c2.StakingTxIndex)},
+		StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), common.Big256.String(), fmt.Sprint(c2.StakingBlockNum), fmt.Sprint(c2.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
 
 	v3 := &staking.Validator{
 		NodeAddress: addr_C,
 		NodeId: c3.NodeId,
-		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c3.StakingBlockNum), fmt.Sprint(c3.StakingTxIndex)},
+		StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), common.Big256.String(), fmt.Sprint(c3.StakingBlockNum), fmt.Sprint(c3.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
 
@@ -398,6 +476,10 @@ func build_staking_data (){
 	queue = append(queue, v2)
 	queue = append(queue, v3)
 
+	// add validator
+	queue = append(queue, validatorArr...)
+
+	queue = queue[:25]
 
 	val_Arr :=  &staking.Validator_array{
 		Start: 1,
@@ -405,12 +487,20 @@ func build_staking_data (){
 		Arr: queue,
 	}
 
+
+
+
 	stakingDB.SetVerfierList(blockHash, val_Arr)
 	stakingDB.SetPreValidatorList(blockHash, val_Arr)
 	stakingDB.SetCurrentValidatorList(blockHash, val_Arr)
 
 	lastBlockHash = blockHash
 	lastBlockNumber =  blockNumber.Uint64()
+
+
+
+
+
 }
 
 var (
