@@ -3545,13 +3545,534 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 // for consensus
 func TestStakingPlugin_GetLastNumber(t *testing.T) {
 
+	defer func() {
+		sndb.Clear()
+	}()
+
+	state, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+	}
+	newPlugins()
+
+	build_gov_data(state)
+
+	sndb := snapshotdb.Instance()
+	xcom.NewVrfHandler(common.ZeroHash.Bytes())
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Error("newBlock err", err)
+	}
+
+	for i := 0; i < 1000; i ++ {
+
+		var index int
+		if i >= len(balanceStr) {
+			index = i%(len(balanceStr)-1)
+		}
+
+		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
+
+		mrand.Seed(time.Now().UnixNano())
+
+		weight := mrand.Intn(1000000000)
+
+		ii := mrand.Intn(len(chaList))
+
+		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
+
+		privateKey, err := crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			return
+		}
+
+		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+		privateKey, err = crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random Address private key: %v", err)
+			return
+		}
+
+		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+
+		canTmp := &staking.Candidate{
+			NodeId:          nodeId,
+			StakingAddress:  sender,
+			BenifitAddress:  addr,
+			StakingBlockNum: uint64(i),
+			StakingTxIndex:  uint32(index),
+			Shares:          balance,
+
+			// Prevent null pointer initialization
+			Released: common.Big0,
+			ReleasedHes: common.Big0,
+			RestrictingPlan: common.Big0,
+			RestrictingPlanHes: common.Big0,
+
+			Description: staking.Description{
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+			},
+		}
+
+		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
+			initProcessVersion, 0, canAddr, canTmp)
+
+		if nil != err {
+			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
+			return
+		}
+	}
+
+	stakingDB := staking.NewStakingDB()
+
+	// build genesis VerifierList
+
+	start := uint64(1)
+	end := xcom.EpochSize*xcom.ConsensusSize
+
+	new_verifierArr := &staking.Validator_array{
+		Start: start,
+		End:   end,
+	}
+
+
+	queue := make(staking.ValidatorQueue, 0)
+
+	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
+	if err := iter.Error(); nil != err {
+		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
+		return
+	}
+
+	defer iter.Release()
+
+	count := 0
+	for iter.Valid(); iter.Next(); {
+		if uint64(count) == xcom.EpochValidatorNum {
+			break
+		}
+		addrSuffix := iter.Value()
+		var can *staking.Candidate
+
+		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
+		if nil != err {
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			return
+		}
+
+		addr := common.BytesToAddress(addrSuffix)
+
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
+
+		val := &staking.Validator{
+			NodeAddress:   addr,
+			NodeId:        can.NodeId,
+			StakingWeight: powerStr,
+			ValidatorTerm: 0,
+		}
+		queue = append(queue, val)
+		count ++
+	}
+
+	new_verifierArr.Arr = queue
+
+
+	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		return
+	}
+
+	// build gensis current validatorList
+	new_validatorArr := &staking.Validator_array{
+		Start: start,
+		End:   xcom.ConsensusSize,
+	}
+
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+
+	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		return
+	}
+
+
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+	}
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
+	}
+
+
+	/**
+	Start  GetLastNumber
+	*/
+	endNumber := plugin.StakingInstance().GetLastNumber(blockNumber2.Uint64())
+
+	t.Log("GetLastNumber the endNumber is:", endNumber)
+
+
+
 }
 
 func TestStakingPlugin_GetValidator(t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+
+	state, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+	}
+	newPlugins()
+
+	build_gov_data(state)
+
+	sndb := snapshotdb.Instance()
+	xcom.NewVrfHandler(common.ZeroHash.Bytes())
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Error("newBlock err", err)
+	}
+
+	for i := 0; i < 1000; i ++ {
+
+		var index int
+		if i >= len(balanceStr) {
+			index = i%(len(balanceStr)-1)
+		}
+
+		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
+
+		mrand.Seed(time.Now().UnixNano())
+
+		weight := mrand.Intn(1000000000)
+
+		ii := mrand.Intn(len(chaList))
+
+		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
+
+		privateKey, err := crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			return
+		}
+
+		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+		privateKey, err = crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random Address private key: %v", err)
+			return
+		}
+
+		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+
+		canTmp := &staking.Candidate{
+			NodeId:          nodeId,
+			StakingAddress:  sender,
+			BenifitAddress:  addr,
+			StakingBlockNum: uint64(i),
+			StakingTxIndex:  uint32(index),
+			Shares:          balance,
+
+			// Prevent null pointer initialization
+			Released: common.Big0,
+			ReleasedHes: common.Big0,
+			RestrictingPlan: common.Big0,
+			RestrictingPlanHes: common.Big0,
+
+			Description: staking.Description{
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+			},
+		}
+
+		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
+			initProcessVersion, 0, canAddr, canTmp)
+
+		if nil != err {
+			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
+			return
+		}
+	}
+
+	stakingDB := staking.NewStakingDB()
+
+	// build genesis VerifierList
+
+	start := uint64(1)
+	end := xcom.EpochSize*xcom.ConsensusSize
+
+	new_verifierArr := &staking.Validator_array{
+		Start: start,
+		End:   end,
+	}
+
+
+	queue := make(staking.ValidatorQueue, 0)
+
+	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
+	if err := iter.Error(); nil != err {
+		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
+		return
+	}
+
+	defer iter.Release()
+
+	count := 0
+	for iter.Valid(); iter.Next(); {
+		if uint64(count) == xcom.EpochValidatorNum {
+			break
+		}
+		addrSuffix := iter.Value()
+		var can *staking.Candidate
+
+		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
+		if nil != err {
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			return
+		}
+
+		addr := common.BytesToAddress(addrSuffix)
+
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
+
+		val := &staking.Validator{
+			NodeAddress:   addr,
+			NodeId:        can.NodeId,
+			StakingWeight: powerStr,
+			ValidatorTerm: 0,
+		}
+		queue = append(queue, val)
+		count ++
+	}
+
+	new_verifierArr.Arr = queue
+
+
+	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		return
+	}
+
+	// build gensis current validatorList
+	new_validatorArr := &staking.Validator_array{
+		Start: start,
+		End:   xcom.ConsensusSize,
+	}
+
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+
+	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis current round validatorList, err: %v", err)
+		return
+	}
+
+
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+	}
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
+	}
+
+
+	/**
+	Start  GetValidator
+	*/
+	valArr, err := plugin.StakingInstance().GetValidator(blockNumber2.Uint64())
+	if nil != err {
+		t.Errorf("Failed to GetValidator, err: %v", err)
+	}
+
+	arrJson, _ := json.Marshal(valArr)
+	t.Log("GetValidator the validators is:", string(arrJson))
+
 
 }
 
 func TestStakingPlugin_IsCandidateNode(t *testing.T) {
+	defer func() {
+		sndb.Clear()
+	}()
+
+	state, err := newChainState()
+	if nil != err {
+		t.Error("Failed to build the state", err)
+	}
+	newPlugins()
+
+	build_gov_data(state)
+
+	sndb := snapshotdb.Instance()
+	xcom.NewVrfHandler(common.ZeroHash.Bytes())
+
+	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+		t.Error("newBlock err", err)
+	}
+
+	for i := 0; i < 1000; i ++ {
+
+		var index int
+		if i >= len(balanceStr) {
+			index = i%(len(balanceStr)-1)
+		}
+
+		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
+
+		mrand.Seed(time.Now().UnixNano())
+
+		weight := mrand.Intn(1000000000)
+
+		ii := mrand.Intn(len(chaList))
+
+		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
+
+		privateKey, err := crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random NodeId private key: %v", err)
+			return
+		}
+
+		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+		privateKey, err = crypto.GenerateKey()
+		if nil != err {
+			t.Errorf("Failed to generate random Address private key: %v", err)
+			return
+		}
+
+		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+
+		canTmp := &staking.Candidate{
+			NodeId:          nodeId,
+			StakingAddress:  sender,
+			BenifitAddress:  addr,
+			StakingBlockNum: uint64(i),
+			StakingTxIndex:  uint32(index),
+			Shares:          balance,
+
+			// Prevent null pointer initialization
+			Released: common.Big0,
+			ReleasedHes: common.Big0,
+			RestrictingPlan: common.Big0,
+			RestrictingPlanHes: common.Big0,
+
+			Description: staking.Description{
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+			},
+		}
+
+		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
+			initProcessVersion, 0, canAddr, canTmp)
+
+		if nil != err {
+			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
+			return
+		}
+	}
+
+	stakingDB := staking.NewStakingDB()
+
+	// build genesis VerifierList
+
+	start := uint64(1)
+	end := xcom.EpochSize*xcom.ConsensusSize
+
+	new_verifierArr := &staking.Validator_array{
+		Start: start,
+		End:   end,
+	}
+
+
+	queue := make(staking.ValidatorQueue, 0)
+
+	iter := sndb.Ranking(blockHash, staking.CanPowerKeyPrefix, 0)
+	if err := iter.Error(); nil != err {
+		t.Errorf("Failed to build genesis VerifierList, the iter is  err: %v", err)
+		return
+	}
+
+	defer iter.Release()
+
+	count := 0
+	for iter.Valid(); iter.Next(); {
+		if uint64(count) == xcom.EpochValidatorNum {
+			break
+		}
+		addrSuffix := iter.Value()
+		var can *staking.Candidate
+
+		can, err := stakingDB.GetCandidateStoreWithSuffix(blockHash, addrSuffix)
+		if nil != err {
+			t.Error("Failed to ElectNextVerifierList", "canAddr", common.BytesToAddress(addrSuffix).Hex(), "err", err)
+			return
+		}
+
+		addr := common.BytesToAddress(addrSuffix)
+
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
+
+		val := &staking.Validator{
+			NodeAddress:   addr,
+			NodeId:        can.NodeId,
+			StakingWeight: powerStr,
+			ValidatorTerm: 0,
+		}
+		queue = append(queue, val)
+		count ++
+	}
+
+	new_verifierArr.Arr = queue
+
+
+	err = stakingDB.SetVerfierList(blockHash, new_verifierArr)
+	if nil != err {
+		t.Errorf("Failed to Set Genesis VerfierList, err: %v", err)
+		return
+	}
+
+
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Error("Commit 1 err", err)
+	}
+	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
+		t.Error("newBlock 2 err", err)
+	}
+
+
+	/**
+	Start  IsCandidateNode
+	*/
+	yes := plugin.StakingInstance().IsCandidateNode(nodeIdArr[0])
+
+	t.Log("IsCandidateNode the flag is:", yes)
 
 }
 

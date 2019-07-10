@@ -2142,62 +2142,83 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 
 func (sk *StakingPlugin) GetLastNumber(blockNumber uint64) uint64 {
 
+	// Find from previous
 	pre, err := sk.db.GetPreValidatorListByIrr()
-	if nil != err {
+	if nil != err &&  err != snapshotdb.ErrNotFound {
 		return 0
 	}
 
-	if nil != pre && pre.Start <= blockNumber && pre.End >= blockNumber {
-		return pre.End
+	if nil == err {
+		if nil != pre && pre.Start <= blockNumber && pre.End >= blockNumber {
+			return pre.End
+		}
 	}
 
+	// Find from current
 	curr, err := sk.db.GetCurrentValidatorListByIrr()
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		return 0
 	}
 
-	if nil != curr && curr.Start <= blockNumber && curr.End >= blockNumber {
-		return curr.End
+	if nil == err {
+		if nil != curr && curr.Start <= blockNumber && curr.End >= blockNumber {
+			return curr.End
+		}
 	}
 
+	// Find from next
 	next, err := sk.db.GetNextValidatorListByIrr()
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		return 0
 	}
 
-	if nil != next && next.Start <= blockNumber && next.End >= blockNumber {
-		return next.End
+	if nil == err {
+		if nil != next && next.Start <= blockNumber && next.End >= blockNumber {
+			return next.End
+		}
 	}
+
 	return 0
 }
 
 func (sk *StakingPlugin) GetValidator(blockNumber uint64) (*cbfttypes.Validators, error) {
+
+	// Find from previous
 	pre, err := sk.db.GetPreValidatorListByIrr()
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		return nil, err
 	}
 
-	if nil != pre && pre.Start <= blockNumber && pre.End >= blockNumber {
-		return build_CBFT_Validators(pre.Arr), nil
+	if nil == err {
+		if nil != pre && pre.Start <= blockNumber && pre.End >= blockNumber {
+			return build_CBFT_Validators(pre.Arr), nil
+		}
 	}
 
+	// Find from current
 	curr, err := sk.db.GetCurrentValidatorListByIrr()
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		return nil, err
 	}
 
-	if nil != curr && curr.Start <= blockNumber && curr.End >= blockNumber {
-		return build_CBFT_Validators(curr.Arr), nil
+	if nil == err {
+		if nil != curr && curr.Start <= blockNumber && curr.End >= blockNumber {
+			return build_CBFT_Validators(curr.Arr), nil
+		}
 	}
 
+	// Find from next
 	next, err := sk.db.GetNextValidatorListByIrr()
-	if nil != err {
+	if nil != err && err != snapshotdb.ErrNotFound {
 		return nil, err
 	}
 
-	if nil != next && next.Start <= blockNumber && next.End >= blockNumber {
-		return build_CBFT_Validators(next.Arr), nil
+	if nil == err {
+		if nil != next && next.Start <= blockNumber && next.End >= blockNumber {
+			return build_CBFT_Validators(next.Arr), nil
+		}
 	}
+
 
 	return nil, common.BizErrorf("No Found Validators by blockNumber: %d", blockNumber)
 }
