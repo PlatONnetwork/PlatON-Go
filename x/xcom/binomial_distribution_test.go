@@ -50,4 +50,13 @@ func TestBinomialDistribution(t *testing.T) {
 	if nil != err {
 		t.Error(err)
 	}
+	tp = 0
+	for i := 0; i < 11; i++ {
+		x, err := bd.InverseCumulativeProbability(tp)
+		if nil != err {
+			t.Error(err)
+		}
+		t.Log("tp", tp, "x", x)
+		tp += 0.1
+	}
 }
