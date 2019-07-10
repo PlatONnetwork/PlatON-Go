@@ -75,9 +75,9 @@ func run(evm *EVM, contract *Contract, input []byte, readOnly bool) ([]byte, err
 					Evm:      evm,
 				}
 				return RunPlatONPrecompiledContract(restricting, input, contract)
-			case *slashingContract:
-				slashing := &slashingContract{
-					plugin:   plugin.SlashInstance(),
+			case *SlashingContract:
+				slashing := &SlashingContract{
+					Plugin:   plugin.SlashInstance(),
 					Contract: contract,
 					Evm:      evm,
 				}

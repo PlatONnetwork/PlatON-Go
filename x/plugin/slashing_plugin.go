@@ -84,7 +84,10 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 		if result, err := sp.GetPreNodeAmount(); nil != err {
 			return err
 		} else {
-			validatorList, err := stk.GetCandidateONRound(blockHash, header.Number.Uint64(), 1, QueryStartIrr)
+			if nil == result {
+				return common.NewBizError("block rate data not found")
+			}
+			validatorList, err := stk.GetCandidateONRound(blockHash, header.Number.Uint64(), PreviousRound, QueryStartIrr)
 			if nil != err {
 				return err
 			}
@@ -114,7 +117,6 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 				}
 				if isSlash && rate > 0 {
 					// If there is no record of the node, it means that there is no block, then the penalty is directly
-					// TODO execute slash
 					if err := stk.SlashCandidates(state, blockHash, header.Number.Uint64(), nodeId, calcSlashAmount(validator, rate), isDelete, staking.LowRatio); nil != err {
 						log.Error("slashingPlugin SlashCandidates failed", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "err", err)
 						return err
@@ -265,8 +267,11 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 				return common.NewBizError(errSlashExist.Error())
 			}
 			if candidate, err := stk.GetCandidateInfo(blockHash, evidence.Address()); nil != err {
-				return err
+				return common.NewBizError(err.Error())
 			} else {
+				if nil == candidate {
+					return common.NewBizError(errMutiSignVerify.Error())
+				}
 				if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, calcSlashAmount(candidate, duplicateSignLowSlashing), true, staking.DoubleSign); nil != err {
 					log.Error("slashingPlugin SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 					return err
@@ -280,7 +285,7 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 }
 
 func (sp *SlashingPlugin) CheckMutiSign(addr common.Address, blockNumber uint64, etype int32, stateDB xcom.StateDB) (bool, []byte, error) {
-	if value := sp.getSlashResult(addr, blockNumber, etype, stateDB); nil != value {
+	if value := sp.getSlashResult(addr, blockNumber, etype, stateDB); len(value) > 0 {
 		log.Info("CheckMutiSign exist", "blockNumber", blockNumber, "addr", hex.EncodeToString(addr.Bytes()), "type", etype, "txHash", hex.EncodeToString(value))
 		return true, value, nil
 	}
