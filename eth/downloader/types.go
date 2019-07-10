@@ -81,7 +81,7 @@ type pposStoragePack struct {
 	pivot  *types.Header
 	kvs    []PPOSStorageKV
 	last   bool
-	kvNum  int64
+	kvNum  uint64
 }
 
 type PPOSStorageKV [2][]byte
