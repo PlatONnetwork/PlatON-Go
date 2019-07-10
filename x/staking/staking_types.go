@@ -2,6 +2,7 @@ package staking
 
 import (
 	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
@@ -284,12 +285,12 @@ func compare(cand CanConditions, c, can *Candidate) int {
 // 0: Left == Right
 // -1:Left < Right
 func CompareDefault (slashs SlashCandidate, left, right *Validator) int {
-	_, leftOk := slashs[left.NodeAddress]
-	_, rightOk := slashs[right.NodeAddress]
 
-	compareTxIndexFunc := func() int {
-		leftTxIndex, _ := left.GetStakingTxIndex()
-		rightTxIndex, _ := right.GetStakingTxIndex()
+	fmt.Println("into CompareDefault ...")
+
+	compareTxIndexFunc := func(l, r *Validator) int {
+		leftTxIndex, _ := l.GetStakingTxIndex()
+		rightTxIndex, _ := r.GetStakingTxIndex()
 		switch  {
 		case leftTxIndex > rightTxIndex:
 			return -1
@@ -300,22 +301,22 @@ func CompareDefault (slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	compareBlockNumberFunc := func() int {
-		leftNum, _ := left.GetStakingBlockNumber()
-		rightNum, _ := right.GetStakingBlockNumber()
+	compareBlockNumberFunc := func(l, r *Validator) int {
+		leftNum, _ := l.GetStakingBlockNumber()
+		rightNum, _ := r.GetStakingBlockNumber()
 		switch {
 		case leftNum > rightNum:
 			return -1
 		case leftNum < rightNum:
 			return 1
 		default:
-			return compareTxIndexFunc()
+			return compareTxIndexFunc(l, r)
 		}
 	}
 
-	compareSharesFunc := func() int {
-		leftShares, _ := left.GetShares()
-		rightShares, _ := right.GetShares()
+	compareSharesFunc := func(l, r *Validator) int {
+		leftShares, _ := l.GetShares()
+		rightShares, _ := r.GetShares()
 
 		switch {
 		case leftShares.Cmp(rightShares) < 0:
@@ -323,10 +324,13 @@ func CompareDefault (slashs SlashCandidate, left, right *Validator) int {
 		case leftShares.Cmp(rightShares) > 0:
 			return 1
 		default:
-			return compareBlockNumberFunc()
+			return compareBlockNumberFunc(l, r)
 		}
 	}
 
+
+	_, leftOk := slashs[left.NodeAddress]
+	_, rightOk := slashs[right.NodeAddress]
 
 	if leftOk && !rightOk {
 		return -1
@@ -342,7 +346,7 @@ func CompareDefault (slashs SlashCandidate, left, right *Validator) int {
 		case leftVersion > rightVersion:
 			return 1
 		default:
-			return compareSharesFunc()
+			return compareSharesFunc(left, right)
 		}
 	}
 
@@ -360,7 +364,7 @@ func CompareDefault (slashs SlashCandidate, left, right *Validator) int {
 // Processversion: From small to big
 // validaotorTerm: From big to small
 // LowPackageRatio: From small to big (When both are zero package, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
-// Shares： From small to big
+// Shares： From small to bigLowPackageRatio
 // BlockNumber: From big to small
 // TxIndex: From big to small
 //
@@ -370,9 +374,113 @@ func CompareDefault (slashs SlashCandidate, left, right *Validator) int {
 // -1:Left < Right
 func CompareForDel (slashs SlashCandidate, left, right *Validator) int {
 
+	// some funcs
 
-	// TODO
-	return -1
+	fmt.Println("into CompareForDel ...")
+
+	// 7. TxIndex
+	compareTxIndexFunc := func(l, r *Validator) int {
+		leftTxIndex, _ := l.GetStakingTxIndex()
+		rightTxIndex, _ := r.GetStakingTxIndex()
+		switch  {
+		case leftTxIndex > rightTxIndex:
+			return -1
+		case leftTxIndex < rightTxIndex:
+			return 1
+		default:
+			return 0
+		}
+	}
+
+	// 6. BlockNumber
+	compareBlockNumberFunc := func(l, r *Validator) int {
+		leftNum, _ := l.GetStakingBlockNumber()
+		rightNum, _ := r.GetStakingBlockNumber()
+		switch {
+		case leftNum > rightNum:
+			return -1
+		case leftNum < rightNum:
+			return 1
+		default:
+			return compareTxIndexFunc(l, r)
+		}
+	}
+
+	// 5. Shares
+	compareSharesFunc := func(l, r *Validator) int {
+		leftShares, _ := l.GetShares()
+		rightShares, _ := r.GetShares()
+
+		switch {
+		case leftShares.Cmp(rightShares) < 0:
+			return -1
+		case leftShares.Cmp(rightShares) > 0:
+			return 1
+		default:
+			return compareBlockNumberFunc(l, r)
+		}
+	}
+
+
+	// 4. Term
+	compareTermFunc := func(l, r *Validator) int {
+		switch {
+		case l.ValidatorTerm < r.ValidatorTerm:
+			return -1
+		case l.ValidatorTerm > r.ValidatorTerm:
+			return 1
+		default:
+			return compareSharesFunc(l, r)
+		}
+	}
+
+
+	lCan, lOK := slashs[left.NodeAddress]
+	rCan, rOK := slashs[right.NodeAddress]
+
+	// 1. Double Sign
+	if lOK && Is_DoubleSign(lCan.Status) {
+		if !rOK || (rOK && !Is_DoubleSign(rCan.Status)) {
+			return 1
+		}else {
+
+			lversion, _ := left.GetProcessVersion()
+			rversion, _ := right.GetProcessVersion()
+			switch {
+			case lversion > rversion:
+				return -1
+			case lversion < rversion:
+				return 1
+			default:
+				return compareSharesFunc(left, right)
+			}
+		}
+	}else  {
+		// 2. ProcessVersion
+		lversion, _ := left.GetProcessVersion()
+		rversion, _ := right.GetProcessVersion()
+		switch {
+		case lversion > rversion:
+			return -1
+		case lversion < rversion:
+			return 1
+		default:
+
+			// 3. LowPackageRatio
+			if lOK && Is_LowRatio(lCan.Status)  {
+				if !rOK || (rOK && !Is_LowRatio(rCan.Status)) {
+					return 1
+				}else {
+					return compareTermFunc(left, right)
+				}
+
+			}else {
+				return compareTermFunc(left, right)
+			}
+
+		}
+
+	}
 }
 
 // NOTE: Sort when doing storage
@@ -384,11 +492,77 @@ func CompareForDel (slashs SlashCandidate, left, right *Validator) int {
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareForStore (slashs SlashCandidate, left, right *Validator) int {
+func CompareForStore ( _ SlashCandidate, left, right *Validator) int {
+	// some funcs
+
+	fmt.Println("into CompareForStore ...")
+
+	// 5. TxIndex
+	compareTxIndexFunc := func(l, r *Validator) int {
+		leftTxIndex, _ := l.GetStakingTxIndex()
+		rightTxIndex, _ := r.GetStakingTxIndex()
+		switch  {
+		case leftTxIndex > rightTxIndex:
+			return -1
+		case leftTxIndex < rightTxIndex:
+			return 1
+		default:
+			return 0
+		}
+	}
+
+	// 4. BlockNumber
+	compareBlockNumberFunc := func(l, r *Validator) int {
+		leftNum, _ := l.GetStakingBlockNumber()
+		rightNum, _ := r.GetStakingBlockNumber()
+		switch {
+		case leftNum > rightNum:
+			return -1
+		case leftNum < rightNum:
+			return 1
+		default:
+			return compareTxIndexFunc(l, r)
+		}
+	}
+
+	// 3. Shares
+	compareSharesFunc := func(l, r *Validator) int {
+		leftShares, _ := l.GetShares()
+		rightShares, _ := r.GetShares()
+
+		switch {
+		case leftShares.Cmp(rightShares) < 0:
+			return -1
+		case leftShares.Cmp(rightShares) > 0:
+			return 1
+		default:
+			return compareBlockNumberFunc(l, r)
+		}
+	}
 
 
-	// TODO
-	return -1
+	// 2. Term
+	compareTermFunc := func(l, r *Validator) int {
+		switch {
+		case l.ValidatorTerm < r.ValidatorTerm:
+			return -1
+		case l.ValidatorTerm > r.ValidatorTerm:
+			return 1
+		default:
+			return compareSharesFunc(l, r)
+		}
+	}
+
+	// 1. ProcessVersion
+	lVersion, _ := left.GetProcessVersion()
+	rVersion, _ := right.GetProcessVersion()
+	if lVersion < rVersion {
+		return -1
+	}else if lVersion > rVersion {
+		return 1
+	}else {
+		return compareTermFunc(left, right)
+	}
 }
 
 

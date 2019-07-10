@@ -1840,7 +1840,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	nextValidators = append(nextValidators, shiftQueue...)
 
 	// Sort before storage
-	nextValidators.ValidatorSort(slashCans, staking.CompareForStore)
+	nextValidators.ValidatorSort(nil, staking.CompareForStore)
 
 	next := &staking.Validator_array{
 		Start: start,
