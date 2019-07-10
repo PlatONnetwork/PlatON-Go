@@ -92,6 +92,9 @@ var (
 	blockNumber2 = big.NewInt(2)
 	blockHash2 = common.HexToHash("c95876b92443d652d7eb7d7a9c0e2c58a95e934c0c1197978c5445180cc60980")
 
+	blockNumber3 = big.NewInt(3)
+	blockHash3 = common.HexToHash("3b198bfd5d2907285af009e9ae84a0ecd63677110d89d7e030251acb87f6487e")
+
 	lastBlockNumber uint64
  	lastBlockHash common.Hash
 	lastHeader types.Header
@@ -129,7 +132,8 @@ var (
 	}
 
 
-	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536
+	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536, version: 1.0.0
+	promoteVersion = uint32(2<<16 | 0<<8 | 0)
 
 	balanceStr = []string {
 
@@ -170,6 +174,23 @@ var (
 		"Baidu",
 		"Alibaba",
 		"Tencent",
+		"ming",
+		"hong",
+		"gang",
+		"guang",
+		"hua",
+		"PlatON_2",
+		"Gavin_2",
+		"Emma_2",
+		"Kally_2",
+		"Juzhen_2",
+		"Baidu_2",
+		"Alibaba_2",
+		"Tencent_2",
+		"ming_2",
+		"hong_2",
+		"gang_2",
+		"guang_2",
 	}
 
 	chaList = []string{"A", "a", "B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "J", "j", "K", "k", "M", "m",
@@ -181,6 +202,10 @@ var (
 		"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
 )
 
+func TestVersion (t *testing.T) {
+
+	t.Log("the version is:", promoteVersion)
+}
 
 func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *vm.EVM {
 	if nil == state {

@@ -37,6 +37,8 @@ var (
 	CurRoundValidatorKey  = []byte(CurRoundValidatorKeyStr)
 	NextRoundValidatorKey = []byte(NextRoundValidatorKeyStr)
 	PPOSHASHKey           = []byte(PPOSHASHStr)
+
+	b104Len = len(math.MaxBig104.Bytes())
 )
 
 func CandidateKeyByNodeId(nodeId discover.NodeID) ([]byte, error) {
@@ -65,11 +67,15 @@ func CandidateKeyBySuffix(addr []byte) []byte {
 // need to add ProcessVersion
 func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, processVersion uint32) []byte {
 	version := common.Uint32ToBytes(processVersion)
-	priority := new(big.Int).Sub(math.MaxBig256, shares)
-	prio := priority.String()
+	priority := new(big.Int).Sub(math.MaxBig104, shares)
+
+
+	zeros := make([]byte, b104Len)
+	prio := append(zeros, priority.Bytes()...)
+
 	num := common.Uint64ToBytes(stakeBlockNum)
 	txIndex := common.Uint32ToBytes(stakeTxIndex)
-	return append(CanPowerKeyPrefix, append(version, append([]byte(prio),
+	return append(CanPowerKeyPrefix, append(version, append(prio,
 		append(num, txIndex...)...)...)...)
 }
 
@@ -113,7 +119,6 @@ func GetCurRoundValidatorKey() []byte {
 func GetNextRoundValidatorKey() []byte {
 	return NextRoundValidatorKey
 }
-
 
 func GetPPOSHASHKey() []byte {
 	return PPOSHASHKey

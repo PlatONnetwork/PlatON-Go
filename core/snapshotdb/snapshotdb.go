@@ -103,8 +103,10 @@ type snapshotDB struct {
 	committed  []blockData
 	commitLock sync.RWMutex
 
-	journalw map[common.Hash]*journalWriter
-	storage  storage
+	journalw          map[common.Hash]*journalWriter
+	journalWriterLock sync.RWMutex
+
+	storage storage
 
 	corn *cron.Cron
 
@@ -259,7 +261,7 @@ func (s *snapshotDB) GetLastKVHash(blockHash common.Hash) []byte {
 // if hash is not nil,it will del in recognized BlockData
 func (s *snapshotDB) Del(hash common.Hash, key []byte) error {
 	if err := s.put(hash, key, nil); err != nil {
-		return err
+		return fmt.Errorf("[SnapshotDB]del fail:%v", err)
 	}
 	return nil
 }
@@ -361,8 +363,9 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 // Put sets the value for the given key. It overwrites any previous value
 // for that key; a DB is not a multi-map.
 func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
+	logger.Debug("put",)
 	if err := s.put(hash, key, value); err != nil {
-		return err
+		return fmt.Errorf("[SnapshotDB]put fail:%v", err)
 	}
 	return nil
 }
@@ -371,6 +374,7 @@ func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
 // if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommittedBlockData > baseDB
 // if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
 func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
+	logger.Debug("Get","hash",hash.String(),"key",key)
 	//found from unRecognized
 	location, ok := s.checkHashChain(hash)
 	if !ok {
@@ -445,6 +449,8 @@ func (s *snapshotDB) getFromRecognized(hash common.Hash, key []byte) ([]byte, er
 }
 
 func (s *snapshotDB) getFromCommitted(hash common.Hash, key []byte) ([]byte, error) {
+	s.commitLock.RLock()
+	defer s.commitLock.RUnlock()
 	for i := len(s.committed) - 1; i >= 0; i-- {
 		if s.committed[i].BlockHash == hash {
 			if v, err := s.committed[i].data.Get(key); err == nil {
@@ -483,6 +489,7 @@ func (s *snapshotDB) Has(hash common.Hash, key []byte) (bool, error) {
 
 // Flush move unRecognized to Recognized data
 func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
+	logger.Info("Flush:", "blockHash", hash.String(), "blockNumber", blocknumber)
 	if s.unRecognized == nil {
 		return errors.New("[snapshotdb]the unRecognized is nil, can't flush")
 	}
@@ -518,20 +525,22 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 func (s *snapshotDB) Commit(hash common.Hash) error {
 	s.commitLock.Lock()
 	defer s.commitLock.Unlock()
+
+	logger.Info("Commit:", "blockHash", hash.String())
 	b, ok := s.recognized.Load(hash)
 	if !ok {
-		return errors.New("[snapshotdb]not found from commit block:" + hash.String())
+		return errors.New("[snapshotdb]commit fail, not found block from recognized :" + hash.String())
 	}
 	block := b.(blockData)
 	if s.current.HighestNum.Cmp(block.Number) >= 0 {
-		return fmt.Errorf("[snapshotdb]the commit block num  %v is less or eq than HighestNum %v", block.Number, s.current.HighestNum)
+		return fmt.Errorf("[snapshotdb]commit fail,the commit block num  %v is less or eq than HighestNum %v", block.Number, s.current.HighestNum)
 	}
 	if (block.Number.Int64() - s.current.HighestNum.Int64()) != 1 {
-		return fmt.Errorf("[snapshotdb]the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
+		return fmt.Errorf("[snapshotdb]commit fail,the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
 	}
 	if s.current.HighestHash != common.ZeroHash {
 		if block.ParentHash != s.current.HighestHash {
-			return fmt.Errorf("[snapshotdb]the commit block ParentHash %v not eq HighestHash of commit hash %v ", block.ParentHash.String(), s.current.HighestHash.String())
+			return fmt.Errorf("[snapshotdb]commit fail,the commit block ParentHash %v not eq HighestHash of commit hash %v ", block.ParentHash.String(), s.current.HighestHash.String())
 		}
 	}
 	block.readOnly = true
@@ -539,7 +548,7 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	s.current.HighestNum = block.Number
 	s.current.HighestHash = hash
 	if err := s.current.update(); err != nil {
-		return errors.New("[snapshotdb]update current fail:" + err.Error())
+		return errors.New("[snapshotdb]commit fail,update current fail:" + err.Error())
 	}
 
 	if err := s.closeJournalWriter(hash); err != nil {
