@@ -1516,6 +1516,11 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 		cbft.log.Warn(fmt.Sprintf("Verify header failed, miss sign  number:%d", header.Number.Uint64()))
 		return errMissingSignature
 	}
+
+	if err := cbft.agency.VerifyHeader(header); err != nil {
+		cbft.log.Error("Verify header fail", "number", header.Number, "hash", header.Hash(), "seal", seal, "err", err)
+		return err
+	}
 	return nil
 }
 
