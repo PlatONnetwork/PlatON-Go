@@ -25,7 +25,7 @@ func TestBinomialDistribution(t *testing.T) {
 			t.Log( "x", i, "tp", tp)
 		}
 	}
-	bd = NewBinomialDistribution((1 << 64)/2-1, p)
+	bd = NewBinomialDistribution((1 << 63)-1, p)
 	tp, err := bd.CumulativeProbability(int64(10000000))
 	if nil != err {
 		t.Error(err)
