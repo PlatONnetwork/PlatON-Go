@@ -47,6 +47,7 @@ type journalWriter struct {
 }
 
 func (j *journalWriter) Close() error {
+	logger.Debug("journalWriter close")
 	if err := j.journal.Close(); err != nil {
 		return err
 	}
@@ -84,7 +85,13 @@ func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash c
 		return err
 	}
 	s.journalWriterLock.Lock()
+	logger.Debug("open journal","hash",hash.String())
 	s.journalw[hash] = writers
+	writers.journal.Next()
+
+	_,err= writers.writer.Write([]byte("a"))
+	logger.Debug("write journal","err",err)
+	writers.journal.Flush()
 	s.journalWriterLock.Unlock()
 	return nil
 }
@@ -94,7 +101,6 @@ func (s *snapshotDB) writeJournalBody(hash common.Hash, value []byte) error {
 	if !ok {
 		return errors.New("not found journal writer")
 	}
-
 	toWrite, err := jw.journal.Next()
 	if err != nil {
 		return err

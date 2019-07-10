@@ -223,6 +223,7 @@ func (s *snapshotDB) getUnRecognizedHash() common.Hash {
 }
 
 func (s *snapshotDB) closeJournalWriter(hash common.Hash) error {
+	logger.Debug("closeJournalWriter","hash",hash.String())
 	s.journalWriterLock.Lock()
 	defer s.journalWriterLock.Unlock()
 	if j, ok := s.journalw[hash]; ok {
@@ -365,6 +366,7 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 		return errors.New("encode fail:" + err.Error())
 	}
 	if err := s.writeJournalBody(blockHash, body); err != nil {
+		logger.Debug("writeJournalBody err","hash",blockHash.String())
 		return errors.New("write journalBody fail:" + err.Error())
 	}
 	if hash != common.ZeroHash {

@@ -363,7 +363,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 // Put sets the value for the given key. It overwrites any previous value
 // for that key; a DB is not a multi-map.
 func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
-	logger.Debug("put",)
+	logger.Debug("put","hash",hash.String())
 	if err := s.put(hash, key, value); err != nil {
 		return fmt.Errorf("[SnapshotDB]put fail:%v", err)
 	}
