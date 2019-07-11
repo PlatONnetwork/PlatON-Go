@@ -230,8 +230,8 @@ amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *st
 	if inputLargeVersion < currLargeVersion {
 
 		log.Error("Failed to CreateCandidate on stakingPlugin: input version  less than current valid version",
-			"input Version", xutil.ProcessVerion2Str(inputLargeVersion), "current Large Version",
-			xutil.ProcessVerion2Str(currLargeVersion))
+			"input Version", xutil.ProcessVerion2Str(processVersion), "current Large Version",
+			xutil.ProcessVerion2Str(curr_version))
 
 		return ProcessVersionErr
 	} else if inputLargeVersion > currLargeVersion {
