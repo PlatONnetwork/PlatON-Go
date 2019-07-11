@@ -119,6 +119,10 @@ func SetDBPath(ctx *node.ServiceContext) {
 	dbpath = ctx.ResolvePath(DBPath)
 }
 
+func SetDBPathWithNode(n *node.Node) {
+	dbpath = n.ResolvePath(DBPath)
+}
+
 //Instance return the Instance of the db
 func Instance() DB {
 	instance.Lock()

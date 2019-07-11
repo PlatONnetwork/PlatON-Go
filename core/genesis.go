@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -30,6 +31,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
@@ -49,7 +51,7 @@ import (
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
 var (
-	initActiveVersion = uint32(1<<16 | 0<<8 | 0)    // init active version 1.0.0
+	initActiveVersion = uint32(1<<16 | 0<<8 | 0) // init active version 1.0.0
 
 	// initial issuance:
 	// 2% used for reward
@@ -68,8 +70,8 @@ var (
 	developerFoundationIssue, _ = new(big.Int).SetString("5000000000000000000000000", 10)
 
 	// initial staking contract balance
-	genesisNodesNumber = int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
-	stakingContractIssue = new(big.Int).Mul(xcom.StakeThreshold, big.NewInt(genesisNodesNumber))  // 25000000‬ * 10 ^ 18
+	genesisNodesNumber   = int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
+	stakingContractIssue = new(big.Int).Mul(xcom.StakeThreshold, big.NewInt(genesisNodesNumber)) // 25000000 * 10 ^ 18
 
 	// initial reserved account balance
 	reservedAccountIssue = big.NewInt(0)
@@ -120,7 +122,7 @@ type GenesisAccount struct {
 // field type overrides for gencodec
 type genesisSpecMarshaling struct {
 	//Nonce     math.HexOrDecimal64
-	Nonce 	  []byte
+	Nonce     []byte
 	Timestamp math.HexOrDecimal64
 	ExtraData hexutil.Bytes
 	GasLimit  math.HexOrDecimal64
@@ -270,27 +272,52 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	// set initial active version for gov module
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(initActiveVersion))
 	// set restricting plans for increase issue for second and third year
-	_ = g.buildAllowancePlan(statedb)   // !!! error is ignored
+	_ = g.buildAllowancePlan(statedb) // !!! error is ignored
 
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
-		Number:     new(big.Int).SetUint64(g.Number),
-		Nonce:      types.EncodeNonce(g.Nonce),
-		Time:       new(big.Int).SetUint64(g.Timestamp),
-		ParentHash: g.ParentHash,
-		Extra:      g.ExtraData,
-		GasLimit:   g.GasLimit,
-		GasUsed:    g.GasUsed,
-		Coinbase:   g.Coinbase,
-		Root:       root,
+		Number:      new(big.Int).SetUint64(g.Number),
+		Nonce:       types.EncodeNonce(g.Nonce),
+		Time:        new(big.Int).SetUint64(g.Timestamp),
+		ParentHash:  g.ParentHash,
+		Extra:       g.ExtraData,
+		GasLimit:    g.GasLimit,
+		GasUsed:     g.GasUsed,
+		Coinbase:    g.Coinbase,
+		Root:        root,
+		TxHash:      types.EmptyRootHash,
+		ReceiptHash: types.EmptyRootHash,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}
+
+	stakingDB := staking.NewStakingDB()
+
+	snDb := snapshotdb.Instance()
+	if err := snDb.NewBlock(big.NewInt(0), common.ZeroHash, head.Hash()); err != nil {
+		log.Error(err.Error())
+	}
+
+	if err := g.storeCandidateList(stakingDB, head.Hash()); err != nil {
+		return nil
+	}
+
+	if err := g.storeValidatorList(stakingDB, head.Hash()); err != nil {
+		return nil
+	}
+
 	statedb.Commit(false)
 	statedb.Database().TrieDB().Commit(root, true)
 
-	return types.NewBlock(head, nil, nil)
+	block := types.NewBlock(head, nil, nil)
+
+	if err := snDb.Commit(block.Hash()); err != nil {
+		log.Error(err.Error())
+	}
+	snDb.Close()
+
+	return block
 }
 
 // Commit writes the block and state of a genesis specification to the database.
@@ -299,15 +326,6 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 	block := g.ToBlock(db)
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
-	}
-
-	stakingDB := staking.NewStakingDB()
-	if err := g.storeCandidateList(stakingDB, block.Hash()); err != nil {
-		return nil, err
-	}
-
-	if err := g.storeValidatorList(stakingDB, block.Hash()); err != nil {
-		return nil, err
 	}
 
 	rawdb.WriteBlock(db, block)
@@ -337,17 +355,17 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 // storeCandidateList writes the list of candidate use the initial nodes to snapshot database
 func (g *Genesis) storeCandidateList(db *staking.StakingDB, genesisHash common.Hash) error {
 
-	const initialNodesNumber = 25
+	initialNodesNumber := len(g.Config.Cbft.InitialNodes)
 	for index := 0; index < initialNodesNumber; index++ {
 		can := &staking.Candidate{
-			NodeId:          g.Config.Cbft.InitialNodes[0].ID,
-			StakingAddress:  vm.RewardManagerPoolAddr,
-			BenifitAddress:  vm.RewardManagerPoolAddr,
-			StakingTxIndex:  uint32(index),
-			ProcessVersion:  initActiveVersion,
-			Status:          staking.Valided,
-			StakingEpoch:    uint32(0),
-			StakingBlockNum: uint64(0),
+			NodeId:             g.Config.Cbft.InitialNodes[index].ID,
+			StakingAddress:     vm.RewardManagerPoolAddr,
+			BenifitAddress:     vm.RewardManagerPoolAddr,
+			StakingTxIndex:     uint32(index),
+			ProcessVersion:     initActiveVersion,
+			Status:             staking.Valided,
+			StakingEpoch:       uint32(0),
+			StakingBlockNum:    uint64(0),
 			Shares:             xcom.StakeThreshold,
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -361,7 +379,7 @@ func (g *Genesis) storeCandidateList(db *staking.StakingDB, genesisHash common.H
 			},
 		}
 
-		nodeAddr, err :=  xutil.NodeId2Addr(can.NodeId)
+		nodeAddr, err := xutil.NodeId2Addr(can.NodeId)
 		if err != nil {
 			return fmt.Errorf("failed to exchange nodeID to address. ID:%v, error:%s", can.NodeId, err)
 		}
@@ -381,19 +399,19 @@ func (g *Genesis) storeCandidateList(db *staking.StakingDB, genesisHash common.H
 // storeCandidateList writes the array of candidate use the initial nodes to snapshot database
 func (g *Genesis) storeValidatorList(db *staking.StakingDB, genesisHash common.Hash) error {
 
-	const initialNodesNumber = 25
+	initialNodesNumber := len(g.Config.Cbft.InitialNodes)
 	validatorQueue := make(staking.ValidatorQueue, initialNodesNumber)
 
 	for index := 0; index < initialNodesNumber; index++ {
 		// get initial validator nodeID
-		nodeID := g.Config.Cbft.NodeID
-		nodeAddr, err :=  xutil.NodeId2Addr(nodeID)
+		nodeID := g.Config.Cbft.InitialNodes[index].ID
+		nodeAddr, err := xutil.NodeId2Addr(nodeID)
 		if err != nil {
 			return fmt.Errorf("failed to exchange nodeID to address. ID:%v, error:%s", nodeID, err)
 		}
 
 		stakingBlockNum := string(0)
-		stakingTxIndex  := string(index)
+		stakingTxIndex := string(index)
 
 		// build validator queue for the first consensus epoch
 		validator := &staking.Validator{
@@ -405,9 +423,9 @@ func (g *Genesis) storeValidatorList(db *staking.StakingDB, genesisHash common.H
 		validatorQueue = append(validatorQueue, validator)
 	}
 
-	array :=  &staking.Validator_array{
+	array := &staking.Validator_array{
 		Start: 1,
-		End:   xcom.EpochSize*xcom.ConsensusSize*1,
+		End:   xcom.EpochSize * xcom.ConsensusSize * 1,
 		Arr:   validatorQueue,
 	}
 
@@ -428,11 +446,11 @@ func (g *Genesis) buildAllowancePlan(stateDb *state.StateDB) error {
 
 	account := vm.RewardManagerPoolAddr
 	firstYearEndEpoch := 365 * 24 * 3600 / (xcom.EpochSize * xcom.ConsensusSize)
-	secondYearEncEpoch :=  2 * 365 * 24 * 3600 / (xcom.EpochSize * xcom.ConsensusSize)
+	secondYearEncEpoch := 2 * 365 * 24 * 3600 / (xcom.EpochSize * xcom.ConsensusSize)
 	stableEpochs := []uint64{firstYearEndEpoch, secondYearEncEpoch}
 
 	secondYearAllowance, _ := new(big.Int).SetString("15000000000000000000000000", 10)
-	thirdYearAllowance, _  := new(big.Int).SetString("5000000000000000000000000", 10)
+	thirdYearAllowance, _ := new(big.Int).SetString("5000000000000000000000000", 10)
 
 	epochList := make([]uint64, len(stableEpochs))
 	for i, epoch := range stableEpochs {
@@ -442,7 +460,6 @@ func (g *Genesis) buildAllowancePlan(stateDb *state.StateDB) error {
 
 		// store release amount record
 		releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
-
 		switch {
 		case i == 0:
 			stateDb.SetState(account, releaseAmountKey, secondYearAllowance.Bytes())
@@ -490,11 +507,11 @@ func DefaultGenesisBlock() *Genesis {
 		ExtraData: hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
 		GasLimit:  3150000000,
 		Alloc: map[common.Address]GenesisAccount{
-			vm.PlatONFoundationAddress: {Balance: platONFoundationIssue},
-			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
+			vm.PlatONFoundationAddress:      {Balance: platONFoundationIssue},
+			vm.RewardManagerPoolAddr:        {Balance: rewardMgrPoolIssue},
 			vm.CommunityDeveloperFoundation: {Balance: developerFoundationIssue},
-			vm.StakingContractAddr : {Balance: stakingContractIssue},
-			vm.ReservedAccount : {Balance: reservedAccountIssue},
+			vm.StakingContractAddr:          {Balance: stakingContractIssue},
+			vm.ReservedAccount:              {Balance: reservedAccountIssue},
 		},
 	}
 }
