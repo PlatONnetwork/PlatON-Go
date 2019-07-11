@@ -17,9 +17,9 @@
 package rlp
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -28,7 +28,8 @@ import (
 	"reflect"
 	"sync"
 	"testing"
-	"encoding/hex"
+
+	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 )
 
 type testEncoder struct {
