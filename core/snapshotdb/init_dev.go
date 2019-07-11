@@ -21,14 +21,14 @@ const (
 )
 
 func init() {
+	rand.Seed(time.Now().UnixNano())
 	logger.SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 	logger.Info("begin test")
-	dbpath = path.Join(os.TempDir(), DBPath)
+	dbpath = path.Join(os.TempDir(), DBPath, fmt.Sprint(rand.Uint64()))
 }
 
 // New  create a new snapshotDB
 func New() (DB, error) {
-	rand.Seed(time.Now().UnixNano())
 	p := path.Join(os.TempDir(), DBPath, fmt.Sprint(rand.Uint64()))
 	logger.Info("begin newDB", "path", p)
 	s, err := openFile(p, false)
