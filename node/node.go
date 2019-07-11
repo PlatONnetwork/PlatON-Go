@@ -17,15 +17,16 @@
 package node
 
 import (
+	"errors"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/internal/debug"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"errors"
-	"fmt"
 	"github.com/prometheus/prometheus/util/flock"
 	"net"
 	"os"
@@ -427,6 +428,9 @@ func (n *Node) Stop() error {
 	n.services = nil
 	n.server = nil
 
+	if err := snapshotdb.Instance().Close(); err != nil {
+		n.log.Error("close snapshotdb  fail", "err", err)
+	}
 	// Release instance directory lock.
 	if n.instanceDirLock != nil {
 		if err := n.instanceDirLock.Release(); err != nil {

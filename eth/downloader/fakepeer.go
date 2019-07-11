@@ -205,6 +205,7 @@ func (p *FakePeer) RequestPPOSStorage() error {
 
 	if err := p.snapshotDB.WalkBaseDB(nil, f); err != nil {
 		log.Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
+		return err
 	}
 	return nil
 }

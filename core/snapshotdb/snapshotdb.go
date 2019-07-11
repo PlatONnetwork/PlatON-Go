@@ -573,15 +573,19 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 		return errors.New("[snapshotdb]commit fail, not found block from recognized :" + hash.String())
 	}
 	block := b.(blockData)
-	if s.current.HighestNum.Cmp(block.Number) >= 0 {
-		return fmt.Errorf("[snapshotdb]commit fail,the commit block num  %v is less or eq than HighestNum %v", block.Number, s.current.HighestNum)
-	}
-	if (block.Number.Int64() - s.current.HighestNum.Int64()) != 1 {
-		return fmt.Errorf("[snapshotdb]commit fail,the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
-	}
-	if s.current.HighestHash != common.ZeroHash {
-		if block.ParentHash != s.current.HighestHash {
-			return fmt.Errorf("[snapshotdb]commit fail,the commit block ParentHash %v not eq HighestHash of commit hash %v ", block.ParentHash.String(), s.current.HighestHash.String())
+	if s.current.HighestNum.Int64() == 0 && block.Number.Int64() == 0 {
+
+	} else {
+		if s.current.HighestNum.Cmp(block.Number) >= 0 {
+			return fmt.Errorf("[snapshotdb]commit fail,the commit block num  %v is less or eq than HighestNum %v", block.Number, s.current.HighestNum)
+		}
+		if (block.Number.Int64() - s.current.HighestNum.Int64()) != 1 {
+			return fmt.Errorf("[snapshotdb]commit fail,the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
+		}
+		if s.current.HighestHash != common.ZeroHash {
+			if block.ParentHash != s.current.HighestHash {
+				return fmt.Errorf("[snapshotdb]commit fail,the commit block ParentHash %v not eq HighestHash of commit hash %v ", block.ParentHash.String(), s.current.HighestHash.String())
+			}
 		}
 	}
 	block.readOnly = true
