@@ -7,50 +7,51 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/journal"
-	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"io/ioutil"
 	"math/big"
-	"os"
 	"testing"
 )
 
 var (
-	parentHash  = generateHash("parentHash")
-	currentHash = generateHash("currentHash")
+//parentHash  = generateHash("parentHash")
+//currentHash = generateHash("currentHash")
 )
 
 func TestSnapshotDB_NewBlock(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
+	var (
+		p = generateHash("parentHash")
+		c = generateHash("currentHash")
+	)
 	t.Run("new recognized block", func(t *testing.T) {
-		err := dbInstance.NewBlock(big.NewInt(30), parentHash, currentHash)
+		err := dbInstance.NewBlock(big.NewInt(30), p, c)
 		if err != nil {
 			t.Error(err)
 		}
-		b, ok := dbInstance.recognized.Load(currentHash)
+		b, ok := dbInstance.recognized.Load(c)
 		if !ok {
 			t.Fatal("must find recognized")
 		}
 		bd := b.(blockData)
-		if bd.ParentHash != parentHash {
-			t.Fatal("parentHash must same:", bd.ParentHash, parentHash)
+		if bd.ParentHash != p {
+			t.Fatal("parentHash must same:", bd.ParentHash, p)
 		}
 		if bd.Number.Cmp(big.NewInt(30)) != 0 {
 			t.Fatal("block number must same:", bd.Number, big.NewInt(30))
 		}
-		if bd.BlockHash != currentHash {
-			t.Fatal("BlockHash must right:", bd.BlockHash, currentHash)
+		if bd.BlockHash != c {
+			t.Fatal("BlockHash must right:", bd.BlockHash, c)
 		}
 	})
 	t.Run("new unrecognized block", func(t *testing.T) {
-		err := dbInstance.NewBlock(big.NewInt(30), parentHash, common.ZeroHash)
+		err := dbInstance.NewBlock(big.NewInt(30), p, common.ZeroHash)
 		if err != nil {
 			t.Error(err)
 		}
 		bd := dbInstance.unRecognized
-		if bd.ParentHash != parentHash {
-			t.Fatal("parentHash must same:", bd.ParentHash, parentHash)
+		if bd.ParentHash != p {
+			t.Fatal("parentHash must same:", bd.ParentHash, p)
 		}
 		if bd.Number.Cmp(big.NewInt(30)) != 0 {
 			t.Fatal("block number must same:", bd.Number, big.NewInt(30))
@@ -64,17 +65,15 @@ func TestSnapshotDB_GetWithNoCommit(t *testing.T) {
 	var (
 		arr = [][]kv{generatekv(10), generatekv(10)}
 	)
-	{
-
-		//recognized(unRecognized not in the chain)
-		if err := newBlockRecognizedDirect(big.NewInt(2), generateHash(fmt.Sprint(1)), generateHash(fmt.Sprint(2)), arr[0]); err != nil {
-			t.Error(err)
-		}
-		//unRecognized
-		if err := newBlockUnRecognized(big.NewInt(3), generateHash(fmt.Sprint(2)), arr[1]); err != nil {
-			t.Error(err)
-		}
+	//recognized(unRecognized not in the chain)
+	if err := newBlockRecognizedDirect(big.NewInt(2), generateHash(fmt.Sprint(1)), generateHash(fmt.Sprint(2)), arr[0]); err != nil {
+		t.Error(err)
 	}
+	//unRecognized
+	if err := newBlockUnRecognized(big.NewInt(3), generateHash(fmt.Sprint(2)), arr[1]); err != nil {
+		t.Error(err)
+	}
+
 	for _, a := range arr {
 		for _, kv := range a {
 			val, err := dbInstance.Get(common.ZeroHash, kv.key)
@@ -326,79 +325,28 @@ func TestSnapshotDB_Del(t *testing.T) {
 		recognizedHash        = generateHash("recognizedHash")
 		recognizedByFlushHash = generateHash("recognizedByFlush")
 		commitHash            = generateHash("commitHash")
+		baseHash              = generateHash("baseHash")
 	)
-	{
-		//unRecognized
-		unRecognized := blockData{
-			ParentHash: recognizedHash,
-			Number:     big.NewInt(50),
-			data:       memdb.New(DefaultComparer, 10),
-			readOnly:   false,
-		}
-		unRecognized.data.Put(arr[0], arr[0])
-		dbInstance.unRecognized = &unRecognized
-		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
-		if err != nil {
-			t.Error(err)
-		}
-		dbInstance.journalw[dbInstance.getUnRecognizedHash()] = newJournalWriter(f)
+	if err := newBlockBaseDB(big.NewInt(1), common.ZeroHash, baseHash, []kv{kv{key: arr[3], value: arr[3]}}); err != nil {
+		t.Error(err)
+		return
 	}
-	{
-		//recognized
-		Recognized := blockData{
-			ParentHash: commitHash,
-			Number:     big.NewInt(50),
-			data:       memdb.New(DefaultComparer, 10),
-			readOnly:   false,
-			BlockHash:  recognizedHash,
-		}
-		Recognized.data.Put(arr[1], arr[1])
-		dbInstance.recognized.Store(recognizedHash, Recognized)
-		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
-		if err != nil {
-			t.Error(err)
-		}
-		dbInstance.journalw[recognizedHash] = newJournalWriter(f)
+	if err := newBlockCommited(big.NewInt(2), baseHash, commitHash, []kv{kv{key: arr[2], value: arr[2]}}); err != nil {
+		t.Error(err)
+		return
 	}
-	{
-		//recognized by flush
-		Recognized2 := blockData{
-			ParentHash: commitHash,
-			Number:     big.NewInt(50),
-			data:       memdb.New(DefaultComparer, 10),
-			readOnly:   true,
-			BlockHash:  recognizedByFlushHash,
-		}
-		Recognized2.data.Put(arr[4], arr[4])
-		dbInstance.recognized.Store(recognizedByFlushHash, Recognized2)
-		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
-		if err != nil {
-			t.Error(err)
-		}
-		dbInstance.journalw[recognizedByFlushHash] = newJournalWriter(f)
+	if err := newBlockRecognizedDirect(big.NewInt(3), commitHash, recognizedHash, []kv{kv{key: arr[1], value: arr[1]}}); err != nil {
+		t.Error(err)
+		return
 	}
-	{
-		//commit
-		commit := blockData{
-			ParentHash: parentHash,
-			Number:     big.NewInt(50),
-			data:       memdb.New(DefaultComparer, 10),
-			readOnly:   false,
-			BlockHash:  commitHash,
-		}
-		commit.data.Put(arr[2], arr[2])
-		dbInstance.committed = append(dbInstance.committed, commit)
-		f, err := ioutil.TempFile(os.TempDir(), "test_del*.log")
-		if err != nil {
-			t.Error(err)
-		}
-		dbInstance.journalw[commitHash] = newJournalWriter(f)
+	if err := newBlockRecognizedByFlush(big.NewInt(3), commitHash, recognizedByFlushHash, []kv{kv{key: arr[4], value: arr[4]}}); err != nil {
+		t.Error(err)
+		return
 	}
-	{
-		//baseDB
-		dbInstance.baseDB.Put(arr[3], arr[3], nil)
+	if err := newBlockUnRecognized(big.NewInt(4), recognizedByFlushHash, []kv{kv{key: arr[0], value: arr[0]}}); err != nil {
+		t.Error(err)
+		return
 	}
-
 	t.Run("delete unrecognized", func(t *testing.T) {
 		err := dbInstance.Del(common.ZeroHash, arr[0])
 		if err != nil {
@@ -740,9 +688,14 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
 	var (
-		recognizedHash = generateHash("recognizedHash")
-		commitHash     common.Hash
-		parenthash     common.Hash
+		commitHash1 = generateHash(fmt.Sprint(1))
+		commitHash2 = generateHash(fmt.Sprint(2))
+		commitHash3 = generateHash(fmt.Sprint(3))
+		commitHash4 = generateHash(fmt.Sprint(4))
+		kvs1        = generatekv(3000)
+		kvs2        = generatekv(100)
+		kvs3        = generatekv(100)
+		kvs4        = generatekv(1798)
 	)
 	t.Run("0 commit block with Compaction", func(t *testing.T) {
 		err := dbInstance.Compaction()
@@ -751,78 +704,33 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		}
 	})
 	{
-		err := dbInstance.NewBlock(big.NewInt(1), commitHash, recognizedHash)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for i := 0; i < 3000; i++ {
-			err := dbInstance.Put(recognizedHash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i)))
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-		if err := dbInstance.Commit(recognizedHash); err != nil {
-			t.Fatal(err)
+		if err := newBlockCommited(big.NewInt(1), common.ZeroHash, commitHash1, kvs1); err != nil {
+			t.Error(err)
+			return
 		}
 	}
 	{
-		currenthash := generateHash(fmt.Sprint(2))
-		if err := dbInstance.NewBlock(big.NewInt(int64(2)), recognizedHash, currenthash); err != nil {
-			t.Fatal(err)
+		if err := newBlockCommited(big.NewInt(2), commitHash1, commitHash2, kvs2); err != nil {
+			t.Error(err)
+			return
 		}
-		for i := 3000; i < 3100; i++ {
-			if err := dbInstance.Put(currenthash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
-				t.Fatal(err)
-			}
+		if err := newBlockCommited(big.NewInt(3), commitHash2, commitHash3, kvs3); err != nil {
+			t.Error(err)
+			return
 		}
-		if err := dbInstance.Commit(currenthash); err != nil {
-			t.Fatal(err)
-		}
-		parenthash = currenthash
 
-		currenthash = generateHash(fmt.Sprint(3))
-		if err := dbInstance.NewBlock(big.NewInt(int64(3)), parenthash, currenthash); err != nil {
-			t.Fatal(err)
+		if err := newBlockCommited(big.NewInt(4), commitHash3, commitHash4, kvs4); err != nil {
+			t.Error(err)
+			return
 		}
-		for i := 3100; i < 3200; i++ {
-			if err := dbInstance.Put(currenthash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
-				t.Fatal(err)
-			}
-		}
-		if err := dbInstance.Commit(currenthash); err != nil {
-			t.Fatal(err)
-		}
-		parenthash = currenthash
-
-		currenthash = generateHash(fmt.Sprint(4))
-		if err := dbInstance.NewBlock(big.NewInt(int64(4)), parenthash, currenthash); err != nil {
-			t.Fatal(err)
-		}
-		for i := 3200; i < 4998; i++ {
-			if err := dbInstance.Put(currenthash, []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
-				t.Fatal(err)
-			}
-		}
-		if err := dbInstance.Commit(currenthash); err != nil {
-			t.Fatal(err)
-		}
-		parenthash = currenthash
 	}
 	{
+
 		for i := 5; i < 16; i++ {
-			currenthash := generateHash(fmt.Sprint(i))
-			if err := dbInstance.NewBlock(big.NewInt(int64(i)), parenthash, currenthash); err != nil {
-				t.Fatal(err)
+			if err := newBlockCommited(big.NewInt(int64(i)), generateHash(fmt.Sprint(i-1)), generateHash(fmt.Sprint(i)), generatekv(20)); err != nil {
+				t.Error(err)
+				return
 			}
-			for j := 0; j < 20; j++ {
-				if err := dbInstance.Put(currenthash, []byte(fmt.Sprint(j)), []byte(fmt.Sprint(j))); err != nil {
-					t.Fatal(err)
-				}
-			}
-			if err := dbInstance.Commit(currenthash); err != nil {
-				t.Fatal(err)
-			}
-			parenthash = currenthash
 		}
 	}
 	t.Run("a block kv>2000,commit 1", func(t *testing.T) {
@@ -836,12 +744,12 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		if len(dbInstance.committed) != 14 {
 			t.Error("must be 14:", len(dbInstance.committed))
 		}
-		for i := 0; i < 3000; i++ {
-			v, err := dbInstance.baseDB.Get([]byte(fmt.Sprint(i)), nil)
+		for _, kv := range kvs1 {
+			v, err := dbInstance.baseDB.Get(kv.key, nil)
 			if err != nil {
 				t.Error(err)
 			}
-			if bytes.Compare(v, []byte(fmt.Sprint(i))) != 0 {
+			if bytes.Compare(v, kv.value) != 0 {
 				t.Error("value not the same")
 			}
 		}
@@ -857,13 +765,15 @@ func TestSnapshotDB_Compaction(t *testing.T) {
 		if len(dbInstance.committed) != 11 {
 			t.Error("must be 11:", len(dbInstance.committed))
 		}
-		for i := 3000; i < 4998; i++ {
-			v, err := dbInstance.baseDB.Get([]byte(fmt.Sprint(i)), nil)
-			if err != nil {
-				t.Error(err)
-			}
-			if bytes.Compare(v, []byte(fmt.Sprint(i))) != 0 {
-				t.Error("value not the same")
+		for _, kvs := range [][]kv{kvs2, kvs3, kvs4} {
+			for _, kv := range kvs {
+				v, err := dbInstance.baseDB.Get(kv.key, nil)
+				if err != nil {
+					t.Error(err)
+				}
+				if bytes.Compare(v, kv.value) != 0 {
+					t.Error("value not the same")
+				}
 			}
 		}
 	})
@@ -896,7 +806,7 @@ func TestPutToUnRecognized(t *testing.T) {
 		[2]string{"b", "4421ffwef"},
 		[2]string{"C", "2wgewbrw2"},
 	}
-
+	parentHash := generateHash("parentHash")
 	if err := db.Put(common.ZeroHash, []byte("a"), []byte("b")); err == nil {
 		t.Error("new block must call before put to UnRecognized")
 	}
@@ -975,7 +885,6 @@ func TestPutToUnRecognized(t *testing.T) {
 	}
 }
 
-//需要测试kv hash的正确性
 func TestPutToRecognized(t *testing.T) {
 	initDB()
 	db := dbInstance
