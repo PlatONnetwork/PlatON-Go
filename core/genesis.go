@@ -459,7 +459,7 @@ func (g *Genesis) buildAllowancePlan(stateDb *state.StateDB) error {
 
 	// build restricting account info
 	var restrictInfo restricting.RestrictingInfo
-	restrictInfo.Balance = big.NewInt(20000000000000000000000000)
+	restrictInfo.Balance, _ = new(big.Int).SetString("20000000000000000000000000", 10)
 	restrictInfo.Debt = big.NewInt(0)
 	restrictInfo.ReleaseList = epochList
 
