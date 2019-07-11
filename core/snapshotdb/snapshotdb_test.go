@@ -17,6 +17,14 @@ var (
 //currentHash = generateHash("currentHash")
 )
 
+func TestCommitZeroBlock(t *testing.T) {
+	initDB()
+	defer dbInstance.Clear()
+	if err := newBlockCommited(big.NewInt(0), common.ZeroHash, generateHash("zerohash"), generatekv(1)); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestSnapshotDB_NewBlock(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
