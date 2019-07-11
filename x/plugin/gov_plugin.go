@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"errors"
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -79,7 +78,7 @@ func inNodeList(proposer discover.NodeID, vList []discover.NodeID) bool {
 
 //implement BasePlugin
 func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-	fmt.Println("EndBlock blockHash:" + blockHash.Hex() + ", blockNumber:" + header.Number.String())
+	//fmt.Println("EndBlock blockHash:" + blockHash.Hex() + ", blockNumber:" + header.Number.String())
 	votingProposalIDs, err := govPlugin.govDB.ListVotingProposal(blockHash, state)
 	if err != nil {
 		log.Error("[GOV] EndBlock(): ListVerifierNodeID failed.")
@@ -138,15 +137,16 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		return nil
 	}
 	//handle a PreActiveProposal
+
+
 	proposal, err := govPlugin.govDB.GetProposal(preActiveProposalID, state)
 	if err != nil {
 		return err
 	}
 	versionProposal, ok := proposal.(gov.VersionProposal)
+
 	if ok {
-
 		sub := header.Number.Uint64() - versionProposal.GetActiveBlock()
-
 		if sub >= 0 && sub%xcom.ConsensusSize == 0 {
 			validatorList, err := stk.ListCurrentValidatorID(blockHash, header.Number.Uint64())
 			if err != nil {
@@ -194,6 +194,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 					log.Error("[GOV] EndBlock(): ClearActiveNodes() failed.", "blockHash", blockHash, "preActiveProposalID", preActiveProposalID)
 					return err
 				}
+
 				err = govPlugin.govDB.SetActiveVersion(versionProposal.NewVersion, state)
 				if err != nil {
 					log.Error("[GOV] EndBlock(): SetActiveVersion() failed.", "blockHash", blockHash, "preActiveProposalID", preActiveProposalID)

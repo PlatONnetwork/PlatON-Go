@@ -5,8 +5,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"os"
 	"testing"
 	//"fmt"
 	"bytes"
@@ -28,6 +30,9 @@ var (
 
 
 func setup(t *testing.T) func() {
+
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+
 	t.Log("setup()......")
 
 	state, _ := newChainState()
@@ -44,6 +49,7 @@ func setup(t *testing.T) func() {
 	return func() {
 		t.Log("tear down()......")
 		snapdb.Clear()
+		ClearPlatONPluginTestData()
 	}
 }
 
@@ -134,14 +140,14 @@ func GetGovDB() (*gov.GovDB, *state.StateDB) {
 
 func TestGovPlugin_Submit(t *testing.T) {
 	defer setup(t)()
-	submitText(t)
+	submitText(t, txHashArr[0])
 	//submitVersion(t)
 }
 
 
 func TestGovPlugin_Vote(t *testing.T) {
 	defer setup(t)()
-	submitVersion(t)
+	submitVersion(t, txHashArr[0])
 
 	sndb.Commit(blockHash)
 
@@ -163,7 +169,7 @@ func TestGovPlugin_Vote(t *testing.T) {
 
 func TestGovPlugin_DeclareVersion(t *testing.T) {
 	defer setup(t)()
-	submitVersion(t)
+	submitVersion(t, txHashArr[0])
 
 	sndb.Commit(blockHash)
 
@@ -181,7 +187,7 @@ func TestGovPlugin_ListProposal(t *testing.T) {
 
 	defer setup(t)()
 
-	submitText(t)
+	submitText(t, txHashArr[0])
 	//submitVersion(t)
 
 	pList, err := plugin.GovPluginInstance().ListProposal(lastBlockHash, evm.StateDB)
@@ -194,9 +200,9 @@ func TestGovPlugin_ListProposal(t *testing.T) {
 }
 
 
-func submitText(t *testing.T) {
+func submitText(t *testing.T, pid common.Hash) {
 	vp := gov.TextProposal{
-		ProposalID:		txHashArr[0],
+		ProposalID:		pid,
 		GithubID:		"githubID",
 		ProposalType:	gov.Text,
 		Topic:			"versionTopic",
@@ -216,9 +222,9 @@ func submitText(t *testing.T) {
 }
 
 
-func submitVersion(t *testing.T) {
+func submitVersion(t *testing.T, pid common.Hash) {
 	vp := gov.VersionProposal{
-		ProposalID:		txHashArr[0],
+		ProposalID:		pid,
 		GithubID:		"githubID",
 		ProposalType:	gov.Version,
 		Topic:			"versionTopic",
@@ -239,10 +245,10 @@ func submitVersion(t *testing.T) {
 	}
 }
 
-func allVote(t *testing.T) {
+func allVote(t *testing.T, pid common.Hash) {
 	for _, nodeID := range nodeIdArr {
 		vote := gov.Vote{
-			ProposalID:		txHashArr[0],
+			ProposalID:		pid,
 			VoteNodeID:		nodeID,
 			VoteOption:		gov.Yes,
 		}
@@ -267,61 +273,81 @@ func endBlock(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_versionProposalSuccess(t *testing.T) {
-
-	defer setup(t)()
-
-	InitPlatONPluginTestData()
-
-	submitVersion(t)
-
-	allVote(t)
-
-	sndb.Commit(blockHash)
-
-	buildSnapDBDataCommitted(2, 19999)
-
-	buildSnapDBDataNoCommit(20000)
-
-	beginBlock(t)
-
-	sndb.Commit(lastBlockHash)
-
-	buildSnapDBDataCommitted(20001, 22229)
-
-	buildSnapDBDataNoCommit(22230)
-	endBlock(t)
-	sndb.Commit(lastBlockHash)
-
-	buildSnapDBDataCommitted(22231, 23479)
-
-	buildSnapDBDataNoCommit(23480)
-	endBlock(t)
-	sndb.Commit(lastBlockHash)
-
-	activeVersion := gov.GovDBInstance().GetActiveVersion(evm.StateDB)
-
-	if activeVersion == uint32(1<<16 | 1<<8 | 1) {
-		t.Log("SUCCESS")
-	}else{
-		t.Log("FALSE")
-	}
-}
-
-
 func TestGovPlugin_textProposalSuccess(t *testing.T) {
 
 	defer setup(t)()
 
 	InitPlatONPluginTestData()
 
-	submitText(t)
+	submitText(t, txHashArr[0])
 
-	allVote(t)
+	allVote(t, txHashArr[0])
+	sndb.Commit(blockHash)
+
+	//buildSnapDBDataCommitted(2, 19999)
+	sndb.Compaction()
+	lastBlockNumber = uint64(19999)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+
+	buildSnapDBDataNoCommit(20000)
+	beginBlock(t)
+	sndb.Commit(lastBlockHash)
+
+	//buildSnapDBDataCommitted(20001, 22229)
+	sndb.Compaction()
+	lastBlockNumber = uint64(22229)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+
+	buildSnapDBDataNoCommit(22230)
+	endBlock(t)
+	sndb.Commit(lastBlockHash)
+
+	result, err := gov.GovDBInstance().GetTallyResult(txHashArr[0], evm.StateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Error("cannot find the tally result")
+	}else if result.Status == gov.Pass{
+		t.Logf("the result status, %d", result.Status)
+	}else {
+		t.Logf("the result status error, %d", result.Status )
+	}
+}
+
+func TestGovPlugin_twoProposalsSuccess(t *testing.T) {
+
+	defer setup(t)()
+
+	InitPlatONPluginTestData()
+
+	submitText(t, txHashArr[0])
+	allVote(t, txHashArr[0])
+
+	submitVersion(t, txHashArr[1])
+	allVote(t, txHashArr[1])
+
 
 	sndb.Commit(blockHash)
 
-	buildSnapDBDataCommitted(2, 19999)
+	//buildSnapDBDataCommitted(2, 19999)
+	sndb.Compaction()
+	lastBlockNumber = uint64(19999)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
 	buildSnapDBDataNoCommit(20000)
 
@@ -329,7 +355,15 @@ func TestGovPlugin_textProposalSuccess(t *testing.T) {
 
 	sndb.Commit(lastBlockHash)
 
-	buildSnapDBDataCommitted(20001, 22229)
+	//buildSnapDBDataCommitted(20001, 22229)
+	sndb.Compaction()
+	lastBlockNumber = uint64(22229)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
 
 	buildSnapDBDataNoCommit(22230)
 	endBlock(t)
@@ -344,4 +378,80 @@ func TestGovPlugin_textProposalSuccess(t *testing.T) {
 	}else{
 		t.Logf("the result status, %d", result.Status)
 	}
+
+	result, err = gov.GovDBInstance().GetTallyResult(txHashArr[1], evm.StateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Error("cannot find the tally result")
+	}else if result.Status == gov.PreActive{
+		t.Logf("the result status, %d", result.Status)
+	}else {
+		t.Logf("the result status error, %d", result.Status )
+	}
 }
+
+func TestGovPlugin_versionProposalSuccess(t *testing.T) {
+
+	defer setup(t)()
+
+	InitPlatONPluginTestData()
+
+	submitVersion(t, txHashArr[0])
+
+	allVote(t, txHashArr[0])
+
+	sndb.Commit(blockHash)
+
+	//buildSnapDBDataCommitted(2, 19999)
+	sndb.Compaction()
+	lastBlockNumber = uint64(19999)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	buildSnapDBDataNoCommit(20000)
+
+	beginBlock(t)
+
+	sndb.Commit(lastBlockHash)
+
+	//buildSnapDBDataCommitted(20001, 22229)
+	sndb.Compaction()
+	lastBlockNumber = uint64(22229)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+
+	buildSnapDBDataNoCommit(22230)
+	endBlock(t)
+	sndb.Commit(lastBlockHash)
+
+	//buildSnapDBDataCommitted(22231, 23479)
+	sndb.Compaction()
+	lastBlockNumber = uint64(23479)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+	buildSnapDBDataNoCommit(23480)
+	endBlock(t)
+	sndb.Commit(lastBlockHash)
+
+	activeVersion := gov.GovDBInstance().GetActiveVersion(evm.StateDB)
+	t.Logf("active version, %d", activeVersion)
+	if activeVersion == uint32(1<<16 | 1<<8 | 1) {
+		t.Logf("active SUCCESS, %d", activeVersion)
+	}else{
+		t.Errorf("active FALSE, %d", activeVersion)
+	}
+}
+

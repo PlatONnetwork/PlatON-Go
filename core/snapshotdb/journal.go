@@ -93,10 +93,13 @@ func (s *snapshotDB) writeJournalHeader(blockNumber *big.Int, hash, parentHash c
 }
 
 func (s *snapshotDB) writeJournalBody(hash common.Hash, value []byte) error {
+	s.journalWriterLock.RLock()
 	jw, ok := s.journalw[hash]
 	if !ok {
+		s.journalWriterLock.RUnlock()
 		return errors.New("not found journal writer")
 	}
+	s.journalWriterLock.RUnlock()
 	toWrite, err := jw.journal.Next()
 	if err != nil {
 		return errors.New("next err:" + err.Error())

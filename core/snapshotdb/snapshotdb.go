@@ -53,6 +53,7 @@ type DB interface {
 	Clear() error
 
 	PutBaseDB(key, value []byte) error
+	GetBaseDB(key []byte) ([]byte, error)
 
 	// WriteBaseDB apply the given [][2][]byte to the baseDB.
 	WriteBaseDB(kvs [][2][]byte) error
@@ -118,6 +119,10 @@ func SetDBPath(ctx *node.ServiceContext) {
 	dbpath = ctx.ResolvePath(DBPath)
 }
 
+func SetDBPathWithNode(n *node.Node) {
+	dbpath = n.ResolvePath(DBPath)
+}
+
 //Instance return the Instance of the db
 func Instance() DB {
 	instance.Lock()
@@ -131,6 +136,29 @@ func Instance() DB {
 		}
 	}
 	return dbInstance
+}
+
+func Open(path string) (DB, error) {
+	s, err := openFile(path, false)
+	if err != nil {
+		logger.Error("open db file fail", "error", err, "path", dbpath)
+		return nil, err
+	}
+	fds, err := s.List(TypeCurrent)
+	if err != nil {
+		logger.Error("get current file fail", "error", err)
+		return nil, err
+	}
+	if len(fds) > 0 {
+		logger.Info("begin open")
+		db := new(snapshotDB)
+		if err := db.recover(s); err != nil {
+			logger.Error("recover db fail:", "error", err)
+			return nil, err
+		}
+		return db, nil
+	}
+	return nil, nil
 }
 
 func copyDB(from, to *snapshotDB) {
@@ -151,12 +179,12 @@ func copyDB(from, to *snapshotDB) {
 func initDB() error {
 	s, err := openFile(dbpath, false)
 	if err != nil {
-		logger.Error(fmt.Sprint("open db file fail:", err), "path", dbpath)
+		logger.Error("open db file fail", "error", err, "path", dbpath)
 		return err
 	}
 	fds, err := s.List(TypeCurrent)
 	if err != nil {
-		logger.Error(fmt.Sprint("get current file fail:", err))
+		logger.Error("get current file fail", "error", err)
 		return err
 	}
 	if dbInstance == nil {
@@ -166,7 +194,7 @@ func initDB() error {
 		logger.Info("begin recover")
 		db := new(snapshotDB)
 		if err := db.recover(s); err != nil {
-			logger.Error(fmt.Sprint("recover db fail:", err))
+			logger.Error("recover db fail:", "error", err)
 			return err
 		}
 		copyDB(db, dbInstance)
@@ -549,15 +577,19 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 		return errors.New("[snapshotdb]commit fail, not found block from recognized :" + hash.String())
 	}
 	block := b.(blockData)
-	if s.current.HighestNum.Cmp(block.Number) >= 0 {
-		return fmt.Errorf("[snapshotdb]commit fail,the commit block num  %v is less or eq than HighestNum %v", block.Number, s.current.HighestNum)
-	}
-	if (block.Number.Int64() - s.current.HighestNum.Int64()) != 1 {
-		return fmt.Errorf("[snapshotdb]commit fail,the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
-	}
-	if s.current.HighestHash != common.ZeroHash {
-		if block.ParentHash != s.current.HighestHash {
-			return fmt.Errorf("[snapshotdb]commit fail,the commit block ParentHash %v not eq HighestHash of commit hash %v ", block.ParentHash.String(), s.current.HighestHash.String())
+	if s.current.HighestNum.Int64() == 0 && block.Number.Int64() == 0 {
+
+	} else {
+		if s.current.HighestNum.Cmp(block.Number) >= 0 {
+			return fmt.Errorf("[snapshotdb]commit fail,the commit block num  %v is less or eq than HighestNum %v", block.Number, s.current.HighestNum)
+		}
+		if (block.Number.Int64() - s.current.HighestNum.Int64()) != 1 {
+			return fmt.Errorf("[snapshotdb]commit fail,the commit block num %v - HighestNum %v should be eq 1", block.Number, s.current.HighestNum)
+		}
+		if s.current.HighestHash != common.ZeroHash {
+			if block.ParentHash != s.current.HighestHash {
+				return fmt.Errorf("[snapshotdb]commit fail,the commit block ParentHash %v not eq HighestHash of commit hash %v ", block.ParentHash.String(), s.current.HighestHash.String())
+			}
 		}
 	}
 	block.readOnly = true
