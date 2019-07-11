@@ -563,6 +563,15 @@ func InitPlatONPluginTestData() {
 	}
 }
 
+
+func ClearPlatONPluginTestData(){
+	cList = cList[0:0]
+	vList = vList[0:0]
+	addrList = addrList[0:0]
+	val_Arr = &staking.Validator_array{}
+}
+
+
 func buildSnapDBDataNoCommit(blockNum int){
 
 	no := int64(blockNum)
