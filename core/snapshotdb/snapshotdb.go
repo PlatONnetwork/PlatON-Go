@@ -53,6 +53,7 @@ type DB interface {
 	Clear() error
 
 	PutBaseDB(key, value []byte) error
+	GetBaseDB(key []byte) ([]byte, error)
 
 	// WriteBaseDB apply the given [][2][]byte to the baseDB.
 	WriteBaseDB(kvs [][2][]byte) error
@@ -133,6 +134,29 @@ func Instance() DB {
 	return dbInstance
 }
 
+func Open(path string) (DB, error) {
+	s, err := openFile(path, false)
+	if err != nil {
+		logger.Error("open db file fail", "error", err, "path", dbpath)
+		return nil, err
+	}
+	fds, err := s.List(TypeCurrent)
+	if err != nil {
+		logger.Error("get current file fail", "error", err)
+		return nil, err
+	}
+	if len(fds) > 0 {
+		logger.Info("begin open")
+		db := new(snapshotDB)
+		if err := db.recover(s); err != nil {
+			logger.Error("recover db fail:", "error", err)
+			return nil, err
+		}
+		return db, nil
+	}
+	return nil, nil
+}
+
 func copyDB(from, to *snapshotDB) {
 	to.path = from.path
 	to.snapshotLockC = from.snapshotLockC
@@ -151,12 +175,12 @@ func copyDB(from, to *snapshotDB) {
 func initDB() error {
 	s, err := openFile(dbpath, false)
 	if err != nil {
-		logger.Error(fmt.Sprint("open db file fail:", err), "path", dbpath)
+		logger.Error("open db file fail", "error", err, "path", dbpath)
 		return err
 	}
 	fds, err := s.List(TypeCurrent)
 	if err != nil {
-		logger.Error(fmt.Sprint("get current file fail:", err))
+		logger.Error("get current file fail", "error", err)
 		return err
 	}
 	if dbInstance == nil {
@@ -166,7 +190,7 @@ func initDB() error {
 		logger.Info("begin recover")
 		db := new(snapshotDB)
 		if err := db.recover(s); err != nil {
-			logger.Error(fmt.Sprint("recover db fail:", err))
+			logger.Error("recover db fail:", "error", err)
 			return err
 		}
 		copyDB(db, dbInstance)
