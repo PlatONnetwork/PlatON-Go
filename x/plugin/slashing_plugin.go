@@ -140,7 +140,7 @@ func (sp *SlashingPlugin) getBlockAmount(blockHash common.Hash, header *types.He
 	if nil != err {
 		return 0, err
 	}
-	value, err := sp.db.Get(blockHash, curKey(nodeId.Bytes()))
+	value, err := sp.db.GetBaseDB(curKey(nodeId.Bytes()))
 	if nil != err && err != snapshotdb.ErrNotFound {
 		return 0, err
 	}
