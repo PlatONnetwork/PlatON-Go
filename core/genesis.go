@@ -28,6 +28,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -35,6 +36,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -42,8 +48,32 @@ import (
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
-//init active version 1.0.0
-var initActiveVersion = uint32(1<<16 | 0<<8 | 0)
+var (
+	initActiveVersion = uint32(1<<16 | 0<<8 | 0)    // init active version 1.0.0
+
+	// initial issuance:
+	// 2% used for reward
+	// 0.5% used for developer foundation
+	// 4.5% used for allowance
+	// almost 2.5 % used for staking
+	genesisIssue, _ = new(big.Int).SetString("1000000000‬000000000000000000", 10)
+
+	// initial PlatON Foundation
+	platONFoundationIssue, _ = new(big.Int).SetString("905000000000000000000000000", 10)
+
+	// initial reward pool issuance, totally there is 6.5% of initial issuance in it, and first year can be used is 4.5%
+	rewardMgrPoolIssue, _ = new(big.Int).SetString("65000000000000000000000000", 10)
+
+	// initial developer Foundation Issue
+	developerFoundationIssue, _ = new(big.Int).SetString("5000000000000000000000000", 10)
+
+	// initial staking contract balance
+	genesisNodesNumber = int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
+	stakingContractIssue = new(big.Int).Mul(xcom.StakeThreshold, big.NewInt(genesisNodesNumber))  // 25000000‬ * 10 ^ 18
+
+	// initial reserved account balance
+	reservedAccountIssue = big.NewInt(0)
+)
 
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
@@ -226,6 +256,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		db = ethdb.NewMemDatabase()
 	}
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
+
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)
@@ -235,6 +266,12 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 	}
+
+	// set initial active version for gov module
+	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(initActiveVersion))
+	// set restricting plans for increase issue for second and third year
+	_ = g.buildAllowancePlan(statedb)   // !!! error is ignored
+
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
 		Number:     new(big.Int).SetUint64(g.Number),
@@ -253,9 +290,6 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	statedb.Commit(false)
 	statedb.Database().TrieDB().Commit(root, true)
 
-	//write the init active version
-	//statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(initActiveVersion))
-
 	return types.NewBlock(head, nil, nil)
 }
 
@@ -266,6 +300,16 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}
+
+	stakingDB := staking.NewStakingDB()
+	if err := g.storeCandidateList(stakingDB, block.Hash()); err != nil {
+		return nil, err
+	}
+
+	if err := g.storeValidatorList(stakingDB, block.Hash()); err != nil {
+		return nil, err
+	}
+
 	rawdb.WriteBlock(db, block)
 	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
 	rawdb.WriteCanonicalHash(db, block.Hash(), block.NumberU64())
@@ -290,6 +334,147 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 	return block
 }
 
+// storeCandidateList writes the list of candidate use the initial nodes to snapshot database
+func (g *Genesis) storeCandidateList(db *staking.StakingDB, genesisHash common.Hash) error {
+
+	const initialNodesNumber = 25
+	for index := 0; index < initialNodesNumber; index++ {
+		can := &staking.Candidate{
+			NodeId:          g.Config.Cbft.InitialNodes[0].ID,
+			StakingAddress:  vm.RewardManagerPoolAddr,
+			BenifitAddress:  vm.RewardManagerPoolAddr,
+			StakingTxIndex:  uint32(index),
+			ProcessVersion:  initActiveVersion,
+			Status:          staking.Valided,
+			StakingEpoch:    uint32(0),
+			StakingBlockNum: uint64(0),
+			Shares:             xcom.StakeThreshold,
+			Released:           common.Big0,
+			ReleasedHes:        common.Big0,
+			RestrictingPlan:    common.Big0,
+			RestrictingPlanHes: common.Big0,
+			Description: staking.Description{
+				ExternalId: "platon.node.1",
+				NodeName:   "",
+				Website:    "",
+				Details:    "",
+			},
+		}
+
+		nodeAddr, err :=  xutil.NodeId2Addr(can.NodeId)
+		if err != nil {
+			return fmt.Errorf("failed to exchange nodeID to address. ID:%v, error:%s", can.NodeId, err)
+		}
+
+		if err = db.SetCandidateStore(genesisHash, nodeAddr, can); err != nil {
+			return fmt.Errorf("failed to set candidate info. ID:%v, error:%s", can.NodeId, err)
+		}
+
+		if err = db.SetCanPowerStore(genesisHash, nodeAddr, can); err != nil {
+			return fmt.Errorf("failed to set candidate power info. ID:%v, error:%s", can.NodeId, err)
+		}
+	}
+
+	return nil
+}
+
+// storeCandidateList writes the array of candidate use the initial nodes to snapshot database
+func (g *Genesis) storeValidatorList(db *staking.StakingDB, genesisHash common.Hash) error {
+
+	const initialNodesNumber = 25
+	validatorQueue := make(staking.ValidatorQueue, initialNodesNumber)
+
+	for index := 0; index < initialNodesNumber; index++ {
+		// get initial validator nodeID
+		nodeID := g.Config.Cbft.NodeID
+		nodeAddr, err :=  xutil.NodeId2Addr(nodeID)
+		if err != nil {
+			return fmt.Errorf("failed to exchange nodeID to address. ID:%v, error:%s", nodeID, err)
+		}
+
+		stakingBlockNum := string(0)
+		stakingTxIndex  := string(index)
+
+		// build validator queue for the first consensus epoch
+		validator := &staking.Validator{
+			NodeAddress:   nodeAddr,
+			NodeId:        nodeID,
+			StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), stakingBlockNum, stakingTxIndex},
+			ValidatorTerm: 0,
+		}
+		validatorQueue = append(validatorQueue, validator)
+	}
+
+	array :=  &staking.Validator_array{
+		Start: 1,
+		End:   xcom.EpochSize*xcom.ConsensusSize*1,
+		Arr:   validatorQueue,
+	}
+
+	if err := db.SetVerfierList(genesisHash, array); err != nil {
+		return fmt.Errorf("failed to set Verfier list. error:%s", err)
+	}
+
+	if err := db.SetCurrentValidatorList(genesisHash, array); err != nil {
+		return fmt.Errorf("failed to set candidate power info. error:%s", err)
+	}
+
+	return nil
+}
+
+// buildAllowancePlan writes the data of precompiled restricting contract, which used for the second year allowance
+// and the third year allowance, to stateDB
+func (g *Genesis) buildAllowancePlan(stateDb *state.StateDB) error {
+
+	account := vm.RewardManagerPoolAddr
+	firstYearEndEpoch := 365 * 24 * 3600 / (xcom.EpochSize * xcom.ConsensusSize)
+	secondYearEncEpoch :=  2 * 365 * 24 * 3600 / (xcom.EpochSize * xcom.ConsensusSize)
+	stableEpochs := []uint64{firstYearEndEpoch, secondYearEncEpoch}
+
+	secondYearAllowance, _ := new(big.Int).SetString("15000000000000000000000000", 10)
+	thirdYearAllowance, _  := new(big.Int).SetString("5000000000000000000000000", 10)
+
+	epochList := make([]uint64, len(stableEpochs))
+	for i, epoch := range stableEpochs {
+		// store restricting account record
+		releaseAccountKey := restricting.GetReleaseAccountKey(epoch, 1)
+		stateDb.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
+
+		// store release amount record
+		releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
+
+		switch {
+		case i == 0:
+			stateDb.SetState(account, releaseAmountKey, secondYearAllowance.Bytes())
+		case i == 1:
+			stateDb.SetState(account, releaseAmountKey, thirdYearAllowance.Bytes())
+		}
+
+		// store release epoch record
+		releaseEpochKey := restricting.GetReleaseEpochKey(epoch)
+		stateDb.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
+
+		epochList = append(epochList, uint64(epoch))
+	}
+
+	// build restricting account info
+	var restrictInfo restricting.RestrictingInfo
+	restrictInfo.Balance = big.NewInt(20000000000000000000000000)
+	restrictInfo.Debt = big.NewInt(0)
+	restrictInfo.ReleaseList = epochList
+
+	bRestrictInfo, err := rlp.EncodeToBytes(restrictInfo)
+	if err != nil {
+		return fmt.Errorf("failed to rlp encode restricting info. info:%v, error:%s", restrictInfo, err.Error())
+	}
+
+	// store restricting account info
+	restrictingKey := restricting.GetRestrictingKey(account)
+	stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bRestrictInfo)
+
+	return nil
+}
+
 // GenesisBlockForTesting creates and writes a block in which addr has the given wei balance.
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
 	g := Genesis{Alloc: GenesisAlloc{addr: {Balance: balance}}}
@@ -301,9 +486,16 @@ func DefaultGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:    params.MainnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
+		Timestamp: 1546300800000,
 		ExtraData: hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
-		GasLimit:  3150000000, //5000
-		Alloc:     decodePrealloc(mainnetAllocData),
+		GasLimit:  3150000000,
+		Alloc: map[common.Address]GenesisAccount{
+			vm.PlatONFoundationAddress: {Balance: platONFoundationIssue},
+			vm.RewardManagerPoolAddr: {Balance: rewardMgrPoolIssue},
+			vm.CommunityDeveloperFoundation: {Balance: developerFoundationIssue},
+			vm.StakingContractAddr : {Balance: stakingContractIssue},
+			vm.ReservedAccount : {Balance: reservedAccountIssue},
+		},
 	}
 }
 
