@@ -5,24 +5,33 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
+	"math/big"
 	"testing"
 )
 
 func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	state, err := newChainState()
+	defer func() {
+		snapshotdb.Instance().Clear()
+	}()
 	if nil != err {
 		t.Error(err)
 	}
+	build_staking_data()
 	contract := &vm.SlashingContract{
 		Plugin:   plugin.SlashInstance(),
 		Contract: newContract(common.Big0),
 		Evm:	 newEvm(blockNumber, blockHash, state),
 	}
-
 	plugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
+	plugin.StakingInstance()
+	plugin.GovPluginInstance()
 
 	state.Prepare(txHashArr[1], blockHash, 2)
 
@@ -66,6 +75,31 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	} else {
 		t.Log("ReportMutiSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
+
+	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
+	nodeId, err := discover.HexID("0x38e2724b366d66a5acb271dba36bc45e2161e868d961ee299f4e331927feb5e9373f35229ef7fe7e84c083b0fbf24264faef01faaf388df5f459b87638aa620b")
+	if nil != err {
+		t.Error(err)
+	}
+	can := &staking.Candidate{
+		NodeId:          nodeId,
+		StakingAddress:  addr,
+		BenifitAddress:  addr,
+		StakingBlockNum: blockNumber.Uint64(),
+		StakingTxIndex:  1,
+		ProcessVersion:  1,
+		Shares:          new(big.Int).SetUint64(1000),
+
+		Released:           common.Big0,
+		ReleasedHes:        common.Big0,
+		RestrictingPlan:    common.Big0,
+		RestrictingPlanHes: common.Big0,
+	}
+	state.CreateAccount(addr)
+	state.AddBalance(addr, new(big.Int).SetUint64(1000000000000000000))
+	if err := plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, can.Shares, initProcessVersion, 0, addr, can); nil != err {
+		t.Error(err)
+	}
 	runContract(contract, buf.Bytes(), t)
 }
 
@@ -79,14 +113,15 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 		Contract: newContract(common.Big0),
 		Evm:	 newEvm(blockNumber, blockHash, state),
 	}
+	state.Prepare(txHashArr[1], blockHash, 2)
 
 	var params [][]byte
 	params = make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(3001))
-	typ, _ := rlp.EncodeToBytes(uint16(1))
+	typ, _ := rlp.EncodeToBytes(uint32(1))
 	addr, _ := rlp.EncodeToBytes(common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80111111"))
-	blockNumber, _ := rlp.EncodeToBytes(uint64(10))
+	blockNumber, _ := rlp.EncodeToBytes(uint16(1))
 
 	params = append(params, fnType)
 	params = append(params, typ)

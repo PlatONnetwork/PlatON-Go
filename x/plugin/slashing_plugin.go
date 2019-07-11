@@ -74,10 +74,6 @@ func (sp *SlashingPlugin) SetDecodeEvidenceFun(f func(data string) (consensus.Ev
 }
 
 func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
-	return nil
-}
-
-func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
 	if xutil.IsElection(header.Number.Uint64()) && header.Number.Uint64() > xcom.ConsensusSize {
 		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "consensusSize", xcom.ConsensusSize, "electionDistance", xcom.ElectionDistance)
@@ -125,6 +121,10 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 			}
 		}
 	}
+	return nil
+}
+
+func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	return nil
 }
 
@@ -262,7 +262,7 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 			if err := evidence.Validate(); nil != err {
 				return err
 			}
-			if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), int32(evidence.Type()), stateDB); len(value) > 0 {
+			if value := sp.getSlashResult(evidence.Address(), evidence.BlockNumber(), uint32(evidence.Type()), stateDB); len(value) > 0 {
 				log.Error("Execution slashing failed", "blockNumber", evidence.BlockNumber(), "evidenceHash", hex.EncodeToString(evidence.Hash()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
 				return common.NewBizError(errSlashExist.Error())
 			}
@@ -276,7 +276,7 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 					log.Error("slashingPlugin SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 					return err
 				}
-				sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), int32(evidence.Type()), stateDB)
+				sp.putSlashResult(evidence.Address(), evidence.BlockNumber(), uint32(evidence.Type()), stateDB)
 				log.Info("Slash Multi-sign success", "currentBlockNumber", blockNumber, "mutiSignBlockNumber", evidence.BlockNumber(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "etype", evidence.Type(), "txHash", hex.EncodeToString(stateDB.TxHash().Bytes()))
 			}
 		}
@@ -284,7 +284,7 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 	return nil
 }
 
-func (sp *SlashingPlugin) CheckMutiSign(addr common.Address, blockNumber uint64, etype int32, stateDB xcom.StateDB) (bool, []byte, error) {
+func (sp *SlashingPlugin) CheckMutiSign(addr common.Address, blockNumber uint64, etype uint32, stateDB xcom.StateDB) (bool, []byte, error) {
 	if value := sp.getSlashResult(addr, blockNumber, etype, stateDB); len(value) > 0 {
 		log.Info("CheckMutiSign exist", "blockNumber", blockNumber, "addr", hex.EncodeToString(addr.Bytes()), "type", etype, "txHash", hex.EncodeToString(value))
 		return true, value, nil
@@ -292,16 +292,16 @@ func (sp *SlashingPlugin) CheckMutiSign(addr common.Address, blockNumber uint64,
 	return false, nil, nil
 }
 
-func (sp *SlashingPlugin) putSlashResult(addr common.Address, blockNumber uint64, etype int32, stateDB xcom.StateDB) {
+func (sp *SlashingPlugin) putSlashResult(addr common.Address, blockNumber uint64, etype uint32, stateDB xcom.StateDB) {
 	stateDB.SetState(vm.SlashingContractAddr, mutiSignKey(addr, blockNumber, etype), stateDB.TxHash().Bytes())
 }
 
-func (sp *SlashingPlugin) getSlashResult(addr common.Address, blockNumber uint64, etype int32, stateDB xcom.StateDB) []byte {
+func (sp *SlashingPlugin) getSlashResult(addr common.Address, blockNumber uint64, etype uint32, stateDB xcom.StateDB) []byte {
 	return stateDB.GetState(vm.SlashingContractAddr, mutiSignKey(addr, blockNumber, etype))
 }
 
 // Multi-signed result key format addr+blockNumber+_+etype
-func mutiSignKey(addr common.Address, blockNumber uint64, etype int32) []byte {
+func mutiSignKey(addr common.Address, blockNumber uint64, etype uint32) []byte {
 	value := append(addr.Bytes(), utils.Uint64ToBytes(blockNumber)...)
 	value = append(value, []byte("_")...)
 	value = append(value, utils.Uint64ToBytes(uint64(etype))...)

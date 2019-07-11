@@ -126,10 +126,12 @@ func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, s
 
 func (sk *StakingPlugin) Confirmed(block *types.Block) error {
 	if xutil.IsElection(block.NumberU64()) {
+
 		next, err := sk.db.GetNextValidatorListByBlockHash(block.Hash())
 		if nil != err {
 			return err
 		}
+
 		current, err := sk.db.GetCurrentValidatorListByBlockHash(block.Hash())
 		if nil != err {
 			return err

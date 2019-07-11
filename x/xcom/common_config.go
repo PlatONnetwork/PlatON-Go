@@ -84,7 +84,7 @@ var (
 	// TODO NOTE：It should be calculated by that
 	//
 	//      	 /  eh * 3600  \
-	// C = floor|———————————————|
+	// C = floor |———————|
 	//           \	L * (u*vn) /
 	//
 	// C: 	the epoch (just be this)
