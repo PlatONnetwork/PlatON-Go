@@ -8,10 +8,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
+	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
@@ -23,18 +26,56 @@ import (
 	"strconv"
 	"testing"
 	"time"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
-	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/PlatONnetwork/PlatON-Go/event"
 )
 
 
-
+/**
+ test tool
+ */
 func Test_CleanSnapshotDB (t *testing.T) {
 	sndb := snapshotdb.Instance()
 	sndb.Clear()
 }
 
+func watching(eventMux *event.TypeMux, t *testing.T) {
+	events := eventMux.Subscribe(cbfttypes.AddValidatorEvent{}, cbfttypes.RemoveValidatorEvent{})
+	defer events.Unsubscribe()
+
+	for {
+		select {
+		case ev := <-events.Chan():
+			if ev == nil {
+				t.Error("ev is nil, may be Server closing")
+				continue
+			}
+
+			switch ev.Data.(type) {
+			case cbfttypes.AddValidatorEvent:
+				addEv, ok := ev.Data.(cbfttypes.AddValidatorEvent)
+				if !ok {
+					t.Error("Received add validator event type error")
+					continue
+				}
+
+				str, _ := json.Marshal(addEv)
+				t.Log("P2P Received the add validator is:", string(str))
+
+			case cbfttypes.RemoveValidatorEvent:
+				removeEv, ok := ev.Data.(cbfttypes.RemoveValidatorEvent)
+				if !ok {
+					t.Error("Received remove validator event type error")
+					continue
+				}
+
+				str, _ := json.Marshal(removeEv)
+				t.Log("P2P Received the remove validator is:", string(str))
+			default:
+				t.Error("Received unexcepted event")
+			}
+
+		}
+	}
+}
 
 func build_vrf_Nonce() ([]byte, [][]byte) {
 	preNonces := make([][]byte, 0)
@@ -165,6 +206,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 	parentHash := common.ZeroHash
 
+	// TODO Must be 22k+, don't change this number
 	for i := 0; i < 22222; i++ {
 
 		nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:]
@@ -391,20 +433,17 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		sndb.Clear()
 	}()
 
+	// New VrfHandler instance by genesis block Hash
+	xcom.NewVrfHandler(common.ZeroHash.Bytes())
+
 	stakingDB := staking.NewStakingDB ()
 
 
-	//rlpHash := func (x interface{}) (h common.Hash) {
-	//	hw := sha3.NewKeccak256()
-	//	rlp.Encode(hw, x)
-	//	hw.Sum(h[:0])
-	//	return h
-	//}
 
 	headerMap := make(map[int]*types.Header, 0)
 	parentHash := common.ZeroHash
 
-	for i := 0; i < int(xcom.ConsensusSize); i++ {
+	for i := 0; i <= int(xcom.ConsensusSize); i++ {
 
 		nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:]
 		privateKey, err := crypto.GenerateKey()
@@ -424,14 +463,17 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			ParentHash: parentHash,
 			Coinbase: sender,
 			Root: root,
-			TxHash: root,
-			ReceiptHash: root,
+			TxHash: types.EmptyRootHash,
+			ReceiptHash: types.EmptyRootHash,
 			Number: blockNum,
 			Time: big.NewInt(int64(121321213*i)),
 			Extra: make([]byte, 97),
 			Nonce: types.EncodeNonce(nonce),
 		}
+
+
 		curr_Hash := header.Hash()
+
 
 		if err := sndb.NewBlock(blockNum, parentHash, curr_Hash); nil != err {
 			t.Errorf("Failed to snapshotDB New Block, err: %v", err)
@@ -442,10 +484,14 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		if i == 0 {
 
 
-			validatorQueue := make(staking.ValidatorQueue, 25)
+			validatorQueue := make(staking.ValidatorQueue, 101)
 
-			for j := 0; j < 25; j++ {
-				var index int = j
+			for j := 0; j < 101; j++ {
+				var index int
+				if j >= len(balanceStr) {
+					index = j%(len(balanceStr)-1)
+				}
+
 
 				balance, _ := new(big.Int).SetString(balanceStr[index], 10)
 
@@ -520,12 +566,12 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			curr_Arr :=  &staking.Validator_array{
 				Start: 1,
 				End: 250,
-				Arr: validatorQueue,
+				Arr: validatorQueue[:25],
 			}
 
 			// add Current Validators And Epoch Validators
 			stakingDB.SetVerfierList(curr_Hash, epoch_Arr)
-			//stakingDB.SetPreValidatorList(blockHash, val_Arr)
+
 			stakingDB.SetCurrentValidatorList(curr_Hash, curr_Arr)
 
 		}else {
@@ -589,6 +635,34 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			stakingDB.SetCanPowerStore(curr_Hash, canAddr, canTmp)
 			stakingDB.SetCandidateStore(curr_Hash, canAddr, canTmp)
 
+			// build vrf
+			if i+1 == 229 {
+				// build ancestor nonces
+				_, nonces := build_vrf_Nonce()
+				if enValue, err := rlp.EncodeToBytes(nonces); nil != err {
+					t.Error("Storage previous nonce failed", "num", i+1, "Hash", curr_Hash.Hex(), "err", err)
+					return
+				} else {
+					sndb.Put(curr_Hash, xcom.NonceStorageKey, enValue)
+				}
+			}
+
+			// TODO Must be this
+			if xutil.IsElection(header.Number.Uint64()) {
+				err = plugin.StakingInstance().Election(curr_Hash, header)
+				if nil != err {
+					t.Errorf("Failed to Election, num:%d, Hash: %s, err: %v", header.Number.Uint64(), header.Hash().Hex(), err)
+					return
+				}
+			}
+
+			if xutil.IsSwitch(header.Number.Uint64()) {
+				err = plugin.StakingInstance().Switch(curr_Hash, header.Number.Uint64())
+				if nil != err {
+					t.Errorf("Failed to Switch, num:%d, Hash: %s, err: %v", header.Number.Uint64(), header.Hash().Hex(), err)
+					return
+				}
+			}
 		}
 
 		// SnapshotDB  Commit
@@ -598,12 +672,6 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		}
 
 		if i+1 == 230 || i+1 == 250 {
-			if i+1 == 230 {
-				t.Log("230:", header.Hash().String(), curr_Hash)
-			}
-			if i+1 == 250 {
-				t.Log("250:", header.Hash().String(), curr_Hash)
-			}
 			headerMap[i+1] = header
 		}
 
@@ -614,37 +682,25 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	Start Confirmed
 	*/
 
-	eventMux := new(event.TypeMux)
+	eventMux := &event.TypeMux{}
 
-	p2pNode := p2p.Server{}
-	p2pNode.StartWatching(eventMux)
+	//p2pNode := p2p.Server{}
+	//p2pNode.StartWatching(eventMux)
 
 	plugin.StakingInstance().SetEventMux(eventMux)
 
-	//t.Log("外面230:", headerMap[230].Hash().String())
-	//t.Log("外面250:", headerMap[250].Hash().String())
 
-	json230, _ := json.Marshal(headerMap[230])
-	t.Log("230 json:", string(json230))
+	go watching(eventMux, t)
 
-	json250, _ := json.Marshal(headerMap[250])
-	t.Log("250 json:", string(json250))
+
+
+
 
 	block230 := types.NewBlock(headerMap[230], nil, nil)
 	block250 := types.NewBlock(headerMap[250], nil, nil)
 
-	//t.Log("计算230:", block230.Hash().String())
-	//t.Log("计算250:", block250.Hash().String())
-	//
-	//t.Log("头230:", block230.Header().Hash().String())
-	//t.Log("头250:", block250.Header().Hash().String())
 
 
-	blockJson230, _ := json.Marshal(block230.Header())
-	t.Log("block230 json:", string(blockJson230))
-
-	blockJson250, _ := json.Marshal(block250.Header())
-	t.Log("block250 json:", string(blockJson250))
 
 	err = plugin.StakingInstance().Confirmed(block230)
 	if nil != err {
@@ -1805,6 +1861,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		sndb.Clear()
 	}()
 
+	// Must new VrfHandler instance by genesis block Hash
 	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
 	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
