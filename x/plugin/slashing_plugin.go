@@ -64,7 +64,7 @@ func (sp *SlashingPlugin) SetDecodeEvidenceFun(f func(data string) (consensus.Ev
 
 func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
-	if xutil.IsElection(header.Number.Uint64()) && header.Number.Uint64() > xcom.GetEcModInstance().Staking.ConsensusSize {
+	if header.Number.Uint64() > xcom.GetEcModInstance().Staking.ConsensusSize && xutil.IsElection(header.Number.Uint64()) {
 		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "consensusSize", xcom.ConsensusSize, "electionDistance", xcom.ElectionDistance)
 		if result, err := sp.GetPreNodeAmount(); nil != err {
 			return err
