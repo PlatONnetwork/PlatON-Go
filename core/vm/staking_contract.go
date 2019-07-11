@@ -96,8 +96,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
 
 	//  TODO  MOCK
-	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
-	//	externalId, nodeName, website, details, amount, processVersion)
+	return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
+		externalId, nodeName, website, details, amount, processVersion)
 
 	if !xutil.CheckStakeThreshold(amount) {
 		res := xcom.Result{false, "", StakeVonTooLowStr}

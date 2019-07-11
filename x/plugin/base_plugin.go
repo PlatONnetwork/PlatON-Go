@@ -34,13 +34,14 @@ func  Verify_tx_data(input []byte, command map[uint16]interface{} ) (fn interfac
 		if er := recover(); nil != er {
 			fn, FnParams, err = nil, nil,fmt.Errorf("parse tx data is panic: %s", gerr.Wrap(er, 2).ErrorStack())
 			log.Error("Failed to Verify Staking tx data", "error", err)
-			fmt.Println("Failed to Verify Staking tx data", err)
+			//fmt.Println("Failed to Verify Staking tx data", err)
 		}
 	}()
 
 	var args [][]byte
-	if err := rlp.Decode(bytes.NewReader(input), &args); nil != err {
-		return nil, nil, DecodeTxDataErr
+ 	if err := rlp.Decode(bytes.NewReader(input), &args); nil != err {
+ 		log.Error("Failed to Verify_tx_data, Decode rlp input failed", "err", err)
+		return nil, nil, fmt.Errorf("%v: %v", DecodeTxDataErr, err)
 	}
 
 	//fmt.Println("the Function Type:", byteutil.BytesToUint16(args[0]))
@@ -64,9 +65,14 @@ func  Verify_tx_data(input []byte, command map[uint16]interface{} ) (fn interfac
 		params := make([]reflect.Value, paramNum)
 
 		for i := 0; i < paramNum; i++ {
+
+			//fmt.Println("byte:", args[i+1])
+
 			targetType := paramList.In(i).String()
 			inputByte := []reflect.Value{reflect.ValueOf(args[i+1])}
 			params[i] = reflect.ValueOf(byteutil.Bytes2X_CMD[targetType]).Call(inputByte)[0]
+			//fmt.Println("num", i+1, "type", targetType)
+
 		}
 
 		return fn, params, nil

@@ -2,6 +2,7 @@ package xutil
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
@@ -139,4 +140,18 @@ func CheckDelegateThreshold(delegate *big.Int) bool {
 // eg: 1.1.0 ==> 1.1
 func CalcLargeVersion (processVersion uint32) uint32 {
 	return processVersion>>8
+}
+
+// eg. 65536 => 1.0.0
+func ProcessVerion2Str (processVersion uint32) string {
+	major := processVersion<<8
+	major = major>>24
+
+	minor := processVersion<<16
+	minor = minor>>24
+
+	patch := processVersion<<24
+	patch = patch>>24
+
+	return fmt.Sprintf("%d.%d.%d", major, minor, patch)
 }

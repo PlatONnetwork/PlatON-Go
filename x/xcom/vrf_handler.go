@@ -54,39 +54,52 @@ func (vh *vrfHandler) GenerateNonce(currentBlockNumber *big.Int, parentHash comm
 	if nil != err {
 		return nil, err
 	}
-	log.Debug("Generate proof based on input", "currentBlockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "parentNonce", hex.EncodeToString(parentNonce))
+	log.Debug("Generate proof based on input", "currentBlockNumber", currentBlockNumber.Uint64(),
+		"parentHash", hex.EncodeToString(parentHash.Bytes()), "parentNonce", hex.EncodeToString(parentNonce))
 	if value, err := vrf.Prove(vh.privateKey, parentNonce); nil != err {
-		log.Error("Generate proof failure", "currentBlockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "parentNonce", hex.EncodeToString(parentNonce), "err", err)
+		log.Error("Generate proof failure", "currentBlockNumber", currentBlockNumber.Uint64(),
+			"parentHash", hex.EncodeToString(parentHash.Bytes()), "parentNonce", hex.EncodeToString(parentNonce), "err", err)
 		return nil, err
 	} else {
 		if len(value) > 0 {
-			log.Info("Generate vrf proof Success", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "nonce", hex.EncodeToString(value))
+			log.Info("Generate vrf proof Success", "blockNumber", currentBlockNumber.Uint64(),
+				"parentHash", hex.EncodeToString(parentHash.Bytes()), "nonce", hex.EncodeToString(value))
 			return value, nil
 		}
 	}
 	return nil, fmt.Errorf("generate proof failed, seed:%x", parentNonce)
 }
 
-func (vh *vrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int, parentBlockHash common.Hash, blockHash common.Hash, proof []byte) error {
+func (vh *vrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int, parentBlockHash common.Hash,
+	blockHash common.Hash, proof []byte) error {
 	// Verify VRF Proof
-	log.Debug("Verification block vrf prove", "blockNumber", currentBlockNumber.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()), "proof", hex.EncodeToString(proof))
+	log.Debug("Verification block vrf prove", "current blockNumber", currentBlockNumber.Uint64(),
+		"current hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()),
+		"proof", hex.EncodeToString(proof))
 	parentNonce, err := vh.getParentNonce(currentBlockNumber, parentBlockHash)
 	if nil != err {
 		return err
 	}
 	if value, err := vrf.Verify(pk, proof, parentNonce); nil != err {
-		log.Error("Vrf proves verification failure", "blockNumber", currentBlockNumber.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()), "proof", hex.EncodeToString(proof), "input", hex.EncodeToString(parentNonce), "err", err)
+		log.Error("Vrf proves verification failure", "current blockNumber", currentBlockNumber.Uint64(),
+			"current hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()),
+			"proof", hex.EncodeToString(proof), "input", hex.EncodeToString(parentNonce), "err", err)
 		return err
 	} else if !value {
-		log.Error("Vrf proves verification failure", "blockNumber", currentBlockNumber.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()), "proof", hex.EncodeToString(proof), "input", hex.EncodeToString(parentNonce))
+		log.Error("Vrf proves verification failure", "current blockNumber", currentBlockNumber.Uint64(),
+			"current hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()),
+			"proof", hex.EncodeToString(proof), "input", hex.EncodeToString(parentNonce))
 		return errInvalidVrfProve
 	}
-	log.Info("Vrf proves successful verification", "blockNumber", currentBlockNumber.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()), "proof", hex.EncodeToString(proof), "input", hex.EncodeToString(parentNonce))
+	log.Info("Vrf proves successful verification", "current blockNumber", currentBlockNumber.Uint64(),
+		"current hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()),
+		"proof", hex.EncodeToString(proof), "input", hex.EncodeToString(parentNonce))
 	return nil
 }
 
 func (vh *vrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Hash, hash common.Hash, nonce []byte) error {
-	log.Debug("Storage previous nonce", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "hash", hex.EncodeToString(hash.Bytes()), "nonce", hex.EncodeToString(nonce))
+	log.Debug("Storage previous nonce", "current blockNumber", currentBlockNumber.Uint64(), "parentHash",
+		hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()), "nonce", hex.EncodeToString(nonce))
 	nonces := make([][]byte, 0)
 	if currentBlockNumber.Cmp(common.Big1) > 0 {
 		if value, err := vh.Load(parentHash); nil != err {
@@ -94,7 +107,9 @@ func (vh *vrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 		} else {
 			nonces = make([][]byte, len(value))
 			copy(nonces, value)
-			log.Debug("Storage previous nonce", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "hash", hex.EncodeToString(hash.Bytes()), "valueLength", len(value), "EpochValidatorNum", EpochValidatorNum)
+			log.Debug("Storage previous nonce", "current blockNumber", currentBlockNumber.Uint64(), "parentHash",
+				hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()), "valueLength",
+				len(value), "EpochValidatorNum", EpochValidatorNum)
 			if uint64(len(nonces)) == EpochValidatorNum {
 				nonces = nonces[1:]
 			}
@@ -102,11 +117,16 @@ func (vh *vrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 	}
 	nonces = append(nonces, vrf.ProofToHash(nonce))
 	if enValue, err := rlp.EncodeToBytes(nonces); nil != err {
-		log.Error("Storage previous nonce failed", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "hash", hex.EncodeToString(hash.Bytes()), "key", string(NonceStorageKey), "valueLength", len(nonces), "nonce", hex.EncodeToString(nonce), "err", err)
+		log.Error("Storage previous nonce failed", "current blockNumber", currentBlockNumber.Uint64(),
+			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()),
+			"key", string(NonceStorageKey), "valueLength", len(nonces), "nonce", hex.EncodeToString(nonce), "err", err)
 		return err
 	} else {
 		vh.db.Put(hash, NonceStorageKey, enValue)
-		log.Info("Storage previous nonce Success", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()), "hash", hex.EncodeToString(hash.Bytes()), "valueLength", len(nonces), "EpochValidatorNum", EpochValidatorNum, "nonce", hex.EncodeToString(nonce), "firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
+		log.Info("Storage previous nonce Success", "current blockNumber", currentBlockNumber.Uint64(),
+			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()),
+			"valueLength", len(nonces), "EpochValidatorNum", EpochValidatorNum, "nonce", hex.EncodeToString(nonce),
+			"firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
 	}
 	return nil
 }
@@ -127,7 +147,8 @@ func (vh *vrfHandler) Load(hash common.Hash) ([][]byte, error) {
 
 func (vh *vrfHandler) getParentNonce(currentBlockNumber *big.Int, parentHash common.Hash) ([]byte, error) {
 	// If it is the first block, take the random number from the Genesis block.
-	log.Debug("Get the nonce of the previous block", "blockNumber", currentBlockNumber.Uint64(), "parentHash", hex.EncodeToString(parentHash.Bytes()))
+	log.Debug("Get the nonce of the previous block", "blockNumber", currentBlockNumber.Uint64(),
+		"parentHash", hex.EncodeToString(parentHash.Bytes()))
 	if currentBlockNumber.Cmp(common.Big1) == 0 && len(vh.genesisNonce) > 0 {
 		log.Debug("Get the nonce of the genesis block", "nonce", hex.EncodeToString(vh.genesisNonce))
 		return vrf.ProofToHash(vh.genesisNonce), nil
@@ -140,5 +161,6 @@ func (vh *vrfHandler) getParentNonce(currentBlockNumber *big.Int, parentHash com
 			}
 		}
 	}
-	return nil, fmt.Errorf("nonce of the previous block could not be found, blockNumber：%v, parentHash：%x", currentBlockNumber.Uint64(), parentHash)
+	return nil, fmt.Errorf("nonce of the previous block could not be found, blockNumber：%v, parentHash：%x",
+		currentBlockNumber.Uint64(), parentHash)
 }
