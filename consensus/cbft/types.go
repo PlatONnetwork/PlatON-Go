@@ -892,7 +892,7 @@ func (pv *prepareVoteSet) IsMaj23() bool {
 	if pv == nil {
 		return false
 	}
-	return uint32(len(pv.votes)) >= pv.voteBits.Size()
+	return uint32(len(pv.votes)) >= pv.voteBits.Size()*2/3
 }
 
 func (pv *prepareVoteSet) Signs() []common.BlockConfirmSign {
