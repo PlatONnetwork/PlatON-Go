@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	errInvalidVrfProve = errors.New("invalid vrf prove")
-	errStorageNonce    = errors.New("storage previous nonce failed")
+	ErrInvalidVrfProve = errors.New("invalid vrf prove")
+	ErrStorageNonce    = errors.New("storage previous nonce failed")
 
 	NonceStorageKey = []byte("nonceStorageKey")
 
@@ -89,7 +89,7 @@ func (vh *vrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int
 		log.Error("Vrf proves verification failure", "current blockNumber", currentBlockNumber.Uint64(),
 			"current hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()),
 			"proof", hex.EncodeToString(proof), "input", hex.EncodeToString(parentNonce))
-		return errInvalidVrfProve
+		return ErrInvalidVrfProve
 	}
 	log.Info("Vrf proves successful verification", "current blockNumber", currentBlockNumber.Uint64(),
 		"current hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(parentBlockHash.Bytes()),
