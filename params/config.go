@@ -69,6 +69,7 @@ var (
 		"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f17@platon.network:26797",
 		"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f18@platon.network:26798",
 		"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f19@platon.network:26799",
+		"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f19@platon.network:26799",
 	}
 
 	initialTestnetConsensusNodes = []string{
@@ -256,21 +257,6 @@ var (
 			Period:   3,
 			Epoch:    30000,
 			Duration: 30,
-			PposConfig: &PposConfig{
-				CandidateConfig: &CandidateConfig{
-					Threshold:         "1000000000000000000000000",
-					DepositLimit:      10,
-					Allowed:           512,
-					MaxChair:          10,
-					MaxCount:          100,
-					RefundBlockNumber: 512,
-				},
-				TicketConfig: &TicketConfig{
-					TicketPrice:       "100000000000000000000",
-					MaxCount:          51200,
-					ExpireBlockNumber: 1536000,
-				},
-			},
 			PeerMsgQueueSize: 	1024,
 			EvidenceDir:	 	"evidenceDir",
 			MaxResetCacheSize:	512,
@@ -345,7 +331,6 @@ type CbftConfig struct {
 	NodeID        discover.NodeID   `json:"nodeID,omitempty"`
 	PrivateKey    *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 	ValidatorMode string            `json:"validatorMode,omitempty"`
-	PposConfig    *PposConfig       `json:"pposConfig,omitempty"`
 
 	PeerMsgQueueSize 	uint64
 	EvidenceDir		 	string
@@ -358,24 +343,7 @@ type CbftConfig struct {
 	Remaining			time.Duration
 }
 
-type PposConfig struct {
-	CandidateConfig *CandidateConfig
-	TicketConfig    *TicketConfig
-}
-type CandidateConfig struct {
-	Threshold         string
-	DepositLimit      uint32
-	Allowed           uint32
-	MaxCount          uint32
-	MaxChair          uint32
-	RefundBlockNumber uint32
-}
 
-type TicketConfig struct {
-	TicketPrice       string
-	MaxCount          uint32
-	ExpireBlockNumber uint32
-}
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
 type CliqueConfig struct {

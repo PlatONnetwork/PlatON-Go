@@ -2,7 +2,6 @@ package staking
 
 import (
 	"errors"
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
@@ -239,32 +238,6 @@ func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
 	return left
 }
 
-/*
-func compare(cand CanConditions, c, can *Candidate) int {
-	// put the larger deposit in front
-	if cand[c.CandidateId].Cmp(cand[can.CandidateId]) > 0  {
-		return 1
-	} else if cand[c.CandidateId].Cmp(cand[can.CandidateId]) == 0  {
-		// put the smaller blocknumber in front
-		if c.BlockNumber.Cmp(can.BlockNumber) > 0 {
-			return -1
-		} else if c.BlockNumber.Cmp(can.BlockNumber) == 0 {
-			// put the smaller tx'index in front
-			if c.TxIndex > can.TxIndex {
-				return -1
-			} else if c.TxIndex == can.TxIndex {
-				return 0
-			} else {
-				return 1
-			}
-		} else {
-			return 1
-		}
-	} else {
-		return -1
-	}
-}
-*/
 
 // NOTE: Sort By Default
 //
@@ -286,7 +259,6 @@ func compare(cand CanConditions, c, can *Candidate) int {
 // -1:Left < Right
 func CompareDefault (slashs SlashCandidate, left, right *Validator) int {
 
-	fmt.Println("into CompareDefault ...")
 
 	compareTxIndexFunc := func(l, r *Validator) int {
 		leftTxIndex, _ := l.GetStakingTxIndex()
@@ -376,7 +348,6 @@ func CompareForDel (slashs SlashCandidate, left, right *Validator) int {
 
 	// some funcs
 
-	fmt.Println("into CompareForDel ...")
 
 	// 7. TxIndex
 	compareTxIndexFunc := func(l, r *Validator) int {
@@ -494,8 +465,6 @@ func CompareForDel (slashs SlashCandidate, left, right *Validator) int {
 // -1:Left < Right
 func CompareForStore ( _ SlashCandidate, left, right *Validator) int {
 	// some funcs
-
-	fmt.Println("into CompareForStore ...")
 
 	// 5. TxIndex
 	compareTxIndexFunc := func(l, r *Validator) int {

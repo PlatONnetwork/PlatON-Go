@@ -38,10 +38,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -50,7 +48,7 @@ import (
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 
 var (
-	initActiveVersion = uint32(1<<16 | 0<<8 | 0) // init active version 1.0.0
+	//initActiveVersion = uint32(1<<16 | 0<<8 | 0) // init active version 1.0.0
 
 	// initial issuance:
 	// 2% used for reward
@@ -257,7 +255,6 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		db = ethdb.NewMemDatabase()
 	}
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
-
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)
@@ -267,12 +264,6 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 	}
-
-	// set initial active version for gov module
-	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(initActiveVersion))
-	// set restricting plans for increase issue for second and third year
-	_ = g.buildAllowancePlan(statedb) // !!! error is ignored
-
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
 		Number:      new(big.Int).SetUint64(g.Number),
@@ -287,29 +278,35 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		TxHash:      types.EmptyRootHash,
 		ReceiptHash: types.EmptyRootHash,
 	}
+	block := types.NewBlock(head, nil, nil)
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}
 
-	stakingDB := staking.NewStakingDB()
 
 	snDb := snapshotdb.Instance()
-	if err := snDb.NewBlock(big.NewInt(0), common.ZeroHash, head.Hash()); err != nil {
-		log.Error(err.Error())
+	if err := snDb.NewBlock(big.NewInt(0), common.ZeroHash, block.Hash()); err != nil {
+		panic("Failed to NewBlock by SnapshotDB: " + err.Error())
 	}
 
-	if err := g.storeCandidateList(stakingDB, head.Hash()); err != nil {
-		return nil
+	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+
+	// Store genesis governance data
+	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(version))
+	// Store restricting plans for increase issue for second and third year
+	if err := buildAllowancePlan(statedb); nil != err {
+		panic("Failed to Store restricting plan: " + err.Error())
 	}
 
-	if err := g.storeValidatorList(stakingDB, head.Hash()); err != nil {
-		return nil
+	// Store genesis staking data
+	if err := genesisStakingData(g, staking.NewStakingDB(), block.Hash(), version); nil != err {
+		panic("Failed Store staking: "+ err.Error())
 	}
 
 	statedb.Commit(false)
 	statedb.Database().TrieDB().Commit(root, true)
 
-	block := types.NewBlock(head, nil, nil)
+
 
 	if err := snDb.Commit(block.Hash()); err != nil {
 		log.Error(err.Error())
@@ -351,145 +348,6 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 	return block
 }
 
-// storeCandidateList writes the list of candidate use the initial nodes to snapshot database
-func (g *Genesis) storeCandidateList(db *staking.StakingDB, genesisHash common.Hash) error {
-
-	initialNodesNumber := len(g.Config.Cbft.InitialNodes)
-	for index := 0; index < initialNodesNumber; index++ {
-		can := &staking.Candidate{
-			NodeId:             g.Config.Cbft.InitialNodes[index].ID,
-			StakingAddress:     vm.RewardManagerPoolAddr,
-			BenifitAddress:     vm.RewardManagerPoolAddr,
-			StakingTxIndex:     uint32(index),
-			ProcessVersion:     initActiveVersion,
-			Status:             staking.Valided,
-			StakingEpoch:       uint32(0),
-			StakingBlockNum:    uint64(0),
-			Shares:             xcom.StakeThreshold,
-			Released:           common.Big0,
-			ReleasedHes:        common.Big0,
-			RestrictingPlan:    common.Big0,
-			RestrictingPlanHes: common.Big0,
-			Description: staking.Description{
-				ExternalId: "platon.node.1",
-				NodeName:   "",
-				Website:    "",
-				Details:    "",
-			},
-		}
-
-		nodeAddr, err := xutil.NodeId2Addr(can.NodeId)
-		if err != nil {
-			return fmt.Errorf("failed to exchange nodeID to address. ID:%v, error:%s", can.NodeId, err)
-		}
-
-		if err = db.SetCandidateStore(genesisHash, nodeAddr, can); err != nil {
-			return fmt.Errorf("failed to set candidate info. ID:%v, error:%s", can.NodeId, err)
-		}
-
-		if err = db.SetCanPowerStore(genesisHash, nodeAddr, can); err != nil {
-			return fmt.Errorf("failed to set candidate power info. ID:%v, error:%s", can.NodeId, err)
-		}
-	}
-
-	return nil
-}
-
-// storeCandidateList writes the array of candidate use the initial nodes to snapshot database
-func (g *Genesis) storeValidatorList(db *staking.StakingDB, genesisHash common.Hash) error {
-
-	initialNodesNumber := len(g.Config.Cbft.InitialNodes)
-	validatorQueue := make(staking.ValidatorQueue, initialNodesNumber)
-
-	for index := 0; index < initialNodesNumber; index++ {
-		// get initial validator nodeID
-		nodeID := g.Config.Cbft.InitialNodes[index].ID
-		nodeAddr, err := xutil.NodeId2Addr(nodeID)
-		if err != nil {
-			return fmt.Errorf("failed to exchange nodeID to address. ID:%v, error:%s", nodeID, err)
-		}
-
-		stakingBlockNum := string(0)
-		stakingTxIndex := string(index)
-
-		// build validator queue for the first consensus epoch
-		validator := &staking.Validator{
-			NodeAddress:   nodeAddr,
-			NodeId:        nodeID,
-			StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), stakingBlockNum, stakingTxIndex},
-			ValidatorTerm: 0,
-		}
-		validatorQueue = append(validatorQueue, validator)
-	}
-
-	array := &staking.Validator_array{
-		Start: 1,
-		End:   xcom.EpochSize * xcom.ConsensusSize * 1,
-		Arr:   validatorQueue,
-	}
-
-	if err := db.SetVerfierList(genesisHash, array); err != nil {
-		return fmt.Errorf("failed to set Verfier list. error:%s", err)
-	}
-
-	if err := db.SetCurrentValidatorList(genesisHash, array); err != nil {
-		return fmt.Errorf("failed to set candidate power info. error:%s", err)
-	}
-
-	return nil
-}
-
-// buildAllowancePlan writes the data of precompiled restricting contract, which used for the second year allowance
-// and the third year allowance, to stateDB
-func (g *Genesis) buildAllowancePlan(stateDb *state.StateDB) error {
-
-	account := vm.RewardManagerPoolAddr
-	firstYearEndEpoch := 365 * 24 * 3600 / (xcom.EpochSize * xcom.ConsensusSize)
-	secondYearEncEpoch := 2 * 365 * 24 * 3600 / (xcom.EpochSize * xcom.ConsensusSize)
-	stableEpochs := []uint64{firstYearEndEpoch, secondYearEncEpoch}
-
-	secondYearAllowance, _ := new(big.Int).SetString("15000000000000000000000000", 10)
-	thirdYearAllowance, _ := new(big.Int).SetString("5000000000000000000000000", 10)
-
-	epochList := make([]uint64, len(stableEpochs))
-	for i, epoch := range stableEpochs {
-		// store restricting account record
-		releaseAccountKey := restricting.GetReleaseAccountKey(epoch, 1)
-		stateDb.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
-
-		// store release amount record
-		releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
-		switch {
-		case i == 0:
-			stateDb.SetState(account, releaseAmountKey, secondYearAllowance.Bytes())
-		case i == 1:
-			stateDb.SetState(account, releaseAmountKey, thirdYearAllowance.Bytes())
-		}
-
-		// store release epoch record
-		releaseEpochKey := restricting.GetReleaseEpochKey(epoch)
-		stateDb.SetState(vm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
-
-		epochList = append(epochList, uint64(epoch))
-	}
-
-	// build restricting account info
-	var restrictInfo restricting.RestrictingInfo
-	restrictInfo.Balance, _ = new(big.Int).SetString("20000000000000000000000000", 10)
-	restrictInfo.Debt = big.NewInt(0)
-	restrictInfo.ReleaseList = epochList
-
-	bRestrictInfo, err := rlp.EncodeToBytes(restrictInfo)
-	if err != nil {
-		return fmt.Errorf("failed to rlp encode restricting info. info:%v, error:%s", restrictInfo, err.Error())
-	}
-
-	// store restricting account info
-	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDb.SetState(vm.RestrictingContractAddr, restrictingKey, bRestrictInfo)
-
-	return nil
-}
 
 // GenesisBlockForTesting creates and writes a block in which addr has the given wei balance.
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
