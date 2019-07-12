@@ -3,6 +3,10 @@ package snapshotdb
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"os"
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
@@ -12,9 +16,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"math/big"
-	"os"
-	"sync"
 )
 
 const (
