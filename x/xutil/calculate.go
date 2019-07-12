@@ -15,7 +15,6 @@ func CalculateEpoch(blockNumber uint64) uint64 {
 	// block counts of per epoch
 	size := xcom.ConsensusSize()*xcom.EpochSize()
 
-
 	var epoch uint64
 	div := blockNumber / size
 	mod := blockNumber % size
