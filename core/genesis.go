@@ -22,6 +22,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"math/big"
 	"strings"
 
@@ -30,15 +33,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
@@ -46,33 +46,6 @@ import (
 //go:generate gencodec -type GenesisAccount -field-override genesisAccountMarshaling -out gen_genesis_account.go
 
 var errGenesisNoConfig = errors.New("genesis has no chain configuration")
-
-var (
-	//initActiveVersion = uint32(1<<16 | 0<<8 | 0) // init active version 1.0.0
-
-	// initial issuance:
-	// 2% used for reward
-	// 0.5% used for developer foundation
-	// 4.5% used for allowance
-	// almost 2.5 % used for staking
-	genesisIssue, _ = new(big.Int).SetString("1000000000‬000000000000000000", 10)
-
-	// initial PlatON Foundation
-	platONFoundationIssue, _ = new(big.Int).SetString("905000000000000000000000000", 10)
-
-	// initial reward pool issuance, totally there is 6.5% of initial issuance in it, and first year can be used is 4.5%
-	rewardMgrPoolIssue, _ = new(big.Int).SetString("65000000000000000000000000", 10)
-
-	// initial developer Foundation Issue
-	developerFoundationIssue, _ = new(big.Int).SetString("5000000000000000000000000", 10)
-
-	// initial staking contract balance
-	genesisNodesNumber   = int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
-	stakingContractIssue = new(big.Int).Mul(xcom.StakeThreshold, big.NewInt(genesisNodesNumber)) // 25000000 * 10 ^ 18
-
-	// initial reserved account balance
-	reservedAccountIssue = big.NewInt(0)
-)
 
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
@@ -194,6 +167,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 		} else {
 			log.Info("Writing custom genesis block")
 		}
+
 		block, err := genesis.Commit(db)
 		return genesis.Config, block.Hash(), err
 	}
@@ -264,6 +238,17 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 	}
+	//Store somethings into State
+	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+
+	// Store genesis governance data
+	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(version))
+	// Store restricting plans for increase issue for second and third year
+	if err := buildAllowancePlan(statedb); nil != err {
+		panic("Failed to Store restricting plan: " + err.Error())
+	}
+
+	// the State root
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
 		Number:      new(big.Int).SetUint64(g.Number),
@@ -275,43 +260,35 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		GasUsed:     g.GasUsed,
 		Coinbase:    g.Coinbase,
 		Root:        root,
-		TxHash:      types.EmptyRootHash,
-		ReceiptHash: types.EmptyRootHash,
 	}
-	block := types.NewBlock(head, nil, nil)
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}
 
+	if _, err := statedb.Commit(false); nil != err {
+		panic("Failed to commit genesis stateDB: " + err.Error())
+	}
+	if err := statedb.Database().TrieDB().Commit(root, true); nil != err {
+		panic("Failed to trieDB commit by genesis: " + err.Error())
+	}
 
+	// Store somethings into snapshotDB
+	block := types.NewBlock(head, nil, nil)
 	snDb := snapshotdb.Instance()
 	if err := snDb.NewBlock(big.NewInt(0), common.ZeroHash, block.Hash()); err != nil {
 		panic("Failed to NewBlock by SnapshotDB: " + err.Error())
 	}
 
-	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
-
-	// Store genesis governance data
-	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(version))
-	// Store restricting plans for increase issue for second and third year
-	if err := buildAllowancePlan(statedb); nil != err {
-		panic("Failed to Store restricting plan: " + err.Error())
-	}
 
 	// Store genesis staking data
 	if err := genesisStakingData(g, staking.NewStakingDB(), block.Hash(), version); nil != err {
 		panic("Failed Store staking: "+ err.Error())
 	}
 
-	statedb.Commit(false)
-	statedb.Database().TrieDB().Commit(root, true)
-
-
 
 	if err := snDb.Commit(block.Hash()); err != nil {
-		log.Error(err.Error())
+		panic("Failed snapshotDB Commit: " + err.Error())
 	}
-	snDb.Close()
 
 	return block
 }
@@ -355,8 +332,26 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 	return g.MustCommit(db)
 }
 
-// DefaultGenesisBlock returns the Ethereum main net genesis block.
+// DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
+
+
+	// initial PlatON Foundation
+	platONFoundationIssue, _ := new(big.Int).SetString("905000000000000000000000000", 10)
+
+	// initial reward pool issuance, totally there is 6.5% of initial issuance in it, and first year can be used is 4.5%
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("65000000000000000000000000", 10)
+
+	// initial developer Foundation Issue
+	developerFoundationIssue, _ := new(big.Int).SetString("5000000000000000000000000", 10)
+
+	//// initial staking contract balance
+	genesisNodesNumber   := int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
+	stakingContractIssue := new(big.Int).Mul(xcom.StakeThreshold(), big.NewInt(genesisNodesNumber)) // 25000000 * 10 ^ 18
+
+	// initial reserved account balance
+	reservedAccountIssue := big.NewInt(0)
+
 	return &Genesis{
 		Config:    params.MainnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),

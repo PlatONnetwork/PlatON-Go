@@ -21,12 +21,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"gopkg.in/urfave/cli.v1"
 	"io"
 	"os"
 	"reflect"
 	"unicode"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/dashboard"
@@ -35,7 +35,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 	"github.com/naoina/toml"
-
 )
 
 var (
@@ -132,7 +131,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 		Shh:       	   whisper.DefaultConfig,
 		Node:      	   defaultNodeConfig(),
 		Dashboard: 	   dashboard.DefaultConfig,
-		EconomicModel: xcom.DefaultConfig,
+		EconomicModel: *utils.GetEconomicDefaultConfig(ctx),
 	}
 
 	// Load config file.
@@ -266,3 +265,5 @@ func dumpConfig(ctx *cli.Context) error {
 	os.Stdout.Write(out)
 	return nil
 }
+
+

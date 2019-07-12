@@ -83,99 +83,103 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Address, nodeId discover.NodeID,
 	externalId, nodeName, website, details string, amount *big.Int, processVersion uint32) ([]byte, error) {
 
-	txHash := stkc.Evm.StateDB.TxHash()
-	txIndex := stkc.Evm.StateDB.TxIdx()
-	blockNumber := stkc.Evm.BlockNumber
-	blockHash := stkc.Evm.BlockHash
+	fmt.Println("Call createStakings ...")
 
-	from := stkc.Contract.CallerAddress
+	//txHash := stkc.Evm.StateDB.TxHash()
+	//txIndex := stkc.Evm.StateDB.TxIdx()
+	//blockNumber := stkc.Evm.BlockNumber
+	//blockHash := stkc.Evm.BlockHash
+	//
+	//from := stkc.Contract.CallerAddress
+	//
+	//state := stkc.Evm.StateDB
+	//
+	//log.Info("Call createStaking of stakingContract", "txHash", txHash.Hex(),
+	//	"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
+	//
+	////  TODO  MOCK
+	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
+	//	externalId, nodeName, website, details, amount, processVersion)
+	//
+	//if !xutil.CheckStakeThreshold(amount) {
+	//	res := xcom.Result{false, "", StakeVonTooLowStr}
+	//	event, _ := json.Marshal(res)
+	//	stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+	//	return event, nil
+	//}
+	//
+	//canAddr, err := xutil.NodeId2Addr(nodeId)
+	//if nil != err {
+	//	log.Error("Failed to createStaking by parse nodeId", "txHash", txHash,
+	//		"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
+	//	return nil, err
+	//}
+	//
+	//canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
+	//if nil != err && err != snapshotdb.ErrNotFound {
+	//	log.Error("Failed to createStaking by GetCandidateInfo", "txHash", txHash,
+	//		"blockNumber", blockNumber, "err", err)
+	//	return nil, err
+	//}
+	//
+	//if nil != canOld {
+	//	res := xcom.Result{false, "", CanAlreadyExistsErrStr}
+	//	event, _ := json.Marshal(res)
+	//	stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+	//	return event, nil
+	//}
+	//
+	//
+	//
+	///**
+	//init candidate info
+	//*/
+	//canTmp := &staking.Candidate{
+	//	NodeId:          nodeId,
+	//	StakingAddress:  from,
+	//	BenifitAddress:  benifitAddress,
+	//	StakingBlockNum: blockNumber.Uint64(),
+	//	StakingTxIndex:  txIndex,
+	//	Shares:          amount,
+	//
+	//	// Prevent null pointer initialization
+	//	Released: common.Big0,
+	//	ReleasedHes: common.Big0,
+	//	RestrictingPlan: common.Big0,
+	//	RestrictingPlanHes: common.Big0,
+	//
+	//	Description: staking.Description{
+	//		NodeName:   nodeName,
+	//		ExternalId: externalId,
+	//		Website:    website,
+	//		Details:    details,
+	//	},
+	//}
+	//
+	//// TODO  test
+	//canJson, _ := json.Marshal(canTmp)
+	//fmt.Println("Create Candidate canJson is:", string(canJson))
+	//
+	//err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, processVersion, typ, canAddr, canTmp)
+	//if nil != err {
+	//	if _, ok := err.(*common.BizError); ok {
+	//		res := xcom.Result{false, "", CreateCanErrStr + ": " + err.Error()}
+	//		event, _ := json.Marshal(res)
+	//		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+	//		return event, nil
+	//	} else {
+	//		log.Error("Failed to createStaking by CreateCandidate", "txHash", txHash,
+	//			"blockNumber", blockNumber, "err", err)
+	//		return nil, err
+	//	}
+	//}
+	//
+	//res := xcom.Result{true, "", "ok"}
+	//event, _ := json.Marshal(res)
+	//stkc.goodLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+	//return event, nil
 
-	state := stkc.Evm.StateDB
-
-	log.Info("Call createStaking of stakingContract", "txHash", txHash.Hex(),
-		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
-
-	//  TODO  MOCK
-	return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
-		externalId, nodeName, website, details, amount, processVersion)
-
-	if !xutil.CheckStakeThreshold(amount) {
-		res := xcom.Result{false, "", StakeVonTooLowStr}
-		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
-		return event, nil
-	}
-
-	canAddr, err := xutil.NodeId2Addr(nodeId)
-	if nil != err {
-		log.Error("Failed to createStaking by parse nodeId", "txHash", txHash,
-			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(), "err", err)
-		return nil, err
-	}
-
-	canOld, err := stkc.Plugin.GetCandidateInfo(blockHash, canAddr)
-	if nil != err && err != snapshotdb.ErrNotFound {
-		log.Error("Failed to createStaking by GetCandidateInfo", "txHash", txHash,
-			"blockNumber", blockNumber, "err", err)
-		return nil, err
-	}
-
-	if nil != canOld {
-		res := xcom.Result{false, "", CanAlreadyExistsErrStr}
-		event, _ := json.Marshal(res)
-		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
-		return event, nil
-	}
-
-
-
-	/**
-	init candidate info
-	*/
-	canTmp := &staking.Candidate{
-		NodeId:          nodeId,
-		StakingAddress:  from,
-		BenifitAddress:  benifitAddress,
-		StakingBlockNum: blockNumber.Uint64(),
-		StakingTxIndex:  txIndex,
-		Shares:          amount,
-
-		// Prevent null pointer initialization
-		Released: common.Big0,
-		ReleasedHes: common.Big0,
-		RestrictingPlan: common.Big0,
-		RestrictingPlanHes: common.Big0,
-
-		Description: staking.Description{
-			NodeName:   nodeName,
-			ExternalId: externalId,
-			Website:    website,
-			Details:    details,
-		},
-	}
-
-	// TODO  test
-	canJson, _ := json.Marshal(canTmp)
-	fmt.Println("Create Candidate canJson is:", string(canJson))
-
-	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, processVersion, typ, canAddr, canTmp)
-	if nil != err {
-		if _, ok := err.(*common.BizError); ok {
-			res := xcom.Result{false, "", CreateCanErrStr + ": " + err.Error()}
-			event, _ := json.Marshal(res)
-			stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
-			return event, nil
-		} else {
-			log.Error("Failed to createStaking by CreateCandidate", "txHash", txHash,
-				"blockNumber", blockNumber, "err", err)
-			return nil, err
-		}
-	}
-
-	res := xcom.Result{true, "", "ok"}
-	event, _ := json.Marshal(res)
-	stkc.goodLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
-	return event, nil
+	return nil, nil
 }
 
 func (stkc *StakingContract) editorCandidate(benifitAddress common.Address, nodeId discover.NodeID,

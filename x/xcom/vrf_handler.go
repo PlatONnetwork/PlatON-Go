@@ -109,8 +109,8 @@ func (vh *vrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 			copy(nonces, value)
 			log.Debug("Storage previous nonce", "current blockNumber", currentBlockNumber.Uint64(), "parentHash",
 				hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()), "valueLength",
-				len(value), "EpochValidatorNum", EpochValidatorNum)
-			if uint64(len(nonces)) == EpochValidatorNum {
+				len(value), "EpochValidatorNum", EpochValidatorNum())
+			if uint64(len(nonces)) == EpochValidatorNum() {
 				nonces = nonces[1:]
 			}
 		}
@@ -125,7 +125,7 @@ func (vh *vrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 		vh.db.Put(hash, NonceStorageKey, enValue)
 		log.Info("Storage previous nonce Success", "current blockNumber", currentBlockNumber.Uint64(),
 			"parentHash", hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()),
-			"valueLength", len(nonces), "EpochValidatorNum", EpochValidatorNum, "nonce", hex.EncodeToString(nonce),
+			"valueLength", len(nonces), "EpochValidatorNum", EpochValidatorNum(), "nonce", hex.EncodeToString(nonce),
 			"firstNonce", hex.EncodeToString(nonces[0]), "lastNonce", hex.EncodeToString(nonces[len(nonces)-1]))
 	}
 	return nil

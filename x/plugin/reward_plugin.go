@@ -143,7 +143,7 @@ func (rmp *rewardMgrPlugin) calculateExpectReward(year uint32, state xcom.StateD
 	)
 
 	expectNewBlocks := int64(365) * 24 * 3600 / 1
-	expectEpochs := int64(365) * 24 * 3600 / int64(xcom.ConsensusSize * xcom.EpochSize)
+	expectEpochs := int64(365) * 24 * 3600 / int64(xcom.ConsensusSize() * xcom.EpochSize())
 
 	issuance := GetLatestCumulativeIssue(state)
 	totalNewBlockReward := temp.Div(issuance, big.NewInt(5))

@@ -26,6 +26,9 @@ type releaseAmountInfo struct {
 
 func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
+	newChainState()
+	xcom.SetEconomicModel(&xcom.DefaultConfig)
+
 	stateDB := buildStateDB(t)
 	buildDbRestrictingPlan(t, stateDB)
 
@@ -37,14 +40,14 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 	}
 
 	// case2: blockNumber arrived settle block height, restricting plan not exist
-	head = types.Header{Number: big.NewInt(int64(6*xcom.ConsensusSize*xcom.EpochSize))}
+	head = types.Header{Number: big.NewInt(int64(6*xcom.ConsensusSize()*xcom.EpochSize()))}
 	if err := plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDB); err != nil {
 		t.Error("The case2 of EndBlock failed.\n expected success")
 		t.Errorf("Actually returns err. blockNumber:%d . errors: %s", head.Number.Uint64(), err.Error())
 	}
 
 	// case3: blockNumber arrived settle block height, restricting plan exist
-	head = types.Header{Number: big.NewInt(int64(1*xcom.ConsensusSize*xcom.EpochSize))}
+	head = types.Header{Number: big.NewInt(int64(1*xcom.ConsensusSize()*xcom.EpochSize()))}
 	if err := plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDB); err != nil {
 		t.Error("The case3 of EndBlock failed.\n expected success")
 		t.Errorf("Actually returns err. blockNumber:%d . errors: %s", head.Number.Uint64(), err.Error())

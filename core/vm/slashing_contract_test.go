@@ -16,7 +16,7 @@ import (
 )
 
 func TestSlashingContract_ReportMutiSign(t *testing.T) {
-	state, err := newChainState()
+	state, _, err := newChainState()
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
@@ -104,7 +104,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 }
 
 func TestSlashingContract_CheckMutiSign(t *testing.T) {
-	state, err := newChainState()
+	state, _, err := newChainState()
 	if nil != err {
 		t.Error(err)
 	}

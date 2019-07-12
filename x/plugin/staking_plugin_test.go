@@ -29,6 +29,7 @@ import (
 )
 
 
+
 /**
  test tool
  */
@@ -80,7 +81,7 @@ func watching(eventMux *event.TypeMux, t *testing.T) {
 func build_vrf_Nonce() ([]byte, [][]byte) {
 	preNonces := make([][]byte, 0)
 	curentNonce := crypto.Keccak256([]byte(string("nonce")))
-	for i := 0; i < int(xcom.EpochValidatorNum); i++ {
+	for i := 0; i < int(xcom.EpochValidatorNum()); i++ {
 		preNonces = append(preNonces, crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:])
 		time.Sleep(time.Microsecond * 10)
 	}
@@ -179,7 +180,8 @@ func TestStakingPlugin_BeginBlock(t *testing.T) {
 }
 
 func TestStakingPlugin_EndBlock(t *testing.T) {
-	state, err := newChainState()
+
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -197,6 +199,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 	stakingDB := staking.NewStakingDB ()
 
 
+
 	rlpHash := func (x interface{}) (h common.Hash) {
 		hw := sha3.NewKeccak256()
 		rlp.Encode(hw, x)
@@ -204,7 +207,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 		return h
 	}
 
-	parentHash := common.ZeroHash
+	parentHash := genesis.Hash()
 
 	// TODO Must be 22k+, don't change this number
 	for i := 0; i < 22222; i++ {
@@ -418,7 +421,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 }
 
 func TestStakingPlugin_Confirmed(t *testing.T) {
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -433,17 +436,19 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 		sndb.Clear()
 	}()
 
+
+
 	// New VrfHandler instance by genesis block Hash
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
 
 	stakingDB := staking.NewStakingDB ()
 
 
 
 	headerMap := make(map[int]*types.Header, 0)
-	parentHash := common.ZeroHash
+	parentHash := genesis.Hash()
 
-	for i := 0; i <= int(xcom.ConsensusSize); i++ {
+	for i := 0; i <= int(xcom.ConsensusSize()); i++ {
 
 		nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:]
 		privateKey, err := crypto.GenerateKey()
@@ -722,7 +727,7 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -737,7 +742,7 @@ func TestStakingPlugin_CreateCandidate(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -756,7 +761,7 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -770,7 +775,7 @@ func TestStakingPlugin_GetCandidateInfo(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -799,7 +804,7 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -813,7 +818,7 @@ func TestStakingPlugin_GetCandidateInfoByIrr(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -850,7 +855,7 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -864,7 +869,7 @@ func TestStakingPlugin_GetCandidateList(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -898,7 +903,7 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -912,7 +917,7 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -964,7 +969,7 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -978,7 +983,7 @@ func TestStakingPlugin_IncreaseStaking(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1035,7 +1040,7 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -1049,7 +1054,7 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1093,7 +1098,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -1106,7 +1111,7 @@ func TestStakingPlugin_HandleUnCandidateItem(t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1166,7 +1171,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -1180,7 +1185,7 @@ func TestStakingPlugin_Delegate(t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1231,7 +1236,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -1244,7 +1249,7 @@ func TestStakingPlugin_WithdrewDelegate(t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1302,7 +1307,7 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -1315,7 +1320,7 @@ func TestStakingPlugin_GetDelegateInfo(t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1365,7 +1370,7 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -1379,7 +1384,7 @@ func TestStakingPlugin_GetDelegateInfoByIrr(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1439,7 +1444,7 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -1453,7 +1458,7 @@ func TestStakingPlugin_GetRelatedListByDelAddr(t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1540,7 +1545,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -1555,7 +1560,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1662,10 +1667,7 @@ func TestStakingPlugin_HandleUnDelegateItem(t *testing.T) {
 func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 
-	//defer plugin.ClearStakingPlugin()
-	//defer plugin.ClearGovPlugin()
-
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -1679,7 +1681,10 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+
+
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1754,7 +1759,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 	// build genesis VerifierList
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -1776,7 +1781,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -1823,7 +1828,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 	/*
 	Start ElectNextVerifierList
 	*/
-	targetNum := xcom.EpochSize*xcom.ConsensusSize
+	targetNum := xcom.EpochSize()*xcom.ConsensusSize()
 	fmt.Println("targetNum:", targetNum)
 
 	targetNumInt := big.NewInt(int64(targetNum))
@@ -1846,7 +1851,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -1861,10 +1866,11 @@ func TestStakingPlugin_Election(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	// Must new VrfHandler instance by genesis block Hash
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	// Must new VrfHandler instance by genesis block Hash
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -1940,7 +1946,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -1960,7 +1966,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -1999,10 +2005,10 @@ func TestStakingPlugin_Election(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize,
+		End:   xcom.ConsensusSize(),
 	}
 
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
 	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
 	if nil != err {
@@ -2051,7 +2057,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -2066,9 +2072,11 @@ func TestStakingPlugin_Switch(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -2144,7 +2152,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -2164,7 +2172,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -2203,10 +2211,10 @@ func TestStakingPlugin_Switch(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize,
+		End:   xcom.ConsensusSize(),
 	}
 
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
 	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
 	if nil != err {
@@ -2278,7 +2286,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -2293,7 +2301,8 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -2376,7 +2385,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -2398,7 +2407,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -2475,7 +2484,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -2490,9 +2499,11 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -2598,7 +2609,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -2613,9 +2624,10 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -2718,7 +2730,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -2733,7 +2745,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -2808,7 +2820,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 
 	// build genesis VerifierList
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -2830,7 +2842,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -2904,7 +2916,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -2919,9 +2931,10 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -2997,7 +3010,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -3017,7 +3030,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -3056,10 +3069,10 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize,
+		End:   xcom.ConsensusSize(),
 	}
 
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
 	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
 	if nil != err {
@@ -3110,7 +3123,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -3125,9 +3138,10 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -3203,7 +3217,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -3223,7 +3237,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -3262,10 +3276,10 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize,
+		End:   xcom.ConsensusSize(),
 	}
 
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
 	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
 	if nil != err {
@@ -3314,7 +3328,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -3329,9 +3343,10 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -3407,7 +3422,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -3427,7 +3442,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -3500,7 +3515,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -3515,9 +3530,10 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -3593,7 +3609,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -3613,7 +3629,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -3652,10 +3668,10 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize,
+		End:   xcom.ConsensusSize(),
 	}
 
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
 	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
 	if nil != err {
@@ -3696,7 +3712,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -3711,9 +3727,10 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -3789,7 +3806,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -3809,7 +3826,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -3873,7 +3890,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -3888,9 +3905,10 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -3999,7 +4017,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -4014,9 +4032,10 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -4100,7 +4119,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -4120,7 +4139,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -4159,10 +4178,10 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize,
+		End:   xcom.ConsensusSize(),
 	}
 
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
 	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
 	if nil != err {
@@ -4204,7 +4223,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -4219,9 +4238,10 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -4305,7 +4325,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -4325,7 +4345,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -4399,7 +4419,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -4414,9 +4434,10 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -4492,7 +4513,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -4512,7 +4533,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -4551,10 +4572,10 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize,
+		End:   xcom.ConsensusSize(),
 	}
 
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
 	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
 	if nil != err {
@@ -4591,7 +4612,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -4606,9 +4627,10 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -4684,7 +4706,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -4704,7 +4726,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -4743,10 +4765,10 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize,
+		End:   xcom.ConsensusSize(),
 	}
 
-	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum)]
+	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
 	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)
 	if nil != err {
@@ -4786,7 +4808,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -4801,9 +4823,10 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	xcom.NewVrfHandler(common.ZeroHash.Bytes())
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
+
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -4879,7 +4902,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize*xcom.ConsensusSize
+	end := xcom.EpochSize()*xcom.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -4899,7 +4922,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 
 	count := 0
 	for iter.Valid(); iter.Next(); {
-		if uint64(count) == xcom.EpochValidatorNum {
+		if uint64(count) == xcom.EpochValidatorNum() {
 			break
 		}
 		addrSuffix := iter.Value()
@@ -4956,11 +4979,14 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 }
 
 func TestStakingPlugin_ProbabilityElection(t *testing.T) {
+
+	newChainState()
+
 	curve := elliptic.P256()
 	vqList := make(staking.ValidatorQueue, 0)
 	preNonces := make([][]byte, 0)
 	curentNonce := crypto.Keccak256([]byte(string("nonce")))
-	for i := 0; i < int(xcom.EpochValidatorNum); i++ {
+	for i := 0; i < int(xcom.EpochValidatorNum()); i++ {
 		privKey, _ := ecdsa.GenerateKey(curve, rand.Reader)
 		nodeId := discover.PubkeyID(&privKey.PublicKey)
 		addr := crypto.PubkeyToAddress(privKey.PublicKey)
@@ -5007,7 +5033,7 @@ func Test_IteratorCandidate (t *testing.T) {
 	//defer plugin.ClearStakingPlugin()
 	//defer plugin.ClearGovPlugin()
 
-	state, err := newChainState()
+	state, genesis, err := newChainState()
 	if nil != err {
 		t.Error("Failed to build the state", err)
 		return
@@ -5022,7 +5048,7 @@ func Test_IteratorCandidate (t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}

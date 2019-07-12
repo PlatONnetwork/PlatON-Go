@@ -12,9 +12,8 @@ import (
 
 // calculate the Epoch number by blocknumber
 func CalculateEpoch(blockNumber uint64) uint64 {
-
 	// block counts of per epoch
-	size := xcom.ConsensusSize*xcom.EpochSize
+	size := xcom.ConsensusSize()*xcom.EpochSize()
 
 
 	var epoch uint64
@@ -37,8 +36,7 @@ func CalculateEpoch(blockNumber uint64) uint64 {
 
 // calculate the Consensus number by blocknumber
 func CalculateRound (blockNumber uint64) uint64 {
-
-	size := xcom.ConsensusSize
+	size := xcom.ConsensusSize()
 
 	var round uint64
 	div := blockNumber / size
@@ -61,8 +59,9 @@ func CalculateYear (blockNumber uint64) uint64 {
 	// !!!
 	// epochs := EpochsPerYear()
 	// !!!
+
 	epochs := uint64(1440)
-	size := epochs * xcom.EpochSize * xcom.ConsensusSize
+	size := epochs * xcom.EpochSize() * xcom.ConsensusSize()
 
 	var year uint64
 
@@ -80,20 +79,20 @@ func CalculateYear (blockNumber uint64) uint64 {
 }
 
 func IsElection(blockNumber uint64) bool {
-	tmp := blockNumber + xcom.ElectionDistance
-	mod := tmp % xcom.ConsensusSize
+	tmp := blockNumber + xcom.ElectionDistance()
+	mod := tmp % xcom.ConsensusSize()
 	return mod == 0
 }
 
 
 func IsSwitch (blockNumber uint64) bool {
-	mod := blockNumber % xcom.ConsensusSize
+	mod := blockNumber % xcom.ConsensusSize()
 	return mod == 0
 }
 
 func IsSettlementPeriod (blockNumber uint64) bool {
 	// block counts of per epoch
-	size := xcom.ConsensusSize*xcom.EpochSize
+	size := xcom.ConsensusSize() * xcom.EpochSize()
 	mod := blockNumber % size
 	return mod == 0
 }
@@ -105,7 +104,7 @@ func IsYearEnd (blockNumber uint64) bool {
 	L := uint64(1)
 	u := uint64(25)
 	vn := uint64(10)
-	epoch := eh*3600/(L*u*vn)*xcom.ConsensusSize
+	epoch := eh*3600/(L*u*vn)*xcom.ConsensusSize()
 
 	size := uint64(365)*24*3600/(L*epoch)*epoch
 	return blockNumber > 0 && blockNumber % size == 0
@@ -128,11 +127,11 @@ func IsWorker(extra []byte) bool {
 
 
 func CheckStakeThreshold(stake *big.Int) bool {
-	return stake.Cmp(xcom.StakeThreshold) >= 0
+	return stake.Cmp(xcom.StakeThreshold()) >= 0
 }
 
 func CheckDelegateThreshold(delegate *big.Int) bool {
-	return delegate.Cmp(xcom.DelegateThreshold) >= 0
+	return delegate.Cmp(xcom.DelegateThreshold()) >= 0
 }
 
 // The ProcessVersion: Major.Minor.Patch eg. 1.1.0

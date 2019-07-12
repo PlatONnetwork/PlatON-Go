@@ -28,7 +28,7 @@ func genesisStakingData(g *Genesis, db *staking.StakingDB, genesisHash common.Ha
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
 			StakingBlockNum:    uint64(0),
-			Shares:             xcom.StakeThreshold,
+			Shares:             xcom.StakeThreshold(),
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
 			RestrictingPlan:    common.Big0,
@@ -54,19 +54,15 @@ func genesisStakingData(g *Genesis, db *staking.StakingDB, genesisHash common.Ha
 			return fmt.Errorf("Failed to Store Candidate Power. ID:%v, error:%s", can.NodeId, err)
 		}
 
-		if err != nil {
-			return fmt.Errorf("failed to exchange nodeID to address. ID:%v, error:%s", nodeID, err)
-		}
-
 
 		// build validator queue for the first consensus epoch
 		validator := &staking.Validator{
 			NodeAddress:   nodeAddr,
 			NodeId:        node.ID,
-			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(version), xcom.StakeThreshold.String(), "0", fmt.Sprint(index+1)},
+			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(version), xcom.StakeThreshold().String(), "0", fmt.Sprint(index+1)},
 			ValidatorTerm: 0,
 		}
-		validatorQueue = append(validatorQueue, validator)
+		validatorQueue[index] = validator
 
 	}
 
@@ -74,14 +70,14 @@ func genesisStakingData(g *Genesis, db *staking.StakingDB, genesisHash common.Ha
 	// build epoch validators
 	verifierList := &staking.Validator_array{
 		Start: 1,
-		End:   xcom.EpochSize * xcom.ConsensusSize,
+		End:   xcom.EpochSize() * xcom.ConsensusSize(),
 		Arr:   validatorQueue,
 	}
 
 	// build current validators
 	validatorLIst := &staking.Validator_array{
 		Start: 1,
-		End:   xcom.ConsensusSize,
+		End:   xcom.ConsensusSize(),
 		Arr:   validatorQueue,
 	}
 
@@ -103,12 +99,8 @@ func genesisStakingData(g *Genesis, db *staking.StakingDB, genesisHash common.Ha
 func buildAllowancePlan(stateDb *state.StateDB) error {
 
 	account := vm.RewardManagerPoolAddr
-	firstYearEndEpoch := 365 * 24 * 3600 / (xcom.EpochSize * xcom.ConsensusSize)
-	secondYearEncEpoch := 2 * 365 * 24 * 3600 / (xcom.EpochSize * xcom.ConsensusSize)
-	stableEpochs := []uint64{firstYearEndEpoch, secondYearEncEpoch}
 
-	secondYearAllowance, _ := new(big.Int).SetString("15000000000000000000000000", 10)
-	thirdYearAllowance, _ := new(big.Int).SetString("5000000000000000000000000", 10)
+	stableEpochs := []uint64{xcom.FirstYearEndEpoch(), xcom.SecondYearEncEpoch()}
 
 	epochList := make([]uint64, len(stableEpochs))
 	for i, epoch := range stableEpochs {
@@ -120,9 +112,9 @@ func buildAllowancePlan(stateDb *state.StateDB) error {
 		releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
 		switch {
 		case i == 0:
-			stateDb.SetState(account, releaseAmountKey, secondYearAllowance.Bytes())
+			stateDb.SetState(account, releaseAmountKey, xcom.SecondYearAllowance().Bytes())
 		case i == 1:
-			stateDb.SetState(account, releaseAmountKey, thirdYearAllowance.Bytes())
+			stateDb.SetState(account, releaseAmountKey, xcom.ThirdYearAllowance().Bytes())
 		}
 
 		// store release epoch record
@@ -134,7 +126,7 @@ func buildAllowancePlan(stateDb *state.StateDB) error {
 
 	// build restricting account info
 	var restrictInfo restricting.RestrictingInfo
-	restrictInfo.Balance, _ = new(big.Int).SetString("20000000000000000000000000", 10)
+	restrictInfo.Balance = xcom.GenesisRestrictingBalance()
 	restrictInfo.Debt = big.NewInt(0)
 	restrictInfo.ReleaseList = epochList
 

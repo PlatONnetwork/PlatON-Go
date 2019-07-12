@@ -174,23 +174,24 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey)  {
 }
 
 func TestSlashingPlugin_BeginBlock(t *testing.T) {
+	_,_,_ = newChainState()
 	si, stateDB := initInfo(t)
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
 	pri, phash := confirmBlock(t, 478, true)
 	blockNumber := new(big.Int).SetInt64(479)
-	if err := snapshotdb.Instance().NewBlock(blockNumber, phash, common.ZeroHash); err != nil {
+	if err := snapshotdb.Instance().NewBlock(blockNumber, phash, blockHash); err != nil {
 		t.Error(err)
 		return
 	}
 	buildStakingData(common.ZeroHash, pri)
 	phash = common.HexToHash("0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130406")
-	if err := snapshotdb.Instance().Flush(phash, blockNumber); err != nil {
+	if err := snapshotdb.Instance().Flush(blockHash, blockNumber); err != nil {
 		t.Error(err)
 		return
 	}
-	if err := snapshotdb.Instance().Commit(phash); err != nil {
+	if err := snapshotdb.Instance().Commit(blockHash); err != nil {
 		t.Error(err)
 		return
 	}
@@ -198,7 +199,7 @@ func TestSlashingPlugin_BeginBlock(t *testing.T) {
 		Number: new(big.Int).SetUint64(480),
 		Extra:  make([]byte, 97),
 	}
-	if err := snapshotdb.Instance().NewBlock(header.Number, phash, common.ZeroHash); nil != err {
+	if err := snapshotdb.Instance().NewBlock(header.Number, blockHash, common.ZeroHash); nil != err {
 		t.Error(err)
 		return
 	}
@@ -222,7 +223,6 @@ func TestSlashingPlugin_Confirmed(t *testing.T) {
 }
 
 func confirmBlock(t *testing.T, maxNumber int, flag bool) (*ecdsa.PrivateKey, common.Hash) {
-	blockNumber := new(big.Int).SetUint64(1)
 	pri, err := crypto.GenerateKey()
 	if err != nil {
 		panic(err)
@@ -231,15 +231,22 @@ func confirmBlock(t *testing.T, maxNumber int, flag bool) (*ecdsa.PrivateKey, co
 	if err != nil {
 		panic(err)
 	}
-	hash := common.HexToHash("0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802111216")
+	//hash := common.HexToHash("0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802111216")
 	db := snapshotdb.Instance()
+
 	sk := pri
+
+	_, genesis, _ := newChainState()
+	parentHash := genesis.Hash()
 	for i := 0; i < maxNumber; i++ {
+
+		blockNum := big.NewInt(int64(i+1))
+
 		if i == 7 {
 			sk = pri2
 		}
 		header := &types.Header{
-			Number: blockNumber,
+			Number: blockNum,
 			Extra:  make([]byte, 97),
 		}
 		sign, err := crypto.Sign(header.SealHash().Bytes(), sk)
@@ -251,19 +258,19 @@ func confirmBlock(t *testing.T, maxNumber int, flag bool) (*ecdsa.PrivateKey, co
 		if err := plugin.SlashInstance().Confirmed(block); nil != err {
 			t.Error(err)
 		}
-		if err := db.NewBlock(blockNumber, hash, common.ZeroHash); err != nil {
+		if err := db.NewBlock(blockNum, parentHash, common.ZeroHash); err != nil {
 			panic(err)
 		}
-		hash = crypto.Keccak256Hash(common.Int32ToBytes(int32(i)))
-		if err := db.Flush(hash, blockNumber); err != nil {
+		//hash = crypto.Keccak256Hash(common.Int32ToBytes(int32(i)))
+		if err := db.Flush(header.Hash(), blockNum); err != nil {
 			panic(err)
 		}
-		if err := db.Commit(hash); err != nil {
+		if err := db.Commit(header.Hash()); err != nil {
 			panic(err)
 		}
-		blockNumber = new(big.Int).Add(blockNumber, new(big.Int).SetUint64(1))
+		parentHash = header.Hash()
 	}
-	return pri, hash
+	return pri, parentHash
 }
 
 func TestSlashingPlugin_Slash(t *testing.T) {
