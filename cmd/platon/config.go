@@ -21,12 +21,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"gopkg.in/urfave/cli.v1"
 	"io"
 	"os"
 	"reflect"
 	"unicode"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/dashboard"
@@ -35,7 +36,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	whisper "github.com/PlatONnetwork/PlatON-Go/whisper/whisperv6"
 	"github.com/naoina/toml"
-
 )
 
 var (
@@ -77,11 +77,11 @@ type ethstatsConfig struct {
 }
 
 type gethConfig struct {
-	Eth       eth.Config
-	Shh       whisper.Config
-	Node      node.Config
-	Ethstats  ethstatsConfig
-	Dashboard dashboard.Config
+	Eth           eth.Config
+	Shh           whisper.Config
+	Node          node.Config
+	Ethstats      ethstatsConfig
+	Dashboard     dashboard.Config
 	EconomicModel xcom.EconomicModel
 }
 
@@ -128,16 +128,16 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 
 	// Load defaults.
 	cfg := gethConfig{
-		Eth:       	   eth.DefaultConfig,
-		Shh:       	   whisper.DefaultConfig,
-		Node:      	   defaultNodeConfig(),
-		Dashboard: 	   dashboard.DefaultConfig,
+		Eth:           eth.DefaultConfig,
+		Shh:           whisper.DefaultConfig,
+		Node:          defaultNodeConfig(),
+		Dashboard:     dashboard.DefaultConfig,
 		EconomicModel: xcom.DefaultConfig,
 	}
 
 	// Load config file.
 	if file := ctx.GlobalString(configFileFlag.Name); file != "" {
-	/*	if err := loadConfig(file, &cfg); err != nil {
+		/*	if err := loadConfig(file, &cfg); err != nil {
 			utils.Fatalf("%v", err)
 		}*/
 		if err := loadConfigFile(file, &cfg); err != nil {
@@ -151,7 +151,6 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 
 	// Apply flags.
 	utils.SetNodeConfig(ctx, &cfg.Node)
-
 	stack, err := node.New(&cfg.Node)
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
@@ -194,6 +193,8 @@ func enableWhisper(ctx *cli.Context) bool {
 func makeFullNode(ctx *cli.Context) *node.Node {
 
 	stack, cfg := makeConfigNode(ctx)
+
+	snapshotdb.SetDBPathWithNode(stack)
 
 	utils.RegisterEthService(stack, &cfg.Eth)
 

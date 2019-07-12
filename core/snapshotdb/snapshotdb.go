@@ -121,6 +121,7 @@ func SetDBPath(ctx *node.ServiceContext) {
 
 func SetDBPathWithNode(n *node.Node) {
 	dbpath = n.ResolvePath(DBPath)
+	log.Info("set path", "path", dbpath)
 }
 
 //Instance return the Instance of the db
@@ -130,7 +131,7 @@ func Instance() DB {
 	if dbInstance == nil || dbInstance.closed {
 		logger.Debug("dbInstance is nil", "path", dbpath)
 		if err := initDB(); err != nil {
-			logger.Error(fmt.Sprint("init db fail"), err)
+			logger.Error("init db fail", "err", err)
 			panic(err)
 			//return nil, errors.New("init db fail:" + err.Error())
 		}
@@ -743,6 +744,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 }
 
 func (s *snapshotDB) Close() error {
+	logger.Info("begin close snapshotDB")
 	//	runtime.SetFinalizer(s, nil)
 	if s == nil {
 		return nil
