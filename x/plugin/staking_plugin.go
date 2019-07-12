@@ -2053,7 +2053,11 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 		if remain.Cmp(balance) >= 0 {
 			state.SubBalance(vm.StakingContractAddr, balance)
-			state.AddBalance(vm.RewardManagerPoolAddr, balance)
+			if staking.Is_DoubleSign(uint32(slashType)) {
+				state.AddBalance(caller, balance)
+			}else {
+				state.AddBalance(vm.RewardManagerPoolAddr, balance)
+			}
 
 			if isNotify {
 				err := rt.SlashingNotify(can.StakingAddress, balance, state)
@@ -2070,7 +2074,11 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 
 		} else {
 			state.SubBalance(vm.StakingContractAddr, remain)
-			state.AddBalance(vm.RewardManagerPoolAddr, remain)
+			if staking.Is_DoubleSign(uint32(slashType)) {
+				state.AddBalance(caller, balance)
+			}else {
+				state.AddBalance(vm.RewardManagerPoolAddr, balance)
+			}
 
 			if isNotify {
 				err := rt.SlashingNotify(can.StakingAddress, remain, state)
