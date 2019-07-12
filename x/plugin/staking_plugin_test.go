@@ -2452,7 +2452,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	slash1 := slashQueue[0]
 	slash2 := slashQueue[1]
 
-	err = plugin.StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash1.NodeId, slash1.Shares, false, staking.LowRatio)
+	err = plugin.StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash1.NodeId, slash1.Shares, false, staking.LowRatio, common.ZeroAddr)
 	if nil != err {
 		t.Errorf("Failed to SlashCandidates first can (LowRatio), err: %v", err)
 		return
@@ -2460,7 +2460,8 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 	sla := new(big.Int).Div(slash2.Shares, big.NewInt(10))
 
-	err = plugin.StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash2.NodeId, sla, true, staking.DoubleSign)
+	caller := common.HexToAddress("0xe4a22694827bFa617bF039c937403190477934bF")
+	err = plugin.StakingInstance().SlashCandidates(state, blockHash2, blockNumber2.Uint64(), slash2.NodeId, sla, true, staking.DoubleSign, caller)
 	if nil != err {
 		t.Errorf("Failed to SlashCandidates Second can (DoubleSign), err: %v", err)
 		return

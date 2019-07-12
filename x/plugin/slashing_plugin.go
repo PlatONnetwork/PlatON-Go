@@ -241,7 +241,7 @@ func (sp *SlashingPlugin) GetPreNodeAmount() (map[discover.NodeID]uint32, error)
 	return result, nil
 }
 
-func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber uint64, stateDB xcom.StateDB) error {
+func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber uint64, stateDB xcom.StateDB, caller common.Address) error {
 	evidences, err := sp.decodeEvidence(data)
 	if nil != err {
 		log.Error("Slash failed", "data", data, "err", err)
@@ -266,7 +266,7 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 				log.Error("slashingPlugin GetCandidateInfo is nil", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
 				return common.NewBizError(errMutiSignVerify.Error())
 			}
-			if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, calcSlashAmount(candidate, xcom.GetEcModInstance().Slashing.DuplicateSignLowSlashing), true, staking.DoubleSign); nil != err {
+			if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, calcSlashAmount(candidate, xcom.GetEcModInstance().Slashing.DuplicateSignLowSlashing), true, staking.DoubleSign, caller); nil != err {
 				log.Error("slashingPlugin SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 				return err
 			}

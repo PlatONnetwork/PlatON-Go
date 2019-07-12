@@ -29,7 +29,10 @@ func (sc *SlashingContract) FnSigns() map[uint16]interface{} {
 
 // Report the double signing behavior of the node
 func (sc *SlashingContract) ReportMutiSign(data string) ([]byte, error) {
-	if err := sc.Plugin.Slash(data, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB); nil != err {
+
+	sender := sc.Contract.CallerAddress
+
+	if err := sc.Plugin.Slash(data, sc.Evm.BlockHash, sc.Evm.BlockNumber.Uint64(), sc.Evm.StateDB, sender); nil != err {
 		return nil, err
 	}
 	return nil, nil
