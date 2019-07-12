@@ -1841,6 +1841,9 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
+		log.Debug("Call Election end: Use the current round as the next round", "Next Validators Size", len(validators))
+		// todo test
+		xcom.PrintObject("Next validators", validators)
 		return nil
 	}
 
@@ -1949,6 +1952,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		}
 	}
 	log.Debug("Call Election end ...")
+	// todo test
+	xcom.PrintObject("Next validators", nextValidators)
 	return nil
 }
 
