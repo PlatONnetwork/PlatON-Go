@@ -18,6 +18,7 @@ var (
 	keyPrefixVotedVerifiers    = []byte("VotedVerifiers")
 	keyPrefixActiveNodes       = []byte("ActiveNodes")
 	keyPrefixAccuVerifiers     = []byte("AccuVerifiers")
+	keyPrefixParams     	   = []byte("Params")
 )
 
 // 提案的key
@@ -93,3 +94,9 @@ func KeyAccuVerifier(proposalID common.Hash) []byte {
 		proposalID.Bytes(),
 	}, KeyDelimiter)
 }
+
+
+func KeyParams() []byte {
+	return keyPrefixParams
+}
+

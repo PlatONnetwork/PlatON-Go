@@ -403,3 +403,48 @@ func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.
 		return l, nil
 	}
 }
+
+func (self *GovDB) SetParam(paramMap map[string]interface{}, state xcom.StateDB) (error) {
+	if len(paramMap) > 0 {
+		paraListBytes, _ := json.Marshal(paramMap)
+		state.SetState(vm.GovContractAddr, KeyParams(), paraListBytes)
+	}
+	return nil
+}
+
+func (self *GovDB) GetParam(name string, state xcom.StateDB) (interface{}, error) {
+	paramMap, err := self.ListParam(state)
+	if err !=  nil {
+		return nil, err
+	}
+	return paramMap[name], nil
+}
+
+
+func (self *GovDB) UpdateParam(name string, oldValue interface{}, newValue interface{}, state xcom.StateDB) (error) {
+	paramMap, err := self.ListParam(state)
+	if err !=  nil {
+		return err
+	}
+
+	if oldV, exist := paramMap[name]; exist {
+		if oldV == newValue {
+			err = self.SetParam(paramMap, state)
+			if err !=  nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (self *GovDB) ListParam(state xcom.StateDB) (map[string]interface{}, error) {
+	paraListBytes := state.GetState(vm.GovContractAddr, KeyParams())
+
+	var paraMap map[string]interface{}
+	if err := json.Unmarshal(paraListBytes, &paraMap); err != nil {
+		return nil, common.NewSysError(err.Error())
+	}
+	return paraMap, nil
+
+}

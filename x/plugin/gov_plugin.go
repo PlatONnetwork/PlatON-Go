@@ -118,9 +118,26 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 			}
 
 			if votingProposal.GetProposalType() == gov.Text {
-				govPlugin.tallyForTextProposal(verifierList, accuVerifiersCnt, votingProposal.(gov.TextProposal), blockHash, state)
+				_, err := govPlugin.tallyBasic(verifierList, accuVerifiersCnt, votingProposal.GetProposalID(), blockHash, state)
+				if err != nil {
+					return err
+				}
 			} else if votingProposal.GetProposalType() == gov.Version {
-				govPlugin.tallyForVersionProposal(verifierList, accuVerifiersCnt, votingProposal.(gov.VersionProposal), blockHash, header.Number.Uint64(), state)
+				err := govPlugin.tallyForVersionProposal(verifierList, accuVerifiersCnt, votingProposal.(gov.VersionProposal), blockHash, header.Number.Uint64(), state)
+				if err != nil {
+					return err
+				}
+			} else if votingProposal.GetProposalType() == gov.Param {
+				pass, err := govPlugin.tallyBasic(verifierList, accuVerifiersCnt, votingProposal.GetProposalID(), blockHash, state)
+				if err != nil {
+					return err
+				}
+				if pass {
+					if err := govPlugin.updateParam(votingProposal.(gov.ParamProposal), blockHash, state); err != nil {
+						return err
+					}
+				}
+
 			} else {
 				err = errors.New("[GOV] EndBlock(): invalid Proposal Type")
 				return err
@@ -557,6 +574,61 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 }
 
 
+func (govPlugin *GovPlugin) tallyBasic(votedVerifierList []discover.NodeID, accuCnt uint16, proposalID common.Hash, blockHash common.Hash, state xcom.StateDB) (pass bool, err error) {
+	verifiersCnt, err := govPlugin.govDB.AccuVerifiersLength(blockHash, proposalID)
+	if err != nil {
+		log.Error("count accu verifiers failed", "proposalID", proposalID, "blockHash", blockHash)
+		return false, err
+	}
+
+	status := gov.Voting
+	yeas := uint16(0)
+	nays := uint16(0)
+	abstentions := uint16(0)
+
+	voteList, err := govPlugin.govDB.ListVoteValue(proposalID, state)
+	if err != nil {
+		log.Error("[GOV] tallyForParamProposal(): list vote value failed.", "blockHash", blockHash)
+		return false, err
+	}
+	for _, v := range voteList {
+		if v.VoteOption == gov.Yes {
+			yeas++
+		}
+		if v.VoteOption == gov.No {
+			nays++
+		}
+		if v.VoteOption == gov.Abstention {
+			abstentions++
+		}
+	}
+	supportRate := float64(yeas) / float64(accuCnt)
+
+	if supportRate >= SupportRate_Threshold {
+		status = gov.Pass
+	} else {
+		status = gov.Failed
+	}
+
+	tallyResult := &gov.TallyResult{
+		ProposalID:    proposalID,
+		Yeas:          yeas,
+		Nays:          nays,
+		Abstentions:   abstentions,
+		AccuVerifiers: verifiersCnt,
+		Status:        status,
+	}
+
+	govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposalID, state)
+
+	if err := govPlugin.govDB.SetTallyResult(*tallyResult, state); err != nil {
+		log.Error("Save tally result failed", "tallyResult", tallyResult)
+		return false, err
+	}
+	return status==gov.Pass, nil
+}
+
+
 // check if the node a verifier, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
@@ -628,4 +700,37 @@ func (govPlugin *GovPlugin) findVotingVersionProposal(blockHash common.Hash, sta
 		}
 	}
 	return nil, nil
+}
+
+
+func (govPlugin *GovPlugin) SetParam(paraMap map[string]interface{}, state xcom.StateDB) error{
+	return govPlugin.govDB.SetParam(paraMap, state)
+}
+
+
+func (govPlugin *GovPlugin) ListParam(state xcom.StateDB) (map[string]interface{}, error){
+	paramList, err := govPlugin.govDB.ListParam(state)
+	if err != nil {
+		log.Error("[GOV] ListParam(): list all parameters failed", "msg", err.Error())
+		return nil, err
+	}
+	return paramList, nil
+}
+
+
+func (govPlugin *GovPlugin) GetParamValue(name string, state xcom.StateDB) (interface{}, error){
+	value, err := govPlugin.govDB.GetParam(name, state)
+	if err != nil {
+		log.Error("[GOV] GetParam(): fina a parameter failed", "msg", err.Error())
+		return nil, err
+	}
+	return value, nil
+}
+
+func (govPlugin *GovPlugin) updateParam(proposal gov.ParamProposal, hashes common.Hash, state xcom.StateDB) error {
+	if err := govPlugin.govDB.UpdateParam(proposal.ParamName, proposal.CurrentValue, proposal.NewValue, state); err != nil {
+		log.Error("[GOV] UpdateParam(): update parameter value failed", "msg", err.Error())
+		return err
+	}
+	return nil
 }
