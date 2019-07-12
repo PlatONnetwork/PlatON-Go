@@ -455,7 +455,7 @@ func (sk *StakingPlugin) HandleUnCandidateItem(state xcom.StateDB, blockHash com
 
 	log.Debug("Call HandleUnCandidateItem", "blockHash", blockHash.Hex(), "epoch", epoch)
 
-	releaseEpoch := epoch - xcom.UnStakeFreezeRatio()
+	releaseEpoch := epoch - xcom.UnStakeFreezeRatio
 
 	unStakeCount, err := sk.db.GetUnStakeCountStore(blockHash, releaseEpoch)
 	switch {
@@ -623,7 +623,7 @@ func (sk *StakingPlugin) GetDelegateExInfoByIrr(delAddr common.Address,
 func (sk *StakingPlugin) Delegate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	delAddr common.Address, del *staking.Delegation, can *staking.Candidate, typ uint16, amount *big.Int) error {
 
-	fmt.Println("#####################  Delegate NodeId:", can.NodeId)
+
 	pubKey, _ := can.NodeId.Pubkey()
 	canAddr := crypto.PubkeyToAddress(*pubKey)
 
@@ -924,7 +924,7 @@ func (sk *StakingPlugin) HandleUnDelegateItem(state xcom.StateDB, blockHash comm
 
 	log.Debug("Call HandleUnDelegateItem", "blockHash", blockHash.Hex(), "epoch", epoch)
 
-	releaseEpoch := epoch - xcom.ActiveUnDelFreezeRatio()
+	releaseEpoch := epoch - xcom.ActiveUnDelegateFreezeRatio
 
 	unDelegateCount, err := sk.db.GetUnDelegateCountStore(blockHash, releaseEpoch)
 	switch {
@@ -1150,7 +1150,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 
 	start := old_verifierArr.End + 1
-	end := old_verifierArr.End + xcom.EpochSize()*xcom.ConsensusSize()
+	end := old_verifierArr.End + xcom.EpochSize*xcom.ConsensusSize
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -1159,7 +1159,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 
 
-	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum()))
+	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum))
 	if err := iter.Error(); nil != err {
 		log.Error("Failed to ElectNextVerifierList: take iter by candidate power is failed", "blockNumber",
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
@@ -1811,16 +1811,16 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		return ValidatorNotExist
 	}
 
-	if blockNumber != (curr.End - xcom.ElectionDistance()) {
+	if blockNumber != (curr.End - xcom.ElectionDistance) {
 		log.Error("Failed to Election: this blockNumber invalid", "Target blockNumber",
-			curr.End-xcom.ElectionDistance(), "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+			curr.End-xcom.ElectionDistance, "blockNumber", blockNumber, "blockHash", blockHash.Hex())
 		return common.BizErrorf("The BlockNumber invalid, Target blockNumber: %d, Current blockNumber: %d",
-			curr.End-xcom.ElectionDistance(), blockNumber)
+			curr.End-xcom.ElectionDistance, blockNumber)
 	}
 
 	// caculate the next round start and end
 	start := curr.End + 1
-	end := curr.End + xcom.ConsensusSize()
+	end := curr.End + xcom.ConsensusSize
 
 	proremoteCurr2NextFunc := func(start, end uint64, validators staking.ValidatorQueue) error {
 
@@ -1872,7 +1872,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		arr := make(staking.ValidatorQueue, len(curr.Arr))
 		copy(arr, curr.Arr)
 		return proremoteCurr2NextFunc(start, end, arr)
-	case len(tmpQueue) > 0 && len(tmpQueue) <= int(xcom.ShiftValidatorNum()):
+	case len(tmpQueue) > 0 && len(tmpQueue) <= int(xcom.ShiftValidatorNum):
 		shiftQueue = tmpQueue
 	default:
 		/**
@@ -2422,7 +2422,7 @@ func lazyCalcStakeAmount(epoch uint64, can *staking.Candidate) {
 	sub := epoch - uint64(changeAmountEpoch)
 
 	// If it is during the same hesitation period, short circuit
-	if sub < xcom.HesitateRatio() {
+	if sub < xcom.HesitateRatio {
 		return
 	}
 
@@ -2449,7 +2449,7 @@ func lazyCalcDelegateAmount(epoch uint64, del *staking.Delegation) {
 	sub := epoch - uint64(changeAmountEpoch)
 
 	// If it is during the same hesitation period, short circuit
-	if sub < xcom.HesitateRatio() {
+	if sub < xcom.HesitateRatio {
 		return
 	}
 
@@ -2526,8 +2526,7 @@ func (sk *StakingPlugin) VrfElection(validatorList staking.ValidatorQueue, nonce
 
 func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueue, currentNonce []byte, preNonces [][]byte) (staking.ValidatorQueue, error) {
 	if len(currentNonce) == 0 || len(preNonces) == 0 || len(validatorList) != len(preNonces) {
-		log.Error("probabilityElection failed", "validatorListSize", len(validatorList), "currentNonceSize", len(currentNonce), "preNoncesSize",
-			len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum())
+		log.Error("probabilityElection failed", "validatorListSize", len(validatorList), "currentNonceSize", len(currentNonce), "preNoncesSize", len(preNonces), "EpochValidatorNum", xcom.EpochValidatorNum)
 		return nil, ParamsErr
 	}
 	sumWeights := new(big.Int)
@@ -2565,9 +2564,8 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 	if nil != err {
 		return nil, err
 	}
-	p := float64(len(validatorList)) * float64(xcom.ShiftValidatorNum()) / sumWeightsFloat
-	log.Info("probabilityElection Basic parameter", "validatorListSize", len(validatorList), "p", p, "sumWeights",
-		sumWeightsFloat, "shiftValidatorNum", xcom.ShiftValidatorNum(), "epochValidatorNum", xcom.EpochValidatorNum())
+	p := (sumWeightsFloat / float64(len(validatorList))) * float64(xcom.GetEcModInstance().Staking.ShiftValidatorNum) / sumWeightsFloat
+	log.Info("probabilityElection Basic parameter", "validatorListSize", len(validatorList), "p", p, "sumWeights", sumWeightsFloat, "shiftValidatorNum", xcom.ShiftValidatorNum, "epochValidatorNum", xcom.EpochValidatorNum)
 	for index, sv := range svList {
 		resultStr := new(big.Int).Xor(new(big.Int).SetBytes(currentNonce), new(big.Int).SetBytes(preNonces[index])).Text(10)
 		target, err := strconv.ParseFloat(resultStr, 64)
@@ -2581,14 +2579,12 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 			return nil, err
 		}
 		sv.x = x
-		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()), "addr",
-			hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce", hex.EncodeToString(currentNonce), "preNonce",
-			hex.EncodeToString(preNonces[index]), "target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
+		log.Debug("calculated probability", "nodeId", hex.EncodeToString(sv.v.NodeId.Bytes()), "addr", hex.EncodeToString(sv.v.NodeAddress.Bytes()), "index", index, "currentNonce", hex.EncodeToString(currentNonce), "preNonce", hex.EncodeToString(preNonces[index]), "target", target, "targetP", targetP, "weight", sv.weights, "x", x, "version", sv.version, "blockNumber", sv.blockNumber, "txIndex", sv.txIndex)
 	}
 	sort.Sort(svList)
 	resultValidatorList := make(staking.ValidatorQueue, 0)
 	for index, sv := range svList {
-		if index == int(xcom.ShiftValidatorNum()) {
+		if index == int(xcom.GetEcModInstance().Staking.ShiftValidatorNum) {
 			break
 		}
 		resultValidatorList = append(resultValidatorList, sv.v)
