@@ -3,6 +3,7 @@ package plugin
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -13,7 +14,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 var (
@@ -23,15 +23,15 @@ var (
 )
 
 type restrictingInfo struct {
-	balance     *big.Int `json:"balance"` // balance representation all locked amount
-	debt        *big.Int `json:"debt"`    // debt representation will released amount.
-	debtSymbol  bool     `json:"symbol"`  // debt is owed to release in the past while symbol is true, else debt can be used instead of release
-	releaseList []uint64 `json:"list"`    // releaseList representation which epoch will release restricting
+	Balance     *big.Int // Balance representation all locked amount
+	Debt        *big.Int // Debt representation will released amount.
+	DebtSymbol  bool     // Debt is owed to release in the past while symbol is true, else Debt can be used instead of release
+	ReleaseList []uint64 // ReleaseList representation which epoch will release restricting
 }
 
 type releaseAmountInfo struct {
-	height uint64   `json:"blockNumber"` // blockNumber representation of the block number at the released epoch
-	amount *big.Int `json:"amount"`      // amount representation of the released amount
+	height uint64    // blockNumber representation of the block number at the released epoch
+	amount *big.Int  // amount representation of the released amount
 }
 
 type Result struct {
@@ -70,23 +70,20 @@ func (rp *RestrictingPlugin) BeginBlock(blockHash common.Hash, head *types.Heade
 
 // EndBlock invoke releaseRestricting
 func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
+	epoch := getLatestEpoch(state)
 
-	// !!! get latest epoch
-	// epoch := getLatestEpoch()
-	// getBlockNumberByEpoch(epoch)
-	// !!!
+	expect := epoch + 1
+	expectBlock := getBlockNumberByEpoch(expect)
 
-	blockNumber := head.Number.Uint64()
-	if !xutil.IsSettlementPeriod(blockNumber) {
+	if expectBlock != head.Number.Uint64() {
 		return nil
 	}
 
-	epoch := xutil.CalculateEpoch(blockNumber)
-	log.Info("begin to release restricting", "curr", head.Number)
+	log.Info("begin to release restricting", "curr", head.Number, "epoch", expectBlock)
 	return rp.releaseRestricting(epoch, state)
 }
 
-// Comfired is empty function
+// Confirmed is empty function
 func (rp *RestrictingPlugin) Confirmed(block *types.Block) error {
 	return nil
 }
@@ -100,10 +97,8 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	state xcom.StateDB) error {
 
 	// pre-check
-	// !!! get latest epoch
-	// latest := getLatestEpoch()
-	// !!!
-	latest := uint64(0)
+	latest := getLatestEpoch(state)
+
 	totalAmount := new(big.Int) // total restricting amount
 	for i := 0; i < len(plans); i++ {
 		epoch := plans[i].Epoch
@@ -117,7 +112,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	}
 
 	if state.GetBalance(sender).Cmp(totalAmount) == -1 {
-		log.Error("sender's balance not enough", "total", totalAmount)
+		log.Error("sender's Balance not enough", "total", totalAmount)
 		return errBalanceNotEnough
 	}
 
@@ -133,6 +128,12 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	restrictingKey := restricting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
 
+	var newInfo1 restrictingInfo
+
+	_ = rlp.Decode(bytes.NewBuffer(bAccInfo), &newInfo1)
+	fmt.Println(bAccInfo)
+	fmt.Println(newInfo1)
+
 	if len(bAccInfo) == 0 {
 		log.Debug("restricting record not exist", "account", account.Bytes())
 
@@ -147,7 +148,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 			if len(bAccNumbers) == 0 {
 				accNumbers = uint32(1)
 			} else {
-				accNumbers = byteutil.BytesToUint32(bAccNumbers) + 1
+				accNumbers = common.BytesToUint32(bAccNumbers) + 1
 			}
 			index = accNumbers
 
@@ -166,10 +167,10 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 			epochList = append(epochList, epoch)
 		}
 
-		info.balance = totalAmount
-		info.debt = big.NewInt(0)
-		info.debtSymbol = false
-		info.releaseList = epochList
+		info.Balance = totalAmount
+		info.Debt = big.NewInt(0)
+		info.DebtSymbol = false
+		info.ReleaseList = epochList
 
 	} else {
 		log.Debug("restricting record exist", "account", account.Bytes())
@@ -207,7 +208,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 				releaseAccountKey := restricting.GetReleaseAccountKey(epoch, index)
 				state.SetState(vm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
 
-				info.releaseList = append(info.releaseList, epoch)
+				info.ReleaseList = append(info.ReleaseList, epoch)
 
 			} else {
 				log.Trace("release record exist at curr epoch", "account", account, "epoch", epoch)
@@ -221,7 +222,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 			state.SetState(account, releaseAmountKey, amount.Bytes())
 		}
 
-		info.balance = info.balance.Add(info.balance, totalAmount)
+		info.Balance = info.Balance.Add(info.Balance, totalAmount)
 	}
 
 	// step5: save restricting account info at target epoch
@@ -230,6 +231,16 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		log.Error("failed to rlp encode restricting info", "account", account, "error", err)
 		return common.NewSysError(err.Error())
 	}
+
+/*  // for test
+	var newInfo restrictingInfo
+	_ = rlp.Decode(bytes.NewBuffer(bAccInfo), &newInfo)
+	fmt.Println("--------------")
+	fmt.Println(info)
+	fmt.Println(bAccInfo)
+	fmt.Println(newInfo)
+	fmt.Println("--------------")
+*/
 	state.SetState(account, restrictingKey, bAccInfo)
 
 	return nil
@@ -256,13 +267,13 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 		return common.NewSysError(err.Error())
 	}
 
-	if info.balance.Cmp(amount) == -1 {
-		log.Error("balance of restricting account not enough", "error", errBalanceNotEnough)
+	if info.Balance.Cmp(amount) == -1 {
+		log.Error("Balance of restricting account not enough", "error", errBalanceNotEnough)
 		return errBalanceNotEnough
 	}
 
-	// sub balance
-	info.balance = info.balance.Sub(info.balance, amount)
+	// sub Balance
+	info.Balance = info.Balance.Sub(info.Balance, amount)
 
 	// save restricting account info
 	if bAccInfo, err = rlp.EncodeToBytes(info); err != nil {
@@ -300,32 +311,32 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 		return common.NewSysError(err.Error())
 	}
 
-	if info.debtSymbol {
-		log.Trace("balance was owed to release in the past", "account", account, "debt", info.debt, "funds", amount)
+	if info.DebtSymbol {
+		log.Trace("Balance was owed to release in the past", "account", account, "Debt", info.Debt, "funds", amount)
 
-		if amount.Cmp(info.debt) == -1 {
+		if amount.Cmp(info.Debt) == -1 {
 			// the money returned back is not enough to repay the money owed to release
 			repay = amount
-			info.debt = info.debt.Sub(info.debt, amount)
+			info.Debt = info.Debt.Sub(info.Debt, amount)
 
 		} else {
 			// the money returned back is more than the money owed to release
-			repay = info.debt
+			repay = info.Debt
 
-			left = left.Sub(amount, info.debt)
+			left = left.Sub(amount, info.Debt)
 			if left.Cmp(big.NewInt(0)) == 1 {
-				info.balance = info.balance.Add(info.balance, left)
+				info.Balance = info.Balance.Add(info.Balance, left)
 			}
 
-			info.debt = big.NewInt(0)
+			info.Debt = big.NewInt(0)
 		}
 
 	} else {
-		log.Trace("directly add balance while symbol is false", "account", account, "debt", info.debt)
+		log.Trace("directly add Balance while symbol is false", "account", account, "Debt", info.Debt)
 
 		repay = big.NewInt(0)
 		left = amount
-		info.balance = info.balance.Add(info.balance, left)
+		info.Balance = info.Balance.Add(info.Balance, left)
 	}
 
 	// save restricting account info
@@ -344,7 +355,7 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 	return nil
 }
 
-// SlashingNotify modify debt of restricting account
+// SlashingNotify modify Debt of restricting account
 func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.Int, state xcom.StateDB) error {
 
 	restrictingKey := restricting.GetRestrictingKey(account)
@@ -365,19 +376,19 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 		return common.NewSysError(err.Error())
 	}
 
-	if info.debtSymbol {
-		log.Trace("balance was owed to release in the past", "account", account, "debt", info.debt, "funds", amount)
+	if info.DebtSymbol {
+		log.Trace("Balance was owed to release in the past", "account", account, "Debt", info.Debt, "funds", amount)
 
-		if amount.Cmp(info.debt) < 0 {
-			info.debt = info.debt.Sub(info.debt, amount)
+		if amount.Cmp(info.Debt) < 0 {
+			info.Debt = info.Debt.Sub(info.Debt, amount)
 
 		} else {
-			info.debt = info.debt.Sub(amount, info.debt)
-			info.debtSymbol = false
+			info.Debt = info.Debt.Sub(amount, info.Debt)
+			info.DebtSymbol = false
 		}
 
 	} else {
-		info.debt = info.debt.Add(info.debt, amount)
+		info.Debt = info.Debt.Add(info.Debt, amount)
 	}
 
 	// save restricting account info
@@ -400,7 +411,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 		log.Debug("there is no release record on curr epoch", "epoch", epoch)
 		return nil
 	}
-	numbers := byteutil.BytesToUint32(bAccNumbers)
+	numbers := common.BytesToUint32(bAccNumbers)
 
 	// TODO
 	var (
@@ -412,7 +423,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 
 		releaseAccountKey := restricting.GetReleaseAccountKey(epoch, index)
 		bAccount := state.GetState(vm.RestrictingContractAddr, releaseAccountKey)
-		account := byteutil.BytesToAddress(bAccount)
+		account := common.BytesToAddress(bAccount)
 
 		restrictingKey := restricting.GetRestrictingKey(account)
 		bAccInfo := state.GetState(account, restrictingKey)
@@ -426,30 +437,30 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 		bRelease := state.GetState(account, releaseAmountKey)
 		release = release.SetBytes(bRelease)
 
-		if info.debtSymbol {
-			log.Debug("balance is owed to release in the past", "account", account, "debt", info.debt, "symbol", info.debtSymbol)
-			info.debt = info.debt.Add(info.debt, release)
+		if info.DebtSymbol {
+			log.Debug("Balance is owed to release in the past", "account", account, "Debt", info.Debt, "symbol", info.DebtSymbol)
+			info.Debt = info.Debt.Add(info.Debt, release)
 
 		} else {
 			temp := new(big.Int)
-			if release.Cmp(info.debt) <= 0 {
-				info.debt = info.debt.Sub(info.debt, release)
+			if release.Cmp(info.Debt) <= 0 {
+				info.Debt = info.Debt.Sub(info.Debt, release)
 
-			} else if release.Cmp(temp.Add(info.debt, info.balance)) <= 0 {
-				release = release.Sub(release, info.debt)
-				info.balance = info.balance.Sub(info.balance, release)
-				info.debt = big.NewInt(0)
+			} else if release.Cmp(temp.Add(info.Debt, info.Balance)) <= 0 {
+				release = release.Sub(release, info.Debt)
+				info.Balance = info.Balance.Sub(info.Balance, release)
+				info.Debt = big.NewInt(0)
 
 				state.SubBalance(vm.RestrictingContractAddr, release)
 				state.AddBalance(account, release)
 
 			} else {
-				temp := info.balance
+				temp := info.Balance
 
-				release = release.Sub(release, info.balance)
-				info.balance = big.NewInt(0)
-				info.debt = info.debt.Sub(release, info.debt)
-				info.debtSymbol = true
+				release = release.Sub(release, info.Balance)
+				info.Balance = big.NewInt(0)
+				info.Debt = info.Debt.Sub(release, info.Debt)
+				info.DebtSymbol = true
 
 				state.SubBalance(vm.RestrictingContractAddr, temp)
 				state.AddBalance(account, temp)
@@ -462,10 +473,10 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 		// delete ReleaseAccount
 		state.SetState(vm.RestrictingContractAddr, releaseAccountKey, []byte{})
 
-		// delete epoch in releaseList
-		for i, target := range info.releaseList {
+		// delete epoch in ReleaseList
+		for i, target := range info.ReleaseList {
 			if target == epoch {
-				info.releaseList = append(info.releaseList[:i], info.releaseList[i+1:]...)
+				info.ReleaseList = append(info.ReleaseList[:i], info.ReleaseList[i+1:]...)
 				break
 			}
 		}
@@ -502,8 +513,8 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		return []byte{}, common.NewSysError(err.Error())
 	}
 
-	for i := 0; i < len(info.releaseList); i++ {
-		epoch := info.releaseList[i]
+	for i := 0; i < len(info.ReleaseList); i++ {
+		epoch := info.ReleaseList[i]
 
 		releaseAmountKey = restricting.GetReleaseAmountKey(epoch, account)
 		bAmount = state.GetState(account, releaseAmountKey)
@@ -529,8 +540,8 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	// getpledge
 	// !!!
 
-	result.balance = info.balance
-	result.debt = info.debt
+	result.balance = info.Balance
+	result.debt = info.Debt
 	result.slash = big.NewInt(0)
 	result.staking = big.NewInt(0)
 	result.entry = bPlans
@@ -538,4 +549,26 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	log.Trace("get restricting result", "account", account, "result", result)
 
 	return rlp.EncodeToBytes(result)
+}
+
+
+// state DB operation
+func setLatestEpoch(stateDb xcom.StateDB, epoch uint64) {
+	key := restricting.GetLatestEpochKey()
+	stateDb.SetState(vm.RestrictingContractAddr, key, common.Uint64ToBytes(epoch))
+}
+
+func getLatestEpoch(stateDb xcom.StateDB) uint64 {
+	key := restricting.GetLatestEpochKey()
+	bEpoch := stateDb.GetState(vm.RestrictingContractAddr, key)
+
+	if len(bEpoch) == 0 {
+		return 0
+	} else {
+		return byteutil.BytesToUint64(bEpoch)
+	}
+}
+
+func getBlockNumberByEpoch(epoch uint64) uint64 {
+	return epoch * xcom.ConsensusSize * xcom.EpochSize
 }

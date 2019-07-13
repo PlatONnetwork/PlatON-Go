@@ -106,6 +106,7 @@ var (
 
 	sndb = snapshotdb.Instance()
 
+	// serial use only
 	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
 
 
@@ -664,10 +665,10 @@ func buildStateDB (t *testing.T) xcom.StateDB{
 func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 	account := addrArr[0]
 
-	const Epochs = 6
-	var list = make([]uint64, Epochs)
+	const Epochs = 5
+	var list = make([]uint64, 0)
 
-	for epoch := 1; epoch < Epochs; epoch++ {
+	for epoch := 1; epoch <= Epochs; epoch++ {
 		// build release account record
 		releaseAccountKey := restricting.GetReleaseAccountKey(uint64(epoch), 1)
 		stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
@@ -679,25 +680,27 @@ func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 
 		// build release epoch record
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(epoch))
-		stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
+		stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
 
 		list = append(list, uint64(epoch))
 	}
 
 	// build restricting user info
 	var user restrictingInfo
-	user.balance = big.NewInt(int64(5E18))
-	user.debt = big.NewInt(0)
-	user.releaseList = list
+	user.Balance = big.NewInt(int64(5E18))
+	user.Debt = big.NewInt(0)
+	user.DebtSymbol = false
+	user.ReleaseList = list
 
 	bUser, err := rlp.EncodeToBytes(user)
 	if err != nil {
-		t.Errorf("failed to rlp encode restricting info: %s", err.Error())
+		t.Fatalf("failed to rlp encode restricting info: %s", err.Error())
 	}
 
+	// build restricting account info record
 	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDB.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
+	stateDB.SetState(account, restrictingKey, bUser)
 
-	stateDB.AddBalance(sender, sender_balance.Sub(sender_balance, big.NewInt(int64(5E18))))
+	stateDB.AddBalance(sender, sender_balance)
 	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
 }
