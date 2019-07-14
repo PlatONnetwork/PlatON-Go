@@ -22,26 +22,6 @@ var (
 	errAccountNotFound    = common.NewBizError("account is not found")
 )
 
-type restrictingInfo struct {
-	Balance     *big.Int // Balance representation all locked amount
-	Debt        *big.Int // Debt representation will released amount.
-	DebtSymbol  bool     // Debt is owed to release in the past while symbol is true, else Debt can be used instead of release
-	ReleaseList []uint64 // ReleaseList representation which epoch will release restricting
-}
-
-type releaseAmountInfo struct {
-	height uint64    // blockNumber representation of the block number at the released epoch
-	amount *big.Int  // amount representation of the released amount
-}
-
-type Result struct {
-	balance *big.Int
-	slash   *big.Int
-	staking *big.Int
-	debt    *big.Int
-	entry   []byte
-}
-
 type RestrictingPlugin struct {
 }
 
@@ -54,13 +34,13 @@ func RestrictingInstance() *RestrictingPlugin {
 	return rt
 }
 
-//func ClearRestricting() error {
-//	if nil == rt {
-//		return common.NewSysError("the RestrictingPlugin already be nil")
-//	}
-//	rt = nil
-//	return nil
-//}
+/*func ClearRestricting() error {
+	if nil == rt {
+		return common.NewSysError("the RestrictingPlugin already be nil")
+	}
+	rt = nil
+	return nil
+}*/
 
 // BeginBlock does something like check input params before execute transactions,
 // in RestrictingPlugin it does nothing.
@@ -121,14 +101,14 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		err        error
 		epochList  []uint64
 		index      uint32
-		info       restrictingInfo
+		info       restricting.RestrictingInfo
 		accNumbers uint32
 	)
 
 	restrictingKey := restricting.GetRestrictingKey(account)
 	bAccInfo := state.GetState(account, restrictingKey)
 
-	var newInfo1 restrictingInfo
+	var newInfo1 restricting.RestrictingInfo
 
 	_ = rlp.Decode(bytes.NewBuffer(bAccInfo), &newInfo1)
 	fmt.Println(bAccInfo)
@@ -232,15 +212,6 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 		return common.NewSysError(err.Error())
 	}
 
-/*  // for test
-	var newInfo restrictingInfo
-	_ = rlp.Decode(bytes.NewBuffer(bAccInfo), &newInfo)
-	fmt.Println("--------------")
-	fmt.Println(info)
-	fmt.Println(bAccInfo)
-	fmt.Println(newInfo)
-	fmt.Println("--------------")
-*/
 	state.SetState(account, restrictingKey, bAccInfo)
 
 	return nil
@@ -259,7 +230,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 
 	var (
 		err  error
-		info restrictingInfo
+		info restricting.RestrictingInfo
 	)
 
 	if err := rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
@@ -268,7 +239,7 @@ func (rp *RestrictingPlugin) PledgeLockFunds(account common.Address, amount *big
 	}
 
 	if info.Balance.Cmp(amount) == -1 {
-		log.Error("Balance of restricting account not enough", "error", errBalanceNotEnough)
+		log.Error("Balance of restricting account not enough", "balance", info.Balance, "funds", amount)
 		return errBalanceNotEnough
 	}
 
@@ -301,7 +272,7 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 
 	var (
 		err   error
-		info  restrictingInfo
+		info  restricting.RestrictingInfo
 		repay = new(big.Int) // repay the money owed in the past
 		left  = new(big.Int) // money left after the repayment
 	)
@@ -368,7 +339,7 @@ func (rp *RestrictingPlugin) SlashingNotify(account common.Address, amount *big.
 
 	var (
 		err  error
-		info restrictingInfo
+		info restricting.RestrictingInfo
 	)
 
 	if err = rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
@@ -415,7 +386,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 
 	// TODO
 	var (
-		info    restrictingInfo
+		info    restricting.RestrictingInfo
 		release = new(big.Int) // amount need released
 	)
 
@@ -499,13 +470,12 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	}
 
 	var (
-		amount           *big.Int
 		bAmount          []byte
-		info             restrictingInfo
-		plan             releaseAmountInfo
-		plans            []releaseAmountInfo
+		info             restricting.RestrictingInfo
+		plan             restricting.ReleaseAmountInfo
+		plans            []restricting.ReleaseAmountInfo
 		releaseAmountKey []byte
-		result           Result
+		result           restricting.Result
 	)
 
 	if err := rlp.Decode(bytes.NewReader(bAccInfo), &info); err != nil {
@@ -513,19 +483,14 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		return []byte{}, common.NewSysError(err.Error())
 	}
 
+	var amount = new(big.Int)
 	for i := 0; i < len(info.ReleaseList); i++ {
 		epoch := info.ReleaseList[i]
-
 		releaseAmountKey = restricting.GetReleaseAmountKey(epoch, account)
 		bAmount = state.GetState(account, releaseAmountKey)
-		amount = amount.SetBytes(bAmount)
 
-		plan.height = epoch
-		// !!!
-		// plan.height = getBlockNumberByEpoch(epoch)
-		// !!!
-		plan.amount = amount
-
+		plan.Height = getBlockNumberByEpoch(epoch)
+		plan.Amount = amount.SetBytes(bAmount)
 		plans = append(plans, plan)
 	}
 
@@ -540,11 +505,11 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 	// getpledge
 	// !!!
 
-	result.balance = info.Balance
-	result.debt = info.Debt
-	result.slash = big.NewInt(0)
-	result.staking = big.NewInt(0)
-	result.entry = bPlans
+	result.Balance = info.Balance
+	result.Debt = info.Debt
+	result.Slash = big.NewInt(0)
+	result.Staking = big.NewInt(0)
+	result.Entry = bPlans
 
 	log.Trace("get restricting result", "account", account, "result", result)
 
@@ -570,5 +535,5 @@ func getLatestEpoch(stateDb xcom.StateDB) uint64 {
 }
 
 func getBlockNumberByEpoch(epoch uint64) uint64 {
-	return epoch * xcom.ConsensusSize * xcom.EpochSize
+	return  epoch * xcom.ConsensusSize() * xcom.EpochSize()
 }

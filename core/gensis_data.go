@@ -93,7 +93,6 @@ func genesisStakingData(g *Genesis, db *staking.StakingDB, genesisHash common.Ha
 }
 
 
-
 // buildAllowancePlan writes the data of precompiled restricting contract, which used for the second year allowance
 // and the third year allowance, to stateDB
 func buildAllowancePlan(stateDb *state.StateDB) error {
@@ -128,6 +127,7 @@ func buildAllowancePlan(stateDb *state.StateDB) error {
 	var restrictInfo restricting.RestrictingInfo
 	restrictInfo.Balance = xcom.GenesisRestrictingBalance()
 	restrictInfo.Debt = big.NewInt(0)
+	restrictInfo.DebtSymbol = false
 	restrictInfo.ReleaseList = epochList
 
 	bRestrictInfo, err := rlp.EncodeToBytes(restrictInfo)
