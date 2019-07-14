@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -60,7 +59,7 @@ func (rp *RestrictingPlugin) EndBlock(blockHash common.Hash, head *types.Header,
 	}
 
 	log.Info("begin to release restricting", "curr", head.Number, "epoch", expectBlock)
-	return rp.releaseRestricting(epoch, state)
+	return rp.releaseRestricting(expect, state)
 }
 
 // Confirmed is empty function
@@ -177,7 +176,7 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 				if len(bAccNumbers) == 0 {
 					accNumbers = uint32(1)
 				} else {
-					accNumbers = byteutil.BytesToUint32(bAccNumbers) + 1
+					accNumbers = common.BytesToUint32(bAccNumbers) + 1
 				}
 				index = accNumbers
 
@@ -383,6 +382,7 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 		return nil
 	}
 	numbers := common.BytesToUint32(bAccNumbers)
+	log.Debug("many restricting records need release", "epoch", epoch, "records", numbers)
 
 	// TODO
 	var (
@@ -395,6 +395,8 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 		releaseAccountKey := restricting.GetReleaseAccountKey(epoch, index)
 		bAccount := state.GetState(vm.RestrictingContractAddr, releaseAccountKey)
 		account := common.BytesToAddress(bAccount)
+
+		log.Trace("begin to release record", "index", index, "account", account)
 
 		restrictingKey := restricting.GetRestrictingKey(account)
 		bAccInfo := state.GetState(account, restrictingKey)
@@ -422,6 +424,8 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 				info.Balance = info.Balance.Sub(info.Balance, release)
 				info.Debt = big.NewInt(0)
 
+				log.Trace("show balance", "balance", info.Balance)
+
 				state.SubBalance(vm.RestrictingContractAddr, release)
 				state.AddBalance(account, release)
 
@@ -445,11 +449,21 @@ func (rp *RestrictingPlugin) releaseRestricting(epoch uint64, state xcom.StateDB
 		state.SetState(vm.RestrictingContractAddr, releaseAccountKey, []byte{})
 
 		// delete epoch in ReleaseList
+		// In general, the first epoch is released first.
+		// info.ReleaseList = info.ReleaseList[1:]
 		for i, target := range info.ReleaseList {
 			if target == epoch {
 				info.ReleaseList = append(info.ReleaseList[:i], info.ReleaseList[i+1:]...)
 				break
 			}
+		}
+
+		// restore restricting info
+		if bNewInfo, err := rlp.EncodeToBytes(info); err != nil {
+			log.Error("failed to rlp encode new info while release", "account", account, "info", info)
+			return common.NewSysError(err.Error())
+		} else {
+			state.SetState(account, restrictingKey, bNewInfo)
 		}
 	}
 
@@ -518,7 +532,7 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 
 
 // state DB operation
-func setLatestEpoch(stateDb xcom.StateDB, epoch uint64) {
+func SetLatestEpoch(stateDb xcom.StateDB, epoch uint64) {
 	key := restricting.GetLatestEpochKey()
 	stateDb.SetState(vm.RestrictingContractAddr, key, common.Uint64ToBytes(epoch))
 }
@@ -530,7 +544,7 @@ func getLatestEpoch(stateDb xcom.StateDB) uint64 {
 	if len(bEpoch) == 0 {
 		return 0
 	} else {
-		return byteutil.BytesToUint64(bEpoch)
+		return common.BytesToUint64(bEpoch)
 	}
 }
 

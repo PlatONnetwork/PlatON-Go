@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	errBalanceNotEnough   = common.NewBizError("balance not enough to restrict")
-	errAccountNotFound    = common.NewBizError("account is not found")
+	errBalanceNotEnough = common.NewBizError("balance not enough to restrict")
+	errAccountNotFound  = common.NewBizError("account is not found")
 )
 
 func showRestrictingAccountInfo(t *testing.T, state xcom.StateDB, account common.Address) {
@@ -72,7 +72,7 @@ func showReleaseAmount(t *testing.T, state xcom.StateDB, account common.Address,
 
 	amount := new(big.Int)
 	if len(bAmount) == 0 {
-		t.Logf("record of restricting account amount not found, account: %v, epoch: %d", account, epoch)
+		t.Logf("record of restricting account amount not found, account: %v, epoch: %d", account.String(), epoch)
 	} else {
 		t.Logf("expect release amount of account [%s]: %v", account.String(), amount.SetBytes(bAmount))
 	}
@@ -81,34 +81,90 @@ func showReleaseAmount(t *testing.T, state xcom.StateDB, account common.Address,
 }
 
 func TestRestrictingPlugin_EndBlock(t *testing.T) {
-
-	newChainState()
-	xcom.SetEconomicModel(&xcom.DefaultConfig)
-
-	stateDb := buildStateDB(t)
-	buildDbRestrictingPlan(t, stateDb)
+	var err error
 
 	// case1: blockNumber not arrived settle block height
-	head := types.Header{Number: big.NewInt(1)}
-	if err := plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb); err != nil {
-		t.Error("The case1 of EndBlock failed.\n expected err is nil")
-		t.Errorf("Actually returns err. blockNumber:%d . errors: %s", head.Number.Uint64(), err.Error())
-	} else {
+	{
+		stateDb := buildStateDB(t)
+		buildDbRestrictingPlan(t, stateDb)
+		head := types.Header{Number: big.NewInt(1)}
 
+		err = plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
+
+		t.Logf("expected do nothing")
+
+		if err != nil {
+			t.Error("The case1 of EndBlock failed. expected err is nil")
+		}
 	}
 
 	// case2: blockNumber arrived settle block height, restricting plan not exist
-	head = types.Header{Number: big.NewInt(int64(6 * xcom.ConsensusSize() * xcom.EpochSize()))}
-	if err := plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb); err != nil {
-		t.Error("The case2 of EndBlock failed.\n expected success")
-		t.Errorf("Actually returns err. blockNumber:%d . errors: %s", head.Number.Uint64(), err.Error())
+	{
+		stateDb := buildStateDB(t)
+
+		plugin.SetLatestEpoch(stateDb, 0)
+
+		head := types.Header{Number: big.NewInt(int64(1 * xcom.ConsensusSize() * xcom.EpochSize()))}
+		err = plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
+
+		// show expected result
+		t.Log("expected case2 of EndBlock success.")
+
+		if err == nil {
+			t.Log("Actually case2 of EndBlock success.")
+			t.Log("case2 pass")
+		} else {
+			t.Error("case2 of EndBlock failed.")
+		}
 	}
 
 	// case3: blockNumber arrived settle block height, restricting plan exist
-	head = types.Header{Number: big.NewInt(int64(1 * xcom.ConsensusSize() * xcom.EpochSize()))}
-	if err := plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb); err != nil {
-		t.Error("The case3 of EndBlock failed.\n expected success")
-		t.Errorf("Actually returns err. blockNumber:%d . errors: %s", head.Number.Uint64(), err.Error())
+	{
+		stateDb := buildStateDB(t)
+
+		plugin.SetLatestEpoch(stateDb, 0)
+		buildDbRestrictingPlan(t, stateDb)
+		head := types.Header{Number: big.NewInt(int64(1 * xcom.ConsensusSize() * xcom.EpochSize()))}
+
+		err = plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
+
+		t.Log("=====================")
+		t.Log("expected case3 of EndBlock success.")
+		t.Log("expected balance of restricting account:", big.NewInt(int64(1E18)))
+		t.Log("expected balance of contract:", big.NewInt(int64(4E18)))
+		t.Log("expected balance of restrict account: ", big.NewInt(int64(4E18)))
+		t.Log("expected debt    of restrict account: ", 0)
+		t.Log("expected symbol  of restrict account: ", false)
+		t.Log("expected list    of restrict account: ", []uint64{2, 3, 4, 5})
+		for i := 1; i < 5; i++ {
+			epoch := i + 1
+			t.Log("=====================")
+			t.Logf("expected account numbers of release epoch %d: 1", epoch)
+			t.Logf("expect release accounts of epoch %d: %v", epoch, addrArr[0].String())
+			t.Logf("expect release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(1E18)))
+		}
+		t.Log("=====================")
+
+		if err != nil {
+			t.Errorf("case3 of EndBlock failed. Actually returns error: %s", err.Error())
+
+		} else {
+
+			t.Log("=====================")
+			t.Log("case3 return success!")
+			t.Log("expected balance of restricting account:", stateDb.GetBalance(addrArr[0]))
+			t.Log("Actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
+			showRestrictingAccountInfo(t, stateDb, addrArr[0])
+			for i := 0; i < 5; i++ {
+				epoch := i + 1
+
+				t.Log("=====================")
+				showReleaseEpoch(t, stateDb, uint64(epoch))
+				showReleaseAmount(t, stateDb, addrArr[0], uint64(epoch))
+			}
+			t.Log("=====================")
+			t.Log("case3 pass")
+		}
 	}
 }
 
@@ -620,8 +676,8 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 		t.Log("expected debt    of restrict account: ", big.NewInt(0))
 		t.Log("expected staking of restrict account: ", big.NewInt(0))
 		for i := 0; i < 5; i++ {
-			expectedBlocks := uint64(i + 1) * xcom.EpochSize() * xcom.ConsensusSize()
-		t.Logf("expected release amount at blockNumber [%d] is: %v", expectedBlocks, big.NewInt(int64(1E18)))
+			expectedBlocks := uint64(i+1) * xcom.EpochSize() * xcom.ConsensusSize()
+			t.Logf("expected release amount at blockNumber [%d] is: %v", expectedBlocks, big.NewInt(int64(1E18)))
 		}
 		t.Log("=====================")
 
