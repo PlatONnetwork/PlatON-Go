@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"sort"
 	"testing"
 	"time"
 )
@@ -67,7 +68,11 @@ func TestRecover(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		recognized = dbInstance.recognized[generateHash("recognizedHash4")]
+		rg, ok := dbInstance.recognized.Load(generateHash("recognizedHash4"))
+		if !ok {
+			t.Error("not found recognizedHash4")
+		}
+		recognized = rg.(blockData)
 		parenthash = commitHash
 	}
 	{
@@ -142,9 +147,14 @@ func TestRecover(t *testing.T) {
 		recognized,
 		commit,
 	}
+	rg, ok := dbInstance.recognized.Load(generateHash("recognizedHash4"))
+	if !ok {
+		t.Error("recognizedHash4 not found")
+	}
+	rg2 := rg.(blockData)
 	newarr := []blockData{
 		*dbInstance.unRecognized,
-		dbInstance.recognized[generateHash("recognizedHash4")],
+		rg2,
 		dbInstance.committed[0],
 	}
 
@@ -293,7 +303,13 @@ func TestRMOldRecognizedBlockData(t *testing.T) {
 	if err := dbInstance.rmOldRecognizedBlockData(); err != nil {
 		t.Error(err)
 	}
-	if len(dbInstance.recognized) != 0 {
+	var i int
+	dbInstance.recognized.Range(
+		func(key, value interface{}) bool {
+			i++
+			return true
+		})
+	if i != 0 {
 		t.Error("not rm old data")
 	}
 }
@@ -303,12 +319,33 @@ type kv struct {
 	value []byte
 }
 
-func randomString2() []byte {
+func randomString2(s string) []byte {
 	b := new(bytes.Buffer)
+	if s != "" {
+		b.Write([]byte(s))
+	}
 	for i := 0; i < 4; i++ {
 		b.WriteByte(' ' + byte(rand.Int()))
 	}
 	return b.Bytes()
+}
+
+type kvs []kv
+
+func (k kvs) Len() int {
+	return len(k)
+}
+
+func (k kvs) Less(i, j int) bool {
+	n := bytes.Compare(k[i].key, k[j].key)
+	if n == -1 {
+		return true
+	}
+	return false
+}
+
+func (k kvs) Swap(i, j int) {
+	k[i], k[j] = k[j], k[i]
 }
 
 func generatekv(n int) []kv {
@@ -316,10 +353,23 @@ func generatekv(n int) []kv {
 	kvs := make([]kv, n)
 	for i := 0; i < n; i++ {
 		kvs[i] = kv{
-			key:   randomString2(),
-			value: randomString2(),
+			key:   randomString2(""),
+			value: randomString2(""),
 		}
 	}
+	return kvs
+}
+
+func generatekvWithPrefix(n int, p string) kvs {
+	rand.Seed(time.Now().UnixNano())
+	kvs := make(kvs, n)
+	for i := 0; i < n; i++ {
+		kvs[i] = kv{
+			key:   randomString2(p),
+			value: randomString2(p),
+		}
+	}
+	sort.Sort(kvs)
 	return kvs
 }
 

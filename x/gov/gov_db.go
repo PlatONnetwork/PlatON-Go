@@ -69,13 +69,21 @@ func (self *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) (Prop
 	if pType == byte(Text) {
 		var proposal TextProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to text proposal")
 			return nil, common.NewSysError(e.Error())
 		}
 		p = proposal
 	} else if pType == byte(Version) {
 		var proposal VersionProposal
-		//proposal = VersionProposal{TextProposal{},0,common.Big0}
 		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to version proposal")
+			return nil, common.NewSysError(e.Error())
+		}
+		p = proposal
+	} else if pType == byte(Param) {
+		var proposal ParamProposal
+		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to param proposal")
 			return nil, common.NewSysError(e.Error())
 		}
 		p = proposal
@@ -224,16 +232,12 @@ func (self *GovDB) ListEndProposalID(blockHash common.Hash, state xcom.StateDB) 
 }
 
 func (self *GovDB) GetPreActiveProposalID(blockHash common.Hash, state xcom.StateDB) (common.Hash, error) {
-	value, err := govDB.snapdb.getPreActiveIDList(blockHash)
+	value, err := govDB.snapdb.getPreActiveProposalID(blockHash)
 	if err != nil {
 		//log.Error("Get pre-active proposal ID error")
-		return common.Hash{}, common.NewSysError(err.Error())
+		return common.ZeroHash, common.NewSysError(err.Error())
 	}
-	if len(value) > 0 {
-		return value[0], nil
-	} else {
-		return common.Hash{}, nil
-	}
+	return value, nil
 }
 
 func (self *GovDB) AddVotingProposalID(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
@@ -253,19 +257,20 @@ func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, propos
 	}
 	voting = remove(voting, proposalID)
 
-	pre, err := self.snapdb.getPreActiveIDList(blockHash)
+	/*pre, err := self.snapdb.getPreActiveProposalID(blockHash)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	pre = append(pre, proposalID)
+	pre = append(pre, proposalID)*/
 
 	err = self.snapdb.put(blockHash, KeyVotingProposals(), voting)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	err = self.snapdb.addProposalByKey(blockHash, KeyPreActiveProposals(), proposalID)
+
+	err = self.snapdb.put(blockHash, KeyPreActiveProposals(), proposalID)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -321,12 +326,14 @@ func (self *GovDB) MoveVotingProposalIDToEnd(blockHash common.Hash, proposalID c
 
 func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
 
-	pre, err := self.snapdb.getPreActiveIDList(blockHash)
+	pre, err := self.snapdb.getPreActiveProposalID(blockHash)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
 
-	pre = remove(pre, proposalID)
+	//pre = remove(pre, proposalID)
+	pre = common.Hash{}
+
 
 	end, err := self.snapdb.getEndIDList(blockHash)
 	if err != nil {
@@ -335,7 +342,7 @@ func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalI
 
 	end = append(end, proposalID)
 
-	err = self.snapdb.addProposalByKey(blockHash, KeyPreActiveProposals(), proposalID)
+	err = self.snapdb.put(blockHash, KeyPreActiveProposals(), pre)
 	if err != nil {
 		return common.NewSysError(err.Error())
 	}
@@ -403,4 +410,49 @@ func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.
 	} else {
 		return l, nil
 	}
+}
+
+func (self *GovDB) SetParam(paramMap map[string]interface{}, state xcom.StateDB) (error) {
+	if len(paramMap) > 0 {
+		paraListBytes, _ := json.Marshal(paramMap)
+		state.SetState(vm.GovContractAddr, KeyParams(), paraListBytes)
+	}
+	return nil
+}
+
+func (self *GovDB) GetParam(name string, state xcom.StateDB) (interface{}, error) {
+	paramMap, err := self.ListParam(state)
+	if err !=  nil {
+		return nil, err
+	}
+	return paramMap[name], nil
+}
+
+
+func (self *GovDB) UpdateParam(name string, oldValue interface{}, newValue interface{}, state xcom.StateDB) (error) {
+	paramMap, err := self.ListParam(state)
+	if err !=  nil {
+		return err
+	}
+
+	if oldV, exist := paramMap[name]; exist {
+		if oldV == newValue {
+			err = self.SetParam(paramMap, state)
+			if err !=  nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (self *GovDB) ListParam(state xcom.StateDB) (map[string]interface{}, error) {
+	paraListBytes := state.GetState(vm.GovContractAddr, KeyParams())
+
+	var paraMap map[string]interface{}
+	if err := json.Unmarshal(paraListBytes, &paraMap); err != nil {
+		return nil, common.NewSysError(err.Error())
+	}
+	return paraMap, nil
+
 }

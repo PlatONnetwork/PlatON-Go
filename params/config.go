@@ -44,6 +44,35 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 
 
 var (
+	// TODO need finish
+	initialMainNetConsensusNodes = []string{
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16791",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16792",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16793",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16794",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16795",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16796",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16797",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16798",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16799",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16800",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16801",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16802",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16803",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:16804",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26790",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26791",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26792",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26793",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26794",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26795",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26796",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26797",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26798",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26799",
+		"enode://1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429@platon.network:26799",
+	}
+
 	initialTestnetConsensusNodes = []string{
 		"enode://a6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f2f@test-sea.platon.network:16791", //TEST-SEA
 		"enode://d124e660938dc3fd63d913ff753fafc262764b22294431e760b572b0b58d5e6b813b32ccbacc326c03171542ae0ff8ff6528625a2d612e0c49240f111eba3c22@test-sg.platon.network:16792",  //TEST-SG
@@ -84,7 +113,7 @@ var (
 		EmptyBlock:          "on",
 		EIP155Block:         big.NewInt(2675000),
 		Cbft: &CbftConfig{
-			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
+			InitialNodes: convertNodeUrl(initialMainNetConsensusNodes),
 			PeerMsgQueueSize: 	1024,
 			EvidenceDir:	 	"evidenceDir",
 			MaxResetCacheSize:	512,
@@ -94,6 +123,7 @@ var (
 			MaxAvgLatency:		2000,
 			CbftVersion:		byte(0x01),
 			Remaining:			50 * time.Millisecond,
+			ValidatorMode:      "ppos",
 		},
 		VMInterpreter: "wasm",
 	}
@@ -127,6 +157,15 @@ var (
 		VMInterpreter: "wasm",
 	}
 
+	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Alpha test network.
+	TestnetTrustedCheckpoint = &TrustedCheckpoint{
+		Name:         "testnet",
+		SectionIndex: 123,
+		SectionHead:  common.HexToHash("0xa372a53decb68ce453da12bea1c8ee7b568b276aa2aab94d9060aa7c81fc3dee"),
+		CHTRoot:      common.HexToHash("0x6b02e7fada79cd2a80d4b3623df9c44384d6647fc127462e1c188ccd09ece87b"),
+		BloomRoot:    common.HexToHash("0xf2d27490914968279d6377d42868928632573e823b5d1d4a944cba6009e16259"),
+	}
+
 	// InnerTestnetChainConfig contains the chain parameters to run a node on the inner test network.
 	InnerTestnetChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(203),
@@ -146,6 +185,15 @@ var (
 		VMInterpreter: "wasm",
 	}
 
+	// InnerTestnetTrustedCheckpoint contains the light client trusted checkpoint for the inner test network.
+	InnerTestnetTrustedCheckpoint = &TrustedCheckpoint{
+		Name:         "innertestnet",
+		SectionIndex: 123,
+		SectionHead:  common.HexToHash("0xa372a53decb68ce453da12bea1c8ee7b568b276aa2aab94d9060aa7c81fc3dee"),
+		CHTRoot:      common.HexToHash("0x6b02e7fada79cd2a80d4b3623df9c44384d6647fc127462e1c188ccd09ece87b"),
+		BloomRoot:    common.HexToHash("0xf2d27490914968279d6377d42868928632573e823b5d1d4a944cba6009e16259"),
+	}
+
 	// InnerDevnetChainConfig contains the chain parameters to run a node on the inner test network.
 	InnerDevnetChainConfig = &ChainConfig{
 		ChainID:             big.NewInt(204),
@@ -163,24 +211,6 @@ var (
 			Remaining:			50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
-	}
-
-	// TestnetTrustedCheckpoint contains the light client trusted checkpoint for the Alpha test network.
-	TestnetTrustedCheckpoint = &TrustedCheckpoint{
-		Name:         "testnet",
-		SectionIndex: 123,
-		SectionHead:  common.HexToHash("0xa372a53decb68ce453da12bea1c8ee7b568b276aa2aab94d9060aa7c81fc3dee"),
-		CHTRoot:      common.HexToHash("0x6b02e7fada79cd2a80d4b3623df9c44384d6647fc127462e1c188ccd09ece87b"),
-		BloomRoot:    common.HexToHash("0xf2d27490914968279d6377d42868928632573e823b5d1d4a944cba6009e16259"),
-	}
-
-	// InnerTestnetTrustedCheckpoint contains the light client trusted checkpoint for the inner test network.
-	InnerTestnetTrustedCheckpoint = &TrustedCheckpoint{
-		Name:         "innertestnet",
-		SectionIndex: 123,
-		SectionHead:  common.HexToHash("0xa372a53decb68ce453da12bea1c8ee7b568b276aa2aab94d9060aa7c81fc3dee"),
-		CHTRoot:      common.HexToHash("0x6b02e7fada79cd2a80d4b3623df9c44384d6647fc127462e1c188ccd09ece87b"),
-		BloomRoot:    common.HexToHash("0xf2d27490914968279d6377d42868928632573e823b5d1d4a944cba6009e16259"),
 	}
 
 	// InnerDevnetTrustedCheckpoint contains the light client trusted checkpoint for the inner test network.
@@ -229,21 +259,6 @@ var (
 			Period:   3,
 			Epoch:    30000,
 			Duration: 30,
-			PposConfig: &PposConfig{
-				CandidateConfig: &CandidateConfig{
-					Threshold:         "1000000000000000000000000",
-					DepositLimit:      10,
-					Allowed:           512,
-					MaxChair:          10,
-					MaxCount:          100,
-					RefundBlockNumber: 512,
-				},
-				TicketConfig: &TicketConfig{
-					TicketPrice:       "100000000000000000000",
-					MaxCount:          51200,
-					ExpireBlockNumber: 1536000,
-				},
-			},
 			PeerMsgQueueSize: 	1024,
 			EvidenceDir:	 	"evidenceDir",
 			MaxResetCacheSize:	512,
@@ -318,7 +333,6 @@ type CbftConfig struct {
 	NodeID        discover.NodeID   `json:"nodeID,omitempty"`
 	PrivateKey    *ecdsa.PrivateKey `json:"privateKey,omitempty"`
 	ValidatorMode string            `json:"validatorMode,omitempty"`
-	PposConfig    *PposConfig       `json:"pposConfig,omitempty"`
 
 	PeerMsgQueueSize 	uint64
 	EvidenceDir		 	string
@@ -331,24 +345,7 @@ type CbftConfig struct {
 	Remaining			time.Duration
 }
 
-type PposConfig struct {
-	CandidateConfig *CandidateConfig
-	TicketConfig    *TicketConfig
-}
-type CandidateConfig struct {
-	Threshold         string
-	DepositLimit      uint32
-	Allowed           uint32
-	MaxCount          uint32
-	MaxChair          uint32
-	RefundBlockNumber uint32
-}
 
-type TicketConfig struct {
-	TicketPrice       string
-	MaxCount          uint32
-	ExpireBlockNumber uint32
-}
 
 // CliqueConfig is the consensus engine configs for proof-of-authority based sealing.
 type CliqueConfig struct {

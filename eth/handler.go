@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"math"
 	"math/big"
 	"strconv"
@@ -417,7 +419,99 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			}
 		}
 		return p.SendBlockHeaders(headers)
+	case p.version >= eth63 && msg.Code == GetOriginAndPivotMsg:
+		log.Info("[GetOriginAndPivotMsg]Received a broadcast message")
+		var query uint64
+		if err := msg.Decode(&query); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		oHead := pm.blockchain.GetHeaderByNumber(query)
+		pivot, err := snapshotdb.Instance().BaseNum()
+		if err != nil {
+			p.Log().Error("GetOriginAndPivot get snapshotdb baseNum fail", "err", err)
+			return errors.New("GetOriginAndPivot get snapshotdb baseNum fail")
+		}
+		if pivot == nil {
+			p.Log().Error("[GetOriginAndPivot] pivot should not be nil")
+			return errors.New("[GetOriginAndPivot] pivot should not be nil")
+		}
+		pHead := pm.blockchain.GetHeaderByNumber(pivot.Uint64())
 
+		data := make([]*types.Header, 0)
+		data = append(data, oHead, pHead)
+		if err := p.SendOriginAndPivot(data); err != nil {
+			log.Error("[GetOriginAndPivotMsg]send data meassage fail", "error", err)
+			return err
+		}
+	case p.version >= eth63 && msg.Code == OriginAndPivotMsg:
+		p.Log().Debug("[OriginAndPivotMsg]Received a broadcast message")
+		var data []*types.Header
+		if err := msg.Decode(&data); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		// Deliver all to the downloader
+		if err := pm.downloader.DeliverOriginAndPivot(p.id, data); err != nil {
+			log.Error("Failed to deliver ppos storage data", "err", err)
+			return err
+		}
+	case p.version >= eth63 && msg.Code == GetPPOSStorageMsg:
+		log.Info("[GetPPOSStorageMsg]Received a broadcast message", "id", common.CurrentGoRoutineID())
+		var query []interface{}
+		if err := msg.Decode(&query); err != nil {
+			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		f := func(num *big.Int, iter iterator.Iterator) error {
+			var ps PPOSStorage
+			var count int
+			ps.KVs = make([]downloader.PPOSStorageKV, 0)
+			if num == nil {
+				return errors.New("num should not be nil")
+			}
+			ps.Pivot = pm.blockchain.GetHeaderByNumber(num.Uint64())
+			ps.Latest = pm.blockchain.CurrentHeader()
+			if err := p.SendPPOSStorage(ps); err != nil {
+				log.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+				return err
+			}
+			for iter.Next() {
+				kv := [2][]byte{
+					iter.Key(),
+					iter.Value(),
+				}
+				ps.KVs = append(ps.KVs, kv)
+				ps.KVNum++
+				count++
+				if count >= downloader.PPOSStorageKVSizeFetch {
+					if err := p.SendPPOSStorage(ps); err != nil {
+						log.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", ps.KVNum)
+						return err
+					}
+					count = 0
+					ps.KVs = make([]downloader.PPOSStorageKV, 0)
+				}
+			}
+			ps.Last = true
+			if err := p.SendPPOSStorage(ps); err != nil {
+				log.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+				return err
+			}
+			return nil
+		}
+
+		if err := snapshotdb.Instance().WalkBaseDB(nil, f); err != nil {
+			log.Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
+		}
+
+	case p.version >= eth63 && msg.Code == PPOSStorageMsg:
+		log.Debug("Received a broadcast message[PposStorageMsg]")
+		var data PPOSStorage
+		if err := msg.Decode(&data); err != nil {
+			return errResp(ErrDecode, "msg %v: %v", msg, err)
+		}
+		// Deliver all to the downloader
+		if err := pm.downloader.DeliverPposStorage(p.id, data.Latest, data.Pivot, data.KVs, data.Last, data.KVNum); err != nil {
+			log.Error("Failed to deliver ppos storage data", "err", err)
+		}
 	case msg.Code == BlockHeadersMsg:
 		// A batch of headers arrived to one of our previous requests
 		var headers []*types.Header

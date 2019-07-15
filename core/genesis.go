@@ -22,12 +22,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"strings"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
+	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -35,6 +37,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go
@@ -87,7 +90,7 @@ type GenesisAccount struct {
 // field type overrides for gencodec
 type genesisSpecMarshaling struct {
 	//Nonce     math.HexOrDecimal64
-	Nonce 	  []byte
+	Nonce     []byte
 	Timestamp math.HexOrDecimal64
 	ExtraData hexutil.Bytes
 	GasLimit  math.HexOrDecimal64
@@ -155,6 +158,9 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, 0)
+	// todo test
+	log.Debug("Genesis stored Hash", "hash", stored.Hex())
+
 	if (stored == common.Hash{}) {
 		if genesis == nil {
 			log.Info("Writing default main-net genesis block")
@@ -162,6 +168,7 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 		} else {
 			log.Info("Writing custom genesis block")
 		}
+
 		block, err := genesis.Commit(db)
 		return genesis.Config, block.Hash(), err
 	}
@@ -175,14 +182,14 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 	}
 
 	// Get the existing chain configuration.
-	newcfg := genesis.configOrDefault(stored)
+	newcfg := genesis.configOrDefault(stored) // TODO this line Maybe delete
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
-	// Special case: don't change the existing config of a non-mainnet chain if no new
+	// Sp ecial case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
 	if genesis == nil && stored != params.MainnetGenesisHash {
@@ -232,25 +239,52 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 	}
+	//Store somethings into State
+	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+
+	log.Debug("Store version for gov", "version", version)
+	// Store genesis governance data
+	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(version))
+	// Store restricting plans for increase issue for second and third year
+	if err := buildAllowancePlan(statedb); nil != err {
+		panic("Failed to Store restricting plan: " + err.Error())
+	}
+
+	// the State root
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
-		Number:     new(big.Int).SetUint64(g.Number),
-		Nonce:      types.EncodeNonce(g.Nonce),
-		Time:       new(big.Int).SetUint64(g.Timestamp),
-		ParentHash: g.ParentHash,
-		Extra:      g.ExtraData,
-		GasLimit:   g.GasLimit,
-		GasUsed:    g.GasUsed,
-		Coinbase:   g.Coinbase,
-		Root:       root,
+		Number:      new(big.Int).SetUint64(g.Number),
+		Nonce:       types.EncodeNonce(g.Nonce),
+		Time:        new(big.Int).SetUint64(g.Timestamp),
+		ParentHash:  g.ParentHash,
+		Extra:       g.ExtraData,
+		GasLimit:    g.GasLimit,
+		GasUsed:     g.GasUsed,
+		Coinbase:    g.Coinbase,
+		Root:        root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}
-	statedb.Commit(false)
-	statedb.Database().TrieDB().Commit(root, true)
 
-	return types.NewBlock(head, nil, nil)
+	if _, err := statedb.Commit(false); nil != err {
+		panic("Failed to commit genesis stateDB: " + err.Error())
+	}
+	if err := statedb.Database().TrieDB().Commit(root, true); nil != err {
+		panic("Failed to trieDB commit by genesis: " + err.Error())
+	}
+
+	// Store somethings into snapshotDB
+	block := types.NewBlock(head, nil, nil)
+
+	// Store genesis staking data
+	if err := genesisStakingData(g, block.Hash(), version); nil != err {
+		panic("Failed Store staking: "+ err.Error())
+	}
+
+
+
+	return block
 }
 
 // Commit writes the block and state of a genesis specification to the database.
@@ -260,6 +294,7 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}
+
 	rawdb.WriteBlock(db, block)
 	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
 	rawdb.WriteCanonicalHash(db, block.Hash(), block.NumberU64())
@@ -284,20 +319,46 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 	return block
 }
 
+
 // GenesisBlockForTesting creates and writes a block in which addr has the given wei balance.
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
 	g := Genesis{Alloc: GenesisAlloc{addr: {Balance: balance}}}
 	return g.MustCommit(db)
 }
 
-// DefaultGenesisBlock returns the Ethereum main net genesis block.
+// DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
+
+
+	// initial PlatON Foundation
+	platONFoundationIssue, _ := new(big.Int).SetString("905000000000000000000000000", 10)
+
+	// initial reward pool issuance, totally there is 6.5% of initial issuance in it, and first year can be used is 4.5%
+	rewardMgrPoolIssue, _ := new(big.Int).SetString("65000000000000000000000000", 10)
+
+	// initial developer Foundation Issue
+	developerFoundationIssue, _ := new(big.Int).SetString("5000000000000000000000000", 10)
+
+	//// initial staking contract balance
+	genesisNodesNumber   := int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
+	stakingContractIssue := new(big.Int).Mul(xcom.StakeThreshold(), big.NewInt(genesisNodesNumber)) // 25000000 * 10 ^ 18
+
+	// initial reserved account balance
+	reservedAccountIssue := big.NewInt(0)
+
 	return &Genesis{
 		Config:    params.MainnetChainConfig,
 		Nonce:     hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"),
+		Timestamp: 1546300800000,
 		ExtraData: hexutil.MustDecode("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
-		GasLimit:  3150000000, //5000
-		Alloc:     decodePrealloc(mainnetAllocData),
+		GasLimit:  3150000000,
+		Alloc: map[common.Address]GenesisAccount{
+			vm.PlatONFoundationAddress:      {Balance: platONFoundationIssue},
+			vm.RewardManagerPoolAddr:        {Balance: rewardMgrPoolIssue},
+			vm.CommunityDeveloperFoundation: {Balance: developerFoundationIssue},
+			vm.StakingContractAddr:          {Balance: stakingContractIssue},
+			vm.ReservedAccount:              {Balance: reservedAccountIssue},
+		},
 	}
 }
 

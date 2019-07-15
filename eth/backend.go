@@ -28,7 +28,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/bloombits"
 	"github.com/PlatONnetwork/PlatON-Go/core/rawdb"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
@@ -131,14 +130,12 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	}
 	// Assemble the Ethereum object
 	chainDb, err := CreateDB(ctx, config, "chaindata")
-	//set snapshotdb path
-	snapshotdb.SetDBPath(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	//set snapshotdb path
-	snapshotdb.SetDBPath(ctx)
+	// set snapshotdb path
+	//snapshotdb.SetDBPath(ctx)
 
 	chainConfig, genesisHash, genesisErr := core.SetupGenesisBlock(chainDb, config.Genesis)
 	if _, ok := genesisErr.(*params.ConfigCompatError); genesisErr != nil && !ok {
@@ -178,9 +175,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
-			MaxFutureBlocks:config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
+			MaxFutureBlocks: config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
 			TriesInMemory: config.TriesInMemory, DefaultTxsCacheSize: config.DefaultTxsCacheSize,
-			DefaultBroadcastInterval:config.DefaultBroadcastInterval,
+			DefaultBroadcastInterval: config.DefaultBroadcastInterval,
 		}
 
 		minningConfig = &core.MiningConfig{MiningLogAtDepth: config.MiningLogAtDepth, TxChanSize: config.TxChanSize,
@@ -188,7 +185,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			ResultQueueSize: config.ResultQueueSize, ResubmitAdjustChanSize: config.ResubmitAdjustChanSize,
 			MinRecommitInterval: config.MinRecommitInterval, MaxRecommitInterval: config.MaxRecommitInterval,
 			IntervalAdjustRatio: config.IntervalAdjustRatio, IntervalAdjustBias: config.IntervalAdjustBias,
-			StaleThreshold:	config.StaleThreshold, DefaultCommitRatio:	config.DefaultCommitRatio,
+			StaleThreshold: config.StaleThreshold, DefaultCommitRatio: config.DefaultCommitRatio,
 		}
 	)
 
@@ -236,6 +233,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
+	reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
+	reactor.SetVRF_hanlder(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
 			if err := cbftEngine.SetBreakpoint(config.CbftConfig.BreakpointType, config.CbftConfig.BreakpointLog); err != nil {
@@ -248,23 +248,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			// - inner (via inner contract)
 			// - ppos
 			log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
-			if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static" {
+			if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
 				agency = cbft.NewStaticAgency(chainConfig.Cbft.InitialNodes)
-			} else if chainConfig.Cbft.ValidatorMode == "inner" {
+				reactor.SetValidatorMode(common.STATIC_VALIDATOR_MODE)
+			} else if chainConfig.Cbft.ValidatorMode == common.INNER_VALIDATOR_MODE {
 				blocksPerNode := int(int64(chainConfig.Cbft.Duration) / int64(chainConfig.Cbft.Period))
 				offset := blocksPerNode * 2
 				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
-			} else if chainConfig.Cbft.ValidatorMode == "ppos" {
+				reactor.SetValidatorMode(common.INNER_VALIDATOR_MODE)
+			} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 				// TODO init reactor
-				reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-				xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
-				handlePlugin(reactor, snapshotdb.Instance())
+				reactor.SetValidatorMode(common.PPOS_VALIDATOR_MODE)
+				handlePlugin(reactor)
 				agency = reactor
 			}
-			// TODO test vrf
-			/*reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-			xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
-			handlePlugin(reactor, snapshotdb.Instance())*/
 
 			if err := cbftEngine.Start(eth.blockchain, eth.txPool, agency); err != nil {
 				log.Error("Init cbft consensus engine fail", "error", err)
@@ -525,7 +522,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
 		// TODO VRF
-		//xcom.GetVrfHandlerInstance().SetPrivateKey(srvr.Config.PrivateKey)
+		xcom.GetVrfHandlerInstance().SetPrivateKey(srvr.Config.PrivateKey)
 
 		if flag := cbftEngine.IsConsensusNode(); flag {
 			// self: s.chainConfig.Cbft.NodeID
@@ -593,7 +590,17 @@ func (s *Ethereum) Stop() error {
 }
 
 // TODO RegisterPlugin one by one
-func handlePlugin(reactor *core.BlockChainReactor, db snapshotdb.DB) {
-	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance(db))
+func handlePlugin(reactor *core.BlockChainReactor) {
+	reactor.RegisterPlugin(xcom.SlashingRule, xplugin.SlashInstance())
+	xplugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
+	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RewardMgrInstance())
+	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
+
+	reactor.SetPluginEventMux()
+
+	// TODO set rule order
+	reactor.SetBeginRule([]int{xcom.SlashingRule, xcom.GovernanceRule})
+	reactor.SetEndRule([]int{xcom.RestrictingRule, xcom.RewardRule, xcom.StakingRule, xcom.GovernanceRule})
+
 }

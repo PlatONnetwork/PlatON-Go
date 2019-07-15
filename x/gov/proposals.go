@@ -8,14 +8,17 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-type ProposalType byte
+type ProposalType uint8
 
 const (
 	Text    ProposalType = 0x01
 	Version ProposalType = 0x02
+	Param 	ProposalType = 0x03
 )
 
-type ProposalStatus byte
+
+
+type ProposalStatus uint8
 
 const (
 	Voting    ProposalStatus = 0x01
@@ -25,13 +28,25 @@ const (
 	Active    ProposalStatus = 0x05
 )
 
-type VoteOption byte
-
+type VoteOption uint8
 const (
-	Yes VoteOption = iota + 1
-	No
-	Abstention
+	Yes 		VoteOption =  0x01
+	No			VoteOption =  0x02
+	Abstention 	VoteOption =  0x03
 )
+
+func ParseVoteOption(option uint8) VoteOption{
+	switch option {
+	case 0x01:
+		return Yes
+	case 0x02:
+		return No
+	case 0x03:
+		return Abstention
+	}
+	return Abstention
+}
+
 
 type TallyResult struct {
 	ProposalID    common.Hash    `json:"proposalID"`
@@ -53,40 +68,43 @@ type VoteValue struct {
 	VoteOption VoteOption      `json:"voteOption"`
 }
 
-var MaxVotingDuration = uint64(14*24*60*60) / xcom.ConsensusSize * xcom.ConsensusSize
+type ParamValue struct {
+	Name 	string 				`json:"Name"`
+	Value 	interface{}    		`json:"Value"`
+}
 
 type Proposal interface {
-	SetProposalID(proposalID common.Hash)
+	//SetProposalID(proposalID common.Hash)
 	GetProposalID() common.Hash
 
-	SetGithubID(githubID string)
+	//SetGithubID(githubID string)
 	GetGithubID() string
 
-	SetTopic(topic string)
+	//SetTopic(topic string)
 	GetTopic() string
 
-	SetDesc(desc string)
+	//SetDesc(desc string)
 	GetDesc() string
 
-	SetProposalType(proposalType ProposalType)
+	//SetProposalType(proposalType ProposalType)
 	GetProposalType() ProposalType
 
-	SetUrl(url string)
+	//SetUrl(url string)
 	GetUrl() string
 
-	SetSubmitBlock(blockNumber uint64)
+	//SetSubmitBlock(blockNumber uint64)
 	GetSubmitBlock() uint64
 
-	SetEndVotingBlock(blockNumber uint64)
+	//SetEndVotingBlock(blockNumber uint64)
 	GetEndVotingBlock() uint64
 
-	SetProposer(proposer discover.NodeID)
+	//SetProposer(proposer discover.NodeID)
 	GetProposer() discover.NodeID
 
-	SetTallyResult(tallyResult TallyResult)
+	//SetTallyResult(tallyResult TallyResult)
 	GetTallyResult() TallyResult
 
-	Verify(curBlockNum uint64, state xcom.StateDB) error
+	Verify(submitBlock uint64, state xcom.StateDB) error
 
 	String() string
 }
@@ -104,88 +122,91 @@ type TextProposal struct {
 	Result         TallyResult
 }
 
-func (tp TextProposal) SetProposalID(proposalID common.Hash) {
+/*func (tp *TextProposal) SetProposalID(proposalID common.Hash) {
 	tp.ProposalID = proposalID
 }
-
+*/
 func (tp TextProposal) GetProposalID() common.Hash {
 	return tp.ProposalID
 }
 
-func (tp TextProposal) SetGithubID(githubID string) {
+/*func (tp *TextProposal) SetGithubID(githubID string) {
 	tp.GithubID = githubID
-}
+}*/
 
 func (tp TextProposal) GetGithubID() string {
 	return tp.GithubID
 }
 
-func (tp TextProposal) SetProposalType(proposalType ProposalType) {
+/*func (tp *TextProposal) SetProposalType(proposalType ProposalType) {
 	tp.ProposalType = proposalType
-}
+}*/
 
 func (tp TextProposal) GetProposalType() ProposalType {
 	return tp.ProposalType
 }
 
-func (tp TextProposal) SetTopic(topic string) {
+/*func (tp *TextProposal) SetTopic(topic string) {
 	tp.Topic = topic
-}
+}*/
 
 func (tp TextProposal) GetTopic() string {
 	return tp.Topic
 }
 
-func (tp TextProposal) SetDesc(desc string) {
+/*func (tp *TextProposal) SetDesc(desc string) {
 	tp.Desc = desc
 }
-
+*/
 func (tp TextProposal) GetDesc() string {
 	return tp.Desc
 }
 
-func (tp TextProposal) SetUrl(url string) {
+/*func (tp *TextProposal) SetUrl(url string) {
 	tp.Url = url
-}
+}*/
 
 func (tp TextProposal) GetUrl() string {
 	return tp.Url
 }
 
-func (tp TextProposal) SetSubmitBlock(blockNumber uint64) {
+/*func (tp *TextProposal) SetSubmitBlock(blockNumber uint64) {
 	tp.SubmitBlock = blockNumber
-}
+}*/
 
 func (tp TextProposal) GetSubmitBlock() uint64 {
 	return tp.SubmitBlock
 }
 
-func (tp TextProposal) SetEndVotingBlock(blockNumber uint64) {
+/*func (tp *TextProposal) SetEndVotingBlock(blockNumber uint64) {
 	tp.EndVotingBlock = blockNumber
-}
+}*/
 
 func (tp TextProposal) GetEndVotingBlock() uint64 {
 	return tp.EndVotingBlock
 }
 
-func (tp TextProposal) SetProposer(proposer discover.NodeID) {
+/*func (tp *TextProposal) SetProposer(proposer discover.NodeID) {
 	tp.Proposer = proposer
-}
+}*/
 
 func (tp TextProposal) GetProposer() discover.NodeID {
 	return tp.Proposer
 }
 
-func (tp TextProposal) SetTallyResult(result TallyResult) {
+/*func (tp *TextProposal) SetTallyResult(result TallyResult) {
 	tp.Result = result
-}
+}*/
 
 func (tp TextProposal) GetTallyResult() TallyResult {
 	return tp.Result
 }
 
-func (tp TextProposal) Verify(curBlockNum uint64, state xcom.StateDB) error {
-	return verifyBasic(tp.ProposalID, tp.Proposer, tp.ProposalType, tp.Topic, tp.Desc, tp.GithubID, tp.Url, tp.EndVotingBlock, curBlockNum, state)
+func (tp TextProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
+	if tp.ProposalType != Text {
+		return common.NewBizError("Proposal Type error.")
+	}
+	return verifyBasic(tp.ProposalID, tp.Proposer, tp.Topic, tp.Desc, tp.GithubID, tp.Url, tp.EndVotingBlock, submitBlock, state)
 }
 
 func (tp TextProposal) String() string {
@@ -199,71 +220,124 @@ func (tp TextProposal) String() string {
 }
 
 type VersionProposal struct {
-	TextProposal
+	ProposalID     common.Hash
+	GithubID       string
+	ProposalType   ProposalType
+	Topic          string
+	Desc           string
+	Url            string
+	SubmitBlock    uint64
+	EndVotingBlock uint64
+	Proposer       discover.NodeID
+	Result         TallyResult
 	NewVersion  uint32
 	ActiveBlock uint64
 }
 
-func (vp VersionProposal) SetNewVersion(newVersion uint32) {
-	vp.NewVersion = newVersion
+/*func (vp VersionProposal) SetProposalID(proposalID common.Hash) {
+	vp.ProposalID = proposalID
 }
+*/
+func (vp VersionProposal) GetProposalID() common.Hash {
+	return vp.ProposalID
+}
+
+/*func (vp VersionProposal) SetGithubID(githubID string) {
+	vp.GithubID = githubID
+}*/
+
+func (vp VersionProposal) GetGithubID() string {
+	return vp.GithubID
+}
+
+/*func (vp VersionProposal) SetProposalType(proposalType ProposalType) {
+	vp.ProposalType = proposalType
+}*/
+
+func (vp VersionProposal) GetProposalType() ProposalType {
+	return vp.ProposalType
+}
+
+/*func (tp *TextProposal) SetTopic(topic string) {
+	vp.Topic = topic
+}*/
+
+func (vp VersionProposal) GetTopic() string {
+	return vp.Topic
+}
+
+/*func (tp *TextProposal) SetDesc(desc string) {
+	vp.Desc = desc
+}
+*/
+func (vp VersionProposal) GetDesc() string {
+	return vp.Desc
+}
+
+/*func (vp VersionProposal) SetUrl(url string) {
+	vp.Url = url
+}*/
+
+func (vp VersionProposal) GetUrl() string {
+	return vp.Url
+}
+
+/*func (tp *TextProposal) SetSubmitBlock(blockNumber uint64) {
+	vp.SubmitBlock = blockNumber
+}*/
+
+func (vp VersionProposal) GetSubmitBlock() uint64 {
+	return vp.SubmitBlock
+}
+
+/*func (vp VersionProposal) SetEndVotingBlock(blockNumber uint64) {
+	vp.EndVotingBlock = blockNumber
+}*/
+
+func (vp VersionProposal) GetEndVotingBlock() uint64 {
+	return vp.EndVotingBlock
+}
+
+/*func (vp *VersionProposal) SetProposer(proposer discover.NodeID) {
+	vp.Proposer = proposer
+}*/
+
+func (vp VersionProposal) GetProposer() discover.NodeID {
+	return vp.Proposer
+}
+
+/*func (vp VersionProposal) SetTallyResult(result TallyResult) {
+	vp.Result = result
+}*/
+
+func (vp VersionProposal) GetTallyResult() TallyResult {
+	return vp.Result
+}
+
+
+/*func (vp *VersionProposal) SetNewVersion(newVersion uint32) {
+	vp.NewVersion = newVersion
+}*/
 
 func (vp VersionProposal) GetNewVersion() uint32 {
 	return vp.NewVersion
 }
 
-func (vp VersionProposal) SetActiveBlock(activeBlock uint64) {
+/*func (vp *VersionProposal) SetActiveBlock(activeBlock uint64) {
 	vp.ActiveBlock = activeBlock
-}
+}*/
 
 func (vp VersionProposal) GetActiveBlock() uint64 {
 	return vp.ActiveBlock
 }
 
-func verifyBasic(proposalID common.Hash, proposer discover.NodeID, proposalType ProposalType, topic, desc, githubID, url string, endVotingBlock uint64, curBlockNum uint64, state xcom.StateDB) error {
-	if len(proposalID) > 0 {
-		p, err := GovDBInstance().GetProposal(proposalID, state)
-		if err != nil {
-			return err
-		}
-		if nil != p {
-			return common.NewBizError("ProposalID is already used.")
-		}
-	} else {
-		return common.NewBizError("ProposalID is empty.")
-	}
+func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 
-	if len(proposer) == 0 {
-		return common.NewBizError("Proposer is empty.")
-	}
-	if proposalType != Version {
+	if vp.ProposalType != Version {
 		return common.NewBizError("Proposal Type error.")
 	}
-	if len(topic) == 0 || len(topic) > 128 {
-		return common.NewBizError("Topic is empty or the size is bigger than 128.")
-	}
-	if len(desc) > 512 {
-		return common.NewBizError("description's size is bigger than 512.")
-	}
-	/*if len(vp.GithubID) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetGithubID() {
-		var err error = errors.New("[GOV] Verify(): GithubID empty or duplicated.")
-		return false, err
-	}
-	if len(vp.Url) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetUrl() {
-		var err error = errors.New("[GOV] Verify(): Github URL empty or duplicated.")
-		return false, err
-	}*/
 
-	if xutil.CalculateRound(endVotingBlock)-xutil.CalculateRound(curBlockNum) <= 0 || endVotingBlock > curBlockNum+MaxVotingDuration {
-		return common.NewBizError("end voting block number invalid.")
-	}
-
-	return nil
-}
-
-func (vp VersionProposal) Verify(curBlockNum uint64, state xcom.StateDB) error {
-
-	if err := verifyBasic(vp.ProposalID, vp.Proposer, vp.ProposalType, vp.Topic, vp.Desc, vp.GithubID, vp.Url, vp.EndVotingBlock, curBlockNum, state); err != nil {
+	if err := verifyBasic(vp.ProposalID, vp.Proposer, vp.Topic, vp.Desc, vp.GithubID, vp.Url, vp.EndVotingBlock, submitBlock, state); err != nil {
 		return err
 	}
 
@@ -272,8 +346,8 @@ func (vp VersionProposal) Verify(curBlockNum uint64, state xcom.StateDB) error {
 	}
 
 	difference := vp.ActiveBlock - vp.EndVotingBlock
-	quotient := difference / xcom.ConsensusSize
-	remainder := difference % xcom.ConsensusSize
+	quotient := difference / xcom.ConsensusSize()
+	remainder := difference % xcom.ConsensusSize()
 
 	if difference <= 0 || remainder != 0 || quotient < 4 || quotient > 10 {
 		return common.NewBizError("active block number invalid.")
@@ -293,4 +367,139 @@ func (vp VersionProposal) String() string {
   ActiveBlock:   		%d
   NewVersion:   		%d`,
 		vp.ProposalID, vp.GithubID, vp.Topic, vp.ProposalType, vp.Proposer, vp.SubmitBlock, vp.EndVotingBlock, vp.ActiveBlock, vp.NewVersion)
+}
+
+
+type ParamProposal struct {
+	ProposalID     common.Hash
+	GithubID       string
+	ProposalType   ProposalType
+	Topic          string
+	Desc           string
+	Url            string
+	SubmitBlock    uint64
+	EndVotingBlock uint64
+	Proposer       discover.NodeID
+	Result         TallyResult
+
+	ParamName	   string
+	CurrentValue   interface{}
+	NewValue	   interface{}
+}
+
+
+func (pp ParamProposal) GetProposalID() common.Hash {
+	return pp.ProposalID
+}
+func (pp ParamProposal) GetGithubID() string {
+	return pp.GithubID
+}
+
+
+func (pp ParamProposal) GetProposalType() ProposalType {
+	return pp.ProposalType
+}
+
+
+func (pp ParamProposal) GetTopic() string {
+	return pp.Topic
+}
+
+func (pp ParamProposal) GetDesc() string {
+	return pp.Desc
+}
+
+
+func (pp ParamProposal) GetUrl() string {
+	return pp.Url
+}
+
+func (pp ParamProposal) GetSubmitBlock() uint64 {
+	return pp.SubmitBlock
+}
+
+func (pp ParamProposal) GetEndVotingBlock() uint64 {
+	return pp.EndVotingBlock
+}
+
+func (pp ParamProposal) GetProposer() discover.NodeID {
+	return pp.Proposer
+}
+
+func (pp ParamProposal) GetTallyResult() TallyResult {
+	return pp.Result
+}
+
+func (pp ParamProposal) GetParamName() string {
+	return pp.ParamName
+}
+
+func (pp ParamProposal) GetCurrentValue() interface{} {
+	return pp.CurrentValue
+}
+
+func (pp ParamProposal) GetNewValue() interface{} {
+	return pp.NewValue
+}
+
+func (pp ParamProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
+
+	if pp.ProposalType != Param {
+		return common.NewBizError("Proposal Type error.")
+	}
+
+	return verifyBasic(pp.ProposalID, pp.Proposer, pp.Topic, pp.Desc, pp.GithubID, pp.Url, pp.EndVotingBlock, submitBlock, state)
+}
+
+func (pp ParamProposal) String() string {
+	return fmt.Sprintf(`Proposal %x: 
+  GithubID:            	%s
+  Topic:              	%s
+  Type:               	%x
+  Proposer:            	%x
+  SubmitBlock:        	%d
+  ParamName:        	%s
+  CurrentValue:        	%s
+  NewValue:   			%s`,
+		pp.ProposalID, pp.GithubID, pp.Topic, pp.ProposalType, pp.Proposer, pp.SubmitBlock, pp.ParamName, pp.CurrentValue, pp.NewValue)
+}
+
+
+func verifyBasic(proposalID common.Hash, proposer discover.NodeID, topic, desc, githubID, url string, endVotingBlock uint64, submitBlock uint64, state xcom.StateDB) error {
+	if len(proposalID) > 0 {
+		p, err := GovDBInstance().GetProposal(proposalID, state)
+		if err != nil {
+			return err
+		}
+		if nil != p {
+			return common.NewBizError("ProposalID is already used.")
+		}
+	} else {
+		return common.NewBizError("ProposalID is empty.")
+	}
+
+	if len(proposer) == 0 {
+		return common.NewBizError("Proposer is empty.")
+	}
+
+	if len(topic) == 0 || len(topic) > 128 {
+		return common.NewBizError("Topic is empty or the size is bigger than 128.")
+	}
+	if len(desc) > 512 {
+		return common.NewBizError("description's size is bigger than 512.")
+	}
+	/*if len(vp.GithubID) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetGithubID() {
+		var err error = errors.New("[GOV] Verify(): GithubID empty or duplicated.")
+		return false, err
+	}
+	if len(vp.Url) == 0 || vp.GithubID == gov.govDB.GetProposal(vp.ProposalID, state).GetUrl() {
+		var err error = errors.New("[GOV] Verify(): Github URL empty or duplicated.")
+		return false, err
+	}*/
+
+	if xutil.CalculateRound(endVotingBlock)-xutil.CalculateRound(submitBlock) <= 0 || endVotingBlock > submitBlock+xcom.MaxVotingDuration() {
+		return common.NewBizError("end voting block number invalid.")
+	}
+
+	return nil
 }

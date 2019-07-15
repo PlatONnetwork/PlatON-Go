@@ -17,6 +17,10 @@
 package downloader
 
 import (
+	"errors"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -30,15 +34,16 @@ import (
 // instead of being an actual live node. It's useful for testing and to implement
 // sync commands from an existing local database.
 type FakePeer struct {
-	id string
-	db ethdb.Database
-	hc *core.HeaderChain
-	dl *Downloader
+	id         string
+	db         ethdb.Database
+	hc         *core.HeaderChain
+	dl         *Downloader
+	snapshotDB snapshotdb.DB
 }
 
 // NewFakePeer creates a new mock downloader peer with the given data sources.
-func NewFakePeer(id string, db ethdb.Database, hc *core.HeaderChain, dl *Downloader) *FakePeer {
-	return &FakePeer{id: id, db: db, hc: hc, dl: dl}
+func NewFakePeer(id string, db ethdb.Database, sdb snapshotdb.DB, hc *core.HeaderChain, dl *Downloader) *FakePeer {
+	return &FakePeer{id: id, db: db, hc: hc, dl: dl, snapshotDB: sdb}
 }
 
 // Head implements downloader.Peer, returning the current head hash and number
@@ -155,5 +160,71 @@ func (p *FakePeer) RequestNodeData(hashes []common.Hash) error {
 		}
 	}
 	p.dl.DeliverNodeData(p.id, data)
+	return nil
+}
+
+func (p *FakePeer) RequestPPOSStorage() error {
+	f := func(num *big.Int, iter iterator.Iterator) error {
+		var (
+			count int
+			KVNum uint64
+		)
+		KVs := make([]PPOSStorageKV, 0)
+		if num == nil {
+			return errors.New("num should not be nil")
+		}
+		Pivot := p.hc.GetHeaderByNumber(num.Uint64())
+		Latest := p.hc.CurrentHeader()
+		if err := p.dl.DeliverPposStorage(p.id, Latest, Pivot, KVs, false, 0); err != nil {
+			log.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+			return err
+		}
+		for iter.Next() {
+			kv := [2][]byte{
+				iter.Key(),
+				iter.Value(),
+			}
+			KVs = append(KVs, kv)
+			KVNum++
+			count++
+			if count >= PPOSStorageKVSizeFetch {
+				if err := p.dl.DeliverPposStorage(p.id, nil, nil, KVs, false, KVNum); err != nil {
+					log.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", KVNum)
+					return err
+				}
+				count = 0
+				KVs = make([]PPOSStorageKV, 0)
+			}
+		}
+		if err := p.dl.DeliverPposStorage(p.id, nil, nil, KVs, true, KVNum); err != nil {
+			log.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+			return err
+		}
+		return nil
+	}
+
+	if err := p.snapshotDB.WalkBaseDB(nil, f); err != nil {
+		log.Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
+		return err
+	}
+	return nil
+}
+func (p *FakePeer) RequestOriginAndPivotByCurrent(m uint64) error {
+	oHead := p.hc.GetHeaderByNumber(m)
+	pivot, err := p.snapshotDB.BaseNum()
+	if err != nil {
+		return errors.New("GetOriginAndPivot get snapshotdb baseNum fail")
+	}
+	if pivot == nil {
+		return errors.New("[GetOriginAndPivot] pivot should not be nil")
+	}
+	pHead := p.hc.GetHeaderByNumber(pivot.Uint64())
+
+	data := make([]*types.Header, 0)
+	data = append(data, oHead, pHead)
+	if err := p.dl.DeliverOriginAndPivot(p.id, data); err != nil {
+		log.Error("[GetOriginAndPivotMsg]send data meassage fail", "error", err)
+		return err
+	}
 	return nil
 }

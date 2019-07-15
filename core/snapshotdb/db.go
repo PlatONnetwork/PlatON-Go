@@ -26,10 +26,9 @@ func newDB(stor storage) (*snapshotDB, error) {
 	}
 	mu := sync.Mutex{}
 	return &snapshotDB{
-		path:          dbpath,
-		storage:       stor,
-		unRecognized:  new(blockData),
-		recognized:    make(map[common.Hash]blockData),
+		path:    dbpath,
+		storage: stor,
+		//	unRecognized:  new(blockData),
 		committed:     make([]blockData, 0),
 		journalw:      make(map[common.Hash]*journalWriter),
 		baseDB:        baseDB,
@@ -87,15 +86,8 @@ func (s *snapshotDB) getBlockFromJournal(fd fileDesc) (*blockData, error) {
 		if err := decode(j, &body); err != nil {
 			return nil, err
 		}
-		switch body.FuncType {
-		case funcTypePut:
-			if err := block.data.Put(body.Key, body.Value); err != nil {
-				return nil, err
-			}
-		case funcTypeDel:
-			if err := block.data.Delete(body.Key); err != nil {
-				return nil, err
-			}
+		if err := block.data.Put(body.Key, body.Value); err != nil {
+			return nil, err
 		}
 		kvhash = body.Hash
 	}
@@ -127,7 +119,6 @@ func (s *snapshotDB) recover(stor storage) error {
 	highestNum := s.current.HighestNum.Int64()
 	UnRecognizedHash := s.getUnRecognizedHash()
 	s.committed = make([]blockData, 0)
-	s.recognized = make(map[common.Hash]blockData)
 	s.journalw = make(map[common.Hash]*journalWriter)
 
 	mu := sync.Mutex{}
@@ -140,7 +131,7 @@ func (s *snapshotDB) recover(stor storage) error {
 		if err != nil {
 			return err
 		}
-		if baseNum < fd.Num && fd.Num <= highestNum {
+		if (baseNum < fd.Num && fd.Num <= highestNum) || (baseNum==0&&highestNum==0&&fd.Num==0){
 			s.committed = append(s.committed, *block)
 		} else if fd.Num > highestNum {
 			if UnRecognizedHash == fd.BlockHash {
@@ -154,7 +145,7 @@ func (s *snapshotDB) recover(stor storage) error {
 				s.journalw[fd.BlockHash] = newJournalWriter(w)
 			} else {
 				//1. Recognized
-				s.recognized[fd.BlockHash] = *block
+				s.recognized.Store(fd.BlockHash, *block)
 				//2. open writer
 				if !block.readOnly {
 					w, err := s.storage.Append(fd)
@@ -178,8 +169,9 @@ func (s *snapshotDB) removeJournalLessThanBaseNum() error {
 	}
 	for _, fd := range fds {
 		if fd.Num <= s.current.BaseNum.Int64() {
-			if _, ok := s.recognized[fd.BlockHash]; ok {
-				delete(s.recognized, fd.BlockHash)
+
+			if _, ok := s.recognized.Load(fd.BlockHash); ok {
+				s.recognized.Delete(fd.BlockHash)
 			}
 			if err := s.closeJournalWriter(fd.BlockHash); err != nil {
 				return err
@@ -193,16 +185,25 @@ func (s *snapshotDB) removeJournalLessThanBaseNum() error {
 }
 
 func (s *snapshotDB) rmOldRecognizedBlockData() error {
-	for key, value := range s.recognized {
-		if s.current.HighestNum.Cmp(value.Number) >= 0 {
-			delete(s.recognized, key)
-			if err := s.closeJournalWriter(key); err != nil {
-				return err
+	var err error
+	s.recognized.Range(func(key, value interface{}) bool {
+		v := value.(blockData)
+		if s.current.HighestNum.Int64() >= v.Number.Int64() {
+			s.recognized.Delete(key)
+			k := key.(common.Hash)
+			err = s.closeJournalWriter(k)
+			if err != nil {
+				return false
 			}
-			if err := s.rmJournalFile(value.Number, key); err != nil {
-				return err
+			err := s.rmJournalFile(v.Number, k)
+			if err != nil {
+				return false
 			}
 		}
+		return true
+	})
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -222,6 +223,8 @@ func (s *snapshotDB) getUnRecognizedHash() common.Hash {
 }
 
 func (s *snapshotDB) closeJournalWriter(hash common.Hash) error {
+	s.journalWriterLock.Lock()
+	defer s.journalWriterLock.Unlock()
 	if j, ok := s.journalw[hash]; ok {
 		if err := j.Close(); err != nil {
 			return errors.New("[snapshotdb]close  journal writer fail:" + err.Error())
@@ -251,26 +254,28 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 			return 0, false
 		}
 		for {
-			if data, ok := s.recognized[lastParenthash]; ok {
-				if lastParenthash == data.ParentHash {
+
+			if data, ok := s.recognized.Load(lastParenthash); ok {
+				recognized := data.(blockData)
+				if lastParenthash == recognized.ParentHash {
 					logger.Error("loop error")
 					return 0, false
 				}
-				lastblockNumber = data.Number
-				lastParenthash = data.ParentHash
+				lastblockNumber = recognized.Number
+				lastParenthash = recognized.ParentHash
 			} else {
 				break
 			}
 		}
 		if lastblockNumber.Int64() > 0 {
-			if s.current.LastHash == common.ZeroHash {
+			if s.current.HighestHash == common.ZeroHash {
 				return hashLocationUnRecognized, true
 			}
 			if s.current.HighestNum.Int64() != lastblockNumber.Int64()-1 {
 				return 0, false
 			}
 
-			if s.current.LastHash != lastParenthash {
+			if s.current.HighestHash != lastParenthash {
 				return 0, false
 			}
 			return hashLocationUnRecognized, true
@@ -281,13 +286,14 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 		// find from recognized
 		lastParenthash = hash
 		for {
-			if data, ok := s.recognized[lastParenthash]; ok {
-				if lastParenthash == data.ParentHash {
+			if data, ok := s.recognized.Load(lastParenthash); ok {
+				recognized := data.(blockData)
+				if lastParenthash == recognized.ParentHash {
 					logger.Error("loop error")
 					return 0, false
 				}
-				lastParenthash = data.ParentHash
-				lastblockNumber = data.Number
+				lastParenthash = recognized.ParentHash
+				lastblockNumber = recognized.Number
 			} else {
 				break
 			}
@@ -298,10 +304,10 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 			if s.current.HighestNum.Int64() != lastblockNumber.Int64()-1 {
 				return 0, false
 			}
-			if s.current.LastHash == common.ZeroHash {
+			if s.current.HighestHash == common.ZeroHash {
 				return hashLocationRecognized, true
 			}
-			if s.current.LastHash != lastParenthash {
+			if s.current.HighestHash != lastParenthash {
 				return 0, false
 			}
 			return hashLocationRecognized, true
@@ -318,7 +324,7 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 	return hashLocationNotFound, true
 }
 
-func (s *snapshotDB) put(hash common.Hash, key, value []byte, funcType uint64) error {
+func (s *snapshotDB) put(hash common.Hash, key, value []byte) error {
 	var (
 		blockHash  common.Hash
 		kvhash     common.Hash
@@ -328,62 +334,48 @@ func (s *snapshotDB) put(hash common.Hash, key, value []byte, funcType uint64) e
 		s.unRecognizedLock.Lock()
 		defer s.unRecognizedLock.Unlock()
 		if s.unRecognized == nil {
-			return errors.New("[SnapshotDB]can't put to unRecognized,it was nil")
+			return errors.New("can't put to unRecognized,it was nil")
 		}
 		if s.unRecognized.readOnly {
-			return errors.New("[SnapshotDB]can't put read only block")
+			return errors.New("can't put read only block")
 		}
 		blockHash = s.getUnRecognizedHash()
 		kvhash = s.unRecognized.kvHash
 	} else {
-		bb, ok := s.recognized[hash]
+		bb, ok := s.recognized.Load(hash)
 		if !ok {
-			return errors.New("[SnapshotDB]get recognized block data by hash fail")
+			return errors.New("get recognized block data by hash fail,the block may have commit")
 		}
+		rr := bb.(blockData)
 		blockHash = hash
-		if bb.readOnly {
-			return errors.New("[SnapshotDB]can't put read only block")
+		if rr.readOnly {
+			return errors.New("can't put read only block")
 		}
-		recognized = bb
+		recognized = rr
 		kvhash = recognized.kvHash
 	}
 
 	jData := journalData{
-		Key:      key,
-		Value:    value,
-		Hash:     s.generateKVHash(key, value, kvhash),
-		FuncType: funcType,
+		Key:   key,
+		Value: value,
+		Hash:  s.generateKVHash(key, value, kvhash),
 	}
 	body, err := encode(jData)
 	if err != nil {
-		return errors.New("[SnapshotDB]encode fail:" + err.Error())
+		return errors.New("encode fail:" + err.Error())
 	}
 	if err := s.writeJournalBody(blockHash, body); err != nil {
-		return errors.New("[SnapshotDB]write journalBody fail:" + err.Error())
+		return errors.New("write journalBody fail:" + err.Error())
 	}
 	if hash != common.ZeroHash {
-		switch funcType {
-		case funcTypePut:
-			if err := recognized.data.Put(key, value); err != nil {
-				return err
-			}
-		case funcTypeDel:
-			if err := recognized.data.Delete(key); err != nil {
-				return err
-			}
+		if err := recognized.data.Put(key, value); err != nil {
+			return err
 		}
 		recognized.kvHash = jData.Hash
-		s.recognized[hash] = recognized
+		s.recognized.Store(hash, recognized)
 	} else {
-		switch funcType {
-		case funcTypePut:
-			if err := s.unRecognized.data.Put(key, value); err != nil {
-				return err
-			}
-		case funcTypeDel:
-			if err := s.unRecognized.data.Delete(key); err != nil {
-				return err
-			}
+		if err := s.unRecognized.data.Put(key, value); err != nil {
+			return err
 		}
 		s.unRecognized.kvHash = jData.Hash
 	}

@@ -51,8 +51,22 @@ func (self *GovSnapshotDB) getVotingIDList(blockHash common.Hash) ([]common.Hash
 	return self.getProposalIDListByKey(blockHash, KeyVotingProposals())
 }
 
-func (self *GovSnapshotDB) getPreActiveIDList(blockHash common.Hash) ([]common.Hash, error) {
-	return self.getProposalIDListByKey(blockHash, KeyPreActiveProposals())
+func (self *GovSnapshotDB) getPreActiveProposalID(blockHash common.Hash) (common.Hash, error) {
+	//return self.getProposalIDListByKey(blockHash, KeyPreActiveProposals())
+	bytes, err := self.get(blockHash, KeyPreActiveProposals())
+
+	if err != nil && err != snapshotdb.ErrNotFound {
+		return common.Hash{}, err
+	}
+
+	var proposalID common.Hash
+	if bytes != nil {
+		if err = rlp.DecodeBytes(bytes, &proposalID); err != nil {
+			return common.Hash{}, err
+		}
+	}
+	return proposalID, nil
+
 }
 
 func (self *GovSnapshotDB) getEndIDList(blockHash common.Hash) ([]common.Hash, error) {
@@ -79,8 +93,8 @@ func (self *GovSnapshotDB) getAllProposalIDList(blockHash common.Hash) ([]common
 	hashes, _ := self.getVotingIDList(blockHash)
 	total = append(total, hashes...)
 
-	hashes, _ = self.getPreActiveIDList(blockHash)
-	total = append(total, hashes...)
+	hash, _ := self.getPreActiveProposalID(blockHash)
+	total = append(total, hash)
 
 	hashes, _ = self.getEndIDList(blockHash)
 	total = append(total, hashes...)

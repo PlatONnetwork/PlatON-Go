@@ -6,9 +6,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	"github.com/PlatONnetwork/PlatON-Go/x/reward"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
@@ -18,98 +17,100 @@ type rewardMgrPlugin struct {
 }
 
 var (
-	RewardMgrPlugin *rewardMgrPlugin = nil
+	rm *rewardMgrPlugin = nil
 )
 
-
-func GetAwardMgrInstance() *rewardMgrPlugin {
-	if RewardMgrPlugin == nil {
-		RewardMgrPlugin = & rewardMgrPlugin {}
+func RewardMgrInstance() *rewardMgrPlugin {
+	if rm == nil {
+		rm = & rewardMgrPlugin {}
 	}
-	return RewardMgrPlugin
+	return rm
 }
+
+//func ClearRewardPlugin() error {
+//	if nil == rm {
+//		return common.NewSysError("the RewardPlugin already be nil")
+//	}
+//	rm = nil
+//	return nil
+//}
 
 // BeginBlock does something like check input params before execute transactions,
-// in RestrictingPlanPlugin it does nothing.
-func (rmp *rewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) (bool, error) {
-	return false, nil
+// in rewardMgrPlugin it does nothing.
+func (rmp *rewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
+	return nil
 }
 
-// EndBlock invoke releaseRestrictingPlan
-func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) (bool, error) {
+// EndBlock will handle reward work, if it's time to settle, reward staking. Then reward worker
+// for create new block, this is necessary. At last if current block is the last block at the end
+// of year, increasing issuance.
+func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
+	blockNumber := head.Number.Uint64()
+	year := xutil.CalculateYear(blockNumber)
+	stakingReward, newBlockReward, _ := rmp.calculateExpectReward(uint32(year), state)
 
+	if xutil.IsSettlementPeriod(blockNumber) {
+		log.Info("ready to reward staking", "period", xutil.CalculateRound(blockNumber))
+		if err:= rmp.rewardStaking(head, stakingReward, state); err != nil {
+			return err
+		}
+	}
+
+	log.Debug("ready to reward new block", "blockNumber", blockNumber, "hash", head.Hash())
+	if err := rmp.rewardNewBlock(head, newBlockReward, state); err != nil {
+		return err
+	}
+
+	if xutil.IsYearEnd(blockNumber) {
+		log.Info("ready to increase issuance", "blockNumber", blockNumber, "hash", head.Hash(), "year", year)
+		if err := rmp.increaseIssuance(uint32(year), state); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Confirmed does nothing
+func (rmp *rewardMgrPlugin) Confirmed(block *types.Block) error {
+	return nil
+}
+
+// increaseIssuance used for increase issuance at the end of each year
+func (rmp *rewardMgrPlugin) increaseIssuance(year uint32, state xcom.StateDB) error {
+	var (
+		rate = new(big.Int)
+		temp = new(big.Int)
+	)
+
+	// get historical issuance
+	histIssuance := GetLatestCumulativeIssue(state)
+
+	// every year will increase 2.5 percent of historical issuance, and 1/5 send to
+	// community developer foundation, the left send to reward manage pool
+	currIssuance := temp.Div(histIssuance, rate.SetUint64(40))
+	develop := temp.Div(currIssuance, rate.SetUint64(5))
+	rewards := temp.Sub(currIssuance, develop)
+
+	histIssuance = temp.Add(histIssuance, currIssuance)
+	SetYearEndCumulativeIssue(state, year, histIssuance)
+
+	state.AddBalance(vm.CommunityDeveloperFoundation, develop)
+	state.AddBalance(vm.RewardManagerPoolAddr, rewards)
+
+	return nil
+}
+
+// rewardStaking used for reward staking at the settle block
+func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, state xcom.StateDB) error {
+	blockHash := head.Hash()
 	blockNumber := head.Number.Uint64()
 
-	// check is time to increaseIssuance
-	if xutil.IsYearEnd(blockNumber) {
-		log.Info("last block at end of year", "year", blockNumber / 12 * 30 * 4 * xcom.ConsensusSize * xcom.EpochSize)
-
-		if success, err := rmp.increaseIssuance(head, state); err != nil {
-			return success, err
-		}
-	}
-
-	pledgeReward, newBlockReward, err := rmp.computePeriodAward(head)
+	list, err := StakingInstance().GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
-		return false, err
+		log.Debug("get verifier list failed in rewardStaking", "hash", blockHash, "blockNumber", blockNumber)
+		return err
 	}
-
-	// check is time to reward pledge
-	if xutil.IsSettlementPeriod(blockNumber) {
-		log.Info("settle block", "period", xutil.CalculateRound(blockNumber))
-
-		if success, err := rmp.rewardPledge(head, pledgeReward, state); err != nil {
-			return success, err
-		}
-	}
-
-	// every block need rewardNewBLock
-	log.Debug("time to rewardNewBlock at last", "blockNumber", blockNumber, "hash", head.Hash())
-	addr, success, err := rmp.rewardNewBlock(head, newBlockReward, state)
-	if err != nil {
-		return success, err
-	} else {
-		head.Coinbase = addr
-	}
-
-	return true, nil
-}
-
-// Comfired does nothing
-func (rmp *rewardMgrPlugin) Confirmed(block *types.Block) (bool, error) {
-	return true, nil
-}
-
-// increaseIssuance does nothing
-func (rmp *rewardMgrPlugin) increaseIssuance(head *types.Header, state xcom.StateDB) (bool, error) {
-
-	year := xutil.CalculateYears(head.Number.Uint64())
-
-	switch {
-	case year == 1:
-		// 第一年末开始第二年的增发
-		// 获取创世块上的余额, 增发比例为2.5
-
-		state.AddBalance(vm.RewardManagerPoolAddr, big.NewInt(100))   // 4/5
-		state.AddBalance(vm.GovContractAddr, big.NewInt(20))     // 1/5
-
-	case year > 1:
-		// 从第三年开始,每年获取上一年末已经发行的总量，这个有点困难，可能要记录下到目前为止发行的总量
-
-		state.AddBalance(vm.RewardManagerPoolAddr, big.NewInt(100))   // 4/5
-		state.AddBalance(vm.GovContractAddr, big.NewInt(20))     // 1/5
-
-	}
-
-	return true, nil
-}
-
-// rewardPledge does nothing
-func (rmp *rewardMgrPlugin) rewardPledge(head *types.Header, reward *big.Int, state xcom.StateDB) (bool, error) {
-
-	// stakingPlugin.GetVerifierList()  获取列表
-
-	var list []*xcom.Candidate
 
 	for index := 0; index < len(list); index++ {
 		addr := list[index].BenifitAddress
@@ -120,44 +121,62 @@ func (rmp *rewardMgrPlugin) rewardPledge(head *types.Header, reward *big.Int, st
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
-// rewardNewBlock does nothing, return coinbase address and error
-func (rmp *rewardMgrPlugin) rewardNewBlock(head *types.Header, reward *big.Int, state xcom.StateDB) (common.Address, bool, error) {
-
-	sign := head.Extra[32:97]
-
-	pubKey, err := crypto.SigToPub(head.Hash().Bytes(), sign)
-	if err != nil {
-		log.Error("failed to ecrecover sign to public key", "blockNumber", head.Number, "hash", head.Hash(), "sign", sign)
-		return  common.Address{0}, false, err
-	}
-
-	nodeID := discover.PubkeyID(pubKey)
-
-	log.Debug("node", "NodeID", nodeID)
-
-	var can xcom.Candidate // stakingPlugin.GetCandidate(nodeID)
-
-	rewardAddr := can.BenifitAddress
-
+// rewardNewBlock used for reward new block. it returns coinbase and error
+func (rmp *rewardMgrPlugin) rewardNewBlock(head *types.Header, reward *big.Int, state xcom.StateDB) error {
+	rewardAddr := head.Coinbase
 	if rewardAddr != vm.RewardManagerPoolAddr {
 		state.SubBalance(vm.RewardManagerPoolAddr, reward)
 		state.AddBalance(rewardAddr, reward)
 	}
-
-	return rewardAddr, true, nil
+	return nil
 }
 
-// computePeriodAward does nothing
-func (rmp *rewardMgrPlugin) computePeriodAward(head *types.Header) (*big.Int, *big.Int, error) {
+// calculateExpectReward used for calculate the stakingReward and newBlockReward that should be send in each corresponding period
+func (rmp *rewardMgrPlugin) calculateExpectReward(year uint32, state xcom.StateDB) (*big.Int, *big.Int, error) {
 	var (
-		pledgeReward  *big.Int
-		newBlockReward *big.Int
+		stakingReward  = new(big.Int)
+		newBlockReward = new(big.Int)
+		temp           = new(big.Int)
 	)
 
+	expectNewBlocks := int64(365) * 24 * 3600 / 1
+	expectEpochs := int64(365) * 24 * 3600 / int64(xcom.ConsensusSize() * xcom.EpochSize())
 
-	return pledgeReward, newBlockReward, nil
+	issuance := GetLatestCumulativeIssue(state)
+	totalNewBlockReward := temp.Div(issuance, big.NewInt(5))
+	totalStakingReward := temp.Sub(issuance, totalNewBlockReward)
+
+	newBlockReward = temp.Div(totalNewBlockReward, big.NewInt(expectNewBlocks))
+	stakingReward = temp.Div(totalStakingReward, big.NewInt(expectEpochs))
+
+	return stakingReward, newBlockReward, nil
 }
 
+// SetYearEndCumulativeIssue used for set historical cumulative increase at the end of the year
+func SetYearEndCumulativeIssue(state xcom.StateDB, year uint32, total *big.Int) {
+	yearEndIncreaseKey := reward.GetHistoryIncreaseKey(year)
+	state.SetState(vm.RewardManagerPoolAddr, yearEndIncreaseKey, total.Bytes())
+}
+
+// GetLatestCumulativeIssue used for get the cumulative issuance in the most recent year
+func GetLatestCumulativeIssue(state xcom.StateDB) *big.Int {
+	var issue = new(big.Int)
+	// !!!
+	// latestYear := getLastYear()
+	// !!!
+	latestYear := uint32(0)
+	LastYearIncreaseKey := reward.GetHistoryIncreaseKey(latestYear)
+	bIssue := state.GetState(vm.RewardManagerPoolAddr, LastYearIncreaseKey)
+	return issue.SetBytes(bIssue)
+}
+
+// GetHistoryCumulativeIssue used for get the cumulative issuance of a certain year in history
+func GetHistoryCumulativeIssue(state xcom.StateDB, year uint32) *big.Int {
+	var issue = new(big.Int)
+	histIncreaseKey := reward.GetHistoryIncreaseKey(year)
+	bIssue := state.GetState(vm.RewardManagerPoolAddr, histIncreaseKey)
+	return issue.SetBytes(bIssue)
+}

@@ -353,18 +353,16 @@ func getTxtProposal() gov.TextProposal {
 
 func getVerProposal(proposalId common.Hash) gov.VersionProposal {
 	return gov.VersionProposal{
-		gov.TextProposal{
-			proposalId,
-			"p#01",
-			gov.Version,
-			"up,up,up....",
-			"This is an example...",
-			"em。。。。",
-			uint64(1000),
-			uint64(10000000),
-			discover.NodeID{},
-			gov.TallyResult{},
-		},
+		proposalId,
+		"p#01",
+		gov.Version,
+		"up,up,up....",
+		"This is an example...",
+		"em。。。。",
+		uint64(1000),
+		uint64(10000000),
+		discover.NodeID{},
+		gov.TallyResult{},
 		32,
 		uint64(562222),
 	}
