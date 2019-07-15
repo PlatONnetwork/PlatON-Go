@@ -83,6 +83,26 @@ func (sk *StakingPlugin) BeginBlock(blockHash common.Hash, header *types.Header,
 
 func (sk *StakingPlugin) EndBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
+	// todo test
+
+	/*if header.Number.Uint64() == uint64(1) {
+		log.Debug("Genesis Hash", "number", header.Number, "Parent Hash", header.ParentHash.Hex())
+
+		version := state.GetState(vm.GovContractAddr, gov.KeyActiveVersion())
+		log.Debug("Query version for gov", "version", common.BytesToUint32(version))
+
+
+		// the validators of Current Epoch
+		verifiers, err := sk.db.GetVerifierListByIrr()
+		if nil != err {
+			log.Error("Failed to call Election: No found current epoch validators", "blockNumber",
+				header.Number, "blockHash", blockHash.Hex(), "err", err)
+			return ValidatorNotExist
+		}
+
+		xcom.PrintObject("Query Epoch Validators", verifiers)
+	}*/
+
 	epoch := xutil.CalculateEpoch(header.Number.Uint64())
 
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {

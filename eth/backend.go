@@ -233,6 +233,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
+	reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
+	reactor.SetVRF_hanlder(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
+
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
 			if err := cbftEngine.SetBreakpoint(config.CbftConfig.BreakpointType, config.CbftConfig.BreakpointLog); err != nil {
@@ -245,23 +248,20 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			// - inner (via inner contract)
 			// - ppos
 			log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
-			if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static" {
+			if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
 				agency = cbft.NewStaticAgency(chainConfig.Cbft.InitialNodes)
-			} else if chainConfig.Cbft.ValidatorMode == "inner" {
+				reactor.SetValidatorMode(common.STATIC_VALIDATOR_MODE)
+			} else if chainConfig.Cbft.ValidatorMode == common.INNER_VALIDATOR_MODE {
 				blocksPerNode := int(int64(chainConfig.Cbft.Duration) / int64(chainConfig.Cbft.Period))
 				offset := blocksPerNode * 2
 				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
-			} else if chainConfig.Cbft.ValidatorMode == "ppos" {
+				reactor.SetValidatorMode(common.INNER_VALIDATOR_MODE)
+			} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
 				// TODO init reactor
-				reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-				xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce())
+				reactor.SetValidatorMode(common.PPOS_VALIDATOR_MODE)
 				handlePlugin(reactor)
 				agency = reactor
 			}
-			// TODO test vrf
-			reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-			xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce())
-			handlePlugin(reactor)
 
 			if err := cbftEngine.Start(eth.blockchain, eth.txPool, agency); err != nil {
 				log.Error("Init cbft consensus engine fail", "error", err)
@@ -596,6 +596,7 @@ func handlePlugin(reactor *core.BlockChainReactor) {
 	reactor.RegisterPlugin(xcom.StakingRule, xplugin.StakingInstance())
 	reactor.RegisterPlugin(xcom.RestrictingRule, xplugin.RewardMgrInstance())
 	reactor.RegisterPlugin(xcom.RewardRule, xplugin.RewardMgrInstance())
+
 	reactor.SetPluginEventMux()
 
 	// TODO set rule order

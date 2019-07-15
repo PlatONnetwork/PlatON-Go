@@ -23,17 +23,17 @@ var (
 	once = sync.Once{}
 )
 
-type vrfHandler struct {
+type VrfHandler struct {
 	db           snapshotdb.DB
 	privateKey   *ecdsa.PrivateKey
 	genesisNonce []byte
 }
 
-var vh *vrfHandler
+var vh *VrfHandler
 
-func NewVrfHandler(genesisNonce []byte) *vrfHandler {
+func NewVrfHandler(genesisNonce []byte) *VrfHandler {
 	once.Do(func() {
-		vh = &vrfHandler{
+		vh = &VrfHandler{
 			db:           snapshotdb.Instance(),
 			genesisNonce: genesisNonce,
 		}
@@ -41,15 +41,15 @@ func NewVrfHandler(genesisNonce []byte) *vrfHandler {
 	return vh
 }
 
-func GetVrfHandlerInstance() *vrfHandler {
+func GetVrfHandlerInstance() *VrfHandler {
 	return vh
 }
 
-func (vh *vrfHandler) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
+func (vh *VrfHandler) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	vh.privateKey = privateKey
 }
 
-func (vh *vrfHandler) GenerateNonce(currentBlockNumber *big.Int, parentHash common.Hash) ([]byte, error) {
+func (vh *VrfHandler) GenerateNonce(currentBlockNumber *big.Int, parentHash common.Hash) ([]byte, error) {
 	parentNonce, err := vh.getParentNonce(currentBlockNumber, parentHash)
 	if nil != err {
 		return nil, err
@@ -70,7 +70,7 @@ func (vh *vrfHandler) GenerateNonce(currentBlockNumber *big.Int, parentHash comm
 	return nil, fmt.Errorf("generate proof failed, seed:%x", parentNonce)
 }
 
-func (vh *vrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int, parentBlockHash common.Hash,
+func (vh *VrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int, parentBlockHash common.Hash,
 	blockHash common.Hash, proof []byte) error {
 	// Verify VRF Proof
 	log.Debug("Verification block vrf prove", "current blockNumber", currentBlockNumber.Uint64(),
@@ -97,7 +97,7 @@ func (vh *vrfHandler) VerifyVrf(pk *ecdsa.PublicKey, currentBlockNumber *big.Int
 	return nil
 }
 
-func (vh *vrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Hash, hash common.Hash, nonce []byte) error {
+func (vh *VrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Hash, hash common.Hash, nonce []byte) error {
 	log.Debug("Storage previous nonce", "current blockNumber", currentBlockNumber.Uint64(), "parentHash",
 		hex.EncodeToString(parentHash.Bytes()), "current hash", hex.EncodeToString(hash.Bytes()), "nonce", hex.EncodeToString(nonce))
 	nonces := make([][]byte, 0)
@@ -131,7 +131,7 @@ func (vh *vrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 	return nil
 }
 
-func (vh *vrfHandler) Load(hash common.Hash) ([][]byte, error) {
+func (vh *VrfHandler) Load(hash common.Hash) ([][]byte, error) {
 	if value, err := vh.db.Get(hash, NonceStorageKey); nil != err {
 		log.Error("Loading previous nonce failed", "hash", hash, "key", string(NonceStorageKey), "err", err)
 		return nil, err
@@ -145,7 +145,7 @@ func (vh *vrfHandler) Load(hash common.Hash) ([][]byte, error) {
 	}
 }
 
-func (vh *vrfHandler) getParentNonce(currentBlockNumber *big.Int, parentHash common.Hash) ([]byte, error) {
+func (vh *VrfHandler) getParentNonce(currentBlockNumber *big.Int, parentHash common.Hash) ([]byte, error) {
 	// If it is the first block, take the random number from the Genesis block.
 	log.Debug("Get the nonce of the previous block", "blockNumber", currentBlockNumber.Uint64(),
 		"parentHash", hex.EncodeToString(parentHash.Bytes()))

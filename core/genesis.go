@@ -22,9 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
-	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"math/big"
 	"strings"
 
@@ -160,6 +158,9 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 
 	// Just commit the new block if there is no stored genesis block.
 	stored := rawdb.ReadCanonicalHash(db, 0)
+	// todo test
+	log.Debug("Genesis stored Hash", "hash", stored.Hex())
+
 	if (stored == common.Hash{}) {
 		if genesis == nil {
 			log.Info("Writing default main-net genesis block")
@@ -181,14 +182,14 @@ func SetupGenesisBlock(db ethdb.Database, genesis *Genesis) (*params.ChainConfig
 	}
 
 	// Get the existing chain configuration.
-	newcfg := genesis.configOrDefault(stored)
+	newcfg := genesis.configOrDefault(stored) // TODO this line Maybe delete
 	storedcfg := rawdb.ReadChainConfig(db, stored)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
-	// Special case: don't change the existing config of a non-mainnet chain if no new
+	// Sp ecial case: don't change the existing config of a non-mainnet chain if no new
 	// config is supplied. These chains would get AllProtocolChanges (and a compat error)
 	// if we just continued here.
 	if genesis == nil && stored != params.MainnetGenesisHash {
@@ -241,6 +242,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	//Store somethings into State
 	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 
+	log.Debug("Store version for gov", "version", version)
 	// Store genesis governance data
 	statedb.SetState(vm.GovContractAddr, gov.KeyActiveVersion(), common.Uint32ToBytes(version))
 	// Store restricting plans for increase issue for second and third year
@@ -274,21 +276,13 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 
 	// Store somethings into snapshotDB
 	block := types.NewBlock(head, nil, nil)
-	snDb := snapshotdb.Instance()
-	if err := snDb.NewBlock(big.NewInt(0), common.ZeroHash, block.Hash()); err != nil {
-		panic("Failed to NewBlock by SnapshotDB: " + err.Error())
-	}
-
 
 	// Store genesis staking data
-	if err := genesisStakingData(g, staking.NewStakingDB(), block.Hash(), version); nil != err {
+	if err := genesisStakingData(g, block.Hash(), version); nil != err {
 		panic("Failed Store staking: "+ err.Error())
 	}
 
 
-	if err := snDb.Commit(block.Hash()); err != nil {
-		panic("Failed snapshotDB Commit: " + err.Error())
-	}
 
 	return block
 }

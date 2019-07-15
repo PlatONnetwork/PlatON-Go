@@ -131,7 +131,7 @@ func (s *snapshotDB) recover(stor storage) error {
 		if err != nil {
 			return err
 		}
-		if baseNum < fd.Num && fd.Num <= highestNum {
+		if (baseNum < fd.Num && fd.Num <= highestNum) || (baseNum==0&&highestNum==0&&fd.Num==0){
 			s.committed = append(s.committed, *block)
 		} else if fd.Num > highestNum {
 			if UnRecognizedHash == fd.BlockHash {
