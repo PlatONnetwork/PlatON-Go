@@ -106,6 +106,7 @@ var (
 
 	sndb = snapshotdb.Instance()
 
+	// serial use only
 	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
 
 
@@ -212,7 +213,7 @@ func TestVersion (t *testing.T) {
 
 func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *vm.EVM {
 	if nil == state {
-		state, _ = newChainState()
+		state, _, _ = newChainState()
 	}
 	evm := &vm.EVM{
 		StateDB:  state,
@@ -242,23 +243,36 @@ func newPlugins() {
 }
 
 
-func newChainState() (*state.StateDB, error) {
+func newChainState() (*state.StateDB, *types.Block, error)  {
+
+	url := "enode://0x7bae841405067598bf65e7260ca693a964316e752249c4970085c805dbee738fdb41fc434e96e2b65e8bf1db2f52f05d9300d04c1e6129c26cb5d0f214b49968@platon.network:16791"
+
+	node, _ := discover.ParseNode(url)
+	config := &xcom.DefaultConfig
+	xcom.SetEconomicModel(config)
+	gen := &core.Genesis{
+		Config: &params.ChainConfig{
+			Cbft: &params.CbftConfig{
+				InitialNodes: []discover.Node{*node},
+			},
+		},
+	}
+
 	var (
 		db      = ethdb.NewMemDatabase()
-		genesis = new(core.Genesis).MustCommit(db)
+		genesis = gen.MustCommit(db)
 	)
+
 	fmt.Println("genesis", genesis)
 	// Initialize a fresh chain with only a genesis block
 	blockchain, _ := core.NewBlockChain(db, nil, params.AllEthashProtocolChanges, nil, vm.Config{}, nil)
 
 	var state *state.StateDB
 	if statedb, err := blockchain.State(); nil != err {
-		return nil, errors.New("reference statedb failed" + err.Error())
+		return nil, nil, errors.New("reference statedb failed" + err.Error())
 	} else {
 		state = statedb
 	}
-
-	// init account balance
 	state.AddBalance(sender, sender_balance)
 	for i, addr := range addrArr {
 
@@ -267,7 +281,7 @@ func newChainState() (*state.StateDB, error) {
 		state.AddBalance(addr, amount)
 	}
 
-	return state, nil
+	return state, genesis, nil
 }
 
 func build_staking_data (){
@@ -651,10 +665,10 @@ func buildStateDB (t *testing.T) xcom.StateDB{
 func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 	account := addrArr[0]
 
-	const Epochs = 6
-	var list = make([]uint64, Epochs)
+	const Epochs = 5
+	var list = make([]uint64, 0)
 
-	for epoch := 1; epoch < Epochs; epoch++ {
+	for epoch := 1; epoch <= Epochs; epoch++ {
 		// build release account record
 		releaseAccountKey := restricting.GetReleaseAccountKey(uint64(epoch), 1)
 		stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
@@ -666,25 +680,66 @@ func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 
 		// build release epoch record
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(epoch))
-		stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
+		stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
 
 		list = append(list, uint64(epoch))
 	}
 
 	// build restricting user info
-	var user restrictingInfo
-	user.balance = big.NewInt(int64(5E18))
-	user.debt = big.NewInt(0)
-	user.releaseList = list
+	var user restricting.RestrictingInfo
+	user.Balance = big.NewInt(int64(5E18))
+	user.Debt = big.NewInt(0)
+	user.DebtSymbol = false
+	user.ReleaseList = list
 
 	bUser, err := rlp.EncodeToBytes(user)
 	if err != nil {
-		t.Errorf("failed to rlp encode restricting info: %s", err.Error())
+		t.Fatalf("failed to rlp encode restricting info: %s", err.Error())
 	}
 
+	// build restricting account info record
 	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDB.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
+	stateDB.SetState(account, restrictingKey, bUser)
 
-	stateDB.AddBalance(sender, sender_balance.Sub(sender_balance, big.NewInt(int64(5E18))))
+	stateDB.AddBalance(sender, sender_balance)
 	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
+}
+
+
+func buildDBStakingRestrictingFunds(t *testing.T, stateDB xcom.StateDB) {
+
+	account := addrArr[0]
+
+	// build release account record
+	releaseAccountKey := restricting.GetReleaseAccountKey(1, 1)
+	stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
+
+	// build release amount record
+	releaseAmount := big.NewInt(int64(2E18))
+	releaseAmountKey := restricting.GetReleaseAmountKey(1, account)
+	stateDB.SetState(account, releaseAmountKey, releaseAmount.Bytes())
+
+	// build release epoch record
+	releaseEpochKey := restricting.GetReleaseEpochKey(1)
+	stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
+
+	var releaseEpochList = []uint64{1}
+
+	// build restricting user info
+	var user restricting.RestrictingInfo
+	user.Balance = big.NewInt(int64(1E18))
+	user.Debt = big.NewInt(0)
+	user.DebtSymbol = false
+	user.ReleaseList = releaseEpochList
+
+	bUser, err := rlp.EncodeToBytes(user)
+	if err != nil {
+		t.Fatalf("failed to rlp encode restricting info: %s", err.Error())
+	}
+
+	// build restricting account info record
+	restrictingKey := restricting.GetRestrictingKey(account)
+	stateDB.SetState(account, restrictingKey, bUser)
+
+	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(1E18)))
 }

@@ -128,11 +128,11 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 
 	// Load defaults.
 	cfg := gethConfig{
-		Eth:           eth.DefaultConfig,
-		Shh:           whisper.DefaultConfig,
-		Node:          defaultNodeConfig(),
-		Dashboard:     dashboard.DefaultConfig,
-		EconomicModel: xcom.DefaultConfig,
+		Eth:       	   eth.DefaultConfig,
+		Shh:       	   whisper.DefaultConfig,
+		Node:      	   defaultNodeConfig(),
+		Dashboard: 	   dashboard.DefaultConfig,
+		EconomicModel: *utils.GetEconomicDefaultConfig(ctx),
 	}
 
 	// Load config file.
@@ -267,3 +267,5 @@ func dumpConfig(ctx *cli.Context) error {
 	os.Stdout.Write(out)
 	return nil
 }
+
+

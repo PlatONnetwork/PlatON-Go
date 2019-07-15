@@ -32,6 +32,9 @@ func buildDBRewardPluginData(t *testing.T) {
 
 
 func TestRewardMgrPlugin_EndBlock(t *testing.T) {
+	newChainState()
+	xcom.SetEconomicModel(&xcom.DefaultConfig)
+
 	stateDB := buildStateDB(t)
 
 	// case1: current is common block
@@ -44,7 +47,7 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	}
 
 	// case2: current is settle block
-	head = types.Header{ Number: big.NewInt(int64(1*xcom.ConsensusSize*xcom.EpochSize)),}
+	head = types.Header{ Number: big.NewInt(int64(1*xcom.ConsensusSize()*xcom.EpochSize())),}
 	if err := plugin.RewardMgrInstance().EndBlock(blockHash, &head, stateDB); err != nil {
 		t.Error("The case2 of EndBlock failed.\n expected err is nil")
 		t.Errorf("Actually returns err. blockNumber:%d . errors: %s", head.Number.Uint64(), err.Error())

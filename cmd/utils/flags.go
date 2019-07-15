@@ -20,6 +20,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -1220,26 +1221,36 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 
 	// Override any default configs for hard coded networks.
 	switch {
+
+	// Alpha Test NetWork
 	case ctx.GlobalBool(TestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 103
 		}
 		cfg.Genesis = core.DefaultTestnetGenesisBlock()
+
+	// Beta Test NetWork
 	case ctx.GlobalBool(BetanetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 104
 		}
 		cfg.Genesis = core.DefaultBetanetGenesisBlock()
+
+	// PlatON Inner Test NetWork
 	case ctx.GlobalBool(InnerTestnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 203
 		}
 		cfg.Genesis = core.DefaultInnerTestnetGenesisBlock(InnerTimeFlag.Value)
+
+	// PlatON Inner Dev NetWork
 	case ctx.GlobalBool(InnerDevnetFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 204
 		}
 		cfg.Genesis = core.DefaultInnerDevnetGenesisBlock(InnerTimeFlag.Value)
+
+	// Ethereum's original Dev configuration
 	case ctx.GlobalBool(DeveloperFlag.Name):
 		if !ctx.GlobalIsSet(NetworkIdFlag.Name) {
 			cfg.NetworkId = 1337
@@ -1515,5 +1526,41 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 			}
 		}
 		return action(ctx)
+	}
+}
+
+
+
+func GetEconomicDefaultConfig (ctx *cli.Context) *xcom.EconomicModel {
+
+	// Override any default Economic configs for hard coded networks.
+	switch {
+
+	// Alpha Test Net
+	case ctx.GlobalBool(TestnetFlag.Name):
+		return &xcom.TestnetDefaultConfig
+
+	// Beta Test Net
+	case ctx.GlobalBool(BetanetFlag.Name):
+		return &xcom.BetaDefaultConfig
+
+	// PlatON Inner Test Net
+	case ctx.GlobalBool(InnerTestnetFlag.Name):
+		return &xcom.InnerTestDefaultConfig
+
+	// PlatON Inner Dev Net
+	case ctx.GlobalBool(InnerDevnetFlag.Name):
+		return &xcom.InnerDevDefaultConfig
+
+	// Ethereum's original Dev configuration
+	case ctx.GlobalBool(DeveloperFlag.Name):
+
+		// TODO
+		return &xcom.DefaultConfig
+
+	// main net
+	default:
+		return &xcom.DefaultConfig
+
 	}
 }

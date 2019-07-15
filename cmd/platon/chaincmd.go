@@ -208,6 +208,7 @@ func initGenesis(ctx *cli.Context) error {
 		}
 		log.Info("Successfully wrote genesis state", "database", name, "hash", hash)
 	}
+	snapshotdb.Instance().Close()
 	return nil
 }
 

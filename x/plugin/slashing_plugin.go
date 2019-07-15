@@ -64,8 +64,10 @@ func (sp *SlashingPlugin) SetDecodeEvidenceFun(f func(data string) (consensus.Ev
 
 func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
-	if header.Number.Uint64() > xcom.GetEcModInstance().Staking.ConsensusSize && xutil.IsElection(header.Number.Uint64()) {
-		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "consensusSize", xcom.ConsensusSize, "electionDistance", xcom.ElectionDistance)
+	if header.Number.Uint64() > xcom.ConsensusSize() && xutil.IsElection(header.Number.Uint64()) {
+		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash",
+			hex.EncodeToString(blockHash.Bytes()), "consensusSize", xcom.ConsensusSize(),
+			"electionDistance", xcom.ElectionDistance())
 		if result, err := sp.GetPreNodeAmount(); nil != err {
 			return err
 		} else {
@@ -88,18 +90,18 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 					log.Debug("slashingPlugin node block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "amount", amount)
 					if isAbnormal(amount) {
 						log.Debug("Slashing anomalous nodes", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()))
-						if amount <= xcom.GetEcModInstance().Slashing.BlockAmountLow && amount > xcom.GetEcModInstance().Slashing.BlockAmountHigh {
+						if amount <= xcom.BlockAmountLow() && amount > xcom.BlockAmountHigh() {
 							isSlash = true
-							rate = xcom.GetEcModInstance().Slashing.BlockAmountLowSlashing
-						} else if amount <= xcom.GetEcModInstance().Slashing.BlockAmountHigh {
+							rate = xcom.BlockAmountLowSlash()
+						} else if amount <= xcom.BlockAmountHigh() {
 							isSlash = true
 							isDelete = true
-							rate = xcom.GetEcModInstance().Slashing.BlockAmountHighSlashing
+							rate = xcom.BlockAmountHighSlash()
 						}
 					}
 				} else {
 					isSlash = true
-					rate = xcom.GetEcModInstance().Slashing.BlockAmountHighSlashing
+					rate = xcom.BlockAmountHighSlash()
 				}
 				if isSlash && rate > 0 {
 					// If there is no record of the node, it means that there is no block, then the penalty is directly
@@ -120,8 +122,8 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 
 func (sp *SlashingPlugin) Confirmed(block *types.Block) error {
 	// If it is the first block in each round, switch the number of blocks in the upper and lower rounds.
-	log.Debug("slashingPlugin Confirmed", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "consensusSize", xcom.ConsensusSize)
-	if (block.NumberU64() % xcom.GetEcModInstance().Staking.ConsensusSize == 1) && block.NumberU64() > 1 {
+	log.Debug("slashingPlugin Confirmed", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "consensusSize", xcom.ConsensusSize())
+	if (block.NumberU64() % xcom.ConsensusSize() == 1) && block.NumberU64() > 1 {
 		if err := sp.switchEpoch(block.Hash()); nil != err {
 			log.Error("slashingPlugin switchEpoch fail", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
 			return err
@@ -266,7 +268,7 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 				log.Error("slashingPlugin GetCandidateInfo is nil", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "addr", hex.EncodeToString(evidence.Address().Bytes()), "type", evidence.Type())
 				return common.NewBizError(errMutiSignVerify.Error())
 			}
-			if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, calcSlashAmount(candidate, xcom.GetEcModInstance().Slashing.DuplicateSignLowSlashing), true, staking.DoubleSign, caller); nil != err {
+			if err := stk.SlashCandidates(stateDB, blockHash, blockNumber, candidate.NodeId, calcSlashAmount(candidate, xcom.DuplicateSignLowSlash()), true, staking.DoubleSign, caller); nil != err {
 				log.Error("slashingPlugin SlashCandidates failed", "blockNumber", blockNumber, "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(candidate.NodeId.Bytes()), "err", err)
 				return err
 			}
@@ -319,7 +321,7 @@ func getNodeId(prefix []byte, key []byte) (discover.NodeID, error) {
 }
 
 func isAbnormal(amount uint32) bool {
-	if uint64(amount) < (xcom.GetEcModInstance().Staking.ConsensusSize / xcom.GetEcModInstance().Staking.ConsValidatorNum) {
+	if uint64(amount) < (xcom.ConsensusSize() / xcom.ConsValidatorNum()) {
 		return true
 	}
 	return false
