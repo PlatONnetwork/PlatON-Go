@@ -16,14 +16,14 @@ import (
 )
 
 func TestSlashingContract_ReportMutiSign(t *testing.T) {
-	state, _, err := newChainState()
+	state, genesis , err := newChainState()
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
 	if nil != err {
 		t.Error(err)
 	}
-	build_staking_data()
+	build_staking_data(genesis.Hash())
 	contract := &vm.SlashingContract{
 		Plugin:   plugin.SlashInstance(),
 		Contract: newContract(common.Big0),
