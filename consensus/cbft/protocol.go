@@ -13,7 +13,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-const CbftProtocolMaxMsgSize = 10 * 1024 * 1024
+const CbftProtocolMaxMsgSize = 5 * 1024 * 1024
 
 const (
 	PrepareBlockMsg           = 0x00

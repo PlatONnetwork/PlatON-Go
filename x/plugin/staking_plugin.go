@@ -35,7 +35,7 @@ var (
 	DelegateVonNotEnough       = common.NewBizError("The von of delegate is not enough")
 	WithdrewDelegateVonCalcErr = common.NewBizError("withdrew delegate von calculate err")
 	ParamsErr                  = common.NewBizError("the fn params err")
-	ProcessVersionErr          = common.NewBizError("The version of the relates node's process is too low")
+
 	BlockNumberDisordered      = common.NewBizError("The blockNumber is disordered")
 	VonAmountNotRight          = common.NewBizError("The amount of von is not right")
 	CandidateNotExist          = common.NewBizError("The candidate is not exist")
@@ -234,30 +234,7 @@ func (sk *StakingPlugin) GetCandidateInfoByIrr(addr common.Address) (*staking.Ca
 }
 
 func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Hash, blockNumber,
-amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *staking.Candidate) error {
-
-	// Query current active version
-	curr_version := govp.GetActiveVersion(state)
-
-	currLargeVersion := xutil.CalcLargeVersion(curr_version)
-	inputLargeVersion := xutil.CalcLargeVersion(processVersion)
-
-	var isDeclareVersion bool
-
-	// Compare Large version
-	// Just like that:
-	// 2.1.x == 2.1.x; 2.1.x > 2.0.x
-	if inputLargeVersion < currLargeVersion {
-
-		log.Error("Failed to CreateCandidate on stakingPlugin: input version  less than current valid version",
-			"input Version", xutil.ProcessVerion2Str(processVersion), "current Large Version",
-			xutil.ProcessVerion2Str(curr_version))
-
-		return ProcessVersionErr
-	} else if inputLargeVersion > currLargeVersion {
-		isDeclareVersion = true
-	}
-	can.ProcessVersion = currLargeVersion
+amount *big.Int, typ uint16, addr common.Address, can *staking.Candidate) error {
 
 	// from account free von
 	if typ == FreeOrigin {
@@ -297,14 +274,7 @@ amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *st
 		return err
 	}
 
-	if isDeclareVersion {
-		// Declare new Version
-		err := govp.DeclareVersion(can.StakingAddress, can.NodeId, processVersion, blockHash, blockNumber.Uint64(), state)
-		if nil != err {
-			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),"err", err)
-		}
-	}
+
 	// todo test
 	//canJson, _ := json.Marshal(can)
 	//fmt.Println("Created the can:", string(canJson))
@@ -1869,9 +1839,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	// Never match, maybe
 	if nil == verifiers || len(verifiers.Arr) == 0 {
-		arr := make(staking.ValidatorQueue, len(curr.Arr))
-		copy(arr, curr.Arr)
-		return proremoteCurr2NextFunc(start, end, arr)
+		//arr := make(staking.ValidatorQueue, len(curr.Arr))
+		//copy(arr, curr.Arr)
+		//return proremoteCurr2NextFunc(start, end, arr)
+		panic("The Current Epoch VerifierList is empty ~~~")
 	}
 
 	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
@@ -1887,7 +1858,11 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		}
 		tmpQueue = append(tmpQueue, v)
 	}
-	// TODO
+
+
+	/**
+	Really go to the election
+	 */
 	var shiftQueue staking.ValidatorQueue
 
 	switch {
@@ -2226,7 +2201,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 	processVersion uint32) error {
 
 	log.Debug("Call ProposalPassedNotify to promote candidate processVersion", "blockNumber", blockNumber,
-		"blockHash", blockHash.Hex(), "version", processVersion, "nodeId num", len(nodeIds))
+		"blockHash", blockHash.Hex(), "version", processVersion, "nodeIdQueueSize", len(nodeIds))
 
 	for _, nodeId := range nodeIds {
 

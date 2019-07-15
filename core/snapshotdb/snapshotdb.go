@@ -256,7 +256,7 @@ func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 			return nil, err
 		}
 	}
-	if err != nil || len(s.committed)==0{
+	if err != nil || len(s.committed) == 0 {
 		v, err = s.baseDB.Get(key, nil)
 		if err != nil {
 			if err == leveldb.ErrNotFound {
@@ -408,6 +408,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 		}
 		s.recognized.Store(hash, *block)
 	}
+	logger.Info("[snapshotDB]NewBlock", "num", block.Number, "hash", hash.String())
 	return nil
 }
 
@@ -425,6 +426,8 @@ func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
 // if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
 func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
 	//found from unRecognized
+	s.commitLock.RLock()
+	defer s.commitLock.RUnlock()
 	location, ok := s.checkHashChain(hash)
 	if !ok {
 		return nil, errors.New("[SnapshotDB]the hash not in chain " + hash.String())
@@ -609,6 +612,7 @@ func (s *snapshotDB) Commit(hash common.Hash) error {
 	if err := s.rmOldRecognizedBlockData(); err != nil {
 		return err
 	}
+	logger.Info("[snapshotDB]commit block", "num", block.Number, "hash", hash.String())
 	return nil
 }
 

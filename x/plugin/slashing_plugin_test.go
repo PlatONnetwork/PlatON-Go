@@ -16,6 +16,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
 )
@@ -28,6 +29,7 @@ func initInfo(t *testing.T) (*plugin.SlashingPlugin, xcom.StateDB) {
 	if nil != err {
 		t.Error(err)
 	}
+	xcom.SetEconomicModel(&xcom.DefaultConfig)
 	return si, stateDB
 }
 
@@ -322,7 +324,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 		BenifitAddress:  addr,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  1,
-		ProcessVersion:  1,
+		ProcessVersion:  initProcessVersion,
 		Shares:          new(big.Int).SetUint64(1000),
 
 		Released:           common.Big0,
@@ -335,7 +337,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber, chash, common.ZeroHash); nil != err {
 		panic(err)
 	}
-	if err := plugin.StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, initProcessVersion, 0, addr, can); nil != err {
+	if err := plugin.StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, addr, can); nil != err {
 		t.Error(err)
 	}
 	if err := si.Slash(data, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {
@@ -344,6 +346,34 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if success, value, err := si.CheckMutiSign(addr, common.Big1.Uint64(), 1, stateDB); nil != err || !success || len(value) == 0 {
 		t.Error(err)
 	}
+	err = si.Slash(data, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	assert.NotNil(t, err)
+	data = `{
+          "duplicate_prepare": [
+            {
+              "VoteA": {
+                "timestamp": 0,
+                "block_hash": "0x0a0409021f020b080a16070609071c141f19011d090b091303121e1802130407",
+                "block_number": 2,
+                "validator_index": 1,
+                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
+                "signature": "0xa65e16b3bc4862fdd893eaaaaecf1e415cdc2c8a08e4bbb1f6b2a1f4bf4e2d0c0ec27857da86a5f3150b32bee75322073cec320e51fe0a123cc4238ee4155bf001"
+              },
+              "VoteB": {
+                "timestamp": 0,
+                "block_hash": "0x18030d1e01071b1d071a12151e100a091f060801031917161e0a0d0f02161d0e",
+                "block_number": 2,
+                "validator_index": 1,
+                "validator_address": "0x120b77ab712589ebd42d69003893ef962cc52832",
+                "signature": "0x9126f9a339c8c4a873efc397062d67e9e9109895cd9da0d09a010d5f5ebbc6e76d285f7d87f801850c8552234101b651c8b7601b4ea077328c27e4f86d66a1bf00"
+              }
+            }
+          ],
+          "duplicate_viewchange": [],
+          "timestamp_viewchange": []
+        }`
+	err = si.Slash(data, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
+	assert.NotNil(t, err)
 }
 
 func TestSlashingPlugin_CheckMutiSign(t *testing.T) {

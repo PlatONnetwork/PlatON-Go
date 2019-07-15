@@ -3,7 +3,8 @@ package cbft
 import (
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core"
-	types "github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -11,14 +12,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
-
-
-
-
-
-func newValidators(nodes []discover.Node, validBlockNumber uint64) *types.Validators {
-	vds := &types.Validators{
-		Nodes:            make(types.ValidateNodeMap, len(nodes)),
+func newValidators(nodes []discover.Node, validBlockNumber uint64) *cbfttypes.Validators {
+	vds := &cbfttypes.Validators{
+		Nodes:            make(cbfttypes.ValidateNodeMap, len(nodes)),
 		ValidBlockNumber: validBlockNumber,
 	}
 
@@ -28,7 +24,7 @@ func newValidators(nodes []discover.Node, validBlockNumber uint64) *types.Valida
 			panic(err)
 		}
 
-		vds.Nodes[node.ID] = &types.ValidateNode{
+		vds.Nodes[node.ID] = &cbfttypes.ValidateNode{
 			Index:   i,
 			Address: crypto.PubkeyToAddress(*pubkey),
 			PubKey:  pubkey,
@@ -37,21 +33,20 @@ func newValidators(nodes []discover.Node, validBlockNumber uint64) *types.Valida
 	return vds
 }
 
-
-
 // Agency
 type Agency interface {
 	Sign(msg interface{}) error
 	VerifySign(msg interface{}) error
+	VerifyHeader(header *types.Header) error
 	GetLastNumber(blockNumber uint64) uint64
-	GetValidator(blockNumber uint64) (*types.Validators, error)
+	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
 	IsCandidateNode(nodeID discover.NodeID) bool
 }
 
 type StaticAgency struct {
 	Agency
 
-	validators *types.Validators
+	validators *cbfttypes.Validators
 }
 
 func NewStaticAgency(nodes []discover.Node) Agency {
@@ -68,11 +63,15 @@ func (d *StaticAgency) VerifySign(interface{}) error {
 	return nil
 }
 
+func (d *StaticAgency) VerifyHeader(*types.Header) error {
+	return nil
+}
+
 func (d *StaticAgency) GetLastNumber(blockNumber uint64) uint64 {
 	return 0
 }
 
-func (d *StaticAgency) GetValidator(uint64) (*types.Validators, error) {
+func (d *StaticAgency) GetValidator(uint64) (*cbfttypes.Validators, error) {
 	return d.validators, nil
 }
 
@@ -87,7 +86,7 @@ type InnerAgency struct {
 	defaultBlocksPerRound uint64
 	offset                uint64
 	blockchain            *core.BlockChain
-	defaultValidators     *types.Validators
+	defaultValidators     *cbfttypes.Validators
 }
 
 func NewInnerAgency(nodes []discover.Node, chain *core.BlockChain, blocksPerNode, offset int) Agency {
@@ -105,6 +104,10 @@ func (ia *InnerAgency) Sign(interface{}) error {
 }
 
 func (ia *InnerAgency) VerifySign(interface{}) error {
+	return nil
+}
+
+func (ia *InnerAgency) VerifyHeader(*types.Header) error {
 	return nil
 }
 
@@ -138,7 +141,7 @@ func (ia *InnerAgency) GetLastNumber(blockNumber uint64) uint64 {
 	return lastBlockNumber
 }
 
-func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *types.Validators, err error) {
+func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *cbfttypes.Validators, err error) {
 	//var lastBlockNumber uint64
 	/*
 		defer func() {
@@ -173,11 +176,11 @@ func (ia *InnerAgency) GetValidator(blockNumber uint64) (v *types.Validators, er
 		log.Error("RLP decode fail, use default validators", "number", block.Number(), "error", err)
 		return ia.defaultValidators, nil
 	}
-	var validators types.Validators
-	validators.Nodes = make(types.ValidateNodeMap, len(vds.ValidateNodes))
+	var validators cbfttypes.Validators
+	validators.Nodes = make(cbfttypes.ValidateNodeMap, len(vds.ValidateNodes))
 	for _, node := range vds.ValidateNodes {
 		pubkey, _ := node.NodeID.Pubkey()
-		validators.Nodes[node.NodeID] = &types.ValidateNode{
+		validators.Nodes[node.NodeID] = &cbfttypes.ValidateNode{
 			Index:   int(node.Index),
 			Address: node.Address,
 			PubKey:  pubkey,
