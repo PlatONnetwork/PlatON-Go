@@ -5,8 +5,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/stretchr/testify/assert"
 	"math/big"
+	"strconv"
 	"testing"
 )
 
@@ -17,6 +19,7 @@ func initHandler() *ecdsa.PrivateKey {
 		panic(err)
 	}
 	vh.SetPrivateKey(pri)
+	SetEconomicModel(&DefaultConfig)
 	return pri
 }
 
@@ -26,24 +29,33 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 		vh.db.Clear()
 	}()
 	blockNumber := new(big.Int).SetUint64(1)
-	hash := common.BytesToHash([]byte("h1"))
-	if err := vh.db.NewBlock(blockNumber, common.ZeroHash, common.ZeroHash); nil != err {
-		t.Error(err)
+	phash := common.BytesToHash([]byte("h"))
+	hash := common.ZeroHash
+	for i := 0; i < int(EpochValidatorNum()) + 10; i++ {
+		if err := vh.db.NewBlock(blockNumber, phash, common.ZeroHash); nil != err {
+			t.Error(err)
+		}
+		pi, err := vh.GenerateNonce(blockNumber, phash)
+		if nil != err {
+			t.Error(err)
+			return
+		}
+		if err := vh.Storage(blockNumber, phash, common.ZeroHash, vrf.ProofToHash(pi)); nil != err {
+			t.Error(err)
+			return
+		}
+		hash = common.BytesToHash([]byte(strconv.Itoa(i)))
+		phash = hash
+		if err := vh.db.Flush(hash, blockNumber); nil != err {
+			t.Error(err)
+			return
+		}
+		blockNumber.Add(blockNumber, common.Big1)
 	}
-	if err := vh.Storage(new(big.Int).SetUint64(1), common.ZeroHash, common.ZeroHash, hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23")); nil != err {
+	if value, err := vh.Load(phash); nil != err {
 		t.Error(err)
-	}
-	if err := vh.db.Flush(hash, blockNumber); nil != err {
-		t.Error(err)
-	}
-	if err := vh.db.NewBlock(new(big.Int).SetUint64(2), hash, common.ZeroHash); nil != err {
-		t.Error(err)
-	}
-	if err := vh.Storage(new(big.Int).SetUint64(2), hash, common.ZeroHash, hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd33")); nil != err {
-		t.Error(err)
-	}
-	if _, err := vh.Load(common.Hash{}); nil != err {
-		t.Error(err)
+	} else {
+		assert.Equal(t, len(value), int(EpochValidatorNum()))
 	}
 }
 
