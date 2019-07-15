@@ -178,9 +178,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		}
 		cacheConfig = &core.CacheConfig{Disabled: config.NoPruning, TrieNodeLimit: config.TrieCache, TrieTimeLimit: config.TrieTimeout,
 			BodyCacheLimit: config.BodyCacheLimit, BlockCacheLimit: config.BlockCacheLimit,
-			MaxFutureBlocks:config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
+			MaxFutureBlocks: config.MaxFutureBlocks, BadBlockLimit: config.BadBlockLimit,
 			TriesInMemory: config.TriesInMemory, DefaultTxsCacheSize: config.DefaultTxsCacheSize,
-			DefaultBroadcastInterval:config.DefaultBroadcastInterval,
+			DefaultBroadcastInterval: config.DefaultBroadcastInterval,
 		}
 
 		minningConfig = &core.MiningConfig{MiningLogAtDepth: config.MiningLogAtDepth, TxChanSize: config.TxChanSize,
@@ -188,7 +188,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			ResultQueueSize: config.ResultQueueSize, ResubmitAdjustChanSize: config.ResubmitAdjustChanSize,
 			MinRecommitInterval: config.MinRecommitInterval, MaxRecommitInterval: config.MaxRecommitInterval,
 			IntervalAdjustRatio: config.IntervalAdjustRatio, IntervalAdjustBias: config.IntervalAdjustBias,
-			StaleThreshold:	config.StaleThreshold, DefaultCommitRatio:	config.DefaultCommitRatio,
+			StaleThreshold: config.StaleThreshold, DefaultCommitRatio: config.DefaultCommitRatio,
 		}
 	)
 
@@ -213,7 +213,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	//eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, eth.blockchain)
 	eth.txPool = core.NewTxPool(config.TxPool, eth.chainConfig, core.NewTxPoolBlockChain(blockChainCache))
 
-	log.Debug("eth.txPool:::::", "txPool", eth.txPool)
 	// mpcPool deal with mpc transactions
 	// modify By J
 	//if config.MPCPool.Journal != "" {
@@ -236,41 +235,37 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		config.MinerGasFloor, config.MinerGasCeil, eth.isLocalBlock, blockChainCache)
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
-	if bft, ok := eth.engine.(consensus.Bft); ok {
-		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
-			if err := cbftEngine.SetBreakpoint(config.CbftConfig.BreakpointType, config.CbftConfig.BreakpointLog); err != nil {
-				return nil, err
-			}
-			cbftEngine.SetBlockChainCache(blockChainCache)
-			var agency cbft.Agency
-			// validatorMode:
-			// - static (default)
-			// - inner (via inner contract)
-			// - ppos
-			log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
-			if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static" {
-				agency = cbft.NewStaticAgency(chainConfig.Cbft.InitialNodes)
-			} else if chainConfig.Cbft.ValidatorMode == "inner" {
-				blocksPerNode := int(int64(chainConfig.Cbft.Duration) / int64(chainConfig.Cbft.Period))
-				offset := blocksPerNode * 2
-				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
-			} else if chainConfig.Cbft.ValidatorMode == "ppos" {
-				// TODO init reactor
-				reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-				xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
-				handlePlugin(reactor, snapshotdb.Instance())
-				agency = reactor
-			}
-			// TODO test vrf
-			/*reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-			xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
-			handlePlugin(reactor, snapshotdb.Instance())*/
+	if engine, ok := eth.engine.(consensus.Bft); ok {
 
-			if err := cbftEngine.Start(eth.blockchain, eth.txPool, agency); err != nil {
-				log.Error("Init cbft consensus engine fail", "error", err)
-				return nil, errors.New("Failed to init cbft consensus engine")
-			}
+		var agency consensus.Agency
+		// validatorMode:
+		// - static (default)
+		// - inner (via inner contract)
+		// - ppos
+		//log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
+		//if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == "static" {
+		//	agency = cbft.NewStaticAgency(chainConfig.Cbft.InitialNodes)
+		//} else if chainConfig.Cbft.ValidatorMode == "inner" {
+		//	blocksPerNode := int(int64(chainConfig.Cbft.Duration) / int64(chainConfig.Cbft.Period))
+		//	offset := blocksPerNode * 2
+		//	agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
+		//} else if chainConfig.Cbft.ValidatorMode == "ppos" {
+		//	// TODO init reactor
+		//	reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
+		//	xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
+		//	handlePlugin(reactor, snapshotdb.Instance())
+		//	agency = reactor
+		//}
+		// TODO test vrf
+		/*reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
+		xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
+		handlePlugin(reactor, snapshotdb.Instance())*/
+
+		if err := engine.Start(eth.blockchain, blockChainCache.Execute, eth.txPool, agency); err != nil {
+			log.Error("Init cbft consensus engine fail", "error", err)
+			return nil, errors.New("Failed to init cbft consensus engine")
 		}
+
 	}
 
 	if eth.protocolManager, err = NewProtocolManager(eth.chainConfig, config.SyncMode, config.NetworkId, eth.eventMux, eth.txPool, eth.engine, eth.blockchain, chainDb); err != nil {
@@ -318,31 +313,11 @@ func CreateDB(ctx *node.ServiceContext, config *Config, name string) (ethdb.Data
 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Ethereum service
 func CreateConsensusEngine(ctx *node.ServiceContext, chainConfig *params.ChainConfig, notify []string, noverify bool, db ethdb.Database,
-	cbftConfig *CbftConfig, eventMux *event.TypeMux) consensus.Engine {
+	cbftConfig *cbft.OptionsConfig, eventMux *event.TypeMux) consensus.Engine {
 	// If proof-of-authority is requested, set it up
 	if chainConfig.Cbft != nil {
-		if cbftConfig.Period < 1 {
-			chainConfig.Cbft.Period = 1
-		} else {
-			chainConfig.Cbft.Period = cbftConfig.Period
-		}
-		chainConfig.Cbft.Epoch = cbftConfig.Epoch
-		chainConfig.Cbft.MaxLatency = cbftConfig.MaxLatency
-		chainConfig.Cbft.LegalCoefficient = cbftConfig.LegalCoefficient
-		chainConfig.Cbft.Duration = cbftConfig.Duration
-		chainConfig.Cbft.BlockInterval = cbftConfig.BlockInterval
-		chainConfig.Cbft.WalEnabled = cbftConfig.WalMode
 
-		chainConfig.Cbft.PeerMsgQueueSize = cbftConfig.PeerMsgQueueSize
-		chainConfig.Cbft.EvidenceDir = cbftConfig.EvidenceDir
-		chainConfig.Cbft.MaxResetCacheSize = cbftConfig.MaxResetCacheSize
-		chainConfig.Cbft.MaxQueuesLimit = cbftConfig.MaxQueuesLimit
-		chainConfig.Cbft.MaxBlockDist = cbftConfig.MaxBlockDist
-		chainConfig.Cbft.MaxPingLatency = cbftConfig.MaxPingLatency
-		chainConfig.Cbft.MaxAvgLatency = cbftConfig.MaxAvgLatency
-		chainConfig.Cbft.CbftVersion = cbftConfig.CbftVersion
-		chainConfig.Cbft.Remaining = cbftConfig.Remaining
-		return cbft.New(chainConfig.Cbft, eventMux, ctx)
+		return cbft.New(chainConfig.Cbft, cbftConfig, eventMux, ctx)
 	}
 	return nil
 }
