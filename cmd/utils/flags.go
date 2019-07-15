@@ -20,6 +20,7 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -1273,13 +1274,7 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *eth.Config) {
 	}
 }
 
-func SetCbft(ctx *cli.Context, cfg *eth.CbftConfig) {
-	if ctx.GlobalIsSet(CbftBlockIntervalFlag.Name) {
-		cfg.BlockInterval = ctx.GlobalUint64(CbftBlockIntervalFlag.Name)
-	}
-	if ctx.GlobalIsSet(CbftBreakpointFlag.Name) {
-		cfg.BreakpointType = ctx.GlobalString(CbftBreakpointFlag.Name)
-	}
+func SetCbft(ctx *cli.Context, cfg *cbft.OptionsConfig) {
 }
 
 // SetDashboardConfig applies dashboard related command line flags to the config.
@@ -1414,16 +1409,16 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled: /*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
-		TrieNodeLimit:                                               eth.DefaultConfig.TrieCache,
-		TrieTimeLimit:                                               eth.DefaultConfig.TrieTimeout,
-		BodyCacheLimit: 	 										 eth.DefaultConfig.BodyCacheLimit,
-		BlockCacheLimit:  											 eth.DefaultConfig.BlockCacheLimit,
-		MaxFutureBlocks:  											 eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit: 	 											 eth.DefaultConfig.BadBlockLimit,
-		TriesInMemory:	 											 eth.DefaultConfig.TriesInMemory,
-		DefaultTxsCacheSize: 										 eth.DefaultConfig.DefaultTxsCacheSize,
-		DefaultBroadcastInterval: 									 eth.DefaultConfig.DefaultBroadcastInterval,
+		Disabled:/*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
+		TrieNodeLimit:            eth.DefaultConfig.TrieCache,
+		TrieTimeLimit:            eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit:           eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit:          eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks:          eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit:            eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:            eth.DefaultConfig.TriesInMemory,
+		DefaultTxsCacheSize:      eth.DefaultConfig.DefaultTxsCacheSize,
+		DefaultBroadcastInterval: eth.DefaultConfig.DefaultBroadcastInterval,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
@@ -1448,22 +1443,22 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 	var engine consensus.Engine
 	if config.Cbft != nil {
 		sc := node.NewServiceContext(nodeCfg, nil, stack.EventMux(), stack.AccountManager())
-		engine = eth.CreateConsensusEngine(sc, config, nil, false, chainDb, &cfg.CbftConfig, stack.EventMux());
+		engine = eth.CreateConsensusEngine(sc, config, nil, false, chainDb, &cfg.CbftConfig, stack.EventMux())
 	}
 
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled:      ctx.GlobalString(GCModeFlag.Name) == "archive",
-		TrieNodeLimit: eth.DefaultConfig.TrieCache,
-		TrieTimeLimit: eth.DefaultConfig.TrieTimeout,
-		BodyCacheLimit: eth.DefaultConfig.BodyCacheLimit,
-		BlockCacheLimit:eth.DefaultConfig.BlockCacheLimit,
-		MaxFutureBlocks:eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit: 	eth.DefaultConfig.BadBlockLimit,
-		TriesInMemory:	eth.DefaultConfig.TriesInMemory,
-		DefaultTxsCacheSize: eth.DefaultConfig.DefaultTxsCacheSize,
+		Disabled:                 ctx.GlobalString(GCModeFlag.Name) == "archive",
+		TrieNodeLimit:            eth.DefaultConfig.TrieCache,
+		TrieTimeLimit:            eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit:           eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit:          eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks:          eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit:            eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:            eth.DefaultConfig.TriesInMemory,
+		DefaultTxsCacheSize:      eth.DefaultConfig.DefaultTxsCacheSize,
 		DefaultBroadcastInterval: eth.DefaultConfig.DefaultBroadcastInterval,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {

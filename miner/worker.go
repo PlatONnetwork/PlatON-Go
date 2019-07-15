@@ -124,12 +124,12 @@ func (e *commitWorkEnv) getCurrentBaseBlock() *types.Block {
 // worker is the main object which takes care of submitting new work to consensus engine
 // and gathering the sealing result.
 type worker struct {
-	EmptyBlock string
-	config     *params.ChainConfig
+	EmptyBlock   string
+	config       *params.ChainConfig
 	miningConfig *core.MiningConfig
-	engine     consensus.Engine
-	eth        Backend
-	chain      *core.BlockChain
+	engine       consensus.Engine
+	eth          Backend
+	chain        *core.BlockChain
 
 	gasFloor uint64
 	gasCeil  uint64
@@ -192,7 +192,7 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 	blockChainCache *core.BlockChainCache) *worker {
 	worker := &worker{
 		config:             config,
-		miningConfig:		miningConfig,
+		miningConfig:       miningConfig,
 		engine:             engine,
 		eth:                eth,
 		mux:                mux,
@@ -763,6 +763,7 @@ func (w *worker) resultLoop() {
 			log.Debug("Pending task", "exist", exist)
 			var _receipts []*types.Receipt
 			var _state *state.StateDB
+			//todo remove extra magic number
 			if exist && w.engine.(consensus.Bft).IsSignedBySelf(sealhash, block.Extra()[32:]) {
 				_receipts = task.receipts
 				_state = task.state
@@ -1322,8 +1323,6 @@ func (w *worker) commit(interval func(), update bool, start time.Time) error {
 
 			log.Debug("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()), "receiptHash", block.ReceiptHash(),
 				"txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)))
-			w.engine.(consensus.Bft).CommitBlockBP(block, w.current.tcount, block.GasUsed(), time.Since(start))
-
 		case <-w.exitCh:
 			log.Info("Worker has exited")
 		}
