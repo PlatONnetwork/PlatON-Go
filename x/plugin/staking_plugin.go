@@ -239,25 +239,25 @@ amount *big.Int, processVersion uint32, typ uint16, addr common.Address, can *st
 	// Query current active version
 	curr_version := govp.GetActiveVersion(state)
 
-	currLargeVersion := xutil.CalcLargeVersion(curr_version)
-	inputLargeVersion := xutil.CalcLargeVersion(processVersion)
+	currVersion := xutil.CalcVersion(curr_version)
+	inputVersion := xutil.CalcVersion(processVersion)
 
 	var isDeclareVersion bool
 
-	// Compare Large version
+	// Compare version
 	// Just like that:
-	// 2.1.x == 2.1.x; 2.1.x > 2.0.x
-	if inputLargeVersion < currLargeVersion {
+	// eg: 2.1.x == 2.1.x; 2.1.x > 2.0.x
+	if inputVersion < currVersion {
 
 		log.Error("Failed to CreateCandidate on stakingPlugin: input version  less than current valid version",
 			"input Version", xutil.ProcessVerion2Str(processVersion), "current Large Version",
 			xutil.ProcessVerion2Str(curr_version))
 
 		return ProcessVersionErr
-	} else if inputLargeVersion > currLargeVersion {
+	} else if inputVersion > currVersion {
 		isDeclareVersion = true
 	}
-	can.ProcessVersion = currLargeVersion
+	can.ProcessVersion = currVersion
 
 	// from account free von
 	if typ == FreeOrigin {

@@ -21,11 +21,11 @@ func CalculateEpoch(blockNumber uint64) uint64 {
 
 	switch  {
 	// first epoch
-	case (div == 0 && mod == 0) || (div == 0 && mod > 0 && mod < size):
+	case (div == 0 && mod == 0) || (div == 0 && mod > 0):
 		epoch = 1
 	case div > 0 && mod == 0:
 		epoch = div
-	case div > 0 && mod > 0 && mod < size:
+	case div > 0 && mod > 0:
 		epoch = div + 1
 	}
 
@@ -42,11 +42,11 @@ func CalculateRound (blockNumber uint64) uint64 {
 	mod := blockNumber % size
 	switch  {
 	// first consensus round
-	case (div == 0 && mod == 0) || (div == 0 && mod > 0 && mod < size):
+	case (div == 0 && mod == 0) || (div == 0 && mod > 0):
 		round = 1
 	case div > 0 && mod == 0:
 		round = div
-	case div > 0 && mod > 0 && mod < size:
+	case div > 0 && mod > 0:
 		round = div + 1
 	}
 
@@ -136,7 +136,7 @@ func CheckDelegateThreshold(delegate *big.Int) bool {
 // The ProcessVersion: Major.Minor.Patch eg. 1.1.0
 // Calculate the LargeVersion
 // eg: 1.1.0 ==> 1.1
-func CalcLargeVersion (processVersion uint32) uint32 {
+func CalcVersion (processVersion uint32) uint32 {
 	return processVersion>>8
 }
 
