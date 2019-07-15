@@ -257,7 +257,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
 				reactor.SetValidatorMode(common.INNER_VALIDATOR_MODE)
 			} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
-				// TODO init reactor
 				reactor.SetValidatorMode(common.PPOS_VALIDATOR_MODE)
 				handlePlugin(reactor)
 				agency = reactor
