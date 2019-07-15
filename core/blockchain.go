@@ -440,6 +440,10 @@ func (bc *BlockChain) repair(head **types.Block) error {
 			log.Info("Rewound blockchain to past state", "number", (*head).Number(), "hash", (*head).Hash())
 			return nil
 		}
+
+		num := (*head).NumberU64()-1
+		fmt.Println(num)
+
 		// Otherwise rewind one block and recheck state availability there
 		(*head) = bc.GetBlock((*head).ParentHash(), (*head).NumberU64()-1)
 	}

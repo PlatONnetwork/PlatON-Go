@@ -26,6 +26,7 @@ var (
 	snapdb 		snapshotdb.DB
 	govPlugin	*plugin.GovPlugin
 	evm			*vm.EVM
+
 )
 
 
@@ -35,7 +36,7 @@ func setup(t *testing.T) func() {
 
 	t.Log("setup()......")
 
-	state, _ := newChainState()
+	state, _, _ := newChainState()
 	evm = newEvm(blockNumber, blockHash, state)
 
 	newPlugins()
@@ -54,7 +55,9 @@ func setup(t *testing.T) func() {
 }
 
 func getHeader() types.Header {
-	size := int64(xcom.ConsensusSize * xcom.EpochSize)
+	newChainState()
+	xcom.SetEconomicModel(&xcom.DefaultConfig)
+	size := int64(xcom.ConsensusSize() * xcom.EpochSize())
 	return types.Header{
 		Number: big.NewInt(size),
 	}

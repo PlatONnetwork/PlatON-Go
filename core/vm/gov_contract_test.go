@@ -148,7 +148,7 @@ func setup(t *testing.T) func() {
 
 	precompiledContract := vm.PlatONPrecompiledContracts[commonvm.GovContractAddr]
 	gc, _ = precompiledContract.(*vm.GovContract)
-	state, _ := newChainState()
+	state,_, _ := newChainState()
 	gc.Evm = newEvm(blockNumber, blockHash, state)
 	gc.Contract = newContract(common.Big0)
 

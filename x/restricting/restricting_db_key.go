@@ -7,6 +7,7 @@ import (
 var (
 	RestrictingKeyPrefix    = []byte("RestrictInfo")
 	RestrictRecordKeyPrefix = []byte("RestrictRecord")
+	EpochPrefix             = []byte("RestrictEpoch")
 )
 
 // RestrictingKey used for search restricting info. key: prefix + account
@@ -30,4 +31,8 @@ func GetReleaseEpochKey(epoch uint64) []byte {
 func GetReleaseAccountKey(epoch uint64, index uint32) []byte {
 	releaseIndex := append(common.Uint64ToBytes(epoch), common.Uint32ToBytes(index)...)
 	return append(RestrictRecordKeyPrefix, releaseIndex...)
+}
+
+func GetLatestEpochKey() []byte {
+	return append(EpochPrefix, []byte("latest")...)
 }

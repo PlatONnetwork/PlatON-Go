@@ -20,10 +20,8 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"io"
 	"math/big"
 	"reflect"
@@ -139,11 +137,11 @@ func DecodeBytes(b []byte, val interface{}) error {
 	// TODO: this could use a Stream from a pool.
 	r := bytes.NewReader(b)
 	if err := NewStream(r, uint64(len(b))).Decode(val); err != nil {
-		log.Error("Failed to DecodeBytes", "err", err, "[]bytecontext", fmt.Sprintf(" pointer：%p, value：%+v, len：%d, context's Hash：%v", b, b, len(b), hex.EncodeToString(b)))
+		//log.Error("Failed to DecodeBytes", "err", err, "[]bytecontext", fmt.Sprintf(" pointer：%p, value：%+v, len：%d, context's Hash：%v", b, b, len(b), hex.EncodeToString(b)))
 		return err
 	}
 	if r.Len() > 0 {
-		log.Error("Failed to DecodeBytes", "err", ErrMoreThanOneValue, "[]bytecontext", fmt.Sprintf(" pointer：%p, value：%+v, len：%d, context's Hash：%v", b, b, len(b), hex.EncodeToString(b)))
+		//log.Error("Failed to DecodeBytes", "err", ErrMoreThanOneValue, "[]bytecontext", fmt.Sprintf(" pointer：%p, value：%+v, len：%d, context's Hash：%v", b, b, len(b), hex.EncodeToString(b)))
 		return ErrMoreThanOneValue
 	}
 	return nil

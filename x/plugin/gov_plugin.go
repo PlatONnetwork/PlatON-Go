@@ -14,7 +14,6 @@ import (
 
 var (
 	govPluginOnce         sync.Once
-	SupportRate_Threshold = 0.85
 )
 
 type GovPlugin struct {
@@ -164,7 +163,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 
 	if ok {
 		sub := header.Number.Uint64() - versionProposal.GetActiveBlock()
-		if sub >= 0 && sub%xcom.ConsensusSize == 0 {
+		if sub >= 0 && sub%xcom.ConsensusSize() == 0 {
 			validatorList, err := stk.ListCurrentValidatorID(blockHash, header.Number.Uint64())
 			if err != nil {
 				err := errors.New("[GOV] BeginBlock(): ListValidatorNodeID failed.")
@@ -188,7 +187,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 					}
 				}
 			}
-			if updatedNodes == xcom.ConsValidatorNum {
+			if updatedNodes == xcom.ConsValidatorNum() {
 				tallyResult, err := govPlugin.govDB.GetTallyResult(preActiveProposalID, state)
 				if err != nil {
 					log.Error("[GOV] EndBlock(): find tally result by proposal ID failed.", "preActiveProposalID", preActiveProposalID)
@@ -496,7 +495,7 @@ func (govPlugin *GovPlugin) tallyForTextProposal(votedVerifierList []discover.No
 	}
 	supportRate := float64(yeas) / float64(accuCnt)
 
-	if supportRate >= SupportRate_Threshold {
+	if supportRate >= xcom.SupportRateThreshold() {
 		status = gov.Pass
 	} else {
 		status = gov.Failed
@@ -541,7 +540,7 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 
 	status := gov.Voting
 	supportRate := float64(yeas) * 100 / float64(verifiersCnt)
-	if supportRate > SupportRate_Threshold {
+	if supportRate > xcom.SupportRateThreshold() {
 		status = gov.PreActive
 
 		activeList, err := govPlugin.govDB.GetActiveNodeList(blockHash, proposalID)

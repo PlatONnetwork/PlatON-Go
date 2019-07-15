@@ -5,22 +5,19 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
 )
 
-var pk *ecdsa.PublicKey
-
-func initHandler() {
+func initHandler() *ecdsa.PrivateKey {
 	NewVrfHandler(hexutil.MustDecode("0x0376e56dffd12ab53bb149bda4e0cbce2b6aabe4cccc0df0b5a39e12977a2fcd23"))
-	if pk == nil {
-		pri, err := crypto.GenerateKey()
-		if err != nil {
-			panic(err)
-		}
-		pk = &pri.PublicKey
-		vh.SetPrivateKey(pri)
+	pri, err := crypto.GenerateKey()
+	if err != nil {
+		panic(err)
 	}
+	vh.SetPrivateKey(pri)
+	return pri
 }
 
 func TestVrfHandler_StorageLoad(t *testing.T) {
@@ -51,7 +48,7 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 }
 
 func TestVrfHandler_Verify(t *testing.T) {
-	initHandler()
+	sk := initHandler()
 	defer func() {
 		vh.db.Clear()
 	}()
@@ -60,8 +57,19 @@ func TestVrfHandler_Verify(t *testing.T) {
 	if value, err := vh.GenerateNonce(blockNumber, common.Hash{}); nil != err {
 		t.Error(err)
 	} else {
-		if err := vh.VerifyVrf(pk, blockNumber, hash, common.ZeroHash, value); nil != err {
+		if err := vh.VerifyVrf(&sk.PublicKey, blockNumber, hash, common.ZeroHash, value); nil != err {
 			t.Error(err)
 		}
+		pri, err := crypto.GenerateKey()
+		if err != nil {
+			panic(err)
+		}
+		vh.SetPrivateKey(pri)
+		nonce, err := vh.GenerateNonce(blockNumber, common.Hash{})
+		if nil != err {
+			t.Error(err)
+		}
+		err = vh.VerifyVrf(&sk.PublicKey, blockNumber, hash, common.ZeroHash, nonce)
+		assert.Equal(t, ErrInvalidVrfProve, err)
 	}
 }

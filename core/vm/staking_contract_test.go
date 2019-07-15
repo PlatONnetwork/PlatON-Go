@@ -181,8 +181,11 @@ Standard test cases
 func TestStakingContract_createStaking(t *testing.T) {
 
 
-	state, _ := newChainState()
+
+
+	state, genesis, _ := newChainState()
 	newPlugins()
+
 
 
 	sndb := snapshotdb.Instance()
@@ -190,7 +193,7 @@ func TestStakingContract_createStaking(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 	}
 	create_staking(blockNumber, blockHash, state, 1, t)
@@ -200,7 +203,7 @@ func TestStakingContract_createStaking(t *testing.T) {
 func TestStakingContract_editorCandidate(t *testing.T) {
 
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -210,7 +213,7 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -298,7 +301,7 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 func TestStakingContract_increaseStaking (t *testing.T) {
 
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -308,7 +311,7 @@ func TestStakingContract_increaseStaking (t *testing.T) {
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -388,7 +391,7 @@ func TestStakingContract_increaseStaking (t *testing.T) {
 func TestStakingContract_withdrewCandidate (t *testing.T) {
 
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -398,7 +401,7 @@ func TestStakingContract_withdrewCandidate (t *testing.T) {
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -468,7 +471,7 @@ func TestStakingContract_withdrewCandidate (t *testing.T) {
 func TestStakingContract_delegate (t *testing.T) {
 
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -479,7 +482,7 @@ func TestStakingContract_delegate (t *testing.T) {
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -522,7 +525,7 @@ func TestStakingContract_delegate (t *testing.T) {
 func TestStakingContract_withdrewDelegate (t *testing.T) {
 
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -532,7 +535,7 @@ func TestStakingContract_withdrewDelegate (t *testing.T) {
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -606,7 +609,7 @@ func TestStakingContract_withdrewDelegate (t *testing.T) {
 
 func TestStakingContract_getVerifierList (t *testing.T) {
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
@@ -620,7 +623,7 @@ func TestStakingContract_getVerifierList (t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
 		return
 	}
@@ -667,7 +670,7 @@ func TestStakingContract_getVerifierList (t *testing.T) {
 
 func TestStakingContract_getValidatorList (t *testing.T) {
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
@@ -681,7 +684,7 @@ func TestStakingContract_getValidatorList (t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
 		return
 	}
@@ -728,7 +731,7 @@ func TestStakingContract_getValidatorList (t *testing.T) {
 func TestStakingContract_getCandidateList(t *testing.T) {
 
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 
 	//state.Prepare(txHashArr[idx], blockHash, idx)
 	newPlugins()
@@ -738,7 +741,7 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
 		return
 	}
@@ -809,7 +812,7 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -818,7 +821,7 @@ func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 	}()
 
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -897,7 +900,7 @@ func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 func TestStakingContract_getDelegateInfo (t *testing.T) {
 
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -907,7 +910,7 @@ func TestStakingContract_getDelegateInfo (t *testing.T) {
 
 	index := 1
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
@@ -977,7 +980,7 @@ func TestStakingContract_getDelegateInfo (t *testing.T) {
 func TestStakingContract_getCandidateInfo (t *testing.T) {
 
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -985,7 +988,7 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("Failed to newBlock", err)
 		return
 	}
@@ -1007,7 +1010,7 @@ Expand test cases
 func TestStakingContract_batchCreateStaking(t *testing.T) {
 
 
-	state, _ := newChainState()
+	state, genesis, _ := newChainState()
 	newPlugins()
 
 	sndb := snapshotdb.Instance()
@@ -1015,7 +1018,7 @@ func TestStakingContract_batchCreateStaking(t *testing.T) {
 		sndb.Clear()
 	}()
 
-	if err := sndb.NewBlock(blockNumber, common.ZeroHash, blockHash); nil != err {
+	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("Failed to newBlock", err)
 		return
 	}

@@ -73,8 +73,6 @@ type ParamValue struct {
 	Value 	interface{}    		`json:"Value"`
 }
 
-var MaxVotingDuration = uint64(14*24*60*60) / xcom.ConsensusSize * xcom.ConsensusSize
-
 type Proposal interface {
 	//SetProposalID(proposalID common.Hash)
 	GetProposalID() common.Hash
@@ -348,8 +346,8 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 	}
 
 	difference := vp.ActiveBlock - vp.EndVotingBlock
-	quotient := difference / xcom.ConsensusSize
-	remainder := difference % xcom.ConsensusSize
+	quotient := difference / xcom.ConsensusSize()
+	remainder := difference % xcom.ConsensusSize()
 
 	if difference <= 0 || remainder != 0 || quotient < 4 || quotient > 10 {
 		return common.NewBizError("active block number invalid.")
@@ -499,7 +497,7 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, topic, desc, 
 		return false, err
 	}*/
 
-	if xutil.CalculateRound(endVotingBlock)-xutil.CalculateRound(submitBlock) <= 0 || endVotingBlock > submitBlock+MaxVotingDuration {
+	if xutil.CalculateRound(endVotingBlock)-xutil.CalculateRound(submitBlock) <= 0 || endVotingBlock > submitBlock+xcom.MaxVotingDuration() {
 		return common.NewBizError("end voting block number invalid.")
 	}
 
