@@ -603,7 +603,7 @@ func (govPlugin *GovPlugin) tallyBasic(votedVerifierList []discover.NodeID, accu
 	}
 	supportRate := float64(yeas) / float64(accuCnt)
 
-	if supportRate >= SupportRate_Threshold {
+	if supportRate >= xcom.SupportRateThreshold() {
 		status = gov.Pass
 	} else {
 		status = gov.Failed
