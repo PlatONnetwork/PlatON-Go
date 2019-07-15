@@ -246,7 +246,7 @@ func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, b
 
 	//check caller and proposer
 	if !govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, proposal.GetSubmitBlock()) {
-		return common.NewBizError("[GOV] Submit(): Tx sender is not a verifier.")
+		return common.NewBizError("tx sender is not a verifier.")
 	}
 
 	//handle version proposal
@@ -255,16 +255,16 @@ func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, b
 		//another versionProposal in voting, exit.
 		vp, err := govPlugin.findVotingVersionProposal(blockHash, state)
 		if err != nil {
-			log.Error("[GOV] Submit(): to find if there's a voting version proposal failed", "blockHash", blockHash)
+			log.Error("to find if there's a voting version proposal failed", "blockHash", blockHash)
 			return err
 		} else if vp != nil {
-			log.Error("[GOV] Submit(): existing a voting version proposal.", "votingProposalID", vp.GetProposalID())
+			log.Error("existing a voting version proposal.", "votingProposalID", vp.GetProposalID())
 			return err
 		}
 		//another VersionProposal in Pre-active process，exit
 		proposalID, err := govPlugin.govDB.GetPreActiveProposalID(blockHash, state)
 		if err != nil {
-			log.Error("[GOV] Submit(): to check if there's a pre-active version proposal failed.", "blockHash", blockHash)
+			log.Error("to check if there's a pre-active version proposal failed.", "blockHash", blockHash)
 			return err
 		}
 		if proposalID != common.ZeroHash {
@@ -274,11 +274,11 @@ func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, b
 
 	//handle storage
 	if err := govPlugin.govDB.SetProposal(proposal, state); err != nil {
-		log.Error("[GOV] Submit(): save proposal failed", "proposalID", proposal.GetProposalID())
+		log.Error("save proposal failed", "proposalID", proposal.GetProposalID())
 		return err
 	}
 	if err := govPlugin.govDB.AddVotingProposalID(blockHash, proposal.GetProposalID(), state); err != nil {
-		log.Error("[GOV] Submit(): add proposal ID to voting proposal ID list failed", "proposalID", proposal.GetProposalID())
+		log.Error("add proposal ID to voting proposal ID list failed", "proposalID", proposal.GetProposalID())
 		return err
 	}
 	return nil
@@ -312,10 +312,10 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	//check if vote.proposalID is in voting
 	votingIDs, err := govPlugin.listVotingProposalID(blockHash, state)
 	if err != nil {
-		log.Error("[GOV] Submit(): to list all voting proposal IDs failed", "blockHash", blockHash)
+		log.Error("to list all voting proposal IDs failed", "blockHash", blockHash)
 		return err
 	} else if votingIDs == nil {
-		log.Error("[GOV] Submit(): there's no voting proposal ID.", "blockHash", blockHash)
+		log.Error("there's no voting proposal ID.", "blockHash", blockHash)
 		return err
 	}else {
 		var isVoting = false
@@ -632,7 +632,7 @@ func (govPlugin *GovPlugin) tallyBasic(votedVerifierList []discover.NodeID, accu
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	if err != nil {
-		log.Error("list verifiers failed", "blockHash", blockHash)
+		log.Error("list verifiers failed", "blockHash", blockHash, "err", err)
 		return false
 	}
 

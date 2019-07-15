@@ -98,6 +98,7 @@ func create_staking (state *state.StateDB, blockNumber *big.Int, blockHash commo
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  uint32(index),
 		Shares:          balance,
+		ProcessVersion:  initProcessVersion,
 
 		// Prevent null pointer initialization
 		Released: common.Big0,
@@ -115,7 +116,7 @@ func create_staking (state *state.StateDB, blockNumber *big.Int, blockHash commo
 
 	canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
 
-	return plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, initProcessVersion, typ, canAddr, canTmp)
+	return plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, typ, canAddr, canTmp)
 }
 
 func getCandidate (blockHash common.Hash, index int, t *testing.T) *staking.Candidate {
@@ -1730,6 +1731,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
+			ProcessVersion:  initProcessVersion,
 
 			// Prevent null pointer initialization
 			Released: common.Big0,
@@ -1746,8 +1748,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -1916,7 +1917,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -1932,8 +1933,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2122,7 +2122,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -2138,8 +2138,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2352,7 +2351,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -2368,8 +2367,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2551,7 +2549,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -2567,8 +2565,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2675,7 +2672,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -2691,8 +2688,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2791,7 +2787,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -2807,8 +2803,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -2980,7 +2975,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -2996,8 +2991,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -3187,7 +3181,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -3203,8 +3197,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -3392,7 +3385,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -3408,8 +3401,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -3579,7 +3571,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -3595,8 +3587,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -3776,7 +3767,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -3792,8 +3783,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -3956,7 +3946,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -3972,8 +3962,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -4083,7 +4072,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -4099,8 +4088,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -4289,7 +4277,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -4305,8 +4293,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -4483,7 +4470,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -4499,8 +4486,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance, 0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -4676,7 +4662,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -4692,8 +4678,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -4872,7 +4857,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -4888,8 +4873,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)
@@ -5096,7 +5080,7 @@ func Test_IteratorCandidate (t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -5112,8 +5096,7 @@ func Test_IteratorCandidate (t *testing.T) {
 		}
 
 		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
-		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,
-			initProcessVersion, 0, canAddr, canTmp)
+		err = plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, balance,0, canAddr, canTmp)
 
 		if nil != err {
 			t.Errorf("Failed to Create Staking, num: %d, err: %v", i, err)

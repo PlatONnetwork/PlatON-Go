@@ -322,7 +322,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 		BenifitAddress:  addr,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  1,
-		ProcessVersion:  1,
+		ProcessVersion:  initProcessVersion,
 		Shares:          new(big.Int).SetUint64(1000),
 
 		Released:           common.Big0,
@@ -335,7 +335,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := snapshotdb.Instance().NewBlock(blockNumber, chash, common.ZeroHash); nil != err {
 		panic(err)
 	}
-	if err := plugin.StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, initProcessVersion, 0, addr, can); nil != err {
+	if err := plugin.StakingInstance().CreateCandidate(stateDB, common.ZeroHash, blockNumber, can.Shares, 0, addr, can); nil != err {
 		t.Error(err)
 	}
 	if err := si.Slash(data, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {

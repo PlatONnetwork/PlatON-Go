@@ -284,11 +284,11 @@ func newChainState() (*state.StateDB, *types.Block, error)  {
 	return state, genesis, nil
 }
 
-func build_staking_data (){
+func build_staking_data (genesisHash common.Hash){
 
 
 	stakingDB := staking.NewStakingDB ()
-	sndb.NewBlock(big.NewInt(1), common.ZeroHash, blockHash)
+	sndb.NewBlock(big.NewInt(1), genesisHash, blockHash)
 	// MOCK
 
 
@@ -310,7 +310,7 @@ func build_staking_data (){
 		StakingAddress: sender,
 		BenifitAddress: addrArr[1],
 		StakingTxIndex: uint32(2),
-		ProcessVersion: uint32(1),
+		ProcessVersion:  initProcessVersion,
 		Status: staking.Valided,
 		StakingEpoch: uint32(1),
 		StakingBlockNum: uint64(1),
@@ -332,7 +332,7 @@ func build_staking_data (){
 		StakingAddress: sender,
 		BenifitAddress: addrArr[2],
 		StakingTxIndex: uint32(3),
-		ProcessVersion: uint32(1),
+		ProcessVersion:  initProcessVersion,
 		Status: staking.Valided,
 		StakingEpoch: uint32(1),
 		StakingBlockNum: uint64(1),
@@ -356,7 +356,7 @@ func build_staking_data (){
 		StakingAddress: sender,
 		BenifitAddress: addrArr[3],
 		StakingTxIndex: uint32(4),
-		ProcessVersion: uint32(1),
+		ProcessVersion:  initProcessVersion,
 		Status: staking.Valided,
 		StakingEpoch: uint32(1),
 		StakingBlockNum: uint64(1),
@@ -429,7 +429,7 @@ func build_staking_data (){
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-
+			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
 			Released: common.Big0,
 			ReleasedHes: common.Big0,
@@ -542,7 +542,7 @@ func InitPlatONPluginTestData() {
 			StakingAddress:     sender,
 			BenifitAddress:     addrArr[idx],
 			StakingTxIndex:     uint32(idx),
-			ProcessVersion:     uint32(1),
+			ProcessVersion:  initProcessVersion,
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(1),
 			StakingBlockNum:    uint64(1),

@@ -16,14 +16,14 @@ import (
 )
 
 func TestSlashingContract_ReportMutiSign(t *testing.T) {
-	state, _, err := newChainState()
+	state, genesis , err := newChainState()
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
 	if nil != err {
 		t.Error(err)
 	}
-	build_staking_data()
+	build_staking_data(genesis.Hash())
 	contract := &vm.SlashingContract{
 		Plugin:   plugin.SlashInstance(),
 		Contract: newContract(common.Big0),
@@ -87,7 +87,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		BenifitAddress:  addr,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  1,
-		ProcessVersion:  1,
+		ProcessVersion:  initProcessVersion,
 		Shares:          new(big.Int).SetUint64(1000),
 
 		Released:           common.Big0,
@@ -97,7 +97,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	}
 	state.CreateAccount(addr)
 	state.AddBalance(addr, new(big.Int).SetUint64(1000000000000000000))
-	if err := plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, can.Shares, initProcessVersion, 0, addr, can); nil != err {
+	if err := plugin.StakingInstance().CreateCandidate(state, blockHash, blockNumber, can.Shares, 0, addr, can); nil != err {
 		t.Error(err)
 	}
 	runContract(contract, buf.Bytes(), t)

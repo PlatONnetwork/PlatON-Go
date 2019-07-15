@@ -148,7 +148,7 @@ func setup(t *testing.T) func() {
 
 	precompiledContract := vm.PlatONPrecompiledContracts[commonvm.GovContractAddr]
 	gc, _ = precompiledContract.(*vm.GovContract)
-	state,_, _ := newChainState()
+	state, genesis, _ := newChainState()
 	gc.Evm = newEvm(blockNumber, blockHash, state)
 	gc.Contract = newContract(common.Big0)
 
@@ -157,7 +157,7 @@ func setup(t *testing.T) func() {
 	govPlugin = plugin.GovPluginInstance()
 	gc.Plugin = govPlugin
 
-	build_staking_data()
+	build_staking_data(genesis.Hash())
 
 	snapdb = snapshotdb.Instance()
 

@@ -521,8 +521,7 @@ func (s *Ethereum) Start(srvr *p2p.Server) error {
 
 	if cbftEngine, ok := s.engine.(consensus.Bft); ok {
 		cbftEngine.SetPrivateKey(srvr.Config.PrivateKey)
-		// TODO VRF
-		xcom.GetVrfHandlerInstance().SetPrivateKey(srvr.Config.PrivateKey)
+		core.GetReactorInstance().SetPrivateKey(srvr.Config.PrivateKey)
 
 		if flag := cbftEngine.IsConsensusNode(); flag {
 			// self: s.chainConfig.Cbft.NodeID

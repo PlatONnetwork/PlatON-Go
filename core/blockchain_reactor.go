@@ -23,7 +23,6 @@ import (
 )
 
 type BlockChainReactor struct {
-	privateKey *ecdsa.PrivateKey
 
 	vh *xcom.VrfHandler
 
@@ -124,6 +123,11 @@ func (bcr *BlockChainReactor) SetValidatorMode (mode string) {
 func (bcr *BlockChainReactor) SetVRF_hanlder(vher *xcom.VrfHandler) {
 	bcr.vh = vher
 }
+
+func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
+	bcr.vh.SetPrivateKey(privateKey)
+}
+
 
 func (bcr *BlockChainReactor) SetBeginRule(rule []int) {
 	bcr.beginRule = rule

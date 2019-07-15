@@ -220,11 +220,11 @@ func newContract(value *big.Int) *vm.Contract {
 	return contract
 }
 
-func build_staking_data (){
+func build_staking_data (genesisHash common.Hash){
 
 
 	stakingDB := staking.NewStakingDB ()
-	sndb.NewBlock(big.NewInt(1), common.ZeroHash, blockHash)
+	sndb.NewBlock(big.NewInt(1), genesisHash, blockHash)
 	// MOCK
 
 
