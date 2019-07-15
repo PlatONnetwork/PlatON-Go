@@ -1,13 +1,11 @@
 package xcom
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 )
 
@@ -109,21 +107,27 @@ func (r *Result) DecodeRLP(s *rlp.Stream) error {
 
 
 // addLog let the result add to event.
-func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) error {
+func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {
 	var logdata [][]byte
 	logdata = make([][]byte, 0)
 	logdata = append(logdata, []byte(data))
-	buf := new(bytes.Buffer)
+
+	/*buf := new(bytes.Buffer)
 	if err := rlp.Encode(buf, logdata); nil != err {
-		return err
-	}
+		log.Error("Cannot RlpEncode the log data, data", "data", data)
+		return common.NewSysError("Cannot RlpEncode the log data")
+	}*/
+
+	encoded := common.MustRlpEncode(logdata)
+
 	state.AddLog(&types.Log{
 		Address:     contractAddr,
 		Topics:      []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
-		Data:        buf.Bytes(),
+		//Data:        buf.Bytes(),
+		Data:		 encoded,
 		BlockNumber: blockNumber,
 	})
-	return nil
+	return
 }
 
 

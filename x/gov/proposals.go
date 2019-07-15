@@ -13,6 +13,7 @@ type ProposalType uint8
 const (
 	Text    ProposalType = 0x01
 	Version ProposalType = 0x02
+	Param 	ProposalType = 0x03
 )
 
 
@@ -67,7 +68,10 @@ type VoteValue struct {
 	VoteOption VoteOption      `json:"voteOption"`
 }
 
-
+type ParamValue struct {
+	Name 	string 				`json:"Name"`
+	Value 	interface{}    		`json:"Value"`
+}
 
 type Proposal interface {
 	//SetProposalID(proposalID common.Hash)
@@ -100,7 +104,7 @@ type Proposal interface {
 	//SetTallyResult(tallyResult TallyResult)
 	GetTallyResult() TallyResult
 
-	Verify(curBlockNum uint64, state xcom.StateDB) error
+	Verify(submitBlock uint64, state xcom.StateDB) error
 
 	String() string
 }
@@ -198,11 +202,11 @@ func (tp TextProposal) GetTallyResult() TallyResult {
 	return tp.Result
 }
 
-func (tp TextProposal) Verify(curBlockNum uint64, state xcom.StateDB) error {
+func (tp TextProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 	if tp.ProposalType != Text {
 		return common.NewBizError("Proposal Type error.")
 	}
-	return verifyBasic(tp.ProposalID, tp.Proposer, tp.ProposalType, tp.Topic, tp.Desc, tp.GithubID, tp.Url, tp.EndVotingBlock, curBlockNum, state)
+	return verifyBasic(tp.ProposalID, tp.Proposer, tp.Topic, tp.Desc, tp.GithubID, tp.Url, tp.EndVotingBlock, submitBlock, state)
 }
 
 func (tp TextProposal) String() string {
@@ -327,13 +331,13 @@ func (vp VersionProposal) GetActiveBlock() uint64 {
 	return vp.ActiveBlock
 }
 
-func (vp VersionProposal) Verify(curBlockNum uint64, state xcom.StateDB) error {
+func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 
 	if vp.ProposalType != Version {
 		return common.NewBizError("Proposal Type error.")
 	}
 
-	if err := verifyBasic(vp.ProposalID, vp.Proposer, vp.ProposalType, vp.Topic, vp.Desc, vp.GithubID, vp.Url, vp.EndVotingBlock, curBlockNum, state); err != nil {
+	if err := verifyBasic(vp.ProposalID, vp.Proposer, vp.Topic, vp.Desc, vp.GithubID, vp.Url, vp.EndVotingBlock, submitBlock, state); err != nil {
 		return err
 	}
 
@@ -365,7 +369,103 @@ func (vp VersionProposal) String() string {
 		vp.ProposalID, vp.GithubID, vp.Topic, vp.ProposalType, vp.Proposer, vp.SubmitBlock, vp.EndVotingBlock, vp.ActiveBlock, vp.NewVersion)
 }
 
-func verifyBasic(proposalID common.Hash, proposer discover.NodeID, proposalType ProposalType, topic, desc, githubID, url string, endVotingBlock uint64, curBlockNum uint64, state xcom.StateDB) error {
+
+type ParamProposal struct {
+	ProposalID     common.Hash
+	GithubID       string
+	ProposalType   ProposalType
+	Topic          string
+	Desc           string
+	Url            string
+	SubmitBlock    uint64
+	EndVotingBlock uint64
+	Proposer       discover.NodeID
+	Result         TallyResult
+
+	ParamName	   string
+	CurrentValue   interface{}
+	NewValue	   interface{}
+}
+
+
+func (pp ParamProposal) GetProposalID() common.Hash {
+	return pp.ProposalID
+}
+func (pp ParamProposal) GetGithubID() string {
+	return pp.GithubID
+}
+
+
+func (pp ParamProposal) GetProposalType() ProposalType {
+	return pp.ProposalType
+}
+
+
+func (pp ParamProposal) GetTopic() string {
+	return pp.Topic
+}
+
+func (pp ParamProposal) GetDesc() string {
+	return pp.Desc
+}
+
+
+func (pp ParamProposal) GetUrl() string {
+	return pp.Url
+}
+
+func (pp ParamProposal) GetSubmitBlock() uint64 {
+	return pp.SubmitBlock
+}
+
+func (pp ParamProposal) GetEndVotingBlock() uint64 {
+	return pp.EndVotingBlock
+}
+
+func (pp ParamProposal) GetProposer() discover.NodeID {
+	return pp.Proposer
+}
+
+func (pp ParamProposal) GetTallyResult() TallyResult {
+	return pp.Result
+}
+
+func (pp ParamProposal) GetParamName() string {
+	return pp.ParamName
+}
+
+func (pp ParamProposal) GetCurrentValue() interface{} {
+	return pp.CurrentValue
+}
+
+func (pp ParamProposal) GetNewValue() interface{} {
+	return pp.NewValue
+}
+
+func (pp ParamProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
+
+	if pp.ProposalType != Param {
+		return common.NewBizError("Proposal Type error.")
+	}
+
+	return verifyBasic(pp.ProposalID, pp.Proposer, pp.Topic, pp.Desc, pp.GithubID, pp.Url, pp.EndVotingBlock, submitBlock, state)
+}
+
+func (pp ParamProposal) String() string {
+	return fmt.Sprintf(`Proposal %x: 
+  GithubID:            	%s
+  Topic:              	%s
+  Type:               	%x
+  Proposer:            	%x
+  SubmitBlock:        	%d
+  ParamName:        	%s
+  CurrentValue:        	%s
+  NewValue:   			%s`,
+		pp.ProposalID, pp.GithubID, pp.Topic, pp.ProposalType, pp.Proposer, pp.SubmitBlock, pp.ParamName, pp.CurrentValue, pp.NewValue)
+}
+
+
+func verifyBasic(proposalID common.Hash, proposer discover.NodeID, topic, desc, githubID, url string, endVotingBlock uint64, submitBlock uint64, state xcom.StateDB) error {
 	if len(proposalID) > 0 {
 		p, err := GovDBInstance().GetProposal(proposalID, state)
 		if err != nil {
@@ -397,7 +497,7 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, proposalType 
 		return false, err
 	}*/
 
-	if xutil.CalculateRound(endVotingBlock)-xutil.CalculateRound(curBlockNum) <= 0 || endVotingBlock > curBlockNum+xcom.MaxVotingDuration() {
+	if xutil.CalculateRound(endVotingBlock)-xutil.CalculateRound(submitBlock) <= 0 || endVotingBlock > submitBlock+xcom.MaxVotingDuration() {
 		return common.NewBizError("end voting block number invalid.")
 	}
 

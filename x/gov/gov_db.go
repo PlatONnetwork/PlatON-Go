@@ -69,13 +69,21 @@ func (self *GovDB) GetProposal(proposalID common.Hash, state xcom.StateDB) (Prop
 	if pType == byte(Text) {
 		var proposal TextProposal
 		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to text proposal")
 			return nil, common.NewSysError(e.Error())
 		}
 		p = proposal
 	} else if pType == byte(Version) {
 		var proposal VersionProposal
-		//proposal = VersionProposal{TextProposal{},0,common.Big0}
 		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to version proposal")
+			return nil, common.NewSysError(e.Error())
+		}
+		p = proposal
+	} else if pType == byte(Param) {
+		var proposal ParamProposal
+		if e := json.Unmarshal(pData, &proposal); e != nil {
+			log.Error("cannot parse data to param proposal")
 			return nil, common.NewSysError(e.Error())
 		}
 		p = proposal
@@ -402,4 +410,49 @@ func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.
 	} else {
 		return l, nil
 	}
+}
+
+func (self *GovDB) SetParam(paramMap map[string]interface{}, state xcom.StateDB) (error) {
+	if len(paramMap) > 0 {
+		paraListBytes, _ := json.Marshal(paramMap)
+		state.SetState(vm.GovContractAddr, KeyParams(), paraListBytes)
+	}
+	return nil
+}
+
+func (self *GovDB) GetParam(name string, state xcom.StateDB) (interface{}, error) {
+	paramMap, err := self.ListParam(state)
+	if err !=  nil {
+		return nil, err
+	}
+	return paramMap[name], nil
+}
+
+
+func (self *GovDB) UpdateParam(name string, oldValue interface{}, newValue interface{}, state xcom.StateDB) (error) {
+	paramMap, err := self.ListParam(state)
+	if err !=  nil {
+		return err
+	}
+
+	if oldV, exist := paramMap[name]; exist {
+		if oldV == newValue {
+			err = self.SetParam(paramMap, state)
+			if err !=  nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (self *GovDB) ListParam(state xcom.StateDB) (map[string]interface{}, error) {
+	paraListBytes := state.GetState(vm.GovContractAddr, KeyParams())
+
+	var paraMap map[string]interface{}
+	if err := json.Unmarshal(paraListBytes, &paraMap); err != nil {
+		return nil, common.NewSysError(err.Error())
+	}
+	return paraMap, nil
+
 }
