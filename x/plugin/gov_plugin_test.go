@@ -36,14 +36,14 @@ func setup(t *testing.T) func() {
 
 	t.Log("setup()......")
 
-	state, _, _ := newChainState()
+	state, genesis, _ := newChainState()
 	evm = newEvm(blockNumber, blockHash, state)
 
 	newPlugins()
 
-	govPlugin = govPlugin
+	govPlugin = plugin.GovPluginInstance()
 
-	build_staking_data()
+	build_staking_data(genesis.Hash())
 
 	snapdb = snapshotdb.Instance()
 
@@ -211,6 +211,7 @@ func submitText(t *testing.T, pid common.Hash) {
 		Topic:			"versionTopic",
 		Desc: 			"versionDesc",
 		Url:			"versionUrl",
+		SubmitBlock:	1,
 		EndVotingBlock:	uint64(22230),
 		Proposer:		nodeIdArr[0],
 	}
@@ -218,7 +219,7 @@ func submitText(t *testing.T, pid common.Hash) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
-	err := govPlugin.Submit(blockNumber.Uint64(), sender, vp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
 	if err != nil {
 		t.Fatalf("submit err: %s", err)
 	}
@@ -233,6 +234,7 @@ func submitVersion(t *testing.T, pid common.Hash) {
 		Topic:			"versionTopic",
 		Desc: 			"versionDesc",
 		Url:			"versionUrl",
+		SubmitBlock:	1,
 		EndVotingBlock:	uint64(22230),
 		Proposer:		nodeIdArr[0],
 		NewVersion:		uint32(1<<16 | 1<<8 | 1),
@@ -242,7 +244,7 @@ func submitVersion(t *testing.T, pid common.Hash) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], blockHash, 0)
 
-	err := govPlugin.Submit(blockNumber.Uint64(), sender, vp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
 	if err != nil {
 		t.Fatalf("submit err: %s", err)
 	}
@@ -252,10 +254,11 @@ func submitParam(t *testing.T, pid common.Hash) {
 	vp := gov.ParamProposal{
 		ProposalID:		pid,
 		GithubID:		"githubID",
-		ProposalType:	gov.Text,
+		ProposalType:	gov.Param,
 		Topic:			"versionTopic",
 		Desc: 			"versionDesc",
 		Url:			"versionUrl",
+		SubmitBlock:	1,
 		EndVotingBlock:	uint64(22230),
 		Proposer:		nodeIdArr[0],
 
@@ -267,7 +270,7 @@ func submitParam(t *testing.T, pid common.Hash) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
-	err := govPlugin.Submit(blockNumber.Uint64(), sender, vp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
 	if err != nil {
 		t.Fatalf("submit err: %s", err)
 	}
@@ -577,7 +580,7 @@ func TestGovPlugin_ParamProposalSuccess(t *testing.T) {
 
 		value, err := govPlugin.GetParamValue("param3", evm.StateDB)
 		if err != nil {
-			t.Error("cannot find the param value, %s", err.Error())
+			t.Errorf("cannot find the param value, %s", err.Error())
 			return
 		}else{
 			t.Logf("the param value, %2.2f", value.(float64))
