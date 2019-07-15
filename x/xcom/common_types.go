@@ -7,6 +7,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"math/big"
 )
@@ -115,6 +116,7 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 	logdata = append(logdata, []byte(data))
 	buf := new(bytes.Buffer)
 	if err := rlp.Encode(buf, logdata); nil != err {
+		log.Error("Cannot encode the data by RLP, data", "data", data)
 		return err
 	}
 	state.AddLog(&types.Log{
