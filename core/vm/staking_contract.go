@@ -30,11 +30,13 @@ const (
 	GetCandidateListErrStr   = "Getting candidateList is failed"
 	GetDelegateRelatedErrStr = "Getting related of delegate is failed"
 	IncreaseStakingErrStr    = "IncreaseStaking failed"
+	ProcessVersionErr        = "The version of the relates node's process is too low"
 	QueryCanErrStr           = "Query candidate info failed"
 	QueryDelErrSTr           = "Query delegate info failed"
 	StakeVonTooLowStr        = "Staking deposit too low"
 	StakingAddrNoSomeErrStr  = "Address must be the same as initiated staking"
 	WithdrewCanErrStr        = "Withdrew candidate failed"
+
 )
 
 const (
@@ -106,6 +108,27 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		return event, nil
 	}
 
+	// Query current active version
+	curr_version := plugin.GovPluginInstance().GetActiveVersion(state)
+	currVersion := xutil.CalcVersion(curr_version)
+	inputVersion := xutil.CalcVersion(processVersion)
+
+	var isDeclareVersion bool
+
+	// Compare version
+	// Just like that:
+	// eg: 2.1.x == 2.1.x; 2.1.x > 2.0.x
+	if inputVersion < currVersion {
+		err := fmt.Errorf("input Version: %s, current Large Version: %s", xutil.ProcessVerion2Str(processVersion), xutil.ProcessVerion2Str(curr_version))
+		res := xcom.Result{false, "", ProcessVersionErr + ": " + err.Error()}
+		event, _ := json.Marshal(res)
+		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
+
+	} else if inputVersion > currVersion {
+		isDeclareVersion = true
+	}
+
+
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to createStaking by parse nodeId", "txHash", txHash,
@@ -154,7 +177,21 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		},
 	}
 
-	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, processVersion, typ, canAddr, canTmp)
+
+
+	canTmp.ProcessVersion = currVersion
+
+	if isDeclareVersion {
+		// Declare new Version
+		err := plugin.GovPluginInstance().DeclareVersion(canTmp.StakingAddress, canTmp.NodeId,
+			processVersion, blockHash, blockNumber.Uint64(), state)
+		if nil != err {
+			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),"err", err)
+		}
+	}
+
+	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, canTmp)
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", CreateCanErrStr + ": " + err.Error()}

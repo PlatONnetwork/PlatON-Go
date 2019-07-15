@@ -18,10 +18,11 @@ package downloader
 
 import (
 	"errors"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
-	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -129,13 +130,15 @@ func (p *FakePeer) RequestHeadersByNumber(number uint64, amount int, skip int, r
 func (p *FakePeer) RequestBodies(hashes []common.Hash) error {
 	var (
 		txs [][]*types.Transaction
+		ex  [][]byte
 	)
 	for _, hash := range hashes {
 		block := rawdb.ReadBlock(p.db, hash, *p.hc.GetBlockNumber(hash))
 
 		txs = append(txs, block.Transactions())
+		ex = append(ex, block.ExtraData())
 	}
-	p.dl.DeliverBodies(p.id, txs, nil)
+	p.dl.DeliverBodies(p.id, txs, ex)
 	return nil
 }
 
