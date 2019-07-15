@@ -36,14 +36,14 @@ func setup(t *testing.T) func() {
 
 	t.Log("setup()......")
 
-	state, _, _ := newChainState()
+	state, genesis, _ := newChainState()
 	evm = newEvm(blockNumber, blockHash, state)
 
 	newPlugins()
 
-	govPlugin = govPlugin
+	govPlugin = plugin.GovPluginInstance()
 
-	build_staking_data()
+	build_staking_data(genesis.Hash())
 
 	snapdb = snapshotdb.Instance()
 
@@ -211,6 +211,7 @@ func submitText(t *testing.T, pid common.Hash) {
 		Topic:			"versionTopic",
 		Desc: 			"versionDesc",
 		Url:			"versionUrl",
+		SubmitBlock:	1,
 		EndVotingBlock:	uint64(22230),
 		Proposer:		nodeIdArr[0],
 	}
@@ -233,6 +234,7 @@ func submitVersion(t *testing.T, pid common.Hash) {
 		Topic:			"versionTopic",
 		Desc: 			"versionDesc",
 		Url:			"versionUrl",
+		SubmitBlock:	1,
 		EndVotingBlock:	uint64(22230),
 		Proposer:		nodeIdArr[0],
 		NewVersion:		uint32(1<<16 | 1<<8 | 1),
@@ -252,10 +254,11 @@ func submitParam(t *testing.T, pid common.Hash) {
 	vp := gov.ParamProposal{
 		ProposalID:		pid,
 		GithubID:		"githubID",
-		ProposalType:	gov.Text,
+		ProposalType:	gov.Param,
 		Topic:			"versionTopic",
 		Desc: 			"versionDesc",
 		Url:			"versionUrl",
+		SubmitBlock:	1,
 		EndVotingBlock:	uint64(22230),
 		Proposer:		nodeIdArr[0],
 
