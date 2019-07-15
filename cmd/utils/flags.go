@@ -20,7 +20,6 @@ package utils
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -28,6 +27,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/accounts/keystore"
@@ -1420,21 +1423,21 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("%v", err)
 	}
 	var engine consensus.Engine
-
+	engine = cbft.NewFaker()
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled: /*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
-		TrieNodeLimit:                                               eth.DefaultConfig.TrieCache,
-		TrieTimeLimit:                                               eth.DefaultConfig.TrieTimeout,
-		BodyCacheLimit: 	 										 eth.DefaultConfig.BodyCacheLimit,
-		BlockCacheLimit:  											 eth.DefaultConfig.BlockCacheLimit,
-		MaxFutureBlocks:  											 eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit: 	 											 eth.DefaultConfig.BadBlockLimit,
-		TriesInMemory:	 											 eth.DefaultConfig.TriesInMemory,
-		DefaultTxsCacheSize: 										 eth.DefaultConfig.DefaultTxsCacheSize,
-		DefaultBroadcastInterval: 									 eth.DefaultConfig.DefaultBroadcastInterval,
+		Disabled:/*ctx.GlobalString(GCModeFlag.Name) == "archive"*/ true,
+		TrieNodeLimit:            eth.DefaultConfig.TrieCache,
+		TrieTimeLimit:            eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit:           eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit:          eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks:          eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit:            eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:            eth.DefaultConfig.TriesInMemory,
+		DefaultTxsCacheSize:      eth.DefaultConfig.DefaultTxsCacheSize,
+		DefaultBroadcastInterval: eth.DefaultConfig.DefaultBroadcastInterval,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
 		cache.TrieNodeLimit = ctx.GlobalInt(CacheFlag.Name) * ctx.GlobalInt(CacheGCFlag.Name) / 100
@@ -1444,6 +1447,7 @@ func MakeChain(ctx *cli.Context, stack *node.Node) (chain *core.BlockChain, chai
 	if err != nil {
 		Fatalf("Can't create BlockChain: %v", err)
 	}
+
 	return chain, chainDb
 }
 
@@ -1459,22 +1463,22 @@ func MakeChainForCBFT(ctx *cli.Context, stack *node.Node, cfg *eth.Config, nodeC
 	var engine consensus.Engine
 	if config.Cbft != nil {
 		sc := node.NewServiceContext(nodeCfg, nil, stack.EventMux(), stack.AccountManager())
-		engine = eth.CreateConsensusEngine(sc, config, nil, false, chainDb, &cfg.CbftConfig, stack.EventMux());
+		engine = eth.CreateConsensusEngine(sc, config, nil, false, chainDb, &cfg.CbftConfig, stack.EventMux())
 	}
 
 	if gcmode := ctx.GlobalString(GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
 		Fatalf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled:      ctx.GlobalString(GCModeFlag.Name) == "archive",
-		TrieNodeLimit: eth.DefaultConfig.TrieCache,
-		TrieTimeLimit: eth.DefaultConfig.TrieTimeout,
-		BodyCacheLimit: eth.DefaultConfig.BodyCacheLimit,
-		BlockCacheLimit:eth.DefaultConfig.BlockCacheLimit,
-		MaxFutureBlocks:eth.DefaultConfig.MaxFutureBlocks,
-		BadBlockLimit: 	eth.DefaultConfig.BadBlockLimit,
-		TriesInMemory:	eth.DefaultConfig.TriesInMemory,
-		DefaultTxsCacheSize: eth.DefaultConfig.DefaultTxsCacheSize,
+		Disabled:                 ctx.GlobalString(GCModeFlag.Name) == "archive",
+		TrieNodeLimit:            eth.DefaultConfig.TrieCache,
+		TrieTimeLimit:            eth.DefaultConfig.TrieTimeout,
+		BodyCacheLimit:           eth.DefaultConfig.BodyCacheLimit,
+		BlockCacheLimit:          eth.DefaultConfig.BlockCacheLimit,
+		MaxFutureBlocks:          eth.DefaultConfig.MaxFutureBlocks,
+		BadBlockLimit:            eth.DefaultConfig.BadBlockLimit,
+		TriesInMemory:            eth.DefaultConfig.TriesInMemory,
+		DefaultTxsCacheSize:      eth.DefaultConfig.DefaultTxsCacheSize,
 		DefaultBroadcastInterval: eth.DefaultConfig.DefaultBroadcastInterval,
 	}
 	if ctx.GlobalIsSet(CacheFlag.Name) || ctx.GlobalIsSet(CacheGCFlag.Name) {
@@ -1529,9 +1533,7 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 	}
 }
 
-
-
-func GetEconomicDefaultConfig (ctx *cli.Context) *xcom.EconomicModel {
+func GetEconomicDefaultConfig(ctx *cli.Context) *xcom.EconomicModel {
 
 	// Override any default Economic configs for hard coded networks.
 	switch {
