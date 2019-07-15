@@ -36,6 +36,9 @@ type viewState struct {
 	//Include ViewNumber, viewChanges, prepareVote , proposal block of current view
 	currentView view
 
+	//Highest executed block height
+	highestExecutedBlock atomic.Value
+
 	highestQCBlock     atomic.Value
 	highestLockBlock   atomic.Value
 	highestCommitBlock atomic.Value

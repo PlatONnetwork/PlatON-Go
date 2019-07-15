@@ -4,7 +4,6 @@ import (
 	"crypto/ecdsa"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -18,18 +17,18 @@ import (
 	"time"
 )
 
-//type Config struct {
-//	sys    *params.CbftConfig
-//	option *eth.CbftConfig
-//}
+type Config struct {
+	sys    *params.CbftConfig
+	option *OptionsConfig
+}
 
 type Cbft struct {
-	config     params.CbftConfig
+	config     Config
 	eventMux   *event.TypeMux
 	closeOnce  sync.Once
 	exitCh     chan struct{}
-	txPool     *core.TxPool
-	blockChain *core.BlockChain //the block chain
+	txPool     consensus.TxPoolReset
+	blockChain consensus.ChainReader
 	peerMsgCh  chan *MsgInfo
 	syncMsgCh  chan *MsgInfo
 	evPool     EvidencePool
@@ -52,7 +51,24 @@ type Cbft struct {
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
-	return &Cbft{}
+	cbft := &Cbft{
+		config:    Config{sysConfig, optConfig},
+		eventMux:  eventMux,
+		exitCh:    make(chan struct{}),
+		peerMsgCh: make(chan *MsgInfo, optConfig.PeerMsgQueueSize),
+		syncMsgCh: make(chan *MsgInfo, optConfig.PeerMsgQueueSize),
+		log:       log.New(),
+	}
+
+	if evPool, err := NewEvidencePool(); err == nil {
+		cbft.evPool = evPool
+	} else {
+		return nil
+	}
+
+	//todo init safety rules, vote rules, state, executor
+
+	return cbft
 }
 
 func (cbft *Cbft) Start(chain consensus.ChainReader, executor consensus.Executor, pool consensus.TxPoolReset, agency consensus.Agency) error {
