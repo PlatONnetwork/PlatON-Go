@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
