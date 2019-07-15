@@ -438,6 +438,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, bn *big.I
 
 	originh, pivoth, err = d.findOrigin(p)
 	if err != nil {
+		log.Error("findOrigin error", "err", err.Error())
 		return err
 	}
 	origin = originh.Number.Uint64()
@@ -540,7 +541,7 @@ func (d *Downloader) findOrigin(p *peerConnection) (*types.Header, *types.Header
 			}
 			return headers[0], headers[1], nil
 		case <-timeout:
-			p.log.Debug("Waiting for head header timed out", "elapsed", ttl)
+			p.log.Error("Waiting for head header timed out", "elapsed", ttl)
 			return nil, nil, errTimeout
 		}
 	}

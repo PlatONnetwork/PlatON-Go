@@ -19,12 +19,13 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
-	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 	"math/big"
 	"sync"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/eth/downloader"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -410,7 +411,11 @@ func (p *peer) RequestPPOSStorage() error {
 
 func (p *peer) RequestOriginAndPivotByCurrent(current uint64) error {
 	p.Log().Debug("Fetching Origin and  Pivot", "curremt", current)
-	return p2p.Send(p.rw, GetOriginAndPivotMsg, current)
+	if err := p2p.Send(p.rw, GetOriginAndPivotMsg, current); err != nil {
+		p.Log().Debug("Fetching Origin and  Pivot error", "err", err.Error())
+		return err
+	}
+	return nil
 }
 
 // Handshake executes the eth protocol handshake, negotiating version number,
