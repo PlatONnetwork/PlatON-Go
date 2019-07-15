@@ -142,7 +142,7 @@ func runContract(contract *vm.SlashingContract, buf []byte, t *testing.T) {
 	res, err := contract.Run(buf)
 	if nil != err {
 		t.Error(err)
-	}else {
+	} else {
 		t.Log(string(res))
 	}
 }
