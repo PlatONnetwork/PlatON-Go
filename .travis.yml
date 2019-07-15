@@ -68,3 +68,4 @@ matrix:
         - pip install --user -r requirements.txt
         - cp -f ${WORKSPACE}/build/bin/platon ${WORKSPACE}/PlatON-Tests/deploy/rely/bin/
         - python run.py --node ./deploy/node/travis_node.yml --module blockchain,transaction
+        
