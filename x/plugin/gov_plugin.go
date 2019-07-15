@@ -234,19 +234,19 @@ func (govPlugin *GovPlugin) GetActiveVersion(state xcom.StateDB) uint32 {
 }
 
 // submit a proposal
-func (govPlugin *GovPlugin) Submit(curBlockNum uint64, from common.Address, proposal gov.Proposal, blockHash common.Hash, state xcom.StateDB) error {
+func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, blockHash common.Hash, state xcom.StateDB) error {
 
 	hex := common.Bytes2Hex(blockHash.Bytes())
-	log.Debug("check sender", "blockHash", hex, "blockNumber", curBlockNum )
+	log.Debug("check sender", "blockHash", hex, "blockNumber", proposal.GetSubmitBlock())
 
 	//param check
-	if err := proposal.Verify(curBlockNum, state); err != nil {
-		log.Error("verify proposal parameters failed", "from", from)
+	if err := proposal.Verify(proposal.GetSubmitBlock(), state); err != nil {
+		log.Error("verify proposal parameters failed", "err", err)
 		return common.NewBizError(err.Error())
 	}
 
 	//check caller and proposer
-	if !govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, curBlockNum) {
+	if !govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, proposal.GetSubmitBlock()) {
 		return common.NewBizError("[GOV] Submit(): Tx sender is not a verifier.")
 	}
 
@@ -286,7 +286,7 @@ func (govPlugin *GovPlugin) Submit(curBlockNum uint64, from common.Address, prop
 }
 
 // vote for a proposal
-func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash common.Hash, curBlockNum uint64, state xcom.StateDB) error {
+func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
 	if len(vote.ProposalID) == 0 || len(vote.VoteNodeID) == 0 || vote.VoteOption == 0 {
 		return common.NewBizError("Empty parameter detected.")
 	}
@@ -301,7 +301,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	}
 
 	//check caller and voter
-	if !govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, curBlockNum) {
+	if !govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, blockNumber) {
 		return common.NewBizError("The sender is not a verifier.")
 	}
 
@@ -352,11 +352,11 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 }
 
 // node declares it's version
-func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, version uint32, blockHash common.Hash, curBlockNum uint64, state xcom.StateDB) error {
+func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, version uint32, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
 
 	//check caller is a Verifier or Candidate
-	isVerifier := govPlugin.checkVerifier(from, declaredNodeID, blockHash, curBlockNum)
-	isCandidate := govPlugin.checkCandidate(from, declaredNodeID, blockHash, curBlockNum)
+	isVerifier := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber)
+	isCandidate := govPlugin.checkCandidate(from, declaredNodeID, blockHash, blockNumber)
 	if !(isVerifier || isCandidate) {
 		return common.NewBizError("The sender is not a verifier or candidate.")
 	}
@@ -376,7 +376,7 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 	if votingVP != nil {
 		if version>>8 == activeVersion>>8 {
 			//the declared version is the current active version, notify staking immediately
-			stk.DeclarePromoteNotify(blockHash, curBlockNum, declaredNodeID, version)
+			stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, version)
 		} else if version>>8 == votingVP.GetNewVersion()>>8 {
 			//the declared version is the next version, will notify staking when the proposal is passed
 			govPlugin.govDB.AddActiveNode(blockHash, votingVP.ProposalID, declaredNodeID)
@@ -387,7 +387,7 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 	} else {
 		if version>>8 == activeVersion>>8 {
 			//the declared version is the current active version, notify staking immediately
-			stk.DeclarePromoteNotify(blockHash, curBlockNum, declaredNodeID, version)
+			stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, version)
 		} else {
 			log.Error("[GOV] DeclareVersion(): declared version invalid.", "version", version)
 			return common.NewBizError("declared version invalid.")
