@@ -1,0 +1,32 @@
+language: go
+go_import_path: github.com/PlatONnetwork/PlatON-Go
+# sudo: false
+matrix:
+  include:
+    # code covrage
+    - name: code scan
+      os: linux
+      dist: xenial
+      sudo: required
+      go: 
+        - 1.12.x
+        - tip
+      script:
+        - go test -race -coverprofile=coverage.txt -covermode=atomic `go list ./... | grep -v swarm|grep -v tests|grep -v bn256`
+      after_success:
+        - bash <(curl -s https://codecov.io/bash)
+
+    # sonar cloud
+    - name: code scan
+      os: linux
+      dist: xenial
+      sudo: required
+      go: 
+        - 1.12.x
+      script:
+        - sonar-scanner \
+            -Dsonar.projectKey=shinnng_PlatON-Go \
+            -Dsonar.organization=shinnng-github \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=879aae371b0fd5b1c27ce2e8ac16cf9e69ebedbe
