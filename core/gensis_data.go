@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
@@ -13,8 +14,9 @@ import (
 	"math/big"
 )
 
-func genesisStakingData(g *Genesis, db *staking.StakingDB, genesisHash common.Hash, version uint32) error {
+func genesisStakingData(g *Genesis, genesisHash common.Hash, version uint32) error {
 
+	snapdb := snapshotdb.Instance()
 
 	validatorQueue := make(staking.ValidatorQueue, len(g.Config.Cbft.InitialNodes))
 	for index, node := range g.Config.Cbft.InitialNodes {
@@ -46,12 +48,22 @@ func genesisStakingData(g *Genesis, db *staking.StakingDB, genesisHash common.Ha
 			return fmt.Errorf("Failed to convert nodeID to address. ID:%v, error:%s", can.NodeId, err)
 		}
 
-		if err = db.SetCandidateStore(genesisHash, nodeAddr, can); err != nil {
-			return fmt.Errorf("Failed to Store Candidate Info. ID:%v, error:%s", can.NodeId, err)
+
+
+		key := staking.CandidateKeyByAddr(nodeAddr)
+
+		if val, err := rlp.EncodeToBytes(can); nil != err {
+			return fmt.Errorf("Failed to Store Candidate Info: rlp encodeing failed. ID:%v, error:%s", can.NodeId, err)
+		}else {
+			if err := snapdb.PutBaseDB(key, val); nil != err {
+				return fmt.Errorf("Failed to Store Candidate Info: PutBaseDB failed. ID:%v, error:%s", can.NodeId, err)
+			}
 		}
 
-		if err = db.SetCanPowerStore(genesisHash, nodeAddr, can); err != nil {
-			return fmt.Errorf("Failed to Store Candidate Power. ID:%v, error:%s", can.NodeId, err)
+
+		powerKey := staking.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProcessVersion)
+		if err := snapdb.PutBaseDB(powerKey, nodeAddr.Bytes()); nil != err {
+			return fmt.Errorf("Failed to Store Candidate Power: PutBaseDB failed. ID:%v, error:%s", can.NodeId, err)
 		}
 
 
@@ -74,6 +86,7 @@ func genesisStakingData(g *Genesis, db *staking.StakingDB, genesisHash common.Ha
 		Arr:   validatorQueue,
 	}
 
+
 	// build current validators
 	validatorLIst := &staking.Validator_array{
 		Start: 1,
@@ -81,14 +94,45 @@ func genesisStakingData(g *Genesis, db *staking.StakingDB, genesisHash common.Ha
 		Arr:   validatorQueue,
 	}
 
-	if err := db.SetVerfierList(genesisHash, verifierList); err != nil {
-		return fmt.Errorf("Failed to Store Epoch Validators. error:%s", err)
+	// build pre validators
+	pre_validatorLIst := &staking.Validator_array{
+		Start: 0,
+		End:   0,
+		Arr:   validatorQueue,
 	}
 
-	if err := db.SetCurrentValidatorList(genesisHash, validatorLIst); err != nil {
-		return fmt.Errorf("Failed to Store Current Round Validators. error:%s", err)
+
+	// current epoch
+	verifiers, err := rlp.EncodeToBytes(verifierList)
+	if nil != err {
+		return fmt.Errorf("Failed to Store Epoch Validators: rlp encodeing failed. error:%s", err)
+	}
+	if err := snapdb.PutBaseDB(staking.GetEpochValidatorKey(), verifiers); nil != err {
+		return fmt.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err)
 	}
 
+
+	// pre round
+	pre_vals, err := rlp.EncodeToBytes(pre_validatorLIst)
+	if nil != err {
+		return fmt.Errorf("Failed to Store Previous Round Validators: rlp encodeing failed. error:%s", err)
+	}
+	if err := snapdb.PutBaseDB(staking.GetPreRoundValidatorKey(), pre_vals); nil != err {
+		return fmt.Errorf("Failed to Store Previous Round Validators: PutBaseDB failed. error:%s", err)
+	}
+
+	// current round
+	vals, err := rlp.EncodeToBytes(validatorLIst)
+	if nil != err {
+		return fmt.Errorf("Failed to Store Current Round Validators: rlp encodeing failed. error:%s", err)
+	}
+	if err := snapdb.PutBaseDB(staking.GetCurRoundValidatorKey(), vals); nil != err {
+		return fmt.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err)
+	}
+
+	if err := snapdb.SetCurrent(genesisHash, *common.Big0, *common.Big0); nil != err {
+		return fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err)
+	}
 	return nil
 }
 

@@ -24,6 +24,8 @@ import (
 type BlockChainReactor struct {
 	privateKey *ecdsa.PrivateKey
 
+	vh *xcom.VrfHandler
+
 	eventMux     *event.TypeMux
 	bftResultSub *event.TypeMuxSubscription
 
@@ -33,6 +35,8 @@ type BlockChainReactor struct {
 	beginRule []int
 	// Order rules for xxPlugins called in EndBlocker
 	endRule []int
+
+	validatorMode string
 }
 
 var bcr *BlockChainReactor
@@ -112,6 +116,14 @@ func (bcr *BlockChainReactor) SetPluginEventMux() {
 	plugin.StakingInstance().SetEventMux(bcr.eventMux)
 }
 
+func (bcr *BlockChainReactor) SetValidatorMode (mode string) {
+	bcr.validatorMode = mode
+}
+
+func (bcr *BlockChainReactor) SetVRF_hanlder(vher *xcom.VrfHandler) {
+	bcr.vh = vher
+}
+
 func (bcr *BlockChainReactor) SetBeginRule(rule []int) {
 	bcr.beginRule = rule
 }
@@ -127,7 +139,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	// store the sign in  header.Extra[32:97]
 	if xutil.IsWorker(header.Extra) {
 		// Generate vrf proof
-		if value, err := xcom.GetVrfHandlerInstance().GenerateNonce(header.Number, header.ParentHash); nil != err {
+		if value, err := bcr.vh.GenerateNonce(header.Number, header.ParentHash); nil != err {
 			return err
 		} else {
 			header.Nonce = types.EncodeNonce(value)
@@ -140,7 +152,7 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		if nil != err {
 			return err
 		}
-		if err := xcom.GetVrfHandlerInstance().VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
+		if err := bcr.vh.VerifyVrf(pk, header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 			return err
 		}
 	}
@@ -148,6 +160,14 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
 		log.Error("BlockChainReactor call snapshotDB newBlock failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
 		return err
+	}
+
+
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return nil
 	}
 
 	for _, pluginRule := range bcr.beginRule {
@@ -170,10 +190,19 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 		blockHash = header.Hash()
 	}
 	// Store the previous vrf random number
-	if err := xcom.GetVrfHandlerInstance().Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
+	if err := bcr.vh.Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 		log.Error("BlockChainReactor Storage proof failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "err", err)
 		return err
 	}
+
+
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return nil
+	}
+
 
 	for _, pluginRule := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {

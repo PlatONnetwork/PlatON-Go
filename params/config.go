@@ -123,6 +123,7 @@ var (
 			MaxAvgLatency:		2000,
 			CbftVersion:		byte(0x01),
 			Remaining:			50 * time.Millisecond,
+			ValidatorMode:      "ppos",
 		},
 		VMInterpreter: "wasm",
 	}

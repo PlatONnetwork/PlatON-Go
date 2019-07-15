@@ -83,12 +83,12 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 
 
 func (rc *RestrictingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
-	_ = xcom.AddLog(state, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
+	xcom.AddLog(state, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
 	log.Info("Successed to " + callFn, "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
 }
 
 
 func (rc *RestrictingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
-	_ = xcom.AddLog(state, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
+	xcom.AddLog(state, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
 	log.Debug("Failed to " + callFn, "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
 }

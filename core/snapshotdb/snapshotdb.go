@@ -256,7 +256,7 @@ func (s *snapshotDB) GetFromCommittedBlock(key []byte) ([]byte, error) {
 			return nil, err
 		}
 	}
-	if err != nil {
+	if err != nil || len(s.committed)==0{
 		v, err = s.baseDB.Get(key, nil)
 		if err != nil {
 			if err == leveldb.ErrNotFound {
