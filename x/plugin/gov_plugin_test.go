@@ -4,21 +4,15 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/ethdb"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"os"
 	"testing"
-	//"fmt"
-	"bytes"
-	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
-	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"math/big"
 )
 
@@ -26,6 +20,7 @@ var (
 	snapdb 		snapshotdb.DB
 	govPlugin	*plugin.GovPlugin
 	evm			*vm.EVM
+	govDB		*gov.GovDB
 
 )
 
@@ -47,19 +42,12 @@ func setup(t *testing.T) func() {
 
 	snapdb = snapshotdb.Instance()
 
+	govDB = gov.GovDBInstance()
+
 	return func() {
 		t.Log("tear down()......")
 		snapdb.Clear()
 		ClearPlatONPluginTestData()
-	}
-}
-
-func getHeader() types.Header {
-	newChainState()
-	xcom.SetEconomicModel(&xcom.DefaultConfig)
-	size := int64(xcom.ConsensusSize() * xcom.EpochSize())
-	return types.Header{
-		Number: big.NewInt(size),
 	}
 }
 
@@ -80,137 +68,15 @@ func getVerProposal() gov.VersionProposal {
 	}
 }
 
-func getTxtProposal() gov.TextProposal {
-	return gov.TextProposal{
-		common.Hash{0x02},
-		"p#02",
-		gov.Text,
-		"up,up,up....",
-		"text proposal example",
-		"http://url",
-		uint64(1000),
-		uint64(10000000),
-		discover.NodeID{},
-		gov.TallyResult{},
-	}
-}
-
-func newblock(snapdb snapshotdb.DB, blockNumber *big.Int) (common.Hash, error) {
-
-	recognizedHash := generateHash("recognizedHash")
-
-	commitHash := recognizedHash
-	if err := snapdb.NewBlock(blockNumber, common.Hash{}, commitHash); err != nil {
-		return common.Hash{}, err
-	}
-
-	if err := snapdb.Put(commitHash, []byte("wu"), []byte("wei")); err != nil {
-		return common.Hash{}, err
-	}
-
-	get, err := snapdb.Get(commitHash, []byte("wu"))
-	if err != nil {
-		return common.Hash{}, err
-	}
-	fmt.Printf("get result :%s", get)
-
-	return commitHash, nil
-}
-
-func generateHash(n string) common.Hash {
-	var buf bytes.Buffer
-	buf.Write([]byte(n))
-	return rlpHash(buf.Bytes())
-}
-
-func rlpHash(x interface{}) (h common.Hash) {
-	hw := sha3.NewKeccak256()
-	rlp.Encode(hw, x)
-	hw.Sum(h[:0])
-	return h
-}
-
-func commitBlock(snapdb snapshotdb.DB, blockhash common.Hash) error {
-	return snapdb.Commit(blockhash)
-}
-
-func GetGovDB() (*gov.GovDB, *state.StateDB) {
-	db := ethdb.NewMemDatabase()
-	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
-	return gov.GovDBInstance(), statedb
-}
-
-
-func TestGovPlugin_Submit(t *testing.T) {
-	defer setup(t)()
-	submitText(t, txHashArr[0])
-	//submitVersion(t)
-}
-
-
-func TestGovPlugin_Vote(t *testing.T) {
-	defer setup(t)()
-	submitVersion(t, txHashArr[0])
-
-	sndb.Commit(blockHash)
-
-	InitPlatONPluginTestData()
-
-	buildSnapDBDataNoCommit(2)
-
-	v := gov.Vote{
-		txHashArr[0],
-		nodeIdArr[0],
-		gov.Yes,
-	}
-
-	err := govPlugin.Vote(sender, v, lastBlockHash, 2, evm.StateDB)
-	if err != nil {
-		t.Fatalf("vote err: %s.", err)
-	}
-}
-
-func TestGovPlugin_DeclareVersion(t *testing.T) {
-	defer setup(t)()
-	submitVersion(t, txHashArr[0])
-
-	sndb.Commit(blockHash)
-
-	InitPlatONPluginTestData()
-
-	buildSnapDBDataNoCommit(2)
-
-	err := govPlugin.DeclareVersion(sender, nodeIdArr[0], getVerProposal().NewVersion, lastBlockHash, 2, evm.StateDB)
-	if err != nil {
-		t.Fatalf("Declare Version err ...%s", err)
-	}
-}
-
-func TestGovPlugin_ListProposal(t *testing.T) {
-
-	defer setup(t)()
-
-	submitText(t, txHashArr[0])
-	//submitVersion(t)
-
-	pList, err := govPlugin.ListProposal(lastBlockHash, evm.StateDB)
-	if err != nil {
-		t.Fatalf("List Proposal err ...%s", err)
-	}else {
-		t.Logf("proposal count, %d", len(pList))
-	}
-
-}
-
 
 func submitText(t *testing.T, pid common.Hash) {
 	vp := gov.TextProposal{
 		ProposalID:		pid,
 		GithubID:		"githubID",
 		ProposalType:	gov.Text,
-		Topic:			"versionTopic",
-		Desc: 			"versionDesc",
-		Url:			"versionUrl",
+		Topic:			"textTopic",
+		Desc: 			"textDesc",
+		Url:			"textUrl",
 		SubmitBlock:	1,
 		EndVotingBlock:	uint64(22230),
 		Proposer:		nodeIdArr[0],
@@ -221,7 +87,7 @@ func submitText(t *testing.T, pid common.Hash) {
 
 	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
 	if err != nil {
-		t.Fatalf("submit err: %s", err)
+		t.Fatalf("submit text proposal err: %s", err)
 	}
 }
 
@@ -246,7 +112,7 @@ func submitVersion(t *testing.T, pid common.Hash) {
 
 	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
 	if err != nil {
-		t.Fatalf("submit err: %s", err)
+		t.Fatalf("submit version proposal err: %s", err)
 	}
 }
 
@@ -255,9 +121,9 @@ func submitParam(t *testing.T, pid common.Hash) {
 		ProposalID:		pid,
 		GithubID:		"githubID",
 		ProposalType:	gov.Param,
-		Topic:			"versionTopic",
-		Desc: 			"versionDesc",
-		Url:			"versionUrl",
+		Topic:			"paramTopic",
+		Desc: 			"paramDesc",
+		Url:			"paramUrl",
 		SubmitBlock:	1,
 		EndVotingBlock:	uint64(22230),
 		Proposer:		nodeIdArr[0],
@@ -272,7 +138,7 @@ func submitParam(t *testing.T, pid common.Hash) {
 
 	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
 	if err != nil {
-		t.Fatalf("submit err: %s", err)
+		t.Fatalf("submit param proposal err: %s", err)
 	}
 }
 
@@ -283,11 +149,27 @@ func allVote(t *testing.T, pid common.Hash) {
 			VoteNodeID:		nodeID,
 			VoteOption:		gov.Yes,
 		}
+		t.Log("all vote:", "sender", sender.Hex(), "nodeID", nodeID.String())
 		err := govPlugin.Vote(sender, vote, blockHash, 1, evm.StateDB)
 		if err != nil {
 			t.Fatalf("vote err: %s.", err)
 		}
 	}
+}
+
+func halfVote(t *testing.T, pid common.Hash) {
+	for i :=0; i<len(nodeIdArr)/2; i++ {
+		vote := gov.Vote{
+			ProposalID:		pid,
+			VoteNodeID:		nodeIdArr[i],
+			VoteOption:		gov.Yes,
+		}
+		err := govPlugin.Vote(sender, vote, blockHash, 1, evm.StateDB)
+		if err != nil {
+			t.Fatalf("vote err: %s.", err)
+		}
+	}
+
 }
 
 func beginBlock(t *testing.T) {
@@ -304,7 +186,219 @@ func endBlock(t *testing.T) {
 	}
 }
 
-func TestGovPlugin_textProposalSuccess(t *testing.T) {
+func TestGovPlugin_SubmitText(t *testing.T) {
+	defer setup(t)()
+	submitText(t, txHashArr[0])
+	p, err := govDB.GetProposal(txHashArr[0], evm.StateDB)
+	if err!= nil {
+		t.Fatal("Get the submitted text proposal error:", err)
+	}else{
+		t.Log("Get the submitted text proposal success:", p)
+	}
+}
+
+func TestGovPlugin_SubmitVersion(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+	p, err := govDB.GetProposal(txHashArr[0], evm.StateDB)
+	if err!= nil {
+		t.Fatal("Get the submitted version proposal error:", err)
+	}else{
+		t.Log("Get the submitted version proposal success:", p)
+	}
+}
+
+func TestGovPlugin_SubmitParam(t *testing.T) {
+	defer setup(t)()
+	submitParam(t, txHashArr[0])
+	p, err := govDB.GetProposal(txHashArr[0], evm.StateDB)
+	if err!= nil {
+		t.Fatal("Get the submitted version proposal error:", err)
+	}else{
+		t.Log("Get the submitted version proposal success:", p)
+	}
+}
+
+func TestGovPlugin_VoteSuccess(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(blockHash)
+
+	InitPlatONPluginTestData()
+
+	buildSnapDBDataNoCommit(2)
+
+	v := gov.Vote{
+		txHashArr[0],
+		nodeIdArr[3],
+		gov.Yes,
+	}
+
+	err := govPlugin.Vote(sender, v, lastBlockHash, 2, evm.StateDB)
+	if err != nil {
+		t.Fatal("vote err:", err)
+	}
+
+	v = gov.Vote{
+		txHashArr[0],
+		nodeIdArr[1],
+		gov.Yes,
+	}
+
+	err = govPlugin.Vote(sender, v, lastBlockHash, 2, evm.StateDB)
+	if err != nil {
+		t.Fatal("vote err:", err)
+	}
+
+
+	votedValue, err := govDB.ListVoteValue(txHashArr[0], evm.StateDB)
+	if err != nil {
+		t.Fatal("vote err:", err)
+	}else{
+		t.Log("voted count:", len(votedValue))
+	}
+}
+
+
+func TestGovPlugin_Vote_senderError(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(blockHash)
+
+	InitPlatONPluginTestData()
+
+	buildSnapDBDataNoCommit(2)
+
+	v := gov.Vote{
+		txHashArr[0],
+		nodeIdArr[3],
+		gov.Yes,
+	}
+
+	err := govPlugin.Vote(anotherSender, v, lastBlockHash, 2, evm.StateDB)
+	if err != nil && err.Error()=="tx sender is not a verifier, or mismatch the verifier's node ID" {
+		t.Log("vote err:", err)
+	}
+	votedValue, err := govDB.ListVoteValue(txHashArr[0], evm.StateDB)
+	if err != nil {
+		t.Fatal("vote err:", err)
+	}else{
+		t.Log("voted count:", len(votedValue))
+	}
+}
+
+func TestGovPlugin_DeclareVersion_rightVersion(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(blockHash)
+
+	InitPlatONPluginTestData()
+
+	buildSnapDBDataNoCommit(2)
+
+	err := govPlugin.DeclareVersion(sender, nodeIdArr[0], getVerProposal().NewVersion, lastBlockHash, 2, evm.StateDB)
+	if err != nil {
+		t.Fatalf("Declare Version err ...%s", err)
+	}
+
+	activeNodeList, err := govDB.GetActiveNodeList(lastBlockHash, txHashArr[0])
+	if err != nil {
+		t.Fatalf("List actived nodes error: %s", err)
+	}else{
+		t.Logf("List actived nodes success: %d", len(activeNodeList))
+	}
+}
+
+func TestGovPlugin_DeclareVersion_wrongVersion(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(blockHash)
+
+	InitPlatONPluginTestData()
+
+	buildSnapDBDataNoCommit(2)
+
+	err := govPlugin.DeclareVersion(sender, nodeIdArr[0], uint32(1<<16 | 2<<8 | 1), lastBlockHash, 2, evm.StateDB)
+	if err != nil && err.Error() == "declared version neither equals active version nor new version."{
+		t.Log("system has detected an incorrect version declaration.", err)
+	}else {
+		t.Fatal("system has not detected an incorrect version declaration.", err)
+	}
+}
+
+
+func TestGovPlugin_ListProposal(t *testing.T) {
+
+	defer setup(t)()
+
+	submitText(t, txHashArr[0])
+
+	pList, err := govPlugin.ListProposal(lastBlockHash, evm.StateDB)
+	if err != nil {
+		t.Fatalf("List all proposals error: %s", err)
+	}else {
+		t.Logf("List all proposals success: %d", len(pList))
+	}
+
+}
+
+func TestGovPlugin_textProposalPassed(t *testing.T) {
+
+	defer setup(t)()
+
+	InitPlatONPluginTestData()
+
+	submitText(t, txHashArr[0])
+	sndb.Commit(blockHash)
+
+	allVote(t, txHashArr[0])
+
+	//buildSnapDBDataCommitted(2, 19999)
+	sndb.Compaction()
+	lastBlockNumber = uint64(19999)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+
+	buildSnapDBDataNoCommit(20000)
+	beginBlock(t)
+	sndb.Commit(lastBlockHash)
+
+	//buildSnapDBDataCommitted(20001, 22229)
+	sndb.Compaction()
+	lastBlockNumber = uint64(22229)
+	lastHeader = types.Header{
+		Number: big.NewInt(int64(lastBlockNumber)),
+	}
+	lastBlockHash = lastHeader.Hash()
+	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
+
+
+	buildSnapDBDataNoCommit(22230)
+	endBlock(t)
+	sndb.Commit(lastBlockHash)
+
+	result, err := govPlugin.GetTallyResult(txHashArr[0], evm.StateDB)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+	if result == nil {
+		t.Fatal("cannot find the tally result")
+	}else if result.Status == gov.Pass{
+		t.Logf("the result status, %d", result.Status)
+	}else {
+		t.Fatalf("the result status error, %d", result.Status )
+	}
+}
+
+func TestGovPlugin_textProposalFailed(t *testing.T) {
 
 	defer setup(t)()
 
@@ -312,7 +406,7 @@ func TestGovPlugin_textProposalSuccess(t *testing.T) {
 
 	submitText(t, txHashArr[0])
 
-	allVote(t, txHashArr[0])
+	halfVote(t, txHashArr[0])
 	sndb.Commit(blockHash)
 
 	//buildSnapDBDataCommitted(2, 19999)
@@ -348,11 +442,11 @@ func TestGovPlugin_textProposalSuccess(t *testing.T) {
 		t.Errorf("%s", err)
 	}
 	if result == nil {
-		t.Error("cannot find the tally result")
-	}else if result.Status == gov.Pass{
+		t.Fatal("cannot find the tally result")
+	}else if result.Status == gov.Failed{
 		t.Logf("the result status, %d", result.Status)
 	}else {
-		t.Logf("the result status error, %d", result.Status )
+		t.Fatalf("the result status error, %d", result.Status )
 	}
 }
 
@@ -402,20 +496,20 @@ func TestGovPlugin_twoProposalsSuccess(t *testing.T) {
 
 	result, err := govPlugin.GetTallyResult(txHashArr[0], evm.StateDB)
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Fatalf("%s", err)
 	}
 	if result == nil {
-		t.Error("cannot find the tally result")
+		t.Fatal("cannot find the tally result")
 	}else{
 		t.Logf("the result status, %d", result.Status)
 	}
 
 	result, err = govPlugin.GetTallyResult(txHashArr[1], evm.StateDB)
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Fatalf("%s", err)
 	}
 	if result == nil {
-		t.Error("cannot find the tally result")
+		t.Fatal("cannot find the tally result")
 	}else if result.Status == gov.PreActive{
 		t.Logf("the result status, %d", result.Status)
 	}else {
@@ -482,7 +576,7 @@ func TestGovPlugin_versionProposalSuccess(t *testing.T) {
 	if activeVersion == uint32(1<<16 | 1<<8 | 1) {
 		t.Logf("active SUCCESS, %d", activeVersion)
 	}else{
-		t.Errorf("active FALSE, %d", activeVersion)
+		t.Fatalf("active FALSE, %d", activeVersion)
 	}
 }
 
@@ -502,8 +596,7 @@ func TestGovPlugin_Param(t *testing.T) {
 
 	list, err := govPlugin.ListParam(evm.StateDB)
 	if err != nil {
-		t.Errorf("list param failed, %s", err.Error())
-		return
+		t.Fatalf("list param failed, %s", err)
 	}else {
 		t.Logf("list size: %d", len(list))
 	}
@@ -511,8 +604,7 @@ func TestGovPlugin_Param(t *testing.T) {
 
 	value, err := govPlugin.GetParamValue("param3", evm.StateDB )
 	if err != nil {
-		t.Errorf("get param failed, %s", err.Error())
-		return
+		t.Fatalf("get param failed, %s", err)
 	}else {
 		t.Logf("param name: %s, value: %2.2f", "param3", value.(float64))
 	}
@@ -532,14 +624,18 @@ func TestGovPlugin_ParamProposalSuccess(t *testing.T) {
 	paraMap["param3"] = 12.5
 
 	if err := govPlugin.SetParam(paraMap, evm.StateDB); err != nil {
-		t.Errorf("set param failed, %s", err.Error())
-		return
+		t.Fatalf("set param failed, %s", err)
 	}
 
 	submitParam(t, txHashArr[0])
-
-	allVote(t, txHashArr[0])
 	sndb.Commit(blockHash)
+
+	buildSnapDBDataNoCommit(2)
+	sndb.Commit(blockHash)
+
+	buildSnapDBDataNoCommit(3)
+	allVote(t, txHashArr[0])
+
 
 	//buildSnapDBDataCommitted(2, 19999)
 	sndb.Compaction()
@@ -574,14 +670,13 @@ func TestGovPlugin_ParamProposalSuccess(t *testing.T) {
 		t.Errorf("%s", err)
 	}
 	if result == nil {
-		t.Error("cannot find the tally result")
+		t.Fatal("cannot find the tally result")
 	}else if result.Status == gov.Pass{
 		t.Logf("the result status, %d", result.Status)
 
 		value, err := govPlugin.GetParamValue("param3", evm.StateDB)
 		if err != nil {
-			t.Errorf("cannot find the param value, %s", err.Error())
-			return
+			t.Fatalf("cannot find the param value, %s", err.Error())
 		}else{
 			t.Logf("the param value, %2.2f", value.(float64))
 		}
