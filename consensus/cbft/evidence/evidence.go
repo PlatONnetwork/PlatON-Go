@@ -1,4 +1,4 @@
-package cbft
+package evidence
 
 type EvidencePool interface {
 }

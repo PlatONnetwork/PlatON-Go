@@ -1,10 +1,47 @@
-package cbft
+package state
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"sync/atomic"
 )
+
+type prepareVotes struct {
+	votes []*protocols.PrepareVote
+}
+
+func (v *prepareVotes) Clear() {
+
+}
+
+type viewBlocks struct {
+	blocks map[uint32]*viewBlock
+}
+
+func (v *viewBlocks) Clear() {
+
+}
+
+type viewVotes struct {
+	votes map[uint32]*prepareVotes
+}
+
+func (v *viewVotes) Clear() {
+
+}
+
+type prepareVoteSet struct {
+	votes map[uint32]*protocols.PrepareVote
+}
+
+type viewChanges struct {
+	viewChanges map[common.Address]*protocols.ViewChange
+}
+
+func (v *viewChanges) Clear() {
+
+}
 
 type view struct {
 	epoch      uint64
@@ -42,10 +79,10 @@ type viewBlock interface {
 	number() uint64
 	blockIndex() uint32
 	//If prepareBlock is an implementation of viewBlock, return prepareBlock, otherwise nil
-	prepareBlock() *prepareBlock
+	prepareBlock() *protocols.PrepareBlock
 }
 
-type viewState struct {
+type ViewState struct {
 
 	//Include ViewNumber, viewChanges, prepareVote , proposal block of current view
 	*view
@@ -61,17 +98,17 @@ type viewState struct {
 	viewTimer viewTimer
 }
 
-func (vs *viewState) ResetView(epoch uint64, viewNumber uint64) {
+func (vs *ViewState) ResetView(epoch uint64, viewNumber uint64) {
 	vs.view.Reset()
 	vs.view.epoch = epoch
 	vs.view.viewNumber = viewNumber
 }
 
-func (vs *viewState) SetHighestExecutedBlock(block *types.Block) {
+func (vs *ViewState) SetHighestExecutedBlock(block *types.Block) {
 	vs.highestExecutedBlock.Store(block)
 }
 
-func (vs *viewState) HighestExecutedBlock() *types.Block {
+func (vs *ViewState) HighestExecutedBlock() *types.Block {
 	if v := vs.highestQCBlock.Load(); v == nil {
 		panic("Get highest executed block failed")
 	} else {
@@ -79,11 +116,11 @@ func (vs *viewState) HighestExecutedBlock() *types.Block {
 	}
 }
 
-func (vs *viewState) SetHighestQCBlock(ext *types.Block) {
+func (vs *ViewState) SetHighestQCBlock(ext *types.Block) {
 	vs.highestQCBlock.Store(ext)
 }
 
-func (vs *viewState) HighestQCBlock() *types.Block {
+func (vs *ViewState) HighestQCBlock() *types.Block {
 	if v := vs.highestQCBlock.Load(); v == nil {
 		panic("Get highest qc block failed")
 	} else {
@@ -91,11 +128,11 @@ func (vs *viewState) HighestQCBlock() *types.Block {
 	}
 }
 
-func (vs *viewState) SetHighestLockBlock(ext *types.Block) {
+func (vs *ViewState) SetHighestLockBlock(ext *types.Block) {
 	vs.highestLockBlock.Store(ext)
 }
 
-func (vs *viewState) HighestLockBlock() *types.Block {
+func (vs *ViewState) HighestLockBlock() *types.Block {
 	if v := vs.highestLockBlock.Load(); v == nil {
 		panic("Get highest lock block failed")
 	} else {
@@ -103,11 +140,11 @@ func (vs *viewState) HighestLockBlock() *types.Block {
 	}
 }
 
-func (vs *viewState) SetHighestCommitBlock(ext *types.Block) {
+func (vs *ViewState) SetHighestCommitBlock(ext *types.Block) {
 	vs.highestCommitBlock.Store(ext)
 }
 
-func (vs *viewState) HighestCommitBlock() *types.Block {
+func (vs *ViewState) HighestCommitBlock() *types.Block {
 	if v := vs.highestCommitBlock.Load(); v == nil {
 		panic("Get highest commit block failed")
 	} else {
