@@ -2,10 +2,11 @@ package staking
 
 import (
 	"errors"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"strconv"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 const (
@@ -53,19 +54,19 @@ func Is_PureNotEnough(status uint32) bool {
 }
 
 func Is_Invalid_LowRatio(status uint32) bool {
-	return status&(Invalided|LowRatio) == (Invalided|LowRatio)
+	return status&(Invalided|LowRatio) == (Invalided | LowRatio)
 }
 
 func Is_Invalid_NotEnough(status uint32) bool {
-	return status&(Invalided|NotEnough) == (Invalided|NotEnough)
+	return status&(Invalided|NotEnough) == (Invalided | NotEnough)
 }
 
 func Is_Invalid_LowRatio_NotEnough(status uint32) bool {
-	return status&(Invalided|LowRatio|NotEnough) == (Invalided|LowRatio|NotEnough)
+	return status&(Invalided|LowRatio|NotEnough) == (Invalided | LowRatio | NotEnough)
 }
 
 func Is_LowRatio_NotEnough(status uint32) bool {
-	return status&(LowRatio|NotEnough) == (LowRatio|NotEnough)
+	return status&(LowRatio|NotEnough) == (LowRatio | NotEnough)
 }
 
 func Is_DoubleSign(status uint32) bool {
@@ -73,7 +74,7 @@ func Is_DoubleSign(status uint32) bool {
 }
 
 func Is_DoubleSign_Invalid(status uint32) bool {
-	return status&(DoubleSign|Invalided) == (DoubleSign|Invalided)
+	return status&(DoubleSign|Invalided) == (DoubleSign | Invalided)
 }
 
 // The Candidate info
@@ -124,8 +125,6 @@ type Candidate struct {
 //	return nil
 //}
 
-
-
 type Description struct {
 	// External Id for the third party to pull the node description (with length limit)
 	ExternalId string
@@ -157,7 +156,7 @@ type Validator struct {
 	ValidatorTerm uint32
 }
 
-func (val *Validator) GetProcessVersion () (uint32, error) {
+func (val *Validator) GetProcessVersion() (uint32, error) {
 	version := val.StakingWeight[0]
 	v, err := strconv.Atoi(version)
 	if nil != err {
@@ -165,7 +164,7 @@ func (val *Validator) GetProcessVersion () (uint32, error) {
 	}
 	return uint32(v), nil
 }
-func (val *Validator) GetShares () (*big.Int, error) {
+func (val *Validator) GetShares() (*big.Int, error) {
 	shares, ok := new(big.Int).SetString(val.StakingWeight[1], 10)
 	if !ok {
 		return nil, errors.New("parse bigInt failed from validator's shares")
@@ -173,7 +172,7 @@ func (val *Validator) GetShares () (*big.Int, error) {
 	return shares, nil
 }
 
-func (val *Validator) GetStakingBlockNumber () (uint64, error) {
+func (val *Validator) GetStakingBlockNumber() (uint64, error) {
 	stakingBlockNumber := val.StakingWeight[2]
 	num, err := strconv.ParseUint(stakingBlockNumber, 10, 64)
 	if nil != err {
@@ -182,8 +181,7 @@ func (val *Validator) GetStakingBlockNumber () (uint64, error) {
 	return uint64(num), nil
 }
 
-
-func (val *Validator) GetStakingTxIndex () (uint32, error) {
+func (val *Validator) GetStakingTxIndex() (uint32, error) {
 	txIndex := val.StakingWeight[3]
 	index, err := strconv.Atoi(txIndex)
 	if nil != err {
@@ -198,19 +196,19 @@ type ValidatorQueue []*Validator
 type SlashCandidate map[common.Address]*Candidate
 
 func (arr ValidatorQueue) ValidatorSort(slashs SlashCandidate,
-	compare func (slashs SlashCandidate, c, can *Validator) int) {
+	compare func(slashs SlashCandidate, c, can *Validator) int) {
 	if len(arr) <= 1 {
 		return
 	}
 
 	if nil == compare {
 		arr.quickSort(slashs, 0, len(arr)-1, CompareDefault)
-	}else {
+	} else {
 		arr.quickSort(slashs, 0, len(arr)-1, compare)
 	}
 }
 func (arr ValidatorQueue) quickSort(slashs SlashCandidate, left, right int,
-	compare func (slashs SlashCandidate, c, can *Validator) int) {
+	compare func(slashs SlashCandidate, c, can *Validator) int) {
 	if left < right {
 		pivot := arr.partition(slashs, left, right, compare)
 		arr.quickSort(slashs, left, pivot-1, compare)
@@ -218,7 +216,7 @@ func (arr ValidatorQueue) quickSort(slashs SlashCandidate, left, right int,
 	}
 }
 func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
-	compare func (slashs SlashCandidate, c, can *Validator) int) int {
+	compare func(slashs SlashCandidate, c, can *Validator) int) int {
 	for left < right {
 		for left < right && compare(slashs, arr[left], arr[right]) >= 0 {
 			right--
@@ -238,7 +236,6 @@ func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
 	return left
 }
 
-
 // NOTE: Sort By Default
 //
 // When sorting is done by default,
@@ -257,13 +254,12 @@ func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareDefault (slashs SlashCandidate, left, right *Validator) int {
-
+func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 
 	compareTxIndexFunc := func(l, r *Validator) int {
 		leftTxIndex, _ := l.GetStakingTxIndex()
 		rightTxIndex, _ := r.GetStakingTxIndex()
-		switch  {
+		switch {
 		case leftTxIndex > rightTxIndex:
 			return -1
 		case leftTxIndex < rightTxIndex:
@@ -300,15 +296,14 @@ func CompareDefault (slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-
 	_, leftOk := slashs[left.NodeAddress]
 	_, rightOk := slashs[right.NodeAddress]
 
 	if leftOk && !rightOk {
 		return -1
-	}else if !leftOk && rightOk {
+	} else if !leftOk && rightOk {
 		return 1
-	}else {
+	} else {
 		leftVersion, _ := left.GetProcessVersion()
 		rightVersion, _ := right.GetProcessVersion()
 
@@ -344,16 +339,15 @@ func CompareDefault (slashs SlashCandidate, left, right *Validator) int {
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareForDel (slashs SlashCandidate, left, right *Validator) int {
+func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 
 	// some funcs
-
 
 	// 7. TxIndex
 	compareTxIndexFunc := func(l, r *Validator) int {
 		leftTxIndex, _ := l.GetStakingTxIndex()
 		rightTxIndex, _ := r.GetStakingTxIndex()
-		switch  {
+		switch {
 		case leftTxIndex > rightTxIndex:
 			return -1
 		case leftTxIndex < rightTxIndex:
@@ -392,7 +386,6 @@ func CompareForDel (slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-
 	// 4. Term
 	compareTermFunc := func(l, r *Validator) int {
 		switch {
@@ -405,16 +398,16 @@ func CompareForDel (slashs SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-
 	lCan, lOK := slashs[left.NodeAddress]
 	rCan, rOK := slashs[right.NodeAddress]
 
 	// 1. Double Sign
-	if lOK && Is_DoubleSign(lCan.Status) {
-		if !rOK || (rOK && !Is_DoubleSign(rCan.Status)) {
+	if lOK && Is_DoubleSign(lCan.Status) { // left is doubleSign
+		if !rOK || (rOK && !Is_DoubleSign(rCan.Status)) { // right is not doubleSign
 			return 1
-		}else {
+		} else {
 
+			// When both doublesign
 			lversion, _ := left.GetProcessVersion()
 			rversion, _ := right.GetProcessVersion()
 			switch {
@@ -426,31 +419,50 @@ func CompareForDel (slashs SlashCandidate, left, right *Validator) int {
 				return compareSharesFunc(left, right)
 			}
 		}
-	}else  {
-		// 2. ProcessVersion
-		lversion, _ := left.GetProcessVersion()
-		rversion, _ := right.GetProcessVersion()
-		switch {
-		case lversion > rversion:
-			return -1
-		case lversion < rversion:
-			return 1
-		default:
+	} else { // left is not doubleSign
 
-			// 3. LowPackageRatio
-			if lOK && Is_LowRatio(lCan.Status)  {
-				if !rOK || (rOK && !Is_LowRatio(rCan.Status)) {
-					return 1
-				}else {
-					return compareTermFunc(left, right)
+		if rOK && Is_DoubleSign(rCan.Status) { // right is doubleSign
+			return -1
+		} else { // When both no doubleSign
+
+			// 2. ProcessVersion
+			lversion, _ := left.GetProcessVersion()
+			rversion, _ := right.GetProcessVersion()
+			switch {
+			case lversion > rversion:
+				return -1
+			case lversion < rversion:
+				return 1
+			default:
+
+				// 3. LowPackageRatio
+				if lOK && Is_LowRatio(lCan.Status) { // left is LowRatio
+					if !rOK { // right is not LowRatio
+						return 1
+					} else { // When both LowRatio
+
+						switch {
+						case Is_Invalid(lCan.Status) && Is_Valid(rCan.Status):
+							return 1
+						case Is_Valid(lCan.Status) && Is_Invalid(rCan.Status):
+							return -1
+						default: // When both valid OR both Invalid
+							return compareTermFunc(left, right)
+						}
+
+					}
+
+				} else { // left is not LowRatio
+
+					if rOK && Is_LowRatio(rCan.Status) { // right is LowRatio
+						return -1
+					} else { // When both no LowRatio
+						return compareTermFunc(left, right)
+					}
 				}
 
-			}else {
-				return compareTermFunc(left, right)
 			}
-
 		}
-
 	}
 }
 
@@ -463,14 +475,14 @@ func CompareForDel (slashs SlashCandidate, left, right *Validator) int {
 // 1: Left > Right
 // 0: Left == Right
 // -1:Left < Right
-func CompareForStore ( _ SlashCandidate, left, right *Validator) int {
+func CompareForStore(_ SlashCandidate, left, right *Validator) int {
 	// some funcs
 
 	// 5. TxIndex
 	compareTxIndexFunc := func(l, r *Validator) int {
 		leftTxIndex, _ := l.GetStakingTxIndex()
 		rightTxIndex, _ := r.GetStakingTxIndex()
-		switch  {
+		switch {
 		case leftTxIndex > rightTxIndex:
 			return -1
 		case leftTxIndex < rightTxIndex:
@@ -509,7 +521,6 @@ func CompareForStore ( _ SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-
 	// 2. Term
 	compareTermFunc := func(l, r *Validator) int {
 		switch {
@@ -527,15 +538,12 @@ func CompareForStore ( _ SlashCandidate, left, right *Validator) int {
 	rVersion, _ := right.GetProcessVersion()
 	if lVersion < rVersion {
 		return -1
-	}else if lVersion > rVersion {
+	} else if lVersion > rVersion {
 		return 1
-	}else {
+	} else {
 		return compareTermFunc(left, right)
 	}
 }
-
-
-
 
 // some consensus round validators or current epoch validators
 type Validator_array struct {

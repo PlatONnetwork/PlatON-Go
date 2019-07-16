@@ -541,6 +541,8 @@ func (s *snapshotDB) Has(hash common.Hash, key []byte) (bool, error) {
 
 // Flush move unRecognized to Recognized data
 func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
+	s.unRecognizedLock.Lock()
+	defer s.unRecognizedLock.Unlock()
 	if s.unRecognized == nil {
 		return errors.New("[snapshotdb]the unRecognized is nil, can't flush")
 	}
@@ -548,7 +550,7 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 		return errors.New("[snapshotdb]the unRecognized Number is nil, can't flush")
 	}
 	if blocknumber.Int64() != s.unRecognized.Number.Int64() {
-		return errors.New("[snapshotdb]blocknumber not compare the unRecognized blocknumber")
+		return fmt.Errorf("[snapshotdb]blocknumber not compare the unRecognized blocknumber=%v,unRecognizedNumber=%v", blocknumber.Uint64(), s.unRecognized.Number.Uint64())
 	}
 	if _, ok := s.recognized.Load(hash); ok {
 		return errors.New("the hash is exist in recognized data")
@@ -556,8 +558,6 @@ func (s *snapshotDB) Flush(hash common.Hash, blocknumber *big.Int) error {
 	currentHash := s.getUnRecognizedHash()
 	oldFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: currentHash}
 	newFd := fileDesc{Type: TypeJournal, Num: blocknumber.Int64(), BlockHash: hash}
-	s.unRecognizedLock.Lock()
-	defer s.unRecognizedLock.Unlock()
 	if err := s.closeJournalWriter(currentHash); err != nil {
 		return err
 	}

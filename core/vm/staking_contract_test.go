@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	_ "fmt"
+	"math/big"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -12,25 +15,18 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"math/big"
-	"testing"
 )
 
-
-
-
-
 // Custom func
-func create_staking (blockNumber *big.Int, blockHash common.Hash, state *state.StateDB, index int, t *testing.T) *vm.StakingContract {
+func create_staking(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB, index int, t *testing.T) *vm.StakingContract {
 
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 
-	state.Prepare(txHashArr[index], blockHash, index + 1)
-
+	state.Prepare(txHashArr[index], blockHash, index+1)
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -41,12 +37,11 @@ func create_staking (blockNumber *big.Int, blockHash common.Hash, state *state.S
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
 	nodeName, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", China")
-	website, _ := rlp.EncodeToBytes("https://www."+nodeNameArr[index]+".network")
-	details, _ := rlp.EncodeToBytes(nodeNameArr[index]+" super node")
+	website, _ := rlp.EncodeToBytes("https://www." + nodeNameArr[index] + ".network")
+	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 	processVersion, _ := rlp.EncodeToBytes(initProcessVersion)
-
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -67,21 +62,19 @@ func create_staking (blockNumber *big.Int, blockHash common.Hash, state *state.S
 		t.Log("createStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-
 	res, err := contract.Run(buf.Bytes())
 	if nil != err {
 		t.Error(err)
-	}else {
+	} else {
 		t.Log(string(res))
 	}
 
 	return contract
 }
 
-func create_delegate (contract *vm.StakingContract, index int, t *testing.T) {
+func create_delegate(contract *vm.StakingContract, index int, t *testing.T) {
 	var params [][]byte
 	params = make([][]byte, 0)
-
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1004))
 	typ, _ := rlp.EncodeToBytes(uint16(0))
@@ -89,17 +82,16 @@ func create_delegate (contract *vm.StakingContract, index int, t *testing.T) {
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index+6], 10)
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 
-
 	params = append(params, fnType)
 	params = append(params, typ)
 	params = append(params, nodeId)
 	params = append(params, amount)
 
-
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Error("delegate encode rlp data fail", err)
+		return
 	} else {
 		t.Log("delegate data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -107,12 +99,12 @@ func create_delegate (contract *vm.StakingContract, index int, t *testing.T) {
 	res, err := contract.Run(buf.Bytes())
 	if nil != err {
 		t.Error(err)
-	}else {
+	} else {
 		t.Log(string(res))
 	}
 }
 
-func getCandidate (contract *vm.StakingContract, index int, t *testing.T) {
+func getCandidate(contract *vm.StakingContract, index int, t *testing.T) {
 	params := make([][]byte, 0)
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1105))
@@ -125,6 +117,7 @@ func getCandidate (contract *vm.StakingContract, index int, t *testing.T) {
 	err := rlp.Encode(buf, params)
 	if err != nil {
 		t.Errorf("getCandidate encode rlp data fail: %v", err)
+		return
 	} else {
 		t.Log("getCandidate data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
@@ -132,7 +125,7 @@ func getCandidate (contract *vm.StakingContract, index int, t *testing.T) {
 	res, err := contract.Run(buf.Bytes())
 	if nil != err {
 		t.Error("getCandidate err", err)
-	}else {
+	} else {
 
 		var r xcom.Result
 		err = json.Unmarshal(res, &r)
@@ -142,13 +135,13 @@ func getCandidate (contract *vm.StakingContract, index int, t *testing.T) {
 
 		if r.Status {
 			t.Log("the Candidate info:", r.Data)
-		}else {
+		} else {
 			t.Log("getCandidate failed", r.ErrMsg)
 		}
 	}
 }
 
-func TestRLP_encode (t *testing.T) {
+func TestRLP_encode(t *testing.T) {
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -156,7 +149,8 @@ func TestRLP_encode (t *testing.T) {
 	fnType, err := rlp.EncodeToBytes(uint16(1100))
 	if nil != err {
 		t.Error("fnType err", err)
-	}else {
+		return
+	} else {
 		var num uint16
 		rlp.DecodeBytes(fnType, &num)
 		t.Log("num is ", num)
@@ -173,20 +167,14 @@ func TestRLP_encode (t *testing.T) {
 	}
 }
 
-
 /**
 Standard test cases
- */
+*/
 
 func TestStakingContract_createStaking(t *testing.T) {
 
-
-
-
 	state, genesis, _ := newChainState()
 	newPlugins()
-
-
 
 	sndb := snapshotdb.Instance()
 	defer func() {
@@ -199,9 +187,7 @@ func TestStakingContract_createStaking(t *testing.T) {
 	create_staking(blockNumber, blockHash, state, 1, t)
 }
 
-
 func TestStakingContract_editorCandidate(t *testing.T) {
-
 
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -220,16 +206,13 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
-
 	if err := sndb.Commit(blockHash); nil != err {
 		t.Errorf("Commit 1 error: %v", err)
 		return
 	}
 
-
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
-
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
@@ -239,7 +222,7 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 	contract2 := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
 
 	// get CandidateInfo
@@ -249,7 +232,6 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 	var params [][]byte
 	params = make([][]byte, 0)
 
-
 	fnType, _ := rlp.EncodeToBytes(uint16(1001))
 
 	benifitAddress, _ := rlp.EncodeToBytes(addrArr[0])
@@ -258,8 +240,6 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 	nodeName, _ := rlp.EncodeToBytes("Xu, China")
 	website, _ := rlp.EncodeToBytes("https://www.Xu.net")
 	details, _ := rlp.EncodeToBytes("Xu super node")
-
-
 
 	params = append(params, fnType)
 	params = append(params, benifitAddress)
@@ -278,12 +258,11 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 		t.Log("edit candidate data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
-
 	res, err := contract2.Run(buf.Bytes())
 	if nil != err {
 		t.Error("Failed to Call editorCandidate, err:", err)
 		return
-	}else {
+	} else {
 		t.Log(string(res))
 	}
 
@@ -297,9 +276,7 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 
 }
 
-
-func TestStakingContract_increaseStaking (t *testing.T) {
-
+func TestStakingContract_increaseStaking(t *testing.T) {
 
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -323,7 +300,6 @@ func TestStakingContract_increaseStaking (t *testing.T) {
 		return
 	}
 
-
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
 
@@ -335,9 +311,8 @@ func TestStakingContract_increaseStaking (t *testing.T) {
 	contract2 := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
-
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
@@ -347,13 +322,11 @@ func TestStakingContract_increaseStaking (t *testing.T) {
 	var params [][]byte
 	params = make([][]byte, 0)
 
-
 	fnType, _ := rlp.EncodeToBytes(uint16(1002))
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
 	typ, _ := rlp.EncodeToBytes(uint16(0))
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index-1], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
-
 
 	params = append(params, fnType)
 	params = append(params, nodeId)
@@ -373,7 +346,7 @@ func TestStakingContract_increaseStaking (t *testing.T) {
 	if nil != err {
 		t.Error("Failed to Call increaseStaking,err:", err)
 		return
-	}else {
+	} else {
 		t.Log(string(res))
 	}
 
@@ -382,14 +355,12 @@ func TestStakingContract_increaseStaking (t *testing.T) {
 		return
 	}
 
-
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
 }
 
-func TestStakingContract_withdrewCandidate (t *testing.T) {
-
+func TestStakingContract_withdrewCandidate(t *testing.T) {
 
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -408,8 +379,10 @@ func TestStakingContract_withdrewCandidate (t *testing.T) {
 
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
-	sndb.Commit(blockHash)
-
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Commit 1 err: %v", err)
+		return
+	}
 
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
@@ -422,9 +395,8 @@ func TestStakingContract_withdrewCandidate (t *testing.T) {
 	contract2 := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
-
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
@@ -434,10 +406,8 @@ func TestStakingContract_withdrewCandidate (t *testing.T) {
 	var params [][]byte
 	params = make([][]byte, 0)
 
-
 	fnType, _ := rlp.EncodeToBytes(uint16(1003))
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
-
 
 	params = append(params, fnType)
 	params = append(params, nodeId)
@@ -455,21 +425,21 @@ func TestStakingContract_withdrewCandidate (t *testing.T) {
 	if nil != err {
 		t.Error("Failed to Call withdrewCandidate, err:", err)
 		return
-	}else {
+	} else {
 		t.Log(string(res))
 	}
 
-	sndb.Commit(blockHash2)
-
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Errorf("Commit 2 err: %v", err)
+		return
+	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
 }
 
-
-func TestStakingContract_delegate (t *testing.T) {
-
+func TestStakingContract_delegate(t *testing.T) {
 
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -478,7 +448,6 @@ func TestStakingContract_delegate (t *testing.T) {
 	defer func() {
 		sndb.Clear()
 	}()
-
 
 	index := 1
 
@@ -489,7 +458,10 @@ func TestStakingContract_delegate (t *testing.T) {
 
 	contract1 := create_staking(blockNumber, blockHash, state, index, t)
 
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Commit 1 err: %v", err)
+		return
+	}
 
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
@@ -502,9 +474,8 @@ func TestStakingContract_delegate (t *testing.T) {
 	contract2 := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
-
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
@@ -512,18 +483,17 @@ func TestStakingContract_delegate (t *testing.T) {
 	// delegate
 	create_delegate(contract2, index, t)
 
-	sndb.Commit(blockHash2)
-
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Errorf("Commit 2 err: %v", err)
+		return
+	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-
-
 }
 
-func TestStakingContract_withdrewDelegate (t *testing.T) {
-
+func TestStakingContract_withdrewDelegate(t *testing.T) {
 
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -545,7 +515,10 @@ func TestStakingContract_withdrewDelegate (t *testing.T) {
 	// delegate
 	create_delegate(contract1, index, t)
 
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Commit 1 err: %v", err)
+		return
+	}
 
 	// get CandidateInfo
 	getCandidate(contract1, index, t)
@@ -558,9 +531,8 @@ func TestStakingContract_withdrewDelegate (t *testing.T) {
 	contract2 := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
-
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
@@ -569,19 +541,16 @@ func TestStakingContract_withdrewDelegate (t *testing.T) {
 	var params [][]byte
 	params = make([][]byte, 0)
 
-
 	fnType, _ := rlp.EncodeToBytes(uint16(1005))
 	stakingBlockNum, _ := rlp.EncodeToBytes(blockNumber.Uint64())
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
 	StakeThreshold, _ := new(big.Int).SetString("4600000", 10)
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
 
-
 	params = append(params, fnType)
 	params = append(params, stakingBlockNum)
 	params = append(params, nodeId)
 	params = append(params, amount)
-
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -596,24 +565,26 @@ func TestStakingContract_withdrewDelegate (t *testing.T) {
 	if nil != err {
 		t.Error("Failed to call delegate, err:", err)
 		return
-	}else {
+	} else {
 		t.Log(string(res))
 	}
 
-	sndb.Commit(blockHash2)
+	if err := sndb.Commit(blockHash2); nil != err {
+		t.Errorf("Commit 2 err: %v", err)
+		return
+	}
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 }
 
-
-func TestStakingContract_getVerifierList (t *testing.T) {
+func TestStakingContract_getVerifierList(t *testing.T) {
 
 	state, genesis, _ := newChainState()
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 	//state.Prepare(txHashArr[idx], blockHash, idx)
 	newPlugins()
@@ -627,7 +598,6 @@ func TestStakingContract_getVerifierList (t *testing.T) {
 		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
 		return
 	}
-
 
 	params := make([][]byte, 0)
 
@@ -648,7 +618,7 @@ func TestStakingContract_getVerifierList (t *testing.T) {
 	if nil != err {
 		t.Error("Failed to call getVerifierList, err", err)
 		return
-	}else {
+	} else {
 
 		var r xcom.Result
 		err = json.Unmarshal(res, &r)
@@ -659,22 +629,20 @@ func TestStakingContract_getVerifierList (t *testing.T) {
 
 		if r.Status {
 			t.Log("the VerifierList info:", r.Data)
-		}else {
+		} else {
 			t.Error("getVerifierList failed", r.ErrMsg)
 		}
 	}
 
-
 }
 
-
-func TestStakingContract_getValidatorList (t *testing.T) {
+func TestStakingContract_getValidatorList(t *testing.T) {
 
 	state, genesis, _ := newChainState()
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 	//state.Prepare(txHashArr[idx], blockHash, idx)
 	newPlugins()
@@ -688,7 +656,6 @@ func TestStakingContract_getValidatorList (t *testing.T) {
 		t.Errorf("newBlock failed, blockNumber1: %d, err:%v", blockNumber, err)
 		return
 	}
-
 
 	params := make([][]byte, 0)
 
@@ -709,7 +676,7 @@ func TestStakingContract_getValidatorList (t *testing.T) {
 	if nil != err {
 		t.Error("Failed to Call getValidatorList, err", err)
 		return
-	}else {
+	} else {
 
 		var r xcom.Result
 		err = json.Unmarshal(res, &r)
@@ -720,16 +687,14 @@ func TestStakingContract_getValidatorList (t *testing.T) {
 
 		if r.Status {
 			t.Log("the ValidatorList info:", r.Data)
-		}else {
+		} else {
 			t.Error("getValidatorList failed", r.ErrMsg)
 		}
 	}
 
 }
 
-
 func TestStakingContract_getCandidateList(t *testing.T) {
-
 
 	state, genesis, _ := newChainState()
 
@@ -746,12 +711,14 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 		return
 	}
 
-
-	for i:= 0; i < 2; i++ {
+	for i := 0; i < 2; i++ {
 		create_staking(blockNumber, blockHash, state, i, t)
 	}
 
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Commit 1 err: %v", err)
+		return
+	}
 	//sndb.Compaction()
 
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
@@ -759,17 +726,15 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 		return
 	}
 
-
-	for i:= 2; i < 4; i++ {
+	for i := 2; i < 4; i++ {
 		create_staking(blockNumber2, blockHash2, state, i, t)
 	}
-
 
 	// getCandidate List
 	contract := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
 	params := make([][]byte, 0)
 
@@ -790,7 +755,7 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 	if nil != err {
 		t.Error("Failed to Call getCandidateList, err", err)
 		return
-	}else {
+	} else {
 
 		var r xcom.Result
 		err = json.Unmarshal(res, &r)
@@ -801,16 +766,14 @@ func TestStakingContract_getCandidateList(t *testing.T) {
 
 		if r.Status {
 			t.Log("the CandidateList info:", r.Data)
-		}else {
+		} else {
 			t.Error("CandidateList failed", r.ErrMsg)
 		}
 	}
 
-
 }
 
-func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
-
+func TestStakingContract_getRelatedListByDelAddr(t *testing.T) {
 
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -820,12 +783,10 @@ func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 		sndb.Clear()
 	}()
 
-
 	if err := sndb.NewBlock(blockNumber, genesis.Hash(), blockHash); nil != err {
 		t.Error("newBlock err", err)
 		return
 	}
-
 
 	for i := 0; i < 4; i++ {
 		create_staking(blockNumber, blockHash, state, i, t)
@@ -836,7 +797,6 @@ func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 		return
 	}
 
-
 	if err := sndb.NewBlock(blockNumber2, blockHash, blockHash2); nil != err {
 		t.Errorf("newBlock failed, blockNumber2: %d, err:%v", blockNumber2, err)
 		return
@@ -845,7 +805,7 @@ func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 	contract2 := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
 
 	// delegate
@@ -858,20 +818,15 @@ func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 		return
 	}
 
-
-
 	// get RelatedListByDelAddr
 	var params [][]byte
 	params = make([][]byte, 0)
-
-
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1103))
 	delAddr, _ := rlp.EncodeToBytes(sender)
 
 	params = append(params, fnType)
 	params = append(params, delAddr)
-
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -886,19 +841,18 @@ func TestStakingContract_getRelatedListByDelAddr (t *testing.T) {
 	if nil != err {
 		t.Error("Failed to call getRelatedListByDelAddr, err:", err)
 		return
-	}else {
+	} else {
 
 		var r *xcom.Result
 		if err := json.Unmarshal(res, &r); nil != err {
 			t.Error("Failed to parse json", err)
-		}else {
+		} else {
 			t.Log("the Related list is:", r.Data)
 		}
 	}
 }
 
-func TestStakingContract_getDelegateInfo (t *testing.T) {
-
+func TestStakingContract_getDelegateInfo(t *testing.T) {
 
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -920,7 +874,10 @@ func TestStakingContract_getDelegateInfo (t *testing.T) {
 	// delegate
 	create_delegate(contract1, index, t)
 
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Failed to commit block 1, err: %v", err)
+		return
+	}
 	//sndb.Compaction()
 
 	// get CandidateInfo
@@ -934,9 +891,8 @@ func TestStakingContract_getDelegateInfo (t *testing.T) {
 	contract2 := &vm.StakingContract{
 		Plugin:   plugin.StakingInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber2, blockHash2, state),
+		Evm:      newEvm(blockNumber2, blockHash2, state),
 	}
-
 
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
@@ -945,19 +901,15 @@ func TestStakingContract_getDelegateInfo (t *testing.T) {
 	var params [][]byte
 	params = make([][]byte, 0)
 
-
 	fnType, _ := rlp.EncodeToBytes(uint16(1104))
 	stakingBlockNum, _ := rlp.EncodeToBytes(blockNumber.Uint64())
 	delAddr, _ := rlp.EncodeToBytes(sender)
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
 
-
-
 	params = append(params, fnType)
 	params = append(params, stakingBlockNum)
 	params = append(params, delAddr)
 	params = append(params, nodeId)
-
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
@@ -971,14 +923,19 @@ func TestStakingContract_getDelegateInfo (t *testing.T) {
 	res, err := contract2.Run(buf.Bytes())
 	if nil != err {
 		t.Error("Failed to call getDelegateInfo, err:", err)
-	}else {
-		t.Log(string(res))
+	} else {
+		var r xcom.Result
+
+		err = json.Unmarshal(res, &r)
+		if nil != err {
+			t.Errorf("parse json failed, err: %v", err)
+		} else {
+			t.Log(r.Data)
+		}
 	}
 }
 
-
-func TestStakingContract_getCandidateInfo (t *testing.T) {
-
+func TestStakingContract_getCandidateInfo(t *testing.T) {
 
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -993,22 +950,21 @@ func TestStakingContract_getCandidateInfo (t *testing.T) {
 		return
 	}
 	contract := create_staking(blockNumber, blockHash, state, 1, t)
-	sndb.Commit(blockHash)
+	if err := sndb.Commit(blockHash); nil != err {
+		t.Errorf("Commit 1 err: %v", err)
+		return
+	}
 	//sndb.Compaction()
-
 
 	// get candidate Info
 	getCandidate(contract, 1, t)
 }
 
-
 /**
 Expand test cases
- */
-
+*/
 
 func TestStakingContract_batchCreateStaking(t *testing.T) {
-
 
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -1023,14 +979,11 @@ func TestStakingContract_batchCreateStaking(t *testing.T) {
 		return
 	}
 
-	for i:= 0; i < 4; i++ {
-		create_staking(blockNumber, blockHash, state, 1, t)
+	for i := 0; i < 4; i++ {
+		create_staking(blockNumber, blockHash, state, i, t)
 	}
 
 }
-
-
-
 
 func TestStakingContract_cleanSnapshotDB(t *testing.T) {
 	sndb := snapshotdb.Instance()
