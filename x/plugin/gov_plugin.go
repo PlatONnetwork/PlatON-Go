@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"errors"
-	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -48,7 +47,9 @@ func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
 //implement BasePlugin
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
+	log.Debug("call BeginBlock()", "blockNumber",  header.Number.Uint64())
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
+		log.Debug("current block is the end of settlement period", "blockNumber",  header.Number.Uint64())
 		verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
 		if err != nil {
 			return err
@@ -85,16 +86,16 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		return err
 	}
 
-	log.Debug("iterate all voting proposals")
 	for _, votingProposalID := range votingProposalIDs {
+		log.Debug("iterate voting proposals", "proposalID", votingProposalID)
 		votingProposal, err := govPlugin.govDB.GetExistProposal(votingProposalID, state)
 		if nil != err {
 			return err
 		}
 		if votingProposal.GetEndVotingBlock() == header.Number.Uint64() {
-			log.Debug("current number iterate all voting proposals")
-
+			log.Debug("current block is end-voting-block", "blockNumber", header.Number.Uint64())
 			if xutil.IsSettlementPeriod(header.Number.Uint64()) {
+				log.Debug("current block is the end of settlement period", "blockNumber", header.Number.Uint64())
 				verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
 				if err != nil {
 					return err
@@ -104,29 +105,18 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 					return err
 				}
 			}
-
-			accuVerifiersCnt, err := govPlugin.govDB.AccuVerifiersLength(blockHash, votingProposal.GetProposalID())
-			if err != nil {
-				return err
-			}
-
-			verifierList, err := govPlugin.govDB.ListVotedVerifier(votingProposal.GetProposalID(), state)
-			if err != nil {
-				return err
-			}
-
 			if votingProposal.GetProposalType() == gov.Text {
-				_, err := govPlugin.tallyBasic(verifierList, accuVerifiersCnt, votingProposal.GetProposalID(), blockHash, state)
+				_, err := govPlugin.tallyBasic(votingProposal.GetProposalID(), blockHash, state)
 				if err != nil {
 					return err
 				}
 			} else if votingProposal.GetProposalType() == gov.Version {
-				err := govPlugin.tallyForVersionProposal(verifierList, accuVerifiersCnt, votingProposal.(gov.VersionProposal), blockHash, header.Number.Uint64(), state)
+				err := govPlugin.tallyForVersionProposal(votingProposal.(gov.VersionProposal), blockHash, header.Number.Uint64(), state)
 				if err != nil {
 					return err
 				}
 			} else if votingProposal.GetProposalType() == gov.Param {
-				pass, err := govPlugin.tallyBasic(verifierList, accuVerifiersCnt, votingProposal.GetProposalID(), blockHash, state)
+				pass, err := govPlugin.tallyBasic(votingProposal.GetProposalID(), blockHash, state)
 				if err != nil {
 					return err
 				}
@@ -135,7 +125,6 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 						return err
 					}
 				}
-
 			} else {
 				log.Error("invalid proposal type", "type", votingProposal.GetProposalType())
 				err = errors.New("invalid proposal type")
@@ -153,6 +142,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 		return nil
 	}
 
+
 	//handle a PreActiveProposal
 	proposal, err := govPlugin.govDB.GetProposal(preActiveProposalID, state)
 	if err != nil {
@@ -161,6 +151,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	versionProposal, ok := proposal.(gov.VersionProposal)
 
 	if ok {
+		log.Debug("found pre-active version proposal", "proposalID", preActiveProposalID, "blockNumber", header.Number.Uint64(), "activeBlockNumber", versionProposal.GetActiveBlock())
 		sub := header.Number.Uint64() - versionProposal.GetActiveBlock()
 		if sub >= 0 && sub%xcom.ConsensusSize() == 0 {
 			validatorList, err := stk.ListCurrentValidatorID(blockHash, header.Number.Uint64())
@@ -186,8 +177,8 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 				}
 			}
 			if updatedNodes == xcom.ConsValidatorNum() {
-				log.Debug("")
 
+				log.Debug("the pre-active version proposal has passed")
 
 				tallyResult, err := govPlugin.govDB.GetTallyResult(preActiveProposalID, state)
 				if err != nil {
@@ -214,6 +205,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 					log.Error("save active version to stateDB failed.", "blockHash", blockHash, "preActiveProposalID", preActiveProposalID)
 					return err
 				}
+				log.Debug("PlatON is ready to upgrade to new version.")
 			}
 		}
 	}
@@ -299,7 +291,7 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 
 	//check caller and voter
 	if !govPlugin.checkVerifier(from, vote.VoteNodeID, blockHash, blockNumber) {
-		return common.BizErrorf("tx sender: %s is not a verifier, or mismatch the verifier's nodeID: %s", from.String(), vote.VoteNodeID.String())
+		return common.NewBizError("tx sender is not a verifier, or mismatch the verifier's nodeID")
 	}
 
 	//voteOption range check
@@ -520,7 +512,7 @@ func (govPlugin *GovPlugin) tallyForTextProposal(votedVerifierList []discover.No
 }
 
 // tally for a version proposal
-func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover.NodeID, accuCnt uint16, proposal gov.VersionProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
+func (govPlugin *GovPlugin) tallyForVersionProposal(proposal gov.VersionProposal, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
 
 	proposalID := proposal.ProposalID
 	verifiersCnt, err := govPlugin.govDB.AccuVerifiersLength(blockHash, proposalID)
@@ -573,7 +565,7 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(votedVerifierList []discover
 }
 
 
-func (govPlugin *GovPlugin) tallyBasic(votedVerifierList []discover.NodeID, accuCnt uint16, proposalID common.Hash, blockHash common.Hash, state xcom.StateDB) (pass bool, err error) {
+func (govPlugin *GovPlugin) tallyBasic(proposalID common.Hash, blockHash common.Hash, state xcom.StateDB) (pass bool, err error) {
 	verifiersCnt, err := govPlugin.govDB.AccuVerifiersLength(blockHash, proposalID)
 	if err != nil {
 		log.Error("count accumulated verifiers failed", "proposalID", proposalID, "blockHash", blockHash)
@@ -601,7 +593,7 @@ func (govPlugin *GovPlugin) tallyBasic(votedVerifierList []discover.NodeID, accu
 			abstentions++
 		}
 	}
-	supportRate := float64(yeas) / float64(accuCnt)
+	supportRate := float64(yeas) / float64(verifiersCnt)
 
 	if supportRate >= xcom.SupportRateThreshold() {
 		status = gov.Pass
@@ -636,18 +628,14 @@ func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.N
 		return false
 	}
 
-
 	for _, verifier := range verifierList {
 		if verifier!= nil && verifier.NodeId == nodeID {
 			if verifier.StakingAddress == from {
 				return true
 			} else {
-				fmt.Println("nodeID::::::" + nodeID.String() + " StakingAddress:" + verifier.StakingAddress.String() + " from:" + from.String() )
 				log.Error("tx sender should be staking address")
 				return false
 			}
-		}else{
-			fmt.Println("nodeID:::::::" + nodeID.String() + " verifier.NodeId:" +  verifier.NodeId.String() )
 		}
 	}
 	return false

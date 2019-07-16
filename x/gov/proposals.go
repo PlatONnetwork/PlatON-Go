@@ -28,6 +28,25 @@ const (
 	Active    ProposalStatus = 0x05
 )
 
+
+func (status ProposalStatus) ToString() string {
+	switch status {
+	case Voting:
+		return "Voting"
+	case Pass:
+		return "Pass"
+	case Failed:
+		return "Failed"
+	case PreActive:
+		return "PreActive"
+	case Active:
+		return "Active"
+	default: //default case
+		return ""
+	}
+}
+
+
 type VoteOption uint8
 const (
 	Yes 		VoteOption =  0x01
@@ -56,6 +75,7 @@ type TallyResult struct {
 	AccuVerifiers uint16         `json:"accuVerifiers"`
 	Status        ProposalStatus `json:"status"`
 }
+
 
 type Vote struct {
 	ProposalID common.Hash     `json:"proposalID"`
