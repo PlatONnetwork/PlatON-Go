@@ -577,8 +577,6 @@ func (w *worker) mainLoop() {
 				hash     = block.Hash()
 			)
 
-			core.GetReactorInstance().PrepareResult(block)
-
 			w.pendingMu.RLock()
 			_, exist := w.pendingTasks[sealhash]
 			w.pendingMu.RUnlock()
@@ -1185,6 +1183,12 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 	if err != nil {
 		log.Error("Failed to create mining context", "err", err)
 		return
+	}
+
+	if header.Number.Cmp(common.Big1) > 0 {
+		if err := core.GetReactorInstance().Flush(parent); nil != err {
+			return
+		}
 	}
 	// TODO begin()
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
