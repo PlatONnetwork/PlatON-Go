@@ -26,8 +26,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/prque"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -137,11 +135,9 @@ func NewTxPoolBlockChain(chain *BlockChainCache) *TxPoolBlockChain {
 	}
 }
 func (tx *TxPoolBlockChain) CurrentBlock() *types.Block {
-	if cbft, ok := tx.chain.Engine().(consensus.Bft); ok {
-		if block := cbft.HighestLogicalBlock(); block != nil {
-			log.Debug("get logical block as current block in cbft", "hash", block.Hash(), "number", block.NumberU64())
-			return block
-		}
+	block := tx.chain.Engine().CurrentBlock()
+	if block != nil {
+		return block
 	}
 	return tx.chain.currentBlock.Load().(*types.Block)
 }

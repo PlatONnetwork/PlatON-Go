@@ -17,12 +17,10 @@
 package params
 
 import (
-	"crypto/ecdsa"
 	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
-	"time"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -41,7 +39,6 @@ var TrustedCheckpoints = map[common.Hash]*TrustedCheckpoint{
 	InnerTestnetGenesisHash: InnerTestnetTrustedCheckpoint,
 	InnerDevnetGenesisHash:  InnerDevnetTrustedCheckpoint,
 }
-
 
 var (
 	initialTestnetConsensusNodes = []string{
@@ -80,20 +77,11 @@ var (
 
 	// MainnetChainConfig is the chain parameters to run a node on the main network.
 	MainnetChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(101),
-		EmptyBlock:          "on",
-		EIP155Block:         big.NewInt(2675000),
+		ChainID:     big.NewInt(101),
+		EmptyBlock:  "on",
+		EIP155Block: big.NewInt(2675000),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
-			PeerMsgQueueSize: 	1024,
-			EvidenceDir:	 	"evidenceDir",
-			MaxResetCacheSize:	512,
-			MaxQueuesLimit:		4096,
-			MaxBlockDist:		192,
-			MaxPingLatency:		5000,
-			MaxAvgLatency:		2000,
-			CbftVersion:		byte(0x01),
-			Remaining:			50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -109,58 +97,31 @@ var (
 
 	// TestnetChainConfig contains the chain parameters to run a node on the Alpha test network.
 	TestnetChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(103),
-		EmptyBlock:          "on",
-		EIP155Block:         big.NewInt(3),
+		ChainID:     big.NewInt(103),
+		EmptyBlock:  "on",
+		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialTestnetConsensusNodes),
-			PeerMsgQueueSize: 	1024,
-			EvidenceDir:	 	"evidenceDir",
-			MaxResetCacheSize:	512,
-			MaxQueuesLimit:		4096,
-			MaxBlockDist:		192,
-			MaxPingLatency:		5000,
-			MaxAvgLatency:		2000,
-			CbftVersion:		byte(0x01),
-			Remaining:			50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
 
 	// InnerTestnetChainConfig contains the chain parameters to run a node on the inner test network.
 	InnerTestnetChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(203),
-		EIP155Block:         big.NewInt(3),
+		ChainID:     big.NewInt(203),
+		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialInnerTestnetConsensusNodes),
-			PeerMsgQueueSize: 	1024,
-			EvidenceDir:	 	"evidenceDir",
-			MaxResetCacheSize:	512,
-			MaxQueuesLimit:		4096,
-			MaxBlockDist:		192,
-			MaxPingLatency:		5000,
-			MaxAvgLatency:		2000,
-			CbftVersion:		byte(0x01),
-			Remaining:			50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
 
 	// InnerDevnetChainConfig contains the chain parameters to run a node on the inner test network.
 	InnerDevnetChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(204),
-		EIP155Block:         big.NewInt(3),
+		ChainID:     big.NewInt(204),
+		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialInnerDevnetConsensusNodes),
-			PeerMsgQueueSize: 	1024,
-			EvidenceDir:	 	"evidenceDir",
-			MaxResetCacheSize:	512,
-			MaxQueuesLimit:		4096,
-			MaxBlockDist:		192,
-			MaxPingLatency:		5000,
-			MaxAvgLatency:		2000,
-			CbftVersion:		byte(0x01),
-			Remaining:			50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -194,20 +155,11 @@ var (
 
 	// BetanetChainConfig contains the chain parameters to run a node on the Beta test network.
 	BetanetChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(104),
-		EmptyBlock:          "on",
-		EIP155Block:         big.NewInt(3),
+		ChainID:     big.NewInt(104),
+		EmptyBlock:  "on",
+		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
 			InitialNodes: convertNodeUrl(initialBetanetConsensusNodes),
-			PeerMsgQueueSize: 	1024,
-			EvidenceDir:	 	"evidenceDir",
-			MaxResetCacheSize:	512,
-			MaxQueuesLimit:		4096,
-			MaxBlockDist:		192,
-			MaxPingLatency:		5000,
-			MaxAvgLatency:		2000,
-			CbftVersion:		byte(0x01),
-			Remaining:			50 * time.Millisecond,
 		},
 		VMInterpreter: "wasm",
 	}
@@ -222,13 +174,12 @@ var (
 	}
 
 	GrapeChainConfig = &ChainConfig{
-		ChainID:             big.NewInt(304),
-		EmptyBlock:          "on",
-		EIP155Block:         big.NewInt(3),
+		ChainID:     big.NewInt(304),
+		EmptyBlock:  "on",
+		EIP155Block: big.NewInt(3),
 		Cbft: &CbftConfig{
-			Period:   3,
-			Epoch:    30000,
-			Duration: 30,
+			Period: 3,
+			Epoch:  30000,
 			PposConfig: &PposConfig{
 				CandidateConfig: &CandidateConfig{
 					Threshold:         "1000000000000000000000000",
@@ -244,15 +195,6 @@ var (
 					ExpireBlockNumber: 1536000,
 				},
 			},
-			PeerMsgQueueSize: 	1024,
-			EvidenceDir:	 	"evidenceDir",
-			MaxResetCacheSize:	512,
-			MaxQueuesLimit:		4096,
-			MaxBlockDist:		192,
-			MaxPingLatency:		5000,
-			MaxAvgLatency:		2000,
-			CbftVersion:		byte(0x01),
-			Remaining:			50 * time.Millisecond,
 		},
 	}
 
@@ -267,9 +209,9 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0),  &CliqueConfig{Period: 0, Epoch: 30000}, nil, ""}
+	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), big.NewInt(0), &CliqueConfig{Period: 0, Epoch: 30000}, nil, ""}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0),  nil, nil, ""}
+	TestChainConfig = &ChainConfig{big.NewInt(1), "", big.NewInt(0), big.NewInt(0), nil, nil, ""}
 
 	AllCbftProtocolChanges = &ChainConfig{big.NewInt(1337), "", big.NewInt(0), nil, nil, new(CbftConfig), ""}
 	TestRules              = TestChainConfig.Rules(new(big.Int))
@@ -293,10 +235,10 @@ type TrustedCheckpoint struct {
 // that any network, identified by its genesis block, can have its own
 // set of configuration options.
 type ChainConfig struct {
-	ChainID        *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
-	EmptyBlock     string   `json:"emptyBlock"`
+	ChainID     *big.Int `json:"chainId"` // chainId identifies the current chain and is used for replay protection
+	EmptyBlock  string   `json:"emptyBlock"`
 	EIP155Block *big.Int `json:"eip155Block,omitempty"` // EIP155 HF block
-	EWASMBlock          *big.Int `json:"ewasmBlock,omitempty"`          // EWASM switch block (nil = no fork, 0 = already activated)
+	EWASMBlock  *big.Int `json:"ewasmBlock,omitempty"`  // EWASM switch block (nil = no fork, 0 = already activated)
 	// Various consensus engines
 	Clique *CliqueConfig `json:"clique,omitempty"`
 	Cbft   *CbftConfig   `json:"cbft,omitempty"`
@@ -306,29 +248,12 @@ type ChainConfig struct {
 }
 
 type CbftConfig struct {
-	Period           uint64  `json:"period,omitempty"`           // Number of seconds between blocks to enforce
-	Epoch            uint64  `json:"epoch,omitempty"`            // Epoch length to reset votes and checkpoint
-	MaxLatency       int64   `json:"maxLatency,omitempty"`       // number of milliseconds of max net latency between the consensus nodes
-	LegalCoefficient float64 `json:"legalCoefficient,omitempty"` // coefficient for checking if a block is in it's turn
-	Duration         int64   `json:"duration,omitempty"`         // number of seconds for a node to produce blocks
-	BlockInterval    uint64  `json:"-"`
-	WalEnabled       bool    `json:"-"`
-	//mock
-	InitialNodes  []discover.Node   `json:"initialNodes,omitempty"`
-	NodeID        discover.NodeID   `json:"nodeID,omitempty"`
-	PrivateKey    *ecdsa.PrivateKey `json:"privateKey,omitempty"`
-	ValidatorMode string            `json:"validatorMode,omitempty"`
-	PposConfig    *PposConfig       `json:"pposConfig,omitempty"`
-
-	PeerMsgQueueSize 	uint64
-	EvidenceDir		 	string
-	MaxResetCacheSize	int
-	MaxQueuesLimit		int
-	MaxBlockDist		uint64
-	MaxPingLatency		int64
-	MaxAvgLatency		int64
-	CbftVersion			uint8
-	Remaining			time.Duration
+	Epoch         uint64          `json:"epoch,omitempty"`         // Epoch length to reset votes and checkpoint
+	Period        uint64          `json:"period,omitempty"`        // Number of seconds between blocks to enforce
+	Amount        uint32          `json:"amount,omitempty"`        //The maximum number of blocks generated per cycle
+	InitialNodes  []discover.Node `json:"initialNodes,omitempty"`  //Genesis consensus node
+	ValidatorMode string          `json:"validatorMode,omitempty"` //Validator mode for easy testing
+	PposConfig    *PposConfig     `json:"pposConfig,omitempty"`
 }
 
 type PposConfig struct {
@@ -381,7 +306,7 @@ func (c *ChainConfig) String() string {
 
 // IsEIP155 returns whether num is either equal to the EIP155 fork block or greater.
 func (c *ChainConfig) IsEIP155(num *big.Int) bool {
-//	return isForked(c.EIP155Block, num)
+	//	return isForked(c.EIP155Block, num)
 	return true
 }
 
@@ -486,7 +411,7 @@ func (err *ConfigCompatError) Error() string {
 // Rules is a one time interface meaning that it shouldn't be used in between transition
 // phases.
 type Rules struct {
-	ChainID                                   *big.Int
+	ChainID  *big.Int
 	IsEIP155 bool
 }
 
@@ -497,8 +422,8 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		chainID = new(big.Int)
 	}
 	return Rules{
-		ChainID:          new(big.Int).Set(chainID),
-		IsEIP155:         c.IsEIP155(num),
+		ChainID:  new(big.Int).Set(chainID),
+		IsEIP155: c.IsEIP155(num),
 	}
 }
 

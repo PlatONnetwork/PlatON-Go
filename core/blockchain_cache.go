@@ -34,13 +34,10 @@ type receiptsCache struct {
 }
 
 func (pbc *BlockChainCache) CurrentBlock() *types.Block {
-	if cbft, ok := pbc.Engine().(consensus.Bft); ok {
-		if block := cbft.HighestConfirmedBlock(); block != nil {
-			log.Debug("get CurrentBlock() in cbft", "hash", block.Hash(), "number", block.NumberU64())
-			return block
-		}
+	block := pbc.Engine().CurrentBlock()
+	if block != nil {
+		return block
 	}
-	log.Debug("get CurrentBlock() in chain")
 	return pbc.currentBlock.Load().(*types.Block)
 }
 
@@ -205,4 +202,24 @@ func (bcc *BlockChainCache) StateDBString() string {
 	}
 	status += fmt.Sprintf("]")
 	return status
+}
+
+func (bcc *BlockChainCache) Execute(block *types.Block, parent *types.Block) error {
+	state, err := bcc.MakeStateDB(parent)
+	if err != nil {
+		return errors.New("execute block error")
+	}
+
+	//to execute
+	receipts, err := bcc.ProcessDirectly(block, state, parent)
+	if err == nil {
+		//save the receipts and state to consensusCache
+		sealHash := block.Header().SealHash()
+		bcc.WriteReceipts(sealHash, receipts, block.NumberU64())
+		bcc.WriteStateDB(sealHash, state, block.NumberU64())
+
+	} else {
+		return fmt.Errorf("execute block error, err:%s", err.Error())
+	}
+	return nil
 }

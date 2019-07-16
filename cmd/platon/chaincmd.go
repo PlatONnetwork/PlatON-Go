@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/miner"
 	"os"
@@ -230,8 +231,7 @@ func importChain(ctx *cli.Context) error {
 	defer chainDb.Close()
 	if c, ok := chain.Engine().(*cbft.Cbft); ok {
 		blockChainCache := core.NewBlockChainCache(chain)
-		c.SetBlockChainCache(blockChainCache)
-		agency := cbft.NewStaticAgency(chain.Config().Cbft.InitialNodes)
+		var agency consensus.Agency //cbft.NewStaticAgency(chain.Config().Cbft.InitialNodes)
 		// init worker
 		bc := &FakeBackend{bc: chain}
 
@@ -241,11 +241,11 @@ func importChain(ctx *cli.Context) error {
 			ResultQueueSize: config.ResultQueueSize, ResubmitAdjustChanSize: config.ResubmitAdjustChanSize,
 			MinRecommitInterval: config.MinRecommitInterval, MaxRecommitInterval: config.MaxRecommitInterval,
 			IntervalAdjustRatio: config.IntervalAdjustRatio, IntervalAdjustBias: config.IntervalAdjustBias,
-			StaleThreshold:	config.StaleThreshold, DefaultCommitRatio:	config.DefaultCommitRatio,
+			StaleThreshold: config.StaleThreshold, DefaultCommitRatio: config.DefaultCommitRatio,
 		}
 
 		miner := miner.New(bc, chain.Config(), minningConfig, stack.EventMux(), c, gethConfig.Eth.MinerRecommit, gethConfig.Eth.MinerGasFloor, gethConfig.Eth.MinerGasCeil, nil, blockChainCache)
-		c.Start(chain, nil, agency)
+		c.Start(chain, nil, nil, agency)
 		defer c.Close()
 		defer miner.Stop()
 	}

@@ -19,15 +19,15 @@ package consensus
 
 import (
 	"crypto/ecdsa"
-	"time"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	types2 "github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"time"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -51,6 +51,14 @@ type ChainReader interface {
 	// GetBlock retrieves a block from the database by hash and number.
 	GetBlock(hash common.Hash, number uint64) *types.Block
 }
+
+type TxPoolReset interface {
+	ForkedReset(newHeader *types.Header, rollback []*types.Block)
+	Reset(newBlock *types.Block)
+}
+
+//Execution block, you need to pass in the parent block to find the parent block state
+type Executor func(block *types.Block, parent *types.Block) error
 
 // Engine is an algorithm agnostic consensus engine.
 type Engine interface {
@@ -125,8 +133,18 @@ type PoW interface {
 	Hashrate() float64
 }
 
+type Agency interface {
+	Sign(msg interface{}) error
+	VerifySign(msg interface{}) error
+	GetLastNumber(blockNumber uint64) uint64
+	GetValidator(blockNumber uint64) (*types2.Validators, error)
+	IsCandidateNode(nodeID discover.NodeID) bool
+}
+
 type Bft interface {
 	Engine
+
+	Start(chain ChainReader, executor Executor, pool TxPoolReset, agency Agency) error
 
 	// Returns the current consensus node address list.
 	ConsensusNodes() ([]discover.NodeID, error)
@@ -137,23 +155,7 @@ type Bft interface {
 	CalcBlockDeadline(timePoint int64) (time.Time, error)
 	CalcNextBlockTime(timePoint int64) (time.Time, error)
 
-	// Process the BFT signatures
-	//OnNewBlock(chain ChainReader, block *types.Block) error
-
-	// Process the BFT signatures
-	OnPong(nodeID discover.NodeID, netLatency int64) error
-	//
-	//// Send a signal if a block synced from other peer.
-	//OnBlockSynced()
-
-	CheckConsensusNode(address common.Address) bool
-
 	IsConsensusNode() bool
-
-	// At present, the highest reasonable block, when the node is out of the block, it needs to generate the block based on the highest reasonable block.
-	HighestLogicalBlock() *types.Block
-
-	HighestConfirmedBlock() *types.Block
 
 	GetBlock(hash common.Hash, number uint64) *types.Block
 
@@ -165,6 +167,5 @@ type Bft interface {
 
 	Evidences() string
 
-	CommitBlockBP(block *types.Block, txs int, gasUsed uint64, elapse time.Duration)
 	TracingSwitch(flag int8)
 }
