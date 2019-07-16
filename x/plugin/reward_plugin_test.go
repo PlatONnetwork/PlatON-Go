@@ -32,35 +32,88 @@ func buildDBRewardPluginData(t *testing.T) {
 
 
 func TestRewardMgrPlugin_EndBlock(t *testing.T) {
-	newChainState()
-	xcom.SetEconomicModel(&xcom.DefaultConfig)
-
-	stateDB := buildStateDB(t)
+	var err error
 
 	// case1: current is common block
-	head := types.Header{ Number: big.NewInt(1),}
-	if err := plugin.RewardMgrInstance().EndBlock(blockHash, &head, stateDB); err != nil {
-		t.Error("The case1 of EndBlock failed.\n expected err is nil")
-		t.Errorf("Actually returns err. blockNumber:%d . errors: %s", head.Number.Uint64(), err.Error())
-	} else {
-		t.Log("Success")
+	{
+		stateDB := buildStateDB(t)
+
+		currBlockNumber := 1
+		plugin.SetYearEndCumulativeIssue(stateDB, 0, big.NewInt(1000000000000))
+		head := types.Header{ Number: big.NewInt(int64(currBlockNumber)), Coinbase:addrArr[0]}
+	//	build_staking_data()
+
+		err = plugin.RewardMgrInstance().EndBlock(blockHash, &head, stateDB)
+
+		// show expected result
+		t.Log("expected case1 of EndBlock only reward new block success")
+		t.Log("expected balance of coinbase is ")
+
+		if err != nil {
+			t.Errorf("case1 of EndBlock failed. Actually returns error: %v", err.Error())
+
+		} else {
+
+			t.Log("case1 returns Success")
+			t.Logf("Actually balance of coinbase is %v", stateDB.GetBalance(addrArr[0]))
+			t.Log("case1 pass")
+			t.Log("=====================")
+		}
 	}
 
 	// case2: current is settle block
-	head = types.Header{ Number: big.NewInt(int64(1*xcom.ConsensusSize()*xcom.EpochSize())),}
-	if err := plugin.RewardMgrInstance().EndBlock(blockHash, &head, stateDB); err != nil {
-		t.Error("The case2 of EndBlock failed.\n expected err is nil")
-		t.Errorf("Actually returns err. blockNumber:%d . errors: %s", head.Number.Uint64(), err.Error())
-	} else {
-		t.Log("Success")
+	{
+		stateDB := buildStateDB(t)
+
+		currBlockNumber := uint64(1) * xcom.ConsensusSize() * xcom.EpochSize()
+		head := types.Header{ Number: big.NewInt(int64(currBlockNumber)), Coinbase:addrArr[0]}
+		//	build_staking_data()
+
+		err = plugin.RewardMgrInstance().EndBlock(blockHash, &head, stateDB)
+
+		// show expected result
+		t.Log("expected case2 of EndBlock reward staking and reward new block success")
+		t.Log("expected balance of coinbase is ")
+		t.Log("expected balance of staking reward address is")
+
+		if err != nil {
+			t.Errorf("case2 of EndBlock failed. ")
+		} else {
+			t.Log("case2 returns Success")
+			t.Logf("Actually balance of coinbase is %v", stateDB.GetBalance(addrArr[0]))
+			t.Logf("expected balance of staking reward address is")
+			t.Log("case2 pass")
+			t.Log("=====================")
+		}
 	}
 
+
 	// case3: current is end of year
-	head = types.Header{ Number: big.NewInt(int64(365*24*3600)),}
-	if err := plugin.RewardMgrInstance().EndBlock(blockHash, &head, stateDB); err != nil {
-		t.Error("The case2 of EndBlock failed.\n expected err is nil")
-		t.Errorf("Actually returns err. blockNumber:%d . errors: %s", head.Number.Uint64(), err.Error())
-	} else {
-		t.Log("Success")
+	{
+		stateDB := buildStateDB(t)
+
+		currBlockNumber := 365 * 24 * 3600
+		head := types.Header{ Number: big.NewInt(int64(currBlockNumber)), Coinbase:addrArr[0]}
+		//	build_staking_data()
+
+		err = plugin.RewardMgrInstance().EndBlock(blockHash, &head, stateDB)
+
+		// show expected result
+		t.Log("expected case3 of EndBlock returns success")
+		t.Log("expected balance of coinbase is ")
+		t.Log("expected balance of staking reward address is")
+		t.Log("expected balance of reward pool is")
+
+		if err != nil {
+			t.Errorf("case3 of EndBlock failed. ")
+		} else {
+			t.Log("case3 returns Success")
+			t.Logf("Actually balance of coinbase is %v", stateDB.GetBalance(addrArr[0]))
+			t.Logf("expected balance of staking reward address is")
+			t.Log("expected balance of reward pool is")
+			t.Log("case3 pass")
+			t.Log("=====================")
+		}
+
 	}
 }

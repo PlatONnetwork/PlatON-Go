@@ -40,7 +40,6 @@ var (
 		discover.MustHexID("0xa6ef31a2006f55f5039e23ccccef343e735d56699bde947cfe253d441f5f291561640a8e2bbaf8a85a8a367b939efcef6f80ae28d2bd3d0b21bdac01c3aa6f2f"),
 		discover.MustHexID("0xc7fc34d6d8b3d894a35895aaf2f788ed445e03b7673f7ce820aa6fdc02908eeab6982b7eb97e983cc708bcec093b3bc512b0b1fbf668e6ab94cd91f2d642e591"),
 		discover.MustHexID("0x97e424be5e58bfd4533303f8f515211599fd4ffe208646f7bfdf27885e50b6dd85d957587180988e76ae77b4b6563820a27b16885419e5ba6f575f19f6cb36b0"),
-
 		discover.MustHexID("0x77adbb9cec2eeb02081de51a2f99e570552e8d879ad329877d073ffaa62609e37008c0de584e1eea982fe9cfea5e622c614971f50d46185d4cc45cfe7c98a575"),
 		discover.MustHexID("0x0987d9a181dfb7802dbc2ae45b6b6c7d835a3c50eb1c3f462cdd6c5517e75156e49ac886d5fddb843e92b75bd1442bf47464d84d006238026cb151280620cd48"),
 		discover.MustHexID("0x9b033b576400dcc936d2cf62ac5e38a6cff14105f903feb052a59386f70588e5db7a2356329a9ece198dd407bd976a27e0c1f89dfae436e1a00b00560be85b70"),
@@ -63,12 +62,12 @@ var (
 		discover.MustHexID("0x6048883096c3cf3f31a9be302650a7fdeb089a0096f41600ea8be49a3cb62b649dd42d3a20743c0f8e547fdf688f353204c711711c751fe2fa2d6b3c5886dcda"),
 		discover.MustHexID("0x7bae841405067598bf65e7260ca693a964316e752249c4970085c805dbee738fdb41fc434e96e2b65e8bf1db2f52f05d9300d04c1e6129c26cb5d0f214b49968"),
 	}
+
 	addrArr = []common.Address{
 		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80aadd24"),
 		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80444555"),
 		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80eeda12"),
 		common.HexToAddress("0x740ce31b3fac20dac379db243021a51e80522345"),
-
 		common.HexToAddress("0xf8136ba2aeDa08BD20239B85Fe0ecB53959605A4"),
 		common.HexToAddress("0x50c78829980342444A9eC7195188c8bbaD7F059F"),
 		common.HexToAddress("0xA4dB304A178B233E30350aEF6EA10efEab3E39a0"),
@@ -105,9 +104,9 @@ var (
 	lastBlockHash   common.Hash
 	lastHeader      types.Header
 
-	sender = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
-
-	sndb = snapshotdb.Instance()
+	sender        = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
+	anotherSender = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5235")
+	sndb          = snapshotdb.Instance()
 
 	// serial use only
 	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
@@ -138,10 +137,7 @@ var (
 	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536, version: 1.0.0
 	promoteVersion     = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
 
-	//maxBalance = "99999999999999999999999999999999999999999999"
-
 	balanceStr = []string{
-
 		"9000000000000000000000000",
 		"60000000000000000000000000",
 		"1300000000000000000000000",
@@ -281,8 +277,141 @@ func newChainState() (*state.StateDB, *types.Block, error) {
 	return state, genesis, nil
 }
 
-func build_staking_data(genesisHash common.Hash) {
+func build_staking_data_more(block uint64) {
 
+	no := int64(block)
+	header := types.Header{
+		Number: big.NewInt(no),
+	}
+	hash := header.Hash()
+
+	stakingDB := staking.NewStakingDB()
+	sndb.NewBlock(big.NewInt(int64(block)), lastBlockHash, hash)
+	// MOCK
+
+	validatorArr := make(staking.ValidatorQueue, 0)
+
+	// build  more data
+	for i := 0; i < 1000; i++ {
+
+		var index int
+		if i >= len(balanceStr) {
+			index = i % (len(balanceStr) - 1)
+		}
+
+		balance, _ := new(big.Int).SetString(balanceStr[index], 10)
+
+		rand.Seed(time.Now().UnixNano())
+
+		weight := rand.Intn(1000000000)
+
+		ii := rand.Intn(len(chaList))
+
+		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
+
+		randBuildFunc := func() (discover.NodeID, common.Address, error) {
+			privateKey, err := crypto.GenerateKey()
+			if nil != err {
+				fmt.Printf("Failed to generate random NodeId private key: %v", err)
+				return discover.NodeID{}, common.ZeroAddr, err
+			}
+
+			nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+			privateKey, err = crypto.GenerateKey()
+			if nil != err {
+				fmt.Printf("Failed to generate random Address private key: %v", err)
+				return discover.NodeID{}, common.ZeroAddr, err
+			}
+
+			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+			return nodeId, addr, nil
+		}
+
+		var nodeId discover.NodeID
+		var addr common.Address
+
+		if i < 25 {
+			nodeId = nodeIdArr[i]
+			ar, _ := xutil.NodeId2Addr(nodeId)
+			addr = ar
+		} else {
+			id, ar, err := randBuildFunc()
+			if nil != err {
+				return
+			}
+			nodeId = id
+			addr = ar
+		}
+
+		canTmp := &staking.Candidate{
+			NodeId:          nodeId,
+			StakingAddress:  sender,
+			BenifitAddress:  addr,
+			StakingBlockNum: uint64(1),
+			StakingTxIndex:  uint32(i + 1),
+			Shares:          balance,
+			ProcessVersion:  initProcessVersion,
+			// Prevent null pointer initialization
+			Released:           common.Big0,
+			ReleasedHes:        common.Big0,
+			RestrictingPlan:    common.Big0,
+			RestrictingPlanHes: common.Big0,
+
+			Description: staking.Description{
+				NodeName:   nodeNameArr[index] + "_" + fmt.Sprint(i),
+				ExternalId: nodeNameArr[index] + chaList[(len(chaList)-1)%(index+ii+1)] + "balabalala" + chaList[index],
+				Website:    "www." + nodeNameArr[index] + "_" + fmt.Sprint(i) + ".org",
+				Details:    "This is " + nodeNameArr[index] + "_" + fmt.Sprint(i) + " Super Node",
+			},
+		}
+
+		canAddr, _ := xutil.NodeId2Addr(canTmp.NodeId)
+
+		stakingDB.SetCanPowerStore(blockHash, canAddr, canTmp)
+		stakingDB.SetCandidateStore(blockHash, canAddr, canTmp)
+
+		v := &staking.Validator{
+			NodeAddress: canAddr,
+			NodeId:      canTmp.NodeId,
+			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), canTmp.Shares.String(),
+				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
+			ValidatorTerm: 0,
+		}
+		validatorArr = append(validatorArr, v)
+	}
+
+	queue := validatorArr[:25]
+
+	epoch_Arr := &staking.Validator_array{
+		Start: ((block-1)/22000)*22000 + 1,
+		End:   ((block-1)/22000)*22000 + 22000,
+		Arr:   queue,
+	}
+
+	pre_Arr := &staking.Validator_array{
+		Start: 0,
+		End:   0,
+		Arr:   queue,
+	}
+
+	curr_Arr := &staking.Validator_array{
+		Start: ((block-1)/250)*250 + 1,
+		End:   ((block-1)/250)*250 + 250,
+		Arr:   queue,
+	}
+
+	stakingDB.SetVerfierList(hash, epoch_Arr)
+	stakingDB.SetPreValidatorList(hash, pre_Arr)
+	stakingDB.SetCurrentValidatorList(hash, curr_Arr)
+
+	lastBlockHash = hash
+	lastBlockNumber = block
+	lastHeader = header
+}
+
+func build_staking_data(genesisHash common.Hash) {
 	stakingDB := staking.NewStakingDB()
 	sndb.NewBlock(big.NewInt(1), genesisHash, blockHash)
 	// MOCK
@@ -411,65 +540,7 @@ func build_staking_data(genesisHash common.Hash) {
 	}
 }
 
-var (
-	cList    []*staking.Candidate
-	vList    []*staking.Validator
-	addrList []common.Address
-	val_Arr  *staking.Validator_array
-)
-
-func InitPlatONPluginTestData() {
-	for idx, nodeId := range nodeIdArr {
-		addr, _ := xutil.NodeId2Addr(nodeId)
-		addrList = append(addrList, addr)
-
-		c := &staking.Candidate{
-			NodeId:             nodeId,
-			StakingAddress:     sender,
-			BenifitAddress:     addrArr[idx],
-			StakingTxIndex:     uint32(idx),
-			ProcessVersion:     initProcessVersion,
-			Status:             staking.Valided,
-			StakingEpoch:       uint32(1),
-			StakingBlockNum:    uint64(1),
-			Shares:             common.Big256,
-			Released:           common.Big2,
-			ReleasedHes:        common.Big32,
-			RestrictingPlan:    common.Big1,
-			RestrictingPlanHes: common.Big257,
-			Description: staking.Description{
-				ExternalId: "xxccccdddddddd",
-				NodeName:   "I Am " + fmt.Sprint(idx),
-				Website:    "www.baidu.com",
-				Details:    "this is  baidu ~~",
-			},
-		}
-		cList = append(cList, c)
-
-		v := &staking.Validator{
-			NodeAddress:   addr,
-			NodeId:        nodeId,
-			StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c.StakingBlockNum), fmt.Sprint(c.StakingTxIndex)},
-			ValidatorTerm: 0,
-		}
-		vList = append(vList, v)
-	}
-
-	val_Arr = &staking.Validator_array{
-		Start: 1,
-		End:   32000,
-		Arr:   vList,
-	}
-}
-
-func ClearPlatONPluginTestData() {
-	cList = cList[0:0]
-	vList = vList[0:0]
-	addrList = addrList[0:0]
-	val_Arr = &staking.Validator_array{}
-}
-
-func buildSnapDBDataNoCommit(blockNum int) {
+func buildBlockNoCommit(blockNum int) {
 
 	no := int64(blockNum)
 	header := types.Header{
@@ -477,52 +548,12 @@ func buildSnapDBDataNoCommit(blockNum int) {
 	}
 	hash := header.Hash()
 
-	stakingDB := staking.NewStakingDB()
+	staking.NewStakingDB()
 	sndb.NewBlock(big.NewInt(int64(blockNum)), lastBlockHash, hash)
-
-	for i := 0; i < 25; i++ {
-		stakingDB.SetCanPowerStore(hash, addrList[i], cList[i])
-		stakingDB.SetCandidateStore(hash, addrList[i], cList[i])
-	}
-
-	stakingDB.SetVerfierList(hash, val_Arr)
-	stakingDB.SetPreValidatorList(hash, val_Arr)
-	stakingDB.SetCurrentValidatorList(hash, val_Arr)
 
 	lastBlockHash = hash
 	lastBlockNumber = uint64(blockNum)
 	lastHeader = header
-}
-
-func buildSnapDBDataCommitted(start, end int) {
-
-	stakingDB := staking.NewStakingDB()
-
-	for i := start; i <= end; i++ {
-
-		no := int64(i)
-		header := types.Header{
-			Number: big.NewInt(no),
-		}
-		hash := header.Hash()
-
-		sndb.NewBlock(big.NewInt(no), lastBlockHash, hash)
-
-		for i := 0; i < 25; i++ {
-			stakingDB.SetCanPowerStore(hash, addrList[i], cList[i])
-			stakingDB.SetCandidateStore(hash, addrList[i], cList[i])
-		}
-
-		stakingDB.SetVerfierList(hash, val_Arr)
-		stakingDB.SetPreValidatorList(hash, val_Arr)
-		stakingDB.SetCurrentValidatorList(hash, val_Arr)
-
-		sndb.Commit(hash)
-
-		lastBlockHash = hash
-		lastBlockNumber = uint64(i)
-		lastHeader = header
-	}
 }
 
 func build_gov_data(state *state.StateDB) {

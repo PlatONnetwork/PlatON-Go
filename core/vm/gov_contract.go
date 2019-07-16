@@ -17,12 +17,14 @@ import (
 const (
 	SubmitTextProposalErrorMsg        	= "Submit a text proposal error"
 	SubmitVersionProposalErrorMsg       = "Submit a version proposal error"
+	SubmitParamProposalErrorMsg       	= "Submit a param proposal error"
 	VoteErrorMsg        				= "Vote error"
 	DeclareErrorMsg        				= "Declare version error"
 	GetProposalErrorMsg        			= "Find a specified proposal error"
 	GetTallyResultErrorMsg				= "Find a specified proposal's tally result error"
 	ListProposalErrorMsg				= "List all proposals error"
 	GetActiveVersionErrorMsg			= "Get active version error"
+	GetCodeVersionErrorMsg				= "Get code version error"
 	ListParamErrorMsg					= "List all parameters and values"
 )
 
@@ -30,12 +32,14 @@ const (
 const (
 	SubmitTextEvent   		= "2000"
 	SubmitVersionEvent   	= "2001"
-	VoteEvent   			= "2002"
-	DeclareEvent 			= "2003"
+	SubmitParamEvent   		= "2002"
+	VoteEvent   			= "2003"
+	DeclareEvent 			= "2004"
 	GetProposalEvent 		= "2100"
 	GetResultEvent 			= "2101"
 	ListProposalEvent 		= "2102"
 	GetActiveVersionEvent 	= "2103"
+	GetCodeVersionEvent 	= "2104"
 )
 
 var (
@@ -61,18 +65,18 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		// Set
 		2000: gc.submitText,
 		2001: gc.submitVersion,
-		2002: gc.vote,
-		2003: gc.declareVersion,
+		2002: gc.submitVersion,
+		2003: gc.vote,
+		2004: gc.declareVersion,
 
 		// Get
 		2100: gc.getProposal,
 		2101: gc.getTallyResult,
 		2102: gc.listProposal,
 		2103: gc.getActiveVersion,
+		2104: gc.getCodeVersion,
 	}
 }
-
-
 
 func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, desc, url string, endVotingBlock uint64) ([]byte, error) {
 	from := gc.Contract.CallerAddress
@@ -124,6 +128,36 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, githubID, topic, 
 	}
 	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return gc.errHandler("submitVersion", SubmitVersionEvent, err, SubmitVersionProposalErrorMsg)
+}
+
+func (gc *GovContract) submitParam(verifier discover.NodeID, githubID, topic, desc, url string, paramName string, currentValue, newValue interface{}, endVotingBlock uint64) ([]byte, error) {
+	from := gc.Contract.CallerAddress
+	log.Debug("Call submitVersion of GovContract",
+		"from", from.Hex(),
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64(),
+		"verifierID", hex.EncodeToString(verifier.Bytes()[:8]),
+		"endVotingBlock", endVotingBlock,
+		"ParamName", paramName,
+		"CurrentValue", currentValue,
+		"NewValue", newValue)
+
+	p := gov.ParamProposal{
+		GithubID : 			githubID,
+		Topic : 			topic,
+		Desc : 				desc,
+		Url : 				url,
+		ProposalType : 		gov.Version,
+		EndVotingBlock : 	endVotingBlock,
+		SubmitBlock : 		gc.Evm.BlockNumber.Uint64(),
+		ProposalID : 		gc.Evm.StateDB.TxHash(),
+		Proposer : 			verifier,
+		ParamName:			paramName,
+		CurrentValue:		currentValue,
+		NewValue:			newValue,
+	}
+	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
+	return gc.errHandler("submitParam", SubmitParamEvent, err, SubmitParamProposalErrorMsg)
 }
 
 func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8) ([]byte, error) {
@@ -218,6 +252,19 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 	activeVersion := gc.Plugin.GetActiveVersion(gc.Evm.StateDB)
 
 	return gc.returnHandler(activeVersion, nil, GetActiveVersionErrorMsg)
+}
+
+
+func (gc *GovContract) getCodeVersion() ([]byte, error) {
+	from := gc.Contract.CallerAddress
+	log.Debug("Call getCodeVersion of GovContract",
+		"from", from.Hex(),
+		"txHash", gc.Evm.StateDB.TxHash(),
+		"blockNumber", gc.Evm.BlockNumber.Uint64())
+
+	codeVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+
+	return gc.returnHandler(codeVersion, nil, GetCodeVersionErrorMsg)
 }
 
 

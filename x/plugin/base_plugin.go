@@ -47,7 +47,7 @@ func  Verify_tx_data(input []byte, command map[uint16]interface{} ) (fn interfac
 	//fmt.Println("the Function Type:", byteutil.BytesToUint16(args[0]))
 
 	if fn, ok := command[byteutil.BytesToUint16(args[0])]; !ok {
-			return nil, nil, FuncNotExistErr
+		return nil, nil, FuncNotExistErr
 	}else {
 
 		//funcName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
@@ -61,18 +61,15 @@ func  Verify_tx_data(input []byte, command map[uint16]interface{} ) (fn interfac
 		if paramNum != len(args)-1 {
 			return nil, nil, FnParamsLenErr
 		}
-
 		params := make([]reflect.Value, paramNum)
 
 		for i := 0; i < paramNum; i++ {
-
 			//fmt.Println("byte:", args[i+1])
 
 			targetType := paramList.In(i).String()
 			inputByte := []reflect.Value{reflect.ValueOf(args[i+1])}
 			params[i] = reflect.ValueOf(byteutil.Bytes2X_CMD[targetType]).Call(inputByte)[0]
 			//fmt.Println("num", i+1, "type", targetType)
-
 		}
 
 		return fn, params, nil

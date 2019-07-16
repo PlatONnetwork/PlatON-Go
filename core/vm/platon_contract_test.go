@@ -359,19 +359,13 @@ func build_staking_data(genesisHash common.Hash) {
 	stakingDB.SetCurrentValidatorList(blockHash, curr_Arr)
 }
 
-type restrictingInfo struct {
-	balance     *big.Int `json:"balance"` // balance representation all locked amount
-	debt        *big.Int `json:"debt"`    // debt representation will released amount. Positive numbers can be used instead of release, 0 means no release, negative numbers indicate not enough to release
-	releaseList []uint64 `json:"list"`    // releaseList representation which epoch will release restricting
-}
-
 func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 	account := addrArr[0]
 
-	const Epochs = 6
-	var list = make([]uint64, Epochs)
+	const Epochs = 5
+	var list = make([]uint64, 0)
 
-	for epoch := 1; epoch < Epochs; epoch++ {
+	for epoch := 1; epoch <= Epochs; epoch++ {
 		// build release account record
 		releaseAccountKey := restricting.GetReleaseAccountKey(uint64(epoch), 1)
 		stateDB.SetState(cvm.RestrictingContractAddr, releaseAccountKey, account.Bytes())
@@ -383,25 +377,27 @@ func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 
 		// build release epoch list record
 		releaseEpochKey := restricting.GetReleaseEpochKey(uint64(epoch))
-		stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint64ToBytes(1))
+		stateDB.SetState(cvm.RestrictingContractAddr, releaseEpochKey, common.Uint32ToBytes(1))
 
 		list = append(list, uint64(epoch))
 	}
 
 	// build restricting user info
-	var user restrictingInfo
-	user.balance = big.NewInt(int64(5E18))
-	user.debt = big.NewInt(0)
-	user.releaseList = list
+	var user restricting.RestrictingInfo
+	user.Balance = big.NewInt(int64(5E18))
+	user.Debt = big.NewInt(0)
+	user.DebtSymbol = false
+	user.ReleaseList = list
 
 	bUser, err := rlp.EncodeToBytes(user)
 	if err != nil {
-		t.Errorf("failed to rlp encode restricting info: %s", err.Error())
+		t.Fatalf("failed to rlp encode restricting info: %s", err.Error())
 	}
 
+	// build restricting account info record
 	restrictingKey := restricting.GetRestrictingKey(account)
-	stateDB.SetState(cvm.RestrictingContractAddr, restrictingKey, bUser)
+	stateDB.SetState(account, restrictingKey, bUser)
 
-	stateDB.AddBalance(sender, sender_balance.Sub(sender_balance, big.NewInt(int64(5E18))))
+	stateDB.AddBalance(sender, sender_balance)
 	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
 }

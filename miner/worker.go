@@ -124,12 +124,12 @@ func (e *commitWorkEnv) getCurrentBaseBlock() *types.Block {
 // worker is the main object which takes care of submitting new work to consensus engine
 // and gathering the sealing result.
 type worker struct {
-	EmptyBlock string
-	config     *params.ChainConfig
+	EmptyBlock   string
+	config       *params.ChainConfig
 	miningConfig *core.MiningConfig
-	engine     consensus.Engine
-	eth        Backend
-	chain      *core.BlockChain
+	engine       consensus.Engine
+	eth          Backend
+	chain        *core.BlockChain
 
 	gasFloor uint64
 	gasCeil  uint64
@@ -192,7 +192,7 @@ func newWorker(config *params.ChainConfig, miningConfig *core.MiningConfig, engi
 	blockChainCache *core.BlockChainCache) *worker {
 	worker := &worker{
 		config:             config,
-		miningConfig:		miningConfig,
+		miningConfig:       miningConfig,
 		engine:             engine,
 		eth:                eth,
 		mux:                mux,
