@@ -1874,6 +1874,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	// Has violated the BFT hypothesis
 	if doubleSignNum >= tmpQueueLen {
 		if curr_num-doubleSignNum+tmpQueueLen < mbn {
+			log.Error("Failed to Election: Has violated the BFT hypothesis", "Current Validator Size", curr_num,
+				"doubleSign Size", doubleSignNum, "shiftQueue Size", tmpQueueLen)
 			panic("Has violated the BFT hypothesis")
 		} else {
 			nextQueue = shuffle(doubleSignNum, tmpQueue)
@@ -1893,7 +1895,13 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 			} else {
 
 				if doubleSignNum >= len(queue) {
-					nextQueue = shuffle(doubleSignNum, queue)
+					if curr_num-doubleSignNum+len(queue) < mbn {
+						log.Error("Failed to Election: Has violated the BFT hypothesis", "Current Validator Size", curr_num,
+							"doubleSign Size", doubleSignNum, "shiftQueue Size", len(queue))
+						panic("Has violated the BFT hypothesis")
+					} else {
+						nextQueue = shuffle(doubleSignNum, queue)
+					}
 				} else {
 					nextQueue = shuffle(len(queue), queue)
 				}
