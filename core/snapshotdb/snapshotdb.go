@@ -6,6 +6,9 @@ import (
 	"math/big"
 	"os"
 	"sync"
+	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/event"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -92,7 +95,7 @@ type snapshotDB struct {
 	path string
 
 	snapshotLockC bool
-	snapshotLock  *sync.Cond
+	snapshotLock  event.Feed
 
 	current *current
 	baseDB  *leveldb.DB
@@ -115,14 +118,9 @@ type snapshotDB struct {
 	closed bool
 }
 
-//SetDBPath set db path
-func SetDBPath(ctx *node.ServiceContext) {
-	dbpath = ctx.ResolvePath(DBPath)
-}
-
 func SetDBPathWithNode(n *node.Node) {
 	dbpath = n.ResolvePath(DBPath)
-	log.Info("set path", "path", dbpath)
+	logger.Info("set path", "path", dbpath)
 }
 
 //Instance return the Instance of the db
@@ -211,7 +209,7 @@ func initDB() error {
 	}
 	dbInstance.corn = cron.New()
 	if err := dbInstance.corn.AddFunc("@every 1s", dbInstance.schedule); err != nil {
-		logger.Error(fmt.Sprint("new db fail", err))
+		logger.Error("new db fail", "err", err)
 		return err
 	}
 	dbInstance.corn.Start()
@@ -324,12 +322,10 @@ func (s *snapshotDB) Compaction() error {
 		return nil
 	}
 	s.commitLock.Lock()
-	s.snapshotLock.L.Lock()
 	s.snapshotLockC = true
 	defer func() {
 		s.snapshotLockC = false
-		s.snapshotLock.Broadcast()
-		s.snapshotLock.L.Unlock()
+		s.snapshotLock.Send(struct{}{})
 		s.commitLock.Unlock()
 	}()
 	var (
@@ -628,12 +624,26 @@ func (s *snapshotDB) BaseNum() (*big.Int, error) {
 // content of snapshot are guaranteed to be consistent.
 // slice
 func (s *snapshotDB) WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error {
+	logger.Info("begin walkbase db")
 	if s.snapshotLockC {
-		s.snapshotLock.L.Lock()
-		defer s.snapshotLock.L.Unlock()
-		for s.snapshotLockC {
-			s.snapshotLock.Wait()
+		logger.Info("wait for snapshot unlock")
+		c := make(chan struct{})
+		defer close(c)
+		d := time.NewTimer(10 * time.Second)
+		sub := s.snapshotLock.Subscribe(c)
+		select {
+		case <-c:
+		case err := <-sub.Err():
+			logger.Error("sub err", "err", err)
+			sub.Unsubscribe()
+			return err
+		case <-d.C:
+			logger.Error("wait for snapshot unlock time out")
+			sub.Unsubscribe()
+			return errors.New("[snapshotDB]timeout for wait WalkBaseDB")
 		}
+		sub.Unsubscribe()
+		d.Stop()
 	}
 	snapshot, err := s.baseDB.GetSnapshot()
 	if err != nil {
@@ -656,12 +666,7 @@ func (s *snapshotDB) Clear() error {
 	if err := os.RemoveAll(s.path); err != nil {
 		return err
 	}
-	//	s = nil
 	return nil
-}
-
-func (s *snapshotDB) Reset() {
-
 }
 
 func itrToMdb(itr iterator.Iterator, mdb *memdb.DB) error {

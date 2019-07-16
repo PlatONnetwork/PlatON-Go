@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/journal"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"math/big"
-	"testing"
 )
 
 var (
@@ -287,16 +290,13 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 		commit1KV   = kv{key: []byte("b"), value: []byte("b")}
 		commit2KV   = kv{key: []byte("b"), value: []byte("c")}
 	)
-	{
-		if err := newBlockBaseDB(big.NewInt(1), common.ZeroHash, baseDBHash, []kv{baseDBkv}); err != nil {
-			t.Error(err)
-			return
-		}
-		if err := newBlockCommited(big.NewInt(2), baseDBHash, commit1hash, []kv{commit1KV}); err != nil {
-			t.Error(err)
-			return
-		}
-
+	if err := newBlockBaseDB(big.NewInt(1), common.ZeroHash, baseDBHash, []kv{baseDBkv}); err != nil {
+		t.Error(err)
+		return
+	}
+	if err := newBlockCommited(big.NewInt(2), baseDBHash, commit1hash, []kv{commit1KV}); err != nil {
+		t.Error(err)
+		return
 	}
 
 	t.Run("should get", func(t *testing.T) {
@@ -321,6 +321,12 @@ func TestSnapshotDB_GetFromCommitedBlock(t *testing.T) {
 		}
 		if bytes.Compare(commit2KV.value, val) != 0 {
 			t.Error("must find key")
+		}
+	})
+	t.Run("not find from any path", func(t *testing.T) {
+		_, err := dbInstance.GetFromCommittedBlock([]byte("ccccc"))
+		if err != ErrNotFound {
+			t.Error(err)
 		}
 	})
 }
@@ -593,6 +599,28 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	if err := dbInstance.WalkBaseDB(prefix, f); err != nil {
 		t.Error(err)
 	}
+	t.Run("walk base db when compaction,should lock", func(t *testing.T) {
+		dbInstance.snapshotLockC = true
+		go func() {
+			time.Sleep(time.Millisecond * 500)
+			dbInstance.snapshotLock.Send(struct{}{})
+			dbInstance.snapshotLockC = false
+		}()
+		f2 := func(num *big.Int, iter iterator.Iterator) error {
+			return nil
+		}
+		var wg sync.WaitGroup
+		for i := 0; i < 10; i++ {
+			wg.Add(1)
+			go func() {
+				if err := dbInstance.WalkBaseDB(prefix, f2); err != nil {
+					t.Error(err)
+				}
+				wg.Done()
+			}()
+		}
+		wg.Wait()
+	})
 }
 
 func TestSnapshotDB_Clear(t *testing.T) {
