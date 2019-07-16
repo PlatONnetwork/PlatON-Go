@@ -4,6 +4,9 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -17,8 +20,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
 )
 
 func initInfo(t *testing.T) (*plugin.SlashingPlugin, xcom.StateDB) {
@@ -33,7 +34,7 @@ func initInfo(t *testing.T) (*plugin.SlashingPlugin, xcom.StateDB) {
 	return si, stateDB
 }
 
-func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey)  {
+func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey) {
 	stakingDB := staking.NewStakingDB()
 
 	sender := common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
@@ -176,7 +177,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey)  {
 }
 
 func TestSlashingPlugin_BeginBlock(t *testing.T) {
-	_,_,_ = newChainState()
+	_, _, _ = newChainState()
 	si, stateDB := initInfo(t)
 	defer func() {
 		snapshotdb.Instance().Clear()
@@ -242,7 +243,7 @@ func confirmBlock(t *testing.T, maxNumber int, flag bool) (*ecdsa.PrivateKey, co
 	parentHash := genesis.Hash()
 	for i := 0; i < maxNumber; i++ {
 
-		blockNum := big.NewInt(int64(i+1))
+		blockNum := big.NewInt(int64(i + 1))
 
 		if i == 7 {
 			sk = pri2
@@ -343,7 +344,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := si.Slash(data, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {
 		t.Error(err)
 	}
-	if success, value, err := si.CheckMutiSign(addr, common.Big1.Uint64(), 1, stateDB); nil != err || !success || len(value) == 0 {
+	if value, err := si.CheckMutiSign(addr, common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
 		t.Error(err)
 	}
 	err = si.Slash(data, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
@@ -382,7 +383,7 @@ func TestSlashingPlugin_CheckMutiSign(t *testing.T) {
 		snapshotdb.Instance().Clear()
 	}()
 	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
-	if _, _, err := si.CheckMutiSign(addr, 1, 1, stateDB); nil != err {
+	if _, err := si.CheckMutiSign(addr, 1, 1, stateDB); nil != err {
 		t.Error(err)
 	}
 }

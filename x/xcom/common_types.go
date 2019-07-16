@@ -74,6 +74,20 @@ type Result struct {
 	ErrMsg string
 }
 
+func SuccessResult(data string, errMsg string) []byte {
+	return BuildResult(true, data, errMsg)
+}
+
+func FailResult(data string, errMsg string) []byte {
+	return BuildResult(false, data, errMsg)
+}
+
+func BuildResult(status bool, data string, errMsg string) []byte {
+	res := Result{status, data, errMsg}
+	bytes, _ := json.Marshal(res)
+	return bytes
+}
+
 /*// EncodeRLP implements rlp.Encoder
 func (r *Result) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, Result{
