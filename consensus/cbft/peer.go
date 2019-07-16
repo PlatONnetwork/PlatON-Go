@@ -4,15 +4,19 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"math/big"
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
-	"github.com/deckarep/golang-set"
+	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
+	mapset "github.com/deckarep/golang-set"
 )
 
 var (
@@ -31,7 +35,7 @@ const (
 	handshakeTimeout = 5 * time.Second
 )
 
-func errResp(code errCode, format string, v ...interface{}) error {
+func errResp(code types.ErrCode, format string, v ...interface{}) error {
 	return fmt.Errorf("%v - %v", code, fmt.Sprintf(format, v...))
 }
 
@@ -74,15 +78,15 @@ func newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 
 // Handshake passes each other's status data and verifies the protocol version,
 // the successful handshake can successfully establish a connection by peer.
-func (p *peer) Handshake(outStatus *cbftStatusData) error {
+func (p *peer) Handshake(outStatus *protocols.CbftStatusData) error {
 	if nil == outStatus {
 		return errInvalidHandshakeMessage
 	}
 	errc := make(chan error, 2)
-	var inStatus cbftStatusData
+	var inStatus protocols.CbftStatusData
 	// Asynchronously send status information of the local node.
 	go func() {
-		errc <- p2p.Send(p.rw, CBFTStatusMsg, outStatus)
+		errc <- p2p.Send(p.rw, protocols.CBFTStatusMsg, outStatus)
 	}()
 	// Asynchronously waiting to receive status data sent by the peer.
 	go func() {
@@ -111,22 +115,22 @@ func (p *peer) Handshake(outStatus *cbftStatusData) error {
 }
 
 // readStatus receive status data from another.
-func (p *peer) readStatus(status *cbftStatusData) error {
+func (p *peer) readStatus(status *protocols.CbftStatusData) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		return err
 	}
-	if msg.Code != CBFTStatusMsg {
-		return errResp(ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, CBFTStatusMsg)
+	if msg.Code != protocols.CBFTStatusMsg {
+		return errResp(types.ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, protocols.CBFTStatusMsg)
 	}
-	if msg.Size > CbftProtocolMaxMsgSize {
-		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, CbftProtocolMaxMsgSize)
+	if msg.Size > protocols.CbftProtocolMaxMsgSize {
+		return errResp(types.ErrMsgTooLarge, "%v > %v", msg.Size, protocols.CbftProtocolMaxMsgSize)
 	}
 	if err := msg.Decode(&status); err != nil {
-		return errResp(ErrDecode, "msg %v: %v", msg, err)
+		return errResp(types.ErrDecode, "msg %v: %v", msg, err)
 	}
 	if int(status.ProtocolVersion) != p.version {
-		return errResp(ErrCbftProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
+		return errResp(types.ErrCbftProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
 	}
 	return nil
 }

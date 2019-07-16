@@ -15,9 +15,9 @@ const (
 	ErrForkedBlock
 )
 
-type errCode int
+type ErrCode int
 
-func (e errCode) String() string {
+func (e ErrCode) String() string {
 	return errorToString[int(e)]
 }
 

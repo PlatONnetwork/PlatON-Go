@@ -86,7 +86,7 @@ func (ViewChange) BHash() common.Hash {
 }
 
 // cbftStatusData implement Message and including status information about peer.
-type cbftStatusData struct {
+type CbftStatusData struct {
 	ProtocolVersion uint32      `json:"protocol_version"` // CBFT protocol version number.
 	QCBn            *big.Int    `json:"qc_bn"`            // The highest local block number for collecting block signatures.
 	QCBlock         common.Hash `json:"qc_block"`         // The highest local block hash for collecting block signatures.
@@ -96,21 +96,21 @@ type cbftStatusData struct {
 	CmtBlock        common.Hash `json:"cmt_block"`        // Locally submitted block hash.
 }
 
-func (s *cbftStatusData) String() string {
+func (s *CbftStatusData) String() string {
 	if s == nil {
 		return ""
 	}
 	return fmt.Sprintf("[ProtocolVersion:%d, QCBn:%d, LockBn:%d, CmtBn:%d]", s.QCBn.Uint64(), s.LockBn.Uint64(), s.CmtBn.Uint64())
 }
 
-func (s *cbftStatusData) MsgHash() common.Hash {
+func (s *CbftStatusData) MsgHash() common.Hash {
 	if s == nil {
 		return common.Hash{}
 	}
 	return utils.BuildHash(CBFTStatusMsg, utils.MergeBytes(s.QCBlock.Bytes(), s.LockBlock.Bytes(), s.CmtBlock.Bytes()))
 }
 
-func (s *cbftStatusData) BHash() common.Hash {
+func (s *CbftStatusData) BHash() common.Hash {
 	if s == nil {
 		return common.Hash{}
 	}
