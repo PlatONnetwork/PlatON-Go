@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
@@ -56,7 +57,7 @@ func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChain
 }
 
 // Getting the global bcr single instance
-func GetReactorInstance () *BlockChainReactor {
+func GetReactorInstance() *BlockChainReactor {
 	return bcr
 }
 
@@ -258,6 +259,10 @@ func (bcr *BlockChainReactor) Sign(msg interface{}) error {
 }
 
 func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
+	return nil
+}
+
+func (bcr *BlockChainReactor) VerifyHeader(header *types.Header) error {
 	return nil
 }
 

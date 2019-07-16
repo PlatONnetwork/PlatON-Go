@@ -264,6 +264,7 @@ func (cbft *Cbft) Start(blockChain *core.BlockChain, txPool *core.TxPool, agency
 			return err
 		}
 		current.view = extra.ViewChange
+		current.viewChangeVotes = extra.ViewChangeVotes
 
 		for _, vote := range extra.Prepare {
 			current.timestamp = vote.Timestamp
@@ -880,6 +881,11 @@ func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, sealResu
 }
 
 func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Block, stopCh <-chan struct{}) {
+	if !(cbft.master && cbft.agreeViewChange()) {
+		cbft.log.Warn("We are not a master or view change not agreed, stop seal block", "number", sealedBlock.Number(), "parentHash", sealedBlock.ParentHash(), "state", cbft.blockState())
+		return
+	}
+
 	if (cbft.getHighestLogical() != nil && !cbft.getHighestLogical().IsParent(sealedBlock.ParentHash())) &&
 		(cbft.getHighestConfirmed() != nil && !cbft.getHighestConfirmed().IsParent(sealedBlock.ParentHash())) {
 		cbft.log.Warn("Futile block cause highest logical block changed",
@@ -1512,6 +1518,11 @@ func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header
 		cbft.log.Warn(fmt.Sprintf("Verify header failed, miss sign  number:%d", header.Number.Uint64()))
 		return errMissingSignature
 	}
+
+	if err := cbft.agency.VerifyHeader(header); err != nil {
+		cbft.log.Error("Verify header fail", "number", header.Number, "hash", header.Hash(), "seal", seal, "err", err)
+		return err
+	}
 	return nil
 }
 
@@ -1958,12 +1969,37 @@ func (cbft *Cbft) HighestConfirmedBlock() *types.Block {
 
 // storeBlocks sends the blocks to cbft.cbftResultOutCh, the receiver will write them into chain
 func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
+	prev := cbft.blockExtMap.head
+
 	for _, ext := range blocksToStore {
+		if cbft.getValidators().Len() > 1 && prev.number > 0 && prev.view == nil {
+			panic("previous viewChange is NIL")
+		}
+		if cbft.getValidators().Len() > 1 && prev.number > 0 && len(prev.viewChangeVotes) == 0 {
+			panic("empty viewChangeVotes")
+		}
+
+		if cbft.getValidators().Len() > 1 && prev.number > 0 && prev.prepareVotes.Votes()[0].Timestamp != prev.view.Timestamp {
+			panic("timestamp not equal")
+		}
+
+		if ext.view == nil {
+			if prev.view != nil {
+				ext.view = prev.view
+				ext.viewChangeVotes = prev.viewChangeVotes
+			}
+		} else {
+			if prev.view != nil && ext.view.Equal(prev.view) && len(ext.viewChangeVotes) == 0 {
+				ext.viewChangeVotes = prev.viewChangeVotes
+			}
+		}
+
 		extra, err := cbft.encodeExtra(ext.BlockExtra())
 		if err != nil {
 			cbft.log.Error("Encode ExtraData failed", "err", err)
 			continue
 		}
+
 		cbftResult := cbfttypes.CbftResult{
 			Block:     ext.block,
 			ExtraData: extra,
@@ -1972,6 +2008,8 @@ func (cbft *Cbft) storeBlocks(blocksToStore []*BlockExt) {
 		cbft.log.Debug("Send consensus result to worker", "block", ext.String())
 		cbft.bp.InternalBP().StoreBlock(context.TODO(), ext, cbft)
 		cbft.eventMux.Post(cbftResult)
+
+		prev = ext
 	}
 }
 

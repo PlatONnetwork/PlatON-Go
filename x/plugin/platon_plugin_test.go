@@ -139,6 +139,9 @@ var (
 	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536, version: 1.0.0
 	promoteVersion = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
 
+	//maxBalance = "99999999999999999999999999999999999999999999"
+
+
 	balanceStr = []string {
 
 		"9000000000000000000000000",
@@ -292,99 +295,6 @@ func build_staking_data (genesisHash common.Hash){
 	// MOCK
 
 
-	nodeId_A := nodeIdArr[0]
-	addr_A, _ := xutil.NodeId2Addr(nodeId_A)
-
-	nodeId_B := nodeIdArr[1]
-	addr_B, _ := xutil.NodeId2Addr(nodeId_B)
-
-	nodeId_C := nodeIdArr[2]
-	addr_C, _ := xutil.NodeId2Addr(nodeId_C)
-
-
-	//canArr := make(staking.CandidateQueue, 0)
-
-
-	c1 := &staking.Candidate{
-		NodeId: nodeId_A,
-		StakingAddress: sender,
-		BenifitAddress: addrArr[1],
-		StakingTxIndex: uint32(2),
-		ProcessVersion:  initProcessVersion,
-		Status: staking.Valided,
-		StakingEpoch: uint32(1),
-		StakingBlockNum: uint64(1),
-		Shares:             common.Big256,
-		Released:           common.Big2,
-		ReleasedHes:        common.Big32,
-		RestrictingPlan:    common.Big1,
-		RestrictingPlanHes: common.Big257,
-		Description: staking.Description{
-			ExternalId: "xxccccdddddddd",
-			NodeName: "I Am " +fmt.Sprint(1),
-			Website: "www.baidu.com",
-			Details: "this is  baidu ~~",
-		},
-	}
-
-	c2 := &staking.Candidate{
-		NodeId: nodeId_B,
-		StakingAddress: sender,
-		BenifitAddress: addrArr[2],
-		StakingTxIndex: uint32(3),
-		ProcessVersion:  initProcessVersion,
-		Status: staking.Valided,
-		StakingEpoch: uint32(1),
-		StakingBlockNum: uint64(1),
-		Shares:             common.Big256,
-		Released:           common.Big2,
-		ReleasedHes:        common.Big32,
-		RestrictingPlan:    common.Big1,
-		RestrictingPlanHes: common.Big257,
-		Description: staking.Description{
-			ExternalId: "SFSFSFSFSFSFSSFS",
-			NodeName: "I Am " +fmt.Sprint(2),
-			Website: "www.JD.com",
-			Details: "this is  JD ~~",
-		},
-	}
-
-
-
-	c3 := &staking.Candidate{
-		NodeId: nodeId_C,
-		StakingAddress: sender,
-		BenifitAddress: addrArr[3],
-		StakingTxIndex: uint32(4),
-		ProcessVersion:  initProcessVersion,
-		Status: staking.Valided,
-		StakingEpoch: uint32(1),
-		StakingBlockNum: uint64(1),
-		Shares:             common.Big256,
-		Released:           common.Big2,
-		ReleasedHes:        common.Big32,
-		RestrictingPlan:    common.Big1,
-		RestrictingPlanHes: common.Big257,
-		Description: staking.Description{
-			ExternalId: "FWAGGDGDGG",
-			NodeName: "I Am " +fmt.Sprint(3),
-			Website: "www.alibaba.com",
-			Details: "this is  alibaba ~~",
-		},
-	}
-
-
-
-	stakingDB.SetCanPowerStore(blockHash, addr_A, c1)
-	stakingDB.SetCanPowerStore(blockHash, addr_B, c2)
-	stakingDB.SetCanPowerStore(blockHash, addr_C, c3)
-
-
-	stakingDB.SetCandidateStore(blockHash, addr_A, c1)
-	stakingDB.SetCandidateStore(blockHash, addr_B, c2)
-	stakingDB.SetCandidateStore(blockHash, addr_C, c3)
-
-
 	validatorArr := make(staking.ValidatorQueue, 0)
 
 	// build  more data
@@ -405,29 +315,47 @@ func build_staking_data (genesisHash common.Hash){
 
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
-		privateKey, err := crypto.GenerateKey()
-		if nil != err {
-			fmt.Printf("Failed to generate random NodeId private key: %v", err)
-			return
+		randBuildFunc := func() (discover.NodeID, common.Address, error) {
+			privateKey, err := crypto.GenerateKey()
+			if nil != err {
+				fmt.Printf("Failed to generate random NodeId private key: %v", err)
+				return discover.NodeID{}, common.ZeroAddr, err
+			}
+
+			nodeId := discover.PubkeyID(&privateKey.PublicKey)
+
+			privateKey, err = crypto.GenerateKey()
+			if nil != err {
+				fmt.Printf("Failed to generate random Address private key: %v", err)
+				return discover.NodeID{}, common.ZeroAddr, err
+			}
+
+			addr := crypto.PubkeyToAddress(privateKey.PublicKey)
+
+			return nodeId, addr, nil
 		}
 
-		nodeId := discover.PubkeyID(&privateKey.PublicKey)
+		var nodeId discover.NodeID
+		var addr common.Address
 
-		privateKey, err = crypto.GenerateKey()
-		if nil != err {
-			fmt.Printf("Failed to generate random Address private key: %v", err)
-			return
+		if i < 25 {
+			nodeId = nodeIdArr[i]
+			ar, _ := xutil.NodeId2Addr(nodeId)
+			addr = ar
+		}else {
+			id, ar, err := randBuildFunc()
+			if nil != err {
+				return
+			}
+			nodeId = id; addr = ar
 		}
-
-		addr := crypto.PubkeyToAddress(privateKey.PublicKey)
-
 
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
 			BenifitAddress:  addr,
-			StakingBlockNum: uint64(i),
-			StakingTxIndex:  uint32(index),
+			StakingBlockNum: uint64(1),
+			StakingTxIndex:  uint32(i+1),
 			Shares:          balance,
 			ProcessVersion:  initProcessVersion,
 			// Prevent null pointer initialization
@@ -457,43 +385,12 @@ func build_staking_data (genesisHash common.Hash){
 				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 			ValidatorTerm: 0,
 		}
-		if i < 22 {
-			validatorArr = append(validatorArr, v)
-		}
+		validatorArr = append(validatorArr, v)
 	}
 
-	//
-	queue := make(staking.ValidatorQueue, 0)
 
-	v1 := &staking.Validator{
-		NodeAddress: addr_A,
-		NodeId: c1.NodeId,
-		StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), common.Big256.String(), fmt.Sprint(c1.StakingBlockNum), fmt.Sprint(c1.StakingTxIndex)},
-		ValidatorTerm: 0,
-	}
 
-	v2 := &staking.Validator{
-		NodeAddress: addr_B,
-		NodeId: c2.NodeId,
-		StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), common.Big256.String(), fmt.Sprint(c2.StakingBlockNum), fmt.Sprint(c2.StakingTxIndex)},
-		ValidatorTerm: 0,
-	}
-
-	v3 := &staking.Validator{
-		NodeAddress: addr_C,
-		NodeId: c3.NodeId,
-		StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), common.Big256.String(), fmt.Sprint(c3.StakingBlockNum), fmt.Sprint(c3.StakingTxIndex)},
-		ValidatorTerm: 0,
-	}
-
-	queue = append(queue, v1)
-	queue = append(queue, v2)
-	queue = append(queue, v3)
-
-	// add validator
-	queue = append(queue, validatorArr...)
-
-	queue = queue[:25]
+	queue := validatorArr[:25]
 
 	epoch_Arr :=  &staking.Validator_array{
 		Start: 1,

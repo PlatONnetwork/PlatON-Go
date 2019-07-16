@@ -1839,9 +1839,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	// Never match, maybe
 	if nil == verifiers || len(verifiers.Arr) == 0 {
-		arr := make(staking.ValidatorQueue, len(curr.Arr))
-		copy(arr, curr.Arr)
-		return proremoteCurr2NextFunc(start, end, arr)
+		//arr := make(staking.ValidatorQueue, len(curr.Arr))
+		//copy(arr, curr.Arr)
+		//return proremoteCurr2NextFunc(start, end, arr)
+		panic("The Current Epoch VerifierList is empty ~~~")
 	}
 
 	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
@@ -1857,7 +1858,11 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		}
 		tmpQueue = append(tmpQueue, v)
 	}
-	// TODO
+
+
+	/**
+	Really go to the election
+	 */
 	var shiftQueue staking.ValidatorQueue
 
 	switch {
