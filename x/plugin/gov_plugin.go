@@ -2,6 +2,8 @@ package plugin
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -9,11 +11,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-	"sync"
 )
 
 var (
-	govPluginOnce         sync.Once
+	govPluginOnce sync.Once
 )
 
 type GovPlugin struct {
@@ -47,9 +48,9 @@ func (govPlugin *GovPlugin) Confirmed(block *types.Block) error {
 //implement BasePlugin
 func (govPlugin *GovPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 
-	log.Debug("call BeginBlock()", "blockNumber",  header.Number.Uint64())
+	log.Debug("call BeginBlock()", "blockNumber", header.Number.Uint64())
 	if xutil.IsSettlementPeriod(header.Number.Uint64()) {
-		log.Debug("current block is the end of settlement period", "blockNumber",  header.Number.Uint64())
+		log.Debug("current block is the end of settlement period", "blockNumber", header.Number.Uint64())
 		verifierList, err := stk.ListVerifierNodeID(blockHash, header.Number.Uint64())
 		if err != nil {
 			return err
@@ -141,7 +142,6 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	if preActiveProposalID == common.ZeroHash {
 		return nil
 	}
-
 
 	//handle a PreActiveProposal
 	proposal, err := govPlugin.govDB.GetProposal(preActiveProposalID, state)
@@ -307,9 +307,9 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	} else if votingIDs == nil {
 		log.Error("there's no voting proposal ID.", "blockHash", blockHash)
 		return err
-	}else {
+	} else {
 		var isVoting = false
-		for _, votingID := range  votingIDs {
+		for _, votingID := range votingIDs {
 			if votingID == vote.ProposalID {
 				isVoting = true
 			}
@@ -564,7 +564,6 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(proposal gov.VersionProposal
 	return nil
 }
 
-
 func (govPlugin *GovPlugin) tallyBasic(proposalID common.Hash, blockHash common.Hash, state xcom.StateDB) (pass bool, err error) {
 	verifiersCnt, err := govPlugin.govDB.AccuVerifiersLength(blockHash, proposalID)
 	if err != nil {
@@ -616,9 +615,8 @@ func (govPlugin *GovPlugin) tallyBasic(proposalID common.Hash, blockHash common.
 		log.Error("save tally result failed", "tallyResult", tallyResult)
 		return false, err
 	}
-	return status==gov.Pass, nil
+	return status == gov.Pass, nil
 }
-
 
 // check if the node a verifier, and the caller address is same as the staking address
 func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
@@ -629,7 +627,7 @@ func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.N
 	}
 
 	for _, verifier := range verifierList {
-		if verifier!= nil && verifier.NodeId == nodeID {
+		if verifier != nil && verifier.NodeId == nodeID {
 			if verifier.StakingAddress == from {
 				return true
 			} else {
@@ -672,7 +670,6 @@ func (govPlugin *GovPlugin) listVotingProposalID(blockHash common.Hash, state xc
 	return idList, nil
 }
 
-
 // find a version proposal at voting stage
 func (govPlugin *GovPlugin) findVotingVersionProposal(blockHash common.Hash, state xcom.StateDB) (*gov.VersionProposal, error) {
 	idList, err := govPlugin.govDB.ListVotingProposal(blockHash, state)
@@ -693,13 +690,11 @@ func (govPlugin *GovPlugin) findVotingVersionProposal(blockHash common.Hash, sta
 	return nil, nil
 }
 
-
-func (govPlugin *GovPlugin) SetParam(paraMap map[string]interface{}, state xcom.StateDB) error{
+func (govPlugin *GovPlugin) SetParam(paraMap map[string]interface{}, state xcom.StateDB) error {
 	return govPlugin.govDB.SetParam(paraMap, state)
 }
 
-
-func (govPlugin *GovPlugin) ListParam(state xcom.StateDB) (map[string]interface{}, error){
+func (govPlugin *GovPlugin) ListParam(state xcom.StateDB) (map[string]interface{}, error) {
 	paramList, err := govPlugin.govDB.ListParam(state)
 	if err != nil {
 		log.Error("list all parameters failed", "msg", err.Error())
@@ -708,8 +703,7 @@ func (govPlugin *GovPlugin) ListParam(state xcom.StateDB) (map[string]interface{
 	return paramList, nil
 }
 
-
-func (govPlugin *GovPlugin) GetParamValue(name string, state xcom.StateDB) (interface{}, error){
+func (govPlugin *GovPlugin) GetParamValue(name string, state xcom.StateDB) (interface{}, error) {
 	value, err := govPlugin.govDB.GetParam(name, state)
 	if err != nil {
 		log.Error("fina a parameter failed", "msg", err.Error())

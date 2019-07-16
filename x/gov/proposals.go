@@ -2,6 +2,7 @@ package gov
 
 import (
 	"fmt"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -13,10 +14,8 @@ type ProposalType uint8
 const (
 	Text    ProposalType = 0x01
 	Version ProposalType = 0x02
-	Param 	ProposalType = 0x03
+	Param   ProposalType = 0x03
 )
-
-
 
 type ProposalStatus uint8
 
@@ -27,7 +26,6 @@ const (
 	PreActive ProposalStatus = 0x04
 	Active    ProposalStatus = 0x05
 )
-
 
 func (status ProposalStatus) ToString() string {
 	switch status {
@@ -46,15 +44,15 @@ func (status ProposalStatus) ToString() string {
 	}
 }
 
-
 type VoteOption uint8
+
 const (
-	Yes 		VoteOption =  0x01
-	No			VoteOption =  0x02
-	Abstention 	VoteOption =  0x03
+	Yes        VoteOption = 0x01
+	No         VoteOption = 0x02
+	Abstention VoteOption = 0x03
 )
 
-func ParseVoteOption(option uint8) VoteOption{
+func ParseVoteOption(option uint8) VoteOption {
 	switch option {
 	case 0x01:
 		return Yes
@@ -66,7 +64,6 @@ func ParseVoteOption(option uint8) VoteOption{
 	return Abstention
 }
 
-
 type TallyResult struct {
 	ProposalID    common.Hash    `json:"proposalID"`
 	Yeas          uint16         `json:"yeas"`
@@ -75,7 +72,6 @@ type TallyResult struct {
 	AccuVerifiers uint16         `json:"accuVerifiers"`
 	Status        ProposalStatus `json:"status"`
 }
-
 
 type Vote struct {
 	ProposalID common.Hash     `json:"proposalID"`
@@ -89,8 +85,8 @@ type VoteValue struct {
 }
 
 type ParamValue struct {
-	Name 	string 				`json:"Name"`
-	Value 	interface{}    		`json:"Value"`
+	Name  string      `json:"Name"`
+	Value interface{} `json:"Value"`
 }
 
 type Proposal interface {
@@ -250,8 +246,8 @@ type VersionProposal struct {
 	EndVotingBlock uint64
 	Proposer       discover.NodeID
 	Result         TallyResult
-	NewVersion  uint32
-	ActiveBlock uint64
+	NewVersion     uint32
+	ActiveBlock    uint64
 }
 
 /*func (vp VersionProposal) SetProposalID(proposalID common.Hash) {
@@ -334,7 +330,6 @@ func (vp VersionProposal) GetTallyResult() TallyResult {
 	return vp.Result
 }
 
-
 /*func (vp *VersionProposal) SetNewVersion(newVersion uint32) {
 	vp.NewVersion = newVersion
 }*/
@@ -389,7 +384,6 @@ func (vp VersionProposal) String() string {
 		vp.ProposalID, vp.GithubID, vp.Topic, vp.ProposalType, vp.Proposer, vp.SubmitBlock, vp.EndVotingBlock, vp.ActiveBlock, vp.NewVersion)
 }
 
-
 type ParamProposal struct {
 	ProposalID     common.Hash
 	GithubID       string
@@ -402,11 +396,10 @@ type ParamProposal struct {
 	Proposer       discover.NodeID
 	Result         TallyResult
 
-	ParamName	   string
-	CurrentValue   interface{}
-	NewValue	   interface{}
+	ParamName    string
+	CurrentValue interface{}
+	NewValue     interface{}
 }
-
 
 func (pp ParamProposal) GetProposalID() common.Hash {
 	return pp.ProposalID
@@ -415,11 +408,9 @@ func (pp ParamProposal) GetGithubID() string {
 	return pp.GithubID
 }
 
-
 func (pp ParamProposal) GetProposalType() ProposalType {
 	return pp.ProposalType
 }
-
 
 func (pp ParamProposal) GetTopic() string {
 	return pp.Topic
@@ -428,7 +419,6 @@ func (pp ParamProposal) GetTopic() string {
 func (pp ParamProposal) GetDesc() string {
 	return pp.Desc
 }
-
 
 func (pp ParamProposal) GetUrl() string {
 	return pp.Url
@@ -483,7 +473,6 @@ func (pp ParamProposal) String() string {
   NewValue:   			%s`,
 		pp.ProposalID, pp.GithubID, pp.Topic, pp.ProposalType, pp.Proposer, pp.SubmitBlock, pp.ParamName, pp.CurrentValue, pp.NewValue)
 }
-
 
 func verifyBasic(proposalID common.Hash, proposer discover.NodeID, topic, desc, githubID, url string, endVotingBlock uint64, submitBlock uint64, state xcom.StateDB) error {
 	if len(proposalID) > 0 {

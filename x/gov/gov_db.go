@@ -2,12 +2,13 @@ package gov
 
 import (
 	"encoding/json"
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"sync"
 )
 
 var (
@@ -269,7 +270,6 @@ func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, propos
 		return common.NewSysError(err.Error())
 	}
 
-
 	err = self.snapdb.put(blockHash, KeyPreActiveProposals(), proposalID)
 	if err != nil {
 		return common.NewSysError(err.Error())
@@ -333,7 +333,6 @@ func (self *GovDB) MovePreActiveProposalIDToEnd(blockHash common.Hash, proposalI
 
 	//pre = remove(pre, proposalID)
 	pre = common.Hash{}
-
 
 	end, err := self.snapdb.getEndIDList(blockHash)
 	if err != nil {
@@ -413,7 +412,7 @@ func (self *GovDB) AccuVerifiersLength(blockHash common.Hash, proposalID common.
 	}
 }
 
-func (self *GovDB) SetParam(paramMap map[string]interface{}, state xcom.StateDB) (error) {
+func (self *GovDB) SetParam(paramMap map[string]interface{}, state xcom.StateDB) error {
 	if len(paramMap) > 0 {
 		paraListBytes, _ := json.Marshal(paramMap)
 		state.SetState(vm.GovContractAddr, KeyParams(), paraListBytes)
@@ -423,23 +422,22 @@ func (self *GovDB) SetParam(paramMap map[string]interface{}, state xcom.StateDB)
 
 func (self *GovDB) GetParam(name string, state xcom.StateDB) (interface{}, error) {
 	paramMap, err := self.ListParam(state)
-	if err !=  nil {
+	if err != nil {
 		return nil, err
 	}
 	return paramMap[name], nil
 }
 
-
-func (self *GovDB) UpdateParam(name string, oldValue interface{}, newValue interface{}, state xcom.StateDB) (error) {
+func (self *GovDB) UpdateParam(name string, oldValue interface{}, newValue interface{}, state xcom.StateDB) error {
 	paramMap, err := self.ListParam(state)
-	if err !=  nil {
+	if err != nil {
 		return err
 	}
 
 	if oldV, exist := paramMap[name]; exist {
 		if oldV == newValue {
 			err = self.SetParam(paramMap, state)
-			if err !=  nil {
+			if err != nil {
 				return err
 			}
 		}

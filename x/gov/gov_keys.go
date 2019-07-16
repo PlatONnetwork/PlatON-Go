@@ -2,6 +2,7 @@ package gov
 
 import (
 	"bytes"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
@@ -18,7 +19,7 @@ var (
 	keyPrefixVotedVerifiers    = []byte("VotedVerifiers")
 	keyPrefixActiveNodes       = []byte("ActiveNodes")
 	keyPrefixAccuVerifiers     = []byte("AccuVerifiers")
-	keyPrefixParams     	   = []byte("Params")
+	keyPrefixParams            = []byte("Params")
 )
 
 // 提案的key
@@ -95,8 +96,6 @@ func KeyAccuVerifier(proposalID common.Hash) []byte {
 	}, KeyDelimiter)
 }
 
-
 func KeyParams() []byte {
 	return keyPrefixParams
 }
-
