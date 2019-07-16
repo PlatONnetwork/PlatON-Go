@@ -905,6 +905,8 @@ func (cbft *Cbft) OnSeal(sealedBlock *types.Block, sealResultCh chan<- *types.Bl
 	cbft.bp.InternalBP().Seal(context.TODO(), current, cbft)
 	cbft.bp.InternalBP().NewHighestLogicalBlock(context.TODO(), current, cbft)
 
+	cbft.agency.Flush(sealedBlock.Header())
+
 	cbft.broadcastBlock(current)
 	//todo change sign and block state
 	go func() {

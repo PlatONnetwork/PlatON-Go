@@ -37,6 +37,7 @@ func newValidators(nodes []discover.Node, validBlockNumber uint64) *cbfttypes.Va
 type Agency interface {
 	Sign(msg interface{}) error
 	VerifySign(msg interface{}) error
+	Flush(header *types.Header) error
 	VerifyHeader(header *types.Header) error
 	GetLastNumber(blockNumber uint64) uint64
 	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
@@ -60,6 +61,10 @@ func (d *StaticAgency) Sign(interface{}) error {
 }
 
 func (d *StaticAgency) VerifySign(interface{}) error {
+	return nil
+}
+
+func (d *StaticAgency) Flush(header *types.Header) error {
 	return nil
 }
 
@@ -104,6 +109,10 @@ func (ia *InnerAgency) Sign(interface{}) error {
 }
 
 func (ia *InnerAgency) VerifySign(interface{}) error {
+	return nil
+}
+
+func (ia *InnerAgency) Flush(header *types.Header) error {
 	return nil
 }
 

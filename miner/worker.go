@@ -1186,12 +1186,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 		return
 	}
 
-	if header.Number.Cmp(common.Big1) > 0 {
-		if err := core.GetReactorInstance().Flush(parent); nil != err {
-			return
-		}
-	}
-
 	// TODO begin()
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
 		return
