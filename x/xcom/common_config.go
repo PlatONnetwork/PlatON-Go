@@ -16,11 +16,11 @@ const (
 
 // config  TODO Configuration is all here
 type EconomicModel struct {
-	Staking       StakingConfig    `json:"stakingConfig"`
-	Slashing      SlashingConfig   `json:"slashingConfig"`
-	Reward        RewardConfig     `json:"rewardConfig"`
-	Gov           GovernanceConfig `json:"govConfig"`
-	EpochsPerYear uint32           `hson:"EpochsPerYear"`
+	Staking       StakingConfig
+	Slashing      SlashingConfig
+	Reward        RewardConfig
+	Gov           GovernanceConfig
+	EpochsPerYear uint32
 }
 
 var ec *EconomicModel
@@ -30,123 +30,120 @@ func SetEconomicModel(ecParams *EconomicModel) {
 		ec = ecParams
 	}
 }
+
 // Getting the global EconomicModel single instance
 //func GetEc() *EconomicModel {
 //	return ec
 //}
 
-
 // Staking config
-func  StakeThreshold() *big.Int {
+func StakeThreshold() *big.Int {
 	return ec.Staking.StakeThreshold
 }
 
-func  DelegateThreshold () *big.Int {
+func DelegateThreshold() *big.Int {
 	return ec.Staking.DelegateThreshold
 }
 
-func  ConsValidatorNum () uint64 {
+func ConsValidatorNum() uint64 {
 	return ec.Staking.ConsValidatorNum
 }
 
-func  EpochValidatorNum () uint64 {
+func EpochValidatorNum() uint64 {
 	return ec.Staking.EpochValidatorNum
 }
 
-func  ShiftValidatorNum () uint64 {
+func ShiftValidatorNum() uint64 {
 	return ec.Staking.ShiftValidatorNum
 }
 
-func  EpochSize () uint64 {
+func EpochSize() uint64 {
 	return ec.Staking.EpochSize
 }
 
-func  HesitateRatio () uint64 {
+func HesitateRatio() uint64 {
 	return ec.Staking.HesitateRatio
 }
 
-func  EffectiveRatio () uint64 {
+func EffectiveRatio() uint64 {
 	return ec.Staking.EffectiveRatio
 }
 
-func  ElectionDistance () uint64 {
+func ElectionDistance() uint64 {
 	return ec.Staking.ElectionDistance
 }
 
-
-func  ConsensusSize () uint64 {
+func ConsensusSize() uint64 {
 	return ec.Staking.ConsensusSize
 }
 
-func UnStakeFreezeRatio () uint64 {
+func UnStakeFreezeRatio() uint64 {
 	return ec.Staking.UnStakeFreezeRatio
 }
 
-func  PassiveUnDelFreezeRatio () uint64 {
+func PassiveUnDelFreezeRatio() uint64 {
 	return ec.Staking.PassiveUnDelegateFreezeRatio
 }
 
-func  ActiveUnDelFreezeRatio () uint64 {
+func ActiveUnDelFreezeRatio() uint64 {
 	return ec.Staking.ActiveUnDelegateFreezeRatio
 }
 
-
 // Slashing config
-func BlockAmountLow () uint32 {
+func BlockAmountLow() uint32 {
 	return ec.Slashing.BlockAmountLow
 }
 
-func  BlockAmountHigh () uint32 {
+func BlockAmountHigh() uint32 {
 	return ec.Slashing.BlockAmountHigh
 }
 
-func  BlockAmountLowSlash () uint32 {
+func BlockAmountLowSlash() uint32 {
 	return ec.Slashing.BlockAmountLowSlashing
 }
 
-func  BlockAmountHighSlash () uint32 {
+func BlockAmountHighSlash() uint32 {
 	return ec.Slashing.BlockAmountHighSlashing
 }
 
-func  DuplicateSignNum () uint32 {
+func DuplicateSignNum() uint32 {
 	return ec.Slashing.DuplicateSignNum
 }
 
-func  DuplicateSignLowSlash () uint32 {
+func DuplicateSignLowSlash() uint32 {
 	return ec.Slashing.DuplicateSignLowSlashing
 }
 
-func  DuplicateSignHighSlash () uint32 {
+func DuplicateSignHighSlash() uint32 {
 	return ec.Slashing.DuplicateSignHighSlashing
 }
 
-
 // Reward config
-func  SecondYearAllowance () *big.Int {
+func SecondYearAllowance() *big.Int {
 	return ec.Reward.SecondYearAllowance
 }
 
-func  ThirdYearAllowance () *big.Int {
+func ThirdYearAllowance() *big.Int {
 	return ec.Reward.ThirdYearAllowance
 }
 
-func  GenesisRestrictingBalance () *big.Int {
+func GenesisRestrictingBalance() *big.Int {
 	return ec.Reward.GenesisRestrictingBalance
 }
 
-func  FirstYearEndEpoch () uint64 {
+func FirstYearEndEpoch() uint64 {
 	return ec.Reward.FirstYearEndEpoch
 }
 
-func  SecondYearEncEpoch () uint64 {
+func SecondYearEncEpoch() uint64 {
 	return ec.Reward.SecondYearEncEpoch
 }
 
 // Governance config
-func  SupportRateThreshold () float64 {
+func SupportRateThreshold() float64 {
 	return ec.Gov.SupportRateThreshold
 }
-func  MaxVotingDuration() uint64 {
+func MaxVotingDuration() uint64 {
 	return ec.Gov.MaxVotingDuration
 }
 
@@ -154,40 +151,38 @@ func EpochsPerYear() uint32 {
 	return ec.EpochsPerYear
 }
 
-
-
 type StakingConfig struct {
-	StakeThreshold               *big.Int  	`json:"stakeThreshold"`
-	DelegateThreshold            *big.Int  	`json:"delegateThreshold"`
-	ConsValidatorNum             uint64		`json:"consValidatorNum"`
-	EpochValidatorNum            uint64		`json:"epochValidatorNum"`
-	ShiftValidatorNum            uint64		`json:"shiftValidatorNum"`
-	EpochSize                    uint64		`json:"epochSize"`
-	HesitateRatio                uint64		`json:"hesitateRatio"`
-	EffectiveRatio               uint64		`json:"effectiveRatio"`
-	ElectionDistance             uint64		`json:"electionDistance"`
-	ConsensusSize                uint64		`json:"consensusSize"`
-	UnStakeFreezeRatio           uint64		`json:"unStakeFreezeRatio"`
-	PassiveUnDelegateFreezeRatio uint64		`json:"passiveUnDelFreezeRatio"`
-	ActiveUnDelegateFreezeRatio  uint64		`json:"activeUnDelFreezeRatio"`
+	StakeThreshold               *big.Int
+	DelegateThreshold            *big.Int
+	ConsValidatorNum             uint64
+	EpochValidatorNum            uint64
+	ShiftValidatorNum            uint64
+	EpochSize                    uint64
+	HesitateRatio                uint64
+	EffectiveRatio               uint64
+	ElectionDistance             uint64
+	ConsensusSize                uint64
+	UnStakeFreezeRatio           uint64
+	PassiveUnDelegateFreezeRatio uint64
+	ActiveUnDelegateFreezeRatio  uint64
 }
 
 type SlashingConfig struct {
-	BlockAmountLow            uint32		`json:"blockAmountLow"`
-	BlockAmountHigh           uint32		`json:"blockAmountHigh"`
-	BlockAmountLowSlashing    uint32		`json:"blockAmountLowSlash"`
-	BlockAmountHighSlashing   uint32		`json:"blockAmountHighSlash"`
-	DuplicateSignNum          uint32		`json:"duplicateSignNum"`
-	DuplicateSignLowSlashing  uint32		`json:"duplicateSignLowSlash"`
-	DuplicateSignHighSlashing uint32		`json:"duplicateSignHighSlash"`
+	BlockAmountLow            uint32
+	BlockAmountHigh           uint32
+	BlockAmountLowSlashing    uint32
+	BlockAmountHighSlashing   uint32
+	DuplicateSignNum          uint32
+	DuplicateSignLowSlashing  uint32
+	DuplicateSignHighSlashing uint32
 }
 
 type RewardConfig struct {
-	SecondYearAllowance       *big.Int		`json:"secondYearAllowance"`
-	ThirdYearAllowance        *big.Int		`json:"thirdYearAllowance"`
-	GenesisRestrictingBalance *big.Int		`json:"genesisRestrictingBalance"`
-	FirstYearEndEpoch         uint64		`json:"firstYearEndEpoch"`
-	SecondYearEncEpoch        uint64		`json:"secondYearEncEpoch"`
+	SecondYearAllowance       *big.Int
+	ThirdYearAllowance        *big.Int
+	GenesisRestrictingBalance *big.Int
+	FirstYearEndEpoch         uint64
+	SecondYearEncEpoch        uint64
 }
 
 type RestrictingConfig struct {
@@ -195,8 +190,8 @@ type RestrictingConfig struct {
 }
 
 type GovernanceConfig struct {
-	SupportRateThreshold float64 		`json:"supportRateThreshold"`
-	MaxVotingDuration     uint64		`json:"maxVotingDuration"`
+	SupportRateThreshold float64
+	MaxVotingDuration    uint64
 }
 
 // PlatON Main Network Config
@@ -604,7 +599,7 @@ var defaultRewardConfig = RewardConfig{
 }
 var defaultGovConfig = GovernanceConfig{
 	SupportRateThreshold: supportRate_Threshold,
-	MaxVotingDuration:     maxVotingDuration,
+	MaxVotingDuration:    maxVotingDuration,
 }
 
 /**
@@ -643,7 +638,7 @@ var testnetDefaultRewardConfig = RewardConfig{
 }
 var testnetDefaultGovConfig = GovernanceConfig{
 	SupportRateThreshold: testnet_supportRate_Threshold,
-	MaxVotingDuration:     testnet_maxVotingDuration,
+	MaxVotingDuration:    testnet_maxVotingDuration,
 }
 
 /**
@@ -682,7 +677,7 @@ var betaDefaultRewardConfig = RewardConfig{
 }
 var betaDefaultGovConfig = GovernanceConfig{
 	SupportRateThreshold: beta_supportRate_Threshold,
-	MaxVotingDuration:     beta_maxVotingDuration,
+	MaxVotingDuration:    beta_maxVotingDuration,
 }
 
 /**
@@ -721,7 +716,7 @@ var innerTestDefaultRewardConfig = RewardConfig{
 }
 var innerTestDefaultGovConfig = GovernanceConfig{
 	SupportRateThreshold: innerTest_supportRate_Threshold,
-	MaxVotingDuration:     innerTest_maxVotingDuration,
+	MaxVotingDuration:    innerTest_maxVotingDuration,
 }
 
 /**
@@ -760,5 +755,5 @@ var innerDevDefaultRewardConfig = RewardConfig{
 }
 var innerDevDefaultGovConfig = GovernanceConfig{
 	SupportRateThreshold: innerDev_supportRate_Threshold,
-	MaxVotingDuration:     innerDev_maxVotingDuration,
+	MaxVotingDuration:    innerDev_maxVotingDuration,
 }
