@@ -18,3 +18,13 @@ type Evidence interface {
 }
 
 type Evidences []Evidence
+
+type EvidencePool interface {
+	//Deserialization of evidence
+	UnmarshalEvidence([]byte) (Evidence, error)
+	//Get current evidences
+	Evidences() []Evidence
+	//Clear all evidences
+	Clear()
+	Close()
+}
