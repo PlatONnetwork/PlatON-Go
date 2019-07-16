@@ -63,7 +63,7 @@ func TestProduceHash(t *testing.T) {
 		},
 	}
 	for _, v := range data {
-		hash := produceHash(v.mType, v.bytes)
+		hash := BuildHash(v.mType, v.bytes)
 		if hash.String() != v.want {
 			t.Error("error")
 		}
@@ -99,9 +99,9 @@ func TestUint64ToBytes(t *testing.T) {
 }
 
 func TestCombineBytes(t *testing.T) {
-	b1 := combineBytes([]byte("a"))
-	t.Log(produceHash(1, b1).Hex())
-	t.Log(produceHash(2, b1).Hex())
-	b2 := combineBytes([]byte("a"), []byte("b"))
-	t.Log(produceHash(1, b2).Hex())
+	b1 := MergeBytes([]byte("a"))
+	t.Log(BuildHash(1, b1).Hex())
+	t.Log(BuildHash(2, b1).Hex())
+	b2 := MergeBytes([]byte("a"), []byte("b"))
+	t.Log(BuildHash(1, b2).Hex())
 }
