@@ -10,6 +10,29 @@ import (
 	"math/big"
 )
 
+var (
+	eh = uint32(6)   // expected hours every settle epoch
+	l = uint32(1)    // time of creating a new block in seconds
+	u = uint32(25)   // the consensus validators count
+	vn = uint32(10)  // each validator will seal blocks per view
+
+)
+
+func GetConsensusSize() uint32 {
+	return uint32(u * vn)
+}
+
+func GetBlocksPerEpoch() uint32 {
+	consensusSize := GetConsensusSize()
+	expected := eh * 3600/(l * consensusSize) * consensusSize
+	return expected
+}
+
+func GetExpectedEpochsPerYear() uint32 {
+	blocks := GetBlocksPerEpoch()
+	return 365 * 24 * 3600 / (l * blocks)
+}
+
 // calculate the Epoch number by blocknumber
 func CalculateEpoch(blockNumber uint64) uint64 {
 	// block counts of per epoch
@@ -53,28 +76,21 @@ func CalculateRound (blockNumber uint64) uint64 {
 	return round
 }
 
-
+// calculate the year by blockNumber.
+// (V.0.1) If blockNumber eqs 0, year eqs 0 too, else rounded up the result of
+// the blockNumber divided by the expected number of blocks per year
 func CalculateYear (blockNumber uint64) uint64 {
-	// !!!
-	// epochs := EpochsPerYear()
-	// !!!
+	// size is expected new blocks per year
+	size := GetExpectedEpochsPerYear() * GetBlocksPerEpoch()
 
-	epochs := uint64(1440)
-	size := epochs * xcom.EpochSize() * xcom.ConsensusSize()
+	div := blockNumber / uint64(size)
+	mod := blockNumber % uint64(size)
 
-	var year uint64
-
-	div := blockNumber / size
-	mod := blockNumber % size
-
-	switch {
-	case mod == 0:
-		year = div
-	case mod > 0:
-		year = div +1
+	if mod == 0 {
+		return div
+	} else {
+		return div + 1
 	}
-
-	return year
 }
 
 func IsElection(blockNumber uint64) bool {
@@ -91,22 +107,14 @@ func IsSwitch (blockNumber uint64) bool {
 
 func IsSettlementPeriod (blockNumber uint64) bool {
 	// block counts of per epoch
-	size := xcom.ConsensusSize() * xcom.EpochSize()
-	mod := blockNumber % size
+	size := GetBlocksPerEpoch()
+	mod := blockNumber % uint64(size)
 	return mod == 0
 }
 
-
 func IsYearEnd (blockNumber uint64) bool {
-	// Calculate epoch
-	eh := uint64(6)
-	L := uint64(1)
-	u := uint64(25)
-	vn := uint64(10)
-	epoch := eh*3600/(L*u*vn)*xcom.ConsensusSize()
-
-	size := uint64(365)*24*3600/(L*epoch)*epoch
-	return blockNumber > 0 && blockNumber % size == 0
+	size := GetBlocksPerEpoch() * GetExpectedEpochsPerYear()
+	return blockNumber > 0 && blockNumber % uint64(size) == 0
 }
 
 func NodeId2Addr (nodeId discover.NodeID) (common.Address, error) {

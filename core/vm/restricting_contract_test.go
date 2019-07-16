@@ -29,15 +29,17 @@ func buildRestrictingPlanData() ([]byte, error) {
 	var plan  restricting.RestrictingPlan
 	var plans = make([]restricting.RestrictingPlan, 5)
 
-	for epoch := 1; epoch < 6; epoch++ {
+	var epoch uint64
+	for index := 0; index < len(plans); index++ {
+		epoch = uint64(index + 1)
 		plan.Epoch = uint64(epoch)
 		plan.Amount = big.NewInt(10000000)
-		plans = append(plans, plan)
+		plans[index] = plan
 	}
 
 	var params [][]byte
-	param0, _ := rlp.EncodeToBytes(common.Uint32ToBytes(4000))  // function_type
-	param1 := addrArr[0].Bytes()   	        // restricting account
+	param0, _ := rlp.EncodeToBytes(common.Uint16ToBytes(4000))  // function_type
+	param1, _ := rlp.EncodeToBytes(addrArr[0].Bytes())    // restricting account
 	param2, _ := rlp.EncodeToBytes(plans)   // restricting plan
 
 	params = append(params, param0)
@@ -71,39 +73,48 @@ func TestRestrictingContract_createRestrictingPlan(t *testing.T) {
 
 
 func TestRestrictingContract_getRestrictingInfo(t *testing.T) {
+	// build db data for getting info
+	stateDb, _, _ := newChainState()
+	buildDbRestrictingPlan(t, stateDb)
+
 	contract := &vm.RestrictingContract{
 		Plugin:  plugin.RestrictingInstance(),
 		Contract: newContract(common.Big0),
-		Evm: newEvm(blockNumber, blockHash, nil),
+		Evm: newEvm(blockNumber, blockHash, stateDb),
 	}
 
 	var params [][]byte
-	param0, _ := rlp.EncodeToBytes(common.Uint32ToBytes(4100))
-	param1 := addrArr[0].Bytes()
-
+	param0, _ := rlp.EncodeToBytes(common.Uint16ToBytes(4100))
+	param1, _ := rlp.EncodeToBytes(addrArr[0])
 	params = append(params, param0)
 	params = append(params, param1)
-
 	input, err := rlp.EncodeToBytes(params)
 	if err != nil {
-		fmt.Println(err)
+		t.Log(err.Error())
 		t.Errorf("fail to rlp encode restricting input")
 	} else {
-		fmt.Println("rlp encode restricting input: ", hexutil.Encode(input))
+		t.Log("rlp encode restricting input: ", hexutil.Encode(input))
 	}
 
+	t.Log("restricting account is", addrArr[0].String())
+
 	if result, err := contract.Run(input); err != nil {
-		t.Error(err.Error())
+		t.Errorf("getRestrictingInfo returns error! error is: %s", err.Error())
 	} else {
+
 		t.Log(string(result))
 
-		var res ResultTest
+		var res restricting.Result
 		if err = rlp.Decode(bytes.NewBuffer(result), &res); err != nil {
-			t.Log(res.balance)
-			t.Log(res.staking)
-			t.Log(res.slash)
-			t.Log(res.debt)
-			t.Log(res.entry)
+			t.Fatalf("failed to get restricting info as rlp decode result failed, error: %s", err.Error())
+
+		} else {
+			t.Logf("%v", res.Balance)
+			t.Logf("%v", res.Staking)
+			t.Logf("%v", res.Slash)
+			t.Logf("%v", res.Debt)
+			t.Logf("%v", string(res.Entry))
 		}
+		t.Log("test pass!")
 	}
 }

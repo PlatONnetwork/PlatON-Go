@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 	"math/big"
 	"strings"
 
@@ -37,6 +36,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
+	"github.com/PlatONnetwork/PlatON-Go/x/gov"
+	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
 
@@ -231,6 +232,9 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	}
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
+		if addr == vm.RewardManagerPoolAddr {
+			plugin.SetYearEndCumulativeIssue(statedb, 0, account.Balance)
+		}
 		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
@@ -239,7 +243,8 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 	}
-	//Store somethings into State
+
+	// Store somethings into State
 	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 
 	log.Debug("Store version for gov", "version", version)

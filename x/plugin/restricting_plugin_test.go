@@ -35,10 +35,10 @@ func showRestrictingAccountInfo(t *testing.T, state xcom.StateDB, account common
 		t.Fatalf("rlp decode info failed, info bytes: %+v", bAccInfo)
 	}
 
-	t.Log("Actually balance of restrict account: ", info.Balance)
-	t.Log("Actually debt    of restrict account: ", info.Debt)
-	t.Log("Actually symbol  of restrict account: ", info.DebtSymbol)
-	t.Log("Actually list    of restrict account: ", info.ReleaseList)
+	t.Log("actually balance of restrict account: ", info.Balance)
+	t.Log("actually debt    of restrict account: ", info.Debt)
+	t.Log("actually symbol  of restrict account: ", info.DebtSymbol)
+	t.Log("actually list    of restrict account: ", info.ReleaseList)
 }
 
 func showReleaseEpoch(t *testing.T, state xcom.StateDB, epoch uint64) {
@@ -49,7 +49,7 @@ func showReleaseEpoch(t *testing.T, state xcom.StateDB, epoch uint64) {
 		t.Logf("Release Epoch record not found, epoch: %d", epoch)
 		return
 	} else {
-		t.Logf("Actually account numbers of release epoch %d: %d", epoch, common.BytesToUint32(bAccNumbers))
+		t.Logf("actually account numbers of release epoch %d: %d", epoch, common.BytesToUint32(bAccNumbers))
 	}
 
 	for i := uint32(0); i < common.BytesToUint32(bAccNumbers); i++ {
@@ -61,7 +61,7 @@ func showReleaseEpoch(t *testing.T, state xcom.StateDB, epoch uint64) {
 		if len(bReleaseAcc) == 0 {
 			panic("system error, release account can't empty")
 		} else {
-			t.Logf("Actually release accounts of epoch %d: %v", epoch, common.BytesToAddress(bReleaseAcc).String())
+			t.Logf("actually release accounts of epoch %d: %v", epoch, common.BytesToAddress(bReleaseAcc).String())
 		}
 	}
 }
@@ -111,7 +111,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 		t.Log("expected case2 of EndBlock success.")
 
 		if err == nil {
-			t.Log("Actually case2 of EndBlock success.")
+			t.Log("actually case2 of EndBlock success.")
 			t.Log("case2 pass")
 		} else {
 			t.Error("case2 of EndBlock failed.")
@@ -140,8 +140,8 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 			epoch := i + 1
 			t.Log("=====================")
 			t.Logf("expected account numbers of release epoch %d: 1", epoch)
-			t.Logf("expect release accounts of epoch %d: %v", epoch, addrArr[0].String())
-			t.Logf("expect release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(1E18)))
+			t.Logf("expected release accounts of epoch %d: %v", epoch, addrArr[0].String())
+			t.Logf("expected release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(1E18)))
 		}
 		t.Log("=====================")
 
@@ -152,8 +152,8 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 			t.Log("=====================")
 			t.Log("case3 return success!")
-			t.Log("expected balance of restricting account:", stateDb.GetBalance(addrArr[0]))
-			t.Log("Actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
+			t.Log("actually balance of restricting account:", stateDb.GetBalance(addrArr[0]))
+			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
 			showRestrictingAccountInfo(t, stateDb, addrArr[0])
 			for i := 0; i < 5; i++ {
 				epoch := i + 1
@@ -240,8 +240,8 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 			epoch := i + 1
 			t.Log("=====================")
 			t.Logf("expected account numbers of release epoch %d: 1", epoch)
-			t.Logf("expect release accounts of epoch %d: %v", epoch, addrArr[0].String())
-			t.Logf("expect release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(1E18)))
+			t.Logf("expected release accounts of epoch %d: %v", epoch, addrArr[0].String())
+			t.Logf("expected release amount of account [%s]: %v", addrArr[0].String(), big.NewInt(int64(1E18)))
 		}
 		t.Log("=====================")
 
@@ -252,8 +252,8 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 
 			t.Log("=====================")
 			t.Log("case2 return success!")
-			t.Log("Actually balance of sender:", stateDb.GetBalance(sender))
-			t.Log("Actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
+			t.Log("actually balance of sender:", stateDb.GetBalance(sender))
+			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
 			showRestrictingAccountInfo(t, stateDb, addrArr[0])
 			for i := 0; i < 5; i++ {
 				epoch := i + 1
@@ -315,8 +315,8 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 
 			t.Log("=====================")
 			t.Log("case3 return success!")
-			t.Log("Actually balance of sender:", stateDb.GetBalance(sender))
-			t.Log("Actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
+			t.Log("actually balance of sender:", stateDb.GetBalance(sender))
+			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
 
 			showRestrictingAccountInfo(t, stateDb, addrArr[0])
 			for i := 0; i < 6; i++ {
@@ -380,8 +380,8 @@ func TestRestrictingPlugin_AddRestrictingRecord(t *testing.T) {
 		} else {
 			t.Log("=====================")
 			t.Log("case4 return success!")
-			t.Log("Actually balance of sender:", stateDb.GetBalance(sender))
-			t.Log("Actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
+			t.Log("actually balance of sender:", stateDb.GetBalance(sender))
+			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
 			showRestrictingAccountInfo(t, stateDb, addrArr[0])
 			for i := 0; i < 5; i++ {
 				epoch := i + 1
@@ -475,7 +475,7 @@ func TestRestrictingPlugin_PledgeLockFunds(t *testing.T) {
 		} else {
 			t.Log("=====================")
 			t.Log("case3 return success!")
-			t.Log("Actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
+			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
 			showRestrictingAccountInfo(t, stateDb, addrArr[0])
 			for i := 0; i < 5; i++ {
 				epoch := i + 1
@@ -548,7 +548,7 @@ func TestRestrictingPlugin_ReturnLockFunds(t *testing.T) {
 		} else {
 			t.Log("=====================")
 			t.Log("case2 return success!")
-			t.Log("Actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
+			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
 			showRestrictingAccountInfo(t, stateDb, addrArr[0])
 			for i := 0; i < 5; i++ {
 				epoch := i + 1
@@ -626,7 +626,7 @@ func TestRestrictingPlugin_SlashingNotify(t *testing.T) {
 		} else {
 			t.Log("=====================")
 			t.Log("case2 return success!")
-			t.Log("Actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
+			t.Log("actually balance of contract:", stateDb.GetBalance(vm.RestrictingContractAddr))
 			showRestrictingAccountInfo(t, stateDb, addrArr[0])
 			for i := 0; i < 5; i++ {
 				epoch := i + 1
@@ -694,10 +694,10 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 				t.Fatalf("failed to elp decode result, result: %s", result)
 			}
 
-			t.Log("Actually balance of restrict account: ", res.Balance)
-			t.Log("Actually debt    of restrict account: ", res.Debt)
-			t.Log("Actually slash   of restrict account: ", res.Slash)
-			t.Log("Actually staking of restrict account: ", res.Staking)
+			t.Log("actually balance of restrict account: ", res.Balance)
+			t.Log("actually debt    of restrict account: ", res.Debt)
+			t.Log("actually slash   of restrict account: ", res.Slash)
+			t.Log("actually staking of restrict account: ", res.Staking)
 
 			var infos []restricting.ReleaseAmountInfo
 			if err = json.Unmarshal(res.Entry, &infos); err != nil {
@@ -705,7 +705,7 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 			}
 
 			for _, info := range infos {
-				t.Logf("Actually release amount at blockNumber [%d] is: %v", info.Height, info.Amount)
+				t.Logf("actually release amount at blockNumber [%d] is: %v", info.Height, info.Amount)
 			}
 		}
 	}

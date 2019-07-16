@@ -3,7 +3,6 @@ package plugin
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -110,8 +109,8 @@ func (rp *RestrictingPlugin) AddRestrictingRecord(sender common.Address, account
 	var newInfo1 restricting.RestrictingInfo
 
 	_ = rlp.Decode(bytes.NewBuffer(bAccInfo), &newInfo1)
-	fmt.Println(bAccInfo)
-	fmt.Println(newInfo1)
+	// fmt.Println(bAccInfo)
+	// fmt.Println(newInfo1)
 
 	if len(bAccInfo) == 0 {
 		log.Debug("restricting record not exist", "account", account.Bytes())
@@ -299,6 +298,7 @@ func (rp *RestrictingPlugin) ReturnLockFunds(account common.Address, amount *big
 			}
 
 			info.Debt = big.NewInt(0)
+			info.DebtSymbol = false
 		}
 
 	} else {
@@ -514,11 +514,6 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 		return []byte{}, err
 	}
 
-	// !!!
-	// getslash
-	// getpledge
-	// !!!
-
 	result.Balance = info.Balance
 	result.Debt = info.Debt
 	result.Slash = big.NewInt(0)
@@ -529,7 +524,6 @@ func (rp *RestrictingPlugin) GetRestrictingInfo(account common.Address, state xc
 
 	return rlp.EncodeToBytes(result)
 }
-
 
 // state DB operation
 func SetLatestEpoch(stateDb xcom.StateDB, epoch uint64) {
@@ -549,5 +543,5 @@ func getLatestEpoch(stateDb xcom.StateDB) uint64 {
 }
 
 func getBlockNumberByEpoch(epoch uint64) uint64 {
-	return  epoch * xcom.ConsensusSize() * xcom.EpochSize()
+	return epoch * xcom.ConsensusSize() * xcom.EpochSize()
 }
