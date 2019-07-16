@@ -26,12 +26,17 @@ type blockExt struct {
 	isSigned bool
 	//Time of receipt of the block
 	rcvTime int64
-	// Each time a vote is received, it will be written. If the threshold is reached, an aggregate signature will be generated.
-	prepareVotes *prepareVoteSet
+
+	//blockExt only store aggregated signatures,
+	qc *quorumCert
 
 	//Point to the parent block
 	parent *blockExt
 
 	//There may be more than one sub-block, and the block will not be deleted if it is not in the state of LockQC.
 	children map[common.Hash]*blockExt
+}
+
+func (b *blockTree) insertBlock(block *types.Block) {
+
 }

@@ -34,6 +34,18 @@ type prepareBlock struct {
 	Signature     Signature      `json:"signature"`
 }
 
+func (prepareBlock) String() string {
+	panic("implement me")
+}
+
+func (prepareBlock) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (prepareBlock) BHash() common.Hash {
+	panic("implement me")
+}
+
 //Removed the validator address, index. Mainly to ensure that the signature hash of the aggregate signature is consistent
 type prepareVote struct {
 	Epoch       uint64       `json:"epoch"`
@@ -45,6 +57,18 @@ type prepareVote struct {
 	Signature   Signature    `json:"signature"`
 }
 
+func (prepareVote) String() string {
+	panic("implement me")
+}
+
+func (prepareVote) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (prepareVote) BHash() common.Hash {
+	panic("implement me")
+}
+
 type viewChange struct {
 	Epoch      uint64      `json:"epoch"`
 	ViewNumber uint64      `json:"view_number"`
@@ -52,4 +76,16 @@ type viewChange struct {
 	BlockNum   uint64      `json:"block_number"`
 	PrepareQC  quorumCert  `json:"prepare_qc"`
 	Signature  Signature   `json:"signature"`
+}
+
+func (viewChange) String() string {
+	panic("implement me")
+}
+
+func (viewChange) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (viewChange) BHash() common.Hash {
+	panic("implement me")
 }

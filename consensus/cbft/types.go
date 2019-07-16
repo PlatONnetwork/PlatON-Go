@@ -18,8 +18,24 @@ type prepareVotes struct {
 	votes []*prepareVote
 }
 
+func (v *prepareVotes) Clear() {
+
+}
+
 type viewBlocks struct {
 	blocks map[uint32]*viewBlock
+}
+
+func (v *viewBlocks) Clear() {
+
+}
+
+type viewVotes struct {
+	votes map[uint32]*prepareVotes
+}
+
+func (v *viewVotes) Clear() {
+
 }
 
 type prepareVoteSet struct {
@@ -28,4 +44,8 @@ type prepareVoteSet struct {
 
 type viewChanges struct {
 	viewChanges map[common.Address]*viewChange
+}
+
+func (v *viewChanges) Clear() {
+
 }

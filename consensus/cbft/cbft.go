@@ -13,6 +13,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -34,6 +35,7 @@ type Cbft struct {
 	evPool     EvidencePool
 	log        log.Logger
 
+	agency consensus.Agency
 	//Control the current view state
 	state viewState
 
@@ -71,8 +73,66 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 	return cbft
 }
 
-func (cbft *Cbft) Start(chain consensus.ChainReader, executor consensus.Executor, pool consensus.TxPoolReset, agency consensus.Agency) error {
-	panic("implement me")
+func (cbft *Cbft) Start(chain consensus.ChainReader, executor consensus.Executor, txPool consensus.TxPoolReset, agency consensus.Agency) error {
+	cbft.blockChain = chain
+	cbft.txPool = txPool
+	cbft.agency = agency
+
+	//Initialize block tree
+	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
+
+	cbft.blockTree.insertBlock(block)
+
+	//Initialize view state
+	cbft.state.SetHighestExecutedBlock(block)
+	cbft.state.SetHighestQCBlock(block)
+	cbft.state.SetHighestLockBlock(block)
+	cbft.state.SetHighestCommitBlock(block)
+	go cbft.receiveLoop()
+	return nil
+}
+
+//Receive all consensus related messages, all processing logic in the same goroutine
+func (cbft *Cbft) receiveLoop() {
+	for {
+		select {
+		case msg := <-cbft.peerMsgCh:
+			cbft.handleConsensusMsg(msg)
+		case msg := <-cbft.syncMsgCh:
+			cbft.handleSyncMsg(msg)
+		}
+	}
+}
+
+//Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewchagne
+func (cbft *Cbft) handleConsensusMsg(info *MsgInfo) {
+	msg, peerID := info.Msg, info.PeerID
+	var err error
+
+	switch msg := msg.(type) {
+	case *prepareBlock:
+		err = cbft.OnPrepareBlock(msg)
+	case *prepareVote:
+		err = cbft.OnPrepareVote(msg)
+	case *viewChange:
+		err = cbft.OnViewChange(msg)
+	}
+
+	if err != nil {
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
+	}
+}
+
+// Behind the node will be synchronized by synchronization message
+func (cbft *Cbft) handleSyncMsg(info *MsgInfo) {
+	msg, peerID := info.Msg, info.PeerID
+	var err error
+	switch msg.(type) {
+	}
+
+	if err != nil {
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
+	}
 }
 
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
