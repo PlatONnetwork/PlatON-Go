@@ -34,7 +34,7 @@ func (PrepareBlock) BHash() common.Hash {
 type PrepareVote struct {
 	Epoch       uint64            `json:"epoch"`
 	ViewNumber  uint64            `json:"view_number"`
-	BlockHash   *types.Block      `json:"block_hash"`
+	BlockHash   common.Hash       `json:"block_hash"`
 	BlockNumber uint64            `json:"block_number"`
 	BlockIndex  uint32            `json:"block_index"` //The block number of the current ViewNumber proposal, 0....10
 	ParentQC    ctypes.QuorumCert `json:"parent_qc"`
