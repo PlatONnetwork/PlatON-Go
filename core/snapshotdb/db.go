@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/journal"
-	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"io"
 	"math/big"
 	"path"
 	"sync"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/journal"
+	"github.com/syndtr/goleveldb/leveldb/memdb"
 )
 
 func getBaseDBPath(dbpath string) string {
@@ -131,7 +132,7 @@ func (s *snapshotDB) recover(stor storage) error {
 		if err != nil {
 			return err
 		}
-		if (baseNum < fd.Num && fd.Num <= highestNum) || (baseNum==0&&highestNum==0&&fd.Num==0){
+		if (baseNum < fd.Num && fd.Num <= highestNum) || (baseNum == 0 && highestNum == 0 && fd.Num == 0) {
 			s.committed = append(s.committed, *block)
 		} else if fd.Num > highestNum {
 			if UnRecognizedHash == fd.BlockHash {
@@ -302,12 +303,14 @@ func (s *snapshotDB) checkHashChain(hash common.Hash) (int, bool) {
 		//check find from recognized is right
 		if lastblockNumber.Int64() > 0 {
 			if s.current.HighestNum.Int64() != lastblockNumber.Int64()-1 {
+				logger.Error("[snapshotDB] find lastblock  fail ,num not compare", "current", s.current.HighestNum, "last", lastblockNumber.Int64()-1)
 				return 0, false
 			}
 			if s.current.HighestHash == common.ZeroHash {
 				return hashLocationRecognized, true
 			}
 			if s.current.HighestHash != lastParenthash {
+				logger.Error("[snapshotDB] find lastblock  fail ,hash not compare", "current", s.current.HighestHash.String(), "last", lastParenthash.String())
 				return 0, false
 			}
 			return hashLocationRecognized, true

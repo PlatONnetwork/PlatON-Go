@@ -5,13 +5,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
-	"math/big"
-	"sync"
 )
 
 var (
@@ -133,7 +134,7 @@ func (vh *VrfHandler) Storage(currentBlockNumber *big.Int, parentHash common.Has
 
 func (vh *VrfHandler) Load(hash common.Hash) ([][]byte, error) {
 	if value, err := vh.db.Get(hash, NonceStorageKey); nil != err {
-		log.Error("Loading previous nonce failed", "hash", hash, "key", string(NonceStorageKey), "err", err)
+		log.Error("Loading previous nonce failed", "hash", hash.String(), "key", string(NonceStorageKey), "err", err)
 		return nil, err
 	} else {
 		nonces := make([][]byte, 0)
