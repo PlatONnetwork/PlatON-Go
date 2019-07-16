@@ -2,8 +2,15 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
+	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -13,6 +20,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
+
+	"reflect"
 	"sync"
 	"time"
 )
@@ -29,25 +38,26 @@ type Cbft struct {
 	exitCh     chan struct{}
 	txPool     consensus.TxPoolReset
 	blockChain consensus.ChainReader
-	peerMsgCh  chan *MsgInfo
-	syncMsgCh  chan *MsgInfo
-	evPool     EvidencePool
+	peerMsgCh  chan *ctypes.MsgInfo
+	syncMsgCh  chan *ctypes.MsgInfo
+	evPool     evidence.EvidencePool
 	log        log.Logger
 
+	agency consensus.Agency
 	//Control the current view state
-	state viewState
+	state cstate.ViewState
 
 	//Block executor, the block responsible for executing the current view
-	executor blockExecutor
+	executor executor.BlockExecutor
 
 	//Verification security rules for proposed blocks and viewchange
-	safetyRules safetyRules
+	safetyRules rules.SafetyRules
 
 	//Determine when to allow voting
-	voteRules voteRules
+	voteRules rules.VoteRules
 
 	//Store blocks that are not committed
-	blockTree blockTree
+	blockTree ctypes.BlockTree
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
@@ -55,12 +65,12 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 		config:    Config{sysConfig, optConfig},
 		eventMux:  eventMux,
 		exitCh:    make(chan struct{}),
-		peerMsgCh: make(chan *MsgInfo, optConfig.PeerMsgQueueSize),
-		syncMsgCh: make(chan *MsgInfo, optConfig.PeerMsgQueueSize),
+		peerMsgCh: make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
+		syncMsgCh: make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
 		log:       log.New(),
 	}
 
-	if evPool, err := NewEvidencePool(); err == nil {
+	if evPool, err := evidence.NewEvidencePool(); err == nil {
 		cbft.evPool = evPool
 	} else {
 		return nil
@@ -71,8 +81,66 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 	return cbft
 }
 
-func (cbft *Cbft) Start(chain consensus.ChainReader, executor consensus.Executor, pool consensus.TxPoolReset, agency consensus.Agency) error {
-	panic("implement me")
+func (cbft *Cbft) Start(chain consensus.ChainReader, executor consensus.Executor, txPool consensus.TxPoolReset, agency consensus.Agency) error {
+	cbft.blockChain = chain
+	cbft.txPool = txPool
+	cbft.agency = agency
+
+	//Initialize block tree
+	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
+
+	cbft.blockTree.InsertBlock(block)
+
+	//Initialize view state
+	cbft.state.SetHighestExecutedBlock(block)
+	cbft.state.SetHighestQCBlock(block)
+	cbft.state.SetHighestLockBlock(block)
+	cbft.state.SetHighestCommitBlock(block)
+	go cbft.receiveLoop()
+	return nil
+}
+
+//Receive all consensus related messages, all processing logic in the same goroutine
+func (cbft *Cbft) receiveLoop() {
+	for {
+		select {
+		case msg := <-cbft.peerMsgCh:
+			cbft.handleConsensusMsg(msg)
+		case msg := <-cbft.syncMsgCh:
+			cbft.handleSyncMsg(msg)
+		}
+	}
+}
+
+//Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewchagne
+func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
+	msg, peerID := info.Msg, info.PeerID
+	var err error
+
+	switch msg := msg.(type) {
+	case *protocols.PrepareBlock:
+		err = cbft.OnPrepareBlock(msg)
+	case *protocols.PrepareVote:
+		err = cbft.OnPrepareVote(msg)
+	case *protocols.ViewChange:
+		err = cbft.OnViewChange(msg)
+	}
+
+	if err != nil {
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
+	}
+}
+
+// Behind the node will be synchronized by synchronization message
+func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
+	msg, peerID := info.Msg, info.PeerID
+	var err error
+	switch msg.(type) {
+	}
+
+	if err != nil {
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
+	}
 }
 
 func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {

@@ -1,4 +1,4 @@
-package cbft
+package utils
 
 import (
 	"bytes"
@@ -18,7 +18,7 @@ func randomOffset(n int) int {
 
 // Convert byte array to hash. Use sha256 to
 // generate a unique message hash.
-func buildHash(msgType byte, bytes []byte) common.Hash {
+func BuildHash(msgType byte, bytes []byte) common.Hash {
 	bytes[0] = msgType
 	hashBytes := sha3.Sum256(bytes)
 	result := common.Hash{}
@@ -28,7 +28,7 @@ func buildHash(msgType byte, bytes []byte) common.Hash {
 
 // A merges multiple bytes of data and
 // returns the merged byte array.
-func mergeBytes(bts ...[]byte) []byte {
+func MergeBytes(bts ...[]byte) []byte {
 	buffer := bytes.NewBuffer(make([]byte, 0, 128))
 	for _, v := range bts {
 		io.Copy(buffer, bytes.NewReader(v))
