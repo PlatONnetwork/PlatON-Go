@@ -3,6 +3,10 @@ package vm_test
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"os"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	cvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -11,6 +15,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
 	"github.com/PlatONnetwork/PlatON-Go/ethdb"
+	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -20,11 +25,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-	"math/big"
-	"testing"
 )
 
-
+func init() {
+	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
+}
 
 var (
 	nodeIdArr = []discover.NodeID{
@@ -41,7 +46,6 @@ var (
 		discover.MustHexID("805b617b9d321a65d8936e758b5c60cd6e8c873b9f1e7c793ad5f887d26ce9667d0db2fe55a9aeb1cc81f9cf9a1e7c54473203473e3ebda89e63c03cbcfe5347"),
 		discover.MustHexID("fa147bc3625acc846a9f0e1e89172ca7470baa0f86516994f70860c6fb904ddbb1849e3cf2b40c58255e38401f40d2c3e4a3bd5c2f2849b98465a5bdb80ed6a0"),
 		discover.MustHexID("d8c4b58ae052ea9480577264bc1b2c09619757015849a4c92b71a4e4c8b5ede94f35d24107b1181d0711013ed7fdc068f21e6e6084b3e96750a571669715c0b1"),
-
 	}
 	addrArr = []common.Address{
 		common.HexToAddress("740ce31b3fac20dac379db243021a51e80aadd24"),
@@ -57,23 +61,19 @@ var (
 		common.HexToAddress("f466859ead1932d743d622cb74fc058882e8648a"),
 		common.HexToAddress("289d485d9771714cce91d3393d764e1311907acc"),
 		common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87"),
-
 	}
 
-
 	blockNumber = big.NewInt(1)
-	blockHash = common.HexToHash("9d4fb5346abcf593ad80a0d3d5a371b22c962418ad34189d5b1b39065668d663")
+	blockHash   = common.HexToHash("9d4fb5346abcf593ad80a0d3d5a371b22c962418ad34189d5b1b39065668d663")
 
 	blockNumber2 = big.NewInt(2)
-	blockHash2 = common.HexToHash("c95876b92443d652d7eb7d7a9c0e2c58a95e934c0c1197978c5445180cc60980")
+	blockHash2   = common.HexToHash("c95876b92443d652d7eb7d7a9c0e2c58a95e934c0c1197978c5445180cc60980")
 
 	sender = common.HexToAddress("0xeef233120ce31b3fac20dac379db243021a5234")
 
 	sndb = snapshotdb.Instance()
 
 	sender_balance, _ = new(big.Int).SetString("9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999", 10)
-
-
 
 	txHashArr = []common.Hash{
 		common.HexToHash("0x00000000000000000000000000000000000000886d5ba2d3dfb2e2f6a1814f22"),
@@ -96,13 +96,11 @@ var (
 		common.HexToHash("0x000000008fd2abdf28d87efb2c7fa2d37618c8dba97059376d6a58007bee3d8b"),
 		common.HexToHash("0x0000000000000000000000003566f3a0adf49d90e610ef3d3548b5a72b1fe199"),
 		common.HexToHash("0x00000000000054fa3d19eb57e98aa1dd69d216722054d8539ede4b89c5b77ee9"),
-
 	}
-
 
 	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536
 
-	balanceStr = []string {
+	balanceStr = []string{
 
 		"9000000000000000000000000",
 		"60000000000000000000000000",
@@ -117,10 +115,9 @@ var (
 		"5550000000000000000000000",
 		"44488850000000000000000000000",
 		"650073899000000000000000000",
-
 	}
 
-	nodeNameArr = []string {
+	nodeNameArr = []string{
 		"PlatON",
 		"Gavin",
 		"Emma",
@@ -134,11 +131,9 @@ var (
 	chaList = []string{"A", "a", "B", "b", "C", "c", "D", "d", "E", "e", "F", "f", "G", "g", "H", "h", "J", "j", "K", "k", "M", "m",
 		"N", "n", "P", "p", "Q", "q", "R", "r", "S", "s", "T", "t", "U", "u", "V", "v", "W", "w", "X", "x", "Y", "y", "Z", "z"}
 
-
 	specialCharList = []string{
 		"☄", "★", "☎", "☻", "♨", "✠", "❝", "♚", "♘", "✎", "♞", "✩", "✪", "❦", "❥", "❣", "웃", "卍", "Ⓞ", "▶", "◙", "⊕", "◌", "⅓", "∭",
 		"∮", "╳", "㏒", "㏕", "‱", "㎏", "❶", "Ň", "🅱", "🅾", "𝖋", "𝕻", "𝕼", "𝕽", "お", "な", "ぬ", "㊎", "㊞", "㊮", "✘"}
-
 )
 
 func newPlugins() {
@@ -151,7 +146,7 @@ func newPlugins() {
 	snapshotdb.Instance()
 }
 
-func newChainState() (*state.StateDB, *types.Block, error)  {
+func newChainState() (*state.StateDB, *types.Block, error) {
 
 	url := "enode://0x7bae841405067598bf65e7260ca693a964316e752249c4970085c805dbee738fdb41fc434e96e2b65e8bf1db2f52f05d9300d04c1e6129c26cb5d0f214b49968@platon.network:16791"
 
@@ -184,7 +179,7 @@ func newChainState() (*state.StateDB, *types.Block, error)  {
 	state.AddBalance(sender, sender_balance)
 	for i, addr := range addrArr {
 
-		amount, _ := new(big.Int).SetString(balanceStr[len(addrArr) - 1 - i], 10)
+		amount, _ := new(big.Int).SetString(balanceStr[len(addrArr)-1-i], 10)
 		amount = new(big.Int).Mul(common.Big257, amount)
 		state.AddBalance(addr, amount)
 	}
@@ -192,17 +187,16 @@ func newChainState() (*state.StateDB, *types.Block, error)  {
 	return state, genesis, nil
 }
 
-
 func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *vm.EVM {
 	if nil == state {
 		state, _, _ = newChainState()
 	}
 	evm := &vm.EVM{
-		StateDB:  state,
+		StateDB: state,
 	}
 	context := vm.Context{
 		BlockNumber: blockNumber,
-		BlockHash: blockHash,
+		BlockHash:   blockHash,
 	}
 	evm.Context = context
 
@@ -220,13 +214,11 @@ func newContract(value *big.Int) *vm.Contract {
 	return contract
 }
 
-func build_staking_data (genesisHash common.Hash){
+func build_staking_data(genesisHash common.Hash) {
 
-
-	stakingDB := staking.NewStakingDB ()
+	stakingDB := staking.NewStakingDB()
 	sndb.NewBlock(big.NewInt(1), genesisHash, blockHash)
 	// MOCK
-
 
 	nodeId_A := nodeIdArr[0]
 	addr_A, _ := xutil.NodeId2Addr(nodeId_A)
@@ -237,19 +229,17 @@ func build_staking_data (genesisHash common.Hash){
 	nodeId_C := nodeIdArr[2]
 	addr_C, _ := xutil.NodeId2Addr(nodeId_C)
 
-
 	//canArr := make(staking.CandidateQueue, 0)
 
-
 	c1 := &staking.Candidate{
-		NodeId: nodeId_A,
-		StakingAddress: sender,
-		BenifitAddress: addrArr[1],
-		StakingTxIndex: uint32(2),
-		ProcessVersion: uint32(1),
-		Status: staking.Valided,
-		StakingEpoch: uint32(1),
-		StakingBlockNum: uint64(1),
+		NodeId:             nodeId_A,
+		StakingAddress:     sender,
+		BenifitAddress:     addrArr[1],
+		StakingTxIndex:     uint32(2),
+		ProcessVersion:     uint32(1),
+		Status:             staking.Valided,
+		StakingEpoch:       uint32(1),
+		StakingBlockNum:    uint64(1),
 		Shares:             common.Big256,
 		Released:           common.Big2,
 		ReleasedHes:        common.Big32,
@@ -257,21 +247,21 @@ func build_staking_data (genesisHash common.Hash){
 		RestrictingPlanHes: common.Big257,
 		Description: staking.Description{
 			ExternalId: "xxccccdddddddd",
-			NodeName: "I Am " +fmt.Sprint(1),
-			Website: "www.baidu.com",
-			Details: "this is  baidu ~~",
+			NodeName:   "I Am " + fmt.Sprint(1),
+			Website:    "www.baidu.com",
+			Details:    "this is  baidu ~~",
 		},
 	}
 
 	c2 := &staking.Candidate{
-		NodeId: nodeId_B,
-		StakingAddress: sender,
-		BenifitAddress: addrArr[2],
-		StakingTxIndex: uint32(3),
-		ProcessVersion: uint32(1),
-		Status: staking.Valided,
-		StakingEpoch: uint32(1),
-		StakingBlockNum: uint64(1),
+		NodeId:             nodeId_B,
+		StakingAddress:     sender,
+		BenifitAddress:     addrArr[2],
+		StakingTxIndex:     uint32(3),
+		ProcessVersion:     uint32(1),
+		Status:             staking.Valided,
+		StakingEpoch:       uint32(1),
+		StakingBlockNum:    uint64(1),
 		Shares:             common.Big256,
 		Released:           common.Big2,
 		ReleasedHes:        common.Big32,
@@ -279,23 +269,21 @@ func build_staking_data (genesisHash common.Hash){
 		RestrictingPlanHes: common.Big257,
 		Description: staking.Description{
 			ExternalId: "SFSFSFSFSFSFSSFS",
-			NodeName: "I Am " +fmt.Sprint(2),
-			Website: "www.JD.com",
-			Details: "this is  JD ~~",
+			NodeName:   "I Am " + fmt.Sprint(2),
+			Website:    "www.JD.com",
+			Details:    "this is  JD ~~",
 		},
 	}
 
-
-
 	c3 := &staking.Candidate{
-		NodeId: nodeId_C,
-		StakingAddress: sender,
-		BenifitAddress: addrArr[3],
-		StakingTxIndex: uint32(4),
-		ProcessVersion: uint32(1),
-		Status: staking.Valided,
-		StakingEpoch: uint32(1),
-		StakingBlockNum: uint64(1),
+		NodeId:             nodeId_C,
+		StakingAddress:     sender,
+		BenifitAddress:     addrArr[3],
+		StakingTxIndex:     uint32(4),
+		ProcessVersion:     uint32(1),
+		Status:             staking.Valided,
+		StakingEpoch:       uint32(1),
+		StakingBlockNum:    uint64(1),
 		Shares:             common.Big256,
 		Released:           common.Big2,
 		ReleasedHes:        common.Big32,
@@ -303,12 +291,11 @@ func build_staking_data (genesisHash common.Hash){
 		RestrictingPlanHes: common.Big257,
 		Description: staking.Description{
 			ExternalId: "FWAGGDGDGG",
-			NodeName: "I Am " +fmt.Sprint(3),
-			Website: "www.alibaba.com",
-			Details: "this is  alibaba ~~",
+			NodeName:   "I Am " + fmt.Sprint(3),
+			Website:    "www.alibaba.com",
+			Details:    "this is  alibaba ~~",
 		},
 	}
-
 
 	//canArr = append(canArr, c1)
 	//canArr = append(canArr, c2)
@@ -318,31 +305,29 @@ func build_staking_data (genesisHash common.Hash){
 	stakingDB.SetCanPowerStore(blockHash, addr_B, c2)
 	stakingDB.SetCanPowerStore(blockHash, addr_C, c3)
 
-
 	stakingDB.SetCandidateStore(blockHash, addr_A, c1)
 	stakingDB.SetCandidateStore(blockHash, addr_B, c2)
 	stakingDB.SetCandidateStore(blockHash, addr_C, c3)
 
-
 	queue := make(staking.ValidatorQueue, 0)
 
 	v1 := &staking.Validator{
-		NodeAddress: addr_A,
-		NodeId: c1.NodeId,
+		NodeAddress:   addr_A,
+		NodeId:        c1.NodeId,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c1.StakingBlockNum), fmt.Sprint(c1.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
 
 	v2 := &staking.Validator{
-		NodeAddress: addr_B,
-		NodeId: c2.NodeId,
+		NodeAddress:   addr_B,
+		NodeId:        c2.NodeId,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c2.StakingBlockNum), fmt.Sprint(c2.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
 
 	v3 := &staking.Validator{
-		NodeAddress: addr_C,
-		NodeId: c3.NodeId,
+		NodeAddress:   addr_C,
+		NodeId:        c3.NodeId,
 		StakingWeight: [staking.SWeightItem]string{"1", common.Big256.String(), fmt.Sprint(c3.StakingBlockNum), fmt.Sprint(c3.StakingTxIndex)},
 		ValidatorTerm: 0,
 	}
@@ -351,31 +336,28 @@ func build_staking_data (genesisHash common.Hash){
 	queue = append(queue, v2)
 	queue = append(queue, v3)
 
-
-	epoch_Arr :=  &staking.Validator_array{
+	epoch_Arr := &staking.Validator_array{
 		Start: 1,
-		End: 22000,
-		Arr: queue,
+		End:   22000,
+		Arr:   queue,
 	}
 
-	pre_Arr :=  &staking.Validator_array{
+	pre_Arr := &staking.Validator_array{
 		Start: 0,
-		End: 0,
-		Arr: queue,
+		End:   0,
+		Arr:   queue,
 	}
 
-	curr_Arr :=  &staking.Validator_array{
+	curr_Arr := &staking.Validator_array{
 		Start: 1,
-		End: 250,
-		Arr: queue,
+		End:   250,
+		Arr:   queue,
 	}
-
 
 	stakingDB.SetVerfierList(blockHash, epoch_Arr)
 	stakingDB.SetPreValidatorList(blockHash, pre_Arr)
 	stakingDB.SetCurrentValidatorList(blockHash, curr_Arr)
 }
-
 
 type restrictingInfo struct {
 	balance     *big.Int `json:"balance"` // balance representation all locked amount
@@ -423,4 +405,3 @@ func buildDbRestrictingPlan(t *testing.T, stateDB xcom.StateDB) {
 	stateDB.AddBalance(sender, sender_balance.Sub(sender_balance, big.NewInt(int64(5E18))))
 	stateDB.AddBalance(cvm.RestrictingContractAddr, big.NewInt(int64(5E18)))
 }
-

@@ -3,6 +3,8 @@ package vm
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
@@ -12,7 +14,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
-	"math/big"
 )
 
 const (
@@ -36,7 +37,6 @@ const (
 	StakeVonTooLowStr        = "Staking deposit too low"
 	StakingAddrNoSomeErrStr  = "Address must be the same as initiated staking"
 	WithdrewCanErrStr        = "Withdrew candidate failed"
-
 )
 
 const (
@@ -98,8 +98,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
 
 	//  TODO  MOCK
-	return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
-		externalId, nodeName, website, details, amount, processVersion)
+	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
+	//	externalId, nodeName, website, details, amount, processVersion)
 
 	if !xutil.CheckStakeThreshold(amount) {
 		res := xcom.Result{false, "", StakeVonTooLowStr}
@@ -128,7 +128,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		isDeclareVersion = true
 	}
 
-
 	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		log.Error("Failed to createStaking by parse nodeId", "txHash", txHash,
@@ -150,8 +149,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		return event, nil
 	}
 
-
-
 	/**
 	init candidate info
 	*/
@@ -164,9 +161,9 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		Shares:          amount,
 
 		// Prevent null pointer initialization
-		Released: common.Big0,
-		ReleasedHes: common.Big0,
-		RestrictingPlan: common.Big0,
+		Released:           common.Big0,
+		ReleasedHes:        common.Big0,
+		RestrictingPlan:    common.Big0,
 		RestrictingPlanHes: common.Big0,
 
 		Description: staking.Description{
@@ -177,8 +174,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		},
 	}
 
-
-
 	canTmp.ProcessVersion = currVersion
 
 	if isDeclareVersion {
@@ -187,7 +182,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 			processVersion, blockHash, blockNumber.Uint64(), state)
 		if nil != err {
 			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(),"err", err)
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 		}
 	}
 
@@ -586,7 +581,7 @@ func (stkc *StakingContract) withdrewDelegate(stakingBlockNum uint64, nodeId dis
 func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 
 	//  TODO  MOCK
-	return stkc.getVerifierListMock()
+	//return stkc.getVerifierListMock()
 
 	arr, err := stkc.Plugin.GetVerifierList(common.ZeroHash, common.Big0.Uint64(), plugin.QueryStartIrr)
 
@@ -616,7 +611,7 @@ func (stkc *StakingContract) getVerifierList() ([]byte, error) {
 func (stkc *StakingContract) getValidatorList() ([]byte, error) {
 
 	//  TODO  MOCK
-	return stkc.getValidatorListMock()
+	//return stkc.getValidatorListMock()
 
 	arr, err := stkc.Plugin.GetValidatorList(common.ZeroHash, common.Big0.Uint64(), plugin.CurrentRound, plugin.QueryStartIrr)
 	if nil != err && err != snapshotdb.ErrNotFound {
@@ -667,7 +662,6 @@ func (stkc *StakingContract) getCandidateList() ([]byte, error) {
 // todo Maybe will implement
 func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byte, error) {
 
-
 	blockHash := stkc.Evm.BlockHash
 
 	arr, err := stkc.Plugin.GetRelatedListByDelAddr(blockHash, addr)
@@ -694,16 +688,10 @@ func (stkc *StakingContract) getRelatedListByDelAddr(addr common.Address) ([]byt
 	return data, nil
 }
 
-func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, addr common.Address,
+func (stkc *StakingContract) getDelegateInfo(stakingBlockNum uint64, delAddr common.Address,
 	nodeId discover.NodeID) ([]byte, error) {
 
-	addr, err := xutil.NodeId2Addr(nodeId)
-	if nil != err {
-		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
-		data, _ := json.Marshal(res)
-		return data, nil
-	}
-	del, err := stkc.Plugin.GetDelegateExInfoByIrr(addr, nodeId, stakingBlockNum)
+	del, err := stkc.Plugin.GetDelegateExInfoByIrr(delAddr, nodeId, stakingBlockNum)
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", QueryDelErrSTr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
@@ -732,13 +720,13 @@ func (stkc *StakingContract) getCandidateInfo(nodeId discover.NodeID) ([]byte, e
 	////  TODO  MOCK
 	//return stkc.getCandidateInfoMock()
 
-	addr, err := xutil.NodeId2Addr(nodeId)
+	canAddr, err := xutil.NodeId2Addr(nodeId)
 	if nil != err {
 		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
 		return data, nil
 	}
-	can, err := stkc.Plugin.GetCandidateInfoByIrr(addr)
+	can, err := stkc.Plugin.GetCandidateInfoByIrr(canAddr)
 	if nil != err && err != snapshotdb.ErrNotFound {
 		res := xcom.Result{false, "", QueryCanErrStr + ": " + err.Error()}
 		data, _ := json.Marshal(res)
@@ -849,7 +837,7 @@ func (stkc *StakingContract) getVerifierListMock() ([]byte, error) {
 				Website:    "www.baidu.com",
 				Details:    "this is  baidu ~~",
 			},
-			ValidatorTerm:   uint32(2),
+			ValidatorTerm: uint32(2),
 		}
 
 		queue = append(queue, valEx)
@@ -866,8 +854,7 @@ func (stkc *StakingContract) getVerifierListMock() ([]byte, error) {
 	return data, nil
 }
 
-
-func (stkc *StakingContract) getValidatorListMock () ([]byte, error){
+func (stkc *StakingContract) getValidatorListMock() ([]byte, error) {
 
 	fmt.Println("Call getValidatorList ~~~~~~~~~~~~~~")
 
@@ -902,7 +889,7 @@ func (stkc *StakingContract) getValidatorListMock () ([]byte, error){
 				Website:    "www.baidu.com",
 				Details:    "this is  baidu ~~",
 			},
-			ValidatorTerm:   uint32(2),
+			ValidatorTerm: uint32(2),
 		}
 
 		queue = append(queue, valEx)

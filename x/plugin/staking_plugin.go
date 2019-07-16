@@ -277,7 +277,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 
 	// todo test
 	//canJson, _ := json.Marshal(can)
-	//fmt.Println("Created the can:", string(canJson))
+	//log.Debug("Created the can:", string(canJson))
 	return nil
 }
 
