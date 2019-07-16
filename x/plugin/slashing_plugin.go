@@ -3,6 +3,9 @@ package plugin
 import (
 	"encoding/hex"
 	"errors"
+	"math/big"
+	"sync"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -18,8 +21,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"math/big"
-	"sync"
 )
 
 var (
@@ -28,15 +29,15 @@ var (
 	// Identifies the prefix of the previous round
 	preAbnormalPrefix = []byte("SlashPb")
 
-	errMutiSignVerify	= errors.New("multi-sign verification failed")
-	errSlashExist		= errors.New("punishment has been implemented")
+	errMutiSignVerify = errors.New("multi-sign verification failed")
+	errSlashExist     = errors.New("punishment has been implemented")
 
 	once = sync.Once{}
 )
 
 type SlashingPlugin struct {
-	db				snapshotdb.DB
-	decodeEvidence 	func(data string) (consensus.Evidences, error)
+	db             snapshotdb.DB
+	decodeEvidence func(data string) (consensus.Evidences, error)
 }
 
 var slsh *SlashingPlugin
@@ -44,7 +45,7 @@ var slsh *SlashingPlugin
 func SlashInstance() *SlashingPlugin {
 	once.Do(func() {
 		slsh = &SlashingPlugin{
-			db:snapshotdb.Instance(),
+			db: snapshotdb.Instance(),
 		}
 	})
 	return slsh
@@ -125,7 +126,7 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 func (sp *SlashingPlugin) Confirmed(block *types.Block) error {
 	// If it is the first block in each round, switch the number of blocks in the upper and lower rounds.
 	log.Debug("slashingPlugin Confirmed", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "consensusSize", xcom.ConsensusSize())
-	if (block.NumberU64() % xcom.ConsensusSize() == 1) && block.NumberU64() > 1 {
+	if (block.NumberU64()%xcom.ConsensusSize() == 1) && block.NumberU64() > 1 {
 		if err := sp.switchEpoch(block.Hash()); nil != err {
 			log.Error("slashingPlugin switchEpoch fail", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
 			return err
@@ -281,12 +282,12 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 	return nil
 }
 
-func (sp *SlashingPlugin) CheckMutiSign(addr common.Address, blockNumber uint64, etype uint32, stateDB xcom.StateDB) (bool, []byte, error) {
+func (sp *SlashingPlugin) CheckMutiSign(addr common.Address, blockNumber uint64, etype uint32, stateDB xcom.StateDB) ([]byte, error) {
 	if value := sp.getSlashResult(addr, blockNumber, etype, stateDB); len(value) > 0 {
 		log.Info("CheckMutiSign exist", "blockNumber", blockNumber, "addr", hex.EncodeToString(addr.Bytes()), "type", etype, "txHash", hex.EncodeToString(value))
-		return true, value, nil
+		return value, nil
 	}
-	return false, nil, nil
+	return nil, nil
 }
 
 func (sp *SlashingPlugin) putSlashResult(addr common.Address, blockNumber uint64, etype uint32, stateDB xcom.StateDB) {

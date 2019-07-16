@@ -3,10 +3,11 @@ package xcom
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"math/big"
 )
 
 // StateDB is an Plugin database for full state querying.
@@ -71,8 +72,19 @@ type Result struct {
 	ErrMsg string
 }
 
+func SuccessResult(data string, errMsg string) []byte {
+	return BuildResult(true, data, errMsg)
+}
 
+func FailResult(data string, errMsg string) []byte {
+	return BuildResult(false, data, errMsg)
+}
 
+func BuildResult(status bool, data string, errMsg string) []byte {
+	res := Result{status, data, errMsg}
+	bytes, _ := json.Marshal(res)
+	return bytes
+}
 
 /*// EncodeRLP implements rlp.Encoder
 func (r *Result) EncodeRLP(w io.Writer) error {
@@ -104,8 +116,6 @@ func (r *Result) DecodeRLP(s *rlp.Stream) error {
 	return nil
 }*/
 
-
-
 // addLog let the result add to event.
 func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, event, data string) {
 	var logdata [][]byte
@@ -121,15 +131,14 @@ func AddLog(state StateDB, blockNumber uint64, contractAddr common.Address, even
 	encoded := common.MustRlpEncode(logdata)
 
 	state.AddLog(&types.Log{
-		Address:     contractAddr,
-		Topics:      []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
+		Address: contractAddr,
+		Topics:  []common.Hash{common.BytesToHash(crypto.Keccak256([]byte(event)))},
 		//Data:        buf.Bytes(),
-		Data:		 encoded,
+		Data:        encoded,
 		BlockNumber: blockNumber,
 	})
 	return
 }
-
 
 func PrintObject(s string, obj interface{}) {
 	objs, _ := json.Marshal(obj)
