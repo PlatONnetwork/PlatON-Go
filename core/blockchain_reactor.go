@@ -23,7 +23,6 @@ import (
 )
 
 type BlockChainReactor struct {
-
 	vh *xcom.VrfHandler
 
 	eventMux     *event.TypeMux
@@ -83,7 +82,7 @@ func (brc *BlockChainReactor) loop() {
 			}
 
 			/**
-			TODO Maybe notify P2P module the nodeId of the next round validator
+			notify P2P module the nodeId of the next round validator
 			*/
 			if plugin, ok := brc.basePluginMap[xcom.StakingRule]; ok {
 				if err := plugin.Confirmed(block); nil != err {
@@ -116,7 +115,7 @@ func (bcr *BlockChainReactor) SetPluginEventMux() {
 	plugin.StakingInstance().SetEventMux(bcr.eventMux)
 }
 
-func (bcr *BlockChainReactor) SetValidatorMode (mode string) {
+func (bcr *BlockChainReactor) SetValidatorMode(mode string) {
 	bcr.validatorMode = mode
 }
 
@@ -127,7 +126,6 @@ func (bcr *BlockChainReactor) SetVRF_hanlder(vher *xcom.VrfHandler) {
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
 	bcr.vh.SetPrivateKey(privateKey)
 }
-
 
 func (bcr *BlockChainReactor) SetBeginRule(rule []int) {
 	bcr.beginRule = rule
@@ -167,7 +165,6 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		return err
 	}
 
-
 	/**
 	this things about ppos
 	*/
@@ -200,14 +197,12 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 		return err
 	}
 
-
 	/**
 	this things about ppos
 	*/
 	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
 		return nil
 	}
-
 
 	for _, pluginRule := range bcr.endRule {
 		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {
@@ -263,6 +258,9 @@ func (bcr *BlockChainReactor) VerifySign(msg interface{}) error {
 }
 
 func (bcr *BlockChainReactor) VerifyHeader(header *types.Header) error {
+
+	//header.Extra
+
 	return nil
 }
 
