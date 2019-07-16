@@ -7,7 +7,6 @@ import (
 	"io"
 	"math/big"
 	"path"
-	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -25,7 +24,6 @@ func newDB(stor storage) (*snapshotDB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[SnapshotDB]open baseDB fail:%v", err)
 	}
-	mu := sync.Mutex{}
 	return &snapshotDB{
 		path:    dbpath,
 		storage: stor,
@@ -34,7 +32,6 @@ func newDB(stor storage) (*snapshotDB, error) {
 		journalw:      make(map[common.Hash]*journalWriter),
 		baseDB:        baseDB,
 		current:       newCurrent(dbpath),
-		snapshotLock:  sync.NewCond(&mu),
 		snapshotLockC: false,
 	}, nil
 }
@@ -122,8 +119,6 @@ func (s *snapshotDB) recover(stor storage) error {
 	s.committed = make([]blockData, 0)
 	s.journalw = make(map[common.Hash]*journalWriter)
 
-	mu := sync.Mutex{}
-	s.snapshotLock = sync.NewCond(&mu)
 	s.snapshotLockC = false
 
 	//read Journal
