@@ -6,7 +6,7 @@ import "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 func (cbft *Cbft) OnPrepareBlock(msg *protocols.PrepareBlock) error {
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		if err.Fetch() {
-			cbft.fetchBlock()
+			cbft.fetchBlock(msg.Block.Hash(), msg.Block.NumberU64())
 			//todo fetch block
 		}
 	}

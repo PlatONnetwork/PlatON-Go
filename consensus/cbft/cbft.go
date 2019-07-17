@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
 	"reflect"
 	"sync"
 	"time"
@@ -43,7 +44,8 @@ type Cbft struct {
 	evPool     evidence.EvidencePool
 	log        log.Logger
 
-	agency consensus.Agency
+	fetcher *fetcher.Fetcher
+	agency  consensus.Agency
 	//Control the current view state
 	state cstate.ViewState
 
@@ -147,6 +149,11 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 // Behind the node will be synchronized by synchronization message
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, peerID := info.Msg, info.PeerID
+
+	if cbft.fetcher.MatchTask(peerID.String(), msg) {
+		return
+	}
+
 	var err error
 	switch msg.(type) {
 	}
