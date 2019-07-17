@@ -35,12 +35,8 @@ const (
 	handshakeTimeout = 5 * time.Second
 )
 
-func errResp(code types.ErrCode, format string, v ...interface{}) error {
-	return fmt.Errorf("%v - %v", code, fmt.Sprintf(format, v...))
-}
-
 // Peer represents a node in the network.
-type peer struct {
+type Peer struct {
 	*p2p.Peer
 	id      string
 	rw      p2p.MsgReadWriter
@@ -62,8 +58,8 @@ type peer struct {
 }
 
 // newPeer creates a new peer.
-func newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
-	return &peer{
+func NewPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *Peer {
+	return &Peer{
 		Peer:             p,
 		rw:               rw,
 		id:               p.ID().TerminalString(),
@@ -76,9 +72,19 @@ func newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 	}
 }
 
+// Return the id of peer.
+func (p *Peer) PeerID() string {
+	return p.id
+}
+
+// Return p2p.MsgReadWriter from peer.
+func (p *Peer) ReadWriter() p2p.MsgReadWriter {
+	return p.rw
+}
+
 // Handshake passes each other's status data and verifies the protocol version,
 // the successful handshake can successfully establish a connection by peer.
-func (p *peer) Handshake(outStatus *protocols.CbftStatusData) error {
+func (p *Peer) Handshake(outStatus *protocols.CbftStatusData) error {
 	if nil == outStatus {
 		return errInvalidHandshakeMessage
 	}
@@ -115,29 +121,29 @@ func (p *peer) Handshake(outStatus *protocols.CbftStatusData) error {
 }
 
 // readStatus receive status data from another.
-func (p *peer) readStatus(status *protocols.CbftStatusData) error {
+func (p *Peer) readStatus(status *protocols.CbftStatusData) error {
 	msg, err := p.rw.ReadMsg()
 	if err != nil {
 		return err
 	}
 	if msg.Code != protocols.CBFTStatusMsg {
-		return errResp(types.ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, protocols.CBFTStatusMsg)
+		return types.ErrResp(types.ErrNoStatusMsg, "first msg has code %x (!= %x)", msg.Code, protocols.CBFTStatusMsg)
 	}
 	if msg.Size > protocols.CbftProtocolMaxMsgSize {
-		return errResp(types.ErrMsgTooLarge, "%v > %v", msg.Size, protocols.CbftProtocolMaxMsgSize)
+		return types.ErrResp(types.ErrMsgTooLarge, "%v > %v", msg.Size, protocols.CbftProtocolMaxMsgSize)
 	}
 	if err := msg.Decode(&status); err != nil {
-		return errResp(types.ErrDecode, "msg %v: %v", msg, err)
+		return types.ErrResp(types.ErrDecode, "msg %v: %v", msg, err)
 	}
 	if int(status.ProtocolVersion) != p.version {
-		return errResp(types.ErrCbftProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
+		return types.ErrResp(types.ErrCbftProtocolVersionMismatch, "%d (!= %d)", status.ProtocolVersion, p.version)
 	}
 	return nil
 }
 
 // MarkMessageHash is used to record the hash value of each message from the peer node.
 // If the queue is full, remove the bottom element and add a new one.
-func (p *peer) MarkMessageHash(hash common.Hash) {
+func (p *Peer) MarkMessageHash(hash common.Hash) {
 	for p.knownMessageHash.Cardinality() >= maxKnownMessageHash {
 		p.knownMessageHash.Pop()
 	}
@@ -145,17 +151,17 @@ func (p *peer) MarkMessageHash(hash common.Hash) {
 }
 
 // ContainsMessageHash determines if the specified message hash is included.
-func (p *peer) ContainsMessageHash(hash common.Hash) bool {
+func (p *Peer) ContainsMessageHash(hash common.Hash) bool {
 	return p.knownMessageHash.Contains(hash)
 }
 
 // Close terminates the running state of the peer.
-func (p *peer) Close() {
+func (p *Peer) Close() {
 	close(p.term)
 }
 
 // SetHighest saves the highest QC block.
-func (p *peer) SetQcBn(qcBn *big.Int) {
+func (p *Peer) SetQcBn(qcBn *big.Int) {
 	if qcBn != nil {
 		p.qcLock.Lock()
 		defer p.qcLock.Unlock()
@@ -165,7 +171,7 @@ func (p *peer) SetQcBn(qcBn *big.Int) {
 }
 
 // SetLockedBn saves the highest locked block.
-func (p *peer) SetLockedBn(lockedBn *big.Int) {
+func (p *Peer) SetLockedBn(lockedBn *big.Int) {
 	if lockedBn != nil {
 		p.lLock.Lock()
 		defer p.lLock.Unlock()
@@ -175,7 +181,7 @@ func (p *peer) SetLockedBn(lockedBn *big.Int) {
 }
 
 // SetLockedBn saves the highest commit block.
-func (p *peer) SetCommitdBn(commitBn *big.Int) {
+func (p *Peer) SetCommitdBn(commitBn *big.Int) {
 	if commitBn != nil {
 		p.cLock.Lock()
 		defer p.cLock.Unlock()
@@ -193,7 +199,7 @@ type PeerInfo struct {
 }
 
 // Info output status information of the current peer.
-func (p *peer) Info() *PeerInfo {
+func (p *Peer) Info() *PeerInfo {
 	pv, qc, locked, commit := p.version, p.highestQCBn.Uint64(), p.lockedBn.Uint64(), p.commitBn.Uint64()
 	return &PeerInfo{
 		ProtocolVersion: pv,
@@ -203,18 +209,18 @@ func (p *peer) Info() *PeerInfo {
 	}
 }
 
-// peerSet represents the collection of active peers currently participating
+// PeerSet represents the collection of active peers currently participating
 // in the Cbft protocol.
-type peerSet struct {
-	peers  map[string]*peer
+type PeerSet struct {
+	peers  map[string]*Peer
 	lock   sync.RWMutex
 	closed bool
 }
 
-// newPeerSet creates a new peerSet to track the active participants.
-func newPeerSet() *peerSet {
-	ps := &peerSet{
-		peers: make(map[string]*peer),
+// NewPeerSet creates a new PeerSet to track the active participants.
+func NewPeerSet() *PeerSet {
+	ps := &PeerSet{
+		peers: make(map[string]*Peer),
 	}
 	// start a goroutine timing output A connection status information
 	go ps.printPeers()
@@ -224,7 +230,7 @@ func newPeerSet() *peerSet {
 // Register injects a new peer into the working set, or
 // returns an error if the peer is already known. If a new peer it registered,
 // its broadcast loop is also started.
-func (ps *peerSet) Register(p *peer) error {
+func (ps *PeerSet) Register(p *Peer) error {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 	if ps.closed {
@@ -239,7 +245,7 @@ func (ps *peerSet) Register(p *peer) error {
 
 // Unregister removes a remote peer from the active set, disabling any further
 // actions to/from that particular entity.
-func (ps *peerSet) Unregister(id string) error {
+func (ps *PeerSet) Unregister(id string) error {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
@@ -254,7 +260,7 @@ func (ps *peerSet) Unregister(id string) error {
 }
 
 // Peer retrieves the registered peer with the given id.
-func (ps *peerSet) Get(id string) (*peer, error) {
+func (ps *PeerSet) Get(id string) (*Peer, error) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -267,20 +273,20 @@ func (ps *peerSet) Get(id string) (*peer, error) {
 }
 
 // Len returns if the current number of peers in the set.
-func (ps *peerSet) Len() int {
+func (ps *PeerSet) Len() int {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
 	return len(ps.peers)
 }
 
-// PeersWithConsensus retrieves a list of peers that exist with the peerSet based
+// PeersWithConsensus retrieves a list of peers that exist with the PeerSet based
 // on the incoming consensus node ID array.
-func (ps *peerSet) PeersWithConsensus(consensusNodes []discover.NodeID) []*peer {
+func (ps *PeerSet) PeersWithConsensus(consensusNodes []discover.NodeID) []*Peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
-	list := make([]*peer, 0, len(consensusNodes))
+	list := make([]*Peer, 0, len(consensusNodes))
 	for _, nodeID := range consensusNodes {
 		nodeID := nodeID.TerminalString()
 		if peer, ok := ps.peers[nodeID]; ok {
@@ -291,7 +297,7 @@ func (ps *peerSet) PeersWithConsensus(consensusNodes []discover.NodeID) []*peer 
 }
 
 // PeersWithoutConsensus retrieves a list of peer that does not contain consensus nodes.
-func (ps *peerSet) PeersWithoutConsensus(consensusNodes []discover.NodeID) []*peer {
+func (ps *PeerSet) PeersWithoutConsensus(consensusNodes []discover.NodeID) []*Peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
@@ -301,7 +307,7 @@ func (ps *peerSet) PeersWithoutConsensus(consensusNodes []discover.NodeID) []*pe
 		consensusNodeMap[nodeID] = nodeID
 	}
 
-	list := make([]*peer, 0, len(ps.peers))
+	list := make([]*Peer, 0, len(ps.peers))
 	for nodeId, peer := range ps.peers {
 		if _, ok := consensusNodeMap[nodeId]; !ok {
 			list = append(list, peer)
@@ -311,12 +317,12 @@ func (ps *peerSet) PeersWithoutConsensus(consensusNodes []discover.NodeID) []*pe
 	return list
 }
 
-// Peers retrieves a list of peer from the peerSet.
-func (ps *peerSet) Peers() []*peer {
+// Peers retrieves a list of peer from the PeerSet.
+func (ps *PeerSet) Peers() []*Peer {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
-	list := make([]*peer, 0, len(ps.peers))
+	list := make([]*Peer, 0, len(ps.peers))
 	for _, p := range ps.peers {
 		list = append(list, p)
 	}
@@ -325,7 +331,7 @@ func (ps *peerSet) Peers() []*peer {
 
 // Close disconnects all peers. No new peers can be registered
 // after Close has returned.
-func (ps *peerSet) Close() {
+func (ps *PeerSet) Close() {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
@@ -335,7 +341,7 @@ func (ps *peerSet) Close() {
 	ps.closed = true
 }
 
-func (ps *peerSet) printPeers() {
+func (ps *PeerSet) printPeers() {
 	// Output in 2 seconds
 	outTimer := time.NewTicker(time.Second * 5)
 	for {

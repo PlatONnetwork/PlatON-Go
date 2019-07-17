@@ -18,6 +18,7 @@ const (
 // Define error enumeration values related to messages.
 const (
 	ErrMsgTooLarge = iota
+	ErrExtraStatusMsg
 	ErrDecode
 	ErrInvalidMsgCode
 	ErrCbftProtocolVersionMismatch
@@ -41,6 +42,11 @@ var errorToString = map[int]string{
 	ErrForkedBlock:                 "Forked block",
 }
 
+// Build an error object based on the error code.
+func ErrResp(code ErrCode, format string, v ...interface{}) error {
+	return fmt.Errorf("%v - %v", code, fmt.Sprintf(format, v...))
+}
+
 type ConsensusMsg interface {
 	CannibalizeBytes() ([]byte, error)
 	Sign() []byte
@@ -57,6 +63,14 @@ type MsgInfo struct {
 	PeerID discover.NodeID
 }
 
+// Create a new MsgInfo object.
+func NewMessageInfo(message Message, id discover.NodeID) *MsgInfo {
+	return &MsgInfo{
+		Msg:    message,
+		PeerID: id,
+	}
+}
+
 // MsgPackage represents a specific message package.
 // It contains the node ID, the message body, and
 // the forwarding mode from the sender.
@@ -64,6 +78,15 @@ type MsgPackage struct {
 	peerID string  // from the sender of the message
 	msg    Message // message body
 	mode   uint64  // forwarding mode.
+}
+
+// Create a new MsgPackage based on params.
+func NewMsgPackage(pid string, msg Message, mode uint64) *MsgPackage {
+	return &MsgPackage{
+		peerID: pid,
+		msg:    msg,
+		mode:   mode,
+	}
 }
 
 func (m *MsgPackage) Message() Message {

@@ -14,5 +14,11 @@ type Cbft interface {
 type Handler interface {
 
 	// Return all neighbor node lists.
-	Peers() ([]*peer, error)
+	Peers() ([]*Peer, error)
+
+	// Return a peer by id.
+	Get(id string) (*Peer, error)
+
+	// Remove the peer with the specified ID
+	Unregister(id string) error
 }
