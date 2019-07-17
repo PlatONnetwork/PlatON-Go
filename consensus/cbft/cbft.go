@@ -2,6 +2,9 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+	"reflect"
+	"sync"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -11,13 +14,9 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
-
-	"reflect"
-	"sync"
-	"time"
-
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -58,6 +57,9 @@ type Cbft struct {
 	//Determine when to allow voting
 	voteRules rules.VoteRules
 
+	// Validator pool
+	validatorPool *validator.ValidatorPool
+
 	//Store blocks that are not committed
 	blockTree ctypes.BlockTree
 
@@ -84,6 +86,8 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 	}
 
 	//todo init safety rules, vote rules, state, executor
+	cbft.safetyRules = rules.NewSafetyRules(&cbft.state)
+	cbft.voteRules = rules.NewVoteRules(&cbft.state)
 
 	return cbft
 }
@@ -96,7 +100,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, executor consensus.Executor
 	//Initialize block tree
 	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 
-	cbft.blockTree.InsertBlock(block)
+	cbft.blockTree.InsertQCBlock(block, nil)
 
 	//Initialize view state
 	cbft.state.SetHighestExecutedBlock(block)
@@ -179,7 +183,7 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 }
 
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	return nil
+	return cbft.validatorPool.VerifyHeader(header)
 }
 
 func (Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
