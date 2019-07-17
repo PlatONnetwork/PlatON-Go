@@ -23,19 +23,14 @@ import (
 )
 
 type BlockChainReactor struct {
-	vh *xcom.VrfHandler
-
-	eventMux     *event.TypeMux
-	bftResultSub *event.TypeMuxSubscription
-
-	// xxPlugin container
-	basePluginMap map[int]plugin.BasePlugin
-	// Order rules for xxPlugins called in BeginBlocker
-	beginRule []int
-	// Order rules for xxPlugins called in EndBlocker
-	endRule []int
-
+	vh            *xcom.VrfHandler
+	eventMux      *event.TypeMux
+	bftResultSub  *event.TypeMuxSubscription
+	basePluginMap map[int]plugin.BasePlugin // xxPlugin container
+	beginRule     []int                     // Order rules for xxPlugins called in BeginBlocker
+	endRule       []int                     // Order rules for xxPlugins called in EndBlocker
 	validatorMode string
+	exitCh        chan struct{}
 }
 
 var bcr *BlockChainReactor
@@ -45,6 +40,7 @@ func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChain
 		bcr = &BlockChainReactor{
 			eventMux:      mux,
 			basePluginMap: make(map[int]plugin.BasePlugin, 0),
+			exitCh:        make(chan struct{}),
 		}
 	}
 	return bcr
@@ -61,6 +57,11 @@ func (brc *BlockChainReactor) Start(mode string) {
 	}
 }
 
+func (brc *BlockChainReactor) Close() {
+	close(brc.exitCh)
+	log.Info("blockchain_reactor is closed")
+}
+
 // Getting the global bcr single instance
 func GetReactorInstance() *BlockChainReactor {
 	return bcr
@@ -72,18 +73,18 @@ func (brc *BlockChainReactor) loop() {
 		select {
 		case obj := <-bcr.bftResultSub.Chan():
 			if obj == nil {
-				log.Error("BlockChainReactor receive nil bftResultEvent maybe channel is closed")
+				log.Error("blockchain_reactor receive nil bftResultEvent maybe channel is closed")
 				continue
 			}
 			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
 			if !ok {
-				log.Error("BlockChainReactor receive bft result type error")
+				log.Error("blockchain_reactor receive bft result type error")
 				continue
 			}
 			block := cbftResult.Block
 			// Short circuit when receiving empty result.
 			if block == nil {
-				log.Error("BlockChainReactor receive Cbft result error, block is nil")
+				log.Error("blockchain_reactor receive Cbft result error, block is nil")
 				continue
 			}
 
@@ -109,6 +110,9 @@ func (brc *BlockChainReactor) loop() {
 				log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
 				continue
 			}
+		// stop this routine
+		case <-brc.exitCh:
+			return
 		}
 	}
 
@@ -210,7 +214,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	}
 	// Store the previous vrf random number
 	if err := bcr.vh.Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
-		log.Error("BlockChainReactor Storage proof failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "err", err)
+		log.Error("blockchain_reactor Storage proof failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "err", err)
 		return err
 	}
 

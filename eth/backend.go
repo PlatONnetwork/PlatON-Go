@@ -585,6 +585,7 @@ func (s *Ethereum) Stop() error {
 
 	s.chainDb.Close()
 	close(s.shutdownChan)
+	core.GetReactorInstance().Close()
 	return nil
 }
 
