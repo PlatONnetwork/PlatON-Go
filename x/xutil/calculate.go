@@ -154,16 +154,16 @@ func CalculateRound(blockNumber uint64) uint64 {
 // calculate the year by blockNumber.
 // (V.0.1) If blockNumber eqs 0, year eqs 0 too, else rounded up the result of
 // the blockNumber divided by the expected number of blocks per year
-func CalculateYear(blockNumber uint64) uint64 {
+func CalculateYear(blockNumber uint64) uint32 {
 	size := CalcBlocksEachYear()
 
-	div := blockNumber / uint64(size)
-	mod := blockNumber % uint64(size)
+	div := blockNumber / size
+	mod := blockNumber % size
 
 	if mod == 0 {
-		return div
+		return uint32(div)
 	} else {
-		return div + 1
+		return uint32(div + 1)
 	}
 }
 
