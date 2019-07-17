@@ -1,4 +1,4 @@
-package cbft
+package router
 
 import (
 	"bytes"
@@ -48,11 +48,11 @@ type peer struct {
 	term    chan struct{} // Termination channel to stop the broadcaster
 
 	// Node status information
-	HighestQCBn *big.Int
+	highestQCBn *big.Int
 	qcLock      sync.RWMutex
-	LockedBn    *big.Int
+	lockedBn    *big.Int
 	lLock       sync.RWMutex
-	CommitBn    *big.Int
+	commitBn    *big.Int
 	cLock       sync.RWMutex
 
 	// Record the message received by the peer node.
@@ -69,9 +69,9 @@ func newPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *peer {
 		id:               p.ID().TerminalString(),
 		term:             make(chan struct{}),
 		version:          pv,
-		HighestQCBn:      new(big.Int),
-		LockedBn:         new(big.Int),
-		CommitBn:         new(big.Int),
+		highestQCBn:      new(big.Int),
+		lockedBn:         new(big.Int),
+		commitBn:         new(big.Int),
 		knownMessageHash: mapset.NewSet(),
 	}
 }
@@ -154,8 +154,8 @@ func (p *peer) SetQcBn(qcBn *big.Int) {
 	if qcBn != nil {
 		p.qcLock.Lock()
 		defer p.qcLock.Unlock()
-		log.Trace("Set QCBn", "peerID", p.id, "oldQCBn", p.HighestQCBn.Uint64(), "newQCBn", qcBn.Uint64())
-		p.HighestQCBn.Set(qcBn)
+		log.Trace("Set QCBn", "peerID", p.id, "oldQCBn", p.highestQCBn.Uint64(), "newQCBn", qcBn.Uint64())
+		p.highestQCBn.Set(qcBn)
 	}
 }
 
@@ -164,8 +164,8 @@ func (p *peer) SetLockedBn(lockedBn *big.Int) {
 	if lockedBn != nil {
 		p.lLock.Lock()
 		defer p.lLock.Unlock()
-		log.Debug("Set lockedBn", "peerID", p.id, "oldLockedBn", p.LockedBn.Uint64(), "newLockedBn", lockedBn.Uint64())
-		p.LockedBn.Set(lockedBn)
+		log.Debug("Set lockedBn", "peerID", p.id, "oldLockedBn", p.lockedBn.Uint64(), "newLockedBn", lockedBn.Uint64())
+		p.lockedBn.Set(lockedBn)
 	}
 }
 
@@ -174,8 +174,8 @@ func (p *peer) SetCommitdBn(commitBn *big.Int) {
 	if commitBn != nil {
 		p.cLock.Lock()
 		defer p.cLock.Unlock()
-		log.Debug("Set commitBn", "peerID", p.id, "oldCommitBn", p.CommitBn.Uint64(), "newCommitBn", commitBn.Uint64())
-		p.LockedBn.Set(commitBn)
+		log.Debug("Set commitBn", "peerID", p.id, "oldCommitBn", p.commitBn.Uint64(), "newCommitBn", commitBn.Uint64())
+		p.lockedBn.Set(commitBn)
 	}
 }
 
@@ -189,7 +189,7 @@ type PeerInfo struct {
 
 // Info output status information of the current peer.
 func (p *peer) Info() *PeerInfo {
-	pv, qc, locked, commit := p.version, p.HighestQCBn.Int64(), p.LockedBn.Int64(), p.CommitBn.Int64()
+	pv, qc, locked, commit := p.version, p.highestQCBn.Int64(), p.lockedBn.Int64(), p.commitBn.Int64()
 	return &PeerInfo{
 		ProtocolVersion: pv,
 		HighestQCBn:     int(qc),

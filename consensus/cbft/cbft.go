@@ -2,6 +2,9 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+	"reflect"
+	"sync"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -20,10 +23,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-
-	"reflect"
-	"sync"
-	"time"
 )
 
 type Config struct {

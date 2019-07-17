@@ -2,14 +2,15 @@ package utils
 
 import (
 	"bytes"
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"io"
 	"math/rand"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 )
 
 // Returns a random offset between 0 and n
-func randomOffset(n int) int {
+func RandomOffset(n int) int {
 	if n == 0 {
 		return 0
 	}
@@ -43,17 +44,4 @@ func MergeBytes(bts ...[]byte) []byte {
 		response = temp
 	}
 	return response
-}
-
-func uint64ToBytes(n uint64) []byte {
-	return []byte{
-		byte(n),
-		byte(n >> 8),
-		byte(n >> 16),
-		byte(n >> 24),
-		byte(n >> 32),
-		byte(n >> 40),
-		byte(n >> 48),
-		byte(n >> 56),
-	}
 }
