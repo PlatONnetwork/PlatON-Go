@@ -427,7 +427,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 	headerMap := make(map[int]*types.Header, 0)
 	parentHash := genesis.Hash()
 
-	for i := 0; i <= int(xcom.ConsensusSize()); i++ {
+	for i := 0; i <= int(xutil.ConsensusSize()); i++ {
 
 		nonce := crypto.Keccak256([]byte(string(time.Now().UnixNano() + int64(i))))[:]
 		privateKey, err := crypto.GenerateKey()
@@ -1685,7 +1685,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 	// build genesis VerifierList
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -1749,7 +1749,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 	/*
 		Start ElectNextVerifierList
 	*/
-	targetNum := xcom.EpochSize() * xcom.ConsensusSize()
+	targetNum := xutil.EpochSize() * xutil.ConsensusSize()
 	fmt.Println("targetNum:", targetNum)
 
 	targetNumInt := big.NewInt(int64(targetNum))
@@ -1862,7 +1862,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -1919,7 +1919,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize(),
+		End:   xutil.ConsensusSize(),
 	}
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
@@ -2060,7 +2060,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -2117,7 +2117,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize(),
+		End:   xutil.ConsensusSize(),
 	}
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
@@ -2280,7 +2280,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -2695,7 +2695,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 
 	// build genesis VerifierList
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -2875,7 +2875,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -2932,7 +2932,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize(),
+		End:   xutil.ConsensusSize(),
 	}
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
@@ -3069,7 +3069,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -3126,7 +3126,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize(),
+		End:   xutil.ConsensusSize(),
 	}
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
@@ -3263,7 +3263,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -3443,7 +3443,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -3500,7 +3500,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize(),
+		End:   xutil.ConsensusSize(),
 	}
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
@@ -3629,7 +3629,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -3926,7 +3926,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -3983,7 +3983,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize(),
+		End:   xutil.ConsensusSize(),
 	}
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
@@ -4120,7 +4120,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -4294,7 +4294,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -4351,7 +4351,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize(),
+		End:   xutil.ConsensusSize(),
 	}
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
@@ -4475,7 +4475,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -4532,7 +4532,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 	// build gensis current validatorList
 	new_validatorArr := &staking.Validator_array{
 		Start: start,
-		End:   xcom.ConsensusSize(),
+		End:   xutil.ConsensusSize(),
 	}
 
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
@@ -4660,7 +4660,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 	// build genesis VerifierList
 
 	start := uint64(1)
-	end := xcom.EpochSize() * xcom.ConsensusSize()
+	end := xutil.EpochSize() * xutil.ConsensusSize()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,

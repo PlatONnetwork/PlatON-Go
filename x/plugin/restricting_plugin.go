@@ -544,5 +544,5 @@ func getLatestEpoch(stateDb xcom.StateDB) uint64 {
 }
 
 func getBlockNumberByEpoch(epoch uint64) uint64 {
-	return epoch * xutil.CalculateBlocksEachEpoch()
+	return epoch * xutil.CalcBlocksEachEpoch()
 }

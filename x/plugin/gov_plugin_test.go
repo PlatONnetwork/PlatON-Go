@@ -25,8 +25,8 @@ var (
 	evm            *vm.EVM
 	govDB          *gov.GovDB
 	newVersion     = uint32(1<<16 | 1<<8 | 1)
-	endVotingBlock = uint64(xutil.GetBlocksPerEpoch() - 20)
-	activeBlock    = uint64(xutil.GetBlocksPerEpoch() - 20 + xutil.GetConsensusSize()*5)
+	endVotingBlock = uint64(xutil.CalcBlocksEachEpoch() - 20)
+	activeBlock    = uint64(xutil.CalcBlocksEachEpoch() - 20 + xutil.ConsensusSize()*5)
 )
 
 func setup(t *testing.T) func() {
@@ -582,14 +582,14 @@ func TestGovPlugin_textProposalPassed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(xutil.GetBlocksPerEpoch() - 1)
+	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.GetBlocksPerEpoch()))
+	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
 	beginBlock(t)
 	sndb.Commit(lastBlockHash)
 
@@ -633,14 +633,14 @@ func TestGovPlugin_textProposalFailed(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(xutil.GetBlocksPerEpoch() - 1)
+	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.GetBlocksPerEpoch()))
+	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
 	beginBlock(t)
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
@@ -686,14 +686,14 @@ func TestGovPlugin_twoProposalsSuccess(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(xutil.GetBlocksPerEpoch() - 1)
+	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.GetBlocksPerEpoch()))
+	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
 
 	beginBlock(t)
 
@@ -749,14 +749,14 @@ func TestGovPlugin_versionProposalSuccess(t *testing.T) {
 	sndb.Commit(lastBlockHash)
 	sndb.Compaction()
 
-	lastBlockNumber = uint64(xutil.GetBlocksPerEpoch() - 1)
+	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.GetBlocksPerEpoch()))
+	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
 
 	beginBlock(t)
 
@@ -847,14 +847,14 @@ func TestGovPlugin_ParamProposalSuccess(t *testing.T) {
 	sndb.Commit(blockHash)
 	//buildSnapDBDataCommitted(2, 19999)
 	sndb.Compaction()
-	lastBlockNumber = uint64(xutil.GetBlocksPerEpoch() - 1)
+	lastBlockNumber = uint64(xutil.CalcBlocksEachEpoch() - 1)
 	lastHeader = types.Header{
 		Number: big.NewInt(int64(lastBlockNumber)),
 	}
 	lastBlockHash = lastHeader.Hash()
 	sndb.SetCurrent(lastBlockHash, *big.NewInt(int64(lastBlockNumber)), *big.NewInt(int64(lastBlockNumber)))
 
-	build_staking_data_more(uint64(xutil.GetBlocksPerEpoch()))
+	build_staking_data_more(uint64(xutil.CalcBlocksEachEpoch()))
 	beginBlock(t)
 	sndb.Commit(lastBlockHash)
 

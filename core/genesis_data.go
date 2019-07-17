@@ -78,7 +78,7 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, version uint32) err
 	// build epoch validators
 	verifierList := &staking.Validator_array{
 		Start: 1,
-		End:   xutil.CalculateBlocksEachEpoch(),
+		End:   xutil.CalcBlocksEachEpoch(),
 		Arr:   validatorQueue,
 	}
 

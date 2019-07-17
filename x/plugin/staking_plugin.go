@@ -1128,7 +1128,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	}
 
 	start := old_verifierArr.End + 1
-	end := old_verifierArr.End + xutil.CalculateBlocksEachEpoch()
+	end := old_verifierArr.End + xutil.CalcBlocksEachEpoch()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,

@@ -79,12 +79,12 @@ func EpochsPerYear() uint64 {
 	return epochs
 }
 
-func CalculateBlocksEachEpoch() uint64 {
+func CalcBlocksEachEpoch() uint64 {
 	return ConsensusSize() * EpochSize()
 }
 
 // calculate
-func CalculateBlocksEachYear() uint64 {
+func CalcBlocksEachYear() uint64 {
 	return EpochsPerYear() * EpochSize()
 }
 
@@ -100,19 +100,19 @@ func IsSwitch(blockNumber uint64) bool {
 }
 
 func IsSettlementPeriod(blockNumber uint64) bool {
-	size := CalculateBlocksEachEpoch()
+	size := CalcBlocksEachEpoch()
 	mod := blockNumber % uint64(size)
 	return mod == 0
 }
 
 func IsYearEnd(blockNumber uint64) bool {
-	size := CalculateBlocksEachYear()
+	size := CalcBlocksEachYear()
 	return blockNumber > 0 && blockNumber%size == 0
 }
 
 // calculate the Epoch number by blockNumber
 func CalculateEpoch(blockNumber uint64) uint64 {
-	size := CalculateBlocksEachEpoch()
+	size := CalcBlocksEachEpoch()
 
 	var epoch uint64
 	div := blockNumber / size
@@ -155,7 +155,7 @@ func CalculateRound(blockNumber uint64) uint64 {
 // (V.0.1) If blockNumber eqs 0, year eqs 0 too, else rounded up the result of
 // the blockNumber divided by the expected number of blocks per year
 func CalculateYear(blockNumber uint64) uint64 {
-	size := CalculateBlocksEachYear()
+	size := CalcBlocksEachYear()
 
 	div := blockNumber / uint64(size)
 	mod := blockNumber % uint64(size)

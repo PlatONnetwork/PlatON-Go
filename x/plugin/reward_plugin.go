@@ -144,7 +144,7 @@ func (rmp *rewardMgrPlugin) calculateExpectReward(state xcom.StateDB) (*big.Int,
 	)
 
 	// get expected settlement epochs and new blocks per year first
-	blocksPerEpoch := xutil.CalculateBlocksEachEpoch()
+	blocksPerEpoch := xutil.CalcBlocksEachEpoch()
 	expectEpochs := xutil.EpochsPerYear()
 	expectNewBlocks := blocksPerEpoch * expectEpochs
 
