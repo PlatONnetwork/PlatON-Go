@@ -16,7 +16,6 @@ var (
 	keyPrefixPreActiveProposal = []byte("PreActiveProposal")
 	keyPrefixPreActiveVersion  = []byte("PreActiveVersion")
 	keyPrefixActiveVersion     = []byte("ActiveVersion")
-	keyPrefixVotedVerifiers    = []byte("VotedVerifiers")
 	keyPrefixActiveNodes       = []byte("ActiveNodes")
 	keyPrefixAccuVerifiers     = []byte("AccuVerifiers")
 	keyPrefixParams            = []byte("Params")
@@ -70,14 +69,6 @@ func KeyActiveVersion() []byte {
 // 预生效版本的key
 func KeyPreActiveVersion() []byte {
 	return keyPrefixPreActiveVersion
-}
-
-// 生成已投票的验证人列表key
-func KeyVotedVerifiers(proposalID common.Hash) []byte {
-	return bytes.Join([][]byte{
-		keyPrefixVotedVerifiers,
-		proposalID.Bytes(),
-	}, KeyDelimiter)
 }
 
 // 已升级节点列表的key
