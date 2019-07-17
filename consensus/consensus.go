@@ -20,7 +20,7 @@ package consensus
 import (
 	"crypto/ecdsa"
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	types2 "github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/p2p"
@@ -133,11 +133,13 @@ type PoW interface {
 	Hashrate() float64
 }
 
+// Agency
 type Agency interface {
 	Sign(msg interface{}) error
 	VerifySign(msg interface{}) error
+	VerifyHeader(header *types.Header) error
 	GetLastNumber(blockNumber uint64) uint64
-	GetValidator(blockNumber uint64) (*types2.Validators, error)
+	GetValidator(blockNumber uint64) (*cbfttypes.Validators, error)
 	IsCandidateNode(nodeID discover.NodeID) bool
 }
 
