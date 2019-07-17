@@ -1188,6 +1188,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64, 
 
 	// TODO begin()
 	if err := core.GetReactorInstance().BeginBlocker(header, w.current.state); nil != err {
+		log.Error("Failed GetReactorInstance BeginBlocker", "err", err)
 		return
 	}
 
