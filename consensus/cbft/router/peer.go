@@ -181,20 +181,20 @@ func (p *peer) SetCommitdBn(commitBn *big.Int) {
 
 // PeerInfo represents the node information of the CBFT protocol.
 type PeerInfo struct {
-	ProtocolVersion int `json:"protocol_version"`
-	HighestQCBn     int `json:"highest_qc_bn"`
-	LockedBn        int `json:"locked_bn"`
-	CommitBn        int `json:"commit_bn"`
+	ProtocolVersion int    `json:"protocol_version"`
+	HighestQCBn     uint64 `json:"highest_qc_bn"`
+	LockedBn        uint64 `json:"locked_bn"`
+	CommitBn        uint64 `json:"commit_bn"`
 }
 
 // Info output status information of the current peer.
 func (p *peer) Info() *PeerInfo {
-	pv, qc, locked, commit := p.version, p.highestQCBn.Int64(), p.lockedBn.Int64(), p.commitBn.Int64()
+	pv, qc, locked, commit := p.version, p.highestQCBn.Uint64(), p.lockedBn.Uint64(), p.commitBn.Uint64()
 	return &PeerInfo{
 		ProtocolVersion: pv,
-		HighestQCBn:     int(qc),
-		LockedBn:        int(locked),
-		CommitBn:        int(commit),
+		HighestQCBn:     qc,
+		LockedBn:        locked,
+		CommitBn:        commit,
 	}
 }
 
