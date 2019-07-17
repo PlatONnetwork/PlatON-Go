@@ -124,6 +124,9 @@ func (bcr *BlockChainReactor) SetVRF_hanlder(vher *xcom.VrfHandler) {
 }
 
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return
+	}
 	bcr.vh.SetPrivateKey(privateKey)
 }
 
@@ -136,6 +139,13 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 
 // Called before every block has not executed all txs
 func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) error {
+
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return nil
+	}
 
 	blockHash := common.ZeroHash
 
@@ -165,13 +175,6 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		return err
 	}
 
-	/**
-	this things about ppos
-	*/
-	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
-		return nil
-	}
-
 	for _, pluginRule := range bcr.beginRule {
 		if plugin, ok := bcr.basePluginMap[pluginRule]; ok {
 			if err := plugin.BeginBlock(blockHash, header, state); nil != err {
@@ -186,6 +189,13 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 // Called after every block had executed all txs
 func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateDB) error {
 
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return nil
+	}
+
 	blockHash := common.ZeroHash
 
 	if !xutil.IsWorker(header.Extra) {
@@ -195,13 +205,6 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	if err := bcr.vh.Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
 		log.Error("BlockChainReactor Storage proof failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "err", err)
 		return err
-	}
-
-	/**
-	this things about ppos
-	*/
-	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
-		return nil
 	}
 
 	for _, pluginRule := range bcr.endRule {
