@@ -116,3 +116,9 @@ func (s *CbftStatusData) BHash() common.Hash {
 	}
 	return s.QCBlock
 }
+
+//CBFT synchronize blocks that have reached qc
+type QCBlockList struct {
+	QC     []*ctypes.QuorumCert
+	blocks []*types.Block
+}
