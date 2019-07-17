@@ -43,13 +43,13 @@ func (PrepareBlock) BHash() common.Hash {
 
 // Removed the validator address, index. Mainly to ensure that the signature hash of the aggregate signature is consistent
 type PrepareVote struct {
-	Epoch       uint64            `json:"epoch"`
-	ViewNumber  uint64            `json:"view_number"`
-	BlockHash   *types.Block      `json:"block_hash"`
-	BlockNumber uint64            `json:"block_number"`
-	BlockIndex  uint32            `json:"block_index"` //The block number of the current ViewNumber proposal, 0....10
-	ParentQC    ctypes.QuorumCert `json:"parent_qc"`
-	Signature   ctypes.Signature  `json:"signature"`
+	Epoch       uint64             `json:"epoch"`
+	ViewNumber  uint64             `json:"view_number"`
+	BlockHash   common.Hash        `json:"block_hash"`
+	BlockNumber uint64             `json:"block_number"`
+	BlockIndex  uint32             `json:"block_index"` //The block number of the current ViewNumber proposal, 0....10
+	ParentQC    *ctypes.QuorumCert `json:"parent_qc"`
+	Signature   ctypes.Signature   `json:"signature"`
 }
 
 func (PrepareVote) String() string {
@@ -65,12 +65,12 @@ func (PrepareVote) BHash() common.Hash {
 }
 
 type ViewChange struct {
-	Epoch      uint64            `json:"epoch"`
-	ViewNumber uint64            `json:"view_number"`
-	BlockHash  common.Hash       `json:"block_hash"`
-	BlockNum   uint64            `json:"block_number"`
-	PrepareQC  ctypes.QuorumCert `json:"prepare_qc"`
-	Signature  ctypes.Signature  `json:"signature"`
+	Epoch      uint64             `json:"epoch"`
+	ViewNumber uint64             `json:"view_number"`
+	BlockHash  common.Hash        `json:"block_hash"`
+	BlockNum   uint64             `json:"block_number"`
+	PrepareQC  *ctypes.QuorumCert `json:"prepare_qc"`
+	Signature  ctypes.Signature   `json:"signature"`
 }
 
 func (ViewChange) String() string {
