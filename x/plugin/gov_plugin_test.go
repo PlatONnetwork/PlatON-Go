@@ -116,7 +116,7 @@ func submitVersion(t *testing.T, pid common.Hash) {
 }
 
 func submitParam(t *testing.T, pid common.Hash) {
-	vp := gov.ParamProposal{
+	pp := gov.ParamProposal{
 		ProposalID:     pid,
 		GithubID:       "githubID",
 		ProposalType:   gov.Param,
@@ -135,7 +135,7 @@ func submitParam(t *testing.T, pid common.Hash) {
 	state := evm.StateDB.(*state.StateDB)
 	state.Prepare(txHashArr[0], lastBlockHash, 0)
 
-	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
+	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.StateDB)
 	if err != nil {
 		t.Fatalf("submit param proposal err: %s", err)
 	}
@@ -200,6 +200,58 @@ func TestGovPlugin_SubmitText(t *testing.T) {
 	}
 }
 
+func TestGovPlugin_SubmitText_invalidSender(t *testing.T) {
+	defer setup(t)()
+
+	vp := gov.TextProposal{
+		ProposalID:     txHashArr[0],
+		GithubID:       "githubID",
+		ProposalType:   gov.Text,
+		Topic:          "textTopic",
+		Desc:           "textDesc",
+		Url:            "textUrl",
+		SubmitBlock:    1,
+		EndVotingBlock: uint64(22230),
+		Proposer:       nodeIdArr[0],
+	}
+
+	state := evm.StateDB.(*state.StateDB)
+	state.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	err := govPlugin.Submit(anotherSender, vp, lastBlockHash, evm.StateDB) //sender error
+	if err != nil && (err.Error() == "tx sender is not verifier." || err.Error() == "tx sender should be node's staking address.") {
+		t.Log("detected invalid sender.", err)
+	} else {
+		t.Fatal("didn't detect invalid sender.")
+	}
+}
+
+func TestGovPlugin_SubmitText_invalidEndVotingBlock(t *testing.T) {
+	defer setup(t)()
+
+	vp := gov.TextProposal{
+		ProposalID:     txHashArr[0],
+		GithubID:       "githubID",
+		ProposalType:   gov.Text,
+		Topic:          "textTopic",
+		Desc:           "textDesc",
+		Url:            "textUrl",
+		SubmitBlock:    1,
+		EndVotingBlock: uint64(22220), //error
+		Proposer:       nodeIdArr[0],
+	}
+
+	state := evm.StateDB.(*state.StateDB)
+	state.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
+	if err != nil && err.Error() == "end-voting-block invalid." {
+		t.Logf("detected invalid end-voting-block.")
+	} else {
+		t.Fatal("didn't detect invalid end-voting-block.")
+	}
+}
+
 func TestGovPlugin_SubmitVersion(t *testing.T) {
 	defer setup(t)()
 	submitVersion(t, txHashArr[0])
@@ -217,6 +269,60 @@ func TestGovPlugin_SubmitVersion(t *testing.T) {
 	}
 }
 
+func TestGovPlugin_SubmitVersion_invalidEndVotingBlock(t *testing.T) {
+	defer setup(t)()
+
+	vp := gov.VersionProposal{
+		ProposalID:     txHashArr[0],
+		GithubID:       "githubID",
+		ProposalType:   gov.Version,
+		Topic:          "versionTopic",
+		Desc:           "versionDesc",
+		Url:            "versionUrl",
+		SubmitBlock:    1,
+		EndVotingBlock: uint64(22220), //error
+		Proposer:       nodeIdArr[0],
+		NewVersion:     uint32(1<<16 | 1<<8 | 1),
+		ActiveBlock:    uint64(23480),
+	}
+	state := evm.StateDB.(*state.StateDB)
+	state.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
+	if err != nil && err.Error() == "end-voting-block invalid." {
+		t.Logf("detected invalid end-voting-block.")
+	} else {
+		t.Fatal("didn't detect invalid end-voting-block.")
+	}
+}
+
+func TestGovPlugin_SubmitVersion_invalidActiveBlock(t *testing.T) {
+	defer setup(t)()
+
+	vp := gov.VersionProposal{
+		ProposalID:     txHashArr[0],
+		GithubID:       "githubID",
+		ProposalType:   gov.Version,
+		Topic:          "versionTopic",
+		Desc:           "versionDesc",
+		Url:            "versionUrl",
+		SubmitBlock:    1,
+		EndVotingBlock: uint64(22230),
+		Proposer:       nodeIdArr[0],
+		NewVersion:     uint32(1<<16 | 1<<8 | 1),
+		ActiveBlock:    uint64(23481), // error
+	}
+	state := evm.StateDB.(*state.StateDB)
+	state.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	err := govPlugin.Submit(sender, vp, lastBlockHash, evm.StateDB)
+	if err != nil && err.Error() == "active-block invalid." {
+		t.Logf("detected invalid active-block.")
+	} else {
+		t.Fatal("didn't detect invalid active-block.")
+	}
+}
+
 func TestGovPlugin_SubmitParam(t *testing.T) {
 	defer setup(t)()
 	submitParam(t, txHashArr[0])
@@ -231,6 +337,64 @@ func TestGovPlugin_SubmitParam(t *testing.T) {
 		t.Fatal("Get the submitted version proposal error:", err)
 	} else {
 		t.Log("Get the submitted version proposal success:", p)
+	}
+}
+
+func TestGovPlugin_SubmitParam_invalidEndVotingBlock(t *testing.T) {
+	defer setup(t)()
+
+	pp := gov.ParamProposal{
+		ProposalID:     txHashArr[0],
+		GithubID:       "githubID",
+		ProposalType:   gov.Param,
+		Topic:          "paramTopic",
+		Desc:           "paramDesc",
+		Url:            "paramUrl",
+		SubmitBlock:    1,
+		EndVotingBlock: uint64(22231), //error
+		Proposer:       nodeIdArr[0],
+
+		ParamName:    "param3",
+		CurrentValue: 12.5,
+		NewValue:     0.85,
+	}
+	state := evm.StateDB.(*state.StateDB)
+	state.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.StateDB)
+	if err != nil && err.Error() == "end-voting-block invalid." {
+		t.Logf("detected invalid end-voting-block.")
+	} else {
+		t.Fatal("didn't detect invalid end-voting-block.")
+	}
+}
+
+func TestGovPlugin_SubmitParam_unsupportedParameter(t *testing.T) {
+	defer setup(t)()
+
+	pp := gov.ParamProposal{
+		ProposalID:     txHashArr[0],
+		GithubID:       "githubID",
+		ProposalType:   gov.Param,
+		Topic:          "paramTopic",
+		Desc:           "paramDesc",
+		Url:            "paramUrl",
+		SubmitBlock:    1,
+		EndVotingBlock: uint64(22230),
+		Proposer:       nodeIdArr[0],
+
+		ParamName:    "param4", //errror
+		CurrentValue: 12.5,
+		NewValue:     0.85,
+	}
+	state := evm.StateDB.(*state.StateDB)
+	state.Prepare(txHashArr[0], lastBlockHash, 0)
+
+	err := govPlugin.Submit(sender, pp, lastBlockHash, evm.StateDB)
+	if err != nil && err.Error() == "unsupported parameter." {
+		t.Logf("detected unsupported parameter.")
+	} else {
+		t.Fatal("didn't detect unsupported parameter.")
 	}
 }
 
@@ -271,9 +435,50 @@ func TestGovPlugin_VoteSuccess(t *testing.T) {
 	} else {
 		t.Log("voted count:", len(votedValue))
 	}
+
+	nodeList, err := govDB.ListVotedVerifier(txHashArr[0], evm.StateDB)
+	if err != nil {
+		t.Fatal("vote failed, cannot list voted verifiers", err)
+	} else {
+		t.Log("voted count:", len(nodeList))
+	}
 }
 
-func TestGovPlugin_Vote_senderError(t *testing.T) {
+func TestGovPlugin_Vote_Repeat(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+
+	v := gov.Vote{
+		txHashArr[0],
+		nodeIdArr[3],
+		gov.Yes,
+	}
+
+	err := govPlugin.Vote(sender, v, lastBlockHash, 2, evm.StateDB)
+	if err != nil {
+		t.Fatal("vote err:", err)
+	}
+
+	v = gov.Vote{
+		txHashArr[0],
+		nodeIdArr[3], //repeated
+		gov.Yes,
+	}
+
+	err = govPlugin.Vote(sender, v, lastBlockHash, 2, evm.StateDB)
+	if err != nil && err.Error() == "node has voted this proposal." {
+		t.Log("detected repeated vote", err)
+	} else {
+		t.Fatal("didn't detect repeated vote")
+	}
+}
+
+func TestGovPlugin_Vote_invalidSender(t *testing.T) {
 	defer setup(t)()
 	submitVersion(t, txHashArr[0])
 
@@ -336,6 +541,23 @@ func TestGovPlugin_DeclareVersion_wrongVersion(t *testing.T) {
 		t.Log("system has detected an incorrect version declaration.", err)
 	} else {
 		t.Fatal("system has not detected an incorrect version declaration.", err)
+	}
+}
+
+func TestGovPlugin_DeclareVersion_invalidSender(t *testing.T) {
+	defer setup(t)()
+	submitVersion(t, txHashArr[0])
+
+	sndb.Commit(lastBlockHash)
+	sndb.Compaction()
+
+	buildBlockNoCommit(2)
+
+	err := govPlugin.DeclareVersion(anotherSender, nodeIdArr[0], uint32(1<<16|2<<8|1), lastBlockHash, 2, evm.StateDB)
+	if err != nil && (err.Error() == "tx sender is not verifier." || err.Error() == "tx sender should be node's staking address.") {
+		t.Log("detected an incorrect version declaration.", err)
+	} else {
+		t.Fatal("didn't detected an incorrect version declaration.", err)
 	}
 }
 

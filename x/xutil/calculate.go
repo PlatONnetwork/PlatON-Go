@@ -13,13 +13,13 @@ import (
 // calculate the Epoch number by blocknumber
 func CalculateEpoch(blockNumber uint64) uint64 {
 	// block counts of per epoch
-	size := xcom.ConsensusSize()*xcom.EpochSize()
+	size := xcom.ConsensusSize() * xcom.EpochSize()
 
 	var epoch uint64
 	div := blockNumber / size
 	mod := blockNumber % size
 
-	switch  {
+	switch {
 	// first epoch
 	case (div == 0 && mod == 0) || (div == 0 && mod > 0):
 		epoch = 1
@@ -32,15 +32,14 @@ func CalculateEpoch(blockNumber uint64) uint64 {
 	return epoch
 }
 
-
 // calculate the Consensus number by blocknumber
-func CalculateRound (blockNumber uint64) uint64 {
+func CalculateRound(blockNumber uint64) uint64 {
 	size := xcom.ConsensusSize()
 
 	var round uint64
 	div := blockNumber / size
 	mod := blockNumber % size
-	switch  {
+	switch {
 	// first consensus round
 	case (div == 0 && mod == 0) || (div == 0 && mod > 0):
 		round = 1
@@ -53,8 +52,7 @@ func CalculateRound (blockNumber uint64) uint64 {
 	return round
 }
 
-
-func CalculateYear (blockNumber uint64) uint64 {
+func CalculateYear(blockNumber uint64) uint64 {
 	// !!!
 	// epochs := EpochsPerYear()
 	// !!!
@@ -71,7 +69,7 @@ func CalculateYear (blockNumber uint64) uint64 {
 	case mod == 0:
 		year = div
 	case mod > 0:
-		year = div +1
+		year = div + 1
 	}
 
 	return year
@@ -83,33 +81,31 @@ func IsElection(blockNumber uint64) bool {
 	return mod == 0
 }
 
-
-func IsSwitch (blockNumber uint64) bool {
+func IsSwitch(blockNumber uint64) bool {
 	mod := blockNumber % xcom.ConsensusSize()
 	return mod == 0
 }
 
-func IsSettlementPeriod (blockNumber uint64) bool {
+func IsSettlementPeriod(blockNumber uint64) bool {
 	// block counts of per epoch
 	size := xcom.ConsensusSize() * xcom.EpochSize()
 	mod := blockNumber % size
 	return mod == 0
 }
 
-
-func IsYearEnd (blockNumber uint64) bool {
+func IsYearEnd(blockNumber uint64) bool {
 	// Calculate epoch
 	eh := uint64(6)
 	L := uint64(1)
 	u := uint64(25)
 	vn := uint64(10)
-	epoch := eh*3600/(L*u*vn)*xcom.ConsensusSize()
+	epoch := eh * 3600 / (L * u * vn) * xcom.ConsensusSize()
 
-	size := uint64(365)*24*3600/(L*epoch)*epoch
-	return blockNumber > 0 && blockNumber % size == 0
+	size := uint64(365) * 24 * 3600 / (L * epoch) * epoch
+	return blockNumber > 0 && blockNumber%size == 0
 }
 
-func NodeId2Addr (nodeId discover.NodeID) (common.Address, error) {
+func NodeId2Addr(nodeId discover.NodeID) (common.Address, error) {
 
 	if pk, err := nodeId.Pubkey(); nil != err {
 		return common.ZeroAddr, err
@@ -118,12 +114,9 @@ func NodeId2Addr (nodeId discover.NodeID) (common.Address, error) {
 	}
 }
 
-
 func IsWorker(extra []byte) bool {
 	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
 }
-
-
 
 func CheckStakeThreshold(stake *big.Int) bool {
 	return stake.Cmp(xcom.StakeThreshold()) >= 0
@@ -136,20 +129,20 @@ func CheckDelegateThreshold(delegate *big.Int) bool {
 // The ProcessVersion: Major.Minor.Patch eg. 1.1.0
 // Calculate the LargeVersion
 // eg: 1.1.0 ==> 1.1
-func CalcVersion (processVersion uint32) uint32 {
-	return processVersion>>8
+func CalcVersion(processVersion uint32) uint32 {
+	return processVersion >> 8
 }
 
 // eg. 65536 => 1.0.0
-func ProcessVerion2Str (processVersion uint32) string {
-	major := processVersion<<8
-	major = major>>24
+func ProcessVerion2Str(processVersion uint32) string {
+	major := processVersion << 8
+	major = major >> 24
 
-	minor := processVersion<<16
-	minor = minor>>24
+	minor := processVersion << 16
+	minor = minor >> 24
 
-	patch := processVersion<<24
-	patch = patch>>24
+	patch := processVersion << 24
+	patch = patch >> 24
 
 	return fmt.Sprintf("%d.%d.%d", major, minor, patch)
 }

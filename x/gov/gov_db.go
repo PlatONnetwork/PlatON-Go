@@ -383,16 +383,6 @@ func (self *GovDB) ClearActiveNodes(blockHash common.Hash, proposalID common.Has
 	return nil
 }
 
-// Add the voted verifier record
-func (self *GovDB) AddVotedVerifier(blockHash common.Hash, proposalID common.Hash, voter discover.NodeID) error {
-	log.Debug("AddVotedVerifier()", "blockHash", blockHash.String(), "proposalID", proposalID, "votedNodeID", voter)
-	if err := self.snapdb.addVotedVerifier(blockHash, voter, proposalID); err != nil {
-		log.Error("add voted node to snapshot db failed", "blockHash", blockHash.String(), "proposalID", proposalID, "error", err)
-		return common.NewSysError(err.Error())
-	}
-	return nil
-}
-
 // All verifiers who can vote accumulatively in the settlement cycle
 func (self *GovDB) AccuVerifiers(blockHash common.Hash, proposalID common.Hash, verifierList []discover.NodeID) error {
 	if err := self.snapdb.addTotalVerifiers(blockHash, proposalID, verifierList); err != nil {
@@ -435,11 +425,14 @@ func (self *GovDB) UpdateParam(name string, oldValue interface{}, newValue inter
 	}
 
 	if oldV, exist := paramMap[name]; exist {
-		if oldV == newValue {
+		if oldV == oldValue {
+			paramMap[name] = newValue
 			err = self.SetParam(paramMap, state)
 			if err != nil {
 				return err
 			}
+		} else {
+			log.Warn("cannot update parameter's value cause mismatching current value.")
 		}
 	}
 	return nil

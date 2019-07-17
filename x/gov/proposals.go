@@ -3,10 +3,16 @@ package gov
 import (
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/log"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+)
+
+var (
+	GovParamMap = map[string]interface{}{"param1": nil, "param2": nil, "param3": nil}
 )
 
 type ProposalType uint8
@@ -360,14 +366,24 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		return common.NewBizError("New version should larger than current version.")
 	}
 
-	difference := vp.ActiveBlock - vp.EndVotingBlock
-	quotient := difference / xcom.ConsensusSize()
-	remainder := difference % xcom.ConsensusSize()
+	if vp.ActiveBlock <= vp.EndVotingBlock {
+		log.Warn("active-block should greater than end-voting-block")
+		return common.NewBizError("active-block invalid.")
+	} else {
+		difference := vp.ActiveBlock - vp.EndVotingBlock
 
-	if difference <= 0 || remainder != 0 || quotient < 4 || quotient > 10 {
-		return common.NewBizError("active block number invalid.")
+		remainder := difference % xcom.ConsensusSize()
+		if remainder != 0 {
+			log.Warn("active-block should be multi-consensus-rounds greater than end-voting-block.")
+			return common.NewBizError("active-block invalid.")
+		} else {
+			quotient := difference / xcom.ConsensusSize()
+			if quotient < 4 || quotient > 10 {
+				log.Warn("active-block should be 4 to 10 consensus-rounds greater than end-voting-block.")
+				return common.NewBizError("active-block invalid.")
+			}
+		}
 	}
-
 	return nil
 }
 
@@ -458,7 +474,16 @@ func (pp ParamProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 		return common.NewBizError("Proposal Type error.")
 	}
 
-	return verifyBasic(pp.ProposalID, pp.Proposer, pp.Topic, pp.Desc, pp.GithubID, pp.Url, pp.EndVotingBlock, submitBlock, state)
+	if err := verifyBasic(pp.ProposalID, pp.Proposer, pp.Topic, pp.Desc, pp.GithubID, pp.Url, pp.EndVotingBlock, submitBlock, state); err != nil {
+		return err
+	}
+
+	if _, exist := GovParamMap[pp.ParamName]; !exist {
+		return common.NewBizError("unsupported parameter.")
+	}
+
+	return nil
+
 }
 
 func (pp ParamProposal) String() string {
@@ -506,9 +531,17 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, topic, desc, 
 		return false, err
 	}*/
 
-	if xutil.CalculateRound(endVotingBlock)-xutil.CalculateRound(submitBlock) <= 0 || endVotingBlock > submitBlock+xcom.MaxVotingDuration() {
-		return common.NewBizError("end voting block number invalid.")
+	if (endVotingBlock+20)%xcom.ConsensusSize()*xcom.EpochSize() != 0 {
+		log.Warn("proposal's end-voting-block should be a specified number that less 20 than a certain epoch")
+		return common.NewBizError("end-voting-block invalid.")
 	}
-
+	if xutil.CalculateRound(endVotingBlock) <= xutil.CalculateRound(submitBlock) {
+		log.Warn("proposal's end-voting-block should greater than submit-block")
+		return common.NewBizError("end-voting-block invalid.")
+	}
+	if endVotingBlock > submitBlock+xcom.MaxVotingDuration() {
+		log.Warn("proposal's end-voting-block is too greater than the max duration")
+		return common.NewBizError("end-voting-block invalid.")
+	}
 	return nil
 }
