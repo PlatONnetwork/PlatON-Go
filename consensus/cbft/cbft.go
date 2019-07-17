@@ -76,6 +76,8 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 	}
 
 	//todo init safety rules, vote rules, state, executor
+	cbft.safetyRules = rules.NewSafetyRules(&cbft.state)
+	cbft.voteRules = rules.NewVoteRules(&cbft.state)
 
 	return cbft
 }
@@ -88,7 +90,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, executor consensus.Executor
 	//Initialize block tree
 	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
 
-	cbft.blockTree.InsertBlock(block)
+	cbft.blockTree.InsertQCBlock(block, nil)
 
 	//Initialize view state
 	cbft.state.SetHighestExecutedBlock(block)
