@@ -1816,7 +1816,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 		tmpQueue = append(tmpQueue, v)
 	}
 
-	mbn := 4 // Minimum allowed total number of bft nodes
+	mbn := 1 // Minimum allowed total number of consensus nodes
 	tmpQueueLen := len(tmpQueue)
 	doubleSignNum := 0
 	curr_num := len(curr.Arr)
@@ -1871,11 +1871,14 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	var nextQueue staking.ValidatorQueue
 
-	// Has violated the BFT hypothesis
 	if doubleSignNum >= tmpQueueLen {
 		if curr_num-doubleSignNum+tmpQueueLen < mbn {
-			panic("Has violated the BFT hypothesis")
+			// Must remain one validator TODO (Normally, this should not be the case.)
+			nextQueue = shuffle(doubleSignNum-1, tmpQueue)
 		} else {
+
+			// Maybe this tmpQueue length large than eight,
+			// But it must less than current validator size.
 			nextQueue = shuffle(doubleSignNum, tmpQueue)
 		}
 	} else {
@@ -1893,7 +1896,12 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 			} else {
 
 				if doubleSignNum >= len(queue) {
-					nextQueue = shuffle(doubleSignNum, queue)
+					if curr_num-doubleSignNum+len(queue) < mbn {
+						// Must remain one validator TODO (Normally, this should not be the case.)
+						nextQueue = shuffle(doubleSignNum-1, queue)
+					} else {
+						nextQueue = shuffle(doubleSignNum, queue)
+					}
 				} else {
 					nextQueue = shuffle(len(queue), queue)
 				}

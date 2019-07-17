@@ -276,10 +276,10 @@ func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
 	return plugin.StakingInstance().IsCandidateNode(nodeID)
 }
 
-func (bcr *BlockChainReactor) Flush(block *types.Block) error {
-	log.Debug("snapshotdb Flush", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(block.Hash().Bytes()))
-	if err := snapshotdb.Instance().Flush(block.Hash(), block.Number()); nil != err {
-		log.Error("snapshotdb Flush failed", "blockNumber", block.NumberU64(), "hash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
+func (bcr *BlockChainReactor) Flush(header *types.Header) error {
+	log.Debug("snapshotdb Flush", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()))
+	if err := snapshotdb.Instance().Flush(header.Hash(), header.Number); nil != err {
+		log.Error("snapshotdb Flush failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()), "err", err)
 		return err
 	}
 	return nil

@@ -13,7 +13,6 @@ import (
 )
 
 type rewardMgrPlugin struct {
-
 }
 
 var (
@@ -22,18 +21,18 @@ var (
 
 func RewardMgrInstance() *rewardMgrPlugin {
 	if rm == nil {
-		rm = & rewardMgrPlugin {}
+		rm = &rewardMgrPlugin{}
 	}
 	return rm
 }
 
-//func ClearRewardPlugin() error {
-//	if nil == rm {
-//		return common.NewSysError("the RewardPlugin already be nil")
-//	}
-//	rm = nil
-//	return nil
-//}
+/*func ClearRewardPlugin() error {
+	if nil == rm {
+		return common.NewSysError("the RewardPlugin already be nil")
+	}
+	rm = nil
+	return nil
+}*/
 
 // BeginBlock does something like check input params before execute transactions,
 // in rewardMgrPlugin it does nothing.
@@ -47,11 +46,13 @@ func (rmp *rewardMgrPlugin) BeginBlock(blockHash common.Hash, head *types.Header
 func (rmp *rewardMgrPlugin) EndBlock(blockHash common.Hash, head *types.Header, state xcom.StateDB) error {
 	blockNumber := head.Number.Uint64()
 	year := xutil.CalculateYear(blockNumber)
-	stakingReward, newBlockReward, _ := rmp.calculateExpectReward(uint32(year), state)
+	stakingReward, newBlockReward, _ := rmp.calculateExpectReward(state)
+
+	log.Trace("show calculated data", "year", year, "staking", stakingReward, "newBlock", newBlockReward)
 
 	if xutil.IsSettlementPeriod(blockNumber) {
 		log.Info("ready to reward staking", "period", xutil.CalculateRound(blockNumber))
-		if err:= rmp.rewardStaking(head, stakingReward, state); err != nil {
+		if err := rmp.rewardStaking(head, stakingReward, state); err != nil {
 			return err
 		}
 	}
@@ -135,22 +136,25 @@ func (rmp *rewardMgrPlugin) rewardNewBlock(head *types.Header, reward *big.Int, 
 }
 
 // calculateExpectReward used for calculate the stakingReward and newBlockReward that should be send in each corresponding period
-func (rmp *rewardMgrPlugin) calculateExpectReward(year uint32, state xcom.StateDB) (*big.Int, *big.Int, error) {
+func (rmp *rewardMgrPlugin) calculateExpectReward(state xcom.StateDB) (*big.Int, *big.Int, error) {
 	var (
 		stakingReward  = new(big.Int)
 		newBlockReward = new(big.Int)
 		temp           = new(big.Int)
 	)
 
-	expectNewBlocks := int64(365) * 24 * 3600 / 1
-	expectEpochs := int64(365) * 24 * 3600 / int64(xcom.ConsensusSize() * xcom.EpochSize())
+	// get expected settlement epochs and new blocks per year first
+	blocksPerEpoch := xutil.GetBlocksPerEpoch()
+	expectEpochs := xutil.GetExpectedEpochsPerYear()
+	expectNewBlocks := blocksPerEpoch * expectEpochs
 
+	// calculate cumulative issuance at last year end (if current is first year, last year end is genesis block)
 	issuance := GetLatestCumulativeIssue(state)
 	totalNewBlockReward := temp.Div(issuance, big.NewInt(5))
 	totalStakingReward := temp.Sub(issuance, totalNewBlockReward)
 
-	newBlockReward = temp.Div(totalNewBlockReward, big.NewInt(expectNewBlocks))
-	stakingReward = temp.Div(totalStakingReward, big.NewInt(expectEpochs))
+	newBlockReward = temp.Div(totalNewBlockReward, big.NewInt(int64(expectNewBlocks)))
+	stakingReward = temp.Div(totalStakingReward, big.NewInt(int64(expectEpochs)))
 
 	return stakingReward, newBlockReward, nil
 }
