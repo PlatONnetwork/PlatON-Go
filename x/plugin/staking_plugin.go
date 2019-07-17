@@ -1936,7 +1936,8 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	}
 	log.Debug("Call Election end ...")
 	// todo test
-	xcom.PrintObject("Next validators", nextQueue)
+	xcom.PrintObject("Curr validators", curr)
+	xcom.PrintObject("Next validators", next)
 	return nil
 }
 

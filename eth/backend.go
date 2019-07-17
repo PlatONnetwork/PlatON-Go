@@ -250,14 +250,14 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
 			if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
 				agency = cbft.NewStaticAgency(chainConfig.Cbft.InitialNodes)
-				reactor.SetValidatorMode(common.STATIC_VALIDATOR_MODE)
+				reactor.Start(common.STATIC_VALIDATOR_MODE)
 			} else if chainConfig.Cbft.ValidatorMode == common.INNER_VALIDATOR_MODE {
 				blocksPerNode := int(int64(chainConfig.Cbft.Duration) / int64(chainConfig.Cbft.Period))
 				offset := blocksPerNode * 2
 				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
-				reactor.SetValidatorMode(common.INNER_VALIDATOR_MODE)
+				reactor.Start(common.INNER_VALIDATOR_MODE)
 			} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
-				reactor.SetValidatorMode(common.PPOS_VALIDATOR_MODE)
+				reactor.Start(common.PPOS_VALIDATOR_MODE)
 				reactor.SetVRF_hanlder(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 				handlePlugin(reactor)
 				agency = reactor

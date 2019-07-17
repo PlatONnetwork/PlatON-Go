@@ -46,13 +46,19 @@ func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChain
 			eventMux:      mux,
 			basePluginMap: make(map[int]plugin.BasePlugin, 0),
 		}
+	}
+	return bcr
+}
+
+func (brc *BlockChainReactor) Start(mode string) {
+	brc.setValidatorMode(mode)
+	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
 
 		// start the loop rutine
 		go bcr.loop()
 	}
-	return bcr
 }
 
 // Getting the global bcr single instance
@@ -98,8 +104,9 @@ func (brc *BlockChainReactor) loop() {
 				}
 			}
 
+			log.Debug("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
 			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
-				log.Error("snapshotDB Commit failed", "err", err)
+				log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
 				continue
 			}
 		}
@@ -115,7 +122,7 @@ func (bcr *BlockChainReactor) SetPluginEventMux() {
 	plugin.StakingInstance().SetEventMux(bcr.eventMux)
 }
 
-func (bcr *BlockChainReactor) SetValidatorMode(mode string) {
+func (bcr *BlockChainReactor) setValidatorMode(mode string) {
 	bcr.validatorMode = mode
 }
 
@@ -124,10 +131,9 @@ func (bcr *BlockChainReactor) SetVRF_hanlder(vher *xcom.VrfHandler) {
 }
 
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
-		return
+	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+		bcr.vh.SetPrivateKey(privateKey)
 	}
-	bcr.vh.SetPrivateKey(privateKey)
 }
 
 func (bcr *BlockChainReactor) SetBeginRule(rule []int) {
@@ -170,8 +176,9 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		}
 	}
 
+	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()))
 	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
-		log.Error("BlockChainReactor call snapshotDB newBlock failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
+		log.Error("Failed to call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
 		return err
 	}
 
