@@ -15,10 +15,10 @@ const (
 )
 
 type commonConfig struct {
-	em uint64 // expected minutes every epoch
-	i  uint64 // each block interval (uint: seconds)
-	u  uint64 // blocks each validator will create per consensus epoch
-	vn uint64 // The consensus validators count
+	ExpectedMinutes uint64 // expected minutes every epoch
+	Interval        uint64 // each block interval (uint: seconds)
+	PerRoundBlocks  uint64 // blocks each validator will create per consensus epoch
+	ValidatorCount  uint64 // The consensus validators count
 }
 
 type stakingConfig struct {
@@ -123,13 +123,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		genesisIssuanceCount = "1000000000000000000000000000"
 	}
 
-	if stakeThreshold, success = new(big.Int).SetString(stakeThresholdCount, 10); success {
+	if stakeThreshold, success = new(big.Int).SetString(stakeThresholdCount, 10); !success {
 		return nil
 	}
-	if delegateThreshold, success = new(big.Int).SetString(delegateThresholdCount, 10); success {
+	if delegateThreshold, success = new(big.Int).SetString(delegateThresholdCount, 10); !success {
 		return nil
 	}
-	if genesisIssuance, success = new(big.Int).SetString(genesisIssuanceCount, 10); success {
+	if genesisIssuance, success = new(big.Int).SetString(genesisIssuanceCount, 10); !success {
 		return nil
 	}
 
@@ -137,10 +137,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultMainNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				em: uint64(360), // 6 hours
-				i:  uint64(1),
-				u:  uint64(10),
-				vn: uint64(25),
+				ExpectedMinutes: uint64(360), // 6 hours
+				Interval:        uint64(1),
+				PerRoundBlocks:  uint64(10),
+				ValidatorCount:  uint64(25),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -174,10 +174,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultAlphaTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				em: uint64(10), // 10 minutes
-				i:  uint64(1),
-				u:  uint64(15),
-				vn: uint64(4),
+				ExpectedMinutes: uint64(10), // 10 minutes
+				Interval:        uint64(1),
+				PerRoundBlocks:  uint64(15),
+				ValidatorCount:  uint64(4),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -211,10 +211,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultBetaTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				em: uint64(10), // 10 minutes
-				i:  uint64(1),
-				u:  uint64(15),
-				vn: uint64(4),
+				ExpectedMinutes: uint64(10), // 10 minutes
+				Interval:        uint64(1),
+				PerRoundBlocks:  uint64(15),
+				ValidatorCount:  uint64(4),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -248,10 +248,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultInnerTestNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				em: uint64(666), // 11 hours
-				i:  uint64(1),
-				u:  uint64(25),
-				vn: uint64(10),
+				ExpectedMinutes: uint64(666), // 11 hours
+				Interval:        uint64(1),
+				PerRoundBlocks:  uint64(25),
+				ValidatorCount:  uint64(10),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -285,10 +285,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	case DefaultInnerDevNet:
 		ec = &EconomicModel{
 			Common: commonConfig{
-				em: uint64(10), // 10 minutes
-				i:  uint64(1),
-				u:  uint64(15),
-				vn: uint64(4),
+				ExpectedMinutes: uint64(10), // 10 minutes
+				Interval:        uint64(1),
+				PerRoundBlocks:  uint64(15),
+				ValidatorCount:  uint64(4),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -323,10 +323,10 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 		// Default is inner develop net config
 		ec = &EconomicModel{
 			Common: commonConfig{
-				em: uint64(10), // 10 minutes
-				i:  uint64(1),
-				u:  uint64(15),
-				vn: uint64(4),
+				ExpectedMinutes: uint64(10), // 10 minutes
+				Interval:        uint64(1),
+				PerRoundBlocks:  uint64(15),
+				ValidatorCount:  uint64(4),
 			},
 			Staking: stakingConfig{
 				StakeThreshold:               stakeThreshold,
@@ -365,16 +365,16 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
  * Common configure
  ******/
 func ExpectedMinutes() uint64 {
-	return ec.Common.em
+	return ec.Common.ExpectedMinutes
 }
 func Interval() uint64 {
-	return ec.Common.i
+	return ec.Common.Interval
 }
 func BlocksWillCreate() uint64 {
-	return ec.Common.u
+	return ec.Common.PerRoundBlocks
 }
 func ConsValidatorNum() uint64 {
-	return ec.Common.vn
+	return ec.Common.ValidatorCount
 }
 
 /******
