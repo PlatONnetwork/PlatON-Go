@@ -222,7 +222,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	return nil
 }
 
-func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address) (err error) {
+func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address) error {
 
 	if _, ok := vm.PlatONPrecompiledContracts[to]; !ok {
 		return nil
@@ -245,8 +245,10 @@ func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address
 		c := vm.PlatONPrecompiledContracts[cvm.SlashingContractAddr]
 		contract = c.(vm.PlatONPrecompiledContract)
 	}
-	_, _, err = plugin.Verify_tx_data(input, contract.FnSigns())
-	return
+	if _, _, err := plugin.Verify_tx_data(input, contract.FnSigns()); nil != err {
+		return err
+	}
+	return nil
 }
 
 func (bcr *BlockChainReactor) Sign(msg interface{}) error {
@@ -277,9 +279,9 @@ func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
 }
 
 func (bcr *BlockChainReactor) Flush(header *types.Header) error {
-	log.Debug("snapshotdb Flush", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()))
+	log.Debug("Call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()))
 	if err := snapshotdb.Instance().Flush(header.Hash(), header.Number); nil != err {
-		log.Error("snapshotdb Flush failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()), "err", err)
+		log.Error("Failed to call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()), "err", err)
 		return err
 	}
 	return nil
