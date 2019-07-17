@@ -372,12 +372,12 @@ func (vp VersionProposal) Verify(submitBlock uint64, state xcom.StateDB) error {
 	} else {
 		difference := vp.ActiveBlock - vp.EndVotingBlock
 
-		remainder := difference % xcom.ConsensusSize()
+		remainder := difference % xutil.ConsensusSize()
 		if remainder != 0 {
 			log.Warn("active-block should be multi-consensus-rounds greater than end-voting-block.")
 			return common.NewBizError("active-block invalid.")
 		} else {
-			quotient := difference / xcom.ConsensusSize()
+			quotient := difference / xutil.ConsensusSize()
 			if quotient < 4 || quotient > 10 {
 				log.Warn("active-block should be 4 to 10 consensus-rounds greater than end-voting-block.")
 				return common.NewBizError("active-block invalid.")
@@ -531,7 +531,7 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, topic, desc, 
 		return false, err
 	}*/
 
-	if (endVotingBlock+20)%xcom.ConsensusSize()*xcom.EpochSize() != 0 {
+	if (endVotingBlock+20)%xutil.ConsensusSize()*xutil.EpochSize() != 0 {
 		log.Warn("proposal's end-voting-block should be a specified number that less 20 than a certain epoch")
 		return common.NewBizError("end-voting-block invalid.")
 	}
@@ -539,7 +539,7 @@ func verifyBasic(proposalID common.Hash, proposer discover.NodeID, topic, desc, 
 		log.Warn("proposal's end-voting-block should greater than submit-block")
 		return common.NewBizError("end-voting-block invalid.")
 	}
-	if endVotingBlock > submitBlock+xcom.MaxVotingDuration() {
+	if endVotingBlock > submitBlock+xutil.MaxVotingDuration() {
 		log.Warn("proposal's end-voting-block is too greater than the max duration")
 		return common.NewBizError("end-voting-block invalid.")
 	}

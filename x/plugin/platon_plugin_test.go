@@ -241,8 +241,9 @@ func newChainState() (*state.StateDB, *types.Block, error) {
 	url := "enode://0x7bae841405067598bf65e7260ca693a964316e752249c4970085c805dbee738fdb41fc434e96e2b65e8bf1db2f52f05d9300d04c1e6129c26cb5d0f214b49968@platon.network:16791"
 
 	node, _ := discover.ParseNode(url)
-	config := &xcom.DefaultConfig
-	xcom.SetEconomicModel(config)
+
+	xcom.GetEc(xcom.DefaultDeveloperNet)
+
 	gen := &core.Genesis{
 		Config: &params.ChainConfig{
 			Cbft: &params.CbftConfig{

@@ -78,14 +78,14 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, version uint32) err
 	// build epoch validators
 	verifierList := &staking.Validator_array{
 		Start: 1,
-		End:   xcom.EpochSize() * xcom.ConsensusSize(),
+		End:   xutil.CalculateBlocksEachEpoch(),
 		Arr:   validatorQueue,
 	}
 
 	// build current validators
 	validatorLIst := &staking.Validator_array{
 		Start: 1,
-		End:   xcom.ConsensusSize(),
+		End:   xutil.ConsensusSize(),
 		Arr:   validatorQueue,
 	}
 
@@ -135,7 +135,8 @@ func buildAllowancePlan(stateDb *state.StateDB) error {
 
 	account := vm.RewardManagerPoolAddr
 
-	stableEpochs := []uint64{xcom.FirstYearEndEpoch(), xcom.SecondYearEncEpoch()}
+	OneYearEpochs := xutil.EpochsPerYear()
+	stableEpochs := []uint64{OneYearEpochs, 2 * OneYearEpochs}
 
 	epochList := make([]uint64, len(stableEpochs))
 	for i, epoch := range stableEpochs {
@@ -147,9 +148,9 @@ func buildAllowancePlan(stateDb *state.StateDB) error {
 		releaseAmountKey := restricting.GetReleaseAmountKey(epoch, account)
 		switch {
 		case i == 0:
-			stateDb.SetState(account, releaseAmountKey, xcom.SecondYearAllowance().Bytes())
+			stateDb.SetState(account, releaseAmountKey, xutil.SecondYearAllowance().Bytes())
 		case i == 1:
-			stateDb.SetState(account, releaseAmountKey, xcom.ThirdYearAllowance().Bytes())
+			stateDb.SetState(account, releaseAmountKey, xutil.ThirdYearAllowance().Bytes())
 		}
 
 		// store release epoch record
@@ -161,7 +162,7 @@ func buildAllowancePlan(stateDb *state.StateDB) error {
 
 	// build restricting account info
 	var restrictInfo restricting.RestrictingInfo
-	restrictInfo.Balance = xcom.GenesisRestrictingBalance()
+	restrictInfo.Balance = xutil.GenesisRestrictingBalance()
 	restrictInfo.Debt = big.NewInt(0)
 	restrictInfo.DebtSymbol = false
 	restrictInfo.ReleaseList = epochList

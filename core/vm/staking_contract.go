@@ -119,7 +119,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	// Just like that:
 	// eg: 2.1.x == 2.1.x; 2.1.x > 2.0.x
 	if inputVersion < currVersion {
-		err := fmt.Errorf("input Version: %s, current Large Version: %s", xutil.ProcessVerion2Str(processVersion), xutil.ProcessVerion2Str(curr_version))
+		err := fmt.Errorf("input Version: %s, current Large Version: %s", xutil.ProcessVersion2Str(processVersion), xutil.ProcessVersion2Str(curr_version))
 		res := xcom.Result{false, "", ProcessVersionErr + ": " + err.Error()}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")

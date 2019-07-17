@@ -155,7 +155,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	if ok {
 		log.Debug("found pre-active version proposal", "proposalID", preActiveProposalID, "blockNumber", header.Number.Uint64(), "activeBlockNumber", versionProposal.GetActiveBlock())
 		sub := header.Number.Uint64() - versionProposal.GetActiveBlock()
-		if sub >= 0 && sub%xcom.ConsensusSize() == 0 {
+		if sub >= 0 && sub%xutil.ConsensusSize() == 0 {
 			validatorList, err := stk.ListCurrentValidatorID(blockHash, header.Number.Uint64())
 			if err != nil {
 				log.Error("list current round validators failed.", "blockHash", blockHash, "blockNumber", header.Number.Uint64())

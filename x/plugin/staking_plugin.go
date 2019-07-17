@@ -1128,7 +1128,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	}
 
 	start := old_verifierArr.End + 1
-	end := old_verifierArr.End + xcom.EpochSize()*xcom.ConsensusSize()
+	end := old_verifierArr.End + xutil.CalculateBlocksEachEpoch()
 
 	new_verifierArr := &staking.Validator_array{
 		Start: start,
@@ -1800,7 +1800,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 	// caculate the next round start and end
 	start := curr.End + 1
-	end := curr.End + xcom.ConsensusSize()
+	end := curr.End + xutil.ConsensusSize()
 
 	currMap := make(map[discover.NodeID]struct{}, len(curr.Arr))
 	for _, v := range curr.Arr {

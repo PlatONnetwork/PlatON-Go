@@ -258,15 +258,15 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	// the State root
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
-		Number:      new(big.Int).SetUint64(g.Number),
-		Nonce:       types.EncodeNonce(g.Nonce),
-		Time:        new(big.Int).SetUint64(g.Timestamp),
-		ParentHash:  g.ParentHash,
-		Extra:       g.ExtraData,
-		GasLimit:    g.GasLimit,
-		GasUsed:     g.GasUsed,
-		Coinbase:    g.Coinbase,
-		Root:        root,
+		Number:     new(big.Int).SetUint64(g.Number),
+		Nonce:      types.EncodeNonce(g.Nonce),
+		Time:       new(big.Int).SetUint64(g.Timestamp),
+		ParentHash: g.ParentHash,
+		Extra:      g.ExtraData,
+		GasLimit:   g.GasLimit,
+		GasUsed:    g.GasUsed,
+		Coinbase:   g.Coinbase,
+		Root:       root,
 	}
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
@@ -284,10 +284,8 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 
 	// Store genesis staking data
 	if err := genesisStakingData(g, block.Hash(), version); nil != err {
-		panic("Failed Store staking: "+ err.Error())
+		panic("Failed Store staking: " + err.Error())
 	}
-
-
 
 	return block
 }
@@ -324,7 +322,6 @@ func (g *Genesis) MustCommit(db ethdb.Database) *types.Block {
 	return block
 }
 
-
 // GenesisBlockForTesting creates and writes a block in which addr has the given wei balance.
 func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big.Int) *types.Block {
 	g := Genesis{Alloc: GenesisAlloc{addr: {Balance: balance}}}
@@ -333,7 +330,6 @@ func GenesisBlockForTesting(db ethdb.Database, addr common.Address, balance *big
 
 // DefaultGenesisBlock returns the PlatON main net genesis block.
 func DefaultGenesisBlock() *Genesis {
-
 
 	// initial PlatON Foundation
 	platONFoundationIssue, _ := new(big.Int).SetString("905000000000000000000000000", 10)
@@ -345,7 +341,7 @@ func DefaultGenesisBlock() *Genesis {
 	developerFoundationIssue, _ := new(big.Int).SetString("5000000000000000000000000", 10)
 
 	//// initial staking contract balance
-	genesisNodesNumber   := int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
+	genesisNodesNumber := int64(len(params.MainnetChainConfig.Cbft.InitialNodes))
 	stakingContractIssue := new(big.Int).Mul(xcom.StakeThreshold(), big.NewInt(genesisNodesNumber)) // 25000000 * 10 ^ 18
 
 	// initial reserved account balance
