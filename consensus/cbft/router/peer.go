@@ -144,6 +144,11 @@ func (p *peer) MarkMessageHash(hash common.Hash) {
 	p.knownMessageHash.Add(hash)
 }
 
+// ContainsMessageHash determines if the specified message hash is included.
+func (p *peer) ContainsMessageHash(hash common.Hash) bool {
+	return p.knownMessageHash.Contains(hash)
+}
+
 // Close terminates the running state of the peer.
 func (p *peer) Close() {
 	close(p.term)
