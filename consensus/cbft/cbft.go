@@ -10,6 +10,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
@@ -54,6 +55,9 @@ type Cbft struct {
 
 	//Determine when to allow voting
 	voteRules rules.VoteRules
+
+	// Validator pool
+	validatorPool *validator.ValidatorPool
 
 	//Store blocks that are not committed
 	blockTree ctypes.BlockTree
@@ -147,7 +151,7 @@ func (cbft *Cbft) Author(header *types.Header) (common.Address, error) {
 }
 
 func (cbft *Cbft) VerifyHeader(chain consensus.ChainReader, header *types.Header, seal bool) error {
-	return nil
+	return cbft.validatorPool.VerifyHeader(header)
 }
 
 func (Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error) {
