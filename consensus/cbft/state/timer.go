@@ -11,6 +11,10 @@ type viewTimer struct {
 	timeInterval viewTimeInterval
 }
 
+func newViewTimer() *viewTimer {
+	return &viewTimer{}
+}
+
 func (t viewTimer) setupTimer() {
 
 }
