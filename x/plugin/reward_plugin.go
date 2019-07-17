@@ -152,9 +152,9 @@ func (rmp *rewardMgrPlugin) rewardNewBlock(head *types.Header, reward *big.Int, 
 // calculateExpectReward used for calculate the stakingReward and newBlockReward that should be send in each corresponding period
 func (rmp *rewardMgrPlugin) calculateExpectReward(reward *big.Int, state xcom.StateDB) (*big.Int, *big.Int) {
 	var (
-		totalReward         *big.Int
-		totalNewBlockReward *big.Int
-		totalStakingReward  *big.Int
+		totalReward         = common.Big0
+		totalNewBlockReward = common.Big0
+		totalStakingReward  = common.Big0
 	)
 
 	// get expected settlement epochs and new blocks per year first
