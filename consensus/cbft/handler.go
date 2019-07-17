@@ -228,6 +228,9 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 	if msg.Size > protocols.CbftProtocolMaxMsgSize {
 		return types.ErrResp(types.ErrMsgTooLarge, "%v > %v", msg.Size, protocols.CbftProtocolMaxMsgSize)
 	}
+	defer msg.Discard()
+
+	// Handle the message depending on msgType and it's content.
 	switch {
 	case msg.Code == protocols.CBFTStatusMsg:
 		return types.ErrResp(types.ErrExtraStatusMsg, "uncontrolled status message")
