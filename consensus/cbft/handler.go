@@ -34,7 +34,7 @@ type EngineManager struct {
 }
 
 // Create a new handler and do some initialization.
-func NewHandler(engine *Cbft, r Router) *EngineManager {
+func NewEngineManger(engine *Cbft, r Router) *EngineManager {
 	return &EngineManager{
 		engine:    engine,
 		peers:     router.NewPeerSet(),
@@ -44,7 +44,7 @@ func NewHandler(engine *Cbft, r Router) *EngineManager {
 	}
 }
 
-// Turn on the message sender.
+// Start the loop to send message.
 func (h *EngineManager) Start() {
 	// Launch goroutine loop release separately.
 	go h.sendLoop()
