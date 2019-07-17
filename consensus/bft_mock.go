@@ -187,6 +187,6 @@ func (bm *BftMock) FastSyncCommitHead() <-chan error {
 	return nil
 }
 
-func (bm *BftMock)  TracingSwitch(flag int8) {
+func (bm *BftMock) TracingSwitch(flag int8) {
 
 }
