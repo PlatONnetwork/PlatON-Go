@@ -42,7 +42,7 @@ func openDatabase(file string) (IWALDatabase, error) {
 }
 
 func newWALDatabase(file string, cache int, handles int) (*WALDatabase, error) {
-	logger := log.New("wal_database", file)
+	logger := log.New("Wal_database", file)
 
 	// Ensure we have some minimal caching and file guarantees
 	if cache < 16 {

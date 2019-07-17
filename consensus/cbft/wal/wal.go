@@ -23,10 +23,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -46,9 +45,9 @@ var (
 )
 
 var (
-	errCreateWalDir         = errors.New("Failed to create wal directory")
-	errUpdateViewChangeMeta = errors.New("Failed to update viewChange meta")
-	errGetViewChangeMeta    = errors.New("Failed to get viewChange meta")
+	errCreateWalDir         = errors.New("failed to create wal directory")
+	errUpdateViewChangeMeta = errors.New("failed to update viewChange meta")
+	errGetViewChangeMeta    = errors.New("failed to get viewChange meta")
 )
 
 type ViewChangeMessage struct {
@@ -63,47 +62,32 @@ type ViewChangeMeta struct {
 	Seq    uint64
 }
 
-type State struct {
-	Block      *protocols.PrepareBlock
-	QuorumCert *types.QuorumCert
-}
-
-type ChainState struct {
-	Commit *State
-	Lock   *State
-	QC     []*State
-}
-
-type WalMsg struct {
-	Msg interface{}
-}
-
 type Wal interface {
-	UpdateChainState(chainState *ChainState) error
-	LoadChainState(recovery func(chainState *ChainState)) error
-	Write(msg *WalMsg) error
-	WriteSync(msg *WalMsg) error
+	UpdateChainState(chainState *protocols.ChainState) error
+	LoadChainState(recovery func(chainState *protocols.ChainState)) error
+	Write(msg interface{}) error
+	WriteSync(msg interface{}) error
 	UpdateViewChange(info *ViewChangeMessage) error
-	Load(add func(msg *WalMsg)) error
+	Load(recovery func(msg interface{})) error
 	Close()
 }
 
 type emptyWal struct {
 }
 
-func (w *emptyWal) UpdateChainState(chainState *ChainState) error {
+func (w *emptyWal) UpdateChainState(chainState *protocols.ChainState) error {
 	return nil
 }
 
-func (w *emptyWal) LoadChainState(recovery func(chainState *ChainState)) error {
+func (w *emptyWal) LoadChainState(recovery func(chainState *protocols.ChainState)) error {
 	return nil
 }
 
-func (w *emptyWal) Write(msg *WalMsg) error {
+func (w *emptyWal) Write(msg interface{}) error {
 	return nil
 }
 
-func (w *emptyWal) WriteSync(msg *WalMsg) error {
+func (w *emptyWal) WriteSync(msg interface{}) error {
 	return nil
 }
 
@@ -111,7 +95,7 @@ func (w *emptyWal) UpdateViewChange(info *ViewChangeMessage) error {
 	return nil
 }
 
-func (w *emptyWal) Load(add func(msg *WalMsg)) error {
+func (w *emptyWal) Load(recovery func(msg interface{})) error {
 	return nil
 }
 
@@ -179,23 +163,23 @@ func NewWal(ctx *node.ServiceContext, specifiedPath string) (Wal, error) {
 	return wal, nil
 }
 
-func (wal *baseWal) UpdateChainState(chainState *ChainState) error {
+func (wal *baseWal) UpdateChainState(chainState *protocols.ChainState) error {
 	return nil
 }
 
-func (wal *baseWal) LoadChainState(recovery func(chainState *ChainState)) error {
+func (wal *baseWal) LoadChainState(recovery func(chainState *protocols.ChainState)) error {
 	return nil
 }
 
 // insert adds the specified MsgInfo to the local disk journal.
-func (wal *baseWal) Write(msg *WalMsg) error {
+func (wal *baseWal) Write(msg interface{}) error {
 	return wal.journal.Insert(&JournalMessage{
 		Timestamp: uint64(time.Now().UnixNano()),
 		Data:      msg,
 	}, false)
 }
 
-func (wal *baseWal) WriteSync(msg *WalMsg) error {
+func (wal *baseWal) WriteSync(msg interface{}) error {
 	return wal.journal.Insert(&JournalMessage{
 		Timestamp: uint64(time.Now().UnixNano()),
 		Data:      msg,
@@ -206,7 +190,7 @@ func (wal *baseWal) UpdateViewChange(info *ViewChangeMessage) error {
 	return wal.updateViewChangeMeta(info)
 }
 
-func (wal *baseWal) Load(add func(msg *WalMsg)) error {
+func (wal *baseWal) Load(recovery func(msg interface{})) error {
 	// open wal database
 	data, err := wal.metaDB.Get(viewChangeKey)
 	if err != nil {
@@ -220,7 +204,7 @@ func (wal *baseWal) Load(add func(msg *WalMsg)) error {
 		return errGetViewChangeMeta
 	}
 
-	return wal.journal.LoadJournal(v.FileID, v.Seq, add)
+	return wal.journal.LoadJournal(v.FileID, v.Seq, recovery)
 }
 
 // Update the ViewChange Meta Data to the database.
@@ -246,7 +230,7 @@ func (wal *baseWal) updateViewChangeMeta(vc *ViewChangeMessage) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("success to update viewChange meta", "number", vc.Number, "hash", vc.Hash, "fileID", fileID, "seq", seq)
+	log.Debug("Success to update viewChange meta", "number", vc.Number, "hash", vc.Hash, "fileID", fileID, "seq", seq)
 	// Delete previous journal logs
 	go wal.journal.ExpireJournalFile(fileID)
 	return nil

@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
@@ -10,7 +11,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
+
+	"reflect"
+	"sync"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -20,9 +26,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"reflect"
-	"sync"
-	"time"
 )
 
 type Config struct {
@@ -57,16 +60,21 @@ type Cbft struct {
 
 	//Store blocks that are not committed
 	blockTree ctypes.BlockTree
+
+	// wal
+	nodeServiceContext *node.ServiceContext
+	wal                wal.Wal
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
 	cbft := &Cbft{
-		config:    Config{sysConfig, optConfig},
-		eventMux:  eventMux,
-		exitCh:    make(chan struct{}),
-		peerMsgCh: make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
-		syncMsgCh: make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
-		log:       log.New(),
+		config:             Config{sysConfig, optConfig},
+		eventMux:           eventMux,
+		exitCh:             make(chan struct{}),
+		peerMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
+		syncMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
+		log:                log.New(),
+		nodeServiceContext: ctx,
 	}
 
 	if evPool, err := evidence.NewEvidencePool(); err == nil {
@@ -95,7 +103,31 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, executor consensus.Executor
 	cbft.state.SetHighestQCBlock(block)
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
+
+	// load wal state
+	if err := cbft.LoadWal(); err != nil {
+		return err
+	}
+
 	go cbft.receiveLoop()
+	return nil
+}
+
+func (cbft *Cbft) LoadWal() error {
+	// init wal and load wal state
+	var err error
+	if cbft.wal, err = wal.NewWal(cbft.nodeServiceContext, ""); err != nil {
+		return err
+	}
+	//cbft.wal = &emptyWal{}
+
+	if err = cbft.wal.LoadChainState(cbft.recoveryChainState); err != nil {
+		return err
+	}
+
+	if err = cbft.wal.Load(cbft.recoveryMsg); err != nil {
+		return err
+	}
 	return nil
 }
 

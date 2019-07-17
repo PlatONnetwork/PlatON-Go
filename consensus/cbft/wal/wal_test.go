@@ -87,21 +87,13 @@ func testWalWrite() (int, error) {
 	for i := 0; i < times; i++ {
 		ordinal := ordinalMessages()
 		if ordinal == 0 {
-			err = getWal().WriteSync(&WalMsg{
-				Msg: buildSendPrepareBlock(),
-			})
+			err = getWal().WriteSync(buildSendPrepareBlock())
 		} else if ordinal == 1 {
-			err = getWal().WriteSync(&WalMsg{
-				Msg: buildSendPrepareVote(),
-			})
+			err = getWal().WriteSync(buildSendPrepareVote())
 		} else if ordinal == 2 {
-			err = getWal().WriteSync(&WalMsg{
-				Msg: buildSendViewChange(),
-			})
+			err = getWal().WriteSync(buildSendViewChange())
 		} else if ordinal == 3 {
-			err = getWal().WriteSync(&WalMsg{
-				Msg: buildConfirmedViewChange(),
-			})
+			err = getWal().WriteSync(buildConfirmedViewChange())
 		}
 		if err != nil {
 			return 0, err
@@ -117,7 +109,7 @@ func testWalLoad() (int, error) {
 	var err error
 	// LoadJournal
 	count := 0
-	err = getWal().Load(func(msg *WalMsg) {
+	err = getWal().Load(func(msg interface{}) {
 		count++
 	})
 	if err != nil {
@@ -152,6 +144,6 @@ func testLevelDB() error {
 func TestEmptyWal(t *testing.T) {
 	wal := &emptyWal{}
 	assert.Nil(t, wal.Write(nil))
-	assert.Nil(t, wal.Load(func(msg *WalMsg) {}))
+	assert.Nil(t, wal.Load(func(msg interface{}) {}))
 	assert.Nil(t, wal.UpdateViewChange(nil))
 }

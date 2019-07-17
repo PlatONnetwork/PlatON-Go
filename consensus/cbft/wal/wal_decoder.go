@@ -3,84 +3,62 @@ package wal
 import (
 	"fmt"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 //
-type MsgInfoSendPrepareBlock struct {
-	Msg *sendPrepareBlock
-}
-
 type JournalMessageSendPrepareBlock struct {
 	Timestamp uint64
-	Data      *MsgInfoSendPrepareBlock
+	Data      *protocols.SendPrepareBlock
 }
 
 //
-type MsgInfoSendPrepareVote struct {
-	Msg *sendPrepareVote
-}
-
 type JournalMessageSendPrepareVote struct {
 	Timestamp uint64
-	Data      *MsgInfoSendPrepareVote
+	Data      *protocols.SendPrepareVote
 }
 
 //
-type MsgInfoSendViewChange struct {
-	Msg *sendViewChange
-}
-
 type JournalMessageSendViewChange struct {
 	Timestamp uint64
-	Data      *MsgInfoSendViewChange
+	Data      *protocols.SendViewChange
 }
 
 //
-type MsgInfoConfirmedViewChange struct {
-	Msg *confirmedViewChange
-}
-
 type JournalMessageConfirmedViewChange struct {
 	Timestamp uint64
-	Data      *MsgInfoConfirmedViewChange
+	Data      *protocols.ConfirmedViewChange
 }
 
-func WALDecode(pack []byte, msgType uint16) (*WalMsg, error) {
+func WALDecode(pack []byte, msgType uint16) (interface{}, error) {
 	switch msgType {
-	case SendPrepareBlockMsg:
+	case protocols.SendPrepareBlockMsg:
 		var j JournalMessageSendPrepareBlock
 		if err := rlp.DecodeBytes(pack, &j); err == nil {
-			return &WalMsg{
-				Msg: j.Data.Msg,
-			}, nil
+			return j.Data, nil
 		} else {
 			return nil, err
 		}
-	case SendPrepareVoteMsg:
+	case protocols.SendPrepareVoteMsg:
 		var j JournalMessageSendPrepareVote
 		if err := rlp.DecodeBytes(pack, &j); err == nil {
-			return &WalMsg{
-				Msg: j.Data.Msg,
-			}, nil
+			return j.Data, nil
 		} else {
 			return nil, err
 		}
-	case SendViewChangeMsg:
+	case protocols.SendViewChangeMsg:
 		var j JournalMessageSendViewChange
 		if err := rlp.DecodeBytes(pack, &j); err == nil {
-			return &WalMsg{
-				Msg: j.Data.Msg,
-			}, nil
+			return j.Data, nil
 		} else {
 			return nil, err
 		}
-	case ConfirmedViewChangeMsg:
+	case protocols.ConfirmedViewChangeMsg:
 		var j JournalMessageConfirmedViewChange
 		if err := rlp.DecodeBytes(pack, &j); err == nil {
-			return &WalMsg{
-				Msg: j.Data.Msg,
-			}, nil
+			return j.Data, nil
 		} else {
 			return nil, err
 		}

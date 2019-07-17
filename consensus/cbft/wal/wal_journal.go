@@ -16,6 +16,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
@@ -37,15 +39,15 @@ const (
 var crc32c = crc32.MakeTable(crc32.Castagnoli)
 
 var (
-	errNoActiveJournal = errors.New("No active journal")
-	errOpenNewJournal  = errors.New("Failed to open new journal file")
-	errWriteJournal    = errors.New("Failed to write journal")
-	errLoadJournal     = errors.New("Failed to load journal")
+	errNoActiveJournal = errors.New("no active journal")
+	errOpenNewJournal  = errors.New("failed to open new journal file")
+	errWriteJournal    = errors.New("failed to write journal")
+	errLoadJournal     = errors.New("failed to load journal")
 )
 
 type JournalMessage struct {
 	Timestamp uint64
-	Data      *WalMsg
+	Data      interface{}
 }
 
 type sortFile struct {
@@ -159,7 +161,7 @@ func (journal *journal) CurrentJournal() (uint32, uint64, error) {
 		return 0, 0, err
 	}
 
-	log.Trace("currentJournal", "fileID", journal.fileID, "fileSeq", fileSeq)
+	log.Trace("CurrentJournal", "fileID", journal.fileID, "fileSeq", fileSeq)
 	return journal.fileID, fileSeq, nil
 }
 
@@ -185,13 +187,13 @@ func (journal *journal) Insert(msg *JournalMessage, sync bool) error {
 	n := 0
 	if n, err = journal.writer.Write(buf); err != nil || n <= 0 {
 		log.Error("Write data error", "err", err)
-		panic(errWriteJournal)
+		return errWriteJournal
 	}
 	if sync {
 		// Forced to flush
 		if err = journal.writer.Flush(); err != nil {
 			log.Error("Flush data error", "err", err)
-			panic(err)
+			return err
 		}
 	}
 
@@ -211,9 +213,9 @@ func encodeJournal(msg *JournalMessage) ([]byte, error) {
 	totalLength := 10 + int(length)
 
 	pack := make([]byte, totalLength)
-	binary.BigEndian.PutUint32(pack[0:4], crc)                                   // 4 byte
-	binary.BigEndian.PutUint32(pack[4:8], length)                                // 4 byte
-	binary.BigEndian.PutUint16(pack[8:10], uint16(WalMessageType(msg.Data.Msg))) // 2 byte
+	binary.BigEndian.PutUint32(pack[0:4], crc)                                         // 4 byte
+	binary.BigEndian.PutUint32(pack[4:8], length)                                      // 4 byte
+	binary.BigEndian.PutUint16(pack[8:10], uint16(protocols.WalMessageType(msg.Data))) // 2 byte
 
 	copy(pack[10:], data)
 	return pack, nil
@@ -249,7 +251,8 @@ func (journal *journal) rotate(journalLimitSize uint64) error {
 		// open another new journal file
 		newFileID, newWriter, err := journal.newJournalFile(journal.fileID + 1)
 		if err != nil {
-			panic(err)
+			log.Error("Failed to create journal file", "fileID", journal.fileID+1, "error", err)
+			return err
 		}
 		// update field fileID and writer
 		journal.fileID = newFileID
@@ -296,27 +299,19 @@ func (journal *journal) ExpireJournalFile(fileID uint32) error {
 	return nil
 }
 
-func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, add func(msg *WalMsg)) error {
+func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, recovery func(msg interface{})) (err error) {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
 	if files := listJournalFiles(journal.path); files != nil && files.Len() > 0 {
-		log.Debug("begin to load journal", "fromFileID", fromFileID, "fromSeq", fromSeq)
-
-		err, successBytes, totalBytes := error(nil), int64(0), int64(0)
-
-		for index, file := range files {
+		log.Debug("Begin to load journal", "fromFileID", fromFileID, "fromSeq", fromSeq)
+		for _, file := range files {
 			if file.num == fromFileID {
-				err, successBytes, totalBytes = journal.loadJournal(file.num, fromSeq, add)
+				err = journal.loadJournal(file.num, fromSeq, recovery)
 			} else if file.num > fromFileID {
-				err, successBytes, totalBytes = journal.loadJournal(file.num, 0, add)
+				err = journal.loadJournal(file.num, 0, recovery)
 			}
 			if err != nil {
-				if err == errLoadJournal && index == files.Len()-1 && successBytes+writeBufferLimitSize > totalBytes {
-					log.Warn("ignore this load journal error, ")
-					journal.rotate(0)
-					break
-				}
 				return err
 			}
 		}
@@ -327,22 +322,16 @@ func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, add func(
 	return nil
 }
 
-func (journal *journal) loadJournal(fileID uint32, seq uint64, add func(msg *WalMsg)) (error, int64, int64) {
+func (journal *journal) loadJournal(fileID uint32, seq uint64, recovery func(msg interface{})) error {
 	file, err := os.Open(filepath.Join(journal.path, fmt.Sprintf("wal.%d", fileID)))
 	if err != nil {
-		return err, 0, 0
-	}
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return err, 0, 0
+		return err
 	}
 	defer file.Close()
 
-	successBytes, totalBytes := int64(0), fileInfo.Size()
 	bufReader := bufio.NewReaderSize(file, readBufferLimitSize)
 	if seq > 0 {
 		bufReader.Discard(int(seq))
-		successBytes = successBytes + int64(seq)
 	}
 
 	for {
@@ -362,25 +351,24 @@ func (journal *journal) loadJournal(fileID uint32, seq uint64, add func(msg *Wal
 		}
 
 		if 0 == readNum {
-			log.Debug("load journal complete", "fileID", fileID, "fileSeq", seq, "successBytes", successBytes)
+			log.Debug("Load journal complete", "fileID", fileID, "fileSeq", seq)
 			break
 		}
 
 		// check crc
 		_crc := crc32.Checksum(pack[10:], crc32c)
 		if crc != _crc {
-			log.Error("crc is invalid", "crc", crc, "_crc", _crc, "msgType", msgType)
-			return errLoadJournal, successBytes, totalBytes
+			log.Error("Crc is invalid", "crc", crc, "_crc", _crc, "msgType", msgType)
+			return errLoadJournal
 		}
 
 		// decode journal message
 		if msgInfo, err := WALDecode(pack[10:], msgType); err == nil {
-			add(msgInfo)
-			successBytes = successBytes + int64(totalNum)
+			recovery(msgInfo)
 		} else {
 			log.Error("Failed to decode journal msg", "err", err)
-			return errLoadJournal, successBytes, totalBytes
+			return errLoadJournal
 		}
 	}
-	return nil, successBytes, totalBytes
+	return nil
 }
