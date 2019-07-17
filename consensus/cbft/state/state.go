@@ -11,6 +11,15 @@ type prepareVotes struct {
 	votes []*protocols.PrepareVote
 }
 
+func (p *prepareVotes) hadVote(vote *protocols.PrepareVote) bool {
+	for _, v := range p.votes {
+		if v.MsgHash() == vote.MsgHash() {
+			return true
+		}
+	}
+	return false
+}
+
 func (v *prepareVotes) Clear() {
 
 }
@@ -71,6 +80,18 @@ func (v *view) Reset() {
 	v.pendingVote.Clear()
 	v.viewBlocks.Clear()
 	v.viewVotes.Clear()
+}
+
+func (v *view) ViewNumber() uint64 {
+	return v.viewNumber
+}
+
+func (v *view) Epoch() uint64 {
+	return v.epoch
+}
+
+func (v *view) HadSendPrepareVote(vote *protocols.PrepareVote) bool {
+	return v.hadSendPrepareVote.hadVote(vote)
 }
 
 //The block of current view, there two types, prepareBlock and block
@@ -150,4 +171,8 @@ func (vs *ViewState) HighestCommitBlock() *types.Block {
 	} else {
 		return v.(*types.Block)
 	}
+}
+
+func (vs *ViewState) IsDeadline() bool {
+	return vs.viewTimer.isDeadline()
 }

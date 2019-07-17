@@ -15,6 +15,10 @@ func (t viewTimer) setupTimer() {
 
 }
 
+func (t viewTimer) isDeadline() bool {
+	return time.Now().Sub(t.deadline) <= 0
+}
+
 // Calculate the time window of each view，time=b*e^m
 type viewTimeInterval struct {
 	baseMs       uint64
