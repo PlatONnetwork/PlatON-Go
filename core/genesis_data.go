@@ -21,7 +21,6 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, version uint32) err
 
 	validatorQueue := make(staking.ValidatorQueue, len(g.Config.Cbft.InitialNodes))
 	for index, node := range g.Config.Cbft.InitialNodes {
-
 		can := &staking.Candidate{
 			NodeId:             node.ID,
 			StakingAddress:     vm.RewardManagerPoolAddr,
