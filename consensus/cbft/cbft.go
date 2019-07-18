@@ -112,6 +112,18 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, executorFn consensus.Execut
 	return nil
 }
 
+// Entrance: The messages related to the consensus are entered from here.
+// The message sent from the peer node is sent to the CBFT message queue and
+// there is a loop that will distribute the incoming message.
+func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
+	select {
+	case cbft.peerMsgCh <- msg:
+		cbft.log.Debug("Received message from peer", "peer", msg.PeerID.TerminalString(), "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString())
+	case <-cbft.exitCh:
+		cbft.log.Error("Cbft exit")
+	}
+}
+
 //Receive all consensus related messages, all processing logic in the same goroutine
 func (cbft *Cbft) receiveLoop() {
 	// channel Divided into read-only type, writable type
@@ -220,13 +232,13 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	me, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.sys.NodeID)
 
 	// TODO: seal process
-	prepareBlock := &protocols.PrepareBlock {
-		Epoch: cbft.state.Epoch(),
-		ViewNumber: cbft.state.ViewNumber(),
-		Block: block,
-		BlockIndex: cbft.state.NumViewBlocks(),
+	prepareBlock := &protocols.PrepareBlock{
+		Epoch:         cbft.state.Epoch(),
+		ViewNumber:    cbft.state.ViewNumber(),
+		Block:         block,
+		BlockIndex:    cbft.state.NumViewBlocks(),
 		ProposalIndex: uint32(me.Index),
-		ProposalAddr: me.Address,
+		ProposalAddr:  me.Address,
 	}
 
 	if cbft.state.NumViewBlocks() == 0 {
@@ -392,4 +404,3 @@ func (cbft *Cbft) Config() *Config {
 	panic("need to be improved")
 	return nil
 }
-

@@ -62,7 +62,7 @@ type MsgInfo struct {
 }
 
 // Create a new MsgInfo object.
-func NewMessageInfo(message Message, id discover.NodeID) *MsgInfo {
+func NewMessage(message Message, id discover.NodeID) *MsgInfo {
 	return &MsgInfo{
 		Msg:    message,
 		PeerID: id,
