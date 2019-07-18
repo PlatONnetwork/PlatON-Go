@@ -18,12 +18,19 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
-// Maximum threshold for the queue of messages waiting to be sent.
-const sendQueueSize = 10240
-
 const (
-	CbftProtocolVersion = 1  // Protocol version of CBFT
-	CbftProtocolLength  = 15 // CbftProtocolLength are the number of implemented message corresponding to cbft protocol versions.
+
+	// Protocol name of CBFT
+	CbftProtocolName = "cbft"
+
+	// Protocol version of CBFT
+	CbftProtocolVersion = 1
+
+	// CbftProtocolLength are the number of implemented message corresponding to cbft protocol versions.
+	CbftProtocolLength = 15
+
+	// Maximum threshold for the queue of messages waiting to be sent.
+	sendQueueSize = 10240
 )
 
 // Responsible for processing the messages in the network.
@@ -52,6 +59,7 @@ func (h *EngineManager) Start() {
 	go h.sendLoop()
 }
 
+// Close turns off the handler for sending messages.
 func (h *EngineManager) Close() {
 	close(h.quitSend)
 }
@@ -63,6 +71,7 @@ func (h *EngineManager) sendLoop() {
 	for {
 		select {
 		case m := <-h.sendQueue:
+			// todo: Need to add to the processing judgment of wal
 			if len(m.PeerID()) == 0 {
 				h.broadcast(m)
 			} else {
@@ -100,7 +109,6 @@ func (h *EngineManager) Send(peerID discover.NodeID, msg types.Message) {
 	select {
 	case h.sendQueue <- msgPkg:
 		log.Debug("Send message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
-	default:
 	}
 	// todo: Whether to consider the problem of blocking
 }
@@ -113,7 +121,6 @@ func (h *EngineManager) Broadcast(msg types.Message) {
 	select {
 	case h.sendQueue <- msgPkg:
 		log.Debug("Broadcast message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
-	default:
 	}
 }
 
@@ -125,7 +132,6 @@ func (h *EngineManager) PartBroadcast(msg types.Message) {
 	select {
 	case h.sendQueue <- msgPkg:
 		log.Debug("PartBroadcast message to sendQueue", "msgHash", msg.MsgHash().TerminalString(), "BHash", msg.BHash().TerminalString())
-	default:
 	}
 }
 
@@ -134,7 +140,7 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 	// todo: version and ProtocolLengths need to confirm.
 	return []p2p.Protocol{
 		{
-			Name:    "cbft",
+			Name:    CbftProtocolName,
 			Version: CbftProtocolVersion,
 			Length:  CbftProtocolLength,
 			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
@@ -159,12 +165,10 @@ type NodeInfo struct {
 }
 
 func (h *EngineManager) NodeInfo() *NodeInfo {
-	// todo: Use methods instead of properties to access directly
-	return nil
-	/*cfg := h.engine.config
+	cfg := h.engine.Config()
 	return &NodeInfo{
-		Config: cfg,
-	}*/
+		Config: *cfg,
+	}
 }
 
 // After the node is successfully connected and the message belongs
@@ -173,7 +177,7 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	// Further confirm if the version number needs to be read from the configuration.
 	peer := router.NewPeer(CbftProtocolVersion, p, newMeteredMsgWriter(rw))
 
-	// Execute the CBFT handshake
+	// execute handshake
 	// todo:
 	// 1.need qcBn/qcHash/lockedBn/lockedHash/commitBn/commitHash from cbft.
 	var (
