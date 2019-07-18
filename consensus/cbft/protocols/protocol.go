@@ -275,3 +275,21 @@ func (s *Pong) MsgHash() common.Hash {
 func (s *Pong) BHash() common.Hash {
 	panic("implement me")
 }
+//CBFT synchronize blocks that have reached qc
+type QCBlockList struct {
+	QC     []*ctypes.QuorumCert
+	Blocks []*types.Block
+}
+
+func (s *QCBlockList) String() string {
+	return ""
+}
+
+func (s *QCBlockList) MsgHash() common.Hash {
+	return common.Hash{}
+
+}
+
+func (s *QCBlockList) BHash() common.Hash {
+	return common.Hash{}
+}

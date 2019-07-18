@@ -10,7 +10,7 @@ import (
 
 type BlockExecutor interface {
 	//Execution block, you need to pass in the parent block to find the parent block state
-	execute(block *types.Block, parent *types.Block) error
+	Execute(block *types.Block, parent *types.Block) error
 }
 
 //Block execution results, including block hash, block number, error message
@@ -23,7 +23,7 @@ type BlockExecuteStatus struct {
 type AsyncBlockExecutor interface {
 	BlockExecutor
 	//Asynchronous acquisition block execution results
-	executeStatus() chan<- BlockExecuteStatus
+	ExecuteStatus() chan<- BlockExecuteStatus
 }
 
 type executeTask struct {
@@ -32,7 +32,7 @@ type executeTask struct {
 }
 
 // asyncExecutor async block executor implement.
-type asyncExecutor struct {
+type AsyncExecutor struct {
 	AsyncBlockExecutor
 
 	// executeFn is a function use to execute block.
@@ -46,8 +46,8 @@ type asyncExecutor struct {
 }
 
 // NewAsyncExecutor new a async block executor.
-func NewAsyncExecutor(executeFn consensus.Executor) *asyncExecutor {
-	exe := &asyncExecutor{
+func NewAsyncExecutor(executeFn consensus.Executor) *AsyncExecutor {
+	exe := &AsyncExecutor{
 		executeFn:      executeFn,
 		executeTasks:   make(chan *executeTask, 64),
 		executeResults: make(chan BlockExecuteStatus, 64),
@@ -59,24 +59,24 @@ func NewAsyncExecutor(executeFn consensus.Executor) *asyncExecutor {
 	return exe
 }
 
-// stop stop async exector.
-func (exe *asyncExecutor) stop() {
+// Stop stop async exector.
+func (exe *AsyncExecutor) Stop() {
 	close(exe.closed)
 }
 
-// execute async execute block.
-func (exe *asyncExecutor) execute(block *types.Block, parent *types.Block) error {
+// Execute async execute block.
+func (exe *AsyncExecutor) Execute(block *types.Block, parent *types.Block) error {
 	return exe.newTask(block, parent)
 }
 
 // executeStatus return a channel for notify block execute result.
-func (exe *asyncExecutor) executeStatus() chan<- BlockExecuteStatus {
+func (exe *AsyncExecutor) ExecuteStatus() chan<- BlockExecuteStatus {
 	return exe.executeResults
 }
 
 // newTask new a block execute task and push in execute channel.
 // If execute channel if full, will return a error.
-func (exe *asyncExecutor) newTask(block *types.Block, parent *types.Block) error {
+func (exe *AsyncExecutor) newTask(block *types.Block, parent *types.Block) error {
 	select {
 	case exe.executeTasks <- &executeTask{parent: parent, block: block}:
 		return nil
@@ -87,7 +87,7 @@ func (exe *asyncExecutor) newTask(block *types.Block, parent *types.Block) error
 }
 
 // loop process task from execute channel until executor stopped.
-func (exe *asyncExecutor) loop() {
+func (exe *AsyncExecutor) loop() {
 	for {
 		select {
 		case <-exe.closed:

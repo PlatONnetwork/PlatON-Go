@@ -2,8 +2,10 @@ package types
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 

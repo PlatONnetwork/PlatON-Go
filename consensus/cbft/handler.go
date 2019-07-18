@@ -72,6 +72,7 @@ func (h *EngineManager) sendLoop() {
 		select {
 		case m := <-h.sendQueue:
 			// todo: Need to add to the processing judgment of wal
+
 			if len(m.PeerID()) == 0 {
 				h.broadcast(m)
 			} else {
