@@ -279,3 +279,8 @@ func (Cbft) Evidences() string {
 func (Cbft) TracingSwitch(flag int8) {
 	panic("implement me")
 }
+
+func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
+	panic("need to be improved")
+	return nil
+}

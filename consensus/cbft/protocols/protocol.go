@@ -14,7 +14,19 @@ import (
 const CbftProtocolMaxMsgSize = 10 * 1024 * 1024
 
 const (
-	CBFTStatusMsg = 0x00 // Protocol messages belonging to cbft
+	CBFTStatusMsg        = 0x00 // Protocol messages belonging to cbft
+	PrepareBlockMsg      = 0x01
+	PrepareVoteMsg       = 0x02
+	ViewChangeMsg        = 0x03
+	GetPrepareBlockMsg   = 0x04
+	GetQuorumCertMsg     = 0x05
+	QuorumCertMsg        = 0x06
+	GetQCPrepareBlockMsg = 0x07
+	QCPrepareBlockMsg    = 0x08
+	GetPrepareVoteMsg    = 0x09
+	PrepareBlockHashMsg  = 0x0a
+	PingMsg              = 0x0b
+	PongMsg              = 0x0c
 )
 
 type PrepareBlock struct {
