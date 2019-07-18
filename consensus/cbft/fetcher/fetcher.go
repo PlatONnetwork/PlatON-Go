@@ -36,7 +36,7 @@ func NewFetcher() *Fetcher {
 	return fetcher
 }
 
-//添加fetcher任务， match 判断是否匹配任务， executor 执行函数， expire 超时回调
+// Add a fetcher task
 func (f *Fetcher) AddTask(id string, match MatchFunc, executor ExecutorFunc, expire ExpireFunc) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
@@ -46,7 +46,6 @@ func (f *Fetcher) AddTask(id string, match MatchFunc, executor ExecutorFunc, exp
 	f.task[id] = &task{match: match, executor: executor, expire: expire, time: time.Now()}
 }
 
-// 判断是否有新消息匹配任务
 func (f *Fetcher) MatchTask(id string, message types.Message) bool {
 	f.lock.Lock()
 	defer f.lock.Unlock()
