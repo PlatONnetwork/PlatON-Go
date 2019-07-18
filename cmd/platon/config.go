@@ -83,7 +83,7 @@ type gethConfig struct {
 	Node          node.Config
 	Ethstats      ethstatsConfig
 	Dashboard     dashboard.Config
-	EconomicModel xcom.EconomicModel
+	EconomicModel *xcom.EconomicModel
 }
 
 func loadConfig(file string, cfg *gethConfig) error {
@@ -133,7 +133,7 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 		Shh:           whisper.DefaultConfig,
 		Node:          defaultNodeConfig(),
 		Dashboard:     dashboard.DefaultConfig,
-		EconomicModel: *utils.GetEconomicDefaultConfig(ctx),
+		EconomicModel: utils.GetEconomicDefaultConfig(ctx),
 	}
 
 	// Load config file.
@@ -146,7 +146,6 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 		}
 	}
 
-	xcom.SetEconomicModel(&cfg.EconomicModel)
 	// Current version only supports full syncmode
 	//ctx.GlobalSet(utils.SyncModeFlag.Name, cfg.Eth.SyncMode.String())
 

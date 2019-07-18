@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -25,13 +26,14 @@ type issuanceData struct {
 }
 
 var (
-	rm *rewardMgrPlugin = nil
+	rewardOnce sync.Once
+	rm         *rewardMgrPlugin = nil
 )
 
 func RewardMgrInstance() *rewardMgrPlugin {
-	if rm == nil {
+	rewardOnce.Do(func() {
 		rm = &rewardMgrPlugin{}
-	}
+	})
 	return rm
 }
 
