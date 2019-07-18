@@ -6,7 +6,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 )
 
-func (cbft *Cbft) fetchBlock(hash common.Hash, number uint64) {
+// Get the block from the specified connection, get the block into the fetcher, and execute the block CBFT update state machine
+func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 	if cbft.state.HighestQCBlock().NumberU64() < number {
 		//todo close receive consensus msg
 

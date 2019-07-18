@@ -1,7 +1,10 @@
 package cbft
 
 import (
+	"bytes"
 	"crypto/ecdsa"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
+
 	"errors"
 	"reflect"
 	"sync"
@@ -11,12 +14,12 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -27,6 +30,8 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 )
+
+const cbftVersion = 1
 
 type Config struct {
 	sys    *params.CbftConfig
@@ -139,28 +144,28 @@ func (cbft *Cbft) receiveLoop() {
 
 //Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewchagne
 func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
-	msg, peerID := info.Msg, info.PeerID
+	msg, id := info.Msg, info.PeerID
 	var err error
 
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
-		err = cbft.OnPrepareBlock(msg)
+		err = cbft.OnPrepareBlock(id, msg)
 	case *protocols.PrepareVote:
-		err = cbft.OnPrepareVote(msg)
+		err = cbft.OnPrepareVote(id, msg)
 	case *protocols.ViewChange:
-		err = cbft.OnViewChange(msg)
+		err = cbft.OnViewChange(id, msg)
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id)
 	}
 }
 
 // Behind the node will be synchronized by synchronization message
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
-	msg, peerID := info.Msg, info.PeerID
+	msg, id := info.Msg, info.PeerID
 
-	if cbft.fetcher.MatchTask(peerID.String(), msg) {
+	if cbft.fetcher.MatchTask(id, msg) {
 		return
 	}
 
@@ -169,7 +174,7 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id)
 	}
 }
 
@@ -185,23 +190,45 @@ func (Cbft) VerifyHeaders(chain consensus.ChainReader, headers []*types.Header, 
 	panic("implement me")
 }
 
-func (Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
-	panic("implement me")
+// VerifySeal implements consensus.Engine, checking whether the signature contained
+// in the header satisfies the consensus protocol requirements.
+func (cbft *Cbft) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
+	cbft.log.Trace("Verify seal", "hash", header.Hash(), "number", header.Number)
+	if header.Number.Uint64() == 0 {
+		return errors.New("unknown block")
+	}
+	return nil
 }
 
-func (Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
-	panic("implement me")
+// Prepare implements consensus.Engine, preparing all the consensus fields of the
+// header of running the transactions on top.
+func (cbft *Cbft) Prepare(chain consensus.ChainReader, header *types.Header) error {
+	cbft.log.Debug("Prepare", "hash", header.Hash(), "number", header.Number.Uint64())
+
+	//header.Extra[0:31] to store block's version info etc. and right pad with 0x00;
+	//header.Extra[32:] to store block's sign of producer, the length of sign is 65.
+	if len(header.Extra) < 32 {
+		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, 32-len(header.Extra))...)
+	}
+	header.Extra = header.Extra[:32]
+
+	//init header.Extra[32: 32+65]
+	header.Extra = append(header.Extra, make([]byte, consensus.ExtraSeal)...)
+	return nil
 }
 
-func (Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction,
-	receipts []*types.Receipt) (*types.Block, error) {
-	panic("implement me")
+// Finalize implements consensus.Engine, no block
+// rewards given, and returns the final block.
+func (cbft *Cbft) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (*types.Block, error) {
+	cbft.log.Debug("Finalize block", "hash", header.Hash(), "number", header.Number, "txs", len(txs), "receipts", len(receipts))
+	header.Root = state.IntermediateRoot(true)
+	return types.NewBlock(header, txs, receipts), nil
 }
 
 func (cbft *Cbft) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
 	cbft.log.Info("Seal block", "number", block.Number(), "parentHash", block.ParentHash())
 	if block.NumberU64() == 0 {
-		return errors.New("unknow block")
+		return errors.New("unknown block")
 	}
 
 	// TODO signature block
@@ -233,6 +260,12 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	}
 
 	if cbft.state.NumViewBlocks() == 0 {
+		parentBlock, parentQC := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1)
+		if parentBlock == nil {
+			cbft.log.Error("Can not find parent block", "number", block.Number(), "parentHash", block.ParentHash())
+			return
+		}
+		prepareBlock.PrepareQC = parentQC
 	}
 
 	// TODO: add viewchange qc
@@ -240,6 +273,18 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	// TODO: signature block
 
 	cbft.state.AddPrepareBlock(prepareBlock)
+	cbft.state.SetHighestExecutedBlock(block)
+
+	// TODO: single node process
+	if cbft.validatorPool.Len(cbft.state.HighestQCBlock().NumberU64()) == 1 {
+		cbft.state.SetHighestQCBlock(block)
+		cbft.state.SetHighestLockBlock(block)
+
+		// TODO: signature prepare qc
+		var qc ctypes.QuorumCert
+		cbft.commitBlock(block, &qc)
+		cbft.state.SetHighestCommitBlock(block)
+	}
 
 	// TODO: broadcast block
 
@@ -254,52 +299,95 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	}()
 }
 
-func (Cbft) SealHash(header *types.Header) common.Hash {
-	panic("implement me")
+// SealHash returns the hash of a block prior to it being sealed.
+func (cbft *Cbft) SealHash(header *types.Header) common.Hash {
+	cbft.log.Debug("Seal hash", "hash", header.Hash(), "number", header.Number)
+	return header.SealHash()
 }
 
 func (Cbft) APIs(chain consensus.ChainReader) []rpc.API {
+	return []rpc.API{}
+}
+
+func (cbft *Cbft) Protocols() []p2p.Protocol {
 	panic("implement me")
 }
 
-func (Cbft) Protocols() []p2p.Protocol {
-	panic("implement me")
-}
-
-func (Cbft) NextBaseBlock() *types.Block {
-	panic("implement me")
+func (cbft *Cbft) NextBaseBlock() *types.Block {
+	result := make(chan *types.Block, 1)
+	cbft.asyncCallCh <- func() {
+		block := cbft.state.HighestExecutedBlock()
+		cbft.log.Debug("Base block", "hash", block.Hash(), "number", block.Number())
+		result <- block
+	}
+	return <-result
 }
 
 func (Cbft) InsertChain(block *types.Block, errCh chan error) {
 	panic("implement me")
 }
 
-func (Cbft) HasBlock(hash common.Hash, number uint64) bool {
-	panic("implement me")
+// HashBlock check if the specified block exists in block tree.
+func (cbft *Cbft) HasBlock(hash common.Hash, number uint64) bool {
+	if cbft.state.HighestExecutedBlock().NumberU64() >= number {
+		return true
+	}
+	return false
 }
 
 func (Cbft) Status() string {
 	panic("implement me")
 }
 
-func (Cbft) GetBlockByHash(hash common.Hash) *types.Block {
-	panic("implement me")
+// GetBlockByHash get the specified block by hash.
+func (cbft *Cbft) GetBlockByHash(hash common.Hash) *types.Block {
+	result := make(chan *types.Block, 1)
+	cbft.asyncCallCh <- func() {
+		block := cbft.blockTree.FindBlockByHash(hash)
+		result <- block
+	}
+	return <-result
 }
 
-func (Cbft) CurrentBlock() *types.Block {
-	panic("implement me")
+// CurrentBlock get the current lock block.
+func (cbft *Cbft) CurrentBlock() *types.Block {
+	return cbft.state.HighestLockBlock()
 }
 
-func (Cbft) FastSyncCommitHead() <-chan error {
-	panic("implement me")
+func (cbft *Cbft) FastSyncCommitHead() <-chan error {
+	result := make(chan error, 1)
+
+	cbft.asyncCallCh <- func() {
+		currentBlock := cbft.blockChain.GetBlock(cbft.blockChain.CurrentHeader().Hash(), cbft.blockChain.CurrentHeader().Number.Uint64())
+
+		// TODO: update view
+		cbft.state.SetHighestExecutedBlock(currentBlock)
+		cbft.state.SetHighestQCBlock(currentBlock)
+		cbft.state.SetHighestLockBlock(currentBlock)
+		cbft.state.SetHighestCommitBlock(currentBlock)
+
+		result <- nil
+	}
+	return result
 }
 
-func (Cbft) Close() error {
-	panic("implement me")
+func (cbft *Cbft) Close() error {
+	cbft.log.Info("Close cbft consensus")
+	cbft.closeOnce.Do(func() {
+		// Short circuit if the exit channel is not allocated.
+		if cbft.exitCh == nil {
+			return
+		}
+		close(cbft.exitCh)
+	})
+	if cbft.executor != nil{
+		cbft.executor.Stop()
+	}
+	return nil
 }
 
-func (Cbft) ConsensusNodes() ([]discover.NodeID, error) {
-	panic("implement me")
+func (cbft *Cbft) ConsensusNodes() ([]discover.NodeID, error) {
+	return cbft.validatorPool.ValidatorList(cbft.state.HighestQCBlock().NumberU64()), nil
 }
 
 // ShouldSeal check if we can seal block.
@@ -358,16 +446,22 @@ func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
 	return time.Now()
 }
 
-func (Cbft) IsConsensusNode() bool {
-	panic("implement me")
+func (cbft *Cbft) IsConsensusNode() bool {
+	return cbft.validatorPool.IsValidator(cbft.state.HighestQCBlock().NumberU64(), cbft.config.sys.NodeID)
 }
 
-func (Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
-	panic("implement me")
+func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
+	result := make(chan *types.Block, 1)
+	cbft.asyncCallCh <- func() {
+		block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
+		result <- block
+	}
+	return <-result
 }
 
-func (Cbft) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
-	panic("implement me")
+func (cbft *Cbft) GetBlockWithoutLock(hash common.Hash, number uint64) *types.Block {
+	block, _ := cbft.blockTree.FindBlockAndQC(hash, number)
+	return block
 }
 
 func (Cbft) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
@@ -394,5 +488,20 @@ func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
 func (cbft *Cbft) Config() *Config {
 	panic("need to be improved")
 	return nil
+}
+
+func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
+	extra, err := ctypes.EncodeExtra(byte(cbftVersion), qc)
+	if err != nil {
+		cbft.log.Error("Encode extra error", "nubmer", block.Number(), "hash", block.Hash(), "cbftVersion", cbftVersion)
+		return
+	}
+
+	cbft.log.Debug("Send consensus result to worker", "number", block.Number(), "hash", block.Hash())
+	cbft.eventMux.Post(cbfttypes.CbftResult{
+		Block:     block,
+		ExtraData: extra,
+		SyncState: nil,
+	})
 }
 

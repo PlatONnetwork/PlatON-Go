@@ -15,71 +15,106 @@ type ExecutorFunc func(types.Message)
 type ExpireFunc func()
 
 type task struct {
-	match    MatchFunc
+	id string
+	// Specify whether the message matches the task
+	match MatchFunc
+	// Callback executed function
 	executor ExecutorFunc
-	expire   ExpireFunc
-	time     time.Time
+
+	// Timeout callback function
+	expire ExpireFunc
+	// Task addition time
+	time time.Time
 }
 
 type Fetcher struct {
 	lock    sync.Mutex
-	newTask chan struct{}
-	task    map[string]*task
+	newTask chan *task
+	quit    chan struct{}
+	tasks   map[string]*task
 }
 
 func NewFetcher() *Fetcher {
 	fetcher := &Fetcher{
-		newTask: make(chan struct{}, 1),
-		task:    make(map[string]*task),
+		newTask: make(chan *task),
+		tasks:   make(map[string]*task),
+		quit:    make(chan struct{}),
 	}
-	go fetcher.loop()
+
 	return fetcher
+}
+
+func (f *Fetcher) Start() {
+	go f.loop()
+}
+
+func (f *Fetcher) Stop() {
+	close(f.quit)
 }
 
 // Add a fetcher task
 func (f *Fetcher) AddTask(id string, match MatchFunc, executor ExecutorFunc, expire ExpireFunc) {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-	if len(f.task) == 0 {
-		f.newTask <- struct{}{}
+	select {
+	case <-f.quit:
+	case f.newTask <- &task{id: id, match: match, executor: executor, expire: expire, time: time.Now()}:
 	}
-	f.task[id] = &task{match: match, executor: executor, expire: expire, time: time.Now()}
+
 }
 
 func (f *Fetcher) MatchTask(id string, message types.Message) bool {
 	f.lock.Lock()
 	defer f.lock.Unlock()
-	if t, ok := f.task[id]; ok {
+	if t, ok := f.tasks[id]; ok {
 		if t.match(message) {
 			go t.executor(message)
+			delete(f.tasks, id)
 			return true
 		}
 	}
 	return false
 }
 
+func (f *Fetcher) Len() int {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	return len(f.tasks)
+}
+
 func (f *Fetcher) loop() {
 	fetchTimer := time.NewTimer(0)
 	for {
 		select {
-		case <-f.newTask:
-			fetchTimer.Reset(arriveTimeout)
+		case task := <-f.newTask:
+			f.lock.Lock()
+			if len(f.tasks) == 0 {
+				fetchTimer.Reset(arriveTimeout)
+			}
+			f.tasks[task.id] = task
+			f.lock.Unlock()
 
 		case <-fetchTimer.C:
 			f.lock.Lock()
-			for id, task := range f.task {
+			for id, task := range f.tasks {
 				if time.Since(task.time) > arriveTimeout {
 					if task.expire != nil {
 						task.expire()
 					}
-					delete(f.task, id)
+					delete(f.tasks, id)
 				}
 			}
-			if len(f.task) == 0 {
+			if len(f.tasks) == 0 {
 				fetchTimer.Reset(0)
+			} else {
+				fetchTimer.Reset(arriveTimeout)
 			}
 			f.lock.Unlock()
-
+		case <-f.quit:
+			f.lock.Lock()
+			f.tasks = make(map[string]*task)
+			fetchTimer.Stop()
+			f.lock.Unlock()
+			return
 		}
+
 	}
 }

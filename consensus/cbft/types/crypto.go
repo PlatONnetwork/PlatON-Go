@@ -7,6 +7,10 @@ import (
 type Signature struct {
 }
 
+func (s *Signature) Bytes() []byte {
+	return nil
+}
+
 type QuorumCert struct {
 	ViewNumber  uint64      `json:"view_number"`
 	BlockHash   common.Hash `json:"block_hash"`

@@ -22,6 +22,7 @@ type BlockExecuteStatus struct {
 
 type AsyncBlockExecutor interface {
 	BlockExecutor
+	Stop()
 	//Asynchronous acquisition block execution results
 	ExecuteStatus() chan<- BlockExecuteStatus
 }
