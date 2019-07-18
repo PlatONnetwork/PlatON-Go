@@ -339,7 +339,7 @@ func build_staking_data(genesisHash common.Hash) {
 
 	epoch_Arr := &staking.Validator_array{
 		Start: 1,
-		End:   22000,
+		End:   uint64(xutil.CalcBlocksEachEpoch()),
 		Arr:   queue,
 	}
 
@@ -351,7 +351,7 @@ func build_staking_data(genesisHash common.Hash) {
 
 	curr_Arr := &staking.Validator_array{
 		Start: 1,
-		End:   250,
+		End:   uint64(xutil.ConsensusSize()),
 		Arr:   queue,
 	}
 

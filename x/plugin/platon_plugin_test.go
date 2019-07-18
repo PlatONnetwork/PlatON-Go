@@ -386,8 +386,10 @@ func build_staking_data_more(block uint64) {
 	queue := validatorArr[:25]
 
 	epoch_Arr := &staking.Validator_array{
-		Start: ((block-1)/22000)*22000 + 1,
-		End:   ((block-1)/22000)*22000 + 22000,
+		//Start: ((block-1)/22000)*22000 + 1,
+		//End:   ((block-1)/22000)*22000 + 22000,
+		Start: ((block-1)/uint64(xutil.CalcBlocksEachEpoch()))*uint64(xutil.CalcBlocksEachEpoch()) + 1,
+		End:   ((block-1)/uint64(xutil.CalcBlocksEachEpoch()))*uint64(xutil.CalcBlocksEachEpoch()) + uint64(xutil.CalcBlocksEachEpoch()),
 		Arr:   queue,
 	}
 
@@ -398,8 +400,10 @@ func build_staking_data_more(block uint64) {
 	}
 
 	curr_Arr := &staking.Validator_array{
-		Start: ((block-1)/250)*250 + 1,
-		End:   ((block-1)/250)*250 + 250,
+		//Start: ((block-1)/250)*250 + 1,
+		//End:   ((block-1)/250)*250 + 250,
+		Start: ((block-1)/uint64(xutil.ConsensusSize()))*uint64(xutil.ConsensusSize()) + 1,
+		End:   ((block-1)/uint64(xutil.ConsensusSize()))*uint64(xutil.ConsensusSize()) + uint64(xutil.ConsensusSize()),
 		Arr:   queue,
 	}
 
@@ -514,7 +518,7 @@ func build_staking_data(genesisHash common.Hash) {
 
 	epoch_Arr := &staking.Validator_array{
 		Start: 1,
-		End:   22000,
+		End:   uint64(xutil.CalcBlocksEachEpoch()),
 		Arr:   queue,
 	}
 
@@ -526,7 +530,7 @@ func build_staking_data(genesisHash common.Hash) {
 
 	curr_Arr := &staking.Validator_array{
 		Start: 1,
-		End:   250,
+		End:   uint64(xutil.ConsensusSize()),
 		Arr:   queue,
 	}
 
