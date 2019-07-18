@@ -2,6 +2,7 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
 	"reflect"
 	"sync"
 	"time"
@@ -10,11 +11,11 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/event"
@@ -43,7 +44,8 @@ type Cbft struct {
 	evPool     evidence.EvidencePool
 	log        log.Logger
 
-	agency consensus.Agency
+	fetcher *fetcher.Fetcher
+	agency  consensus.Agency
 	//Control the current view state
 	state cstate.ViewState
 
@@ -107,13 +109,21 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, executor consensus.Executor
 
 //Receive all consensus related messages, all processing logic in the same goroutine
 func (cbft *Cbft) receiveLoop() {
+	// channel Divided into read-only type, writable type
+	// Read-only is the channel that gets the current CBFT status.
+	// Writable type is the channel that affects the consensus state
+
 	for {
 		select {
 		case msg := <-cbft.peerMsgCh:
 			cbft.handleConsensusMsg(msg)
 		case msg := <-cbft.syncMsgCh:
 			cbft.handleSyncMsg(msg)
+		default:
 		}
+
+		// read-only channel
+		select {}
 	}
 }
 
@@ -139,6 +149,11 @@ func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
 // Behind the node will be synchronized by synchronization message
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	msg, peerID := info.Msg, info.PeerID
+
+	if cbft.fetcher.MatchTask(peerID.String(), msg) {
+		return
+	}
+
 	var err error
 	switch msg.(type) {
 	}
