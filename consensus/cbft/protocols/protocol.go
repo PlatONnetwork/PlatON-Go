@@ -3,6 +3,7 @@ package protocols
 import (
 	"fmt"
 	"math/big"
+	"reflect"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -28,6 +29,18 @@ const (
 	PingMsg              = 0x0b
 	PongMsg              = 0x0c
 )
+
+// A is used to convert specific message types according to the message body.
+// The program is forcibly terminated if there is an unmatched message type and
+// all types must exist in the match list.
+func MessageType(msg interface{}) uint64 {
+	// todo: need to process depending on mmessageType.
+	switch msg.(type) {
+	default:
+		return PrepareBlockHashMsg
+	}
+	panic(fmt.Sprintf("unknown message type [%v]", reflect.TypeOf(msg)))
+}
 
 type PrepareBlock struct {
 	Epoch         uint64               `json:"epoch"`
@@ -129,6 +142,139 @@ func (s *CbftStatusData) BHash() common.Hash {
 	return s.QCBlock
 }
 
+//
+type GetPrepareBlock struct {
+}
+
+func (s *GetPrepareBlock) String() string {
+	panic("implement me")
+}
+
+func (s *GetPrepareBlock) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (s *GetPrepareBlock) BHash() common.Hash {
+	panic("implement me")
+}
+
+type GetQuorumCert struct {
+}
+
+func (s *GetQuorumCert) String() string {
+	panic("implement me")
+}
+
+func (s *GetQuorumCert) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (s *GetQuorumCert) BHash() common.Hash {
+	panic("implement me")
+}
+
+type QuorumCert struct {
+}
+
+func (s *QuorumCert) String() string {
+	panic("implement me")
+}
+
+func (s *QuorumCert) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (s *QuorumCert) BHash() common.Hash {
+	panic("implement me")
+}
+
+type GetQCPrepareBlock struct {
+}
+
+func (s *GetQCPrepareBlock) String() string {
+	panic("implement me")
+}
+
+func (s *GetQCPrepareBlock) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (s *GetQCPrepareBlock) BHash() common.Hash {
+	panic("implement me")
+}
+
+type QCPrepareBlock struct {
+}
+
+func (s *QCPrepareBlock) String() string {
+	panic("implement me")
+}
+
+func (s *QCPrepareBlock) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (s *QCPrepareBlock) BHash() common.Hash {
+	panic("implement me")
+}
+
+type GetPrepareVote struct {
+}
+
+func (s *GetPrepareVote) String() string {
+	panic("implement me")
+}
+
+func (s *GetPrepareVote) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (s *GetPrepareVote) BHash() common.Hash {
+	panic("implement me")
+}
+
+type PrepareBlockHash struct {
+}
+
+func (s *PrepareBlockHash) String() string {
+	panic("implement me")
+}
+
+func (s *PrepareBlockHash) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (s *PrepareBlockHash) BHash() common.Hash {
+	panic("implement me")
+}
+
+type Ping [1]string
+
+func (s *Ping) String() string {
+	panic("implement me")
+}
+
+func (s *Ping) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (s *Ping) BHash() common.Hash {
+	panic("implement me")
+}
+
+type Pong [1]string
+
+func (s *Pong) String() string {
+	panic("implement me")
+}
+
+func (s *Pong) MsgHash() common.Hash {
+	panic("implement me")
+}
+
+func (s *Pong) BHash() common.Hash {
+	panic("implement me")
+}
 //CBFT synchronize blocks that have reached qc
 type QCBlockList struct {
 	QC     []*ctypes.QuorumCert
