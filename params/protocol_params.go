@@ -88,6 +88,8 @@ const (
 	Bn256PairingBaseGas     uint64 = 100000 // Base price for an elliptic curve pairing check
 	Bn256PairingPerPointGas uint64 = 80000  // Per-point price for an elliptic curve pairing check
 
+	// PlatONPrecompiled contract gas prices
+
 	GovGas uint64 = 3000 // Gas needed for precompiled contract: govContract
 
 )
