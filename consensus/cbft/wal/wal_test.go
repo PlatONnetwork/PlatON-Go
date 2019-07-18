@@ -2,30 +2,48 @@ package wal
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/stretchr/testify/assert"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
-	viewChangeNumber = uint64(100)
-	viewChangeHash   = common.BytesToHash(cbft.Rand32Bytes(32))
-	times            = 1000
-	tempDir          string
-	wal              Wal
+	epoch      = uint64(1)
+	viewNumber = uint64(1)
+	times      = 1000
+	tempDir    string
+	wal        Wal
 )
 
 func TestWal(t *testing.T) {
 	tempDir, _ = ioutil.TempDir("", "wal")
 	defer os.RemoveAll(tempDir)
+
+	// Test Wal UpdateChainState
+	chainStateW, err := testWalUpdateChainState()
+	if err != nil {
+		t.Fatalf("%s", "update chain state error")
+	}
+
+	// Test Wal LoadChainState
+	chainStateR, err := testWalLoadChainState()
+	if err != nil {
+		t.Fatalf("%s", "load chain state error")
+	}
+	if chainStateR.Commit.Block.Hash() != chainStateW.Commit.Block.Hash() || chainStateR.Commit.QuorumCert.ViewNumber != chainStateW.Commit.QuorumCert.ViewNumber ||
+		chainStateR.Lock.Block.Hash() != chainStateW.Lock.Block.Hash() || chainStateR.Lock.QuorumCert.ViewNumber != chainStateW.Lock.QuorumCert.ViewNumber ||
+		chainStateR.QC[0].Block.Hash() != chainStateW.QC[0].Block.Hash() || chainStateR.QC[0].QuorumCert.ViewNumber != chainStateW.QC[0].QuorumCert.ViewNumber {
+		t.Fatalf("%s", "load chain state error")
+	}
 
 	// Test Wal UpdateViewChange
 	assert.Nil(t, testWalUpdateViewChange())
@@ -44,7 +62,7 @@ func TestWal(t *testing.T) {
 	endTime := uint64(time.Now().UnixNano())
 	t.Log("write elapsed time", endTime-beginTime)
 
-	// Test Wal Write
+	// Test Wal load msg
 	beginTime = uint64(time.Now().UnixNano())
 	count, err = testWalLoad()
 	if err != nil {
@@ -71,11 +89,46 @@ func getWal() Wal {
 	return wal
 }
 
+func testWalUpdateChainState() (*protocols.ChainState, error) {
+	// UpdateChainState
+	qc := make([]*protocols.State, 0)
+	qc = append(qc, &protocols.State{
+		Block:      block,
+		QuorumCert: buildQuorumCert(),
+	})
+	chainState := &protocols.ChainState{
+		Commit: &protocols.State{
+			Block:      block,
+			QuorumCert: buildQuorumCert(),
+		},
+		Lock: &protocols.State{
+			Block:      block,
+			QuorumCert: buildQuorumCert(),
+		},
+		QC: qc,
+	}
+	err := getWal().UpdateChainState(chainState)
+	return chainState, err
+}
+
+func testWalLoadChainState() (*protocols.ChainState, error) {
+	var err error
+	// Load chainState
+	var chainState *protocols.ChainState
+	err = getWal().LoadChainState(func(cs *protocols.ChainState) {
+		chainState = cs
+	})
+	if err != nil {
+		return nil, err
+	}
+	return chainState, nil
+}
+
 func testWalUpdateViewChange() error {
 	// UpdateViewChange
 	return getWal().UpdateViewChange(&ViewChangeMessage{
-		Hash:   viewChangeHash,
-		Number: viewChangeNumber,
+		Epoch:      epoch,
+		ViewNumber: viewNumber,
 	})
 }
 
@@ -125,15 +178,15 @@ func testLevelDB() error {
 	if db, err := leveldb.OpenFile(path, nil); err != nil {
 		return err
 	} else {
-		data, err := db.Get([]byte("view-change"), nil)
+		data, err := db.Get(viewChangeKey, nil)
 		if err != nil {
 			db.Close()
 			return err
 		}
-		var v ViewChangeMeta
-		if err := rlp.DecodeBytes(data, &v); err == nil {
+		var vc ViewChangeMessage
+		if err := rlp.DecodeBytes(data, &vc); err == nil {
 			db.Close()
-			if v.Number != 100 || v.Hash.Hex() != viewChangeHash.Hex() {
+			if vc.Epoch != epoch || vc.ViewNumber != viewNumber {
 				return errors.New("TestLevelDB error")
 			}
 		}
@@ -146,4 +199,22 @@ func TestEmptyWal(t *testing.T) {
 	assert.Nil(t, wal.Write(nil))
 	assert.Nil(t, wal.Load(func(msg interface{}) {}))
 	assert.Nil(t, wal.UpdateViewChange(nil))
+}
+
+func TestRlpDecode(t *testing.T) {
+	msg := &Message{
+		Timestamp: uint64(time.Now().UnixNano()),
+		Data: &protocols.ConfirmedViewChange{
+			Epoch:      1,
+			ViewNumber: 1,
+		},
+	}
+	data, _ := rlp.EncodeToBytes(msg)
+
+	var j MessageConfirmedViewChange
+	if err := rlp.DecodeBytes(data, &j); err == nil {
+		fmt.Println(fmt.Sprintf("decode msg,epoch:%d,viewNumber:%d", j.Data.Epoch, j.Data.ViewNumber))
+	} else {
+		t.Fatalf("%s", "rlp decode error")
+	}
 }

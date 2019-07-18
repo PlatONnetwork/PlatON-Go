@@ -36,7 +36,7 @@ const (
 	syncLoopDuration = 5 * time.Second
 )
 
-var crc32c = crc32.MakeTable(crc32.Castagnoli)
+var crc32c = crc32.MakeTable(crc32.Castagnoli) // The crc verifier
 
 var (
 	errNoActiveJournal = errors.New("no active journal")
@@ -45,11 +45,13 @@ var (
 	errLoadJournal     = errors.New("failed to load journal")
 )
 
-type JournalMessage struct {
+// Message is a combination of consensus msg.
+type Message struct {
 	Timestamp uint64
 	Data      interface{}
 }
 
+// sortFile represents the name and index of the journal file.
 type sortFile struct {
 	name string
 	num  uint32
@@ -75,6 +77,8 @@ type journal struct {
 	exitCh chan struct{}
 }
 
+// listJournalFiles sort existing files based on journal index.
+// it retrieves an ascending collection
 func listJournalFiles(path string) sortFiles {
 	files, err := ioutil.ReadDir(path)
 
@@ -103,7 +107,7 @@ func listJournalFiles(path string) sortFiles {
 	return nil
 }
 
-// newTxJournal creates journal object
+// NewJournal creates journal object
 func NewJournal(path string) (*journal, error) {
 	journal := &journal{
 		path:   path,
@@ -149,7 +153,7 @@ func (journal *journal) mainLoop(syncLoopDuration time.Duration) {
 	}
 }
 
-// currentJournal retrieves the current fileID and fileSeq of the cbft journal.
+// CurrentJournal retrieves the current fileID and fileSeq of the cbft journal.
 func (journal *journal) CurrentJournal() (uint32, uint64, error) {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
@@ -165,8 +169,8 @@ func (journal *journal) CurrentJournal() (uint32, uint64, error) {
 	return journal.fileID, fileSeq, nil
 }
 
-// insert adds the specified JournalMessage to the local disk journal.
-func (journal *journal) Insert(msg *JournalMessage, sync bool) error {
+// Insert adds the specified message to the local disk journal.
+func (journal *journal) Insert(msg *Message, sync bool) error {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
 
@@ -201,7 +205,8 @@ func (journal *journal) Insert(msg *JournalMessage, sync bool) error {
 	return nil
 }
 
-func encodeJournal(msg *JournalMessage) ([]byte, error) {
+// encodeJournal tries to encode journal message with rlp.
+func encodeJournal(msg *Message) ([]byte, error) {
 	data, err := rlp.EncodeToBytes(msg)
 	if err != nil {
 		log.Error("Failed to encode journal message", "err", err)
@@ -221,7 +226,7 @@ func encodeJournal(msg *JournalMessage) ([]byte, error) {
 	return pack, nil
 }
 
-// close flushes the journal contents to disk and closes the file.
+// Close flushes the journal contents to disk and closes the file.
 func (journal *journal) Close() {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
@@ -234,6 +239,7 @@ func (journal *journal) Close() {
 	close(journal.exitCh)
 }
 
+// rotate tries to create a new journal file when the current journal file exceed the size limit.
 func (journal *journal) rotate(journalLimitSize uint64) error {
 	//journal.mu.Lock()
 	//defer journal.mu.Unlock()
@@ -263,11 +269,14 @@ func (journal *journal) rotate(journalLimitSize uint64) error {
 	return nil
 }
 
+// checkFileSize determine if the current journal file exceed the size limit.
+// the limit size is configurable.
 func (journal *journal) checkFileSize(journalLimitSize uint64) bool {
 	fileSize, err := journal.currentFileSize()
 	return err == nil && fileSize >= journalLimitSize
 }
 
+// currentFileSize retrieves the size of current journal file.
 func (journal *journal) currentFileSize() (uint64, error) {
 	if fileInfo, err := journal.writer.file.Stat(); err != nil {
 		log.Error("Get the current journal file size error", "err", err)
@@ -277,6 +286,8 @@ func (journal *journal) currentFileSize() (uint64, error) {
 	}
 }
 
+// newJournalFile create a new journal file.
+// Subsequent messages will be written to the new file.
 func (journal *journal) newJournalFile(fileID uint32) (uint32, *WriterWrapper, error) {
 	newJournalFilePath := filepath.Join(journal.path, fmt.Sprintf("wal.%d", fileID))
 	file, err := os.OpenFile(newJournalFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
@@ -288,6 +299,8 @@ func (journal *journal) newJournalFile(fileID uint32) (uint32, *WriterWrapper, e
 	return fileID, NewWriterWrapper(file, writeBufferLimitSize), nil
 }
 
+// ExpireJournalFile tries to remove the expired journal file
+// when a new confirm viewChange is written, the previous message will expire.
 func (journal *journal) ExpireJournalFile(fileID uint32) error {
 	if files := listJournalFiles(journal.path); files != nil && files.Len() > 0 {
 		for _, file := range files {
@@ -299,6 +312,9 @@ func (journal *journal) ExpireJournalFile(fileID uint32) error {
 	return nil
 }
 
+// LoadJournal tries to load consensus message from journal file
+// search starting from the specified file and seq,will verify each message at the same time
+// recovery is the callback function
 func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, recovery func(msg interface{})) (err error) {
 	journal.mu.Lock()
 	defer journal.mu.Unlock()
@@ -322,6 +338,8 @@ func (journal *journal) LoadJournal(fromFileID uint32, fromSeq uint64, recovery 
 	return nil
 }
 
+// loadJournal is a concrete implementation to load consensus message from journal file
+// Each message is loaded into the caller as a callback function
 func (journal *journal) loadJournal(fileID uint32, seq uint64, recovery func(msg interface{})) error {
 	file, err := os.Open(filepath.Join(journal.path, fmt.Sprintf("wal.%d", fileID)))
 	if err != nil {

@@ -25,7 +25,6 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -35,33 +34,30 @@ import (
 const (
 	// Wal working directory
 	walDir = "wal"
-
 	// Wal database name
 	metaDBName = "wal_meta"
 )
 
 var (
-	viewChangeKey = []byte("view-change")
+	chainStateKey = []byte("chain-state") // Key of chainState to store leveldb
+	viewChangeKey = []byte("view-change") // Key of viewChange to store leveldb
 )
 
 var (
 	errCreateWalDir         = errors.New("failed to create wal directory")
 	errUpdateViewChangeMeta = errors.New("failed to update viewChange meta")
 	errGetViewChangeMeta    = errors.New("failed to get viewChange meta")
+	errGetChainState        = errors.New("failed to get chainState")
 )
 
 type ViewChangeMessage struct {
-	Hash   common.Hash
-	Number uint64
+	Epoch      uint64
+	ViewNumber uint64
+	FileID     uint32
+	Seq        uint64
 }
 
-type ViewChangeMeta struct {
-	Number uint64
-	Hash   common.Hash
-	FileID uint32
-	Seq    uint64
-}
-
+// Wal encapsulates functions required to update and load consensus state.
 type Wal interface {
 	UpdateChainState(chainState *protocols.ChainState) error
 	LoadChainState(recovery func(chainState *protocols.ChainState)) error
@@ -72,6 +68,7 @@ type Wal interface {
 	Close()
 }
 
+// emptyWal is a empty implementation for wal
 type emptyWal struct {
 }
 
@@ -102,12 +99,14 @@ func (w *emptyWal) Load(recovery func(msg interface{})) error {
 func (w *emptyWal) Close() {
 }
 
+// baseWal is a default implementation for wal
 type baseWal struct {
 	path    string // Wal working directory
 	metaDB  IWALDatabase
 	journal *journal
 }
 
+// NewWal creates a new wal to update and load consensus state.
 func NewWal(ctx *node.ServiceContext, specifiedPath string) (Wal, error) {
 	if ctx == nil && len(specifiedPath) == 0 {
 		return &emptyWal{}, nil
@@ -163,33 +162,64 @@ func NewWal(ctx *node.ServiceContext, specifiedPath string) (Wal, error) {
 	return wal, nil
 }
 
+// UpdateChainState tries to update consensus state to leveldb
 func (wal *baseWal) UpdateChainState(chainState *protocols.ChainState) error {
+	data, err := rlp.EncodeToBytes(chainState)
+	if err != nil {
+		return err
+	}
+	// Write the chainState to the WAL database
+	err = wal.metaDB.Put(chainStateKey, data, &opt.WriteOptions{Sync: true})
+	if err != nil {
+		return err
+	}
+	log.Debug("Success to update chainState")
 	return nil
 }
 
+// LoadChainState tries to load consensus state from leveldb
 func (wal *baseWal) LoadChainState(recovery func(chainState *protocols.ChainState)) error {
+	// open wal database
+	data, err := wal.metaDB.Get(chainStateKey)
+	if err != nil {
+		log.Warn("Failed to get chainState from db,may be the first time to run platon")
+		return nil
+	}
+	var cs protocols.ChainState
+	err = rlp.DecodeBytes(data, &cs)
+	if err != nil {
+		log.Error("Failed to decode chainState")
+		return errGetChainState
+	}
+	recovery(&cs)
 	return nil
 }
 
-// insert adds the specified MsgInfo to the local disk journal.
+// Write adds the specified consensus msg to the local disk journal.
+// the mode is asynchronous write,the msg will cache in bufio.Writer
 func (wal *baseWal) Write(msg interface{}) error {
-	return wal.journal.Insert(&JournalMessage{
+	return wal.journal.Insert(&Message{
 		Timestamp: uint64(time.Now().UnixNano()),
 		Data:      msg,
 	}, false)
 }
 
+// WriteSync adds the specified consensus msg to the local disk journal.
+// the mode is synchronous write,the msg will flush to disk immediately
 func (wal *baseWal) WriteSync(msg interface{}) error {
-	return wal.journal.Insert(&JournalMessage{
+	return wal.journal.Insert(&Message{
 		Timestamp: uint64(time.Now().UnixNano()),
 		Data:      msg,
 	}, true)
 }
 
+// UpdateViewChange tries to update consensus confirm viewChange to leveldb
 func (wal *baseWal) UpdateViewChange(info *ViewChangeMessage) error {
 	return wal.updateViewChangeMeta(info)
 }
 
+// Load tries to load consensus msg from the local disk journal.
+// recovery is the callback function
 func (wal *baseWal) Load(recovery func(msg interface{})) error {
 	// open wal database
 	data, err := wal.metaDB.Get(viewChangeKey)
@@ -197,31 +227,27 @@ func (wal *baseWal) Load(recovery func(msg interface{})) error {
 		log.Warn("Failed to get viewChange meta from db,may be the first time to run platon")
 		return nil
 	}
-	var v ViewChangeMeta
-	err = rlp.DecodeBytes(data, &v)
+	var vc ViewChangeMessage
+	err = rlp.DecodeBytes(data, &vc)
 	if err != nil {
 		log.Error("Failed to decode viewChange meta")
 		return errGetViewChangeMeta
 	}
 
-	return wal.journal.LoadJournal(v.FileID, v.Seq, recovery)
+	return wal.journal.LoadJournal(vc.FileID, vc.Seq, recovery)
 }
 
-// Update the ViewChange Meta Data to the database.
+// updateViewChangeMeta update the ViewChange Meta Data to the database.
 func (wal *baseWal) updateViewChangeMeta(vc *ViewChangeMessage) error {
 	fileID, seq, err := wal.journal.CurrentJournal()
 	if err != nil {
-		log.Error("Failed to update viewChange meta", "number", vc.Number, "hash", vc.Hash, "err", err)
+		log.Error("Failed to update viewChange meta", "epoch", vc.Epoch, "viewNumber", vc.ViewNumber, "err", err)
 		return errUpdateViewChangeMeta
 	}
 
-	viewChangeMeta := &ViewChangeMeta{
-		Number: vc.Number,
-		Hash:   vc.Hash,
-		FileID: fileID,
-		Seq:    seq,
-	}
-	data, err := rlp.EncodeToBytes(viewChangeMeta)
+	vc.FileID = fileID
+	vc.Seq = seq
+	data, err := rlp.EncodeToBytes(vc)
 	if err != nil {
 		return err
 	}
@@ -230,7 +256,7 @@ func (wal *baseWal) updateViewChangeMeta(vc *ViewChangeMessage) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("Success to update viewChange meta", "number", vc.Number, "hash", vc.Hash, "fileID", fileID, "seq", seq)
+	log.Debug("Success to update viewChange meta", "epoch", vc.Epoch, "viewNumber", vc.ViewNumber, "fileID", fileID, "seq", seq)
 	// Delete previous journal logs
 	go wal.journal.ExpireJournalFile(fileID)
 	return nil
