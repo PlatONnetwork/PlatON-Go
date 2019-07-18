@@ -97,7 +97,7 @@ func create_staking(state *state.StateDB, blockNumber *big.Int, blockHash common
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  uint32(index),
 		Shares:          balance,
-		ProcessVersion:  initProcessVersion,
+		ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 
 		// Prevent null pointer initialization
 		Released:           common.Big0,
@@ -299,7 +299,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 				v := &staking.Validator{
 					NodeAddress: canAddr,
 					NodeId:      canTmp.NodeId,
-					StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), canTmp.Shares.String(),
+					StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
 						fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 					ValidatorTerm: 0,
 				}
@@ -536,7 +536,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 				v := &staking.Validator{
 					NodeAddress: canAddr,
 					NodeId:      canTmp.NodeId,
-					StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), canTmp.Shares.String(),
+					StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
 						fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 					ValidatorTerm: 0,
 				}
@@ -1666,7 +1666,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 
 			// Prevent null pointer initialization
 			Released:           common.Big0,
@@ -1730,7 +1730,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -1843,7 +1843,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -1905,7 +1905,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -2041,7 +2041,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -2103,7 +2103,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -2259,7 +2259,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -2326,7 +2326,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -2447,7 +2447,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -2566,7 +2566,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -2678,7 +2678,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -2741,7 +2741,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -2857,7 +2857,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -2919,7 +2919,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -3051,7 +3051,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -3113,7 +3113,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -3245,7 +3245,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -3307,7 +3307,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -3425,7 +3425,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -3487,7 +3487,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -3611,7 +3611,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -3673,7 +3673,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -3784,7 +3784,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -3904,7 +3904,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -3970,7 +3970,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -4098,7 +4098,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -4164,7 +4164,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -4276,7 +4276,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -4338,7 +4338,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -4457,7 +4457,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -4519,7 +4519,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -4642,7 +4642,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -4704,7 +4704,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -4858,7 +4858,7 @@ func Test_IteratorCandidate(t *testing.T) {
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -4907,7 +4907,7 @@ func Test_IteratorCandidate(t *testing.T) {
 			return
 		}
 
-		val := fmt.Sprint(initProcessVersion) + "_" + can.Shares.String() + "_" + fmt.Sprint(can.StakingBlockNum) + "_" + fmt.Sprint(can.StakingTxIndex)
+		val := fmt.Sprint(can.ProgramVersion) + "_" + can.Shares.String() + "_" + fmt.Sprint(can.StakingBlockNum) + "_" + fmt.Sprint(can.StakingTxIndex)
 		t.Log("Val:", val)
 
 		queue = append(queue, can)
@@ -4930,7 +4930,7 @@ func Test_Iterator(t *testing.T) {
 		return
 	}
 
-	initProcessVersion := uint32(1<<16 | 0<<8 | 0) // 65536
+	initProgramVersion := uint32(1<<16 | 0<<8 | 0) // 65536
 
 	for i := 0; i < 1000; i++ {
 
@@ -4947,8 +4947,8 @@ func Test_Iterator(t *testing.T) {
 
 		balance = new(big.Int).Add(balance, big.NewInt(int64(weight)))
 
-		key := staking.TallyPowerKey(balance, uint64(i), uint32(index), initProcessVersion)
-		val := fmt.Sprint(initProcessVersion) + "_" + balance.String() + "_" + fmt.Sprint(i) + "_" + fmt.Sprint(index)
+		key := staking.TallyPowerKey(balance, uint64(i), uint32(index), initProgramVersion)
+		val := fmt.Sprint(initProgramVersion) + "_" + balance.String() + "_" + fmt.Sprint(i) + "_" + fmt.Sprint(index)
 		sndb.Put(blockHash, key, []byte(val))
 	}
 

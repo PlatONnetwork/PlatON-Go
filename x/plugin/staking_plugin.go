@@ -1160,7 +1160,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 
 		addr := common.BytesToAddress(addrSuffix)
 
-		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProcessVersion), can.Shares.String(),
+		powerStr := [staking.SWeightItem]string{fmt.Sprint(can.ProgramVersion), can.Shares.String(),
 			fmt.Sprint(can.StakingBlockNum), fmt.Sprint(can.StakingTxIndex)}
 
 		val := &staking.Validator{
@@ -1235,7 +1235,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 			StakingAddress:  can.StakingAddress,
 			BenifitAddress:  can.BenifitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
-			ProcessVersion:  can.ProcessVersion,
+			ProgramVersion:  can.ProgramVersion,
 			StakingBlockNum: can.StakingBlockNum,
 			Shares:          shares,
 			Description:     can.Description,
@@ -1444,7 +1444,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 			StakingAddress:  can.StakingAddress,
 			BenifitAddress:  can.BenifitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
-			ProcessVersion:  can.ProcessVersion,
+			ProgramVersion:  can.ProgramVersion,
 			StakingBlockNum: can.StakingBlockNum,
 			Shares:          shares,
 			Description:     can.Description,
@@ -1638,7 +1638,7 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.Candid
 			StakingAddress:     common.HexToAddress(addrArr[i]),
 			BenifitAddress:     vm.StakingContractAddr,
 			StakingTxIndex:     uint32(i),
-			ProcessVersion:     uint32(i*i),
+			ProgramVersion:     uint32(i*i),
 			Status:             staking.LowRatio,
 			StakingEpoch:       uint32(1),
 			StakingBlockNum:    uint64(i+2),
@@ -2151,10 +2151,12 @@ func (sk *StakingPlugin) SlashCandidates(state xcom.StateDB, blockHash common.Ha
 }
 
 func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber uint64, nodeIds []discover.NodeID,
-	processVersion uint32) error {
+	programVersion uint32) error {
 
-	log.Debug("Call ProposalPassedNotify to promote candidate processVersion", "blockNumber", blockNumber,
-		"blockHash", blockHash.Hex(), "version", processVersion, "nodeIdQueueSize", len(nodeIds))
+	log.Debug("Call ProposalPassedNotify to promote candidate programVersion", "blockNumber", blockNumber,
+		"blockHash", blockHash.Hex(), "version", programVersion, "nodeIdQueueSize", len(nodeIds))
+
+	version := xutil.CalcVersion(programVersion)
 
 	for _, nodeId := range nodeIds {
 
@@ -2168,7 +2170,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 
 		if nil == can {
 
-			log.Error("Call ProposalPassedNotify: Promote candidate processVersion failed, the can is empty",
+			log.Error("Call ProposalPassedNotify: Promote candidate programVersion failed, the can is empty",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
 			continue
 		}
@@ -2179,7 +2181,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			return err
 		}
 
-		can.ProcessVersion = processVersion
+		can.ProgramVersion = version
 
 		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 			log.Error("Call ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
@@ -2198,10 +2200,10 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 }
 
 func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber uint64, nodeId discover.NodeID,
-	processVersion uint32) error {
+	programVersion uint32) error {
 
-	log.Debug("Call DeclarePromoteNotify to promote candidate processVersion", "blockNumber", blockNumber,
-		"blockHash", blockHash.Hex(), "version", processVersion, "nodeId", nodeId.String())
+	log.Debug("Call DeclarePromoteNotify to promote candidate programVersion", "blockNumber", blockNumber,
+		"blockHash", blockHash.Hex(), "version", programVersion, "nodeId", nodeId.String())
 
 	addr, _ := xutil.NodeId2Addr(nodeId)
 	can, err := sk.db.GetCandidateStore(blockHash, addr)
@@ -2213,9 +2215,9 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 
 	if nil == can {
 
-		log.Error("Call DeclarePromoteNotify: Promote candidate processVersion failed, the can is empty",
+		log.Error("Call DeclarePromoteNotify: Promote candidate programVersion failed, the can is empty",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
-			"version", processVersion)
+			"version", programVersion)
 		return nil
 	}
 
@@ -2225,7 +2227,7 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		return err
 	}
 
-	can.ProcessVersion = processVersion
+	can.ProgramVersion = xutil.CalcVersion(programVersion)
 
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 		log.Error("Call DeclarePromoteNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
@@ -2485,7 +2487,7 @@ func (sk *StakingPlugin) ProbabilityElection(validatorList staking.ValidatorQueu
 		}
 		weights.Div(weights, new(big.Int).SetUint64(1e18))
 		sumWeights.Add(sumWeights, weights)
-		version, err := validator.GetProcessVersion()
+		version, err := validator.GetProgramVersion()
 		if nil != err {
 			return nil, err
 		}

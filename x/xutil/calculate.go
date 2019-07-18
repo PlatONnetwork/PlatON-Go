@@ -21,11 +21,11 @@ func NodeId2Addr(nodeId discover.NodeID) (common.Address, error) {
 	}
 }
 
-// The ProcessVersion: Major.Minor.Patch eg. 1.1.0
+// The ProgramVersion: Major.Minor.Patch eg. 1.1.0
 // Calculate the LargeVersion
 // eg: 1.1.0 ==> 1.1
-func CalcVersion(processVersion uint32) uint32 {
-	return processVersion >> 8
+func CalcVersion(programVersion uint32) uint32 {
+	return programVersion >> 8
 }
 
 func IsWorker(extra []byte) bool {
@@ -41,14 +41,14 @@ func CheckDelegateThreshold(delegate *big.Int) bool {
 }
 
 // eg. 65536 => 1.0.0
-func ProcessVersion2Str(processVersion uint32) string {
-	major := processVersion << 8
+func ProgramVersion2Str(programVersion uint32) string {
+	major := programVersion << 8
 	major = major >> 24
 
-	minor := processVersion << 16
+	minor := programVersion << 16
 	minor = minor >> 24
 
-	patch := processVersion << 24
+	patch := programVersion << 24
 	patch = patch >> 24
 
 	return fmt.Sprintf("%d.%d.%d", major, minor, patch)
@@ -60,30 +60,27 @@ func ConsensusSize() uint64 {
 	return xcom.BlocksWillCreate() * xcom.ConsValidatorNum()
 }
 
-// Each epoch (billing cycle) is a multiple of the consensus rounds
+// EpochSize is after how many consensus cycles, settle once
 func EpochSize() uint64 {
 	consensusSize := ConsensusSize()
 	em := xcom.ExpectedMinutes()
 	i := xcom.Interval()
 
-	epochSize := em * 60 / (i * consensusSize) * consensusSize
+	epochSize := em * 60 / (i * consensusSize)
 	return epochSize
 }
 
 // epochs numbers each year
 func EpochsPerYear() uint64 {
-	epochSize := EpochSize()
-	i := xcom.Interval()
-
-	epochs := SecondsPerYear / (i * epochSize)
-	return epochs
+	return SecondsPerYear / EpochSize()
 }
 
+// calculates how many new blocks in a settlement period
 func CalcBlocksEachEpoch() uint64 {
 	return ConsensusSize() * EpochSize()
 }
 
-// calculate
+// calculate how many new blocks in one year
 func CalcBlocksEachYear() uint64 {
 	return EpochsPerYear() * EpochSize()
 }

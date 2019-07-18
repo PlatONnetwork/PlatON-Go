@@ -88,7 +88,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 		BenifitAddress:  addr,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  1,
-		ProcessVersion:  initProcessVersion,
+		ProgramVersion:  initProgramVersion,
 		Shares:          new(big.Int).SetUint64(1000),
 
 		Released:           common.Big0,

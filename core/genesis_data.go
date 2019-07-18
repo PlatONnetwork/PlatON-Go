@@ -26,7 +26,7 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, version uint32) err
 			StakingAddress:     vm.RewardManagerPoolAddr,
 			BenifitAddress:     vm.RewardManagerPoolAddr,
 			StakingTxIndex:     uint32(index + 1),
-			ProcessVersion:     version,
+			ProgramVersion:     version,
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
 			StakingBlockNum:    uint64(0),
@@ -58,7 +58,7 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, version uint32) err
 			}
 		}
 
-		powerKey := staking.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProcessVersion)
+		powerKey := staking.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
 		if err := snapdb.PutBaseDB(powerKey, nodeAddr.Bytes()); nil != err {
 			return fmt.Errorf("Failed to Store Candidate Power: PutBaseDB failed. ID:%v, error:%s", can.NodeId, err)
 		}
