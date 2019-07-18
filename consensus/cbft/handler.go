@@ -277,7 +277,7 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		return nil
 
 	case msg.Code == protocols.PingMsg:
-		var pingTime [1]string
+		var pingTime protocols.Ping
 		if err := msg.Decode(&pingTime); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
@@ -289,7 +289,7 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		// Processed after receiving the pong message.
 		curTime := time.Now().UnixNano()
 		log.Debug("handle a eth Pong message", "curTime", curTime)
-		var pingTime [1]string
+		var pingTime protocols.Pong
 		if err := msg.Decode(&pingTime); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}

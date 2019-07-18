@@ -46,7 +46,7 @@ func NewRouter(bft Cbft, handler Handler) *router {
 // A is responsible for forwarding the message. It selects different
 // target nodes based on the message type and forwarding mode.
 func (r *router) gossip(m *types.MsgPackage) {
-	msgType := m.MessageType()
+	msgType := protocols.MessageType(m.Message())
 	msgHash := m.Message().MsgHash()
 
 	// Secondary forwarding verification.
@@ -93,7 +93,7 @@ func (h *router) sendMessage(m *types.MsgPackage) {
 	if peer, err := h.handler.Get(m.PeerID()); err == nil {
 		log.Debug("Send message", "targetPeer", m.PeerID(), "type", reflect.TypeOf(m.Message()),
 			"msgHash", m.Message().MsgHash().TerminalString(), "BHash", m.Message().BHash().TerminalString())
-		if err := p2p.Send(peer.rw, m.MessageType(), m.Message()); err != nil {
+		if err := p2p.Send(peer.rw, protocols.MessageType(m.Message()), m.Message()); err != nil {
 			log.Error("Send Peer error")
 			h.handler.Unregister(m.PeerID())
 		}
