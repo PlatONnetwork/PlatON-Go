@@ -3,6 +3,7 @@ package cbft
 import (
 	"bytes"
 	"crypto/ecdsa"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
 
 	"errors"
@@ -19,6 +20,7 @@ import (
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -39,16 +41,17 @@ type Config struct {
 }
 
 type Cbft struct {
-	config     Config
-	eventMux   *event.TypeMux
-	closeOnce  sync.Once
-	exitCh     chan struct{}
-	txPool     consensus.TxPoolReset
-	blockChain consensus.ChainReader
-	peerMsgCh  chan *ctypes.MsgInfo
-	syncMsgCh  chan *ctypes.MsgInfo
-	evPool     evidence.EvidencePool
-	log        log.Logger
+	config           Config
+	eventMux         *event.TypeMux
+	closeOnce        sync.Once
+	exitCh           chan struct{}
+	txPool           consensus.TxPoolReset
+	blockChain       consensus.ChainReader
+	blockCacheWriter consensus.BlockCacheWriter
+	peerMsgCh        chan *ctypes.MsgInfo
+	syncMsgCh        chan *ctypes.MsgInfo
+	evPool           evidence.EvidencePool
+	log              log.Logger
 
 	// Async call channel
 	asyncCallCh chan func()
@@ -57,8 +60,6 @@ type Cbft struct {
 	// Control the current view state
 	state cstate.ViewState
 
-	// Execution block function
-	execute consensus.Executor
 	// Block asyncExecutor, the block responsible for executing the current view
 	asyncExecutor executor.AsyncBlockExecutor
 
@@ -73,17 +74,24 @@ type Cbft struct {
 
 	// Store blocks that are not committed
 	blockTree ctypes.BlockTree
+
+	// wal
+	nodeServiceContext *node.ServiceContext
+	wal                wal.Wal
+	stateMu            sync.Mutex
+	viewMu             sync.Mutex
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
 	cbft := &Cbft{
-		config:      Config{sysConfig, optConfig},
-		eventMux:    eventMux,
-		exitCh:      make(chan struct{}),
-		peerMsgCh:   make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
-		syncMsgCh:   make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
-		log:         log.New(),
-		asyncCallCh: make(chan func(), optConfig.PeerMsgQueueSize),
+		config:             Config{sysConfig, optConfig},
+		eventMux:           eventMux,
+		exitCh:             make(chan struct{}),
+		peerMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
+		syncMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
+		log:                log.New(),
+		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
+		nodeServiceContext: ctx,
 	}
 
 	if evPool, err := evidence.NewEvidencePool(); err == nil {
@@ -99,10 +107,10 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 	return cbft
 }
 
-func (cbft *Cbft) Start(chain consensus.ChainReader, executorFn consensus.Executor, txPool consensus.TxPoolReset, agency consensus.Agency) error {
+func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
 	cbft.blockChain = chain
 	cbft.txPool = txPool
-	cbft.asyncExecutor = executor.NewAsyncExecutor(executorFn)
+	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
 	cbft.validatorPool = validator.NewValidatorPool(agency, chain.CurrentHeader().Number.Uint64(), cbft.config.sys.NodeID)
 
 	//Initialize block tree
@@ -115,7 +123,31 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, executorFn consensus.Execut
 	cbft.state.SetHighestQCBlock(block)
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
+
+	// load wal state
+	if err := cbft.LoadWal(); err != nil {
+		return err
+	}
+
 	go cbft.receiveLoop()
+	return nil
+}
+
+func (cbft *Cbft) LoadWal() error {
+	// init wal and load wal state
+	var err error
+	if cbft.wal, err = wal.NewWal(cbft.nodeServiceContext, ""); err != nil {
+		return err
+	}
+	//cbft.wal = &emptyWal{}
+
+	if err = cbft.wal.LoadChainState(cbft.recoveryChainState); err != nil {
+		return err
+	}
+
+	if err = cbft.wal.Load(cbft.recoveryMsg); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -380,8 +412,8 @@ func (cbft *Cbft) Close() error {
 		}
 		close(cbft.exitCh)
 	})
-	if cbft.executor != nil{
-		cbft.executor.Stop()
+	if cbft.asyncExecutor != nil {
+		cbft.asyncExecutor.Stop()
 	}
 	return nil
 }
@@ -504,4 +536,3 @@ func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		SyncState: nil,
 	})
 }
-

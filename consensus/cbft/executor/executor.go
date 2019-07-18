@@ -4,9 +4,10 @@ import (
 	"errors"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
+
+type Executor func(block *types.Block, parent *types.Block) error
 
 type BlockExecutor interface {
 	//Execution block, you need to pass in the parent block to find the parent block state
@@ -37,7 +38,7 @@ type AsyncExecutor struct {
 	AsyncBlockExecutor
 
 	// executeFn is a function use to execute block.
-	executeFn consensus.Executor
+	executeFn Executor
 
 	executeTasks   chan *executeTask       // A channel for notify execute task.
 	executeResults chan BlockExecuteStatus // A channel for notify execute result.
@@ -47,7 +48,7 @@ type AsyncExecutor struct {
 }
 
 // NewAsyncExecutor new a async block executor.
-func NewAsyncExecutor(executeFn consensus.Executor) *AsyncExecutor {
+func NewAsyncExecutor(executeFn Executor) *AsyncExecutor {
 	exe := &AsyncExecutor{
 		executeFn:      executeFn,
 		executeTasks:   make(chan *executeTask, 64),

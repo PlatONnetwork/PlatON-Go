@@ -22,7 +22,7 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 			if blockList, ok := msg.(*protocols.QCBlockList); ok {
 				// Execution block
 				for _, block := range blockList.Blocks {
-					if err := cbft.execute(block, parent); err != nil {
+					if err := cbft.blockCacheWriter.Execute(block, parent); err != nil {
 						cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
 						return
 					}
