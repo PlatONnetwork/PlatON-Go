@@ -101,7 +101,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	)
 
 	switch netId {
-	case DefaultMainNet:
+	case DefaultMainNet, DefaultDeveloperNet:
 		stakeThresholdCount = "1000000000000000000000000"
 		delegateThresholdCount = "10"
 		genesisIssuanceCount = "1000000000000000000000000000"
