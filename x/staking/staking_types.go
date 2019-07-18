@@ -86,9 +86,9 @@ type Candidate struct {
 	BenifitAddress common.Address
 	// The tx index at the time of staking
 	StakingTxIndex uint32
-	// The version of the node process
+	// The version of the node program
 	// (Store Large Verson: the 2.1.x large version is 2.1)
-	ProcessVersion uint32
+	ProgramVersion uint32
 	// The candidate status
 	// Reference `THE CANDIDATE  STATUS`
 	Status uint32
@@ -148,7 +148,7 @@ type Validator struct {
 	// NOTE:
 	// converted from the weight snapshot of Candidate, they array order is:
 	//
-	// processVersion, candidate.shares, stakingBlocknum, stakingTxindex
+	// programVersion, candidate.shares, stakingBlocknum, stakingTxindex
 	//
 	// They origin type is: uint32, *big.int, uint64, uint32
 	StakingWeight [SWeightItem]string
@@ -156,7 +156,7 @@ type Validator struct {
 	ValidatorTerm uint32
 }
 
-func (val *Validator) GetProcessVersion() (uint32, error) {
+func (val *Validator) GetProgramVersion() (uint32, error) {
 	version := val.StakingWeight[0]
 	v, err := strconv.Atoi(version)
 	if nil != err {
@@ -242,10 +242,10 @@ func (arr ValidatorQueue) partition(slashs SlashCandidate, left, right int,
 // it is slashed and is sorted to the end.
 //
 // The priorities just like that:
-// Slashing > Processversion > Shares > BlockNumber > TxIndex
+// Slashing > ProgramVersion > Shares > BlockNumber > TxIndex
 //
 // Slashing: From no to yes
-// Processversion: From big to small
+// ProgramVersion: From big to small
 // Shares： From big to small
 // BlockNumber: From small to big
 // TxIndex: From small to big
@@ -304,8 +304,8 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 	} else if !leftOk && rightOk {
 		return 1
 	} else {
-		leftVersion, _ := left.GetProcessVersion()
-		rightVersion, _ := right.GetProcessVersion()
+		leftVersion, _ := left.GetProgramVersion()
+		rightVersion, _ := right.GetProgramVersion()
 
 		switch {
 		case leftVersion < rightVersion:
@@ -325,10 +325,10 @@ func CompareDefault(slashs SlashCandidate, left, right *Validator) int {
 // it is slashed and is sorted to the front.
 //
 // The priorities just like that:
-// DoubleSign > ProcessVersion > LowPackageRatio > validaotorTerm  > Shares > BlockNumber > TxIndex
+// DoubleSign > ProgramVersion > LowPackageRatio > validaotorTerm  > Shares > BlockNumber > TxIndex
 //
 // DoubleSign: From yes to no (When both are double-signed, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
-// Processversion: From small to big
+// ProgramVersion: From small to big
 // validaotorTerm: From big to small
 // LowPackageRatio: From small to big (When both are zero package, priority is given to removing high weights [Shares. BlockNumber. TxIndex].)
 // Shares： From small to bigLowPackageRatio
@@ -408,8 +408,8 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 		} else {
 
 			// When both doublesign
-			lversion, _ := left.GetProcessVersion()
-			rversion, _ := right.GetProcessVersion()
+			lversion, _ := left.GetProgramVersion()
+			rversion, _ := right.GetProgramVersion()
 			switch {
 			case lversion > rversion:
 				return -1
@@ -425,9 +425,9 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 			return -1
 		} else { // When both no doubleSign
 
-			// 2. ProcessVersion
-			lversion, _ := left.GetProcessVersion()
-			rversion, _ := right.GetProcessVersion()
+			// 2. ProgramVersion
+			lversion, _ := left.GetProgramVersion()
+			rversion, _ := right.GetProgramVersion()
 			switch {
 			case lversion > rversion:
 				return -1
@@ -469,7 +469,7 @@ func CompareForDel(slashs SlashCandidate, left, right *Validator) int {
 // NOTE: Sort when doing storage
 //
 // The priorities just like that:
-// ProcessVersion > validaotorTerm > Shares > BlockNumber > TxIndex
+// ProgramVersion > validaotorTerm > Shares > BlockNumber > TxIndex
 //
 // Compare Left And Right
 // 1: Left > Right
@@ -533,9 +533,9 @@ func CompareForStore(_ SlashCandidate, left, right *Validator) int {
 		}
 	}
 
-	// 1. ProcessVersion
-	lVersion, _ := left.GetProcessVersion()
-	rVersion, _ := right.GetProcessVersion()
+	// 1. ProgramVersion
+	lVersion, _ := left.GetProgramVersion()
+	rVersion, _ := right.GetProgramVersion()
 	if lVersion < rVersion {
 		return -1
 	} else if lVersion > rVersion {
@@ -564,7 +564,7 @@ type ValidatorEx struct {
 	// The tx index at the time of staking
 	StakingTxIndex uint32
 	// The version of the node process
-	ProcessVersion uint32
+	ProgramVersion uint32
 	// Block height at the time of staking
 	StakingBlockNum uint64
 	// All vons of staking and delegated

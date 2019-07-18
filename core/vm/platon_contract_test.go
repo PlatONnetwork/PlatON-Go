@@ -98,7 +98,7 @@ var (
 		common.HexToHash("0x00000000000054fa3d19eb57e98aa1dd69d216722054d8539ede4b89c5b77ee9"),
 	}
 
-	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536
+	initProgramVersion = uint32(1<<16 | 0<<8 | 0) // 65536
 
 	balanceStr = []string{
 
@@ -203,7 +203,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *
 
 	//set a default active version
 	govDB := gov.GovDBInstance()
-	govDB.SetActiveVersion(initProcessVersion, state)
+	govDB.SetActiveVersion(initProgramVersion, state)
 
 	return evm
 }
@@ -237,7 +237,7 @@ func build_staking_data(genesisHash common.Hash) {
 		StakingAddress:     sender,
 		BenifitAddress:     addrArr[1],
 		StakingTxIndex:     uint32(2),
-		ProcessVersion:     uint32(1),
+		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,
 		StakingEpoch:       uint32(1),
 		StakingBlockNum:    uint64(1),
@@ -259,7 +259,7 @@ func build_staking_data(genesisHash common.Hash) {
 		StakingAddress:     sender,
 		BenifitAddress:     addrArr[2],
 		StakingTxIndex:     uint32(3),
-		ProcessVersion:     uint32(1),
+		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,
 		StakingEpoch:       uint32(1),
 		StakingBlockNum:    uint64(1),
@@ -281,7 +281,7 @@ func build_staking_data(genesisHash common.Hash) {
 		StakingAddress:     sender,
 		BenifitAddress:     addrArr[3],
 		StakingTxIndex:     uint32(4),
-		ProcessVersion:     uint32(1),
+		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,
 		StakingEpoch:       uint32(1),
 		StakingBlockNum:    uint64(1),
