@@ -19,6 +19,8 @@ package consensus
 
 import (
 	"crypto/ecdsa"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -27,7 +29,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"time"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -58,7 +59,10 @@ type TxPoolReset interface {
 }
 
 //Execution block, you need to pass in the parent block to find the parent block state
-type Executor func(block *types.Block, parent *types.Block) error
+type BlockCacheWriter interface {
+	Execute(block *types.Block, parent *types.Block) error
+	ClearCache(block *types.Block)
+}
 
 // Engine is an algorithm agnostic consensus engine.
 type Engine interface {
@@ -146,16 +150,17 @@ type Agency interface {
 type Bft interface {
 	Engine
 
-	Start(chain ChainReader, executor Executor, pool TxPoolReset, agency Agency) error
+	Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error
 
 	// Returns the current consensus node address list.
 	ConsensusNodes() ([]discover.NodeID, error)
 
 	// Returns whether the current node is out of the block
-	ShouldSeal(curTime int64) (bool, error)
+	ShouldSeal(curTime time.Time) (bool, error)
 
-	CalcBlockDeadline(timePoint int64) (time.Time, error)
-	CalcNextBlockTime(timePoint int64) (time.Time, error)
+	CalcBlockDeadline(timePoint time.Time) time.Time
+
+	CalcNextBlockTime(timePoint time.Time) time.Time
 
 	IsConsensusNode() bool
 
