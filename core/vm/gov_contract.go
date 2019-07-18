@@ -25,21 +25,21 @@ const (
 	GetTallyResultErrorMsg        = "Find a specified proposal's tally result error"
 	ListProposalErrorMsg          = "List all proposals error"
 	GetActiveVersionErrorMsg      = "Get active version error"
-	GetCodeVersionErrorMsg        = "Get code version error"
+	GetProgramVersionErrorMsg     = "Get program version error"
 	ListParamErrorMsg             = "List all parameters and values"
 )
 
 const (
-	SubmitTextEvent       = "2000"
-	SubmitVersionEvent    = "2001"
-	SubmitParamEvent      = "2002"
-	VoteEvent             = "2003"
-	DeclareEvent          = "2004"
-	GetProposalEvent      = "2100"
-	GetResultEvent        = "2101"
-	ListProposalEvent     = "2102"
-	GetActiveVersionEvent = "2103"
-	GetCodeVersionEvent   = "2104"
+	SubmitTextEvent        = "2000"
+	SubmitVersionEvent     = "2001"
+	SubmitParamEvent       = "2002"
+	VoteEvent              = "2003"
+	DeclareEvent           = "2004"
+	GetProposalEvent       = "2100"
+	GetResultEvent         = "2101"
+	ListProposalEvent      = "2102"
+	GetActiveVersionEvent  = "2103"
+	GetProgramVersionEvent = "2104"
 )
 
 var (
@@ -74,7 +74,7 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		2101: gc.getTallyResult,
 		2102: gc.listProposal,
 		2103: gc.getActiveVersion,
-		2104: gc.getCodeVersion,
+		2104: gc.getProgramVersion,
 		2105: gc.listParam,
 	}
 }
@@ -131,7 +131,7 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, githubID, topic, 
 	return gc.errHandler("submitVersion", SubmitVersionEvent, err, SubmitVersionProposalErrorMsg)
 }
 
-func (gc *GovContract) submitParam(verifier discover.NodeID, githubID, topic, desc, url string, paramName string, currentValue, newValue interface{}, endVotingBlock uint64) ([]byte, error) {
+func (gc *GovContract) submitParam(verifier discover.NodeID, githubID, topic, desc, url string, paramName string, currentValue, newValue string, endVotingBlock uint64) ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	log.Debug("Call submitVersion of GovContract",
 		"from", from.Hex(),
@@ -253,16 +253,16 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 	return gc.returnHandler(activeVersion, nil, GetActiveVersionErrorMsg)
 }
 
-func (gc *GovContract) getCodeVersion() ([]byte, error) {
+func (gc *GovContract) getProgramVersion() ([]byte, error) {
 	from := gc.Contract.CallerAddress
-	log.Debug("Call getCodeVersion of GovContract",
+	log.Debug("Call getProgramVersion of GovContract",
 		"from", from.Hex(),
 		"txHash", gc.Evm.StateDB.TxHash(),
 		"blockNumber", gc.Evm.BlockNumber.Uint64())
 
-	codeVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
+	programVersion := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)
 
-	return gc.returnHandler(codeVersion, nil, GetCodeVersionErrorMsg)
+	return gc.returnHandler(programVersion, nil, GetProgramVersionErrorMsg)
 }
 
 func (gc *GovContract) listParam() ([]byte, error) {

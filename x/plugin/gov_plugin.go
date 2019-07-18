@@ -698,11 +698,11 @@ func (govPlugin *GovPlugin) findVotingVersionProposal(blockHash common.Hash, sta
 	return nil, nil
 }
 
-func (govPlugin *GovPlugin) SetParam(paraMap map[string]interface{}, state xcom.StateDB) error {
+func (govPlugin *GovPlugin) SetParam(paraMap map[string]string, state xcom.StateDB) error {
 	return govPlugin.govDB.SetParam(paraMap, state)
 }
 
-func (govPlugin *GovPlugin) ListParam(state xcom.StateDB) (map[string]interface{}, error) {
+func (govPlugin *GovPlugin) ListParam(state xcom.StateDB) (map[string]string, error) {
 	paramList, err := govPlugin.govDB.ListParam(state)
 	if err != nil {
 		log.Error("list all parameters failed", "msg", err.Error())
@@ -711,11 +711,11 @@ func (govPlugin *GovPlugin) ListParam(state xcom.StateDB) (map[string]interface{
 	return paramList, nil
 }
 
-func (govPlugin *GovPlugin) GetParamValue(name string, state xcom.StateDB) (interface{}, error) {
+func (govPlugin *GovPlugin) GetParamValue(name string, state xcom.StateDB) (string, error) {
 	value, err := govPlugin.govDB.GetParam(name, state)
 	if err != nil {
 		log.Error("fina a parameter failed", "msg", err.Error())
-		return nil, err
+		return "", err
 	}
 	return value, nil
 }

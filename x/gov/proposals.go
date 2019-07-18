@@ -413,8 +413,8 @@ type ParamProposal struct {
 	Result         TallyResult
 
 	ParamName    string
-	CurrentValue interface{}
-	NewValue     interface{}
+	CurrentValue string
+	NewValue     string
 }
 
 func (pp ParamProposal) GetProposalID() common.Hash {
@@ -460,11 +460,11 @@ func (pp ParamProposal) GetParamName() string {
 	return pp.ParamName
 }
 
-func (pp ParamProposal) GetCurrentValue() interface{} {
+func (pp ParamProposal) GetCurrentValue() string {
 	return pp.CurrentValue
 }
 
-func (pp ParamProposal) GetNewValue() interface{} {
+func (pp ParamProposal) GetNewValue() string {
 	return pp.NewValue
 }
 
