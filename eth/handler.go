@@ -475,11 +475,12 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				return err
 			}
 			for iter.Next() {
-				kv := [2][]byte{
-					iter.Key(),
-					iter.Value(),
-				}
-				ps.KVs = append(ps.KVs, kv)
+				k, v := make([]byte, len(iter.Key())), make([]byte, len(iter.Value()))
+				copy(k, iter.Key())
+				copy(v, iter.Value())
+				ps.KVs = append(ps.KVs, [2][]byte{
+					k, v,
+				})
 				ps.KVNum++
 				count++
 				if count >= downloader.PPOSStorageKVSizeFetch {

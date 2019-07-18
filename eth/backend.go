@@ -20,6 +20,11 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"math/big"
+	"runtime"
+	"sync"
+	"sync/atomic"
+
 	"github.com/PlatONnetwork/PlatON-Go/accounts"
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
@@ -46,10 +51,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
 	xplugin "github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"math/big"
-	"runtime"
-	"sync"
-	"sync/atomic"
 )
 
 var indexMock = map[int][]int{
@@ -234,7 +235,6 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	eth.miner.SetExtra(makeExtraData(config.MinerExtraData))
 
 	reactor := core.NewBlockChainReactor(chainConfig.Cbft.PrivateKey, eth.EventMux())
-	reactor.SetVRF_hanlder(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 
 	if bft, ok := eth.engine.(consensus.Bft); ok {
 		if cbftEngine, ok := bft.(*cbft.Cbft); ok {
@@ -250,14 +250,15 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 			log.Debug("Validator mode", "mode", chainConfig.Cbft.ValidatorMode)
 			if chainConfig.Cbft.ValidatorMode == "" || chainConfig.Cbft.ValidatorMode == common.STATIC_VALIDATOR_MODE {
 				agency = cbft.NewStaticAgency(chainConfig.Cbft.InitialNodes)
-				reactor.SetValidatorMode(common.STATIC_VALIDATOR_MODE)
+				reactor.Start(common.STATIC_VALIDATOR_MODE)
 			} else if chainConfig.Cbft.ValidatorMode == common.INNER_VALIDATOR_MODE {
 				blocksPerNode := int(int64(chainConfig.Cbft.Duration) / int64(chainConfig.Cbft.Period))
 				offset := blocksPerNode * 2
 				agency = cbft.NewInnerAgency(chainConfig.Cbft.InitialNodes, eth.blockchain, blocksPerNode, offset)
-				reactor.SetValidatorMode(common.INNER_VALIDATOR_MODE)
+				reactor.Start(common.INNER_VALIDATOR_MODE)
 			} else if chainConfig.Cbft.ValidatorMode == common.PPOS_VALIDATOR_MODE {
-				reactor.SetValidatorMode(common.PPOS_VALIDATOR_MODE)
+				reactor.Start(common.PPOS_VALIDATOR_MODE)
+				reactor.SetVRF_hanlder(xcom.NewVrfHandler(eth.blockchain.Genesis().Nonce()))
 				handlePlugin(reactor)
 				agency = reactor
 			}
@@ -584,6 +585,7 @@ func (s *Ethereum) Stop() error {
 
 	s.chainDb.Close()
 	close(s.shutdownChan)
+	core.GetReactorInstance().Close()
 	return nil
 }
 

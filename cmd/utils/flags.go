@@ -1534,35 +1534,32 @@ func MigrateFlags(action func(ctx *cli.Context) error) func(*cli.Context) error 
 }
 
 func GetEconomicDefaultConfig(ctx *cli.Context) *xcom.EconomicModel {
+	var networkId int8
 
 	// Override any default Economic configs for hard coded networks.
 	switch {
-
-	// Alpha Test Net
 	case ctx.GlobalBool(TestnetFlag.Name):
-		return &xcom.TestnetDefaultConfig
+		networkId = xcom.DefaultAlphaTestNet // Alpha Test Net
 
-	// Beta Test Net
 	case ctx.GlobalBool(BetanetFlag.Name):
-		return &xcom.BetaDefaultConfig
+		networkId = xcom.DefaultBetaTestNet // Beta Test Net
 
-	// PlatON Inner Test Net
 	case ctx.GlobalBool(InnerTestnetFlag.Name):
-		return &xcom.InnerTestDefaultConfig
+		networkId = xcom.DefaultInnerTestNet // PlatON Inner Test Net
 
-	// PlatON Inner Dev Net
 	case ctx.GlobalBool(InnerDevnetFlag.Name):
-		return &xcom.InnerDevDefaultConfig
+		networkId = xcom.DefaultInnerDevNet // PlatON Inner Dev Net
 
-	// Ethereum's original Dev configuration
 	case ctx.GlobalBool(DeveloperFlag.Name):
+		networkId = xcom.DefaultDeveloperNet // PlatON's personal development net configuration
 
-		// TODO
-		return &xcom.DefaultConfig
-
-	// main net
 	default:
-		return &xcom.DefaultConfig
+		networkId = xcom.DefaultMainNet // main net
+	}
 
+	if model := xcom.GetEc(networkId); model == nil {
+		panic("get economic model failed")
+	} else {
+		return model
 	}
 }

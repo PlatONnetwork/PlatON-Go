@@ -14,6 +14,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 var (
@@ -104,7 +105,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		plugin.SetLatestEpoch(stateDb, 0)
 
-		head := types.Header{Number: big.NewInt(int64(1 * xcom.ConsensusSize() * xcom.EpochSize()))}
+		head := types.Header{Number: big.NewInt(int64(1 * xutil.CalcBlocksEachEpoch()))}
 		err = plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
 
 		// show expected result
@@ -124,7 +125,7 @@ func TestRestrictingPlugin_EndBlock(t *testing.T) {
 
 		plugin.SetLatestEpoch(stateDb, 0)
 		buildDbRestrictingPlan(t, stateDb)
-		head := types.Header{Number: big.NewInt(int64(1 * xcom.ConsensusSize() * xcom.EpochSize()))}
+		head := types.Header{Number: big.NewInt(int64(1 * xutil.CalcBlocksEachEpoch()))}
 
 		err = plugin.RestrictingInstance().EndBlock(common.Hash{}, &head, stateDb)
 
@@ -676,7 +677,7 @@ func TestRestrictingPlugin_GetRestrictingInfo(t *testing.T) {
 		t.Log("expected debt    of restrict account: ", big.NewInt(0))
 		t.Log("expected staking of restrict account: ", big.NewInt(0))
 		for i := 0; i < 5; i++ {
-			expectedBlocks := uint64(i+1) * xcom.EpochSize() * xcom.ConsensusSize()
+			expectedBlocks := uint64(i+1) * xutil.CalcBlocksEachEpoch()
 			t.Logf("expected release amount at blockNumber [%d] is: %v", expectedBlocks, big.NewInt(int64(1E18)))
 		}
 		t.Log("=====================")

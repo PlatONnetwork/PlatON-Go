@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"math/big"
+	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -12,6 +13,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 var (
@@ -23,12 +25,15 @@ var (
 type RestrictingPlugin struct {
 }
 
-var rt *RestrictingPlugin = nil
+var (
+	restrictingOnce sync.Once
+	rt              *RestrictingPlugin
+)
 
 func RestrictingInstance() *RestrictingPlugin {
-	if rt == nil {
+	restrictingOnce.Do(func() {
 		rt = &RestrictingPlugin{}
-	}
+	})
 	return rt
 }
 
@@ -543,5 +548,5 @@ func getLatestEpoch(stateDb xcom.StateDB) uint64 {
 }
 
 func getBlockNumberByEpoch(epoch uint64) uint64 {
-	return epoch * xcom.ConsensusSize() * xcom.EpochSize()
+	return epoch * xutil.CalcBlocksEachEpoch()
 }

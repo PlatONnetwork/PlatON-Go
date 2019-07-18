@@ -55,6 +55,8 @@ type StakingContract struct {
 }
 
 func (stkc *StakingContract) RequiredGas(input []byte) uint64 {
+	// jiexi
+	//plugin.Verify_tx_data(input, command)
 	return 0
 }
 
@@ -93,6 +95,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	from := stkc.Contract.CallerAddress
 
 	state := stkc.Evm.StateDB
+	//stkc.Contract.UseGas()
 
 	log.Info("Call createStaking of stakingContract", "txHash", txHash.Hex(),
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
@@ -119,7 +122,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	// Just like that:
 	// eg: 2.1.x == 2.1.x; 2.1.x > 2.0.x
 	if inputVersion < currVersion {
-		err := fmt.Errorf("input Version: %s, current Large Version: %s", xutil.ProcessVerion2Str(processVersion), xutil.ProcessVerion2Str(curr_version))
+		err := fmt.Errorf("input Version: %s, current Large Version: %s", xutil.ProcessVersion2Str(processVersion), xutil.ProcessVersion2Str(curr_version))
 		res := xcom.Result{false, "", ProcessVersionErr + ": " + err.Error()}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
@@ -152,7 +155,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	/**
 	init candidate info
 	*/
-	canTmp := &staking.Candidate{
+	canNew := &staking.Candidate{
 		NodeId:          nodeId,
 		StakingAddress:  from,
 		BenifitAddress:  benifitAddress,
@@ -174,11 +177,11 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		},
 	}
 
-	canTmp.ProcessVersion = currVersion
+	canNew.ProcessVersion = currVersion
 
 	if isDeclareVersion {
 		// Declare new Version
-		err := plugin.GovPluginInstance().DeclareVersion(canTmp.StakingAddress, canTmp.NodeId,
+		err := plugin.GovPluginInstance().DeclareVersion(canNew.StakingAddress, canNew.NodeId,
 			processVersion, blockHash, blockNumber.Uint64(), state)
 		if nil != err {
 			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
@@ -186,7 +189,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		}
 	}
 
-	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, canTmp)
+	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, canNew)
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", CreateCanErrStr + ": " + err.Error()}

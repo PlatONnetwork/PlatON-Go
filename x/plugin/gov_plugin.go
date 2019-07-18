@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/byteutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -153,7 +155,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 	if ok {
 		log.Debug("found pre-active version proposal", "proposalID", preActiveProposalID, "blockNumber", header.Number.Uint64(), "activeBlockNumber", versionProposal.GetActiveBlock())
 		sub := header.Number.Uint64() - versionProposal.GetActiveBlock()
-		if sub >= 0 && sub%xcom.ConsensusSize() == 0 {
+		if sub >= 0 && sub%xutil.ConsensusSize() == 0 {
 			validatorList, err := stk.ListCurrentValidatorID(blockHash, header.Number.Uint64())
 			if err != nil {
 				log.Error("list current round validators failed.", "blockHash", blockHash, "blockNumber", header.Number.Uint64())
@@ -171,9 +173,7 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 			//check if all validators are active
 			for _, val := range validatorList {
 				if inNodeList(val, activeList) {
-					if inNodeList(val, activeList) {
-						updatedNodes++
-					}
+					updatedNodes++
 				}
 			}
 			if updatedNodes == xcom.ConsValidatorNum() {
@@ -235,8 +235,8 @@ func (govPlugin *GovPlugin) Submit(from common.Address, proposal gov.Proposal, b
 	}
 
 	//check caller and proposer
-	if !govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, proposal.GetSubmitBlock()) {
-		return common.NewBizError("tx sender is not a verifier.")
+	if err := govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, proposal.GetSubmitBlock()); err != nil {
+		return err
 	}
 
 	//handle version proposal
@@ -290,8 +290,8 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 	}
 
 	//check caller and voter
-	if !govPlugin.checkVerifier(from, vote.VoteNodeID, blockHash, blockNumber) {
-		return common.NewBizError("tx sender is not a verifier, or mismatch the verifier's nodeID")
+	if err := govPlugin.checkVerifier(from, proposal.GetProposer(), blockHash, proposal.GetSubmitBlock()); err != nil {
+		return err
 	}
 
 	//voteOption range check
@@ -320,19 +320,28 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 		}
 	}
 
+	//check if node has voted
+	verifierList, err := govPlugin.govDB.ListVotedVerifier(vote.ProposalID, state)
+	if err != nil {
+		log.Error("list voted verifiers failed", "proposalID", vote.ProposalID)
+		return err
+	}
+
+	if inNodeList(vote.VoteNodeID, verifierList) {
+		log.Error("node has voted this proposal", "proposalID", vote.ProposalID, "nodeID", byteutil.PrintNodeID(vote.VoteNodeID))
+		return common.NewBizError("node has voted this proposal.")
+	}
+
 	//handle storage
 	if err := govPlugin.govDB.SetVote(vote.ProposalID, vote.VoteNodeID, vote.VoteOption, state); err != nil {
 		log.Error("save vote failed", "proposalID", vote.ProposalID)
 		return err
 	}
-	if err := govPlugin.govDB.AddVotedVerifier(blockHash, vote.ProposalID, vote.VoteNodeID); err != nil {
-		log.Error("add nodeID into voted verifier list failed", "proposalID", vote.ProposalID, "voteNodeID", vote.VoteNodeID)
-		return err
-	}
+
 	//the proposal is version type, so add the node ID to active node list.
 	if proposal.GetProposalType() == gov.Version {
 		if err := govPlugin.govDB.AddActiveNode(blockHash, vote.ProposalID, vote.VoteNodeID); err != nil {
-			log.Error("add nodeID to active node list failed", "proposalID", vote.ProposalID, "voteNodeID", vote.VoteNodeID)
+			log.Error("add nodeID to active node list failed", "proposalID", vote.ProposalID, "nodeID", byteutil.PrintNodeID(vote.VoteNodeID))
 			return err
 		}
 	}
@@ -344,10 +353,12 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
 
 	//check caller is a Verifier or Candidate
-	isVerifier := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber)
-	isCandidate := govPlugin.checkCandidate(from, declaredNodeID, blockHash, blockNumber)
-	if !(isVerifier || isCandidate) {
-		return common.NewBizError("tx sender is not a verifier or candidate.")
+	if err := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber); err != nil {
+		return err
+	}
+
+	if err := govPlugin.checkCandidate(from, declaredNodeID, blockHash, blockNumber); err != nil {
+		return err
 	}
 
 	activeVersion := uint32(govPlugin.govDB.GetActiveVersion(state))
@@ -619,45 +630,43 @@ func (govPlugin *GovPlugin) tallyBasic(proposalID common.Hash, blockHash common.
 }
 
 // check if the node a verifier, and the caller address is same as the staking address
-func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
+func (govPlugin *GovPlugin) checkVerifier(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) error {
 	verifierList, err := stk.GetVerifierList(blockHash, blockNumber, QueryStartNotIrr)
 	if err != nil {
 		log.Error("list verifiers failed", "blockHash", blockHash, "err", err)
-		return false
+		return err
 	}
 
 	for _, verifier := range verifierList {
 		if verifier != nil && verifier.NodeId == nodeID {
 			if verifier.StakingAddress == from {
-				return true
+				return nil
 			} else {
-				log.Error("tx sender should be staking address")
-				return false
+				return common.NewBizError("tx sender should be node's staking address.")
 			}
 		}
 	}
-	return false
+	return common.NewBizError("tx sender is not verifier.")
 }
 
 // check if the node a candidate, and the caller address is same as the staking address
-func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) bool {
+func (govPlugin *GovPlugin) checkCandidate(from common.Address, nodeID discover.NodeID, blockHash common.Hash, blockNumber uint64) error {
 	candidateList, err := stk.GetCandidateList(blockHash)
 	if err != nil {
 		log.Error("list candidates failed", "blockHash", blockHash)
-		return false
+		return err
 	}
 
 	for _, candidate := range candidateList {
 		if candidate.NodeId == nodeID {
 			if candidate.StakingAddress == from {
-				return true
+				return nil
 			} else {
-				log.Warn("candidate should send the tx by staking address")
-				return false
+				return common.NewBizError("tx sender should be node's staking address.")
 			}
 		}
 	}
-	return false
+	return common.NewBizError("tx sender is not candidate.")
 }
 
 // list all proposal IDs at voting stage

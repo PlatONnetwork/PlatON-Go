@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
@@ -15,41 +16,40 @@ import (
 )
 
 const (
-	SubmitTextProposalErrorMsg        	= "Submit a text proposal error"
-	SubmitVersionProposalErrorMsg       = "Submit a version proposal error"
-	SubmitParamProposalErrorMsg       	= "Submit a param proposal error"
-	VoteErrorMsg        				= "Vote error"
-	DeclareErrorMsg        				= "Declare version error"
-	GetProposalErrorMsg        			= "Find a specified proposal error"
-	GetTallyResultErrorMsg				= "Find a specified proposal's tally result error"
-	ListProposalErrorMsg				= "List all proposals error"
-	GetActiveVersionErrorMsg			= "Get active version error"
-	GetCodeVersionErrorMsg				= "Get code version error"
-	ListParamErrorMsg					= "List all parameters and values"
+	SubmitTextProposalErrorMsg    = "Submit a text proposal error"
+	SubmitVersionProposalErrorMsg = "Submit a version proposal error"
+	SubmitParamProposalErrorMsg   = "Submit a param proposal error"
+	VoteErrorMsg                  = "Vote error"
+	DeclareErrorMsg               = "Declare version error"
+	GetProposalErrorMsg           = "Find a specified proposal error"
+	GetTallyResultErrorMsg        = "Find a specified proposal's tally result error"
+	ListProposalErrorMsg          = "List all proposals error"
+	GetActiveVersionErrorMsg      = "Get active version error"
+	GetCodeVersionErrorMsg        = "Get code version error"
+	ListParamErrorMsg             = "List all parameters and values"
 )
 
-
 const (
-	SubmitTextEvent   		= "2000"
-	SubmitVersionEvent   	= "2001"
-	SubmitParamEvent   		= "2002"
-	VoteEvent   			= "2003"
-	DeclareEvent 			= "2004"
-	GetProposalEvent 		= "2100"
-	GetResultEvent 			= "2101"
-	ListProposalEvent 		= "2102"
-	GetActiveVersionEvent 	= "2103"
-	GetCodeVersionEvent 	= "2104"
+	SubmitTextEvent       = "2000"
+	SubmitVersionEvent    = "2001"
+	SubmitParamEvent      = "2002"
+	VoteEvent             = "2003"
+	DeclareEvent          = "2004"
+	GetProposalEvent      = "2100"
+	GetResultEvent        = "2101"
+	ListProposalEvent     = "2102"
+	GetActiveVersionEvent = "2103"
+	GetCodeVersionEvent   = "2104"
 )
 
 var (
-	Delimiter               = []byte("")
+	Delimiter = []byte("")
 )
 
 type GovContract struct {
-	Plugin 	   *plugin.GovPlugin
-	Contract   *Contract
-	Evm        *EVM
+	Plugin   *plugin.GovPlugin
+	Contract *Contract
+	Evm      *EVM
 }
 
 func (gc *GovContract) RequiredGas(input []byte) uint64 {
@@ -65,7 +65,7 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		// Set
 		2000: gc.submitText,
 		2001: gc.submitVersion,
-		2002: gc.submitVersion,
+		2002: gc.submitParam,
 		2003: gc.vote,
 		2004: gc.declareVersion,
 
@@ -75,6 +75,7 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 		2102: gc.listProposal,
 		2103: gc.getActiveVersion,
 		2104: gc.getCodeVersion,
+		2105: gc.listParam,
 	}
 }
 
@@ -88,15 +89,15 @@ func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, des
 		"endVotingBlock", endVotingBlock)
 
 	p := gov.TextProposal{
-		GithubID : 			githubID,
-		Topic : 			topic,
-		Desc : 				desc,
-		Url : 				url,
-		ProposalType : 		gov.Text,
-		EndVotingBlock : 	endVotingBlock,
-		SubmitBlock : 		gc.Evm.BlockNumber.Uint64(),
-		ProposalID : 		gc.Evm.StateDB.TxHash(),
-		Proposer : 			verifier,
+		GithubID:       githubID,
+		Topic:          topic,
+		Desc:           desc,
+		Url:            url,
+		ProposalType:   gov.Text,
+		EndVotingBlock: endVotingBlock,
+		SubmitBlock:    gc.Evm.BlockNumber.Uint64(),
+		ProposalID:     gc.Evm.StateDB.TxHash(),
+		Proposer:       verifier,
 	}
 	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return gc.errHandler("submitText", SubmitTextEvent, err, SubmitTextProposalErrorMsg)
@@ -114,17 +115,17 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, githubID, topic, 
 		"activeBlock", activeBlock)
 
 	p := gov.VersionProposal{
-		GithubID : 			githubID,
-		Topic : 			topic,
-		Desc : 				desc,
-		Url : 				url,
-		ProposalType : 		gov.Version,
-		EndVotingBlock : 	endVotingBlock,
-		SubmitBlock : 		gc.Evm.BlockNumber.Uint64(),
-		ProposalID : 		gc.Evm.StateDB.TxHash(),
-		Proposer : 			verifier,
-		NewVersion:			newVersion,
-		ActiveBlock:		activeBlock,
+		GithubID:       githubID,
+		Topic:          topic,
+		Desc:           desc,
+		Url:            url,
+		ProposalType:   gov.Version,
+		EndVotingBlock: endVotingBlock,
+		SubmitBlock:    gc.Evm.BlockNumber.Uint64(),
+		ProposalID:     gc.Evm.StateDB.TxHash(),
+		Proposer:       verifier,
+		NewVersion:     newVersion,
+		ActiveBlock:    activeBlock,
 	}
 	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return gc.errHandler("submitVersion", SubmitVersionEvent, err, SubmitVersionProposalErrorMsg)
@@ -143,18 +144,18 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, githubID, topic, de
 		"NewValue", newValue)
 
 	p := gov.ParamProposal{
-		GithubID : 			githubID,
-		Topic : 			topic,
-		Desc : 				desc,
-		Url : 				url,
-		ProposalType : 		gov.Version,
-		EndVotingBlock : 	endVotingBlock,
-		SubmitBlock : 		gc.Evm.BlockNumber.Uint64(),
-		ProposalID : 		gc.Evm.StateDB.TxHash(),
-		Proposer : 			verifier,
-		ParamName:			paramName,
-		CurrentValue:		currentValue,
-		NewValue:			newValue,
+		GithubID:       githubID,
+		Topic:          topic,
+		Desc:           desc,
+		Url:            url,
+		ProposalType:   gov.Version,
+		EndVotingBlock: endVotingBlock,
+		SubmitBlock:    gc.Evm.BlockNumber.Uint64(),
+		ProposalID:     gc.Evm.StateDB.TxHash(),
+		Proposer:       verifier,
+		ParamName:      paramName,
+		CurrentValue:   currentValue,
+		NewValue:       newValue,
 	}
 	err := gc.Plugin.Submit(from, p, gc.Evm.BlockHash, gc.Evm.StateDB)
 	return gc.errHandler("submitParam", SubmitParamEvent, err, SubmitParamProposalErrorMsg)
@@ -193,7 +194,7 @@ func (gc *GovContract) declareVersion(activeNode discover.NodeID, version uint32
 		"activeNode", hex.EncodeToString(activeNode.Bytes()[:8]),
 		"version", version)
 
-	err := gc.Plugin.DeclareVersion(from, activeNode, version, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(),  gc.Evm.StateDB)
+	err := gc.Plugin.DeclareVersion(from, activeNode, version, gc.Evm.BlockHash, gc.Evm.BlockNumber.Uint64(), gc.Evm.StateDB)
 
 	return gc.errHandler("declareVersion", DeclareEvent, err, DeclareErrorMsg)
 }
@@ -212,8 +213,6 @@ func (gc *GovContract) getProposal(proposalID common.Hash) ([]byte, error) {
 
 	return gc.returnHandler(proposal, err, GetProposalErrorMsg)
 }
-
-
 
 func (gc *GovContract) getTallyResult(proposalID common.Hash) ([]byte, error) {
 	from := gc.Contract.CallerAddress
@@ -254,7 +253,6 @@ func (gc *GovContract) getActiveVersion() ([]byte, error) {
 	return gc.returnHandler(activeVersion, nil, GetActiveVersionErrorMsg)
 }
 
-
 func (gc *GovContract) getCodeVersion() ([]byte, error) {
 	from := gc.Contract.CallerAddress
 	log.Debug("Call getCodeVersion of GovContract",
@@ -266,7 +264,6 @@ func (gc *GovContract) getCodeVersion() ([]byte, error) {
 
 	return gc.returnHandler(codeVersion, nil, GetCodeVersionErrorMsg)
 }
-
 
 func (gc *GovContract) listParam() ([]byte, error) {
 	from := gc.Contract.CallerAddress
@@ -280,15 +277,14 @@ func (gc *GovContract) listParam() ([]byte, error) {
 	return gc.returnHandler(paramList, err, ListParamErrorMsg)
 }
 
-
-func  (gc *GovContract) errHandler(funcName string, event string, err error, errorMsg string) ([]byte, error) {
+func (gc *GovContract) errHandler(funcName string, event string, err error, errorMsg string) ([]byte, error) {
 	if err != nil {
-		log.Error("Call GovContract failed.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(),  "txHash", gc.Evm.StateDB.TxHash().Hex(), "errMsg", err)
+		log.Error("Call GovContract failed.", "method", funcName, "blockNumber", gc.Evm.BlockNumber.Uint64(), "txHash", gc.Evm.StateDB.TxHash().Hex(), "errMsg", err)
 		if _, ok := err.(*common.BizError); ok {
 			res := xcom.Result{false, "", errorMsg + ":" + err.Error()}
 			result, _ := json.Marshal(res)
 			xcom.AddLog(gc.Evm.StateDB, gc.Evm.BlockNumber.Uint64(), vm.GovContractAddr, event, string(result))
-		}else {
+		} else {
 			return nil, err
 		}
 	}
@@ -300,7 +296,7 @@ func  (gc *GovContract) errHandler(funcName string, event string, err error, err
 	return common.MustRlpEncode(res), nil
 }
 
-func  (gc *GovContract) returnHandler(resultValue interface{}, err error, errorMsg string) ([]byte, error) {
+func (gc *GovContract) returnHandler(resultValue interface{}, err error, errorMsg string) ([]byte, error) {
 	if nil != err {
 		res := xcom.Result{false, "", errorMsg + ":" + err.Error()}
 		return common.MustRlpEncode(res), nil
@@ -326,7 +322,7 @@ func  (gc *GovContract) returnHandler(resultValue interface{}, err error, errorM
 	return data
 }*/
 
-func rlpEncodeProposalList(proposals []gov.Proposal) [][]byte{
+func rlpEncodeProposalList(proposals []gov.Proposal) [][]byte {
 	if len(proposals) == 0 {
 		return nil
 	}
@@ -338,7 +334,7 @@ func rlpEncodeProposalList(proposals []gov.Proposal) [][]byte{
 	return data
 }
 
-func rlpEncodeProposal(proposal gov.Proposal) []byte{
+func rlpEncodeProposal(proposal gov.Proposal) []byte {
 	if proposal == nil {
 		return nil
 	}
@@ -350,7 +346,7 @@ func rlpEncodeProposal(proposal gov.Proposal) []byte{
 
 		data = []byte{byte(gov.Text)}
 		data = bytes.Join([][]byte{data, encode}, Delimiter)
-	}else if proposal.GetProposalType() == gov.Version{
+	} else if proposal.GetProposalType() == gov.Version {
 		version, _ := proposal.(gov.VersionProposal)
 		encode := common.MustRlpEncode(version)
 

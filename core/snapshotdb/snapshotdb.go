@@ -50,6 +50,14 @@ type DB interface {
 	Has(hash common.Hash, key []byte) (bool, error)
 	Flush(hash common.Hash, blocknumber *big.Int) error
 	Ranking(hash common.Hash, key []byte, ranges int) iterator.Iterator
+	//notice , iter.key or iter.value is slice，if you want to save it to a slice,you can use copy
+	// container:=make([]byte,0)
+	// for iter.next{
+	// 	tosave:= make([]byte,len(iter.value))
+	//  copy(tosave,iter.value)
+	// 	container = append(container,tosave)
+	// }
+	//
 	WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error
 	Commit(hash common.Hash) error
 
@@ -359,17 +367,17 @@ func (s *snapshotDB) Compaction() error {
 		}
 	}
 	if err := s.baseDB.Write(batch, nil); err != nil {
-		logger.Error(fmt.Sprint("write to baseDB fail:", err))
+		logger.Error("write to baseDB fail", "err", err)
 		return errors.New("[SnapshotDB]write to baseDB fail:" + err.Error())
 	}
 	s.current.BaseNum.Add(s.current.BaseNum, big.NewInt(int64(commitNum)))
 	if err := s.current.update(); err != nil {
-		logger.Error(fmt.Sprint("update to current fail:", err))
+		logger.Error("update to current fail", "err", err)
 		return errors.New("[SnapshotDB]update to current fail:" + err.Error())
 	}
 	s.committed = s.committed[commitNum:len(s.committed)]
 	if err := s.removeJournalLessThanBaseNum(); err != nil {
-		logger.Error(fmt.Sprint("remove journal less than baseNum fail:", err))
+		logger.Error("remove journal less than baseNum fail", "err", err)
 		return errors.New("[SnapshotDB]remove journal less than baseNum fail:" + err.Error())
 	}
 	return nil
@@ -404,7 +412,7 @@ func (s *snapshotDB) NewBlock(blockNumber *big.Int, parentHash common.Hash, hash
 		}
 		s.recognized.Store(hash, *block)
 	}
-	logger.Info("[snapshotDB]NewBlock", "num", block.Number, "hash", hash.String())
+	logger.Info("NewBlock", "num", block.Number, "hash", hash.String())
 	return nil
 }
 
