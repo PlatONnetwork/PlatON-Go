@@ -36,6 +36,7 @@ func TestFetcher_AddTask(t *testing.T) {
 	w.Wait()
 
 	assert.Equal(t, fetcher.Len(), 0)
+	fetcher.Stop()
 }
 
 func TestFetcher_MatchTask(t *testing.T) {
@@ -47,14 +48,15 @@ func TestFetcher_MatchTask(t *testing.T) {
 		_, ok := message.(*protocols.PrepareBlock)
 		return ok
 	}, func(message types.Message) {
-		t.Log("add")
 		w.Done()
 	}, func() {
-		t.Log("timeout add")
+		t.Error("timeout add ")
+		w.Done()
+
 	})
 
 	fetcher.MatchTask("add", &protocols.PrepareBlock{})
 	w.Wait()
 	assert.Equal(t, fetcher.Len(), 0)
-
+	fetcher.Stop()
 }
