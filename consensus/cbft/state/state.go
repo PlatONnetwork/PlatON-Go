@@ -1,11 +1,13 @@
 package state
 
 import (
+	"sync/atomic"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
-	types2 "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"sync/atomic"
 )
 
 type prepareVotes struct {
@@ -47,6 +49,10 @@ func (v *viewBlocks) addBlock(block viewBlock) {
 
 func (v *viewBlocks) clear() {
 	v.blocks = make(map[uint32]viewBlock)
+}
+
+func (v *viewBlocks) len() int {
+	return len(v.blocks)
 }
 
 type viewVotes struct {
@@ -171,7 +177,7 @@ func (p prepareViewBlock) prepareBlock() *protocols.PrepareBlock {
 
 type qcBlock struct {
 	block *types.Block
-	qc    *types2.QuorumCert
+	qc    *ctypes.QuorumCert
 }
 
 func (q qcBlock) hash() common.Hash {
@@ -218,11 +224,27 @@ func (vs *ViewState) ResetView(epoch uint64, viewNumber uint64) {
 	vs.view.viewNumber = viewNumber
 }
 
+func (vs *ViewState) Epoch() uint64 {
+	return vs.view.epoch
+}
+
+func (vs *ViewState) ViewNumber() uint64 {
+	return vs.view.viewNumber
+}
+
+func (vs *ViewState) Deadline() time.Time {
+	return vs.viewTimer.deadline
+}
+
+func (vs *ViewState) NumViewBlocks() uint32 {
+	return uint32(vs.viewBlocks.len())
+}
+
 func (vs *ViewState) AddPrepareBlock(pb *protocols.PrepareBlock) {
 	vs.view.viewBlocks.addBlock(&prepareViewBlock{pb})
 }
 
-func (vs *ViewState) AddQCBlock(block *types.Block, qc *types2.QuorumCert) {
+func (vs *ViewState) AddQCBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	vs.view.viewBlocks.addBlock(&qcBlock{block: block, qc: qc})
 }
 

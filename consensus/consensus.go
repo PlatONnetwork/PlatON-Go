@@ -19,6 +19,8 @@ package consensus
 
 import (
 	"crypto/ecdsa"
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -27,7 +29,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/rpc"
-	"time"
 )
 
 // ChainReader defines a small collection of methods needed to access the local
@@ -152,10 +153,11 @@ type Bft interface {
 	ConsensusNodes() ([]discover.NodeID, error)
 
 	// Returns whether the current node is out of the block
-	ShouldSeal(curTime int64) (bool, error)
+	ShouldSeal(curTime time.Time) (bool, error)
 
-	CalcBlockDeadline(timePoint int64) (time.Time, error)
-	CalcNextBlockTime(timePoint int64) (time.Time, error)
+	CalcBlockDeadline(timePoint time.Time) time.Time
+
+	CalcNextBlockTime(timePoint time.Time) time.Time
 
 	IsConsensusNode() bool
 
