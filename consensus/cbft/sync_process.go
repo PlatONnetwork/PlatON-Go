@@ -40,3 +40,13 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 		cbft.fetcher.AddTask("", match, executor, nil)
 	}
 }
+
+func (cbft *Cbft) prepareVoteFetchRules(vote *protocols.PrepareVote) {
+	if vote.BlockNumber > cbft.state.HighestQCBlock().NumberU64()+1 {
+		//todo fetch qc
+	}
+}
+
+func (cbft *Cbft) prepareBlockFetchRules(block *protocols.PrepareBlock) {
+	if cbft.state.
+}
