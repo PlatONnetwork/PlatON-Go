@@ -183,9 +183,12 @@ func (p *FakePeer) RequestPPOSStorage() error {
 			return err
 		}
 		for iter.Next() {
+			k, v := make([]byte, len(iter.Key())), make([]byte, len(iter.Value()))
+			copy(k, iter.Key())
+			copy(v, iter.Value())
 			kv := [2][]byte{
-				iter.Key(),
-				iter.Value(),
+				k,
+				v,
 			}
 			KVs = append(KVs, kv)
 			KVNum++

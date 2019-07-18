@@ -50,6 +50,14 @@ type DB interface {
 	Has(hash common.Hash, key []byte) (bool, error)
 	Flush(hash common.Hash, blocknumber *big.Int) error
 	Ranking(hash common.Hash, key []byte, ranges int) iterator.Iterator
+	//notice , iter.key or iter.value is slice，if you want to save it to a slice,you can use copy
+	// container:=make([]byte,0)
+	// for iter.next{
+	// 	tosave:= make([]byte,len(iter.value))
+	//  copy(tosave,iter.value)
+	// 	container = append(container,tosave)
+	// }
+	//
 	WalkBaseDB(slice *util.Range, f func(num *big.Int, iter iterator.Iterator) error) error
 	Commit(hash common.Hash) error
 
