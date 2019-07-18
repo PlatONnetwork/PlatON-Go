@@ -261,7 +261,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		xcom.NewVrfHandler(snapshotdb.Instance(), eth.blockchain.Genesis().Nonce())
 		handlePlugin(reactor, snapshotdb.Instance())*/
 
-		if err := engine.Start(eth.blockchain, blockChainCache.Execute, eth.txPool, agency); err != nil {
+		if err := engine.Start(eth.blockchain, blockChainCache, eth.txPool, agency); err != nil {
 			log.Error("Init cbft consensus engine fail", "error", err)
 			return nil, errors.New("Failed to init cbft consensus engine")
 		}
