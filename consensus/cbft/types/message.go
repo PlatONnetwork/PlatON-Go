@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
 const (
@@ -58,11 +57,11 @@ type Message interface {
 
 type MsgInfo struct {
 	Msg    Message
-	PeerID discover.NodeID
+	PeerID string
 }
 
 // Create a new MsgInfo object.
-func NewMessageInfo(message Message, id discover.NodeID) *MsgInfo {
+func NewMessageInfo(message Message, id string) *MsgInfo {
 	return &MsgInfo{
 		Msg:    message,
 		PeerID: id,

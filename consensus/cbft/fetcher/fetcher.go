@@ -15,11 +15,16 @@ type ExecutorFunc func(types.Message)
 type ExpireFunc func()
 
 type task struct {
-	id       string
-	match    MatchFunc
+	id string
+	// Specify whether the message matches the task
+	match MatchFunc
+	// Callback executed function
 	executor ExecutorFunc
-	expire   ExpireFunc
-	time     time.Time
+
+	// Timeout callback function
+	expire ExpireFunc
+	// Task addition time
+	time time.Time
 }
 
 type Fetcher struct {

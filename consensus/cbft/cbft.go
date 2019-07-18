@@ -140,28 +140,28 @@ func (cbft *Cbft) receiveLoop() {
 
 //Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewchagne
 func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
-	msg, peerID := info.Msg, info.PeerID
+	msg, id := info.Msg, info.PeerID
 	var err error
 
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
-		err = cbft.OnPrepareBlock(msg)
+		err = cbft.OnPrepareBlock(id, msg)
 	case *protocols.PrepareVote:
-		err = cbft.OnPrepareVote(msg)
+		err = cbft.OnPrepareVote(id, msg)
 	case *protocols.ViewChange:
-		err = cbft.OnViewChange(msg)
+		err = cbft.OnViewChange(id, msg)
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id)
 	}
 }
 
 // Behind the node will be synchronized by synchronization message
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
-	msg, peerID := info.Msg, info.PeerID
+	msg, id := info.Msg, info.PeerID
 
-	if cbft.fetcher.MatchTask(peerID.String(), msg) {
+	if cbft.fetcher.MatchTask(id, msg) {
 		return
 	}
 
@@ -170,7 +170,7 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id)
 	}
 }
 
