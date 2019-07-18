@@ -2,6 +2,8 @@ package cbft
 
 import (
 	"crypto/ecdsa"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
+
 	"errors"
 	"reflect"
 	"sync"
@@ -11,7 +13,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
@@ -49,22 +50,24 @@ type Cbft struct {
 	asyncCallCh chan func()
 
 	fetcher *fetcher.Fetcher
-	//Control the current view state
+	// Control the current view state
 	state cstate.ViewState
 
-	//Block executor, the block responsible for executing the current view
-	executor executor.AsyncBlockExecutor
+	// Execution block function
+	execute consensus.Executor
+	// Block asyncExecutor, the block responsible for executing the current view
+	asyncExecutor executor.AsyncBlockExecutor
 
-	//Verification security rules for proposed blocks and viewchange
+	// Verification security rules for proposed blocks and viewchange
 	safetyRules rules.SafetyRules
 
-	//Determine when to allow voting
+	// Determine when to allow voting
 	voteRules rules.VoteRules
 
 	// Validator pool
 	validatorPool *validator.ValidatorPool
 
-	//Store blocks that are not committed
+	// Store blocks that are not committed
 	blockTree ctypes.BlockTree
 }
 
@@ -85,7 +88,7 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 		return nil
 	}
 
-	//todo init safety rules, vote rules, state, executor
+	//todo init safety rules, vote rules, state, asyncExecutor
 	cbft.safetyRules = rules.NewSafetyRules(&cbft.state)
 	cbft.voteRules = rules.NewVoteRules(&cbft.state)
 
@@ -95,7 +98,7 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 func (cbft *Cbft) Start(chain consensus.ChainReader, executorFn consensus.Executor, txPool consensus.TxPoolReset, agency consensus.Agency) error {
 	cbft.blockChain = chain
 	cbft.txPool = txPool
-	cbft.executor = executor.NewAsyncExecutor(executorFn)
+	cbft.asyncExecutor = executor.NewAsyncExecutor(executorFn)
 	cbft.validatorPool = validator.NewValidatorPool(agency, chain.CurrentHeader().Number.Uint64(), cbft.config.sys.NodeID)
 
 	//Initialize block tree
@@ -124,6 +127,7 @@ func (cbft *Cbft) receiveLoop() {
 			cbft.handleConsensusMsg(msg)
 		case msg := <-cbft.syncMsgCh:
 			cbft.handleSyncMsg(msg)
+
 		case fn := <-cbft.asyncCallCh:
 			fn()
 		default:
@@ -136,28 +140,28 @@ func (cbft *Cbft) receiveLoop() {
 
 //Handling consensus messages, there are three main types of messages. prepareBlock, prepareVote, viewchagne
 func (cbft *Cbft) handleConsensusMsg(info *ctypes.MsgInfo) {
-	msg, peerID := info.Msg, info.PeerID
+	msg, id := info.Msg, info.PeerID
 	var err error
 
 	switch msg := msg.(type) {
 	case *protocols.PrepareBlock:
-		err = cbft.OnPrepareBlock(msg)
+		err = cbft.OnPrepareBlock(id, msg)
 	case *protocols.PrepareVote:
-		err = cbft.OnPrepareVote(msg)
+		err = cbft.OnPrepareVote(id, msg)
 	case *protocols.ViewChange:
-		err = cbft.OnViewChange(msg)
+		err = cbft.OnViewChange(id, msg)
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id)
 	}
 }
 
 // Behind the node will be synchronized by synchronization message
 func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
-	msg, peerID := info.Msg, info.PeerID
+	msg, id := info.Msg, info.PeerID
 
-	if cbft.fetcher.MatchTask(peerID.String(), msg) {
+	if cbft.fetcher.MatchTask(id, msg) {
 		return
 	}
 
@@ -166,7 +170,7 @@ func (cbft *Cbft) handleSyncMsg(info *ctypes.MsgInfo) {
 	}
 
 	if err != nil {
-		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", peerID)
+		cbft.log.Error("Handle msg Failed", "error", err, "type", reflect.TypeOf(msg), "peer", id)
 	}
 }
 
@@ -220,13 +224,13 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 	me, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.sys.NodeID)
 
 	// TODO: seal process
-	prepareBlock := &protocols.PrepareBlock {
-		Epoch: cbft.state.Epoch(),
-		ViewNumber: cbft.state.ViewNumber(),
-		Block: block,
-		BlockIndex: cbft.state.NumViewBlocks(),
+	prepareBlock := &protocols.PrepareBlock{
+		Epoch:         cbft.state.Epoch(),
+		ViewNumber:    cbft.state.ViewNumber(),
+		Block:         block,
+		BlockIndex:    cbft.state.NumViewBlocks(),
 		ProposalIndex: uint32(me.Index),
-		ProposalAddr: me.Address,
+		ProposalAddr:  me.Address,
 	}
 
 	if cbft.state.NumViewBlocks() == 0 {
@@ -392,4 +396,3 @@ func (cbft *Cbft) Config() *Config {
 	panic("need to be improved")
 	return nil
 }
-
