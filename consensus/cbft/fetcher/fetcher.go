@@ -32,8 +32,12 @@ func NewFetcher() *Fetcher {
 		newTask: make(chan struct{}, 1),
 		task:    make(map[string]*task),
 	}
-	go fetcher.loop()
+
 	return fetcher
+}
+
+func (f *Fetcher) Start() {
+	go f.loop()
 }
 
 // Add a fetcher task
@@ -52,10 +56,17 @@ func (f *Fetcher) MatchTask(id string, message types.Message) bool {
 	if t, ok := f.task[id]; ok {
 		if t.match(message) {
 			go t.executor(message)
+			delete(f.task, id)
 			return true
 		}
 	}
 	return false
+}
+
+func (f *Fetcher) Len() int {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	return len(f.task)
 }
 
 func (f *Fetcher) loop() {
