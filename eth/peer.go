@@ -406,13 +406,17 @@ func (p *peer) RequestReceipts(hashes []common.Hash) error {
 
 func (p *peer) RequestPPOSStorage() error {
 	p.Log().Debug("Fetching latest ppos storage")
-	return p2p.Send(p.rw, GetPPOSStorageMsg, []interface{}{})
+	if err := p2p.Send(p.rw, GetPPOSStorageMsg, []interface{}{}); err != nil {
+		p.Log().Error("Fetching latest ppos storage error", "err", err.Error())
+		return err
+	}
+	return nil
 }
 
 func (p *peer) RequestOriginAndPivotByCurrent(current uint64) error {
 	p.Log().Debug("Fetching Origin and  Pivot", "curremt", current)
 	if err := p2p.Send(p.rw, GetOriginAndPivotMsg, current); err != nil {
-		p.Log().Debug("Fetching Origin and  Pivot error", "err", err.Error())
+		p.Log().Error("Fetching Origin and  Pivot error", "err", err.Error())
 		return err
 	}
 	return nil

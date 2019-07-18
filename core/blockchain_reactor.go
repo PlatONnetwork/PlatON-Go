@@ -23,19 +23,14 @@ import (
 )
 
 type BlockChainReactor struct {
-	vh *xcom.VrfHandler
-
-	eventMux     *event.TypeMux
-	bftResultSub *event.TypeMuxSubscription
-
-	// xxPlugin container
-	basePluginMap map[int]plugin.BasePlugin
-	// Order rules for xxPlugins called in BeginBlocker
-	beginRule []int
-	// Order rules for xxPlugins called in EndBlocker
-	endRule []int
-
+	vh            *xcom.VrfHandler
+	eventMux      *event.TypeMux
+	bftResultSub  *event.TypeMuxSubscription
+	basePluginMap map[int]plugin.BasePlugin // xxPlugin container
+	beginRule     []int                     // Order rules for xxPlugins called in BeginBlocker
+	endRule       []int                     // Order rules for xxPlugins called in EndBlocker
 	validatorMode string
+	exitCh        chan struct{}
 }
 
 var bcr *BlockChainReactor
@@ -45,14 +40,26 @@ func NewBlockChainReactor(pri *ecdsa.PrivateKey, mux *event.TypeMux) *BlockChain
 		bcr = &BlockChainReactor{
 			eventMux:      mux,
 			basePluginMap: make(map[int]plugin.BasePlugin, 0),
+			exitCh:        make(chan struct{}),
 		}
+	}
+	return bcr
+}
+
+func (brc *BlockChainReactor) Start(mode string) {
+	brc.setValidatorMode(mode)
+	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
 		// Subscribe events for confirmed blocks
 		bcr.bftResultSub = bcr.eventMux.Subscribe(cbfttypes.CbftResult{})
 
 		// start the loop rutine
 		go bcr.loop()
 	}
-	return bcr
+}
+
+func (brc *BlockChainReactor) Close() {
+	close(brc.exitCh)
+	log.Info("blockchain_reactor is closed")
 }
 
 // Getting the global bcr single instance
@@ -66,18 +73,18 @@ func (brc *BlockChainReactor) loop() {
 		select {
 		case obj := <-bcr.bftResultSub.Chan():
 			if obj == nil {
-				log.Error("BlockChainReactor receive nil bftResultEvent maybe channel is closed")
+				log.Error("blockchain_reactor receive nil bftResultEvent maybe channel is closed")
 				continue
 			}
 			cbftResult, ok := obj.Data.(cbfttypes.CbftResult)
 			if !ok {
-				log.Error("BlockChainReactor receive bft result type error")
+				log.Error("blockchain_reactor receive bft result type error")
 				continue
 			}
 			block := cbftResult.Block
 			// Short circuit when receiving empty result.
 			if block == nil {
-				log.Error("BlockChainReactor receive Cbft result error, block is nil")
+				log.Error("blockchain_reactor receive Cbft result error, block is nil")
 				continue
 			}
 
@@ -98,10 +105,14 @@ func (brc *BlockChainReactor) loop() {
 				}
 			}
 
+			log.Debug("Call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash())
 			if err := snapshotdb.Instance().Commit(block.Hash()); nil != err {
-				log.Error("snapshotDB Commit failed", "err", err)
+				log.Error("Failed to call snapshotdb commit on blockchain_reactor", "blockNumber", block.Number(), "blockHash", block.Hash(), "err", err)
 				continue
 			}
+		// stop this routine
+		case <-brc.exitCh:
+			return
 		}
 	}
 
@@ -115,7 +126,7 @@ func (bcr *BlockChainReactor) SetPluginEventMux() {
 	plugin.StakingInstance().SetEventMux(bcr.eventMux)
 }
 
-func (bcr *BlockChainReactor) SetValidatorMode(mode string) {
+func (bcr *BlockChainReactor) setValidatorMode(mode string) {
 	bcr.validatorMode = mode
 }
 
@@ -124,7 +135,9 @@ func (bcr *BlockChainReactor) SetVRF_hanlder(vher *xcom.VrfHandler) {
 }
 
 func (bcr *BlockChainReactor) SetPrivateKey(privateKey *ecdsa.PrivateKey) {
-	bcr.vh.SetPrivateKey(privateKey)
+	if bcr.validatorMode == common.PPOS_VALIDATOR_MODE {
+		bcr.vh.SetPrivateKey(privateKey)
+	}
 }
 
 func (bcr *BlockChainReactor) SetBeginRule(rule []int) {
@@ -136,6 +149,13 @@ func (bcr *BlockChainReactor) SetEndRule(rule []int) {
 
 // Called before every block has not executed all txs
 func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.StateDB) error {
+
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return nil
+	}
 
 	blockHash := common.ZeroHash
 
@@ -160,16 +180,10 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 		}
 	}
 
+	log.Debug("Call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()))
 	if err := snapshotdb.Instance().NewBlock(header.Number, header.ParentHash, blockHash); nil != err {
-		log.Error("BlockChainReactor call snapshotDB newBlock failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
+		log.Error("Failed to call snapshotDB newBlock on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "parentHash", hex.EncodeToString(header.ParentHash.Bytes()), "err", err)
 		return err
-	}
-
-	/**
-	this things about ppos
-	*/
-	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
-		return nil
 	}
 
 	for _, pluginRule := range bcr.beginRule {
@@ -186,6 +200,13 @@ func (bcr *BlockChainReactor) BeginBlocker(header *types.Header, state xcom.Stat
 // Called after every block had executed all txs
 func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateDB) error {
 
+	/**
+	this things about ppos
+	*/
+	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
+		return nil
+	}
+
 	blockHash := common.ZeroHash
 
 	if !xutil.IsWorker(header.Extra) {
@@ -193,15 +214,8 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	}
 	// Store the previous vrf random number
 	if err := bcr.vh.Storage(header.Number, header.ParentHash, blockHash, header.Nonce.Bytes()); nil != err {
-		log.Error("BlockChainReactor Storage proof failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "err", err)
+		log.Error("blockchain_reactor Storage proof failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(blockHash.Bytes()), "err", err)
 		return err
-	}
-
-	/**
-	this things about ppos
-	*/
-	if bcr.validatorMode != common.PPOS_VALIDATOR_MODE {
-		return nil
 	}
 
 	for _, pluginRule := range bcr.endRule {
@@ -222,7 +236,7 @@ func (bcr *BlockChainReactor) EndBlocker(header *types.Header, state xcom.StateD
 	return nil
 }
 
-func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address) (err error) {
+func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address) error {
 
 	if _, ok := vm.PlatONPrecompiledContracts[to]; !ok {
 		return nil
@@ -245,8 +259,10 @@ func (bcr *BlockChainReactor) Verify_tx(tx *types.Transaction, to common.Address
 		c := vm.PlatONPrecompiledContracts[cvm.SlashingContractAddr]
 		contract = c.(vm.PlatONPrecompiledContract)
 	}
-	_, _, err = plugin.Verify_tx_data(input, contract.FnSigns())
-	return
+	if _, _, err := plugin.Verify_tx_data(input, contract.FnSigns()); nil != err {
+		return err
+	}
+	return nil
 }
 
 func (bcr *BlockChainReactor) Sign(msg interface{}) error {
@@ -277,9 +293,9 @@ func (bcr *BlockChainReactor) IsCandidateNode(nodeID discover.NodeID) bool {
 }
 
 func (bcr *BlockChainReactor) Flush(header *types.Header) error {
-	log.Debug("snapshotdb Flush", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()))
+	log.Debug("Call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()))
 	if err := snapshotdb.Instance().Flush(header.Hash(), header.Number); nil != err {
-		log.Error("snapshotdb Flush failed", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()), "err", err)
+		log.Error("Failed to call snapshotdb flush on blockchain_reactor", "blockNumber", header.Number.Uint64(), "hash", hex.EncodeToString(header.Hash().Bytes()), "err", err)
 		return err
 	}
 	return nil

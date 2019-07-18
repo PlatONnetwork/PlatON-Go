@@ -21,13 +21,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"gopkg.in/urfave/cli.v1"
 	"io"
 	"os"
 	"reflect"
 	"unicode"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/snapshotdb"
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"gopkg.in/urfave/cli.v1"
 
 	"github.com/PlatONnetwork/PlatON-Go/cmd/utils"
 	"github.com/PlatONnetwork/PlatON-Go/dashboard"
@@ -128,10 +129,10 @@ func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
 
 	// Load defaults.
 	cfg := gethConfig{
-		Eth:       	   eth.DefaultConfig,
-		Shh:       	   whisper.DefaultConfig,
-		Node:      	   defaultNodeConfig(),
-		Dashboard: 	   dashboard.DefaultConfig,
+		Eth:           eth.DefaultConfig,
+		Shh:           whisper.DefaultConfig,
+		Node:          defaultNodeConfig(),
+		Dashboard:     dashboard.DefaultConfig,
 		EconomicModel: *utils.GetEconomicDefaultConfig(ctx),
 	}
 
@@ -267,5 +268,3 @@ func dumpConfig(ctx *cli.Context) error {
 	os.Stdout.Write(out)
 	return nil
 }
-
-

@@ -4,11 +4,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
+
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
-	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 )
-
 
 func buildDBRewardPluginData(t *testing.T) {
 	stateDB := buildStateDB(t)
@@ -30,7 +30,6 @@ func buildDBRewardPluginData(t *testing.T) {
 	plugin.SetYearEndCumulativeIssue(stateDB, 1, secondYearEnd)
 }
 
-
 func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	var err error
 
@@ -40,8 +39,8 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 
 		currBlockNumber := 1
 		plugin.SetYearEndCumulativeIssue(stateDB, 0, big.NewInt(1000000000000))
-		head := types.Header{ Number: big.NewInt(int64(currBlockNumber)), Coinbase:addrArr[0]}
-	//	build_staking_data()
+		head := types.Header{Number: big.NewInt(int64(currBlockNumber)), Coinbase: addrArr[0]}
+		//	build_staking_data()
 
 		err = plugin.RewardMgrInstance().EndBlock(blockHash, &head, stateDB)
 
@@ -65,8 +64,8 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 	{
 		stateDB := buildStateDB(t)
 
-		currBlockNumber := uint64(1) * xcom.ConsensusSize() * xcom.EpochSize()
-		head := types.Header{ Number: big.NewInt(int64(currBlockNumber)), Coinbase:addrArr[0]}
+		currBlockNumber := uint64(1) * xutil.ConsensusSize() * xutil.EpochSize()
+		head := types.Header{Number: big.NewInt(int64(currBlockNumber)), Coinbase: addrArr[0]}
 		//	build_staking_data()
 
 		err = plugin.RewardMgrInstance().EndBlock(blockHash, &head, stateDB)
@@ -87,13 +86,12 @@ func TestRewardMgrPlugin_EndBlock(t *testing.T) {
 		}
 	}
 
-
 	// case3: current is end of year
 	{
 		stateDB := buildStateDB(t)
 
 		currBlockNumber := 365 * 24 * 3600
-		head := types.Header{ Number: big.NewInt(int64(currBlockNumber)), Coinbase:addrArr[0]}
+		head := types.Header{Number: big.NewInt(int64(currBlockNumber)), Coinbase: addrArr[0]}
 		//	build_staking_data()
 
 		err = plugin.RewardMgrInstance().EndBlock(blockHash, &head, stateDB)

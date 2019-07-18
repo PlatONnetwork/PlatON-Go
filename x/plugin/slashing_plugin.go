@@ -65,9 +65,9 @@ func (sp *SlashingPlugin) SetDecodeEvidenceFun(f func(data string) (consensus.Ev
 
 func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header, state xcom.StateDB) error {
 	// If it is the 230th block of each round, it will punish the node with abnormal block rate.
-	if header.Number.Uint64() > xcom.ConsensusSize() && xutil.IsElection(header.Number.Uint64()) {
+	if header.Number.Uint64() > xutil.ConsensusSize() && xutil.IsElection(header.Number.Uint64()) {
 		log.Debug("slashingPlugin Ranking block amount", "blockNumber", header.Number.Uint64(), "blockHash",
-			hex.EncodeToString(blockHash.Bytes()), "consensusSize", xcom.ConsensusSize(),
+			hex.EncodeToString(blockHash.Bytes()), "consensusSize", xutil.ConsensusSize(),
 			"electionDistance", xcom.ElectionDistance())
 		if result, err := sp.GetPreNodeAmount(); nil != err {
 			return err
@@ -125,8 +125,8 @@ func (sp *SlashingPlugin) EndBlock(blockHash common.Hash, header *types.Header, 
 
 func (sp *SlashingPlugin) Confirmed(block *types.Block) error {
 	// If it is the first block in each round, switch the number of blocks in the upper and lower rounds.
-	log.Debug("slashingPlugin Confirmed", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "consensusSize", xcom.ConsensusSize())
-	if (block.NumberU64()%xcom.ConsensusSize() == 1) && block.NumberU64() > 1 {
+	log.Debug("slashingPlugin Confirmed", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "consensusSize", xutil.ConsensusSize())
+	if (block.NumberU64()%xutil.ConsensusSize() == 1) && block.NumberU64() > 1 {
 		if err := sp.switchEpoch(block.Hash()); nil != err {
 			log.Error("slashingPlugin switchEpoch fail", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
 			return err
@@ -326,7 +326,7 @@ func getNodeId(prefix []byte, key []byte) (discover.NodeID, error) {
 }
 
 func isAbnormal(amount uint32) bool {
-	if uint64(amount) < (xcom.ConsensusSize() / xcom.ConsValidatorNum()) {
+	if uint64(amount) < (xutil.ConsensusSize() / xcom.ConsValidatorNum()) {
 		return true
 	}
 	return false

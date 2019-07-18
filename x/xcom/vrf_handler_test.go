@@ -2,14 +2,15 @@ package xcom
 
 import (
 	"crypto/ecdsa"
+	"math/big"
+	"strconv"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/crypto/vrf"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"strconv"
-	"testing"
 )
 
 func initHandler() *ecdsa.PrivateKey {
@@ -19,7 +20,7 @@ func initHandler() *ecdsa.PrivateKey {
 		panic(err)
 	}
 	vh.SetPrivateKey(pri)
-	SetEconomicModel(&DefaultConfig)
+	GetEc(DefaultDeveloperNet)
 	return pri
 }
 
@@ -31,7 +32,7 @@ func TestVrfHandler_StorageLoad(t *testing.T) {
 	blockNumber := new(big.Int).SetUint64(1)
 	phash := common.BytesToHash([]byte("h"))
 	hash := common.ZeroHash
-	for i := 0; i < int(EpochValidatorNum()) + 10; i++ {
+	for i := 0; i < int(EpochValidatorNum())+10; i++ {
 		if err := vh.db.NewBlock(blockNumber, phash, common.ZeroHash); nil != err {
 			t.Error(err)
 		}

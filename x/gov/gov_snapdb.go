@@ -101,31 +101,6 @@ func (self *GovSnapshotDB) getAllProposalIDList(blockHash common.Hash) ([]common
 	return total, nil
 }
 
-func (self *GovSnapshotDB) addVotedVerifier(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
-
-	nodes, err := self.getVotedVerifierList(blockHash, proposalId)
-	if err != nil {
-		return err
-	}
-	nodes = append(nodes, node)
-
-	return self.put(blockHash, keyPrefixVotedVerifiers, nodes)
-}
-
-func (self *GovSnapshotDB) getVotedVerifierList(blockHash common.Hash, proposalId common.Hash) ([]discover.NodeID, error) {
-	value, err := self.get(blockHash, KeyVotedVerifiers(proposalId))
-	if err != nil && err != snapshotdb.ErrNotFound {
-		return nil, err
-	}
-	var nodes []discover.NodeID
-	if value != nil {
-		if err := rlp.DecodeBytes(value, &nodes); err != nil {
-			return nil, err
-		}
-	}
-	return nodes, nil
-}
-
 func (self *GovSnapshotDB) addActiveNode(blockHash common.Hash, node discover.NodeID, proposalId common.Hash) error {
 
 	nodes, err := self.getActiveNodeList(blockHash, proposalId)

@@ -2,14 +2,14 @@
 package byteutil
 
 import (
+	"encoding/hex"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
-	"math/big"
 )
-
-
 
 var Bytes2X_CMD = map[string]interface{}{
 	"string":   BytesToString,
@@ -216,4 +216,8 @@ func BytesToRestrictingPlanArr(curByte []byte) []restricting.RestrictingPlan {
 		panic("BytesToAddressArr:" + err.Error())
 	}
 	return planArr
+}
+
+func PrintNodeID(nodeID discover.NodeID) string {
+	return hex.EncodeToString(nodeID.Bytes()[:8])
 }

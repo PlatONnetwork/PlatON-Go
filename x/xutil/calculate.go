@@ -3,46 +3,122 @@ package xutil
 import (
 	"bytes"
 	"fmt"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"math/big"
 )
 
-var (
-	eh = uint32(6)   // expected hours every settle epoch
-	l = uint32(1)    // time of creating a new block in seconds
-	u = uint32(25)   // the consensus validators count
-	vn = uint32(10)  // each validator will seal blocks per view
+var SecondsPerYear = uint64(365 * 24 * 3600)
 
-)
-
-func GetConsensusSize() uint32 {
-	return uint32(u * vn)
+func NodeId2Addr(nodeId discover.NodeID) (common.Address, error) {
+	if pk, err := nodeId.Pubkey(); nil != err {
+		return common.ZeroAddr, err
+	} else {
+		return crypto.PubkeyToAddress(*pk), nil
+	}
 }
 
-func GetBlocksPerEpoch() uint32 {
-	consensusSize := GetConsensusSize()
-	expected := eh * 3600/(l * consensusSize) * consensusSize
-	return expected
+// The ProcessVersion: Major.Minor.Patch eg. 1.1.0
+// Calculate the LargeVersion
+// eg: 1.1.0 ==> 1.1
+func CalcVersion(processVersion uint32) uint32 {
+	return processVersion >> 8
 }
 
-func GetExpectedEpochsPerYear() uint32 {
-	blocks := GetBlocksPerEpoch()
-	return 365 * 24 * 3600 / (l * blocks)
+func IsWorker(extra []byte) bool {
+	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
 }
 
-// calculate the Epoch number by blocknumber
+func CheckStakeThreshold(stake *big.Int) bool {
+	return stake.Cmp(xcom.StakeThreshold()) >= 0
+}
+
+func CheckDelegateThreshold(delegate *big.Int) bool {
+	return delegate.Cmp(xcom.DelegateThreshold()) >= 0
+}
+
+// eg. 65536 => 1.0.0
+func ProcessVersion2Str(processVersion uint32) string {
+	major := processVersion << 8
+	major = major >> 24
+
+	minor := processVersion << 16
+	minor = minor >> 24
+
+	patch := processVersion << 24
+	patch = patch >> 24
+
+	return fmt.Sprintf("%d.%d.%d", major, minor, patch)
+}
+
+// TODO: calculate common data of block height
+// Number of blocks per consensus round
+func ConsensusSize() uint64 {
+	return xcom.BlocksWillCreate() * xcom.ConsValidatorNum()
+}
+
+// Each epoch (billing cycle) is a multiple of the consensus rounds
+func EpochSize() uint64 {
+	consensusSize := ConsensusSize()
+	em := xcom.ExpectedMinutes()
+	i := xcom.Interval()
+
+	epochSize := em * 60 / (i * consensusSize) * consensusSize
+	return epochSize
+}
+
+// epochs numbers each year
+func EpochsPerYear() uint64 {
+	epochSize := EpochSize()
+	i := xcom.Interval()
+
+	epochs := SecondsPerYear / (i * epochSize)
+	return epochs
+}
+
+func CalcBlocksEachEpoch() uint64 {
+	return ConsensusSize() * EpochSize()
+}
+
+// calculate
+func CalcBlocksEachYear() uint64 {
+	return EpochsPerYear() * EpochSize()
+}
+
+func IsElection(blockNumber uint64) bool {
+	tmp := blockNumber + xcom.ElectionDistance()
+	mod := tmp % ConsensusSize()
+	return mod == 0
+}
+
+func IsSwitch(blockNumber uint64) bool {
+	mod := blockNumber % ConsensusSize()
+	return mod == 0
+}
+
+func IsSettlementPeriod(blockNumber uint64) bool {
+	size := CalcBlocksEachEpoch()
+	mod := blockNumber % uint64(size)
+	return mod == 0
+}
+
+func IsYearEnd(blockNumber uint64) bool {
+	size := CalcBlocksEachYear()
+	return blockNumber > 0 && blockNumber%size == 0
+}
+
+// calculate the Epoch number by blockNumber
 func CalculateEpoch(blockNumber uint64) uint64 {
-	// block counts of per epoch
-	size := xcom.ConsensusSize()*xcom.EpochSize()
+	size := CalcBlocksEachEpoch()
 
 	var epoch uint64
 	div := blockNumber / size
 	mod := blockNumber % size
 
-	switch  {
+	switch {
 	// first epoch
 	case (div == 0 && mod == 0) || (div == 0 && mod > 0):
 		epoch = 1
@@ -55,15 +131,14 @@ func CalculateEpoch(blockNumber uint64) uint64 {
 	return epoch
 }
 
-
-// calculate the Consensus number by blocknumber
-func CalculateRound (blockNumber uint64) uint64 {
-	size := xcom.ConsensusSize()
+// calculate the Consensus number by blockNumber
+func CalculateRound(blockNumber uint64) uint64 {
+	size := ConsensusSize()
 
 	var round uint64
 	div := blockNumber / size
 	mod := blockNumber % size
-	switch  {
+	switch {
 	// first consensus round
 	case (div == 0 && mod == 0) || (div == 0 && mod > 0):
 		round = 1
@@ -79,85 +154,42 @@ func CalculateRound (blockNumber uint64) uint64 {
 // calculate the year by blockNumber.
 // (V.0.1) If blockNumber eqs 0, year eqs 0 too, else rounded up the result of
 // the blockNumber divided by the expected number of blocks per year
-func CalculateYear (blockNumber uint64) uint64 {
-	// size is expected new blocks per year
-	size := GetExpectedEpochsPerYear() * GetBlocksPerEpoch()
+func CalculateYear(blockNumber uint64) uint32 {
+	size := CalcBlocksEachYear()
 
-	div := blockNumber / uint64(size)
-	mod := blockNumber % uint64(size)
+	div := blockNumber / size
+	mod := blockNumber % size
 
 	if mod == 0 {
-		return div
+		return uint32(div)
 	} else {
-		return div + 1
+		return uint32(div + 1)
 	}
 }
 
-func IsElection(blockNumber uint64) bool {
-	tmp := blockNumber + xcom.ElectionDistance()
-	mod := tmp % xcom.ConsensusSize()
-	return mod == 0
+// TODO: calculate governed configure data for main net only
+func MaxVotingDuration() uint64 {
+	size := ConsensusSize()
+	return uint64(14*24*60*60) / uint64(size) * uint64(size)
 }
 
-
-func IsSwitch (blockNumber uint64) bool {
-	mod := blockNumber % xcom.ConsensusSize()
-	return mod == 0
+// TODO: calculate reward configure data for main net only
+// SecondYearAllowance is 1.5% of GenesisIssuance
+func SecondYearAllowance() *big.Int {
+	issue := xcom.GenesisIssuance()
+	allowance := new(big.Int).Mul(issue, big.NewInt(15))
+	return allowance.Div(allowance, big.NewInt(100))
 }
 
-func IsSettlementPeriod (blockNumber uint64) bool {
-	// block counts of per epoch
-	size := GetBlocksPerEpoch()
-	mod := blockNumber % uint64(size)
-	return mod == 0
+// SecondYearAllowance is 0.5% of GenesisIssuance
+func ThirdYearAllowance() *big.Int {
+	issue := xcom.GenesisIssuance()
+	allowance := new(big.Int).Mul(issue, big.NewInt(5))
+	return allowance.Div(allowance, big.NewInt(100))
 }
 
-func IsYearEnd (blockNumber uint64) bool {
-	size := GetBlocksPerEpoch() * GetExpectedEpochsPerYear()
-	return blockNumber > 0 && blockNumber % uint64(size) == 0
-}
-
-func NodeId2Addr (nodeId discover.NodeID) (common.Address, error) {
-
-	if pk, err := nodeId.Pubkey(); nil != err {
-		return common.ZeroAddr, err
-	} else {
-		return crypto.PubkeyToAddress(*pk), nil
-	}
-}
-
-
-func IsWorker(extra []byte) bool {
-	return len(extra[32:]) >= common.ExtraSeal && bytes.Equal(extra[32:97], make([]byte, common.ExtraSeal))
-}
-
-
-
-func CheckStakeThreshold(stake *big.Int) bool {
-	return stake.Cmp(xcom.StakeThreshold()) >= 0
-}
-
-func CheckDelegateThreshold(delegate *big.Int) bool {
-	return delegate.Cmp(xcom.DelegateThreshold()) >= 0
-}
-
-// The ProcessVersion: Major.Minor.Patch eg. 1.1.0
-// Calculate the LargeVersion
-// eg: 1.1.0 ==> 1.1
-func CalcVersion (processVersion uint32) uint32 {
-	return processVersion>>8
-}
-
-// eg. 65536 => 1.0.0
-func ProcessVerion2Str (processVersion uint32) string {
-	major := processVersion<<8
-	major = major>>24
-
-	minor := processVersion<<16
-	minor = minor>>24
-
-	patch := processVersion<<24
-	patch = patch>>24
-
-	return fmt.Sprintf("%d.%d.%d", major, minor, patch)
+// TODO: calculate restricting configure data for main net only
+// GenesisRestrictingBalance is allowance at second year and the third year
+func GenesisRestrictingBalance() *big.Int {
+	return new(big.Int).Add(SecondYearAllowance(), ThirdYearAllowance())
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
 var (
@@ -543,5 +544,5 @@ func getLatestEpoch(stateDb xcom.StateDB) uint64 {
 }
 
 func getBlockNumberByEpoch(epoch uint64) uint64 {
-	return epoch * xcom.ConsensusSize() * xcom.EpochSize()
+	return epoch * xutil.CalcBlocksEachEpoch()
 }
