@@ -35,16 +35,17 @@ type Config struct {
 }
 
 type Cbft struct {
-	config     Config
-	eventMux   *event.TypeMux
-	closeOnce  sync.Once
-	exitCh     chan struct{}
-	txPool     consensus.TxPoolReset
-	blockChain consensus.ChainReader
-	peerMsgCh  chan *ctypes.MsgInfo
-	syncMsgCh  chan *ctypes.MsgInfo
-	evPool     evidence.EvidencePool
-	log        log.Logger
+	config           Config
+	eventMux         *event.TypeMux
+	closeOnce        sync.Once
+	exitCh           chan struct{}
+	txPool           consensus.TxPoolReset
+	blockChain       consensus.ChainReader
+	blockCacheWriter consensus.BlockCacheWriter
+	peerMsgCh        chan *ctypes.MsgInfo
+	syncMsgCh        chan *ctypes.MsgInfo
+	evPool           evidence.EvidencePool
+	log              log.Logger
 
 	// Async call channel
 	asyncCallCh chan func()
@@ -53,8 +54,6 @@ type Cbft struct {
 	// Control the current view state
 	state cstate.ViewState
 
-	// Execution block function
-	execute consensus.Executor
 	// Block asyncExecutor, the block responsible for executing the current view
 	asyncExecutor executor.AsyncBlockExecutor
 
@@ -95,10 +94,10 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 	return cbft
 }
 
-func (cbft *Cbft) Start(chain consensus.ChainReader, executorFn consensus.Executor, txPool consensus.TxPoolReset, agency consensus.Agency) error {
+func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.BlockCacheWriter, txPool consensus.TxPoolReset, agency consensus.Agency) error {
 	cbft.blockChain = chain
 	cbft.txPool = txPool
-	cbft.asyncExecutor = executor.NewAsyncExecutor(executorFn)
+	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
 	cbft.validatorPool = validator.NewValidatorPool(agency, chain.CurrentHeader().Number.Uint64(), cbft.config.sys.NodeID)
 
 	//Initialize block tree
