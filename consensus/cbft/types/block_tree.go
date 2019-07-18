@@ -1,9 +1,10 @@
 package types
 
 import (
+	"time"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
-	"time"
 )
 
 //BlockTree used to store blocks that are not currently written to disk， Block of QC, LockQC. Every time you submit to blockTree, it is possible to start QC changes.
@@ -58,6 +59,30 @@ func (b *BlockTree) PruneBlock(hash common.Hash, number uint64) {
 			}
 		}
 	}
+}
+
+// FindBlockAndQC find the specified block and its QC.
+func (b *BlockTree) FindBlockAndQC(hash common.Hash, number uint64) (*types.Block, *QuorumCert) {
+	if extMap, ok := b.blocks[number]; ok {
+		for h, ext := range extMap {
+			if hash == h {
+				return ext.block, ext.qc
+			}
+		}
+	}
+	return nil, nil
+}
+
+// FindBlockByHash find the specified block by hash.
+func (b *BlockTree) FindBlockByHash(hash common.Hash) *types.Block {
+	for _, extMap := range b.blocks {
+		for h, ext := range extMap {
+			if h == hash {
+				return ext.block
+			}
+		}
+	}
+	return nil
 }
 
 func (b *BlockTree) pruneBranch(ext *BlockExt) {
