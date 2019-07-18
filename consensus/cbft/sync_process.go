@@ -21,7 +21,7 @@ func (cbft *Cbft) fetchBlock(hash common.Hash, number uint64) {
 			//	}
 			//}
 		}
-		cbft.fetcher.AddTask("", match, executor)
+		cbft.fetcher.AddTask("", match, executor, nil)
 		//todo add fetch task
 		//todo run task & waiting block
 		//todo return result
