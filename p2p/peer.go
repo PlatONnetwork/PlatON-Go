@@ -17,13 +17,11 @@
 package p2p
 
 import (
-	"container/list"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 
@@ -114,8 +112,6 @@ type Peer struct {
 
 	// events receives message send / receive events if set
 	events *event.Feed
-
-	PingList *list.List
 }
 
 func NewPeerByNodeID(nodeId1 discover.NodeID, nodeId2 discover.NodeID, protos []Protocol) (*Peer, MsgReadWriter, *Peer, MsgReadWriter) {
@@ -236,7 +232,6 @@ func newPeer(conn *conn, protocols []Protocol) *Peer {
 		protoErr: make(chan error, len(protomap)+1), // protocols + pingLoop
 		closed:   make(chan struct{}),
 		log:      log.New("id", conn.id, "conn", conn.flags),
-		PingList: list.New(),
 	}
 	return p
 }
@@ -306,27 +301,12 @@ func (p *Peer) pingLoop() {
 	for {
 		select {
 		case <-ping.C:
-			pingTime := strconv.FormatInt(time.Now().UnixNano(), 10)
-
-			if p.PingList.Len() > 5 {
-				front := p.PingList.Front()
-				p.PingList.Remove(front)
-			}
-			p.PingList.PushBack(pingTime)
-
-			log.Trace("send a Ping message", "peerID", p.ID(), "pingTimeNano", pingTime, "PingList.Len", p.PingList.Len())
-			if err := SendItems(p.rw, pingMsg, pingTime); err != nil {
+			if err := SendItems(p.rw, pingMsg); err != nil {
 				p.protoErr <- err
 				return
 			}
-			/*log.Info("send a Ping message")
-			if err := SendItems(p.rw, pingMsg, strconv.FormatInt(time.Now().UnixNano(), 10)); err != nil {
-				p.protoErr <- err
-				return
-			}*/
 			ping.Reset(pingInterval)
 		case <-p.closed:
-			log.Trace("Ping loop closed", "peerID", p.ID())
 			return
 		}
 	}
@@ -351,35 +331,8 @@ func (p *Peer) readLoop(errc chan<- error) {
 func (p *Peer) handle(msg Msg) error {
 	switch {
 	case msg.Code == pingMsg:
-		// modify by Joey
-		var pingTime [1]string
-		msg.Decode(&pingTime)
-		//log.Debug("Receive a Ping message, then response a Pong message", "pingTimeNano", pingTime[0])
-
 		msg.Discard()
-		go SendItems(p.rw, pongMsg, pingTime[0])
-
-		/*msg.Discard()
-		go SendItems(p.rw, pongMsg)*/
-
-	case msg.Code == pongMsg:
-		//added by Joey
-		proto := p.running["eth"]
-		if proto == nil {
-			return msg.Discard()
-		}
-
-		msg.Code = 0x0a + proto.offset
-
-		//code := fmt.Sprintf("msg.Code: 0x%x", msg.Code)
-		//log.Debug("Receive a Pong message, reset msg.Code for eth protocol", "msg.Code", code)
-
-		select {
-		case proto.in <- msg:
-			return nil
-		case <-p.closed:
-			return io.EOF
-		}
+		go SendItems(p.rw, pongMsg)
 	case msg.Code == discMsg:
 		var reason [1]DiscReason
 		// This is the last message. We don't need to discard or

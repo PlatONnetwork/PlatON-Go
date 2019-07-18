@@ -3,6 +3,8 @@ package cbft
 import (
 	"fmt"
 	"math/big"
+	"strconv"
+	"time"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
@@ -209,6 +211,9 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	}
 	defer h.peers.Unregister(peer.PeerID())
 
+	// start ping loop.
+	go peer.Run()
+
 	// main loop. handle incoming message.
 	// Exit the loop and disconnect if the message
 	// is processing abnormally.
@@ -236,9 +241,11 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 	switch {
 	case msg.Code == protocols.CBFTStatusMsg:
 		return types.ErrResp(types.ErrExtraStatusMsg, "uncontrolled status message")
+
 	case msg.Code == protocols.GetPrepareBlockMsg:
 		// todo: GetPrepareBlockMsg need to process.
 		return nil
+
 	case msg.Code == protocols.PrepareBlockMsg:
 		var request protocols.PrepareBlock
 		if err := msg.Decode(&request); err != nil {
@@ -251,6 +258,7 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		// todo: need to process.
 		// h.engine.ReceivePeerMsg(types.NewMessageInfo(&request, p.ID()))
 		return nil
+
 	case msg.Code == protocols.PrepareVoteMsg:
 		var request protocols.PrepareVote
 		if err := msg.Decode(&request); err != nil {
@@ -259,25 +267,51 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		return nil
 
 	case msg.Code == protocols.ViewChangeMsg:
-		/*var request viewChange
-		if err := msg.Decode(&request); err != nil {
-			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
-		}
-		if h.cbft.isForwarded(p.ID(), &request) {
-			return nil
-		}
-		p.MarkMessageHash((&request).MsgHash())
-		h.cbft.ReceivePeerMsg(&MsgInfo{
-			Msg:    &request,
-			PeerID: p.ID(),
-		})*/
 		return nil
+
 	case msg.Code == protocols.PrepareBlockHashMsg:
-		/*var request protocols.PrepareBlockHash
-		if err := msg.Decode(&request); err != nil {
+		return nil
+
+	case msg.Code == protocols.PingMsg:
+		var pingTime [1]string
+		if err := msg.Decode(&pingTime); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
-		return nil*/
+		// Directly respond to the response message after receiving the ping message.
+		go p2p.SendItems(p.ReadWriter(), protocols.PongMsg, pingTime[0])
+		p.Log().Trace("Respond to ping message done")
+
+	case msg.Code == protocols.PongMsg:
+		// Processed after receiving the pong message.
+		curTime := time.Now().UnixNano()
+		log.Debug("handle a eth Pong message", "curTime", curTime)
+		var pingTime [1]string
+		if err := msg.Decode(&pingTime); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		for {
+			// Return the first element of list l or nil if the list is empty.
+			frontPing := p.PingList.Front()
+			if frontPing == nil {
+				log.Trace("end of p.PingList")
+				break
+			}
+			log.Trace("Front element of p.PingList", "element", frontPing)
+			if t, ok := p.PingList.Remove(frontPing).(string); ok {
+				if t == pingTime[0] {
+					tInt64, err := strconv.ParseInt(t, 10, 64)
+					if err != nil {
+						return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+					}
+					log.Trace("calculate net latency", "sendPingTime", tInt64, "receivePongTime", curTime)
+					latency := (curTime - tInt64) / 2 / 1000000
+					h.engine.OnPong(p.Peer.ID(), latency)
+					break
+				}
+			}
+		}
+		return nil
+
 	default:
 	}
 

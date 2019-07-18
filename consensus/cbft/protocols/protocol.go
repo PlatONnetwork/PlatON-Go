@@ -24,7 +24,9 @@ const (
 	GetQCPrepareBlockMsg = 0x07
 	QCPrepareBlockMsg    = 0x08
 	GetPrepareVoteMsg    = 0x09
-	PrepareBlockHashMsg  = 0x10
+	PrepareBlockHashMsg  = 0x0a
+	PingMsg              = 0x0b
+	PongMsg              = 0x0c
 )
 
 type PrepareBlock struct {

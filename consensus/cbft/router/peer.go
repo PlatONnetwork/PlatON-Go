@@ -2,9 +2,11 @@ package router
 
 import (
 	"bytes"
+	"container/list"
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"sync"
 	"time"
 
@@ -33,6 +35,9 @@ const (
 
 	// Protocol handshake timeout period, handshake failure after timeout.
 	handshakeTimeout = 5 * time.Second
+
+	// Heartbeat detection interval (unit: second).
+	pingInterval = 15 * time.Second
 )
 
 // Peer represents a node in the network.
@@ -55,6 +60,8 @@ type Peer struct {
 	// If the threshold is exceeded, the queue tail
 	// record is popped up and then added.
 	knownMessageHash mapset.Set
+
+	PingList *list.List
 }
 
 // newPeer creates a new peer.
@@ -69,6 +76,7 @@ func NewPeer(pv int, p *p2p.Peer, rw p2p.MsgReadWriter) *Peer {
 		lockedBn:         new(big.Int),
 		commitBn:         new(big.Int),
 		knownMessageHash: mapset.NewSet(),
+		PingList:         list.New(),
 	}
 }
 
@@ -187,6 +195,42 @@ func (p *Peer) SetCommitdBn(commitBn *big.Int) {
 		defer p.cLock.Unlock()
 		log.Debug("Set commitBn", "peerID", p.id, "oldCommitBn", p.commitBn.Uint64(), "newCommitBn", commitBn.Uint64())
 		p.lockedBn.Set(commitBn)
+	}
+}
+
+// Start the loop that the peer uses to maintain its
+// own functions.
+func (p *Peer) Run() {
+	p.pingLoop()
+}
+
+// The loop of heartbeat detection is mainly responsible for
+// confirming the connection of the connection.
+func (p *Peer) pingLoop() {
+	ping := time.NewTimer(pingInterval)
+	defer ping.Stop()
+	for {
+		select {
+		case <-ping.C:
+			// Send a ping message directly and the response message
+			// is processed at the CBFT layer.
+			pingTime := strconv.FormatInt(time.Now().UnixNano(), 10)
+			if p.PingList.Len() > 5 {
+				front := p.PingList.Front()
+				p.PingList.Remove(front)
+			}
+			p.PingList.PushBack(pingTime)
+
+			log.Trace("Send a ping message", "peerID", p.ID(), "pingTimeNano", pingTime, "PingList.Len", p.PingList.Len())
+			if err := p2p.SendItems(p.rw, protocols.PingMsg, pingTime); err != nil {
+				log.Error("Send ping message failed", "err", err)
+				return
+			}
+			ping.Reset(pingInterval)
+		case <-p.term:
+			log.Trace("Ping loop term", "peerID", p.ID().TerminalString())
+			return
+		}
 	}
 }
 
