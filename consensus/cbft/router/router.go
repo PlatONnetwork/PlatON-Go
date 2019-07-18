@@ -2,13 +2,18 @@
 package router
 
 import (
+	"bytes"
+	"fmt"
+	"math"
+	"reflect"
 	"sync"
 
-	"github.com/PlatONnetwork/PlatON-Go/log"
-
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
-
 	"github.com/PlatONnetwork/PlatON-Go/common"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
+	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/p2p"
 )
 
 // The fanout value of the gossip protocol, used to indicate
@@ -21,39 +26,121 @@ const DEFAULT_FAN_OUT = 5
 // 2.Generate a random node list based on fan-out.
 // 3.Duplicate verification of messages.
 type router struct {
-	bft    Cbft                          // Implementation of cbft interface
-	filter func(*peer, common.Hash) bool // Used for filtering node
-	lock   sync.RWMutex
+	bft     Cbft                          // Implementation of cbft interface
+	handler Handler                       // implementation baseHandler
+	filter  func(*Peer, common.Hash) bool // Used for filtering node
+	lock    sync.RWMutex
 }
 
 // NewRouter creates a new router. It is mainly used for message forwarding
-func NewRouter(bft Cbft) *router {
+func NewRouter(bft Cbft, handler Handler) *router {
 	return &router{
-		bft: bft,
-		filter: func(p *peer, condition common.Hash) bool {
-			return p.knownMessageHash.Contains(condition)
+		bft:     bft,
+		handler: handler,
+		filter: func(p *Peer, condition common.Hash) bool {
+			return p.ContainsMessageHash(condition)
 		},
 	}
 }
 
-// Randomly return a list of consensus nodes that exist in the peerSet.
+// A is responsible for forwarding the message. It selects different
+// target nodes based on the message type and forwarding mode.
+func (r *router) gossip(m *types.MsgPackage) {
+	msgType := m.MessageType()
+	msgHash := m.Message().MsgHash()
+
+	// Secondary forwarding verification.
+	// If the message of type (PrepareBlockHashMsg) is not processed in the node list of all
+	// neighbors of the current node, a message can be sent or not.
+	if msgType == protocols.PrepareBlockHashMsg {
+		if r.repeatedCheck(m.PeerID(), msgHash) {
+			log.Warn("The message is repeated, not to forward again", "msgType", reflect.TypeOf(m.Message()), "msgHash", msgHash.TerminalString())
+			return
+		}
+	}
+	// pick target nodes by type.
+	peers, err := r.filteredPeers(msgType, msgHash)
+	if err != nil {
+		log.Error("filteredPeers failed and stop to send", "msgType", msgType, "msgHash", msgHash)
+		return
+	}
+	// determine the number of target nodes based on different transmission modes.
+	// PartMode: Select some of the nodes from all
+	// recipients to reduce network consumption.
+	switch m.Mode() {
+	case types.PartMode:
+		transfer := peers[:int(math.Sqrt(float64(len(peers))))]
+		peers = transfer
+	}
+
+	// Print the information of the target's node.
+	pids := formatPeers(peers)
+	log.Debug("Gossip message", "msgHash", msgHash.TerminalString(), "msgType", reflect.TypeOf(m.Message()), "targetPeer", pids)
+
+	// Iteratively acquire nodes and send messages.
+	for _, peer := range peers {
+		if err := p2p.Send(peer.rw, msgType, m.Message()); err != nil {
+			log.Error("Send message failed", "peer", peer.id, "err", err)
+		} else {
+			peer.MarkMessageHash(msgHash)
+		}
+	}
+}
+
+// Send message to a known peerId. Determine if the peerId has established
+// a connection before sending.
+func (h *router) sendMessage(m *types.MsgPackage) {
+	if peer, err := h.handler.Get(m.PeerID()); err == nil {
+		log.Debug("Send message", "targetPeer", m.PeerID(), "type", reflect.TypeOf(m.Message()),
+			"msgHash", m.Message().MsgHash().TerminalString(), "BHash", m.Message().BHash().TerminalString())
+		if err := p2p.Send(peer.rw, m.MessageType(), m.Message()); err != nil {
+			log.Error("Send Peer error")
+			h.handler.Unregister(m.PeerID())
+		}
+	}
+}
+
+// filteredPeers selects the appropriate peers that satisfies the condition based on the message type.
+//
+// rules:
+// 1.Some message types return all consensus nodes.
+// 2.Some message types return random consensus nodes.
+// The following types return all consensus nodes:
+//   PrepareVoteMsg/PrepareBlockMsg/ViewChangeMsg/QuorumCertMsg
+// The following types return a consensus node with non-consensus:
+//   PrepareBlockHashMsg
+func (r *router) filteredPeers(msgType uint64, condition common.Hash) ([]*Peer, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	switch msgType {
+	case protocols.PrepareBlockMsg, protocols.PrepareVoteMsg,
+		protocols.ViewChangeMsg, protocols.QuorumCertMsg:
+		return r.kMixingRandomNodes(condition)
+	case protocols.PrepareBlockHashMsg:
+		return r.kConsensusRandomNodes(false, condition)
+	}
+	return nil, fmt.Errorf("does not match the type of the specified message")
+}
+
+// Randomly return a list of consensus nodes that exist in the PeerSet.
 //
 // 1.Get all consensus node IDs.
 // 2.Get a list of neighbor nodes.
 // 3.Take the intersection of the above.
 // 4.If the random is true then get the number of random nodes and the fan-out is 5.
-func (r *router) kConsensusRandomNodes(random bool, condition common.Hash) ([]*peer, error) {
+func (r *router) kConsensusRandomNodes(random bool, condition common.Hash) ([]*Peer, error) {
 	cNodes, err := r.bft.ConsensusNodes()
 	if err != nil {
 		return nil, err
 	}
 	//existsPeers := r.msgHandler.PeerSet().Peers()
-	existsPeers := make([]*peer, 0)
+	existsPeers := make([]*Peer, 0)
 	log.Debug("kConsensusRandomNodes select node", "msgHash", condition, "cNodesLen", len(cNodes), "peerSetLen", len(existsPeers))
 
 	// The maximum capacity will not exceed the capacity of existsPeers.
 	// Slices of the specified capacity have certain performance advantages.
-	consensusPeers := make([]*peer, len(existsPeers))
+	consensusPeers := make([]*Peer, 0, len(existsPeers))
 	for _, peer := range existsPeers {
 		for _, node := range cNodes {
 			if peer.id == node.TerminalString() {
@@ -69,17 +156,17 @@ func (r *router) kConsensusRandomNodes(random bool, condition common.Hash) ([]*p
 }
 
 // kMixingRandomNodes returns all consensus nodes and k randomly generated non-consensus nodes.
-func (r *router) kMixingRandomNodes(condition common.Hash) ([]*peer, error) {
+func (r *router) kMixingRandomNodes(condition common.Hash) ([]*Peer, error) {
 	// all consensus nodes + a number of k non-consensus nodes
 	cNodes, err := r.bft.ConsensusNodes()
 	if err != nil {
 		return nil, err
 	}
 	//existsPeers := r.msgHandler.PeerSet().Peers()
-	existsPeers := make([]*peer, 0)
-	consensusPeers := make([]*peer, len(existsPeers))
+	existsPeers := make([]*Peer, 0)
+	consensusPeers := make([]*Peer, 0, len(existsPeers))
 	// The length of non-consensus nodes is equal to the default fan-out value.
-	nonconsensusPeers := make([]*peer, DEFAULT_FAN_OUT)
+	nonconsensusPeers := make([]*Peer, 0, DEFAULT_FAN_OUT)
 	for _, peer := range existsPeers {
 		isConsensus := false
 		for _, node := range cNodes {
@@ -103,9 +190,9 @@ func (r *router) kMixingRandomNodes(condition common.Hash) ([]*peer, error) {
 
 // kRandomNodes is used to select up to k random nodes, excluding any nodes where
 // the filter function returns true. It is possible that less than k nodes are returned.
-func kRandomNodes(k int, peers []*peer, condition common.Hash, filterFn func(*peer, common.Hash) bool) []*peer {
+func kRandomNodes(k int, peers []*Peer, condition common.Hash, filterFn func(*Peer, common.Hash) bool) []*Peer {
 	n := len(peers)
-	kNodes := make([]*peer, 0, k)
+	kNodes := make([]*Peer, 0, k)
 OUTER:
 	// Probe up to 3*n times, with large n this is not necessary
 	// since k << n, but with small n we want search to be
@@ -130,4 +217,35 @@ OUTER:
 		kNodes = append(kNodes, node)
 	}
 	return kNodes
+}
+
+// Check if the specified message has been processed by the neighbor node.
+func (r *router) repeatedCheck(peerId string, msgHash common.Hash) bool {
+	peers, err := r.handler.Peers()
+	if err != nil {
+		return false
+	}
+	for _, peer := range peers {
+		if peer.id == peerId {
+			continue
+		}
+		// if true: indicates that the neighbor node has been processed.
+		if peer.ContainsMessageHash(msgHash) {
+			return true
+		}
+	}
+	// if false: indicates that no neighbor nodes have been processed.
+	return false
+}
+
+// formatPeers is used to print the information about peer
+func formatPeers(peers []*Peer) string {
+	var bf bytes.Buffer
+	for idx, peer := range peers {
+		bf.WriteString(peer.id)
+		if idx < len(peers)-1 {
+			bf.WriteString(",")
+		}
+	}
+	return bf.String()
 }

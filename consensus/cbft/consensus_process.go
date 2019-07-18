@@ -6,6 +6,10 @@ import "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 func (cbft *Cbft) OnPrepareBlock(msg *protocols.PrepareBlock) error {
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		if err.Fetch() {
+<<<<<<< HEAD
+=======
+			cbft.fetchBlock(msg.Block.Hash(), msg.Block.NumberU64())
+>>>>>>> 74c801cd1f29689db95b40b4ec32b651778b9e33
 			//todo fetch block
 		}
 	}
