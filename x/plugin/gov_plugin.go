@@ -176,10 +176,9 @@ func (govPlugin *GovPlugin) EndBlock(blockHash common.Hash, header *types.Header
 					updatedNodes++
 				}
 			}
+			log.Debug("check active criteria", "pre-active nodes", updatedNodes, "total validators", xcom.ConsValidatorNum())
 			if updatedNodes == xcom.ConsValidatorNum() {
-
 				log.Debug("the pre-active version proposal has passed")
-
 				tallyResult, err := govPlugin.govDB.GetTallyResult(preActiveProposalID, state)
 				if err != nil {
 					log.Error("find tally result by proposal ID failed.", "preActiveProposalID", preActiveProposalID)
@@ -353,9 +352,9 @@ func (govPlugin *GovPlugin) Vote(from common.Address, vote gov.Vote, blockHash c
 func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID discover.NodeID, declaredVersion uint32, blockHash common.Hash, blockNumber uint64, state xcom.StateDB) error {
 
 	//check caller is a Verifier or Candidate
-	if err := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber); err != nil {
+	/*if err := govPlugin.checkVerifier(from, declaredNodeID, blockHash, blockNumber); err != nil {
 		return err
-	}
+	}*/
 
 	if err := govPlugin.checkCandidate(from, declaredNodeID, blockHash, blockNumber); err != nil {
 		return err

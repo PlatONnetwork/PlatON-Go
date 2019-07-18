@@ -2,6 +2,8 @@ package vm_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	commonvm "github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -11,21 +13,19 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
-	"testing"
 )
 
 var (
-	snapdb 		snapshotdb.DB
-	govPlugin	*plugin.GovPlugin
-	gc			*vm.GovContract
+	snapdb    snapshotdb.DB
+	govPlugin *plugin.GovPlugin
+	gc        *vm.GovContract
 )
-
 
 func buildSubmitTextInput() string {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2000)))				// func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0]))				// param 1 ...
+	input = append(input, common.MustRlpEncode(uint16(2000))) // func type code
+	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("githubID"))
 	input = append(input, common.MustRlpEncode("textTopic"))
 	input = append(input, common.MustRlpEncode("textDesc"))
@@ -35,19 +35,35 @@ func buildSubmitTextInput() string {
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
 
-
 func buildSubmitVersionInput() string {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2001)))				// func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0]))				// param 1 ...
+	input = append(input, common.MustRlpEncode(uint16(2001))) // func type code
+	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode("githubID"))
 	input = append(input, common.MustRlpEncode("versionTopic"))
 	input = append(input, common.MustRlpEncode("versionDesc"))
 	input = append(input, common.MustRlpEncode("versionUrl"))
-	input = append(input, common.MustRlpEncode(uint32(1<<16 | 1<<8 | 1)))	//new version : 1.1.1
+	input = append(input, common.MustRlpEncode(uint32(1<<16|1<<8|1))) //new version : 1.1.1
 	input = append(input, common.MustRlpEncode(uint64(1000)))
 	input = append(input, common.MustRlpEncode(uint64(2000)))
+
+	return common.Bytes2Hex(common.MustRlpEncode(input))
+}
+
+func buildSubmitParamInput() string {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2002))) // func type code
+	input = append(input, common.MustRlpEncode("githubID"))
+	input = append(input, common.MustRlpEncode("paramTopic"))
+	input = append(input, common.MustRlpEncode("paramDesc"))
+	input = append(input, common.MustRlpEncode("paramUrl"))
+	input = append(input, common.MustRlpEncode("param1"))
+	input = append(input, common.MustRlpEncode(""))
+	input = append(input, common.MustRlpEncode("newValue"))
+
+	input = append(input, common.MustRlpEncode(uint64(1000)))
 
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
@@ -55,8 +71,8 @@ func buildSubmitVersionInput() string {
 func buildVoteInput() string {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2002)))				// func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0]))				// param 1 ...
+	input = append(input, common.MustRlpEncode(uint16(2003))) // func type code
+	input = append(input, common.MustRlpEncode(nodeIdArr[0])) // param 1 ...
 	input = append(input, common.MustRlpEncode(txHashArr[0]))
 	input = append(input, common.MustRlpEncode(uint8(1)))
 
@@ -66,9 +82,9 @@ func buildVoteInput() string {
 func buildDeclareInput() string {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2003)))				// func type code
-	input = append(input, common.MustRlpEncode(nodeIdArr[0]))				// param 1 ...
-	input = append(input, common.MustRlpEncode(uint32(1<<16 | 1<<8 | 1)))	//new version : 1.1.1
+	input = append(input, common.MustRlpEncode(uint16(2004)))         // func type code
+	input = append(input, common.MustRlpEncode(nodeIdArr[0]))         // param 1 ...
+	input = append(input, common.MustRlpEncode(uint32(1<<16|1<<8|1))) //new version : 1.1.1
 
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
@@ -76,8 +92,8 @@ func buildDeclareInput() string {
 func buildGetProposalInput() string {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2100)))				// func type code
-	input = append(input, common.MustRlpEncode(txHashArr[0]))				// param 1 ...
+	input = append(input, common.MustRlpEncode(uint16(2100))) // func type code
+	input = append(input, common.MustRlpEncode(txHashArr[0])) // param 1 ...
 
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
@@ -85,8 +101,8 @@ func buildGetProposalInput() string {
 func buildGetTallyResultInput() string {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2101)))				// func type code
-	input = append(input, common.MustRlpEncode(txHashArr[0]))				// param 1 ...
+	input = append(input, common.MustRlpEncode(uint16(2101))) // func type code
+	input = append(input, common.MustRlpEncode(txHashArr[0])) // param 1 ...
 
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
@@ -94,57 +110,76 @@ func buildGetTallyResultInput() string {
 func buildListProposalInput() string {
 	var input [][]byte
 	input = make([][]byte, 0)
-	input = append(input, common.MustRlpEncode(uint16(2102)))				// func type code
+	input = append(input, common.MustRlpEncode(uint16(2102))) // func type code
 	return common.Bytes2Hex(common.MustRlpEncode(input))
 }
 
+func buildGetActiveVersionInput() string {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2103))) // func type code
+	return common.Bytes2Hex(common.MustRlpEncode(input))
+}
+
+func buildGetCodeVersionInput() string {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2104))) // func type code
+	return common.Bytes2Hex(common.MustRlpEncode(input))
+}
+
+func buildListParamInput() string {
+	var input [][]byte
+	input = make([][]byte, 0)
+	input = append(input, common.MustRlpEncode(uint16(2105))) // func type code
+	return common.Bytes2Hex(common.MustRlpEncode(input))
+}
 
 var successExpected = hexutil.Encode(common.MustRlpEncode(xcom.Result{true, "", ""}))
 
 // each element means a call. we can reorder these elements to test different scenarios
 var govContractCombinedTests = []vm.PrecompiledTest{
 	{
-		Input:		buildSubmitTextInput(),
-		Expected:	successExpected,
-		Name:		"submitText1",
+		Input:    buildSubmitTextInput(),
+		Expected: successExpected,
+		Name:     "submitText1",
 	},
 	{
-		Input:		buildSubmitVersionInput(),
-		Expected:	successExpected,
-		Name:		"submitVersion1",
+		Input:    buildSubmitVersionInput(),
+		Expected: successExpected,
+		Name:     "submitVersion1",
 	},
 	{
-		Input:		buildVoteInput(),
-		Expected:	successExpected,
-		Name:		"vote1",
+		Input:    buildVoteInput(),
+		Expected: successExpected,
+		Name:     "vote1",
 	},
 	{
-		Input:		buildDeclareInput(),
-		Expected:	successExpected,
-		Name:		"declare1",
+		Input:    buildDeclareInput(),
+		Expected: successExpected,
+		Name:     "declare1",
 	},
 	{
-		Input:		buildGetProposalInput(),
-		Expected:	successExpected,
-		Name:		"getProposal1",
+		Input:    buildGetProposalInput(),
+		Expected: successExpected,
+		Name:     "getProposal1",
 	},
 	/*
-	{
-		Input:		buildGetTallyResultInput(),
-		Expected:	successExpected,
-		Name:		"getTallyResult1",
-	},
+		{
+			Input:		buildGetTallyResultInput(),
+			Expected:	successExpected,
+			Name:		"getTallyResult1",
+		},
 	*/
 	{
-		Input:		buildListProposalInput(),
-		Expected:	successExpected,
-		Name:		"listProposal1",
+		Input:    buildListProposalInput(),
+		Expected: successExpected,
+		Name:     "listProposal1",
 	},
 }
 
 func setup(t *testing.T) func() {
 	t.Log("setup()......")
-
 
 	precompiledContract := vm.PlatONPrecompiledContracts[commonvm.GovContractAddr]
 	gc, _ = precompiledContract.(*vm.GovContract)
@@ -161,7 +196,6 @@ func setup(t *testing.T) func() {
 
 	snapdb = snapshotdb.Instance()
 
-
 	return func() {
 		t.Log("tear down()......")
 		snapdb.Clear()
@@ -175,26 +209,25 @@ func testPlatONPrecompiled(idx int, t *testing.T) {
 	in := common.Hex2Bytes(test.Input)
 	gc.Contract.Gas = gc.RequiredGas(in)
 
-	state :=gc.Evm.StateDB.(*state.StateDB)
+	state := gc.Evm.StateDB.(*state.StateDB)
 
 	state.Prepare(txHashArr[idx], blockHash, idx)
 
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gc.Contract.Gas), func(t *testing.T) {
 		if res, err := vm.RunPlatONPrecompiledContract(gc, common.Hex2Bytes(test.Input), gc.Contract); err != nil {
 			t.Error(err)
-		} else if  common.Bytes2Hex0x(res) != test.Expected {
+		} else if common.Bytes2Hex0x(res) != test.Expected {
 
 			t.Log(res)
 			var r xcom.Result
 			if err = rlp.DecodeBytes(res, &r); err != nil {
 				t.Error(err)
-			}else{
+			} else {
 				t.Log(r.Data)
 			}
 		}
 	})
 }
-
 
 // Tests the sample inputs from the elliptic curve pairing check EIP 197.
 func TestPrecompiledGovContract(t *testing.T) {
