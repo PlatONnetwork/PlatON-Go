@@ -3,13 +3,14 @@ package snapshotdb
 import (
 	"bytes"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/common"
 	"math/big"
 	"math/rand"
 	"os"
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/common"
 )
 
 func TestRecover(t *testing.T) {
@@ -348,15 +349,31 @@ func (k kvs) Swap(i, j int) {
 	k[i], k[j] = k[j], k[i]
 }
 
-func generatekv(n int) []kv {
+func (k kvs) compareWithkvs(s kvs) error {
+	if len(k) != len(s) {
+		return fmt.Errorf("kv length not compare,want %d have %d", len(k), len(s))
+	}
+	for i := 0; i < len(k); i++ {
+		if bytes.Compare(k[i].key, s[i].key) != 0 {
+			return fmt.Errorf("key not compare,want %v have %v", k[i].key, s[i].key)
+		}
+		if bytes.Compare(k[i].value, s[i].value) != 0 {
+			return fmt.Errorf("value not compare,want %v have %v", k[i].value, s[i].value)
+		}
+	}
+	return nil
+}
+
+func generatekv(n int) kvs {
 	rand.Seed(time.Now().UnixNano())
-	kvs := make([]kv, n)
+	kvs := make(kvs, n)
 	for i := 0; i < n; i++ {
 		kvs[i] = kv{
 			key:   randomString2(""),
 			value: randomString2(""),
 		}
 	}
+	sort.Sort(kvs)
 	return kvs
 }
 
