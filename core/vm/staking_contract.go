@@ -31,7 +31,7 @@ const (
 	GetCandidateListErrStr   = "Getting candidateList is failed"
 	GetDelegateRelatedErrStr = "Getting related of delegate is failed"
 	IncreaseStakingErrStr    = "IncreaseStaking failed"
-	ProcessVersionErr        = "The version of the relates node's process is too low"
+	ProgramVersionErr        = "The program version of the relates node's is too low"
 	QueryCanErrStr           = "Query candidate info failed"
 	QueryDelErrSTr           = "Query delegate info failed"
 	StakeVonTooLowStr        = "Staking deposit too low"
@@ -85,7 +85,7 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 }
 
 func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Address, nodeId discover.NodeID,
-	externalId, nodeName, website, details string, amount *big.Int, processVersion uint32) ([]byte, error) {
+	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32) ([]byte, error) {
 
 	txHash := stkc.Evm.StateDB.TxHash()
 	txIndex := stkc.Evm.StateDB.TxIdx()
@@ -102,7 +102,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 
 	//  TODO  MOCK
 	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
-	//	externalId, nodeName, website, details, amount, processVersion)
+	//	externalId, nodeName, website, details, amount, programVersion)
 
 	if !xutil.CheckStakeThreshold(amount) {
 		res := xcom.Result{false, "", StakeVonTooLowStr}
@@ -114,7 +114,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	// Query current active version
 	curr_version := plugin.GovPluginInstance().GetActiveVersion(state)
 	currVersion := xutil.CalcVersion(curr_version)
-	inputVersion := xutil.CalcVersion(processVersion)
+	inputVersion := xutil.CalcVersion(programVersion)
 
 	var isDeclareVersion bool
 
@@ -122,8 +122,8 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	// Just like that:
 	// eg: 2.1.x == 2.1.x; 2.1.x > 2.0.x
 	if inputVersion < currVersion {
-		err := fmt.Errorf("input Version: %s, current Large Version: %s", xutil.ProcessVersion2Str(processVersion), xutil.ProcessVersion2Str(curr_version))
-		res := xcom.Result{false, "", ProcessVersionErr + ": " + err.Error()}
+		err := fmt.Errorf("input Version: %s, current Large Version: %s", xutil.ProgramVersion2Str(programVersion), xutil.ProgramVersion2Str(curr_version))
+		res := xcom.Result{false, "", ProgramVersionErr + ": " + err.Error()}
 		event, _ := json.Marshal(res)
 		stkc.badLog(state, blockNumber.Uint64(), txHash, CreateStakingEvent, string(event), "createStaking")
 
@@ -177,7 +177,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		},
 	}
 
-	canNew.ProcessVersion = currVersion
+	canNew.ProgramVersion = currVersion
 
 	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, canNew)
 	if nil != err {
@@ -196,7 +196,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	if isDeclareVersion {
 		// Declare new Version
 		err := plugin.GovPluginInstance().DeclareVersion(canNew.StakingAddress, canNew.NodeId,
-			processVersion, blockHash, blockNumber.Uint64(), state)
+			programVersion, blockHash, blockNumber.Uint64(), state)
 		if nil != err {
 			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
@@ -769,7 +769,7 @@ func (stkc *StakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHa
 
 //  TODO MOCK
 func (stkc *StakingContract) createMock(state xcom.StateDB, blockNumber uint64, txHash common.Hash, typ uint16, benifitAddress common.Address, nodeId discover.NodeID,
-	externalId, nodeName, website, details string, amount *big.Int, processVersion uint32) ([]byte, error) {
+	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32) ([]byte, error) {
 
 	fmt.Println("Call createStaking ~~~~~~~~~~~~~~")
 
@@ -781,7 +781,7 @@ func (stkc *StakingContract) createMock(state xcom.StateDB, blockNumber uint64, 
 	fmt.Println("website:", website)
 	fmt.Println("details:", details)
 	fmt.Println("amount:", amount)
-	fmt.Println("processVersion:", processVersion)
+	fmt.Println("programVersion:", programVersion)
 
 	res := xcom.Result{true, "", "ok"}
 	event, _ := json.Marshal(res)
@@ -825,7 +825,7 @@ func (stkc *StakingContract) getVerifierListMock() ([]byte, error) {
 			StakingAddress:  common.HexToAddress(addrArr[i]),
 			BenifitAddress:  vm.StakingContractAddr,
 			StakingTxIndex:  uint32(i),
-			ProcessVersion:  uint32(i * i),
+			ProgramVersion:  uint32(i * i),
 			StakingBlockNum: uint64(i + 2),
 			Shares:          common.Big256,
 			//Description: staking.Description{
@@ -883,7 +883,7 @@ func (stkc *StakingContract) getValidatorListMock() ([]byte, error) {
 			StakingAddress:  common.HexToAddress(addrArr[i]),
 			BenifitAddress:  vm.StakingContractAddr,
 			StakingTxIndex:  uint32(i),
-			ProcessVersion:  uint32(i * i),
+			ProgramVersion:  uint32(i * i),
 			StakingBlockNum: uint64(i + 2),
 			Shares:          common.Big256,
 			Description: staking.Description{

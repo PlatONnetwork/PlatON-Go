@@ -41,7 +41,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *state.St
 	details, _ := rlp.EncodeToBytes(nodeNameArr[index] + " super node")
 	StakeThreshold, _ := new(big.Int).SetString(balanceStr[index], 10) // equal or more than "1000000000000000000000000"
 	amount, _ := rlp.EncodeToBytes(StakeThreshold)
-	processVersion, _ := rlp.EncodeToBytes(initProcessVersion)
+	programVersion, _ := rlp.EncodeToBytes(initProgramVersion)
 
 	params = append(params, fnType)
 	params = append(params, typ)
@@ -52,7 +52,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *state.St
 	params = append(params, website)
 	params = append(params, details)
 	params = append(params, amount)
-	params = append(params, processVersion)
+	params = append(params, programVersion)
 
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)

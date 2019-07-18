@@ -2,11 +2,12 @@ package staking
 
 import (
 	"crypto/ecdsa"
+	"math/big"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
-	"math/big"
 )
 
 const (
@@ -64,11 +65,10 @@ func CandidateKeyBySuffix(addr []byte) []byte {
 	return append(CandidateKeyPrefix, addr...)
 }
 
-// need to add ProcessVersion
-func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, processVersion uint32) []byte {
-	version := common.Uint32ToBytes(processVersion)
+// need to add ProgramVersion
+func TallyPowerKey(shares *big.Int, stakeBlockNum uint64, stakeTxIndex, programVersion uint32) []byte {
+	version := common.Uint32ToBytes(programVersion)
 	priority := new(big.Int).Sub(math.MaxBig104, shares)
-
 
 	zeros := make([]byte, b104Len)
 	prio := append(zeros, priority.Bytes()...)

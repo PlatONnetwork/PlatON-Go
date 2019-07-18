@@ -134,7 +134,7 @@ var (
 		common.HexToHash("0x00000000000054fa3d19eb57e98aa1dd69d216722054d8539ede4b89c5b77ee9"),
 	}
 
-	initProcessVersion = uint32(1<<16 | 0<<8 | 0) // 65536, version: 1.0.0
+	initProgramVersion = uint32(1<<16 | 0<<8 | 0) // 65536, version: 1.0.0
 	promoteVersion     = uint32(2<<16 | 0<<8 | 0) // 131072, version: 2.0.0
 
 	balanceStr = []string{
@@ -221,7 +221,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *
 
 	//set a default active version
 	govDB := gov.GovDBInstance()
-	govDB.SetActiveVersion(initProcessVersion, state)
+	govDB.SetActiveVersion(initProgramVersion, state)
 
 	return evm
 }
@@ -353,7 +353,7 @@ func build_staking_data_more(block uint64) {
 			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(i + 1),
 			Shares:          balance,
-			ProcessVersion:  xutil.CalcVersion(initProcessVersion),
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -376,7 +376,7 @@ func build_staking_data_more(block uint64) {
 		v := &staking.Validator{
 			NodeAddress: canAddr,
 			NodeId:      canTmp.NodeId,
-			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProcessVersion)), canTmp.Shares.String(),
+			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
 				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 			ValidatorTerm: 0,
 		}
@@ -484,7 +484,7 @@ func build_staking_data(genesisHash common.Hash) {
 			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(i + 1),
 			Shares:          balance,
-			ProcessVersion:  xutil.CalcVersion(initProcessVersion),
+			ProgramVersion:  xutil.CalcVersion(initProgramVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -507,7 +507,7 @@ func build_staking_data(genesisHash common.Hash) {
 		v := &staking.Validator{
 			NodeAddress: canAddr,
 			NodeId:      canTmp.NodeId,
-			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProcessVersion)), canTmp.Shares.String(),
+			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProgramVersion)), canTmp.Shares.String(),
 				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 			ValidatorTerm: 0,
 		}
@@ -565,7 +565,7 @@ func build_gov_data(state *state.StateDB) {
 
 	//set a default active version
 	govDB := gov.GovDBInstance()
-	govDB.SetActiveVersion(initProcessVersion, state)
+	govDB.SetActiveVersion(initProgramVersion, state)
 }
 
 func buildStateDB(t *testing.T) xcom.StateDB {
