@@ -90,18 +90,18 @@ func (sp *SlashingPlugin) BeginBlock(blockHash common.Hash, header *types.Header
 					// Start to punish nodes with abnormal block rate
 					log.Debug("slashingPlugin node block amount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "amount", amount)
 					if isAbnormal(amount) {
-						if amount <= xcom.BlockAmountLow() && amount > xcom.BlockAmountHigh() {
+						if amount <= xcom.PackAmountAbnormal() && amount > xcom.PackAmountHighAbnormal() {
 							isSlash = true
-							rate = xcom.BlockAmountLowSlash()
-						} else if amount <= xcom.BlockAmountHigh() {
+							rate = xcom.PackAmountLowSlashRate()
+						} else if amount <= xcom.PackAmountHighAbnormal() {
 							isSlash = true
 							isDelete = true
-							rate = xcom.BlockAmountHighSlash()
+							rate = xcom.PackAmountHighSlashRate()
 						}
 					}
 				} else {
 					isSlash = true
-					rate = xcom.BlockAmountHighSlash()
+					rate = xcom.PackAmountHighSlashRate()
 				}
 				if isSlash && rate > 0 {
 					slashAmount := calcSlashAmount(validator, rate)
@@ -132,15 +132,15 @@ func (sp *SlashingPlugin) Confirmed(block *types.Block) error {
 			return err
 		}
 	}
-	if err := sp.setBlockAmount(block.Hash(), block.Header()); nil != err {
-		log.Error("slashingPlugin setBlockAmount fail", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
+	if err := sp.setPackAmount(block.Hash(), block.Header()); nil != err {
+		log.Error("slashingPlugin setPackAmount fail", "blockNumber", block.NumberU64(), "blockHash", hex.EncodeToString(block.Hash().Bytes()), "err", err)
 		return err
 	}
 	return nil
 }
 
-func (sp *SlashingPlugin) getBlockAmount(blockHash common.Hash, header *types.Header) (uint32, error) {
-	log.Debug("slashingPlugin getBlockAmount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()))
+func (sp *SlashingPlugin) getPackAmount(blockHash common.Hash, header *types.Header) (uint32, error) {
+	log.Debug("slashingPlugin getPackAmount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()))
 	nodeId, err := parseNodeId(header)
 	if nil != err {
 		return 0, err
@@ -160,13 +160,13 @@ func (sp *SlashingPlugin) getBlockAmount(blockHash common.Hash, header *types.He
 	return amount, nil
 }
 
-func (sp *SlashingPlugin) setBlockAmount(blockHash common.Hash, header *types.Header) error {
-	log.Debug("slashingPlugin setBlockAmount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()))
+func (sp *SlashingPlugin) setPackAmount(blockHash common.Hash, header *types.Header) error {
+	log.Debug("slashingPlugin setPackAmount", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()))
 	nodeId, err := parseNodeId(header)
 	if nil != err {
 		return err
 	}
-	if value, err := sp.getBlockAmount(blockHash, header); nil != err {
+	if value, err := sp.getPackAmount(blockHash, header); nil != err {
 		return err
 	} else {
 		value++
@@ -176,7 +176,7 @@ func (sp *SlashingPlugin) setBlockAmount(blockHash common.Hash, header *types.He
 			if err := sp.db.PutBaseDB(curKey(nodeId.Bytes()), enValue); nil != err {
 				return err
 			}
-			log.Debug("slashingPlugin setBlockAmount success", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "value", value)
+			log.Debug("slashingPlugin setPackAmount success", "blockNumber", header.Number.Uint64(), "blockHash", hex.EncodeToString(blockHash.Bytes()), "nodeId", hex.EncodeToString(nodeId.Bytes()), "value", value)
 		}
 	}
 	return nil
@@ -347,5 +347,6 @@ func calcSlashAmount(candidate *staking.Candidate, rate uint32) *big.Int {
 	sumAmount.Add(candidate.Released, candidate.ReleasedHes)
 	sumAmount.Add(sumAmount, candidate.RestrictingPlan)
 	sumAmount.Add(sumAmount, candidate.RestrictingPlanHes)
-	return sumAmount.Div(sumAmount, new(big.Int).SetUint64(uint64(rate)))
+	sumAmount.Mul(sumAmount, new(big.Int).SetUint64(uint64(rate)))
+	return sumAmount.Div(sumAmount, new(big.Int).SetUint64(100))
 }

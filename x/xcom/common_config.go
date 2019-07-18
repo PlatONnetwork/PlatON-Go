@@ -36,13 +36,13 @@ type stakingConfig struct {
 }
 
 type slashingConfig struct {
-	BlockAmountLow            uint32 // The number of low exceptions per consensus round
-	BlockAmountHigh           uint32 // Number of blocks per high consensus exception
-	BlockAmountLowSlashing    uint32 // Penalty quota for each consensus round with a low number of abnormal blocks, percentage
-	BlockAmountHighSlashing   uint32 // The penalty amount for each consensus round high abnormal number of blocks, percentage
-	DuplicateSignNum          uint32 // The conditions for the highest penalty, double signing
-	DuplicateSignLowSlashing  uint32 // Double sign low penalty amount, percentage
-	DuplicateSignHighSlashing uint32 // DuplicateSignHighSlashing
+	PackAmountAbnormal        uint32 // The number of blocks packed per round, reaching this value is abnormal
+	PackAmountHighAbnormal    uint32 // The number of blocks packed per round, reaching this value is a high degree of abnormality
+	PackAmountLowSlashRate    uint32 // Proportion of deducted quality deposit (when the number of packing blocks is abnormal); 10% -> 10
+	PackAmountHighSlashRate   uint32 // Proportion of quality deposits deducted (when the number of packing blocks is high degree of abnormality); 20% -> 20
+	DuplicateSignNum          uint32 // Number of multiple signatures
+	DuplicateSignLowSlashing  uint32 // Deduction ratio when the number of multi-signs is lower than DuplicateSignNum; 10% -> 10
+	DuplicateSignHighSlashing uint32 // Deduction ratio when the number of multi-signs is higher than DuplicateSignNum; 20% -> 20
 }
 
 type rewardConfig struct {
@@ -159,13 +159,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				BlockAmountLow:            uint32(8),
-				BlockAmountHigh:           uint32(5),
-				BlockAmountLowSlashing:    uint32(10),
-				BlockAmountHighSlashing:   uint32(20),
+				PackAmountAbnormal:        uint32(8),
+				PackAmountHighAbnormal:    uint32(5),
+				PackAmountLowSlashRate:    uint32(10),
+				PackAmountHighSlashRate:   uint32(20),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(10),
+				DuplicateSignHighSlashing: uint32(20),
 			},
 			Reward: rewardConfig{
 				GenesisIssuance: genesisIssuance,
@@ -196,13 +196,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				BlockAmountLow:            uint32(8),
-				BlockAmountHigh:           uint32(5),
-				BlockAmountLowSlashing:    uint32(10),
-				BlockAmountHighSlashing:   uint32(20),
+				PackAmountAbnormal:        uint32(8),
+				PackAmountHighAbnormal:    uint32(5),
+				PackAmountLowSlashRate:    uint32(10),
+				PackAmountHighSlashRate:   uint32(20),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(10),
+				DuplicateSignHighSlashing: uint32(20),
 			},
 			Reward: rewardConfig{
 				GenesisIssuance: genesisIssuance,
@@ -233,13 +233,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				BlockAmountLow:            uint32(8),
-				BlockAmountHigh:           uint32(5),
-				BlockAmountLowSlashing:    uint32(10),
-				BlockAmountHighSlashing:   uint32(20),
+				PackAmountAbnormal:        uint32(8),
+				PackAmountHighAbnormal:    uint32(5),
+				PackAmountLowSlashRate:    uint32(10),
+				PackAmountHighSlashRate:   uint32(20),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(10),
+				DuplicateSignHighSlashing: uint32(20),
 			},
 			Reward: rewardConfig{
 				GenesisIssuance: genesisIssuance,
@@ -270,13 +270,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				BlockAmountLow:            uint32(8),
-				BlockAmountHigh:           uint32(5),
-				BlockAmountLowSlashing:    uint32(10),
-				BlockAmountHighSlashing:   uint32(20),
+				PackAmountAbnormal:        uint32(8),
+				PackAmountHighAbnormal:    uint32(5),
+				PackAmountLowSlashRate:    uint32(10),
+				PackAmountHighSlashRate:   uint32(20),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(10),
+				DuplicateSignHighSlashing: uint32(20),
 			},
 			Reward: rewardConfig{
 				GenesisIssuance: genesisIssuance,
@@ -307,13 +307,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				BlockAmountLow:            uint32(8),
-				BlockAmountHigh:           uint32(5),
-				BlockAmountLowSlashing:    uint32(10),
-				BlockAmountHighSlashing:   uint32(20),
+				PackAmountAbnormal:        uint32(8),
+				PackAmountHighAbnormal:    uint32(5),
+				PackAmountLowSlashRate:    uint32(10),
+				PackAmountHighSlashRate:   uint32(20),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(10),
+				DuplicateSignHighSlashing: uint32(20),
 			},
 			Reward: rewardConfig{
 				GenesisIssuance: genesisIssuance,
@@ -345,13 +345,13 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 				ActiveUnDelegateFreezeRatio:  uint64(0),
 			},
 			Slashing: slashingConfig{
-				BlockAmountLow:            uint32(8),
-				BlockAmountHigh:           uint32(5),
-				BlockAmountLowSlashing:    uint32(10),
-				BlockAmountHighSlashing:   uint32(20),
+				PackAmountAbnormal:        uint32(8),
+				PackAmountHighAbnormal:    uint32(5),
+				PackAmountLowSlashRate:    uint32(10),
+				PackAmountHighSlashRate:   uint32(20),
 				DuplicateSignNum:          uint32(2),
 				DuplicateSignLowSlashing:  uint32(10),
-				DuplicateSignHighSlashing: uint32(10),
+				DuplicateSignHighSlashing: uint32(20),
 			},
 			Reward: rewardConfig{
 				GenesisIssuance: genesisIssuance,
@@ -427,20 +427,20 @@ func ActiveUnDelFreezeRatio() uint64 {
 /******
  * Slashing config
  ******/
-func BlockAmountLow() uint32 {
-	return ec.Slashing.BlockAmountLow
+func PackAmountAbnormal() uint32 {
+	return ec.Slashing.PackAmountAbnormal
 }
 
-func BlockAmountHigh() uint32 {
-	return ec.Slashing.BlockAmountHigh
+func PackAmountHighAbnormal() uint32 {
+	return ec.Slashing.PackAmountHighAbnormal
 }
 
-func BlockAmountLowSlash() uint32 {
-	return ec.Slashing.BlockAmountLowSlashing
+func PackAmountLowSlashRate() uint32 {
+	return ec.Slashing.PackAmountLowSlashRate
 }
 
-func BlockAmountHighSlash() uint32 {
-	return ec.Slashing.BlockAmountHighSlashing
+func PackAmountHighSlashRate() uint32 {
+	return ec.Slashing.PackAmountHighSlashRate
 }
 
 func DuplicateSignNum() uint32 {

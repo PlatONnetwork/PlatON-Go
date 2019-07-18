@@ -2,6 +2,9 @@ package vm_test
 
 import (
 	"bytes"
+	"math/big"
+	"testing"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
@@ -11,12 +14,10 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/staking"
-	"math/big"
-	"testing"
 )
 
 func TestSlashingContract_ReportMutiSign(t *testing.T) {
-	state, genesis , err := newChainState()
+	state, genesis, err := newChainState()
 	defer func() {
 		snapshotdb.Instance().Clear()
 	}()
@@ -27,7 +28,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	contract := &vm.SlashingContract{
 		Plugin:   plugin.SlashInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 	plugin.SlashInstance().SetDecodeEvidenceFun(cbft.NewEvidences)
 	plugin.StakingInstance()
@@ -111,7 +112,7 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	contract := &vm.SlashingContract{
 		Plugin:   plugin.SlashInstance(),
 		Contract: newContract(common.Big0),
-		Evm:	 newEvm(blockNumber, blockHash, state),
+		Evm:      newEvm(blockNumber, blockHash, state),
 	}
 	state.Prepare(txHashArr[1], blockHash, 2)
 
