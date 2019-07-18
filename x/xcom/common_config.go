@@ -2,6 +2,7 @@ package xcom
 
 import (
 	"math/big"
+	"sync"
 )
 
 // plugin rule key
@@ -66,14 +67,17 @@ type EconomicModel struct {
 	Gov      governanceConfig
 }
 
-var ec *EconomicModel
+var (
+	modelOnce sync.Once
+	ec        *EconomicModel
+)
 
 // Getting the global EconomicModel single instance
 func GetEc(netId int8) *EconomicModel {
-	if ec != nil {
-		return ec
-	}
-	return getDefaultEMConfig(netId)
+	modelOnce.Do(func() {
+		ec = getDefaultEMConfig(netId)
+	})
+	return ec
 }
 
 func SetEconomicModel(ecParams *EconomicModel) {
@@ -101,7 +105,7 @@ func getDefaultEMConfig(netId int8) *EconomicModel {
 	)
 
 	switch netId {
-	case DefaultMainNet:
+	case DefaultMainNet, DefaultDeveloperNet:
 		stakeThresholdCount = "1000000000000000000000000"
 		delegateThresholdCount = "10"
 		genesisIssuanceCount = "1000000000000000000000000000"

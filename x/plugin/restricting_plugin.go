@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"math/big"
+	"sync"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
@@ -24,12 +25,15 @@ var (
 type RestrictingPlugin struct {
 }
 
-var rt *RestrictingPlugin = nil
+var (
+	restrictingOnce sync.Once
+	rt              *RestrictingPlugin
+)
 
 func RestrictingInstance() *RestrictingPlugin {
-	if rt == nil {
+	restrictingOnce.Do(func() {
 		rt = &RestrictingPlugin{}
-	}
+	})
 	return rt
 }
 

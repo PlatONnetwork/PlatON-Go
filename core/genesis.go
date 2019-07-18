@@ -232,9 +232,6 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	}
 	statedb, _ := state.New(common.Hash{}, state.NewDatabase(db))
 	for addr, account := range g.Alloc {
-		if addr == vm.RewardManagerPoolAddr {
-			plugin.SetYearEndCumulativeIssue(statedb, 0, account.Balance)
-		}
 		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)
 		statedb.SetNonce(addr, account.Nonce)
@@ -243,6 +240,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
 	}
+	plugin.SetYearEndCumulativeIssue(statedb, 0, xcom.GenesisIssuance())
 
 	// Store somethings into State
 	version := uint32(params.VersionMajor<<16 | params.VersionMinor<<8 | params.VersionPatch)

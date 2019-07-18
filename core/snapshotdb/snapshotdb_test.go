@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -556,49 +557,43 @@ func TestSnapshotDB_WalkBaseDB(t *testing.T) {
 	initDB()
 	defer dbInstance.Clear()
 	var (
-		recognizedHash = generateHash("recognizedHash")
-		parenthash     common.Hash
-		arr            []string
+		baseHash1 = generateHash("baseHash1")
+		baseHash2 = generateHash("baseHash2")
+		prefix    = util.BytesPrefix([]byte("a"))
 	)
-	{
-		commitHash := recognizedHash
-		if err := dbInstance.NewBlock(big.NewInt(1), parenthash, commitHash); err != nil {
-			t.Fatal(err)
-		}
-		var str string
-		for i := 0; i < 4; i++ {
-			str += "a"
-			arr = append(arr, str)
-			if err := dbInstance.Put(commitHash, []byte(str), []byte(str)); err != nil {
-				t.Fatal(err)
-			}
-		}
-		if err := dbInstance.Put(commitHash, []byte("d"), []byte("d")); err != nil {
-			t.Fatal(err)
-		}
-		if err := dbInstance.Commit(commitHash); err != nil {
-			t.Fatal(err)
-		}
-		parenthash = commitHash
-		dbInstance.Compaction()
-	}
-	prefix := util.BytesPrefix([]byte("a"))
-	f := func(num *big.Int, iter iterator.Iterator) error {
-		if num.Int64() != 1 {
-			return fmt.Errorf("basenum is wrong:%v,should be 1", num)
-		}
-		var i int
-		for iter.Next() {
-			if arr[i] != string(iter.Key()) {
-				return fmt.Errorf("itr return wrong key :%s,should return:%s ,index:%d", string(iter.Key()), arr[i], i)
-			}
-			i++
-		}
-		return nil
-	}
-	if err := dbInstance.WalkBaseDB(prefix, f); err != nil {
+	kvsWithA := generatekvWithPrefix(100, "a")
+	if err := newBlockBaseDB(big.NewInt(1), common.ZeroHash, baseHash1, kvsWithA); err != nil {
 		t.Error(err)
 	}
+	if err := newBlockBaseDB(big.NewInt(2), baseHash1, baseHash2, generatekvWithPrefix(100, "b")); err != nil {
+		t.Error(err)
+	}
+	t.Run("kv should compare", func(t *testing.T) {
+		var kvGetFromWalk kvs
+		f := func(num *big.Int, iter iterator.Iterator) error {
+			if num.Int64() != 2 {
+				return fmt.Errorf("basenum is wrong:%v,should be 2", num)
+			}
+			for iter.Next() {
+				k, v := make([]byte, len(iter.Key())), make([]byte, len(iter.Value()))
+				copy(k, iter.Key())
+				copy(v, iter.Value())
+				kvGetFromWalk = append(kvGetFromWalk, kv{
+					key:   k,
+					value: v,
+				})
+			}
+			return nil
+		}
+		if err := dbInstance.WalkBaseDB(prefix, f); err != nil {
+			t.Error(err)
+		}
+		sort.Sort(kvGetFromWalk)
+		if err := kvsWithA.compareWithkvs(kvGetFromWalk); err != nil {
+			t.Error(err)
+		}
+	})
+
 	t.Run("walk base db when compaction,should lock", func(t *testing.T) {
 		dbInstance.snapshotLockC = true
 		go func() {
@@ -1115,7 +1110,7 @@ func TestFlush(t *testing.T) {
 		}
 	}
 
-	//已经flush的block无法被写入
+	// can't write to flushed block
 	if err := db.Put(currentHash, []byte("cccccccccc"), []byte("mmmmmmmmmmmm")); err == nil {
 		t.Fatal("[SnapshotDB] can't update the block after flush")
 	}
@@ -1177,40 +1172,4 @@ func TestCommit(t *testing.T) {
 		t.Fatal("[SnapshotDB] should move to commit")
 	}
 
-}
-
-func TestNewBlockOpenTooMany(t *testing.T) {
-	//os.RemoveAll(dbpath)
-	//initDB()
-	//db := dbInstance
-	//defer func() {
-	//	err := db.Close()
-	//	if err != nil {
-	//		t.Fatal(err)
-	//	}
-	//}()
-	//for i := 0; i < 110; i++ {
-	//	if err := db.NewBlock(big.NewInt(int64(i+1)), generateHash(fmt.Sprint(i)), generateHash(fmt.Sprint(i+1))); err != nil {
-	//		t.Fatal(err)
-	//		break
-	//	}
-	//	if err := db.Put(generateHash(fmt.Sprint(i+1)), []byte(fmt.Sprint(i)), []byte(fmt.Sprint(i))); err != nil {
-	//		t.Fatal(err)
-	//		break
-	//	}
-	//}
-	//for i := 0; i < 110; i++ {
-	//	if err := db.Commit(generateHash(fmt.Sprint(i + 1))); err != nil {
-	//		t.Fatal(err)
-	//		break
-	//	}
-	//}
-	//for len(dbInstance.committed) > 90 {
-	//
-	//}
-	//b, err := exec.Command("bash", "-c", fmt.Sprintf("lsof -p %d | wc -l", os.Getpid())).Output()
-	//if err != nil {
-	//	t.Error(err)
-	//}
-	//log.Print("open file num:", string(b))
 }

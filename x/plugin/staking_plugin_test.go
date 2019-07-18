@@ -308,15 +308,20 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 			epoch_Arr := &staking.Validator_array{
 				Start: 1,
-				End:   22000,
+				End:   xutil.CalcBlocksEachEpoch(),
 				Arr:   validatorQueue,
 			}
+			// start := old_verifierArr.End + 1
+			//	end := old_verifierArr.End + xutil.CalcBlocksEachEpoch()
 
 			curr_Arr := &staking.Validator_array{
 				Start: 1,
-				End:   250,
+				End:   xutil.ConsensusSize(),
 				Arr:   validatorQueue,
 			}
+
+			//start := curr.End + 1
+			//end := curr.End + xutil.ConsensusSize()
 
 			// add Current Validators And Epoch Validators
 			stakingDB.SetVerfierList(curr_Hash, epoch_Arr)
@@ -426,6 +431,9 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	headerMap := make(map[int]*types.Header, 0)
 	parentHash := genesis.Hash()
+
+	switchNum := int(xutil.ConsensusSize() - xcom.ElectionDistance())
+	electionNum := int(xutil.ConsensusSize())
 
 	for i := 0; i <= int(xutil.ConsensusSize()); i++ {
 
@@ -537,14 +545,16 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 			epoch_Arr := &staking.Validator_array{
 				Start: 1,
-				End:   22000,
+				End:   xutil.CalcBlocksEachEpoch(),
 				Arr:   validatorQueue,
 			}
+			// start := old_verifierArr.End + 1
+			//	end := old_verifierArr.End + xutil.CalcBlocksEachEpoch()
 
 			curr_Arr := &staking.Validator_array{
 				Start: 1,
-				End:   250,
-				Arr:   validatorQueue[:25],
+				End:   xutil.ConsensusSize(),
+				Arr:   validatorQueue,
 			}
 
 			// add Current Validators And Epoch Validators
@@ -648,7 +658,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			return
 		}
 
-		if i+1 == 230 || i+1 == 250 {
+		if i+1 == switchNum || i+1 == electionNum {
 			headerMap[i+1] = header
 		}
 
@@ -668,18 +678,18 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 
 	go watching(eventMux, t)
 
-	block230 := types.NewBlock(headerMap[230], nil, nil)
-	block250 := types.NewBlock(headerMap[250], nil, nil)
+	blockSwitch := types.NewBlock(headerMap[switchNum], nil, nil)
+	blockElection := types.NewBlock(headerMap[electionNum], nil, nil)
 
-	err = plugin.StakingInstance().Confirmed(block230)
+	err = plugin.StakingInstance().Confirmed(blockSwitch)
 	if nil != err {
-		t.Errorf("Failed to Confirmed, blockNumber: %d, err: %v", block230.Number().Uint64(), err)
+		t.Errorf("Failed to Confirmed, blockNumber: %d, err: %v", blockSwitch.Number().Uint64(), err)
 		return
 	}
 
-	err = plugin.StakingInstance().Confirmed(block250)
+	err = plugin.StakingInstance().Confirmed(blockElection)
 	if nil != err {
-		t.Errorf("Failed to Confirmed, blockNumber: %d, err: %v", block250.Number().Uint64(), err)
+		t.Errorf("Failed to Confirmed, blockNumber: %d, err: %v", blockElection.Number().Uint64(), err)
 		return
 	}
 
@@ -1954,7 +1964,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 
 	header := &types.Header{
 		ParentHash: blockHash,
-		Number:     big.NewInt(230),
+		Number:     big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())),
 		Nonce:      types.EncodeNonce(currNonce),
 	}
 
@@ -2150,7 +2160,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 
 	header := &types.Header{
 		ParentHash: blockHash,
-		Number:     big.NewInt(230),
+		Number:     big.NewInt(int64(xutil.ConsensusSize() - xcom.ElectionDistance())),
 		Nonce:      types.EncodeNonce(currNonce),
 	}
 
@@ -2174,7 +2184,8 @@ func TestStakingPlugin_Switch(t *testing.T) {
 	/**
 	Start Switch
 	*/
-	err = plugin.StakingInstance().Switch(blockHash3, big.NewInt(250).Uint64())
+	electionNum := xutil.ConsensusSize()
+	err = plugin.StakingInstance().Switch(blockHash3, big.NewInt(int64(electionNum)).Uint64())
 	if nil != err {
 		t.Errorf("Failed to Switch, err: %v", err)
 	}

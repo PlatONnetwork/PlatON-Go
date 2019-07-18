@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
@@ -20,6 +21,7 @@ import (
 )
 
 var (
+	_              = xcom.GetEc(xcom.DefaultDeveloperNet)
 	snapdb         snapshotdb.DB
 	govPlugin      *plugin.GovPlugin
 	evm            *vm.EVM

@@ -1129,6 +1129,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			old_verifierArr.End, blockNumber)
 	}
 
+	// caculate the new epoch start and end
 	start := old_verifierArr.End + 1
 	end := old_verifierArr.End + xutil.CalcBlocksEachEpoch()
 
@@ -2165,7 +2166,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			return err
 		}
 
-		if nil != can {
+		if nil == can {
 
 			log.Error("Call ProposalPassedNotify: Promote candidate processVersion failed, the can is empty",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String())
@@ -2210,7 +2211,7 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		return err
 	}
 
-	if nil != can {
+	if nil == can {
 
 		log.Error("Call DeclarePromoteNotify: Promote candidate processVersion failed, the can is empty",
 			"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "nodeId", nodeId.String(),
