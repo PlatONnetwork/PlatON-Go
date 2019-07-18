@@ -179,16 +179,6 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 
 	canNew.ProcessVersion = currVersion
 
-	if isDeclareVersion {
-		// Declare new Version
-		err := plugin.GovPluginInstance().DeclareVersion(canNew.StakingAddress, canNew.NodeId,
-			processVersion, blockHash, blockNumber.Uint64(), state)
-		if nil != err {
-			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
-				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
-		}
-	}
-
 	err = stkc.Plugin.CreateCandidate(state, blockHash, blockNumber, amount, typ, canAddr, canNew)
 	if nil != err {
 		if _, ok := err.(*common.BizError); ok {
@@ -200,6 +190,16 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 			log.Error("Failed to createStaking by CreateCandidate", "txHash", txHash,
 				"blockNumber", blockNumber, "err", err)
 			return nil, err
+		}
+	}
+
+	if isDeclareVersion {
+		// Declare new Version
+		err := plugin.GovPluginInstance().DeclareVersion(canNew.StakingAddress, canNew.NodeId,
+			processVersion, blockHash, blockNumber.Uint64(), state)
+		if nil != err {
+			log.Error("Call CreateCandidate with govplugin DelareVersion failed",
+				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 		}
 	}
 

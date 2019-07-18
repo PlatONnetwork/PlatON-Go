@@ -60,30 +60,27 @@ func ConsensusSize() uint64 {
 	return xcom.BlocksWillCreate() * xcom.ConsValidatorNum()
 }
 
-// Each epoch (billing cycle) is a multiple of the consensus rounds
+// EpochSize is after how many consensus cycles, settle once
 func EpochSize() uint64 {
 	consensusSize := ConsensusSize()
 	em := xcom.ExpectedMinutes()
 	i := xcom.Interval()
 
-	epochSize := em * 60 / (i * consensusSize) * consensusSize
+	epochSize := em * 60 / (i * consensusSize)
 	return epochSize
 }
 
 // epochs numbers each year
 func EpochsPerYear() uint64 {
-	epochSize := EpochSize()
-	i := xcom.Interval()
-
-	epochs := SecondsPerYear / (i * epochSize)
-	return epochs
+	return SecondsPerYear / EpochSize()
 }
 
+// calculates how many new blocks in a settlement period
 func CalcBlocksEachEpoch() uint64 {
 	return ConsensusSize() * EpochSize()
 }
 
-// calculate
+// calculate how many new blocks in one year
 func CalcBlocksEachYear() uint64 {
 	return EpochsPerYear() * EpochSize()
 }

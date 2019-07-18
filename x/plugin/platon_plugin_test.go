@@ -242,7 +242,7 @@ func newChainState() (*state.StateDB, *types.Block, error) {
 
 	node, _ := discover.ParseNode(url)
 
-	xcom.GetEc(xcom.DefaultDeveloperNet)
+	xcom.GetEc(xcom.DefaultMainNet)
 
 	gen := &core.Genesis{
 		Config: &params.ChainConfig{
@@ -353,7 +353,7 @@ func build_staking_data_more(block uint64) {
 			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(i + 1),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProcessVersion:  xutil.CalcVersion(initProcessVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -376,7 +376,7 @@ func build_staking_data_more(block uint64) {
 		v := &staking.Validator{
 			NodeAddress: canAddr,
 			NodeId:      canTmp.NodeId,
-			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), canTmp.Shares.String(),
+			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProcessVersion)), canTmp.Shares.String(),
 				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 			ValidatorTerm: 0,
 		}
@@ -484,7 +484,7 @@ func build_staking_data(genesisHash common.Hash) {
 			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(i + 1),
 			Shares:          balance,
-			ProcessVersion:  initProcessVersion,
+			ProcessVersion:  xutil.CalcVersion(initProcessVersion),
 			// Prevent null pointer initialization
 			Released:           common.Big0,
 			ReleasedHes:        common.Big0,
@@ -507,7 +507,7 @@ func build_staking_data(genesisHash common.Hash) {
 		v := &staking.Validator{
 			NodeAddress: canAddr,
 			NodeId:      canTmp.NodeId,
-			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(initProcessVersion), canTmp.Shares.String(),
+			StakingWeight: [staking.SWeightItem]string{fmt.Sprint(xutil.CalcVersion(initProcessVersion)), canTmp.Shares.String(),
 				fmt.Sprint(canTmp.StakingBlockNum), fmt.Sprint(canTmp.StakingTxIndex)},
 			ValidatorTerm: 0,
 		}

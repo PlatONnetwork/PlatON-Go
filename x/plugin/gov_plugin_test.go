@@ -1,16 +1,15 @@
 package plugin_test
 
 import (
-	"os"
 	"testing"
 
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
+
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/vm"
-	"github.com/PlatONnetwork/PlatON-Go/log"
 	"github.com/PlatONnetwork/PlatON-Go/x/gov"
 
 	"math/big"
@@ -21,20 +20,16 @@ import (
 )
 
 var (
-	_              = xcom.GetEc(xcom.DefaultDeveloperNet)
 	snapdb         snapshotdb.DB
 	govPlugin      *plugin.GovPlugin
 	evm            *vm.EVM
 	govDB          *gov.GovDB
 	newVersion     = uint32(1<<16 | 1<<8 | 1)
-	endVotingBlock = uint64(xutil.CalcBlocksEachEpoch() - 20)
-	activeBlock    = uint64(xutil.CalcBlocksEachEpoch() - 20 + xutil.ConsensusSize()*5)
+	endVotingBlock uint64
+	activeBlock    uint64
 )
 
 func setup(t *testing.T) func() {
-
-	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
-
 	t.Log("setup()......")
 
 	state, genesis, _ := newChainState()
@@ -51,6 +46,10 @@ func setup(t *testing.T) func() {
 	snapdb = snapshotdb.Instance()
 
 	govDB = gov.GovDBInstance()
+
+	// init data
+	endVotingBlock = uint64(xutil.CalcBlocksEachEpoch() - 20)
+	activeBlock = uint64(xutil.CalcBlocksEachEpoch() - 20 + xutil.ConsensusSize()*5)
 
 	return func() {
 		t.Log("tear down()......")
@@ -131,10 +130,11 @@ func submitParam(t *testing.T, pid common.Hash) {
 }
 
 func allVote(t *testing.T, pid common.Hash) {
-	for _, nodeID := range nodeIdArr {
+	//for _, nodeID := range nodeIdArr {
+	for i := uint64(0); i < xcom.ConsValidatorNum(); i++ {
 		vote := gov.Vote{
 			ProposalID: pid,
-			VoteNodeID: nodeID,
+			VoteNodeID: nodeIdArr[i],
 			VoteOption: gov.Yes,
 		}
 		err := govPlugin.Vote(sender, vote, lastBlockHash, 1, evm.StateDB)
@@ -145,7 +145,8 @@ func allVote(t *testing.T, pid common.Hash) {
 }
 
 func halfVote(t *testing.T, pid common.Hash) {
-	for i := 0; i < len(nodeIdArr)/2; i++ {
+	//for i := 0; i < len(nodeIdArr)/2; i++ {
+	for i := uint64(0); i < xcom.ConsValidatorNum()/2; i++ {
 		vote := gov.Vote{
 			ProposalID: pid,
 			VoteNodeID: nodeIdArr[i],
