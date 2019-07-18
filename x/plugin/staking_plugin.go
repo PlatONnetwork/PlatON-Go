@@ -2156,6 +2156,8 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 	log.Debug("Call ProposalPassedNotify to promote candidate processVersion", "blockNumber", blockNumber,
 		"blockHash", blockHash.Hex(), "version", processVersion, "nodeIdQueueSize", len(nodeIds))
 
+	version := xutil.CalcVersion(processVersion)
+
 	for _, nodeId := range nodeIds {
 
 		addr, _ := xutil.NodeId2Addr(nodeId)
@@ -2179,7 +2181,7 @@ func (sk *StakingPlugin) ProposalPassedNotify(blockHash common.Hash, blockNumber
 			return err
 		}
 
-		can.ProcessVersion = processVersion
+		can.ProcessVersion = version
 
 		if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 			log.Error("Call ProposalPassedNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
@@ -2225,7 +2227,7 @@ func (sk *StakingPlugin) DeclarePromoteNotify(blockHash common.Hash, blockNumber
 		return err
 	}
 
-	can.ProcessVersion = processVersion
+	can.ProcessVersion = xutil.CalcVersion(processVersion)
 
 	if err := sk.db.SetCanPowerStore(blockHash, addr, can); nil != err {
 		log.Error("Call DeclarePromoteNotify: Store Candidate new power is failed", "blockNumber", blockNumber,
