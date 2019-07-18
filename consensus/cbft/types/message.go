@@ -2,10 +2,8 @@ package types
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 )
 
@@ -99,20 +97,4 @@ func (m *MsgPackage) PeerID() string {
 
 func (m *MsgPackage) Mode() uint64 {
 	return m.mode
-}
-
-func (m *MsgPackage) MessageType() uint64 {
-	return messageType(m.msg)
-}
-
-// A is used to convert specific message types according to the message body.
-// The program is forcibly terminated if there is an unmatched message type and
-// all types must exist in the match list.
-func messageType(msg interface{}) uint64 {
-	// todo: need to process depending on mmessageType.
-	switch msg.(type) {
-	default:
-		return protocols.PrepareBlockHashMsg
-	}
-	panic(fmt.Sprintf("unknown message type [%v]", reflect.TypeOf(msg)))
 }

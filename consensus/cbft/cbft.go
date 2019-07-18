@@ -387,3 +387,9 @@ func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
 	panic("need to be improved")
 	return nil
 }
+
+func (cbft *Cbft) Config() *Config {
+	panic("need to be improved")
+	return nil
+}
+
