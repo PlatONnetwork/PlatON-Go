@@ -8,22 +8,34 @@ import (
 
 func (cbft *Cbft) fetchBlock(hash common.Hash, number uint64) {
 	if cbft.state.HighestQCBlock().NumberU64() < number {
-		//parent := cbft.state.HighestQCBlock()
 		//todo close receive consensus msg
+
+		parent := cbft.state.HighestQCBlock()
+
 		match := func(msg types.Message) bool {
 			_, ok := msg.(*protocols.QCBlockList)
 			return ok
 		}
+
 		executor := func(msg types.Message) {
-			//var exe executor.BlockExecutor
-			//if blockList, ok := msg.(*protocols.QCBlockList); ok {
-			//	for _, block := range blockList.Blocks {
-			//	}
-			//}
+			if blockList, ok := msg.(*protocols.QCBlockList); ok {
+				// Execution block
+				for _, block := range blockList.Blocks {
+					if err := cbft.execute(block, parent); err != nil {
+						cbft.log.Error("Execute block failed", "hash", block.Hash(), "number", block.NumberU64(), "error", err)
+						return
+					}
+				}
+
+				// Update the results to the CBFT state machine
+				cbft.asyncCallCh <- func() {
+					if err := cbft.OnInsertQCBlock(blockList.Blocks, blockList.QC); err != nil {
+						cbft.log.Error("Insert block failed", "error", err)
+					}
+				}
+			}
 		}
+
 		cbft.fetcher.AddTask("", match, executor, nil)
-		//todo add fetch task
-		//todo run task & waiting block
-		//todo return result
 	}
 }

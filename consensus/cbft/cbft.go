@@ -49,22 +49,24 @@ type Cbft struct {
 	asyncCallCh chan func()
 
 	fetcher *fetcher.Fetcher
-	//Control the current view state
+	// Control the current view state
 	state cstate.ViewState
 
-	//Block executor, the block responsible for executing the current view
-	executor executor.AsyncBlockExecutor
+	// Execution block function
+	execute consensus.Executor
+	// Block asyncExecutor, the block responsible for executing the current view
+	asyncExecutor executor.AsyncBlockExecutor
 
-	//Verification security rules for proposed blocks and viewchange
+	// Verification security rules for proposed blocks and viewchange
 	safetyRules rules.SafetyRules
 
-	//Determine when to allow voting
+	// Determine when to allow voting
 	voteRules rules.VoteRules
 
 	// Validator pool
 	validatorPool *validator.ValidatorPool
 
-	//Store blocks that are not committed
+	// Store blocks that are not committed
 	blockTree ctypes.BlockTree
 }
 
@@ -85,7 +87,7 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 		return nil
 	}
 
-	//todo init safety rules, vote rules, state, executor
+	//todo init safety rules, vote rules, state, asyncExecutor
 	cbft.safetyRules = rules.NewSafetyRules(&cbft.state)
 	cbft.voteRules = rules.NewVoteRules(&cbft.state)
 
@@ -95,7 +97,7 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 func (cbft *Cbft) Start(chain consensus.ChainReader, executorFn consensus.Executor, txPool consensus.TxPoolReset, agency consensus.Agency) error {
 	cbft.blockChain = chain
 	cbft.txPool = txPool
-	cbft.executor = executor.NewAsyncExecutor(executorFn)
+	cbft.asyncExecutor = executor.NewAsyncExecutor(executorFn)
 	cbft.validatorPool = validator.NewValidatorPool(agency, chain.CurrentHeader().Number.Uint64(), cbft.config.sys.NodeID)
 
 	//Initialize block tree

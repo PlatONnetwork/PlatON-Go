@@ -1,15 +1,16 @@
 package cbft
 
-import "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+import (
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
+	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
+	"github.com/PlatONnetwork/PlatON-Go/core/types"
+)
 
 //Perform security rule verification，store in blockTree, Whether to start synchronization
 func (cbft *Cbft) OnPrepareBlock(msg *protocols.PrepareBlock) error {
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		if err.Fetch() {
-<<<<<<< HEAD
-=======
 			cbft.fetchBlock(msg.Block.Hash(), msg.Block.NumberU64())
->>>>>>> 74c801cd1f29689db95b40b4ec32b651778b9e33
 			//todo fetch block
 		}
 	}
@@ -42,5 +43,11 @@ func (cbft *Cbft) OnViewChange(msg *protocols.ViewChange) error {
 
 	//todo parse pubkey as id
 	cbft.state.AddViewChange("", msg)
+	return nil
+}
+
+//Perform security rule verification, view switching
+func (cbft *Cbft) OnInsertQCBlock(blocks []*types.Block, qcs []*ctypes.QuorumCert) error {
+	//todo insert tree, update view
 	return nil
 }
