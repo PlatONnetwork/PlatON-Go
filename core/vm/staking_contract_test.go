@@ -187,7 +187,7 @@ func TestStakingContract_createStaking(t *testing.T) {
 	create_staking(blockNumber, blockHash, state, 1, t)
 }
 
-func TestStakingContract_editorCandidate(t *testing.T) {
+func TestStakingContract_editCandidate(t *testing.T) {
 
 	state, genesis, _ := newChainState()
 	newPlugins()
@@ -260,7 +260,7 @@ func TestStakingContract_editorCandidate(t *testing.T) {
 
 	res, err := contract2.Run(buf.Bytes())
 	if nil != err {
-		t.Error("Failed to Call editorCandidate, err:", err)
+		t.Error("Failed to Call editCandidate, err:", err)
 		return
 	} else {
 		t.Log(string(res))
@@ -401,7 +401,7 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 	// get CandidateInfo
 	getCandidate(contract2, index, t)
 
-	// withdrewCandidate
+	// withdrewStaking
 
 	var params [][]byte
 	params = make([][]byte, 0)
@@ -415,15 +415,15 @@ func TestStakingContract_withdrewCandidate(t *testing.T) {
 	buf := new(bytes.Buffer)
 	err := rlp.Encode(buf, params)
 	if err != nil {
-		t.Error("withdrewCandidate encode rlp data fail", err)
+		t.Error("withdrewStaking encode rlp data fail", err)
 		return
 	} else {
-		t.Log("withdrewCandidate data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("withdrewStaking data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
 	res, err := contract2.Run(buf.Bytes())
 	if nil != err {
-		t.Error("Failed to Call withdrewCandidate, err:", err)
+		t.Error("Failed to Call withdrewStaking, err:", err)
 		return
 	} else {
 		t.Log(string(res))

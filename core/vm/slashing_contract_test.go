@@ -72,9 +72,9 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	buf := new(bytes.Buffer)
 	err = rlp.Encode(buf, params)
 	if err != nil {
-		t.Errorf("ReportMutiSign encode rlp data fail: %v", err)
+		t.Errorf("ReportDuplicateSign encode rlp data fail: %v", err)
 	} else {
-		t.Log("ReportMutiSign data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("ReportDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 
 	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
@@ -132,9 +132,9 @@ func TestSlashingContract_CheckMutiSign(t *testing.T) {
 	buf := new(bytes.Buffer)
 	err = rlp.Encode(buf, params)
 	if err != nil {
-		t.Errorf("CheckMutiSign encode rlp data fail: %v", err)
+		t.Errorf("CheckDuplicateSign encode rlp data fail: %v", err)
 	} else {
-		t.Log("CheckMutiSign data rlp: ", hexutil.Encode(buf.Bytes()))
+		t.Log("CheckDuplicateSign data rlp: ", hexutil.Encode(buf.Bytes()))
 	}
 	runContract(contract, buf.Bytes(), t)
 }

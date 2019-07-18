@@ -164,12 +164,12 @@ type Ppos_2101 struct {
 	ProposalID common.Hash
 }
 
-// ReportMutiSign
+// ReportDuplicateSign
 type Ppos_3000 struct {
 	Data string
 }
 
-// CheckMutiSign
+// CheckDuplicateSign
 type Ppos_3001 struct {
 	Etype       uint32
 	Addr        common.Address

@@ -282,9 +282,9 @@ func (sp *SlashingPlugin) Slash(data string, blockHash common.Hash, blockNumber 
 	return nil
 }
 
-func (sp *SlashingPlugin) CheckMutiSign(addr common.Address, blockNumber uint64, etype uint32, stateDB xcom.StateDB) ([]byte, error) {
+func (sp *SlashingPlugin) CheckDuplicateSign(addr common.Address, blockNumber uint64, etype uint32, stateDB xcom.StateDB) ([]byte, error) {
 	if value := sp.getSlashResult(addr, blockNumber, etype, stateDB); len(value) > 0 {
-		log.Info("CheckMutiSign exist", "blockNumber", blockNumber, "addr", hex.EncodeToString(addr.Bytes()), "type", etype, "txHash", hex.EncodeToString(value))
+		log.Info("CheckDuplicateSign exist", "blockNumber", blockNumber, "addr", hex.EncodeToString(addr.Bytes()), "type", etype, "txHash", hex.EncodeToString(value))
 		return value, nil
 	}
 	return nil, nil

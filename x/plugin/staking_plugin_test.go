@@ -920,8 +920,8 @@ func TestStakingPlugin_EditorCandidate(t *testing.T) {
 	c.ExternalId = "What is this ?"
 	c.Website = "www.baidu.com"
 	c.Details = "This is buidu website ?"
-	if err := plugin.StakingInstance().EditorCandidate(blockHash2, blockNumber2, c); nil != err {
-		t.Error("Failed to EditorCandidate", err)
+	if err := plugin.StakingInstance().EditCandidate(blockHash2, blockNumber2, c); nil != err {
+		t.Error("Failed to EditCandidate", err)
 		return
 	}
 
@@ -1051,14 +1051,14 @@ func TestStakingPlugin_WithdrewCandidate(t *testing.T) {
 	}
 
 	/**
-	Start WithdrewCandidate
+	Start WithdrewStaking
 	*/
-	if err := plugin.StakingInstance().WithdrewCandidate(state, blockHash2, blockNumber2, c); nil != err {
-		t.Error("Failed to WithdrewCandidate", err)
+	if err := plugin.StakingInstance().WithdrewStaking(state, blockHash2, blockNumber2, c); nil != err {
+		t.Error("Failed to WithdrewStaking", err)
 		return
 	}
 
-	t.Log("Finish WithdrewCandidate ~~")
+	t.Log("Finish WithdrewStaking ~~")
 	// get Candidate info
 	getCandidate(blockHash2, index, t)
 
