@@ -109,6 +109,7 @@ func (m *MsgPackage) MessageType() uint64 {
 // The program is forcibly terminated if there is an unmatched message type and
 // all types must exist in the match list.
 func messageType(msg interface{}) uint64 {
+	// todo: need to process depending on mmessageType.
 	switch msg.(type) {
 	default:
 		return protocols.PrepareBlockHashMsg

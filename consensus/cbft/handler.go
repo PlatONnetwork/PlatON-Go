@@ -157,10 +157,12 @@ type NodeInfo struct {
 }
 
 func (h *EngineManager) NodeInfo() *NodeInfo {
-	cfg := h.engine.config
+	// todo: Use methods instead of properties to access directly
+	return nil
+	/*cfg := h.engine.config
 	return &NodeInfo{
 		Config: cfg,
-	}
+	}*/
 }
 
 // After the node is successfully connected and the message belongs
