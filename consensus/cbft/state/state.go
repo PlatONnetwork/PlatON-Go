@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/PlatONnetwork/PlatON-Go/common/math"
 	"sync/atomic"
 	"time"
 
@@ -10,6 +11,51 @@ import (
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
+
+type PrepareVoteQueue struct {
+	votes []*protocols.PrepareVote
+}
+
+func newPrepareVoteQueue() *PrepareVoteQueue {
+	return &PrepareVoteQueue{
+		votes: make([]*protocols.PrepareVote, 0),
+	}
+}
+
+func (p *PrepareVoteQueue) Top() *protocols.PrepareVote {
+	return p.votes[0]
+}
+
+func (p *PrepareVoteQueue) Pop() *protocols.PrepareVote {
+	v := p.votes[0]
+	p.votes = p.votes[1:]
+	return v
+}
+
+func (p *PrepareVoteQueue) Push(vote *protocols.PrepareVote) {
+	p.votes = append(p.votes, vote)
+}
+
+func (p *PrepareVoteQueue) Empty() bool {
+	return len(p.votes) == 0
+}
+
+func (p *PrepareVoteQueue) Len() int {
+	return len(p.votes)
+}
+
+func (p *PrepareVoteQueue) reset() {
+	p.votes = make([]*protocols.PrepareVote, 0)
+}
+
+func (p *PrepareVoteQueue) Had(index uint32) bool {
+	for _, p := range p.votes {
+		if p.BlockIndex == index {
+			return true
+		}
+	}
+	return false
+}
 
 type prepareVotes struct {
 	votes map[string]*protocols.PrepareVote
@@ -30,8 +76,12 @@ func (p *prepareVotes) hadVote(vote *protocols.PrepareVote) bool {
 	return false
 }
 
-func (v *prepareVotes) clear() {
+func (p *prepareVotes) len() int {
+	return len(p.votes)
+}
 
+func (p *prepareVotes) clear() {
+	p.votes = make(map[string]*protocols.PrepareVote)
 }
 
 type viewBlocks struct {
@@ -61,12 +111,14 @@ func (v *viewBlocks) len() int {
 }
 
 type viewQCs struct {
-	qcs map[uint32]*ctypes.QuorumCert
+	maxIndex uint32
+	qcs      map[uint32]*ctypes.QuorumCert
 }
 
 func newViewQCs() *viewQCs {
 	return &viewQCs{
-		qcs: make(map[uint32]*ctypes.QuorumCert),
+		maxIndex: math.MaxUint32,
+		qcs:      make(map[uint32]*ctypes.QuorumCert),
 	}
 }
 
@@ -76,10 +128,21 @@ func (v *viewQCs) index(i uint32) *ctypes.QuorumCert {
 
 func (v *viewQCs) addBlock(qc *ctypes.QuorumCert) {
 	v.qcs[qc.BlockIndex] = qc
+	if v.maxIndex == math.MaxUint32 {
+		v.maxIndex = qc.BlockIndex
+	}
+	if v.maxIndex < qc.BlockIndex {
+		v.maxIndex = qc.BlockIndex
+	}
+}
+
+func (v *viewQCs) maxQCIndex() uint32 {
+	return v.maxIndex
 }
 
 func (v *viewQCs) clear() {
 	v.qcs = make(map[uint32]*ctypes.QuorumCert)
+	v.maxIndex = math.MaxUint32
 }
 
 func (v *viewQCs) len() int {
@@ -105,6 +168,9 @@ func (v *viewVotes) addVote(id string, vote *protocols.PrepareVote) {
 		v.votes[vote.BlockIndex] = ps
 	}
 }
+func (v *viewVotes) index(i uint32) *prepareVotes {
+	return v.votes[i]
+}
 
 func (v *viewVotes) clear() {
 	v.votes = make(map[uint32]*prepareVotes)
@@ -123,22 +189,38 @@ func newViewChanges() *viewChanges {
 func (v *viewChanges) addViewChange(id string, viewChange *protocols.ViewChange) {
 	v.viewChanges[id] = viewChange
 }
+
+func (v *viewChanges) len() int {
+	return len(v.viewChanges)
+}
+
 func (v *viewChanges) clear() {
 	v.viewChanges = make(map[string]*protocols.ViewChange)
+}
+
+type executing struct {
+	// Block index of current view
+	blockIndex uint32
+	// Whether to complete
+	finish bool
 }
 
 type view struct {
 	epoch      uint64
 	viewNumber uint64
 
+	// The status of the block is currently being executed,
+	// finish indicates whether the execution is complete,
+	// and the next block can be executed asynchronously after the execution is completed.
+	executing executing
 	//viewchange received by the current view
 	viewChanges *viewChanges
 
 	//This view has been sent to other verifiers for voting
-	hadSendPrepareVote *prepareVotes
+	hadSendPrepareVote *PrepareVoteQueue
 
 	//Pending votes of current view, parent block need receive N-f prepareVotes
-	pendingVote *prepareVotes
+	pendingVote *PrepareVoteQueue
 
 	//Current view of the proposed block by the proposer
 	viewBlocks *viewBlocks
@@ -151,9 +233,10 @@ type view struct {
 
 func newView() *view {
 	return &view{
+		executing:          executing{math.MaxUint32, false},
 		viewChanges:        newViewChanges(),
-		hadSendPrepareVote: newPrepareVotes(),
-		pendingVote:        newPrepareVotes(),
+		hadSendPrepareVote: newPrepareVoteQueue(),
+		pendingVote:        newPrepareVoteQueue(),
 		viewBlocks:         newViewBlocks(),
 		viewQCs:            newViewQCs(),
 		viewVotes:          newViewVotes(),
@@ -162,9 +245,11 @@ func newView() *view {
 func (v *view) Reset() {
 	v.epoch = 0
 	v.viewNumber = 0
+	v.executing.blockIndex = math.MaxUint32
+	v.executing.finish = false
 	v.viewChanges.clear()
-	v.hadSendPrepareVote.clear()
-	v.pendingVote.clear()
+	v.hadSendPrepareVote.reset()
+	v.pendingVote.reset()
 	v.viewBlocks.clear()
 	v.viewVotes.clear()
 }
@@ -177,9 +262,9 @@ func (v *view) Epoch() uint64 {
 	return v.epoch
 }
 
-func (v *view) HadSendPrepareVote(vote *protocols.PrepareVote) bool {
-	return v.hadSendPrepareVote.hadVote(vote)
-}
+//func (v *view) HadSendPrepareVote(vote *protocols.PrepareVote) bool {
+//	return v.hadSendPrepareVote.hadVote(vote)
+//}
 
 //The block of current view, there two types, prepareBlock and block
 type viewBlock interface {
@@ -281,6 +366,41 @@ func (vs *ViewState) NumViewBlocks() uint32 {
 	return uint32(vs.viewBlocks.len())
 }
 
+func (vs *ViewState) MaxQCIndex() uint32 {
+	return vs.view.viewQCs.maxQCIndex()
+}
+
+func (vs *ViewState) PrepareVoteLenByIndex(index uint32) int {
+	ps := vs.viewVotes.index(index)
+	if ps != nil {
+		return ps.len()
+	}
+	return 0
+}
+
+// Find the block corresponding to the current view according to the index
+func (vs *ViewState) ViewBlockByIndex(index uint32) *types.Block {
+	return vs.view.viewBlocks.index(index).block()
+}
+
+func (vs *ViewState) HadSendPrepareVote() *PrepareVoteQueue {
+	return vs.view.hadSendPrepareVote
+}
+
+func (vs *ViewState) PendingPrepareVote() *PrepareVoteQueue {
+	return vs.view.pendingVote
+}
+
+// Returns the block index being executed, has it been completed
+func (vs *ViewState) Executing() (uint32, bool) {
+	return vs.view.executing.blockIndex, vs.view.executing.finish
+}
+
+// Set Executing block status
+func (vs *ViewState) SetExecuting(index uint32, finish bool) {
+	vs.view.executing.blockIndex, vs.view.executing.finish = index, finish
+}
+
 func (vs *ViewState) ViewBlockAndQC(blockIndex uint32) (*types.Block, *ctypes.QuorumCert) {
 	return vs.view.viewBlocks.index(blockIndex).block(), vs.viewQCs.index(blockIndex)
 }
@@ -299,6 +419,10 @@ func (vs *ViewState) AddPrepareVote(id string, vote *protocols.PrepareVote) {
 
 func (vs *ViewState) AddViewChange(id string, vote *protocols.ViewChange) {
 	vs.view.viewChanges.addViewChange(id, vote)
+}
+
+func (vs *ViewState) ViewChangeLen() int {
+	return vs.view.viewChanges.len()
 }
 
 func (vs *ViewState) SetHighestExecutedBlock(block *types.Block) {

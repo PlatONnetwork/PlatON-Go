@@ -130,7 +130,8 @@ func (cbft *Cbft) receiveLoop() {
 			cbft.handleConsensusMsg(msg)
 		case msg := <-cbft.syncMsgCh:
 			cbft.handleSyncMsg(msg)
-
+		case msg := <-cbft.asyncExecutor.ExecuteStatus():
+			cbft.onAsyncExecuteStatus(msg)
 		case fn := <-cbft.asyncCallCh:
 			fn()
 		default:
