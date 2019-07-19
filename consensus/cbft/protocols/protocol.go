@@ -28,8 +28,9 @@ const (
 	QCPrepareBlockMsg    = 0x08
 	GetPrepareVoteMsg    = 0x09
 	PrepareBlockHashMsg  = 0x0a
-	PingMsg              = 0x0b
-	PongMsg              = 0x0c
+	PrepareVotesMsg      = 0xb
+	PingMsg              = 0x0d
+	PongMsg              = 0x0e
 )
 
 // A is used to convert specific message types according to the message body.
@@ -110,13 +111,21 @@ func (PrepareVote) BHash() common.Hash {
 	panic("implement me")
 }
 
+func (pv *PrepareVote) CannibalizeBytes() ([]byte, error) {
+	return nil, nil
+}
+
+func (pv *PrepareVote) Sign() []byte {
+	return nil
+}
+
 type ViewChange struct {
-	Epoch      uint64             `json:"epoch"`
-	ViewNumber uint64             `json:"view_number"`
-	BlockHash  common.Hash        `json:"block_hash"`
-	BlockNum   uint64             `json:"block_number"`
-	PrepareQC  *ctypes.QuorumCert `json:"prepare_qc"`
-	Signature  ctypes.Signature   `json:"signature"`
+	Epoch       uint64             `json:"epoch"`
+	ViewNumber  uint64             `json:"view_number"`
+	BlockHash   common.Hash        `json:"block_hash"`
+	BlockNumber uint64             `json:"block_number"`
+	PrepareQC   *ctypes.QuorumCert `json:"prepare_qc"`
+	Signature   ctypes.Signature   `json:"signature"`
 }
 
 func (ViewChange) String() string {
@@ -129,6 +138,14 @@ func (ViewChange) MsgHash() common.Hash {
 
 func (ViewChange) BHash() common.Hash {
 	panic("implement me")
+}
+
+func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {
+	return nil, nil
+}
+
+func (vc *ViewChange) Sign() []byte {
+	return nil
 }
 
 // cbftStatusData implement Message and including status information about peer.
@@ -163,139 +180,197 @@ func (s *CbftStatusData) BHash() common.Hash {
 	return s.QCBlock
 }
 
-//
+// CBFT protocol message - used to get the
+// proposed block information.
 type GetPrepareBlock struct {
+	BlockHash   common.Hash `json:"hash"`   // The hash of the block to be acquired
+	BlockNumber uint64      `json:"number"` // The number of the block to be acquired
 }
 
 func (s *GetPrepareBlock) String() string {
-	panic("implement me")
+	return fmt.Sprintf("[Hash: %s] - [Number: %d]", s.BlockHash, s.BlockNumber)
 }
 
 func (s *GetPrepareBlock) MsgHash() common.Hash {
-	panic("implement me")
+	return utils.BuildHash(GetPrepareBlockMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
 }
 
 func (s *GetPrepareBlock) BHash() common.Hash {
-	panic("implement me")
+	return s.BlockHash
 }
 
+// Protocol message for obtaining an aggregated signature.
+// todo: Need to determine the attribute field - ParentQC.
 type GetQuorumCert struct {
+	BlockHash   common.Hash `json:"block_hash"`   // The hash of the block to be acquired.
+	BlockNumber uint64      `json:"block_number"` // The number of the block to be acquired.
+	ParentQC    *QuorumCert `json:"parent_qc"`    // The aggregated signature of the parent block of the block to be acquired.
 }
 
 func (s *GetQuorumCert) String() string {
-	panic("implement me")
+	return fmt.Sprintf("[Hash: %s] - [Number: %d]", s.BlockHash, s.BlockNumber)
 }
 
 func (s *GetQuorumCert) MsgHash() common.Hash {
-	panic("implement me")
+	return utils.BuildHash(GetQuorumCertMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
 }
 
 func (s *GetQuorumCert) BHash() common.Hash {
-	panic("implement me")
+	return s.BlockHash
 }
 
+// Aggregate signature response message, representing
+// aggregated signature information for a block.
 type QuorumCert struct {
+	ViewNumber  uint64      `json:"view_number"`  // The view number corresponding to the block.
+	BlockHash   common.Hash `json:"block_hash"`   // The hash corresponding to the block.
+	BlockNumber uint64      `json:"block_number"` // The number corresponding to the block.
+	Signature   []byte      `json:"signature"`    // The aggregate signature corresponding to the block.
 }
 
 func (s *QuorumCert) String() string {
-	panic("implement me")
+	return fmt.Sprintf("[ViewNumber: %d] - [Hash: %s] - [Number: %d] - [Sig: %s]",
+		s.ViewNumber, s.BlockHash, s.BlockNumber, common.BytesToHash(s.Signature))
 }
 
 func (s *QuorumCert) MsgHash() common.Hash {
-	panic("implement me")
+	return utils.BuildHash(QuorumCertMsg, utils.MergeBytes(
+		s.BlockHash.Bytes(),
+		common.Uint64ToBytes(s.BlockNumber), s.Signature))
 }
 
 func (s *QuorumCert) BHash() common.Hash {
-	panic("implement me")
+	return s.BlockHash
 }
 
+// Used to get block information that has reached QC.
+// todo: need confirm.
 type GetQCPrepareBlock struct {
+	BlockNumber uint64      `json:"block_number"` // The number corresponding to the block.
+	ParentQC    *QuorumCert `json:"parent_qc"`    // QC information of the parent block of the block to be acquired.
 }
 
 func (s *GetQCPrepareBlock) String() string {
-	panic("implement me")
+	return fmt.Sprintf("[Number: %d]", s.BlockNumber)
 }
 
 func (s *GetQCPrepareBlock) MsgHash() common.Hash {
-	panic("implement me")
+	return utils.BuildHash(GetQCPrepareBlockMsg, utils.MergeBytes(
+		common.Uint64ToBytes(s.BlockNumber), s.ParentQC.Signature))
 }
 
 func (s *GetQCPrepareBlock) BHash() common.Hash {
-	panic("implement me")
+	return common.Hash{}
 }
 
+// Block information that satisfies QC.
 type QCPrepareBlock struct {
+	Block     *types.Block `json:"block"`      // block information.
+	PrepareQC *QuorumCert  `json:"prepare_qc"` // the aggregation signature of block.
 }
 
 func (s *QCPrepareBlock) String() string {
-	panic("implement me")
+	return fmt.Sprintf("[Hash: %s] - [Number: %d] - [ViewNumber: %d]", s.Block.Hash(), s.Block.NumberU64(), s.PrepareQC.ViewNumber)
 }
 
 func (s *QCPrepareBlock) MsgHash() common.Hash {
-	panic("implement me")
+	return utils.BuildHash(QCPrepareBlockMsg, utils.MergeBytes(
+		s.Block.Hash().Bytes(),
+		common.Uint64ToBytes(s.Block.NumberU64()), s.PrepareQC.Signature))
 }
 
 func (s *QCPrepareBlock) BHash() common.Hash {
-	panic("implement me")
+	return s.Block.Hash()
 }
 
+// Message used to get block voting.
 type GetPrepareVote struct {
+	BlockHash   common.Hash
+	BlockNumber uint64
+	VoteBits    *utils.BitArray
 }
 
 func (s *GetPrepareVote) String() string {
-	panic("implement me")
+	return fmt.Sprintf("[Hash: %s] - [Number: %d] - [VoteBits: %s]", s.BlockHash, s.BlockNumber, s.VoteBits.String())
 }
 
 func (s *GetPrepareVote) MsgHash() common.Hash {
-	panic("implement me")
+	return utils.BuildHash(GetPrepareVoteMsg, utils.MergeBytes(
+		s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber),
+		s.VoteBits.Bytes()))
 }
 
 func (s *GetPrepareVote) BHash() common.Hash {
-	panic("implement me")
+	return s.BlockHash
 }
 
+// Message used to respond to the number of block votes.
+type PrepareVotes struct {
+	BlockHash   common.Hash
+	BlockNumber uint64
+	Votes       []*PrepareVote // Block voting set.
+}
+
+func (s *PrepareVotes) String() string {
+	return fmt.Sprintf("[Hash:%s] - [Number:%d] - [Votes:%d]", s.BlockHash.String(), s.BlockNumber, len(s.Votes))
+}
+
+func (s *PrepareVotes) MsgHash() common.Hash {
+	return utils.BuildHash(PrepareVotesMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
+}
+
+func (s *PrepareVotes) BHash() common.Hash {
+	return s.BlockHash
+}
+
+// Represents the hash of the proposed block for secondary propagation.
 type PrepareBlockHash struct {
+	BlockHash   common.Hash
+	BlockNumber uint64
 }
 
 func (s *PrepareBlockHash) String() string {
-	panic("implement me")
+	return fmt.Sprintf("[Hash: %s] - [Number: %d]", s.BlockHash, s.BlockNumber)
 }
 
 func (s *PrepareBlockHash) MsgHash() common.Hash {
-	panic("implement me")
+	return utils.BuildHash(PrepareBlockHashMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
 }
 
 func (s *PrepareBlockHash) BHash() common.Hash {
-	panic("implement me")
+	return s.BlockHash
 }
 
+// For time detection.
 type Ping [1]string
 
 func (s *Ping) String() string {
-	panic("implement me")
+	return fmt.Sprintf("[pingTime: %s]", s[0])
 }
 
 func (s *Ping) MsgHash() common.Hash {
-	panic("implement me")
+	return utils.BuildHash(PingMsg, utils.MergeBytes([]byte(s[0])))
 }
 
 func (s *Ping) BHash() common.Hash {
-	panic("implement me")
+	return common.Hash{}
 }
 
+// Response to ping.
 type Pong [1]string
 
 func (s *Pong) String() string {
-	panic("implement me")
+	return fmt.Sprintf("[pongTime: %s]", s[0])
 }
 
 func (s *Pong) MsgHash() common.Hash {
-	panic("implement me")
+	return utils.BuildHash(PongMsg, utils.MergeBytes([]byte(s[0])))
 }
 
 func (s *Pong) BHash() common.Hash {
-	panic("implement me")
+	return common.Hash{}
 }
+
 //CBFT synchronize blocks that have reached qc
 type QCBlockList struct {
 	QC     []*ctypes.QuorumCert
@@ -308,7 +383,6 @@ func (s *QCBlockList) String() string {
 
 func (s *QCBlockList) MsgHash() common.Hash {
 	return common.Hash{}
-
 }
 
 func (s *QCBlockList) BHash() common.Hash {

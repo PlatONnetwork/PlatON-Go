@@ -230,12 +230,15 @@ func (h *EngineManager) handler(p *p2p.Peer, rw p2p.MsgReadWriter) error {
 	}
 }
 
+// Main logic: Distribute according to message type and
+// transfer message to CBFT layer
 func (h *EngineManager) handleMsg(p *router.Peer) error {
 	msg, err := p.ReadWriter().ReadMsg()
 	if err != nil {
 		p.Log().Error("read peer message error", "err", err)
 		return err
 	}
+
 	// All messages cannot exceed the maximum specified by the agreement.
 	if msg.Size > protocols.CbftProtocolMaxMsgSize {
 		return types.ErrResp(types.ErrMsgTooLarge, "%v > %v", msg.Size, protocols.CbftProtocolMaxMsgSize)
@@ -245,11 +248,8 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 	// Handle the message depending on msgType and it's content.
 	switch {
 	case msg.Code == protocols.CBFTStatusMsg:
+		// CBFTStatusMsg belongs to the type of handshake message and will not appear here.
 		return types.ErrResp(types.ErrExtraStatusMsg, "uncontrolled status message")
-
-	case msg.Code == protocols.GetPrepareBlockMsg:
-		// todo: GetPrepareBlockMsg need to process.
-		return nil
 
 	case msg.Code == protocols.PrepareBlockMsg:
 		var request protocols.PrepareBlock
@@ -260,8 +260,7 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		request.Block.ReceivedAt = msg.ReceivedAt
 		request.Block.ReceivedFrom = p
 		// Message transfer to cbft message queue.
-		// todo: need to process.
-		// h.engine.ReceivePeerMsg(types.NewMessageInfo(&request, p.ID()))
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.PrepareVoteMsg:
@@ -269,12 +268,83 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
+		p.MarkMessageHash((&request).MsgHash())
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.ViewChangeMsg:
+		var request protocols.ViewChange
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		p.MarkMessageHash((&request).MsgHash())
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.GetPrepareBlockMsg:
+		var request protocols.GetPrepareBlock
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.GetQuorumCertMsg:
+		var request protocols.GetQuorumCert
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.QuorumCertMsg:
+		var request protocols.QuorumCert
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		p.MarkMessageHash((&request).MsgHash())
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.GetQCPrepareBlockMsg:
+		var request protocols.GetQCPrepareBlock
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.QCPrepareBlockMsg:
+		var request protocols.QCPrepareBlock
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.GetPrepareVoteMsg:
+		var request protocols.GetPrepareVote
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.PrepareBlockHashMsg:
+		var request protocols.PrepareBlockHash
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		p.MarkMessageHash((&request).MsgHash())
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.PrepareVotesMsg:
+		var request protocols.PrepareVotes
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
 		return nil
 
 	case msg.Code == protocols.PingMsg:
@@ -318,6 +388,7 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		return nil
 
 	default:
+		return types.ErrResp(types.ErrInvalidMsgCode, "%v", msg.Code)
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package cbft
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/json"
 
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
 
@@ -94,7 +95,7 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 		nodeServiceContext: ctx,
 	}
 
-	if evPool, err := evidence.NewEvidencePool(); err == nil {
+	if evPool, err := evidence.NewEvidencePool(ctx); err == nil {
 		cbft.evPool = evPool
 	} else {
 		return nil
@@ -124,7 +125,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
 
-	// load wal state
+	// load consensus state
 	if err := cbft.LoadWal(); err != nil {
 		return err
 	}
@@ -133,6 +134,19 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	return nil
 }
 
+// Entrance: The messages related to the consensus are entered from here.
+// The message sent from the peer node is sent to the CBFT message queue and
+// there is a loop that will distribute the incoming message.
+func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
+	select {
+	case cbft.peerMsgCh <- msg:
+		cbft.log.Debug("Received message from peer", "peer", msg.PeerID, "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString())
+	case <-cbft.exitCh:
+		cbft.log.Error("Cbft exit")
+	}
+}
+
+// LoadWal tries to recover consensus state and view msg from the wal.
 func (cbft *Cbft) LoadWal() error {
 	// init wal and load wal state
 	var err error
@@ -163,7 +177,8 @@ func (cbft *Cbft) receiveLoop() {
 			cbft.handleConsensusMsg(msg)
 		case msg := <-cbft.syncMsgCh:
 			cbft.handleSyncMsg(msg)
-
+		case msg := <-cbft.asyncExecutor.ExecuteStatus():
+			cbft.onAsyncExecuteStatus(msg)
 		case fn := <-cbft.asyncCallCh:
 			fn()
 		default:
@@ -504,10 +519,6 @@ func (Cbft) IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
 	panic("implement me")
 }
 
-func (Cbft) Evidences() string {
-	panic("implement me")
-}
-
 func (Cbft) TracingSwitch(flag int8) {
 	panic("implement me")
 }
@@ -535,4 +546,18 @@ func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		ExtraData: extra,
 		SyncState: nil,
 	})
+}
+
+
+func (cbft *Cbft) Evidences() string {
+	evs := cbft.evPool.Evidences()
+	if len(evs) == 0 {
+		return "{}"
+	}
+	evds := evidence.ClassifyEvidence(evs)
+	js, err := json.MarshalIndent(evds, "", "  ")
+	if err != nil {
+		return ""
+	}
+	return string(js)
 }

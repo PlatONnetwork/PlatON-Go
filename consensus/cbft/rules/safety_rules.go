@@ -1,8 +1,10 @@
 package rules
 
 import (
+	"fmt"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
+	"time"
 )
 
 type SafetyError interface {
@@ -51,15 +53,15 @@ type baseSafetyRules struct {
 // 3.Lost more than the time window
 func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) SafetyError {
 	if r.viewState.ViewNumber() > block.ViewNumber {
-		return newSafetyError("", false)
+		return newSafetyError(fmt.Sprintf("viewNumber too low(local:%d, msg:%d)", r.viewState.ViewNumber(), block.ViewNumber), false)
 	}
 
 	if r.viewState.ViewNumber() < block.ViewNumber {
-		return newSafetyError("", true)
+		return newSafetyError(fmt.Sprintf("viewNumber higher then local(local:%d, msg:%d)", r.viewState.ViewNumber(), block.ViewNumber), true)
 	}
 
 	if r.viewState.IsDeadline() {
-		return newSafetyError("", false)
+		return newSafetyError(fmt.Sprintf("view's deadline is expire(over:%d)", time.Since(r.viewState.Deadline())), false)
 	}
 	return nil
 }
@@ -70,15 +72,15 @@ func (r *baseSafetyRules) PrepareBlockRules(block *protocols.PrepareBlock) Safet
 // 3.Lost more than the time window
 func (r *baseSafetyRules) PrepareVoteRules(vote *protocols.PrepareVote) SafetyError {
 	if r.viewState.ViewNumber() > vote.ViewNumber {
-		return newSafetyError("", false)
+		return newSafetyError(fmt.Sprintf("viewNumber too low(local:%d, msg:%d)", r.viewState.ViewNumber(), vote.ViewNumber), false)
 	}
 
 	if r.viewState.ViewNumber() < vote.ViewNumber {
-		return newSafetyError("", true)
+		return newSafetyError(fmt.Sprintf("viewNumber higher then local(local:%d, msg:%d)", r.viewState.ViewNumber(), vote.ViewNumber), true)
 	}
 
 	if r.viewState.IsDeadline() {
-		return newSafetyError("", false)
+		return newSafetyError(fmt.Sprintf("view's deadline is expire(over:%d)", time.Since(r.viewState.Deadline())), false)
 	}
 	return nil
 
@@ -90,11 +92,11 @@ func (r *baseSafetyRules) PrepareVoteRules(vote *protocols.PrepareVote) SafetyEr
 func (r *baseSafetyRules) ViewChangeRules(viewChange *protocols.ViewChange) SafetyError {
 
 	if r.viewState.ViewNumber() > viewChange.ViewNumber {
-		return newSafetyError("", false)
+		return newSafetyError(fmt.Sprintf("viewNumber too low(local:%d, msg:%d)", r.viewState.ViewNumber(), viewChange.ViewNumber), false)
 	}
 
 	if r.viewState.ViewNumber() < viewChange.ViewNumber {
-		return newSafetyError("", true)
+		return newSafetyError(fmt.Sprintf("viewNumber higher then local(local:%d, msg:%d)", r.viewState.ViewNumber(), viewChange.ViewNumber), true)
 	}
 	return nil
 }
