@@ -239,6 +239,10 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 			// todo: hash -> bytes
 			statedb.SetState(addr, key.Bytes(), value.Bytes())
 		}
+
+		if bytes.Equal(addr.Bytes(), vm.RewardManagerPoolAddr.Bytes()) {
+			plugin.SetYearEndBalance(statedb, 0, account.Balance)
+		}
 	}
 	plugin.SetYearEndCumulativeIssue(statedb, 0, xcom.GenesisIssuance())
 

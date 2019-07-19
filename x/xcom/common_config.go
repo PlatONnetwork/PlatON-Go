@@ -80,10 +80,6 @@ func GetEc(netId int8) *EconomicModel {
 	return ec
 }
 
-func SetEconomicModel(ecParams *EconomicModel) {
-	ec = ecParams
-}
-
 const (
 	DefaultMainNet      = iota // PlatON default main net flag
 	DefaultAlphaTestNet        // PlatON default Alpha test net flag
