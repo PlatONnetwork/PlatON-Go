@@ -20,12 +20,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"math"
 	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
@@ -662,9 +663,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 
 		go pm.txpool.AddRemotes(txs)
-
-	case msg.Code == PongMsg:
-		//todo remove msg type
 
 	default:
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)

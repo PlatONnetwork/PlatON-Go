@@ -46,7 +46,7 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
-			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNum)
+			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
 	}
 
@@ -89,14 +89,14 @@ func (cbft *Cbft) signBlock(hash common.Hash, number uint64, index uint32) {
 
 	cbft.state.PendingPrepareVote().Push(prepareVote)
 
-	cbft.sendPrepareVote()
+	cbft.trySendPrepareVote()
 }
 
 // Send a signature,
 // obtain a signature from the pending queue,
 // determine whether the parent block has reached QC,
 // and send a signature if it is reached, otherwise exit the sending logic.
-func (cbft *Cbft) sendPrepareVote() {
+func (cbft *Cbft) trySendPrepareVote() {
 	pending := cbft.state.PendingPrepareVote()
 	hadSend := cbft.state.HadSendPrepareVote()
 
