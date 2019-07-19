@@ -80,6 +80,10 @@ func (gc *GovContract) FnSigns() map[uint16]interface{} {
 }
 
 func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, desc, url string, endVotingBlock uint64) ([]byte, error) {
+	if !gc.Contract.UseGas(params.SubmitTextProposalGas) {
+		return nil, ErrOutOfGas
+	}
+
 	from := gc.Contract.CallerAddress
 	log.Debug("Call submitText of GovContract",
 		"from", from.Hex(),
@@ -104,6 +108,11 @@ func (gc *GovContract) submitText(verifier discover.NodeID, githubID, topic, des
 }
 
 func (gc *GovContract) submitVersion(verifier discover.NodeID, githubID, topic, desc, url string, newVersion uint32, endVotingBlock, activeBlock uint64) ([]byte, error) {
+
+	if !gc.Contract.UseGas(params.SubmitVersionProposalGas) {
+		return nil, ErrOutOfGas
+	}
+
 	from := gc.Contract.CallerAddress
 	log.Debug("Call submitVersion of GovContract",
 		"from", from.Hex(),
@@ -132,6 +141,11 @@ func (gc *GovContract) submitVersion(verifier discover.NodeID, githubID, topic, 
 }
 
 func (gc *GovContract) submitParam(verifier discover.NodeID, githubID, topic, desc, url string, paramName string, currentValue, newValue string, endVotingBlock uint64) ([]byte, error) {
+
+	if !gc.Contract.UseGas(params.SubmitParamProposalGas) {
+		return nil, ErrOutOfGas
+	}
+
 	from := gc.Contract.CallerAddress
 	log.Debug("Call submitVersion of GovContract",
 		"from", from.Hex(),
@@ -163,6 +177,10 @@ func (gc *GovContract) submitParam(verifier discover.NodeID, githubID, topic, de
 
 func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op uint8) ([]byte, error) {
 
+	if !gc.Contract.UseGas(params.VoteGas) {
+		return nil, ErrOutOfGas
+	}
+
 	option := gov.ParseVoteOption(op)
 
 	from := gc.Contract.CallerAddress
@@ -185,6 +203,11 @@ func (gc *GovContract) vote(verifier discover.NodeID, proposalID common.Hash, op
 }
 
 func (gc *GovContract) declareVersion(activeNode discover.NodeID, version uint32) ([]byte, error) {
+
+	if !gc.Contract.UseGas(params.DeclareVersionGas) {
+		return nil, ErrOutOfGas
+	}
+
 	from := gc.Contract.CallerAddress
 
 	log.Debug("Call declareVersion of GovContract",

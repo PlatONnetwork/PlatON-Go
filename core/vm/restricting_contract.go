@@ -2,9 +2,11 @@ package vm
 
 import (
 	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/common/vm"
 	"github.com/PlatONnetwork/PlatON-Go/log"
+	"github.com/PlatONnetwork/PlatON-Go/params"
 	"github.com/PlatONnetwork/PlatON-Go/x/plugin"
 	"github.com/PlatONnetwork/PlatON-Go/x/restricting"
 	"github.com/PlatONnetwork/PlatON-Go/x/xcom"
@@ -15,14 +17,13 @@ const (
 )
 
 type RestrictingContract struct {
-	Plugin      *plugin.RestrictingPlugin
-	Contract 	*Contract
-	Evm  		*EVM
+	Plugin   *plugin.RestrictingPlugin
+	Contract *Contract
+	Evm      *EVM
 }
 
-
 func (rc *RestrictingContract) RequiredGas(input []byte) uint64 {
-	return 0
+	return params.RestrictingPlanGas
 }
 
 func (rc *RestrictingContract) Run(input []byte) ([]byte, error) {
@@ -41,6 +42,14 @@ func (rc *RestrictingContract) FnSigns() map[uint16]interface{} {
 
 // createRestrictingPlan is a PlatON precompiled contract function, used for create a restricting plan
 func (rc *RestrictingContract) createRestrictingPlan(account common.Address, plans []restricting.RestrictingPlan) ([]byte, error) {
+
+	if !rc.Contract.UseGas(params.CreateRestrictingPlanGas) {
+		return nil, ErrOutOfGas
+	}
+	if !rc.Contract.UseGas(params.ReleasePlanGas * uint64(len(plans))) {
+		return nil, ErrOutOfGas
+	}
+
 	sender := rc.Contract.Caller()
 	txHash := rc.Evm.StateDB.TxHash()
 	blockNum := rc.Evm.BlockNumber
@@ -50,7 +59,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 
 	if err := rc.Plugin.AddRestrictingRecord(sender, account, plans, state); err != nil {
 		if _, ok := err.(*common.SysError); ok {
-			res := xcom.Result{Status:false, Data:"", ErrMsg:"create lock repo plan:" + err.Error()}
+			res := xcom.Result{Status: false, Data: "", ErrMsg: "create lock repo plan:" + err.Error()}
 			event, _ := json.Marshal(res)
 			rc.badLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 			return nil, nil
@@ -61,7 +70,7 @@ func (rc *RestrictingContract) createRestrictingPlan(account common.Address, pla
 		}
 	}
 
-	res := xcom.Result{Status:true, Data:"", ErrMsg:""}
+	res := xcom.Result{Status: true, Data: "", ErrMsg: ""}
 	event, _ := json.Marshal(res)
 	rc.goodLog(state, blockNum.Uint64(), txHash.Hex(), CreateRestrictingPlanEvent, string(event), "createRestrictingPlan")
 
@@ -81,14 +90,12 @@ func (rc *RestrictingContract) getRestrictingInfo(account common.Address) ([]byt
 	return rc.Plugin.GetRestrictingInfo(account, state)
 }
 
-
 func (rc *RestrictingContract) goodLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
 	xcom.AddLog(state, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
-	log.Info("Successed to " + callFn, "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
+	log.Info("Successed to "+callFn, "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
 }
-
 
 func (rc *RestrictingContract) badLog(state xcom.StateDB, blockNumber uint64, txHash, eventType, eventData, callFn string) {
 	xcom.AddLog(state, blockNumber, vm.RestrictingContractAddr, eventType, eventData)
-	log.Debug("Failed to " + callFn, "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
+	log.Debug("Failed to "+callFn, "txHash", txHash, "blockNumber", blockNumber, "json: ", eventData)
 }

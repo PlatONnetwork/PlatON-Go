@@ -283,7 +283,7 @@ func (sk *StakingPlugin) CreateCandidate(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
-func (sk *StakingPlugin) EditorCandidate(blockHash common.Hash, blockNumber *big.Int, can *staking.Candidate) error {
+func (sk *StakingPlugin) EditCandidate(blockHash common.Hash, blockNumber *big.Int, can *staking.Candidate) error {
 	pubKey, _ := can.NodeId.Pubkey()
 
 	epoch := xutil.CalculateEpoch(blockNumber.Uint64())
@@ -293,7 +293,7 @@ func (sk *StakingPlugin) EditorCandidate(blockHash common.Hash, blockNumber *big
 	addr := crypto.PubkeyToAddress(*pubKey)
 
 	if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
-		log.Error("Failed to EditorCandidate on stakingPlugin: Store Candidate info is failed",
+		log.Error("Failed to EditCandidate on stakingPlugin: Store Candidate info is failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
@@ -364,7 +364,7 @@ func (sk *StakingPlugin) IncreaseStaking(state xcom.StateDB, blockHash common.Ha
 	return nil
 }
 
-func (sk *StakingPlugin) WithdrewCandidate(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
+func (sk *StakingPlugin) WithdrewStaking(state xcom.StateDB, blockHash common.Hash, blockNumber *big.Int,
 	can *staking.Candidate) error {
 	pubKey, _ := can.NodeId.Pubkey()
 
@@ -376,7 +376,7 @@ func (sk *StakingPlugin) WithdrewCandidate(state xcom.StateDB, blockHash common.
 
 	// delete old power of can
 	if err := sk.db.DelCanPowerStore(blockHash, can); nil != err {
-		log.Error("Failed to WithdrewCandidate on stakingPlugin: Delete Candidate old power is failed",
+		log.Error("Failed to WithdrewStaking on stakingPlugin: Delete Candidate old power is failed",
 			"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
@@ -390,13 +390,13 @@ func (sk *StakingPlugin) WithdrewCandidate(state xcom.StateDB, blockHash common.
 	if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
 
 		if err := sk.db.SetCandidateStore(blockHash, addr, can); nil != err {
-			log.Error("Failed to WithdrewCandidate on stakingPlugin: Store Candidate info is failed",
+			log.Error("Failed to WithdrewStaking on stakingPlugin: Store Candidate info is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
 	} else {
 		if err := sk.db.DelCandidateStore(blockHash, addr); nil != err {
-			log.Error("Failed to WithdrewCandidate on stakingPlugin: Delete Candidate info is failed",
+			log.Error("Failed to WithdrewStaking on stakingPlugin: Delete Candidate info is failed",
 				"blockNumber", blockNumber.Uint64(), "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
@@ -412,7 +412,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 	if can.ReleasedHes.Cmp(common.Big0) > 0 {
 		state.AddBalance(can.StakingAddress, can.ReleasedHes)
 		state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
-		can.Shares = new(big.Int).Sub(can.Shares, can.ReleasedHes)
+		//can.Shares = new(big.Int).Sub(can.Shares, can.ReleasedHes)
 		can.ReleasedHes = common.Big0
 	}
 
@@ -420,22 +420,35 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 
 		err := rt.ReturnLockFunds(can.StakingAddress, can.RestrictingPlanHes, state)
 		if nil != err {
-			log.Error("Failed to WithdrewCandidate on stakingPlugin: call Restricting ReturnLockFunds() is failed",
+			log.Error("Failed to WithdrewStaking on stakingPlugin: call Restricting ReturnLockFunds() is failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
 
-		can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlanHes)
+		//can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlanHes)
 		can.RestrictingPlanHes = common.Big0
 	}
-
+	//addItem := false
+	//
+	//if can.Released.Cmp(common.Big0) > 0 {
+	//	can.Shares = new(big.Int).Sub(can.Shares, can.Released)
+	//	addItem = true
+	//}
+	//
+	//if can.RestrictingPlan.Cmp(common.Big0) > 0 {
+	//	can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlan)
+	//	addItem = true
+	//}
 	if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
+
 		if err := sk.db.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
-			log.Error("Failed to WithdrewCandidate on stakingPlugin: Add UnStakeItemStore failed",
+			log.Error("Failed to WithdrewStaking on stakingPlugin: Add UnStakeItemStore failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
 	}
+
+	can.Shares = common.Big0
 	can.Status |= staking.Invalided
 
 	return nil
@@ -1138,6 +1151,8 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		End:   end,
 	}
 
+	fmt.Println(int(xcom.EpochValidatorNum()))
+
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum()))
 	if err := iter.Error(); nil != err {
 		log.Error("Failed to ElectNextVerifierList: take iter by candidate power is failed", "blockNumber",
@@ -1147,6 +1162,9 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	defer iter.Release()
 
 	queue := make(staking.ValidatorQueue, 0)
+
+	count := 0
+
 	for iter.Valid(); iter.Next(); {
 		addrSuffix := iter.Value()
 		var can *staking.Candidate
@@ -1170,7 +1188,11 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			ValidatorTerm: 0,
 		}
 		queue = append(queue, val)
+
+		count++
 	}
+
+	fmt.Println(count)
 
 	if len(queue) == 0 {
 		panic(common.BizErrorf("Failed to ElectNextVerifierList: Select zero size validators~"))
@@ -1233,7 +1255,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 		valEx := &staking.ValidatorEx{
 			NodeId:          can.NodeId,
 			StakingAddress:  can.StakingAddress,
-			BenifitAddress:  can.BenifitAddress,
+			BenefitAddress:  can.BenefitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
 			ProgramVersion:  can.ProgramVersion,
 			StakingBlockNum: can.StakingBlockNum,
@@ -1442,7 +1464,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 		valEx := &staking.ValidatorEx{
 			NodeId:          can.NodeId,
 			StakingAddress:  can.StakingAddress,
-			BenifitAddress:  can.BenifitAddress,
+			BenefitAddress:  can.BenefitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
 			ProgramVersion:  can.ProgramVersion,
 			StakingBlockNum: can.StakingBlockNum,
@@ -1636,7 +1658,7 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.Candid
 		can := &staking.Candidate{
 			NodeId:             discover.MustHexID(nodeIdArr[i]),
 			StakingAddress:     common.HexToAddress(addrArr[i]),
-			BenifitAddress:     vm.StakingContractAddr,
+			BenefitAddress:     vm.StakingContractAddr,
 			StakingTxIndex:     uint32(i),
 			ProgramVersion:     uint32(i*i),
 			Status:             staking.LowRatio,
@@ -1737,6 +1759,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	log.Debug("Call Election Start", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64())
 
 	blockNumber := header.Number.Uint64()
+
+	if blockNumber == 21730 {
+		fmt.Println()
+	}
 
 	// the validators of Current Epoch
 	verifiers, err := sk.db.GetVerifierListByIrr()

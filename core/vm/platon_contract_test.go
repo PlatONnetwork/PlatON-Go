@@ -31,6 +31,8 @@ func init() {
 	log.Root().SetHandler(log.CallerFileHandler(log.LvlFilterHandler(log.Lvl(6), log.StreamHandler(os.Stderr, log.TerminalFormat(true)))))
 }
 
+const initGas = 10000000
+
 var (
 	nodeIdArr = []discover.NodeID{
 		discover.MustHexID("1f3a8672348ff6b789e416762ad53e69063138b8eb4d8780101658f24b2369f1a8e09499226b467d8bc0c4e03e1dc903df857eeb3c67733d21b6aaee2840e429"),
@@ -211,7 +213,7 @@ func newEvm(blockNumber *big.Int, blockHash common.Hash, state *state.StateDB) *
 func newContract(value *big.Int) *vm.Contract {
 	callerAddress := vm.AccountRef(sender)
 	fmt.Println("newContract sender :", callerAddress.Address().Hex())
-	contract := vm.NewContract(callerAddress, callerAddress, value, uint64(1))
+	contract := vm.NewContract(callerAddress, callerAddress, value, uint64(initGas))
 	return contract
 }
 
@@ -235,7 +237,7 @@ func build_staking_data(genesisHash common.Hash) {
 	c1 := &staking.Candidate{
 		NodeId:             nodeId_A,
 		StakingAddress:     sender,
-		BenifitAddress:     addrArr[1],
+		BenefitAddress:     addrArr[1],
 		StakingTxIndex:     uint32(2),
 		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,
@@ -257,7 +259,7 @@ func build_staking_data(genesisHash common.Hash) {
 	c2 := &staking.Candidate{
 		NodeId:             nodeId_B,
 		StakingAddress:     sender,
-		BenifitAddress:     addrArr[2],
+		BenefitAddress:     addrArr[2],
 		StakingTxIndex:     uint32(3),
 		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,
@@ -279,7 +281,7 @@ func build_staking_data(genesisHash common.Hash) {
 	c3 := &staking.Candidate{
 		NodeId:             nodeId_C,
 		StakingAddress:     sender,
-		BenifitAddress:     addrArr[3],
+		BenefitAddress:     addrArr[3],
 		StakingTxIndex:     uint32(4),
 		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,

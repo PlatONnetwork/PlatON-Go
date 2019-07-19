@@ -61,7 +61,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey) {
 	c1 := &staking.Candidate{
 		NodeId:             nodeId_A,
 		StakingAddress:     sender,
-		BenifitAddress:     addrArr[1],
+		BenefitAddress:     addrArr[1],
 		StakingTxIndex:     uint32(2),
 		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,
@@ -83,7 +83,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey) {
 	c2 := &staking.Candidate{
 		NodeId:             nodeId_B,
 		StakingAddress:     sender,
-		BenifitAddress:     addrArr[2],
+		BenefitAddress:     addrArr[2],
 		StakingTxIndex:     uint32(3),
 		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,
@@ -105,7 +105,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey) {
 	c3 := &staking.Candidate{
 		NodeId:             nodeId_C,
 		StakingAddress:     sender,
-		BenifitAddress:     addrArr[3],
+		BenefitAddress:     addrArr[3],
 		StakingTxIndex:     uint32(4),
 		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,
@@ -322,7 +322,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	can := &staking.Candidate{
 		NodeId:          nodeId,
 		StakingAddress:  addr,
-		BenifitAddress:  addr,
+		BenefitAddress:  addr,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  1,
 		ProgramVersion:  xutil.CalcVersion(initProgramVersion),
@@ -344,7 +344,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	if err := si.Slash(data, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800")); nil != err {
 		t.Error(err)
 	}
-	if value, err := si.CheckMutiSign(addr, common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
+	if value, err := si.CheckDuplicateSign(addr, common.Big1.Uint64(), 1, stateDB); nil != err || len(value) == 0 {
 		t.Error(err)
 	}
 	err = si.Slash(data, common.ZeroHash, blockNumber.Uint64(), stateDB, common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52800"))
@@ -383,7 +383,7 @@ func TestSlashingPlugin_CheckMutiSign(t *testing.T) {
 		snapshotdb.Instance().Clear()
 	}()
 	addr := common.HexToAddress("0x120b77ab712589ebd42d69003893ef962cc52832")
-	if _, err := si.CheckMutiSign(addr, 1, 1, stateDB); nil != err {
+	if _, err := si.CheckDuplicateSign(addr, 1, 1, stateDB); nil != err {
 		t.Error(err)
 	}
 }

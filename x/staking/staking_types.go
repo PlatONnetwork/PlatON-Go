@@ -83,7 +83,7 @@ type Candidate struct {
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
-	BenifitAddress common.Address
+	BenefitAddress common.Address
 	// The tx index at the time of staking
 	StakingTxIndex uint32
 	// The version of the node program
@@ -560,7 +560,7 @@ type ValidatorEx struct {
 	// The account used to initiate the staking
 	StakingAddress common.Address
 	// The account receive the block rewards and the staking rewards
-	BenifitAddress common.Address
+	BenefitAddress common.Address
 	// The tx index at the time of staking
 	StakingTxIndex uint32
 	// The version of the node process

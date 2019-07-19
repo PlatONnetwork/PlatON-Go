@@ -148,12 +148,12 @@ type Ppos_2101 struct {
 	ProposalID common.Hash
 }
 
-// ReportMutiSign
+// ReportDuplicateSign
 type Ppos_3000 struct {
 	Data string
 }
 
-// CheckMutiSign
+// CheckDuplicateSign
 type Ppos_3001 struct {
 	Etype       uint32
 	Addr        common.Address
@@ -226,7 +226,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 1000:
 		{
 			typ, _ := rlp.EncodeToBytes(cfg.P1000.Typ)
-			benifitAddress, _ := rlp.EncodeToBytes(cfg.P1000.BenefitAddress.Bytes())
+			benefitAddress, _ := rlp.EncodeToBytes(cfg.P1000.BenefitAddress.Bytes())
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1000.NodeId)
 			externalId, _ := rlp.EncodeToBytes(cfg.P1000.ExternalId)
 			nodeName, _ := rlp.EncodeToBytes(cfg.P1000.NodeName)
@@ -235,7 +235,7 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			amount, _ := rlp.EncodeToBytes(cfg.P1000.Amount)
 			programVersion, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersion)
 			params = append(params, typ)
-			params = append(params, benifitAddress)
+			params = append(params, benefitAddress)
 			params = append(params, nodeId)
 			params = append(params, externalId)
 			params = append(params, nodeName)
@@ -246,13 +246,13 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 		}
 	case 1001:
 		{
-			benifitAddress, _ := rlp.EncodeToBytes(cfg.P1001.BenefitAddress.Bytes())
+			benefitAddress, _ := rlp.EncodeToBytes(cfg.P1001.BenefitAddress.Bytes())
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1001.NodeId)
 			externalId, _ := rlp.EncodeToBytes(cfg.P1001.ExternalId)
 			nodeName, _ := rlp.EncodeToBytes(cfg.P1001.NodeName)
 			website, _ := rlp.EncodeToBytes(cfg.P1001.Website)
 			details, _ := rlp.EncodeToBytes(cfg.P1001.Details)
-			params = append(params, benifitAddress)
+			params = append(params, benefitAddress)
 			params = append(params, nodeId)
 			params = append(params, externalId)
 			params = append(params, nodeName)

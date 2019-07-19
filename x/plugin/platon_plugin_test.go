@@ -342,7 +342,7 @@ func build_staking_data_more(block uint64) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(i + 1),
 			Shares:          balance,
@@ -473,7 +473,7 @@ func build_staking_data(genesisHash common.Hash) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(1),
 			StakingTxIndex:  uint32(i + 1),
 			Shares:          balance,
