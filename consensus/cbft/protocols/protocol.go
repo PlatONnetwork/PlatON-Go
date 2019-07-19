@@ -111,6 +111,14 @@ func (PrepareVote) BHash() common.Hash {
 	panic("implement me")
 }
 
+func (pv *PrepareVote) CannibalizeBytes() ([]byte, error) {
+	return nil, nil
+}
+
+func (pv *PrepareVote) Sign() []byte {
+	return nil
+}
+
 type ViewChange struct {
 	Epoch       uint64             `json:"epoch"`
 	ViewNumber  uint64             `json:"view_number"`
@@ -130,6 +138,14 @@ func (ViewChange) MsgHash() common.Hash {
 
 func (ViewChange) BHash() common.Hash {
 	panic("implement me")
+}
+
+func (vc *ViewChange) CannibalizeBytes() ([]byte, error) {
+	return nil, nil
+}
+
+func (vc *ViewChange) Sign() []byte {
+	return nil
 }
 
 // cbftStatusData implement Message and including status information about peer.
