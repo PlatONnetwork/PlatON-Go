@@ -48,12 +48,12 @@ func (b *BlockTree) InsertQCBlock(block *types.Block, qc *QuorumCert) (*types.Bl
 }
 
 // Delete invalid branch block
-func (b *BlockTree) PruneBlock(hash common.Hash, number uint64) {
+func (b *BlockTree) PruneBlock(hash common.Hash, number uint64, clearFn func(*types.Block)) {
 	if extMap, ok := b.blocks[number]; ok {
 		for h, ext := range extMap {
 			if h != hash {
 				delete(extMap, h)
-				b.pruneBranch(ext)
+				b.pruneBranch(ext, clearFn)
 			} else {
 				b.root = ext
 			}
@@ -85,11 +85,14 @@ func (b *BlockTree) FindBlockByHash(hash common.Hash) *types.Block {
 	return nil
 }
 
-func (b *BlockTree) pruneBranch(ext *BlockExt) {
+func (b *BlockTree) pruneBranch(ext *BlockExt, clearFn func(*types.Block)) {
 	for h, e := range ext.children {
 		if extMap, ok := b.blocks[e.block.NumberU64()]; ok {
+			if clearFn != nil {
+				clearFn(e.block)
+			}
 			delete(extMap, h)
-			b.pruneBranch(ext)
+			b.pruneBranch(ext, clearFn)
 		}
 	}
 }
