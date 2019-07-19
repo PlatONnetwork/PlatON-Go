@@ -412,7 +412,7 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 	if can.ReleasedHes.Cmp(common.Big0) > 0 {
 		state.AddBalance(can.StakingAddress, can.ReleasedHes)
 		state.SubBalance(vm.StakingContractAddr, can.ReleasedHes)
-		can.Shares = new(big.Int).Sub(can.Shares, can.ReleasedHes)
+		//can.Shares = new(big.Int).Sub(can.Shares, can.ReleasedHes)
 		can.ReleasedHes = common.Big0
 	}
 
@@ -425,17 +425,30 @@ func (sk *StakingPlugin) withdrewStakeAmount(state xcom.StateDB, blockHash commo
 			return err
 		}
 
-		can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlanHes)
+		//can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlanHes)
 		can.RestrictingPlanHes = common.Big0
 	}
-
+	//addItem := false
+	//
+	//if can.Released.Cmp(common.Big0) > 0 {
+	//	can.Shares = new(big.Int).Sub(can.Shares, can.Released)
+	//	addItem = true
+	//}
+	//
+	//if can.RestrictingPlan.Cmp(common.Big0) > 0 {
+	//	can.Shares = new(big.Int).Sub(can.Shares, can.RestrictingPlan)
+	//	addItem = true
+	//}
 	if can.Released.Cmp(common.Big0) > 0 || can.RestrictingPlan.Cmp(common.Big0) > 0 {
+
 		if err := sk.db.AddUnStakeItemStore(blockHash, epoch, addr); nil != err {
 			log.Error("Failed to WithdrewStaking on stakingPlugin: Add UnStakeItemStore failed",
 				"blockNumber", blockNumber, "blockHash", blockHash.Hex(), "err", err)
 			return err
 		}
 	}
+
+	can.Shares = common.Big0
 	can.Status |= staking.Invalided
 
 	return nil
