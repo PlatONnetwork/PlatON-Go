@@ -421,7 +421,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		return p.SendBlockHeaders(headers)
 	case p.version >= eth63 && msg.Code == GetOriginAndPivotMsg:
-		log.Info("[GetOriginAndPivotMsg]Received a broadcast message")
+		p.Log().Info("[GetOriginAndPivotMsg]Received a broadcast message")
 		var query uint64
 		if err := msg.Decode(&query); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
@@ -441,7 +441,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		data := make([]*types.Header, 0)
 		data = append(data, oHead, pHead)
 		if err := p.SendOriginAndPivot(data); err != nil {
-			log.Error("[GetOriginAndPivotMsg]send data meassage fail", "error", err)
+			p.Log().Error("[GetOriginAndPivotMsg]send data meassage fail", "error", err)
 			return err
 		}
 	case p.version >= eth63 && msg.Code == OriginAndPivotMsg:
@@ -452,11 +452,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverOriginAndPivot(p.id, data); err != nil {
-			log.Error("Failed to deliver ppos storage data", "err", err)
+			p.Log().Error("Failed to deliver ppos storage data", "err", err)
 			return err
 		}
 	case p.version >= eth63 && msg.Code == GetPPOSStorageMsg:
-		log.Info("[GetPPOSStorageMsg]Received a broadcast message", "id", common.CurrentGoRoutineID())
+		p.Log().Info("[GetPPOSStorageMsg]Received a broadcast message", "id", common.CurrentGoRoutineID())
 		var query []interface{}
 		if err := msg.Decode(&query); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
@@ -471,7 +471,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			ps.Pivot = pm.blockchain.GetHeaderByNumber(num.Uint64())
 			ps.Latest = pm.blockchain.CurrentHeader()
 			if err := p.SendPPOSStorage(ps); err != nil {
-				log.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+				p.Log().Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
 				return err
 			}
 			for iter.Next() {
@@ -485,7 +485,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				count++
 				if count >= downloader.PPOSStorageKVSizeFetch {
 					if err := p.SendPPOSStorage(ps); err != nil {
-						log.Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", ps.KVNum)
+						p.Log().Error("[GetPPOSStorageMsg]send ppos meassage fail", "error", err, "kvnum", ps.KVNum)
 						return err
 					}
 					count = 0
@@ -494,25 +494,25 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			}
 			ps.Last = true
 			if err := p.SendPPOSStorage(ps); err != nil {
-				log.Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
+				p.Log().Error("[GetPPOSStorageMsg]send last ppos meassage fail", "error", err)
 				return err
 			}
 			return nil
 		}
 
 		if err := snapshotdb.Instance().WalkBaseDB(nil, f); err != nil {
-			log.Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
+			p.Log().Error("[GetPPOSStorageMsg]send  ppos storage fail", "error", err)
 		}
 
 	case p.version >= eth63 && msg.Code == PPOSStorageMsg:
-		log.Debug("Received a broadcast message[PposStorageMsg]")
+		p.Log().Debug("Received a broadcast message[PposStorageMsg]")
 		var data PPOSStorage
 		if err := msg.Decode(&data); err != nil {
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		// Deliver all to the downloader
 		if err := pm.downloader.DeliverPposStorage(p.id, data.Latest, data.Pivot, data.KVs, data.Last, data.KVNum); err != nil {
-			log.Error("Failed to deliver ppos storage data", "err", err)
+			p.Log().Error("Failed to deliver ppos storage data", "err", err)
 		}
 	case msg.Code == BlockHeadersMsg:
 		// A batch of headers arrived to one of our previous requests
