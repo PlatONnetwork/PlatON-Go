@@ -1,6 +1,8 @@
 package snapshotdb
 
 import (
+	"bytes"
+	"container/heap"
 	"errors"
 	"fmt"
 	"math/big"
@@ -15,7 +17,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/node"
 	"github.com/robfig/cron"
 	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/comparer"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/memdb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -677,20 +678,24 @@ func (s *snapshotDB) Clear() error {
 	return nil
 }
 
-func itrToMdb(itr iterator.Iterator, mdb *memdb.DB) error {
+func itrToMdb(itr iterator.Iterator, r *rankingItr) {
 	for itr.Next() {
-		if itr.Value() == nil || len(itr.Value()) == 0 {
-			if err := mdb.Delete(itr.Key()); err != nil && err != memdb.ErrNotFound {
-				return err
-			}
+		k, v := itr.Key(), itr.Value()
+		if r.findHandledKey(k) {
+			continue
 		} else {
-			if err := mdb.Put(itr.Key(), itr.Value()); err != nil {
-				return err
+			condtion := v == nil || len(v) == 0
+			if !condtion {
+				heap.Push(&r.heap, kv{k, v})
 			}
+			if len(r.heap) > r.hepNum {
+				heap.Pop(&r.heap)
+			}
+			r.addHandledKey(k)
 		}
 	}
+
 	itr.Release()
-	return nil
 }
 
 // Ranking return iterates  of the DB.
@@ -705,15 +710,16 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 		return iterator.NewEmptyIterator(errors.New("this hash not in chain:" + hash.String()))
 	}
 	prefix := util.BytesPrefix(key)
-	m := memdb.New(comparer.DefaultComparer, rangeNumber)
 	var itrs []iterator.Iterator
 	var parentHash common.Hash
 	switch location {
 	case hashLocationUnRecognized:
+		s.unRecognizedLock.Lock()
 		if s.unRecognized.data != nil {
 			itrs = append(itrs, s.unRecognized.data.NewIterator(prefix))
 			parentHash = s.unRecognized.ParentHash
 		}
+		s.unRecognizedLock.Unlock()
 		for {
 			if b, ok := s.recognized.Load(parentHash); ok {
 				block := b.(blockData)
@@ -723,9 +729,11 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 				break
 			}
 		}
+		s.commitLock.Lock()
 		for _, block := range s.committed {
 			itrs = append(itrs, block.data.NewIterator(prefix))
 		}
+		s.commitLock.Unlock()
 	case hashLocationRecognized:
 		parentHash = hash
 		for {
@@ -737,10 +745,13 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 				break
 			}
 		}
+		s.commitLock.Lock()
 		for _, block := range s.committed {
 			itrs = append(itrs, block.data.NewIterator(prefix))
 		}
+		s.commitLock.Unlock()
 	case hashLocationCommitted:
+		s.commitLock.Lock()
 		for i := len(s.committed) - 1; i >= 0; i-- {
 			block := s.committed[i]
 			if block.BlockHash == hash {
@@ -751,14 +762,82 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 				parentHash = block.BlockHash
 			}
 		}
+		s.commitLock.Unlock()
 	}
-	itrs = append(itrs, s.baseDB.NewIterator(prefix, nil))
-	for i := len(itrs) - 1; i >= 0; i-- {
-		if err := itrToMdb(itrs[i], m); err != nil {
-			return iterator.NewEmptyIterator(err)
+	r := newRaningItr(rangeNumber)
+	for i := 0; i < len(itrs); i++ {
+		itrToMdb(itrs[i], r)
+	}
+	itr := s.baseDB.NewIterator(prefix, nil)
+	for itr.Next() {
+		if len(r.heap) == rangeNumber {
+			break
+		}
+		k, v := itr.Key(), itr.Value()
+		if len(r.heap) > 0 && bytes.Compare(k, r.heap[0].key) > 0 {
+			break
+		}
+
+		if r.findHandledKey(k) {
+			continue
+		} else {
+			condtion := v == nil || len(v) == 0
+			if !condtion {
+				sk, sv := make([]byte, len(k)), make([]byte, len(v))
+				copy(sk, k)
+				copy(sv, v)
+				heap.Push(&r.heap, kv{key: sk, value: sv})
+			}
+			if len(r.heap) > r.hepNum {
+				heap.Pop(&r.heap)
+			}
+			r.addHandledKey(k)
 		}
 	}
-	return m.NewIterator(nil)
+
+	itr.Release()
+	mdb := memdb.New(DefaultComparer, rangeNumber)
+	for r.heap.Len() > 0 {
+		kv := heap.Pop(&r.heap).(kv)
+		//_, err := mdb.Get(kv.key)
+		//if err == nil {
+		//	logger.Debug("find", "key", kv.key)
+		//}
+		if err := mdb.Put(kv.key, kv.value); err != nil {
+			return iterator.NewEmptyIterator(errors.New("put to mdb fail" + err.Error()))
+		}
+	}
+	return mdb.NewIterator(nil)
+}
+
+func newRaningItr(hepNum int) *rankingItr {
+	r := new(rankingItr)
+	r.hepNum = hepNum
+	r.handledKey = make([][]byte, 0)
+	r.heap = make(kvsMaxToMin, 0)
+	return r
+}
+
+type rankingItr struct {
+	handledKey [][]byte
+	//max heap
+	heap   kvsMaxToMin
+	hepNum int
+}
+
+func (r *rankingItr) addHandledKey(key []byte) {
+	handled := make([]byte, len(key))
+	copy(handled, key)
+	r.handledKey = append(r.handledKey, handled)
+}
+
+func (r *rankingItr) findHandledKey(key []byte) bool {
+	for _, value := range r.handledKey {
+		if bytes.Compare(key, value) == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *snapshotDB) Close() error {
