@@ -235,7 +235,7 @@ type GetQCPrepareBlock struct {
 }
 
 func (s *GetQCPrepareBlock) String() string {
-	return fmt.Sprintf("GetQCPrepareBlock - [Number: %d]", s.BlockNumber)
+	return fmt.Sprintf("[Number: %d]", s.BlockNumber)
 }
 
 func (s *GetQCPrepareBlock) MsgHash() common.Hash {
