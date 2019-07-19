@@ -894,3 +894,10 @@ func TestGovPlugin_ParamProposalSuccess(t *testing.T) {
 		t.Logf("the result status error, %d", result.Status)
 	}
 }
+
+func TestGovPlugin_printVersion(t *testing.T) {
+	defer setup(t)()
+
+	t.Logf("ver.1.2.0, %d", uint32(1<<16|2<<8|0))
+
+}

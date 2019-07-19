@@ -250,7 +250,7 @@ func (self *GovDB) AddVotingProposalID(blockHash common.Hash, proposalID common.
 	return nil
 }
 
-func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash, state xcom.StateDB) error {
+func (self *GovDB) MoveVotingProposalIDToPreActive(blockHash common.Hash, proposalID common.Hash) error {
 
 	voting, err := self.snapdb.getVotingIDList(blockHash)
 	if err != nil {

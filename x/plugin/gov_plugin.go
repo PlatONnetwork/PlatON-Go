@@ -373,6 +373,17 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 
 	//there is a voting version proposal
 	if votingVP != nil {
+		nodeList, err := govPlugin.govDB.ListVotedVerifier(votingVP.ProposalID, state)
+		if err != nil {
+			log.Error("cannot list voted verifiers", "proposalID", votingVP.ProposalID)
+			return err
+		} else {
+			if inNodeList(declaredNodeID, nodeList) && declaredVersion != votingVP.GetNewVersion() {
+				log.Error("declared version should be same as proposal's version",
+					"declaredNodeID", declaredNodeID, "declaredVersion", declaredVersion, "proposalID", votingVP.ProposalID, "newVersion", votingVP.GetNewVersion())
+				return common.NewBizError("declared version should be same as proposal's version")
+			}
+		}
 		if declaredVersion>>8 == activeVersion>>8 {
 			//the declared version equals the current active version, notify staking immediately
 			log.Debug("declared version equals active version.", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
@@ -386,6 +397,8 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 			return common.NewBizError("declared version neither equals active version nor new version.")
 		}
 	} else {
+		govPlugin.govDB.GetPreActiveVersion()
+
 		if declaredVersion>>8 == activeVersion>>8 {
 			//the declared version is the current active version, notify staking immediately
 			stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion)
@@ -533,7 +546,7 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(proposal gov.VersionProposal
 
 	voteList, err := govPlugin.govDB.ListVoteValue(proposalID, state)
 	if err != nil {
-		log.Error("list voted value failed", "proposalID", proposalID)
+		log.Error("list voted values failed", "proposalID", proposalID)
 		return err
 	}
 
@@ -550,12 +563,27 @@ func (govPlugin *GovPlugin) tallyForVersionProposal(proposal gov.VersionProposal
 			log.Error("list active nodes failed", "blockHash", blockHash, "proposalID", proposalID)
 			return err
 		}
-		govPlugin.govDB.MoveVotingProposalIDToPreActive(blockHash, proposalID, state)
-		//todo: handle error
-		stk.ProposalPassedNotify(blockHash, blockNumber, activeList, proposal.NewVersion)
+		if err := govPlugin.govDB.MoveVotingProposalIDToPreActive(blockHash, proposalID); err != nil {
+			log.Error("move proposalID from voting proposalID list to pre-active list failed", "blockHash", blockHash, "proposalID", proposalID)
+			return err
+		}
+
+		if err := govPlugin.govDB.SetPreActiveVersion(proposal.NewVersion, state); err != nil {
+			log.Error("save pre-active version to state failed", "blockHash", blockHash, "proposalID", proposalID, "newVersion", proposal.NewVersion)
+			return err
+		}
+
+		if err := stk.ProposalPassedNotify(blockHash, blockNumber, activeList, proposal.NewVersion); err != nil {
+			log.Error("notify stating of the upgraded node list failed", "blockHash", blockHash, "proposalID", proposalID, "newVersion", proposal.NewVersion)
+			return err
+		}
+
 	} else {
 		status = gov.Failed
-		govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposalID, state)
+		if err := govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposalID, state); err != nil {
+			log.Error("move proposalID from voting proposalID list to end list failed", "blockHash", blockHash, "proposalID", proposalID)
+			return err
+		}
 	}
 
 	tallyResult := &gov.TallyResult{
@@ -619,7 +647,11 @@ func (govPlugin *GovPlugin) tallyBasic(proposalID common.Hash, blockHash common.
 		Status:        status,
 	}
 
-	govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposalID, state)
+	//govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposalID, state)
+	if err := govPlugin.govDB.MoveVotingProposalIDToEnd(blockHash, proposalID, state); err != nil {
+		log.Error("move proposalID from voting proposalID list to end list failed", "blockHash", blockHash, "proposalID", proposalID)
+		return false, err
+	}
 
 	if err := govPlugin.govDB.SetTallyResult(*tallyResult, state); err != nil {
 		log.Error("save tally result failed", "tallyResult", tallyResult)
