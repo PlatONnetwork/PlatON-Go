@@ -6,7 +6,7 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 )
 
-//Perform security rule verification，store in blockTree, Whether to start synchronization
+// Perform security rule verification，store in blockTree, Whether to start synchronization
 func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	if err := cbft.safetyRules.PrepareBlockRules(msg); err != nil {
 		if err.Fetch() {
@@ -16,10 +16,11 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 	}
 	cbft.state.AddPrepareBlock(msg)
 
+	cbft.prepareBlockFetchRules(id, msg)
 	return nil
 }
 
-//Perform security rule verification，store in blockTree, Whether to start synchronization
+// Perform security rule verification，store in blockTree, Whether to start synchronization
 func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
 		if err.Fetch() {
@@ -27,17 +28,19 @@ func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 		}
 	}
 
+	cbft.prepareVoteFetchRules(id, msg)
 	//todo parse pubkey as id
 	cbft.state.AddPrepareVote("", msg)
 	//todo new qc block
+
 	return nil
 }
 
-//Perform security rule verification, view switching
+// Perform security rule verification, view switching
 func (cbft *Cbft) OnViewChange(id string, msg *protocols.ViewChange) error {
 	if err := cbft.safetyRules.ViewChangeRules(msg); err != nil {
 		if err.Fetch() {
-			//todo fetch block
+			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNum)
 		}
 	}
 

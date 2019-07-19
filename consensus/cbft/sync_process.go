@@ -41,12 +41,30 @@ func (cbft *Cbft) fetchBlock(id string, hash common.Hash, number uint64) {
 	}
 }
 
-func (cbft *Cbft) prepareVoteFetchRules(vote *protocols.PrepareVote) {
-	if vote.BlockNumber > cbft.state.HighestQCBlock().NumberU64()+1 {
-		//todo fetch qc
+// Obtain blocks that are not in the local according to the proposed block
+func (cbft *Cbft) prepareBlockFetchRules(id string, pb *protocols.PrepareBlock) {
+	if pb.Block.NumberU64() > cbft.state.HighestQCBlock().NumberU64() {
+		for i := uint32(0); i < pb.BlockIndex; i++ {
+			b, _ := cbft.state.ViewBlockAndQC(i)
+			if b == nil {
+				//todo fetch block
+			}
+		}
 	}
 }
 
-func (cbft *Cbft) prepareBlockFetchRules(block *protocols.PrepareBlock) {
-	if cbft.state.
+// Get votes and blocks that are not available locally based on the height of the vote
+func (cbft *Cbft) prepareVoteFetchRules(id string, vote *protocols.PrepareVote) {
+	// Greater than QC+1 means the vote is behind
+	if vote.BlockNumber > cbft.state.HighestQCBlock().NumberU64()+1 {
+		for i := uint32(0); i < vote.BlockIndex; i++ {
+			b, q := cbft.state.ViewBlockAndQC(i)
+			if b == nil {
+				//todo fetch block
+			}
+			if q != nil {
+				//todo fetch qc
+			}
+		}
+	}
 }
