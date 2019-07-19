@@ -315,11 +315,6 @@ func TestRMOldRecognizedBlockData(t *testing.T) {
 	}
 }
 
-type kv struct {
-	key   []byte
-	value []byte
-}
-
 func randomString2(s string) []byte {
 	b := new(bytes.Buffer)
 	if s != "" {
@@ -329,24 +324,6 @@ func randomString2(s string) []byte {
 		b.WriteByte(' ' + byte(rand.Int()))
 	}
 	return b.Bytes()
-}
-
-type kvs []kv
-
-func (k kvs) Len() int {
-	return len(k)
-}
-
-func (k kvs) Less(i, j int) bool {
-	n := bytes.Compare(k[i].key, k[j].key)
-	if n == -1 {
-		return true
-	}
-	return false
-}
-
-func (k kvs) Swap(i, j int) {
-	k[i], k[j] = k[j], k[i]
 }
 
 func (k kvs) compareWithkvs(s kvs) error {
