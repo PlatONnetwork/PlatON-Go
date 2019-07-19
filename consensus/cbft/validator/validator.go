@@ -350,6 +350,14 @@ func (vp *ValidatorPool) IsCandidateNode(nodeID discover.NodeID) bool {
 	return vp.agency.IsCandidateNode(nodeID)
 }
 
+// Len return number of validators.
+func (vp *ValidatorPool) Len(blockNumber uint64) int {
+	if blockNumber <= vp.switchPoint {
+		return vp.prevValidators.Len()
+	}
+	return vp.currentValidators.Len()
+}
+
 func nextRound(blockNumber uint64) uint64 {
 	return blockNumber + 1
 }
