@@ -37,17 +37,15 @@ const (
 type EngineManager struct {
 	engine    *Cbft
 	peers     *router.PeerSet
-	router    Router
 	sendQueue chan *types.MsgPackage
 	quitSend  chan struct{}
 }
 
 // Create a new handler and do some initialization.
-func NewEngineManger(engine *Cbft, r Router) *EngineManager {
+func NewEngineManger(engine *Cbft) *EngineManager {
 	return &EngineManager{
 		engine:    engine,
 		peers:     router.NewPeerSet(),
-		router:    r,
 		sendQueue: make(chan *types.MsgPackage, sendQueueSize),
 		quitSend:  make(chan struct{}, 0),
 	}
@@ -87,13 +85,13 @@ func (h *EngineManager) sendLoop() {
 
 // Broadcast forwards the message to the router for distribution.
 func (h *EngineManager) broadcast(m *types.MsgPackage) {
-	h.router.gossip(m)
+	h.engine.Router().Gossip(m)
 }
 
 // Send message to a known peerId. Determine if the peerId has established
 // a connection before sending.
 func (h *EngineManager) sendMessage(m *types.MsgPackage) {
-	h.router.sendMessage(m)
+	h.engine.Router().SendMessage(m)
 }
 
 // Return the peer with the specified peerID.
@@ -158,6 +156,21 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 			},
 		},
 	}
+}
+
+// Return all neighbor node lists.
+func (h *EngineManager) Peers() ([]*router.Peer, error) {
+	return h.peers.Peers(), nil
+}
+
+// Return a peer by id.
+func (h *EngineManager) Get(id string) (*router.Peer, error) {
+	return h.peers.Get(id)
+}
+
+// Remove the peer with the specified ID
+func (h *EngineManager) Unregister(id string) error {
+	return h.peers.Unregister(id)
 }
 
 // Representative node configuration information.
@@ -341,6 +354,14 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 
 	case msg.Code == protocols.PrepareVotesMsg:
 		var request protocols.PrepareVotes
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		return nil
+
+	case msg.Code == protocols.QCBlockListMsg:
+		var request protocols.QCBlockList
 		if err := msg.Decode(&request); err != nil {
 			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
 		}
