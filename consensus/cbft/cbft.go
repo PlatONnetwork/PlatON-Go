@@ -133,6 +133,18 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	return nil
 }
 
+// Entrance: The messages related to the consensus are entered from here.
+// The message sent from the peer node is sent to the CBFT message queue and
+// there is a loop that will distribute the incoming message.
+func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
+	select {
+	case cbft.peerMsgCh <- msg:
+		cbft.log.Debug("Received message from peer", "peer", msg.PeerID, "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString())
+	case <-cbft.exitCh:
+		cbft.log.Error("Cbft exit")
+	}
+}
+
 func (cbft *Cbft) LoadWal() error {
 	// init wal and load wal state
 	var err error
