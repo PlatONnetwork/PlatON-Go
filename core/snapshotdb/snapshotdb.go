@@ -688,7 +688,7 @@ func itrToMdb(itr iterator.Iterator, r *rankingItr) {
 			if !condtion {
 				heap.Push(&r.heap, kv{k, v})
 			}
-			if len(r.heap) > r.hepNum {
+			if r.hepNum > 0 && len(r.heap) > r.hepNum {
 				heap.Pop(&r.heap)
 			}
 			r.addHandledKey(k)
@@ -770,7 +770,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 	}
 	itr := s.baseDB.NewIterator(prefix, nil)
 	for itr.Next() {
-		if len(r.heap) == rangeNumber {
+		if r.hepNum > 0 && len(r.heap) == r.hepNum {
 			break
 		}
 		k, v := itr.Key(), itr.Value()
@@ -788,7 +788,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 				copy(sv, v)
 				heap.Push(&r.heap, kv{key: sk, value: sv})
 			}
-			if len(r.heap) > r.hepNum {
+			if r.hepNum > 0 && len(r.heap) > r.hepNum {
 				heap.Pop(&r.heap)
 			}
 			r.addHandledKey(k)
@@ -799,10 +799,6 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 	mdb := memdb.New(DefaultComparer, rangeNumber)
 	for r.heap.Len() > 0 {
 		kv := heap.Pop(&r.heap).(kv)
-		//_, err := mdb.Get(kv.key)
-		//if err == nil {
-		//	logger.Debug("find", "key", kv.key)
-		//}
 		if err := mdb.Put(kv.key, kv.value); err != nil {
 			return iterator.NewEmptyIterator(errors.New("put to mdb fail" + err.Error()))
 		}
