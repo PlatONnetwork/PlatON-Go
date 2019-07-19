@@ -47,7 +47,7 @@ func (v *baseVoteRules) AllowVote(vote *protocols.PrepareVote) VoteError {
 		return newVoteError("", true)
 	}
 
-	if v.viewState.HadSendPrepareVote(vote) {
+	if v.viewState.HadSendPrepareVote().Had(vote.BlockIndex) {
 		return newVoteError("", true)
 	}
 	return nil
