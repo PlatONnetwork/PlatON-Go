@@ -59,7 +59,10 @@ type TxPoolReset interface {
 }
 
 //Execution block, you need to pass in the parent block to find the parent block state
-type Executor func(block *types.Block, parent *types.Block) error
+type BlockCacheWriter interface {
+	Execute(block *types.Block, parent *types.Block) error
+	ClearCache(block *types.Block)
+}
 
 // Engine is an algorithm agnostic consensus engine.
 type Engine interface {
@@ -147,7 +150,7 @@ type Agency interface {
 type Bft interface {
 	Engine
 
-	Start(chain ChainReader, executor Executor, pool TxPoolReset, agency Agency) error
+	Start(chain ChainReader, blockCacheWriter BlockCacheWriter, pool TxPoolReset, agency Agency) error
 
 	// Returns the current consensus node address list.
 	ConsensusNodes() ([]discover.NodeID, error)

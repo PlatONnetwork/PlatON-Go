@@ -9,6 +9,8 @@ import (
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/utils"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
+	"github.com/PlatONnetwork/PlatON-Go/crypto"
+	"github.com/PlatONnetwork/PlatON-Go/rlp"
 )
 
 // Maximum cap on the size of a cbft protocol message
@@ -65,6 +67,25 @@ func (PrepareBlock) MsgHash() common.Hash {
 
 func (PrepareBlock) BHash() common.Hash {
 	panic("implement me")
+}
+
+func (pb *PrepareBlock) CannibalizeBytes() ([]byte, error) {
+	buf, err := rlp.EncodeToBytes([]interface{}{
+		pb.Epoch,
+		pb.ViewNumber,
+		pb.BlockIndex,
+		pb.ProposalIndex,
+		pb.ProposalAddr,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return crypto.Keccak256(buf), nil
+}
+
+func (pb *PrepareBlock) Sign() []byte {
+	return pb.Signature.Bytes()
 }
 
 // Removed the validator address, index. Mainly to ensure that the signature hash of the aggregate signature is consistent
@@ -334,7 +355,7 @@ func (s *Pong) BHash() common.Hash {
 	return common.Hash{}
 }
 
-// CBFT synchronize blocks that have reached qc
+//CBFT synchronize blocks that have reached qc
 type QCBlockList struct {
 	QC     []*ctypes.QuorumCert
 	Blocks []*types.Block
