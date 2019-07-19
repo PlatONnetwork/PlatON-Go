@@ -1,19 +1,3 @@
-// Copyright 2016 The go-ethereum Authors
-// This file is part of go-ethereum.
-//
-// go-ethereum is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// go-ethereum is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with go-ethereum. If not, see <http://www.gnu.org/licenses/>.
-
 package main
 
 import (
@@ -42,19 +26,19 @@ var (
 // createStaking
 type Ppos_1000 struct {
 	Typ            uint16
-	BenifitAddress common.Address
+	BenefitAddress common.Address
 	NodeId         discover.NodeID
 	ExternalId     string
 	NodeName       string
 	Website        string
 	Details        string
 	Amount         *big.Int
-	ProcessVersion uint32
+	ProgramVersion uint32
 }
 
 // editorCandidate
 type Ppos_1001 struct {
-	BenifitAddress common.Address
+	BenefitAddress common.Address
 	NodeId         discover.NodeID
 	ExternalId     string
 	NodeName       string
@@ -135,8 +119,8 @@ type Ppos_2002 struct {
 	Desc           string
 	Url            string
 	ParamName      string
-	CurrentValue   interface{}
-	NewValue       interface{}
+	CurrentValue   string
+	NewValue       string
 	EndVotingBlock uint64
 }
 
@@ -183,7 +167,7 @@ type Ppos_4000 struct {
 }
 
 // GetRestrictingInfo
-type Ppos_4001 struct {
+type Ppos_4100 struct {
 	Account common.Address
 }
 
@@ -207,7 +191,7 @@ type decDataConfig struct {
 	P3000 Ppos_3000
 	P3001 Ppos_3001
 	P4000 Ppos_4000
-	P4001 Ppos_4001
+	P4100 Ppos_4100
 }
 
 func parseConfigJson(configPath string, v *decDataConfig) error {
@@ -242,14 +226,14 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 	case 1000:
 		{
 			typ, _ := rlp.EncodeToBytes(cfg.P1000.Typ)
-			benifitAddress, _ := rlp.EncodeToBytes(cfg.P1000.BenifitAddress.Bytes())
+			benifitAddress, _ := rlp.EncodeToBytes(cfg.P1000.BenefitAddress.Bytes())
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1000.NodeId)
 			externalId, _ := rlp.EncodeToBytes(cfg.P1000.ExternalId)
 			nodeName, _ := rlp.EncodeToBytes(cfg.P1000.NodeName)
 			website, _ := rlp.EncodeToBytes(cfg.P1000.Website)
 			details, _ := rlp.EncodeToBytes(cfg.P1000.Details)
 			amount, _ := rlp.EncodeToBytes(cfg.P1000.Amount)
-			processVersion, _ := rlp.EncodeToBytes(cfg.P1000.ProcessVersion)
+			programVersion, _ := rlp.EncodeToBytes(cfg.P1000.ProgramVersion)
 			params = append(params, typ)
 			params = append(params, benifitAddress)
 			params = append(params, nodeId)
@@ -258,11 +242,11 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, website)
 			params = append(params, details)
 			params = append(params, amount)
-			params = append(params, processVersion)
+			params = append(params, programVersion)
 		}
 	case 1001:
 		{
-			benifitAddress, _ := rlp.EncodeToBytes(cfg.P1001.BenifitAddress.Bytes())
+			benifitAddress, _ := rlp.EncodeToBytes(cfg.P1001.BenefitAddress.Bytes())
 			nodeId, _ := rlp.EncodeToBytes(cfg.P1001.NodeId)
 			externalId, _ := rlp.EncodeToBytes(cfg.P1001.ExternalId)
 			nodeName, _ := rlp.EncodeToBytes(cfg.P1001.NodeName)
@@ -372,12 +356,9 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			desc, _ := rlp.EncodeToBytes(cfg.P2002.Desc)
 			url, _ := rlp.EncodeToBytes(cfg.P2002.Url)
 			paramName, _ := rlp.EncodeToBytes(cfg.P2002.ParamName)
+
 			currentValue, _ := rlp.EncodeToBytes(cfg.P2002.CurrentValue)
 			newValue, _ := rlp.EncodeToBytes(cfg.P2002.NewValue)
-			/*
-				t := reflect.TypeOf(cfg.P2002.CurrentValue)
-				fmt.Println(t.Kind())
-				fmt.Println(t.Name())*/
 
 			endVotingBlock, _ := rlp.EncodeToBytes(cfg.P2002.EndVotingBlock)
 			params = append(params, verifier)
@@ -441,9 +422,9 @@ func getRlpData(funcType uint16, cfg *decDataConfig) string {
 			params = append(params, account)
 			params = append(params, plans)
 		}
-	case 4001:
+	case 4100:
 		{
-			account, _ := rlp.EncodeToBytes(cfg.P4001.Account.Bytes())
+			account, _ := rlp.EncodeToBytes(cfg.P4100.Account.Bytes())
 			params = append(params, account)
 		}
 	default:
