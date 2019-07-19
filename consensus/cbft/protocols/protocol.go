@@ -112,12 +112,12 @@ func (PrepareVote) BHash() common.Hash {
 }
 
 type ViewChange struct {
-	Epoch      uint64             `json:"epoch"`
-	ViewNumber uint64             `json:"view_number"`
-	BlockHash  common.Hash        `json:"block_hash"`
-	BlockNum   uint64             `json:"block_number"`
-	PrepareQC  *ctypes.QuorumCert `json:"prepare_qc"`
-	Signature  ctypes.Signature   `json:"signature"`
+	Epoch       uint64             `json:"epoch"`
+	ViewNumber  uint64             `json:"view_number"`
+	BlockHash   common.Hash        `json:"block_hash"`
+	BlockNumber uint64             `json:"block_number"`
+	PrepareQC   *ctypes.QuorumCert `json:"prepare_qc"`
+	Signature   ctypes.Signature   `json:"signature"`
 }
 
 func (ViewChange) String() string {
@@ -167,20 +167,20 @@ func (s *CbftStatusData) BHash() common.Hash {
 // CBFT protocol message - used to get the
 // proposed block information.
 type GetPrepareBlock struct {
-	Hash   common.Hash `json:"hash"`   // The hash of the block to be acquired
-	Number uint64      `json:"number"` // The number of the block to be acquired
+	BlockHash   common.Hash `json:"hash"`   // The hash of the block to be acquired
+	BlockNumber uint64      `json:"number"` // The number of the block to be acquired
 }
 
 func (s *GetPrepareBlock) String() string {
-	return fmt.Sprintf("[Hash: %s] - [Number: %d]", s.Hash, s.Number)
+	return fmt.Sprintf("[Hash: %s] - [Number: %d]", s.BlockHash, s.BlockNumber)
 }
 
 func (s *GetPrepareBlock) MsgHash() common.Hash {
-	return utils.BuildHash(GetPrepareBlockMsg, utils.MergeBytes(s.Hash.Bytes(), common.Uint64ToBytes(s.Number)))
+	return utils.BuildHash(GetPrepareBlockMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
 }
 
 func (s *GetPrepareBlock) BHash() common.Hash {
-	return s.Hash
+	return s.BlockHash
 }
 
 // Protocol message for obtaining an aggregated signature.
@@ -269,60 +269,60 @@ func (s *QCPrepareBlock) BHash() common.Hash {
 
 // Message used to get block voting.
 type GetPrepareVote struct {
-	Hash     common.Hash
-	Number   uint64
-	VoteBits *utils.BitArray
+	BlockHash   common.Hash
+	BlockNumber uint64
+	VoteBits    *utils.BitArray
 }
 
 func (s *GetPrepareVote) String() string {
-	return fmt.Sprintf("[Hash: %s] - [Number: %d] - [VoteBits: %s]", s.Hash, s.Number, s.VoteBits.String())
+	return fmt.Sprintf("[Hash: %s] - [Number: %d] - [VoteBits: %s]", s.BlockHash, s.BlockNumber, s.VoteBits.String())
 }
 
 func (s *GetPrepareVote) MsgHash() common.Hash {
 	return utils.BuildHash(GetPrepareVoteMsg, utils.MergeBytes(
-		s.Hash.Bytes(), common.Uint64ToBytes(s.Number),
+		s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber),
 		s.VoteBits.Bytes()))
 }
 
 func (s *GetPrepareVote) BHash() common.Hash {
-	return s.Hash
+	return s.BlockHash
 }
 
 // Message used to respond to the number of block votes.
 type PrepareVotes struct {
-	Hash   common.Hash
-	Number uint64
-	Votes  []*PrepareVote // Block voting set.
+	BlockHash   common.Hash
+	BlockNumber uint64
+	Votes       []*PrepareVote // Block voting set.
 }
 
 func (s *PrepareVotes) String() string {
-	return fmt.Sprintf("[Hash:%s] - [Number:%d] - [Votes:%d]", s.Hash.String(), s.Number, len(s.Votes))
+	return fmt.Sprintf("[Hash:%s] - [Number:%d] - [Votes:%d]", s.BlockHash.String(), s.BlockNumber, len(s.Votes))
 }
 
 func (s *PrepareVotes) MsgHash() common.Hash {
-	return utils.BuildHash(PrepareVotesMsg, utils.MergeBytes(s.Hash.Bytes(), common.Uint64ToBytes(s.Number)))
+	return utils.BuildHash(PrepareVotesMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
 }
 
 func (s *PrepareVotes) BHash() common.Hash {
-	return s.Hash
+	return s.BlockHash
 }
 
 // Represents the hash of the proposed block for secondary propagation.
 type PrepareBlockHash struct {
-	Hash   common.Hash
-	Number uint64
+	BlockHash   common.Hash
+	BlockNumber uint64
 }
 
 func (s *PrepareBlockHash) String() string {
-	return fmt.Sprintf("[Hash: %s] - [Number: %d]", s.Hash, s.Number)
+	return fmt.Sprintf("[Hash: %s] - [Number: %d]", s.BlockHash, s.BlockNumber)
 }
 
 func (s *PrepareBlockHash) MsgHash() common.Hash {
-	return utils.BuildHash(PrepareBlockHashMsg, utils.MergeBytes(s.Hash.Bytes(), common.Uint64ToBytes(s.Number)))
+	return utils.BuildHash(PrepareBlockHashMsg, utils.MergeBytes(s.BlockHash.Bytes(), common.Uint64ToBytes(s.BlockNumber)))
 }
 
 func (s *PrepareBlockHash) BHash() common.Hash {
-	return s.Hash
+	return s.BlockHash
 }
 
 // For time detection.

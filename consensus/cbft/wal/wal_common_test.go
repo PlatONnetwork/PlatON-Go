@@ -45,10 +45,10 @@ func buildPrepareVote() *protocols.PrepareVote {
 
 func buildViewChange() *protocols.ViewChange {
 	return &protocols.ViewChange{
-		Epoch:      1,
-		ViewNumber: 1,
-		BlockHash:  common.BytesToHash(Rand32Bytes(32)),
-		BlockNum:   1,
+		Epoch:       1,
+		ViewNumber:  1,
+		BlockHash:   common.BytesToHash(Rand32Bytes(32)),
+		BlockNumber: 1,
 		PrepareQC: &ctypes.QuorumCert{
 			ViewNumber:  1,
 			BlockHash:   common.BytesToHash(Rand32Bytes(32)),
