@@ -106,6 +106,7 @@ func (cbft *Cbft) sendPrepareVote() {
 		if b, qc := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); b != nil {
 			p.ParentQC = qc
 			hadSend.Push(p)
+			cbft.state.AddPrepareVote("", p)
 			pending.Pop()
 			//todo send prepareVote
 		} else {
