@@ -61,7 +61,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey) {
 	c1 := &staking.Candidate{
 		NodeId:             nodeId_A,
 		StakingAddress:     sender,
-		BenifitAddress:     addrArr[1],
+		BenefitAddress:     addrArr[1],
 		StakingTxIndex:     uint32(2),
 		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,
@@ -83,7 +83,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey) {
 	c2 := &staking.Candidate{
 		NodeId:             nodeId_B,
 		StakingAddress:     sender,
-		BenifitAddress:     addrArr[2],
+		BenefitAddress:     addrArr[2],
 		StakingTxIndex:     uint32(3),
 		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,
@@ -105,7 +105,7 @@ func buildStakingData(blockHash common.Hash, pri *ecdsa.PrivateKey) {
 	c3 := &staking.Candidate{
 		NodeId:             nodeId_C,
 		StakingAddress:     sender,
-		BenifitAddress:     addrArr[3],
+		BenefitAddress:     addrArr[3],
 		StakingTxIndex:     uint32(4),
 		ProgramVersion:     uint32(1),
 		Status:             staking.Valided,
@@ -322,7 +322,7 @@ func TestSlashingPlugin_Slash(t *testing.T) {
 	can := &staking.Candidate{
 		NodeId:          nodeId,
 		StakingAddress:  addr,
-		BenifitAddress:  addr,
+		BenefitAddress:  addr,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  1,
 		ProgramVersion:  xutil.CalcVersion(initProgramVersion),

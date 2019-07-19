@@ -85,7 +85,7 @@ func TestSlashingContract_ReportMutiSign(t *testing.T) {
 	can := &staking.Candidate{
 		NodeId:          nodeId,
 		StakingAddress:  addr,
-		BenifitAddress:  addr,
+		BenefitAddress:  addr,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  1,
 		ProgramVersion:  initProgramVersion,

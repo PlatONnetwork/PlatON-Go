@@ -84,7 +84,7 @@ func (stkc *StakingContract) FnSigns() map[uint16]interface{} {
 	}
 }
 
-func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Address, nodeId discover.NodeID,
+func (stkc *StakingContract) createStaking(typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
 	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32) ([]byte, error) {
 
 	if !stkc.Contract.UseGas(params.CreateStakeGas) {
@@ -104,7 +104,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 		"blockNumber", blockNumber.Uint64(), "nodeId", nodeId.String())
 
 	//  TODO  MOCK
-	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benifitAddress, nodeId,
+	//return stkc.createMock(state, blockNumber.Uint64(), txHash, typ, benefitAddress, nodeId,
 	//	externalId, nodeName, website, details, amount, programVersion)
 
 	if !xutil.CheckStakeThreshold(amount) {
@@ -161,7 +161,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	canNew := &staking.Candidate{
 		NodeId:          nodeId,
 		StakingAddress:  from,
-		BenifitAddress:  benifitAddress,
+		BenefitAddress:  benefitAddress,
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  txIndex,
 		Shares:          amount,
@@ -212,7 +212,7 @@ func (stkc *StakingContract) createStaking(typ uint16, benifitAddress common.Add
 	return event, nil
 }
 
-func (stkc *StakingContract) editCandidate(benifitAddress common.Address, nodeId discover.NodeID,
+func (stkc *StakingContract) editCandidate(benefitAddress common.Address, nodeId discover.NodeID,
 	externalId, nodeName, website, details string) ([]byte, error) {
 
 	if !stkc.Contract.UseGas(params.EditCandidatGas) {
@@ -265,7 +265,7 @@ func (stkc *StakingContract) editCandidate(benifitAddress common.Address, nodeId
 		return event, nil
 	}
 
-	canOld.BenifitAddress = benifitAddress
+	canOld.BenefitAddress = benefitAddress
 
 	canOld.NodeName = nodeName
 	canOld.ExternalId = externalId
@@ -793,13 +793,13 @@ func (stkc *StakingContract) badLog(state xcom.StateDB, blockNumber uint64, txHa
 }
 
 //  TODO MOCK
-func (stkc *StakingContract) createMock(state xcom.StateDB, blockNumber uint64, txHash common.Hash, typ uint16, benifitAddress common.Address, nodeId discover.NodeID,
+func (stkc *StakingContract) createMock(state xcom.StateDB, blockNumber uint64, txHash common.Hash, typ uint16, benefitAddress common.Address, nodeId discover.NodeID,
 	externalId, nodeName, website, details string, amount *big.Int, programVersion uint32) ([]byte, error) {
 
 	fmt.Println("Call createStaking ~~~~~~~~~~~~~~")
 
 	fmt.Println("typ:", typ)
-	fmt.Println("benifitAddress:", benifitAddress.Hex())
+	fmt.Println("benefitAddress:", benefitAddress.Hex())
 	fmt.Println("nodeId:", nodeId.String())
 	fmt.Println("externalId:", externalId)
 	fmt.Println("nodeName:", nodeName)
@@ -848,7 +848,7 @@ func (stkc *StakingContract) getVerifierListMock() ([]byte, error) {
 		valEx := &staking.ValidatorEx{
 			NodeId:          discover.MustHexID(nodeIdArr[i]),
 			StakingAddress:  common.HexToAddress(addrArr[i]),
-			BenifitAddress:  vm.StakingContractAddr,
+			BenefitAddress:  vm.StakingContractAddr,
 			StakingTxIndex:  uint32(i),
 			ProgramVersion:  uint32(i * i),
 			StakingBlockNum: uint64(i + 2),
@@ -906,7 +906,7 @@ func (stkc *StakingContract) getValidatorListMock() ([]byte, error) {
 		valEx := &staking.ValidatorEx{
 			NodeId:          discover.MustHexID(nodeIdArr[i]),
 			StakingAddress:  common.HexToAddress(addrArr[i]),
-			BenifitAddress:  vm.StakingContractAddr,
+			BenefitAddress:  vm.StakingContractAddr,
 			StakingTxIndex:  uint32(i),
 			ProgramVersion:  uint32(i * i),
 			StakingBlockNum: uint64(i + 2),

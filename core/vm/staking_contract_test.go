@@ -33,7 +33,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *state.St
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1000))
 	typ, _ := rlp.EncodeToBytes(uint16(0))
-	benifitAddress, _ := rlp.EncodeToBytes(addrArr[index])
+	benefitAddress, _ := rlp.EncodeToBytes(addrArr[index])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
 	externalId, _ := rlp.EncodeToBytes("xssssddddffffggggg")
 	nodeName, _ := rlp.EncodeToBytes(nodeNameArr[index] + ", China")
@@ -45,7 +45,7 @@ func create_staking(blockNumber *big.Int, blockHash common.Hash, state *state.St
 
 	params = append(params, fnType)
 	params = append(params, typ)
-	params = append(params, benifitAddress)
+	params = append(params, benefitAddress)
 	params = append(params, nodeId)
 	params = append(params, externalId)
 	params = append(params, nodeName)
@@ -234,7 +234,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 
 	fnType, _ := rlp.EncodeToBytes(uint16(1001))
 
-	benifitAddress, _ := rlp.EncodeToBytes(addrArr[0])
+	benefitAddress, _ := rlp.EncodeToBytes(addrArr[0])
 	nodeId, _ := rlp.EncodeToBytes(nodeIdArr[index])
 	externalId, _ := rlp.EncodeToBytes("I am Xu !?")
 	nodeName, _ := rlp.EncodeToBytes("Xu, China")
@@ -242,7 +242,7 @@ func TestStakingContract_editCandidate(t *testing.T) {
 	details, _ := rlp.EncodeToBytes("Xu super node")
 
 	params = append(params, fnType)
-	params = append(params, benifitAddress)
+	params = append(params, benefitAddress)
 	params = append(params, nodeId)
 	params = append(params, externalId)
 	params = append(params, nodeName)

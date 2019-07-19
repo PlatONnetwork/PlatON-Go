@@ -130,7 +130,7 @@ func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, s
 	}
 
 	for index := 0; index < len(list); index++ {
-		addr := list[index].BenifitAddress
+		addr := list[index].BenefitAddress
 
 		if addr != vm.RewardManagerPoolAddr {
 			state.SubBalance(vm.RewardManagerPoolAddr, reward)

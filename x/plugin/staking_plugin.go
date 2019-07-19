@@ -1138,6 +1138,8 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		End:   end,
 	}
 
+	fmt.Println(int(xcom.EpochValidatorNum()))
+
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum()))
 	if err := iter.Error(); nil != err {
 		log.Error("Failed to ElectNextVerifierList: take iter by candidate power is failed", "blockNumber",
@@ -1147,6 +1149,9 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	defer iter.Release()
 
 	queue := make(staking.ValidatorQueue, 0)
+
+	count := 0
+
 	for iter.Valid(); iter.Next(); {
 		addrSuffix := iter.Value()
 		var can *staking.Candidate
@@ -1170,7 +1175,11 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			ValidatorTerm: 0,
 		}
 		queue = append(queue, val)
+
+		count++
 	}
+
+	fmt.Println(count)
 
 	if len(queue) == 0 {
 		panic(common.BizErrorf("Failed to ElectNextVerifierList: Select zero size validators~"))
@@ -1233,7 +1242,7 @@ func (sk *StakingPlugin) GetVerifierList(blockHash common.Hash, blockNumber uint
 		valEx := &staking.ValidatorEx{
 			NodeId:          can.NodeId,
 			StakingAddress:  can.StakingAddress,
-			BenifitAddress:  can.BenifitAddress,
+			BenefitAddress:  can.BenefitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
 			ProgramVersion:  can.ProgramVersion,
 			StakingBlockNum: can.StakingBlockNum,
@@ -1442,7 +1451,7 @@ func (sk *StakingPlugin) GetValidatorList(blockHash common.Hash, blockNumber uin
 		valEx := &staking.ValidatorEx{
 			NodeId:          can.NodeId,
 			StakingAddress:  can.StakingAddress,
-			BenifitAddress:  can.BenifitAddress,
+			BenefitAddress:  can.BenefitAddress,
 			StakingTxIndex:  can.StakingTxIndex,
 			ProgramVersion:  can.ProgramVersion,
 			StakingBlockNum: can.StakingBlockNum,
@@ -1636,7 +1645,7 @@ func (sk *StakingPlugin) GetCandidateList(blockHash common.Hash) (staking.Candid
 		can := &staking.Candidate{
 			NodeId:             discover.MustHexID(nodeIdArr[i]),
 			StakingAddress:     common.HexToAddress(addrArr[i]),
-			BenifitAddress:     vm.StakingContractAddr,
+			BenefitAddress:     vm.StakingContractAddr,
 			StakingTxIndex:     uint32(i),
 			ProgramVersion:     uint32(i*i),
 			Status:             staking.LowRatio,
@@ -1737,6 +1746,10 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 	log.Debug("Call Election Start", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64())
 
 	blockNumber := header.Number.Uint64()
+
+	if blockNumber == 21730 {
+		fmt.Println()
+	}
 
 	// the validators of Current Epoch
 	verifiers, err := sk.db.GetVerifierListByIrr()

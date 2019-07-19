@@ -19,7 +19,6 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
 	"github.com/PlatONnetwork/PlatON-Go/crypto"
-	"github.com/PlatONnetwork/PlatON-Go/crypto/sha3"
 	"github.com/PlatONnetwork/PlatON-Go/event"
 	"github.com/PlatONnetwork/PlatON-Go/p2p/discover"
 	"github.com/PlatONnetwork/PlatON-Go/rlp"
@@ -93,7 +92,7 @@ func create_staking(state *state.StateDB, blockNumber *big.Int, blockHash common
 	canTmp := &staking.Candidate{
 		NodeId:          nodeIdArr[index],
 		StakingAddress:  sender,
-		BenifitAddress:  addrArr[index],
+		BenefitAddress:  addrArr[index],
 		StakingBlockNum: blockNumber.Uint64(),
 		StakingTxIndex:  uint32(index),
 		Shares:          balance,
@@ -192,12 +191,8 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 
 	stakingDB := staking.NewStakingDB()
 
-	rlpHash := func(x interface{}) (h common.Hash) {
-		hw := sha3.NewKeccak256()
-		rlp.Encode(hw, x)
-		hw.Sum(h[:0])
-		return h
-	}
+	// New VrfHandler instance by genesis block Hash
+	xcom.NewVrfHandler(genesis.Hash().Bytes())
 
 	parentHash := genesis.Hash()
 
@@ -221,8 +216,8 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			ParentHash:  parentHash,
 			Coinbase:    sender,
 			Root:        root,
-			TxHash:      rlpHash(&types.Transaction{}),
-			ReceiptHash: root,
+			TxHash:      types.EmptyRootHash,
+			ReceiptHash: types.EmptyRootHash,
 			Number:      blockNum,
 			Time:        big.NewInt(int64(121321213 * i)),
 			Extra:       make([]byte, 97),
@@ -272,7 +267,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 				canTmp := &staking.Candidate{
 					NodeId:          nodeId,
 					StakingAddress:  sender,
-					BenifitAddress:  addr,
+					BenefitAddress:  addr,
 					StakingBlockNum: uint64(1 + i),
 					StakingTxIndex:  uint32(index),
 					Shares:          balance,
@@ -364,7 +359,7 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			canTmp := &staking.Candidate{
 				NodeId:          nodeId,
 				StakingAddress:  sender,
-				BenifitAddress:  addr,
+				BenefitAddress:  addr,
 				StakingBlockNum: uint64(i + 1),
 				StakingTxIndex:  uint32(index),
 				Shares:          balance,
@@ -388,6 +383,20 @@ func TestStakingPlugin_EndBlock(t *testing.T) {
 			stakingDB.SetCanPowerStore(curr_Hash, canAddr, canTmp)
 			stakingDB.SetCandidateStore(curr_Hash, canAddr, canTmp)
 
+		}
+
+		// build vrf
+		// build ancestor nonces
+		tmp := header.Number.Uint64() + xcom.ElectionDistance() - 1
+		mod := tmp % xutil.ConsensusSize()
+		if mod == 0 {
+			_, nonces := build_vrf_Nonce()
+			if enValue, err := rlp.EncodeToBytes(nonces); nil != err {
+				t.Error("Storage previous nonce failed", "num", i+1, "Hash", curr_Hash.Hex(), "err", err)
+				return
+			} else {
+				sndb.Put(curr_Hash, xcom.NonceStorageKey, enValue)
+			}
 		}
 
 		/**
@@ -509,7 +518,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 				canTmp := &staking.Candidate{
 					NodeId:          nodeId,
 					StakingAddress:  sender,
-					BenifitAddress:  addr,
+					BenefitAddress:  addr,
 					StakingBlockNum: uint64(1 + i),
 					StakingTxIndex:  uint32(index),
 					Shares:          balance,
@@ -598,7 +607,7 @@ func TestStakingPlugin_Confirmed(t *testing.T) {
 			canTmp := &staking.Candidate{
 				NodeId:          nodeId,
 				StakingAddress:  sender,
-				BenifitAddress:  addr,
+				BenefitAddress:  addr,
 				StakingBlockNum: uint64(i + 1),
 				StakingTxIndex:  uint32(index),
 				Shares:          balance,
@@ -1662,7 +1671,7 @@ func TestStakingPlugin_ElectNextVerifierList(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -1839,7 +1848,7 @@ func TestStakingPlugin_Election(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -2037,7 +2046,7 @@ func TestStakingPlugin_Switch(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -2255,7 +2264,7 @@ func TestStakingPlugin_SlashCandidates(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -2443,7 +2452,7 @@ func TestStakingPlugin_DeclarePromoteNotify(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -2562,7 +2571,7 @@ func TestStakingPlugin_ProposalPassedNotify(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -2674,7 +2683,7 @@ func TestStakingPlugin_GetCandidateONEpoch(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -2853,7 +2862,7 @@ func TestStakingPlugin_GetCandidateONRound(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -3047,7 +3056,7 @@ func TestStakingPlugin_GetValidatorList(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -3241,7 +3250,7 @@ func TestStakingPlugin_GetVerifierList(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -3421,7 +3430,7 @@ func TestStakingPlugin_ListCurrentValidatorID(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -3607,7 +3616,7 @@ func TestStakingPlugin_ListVerifierNodeID(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -3780,7 +3789,7 @@ func TestStakingPlugin_IsCandidate(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -3900,7 +3909,7 @@ func TestStakingPlugin_IsCurrValidator(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -4094,7 +4103,7 @@ func TestStakingPlugin_IsCurrVerifier(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -4272,7 +4281,7 @@ func TestStakingPlugin_GetLastNumber(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -4453,7 +4462,7 @@ func TestStakingPlugin_GetValidator(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -4638,7 +4647,7 @@ func TestStakingPlugin_IsCandidateNode(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
@@ -4854,7 +4863,7 @@ func Test_IteratorCandidate(t *testing.T) {
 		canTmp := &staking.Candidate{
 			NodeId:          nodeId,
 			StakingAddress:  sender,
-			BenifitAddress:  addr,
+			BenefitAddress:  addr,
 			StakingBlockNum: uint64(i),
 			StakingTxIndex:  uint32(index),
 			Shares:          balance,
