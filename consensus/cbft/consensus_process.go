@@ -102,6 +102,10 @@ func (cbft *Cbft) sendPrepareVote() {
 
 	for !pending.Empty() {
 		p := pending.Top()
+		if err := cbft.voteRules.AllowVote(p); err != nil {
+			break
+		}
+    
 		block := cbft.state.ViewBlockByIndex(p.BlockIndex)
 		if b, qc := cbft.blockTree.FindBlockAndQC(block.ParentHash(), block.NumberU64()-1); b != nil {
 			p.ParentQC = qc

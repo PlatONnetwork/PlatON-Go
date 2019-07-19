@@ -548,6 +548,7 @@ func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	})
 }
 
+
 func (cbft *Cbft) Evidences() string {
 	evs := cbft.evPool.Evidences()
 	if len(evs) == 0 {
