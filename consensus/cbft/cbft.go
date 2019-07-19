@@ -3,6 +3,8 @@ package cbft
 import (
 	"bytes"
 	"crypto/ecdsa"
+	"encoding/json"
+
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
 
 	"errors"
@@ -19,6 +21,7 @@ import (
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/validator"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/wal"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
 	"github.com/PlatONnetwork/PlatON-Go/core/types"
@@ -72,20 +75,27 @@ type Cbft struct {
 
 	// Store blocks that are not committed
 	blockTree ctypes.BlockTree
+
+	// wal
+	nodeServiceContext *node.ServiceContext
+	wal                wal.Wal
+	stateMu            sync.Mutex
+	viewMu             sync.Mutex
 }
 
 func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
 	cbft := &Cbft{
-		config:      Config{sysConfig, optConfig},
-		eventMux:    eventMux,
-		exitCh:      make(chan struct{}),
-		peerMsgCh:   make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
-		syncMsgCh:   make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
-		log:         log.New(),
-		asyncCallCh: make(chan func(), optConfig.PeerMsgQueueSize),
+		config:             Config{sysConfig, optConfig},
+		eventMux:           eventMux,
+		exitCh:             make(chan struct{}),
+		peerMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
+		syncMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
+		log:                log.New(),
+		asyncCallCh:        make(chan func(), optConfig.PeerMsgQueueSize),
+		nodeServiceContext: ctx,
 	}
 
-	if evPool, err := evidence.NewEvidencePool(); err == nil {
+	if evPool, err := evidence.NewEvidencePool(ctx); err == nil {
 		cbft.evPool = evPool
 	} else {
 		return nil
@@ -114,7 +124,44 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.state.SetHighestQCBlock(block)
 	cbft.state.SetHighestLockBlock(block)
 	cbft.state.SetHighestCommitBlock(block)
+
+	// load consensus state
+	if err := cbft.LoadWal(); err != nil {
+		return err
+	}
+
 	go cbft.receiveLoop()
+	return nil
+}
+
+// Entrance: The messages related to the consensus are entered from here.
+// The message sent from the peer node is sent to the CBFT message queue and
+// there is a loop that will distribute the incoming message.
+func (cbft *Cbft) ReceiveMessage(msg *ctypes.MsgInfo) {
+	select {
+	case cbft.peerMsgCh <- msg:
+		cbft.log.Debug("Received message from peer", "peer", msg.PeerID, "msgType", reflect.TypeOf(msg.Msg), "msgHash", msg.Msg.MsgHash().TerminalString(), "BHash", msg.Msg.BHash().TerminalString())
+	case <-cbft.exitCh:
+		cbft.log.Error("Cbft exit")
+	}
+}
+
+// LoadWal tries to recover consensus state and view msg from the wal.
+func (cbft *Cbft) LoadWal() error {
+	// init wal and load wal state
+	var err error
+	if cbft.wal, err = wal.NewWal(cbft.nodeServiceContext, ""); err != nil {
+		return err
+	}
+	//cbft.wal = &emptyWal{}
+
+	if err = cbft.wal.LoadChainState(cbft.recoveryChainState); err != nil {
+		return err
+	}
+
+	if err = cbft.wal.Load(cbft.recoveryMsg); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -472,10 +519,6 @@ func (Cbft) IsSignedBySelf(sealHash common.Hash, signature []byte) bool {
 	panic("implement me")
 }
 
-func (Cbft) Evidences() string {
-	panic("implement me")
-}
-
 func (Cbft) TracingSwitch(flag int8) {
 	panic("implement me")
 }
@@ -503,4 +546,18 @@ func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		ExtraData: extra,
 		SyncState: nil,
 	})
+}
+
+
+func (cbft *Cbft) Evidences() string {
+	evs := cbft.evPool.Evidences()
+	if len(evs) == 0 {
+		return "{}"
+	}
+	evds := evidence.ClassifyEvidence(evs)
+	js, err := json.MarshalIndent(evds, "", "  ")
+	if err != nil {
+		return ""
+	}
+	return string(js)
 }
