@@ -1941,7 +1941,6 @@ func TestStakingPlugin_Election(t *testing.T) {
 		End:   xutil.ConsensusSize(),
 	}
 
-	fmt.Println(int(xcom.ConsValidatorNum()))
 	new_validatorArr.Arr = queue[:int(xcom.ConsValidatorNum())]
 
 	err = stakingDB.SetCurrentValidatorList(blockHash, new_validatorArr)

@@ -1122,7 +1122,7 @@ func (sk *StakingPlugin) handleUnDelegate(state xcom.StateDB, blockHash common.H
 
 func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumber uint64) error {
 
-	log.Debug("Call ElectNextVerifierList", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+	log.Info("Call ElectNextVerifierList Start", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
 
 	old_verifierArr, err := sk.db.GetVerifierListByBlockHash(blockHash)
 	if nil != err {
@@ -1151,8 +1151,6 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		End:   end,
 	}
 
-	fmt.Println(int(xcom.EpochValidatorNum()))
-
 	iter := sk.db.IteratorCandidatePowerByBlockHash(blockHash, int(xcom.EpochValidatorNum()))
 	if err := iter.Error(); nil != err {
 		log.Error("Failed to ElectNextVerifierList: take iter by candidate power is failed", "blockNumber",
@@ -1162,8 +1160,6 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 	defer iter.Release()
 
 	queue := make(staking.ValidatorQueue, 0)
-
-	count := 0
 
 	for iter.Valid(); iter.Next(); {
 		addrSuffix := iter.Value()
@@ -1189,10 +1185,7 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 		}
 		queue = append(queue, val)
 
-		count++
 	}
-
-	fmt.Println(count)
 
 	if len(queue) == 0 {
 		panic(common.BizErrorf("Failed to ElectNextVerifierList: Select zero size validators~"))
@@ -1206,6 +1199,8 @@ func (sk *StakingPlugin) ElectNextVerifierList(blockHash common.Hash, blockNumbe
 			blockNumber, "blockHash", blockHash.Hex(), "err", err)
 		return err
 	}
+
+	log.Info("Call ElectNextVerifierList end", "new epoch validators length", len(queue))
 	return nil
 }
 
@@ -1756,13 +1751,9 @@ func (sk *StakingPlugin) GetRelatedListByDelAddr(blockHash common.Hash, addr com
 
 func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) error {
 
-	log.Debug("Call Election Start", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64())
+	log.Info("Call Election Start", "blockHash", blockHash.Hex(), "blockNumber", header.Number.Uint64())
 
 	blockNumber := header.Number.Uint64()
-
-	if blockNumber == 21730 {
-		fmt.Println()
-	}
 
 	// the validators of Current Epoch
 	verifiers, err := sk.db.GetVerifierListByIrr()
@@ -1928,7 +1919,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 			}
 		}
 	}
-	log.Debug("Call Election end ...")
+	log.Info("Call Election end", "next round validators length", len(nextQueue))
 	// todo test
 	xcom.PrintObject("Curr validators", curr)
 	xcom.PrintObject("Next validators", next)
@@ -1937,7 +1928,7 @@ func (sk *StakingPlugin) Election(blockHash common.Hash, header *types.Header) e
 
 func (sk *StakingPlugin) Switch(blockHash common.Hash, blockNumber uint64) error {
 
-	log.Debug("Call Switch Start", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
+	log.Info("Call Switch Start", "blockNumber", blockNumber, "blockHash", blockHash.Hex())
 
 	current, err := sk.db.GetCurrentValidatorListByBlockHash(blockHash)
 	if nil != err {
@@ -1981,7 +1972,7 @@ func (sk *StakingPlugin) Switch(blockHash common.Hash, blockNumber uint64) error
 			blockNumber, "blockHash", blockHash, "err", err)
 		return err
 	}
-	log.Debug("Call Switch end ...")
+	log.Info("Call Switch end ...")
 	return nil
 }
 
