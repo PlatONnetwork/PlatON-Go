@@ -568,6 +568,21 @@ func (cbft *Cbft) Config() *Config {
 	return nil
 }
 
+// Return the highest submitted block number of the current node.
+func (cbft *Cbft) HighestCommitBlockBn() uint64 {
+	return cbft.state.HighestQCBlock().NumberU64()
+}
+
+// Return the highest locked block number of the current node.
+func (cbft *Cbft) HighestLockBlockBn() uint64 {
+	return cbft.state.HighestLockBlock().NumberU64()
+}
+
+// Return the highest QC block number of the current node.
+func (cbft *Cbft) HighestQCBlockBn() uint64 {
+	return cbft.state.HighestQCBlock().NumberU64()
+}
+
 func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
 	extra, err := ctypes.EncodeExtra(byte(cbftVersion), qc)
 	if err != nil {

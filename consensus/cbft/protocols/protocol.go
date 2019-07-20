@@ -69,7 +69,6 @@ func MessageType(msg interface{}) uint64 {
 	case *Pong:
 		return PongMsg
 	default:
-		return PrepareBlockHashMsg
 	}
 	panic(fmt.Sprintf("unknown message type [%v]", reflect.TypeOf(msg)))
 }
