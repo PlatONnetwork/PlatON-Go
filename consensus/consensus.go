@@ -21,6 +21,8 @@ import (
 	"crypto/ecdsa"
 	"time"
 
+	"github.com/PlatONnetwork/PlatON-Go/common/consensus"
+
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/core/cbfttypes"
 	"github.com/PlatONnetwork/PlatON-Go/core/state"
@@ -173,6 +175,8 @@ type Bft interface {
 	IsSignedBySelf(sealHash common.Hash, signature []byte) bool
 
 	Evidences() string
+
+	UnmarshalEvidence(data []byte) (consensus.Evidences, error)
 
 	TracingSwitch(flag int8)
 }
