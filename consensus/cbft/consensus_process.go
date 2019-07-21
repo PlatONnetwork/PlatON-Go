@@ -17,6 +17,8 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 			cbft.fetchBlock(id, msg.Block.Hash(), msg.Block.NumberU64())
 		} else if err.NewView() {
 			cbft.changeView(msg.Epoch, msg.ViewNumber)
+		} else {
+			return nil
 		}
 	}
 
@@ -32,7 +34,7 @@ func (cbft *Cbft) OnPrepareBlock(id string, msg *protocols.PrepareBlock) error {
 func (cbft *Cbft) OnPrepareVote(id string, msg *protocols.PrepareVote) error {
 	if err := cbft.safetyRules.PrepareVoteRules(msg); err != nil {
 		if err.Fetch() {
-			//todo fetch block
+			cbft.fetchBlock(id, msg.BlockHash, msg.BlockNumber)
 		}
 	}
 
@@ -180,6 +182,7 @@ func (cbft *Cbft) findQCBlock() {
 		cbft.state.SetHighestQCBlock(block)
 		cbft.tryCommitNewBlock(lock, commit)
 	}
+	cbft.tryChangeView()
 }
 
 // Try commit a new block

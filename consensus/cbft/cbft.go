@@ -53,6 +53,7 @@ type Cbft struct {
 	syncMsgCh        chan *ctypes.MsgInfo
 	evPool           evidence.EvidencePool
 	log              log.Logger
+	network          *EngineManager
 
 	// Async call channel
 	asyncCallCh chan func()
@@ -102,7 +103,7 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 	}
 
 	//todo init safety rules, vote rules, state, asyncExecutor
-	cbft.safetyRules = rules.NewSafetyRules(&cbft.state)
+	cbft.safetyRules = rules.NewSafetyRules(&cbft.state, &cbft.blockTree)
 	cbft.voteRules = rules.NewVoteRules(&cbft.state)
 
 	return cbft
