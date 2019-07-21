@@ -105,16 +105,15 @@ func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, s
 	blockHash := head.Hash()
 	blockNumber := head.Number.Uint64()
 
-	log.Info("ready to reward staking", "blockNumber", blockNumber, "hash", head.Hash(),
+	log.Info("ready to reward staking", "blockNumber", blockNumber, "hash", blockHash,
 		"epoch", xutil.CalculateEpoch(blockNumber), "reward", reward)
 
 	list, err := StakingInstance().GetVerifierList(blockHash, blockNumber, false)
 	if err != nil {
-		log.Debug("get verifier list failed in rewardStaking", "hash", blockHash, "blockNumber", blockNumber)
+		log.Debug("get verifier list failed in rewardStaking", "blockNumber", blockNumber, "hash", blockHash)
 		return err
-	} else {
-		log.Trace("get verifier list success", "list", list)
 	}
+	log.Trace("get verifier list success", "list", list)
 
 	for index := 0; index < len(list); index++ {
 		addr := list[index].BenifitAddress
