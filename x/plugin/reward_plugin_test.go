@@ -27,7 +27,7 @@ func buildDBSimpleCandidate(t *testing.T, snapDb snapshotdb.DB) error {
 	node, _ := discover.ParseNode(url)
 	can := &staking.Candidate{
 		NodeId:         node.ID,
-		BenifitAddress: addrArr[1],
+		BenefitAddress: addrArr[1],
 	}
 
 	nodeAddr, err := xutil.NodeId2Addr(can.NodeId)
