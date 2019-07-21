@@ -15,23 +15,38 @@ import (
 	"github.com/PlatONnetwork/PlatON-Go/x/xutil"
 )
 
-func genesisStakingData(g *Genesis, genesisHash common.Hash, version uint32) error {
+func genesisStakingData(g *Genesis, genesisHash common.Hash, programVersion uint32) error {
 
 	snapdb := snapshotdb.Instance()
 
-	validatorQueue := make(staking.ValidatorQueue, len(g.Config.Cbft.InitialNodes))
-	for index, node := range g.Config.Cbft.InitialNodes {
+	version := xutil.CalcVersion(programVersion)
+
+	var length int
+
+	if int(xcom.ConsValidatorNum()) <= len(g.Config.Cbft.InitialNodes) {
+		length = int(xcom.ConsValidatorNum())
+	} else {
+		length = len(g.Config.Cbft.InitialNodes)
+	}
+	initQueue := g.Config.Cbft.InitialNodes
+
+	validatorQueue := make(staking.ValidatorQueue, length)
+
+	for index := 0; index < length; index++ {
+
+		node := initQueue[index]
+
 		can := &staking.Candidate{
 			NodeId:             node.ID,
 			StakingAddress:     vm.RewardManagerPoolAddr,
-			BenifitAddress:     vm.RewardManagerPoolAddr,
+			BenefitAddress:     vm.RewardManagerPoolAddr,
 			StakingTxIndex:     uint32(index + 1),
 			ProgramVersion:     version,
 			Status:             staking.Valided,
 			StakingEpoch:       uint32(0),
 			StakingBlockNum:    uint64(0),
 			Shares:             xcom.StakeThreshold(),
-			Released:           common.Big0,
+			Released:           xcom.StakeThreshold(),
 			ReleasedHes:        common.Big0,
 			RestrictingPlan:    common.Big0,
 			RestrictingPlanHes: common.Big0,
@@ -45,22 +60,22 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, version uint32) err
 
 		nodeAddr, err := xutil.NodeId2Addr(can.NodeId)
 		if err != nil {
-			return fmt.Errorf("Failed to convert nodeID to address. ID:%v, error:%s", can.NodeId, err)
+			return fmt.Errorf("Failed to convert nodeID to address. nodeId:%s, error:%s", can.NodeId.String(), err.Error())
 		}
 
 		key := staking.CandidateKeyByAddr(nodeAddr)
 
 		if val, err := rlp.EncodeToBytes(can); nil != err {
-			return fmt.Errorf("Failed to Store Candidate Info: rlp encodeing failed. ID:%v, error:%s", can.NodeId, err)
+			return fmt.Errorf("Failed to Store Candidate Info: rlp encodeing failed. nodeId:%s, error:%s", can.NodeId.String(), err.Error())
 		} else {
 			if err := snapdb.PutBaseDB(key, val); nil != err {
-				return fmt.Errorf("Failed to Store Candidate Info: PutBaseDB failed. ID:%v, error:%s", can.NodeId, err)
+				return fmt.Errorf("Failed to Store Candidate Info: PutBaseDB failed. nodeId:%s, error:%s", can.NodeId.String(), err.Error())
 			}
 		}
 
 		powerKey := staking.TallyPowerKey(can.Shares, can.StakingBlockNum, can.StakingTxIndex, can.ProgramVersion)
 		if err := snapdb.PutBaseDB(powerKey, nodeAddr.Bytes()); nil != err {
-			return fmt.Errorf("Failed to Store Candidate Power: PutBaseDB failed. ID:%v, error:%s", can.NodeId, err)
+			return fmt.Errorf("Failed to Store Candidate Power: PutBaseDB failed. nodeId:%s, error:%s", can.NodeId.String(), err.Error())
 		}
 
 		// build validator queue for the first consensus epoch
@@ -98,32 +113,32 @@ func genesisStakingData(g *Genesis, genesisHash common.Hash, version uint32) err
 	// current epoch
 	verifiers, err := rlp.EncodeToBytes(verifierList)
 	if nil != err {
-		return fmt.Errorf("Failed to Store Epoch Validators: rlp encodeing failed. error:%s", err)
+		return fmt.Errorf("Failed to Store Epoch Validators: rlp encodeing failed. error:%s", err.Error())
 	}
 	if err := snapdb.PutBaseDB(staking.GetEpochValidatorKey(), verifiers); nil != err {
-		return fmt.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err)
+		return fmt.Errorf("Failed to Store Epoch Validators: PutBaseDB failed. error:%s", err.Error())
 	}
 
 	// pre round
 	pre_vals, err := rlp.EncodeToBytes(pre_validatorLIst)
 	if nil != err {
-		return fmt.Errorf("Failed to Store Previous Round Validators: rlp encodeing failed. error:%s", err)
+		return fmt.Errorf("Failed to Store Previous Round Validators: rlp encodeing failed. error:%s", err.Error())
 	}
 	if err := snapdb.PutBaseDB(staking.GetPreRoundValidatorKey(), pre_vals); nil != err {
-		return fmt.Errorf("Failed to Store Previous Round Validators: PutBaseDB failed. error:%s", err)
+		return fmt.Errorf("Failed to Store Previous Round Validators: PutBaseDB failed. error:%s", err.Error())
 	}
 
 	// current round
 	vals, err := rlp.EncodeToBytes(validatorLIst)
 	if nil != err {
-		return fmt.Errorf("Failed to Store Current Round Validators: rlp encodeing failed. error:%s", err)
+		return fmt.Errorf("Failed to Store Current Round Validators: rlp encodeing failed. error:%s", err.Error())
 	}
 	if err := snapdb.PutBaseDB(staking.GetCurRoundValidatorKey(), vals); nil != err {
-		return fmt.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err)
+		return fmt.Errorf("Failed to Store Current Round Validators: PutBaseDB failed. error:%s", err.Error())
 	}
 
 	if err := snapdb.SetCurrent(genesisHash, *common.Big0, *common.Big0); nil != err {
-		return fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err)
+		return fmt.Errorf("Failed to SetCurrent by snapshotdb. error:%s", err.Error())
 	}
 	return nil
 }

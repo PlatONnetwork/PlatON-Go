@@ -397,13 +397,12 @@ func (govPlugin *GovPlugin) DeclareVersion(from common.Address, declaredNodeID d
 			return common.NewBizError("declared version neither equals active version nor new version.")
 		}
 	} else {
-		govPlugin.govDB.GetPreActiveVersion()
-
-		if declaredVersion>>8 == activeVersion>>8 {
+		preActiveVersion := govPlugin.govDB.GetPreActiveVersion(state)
+		if declaredVersion>>8 == activeVersion>>8 || (preActiveVersion != 0 && declaredVersion == preActiveVersion) {
 			//the declared version is the current active version, notify staking immediately
 			stk.DeclarePromoteNotify(blockHash, blockNumber, declaredNodeID, declaredVersion)
 		} else {
-			log.Error("there's no version proposal at voting stage, declared version should be active version.", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
+			log.Error("there's no version proposal at voting stage, declared version should be active or pre-active version.", "activeVersion", activeVersion, "declaredVersion", declaredVersion)
 			return common.NewBizError("there's no version proposal at voting stage, declared version should be active version.")
 		}
 	}

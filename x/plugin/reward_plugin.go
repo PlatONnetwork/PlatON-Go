@@ -116,7 +116,7 @@ func (rmp *rewardMgrPlugin) rewardStaking(head *types.Header, reward *big.Int, s
 	log.Trace("get verifier list success", "list", list)
 
 	for index := 0; index < len(list); index++ {
-		addr := list[index].BenifitAddress
+		addr := list[index].BenefitAddress
 		log.Trace("rewarding staking...", "benefitAddress", addr.String())
 
 		if addr != vm.RewardManagerPoolAddr {
