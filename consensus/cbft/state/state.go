@@ -319,8 +319,8 @@ func (q qcBlock) blockIndex() uint32 {
 	return q.qc.BlockIndex
 }
 
-func (p qcBlock) block() *types.Block {
-	return p.b
+func (q qcBlock) block() *types.Block {
+	return q.b
 }
 
 func (q qcBlock) prepareBlock() *protocols.PrepareBlock {

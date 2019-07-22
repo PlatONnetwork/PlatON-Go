@@ -110,7 +110,7 @@ func (b *BlockTree) pruneBranch(ext *BlockExt, clearFn func(*types.Block)) {
 				clearFn(e.block)
 			}
 			delete(extMap, h)
-			b.pruneBranch(ext, clearFn)
+			b.pruneBranch(e, clearFn)
 		}
 	}
 }
@@ -119,7 +119,7 @@ func (b *BlockTree) insertBlock(ext *BlockExt) (*types.Block, *types.Block) {
 	number := ext.block.NumberU64()
 	hash := ext.block.Hash()
 	if extMap, ok := b.blocks[number]; ok {
-		if ext, ok := extMap[hash]; !ok {
+		if _, ok := extMap[hash]; !ok {
 			extMap[hash] = ext
 		} else {
 			return nil, nil

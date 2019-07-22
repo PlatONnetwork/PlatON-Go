@@ -1,4 +1,4 @@
-package cbft
+package bftnet
 
 import (
 	"github.com/PlatONnetwork/PlatON-Go/common"

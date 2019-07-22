@@ -17,11 +17,12 @@
 package eth
 
 import (
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft"
 	"math/big"
 	"os"
 	"os/user"
 	"time"
+
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
 
 	"github.com/PlatONnetwork/PlatON-Go/common/hexutil"
 	"github.com/PlatONnetwork/PlatON-Go/core"
@@ -37,7 +38,7 @@ const (
 // DefaultConfig contains default settings for use on the Ethereum main net.
 var DefaultConfig = Config{
 	SyncMode: downloader.FullSync,
-	CbftConfig: cbft.OptionsConfig{
+	CbftConfig: types.OptionsConfig{
 
 		WalMode: false,
 
@@ -104,7 +105,7 @@ type Config struct {
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`
 
-	CbftConfig cbft.OptionsConfig `toml:",omitempty"`
+	CbftConfig types.OptionsConfig `toml:",omitempty"`
 
 	// Protocol options
 	NetworkId uint64 // Network ID to use for selecting peers to connect to

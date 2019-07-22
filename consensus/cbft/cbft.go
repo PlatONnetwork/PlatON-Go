@@ -11,11 +11,11 @@ import (
 
 	"github.com/PlatONnetwork/PlatON-Go/common"
 	"github.com/PlatONnetwork/PlatON-Go/consensus"
+	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/bftnet"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/evidence"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/executor"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/fetcher"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/protocols"
-	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/router"
 	"github.com/PlatONnetwork/PlatON-Go/consensus/cbft/rules"
 	cstate "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/state"
 	ctypes "github.com/PlatONnetwork/PlatON-Go/consensus/cbft/types"
@@ -35,13 +35,8 @@ import (
 
 const cbftVersion = 1
 
-type Config struct {
-	sys    *params.CbftConfig
-	option *OptionsConfig
-}
-
 type Cbft struct {
-	config           Config
+	config           ctypes.Config
 	eventMux         *event.TypeMux
 	closeOnce        sync.Once
 	exitCh           chan struct{}
@@ -52,7 +47,7 @@ type Cbft struct {
 	syncMsgCh        chan *ctypes.MsgInfo
 	evPool           evidence.EvidencePool
 	log              log.Logger
-	network          *EngineManager
+	network          *bftnet.EngineManager
 
 	// Async call channel
 	asyncCallCh chan func()
@@ -81,15 +76,11 @@ type Cbft struct {
 	wal                wal.Wal
 	stateMu            sync.Mutex
 	viewMu             sync.Mutex
-
-	// processing message
-	handler *EngineManager
-	routing Router
 }
 
-func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
+func New(sysConfig *params.CbftConfig, optConfig *ctypes.OptionsConfig, eventMux *event.TypeMux, ctx *node.ServiceContext) *Cbft {
 	cbft := &Cbft{
-		config:             Config{sysConfig, optConfig},
+		config:             ctypes.Config{sysConfig, optConfig},
 		eventMux:           eventMux,
 		exitCh:             make(chan struct{}),
 		peerMsgCh:          make(chan *ctypes.MsgInfo, optConfig.PeerMsgQueueSize),
@@ -109,11 +100,6 @@ func New(sysConfig *params.CbftConfig, optConfig *OptionsConfig, eventMux *event
 	cbft.safetyRules = rules.NewSafetyRules(&cbft.state, &cbft.blockTree)
 	cbft.voteRules = rules.NewVoteRules(&cbft.state)
 
-	// init handler and router to process message.
-	// cbft -> handler -> router.
-	cbft.handler = NewEngineManger(cbft)                // init engineManager as handler.
-	cbft.routing = router.NewRouter(cbft, cbft.handler) // init router to distribute message.
-
 	return cbft
 }
 
@@ -126,7 +112,7 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 	cbft.blockChain = chain
 	cbft.txPool = txPool
 	cbft.asyncExecutor = executor.NewAsyncExecutor(blockCacheWriter.Execute)
-	cbft.validatorPool = validator.NewValidatorPool(agency, chain.CurrentHeader().Number.Uint64(), cbft.config.sys.NodeID)
+	cbft.validatorPool = validator.NewValidatorPool(agency, chain.CurrentHeader().Number.Uint64(), cbft.config.Sys.NodeID)
 
 	//Initialize block tree
 	block := chain.GetBlock(chain.CurrentHeader().Hash(), chain.CurrentHeader().Number.Uint64())
@@ -146,8 +132,12 @@ func (cbft *Cbft) Start(chain consensus.ChainReader, blockCacheWriter consensus.
 
 	go cbft.receiveLoop()
 
+	// init handler and router to process message.
+	// cbft -> handler -> router.
+	cbft.network = bftnet.NewEngineManger(cbft) // init engineManager as handler.
+
 	// Start the handler to process the message.
-	go cbft.handler.Start()
+	go cbft.network.Start()
 
 	return nil
 }
@@ -326,16 +316,12 @@ func (cbft *Cbft) OnSeal(block *types.Block, results chan<- *types.Block, stop <
 		return
 	}
 
-	me, _ := cbft.validatorPool.GetValidatorByNodeID(cbft.state.HighestQCBlock().NumberU64(), cbft.config.sys.NodeID)
-
 	// TODO: seal process
 	prepareBlock := &protocols.PrepareBlock{
-		Epoch:         cbft.state.Epoch(),
-		ViewNumber:    cbft.state.ViewNumber(),
-		Block:         block,
-		BlockIndex:    cbft.state.NumViewBlocks(),
-		ProposalIndex: uint32(me.Index),
-		ProposalAddr:  me.Address,
+		Epoch:      cbft.state.Epoch(),
+		ViewNumber: cbft.state.ViewNumber(),
+		Block:      block,
+		BlockIndex: cbft.state.NumViewBlocks(),
 	}
 
 	if cbft.state.NumViewBlocks() == 0 {
@@ -486,20 +472,20 @@ func (cbft *Cbft) ShouldSeal(curTime time.Time) (bool, error) {
 
 func (cbft *Cbft) OnShouldSeal(result chan error) {
 	currentExecutedBlockNumber := cbft.state.HighestExecutedBlock().NumberU64()
-	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.sys.NodeID) {
+	if !cbft.validatorPool.IsValidator(currentExecutedBlockNumber, cbft.config.Sys.NodeID) {
 		result <- errors.New("current node not a validator")
 		return
 	}
 
 	numValidators := cbft.validatorPool.Len(currentExecutedBlockNumber)
 	currentProposer := cbft.state.ViewNumber() % uint64(numValidators)
-	validator, _ := cbft.validatorPool.GetValidatorByNodeID(currentExecutedBlockNumber, cbft.config.sys.NodeID)
+	validator, _ := cbft.validatorPool.GetValidatorByNodeID(currentExecutedBlockNumber, cbft.config.Sys.NodeID)
 	if currentProposer != uint64(validator.Index) {
 		result <- errors.New("current node not the proposer")
 		return
 	}
 
-	if cbft.state.NumViewBlocks() >= cbft.config.sys.Amount {
+	if cbft.state.NumViewBlocks() >= cbft.config.Sys.Amount {
 		result <- errors.New("produce block over limit")
 		return
 	}
@@ -507,7 +493,7 @@ func (cbft *Cbft) OnShouldSeal(result chan error) {
 }
 
 func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
-	produceInterval := time.Duration(cbft.config.sys.Period/uint64(cbft.config.sys.Amount)) * time.Millisecond
+	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
 	if cbft.state.Deadline().Sub(timePoint) > produceInterval {
 		return timePoint.Add(produceInterval)
 	}
@@ -515,7 +501,7 @@ func (cbft *Cbft) CalcBlockDeadline(timePoint time.Time) time.Time {
 }
 
 func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
-	produceInterval := time.Duration(cbft.config.sys.Period/uint64(cbft.config.sys.Amount)) * time.Millisecond
+	produceInterval := time.Duration(cbft.config.Sys.Period/uint64(cbft.config.Sys.Amount)) * time.Millisecond
 	if time.Now().Sub(blockTime) < produceInterval {
 		// TODO: add network latency
 		return time.Now().Add(time.Now().Sub(blockTime))
@@ -524,7 +510,7 @@ func (cbft *Cbft) CalcNextBlockTime(blockTime time.Time) time.Time {
 }
 
 func (cbft *Cbft) IsConsensusNode() bool {
-	return cbft.validatorPool.IsValidator(cbft.state.HighestQCBlock().NumberU64(), cbft.config.sys.NodeID)
+	return cbft.validatorPool.IsValidator(cbft.state.HighestQCBlock().NumberU64(), cbft.config.Sys.NodeID)
 }
 
 func (cbft *Cbft) GetBlock(hash common.Hash, number uint64) *types.Block {
@@ -558,7 +544,7 @@ func (cbft *Cbft) OnPong(nodeID discover.NodeID, netLatency int64) error {
 	return nil
 }
 
-func (cbft *Cbft) Config() *Config {
+func (cbft *Cbft) Config() *ctypes.Config {
 	panic("need to be improved")
 	return nil
 }
@@ -591,11 +577,6 @@ func (cbft *Cbft) commitBlock(block *types.Block, qc *ctypes.QuorumCert) {
 		ExtraData: extra,
 		SyncState: nil,
 	})
-}
-
-// Return to the implementation of Router.
-func (cbft *Cbft) Router() Router {
-	return cbft.routing
 }
 
 func (cbft *Cbft) Evidences() string {
