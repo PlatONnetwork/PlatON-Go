@@ -444,7 +444,6 @@ func (s *snapshotDB) Put(hash common.Hash, key, value []byte) error {
 // if hash is nil, unRecognizedBlockData > RecognizedBlockData > CommittedBlockData > baseDB
 // if hash is not nil,it will find from the chain, RecognizedBlockData > CommittedBlockData > baseDB
 func (s *snapshotDB) Get(hash common.Hash, key []byte) ([]byte, error) {
-	//found from unRecognized
 	s.unCommit.RLock()
 	s.commitLock.RLock()
 	defer func() {
@@ -659,7 +658,7 @@ func itrToMdb(itr iterator.Iterator, r *rankingItr) {
 			if !condtion {
 				heap.Push(&r.heap, kv{k, v})
 			}
-			if r.hepNum > 0 && len(r.heap) > r.hepNum {
+			if r.hepMaxNum > 0 && len(r.heap) > r.hepMaxNum {
 				heap.Pop(&r.heap)
 			}
 			r.addHandledKey(k)
@@ -721,31 +720,24 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 	}
 	itr := s.baseDB.NewIterator(prefix, nil)
 	for itr.Next() {
-		if r.hepNum > 0 && len(r.heap) == r.hepNum {
-			break
-		}
+		var pop bool
 		k, v := itr.Key(), itr.Value()
-		if len(r.heap) > 0 && bytes.Compare(k, r.heap[0].key) > 0 {
-			break
+		if r.hepMaxNum <= 0 || r.heap.Len() < r.hepMaxNum {
+		} else {
+			if bytes.Compare(k, r.heap[0].key) > 0 {
+				break
+			}
+			pop = true
 		}
-
 		if r.findHandledKey(k) {
 			continue
-		} else {
-			condtion := v == nil || len(v) == 0
-			if !condtion {
-				sk, sv := make([]byte, len(k)), make([]byte, len(v))
-				copy(sk, k)
-				copy(sv, v)
-				heap.Push(&r.heap, kv{key: sk, value: sv})
-			}
-			if r.hepNum > 0 && len(r.heap) > r.hepNum {
-				heap.Pop(&r.heap)
-			}
-			r.addHandledKey(k)
 		}
+		r.push2Heap(k, v)
+		if pop {
+			heap.Pop(&r.heap)
+		}
+		r.addHandledKey(k)
 	}
-
 	itr.Release()
 	mdb := memdb.New(DefaultComparer, rangeNumber)
 	for r.heap.Len() > 0 {
@@ -759,7 +751,7 @@ func (s *snapshotDB) Ranking(hash common.Hash, key []byte, rangeNumber int) iter
 
 func newRaningItr(hepNum int) *rankingItr {
 	r := new(rankingItr)
-	r.hepNum = hepNum
+	r.hepMaxNum = hepNum
 	r.handledKey = make([][]byte, 0)
 	r.heap = make(kvsMaxToMin, 0)
 	return r
@@ -768,8 +760,8 @@ func newRaningItr(hepNum int) *rankingItr {
 type rankingItr struct {
 	handledKey [][]byte
 	//max heap
-	heap   kvsMaxToMin
-	hepNum int
+	heap      kvsMaxToMin
+	hepMaxNum int
 }
 
 func (r *rankingItr) addHandledKey(key []byte) {
@@ -785,6 +777,16 @@ func (r *rankingItr) findHandledKey(key []byte) bool {
 		}
 	}
 	return false
+}
+
+func (r *rankingItr) push2Heap(k, v []byte) {
+	condtion := v == nil || len(v) == 0
+	if !condtion {
+		sk, sv := make([]byte, len(k)), make([]byte, len(v))
+		copy(sk, k)
+		copy(sv, v)
+		heap.Push(&r.heap, kv{key: sk, value: sv})
+	}
 }
 
 func (s *snapshotDB) Close() error {
