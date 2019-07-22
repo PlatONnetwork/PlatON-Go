@@ -31,23 +31,30 @@ const (
 
 	// Maximum threshold for the queue of messages waiting to be sent.
 	sendQueueSize = 10240
+
+	QCBnMonitorInterval     = 4 // Qc block synchronization detection interval
+	LockedBnMonitorInterval = 4 // Locked block synchronization detection interval
+	CommitBnMonitorInterval = 4 // Commit block synchronization detection interval
+
+	//
+	TypeForQCBn     = 1
+	TypeForLockedBn = 2
+	TypeForCommitBn = 3
 )
 
 // Responsible for processing the messages in the network.
 type EngineManager struct {
 	engine    *Cbft
 	peers     *router.PeerSet
-	router    Router
 	sendQueue chan *types.MsgPackage
 	quitSend  chan struct{}
 }
 
 // Create a new handler and do some initialization.
-func NewEngineManger(engine *Cbft, r Router) *EngineManager {
+func NewEngineManger(engine *Cbft) *EngineManager {
 	return &EngineManager{
 		engine:    engine,
 		peers:     router.NewPeerSet(),
-		router:    r,
 		sendQueue: make(chan *types.MsgPackage, sendQueueSize),
 		quitSend:  make(chan struct{}, 0),
 	}
@@ -57,6 +64,7 @@ func NewEngineManger(engine *Cbft, r Router) *EngineManager {
 func (h *EngineManager) Start() {
 	// Launch goroutine loop release separately.
 	go h.sendLoop()
+	go h.synchronize()
 }
 
 // Close turns off the handler for sending messages.
@@ -87,13 +95,13 @@ func (h *EngineManager) sendLoop() {
 
 // Broadcast forwards the message to the router for distribution.
 func (h *EngineManager) broadcast(m *types.MsgPackage) {
-	h.router.gossip(m)
+	h.engine.Router().Gossip(m)
 }
 
 // Send message to a known peerId. Determine if the peerId has established
 // a connection before sending.
 func (h *EngineManager) sendMessage(m *types.MsgPackage) {
-	h.router.sendMessage(m)
+	h.engine.Router().SendMessage(m)
 }
 
 // Return the peer with the specified peerID.
@@ -158,6 +166,21 @@ func (h *EngineManager) Protocols() []p2p.Protocol {
 			},
 		},
 	}
+}
+
+// Return all neighbor node lists.
+func (h *EngineManager) Peers() ([]*router.Peer, error) {
+	return h.peers.Peers(), nil
+}
+
+// Return a peer by id.
+func (h *EngineManager) Get(id string) (*router.Peer, error) {
+	return h.peers.Get(id)
+}
+
+// Remove the peer with the specified ID
+func (h *EngineManager) Unregister(id string) error {
+	return h.peers.Unregister(id)
 }
 
 // Representative node configuration information.
@@ -347,6 +370,14 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
 		return nil
 
+	case msg.Code == protocols.QCBlockListMsg:
+		var request protocols.QCBlockList
+		if err := msg.Decode(&request); err != nil {
+			return types.ErrResp(types.ErrDecode, "%v: %v", msg, err)
+		}
+		h.engine.ReceiveMessage(types.NewMessage(&request, p.PeerID()))
+		return nil
+
 	case msg.Code == protocols.PingMsg:
 		var pingTime protocols.Ping
 		if err := msg.Decode(&pingTime); err != nil {
@@ -392,4 +423,83 @@ func (h *EngineManager) handleMsg(p *router.Peer) error {
 	}
 
 	return nil
+}
+
+// Select a node with a height higher than the local node block from
+// the neighbor node list, and then synchronize the block data of
+// the height difference to the node.
+//
+// Note:
+// 1. Synchronous blocks with inconsistent QC height.
+// 2. Synchronous blocks with inconsistent locking block height.
+// 3. Synchronous blocks with inconsistent commit block height.
+func (h *EngineManager) synchronize() {
+	log.Debug("~ Start synchronize in the handler")
+	qcTicker := time.NewTicker(QCBnMonitorInterval * time.Second)
+	lockedTicker := time.NewTicker(LockedBnMonitorInterval * time.Second)
+	commitTicker := time.NewTicker(CommitBnMonitorInterval * time.Second)
+
+	for {
+		select {
+		case <-qcTicker.C:
+			qcBn := h.engine.HighestQCBlockBn()
+			highPeers := h.peers.PeersWithHighestQCBn(qcBn)
+			biggestPeer, biggestNumber := largerPeer(TypeForQCBn, highPeers, qcBn)
+			if biggestPeer != nil {
+				log.Debug("Synchronize for qc block send message", "localQCBn", qcBn, "remoteQCBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
+				// todo: Build a message and then send a message
+			}
+		case <-lockedTicker.C:
+			lockedBn := h.engine.HighestLockBlockBn()
+			highPeers := h.peers.PeersWithHighestLockedBn(lockedBn)
+			biggestPeer, biggestNumber := largerPeer(TypeForLockedBn, highPeers, lockedBn)
+			if biggestPeer != nil {
+				log.Debug("Synchronize for locked block send message", "localLockedBn", lockedBn, "remoteLockedBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
+				// todo: Build a message and then send a message
+			}
+		case <-commitTicker.C:
+			commitBn := h.engine.HighestCommitBlockBn()
+			highPeers := h.peers.PeersWithHighestCommitBn(commitBn)
+			biggestPeer, biggestNumber := largerPeer(TypeForCommitBn, highPeers, commitBn)
+			if biggestPeer != nil {
+				log.Debug("Synchronize for locked block send message", "localCommitBn", commitBn, "remoteCommitBn", biggestNumber, "remotePeerID", biggestPeer.PeerID())
+				// todo: Build a message and then send a message
+			}
+		case <-h.quitSend:
+			log.Error("synchronize quit")
+			return
+		}
+	}
+}
+
+// Select a node from the list of nodes that is larger than the specified value.
+//
+// bType:
+//  1 -> qcBlock, 2 -> lockedBlock, 3 -> CommitBlock
+func largerPeer(bType uint64, peers []*router.Peer, number uint64) (*router.Peer, uint64) {
+	if peers != nil && len(peers) != 0 {
+		return nil, 0
+	}
+	largerNum := number
+	largerIndex := -1
+	for index, v := range peers {
+		var pNumber uint64
+		switch bType {
+		case TypeForQCBn:
+			pNumber = v.QCBn()
+		case TypeForLockedBn:
+			pNumber = v.LockedBn()
+		case TypeForCommitBn:
+			pNumber = v.CommitBn()
+		default:
+			return nil, 0
+		}
+		if pNumber > largerNum {
+			largerNum, largerIndex = pNumber, index
+		}
+	}
+	if largerIndex != -1 {
+		return peers[largerIndex], largerNum
+	}
+	return nil, 0
 }
